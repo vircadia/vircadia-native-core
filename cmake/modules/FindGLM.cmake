@@ -35,6 +35,7 @@ IF (GLM_INCLUDE_DIR)
 ELSE (GLM_INCLUDE_DIR)
   # default search dirs
   SET(_glm_HEADER_SEARCH_DIRS
+      "$ENV{HIFI_LIB_DIR}/glm"
       "/usr/include"
       "/usr/local/include")
 
