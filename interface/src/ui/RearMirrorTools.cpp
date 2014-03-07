@@ -5,12 +5,13 @@
 //  Created by stojce on 23.10.2013.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
+#include "RearMirrorTools.h"
+
 #include <QMouseEvent>
 
 #include <SharedUtil.h>
 
 #include "Application.h"
-#include "RearMirrorTools.h"
 #include "Util.h"
 
 const char SETTINGS_GROUP_NAME[] = "Rear View Tools";

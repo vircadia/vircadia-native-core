@@ -6,6 +6,8 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include "ui/LogDialog.h"
+
 #include <QDesktopWidget>
 #include <QTextBlock>
 #include <QtGui>
@@ -13,7 +15,6 @@
 #include <SharedUtil.h>
 
 #include "Application.h"
-#include "ui/LogDialog.h"
 
 const int TOP_BAR_HEIGHT = 46;
 const int INITIAL_WIDTH = 720;
