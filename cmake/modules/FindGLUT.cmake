@@ -64,7 +64,7 @@ elseif()
       )
   endif ()
 
-  if(GLUT_INCLUDE_DIR AND GLUT_glut_LIBRARY)
+  if (GLUT_INCLUDE_DIR AND GLUT_glut_LIBRARY)
     # Is -lXi and -lXmu required on all platforms that have it?
     # If not, we need some way to figure out what platform we are on.
     set(GLUT_LIBRARIES ${GLUT_glut_LIBRARY} ${GLUT_Xmu_LIBRARY} ${GLUT_Xi_LIBRARY})
