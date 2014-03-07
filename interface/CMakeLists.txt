@@ -49,7 +49,8 @@ endforeach(SUBDIR)
 # windows also includes the faceshift externals, because using a lib doesn't work due to debug/release mismatch
 if (WIN32)
   set(EXTERNAL_SOURCE_SUBDIRS "faceshift")
-endif (WIN32)
+endif ()
+
 foreach(EXTERNAL_SOURCE_SUBDIR ${EXTERNAL_SOURCE_SUBDIRS})
   file(GLOB_RECURSE SUBDIR_SRCS 
     "external/${EXTERNAL_SOURCE_SUBDIR}/src/*.cpp" 
