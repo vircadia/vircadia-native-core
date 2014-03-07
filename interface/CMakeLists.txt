@@ -148,9 +148,11 @@ endif (VISAGE_FOUND AND NOT DISABLE_VISAGE)
 if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
     add_definitions(-DHAVE_LIBOVR)
     include_directories(SYSTEM "${LIBOVR_INCLUDE_DIRS}")
+    
     if (APPLE OR UNIX)
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${LIBOVR_INCLUDE_DIRS}")
-    endif (APPLE OR UNIX)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${LIBOVR_INCLUDE_DIRS}")
+    endif ()
+    
     target_link_libraries(${TARGET_NAME} "${LIBOVR_LIBRARIES}")
 endif (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
 
@@ -234,12 +236,6 @@ else (APPLE)
       add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${GLUT_WIN_DLL}
-        $<TARGET_FILE_DIR:${TARGET_NAME}>
-      )
-      
-      add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${GLEW_WIN_DLL}
         $<TARGET_FILE_DIR:${TARGET_NAME}>
       )
   endif()

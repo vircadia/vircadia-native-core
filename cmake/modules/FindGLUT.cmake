@@ -23,7 +23,7 @@ else ()
     endif()
     
     find_library(GLUT_glut_LIBRARY freeglut PATH_SUFFIXES lib/${WIN_ARCH_DIR} HINTS ${WIN_GLUT_SEARCH_DIRS})
-    find_library(GLUT_WIN_DLL freeglut PATH_SUFFIXES bin/${WIN_ARCH_DIR} HINTS ${WIN_GLUT_SEARCH_DIRS})
+    find_library(GLUT_WIN_DLL freeglut.dll PATH_SUFFIXES bin/${WIN_ARCH_DIR} HINTS ${WIN_GLUT_SEARCH_DIRS})
   else ()
       find_path(GLUT_INCLUDE_DIR GL/glut.h
           "${GLUT_LOCATION}/include"
