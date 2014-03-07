@@ -12,7 +12,7 @@
 
 if (GLUT_INCLUDE_DIR AND GLUT_LIBRARIES)
   set(GLUT_FOUND TRUE)
-elseif()
+else ()
   if (WIN32)
     set(WIN_GLUT_SEARCH_DIRS "${GLUT_ROOT_DIR}" "$ENV{GLUT_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/freeglut" "${OPENGL_INCLUDE_DIR}")
     find_path(GLUT_INCLUDE_DIR include/GL/glut.h HINTS ${WIN_GLUT_SEARCH_DIRS})

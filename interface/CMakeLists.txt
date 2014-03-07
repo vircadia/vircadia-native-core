@@ -190,7 +190,7 @@ if (APPLE)
     find_library(OpenGL OpenGL)
     find_library(IOKit IOKit)
     find_library(QTKit QTKit)
-    find_library(QuartzCore QuartzCore)
+    find_library(QuartzCore QuartzCore)    
 
     target_link_libraries(
         ${TARGET_NAME}
