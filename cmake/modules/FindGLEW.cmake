@@ -18,7 +18,7 @@ else ()
   if (WIN32)
     set(WIN_GLEW_SEARCH_DIRS "${GLEW_ROOT_DIR}" "$ENV{GLEW_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/glew")
        
-  	find_path(GLEW_INCLUDE_DIRS include/GL/glew.h HINTS ${WIN_GLEW_SEARCH_DIRS})
+  	find_path(GLEW_INCLUDE_DIRS GL/glew.h PATH_SUFFIXES include HINTS ${WIN_GLEW_SEARCH_DIRS})
   
     if (CMAKE_CL_64)
       set(WIN_ARCH_DIR "x64")
