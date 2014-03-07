@@ -228,15 +228,8 @@ else (APPLE)
   
   # link target to external libraries
   if (WIN32)
-      find_package(GLEW REQUIRED)
-      include_directories(${GLEW_INCLUDE_DIRS})
-      target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARY}" wsock32.lib opengl32.lib)
-      
-      # have CMake copy the dlls for GLUT and GLEW as a post build step
-      add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${GLUT_DLL_PATH}/freeglut.dll
-        $<TARGET_FILE_DIR:${TARGET_NAME}>
-      )
+    find_package(GLEW REQUIRED)
+    include_directories(${GLEW_INCLUDE_DIRS})
+    target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARY}" wsock32.lib opengl32.lib)
   endif()
 endif (APPLE)
