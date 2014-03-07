@@ -44,7 +44,7 @@ void OctreeElement::init(unsigned char * octalCode) {
     _voxelNodeLeafCount++; // all nodes start as leaf nodes
 
 
-    int octalCodeLength = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(octalCode));
+    size_t octalCodeLength = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(octalCode));
     if (octalCodeLength > sizeof(_octalCode)) {
         _octalCode.pointer = octalCode;
         _octcodePointer = true;

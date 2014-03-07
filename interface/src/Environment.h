@@ -15,7 +15,6 @@
 #include <HifiSockAddr.h>
 
 #include "EnvironmentData.h"
-#include "InterfaceConfig.h"
 
 class Camera;
 class ProgramObject;

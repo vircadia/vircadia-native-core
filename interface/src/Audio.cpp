@@ -88,9 +88,8 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
 }
 
 void Audio::init(QGLWidget *parent) {
-    switchToResourcesParentIfRequired();
-    _micTextureId = parent->bindTexture(QImage("./resources/images/mic.svg"));
-    _muteTextureId = parent->bindTexture(QImage("./resources/images/mute.svg"));
+    _micTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/mic.svg"));
+    _muteTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/mute.svg"));
 }
 
 void Audio::reset() {

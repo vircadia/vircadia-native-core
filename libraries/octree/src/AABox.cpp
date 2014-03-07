@@ -335,7 +335,7 @@ glm::vec3 AABox::getClosestPointOnFace(const glm::vec4& origin, const glm::vec4&
             secondAxisMaxPlane + thirdAxisMaxPlane + offset };
         
         float minDistance = FLT_MAX;
-        for (int i = 0; i < sizeof(diagonals) / sizeof(diagonals[0]); i++) {
+        for (size_t i = 0; i < sizeof(diagonals) / sizeof(diagonals[0]); i++) {
             float divisor = glm::dot(direction, diagonals[i]);
             if (fabs(divisor) < EPSILON) {
                 continue; // segment is parallel to diagonal plane

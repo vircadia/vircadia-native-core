@@ -9,7 +9,6 @@
 #include <cfloat>
 #include <cmath>
 
-#include <QNetworkReply>
 #include <QTimer>
 #include <QtDebug>
 
@@ -156,25 +155,55 @@ void Resource::finishedLoading(bool success) {
     _loadPriorities.clear();
 }
 
+const int REPLY_TIMEOUT_MS = 5000;
+
 void Resource::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
     if (!_reply->isFinished()) {
+        _bytesReceived = bytesReceived;
+        _bytesTotal = bytesTotal;
+        _replyTimer->start(REPLY_TIMEOUT_MS);
         return;
     }
     _reply->disconnect(this);
     QNetworkReply* reply = _reply;
     _reply = NULL;
+    _replyTimer->disconnect(this);
+    _replyTimer->deleteLater();
+    _replyTimer = NULL;
     ResourceCache::requestCompleted();
     
     downloadFinished(reply);
 }
 
 void Resource::handleReplyError() {
-    QDebug debug = qDebug() << _reply->errorString();
+    handleReplyError(_reply->error(), qDebug() << _reply->errorString());
+}
+
+void Resource::handleReplyTimeout() {
+    handleReplyError(QNetworkReply::TimeoutError, qDebug() << "Timed out loading" << _reply->url() <<
+        "received" << _bytesReceived << "total" << _bytesTotal);
+}
+
+void Resource::makeRequest() {
+    _reply = ResourceCache::getNetworkAccessManager()->get(_request);
     
-    QNetworkReply::NetworkError error = _reply->error();
+    connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
+    connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
+    
+    _replyTimer = new QTimer(this);
+    connect(_replyTimer, SIGNAL(timeout()), SLOT(handleReplyTimeout()));
+    _replyTimer->setSingleShot(true);
+    _replyTimer->start(REPLY_TIMEOUT_MS);
+    _bytesReceived = _bytesTotal = 0;
+}
+
+void Resource::handleReplyError(QNetworkReply::NetworkError error, QDebug debug) {
     _reply->disconnect(this);
     _reply->deleteLater();
     _reply = NULL;
+    _replyTimer->disconnect(this);
+    _replyTimer->deleteLater();
+    _replyTimer = NULL;
     ResourceCache::requestCompleted();
     
     // retry for certain types of failures
@@ -193,7 +222,7 @@ void Resource::handleReplyError() {
             const int BASE_DELAY_MS = 1000;
             if (++_attempts < MAX_ATTEMPTS) {
                 QTimer::singleShot(BASE_DELAY_MS * (int)pow(2.0, _attempts), this, SLOT(attemptRequest()));
-                debug << " -- retrying...";
+                debug << "-- retrying...";
                 return;
             }
             // fall through to final failure
@@ -202,13 +231,6 @@ void Resource::handleReplyError() {
             finishedLoading(false);
             break;
     }
-}
-
-void Resource::makeRequest() {
-    _reply = ResourceCache::getNetworkAccessManager()->get(_request);
-    
-    connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
-    connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
 }
 
 uint qHash(const QPointer<QObject>& value, uint seed) {

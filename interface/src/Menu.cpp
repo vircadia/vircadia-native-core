@@ -1320,17 +1320,25 @@ void Menu::addSeparator(const QString& menuName, const QString& separatorName) {
 
 void Menu::removeSeparator(const QString& menuName, const QString& separatorName) {
     QMenu* menu = getMenu(menuName);
+    bool separatorRemoved = false;
     if (menu) {
         int textAt = findPositionOfMenuItem(menu, separatorName);
         QList<QAction*> menuActions = menu->actions();
         QAction* separatorText = menuActions[textAt];
-        QAction* separatorLine = menuActions[textAt - 1];
-        if (separatorLine->isSeparator()) {
-            menu->removeAction(separatorText);
-            menu->removeAction(separatorLine);
+        if (textAt > 0 && textAt < menuActions.size()) {
+            QAction* separatorLine = menuActions[textAt - 1];
+            if (separatorLine) {
+                if (separatorLine->isSeparator()) {
+                    menu->removeAction(separatorText);
+                    menu->removeAction(separatorLine);
+                    separatorRemoved = true;
+                }
+            }
         }
     }
-    QMenuBar::repaint();
+    if (separatorRemoved) {
+        QMenuBar::repaint();
+    }
 }
 
 void Menu::addMenuItem(const MenuItemProperties& properties) {
