@@ -86,7 +86,6 @@ qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}")
 
 if (APPLE)
-
   # configure CMake to use a custom Info.plist
   SET_TARGET_PROPERTIES( ${this_target} PROPERTIES MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in )
 
@@ -98,9 +97,7 @@ if (APPLE)
 
   # set where in the bundle to put the resources file
   SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/interface.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-
-  SET(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/interface.icns")
-
+  
   # grab the directories in resources and put them in the right spot in Resources
   file(GLOB RESOURCE_SUBDIRS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/resources" "${CMAKE_CURRENT_SOURCE_DIR}/resources/*")
   foreach(DIR ${RESOURCE_SUBDIRS})
@@ -111,7 +108,18 @@ if (APPLE)
       SET(INTERFACE_SRCS ${INTERFACE_SRCS} "${DIR_CONTENTS}")
     endif()
   endforeach()
-endif (APPLE)
+
+  SET(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/interface.icns")
+elseif()
+  # remove and then copy the resources files beside the executable
+  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+                     COMMAND "${CMAKE_COMMAND}" -E remove_directory
+                     $<TARGET_FILE_DIR:${TARGET_NAME}>/resources)
+  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+                    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+                    "${PROJECT_SOURCE_DIR}/resources"
+                    $<TARGET_FILE_DIR:${TARGET_NAME}>/resources)
+endif()
 
 # create the executable, make it a bundle on OS X
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS})
@@ -180,11 +188,7 @@ include_directories(
 
 # include external library headers
 # use system flag so warnings are supressed
-include_directories(
-  SYSTEM
-  "${FACESHIFT_INCLUDE_DIRS}"
-  "${GLM_INCLUDE_DIRS}"
-)
+include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}")
 
 target_link_libraries(
   ${TARGET_NAME}

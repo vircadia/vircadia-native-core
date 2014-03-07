@@ -15,21 +15,22 @@
 
 #include <SharedUtil.h>
 
-#include "AmbientOcclusionEffect.h"
 #include "Application.h"
-#include "InterfaceConfig.h"
 #include "ProgramObject.h"
 #include "RenderUtil.h"
+
+#include "AmbientOcclusionEffect.h"
 
 const int ROTATION_WIDTH = 4;
 const int ROTATION_HEIGHT = 4;
     
 void AmbientOcclusionEffect::init() {
-    switchToResourcesParentIfRequired();
     
     _occlusionProgram = new ProgramObject();
-    _occlusionProgram->addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/ambient_occlusion.vert");
-    _occlusionProgram->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/ambient_occlusion.frag");
+    _occlusionProgram->addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath()
+                                               + "shaders/ambient_occlusion.vert");
+    _occlusionProgram->addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath()
+                                               + "shaders/ambient_occlusion.frag");
     _occlusionProgram->link();
     
     // create the sample kernel: an array of spherically distributed offset vectors
@@ -78,8 +79,8 @@ void AmbientOcclusionEffect::init() {
     glBindTexture(GL_TEXTURE_2D, 0);
     
     _blurProgram = new ProgramObject();
-    _blurProgram->addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/ambient_occlusion.vert");
-    _blurProgram->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/occlusion_blur.frag");
+    _blurProgram->addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/ambient_occlusion.vert");
+    _blurProgram->addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/occlusion_blur.frag");
     _blurProgram->link();
     
     _blurProgram->bind();

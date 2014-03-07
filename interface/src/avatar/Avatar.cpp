@@ -350,7 +350,7 @@ void Avatar::renderBillboard() {
     // rotate about vertical to face the camera
     glm::quat rotation = getOrientation();
     glm::vec3 cameraVector = glm::inverse(rotation) * (Application::getInstance()->getCamera()->getPosition() - _position);
-    rotation = rotation * glm::angleAxis(glm::degrees(atan2f(-cameraVector.x, -cameraVector.z)), 0.0f, 1.0f, 0.0f);
+    rotation = rotation * glm::angleAxis(glm::degrees(atan2f(-cameraVector.x, -cameraVector.z)), glm::vec3(0.0f, 1.0f, 0.0f));
     glm::vec3 axis = glm::axis(rotation);
     glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
     
@@ -412,10 +412,10 @@ void Avatar::renderDisplayName() {
     glGetIntegerv(GL_VIEWPORT, viewportMatrix);
     GLdouble result0[3], result1[3];
 
-    glm::dvec3 upVector(modelViewMatrix[1]);
-    
+    // The up vector must be relative to the rotation current rotation matrix:
+    // we set the identity
     glm::dvec3 testPoint0 = glm::dvec3(textPosition);
-    glm::dvec3 testPoint1 = glm::dvec3(textPosition) + upVector;
+    glm::dvec3 testPoint1 = glm::dvec3(textPosition) + glm::dvec3(IDENTITY_UP);
     
     bool success;
     success = gluProject(testPoint0.x, testPoint0.y, testPoint0.z,
@@ -577,13 +577,13 @@ bool Avatar::findParticleCollisions(const glm::vec3& particleCenter, float parti
 
 void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
-    const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_head.fst");
+    const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile(Application::resourcesPath() + "meshes/defaultAvatar_head.fst");
     getHead()->getFaceModel().setURL(_faceModelURL, DEFAULT_FACE_MODEL_URL, true, !isMyAvatar());
 }
 
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
-    const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_body.fst");
+    const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile(Application::resourcesPath() + "meshes/defaultAvatar_body.fst");
     _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
 }
 

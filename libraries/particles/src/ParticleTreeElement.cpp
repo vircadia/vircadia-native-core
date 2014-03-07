@@ -234,7 +234,6 @@ void ParticleTreeElement::getParticles(const glm::vec3& searchPosition, float se
     uint16_t numberOfParticles = _particles->size();
     for (uint16_t i = 0; i < numberOfParticles; i++) {
         const Particle* particle = &(*_particles)[i];
-        glm::vec3 particlePosition = particle->getPosition();
         float distance = glm::length(particle->getPosition() - searchPosition);
         if (distance < searchRadius + particle->getRadius()) {
             foundParticles.push_back(particle);
@@ -294,15 +293,14 @@ int ParticleTreeElement::readElementDataFromBuffer(const unsigned char* data, in
     uint16_t numberOfParticles = 0;
     int expectedBytesPerParticle = Particle::expectedBytes();
 
-    if (bytesLeftToRead >= sizeof(numberOfParticles)) {
-
+    if (bytesLeftToRead >= (int)sizeof(numberOfParticles)) {
         // read our particles in....
         numberOfParticles = *(uint16_t*)dataAt;
         dataAt += sizeof(numberOfParticles);
-        bytesLeftToRead -= sizeof(numberOfParticles);
+        bytesLeftToRead -= (int)sizeof(numberOfParticles);
         bytesRead += sizeof(numberOfParticles);
 
-        if (bytesLeftToRead >= (numberOfParticles * expectedBytesPerParticle)) {
+        if (bytesLeftToRead >= (int)(numberOfParticles * expectedBytesPerParticle)) {
             for (uint16_t i = 0; i < numberOfParticles; i++) {
                 Particle tempParticle;
                 int bytesForThisParticle = tempParticle.readParticleDataFromBuffer(dataAt, bytesLeftToRead, args);
