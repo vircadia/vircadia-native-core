@@ -2,8 +2,6 @@
 Instructions for adding the Sixense driver to Interface
 Andrzej Kapolka, November 18, 2013
 
-NOTE: Without doing step 2, you will crash at program start time.
-
 1. Copy the Sixense sdk folders (lib, include) into the interface/external/Sixense folder. This readme.txt should be there as well.
     
    You may optionally choose to copy the SDK folders to a location outside the repository (so you can re-use with different checkouts and different projects).
