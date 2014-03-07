@@ -9,7 +9,7 @@ project(${TARGET_NAME})
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 set(FACESHIFT_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/faceshift")
-set(LIBOVR_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/LibOVR")
+set(LIBOVR_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/oculus")
 set(SIXENSE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/Sixense")
 set(VISAGE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/visage")
 
