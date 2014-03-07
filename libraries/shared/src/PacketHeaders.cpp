@@ -44,7 +44,7 @@ int packArithmeticallyCodedValue(int value, char* destination) {
 
 PacketVersion versionForPacketType(PacketType type) {
     switch (type) {
-        PacketTypeAvatarData:
+        case PacketTypeAvatarData:
             return 1;
         case PacketTypeParticleData:
             return 1;
