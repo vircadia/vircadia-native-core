@@ -73,6 +73,8 @@ else ()
   include(FindPackageHandleStandardArgs)
   find_package_handle_standard_args(GLUT DEFAULT_MSG GLUT_INCLUDE_DIR GLUT_LIBRARIES)
   
+  message(${GLUT_INCLUDE_DIR})
+  
   if (GLUT_FOUND)
     if (NOT GLUT_FIND_QUIETLY)
       message(STATUS "Found GLUT: ${GLUT_LIBRARIES}")
