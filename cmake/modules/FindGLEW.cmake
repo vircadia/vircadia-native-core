@@ -14,16 +14,22 @@
 
 IF (WIN32)    
 	FIND_PATH(GLEW_INCLUDE_DIRS GL/glew.h
-        ${GLEW_ROOT_DIR}/include
-        $ENV{GLEW_ROOT_DIR}/include
-		$ENV{HIFI_LIB_DIR}/glew/include
-		DOC "The directory where GL/glew.h resides")
+    "${GLEW_ROOT_DIR}/include"
+    "$ENV{GLEW_ROOT_DIR}/include"
+	  "$ENV{HIFI_LIB_DIR}/glew/include"
+	  DOC "The directory where GL/glew.h resides")
+  if (CMAKE_CL_64)
+    set(WIN_ARCH_DIR "x64")
+  else()
+    set(LINUX_ARCH_DIR "Win32")
+  endif()
+	
 	FIND_LIBRARY(GLEW_LIBRARY
 		NAMES glew GLEW glew32 glew32s
 		PATHS
-        ${GLEW_ROOT_DIR}/lib
-        $ENV{GLEW_ROOT_DIR}/include
-		$ENV{HIFI_LIB_DIR}/glew/lib
+    "${GLEW_ROOT_DIR}/lib/Release/${WIN_ARCH_DIR}"
+    "$ENV{GLEW_ROOT_DIR}/lib/Release/${WIN_ARCH_DIR}"
+		"$ENV{HIFI_LIB_DIR}/glew/lib/Release/${WIN_ARCH_DIR}"
 		DOC "The GLEW library")
 ENDIF()
 
