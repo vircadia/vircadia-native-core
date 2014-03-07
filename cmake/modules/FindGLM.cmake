@@ -49,6 +49,7 @@ ELSE (GLM_INCLUDE_DIR)
   IF(GLM_ROOT_DIR)
       SET(_glm_HEADER_SEARCH_DIRS "${GLM_ROOT_DIR}"
                                   "${GLM_ROOT_DIR}/include"
+                                  "$ENV{HIFI_LIB_DIR}"
                                    ${_glm_HEADER_SEARCH_DIRS})
   ENDIF(GLM_ROOT_DIR)
 
