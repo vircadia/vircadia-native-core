@@ -14,7 +14,7 @@ if (GLUT_INCLUDE_DIR AND GLUT_LIBRARIES)
   set(GLUT_FOUND TRUE)
 elseif()
   if (WIN32)
-    set(WIN_GLUT_SEARCH_DIRS "${GLUT_ROOT_DIR}" "$ENV{GLUT_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/freeglut/" "${OPENGL_INCLUDE_DIR}")
+    set(WIN_GLUT_SEARCH_DIRS "${GLUT_ROOT_DIR}" "$ENV{GLUT_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/freeglut" "${OPENGL_INCLUDE_DIR}")
     find_path(GLUT_INCLUDE_DIR include/GL/glut.h HINTS ${WIN_GLUT_SEARCH_DIRS})
     
     if (CMAKE_CL_64)
@@ -81,6 +81,16 @@ elseif()
   include(FindPackageHandleStandardArgs)
 
   find_package_handle_standard_args(GLUT DEFAULT_MSG GLUT_INCLUDE_DIR GLUT_LIBRARIES)
+  
+  if (GLUT_FOUND)
+    if (NOT GLUT_FIND_QUIETLY)
+      message(STATUS "Found GLUT: ${GLUT_LIBRARY}")
+    endif ()
+  else ()
+    if (GLUT_FIND_REQUIRED)
+      message(FATAL_ERROR "Could not find GLUT")
+    endif ()
+  endif ()
 
   mark_as_advanced(GLUT_INCLUDE_DIR GLUT_glut_LIBRARY GLUT_Xmu_LIBRARY GLUT_Xi_LIBRARY)
 
