@@ -19,12 +19,12 @@ else (SIXENSE_LIBRARIES AND SIXENSE_INCLUDE_DIRS)
   
   set(SIXENSE_SEARCH_DIRS "${SIXENSE_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/sixense")
   
-  find_path(SIXENSE_INCLUDE_DIRS include/sixense.h HINTS "${SIXENSE_SEARCH_DIRS}")
+  find_path(SIXENSE_INCLUDE_DIRS include/sixense.h HINTS ${SIXENSE_SEARCH_DIRS})
 
   if (APPLE)
-    find_library(SIXENSE_LIBRARIES lib/osx_x64/release_dll/libsixense_x64.dylib HINTS "${SIXENSE_SEARCH_DIRS}")
+    find_library(SIXENSE_LIBRARIES lib/osx_x64/release_dll/libsixense_x64.dylib HINTS ${SIXENSE_SEARCH_DIRS})
   elseif (UNIX)
-    find_library(SIXENSE_LIBRARIES lib/linux_x64/release/libsixense_x64.so HINTS "${SIXENSE_SEARCH_DIRS}")
+    find_library(SIXENSE_LIBRARIES lib/linux_x64/release/libsixense_x64.so HINTS ${SIXENSE_SEARCH_DIRS})
   endif ()
 
   if (SIXENSE_INCLUDE_DIRS AND SIXENSE_LIBRARIES)
