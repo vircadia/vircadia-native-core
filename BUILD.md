@@ -94,7 +94,7 @@ NOTE: zLib should configure itself correctly on install. However, sometimes zLib
 ####External Libraries
 We don't currently have a Windows installer, so before running Interface, you will need to ensure that all required resources are loadable. 
 
-CMake will need to know where the headers and libraries for required external dependencies are. If you installed ZLIB using the installer, the FindZLIB cmake module will be able to find it. This isn't the case for glm, freeglut, and GLEW. '
+CMake will need to know where the headers and libraries for required external dependencies are. If you installed ZLIB using the installer, the FindZLIB cmake module will be able to find it. This isn't the case for glm, freeglut, and GLEW.
 
 You have the choice of setting a variable specific to each library, or having a folder using a defined structure that contains all of the libs.
 
@@ -105,9 +105,11 @@ The recommended route is to place all of the dependencies in one place and set o
             -> glm
                 -> glm.hpp
         -> glew
+            -> bin
             -> include
             -> lib
         -> freeglut
+            -> bin
             -> include
             -> lib
 
