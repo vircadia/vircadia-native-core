@@ -50,7 +50,7 @@ void JurisdictionMap::copyContents(unsigned char* rootCodeIn, const std::vector<
     unsigned char* rootCode;
     std::vector<unsigned char*> endNodes;
     if (rootCodeIn) {
-        int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(rootCodeIn));
+        size_t bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(rootCodeIn));
         rootCode = new unsigned char[bytes];
         memcpy(rootCode, rootCodeIn, bytes);
     } else {
@@ -60,7 +60,7 @@ void JurisdictionMap::copyContents(unsigned char* rootCodeIn, const std::vector<
     
     for (size_t i = 0; i < endNodesIn.size(); i++) {
         if (endNodesIn[i]) {
-            int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodesIn[i]));
+            size_t bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodesIn[i]));
             unsigned char* endNodeCode = new unsigned char[bytes];
             memcpy(endNodeCode, endNodesIn[i], bytes);
             endNodes.push_back(endNodeCode);
@@ -133,7 +133,7 @@ void myDebugPrintOctalCode(const unsigned char* octalCode, bool withNewLine) {
     if (!octalCode) {
         printf("NULL");
     } else {
-        for (int i = 0; i < bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(octalCode)); i++) {
+        for (size_t i = 0; i < bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(octalCode)); i++) {
             myDebugoutputBits(octalCode[i],false);
         }
     }
@@ -293,7 +293,7 @@ int JurisdictionMap::packIntoMessage(unsigned char* destinationBuffer, int avail
 
     // add the root jurisdiction
     if (_rootOctalCode) {
-        int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_rootOctalCode));
+        size_t bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_rootOctalCode));
         memcpy(destinationBuffer, &bytes, sizeof(bytes));
         destinationBuffer += sizeof(bytes);
         memcpy(destinationBuffer, _rootOctalCode, bytes);
@@ -306,7 +306,7 @@ int JurisdictionMap::packIntoMessage(unsigned char* destinationBuffer, int avail
 
         for (int i=0; i < endNodeCount; i++) {
             unsigned char* endNodeCode = _endNodes[i];
-            int bytes = 0;
+            size_t bytes = 0;
             if (endNodeCode) {
                 bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
             }
