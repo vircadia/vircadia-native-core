@@ -161,7 +161,7 @@ Menu::Menu() :
     QMenu* toolsMenu = addMenu("Tools");
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::FstUploader, 0, Application::getInstance(), SLOT(uploadFST()));
-
+    addActionToQMenuAndActionHash(toolsMenu, MenuOption::Chat, 0, this, SLOT(showChat()));
 
     QMenu* viewMenu = addMenu("View");
 
@@ -1019,6 +1019,24 @@ void Menu::showMetavoxelEditor() {
         _MetavoxelEditor = new MetavoxelEditor();
     }
     _MetavoxelEditor->raise();
+}
+
+void Menu::showChat() {
+    if (!_chatWindow) {
+        _chatWindow = new ChatWindow();
+        QMainWindow* mainWindow = Application::getInstance()->getWindow();
+
+        // the height of the title bar is given by frameGeometry().height() - geometry().height()
+        // however, frameGeometry() is initialised after showing (Qt queries the OS windowing system)
+        // on the other hand, moving a window after showing it flickers; so just use some reasonable value
+        int titleBarHeight = 16;
+        _chatWindow->setGeometry(mainWindow->width() - _chatWindow->width(),
+                                 mainWindow->geometry().y() + titleBarHeight,
+                                 _chatWindow->width(),
+                                 mainWindow->height() - titleBarHeight);
+        _chatWindow->show();
+    }
+    _chatWindow->raise();
 }
 
 void Menu::audioMuteToggled() {
