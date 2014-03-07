@@ -306,6 +306,13 @@ void MyAvatar::simulate(float deltaTime) {
 
     _skeletonModel.simulate(deltaTime);
 
+    // copy out the skeleton joints from the model
+    _jointData.resize(_skeletonModel.getJointStateCount());
+    for (int i = 0; i < _jointData.size(); i++) {
+        JointData& data = _jointData[i];
+        data.valid = _skeletonModel.getJointState(i, data.rotation);
+    }
+
     Head* head = getHead();
     glm::vec3 headPosition;
     if (!_skeletonModel.getHeadPosition(headPosition)) {
@@ -663,6 +670,20 @@ float MyAvatar::getAbsoluteHeadYaw() const {
 
 glm::vec3 MyAvatar::getUprightHeadPosition() const {
     return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, getPelvisToHeadLength(), 0.0f);
+}
+
+void MyAvatar::setJointData(int index, const glm::quat& rotation) {
+    Avatar::setJointData(index, rotation);
+    if (QThread::currentThread() == thread()) {
+        _skeletonModel.setJointState(index, true, rotation);
+    }
+}
+
+void MyAvatar::clearJointData(int index) {
+    Avatar::clearJointData(index);
+    if (QThread::currentThread() == thread()) {
+        _skeletonModel.setJointState(index, false);
+    }
 }
 
 void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {

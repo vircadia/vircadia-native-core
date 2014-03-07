@@ -46,6 +46,14 @@ void Extents::addPoint(const glm::vec3& point) {
     maximum = glm::max(maximum, point);
 }
 
+QStringList FBXGeometry::getJointNames() const {
+    QStringList names;
+    foreach (const FBXJoint& joint, joints) {
+        names.append(joint.name);
+    }
+    return names;
+}
+
 static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
 
 template<class T> QVariant readBinaryArray(QDataStream& in) {

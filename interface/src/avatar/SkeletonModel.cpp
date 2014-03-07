@@ -30,6 +30,10 @@ void SkeletonModel::simulate(float deltaTime, bool delayLoad) {
 
     Model::simulate(deltaTime, delayLoad);
 
+    if (!_owningAvatar->isMyAvatar()) {
+        return; // only simulate for own avatar
+    }
+
     // find the left and rightmost active Leap palms
     int leftPalmIndex, rightPalmIndex;
     Hand* hand = _owningAvatar->getHand();
@@ -188,6 +192,9 @@ void SkeletonModel::updateJointState(int index) {
 }
 
 void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
+    if (!_owningAvatar->isMyAvatar()) {
+        return;
+    }
     // get the rotation axes in joint space and use them to adjust the rotation
     glm::mat3 axes = glm::mat3_cast(_rotation);
     glm::mat3 inverse = glm::mat3(glm::inverse(parentState.transform * glm::translate(state.translation) * 
