@@ -3464,6 +3464,10 @@ void Application::reloadAllScripts() {
     }
 }
 
+void Application::uploadFST() {
+    _fstReader.zip();
+}
+
 void Application::removeScriptName(const QString& fileNameString) {
     _activeScripts.removeOne(fileNameString);
 }
