@@ -26,7 +26,7 @@ else ()
       set(WIN_ARCH_DIR "Win32")
     endif()
 	
-  	find_library(GLEW_LIBRARY "lib/Release/${WIN_ARCH_DIR}/glew32s.lib" HINTS ${WIN_GLEW_SEARCH_DIRS})
+  	find_library(GLEW_LIBRARY glew32 PATH_SUFFIXES "lib/Release/${WIN_ARCH_DIR}" HINTS ${WIN_GLEW_SEARCH_DIRS})
   endif ()
 
   include(FindPackageHandleStandardArgs)
