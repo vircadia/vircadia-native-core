@@ -23,7 +23,7 @@ elseif()
       set(WIN_ARCH_DIR "lib")
     endif()
     
-    find_library(GLUT_glut_LIBRARY NAMES "${WIN_ARCH_DIR}/freeglut" HINTS ${WIN_GLUT_SEARCH_DIRS})
+    find_library(GLUT_glut_LIBRARY "${WIN_ARCH_DIR}/freeglut.lib" HINTS ${WIN_GLUT_SEARCH_DIRS})
   else ()
       find_path( GLUT_INCLUDE_DIR GL/glut.h
           "${GLUT_LOCATION}/include"
