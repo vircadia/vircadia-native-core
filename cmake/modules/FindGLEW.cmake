@@ -26,7 +26,7 @@ else ()
     if (CMAKE_CL_64)
       set(WIN_ARCH_DIR "x64")
     else()
-      set(LINUX_ARCH_DIR "Win32")
+      set(WIN_ARCH_DIR "Win32")
     endif()
 	
   	find_library(GLEW_LIBRARY
