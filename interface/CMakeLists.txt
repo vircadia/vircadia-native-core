@@ -21,15 +21,10 @@ endif ()
 
 if (APPLE)
   set(GL_HEADERS "#include <GLUT/glut.h>\n#include <OpenGL/glext.h>")
-endif (APPLE)
-
-if (UNIX AND NOT APPLE)
+elseif (UNIX)
   # include the right GL headers for UNIX
   set(GL_HEADERS "#include <GL/gl.h>\n#include <GL/glut.h>\n#include <GL/glext.h>")
-endif (UNIX AND NOT APPLE)
-
-if (WIN32)
-
+elseif (WIN32)
     add_definitions( -D_USE_MATH_DEFINES ) # apparently needed to get M_PI and other defines from cmath/math.h
     add_definitions( -DWINDOWS_LEAN_AND_MEAN ) # needed to make sure windows doesn't go to crazy with its defines
 
@@ -45,8 +40,7 @@ if (WIN32)
 
     #set(GL_HEADERS "#define GLEW_STATIC\n#define FREEGLUT_STATIC\n#define FREEGLUT_LIB_PRAGMAS 0\n#include <GL/glew.h>\n#include <GL/wglew.h>\n#include <GL/freeglut_std.h>\n#include <GL/freeglut_ext.h>")
     set(GL_HEADERS "#define GLEW_STATIC\n#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/glut.h>")
-
-endif (WIN32)
+endif ()
 
 # set up the external glm library
 include("${MACRO_DIR}/IncludeGLM.cmake")
@@ -63,7 +57,7 @@ foreach(SUBDIR avatar devices renderer ui starfield)
   set(INTERFACE_SRCS ${INTERFACE_SRCS} "${SUBDIR_SRCS}")
 endforeach(SUBDIR)
 
-#windows also includes the faceshift externals, because using a lib doesn't work due to debug/release mismatch
+# windows also includes the faceshift externals, because using a lib doesn't work due to debug/release mismatch
 if (WIN32)
   set(EXTERNAL_SOURCE_SUBDIRS "faceshift")
 endif (WIN32)
@@ -113,12 +107,14 @@ if (APPLE)
 elseif()
   # remove and then copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-                     COMMAND "${CMAKE_COMMAND}" -E remove_directory
-                     $<TARGET_FILE_DIR:${TARGET_NAME}>/resources)
+    COMMAND "${CMAKE_COMMAND}" -E remove_directory
+    $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
+  )
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-                    COMMAND "${CMAKE_COMMAND}" -E copy_directory
-                    "${PROJECT_SOURCE_DIR}/resources"
-                    $<TARGET_FILE_DIR:${TARGET_NAME}>/resources)
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+    "${PROJECT_SOURCE_DIR}/resources"
+    $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
+  )
 endif()
 
 # create the executable, make it a bundle on OS X
@@ -137,9 +133,8 @@ link_hifi_library(avatars ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(audio ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(script-engine ${TARGET_NAME} "${ROOT_DIR}")
 
-# find required libraries
+# find any optional libraries
 find_package(Faceshift)
-find_package(GLM REQUIRED)
 find_package(LibOVR)
 find_package(Sixense)
 find_package(Visage)
@@ -181,10 +176,7 @@ if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
 endif (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
 
 # include headers for interface and InterfaceConfig.
-include_directories(
-    "${PROJECT_SOURCE_DIR}/src"
-    "${PROJECT_BINARY_DIR}/includes"
-)
+include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")
 
 # include external library headers
 # use system flag so warnings are supressed
@@ -224,43 +216,23 @@ if (APPLE)
         ${QTKit}
         ${QuartzCore}
     )
+    
+    # install command for OS X bundle
+    INSTALL(TARGETS ${TARGET_NAME}
+        BUNDLE DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
+        RUNTIME DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
+    )
 else (APPLE)
     find_package(OpenGL REQUIRED)
     find_package(GLUT REQUIRED)
     
-    if (OPENGL_INCLUDE_DIR)
-      include_directories("${GLUT_INCLUDE_DIR}" "${OPENGL_INCLUDE_DIR}")
-    endif (OPENGL_INCLUDE_DIR)
-    
+    include_directories("${GLUT_INCLUDE_DIR}" "${OPENGL_INCLUDE_DIR}")
     target_link_libraries(${TARGET_NAME} "${OPENGL_LIBRARY}")
+    
+    # link target to external libraries
+    if (WIN32)
+        find_package(GLEW REQUIRED)
+        include_directories(${GLEW_INCLUDE_DIRS})
+        target_link_libraries(${TARGET_NAME} "${GLUT_LIBRARY}" "${GLEW_LIBRARIES}" wsock32.lib opengl32.lib)
+    endif()
 endif (APPLE)
-
-# link target to external libraries
-if (WIN32)
-    target_link_libraries(
-    ${TARGET_NAME}
-
-    "${CMAKE_CURRENT_SOURCE_DIR}/external/glew/lib/Release/Win32/glew32s.lib"
-    "${GLUT_ROOT_PATH}/lib/freeglut.lib"
-
-    wsock32.lib
-    opengl32.lib
-    )
-else (WIN32)
-  # link required libraries on UNIX
-  if (UNIX AND NOT APPLE)
-      find_package(Threads REQUIRED)
-
-      target_link_libraries(
-        ${TARGET_NAME}
-        "${CMAKE_THREAD_LIBS_INIT}"
-        "${GLUT_LIBRARY}"
-      )
-  endif (UNIX AND NOT APPLE)
-endif (WIN32)
-
-# install command for OS X bundle
-INSTALL(TARGETS ${TARGET_NAME}
-    BUNDLE DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
-    RUNTIME DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
-)
