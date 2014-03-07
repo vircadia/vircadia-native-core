@@ -215,7 +215,12 @@ else (APPLE)
     find_package(OpenGL REQUIRED)
     find_package(GLUT REQUIRED)
     
-    include_directories(SYSTEM "${GLUT_INCLUDE_DIR}" "${OPENGL_INCLUDE_DIR}")
+    include_directories(SYSTEM "${GLUT_INCLUDE_DIR}")
+    
+    if (${OPENGL_INCLUDE_DIR})
+      include_directories(SYSTEM "${OPENGL_INCLUDE_DIR}")
+    endif ()
+    
     target_link_libraries(${TARGET_NAME} "${OPENGL_LIBRARY}" "${GLUT_LIBRARIES}")
     
     # link target to external libraries
