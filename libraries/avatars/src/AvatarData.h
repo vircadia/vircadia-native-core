@@ -31,6 +31,7 @@ typedef unsigned long long quint64;
 
 #include <QtCore/QByteArray>
 #include <QtCore/QObject>
+#include <QtCore/QStringList>
 #include <QtCore/QUrl>
 #include <QtCore/QUuid>
 #include <QtCore/QVector>
@@ -142,6 +143,21 @@ public:
 
     const QVector<JointData>& getJointData() const { return _jointData; }
     void setJointData(const QVector<JointData>& jointData) { _jointData = jointData; }
+
+    Q_INVOKABLE virtual void setJointData(int index, const glm::quat& rotation);
+    Q_INVOKABLE virtual void clearJointData(int index);
+    Q_INVOKABLE bool isJointDataValid(int index) const;
+    Q_INVOKABLE virtual glm::quat getJointRotation(int index) const;
+
+    Q_INVOKABLE void setJointData(const QString& name, const glm::quat& rotation);
+    Q_INVOKABLE void clearJointData(const QString& name);
+    Q_INVOKABLE bool isJointDataValid(const QString& name) const;
+    Q_INVOKABLE glm::quat getJointRotation(const QString& name) const;
+
+    /// Returns the index of the joint with the specified name, or -1 if not found/unknown.
+    Q_INVOKABLE virtual int getJointIndex(const QString& name) const { return -1; } 
+
+    Q_INVOKABLE virtual QStringList getJointNames() const { return QStringList(); }
 
     // key state
     void setKeyState(KeyState s) { _keyState = s; }

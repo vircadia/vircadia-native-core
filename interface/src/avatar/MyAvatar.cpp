@@ -672,6 +672,20 @@ glm::vec3 MyAvatar::getUprightHeadPosition() const {
     return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, getPelvisToHeadLength(), 0.0f);
 }
 
+void MyAvatar::setJointData(int index, const glm::quat& rotation) {
+    Avatar::setJointData(index, rotation);
+    if (QThread::currentThread() == thread()) {
+        _skeletonModel.setJointState(index, true, rotation);
+    }
+}
+
+void MyAvatar::clearJointData(int index) {
+    Avatar::clearJointData(index);
+    if (QThread::currentThread() == thread()) {
+        _skeletonModel.setJointState(index, false);
+    }
+}
+
 void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
     Avatar::setFaceModelURL(faceModelURL);
     _billboardValid = false;

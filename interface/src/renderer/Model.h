@@ -89,7 +89,7 @@ public:
     bool getJointState(int index, glm::quat& rotation) const;
     
     /// Sets the joint state at the specified index.
-    void setJointState(int index, bool valid, const glm::quat& rotation);
+    void setJointState(int index, bool valid, const glm::quat& rotation = glm::quat());
     
     /// Returns the index of the left hand joint, or -1 if not found.
     int getLeftHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().leftHandJointIndex : -1; }

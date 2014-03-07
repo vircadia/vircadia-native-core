@@ -581,6 +581,35 @@ bool Avatar::findParticleCollisions(const glm::vec3& particleCenter, float parti
     return collided;
 }
 
+glm::quat Avatar::getJointRotation(int index) const {
+    if (QThread::currentThread() != thread()) {
+        return AvatarData::getJointRotation(index);
+    }
+    glm::quat rotation;
+    _skeletonModel.getJointState(index, rotation);
+    return rotation;
+}
+
+int Avatar::getJointIndex(const QString& name) const {
+    if (QThread::currentThread() != thread()) {
+        int result;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointIndex", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(int, result), Q_ARG(const QString&, name));
+        return result;
+    }
+    return _skeletonModel.isActive() ? _skeletonModel.getGeometry()->getFBXGeometry().getJointIndex(name) : -1;
+}
+
+QStringList Avatar::getJointNames() const {
+    if (QThread::currentThread() != thread()) {
+        QStringList result;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointNames", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(QStringList, result));
+        return result;
+    }
+    return _skeletonModel.isActive() ? _skeletonModel.getGeometry()->getFBXGeometry().getJointNames() : QStringList();
+}
+
 void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
     const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile(Application::resourcesPath() + "meshes/defaultAvatar_head.fst");

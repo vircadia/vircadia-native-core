@@ -379,7 +379,7 @@ Extents Model::getStaticExtents() const {
 }
 
 bool Model::getJointState(int index, glm::quat& rotation) const {
-    if (index >= _jointStates.size()) {
+    if (index == -1 || index >= _jointStates.size()) {
         return false;
     }
     rotation = _jointStates.at(index).rotation;
@@ -391,7 +391,7 @@ bool Model::getJointState(int index, glm::quat& rotation) const {
 }
 
 void Model::setJointState(int index, bool valid, const glm::quat& rotation) {
-    if (index < _jointStates.size()) {
+    if (index != -1 && index < _jointStates.size()) {
         _jointStates[index].rotation = valid ? rotation : _geometry->getFBXGeometry().joints.at(index).rotation;
     }
 }
@@ -896,9 +896,10 @@ QVector<Model::JointState> Model::updateGeometry(bool delayLoad) {
             newJointStates = createJointStates(newGeometry);
             for (QHash<QString, int>::const_iterator it = oldGeometry.jointIndices.constBegin();
                     it != oldGeometry.jointIndices.constEnd(); it++) {
-                int newIndex = newGeometry.jointIndices.value(it.key());
-                if (newIndex != 0) {
-                    newJointStates[newIndex - 1] = _jointStates.at(it.value() - 1);
+                int oldIndex = it.value() - 1;
+                int newIndex = newGeometry.getJointIndex(it.key());
+                if (newIndex != -1) {
+                    newJointStates[newIndex] = _jointStates.at(oldIndex);
                 }
             }
         }
