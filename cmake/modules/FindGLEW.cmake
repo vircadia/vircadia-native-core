@@ -41,7 +41,4 @@ else ()
       message(FATAL_ERROR "Could not find GLEW")
     endif ()
   endif ()
-  
-  # show the GLEW_INCLUDE_DIRS and GLEW_LIBRARY variables only in the advanced view
-  mark_as_advanced(GLEW_INCLUDE_DIRS GLEW_LIBRARY)
 endif ()

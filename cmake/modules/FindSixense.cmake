@@ -40,8 +40,4 @@ else ()
       message(FATAL_ERROR "Could not find Sixense")
     endif (SIXENSE_FIND_REQUIRED)
   endif ()
-
-  # show the SIXENSE_INCLUDE_DIRS and SIXENSE_LIBRARIES variables only in the advanced view
-  mark_as_advanced(SIXENSE_INCLUDE_DIRS SIXENSE_LIBRARIES)
-
 endif ()

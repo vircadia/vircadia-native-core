@@ -38,7 +38,7 @@ elseif()
           /opt/graphics/OpenGL/include
           /opt/graphics/OpenGL/contrib/libglut
       )
-      find_library( GLUT_glut_LIBRARY glut
+      find_library(GLUT_glut_LIBRARY glut
           "${GLUT_LOCATION}/lib"
           "$ENV{GLUT_LOCATION}/lib"
           /usr/lib
@@ -46,7 +46,7 @@ elseif()
           /usr/openwin/lib
           /usr/X11R6/lib
       )
-      find_library( GLUT_Xi_LIBRARY Xi
+      find_library(GLUT_Xi_LIBRARY Xi
           "${GLUT_LOCATION}/lib"
           "$ENV{GLUT_LOCATION}/lib"
           /usr/lib
@@ -54,7 +54,7 @@ elseif()
           /usr/openwin/lib
           /usr/X11R6/lib
       )
-      find_library( GLUT_Xmu_LIBRARY Xmu
+      find_library(GLUT_Xmu_LIBRARY Xmu
           "${GLUT_LOCATION}/lib"
           "$ENV{GLUT_LOCATION}/lib"
           /usr/lib
@@ -83,6 +83,6 @@ elseif()
     endif ()
   endif ()
 
-  mark_as_advanced(GLUT_INCLUDE_DIR GLUT_glut_LIBRARY GLUT_Xmu_LIBRARY GLUT_Xi_LIBRARY)
+  mark_as_advanced(GLUT_glut_LIBRARY GLUT_Xmu_LIBRARY GLUT_Xi_LIBRARY)
 
 endif ()
