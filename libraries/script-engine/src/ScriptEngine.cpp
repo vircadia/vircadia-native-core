@@ -25,6 +25,7 @@
 #include <Sound.h>
 
 #include "MenuItemProperties.h"
+#include "LocalVoxels.h"
 #include "ScriptEngine.h"
 
 const unsigned int VISUAL_DATA_CALLBACK_USECS = (1.0 / 60.0) * 1000 * 1000;
@@ -118,6 +119,7 @@ bool ScriptEngine::setScriptContents(const QString& scriptContents) {
 }
 
 Q_SCRIPT_DECLARE_QMETAOBJECT(AudioInjectorOptions, QObject*)
+Q_SCRIPT_DECLARE_QMETAOBJECT(LocalVoxels, QString)
 
 void ScriptEngine::init() {
     if (_isInitialized) {
@@ -146,6 +148,9 @@ void ScriptEngine::init() {
 
     QScriptValue injectionOptionValue = _engine.scriptValueFromQMetaObject<AudioInjectorOptions>();
     _engine.globalObject().setProperty("AudioInjectionOptions", injectionOptionValue);
+    
+    QScriptValue localVoxelsValue = _engine.scriptValueFromQMetaObject<LocalVoxels>();
+    _engine.globalObject().setProperty("LocalVoxels", localVoxelsValue);
 
     registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &_audioScriptingInterface);
@@ -215,6 +220,8 @@ void ScriptEngine::run() {
     int thisFrame = 0;
     
     NodeList* nodeList = NodeList::getInstance();
+    
+    qint64 lastUpdate = usecTimestampNow();
 
     while (!_isFinished) {
         int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * VISUAL_DATA_CALLBACK_USECS) - usecTimestampNow();
@@ -259,7 +266,10 @@ void ScriptEngine::run() {
             nodeList->broadcastToNodes(avatarPacket, NodeSet() << NodeType::AvatarMixer);
         }
 
-        emit willSendVisualDataCallback();
+        qint64 now = usecTimestampNow();
+        float deltaTime = (float)(now - lastUpdate)/(float)USECS_PER_SECOND;
+        emit update(deltaTime);
+        lastUpdate = now;
 
         if (_engine.hasUncaughtException()) {
             int line = _engine.uncaughtExceptionLineNumber();

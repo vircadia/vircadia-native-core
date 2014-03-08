@@ -29,14 +29,13 @@ public:
     
 private slots:
     /// inbound slots for external collision systems
-    void forwardParticleCollisionWithVoxel(const ParticleID& particleID, const VoxelDetail& voxel) {
-        qDebug() << "forwardParticleCollisionWithVoxel()";
-        emit particleCollisionWithVoxel(particleID, voxel);
+    void forwardParticleCollisionWithVoxel(const ParticleID& particleID, 
+                            const VoxelDetail& voxel, const glm::vec3& penetration) {
+        emit particleCollisionWithVoxel(particleID, voxel, penetration);
     }
 
-    void forwardParticleCollisionWithParticle(const ParticleID& idA, const ParticleID& idB) {
-        qDebug() << "forwardParticleCollisionWithParticle()";
-        emit particleCollisionWithParticle(idA, idB);
+    void forwardParticleCollisionWithParticle(const ParticleID& idA, const ParticleID& idB, const glm::vec3& penetration) {
+        emit particleCollisionWithParticle(idA, idB, penetration);
     }
     
 public slots:
@@ -67,8 +66,8 @@ public slots:
     QVector<ParticleID> findParticles(const glm::vec3& center, float radius) const;
 
 signals:
-    void particleCollisionWithVoxel(const ParticleID& particleID, const VoxelDetail& voxel);
-    void particleCollisionWithParticle(const ParticleID& idA, const ParticleID& idB);
+    void particleCollisionWithVoxel(const ParticleID& particleID, const VoxelDetail& voxel, const glm::vec3& penetration);
+    void particleCollisionWithParticle(const ParticleID& idA, const ParticleID& idB, const glm::vec3& penetration);
 
 private:
     void queueParticleMessage(PacketType packetType, ParticleID particleID, const ParticleProperties& properties);

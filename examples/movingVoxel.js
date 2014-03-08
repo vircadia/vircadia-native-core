@@ -12,7 +12,7 @@ var colorEdge = { r:255, g:250, b:175 };
 var frame = 0;
 var thisColor = color;
 
-function moveVoxel() {
+function moveVoxel(deltaTime) {
     frame++;
 	if (frame % 3 == 0) {
 		//  Get a new position
@@ -41,4 +41,4 @@ function moveVoxel() {
 
 Voxels.setPacketsPerSecond(300);
 // Connect a call back that happens every frame
-Script.willSendVisualDataCallback.connect(moveVoxel);
+Script.update.connect(moveVoxel);

@@ -39,6 +39,7 @@ public:
     // other properties
     bool isCheckable;
     bool isChecked;
+    bool isSeparator;
 };
 Q_DECLARE_METATYPE(MenuItemProperties)
 QScriptValue menuItemPropertiesToScriptValue(QScriptEngine* engine, const MenuItemProperties& props);

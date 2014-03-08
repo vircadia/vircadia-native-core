@@ -11,6 +11,7 @@
 
 #include <QHash>
 #include <QList>
+#include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QObject>
 #include <QPointer>
@@ -20,6 +21,7 @@
 
 class QNetworkAccessManager;
 class QNetworkReply;
+class QTimer;
 
 class Resource;
 
@@ -99,6 +101,7 @@ protected slots:
 
 protected:
 
+    /// Called when the download has finished.  The recipient should delete the reply when done with it.
     virtual void downloadFinished(QNetworkReply* reply) = 0;
 
     /// Should be called by subclasses when all the loading that will be done has been done.
@@ -115,14 +118,20 @@ private slots:
     
     void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
     void handleReplyError();
+    void handleReplyTimeout();
 
 private:
     
     void makeRequest();
     
+    void handleReplyError(QNetworkReply::NetworkError error, QDebug debug);
+    
     friend class ResourceCache;
     
     QNetworkReply* _reply;
+    QTimer* _replyTimer;
+    qint64 _bytesReceived;
+    qint64 _bytesTotal;
     int _attempts;
 };
 

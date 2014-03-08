@@ -16,19 +16,46 @@ if (LIBOVR_LIBRARIES AND LIBOVR_INCLUDE_DIRS)
   # in cache already
   set(LIBOVR_FOUND TRUE)
 else (LIBOVR_LIBRARIES AND LIBOVR_INCLUDE_DIRS)
-  find_path(LIBOVR_INCLUDE_DIRS OVR.h ${LIBOVR_ROOT_DIR}/Include)
-
+  set(LIBOVR_SEARCH_DIRS "${LIBOVR_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/oculus")
+  
+  find_path(LIBOVR_INCLUDE_DIRS OVR.h PATH_SUFFIXES Include HINTS ${LIBOVR_SEARCH_DIRS})
+  
   if (APPLE)
-    find_library(LIBOVR_LIBRARIES libovr.a ${LIBOVR_ROOT_DIR}/Lib/MacOS/)
+    find_library(LIBOVR_LIBRARIES "Lib/MacOS/Release/libovr.a" HINTS ${LIBOVR_SEARCH_DIRS})
   elseif (UNIX)
     find_library(UDEV_LIBRARY libudev.a /usr/lib/x86_64-linux-gnu/)
     find_library(XINERAMA_LIBRARY libXinerama.a /usr/lib/x86_64-linux-gnu/)
-    find_library(OVR_LIBRARY libovr.a ${LIBOVR_ROOT_DIR}/Lib/UNIX/)
+    
+    if (CMAKE_CL_64)
+      set(LINUX_ARCH_DIR "i386")
+    else()
+      set(LINUX_ARCH_DIR "x86_64")
+    endif()
+    
+    find_library(OVR_LIBRARY "Lib/Linux/${CMAKE_BUILD_TYPE}/${LINUX_ARCH_DIR}/libovr.a" HINTS ${LIBOVR_SEARCH_DIRS})
     if (UDEV_LIBRARY AND XINERAMA_LIBRARY AND OVR_LIBRARY)
       set(LIBOVR_LIBRARIES "${OVR_LIBRARY};${UDEV_LIBRARY};${XINERAMA_LIBRARY}" CACHE INTERNAL "Oculus libraries")
     endif (UDEV_LIBRARY AND XINERAMA_LIBRARY AND OVR_LIBRARY)
   elseif (WIN32)
-    find_library(LIBOVR_LIBRARIES libovr.lib ${LIBOVR_ROOT_DIR}/Lib/Win32/)
+    if (CMAKE_CL_64)
+      set(WINDOWS_ARCH_DIR "Win32")
+      
+      if (CMAKE_BUILD_TYPE MATCHES DEBUG)
+        set(WINDOWS_LIBOVR_NAME "libovrd.lib")
+      else()
+        set(WINDOWS_LIBOVR_NAME "libovr.lib")
+      endif()
+    else()
+      set(WINDOWS_ARCH_DIR "x64")
+      
+      if (CMAKE_BUILD_TYPE MATCHES DEBUG)
+        set(WINDOWS_LIBOVR_NAME "libovr64d.lib")
+      else()
+        set(WINDOWS_LIBOVR_NAME "libovr64.lib")
+      endif()
+    endif()
+    
+    find_library(LIBOVR_LIBRARIES "Lib/${WINDOWS_ARCH_DIR}/${LIBOVR_NAME}" HINTS ${LIBOVR_SEARCH_DIRS})
   endif ()
 
   if (LIBOVR_INCLUDE_DIRS AND LIBOVR_LIBRARIES)

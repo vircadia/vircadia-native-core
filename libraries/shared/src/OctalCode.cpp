@@ -35,7 +35,7 @@ void printOctalCode(const unsigned char* octalCode) {
         qDebug("NULL");
     } else {
         QDebug continuedDebug = qDebug().nospace();
-        for (int i = 0; i < bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(octalCode)); i++) {
+        for (size_t i = 0; i < bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(octalCode)); i++) {
             outputBits(octalCode[i], &continuedDebug);
         }
     }
@@ -51,11 +51,11 @@ char sectionValue(const unsigned char* startByte, char startIndexInByte) {
     }
 }
 
-int bytesRequiredForCodeLength(unsigned char threeBitCodes) {
+size_t bytesRequiredForCodeLength(unsigned char threeBitCodes) {
     if (threeBitCodes == 0) {
         return 1;
     } else {
-        return 1 + (int)ceilf((threeBitCodes * 3) / 8.0f);
+        return 1 + ceilf((threeBitCodes * 3) / 8.0f);
     }
 }
 
@@ -73,21 +73,21 @@ unsigned char* childOctalCode(const unsigned char* parentOctalCode, char childNu
     
     // find the length (in number of three bit code sequences)
     // in the parent
-    int parentCodeSections = parentOctalCode != NULL
+    int parentCodeSections = parentOctalCode
         ? numberOfThreeBitSectionsInCode(parentOctalCode)
         : 0;
     
     // get the number of bytes used by the parent octal code
-    int parentCodeBytes = bytesRequiredForCodeLength(parentCodeSections);
+    size_t parentCodeBytes = bytesRequiredForCodeLength(parentCodeSections);
     
     // child code will have one more section than the parent
-    int childCodeBytes = bytesRequiredForCodeLength(parentCodeSections + 1);
+    size_t childCodeBytes = bytesRequiredForCodeLength(parentCodeSections + 1);
     
     // create a new buffer to hold the new octal code
     unsigned char* newCode = new unsigned char[childCodeBytes];
     
     // copy the parent code to the child
-    if (parentOctalCode != NULL) {
+    if (parentOctalCode) {
         memcpy(newCode, parentOctalCode, parentCodeBytes);
     }    
     
@@ -175,7 +175,7 @@ OctalCodeComparison compareOctalCodes(const unsigned char* codeA, const unsigned
 
     OctalCodeComparison result = LESS_THAN; // assume it's shallower
     
-    int numberOfBytes = std::min(bytesRequiredForCodeLength(*codeA), bytesRequiredForCodeLength(*codeB));
+    size_t numberOfBytes = std::min(bytesRequiredForCodeLength(*codeA), bytesRequiredForCodeLength(*codeB));
     int compare = memcmp(codeA, codeB, numberOfBytes);
 
     if (compare < 0) {
@@ -367,7 +367,7 @@ QString octalCodeToHexString(const unsigned char* octalCode) {
     if (!octalCode) {
         output = "00";
     } else {
-        for (int i = 0; i < bytesRequiredForCodeLength(*octalCode); i++) {
+        for (size_t i = 0; i < bytesRequiredForCodeLength(*octalCode); i++) {
             output.append(QString("%1").arg(octalCode[i], HEX_BYTE_SIZE, HEX_NUMBER_BASE, QChar('0')).toUpper());
         }
     }

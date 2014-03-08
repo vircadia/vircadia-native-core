@@ -21,7 +21,7 @@ QLineEdit {
 }
 
 QPushButton#searchButton {
-    background: url(resources/styles/search.svg);
+    background: url(styles/search.svg);
     background-repeat: none;
     background-position: left center;
     background-origin: content;
@@ -33,7 +33,7 @@ QPushButton#searchButton {
 }
 
 QPushButton#revealLogButton {
-    background: url(resources/styles/txt-file.svg);
+    background: url(styles/txt-file.svg);
     background-repeat: none;
     background-position: left center;
     background-origin: content;
@@ -50,9 +50,9 @@ QCheckBox {
 }
 
 QCheckBox::indicator:unchecked {
-    image: url(resources/styles/unchecked.svg);
+    image: url(:/styles/unchecked.svg);
 }
 
 QCheckBox::indicator:checked {
-    image: url(resources/styles/checked.svg);
+    image: url(:/styles/checked.svg);
 }

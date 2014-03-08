@@ -1,3 +1,12 @@
+//
+//  BandwidthDialog.h
+//  interface
+//
+//  Created by Tobias Schwinger on 6/21/13.
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//
+
+#include <cstdio>
 
 #include "ui/BandwidthDialog.h"
 

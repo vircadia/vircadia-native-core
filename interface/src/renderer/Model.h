@@ -17,6 +17,8 @@
 #include "ProgramObject.h"
 #include "TextureCache.h"
 
+class Shape;
+
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject {
     Q_OBJECT
@@ -52,6 +54,9 @@ public:
     
     void init();
     void reset();
+    void clearShapes();
+    void createCollisionShapes();
+    void updateShapePositions();
     void simulate(float deltaTime, bool delayLoad = false);
     bool render(float alpha);
     
@@ -75,6 +80,16 @@ public:
     
     /// Returns a reference to the shared geometry.
     const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }
+    
+    /// Returns the number of joint states in the model.
+    int getJointStateCount() const { return _jointStates.size(); }
+    
+    /// Fetches the joint state at the specified index.
+    /// \return whether or not the joint state is "valid" (that is, non-default)
+    bool getJointState(int index, glm::quat& rotation) const;
+    
+    /// Sets the joint state at the specified index.
+    void setJointState(int index, bool valid, const glm::quat& rotation = glm::quat());
     
     /// Returns the index of the left hand joint, or -1 if not found.
     int getLeftHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().leftHandJointIndex : -1; }
@@ -164,9 +179,14 @@ public:
     glm::vec4 computeAverageColor() const;
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+    
+    /// \param shapes list of pointers shapes to test against Model
+    /// \param collisions list to store collision results
+    /// \return true if at least one shape collided agains Model
+    bool findCollisions(const QVector<const Shape*> shapes, CollisionList& collisions);
 
     bool findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
-        CollisionList& collisions, float boneScale = 1.0f, int skipIndex = -1) const;
+        CollisionList& collisions, int skipIndex = -1);
     
     void renderCollisionProxies(float alpha);
 
@@ -189,13 +209,15 @@ protected:
     
     class JointState {
     public:
-        glm::vec3 translation;
-        glm::quat rotation;
-        glm::mat4 transform;
-        glm::quat combinedRotation;
+        glm::vec3 translation;  // translation relative to parent
+        glm::quat rotation;     // rotation relative to parent
+        glm::mat4 transform;    // rotation to world frame + translation in model frame
+        glm::quat combinedRotation; // rotation from joint local to world frame
     };
     
+    bool _shapesAreDirty;
     QVector<JointState> _jointStates;
+    QVector<Shape*> _shapes;
     
     class MeshState {
     public:
@@ -247,6 +269,7 @@ private:
     QSharedPointer<NetworkGeometry> _nextGeometry;
     float _lodDistance;
     float _lodHysteresis;
+    float _nextLODHysteresis;
     
     float _pupilDilation;
     std::vector<float> _blendshapeCoefficients;

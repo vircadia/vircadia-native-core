@@ -16,7 +16,6 @@
 
 #include <QtCore/QDebug>
 
-//#include "CoverageMap.h"
 #include "GeometryUtil.h"
 #include "SharedUtil.h"
 #include "ViewFrustum.h"
@@ -27,9 +26,9 @@ using namespace std;
 ViewFrustum::ViewFrustum() :
     _position(0,0,0),
     _orientation(),
-    _direction(0,0,0),
-    _up(0,0,0),
-    _right(0,0,0),
+    _direction(IDENTITY_FRONT),
+    _up(IDENTITY_UP),
+    _right(IDENTITY_RIGHT),
     _fieldOfView(0.0),
     _aspectRatio(1.0f),
     _nearClip(0.1f),

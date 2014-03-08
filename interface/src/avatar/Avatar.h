@@ -74,7 +74,7 @@ public:
 
     void init();
     void simulate(float deltaTime);
-    void render();
+    void render(bool forShadowMap = false);
 
     //setters
     void setDisplayingLookatVectors(bool displayingLookatVectors) { getHead()->setRenderLookatVectors(displayingLookatVectors); }
@@ -99,6 +99,11 @@ public:
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
+    /// \param shapes list of shapes to collide against avatar
+    /// \param collisions list to store collision results
+    /// \return true if at least one shape collided with avatar
+    bool findCollisions(const QVector<const Shape*>& shapes, CollisionList& collisions);
+
     /// Checks for penetration between the described sphere and the avatar.
     /// \param penetratorCenter the center of the penetration test sphere
     /// \param penetratorRadius the radius of the penetration test sphere
@@ -116,6 +121,10 @@ public:
     bool findParticleCollisions(const glm::vec3& particleCenter, float particleRadius, CollisionList& collisions);
 
     virtual bool isMyAvatar() { return false; }
+    
+    virtual glm::quat getJointRotation(int index) const;
+    virtual int getJointIndex(const QString& name) const;
+    virtual QStringList getJointNames() const;
     
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);

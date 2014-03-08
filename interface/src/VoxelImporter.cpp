@@ -8,6 +8,7 @@
 
 #include <VoxelImporter.h>
 #include <Application.h>
+#include <LocalVoxelsList.h>
 
 #include <QFileInfo>
 #include <QThreadPool>
@@ -31,6 +32,8 @@ VoxelImporter::VoxelImporter(QWidget* parent) :
     _task(NULL),
     _didImport(false)
 {
+    LocalVoxelsList::getInstance()->addPersistantTree(IMPORT_TREE_NAME, &_voxelTree);
+    
     connect(&_voxelTree, SIGNAL(importProgress(int)), &_importDialog, SLOT(setProgressBarValue(int)));
     connect(&_importDialog, SIGNAL(canceled()), this, SLOT(cancel()));
     connect(&_importDialog, SIGNAL(accepted()), this, SLOT(import()));
@@ -143,11 +146,11 @@ void ImportTask::run() {
 
     // Then we call the righ method for the job
     if (_filename.endsWith(".png", Qt::CaseInsensitive)) {
-        voxelSystem->readFromSquareARGB32Pixels(_filename.toLocal8Bit().data());
+        voxelSystem->getTree()->readFromSquareARGB32Pixels(_filename.toLocal8Bit().data());
     } else if (_filename.endsWith(".svo", Qt::CaseInsensitive)) {
-        voxelSystem->readFromSVOFile(_filename.toLocal8Bit().data());
+        voxelSystem->getTree()->readFromSVOFile(_filename.toLocal8Bit().data());
     } else if (_filename.endsWith(".schematic", Qt::CaseInsensitive)) {
-        voxelSystem->readFromSchematicFile(_filename.toLocal8Bit().data());
+        voxelSystem->getTree()->readFromSchematicFile(_filename.toLocal8Bit().data());
     } else {
         // We should never get here.
         qDebug() << "[ERROR] Invalid file extension." << endl;

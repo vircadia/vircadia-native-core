@@ -28,19 +28,21 @@
 #include <ParticleEditPacketSender.h>
 #include <ScriptEngine.h>
 #include <OctreeQuery.h>
+#include <FstReader.h>
 
 #include "Audio.h"
-
 #include "BandwidthMeter.h"
 #include "BuckyBalls.h"
 #include "Camera.h"
+#include "ControllerScriptingInterface.h"
 #include "DatagramProcessor.h"
 #include "Environment.h"
+#include "FileLogger.h"
 #include "GLCanvas.h"
 #include "Menu.h"
 #include "MetavoxelSystem.h"
 #include "PacketHeaders.h"
-#include "PieMenu.h"
+#include "ParticleTreeRenderer.h"
 #include "Stars.h"
 #include "ViewFrustum.h"
 #include "VoxelFade.h"
@@ -68,9 +70,6 @@
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
 #include "ui/UpdateDialog.h"
-#include "FileLogger.h"
-#include "ParticleTreeRenderer.h"
-#include "ControllerScriptingInterface.h"
 #include "ui/Overlays.h"
 
 
@@ -108,6 +107,7 @@ class Application : public QApplication {
 
 public:
     static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
+    static QString& resourcesPath();
 
     Application(int& argc, char** argv, timeval &startup_time);
     ~Application();
@@ -154,6 +154,7 @@ public:
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
+    VoxelTree* getVoxelTree() { return _voxels.getTree(); }
     ParticleTreeRenderer* getParticles() { return &_particles; }
     MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
     VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
@@ -214,10 +215,6 @@ public:
     NodeToJurisdictionMap& getParticleServerJurisdictions() { return _particleServerJurisdictions; }
     void pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination);
 
-    /// set a voxel which is to be rendered with a highlight
-    void setHighlightVoxel(const VoxelDetail& highlightVoxel) { _highlightVoxel = highlightVoxel; }
-    void setIsHighlightVoxel(bool isHighlightVoxel) { _isHighlightVoxel = isHighlightVoxel; }
-    
     void skipVersion(QString latestVersion);
 
 signals:
@@ -250,6 +247,8 @@ public slots:
     void initAvatarAndViewFrustum();
     void stopAllScripts();
     void reloadAllScripts();
+    
+    void uploadFST();
 
 private slots:
     void timer();
@@ -261,12 +260,6 @@ private slots:
     void setEnable3DTVMode(bool enable3DTVMode);
     void cameraMenuChanged();
     
-    void renderCoverageMap();
-    void renderCoverageMapsRecursively(CoverageMap* map);
-
-    void renderCoverageMapV2();
-    void renderCoverageMapsV2Recursively(CoverageMapV2* map);
-
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
 
     void closeMirrorView();
@@ -293,11 +286,11 @@ private:
     void update(float deltaTime);
 
     // Various helper functions called during update()
+    void updateLOD();
     void updateMouseRay();
     void updateFaceshift();
     void updateVisage();
     void updateMyAvatarLookAtPosition();
-    void updateHoverVoxels(float deltaTime, float& distance, BoxFace& face);
     void updateHandAndTouch(float deltaTime);
     void updateLeap(float deltaTime);
     void updateSixense(float deltaTime);
@@ -313,7 +306,6 @@ private:
     bool isLookingAtMyAvatar(Avatar* avatar);
 
     void renderLookatIndicator(glm::vec3 pointOfInterest);
-    void renderHighlightVoxel(VoxelDetail voxel);
 
     void updateMyAvatar(float deltaTime);
     void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
@@ -434,12 +426,6 @@ private:
 
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
 
-    VoxelDetail _hoverVoxel;      // Stuff about the voxel I am hovering or clicking
-    bool _isHoverVoxel;
-
-    VoxelDetail _highlightVoxel;
-    bool _isHighlightVoxel;
-
     ChatEntry _chatEntry; // chat entry field
     bool _chatEntryOn;    // Whether to show the chat entry
 
@@ -468,8 +454,6 @@ private:
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
 
-    PieMenu _pieMenu;
-
     int parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sendingNode);
     void trackIncomingVoxelPacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);
 
@@ -492,6 +476,8 @@ private:
     TouchEvent _lastTouchEvent;
     
     Overlays _overlays;
+    
+    FstReader _fstReader;
 };
 
 #endif /* defined(__interface__Application__) */

@@ -20,7 +20,6 @@
 using namespace std;
 
 const float FINGERTIP_COLLISION_RADIUS = 0.01f;
-const float FINGERTIP_VOXEL_SIZE = 0.05f;
 const float PALM_COLLISION_RADIUS = 0.03f;
 
 
@@ -29,7 +28,6 @@ Hand::Hand(Avatar* owningAvatar) :
 
     _owningAvatar(owningAvatar),
     _renderAlpha(1.0),
-    _ballColor(0.0, 0.0, 0.4),
     _collisionCenter(0,0,0),
     _collisionAge(0),
     _collisionDuration(0)
@@ -37,13 +35,6 @@ Hand::Hand(Avatar* owningAvatar) :
 }
 
 void Hand::init() {
-    // Different colors for my hand and others' hands
-    if (_owningAvatar && _owningAvatar->isMyAvatar()) {
-        _ballColor = glm::vec3(0.0, 0.4, 0.0);
-    }
-    else {
-        _ballColor = glm::vec3(0.0, 0.0, 0.4);
-    }
 }
 
 void Hand::reset() {
@@ -61,68 +52,12 @@ void Hand::simulate(float deltaTime, bool isMine) {
         //  Iterate hand controllers, take actions as needed
         for (size_t i = 0; i < getNumPalms(); ++i) {
             PalmData& palm = getPalms()[i];
-            if (palm.isActive()) {
-                FingerData& finger = palm.getFingers()[0];   //  Sixense has only one finger
-                glm::vec3 fingerTipPosition = finger.getTipPosition();
-                
-                 
-                if (palm.getControllerButtons() & BUTTON_1) {
-                    if (glm::length(fingerTipPosition - _lastFingerAddVoxel) > (FINGERTIP_VOXEL_SIZE / 2.f)) {
-                        // TODO: we need to move this code to JS so it can access the editVoxels.js color palette
-                        QColor paintColor(128,128,128);
-                        Application::getInstance()->makeVoxel(fingerTipPosition,
-                                                              FINGERTIP_VOXEL_SIZE,
-                                                              paintColor.red(),
-                                                              paintColor.green(),
-                                                              paintColor.blue(),
-                                                              true);
-                        _lastFingerAddVoxel = fingerTipPosition;
-                    }
-                } else if (palm.getControllerButtons() & BUTTON_2) {
-                    if (glm::length(fingerTipPosition - _lastFingerDeleteVoxel) > (FINGERTIP_VOXEL_SIZE / 2.f)) {
-                        Application::getInstance()->removeVoxel(fingerTipPosition, FINGERTIP_VOXEL_SIZE);
-                        _lastFingerDeleteVoxel = fingerTipPosition;
-                    }
-                }
-                
-                //  Voxel Drumming with fingertips if enabled
-                if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelDrumming)) {
-                    VoxelTreeElement* fingerNode = Application::getInstance()->getVoxels()->getVoxelEnclosing(
-                                                                                glm::vec3(fingerTipPosition / (float)TREE_SCALE));
-                    if (fingerNode) {
-                        if (!palm.getIsCollidingWithVoxel()) {
-                            //  Collision has just started
-                            palm.setIsCollidingWithVoxel(true);
-                            handleVoxelCollision(&palm, fingerTipPosition, fingerNode, deltaTime);
-                            //  Set highlight voxel
-                            VoxelDetail voxel;
-                            glm::vec3 pos = fingerNode->getCorner();
-                            voxel.x = pos.x;
-                            voxel.y = pos.y;
-                            voxel.z = pos.z;
-                            voxel.s = fingerNode->getScale();
-                            voxel.red = fingerNode->getColor()[0];
-                            voxel.green = fingerNode->getColor()[1];
-                            voxel.blue = fingerNode->getColor()[2];
-                            Application::getInstance()->setHighlightVoxel(voxel);
-                            Application::getInstance()->setIsHighlightVoxel(true);
-                        }
-                    } else {
-                        if (palm.getIsCollidingWithVoxel()) {
-                            //  Collision has just ended
-                            palm.setIsCollidingWithVoxel(false);
-                            Application::getInstance()->setIsHighlightVoxel(false);
-                        }
-                    }
-                }
-            }
             palm.setLastControllerButtons(palm.getControllerButtons());
         }
     }
 }
 
-void Hand::playSlaps(PalmData& palm, Avatar* avatar)
-{
+void Hand::playSlaps(PalmData& palm, Avatar* avatar) {
     //  Check for palm collisions
     glm::vec3 myPalmPosition = palm.getPosition();
     float palmCollisionDistance = 0.1f;
@@ -160,7 +95,7 @@ void Hand::playSlaps(PalmData& palm, Avatar* avatar)
 const float MAX_COLLISIONS_PER_AVATAR = 32;
 static CollisionList handCollisions(MAX_COLLISIONS_PER_AVATAR);
 
-void Hand::collideAgainstAvatar(Avatar* avatar, bool isMyHand) {
+void Hand::collideAgainstAvatarOld(Avatar* avatar, bool isMyHand) {
     if (!avatar || avatar == _owningAvatar) {
         // don't collide with our own hands (that is done elsewhere)
         return;
@@ -181,23 +116,75 @@ void Hand::collideAgainstAvatar(Avatar* avatar, bool isMyHand) {
             for (int j = 0; j < handCollisions.size(); ++j) {
                 CollisionInfo* collision = handCollisions.getCollision(j);
                 if (isMyHand) {
-                    if (!avatar->collisionWouldMoveAvatar(*collision)) {
-                        // we resolve the hand from collision when it belongs to MyAvatar AND the other Avatar is 
-                        // not expected to respond to the collision (hand hit unmovable part of their Avatar)
-                        totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
-                    }
-                } else {
-                    // when !isMyHand then avatar is MyAvatar and we apply the collision
-                    // which might not do anything (hand hit unmovable part of MyAvatar) however
-                    // we don't resolve the hand's penetration because we expect the remote 
-                    // simulation to do the right thing.
-                    avatar->applyCollision(*collision);
+                    // we resolve the hand from collision when it belongs to MyAvatar AND the other Avatar is 
+                    // not expected to respond to the collision (hand hit unmovable part of their Avatar)
+                    totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
                 }
             }
         }
         if (isMyHand) {
             // resolve penetration
             palm.addToPosition(-totalPenetration);
+        }
+    }
+}
+
+void Hand::collideAgainstAvatar(Avatar* avatar, bool isMyHand) {
+    if (!avatar || avatar == _owningAvatar) {
+        // don't collide hands against ourself (that is done elsewhere)
+        return;
+    }
+
+    // 2 = NUM_HANDS
+    int palmIndices[2];
+    getLeftRightPalmIndices(*palmIndices, *(palmIndices + 1));
+
+    const SkeletonModel& skeletonModel = _owningAvatar->getSkeletonModel();
+    int jointIndices[2];
+    jointIndices[0] = skeletonModel.getLeftHandJointIndex();
+    jointIndices[1] = skeletonModel.getRightHandJointIndex();
+
+    palmIndices[1] = -1;    // adebug temporarily disable right hand
+    jointIndices[1] = -1;   // adebug temporarily disable right hand
+
+    for (size_t i = 0; i < 1; i++) {
+        int palmIndex = palmIndices[i];
+        int jointIndex = jointIndices[i];
+        if (palmIndex == -1 || jointIndex == -1) {
+            continue;
+        }
+        PalmData& palm = _palms[palmIndex];
+        if (!palm.isActive()) {
+            continue;
+        }
+        if (isMyHand && Menu::getInstance()->isOptionChecked(MenuOption::PlaySlaps)) {
+            playSlaps(palm, avatar);
+        }
+
+        handCollisions.clear();
+        QVector<const Shape*> shapes;
+        skeletonModel.getHandShapes(jointIndex, shapes);
+        bool collided = isMyHand ? avatar->findCollisions(shapes, handCollisions) : avatar->findCollisions(shapes, handCollisions);
+        if (collided) {
+        //if (avatar->findCollisions(shapes, handCollisions)) {
+            glm::vec3 averagePenetration;
+            glm::vec3 averageContactPoint;
+            for (int j = 0; j < handCollisions.size(); ++j) {
+                CollisionInfo* collision = handCollisions.getCollision(j);
+                averagePenetration += collision->_penetration;
+                averageContactPoint += collision->_contactPoint;
+            }
+            averagePenetration /= float(handCollisions.size());
+            if (isMyHand) {
+                // our hand against other avatar 
+                // for now we resolve it to test shapes/collisions
+                // TODO: only partially resolve this penetration
+                palm.addToPosition(-averagePenetration);
+            } else {
+                // someone else's hand against MyAvatar
+                // TODO: submit collision info to MyAvatar which should lean accordingly
+                averageContactPoint /= float(handCollisions.size());
+            }
         }
     }
 }
@@ -211,27 +198,27 @@ void Hand::collideAgainstOurself() {
     getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
     float scaledPalmRadius = PALM_COLLISION_RADIUS * _owningAvatar->getScale();
     
+    const Model& skeletonModel = _owningAvatar->getSkeletonModel();
     for (size_t i = 0; i < getNumPalms(); i++) {
         PalmData& palm = getPalms()[i];
         if (!palm.isActive()) {
             continue;
-        }        
-        const Model& skeletonModel = _owningAvatar->getSkeletonModel();
+        }
         // ignoring everything below the parent of the parent of the last free joint
         int skipIndex = skeletonModel.getParentJointIndex(skeletonModel.getParentJointIndex(
             skeletonModel.getLastFreeJointIndex((i == leftPalmIndex) ? skeletonModel.getLeftHandJointIndex() :
                 (i == rightPalmIndex) ? skeletonModel.getRightHandJointIndex() : -1)));
 
         handCollisions.clear();
-        glm::vec3 totalPenetration;
         if (_owningAvatar->findSphereCollisions(palm.getPosition(), scaledPalmRadius, handCollisions, skipIndex)) {
+            glm::vec3 totalPenetration;
             for (int j = 0; j < handCollisions.size(); ++j) {
                 CollisionInfo* collision = handCollisions.getCollision(j);
                 totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
             }
+            // resolve penetration
+            palm.addToPosition(-totalPenetration);
         }
-        // resolve penetration
-        palm.addToPosition(-totalPenetration);
     }
 }
 
@@ -349,7 +336,6 @@ void Hand::renderLeapHands(bool isMine) {
 
     const float alpha = 1.0f;
     
-    //const glm::vec3 handColor = _ballColor;
     const glm::vec3 handColor(1.0, 0.84, 0.66); // use the skin color
     
     glEnable(GL_DEPTH_TEST);

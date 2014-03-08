@@ -11,6 +11,8 @@
 
 #include <glm/gtx/vector_angle.hpp>
 
+#include <QDebug>
+
 #include <OctreeConstants.h>
 #include <SharedUtil.h>
 #include "Quat.h"
@@ -54,5 +56,9 @@ glm::quat Quat::angleAxis(float angle, const glm::vec3& v) {
 
 glm::quat Quat::mix(const glm::quat& q1, const glm::quat& q2, float alpha) {
     return safeMix(q1, q2, alpha);
+}
+
+void Quat::print(const QString& lable, const glm::quat& q) {
+    qDebug() << qPrintable(lable) << q.x << "," << q.y << "," << q.z << "," << q.w;
 }
 

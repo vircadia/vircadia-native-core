@@ -17,9 +17,7 @@
 
 #include <glm/gtc/noise.hpp>
 
-#include <QtCore/QDebug>
-#include <QImage>
-#include <QRgb>
+#include <QDebug>
 
 #include "CoverageMap.h"
 #include <GeometryUtil.h>
@@ -39,11 +37,13 @@ float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeSc
 }
 
 Octree::Octree(bool shouldReaverage) :
+    _rootNode(NULL),
     _isDirty(true),
     _shouldReaverage(shouldReaverage),
-    _stopImport(false) {
-    _rootNode = NULL;
-    _isViewing = false;
+    _stopImport(false),
+    _lock(),
+    _isViewing(false) 
+{
 }
 
 Octree::~Octree() {
@@ -150,7 +150,7 @@ void Octree::recurseNodeWithOperationDistanceSorted(OctreeElement* node, Recurse
 OctreeElement* Octree::nodeForOctalCode(OctreeElement* ancestorNode,
                                        const unsigned char* needleCode, OctreeElement** parentOfFoundNode) const {
     // special case for NULL octcode
-    if (needleCode == NULL) {
+    if (!needleCode) {
         return _rootNode;
     }
 
@@ -222,10 +222,8 @@ int Octree::readNodeData(OctreeElement* destinationNode, const unsigned char* no
             }
 
             OctreeElement* childNodeAt = destinationNode->getChildAtIndex(i);
-            bool nodeWasDirty = false;
             bool nodeIsDirty = false;
             if (childNodeAt) {
-                nodeWasDirty = childNodeAt->isDirty();
                 bytesRead += childNodeAt->readElementDataFromBuffer(nodeData + bytesRead, bytesLeftToRead, args);
                 childNodeAt->setSourceUUID(args.sourceUUID);
 
@@ -330,7 +328,9 @@ void Octree::readBitstreamToTree(const unsigned char * bitstream, unsigned long 
 
 void Octree::deleteOctreeElementAt(float x, float y, float z, float s) {
     unsigned char* octalCode = pointToOctalCode(x,y,z,s);
+    lockForWrite();
     deleteOctalCodeFromTree(octalCode);
+    unlock();
     delete[] octalCode; // cleanup memory
 }
 
@@ -497,7 +497,7 @@ void Octree::processRemoveOctreeElementsBitstream(const unsigned char* bitstream
 
 // Note: this is an expensive call. Don't call it unless you really need to reaverage the entire tree (from startNode)
 void Octree::reaverageOctreeElements(OctreeElement* startNode) {
-    if (startNode == NULL) {
+    if (!startNode) {
         startNode = getRoot();
     }
     // if our tree is a reaveraging tree, then we do this, otherwise we don't do anything
@@ -586,9 +586,26 @@ bool findRayIntersectionOp(OctreeElement* node, void* extraData) {
 }
 
 bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                    OctreeElement*& node, float& distance, BoxFace& face) {
+                                    OctreeElement*& node, float& distance, BoxFace& face, Octree::lockType lockType) {
     RayArgs args = { origin / (float)(TREE_SCALE), direction, node, distance, face };
+
+    bool gotLock = false;
+    if (lockType == Octree::Lock) {
+        lockForRead();
+        gotLock = true;
+    } else if (lockType == Octree::TryLock) {
+        gotLock = tryLockForRead();
+        if (!gotLock) {
+            return args.found; // if we wanted to tryLock, and we couldn't then just bail...
+        }
+    }
+
     recurseTreeWithOperation(findRayIntersectionOp, &args);
+
+    if (gotLock) {
+        unlock();
+    }
+
     return args.found;
 }
 
@@ -624,7 +641,7 @@ bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
 }
 
 bool Octree::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration,
-                    void** penetratedObject) {
+                    void** penetratedObject, Octree::lockType lockType) {
 
     SphereArgs args = {
         center / (float)(TREE_SCALE),
@@ -633,10 +650,27 @@ bool Octree::findSpherePenetration(const glm::vec3& center, float radius, glm::v
         false,
         NULL };
     penetration = glm::vec3(0.0f, 0.0f, 0.0f);
+
+    bool gotLock = false;
+    if (lockType == Octree::Lock) {
+        lockForRead();
+        gotLock = true;
+    } else if (lockType == Octree::TryLock) {
+        gotLock = tryLockForRead();
+        if (!gotLock) {
+            return args.found; // if we wanted to tryLock, and we couldn't then just bail...
+        }
+    }
+
     recurseTreeWithOperation(findSpherePenetrationOp, &args);
     if (penetratedObject) {
         *penetratedObject = args.penetratedObject;
     }
+
+    if (gotLock) {
+        unlock();
+    }
+    
     return args.found;
 }
 
@@ -670,16 +704,85 @@ bool findCapsulePenetrationOp(OctreeElement* node, void* extraData) {
     return false;
 }
 
-bool Octree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration) {
+bool Octree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, 
+                    glm::vec3& penetration, Octree::lockType lockType) {
+                    
     CapsuleArgs args = {
         start / (float)(TREE_SCALE),
         end / (float)(TREE_SCALE),
         radius / (float)(TREE_SCALE),
-        penetration };
+        penetration,
+        false };
     penetration = glm::vec3(0.0f, 0.0f, 0.0f);
+
+    bool gotLock = false;
+    if (lockType == Octree::Lock) {
+        lockForRead();
+        gotLock = true;
+    } else if (lockType == Octree::TryLock) {
+        gotLock = tryLockForRead();
+        if (!gotLock) {
+            return args.found; // if we wanted to tryLock, and we couldn't then just bail...
+        }
+    }
+
     recurseTreeWithOperation(findCapsulePenetrationOp, &args);
+    
+    if (gotLock) {
+        unlock();
+    }
     return args.found;
 }
+
+class GetElementEnclosingArgs {
+public:
+    OctreeElement* element;
+    glm::vec3 point;
+};
+
+// Find the smallest colored voxel enclosing a point (if there is one)
+bool getElementEnclosingOperation(OctreeElement* element, void* extraData) {
+    GetElementEnclosingArgs* args = static_cast<GetElementEnclosingArgs*>(extraData);
+    AABox elementBox = element->getAABox();
+    if (elementBox.contains(args->point)) {
+        if (element->hasContent() && element->isLeaf()) {
+            // we've reached a solid leaf containing the point, return the node.
+            args->element = element;
+            return false;
+        }
+    } else {
+        //  The point is not inside this voxel, so stop recursing.
+        return false;
+    }
+    return true; // keep looking
+}
+
+OctreeElement* Octree::getElementEnclosingPoint(const glm::vec3& point, Octree::lockType lockType) {
+    GetElementEnclosingArgs args;
+    args.point = point;
+    args.element = NULL;
+    
+    bool gotLock = false;
+    if (lockType == Octree::Lock) {
+        lockForRead();
+        gotLock = true;
+    } else if (lockType == Octree::TryLock) {
+        gotLock = tryLockForRead();
+        if (!gotLock) {
+            return args.element; // if we wanted to tryLock, and we couldn't then just bail...
+        }
+    }
+
+    recurseTreeWithOperation(getElementEnclosingOperation, (void*)&args);
+    
+    if (gotLock) {
+        unlock();
+    }
+
+    return args.element;
+}
+
+
 
 int Octree::encodeTreeBitstream(OctreeElement* node,
                         OctreePacketData* packetData, OctreeElementBag& bag,
