@@ -20,7 +20,8 @@
 
 // Voxel Specific operations....
 
-VoxelTree::VoxelTree(bool shouldReaverage) : Octree(shouldReaverage) {
+VoxelTree::VoxelTree(bool shouldReaverage) : Octree(shouldReaverage) 
+{
     _rootNode = createNewElement();
 }
 

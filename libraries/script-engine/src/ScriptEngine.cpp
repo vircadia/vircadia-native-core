@@ -78,7 +78,6 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, co
 }
 
 ScriptEngine::~ScriptEngine() {
-    //printf("ScriptEngine::~ScriptEngine()...\n");
 }
 
 void ScriptEngine::setIsAvatar(bool isAvatar) {
