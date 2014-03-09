@@ -60,7 +60,7 @@
 #include <PerfStat.h>
 #include <ResourceCache.h>
 #include <UUID.h>
-#include <VoxelSceneStats.h>
+#include <OctreeSceneStats.h>
 #include <LocalVoxelsList.h>
 
 #include "Application.h"
@@ -1825,9 +1825,9 @@ void Application::updateDialogs(float deltaTime) {
         bandwidthDialog->update();
     }
 
-    VoxelStatsDialog* voxelStatsDialog = Menu::getInstance()->getVoxelStatsDialog();
-    if (voxelStatsDialog) {
-        voxelStatsDialog->update();
+    OctreeStatsDialog* octreeStatsDialog = Menu::getInstance()->getOctreeStatsDialog();
+    if (octreeStatsDialog) {
+        octreeStatsDialog->update();
     }
 }
 
@@ -2733,9 +2733,9 @@ void Application::displayStats() {
     unsigned long totalNodes = 0;
     unsigned long totalInternal = 0;
     unsigned long totalLeaves = 0;
-    for(NodeToVoxelSceneStatsIterator i = _octreeServerSceneStats.begin(); i != _octreeServerSceneStats.end(); i++) {
+    for(NodeToOctreeSceneStatsIterator i = _octreeServerSceneStats.begin(); i != _octreeServerSceneStats.end(); i++) {
         //const QUuid& uuid = i->first;
-        VoxelSceneStats& stats = i->second;
+        OctreeSceneStats& stats = i->second;
         serverCount++;
         if (_statsExpanded) {
             if (serverCount > 1) {
@@ -3288,11 +3288,11 @@ void Application::nodeKilled(SharedNodePointer node) {
         }
 
         // also clean up scene stats for that server
-        _voxelSceneStatsLock.lockForWrite();
+        _octreeSceneStatsLock.lockForWrite();
         if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
             _octreeServerSceneStats.erase(nodeUUID);
         }
-        _voxelSceneStatsLock.unlock();
+        _octreeSceneStatsLock.unlock();
 
     } else if (node->getType() == NodeType::ParticleServer) {
         QUuid nodeUUID = node->getUUID();
@@ -3319,11 +3319,11 @@ void Application::nodeKilled(SharedNodePointer node) {
         }
 
         // also clean up scene stats for that server
-        _voxelSceneStatsLock.lockForWrite();
+        _octreeSceneStatsLock.lockForWrite();
         if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
             _octreeServerSceneStats.erase(nodeUUID);
         }
-        _voxelSceneStatsLock.unlock();
+        _octreeSceneStatsLock.unlock();
 
     } else if (node->getType() == NodeType::AvatarMixer) {
         // our avatar mixer has gone away - clear the hash of avatars
@@ -3338,12 +3338,12 @@ void Application::trackIncomingVoxelPacket(const QByteArray& packet, const Share
         QUuid nodeUUID = sendingNode->getUUID();
 
         // now that we know the node ID, let's add these stats to the stats for that node...
-        _voxelSceneStatsLock.lockForWrite();
+        _octreeSceneStatsLock.lockForWrite();
         if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
-            VoxelSceneStats& stats = _octreeServerSceneStats[nodeUUID];
+            OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
             stats.trackIncomingOctreePacket(packet, wasStatsPacket, sendingNode->getClockSkewUsec());
         }
-        _voxelSceneStatsLock.unlock();
+        _octreeSceneStatsLock.unlock();
     }
 }
 
@@ -3353,7 +3353,7 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
 
     // parse the incoming stats datas stick it in a temporary object for now, while we
     // determine which server it belongs to
-    VoxelSceneStats temp;
+    OctreeSceneStats temp;
     int statsMessageLength = temp.unpackFromMessage(reinterpret_cast<const unsigned char*>(packet.data()), packet.size());
 
     // quick fix for crash... why would voxelServer be NULL?
@@ -3361,14 +3361,14 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
         QUuid nodeUUID = sendingNode->getUUID();
 
         // now that we know the node ID, let's add these stats to the stats for that node...
-        _voxelSceneStatsLock.lockForWrite();
+        _octreeSceneStatsLock.lockForWrite();
         if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
             _octreeServerSceneStats[nodeUUID].unpackFromMessage(reinterpret_cast<const unsigned char*>(packet.data()),
                                                                 packet.size());
         } else {
             _octreeServerSceneStats[nodeUUID] = temp;
         }
-        _voxelSceneStatsLock.unlock();
+        _octreeSceneStatsLock.unlock();
 
         VoxelPositionSize rootDetails;
         voxelDetailsForCode(temp.getJurisdictionRoot(), rootDetails);
@@ -3397,8 +3397,8 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
         }
         // store jurisdiction details for later use
         // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it
-        // but VoxelSceneStats thinks it's just returning a reference to it's contents. So we need to make a copy of the
-        // details from the VoxelSceneStats to construct the JurisdictionMap
+        // but OctreeSceneStats thinks it's just returning a reference to it's contents. So we need to make a copy of the
+        // details from the OctreeSceneStats to construct the JurisdictionMap
         JurisdictionMap jurisdictionMap;
         jurisdictionMap.copyContents(temp.getJurisdictionRoot(), temp.getJurisdictionEndNodes());
         (*jurisdiction)[nodeUUID] = jurisdictionMap;
