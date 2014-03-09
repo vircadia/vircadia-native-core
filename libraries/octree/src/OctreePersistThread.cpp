@@ -19,7 +19,8 @@ OctreePersistThread::OctreePersistThread(Octree* tree, const QString& filename, 
     _filename(filename),
     _persistInterval(persistInterval),
     _initialLoadComplete(false),
-    _loadTimeUSecs(0) {
+    _loadTimeUSecs(0) 
+{
 }
 
 bool OctreePersistThread::process() {

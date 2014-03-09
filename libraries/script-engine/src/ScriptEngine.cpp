@@ -44,22 +44,28 @@ static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* eng
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, const QString& fileNameString,
                            AbstractControllerScriptingInterface* controllerScriptingInterface) :
+
+    _scriptContents(scriptContents),
+    _isFinished(false),
+    _isRunning(false),
+    _isInitialized(false),
+    _engine(),
     _isAvatar(false),
     _avatarIdentityTimer(NULL),
     _avatarBillboardTimer(NULL),
-    _avatarData(NULL)
+    _timerFunctionMap(),
+    _controllerScriptingInterface(controllerScriptingInterface),
+    _avatarData(NULL),
+    _wantMenuItems(wantMenuItems),
+    _scriptMenuName(),
+    _fileNameString(fileNameString),
+    _quatLibrary(),
+    _vec3Library()
 {
-    _scriptContents = scriptContents;
-    _isFinished = false;
-    _isRunning = false;
-    _isInitialized = false;
-    _fileNameString = fileNameString;
-
     QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* scriptMenuName = fileNameAscii.data();
 
     // some clients will use these menu features
-    _wantMenuItems = wantMenuItems;
     if (!fileNameString.isEmpty()) {
         _scriptMenuName = "Stop ";
         _scriptMenuName.append(scriptMenuName);
@@ -69,7 +75,6 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, co
         _scriptMenuName.append(_scriptNumber);
     }
     _scriptNumber++;
-    _controllerScriptingInterface = controllerScriptingInterface;
 }
 
 ScriptEngine::~ScriptEngine() {
