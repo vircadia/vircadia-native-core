@@ -25,6 +25,8 @@ else ()
     find_library(SIXENSE_LIBRARIES lib/osx_x64/release_dll/libsixense_x64.dylib HINTS ${SIXENSE_SEARCH_DIRS})
   elseif (UNIX)
     find_library(SIXENSE_LIBRARIES lib/linux_x64/release/libsixense_x64.so HINTS ${SIXENSE_SEARCH_DIRS})
+  elseif (WIN32)
+    find_library(SIXENSE_LIBRARIES lib/win32/release_dll/sixense.lib HINTS ${SIXENSE_SEARCH_DIRS})
   endif ()
 
   if (SIXENSE_INCLUDE_DIRS AND SIXENSE_LIBRARIES)
