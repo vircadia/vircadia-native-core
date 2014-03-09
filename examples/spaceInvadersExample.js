@@ -207,7 +207,7 @@ function displayGameOver() {
     print("Game over...");
 }
 
-function update() {
+function update(deltaTime) {
     if (!gameOver) {
         //print("updating space invaders... iteration="+iteration);
         iteration++;
@@ -257,7 +257,7 @@ function update() {
 }
 
 // register the call back so it fires before each data send
-Script.willSendVisualDataCallback.connect(update);
+Script.update.connect(update);
 
 function cleanupGame() {
     print("cleaning up game...");
@@ -392,8 +392,9 @@ function deleteIfInvader(possibleInvaderParticle) {
     }
 }
 
-function particleCollisionWithParticle(particleA, particleB) {
+function particleCollisionWithParticle(particleA, particleB, penetration) {
     print("particleCollisionWithParticle() a.id="+particleA.id + " b.id=" + particleB.id);
+    Vec3.print('particleCollisionWithParticle() penetration=', penetration);
     if (missileFired) {
         myMissile = Particles.identifyParticle(myMissile);
         if (myMissile.id == particleA.id) {

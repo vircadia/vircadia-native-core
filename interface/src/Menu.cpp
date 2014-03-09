@@ -160,6 +160,7 @@ Menu::Menu() :
 
     QMenu* toolsMenu = addMenu("Tools");
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
+    addActionToQMenuAndActionHash(toolsMenu, MenuOption::FstUploader, 0, Application::getInstance(), SLOT(uploadFST()));
 
 
     QMenu* viewMenu = addMenu("View");
@@ -272,7 +273,6 @@ Menu::Menu() :
                                            SLOT(setFilter(bool)));
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHands, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::VoxelDrumming, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::PlaySlaps, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::HandsCollideWithSelf, 0, false);
 
@@ -282,11 +282,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::TestPing, 0, true);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::FrameTimer);
     addActionToQMenuAndActionHash(timingMenu, MenuOption::RunTimingTests, 0, this, SLOT(runTests()));
-    addActionToQMenuAndActionHash(timingMenu,
-                                  MenuOption::TreeStats,
-                                  Qt::SHIFT | Qt::Key_S,
-                                  appInstance->getVoxels(),
-                                  SLOT(collectStatsForTreesAndVBOs()));
 
     QMenu* frustumMenu = developerMenu->addMenu("View Frustum Debugging Tools");
     addCheckableActionToQMenuAndActionHash(frustumMenu, MenuOption::DisplayFrustum, Qt::SHIFT | Qt::Key_F);
@@ -302,62 +297,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::PipelineWarnings, Qt::CTRL | Qt::SHIFT | Qt::Key_P);
     addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::SuppressShortTimings, Qt::CTRL | Qt::SHIFT | Qt::Key_S);
 
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::AutomaticallyAuditTree);
-
-
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::ShowAllLocalVoxels,
-                                  Qt::CTRL | Qt::Key_A,
-                                  appInstance->getVoxels(),
-                                  SLOT(showAllLocalVoxels()));
-
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::KillLocalVoxels,
-                                  Qt::CTRL | Qt::Key_K,
-                                  appInstance, SLOT(doKillLocalVoxels()));
-
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::RandomizeVoxelColors,
-                                  Qt::CTRL | Qt::Key_R,
-                                  appInstance->getVoxels(),
-                                  SLOT(randomizeVoxelColors()));
-
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::FalseColorRandomly,
-                                  0,
-                                  appInstance->getVoxels(),
-                                  SLOT(falseColorizeRandom()));
-
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::FalseColorEveryOtherVoxel,
-                                  0,
-                                  appInstance->getVoxels(),
-                                  SLOT(falseColorizeRandomEveryOther()));
-
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::FalseColorByDistance,
-                                  0,
-                                  appInstance->getVoxels(),
-                                  SLOT(falseColorizeDistanceFromView()));
-
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::FalseColorOutOfView,
-                                  0,
-                                  appInstance->getVoxels(),
-                                  SLOT(falseColorizeInView()));
-
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::FalseColorBySource,
-                                  0,
-                                  appInstance->getVoxels(),
-                                  SLOT(falseColorizeBySource()));
-
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::ShowTrueColors,
-                                  Qt::CTRL | Qt::Key_T,
-                                  appInstance->getVoxels(),
-                                  SLOT(trueColorize()));
-
     addCheckableActionToQMenuAndActionHash(renderDebugMenu, 
                                   MenuOption::CullSharedFaces, 
                                   Qt::CTRL | Qt::SHIFT | Qt::Key_C, 
@@ -371,22 +310,6 @@ Menu::Menu() :
                                   false,
                                   appInstance->getVoxels(),
                                   SLOT(showCulledSharedFaces()));
-
-    addDisabledActionAndSeparator(renderDebugMenu, "Coverage Maps");
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::FalseColorOccluded,
-                                  0,
-                                  appInstance->getVoxels(),
-                                  SLOT(falseColorizeOccluded()));
-
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::FalseColorOccludedV2,
-                                  0,
-                                  appInstance->getVoxels(),
-                                  SLOT(falseColorizeOccludedV2()));
-
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::CoverageMap, Qt::SHIFT | Qt::CTRL | Qt::Key_O);
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::CoverageMapV2, Qt::SHIFT | Qt::CTRL | Qt::Key_P);
 
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio Debugging Tools");
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction,
@@ -587,9 +510,24 @@ void Menu::handleViewFrustumOffsetKeyModifier(int key) {
     }
 }
 
-void Menu::addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName) {
-    destinationMenu->addSeparator();
-    (destinationMenu->addAction(actionName))->setEnabled(false);
+void Menu::addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName, int menuItemLocation) {
+    QAction* actionBefore = NULL;
+    if (menuItemLocation >= 0 && destinationMenu->actions().size() > menuItemLocation) {
+        actionBefore = destinationMenu->actions()[menuItemLocation];
+    }
+    if (actionBefore) {
+        QAction* separator = new QAction("",destinationMenu);
+        destinationMenu->insertAction(actionBefore, separator);
+        separator->setSeparator(true);
+
+        QAction* separatorText = new QAction(actionName,destinationMenu);
+        separatorText->setEnabled(false);
+        destinationMenu->insertAction(actionBefore, separatorText);
+        
+    } else {
+        destinationMenu->addSeparator();
+        (destinationMenu->addAction(actionName))->setEnabled(false);
+    }
 }
 
 QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
@@ -650,11 +588,18 @@ void Menu::removeAction(QMenu* menu, const QString& actionName) {
 }
 
 void Menu::setIsOptionChecked(const QString& menuOption, bool isChecked) {
-    return _actionHash.value(menuOption)->setChecked(isChecked);
+    QAction* menu = _actionHash.value(menuOption);
+    if (menu) {
+        menu->setChecked(isChecked);
+    }
 }
 
 bool Menu::isOptionChecked(const QString& menuOption) {
-    return _actionHash.value(menuOption)->isChecked();
+    QAction* menu = _actionHash.value(menuOption);
+    if (menu) {
+        return menu->isChecked();
+    }
+    return false;
 }
 
 void Menu::triggerOption(const QString& menuOption) {
@@ -1317,6 +1262,18 @@ int Menu::findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem) {
     return UNSPECIFIED_POSITION; // not found
 }
 
+int Menu::positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition) {
+    QList<QAction*> menuActions = menu->actions();
+    if (requestedPosition > 1 && requestedPosition < menuActions.size()) {
+        QAction* beforeRequested = menuActions[requestedPosition - 1];
+        if (beforeRequested->isSeparator()) {
+            requestedPosition--;
+        }
+    }
+    return requestedPosition;
+}
+
+
 QMenu* Menu::addMenu(const QString& menuName) {
     QStringList menuTree = menuName.split(">");
     QMenu* addTo = NULL;
@@ -1362,6 +1319,29 @@ void Menu::addSeparator(const QString& menuName, const QString& separatorName) {
     }
 }
 
+void Menu::removeSeparator(const QString& menuName, const QString& separatorName) {
+    QMenu* menu = getMenu(menuName);
+    bool separatorRemoved = false;
+    if (menu) {
+        int textAt = findPositionOfMenuItem(menu, separatorName);
+        QList<QAction*> menuActions = menu->actions();
+        QAction* separatorText = menuActions[textAt];
+        if (textAt > 0 && textAt < menuActions.size()) {
+            QAction* separatorLine = menuActions[textAt - 1];
+            if (separatorLine) {
+                if (separatorLine->isSeparator()) {
+                    menu->removeAction(separatorText);
+                    menu->removeAction(separatorLine);
+                    separatorRemoved = true;
+                }
+            }
+        }
+    }
+    if (separatorRemoved) {
+        QMenuBar::repaint();
+    }
+}
+
 void Menu::addMenuItem(const MenuItemProperties& properties) {
     QMenu* menuObj = getMenu(properties.menuName);
     if (menuObj) {
@@ -1374,6 +1354,8 @@ void Menu::addMenuItem(const MenuItemProperties& properties) {
         int requestedPosition = properties.position;
         if (requestedPosition == UNSPECIFIED_POSITION && !properties.beforeItem.isEmpty()) {
             requestedPosition = findPositionOfMenuItem(menuObj, properties.beforeItem);
+            // double check that the requested location wasn't a separator label
+            requestedPosition = positionBeforeSeparatorIfNeeded(menuObj, requestedPosition);
         }
         if (requestedPosition == UNSPECIFIED_POSITION && !properties.afterItem.isEmpty()) {
             int afterPosition = findPositionOfMenuItem(menuObj, properties.afterItem);
@@ -1382,9 +1364,11 @@ void Menu::addMenuItem(const MenuItemProperties& properties) {
             }
         }
         
-        QAction* menuItemAction;
-        if (properties.isCheckable) {
-            menuItemAction = addCheckableActionToQMenuAndActionHash(menuObj, properties.menuItemName, 
+        QAction* menuItemAction = NULL;
+        if (properties.isSeparator) {
+            addDisabledActionAndSeparator(menuObj, properties.menuItemName, requestedPosition);
+        } else if (properties.isCheckable) {
+            menuItemAction = addCheckableActionToQMenuAndActionHash(menuObj, properties.menuItemName,
                                     properties.shortcutKeySequence, properties.isChecked, 
                                     MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()), requestedPosition);
         } else {
@@ -1392,7 +1376,7 @@ void Menu::addMenuItem(const MenuItemProperties& properties) {
                                     MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()),
                                     QAction::NoRole, requestedPosition);
         }
-        if (shortcut) {
+        if (shortcut && menuItemAction) {
             connect(shortcut, SIGNAL(activated()), menuItemAction, SLOT(trigger()));
         }
         QMenuBar::repaint();

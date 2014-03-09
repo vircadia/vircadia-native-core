@@ -69,7 +69,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     simulateAvatarFades(deltaTime);
 }
 
-void AvatarManager::renderAvatars(bool forceRenderMyHead, bool selfAvatarOnly) {
+void AvatarManager::renderAvatars(bool forShadowMapOrMirror, bool selfAvatarOnly) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "Application::renderAvatars()");
     bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors);
@@ -83,16 +83,16 @@ void AvatarManager::renderAvatars(bool forceRenderMyHead, bool selfAvatarOnly) {
                 avatar->init();
             }
             if (avatar == static_cast<Avatar*>(_myAvatar.data())) {
-                _myAvatar->render(forceRenderMyHead);
+                _myAvatar->render(forShadowMapOrMirror);
             } else {
-                avatar->render();
+                avatar->render(forShadowMapOrMirror);
             }
             avatar->setDisplayingLookatVectors(renderLookAtVectors);
         }
-        renderAvatarFades();
+        renderAvatarFades(forShadowMapOrMirror);
     } else {
         // just render myAvatar
-        _myAvatar->render(forceRenderMyHead, true);
+        _myAvatar->render(forShadowMapOrMirror);
         _myAvatar->setDisplayingLookatVectors(renderLookAtVectors);
     }
 }
@@ -115,13 +115,13 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     }
 }
 
-void AvatarManager::renderAvatarFades() {
+void AvatarManager::renderAvatarFades(bool forShadowMap) {
     // render avatar fades
-    Glower glower;
+    Glower glower(forShadowMap ? 0.0f : 1.0f);
     
     foreach(const AvatarSharedPointer& fadingAvatar, _avatarFades) {
         Avatar* avatar = static_cast<Avatar*>(fadingAvatar.data());
-        avatar->render();
+        avatar->render(forShadowMap);
     }
 }
 

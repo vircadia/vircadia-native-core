@@ -51,12 +51,12 @@ public:
     void reset();
     void simulate(float deltaTime, bool isMine);
     void render(bool isMine);
-    void setBallColor      (glm::vec3 ballColor         ) { _ballColor          = ballColor;          }
 
     // getters
     const glm::vec3& getLeapFingerTipBallPosition (int ball) const { return _leapFingerTipBalls [ball].position;}
     const glm::vec3& getLeapFingerRootBallPosition(int ball) const { return _leapFingerRootBalls[ball].position;}
     
+    void collideAgainstAvatarOld(Avatar* avatar, bool isMyHand);
     void collideAgainstAvatar(Avatar* avatar, bool isMyHand);
     void collideAgainstOurself();
 
@@ -69,7 +69,6 @@ private:
 
     Avatar*        _owningAvatar;
     float          _renderAlpha;
-    glm::vec3      _ballColor;
     std::vector<HandBall> _leapFingerTipBalls;
     std::vector<HandBall> _leapFingerRootBalls;
     

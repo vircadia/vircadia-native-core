@@ -14,6 +14,7 @@
 #include <QRunnable>
 #include <QThreadPool>
 
+#include <glm/glm.hpp>
 #include <glm/gtc/random.hpp>
 
 #include "Application.h"
@@ -40,16 +41,13 @@ TextureCache::~TextureCache() {
     foreach (GLuint id, _fileTextureIDs) {
         glDeleteTextures(1, &id);
     }
-    if (_primaryFramebufferObject != NULL) {
-        delete _primaryFramebufferObject;
+    if (_primaryFramebufferObject) {
         glDeleteTextures(1, &_primaryDepthTextureID);
     }
-    if (_secondaryFramebufferObject != NULL) {
-        delete _secondaryFramebufferObject;
-    }
-    if (_tertiaryFramebufferObject != NULL) {
-        delete _tertiaryFramebufferObject;
-    }
+    
+    delete _primaryFramebufferObject;
+    delete _secondaryFramebufferObject;
+    delete _tertiaryFramebufferObject;
 }
 
 GLuint TextureCache::getPermutationNormalTextureID() {
@@ -109,14 +107,14 @@ GLuint TextureCache::getBlueTextureID() {
 GLuint TextureCache::getFileTextureID(const QString& filename) {
     GLuint id = _fileTextureIDs.value(filename);
     if (id == 0) {
-        switchToResourcesParentIfRequired();
         QImage image = QImage(filename).convertToFormat(QImage::Format_ARGB32);
     
         glGenTextures(1, &id);
         glBindTexture(GL_TEXTURE_2D, id);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1,
             GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glBindTexture(GL_TEXTURE_2D, 0);
         
         _fileTextureIDs.insert(filename, id);
@@ -138,7 +136,7 @@ QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url, bool no
 }
 
 QOpenGLFramebufferObject* TextureCache::getPrimaryFramebufferObject() {
-    if (_primaryFramebufferObject == NULL) {
+    if (!_primaryFramebufferObject) {
         _primaryFramebufferObject = createFramebufferObject();
         
         glGenTextures(1, &_primaryDepthTextureID);
@@ -164,21 +162,21 @@ GLuint TextureCache::getPrimaryDepthTextureID() {
 }
 
 QOpenGLFramebufferObject* TextureCache::getSecondaryFramebufferObject() {
-    if (_secondaryFramebufferObject == NULL) {
+    if (!_secondaryFramebufferObject) {
         _secondaryFramebufferObject = createFramebufferObject();
     }
     return _secondaryFramebufferObject;
 }
 
 QOpenGLFramebufferObject* TextureCache::getTertiaryFramebufferObject() {
-    if (_tertiaryFramebufferObject == NULL) {
+    if (!_tertiaryFramebufferObject) {
         _tertiaryFramebufferObject = createFramebufferObject();
     }
     return _tertiaryFramebufferObject;
 }
 
 QOpenGLFramebufferObject* TextureCache::getShadowFramebufferObject() {
-    if (_shadowFramebufferObject == NULL) {
+    if (!_shadowFramebufferObject) {
         const int SHADOW_MAP_SIZE = 2048;
         _shadowFramebufferObject = new QOpenGLFramebufferObject(SHADOW_MAP_SIZE, SHADOW_MAP_SIZE,
             QOpenGLFramebufferObject::NoAttachment, GL_TEXTURE_2D, GL_RGB);
@@ -212,16 +210,16 @@ GLuint TextureCache::getShadowDepthTextureID() {
 bool TextureCache::eventFilter(QObject* watched, QEvent* event) {
     if (event->type() == QEvent::Resize) {
         QSize size = static_cast<QResizeEvent*>(event)->size();
-        if (_primaryFramebufferObject != NULL && _primaryFramebufferObject->size() != size) {
+        if (_primaryFramebufferObject && _primaryFramebufferObject->size() != size) {
             delete _primaryFramebufferObject;
             _primaryFramebufferObject = NULL;
             glDeleteTextures(1, &_primaryDepthTextureID);
         }
-        if (_secondaryFramebufferObject != NULL && _secondaryFramebufferObject->size() != size) {
+        if (_secondaryFramebufferObject && _secondaryFramebufferObject->size() != size) {
             delete _secondaryFramebufferObject;
             _secondaryFramebufferObject = NULL;
         }
-        if (_tertiaryFramebufferObject != NULL && _tertiaryFramebufferObject->size() != size) {
+        if (_tertiaryFramebufferObject && _tertiaryFramebufferObject->size() != size) {
             delete _tertiaryFramebufferObject;
             _tertiaryFramebufferObject = NULL;
         }
@@ -273,27 +271,28 @@ NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap) :
 class ImageReader : public QRunnable {
 public:
 
-    ImageReader(const QWeakPointer<Resource>& texture, const QByteArray& data);
+    ImageReader(const QWeakPointer<Resource>& texture, QNetworkReply* reply);
     
     virtual void run();
 
 private:
     
     QWeakPointer<Resource> _texture;
-    QByteArray _data;
+    QNetworkReply* _reply;
 };
 
-ImageReader::ImageReader(const QWeakPointer<Resource>& texture, const QByteArray& data) :
+ImageReader::ImageReader(const QWeakPointer<Resource>& texture, QNetworkReply* reply) :
     _texture(texture),
-    _data(data) {
+    _reply(reply) {
 }
 
 void ImageReader::run() {
     QSharedPointer<Resource> texture = _texture.toStrongRef();
     if (texture.isNull()) {
+        _reply->deleteLater();
         return;
     }
-    QImage image = QImage::fromData(_data);
+    QImage image = QImage::fromData(_reply->readAll());
     if (image.format() != QImage::Format_ARGB32) {
         image = image.convertToFormat(QImage::Format_ARGB32);
     }
@@ -318,13 +317,14 @@ void ImageReader::run() {
     }
     int imageArea = image.width() * image.height();
     QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image),
-        Q_ARG(const glm::vec4&, accumulated / (imageArea * EIGHT_BIT_MAXIMUM)),
+        Q_ARG(const glm::vec4&, accumulated / (float) (imageArea * EIGHT_BIT_MAXIMUM)),
         Q_ARG(bool, translucentPixels >= imageArea / 2));
+    _reply->deleteLater();
 }
 
 void NetworkTexture::downloadFinished(QNetworkReply* reply) {
     // send the reader off to the thread pool
-    QThreadPool::globalInstance()->start(new ImageReader(_self, reply->readAll()));
+    QThreadPool::globalInstance()->start(new ImageReader(_self, reply));
 }
 
 void NetworkTexture::setImage(const QImage& image, const glm::vec4& averageColor, bool translucent) {
@@ -336,7 +336,8 @@ void NetworkTexture::setImage(const QImage& image, const glm::vec4& averageColor
     glBindTexture(GL_TEXTURE_2D, getID());
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1,
         GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
@@ -381,7 +382,7 @@ QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilatio
             QPainter painter;
             painter.begin(&dilatedImage);
             QPainterPath path;
-            qreal radius = glm::mix(_innerRadius, _outerRadius, dilation);
+            qreal radius = glm::mix((float) _innerRadius, (float) _outerRadius, dilation);
             path.addEllipse(QPointF(_image.width() / 2.0, _image.height() / 2.0), radius, radius);
             painter.fillPath(path, Qt::black);
             painter.end();
@@ -389,7 +390,8 @@ QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilatio
             glBindTexture(GL_TEXTURE_2D, texture->getID());
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dilatedImage.width(), dilatedImage.height(), 1,
                 GL_BGRA, GL_UNSIGNED_BYTE, dilatedImage.constBits());
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glGenerateMipmap(GL_TEXTURE_2D);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             glBindTexture(GL_TEXTURE_2D, 0);
         }
         

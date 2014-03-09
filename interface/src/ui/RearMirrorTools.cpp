@@ -5,11 +5,16 @@
 //  Created by stojce on 23.10.2013.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
-#include "RearMirrorTools.h"
-#include "Util.h"
+#include "InterfaceConfig.h"
+
+#include <QMouseEvent>
 
 #include <SharedUtil.h>
-#include <QMouseEvent>
+
+#include "Application.h"
+#include "Util.h"
+
+#include "RearMirrorTools.h"
 
 const char SETTINGS_GROUP_NAME[] = "Rear View Tools";
 const char ZOOM_LEVEL_SETTINGS[] = "ZoomLevel";
@@ -23,12 +28,11 @@ RearMirrorTools::RearMirrorTools(QGLWidget* parent, QRect& bounds, QSettings* se
     _windowed(false),
     _fullScreen(false)
 {
-    _zoomLevel = HEAD,
-    switchToResourcesParentIfRequired();
-    _closeTextureId = _parent->bindTexture(QImage("./resources/images/close.png"));
-    _resetTextureId = _parent->bindTexture(QImage("./resources/images/reset.png"));
-    _zoomHeadTextureId = _parent->bindTexture(QImage("./resources/images/head.png"));
-    _zoomBodyTextureId = _parent->bindTexture(QImage("./resources/images/body.png"));
+    _zoomLevel = HEAD;
+    _closeTextureId = _parent->bindTexture(QImage(Application::resourcesPath() + "images/close.png"));
+    _resetTextureId = _parent->bindTexture(QImage(Application::resourcesPath() + "images/reset.png"));
+    _zoomHeadTextureId = _parent->bindTexture(QImage(Application::resourcesPath() + "images/head.png"));
+    _zoomBodyTextureId = _parent->bindTexture(QImage(Application::resourcesPath() + "images/body.png"));
 
     _shrinkIconRect = QRect(ICON_PADDING, ICON_PADDING, ICON_SIZE, ICON_SIZE);
     _closeIconRect = QRect(_bounds.left() + ICON_PADDING, _bounds.top() + ICON_PADDING, ICON_SIZE, ICON_SIZE);

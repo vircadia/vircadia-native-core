@@ -29,7 +29,7 @@ PointShader::~PointShader() {
 
 ProgramObject* PointShader::createPointShaderProgram(const QString& name) {
     ProgramObject* program = new ProgramObject();
-    program->addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/" + name + ".vert" );
+    program->addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/" + name + ".vert" );
     program->link();
     return program;
 }
@@ -39,7 +39,6 @@ void PointShader::init() {
         qDebug("[ERROR] PointShader is already initialized.");
         return;
     }
-    switchToResourcesParentIfRequired();
     _program = createPointShaderProgram("point_size");
     _initialized = true;
 }

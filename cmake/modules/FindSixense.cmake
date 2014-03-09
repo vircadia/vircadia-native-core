@@ -15,30 +15,31 @@
 if (SIXENSE_LIBRARIES AND SIXENSE_INCLUDE_DIRS)
   # in cache already
   set(SIXENSE_FOUND TRUE)
-else (SIXENSE_LIBRARIES AND SIXENSE_INCLUDE_DIRS)
-  find_path(SIXENSE_INCLUDE_DIRS sixense.h ${SIXENSE_ROOT_DIR}/include)
+else ()
+  
+  set(SIXENSE_SEARCH_DIRS "${SIXENSE_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/sixense")
+  
+  find_path(SIXENSE_INCLUDE_DIRS sixense.h PATH_SUFFIXES include HINTS ${SIXENSE_SEARCH_DIRS})
 
   if (APPLE)
-    find_library(SIXENSE_LIBRARIES libsixense_x64.dylib ${SIXENSE_ROOT_DIR}/lib/osx_x64/release_dll)
+    find_library(SIXENSE_LIBRARIES lib/osx_x64/release_dll/libsixense_x64.dylib HINTS ${SIXENSE_SEARCH_DIRS})
   elseif (UNIX)
-    find_library(SIXENSE_LIBRARIES libsixense_x64.so ${SIXENSE_ROOT_DIR}/lib/linux_x64/release)
+    find_library(SIXENSE_LIBRARIES lib/linux_x64/release/libsixense_x64.so HINTS ${SIXENSE_SEARCH_DIRS})
+  elseif (WIN32)
+    find_library(SIXENSE_LIBRARIES lib/win32/release_dll/sixense.lib HINTS ${SIXENSE_SEARCH_DIRS})
   endif ()
 
   if (SIXENSE_INCLUDE_DIRS AND SIXENSE_LIBRARIES)
      set(SIXENSE_FOUND TRUE)
-  endif (SIXENSE_INCLUDE_DIRS AND SIXENSE_LIBRARIES)
+  endif ()
  
   if (SIXENSE_FOUND)
     if (NOT SIXENSE_FIND_QUIETLY)
       message(STATUS "Found Sixense: ${SIXENSE_LIBRARIES}")
     endif (NOT SIXENSE_FIND_QUIETLY)
-  else (SIXENSE_FOUND)
+  else ()
     if (SIXENSE_FIND_REQUIRED)
       message(FATAL_ERROR "Could not find Sixense")
     endif (SIXENSE_FIND_REQUIRED)
-  endif (SIXENSE_FOUND)
-
-  # show the SIXENSE_INCLUDE_DIRS and SIXENSE_LIBRARIES variables only in the advanced view
-  mark_as_advanced(SIXENSE_INCLUDE_DIRS SIXENSE_LIBRARIES)
-
-endif (SIXENSE_LIBRARIES AND SIXENSE_INCLUDE_DIRS)
+  endif ()
+endif ()

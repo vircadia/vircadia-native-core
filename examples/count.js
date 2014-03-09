@@ -10,8 +10,8 @@
 
 var count = 0;
 
-function displayCount() {
-    print("count =" + count);
+function displayCount(deltaTime) {
+    print("count =" + count + " deltaTime=" + deltaTime);
     count++;
 }
 
@@ -20,7 +20,7 @@ function scriptEnding() {
 }
 
 // register the call back so it fires before each data send
-Script.willSendVisualDataCallback.connect(displayCount);
+Script.update.connect(displayCount);
 
 // register our scriptEnding callback
 Script.scriptEnding.connect(scriptEnding);

@@ -6,11 +6,16 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include "InterfaceConfig.h"
+
 #include <QDesktopWidget>
 #include <QTextBlock>
 #include <QtGui>
 
-#include "SharedUtil.h"
+#include <SharedUtil.h>
+
+#include "Application.h"
+
 #include "ui/LogDialog.h"
 
 const int TOP_BAR_HEIGHT = 46;
@@ -36,9 +41,9 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : QDialog
     setWindowTitle("Log");
     setAttribute(Qt::WA_DeleteOnClose);
 
-    switchToResourcesParentIfRequired();
-    QFile styleSheet("resources/styles/log_dialog.qss");
+    QFile styleSheet(Application::resourcesPath() + "styles/log_dialog.qss");
     if (styleSheet.open(QIODevice::ReadOnly)) {
+        QDir::setCurrent(Application::resourcesPath());
         setStyleSheet(styleSheet.readAll());
     }
 

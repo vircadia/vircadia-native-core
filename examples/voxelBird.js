@@ -73,7 +73,7 @@ var moved = true;
 var CHANCE_OF_MOVING = 0.05;
 var CHANCE_OF_TWEETING = 0.05;
 
-function moveBird() {
+function moveBird(deltaTime) {
     frame++;
 	if (frame % 3 == 0) {
 		// Tweeting behavior
@@ -130,4 +130,4 @@ function moveBird() {
 
 Voxels.setPacketsPerSecond(10000);
 // Connect a call back that happens every frame
-Script.willSendVisualDataCallback.connect(moveBird);
+Script.update.connect(moveBird);

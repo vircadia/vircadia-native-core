@@ -93,8 +93,6 @@ int getNthBit(unsigned char byte, int ordinal); /// determines the bit placement
 
 bool isInEnvironment(const char* environment);
 
-void switchToResourcesParentIfRequired();
-
 void loadRandomIdentifier(unsigned char* identifierBuffer, int numBytes);
 
 const char* getCmdOption(int argc, const char * argv[],const char* option);

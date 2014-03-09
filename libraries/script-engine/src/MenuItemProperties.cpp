@@ -71,6 +71,7 @@ void menuItemPropertiesFromScriptValue(const QScriptValue& object, MenuItemPrope
     properties.menuItemName = object.property("menuItemName").toVariant().toString();
     properties.isCheckable = object.property("isCheckable").toVariant().toBool();
     properties.isChecked = object.property("isChecked").toVariant().toBool();
+    properties.isSeparator = object.property("isSeparator").toVariant().toBool();
     
     // handle the shortcut key options in order...
     QScriptValue shortcutKeyValue = object.property("shortcutKey");

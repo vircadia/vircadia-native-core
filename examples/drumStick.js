@@ -31,7 +31,7 @@ var strokeSpeed = new Array();
 strokeSpeed[0] = 0.0; 
 strokeSpeed[1] = 0.0; 
 
-function checkSticks() {
+function checkSticks(deltaTime) {
 	for (var palm = 0; palm < 2; palm++) {
 		var palmVelocity = Controller.getSpatialControlVelocity(palm * 2 + 1);
 		var speed = length(palmVelocity);
@@ -69,4 +69,4 @@ function checkSticks() {
 }
 
 // Connect a call back that happens every frame
-Script.willSendVisualDataCallback.connect(checkSticks);
+Script.update.connect(checkSticks);

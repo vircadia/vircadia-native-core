@@ -99,8 +99,8 @@ void ParticleTree::storeParticle(const Particle& particle, const SharedNodePoint
     if (!args.found) {
         glm::vec3 position = particle.getPosition();
         float size = std::max(MINIMUM_PARTICLE_ELEMENT_SIZE, particle.getRadius());
-        ParticleTreeElement* element = (ParticleTreeElement*)getOrCreateChildElementAt(position.x, position.y, position.z, size);
 
+        ParticleTreeElement* element = (ParticleTreeElement*)getOrCreateChildElementAt(position.x, position.y, position.z, size);
         element->storeParticle(particle);
     }
     // what else do we need to do here to get reaveraging to work
@@ -149,8 +149,8 @@ void ParticleTree::addParticle(const ParticleID& particleID, const ParticlePrope
     Particle particle(particleID, properties);
     glm::vec3 position = particle.getPosition();
     float size = std::max(MINIMUM_PARTICLE_ELEMENT_SIZE, particle.getRadius());
+    
     ParticleTreeElement* element = (ParticleTreeElement*)getOrCreateChildElementAt(position.x, position.y, position.z, size);
-
     element->storeParticle(particle);
     
     _isDirty = true;
@@ -372,10 +372,9 @@ bool ParticleTree::findByIDOperation(OctreeElement* element, void* extraData) {
 
 const Particle* ParticleTree::findParticleByID(uint32_t id, bool alreadyLocked) {
     FindByIDArgs args = { id, false, NULL };
+
     if (!alreadyLocked) {
-        //qDebug() << "ParticleTree::findParticleByID().... about to call lockForRead()....";
         lockForRead();
-        //qDebug() << "ParticleTree::findParticleByID().... after call lockForRead()....";
     }
     recurseTreeWithOperation(findByIDOperation, &args);
     if (!alreadyLocked) {
@@ -460,6 +459,7 @@ bool ParticleTree::pruneOperation(OctreeElement* element, void* extraData) {
 }
 
 void ParticleTree::update() {
+    lockForWrite();
     _isDirty = true;
 
     ParticleTreeUpdateArgs args = { };
@@ -474,9 +474,7 @@ void ParticleTree::update() {
         AABox treeBounds = getRoot()->getAABox();
 
         if (!shouldDie && treeBounds.contains(args._movingParticles[i].getPosition())) {
-            lockForWrite();
             storeParticle(args._movingParticles[i]);
-            unlock();
         } else {
             uint32_t particleID = args._movingParticles[i].getID();
             quint64 deletedAt = usecTimestampNow();
@@ -488,6 +486,7 @@ void ParticleTree::update() {
 
     // prune the tree...
     recurseTreeWithOperation(pruneOperation, NULL);
+    unlock();
 }
 
 

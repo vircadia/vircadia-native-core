@@ -17,7 +17,8 @@ class QNetworkReply;
 class Sound : public QObject {
     Q_OBJECT
 public:
-    Sound(const QUrl& sampleURL, QObject* parent = 0);
+    Sound(const QUrl& sampleURL, QObject* parent = NULL);
+    Sound(float volume, float frequency, float duration, float decay, QObject* parent = NULL);
     
     const QByteArray& getByteArray() { return _byteArray; }
 
