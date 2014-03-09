@@ -160,6 +160,7 @@ Menu::Menu() :
 
     QMenu* toolsMenu = addMenu("Tools");
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
+    addActionToQMenuAndActionHash(toolsMenu, MenuOption::FstUploader, 0, Application::getInstance(), SLOT(uploadFST()));
 
 
     QMenu* viewMenu = addMenu("View");
