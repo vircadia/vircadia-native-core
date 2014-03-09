@@ -103,9 +103,8 @@ void MyAvatar::update(float deltaTime) {
     // Update head mouse from faceshift if active
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
     if (faceshift->isActive()) {
-        glm::vec3 headVelocity = faceshift->getHeadAngularVelocity();
-
         // TODO? resurrect headMouse stuff?
+        //glm::vec3 headVelocity = faceshift->getHeadAngularVelocity();
         //// sets how quickly head angular rotation moves the head mouse
         //const float HEADMOUSE_FACESHIFT_YAW_SCALE = 40.f;
         //const float HEADMOUSE_FACESHIFT_PITCH_SCALE = 30.f;
@@ -307,6 +306,13 @@ void MyAvatar::simulate(float deltaTime) {
 
     _skeletonModel.simulate(deltaTime);
 
+    // copy out the skeleton joints from the model
+    _jointData.resize(_skeletonModel.getJointStateCount());
+    for (int i = 0; i < _jointData.size(); i++) {
+        JointData& data = _jointData[i];
+        data.valid = _skeletonModel.getJointState(i, data.rotation);
+    }
+
     Head* head = getHead();
     glm::vec3 headPosition;
     if (!_skeletonModel.getHeadPosition(headPosition)) {
@@ -452,24 +458,24 @@ void MyAvatar::renderDebugBodyPoints() {
 
 
 }
-void MyAvatar::render(bool forceRenderHead, bool avatarOnly) {
+void MyAvatar::render(bool forShadowMapOrMirror) {
     // don't render if we've been asked to disable local rendering
     if (!_shouldRender) {
         return; // exit early
     }
 
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
+        renderBody(forShadowMapOrMirror);
+    }
     // render body
     if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
-        _skeletonModel.renderCollisionProxies(1.f);
+        _skeletonModel.renderCollisionProxies(0.8f);
     }
     if (Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionProxies)) {
-        _skeletonModel.renderCollisionProxies(1.f);
+        getHead()->getFaceModel().renderCollisionProxies(0.8f);
     }
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
-        renderBody(forceRenderHead);
-    }
-    setShowDisplayName(!avatarOnly);
-    if (avatarOnly) {
+    setShowDisplayName(!forShadowMapOrMirror);
+    if (forShadowMapOrMirror) {
         return;
     }
     renderDisplayName();
@@ -666,6 +672,20 @@ glm::vec3 MyAvatar::getUprightHeadPosition() const {
     return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, getPelvisToHeadLength(), 0.0f);
 }
 
+void MyAvatar::setJointData(int index, const glm::quat& rotation) {
+    Avatar::setJointData(index, rotation);
+    if (QThread::currentThread() == thread()) {
+        _skeletonModel.setJointState(index, true, rotation);
+    }
+}
+
+void MyAvatar::clearJointData(int index) {
+    Avatar::clearJointData(index);
+    if (QThread::currentThread() == thread()) {
+        _skeletonModel.setJointState(index, false);
+    }
+}
+
 void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
     Avatar::setFaceModelURL(faceModelURL);
     _billboardValid = false;
@@ -810,7 +830,7 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
     const float VOXEL_COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
     float pelvisFloatingHeight = getPelvisFloatingHeight();
-    if (Application::getInstance()->getVoxels()->findCapsulePenetration(
+    if (Application::getInstance()->getVoxelTree()->findCapsulePenetration(
             _position - glm::vec3(0.0f, pelvisFloatingHeight - radius, 0.0f),
             _position + glm::vec3(0.0f, getSkeletonHeight() - pelvisFloatingHeight + radius, 0.0f), radius, penetration)) {
         _lastCollisionPosition = _position;
@@ -923,10 +943,13 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
 
     // HACK: body-body collision uses two coaxial capsules with axes parallel to y-axis
     // TODO: make the collision work without assuming avatar orientation
-    Extents myStaticExtents = _skeletonModel.getStaticExtents();
-    glm::vec3 staticScale = myStaticExtents.maximum - myStaticExtents.minimum;
-    float myCapsuleRadius = 0.25f * (staticScale.x + staticScale.z);
-    float myCapsuleHeight = staticScale.y;
+
+    // TODO: these local variables are not used in the live code, only in the
+    // commented-outTODO code below.
+    //Extents myStaticExtents = _skeletonModel.getStaticExtents();
+    //glm::vec3 staticScale = myStaticExtents.maximum - myStaticExtents.minimum;
+    //float myCapsuleRadius = 0.25f * (staticScale.x + staticScale.z);
+    //float myCapsuleHeight = staticScale.y;
 
     CollisionInfo collisionInfo;
     foreach (const AvatarSharedPointer& avatarPointer, avatars) {
@@ -941,6 +964,11 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
         }
         float theirBoundingRadius = avatar->getBoundingRadius();
         if (distance < myBoundingRadius + theirBoundingRadius) {
+            _skeletonModel.updateShapePositions();
+            Model& headModel = getHead()->getFaceModel();
+            headModel.updateShapePositions();
+
+            /* TODO: Andrew to fix Avatar-Avatar body collisions
             Extents theirStaticExtents = _skeletonModel.getStaticExtents();
             glm::vec3 staticScale = theirStaticExtents.maximum - theirStaticExtents.minimum;
             float theirCapsuleRadius = 0.25f * (staticScale.x + staticScale.z);
@@ -952,6 +980,7 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
                 // move the avatar out by half the penetration
                 setPosition(_position - 0.5f * penetration);
             }
+            */
 
             // collide our hands against them
             getHand()->collideAgainstAvatar(avatar, true);
@@ -1176,7 +1205,7 @@ void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
         glm::quat newOrientation = glm::quat(glm::radians(glm::vec3(orientationItems[0].toFloat(),
                                                                     orientationItems[1].toFloat(),
                                                                     orientationItems[2].toFloat())))
-            * glm::angleAxis(180.0f, 0.0f, 1.0f, 0.0f);
+            * glm::angleAxis(180.0f, glm::vec3(0.0f, 1.0f, 0.0f));
         setOrientation(newOrientation);
         
         // move the user a couple units away

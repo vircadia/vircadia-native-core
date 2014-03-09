@@ -5,6 +5,8 @@
 //  Created by Andrzej Kapolka on 5/6/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
+#include "InterfaceConfig.h"
+
 #include <QByteArray>
 #include <QMutexLocker>
 #include <QtDebug>
@@ -13,10 +15,12 @@
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
+#include "Application.h"
 #include "Camera.h"
-#include "Environment.h"
 #include "renderer/ProgramObject.h"
 #include "world.h"
+
+#include "Environment.h"
 
 uint qHash(const HifiSockAddr& sockAddr) {
     if (sockAddr.getAddress().isNull()) {
@@ -44,7 +48,6 @@ void Environment::init() {
         return;
     }
 
-    switchToResourcesParentIfRequired();
     _skyFromAtmosphereProgram = createSkyProgram("Atmosphere", _skyFromAtmosphereUniformLocations);
     _skyFromSpaceProgram = createSkyProgram("Space", _skyFromSpaceUniformLocations);
     
@@ -174,7 +177,7 @@ int Environment::parseData(const HifiSockAddr& senderAddress, const QByteArray& 
 
 ProgramObject* Environment::createSkyProgram(const char* from, int* locations) {
     ProgramObject* program = new ProgramObject();
-    QByteArray prefix = QByteArray("resources/shaders/SkyFrom") + from;
+    QByteArray prefix = QString(Application::resourcesPath() + "/shaders/SkyFrom" + from).toUtf8();
     program->addShaderFromSourceFile(QGLShader::Vertex, prefix + ".vert");
     program->addShaderFromSourceFile(QGLShader::Fragment, prefix + ".frag");
     program->link();

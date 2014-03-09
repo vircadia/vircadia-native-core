@@ -920,7 +920,7 @@ function keyPressEvent(event) {
                         red: colors[color].red,
                         green: colors[color].green,
                         blue: colors[color].blue };
-            Voxels.eraseVoxel(voxelDetails.x, voxelDetails.y, voxelDetails.z, voxelDetails.s);
+            Voxels.eraseVoxel(newVoxel.x, newVoxel.y, newVoxel.z, newVoxel.s);
             Voxels.setVoxel(newVoxel.x, newVoxel.y, newVoxel.z, newVoxel.s, newVoxel.red, newVoxel.green, newVoxel.blue);
             setAudioPosition();
             playRandomAddSound(audioOptions);
@@ -945,17 +945,30 @@ function setupMenus() {
     // hook up menus
     Menu.menuItemEvent.connect(menuItemEvent);
 
-    // delete the standard application menu item
-    Menu.addSeparator("Edit", "Voxels");
+    // add our menuitems
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Voxels", isSeparator: true, beforeItem: "Physics" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Cut", shortcutKey: "CTRL+X", afterItem: "Voxels" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Copy", shortcutKey: "CTRL+C", afterItem: "Cut" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste", shortcutKey: "CTRL+V", afterItem: "Copy" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Nudge", shortcutKey: "CTRL+N", afterItem: "Paste" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete", shortcutKeyEvent: { text: "backspace" }, afterItem: "Nudge" });
 
-    Menu.addSeparator("File", "Voxels");
+    Menu.addMenuItem({ menuName: "File", menuItemName: "Voxels", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Voxels", shortcutKey: "CTRL+E", afterItem: "Voxels" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Voxels", shortcutKey: "CTRL+I", afterItem: "Export Voxels" });
+}
+
+function cleanupMenus() {
+    // delete our menuitems
+    Menu.removeSeparator("Edit", "Voxels");
+    Menu.removeMenuItem("Edit", "Cut");
+    Menu.removeMenuItem("Edit", "Copy");
+    Menu.removeMenuItem("Edit", "Paste");
+    Menu.removeMenuItem("Edit", "Nudge");
+    Menu.removeMenuItem("Edit", "Delete");
+    Menu.removeSeparator("File", "Voxels");
+    Menu.removeMenuItem("File", "Export Voxels");
+    Menu.removeMenuItem("File", "Import Voxels");
 }
 
 function menuItemEvent(menuItem) {
@@ -1277,11 +1290,54 @@ function touchEndEvent(event) {
     }
 }
 
-function update() {
+var lastFingerAddVoxel = { x: -1, y: -1, z: -1}; // off of the build-able area
+var lastFingerDeleteVoxel = { x: -1, y: -1, z: -1}; // off of the build-able area
+
+function checkControllers() {
+    var controllersPerPalm = 2; // palm and finger
+    for (var palm = 0; palm < 2; palm++) {
+        var palmController = palm * controllersPerPalm; 
+        var fingerTipController = palmController + 1; 
+        var fingerTipPosition = Controller.getSpatialControlPosition(fingerTipController);
+        
+        var BUTTON_COUNT = 6;
+        var BUTTON_BASE = palm * BUTTON_COUNT;
+        var BUTTON_1 = BUTTON_BASE + 1;
+        var BUTTON_2 = BUTTON_BASE + 2;
+        var FINGERTIP_VOXEL_SIZE = 0.05;
+
+        if (Controller.isButtonPressed(BUTTON_1)) {
+            if (Vec3.length(Vec3.subtract(fingerTipPosition,lastFingerAddVoxel)) > (FINGERTIP_VOXEL_SIZE / 2)) {
+                if (whichColor == -1) {
+                    newColor = { red: colors[0].red, green: colors[0].green, blue: colors[0].blue };
+                } else {
+                    newColor = { red: colors[whichColor].red, green: colors[whichColor].green, blue: colors[whichColor].blue };
+                }
+
+                Voxels.eraseVoxel(fingerTipPosition.x, fingerTipPosition.y, fingerTipPosition.z, FINGERTIP_VOXEL_SIZE);
+                Voxels.setVoxel(fingerTipPosition.x, fingerTipPosition.y, fingerTipPosition.z, FINGERTIP_VOXEL_SIZE,
+                    newColor.red, newColor.green, newColor.blue);
+                
+                lastFingerAddVoxel = fingerTipPosition;
+            }
+        } else if (Controller.isButtonPressed(BUTTON_2)) {
+            if (Vec3.length(Vec3.subtract(fingerTipPosition,lastFingerDeleteVoxel)) > (FINGERTIP_VOXEL_SIZE / 2)) {
+                Voxels.eraseVoxel(fingerTipPosition.x, fingerTipPosition.y, fingerTipPosition.z, FINGERTIP_VOXEL_SIZE);
+                lastFingerDeleteVoxel = fingerTipPosition;
+            }
+        }
+    }
+}
+
+function update(deltaTime) {
     var newWindowDimensions = Controller.getViewportDimensions();
     if (newWindowDimensions.x != windowDimensions.x || newWindowDimensions.y != windowDimensions.y) {
         windowDimensions = newWindowDimensions;
         moveTools();
+    }
+    
+    if (editToolsOn) {
+        checkControllers();
     }
 }
 
@@ -1339,9 +1395,10 @@ function scriptEnding() {
     Overlays.deleteOverlay(thumb);
     Controller.releaseKeyEvents({ text: "+" });
     Controller.releaseKeyEvents({ text: "-" });
+    cleanupMenus();
 }
 Script.scriptEnding.connect(scriptEnding);
 
-Script.willSendVisualDataCallback.connect(update);
+Script.update.connect(update);
 
 setupMenus();

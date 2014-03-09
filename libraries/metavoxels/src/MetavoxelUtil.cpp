@@ -62,7 +62,7 @@ DelegatingItemEditorFactory::DelegatingItemEditorFactory() :
 
 QWidget* DelegatingItemEditorFactory::createEditor(int userType, QWidget* parent) const {
     QWidget* editor = QItemEditorFactory::createEditor(userType, parent);
-    return (editor == NULL) ? _parentFactory->createEditor(userType, parent) : editor;
+    return (!editor) ? _parentFactory->createEditor(userType, parent) : editor;
 }
 
 QByteArray DelegatingItemEditorFactory::valuePropertyName(int userType) const {

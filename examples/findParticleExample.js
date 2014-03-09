@@ -60,7 +60,7 @@ function printProperties(properties) {
     }
 }
 
-function findParticles() {
+function findParticles(deltaTime) {
 
     // run for a while, then clean up
     // stop it...
@@ -122,7 +122,7 @@ function findParticles() {
 
 
 // register the call back so it fires before each data send
-Script.willSendVisualDataCallback.connect(findParticles);
+Script.update.connect(findParticles);
 
 // register our scriptEnding callback
 Script.scriptEnding.connect(scriptEnding);

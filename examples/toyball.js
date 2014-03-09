@@ -208,7 +208,7 @@ function checkControllerSide(whichSide) {
 }
 
 
-function checkController() {
+function checkController(deltaTime) {
     var numberOfButtons = Controller.getNumberOfButtons();
     var numberOfTriggers = Controller.getNumberOfTriggers();
     var numberOfSpatialControls = Controller.getNumberOfSpatialControls();
@@ -226,4 +226,4 @@ function checkController() {
 
 
 // register the call back so it fires before each data send
-Script.willSendVisualDataCallback.connect(checkController);
+Script.update.connect(checkController);

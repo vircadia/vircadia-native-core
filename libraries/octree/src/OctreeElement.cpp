@@ -44,7 +44,7 @@ void OctreeElement::init(unsigned char * octalCode) {
     _voxelNodeLeafCount++; // all nodes start as leaf nodes
 
 
-    int octalCodeLength = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(octalCode));
+    size_t octalCodeLength = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(octalCode));
     if (octalCodeLength > sizeof(_octalCode)) {
         _octalCode.pointer = octalCode;
         _octcodePointer = true;
@@ -739,7 +739,7 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
         _externalChildrenMemoryUsage += NUMBER_OF_CHILDREN * sizeof(OctreeElement*);
 
     } else if (previousChildCount == 2 && newChildCount == 1) {
-        assert(child == NULL); // we are removing a child, so this must be true!
+        assert(!child); // we are removing a child, so this must be true!
         OctreeElement* previousFirstChild = _children.external[firstIndex];
         OctreeElement* previousSecondChild = _children.external[secondIndex];
         delete[] _children.external;

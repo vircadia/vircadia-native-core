@@ -15,7 +15,7 @@
 if (VISAGE_LIBRARIES AND VISAGE_INCLUDE_DIRS)
   # in cache already
   set(VISAGE_FOUND TRUE)
-else (VISAGE_LIBRARIES AND VISAGE_INCLUDE_DIRS)
+else ()
   find_path(VISAGE_INCLUDE_DIR VisageTracker2.h ${VISAGE_ROOT_DIR}/include)
   
   if (APPLE)
@@ -73,4 +73,4 @@ else (VISAGE_LIBRARIES AND VISAGE_INCLUDE_DIRS)
   # show the VISAGE_INCLUDE_DIRS and VISAGE_LIBRARIES variables only in the advanced view
   mark_as_advanced(VISAGE_INCLUDE_DIRS VISAGE_LIBRARIES)
 
-endif (VISAGE_LIBRARIES AND VISAGE_INCLUDE_DIRS)
+endif ()

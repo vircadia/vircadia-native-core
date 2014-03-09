@@ -11,6 +11,7 @@
 #include <stdint.h>
 
 #include <QtCore/QDataStream>
+#include <QtCore/QThread>
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
@@ -156,10 +157,32 @@ QByteArray AvatarData::toByteArray() {
     
     // pupil dilation
     destinationBuffer += packFloatToByte(destinationBuffer, _headData->_pupilDilation, 1.0f);
-    
+
+    // joint data
+    *destinationBuffer++ = _jointData.size();
+    unsigned char validity = 0;
+    int validityBit = 0;
+    foreach (const JointData& data, _jointData) {
+        if (data.valid) {
+            validity |= (1 << validityBit);
+        }
+        if (++validityBit == BITS_IN_BYTE) {
+            *destinationBuffer++ = validity;
+            validityBit = validity = 0;
+        }
+    }
+    if (validityBit != 0) {
+        *destinationBuffer++ = validity;
+    }
+    foreach (const JointData& data, _jointData) {
+        if (data.valid) {
+            destinationBuffer += packOrientationQuatToBytes(destinationBuffer, data.rotation);
+        }
+    }
+        
     // hand data
     destinationBuffer += HandData::encodeData(_handData, destinationBuffer);
-
+    
     return avatarDataByteArray.left(destinationBuffer - startPosition);
 }
 
@@ -264,6 +287,25 @@ int AvatarData::parseData(const QByteArray& packet) {
     // pupil dilation
     sourceBuffer += unpackFloatFromByte(sourceBuffer, _headData->_pupilDilation, 1.0f);
     
+    // joint data
+    int jointCount = *sourceBuffer++;
+    _jointData.resize(jointCount);
+    unsigned char validity;
+    int validityBit = 0;
+    for (int i = 0; i < jointCount; i++) {
+        if (validityBit == 0) {
+            validity = *sourceBuffer++;
+        }   
+        _jointData[i].valid = validity & (1 << validityBit);
+        validityBit = (validityBit + 1) % BITS_IN_BYTE; 
+    }
+    for (int i = 0; i < jointCount; i++) {
+        JointData& data = _jointData[i];
+        if (data.valid) {
+            sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, data.rotation);
+        }
+    }
+    
     // hand data
     if (sourceBuffer - startPosition < packet.size()) {
         // check passed, bytes match
@@ -271,6 +313,99 @@ int AvatarData::parseData(const QByteArray& packet) {
     }
     
     return sourceBuffer - startPosition;
+}
+
+void AvatarData::setJointData(int index, const glm::quat& rotation) {
+    if (index == -1) {
+        return;
+    }
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setJointData", Q_ARG(int, index), Q_ARG(const glm::quat&, rotation));
+        return;
+    }
+    if (_jointData.size() <= index) {
+        _jointData.resize(index + 1);
+    }
+    JointData& data = _jointData[index];
+    data.valid = true;
+    data.rotation = rotation;
+}
+
+void AvatarData::clearJointData(int index) {
+    if (index == -1) {
+        return;
+    }
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "clearJointData", Q_ARG(int, index));
+        return;
+    }
+    if (_jointData.size() <= index) {
+        _jointData.resize(index + 1);
+    }
+    _jointData[index].valid = false;
+}
+
+bool AvatarData::isJointDataValid(int index) const {
+    if (index == -1) {
+        return false;
+    }
+    if (QThread::currentThread() != thread()) {
+        bool result;
+        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "isJointDataValid", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(bool, result), Q_ARG(int, index));
+        return result;
+    }
+    return index < _jointData.size() && _jointData.at(index).valid;
+}
+
+glm::quat AvatarData::getJointRotation(int index) const {
+    if (index == -1) {
+        return glm::quat();
+    }
+    if (QThread::currentThread() != thread()) {
+        glm::quat result;
+        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getJointRotation", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(glm::quat, result), Q_ARG(int, index));
+        return result;
+    }
+    return index < _jointData.size() ? _jointData.at(index).rotation : glm::quat();
+}
+
+void AvatarData::setJointData(const QString& name, const glm::quat& rotation) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setJointData", Q_ARG(const QString&, name),
+            Q_ARG(const glm::quat&, rotation));
+        return;
+    }
+    setJointData(getJointIndex(name), rotation);
+}
+
+void AvatarData::clearJointData(const QString& name) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "clearJointData", Q_ARG(const QString&, name));
+        return;
+    }
+    clearJointData(getJointIndex(name));
+}
+
+bool AvatarData::isJointDataValid(const QString& name) const {
+    if (QThread::currentThread() != thread()) {
+        bool result;
+        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "isJointDataValid", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(bool, result), Q_ARG(const QString&, name));
+        return result;
+    }
+    return isJointDataValid(getJointIndex(name));
+}
+
+glm::quat AvatarData::getJointRotation(const QString& name) const {
+    if (QThread::currentThread() != thread()) {
+        glm::quat result;
+        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getJointRotation", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(glm::quat, result), Q_ARG(const QString&, name));
+        return result;
+    }
+    return getJointRotation(getJointIndex(name));
 }
 
 bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray &packet) {

@@ -53,13 +53,13 @@ public:
     void updateCollisionSound(Particle* particle, const glm::vec3 &penetration, float frequency);
 
 signals:
-    void particleCollisionWithVoxel(const ParticleID& particleID, const VoxelDetail& voxel);
-    void particleCollisionWithParticle(const ParticleID& idA, const ParticleID& idB);
+    void particleCollisionWithVoxel(const ParticleID& particleID, const VoxelDetail& voxel, const glm::vec3& penetration);
+    void particleCollisionWithParticle(const ParticleID& idA, const ParticleID& idB, const glm::vec3& penetration);
 
 private:
     static bool updateOperation(OctreeElement* element, void* extraData);
-    void emitGlobalParticleCollisionWithVoxel(Particle* particle, VoxelDetail* voxelDetails);
-    void emitGlobalParticleCollisionWithParticle(Particle* particleA, Particle* particleB);
+    void emitGlobalParticleCollisionWithVoxel(Particle* particle, VoxelDetail* voxelDetails, const glm::vec3& penetration);
+    void emitGlobalParticleCollisionWithParticle(Particle* particleA, Particle* particleB, const glm::vec3& penetration);
 
     ParticleEditPacketSender* _packetSender;
     ParticleTree* _particles;

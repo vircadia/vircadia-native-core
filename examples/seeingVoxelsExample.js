@@ -31,7 +31,7 @@ function init() {
     }
 }
 
-function keepLooking() {
+function keepLooking(deltaTime) {
     //print("count =" + count);
 
     if (count == 0) {
@@ -63,7 +63,7 @@ function scriptEnding() {
 }
 
 // register the call back so it fires before each data send
-Script.willSendVisualDataCallback.connect(keepLooking);
+Script.update.connect(keepLooking);
 
 // register our scriptEnding callback
 Script.scriptEnding.connect(scriptEnding);

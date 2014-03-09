@@ -62,10 +62,7 @@ Node::Node(const QUuid& uuid, char type, const HifiSockAddr& publicSocket, const
 }
 
 Node::~Node() {
-    if (_linkedData) {
-        delete _linkedData;
-    }
-
+    delete _linkedData;
     delete _bytesReceivedMovingAverage;
 }
 
@@ -98,7 +95,7 @@ void Node::activatePublicSocket() {
 }
 
 void Node::recordBytesReceived(int bytesReceived) {
-    if (_bytesReceivedMovingAverage == NULL) {
+    if (!_bytesReceivedMovingAverage) {
         _bytesReceivedMovingAverage = new SimpleMovingAverage(100);
     }
 
