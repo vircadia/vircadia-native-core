@@ -1,7 +1,10 @@
-MACRO(INCLUDE_GLM TARGET ROOT_DIR)
+macro(INCLUDE_GLM TARGET ROOT_DIR)
+
 	find_package(GLM REQUIRED)
 	include_directories("${GLM_INCLUDE_DIRS}")
-IF(APPLE OR UNIX)
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${GLM_INCLUDE_DIRS}")
-ENDIF(APPLE OR UNIX)
-ENDMACRO(INCLUDE_GLM _target _root_dir)
+
+  if (APPLE OR UNIX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${GLM_INCLUDE_DIRS}")
+  endif ()
+
+endmacro(INCLUDE_GLM _target _root_dir)

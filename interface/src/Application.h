@@ -28,6 +28,7 @@
 #include <ParticleEditPacketSender.h>
 #include <ScriptEngine.h>
 #include <OctreeQuery.h>
+#include <FstReader.h>
 
 #include "Audio.h"
 #include "BandwidthMeter.h"
@@ -246,6 +247,8 @@ public slots:
     void initAvatarAndViewFrustum();
     void stopAllScripts();
     void reloadAllScripts();
+    
+    void uploadFST();
 
 private slots:
     void timer();
@@ -473,6 +476,8 @@ private:
     TouchEvent _lastTouchEvent;
     
     Overlays _overlays;
+    
+    FstReader _fstReader;
 };
 
 #endif /* defined(__interface__Application__) */

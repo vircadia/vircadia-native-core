@@ -16,6 +16,9 @@
 #                       re-running the header search and therefore NOT
 #                       adjust the variables set by this module.
 
+# This is a modified version of the FindGLM module included with CMake.
+# Copyright 2014 High Fidelity
+# 
 #=============================================================================
 # Copyright 2012 Carsten Neumann
 #
@@ -29,42 +32,36 @@
 # (To distribute this file outside of CMake, substitute the full
 #  License text for the above reference.)
 
-IF (GLM_INCLUDE_DIR)
+if (GLM_INCLUDE_DIR)
   set(GLM_INCLUDE_DIRS "${GLM_INCLUDE_DIR}")
-  SET(GLM_FOUND TRUE)
-ELSE (GLM_INCLUDE_DIR)
+  set(GLM_FOUND TRUE)
+else ()
   # default search dirs
-  SET(_glm_HEADER_SEARCH_DIRS
-      "/usr/include"
-      "/usr/local/include")
+  set(_glm_HEADER_SEARCH_DIRS "$ENV{HIFI_LIB_DIR}/glm" "/usr/include" "/usr/local/include")
 
   # check environment variable
-  SET(_glm_ENV_ROOT_DIR "$ENV{GLM_ROOT_DIR}")
+  set(_glm_ENV_ROOT_DIR "$ENV{GLM_ROOT_DIR}")
 
-  IF(NOT GLM_ROOT_DIR AND _glm_ENV_ROOT_DIR)
-      SET(GLM_ROOT_DIR "${_glm_ENV_ROOT_DIR}")
-  ENDIF(NOT GLM_ROOT_DIR AND _glm_ENV_ROOT_DIR)
+  if (NOT GLM_ROOT_DIR AND _glm_ENV_ROOT_DIR)
+      set(GLM_ROOT_DIR "${_glm_ENV_ROOT_DIR}")
+  endif ()
 
   # put user specified location at beginning of search
-  IF(GLM_ROOT_DIR)
-      SET(_glm_HEADER_SEARCH_DIRS "${GLM_ROOT_DIR}"
-                                  "${GLM_ROOT_DIR}/include"
-                                   ${_glm_HEADER_SEARCH_DIRS})
-  ENDIF(GLM_ROOT_DIR)
+  if (GLM_ROOT_DIR)
+      set(_glm_HEADER_SEARCH_DIRS "${GLM_ROOT_DIR}" "${GLM_ROOT_DIR}/include" "$ENV{HIFI_LIB_DIR}/glm" ${_glm_HEADER_SEARCH_DIRS})
+  ENDIF()
 
   # locate header
-  FIND_PATH(GLM_INCLUDE_DIR "glm/glm.hpp"
-      PATHS ${_glm_HEADER_SEARCH_DIRS})
+  find_path(GLM_INCLUDE_DIR "glm/glm.hpp" PATHS ${_glm_HEADER_SEARCH_DIRS})
 
-  INCLUDE(FindPackageHandleStandardArgs)
-  FIND_PACKAGE_HANDLE_STANDARD_ARGS(GLM DEFAULT_MSG
-      GLM_INCLUDE_DIR)
+  include(FindPackageHandleStandardArgs)
+  find_package_handle_standard_args(GLM DEFAULT_MSG GLM_INCLUDE_DIR)
 
-  IF(GLM_FOUND)
-      SET(GLM_INCLUDE_DIRS "${GLM_INCLUDE_DIR}")
+  if (GLM_FOUND)
+      set(GLM_INCLUDE_DIRS "${GLM_INCLUDE_DIR}")
     
       if (NOT GLM_FIND_QUIETLY)
         MESSAGE(STATUS "GLM_INCLUDE_DIR = ${GLM_INCLUDE_DIR}")
       endif (NOT GLM_FIND_QUIETLY)
-  ENDIF(GLM_FOUND)
-ENDIF(GLM_INCLUDE_DIR) 
+  endif ()
+endif () 
