@@ -272,6 +272,23 @@ public:
     virtual QWidget* createEditor(QWidget* parent = NULL) const;
 };
 
+/// Provides appropriate averaging for packed normals.
+class PackedNormalAttribute : public QRgbAttribute {
+    Q_OBJECT
+
+public:
+    
+    Q_INVOKABLE PackedNormalAttribute(const QString& name = QString(), QRgb defaultValue = QRgb());
+    
+    virtual bool merge(void*& parent, void* children[]) const;
+};
+
+/// Packs a normal into an RGB value.
+QRgb packNormal(const glm::vec3& normal);
+
+/// Unpacks a normal from an RGB value.
+glm::vec3 unpackNormal(QRgb value);
+
 /// An attribute that takes the form of QObjects of a given meta-type (a subclass of SharedObject).
 class SharedObjectAttribute : public InlineAttribute<SharedObjectPointer> {
     Q_OBJECT

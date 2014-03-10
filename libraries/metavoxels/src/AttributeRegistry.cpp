@@ -12,6 +12,7 @@
 #include "MetavoxelData.h"
 
 REGISTER_META_OBJECT(QRgbAttribute)
+REGISTER_META_OBJECT(PackedNormalAttribute)
 REGISTER_META_OBJECT(SharedObjectAttribute)
 REGISTER_META_OBJECT(SharedObjectSetAttribute)
 REGISTER_META_OBJECT(SpannerSetAttribute)
@@ -26,7 +27,7 @@ AttributeRegistry::AttributeRegistry() :
         SharedObjectPointer(new DefaultMetavoxelGuide())))),
     _spannersAttribute(registerAttribute(new SpannerSetAttribute("spanners", &Spanner::staticMetaObject))),
     _colorAttribute(registerAttribute(new QRgbAttribute("color"))),
-    _normalAttribute(registerAttribute(new QRgbAttribute("normal", qRgb(0, 127, 0)))) {
+    _normalAttribute(registerAttribute(new PackedNormalAttribute("normal", qRgb(0, 127, 0)))) {
 }
 
 static QScriptValue qDebugFunction(QScriptContext* context, QScriptEngine* engine) {
@@ -215,6 +216,39 @@ QWidget* QRgbAttribute::createEditor(QWidget* parent) const {
     QColorEditor* editor = new QColorEditor(parent);
     editor->setColor(QColor::fromRgba(_defaultValue));
     return editor;
+}
+
+PackedNormalAttribute::PackedNormalAttribute(const QString& name, QRgb defaultValue) :
+    QRgbAttribute(name, defaultValue) {
+}
+
+bool PackedNormalAttribute::merge(void*& parent, void* children[]) const {
+    QRgb firstValue = decodeInline<QRgb>(children[0]);
+    int totalRed = (char)qRed(firstValue);
+    int totalGreen = (char)qGreen(firstValue);
+    int totalBlue = (char)qBlue(firstValue);
+    bool allChildrenEqual = true;
+    for (int i = 1; i < Attribute::MERGE_COUNT; i++) {
+        QRgb value = decodeInline<QRgb>(children[i]);
+        totalRed += (char)qRed(value);
+        totalGreen += (char)qGreen(value);
+        totalBlue += (char)qBlue(value);
+        allChildrenEqual &= (firstValue == value);
+    }
+    parent = encodeInline(packNormal(glm::normalize(glm::vec3(totalRed, totalGreen, totalBlue))));
+    return allChildrenEqual;
+}
+
+const float CHAR_SCALE = 127.0f;
+const float INVERSE_CHAR_SCALE = 1.0f / CHAR_SCALE;
+
+QRgb packNormal(const glm::vec3& normal) {
+    return qRgb((char)(normal.x * CHAR_SCALE), (char)(normal.y * CHAR_SCALE), (char)(normal.z * CHAR_SCALE));
+}
+
+glm::vec3 unpackNormal(QRgb value) {
+    return glm::vec3((char)qRed(value) * INVERSE_CHAR_SCALE, (char)qGreen(value) * INVERSE_CHAR_SCALE,
+        (char)qBlue(value) * INVERSE_CHAR_SCALE);
 }
 
 SharedObjectAttribute::SharedObjectAttribute(const QString& name, const QMetaObject* metaObject,
