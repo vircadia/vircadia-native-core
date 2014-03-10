@@ -26,6 +26,7 @@
 #include <QWindow>
 
 #include <AccountManager.h>
+#include <XmppClient.h>
 #include <UUID.h>
 
 #include "Application.h"
@@ -161,7 +162,12 @@ Menu::Menu() :
     QMenu* toolsMenu = addMenu("Tools");
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::FstUploader, 0, Application::getInstance(), SLOT(uploadFST()));
-    addActionToQMenuAndActionHash(toolsMenu, MenuOption::Chat, 0, this, SLOT(showChat()));
+
+    _chatAction = addActionToQMenuAndActionHash(toolsMenu, MenuOption::Chat, 0, this, SLOT(showChat()));
+    const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
+    toggleChat();
+    connect(&xmppClient, SIGNAL(connected()), this, SLOT(toggleChat()));
+    connect(&xmppClient, SIGNAL(disconnected()), this, SLOT(toggleChat()));
 
     QMenu* viewMenu = addMenu("View");
 
@@ -1037,6 +1043,13 @@ void Menu::showChat() {
         _chatWindow->show();
     }
     _chatWindow->raise();
+}
+
+void Menu::toggleChat() {
+    _chatAction->setEnabled(XmppClient::getInstance().getXMPPClient().isConnected());
+    if (!_chatAction->isEnabled() && _chatWindow) {
+        _chatWindow->close();
+    }
 }
 
 void Menu::audioMuteToggled() {

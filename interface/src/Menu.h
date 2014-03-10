@@ -144,6 +144,7 @@ private slots:
     void runTests();
     void showMetavoxelEditor();
     void showChat();
+    void toggleChat();
     void audioMuteToggled();
 
 private:
@@ -204,6 +205,7 @@ private:
     quint64 _lastAdjust;
     SimpleMovingAverage _fpsAverage;
     QAction* _loginAction;
+    QAction* _chatAction;
 };
 
 namespace MenuOption {

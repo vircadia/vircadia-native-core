@@ -16,7 +16,7 @@
 #include <Application.h>
 
 #include <QXmppClient.h>
-#include <QXmppMucManager.h>
+#include <QXmppMessage.h>
 
 namespace Ui {
 class ChatWindow;
@@ -34,12 +34,10 @@ protected:
 
 private:
     QString getParticipantName(const QString& participant);
+    void startTimerForTimeStamps();
     void addTimeStamp();
 
     Ui::ChatWindow* ui;
-    QXmppClient _xmppClient;
-    QXmppMucManager _xmppMUCManager;
-    QXmppMucRoom* _chatRoom;
     int numMessagesAfterLastTimeStamp;
     QDateTime lastMessageStamp;
 

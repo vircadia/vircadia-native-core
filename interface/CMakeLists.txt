@@ -182,6 +182,7 @@ target_link_libraries(
   ${TARGET_NAME}
   "${FACESHIFT_LIBRARIES}"
   "${ZLIB_LIBRARIES}"
+  "${QXMPP_LIBRARY}"
   Qt5::Core Qt5::Gui Qt5::Multimedia Qt5::Network Qt5::OpenGL 
   Qt5::Script Qt5::Svg Qt5::WebKit Qt5::WebKitWidgets Qt5::Xml Qt5::UiTools
 )

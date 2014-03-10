@@ -32,4 +32,4 @@ if (UNIX AND NOT APPLE)
     target_link_libraries(${TARGET_NAME} "${CMAKE_THREAD_LIBS_INIT}")
 endif (UNIX AND NOT APPLE)
 
-target_link_libraries(${TARGET_NAME} Qt5::Network Qt5::Widgets Qt5::Xml "${QXMPP_LIBRARY}")
+target_link_libraries(${TARGET_NAME} Qt5::Network Qt5::Widgets Qt5::Xml)

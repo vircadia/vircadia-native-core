@@ -16,17 +16,13 @@
 #include <QTimer>
 
 #include "ChatWindow.h"
-#include "ui_chatwindow.h"
+#include "ui_chatWindow.h"
 #include "FlowLayout.h"
 #include "qtimespan.h"
 
-#include <QXmppClient.h>
-#include <QXmppMessage.h>
 #include <Application.h>
-#include <AccountManager.h>
+#include <XmppClient.h>
 
-const QString DEFAULT_SERVER = "chat.highfidelity.io";
-const QString DEFAULT_CHAT_ROOM = "public@public-chat.highfidelity.io";
 const int NUM_MESSAGES_TO_TIME_STAMP = 20;
 
 const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?))://\\S+)");
@@ -42,25 +38,34 @@ ChatWindow::ChatWindow() :
 
     ui->messagePlainTextEdit->installEventFilter(this);
 
-    ui->numOnlineLabel->hide();
-    ui->usersWidget->hide();
-    ui->messagesScrollArea->hide();
-    ui->messagePlainTextEdit->hide();
-
     setAttribute(Qt::WA_DeleteOnClose);
 
-    _xmppClient.addExtension(&_xmppMUCManager);
-    connect(&_xmppClient, SIGNAL(connected()), this, SLOT(connected()));
-    connect(&_xmppClient, SIGNAL(error(QXmppClient::Error)), this, SLOT(error(QXmppClient::Error)));
-    connect(&_xmppClient, SIGNAL(messageReceived(QXmppMessage)), this, SLOT(messageReceived(QXmppMessage)));
-
-    AccountManager& accountManager = AccountManager::getInstance();
-    QString user = accountManager.getUsername();
-    const QString& password = accountManager.getXMPPPassword();
-    _xmppClient.connectToServer(user + "@" + DEFAULT_SERVER, password);
+    const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
+    if (xmppClient.isConnected()) {
+        participantsChanged();
+        const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
+        connect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
+        ui->connectingToXMPPLabel->hide();
+        startTimerForTimeStamps();
+    }
+    else {
+        ui->numOnlineLabel->hide();
+        ui->usersWidget->hide();
+        ui->messagesScrollArea->hide();
+        ui->messagePlainTextEdit->hide();
+        connect(&xmppClient, SIGNAL(connected()), this, SLOT(connected()));
+    }
+    connect(&xmppClient, SIGNAL(messageReceived(QXmppMessage)), this, SLOT(messageReceived(QXmppMessage)));
 }
 
 ChatWindow::~ChatWindow() {
+    const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
+    disconnect(&xmppClient, SIGNAL(connected()), this, SLOT(connected()));
+    disconnect(&xmppClient, SIGNAL(messageReceived(QXmppMessage)), this, SLOT(messageReceived(QXmppMessage)));
+
+    const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
+    disconnect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
+
     delete ui;
 }
 
@@ -75,7 +80,8 @@ bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
         (keyEvent->modifiers() & Qt::ShiftModifier) == 0) {
         QString message = ui->messagePlainTextEdit->document()->toPlainText();
         if (!message.trimmed().isEmpty()) {
-            _xmppClient.sendMessage(_chatRoom->jid(), message);
+            const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
+            XmppClient::getInstance().getXMPPClient().sendMessage(publicChatRoom->jid(), message);
             ui->messagePlainTextEdit->document()->clear();
         }
         return true;
@@ -84,7 +90,8 @@ bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
 }
 
 QString ChatWindow::getParticipantName(const QString& participant) {
-    return participant.right(participant.count() - 1 - _chatRoom->jid().count());
+    const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
+    return participant.right(participant.count() - 1 - publicChatRoom->jid().count());
 }
 
 void ChatWindow::addTimeStamp() {
@@ -107,22 +114,25 @@ void ChatWindow::addTimeStamp() {
     numMessagesAfterLastTimeStamp = 0;
 }
 
-void ChatWindow::connected() {
-    _chatRoom = _xmppMUCManager.addRoom(DEFAULT_CHAT_ROOM);
-    connect(_chatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
-    _chatRoom->setNickName(AccountManager::getInstance().getUsername());
-    _chatRoom->join();
+void ChatWindow::startTimerForTimeStamps()
+{
+    QTimer* timer = new QTimer(this);
+    timer->setInterval(10 * 60 * 1000);
+    connect(timer, SIGNAL(timeout()), this, SLOT(timeout()));
+    timer->start();
+}
 
+void ChatWindow::connected() {
     ui->connectingToXMPPLabel->hide();
     ui->numOnlineLabel->show();
     ui->usersWidget->show();
     ui->messagesScrollArea->show();
     ui->messagePlainTextEdit->show();
 
-    QTimer* timer = new QTimer(this);
-    timer->setInterval(10 * 60 * 1000);
-    connect(timer, SIGNAL(timeout()), this, SLOT(timeout()));
-    timer->start();
+    const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
+    connect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
+
+    startTimerForTimeStamps();
 }
 
 void ChatWindow::timeout() {
@@ -136,7 +146,7 @@ void ChatWindow::error(QXmppClient::Error error) {
 }
 
 void ChatWindow::participantsChanged() {
-    QStringList participants = _chatRoom->participants();
+    QStringList participants = XmppClient::getInstance().getPublicChatRoom()->participants();
     ui->numOnlineLabel->setText(tr("%1 online now:").arg(participants.count()));
 
     while (QLayoutItem* item = ui->usersWidget->layout()->takeAt(0)) {

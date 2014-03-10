@@ -79,7 +79,7 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(Qt::TimeSpanFormat)
 
 class QTimeSpanPrivate;
 
-class Q_CORE_EXPORT QTimeSpan
+class QTimeSpan
 {
 public:
     QTimeSpan();
@@ -247,8 +247,8 @@ public:
 
 private:
 #ifndef QT_NO_DATASTREAM
-    friend Q_CORE_EXPORT QDataStream &operator<<(QDataStream &, const QTimeSpan &);
-    friend Q_CORE_EXPORT QDataStream &operator>>(QDataStream &, QTimeSpan &);
+    friend QDataStream &operator<<(QDataStream &, const QTimeSpan &);
+    friend QDataStream &operator>>(QDataStream &, QTimeSpan &);
 #endif
 
     QSharedDataPointer<QTimeSpanPrivate> d;
@@ -258,40 +258,40 @@ Q_DECLARE_METATYPE(QTimeSpan);
 Q_DECLARE_METATYPE(Qt::TimeSpanUnit);
 
 //non-member operators
-Q_CORE_EXPORT QTimeSpan operator+(const QTimeSpan &left, const QTimeSpan &right);
-Q_CORE_EXPORT QTimeSpan operator-(const QTimeSpan &left, const QTimeSpan &right);
-Q_CORE_EXPORT QTimeSpan operator*(const QTimeSpan &left, qreal right);//no problem
-Q_CORE_EXPORT QTimeSpan operator*(const QTimeSpan &left, int right);//no problem
+QTimeSpan operator+(const QTimeSpan &left, const QTimeSpan &right);
+QTimeSpan operator-(const QTimeSpan &left, const QTimeSpan &right);
+QTimeSpan operator*(const QTimeSpan &left, qreal right);//no problem
+QTimeSpan operator*(const QTimeSpan &left, int right);//no problem
 inline QTimeSpan operator*(qreal left, const QTimeSpan &right) {return right * left;} // works
 inline QTimeSpan operator*(int left, const QTimeSpan &right) {return right * left;} // works
-//Q_CORE_EXPORT QTimeSpan operator*(qreal left, const QTimeSpan &right) {return right * left;} //does not work
-//Q_CORE_EXPORT QTimeSpan operator*(int left, const QTimeSpan &right) {return right * left;} //does not work
-Q_CORE_EXPORT QTimeSpan operator/(const QTimeSpan &left, qreal right);
-Q_CORE_EXPORT QTimeSpan operator/(const QTimeSpan &left, int right);
-Q_CORE_EXPORT qreal operator/(const QTimeSpan &left, const QTimeSpan &right);
-Q_CORE_EXPORT QTimeSpan operator-(const QTimeSpan &right); // Unary negation
-Q_CORE_EXPORT QTimeSpan operator|(const QTimeSpan &left, const QTimeSpan &right); // Union
-Q_CORE_EXPORT QTimeSpan operator&(const QTimeSpan &left, const QTimeSpan &right); // Intersection
+//QTimeSpan operator*(qreal left, const QTimeSpan &right) {return right * left;} //does not work
+//QTimeSpan operator*(int left, const QTimeSpan &right) {return right * left;} //does not work
+QTimeSpan operator/(const QTimeSpan &left, qreal right);
+QTimeSpan operator/(const QTimeSpan &left, int right);
+qreal operator/(const QTimeSpan &left, const QTimeSpan &right);
+QTimeSpan operator-(const QTimeSpan &right); // Unary negation
+QTimeSpan operator|(const QTimeSpan &left, const QTimeSpan &right); // Union
+QTimeSpan operator&(const QTimeSpan &left, const QTimeSpan &right); // Intersection
 
 // Operators that use QTimeSpan and other date/time classes
-Q_CORE_EXPORT QTimeSpan operator-(const QDateTime &left, const QDateTime &right);
-Q_CORE_EXPORT QTimeSpan operator-(const QDate &left, const QDate &right);
-Q_CORE_EXPORT QTimeSpan operator-(const QTime &left, const QTime &right);
-Q_CORE_EXPORT QDate operator+(const QDate &left, const QTimeSpan &right);
-Q_CORE_EXPORT QDate operator-(const QDate &left, const QTimeSpan &right);
-Q_CORE_EXPORT QTime operator+(const QTime &left, const QTimeSpan &right);
-Q_CORE_EXPORT QTime operator-(const QTime &left, const QTimeSpan &right);
-Q_CORE_EXPORT QDateTime operator+(const QDateTime &left, const QTimeSpan &right);
-Q_CORE_EXPORT QDateTime operator-(const QDateTime &left, const QTimeSpan &right);
+QTimeSpan operator-(const QDateTime &left, const QDateTime &right);
+QTimeSpan operator-(const QDate &left, const QDate &right);
+QTimeSpan operator-(const QTime &left, const QTime &right);
+QDate operator+(const QDate &left, const QTimeSpan &right);
+QDate operator-(const QDate &left, const QTimeSpan &right);
+QTime operator+(const QTime &left, const QTimeSpan &right);
+QTime operator-(const QTime &left, const QTimeSpan &right);
+QDateTime operator+(const QDateTime &left, const QTimeSpan &right);
+QDateTime operator-(const QDateTime &left, const QTimeSpan &right);
 
 
 #ifndef QT_NO_DATASTREAM
-Q_CORE_EXPORT QDataStream &operator<<(QDataStream &, const QTimeSpan &);
-Q_CORE_EXPORT QDataStream &operator>>(QDataStream &, QTimeSpan &);
+QDataStream &operator<<(QDataStream &, const QTimeSpan &);
+QDataStream &operator>>(QDataStream &, QTimeSpan &);
 #endif // QT_NO_DATASTREAM
 
 #if !defined(QT_NO_DEBUG_STREAM) && !defined(QT_NO_DATESTRING)
-Q_CORE_EXPORT QDebug operator<<(QDebug, const QTimeSpan &);
+QDebug operator<<(QDebug, const QTimeSpan &);
 #endif
 
 QT_END_NAMESPACE
