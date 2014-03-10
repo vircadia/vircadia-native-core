@@ -21,6 +21,7 @@ using namespace std;
 
 Model::Model(QObject* parent) :
     QObject(parent),
+    _scale(1.0f, 1.0f, 1.0f),
     _shapesAreDirty(true),
     _lodDistance(0.0f),
     _pupilDilation(0.0f) {
