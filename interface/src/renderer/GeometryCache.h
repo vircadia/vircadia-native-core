@@ -89,7 +89,7 @@ public:
 protected:
 
     virtual void downloadFinished(QNetworkReply* reply);
-    virtual void reinsert() const;
+    virtual void reinsert();
     
     Q_INVOKABLE void setGeometry(const FBXGeometry& geometry);
     

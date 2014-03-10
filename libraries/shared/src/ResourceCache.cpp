@@ -15,7 +15,8 @@
 #include "ResourceCache.h"
 
 ResourceCache::ResourceCache(QObject* parent) :
-    QObject(parent) {
+    QObject(parent),
+    _lastLRUKey(0) {
 }
 
 ResourceCache::~ResourceCache() {
@@ -38,19 +39,21 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
         _resources.insert(url, resource);
         
     } else {
-        _unusedResources.removeOne(resource);
+        _unusedResources.remove(resource->getLRUKey());
     }
     return resource;
 }
 
 void ResourceCache::addUnusedResource(const QSharedPointer<Resource>& resource) {
-    const int RETAINED_RESOURCE_COUNT = 1;
+    const int RETAINED_RESOURCE_COUNT = 50;
     if (_unusedResources.size() > RETAINED_RESOURCE_COUNT) {
         // unload the oldest resource
-        QSharedPointer<Resource> oldResource = _unusedResources.takeFirst();
-        oldResource->setCache(NULL);
+        QMap<int, QSharedPointer<Resource> >::iterator it = _unusedResources.begin();
+        it.value()->setCache(NULL);
+        _unusedResources.erase(it);
     }
-    _unusedResources.append(resource);
+    resource->setLRUKey(++_lastLRUKey);
+    _unusedResources.insert(resource->getLRUKey(), resource);
 }
 
 void ResourceCache::attemptRequest(Resource* resource) {
@@ -100,6 +103,7 @@ Resource::Resource(const QUrl& url, bool delayLoad) :
     _startedLoading(false),
     _failedToLoad(false),
     _loaded(false),
+    _lruKey(0),
     _reply(NULL),
     _attempts(0) {
     
@@ -171,10 +175,9 @@ void Resource::allReferencesCleared() {
         reinsert();
         
         // add to the unused list
-        _cache->_unusedResources.append(self);
+        _cache->addUnusedResource(self);
         
     } else {
-        qDebug() << "deleting" << _url;
         delete this;
     }
 }
@@ -231,6 +234,7 @@ void Resource::makeRequest() {
     
     connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
     connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
+    connect(_reply, SIGNAL(finished()), SLOT(handleReplyFinished()));
     
     _replyTimer = new QTimer(this);
     connect(_replyTimer, SIGNAL(timeout()), SLOT(handleReplyTimeout()));
@@ -273,6 +277,11 @@ void Resource::handleReplyError(QNetworkReply::NetworkError error, QDebug debug)
             finishedLoading(false);
             break;
     }
+}
+
+void Resource::handleReplyFinished() {
+    qDebug() << "Got finished without download progress/error?" << _url;
+    handleDownloadProgress(0, 0);
 }
 
 uint qHash(const QPointer<QObject>& value, uint seed) {

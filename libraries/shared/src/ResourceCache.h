@@ -42,7 +42,7 @@ public:
 
 protected:
 
-    QList<QSharedPointer<Resource> > _unusedResources;
+    QMap<int, QSharedPointer<Resource> > _unusedResources;
 
     /// Loads a resource from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable
@@ -65,6 +65,7 @@ private:
     friend class Resource;
 
     QHash<QUrl, QWeakPointer<Resource> > _resources;
+    int _lastLRUKey;
     
     static QNetworkAccessManager* _networkAccessManager;
     static int _requestLimit;
@@ -80,6 +81,9 @@ public:
     Resource(const QUrl& url, bool delayLoad = false);
     ~Resource();
     
+    /// Returns the key last used to identify this resource in the unused map.
+    int getLRUKey() const { return _lruKey; }
+
     /// Makes sure that the resource has started loading.
     void ensureLoading();
 
@@ -132,9 +136,12 @@ private slots:
     
     void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
     void handleReplyError();
+    void handleReplyFinished();
     void handleReplyTimeout();
 
 private:
+    
+    void setLRUKey(int lruKey) { _lruKey = lruKey; }
     
     void makeRequest();
     
@@ -142,6 +149,7 @@ private:
     
     friend class ResourceCache;
     
+    int _lruKey;
     QNetworkReply* _reply;
     QTimer* _replyTimer;
     qint64 _bytesReceived;

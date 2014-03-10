@@ -133,7 +133,7 @@ QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url, bool no
         texture->setCache(this);
         _dilatableNetworkTextures.insert(url, texture);
     } else {
-        _unusedResources.removeOne(texture);
+        _unusedResources.remove(texture->getLRUKey());
     }
     return texture;
 }
