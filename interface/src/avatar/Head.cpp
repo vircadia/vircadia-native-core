@@ -226,8 +226,8 @@ void Head::applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetr
             if (neckLength > 0.f) {
                 glm::vec3 xAxis = bodyRotation * glm::vec3(1.f, 0.f, 0.f);
                 glm::vec3 zAxis = bodyRotation * glm::vec3(0.f, 0.f, 1.f);
-                float forward = glm::dot(penetration, zAxis) / neckLength;
-                float sideways = - glm::dot(penetration, xAxis) / neckLength;
+                float forward = DEGREES_PER_RADIAN * glm::dot(penetration, zAxis) / neckLength;
+                float sideways = DEGREES_PER_RADIAN * glm::dot(penetration, xAxis) / neckLength;
                 addLean(sideways, forward);
             }
         }
