@@ -51,7 +51,7 @@ QSharedPointer<NetworkValue> ScriptCache::getValue(const ParameterizedURL& url) 
 
 QSharedPointer<Resource> ScriptCache::createResource(const QUrl& url,
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
-    return QSharedPointer<Resource>(new NetworkProgram(this, url));
+    return QSharedPointer<Resource>(new NetworkProgram(this, url), &Resource::allReferencesCleared);
 }
 
 NetworkProgram::NetworkProgram(ScriptCache* cache, const QUrl& url) :

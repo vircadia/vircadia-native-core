@@ -18,6 +18,13 @@ ResourceCache::ResourceCache(QObject* parent) :
     QObject(parent) {
 }
 
+ResourceCache::~ResourceCache() {
+    // make sure our unused resources know we're out of commission
+    foreach (const QSharedPointer<Resource>& resource, _unusedResources) {
+        resource->setCache(NULL);
+    }
+}
+
 QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl& fallback, bool delayLoad, void* extra) {
     if (!url.isValid() && fallback.isValid()) {
         return getResource(fallback, QUrl(), delayLoad);
@@ -27,9 +34,23 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
         resource = createResource(url, fallback.isValid() ?
             getResource(fallback, QUrl(), true) : QSharedPointer<Resource>(), delayLoad, extra);
         resource->setSelf(resource);
+        resource->setCache(this);
         _resources.insert(url, resource);
+        
+    } else {
+        _unusedResources.removeOne(resource);
     }
     return resource;
+}
+
+void ResourceCache::addUnusedResource(const QSharedPointer<Resource>& resource) {
+    const int RETAINED_RESOURCE_COUNT = 1;
+    if (_unusedResources.size() > RETAINED_RESOURCE_COUNT) {
+        // unload the oldest resource
+        QSharedPointer<Resource> oldResource = _unusedResources.takeFirst();
+        oldResource->setCache(NULL);
+    }
+    _unusedResources.append(resource);
 }
 
 void ResourceCache::attemptRequest(Resource* resource) {
@@ -74,6 +95,7 @@ int ResourceCache::_requestLimit = DEFAULT_REQUEST_LIMIT;
 QList<QPointer<Resource> > ResourceCache::_pendingRequests;
 
 Resource::Resource(const QUrl& url, bool delayLoad) :
+    _url(url),
     _request(url),
     _startedLoading(false),
     _failedToLoad(false),
@@ -141,6 +163,22 @@ float Resource::getLoadPriority() {
     return highestPriority;
 }
 
+void Resource::allReferencesCleared() {
+    if (_cache) {
+        // create and reinsert new shared pointer 
+        QSharedPointer<Resource> self(this, &Resource::allReferencesCleared);
+        setSelf(self);
+        reinsert();
+        
+        // add to the unused list
+        _cache->_unusedResources.append(self);
+        
+    } else {
+        qDebug() << "deleting" << _url;
+        delete this;
+    }
+}
+
 void Resource::attemptRequest() {
     _startedLoading = true;
     ResourceCache::attemptRequest(this);
@@ -153,6 +191,10 @@ void Resource::finishedLoading(bool success) {
         _failedToLoad = true;
     }
     _loadPriorities.clear();
+}
+
+void Resource::reinsert() {
+    _cache->_resources.insert(_url, _self);
 }
 
 const int REPLY_TIMEOUT_MS = 5000;
