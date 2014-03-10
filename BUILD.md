@@ -126,7 +126,9 @@ They can be set in your ENV or by passing them to the cmake command on the comma
 Each of those designates the root directory that contains the sub-folders for each library. For example, if the GLEW_ROOT_DIR is `C:\libs\glew`, then we would expect to find an `include` folder and a `lib` folder inside `C:\libs\glew`. 
 
 ####Freeglut DLL
-As with the Qt libraries, you will need to make sure the directory containing `freeglut.dll` is in your path. The directory to add to your path in which the DLL is found is `FREEGLUT_DIR/bin`. If you are on 64-bit windows, the directory in your path should be the x64 subdirectory in `bin`.
+As with the Qt libraries, you will need to make sure the directory containing `freeglut.dll` is in your path. The directory to add to your path in which the DLL is found is `FREEGLUT_DIR/bin`.
+
+*NOTE: Qt does not support 64-bit builds on Windows 7, so you must use the 32-bit version of freeglut.dll for interface.exe to run. The 32-bit version of the static library is the one linked by CMakeLists.txt*
 
 ####Building in Visual Studio
 Follow the same build steps from the CMake section, but pass a different generator to CMake.
