@@ -10,6 +10,8 @@ set(MACRO_DIR "${ROOT_DIR}/cmake/macros")
 set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
+find_package(Qt5LinguistTools REQUIRED)
+
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 set(FACESHIFT_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/faceshift")
@@ -77,6 +79,10 @@ qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 # add them to the interface source files
 set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}")
 
+set(QM ${TARGET_NAME}_en.qm)
+set(TS ${TARGET_NAME}_en.ts)
+qt5_create_translation(${QM} ${INTERFACE_SRCS} ${QT_UI_FILES} ${TS})
+
 if (APPLE)
   # configure CMake to use a custom Info.plist
   SET_TARGET_PROPERTIES( ${this_target} PROPERTIES MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in )
@@ -105,7 +111,7 @@ if (APPLE)
 endif()
 
 # create the executable, make it a bundle on OS X
-add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS})
+add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
 # link in the hifi shared library
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)

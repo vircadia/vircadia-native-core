@@ -1,7 +1,17 @@
+//
+//  ChatWindow.h
+//  interface
+//
+//  Created by Dimitar Dobrev on 3/6/14.
+//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//
+
 #ifndef __interface__ChatWindow__
 #define __interface__ChatWindow__
 
 #include <QDialog>
+#include <QDateTime>
+#include <QTimer>
 
 #include <Application.h>
 
@@ -23,15 +33,19 @@ protected:
     bool eventFilter(QObject* sender, QEvent* event);
 
 private:
+    QString getParticipantName(const QString& participant);
+    void addTimeStamp();
+
     Ui::ChatWindow* ui;
     QXmppClient _xmppClient;
     QXmppMucManager _xmppMUCManager;
     QXmppMucRoom* _chatRoom;
-
-    QString getParticipantName(const QString& participant);
+    int numMessagesAfterLastTimeStamp;
+    QDateTime lastMessageStamp;
 
 private slots:
     void connected();
+    void timeout();
     void error(QXmppClient::Error error);
     void participantsChanged();
     void messageReceived(const QXmppMessage& message);
