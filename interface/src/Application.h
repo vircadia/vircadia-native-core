@@ -28,9 +28,9 @@
 #include <ParticleEditPacketSender.h>
 #include <ScriptEngine.h>
 #include <OctreeQuery.h>
+#include <FstReader.h>
 
 #include "Audio.h"
-
 #include "BandwidthMeter.h"
 #include "BuckyBalls.h"
 #include "Camera.h"
@@ -43,7 +43,6 @@
 #include "MetavoxelSystem.h"
 #include "PacketHeaders.h"
 #include "ParticleTreeRenderer.h"
-#include "PieMenu.h"
 #include "Stars.h"
 #include "ViewFrustum.h"
 #include "VoxelFade.h"
@@ -108,6 +107,7 @@ class Application : public QApplication {
 
 public:
     static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
+    static QString& resourcesPath();
 
     Application(int& argc, char** argv, timeval &startup_time);
     ~Application();
@@ -247,6 +247,8 @@ public slots:
     void initAvatarAndViewFrustum();
     void stopAllScripts();
     void reloadAllScripts();
+    
+    void uploadFST();
 
 private slots:
     void timer();
@@ -452,8 +454,6 @@ private:
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
 
-    PieMenu _pieMenu;
-
     int parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sendingNode);
     void trackIncomingVoxelPacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);
 
@@ -476,6 +476,8 @@ private:
     TouchEvent _lastTouchEvent;
     
     Overlays _overlays;
+    
+    FstReader _fstReader;
 };
 
 #endif /* defined(__interface__Application__) */

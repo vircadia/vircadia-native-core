@@ -21,6 +21,7 @@ using namespace std;
 
 Model::Model(QObject* parent) :
     QObject(parent),
+    _scale(1.0f, 1.0f, 1.0f),
     _shapesAreDirty(true),
     _lodDistance(0.0f),
     _pupilDilation(0.0f) {
@@ -64,17 +65,18 @@ QVector<Model::JointState> Model::createJointStates(const FBXGeometry& geometry)
 
 void Model::init() {
     if (!_program.isLinked()) {
-        switchToResourcesParentIfRequired();
-        _program.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/model.vert");
-        _program.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/model.frag");
+        _program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/model.vert");
+        _program.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/model.frag");
         _program.link();
         
         _program.bind();
         _program.setUniformValue("texture", 0);
         _program.release();
         
-        _normalMapProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/model_normal_map.vert");
-        _normalMapProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/model_normal_map.frag");
+        _normalMapProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath()
+                                                  + "shaders/model_normal_map.vert");
+        _normalMapProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath()
+                                                  + "shaders/model_normal_map.frag");
         _normalMapProgram.link();
         
         _normalMapProgram.bind();
@@ -83,14 +85,18 @@ void Model::init() {
         _normalMapTangentLocation = _normalMapProgram.attributeLocation("tangent");
         _normalMapProgram.release();
         
-        _skinProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/skin_model.vert");
-        _skinProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/model.frag");
+        _skinProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath()
+                                             + "shaders/skin_model.vert");
+        _skinProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath()
+                                             + "shaders/model.frag");
         _skinProgram.link();
         
         initSkinProgram(_skinProgram, _skinLocations);
         
-        _skinNormalMapProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/skin_model_normal_map.vert");
-        _skinNormalMapProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/model_normal_map.frag");
+        _skinNormalMapProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath()
+                                                      + "shaders/skin_model_normal_map.vert");
+        _skinNormalMapProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath()
+                                                      + "shaders/model_normal_map.frag");
         _skinNormalMapProgram.link();
         
         initSkinProgram(_skinNormalMapProgram, _skinNormalMapLocations);
@@ -371,6 +377,24 @@ Extents Model::getStaticExtents() const {
     const Extents& staticExtents = _geometry->getFBXGeometry().staticExtents;
     Extents scaledExtents = { staticExtents.minimum * _scale, staticExtents.maximum * _scale };
     return scaledExtents;
+}
+
+bool Model::getJointState(int index, glm::quat& rotation) const {
+    if (index == -1 || index >= _jointStates.size()) {
+        return false;
+    }
+    rotation = _jointStates.at(index).rotation;
+    const glm::quat& defaultRotation = _geometry->getFBXGeometry().joints.at(index).rotation;
+    return glm::abs(rotation.x - defaultRotation.x) >= EPSILON ||
+        glm::abs(rotation.y - defaultRotation.y) >= EPSILON ||
+        glm::abs(rotation.z - defaultRotation.z) >= EPSILON ||
+        glm::abs(rotation.w - defaultRotation.w) >= EPSILON;
+}
+
+void Model::setJointState(int index, bool valid, const glm::quat& rotation) {
+    if (index != -1 && index < _jointStates.size()) {
+        _jointStates[index].rotation = valid ? rotation : _geometry->getFBXGeometry().joints.at(index).rotation;
+    }
 }
 
 int Model::getParentJointIndex(int jointIndex) const {
@@ -873,9 +897,10 @@ QVector<Model::JointState> Model::updateGeometry(bool delayLoad) {
             newJointStates = createJointStates(newGeometry);
             for (QHash<QString, int>::const_iterator it = oldGeometry.jointIndices.constBegin();
                     it != oldGeometry.jointIndices.constEnd(); it++) {
-                int newIndex = newGeometry.jointIndices.value(it.key());
-                if (newIndex != 0) {
-                    newJointStates[newIndex - 1] = _jointStates.at(it.value() - 1);
+                int oldIndex = it.value() - 1;
+                int newIndex = newGeometry.getJointIndex(it.key());
+                if (newIndex != -1) {
+                    newJointStates[newIndex] = _jointStates.at(oldIndex);
                 }
             }
         }

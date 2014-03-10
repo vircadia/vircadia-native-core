@@ -15,7 +15,7 @@
 #include <cmath>
 #include <math.h>
 
-
+#include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
@@ -118,6 +118,17 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     }
 }
 
+QString& Application::resourcesPath() {
+#ifdef Q_OS_MAC
+    static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
+#elif defined Q_OS_LINUX
+    static QString staticResourcePath = "resources/";
+#else
+    static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
+#endif
+    return staticResourcePath;
+}
+
 Application::Application(int& argc, char** argv, timeval &startup_time) :
         QApplication(argc, argv),
         _window(new QMainWindow(desktop())),
@@ -153,10 +164,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _resetRecentMaxPacketsSoon(true),
         _logger(new FileLogger(this))
 {
-    switchToResourcesParentIfRequired();
-    
     // read the ApplicationInfo.ini file for Name/Version/Domain information
-    QSettings applicationInfo("resources/info/ApplicationInfo.ini", QSettings::IniFormat);
+    QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
     
     // set the associated application properties
     applicationInfo.beginGroup("INFO");
@@ -174,7 +183,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     _applicationStartupTime = startup_time;
     
-    QFontDatabase::addApplicationFont("resources/styles/Inconsolata.otf");
+    QFontDatabase::addApplicationFont(Application::resourcesPath() + "styles/Inconsolata.otf");
     _window->setWindowTitle("Interface");
 
     qInstallMessageHandler(messageHandler);
@@ -283,9 +292,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _window->setCentralWidget(_glWidget);
 
     restoreSizeAndPosition();
-
-    QFontDatabase fontDatabase; 
-    fontDatabase.addApplicationFont("resources/styles/Inconsolata.otf");
 
     _window->setVisible(true);
     _glWidget->setFocusPolicy(Qt::StrongFocus);
@@ -1008,10 +1014,6 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 
     _mouseX = event->x();
     _mouseY = event->y();
-        
-    if (activeWindow() == _window) {
-        _pieMenu.mouseMoveEvent(_mouseX, _mouseY);
-    }
 }
 
 void Application::mousePressEvent(QMouseEvent* event) {
@@ -1064,8 +1066,6 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
             if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
                 checkStatsClick();
             }            
-
-            _pieMenu.mouseReleaseEvent(_mouseX, _mouseY);
         }
     }
 }
@@ -1570,11 +1570,7 @@ void Application::init() {
             SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&, const glm::vec3&)),
             ScriptEngine::getParticlesScriptingInterface(), 
             SLOT(forwardParticleCollisionWithParticle(const ParticleID&, const ParticleID&, const glm::vec3&)));
-
-    _pieMenu.init("./resources/images/hifi-interface-tools-v2-pie.svg",
-                  _glWidget->width(),
-                  _glWidget->height());
-
+    
     _audio.init(_glWidget);
 
     _rearMirrorTools = new RearMirrorTools(_glWidget, _mirrorViewRect, _settings);
@@ -2176,7 +2172,7 @@ void Application::updateShadowMap() {
         rotation * (glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), farScale) + translation),
         rotation * (glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), farScale) + translation) };
     glm::vec3 minima(FLT_MAX, FLT_MAX, FLT_MAX), maxima(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-    for (int i = 0; i < sizeof(points) / sizeof(points[0]); i++) {
+    for (size_t i = 0; i < sizeof(points) / sizeof(points[0]); i++) {
         minima = glm::min(minima, points[i]);
         maxima = glm::max(maxima, points[i]);
     }
@@ -2186,7 +2182,7 @@ void Application::updateShadowMap() {
     maxima.z += _viewFrustum.getFarClip() * 0.5f;
 
     // save the combined matrix for rendering
-    _shadowMatrix = glm::transpose(glm::translate(0.5f, 0.5f, 0.5f) * glm::scale(0.5f, 0.5f, 0.5f) *
+    _shadowMatrix = glm::transpose(glm::translate(glm::vec3(0.5f, 0.5f, 0.5f)) * glm::scale(glm::vec3(0.5f, 0.5f, 0.5f)) *
         glm::ortho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z) *
         glm::mat4_cast(rotation) * glm::translate(translation));
 
@@ -2506,10 +2502,6 @@ void Application::displayOverlay() {
             Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth))
                 ? 80 : 20;
         drawText(_glWidget->width() - 100, _glWidget->height() - timerBottom, 0.30f, 1.0f, 0, frameTimer, WHITE_TEXT);
-    }
-
-    if (_pieMenu.isDisplayed()) {
-        _pieMenu.render();
     }
 
     _overlays.render2D();
@@ -3472,6 +3464,10 @@ void Application::reloadAllScripts() {
     }
 }
 
+void Application::uploadFST() {
+    _fstReader.zip();
+}
+
 void Application::removeScriptName(const QString& fileNameString) {
     _activeScripts.removeOne(fileNameString);
 }
@@ -3652,9 +3648,8 @@ void Application::skipVersion(QString latestVersion) {
 }
 
 void Application::takeSnapshot() {
-    switchToResourcesParentIfRequired();
     QMediaPlayer* player = new QMediaPlayer();
-    QFileInfo inf = QFileInfo("resources/sounds/snap.wav");
+    QFileInfo inf = QFileInfo(Application::resourcesPath() + "sounds/snap.wav");
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 

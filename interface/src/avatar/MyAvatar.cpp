@@ -103,9 +103,8 @@ void MyAvatar::update(float deltaTime) {
     // Update head mouse from faceshift if active
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
     if (faceshift->isActive()) {
-        glm::vec3 headVelocity = faceshift->getHeadAngularVelocity();
-
         // TODO? resurrect headMouse stuff?
+        //glm::vec3 headVelocity = faceshift->getHeadAngularVelocity();
         //// sets how quickly head angular rotation moves the head mouse
         //const float HEADMOUSE_FACESHIFT_YAW_SCALE = 40.f;
         //const float HEADMOUSE_FACESHIFT_PITCH_SCALE = 30.f;
@@ -306,6 +305,13 @@ void MyAvatar::simulate(float deltaTime) {
     getHand()->simulate(deltaTime, true);
 
     _skeletonModel.simulate(deltaTime);
+
+    // copy out the skeleton joints from the model
+    _jointData.resize(_skeletonModel.getJointStateCount());
+    for (int i = 0; i < _jointData.size(); i++) {
+        JointData& data = _jointData[i];
+        data.valid = _skeletonModel.getJointState(i, data.rotation);
+    }
 
     Head* head = getHead();
     glm::vec3 headPosition;
@@ -666,6 +672,20 @@ glm::vec3 MyAvatar::getUprightHeadPosition() const {
     return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, getPelvisToHeadLength(), 0.0f);
 }
 
+void MyAvatar::setJointData(int index, const glm::quat& rotation) {
+    Avatar::setJointData(index, rotation);
+    if (QThread::currentThread() == thread()) {
+        _skeletonModel.setJointState(index, true, rotation);
+    }
+}
+
+void MyAvatar::clearJointData(int index) {
+    Avatar::clearJointData(index);
+    if (QThread::currentThread() == thread()) {
+        _skeletonModel.setJointState(index, false);
+    }
+}
+
 void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
     Avatar::setFaceModelURL(faceModelURL);
     _billboardValid = false;
@@ -923,10 +943,13 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
 
     // HACK: body-body collision uses two coaxial capsules with axes parallel to y-axis
     // TODO: make the collision work without assuming avatar orientation
-    Extents myStaticExtents = _skeletonModel.getStaticExtents();
-    glm::vec3 staticScale = myStaticExtents.maximum - myStaticExtents.minimum;
-    float myCapsuleRadius = 0.25f * (staticScale.x + staticScale.z);
-    float myCapsuleHeight = staticScale.y;
+
+    // TODO: these local variables are not used in the live code, only in the
+    // commented-outTODO code below.
+    //Extents myStaticExtents = _skeletonModel.getStaticExtents();
+    //glm::vec3 staticScale = myStaticExtents.maximum - myStaticExtents.minimum;
+    //float myCapsuleRadius = 0.25f * (staticScale.x + staticScale.z);
+    //float myCapsuleHeight = staticScale.y;
 
     CollisionInfo collisionInfo;
     foreach (const AvatarSharedPointer& avatarPointer, avatars) {
@@ -1182,7 +1205,7 @@ void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
         glm::quat newOrientation = glm::quat(glm::radians(glm::vec3(orientationItems[0].toFloat(),
                                                                     orientationItems[1].toFloat(),
                                                                     orientationItems[2].toFloat())))
-            * glm::angleAxis(180.0f, 0.0f, 1.0f, 0.0f);
+            * glm::angleAxis(180.0f, glm::vec3(0.0f, 1.0f, 0.0f));
         setOrientation(newOrientation);
         
         // move the user a couple units away

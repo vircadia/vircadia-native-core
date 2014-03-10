@@ -496,16 +496,18 @@ void VoxelSystem::initVoxelMemory() {
 
         // create our simple fragment shader if we're the first system to init
         if (!_perlinModulateProgram.isLinked()) {
-            switchToResourcesParentIfRequired();
-            _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/perlin_modulate.vert");
-            _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/perlin_modulate.frag");
+            _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath()
+                                                           + "shaders/perlin_modulate.vert");
+            _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath()
+                                                           + "shaders/perlin_modulate.frag");
             _perlinModulateProgram.link();
 
             _perlinModulateProgram.bind();
             _perlinModulateProgram.setUniformValue("permutationNormalTexture", 0);
             _perlinModulateProgram.release();
 
-            _shadowMapProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/shadow_map.frag");
+            _shadowMapProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath()
+                                                      + "shaders/shadow_map.frag");
             _shadowMapProgram.link();
 
             _shadowMapProgram.bind();

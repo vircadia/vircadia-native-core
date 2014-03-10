@@ -46,6 +46,14 @@ void Extents::addPoint(const glm::vec3& point) {
     maximum = glm::max(maximum, point);
 }
 
+QStringList FBXGeometry::getJointNames() const {
+    QStringList names;
+    foreach (const FBXJoint& joint, joints) {
+        names.append(joint.name);
+    }
+    return names;
+}
+
 static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
 
 template<class T> QVariant readBinaryArray(QDataStream& in) {
@@ -1208,8 +1216,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     float offsetScale = mapping.value("scale", 1.0f).toFloat();
     glm::quat offsetRotation = glm::quat(glm::radians(glm::vec3(mapping.value("rx").toFloat(),
             mapping.value("ry").toFloat(), mapping.value("rz").toFloat())));
-    geometry.offset = glm::translate(mapping.value("tx").toFloat(), mapping.value("ty").toFloat(),
-        mapping.value("tz").toFloat()) * glm::mat4_cast(offsetRotation) * glm::scale(offsetScale, offsetScale, offsetScale);
+    geometry.offset = glm::translate(glm::vec3(mapping.value("tx").toFloat(), mapping.value("ty").toFloat(),
+                                               mapping.value("tz").toFloat())) * glm::mat4_cast(offsetRotation) * glm::scale(glm::vec3(offsetScale, offsetScale, offsetScale));
 
     // get the list of models in depth-first traversal order
     QVector<QString> modelIDs;

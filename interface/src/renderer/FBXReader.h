@@ -81,7 +81,7 @@ public:
     glm::quat inverseDefaultRotation;
     glm::quat inverseBindRotation;
     glm::mat4 bindTransform;
-    QString name;             // temp field for debugging
+    QString name;
     glm::vec3 shapePosition;  // in joint frame
     glm::quat shapeRotation;  // in joint frame
     int shapeType;
@@ -152,7 +152,7 @@ class FBXGeometry {
 public:
 
     QVector<FBXJoint> joints;
-    QHash<QString, int> jointIndices;
+    QHash<QString, int> jointIndices; ///< 1-based, so as to more easily detect missing indices
     
     QVector<FBXMesh> meshes;
     
@@ -182,6 +182,9 @@ public:
     Extents meshExtents;
     
     QVector<FBXAttachment> attachments;
+    
+    int getJointIndex(const QString& name) const { return jointIndices.value(name) - 1; }
+    QStringList getJointNames() const;
 };
 
 Q_DECLARE_METATYPE(FBXGeometry)

@@ -106,20 +106,25 @@ void BuckyBalls::simulate(float deltaTime, const HandData* handData) {
             for (int j = 0; j < NUM_BBALLS; j++) {
                 if (i != j) {
                     glm::vec3 diff = _bballPosition[i] - _bballPosition[j];
-                    float penetration = glm::length(diff) - (_bballRadius[i] + _bballRadius[j]);
-                    if (penetration < 0.f) {
-                        //  Colliding - move away and transfer velocity
-                        _bballPosition[i] -= glm::normalize(diff) * penetration * COLLISION_BLEND_RATE;
-                        if (glm::dot(_bballVelocity[i], diff) < 0.f) {
-                            _bballVelocity[i] = _bballVelocity[i] * (1.f - COLLISION_BLEND_RATE) +
-                            glm::reflect(_bballVelocity[i], glm::normalize(diff)) * COLLISION_BLEND_RATE;
+                    
+                    float diffLength = glm::length(diff);
+                    float penetration = diffLength - (_bballRadius[i] + _bballRadius[j]);
+                    
+                    if (diffLength != 0) {
+                        if (penetration < 0.f) {
+                            //  Colliding - move away and transfer velocity
+                            _bballPosition[i] -= glm::normalize(diff) * penetration * COLLISION_BLEND_RATE;
+                            if (glm::dot(_bballVelocity[i], diff) < 0.f) {
+                                _bballVelocity[i] = _bballVelocity[i] * (1.f - COLLISION_BLEND_RATE) +
+                                glm::reflect(_bballVelocity[i], glm::normalize(diff)) * COLLISION_BLEND_RATE;
+                            }
+                        } else if ((penetration > EPSILON) && (penetration < BBALLS_ATTRACTION_DISTANCE)) {
+                            //  If they get close to each other, bring them together with magnetic force
+                            _bballPosition[i] -= glm::normalize(diff) * penetration * ATTRACTION_BLEND_RATE;
+                            
+                            //  Also make their velocities more similar
+                            _bballVelocity[i] = _bballVelocity[i] * (1.f - ATTRACTION_VELOCITY_BLEND_RATE) + _bballVelocity[j] * ATTRACTION_VELOCITY_BLEND_RATE;
                         }
-                    }
-                    else if ((penetration > EPSILON) && (penetration < BBALLS_ATTRACTION_DISTANCE)) {
-                        //  If they get close to each other, bring them together with magnetic force
-                        _bballPosition[i] -= glm::normalize(diff) * penetration * ATTRACTION_BLEND_RATE;
-                        //  Also make their velocities more similar
-                        _bballVelocity[i] = _bballVelocity[i] * (1.f - ATTRACTION_VELOCITY_BLEND_RATE) + _bballVelocity[j] * ATTRACTION_VELOCITY_BLEND_RATE;
                     }
                 }
             }
