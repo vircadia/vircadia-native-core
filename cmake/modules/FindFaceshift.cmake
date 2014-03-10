@@ -34,7 +34,7 @@ else ()
     # Windows only cares about the headers
     if (FACESHIFT_INCLUDE_DIRS)
       set(FACESHIFT_FOUND TRUE)
-    endif (FACESHIFT_INCLUDE_DIRS AND FACESHIFT_LIBRARIES)
+    endif (FACESHIFT_INCLUDE_DIRS)
   else ()
     # Mac and Unix requires libraries
     if (FACESHIFT_INCLUDE_DIRS AND FACESHIFT_LIBRARIES)
