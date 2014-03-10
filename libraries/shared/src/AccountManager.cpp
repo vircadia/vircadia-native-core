@@ -35,7 +35,7 @@ const QString ACCOUNTS_GROUP = "accounts";
 
 AccountManager::AccountManager() :
     _authURL(),
-    _networkAccessManager(new QNetworkAccessManager(this)),
+    _networkAccessManager(NULL),
     _pendingCallbackMap(),
     _accountInfo()
 {
@@ -109,6 +109,11 @@ void AccountManager::authenticatedRequest(const QString& path, QNetworkAccessMan
 
 void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::Operation operation,
                                     const JSONCallbackParameters& callbackParams, const QByteArray& dataByteArray) {
+
+    if (!_networkAccessManager) {
+        _networkAccessManager = new QNetworkAccessManager(this);
+    }
+
     if (hasValidAccessToken()) {
         QNetworkRequest authenticatedRequest;
         
@@ -229,6 +234,11 @@ bool AccountManager::checkAndSignalForAccessToken() {
 }
 
 void AccountManager::requestAccessToken(const QString& login, const QString& password) {
+
+    if (!_networkAccessManager) {
+        _networkAccessManager = new QNetworkAccessManager(this);
+    }
+
     QNetworkRequest request;
     
     QUrl grantURL = _authURL;
