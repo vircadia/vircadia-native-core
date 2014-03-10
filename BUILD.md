@@ -5,6 +5,13 @@ Dependencies
 * [zLib](http://www.zlib.net/) ~> 1.2.8
 * [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.0
 
+#####Linux only
+* [freeglut](http://freeglut.sourceforge.net/) ~> 2.8.0
+
+#####Windows only
+* [GLEW](http://glew.sourceforge.net/) ~> 1.10.0
+* [freeglut MSVC](http://www.transmissionzero.co.uk/software/freeglut-devel/) ~> 2.8.1
+
 CMake
 === 
 Hifi uses CMake to generate build files and project files for your platform.
@@ -87,19 +94,39 @@ NOTE: zLib should configure itself correctly on install. However, sometimes zLib
 ####External Libraries
 We don't currently have a Windows installer, so before running Interface, you will need to ensure that all required resources are loadable. 
 
-* In particular you must make sure all required DLLs are loadable. You can accomplish this in several different ways. 
+CMake will need to know where the headers and libraries for required external dependencies are. If you installed ZLIB using the installer, the FindZLIB cmake module will be able to find it. This isn't the case for glm, freeglut, and GLEW.
 
-    One technique is described below:
-    * create a directory C:\Development\HiFi\windows-dlls
-    * add C:\Development\HiFi\windows-dlls to your path
-    * copy the following files into this directory: zlib1.dll, freeglut.dll, glew32.dll
+You have the choice of setting a variable specific to each library, or having a folder using a defined structure that contains all of the libs.
 
-    Note: you will find freeglut.dll and glew32.dll in the C:\Development\HiFi\hifi\interface\external tree. You will need to find the zlib1.dll from where you installed zLib.
+The recommended route is to place all of the dependencies in one place and set one ENV variable - HIFI_LIB_DIR. That ENV variable should point to a directory with the following structure:
 
-* You also need to make the interface\resources directory available to interface.exe. To do that, copy the contents of C:\Development\HiFi\hifi\interface\resources to C:\Development\HiFi\build\interface\Debug\resources or if you're building a Release build to C:\Development\HiFi\build\interface\Release\resources
+    root_lib_dir
+        -> glm
+            -> glm
+                -> glm.hpp
+        -> glew
+            -> bin
+            -> include
+            -> lib
+        -> freeglut
+            -> bin
+            -> include
+            -> lib
 
-#### glm
-CMake will need to know where glm headers are. You can do this by setting the variable `GLM_ROOT_DIR` to the location of the folder that contains your glm dir, in your ENV or by passing GLM_ROOT_DIR directly on the command line to cmake.
+For all three external libraries you should be able to simply copy the extracted folder that you get from the download links provided at the top of the guide. The `root_lib_dir` in the above example can be wherever you choose on your system - as long as the environment variable HIFI_LIB_DIR is set to it.
+
+*NOTE: Be careful with glm. For the folder other libraries would normally call 'include', the folder containing the headers, glm opts to use 'glm'. You will have a glm folder nested inside the top-level glm folder.*
+
+Should you want to define a location for each library, these are the associated variables you will want to set:
+
+`GLM_ROOT_DIR, GLUT_ROOT_DIR, GLEW_ROOT_DIR`
+
+They can be set in your ENV or by passing them to the cmake command on the command line. (There is an example of this in the CMake section earlier in this guide.)
+
+Each of those designates the root directory that contains the sub-folders for each library. For example, if the GLEW_ROOT_DIR is `C:\libs\glew`, then we would expect to find an `include` folder and a `lib` folder inside `C:\libs\glew`. 
+
+####Freeglut DLL
+As with the Qt libraries, you will need to make sure the directory containing `freeglut.dll` is in your path. The directory to add to your path in which the DLL is found is `FREEGLUT_DIR/bin`. If you are on 64-bit windows, the directory in your path should be the x64 subdirectory in `bin`.
 
 ####Building in Visual Studio
 Follow the same build steps from the CMake section, but pass a different generator to CMake.
