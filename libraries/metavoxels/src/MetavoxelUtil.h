@@ -41,6 +41,8 @@ public:
     
     Box(const glm::vec3& minimum = glm::vec3(), const glm::vec3& maximum = glm::vec3());
     
+    bool contains(const glm::vec3& point) const;
+    
     bool contains(const Box& other) const;
     
     bool intersects(const Box& other) const;
@@ -50,6 +52,8 @@ public:
     glm::vec3 getVertex(int index) const;
     
     glm::vec3 getCenter() const { return (minimum + maximum) * 0.5f; }
+    
+    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(Box)

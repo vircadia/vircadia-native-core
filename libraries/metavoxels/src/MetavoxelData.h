@@ -191,7 +191,7 @@ public:
     glm::vec3 getCenter() const { return minimum + glm::vec3(size, size, size) * 0.5f; }
 };
 
-/// Interface for visitors to metavoxels.
+/// Base class for visitors to metavoxels.
 class MetavoxelVisitor {
 public:
     
@@ -241,9 +241,7 @@ protected:
     MetavoxelLOD _lod;
 };
 
-typedef QSharedPointer<MetavoxelVisitor> MetavoxelVisitorPointer;
-
-/// Interface for visitors to spanners.
+/// Base class for visitors to spanners.
 class SpannerVisitor : public MetavoxelVisitor {
 public:
     
@@ -259,6 +257,49 @@ public:
     virtual void prepare();
     virtual int visit(MetavoxelInfo& info);
 
+protected:
+    
+    int _spannerInputCount;
+};
+
+/// Base class for ray intersection visitors.
+class RayIntersectionVisitor : public MetavoxelVisitor {
+public:
+    
+    RayIntersectionVisitor(const glm::vec3& origin, const glm::vec3& direction,
+        const QVector<AttributePointer>& inputs,
+        const QVector<AttributePointer>& outputs = QVector<AttributePointer>(),
+        const MetavoxelLOD& lod = MetavoxelLOD());
+    
+    /// Visits a metavoxel that the ray intersects.
+    virtual int visit(MetavoxelInfo& info, float distance) = 0;
+    
+    virtual int visit(MetavoxelInfo& info);
+    
+protected:
+    
+    glm::vec3 _origin;
+    glm::vec3 _direction;
+    int _order;
+};
+
+/// Base class for ray intersection spanner visitors.
+class RayIntersectionSpannerVisitor : public RayIntersectionVisitor {
+public:
+    
+    RayIntersectionSpannerVisitor(const glm::vec3& origin, const glm::vec3& direction,
+        const QVector<AttributePointer>& spannerInputs,
+        const QVector<AttributePointer>& inputs = QVector<AttributePointer>(),
+        const QVector<AttributePointer>& outputs = QVector<AttributePointer>(),
+        const MetavoxelLOD& lod = MetavoxelLOD());
+
+    /// Visits a spanner that the ray intersects.
+    /// \return true to continue, false to short-circuit the tour
+    virtual bool visit(Spanner* spanner, float distance) = 0;
+    
+    virtual void prepare();
+    virtual int visit(MetavoxelInfo& info, float distance);
+    
 protected:
     
     int _spannerInputCount;
@@ -389,6 +430,9 @@ public:
     /// Returns a pointer to the renderer, creating it if necessary.
     SpannerRenderer* getRenderer();
 
+    /// Finds the intersection between the described ray and this spanner.
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+
 signals:
 
     void boundsWillChange();
@@ -469,7 +513,8 @@ public:
 
     virtual const QVector<AttributePointer>& getAttributes() const;
     virtual bool getAttributeValues(MetavoxelInfo& info) const;
-    
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+
 signals:
 
     void colorChanged(const QColor& color);

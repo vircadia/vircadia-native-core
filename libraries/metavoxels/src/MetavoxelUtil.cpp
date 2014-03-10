@@ -150,6 +150,12 @@ Box::Box(const glm::vec3& minimum, const glm::vec3& maximum) :
     minimum(minimum), maximum(maximum) {
 }
 
+bool Box::contains(const glm::vec3& point) const {
+    return point.x >= minimum.x && point.x <= maximum.x &&
+        point.y >= minimum.y && point.y <= maximum.y &&
+        point.z >= minimum.z && point.z <= maximum.z;
+}
+
 bool Box::contains(const Box& other) const {
     return other.minimum.x >= minimum.x && other.maximum.x <= maximum.x &&
         other.minimum.y >= minimum.y && other.maximum.y <= maximum.y &&
@@ -171,6 +177,52 @@ glm::vec3 Box::getVertex(int index) const {
         (index & X_MAXIMUM_FLAG) ? maximum.x : minimum.x,
         (index & Y_MAXIMUM_FLAG) ? maximum.y : minimum.y,
         (index & Z_MAXIMUM_FLAG) ? maximum.z : minimum.z); 
+}
+
+// finds the intersection between a ray and the facing plane on one axis
+static bool findIntersection(float origin, float direction, float minimum, float maximum, float& distance) {
+    if (direction > EPSILON) {
+        distance = (minimum - origin) / direction;
+        return true;
+    } else if (direction < -EPSILON) {
+        distance = (maximum - origin) / direction;
+        return true;
+    }
+    return false;
+}
+
+// determines whether a value is within the extents
+static bool isWithin(float value, float minimum, float maximum) {
+    return value >= minimum && value <= maximum;
+}
+
+bool Box::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+    // handle the trivial case where the box contains the origin
+    if (contains(origin)) {
+        distance = 0.0f;
+        return true;
+    }
+    // check each axis
+    float axisDistance;
+    if ((findIntersection(origin.x, direction.x, minimum.x, maximum.x, axisDistance) && axisDistance >= 0 &&
+            isWithin(origin.y + axisDistance*direction.y, minimum.y, maximum.y) &&
+            isWithin(origin.z + axisDistance*direction.z, minimum.z, maximum.z))) {
+        distance = axisDistance;
+        return true;
+    }
+    if ((findIntersection(origin.y, direction.y, minimum.y, maximum.y, axisDistance) && axisDistance >= 0 &&
+            isWithin(origin.x + axisDistance*direction.x, minimum.x, maximum.x) &&
+            isWithin(origin.z + axisDistance*direction.z, minimum.z, maximum.z))) {
+        distance = axisDistance;
+        return true;
+    }
+    if ((findIntersection(origin.z, direction.z, minimum.z, maximum.z, axisDistance) && axisDistance >= 0 &&
+            isWithin(origin.y + axisDistance*direction.y, minimum.y, maximum.y) &&
+            isWithin(origin.x + axisDistance*direction.x, minimum.x, maximum.x))) {
+        distance = axisDistance;
+        return true;
+    }
+    return false;
 }
 
 Box operator*(const glm::mat4& matrix, const Box& box) {

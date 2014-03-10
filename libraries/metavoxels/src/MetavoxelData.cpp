@@ -10,6 +10,8 @@
 #include <QScriptEngine>
 #include <QtDebug>
 
+#include <GeometryUtil.h>
+
 #include "MetavoxelData.h"
 #include "MetavoxelUtil.h"
 #include "ScriptCache.h"
@@ -821,6 +823,65 @@ int SpannerVisitor::visit(MetavoxelInfo& info) {
     return info.isLeaf ? STOP_RECURSION : DEFAULT_ORDER;
 }
 
+RayIntersectionVisitor::RayIntersectionVisitor(const glm::vec3& origin, const glm::vec3& direction,
+        const QVector<AttributePointer>& inputs, const QVector<AttributePointer>& outputs, const MetavoxelLOD& lod) :
+    MetavoxelVisitor(inputs, outputs, lod),
+    _origin(origin),
+    _direction(direction),
+    _order(encodeOrder(direction)) {
+}
+
+int RayIntersectionVisitor::visit(MetavoxelInfo& info) {
+    float distance;
+    if (!info.getBounds().findRayIntersection(_origin, _direction, distance)) {
+        return STOP_RECURSION;
+    }
+    return visit(info, distance);
+}
+
+RayIntersectionSpannerVisitor::RayIntersectionSpannerVisitor(const glm::vec3& origin, const glm::vec3& direction,
+        const QVector<AttributePointer>& spannerInputs, const QVector<AttributePointer>& inputs,
+        const QVector<AttributePointer>& outputs, const MetavoxelLOD& lod) :
+    RayIntersectionVisitor(origin, direction, inputs + spannerInputs, outputs, lod),
+    _spannerInputCount(spannerInputs.size()) {
+}
+
+void RayIntersectionSpannerVisitor::prepare() {
+    Spanner::incrementVisit();
+}
+
+class SpannerDistance {
+public:
+    Spanner* spanner;
+    float distance;
+};
+
+bool operator<(const SpannerDistance& first, const SpannerDistance& second) {
+    return first.distance < second.distance;
+}
+
+int RayIntersectionSpannerVisitor::visit(MetavoxelInfo& info, float distance) {
+    QVarLengthArray<SpannerDistance, 4> spannerDistances;
+    for (int i = _inputs.size() - _spannerInputCount; i < _inputs.size(); i++) {
+        foreach (const SharedObjectPointer& object, info.inputValues.at(i).getInlineValue<SharedObjectSet>()) {
+            Spanner* spanner = static_cast<Spanner*>(object.data());
+            if (spanner->testAndSetVisited()) {
+                SpannerDistance spannerDistance = { spanner };
+                if (spanner->findRayIntersection(_origin, _direction, spannerDistance.distance)) {
+                    spannerDistances.append(spannerDistance);
+                }
+            }
+        }
+        qStableSort(spannerDistances);
+        foreach (const SpannerDistance& spannerDistance, spannerDistances) {
+            if (!visit(spannerDistance.spanner, spannerDistance.distance)) {
+                return SHORT_CIRCUIT;
+            }
+        }
+    }
+    return info.isLeaf ? STOP_RECURSION : _order;
+}
+
 DefaultMetavoxelGuide::DefaultMetavoxelGuide() {
 }
 
@@ -1119,6 +1180,10 @@ SpannerRenderer* Spanner::getRenderer() {
     return _renderer;
 }
 
+bool Spanner::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+    return _bounds.findRayIntersection(origin, direction, distance);
+}
+
 QByteArray Spanner::getRendererClassName() const {
     return "SpannerRendererer";
 }
@@ -1210,6 +1275,10 @@ bool Sphere::getAttributeValues(MetavoxelInfo& info) const {
         return false;
     }
     return true;
+}
+
+bool Sphere::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+    return findRaySphereIntersection(origin, direction, getTranslation(), getScale(), distance);
 }
 
 QByteArray Sphere::getRendererClassName() const {
