@@ -10,13 +10,14 @@
 
 #include <SharedUtil.h>
 
-#ifdef HAVE_VISAGE
-#include <VisageTracker2.h>
-#endif
-
 #include "Application.h"
 #include "Visage.h"
 #include "renderer/FBXReader.h"
+
+// this has to go after our normal includes, because its definition of HANDLE conflicts with Qt's
+#ifdef HAVE_VISAGE
+#include <VisageTracker2.h>
+#endif
 
 namespace VisageSDK {
 #ifdef WIN32
