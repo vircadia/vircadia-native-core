@@ -153,6 +153,7 @@ public:
 /// Represents a registered attribute.
 class Attribute : public SharedObject {
     Q_OBJECT
+    Q_PROPERTY(float lodThresholdMultiplier MEMBER _lodThresholdMultiplier)
     
 public:
     
@@ -162,6 +163,9 @@ public:
     virtual ~Attribute();
 
     Q_INVOKABLE QString getName() const { return objectName(); }
+
+    float getLODThresholdMultiplier() const { return _lodThresholdMultiplier; }
+    void setLODThresholdMultiplier(float multiplier) { _lodThresholdMultiplier = multiplier; }
 
     void* create() const { return create(getDefaultValue()); }
     virtual void* create(void* copy) const = 0;
@@ -197,6 +201,10 @@ public:
     /// Creates a widget to use to edit values of this attribute, or returns NULL if the attribute isn't editable.
     /// The widget should have a single "user" property that will be used to get/set the value.
     virtual QWidget* createEditor(QWidget* parent = NULL) const { return NULL; }
+
+private:
+    
+    float _lodThresholdMultiplier;
 };
 
 /// A simple attribute class that stores its values inline.

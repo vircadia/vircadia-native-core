@@ -28,6 +28,10 @@ AttributeRegistry::AttributeRegistry() :
     _spannersAttribute(registerAttribute(new SpannerSetAttribute("spanners", &Spanner::staticMetaObject))),
     _colorAttribute(registerAttribute(new QRgbAttribute("color"))),
     _normalAttribute(registerAttribute(new PackedNormalAttribute("normal", qRgb(0, 127, 0)))) {
+    
+    // our baseline LOD threshold is for voxels; spanners are a different story
+    const float SPANNER_LOD_THRESHOLD_MULTIPLIER = 4.0f;
+    _spannersAttribute->setLODThresholdMultiplier(SPANNER_LOD_THRESHOLD_MULTIPLIER);
 }
 
 static QScriptValue qDebugFunction(QScriptContext* context, QScriptEngine* engine) {
@@ -143,7 +147,8 @@ OwnedAttributeValue& OwnedAttributeValue::operator=(const OwnedAttributeValue& o
     return *this;
 }
 
-Attribute::Attribute(const QString& name) {
+Attribute::Attribute(const QString& name) :
+        _lodThresholdMultiplier(1.0f) {
     setObjectName(name);
 }
 

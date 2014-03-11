@@ -43,10 +43,10 @@ public:
     
     bool isValid() const { return threshold > 0.0f; }
     
-    bool shouldSubdivide(const glm::vec3& minimum, float size) const;
+    bool shouldSubdivide(const glm::vec3& minimum, float size, float multiplier = 1.0f) const;
     
     /// Checks whether the node or any of the nodes underneath it have had subdivision enabled as compared to the reference.
-    bool becameSubdivided(const glm::vec3& minimum, float size, const MetavoxelLOD& reference) const;
+    bool becameSubdivided(const glm::vec3& minimum, float size, const MetavoxelLOD& reference, float multiplier = 1.0f) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(MetavoxelLOD)
@@ -119,9 +119,9 @@ public:
     const MetavoxelLOD& lod;
     const MetavoxelLOD& referenceLOD;
     
-    bool shouldSubdivide() const { return lod.shouldSubdivide(minimum, size); }
-    bool shouldSubdivideReference() const { return referenceLOD.shouldSubdivide(minimum, size); }
-    bool becameSubdivided() const { return lod.becameSubdivided(minimum, size, referenceLOD); }
+    bool shouldSubdivide() const;
+    bool shouldSubdivideReference() const;
+    bool becameSubdivided() const;
     
     void setMinimum(const glm::vec3& lastMinimum, int index);
 };
@@ -230,6 +230,8 @@ public:
     
     void setLOD(const MetavoxelLOD& lod) { _lod = lod; }
     
+    float getMinimumLODThresholdMultiplier() const { return _minimumLODThresholdMultiplier; }
+    
     /// Prepares for a new tour of the metavoxel data.
     virtual void prepare();
     
@@ -243,6 +245,7 @@ protected:
     QVector<AttributePointer> _inputs;
     QVector<AttributePointer> _outputs;
     MetavoxelLOD _lod;
+    float _minimumLODThresholdMultiplier;
 };
 
 /// Base class for visitors to spanners.

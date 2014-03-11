@@ -29,15 +29,16 @@ MetavoxelLOD::MetavoxelLOD(const glm::vec3& position, float threshold) :
     threshold(threshold) {
 }
 
-bool MetavoxelLOD::shouldSubdivide(const glm::vec3& minimum, float size) const {
-    return size >= glm::distance(position, minimum + glm::vec3(size, size, size) * 0.5f) * threshold;
+bool MetavoxelLOD::shouldSubdivide(const glm::vec3& minimum, float size, float multiplier) const {
+    return size >= glm::distance(position, minimum + glm::vec3(size, size, size) * 0.5f) * threshold * multiplier;
 }
 
-bool MetavoxelLOD::becameSubdivided(const glm::vec3& minimum, float size, const MetavoxelLOD& reference) const {
+bool MetavoxelLOD::becameSubdivided(const glm::vec3& minimum, float size,
+        const MetavoxelLOD& reference, float multiplier) const {
     if (position == reference.position && threshold >= reference.threshold) {
         return false; // first off, nothing becomes subdivided if it doesn't change
     }
-    if (!shouldSubdivide(minimum, size)) {
+    if (!shouldSubdivide(minimum, size, multiplier)) {
         return false; // this one must be subdivided
     }
     // the general check is whether we've gotten closer (as multiplied by the threshold) to any point in the volume,
@@ -468,6 +469,18 @@ static glm::vec3 getNextMinimum(const glm::vec3& minimum, float nextSize, int in
         (index & Z_MAXIMUM_FLAG) ? nextSize : 0.0f);
 }
 
+bool MetavoxelStreamState::shouldSubdivide() const {
+    return lod.shouldSubdivide(minimum, size, attribute->getLODThresholdMultiplier());
+}
+
+bool MetavoxelStreamState::shouldSubdivideReference() const {
+    return referenceLOD.shouldSubdivide(minimum, size, attribute->getLODThresholdMultiplier());
+}
+
+bool MetavoxelStreamState::becameSubdivided() const {
+    return lod.becameSubdivided(minimum, size, referenceLOD, attribute->getLODThresholdMultiplier());
+}
+
 void MetavoxelStreamState::setMinimum(const glm::vec3& lastMinimum, int index) {
     minimum = getNextMinimum(lastMinimum, size, index);
 }
@@ -831,7 +844,16 @@ MetavoxelVisitor::MetavoxelVisitor(const QVector<AttributePointer>& inputs,
         const QVector<AttributePointer>& outputs, const MetavoxelLOD& lod) :
     _inputs(inputs),
     _outputs(outputs),
-    _lod(lod) {
+    _lod(lod),
+    _minimumLODThresholdMultiplier(FLT_MAX) {
+    
+    // find the minimum LOD threshold multiplier over all attributes
+    foreach (const AttributePointer& attribute, _inputs) {
+        _minimumLODThresholdMultiplier = qMin(attribute->getLODThresholdMultiplier(), _minimumLODThresholdMultiplier);
+    }
+    foreach (const AttributePointer& attribute, _outputs) {
+        _minimumLODThresholdMultiplier = qMin(attribute->getLODThresholdMultiplier(), _minimumLODThresholdMultiplier);
+    }
 }
 
 MetavoxelVisitor::~MetavoxelVisitor() {
@@ -928,8 +950,11 @@ DefaultMetavoxelGuide::DefaultMetavoxelGuide() {
 }
 
 bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
-    bool shouldSubdivide = visitation.visitor.getLOD().shouldSubdivide(visitation.info.minimum, visitation.info.size);
-    visitation.info.isLeaf = !shouldSubdivide || visitation.allInputNodesLeaves();
+    // save the core of the LOD calculation; we'll reuse it to determine whether to subdivide each attribute
+    float lodBase = glm::distance(visitation.visitor.getLOD().position, visitation.info.getCenter()) *
+        visitation.visitor.getLOD().threshold;
+    visitation.info.isLeaf = (visitation.info.size < lodBase * visitation.visitor.getMinimumLODThresholdMultiplier()) ||
+        visitation.allInputNodesLeaves();
     int encodedOrder = visitation.visitor.visit(visitation.info);
     if (encodedOrder == MetavoxelVisitor::SHORT_CIRCUIT) {
         return false;
@@ -955,20 +980,23 @@ bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
         { glm::vec3(), visitation.info.size * 0.5f, QVector<AttributeValue>(visitation.inputNodes.size()),
             QVector<OwnedAttributeValue>(visitation.outputNodes.size()) } };
     for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
+        // the encoded order tells us the child indices for each iteration
         const int ORDER_ELEMENT_BITS = 3;
         const int ORDER_ELEMENT_MASK = (1 << ORDER_ELEMENT_BITS) - 1;
         int index = encodedOrder & ORDER_ELEMENT_MASK;
         encodedOrder >>= ORDER_ELEMENT_BITS;
         for (int j = 0; j < visitation.inputNodes.size(); j++) {
             MetavoxelNode* node = visitation.inputNodes.at(j);
-            MetavoxelNode* child = (node && shouldSubdivide) ? node->getChild(index) : NULL;
+            const AttributeValue& parentValue = visitation.info.inputValues.at(j);
+            MetavoxelNode* child = (node && (visitation.info.size >= lodBase *
+                parentValue.getAttribute()->getLODThresholdMultiplier())) ? node->getChild(index) : NULL;
             nextVisitation.info.inputValues[j] = ((nextVisitation.inputNodes[j] = child)) ?
-                child->getAttributeValue(visitation.info.inputValues[j].getAttribute()) :
-                    visitation.info.inputValues[j];
+                child->getAttributeValue(parentValue.getAttribute()) : parentValue;
         }
         for (int j = 0; j < visitation.outputNodes.size(); j++) {
             MetavoxelNode* node = visitation.outputNodes.at(j);
-            MetavoxelNode* child = (node && shouldSubdivide) ? node->getChild(index) : NULL;
+            MetavoxelNode* child = (node && (visitation.info.size >= lodBase *
+                visitation.visitor.getOutputs().at(j)->getLODThresholdMultiplier())) ? node->getChild(index) : NULL;
             nextVisitation.outputNodes[j] = child;
         }
         nextVisitation.info.minimum = getNextMinimum(visitation.info.minimum, nextVisitation.info.size, index);
