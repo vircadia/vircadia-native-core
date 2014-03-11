@@ -257,7 +257,6 @@ Texture::~Texture() {
 
 NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap) :
     Resource(url),
-    _averageColor(1.0f, 1.0f, 1.0f, 1.0f),
     _translucent(false) {
     
     if (!url.isValid()) {
@@ -300,27 +299,20 @@ void ImageReader::run() {
         image = image.convertToFormat(QImage::Format_ARGB32);
     }
     
-    // sum up the colors for the average and check for translucency
-    glm::vec4 accumulated;
+    // check for translucency
     int translucentPixels = 0;
     const int EIGHT_BIT_MAXIMUM = 255;
+    const int RGB_BITS = 24;
     for (int y = 0; y < image.height(); y++) {
         for (int x = 0; x < image.width(); x++) {
-            QRgb pixel = image.pixel(x, y);
-            accumulated.r += qRed(pixel);
-            accumulated.g += qGreen(pixel);
-            accumulated.b += qBlue(pixel);
-            
-            int alpha = qAlpha(pixel);
+            int alpha = image.pixel(x, y) >> RGB_BITS;
             if (alpha != 0 && alpha != EIGHT_BIT_MAXIMUM) {
                 translucentPixels++;
             }
-            accumulated.a += alpha;
         }
     }
     int imageArea = image.width() * image.height();
     QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image),
-        Q_ARG(const glm::vec4&, accumulated / (float) (imageArea * EIGHT_BIT_MAXIMUM)),
         Q_ARG(bool, translucentPixels >= imageArea / 2));
     _reply->deleteLater();
 }
@@ -330,8 +322,7 @@ void NetworkTexture::downloadFinished(QNetworkReply* reply) {
     QThreadPool::globalInstance()->start(new ImageReader(_self, reply));
 }
 
-void NetworkTexture::setImage(const QImage& image, const glm::vec4& averageColor, bool translucent) {
-    _averageColor = averageColor;
+void NetworkTexture::setImage(const QImage& image, bool translucent) {
     _translucent = translucent;
     
     finishedLoading(true);

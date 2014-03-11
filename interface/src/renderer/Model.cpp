@@ -497,10 +497,6 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     }
 }
 
-glm::vec4 Model::computeAverageColor() const {
-    return _geometry ? _geometry->computeAverageColor() : glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-}
-
 bool Model::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
     const glm::vec3 relativeOrigin = origin - _translation;
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
