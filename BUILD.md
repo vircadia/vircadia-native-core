@@ -54,7 +54,11 @@ Should you choose not to install Qt5 via a package manager that handles dependen
 #####Package Managers
 [Homebrew](http://brew.sh/) is an excellent package manager for OS X. It makes install of all hifi dependencies very simple.
 
-    brew install cmake qt5 glm zlib qxmpp
+    brew tap highfidelity/homebrew-formulas
+    brew install cmake glm zlib
+    brew install highfidelity/formulas/qt5
+    brew link qt5 --force
+    brew install highfidelity/formuals/qxmpp
 
 We have a [homebrew formulas repository](https://github.com/highfidelity/homebrew-formulas) that you can use/tap to install some of the dependencies.
 
