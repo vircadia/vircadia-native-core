@@ -25,7 +25,7 @@ MetavoxelServer::MetavoxelServer(const QByteArray& packet) :
 }
 
 void MetavoxelServer::applyEdit(const MetavoxelEditMessage& edit) {
-    edit.apply(_data);
+    edit.apply(_data, SharedObject::getWeakHash());
 }
 
 const QString METAVOXEL_SERVER_LOGGING_NAME = "metavoxel-server";

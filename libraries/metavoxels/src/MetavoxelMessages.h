@@ -66,7 +66,7 @@ public:
     
     STREAM QVariant edit;
     
-    void apply(MetavoxelData& data) const;
+    void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(MetavoxelEditMessage)
@@ -77,7 +77,7 @@ public:
 
     virtual ~MetavoxelEdit();
     
-    virtual void apply(MetavoxelData& data) const = 0;
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const = 0;
 };
 
 /// An edit that sets the region within a box to a value.
@@ -93,7 +93,7 @@ public:
     BoxSetEdit(const Box& region = Box(), float granularity = 0.0f,
         const OwnedAttributeValue& value = OwnedAttributeValue());
     
-    virtual void apply(MetavoxelData& data) const;
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(BoxSetEdit)
@@ -108,7 +108,7 @@ public:
     
     GlobalSetEdit(const OwnedAttributeValue& value = OwnedAttributeValue());
     
-    virtual void apply(MetavoxelData& data) const;
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(GlobalSetEdit)
@@ -125,7 +125,7 @@ public:
     InsertSpannerEdit(const AttributePointer& attribute = AttributePointer(),
         const SharedObjectPointer& spanner = SharedObjectPointer());
     
-    virtual void apply(MetavoxelData& data) const;
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(InsertSpannerEdit)
@@ -141,7 +141,7 @@ public:
     
     RemoveSpannerEdit(const AttributePointer& attribute = AttributePointer(), int id = 0);
     
-    virtual void apply(MetavoxelData& data) const;
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(RemoveSpannerEdit)
@@ -156,7 +156,7 @@ public:
     
     ClearSpannersEdit(const AttributePointer& attribute = AttributePointer());
     
-    virtual void apply(MetavoxelData& data) const;
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(ClearSpannersEdit)
@@ -171,7 +171,7 @@ public:
     
     SetSpannerEdit(const SharedObjectPointer& spanner = SharedObjectPointer());
     
-    virtual void apply(MetavoxelData& data) const;
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(SetSpannerEdit)

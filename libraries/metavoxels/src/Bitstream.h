@@ -71,7 +71,7 @@ public:
     
     int takePersistentID(P value) { return _persistentIDs.take(value); }
     
-    void removePersistentValue(int id) { _persistentIDs.remove(_persistentValues.take(id)); }
+    T takePersistentValue(int id) { T value = _persistentValues.take(id); _persistentIDs.remove(value); return value; }
     
     RepeatedValueStreamer& operator<<(T value);
     RepeatedValueStreamer& operator>>(T& value);
@@ -242,8 +242,11 @@ public:
     /// Immediately persists and resets the read mappings.
     void persistAndResetReadMappings();
 
+    /// Returns a reference to the weak hash storing shared objects for this stream.
+    const WeakSharedObjectHash& getWeakSharedObjectHash() const { return _weakSharedObjectHash; }
+
     /// Removes a shared object from the read mappings.
-    void clearSharedObject(int id) { _sharedObjectStreamer.removePersistentValue(id); }
+    void clearSharedObject(int id);
 
     Bitstream& operator<<(bool value);
     Bitstream& operator>>(bool& value);
@@ -339,7 +342,7 @@ private:
     RepeatedValueStreamer<QScriptString> _scriptStringStreamer;
     RepeatedValueStreamer<SharedObjectPointer, SharedObject*> _sharedObjectStreamer;
 
-    QHash<int, QPointer<SharedObject> > _transientSharedObjects;
+    WeakSharedObjectHash _weakSharedObjectHash;
 
     static QHash<QByteArray, const QMetaObject*>& getMetaObjects();
     static QMultiHash<const QMetaObject*, const QMetaObject*>& getMetaObjectSubClasses();

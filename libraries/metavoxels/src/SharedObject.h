@@ -9,13 +9,19 @@
 #ifndef __interface__SharedObject__
 #define __interface__SharedObject__
 
+#include <QHash>
 #include <QMetaType>
 #include <QObject>
+#include <QPointer>
 #include <QSet>
 #include <QWidget>
 #include <QtDebug>
 
 class QComboBox;
+
+class SharedObject;
+
+typedef QHash<int, QPointer<SharedObject> > WeakSharedObjectHash;
 
 /// A QObject that may be shared over the network.
 class SharedObject : public QObject {
@@ -23,9 +29,18 @@ class SharedObject : public QObject {
     
 public:
 
+    /// Returns the weak hash under which all local shared objects are registered.
+    static const WeakSharedObjectHash& getWeakHash() { return _weakHash; }
+
     Q_INVOKABLE SharedObject();
 
-    int getID() { return _id; }
+    /// Returns the unique local ID for this object.
+    int getID() const { return _id; }
+
+    /// Returns the unique remote ID for this object, or zero if this is a local object.
+    int getRemoteID() const { return _remoteID; }
+    
+    void setRemoteID(int remoteID) { _remoteID = remoteID; }
 
     int getReferenceCount() const { return _referenceCount; }
     void incrementReferenceCount();
@@ -43,10 +58,15 @@ public:
 private:
     
     int _id;
+    int _remoteID;
     int _referenceCount;
     
     static int _lastID;
+    static WeakSharedObjectHash _weakHash;
 };
+
+/// Removes the null references from the supplied hash.
+void pruneWeakSharedObjectHash(WeakSharedObjectHash& hash);
 
 /// A pointer to a shared object.
 template<class T> class SharedObjectPointerTemplate {

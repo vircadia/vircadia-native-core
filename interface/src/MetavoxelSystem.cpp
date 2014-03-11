@@ -44,6 +44,31 @@ void MetavoxelSystem::init() {
     connect(NodeList::getInstance(), SIGNAL(nodeAdded(SharedNodePointer)), SLOT(maybeAttachClient(const SharedNodePointer&)));
 }
 
+SharedObjectPointer MetavoxelSystem::findFirstRaySpannerIntersection(
+        const glm::vec3& origin, const glm::vec3& direction, const AttributePointer& attribute, float& distance) {
+   SharedObjectPointer closestSpanner;
+   float closestDistance = FLT_MAX;
+   foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+        if (node->getType() == NodeType::MetavoxelServer) {
+            QMutexLocker locker(&node->getMutex());
+            MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
+            if (client) {
+                float clientDistance;
+                SharedObjectPointer clientSpanner = client->getData().findFirstRaySpannerIntersection(
+                    origin, direction, attribute, clientDistance);
+                if (clientSpanner && clientDistance < closestDistance) {
+                    closestSpanner = clientSpanner;
+                    closestDistance = clientDistance;
+                }
+            }
+        }
+    }
+    if (closestSpanner) {
+        distance = closestDistance;
+    }
+    return closestSpanner;
+}
+
 void MetavoxelSystem::applyEdit(const MetavoxelEditMessage& edit) {
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getType() == NodeType::MetavoxelServer) {
@@ -215,7 +240,7 @@ void MetavoxelClient::guide(MetavoxelVisitor& visitor) {
 
 void MetavoxelClient::applyEdit(const MetavoxelEditMessage& edit) {
     // apply immediately to local tree
-    edit.apply(_data);
+    edit.apply(_data, _sequencer.getWeakSharedObjectHash());
 
     // start sending it out
     _sequencer.sendHighPriorityMessage(QVariant::fromValue(edit));
@@ -255,7 +280,7 @@ void MetavoxelClient::readPacket(Bitstream& in) {
     // reapply local edits
     foreach (const DatagramSequencer::HighPriorityMessage& message, _sequencer.getHighPriorityMessages()) {
         if (message.data.userType() == MetavoxelEditMessage::Type) {
-            message.data.value<MetavoxelEditMessage>().apply(_data);
+            message.data.value<MetavoxelEditMessage>().apply(_data, _sequencer.getWeakSharedObjectHash());
         }
     }
 }

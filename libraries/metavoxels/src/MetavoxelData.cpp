@@ -218,6 +218,48 @@ void MetavoxelData::clear(const AttributePointer& attribute) {
     }
 }
 
+class FirstRaySpannerIntersectionVisitor : public RaySpannerIntersectionVisitor {
+public:
+    
+    FirstRaySpannerIntersectionVisitor(const glm::vec3& origin, const glm::vec3& direction,
+        const AttributePointer& attribute, const MetavoxelLOD& lod);
+    
+    Spanner* getSpanner() const { return _spanner; }
+    float getDistance() const { return _distance; }
+    
+    virtual bool visit(Spanner* spanner, float distance);
+
+private:
+    
+    Spanner* _spanner;
+    float _distance;
+};
+
+FirstRaySpannerIntersectionVisitor::FirstRaySpannerIntersectionVisitor(
+        const glm::vec3& origin, const glm::vec3& direction, const AttributePointer& attribute, const MetavoxelLOD& lod) :
+    RaySpannerIntersectionVisitor(origin, direction, QVector<AttributePointer>() << attribute,
+        QVector<AttributePointer>(), QVector<AttributePointer>(), lod),
+    _spanner(NULL) {
+}
+
+bool FirstRaySpannerIntersectionVisitor::visit(Spanner* spanner, float distance) {
+    _spanner = spanner;
+    _distance = distance;
+    return false;
+}
+
+SharedObjectPointer MetavoxelData::findFirstRaySpannerIntersection(
+        const glm::vec3& origin, const glm::vec3& direction, const AttributePointer& attribute,
+            float& distance, const MetavoxelLOD& lod) {
+    FirstRaySpannerIntersectionVisitor visitor(origin, direction, attribute, lod);
+    guide(visitor);
+    if (!visitor.getSpanner()) {
+        return SharedObjectPointer();
+    }
+    distance = visitor.getDistance();
+    return SharedObjectPointer(visitor.getSpanner());
+}
+
 const int X_MAXIMUM_FLAG = 1;
 const int Y_MAXIMUM_FLAG = 2;
 const int Z_MAXIMUM_FLAG = 4;
@@ -839,14 +881,14 @@ int RayIntersectionVisitor::visit(MetavoxelInfo& info) {
     return visit(info, distance);
 }
 
-RayIntersectionSpannerVisitor::RayIntersectionSpannerVisitor(const glm::vec3& origin, const glm::vec3& direction,
+RaySpannerIntersectionVisitor::RaySpannerIntersectionVisitor(const glm::vec3& origin, const glm::vec3& direction,
         const QVector<AttributePointer>& spannerInputs, const QVector<AttributePointer>& inputs,
         const QVector<AttributePointer>& outputs, const MetavoxelLOD& lod) :
     RayIntersectionVisitor(origin, direction, inputs + spannerInputs, outputs, lod),
     _spannerInputCount(spannerInputs.size()) {
 }
 
-void RayIntersectionSpannerVisitor::prepare() {
+void RaySpannerIntersectionVisitor::prepare() {
     Spanner::incrementVisit();
 }
 
@@ -860,7 +902,7 @@ bool operator<(const SpannerDistance& first, const SpannerDistance& second) {
     return first.distance < second.distance;
 }
 
-int RayIntersectionSpannerVisitor::visit(MetavoxelInfo& info, float distance) {
+int RaySpannerIntersectionVisitor::visit(MetavoxelInfo& info, float distance) {
     QVarLengthArray<SpannerDistance, 4> spannerDistances;
     for (int i = _inputs.size() - _spannerInputCount; i < _inputs.size(); i++) {
         foreach (const SharedObjectPointer& object, info.inputValues.at(i).getInlineValue<SharedObjectSet>()) {

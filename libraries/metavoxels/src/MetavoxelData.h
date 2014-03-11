@@ -81,6 +81,10 @@ public:
 
     void clear(const AttributePointer& attribute);
 
+    /// Convenience function that finds the first spanner intersecting the provided ray.    
+    SharedObjectPointer findFirstRaySpannerIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const AttributePointer& attribute, float& distance, const MetavoxelLOD& lod = MetavoxelLOD());
+
     /// Expands the tree, increasing its capacity in all dimensions.
     void expand();
 
@@ -284,10 +288,10 @@ protected:
 };
 
 /// Base class for ray intersection spanner visitors.
-class RayIntersectionSpannerVisitor : public RayIntersectionVisitor {
+class RaySpannerIntersectionVisitor : public RayIntersectionVisitor {
 public:
     
-    RayIntersectionSpannerVisitor(const glm::vec3& origin, const glm::vec3& direction,
+    RaySpannerIntersectionVisitor(const glm::vec3& origin, const glm::vec3& direction,
         const QVector<AttributePointer>& spannerInputs,
         const QVector<AttributePointer>& inputs = QVector<AttributePointer>(),
         const QVector<AttributePointer>& outputs = QVector<AttributePointer>(),

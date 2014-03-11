@@ -201,6 +201,13 @@ void Bitstream::persistAndResetReadMappings() {
     persistReadMappings(getAndResetReadMappings());
 }
 
+void Bitstream::clearSharedObject(int id) {
+    SharedObjectPointer object = _sharedObjectStreamer.takePersistentValue(id);
+    if (object) {
+        _weakSharedObjectHash.remove(object->getRemoteID());
+    }
+}
+
 Bitstream& Bitstream::operator<<(bool value) {
     if (value) {
         _byte |= (1 << _position);
@@ -487,7 +494,7 @@ Bitstream& Bitstream::operator>(SharedObjectPointer& object) {
         object = SharedObjectPointer();
         return *this;
     }
-    QPointer<SharedObject>& pointer = _transientSharedObjects[id];
+    QPointer<SharedObject>& pointer = _weakSharedObjectHash[id];
     if (pointer) {
         const QMetaObject* metaObject;
         _metaObjectStreamer >> metaObject;
@@ -500,6 +507,7 @@ Bitstream& Bitstream::operator>(SharedObjectPointer& object) {
         QObject* rawObject;
         *this >> rawObject;
         pointer = static_cast<SharedObject*>(rawObject);
+        pointer->setRemoteID(id);
     }
     object = static_cast<SharedObject*>(pointer.data());
     return *this;

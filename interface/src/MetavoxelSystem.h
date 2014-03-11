@@ -35,6 +35,9 @@ public:
 
     void init();
     
+    SharedObjectPointer findFirstRaySpannerIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const AttributePointer& attribute, float& distance);
+    
     void applyEdit(const MetavoxelEditMessage& edit);
     
     void simulate(float deltaTime);
@@ -90,6 +93,8 @@ public:
     
     MetavoxelClient(const SharedNodePointer& node);
     virtual ~MetavoxelClient();
+
+    MetavoxelData& getData() { return _data; }
 
     void guide(MetavoxelVisitor& visitor);
 

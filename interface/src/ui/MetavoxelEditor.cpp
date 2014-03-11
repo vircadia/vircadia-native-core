@@ -607,8 +607,19 @@ bool RemoveSpannerTool::appliesTo(const AttributePointer& attribute) const {
 }
 
 bool RemoveSpannerTool::eventFilter(QObject* watched, QEvent* event) {
+    AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(_editor->getSelectedAttribute());
+    if (!attribute) {
+        return false;
+    }
     if (event->type() == QEvent::MouseButtonPress) {
-        
+        float distance;
+        SharedObjectPointer spanner = Application::getInstance()->getMetavoxels()->findFirstRaySpannerIntersection(
+            Application::getInstance()->getMouseRayOrigin(), Application::getInstance()->getMouseRayDirection(),
+            attribute, distance);
+        if (spanner) {
+            MetavoxelEditMessage message = { QVariant::fromValue(RemoveSpannerEdit(attribute, spanner->getRemoteID())) };
+            Application::getInstance()->getMetavoxels()->applyEdit(message);
+        }
         return true;
     }
     return false;
