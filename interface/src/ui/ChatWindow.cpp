@@ -78,10 +78,14 @@ bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
     QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
     if ((keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter) &&
         (keyEvent->modifiers() & Qt::ShiftModifier) == 0) {
-        QString message = ui->messagePlainTextEdit->document()->toPlainText();
-        if (!message.trimmed().isEmpty()) {
+        QString messageText = ui->messagePlainTextEdit->document()->toPlainText().trimmed();
+        if (!messageText.isEmpty()) {
             const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
-            XmppClient::getInstance().getXMPPClient().sendMessage(publicChatRoom->jid(), message);
+            QXmppMessage message;
+            message.setTo(publicChatRoom->jid());
+            message.setType(QXmppMessage::GroupChat);
+            message.setBody(messageText);
+            XmppClient::getInstance().getXMPPClient().sendPacket(message);
             ui->messagePlainTextEdit->document()->clear();
         }
         return true;
