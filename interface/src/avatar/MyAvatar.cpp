@@ -37,12 +37,7 @@ const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const float YAW_MAG = 500.0f;
 const float PITCH_MAG = 100.0f;
 const float COLLISION_RADIUS_SCALAR = 1.2f; // pertains to avatar-to-avatar collisions
-const float COLLISION_BODY_FORCE = 30.0f; // pertains to avatar-to-avatar collisions
 const float COLLISION_RADIUS_SCALE = 0.125f;
-const float MOUSE_RAY_TOUCH_RANGE = 0.01f;
-const bool USING_HEAD_LEAN = false;
-const float SKIN_COLOR[] = {1.0f, 0.84f, 0.66f};
-const float DARK_SKIN_COLOR[] = {0.9f, 0.78f, 0.63f};
 
 const float DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
 
@@ -328,8 +323,6 @@ void MyAvatar::simulate(float deltaTime) {
     // consider updating our billboard
     maybeUpdateBillboard();
 }
-
-const float MAX_PITCH = 90.0f;
 
 //  Update avatar head rotation with sensor data
 void MyAvatar::updateFromGyros(float deltaTime) {
