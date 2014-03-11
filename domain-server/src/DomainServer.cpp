@@ -544,8 +544,15 @@ void DomainServer::readAvailableDatagrams() {
                 // construct the requested assignment from the packet data
                 Assignment requestAssignment(receivedPacket);
                 
-                qDebug() << "Received a request for assignment type" << requestAssignment.getType()
-                    << "from" << senderSockAddr;
+                // Suppress these for Assignment::AgentType to 1 per second...
+                static quint64 lastMessage = usecTimestampNow();
+                quint64 timeNow = usecTimestampNow();
+                const quint64 NOISY_TIME_ELAPSED = USECS_PER_SECOND;
+                if (requestAssignment.getType() != Assignment::AgentType || (timeNow - lastMessage) > NOISY_TIME_ELAPSED) {
+                    qDebug() << "Received a request for assignment type" << requestAssignment.getType()
+                        << "from" << senderSockAddr;
+                    lastMessage = timeNow;
+                }
                 
                 SharedAssignmentPointer assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
                 
