@@ -1138,7 +1138,6 @@ void Application::touchEndEvent(QTouchEvent* event) {
 
 }
 
-const bool USE_MOUSEWHEEL = false;
 void Application::wheelEvent(QWheelEvent* event) {
 
     _controllerScriptingInterface.emitWheelEvent(event); // send events to any registered scripts
@@ -1327,7 +1326,6 @@ glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVox
         (mouseVoxel.z + mouseVoxel.s / 2.f) * TREE_SCALE);
 }
 
-const int MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE = 1500;
 struct SendVoxelsOperationArgs {
     const unsigned char*  newBaseOctCode;
 };
@@ -1607,8 +1605,6 @@ void Application::shrinkMirrorView() {
     }
 }
 
-const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;
-const float MAX_VOXEL_EDIT_DISTANCE = 50.0f;
 const float HEAD_SPHERE_RADIUS = 0.07f;
 
 bool Application::isLookingAtMyAvatar(Avatar* avatar) {
