@@ -189,6 +189,7 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     Application::processEvents();
     QScrollBar* verticalScrollBar = ui->messagesScrollArea->verticalScrollBar();
     verticalScrollBar->setSliderPosition(verticalScrollBar->maximum());
+    messageLabel->updateGeometry();
 
     ++numMessagesAfterLastTimeStamp;
     if (message.stamp().isValid()) {
