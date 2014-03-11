@@ -128,9 +128,12 @@ QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url, bool no
     }
     QSharedPointer<NetworkTexture> texture = _dilatableNetworkTextures.value(url);
     if (texture.isNull()) {
-        texture = QSharedPointer<NetworkTexture>(new DilatableNetworkTexture(url));
+        texture = QSharedPointer<NetworkTexture>(new DilatableNetworkTexture(url), &Resource::allReferencesCleared);
         texture->setSelf(texture);
+        texture->setCache(this);
         _dilatableNetworkTextures.insert(url, texture);
+    } else {
+        _unusedResources.remove(texture->getLRUKey());
     }
     return texture;
 }
@@ -229,7 +232,7 @@ bool TextureCache::eventFilter(QObject* watched, QEvent* event) {
 
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
-    return QSharedPointer<Resource>(new NetworkTexture(url, *(const bool*)extra));
+    return QSharedPointer<Resource>(new NetworkTexture(url, *(const bool*)extra), &Resource::allReferencesCleared);
 }
 
 QOpenGLFramebufferObject* TextureCache::createFramebufferObject() {
@@ -352,26 +355,6 @@ DilatableNetworkTexture::DilatableNetworkTexture(const QUrl& url) :
 {
 }
 
-void DilatableNetworkTexture::imageLoaded(const QImage& image) {
-    _image = image;
-    
-    // scan out from the center to find inner and outer radii
-    int halfWidth = image.width() / 2;
-    int halfHeight = image.height() / 2;
-    const int BLACK_THRESHOLD = 32;
-    while (_innerRadius < halfWidth && qGray(image.pixel(halfWidth + _innerRadius, halfHeight)) < BLACK_THRESHOLD) {
-        _innerRadius++;
-    }
-    _outerRadius = _innerRadius;
-    const int TRANSPARENT_THRESHOLD = 32;
-    while (_outerRadius < halfWidth && qAlpha(image.pixel(halfWidth + _outerRadius, halfHeight)) > TRANSPARENT_THRESHOLD) {
-        _outerRadius++;
-    }
-    
-    // clear out any textures we generated before loading
-    _dilatedTextures.clear();
-}
-
 QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilation) {
     QSharedPointer<Texture> texture = _dilatedTextures.value(dilation);
     if (texture.isNull()) {
@@ -398,5 +381,30 @@ QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilatio
         _dilatedTextures.insert(dilation, texture);
     }
     return texture;
+}
+
+void DilatableNetworkTexture::imageLoaded(const QImage& image) {
+    _image = image;
+    
+    // scan out from the center to find inner and outer radii
+    int halfWidth = image.width() / 2;
+    int halfHeight = image.height() / 2;
+    const int BLACK_THRESHOLD = 32;
+    while (_innerRadius < halfWidth && qGray(image.pixel(halfWidth + _innerRadius, halfHeight)) < BLACK_THRESHOLD) {
+        _innerRadius++;
+    }
+    _outerRadius = _innerRadius;
+    const int TRANSPARENT_THRESHOLD = 32;
+    while (_outerRadius < halfWidth && qAlpha(image.pixel(halfWidth + _outerRadius, halfHeight)) > TRANSPARENT_THRESHOLD) {
+        _outerRadius++;
+    }
+    
+    // clear out any textures we generated before loading
+    _dilatedTextures.clear();
+}
+
+void DilatableNetworkTexture::reinsert() {
+    static_cast<TextureCache*>(_cache.data())->_dilatableNetworkTextures.insert(_url,
+        qWeakPointerCast<NetworkTexture, Resource>(_self));    
 }
 

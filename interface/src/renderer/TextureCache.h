@@ -76,6 +76,8 @@ protected:
         
 private:
     
+    friend class DilatableNetworkTexture;
+    
     QOpenGLFramebufferObject* createFramebufferObject();
     
     GLuint _permutationNormalTextureID;
@@ -151,6 +153,7 @@ public:
 protected:
 
     virtual void imageLoaded(const QImage& image);
+    virtual void reinsert();
     
 private:
     

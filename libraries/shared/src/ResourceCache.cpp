@@ -15,7 +15,15 @@
 #include "ResourceCache.h"
 
 ResourceCache::ResourceCache(QObject* parent) :
-    QObject(parent) {
+    QObject(parent),
+    _lastLRUKey(0) {
+}
+
+ResourceCache::~ResourceCache() {
+    // make sure our unused resources know we're out of commission
+    foreach (const QSharedPointer<Resource>& resource, _unusedResources) {
+        resource->setCache(NULL);
+    }
 }
 
 QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl& fallback, bool delayLoad, void* extra) {
@@ -27,9 +35,25 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
         resource = createResource(url, fallback.isValid() ?
             getResource(fallback, QUrl(), true) : QSharedPointer<Resource>(), delayLoad, extra);
         resource->setSelf(resource);
+        resource->setCache(this);
         _resources.insert(url, resource);
+        
+    } else {
+        _unusedResources.remove(resource->getLRUKey());
     }
     return resource;
+}
+
+void ResourceCache::addUnusedResource(const QSharedPointer<Resource>& resource) {
+    const int RETAINED_RESOURCE_COUNT = 50;
+    if (_unusedResources.size() > RETAINED_RESOURCE_COUNT) {
+        // unload the oldest resource
+        QMap<int, QSharedPointer<Resource> >::iterator it = _unusedResources.begin();
+        it.value()->setCache(NULL);
+        _unusedResources.erase(it);
+    }
+    resource->setLRUKey(++_lastLRUKey);
+    _unusedResources.insert(resource->getLRUKey(), resource);
 }
 
 void ResourceCache::attemptRequest(Resource* resource) {
@@ -74,10 +98,12 @@ int ResourceCache::_requestLimit = DEFAULT_REQUEST_LIMIT;
 QList<QPointer<Resource> > ResourceCache::_pendingRequests;
 
 Resource::Resource(const QUrl& url, bool delayLoad) :
+    _url(url),
     _request(url),
     _startedLoading(false),
     _failedToLoad(false),
     _loaded(false),
+    _lruKey(0),
     _reply(NULL),
     _attempts(0) {
     
@@ -141,6 +167,21 @@ float Resource::getLoadPriority() {
     return highestPriority;
 }
 
+void Resource::allReferencesCleared() {
+    if (_cache) {
+        // create and reinsert new shared pointer 
+        QSharedPointer<Resource> self(this, &Resource::allReferencesCleared);
+        setSelf(self);
+        reinsert();
+        
+        // add to the unused list
+        _cache->addUnusedResource(self);
+        
+    } else {
+        delete this;
+    }
+}
+
 void Resource::attemptRequest() {
     _startedLoading = true;
     ResourceCache::attemptRequest(this);
@@ -153,6 +194,10 @@ void Resource::finishedLoading(bool success) {
         _failedToLoad = true;
     }
     _loadPriorities.clear();
+}
+
+void Resource::reinsert() {
+    _cache->_resources.insert(_url, _self);
 }
 
 const int REPLY_TIMEOUT_MS = 5000;
@@ -189,6 +234,7 @@ void Resource::makeRequest() {
     
     connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
     connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
+    connect(_reply, SIGNAL(finished()), SLOT(handleReplyFinished()));
     
     _replyTimer = new QTimer(this);
     connect(_replyTimer, SIGNAL(timeout()), SLOT(handleReplyTimeout()));
@@ -231,6 +277,11 @@ void Resource::handleReplyError(QNetworkReply::NetworkError error, QDebug debug)
             finishedLoading(false);
             break;
     }
+}
+
+void Resource::handleReplyFinished() {
+    qDebug() << "Got finished without download progress/error?" << _url;
+    handleDownloadProgress(0, 0);
 }
 
 uint qHash(const QPointer<QObject>& value, uint seed) {
