@@ -547,11 +547,12 @@ void DomainServer::readAvailableDatagrams() {
                 // Suppress these for Assignment::AgentType to 1 per second...
                 static quint64 lastMessage = usecTimestampNow();
                 quint64 timeNow = usecTimestampNow();
-                const quint64 NOISY_TIME_ELAPSED = USECS_PER_SECOND;
+                const quint64 NOISY_TIME_ELAPSED = 10 * USECS_PER_SECOND;
+                bool noisyMessage = false;
                 if (requestAssignment.getType() != Assignment::AgentType || (timeNow - lastMessage) > NOISY_TIME_ELAPSED) {
                     qDebug() << "Received a request for assignment type" << requestAssignment.getType()
                         << "from" << senderSockAddr;
-                    lastMessage = timeNow;
+                    noisyMessage = true;
                 }
                 
                 SharedAssignmentPointer assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
@@ -572,7 +573,12 @@ void DomainServer::readAvailableDatagrams() {
                     if (requestAssignment.getType() != Assignment::AgentType || (timeNow - lastMessage) > NOISY_TIME_ELAPSED) {
                         qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
                             << "from" << senderSockAddr;
+                        noisyMessage = true;
                     }
+                }
+                
+                if (noisyMessage) {
+                    lastMessage = timeNow;
                 }
             }
         }
