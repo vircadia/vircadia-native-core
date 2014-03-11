@@ -15,7 +15,8 @@ const QString DEFAULT_CHAT_ROOM = "public@public-chat.highfidelity.io";
 
 XmppClient::XmppClient() :
     _xmppClient(),
-    _xmppMUCManager() {
+    _xmppMUCManager()
+{
     AccountManager& accountManager = AccountManager::getInstance();
     connect(&accountManager, SIGNAL(accessTokenChanged()), this, SLOT(connectToServer()));
     connect(&accountManager, SIGNAL(logoutComplete()), this, SLOT(disconnectFromServer()));
@@ -49,8 +50,7 @@ void XmppClient::connectToServer() {
     _xmppClient.connectToServer(user + "@" + DEFAULT_XMPP_SERVER, password);
 }
 
-void XmppClient::disconnectFromServer()
-{
+void XmppClient::disconnectFromServer() {
     if (_xmppClient.isConnected()) {
         _xmppClient.disconnectFromServer();
     }

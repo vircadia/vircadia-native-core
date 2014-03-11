@@ -56,12 +56,9 @@ void DataServerAccountInfo::setUsername(const QString& username) {
     }
 }
 
-void DataServerAccountInfo::setXMPPPassword(const QString& xmppPassword)
-{
+void DataServerAccountInfo::setXMPPPassword(const QString& xmppPassword) {
      if (_xmppPassword != xmppPassword) {
          _xmppPassword = xmppPassword;
-
-         qDebug() << "XMPP password changed to " << xmppPassword;
      }
 }
 

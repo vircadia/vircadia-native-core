@@ -15,13 +15,13 @@
 #include <QTextDocument>
 #include <QTimer>
 
-#include "ChatWindow.h"
-#include "ui_chatWindow.h"
+#include "Application.h"
 #include "FlowLayout.h"
 #include "qtimespan.h"
+#include "ui_chatWindow.h"
+#include "XmppClient.h"
 
-#include <Application.h>
-#include <XmppClient.h>
+#include "ChatWindow.h"
 
 const int NUM_MESSAGES_TO_TIME_STAMP = 20;
 
@@ -30,7 +30,8 @@ const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?))://\\S+)");
 ChatWindow::ChatWindow() :
     QDialog(Application::getInstance()->getGLWidget(), Qt::Tool),
     ui(new Ui::ChatWindow),
-    numMessagesAfterLastTimeStamp(0) {
+    numMessagesAfterLastTimeStamp(0)
+{
     ui->setupUi(this);
 
     FlowLayout* flowLayout = new FlowLayout(0, 4, 4);
@@ -47,8 +48,7 @@ ChatWindow::ChatWindow() :
         connect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
         ui->connectingToXMPPLabel->hide();
         startTimerForTimeStamps();
-    }
-    else {
+    } else {
         ui->numOnlineLabel->hide();
         ui->usersWidget->hide();
         ui->messagesScrollArea->hide();
@@ -118,8 +118,7 @@ void ChatWindow::addTimeStamp() {
     numMessagesAfterLastTimeStamp = 0;
 }
 
-void ChatWindow::startTimerForTimeStamps()
-{
+void ChatWindow::startTimerForTimeStamps() {
     QTimer* timer = new QTimer(this);
     timer->setInterval(10 * 60 * 1000);
     connect(timer, SIGNAL(timeout()), this, SLOT(timeout()));
@@ -191,8 +190,7 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     ++numMessagesAfterLastTimeStamp;
     if (message.stamp().isValid()) {
         lastMessageStamp = message.stamp().toLocalTime();
-    }
-    else {
+    } else {
         lastMessageStamp = QDateTime::currentDateTime();
     }
 }
