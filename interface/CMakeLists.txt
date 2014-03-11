@@ -10,14 +10,15 @@ set(MACRO_DIR "${ROOT_DIR}/cmake/macros")
 set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
-find_package(Qt5LinguistTools REQUIRED)
-
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 set(FACESHIFT_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/faceshift")
 set(LIBOVR_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/oculus")
 set(SIXENSE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/Sixense")
 set(VISAGE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/visage")
+
+find_package(Qt5LinguistTools REQUIRED)
+find_package(Qt5LinguistToolsMacros)
 
 if (DEFINED ENV{JOB_ID})
   set(BUILD_SEQ $ENV{JOB_ID})
@@ -77,7 +78,7 @@ set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}")
 
 set(QM ${TARGET_NAME}_en.qm)
 set(TS ${TARGET_NAME}_en.ts)
-qt5_create_translation(${QM} ${INTERFACE_SRCS} ${QT_UI_FILES} ${TS})
+qt5_create_translation_custom(${QM} ${INTERFACE_SRCS} ${QT_UI_FILES} ${TS})
 
 if (APPLE)
   # configure CMake to use a custom Info.plist
