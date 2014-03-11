@@ -38,7 +38,7 @@ Visage::Visage() :
 #ifdef HAVE_VISAGE
     QByteArray licensePath = Application::resourcesPath() + "visage/license.vlc";
     initializeLicenseManager(licensePath.data());
-    _tracker = new VisageTracker2(Application::resourcesPath() + "visage/Facial Features Tracker - Asymmetric.cfg");
+    _tracker = new VisageTracker2(Application::resourcesPath() + "visage/tracker.cfg");
     if (_tracker->trackFromCam()) {
         _data = new FaceData();   
          
@@ -65,29 +65,25 @@ static int rightEyeBlinkIndex = 1;
 
 static QMultiHash<QByteArray, QPair<int, float> > createActionUnitNameMap() {
     QMultiHash<QByteArray, QPair<QByteArray, float> > blendshapeMap;
-    blendshapeMap.insert("Sneer", QPair<QByteArray, float>("au_nose_wrinkler", 1.0f));
     blendshapeMap.insert("JawFwd", QPair<QByteArray, float>("au_jaw_z_push", 1.0f));
     blendshapeMap.insert("JawLeft", QPair<QByteArray, float>("au_jaw_x_push", 1.0f));
     blendshapeMap.insert("JawOpen", QPair<QByteArray, float>("au_jaw_drop", 1.0f));
     blendshapeMap.insert("LipsLowerDown", QPair<QByteArray, float>("au_lower_lip_drop", 1.0f));
-    blendshapeMap.insert("LipsUpperUp", QPair<QByteArray, float>("au_upper_lip_raiser", 1.0f));
-    blendshapeMap.insert("LipsStretch_R", QPair<QByteArray, float>("au_lip_stretcher_left", 1.0f));
+    blendshapeMap.insert("LipsUpperOpen", QPair<QByteArray, float>("au_upper_lip_raiser", 1.0f));
+    blendshapeMap.insert("LipsStretch_R", QPair<QByteArray, float>("au_lip_stretcher_left", 0.5f));
     blendshapeMap.insert("MouthSmile_L", QPair<QByteArray, float>("au_lip_corner_depressor", -1.0f));
     blendshapeMap.insert("MouthSmile_R", QPair<QByteArray, float>("au_lip_corner_depressor", -1.0f));
-    blendshapeMap.insert("LipsPucker", QPair<QByteArray, float>("au_lip_presser", 0.0f));
     blendshapeMap.insert("BrowsU_R", QPair<QByteArray, float>("au_left_outer_brow_raiser", 1.0f));
-    blendshapeMap.insert("BrowsU_C", QPair<QByteArray, float>("au_left_inner_brow_raiser", 0.5f));
+    blendshapeMap.insert("BrowsU_C", QPair<QByteArray, float>("au_left_inner_brow_raiser", 1.0f));
     blendshapeMap.insert("BrowsD_R", QPair<QByteArray, float>("au_left_brow_lowerer", 1.0f));
     blendshapeMap.insert("EyeBlink_L", QPair<QByteArray, float>("au_leye_closed", 1.0f));
-    blendshapeMap.insert("EyeBlink_R", QPair<QByteArray, float>("au_leye_closed", 1.0f));
-    blendshapeMap.insert("EyeSquint_L", QPair<QByteArray, float>("au_lid_tightener", 1.0f));
-    blendshapeMap.insert("EyeSquint_R", QPair<QByteArray, float>("au_lid_tightener", 1.0f));
+    blendshapeMap.insert("EyeBlink_R", QPair<QByteArray, float>("au_reye_closed", 1.0f));
     blendshapeMap.insert("EyeOpen_L", QPair<QByteArray, float>("au_upper_lid_raiser", 1.0f));
     blendshapeMap.insert("EyeOpen_R", QPair<QByteArray, float>("au_upper_lid_raiser", 1.0f));
-    blendshapeMap.insert("MouthLeft", QPair<QByteArray, float>("au_lower_lip_x_push", 0.0f));
-    blendshapeMap.insert("LipsStretch_L", QPair<QByteArray, float>("au_lip_stretcher_right", 1.0f));
+    blendshapeMap.insert("LipLowerOpen", QPair<QByteArray, float>("au_lower_lip_x_push", 1.0f));
+    blendshapeMap.insert("LipsStretch_L", QPair<QByteArray, float>("au_lip_stretcher_right", 0.5f));
     blendshapeMap.insert("BrowsU_L", QPair<QByteArray, float>("au_right_outer_brow_raiser", 1.0f));
-    blendshapeMap.insert("BrowsU_C", QPair<QByteArray, float>("au_right_inner_brow_raiser", 0.5f));
+    blendshapeMap.insert("BrowsU_C", QPair<QByteArray, float>("au_right_inner_brow_raiser", 1.0f));
     blendshapeMap.insert("BrowsD_L", QPair<QByteArray, float>("au_right_brow_lowerer", 1.0f));
     
     QMultiHash<QByteArray, QPair<int, float> > actionUnitNameMap;
