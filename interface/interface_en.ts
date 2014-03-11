@@ -76,7 +76,7 @@
         </translation>
     </message>
     <message>
-        <location filename="src/ui/ChatWindow.cpp" line="153"/>
+        <location filename="src/ui/ChatWindow.cpp" line="155"/>
         <source>%1 online now:</source>
         <translation type="unfinished"></translation>
     </message>

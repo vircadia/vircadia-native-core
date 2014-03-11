@@ -109,13 +109,15 @@ void ChatWindow::addTimeStamp() {
         }
     }
     timeString.chop(1);
-    QLabel* timeLabel = new QLabel(timeString);
-    timeLabel->setStyleSheet("color: palette(shadow);"
-                             "background-color: palette(highlight);"
-                             "padding: 4px;");
-    timeLabel->setAlignment(Qt::AlignHCenter);
-    ui->messagesFormLayout->addRow(timeLabel);
-    numMessagesAfterLastTimeStamp = 0;
+    if (!timeString.isEmpty()) {
+        QLabel* timeLabel = new QLabel(timeString);
+        timeLabel->setStyleSheet("color: palette(shadow);"
+                                 "background-color: palette(highlight);"
+                                 "padding: 4px;");
+        timeLabel->setAlignment(Qt::AlignHCenter);
+        ui->messagesFormLayout->addRow(timeLabel);
+        numMessagesAfterLastTimeStamp = 0;
+    }
 }
 
 void ChatWindow::startTimerForTimeStamps() {
