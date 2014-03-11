@@ -21,7 +21,7 @@ else ()
   
   find_path(QXMPP_INCLUDE_DIR QXmppClient.h PATH_SUFFIXES include/qxmpp HINTS ${QXMPP_SEARCH_DIRS})
 
-  find_library(QXMPP_LIBRARY NAMES qxmpp qxmpp0 PATH_SUFFIXES lib HINTS ${QXMPP_SEARCH_DIRS})
+  find_library(QXMPP_LIBRARY NAMES qxmpp qxmpp0 qxmpp_d PATH_SUFFIXES lib HINTS ${QXMPP_SEARCH_DIRS})
   
   include(FindPackageHandleStandardArgs)
   find_package_handle_standard_args(QXMPP DEFAULT_MSG QXMPP_INCLUDE_DIR QXMPP_LIBRARY)
