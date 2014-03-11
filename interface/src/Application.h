@@ -225,6 +225,9 @@ signals:
     /// Fired when we're rendering in-world interface elements; allows external parties to hook in.
     void renderingInWorldInterface();
     
+    /// Fired when the import window is closed with a return code.
+    void importDone(int);
+    
 public slots:
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
@@ -351,13 +354,13 @@ private:
     glm::vec3 _gravity;
 
     // Frame Rate Measurement
+
     int _frameCount;
     float _fps;
     timeval _applicationStartupTime;
     timeval _timerStart, _timerEnd;
     timeval _lastTimeUpdated;
     bool _justStarted;
-
     Stars _stars;
     
     BuckyBalls _buckyBalls;

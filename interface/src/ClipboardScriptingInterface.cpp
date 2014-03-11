@@ -9,6 +9,7 @@
 #include "ClipboardScriptingInterface.h"
 
 ClipboardScriptingInterface::ClipboardScriptingInterface() {
+    connect(this, SIGNAL(readyToImport()), Application::getInstance(), SLOT(importVoxels()));
 }
 
 void ClipboardScriptingInterface::cutVoxel(const VoxelDetail& sourceVoxel) {
@@ -70,12 +71,17 @@ void ClipboardScriptingInterface::exportVoxel(float x, float y, float z, float s
                                  z / (float)TREE_SCALE, 
                                  s / (float)TREE_SCALE };
 
-    QMetaObject::invokeMethod(Application::getInstance(), "exportVoxels",
-        Q_ARG(const VoxelDetail&, sourceVoxel));
+    Application::getInstance()->exportVoxels(sourceVoxel);
 }
 
-void ClipboardScriptingInterface::importVoxels() {
-    QMetaObject::invokeMethod(Application::getInstance(), "importVoxels");
+bool ClipboardScriptingInterface::importVoxels() {
+    qDebug() << "[DEBUG] Importing ... ";
+    QEventLoop loop;
+    connect(Application::getInstance(), SIGNAL(importDone(int)), &loop, SLOT(quit()));
+    emit readyToImport();
+    int returnCode = loop.exec();
+    
+    return returnCode;
 }
 
 void ClipboardScriptingInterface::nudgeVoxel(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec) {

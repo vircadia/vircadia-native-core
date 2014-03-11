@@ -140,9 +140,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _fps(120.0f),
         _justStarted(true),
         _voxelImporter(NULL),
+        _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
         _wantToKillLocalVoxels(false),
         _audioScope(256, 200, true),
-        _myAvatar(),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
         _mouseX(0),
         _mouseY(0),
@@ -1387,6 +1387,8 @@ void Application::exportVoxels(const VoxelDetail& sourceVoxel) {
 }
 
 void Application::importVoxels() {
+    int result = 1;
+    
     if (!_voxelImporter) {
         _voxelImporter = new VoxelImporter(_window);
         _voxelImporter->loadSettings(_settings);
@@ -1394,6 +1396,7 @@ void Application::importVoxels() {
     
     if (!_voxelImporter->exec()) {
         qDebug() << "[DEBUG] Import succeeded." << endl;
+        result = 0;
     } else {
         qDebug() << "[DEBUG] Import failed." << endl;
         if (_sharedVoxelSystem.getTree() == _voxelImporter->getVoxelTree()) {
@@ -1404,6 +1407,8 @@ void Application::importVoxels() {
 
     // restore the main window's active state
     _window->activateWindow();
+    
+    emit importDone(result);
 }
 
 void Application::cutVoxels(const VoxelDetail& sourceVoxel) {
@@ -1495,10 +1500,9 @@ void Application::init() {
 
     // Cleanup of the original shared tree
     _sharedVoxelSystem.init();
-    VoxelTree* tmpTree = _sharedVoxelSystem.getTree();
-    _sharedVoxelSystem.changeTree(&_clipboard);
-    delete tmpTree;
-
+    
+    _voxelImporter = new VoxelImporter(_window);
+    
     _environment.init();
 
     _glowEffect.init();

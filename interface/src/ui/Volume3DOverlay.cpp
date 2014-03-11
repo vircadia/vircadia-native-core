@@ -31,6 +31,9 @@ void Volume3DOverlay::setProperties(const QScriptValue& properties) {
     if (properties.property("size").isValid()) {
         setSize(properties.property("size").toVariant().toFloat());
     }
+    if (properties.property("scale").isValid()) {
+        setSize(properties.property("scale").toVariant().toFloat());
+    }
 
     if (properties.property("isSolid").isValid()) {
         setIsSolid(properties.property("isSolid").toVariant().toBool());

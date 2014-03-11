@@ -15,16 +15,16 @@ function mousePressEvent(event) {
     var pickRay = Camera.computePickRay(event.x, event.y);
     var intersection = Voxels.findRayIntersection(pickRay);
     if (intersection.intersects) {
-    
+
         // Note: due to the current C++ "click on voxel" behavior, these values may be the animated color for the voxel
-        print("clicked on voxel.red/green/blue=" + intersection.voxel.red + ", " 
+        print("clicked on voxel.red/green/blue=" + intersection.voxel.red + ", "
                     + intersection.voxel.green + ", " + intersection.voxel.blue);
-        print("clicked on voxel.x/y/z/s=" + intersection.voxel.x + ", " 
+        print("clicked on voxel.x/y/z/s=" + intersection.voxel.x + ", "
                     + intersection.voxel.y + ", " + intersection.voxel.z+ ": " + intersection.voxel.s);
         print("clicked on face=" + intersection.face);
         print("clicked on distance=" + intersection.distance);
-        
-        var newVoxel = { 
+
+        var newVoxel = {
                 x: intersection.voxel.x,
                 y: intersection.voxel.y,
                 z: intersection.voxel.z,
@@ -32,7 +32,7 @@ function mousePressEvent(event) {
                 red: 255,
                 green: 0,
                 blue: 255 };
-                
+
         if (intersection.face == "MIN_X_FACE") {
             newVoxel.x -= newVoxel.s;
         } else if (intersection.face == "MAX_X_FACE") {
@@ -46,11 +46,11 @@ function mousePressEvent(event) {
         } else if (intersection.face == "MAX_Z_FACE") {
             newVoxel.z += newVoxel.s;
         }
-        
-        print("Voxels.setVoxel("+newVoxel.x + ", " 
-                + newVoxel.y + ", " + newVoxel.z + ", " + newVoxel.s + ", " 
+
+        print("Voxels.setVoxel("+newVoxel.x + ", "
+                + newVoxel.y + ", " + newVoxel.z + ", " + newVoxel.s + ", "
                 + newVoxel.red + ", " + newVoxel.green + ", " + newVoxel.blue + ")" );
-                
+
         Voxels.setVoxel(newVoxel.x, newVoxel.y, newVoxel.z, newVoxel.s, newVoxel.red, newVoxel.green, newVoxel.blue);
     }
 }
