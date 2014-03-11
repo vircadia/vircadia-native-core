@@ -14,6 +14,7 @@
 #include <VisageTracker2.h>
 #endif
 
+#include "Application.h"
 #include "Visage.h"
 #include "renderer/FBXReader.h"
 
