@@ -164,10 +164,14 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::FstUploader, 0, Application::getInstance(), SLOT(uploadFST()));
 
     _chatAction = addActionToQMenuAndActionHash(toolsMenu, MenuOption::Chat, 0, this, SLOT(showChat()));
+#ifdef HAVE_QXMPP
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
     toggleChat();
     connect(&xmppClient, SIGNAL(connected()), this, SLOT(toggleChat()));
     connect(&xmppClient, SIGNAL(disconnected()), this, SLOT(toggleChat()));
+#else
+    _chatAction->setEnabled(false);
+#endif
 
     QMenu* viewMenu = addMenu("View");
 
@@ -1046,10 +1050,12 @@ void Menu::showChat() {
 }
 
 void Menu::toggleChat() {
+#ifdef HAVE_QXMPP
     _chatAction->setEnabled(XmppClient::getInstance().getXMPPClient().isConnected());
     if (!_chatAction->isEnabled() && _chatWindow) {
         _chatWindow->close();
     }
+#endif
 }
 
 void Menu::audioMuteToggled() {

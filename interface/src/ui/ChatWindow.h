@@ -15,8 +15,12 @@
 
 #include <Application.h>
 
+#ifdef HAVE_QXMPP
+
 #include <QXmppClient.h>
 #include <QXmppMessage.h>
+
+#endif
 
 namespace Ui {
 class ChatWindow;
@@ -33,7 +37,9 @@ protected:
     bool eventFilter(QObject* sender, QEvent* event);
 
 private:
+#ifdef HAVE_QXMPP
     QString getParticipantName(const QString& participant);
+#endif
     void startTimerForTimeStamps();
     void addTimeStamp();
 
@@ -44,9 +50,11 @@ private:
 private slots:
     void connected();
     void timeout();
+#ifdef HAVE_QXMPP
     void error(QXmppClient::Error error);
     void participantsChanged();
     void messageReceived(const QXmppMessage& message);
+#endif
 };
 
 #endif /* defined(__interface__ChatWindow__) */

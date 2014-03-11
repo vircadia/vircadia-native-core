@@ -6,6 +6,8 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#ifdef HAVE_QXMPP
+
 #include <AccountManager.h>
 
 #include "XmppClient.h"
@@ -63,3 +65,5 @@ XmppClient::XmppClient(const XmppClient& other) {
 void XmppClient::operator =(XmppClient const& other) {
     Q_UNUSED(other);
 }
+
+#endif

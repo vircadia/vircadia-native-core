@@ -40,7 +40,7 @@ ChatWindow::ChatWindow() :
     ui->messagePlainTextEdit->installEventFilter(this);
 
     setAttribute(Qt::WA_DeleteOnClose);
-
+#ifdef HAVE_QXMPP
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
     if (xmppClient.isConnected()) {
         participantsChanged();
@@ -56,16 +56,18 @@ ChatWindow::ChatWindow() :
         connect(&xmppClient, SIGNAL(connected()), this, SLOT(connected()));
     }
     connect(&xmppClient, SIGNAL(messageReceived(QXmppMessage)), this, SLOT(messageReceived(QXmppMessage)));
+#endif
 }
 
 ChatWindow::~ChatWindow() {
+#ifdef HAVE_QXMPP
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
     disconnect(&xmppClient, SIGNAL(connected()), this, SLOT(connected()));
     disconnect(&xmppClient, SIGNAL(messageReceived(QXmppMessage)), this, SLOT(messageReceived(QXmppMessage)));
 
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
     disconnect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
-
+#endif
     delete ui;
 }
 
@@ -80,12 +82,14 @@ bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
         (keyEvent->modifiers() & Qt::ShiftModifier) == 0) {
         QString messageText = ui->messagePlainTextEdit->document()->toPlainText().trimmed();
         if (!messageText.isEmpty()) {
+#ifdef HAVE_QXMPP
             const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
             QXmppMessage message;
             message.setTo(publicChatRoom->jid());
             message.setType(QXmppMessage::GroupChat);
             message.setBody(messageText);
             XmppClient::getInstance().getXMPPClient().sendPacket(message);
+#endif
             ui->messagePlainTextEdit->document()->clear();
         }
         return true;
@@ -93,10 +97,12 @@ bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
     return false;
 }
 
+#ifdef HAVE_QXMPP
 QString ChatWindow::getParticipantName(const QString& participant) {
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
     return participant.right(participant.count() - 1 - publicChatRoom->jid().count());
 }
+#endif
 
 void ChatWindow::addTimeStamp() {
     QTimeSpan timePassed = QDateTime::currentDateTime() - lastMessageStamp;
@@ -133,10 +139,10 @@ void ChatWindow::connected() {
     ui->usersWidget->show();
     ui->messagesScrollArea->show();
     ui->messagePlainTextEdit->show();
-
+#ifdef HAVE_QXMPP
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
     connect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
-
+#endif
     startTimerForTimeStamps();
 }
 
@@ -145,6 +151,8 @@ void ChatWindow::timeout() {
         addTimeStamp();
     }
 }
+
+#ifdef HAVE_QXMPP
 
 void ChatWindow::error(QXmppClient::Error error) {
     ui->connectingToXMPPLabel->setText(QString::number(error));
@@ -200,3 +208,5 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
         lastMessageStamp = QDateTime::currentDateTime();
     }
 }
+
+#endif

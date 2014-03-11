@@ -6,6 +6,8 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#ifdef HAVE_QXMPP
+
 #ifndef __interface__XmppClient__
 #define __interface__XmppClient__
 
@@ -41,3 +43,5 @@ private:
 };
 
 #endif // __interface__XmppClient__
+
+#endif

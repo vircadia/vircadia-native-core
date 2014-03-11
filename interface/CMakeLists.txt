@@ -67,10 +67,6 @@ endforeach(EXTERNAL_SOURCE_SUBDIR)
 
 find_package(Qt5 COMPONENTS Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets Xml UiTools)
 
-find_package(Qxmpp REQUIRED)
-add_definitions(-DQXMPP_STATIC)
-include_directories(SYSTEM ${QXMPP_INCLUDE_DIR})
-
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
 # have qt5 wrap them and generate the appropriate header files
@@ -132,6 +128,7 @@ find_package(LibOVR)
 find_package(Sixense)
 find_package(Visage)
 find_package(ZLIB)
+find_package(Qxmpp)
 
 # include the Sixense library for Razer Hydra if available
 if (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
@@ -171,6 +168,14 @@ if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
     target_link_libraries(${TARGET_NAME} "${LIBOVR_LIBRARIES}")
 endif (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
 
+# and with qxmpp for chat
+if (QXMPP_FOUND AND NOT DISABLE_QXMPP)
+    add_definitions(-DHAVE_QXMPP -DQXMPP_STATIC)
+    include_directories(SYSTEM ${QXMPP_INCLUDE_DIR})
+
+    target_link_libraries(${TARGET_NAME} "${QXMPP_LIBRARY}")
+endif (QXMPP_FOUND AND NOT DISABLE_QXMPP)
+
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")
 
@@ -182,7 +187,6 @@ target_link_libraries(
   ${TARGET_NAME}
   "${FACESHIFT_LIBRARIES}"
   "${ZLIB_LIBRARIES}"
-  "${QXMPP_LIBRARY}"
   Qt5::Core Qt5::Gui Qt5::Multimedia Qt5::Network Qt5::OpenGL 
   Qt5::Script Qt5::Svg Qt5::WebKit Qt5::WebKitWidgets Qt5::Xml Qt5::UiTools
 )
