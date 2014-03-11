@@ -257,9 +257,6 @@ private:
     unsigned long _incomingBytes;
     unsigned long _incomingWastedBytes;
 
-    const uint16_t MAX_MISSING_SEQUENCE = 100; /// how many items in our _missingSequenceNumbers before we start to prune them
-    const uint16_t MAX_MISSING_SEQUENCE_OLD_AGE = 1000; /// age we allow items in _missingSequenceNumbers to be before pruning
-    
     uint16_t _incomingLastSequence; /// last incoming sequence number
     unsigned int _incomingLikelyLost; /// count of packets likely lost, may be off by _incomingReallyLate count
     unsigned int _incomingRecovered; /// packets that were late, and we had in our missing list, we consider recovered
