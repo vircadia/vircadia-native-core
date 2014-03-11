@@ -58,9 +58,9 @@ Should you choose not to install Qt5 via a package manager that handles dependen
     brew install cmake glm zlib
     brew install highfidelity/formulas/qt5
     brew link qt5 --force
-    brew install highfidelity/formuals/qxmpp
+    brew install highfidelity/formulas/qxmpp
 
-We have a [homebrew formulas repository](https://github.com/highfidelity/homebrew-formulas) that you can use/tap to install some of the dependencies.
+We have a [homebrew formulas repository](https://github.com/highfidelity/homebrew-formulas) that you can use/tap to install some of the dependencies. In the code block above qt5 and qxmpp are installed from formulas in this repository.
 
 *Our [qt5 homebrew formula](https://raw.github.com/highfidelity/homebrew-formulas/master/qt5.rb) is for a patched version of Qt 5.2.0 stable that removes wireless network scanning that can reduce real-time audio performance. We recommended you use this formula to install Qt.*
 
