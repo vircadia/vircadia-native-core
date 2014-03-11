@@ -19,14 +19,8 @@ else ()
     set(WIN_GLEW_SEARCH_DIRS "${GLEW_ROOT_DIR}" "$ENV{GLEW_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/glew")
        
   	find_path(GLEW_INCLUDE_DIRS GL/glew.h PATH_SUFFIXES include HINTS ${WIN_GLEW_SEARCH_DIRS})
-  
-    if (CMAKE_CL_64)
-      set(WIN_ARCH_DIR "x64")
-    else()
-      set(WIN_ARCH_DIR "Win32")
-    endif()
-	
-  	find_library(GLEW_LIBRARY glew32s PATH_SUFFIXES "lib/Release/${WIN_ARCH_DIR}" HINTS ${WIN_GLEW_SEARCH_DIRS})
+    
+  	find_library(GLEW_LIBRARY glew32s PATH_SUFFIXES "lib/Release/Win32" HINTS ${WIN_GLEW_SEARCH_DIRS})
   endif ()
 
   include(FindPackageHandleStandardArgs)
