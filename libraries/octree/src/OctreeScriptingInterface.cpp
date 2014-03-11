@@ -12,14 +12,12 @@
 
 OctreeScriptingInterface::OctreeScriptingInterface(OctreeEditPacketSender* packetSender, 
                 JurisdictionListener* jurisdictionListener) :
-    _packetSender(NULL),
-    _jurisdictionListener(NULL),
+    _packetSender(packetSender),
+    _jurisdictionListener(jurisdictionListener),
     _managedPacketSender(false), 
     _managedJurisdictionListener(false),
     _initialized(false)
 {
-    setPacketSender(packetSender);
-    setJurisdictionListener(jurisdictionListener);
 }
 
 OctreeScriptingInterface::~OctreeScriptingInterface() {

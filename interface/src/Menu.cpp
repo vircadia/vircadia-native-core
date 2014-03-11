@@ -66,7 +66,7 @@ Menu::Menu() :
     _faceshiftEyeDeflection(DEFAULT_FACESHIFT_EYE_DEFLECTION),
     _frustumDrawMode(FRUSTUM_DRAW_MODE_ALL),
     _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET),
-    _voxelStatsDialog(NULL),
+    _octreeStatsDialog(NULL),
     _lodToolsDialog(NULL),
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
     _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
@@ -213,7 +213,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Oscilloscope, 0, true);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Bandwidth, 0, true);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0, this, SLOT(bandwidthDetails()));
-    addActionToQMenuAndActionHash(viewMenu, MenuOption::VoxelStats, 0, this, SLOT(voxelStatsDetails()));
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0, this, SLOT(octreeStatsDetails()));
 
     QMenu* developerMenu = addMenu("Developer");
 
@@ -341,7 +341,7 @@ Menu::Menu() :
 
 Menu::~Menu() {
     bandwidthDetailsClosed();
-    voxelStatsDetailsClosed();
+    octreeStatsDetailsClosed();
 }
 
 void Menu::loadSettings(QSettings* settings) {
@@ -1033,20 +1033,20 @@ void Menu::bandwidthDetailsClosed() {
     }
 }
 
-void Menu::voxelStatsDetails() {
-    if (!_voxelStatsDialog) {
-        _voxelStatsDialog = new VoxelStatsDialog(Application::getInstance()->getGLWidget(),
+void Menu::octreeStatsDetails() {
+    if (!_octreeStatsDialog) {
+        _octreeStatsDialog = new OctreeStatsDialog(Application::getInstance()->getGLWidget(),
                                                  Application::getInstance()->getOcteeSceneStats());
-        connect(_voxelStatsDialog, SIGNAL(closed()), SLOT(voxelStatsDetailsClosed()));
-        _voxelStatsDialog->show();
+        connect(_octreeStatsDialog, SIGNAL(closed()), SLOT(octreeStatsDetailsClosed()));
+        _octreeStatsDialog->show();
     }
-    _voxelStatsDialog->raise();
+    _octreeStatsDialog->raise();
 }
 
-void Menu::voxelStatsDetailsClosed() {
-    if (_voxelStatsDialog) {
-        delete _voxelStatsDialog;
-        _voxelStatsDialog = NULL;
+void Menu::octreeStatsDetailsClosed() {
+    if (_octreeStatsDialog) {
+        delete _octreeStatsDialog;
+        _octreeStatsDialog = NULL;
     }
 }
 
