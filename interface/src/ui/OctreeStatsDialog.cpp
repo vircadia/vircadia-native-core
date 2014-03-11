@@ -157,9 +157,9 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
 
     statsValue.str("");
     statsValue << 
-        "Total: " << localTotalString.toLocal8Bit().constData() << " / " <<
-        "Internal: " << localInternalString.toLocal8Bit().constData() << " / " <<
-        "Leaves: " << localLeavesString.toLocal8Bit().constData() << "";
+        "Total: " << qPrintable(localTotalString) << " / " <<
+        "Internal: " << qPrintable(localInternalString) << " / " <<
+        "Leaves: " << qPrintable(localLeavesString) << "";
     label->setText(statsValue.str().c_str());
 
     // iterate all the current voxel stats, and list their sending modes, total their voxels, etc...
@@ -212,9 +212,9 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
     label = _labels[_serverVoxels];
     statsValue.str("");
     statsValue << 
-        "Total: " << serversTotalString.toLocal8Bit().constData() << " / " <<
-        "Internal: " << serversInternalString.toLocal8Bit().constData() << " / " <<
-        "Leaves: " << serversLeavesString.toLocal8Bit().constData() << "";
+        "Total: " << qPrintable(serversTotalString) << " / " <<
+        "Internal: " << qPrintable(serversInternalString) << " / " <<
+        "Leaves: " << qPrintable(serversLeavesString) << "";
     label->setText(statsValue.str().c_str());
 
     showAllOctreeServers();
@@ -290,7 +290,7 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                     AABox serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
                     serverBounds.scale(TREE_SCALE);
                     serverDetails << " jurisdiction: "
-                    << rootCodeHex.toLocal8Bit().constData()
+                    << qPrintable(rootCodeHex)
                     << " ["
                     << rootDetails.x << ", "
                     << rootDetails.y << ", "
@@ -320,8 +320,8 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                             QString lastFullSendString = locale.toString(lastFullSend);
                             
                             extraDetails << "<br/>" << "Last Full Scene... " <<
-                            "Encode Time: " << lastFullEncodeString.toLocal8Bit().constData() << " ms " <<
-                            "Send Time: " << lastFullSendString.toLocal8Bit().constData() << " ms ";
+                            "Encode Time: " << qPrintable(lastFullEncodeString) << " ms " <<
+                            "Send Time: " << qPrintable(lastFullSendString) << " ms ";
                             
                             for (int i = 0; i < OctreeSceneStats::ITEM_COUNT; i++) {
                                 OctreeSceneStats::Item item = (OctreeSceneStats::Item)(i);
@@ -334,42 +334,51 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                             QString internalString = locale.toString((uint)stats.getTotalInternal());
                             QString leavesString = locale.toString((uint)stats.getTotalLeaves());
                             
-                            serverDetails << "<br/>" << "Node UUID: " <<
-                            nodeUUID.toString().toLocal8Bit().constData() << " ";
+                            serverDetails << "<br/>" << "Node UUID: " << qPrintable(nodeUUID.toString()) << " ";
                             
                             serverDetails << "<br/>" << "Voxels: " <<
-                            totalString.toLocal8Bit().constData() << " total " <<
-                            internalString.toLocal8Bit().constData() << " internal " <<
-                            leavesString.toLocal8Bit().constData() << " leaves ";
+                                qPrintable(totalString) << " total " <<
+                                qPrintable(internalString) << " internal " <<
+                                qPrintable(leavesString) << " leaves ";
                             
                             QString incomingPacketsString = locale.toString((uint)stats.getIncomingPackets());
                             QString incomingBytesString = locale.toString((uint)stats.getIncomingBytes());
                             QString incomingWastedBytesString = locale.toString((uint)stats.getIncomingWastedBytes());
                             QString incomingOutOfOrderString = locale.toString((uint)stats.getIncomingOutOfOrder());
+                            QString incomingLateString = locale.toString((uint)stats.getIncomingLate());
+                            QString incomingReallyLateString = locale.toString((uint)stats.getIncomingReallyLate());
+                            QString incomingEarlyString = locale.toString((uint)stats.getIncomingEarly());
                             QString incomingLikelyLostString = locale.toString((uint)stats.getIncomingLikelyLost());
+                            QString incomingRecovered = locale.toString((uint)stats.getIncomingRecovered());
+                            QString incomingDuplicateString = locale.toString((uint)stats.getIncomingPossibleDuplicate());
                             
                             int clockSkewInMS = node->getClockSkewUsec() / (int)USECS_PER_MSEC;
                             QString incomingFlightTimeString = locale.toString((int)stats.getIncomingFlightTimeAverage());
                             QString incomingPingTimeString = locale.toString(node->getPingMs());
                             QString incomingClockSkewString = locale.toString(clockSkewInMS);
                             
-                            serverDetails << "<br/>" << "Incoming Packets: " <<
-                            incomingPacketsString.toLocal8Bit().constData() <<
-                            " Out of Order: " << incomingOutOfOrderString.toLocal8Bit().constData() <<
-                            " Likely Lost: " << incomingLikelyLostString.toLocal8Bit().constData();
+                            serverDetails << "<br/>" << "Incoming Packets: " << qPrintable(incomingPacketsString) <<
+                                "/ Lost: " << qPrintable(incomingLikelyLostString) <<
+                                "/ Recovered: " << qPrintable(incomingRecovered);
+
+                            serverDetails << "<br/>" << " Out of Order: " << qPrintable(incomingOutOfOrderString) <<
+                                "/ Early: " << qPrintable(incomingEarlyString) <<
+                                "/ Late: " << qPrintable(incomingLateString) <<
+                                "/ Really Late: " << qPrintable(incomingReallyLateString) <<
+                                "/ Duplicate: " << qPrintable(incomingDuplicateString);
                             
                             serverDetails << "<br/>" <<
-                            " Average Flight Time: " << incomingFlightTimeString.toLocal8Bit().constData() << " msecs";
+                                " Average Flight Time: " << qPrintable(incomingFlightTimeString) << " msecs";
                             
                             serverDetails << "<br/>" <<
-                            " Average Ping Time: " << incomingPingTimeString.toLocal8Bit().constData() << " msecs";
+                                " Average Ping Time: " << qPrintable(incomingPingTimeString) << " msecs";
                             
                             serverDetails << "<br/>" <<
-                            " Average Clock Skew: " << incomingClockSkewString.toLocal8Bit().constData() << " msecs";
-                            
+                                " Average Clock Skew: " << qPrintable(incomingClockSkewString) << " msecs";
+                
                             serverDetails << "<br/>" << "Incoming" <<
-                            " Bytes: " <<  incomingBytesString.toLocal8Bit().constData() <<
-                            " Wasted Bytes: " << incomingWastedBytesString.toLocal8Bit().constData();
+                                " Bytes: " <<  qPrintable(incomingBytesString) <<
+                                " Wasted Bytes: " << qPrintable(incomingWastedBytesString);
                             
                             serverDetails << extraDetails.str();
                             if (_extraServerDetails[serverCount-1] == MORE) {
