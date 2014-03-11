@@ -17,12 +17,8 @@ else ()
   if (WIN32)
     set(WIN_GLUT_SEARCH_DIRS "${GLUT_ROOT_DIR}" "$ENV{GLUT_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/freeglut" "${OPENGL_INCLUDE_DIR}")
     find_path(GLUT_INCLUDE_DIR GL/glut.h PATH_SUFFIXES include HINTS ${WIN_GLUT_SEARCH_DIRS})
-    
-    if (CMAKE_CL_64)
-      set(WIN_ARCH_DIR "x64")
-    endif()
-    
-    find_library(GLUT_glut_LIBRARY freeglut PATH_SUFFIXES lib/${WIN_ARCH_DIR} HINTS ${WIN_GLUT_SEARCH_DIRS})
+
+    find_library(GLUT_glut_LIBRARY freeglut PATH_SUFFIXES lib HINTS ${WIN_GLUT_SEARCH_DIRS})
   else ()
       find_path(GLUT_INCLUDE_DIR GL/glut.h
           "${GLUT_LOCATION}/include"

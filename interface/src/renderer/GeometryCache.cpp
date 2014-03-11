@@ -294,7 +294,8 @@ QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, cons
 QSharedPointer<Resource> GeometryCache::createResource(const QUrl& url,
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
     
-    QSharedPointer<NetworkGeometry> geometry(new NetworkGeometry(url, fallback.staticCast<NetworkGeometry>(), delayLoad));
+    QSharedPointer<NetworkGeometry> geometry(new NetworkGeometry(url, fallback.staticCast<NetworkGeometry>(), delayLoad),
+        &Resource::allReferencesCleared);
     geometry->setLODParent(geometry);
     return geometry.staticCast<Resource>();
 }
@@ -534,6 +535,15 @@ void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
     
     // send the reader off to the thread pool
     QThreadPool::globalInstance()->start(new GeometryReader(_self, url, reply, _mapping));
+}
+
+void NetworkGeometry::reinsert() {
+    Resource::reinsert();
+    
+    _lodParent = qWeakPointerCast<NetworkGeometry, Resource>(_self);
+    foreach (const QSharedPointer<NetworkGeometry>& lod, _lods) {
+        lod->setLODParent(_lodParent);
+    }
 }
 
 void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {

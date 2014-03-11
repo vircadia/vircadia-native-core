@@ -19,9 +19,9 @@
 JurisdictionSender::JurisdictionSender(JurisdictionMap* map, NodeType_t type) :
     ReceivedPacketProcessor(),
     _jurisdictionMap(map),
+    _nodeType(type),
     _packetSender(JurisdictionSender::DEFAULT_PACKETS_PER_SECOND)
 {
-    _nodeType = type;
 }
 
 JurisdictionSender::~JurisdictionSender() {
