@@ -12,11 +12,6 @@
 
 #include <stdio.h>
 
-// These are some useful utilities that vec3 is missing
-void printVec3(const char* name, const glm::vec3& v) {
-    printf("%s x=%f y=%f z=%f\n", name, v.x, v.y, v.z);
-}
-
 void Plane::set3Points(const glm::vec3 &v1, const glm::vec3 &v2, const glm::vec3 &v3) {
     glm::vec3 linev1v2, linev1v3;
 

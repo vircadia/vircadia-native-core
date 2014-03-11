@@ -53,7 +53,7 @@ class QSettings;
 class BandwidthDialog;
 class LodToolsDialog;
 class MetavoxelEditor;
-class VoxelStatsDialog;
+class OctreeStatsDialog;
 class MenuItemProperties;
 
 class Menu : public QMenuBar {
@@ -73,7 +73,7 @@ public:
     BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
     FrustumDrawMode getFrustumDrawMode() const { return _frustumDrawMode; }
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
-    VoxelStatsDialog* getVoxelStatsDialog() const { return _voxelStatsDialog; }
+    OctreeStatsDialog* getOctreeStatsDialog() const { return _octreeStatsDialog; }
     LodToolsDialog* getLodToolsDialog() const { return _lodToolsDialog; }
     int getMaxVoxels() const { return _maxVoxels; }
     QAction* getUseVoxelShader() const { return _useVoxelShader; }
@@ -111,7 +111,7 @@ public slots:
 
     void loginForCurrentDomain();
     void bandwidthDetails();
-    void voxelStatsDetails();
+    void octreeStatsDetails();
     void lodTools();
     void loadSettings(QSettings* settings = NULL);
     void saveSettings(QSettings* settings = NULL);
@@ -135,7 +135,7 @@ private slots:
     void goToDomainDialog();
     void goToLocation();
     void bandwidthDetailsClosed();
-    void voxelStatsDetailsClosed();
+    void octreeStatsDetailsClosed();
     void lodToolsClosed();
     void cycleFrustumRenderMode();
     void runTests();
@@ -187,7 +187,7 @@ private:
     FrustumDrawMode _frustumDrawMode;
     ViewFrustumOffset _viewFrustumOffset;
     QPointer<MetavoxelEditor> _MetavoxelEditor;
-    VoxelStatsDialog* _voxelStatsDialog;
+    OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
     int _maxVoxels;
     float _voxelSizeScale;
@@ -286,7 +286,7 @@ namespace MenuOption {
     const QString Quit =  "Quit";
     const QString Voxels = "Voxels";
     const QString VoxelMode = "Cycle Voxel Mode";
-    const QString VoxelStats = "Voxel Stats";
+    const QString OctreeStats = "Voxel and Particle Statistics";
     const QString VoxelTextures = "Voxel Textures";
 }
 
