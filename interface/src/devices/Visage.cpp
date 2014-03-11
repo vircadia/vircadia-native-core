@@ -37,9 +37,9 @@ Visage::Visage() :
     _estimatedEyeYaw(0.0f) {
     
 #ifdef HAVE_VISAGE
-    QByteArray licensePath = Application::resourcesPath() + "visage/license.vlc";
+    QByteArray licensePath = Application::resourcesPath().toLatin1() + "visage/license.vlc";
     initializeLicenseManager(licensePath.data());
-    _tracker = new VisageTracker2(Application::resourcesPath() + "visage/tracker.cfg");
+    _tracker = new VisageTracker2(Application::resourcesPath().toLatin1() + "visage/tracker.cfg");
     if (_tracker->trackFromCam()) {
         _data = new FaceData();   
          
