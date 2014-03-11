@@ -569,8 +569,10 @@ void DomainServer::readAvailableDatagrams() {
                     nodeList->getNodeSocket().writeDatagram(assignmentPacket,
                                                             senderSockAddr.getAddress(), senderSockAddr.getPort());
                 } else {
-                    qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
-                        << "from" << senderSockAddr;
+                    if (requestAssignment.getType() != Assignment::AgentType || (timeNow - lastMessage) > NOISY_TIME_ELAPSED) {
+                        qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
+                            << "from" << senderSockAddr;
+                    }
                 }
             }
         }
