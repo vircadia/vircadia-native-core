@@ -153,6 +153,7 @@ void ChatWindow::participantsChanged() {
     ui->numOnlineLabel->setText(tr("%1 online now:").arg(participants.count()));
 
     while (QLayoutItem* item = ui->usersWidget->layout()->takeAt(0)) {
+        delete item->widget();
         delete item;
     }
     foreach (const QString& participant, participants) {
@@ -173,13 +174,15 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     font.setBold(true);
     userLabel->setFont(font);
     userLabel->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-    userLabel->setStyleSheet("padding: 4px;");
+    userLabel->setStyleSheet("padding: 2px;");
+    userLabel->setAlignment(Qt::AlignTop);
 
     QLabel* messageLabel = new QLabel(message.body().replace(regexLinks, "<a href=\"\\1\">\\1</a>"));
     messageLabel->setWordWrap(true);
     messageLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
     messageLabel->setOpenExternalLinks(true);
-    messageLabel->setStyleSheet("padding: 4px;");
+    messageLabel->setStyleSheet("padding: 2px;");
+    messageLabel->setAlignment(Qt::AlignTop);
 
     ui->messagesFormLayout->addRow(userLabel, messageLabel);
     ui->messagesFormLayout->parentWidget()->updateGeometry();
