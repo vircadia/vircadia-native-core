@@ -163,6 +163,7 @@ public:
     virtual void init(Spanner* spanner);
     virtual void simulate(float deltaTime);
     virtual void render(float alpha);
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
 private slots:
 

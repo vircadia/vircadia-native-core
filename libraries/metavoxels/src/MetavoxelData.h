@@ -444,6 +444,8 @@ signals:
 
 protected:
     
+    SpannerRenderer* _renderer;
+    
     /// Returns the name of the class to instantiate in order to render this spanner.
     virtual QByteArray getRendererClassName() const;
 
@@ -452,7 +454,6 @@ private:
     Box _bounds;
     float _granularity;
     int _lastVisit; ///< the identifier of the last visit
-    SpannerRenderer* _renderer;
     
     static int _visit; ///< the global visit counter
 };
@@ -468,6 +469,7 @@ public:
     virtual void init(Spanner* spanner);
     virtual void simulate(float deltaTime);
     virtual void render(float alpha);
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 };
 
 /// An object with a 3D transform.
@@ -550,6 +552,8 @@ public:
     void setURL(const QUrl& url);
     const QUrl& getURL() const { return _url; }
 
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+    
 signals:
 
     void urlChanged(const QUrl& url);

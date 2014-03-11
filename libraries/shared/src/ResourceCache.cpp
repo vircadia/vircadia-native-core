@@ -81,7 +81,7 @@ Resource::Resource(const QUrl& url, bool delayLoad) :
     _reply(NULL),
     _attempts(0) {
     
-    if (!url.isValid()) {
+    if (!(url.isValid() && ResourceCache::getNetworkAccessManager())) {
         _startedLoading = _failedToLoad = true;
         return;
     }

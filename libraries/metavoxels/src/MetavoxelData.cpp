@@ -1177,9 +1177,9 @@ AttributeValue MetavoxelVisitation::getInheritedOutputValue(int index) const {
 const float DEFAULT_GRANULARITY = 0.01f;
 
 Spanner::Spanner() :
+    _renderer(NULL),
     _granularity(DEFAULT_GRANULARITY),
-    _lastVisit(0),
-    _renderer(NULL) {
+    _lastVisit(0) {
 }
 
 void Spanner::setBounds(const Box& bounds) {
@@ -1245,6 +1245,10 @@ void SpannerRenderer::simulate(float deltaTime) {
 
 void SpannerRenderer::render(float alpha) {
     // nothing by default
+}
+
+bool SpannerRenderer::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+    return false;
 }
 
 Transformable::Transformable() : _scale(1.0f) {
@@ -1357,6 +1361,12 @@ void StaticModel::setURL(const QUrl& url) {
     if (_url != url) {
         emit urlChanged(_url = url);
     }
+}
+
+bool StaticModel::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+    // delegate to renderer, if we have one
+    return _renderer ? _renderer->findRayIntersection(origin, direction, distance) :
+        Spanner::findRayIntersection(origin, direction, distance);
 }
 
 QByteArray StaticModel::getRendererClassName() const {

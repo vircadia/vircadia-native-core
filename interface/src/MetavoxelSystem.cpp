@@ -360,6 +360,10 @@ void StaticModelRenderer::render(float alpha) {
     _model->render(alpha);
 }
 
+bool StaticModelRenderer::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+    return _model->findRayIntersection(origin, direction, distance);
+}
+
 void StaticModelRenderer::applyTranslation(const glm::vec3& translation) {
     _model->setTranslation(translation);
 }
