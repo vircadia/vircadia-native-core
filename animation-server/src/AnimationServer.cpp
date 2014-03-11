@@ -364,7 +364,6 @@ float danceFloorGradientIncrement = 1.0f / FRAMES_PER_BEAT;
 const float DANCE_FLOOR_MAX_GRADIENT = 1.0f;
 const float DANCE_FLOOR_MIN_GRADIENT = 0.0f;
 const int DANCE_FLOOR_VOXELS_PER_PACKET = 100;
-const int PACKETS_PER_DANCE_FLOOR = DANCE_FLOOR_VOXELS_PER_PACKET / (DANCE_FLOOR_WIDTH * DANCE_FLOOR_LENGTH);
 int danceFloorColors[DANCE_FLOOR_WIDTH][DANCE_FLOOR_LENGTH];
 
 void sendDanceFloor() {
@@ -467,8 +466,6 @@ const float BILLBOARD_MAX_GRADIENT = 1.0f;
 const float BILLBOARD_MIN_GRADIENT = 0.0f;
 const float BILLBOARD_LIGHT_SIZE   = 0.125f / TREE_SCALE; // approximately 1/8 meter per light
 const int VOXELS_PER_PACKET = 81;
-const int PACKETS_PER_BILLBOARD = VOXELS_PER_PACKET / (BILLBOARD_HEIGHT * BILLBOARD_WIDTH);
-
 
 // top to bottom...
 bool billboardMessage[BILLBOARD_HEIGHT][BILLBOARD_WIDTH] = {
@@ -541,14 +538,12 @@ static void sendBillboard() {
 }
 
 bool roadInitialized = false;
-const int ROAD_WIDTH_METERS  = 3.0f;
 const int BRICKS_ACROSS_ROAD = 32;
 const float ROAD_BRICK_SIZE = 0.125f/TREE_SCALE; //(ROAD_WIDTH_METERS / TREE_SCALE) / BRICKS_ACROSS_ROAD; // in voxel units
 const int ROAD_LENGTH = 1.0f / ROAD_BRICK_SIZE; // in bricks
 const int ROAD_WIDTH  = BRICKS_ACROSS_ROAD; // in bricks
 glm::vec3 roadPosition(0.5f - (ROAD_BRICK_SIZE * BRICKS_ACROSS_ROAD), 0.0f, 0.0f);
 const int BRICKS_PER_PACKET = 32; // guessing
-const int PACKETS_PER_ROAD = VOXELS_PER_PACKET / (ROAD_LENGTH * ROAD_WIDTH);
 
 void doBuildStreet() {
     if (roadInitialized) {
