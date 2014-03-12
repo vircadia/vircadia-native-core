@@ -14,12 +14,12 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3558"/>
+        <location filename="src/Application.cpp" line="3562"/>
         <source>Open Script</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3559"/>
+        <location filename="src/Application.cpp" line="3563"/>
         <source>JavaScript Files (*.js)</source>
         <translation type="unfinished"></translation>
     </message>

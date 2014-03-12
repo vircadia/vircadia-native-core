@@ -283,17 +283,25 @@ var thumbDeltaPerStep = thumbExtents / (pointerVoxelScaleSteps - 1);
 // Move the following code to a separate file when include will be available.
 var importTree;
 var importPreview;
+var importBoundaries;
 var isImporting;
 var importPosition;
 var importScale;
 
 function initImport() {
     importPreview = Overlays.addOverlay("localvoxels", {
-        name: "import",
-        position: { x: 0, y: 0, z: 0},
-        scale: 0,
-        visible: false
-    });
+                                        name: "import",
+                                        position: { x: 0, y: 0, z: 0},
+                                        scale: 1,
+                                        visible: false
+                                        });
+    importBoundaries = Overlays.addOverlay("cube", {
+                                           position: { x: 0, y: 0, z: 0 },
+                                           scale: 1,
+                                           color: { red: 128, blue: 128, green: 128 },
+                                           solid: false,
+                                           visible: false
+                                           })
     isImporting = false;
     importPosition = { x: 0, y: 0, z: 0 };
     importScale = 0;
@@ -316,8 +324,11 @@ function moveImport(position) {
     if (0 < position.x && 0 < position.y && 0 < position.z) {
         importPosition = position;
         Overlays.editOverlay(importPreview, {
-            position: { x: importPosition.x, y: importPosition.y, z: importPosition.z }
-        });
+                             position: { x: importPosition.x, y: importPosition.y, z: importPosition.z }
+                             });
+        Overlays.editOverlay(importBoundaries, {
+                             position: { x: importPosition.x, y: importPosition.y, z: importPosition.z }
+                             });
     }
 }
 
@@ -325,15 +336,21 @@ function rescaleImport(scale) {
     if (0 < scale) {
         importScale = scale;
         Overlays.editOverlay(importPreview, {
-            scale: importScale
-        });
+                             scale: importScale
+                             });
+        Overlays.editOverlay(importBoundaries, {
+                             scale: importScale
+                             });
     }
 }
 
 function showImport(doShow) {
     Overlays.editOverlay(importPreview, {
-        visible: doShow
-    });
+                         visible: doShow
+                         });
+    Overlays.editOverlay(importBoundaries, {
+                         visible: doShow
+                         });
 }
 
 function placeImport() {
@@ -352,6 +369,7 @@ function cancelImport() {
 
 function cleanupImport() {
     Overlays.deleteOverlay(importPreview);
+    Overlays.deleteOverlay(importBoundaries);
     isImporting = false;
     importPostion = { x: 0, y: 0, z: 0 };
     importScale = 0;
