@@ -8,39 +8,73 @@
 
 #include "NamedLocation.h"
 
-// deserialize data
-void NamedLocation::processDataServerResponse(const QString& userString,
-                                              const QStringList& keyList,
-                                              const QStringList& valueList) {
-    for (int i = 0; i < keyList.count(); i++) {
-        if (keyList[i] == "creator") {
-            _createdBy = valueList[i];
-        } else if (keyList[i] == "location") {
-            QStringList locationCoords = valueList[i].split(",");
-            if (locationCoords.length() == 3) {
-                _location = glm::vec3(locationCoords[0].toLong(), locationCoords[1].toLong(), locationCoords[2].toLong());
-            }
-        } else if (keyList[i] == "orientation") {
-            
-            QStringList orientationCoords = valueList[i].split(",");
-            if (orientationCoords.length() == 4) {
-                _orientation = glm::quat(orientationCoords[0].toLong(),
-                                         orientationCoords[1].toLong(),
-                                         orientationCoords[2].toLong(),
-                                         orientationCoords[3].toLong());
-            }
-        }
-    }
-    
-    emit dataReceived(keyList.count() > 0);
+const QString JSON_FORMAT = "{\"address\":{\"position\":\"%1,%2,%3\","
+                            "\"orientation\":\"%4,%5,%6,%7\",\"domain\":\"%8\"},\"name\":\"%9\"}";
+
+QString NamedLocation::toJsonString() {
+    return JSON_FORMAT.arg(QString::number(_location.x),
+                                        QString::number(_location.y),
+                                        QString::number(_location.z),
+                                        QString::number(_orientation.w),
+                                        QString::number(_orientation.x),
+                                        QString::number(_orientation.y),
+                                        QString::number(_orientation.z),
+                                        _domain,
+                                        _locationName);
 }
 
-// serialize data
-QHash<QString, QString> NamedLocation::getHashData() {
-    QHash<QString, QString> response;
-    qDebug() << QString::fromStdString(glm::to_string(_location));
-    response["location"] = QString::number(_location.x) + "," + QString::number(_location.y) + "," + QString::number(_location.z);
-    response["creator"] = _createdBy;
-    response["orientation"] = QString::number(_orientation.x) + "," + QString::number(_orientation.y) + "," + QString::number(_orientation.z) + "," + QString::number(_orientation.w);
-    return response;
+NamedLocation::NamedLocation(const QJsonObject jsonData) {
+
+    bool hasProperties;
+
+    if (jsonData.contains("name")) {
+        hasProperties = true;
+        _locationName = jsonData["name"].toString();
+    }
+
+    if (jsonData.contains("username")) {
+        hasProperties = true;
+        _createdBy = jsonData["username"].toString();
+    }
+
+    if (jsonData.contains("domain")) {
+        hasProperties = true;
+        _domain = jsonData["domain"].toString();
+    }
+
+    // parse position
+    if (jsonData.contains("position")) {
+        hasProperties = true;
+        const int NUMBER_OF_POSITION_ITEMS = 3;
+        const int X_ITEM = 0;
+        const int Y_ITEM = 1;
+        const int Z_ITEM = 2;
+
+        QStringList coordinateItems = jsonData["position"].toString().split(",", QString::SkipEmptyParts);
+        if (coordinateItems.size() == NUMBER_OF_POSITION_ITEMS) {
+            double x = coordinateItems[X_ITEM].trimmed().toDouble();
+            double y = coordinateItems[Y_ITEM].trimmed().toDouble();
+            double z = coordinateItems[Z_ITEM].trimmed().toDouble();
+            _location = glm::vec3(x, y, z);
+        }
+    }
+
+    // parse orientation
+    if (jsonData.contains("orientation")) {
+        hasProperties = true;
+        QStringList orientationItems = jsonData["orientation"] .toString().split(",", QString::SkipEmptyParts);
+        const int NUMBER_OF_ORIENTATION_ITEMS = 4;
+        const int W_ITEM = 0;
+        const int X_ITEM = 1;
+        const int Y_ITEM = 2;
+        const int Z_ITEM = 3;
+
+        if (orientationItems.size() == NUMBER_OF_ORIENTATION_ITEMS) {
+            double w = orientationItems[W_ITEM].trimmed().toDouble();
+            double x = orientationItems[X_ITEM].trimmed().toDouble();
+            double y = orientationItems[Y_ITEM].trimmed().toDouble();
+            double z = orientationItems[Z_ITEM].trimmed().toDouble();
+            _orientation = glm::quat(w, x, y, z);
+        }
+    }
 }

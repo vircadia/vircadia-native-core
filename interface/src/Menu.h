@@ -17,6 +17,7 @@
 #include <EventTypes.h>
 #include <MenuItemProperties.h>
 #include <OctreeConstants.h>
+#include "location/LocationManager.h"
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
@@ -134,6 +135,7 @@ private slots:
     void editPreferences();
     void goToDomainDialog();
     void goToLocation();
+    void nameLocation();
     void bandwidthDetailsClosed();
     void voxelStatsDetailsClosed();
     void lodToolsClosed();
@@ -141,6 +143,7 @@ private slots:
     void runTests();
     void showMetavoxelEditor();
     void audioMuteToggled();
+    void namedLocationCreated(LocationManager::NamedLocationCreateResponse response, NamedLocation* location);
 
 private:
     static Menu* _instance;
@@ -241,6 +244,7 @@ namespace MenuOption {
     const QString GlowMode = "Cycle Glow Mode";
     const QString GoToDomain = "Go To Domain...";
     const QString GoToLocation = "Go To Location...";
+    const QString NameLocation = "Name this location";
     const QString GoTo = "Go To...";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IncreaseVoxelSize = "Increase Voxel Size";

@@ -11,27 +11,32 @@
 
 #include <QtCore>
 #include "NamedLocation.h"
+#include "AccountManager.h"
 
 class LocationManager : public QObject {
     Q_OBJECT
 
 public:
-    enum LocationCreateResponse {
+    static LocationManager& getInstance();
+
+    enum NamedLocationCreateResponse {
         Created,
-        AlreadyExists
+        AlreadyExists,
+        SystemError
     };
 
     LocationManager() { };
-    void createNamedLocation(QString locationName, QString creator, glm::vec3 location, glm::quat orientation);
+    void createNamedLocation(NamedLocation* namedLocation);
+
+    void goTo(QString destination);
+    void goToUser(QString userName);
 
 signals:
-    void creationCompleted(LocationManager::LocationCreateResponse response, NamedLocation* location);
-
-private:
-    NamedLocation* _namedLocation;
+    void creationCompleted(LocationManager::NamedLocationCreateResponse response, NamedLocation* location);
     
 private slots:
-    void locationDataReceived(bool locationExists);
+    void namedLocationDataReceived(const QJsonObject& data);
+    void errorDataReceived(QNetworkReply::NetworkError error, const QString& message);
 };
 
 #endif /* defined(__hifi__LocationManager__) */

@@ -24,6 +24,7 @@
 #include <QStandardPaths>
 #include <QUuid>
 #include <QWindow>
+#include <QMessageBox>
 
 #include <AccountManager.h>
 #include <UUID.h>
@@ -115,13 +116,18 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::GoToDomain,
                                   Qt::CTRL | Qt::Key_D,
-                                   this,
-                                   SLOT(goToDomainDialog()));
+                                  this,
+                                  SLOT(goToDomainDialog()));
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::GoToLocation,
                                   Qt::CTRL | Qt::SHIFT | Qt::Key_L,
-                                   this,
-                                   SLOT(goToLocation()));
+                                  this,
+                                  SLOT(goToLocation()));
+    addActionToQMenuAndActionHash(fileMenu,
+                                  MenuOption::NameLocation,
+                                  Qt::CTRL | Qt::Key_N,
+                                  this,
+                                  SLOT(nameLocation()));
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::GoTo,
                                   Qt::Key_At,
@@ -400,6 +406,7 @@ void Menu::saveSettings(QSettings* settings) {
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
     NodeList::getInstance()->saveData(settings);
+
 }
 
 void Menu::importSettings() {
@@ -957,6 +964,69 @@ void Menu::goToLocation() {
     }
 
     sendFakeEnterEvent();
+}
+
+void Menu::namedLocationCreated(LocationManager::NamedLocationCreateResponse response, NamedLocation* location) {
+
+    if (response == LocationManager::Created) {
+        return;
+    }
+
+    QMessageBox msgBox;
+    switch (response) {
+        case LocationManager::AlreadyExists:
+            msgBox.setText("That name has been already claimed, try something else.");
+            break;
+        default:
+            msgBox.setText("An unexpected error has occurred, please try again later.");
+            break;
+    }
+
+    msgBox.exec();
+}
+
+void Menu::nameLocation() {
+    // check if user is logged in or show login dialog if not
+
+    AccountManager& accountManager = AccountManager::getInstance();
+    if (!accountManager.isLoggedIn() && 1 > 2) {
+        QMessageBox msgBox;
+        msgBox.setText("We need to tie this location to your username.");
+        msgBox.setInformativeText("Please login first, then try naming the location again.");
+        msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+        msgBox.button(QMessageBox::Ok)->setText("Login");
+        if (msgBox.exec() == QMessageBox::Ok) {
+            loginForCurrentDomain();
+        }
+
+        return;
+    }
+
+    QInputDialog nameDialog(Application::getInstance()->getWindow());
+    nameDialog.setWindowTitle("Name this location");
+    nameDialog.setLabelText("Name this location, then share that name with others.\n"
+                            "When they come here, they'll be in the same location and orientation\n"
+                            "(wherever you are standing and looking now) as you.\n\n"
+                            "Location name:");
+
+    nameDialog.setWindowFlags(Qt::Sheet);
+    nameDialog.resize((int) (nameDialog.parentWidget()->size().width() * 0.30), nameDialog.size().height());
+
+    if (nameDialog.exec() == QDialog::Accepted) {
+
+        QString locationName = nameDialog.textValue().trimmed();
+        if (locationName.isEmpty()) {
+            return;
+        }
+
+        MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+        LocationManager* manager = new LocationManager();
+        connect(manager, &LocationManager::creationCompleted, this, &Menu::namedLocationCreated);
+        NamedLocation* location = new NamedLocation(locationName,
+                                                    myAvatar->getPosition(), myAvatar->getOrientation(),
+                                                    NodeList::getInstance()->getDomainInfo().getHostname());
+        manager->createNamedLocation(location);
+    }
 }
 
 void Menu::pasteToVoxel() {
