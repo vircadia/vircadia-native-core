@@ -30,9 +30,8 @@ bool Stars::setResolution(unsigned k) {
 }
 
 void Stars::render(float fovY, float aspect, float nearZ, float alpha) {
-
     // determine length of screen diagonal from quadrant height and aspect ratio
-    float quadrantHeight = nearZ * tan(angleConvert<Degrees,Radians>(fovY) * 0.5f);
+    float quadrantHeight = nearZ * tan(RADIANS_PER_DEGREE * fovY * 0.5f);
     float halfDiagonal = sqrt(quadrantHeight * quadrantHeight * (1.0f + aspect * aspect));
 
     // determine fov angle in respect to the diagonal

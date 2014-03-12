@@ -33,9 +33,9 @@ QNetworkAccessManager* AvatarData::networkAccessManager = NULL;
 AvatarData::AvatarData() :
     NodeData(),
     _handPosition(0,0,0),
-    _bodyYaw(-90.0),
-    _bodyPitch(0.0),
-    _bodyRoll(0.0),
+    _bodyYaw(-90.f),
+    _bodyPitch(0.0f),
+    _bodyRoll(0.0f),
     _targetScale(1.0f),
     _handState(0),
     _keyState(NO_KEY_DOWN),
@@ -510,7 +510,7 @@ void AvatarData::setClampedTargetScale(float targetScale) {
 }
 
 void AvatarData::setOrientation(const glm::quat& orientation) {
-    glm::vec3 eulerAngles = safeEulerAngles(orientation);
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(orientation));
     _bodyPitch = eulerAngles.x;
     _bodyYaw = eulerAngles.y;
     _bodyRoll = eulerAngles.z;

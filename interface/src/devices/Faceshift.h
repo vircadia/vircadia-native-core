@@ -33,6 +33,7 @@ public:
     const glm::vec3& getHeadAngularVelocity() const { return _headAngularVelocity; }
     const glm::vec3& getHeadTranslation() const { return _headTranslation; }
 
+    // these pitch/yaw angles are in degrees
     float getEyeGazeLeftPitch() const { return _eyeGazeLeftPitch; }
     float getEyeGazeLeftYaw() const { return _eyeGazeLeftYaw; }
     
@@ -96,9 +97,9 @@ private:
     glm::vec3 _headAngularVelocity;
     glm::vec3 _headTranslation;
     
+    // degrees
     float _eyeGazeLeftPitch;
     float _eyeGazeLeftYaw;
-    
     float _eyeGazeRightPitch;
     float _eyeGazeRightYaw;
     
@@ -121,10 +122,12 @@ private:
     
     int _jawOpenIndex;
     
+    // degrees
     float _longTermAverageEyePitch;
     float _longTermAverageEyeYaw;
     bool _longTermAverageInitialized;
     
+    // degrees
     float _estimatedEyePitch;
     float _estimatedEyeYaw;
 };

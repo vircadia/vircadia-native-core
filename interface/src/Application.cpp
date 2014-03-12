@@ -507,7 +507,7 @@ void Application::paintGL() {
         float headHeight = _myAvatar->getHead()->calculateAverageEyePosition().y - _myAvatar->getPosition().y;
         _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _myAvatar->getScale());
         _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight, 0));
-        _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
+        _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
     }
 
     // Update camera position
@@ -744,7 +744,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                if (!_myAvatar->getDriveKeys(UP)) {
                     _myAvatar->jump();
                 }
-                _myAvatar->setDriveKeys(UP, 1);
+                _myAvatar->setDriveKeys(UP, 1.f);
                 break;
 
             case Qt::Key_Asterisk:
@@ -752,11 +752,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_C:
-                _myAvatar->setDriveKeys(DOWN, 1);
+                _myAvatar->setDriveKeys(DOWN, 1.f);
                 break;
 
             case Qt::Key_W:
-                _myAvatar->setDriveKeys(FWD, 1);
+                _myAvatar->setDriveKeys(FWD, 1.f);
                 break;
 
             case Qt::Key_S:
@@ -765,7 +765,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else if (!isShifted && isMeta)  {
                     takeSnapshot();
                 } else {
-                    _myAvatar->setDriveKeys(BACK, 1);
+                    _myAvatar->setDriveKeys(BACK, 1.f);
                 }
                 break;
 
@@ -783,12 +783,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::Atmosphere);
                 } else {
-                    _myAvatar->setDriveKeys(ROT_LEFT, 1);
+                    _myAvatar->setDriveKeys(ROT_LEFT, 1.f);
                 }
                 break;
 
             case Qt::Key_D:
-                _myAvatar->setDriveKeys(ROT_RIGHT, 1);
+                _myAvatar->setDriveKeys(ROT_RIGHT, 1.f);
                 break;
 
             case Qt::Key_Return:
@@ -800,19 +800,19 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_Up:
-                _myAvatar->setDriveKeys(isShifted ? UP : FWD, 1);
+                _myAvatar->setDriveKeys(isShifted ? UP : FWD, 1.f);
                 break;
 
             case Qt::Key_Down:
-                _myAvatar->setDriveKeys(isShifted ? DOWN : BACK, 1);
+                _myAvatar->setDriveKeys(isShifted ? DOWN : BACK, 1.f);
                 break;
 
             case Qt::Key_Left:
-                _myAvatar->setDriveKeys(isShifted ? LEFT : ROT_LEFT, 1);
+                _myAvatar->setDriveKeys(isShifted ? LEFT : ROT_LEFT, 1.f);
                 break;
 
             case Qt::Key_Right:
-                _myAvatar->setDriveKeys(isShifted ? RIGHT : ROT_RIGHT, 1);
+                _myAvatar->setDriveKeys(isShifted ? RIGHT : ROT_RIGHT, 1.f);
                 break;
 
             case Qt::Key_I:
@@ -946,47 +946,47 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 
         switch (event->key()) {
             case Qt::Key_E:
-                _myAvatar->setDriveKeys(UP, 0);
+                _myAvatar->setDriveKeys(UP, 0.f);
                 break;
 
             case Qt::Key_C:
-                _myAvatar->setDriveKeys(DOWN, 0);
+                _myAvatar->setDriveKeys(DOWN, 0.f);
                 break;
 
             case Qt::Key_W:
-                _myAvatar->setDriveKeys(FWD, 0);
+                _myAvatar->setDriveKeys(FWD, 0.f);
                 break;
 
             case Qt::Key_S:
-                _myAvatar->setDriveKeys(BACK, 0);
+                _myAvatar->setDriveKeys(BACK, 0.f);
                 break;
 
             case Qt::Key_A:
-                _myAvatar->setDriveKeys(ROT_LEFT, 0);
+                _myAvatar->setDriveKeys(ROT_LEFT, 0.f);
                 break;
 
             case Qt::Key_D:
-                _myAvatar->setDriveKeys(ROT_RIGHT, 0);
+                _myAvatar->setDriveKeys(ROT_RIGHT, 0.f);
                 break;
 
             case Qt::Key_Up:
-                _myAvatar->setDriveKeys(FWD, 0);
-                _myAvatar->setDriveKeys(UP, 0);
+                _myAvatar->setDriveKeys(FWD, 0.f);
+                _myAvatar->setDriveKeys(UP, 0.f);
                 break;
 
             case Qt::Key_Down:
-                _myAvatar->setDriveKeys(BACK, 0);
-                _myAvatar->setDriveKeys(DOWN, 0);
+                _myAvatar->setDriveKeys(BACK, 0.f);
+                _myAvatar->setDriveKeys(DOWN, 0.f);
                 break;
 
             case Qt::Key_Left:
-                _myAvatar->setDriveKeys(LEFT, 0);
-                _myAvatar->setDriveKeys(ROT_LEFT, 0);
+                _myAvatar->setDriveKeys(LEFT, 0.f);
+                _myAvatar->setDriveKeys(ROT_LEFT, 0.f);
                 break;
 
             case Qt::Key_Right:
-                _myAvatar->setDriveKeys(RIGHT, 0);
-                _myAvatar->setDriveKeys(ROT_RIGHT, 0);
+                _myAvatar->setDriveKeys(RIGHT, 0.f);
+                _myAvatar->setDriveKeys(ROT_RIGHT, 0.f);
                 break;
 
             default:
@@ -1488,7 +1488,7 @@ void Application::init() {
                                                         3.0f * TREE_SCALE / 2.0f));
     _sharedVoxelSystemViewFrustum.setNearClip(TREE_SCALE / 2.0f);
     _sharedVoxelSystemViewFrustum.setFarClip(3.0f * TREE_SCALE / 2.0f);
-    _sharedVoxelSystemViewFrustum.setFieldOfView(90);
+    _sharedVoxelSystemViewFrustum.setFieldOfView(90.f);
     _sharedVoxelSystemViewFrustum.setOrientation(glm::quat());
     _sharedVoxelSystemViewFrustum.calculate();
     _sharedVoxelSystem.setViewFrustum(&_sharedVoxelSystemViewFrustum);
@@ -2120,7 +2120,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
 void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     // We will use these below, from either the camera or head vectors calculated above
     glm::vec3 position(camera.getPosition());
-    float fov         = camera.getFieldOfView();
+    float fov         = camera.getFieldOfView();    // degrees
     float nearClip    = camera.getNearClip();
     float farClip     = camera.getFarClip();
     float aspectRatio = camera.getAspectRatio();
@@ -2133,7 +2133,7 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
 
     // Also make sure it's got the correct lens details from the camera
     viewFrustum.setAspectRatio(aspectRatio);
-    viewFrustum.setFieldOfView(fov);
+    viewFrustum.setFieldOfView(fov);    // degrees
     viewFrustum.setNearClip(nearClip);
     viewFrustum.setFarClip(farClip);
     viewFrustum.setEyeOffsetPosition(camera.getEyeOffsetPosition());
@@ -2195,7 +2195,7 @@ void Application::updateShadowMap() {
     glPushMatrix();
     glLoadIdentity();
     glm::vec3 axis = glm::axis(rotation);
-    glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+    glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
 
     // store view matrix without translation, which we'll use for precision-sensitive objects
     glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
@@ -2274,7 +2274,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     glm::vec3 eyeOffsetPos = whichCamera.getEyeOffsetPosition();
     glm::quat eyeOffsetOrient = whichCamera.getEyeOffsetOrientation();
     glm::vec3 eyeOffsetAxis = glm::axis(eyeOffsetOrient);
-    glRotatef(-glm::angle(eyeOffsetOrient), eyeOffsetAxis.x, eyeOffsetAxis.y, eyeOffsetAxis.z);
+    glRotatef(-glm::degrees(glm::angle(eyeOffsetOrient)), eyeOffsetAxis.x, eyeOffsetAxis.y, eyeOffsetAxis.z);
     glTranslatef(-eyeOffsetPos.x, -eyeOffsetPos.y, -eyeOffsetPos.z);
 
     // transform view according to whichCamera
@@ -2283,7 +2283,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
     glm::quat rotation = whichCamera.getRotation();
     glm::vec3 axis = glm::axis(rotation);
-    glRotatef(-glm::angle(rotation), axis.x, axis.y, axis.z);
+    glRotatef(-glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
 
     // store view matrix without translation, which we'll use for precision-sensitive objects
     glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
@@ -2501,7 +2501,7 @@ void Application::displayOverlay() {
             (Menu::getInstance()->isOptionChecked(MenuOption::Stats) && 
             Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth))
                 ? 80 : 20;
-        drawText(_glWidget->width() - 100, _glWidget->height() - timerBottom, 0.30f, 1.0f, 0, frameTimer, WHITE_TEXT);
+        drawText(_glWidget->width() - 100, _glWidget->height() - timerBottom, 0.30f, 1.0f, 0.f, frameTimer, WHITE_TEXT);
     }
 
     _overlays.render2D();
@@ -2556,11 +2556,11 @@ void Application::displayStats() {
     sprintf(framesPerSecond, "Framerate: %3.0f FPS", _fps);
 
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, serverNodes, WHITE_TEXT);
+    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, serverNodes, WHITE_TEXT);
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, avatarNodes, WHITE_TEXT);
+    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, avatarNodes, WHITE_TEXT);
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, framesPerSecond, WHITE_TEXT);
+    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, framesPerSecond, WHITE_TEXT);
 
     if (_statsExpanded) {
         char packetsPerSecond[30];
@@ -2569,9 +2569,9 @@ void Application::displayStats() {
         sprintf(averageMegabitsPerSecond, "Mbps: %3.2f", (float)_bytesPerSecond * 8.f / 1000000.f);
 
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, packetsPerSecond, WHITE_TEXT);
+        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, packetsPerSecond, WHITE_TEXT);
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, averageMegabitsPerSecond, WHITE_TEXT);
+        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, averageMegabitsPerSecond, WHITE_TEXT);
     }
 
     verticalOffset = 0;
@@ -2614,7 +2614,7 @@ void Application::displayStats() {
                 "Buffer msecs %.1f",
                 (float) (_audio.getNetworkBufferLengthSamplesPerChannel() + (float) _audio.getJitterBufferSamples()) /
                 (float)_audio.getNetworkSampleRate() * 1000.f);
-        drawText(30, _glWidget->height() - 22, 0.10f, 0, 2, audioJitter, WHITE_TEXT);
+        drawText(30, _glWidget->height() - 22, 0.10f, 0.f, 2.f, audioJitter, WHITE_TEXT);
         
                  
         char audioPing[30];
@@ -2627,18 +2627,18 @@ void Application::displayStats() {
         sprintf(voxelAvgPing, "Voxel avg ping: %d", pingVoxel);
 
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, audioPing, WHITE_TEXT);
+        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, audioPing, WHITE_TEXT);
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, avatarPing, WHITE_TEXT);
+        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, avatarPing, WHITE_TEXT);
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, voxelAvgPing, WHITE_TEXT);
+        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, voxelAvgPing, WHITE_TEXT);
 
         if (_statsExpanded) {
             char voxelMaxPing[30];
             sprintf(voxelMaxPing, "Voxel max ping: %d", pingVoxelMax);
 
             verticalOffset += STATS_PELS_PER_LINE;
-            drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, voxelMaxPing, WHITE_TEXT);
+            drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, voxelMaxPing, WHITE_TEXT);
         }
 
         verticalOffset = 0;
@@ -2666,11 +2666,11 @@ void Application::displayStats() {
     char avatarMixerStats[200];
 
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, avatarPosition, WHITE_TEXT);
+    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, avatarPosition, WHITE_TEXT);
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, avatarVelocity, WHITE_TEXT);
+    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, avatarVelocity, WHITE_TEXT);
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, avatarBodyYaw, WHITE_TEXT);
+    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, avatarBodyYaw, WHITE_TEXT);
 
     if (_statsExpanded) {
         SharedNodePointer avatarMixer = NodeList::getInstance()->soloNodeOfType(NodeType::AvatarMixer);
@@ -2683,7 +2683,7 @@ void Application::displayStats() {
         }
 
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, avatarMixerStats, WHITE_TEXT);
+        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, avatarMixerStats, WHITE_TEXT);
     }
 
     verticalOffset = 0;
@@ -2698,7 +2698,7 @@ void Application::displayStats() {
         voxelStats.str("");
         voxelStats << "Voxels Memory Nodes: " << VoxelTreeElement::getTotalMemoryUsage() / 1000000.f << "MB";
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, (char*)voxelStats.str().c_str(), WHITE_TEXT);
+        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
 
         voxelStats.str("");
         voxelStats << 
@@ -2708,14 +2708,14 @@ void Application::displayStats() {
             voxelStats << " / GPU: " << _voxels.getVoxelMemoryUsageGPU() / 1000000.f << "MB";
         }
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, (char*)voxelStats.str().c_str(), WHITE_TEXT);
+        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
 
         // Voxel Rendering
         voxelStats.str("");
         voxelStats.precision(4);
         voxelStats << "Voxel Rendering Slots Max: " << _voxels.getMaxVoxels() / 1000.f << "K";
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, (char*)voxelStats.str().c_str(), WHITE_TEXT);
+        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
     }
 
     voxelStats.str("");
@@ -2723,7 +2723,7 @@ void Application::displayStats() {
     voxelStats << "Drawn: " << _voxels.getVoxelsWritten() / 1000.f << "K " <<
         "Abandoned: " << _voxels.getAbandonedVoxels() / 1000.f << "K ";
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, (char*)voxelStats.str().c_str(), WHITE_TEXT);
+    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
 
     // iterate all the current voxel stats, and list their sending modes, and total voxel counts
     std::stringstream sendingMode("");
@@ -2767,7 +2767,7 @@ void Application::displayStats() {
             sendingMode << " <SCENE STABLE>";
         }
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, (char*)sendingMode.str().c_str(), WHITE_TEXT);
+        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)sendingMode.str().c_str(), WHITE_TEXT);
     }
 
     // Incoming packets
@@ -2779,7 +2779,7 @@ void Application::displayStats() {
         voxelStats << "Voxel Packets to Process: " << packetsString.toLocal8Bit().constData()
                     << " [Recent Max: " << maxString.toLocal8Bit().constData() << "]";        
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, (char*)voxelStats.str().c_str(), WHITE_TEXT);
+        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
     }
 
     if (_resetRecentMaxPacketsSoon && voxelPacketsToProcess > 0) {
@@ -2802,7 +2802,7 @@ void Application::displayStats() {
     voxelStats.str("");
     voxelStats << "Server voxels: " << serversTotalString.toLocal8Bit().constData();
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, (char*)voxelStats.str().c_str(), WHITE_TEXT);
+    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
 
     if (_statsExpanded) {
         QString serversInternalString = locale.toString((uint)totalInternal);
@@ -2813,7 +2813,7 @@ void Application::displayStats() {
             "Internal: " << serversInternalString.toLocal8Bit().constData() << "  " <<
             "Leaves: " << serversLeavesString.toLocal8Bit().constData() << "";
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, (char*)voxelStats.str().c_str(), WHITE_TEXT);
+        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
     }
 
     unsigned long localTotal = VoxelTreeElement::getNodeCount();
@@ -2823,7 +2823,7 @@ void Application::displayStats() {
     voxelStats.str("");
     voxelStats << "Local voxels: " << localTotalString.toLocal8Bit().constData();
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, (char*)voxelStats.str().c_str(), WHITE_TEXT);
+    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
 
     if (_statsExpanded) {
         unsigned long localInternal = VoxelTreeElement::getInternalNodeCount();
@@ -2836,7 +2836,7 @@ void Application::displayStats() {
             "Internal: " << localInternalString.toLocal8Bit().constData() << "  " <<
             "Leaves: " << localLeavesString.toLocal8Bit().constData() << "";
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, (char*)voxelStats.str().c_str(), WHITE_TEXT);
+        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
     }
 }
 
@@ -2927,17 +2927,17 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
 void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     bool eyeRelativeCamera = false;
     if (billboard) {
-        _mirrorCamera.setFieldOfView(BILLBOARD_FIELD_OF_VIEW);
+        _mirrorCamera.setFieldOfView(BILLBOARD_FIELD_OF_VIEW);  // degees
         _mirrorCamera.setDistance(BILLBOARD_DISTANCE * _myAvatar->getScale());
         _mirrorCamera.setTargetPosition(_myAvatar->getPosition());
         
     } else if (_rearMirrorTools->getZoomLevel() == BODY) {
-        _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);
+        _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
         _mirrorCamera.setDistance(MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
         _mirrorCamera.setTargetPosition(_myAvatar->getChestPosition());
     
     } else { // HEAD zoom level
-        _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);
+        _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
         _mirrorCamera.setDistance(MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
         if (_myAvatar->getSkeletonModel().isActive() && _myAvatar->getHead()->getFaceModel().isActive()) {
             // as a hack until we have a better way of dealing with coordinate precision issues, reposition the
@@ -2951,7 +2951,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     }
     _mirrorCamera.setAspectRatio((float)region.width() / region.height());
     
-    _mirrorCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
+    _mirrorCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
     _mirrorCamera.update(1.0f/_fps);
 
     // set the bounds of rear mirror view

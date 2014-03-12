@@ -20,7 +20,6 @@
 #include <QtMultimedia/QAudioOutput>
 #include <QSvgRenderer>
 
-#include <AngleUtil.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -656,7 +655,7 @@ void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
     const float MAX_DURATION = 2.f;
     const float MIN_AUDIBLE_VOLUME = 0.001f;
     const float NOISE_MAGNITUDE = 0.02f;
-    float frequency = (_drumSoundFrequency / SAMPLE_RATE) * PI_TIMES_TWO;
+    float frequency = (_drumSoundFrequency / SAMPLE_RATE) * TWO_PI;
     if (_drumSoundVolume > 0.f) {
         for (int i = 0; i < numSamples; i++) {
             t = (float) _drumSoundSample + (float) i;

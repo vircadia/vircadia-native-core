@@ -31,10 +31,10 @@ void renderWorldBox();
 int widthText(float scale, int mono, char const* string);
 float widthChar(float scale, int mono, char ch);
 
-void drawText(int x, int y, float scale, float rotate, int mono,
+void drawText(int x, int y, float scale, float radians, int mono,
               char const* string, const float* color);
 
-void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, glm::vec3 vec, 
+void drawvec3(int x, int y, float scale, float radians, float thick, int mono, glm::vec3 vec, 
               float r=1.0, float g=1.0, float b=1.0);
 
 void drawVector(glm::vec3* vector);
