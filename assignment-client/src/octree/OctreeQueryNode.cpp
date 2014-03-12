@@ -15,7 +15,14 @@
 
 OctreeQueryNode::OctreeQueryNode() :
     _viewSent(false),
+    _octreePacket(new unsigned char[MAX_PACKET_SIZE]),
+    _octreePacketAt(_octreePacket),
     _octreePacketAvailableBytes(MAX_PACKET_SIZE),
+    _octreePacketWaiting(false),
+    _lastOctreePacket(new unsigned char[MAX_PACKET_SIZE]), 
+    _lastOctreePacketLength(0),
+    _duplicatePacketCount(0),
+    _firstSuppressedPacket(usecTimestampNow()),
     _maxSearchLevel(1),
     _maxLevelReachedInLastSearch(1),
     _lastTimeBagEmpty(0),
@@ -27,14 +34,9 @@ OctreeQueryNode::OctreeQueryNode() :
     _lastClientBoundaryLevelAdjust(0),
     _lastClientOctreeSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _lodChanged(false),
-    _lodInitialized(false)
+    _lodInitialized(false),
+    _sequenceNumber(0)
 {
-    _octreePacket = new unsigned char[MAX_PACKET_SIZE];
-    _octreePacketAt = _octreePacket;
-    _lastOctreePacket = new unsigned char[MAX_PACKET_SIZE];
-    _lastOctreePacketLength = 0;
-    _duplicatePacketCount = 0;
-    _sequenceNumber = 0;
 }
 
 OctreeQueryNode::~OctreeQueryNode() {

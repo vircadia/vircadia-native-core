@@ -65,7 +65,7 @@
 #include "renderer/VoxelShader.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/ChatEntry.h"
-#include "ui/VoxelStatsDialog.h"
+#include "ui/OctreeStatsDialog.h"
 #include "ui/RearMirrorTools.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
@@ -170,9 +170,9 @@ public:
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QSettings* getSettings() { return _settings; }
     QMainWindow* getWindow() { return _window; }
-    NodeToVoxelSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
-    void lockVoxelSceneStats() { _voxelSceneStatsLock.lockForRead(); }
-    void unlockVoxelSceneStats() { _voxelSceneStatsLock.unlock(); }
+    NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
+    void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
+    void unlockOctreeSceneStats() { _octreeSceneStatsLock.unlock(); }
 
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
@@ -459,8 +459,8 @@ private:
 
     NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToJurisdictionMap _particleServerJurisdictions;
-    NodeToVoxelSceneStats _octreeServerSceneStats;
-    QReadWriteLock _voxelSceneStatsLock;
+    NodeToOctreeSceneStats _octreeServerSceneStats;
+    QReadWriteLock _octreeSceneStatsLock;
 
     std::vector<VoxelFade> _voxelFades;
     ControllerScriptingInterface _controllerScriptingInterface;

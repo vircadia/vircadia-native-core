@@ -96,13 +96,14 @@ private:
     
     static VoxelsScriptingInterface _voxelsScriptingInterface;
     static ParticlesScriptingInterface _particlesScriptingInterface;
+    static int _scriptNumber;
+    
     AbstractControllerScriptingInterface* _controllerScriptingInterface;
     AudioScriptingInterface _audioScriptingInterface;
     AvatarData* _avatarData;
     bool _wantMenuItems;
     QString _scriptMenuName;
     QString _fileNameString;
-    static int _scriptNumber;
     Quat _quatLibrary;
     Vec3 _vec3Library;
 };

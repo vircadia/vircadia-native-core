@@ -17,10 +17,11 @@
 #include "OctreeEditPacketSender.h"
 
 
-EditPacketBuffer::EditPacketBuffer(PacketType type, unsigned char* buffer, ssize_t length, QUuid nodeUUID) {
-    _nodeUUID = nodeUUID;
-    _currentType = type;
-    _currentSize = length;
+EditPacketBuffer::EditPacketBuffer(PacketType type, unsigned char* buffer, ssize_t length, QUuid nodeUUID) :
+    _nodeUUID(nodeUUID),
+    _currentType(type),
+    _currentSize(length)
+{
     memcpy(_currentBuffer, buffer, length);
 };
 

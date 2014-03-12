@@ -26,8 +26,6 @@
 
 using namespace std;
 
-static const float fingerVectorRadix = 4; // bits of precision when converting from float<->fixed
-
 QNetworkAccessManager* AvatarData::networkAccessManager = NULL;
 
 AvatarData::AvatarData() :

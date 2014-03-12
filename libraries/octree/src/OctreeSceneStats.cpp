@@ -20,23 +20,22 @@
 
 const int samples = 100;
 OctreeSceneStats::OctreeSceneStats() : 
-    _elapsedAverage(samples), 
+    _isReadyToSend(false),
+    _isStarted(false),
+    _lastFullElapsed(0),
+    _elapsedAverage(samples),
     _bitsPerOctreeAverage(samples),
+    _lastFullTotalEncodeTime(0),
+    _incomingPacket(0),
+    _incomingBytes(0),
+    _incomingWastedBytes(0),
+    _incomingLastSequence(0),
+    _incomingOutOfOrder(0),
+    _incomingLikelyLost(0),
     _incomingFlightTimeAverage(samples),
     _jurisdictionRoot(NULL)
 {
     reset();
-    _isReadyToSend = false;
-    _isStarted = false;
-    _lastFullTotalEncodeTime = 0;
-    _lastFullElapsed = 0;
-    _incomingPacket = 0;
-    _incomingBytes = 0;
-    _incomingWastedBytes = 0;
-    _incomingLastSequence = 0;
-    _incomingOutOfOrder = 0;
-    _incomingLikelyLost = 0;
-    
 }
 
 // copy constructor

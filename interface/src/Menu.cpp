@@ -26,6 +26,7 @@
 #include <QWindow>
 
 #include <AccountManager.h>
+#include <XmppClient.h>
 #include <UUID.h>
 
 #include "Application.h"
@@ -66,7 +67,7 @@ Menu::Menu() :
     _faceshiftEyeDeflection(DEFAULT_FACESHIFT_EYE_DEFLECTION),
     _frustumDrawMode(FRUSTUM_DRAW_MODE_ALL),
     _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET),
-    _voxelStatsDialog(NULL),
+    _octreeStatsDialog(NULL),
     _lodToolsDialog(NULL),
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
     _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
@@ -162,6 +163,15 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::FstUploader, 0, Application::getInstance(), SLOT(uploadFST()));
 
+    _chatAction = addActionToQMenuAndActionHash(toolsMenu, MenuOption::Chat, 0, this, SLOT(showChat()));
+#ifdef HAVE_QXMPP
+    const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
+    toggleChat();
+    connect(&xmppClient, SIGNAL(connected()), this, SLOT(toggleChat()));
+    connect(&xmppClient, SIGNAL(disconnected()), this, SLOT(toggleChat()));
+#else
+    _chatAction->setEnabled(false);
+#endif
 
     QMenu* viewMenu = addMenu("View");
 
@@ -213,7 +223,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Oscilloscope, 0, true);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Bandwidth, 0, true);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0, this, SLOT(bandwidthDetails()));
-    addActionToQMenuAndActionHash(viewMenu, MenuOption::VoxelStats, 0, this, SLOT(voxelStatsDetails()));
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0, this, SLOT(octreeStatsDetails()));
 
     QMenu* developerMenu = addMenu("Developer");
 
@@ -341,7 +351,7 @@ Menu::Menu() :
 
 Menu::~Menu() {
     bandwidthDetailsClosed();
-    voxelStatsDetailsClosed();
+    octreeStatsDetailsClosed();
 }
 
 void Menu::loadSettings(QSettings* settings) {
@@ -1021,6 +1031,33 @@ void Menu::showMetavoxelEditor() {
     _MetavoxelEditor->raise();
 }
 
+void Menu::showChat() {
+    if (!_chatWindow) {
+        _chatWindow = new ChatWindow();
+        QMainWindow* mainWindow = Application::getInstance()->getWindow();
+
+        // the height of the title bar is given by frameGeometry().height() - geometry().height()
+        // however, frameGeometry() is initialised after showing (Qt queries the OS windowing system)
+        // on the other hand, moving a window after showing it flickers; so just use some reasonable value
+        int titleBarHeight = 16;
+        _chatWindow->setGeometry(mainWindow->width() - _chatWindow->width(),
+                                 mainWindow->geometry().y() + titleBarHeight,
+                                 _chatWindow->width(),
+                                 mainWindow->height() - titleBarHeight);
+        _chatWindow->show();
+    }
+    _chatWindow->raise();
+}
+
+void Menu::toggleChat() {
+#ifdef HAVE_QXMPP
+    _chatAction->setEnabled(XmppClient::getInstance().getXMPPClient().isConnected());
+    if (!_chatAction->isEnabled() && _chatWindow) {
+        _chatWindow->close();
+    }
+#endif
+}
+
 void Menu::audioMuteToggled() {
     QAction *muteAction = _actionHash.value(MenuOption::MuteAudio);
     muteAction->setChecked(Application::getInstance()->getAudio()->getMuted());
@@ -1033,20 +1070,20 @@ void Menu::bandwidthDetailsClosed() {
     }
 }
 
-void Menu::voxelStatsDetails() {
-    if (!_voxelStatsDialog) {
-        _voxelStatsDialog = new VoxelStatsDialog(Application::getInstance()->getGLWidget(),
+void Menu::octreeStatsDetails() {
+    if (!_octreeStatsDialog) {
+        _octreeStatsDialog = new OctreeStatsDialog(Application::getInstance()->getGLWidget(),
                                                  Application::getInstance()->getOcteeSceneStats());
-        connect(_voxelStatsDialog, SIGNAL(closed()), SLOT(voxelStatsDetailsClosed()));
-        _voxelStatsDialog->show();
+        connect(_octreeStatsDialog, SIGNAL(closed()), SLOT(octreeStatsDetailsClosed()));
+        _octreeStatsDialog->show();
     }
-    _voxelStatsDialog->raise();
+    _octreeStatsDialog->raise();
 }
 
-void Menu::voxelStatsDetailsClosed() {
-    if (_voxelStatsDialog) {
-        delete _voxelStatsDialog;
-        _voxelStatsDialog = NULL;
+void Menu::octreeStatsDetailsClosed() {
+    if (_octreeStatsDialog) {
+        delete _octreeStatsDialog;
+        _octreeStatsDialog = NULL;
     }
 }
 

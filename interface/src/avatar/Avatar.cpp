@@ -31,28 +31,6 @@
 using namespace std;
 
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
-const float YAW_MAG = 500.0f;
-const float MY_HAND_HOLDING_PULL = 0.2f;
-const float YOUR_HAND_HOLDING_PULL = 1.0f;
-const float BODY_SPRING_DEFAULT_TIGHTNESS = 1000.0f;
-const float BODY_SPRING_FORCE = 300.0f;
-const float BODY_SPRING_DECAY = 16.0f;
-const float COLLISION_RADIUS_SCALAR = 1.2f; // pertains to avatar-to-avatar collisions
-const float COLLISION_BODY_FORCE = 30.0f; // pertains to avatar-to-avatar collisions
-const float HEAD_ROTATION_SCALE = 0.70f;
-const float HEAD_ROLL_SCALE = 0.40f;
-const float HEAD_MAX_PITCH = 45;
-const float HEAD_MIN_PITCH = -45;
-const float HEAD_MAX_YAW = 85;
-const float HEAD_MIN_YAW = -85;
-const float AVATAR_BRAKING_STRENGTH = 40.0f;
-const float MOUSE_RAY_TOUCH_RANGE = 0.01f;
-const float FLOATING_HEIGHT = 0.13f;
-const bool  USING_HEAD_LEAN = false;
-const float LEAN_SENSITIVITY = 0.15f;
-const float LEAN_MAX = 0.45f;
-const float LEAN_AVERAGING = 10.0f;
-const float HEAD_RATE_MAX = 50.f;
 const int   NUM_BODY_CONE_SIDES = 9;
 const float CHAT_MESSAGE_SCALE = 0.0015f;
 const float CHAT_MESSAGE_HEIGHT = 0.1f;
