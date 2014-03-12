@@ -28,19 +28,19 @@
     <name>ChatWindow</name>
     <message>
         <location filename="ui/chatWindow.ui" line="14"/>
-        <location filename="../build/interface/ui_chatWindow.h" line="112"/>
+        <location filename="../build/interface/ui_chatWindow.h" line="113"/>
         <source>Chat</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="ui/chatWindow.ui" line="41"/>
-        <location filename="../build/interface/ui_chatWindow.h" line="113"/>
+        <location filename="../build/interface/ui_chatWindow.h" line="114"/>
         <source>Connecting to XMPP...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="ui/chatWindow.ui" line="60"/>
-        <location filename="../build/interface/ui_chatWindow.h" line="114"/>
+        <location filename="../build/interface/ui_chatWindow.h" line="115"/>
         <source> online now:</source>
         <translation type="unfinished"></translation>
     </message>
