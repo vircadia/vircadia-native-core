@@ -149,6 +149,7 @@ private slots:
     void toggleChat();
     void audioMuteToggled();
     void namedLocationCreated(LocationManager::NamedLocationCreateResponse response, NamedLocation* location);
+    void multipleDestinationsDecision(const QJsonObject& userData, const QJsonObject& placeData);
 
 private:
     static Menu* _instance;
