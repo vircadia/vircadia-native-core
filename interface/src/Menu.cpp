@@ -1087,6 +1087,40 @@ void Menu::octreeStatsDetailsClosed() {
     }
 }
 
+QString Menu::getLODFeedbackText() {
+    // determine granularity feedback
+    int boundaryLevelAdjust = getBoundaryLevelAdjust();
+    QString granularityFeedback;
+
+    switch (boundaryLevelAdjust) {
+        case 0: {
+            granularityFeedback = QString("at standard granularity.");
+        } break;
+        case 1: {
+            granularityFeedback = QString("at half of standard granularity.");
+        } break;
+        case 2: {
+            granularityFeedback = QString("at a third of standard granularity.");
+        } break;
+        default: {
+            granularityFeedback = QString("at 1/%1th of standard granularity.").arg(boundaryLevelAdjust + 1);
+        } break;
+    }
+
+    // distance feedback    
+    float voxelSizeScale = getVoxelSizeScale();
+    float relativeToDefault = voxelSizeScale / DEFAULT_OCTREE_SIZE_SCALE;
+    QString result;
+    if (relativeToDefault > 1.01) {
+        result = QString("%1 further %2").arg(relativeToDefault,8,'f',2).arg(granularityFeedback);
+    } else if (relativeToDefault > 0.99) {
+            result = QString("the default distance %1").arg(granularityFeedback);
+    } else {
+        result = QString("%1 of default %2").arg(relativeToDefault,8,'f',3).arg(granularityFeedback);
+    }
+    return result;
+}
+
 void Menu::autoAdjustLOD(float currentFPS) {
     // NOTE: our first ~100 samples at app startup are completely all over the place, and we don't 
     // really want to count them in our average, so we will ignore the real frame rates and stuff

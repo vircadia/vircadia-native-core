@@ -2786,8 +2786,8 @@ void Application::displayStats() {
         voxelStats.str("");
         QString packetsString = locale.toString((int)voxelPacketsToProcess);
         QString maxString = locale.toString((int)_recentMaxPackets);
-        voxelStats << "Voxel Packets to Process: " << packetsString.toLocal8Bit().constData()
-                    << " [Recent Max: " << maxString.toLocal8Bit().constData() << "]";        
+        voxelStats << "Voxel Packets to Process: " << qPrintable(packetsString)
+                    << " [Recent Max: " << qPrintable(maxString) << "]";        
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, (char*)voxelStats.str().c_str(), WHITE_TEXT);
     }
@@ -2810,7 +2810,7 @@ void Application::displayStats() {
 
     // Server Voxels
     voxelStats.str("");
-    voxelStats << "Server voxels: " << serversTotalString.toLocal8Bit().constData();
+    voxelStats << "Server voxels: " << qPrintable(serversTotalString);
     verticalOffset += STATS_PELS_PER_LINE;
     drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, (char*)voxelStats.str().c_str(), WHITE_TEXT);
 
@@ -2820,8 +2820,8 @@ void Application::displayStats() {
 
         voxelStats.str("");
         voxelStats <<
-            "Internal: " << serversInternalString.toLocal8Bit().constData() << "  " <<
-            "Leaves: " << serversLeavesString.toLocal8Bit().constData() << "";
+            "Internal: " << qPrintable(serversInternalString) << "  " <<
+            "Leaves: " << qPrintable(serversLeavesString) << "";
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, (char*)voxelStats.str().c_str(), WHITE_TEXT);
     }
@@ -2831,7 +2831,7 @@ void Application::displayStats() {
 
     // Local Voxels
     voxelStats.str("");
-    voxelStats << "Local voxels: " << localTotalString.toLocal8Bit().constData();
+    voxelStats << "Local voxels: " << qPrintable(localTotalString);
     verticalOffset += STATS_PELS_PER_LINE;
     drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, (char*)voxelStats.str().c_str(), WHITE_TEXT);
 
@@ -2843,8 +2843,17 @@ void Application::displayStats() {
 
         voxelStats.str("");
         voxelStats <<
-            "Internal: " << localInternalString.toLocal8Bit().constData() << "  " <<
-            "Leaves: " << localLeavesString.toLocal8Bit().constData() << "";
+            "Internal: " << qPrintable(localInternalString) << "  " <<
+            "Leaves: " << qPrintable(localLeavesString) << "";
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, (char*)voxelStats.str().c_str(), WHITE_TEXT);
+    }
+
+    // LOD Details
+    if (_statsExpanded) {
+        voxelStats.str("");
+        QString displayLODDetails = Menu::getInstance()->getLODFeedbackText();
+        voxelStats << "LOD: You can see " << qPrintable(displayLODDetails.trimmed());
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, (char*)voxelStats.str().c_str(), WHITE_TEXT);
     }
