@@ -177,14 +177,14 @@ public:
     virtual void readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const { read(in, value, isLeaf); }
     virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const { write(out, value, isLeaf); }
 
-    virtual void read(MetavoxelData& data, MetavoxelStreamState& state);
-    virtual void write(const MetavoxelNode& root, MetavoxelStreamState& state);
+    virtual void readMetavoxelRoot(MetavoxelData& data, MetavoxelStreamState& state);
+    virtual void writeMetavoxelRoot(const MetavoxelNode& root, MetavoxelStreamState& state);
     
-    virtual void readDelta(MetavoxelData& data, const MetavoxelNode& reference, MetavoxelStreamState& state);
-    virtual void writeDelta(const MetavoxelNode& root, const MetavoxelNode& reference, MetavoxelStreamState& state);
+    virtual void readMetavoxelDelta(MetavoxelData& data, const MetavoxelNode& reference, MetavoxelStreamState& state);
+    virtual void writeMetavoxelDelta(const MetavoxelNode& root, const MetavoxelNode& reference, MetavoxelStreamState& state);
     
-    virtual void readSubdivision(MetavoxelData& data, MetavoxelStreamState& state);
-    virtual void writeSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state);
+    virtual void readMetavoxelSubdivision(MetavoxelData& data, MetavoxelStreamState& state);
+    virtual void writeMetavoxelSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state);
 
     virtual bool equal(void* first, void* second) const = 0;
 
@@ -355,14 +355,14 @@ public:
     Q_INVOKABLE SpannerSetAttribute(const QString& name = QString(),
         const QMetaObject* metaObject = &SharedObject::staticMetaObject);
     
-    virtual void read(MetavoxelData& data, MetavoxelStreamState& state);
-    virtual void write(const MetavoxelNode& root, MetavoxelStreamState& state);
+    virtual void readMetavoxelRoot(MetavoxelData& data, MetavoxelStreamState& state);
+    virtual void writeMetavoxelRoot(const MetavoxelNode& root, MetavoxelStreamState& state);
     
-    virtual void readDelta(MetavoxelData& data, const MetavoxelNode& reference, MetavoxelStreamState& state);
-    virtual void writeDelta(const MetavoxelNode& root, const MetavoxelNode& reference, MetavoxelStreamState& state);
+    virtual void readMetavoxelDelta(MetavoxelData& data, const MetavoxelNode& reference, MetavoxelStreamState& state);
+    virtual void writeMetavoxelDelta(const MetavoxelNode& root, const MetavoxelNode& reference, MetavoxelStreamState& state);
     
-    virtual void readSubdivision(MetavoxelData& data, MetavoxelStreamState& state);
-    virtual void writeSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state);
+    virtual void readMetavoxelSubdivision(MetavoxelData& data, MetavoxelStreamState& state);
+    virtual void writeMetavoxelSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state);
 };
 
 #endif /* defined(__interface__AttributeRegistry__) */

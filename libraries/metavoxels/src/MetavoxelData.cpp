@@ -312,7 +312,7 @@ void MetavoxelData::read(Bitstream& in, const MetavoxelLOD& lod) {
             break;
         }
         MetavoxelStreamState state = { getMinimum(), _size, attribute, in, lod, lod };
-        attribute->read(*this, state);
+        attribute->readMetavoxelRoot(*this, state);
     }
 }
 
@@ -321,7 +321,7 @@ void MetavoxelData::write(Bitstream& out, const MetavoxelLOD& lod) const {
     for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
         out << it.key();
         MetavoxelStreamState state = { getMinimum(), _size, it.key(), out, lod, lod };
-        it.key()->write(*it.value(), state);
+        it.key()->writeMetavoxelRoot(*it.value(), state);
     }
     out << AttributePointer();
 }
@@ -360,13 +360,13 @@ void MetavoxelData::readDelta(const MetavoxelData& reference, const MetavoxelLOD
             in >> changed;
             if (changed) {
                 oldRoot->incrementReferenceCount();
-                attribute->readDelta(*this, *oldRoot, state);
+                attribute->readMetavoxelDelta(*this, *oldRoot, state);
                 oldRoot->decrementReferenceCount(attribute);    
             } else {
-                attribute->readSubdivision(*this, state);
+                attribute->readMetavoxelSubdivision(*this, state);
             }
         } else {
-            attribute->read(*this, state);
+            attribute->readMetavoxelRoot(*this, state);
         } 
     }
     
@@ -415,13 +415,13 @@ void MetavoxelData::writeDelta(const MetavoxelData& reference, const MetavoxelLO
             if (referenceRoot) {
                 if (it.value() == referenceRoot) {
                     out << false;
-                    it.key()->writeSubdivision(*it.value(), state);
+                    it.key()->writeMetavoxelSubdivision(*it.value(), state);
                 } else {
                     out << true;
-                    it.key()->writeDelta(*it.value(), *referenceRoot, state);
+                    it.key()->writeMetavoxelDelta(*it.value(), *referenceRoot, state);
                 }
             } else {
-                it.key()->write(*it.value(), state);
+                it.key()->writeMetavoxelRoot(*it.value(), state);
             }
         }
     }
