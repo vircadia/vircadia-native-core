@@ -40,12 +40,12 @@ void LocalVoxelsOverlay::update(float deltatime) {
         _voxelSystem->init();
     }
     
+    _tree->lockForWrite();
     if (_visible && _voxelCount != _tree->getOctreeElementsCount()) {
         _voxelCount = _tree->getOctreeElementsCount();
-        _tree->lockForWrite();
         _voxelSystem->forceRedrawEntireTree();
-        _tree->unlock();
     }
+    _tree->unlock();
 }
 
 void LocalVoxelsOverlay::render() {

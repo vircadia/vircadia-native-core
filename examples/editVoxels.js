@@ -972,7 +972,6 @@ function mousePressEvent(event) {
         print("placing import...");
         placeImport();
         showImport(false);
-        pasteMode = false;
         moveTools();
         return;
     }
@@ -1177,7 +1176,6 @@ function menuItemEvent(menuItem) {
             print("importing...");
             if (importVoxels()) {
                 showImport(true);
-                pasteMode = true;
             }
             moveTools();
         }
@@ -1512,14 +1510,27 @@ function checkControllers() {
 }
 
 function update(deltaTime) {
-    var newWindowDimensions = Controller.getViewportDimensions();
-    if (newWindowDimensions.x != windowDimensions.x || newWindowDimensions.y != windowDimensions.y) {
-        windowDimensions = newWindowDimensions;
-        moveTools();
-    }
-
     if (editToolsOn) {
+        var newWindowDimensions = Controller.getViewportDimensions();
+        if (newWindowDimensions.x != windowDimensions.x || newWindowDimensions.y != windowDimensions.y) {
+            windowDimensions = newWindowDimensions;
+            moveTools();
+        }
+
         checkControllers();
+
+        // Move Import Preview
+        if (isImporting) {
+            var position = MyAvatar.position;
+            var forwardVector = Quat.getFront(MyAvatar.orientation);
+            var targetPosition = Vec3.sum(position, Vec3.multiply(forwardVector, importScale));
+            var newPosition = {
+                x: Math.floor(targetPosition.x / importScale) * importScale,
+                y: Math.floor(targetPosition.y / importScale) * importScale,
+                z: Math.floor(targetPosition.z / importScale) * importScale
+            }
+            moveImport(newPosition);
+        }
     }
 }
 
