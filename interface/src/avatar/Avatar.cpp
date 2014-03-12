@@ -189,7 +189,7 @@ void Avatar::render(bool forShadowMap) {
     {
         // glow when moving in the distance
         
-        const float GLOW_DISTANCE = 10.0f;
+        const float GLOW_DISTANCE = 20.0f;
         Glower glower(_moving && lengthToTarget > GLOW_DISTANCE && !forShadowMap ? 1.0f : 0.0f);
 
         // render body
