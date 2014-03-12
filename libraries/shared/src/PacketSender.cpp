@@ -54,6 +54,10 @@ void PacketSender::queuePacketForSending(const SharedNodePointer& destinationNod
     unlock();
     _totalPacketsQueued++;
     _totalBytesQueued += packet.size();
+
+    // Make sure to  wake our actual processing thread because we  now have packets for it to process.
+    qDebug() << "PacketSender::queuePacketForSending()... wake up, we need to send packets!.";
+    _hasPackets.wakeAll();
 }
 
 void PacketSender::setPacketsPerSecond(int packetsPerSecond) {
@@ -68,6 +72,10 @@ bool PacketSender::process() {
     return nonThreadedProcess();
 }
 
+void PacketSender::terminating() {
+    qDebug() << "PacketSender::terminating()... wake up, we need to die.";
+    _hasPackets.wakeAll();
+}
 
 bool PacketSender::threadedProcess() {
     bool hasSlept = false;
@@ -113,7 +121,14 @@ bool PacketSender::threadedProcess() {
     // we don't want to sleep too long because how ever much we sleep will delay any future unsent
     // packets that arrive while we're sleeping. So we sleep 1/2 of our target fps interval
     if (!hasSlept) {
-        usleep(MINIMAL_SLEEP_INTERVAL);
+        //usleep(MINIMAL_SLEEP_INTERVAL);
+
+        // wait till we have packets        
+        _waitingOnPacketsMutex.lock();
+        qDebug() << "PacketSender::threadedProcess()... waiting on packets to send...";
+        _hasPackets.wait(&_waitingOnPacketsMutex);
+        qDebug() << "PacketSender::threadedProcess()... YIPEEE we're awake...";
+        _waitingOnPacketsMutex.unlock();
     }
 
     return isStillRunning();
