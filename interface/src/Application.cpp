@@ -1921,17 +1921,17 @@ void Application::updateMyAvatar(float deltaTime) {
     
     // Update my voxel servers with my current voxel query...
     quint64 now = usecTimestampNow();
-    const quint64 TOO_LONG_SINCE_LAST_QUERY = 1 * USECS_PER_SECOND;
+    quint64 sinceLastQuery = now - _lastQueriedTime;
+    const quint64 TOO_LONG_SINCE_LAST_QUERY = 3 * USECS_PER_SECOND;
+    bool queryIsDue = sinceLastQuery > TOO_LONG_SINCE_LAST_QUERY;
+    bool viewIsDifferentEnough = !_lastQueriedViewFrustum.isVerySimilar(_viewFrustum);
 
-    // if we haven't waited long enough and the frustum is similar enough, then surpress this query...
-    if ((now - _lastQueriedTime) > TOO_LONG_SINCE_LAST_QUERY ||  !_lastQueriedViewFrustum.isVerySimilar(_viewFrustum)) {
+    // if it's been a while since our last query or the view has significantly changed then send a query, otherwise suppress it
+    if (queryIsDue || viewIsDifferentEnough) {
         _lastQueriedTime = now;
         queryOctree(NodeType::VoxelServer, PacketTypeVoxelQuery, _voxelServerJurisdictions);
         queryOctree(NodeType::ParticleServer, PacketTypeParticleQuery, _particleServerJurisdictions);
         _lastQueriedViewFrustum = _viewFrustum;
-        //qDebug() << ">>>>>>>>>> SENDING query...";
-    } else {
-        //qDebug() << "suppress query...";
     }
 }
 
