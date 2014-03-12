@@ -14,23 +14,34 @@
 #include <QList>
 #include <QTemporaryDir>
 
+
+static const QString nameField = "name";
 static const QString filenameField = "filename";
 static const QString texdirField = "texdir";
 static const QString lodField = "lod";
 
-static const int MAX_FBX_SIZE = 1024 * 1024; // 1 MB
-static const int MAX_TEXTURE_SIZE = 1024 * 1024; // 1 MB
+static const int MAX_SIZE = 1024 * 1024; // 1 MB
 
 class FstReader {
 public:
     FstReader();
     
     bool zip();
+    bool send();
     
 private:
     QTemporaryDir _zipDir;
     
-    bool addTextures(QFileInfo& texdir, QDir newTexdir);
+    QString _modelName;
+    QString _fstFile;
+    QString _fbxFile;
+    QStringList _lodFiles;
+    QStringList _textureFiles;
+    
+    int _totalSize;
+    
+    
+    bool addTextures(QFileInfo& texdir);
     bool compressFile(const QString& inFileName, const QString& outFileName);
 };
 

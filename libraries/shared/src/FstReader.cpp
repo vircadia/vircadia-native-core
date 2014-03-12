@@ -17,7 +17,6 @@
 #include "FstReader.h"
 
 FstReader::FstReader() {
-    
 }
 
 
@@ -37,8 +36,7 @@ bool FstReader::zip() {
     qDebug() << "Reading FST file : " << QFileInfo(fst).filePath();
     
     
-    QTemporaryDir tempRootDir(_zipDir.path() + "/" + QFileInfo(fst).baseName());
-    QDir rootDir(tempRootDir.path());
+    QDir rootDir(_zipDir.path());
     
     // Let's read through the FST file
     QTextStream stream(&fst);
@@ -50,56 +48,66 @@ bool FstReader::zip() {
         }
         
         // according to what is read, we modify the command
-        if (line.first() == filenameField) {
-            QFileInfo fbx(QFileInfo(fst).path() + "/" + line.at(1));
+        if (line.first() == nameField) {
+            _modelName = line[1];
+        } else if (line.first() == filenameField) {
+            QFileInfo fbx(QFileInfo(fst).path() + "/" + line[1]);
             if (!fbx.exists() || !fbx.isFile()) { // Check existence
                 qDebug() << "[ERROR] FBX file " << fbx.absoluteFilePath() << " doesn't exist.";
                 return false;
-            } else if (fbx.size() > MAX_FBX_SIZE) { // Check size
-                qDebug() << "[ERROR] FBX file " << fbx.absoluteFilePath() << " too big, over " << MAX_FBX_SIZE << " MB.";
-                return false;
             } else { // Compress and copy
-                compressFile(fbx.filePath(),
-                             rootDir.path() + "/" + line.at(1));
+                _fbxFile = rootDir.path() + "/" + line[1];
+                _totalSize += fbx.size();
+                compressFile(fbx.filePath(), _fbxFile);
             }
         } else if (line.first() == texdirField) { // Check existence
-            QFileInfo texdir(QFileInfo(fst).path() + "/" + line.at(1));
+            QFileInfo texdir(QFileInfo(fst).path() + "/" + line[1]);
             if (!texdir.exists() || !texdir.isDir()) {
                 qDebug() << "[ERROR] Texture directory " << texdir.absolutePath() << " doesn't exist.";
                 return false;
             }
-            QDir newTexdir(rootDir.canonicalPath() + "/" + line.at(1));
-            if (!newTexdir.exists() && !rootDir.mkpath(line.at(1))) { // Create texdir
-                qDebug() << "[ERROR] Couldn't create " << line.at(1) << ".";
-                return false;
-            }
-            if (!addTextures(texdir, newTexdir)) { // Recursive compress and copy
+            if (!addTextures(texdir)) { // Recursive compress and copy
                 return false;
             }
         } else if (line.first() == lodField) {
-            QFileInfo lod(QFileInfo(fst).path() + "/" + line.at(1));
+            QFileInfo lod(QFileInfo(fst).path() + "/" + line[1]);
             if (!lod.exists() || !lod.isFile()) { // Check existence
                 qDebug() << "[ERROR] FBX file " << lod.absoluteFilePath() << " doesn't exist.";
-                return false;
-            } else if (lod.size() > MAX_FBX_SIZE) { // Check size
-                qDebug() << "[ERROR] FBX file " << lod.absoluteFilePath() << " too big, over " << MAX_FBX_SIZE << " MB.";\
-                return false;
+                //return false;
             } else { // Compress and copy
-                compressFile(lod.filePath(), rootDir.path() + "/" + line.at(1));
+                _lodFiles.push_back(rootDir.path() + "/" + line[1]);
+                _totalSize += lod.size();
+                compressFile(lod.filePath(), _lodFiles.back());
             }
         }
     }
     
     // Compress and copy the fst
-    compressFile(fst.fileName(),
-                 rootDir.path() + "/" + QFileInfo(fst).fileName());
-    
-    tempRootDir.setAutoRemove(false);
+    _fstFile = rootDir.path() + "/" + QFileInfo(fst).fileName();
+    _totalSize += QFileInfo(fst).size();
+    compressFile(fst.fileName(), _fstFile);
     
     return true;
 }
 
-bool FstReader::addTextures(QFileInfo& texdir, QDir newTexdir) {
+bool FstReader::send() {
+    QString command = QString("curl -F \"model_name=%1\"").arg(_modelName);
+    
+    command += QString(" -F \"fst=@%1\" -F \"fbx=@%2\"").arg(_fstFile, _fbxFile);
+    for (int i = 0; i < _lodFiles.size(); ++i) {
+        command += QString(" -F \"lod%1=@%2\"").arg(i).arg(_lodFiles[i]);
+    }
+    for (int i = 0; i < _textureFiles.size(); ++i) {
+        command += QString(" -F \"lod%1=@%2\"").arg(i).arg(_textureFiles[i]);
+    }
+    command += " http://localhost:3000/api/v1/models/?access_token\\=017894b7312316a2b5025613fcc58c13bc701da9b797cca34b60aae9d1c53acb --trace-ascii /dev/stdout";
+    
+    qDebug() << "[DEBUG] " << command;
+    
+    return true;
+}
+
+bool FstReader::addTextures(QFileInfo& texdir) {
     QStringList filter;
     filter << "*.png" << "*.tiff" << "*.jpg" << "*.jpeg";
     
@@ -110,19 +118,11 @@ bool FstReader::addTextures(QFileInfo& texdir, QDir newTexdir) {
                                                                QDir::NoSymLinks);
     foreach (QFileInfo info, list) {
         if (info.isFile()) {
-            if (info.size() > MAX_TEXTURE_SIZE) {
-                qDebug() << "[ERROR] Texture " << info.absoluteFilePath()
-                         << "too big, file  over " << MAX_TEXTURE_SIZE << " Bytes.";
-                return false;
-            }
-            compressFile(info.canonicalFilePath(), newTexdir.path() + "/" + info.fileName());
+            _textureFiles.push_back(_zipDir.path() + "/" + info.fileName());
+            _totalSize += info.size();
+            compressFile(info.canonicalFilePath(), _textureFiles.back());
         } else if (info.isDir()) {
-            if (newTexdir.mkdir(info.fileName())) {
-                qDebug() << "[ERROR] Couldn't create texdir.";
-                return false;
-            }
-            QDir texdirChild(newTexdir.canonicalPath() + "/" + info.fileName());
-            if (!addTextures(info, QDir(info.canonicalFilePath()))) {
+            if (!addTextures(info)) {
                 return false;
             }
         } else {
