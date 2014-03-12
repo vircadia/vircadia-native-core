@@ -544,7 +544,7 @@ void DomainServer::readAvailableDatagrams() {
                 // construct the requested assignment from the packet data
                 Assignment requestAssignment(receivedPacket);
                 
-                // Suppress these for Assignment::AgentType to 1 per second...
+                // Suppress these for Assignment::AgentType to once per 5 seconds
                 static quint64 lastNoisyMessage = usecTimestampNow();
                 quint64 timeNow = usecTimestampNow();
                 const quint64 NOISY_TIME_ELAPSED = 5 * USECS_PER_SECOND;
