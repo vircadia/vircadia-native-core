@@ -120,7 +120,7 @@ private:
     glm::vec3   _right;
 
     // Lens attributes
-    float _fieldOfView;
+    float _fieldOfView; // degrees
     float _aspectRatio;
     float _nearClip;
     float _farClip;

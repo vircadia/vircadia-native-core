@@ -22,8 +22,8 @@ glm::quat Quat::multiply(const glm::quat& q1, const glm::quat& q2) {
     return q1 * q2; 
 }
 
-glm::quat Quat::fromVec3(const glm::vec3& vec3) { 
-    return glm::quat(vec3); 
+glm::quat Quat::fromVec3(const glm::vec3& eulerAngles) { 
+    return glm::quat(glm::radians(eulerAngles)); 
 }
 
 glm::quat Quat::fromPitchYawRoll(float pitch, float yaw, float roll) { 
@@ -47,11 +47,11 @@ glm::vec3 Quat::getUp(const glm::quat& orientation) {
 }
 
 glm::vec3 Quat::safeEulerAngles(const glm::quat& orientation) {
-    return ::safeEulerAngles(orientation);
+    return glm::degrees(::safeEulerAngles(orientation));
 }
 
 glm::quat Quat::angleAxis(float angle, const glm::vec3& v) {
-    return glm::angleAxis(angle, v);
+    return glm::angleAxis(glm::radians(angle), v);
 }
 
 glm::quat Quat::mix(const glm::quat& q1, const glm::quat& q2, float alpha) {

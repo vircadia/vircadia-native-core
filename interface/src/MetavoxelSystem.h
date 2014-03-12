@@ -168,7 +168,7 @@ public:
 private slots:
 
     void applyTranslation(const glm::vec3& translation);
-    void applyRotation(const glm::vec3& rotation);
+    void applyRotation(const glm::vec3& eulerAngles);   // eulerAngles are in degrees
     void applyScale(float scale);
     void applyURL(const QUrl& url);
 

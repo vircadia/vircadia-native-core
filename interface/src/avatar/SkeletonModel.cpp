@@ -20,7 +20,7 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar) :
 
 void SkeletonModel::simulate(float deltaTime, bool delayLoad) {
     setTranslation(_owningAvatar->getPosition());
-    setRotation(_owningAvatar->getOrientation() * glm::angleAxis(180.0f, glm::vec3(0.0f, 1.0f, 0.0f)));
+    setRotation(_owningAvatar->getOrientation() * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)));
     const float MODEL_SCALE = 0.0006f;
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale() * MODEL_SCALE);
     
@@ -195,8 +195,9 @@ void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, const
     glm::mat3 axes = glm::mat3_cast(_rotation);
     glm::mat3 inverse = glm::mat3(glm::inverse(parentState.transform * glm::translate(state.translation) * 
         joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation)));
-    state.rotation = glm::angleAxis(-_owningAvatar->getHead()->getLeanSideways(), glm::normalize(inverse * axes[2])) *
-        glm::angleAxis(-_owningAvatar->getHead()->getLeanForward(), glm::normalize(inverse * axes[0])) * joint.rotation;
+    state.rotation = glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getLeanSideways(), 
+        glm::normalize(inverse * axes[2])) * glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getLeanForward(), 
+        glm::normalize(inverse * axes[0])) * joint.rotation;
 }
 
 void SkeletonModel::stretchArm(int jointIndex, const glm::vec3& position) {

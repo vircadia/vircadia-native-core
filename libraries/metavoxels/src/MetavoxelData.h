@@ -504,7 +504,7 @@ signals:
 private:
     
     glm::vec3 _translation;
-    glm::vec3 _rotation;
+    glm::vec3 _rotation; // Euler Angles in degrees
     float _scale;
 };
 

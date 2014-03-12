@@ -15,12 +15,13 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-const float MIN_HEAD_YAW = -110;
-const float MAX_HEAD_YAW = 110;
-const float MIN_HEAD_PITCH = -60;
-const float MAX_HEAD_PITCH = 60;
-const float MIN_HEAD_ROLL = -50;
-const float MAX_HEAD_ROLL = 50;
+// degrees
+const float MIN_HEAD_YAW = -110.f;
+const float MAX_HEAD_YAW = 110.f;
+const float MIN_HEAD_PITCH = -60.f;
+const float MAX_HEAD_PITCH = 60.f;
+const float MIN_HEAD_ROLL = -50.f;
+const float MAX_HEAD_ROLL = 50.f;
 
 class AvatarData;
 
@@ -29,21 +30,17 @@ public:
     HeadData(AvatarData* owningAvatar);
     virtual ~HeadData() { };
     
+    // degrees
     float getLeanSideways() const { return _leanSideways; }
     void setLeanSideways(float leanSideways) { _leanSideways = leanSideways; }
-    
     float getLeanForward() const { return _leanForward; }
     void setLeanForward(float leanForward) { _leanForward = leanForward; }
-    
     float getYaw() const { return _yaw; }
     void setYaw(float yaw) { _yaw = glm::clamp(yaw, MIN_HEAD_YAW, MAX_HEAD_YAW); }
-    
     float getPitch() const { return _pitch; }
     void setPitch(float pitch) { _pitch = glm::clamp(pitch, MIN_HEAD_PITCH, MAX_HEAD_PITCH); }
-    
     float getRoll() const { return _roll; }
     void setRoll(float roll) { _roll = glm::clamp(roll, MIN_HEAD_ROLL, MAX_HEAD_ROLL); }
-
     virtual float getTweakedYaw() const { return _yaw; }
     virtual float getTweakedPitch() const { return _pitch; }
     virtual float getTweakedRoll() const { return _roll; }
@@ -62,6 +59,7 @@ public:
     float getPupilDilation() const { return _pupilDilation; }
     void setPupilDilation(float pupilDilation) { _pupilDilation = pupilDilation; }
     
+    // degrees
     void addYaw(float yaw);
     void addPitch(float pitch);
     void addRoll(float roll);
@@ -73,12 +71,14 @@ public:
     friend class AvatarData;
     
 protected:
+    // degrees
     float _yaw;
     float _pitch;
     float _roll;
-    glm::vec3 _lookAtPosition;
     float _leanSideways;
     float _leanForward;
+
+    glm::vec3 _lookAtPosition;
     float _audioLoudness;
     bool _isFaceshiftConnected;
     float _leftEyeBlink;

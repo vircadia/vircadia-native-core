@@ -16,6 +16,7 @@
 using namespace starfield;
 
 const float Generator::STAR_COLORIZATION = 0.1f;
+const float PI_OVER_180 = 3.14159265358979f / 180.f;
 
 void Generator::computeStarPositions(InputVertices& destination, unsigned limit, unsigned seed) {
     InputVertices* vertices = & destination;

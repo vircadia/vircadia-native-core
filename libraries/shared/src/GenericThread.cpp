@@ -44,6 +44,8 @@ void GenericThread::initialize(bool isThreaded) {
 void GenericThread::terminate() {
     if (_isThreaded) {
         _stopThread = true;
+        
+        terminating();
 
         if (_thread) {
             _thread->wait();
