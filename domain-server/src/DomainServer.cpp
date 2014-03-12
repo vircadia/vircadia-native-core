@@ -545,11 +545,11 @@ void DomainServer::readAvailableDatagrams() {
                 Assignment requestAssignment(receivedPacket);
                 
                 // Suppress these for Assignment::AgentType to 1 per second...
-                static quint64 lastMessage = usecTimestampNow();
+                static quint64 lastNoisyMessage = usecTimestampNow();
                 quint64 timeNow = usecTimestampNow();
-                const quint64 NOISY_TIME_ELAPSED = 10 * USECS_PER_SECOND;
+                const quint64 NOISY_TIME_ELAPSED = 5 * USECS_PER_SECOND;
                 bool noisyMessage = false;
-                if (requestAssignment.getType() != Assignment::AgentType || (timeNow - lastMessage) > NOISY_TIME_ELAPSED) {
+                if (requestAssignment.getType() != Assignment::AgentType || (timeNow - lastNoisyMessage) > NOISY_TIME_ELAPSED) {
                     qDebug() << "Received a request for assignment type" << requestAssignment.getType()
                         << "from" << senderSockAddr;
                     noisyMessage = true;
@@ -570,7 +570,7 @@ void DomainServer::readAvailableDatagrams() {
                     nodeList->getNodeSocket().writeDatagram(assignmentPacket,
                                                             senderSockAddr.getAddress(), senderSockAddr.getPort());
                 } else {
-                    if (requestAssignment.getType() != Assignment::AgentType || (timeNow - lastMessage) > NOISY_TIME_ELAPSED) {
+                    if (requestAssignment.getType() != Assignment::AgentType || (timeNow - lastNoisyMessage) > NOISY_TIME_ELAPSED) {
                         qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
                             << "from" << senderSockAddr;
                         noisyMessage = true;
@@ -578,7 +578,7 @@ void DomainServer::readAvailableDatagrams() {
                 }
                 
                 if (noisyMessage) {
-                    lastMessage = timeNow;
+                    lastNoisyMessage = timeNow;
                 }
             }
         }
