@@ -179,6 +179,7 @@ public:
     
     Extents bindExtents;
     Extents staticExtents;
+    Extents meshExtents;
     
     QVector<FBXAttachment> attachments;
     

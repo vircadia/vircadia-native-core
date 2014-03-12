@@ -191,7 +191,7 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     messageLabel->setWordWrap(true);
     messageLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
     messageLabel->setOpenExternalLinks(true);
-    messageLabel->setStyleSheet("padding: 2px;");
+    messageLabel->setStyleSheet("padding: 2px; margin-right: 20px");
     messageLabel->setAlignment(Qt::AlignTop);
 
     ui->messagesFormLayout->addRow(userLabel, messageLabel);

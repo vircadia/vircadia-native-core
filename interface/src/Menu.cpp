@@ -163,7 +163,11 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::FstUploader, 0, Application::getInstance(), SLOT(uploadFST()));
 
-    _chatAction = addActionToQMenuAndActionHash(toolsMenu, MenuOption::Chat, 0, this, SLOT(showChat()));
+    _chatAction = addActionToQMenuAndActionHash(toolsMenu,
+                                                MenuOption::Chat,
+                                                Qt::Key_Return,
+                                                this,
+                                                SLOT(showChat()));
 #ifdef HAVE_QXMPP
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
     toggleChat();

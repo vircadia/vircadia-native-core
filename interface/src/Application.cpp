@@ -153,7 +153,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _touchAvgY(0.0f),
         _isTouchPressed(false),
         _mousePressed(false),
-        _chatEntryOn(false),
         _audio(&_audioScope, STARTUP_JITTER_SAMPLES),
         _enableProcessVoxelsThread(true),
         _voxelProcessor(),
@@ -698,21 +697,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
     }
 
     if (activeWindow() == _window) {
-        if (_chatEntryOn) {
-            if (_chatEntry.keyPressEvent(event)) {
-                _myAvatar->setKeyState(event->key() == Qt::Key_Backspace || event->key() == Qt::Key_Delete ?
-                                      DELETE_KEY_DOWN : INSERT_KEY_DOWN);
-                _myAvatar->setChatMessage(string(_chatEntry.getContents().size(), SOLID_BLOCK_CHAR));
-
-            } else {
-                _myAvatar->setChatMessage(_chatEntry.getContents());
-                _chatEntry.clear();
-                _chatEntryOn = false;
-                setMenuShortcutsEnabled(true);
-            }
-            return;
-        }
-
         bool isShifted = event->modifiers().testFlag(Qt::ShiftModifier);
         bool isMeta = event->modifiers().testFlag(Qt::ControlModifier);
         switch (event->key()) {
@@ -793,10 +777,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_Return:
             case Qt::Key_Enter:
-                _chatEntryOn = true;
-                _myAvatar->setKeyState(NO_KEY_DOWN);
-                _myAvatar->setChatMessage(string());
-                setMenuShortcutsEnabled(false);
+                Menu::getInstance()->triggerOption(MenuOption::Chat);
                 break;
 
             case Qt::Key_Up:
@@ -939,11 +920,6 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 
 
     if (activeWindow() == _window) {
-        if (_chatEntryOn) {
-            _myAvatar->setKeyState(NO_KEY_DOWN);
-            return;
-        }
-
         switch (event->key()) {
             case Qt::Key_E:
                 _myAvatar->setDriveKeys(UP, 0);
@@ -2483,11 +2459,6 @@ void Application::displayOverlay() {
             displayStatsBackground(0x33333399, _glWidget->width() - 296, _glWidget->height() - 68, 296, 68);
             _bandwidthMeter.render(_glWidget->width(), _glWidget->height());
         }
-    }
-
-    //  Show chat entry field
-    if (_chatEntryOn) {
-        _chatEntry.render(_glWidget->width(), _glWidget->height());
     }
 
     //  Show on-screen msec timer
