@@ -139,13 +139,13 @@ private slots:
     void apply();
 };
 
-/// Allows inserting a spanner into the scene.
-class InsertSpannerTool : public MetavoxelTool {
+/// Base class for insert/set spanner tools.
+class PlaceSpannerTool : public MetavoxelTool {
     Q_OBJECT
 
 public:
     
-    InsertSpannerTool(MetavoxelEditor* editor);
+    PlaceSpannerTool(MetavoxelEditor* editor, const QString& name, const QString& placeText);
 
     virtual void simulate(float deltaTime);
 
@@ -155,9 +155,26 @@ public:
 
     virtual bool eventFilter(QObject* watched, QEvent* event);
 
+protected:
+
+    virtual QVariant createEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) = 0;
+
 private slots:
     
-    void insert();
+    void place();
+};
+
+/// Allows inserting a spanner into the scene.
+class InsertSpannerTool : public PlaceSpannerTool {
+    Q_OBJECT
+
+public:
+    
+    InsertSpannerTool(MetavoxelEditor* editor);
+
+protected:
+
+    virtual QVariant createEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner);
 };
 
 /// Allows removing a spanner from the scene.
@@ -186,6 +203,21 @@ public:
 private slots:
     
     void clear();
+};
+
+/// Allows setting the value by placing a spanner.
+class SetSpannerTool : public PlaceSpannerTool {
+    Q_OBJECT
+
+public:
+    
+    SetSpannerTool(MetavoxelEditor* editor);
+    
+    virtual bool appliesTo(const AttributePointer& attribute) const;
+
+protected:
+
+    virtual QVariant createEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner);
 };
 
 #endif /* defined(__interface__MetavoxelEditor__) */

@@ -79,9 +79,6 @@ public:
     const FBXGeometry& getFBXGeometry() const { return _geometry; }
     const QVector<NetworkMesh>& getMeshes() const { return _meshes; }
 
-    /// Returns the average color of all meshes in the geometry.
-    glm::vec4 computeAverageColor() const;
-
     virtual void setLoadPriority(const QPointer<QObject>& owner, float priority);
     virtual void setLoadPriorities(const QHash<QPointer<QObject>, float>& priorities);
     virtual void clearLoadPriority(const QPointer<QObject>& owner);
@@ -89,6 +86,7 @@ public:
 protected:
 
     virtual void downloadFinished(QNetworkReply* reply);
+    virtual void reinsert();
     
     Q_INVOKABLE void setGeometry(const FBXGeometry& geometry);
     

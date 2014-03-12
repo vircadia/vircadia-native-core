@@ -927,13 +927,6 @@ function keyPressEvent(event) {
         }
     }
     
-    // do this even if not in edit tools
-    if (event.text == " ") {
-        //  Reset my orientation!
-        var orientation = { x:0, y:0, z:0, w:1 };
-        Camera.setOrientation(orientation);
-        MyAvatar.orientation = orientation;
-    }
     trackKeyPressEvent(event); // used by preview support
 }
 

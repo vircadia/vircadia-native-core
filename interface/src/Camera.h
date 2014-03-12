@@ -89,7 +89,7 @@ private:
     glm::vec3 _position;
     glm::vec3 _idealPosition;
     glm::vec3 _targetPosition;
-    float _fieldOfView;
+    float _fieldOfView; // degrees
     float _aspectRatio;
     float _nearClip;
     float _farClip;

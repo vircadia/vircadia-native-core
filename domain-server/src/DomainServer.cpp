@@ -359,8 +359,6 @@ void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packe
     sendDomainListToNode(newNode, senderSockAddr, nodeInterestListFromPacket(packet, numPreInterestBytes));
 }
 
-const int NUM_BYTES_DATA_SERVER_REGISTRATION_TOKEN = 16;
-
 int DomainServer::parseNodeDataFromByteArray(NodeType_t& nodeType, HifiSockAddr& publicSockAddr,
                                               HifiSockAddr& localSockAddr, const QByteArray& packet,
                                               const HifiSockAddr& senderSockAddr) {

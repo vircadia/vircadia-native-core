@@ -31,28 +31,6 @@
 using namespace std;
 
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
-const float YAW_MAG = 500.0f;
-const float MY_HAND_HOLDING_PULL = 0.2f;
-const float YOUR_HAND_HOLDING_PULL = 1.0f;
-const float BODY_SPRING_DEFAULT_TIGHTNESS = 1000.0f;
-const float BODY_SPRING_FORCE = 300.0f;
-const float BODY_SPRING_DECAY = 16.0f;
-const float COLLISION_RADIUS_SCALAR = 1.2f; // pertains to avatar-to-avatar collisions
-const float COLLISION_BODY_FORCE = 30.0f; // pertains to avatar-to-avatar collisions
-const float HEAD_ROTATION_SCALE = 0.70f;
-const float HEAD_ROLL_SCALE = 0.40f;
-const float HEAD_MAX_PITCH = 45;
-const float HEAD_MIN_PITCH = -45;
-const float HEAD_MAX_YAW = 85;
-const float HEAD_MIN_YAW = -85;
-const float AVATAR_BRAKING_STRENGTH = 40.0f;
-const float MOUSE_RAY_TOUCH_RANGE = 0.01f;
-const float FLOATING_HEIGHT = 0.13f;
-const bool  USING_HEAD_LEAN = false;
-const float LEAN_SENSITIVITY = 0.15f;
-const float LEAN_MAX = 0.45f;
-const float LEAN_AVERAGING = 10.0f;
-const float HEAD_RATE_MAX = 50.f;
 const int   NUM_BODY_CONE_SIDES = 9;
 const float CHAT_MESSAGE_SCALE = 0.0015f;
 const float CHAT_MESSAGE_HEIGHT = 0.1f;
@@ -229,8 +207,8 @@ void Avatar::render(bool forShadowMap) {
         }
 
         // render voice intensity sphere for avatars that are farther away
-        const float MAX_SPHERE_ANGLE = 10.f;
-        const float MIN_SPHERE_ANGLE = 1.f;
+        const float MAX_SPHERE_ANGLE = 10.f * RADIANS_PER_DEGREE;
+        const float MIN_SPHERE_ANGLE = 1.f * RADIANS_PER_DEGREE;
         const float MIN_SPHERE_SIZE = 0.01f;
         const float SPHERE_LOUDNESS_SCALING = 0.0005f;
         const float SPHERE_COLOR[] = { 0.5f, 0.8f, 0.8f };
@@ -267,12 +245,12 @@ void Avatar::render(bool forShadowMap) {
         glTranslatef(chatPosition.x, chatPosition.y, chatPosition.z);
         glm::quat chatRotation = Application::getInstance()->getCamera()->getRotation();
         glm::vec3 chatAxis = glm::axis(chatRotation);
-        glRotatef(glm::angle(chatRotation), chatAxis.x, chatAxis.y, chatAxis.z);
+        glRotatef(glm::degrees(glm::angle(chatRotation)), chatAxis.x, chatAxis.y, chatAxis.z);
         
         
-        glColor3f(0, 0.8f, 0);
-        glRotatef(180, 0, 1, 0);
-        glRotatef(180, 0, 0, 1);
+        glColor3f(0.f, 0.8f, 0.f);
+        glRotatef(180.f, 0.f, 1.f, 0.f);
+        glRotatef(180.f, 0.f, 0.f, 1.f);
         glScalef(_scale * CHAT_MESSAGE_SCALE, _scale * CHAT_MESSAGE_SCALE, 1.0f);
         
         glDisable(GL_LIGHTING);
@@ -288,7 +266,7 @@ void Avatar::render(bool forShadowMap) {
             _chatMessage[lastIndex] = '\0';
             textRenderer(CHAT)->draw(-width / 2.0f, 0, _chatMessage.c_str());
             _chatMessage[lastIndex] = lastChar;
-            glColor3f(0, 1, 0);
+            glColor3f(0.f, 1.f, 0.f);
             textRenderer(CHAT)->draw(width / 2.0f - lastWidth, 0, _chatMessage.c_str() + lastIndex);
         }
         glEnable(GL_LIGHTING);
@@ -301,12 +279,12 @@ void Avatar::render(bool forShadowMap) {
 glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     glm::quat orientation = getOrientation();
     glm::vec3 currentUp = orientation * IDENTITY_UP;
-    float angle = glm::degrees(acosf(glm::clamp(glm::dot(currentUp, _worldUpDirection), -1.0f, 1.0f)));
+    float angle = acosf(glm::clamp(glm::dot(currentUp, _worldUpDirection), -1.0f, 1.0f));
     if (angle < EPSILON) {
         return glm::quat();
     }
     glm::vec3 axis;
-    if (angle > 179.99f) { // 180 degree rotation; must use another axis
+    if (angle > 179.99f * RADIANS_PER_DEGREE) { // 180 degree rotation; must use another axis
         axis = orientation * IDENTITY_RIGHT;
     } else {
         axis = glm::normalize(glm::cross(currentUp, _worldUpDirection));
@@ -356,9 +334,9 @@ void Avatar::renderBillboard() {
     // rotate about vertical to face the camera
     glm::quat rotation = getOrientation();
     glm::vec3 cameraVector = glm::inverse(rotation) * (Application::getInstance()->getCamera()->getPosition() - _position);
-    rotation = rotation * glm::angleAxis(glm::degrees(atan2f(-cameraVector.x, -cameraVector.z)), glm::vec3(0.0f, 1.0f, 0.0f));
+    rotation = rotation * glm::angleAxis(atan2f(-cameraVector.x, -cameraVector.z), glm::vec3(0.0f, 1.0f, 0.0f));
     glm::vec3 axis = glm::axis(rotation);
-    glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+    glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
     
     // compute the size from the billboard camera parameters and scale
     float size = _scale * BILLBOARD_DISTANCE * tanf(glm::radians(BILLBOARD_FIELD_OF_VIEW / 2.0f));
@@ -404,7 +382,7 @@ void Avatar::renderDisplayName() {
     // we need "always facing camera": we must remove the camera rotation from the stack
     glm::quat rotation = Application::getInstance()->getCamera()->getRotation();
     glm::vec3 axis = glm::axis(rotation);
-    glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+    glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
 
     // We need to compute the scale factor such as the text remains with fixed size respect to window coordinates
     // We project a unit vector and check the difference in screen coordinates, to check which is the 
@@ -662,15 +640,15 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
         glm::vec3 perpCos = glm::normalize(glm::cross(axis, perpSin));
         perpSin = glm::cross(perpCos, axis);
         
-        float anglea = 0.0;
-        float angleb = 0.0;
+        float anglea = 0.f;
+        float angleb = 0.f;
         
         for (int i = 0; i < NUM_BODY_CONE_SIDES; i ++) {
             
             // the rectangles that comprise the sides of the cone section are
             // referenced by "a" and "b" in one dimension, and "1", and "2" in the other dimension.
             anglea = angleb;
-            angleb = ((float)(i+1) / (float)NUM_BODY_CONE_SIDES) * PIf * 2.0f;
+            angleb = ((float)(i+1) / (float)NUM_BODY_CONE_SIDES) * TWO_PI;
             
             float sa = sinf(anglea);
             float sb = sinf(angleb);

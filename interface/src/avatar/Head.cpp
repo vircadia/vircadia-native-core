@@ -183,13 +183,13 @@ void Head::setScale (float scale) {
 }
 
 glm::quat Head::getTweakedOrientation() const {
-    return _owningAvatar->getOrientation() * glm::quat(glm::radians(glm::vec3(getTweakedPitch(), getTweakedYaw(), getTweakedRoll() )));
+    return _owningAvatar->getOrientation() * glm::quat(glm::radians(
+                glm::vec3(getTweakedPitch(), getTweakedYaw(), getTweakedRoll() )));
 }
 
 glm::quat Head::getCameraOrientation () const {
     Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
-    return owningAvatar->getWorldAlignedOrientation()
-            * glm::quat(glm::radians(glm::vec3(_pitch, 0.f, 0.0f)));
+    return owningAvatar->getWorldAlignedOrientation() * glm::quat(glm::radians(glm::vec3(_pitch, 0.f, 0.0f)));
 }
 
 glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {

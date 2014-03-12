@@ -41,7 +41,7 @@ Sound::Sound(float volume, float frequency, float duration, float decay, QObject
     int numSamples = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; // we add sounds in chunks of this many samples
     
     int chunkStartingSample = 0;
-    float waveFrequency = (frequency / SAMPLE_RATE) * PI_TIMES_TWO;
+    float waveFrequency = (frequency / SAMPLE_RATE) * TWO_PI;
     while (volume > 0.f) {
         for (int i = 0; i < numSamples; i++) {
             t = (float)chunkStartingSample + (float)i;

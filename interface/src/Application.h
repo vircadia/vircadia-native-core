@@ -64,8 +64,7 @@
 #include "renderer/TextureCache.h"
 #include "renderer/VoxelShader.h"
 #include "ui/BandwidthDialog.h"
-#include "ui/ChatEntry.h"
-#include "ui/VoxelStatsDialog.h"
+#include "ui/OctreeStatsDialog.h"
 #include "ui/RearMirrorTools.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
@@ -95,8 +94,8 @@ static const float NODE_KILLED_BLUE  = 0.0f;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 
-static const float BILLBOARD_FIELD_OF_VIEW = 30.0f;
-static const float BILLBOARD_DISTANCE = 5.0f;
+static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
+static const float BILLBOARD_DISTANCE = 5.0f;       // meters
 
 class Application : public QApplication {
     Q_OBJECT
@@ -170,9 +169,9 @@ public:
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QSettings* getSettings() { return _settings; }
     QMainWindow* getWindow() { return _window; }
-    NodeToVoxelSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
-    void lockVoxelSceneStats() { _voxelSceneStatsLock.lockForRead(); }
-    void unlockVoxelSceneStats() { _voxelSceneStatsLock.unlock(); }
+    NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
+    void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
+    void unlockOctreeSceneStats() { _octreeSceneStatsLock.unlock(); }
 
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
@@ -426,9 +425,6 @@ private:
 
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
 
-    ChatEntry _chatEntry; // chat entry field
-    bool _chatEntryOn;    // Whether to show the chat entry
-
     GeometryCache _geometryCache;
     TextureCache _textureCache;
 
@@ -459,8 +455,8 @@ private:
 
     NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToJurisdictionMap _particleServerJurisdictions;
-    NodeToVoxelSceneStats _octreeServerSceneStats;
-    QReadWriteLock _voxelSceneStatsLock;
+    NodeToOctreeSceneStats _octreeServerSceneStats;
+    QReadWriteLock _octreeSceneStatsLock;
 
     std::vector<VoxelFade> _voxelFades;
     ControllerScriptingInterface _controllerScriptingInterface;

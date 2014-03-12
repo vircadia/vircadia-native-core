@@ -21,6 +21,7 @@ using namespace std;
 
 Model::Model(QObject* parent) :
     QObject(parent),
+    _scale(1.0f, 1.0f, 1.0f),
     _shapesAreDirty(true),
     _lodDistance(0.0f),
     _pupilDilation(0.0f) {
@@ -496,10 +497,6 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     }
 }
 
-glm::vec4 Model::computeAverageColor() const {
-    return _geometry ? _geometry->computeAverageColor() : glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-}
-
 bool Model::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
     const glm::vec3 relativeOrigin = origin - _translation;
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -759,15 +756,15 @@ float Model::getLimbLength(int jointIndex) const {
 void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain) {
     JointState& state = _jointStates[jointIndex];
     const FBXJoint& joint = _geometry->getFBXGeometry().joints[jointIndex];
-    if (!constrain || (joint.rotationMin == glm::vec3(-180.0f, -180.0f, -180.0f) &&
-            joint.rotationMax == glm::vec3(180.0f, 180.0f, 180.0f))) {
+    if (!constrain || (joint.rotationMin == glm::vec3(-PI, -PI, -PI) &&
+            joint.rotationMax == glm::vec3(PI, PI, PI))) {
         // no constraints
         state.rotation = state.rotation * glm::inverse(state.combinedRotation) * delta * state.combinedRotation;
         state.combinedRotation = delta * state.combinedRotation;
         return;
     }
-    glm::quat newRotation = glm::quat(glm::radians(glm::clamp(safeEulerAngles(state.rotation *
-        glm::inverse(state.combinedRotation) * delta * state.combinedRotation), joint.rotationMin, joint.rotationMax)));
+    glm::quat newRotation = glm::quat(glm::clamp(safeEulerAngles(state.rotation *
+        glm::inverse(state.combinedRotation) * delta * state.combinedRotation), joint.rotationMin, joint.rotationMax));
     state.combinedRotation = state.combinedRotation * glm::inverse(state.rotation) * newRotation;
     state.rotation = newRotation;
 }
@@ -788,7 +785,7 @@ void Model::renderCollisionProxies(float alpha) {
             glTranslatef(position.x, position.y, position.z);
             const glm::quat& rotation = shape->getRotation();
             glm::vec3 axis = glm::axis(rotation);
-            glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
 
             // draw a grey sphere at shape position
             glColor4f(0.75f, 0.75f, 0.75f, alpha);
@@ -863,7 +860,7 @@ void Model::applyCollision(CollisionInfo& collision) {
                 axis = glm::normalize(axis);
                 glm::vec3 end;
                 getJointPosition(jointIndex, end);
-                glm::vec3 newEnd = start + glm::angleAxis(glm::degrees(angle), axis) * (end - start);
+                glm::vec3 newEnd = start + glm::angleAxis(angle, axis) * (end - start);
                 // try to move it
                 setJointPosition(jointIndex, newEnd, -1, true);
             }

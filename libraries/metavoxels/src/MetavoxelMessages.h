@@ -9,10 +9,7 @@
 #ifndef __interface__MetavoxelMessages__
 #define __interface__MetavoxelMessages__
 
-#include "AttributeRegistry.h"
-#include "MetavoxelUtil.h"
-
-class MetavoxelData;
+#include "MetavoxelData.h"
 
 /// Requests to close the session.
 class CloseSessionMessage {
@@ -49,7 +46,7 @@ class ClientStateMessage {
     
 public:
     
-    STREAM glm::vec3 position;
+    STREAM MetavoxelLOD lod;
 };
 
 DECLARE_STREAMABLE_METATYPE(ClientStateMessage)
@@ -69,7 +66,7 @@ public:
     
     STREAM QVariant edit;
     
-    void apply(MetavoxelData& data) const;
+    void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(MetavoxelEditMessage)
@@ -80,7 +77,7 @@ public:
 
     virtual ~MetavoxelEdit();
     
-    virtual void apply(MetavoxelData& data) const = 0;
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const = 0;
 };
 
 /// An edit that sets the region within a box to a value.
@@ -96,7 +93,7 @@ public:
     BoxSetEdit(const Box& region = Box(), float granularity = 0.0f,
         const OwnedAttributeValue& value = OwnedAttributeValue());
     
-    virtual void apply(MetavoxelData& data) const;
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(BoxSetEdit)
@@ -111,7 +108,7 @@ public:
     
     GlobalSetEdit(const OwnedAttributeValue& value = OwnedAttributeValue());
     
-    virtual void apply(MetavoxelData& data) const;
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(GlobalSetEdit)
@@ -128,7 +125,7 @@ public:
     InsertSpannerEdit(const AttributePointer& attribute = AttributePointer(),
         const SharedObjectPointer& spanner = SharedObjectPointer());
     
-    virtual void apply(MetavoxelData& data) const;
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(InsertSpannerEdit)
@@ -144,7 +141,7 @@ public:
     
     RemoveSpannerEdit(const AttributePointer& attribute = AttributePointer(), int id = 0);
     
-    virtual void apply(MetavoxelData& data) const;
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(RemoveSpannerEdit)
@@ -159,9 +156,24 @@ public:
     
     ClearSpannersEdit(const AttributePointer& attribute = AttributePointer());
     
-    virtual void apply(MetavoxelData& data) const;
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(ClearSpannersEdit)
+
+/// An edit that sets a spanner's attributes in the voxel tree.
+class SetSpannerEdit : public MetavoxelEdit {
+    STREAMABLE
+
+public:
+    
+    STREAM SharedObjectPointer spanner;
+    
+    SetSpannerEdit(const SharedObjectPointer& spanner = SharedObjectPointer());
+    
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
+};
+
+DECLARE_STREAMABLE_METATYPE(SetSpannerEdit)
 
 #endif /* defined(__interface__MetavoxelMessages__) */

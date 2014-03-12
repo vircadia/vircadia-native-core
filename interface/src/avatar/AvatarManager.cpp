@@ -54,6 +54,9 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             ++avatarIterator;
             continue;
         }
+        if (!avatar->isInitialized()) {
+            avatar->init();
+        }
         if (avatar->getOwningAvatarMixer()) {
             // this avatar's mixer is still around, go ahead and simulate it
             avatar->simulate(deltaTime);
@@ -80,7 +83,7 @@ void AvatarManager::renderAvatars(bool forShadowMapOrMirror, bool selfAvatarOnly
         foreach (const AvatarSharedPointer& avatarPointer, _avatarHash) {
             Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
             if (!avatar->isInitialized()) {
-                avatar->init();
+                continue;
             }
             if (avatar == static_cast<Avatar*>(_myAvatar.data())) {
                 _myAvatar->render(forShadowMapOrMirror);
