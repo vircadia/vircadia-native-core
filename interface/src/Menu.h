@@ -18,6 +18,8 @@
 #include <MenuItemProperties.h>
 #include <OctreeConstants.h>
 
+#include <ui/ChatWindow.h>
+
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
 
@@ -53,6 +55,7 @@ class QSettings;
 class BandwidthDialog;
 class LodToolsDialog;
 class MetavoxelEditor;
+class ChatWindow;
 class OctreeStatsDialog;
 class MenuItemProperties;
 
@@ -140,6 +143,8 @@ private slots:
     void cycleFrustumRenderMode();
     void runTests();
     void showMetavoxelEditor();
+    void showChat();
+    void toggleChat();
     void audioMuteToggled();
 
 private:
@@ -187,6 +192,7 @@ private:
     FrustumDrawMode _frustumDrawMode;
     ViewFrustumOffset _viewFrustumOffset;
     QPointer<MetavoxelEditor> _MetavoxelEditor;
+    QPointer<ChatWindow> _chatWindow;
     OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
     int _maxVoxels;
@@ -199,6 +205,7 @@ private:
     quint64 _lastAdjust;
     SimpleMovingAverage _fpsAverage;
     QAction* _loginAction;
+    QAction* _chatAction;
 };
 
 namespace MenuOption {
@@ -252,6 +259,7 @@ namespace MenuOption {
     const QString Logout = "Logout";
     const QString LookAtVectors = "Look-at Vectors";
     const QString MetavoxelEditor = "Metavoxel Editor...";
+    const QString Chat = "Chat...";
     const QString Metavoxels = "Metavoxels";
     const QString Mirror = "Mirror";
     const QString MoveWithLean = "Move with Lean";

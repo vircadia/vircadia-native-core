@@ -26,6 +26,7 @@
 #include <QWindow>
 
 #include <AccountManager.h>
+#include <XmppClient.h>
 #include <UUID.h>
 
 #include "Application.h"
@@ -162,6 +163,15 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::FstUploader, 0, Application::getInstance(), SLOT(uploadFST()));
 
+    _chatAction = addActionToQMenuAndActionHash(toolsMenu, MenuOption::Chat, 0, this, SLOT(showChat()));
+#ifdef HAVE_QXMPP
+    const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
+    toggleChat();
+    connect(&xmppClient, SIGNAL(connected()), this, SLOT(toggleChat()));
+    connect(&xmppClient, SIGNAL(disconnected()), this, SLOT(toggleChat()));
+#else
+    _chatAction->setEnabled(false);
+#endif
 
     QMenu* viewMenu = addMenu("View");
 
@@ -1019,6 +1029,33 @@ void Menu::showMetavoxelEditor() {
         _MetavoxelEditor = new MetavoxelEditor();
     }
     _MetavoxelEditor->raise();
+}
+
+void Menu::showChat() {
+    if (!_chatWindow) {
+        _chatWindow = new ChatWindow();
+        QMainWindow* mainWindow = Application::getInstance()->getWindow();
+
+        // the height of the title bar is given by frameGeometry().height() - geometry().height()
+        // however, frameGeometry() is initialised after showing (Qt queries the OS windowing system)
+        // on the other hand, moving a window after showing it flickers; so just use some reasonable value
+        int titleBarHeight = 16;
+        _chatWindow->setGeometry(mainWindow->width() - _chatWindow->width(),
+                                 mainWindow->geometry().y() + titleBarHeight,
+                                 _chatWindow->width(),
+                                 mainWindow->height() - titleBarHeight);
+        _chatWindow->show();
+    }
+    _chatWindow->raise();
+}
+
+void Menu::toggleChat() {
+#ifdef HAVE_QXMPP
+    _chatAction->setEnabled(XmppClient::getInstance().getXMPPClient().isConnected());
+    if (!_chatAction->isEnabled() && _chatWindow) {
+        _chatWindow->close();
+    }
+#endif
 }
 
 void Menu::audioMuteToggled() {
