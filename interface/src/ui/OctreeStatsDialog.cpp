@@ -1,5 +1,5 @@
 //
-//  VoxelStatsDialog.cpp
+//  OctreeStatsDialog.cpp
 //  interface
 //
 //  Created by Brad Hefta-Gaub on 7/19/13.
@@ -14,13 +14,13 @@
 #include <QPalette>
 #include <QColor>
 
-#include <VoxelSceneStats.h>
+#include <OctreeSceneStats.h>
 
 #include "Application.h"
 
-#include "ui/VoxelStatsDialog.h"
+#include "ui/OctreeStatsDialog.h"
 
-VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, NodeToVoxelSceneStats* model) :
+OctreeStatsDialog::OctreeStatsDialog(QWidget* parent, NodeToOctreeSceneStats* model) :
     QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint),
     _model(model) {
     
@@ -52,7 +52,7 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, NodeToVoxelSceneStats* model
     layout()->setSizeConstraint(QLayout::SetFixedSize); 
 }
 
-void VoxelStatsDialog::RemoveStatItem(int item) {
+void OctreeStatsDialog::RemoveStatItem(int item) {
     QLabel* myLabel = _labels[item];
     QWidget* automaticLabel = _form->labelForField(myLabel);
     _form->removeWidget(myLabel);
@@ -62,7 +62,7 @@ void VoxelStatsDialog::RemoveStatItem(int item) {
     _labels[item] = NULL;
 }
 
-void VoxelStatsDialog::moreless(const QString& link) {
+void OctreeStatsDialog::moreless(const QString& link) {
     QStringList linkDetails = link.split("-");
     const int COMMAND_ITEM = 0;
     const int SERVER_NUMBER_ITEM = 1;
@@ -80,7 +80,7 @@ void VoxelStatsDialog::moreless(const QString& link) {
 }
 
 
-int VoxelStatsDialog::AddStatItem(const char* caption, unsigned colorRGBA) {
+int OctreeStatsDialog::AddStatItem(const char* caption, unsigned colorRGBA) {
     char strBuf[64];
     const int STATS_LABEL_WIDTH = 600;
     
@@ -109,13 +109,13 @@ int VoxelStatsDialog::AddStatItem(const char* caption, unsigned colorRGBA) {
     return _statCount;
 }
 
-VoxelStatsDialog::~VoxelStatsDialog() {
+OctreeStatsDialog::~OctreeStatsDialog() {
     for (int i = 0; i < _statCount; i++) {
         delete _labels[i];
     }
 }
 
-void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
+void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
 
     // Update labels
 
@@ -171,11 +171,11 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
     unsigned long totalInternal = 0;
     unsigned long totalLeaves = 0;
 
-    Application::getInstance()->lockVoxelSceneStats();
-    NodeToVoxelSceneStats* sceneStats = Application::getInstance()->getOcteeSceneStats();
-    for(NodeToVoxelSceneStatsIterator i = sceneStats->begin(); i != sceneStats->end(); i++) {
+    Application::getInstance()->lockOctreeSceneStats();
+    NodeToOctreeSceneStats* sceneStats = Application::getInstance()->getOcteeSceneStats();
+    for(NodeToOctreeSceneStatsIterator i = sceneStats->begin(); i != sceneStats->end(); i++) {
         //const QUuid& uuid = i->first;
-        VoxelSceneStats& stats = i->second;
+        OctreeSceneStats& stats = i->second;
         serverCount++;
 
         // calculate server node totals
@@ -194,7 +194,7 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
             sendingMode << "S";
         }
     }
-    Application::getInstance()->unlockVoxelSceneStats();
+    Application::getInstance()->unlockOctreeSceneStats();
     sendingMode << " - " << serverCount << " servers";
     if (movingServerCount > 0) {
         sendingMode << " <SCENE NOT STABLE>";
@@ -221,7 +221,7 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
 
     this->QDialog::paintEvent(event);
 }
-void VoxelStatsDialog::showAllOctreeServers() {
+void OctreeStatsDialog::showAllOctreeServers() {
     int serverCount = 0;
 
     showOctreeServersOfType(serverCount, NodeType::VoxelServer, "Voxel",
@@ -239,7 +239,7 @@ void VoxelStatsDialog::showAllOctreeServers() {
     }
 }
 
-void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t serverType, const char* serverTypeName,
+void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t serverType, const char* serverTypeName,
                                                 NodeToJurisdictionMap& serverJurisdictions) {
                                                 
     QLocale locale(QLocale::English);
@@ -303,10 +303,10 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t serv
             
             // now lookup stats details for this server...
             if (_extraServerDetails[serverCount-1] != LESS) {
-                Application::getInstance()->lockVoxelSceneStats();
-                NodeToVoxelSceneStats* sceneStats = Application::getInstance()->getOcteeSceneStats();
+                Application::getInstance()->lockOctreeSceneStats();
+                NodeToOctreeSceneStats* sceneStats = Application::getInstance()->getOcteeSceneStats();
                 if (sceneStats->find(nodeUUID) != sceneStats->end()) {
-                    VoxelSceneStats& stats = sceneStats->at(nodeUUID);
+                    OctreeSceneStats& stats = sceneStats->at(nodeUUID);
                     
                     switch (_extraServerDetails[serverCount-1]) {
                         case MOST: {
@@ -323,9 +323,9 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t serv
                             "Encode Time: " << lastFullEncodeString.toLocal8Bit().constData() << " ms " <<
                             "Send Time: " << lastFullSendString.toLocal8Bit().constData() << " ms ";
                             
-                            for (int i = 0; i < VoxelSceneStats::ITEM_COUNT; i++) {
-                                VoxelSceneStats::Item item = (VoxelSceneStats::Item)(i);
-                                VoxelSceneStats::ItemInfo& itemInfo = stats.getItemInfo(item);
+                            for (int i = 0; i < OctreeSceneStats::ITEM_COUNT; i++) {
+                                OctreeSceneStats::Item item = (OctreeSceneStats::Item)(i);
+                                OctreeSceneStats::ItemInfo& itemInfo = stats.getItemInfo(item);
                                 extraDetails << "<br/>" << itemInfo.caption << " " << stats.getItemValue(item);
                             }
                         } // fall through... since MOST has all of MORE
@@ -386,7 +386,7 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t serv
                         } break;
                     }
                 }
-                Application::getInstance()->unlockVoxelSceneStats();
+                Application::getInstance()->unlockOctreeSceneStats();
             } else {
                 linkDetails << "   " << " [<a href='more-" << serverCount << "'>more...</a>]";
                 linkDetails << "   " << " [<a href='most-" << serverCount << "'>most...</a>]";
@@ -397,12 +397,12 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t serv
     }
 }
 
-void VoxelStatsDialog::reject() {
+void OctreeStatsDialog::reject() {
     // Just regularly close upon ESC
     this->QDialog::close();
 }
 
-void VoxelStatsDialog::closeEvent(QCloseEvent* event) {
+void OctreeStatsDialog::closeEvent(QCloseEvent* event) {
     this->QDialog::closeEvent(event);
     emit closed();
 }

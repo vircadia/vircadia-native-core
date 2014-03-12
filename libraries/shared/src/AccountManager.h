@@ -50,9 +50,10 @@ public:
     Q_INVOKABLE bool checkAndSignalForAccessToken();
     
     void requestAccessToken(const QString& login, const QString& password);
-
+    
     QString getUsername() const { return _accountInfo.getUsername(); }
-    QString getAccessToken() const { return _accountInfo.getAccessToken().token; }
+
+    const QString& getXMPPPassword() const { return _accountInfo.getXMPPPassword(); }
     
     void destroy() { delete _networkAccessManager; }
     

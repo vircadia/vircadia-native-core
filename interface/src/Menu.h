@@ -19,6 +19,8 @@
 #include <OctreeConstants.h>
 #include "location/LocationManager.h"
 
+#include <ui/ChatWindow.h>
+
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
 
@@ -54,7 +56,8 @@ class QSettings;
 class BandwidthDialog;
 class LodToolsDialog;
 class MetavoxelEditor;
-class VoxelStatsDialog;
+class ChatWindow;
+class OctreeStatsDialog;
 class MenuItemProperties;
 
 class Menu : public QMenuBar {
@@ -74,7 +77,7 @@ public:
     BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
     FrustumDrawMode getFrustumDrawMode() const { return _frustumDrawMode; }
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
-    VoxelStatsDialog* getVoxelStatsDialog() const { return _voxelStatsDialog; }
+    OctreeStatsDialog* getOctreeStatsDialog() const { return _octreeStatsDialog; }
     LodToolsDialog* getLodToolsDialog() const { return _lodToolsDialog; }
     int getMaxVoxels() const { return _maxVoxels; }
     QAction* getUseVoxelShader() const { return _useVoxelShader; }
@@ -112,7 +115,7 @@ public slots:
 
     void loginForCurrentDomain();
     void bandwidthDetails();
-    void voxelStatsDetails();
+    void octreeStatsDetails();
     void lodTools();
     void loadSettings(QSettings* settings = NULL);
     void saveSettings(QSettings* settings = NULL);
@@ -137,11 +140,13 @@ private slots:
     void goToLocation();
     void nameLocation();
     void bandwidthDetailsClosed();
-    void voxelStatsDetailsClosed();
+    void octreeStatsDetailsClosed();
     void lodToolsClosed();
     void cycleFrustumRenderMode();
     void runTests();
     void showMetavoxelEditor();
+    void showChat();
+    void toggleChat();
     void audioMuteToggled();
     void namedLocationCreated(LocationManager::NamedLocationCreateResponse response, NamedLocation* location);
 
@@ -190,7 +195,8 @@ private:
     FrustumDrawMode _frustumDrawMode;
     ViewFrustumOffset _viewFrustumOffset;
     QPointer<MetavoxelEditor> _MetavoxelEditor;
-    VoxelStatsDialog* _voxelStatsDialog;
+    QPointer<ChatWindow> _chatWindow;
+    OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
     int _maxVoxels;
     float _voxelSizeScale;
@@ -202,6 +208,7 @@ private:
     quint64 _lastAdjust;
     SimpleMovingAverage _fpsAverage;
     QAction* _loginAction;
+    QAction* _chatAction;
 };
 
 namespace MenuOption {
@@ -256,6 +263,7 @@ namespace MenuOption {
     const QString Logout = "Logout";
     const QString LookAtVectors = "Look-at Vectors";
     const QString MetavoxelEditor = "Metavoxel Editor...";
+    const QString Chat = "Chat...";
     const QString Metavoxels = "Metavoxels";
     const QString Mirror = "Mirror";
     const QString MoveWithLean = "Move with Lean";
@@ -290,7 +298,7 @@ namespace MenuOption {
     const QString Quit =  "Quit";
     const QString Voxels = "Voxels";
     const QString VoxelMode = "Cycle Voxel Mode";
-    const QString VoxelStats = "Voxel Stats";
+    const QString OctreeStats = "Voxel and Particle Statistics";
     const QString VoxelTextures = "Voxel Textures";
 }
 

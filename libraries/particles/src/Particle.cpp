@@ -815,11 +815,6 @@ void Particle::applyHardCollision(const CollisionInfo& collisionInfo) {
     setVelocity(velocity);
 }
 
-// MIN_VALID_SPEED is obtained by computing speed gained at one gravity during the shortest expected frame period
-// This is a HACK for particles that bounce in a 1.0 gravitational field and should eventually be made more universal.
-const float MIN_EXPECTED_FRAME_PERIOD = 0.005f;  // 1/200th of a second
-const float MIN_VALID_SPEED = 9.8 * MIN_EXPECTED_FRAME_PERIOD / (float)(TREE_SCALE);
-
 void Particle::update(const quint64& now) {
     float timeElapsed = (float)(now - _lastUpdated) / (float)(USECS_PER_SECOND);
     _lastUpdated = now;

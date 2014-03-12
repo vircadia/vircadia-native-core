@@ -9,8 +9,7 @@
 #include "ParticleTree.h"
 
 ParticleTree::ParticleTree(bool shouldReaverage) : Octree(shouldReaverage) {
-    ParticleTreeElement* rootNode = createNewElement();
-    _rootNode = rootNode;
+    _rootNode = createNewElement();
 }
 
 ParticleTreeElement* ParticleTree::createNewElement(unsigned char * octalCode) {
