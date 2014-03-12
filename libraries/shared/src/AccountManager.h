@@ -52,6 +52,8 @@ public:
     void requestAccessToken(const QString& login, const QString& password);
     
     QString getUsername() const { return _accountInfo.getUsername(); }
+
+    const QString& getXMPPPassword() const { return _accountInfo.getXMPPPassword(); }
     
     void destroy() { delete _networkAccessManager; }
     

@@ -17,6 +17,9 @@ set(LIBOVR_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/oculus")
 set(SIXENSE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/Sixense")
 set(VISAGE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/visage")
 
+find_package(Qt5LinguistTools REQUIRED)
+find_package(Qt5LinguistToolsMacros)
+
 if (DEFINED ENV{JOB_ID})
   set(BUILD_SEQ $ENV{JOB_ID})
 else ()
@@ -73,6 +76,10 @@ qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 # add them to the interface source files
 set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}")
 
+set(QM ${TARGET_NAME}_en.qm)
+set(TS ${TARGET_NAME}_en.ts)
+qt5_create_translation_custom(${QM} ${INTERFACE_SRCS} ${QT_UI_FILES} ${TS})
+
 if (APPLE)
   # configure CMake to use a custom Info.plist
   SET_TARGET_PROPERTIES( ${this_target} PROPERTIES MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in )
@@ -101,7 +108,7 @@ if (APPLE)
 endif()
 
 # create the executable, make it a bundle on OS X
-add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS})
+add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
 # link in the hifi shared library
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
@@ -122,6 +129,7 @@ find_package(LibOVR)
 find_package(Sixense)
 find_package(Visage)
 find_package(ZLIB)
+find_package(Qxmpp)
 
 # include the Sixense library for Razer Hydra if available
 if (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
@@ -160,6 +168,14 @@ if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
     
     target_link_libraries(${TARGET_NAME} "${LIBOVR_LIBRARIES}")
 endif (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
+
+# and with qxmpp for chat
+if (QXMPP_FOUND AND NOT DISABLE_QXMPP)
+    add_definitions(-DHAVE_QXMPP -DQXMPP_STATIC)
+    include_directories(SYSTEM ${QXMPP_INCLUDE_DIR})
+
+    target_link_libraries(${TARGET_NAME} "${QXMPP_LIBRARY}")
+endif (QXMPP_FOUND AND NOT DISABLE_QXMPP)
 
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")
