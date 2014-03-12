@@ -62,6 +62,7 @@
 #include <UUID.h>
 #include <OctreeSceneStats.h>
 #include <LocalVoxelsList.h>
+#include <FstReader.h>
 
 #include "Application.h"
 #include "ClipboardScriptingInterface.h"
@@ -3432,7 +3433,10 @@ void Application::reloadAllScripts() {
 }
 
 void Application::uploadFST() {
-    _fstReader.zip();
+    FstReader reader;
+    if(reader.zip()) {
+        reader.send();
+    }
 }
 
 void Application::removeScriptName(const QString& fileNameString) {
