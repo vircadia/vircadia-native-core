@@ -1155,7 +1155,7 @@ void MyAvatar::updateLocationInDataServer() {
     
     if (accountManager.isLoggedIn()) {
         QString positionString(createByteArray(_position));
-        QString orientationString(createByteArray(glm::radians(safeEulerAngles(getOrientation()))));
+        QString orientationString(createByteArray(glm::degrees(safeEulerAngles(getOrientation()))));
         
         // construct the json to put the user's location
         QString locationPutJson = QString() + "{\"address\":{\"position\":\""
