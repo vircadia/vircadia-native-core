@@ -34,19 +34,31 @@ class Box {
 
 public:
     
+    static const int VERTEX_COUNT = 8;
+    
     STREAM glm::vec3 minimum;
     STREAM glm::vec3 maximum;
     
     Box(const glm::vec3& minimum = glm::vec3(), const glm::vec3& maximum = glm::vec3());
+    
+    bool contains(const glm::vec3& point) const;
     
     bool contains(const Box& other) const;
     
     bool intersects(const Box& other) const;
     
     float getLongestSide() const { return qMax(qMax(maximum.x - minimum.x, maximum.y - minimum.y), maximum.z - minimum.z); }
+    
+    glm::vec3 getVertex(int index) const;
+    
+    glm::vec3 getCenter() const { return (minimum + maximum) * 0.5f; }
+    
+    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(Box)
+
+Box operator*(const glm::mat4& matrix, const Box& box);
 
 /// Editor for meta-object values.
 class QMetaObjectEditor : public QWidget {

@@ -100,6 +100,7 @@ MetavoxelEditor::MetavoxelEditor() :
     addTool(new InsertSpannerTool(this));
     addTool(new RemoveSpannerTool(this));
     addTool(new ClearSpannersTool(this));
+    addTool(new SetSpannerTool(this));
     
     updateAttributes();
     
@@ -138,11 +139,11 @@ glm::quat MetavoxelEditor::getGridRotation() const {
             return glm::quat();
             
         case GRID_PLANE_XZ:
-            return glm::angleAxis(-90.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+            return glm::angleAxis(-PI_OVER_TWO, glm::vec3(1.0f, 0.0f, 0.0f));
             
         case GRID_PLANE_YZ:
         default:
-            return glm::angleAxis(90.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+            return glm::angleAxis(PI_OVER_TWO, glm::vec3(0.0f, 1.0f, 0.0f));
     }
 }
 
@@ -269,18 +270,19 @@ const float GRID_BRIGHTNESS = 0.5f;
 
 void MetavoxelEditor::render() {
     glDisable(GL_LIGHTING);
+    
+    MetavoxelTool* tool = getActiveTool();
+    if (tool) {
+        tool->render();
+    }
+    
     glDepthMask(GL_FALSE);
     
     glPushMatrix();
     
     glm::quat rotation = getGridRotation();
     glm::vec3 axis = glm::axis(rotation);
-    glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
-    
-    MetavoxelTool* tool = getActiveTool();
-    if (tool) {
-        tool->render();
-    }
+    glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
     
     glLineWidth(1.0f);
     
@@ -370,12 +372,23 @@ BoxSetTool::BoxSetTool(MetavoxelEditor* editor) :
 }
 
 void BoxSetTool::render() {
+    if (Application::getInstance()->isMouseHidden()) {
+        resetState();
+        return;
+    }
     QString selected = _editor->getSelectedAttribute();
     if (selected.isNull()) {
         resetState();
         return;
     }
+    glDepthMask(GL_FALSE);
+    
+    glPushMatrix();
+    
     glm::quat rotation = _editor->getGridRotation();
+    glm::vec3 axis = glm::axis(rotation);
+    glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+    
     glm::quat inverseRotation = glm::inverse(rotation);
     glm::vec3 rayOrigin = inverseRotation * Application::getInstance()->getMouseRayOrigin();
     glm::vec3 rayDirection = inverseRotation * Application::getInstance()->getMouseRayDirection();
@@ -439,6 +452,8 @@ void BoxSetTool::render() {
     
         glPopMatrix();   
     }
+    
+    glPopMatrix();
 }
 
 bool BoxSetTool::eventFilter(QObject* watched, QEvent* event) {
@@ -515,20 +530,18 @@ void GlobalSetTool::apply() {
     Application::getInstance()->getMetavoxels()->applyEdit(message);
 }
 
-InsertSpannerTool::InsertSpannerTool(MetavoxelEditor* editor) :
-    MetavoxelTool(editor, "Insert Spanner") {
+PlaceSpannerTool::PlaceSpannerTool(MetavoxelEditor* editor, const QString& name, const QString& placeText) :
+    MetavoxelTool(editor, name) {
     
-    QPushButton* button = new QPushButton("Insert");
+    QPushButton* button = new QPushButton(placeText);
     layout()->addWidget(button);
-    connect(button, SIGNAL(clicked()), SLOT(insert()));
+    connect(button, SIGNAL(clicked()), SLOT(place()));
 }
 
-void InsertSpannerTool::simulate(float deltaTime) {
-    SharedObjectPointer spanner = _editor->getValue().value<SharedObjectPointer>();
-    static_cast<Spanner*>(spanner.data())->getRenderer()->simulate(deltaTime);
-}
-
-void InsertSpannerTool::render() {
+void PlaceSpannerTool::simulate(float deltaTime) {
+    if (Application::getInstance()->isMouseHidden()) {
+        return;
+    }
     _editor->detachValue();
     Spanner* spanner = static_cast<Spanner*>(_editor->getValue().value<SharedObjectPointer>().data());
     Transformable* transformable = qobject_cast<Transformable*>(spanner);
@@ -543,30 +556,46 @@ void InsertSpannerTool::render() {
         
         transformable->setTranslation(rotation * glm::vec3(glm::vec2(rayOrigin + rayDirection * distance), position));
     }
+    spanner->getRenderer()->simulate(deltaTime);
+}
+
+void PlaceSpannerTool::render() {
+    if (Application::getInstance()->isMouseHidden()) {
+        return;
+    }
+    Spanner* spanner = static_cast<Spanner*>(_editor->getValue().value<SharedObjectPointer>().data());
     const float SPANNER_ALPHA = 0.25f;
     spanner->getRenderer()->render(SPANNER_ALPHA);
 }
 
-bool InsertSpannerTool::appliesTo(const AttributePointer& attribute) const {
-    return attribute->inherits("SharedObjectSetAttribute");
+bool PlaceSpannerTool::appliesTo(const AttributePointer& attribute) const {
+    return attribute->inherits("SpannerSetAttribute");
 }
 
-bool InsertSpannerTool::eventFilter(QObject* watched, QEvent* event) {
+bool PlaceSpannerTool::eventFilter(QObject* watched, QEvent* event) {
     if (event->type() == QEvent::MouseButtonPress) {
-        insert();
+        place();
         return true;
     }
     return false;
 }
 
-void InsertSpannerTool::insert() {
+void PlaceSpannerTool::place() {
     AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(_editor->getSelectedAttribute());
     if (!attribute) {
         return;
     }
     SharedObjectPointer spanner = _editor->getValue().value<SharedObjectPointer>();
-    MetavoxelEditMessage message = { QVariant::fromValue(InsertSpannerEdit(attribute, spanner)) };
+    MetavoxelEditMessage message = { createEdit(attribute, spanner) };
     Application::getInstance()->getMetavoxels()->applyEdit(message);
+}
+
+InsertSpannerTool::InsertSpannerTool(MetavoxelEditor* editor) :
+    PlaceSpannerTool(editor, "Insert Spanner", "Insert") {
+}
+
+QVariant InsertSpannerTool::createEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) {
+    return QVariant::fromValue(InsertSpannerEdit(attribute, spanner));
 }
 
 RemoveSpannerTool::RemoveSpannerTool(MetavoxelEditor* editor) :
@@ -574,12 +603,23 @@ RemoveSpannerTool::RemoveSpannerTool(MetavoxelEditor* editor) :
 }
 
 bool RemoveSpannerTool::appliesTo(const AttributePointer& attribute) const {
-    return attribute->inherits("SharedObjectSetAttribute");
+    return attribute->inherits("SpannerSetAttribute");
 }
 
 bool RemoveSpannerTool::eventFilter(QObject* watched, QEvent* event) {
+    AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(_editor->getSelectedAttribute());
+    if (!attribute) {
+        return false;
+    }
     if (event->type() == QEvent::MouseButtonPress) {
-        
+        float distance;
+        SharedObjectPointer spanner = Application::getInstance()->getMetavoxels()->findFirstRaySpannerIntersection(
+            Application::getInstance()->getMouseRayOrigin(), Application::getInstance()->getMouseRayDirection(),
+            attribute, distance);
+        if (spanner) {
+            MetavoxelEditMessage message = { QVariant::fromValue(RemoveSpannerEdit(attribute, spanner->getRemoteID())) };
+            Application::getInstance()->getMetavoxels()->applyEdit(message);
+        }
         return true;
     }
     return false;
@@ -594,7 +634,7 @@ ClearSpannersTool::ClearSpannersTool(MetavoxelEditor* editor) :
 }
 
 bool ClearSpannersTool::appliesTo(const AttributePointer& attribute) const {
-    return attribute->inherits("SharedObjectSetAttribute");
+    return attribute->inherits("SpannerSetAttribute");
 }
 
 void ClearSpannersTool::clear() {
@@ -604,4 +644,17 @@ void ClearSpannersTool::clear() {
     }
     MetavoxelEditMessage message = { QVariant::fromValue(ClearSpannersEdit(attribute)) };
     Application::getInstance()->getMetavoxels()->applyEdit(message);
+}
+
+SetSpannerTool::SetSpannerTool(MetavoxelEditor* editor) :
+    PlaceSpannerTool(editor, "Set Spanner", "Set") {
+}
+
+bool SetSpannerTool::appliesTo(const AttributePointer& attribute) const {
+    return attribute == AttributeRegistry::getInstance()->getSpannersAttribute();
+}
+
+QVariant SetSpannerTool::createEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) {
+    static_cast<Spanner*>(spanner.data())->setGranularity(_editor->getGridSpacing());
+    return QVariant::fromValue(SetSpannerEdit(spanner));
 }

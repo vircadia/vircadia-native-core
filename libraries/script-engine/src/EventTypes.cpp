@@ -387,11 +387,10 @@ TouchEvent::TouchEvent(const QTouchEvent& event, const TouchEvent& other) {
     calculateMetaAttributes(other);
 }
 
-// returns the degrees between two points (note: 0 degrees is 'east')
+// returns the angle (in degrees) between two points (note: 0 degrees is 'east')
 float angleBetweenPoints(const glm::vec2& a, const glm::vec2& b ) {
     glm::vec2 length = b - a;
-    float radian = std::atan2(length.y, length.x);
-    float angle = radian * 180.0f / PIE;
+    float angle = DEGREES_PER_RADIAN * std::atan2(length.y, length.x);
     if (angle < 0) {
         angle += 360.0f;
     };

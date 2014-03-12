@@ -18,7 +18,12 @@
 
 REGISTER_META_OBJECT(SharedObject)
 
-SharedObject::SharedObject() : _id(++_lastID), _referenceCount(0) {
+SharedObject::SharedObject() :
+    _id(++_lastID),
+    _remoteID(0),
+    _referenceCount(0) {
+    
+    _weakHash.insert(_id, this);
 }
 
 void SharedObject::incrementReferenceCount() {
@@ -27,10 +32,8 @@ void SharedObject::incrementReferenceCount() {
 
 void SharedObject::decrementReferenceCount() {
     if (--_referenceCount == 0) {
+        _weakHash.remove(_id);
         delete this;
-    
-    } else if (_referenceCount == 1) {
-        emit referenceCountDroppedToOne();
     }
 }
 
@@ -51,6 +54,12 @@ SharedObject* SharedObject::clone() const {
 }
 
 bool SharedObject::equals(const SharedObject* other) const {
+    if (!other) {
+        return false;
+    }
+    if (other == this) {
+        return true;
+    }
     // default behavior is to compare the properties
     const QMetaObject* metaObject = this->metaObject();
     if (metaObject != other->metaObject()) {
@@ -83,6 +92,17 @@ void SharedObject::dump(QDebug debug) const {
 }
 
 int SharedObject::_lastID = 0;
+WeakSharedObjectHash SharedObject::_weakHash;
+
+void pruneWeakSharedObjectHash(WeakSharedObjectHash& hash) {
+    for (WeakSharedObjectHash::iterator it = hash.begin(); it != hash.end(); ) {
+        if (!it.value()) {
+            it = hash.erase(it);
+        } else {
+            it++;
+        }
+    }
+}
 
 SharedObjectEditor::SharedObjectEditor(const QMetaObject* metaObject, bool nullable, QWidget* parent) : QWidget(parent) {
     QVBoxLayout* layout = new QVBoxLayout();

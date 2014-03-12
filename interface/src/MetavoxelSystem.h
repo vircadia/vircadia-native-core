@@ -35,6 +35,9 @@ public:
 
     void init();
     
+    SharedObjectPointer findFirstRaySpannerIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const AttributePointer& attribute, float& distance);
+    
     void applyEdit(const MetavoxelEditMessage& edit);
     
     void simulate(float deltaTime);
@@ -57,18 +60,20 @@ private:
     public:
         SimulateVisitor(QVector<Point>& points);
         void setDeltaTime(float deltaTime) { _deltaTime = deltaTime; }
-        virtual void visit(Spanner* spanner);
-        virtual bool visit(MetavoxelInfo& info);
+        void setOrder(const glm::vec3& direction) { _order = encodeOrder(direction); }
+        virtual bool visit(Spanner* spanner);
+        virtual int visit(MetavoxelInfo& info);
     
     private:
         QVector<Point>& _points;
         float _deltaTime;
+        int _order;
     };
     
     class RenderVisitor : public SpannerVisitor {
     public:
         RenderVisitor();
-        virtual void visit(Spanner* spanner);
+        virtual bool visit(Spanner* spanner);
     };
     
     static ProgramObject _program;
@@ -91,6 +96,8 @@ public:
 
     MetavoxelData& getData() { return _data; }
 
+    void guide(MetavoxelVisitor& visitor);
+
     void applyEdit(const MetavoxelEditMessage& edit);
 
     void simulate(float deltaTime);
@@ -103,16 +110,25 @@ private slots:
 
     void readPacket(Bitstream& in);
     
+    void clearSendRecordsBefore(int index);
+    
     void clearReceiveRecordsBefore(int index);
     
 private:
     
     void handleMessage(const QVariant& message, Bitstream& in);
     
+    class SendRecord {
+    public:
+        int packetNumber;
+        MetavoxelLOD lod;
+    };
+    
     class ReceiveRecord {
     public:
         int packetNumber;
         MetavoxelData data;
+        MetavoxelLOD lod;
     };
     
     SharedNodePointer _node;
@@ -121,7 +137,19 @@ private:
     
     MetavoxelData _data;
     
+    QList<SendRecord> _sendRecords;
     QList<ReceiveRecord> _receiveRecords;
+};
+
+/// Renders spheres.
+class SphereRenderer : public SpannerRenderer {
+    Q_OBJECT
+
+public:
+    
+    Q_INVOKABLE SphereRenderer();
+    
+    virtual void render(float alpha);
 };
 
 /// Renders static models.
@@ -135,11 +163,12 @@ public:
     virtual void init(Spanner* spanner);
     virtual void simulate(float deltaTime);
     virtual void render(float alpha);
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
 private slots:
 
     void applyTranslation(const glm::vec3& translation);
-    void applyRotation(const glm::vec3& rotation);
+    void applyRotation(const glm::vec3& eulerAngles);   // eulerAngles are in degrees
     void applyScale(float scale);
     void applyURL(const QUrl& url);
 
