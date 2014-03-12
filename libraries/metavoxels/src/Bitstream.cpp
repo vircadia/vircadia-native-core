@@ -23,6 +23,7 @@
 
 REGISTER_SIMPLE_TYPE_STREAMER(bool)
 REGISTER_SIMPLE_TYPE_STREAMER(int)
+REGISTER_SIMPLE_TYPE_STREAMER(uint)
 REGISTER_SIMPLE_TYPE_STREAMER(float)
 REGISTER_SIMPLE_TYPE_STREAMER(QByteArray)
 REGISTER_SIMPLE_TYPE_STREAMER(QColor)
@@ -233,6 +234,17 @@ Bitstream& Bitstream::operator<<(int value) {
 
 Bitstream& Bitstream::operator>>(int& value) {
     qint32 sizedValue;
+    read(&sizedValue, 32);
+    value = sizedValue;
+    return *this;
+}
+
+Bitstream& Bitstream::operator<<(uint value) {
+    return write(&value, 32);
+}
+
+Bitstream& Bitstream::operator>>(uint& value) {
+    quint32 sizedValue;
     read(&sizedValue, 32);
     value = sizedValue;
     return *this;

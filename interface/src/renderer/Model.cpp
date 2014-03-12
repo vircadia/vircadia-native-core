@@ -328,6 +328,8 @@ bool Model::render(float alpha) {
     
     glDisable(GL_COLOR_MATERIAL);
     
+    glEnable(GL_CULL_FACE);
+    
     // render opaque meshes with alpha testing
     
     glEnable(GL_ALPHA_TEST);
@@ -338,8 +340,6 @@ bool Model::render(float alpha) {
     glDisable(GL_ALPHA_TEST);
     
     // render translucent meshes afterwards, with back face culling
-    
-    glEnable(GL_CULL_FACE);
     
     renderMeshes(alpha, true);
     

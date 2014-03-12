@@ -228,7 +228,7 @@ public:
     Spanner* getSpanner() const { return _spanner; }
     float getDistance() const { return _distance; }
     
-    virtual bool visit(Spanner* spanner, float distance);
+    virtual bool visitSpanner(Spanner* spanner, float distance);
 
 private:
     
@@ -243,7 +243,7 @@ FirstRaySpannerIntersectionVisitor::FirstRaySpannerIntersectionVisitor(
     _spanner(NULL) {
 }
 
-bool FirstRaySpannerIntersectionVisitor::visit(Spanner* spanner, float distance) {
+bool FirstRaySpannerIntersectionVisitor::visitSpanner(Spanner* spanner, float distance) {
     _spanner = spanner;
     _distance = distance;
     return false;
@@ -312,7 +312,7 @@ void MetavoxelData::read(Bitstream& in, const MetavoxelLOD& lod) {
             break;
         }
         MetavoxelStreamState state = { getMinimum(), _size, attribute, in, lod, lod };
-        attribute->read(*this, state);
+        attribute->readMetavoxelRoot(*this, state);
     }
 }
 
@@ -321,7 +321,7 @@ void MetavoxelData::write(Bitstream& out, const MetavoxelLOD& lod) const {
     for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
         out << it.key();
         MetavoxelStreamState state = { getMinimum(), _size, it.key(), out, lod, lod };
-        it.key()->write(*it.value(), state);
+        it.key()->writeMetavoxelRoot(*it.value(), state);
     }
     out << AttributePointer();
 }
@@ -360,13 +360,13 @@ void MetavoxelData::readDelta(const MetavoxelData& reference, const MetavoxelLOD
             in >> changed;
             if (changed) {
                 oldRoot->incrementReferenceCount();
-                attribute->readDelta(*this, *oldRoot, state);
+                attribute->readMetavoxelDelta(*this, *oldRoot, state);
                 oldRoot->decrementReferenceCount(attribute);    
             } else {
-                attribute->readSubdivision(*this, state);
+                attribute->readMetavoxelSubdivision(*this, state);
             }
         } else {
-            attribute->read(*this, state);
+            attribute->readMetavoxelRoot(*this, state);
         } 
     }
     
@@ -415,13 +415,13 @@ void MetavoxelData::writeDelta(const MetavoxelData& reference, const MetavoxelLO
             if (referenceRoot) {
                 if (it.value() == referenceRoot) {
                     out << false;
-                    it.key()->writeSubdivision(*it.value(), state);
+                    it.key()->writeMetavoxelSubdivision(*it.value(), state);
                 } else {
                     out << true;
-                    it.key()->writeDelta(*it.value(), *referenceRoot, state);
+                    it.key()->writeMetavoxelDelta(*it.value(), *referenceRoot, state);
                 }
             } else {
-                it.key()->write(*it.value(), state);
+                it.key()->writeMetavoxelRoot(*it.value(), state);
             }
         }
     }
@@ -938,7 +938,7 @@ int RaySpannerIntersectionVisitor::visit(MetavoxelInfo& info, float distance) {
         }
         qStableSort(spannerDistances);
         foreach (const SpannerDistance& spannerDistance, spannerDistances) {
-            if (!visit(spannerDistance.spanner, spannerDistance.distance)) {
+            if (!visitSpanner(spannerDistance.spanner, spannerDistance.distance)) {
                 return SHORT_CIRCUIT;
             }
         }

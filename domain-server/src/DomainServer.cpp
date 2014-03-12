@@ -544,8 +544,16 @@ void DomainServer::readAvailableDatagrams() {
                 // construct the requested assignment from the packet data
                 Assignment requestAssignment(receivedPacket);
                 
-                qDebug() << "Received a request for assignment type" << requestAssignment.getType()
-                    << "from" << senderSockAddr;
+                // Suppress these for Assignment::AgentType to once per 5 seconds
+                static quint64 lastNoisyMessage = usecTimestampNow();
+                quint64 timeNow = usecTimestampNow();
+                const quint64 NOISY_TIME_ELAPSED = 5 * USECS_PER_SECOND;
+                bool noisyMessage = false;
+                if (requestAssignment.getType() != Assignment::AgentType || (timeNow - lastNoisyMessage) > NOISY_TIME_ELAPSED) {
+                    qDebug() << "Received a request for assignment type" << requestAssignment.getType()
+                        << "from" << senderSockAddr;
+                    noisyMessage = true;
+                }
                 
                 SharedAssignmentPointer assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
                 
@@ -562,8 +570,15 @@ void DomainServer::readAvailableDatagrams() {
                     nodeList->getNodeSocket().writeDatagram(assignmentPacket,
                                                             senderSockAddr.getAddress(), senderSockAddr.getPort());
                 } else {
-                    qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
-                        << "from" << senderSockAddr;
+                    if (requestAssignment.getType() != Assignment::AgentType || (timeNow - lastNoisyMessage) > NOISY_TIME_ELAPSED) {
+                        qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
+                            << "from" << senderSockAddr;
+                        noisyMessage = true;
+                    }
+                }
+                
+                if (noisyMessage) {
+                    lastNoisyMessage = timeNow;
                 }
             }
         }

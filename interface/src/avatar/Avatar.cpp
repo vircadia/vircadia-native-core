@@ -109,9 +109,6 @@ void Avatar::simulate(float deltaTime) {
         _shouldRenderBillboard = true;
     }
 
-    // copy velocity so we can use it later for acceleration
-    glm::vec3 oldVelocity = getVelocity();
-    
     getHand()->simulate(deltaTime, false);
     _skeletonModel.setLODDistance(getLODDistance());
     
@@ -192,7 +189,7 @@ void Avatar::render(bool forShadowMap) {
     {
         // glow when moving in the distance
         
-        const float GLOW_DISTANCE = 5.0f;
+        const float GLOW_DISTANCE = 20.0f;
         Glower glower(_moving && lengthToTarget > GLOW_DISTANCE && !forShadowMap ? 1.0f : 0.0f);
 
         // render body
