@@ -11,6 +11,8 @@
 #ifndef __shared__ReceivedPacketProcessor__
 #define __shared__ReceivedPacketProcessor__
 
+#include <QWaitCondition>
+
 #include "GenericThread.h"
 #include "NetworkPacket.h"
 
@@ -43,11 +45,15 @@ protected:
     /// Implements generic processing behavior for this thread.
     virtual bool process();
 
+    virtual void terminating();
+
     bool _dontSleep;
 
 private:
 
     std::vector<NetworkPacket> _packets;
+    QWaitCondition _hasPackets;
+    QMutex _waitingOnPacketsMutex;
 };
 
 #endif // __shared__PacketReceiver__
