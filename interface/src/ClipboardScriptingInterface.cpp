@@ -77,11 +77,11 @@ void ClipboardScriptingInterface::exportVoxel(float x, float y, float z, float s
 bool ClipboardScriptingInterface::importVoxels() {
     qDebug() << "[DEBUG] Importing ... ";
     QEventLoop loop;
-    connect(Application::getInstance(), SIGNAL(importDone(int)), &loop, SLOT(quit()));
+    connect(Application::getInstance(), SIGNAL(importDone()), &loop, SLOT(quit()));
     emit readyToImport();
-    int returnCode = loop.exec();
+    loop.exec();
     
-    return returnCode;
+    return Application::getInstance()->getImportSucceded();
 }
 
 void ClipboardScriptingInterface::nudgeVoxel(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec) {

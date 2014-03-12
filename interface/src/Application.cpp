@@ -140,6 +140,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _fps(120.0f),
         _justStarted(true),
         _voxelImporter(NULL),
+        _importSucceded(false),
         _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
         _wantToKillLocalVoxels(false),
         _audioScope(256, 200, true),
@@ -1387,7 +1388,7 @@ void Application::exportVoxels(const VoxelDetail& sourceVoxel) {
 }
 
 void Application::importVoxels() {
-    int result = 1;
+    _importSucceded = false;
     
     if (!_voxelImporter) {
         _voxelImporter = new VoxelImporter(_window);
@@ -1396,7 +1397,7 @@ void Application::importVoxels() {
     
     if (!_voxelImporter->exec()) {
         qDebug() << "[DEBUG] Import succeeded." << endl;
-        result = 0;
+        _importSucceded = true;
     } else {
         qDebug() << "[DEBUG] Import failed." << endl;
         if (_sharedVoxelSystem.getTree() == _voxelImporter->getVoxelTree()) {
@@ -1408,7 +1409,7 @@ void Application::importVoxels() {
     // restore the main window's active state
     _window->activateWindow();
     
-    emit importDone(result);
+    emit importDone();
 }
 
 void Application::cutVoxels(const VoxelDetail& sourceVoxel) {

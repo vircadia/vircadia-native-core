@@ -308,7 +308,7 @@ function initImport() {
 }
 
 function importVoxels() {
-    if (Clipboard.importVoxels() == 0) {
+    if (Clipboard.importVoxels()) {
         isImporting = true;
         if (importScale <= 0) {
             importScale = 1;

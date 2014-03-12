@@ -157,6 +157,7 @@ public:
     VoxelTree* getVoxelTree() { return _voxels.getTree(); }
     ParticleTreeRenderer* getParticles() { return &_particles; }
     MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
+    bool getImportSucceded() { return _importSucceded; }
     VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
     VoxelTree* getClipboard() { return &_clipboard; }
     Environment* getEnvironment() { return &_environment; }
@@ -225,8 +226,8 @@ signals:
     /// Fired when we're rendering in-world interface elements; allows external parties to hook in.
     void renderingInWorldInterface();
     
-    /// Fired when the import window is closed with a return code.
-    void importDone(int);
+    /// Fired when the import window is closed
+    void importDone();
     
 public slots:
     void domainChanged(const QString& domainHostname);
@@ -368,6 +369,7 @@ private:
     VoxelSystem _voxels;
     VoxelTree _clipboard; // if I copy/paste
     VoxelImporter* _voxelImporter;
+    bool _importSucceded;
     VoxelSystem _sharedVoxelSystem;
     ViewFrustum _sharedVoxelSystemViewFrustum;
 

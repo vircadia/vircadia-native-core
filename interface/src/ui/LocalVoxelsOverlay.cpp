@@ -61,8 +61,11 @@ void LocalVoxelsOverlay::render() {
 void LocalVoxelsOverlay::setProperties(const QScriptValue &properties) {
     Volume3DOverlay::setProperties(properties);
     
+    if (properties.property("scale").isValid()) {
+        setSize(properties.property("scale").toVariant().toFloat());
+    }
+    
     QScriptValue treeName = properties.property("name");
-    // if "end" property was not there, check to see if they included aliases: endPoint, or p2
     if (treeName.isValid()) {
         if ((_treeName = treeName.toString()) == DOMAIN_TREE_NAME) {
             qDebug() << "addOverlay(): Can't create overlay from domain tree";
