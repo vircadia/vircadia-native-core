@@ -241,7 +241,9 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
     int truePacketsSent = 0;
     int trueBytesSent = 0;
     int packetsSentThisInterval = 0;
-    bool isFullScene = false;
+    bool isFullScene = ((!viewFrustumChanged || !nodeData->getWantDelta()) && nodeData->getViewFrustumJustStoppedChanging()) 
+                                || nodeData->hasLodChanged();
+
     bool somethingToSend = true; // assume we have something
 
     // FOR NOW... node tells us if it wants to receive only view frustum deltas
@@ -366,10 +368,6 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
                 << " Wasted:" << _totalWastedBytes;
         }
 
-        // start tracking our stats
-        isFullScene =  ((!viewFrustumChanged || !nodeData->getWantDelta()) && nodeData->getViewFrustumJustStoppedChanging()) 
-                                || nodeData->hasLodChanged();
-
         // If we're starting a full scene, then definitely we want to empty the nodeBag
         if (isFullScene) {
             nodeData->nodeBag.deleteAll();
@@ -383,6 +381,7 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
         }
 
         ::startSceneSleepTime = _usleepTime;
+        // start tracking our stats
         nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, _myServer->getOctree()->getRoot(), _myServer->getJurisdiction());
 
         // This is the start of "resending" the scene.
