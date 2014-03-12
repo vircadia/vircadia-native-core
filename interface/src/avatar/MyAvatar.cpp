@@ -334,12 +334,12 @@ void MyAvatar::updateFromGyros(float deltaTime) {
     bool trackerActive = false;
     if (faceshift->isActive()) {
         estimatedPosition = faceshift->getHeadTranslation();
-        estimatedRotation = DEGREES_PER_RADIAN * safeEulerAngles(faceshift->getHeadRotation());
+        estimatedRotation = glm::degrees(safeEulerAngles(faceshift->getHeadRotation()));
         trackerActive = true;
     
     } else if (visage->isActive()) {
         estimatedPosition = visage->getHeadTranslation();
-        estimatedRotation = DEGREES_PER_RADIAN * safeEulerAngles(visage->getHeadRotation());
+        estimatedRotation = glm::degrees(safeEulerAngles(visage->getHeadRotation()));
         trackerActive = true;
     }
 

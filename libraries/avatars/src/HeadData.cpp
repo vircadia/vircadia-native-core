@@ -43,7 +43,7 @@ void HeadData::setOrientation(const glm::quat& orientation) {
     _owningAvatar->setOrientation(bodyOrientation);
     
     // the rest goes to the head
-    glm::vec3 eulers = DEGREES_PER_RADIAN * safeEulerAngles(glm::inverse(bodyOrientation) * orientation);
+    glm::vec3 eulers = glm::degrees(safeEulerAngles(glm::inverse(bodyOrientation) * orientation));
     _pitch = eulers.x;
     _yaw = eulers.y;
     _roll = eulers.z;
