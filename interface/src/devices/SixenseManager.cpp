@@ -89,7 +89,7 @@ void SixenseManager::update(float deltaTime) {
         
         //  Rotation of Palm
         glm::quat rotation(data.rot_quat[3], -data.rot_quat[0], data.rot_quat[1], -data.rot_quat[2]);
-        rotation = glm::angleAxis(180.0f, glm::vec3(0.f, 1.f, 0.f)) * rotation;
+        rotation = glm::angleAxis(PI, glm::vec3(0.f, 1.f, 0.f)) * rotation;
         const glm::vec3 PALM_VECTOR(0.0f, -1.0f, 0.0f);
         glm::vec3 newNormal = rotation * PALM_VECTOR;
         palm->setRawNormal(newNormal);

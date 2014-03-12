@@ -25,7 +25,7 @@ void CollisionInfoTests::rotateThenTranslate() {
     collision._contactPoint = yAxis;
     collision._addedVelocity = xAxis + yAxis + zAxis;
 
-    glm::quat rotation = glm::angleAxis(rightAngle, zAxis);
+    glm::quat rotation = glm::angleAxis(PI_OVER_TWO, zAxis);
     float distance = 3.f;
     glm::vec3 translation = distance * yAxis;
 
@@ -64,7 +64,7 @@ void CollisionInfoTests::translateThenRotate() {
     collision._contactPoint = yAxis;
     collision._addedVelocity = xAxis + yAxis + zAxis;
 
-    glm::quat rotation = glm::angleAxis( -rightAngle, zAxis);
+    glm::quat rotation = glm::angleAxis( -PI_OVER_TWO, zAxis);
     float distance = 3.f;
     glm::vec3 translation = distance * yAxis;
 

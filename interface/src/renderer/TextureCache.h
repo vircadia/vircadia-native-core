@@ -119,9 +119,6 @@ public:
     
     NetworkTexture(const QUrl& url, bool normalMap);
 
-    /// Returns the average color over the entire texture.
-    const glm::vec4& getAverageColor() const { return _averageColor; }
-
     /// Checks whether it "looks like" this texture is translucent
     /// (majority of pixels neither fully opaque or fully transparent).
     bool isTranslucent() const { return _translucent; }
@@ -131,11 +128,10 @@ protected:
     virtual void downloadFinished(QNetworkReply* reply);
     virtual void imageLoaded(const QImage& image);      
 
-    Q_INVOKABLE void setImage(const QImage& image, const glm::vec4& averageColor, bool translucent);
+    Q_INVOKABLE void setImage(const QImage& image, bool translucent);
 
 private:
 
-    glm::vec4 _averageColor;
     bool _translucent;
 };
 

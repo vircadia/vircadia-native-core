@@ -19,8 +19,6 @@ JurisdictionListener::JurisdictionListener(NodeType_t type) :
     _nodeType(type),
     _packetSender(JurisdictionListener::DEFAULT_PACKETS_PER_SECOND)
 {
-    ReceivedPacketProcessor::_dontSleep = true; // we handle sleeping so this class doesn't need to
-    
     connect(NodeList::getInstance(), &NodeList::nodeKilled, this, &JurisdictionListener::nodeKilled);
     
     // tell our NodeList we want to hear about nodes with our node type

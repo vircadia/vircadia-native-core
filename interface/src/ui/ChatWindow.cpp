@@ -179,6 +179,10 @@ void ChatWindow::participantsChanged() {
 }
 
 void ChatWindow::messageReceived(const QXmppMessage& message) {
+    if (message.type() != QXmppMessage::GroupChat) {
+        return;
+    }
+
     QLabel* userLabel = new QLabel(getParticipantName(message.from()));
     QFont font = userLabel->font();
     font.setBold(true);

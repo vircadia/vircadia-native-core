@@ -78,9 +78,9 @@ glm::vec3 bugDirection = glm::vec3(0, 0, 1);
 const int VOXELS_PER_BUG = 18;
 glm::vec3 bugPathCenter = glm::vec3(0.25f,0.15f,0.25f); // glm::vec3(BUG_VOXEL_SIZE * 150.0, BUG_VOXEL_SIZE * 30.0, BUG_VOXEL_SIZE * 150.0);
 float bugPathRadius = 0.2f; //BUG_VOXEL_SIZE * 140.0;
-float bugPathTheta = 0.0 * PI_OVER_180;
-float bugRotation = 0.0 * PI_OVER_180;
-float bugAngleDelta = 0.2 * PI_OVER_180;
+float bugPathTheta = 0.0f * RADIANS_PER_DEGREE;
+float bugRotation = 0.0f * RADIANS_PER_DEGREE;
+float bugAngleDelta = 0.2f * RADIANS_PER_DEGREE;
 bool moveBugInLine = false;
 
 class BugPart {
@@ -160,11 +160,11 @@ static void renderMovingBug() {
         bugPosition.z += (bugDirection.z * BUG_VOXEL_SIZE);
         
         // Check boundaries
-        if (bugPosition.z > 1.0) {
-            bugDirection.z = -1;
+        if (bugPosition.z > 1.0f) {
+            bugDirection.z = -1.f;
         }
         if (bugPosition.z < BUG_VOXEL_SIZE) {
-            bugDirection.z = 1;
+            bugDirection.z = 1.f;
         }
     } else {
         
@@ -174,9 +174,9 @@ static void renderMovingBug() {
         bugRotation  -= bugAngleDelta; // rotate slightly
         
         // If we loop past end of circle, just reset back into normal range
-        if (bugPathTheta > (360.0f * PI_OVER_180)) {
-            bugPathTheta = 0;
-            bugRotation  = 0;
+        if (bugPathTheta > TWO_PI) {
+            bugPathTheta = 0.f;
+            bugRotation  = 0.f;
         }
         
         float x = bugPathCenter.x + bugPathRadius * cos(bugPathTheta);
@@ -225,7 +225,7 @@ static void sendVoxelBlinkMessage() {
     VoxelDetail detail;
     detail.s = BEACON_SIZE;
     
-    glm::vec3 position = glm::vec3(0, 0, detail.s);
+    glm::vec3 position = glm::vec3(0.f, 0.f, detail.s);
     
     detail.x = detail.s * floor(position.x / detail.s);
     detail.y = detail.s * floor(position.y / detail.s);
