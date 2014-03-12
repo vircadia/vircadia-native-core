@@ -91,7 +91,7 @@ bool SkeletonModel::render(float alpha) {
 }
 
 void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes) const {
-    if (jointIndex == -1) {
+    if (jointIndex < 0 || jointIndex >= int(_shapes.size())) {
         return;
     }
     if (jointIndex == getLeftHandJointIndex()
