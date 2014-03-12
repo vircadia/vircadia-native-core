@@ -15,8 +15,6 @@
 #include <cmath>
 #include <fstream> // to load voxels from file
 
-#include <glm/gtc/noise.hpp>
-
 #include <QDebug>
 
 #include "CoverageMap.h"
