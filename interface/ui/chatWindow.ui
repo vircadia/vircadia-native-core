@@ -81,7 +81,7 @@
         <x>0</x>
         <y>0</y>
         <width>358</width>
-        <height>448</height>
+        <height>454</height>
        </rect>
       </property>
       <property name="styleSheet">
@@ -122,7 +122,10 @@
       </sizepolicy>
      </property>
      <property name="styleSheet">
-      <string notr="true">font-family: Helvetica, Arial, sans-serif;</string>
+      <string notr="true">border-color: palette(dark); border-style: solid;  border-left-width: 1px; border-right-width: 1px; border-bottom-width: 1px;</string>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::NoFrame</enum>
      </property>
      <property name="horizontalScrollBarPolicy">
       <enum>Qt::ScrollBarAlwaysOff</enum>
