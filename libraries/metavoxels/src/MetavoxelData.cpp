@@ -228,7 +228,7 @@ public:
     Spanner* getSpanner() const { return _spanner; }
     float getDistance() const { return _distance; }
     
-    virtual bool visit(Spanner* spanner, float distance);
+    virtual bool visitSpanner(Spanner* spanner, float distance);
 
 private:
     
@@ -243,7 +243,7 @@ FirstRaySpannerIntersectionVisitor::FirstRaySpannerIntersectionVisitor(
     _spanner(NULL) {
 }
 
-bool FirstRaySpannerIntersectionVisitor::visit(Spanner* spanner, float distance) {
+bool FirstRaySpannerIntersectionVisitor::visitSpanner(Spanner* spanner, float distance) {
     _spanner = spanner;
     _distance = distance;
     return false;
@@ -938,7 +938,7 @@ int RaySpannerIntersectionVisitor::visit(MetavoxelInfo& info, float distance) {
         }
         qStableSort(spannerDistances);
         foreach (const SpannerDistance& spannerDistance, spannerDistances) {
-            if (!visit(spannerDistance.spanner, spannerDistance.distance)) {
+            if (!visitSpanner(spannerDistance.spanner, spannerDistance.distance)) {
                 return SHORT_CIRCUIT;
             }
         }
