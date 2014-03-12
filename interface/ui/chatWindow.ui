@@ -81,7 +81,7 @@
         <x>0</x>
         <y>0</y>
         <width>358</width>
-        <height>328</height>
+        <height>448</height>
        </rect>
       </property>
       <property name="styleSheet">
@@ -123,6 +123,9 @@
      </property>
      <property name="horizontalScrollBarPolicy">
       <enum>Qt::ScrollBarAlwaysOff</enum>
+     </property>
+     <property name="sizeAdjustPolicy">
+      <enum>QAbstractScrollArea::AdjustToContents</enum>
      </property>
     </widget>
    </item>
