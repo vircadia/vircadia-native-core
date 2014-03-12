@@ -141,6 +141,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _justStarted(true),
         _voxelImporter(NULL),
         _wantToKillLocalVoxels(false),
+        _viewFrustum(),
+        _lastQueriedViewFrustum(),
+        _lastQueriedTime(usecTimestampNow()),
         _audioScope(256, 200, true),
         _myAvatar(),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
@@ -1895,8 +1898,19 @@ void Application::updateMyAvatar(float deltaTime) {
     loadViewFrustum(_myCamera, _viewFrustum);
     
     // Update my voxel servers with my current voxel query...
-    queryOctree(NodeType::VoxelServer, PacketTypeVoxelQuery, _voxelServerJurisdictions);
-    queryOctree(NodeType::ParticleServer, PacketTypeParticleQuery, _particleServerJurisdictions);
+    quint64 now = usecTimestampNow();
+    quint64 sinceLastQuery = now - _lastQueriedTime;
+    const quint64 TOO_LONG_SINCE_LAST_QUERY = 3 * USECS_PER_SECOND;
+    bool queryIsDue = sinceLastQuery > TOO_LONG_SINCE_LAST_QUERY;
+    bool viewIsDifferentEnough = !_lastQueriedViewFrustum.isVerySimilar(_viewFrustum);
+
+    // if it's been a while since our last query or the view has significantly changed then send a query, otherwise suppress it
+    if (queryIsDue || viewIsDifferentEnough) {
+        _lastQueriedTime = now;
+        queryOctree(NodeType::VoxelServer, PacketTypeVoxelQuery, _voxelServerJurisdictions);
+        queryOctree(NodeType::ParticleServer, PacketTypeParticleQuery, _particleServerJurisdictions);
+        _lastQueriedViewFrustum = _viewFrustum;
+    }
 }
 
 void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
@@ -2745,8 +2759,8 @@ void Application::displayStats() {
         voxelStats.str("");
         QString packetsString = locale.toString((int)voxelPacketsToProcess);
         QString maxString = locale.toString((int)_recentMaxPackets);
-        voxelStats << "Voxel Packets to Process: " << packetsString.toLocal8Bit().constData()
-                    << " [Recent Max: " << maxString.toLocal8Bit().constData() << "]";        
+        voxelStats << "Voxel Packets to Process: " << qPrintable(packetsString)
+                    << " [Recent Max: " << qPrintable(maxString) << "]";        
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
     }
@@ -2769,7 +2783,7 @@ void Application::displayStats() {
 
     // Server Voxels
     voxelStats.str("");
-    voxelStats << "Server voxels: " << serversTotalString.toLocal8Bit().constData();
+    voxelStats << "Server voxels: " << qPrintable(serversTotalString);
     verticalOffset += STATS_PELS_PER_LINE;
     drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
 
@@ -2779,8 +2793,8 @@ void Application::displayStats() {
 
         voxelStats.str("");
         voxelStats <<
-            "Internal: " << serversInternalString.toLocal8Bit().constData() << "  " <<
-            "Leaves: " << serversLeavesString.toLocal8Bit().constData() << "";
+            "Internal: " << qPrintable(serversInternalString) << "  " <<
+            "Leaves: " << qPrintable(serversLeavesString) << "";
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
     }
@@ -2790,7 +2804,7 @@ void Application::displayStats() {
 
     // Local Voxels
     voxelStats.str("");
-    voxelStats << "Local voxels: " << localTotalString.toLocal8Bit().constData();
+    voxelStats << "Local voxels: " << qPrintable(localTotalString);
     verticalOffset += STATS_PELS_PER_LINE;
     drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
 
@@ -2802,8 +2816,17 @@ void Application::displayStats() {
 
         voxelStats.str("");
         voxelStats <<
-            "Internal: " << localInternalString.toLocal8Bit().constData() << "  " <<
-            "Leaves: " << localLeavesString.toLocal8Bit().constData() << "";
+            "Internal: " << qPrintable(localInternalString) << "  " <<
+            "Leaves: " << qPrintable(localLeavesString) << "";
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, (char*)voxelStats.str().c_str(), WHITE_TEXT);
+    }
+
+    // LOD Details
+    if (_statsExpanded) {
+        voxelStats.str("");
+        QString displayLODDetails = Menu::getInstance()->getLODFeedbackText();
+        voxelStats << "LOD: You can see " << qPrintable(displayLODDetails.trimmed());
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
     }

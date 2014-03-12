@@ -66,7 +66,7 @@ template<class T> QVariant readBinaryArray(QDataStream& in) {
     in >> compressedLength;
 
     QVector<T> values;
-    const int DEFLATE_ENCODING = 1;
+    const unsigned int DEFLATE_ENCODING = 1;
     if (encoding == DEFLATE_ENCODING) {
         // preface encoded data with uncompressed length
         QByteArray compressed(sizeof(quint32) + compressedLength, 0);
@@ -163,7 +163,7 @@ FBXNode parseBinaryFBXNode(QDataStream& in) {
     in >> nameLength;
 
     FBXNode node;
-    const int MIN_VALID_OFFSET = 40;
+    const unsigned int MIN_VALID_OFFSET = 40;
     if (endOffset < MIN_VALID_OFFSET || nameLength == 0) {
         // use a null name to indicate a null node
         return node;

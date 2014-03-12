@@ -155,27 +155,27 @@ Attribute::Attribute(const QString& name) :
 Attribute::~Attribute() {
 }
 
-void Attribute::read(MetavoxelData& data, MetavoxelStreamState& state) {
+void Attribute::readMetavoxelRoot(MetavoxelData& data, MetavoxelStreamState& state) {
     data.createRoot(state.attribute)->read(state);
 }
 
-void Attribute::write(const MetavoxelNode& root, MetavoxelStreamState& state) {
+void Attribute::writeMetavoxelRoot(const MetavoxelNode& root, MetavoxelStreamState& state) {
     root.write(state);
 }
 
-void Attribute::readDelta(MetavoxelData& data, const MetavoxelNode& reference, MetavoxelStreamState& state) {
+void Attribute::readMetavoxelDelta(MetavoxelData& data, const MetavoxelNode& reference, MetavoxelStreamState& state) {
     data.createRoot(state.attribute)->readDelta(reference, state);
 }
 
-void Attribute::writeDelta(const MetavoxelNode& root, const MetavoxelNode& reference, MetavoxelStreamState& state) {
+void Attribute::writeMetavoxelDelta(const MetavoxelNode& root, const MetavoxelNode& reference, MetavoxelStreamState& state) {
     root.writeDelta(reference, state);
 }
 
-void Attribute::readSubdivision(MetavoxelData& data, MetavoxelStreamState& state) {
+void Attribute::readMetavoxelSubdivision(MetavoxelData& data, MetavoxelStreamState& state) {
     data.getRoot(state.attribute)->readSubdivision(state);
 }
 
-void Attribute::writeSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state) {
+void Attribute::writeMetavoxelSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state) {
     root.writeSubdivision(state);
 }
 
@@ -327,7 +327,7 @@ SpannerSetAttribute::SpannerSetAttribute(const QString& name, const QMetaObject*
     SharedObjectSetAttribute(name, metaObject) {
 }
 
-void SpannerSetAttribute::read(MetavoxelData& data, MetavoxelStreamState& state) {
+void SpannerSetAttribute::readMetavoxelRoot(MetavoxelData& data, MetavoxelStreamState& state) {
     forever {
         SharedObjectPointer object;
         state.stream >> object;
@@ -338,13 +338,14 @@ void SpannerSetAttribute::read(MetavoxelData& data, MetavoxelStreamState& state)
     }
 }
 
-void SpannerSetAttribute::write(const MetavoxelNode& root, MetavoxelStreamState& state) {
+void SpannerSetAttribute::writeMetavoxelRoot(const MetavoxelNode& root, MetavoxelStreamState& state) {
     Spanner::incrementVisit();
     root.writeSpanners(state);
     state.stream << SharedObjectPointer();
 }
 
-void SpannerSetAttribute::readDelta(MetavoxelData& data, const MetavoxelNode& reference, MetavoxelStreamState& state) {
+void SpannerSetAttribute::readMetavoxelDelta(MetavoxelData& data,
+        const MetavoxelNode& reference, MetavoxelStreamState& state) {
     forever {
         SharedObjectPointer object;
         state.stream >> object;
@@ -355,13 +356,14 @@ void SpannerSetAttribute::readDelta(MetavoxelData& data, const MetavoxelNode& re
     }
 }
 
-void SpannerSetAttribute::writeDelta(const MetavoxelNode& root, const MetavoxelNode& reference, MetavoxelStreamState& state) {
+void SpannerSetAttribute::writeMetavoxelDelta(const MetavoxelNode& root,
+        const MetavoxelNode& reference, MetavoxelStreamState& state) {
     Spanner::incrementVisit();
     root.writeSpannerDelta(reference, state);
     state.stream << SharedObjectPointer();
 }
 
-void SpannerSetAttribute::readSubdivision(MetavoxelData& data, MetavoxelStreamState& state) {
+void SpannerSetAttribute::readMetavoxelSubdivision(MetavoxelData& data, MetavoxelStreamState& state) {
     forever {
         SharedObjectPointer object;
         state.stream >> object;
@@ -372,7 +374,7 @@ void SpannerSetAttribute::readSubdivision(MetavoxelData& data, MetavoxelStreamSt
     }
 }
 
-void SpannerSetAttribute::writeSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state) {
+void SpannerSetAttribute::writeMetavoxelSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state) {
     Spanner::incrementVisit();
     root.writeSpannerSubdivision(state);
     state.stream << SharedObjectPointer();
