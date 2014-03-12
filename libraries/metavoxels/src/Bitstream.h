@@ -254,6 +254,9 @@ public:
     Bitstream& operator<<(int value);
     Bitstream& operator>>(int& value);
     
+    Bitstream& operator<<(uint value);
+    Bitstream& operator>>(uint& value);
+    
     Bitstream& operator<<(float value);
     Bitstream& operator>>(float& value);
     

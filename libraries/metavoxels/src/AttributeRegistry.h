@@ -265,7 +265,7 @@ template<class T, int bits> inline bool SimpleInlineAttribute<T, bits>::merge(vo
 /// Provides appropriate averaging for RGBA values.
 class QRgbAttribute : public InlineAttribute<QRgb> {
     Q_OBJECT
-    Q_PROPERTY(unsigned int defaultValue MEMBER _defaultValue)
+    Q_PROPERTY(uint defaultValue MEMBER _defaultValue)
 
 public:
     
