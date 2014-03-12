@@ -1218,8 +1218,10 @@ void Application::idle() {
                 _idleLoopStdev.reset();
             }
             
-            _buckyBalls.simulate(timeSinceLastUpdate / 1000.f, Application::getInstance()->getAvatar()->getHandData());
-
+            if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
+                _buckyBalls.simulate(timeSinceLastUpdate / 1000.f, Application::getInstance()->getAvatar()->getHandData());
+            }
+            
             // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
             idleTimer->start(2);
         }

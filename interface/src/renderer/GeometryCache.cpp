@@ -378,30 +378,6 @@ QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance
     return lod;
 }
 
-glm::vec4 NetworkGeometry::computeAverageColor() const {
-    glm::vec4 totalColor;
-    int totalTriangles = 0;
-    for (int i = 0; i < _meshes.size(); i++) {
-        const FBXMesh& mesh = _geometry.meshes.at(i);
-        if (mesh.isEye) {
-            continue; // skip eyes
-        }
-        const NetworkMesh& networkMesh = _meshes.at(i);
-        for (int j = 0; j < mesh.parts.size(); j++) {
-            const FBXMeshPart& part = mesh.parts.at(j);
-            const NetworkMeshPart& networkPart = networkMesh.parts.at(j);
-            glm::vec4 color = glm::vec4(part.diffuseColor, 1.0f);
-            if (networkPart.diffuseTexture) {
-                color *= networkPart.diffuseTexture->getAverageColor();
-            }
-            int triangles = part.quadIndices.size() * 2 + part.triangleIndices.size();
-            totalColor += color * (float) triangles;
-            totalTriangles += triangles;
-        }
-    }
-    return (totalTriangles == 0) ? glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) : totalColor / (float) totalTriangles;
-}
-
 void NetworkGeometry::setLoadPriority(const QPointer<QObject>& owner, float priority) {
     Resource::setLoadPriority(owner, priority);
     

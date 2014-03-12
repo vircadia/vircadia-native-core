@@ -113,8 +113,7 @@ GLuint TextureCache::getFileTextureID(const QString& filename) {
         glBindTexture(GL_TEXTURE_2D, id);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1,
             GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
-        glGenerateMipmap(GL_TEXTURE_2D);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glBindTexture(GL_TEXTURE_2D, 0);
         
         _fileTextureIDs.insert(filename, id);
@@ -257,7 +256,6 @@ Texture::~Texture() {
 
 NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap) :
     Resource(url),
-    _averageColor(1.0f, 1.0f, 1.0f, 1.0f),
     _translucent(false) {
     
     if (!url.isValid()) {
@@ -300,27 +298,20 @@ void ImageReader::run() {
         image = image.convertToFormat(QImage::Format_ARGB32);
     }
     
-    // sum up the colors for the average and check for translucency
-    glm::vec4 accumulated;
+    // check for translucency
     int translucentPixels = 0;
     const int EIGHT_BIT_MAXIMUM = 255;
+    const int RGB_BITS = 24;
     for (int y = 0; y < image.height(); y++) {
         for (int x = 0; x < image.width(); x++) {
-            QRgb pixel = image.pixel(x, y);
-            accumulated.r += qRed(pixel);
-            accumulated.g += qGreen(pixel);
-            accumulated.b += qBlue(pixel);
-            
-            int alpha = qAlpha(pixel);
+            int alpha = image.pixel(x, y) >> RGB_BITS;
             if (alpha != 0 && alpha != EIGHT_BIT_MAXIMUM) {
                 translucentPixels++;
             }
-            accumulated.a += alpha;
         }
     }
     int imageArea = image.width() * image.height();
     QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image),
-        Q_ARG(const glm::vec4&, accumulated / (float) (imageArea * EIGHT_BIT_MAXIMUM)),
         Q_ARG(bool, translucentPixels >= imageArea / 2));
     _reply->deleteLater();
 }
@@ -330,8 +321,7 @@ void NetworkTexture::downloadFinished(QNetworkReply* reply) {
     QThreadPool::globalInstance()->start(new ImageReader(_self, reply));
 }
 
-void NetworkTexture::setImage(const QImage& image, const glm::vec4& averageColor, bool translucent) {
-    _averageColor = averageColor;
+void NetworkTexture::setImage(const QImage& image, bool translucent) {
     _translucent = translucent;
     
     finishedLoading(true);
@@ -339,8 +329,7 @@ void NetworkTexture::setImage(const QImage& image, const glm::vec4& averageColor
     glBindTexture(GL_TEXTURE_2D, getID());
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1,
         GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
@@ -373,8 +362,7 @@ QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilatio
             glBindTexture(GL_TEXTURE_2D, texture->getID());
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dilatedImage.width(), dilatedImage.height(), 1,
                 GL_BGRA, GL_UNSIGNED_BYTE, dilatedImage.constBits());
-            glGenerateMipmap(GL_TEXTURE_2D);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glBindTexture(GL_TEXTURE_2D, 0);
         }
         
