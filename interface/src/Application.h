@@ -64,7 +64,6 @@
 #include "renderer/TextureCache.h"
 #include "renderer/VoxelShader.h"
 #include "ui/BandwidthDialog.h"
-#include "ui/ChatEntry.h"
 #include "ui/OctreeStatsDialog.h"
 #include "ui/RearMirrorTools.h"
 #include "ui/LodToolsDialog.h"
@@ -425,9 +424,6 @@ private:
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
 
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
-
-    ChatEntry _chatEntry; // chat entry field
-    bool _chatEntryOn;    // Whether to show the chat entry
 
     GeometryCache _geometryCache;
     TextureCache _textureCache;
