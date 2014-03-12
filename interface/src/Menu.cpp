@@ -1039,15 +1039,10 @@ void Menu::showChat() {
     if (!_chatWindow) {
         _chatWindow = new ChatWindow();
         QMainWindow* mainWindow = Application::getInstance()->getWindow();
-
-        // the height of the title bar is given by frameGeometry().height() - geometry().height()
-        // however, frameGeometry() is initialised after showing (Qt queries the OS windowing system)
-        // on the other hand, moving a window after showing it flickers; so just use some reasonable value
-        int titleBarHeight = 16;
         _chatWindow->setGeometry(mainWindow->width() - _chatWindow->width(),
-                                 mainWindow->geometry().y() + titleBarHeight,
+                                 mainWindow->geometry().y(),
                                  _chatWindow->width(),
-                                 mainWindow->height() - titleBarHeight);
+                                 mainWindow->height());
         _chatWindow->show();
     }
     _chatWindow->raise();

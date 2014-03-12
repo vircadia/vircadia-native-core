@@ -4,22 +4,22 @@
 <context>
     <name>Application</name>
     <message>
-        <location filename="src/Application.cpp" line="1351"/>
+        <location filename="src/Application.cpp" line="1354"/>
         <source>Export Voxels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="1352"/>
+        <location filename="src/Application.cpp" line="1355"/>
         <source>Sparse Voxel Octree Files (*.svo)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3531"/>
+        <location filename="src/Application.cpp" line="3554"/>
         <source>Open Script</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3532"/>
+        <location filename="src/Application.cpp" line="3555"/>
         <source>JavaScript Files (*.js)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -28,19 +28,19 @@
     <name>ChatWindow</name>
     <message>
         <location filename="ui/chatWindow.ui" line="14"/>
-        <location filename="../build/interface/ui_chatWindow.h" line="114"/>
+        <location filename="../build/interface/ui_chatWindow.h" line="141"/>
         <source>Chat</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="ui/chatWindow.ui" line="41"/>
-        <location filename="../build/interface/ui_chatWindow.h" line="115"/>
+        <location filename="../build/interface/ui_chatWindow.h" line="142"/>
         <source>Connecting to XMPP...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="ui/chatWindow.ui" line="60"/>
-        <location filename="../build/interface/ui_chatWindow.h" line="116"/>
+        <location filename="ui/chatWindow.ui" line="62"/>
+        <location filename="../build/interface/ui_chatWindow.h" line="143"/>
         <source> online now:</source>
         <translation type="unfinished"></translation>
     </message>
