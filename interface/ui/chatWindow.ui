@@ -67,7 +67,7 @@
    <item>
     <widget class="QScrollArea" name="messagesScrollArea">
      <property name="styleSheet">
-      <string notr="true">margin-top: 12px;</string>
+      <string notr="true">margin-top: 12px; font-family: Helvetica, Arial, sans-serif;</string>
      </property>
      <property name="horizontalScrollBarPolicy">
       <enum>Qt::ScrollBarAlwaysOff</enum>
@@ -120,6 +120,9 @@
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">font-family: Helvetica, Arial, sans-serif;</string>
      </property>
      <property name="horizontalScrollBarPolicy">
       <enum>Qt::ScrollBarAlwaysOff</enum>
