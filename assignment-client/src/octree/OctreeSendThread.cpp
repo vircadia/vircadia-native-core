@@ -366,8 +366,20 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
         }
 
         // start tracking our stats
-        bool isFullScene = ((!viewFrustumChanged || !nodeData->getWantDelta())
-                                && nodeData->getViewFrustumJustStoppedChanging()) || nodeData->hasLodChanged();
+        qDebug() << "----";
+        qDebug() << "viewFrustumChanged=" << viewFrustumChanged;
+        qDebug() << "nodeData->getWantDelta()=" << nodeData->getWantDelta();
+        qDebug() << "nodeData->getViewFrustumJustStoppedChanging()=" << nodeData->getViewFrustumJustStoppedChanging();
+        qDebug() << "nodeData->hasLodChanged()=" << nodeData->hasLodChanged();
+
+
+        bool isFullScene =  (
+                                (!viewFrustumChanged || !nodeData->getWantDelta())
+                                && nodeData->getViewFrustumJustStoppedChanging()
+                            ) 
+                            || nodeData->hasLodChanged();
+
+        qDebug() << "isFullScene=" << isFullScene;
 
         // If we're starting a full scene, then definitely we want to empty the nodeBag
         if (isFullScene) {
@@ -435,6 +447,8 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
 
                 bool isFullScene = ((!viewFrustumChanged || !nodeData->getWantDelta()) &&
                                  nodeData->getViewFrustumJustStoppedChanging()) || nodeData->hasLodChanged();
+
+                qDebug() << "SECOND CALC.... isFullScene=" << isFullScene;
 
                 EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor,
                                              WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,

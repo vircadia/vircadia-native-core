@@ -167,6 +167,9 @@ void OctreeSceneStats::sceneStarted(bool isFullScene, bool isMoving, OctreeEleme
     _totalInternal = OctreeElement::getInternalNodeCount();
     _totalLeaves   = OctreeElement::getLeafNodeCount();
     
+    if (isFullScene) {
+        qDebug() << "OctreeSceneStats::sceneStarted()... IS FULL SCENE";
+    }
     _isFullScene = isFullScene;
     _isMoving = isMoving;
     

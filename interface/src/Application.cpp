@@ -141,6 +141,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _justStarted(true),
         _voxelImporter(NULL),
         _wantToKillLocalVoxels(false),
+        _viewFrustum(),
+        _lastQueriedViewFrustum(),
+        _lastQueriedTime(usecTimestampNow()),
         _audioScope(256, 200, true),
         _myAvatar(),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
@@ -1917,8 +1920,19 @@ void Application::updateMyAvatar(float deltaTime) {
     loadViewFrustum(_myCamera, _viewFrustum);
     
     // Update my voxel servers with my current voxel query...
-    queryOctree(NodeType::VoxelServer, PacketTypeVoxelQuery, _voxelServerJurisdictions);
-    queryOctree(NodeType::ParticleServer, PacketTypeParticleQuery, _particleServerJurisdictions);
+    quint64 now = usecTimestampNow();
+    const quint64 TOO_LONG_SINCE_LAST_QUERY = 1 * USECS_PER_SECOND;
+
+    // if we haven't waited long enough and the frustum is similar enough, then surpress this query...
+    if ((now - _lastQueriedTime) > TOO_LONG_SINCE_LAST_QUERY ||  !_lastQueriedViewFrustum.isVerySimilar(_viewFrustum)) {
+        _lastQueriedTime = now;
+        queryOctree(NodeType::VoxelServer, PacketTypeVoxelQuery, _voxelServerJurisdictions);
+        queryOctree(NodeType::ParticleServer, PacketTypeParticleQuery, _particleServerJurisdictions);
+        _lastQueriedViewFrustum = _viewFrustum;
+        //qDebug() << ">>>>>>>>>> SENDING query...";
+    } else {
+        //qDebug() << "suppress query...";
+    }
 }
 
 void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {

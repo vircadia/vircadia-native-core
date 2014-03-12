@@ -377,6 +377,8 @@ private:
     MetavoxelSystem _metavoxels;
 
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
+    ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels, particles)
+    quint64 _lastQueriedTime;
 
     Oscilloscope _audioScope;
 
