@@ -10,12 +10,17 @@
 #define __hifi__GLCanvas__
 
 #include <QGLWidget>
+#include <QTimer>
 
 /// customized canvas that simply forwards requests/events to the singleton application
 class GLCanvas : public QGLWidget {
 public:
     GLCanvas();
 protected:
+    
+    QTimer _frameTimer;
+    bool _throttleRendering;
+    int _idleRenderInterval;
     
     virtual void initializeGL();
     virtual void paintGL();
@@ -34,6 +39,9 @@ protected:
 
     virtual void dragEnterEvent(QDragEnterEvent *event);
     virtual void dropEvent(QDropEvent* event);
+    
+    void activeChanged();
+    void throttleRender();
 };
 
 #endif /* defined(__hifi__GLCanvas__) */

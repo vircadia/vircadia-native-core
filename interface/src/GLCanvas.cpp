@@ -12,17 +12,21 @@
 #include <QMimeData>
 #include <QUrl>
 
-GLCanvas::GLCanvas() : QGLWidget(QGLFormat(QGL::NoDepthBuffer, QGL::NoStencilBuffer)) {
+GLCanvas::GLCanvas() : QGLWidget(QGLFormat(QGL::NoDepthBuffer, QGL::NoStencilBuffer)), _throttleRendering(false), _idleRenderInterval(100) {
 }
 
 void GLCanvas::initializeGL() {
     Application::getInstance()->initializeGL();
     setAttribute(Qt::WA_AcceptTouchEvents);
     setAcceptDrops(true);
+    connect(Application::getInstance(), &Application::focusChanged, this, &GLCanvas::activeChanged);
+    connect(&_frameTimer, &QTimer::timeout, this, &GLCanvas::throttleRender);
 }
 
 void GLCanvas::paintGL() {
-    Application::getInstance()->paintGL();
+    if (!_throttleRendering) {
+        Application::getInstance()->paintGL();
+    }
 }
 
 void GLCanvas::resizeGL(int width, int height) {
@@ -47,6 +51,27 @@ void GLCanvas::mousePressEvent(QMouseEvent* event) {
 
 void GLCanvas::mouseReleaseEvent(QMouseEvent* event) {
     Application::getInstance()->mouseReleaseEvent(event);
+}
+
+void GLCanvas::activeChanged()
+{
+    if (!isActiveWindow())
+    {
+        if (!_throttleRendering)
+        {
+            _frameTimer.start(_idleRenderInterval);
+            _throttleRendering = true;
+        }
+    } else {
+        _frameTimer.stop();
+        _throttleRendering = false;
+    }
+}
+
+void GLCanvas::throttleRender()
+{
+    _frameTimer.start(_idleRenderInterval);
+    Application::getInstance()->paintGL();
 }
 
 int updateTime = 0;
