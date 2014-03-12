@@ -237,8 +237,8 @@ void Environment::renderAtmosphere(Camera& camera, const EnvironmentData& data) 
     program->setUniformValue(locations[INNER_RADIUS_LOCATION], data.getAtmosphereInnerRadius());
     program->setUniformValue(locations[KR_ESUN_LOCATION], data.getRayleighScattering() * data.getSunBrightness());
     program->setUniformValue(locations[KM_ESUN_LOCATION], data.getMieScattering() * data.getSunBrightness());
-    program->setUniformValue(locations[KR_4PI_LOCATION], data.getRayleighScattering() * 4.0f * PIf);
-    program->setUniformValue(locations[KM_4PI_LOCATION], data.getMieScattering() * 4.0f * PIf);
+    program->setUniformValue(locations[KR_4PI_LOCATION], data.getRayleighScattering() * 4.0f * PI);
+    program->setUniformValue(locations[KM_4PI_LOCATION], data.getMieScattering() * 4.0f * PI);
     program->setUniformValue(locations[SCALE_LOCATION], 1.0f / (data.getAtmosphereOuterRadius() - data.getAtmosphereInnerRadius()));
     program->setUniformValue(locations[SCALE_DEPTH_LOCATION], 0.25f);
     program->setUniformValue(locations[SCALE_OVER_SCALE_DEPTH_LOCATION],

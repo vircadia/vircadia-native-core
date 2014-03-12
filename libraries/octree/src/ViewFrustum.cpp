@@ -384,14 +384,14 @@ bool ViewFrustum::isVerySimilar(const ViewFrustum& compareTo, bool debug) const 
     // Compute the angular distance between the two orientations
     const float ORIENTATION_SIMILAR_ENOUGH = 10.0f; // 10 degrees in any direction
     glm::quat dQOrientation = _orientation * glm::inverse(compareTo._orientation);
-    float angleOrientation = compareTo._orientation == _orientation ? 0.0f : glm::angle(dQOrientation);
+    float angleOrientation = compareTo._orientation == _orientation ? 0.0f : glm::degrees(glm::angle(dQOrientation));
     if (isNaN(angleOrientation)) {
         angleOrientation = 0.0f;
     }
 
     glm::quat dQEyeOffsetOrientation = _eyeOffsetOrientation * glm::inverse(compareTo._eyeOffsetOrientation);
     float angleEyeOffsetOrientation = compareTo._eyeOffsetOrientation == _eyeOffsetOrientation
-                                            ? 0.0f : glm::angle(dQEyeOffsetOrientation);
+                                            ? 0.0f : glm::degrees(glm::angle(dQEyeOffsetOrientation));
     if (isNaN(angleEyeOffsetOrientation)) {
         angleOrientation = 0.0f;
     }
@@ -463,7 +463,7 @@ void ViewFrustum::computePickRay(float x, float y, glm::vec3& origin, glm::vec3&
 void ViewFrustum::computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearValue, float& farValue,
                                         glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
     // compute our dimensions the usual way
-    float hheight = _nearClip * tanf(_fieldOfView * 0.5f * PI_OVER_180);
+    float hheight = _nearClip * tanf(_fieldOfView * 0.5f * RADIANS_PER_DEGREE);
     float hwidth = _aspectRatio * hheight;
 
     // get our frustum corners in view space

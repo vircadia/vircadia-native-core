@@ -114,7 +114,7 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
                 const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
 
                 float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
-                    (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / 90.0f));
+                    (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / PI_OVER_TWO));
 
                 // multiply the current attenuation coefficient by the calculated off axis coefficient
                 attenuationCoefficient *= offAxisCoefficient;
@@ -148,7 +148,7 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
 
             // figure out the number of samples of delay and the ratio of the amplitude
             // in the weak channel for audio spatialization
-            float sinRatio = fabsf(sinf(glm::radians(bearingRelativeAngleToSource)));
+            float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
             numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
             weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
         }

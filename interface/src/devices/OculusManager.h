@@ -32,6 +32,9 @@ public:
     
     static void reset();
     
+    /// param \yaw[out] yaw in radians
+    /// param \pitch[out] pitch in radians
+    /// param \roll[out] roll in radians
     static void getEulerAngles(float& yaw, float& pitch, float& roll);
     
     static void updateYawOffset();

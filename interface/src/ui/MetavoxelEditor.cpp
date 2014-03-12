@@ -139,11 +139,11 @@ glm::quat MetavoxelEditor::getGridRotation() const {
             return glm::quat();
             
         case GRID_PLANE_XZ:
-            return glm::angleAxis(-90.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+            return glm::angleAxis(-PI_OVER_TWO, glm::vec3(1.0f, 0.0f, 0.0f));
             
         case GRID_PLANE_YZ:
         default:
-            return glm::angleAxis(90.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+            return glm::angleAxis(PI_OVER_TWO, glm::vec3(0.0f, 1.0f, 0.0f));
     }
 }
 
@@ -282,7 +282,7 @@ void MetavoxelEditor::render() {
     
     glm::quat rotation = getGridRotation();
     glm::vec3 axis = glm::axis(rotation);
-    glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+    glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
     
     glLineWidth(1.0f);
     

@@ -108,7 +108,7 @@ public:
     QByteArray toByteArray();
     int parseData(const QByteArray& packet);
 
-    //  Body Rotation
+    //  Body Rotation (degrees)
     float getBodyYaw() const { return _bodyYaw; }
     void setBodyYaw(float bodyYaw) { _bodyYaw = bodyYaw; }
     float getBodyPitch() const { return _bodyPitch; }
@@ -122,7 +122,7 @@ public:
     glm::quat getHeadOrientation() const { return _headData->getOrientation(); }
     void setHeadOrientation(const glm::quat& orientation) { _headData->setOrientation(orientation); }
 
-    // access to Head().set/getMousePitch
+    // access to Head().set/getMousePitch (degrees)
     float getHeadPitch() const { return _headData->getPitch(); }
     void setHeadPitch(float value) { _headData->setPitch(value); };
 
@@ -217,9 +217,9 @@ protected:
     glm::vec3 _handPosition;
 
     //  Body rotation
-    float _bodyYaw;
-    float _bodyPitch;
-    float _bodyRoll;
+    float _bodyYaw;     // degrees
+    float _bodyPitch;   // degrees
+    float _bodyRoll;    // degrees
 
     // Body scale
     float _targetScale;

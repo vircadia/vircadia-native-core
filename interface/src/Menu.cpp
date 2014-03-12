@@ -713,8 +713,8 @@ void Menu::editPreferences() {
     form->addRow("Faceshift Eye Deflection:", faceshiftEyeDeflection);
 
     QSpinBox* fieldOfView = new QSpinBox();
-    fieldOfView->setMaximum(180);
-    fieldOfView->setMinimum(1);
+    fieldOfView->setMaximum(180.f);
+    fieldOfView->setMinimum(1.f);
     fieldOfView->setValue(_fieldOfView);
     form->addRow("Vertical Field of View (Degrees):", fieldOfView);
 
