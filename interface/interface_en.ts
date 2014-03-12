@@ -4,22 +4,22 @@
 <context>
     <name>Application</name>
     <message>
-        <location filename="src/Application.cpp" line="1349"/>
+        <location filename="src/Application.cpp" line="1351"/>
         <source>Export Voxels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="1350"/>
+        <location filename="src/Application.cpp" line="1352"/>
         <source>Sparse Voxel Octree Files (*.svo)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3529"/>
+        <location filename="src/Application.cpp" line="3531"/>
         <source>Open Script</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3530"/>
+        <location filename="src/Application.cpp" line="3532"/>
         <source>JavaScript Files (*.js)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -28,19 +28,19 @@
     <name>ChatWindow</name>
     <message>
         <location filename="ui/chatWindow.ui" line="14"/>
-        <location filename="../build/interface/ui_chatWindow.h" line="112"/>
+        <location filename="../build/interface/ui_chatWindow.h" line="113"/>
         <source>Chat</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="ui/chatWindow.ui" line="41"/>
-        <location filename="../build/interface/ui_chatWindow.h" line="113"/>
+        <location filename="../build/interface/ui_chatWindow.h" line="114"/>
         <source>Connecting to XMPP...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="ui/chatWindow.ui" line="60"/>
-        <location filename="../build/interface/ui_chatWindow.h" line="114"/>
+        <location filename="../build/interface/ui_chatWindow.h" line="115"/>
         <source> online now:</source>
         <translation type="unfinished"></translation>
     </message>
