@@ -109,9 +109,6 @@ void Avatar::simulate(float deltaTime) {
         _shouldRenderBillboard = true;
     }
 
-    // copy velocity so we can use it later for acceleration
-    glm::vec3 oldVelocity = getVelocity();
-    
     getHand()->simulate(deltaTime, false);
     _skeletonModel.setLODDistance(getLODDistance());
     
