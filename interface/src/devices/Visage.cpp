@@ -10,12 +10,14 @@
 
 #include <SharedUtil.h>
 
+#include "Application.h"
+#include "Visage.h"
+#include "renderer/FBXReader.h"
+
+// this has to go after our normal includes, because its definition of HANDLE conflicts with Qt's
 #ifdef HAVE_VISAGE
 #include <VisageTracker2.h>
 #endif
-
-#include "Visage.h"
-#include "renderer/FBXReader.h"
 
 namespace VisageSDK {
 #ifdef WIN32
@@ -36,9 +38,9 @@ Visage::Visage() :
     _estimatedEyeYaw(0.0f) {
     
 #ifdef HAVE_VISAGE
-    QByteArray licensePath = Application::resourcesPath() + "visage/license.vlc";
+    QByteArray licensePath = Application::resourcesPath().toLatin1() + "visage/license.vlc";
     initializeLicenseManager(licensePath.data());
-    _tracker = new VisageTracker2(Application::resourcesPath() + "visage/tracker.cfg");
+    _tracker = new VisageTracker2(Application::resourcesPath().toLatin1() + "visage/tracker.cfg");
     if (_tracker->trackFromCam()) {
         _data = new FaceData();   
          
