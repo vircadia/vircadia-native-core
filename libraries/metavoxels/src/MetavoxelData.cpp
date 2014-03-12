@@ -10,6 +10,8 @@
 #include <QScriptEngine>
 #include <QtDebug>
 
+#include <GeometryUtil.h>
+
 #include "MetavoxelData.h"
 #include "MetavoxelUtil.h"
 #include "ScriptCache.h"
@@ -19,7 +21,34 @@ REGISTER_META_OBJECT(DefaultMetavoxelGuide)
 REGISTER_META_OBJECT(ScriptedMetavoxelGuide)
 REGISTER_META_OBJECT(ThrobbingMetavoxelGuide)
 REGISTER_META_OBJECT(Spanner)
+REGISTER_META_OBJECT(Sphere)
 REGISTER_META_OBJECT(StaticModel)
+
+MetavoxelLOD::MetavoxelLOD(const glm::vec3& position, float threshold) :
+    position(position),
+    threshold(threshold) {
+}
+
+bool MetavoxelLOD::shouldSubdivide(const glm::vec3& minimum, float size, float multiplier) const {
+    return size >= glm::distance(position, minimum + glm::vec3(size, size, size) * 0.5f) * threshold * multiplier;
+}
+
+bool MetavoxelLOD::becameSubdivided(const glm::vec3& minimum, float size,
+        const MetavoxelLOD& reference, float multiplier) const {
+    if (position == reference.position && threshold >= reference.threshold) {
+        return false; // first off, nothing becomes subdivided if it doesn't change
+    }
+    if (!shouldSubdivide(minimum, size, multiplier)) {
+        return false; // this one must be subdivided
+    }
+    // the general check is whether we've gotten closer (as multiplied by the threshold) to any point in the volume,
+    // which we approximate as a sphere for simplicity
+    float halfSize = size * 0.5f;
+    glm::vec3 center = minimum + glm::vec3(halfSize, halfSize, halfSize);
+    float radius = sqrtf(3 * halfSize * halfSize);
+    return qMax(0.0f, glm::distance(position, center) - radius) * threshold <=
+        qMax(0.0f, glm::distance(reference.position, center) - radius) * reference.threshold;
+}
 
 MetavoxelData::MetavoxelData() : _size(1.0f) {
 }
@@ -56,7 +85,7 @@ void MetavoxelData::guide(MetavoxelVisitor& visitor) {
     const QVector<AttributePointer>& inputs = visitor.getInputs();
     const QVector<AttributePointer>& outputs = visitor.getOutputs();
     MetavoxelVisitation firstVisitation = { NULL, visitor, QVector<MetavoxelNode*>(inputs.size() + 1),
-        QVector<MetavoxelNode*>(outputs.size()), { glm::vec3(_size, _size, _size) * -0.5f, _size,
+        QVector<MetavoxelNode*>(outputs.size()), { getMinimum(), _size,
             QVector<AttributeValue>(inputs.size() + 1), QVector<OwnedAttributeValue>(outputs.size()) } };
     for (int i = 0; i < inputs.size(); i++) {
         MetavoxelNode* node = _roots.value(inputs.at(i));
@@ -92,12 +121,29 @@ void MetavoxelData::guide(MetavoxelVisitor& visitor) {
     }
 }
 
-class InsertVisitor : public MetavoxelVisitor {
+typedef void (*SpannerUpdateFunction)(SharedObjectSet& set, const SharedObjectPointer& object);
+
+void insertSpanner(SharedObjectSet& set, const SharedObjectPointer& object) {
+    set.insert(object);
+}
+
+void removeSpanner(SharedObjectSet& set, const SharedObjectPointer& object) {
+    set.remove(object);
+}
+
+void toggleSpanner(SharedObjectSet& set, const SharedObjectPointer& object) {
+    if (!set.remove(object)) {
+        set.insert(object);
+    }
+}
+
+template<SpannerUpdateFunction F> class SpannerUpdateVisitor : public MetavoxelVisitor {
 public:
     
-    InsertVisitor(const AttributePointer& attribute, const Box& bounds, float granularity, const SharedObjectPointer& object);
+    SpannerUpdateVisitor(const AttributePointer& attribute, const Box& bounds,
+        float granularity, const SharedObjectPointer& object);
     
-    virtual bool visit(MetavoxelInfo& info);
+    virtual int visit(MetavoxelInfo& info);
 
 private:
     
@@ -107,8 +153,8 @@ private:
     const SharedObjectPointer& _object;
 };
 
-InsertVisitor::InsertVisitor(const AttributePointer& attribute, const Box& bounds,
-        float granularity, const SharedObjectPointer& object) :
+template<SpannerUpdateFunction F> SpannerUpdateVisitor<F>::SpannerUpdateVisitor(const AttributePointer& attribute,
+        const Box& bounds, float granularity, const SharedObjectPointer& object) :
     MetavoxelVisitor(QVector<AttributePointer>() << attribute, QVector<AttributePointer>() << attribute),
     _attribute(attribute),
     _bounds(bounds),
@@ -116,17 +162,22 @@ InsertVisitor::InsertVisitor(const AttributePointer& attribute, const Box& bound
     _object(object) {
 }
 
-bool InsertVisitor::visit(MetavoxelInfo& info) {
+template<SpannerUpdateFunction F> int SpannerUpdateVisitor<F>::visit(MetavoxelInfo& info) {
     if (!info.getBounds().intersects(_bounds)) {
-        return false;
+        return STOP_RECURSION;
     }
     if (info.size > _longestSide) {
-        return true;
+        return DEFAULT_ORDER;
     }
     SharedObjectSet set = info.inputValues.at(0).getInlineValue<SharedObjectSet>();
-    set.insert(_object);
+    F(set, _object);
     info.outputValues[0] = AttributeValue(_attribute, encodeInline(set));
-    return false;
+    return STOP_RECURSION;
+}
+
+void MetavoxelData::insert(const AttributePointer& attribute, const SharedObjectPointer& object) {
+    Spanner* spanner = static_cast<Spanner*>(object.data());
+    insert(attribute, spanner->getBounds(), spanner->getGranularity(), object);
 }
 
 void MetavoxelData::insert(const AttributePointer& attribute, const Box& bounds,
@@ -135,50 +186,29 @@ void MetavoxelData::insert(const AttributePointer& attribute, const Box& bounds,
     while (!getBounds().contains(bounds)) {
         expand();
     }
-    InsertVisitor visitor(attribute, bounds, granularity, object);
+    SpannerUpdateVisitor<insertSpanner> visitor(attribute, bounds, granularity, object);
     guide(visitor);
 }
 
-class RemoveVisitor : public MetavoxelVisitor {
-public:
-    
-    RemoveVisitor(const AttributePointer& attribute, const Box& bounds, float granularity, const SharedObjectPointer& object);
-    
-    virtual bool visit(MetavoxelInfo& info);
-
-private:
-    
-    const AttributePointer& _attribute;
-    const Box& _bounds;
-    float _longestSide;
-    const SharedObjectPointer& _object;
-};
-
-RemoveVisitor::RemoveVisitor(const AttributePointer& attribute, const Box& bounds,
-        float granularity, const SharedObjectPointer& object) :
-    MetavoxelVisitor(QVector<AttributePointer>() << attribute, QVector<AttributePointer>() << attribute),
-    _attribute(attribute),
-    _bounds(bounds),
-    _longestSide(qMax(bounds.getLongestSide(), granularity)),
-    _object(object) {
-}
-
-bool RemoveVisitor::visit(MetavoxelInfo& info) {
-    if (!info.getBounds().intersects(_bounds)) {
-        return false;
-    }
-    if (info.size > _longestSide) {
-        return true;
-    }
-    SharedObjectSet set = info.inputValues.at(0).getInlineValue<SharedObjectSet>();
-    set.remove(_object);
-    info.outputValues[0] = AttributeValue(_attribute, encodeInline(set));
-    return false;
+void MetavoxelData::remove(const AttributePointer& attribute, const SharedObjectPointer& object) {
+    Spanner* spanner = static_cast<Spanner*>(object.data());
+    remove(attribute, spanner->getBounds(), spanner->getGranularity(), object);
 }
 
 void MetavoxelData::remove(const AttributePointer& attribute, const Box& bounds,
         float granularity, const SharedObjectPointer& object) {
-    RemoveVisitor visitor(attribute, bounds, granularity, object);
+    SpannerUpdateVisitor<removeSpanner> visitor(attribute, bounds, granularity, object);
+    guide(visitor);
+}
+
+void MetavoxelData::toggle(const AttributePointer& attribute, const SharedObjectPointer& object) {
+    Spanner* spanner = static_cast<Spanner*>(object.data());
+    toggle(attribute, spanner->getBounds(), spanner->getGranularity(), object);
+}
+
+void MetavoxelData::toggle(const AttributePointer& attribute, const Box& bounds,
+        float granularity, const SharedObjectPointer& object) {
+    SpannerUpdateVisitor<toggleSpanner> visitor(attribute, bounds, granularity, object);
     guide(visitor);
 }
 
@@ -187,6 +217,48 @@ void MetavoxelData::clear(const AttributePointer& attribute) {
     if (node) {
         node->decrementReferenceCount(attribute);
     }
+}
+
+class FirstRaySpannerIntersectionVisitor : public RaySpannerIntersectionVisitor {
+public:
+    
+    FirstRaySpannerIntersectionVisitor(const glm::vec3& origin, const glm::vec3& direction,
+        const AttributePointer& attribute, const MetavoxelLOD& lod);
+    
+    Spanner* getSpanner() const { return _spanner; }
+    float getDistance() const { return _distance; }
+    
+    virtual bool visit(Spanner* spanner, float distance);
+
+private:
+    
+    Spanner* _spanner;
+    float _distance;
+};
+
+FirstRaySpannerIntersectionVisitor::FirstRaySpannerIntersectionVisitor(
+        const glm::vec3& origin, const glm::vec3& direction, const AttributePointer& attribute, const MetavoxelLOD& lod) :
+    RaySpannerIntersectionVisitor(origin, direction, QVector<AttributePointer>() << attribute,
+        QVector<AttributePointer>(), QVector<AttributePointer>(), lod),
+    _spanner(NULL) {
+}
+
+bool FirstRaySpannerIntersectionVisitor::visit(Spanner* spanner, float distance) {
+    _spanner = spanner;
+    _distance = distance;
+    return false;
+}
+
+SharedObjectPointer MetavoxelData::findFirstRaySpannerIntersection(
+        const glm::vec3& origin, const glm::vec3& direction, const AttributePointer& attribute,
+            float& distance, const MetavoxelLOD& lod) {
+    FirstRaySpannerIntersectionVisitor visitor(origin, direction, attribute, lod);
+    guide(visitor);
+    if (!visitor.getSpanner()) {
+        return SharedObjectPointer();
+    }
+    distance = visitor.getDistance();
+    return SharedObjectPointer(visitor.getSpanner());
 }
 
 const int X_MAXIMUM_FLAG = 1;
@@ -225,7 +297,7 @@ void MetavoxelData::expand() {
     _size *= 2.0f;
 }
 
-void MetavoxelData::read(Bitstream& in) {
+void MetavoxelData::read(Bitstream& in, const MetavoxelLOD& lod) {
     // clear out any existing roots
     decrementRootReferenceCounts();
     _roots.clear();
@@ -233,27 +305,29 @@ void MetavoxelData::read(Bitstream& in) {
     in >> _size;
     
     // read in the new roots
-    int rootCount;
-    in >> rootCount;
-    for (int i = 0; i < rootCount; i++) {
+    forever {
         AttributePointer attribute;
         in >> attribute;
-        MetavoxelNode*& root = _roots[attribute];
-        root = new MetavoxelNode(attribute);
-        root->read(attribute, in);
+        if (!attribute) {
+            break;
+        }
+        MetavoxelStreamState state = { getMinimum(), _size, attribute, in, lod, lod };
+        attribute->read(*this, state);
     }
 }
 
-void MetavoxelData::write(Bitstream& out) const {
+void MetavoxelData::write(Bitstream& out, const MetavoxelLOD& lod) const {
     out << _size;
-    out << _roots.size();
     for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
         out << it.key();
-        it.value()->write(it.key(), out);
+        MetavoxelStreamState state = { getMinimum(), _size, it.key(), out, lod, lod };
+        it.key()->write(*it.value(), state);
     }
+    out << AttributePointer();
 }
 
-void MetavoxelData::readDelta(const MetavoxelData& reference, Bitstream& in) {
+void MetavoxelData::readDelta(const MetavoxelData& reference, const MetavoxelLOD& referenceLOD, 
+        Bitstream& in, const MetavoxelLOD& lod) {
     // shallow copy the reference
     *this = reference;
 
@@ -273,36 +347,45 @@ void MetavoxelData::readDelta(const MetavoxelData& reference, Bitstream& in) {
         }
     }
 
-    int changedCount;
-    in >> changedCount;
-    for (int i = 0; i < changedCount; i++) {
+    forever {
         AttributePointer attribute;
         in >> attribute;
-        MetavoxelNode*& root = _roots[attribute];
-        if (root) {
-            MetavoxelNode* oldRoot = root;
-            root = new MetavoxelNode(attribute);
-            root->readDelta(attribute, *oldRoot, in);
-            oldRoot->decrementReferenceCount(attribute);
-            
+        if (!attribute) {
+            break;
+        }
+        MetavoxelStreamState state = { getMinimum(), _size, attribute, in, lod, referenceLOD };
+        MetavoxelNode* oldRoot = _roots.value(attribute);
+        if (oldRoot) {
+            bool changed;
+            in >> changed;
+            if (changed) {
+                oldRoot->incrementReferenceCount();
+                attribute->readDelta(*this, *oldRoot, state);
+                oldRoot->decrementReferenceCount(attribute);    
+            } else {
+                attribute->readSubdivision(*this, state);
+            }
         } else {
-            root = new MetavoxelNode(attribute);
-            root->read(attribute, in);
+            attribute->read(*this, state);
         } 
     }
     
-    int removedCount;
-    in >> removedCount;
-    for (int i = 0; i < removedCount; i++) {
+    forever {
         AttributePointer attribute;
         in >> attribute;
+        if (!attribute) {
+            break;
+        }
         _roots.take(attribute)->decrementReferenceCount(attribute);
     }
 }
 
-void MetavoxelData::writeDelta(const MetavoxelData& reference, Bitstream& out) const {
+void MetavoxelData::writeDelta(const MetavoxelData& reference, const MetavoxelLOD& referenceLOD,
+        Bitstream& out, const MetavoxelLOD& lod) const {
     // first things first: there might be no change whatsoever
-    if (_size == reference._size && _roots == reference._roots) {
+    glm::vec3 minimum = getMinimum();
+    bool becameSubdivided = lod.becameSubdivided(minimum, _size, referenceLOD);
+    if (_size == reference._size && _roots == reference._roots && !becameSubdivided) {
         out << false;
         return;
     }
@@ -323,47 +406,48 @@ void MetavoxelData::writeDelta(const MetavoxelData& reference, Bitstream& out) c
         expandedReference = expanded;
     }
 
-    // count the number of roots added/changed, then write
-    int changedCount = 0;
+    // write the added/changed/subdivided roots
     for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
         MetavoxelNode* referenceRoot = expandedReference->_roots.value(it.key());
-        if (it.value() != referenceRoot) {
-            changedCount++;
-        }
-    }
-    out << changedCount;
-    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
-        MetavoxelNode* referenceRoot = expandedReference->_roots.value(it.key());
-        if (it.value() != referenceRoot) {
-            out << it.key();
+        MetavoxelStreamState state = { minimum, _size, it.key(), out, lod, referenceLOD };
+        if (it.value() != referenceRoot || becameSubdivided) {
+            out << it.key();    
             if (referenceRoot) {
-                it.value()->writeDelta(it.key(), *referenceRoot, out);
+                if (it.value() == referenceRoot) {
+                    out << false;
+                    it.key()->writeSubdivision(*it.value(), state);
+                } else {
+                    out << true;
+                    it.key()->writeDelta(*it.value(), *referenceRoot, state);
+                }
             } else {
-                it.value()->write(it.key(), out);
+                it.key()->write(*it.value(), state);
             }
         }
     }
+    out << AttributePointer();
     
     // same with nodes removed
-    int removedCount = 0;
-    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = expandedReference->_roots.constBegin();
-            it != expandedReference->_roots.constEnd(); it++) {
-        if (!_roots.contains(it.key())) {
-            removedCount++;
-        }
-    }
-    out << removedCount;
     for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = expandedReference->_roots.constBegin();
             it != expandedReference->_roots.constEnd(); it++) {
         if (!_roots.contains(it.key())) {
             out << it.key();
         }
     }
+    out << AttributePointer();
     
     // delete the expanded reference if we had to expand
     if (expandedReference != &reference) {
         delete expandedReference;
     }
+}
+
+MetavoxelNode* MetavoxelData::createRoot(const AttributePointer& attribute) {
+    MetavoxelNode*& root = _roots[attribute];
+    if (root) {
+        root->decrementReferenceCount(attribute);
+    }
+    return root = new MetavoxelNode(attribute);
 }
 
 void MetavoxelData::incrementRootReferenceCounts() {
@@ -376,6 +460,29 @@ void MetavoxelData::decrementRootReferenceCounts() {
     for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
         it.value()->decrementReferenceCount(it.key());
     }
+}
+
+static glm::vec3 getNextMinimum(const glm::vec3& minimum, float nextSize, int index) {
+    return minimum + glm::vec3(
+        (index & X_MAXIMUM_FLAG) ? nextSize : 0.0f,
+        (index & Y_MAXIMUM_FLAG) ? nextSize : 0.0f,
+        (index & Z_MAXIMUM_FLAG) ? nextSize : 0.0f);
+}
+
+bool MetavoxelStreamState::shouldSubdivide() const {
+    return lod.shouldSubdivide(minimum, size, attribute->getLODThresholdMultiplier());
+}
+
+bool MetavoxelStreamState::shouldSubdivideReference() const {
+    return referenceLOD.shouldSubdivide(minimum, size, attribute->getLODThresholdMultiplier());
+}
+
+bool MetavoxelStreamState::becameSubdivided() const {
+    return lod.becameSubdivided(minimum, size, referenceLOD, attribute->getLODThresholdMultiplier());
+}
+
+void MetavoxelStreamState::setMinimum(const glm::vec3& lastMinimum, int index) {
+    minimum = getNextMinimum(lastMinimum, size, index);
 }
 
 MetavoxelNode::MetavoxelNode(const AttributeValue& attributeValue) : _referenceCount(1) {
@@ -425,75 +532,251 @@ bool MetavoxelNode::isLeaf() const {
     return true;
 }
 
-void MetavoxelNode::read(const AttributePointer& attribute, Bitstream& in) {
-    clearChildren(attribute);
+void MetavoxelNode::read(MetavoxelStreamState& state) {
+    clearChildren(state.attribute);
     
+    if (!state.shouldSubdivide()) {
+        state.attribute->read(state.stream, _attributeValue, true);
+        return;
+    }
     bool leaf;
-    in >> leaf;
-    attribute->read(in, _attributeValue, leaf);
+    state.stream >> leaf;
+    state.attribute->read(state.stream, _attributeValue, leaf);
     if (!leaf) {
+        MetavoxelStreamState nextState = { glm::vec3(), state.size * 0.5f, state.attribute,
+            state.stream, state.lod, state.referenceLOD };
         for (int i = 0; i < CHILD_COUNT; i++) {
-            _children[i] = new MetavoxelNode(attribute);
-            _children[i]->read(attribute, in);
+            nextState.setMinimum(state.minimum, i);
+            _children[i] = new MetavoxelNode(state.attribute);
+            _children[i]->read(nextState);
         }
+        mergeChildren(state.attribute);
     }
 }
 
-void MetavoxelNode::write(const AttributePointer& attribute, Bitstream& out) const {
+void MetavoxelNode::write(MetavoxelStreamState& state) const {
+    if (!state.shouldSubdivide()) {
+        state.attribute->write(state.stream, _attributeValue, true);
+        return;
+    }
     bool leaf = isLeaf();
-    out << leaf;
-    attribute->write(out, _attributeValue, leaf);
+    state.stream << leaf;
+    state.attribute->write(state.stream, _attributeValue, leaf);
     if (!leaf) {
+        MetavoxelStreamState nextState = { glm::vec3(), state.size * 0.5f, state.attribute,
+            state.stream, state.lod, state.referenceLOD };
         for (int i = 0; i < CHILD_COUNT; i++) {
-            _children[i]->write(attribute, out);
+            nextState.setMinimum(state.minimum, i);
+            _children[i]->write(nextState);
         }
     }
 }
 
-void MetavoxelNode::readDelta(const AttributePointer& attribute, const MetavoxelNode& reference, Bitstream& in) {
-    clearChildren(attribute);
+void MetavoxelNode::readDelta(const MetavoxelNode& reference, MetavoxelStreamState& state) {
+    clearChildren(state.attribute);
 
+    if (!state.shouldSubdivide()) {
+        state.attribute->readDelta(state.stream, _attributeValue, reference._attributeValue, true);
+        return;
+    }
     bool leaf;
-    in >> leaf;
-    attribute->readDelta(in, _attributeValue, reference._attributeValue, leaf);
+    state.stream >> leaf;
+    state.attribute->readDelta(state.stream, _attributeValue, reference._attributeValue, leaf);
     if (!leaf) {
-        if (reference.isLeaf()) {
+        MetavoxelStreamState nextState = { glm::vec3(), state.size * 0.5f, state.attribute,
+            state.stream, state.lod, state.referenceLOD };
+        if (reference.isLeaf() || !state.shouldSubdivideReference()) {
             for (int i = 0; i < CHILD_COUNT; i++) {
-                _children[i] = new MetavoxelNode(attribute);
-                _children[i]->read(attribute, in);
+                nextState.setMinimum(state.minimum, i);
+                _children[i] = new MetavoxelNode(state.attribute);
+                _children[i]->read(nextState);
             }
         } else {
             for (int i = 0; i < CHILD_COUNT; i++) {
+                nextState.setMinimum(state.minimum, i);
                 bool changed;
-                in >> changed;
-                if (changed) {
-                    _children[i] = new MetavoxelNode(attribute);
-                    _children[i]->readDelta(attribute, *reference._children[i], in);
+                state.stream >> changed;
+                if (changed) {    
+                    _children[i] = new MetavoxelNode(state.attribute);
+                    _children[i]->readDelta(*reference._children[i], nextState);
                 } else {
                     _children[i] = reference._children[i];
                     _children[i]->incrementReferenceCount();
+                    if (nextState.becameSubdivided()) {
+                        _children[i]->readSubdivision(nextState);
+                    }
                 }
             }
-        }  
+        }
+        mergeChildren(state.attribute);
     }
 }
 
-void MetavoxelNode::writeDelta(const AttributePointer& attribute, const MetavoxelNode& reference, Bitstream& out) const {
+void MetavoxelNode::writeDelta(const MetavoxelNode& reference, MetavoxelStreamState& state) const {
+    if (!state.shouldSubdivide()) {
+        state.attribute->writeDelta(state.stream, _attributeValue, reference._attributeValue, true);
+        return;    
+    }
     bool leaf = isLeaf();
-    out << leaf;
-    attribute->writeDelta(out, _attributeValue, reference._attributeValue, leaf);
+    state.stream << leaf;
+    state.attribute->writeDelta(state.stream, _attributeValue, reference._attributeValue, leaf);
     if (!leaf) {
-        if (reference.isLeaf()) {
+        MetavoxelStreamState nextState = { glm::vec3(), state.size * 0.5f, state.attribute,
+            state.stream, state.lod, state.referenceLOD };
+        if (reference.isLeaf() || !state.shouldSubdivideReference()) {
             for (int i = 0; i < CHILD_COUNT; i++) {
-                _children[i]->write(attribute, out);
+                nextState.setMinimum(state.minimum, i);
+                _children[i]->write(nextState);
             }
         } else {
             for (int i = 0; i < CHILD_COUNT; i++) {
+                nextState.setMinimum(state.minimum, i);
                 if (_children[i] == reference._children[i]) {
-                    out << false;
-                } else {
-                    out << true;
-                    _children[i]->writeDelta(attribute, *reference._children[i], out);
+                    state.stream << false;
+                    if (nextState.becameSubdivided()) {
+                        _children[i]->writeSubdivision(nextState);
+                    }
+                } else {                    
+                    state.stream << true;
+                    _children[i]->writeDelta(*reference._children[i], nextState);
+                }
+            }
+        }
+    }
+}
+
+void MetavoxelNode::readSubdivision(MetavoxelStreamState& state) {
+    bool leaf;
+    bool subdivideReference = state.shouldSubdivideReference();
+    if (!subdivideReference) {
+        state.stream >> leaf;
+    } else {
+        leaf = isLeaf();
+    }
+    if (leaf) {
+        clearChildren(state.attribute);
+        
+    } else {
+        MetavoxelStreamState nextState = { glm::vec3(), state.size * 0.5f, state.attribute,
+            state.stream, state.lod, state.referenceLOD };
+        if (!subdivideReference) {
+            clearChildren(state.attribute);
+            for (int i = 0; i < CHILD_COUNT; i++) {
+                nextState.setMinimum(state.minimum, i);
+                _children[i] = new MetavoxelNode(state.attribute);
+                _children[i]->read(nextState);
+            }
+        } else {
+            for (int i = 0; i < CHILD_COUNT; i++) {
+                nextState.setMinimum(state.minimum, i);
+                if (nextState.becameSubdivided()) {
+                    _children[i]->readSubdivision(nextState);
+                }
+            }
+        }
+    }
+}
+
+void MetavoxelNode::writeSubdivision(MetavoxelStreamState& state) const {
+    bool leaf = isLeaf();
+    bool subdivideReference = state.shouldSubdivideReference();
+    if (!subdivideReference) {
+        state.stream << leaf;
+    }
+    if (!leaf) {
+        MetavoxelStreamState nextState = { glm::vec3(), state.size * 0.5f, state.attribute,
+            state.stream, state.lod, state.referenceLOD };
+        if (!subdivideReference) {
+            for (int i = 0; i < CHILD_COUNT; i++) {
+                nextState.setMinimum(state.minimum, i);
+                _children[i]->write(nextState);
+            }
+        } else {
+            for (int i = 0; i < CHILD_COUNT; i++) {
+                nextState.setMinimum(state.minimum, i);
+                if (nextState.becameSubdivided()) {
+                    _children[i]->writeSubdivision(nextState);
+                }
+            }
+        }
+    }
+}
+
+void MetavoxelNode::writeSpanners(MetavoxelStreamState& state) const {
+    foreach (const SharedObjectPointer& object, decodeInline<SharedObjectSet>(_attributeValue)) {
+        if (static_cast<Spanner*>(object.data())->testAndSetVisited()) {
+            state.stream << object;
+        }
+    }
+    if (!state.shouldSubdivide() || isLeaf()) {
+        return;
+    }
+    MetavoxelStreamState nextState = { glm::vec3(), state.size * 0.5f, state.attribute,
+        state.stream, state.lod, state.referenceLOD };
+    for (int i = 0; i < CHILD_COUNT; i++) {
+        nextState.setMinimum(state.minimum, i);
+        _children[i]->writeSpanners(nextState);
+    }
+}
+
+void MetavoxelNode::writeSpannerDelta(const MetavoxelNode& reference, MetavoxelStreamState& state) const {
+    SharedObjectSet oldSet = decodeInline<SharedObjectSet>(reference.getAttributeValue());
+    SharedObjectSet newSet = decodeInline<SharedObjectSet>(_attributeValue);
+    foreach (const SharedObjectPointer& object, oldSet) {
+        if (static_cast<Spanner*>(object.data())->testAndSetVisited() && !newSet.contains(object)) {
+            state.stream << object;
+        }
+    }
+    foreach (const SharedObjectPointer& object, newSet) {
+        if (static_cast<Spanner*>(object.data())->testAndSetVisited() && !oldSet.contains(object)) {
+            state.stream << object;
+        }
+    }
+    if (isLeaf() || !state.shouldSubdivide()) {
+        if (!reference.isLeaf() && state.shouldSubdivideReference()) {
+            MetavoxelStreamState nextState = { glm::vec3(), state.size * 0.5f, state.attribute,
+                state.stream, state.lod, state.referenceLOD };
+            for (int i = 0; i < CHILD_COUNT; i++) {
+                nextState.setMinimum(state.minimum, i);
+                reference._children[i]->writeSpanners(nextState);
+            }
+        }
+        return;
+    }
+    MetavoxelStreamState nextState = { glm::vec3(), state.size * 0.5f, state.attribute,
+        state.stream, state.lod, state.referenceLOD };
+    if (reference.isLeaf() || !state.shouldSubdivideReference()) {
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            nextState.setMinimum(state.minimum, i);
+            _children[i]->writeSpanners(nextState);
+        }
+        return;
+    }
+    for (int i = 0; i < CHILD_COUNT; i++) {
+        nextState.setMinimum(state.minimum, i);
+        if (_children[i] != reference._children[i]) {
+            _children[i]->writeSpannerDelta(*reference._children[i], nextState);
+            
+        } else if (nextState.becameSubdivided()) {
+            _children[i]->writeSpannerSubdivision(nextState);
+        }
+    }
+}
+
+void MetavoxelNode::writeSpannerSubdivision(MetavoxelStreamState& state) const {
+    if (!isLeaf()) {
+        MetavoxelStreamState nextState = { glm::vec3(), state.size * 0.5f, state.attribute,
+            state.stream, state.lod, state.referenceLOD };
+        if (!state.shouldSubdivideReference()) {
+            for (int i = 0; i < CHILD_COUNT; i++) {
+                nextState.setMinimum(state.minimum, i);
+                _children[i]->writeSpanners(nextState);
+            }
+        } else {
+            for (int i = 0; i < CHILD_COUNT; i++) {
+                nextState.setMinimum(state.minimum, i);
+                if (nextState.becameSubdivided()) {
+                    _children[i]->writeSpannerSubdivision(nextState);
                 }
             }
         }
@@ -525,9 +808,52 @@ void MetavoxelNode::clearChildren(const AttributePointer& attribute) {
     }
 }
 
-MetavoxelVisitor::MetavoxelVisitor(const QVector<AttributePointer>& inputs, const QVector<AttributePointer>& outputs) :
+int MetavoxelVisitor::encodeOrder(int first, int second, int third, int fourth,
+        int fifth, int sixth, int seventh, int eighth) {
+    return first | (second << 3) | (third << 6) | (fourth << 9) |
+        (fifth << 12) | (sixth << 15) | (seventh << 18) | (eighth << 21);
+}
+
+class IndexDistance {
+public:
+    int index;
+    float distance;
+};
+
+bool operator<(const IndexDistance& first, const IndexDistance& second) {
+    return first.distance < second.distance;
+}
+
+int MetavoxelVisitor::encodeOrder(const glm::vec3& direction) {
+    QList<IndexDistance> indexDistances;
+    for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
+        IndexDistance indexDistance = { i, glm::dot(direction, getNextMinimum(glm::vec3(), 1.0f, i)) };
+        indexDistances.append(indexDistance);
+    }
+    qStableSort(indexDistances);
+    return encodeOrder(indexDistances.at(0).index, indexDistances.at(1).index, indexDistances.at(2).index,
+        indexDistances.at(3).index, indexDistances.at(4).index, indexDistances.at(5).index,
+        indexDistances.at(6).index, indexDistances.at(7).index);
+}
+
+const int MetavoxelVisitor::DEFAULT_ORDER = encodeOrder(0, 1, 2, 3, 4, 5, 6, 7);
+const int MetavoxelVisitor::STOP_RECURSION = 0;
+const int MetavoxelVisitor::SHORT_CIRCUIT = -1;
+
+MetavoxelVisitor::MetavoxelVisitor(const QVector<AttributePointer>& inputs,
+        const QVector<AttributePointer>& outputs, const MetavoxelLOD& lod) :
     _inputs(inputs),
-    _outputs(outputs) {
+    _outputs(outputs),
+    _lod(lod),
+    _minimumLODThresholdMultiplier(FLT_MAX) {
+    
+    // find the minimum LOD threshold multiplier over all attributes
+    foreach (const AttributePointer& attribute, _inputs) {
+        _minimumLODThresholdMultiplier = qMin(attribute->getLODThresholdMultiplier(), _minimumLODThresholdMultiplier);
+    }
+    foreach (const AttributePointer& attribute, _outputs) {
+        _minimumLODThresholdMultiplier = qMin(attribute->getLODThresholdMultiplier(), _minimumLODThresholdMultiplier);
+    }
 }
 
 MetavoxelVisitor::~MetavoxelVisitor() {
@@ -538,8 +864,8 @@ void MetavoxelVisitor::prepare() {
 }
 
 SpannerVisitor::SpannerVisitor(const QVector<AttributePointer>& spannerInputs, const QVector<AttributePointer>& inputs,
-        const QVector<AttributePointer>& outputs) :
-    MetavoxelVisitor(inputs + spannerInputs, outputs),
+        const QVector<AttributePointer>& outputs, const MetavoxelLOD& lod) :
+    MetavoxelVisitor(inputs + spannerInputs, outputs, lod),
     _spannerInputCount(spannerInputs.size()) {
 }
 
@@ -547,24 +873,92 @@ void SpannerVisitor::prepare() {
     Spanner::incrementVisit();
 }
 
-bool SpannerVisitor::visit(MetavoxelInfo& info) {
+int SpannerVisitor::visit(MetavoxelInfo& info) {
     for (int i = _inputs.size() - _spannerInputCount; i < _inputs.size(); i++) {
         foreach (const SharedObjectPointer& object, info.inputValues.at(i).getInlineValue<SharedObjectSet>()) {
             Spanner* spanner = static_cast<Spanner*>(object.data());
             if (spanner->testAndSetVisited()) {
-                visit(spanner);
+                if (!visit(spanner)) {
+                    return SHORT_CIRCUIT;
+                }
             }
         }
     }
-    return !info.isLeaf;
+    return info.isLeaf ? STOP_RECURSION : DEFAULT_ORDER;
+}
+
+RayIntersectionVisitor::RayIntersectionVisitor(const glm::vec3& origin, const glm::vec3& direction,
+        const QVector<AttributePointer>& inputs, const QVector<AttributePointer>& outputs, const MetavoxelLOD& lod) :
+    MetavoxelVisitor(inputs, outputs, lod),
+    _origin(origin),
+    _direction(direction),
+    _order(encodeOrder(direction)) {
+}
+
+int RayIntersectionVisitor::visit(MetavoxelInfo& info) {
+    float distance;
+    if (!info.getBounds().findRayIntersection(_origin, _direction, distance)) {
+        return STOP_RECURSION;
+    }
+    return visit(info, distance);
+}
+
+RaySpannerIntersectionVisitor::RaySpannerIntersectionVisitor(const glm::vec3& origin, const glm::vec3& direction,
+        const QVector<AttributePointer>& spannerInputs, const QVector<AttributePointer>& inputs,
+        const QVector<AttributePointer>& outputs, const MetavoxelLOD& lod) :
+    RayIntersectionVisitor(origin, direction, inputs + spannerInputs, outputs, lod),
+    _spannerInputCount(spannerInputs.size()) {
+}
+
+void RaySpannerIntersectionVisitor::prepare() {
+    Spanner::incrementVisit();
+}
+
+class SpannerDistance {
+public:
+    Spanner* spanner;
+    float distance;
+};
+
+bool operator<(const SpannerDistance& first, const SpannerDistance& second) {
+    return first.distance < second.distance;
+}
+
+int RaySpannerIntersectionVisitor::visit(MetavoxelInfo& info, float distance) {
+    QVarLengthArray<SpannerDistance, 4> spannerDistances;
+    for (int i = _inputs.size() - _spannerInputCount; i < _inputs.size(); i++) {
+        foreach (const SharedObjectPointer& object, info.inputValues.at(i).getInlineValue<SharedObjectSet>()) {
+            Spanner* spanner = static_cast<Spanner*>(object.data());
+            if (spanner->testAndSetVisited()) {
+                SpannerDistance spannerDistance = { spanner };
+                if (spanner->findRayIntersection(_origin, _direction, spannerDistance.distance)) {
+                    spannerDistances.append(spannerDistance);
+                }
+            }
+        }
+        qStableSort(spannerDistances);
+        foreach (const SpannerDistance& spannerDistance, spannerDistances) {
+            if (!visit(spannerDistance.spanner, spannerDistance.distance)) {
+                return SHORT_CIRCUIT;
+            }
+        }
+    }
+    return info.isLeaf ? STOP_RECURSION : _order;
 }
 
 DefaultMetavoxelGuide::DefaultMetavoxelGuide() {
 }
 
-void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
-    visitation.info.isLeaf = visitation.allInputNodesLeaves();
-    bool keepGoing = visitation.visitor.visit(visitation.info);
+bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
+    // save the core of the LOD calculation; we'll reuse it to determine whether to subdivide each attribute
+    float lodBase = glm::distance(visitation.visitor.getLOD().position, visitation.info.getCenter()) *
+        visitation.visitor.getLOD().threshold;
+    visitation.info.isLeaf = (visitation.info.size < lodBase * visitation.visitor.getMinimumLODThresholdMultiplier()) ||
+        visitation.allInputNodesLeaves();
+    int encodedOrder = visitation.visitor.visit(visitation.info);
+    if (encodedOrder == MetavoxelVisitor::SHORT_CIRCUIT) {
+        return false;
+    }
     for (int i = 0; i < visitation.outputNodes.size(); i++) {
         OwnedAttributeValue& value = visitation.info.outputValues[i];
         if (!value.getAttribute()) {
@@ -578,32 +972,38 @@ void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
             node = new MetavoxelNode(value);
         }
     }
-    if (!keepGoing) {
-        return;
+    if (encodedOrder == MetavoxelVisitor::STOP_RECURSION) {
+        return true;
     }
     MetavoxelVisitation nextVisitation = { &visitation, visitation.visitor,
         QVector<MetavoxelNode*>(visitation.inputNodes.size()), QVector<MetavoxelNode*>(visitation.outputNodes.size()),
         { glm::vec3(), visitation.info.size * 0.5f, QVector<AttributeValue>(visitation.inputNodes.size()),
             QVector<OwnedAttributeValue>(visitation.outputNodes.size()) } };
     for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
+        // the encoded order tells us the child indices for each iteration
+        const int ORDER_ELEMENT_BITS = 3;
+        const int ORDER_ELEMENT_MASK = (1 << ORDER_ELEMENT_BITS) - 1;
+        int index = encodedOrder & ORDER_ELEMENT_MASK;
+        encodedOrder >>= ORDER_ELEMENT_BITS;
         for (int j = 0; j < visitation.inputNodes.size(); j++) {
             MetavoxelNode* node = visitation.inputNodes.at(j);
-            MetavoxelNode* child = node ? node->getChild(i) : NULL;
+            const AttributeValue& parentValue = visitation.info.inputValues.at(j);
+            MetavoxelNode* child = (node && (visitation.info.size >= lodBase *
+                parentValue.getAttribute()->getLODThresholdMultiplier())) ? node->getChild(index) : NULL;
             nextVisitation.info.inputValues[j] = ((nextVisitation.inputNodes[j] = child)) ?
-                child->getAttributeValue(visitation.info.inputValues[j].getAttribute()) :
-                    visitation.info.inputValues[j];
+                child->getAttributeValue(parentValue.getAttribute()) : parentValue;
         }
         for (int j = 0; j < visitation.outputNodes.size(); j++) {
             MetavoxelNode* node = visitation.outputNodes.at(j);
-            MetavoxelNode* child = node ? node->getChild(i) : NULL;
+            MetavoxelNode* child = (node && (visitation.info.size >= lodBase *
+                visitation.visitor.getOutputs().at(j)->getLODThresholdMultiplier())) ? node->getChild(index) : NULL;
             nextVisitation.outputNodes[j] = child;
         }
-        nextVisitation.info.minimum = visitation.info.minimum + glm::vec3(
-            (i & X_MAXIMUM_FLAG) ? nextVisitation.info.size : 0.0f,
-            (i & Y_MAXIMUM_FLAG) ? nextVisitation.info.size : 0.0f,
-            (i & Z_MAXIMUM_FLAG) ? nextVisitation.info.size : 0.0f);
-        static_cast<MetavoxelGuide*>(nextVisitation.info.inputValues.last().getInlineValue<
-            SharedObjectPointer>().data())->guide(nextVisitation);
+        nextVisitation.info.minimum = getNextMinimum(visitation.info.minimum, nextVisitation.info.size, index);
+        if (!static_cast<MetavoxelGuide*>(nextVisitation.info.inputValues.last().getInlineValue<
+                SharedObjectPointer>().data())->guide(nextVisitation)) {
+            return false;
+        }
         for (int j = 0; j < nextVisitation.outputNodes.size(); j++) {
             OwnedAttributeValue& value = nextVisitation.info.outputValues[j];
             if (!value.getAttribute()) {
@@ -630,10 +1030,10 @@ void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
                 // it's a leaf; we need to split it up
                 AttributeValue nodeValue = node->getAttributeValue(value.getAttribute());
                 for (int k = 1; k < MetavoxelNode::CHILD_COUNT; k++) {
-                    node->setChild((i + k) % MetavoxelNode::CHILD_COUNT, new MetavoxelNode(nodeValue));
+                    node->setChild((index + k) % MetavoxelNode::CHILD_COUNT, new MetavoxelNode(nodeValue));
                 }
             }
-            node->setChild(i, nextVisitation.outputNodes.at(j));
+            node->setChild(index, nextVisitation.outputNodes.at(j));
             value = AttributeValue();
         }
     }
@@ -645,12 +1045,13 @@ void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
             value = node->getAttributeValue(value.getAttribute()); 
         }
     }
+    return true;
 }
 
 ThrobbingMetavoxelGuide::ThrobbingMetavoxelGuide() : _rate(10.0) {
 }
 
-void ThrobbingMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
+bool ThrobbingMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     AttributePointer colorAttribute = AttributeRegistry::getInstance()->getColorAttribute();
     for (int i = 0; i < visitation.info.inputValues.size(); i++) {
         AttributeValue& attributeValue = visitation.info.inputValues[i]; 
@@ -663,7 +1064,7 @@ void ThrobbingMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
         }
     }
     
-    DefaultMetavoxelGuide::guide(visitation);
+    return DefaultMetavoxelGuide::guide(visitation);
 }
 
 static QScriptValue getAttributes(QScriptEngine* engine, ScriptedMetavoxelGuide* guide,
@@ -724,7 +1125,7 @@ QScriptValue ScriptedMetavoxelGuide::visit(QScriptContext* context, QScriptEngin
 ScriptedMetavoxelGuide::ScriptedMetavoxelGuide() {
 }
 
-void ScriptedMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
+bool ScriptedMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     QScriptValue guideFunction;
     if (_guideFunction) {
         guideFunction = _guideFunction->getValue();    
@@ -735,8 +1136,7 @@ void ScriptedMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     }
     if (!guideFunction.isValid()) {
         // before we load, just use the default behavior
-        DefaultMetavoxelGuide::guide(visitation);
-        return;
+        return DefaultMetavoxelGuide::guide(visitation);
     }
     QScriptEngine* engine = guideFunction.engine();
     if (!_minimumHandle.isValid()) {
@@ -774,6 +1174,7 @@ void ScriptedMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     if (engine->hasUncaughtException()) {
         qDebug() << "Script error: " << engine->uncaughtException().toString();
     }
+    return true;
 }
 
 void ScriptedMetavoxelGuide::setURL(const ParameterizedURL& url) {
@@ -804,9 +1205,9 @@ AttributeValue MetavoxelVisitation::getInheritedOutputValue(int index) const {
 const float DEFAULT_GRANULARITY = 0.01f;
 
 Spanner::Spanner() :
+    _renderer(NULL),
     _granularity(DEFAULT_GRANULARITY),
-    _lastVisit(0),
-    _renderer(NULL) {
+    _lastVisit(0) {
 }
 
 void Spanner::setBounds(const Box& bounds) {
@@ -815,6 +1216,15 @@ void Spanner::setBounds(const Box& bounds) {
     }
     emit boundsWillChange();
     emit boundsChanged(_bounds = bounds);
+}
+
+const QVector<AttributePointer>& Spanner::getAttributes() const {
+    static QVector<AttributePointer> emptyVector;
+    return emptyVector;
+}
+
+bool Spanner::getAttributeValues(MetavoxelInfo& info) const {
+    return false;
 }
 
 bool Spanner::testAndSetVisited() {
@@ -840,6 +1250,10 @@ SpannerRenderer* Spanner::getRenderer() {
     return _renderer;
 }
 
+bool Spanner::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+    return _bounds.findRayIntersection(origin, direction, distance);
+}
+
 QByteArray Spanner::getRendererClassName() const {
     return "SpannerRendererer";
 }
@@ -859,6 +1273,10 @@ void SpannerRenderer::simulate(float deltaTime) {
 
 void SpannerRenderer::render(float alpha) {
     // nothing by default
+}
+
+bool SpannerRenderer::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+    return false;
 }
 
 Transformable::Transformable() : _scale(1.0f) {
@@ -882,6 +1300,88 @@ void Transformable::setScale(float scale) {
     }
 }
 
+Sphere::Sphere() :
+    _color(Qt::gray) {
+    
+    connect(this, SIGNAL(translationChanged(const glm::vec3&)), SLOT(updateBounds()));
+    connect(this, SIGNAL(scaleChanged(float)), SLOT(updateBounds()));
+    updateBounds();
+}
+
+void Sphere::setColor(const QColor& color) {
+    if (_color != color) {
+        emit colorChanged(_color = color);
+    }
+}
+
+const QVector<AttributePointer>& Sphere::getAttributes() const {
+    static QVector<AttributePointer> attributes = QVector<AttributePointer>() <<
+        AttributeRegistry::getInstance()->getColorAttribute() << AttributeRegistry::getInstance()->getNormalAttribute();
+    return attributes;
+}
+
+bool Sphere::getAttributeValues(MetavoxelInfo& info) const {
+    // bounds check
+    Box bounds = info.getBounds();
+    if (!getBounds().intersects(bounds)) {
+        return false;
+    }
+    // count the points inside the sphere
+    int pointsWithin = 0;
+    for (int i = 0; i < Box::VERTEX_COUNT; i++) {
+        if (glm::distance(bounds.getVertex(i), getTranslation()) <= getScale()) {
+            pointsWithin++;
+        }
+    }
+    if (pointsWithin == Box::VERTEX_COUNT) {
+        // entirely contained
+        info.outputValues[0] = AttributeValue(getAttributes().at(0), encodeInline<QRgb>(_color.rgba()));
+        getNormal(info);
+        return false;
+    }
+    if (info.size <= getGranularity()) {
+        // best guess
+        if (pointsWithin > 0) {
+            info.outputValues[0] = AttributeValue(getAttributes().at(0), encodeInline<QRgb>(qRgba(
+                _color.red(), _color.green(), _color.blue(), _color.alpha() * pointsWithin / Box::VERTEX_COUNT)));
+            getNormal(info);
+        }
+        return false;
+    }
+    return true;
+}
+
+bool Sphere::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+    return findRaySphereIntersection(origin, direction, getTranslation(), getScale(), distance);
+}
+
+QByteArray Sphere::getRendererClassName() const {
+    return "SphereRenderer";
+}
+
+void Sphere::updateBounds() {
+    glm::vec3 extent(getScale(), getScale(), getScale());
+    setBounds(Box(getTranslation() - extent, getTranslation() + extent));
+}
+
+void Sphere::getNormal(MetavoxelInfo& info) const {
+    glm::vec3 normal = info.getCenter() - getTranslation();
+    float length = glm::length(normal);
+    QRgb color;
+    if (length > EPSILON) {
+        const float NORMAL_SCALE = 127.0f;
+        float scale = NORMAL_SCALE / length;
+        const int BYTE_MASK = 0xFF;
+        color = qRgb((int)(normal.x * scale) & BYTE_MASK, (int)(normal.y * scale) & BYTE_MASK,
+            (int)(normal.z * scale) & BYTE_MASK);
+        
+    } else {
+        const QRgb DEFAULT_NORMAL = 0x007F00;
+        color = DEFAULT_NORMAL;
+    }
+    info.outputValues[1] = AttributeValue(getAttributes().at(1), encodeInline<QRgb>(color));
+}
+
 StaticModel::StaticModel() {
 }
 
@@ -889,6 +1389,12 @@ void StaticModel::setURL(const QUrl& url) {
     if (_url != url) {
         emit urlChanged(_url = url);
     }
+}
+
+bool StaticModel::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+    // delegate to renderer, if we have one
+    return _renderer ? _renderer->findRayIntersection(origin, direction, distance) :
+        Spanner::findRayIntersection(origin, direction, distance);
 }
 
 QByteArray StaticModel::getRendererClassName() const {

@@ -23,6 +23,9 @@ class QScriptEngine;
 class QScriptValue;
 
 class Attribute;
+class MetavoxelData;
+class MetavoxelNode;
+class MetavoxelStreamState;
 
 typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
 
@@ -150,6 +153,7 @@ public:
 /// Represents a registered attribute.
 class Attribute : public SharedObject {
     Q_OBJECT
+    Q_PROPERTY(float lodThresholdMultiplier MEMBER _lodThresholdMultiplier)
     
 public:
     
@@ -160,6 +164,9 @@ public:
 
     Q_INVOKABLE QString getName() const { return objectName(); }
 
+    float getLODThresholdMultiplier() const { return _lodThresholdMultiplier; }
+    void setLODThresholdMultiplier(float multiplier) { _lodThresholdMultiplier = multiplier; }
+
     void* create() const { return create(getDefaultValue()); }
     virtual void* create(void* copy) const = 0;
     virtual void destroy(void* value) const = 0;
@@ -169,6 +176,15 @@ public:
 
     virtual void readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const { read(in, value, isLeaf); }
     virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const { write(out, value, isLeaf); }
+
+    virtual void read(MetavoxelData& data, MetavoxelStreamState& state);
+    virtual void write(const MetavoxelNode& root, MetavoxelStreamState& state);
+    
+    virtual void readDelta(MetavoxelData& data, const MetavoxelNode& reference, MetavoxelStreamState& state);
+    virtual void writeDelta(const MetavoxelNode& root, const MetavoxelNode& reference, MetavoxelStreamState& state);
+    
+    virtual void readSubdivision(MetavoxelData& data, MetavoxelStreamState& state);
+    virtual void writeSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state);
 
     virtual bool equal(void* first, void* second) const = 0;
 
@@ -185,6 +201,10 @@ public:
     /// Creates a widget to use to edit values of this attribute, or returns NULL if the attribute isn't editable.
     /// The widget should have a single "user" property that will be used to get/set the value.
     virtual QWidget* createEditor(QWidget* parent = NULL) const { return NULL; }
+
+private:
+    
+    float _lodThresholdMultiplier;
 };
 
 /// A simple attribute class that stores its values inline.
@@ -260,6 +280,23 @@ public:
     virtual QWidget* createEditor(QWidget* parent = NULL) const;
 };
 
+/// Provides appropriate averaging for packed normals.
+class PackedNormalAttribute : public QRgbAttribute {
+    Q_OBJECT
+
+public:
+    
+    Q_INVOKABLE PackedNormalAttribute(const QString& name = QString(), QRgb defaultValue = QRgb());
+    
+    virtual bool merge(void*& parent, void* children[]) const;
+};
+
+/// Packs a normal into an RGB value.
+QRgb packNormal(const glm::vec3& normal);
+
+/// Unpacks a normal from an RGB value.
+glm::vec3 unpackNormal(QRgb value);
+
 /// An attribute that takes the form of QObjects of a given meta-type (a subclass of SharedObject).
 class SharedObjectAttribute : public InlineAttribute<SharedObjectPointer> {
     Q_OBJECT
@@ -307,6 +344,25 @@ public:
 private:
     
     const QMetaObject* _metaObject;
+};
+
+/// An attribute that takes the form of a set of spanners.
+class SpannerSetAttribute : public SharedObjectSetAttribute {
+    Q_OBJECT
+
+public:
+    
+    Q_INVOKABLE SpannerSetAttribute(const QString& name = QString(),
+        const QMetaObject* metaObject = &SharedObject::staticMetaObject);
+    
+    virtual void read(MetavoxelData& data, MetavoxelStreamState& state);
+    virtual void write(const MetavoxelNode& root, MetavoxelStreamState& state);
+    
+    virtual void readDelta(MetavoxelData& data, const MetavoxelNode& reference, MetavoxelStreamState& state);
+    virtual void writeDelta(const MetavoxelNode& root, const MetavoxelNode& reference, MetavoxelStreamState& state);
+    
+    virtual void readSubdivision(MetavoxelData& data, MetavoxelStreamState& state);
+    virtual void writeSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state);
 };
 
 #endif /* defined(__interface__AttributeRegistry__) */
