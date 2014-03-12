@@ -56,7 +56,6 @@ void PacketSender::queuePacketForSending(const SharedNodePointer& destinationNod
     _totalBytesQueued += packet.size();
 
     // Make sure to  wake our actual processing thread because we  now have packets for it to process.
-    qDebug() << "PacketSender::queuePacketForSending()... wake up, we need to send packets!.";
     _hasPackets.wakeAll();
 }
 
@@ -73,7 +72,6 @@ bool PacketSender::process() {
 }
 
 void PacketSender::terminating() {
-    qDebug() << "PacketSender::terminating()... wake up, we need to die.";
     _hasPackets.wakeAll();
 }
 
@@ -125,9 +123,7 @@ bool PacketSender::threadedProcess() {
 
         // wait till we have packets        
         _waitingOnPacketsMutex.lock();
-        qDebug() << "PacketSender::threadedProcess()... waiting on packets to send...";
         _hasPackets.wait(&_waitingOnPacketsMutex);
-        qDebug() << "PacketSender::threadedProcess()... YIPEEE we're awake...";
         _waitingOnPacketsMutex.unlock();
     }
 

@@ -19,7 +19,7 @@
 /// Generalized threaded processor for handling received inbound packets. 
 class ReceivedPacketProcessor : public GenericThread {
 public:
-    ReceivedPacketProcessor();
+    ReceivedPacketProcessor() { }
 
     /// Add packet from network receive thread to the processing queue.
     /// \param sockaddr& senderAddress the address of the sender
@@ -46,8 +46,6 @@ protected:
     virtual bool process();
 
     virtual void terminating();
-
-    bool _dontSleep;
 
 private:
 

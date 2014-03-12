@@ -12,10 +12,6 @@
 #include "ReceivedPacketProcessor.h"
 #include "SharedUtil.h"
 
-ReceivedPacketProcessor::ReceivedPacketProcessor() {
-    _dontSleep = false;
-}
-
 void ReceivedPacketProcessor::terminating() {
     _hasPackets.wakeAll();
 }
@@ -35,9 +31,7 @@ void ReceivedPacketProcessor::queueReceivedPacket(const SharedNodePointer& desti
 
 bool ReceivedPacketProcessor::process() {
 
-    // If a derived class handles process sleeping, like the JurisdiciontListener, then it can set
-    // this _dontSleep member and we will honor that request.
-    if (_packets.size() == 0 && !_dontSleep) {
+    if (_packets.size() == 0) {
         _waitingOnPacketsMutex.lock();
         _hasPackets.wait(&_waitingOnPacketsMutex);
         _waitingOnPacketsMutex.unlock();
