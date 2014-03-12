@@ -27,9 +27,12 @@ OctreeSceneStats::OctreeSceneStats() :
     _isReadyToSend(false),
     _isStarted(false),
     _lastFullElapsed(0),
+    _lastFullTotalEncodeTime(0),
+    _lastFullTotalPackets(0),
+    _lastFullTotalBytes(0),
+
     _elapsedAverage(samples),
     _bitsPerOctreeAverage(samples),
-    _lastFullTotalEncodeTime(0),
     _incomingPacket(0),
     _incomingBytes(0),
     _incomingWastedBytes(0),
@@ -62,8 +65,10 @@ OctreeSceneStats& OctreeSceneStats::operator=(const OctreeSceneStats& other) {
 void OctreeSceneStats::copyFromOther(const OctreeSceneStats& other) {
     _totalEncodeTime = other._totalEncodeTime;
     _elapsed = other._elapsed;
-    _lastFullTotalEncodeTime = other._lastFullTotalEncodeTime;
     _lastFullElapsed = other._lastFullElapsed;
+    _lastFullTotalEncodeTime = other._lastFullTotalEncodeTime;
+    _lastFullTotalPackets = other._lastFullTotalPackets;
+    _lastFullTotalBytes = other._lastFullTotalBytes;
     _encodeStart = other._encodeStart;
 
     _packets = other._packets;
@@ -167,9 +172,6 @@ void OctreeSceneStats::sceneStarted(bool isFullScene, bool isMoving, OctreeEleme
     _totalInternal = OctreeElement::getInternalNodeCount();
     _totalLeaves   = OctreeElement::getLeafNodeCount();
     
-    if (isFullScene) {
-        qDebug() << "OctreeSceneStats::sceneStarted()... IS FULL SCENE";
-    }
     _isFullScene = isFullScene;
     _isMoving = isMoving;
     
@@ -511,18 +513,19 @@ int OctreeSceneStats::unpackFromMessage(const unsigned char* sourceBuffer, int a
 
     memcpy(&_isFullScene, sourceBuffer, sizeof(_isFullScene));
     sourceBuffer += sizeof(_isFullScene);
-
-    if (_isFullScene) {
-        _lastFullElapsed = _elapsed;
-        _lastFullTotalEncodeTime = _totalEncodeTime;
-    }
-
     memcpy(&_isMoving, sourceBuffer, sizeof(_isMoving));
     sourceBuffer += sizeof(_isMoving);
     memcpy(&_packets, sourceBuffer, sizeof(_packets));
     sourceBuffer += sizeof(_packets);
     memcpy(&_bytes, sourceBuffer, sizeof(_bytes));
     sourceBuffer += sizeof(_bytes);
+
+    if (_isFullScene) {
+        _lastFullElapsed = _elapsed;
+        _lastFullTotalEncodeTime = _totalEncodeTime;
+        _lastFullTotalPackets = _packets;
+        _lastFullTotalBytes = _bytes;
+    }
 
     memcpy(&_totalInternal, sourceBuffer, sizeof(_totalInternal));
     sourceBuffer += sizeof(_totalInternal);

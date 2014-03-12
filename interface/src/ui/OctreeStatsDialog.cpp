@@ -315,13 +315,25 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                             const unsigned long USECS_PER_MSEC = 1000;
                             float lastFullEncode = stats.getLastFullTotalEncodeTime() / USECS_PER_MSEC;
                             float lastFullSend = stats.getLastFullElapsedTime() / USECS_PER_MSEC;
+                            float lastFullSendInSeconds = stats.getLastFullElapsedTime() / USECS_PER_SECOND;
+                            float lastFullPackets = stats.getLastFullTotalPackets();
+                            float lastFullPPS = lastFullPackets;
+                            if (lastFullSendInSeconds > 0) {
+                                lastFullPPS = lastFullPackets / lastFullSendInSeconds;
+                            }
                             
                             QString lastFullEncodeString = locale.toString(lastFullEncode);
                             QString lastFullSendString = locale.toString(lastFullSend);
+                            QString lastFullPacketsString = locale.toString(lastFullPackets);
+                            QString lastFullBytesString = locale.toString((uint)stats.getLastFullTotalBytes());
+                            QString lastFullPPSString = locale.toString(lastFullPPS);
                             
                             extraDetails << "<br/>" << "Last Full Scene... " <<
-                            "Encode Time: " << qPrintable(lastFullEncodeString) << " ms " <<
-                            "Send Time: " << qPrintable(lastFullSendString) << " ms ";
+                                "Encode: " << qPrintable(lastFullEncodeString) << " ms " <<
+                                "Send: " << qPrintable(lastFullSendString) << " ms " <<
+                                "Packets: " << qPrintable(lastFullPacketsString) << " " << 
+                                "Bytes: " << qPrintable(lastFullBytesString) << " " <<
+                                "Rate: " <<  qPrintable(lastFullPPSString) << " PPS";
                             
                             for (int i = 0; i < OctreeSceneStats::ITEM_COUNT; i++) {
                                 OctreeSceneStats::Item item = (OctreeSceneStats::Item)(i);

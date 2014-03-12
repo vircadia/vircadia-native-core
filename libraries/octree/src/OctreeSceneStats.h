@@ -150,8 +150,10 @@ public:
     unsigned long getTotalEncodeTime() const { return _totalEncodeTime; }
     unsigned long getElapsedTime() const { return _elapsed; }
 
-    unsigned long getLastFullTotalEncodeTime() const { return _lastFullTotalEncodeTime; }
     unsigned long getLastFullElapsedTime() const { return _lastFullElapsed; }
+    unsigned long getLastFullTotalEncodeTime() const { return _lastFullTotalEncodeTime; }
+    unsigned int getLastFullTotalPackets() const { return _lastFullTotalPackets; }
+    unsigned long getLastFullTotalBytes() const { return _lastFullTotalBytes; }
 
     // Used in client implementations to track individual octree packets
     void trackIncomingOctreePacket(const QByteArray& packet, bool wasStatsPacket, int nodeClockSkewUsec);
@@ -181,13 +183,16 @@ private:
     quint64 _start;
     quint64 _end;
     quint64 _elapsed;
+
     quint64 _lastFullElapsed;
+    quint64 _lastFullTotalEncodeTime;
+    unsigned int  _lastFullTotalPackets;
+    unsigned long _lastFullTotalBytes;
     
     SimpleMovingAverage _elapsedAverage;
     SimpleMovingAverage _bitsPerOctreeAverage;
 
     quint64 _totalEncodeTime;
-    quint64 _lastFullTotalEncodeTime;
     quint64 _encodeStart;
     
     // scene octree related data
