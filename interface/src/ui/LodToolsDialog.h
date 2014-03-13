@@ -36,8 +36,6 @@ protected:
     void closeEvent(QCloseEvent*);
 
 private:
-    QString getFeedbackText();
-
     QSlider* _lodSize;
     QSlider* _boundaryLevelAdjust;
     QLabel* _feedback;

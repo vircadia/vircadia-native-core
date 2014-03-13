@@ -8,8 +8,6 @@
 
 #include <algorithm>
 
-#include <glm/gtc/noise.hpp>
-
 #include <QtCore/QDebug>
 #include <QImage>
 #include <QRgb>

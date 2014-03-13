@@ -28,7 +28,7 @@ const int NUM_MESSAGES_TO_TIME_STAMP = 20;
 const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?))://\\S+)");
 
 ChatWindow::ChatWindow() :
-    QDialog(Application::getInstance()->getGLWidget(), Qt::Tool),
+    QDialog(Application::getInstance()->getGLWidget(), Qt::CustomizeWindowHint),
     ui(new Ui::ChatWindow),
     numMessagesAfterLastTimeStamp(0)
 {
@@ -179,12 +179,13 @@ void ChatWindow::participantsChanged() {
 }
 
 void ChatWindow::messageReceived(const QXmppMessage& message) {
+    if (message.type() != QXmppMessage::GroupChat) {
+        return;
+    }
+
     QLabel* userLabel = new QLabel(getParticipantName(message.from()));
-    QFont font = userLabel->font();
-    font.setBold(true);
-    userLabel->setFont(font);
     userLabel->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-    userLabel->setStyleSheet("padding: 2px;");
+    userLabel->setStyleSheet("padding: 2px; font-weight: bold");
     userLabel->setAlignment(Qt::AlignTop);
 
     QLabel* messageLabel = new QLabel(message.body().replace(regexLinks, "<a href=\"\\1\">\\1</a>"));

@@ -73,8 +73,13 @@ file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
 # have qt5 wrap them and generate the appropriate header files
 qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 
+# grab the resource files in resources
+file (GLOB_RECURSE QT_RESOURCE_FILES resources/*.qrc)
+# have qt5 wrap them and generate the appropriate source files
+qt5_add_resources(QT_RESOURCES "${QT_RESOURCE_FILES}")
+
 # add them to the interface source files
-set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}")
+set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 
 set(QM ${TARGET_NAME}_en.qm)
 set(TS ${TARGET_NAME}_en.ts)
