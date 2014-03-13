@@ -60,7 +60,7 @@ void SixenseManager::update(float deltaTime) {
         // Either find a palm matching the sixense controller, or make a new one
         PalmData* palm;
         bool foundHand = false;
-        for (int j = 0; j < hand->getNumPalms(); j++) {
+        for (size_t j = 0; j < hand->getNumPalms(); j++) {
             if (hand->getPalms()[j].getSixenseID() == data.controller_index) {
                 palm = &(hand->getPalms()[j]);
                 foundHand = true;
@@ -89,7 +89,7 @@ void SixenseManager::update(float deltaTime) {
         
         //  Rotation of Palm
         glm::quat rotation(data.rot_quat[3], -data.rot_quat[0], data.rot_quat[1], -data.rot_quat[2]);
-        rotation = glm::angleAxis(180.0f, glm::vec3(0.f, 1.f, 0.f)) * rotation;
+        rotation = glm::angleAxis(PI, glm::vec3(0.f, 1.f, 0.f)) * rotation;
         const glm::vec3 PALM_VECTOR(0.0f, -1.0f, 0.0f);
         glm::vec3 newNormal = rotation * PALM_VECTOR;
         palm->setRawNormal(newNormal);
@@ -128,7 +128,7 @@ void SixenseManager::update(float deltaTime) {
     }
     
     // if the controllers haven't been moved in a while, disable
-    const int MOVEMENT_DISABLE_DURATION = 30 * 1000 * 1000;
+    const unsigned int MOVEMENT_DISABLE_DURATION = 30 * 1000 * 1000;
     if (usecTimestampNow() - _lastMovement > MOVEMENT_DISABLE_DURATION) {
         for (vector<PalmData>::iterator it = hand->getPalms().begin(); it != hand->getPalms().end(); it++) {
             it->setActive(false);

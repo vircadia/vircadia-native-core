@@ -52,7 +52,7 @@ void TV3DManager::setFrustum(Camera& whichCamera) {
     double nearZ = whichCamera.getNearClip(); // near clipping plane
     double screenZ = Application::getInstance()->getViewFrustum()->getFocalLength(); // screen projection plane
 
-    double top = nearZ * tan(DTR * fovy / 2); //sets top of frustum based on fovy and near clipping plane
+    double top = nearZ * tan(DTR * fovy / 2.0); //sets top of frustum based on fovy and near clipping plane
     double right = _aspect * top; // sets right of frustum based on aspect ratio
     double frustumshift = (IOD / 2) * nearZ / screenZ;
     

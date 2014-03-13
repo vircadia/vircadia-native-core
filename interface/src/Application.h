@@ -64,8 +64,7 @@
 #include "renderer/TextureCache.h"
 #include "renderer/VoxelShader.h"
 #include "ui/BandwidthDialog.h"
-#include "ui/ChatEntry.h"
-#include "ui/VoxelStatsDialog.h"
+#include "ui/OctreeStatsDialog.h"
 #include "ui/RearMirrorTools.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
@@ -95,8 +94,8 @@ static const float NODE_KILLED_BLUE  = 0.0f;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 
-static const float BILLBOARD_FIELD_OF_VIEW = 30.0f;
-static const float BILLBOARD_DISTANCE = 5.0f;
+static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
+static const float BILLBOARD_DISTANCE = 5.0f;       // meters
 
 class Application : public QApplication {
     Q_OBJECT
@@ -157,6 +156,7 @@ public:
     VoxelTree* getVoxelTree() { return _voxels.getTree(); }
     ParticleTreeRenderer* getParticles() { return &_particles; }
     MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
+    bool getImportSucceded() { return _importSucceded; }
     VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
     VoxelTree* getClipboard() { return &_clipboard; }
     Environment* getEnvironment() { return &_environment; }
@@ -170,9 +170,9 @@ public:
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QSettings* getSettings() { return _settings; }
     QMainWindow* getWindow() { return _window; }
-    NodeToVoxelSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
-    void lockVoxelSceneStats() { _voxelSceneStatsLock.lockForRead(); }
-    void unlockVoxelSceneStats() { _voxelSceneStatsLock.unlock(); }
+    NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
+    void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
+    void unlockOctreeSceneStats() { _octreeSceneStatsLock.unlock(); }
 
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
@@ -224,6 +224,9 @@ signals:
 
     /// Fired when we're rendering in-world interface elements; allows external parties to hook in.
     void renderingInWorldInterface();
+    
+    /// Fired when the import window is closed
+    void importDone();
     
 public slots:
     void domainChanged(const QString& domainHostname);
@@ -351,13 +354,13 @@ private:
     glm::vec3 _gravity;
 
     // Frame Rate Measurement
+
     int _frameCount;
     float _fps;
     timeval _applicationStartupTime;
     timeval _timerStart, _timerEnd;
     timeval _lastTimeUpdated;
     bool _justStarted;
-
     Stars _stars;
     
     BuckyBalls _buckyBalls;
@@ -365,6 +368,7 @@ private:
     VoxelSystem _voxels;
     VoxelTree _clipboard; // if I copy/paste
     VoxelImporter* _voxelImporter;
+    bool _importSucceded;
     VoxelSystem _sharedVoxelSystem;
     ViewFrustum _sharedVoxelSystemViewFrustum;
 
@@ -377,6 +381,8 @@ private:
     MetavoxelSystem _metavoxels;
 
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
+    ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels, particles)
+    quint64 _lastQueriedTime;
 
     Oscilloscope _audioScope;
 
@@ -426,9 +432,6 @@ private:
 
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
 
-    ChatEntry _chatEntry; // chat entry field
-    bool _chatEntryOn;    // Whether to show the chat entry
-
     GeometryCache _geometryCache;
     TextureCache _textureCache;
 
@@ -459,8 +462,8 @@ private:
 
     NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToJurisdictionMap _particleServerJurisdictions;
-    NodeToVoxelSceneStats _octreeServerSceneStats;
-    QReadWriteLock _voxelSceneStatsLock;
+    NodeToOctreeSceneStats _octreeServerSceneStats;
+    QReadWriteLock _octreeSceneStatsLock;
 
     std::vector<VoxelFade> _voxelFades;
     ControllerScriptingInterface _controllerScriptingInterface;

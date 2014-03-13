@@ -12,8 +12,10 @@
 #include "MetavoxelData.h"
 
 REGISTER_META_OBJECT(QRgbAttribute)
+REGISTER_META_OBJECT(PackedNormalAttribute)
 REGISTER_META_OBJECT(SharedObjectAttribute)
 REGISTER_META_OBJECT(SharedObjectSetAttribute)
+REGISTER_META_OBJECT(SpannerSetAttribute)
 
 AttributeRegistry* AttributeRegistry::getInstance() {
     static AttributeRegistry registry;
@@ -23,9 +25,13 @@ AttributeRegistry* AttributeRegistry::getInstance() {
 AttributeRegistry::AttributeRegistry() :
     _guideAttribute(registerAttribute(new SharedObjectAttribute("guide", &MetavoxelGuide::staticMetaObject,
         SharedObjectPointer(new DefaultMetavoxelGuide())))),
-    _spannersAttribute(registerAttribute(new SharedObjectSetAttribute("spanners", &Spanner::staticMetaObject))),
+    _spannersAttribute(registerAttribute(new SpannerSetAttribute("spanners", &Spanner::staticMetaObject))),
     _colorAttribute(registerAttribute(new QRgbAttribute("color"))),
-    _normalAttribute(registerAttribute(new QRgbAttribute("normal", qRgb(0, 127, 0)))) {
+    _normalAttribute(registerAttribute(new PackedNormalAttribute("normal", qRgb(0, 127, 0)))) {
+    
+    // our baseline LOD threshold is for voxels; spanners are a different story
+    const float SPANNER_LOD_THRESHOLD_MULTIPLIER = 4.0f;
+    _spannersAttribute->setLODThresholdMultiplier(SPANNER_LOD_THRESHOLD_MULTIPLIER);
 }
 
 static QScriptValue qDebugFunction(QScriptContext* context, QScriptEngine* engine) {
@@ -48,6 +54,9 @@ void AttributeRegistry::configureScriptEngine(QScriptEngine* engine) {
 }
 
 AttributePointer AttributeRegistry::registerAttribute(AttributePointer attribute) {
+    if (!attribute) {
+        return attribute;
+    }
     AttributePointer& pointer = _attributes[attribute->getName()];
     if (!pointer) {
         pointer = attribute;
@@ -138,11 +147,36 @@ OwnedAttributeValue& OwnedAttributeValue::operator=(const OwnedAttributeValue& o
     return *this;
 }
 
-Attribute::Attribute(const QString& name) {
+Attribute::Attribute(const QString& name) :
+        _lodThresholdMultiplier(1.0f) {
     setObjectName(name);
 }
 
 Attribute::~Attribute() {
+}
+
+void Attribute::readMetavoxelRoot(MetavoxelData& data, MetavoxelStreamState& state) {
+    data.createRoot(state.attribute)->read(state);
+}
+
+void Attribute::writeMetavoxelRoot(const MetavoxelNode& root, MetavoxelStreamState& state) {
+    root.write(state);
+}
+
+void Attribute::readMetavoxelDelta(MetavoxelData& data, const MetavoxelNode& reference, MetavoxelStreamState& state) {
+    data.createRoot(state.attribute)->readDelta(reference, state);
+}
+
+void Attribute::writeMetavoxelDelta(const MetavoxelNode& root, const MetavoxelNode& reference, MetavoxelStreamState& state) {
+    root.writeDelta(reference, state);
+}
+
+void Attribute::readMetavoxelSubdivision(MetavoxelData& data, MetavoxelStreamState& state) {
+    data.getRoot(state.attribute)->readSubdivision(state);
+}
+
+void Attribute::writeMetavoxelSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state) {
+    root.writeSubdivision(state);
 }
 
 QRgbAttribute::QRgbAttribute(const QString& name, QRgb defaultValue) :
@@ -187,6 +221,39 @@ QWidget* QRgbAttribute::createEditor(QWidget* parent) const {
     QColorEditor* editor = new QColorEditor(parent);
     editor->setColor(QColor::fromRgba(_defaultValue));
     return editor;
+}
+
+PackedNormalAttribute::PackedNormalAttribute(const QString& name, QRgb defaultValue) :
+    QRgbAttribute(name, defaultValue) {
+}
+
+bool PackedNormalAttribute::merge(void*& parent, void* children[]) const {
+    QRgb firstValue = decodeInline<QRgb>(children[0]);
+    int totalRed = (char)qRed(firstValue);
+    int totalGreen = (char)qGreen(firstValue);
+    int totalBlue = (char)qBlue(firstValue);
+    bool allChildrenEqual = true;
+    for (int i = 1; i < Attribute::MERGE_COUNT; i++) {
+        QRgb value = decodeInline<QRgb>(children[i]);
+        totalRed += (char)qRed(value);
+        totalGreen += (char)qGreen(value);
+        totalBlue += (char)qBlue(value);
+        allChildrenEqual &= (firstValue == value);
+    }
+    parent = encodeInline(packNormal(glm::normalize(glm::vec3(totalRed, totalGreen, totalBlue))));
+    return allChildrenEqual;
+}
+
+const float CHAR_SCALE = 127.0f;
+const float INVERSE_CHAR_SCALE = 1.0f / CHAR_SCALE;
+
+QRgb packNormal(const glm::vec3& normal) {
+    return qRgb((char)(normal.x * CHAR_SCALE), (char)(normal.y * CHAR_SCALE), (char)(normal.z * CHAR_SCALE));
+}
+
+glm::vec3 unpackNormal(QRgb value) {
+    return glm::vec3((char)qRed(value) * INVERSE_CHAR_SCALE, (char)qGreen(value) * INVERSE_CHAR_SCALE,
+        (char)qBlue(value) * INVERSE_CHAR_SCALE);
 }
 
 SharedObjectAttribute::SharedObjectAttribute(const QString& name, const QMetaObject* metaObject,
@@ -255,3 +322,61 @@ bool SharedObjectSetAttribute::merge(void*& parent, void* children[]) const {
 QWidget* SharedObjectSetAttribute::createEditor(QWidget* parent) const {
     return new SharedObjectEditor(_metaObject, parent);
 }
+
+SpannerSetAttribute::SpannerSetAttribute(const QString& name, const QMetaObject* metaObject) :
+    SharedObjectSetAttribute(name, metaObject) {
+}
+
+void SpannerSetAttribute::readMetavoxelRoot(MetavoxelData& data, MetavoxelStreamState& state) {
+    forever {
+        SharedObjectPointer object;
+        state.stream >> object;
+        if (!object) {
+            break;
+        }
+        data.insert(state.attribute, object);
+    }
+}
+
+void SpannerSetAttribute::writeMetavoxelRoot(const MetavoxelNode& root, MetavoxelStreamState& state) {
+    Spanner::incrementVisit();
+    root.writeSpanners(state);
+    state.stream << SharedObjectPointer();
+}
+
+void SpannerSetAttribute::readMetavoxelDelta(MetavoxelData& data,
+        const MetavoxelNode& reference, MetavoxelStreamState& state) {
+    forever {
+        SharedObjectPointer object;
+        state.stream >> object;
+        if (!object) {
+            break;
+        }
+        data.toggle(state.attribute, object);
+    }
+}
+
+void SpannerSetAttribute::writeMetavoxelDelta(const MetavoxelNode& root,
+        const MetavoxelNode& reference, MetavoxelStreamState& state) {
+    Spanner::incrementVisit();
+    root.writeSpannerDelta(reference, state);
+    state.stream << SharedObjectPointer();
+}
+
+void SpannerSetAttribute::readMetavoxelSubdivision(MetavoxelData& data, MetavoxelStreamState& state) {
+    forever {
+        SharedObjectPointer object;
+        state.stream >> object;
+        if (!object) {
+            break;
+        }
+        data.insert(state.attribute, object);
+    }
+}
+
+void SpannerSetAttribute::writeMetavoxelSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state) {
+    Spanner::incrementVisit();
+    root.writeSpannerSubdivision(state);
+    state.stream << SharedObjectPointer();
+}
+

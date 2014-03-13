@@ -31,6 +31,26 @@ class NetworkValue;
 class Spanner;
 class SpannerRenderer;
 
+/// Determines whether to subdivide each node when traversing.
+class MetavoxelLOD {
+    STREAMABLE
+    
+public:
+    STREAM glm::vec3 position;
+    STREAM float threshold;
+    
+    MetavoxelLOD(const glm::vec3& position = glm::vec3(), float threshold = 0.0f);
+    
+    bool isValid() const { return threshold > 0.0f; }
+    
+    bool shouldSubdivide(const glm::vec3& minimum, float size, float multiplier = 1.0f) const;
+    
+    /// Checks whether the node or any of the nodes underneath it have had subdivision enabled as compared to the reference.
+    bool becameSubdivided(const glm::vec3& minimum, float size, const MetavoxelLOD& reference, float multiplier = 1.0f) const;
+};
+
+DECLARE_STREAMABLE_METATYPE(MetavoxelLOD)
+
 /// The base metavoxel representation shared between server and client.
 class MetavoxelData {
 public:
@@ -43,25 +63,40 @@ public:
 
     float getSize() const { return _size; }
 
+    glm::vec3 getMinimum() const { return glm::vec3(_size, _size, _size) * -0.5f; }
+
     Box getBounds() const;
 
     /// Applies the specified visitor to the contained voxels.
     void guide(MetavoxelVisitor& visitor);
    
+    void insert(const AttributePointer& attribute, const SharedObjectPointer& object);
     void insert(const AttributePointer& attribute, const Box& bounds, float granularity, const SharedObjectPointer& object);
     
+    void remove(const AttributePointer& attribute, const SharedObjectPointer& object);
     void remove(const AttributePointer& attribute, const Box& bounds, float granularity, const SharedObjectPointer& object);
 
+    void toggle(const AttributePointer& attribute, const SharedObjectPointer& object);
+    void toggle(const AttributePointer& attribute, const Box& bounds, float granularity, const SharedObjectPointer& object);
+
     void clear(const AttributePointer& attribute);
+
+    /// Convenience function that finds the first spanner intersecting the provided ray.    
+    SharedObjectPointer findFirstRaySpannerIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const AttributePointer& attribute, float& distance, const MetavoxelLOD& lod = MetavoxelLOD());
 
     /// Expands the tree, increasing its capacity in all dimensions.
     void expand();
 
-    void read(Bitstream& in);
-    void write(Bitstream& out) const;
+    void read(Bitstream& in, const MetavoxelLOD& lod = MetavoxelLOD());
+    void write(Bitstream& out, const MetavoxelLOD& lod = MetavoxelLOD()) const;
 
-    void readDelta(const MetavoxelData& reference, Bitstream& in);
-    void writeDelta(const MetavoxelData& reference, Bitstream& out) const;
+    void readDelta(const MetavoxelData& reference, const MetavoxelLOD& referenceLOD, Bitstream& in, const MetavoxelLOD& lod);
+    void writeDelta(const MetavoxelData& reference, const MetavoxelLOD& referenceLOD,
+        Bitstream& out, const MetavoxelLOD& lod) const;
+
+    MetavoxelNode* getRoot(const AttributePointer& attribute) const { return _roots.value(attribute); }
+    MetavoxelNode* createRoot(const AttributePointer& attribute);
 
 private:
 
@@ -72,6 +107,23 @@ private:
     
     float _size;
     QHash<AttributePointer, MetavoxelNode*> _roots;
+};
+
+/// Holds the state used in streaming metavoxel data.
+class MetavoxelStreamState {
+public:
+    glm::vec3 minimum;
+    float size;
+    const AttributePointer& attribute;
+    Bitstream& stream;
+    const MetavoxelLOD& lod;
+    const MetavoxelLOD& referenceLOD;
+    
+    bool shouldSubdivide() const;
+    bool shouldSubdivideReference() const;
+    bool becameSubdivided() const;
+    
+    void setMinimum(const glm::vec3& lastMinimum, int index);
 };
 
 /// A single node within a metavoxel layer.
@@ -95,11 +147,18 @@ public:
 
     bool isLeaf() const;
 
-    void read(const AttributePointer& attribute, Bitstream& in);
-    void write(const AttributePointer& attribute, Bitstream& out) const;
+    void read(MetavoxelStreamState& state);
+    void write(MetavoxelStreamState& state) const;
 
-    void readDelta(const AttributePointer& attribute, const MetavoxelNode& reference, Bitstream& in);
-    void writeDelta(const AttributePointer& attribute, const MetavoxelNode& reference, Bitstream& out) const;
+    void readDelta(const MetavoxelNode& reference, MetavoxelStreamState& state);
+    void writeDelta(const MetavoxelNode& reference, MetavoxelStreamState& state) const;
+
+    void readSubdivision(MetavoxelStreamState& state);
+    void writeSubdivision(MetavoxelStreamState& state) const;
+
+    void writeSpanners(MetavoxelStreamState& state) const;
+    void writeSpannerDelta(const MetavoxelNode& reference, MetavoxelStreamState& state) const;
+    void writeSpannerSubdivision(MetavoxelStreamState& state) const;
 
     /// Increments the node's reference count.
     void incrementReferenceCount() { _referenceCount++; }
@@ -133,14 +192,31 @@ public:
     bool isLeaf;
     
     Box getBounds() const { return Box(minimum, minimum + glm::vec3(size, size, size)); }
+    glm::vec3 getCenter() const { return minimum + glm::vec3(size, size, size) * 0.5f; }
 };
 
-/// Interface for visitors to metavoxels.
+/// Base class for visitors to metavoxels.
 class MetavoxelVisitor {
 public:
     
+    /// Encodes a visitation order sequence for the children of a metavoxel.
+    static int encodeOrder(int first, int second, int third, int fourth, int fifth, int sixth, int seventh, int eighth);
+    
+    /// Encodes a visitation order sequence that visits each child as sorted along the specified direction.
+    static int encodeOrder(const glm::vec3& direction);
+    
+    /// The default visitation order.
+    static const int DEFAULT_ORDER;
+    
+    /// A special "order" that instructs the guide to stop recursion.
+    static const int STOP_RECURSION;
+    
+    /// A special "order" that short-circuits the tour.
+    static const int SHORT_CIRCUIT;
+    
     MetavoxelVisitor(const QVector<AttributePointer>& inputs,
-        const QVector<AttributePointer>& outputs = QVector<AttributePointer>());
+        const QVector<AttributePointer>& outputs = QVector<AttributePointer>(),
+        const MetavoxelLOD& lod = MetavoxelLOD());
     virtual ~MetavoxelVisitor();
     
     /// Returns a reference to the list of input attributes desired.
@@ -149,36 +225,88 @@ public:
     /// Returns a reference to the list of output attributes provided.
     const QVector<AttributePointer>& getOutputs() const { return _outputs; }
     
+    /// Returns a reference to the level of detail that will determine subdivision levels.
+    const MetavoxelLOD& getLOD() const { return _lod; }
+    
+    void setLOD(const MetavoxelLOD& lod) { _lod = lod; }
+    
+    float getMinimumLODThresholdMultiplier() const { return _minimumLODThresholdMultiplier; }
+    
     /// Prepares for a new tour of the metavoxel data.
     virtual void prepare();
     
     /// Visits a metavoxel.
     /// \param info the metavoxel data
-    /// \return if true, continue descending; if false, stop
-    virtual bool visit(MetavoxelInfo& info) = 0;
+    /// \return the encoded order in which to traverse the children, zero to stop recursion, or -1 to short-circuit the tour
+    virtual int visit(MetavoxelInfo& info) = 0;
 
 protected:
 
     QVector<AttributePointer> _inputs;
     QVector<AttributePointer> _outputs;
+    MetavoxelLOD _lod;
+    float _minimumLODThresholdMultiplier;
 };
 
-typedef QSharedPointer<MetavoxelVisitor> MetavoxelVisitorPointer;
-
-/// Interface for visitors to spanners.
+/// Base class for visitors to spanners.
 class SpannerVisitor : public MetavoxelVisitor {
 public:
     
     SpannerVisitor(const QVector<AttributePointer>& spannerInputs,
         const QVector<AttributePointer>& inputs = QVector<AttributePointer>(),
-        const QVector<AttributePointer>& outputs = QVector<AttributePointer>());
+        const QVector<AttributePointer>& outputs = QVector<AttributePointer>(),
+        const MetavoxelLOD& lod = MetavoxelLOD());
     
     /// Visits a spanner.
-    virtual void visit(Spanner* spanner) = 0;
+    /// \return true to continue, false to short-circuit the tour
+    virtual bool visit(Spanner* spanner) = 0;
     
     virtual void prepare();
-    virtual bool visit(MetavoxelInfo& info);
+    virtual int visit(MetavoxelInfo& info);
 
+protected:
+    
+    int _spannerInputCount;
+};
+
+/// Base class for ray intersection visitors.
+class RayIntersectionVisitor : public MetavoxelVisitor {
+public:
+    
+    RayIntersectionVisitor(const glm::vec3& origin, const glm::vec3& direction,
+        const QVector<AttributePointer>& inputs,
+        const QVector<AttributePointer>& outputs = QVector<AttributePointer>(),
+        const MetavoxelLOD& lod = MetavoxelLOD());
+    
+    /// Visits a metavoxel that the ray intersects.
+    virtual int visit(MetavoxelInfo& info, float distance) = 0;
+    
+    virtual int visit(MetavoxelInfo& info);
+    
+protected:
+    
+    glm::vec3 _origin;
+    glm::vec3 _direction;
+    int _order;
+};
+
+/// Base class for ray intersection spanner visitors.
+class RaySpannerIntersectionVisitor : public RayIntersectionVisitor {
+public:
+    
+    RaySpannerIntersectionVisitor(const glm::vec3& origin, const glm::vec3& direction,
+        const QVector<AttributePointer>& spannerInputs,
+        const QVector<AttributePointer>& inputs = QVector<AttributePointer>(),
+        const QVector<AttributePointer>& outputs = QVector<AttributePointer>(),
+        const MetavoxelLOD& lod = MetavoxelLOD());
+
+    /// Visits a spanner that the ray intersects.
+    /// \return true to continue, false to short-circuit the tour
+    virtual bool visitSpanner(Spanner* spanner, float distance) = 0;
+    
+    virtual void prepare();
+    virtual int visit(MetavoxelInfo& info, float distance);
+    
 protected:
     
     int _spannerInputCount;
@@ -191,7 +319,8 @@ class MetavoxelGuide : public SharedObject {
 public:
     
     /// Guides the specified visitor to the contained voxels.
-    virtual void guide(MetavoxelVisitation& visitation) = 0;
+    /// \return true to keep going, false to short circuit the tour
+    virtual bool guide(MetavoxelVisitation& visitation) = 0;
 };
 
 /// Guides visitors through the explicit content of the system.
@@ -202,7 +331,7 @@ public:
     
     Q_INVOKABLE DefaultMetavoxelGuide();
     
-    virtual void guide(MetavoxelVisitation& visitation);
+    virtual bool guide(MetavoxelVisitation& visitation);
 };
 
 /// A temporary test guide that just makes the existing voxels throb with delight.
@@ -214,7 +343,7 @@ public:
     
     Q_INVOKABLE ThrobbingMetavoxelGuide();
     
-    virtual void guide(MetavoxelVisitation& visitation);
+    virtual bool guide(MetavoxelVisitation& visitation);
     
 private:
     
@@ -230,7 +359,7 @@ public:
 
     Q_INVOKABLE ScriptedMetavoxelGuide();
 
-    virtual void guide(MetavoxelVisitation& visitation);
+    virtual bool guide(MetavoxelVisitation& visitation);
 
 public slots:
 
@@ -294,6 +423,13 @@ public:
     void setGranularity(float granularity) { _granularity = granularity; }
     float getGranularity() const { return _granularity; }
     
+    /// Returns a reference to the list of attributes associated with this spanner.
+    virtual const QVector<AttributePointer>& getAttributes() const;
+    
+    /// Sets the attribute values associated with this spanner in the supplied info.
+    /// \return true to recurse, false to stop
+    virtual bool getAttributeValues(MetavoxelInfo& info) const;
+    
     /// Checks whether we've visited this object on the current traversal.  If we have, returns false.
     /// If we haven't, sets the last visit identifier and returns true.
     bool testAndSetVisited();
@@ -301,12 +437,17 @@ public:
     /// Returns a pointer to the renderer, creating it if necessary.
     SpannerRenderer* getRenderer();
 
+    /// Finds the intersection between the described ray and this spanner.
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+
 signals:
 
     void boundsWillChange();
     void boundsChanged(const Box& bounds);
 
 protected:
+    
+    SpannerRenderer* _renderer;
     
     /// Returns the name of the class to instantiate in order to render this spanner.
     virtual QByteArray getRendererClassName() const;
@@ -316,7 +457,6 @@ private:
     Box _bounds;
     float _granularity;
     int _lastVisit; ///< the identifier of the last visit
-    SpannerRenderer* _renderer;
     
     static int _visit; ///< the global visit counter
 };
@@ -332,6 +472,7 @@ public:
     virtual void init(Spanner* spanner);
     virtual void simulate(float deltaTime);
     virtual void render(float alpha);
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 };
 
 /// An object with a 3D transform.
@@ -363,8 +504,43 @@ signals:
 private:
     
     glm::vec3 _translation;
-    glm::vec3 _rotation;
+    glm::vec3 _rotation; // Euler Angles in degrees
     float _scale;
+};
+
+/// A sphere.
+class Sphere : public Transformable {
+    Q_OBJECT
+    Q_PROPERTY(QColor color MEMBER _color WRITE setColor NOTIFY colorChanged)
+
+public:
+    
+    Q_INVOKABLE Sphere();
+
+    void setColor(const QColor& color);
+    const QColor& getColor() const { return _color; }
+
+    virtual const QVector<AttributePointer>& getAttributes() const;
+    virtual bool getAttributeValues(MetavoxelInfo& info) const;
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+
+signals:
+
+    void colorChanged(const QColor& color);
+
+protected:
+    
+    virtual QByteArray getRendererClassName() const;
+
+private slots:
+    
+    void updateBounds();
+    
+private:
+    
+    void getNormal(MetavoxelInfo& info) const;
+    
+    QColor _color;
 };
 
 /// A static 3D model loaded from the network.
@@ -379,6 +555,8 @@ public:
     void setURL(const QUrl& url);
     const QUrl& getURL() const { return _url; }
 
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+    
 signals:
 
     void urlChanged(const QUrl& url);

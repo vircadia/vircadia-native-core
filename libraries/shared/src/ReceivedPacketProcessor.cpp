@@ -12,8 +12,8 @@
 #include "ReceivedPacketProcessor.h"
 #include "SharedUtil.h"
 
-ReceivedPacketProcessor::ReceivedPacketProcessor() {
-    _dontSleep = false;
+void ReceivedPacketProcessor::terminating() {
+    _hasPackets.wakeAll();
 }
 
 void ReceivedPacketProcessor::queueReceivedPacket(const SharedNodePointer& destinationNode, const QByteArray& packet) {
@@ -24,18 +24,19 @@ void ReceivedPacketProcessor::queueReceivedPacket(const SharedNodePointer& desti
     lock();
     _packets.push_back(networkPacket);
     unlock();
+    
+    // Make sure to  wake our actual processing thread because we  now have packets for it to process.
+    _hasPackets.wakeAll();
 }
 
 bool ReceivedPacketProcessor::process() {
 
-    // If a derived class handles process sleeping, like the JurisdiciontListener, then it can set
-    // this _dontSleep member and we will honor that request.
-    if (_packets.size() == 0 && !_dontSleep) {
-        const quint64 RECEIVED_THREAD_SLEEP_INTERVAL = (1000 * 1000)/60; // check at 60fps
-        usleep(RECEIVED_THREAD_SLEEP_INTERVAL);
+    if (_packets.size() == 0) {
+        _waitingOnPacketsMutex.lock();
+        _hasPackets.wait(&_waitingOnPacketsMutex);
+        _waitingOnPacketsMutex.unlock();
     }
     while (_packets.size() > 0) {
-
         lock(); // lock to make sure nothing changes on us
         NetworkPacket& packet = _packets.front(); // get the oldest packet
         NetworkPacket temporary = packet; // make a copy of the packet in case the vector is resized on us

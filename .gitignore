@@ -39,7 +39,8 @@ interface/external/sixense/*
 # Ignore Visage
 interface/external/visage/*
 !interface/external/visage/readme.txt
-interface/resources/visage/
+interface/resources/visage/*
+!interface/resources/visage/tracker.cfg
 
 # Ignore interfaceCache for Linux users
 interface/interfaceCache/

@@ -241,6 +241,9 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
     int truePacketsSent = 0;
     int trueBytesSent = 0;
     int packetsSentThisInterval = 0;
+    bool isFullScene = ((!viewFrustumChanged || !nodeData->getWantDelta()) && nodeData->getViewFrustumJustStoppedChanging()) 
+                                || nodeData->hasLodChanged();
+
     bool somethingToSend = true; // assume we have something
 
     // FOR NOW... node tells us if it wants to receive only view frustum deltas
@@ -365,10 +368,6 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
                 << " Wasted:" << _totalWastedBytes;
         }
 
-        // start tracking our stats
-        bool isFullScene = ((!viewFrustumChanged || !nodeData->getWantDelta())
-                                && nodeData->getViewFrustumJustStoppedChanging()) || nodeData->hasLodChanged();
-
         // If we're starting a full scene, then definitely we want to empty the nodeBag
         if (isFullScene) {
             nodeData->nodeBag.deleteAll();
@@ -382,6 +381,7 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
         }
 
         ::startSceneSleepTime = _usleepTime;
+        // start tracking our stats
         nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, _myServer->getOctree()->getRoot(), _myServer->getJurisdiction());
 
         // This is the start of "resending" the scene.
@@ -431,10 +431,6 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
 
                 int boundaryLevelAdjust = boundaryLevelAdjustClient + (viewFrustumChanged && nodeData->getWantLowResMoving()
                                                                               ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
-
-
-                bool isFullScene = ((!viewFrustumChanged || !nodeData->getWantDelta()) &&
-                                 nodeData->getViewFrustumJustStoppedChanging()) || nodeData->hasLodChanged();
 
                 EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor,
                                              WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,

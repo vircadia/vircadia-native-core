@@ -175,9 +175,6 @@ public:
     /// Returns the extended length from the right hand to its first free ancestor.
     float getRightArmLength() const;
     
-    /// Returns the average color of all meshes in the geometry.
-    glm::vec4 computeAverageColor() const;
-
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
     
     /// \param shapes list of pointers shapes to test against Model

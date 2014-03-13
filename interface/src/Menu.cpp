@@ -26,6 +26,7 @@
 #include <QWindow>
 
 #include <AccountManager.h>
+#include <XmppClient.h>
 #include <UUID.h>
 
 #include "Application.h"
@@ -66,7 +67,7 @@ Menu::Menu() :
     _faceshiftEyeDeflection(DEFAULT_FACESHIFT_EYE_DEFLECTION),
     _frustumDrawMode(FRUSTUM_DRAW_MODE_ALL),
     _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET),
-    _voxelStatsDialog(NULL),
+    _octreeStatsDialog(NULL),
     _lodToolsDialog(NULL),
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
     _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
@@ -164,6 +165,19 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::FstUploader, 0, Application::getInstance(), SLOT(uploadFST()));
 
+    _chatAction = addActionToQMenuAndActionHash(toolsMenu,
+                                                MenuOption::Chat,
+                                                Qt::Key_Return,
+                                                this,
+                                                SLOT(showChat()));
+#ifdef HAVE_QXMPP
+    const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
+    toggleChat();
+    connect(&xmppClient, SIGNAL(connected()), this, SLOT(toggleChat()));
+    connect(&xmppClient, SIGNAL(disconnected()), this, SLOT(toggleChat()));
+#else
+    _chatAction->setEnabled(false);
+#endif
 
     QMenu* viewMenu = addMenu("View");
 
@@ -215,7 +229,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Oscilloscope, 0, true);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Bandwidth, 0, true);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0, this, SLOT(bandwidthDetails()));
-    addActionToQMenuAndActionHash(viewMenu, MenuOption::VoxelStats, 0, this, SLOT(voxelStatsDetails()));
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0, this, SLOT(octreeStatsDetails()));
 
     QMenu* developerMenu = addMenu("Developer");
 
@@ -343,7 +357,7 @@ Menu::Menu() :
 
 Menu::~Menu() {
     bandwidthDetailsClosed();
-    voxelStatsDetailsClosed();
+    octreeStatsDetailsClosed();
 }
 
 void Menu::loadSettings(QSettings* settings) {
@@ -701,8 +715,8 @@ void Menu::editPreferences() {
     form->addRow("Faceshift Eye Deflection:", faceshiftEyeDeflection);
 
     QSpinBox* fieldOfView = new QSpinBox();
-    fieldOfView->setMaximum(180);
-    fieldOfView->setMinimum(1);
+    fieldOfView->setMaximum(180.f);
+    fieldOfView->setMinimum(1.f);
     fieldOfView->setValue(_fieldOfView);
     form->addRow("Vertical Field of View (Degrees):", fieldOfView);
 
@@ -1023,6 +1037,30 @@ void Menu::showMetavoxelEditor() {
     _MetavoxelEditor->raise();
 }
 
+void Menu::showChat() {
+    if (!_chatWindow) {
+        _chatWindow = new ChatWindow();
+        QMainWindow* mainWindow = Application::getInstance()->getWindow();
+        _chatWindow->setGeometry(mainWindow->width() - _chatWindow->width(),
+                                 mainWindow->geometry().y(),
+                                 _chatWindow->width(),
+                                 mainWindow->height());
+    }
+    if (!_chatWindow->isVisible()) {
+        _chatWindow->show();
+    }
+    _chatWindow->raise();
+}
+
+void Menu::toggleChat() {
+#ifdef HAVE_QXMPP
+    _chatAction->setEnabled(XmppClient::getInstance().getXMPPClient().isConnected());
+    if (!_chatAction->isEnabled() && _chatWindow) {
+        _chatWindow->close();
+    }
+#endif
+}
+
 void Menu::audioMuteToggled() {
     QAction *muteAction = _actionHash.value(MenuOption::MuteAudio);
     muteAction->setChecked(Application::getInstance()->getAudio()->getMuted());
@@ -1035,21 +1073,55 @@ void Menu::bandwidthDetailsClosed() {
     }
 }
 
-void Menu::voxelStatsDetails() {
-    if (!_voxelStatsDialog) {
-        _voxelStatsDialog = new VoxelStatsDialog(Application::getInstance()->getGLWidget(),
+void Menu::octreeStatsDetails() {
+    if (!_octreeStatsDialog) {
+        _octreeStatsDialog = new OctreeStatsDialog(Application::getInstance()->getGLWidget(),
                                                  Application::getInstance()->getOcteeSceneStats());
-        connect(_voxelStatsDialog, SIGNAL(closed()), SLOT(voxelStatsDetailsClosed()));
-        _voxelStatsDialog->show();
+        connect(_octreeStatsDialog, SIGNAL(closed()), SLOT(octreeStatsDetailsClosed()));
+        _octreeStatsDialog->show();
     }
-    _voxelStatsDialog->raise();
+    _octreeStatsDialog->raise();
 }
 
-void Menu::voxelStatsDetailsClosed() {
-    if (_voxelStatsDialog) {
-        delete _voxelStatsDialog;
-        _voxelStatsDialog = NULL;
+void Menu::octreeStatsDetailsClosed() {
+    if (_octreeStatsDialog) {
+        delete _octreeStatsDialog;
+        _octreeStatsDialog = NULL;
     }
+}
+
+QString Menu::getLODFeedbackText() {
+    // determine granularity feedback
+    int boundaryLevelAdjust = getBoundaryLevelAdjust();
+    QString granularityFeedback;
+
+    switch (boundaryLevelAdjust) {
+        case 0: {
+            granularityFeedback = QString("at standard granularity.");
+        } break;
+        case 1: {
+            granularityFeedback = QString("at half of standard granularity.");
+        } break;
+        case 2: {
+            granularityFeedback = QString("at a third of standard granularity.");
+        } break;
+        default: {
+            granularityFeedback = QString("at 1/%1th of standard granularity.").arg(boundaryLevelAdjust + 1);
+        } break;
+    }
+
+    // distance feedback    
+    float voxelSizeScale = getVoxelSizeScale();
+    float relativeToDefault = voxelSizeScale / DEFAULT_OCTREE_SIZE_SCALE;
+    QString result;
+    if (relativeToDefault > 1.01) {
+        result = QString("%1 further %2").arg(relativeToDefault,8,'f',2).arg(granularityFeedback);
+    } else if (relativeToDefault > 0.99) {
+            result = QString("the default distance %1").arg(granularityFeedback);
+    } else {
+        result = QString("%1 of default %2").arg(relativeToDefault,8,'f',3).arg(granularityFeedback);
+    }
+    return result;
 }
 
 void Menu::autoAdjustLOD(float currentFPS) {
