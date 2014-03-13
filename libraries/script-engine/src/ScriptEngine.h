@@ -20,13 +20,19 @@
 
 #include <AvatarData.h>
 
-class ParticlesScriptingInterface;
-
 #include "AbstractControllerScriptingInterface.h"
 #include "Quat.h"
 #include "Vec3.h"
 
+class ParticlesScriptingInterface;
+
 const QString NO_SCRIPT("");
+
+#ifdef Q_OS_WIN32
+inline double roundf(double value) {
+	return (value > 0.0) ? floor(value + 0.5) : ceil(value - 0.5);
+}
+#endif
 
 const unsigned int SCRIPT_DATA_CALLBACK_USECS = roundf((1.0 / 60.0) * 1000 * 1000);
 
