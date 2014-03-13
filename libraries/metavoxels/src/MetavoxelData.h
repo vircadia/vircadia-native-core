@@ -302,7 +302,7 @@ public:
 
     /// Visits a spanner that the ray intersects.
     /// \return true to continue, false to short-circuit the tour
-    virtual bool visit(Spanner* spanner, float distance) = 0;
+    virtual bool visitSpanner(Spanner* spanner, float distance) = 0;
     
     virtual void prepare();
     virtual int visit(MetavoxelInfo& info, float distance);
@@ -504,7 +504,7 @@ signals:
 private:
     
     glm::vec3 _translation;
-    glm::vec3 _rotation;
+    glm::vec3 _rotation; // Euler Angles in degrees
     float _scale;
 };
 

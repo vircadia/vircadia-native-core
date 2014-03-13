@@ -28,7 +28,7 @@ const int NUM_MESSAGES_TO_TIME_STAMP = 20;
 const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?))://\\S+)");
 
 ChatWindow::ChatWindow() :
-    QDialog(Application::getInstance()->getGLWidget(), Qt::Tool),
+    QDialog(Application::getInstance()->getGLWidget(), Qt::CustomizeWindowHint),
     ui(new Ui::ChatWindow),
     numMessagesAfterLastTimeStamp(0)
 {
@@ -50,6 +50,7 @@ ChatWindow::ChatWindow() :
         startTimerForTimeStamps();
     } else {
         ui->numOnlineLabel->hide();
+        ui->closeButton->hide();
         ui->usersWidget->hide();
         ui->messagesScrollArea->hide();
         ui->messagePlainTextEdit->hide();
@@ -69,6 +70,10 @@ ChatWindow::~ChatWindow() {
     disconnect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
 #endif
     delete ui;
+}
+
+void ChatWindow::reject() {
+    hide();
 }
 
 bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
@@ -136,9 +141,11 @@ void ChatWindow::startTimerForTimeStamps() {
 void ChatWindow::connected() {
     ui->connectingToXMPPLabel->hide();
     ui->numOnlineLabel->show();
+    ui->closeButton->show();
     ui->usersWidget->show();
     ui->messagesScrollArea->show();
     ui->messagePlainTextEdit->show();
+    ui->messagePlainTextEdit->setFocus();
 #ifdef HAVE_QXMPP
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
     connect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
@@ -179,12 +186,13 @@ void ChatWindow::participantsChanged() {
 }
 
 void ChatWindow::messageReceived(const QXmppMessage& message) {
+    if (message.type() != QXmppMessage::GroupChat) {
+        return;
+    }
+
     QLabel* userLabel = new QLabel(getParticipantName(message.from()));
-    QFont font = userLabel->font();
-    font.setBold(true);
-    userLabel->setFont(font);
     userLabel->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-    userLabel->setStyleSheet("padding: 2px;");
+    userLabel->setStyleSheet("padding: 2px; font-weight: bold");
     userLabel->setAlignment(Qt::AlignTop);
 
     QLabel* messageLabel = new QLabel(message.body().replace(regexLinks, "<a href=\"\\1\">\\1</a>"));

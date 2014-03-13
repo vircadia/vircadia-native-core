@@ -44,10 +44,8 @@ public:
     void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
     void setLeanScale(float scale) { _leanScale = scale; }
     void setGravity(glm::vec3 gravity);
-    void setOrientation(const glm::quat& orientation);
     void setMoveTarget(const glm::vec3 moveTarget);
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; }
-    
 
     // getters
     float getSpeed() const { return _speed; }
@@ -55,7 +53,7 @@ public:
     float getLeanScale() const { return _leanScale; }
     float getElapsedTimeStopped() const { return _elapsedTimeStopped; }
     float getElapsedTimeMoving() const { return _elapsedTimeMoving; }
-    float getAbsoluteHeadYaw() const;
+    float getAbsoluteHeadYaw() const;   // degrees
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     glm::vec3 getGravity() const { return _gravity; }
@@ -68,7 +66,7 @@ public:
 
     //  Set what driving keys are being pressed to control thrust levels
     void setDriveKeys(int key, float val) { _driveKeys[key] = val; };
-    bool getDriveKeys(int key) { return _driveKeys[key]; };
+    bool getDriveKeys(int key) { return _driveKeys[key] != 0.f; };
     void jump() { _shouldJump = true; };
     
     bool isMyAvatar() { return true; }
@@ -101,8 +99,8 @@ public slots:
 
 private:
     bool _mousePressed;
-    float _bodyPitchDelta;
-    float _bodyRollDelta;
+    float _bodyPitchDelta;  // degrees
+    float _bodyRollDelta;   // degrees
     bool _shouldJump;
     float _driveKeys[MAX_DRIVE_KEYS];
     glm::vec3 _gravity;

@@ -1177,8 +1177,6 @@ void VoxelSystem::init() {
 }
 
 void VoxelSystem::changeTree(VoxelTree* newTree) {
-    disconnect(_tree, 0, this, 0);
-
     _tree = newTree;
 
     _tree->setDirtyBit();

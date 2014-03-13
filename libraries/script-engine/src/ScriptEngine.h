@@ -20,13 +20,15 @@
 
 #include <AvatarData.h>
 
-class ParticlesScriptingInterface;
-
 #include "AbstractControllerScriptingInterface.h"
 #include "Quat.h"
 #include "Vec3.h"
 
+class ParticlesScriptingInterface;
+
 const QString NO_SCRIPT("");
+
+const unsigned int SCRIPT_DATA_CALLBACK_USECS = floor(((1.0 / 60.0f) * 1000 * 1000) + 0.5);
 
 class ScriptEngine : public QObject {
     Q_OBJECT
@@ -34,8 +36,6 @@ public:
     ScriptEngine(const QString& scriptContents = NO_SCRIPT, bool wantMenuItems = false,
                  const QString& scriptMenuName = QString(""), 
                  AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
-
-    ~ScriptEngine();
 
     /// Access the VoxelsScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
     static VoxelsScriptingInterface* getVoxelsScriptingInterface() { return &_voxelsScriptingInterface; }
@@ -55,6 +55,11 @@ public:
     bool isAvatar() const { return _isAvatar; }
     
     void setAvatarData(AvatarData* avatarData, const QString& objectName);
+    
+    void setAvatarAudioBuffer(int16_t* avatarAudioBuffer) { _avatarAudioBuffer = avatarAudioBuffer; }
+    bool sendsAvatarAudioStream() const { return (bool) _avatarAudioBuffer; }
+    void setNumAvatarAudioBufferSamples(int numAvatarAudioBufferSamples)
+        { _numAvatarAudioBufferSamples = numAvatarAudioBufferSamples; }
     
     void init();
     void run(); /// runs continuously until Agent.stop() is called
@@ -86,6 +91,8 @@ protected:
     QTimer* _avatarIdentityTimer;
     QTimer* _avatarBillboardTimer;
     QHash<QTimer*, QScriptValue> _timerFunctionMap;
+    int16_t* _avatarAudioBuffer;
+    int _numAvatarAudioBufferSamples;
 
 private:
     void sendAvatarIdentityPacket();

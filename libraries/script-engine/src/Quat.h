@@ -24,13 +24,13 @@ class Quat : public QObject {
 public slots:
     glm::quat multiply(const glm::quat& q1, const glm::quat& q2);
     glm::quat fromVec3(const glm::vec3& vec3);
-    glm::quat fromPitchYawRoll(float pitch, float yaw, float roll);
+    glm::quat fromPitchYawRoll(float pitch, float yaw, float roll); // degrees
     glm::quat inverse(const glm::quat& q);
     glm::vec3 getFront(const glm::quat& orientation);
     glm::vec3 getRight(const glm::quat& orientation);
     glm::vec3 getUp(const glm::quat& orientation);
-    glm::vec3 safeEulerAngles(const glm::quat& orientation);
-    glm::quat angleAxis(float angle, const glm::vec3& v);
+    glm::vec3 safeEulerAngles(const glm::quat& orientation); // degrees
+    glm::quat angleAxis(float angle, const glm::vec3& v);   // degrees
     glm::quat mix(const glm::quat& q1, const glm::quat& q2, float alpha);
     void print(const QString& lable, const glm::quat& q);
 };

@@ -47,9 +47,13 @@ static const float ZERO             = 0.0f;
 static const float ONE              = 1.0f;
 static const float ONE_HALF			= 0.5f;
 static const float ONE_THIRD        = 0.333333f;
-static const float PIE              = 3.141592f;
-static const float PI_TIMES_TWO		= 3.141592f * 2.0f;
-static const float PI_OVER_180      = 3.141592f / 180.0f;
+
+static const float PI                 = 3.14159265358979f;
+static const float TWO_PI             = 2.f * PI;
+static const float PI_OVER_TWO        = ONE_HALF * PI;
+static const float RADIANS_PER_DEGREE = PI / 180.0f;
+static const float DEGREES_PER_RADIAN = 180.0f / PI;
+
 static const float EPSILON          = 0.000001f;	//smallish positive number - used as margin of error for some computations
 static const float SQUARE_ROOT_OF_2 = (float)sqrt(2.f);
 static const float SQUARE_ROOT_OF_3 = (float)sqrt(3.f);
@@ -133,8 +137,8 @@ bool isBetween(int64_t value, int64_t max, int64_t min);
 // These pack/unpack functions are designed to start specific known types in as efficient a manner
 // as possible. Taking advantage of the known characteristics of the semantic types.
 
-// Angles are known to be between 0 and 360deg, this allows us to encode in 16bits with great accuracy
-int packFloatAngleToTwoByte(unsigned char* buffer, float angle);
+// Angles are known to be between 0 and 360 degrees, this allows us to encode in 16bits with great accuracy
+int packFloatAngleToTwoByte(unsigned char* buffer, float degrees);
 int unpackFloatAngleFromTwoByte(const uint16_t* byteAnglePointer, float* destinationPointer);
 
 // Orientation Quats are known to have 4 normalized components be between -1.0 and 1.0
@@ -164,10 +168,7 @@ int unpackFloatScalarFromSignedTwoByteFixed(const int16_t* byteFixedPointer, flo
 int packFloatVec3ToSignedTwoByteFixed(unsigned char* destBuffer, const glm::vec3& srcVector, int radix);
 int unpackFloatVec3FromSignedTwoByteFixed(const unsigned char* sourceBuffer, glm::vec3& destination, int radix);
 
-#ifndef PIf
-#define PIf 3.14159265f
-#endif
-
+/// \return vec3 with euler angles in radians
 glm::vec3 safeEulerAngles(const glm::quat& q);
 
 #endif /* defined(__hifi__SharedUtil__) */
