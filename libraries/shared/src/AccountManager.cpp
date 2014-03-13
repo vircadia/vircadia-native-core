@@ -31,7 +31,6 @@ Q_DECLARE_METATYPE(OAuthAccessToken)
 Q_DECLARE_METATYPE(DataServerAccountInfo)
 Q_DECLARE_METATYPE(QNetworkAccessManager::Operation)
 Q_DECLARE_METATYPE(JSONCallbackParameters)
-Q_DECLARE_METATYPE(QHttpMultiPart)
 
 const QString ACCOUNTS_GROUP = "accounts";
 

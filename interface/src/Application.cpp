@@ -3462,7 +3462,7 @@ void Application::reloadAllScripts() {
 
 void Application::uploadFST() {
     FstReader reader;
-    if(reader.zip()) {
+    if (reader.zip()) {
         reader.send();
     }
 }

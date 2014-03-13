@@ -38,9 +38,7 @@ FstReader::FstReader() :
 }
 
 FstReader::~FstReader() {
-    if (_dataMultiPart) {
-        delete _dataMultiPart;
-    }
+    delete _dataMultiPart;
 }
 
 bool FstReader::zip() {
@@ -87,7 +85,6 @@ bool FstReader::zip() {
             QHttpPart textPart;
             textPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data;"
                                " name=\"model_name\"");
-            //textPart.setRawHeader("name", "\"model_name\"");
             textPart.setBody(line[1].toUtf8());
             _dataMultiPart->append(textPart);
         } else if (line.first() == FILENAME_FIELD) {
@@ -141,7 +138,6 @@ bool FstReader::send() {
     
     AccountManager::getInstance().authenticatedRequest(MODEL_URL, QNetworkAccessManager::PostOperation, JSONCallbackParameters(), QByteArray(), _dataMultiPart);
     
-    _dataMultiPart = NULL;
     return true;
 }
 
@@ -212,8 +208,6 @@ bool FstReader::addPart(const QString &path, const QString& name) {
     part.setBodyDevice(file);
     _dataMultiPart->append(part);
     file->setParent(_dataMultiPart);
-    
-    qDebug() << QFileInfo(*file).fileName().toUtf8();
     
     return true;
 }
