@@ -4,6 +4,7 @@ Dependencies
 * [Qt](http://qt-project.org/downloads) ~> 5.2.0
 * [zLib](http://www.zlib.net/) ~> 1.2.8
 * [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.0
+* [qxmpp](https://code.google.com/p/qxmpp/) ~> 0.7.6
 
 #####Linux only
 * [freeglut](http://freeglut.sourceforge.net/) ~> 2.8.0
@@ -53,9 +54,16 @@ Should you choose not to install Qt5 via a package manager that handles dependen
 #####Package Managers
 [Homebrew](http://brew.sh/) is an excellent package manager for OS X. It makes install of all hifi dependencies very simple.
 
-    brew install cmake qt5 glm zlib
+    brew tap highfidelity/homebrew-formulas
+    brew install cmake glm zlib
+    brew install highfidelity/formulas/qt5
+    brew link qt5 --force
+    brew install highfidelity/formulas/qxmpp
 
-*High Fidelity has a [homebrew formula](https://raw.github.com/highfidelity/hifi/master/qt5.rb) for a patched version of Qt 5.2.0 stable that removes wireless network scanning that can reduce real-time audio performance. We recommended you use this formula to install Qt.*
+We have a [homebrew formulas repository](https://github.com/highfidelity/homebrew-formulas) that you can use/tap to install some of the dependencies. In the code block above qt5 and qxmpp are installed from formulas in this repository.
+
+*Our [qt5 homebrew formula](https://raw.github.com/highfidelity/homebrew-formulas/master/qt5.rb) is for a patched version of Qt 5.2.0 stable that removes wireless network scanning that can reduce real-time audio performance. We recommended you use this formula to install Qt.*
+
 #####Xcode
 If Xcode is your editor of choice, you can ask CMake to generate Xcode project files instead of Unix Makefiles.
 
@@ -94,7 +102,7 @@ NOTE: zLib should configure itself correctly on install. However, sometimes zLib
 ####External Libraries
 We don't currently have a Windows installer, so before running Interface, you will need to ensure that all required resources are loadable. 
 
-CMake will need to know where the headers and libraries for required external dependencies are. If you installed ZLIB using the installer, the FindZLIB cmake module will be able to find it. This isn't the case for glm, freeglut, and GLEW.
+CMake will need to know where the headers and libraries for required external dependencies are. If you installed ZLIB using the installer, the FindZLIB cmake module will be able to find it. This isn't the case for the others.
 
 You have the choice of setting a variable specific to each library, or having a folder using a defined structure that contains all of the libs.
 
@@ -112,10 +120,13 @@ The recommended route is to place all of the dependencies in one place and set o
             -> bin
             -> include
             -> lib
-
-For all three external libraries you should be able to simply copy the extracted folder that you get from the download links provided at the top of the guide. The `root_lib_dir` in the above example can be wherever you choose on your system - as long as the environment variable HIFI_LIB_DIR is set to it.
+        -> qxmpp
+            -> include
+            -> lib
 
 *NOTE: Be careful with glm. For the folder other libraries would normally call 'include', the folder containing the headers, glm opts to use 'glm'. You will have a glm folder nested inside the top-level glm folder.*
+
+For many of the external libraries where precompiled binaries are readily available you should be able to simply copy the extracted folder that you get from the download links provided at the top of the guide. Otherwise you may need to build from source and install the built product to this directory. The `root_lib_dir` in the above example can be wherever you choose on your system - as long as the environment variable HIFI_LIB_DIR is set to it.
 
 Should you want to define a location for each library, these are the associated variables you will want to set:
 
@@ -125,8 +136,10 @@ They can be set in your ENV or by passing them to the cmake command on the comma
 
 Each of those designates the root directory that contains the sub-folders for each library. For example, if the GLEW_ROOT_DIR is `C:\libs\glew`, then we would expect to find an `include` folder and a `lib` folder inside `C:\libs\glew`. 
 
-####Freeglut DLL
-As with the Qt libraries, you will need to make sure the directory containing `freeglut.dll` is in your path. The directory to add to your path in which the DLL is found is `FREEGLUT_DIR/bin`. If you are on 64-bit windows, the directory in your path should be the x64 subdirectory in `bin`.
+*NOTE: Qt does not support 64-bit builds on Windows 7, so you must use the 32-bit version of libraries for interface.exe to run. The 32-bit version of the static library is the one linked by our CMake find modules*
+
+#### DLLs
+As with the Qt libraries, you will need to make sure the directory containing dynamically-linked libraries is in your path. For example, for a dynamically linked build of freeglut, the directory to add to your path in which the DLL is found is `FREEGLUT_DIR/bin`. Where possible, you can use static builds of the external dependencies to avoid this requirement.
 
 ####Building in Visual Studio
 Follow the same build steps from the CMake section, but pass a different generator to CMake.
@@ -135,7 +148,6 @@ Follow the same build steps from the CMake section, but pass a different generat
 
 ####Running Interface
 If you need to debug Interface, you can run interface from within Visual Studio (see the section below). You can also run Interface by launching it from command line or File Explorer from $YOUR_HIFI_PATH\build\interface\Debug\interface.exe
-
 
 ####Debugging Interface
 * In the Solution Explorer, right click interface and click Set as StartUp Project

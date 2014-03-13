@@ -74,6 +74,8 @@ public:
     float radius;
     bool isPinching;
     bool isPinchOpening;
+
+    // angles are in degrees
     QVector<float> angles; // angle from center to each point
     float angle; // the average of the angles
     float deltaAngle; // the change in average angle from last event

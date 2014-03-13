@@ -587,6 +587,7 @@ void ReliableChannel::sendMessage(const QVariant& message) {
     _dataStream << (quint32)0;    
     _bitstream << message;
     _bitstream.flush();
+    _bitstream.persistAndResetWriteMappings();
     
     quint32 length = _buffer.pos() - placeholder;
     _buffer.writeBytes(placeholder, sizeof(quint32), (const char*)&length);
@@ -745,6 +746,7 @@ void ReliableChannel::readData(QDataStream& in) {
                     QVariant message;
                     _bitstream >> message;
                     _bitstream.reset();
+                    _bitstream.persistAndResetReadMappings();
                     emit receivedMessage(message);
                     continue;
                 }

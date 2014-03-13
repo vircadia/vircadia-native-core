@@ -19,6 +19,7 @@
 
 #include <QDebug>
 #include <QDir>
+#include <QTranslator>
 #include <SharedUtil.h>
 
 int main(int argc, const char * argv[]) {
@@ -40,6 +41,10 @@ int main(int argc, const char * argv[]) {
     {
         QSettings::setDefaultFormat(QSettings::IniFormat);
         Application app(argc, const_cast<char**>(argv), startup_time);
+
+        QTranslator translator;
+        translator.load("interface_en");
+        app.installTranslator(&translator);
     
         qDebug( "Created QT Application.");
         exitCode = app.exec();

@@ -11,13 +11,15 @@
 #ifndef __shared__ReceivedPacketProcessor__
 #define __shared__ReceivedPacketProcessor__
 
+#include <QWaitCondition>
+
 #include "GenericThread.h"
 #include "NetworkPacket.h"
 
 /// Generalized threaded processor for handling received inbound packets. 
 class ReceivedPacketProcessor : public GenericThread {
 public:
-    ReceivedPacketProcessor();
+    ReceivedPacketProcessor() { }
 
     /// Add packet from network receive thread to the processing queue.
     /// \param sockaddr& senderAddress the address of the sender
@@ -43,11 +45,13 @@ protected:
     /// Implements generic processing behavior for this thread.
     virtual bool process();
 
-    bool _dontSleep;
+    virtual void terminating();
 
 private:
 
     std::vector<NetworkPacket> _packets;
+    QWaitCondition _hasPackets;
+    QMutex _waitingOnPacketsMutex;
 };
 
 #endif // __shared__PacketReceiver__
