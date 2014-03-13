@@ -884,7 +884,7 @@ void Menu::goTo() {
     
     int dialogReturn = gotoDialog.exec();
     if (dialogReturn == QDialog::Accepted && !gotoDialog.textValue().isEmpty()) {
-        LocationManager* manager = new LocationManager();
+        LocationManager* manager = &LocationManager::getInstance();
         manager->goTo(gotoDialog.textValue());
         connect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
     }
