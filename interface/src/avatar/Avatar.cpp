@@ -56,7 +56,8 @@ Avatar::Avatar() :
     _owningAvatarMixer(),
     _collisionFlags(0),
     _initialized(false),
-    _shouldRenderBillboard(true)
+    _shouldRenderBillboard(true),
+    _modelsDirty(true)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -119,7 +120,8 @@ void Avatar::simulate(float deltaTime) {
     }
     glm::vec3 headPosition = _position;
     if (!_shouldRenderBillboard) {
-        _skeletonModel.simulate(deltaTime);
+        _skeletonModel.simulate(deltaTime, _modelsDirty);
+        _modelsDirty = false;
         _skeletonModel.getHeadPosition(headPosition);
     }
     Head* head = getHead();
@@ -617,6 +619,9 @@ int Avatar::parseData(const QByteArray& packet) {
     
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, _position) > MOVE_DISTANCE_THRESHOLD;
+    
+    // note that we need to update our models
+    _modelsDirty = true;
     
     return bytesRead;
 }

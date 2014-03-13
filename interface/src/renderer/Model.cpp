@@ -156,9 +156,9 @@ void Model::updateShapePositions() {
     }
 }
 
-void Model::simulate(float deltaTime, bool delayLoad) {
+void Model::simulate(float deltaTime, bool fullUpdate) {
     // update our LOD
-    QVector<JointState> newJointStates = updateGeometry(delayLoad);
+    QVector<JointState> newJointStates = updateGeometry();
     if (!isActive()) {
         return;
     }
@@ -183,8 +183,13 @@ void Model::simulate(float deltaTime, bool delayLoad) {
             model->setURL(attachment.url);
             _attachments.append(model);
         }
-        _resetStates = true;
+        _resetStates = fullUpdate = true;
         createCollisionShapes();
+    }
+    
+    // exit early if we don't have to perform a full update
+    if (!(fullUpdate || _resetStates)) {
+        return;
     }
     
     // update the world space transforms for all joints
@@ -868,14 +873,12 @@ void Model::applyCollision(CollisionInfo& collision) {
     }
 }
 
-QVector<Model::JointState> Model::updateGeometry(bool delayLoad) {
+QVector<Model::JointState> Model::updateGeometry() {
     QVector<JointState> newJointStates;
     if (_nextGeometry) {
-        _nextGeometry = _nextGeometry->getLODOrFallback(_lodDistance, _nextLODHysteresis, delayLoad);
-        if (!delayLoad) {
-            _nextGeometry->setLoadPriority(this, -_lodDistance);
-            _nextGeometry->ensureLoading();
-        }
+        _nextGeometry = _nextGeometry->getLODOrFallback(_lodDistance, _nextLODHysteresis);
+        _nextGeometry->setLoadPriority(this, -_lodDistance);
+        _nextGeometry->ensureLoading();
         if (_nextGeometry->isLoaded()) {
             applyNextGeometry();
             return newJointStates;
@@ -884,7 +887,7 @@ QVector<Model::JointState> Model::updateGeometry(bool delayLoad) {
     if (!_geometry) {
         return newJointStates;
     }
-    QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(_lodDistance, _lodHysteresis, delayLoad);
+    QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(_lodDistance, _lodHysteresis);
     if (_geometry != geometry) {
         if (!_jointStates.isEmpty()) {
             // copy the existing joint states
@@ -904,10 +907,8 @@ QVector<Model::JointState> Model::updateGeometry(bool delayLoad) {
         _dilatedTextures.clear();
         _geometry = geometry;
     }
-    if (!delayLoad) {
-        _geometry->setLoadPriority(this, -_lodDistance);
-        _geometry->ensureLoading();
-    }
+    _geometry->setLoadPriority(this, -_lodDistance);
+    _geometry->ensureLoading();
     return newJointStates;
 }
 

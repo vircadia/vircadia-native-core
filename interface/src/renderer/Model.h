@@ -57,7 +57,7 @@ public:
     void clearShapes();
     void createCollisionShapes();
     void updateShapePositions();
-    void simulate(float deltaTime, bool delayLoad = false);
+    void simulate(float deltaTime, bool fullUpdate = true);
     bool render(float alpha);
     
     /// Sets the URL of the model to render.
@@ -256,7 +256,7 @@ protected:
     
 private:
     
-    QVector<JointState> updateGeometry(bool delayLoad);
+    QVector<JointState> updateGeometry();
     void applyNextGeometry();
     void deleteGeometry();
     void renderMeshes(float alpha, bool translucent);
