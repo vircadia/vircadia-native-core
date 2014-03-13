@@ -19,7 +19,7 @@ void GLCanvas::initializeGL() {
     Application::getInstance()->initializeGL();
     setAttribute(Qt::WA_AcceptTouchEvents);
     setAcceptDrops(true);
-    connect(Application::getInstance(), &Application::focusChanged, this, &GLCanvas::activeChanged);
+    connect(Application::getInstance(), &Application::applicationStateChanged, this, &GLCanvas::activeChanged);
     connect(&_frameTimer, &QTimer::timeout, this, &GLCanvas::throttleRender);
 }
 
