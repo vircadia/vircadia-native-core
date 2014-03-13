@@ -28,8 +28,6 @@
 #include "LocalVoxels.h"
 #include "ScriptEngine.h"
 
-const unsigned int VISUAL_DATA_CALLBACK_USECS = (1.0 / 60.0) * 1000 * 1000;
-
 int ScriptEngine::_scriptNumber = 1;
 VoxelsScriptingInterface ScriptEngine::_voxelsScriptingInterface;
 ParticlesScriptingInterface ScriptEngine::_particlesScriptingInterface;
@@ -54,6 +52,7 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, co
     _avatarIdentityTimer(NULL),
     _avatarBillboardTimer(NULL),
     _timerFunctionMap(),
+    _avatarAudioBuffer(NULL),
     _controllerScriptingInterface(controllerScriptingInterface),
     _avatarData(NULL),
     _wantMenuItems(wantMenuItems),
@@ -75,9 +74,6 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, co
         _scriptMenuName.append(_scriptNumber);
     }
     _scriptNumber++;
-}
-
-ScriptEngine::~ScriptEngine() {
 }
 
 void ScriptEngine::setIsAvatar(bool isAvatar) {
@@ -169,8 +165,8 @@ void ScriptEngine::init() {
     _engine.globalObject().setProperty("TREE_SCALE", treeScaleValue);
 
     // let the VoxelPacketSender know how frequently we plan to call it
-    _voxelsScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
-    _particlesScriptingInterface.getParticlePacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
+    _voxelsScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(SCRIPT_DATA_CALLBACK_USECS);
+    _particlesScriptingInterface.getParticlePacketSender()->setProcessCallIntervalHint(SCRIPT_DATA_CALLBACK_USECS);
 
 }
 
@@ -228,7 +224,7 @@ void ScriptEngine::run() {
     qint64 lastUpdate = usecTimestampNow();
 
     while (!_isFinished) {
-        int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * VISUAL_DATA_CALLBACK_USECS) - usecTimestampNow();
+        int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * SCRIPT_DATA_CALLBACK_USECS) - usecTimestampNow();
         if (usecToSleep > 0) {
             usleep(usecToSleep);
         }
@@ -268,6 +264,21 @@ void ScriptEngine::run() {
             avatarPacket.append(_avatarData->toByteArray());
             
             nodeList->broadcastToNodes(avatarPacket, NodeSet() << NodeType::AvatarMixer);
+            
+            if (_avatarAudioBuffer && _numAvatarAudioBufferSamples > 0) {
+                // if have an avatar audio stream then send it out to our audio-mixer
+                QByteArray audioPacket = byteArrayWithPopulatedHeader(PacketTypeMicrophoneAudioNoEcho);
+                QDataStream packetStream(&audioPacket, QIODevice::Append);
+                
+                // use the orientation and position of this avatar for the source of this audio
+                packetStream.writeRawData(reinterpret_cast<const char*>(&_avatarData->getPosition()), sizeof(glm::vec3));
+                glm::quat headOrientation = _avatarData->getHeadOrientation();
+                packetStream.writeRawData(reinterpret_cast<const char*>(&headOrientation), sizeof(glm::quat));
+                packetStream.writeRawData(reinterpret_cast<const char*>(_avatarAudioBuffer),
+                                        _numAvatarAudioBufferSamples * sizeof(int16_t));
+                
+                nodeList->broadcastToNodes(audioPacket, NodeSet() << NodeType::AudioMixer);
+            }
         }
 
         qint64 now = usecTimestampNow();
