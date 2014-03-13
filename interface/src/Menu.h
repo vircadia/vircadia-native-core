@@ -239,7 +239,7 @@ namespace MenuOption {
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString HeadMouse = "Head Mouse";
     const QString HandsCollideWithSelf = "Collide With Self";
-    const QString FaceshiftTCP = "Faceshift (TCP)";
+    const QString Faceshift = "Faceshift";
     const QString FirstPerson = "First Person";
     const QString FrameTimer = "Show Timer";
     const QString FrustumRenderMode = "Render Mode";
@@ -292,6 +292,7 @@ namespace MenuOption {
     const QString StopAllScripts = "Stop All Scripts";
     const QString TestPing = "Test Ping";
     const QString TransmitterDrive = "Transmitter Drive";
+    const QString Visage = "Visage";
     const QString Quit =  "Quit";
     const QString Voxels = "Voxels";
     const QString VoxelMode = "Cycle Voxel Mode";

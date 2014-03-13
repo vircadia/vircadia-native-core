@@ -270,11 +270,16 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu,
-                                           MenuOption::FaceshiftTCP,
+                                           MenuOption::Faceshift,
                                            0,
-                                           false,
+                                           true,
                                            appInstance->getFaceshift(),
                                            SLOT(setTCPEnabled(bool)));
+#ifdef HAVE_VISAGE
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Visage, 0, true,
+        appInstance->getVisage(), SLOT(setEnabled(bool)));
+#endif
+
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, false);
 
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");

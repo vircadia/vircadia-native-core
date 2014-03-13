@@ -24,11 +24,13 @@ namespace VisageSDK {
 }
 
 /// Handles input from the Visage webcam feature tracking software.
-class Visage {
+class Visage : public QObject {
+    Q_OBJECT
+    
 public:
     
     Visage();
-    ~Visage();
+    virtual ~Visage();
     
     bool isActive() const { return _active; }
     
@@ -42,6 +44,10 @@ public:
     
     void update();
     void reset();
+
+public slots:
+
+    void setEnabled(bool enabled);
     
 private:
 
