@@ -14,8 +14,8 @@
 #include <QMainWindow>
 
 GLCanvas::GLCanvas() : QGLWidget(QGLFormat(QGL::NoDepthBuffer, QGL::NoStencilBuffer)),
-        _throttleRendering(false),
-        _idleRenderInterval(100)
+    _throttleRendering(false),
+    _idleRenderInterval(100)
 {
 }
 
