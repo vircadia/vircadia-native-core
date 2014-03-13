@@ -54,14 +54,27 @@ void GLCanvas::mouseReleaseEvent(QMouseEvent* event) {
 }
 
 void GLCanvas::activeChanged() {
-    if (Application::applicationState() != Qt::ApplicationActive) {
-        if (!_throttleRendering) {
-            _frameTimer.start(_idleRenderInterval);
-            _throttleRendering = true;
-        }
-    } else {
-        _frameTimer.stop();
-        _throttleRendering = false;
+    switch (Application::applicationState()) {
+        case Qt::ApplicationActive:
+            // If we're active, stop the frame timer and the throttle.
+            _frameTimer.stop();
+            _throttleRendering = false;
+            break;
+            
+        case Qt::ApplicationSuspended:
+        case Qt::ApplicationHidden:
+            // If we're hidden or are about to suspend, don't render anything.
+            _throttleRendering = false;
+            _frameTimer.stop();
+            break;
+            
+        default:
+            // Otherwise, throttle.
+            if (!_throttleRendering) {
+                _frameTimer.start(_idleRenderInterval);
+                _throttleRendering = true;
+            }
+            break;
     }
 }
 
