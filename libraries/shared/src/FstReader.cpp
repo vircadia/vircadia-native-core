@@ -10,15 +10,38 @@
 #include <QDebug>
 #include <QFile>
 #include <QTextStream>
-#include <QDir>
 #include <QFileDialog>
 #include <QStandardPaths>
+#include <QHttpMultiPart>
+#include <QVariant>
+
+#include "AccountManager.h"
 
 #include "FstReader.h"
 
-FstReader::FstReader() {
+
+static const QString NAME_FIELD = "name";
+static const QString FILENAME_FIELD = "filename";
+static const QString TEXDIR_FIELD = "texdir";
+static const QString LOD_FIELD = "lod";
+
+static const QString MODEL_URL = "/api/v1/models";
+
+static const int MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+
+FstReader::FstReader() :
+    _lodCount(-1),
+    _texturesCount(-1),
+    _readyToSend(false),
+    _dataMultiPart(new QHttpMultiPart(QHttpMultiPart::FormDataType))
+{
 }
 
+FstReader::~FstReader() {
+    if (_dataMultiPart) {
+        delete _dataMultiPart;
+    }
+}
 
 bool FstReader::zip() {
     // File Dialog
@@ -33,10 +56,17 @@ bool FstReader::zip() {
         qDebug() << "[ERROR] Could not open FST file : " << fst.fileName();
         return false;
     }
+    
+    // Compress and copy the fst
+    if (!compressFile(QFileInfo(fst).filePath(), _zipDir.path() + "/" + QFileInfo(fst).fileName())) {
+        return false;
+    }
+    _totalSize += QFileInfo(fst).size();
+    if (!addPart(_zipDir.path() + "/" + QFileInfo(fst).fileName(),
+                 QString("fst"))) {
+        return false;
+    }
     qDebug() << "Reading FST file : " << QFileInfo(fst).filePath();
-    
-    
-    QDir rootDir(_zipDir.path());
     
     // Let's read through the FST file
     QTextStream stream(&fst);
@@ -47,20 +77,34 @@ bool FstReader::zip() {
             continue;
         }
         
+        if (_totalSize > MAX_SIZE) {
+            qDebug() << "[ERROR] Model too big, over " << MAX_SIZE << " Bytes.";
+            return false;
+        }
+        
         // according to what is read, we modify the command
-        if (line.first() == nameField) {
-            _modelName = line[1];
-        } else if (line.first() == filenameField) {
+        if (line.first() == NAME_FIELD) {
+            QHttpPart textPart;
+            textPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data;"
+                               " name=\"model_name\"");
+            //textPart.setRawHeader("name", "\"model_name\"");
+            textPart.setBody(line[1].toUtf8());
+            _dataMultiPart->append(textPart);
+        } else if (line.first() == FILENAME_FIELD) {
             QFileInfo fbx(QFileInfo(fst).path() + "/" + line[1]);
             if (!fbx.exists() || !fbx.isFile()) { // Check existence
                 qDebug() << "[ERROR] FBX file " << fbx.absoluteFilePath() << " doesn't exist.";
                 return false;
-            } else { // Compress and copy
-                _fbxFile = rootDir.path() + "/" + line[1];
-                _totalSize += fbx.size();
-                compressFile(fbx.filePath(), _fbxFile);
             }
-        } else if (line.first() == texdirField) { // Check existence
+            // Compress and copy
+            if (!compressFile(fbx.filePath(), _zipDir.path() + "/" + line[1])) {
+                return false;
+            }
+            _totalSize += fbx.size();
+            if (!addPart(_zipDir.path() + "/" + line[1], "fbx")) {
+                return false;
+            }
+        } else if (line.first() == TEXDIR_FIELD) { // Check existence
             QFileInfo texdir(QFileInfo(fst).path() + "/" + line[1]);
             if (!texdir.exists() || !texdir.isDir()) {
                 qDebug() << "[ERROR] Texture directory " << texdir.absolutePath() << " doesn't exist.";
@@ -69,47 +113,41 @@ bool FstReader::zip() {
             if (!addTextures(texdir)) { // Recursive compress and copy
                 return false;
             }
-        } else if (line.first() == lodField) {
+        } else if (line.first() == LOD_FIELD) {
             QFileInfo lod(QFileInfo(fst).path() + "/" + line[1]);
             if (!lod.exists() || !lod.isFile()) { // Check existence
                 qDebug() << "[ERROR] FBX file " << lod.absoluteFilePath() << " doesn't exist.";
-                //return false;
-            } else { // Compress and copy
-                _lodFiles.push_back(rootDir.path() + "/" + line[1]);
-                _totalSize += lod.size();
-                compressFile(lod.filePath(), _lodFiles.back());
+                return false;
+            }
+            // Compress and copy
+            if (!compressFile(lod.filePath(), _zipDir.path() + "/" + line[1])) {
+                return false;
+            }
+            _totalSize += lod.size();
+            if (!addPart(_zipDir.path() + "/" + line[1], QString("lod%1").arg(++_lodCount))) {
+                return false;
             }
         }
     }
     
-    // Compress and copy the fst
-    _fstFile = rootDir.path() + "/" + QFileInfo(fst).fileName();
-    _totalSize += QFileInfo(fst).size();
-    compressFile(fst.fileName(), _fstFile);
-    
+    _readyToSend = true;
     return true;
 }
 
 bool FstReader::send() {
-    QString command = QString("curl -F \"model_name=%1\"").arg(_modelName);
-    
-    command += QString(" -F \"fst=@%1\" -F \"fbx=@%2\"").arg(_fstFile, _fbxFile);
-    for (int i = 0; i < _lodFiles.size(); ++i) {
-        command += QString(" -F \"lod%1=@%2\"").arg(i).arg(_lodFiles[i]);
+    if (!_readyToSend) {
+        return false;
     }
-    for (int i = 0; i < _textureFiles.size(); ++i) {
-        command += QString(" -F \"lod%1=@%2\"").arg(i).arg(_textureFiles[i]);
-    }
-    command += " http://localhost:3000/api/v1/models/?access_token\\=017894b7312316a2b5025613fcc58c13bc701da9b797cca34b60aae9d1c53acb --trace-ascii /dev/stdout";
     
-    qDebug() << "[DEBUG] " << command;
+    AccountManager::getInstance().authenticatedRequest(MODEL_URL, QNetworkAccessManager::PostOperation, JSONCallbackParameters(), QByteArray(), _dataMultiPart);
     
+    _dataMultiPart = NULL;
     return true;
 }
 
-bool FstReader::addTextures(QFileInfo& texdir) {
+bool FstReader::addTextures(const QFileInfo& texdir) {
     QStringList filter;
-    filter << "*.png" << "*.tiff" << "*.jpg" << "*.jpeg";
+    filter << "*.png" << "*.tif" << "*.jpg" << "*.jpeg";
     
     QFileInfoList list = QDir(texdir.filePath()).entryInfoList(filter,
                                                                QDir::Files |
@@ -118,9 +156,15 @@ bool FstReader::addTextures(QFileInfo& texdir) {
                                                                QDir::NoSymLinks);
     foreach (QFileInfo info, list) {
         if (info.isFile()) {
-            _textureFiles.push_back(_zipDir.path() + "/" + info.fileName());
+            // Compress and copy
+            if (!compressFile(info.filePath(), _zipDir.path() + "/" + info.fileName())) {
+                return false;
+            }
             _totalSize += info.size();
-            compressFile(info.canonicalFilePath(), _textureFiles.back());
+            if (!addPart(_zipDir.path() + "/" + info.fileName(),
+                         QString("texture%1").arg(++_texturesCount))) {
+                return false;
+            }
         } else if (info.isDir()) {
             if (!addTextures(info)) {
                 return false;
@@ -153,7 +197,26 @@ bool FstReader::compressFile(const QString &inFileName, const QString &outFileNa
 }
 
 
-
+bool FstReader::addPart(const QString &path, const QString& name) {
+    QFile* file = new QFile(path);
+    if (!file->open(QIODevice::ReadOnly)) {
+        qDebug() << "[ERROR] Couldn't open " << file->fileName();
+        return false;
+    }
+    
+    QHttpPart part;
+    part.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data;"
+                   " name=\"" + name.toUtf8() +  "\";"
+                   " filename=\"" + QFileInfo(*file).fileName().toUtf8() +  "\"");
+    part.setHeader(QNetworkRequest::ContentTypeHeader, "application/octet-stream");
+    part.setBodyDevice(file);
+    _dataMultiPart->append(part);
+    file->setParent(_dataMultiPart);
+    
+    qDebug() << QFileInfo(*file).fileName().toUtf8();
+    
+    return true;
+}
 
 
 

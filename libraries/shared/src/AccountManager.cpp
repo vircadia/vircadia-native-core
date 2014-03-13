@@ -13,6 +13,7 @@
 #include <QtCore/QStringList>
 #include <QtCore/QUrlQuery>
 #include <QtNetwork/QNetworkRequest>
+#include <QHttpMultiPart>
 
 #include "NodeList.h"
 #include "PacketHeaders.h"
@@ -30,6 +31,7 @@ Q_DECLARE_METATYPE(OAuthAccessToken)
 Q_DECLARE_METATYPE(DataServerAccountInfo)
 Q_DECLARE_METATYPE(QNetworkAccessManager::Operation)
 Q_DECLARE_METATYPE(JSONCallbackParameters)
+Q_DECLARE_METATYPE(QHttpMultiPart)
 
 const QString ACCOUNTS_GROUP = "accounts";
 
@@ -99,21 +101,25 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
 }
 
 void AccountManager::authenticatedRequest(const QString& path, QNetworkAccessManager::Operation operation,
-                                          const JSONCallbackParameters& callbackParams, const QByteArray& dataByteArray) {
+                                          const JSONCallbackParameters& callbackParams,
+                                          const QByteArray& dataByteArray,
+                                          QHttpMultiPart* dataMultiPart) {
     QMetaObject::invokeMethod(this, "invokedRequest",
                               Q_ARG(const QString&, path),
                               Q_ARG(QNetworkAccessManager::Operation, operation),
                               Q_ARG(const JSONCallbackParameters&, callbackParams),
-                              Q_ARG(const QByteArray&, dataByteArray));
+                              Q_ARG(const QByteArray&, dataByteArray),
+                              Q_ARG(QHttpMultiPart*, dataMultiPart));
 }
 
 void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::Operation operation,
-                                    const JSONCallbackParameters& callbackParams, const QByteArray& dataByteArray) {
-
+                                    const JSONCallbackParameters& callbackParams,
+                                    const QByteArray& dataByteArray, QHttpMultiPart* dataMultiPart) {
+    
     if (!_networkAccessManager) {
         _networkAccessManager = new QNetworkAccessManager(this);
     }
-
+    
     if (hasValidAccessToken()) {
         QNetworkRequest authenticatedRequest;
         
@@ -140,11 +146,18 @@ void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::
             case QNetworkAccessManager::PostOperation:
             case QNetworkAccessManager::PutOperation:
                 authenticatedRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-                
-                if (operation == QNetworkAccessManager::PostOperation) {
-                    networkReply = _networkAccessManager->post(authenticatedRequest, dataByteArray);
+                if (dataMultiPart) {
+                    if (operation == QNetworkAccessManager::PostOperation) {
+                        networkReply = _networkAccessManager->post(authenticatedRequest, dataMultiPart);
+                    } else {
+                        networkReply = _networkAccessManager->put(authenticatedRequest, dataMultiPart);
+                    }
                 } else {
-                    networkReply = _networkAccessManager->put(authenticatedRequest, dataByteArray);
+                    if (operation == QNetworkAccessManager::PostOperation) {
+                        networkReply = _networkAccessManager->post(authenticatedRequest, dataByteArray);
+                    } else {
+                        networkReply = _networkAccessManager->put(authenticatedRequest, dataByteArray);
+                    }
                 }
                 
                 break;
