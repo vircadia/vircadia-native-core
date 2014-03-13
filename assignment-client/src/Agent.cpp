@@ -40,7 +40,7 @@ Agent::~Agent() {
     delete _avatarAudioStream;
 }
 
-const int SCRIPT_AUDIO_BUFFER_SAMPLES = (SCRIPT_DATA_CALLBACK_USECS * SAMPLE_RATE) / (1000 * 1000);
+const int SCRIPT_AUDIO_BUFFER_SAMPLES = floor(((SCRIPT_DATA_CALLBACK_USECS * SAMPLE_RATE) / (1000 * 1000)) + 0.5);
 
 void Agent::setSendAvatarAudioStream(bool sendAvatarAudioStream) {
     if (sendAvatarAudioStream) {
