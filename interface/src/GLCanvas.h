@@ -14,6 +14,7 @@
 
 /// customized canvas that simply forwards requests/events to the singleton application
 class GLCanvas : public QGLWidget {
+    Q_OBJECT
 public:
     GLCanvas();
 protected:
@@ -39,8 +40,9 @@ protected:
 
     virtual void dragEnterEvent(QDragEnterEvent *event);
     virtual void dropEvent(QDropEvent* event);
-    
-    void activeChanged();
+        
+private slots:
+    void activeChanged(Qt::ApplicationState state);
     void throttleRender();
 };
 

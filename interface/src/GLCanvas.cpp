@@ -13,15 +13,18 @@
 #include <QUrl>
 #include <QMainWindow>
 
-GLCanvas::GLCanvas() : QGLWidget(QGLFormat(QGL::NoDepthBuffer, QGL::NoStencilBuffer)), _throttleRendering(false), _idleRenderInterval(100) {
+GLCanvas::GLCanvas() : QGLWidget(QGLFormat(QGL::NoDepthBuffer, QGL::NoStencilBuffer)),
+        _throttleRendering(false),
+        _idleRenderInterval(100)
+{
 }
 
 void GLCanvas::initializeGL() {
     Application::getInstance()->initializeGL();
     setAttribute(Qt::WA_AcceptTouchEvents);
     setAcceptDrops(true);
-    connect(Application::getInstance(), &Application::applicationStateChanged, this, &GLCanvas::activeChanged);
-    connect(&_frameTimer, &QTimer::timeout, this, &GLCanvas::throttleRender);
+    connect(Application::getInstance(), SIGNAL(applicationStateChanged(Qt::ApplicationState)), this, SLOT(activeChanged(Qt::ApplicationState)));
+    connect(&_frameTimer, SIGNAL(timeout()), this, SLOT(throttleRender()));
 }
 
 void GLCanvas::paintGL() {
@@ -54,8 +57,8 @@ void GLCanvas::mouseReleaseEvent(QMouseEvent* event) {
     Application::getInstance()->mouseReleaseEvent(event);
 }
 
-void GLCanvas::activeChanged() {
-    switch (Application::applicationState()) {
+void GLCanvas::activeChanged(Qt::ApplicationState state) {
+    switch (state) {
         case Qt::ApplicationActive:
             // If we're active, stop the frame timer and the throttle.
             _frameTimer.stop();
