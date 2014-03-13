@@ -11,6 +11,7 @@
 #include "GLCanvas.h"
 #include <QMimeData>
 #include <QUrl>
+#include <QMainWindow>
 
 GLCanvas::GLCanvas() : QGLWidget(QGLFormat(QGL::NoDepthBuffer, QGL::NoStencilBuffer)), _throttleRendering(false), _idleRenderInterval(100) {
 }
@@ -24,7 +25,7 @@ void GLCanvas::initializeGL() {
 }
 
 void GLCanvas::paintGL() {
-    if (!_throttleRendering) {
+    if (!_throttleRendering && !Application::getInstance()->getWindow()->isMinimized()) {
         Application::getInstance()->paintGL();
     }
 }
@@ -78,10 +79,11 @@ void GLCanvas::activeChanged() {
     }
 }
 
-void GLCanvas::throttleRender()
-{
+void GLCanvas::throttleRender() {
     _frameTimer.start(_idleRenderInterval);
-    Application::getInstance()->paintGL();
+    if (!Application::getInstance()->getWindow()->isMinimized()) {
+        Application::getInstance()->paintGL();
+    }
 }
 
 int updateTime = 0;
