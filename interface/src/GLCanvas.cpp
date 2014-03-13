@@ -53,12 +53,9 @@ void GLCanvas::mouseReleaseEvent(QMouseEvent* event) {
     Application::getInstance()->mouseReleaseEvent(event);
 }
 
-void GLCanvas::activeChanged()
-{
-    if (!isActiveWindow())
-    {
-        if (!_throttleRendering)
-        {
+void GLCanvas::activeChanged() {
+    if (Application::applicationState() != Qt::ApplicationActive) {
+        if (!_throttleRendering) {
             _frameTimer.start(_idleRenderInterval);
             _throttleRendering = true;
         }
