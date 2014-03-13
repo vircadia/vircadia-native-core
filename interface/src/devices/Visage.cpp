@@ -48,6 +48,7 @@ Visage::Visage() :
 
 Visage::~Visage() {
 #ifdef HAVE_VISAGE
+    _tracker->stop();
     delete _tracker;
     delete _data;
 #endif
