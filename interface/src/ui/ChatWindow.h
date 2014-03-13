@@ -33,6 +33,8 @@ public:
     ChatWindow();
     ~ChatWindow();
 
+    virtual void reject();
+
 protected:
     bool eventFilter(QObject* sender, QEvent* event);
 
