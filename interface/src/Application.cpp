@@ -121,8 +121,6 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
 QString& Application::resourcesPath() {
 #ifdef Q_OS_MAC
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
-#elif defined Q_OS_LINUX
-    static QString staticResourcePath = "resources/";
 #else
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
 #endif
