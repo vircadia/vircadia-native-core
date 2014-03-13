@@ -32,6 +32,7 @@ using namespace VisageSDK;
 const glm::vec3 DEFAULT_HEAD_ORIGIN(0.0f, 0.0f, 0.7f);
 
 Visage::Visage() :
+    _enabled(false),
     _active(false),
     _headOrigin(DEFAULT_HEAD_ORIGIN),
     _estimatedEyePitch(0.0f),
@@ -40,11 +41,16 @@ Visage::Visage() :
 #ifdef HAVE_VISAGE
     QByteArray licensePath = Application::resourcesPath().toLatin1() + "visage/license.vlc";
     initializeLicenseManager(licensePath.data());
+    _tracker = new VisageTracker2(Application::resourcesPath().toLatin1() + "visage/tracker.cfg");
+    _data = new FaceData();
 #endif
 }
 
 Visage::~Visage() {
-    setEnabled(false);
+#ifdef HAVE_VISAGE
+    delete _tracker;
+    delete _data;
+#endif
 }
 
 #ifdef HAVE_VISAGE
@@ -105,7 +111,7 @@ const float TRANSLATION_SCALE = 20.0f;
 
 void Visage::update() {
 #ifdef HAVE_VISAGE
-    _active = (_tracker && _tracker->getTrackingData(_data) == TRACK_STAT_OK);
+    _active = (_tracker->getTrackingData(_data) == TRACK_STAT_OK);
     if (!_active) {
         return;
     }
@@ -149,20 +155,13 @@ void Visage::reset() {
 
 void Visage::setEnabled(bool enabled) {
 #ifdef HAVE_VISAGE
-    if (enabled == (_tracker != NULL)) {
+    if (_enabled == enabled) {
         return;
     }
-    if (enabled) {
-        _tracker = new VisageTracker2(Application::resourcesPath().toLatin1() + "visage/tracker.cfg");
-        _data = new FaceData();
-        if (_tracker->trackFromCam()) {       
-            return;
-        }
+    if (_enabled = enabled) {
+        _tracker->trackFromCam();
+    } else {
+        _tracker->stop();
     }
-    _tracker->stop();
-    delete _tracker;
-    delete _data;
-    _tracker = NULL;
-    _data = NULL;
 #endif
 }

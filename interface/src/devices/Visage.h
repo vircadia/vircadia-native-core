@@ -57,6 +57,7 @@ private:
     QMultiHash<int, QPair<int, float> > _actionUnitIndexMap; 
 #endif
     
+    bool _enabled;
     bool _active;
     glm::quat _headRotation;
     glm::vec3 _headTranslation;
