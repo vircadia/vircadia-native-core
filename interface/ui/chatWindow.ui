@@ -185,10 +185,10 @@
    <sender>closeButton</sender>
    <signal>clicked()</signal>
    <receiver>ChatWindow</receiver>
-   <slot>accept()</slot>
+   <slot>hide()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>342</x>
+     <x>390</x>
      <y>42</y>
     </hint>
     <hint type="destinationlabel">

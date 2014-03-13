@@ -1043,6 +1043,8 @@ void Menu::showChat() {
                                  mainWindow->geometry().y(),
                                  _chatWindow->width(),
                                  mainWindow->height());
+    }
+    if (!_chatWindow->isVisible()) {
         _chatWindow->show();
     }
     _chatWindow->raise();

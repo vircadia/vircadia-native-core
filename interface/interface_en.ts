@@ -4,22 +4,22 @@
 <context>
     <name>Application</name>
     <message>
-        <location filename="src/Application.cpp" line="1354"/>
+        <location filename="src/Application.cpp" line="1353"/>
         <source>Export Voxels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="1355"/>
+        <location filename="src/Application.cpp" line="1354"/>
         <source>Sparse Voxel Octree Files (*.svo)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3554"/>
+        <location filename="src/Application.cpp" line="3557"/>
         <source>Open Script</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3555"/>
+        <location filename="src/Application.cpp" line="3558"/>
         <source>JavaScript Files (*.js)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -45,7 +45,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location filename="src/ui/ChatWindow.cpp" line="110"/>
+        <location filename="src/ui/ChatWindow.cpp" line="115"/>
         <source>day</source>
         <translation>
             <numerusform>%n day</numerusform>
@@ -53,7 +53,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="src/ui/ChatWindow.cpp" line="110"/>
+        <location filename="src/ui/ChatWindow.cpp" line="115"/>
         <source>hour</source>
         <translation>
             <numerusform>%n hour</numerusform>
@@ -61,7 +61,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="src/ui/ChatWindow.cpp" line="110"/>
+        <location filename="src/ui/ChatWindow.cpp" line="115"/>
         <source>minute</source>
         <translation>
             <numerusform>%n minute</numerusform>
@@ -76,7 +76,7 @@
         </translation>
     </message>
     <message>
-        <location filename="src/ui/ChatWindow.cpp" line="163"/>
+        <location filename="src/ui/ChatWindow.cpp" line="170"/>
         <source>%1 online now:</source>
         <translation type="unfinished"></translation>
     </message>
