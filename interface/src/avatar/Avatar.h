@@ -191,6 +191,8 @@ private:
 
     void renderBody();
     void renderBillboard();
+    
+    float getBillboardSize() const;
 };
 
 #endif

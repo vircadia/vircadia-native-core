@@ -110,6 +110,11 @@ void Avatar::simulate(float deltaTime) {
         _shouldRenderBillboard = true;
     }
 
+    // simple frustum check
+    float boundingRadius = getBillboardSize();
+    bool inViewFrustum = Application::getInstance()->getViewFrustum()->sphereInFrustum(_position, boundingRadius) !=
+        ViewFrustum::OUTSIDE;
+
     getHand()->simulate(deltaTime, false);
     _skeletonModel.setLODDistance(getLODDistance());
     
@@ -119,7 +124,7 @@ void Avatar::simulate(float deltaTime) {
         _skeletonModel.setJointState(i, data.valid, data.rotation);
     }
     glm::vec3 headPosition = _position;
-    if (!_shouldRenderBillboard) {
+    if (!_shouldRenderBillboard && inViewFrustum) {
         _skeletonModel.simulate(deltaTime, _modelsDirty);
         _modelsDirty = false;
         _skeletonModel.getHeadPosition(headPosition);
@@ -185,6 +190,12 @@ static TextRenderer* textRenderer(TextRendererType type) {
 }
 
 void Avatar::render(bool forShadowMap) {
+    // simple frustum check
+    float boundingRadius = getBillboardSize();
+    if (Application::getInstance()->getViewFrustum()->sphereInFrustum(_position, boundingRadius) == ViewFrustum::OUTSIDE) {
+        return;
+    }
+
     glm::vec3 toTarget = _position - Application::getInstance()->getAvatar()->getPosition();
     float lengthToTarget = glm::length(toTarget);
    
@@ -338,7 +349,7 @@ void Avatar::renderBillboard() {
     glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
     
     // compute the size from the billboard camera parameters and scale
-    float size = _scale * BILLBOARD_DISTANCE * tanf(glm::radians(BILLBOARD_FIELD_OF_VIEW / 2.0f));
+    float size = getBillboardSize();
     glScalef(size, size, size);
     
     glColor3f(1.0f, 1.0f, 1.0f);
@@ -361,6 +372,10 @@ void Avatar::renderBillboard() {
     glDisable(GL_ALPHA_TEST);
     
     glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+float Avatar::getBillboardSize() const {
+    return _scale * BILLBOARD_DISTANCE * tanf(glm::radians(BILLBOARD_FIELD_OF_VIEW / 2.0f));
 }
 
 void Avatar::renderDisplayName() {
