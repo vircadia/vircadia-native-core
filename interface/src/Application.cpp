@@ -1525,6 +1525,9 @@ void Application::init() {
     }
     qDebug("Loaded settings");
     
+    // initialize Visage after loading the menu settings
+    _visage.init();
+    
     // fire off an immediate domain-server check in now that settings are loaded
     NodeList::getInstance()->sendDomainServerCheckIn();
 

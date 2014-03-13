@@ -49,10 +49,16 @@ Faceshift::Faceshift() :
     connect(&_tcpSocket, SIGNAL(connected()), SLOT(noteConnected()));
     connect(&_tcpSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(noteError(QAbstractSocket::SocketError)));
     connect(&_tcpSocket, SIGNAL(readyRead()), SLOT(readFromSocket()));
+    connect(&_tcpSocket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), SIGNAL(connectionStateChanged()));
 
     connect(&_udpSocket, SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
 
     _udpSocket.bind(FACESHIFT_PORT);
+}
+
+bool Faceshift::isConnectedOrConnecting() const {
+    return _tcpSocket.state() == QAbstractSocket::ConnectedState ||
+        (_tcpRetryCount == 0 && _tcpSocket.state() != QAbstractSocket::UnconnectedState);
 }
 
 bool Faceshift::isActive() const {

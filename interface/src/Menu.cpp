@@ -277,7 +277,7 @@ Menu::Menu() :
                                            SLOT(setTCPEnabled(bool)));
 #ifdef HAVE_VISAGE
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Visage, 0, true,
-        appInstance->getVisage(), SLOT(setEnabled(bool)));
+        appInstance->getVisage(), SLOT(updateEnabled()));
 #endif
 
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, false);

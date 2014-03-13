@@ -32,6 +32,8 @@ public:
     Visage();
     virtual ~Visage();
     
+    void init();
+    
     bool isActive() const { return _active; }
     
     const glm::quat& getHeadRotation() const { return _headRotation; }
@@ -47,7 +49,7 @@ public:
 
 public slots:
 
-    void setEnabled(bool enabled);
+    void updateEnabled();
     
 private:
 
@@ -56,6 +58,8 @@ private:
     VisageSDK::FaceData* _data;
     QMultiHash<int, QPair<int, float> > _actionUnitIndexMap; 
 #endif
+    
+    void setEnabled(bool enabled);
     
     bool _enabled;
     bool _active;

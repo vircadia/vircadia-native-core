@@ -109,6 +109,11 @@ static const QMultiHash<QByteArray, QPair<int, float> >& getActionUnitNameMap() 
 
 const float TRANSLATION_SCALE = 20.0f;
 
+void Visage::init() {
+    connect(Application::getInstance()->getFaceshift(), SIGNAL(connectionStateChanged()), SLOT(updateEnabled()));
+    updateEnabled();
+}
+
 void Visage::update() {
 #ifdef HAVE_VISAGE
     _active = (_tracker->getTrackingData(_data) == TRACK_STAT_OK);
@@ -153,12 +158,18 @@ void Visage::reset() {
     _headOrigin += _headTranslation / TRANSLATION_SCALE;
 }
 
+void Visage::updateEnabled() {
+    setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Visage) &&
+        !(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift) &&
+            Application::getInstance()->getFaceshift()->isConnectedOrConnecting()));
+}
+
 void Visage::setEnabled(bool enabled) {
 #ifdef HAVE_VISAGE
     if (_enabled == enabled) {
         return;
     }
-    if (_enabled = enabled) {
+    if ((_enabled = enabled)) {
         _tracker->trackFromCam();
     } else {
         _tracker->stop();
