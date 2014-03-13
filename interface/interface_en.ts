@@ -4,22 +4,22 @@
 <context>
     <name>Application</name>
     <message>
-        <location filename="src/Application.cpp" line="1353"/>
+        <location filename="src/Application.cpp" line="1362"/>
         <source>Export Voxels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="1354"/>
+        <location filename="src/Application.cpp" line="1363"/>
         <source>Sparse Voxel Octree Files (*.svo)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3557"/>
+        <location filename="src/Application.cpp" line="3569"/>
         <source>Open Script</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3558"/>
+        <location filename="src/Application.cpp" line="3570"/>
         <source>JavaScript Files (*.js)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -27,25 +27,25 @@
 <context>
     <name>ChatWindow</name>
     <message>
-        <location filename="ui/chatWindow.ui" line="14"/>
+        <location filename="ui/chatWindow.ui" line="20"/>
         <location filename="../build/interface/ui_chatWindow.h" line="143"/>
         <source>Chat</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="ui/chatWindow.ui" line="44"/>
+        <location filename="ui/chatWindow.ui" line="50"/>
         <location filename="../build/interface/ui_chatWindow.h" line="144"/>
         <source>Connecting to XMPP...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="ui/chatWindow.ui" line="65"/>
+        <location filename="ui/chatWindow.ui" line="71"/>
         <location filename="../build/interface/ui_chatWindow.h" line="145"/>
         <source> online now:</source>
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location filename="src/ui/ChatWindow.cpp" line="115"/>
+        <location filename="src/ui/ChatWindow.cpp" line="124"/>
         <source>day</source>
         <translation>
             <numerusform>%n day</numerusform>
@@ -53,7 +53,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="src/ui/ChatWindow.cpp" line="115"/>
+        <location filename="src/ui/ChatWindow.cpp" line="124"/>
         <source>hour</source>
         <translation>
             <numerusform>%n hour</numerusform>
@@ -61,7 +61,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="src/ui/ChatWindow.cpp" line="115"/>
+        <location filename="src/ui/ChatWindow.cpp" line="124"/>
         <source>minute</source>
         <translation>
             <numerusform>%n minute</numerusform>
@@ -76,7 +76,7 @@
         </translation>
     </message>
     <message>
-        <location filename="src/ui/ChatWindow.cpp" line="170"/>
+        <location filename="src/ui/ChatWindow.cpp" line="179"/>
         <source>%1 online now:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -113,18 +113,18 @@
 <context>
     <name>Menu</name>
     <message>
-        <location filename="src/Menu.cpp" line="422"/>
+        <location filename="src/Menu.cpp" line="424"/>
         <source>Open .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="424"/>
-        <location filename="src/Menu.cpp" line="436"/>
+        <location filename="src/Menu.cpp" line="426"/>
+        <location filename="src/Menu.cpp" line="438"/>
         <source>Text files (*.ini)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="434"/>
+        <location filename="src/Menu.cpp" line="436"/>
         <source>Save .ini config file</source>
         <translation type="unfinished"></translation>
     </message>

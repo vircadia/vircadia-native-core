@@ -1041,22 +1041,20 @@ void Menu::showChat() {
     if (!_chatWindow) {
         _chatWindow = new ChatWindow();
         QMainWindow* mainWindow = Application::getInstance()->getWindow();
-        _chatWindow->setGeometry(mainWindow->width() - _chatWindow->width(),
-                                 mainWindow->geometry().y(),
-                                 _chatWindow->width(),
-                                 mainWindow->height());
+        QBoxLayout* boxLayout = static_cast<QBoxLayout*>(mainWindow->centralWidget()->layout());
+        boxLayout->addWidget(_chatWindow, 0, Qt::AlignRight);
+    } else {
+        if (!_chatWindow->isVisible()) {
+            _chatWindow->show();
+        }
     }
-    if (!_chatWindow->isVisible()) {
-        _chatWindow->show();
-    }
-    _chatWindow->raise();
 }
 
 void Menu::toggleChat() {
 #ifdef HAVE_QXMPP
     _chatAction->setEnabled(XmppClient::getInstance().getXMPPClient().isConnected());
     if (!_chatAction->isEnabled() && _chatWindow) {
-        _chatWindow->close();
+        _chatWindow->hide();
     }
 #endif
 }
