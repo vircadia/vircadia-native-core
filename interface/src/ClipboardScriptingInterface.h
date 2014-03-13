@@ -18,6 +18,9 @@ class ClipboardScriptingInterface : public QObject {
 public:
     ClipboardScriptingInterface();
 
+signals:
+    void readyToImport();
+    
 public slots:
     void cutVoxel(const VoxelDetail& sourceVoxel);
     void cutVoxel(float x, float y, float z, float s);
@@ -34,7 +37,7 @@ public slots:
     void exportVoxel(const VoxelDetail& sourceVoxel);
     void exportVoxel(float x, float y, float z, float s);
 
-    void importVoxels();
+    bool importVoxels();
 
     void nudgeVoxel(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec);
     void nudgeVoxel(float x, float y, float z, float s, const glm::vec3& nudgeVec);
