@@ -21,7 +21,7 @@ using namespace std;
 const quint16 FACESHIFT_PORT = 33433;
 
 Faceshift::Faceshift() :
-    _tcpEnabled(false),
+    _tcpEnabled(true),
     _tcpRetryCount(0),
     _lastTrackingStateReceived(0),
     _eyeGazeLeftPitch(0.0f),
@@ -54,6 +54,10 @@ Faceshift::Faceshift() :
     connect(&_udpSocket, SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
 
     _udpSocket.bind(FACESHIFT_PORT);
+}
+
+void Faceshift::init() {
+    setTCPEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift));
 }
 
 bool Faceshift::isConnectedOrConnecting() const {

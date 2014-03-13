@@ -27,6 +27,8 @@ public:
 
     Faceshift();
 
+    void init();
+
     bool isConnectedOrConnecting() const; 
 
     bool isActive() const;
