@@ -226,6 +226,9 @@ protected:
     
     QVector<MeshState> _meshStates;
     
+    QVector<JointState> updateGeometry();
+    void simulate(float deltaTime, bool fullUpdate, const QVector<JointState>& newJointStates);
+    
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);
     
@@ -256,7 +259,6 @@ protected:
     
 private:
     
-    QVector<JointState> updateGeometry();
     void applyNextGeometry();
     void deleteGeometry();
     void renderMeshes(float alpha, bool translucent);
