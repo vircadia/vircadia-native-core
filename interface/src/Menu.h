@@ -85,6 +85,7 @@ public:
     void handleViewFrustumOffsetKeyModifier(int key);
 
     // User Tweakable LOD Items
+    QString getLODFeedbackText();
     void autoAdjustLOD(float currentFPS);
     void setVoxelSizeScale(float sizeScale);
     float getVoxelSizeScale() const { return _voxelSizeScale; }

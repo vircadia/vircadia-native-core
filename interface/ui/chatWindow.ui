@@ -46,20 +46,53 @@
     </widget>
    </item>
    <item>
-    <widget class="QLabel" name="numOnlineLabel">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="styleSheet">
-      <string notr="true">font-weight: bold; color: palette(shadow); margin-bottom: 4px;</string>
-     </property>
-     <property name="text">
-      <string> online now:</string>
-     </property>
-    </widget>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QLabel" name="numOnlineLabel">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">font-weight: bold; color: palette(shadow); margin-bottom: 4px;</string>
+       </property>
+       <property name="text">
+        <string> online now:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="closeButton">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>16</width>
+         <height>16</height>
+        </size>
+       </property>
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="../resources/resources.qrc">
+         <normaloff>:/images/close.svg</normaloff>:/images/close.svg</iconset>
+       </property>
+       <property name="flat">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
     <widget class="QWidget" name="usersWidget" native="true"/>
@@ -81,7 +114,7 @@
         <x>0</x>
         <y>0</y>
         <width>358</width>
-        <height>448</height>
+        <height>452</height>
        </rect>
       </property>
       <property name="styleSheet">
@@ -122,13 +155,19 @@
       </sizepolicy>
      </property>
      <property name="styleSheet">
-      <string notr="true">font-family: Helvetica, Arial, sans-serif;</string>
+      <string notr="true">border-color: palette(dark); border-style: solid;  border-left-width: 1px; border-right-width: 1px; border-bottom-width: 1px;</string>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::NoFrame</enum>
      </property>
      <property name="horizontalScrollBarPolicy">
       <enum>Qt::ScrollBarAlwaysOff</enum>
      </property>
      <property name="sizeAdjustPolicy">
       <enum>QAbstractScrollArea::AdjustToContents</enum>
+     </property>
+     <property name="tabChangesFocus">
+      <bool>true</bool>
      </property>
     </widget>
    </item>
@@ -138,6 +177,25 @@
   <tabstop>messagePlainTextEdit</tabstop>
   <tabstop>messagesScrollArea</tabstop>
  </tabstops>
- <resources/>
- <connections/>
+ <resources>
+  <include location="../resources/resources.qrc"/>
+ </resources>
+ <connections>
+  <connection>
+   <sender>closeButton</sender>
+   <signal>clicked()</signal>
+   <receiver>ChatWindow</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>342</x>
+     <y>42</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>550</x>
+     <y>42</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

@@ -28,11 +28,16 @@ class Agent : public ThreadedAssignment {
     Q_OBJECT
     
     Q_PROPERTY(bool isAvatar READ isAvatar WRITE setIsAvatar)
+    Q_PROPERTY(bool sendAvatarAudioStream READ isSendingAvatarAudioStream WRITE setSendAvatarAudioStream)
 public:
     Agent(const QByteArray& packet);
+    ~Agent();
     
     void setIsAvatar(bool isAvatar) { QMetaObject::invokeMethod(&_scriptEngine, "setIsAvatar", Q_ARG(bool, isAvatar)); }
     bool isAvatar() const { return _scriptEngine.isAvatar(); }
+    
+    void setSendAvatarAudioStream(bool sendAvatarAudioStream);
+    bool isSendingAvatarAudioStream() const { return (bool) _scriptEngine.sendsAvatarAudioStream(); }
     
 public slots:
     void run();
@@ -45,6 +50,8 @@ private:
 
     ParticleTreeHeadlessViewer _particleViewer;
     VoxelTreeHeadlessViewer _voxelViewer;
+    
+    int16_t* _avatarAudioStream;
 };
 
 #endif /* defined(__hifi__Agent__) */

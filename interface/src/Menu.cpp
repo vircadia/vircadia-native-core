@@ -1062,15 +1062,10 @@ void Menu::showChat() {
     if (!_chatWindow) {
         _chatWindow = new ChatWindow();
         QMainWindow* mainWindow = Application::getInstance()->getWindow();
-
-        // the height of the title bar is given by frameGeometry().height() - geometry().height()
-        // however, frameGeometry() is initialised after showing (Qt queries the OS windowing system)
-        // on the other hand, moving a window after showing it flickers; so just use some reasonable value
-        int titleBarHeight = 16;
         _chatWindow->setGeometry(mainWindow->width() - _chatWindow->width(),
-                                 mainWindow->geometry().y() + titleBarHeight,
+                                 mainWindow->geometry().y(),
                                  _chatWindow->width(),
-                                 mainWindow->height() - titleBarHeight);
+                                 mainWindow->height());
         _chatWindow->show();
     }
     _chatWindow->raise();
@@ -1112,6 +1107,40 @@ void Menu::octreeStatsDetailsClosed() {
         delete _octreeStatsDialog;
         _octreeStatsDialog = NULL;
     }
+}
+
+QString Menu::getLODFeedbackText() {
+    // determine granularity feedback
+    int boundaryLevelAdjust = getBoundaryLevelAdjust();
+    QString granularityFeedback;
+
+    switch (boundaryLevelAdjust) {
+        case 0: {
+            granularityFeedback = QString("at standard granularity.");
+        } break;
+        case 1: {
+            granularityFeedback = QString("at half of standard granularity.");
+        } break;
+        case 2: {
+            granularityFeedback = QString("at a third of standard granularity.");
+        } break;
+        default: {
+            granularityFeedback = QString("at 1/%1th of standard granularity.").arg(boundaryLevelAdjust + 1);
+        } break;
+    }
+
+    // distance feedback    
+    float voxelSizeScale = getVoxelSizeScale();
+    float relativeToDefault = voxelSizeScale / DEFAULT_OCTREE_SIZE_SCALE;
+    QString result;
+    if (relativeToDefault > 1.01) {
+        result = QString("%1 further %2").arg(relativeToDefault,8,'f',2).arg(granularityFeedback);
+    } else if (relativeToDefault > 0.99) {
+            result = QString("the default distance %1").arg(granularityFeedback);
+    } else {
+        result = QString("%1 of default %2").arg(relativeToDefault,8,'f',3).arg(granularityFeedback);
+    }
+    return result;
 }
 
 void Menu::autoAdjustLOD(float currentFPS) {
