@@ -243,7 +243,6 @@ namespace MenuOption {
     const QString FirstPerson = "First Person";
     const QString FrameTimer = "Show Timer";
     const QString FrustumRenderMode = "Render Mode";
-    const QString FstUploader = "Upload .fst file";
     const QString Fullscreen = "Fullscreen";
     const QString FullscreenMirror = "Fullscreen Mirror";
     const QString GlowMode = "Cycle Glow Mode";
@@ -292,6 +291,8 @@ namespace MenuOption {
     const QString StopAllScripts = "Stop All Scripts";
     const QString TestPing = "Test Ping";
     const QString TransmitterDrive = "Transmitter Drive";
+    const QString UploaderAvatarHead = "Upload Avatar Head";
+    const QString UploaderAvatarSkeleton = "Upload Avatar Skeleton";
     const QString Visage = "Visage";
     const QString Quit =  "Quit";
     const QString Voxels = "Voxels";
