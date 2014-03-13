@@ -13,6 +13,9 @@
   <property name="windowTitle">
    <string>Chat</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">font-family: Helvetica, Arial, sans-serif;</string>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
     <number>0</number>
@@ -100,7 +103,7 @@
    <item>
     <widget class="QScrollArea" name="messagesScrollArea">
      <property name="styleSheet">
-      <string notr="true">margin-top: 12px; font-family: Helvetica, Arial, sans-serif;</string>
+      <string notr="true">margin-top: 12px;</string>
      </property>
      <property name="horizontalScrollBarPolicy">
       <enum>Qt::ScrollBarAlwaysOff</enum>
@@ -114,7 +117,7 @@
         <x>0</x>
         <y>0</y>
         <width>358</width>
-        <height>452</height>
+        <height>464</height>
        </rect>
       </property>
       <property name="styleSheet">
@@ -153,6 +156,12 @@
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>60</height>
+      </size>
      </property>
      <property name="styleSheet">
       <string notr="true">border-color: palette(dark); border-style: solid;  border-left-width: 1px; border-right-width: 1px; border-bottom-width: 1px;</string>
