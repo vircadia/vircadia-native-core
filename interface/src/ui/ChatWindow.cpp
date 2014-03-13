@@ -50,6 +50,7 @@ ChatWindow::ChatWindow() :
         startTimerForTimeStamps();
     } else {
         ui->numOnlineLabel->hide();
+        ui->closeButton->hide();
         ui->usersWidget->hide();
         ui->messagesScrollArea->hide();
         ui->messagePlainTextEdit->hide();
@@ -69,6 +70,10 @@ ChatWindow::~ChatWindow() {
     disconnect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
 #endif
     delete ui;
+}
+
+void ChatWindow::reject() {
+    hide();
 }
 
 bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
@@ -136,9 +141,11 @@ void ChatWindow::startTimerForTimeStamps() {
 void ChatWindow::connected() {
     ui->connectingToXMPPLabel->hide();
     ui->numOnlineLabel->show();
+    ui->closeButton->show();
     ui->usersWidget->show();
     ui->messagesScrollArea->show();
     ui->messagePlainTextEdit->show();
+    ui->messagePlainTextEdit->setFocus();
 #ifdef HAVE_QXMPP
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
     connect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
