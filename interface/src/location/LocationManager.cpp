@@ -74,6 +74,7 @@ void LocationManager::goTo(QString destination) {
         _userData = QJsonObject();
         _placeData = QJsonObject();
 
+        destination = QString::QString(QUrl::toPercentEncoding(destination));
         JSONCallbackParameters callbackParams;
         callbackParams.jsonCallbackReceiver = this;
         callbackParams.jsonCallbackMethod = "goToUserFromResponse";
@@ -126,6 +127,7 @@ void LocationManager::goToUser(QString userName) {
     callbackParams.jsonCallbackReceiver = Application::getInstance()->getAvatar();
     callbackParams.jsonCallbackMethod = "goToLocationFromResponse";
 
+    userName = QString::QString(QUrl::toPercentEncoding(userName));
     AccountManager::getInstance().authenticatedRequest(GET_USER_ADDRESS.arg(userName),
                                                        QNetworkAccessManager::GetOperation,
                                                        callbackParams);
@@ -136,6 +138,7 @@ void LocationManager::goToPlace(QString placeName) {
     callbackParams.jsonCallbackReceiver = Application::getInstance()->getAvatar();
     callbackParams.jsonCallbackMethod = "goToLocationFromResponse";
 
+    placeName = QString::QString(QUrl::toPercentEncoding(placeName));
     AccountManager::getInstance().authenticatedRequest(GET_PLACE_ADDRESS.arg(placeName),
                                                        QNetworkAccessManager::GetOperation,
                                                        callbackParams);
