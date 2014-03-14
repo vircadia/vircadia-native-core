@@ -184,7 +184,7 @@ function flyWithHydra(deltaTime) {
 
         // change the body yaw based on our x controller
         var orientation = MyAvatar.orientation;
-        var deltaOrientation = Quat.fromPitchYawRoll(0, (-1 * viewJoystickPosition.x * JOYSTICK_YAW_MAG * deltaTime), 0);
+        var deltaOrientation = Quat.fromPitchYawRollDegrees(0, (-1 * viewJoystickPosition.x * JOYSTICK_YAW_MAG * deltaTime), 0);
         MyAvatar.orientation = Quat.multiply(orientation, deltaOrientation);
 
         // change the headPitch based on our x controller

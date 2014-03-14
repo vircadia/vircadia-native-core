@@ -74,7 +74,7 @@ function checkCamera(deltaTime) {
         if (yaw < -360) {
             yaw += 360;
         }
-        var orientation = Quat.fromPitchYawRoll(pitch, yaw, roll);
+        var orientation = Quat.fromPitchYawRollDegrees(pitch, yaw, roll);
         Camera.setOrientation(orientation);
     }
 }
