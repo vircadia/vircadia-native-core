@@ -355,15 +355,7 @@ void Octree::deleteOctalCodeFromTree(const unsigned char* codeBuffer, bool colla
 
     OctreeElement* node = _rootNode;
 
-    // We can't encode and delete nodes at the same time, so we guard against deleting any node that is actively
-    // being encoded. And we stick that code on our pendingDelete list.
-    if (isEncoding(codeBuffer)) {
-        queueForLaterDelete(codeBuffer);
-    } else {
-        startDeleting(codeBuffer);
-        deleteOctalCodeFromTreeRecursion(node, &args);
-        doneDeleting(codeBuffer);
-    }
+    deleteOctalCodeFromTreeRecursion(node, &args);
 }
 
 void Octree::deleteOctalCodeFromTreeRecursion(OctreeElement* node, void* extraData) {
@@ -796,11 +788,8 @@ int Octree::encodeTreeBitstream(OctreeElement* node,
         return bytesWritten;
     }
 
-    startEncoding(node);
-
     // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
     if (params.viewFrustum && !node->isInView(*params.viewFrustum)) {
-        doneEncoding(node);
         params.stopReason = EncodeBitstreamParams::OUT_OF_VIEW;
         return bytesWritten;
     }
@@ -824,7 +813,6 @@ int Octree::encodeTreeBitstream(OctreeElement* node,
 
     // If the octalcode couldn't fit, then we can return, because no nodes below us will fit...
     if (!roomForOctalCode) {
-        doneEncoding(node);
         bag.insert(node); // add the node back to the bag so it will eventually get included
         params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
         return bytesWritten;
@@ -866,8 +854,6 @@ int Octree::encodeTreeBitstream(OctreeElement* node,
     } else {
         packetData->endSubTree();
     }
-
-    doneEncoding(node);
 
     return bytesWritten;
 }
@@ -1620,56 +1606,6 @@ void dumpSetContents(const char* name, std::set<unsigned char*> set) {
         printOctalCode(*i);
     }
     */
-}
-
-void Octree::startEncoding(OctreeElement* node) {
-    _encodeSetLock.lock();
-    _codesBeingEncoded.insert(node->getOctalCode());
-    _encodeSetLock.unlock();
-}
-
-void Octree::doneEncoding(OctreeElement* node) {
-    _encodeSetLock.lock();
-    _codesBeingEncoded.erase(node->getOctalCode());
-    _encodeSetLock.unlock();
-
-    // if we have any pending delete codes, then delete them now.
-    emptyDeleteQueue();
-}
-
-void Octree::startDeleting(const unsigned char* code) {
-    _deleteSetLock.lock();
-    _codesBeingDeleted.insert(code);
-    _deleteSetLock.unlock();
-}
-
-void Octree::doneDeleting(const unsigned char* code) {
-    _deleteSetLock.lock();
-    _codesBeingDeleted.erase(code);
-    _deleteSetLock.unlock();
-}
-
-bool Octree::isEncoding(const unsigned char* codeBuffer) {
-    _encodeSetLock.lock();
-    bool isEncoding = (_codesBeingEncoded.find(codeBuffer) != _codesBeingEncoded.end());
-    _encodeSetLock.unlock();
-    return isEncoding;
-}
-
-void Octree::queueForLaterDelete(const unsigned char* codeBuffer) {
-    _deletePendingSetLock.lock();
-    _codesPendingDelete.insert(codeBuffer);
-    _deletePendingSetLock.unlock();
-}
-
-void Octree::emptyDeleteQueue() {
-    _deletePendingSetLock.lock();
-    for (std::set<const unsigned char*>::iterator i = _codesPendingDelete.begin(); i != _codesPendingDelete.end(); ++i) {
-        const unsigned char* codeToDelete = *i;
-        _codesBeingDeleted.erase(codeToDelete);
-        deleteOctalCodeFromTree(codeToDelete, COLLAPSE_EMPTY_TREE);
-    }
-    _deletePendingSetLock.unlock();
 }
 
 void Octree::cancelImport() {
