@@ -1044,13 +1044,11 @@ void Menu::showMetavoxelEditor() {
 
 void Menu::showChat() {
     if (!_chatWindow) {
-        _chatWindow = new ChatWindow();
-        QMainWindow* mainWindow = Application::getInstance()->getWindow();
-        QBoxLayout* boxLayout = static_cast<QBoxLayout*>(mainWindow->centralWidget()->layout());
-        boxLayout->addWidget(_chatWindow, 0, Qt::AlignRight);
+        Application::getInstance()->getWindow()->addDockWidget(Qt::RightDockWidgetArea, _chatWindow = new ChatWindow());
+        
     } else {
-        if (!_chatWindow->isVisible()) {
-            _chatWindow->show();
+        if (!_chatWindow->toggleViewAction()->isChecked()) {
+            _chatWindow->toggleViewAction()->trigger();
         }
     }
 }
@@ -1058,8 +1056,8 @@ void Menu::showChat() {
 void Menu::toggleChat() {
 #ifdef HAVE_QXMPP
     _chatAction->setEnabled(XmppClient::getInstance().getXMPPClient().isConnected());
-    if (!_chatAction->isEnabled() && _chatWindow) {
-        _chatWindow->hide();
+    if (!_chatAction->isEnabled() && _chatWindow && _chatWindow->toggleViewAction()->isChecked()) {
+        _chatWindow->toggleViewAction()->trigger();
     }
 #endif
 }
