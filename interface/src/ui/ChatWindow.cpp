@@ -28,7 +28,7 @@ const int NUM_MESSAGES_TO_TIME_STAMP = 20;
 const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?))://\\S+)");
 
 ChatWindow::ChatWindow() :
-    QDialog(Application::getInstance()->getGLWidget(), Qt::CustomizeWindowHint),
+    QWidget(),
     ui(new Ui::ChatWindow),
     numMessagesAfterLastTimeStamp(0)
 {
@@ -39,7 +39,6 @@ ChatWindow::ChatWindow() :
 
     ui->messagePlainTextEdit->installEventFilter(this);
 
-    setAttribute(Qt::WA_DeleteOnClose);
 #ifdef HAVE_QXMPP
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
     if (xmppClient.isConnected()) {
@@ -72,8 +71,18 @@ ChatWindow::~ChatWindow() {
     delete ui;
 }
 
-void ChatWindow::reject() {
-    hide();
+void ChatWindow::keyPressEvent(QKeyEvent* event) {
+    QWidget::keyPressEvent(event);
+    if (event->key() == Qt::Key_Escape) {
+        hide();
+    }
+}
+
+void ChatWindow::showEvent(QShowEvent* event) {
+    QWidget::showEvent(event);
+    if (!event->spontaneous()) {
+        ui->messagePlainTextEdit->setFocus();
+    }
 }
 
 bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {

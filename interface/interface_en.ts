@@ -4,22 +4,22 @@
 <context>
     <name>Application</name>
     <message>
-        <location filename="src/Application.cpp" line="1355"/>
+        <location filename="src/Application.cpp" line="1362"/>
         <source>Export Voxels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="1356"/>
+        <location filename="src/Application.cpp" line="1363"/>
         <source>Sparse Voxel Octree Files (*.svo)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3559"/>
+        <location filename="src/Application.cpp" line="3573"/>
         <source>Open Script</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3560"/>
+        <location filename="src/Application.cpp" line="3574"/>
         <source>JavaScript Files (*.js)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -27,25 +27,25 @@
 <context>
     <name>ChatWindow</name>
     <message>
-        <location filename="ui/chatWindow.ui" line="14"/>
-        <location filename="../build/interface/ui_chatWindow.h" line="141"/>
+        <location filename="ui/chatWindow.ui" line="20"/>
+        <location filename="../build/interface/ui_chatWindow.h" line="143"/>
         <source>Chat</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="ui/chatWindow.ui" line="41"/>
-        <location filename="../build/interface/ui_chatWindow.h" line="142"/>
+        <location filename="ui/chatWindow.ui" line="50"/>
+        <location filename="../build/interface/ui_chatWindow.h" line="144"/>
         <source>Connecting to XMPP...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="ui/chatWindow.ui" line="62"/>
-        <location filename="../build/interface/ui_chatWindow.h" line="143"/>
+        <location filename="ui/chatWindow.ui" line="71"/>
+        <location filename="../build/interface/ui_chatWindow.h" line="145"/>
         <source> online now:</source>
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location filename="src/ui/ChatWindow.cpp" line="115"/>
+        <location filename="src/ui/ChatWindow.cpp" line="124"/>
         <source>day</source>
         <translation>
             <numerusform>%n day</numerusform>
@@ -53,7 +53,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="src/ui/ChatWindow.cpp" line="115"/>
+        <location filename="src/ui/ChatWindow.cpp" line="124"/>
         <source>hour</source>
         <translation>
             <numerusform>%n hour</numerusform>
@@ -61,7 +61,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="src/ui/ChatWindow.cpp" line="115"/>
+        <location filename="src/ui/ChatWindow.cpp" line="124"/>
         <source>minute</source>
         <translation>
             <numerusform>%n minute</numerusform>
@@ -76,7 +76,7 @@
         </translation>
     </message>
     <message>
-        <location filename="src/ui/ChatWindow.cpp" line="170"/>
+        <location filename="src/ui/ChatWindow.cpp" line="179"/>
         <source>%1 online now:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -113,136 +113,19 @@
 <context>
     <name>Menu</name>
     <message>
-        <location filename="src/Menu.cpp" line="424"/>
+        <location filename="src/Menu.cpp" line="429"/>
         <source>Open .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="426"/>
-        <location filename="src/Menu.cpp" line="438"/>
+        <location filename="src/Menu.cpp" line="431"/>
+        <location filename="src/Menu.cpp" line="443"/>
         <source>Text files (*.ini)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="436"/>
+        <location filename="src/Menu.cpp" line="441"/>
         <source>Save .ini config file</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>PreferencesDialog</name>
-    <message>
-        <location filename="ui/preferencesDialog.ui" line="34"/>
-        <location filename="../build/interface/ui_preferencesDialog.h" line="406"/>
-        <source>Avatar</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/preferencesDialog.ui" line="53"/>
-        <location filename="../build/interface/ui_preferencesDialog.h" line="407"/>
-        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Avatar display name &lt;span style=&quot; color:#909090;&quot;&gt;(optional)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/preferencesDialog.ui" line="81"/>
-        <location filename="../build/interface/ui_preferencesDialog.h" line="408"/>
-        <source>Not showing a name</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/preferencesDialog.ui" line="91"/>
-        <location filename="../build/interface/ui_preferencesDialog.h" line="409"/>
-        <source>Head</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/preferencesDialog.ui" line="114"/>
-        <location filename="../build/interface/ui_preferencesDialog.h" line="410"/>
-        <source>Body</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/preferencesDialog.ui" line="135"/>
-        <location filename="../build/interface/ui_preferencesDialog.h" line="411"/>
-        <source>Advanced Tuning</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/preferencesDialog.ui" line="142"/>
-        <location filename="../build/interface/ui_preferencesDialog.h" line="412"/>
-        <source>It&apos;s not recomended that you play with these settings unless you&apos;ve looked into exactly what they do.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/preferencesDialog.ui" line="165"/>
-        <location filename="../build/interface/ui_preferencesDialog.h" line="413"/>
-        <source>&lt;p&gt;Avatar&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/preferencesDialog.ui" line="174"/>
-        <location filename="../build/interface/ui_preferencesDialog.h" line="414"/>
-        <source>Lean scale (applies to Faceshift users)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/preferencesDialog.ui" line="204"/>
-        <location filename="../build/interface/ui_preferencesDialog.h" line="415"/>
-        <source>Vertical field of view</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/preferencesDialog.ui" line="241"/>
-        <location filename="../build/interface/ui_preferencesDialog.h" line="416"/>
-        <source>Avatar scale (default is 1.0)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/preferencesDialog.ui" line="271"/>
-        <location filename="../build/interface/ui_preferencesDialog.h" line="417"/>
-        <source>Pupil dillation</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/preferencesDialog.ui" line="308"/>
-        <location filename="../build/interface/ui_preferencesDialog.h" line="418"/>
-        <source>Audio Jitter Buffer Samples (0 for automatic)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/preferencesDialog.ui" line="345"/>
-        <location filename="../build/interface/ui_preferencesDialog.h" line="419"/>
-        <source>Faceshift eye detection</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/preferencesDialog.ui" line="393"/>
-        <location filename="../build/interface/ui_preferencesDialog.h" line="420"/>
-        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Voxels&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/preferencesDialog.ui" line="402"/>
-        <location filename="../build/interface/ui_preferencesDialog.h" line="421"/>
-        <source>Maximum voxels</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/preferencesDialog.ui" line="439"/>
-        <location filename="../build/interface/ui_preferencesDialog.h" line="422"/>
-        <source>Max voxels sent each second</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/preferencesDialog.ui" line="514"/>
-        <location filename="../build/interface/ui_preferencesDialog.h" line="423"/>
-        <source>Cancel</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/preferencesDialog.ui" line="525"/>
-        <location filename="../build/interface/ui_preferencesDialog.h" line="424"/>
-        <source>Save all changes</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

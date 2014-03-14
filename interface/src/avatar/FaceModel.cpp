@@ -18,9 +18,9 @@ FaceModel::FaceModel(Head* owningHead) :
 {
 }
 
-void FaceModel::simulate(float deltaTime, bool delayLoad) {
+void FaceModel::simulate(float deltaTime) {
+    QVector<JointState> newJointStates = updateGeometry();
     if (!isActive()) {
-        Model::simulate(deltaTime, delayLoad);
         return;
     }
     Avatar* owningAvatar = static_cast<Avatar*>(_owningHead->_owningAvatar);
@@ -36,12 +36,13 @@ void FaceModel::simulate(float deltaTime, bool delayLoad) {
     setRotation(neckRotation);
     const float MODEL_SCALE = 0.0006f;
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningHead->getScale() * MODEL_SCALE);
+    
     setOffset(-_geometry->getFBXGeometry().neckPivot);
     
     setPupilDilation(_owningHead->getPupilDilation());
     setBlendshapeCoefficients(_owningHead->getBlendshapeCoefficients());
     
-    Model::simulate(deltaTime, delayLoad);
+    Model::simulate(deltaTime, true, newJointStates);
 }
 
 bool FaceModel::render(float alpha) {

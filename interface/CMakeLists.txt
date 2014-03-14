@@ -230,11 +230,7 @@ if (APPLE)
         RUNTIME DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
     )
 else (APPLE)
-  # remove and then copy the resources files beside the executable
-  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E remove_directory
-    $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
-  )
+  # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
     "${PROJECT_SOURCE_DIR}/resources"

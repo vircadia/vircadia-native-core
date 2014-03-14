@@ -27,6 +27,7 @@
 #include <QColorDialog>
 #include <QDesktopWidget>
 #include <QCheckBox>
+#include <QHBoxLayout>
 #include <QImage>
 #include <QKeyEvent>
 #include <QMainWindow>
@@ -62,6 +63,7 @@
 #include <UUID.h>
 #include <OctreeSceneStats.h>
 #include <LocalVoxelsList.h>
+#include <FstReader.h>
 
 #include "Application.h"
 #include "ClipboardScriptingInterface.h"
@@ -121,8 +123,6 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
 QString& Application::resourcesPath() {
 #ifdef Q_OS_MAC
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
-#elif defined Q_OS_LINUX
-    static QString staticResourcePath = "resources/";
 #else
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
 #endif
@@ -292,7 +292,14 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     ResourceCache::setNetworkAccessManager(_networkAccessManager);
     ResourceCache::setRequestLimit(3);
 
-    _window->setCentralWidget(_glWidget);
+    QWidget* centralWidget = new QWidget();
+    QHBoxLayout* mainLayout = new QHBoxLayout();
+    mainLayout->setSpacing(0);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    centralWidget->setLayout(mainLayout);
+    _glWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    centralWidget->layout()->addWidget(_glWidget);
+    _window->setCentralWidget(centralWidget);
 
     restoreSizeAndPosition();
 
@@ -1526,6 +1533,10 @@ void Application::init() {
         _audio.setJitterBufferSamples(Menu::getInstance()->getAudioJitterBufferSamples());
     }
     qDebug("Loaded settings");
+    
+    // initialize Visage and Faceshift after loading the menu settings
+    _faceshift.init();
+    _visage.init();
     
     // fire off an immediate domain-server check in now that settings are loaded
     NodeList::getInstance()->sendDomainServerCheckIn();
@@ -3462,7 +3473,10 @@ void Application::reloadAllScripts() {
 }
 
 void Application::uploadFST() {
-    _fstReader.zip();
+    FstReader reader;
+    if (reader.zip()) {
+        reader.send();
+    }
 }
 
 void Application::removeScriptName(const QString& fileNameString) {
