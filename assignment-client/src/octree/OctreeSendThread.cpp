@@ -414,6 +414,13 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
         int extraPackingAttempts = 0;
         bool completedScene = false;
         while (somethingToSend && packetsSentThisInterval < maxPacketsPerInterval) {
+            float lockWaitElapsedUsec = 0.0f;
+            float encodeElapsedUsec = 0.0f;
+            float compressAndWriteElapsedUsec = 0.0f;
+            float packetSendingElapsedUsec = 0.0f;
+            
+            quint64 startInside = usecTimestampNow();            
+
             if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
                 qDebug("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d",
                     truePacketsSent, packetsSentThisInterval, maxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval(),
@@ -442,7 +449,7 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
                 quint64 lockWaitStart = usecTimestampNow();
                 _myServer->getOctree()->lockForRead();
                 quint64 lockWaitEnd = usecTimestampNow();
-                float lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
+                lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
                 OctreeServer::trackTreeWaitTime(lockWaitElapsedUsec);
                 
                 nodeData->stats.encodeStarted();
@@ -450,8 +457,8 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
                 quint64 encodeStart = usecTimestampNow();
                 bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->nodeBag, params);
                 quint64 encodeEnd = usecTimestampNow();
-                int encodeElapsedMsec = (encodeEnd - encodeStart)/USECS_PER_MSEC;
-                OctreeServer::trackEncodeTime(encodeElapsedMsec);
+                encodeElapsedUsec = (encodeEnd - encodeStart)/USECS_PER_MSEC;
+                OctreeServer::trackEncodeTime(encodeElapsedUsec);
 
                 // If after calling encodeTreeBitstream() there are no nodes left to send, then we know we've
                 // sent the entire scene. We want to know this below so we'll actually write this content into
@@ -491,6 +498,9 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
             // mean we should send the previous packet contents and reset it.
             if (completedScene || lastNodeDidntFit) {
                 if (_packetData.hasContent()) {
+                
+                    quint64 compressAndWriteStart = usecTimestampNow();
+                    
                     // if for some reason the finalized size is greater than our available size, then probably the "compressed"
                     // form actually inflated beyond our padding, and in this case we will send the current packet, then
                     // write to out new packet...
@@ -514,11 +524,15 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
                     }
                     nodeData->writeToPacket(_packetData.getFinalizedData(), _packetData.getFinalizedSize());
                     extraPackingAttempts = 0;
+                    quint64 compressAndWriteEnd = usecTimestampNow();
+                    compressAndWriteElapsedUsec = (float)(compressAndWriteEnd - compressAndWriteStart);
                 }
 
                 // If we're not running compressed, then we know we can just send now. Or if we're running compressed, but
                 // the packet doesn't have enough space to bother attempting to pack more...
                 bool sendNow = true;
+                
+                quint64 packetSendingStart = usecTimestampNow();
 
                 if (nodeData->getCurrentPacketIsCompressed() &&
                     nodeData->getAvailable() >= MINIMUM_ATTEMPT_MORE_PACKING &&
@@ -549,7 +563,27 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
                         debug::valueOf(nodeData->getWantCompression()), targetSize);
                 }
                 _packetData.changeSettings(nodeData->getWantCompression(), targetSize); // will do reset
+
+                quint64 packetSendingEnd = usecTimestampNow();
+                packetSendingElapsedUsec = (float)(packetSendingEnd - packetSendingStart);
             }
+            OctreeServer::trackTreeWaitTime(lockWaitElapsedUsec);
+            OctreeServer::trackEncodeTime(encodeElapsedUsec);
+            OctreeServer::trackCompressAndWriteTime(compressAndWriteElapsedUsec);
+            OctreeServer::trackPacketSendingTime(packetSendingElapsedUsec);
+            
+            quint64 endInside = usecTimestampNow();
+            quint64 elapsedInsideUsecs = endInside - startInside;
+            OctreeServer::trackInsideTime((float)elapsedInsideUsecs);
+            
+            float insideMsecs = (float)elapsedInsideUsecs / (float)USECS_PER_MSEC;
+            if (insideMsecs > 1.0f) {
+                qDebug()<< "inside msecs=" << insideMsecs 
+                        << "lockWait usec=" << lockWaitElapsedUsec
+                        << "encode usec=" << encodeElapsedUsec
+                        << "compress usec=" << compressAndWriteElapsedUsec
+                        << "sending usec=" << packetSendingElapsedUsec;
+             }
         }
 
 
@@ -613,6 +647,10 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
         }
 
     } // end if bag wasn't empty, and so we sent stuff...
+
+    if (truePacketsSent > 0 || packetsSentThisInterval > 0) {
+        qDebug() << "truePacketsSent=" << truePacketsSent << "packetsSentThisInterval=" << packetsSentThisInterval;
+    }
 
     return truePacketsSent;
 }

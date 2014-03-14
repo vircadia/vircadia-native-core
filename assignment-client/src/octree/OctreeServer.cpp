@@ -302,7 +302,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
         statsString += QString().sprintf("      Average node lock wait time:    %7.2f usecs\r\n", averageNodeWaitTime);
         qDebug() << "averageNodeWaitTime=" << averageNodeWaitTime;
 
-        float encodeToInsidePercent = (averageEncodeTime / averageInsideTime) * AS_PERCENT;
+        float encodeToInsidePercent = averageInsideTime == 0.0f ? 0.0f : (averageEncodeTime / averageInsideTime) * AS_PERCENT;
         statsString += QString().sprintf("  Percent 'inside' time is encode:      %5.2f%%\r\n", encodeToInsidePercent);
         qDebug() << "averageInsideTime=" << averageInsideTime;
         
