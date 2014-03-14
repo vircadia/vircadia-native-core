@@ -136,7 +136,10 @@ Menu::Menu() :
                                   this,
                                   SLOT(goTo()));
 
-
+    addDisabledActionAndSeparator(fileMenu, "Upload/Browse");
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploaderAvatarHead, 0, Application::getInstance(), SLOT(uploadFST()));
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploaderAvatarSkeleton, 0, Application::getInstance(), SLOT(uploadFST()));
+    
     addDisabledActionAndSeparator(fileMenu, "Settings");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::SettingsImport, 0, this, SLOT(importSettings()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::SettingsExport, 0, this, SLOT(exportSettings()));
@@ -168,7 +171,6 @@ Menu::Menu() :
 
     QMenu* toolsMenu = addMenu("Tools");
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
-    addActionToQMenuAndActionHash(toolsMenu, MenuOption::FstUploader, 0, Application::getInstance(), SLOT(uploadFST()));
 
     _chatAction = addActionToQMenuAndActionHash(toolsMenu,
                                                 MenuOption::Chat,
@@ -1062,20 +1064,20 @@ void Menu::showChat() {
     if (!_chatWindow) {
         _chatWindow = new ChatWindow();
         QMainWindow* mainWindow = Application::getInstance()->getWindow();
-        _chatWindow->setGeometry(mainWindow->width() - _chatWindow->width(),
-                                 mainWindow->geometry().y(),
-                                 _chatWindow->width(),
-                                 mainWindow->height());
-        _chatWindow->show();
+        QBoxLayout* boxLayout = static_cast<QBoxLayout*>(mainWindow->centralWidget()->layout());
+        boxLayout->addWidget(_chatWindow, 0, Qt::AlignRight);
+    } else {
+        if (!_chatWindow->isVisible()) {
+            _chatWindow->show();
+        }
     }
-    _chatWindow->raise();
 }
 
 void Menu::toggleChat() {
 #ifdef HAVE_QXMPP
     _chatAction->setEnabled(XmppClient::getInstance().getXMPPClient().isConnected());
     if (!_chatAction->isEnabled() && _chatWindow) {
-        _chatWindow->close();
+        _chatWindow->hide();
     }
 #endif
 }
