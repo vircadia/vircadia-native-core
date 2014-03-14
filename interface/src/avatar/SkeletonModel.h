@@ -43,10 +43,6 @@ protected:
     
 private:
     
-    /// Using the current position and rotation of the identified (hand) joint, computes a
-    /// reasonable stretched configuration for the connected arm.
-    void stretchArm(int jointIndex, const glm::vec3& position);
-    
     Avatar* _owningAvatar;
 };
 

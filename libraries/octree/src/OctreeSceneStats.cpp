@@ -925,7 +925,7 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
                 qDebug() << "(_incomingLastSequence - MAX_MISSING_SEQUENCE_OLD_AGE):" 
                                 << (_incomingLastSequence - MAX_MISSING_SEQUENCE_OLD_AGE);
             }
-            if (missingItem <= std::max(0, (_incomingLastSequence - MAX_MISSING_SEQUENCE_OLD_AGE))) {
+            if (missingItem <= (unsigned int)std::max(0, (int)_incomingLastSequence - (int)MAX_MISSING_SEQUENCE_OLD_AGE)) {
                 if (wantExtraDebugging) {
                     qDebug() << "pruning really old missing sequence:" << missingItem;
                 }

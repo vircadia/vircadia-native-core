@@ -10,6 +10,7 @@
 
 #include "Util.h"
 #include "world.h"
+#include "devices/SixenseManager.h"
 
 const int NUM_ELEMENTS = 3;
 const float RANGE_BBALLS = 0.5f;
