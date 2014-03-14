@@ -457,7 +457,7 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
                 quint64 encodeStart = usecTimestampNow();
                 bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->nodeBag, params);
                 quint64 encodeEnd = usecTimestampNow();
-                encodeElapsedUsec = (encodeEnd - encodeStart)/USECS_PER_MSEC;
+                encodeElapsedUsec = (float)(encodeEnd - encodeStart);
                 OctreeServer::trackEncodeTime(encodeElapsedUsec);
 
                 // If after calling encodeTreeBitstream() there are no nodes left to send, then we know we've

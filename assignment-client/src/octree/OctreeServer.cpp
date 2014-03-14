@@ -278,33 +278,43 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
         statsString += QString().sprintf("        Average packetLoop() time:      %5.2f msecs\r\n", averageLoopTime);
         qDebug() << "averageLoopTime=" << averageLoopTime;
 
-        float averageEncodeTime = getAverageEncodeTime();
-        statsString += QString().sprintf("              Average encode time:    %7.2f usecs\r\n", averageEncodeTime);
-        qDebug() << "averageEncodeTime=" << averageEncodeTime;
-
         float averageInsideTime = getAverageInsideTime();
         statsString += QString().sprintf("            Average 'inside' time:    %7.2f usecs\r\n", averageInsideTime);
         qDebug() << "averageInsideTime=" << averageInsideTime;
+
+        float averageTreeWaitTime = getAverageTreeWaitTime();
+        statsString += QString().sprintf("      Average tree lock wait time:    %7.2f usecs\r\n", averageTreeWaitTime);
+        qDebug() << "averageTreeWaitTime=" << averageTreeWaitTime;
+
+        float averageEncodeTime = getAverageEncodeTime();
+        statsString += QString().sprintf("              Average encode time:    %7.2f usecs\r\n", averageEncodeTime);
+        qDebug() << "averageEncodeTime=" << averageEncodeTime;
 
         float averageCompressAndWriteTime = getAverageCompressAndWriteTime();
         statsString += QString().sprintf("  Average compress and write time:    %7.2f usecs\r\n", averageCompressAndWriteTime);
         qDebug() << "averageCompressAndWriteTime=" << averageCompressAndWriteTime;
 
         float averagePacketSendingTime = getAveragePacketSendingTime();
-        statsString += QString().sprintf("      Average packet sending time:    %7.2f usecs\r\n", averagePacketSendingTime);
+        statsString += QString().sprintf("      Average packet sending time:    %7.2f usecs (includes node lock)\r\n", 
+                                        averagePacketSendingTime);
+                                        
         qDebug() << "averagePacketSendingTime=" << averagePacketSendingTime;
-
-        float averageTreeWaitTime = getAverageTreeWaitTime();
-        statsString += QString().sprintf("      Average tree lock wait time:    %7.2f usecs\r\n", averageTreeWaitTime);
-        qDebug() << "averageTreeWaitTime=" << averageTreeWaitTime;
 
         float averageNodeWaitTime = getAverageNodeWaitTime();
         statsString += QString().sprintf("      Average node lock wait time:    %7.2f usecs\r\n", averageNodeWaitTime);
         qDebug() << "averageNodeWaitTime=" << averageNodeWaitTime;
 
+        statsString += QString().sprintf("---------------------------------------------------\r\n");
+
         float encodeToInsidePercent = averageInsideTime == 0.0f ? 0.0f : (averageEncodeTime / averageInsideTime) * AS_PERCENT;
-        statsString += QString().sprintf("  Percent 'inside' time is encode:      %5.2f%%\r\n", encodeToInsidePercent);
-        qDebug() << "averageInsideTime=" << averageInsideTime;
+        statsString += QString().sprintf("                     encode ratio:      %5.2f%%\r\n", 
+                                        encodeToInsidePercent);
+        qDebug() << "encodeToInsidePercent=" << encodeToInsidePercent;
+
+        float waitToInsidePercent = averageInsideTime == 0.0f ? 0.0f 
+                    : ((averageTreeWaitTime + averageNodeWaitTime) / averageInsideTime) * AS_PERCENT;
+        statsString += QString().sprintf("                    waiting ratio:      %5.2f%%\r\n", waitToInsidePercent);
+        qDebug() << "waitToInsidePercent=" << waitToInsidePercent;
         
 
 
