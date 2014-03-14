@@ -22,12 +22,20 @@ glm::quat Quat::multiply(const glm::quat& q1, const glm::quat& q2) {
     return q1 * q2; 
 }
 
-glm::quat Quat::fromVec3(const glm::vec3& eulerAngles) { 
+glm::quat Quat::fromVec3Degrees(const glm::vec3& eulerAngles) { 
     return glm::quat(glm::radians(eulerAngles)); 
 }
 
-glm::quat Quat::fromPitchYawRoll(float pitch, float yaw, float roll) { 
+glm::quat Quat::fromVec3Radians(const glm::vec3& eulerAngles) { 
+    return glm::quat(eulerAngles); 
+}
+
+glm::quat Quat::fromPitchYawRollDegrees(float pitch, float yaw, float roll) { 
     return glm::quat(glm::radians(glm::vec3(pitch, yaw, roll)));
+}
+
+glm::quat Quat::fromPitchYawRollRadians(float pitch, float yaw, float roll) { 
+    return glm::quat(glm::vec3(pitch, yaw, roll));
 }
 
 glm::quat Quat::inverse(const glm::quat& q) {

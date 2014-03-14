@@ -152,7 +152,7 @@ function update(deltaTime) {
 
     //  Check for mouseLook movement, update rotation 
        // rotate body yaw for yaw received from mouse
-    var newOrientation = Quat.multiply(MyAvatar.orientation, Quat.fromVec3( { x: 0, y: yawFromMouse, z: 0 } ));
+    var newOrientation = Quat.multiply(MyAvatar.orientation, Quat.fromVec3Radians( { x: 0, y: yawFromMouse, z: 0 } ));
     MyAvatar.orientation = newOrientation;
     yawFromMouse = 0;
 
