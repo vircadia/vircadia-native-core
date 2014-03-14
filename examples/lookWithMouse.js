@@ -54,7 +54,7 @@ function update(deltaTime) {
         print("update()...");
     }
     // rotate body yaw for yaw received from mouse
-    var newOrientation = Quat.multiply(MyAvatar.orientation, Quat.fromVec3( { x: 0, y: yawFromMouse, z: 0 } ));
+    var newOrientation = Quat.multiply(MyAvatar.orientation, Quat.fromVec3Radians( { x: 0, y: yawFromMouse, z: 0 } ));
     if (wantDebugging) {
         print("changing orientation"
             + " [old]MyAvatar.orientation="+MyAvatar.orientation.x + "," + MyAvatar.orientation.y + "," 

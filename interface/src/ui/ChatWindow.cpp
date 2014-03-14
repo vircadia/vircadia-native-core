@@ -28,18 +28,21 @@ const int NUM_MESSAGES_TO_TIME_STAMP = 20;
 const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?))://\\S+)");
 
 ChatWindow::ChatWindow() :
-    QDialog(Application::getInstance()->getGLWidget(), Qt::Tool),
     ui(new Ui::ChatWindow),
     numMessagesAfterLastTimeStamp(0)
 {
-    ui->setupUi(this);
+    QWidget* widget = new QWidget();
+    setWidget(widget);
+    
+    ui->setupUi(widget);
 
     FlowLayout* flowLayout = new FlowLayout(0, 4, 4);
     ui->usersWidget->setLayout(flowLayout);
 
     ui->messagePlainTextEdit->installEventFilter(this);
 
-    setAttribute(Qt::WA_DeleteOnClose);
+    ui->closeButton->hide();
+    
 #ifdef HAVE_QXMPP
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
     if (xmppClient.isConnected()) {
@@ -50,6 +53,7 @@ ChatWindow::ChatWindow() :
         startTimerForTimeStamps();
     } else {
         ui->numOnlineLabel->hide();
+        ui->closeButton->hide();
         ui->usersWidget->hide();
         ui->messagesScrollArea->hide();
         ui->messagePlainTextEdit->hide();
@@ -69,6 +73,20 @@ ChatWindow::~ChatWindow() {
     disconnect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
 #endif
     delete ui;
+}
+
+void ChatWindow::keyPressEvent(QKeyEvent* event) {
+    QWidget::keyPressEvent(event);
+    if (event->key() == Qt::Key_Escape) {
+        hide();
+    }
+}
+
+void ChatWindow::showEvent(QShowEvent* event) {
+    QWidget::showEvent(event);
+    if (!event->spontaneous()) {
+        ui->messagePlainTextEdit->setFocus();
+    }
 }
 
 bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
@@ -136,9 +154,11 @@ void ChatWindow::startTimerForTimeStamps() {
 void ChatWindow::connected() {
     ui->connectingToXMPPLabel->hide();
     ui->numOnlineLabel->show();
+    ui->closeButton->show();
     ui->usersWidget->show();
     ui->messagesScrollArea->show();
     ui->messagePlainTextEdit->show();
+    ui->messagePlainTextEdit->setFocus();
 #ifdef HAVE_QXMPP
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
     connect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));

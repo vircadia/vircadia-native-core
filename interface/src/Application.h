@@ -28,7 +28,6 @@
 #include <ParticleEditPacketSender.h>
 #include <ScriptEngine.h>
 #include <OctreeQuery.h>
-#include <FstReader.h>
 
 #include "Audio.h"
 #include "BandwidthMeter.h"
@@ -156,6 +155,7 @@ public:
     VoxelTree* getVoxelTree() { return _voxels.getTree(); }
     ParticleTreeRenderer* getParticles() { return &_particles; }
     MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
+    bool getImportSucceded() { return _importSucceded; }
     VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
     VoxelTree* getClipboard() { return &_clipboard; }
     Environment* getEnvironment() { return &_environment; }
@@ -223,6 +223,9 @@ signals:
 
     /// Fired when we're rendering in-world interface elements; allows external parties to hook in.
     void renderingInWorldInterface();
+    
+    /// Fired when the import window is closed
+    void importDone();
     
 public slots:
     void domainChanged(const QString& domainHostname);
@@ -350,13 +353,13 @@ private:
     glm::vec3 _gravity;
 
     // Frame Rate Measurement
+
     int _frameCount;
     float _fps;
     timeval _applicationStartupTime;
     timeval _timerStart, _timerEnd;
     timeval _lastTimeUpdated;
     bool _justStarted;
-
     Stars _stars;
     
     BuckyBalls _buckyBalls;
@@ -364,6 +367,7 @@ private:
     VoxelSystem _voxels;
     VoxelTree _clipboard; // if I copy/paste
     VoxelImporter* _voxelImporter;
+    bool _importSucceded;
     VoxelSystem _sharedVoxelSystem;
     ViewFrustum _sharedVoxelSystemViewFrustum;
 
@@ -474,8 +478,6 @@ private:
     TouchEvent _lastTouchEvent;
     
     Overlays _overlays;
-    
-    FstReader _fstReader;
 };
 
 #endif /* defined(__interface__Application__) */

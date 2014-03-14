@@ -10,28 +10,31 @@
 #ifndef __hifi__FstReader__
 #define __hifi__FstReader__
 
-#include <QString>
-#include <QList>
 #include <QTemporaryDir>
 
-static const QString filenameField = "filename";
-static const QString texdirField = "texdir";
-static const QString lodField = "lod";
-
-static const int MAX_FBX_SIZE = 1024 * 1024; // 1 MB
-static const int MAX_TEXTURE_SIZE = 1024 * 1024; // 1 MB
+class QHttpMultiPart;
 
 class FstReader {
 public:
     FstReader();
+    ~FstReader();
     
     bool zip();
+    bool send();
     
 private:
     QTemporaryDir _zipDir;
+    int _lodCount;
+    int _texturesCount;
+    int _totalSize;
+    bool _readyToSend;
     
-    bool addTextures(QFileInfo& texdir, QDir newTexdir);
+    QHttpMultiPart* _dataMultiPart;
+    
+    
+    bool addTextures(const QFileInfo& texdir);
     bool compressFile(const QString& inFileName, const QString& outFileName);
+    bool addPart(const QString& path, const QString& name);
 };
 
 #endif /* defined(__hifi__FstReader__) */

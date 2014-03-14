@@ -27,6 +27,10 @@ public:
 
     Faceshift();
 
+    void init();
+
+    bool isConnectedOrConnecting() const; 
+
     bool isActive() const;
 
     const glm::quat& getHeadRotation() const { return _headRotation; }
@@ -66,6 +70,10 @@ public:
     void updateFakeCoefficients(float leftBlink, float rightBlink, float browUp,
         float jawOpen, std::vector<float>& coefficients) const;
     
+signals:
+
+    void connectionStateChanged();
+
 public slots:
     
     void setTCPEnabled(bool enabled);
