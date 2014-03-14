@@ -13,6 +13,7 @@ var yawDirection = -1;
 var yaw = 45;
 var yawMax = 70;
 var yawMin = 20;
+var vantagePoint = {x: 5000, y: 500, z: 5000};
 
 var isLocal = false;
 
@@ -21,10 +22,10 @@ var orientation = Quat.fromPitchYawRoll(0, yaw, 0);
 
 function init() {
     if (isLocal) {
-        MyAvatar.position = {x: 5000, y: 500, z: 5000};
+        MyAvatar.position = vantagePoint;
         MyAvatar.orientation = orientation;
     } else {
-        VoxelViewer.setPosition({x: 5000, y: 500, z: 5000});
+        VoxelViewer.setPosition(vantagePoint);
         VoxelViewer.setOrientation(orientation);
         VoxelViewer.queryOctree();
         Agent.isAvatar = true;
