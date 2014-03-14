@@ -18,13 +18,13 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar) :
     _owningAvatar(owningAvatar) {
 }
 
-void SkeletonModel::simulate(float deltaTime, bool delayLoad) {
+void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     setTranslation(_owningAvatar->getPosition());
     setRotation(_owningAvatar->getOrientation() * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)));
     const float MODEL_SCALE = 0.0006f;
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale() * MODEL_SCALE);
     
-    Model::simulate(deltaTime, delayLoad);
+    Model::simulate(deltaTime, fullUpdate);
     
     if (!(isActive() && _owningAvatar->isMyAvatar())) {
         return; // only simulate for own avatar

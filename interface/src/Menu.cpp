@@ -129,7 +129,10 @@ Menu::Menu() :
                                   this,
                                   SLOT(goTo()));
 
-
+    addDisabledActionAndSeparator(fileMenu, "Upload/Browse");
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploaderAvatarHead, 0, Application::getInstance(), SLOT(uploadFST()));
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploaderAvatarSkeleton, 0, Application::getInstance(), SLOT(uploadFST()));
+    
     addDisabledActionAndSeparator(fileMenu, "Settings");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::SettingsImport, 0, this, SLOT(importSettings()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::SettingsExport, 0, this, SLOT(exportSettings()));
@@ -161,7 +164,6 @@ Menu::Menu() :
 
     QMenu* toolsMenu = addMenu("Tools");
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
-    addActionToQMenuAndActionHash(toolsMenu, MenuOption::FstUploader, 0, Application::getInstance(), SLOT(uploadFST()));
 
     _chatAction = addActionToQMenuAndActionHash(toolsMenu,
                                                 MenuOption::Chat,
@@ -270,11 +272,16 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu,
-                                           MenuOption::FaceshiftTCP,
+                                           MenuOption::Faceshift,
                                            0,
-                                           false,
+                                           true,
                                            appInstance->getFaceshift(),
                                            SLOT(setTCPEnabled(bool)));
+#ifdef HAVE_VISAGE
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Visage, 0, true,
+        appInstance->getVisage(), SLOT(updateEnabled()));
+#endif
+
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, false);
 
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
@@ -1037,27 +1044,20 @@ void Menu::showMetavoxelEditor() {
 
 void Menu::showChat() {
     if (!_chatWindow) {
-        _chatWindow = new ChatWindow();
-        QMainWindow* mainWindow = Application::getInstance()->getWindow();
-
-        // the height of the title bar is given by frameGeometry().height() - geometry().height()
-        // however, frameGeometry() is initialised after showing (Qt queries the OS windowing system)
-        // on the other hand, moving a window after showing it flickers; so just use some reasonable value
-        int titleBarHeight = 16;
-        _chatWindow->setGeometry(mainWindow->width() - _chatWindow->width(),
-                                 mainWindow->geometry().y() + titleBarHeight,
-                                 _chatWindow->width(),
-                                 mainWindow->height() - titleBarHeight);
-        _chatWindow->show();
+        Application::getInstance()->getWindow()->addDockWidget(Qt::RightDockWidgetArea, _chatWindow = new ChatWindow());
+        
+    } else {
+        if (!_chatWindow->toggleViewAction()->isChecked()) {
+            _chatWindow->toggleViewAction()->trigger();
+        }
     }
-    _chatWindow->raise();
 }
 
 void Menu::toggleChat() {
 #ifdef HAVE_QXMPP
     _chatAction->setEnabled(XmppClient::getInstance().getXMPPClient().isConnected());
-    if (!_chatAction->isEnabled() && _chatWindow) {
-        _chatWindow->close();
+    if (!_chatAction->isEnabled() && _chatWindow && _chatWindow->toggleViewAction()->isChecked()) {
+        _chatWindow->toggleViewAction()->trigger();
     }
 #endif
 }
