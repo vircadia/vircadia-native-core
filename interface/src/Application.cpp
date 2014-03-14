@@ -27,6 +27,7 @@
 #include <QColorDialog>
 #include <QDesktopWidget>
 #include <QCheckBox>
+#include <QHBoxLayout>
 #include <QImage>
 #include <QKeyEvent>
 #include <QMainWindow>
@@ -62,6 +63,7 @@
 #include <UUID.h>
 #include <OctreeSceneStats.h>
 #include <LocalVoxelsList.h>
+#include <FstReader.h>
 
 #include "Application.h"
 #include "ClipboardScriptingInterface.h"
@@ -121,8 +123,6 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
 QString& Application::resourcesPath() {
 #ifdef Q_OS_MAC
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
-#elif defined Q_OS_LINUX
-    static QString staticResourcePath = "resources/";
 #else
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
 #endif
@@ -140,12 +140,13 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _fps(120.0f),
         _justStarted(true),
         _voxelImporter(NULL),
+        _importSucceded(false),
+        _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
         _wantToKillLocalVoxels(false),
         _viewFrustum(),
         _lastQueriedViewFrustum(),
         _lastQueriedTime(usecTimestampNow()),
         _audioScope(256, 200, true),
-        _myAvatar(),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
         _mouseX(0),
         _mouseY(0),
@@ -291,7 +292,14 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     ResourceCache::setNetworkAccessManager(_networkAccessManager);
     ResourceCache::setRequestLimit(3);
 
-    _window->setCentralWidget(_glWidget);
+    QWidget* centralWidget = new QWidget();
+    QHBoxLayout* mainLayout = new QHBoxLayout();
+    mainLayout->setSpacing(0);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    centralWidget->setLayout(mainLayout);
+    _glWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    centralWidget->layout()->addWidget(_glWidget);
+    _window->setCentralWidget(centralWidget);
 
     restoreSizeAndPosition();
 
@@ -1368,6 +1376,8 @@ void Application::exportVoxels(const VoxelDetail& sourceVoxel) {
 }
 
 void Application::importVoxels() {
+    _importSucceded = false;
+    
     if (!_voxelImporter) {
         _voxelImporter = new VoxelImporter(_window);
         _voxelImporter->loadSettings(_settings);
@@ -1375,6 +1385,7 @@ void Application::importVoxels() {
     
     if (!_voxelImporter->exec()) {
         qDebug() << "[DEBUG] Import succeeded." << endl;
+        _importSucceded = true;
     } else {
         qDebug() << "[DEBUG] Import failed." << endl;
         if (_sharedVoxelSystem.getTree() == _voxelImporter->getVoxelTree()) {
@@ -1385,6 +1396,8 @@ void Application::importVoxels() {
 
     // restore the main window's active state
     _window->activateWindow();
+    
+    emit importDone();
 }
 
 void Application::cutVoxels(const VoxelDetail& sourceVoxel) {
@@ -1476,10 +1489,9 @@ void Application::init() {
 
     // Cleanup of the original shared tree
     _sharedVoxelSystem.init();
-    VoxelTree* tmpTree = _sharedVoxelSystem.getTree();
-    _sharedVoxelSystem.changeTree(&_clipboard);
-    delete tmpTree;
-
+    
+    _voxelImporter = new VoxelImporter(_window);
+    
     _environment.init();
 
     _glowEffect.init();
@@ -1521,6 +1533,10 @@ void Application::init() {
         _audio.setJitterBufferSamples(Menu::getInstance()->getAudioJitterBufferSamples());
     }
     qDebug("Loaded settings");
+    
+    // initialize Visage and Faceshift after loading the menu settings
+    _faceshift.init();
+    _visage.init();
     
     // fire off an immediate domain-server check in now that settings are loaded
     NodeList::getInstance()->sendDomainServerCheckIn();
@@ -3457,7 +3473,10 @@ void Application::reloadAllScripts() {
 }
 
 void Application::uploadFST() {
-    _fstReader.zip();
+    FstReader reader;
+    if (reader.zip()) {
+        reader.send();
+    }
 }
 
 void Application::removeScriptName(const QString& fileNameString) {

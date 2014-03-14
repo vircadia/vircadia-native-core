@@ -73,8 +73,13 @@ file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
 # have qt5 wrap them and generate the appropriate header files
 qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 
+# grab the resource files in resources
+file (GLOB_RECURSE QT_RESOURCE_FILES resources/*.qrc)
+# have qt5 wrap them and generate the appropriate source files
+qt5_add_resources(QT_RESOURCES "${QT_RESOURCE_FILES}")
+
 # add them to the interface source files
-set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}")
+set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 
 set(QM ${TARGET_NAME}_en.qm)
 set(TS ${TARGET_NAME}_en.ts)
@@ -225,11 +230,7 @@ if (APPLE)
         RUNTIME DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
     )
 else (APPLE)
-  # remove and then copy the resources files beside the executable
-  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E remove_directory
-    $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
-  )
+  # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
     "${PROJECT_SOURCE_DIR}/resources"

@@ -187,9 +187,12 @@ private:
     bool _initialized;
     QScopedPointer<Texture> _billboardTexture;
     bool _shouldRenderBillboard;
+    bool _modelsDirty;
 
     void renderBody();
     void renderBillboard();
+    
+    float getBillboardSize() const;
 };
 
 #endif
