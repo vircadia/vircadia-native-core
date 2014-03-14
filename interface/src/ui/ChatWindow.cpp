@@ -31,7 +31,10 @@ ChatWindow::ChatWindow() :
     ui(new Ui::ChatWindow),
     numMessagesAfterLastTimeStamp(0)
 {
-    ui->setupUi(this);
+    QWidget* widget = new QWidget();
+    setWidget(widget);
+    
+    ui->setupUi(widget);
 
     FlowLayout* flowLayout = new FlowLayout(0, 4, 4);
     ui->usersWidget->setLayout(flowLayout);
