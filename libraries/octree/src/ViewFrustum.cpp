@@ -277,6 +277,10 @@ ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
         return keyholeResult;
     }
 
+    // TODO: These calculations are expensive, taking up 80% of our time in this function.
+    // This appears to be expensive because we have to test the distance to each plane.
+    // One suggested optimization is to first check against the approximated cone. We might
+    // also be able to test against the cone to the bounding sphere of the box.
     for(int i=0; i < 6; i++) {
         const glm::vec3& normal = _planes[i].getNormal();
         const glm::vec3& boxVertexP = box.getVertexP(normal);
