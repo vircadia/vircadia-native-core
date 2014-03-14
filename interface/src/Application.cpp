@@ -27,7 +27,6 @@
 #include <QColorDialog>
 #include <QDesktopWidget>
 #include <QCheckBox>
-#include <QHBoxLayout>
 #include <QImage>
 #include <QKeyEvent>
 #include <QMainWindow>
@@ -292,14 +291,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     ResourceCache::setNetworkAccessManager(_networkAccessManager);
     ResourceCache::setRequestLimit(3);
 
-    QWidget* centralWidget = new QWidget();
-    QHBoxLayout* mainLayout = new QHBoxLayout();
-    mainLayout->setSpacing(0);
-    mainLayout->setContentsMargins(0, 0, 0, 0);
-    centralWidget->setLayout(mainLayout);
-    _glWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    centralWidget->layout()->addWidget(_glWidget);
-    _window->setCentralWidget(centralWidget);
+    _window->setCentralWidget(_glWidget);
 
     restoreSizeAndPosition();
 

@@ -1044,10 +1044,8 @@ void Menu::showMetavoxelEditor() {
 
 void Menu::showChat() {
     if (!_chatWindow) {
-        _chatWindow = new ChatWindow();
-        QMainWindow* mainWindow = Application::getInstance()->getWindow();
-        QBoxLayout* boxLayout = static_cast<QBoxLayout*>(mainWindow->centralWidget()->layout());
-        boxLayout->addWidget(_chatWindow, 0, Qt::AlignRight);
+        Application::getInstance()->getWindow()->addDockWidget(Qt::RightDockWidgetArea, _chatWindow = new ChatWindow());
+        
     } else {
         if (!_chatWindow->isVisible()) {
             _chatWindow->show();

@@ -28,7 +28,6 @@ const int NUM_MESSAGES_TO_TIME_STAMP = 20;
 const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?))://\\S+)");
 
 ChatWindow::ChatWindow() :
-    QWidget(),
     ui(new Ui::ChatWindow),
     numMessagesAfterLastTimeStamp(0)
 {
