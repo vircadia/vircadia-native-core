@@ -32,6 +32,7 @@ using namespace VisageSDK;
 const glm::vec3 DEFAULT_HEAD_ORIGIN(0.0f, 0.0f, 0.7f);
 
 Visage::Visage() :
+    _enabled(false),
     _active(false),
     _headOrigin(DEFAULT_HEAD_ORIGIN),
     _estimatedEyePitch(0.0f),
@@ -41,23 +42,15 @@ Visage::Visage() :
     QByteArray licensePath = Application::resourcesPath().toLatin1() + "visage/license.vlc";
     initializeLicenseManager(licensePath.data());
     _tracker = new VisageTracker2(Application::resourcesPath().toLatin1() + "visage/tracker.cfg");
-    if (_tracker->trackFromCam()) {
-        _data = new FaceData();   
-         
-    } else {
-        delete _tracker;
-        _tracker = NULL;
-    }
+    _data = new FaceData();
 #endif
 }
 
 Visage::~Visage() {
 #ifdef HAVE_VISAGE
-    if (_tracker) {
-        _tracker->stop();
-        delete _tracker;
-        delete _data;
-    }
+    _tracker->stop();
+    delete _tracker;
+    delete _data;
 #endif
 }
 
@@ -117,9 +110,14 @@ static const QMultiHash<QByteArray, QPair<int, float> >& getActionUnitNameMap() 
 
 const float TRANSLATION_SCALE = 20.0f;
 
+void Visage::init() {
+    connect(Application::getInstance()->getFaceshift(), SIGNAL(connectionStateChanged()), SLOT(updateEnabled()));
+    updateEnabled();
+}
+
 void Visage::update() {
 #ifdef HAVE_VISAGE
-    _active = (_tracker && _tracker->getTrackingData(_data) == TRACK_STAT_OK);
+    _active = (_tracker->getTrackingData(_data) == TRACK_STAT_OK);
     if (!_active) {
         return;
     }
@@ -159,4 +157,23 @@ void Visage::update() {
 
 void Visage::reset() {
     _headOrigin += _headTranslation / TRANSLATION_SCALE;
+}
+
+void Visage::updateEnabled() {
+    setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Visage) &&
+        !(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift) &&
+            Application::getInstance()->getFaceshift()->isConnectedOrConnecting()));
+}
+
+void Visage::setEnabled(bool enabled) {
+#ifdef HAVE_VISAGE
+    if (_enabled == enabled) {
+        return;
+    }
+    if ((_enabled = enabled)) {
+        _tracker->trackFromCam();
+    } else {
+        _tracker->stop();
+    }
+#endif
 }
