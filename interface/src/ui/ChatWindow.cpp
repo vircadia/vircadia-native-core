@@ -41,6 +41,8 @@ ChatWindow::ChatWindow() :
 
     ui->messagePlainTextEdit->installEventFilter(this);
 
+    ui->closeButton->hide();
+    
 #ifdef HAVE_QXMPP
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
     if (xmppClient.isConnected()) {

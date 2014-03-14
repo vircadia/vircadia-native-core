@@ -1047,8 +1047,8 @@ void Menu::showChat() {
         Application::getInstance()->getWindow()->addDockWidget(Qt::RightDockWidgetArea, _chatWindow = new ChatWindow());
         
     } else {
-        if (!_chatWindow->isVisible()) {
-            _chatWindow->show();
+        if (!_chatWindow->toggleViewAction()->isChecked()) {
+            _chatWindow->toggleViewAction()->trigger();
         }
     }
 }
@@ -1056,8 +1056,8 @@ void Menu::showChat() {
 void Menu::toggleChat() {
 #ifdef HAVE_QXMPP
     _chatAction->setEnabled(XmppClient::getInstance().getXMPPClient().isConnected());
-    if (!_chatAction->isEnabled() && _chatWindow) {
-        _chatWindow->hide();
+    if (!_chatAction->isEnabled() && _chatWindow && _chatWindow->toggleViewAction()->isChecked()) {
+        _chatWindow->toggleViewAction()->trigger();
     }
 #endif
 }
