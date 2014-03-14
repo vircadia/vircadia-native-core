@@ -17,9 +17,9 @@
 #include <EventTypes.h>
 #include <MenuItemProperties.h>
 #include <OctreeConstants.h>
-#include "location/LocationManager.h"
 
-#include <ui/ChatWindow.h>
+#include "location/LocationManager.h"
+#include "ui/ChatWindow.h"
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
@@ -149,7 +149,7 @@ private slots:
     void showChat();
     void toggleChat();
     void audioMuteToggled();
-    void namedLocationCreated(LocationManager::NamedLocationCreateResponse response, NamedLocation* location);
+    void namedLocationCreated(LocationManager::NamedLocationCreateResponse response);
     void multipleDestinationsDecision(const QJsonObject& userData, const QJsonObject& placeData);
 
 private:

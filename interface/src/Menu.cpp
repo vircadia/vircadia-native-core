@@ -19,12 +19,12 @@
 #include <QLineEdit>
 #include <QMainWindow>
 #include <QMenuBar>
+#include <QMessageBox>
 #include <QShortcut>
 #include <QSlider>
 #include <QStandardPaths>
 #include <QUuid>
 #include <QWindow>
-#include <QMessageBox>
 
 #include <AccountManager.h>
 #include <XmppClient.h>
@@ -940,7 +940,7 @@ void Menu::goToLocation() {
     sendFakeEnterEvent();
 }
 
-void Menu::namedLocationCreated(LocationManager::NamedLocationCreateResponse response, NamedLocation* location) {
+void Menu::namedLocationCreated(LocationManager::NamedLocationCreateResponse response) {
 
     if (response == LocationManager::Created) {
         return;

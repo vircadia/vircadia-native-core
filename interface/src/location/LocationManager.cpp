@@ -6,8 +6,8 @@
 //
 //
 
-#include "LocationManager.h"
 #include "Application.h"
+#include "LocationManager.h"
 
 const QString GET_USER_ADDRESS = "/api/v1/users/%1/address";
 const QString GET_PLACE_ADDRESS = "/api/v1/places/%1/address";
@@ -29,15 +29,14 @@ void LocationManager::namedLocationDataReceived(const QJsonObject& data) {
     }
 
     if (data.contains("status") && data["status"].toString() == "success") {
-        NamedLocation* location = new NamedLocation(data["data"].toObject());
-        emit creationCompleted(LocationManager::Created, location);
+        emit creationCompleted(LocationManager::Created);
     } else {
-        emit creationCompleted(LocationManager::AlreadyExists, NULL);
+        emit creationCompleted(LocationManager::AlreadyExists);
     }
 }
 
 void LocationManager::errorDataReceived(QNetworkReply::NetworkError error, const QString& message) {
-    emit creationCompleted(LocationManager::SystemError, NULL);
+    emit creationCompleted(LocationManager::SystemError);
 }
 
 void LocationManager::createNamedLocation(NamedLocation* namedLocation) {
@@ -149,7 +148,7 @@ void LocationManager::goToOrientation(QString orientation) {
         return;
     }
 
-    QStringList orientationItems = orientation.split(QRegExp("_|,"), QString::SkipEmptyParts);
+    QStringList orientationItems = orientation.remove(' ').split(QRegExp("_|,"), QString::SkipEmptyParts);
 
     const int NUMBER_OF_ORIENTATION_ITEMS = 4;
     const int W_ITEM = 0;
@@ -159,10 +158,16 @@ void LocationManager::goToOrientation(QString orientation) {
 
     if (orientationItems.size() == NUMBER_OF_ORIENTATION_ITEMS) {
 
-        double w = replaceLastOccurrence('-', '.', orientationItems[W_ITEM].trimmed()).toDouble();
-        double x = replaceLastOccurrence('-', '.', orientationItems[X_ITEM].trimmed()).toDouble();
-        double y = replaceLastOccurrence('-', '.', orientationItems[Y_ITEM].trimmed()).toDouble();
-        double z = replaceLastOccurrence('-', '.', orientationItems[Z_ITEM].trimmed()).toDouble();
+        // replace last occurrence of '_' with decimal point
+        replaceLastOccurrence('-', '.', orientationItems[W_ITEM]);
+        replaceLastOccurrence('-', '.', orientationItems[X_ITEM]);
+        replaceLastOccurrence('-', '.', orientationItems[Y_ITEM]);
+        replaceLastOccurrence('-', '.', orientationItems[Z_ITEM]);
+
+        double w = orientationItems[W_ITEM].toDouble();
+        double x = orientationItems[X_ITEM].toDouble();
+        double y = orientationItems[Y_ITEM].toDouble();
+        double z = orientationItems[Z_ITEM].toDouble();
 
         glm::quat newAvatarOrientation(w, x, y, z);
 
@@ -176,7 +181,7 @@ void LocationManager::goToOrientation(QString orientation) {
 
 bool LocationManager::goToDestination(QString destination) {
 
-    QStringList coordinateItems = destination.split(QRegExp("_|,"), QString::SkipEmptyParts);
+    QStringList coordinateItems = destination.remove(' ').split(QRegExp("_|,"), QString::SkipEmptyParts);
 
     const int NUMBER_OF_COORDINATE_ITEMS = 3;
     const int X_ITEM = 0;
@@ -184,9 +189,14 @@ bool LocationManager::goToDestination(QString destination) {
     const int Z_ITEM = 2;
     if (coordinateItems.size() == NUMBER_OF_COORDINATE_ITEMS) {
 
-        double x = replaceLastOccurrence('-', '.', coordinateItems[X_ITEM].trimmed()).toDouble();
-        double y = replaceLastOccurrence('-', '.', coordinateItems[Y_ITEM].trimmed()).toDouble();
-        double z = replaceLastOccurrence('-', '.', coordinateItems[Z_ITEM].trimmed()).toDouble();
+        // replace last occurrence of '_' with decimal point
+        replaceLastOccurrence('-', '.', coordinateItems[X_ITEM]);
+        replaceLastOccurrence('-', '.', coordinateItems[Y_ITEM]);
+        replaceLastOccurrence('-', '.', coordinateItems[Z_ITEM]);
+
+        double x = coordinateItems[X_ITEM].toDouble();
+        double y = coordinateItems[Y_ITEM].toDouble();
+        double z = coordinateItems[Z_ITEM].toDouble();
 
         glm::vec3 newAvatarPos(x, y, z);
 
@@ -207,14 +217,11 @@ bool LocationManager::goToDestination(QString destination) {
     return false;
 }
 
-QString LocationManager::replaceLastOccurrence(QChar search, QChar replace, QString string) {
+void LocationManager::replaceLastOccurrence(const QChar search, const QChar replace, QString& string) {
     int lastIndex;
     lastIndex = string.lastIndexOf(search);
     if (lastIndex > 0) {
         lastIndex = string.lastIndexOf(search);
         string.replace(lastIndex, 1, replace);
     }
-
-    return string;
 }
-

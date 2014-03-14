@@ -26,8 +26,6 @@ public:
         _domain = domain;
     }
 
-    NamedLocation(const QJsonObject jsonData);
-
     QString toJsonString();
 
     bool isEmpty() { return _locationName.isNull() || _locationName.isEmpty(); }

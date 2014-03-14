@@ -10,8 +10,9 @@
 #define __hifi__LocationManager__
 
 #include <QtCore>
-#include "NamedLocation.h"
+
 #include "AccountManager.h"
+#include "NamedLocation.h"
 
 class LocationManager : public QObject {
     Q_OBJECT
@@ -35,14 +36,14 @@ public:
     bool goToDestination(QString destination);
 
 private:
-    QString replaceLastOccurrence(QChar search, QChar replace, QString string);
     QJsonObject _userData;
     QJsonObject _placeData;
 
+    void replaceLastOccurrence(const QChar search, const QChar replace, QString& string);
     void checkForMultipleDestinations();
 
 signals:
-    void creationCompleted(LocationManager::NamedLocationCreateResponse response, NamedLocation* location);
+    void creationCompleted(LocationManager::NamedLocationCreateResponse response);
     void multipleDestinationsFound(const QJsonObject& userData, const QJsonObject& placeData);
     void locationChanged();
     
