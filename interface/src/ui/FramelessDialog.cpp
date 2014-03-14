@@ -6,13 +6,17 @@
 //
 //
 
-#include "FramelessDialog.h"
-#include <QPushButton>
 #include <QFile>
+#include <QPushButton>
+
+#include "Application.h"
+#include "FramelessDialog.h"
 
 FramelessDialog::FramelessDialog(QWidget *parent, Qt::WindowFlags flags) : QDialog(parent, flags | Qt::FramelessWindowHint) {
-    QFile styleSheet("resources/styles/global.qss");
+
+    QFile styleSheet(Application::resourcesPath() + "styles/global.qss");
     if (styleSheet.open(QIODevice::ReadOnly)) {
+        QDir::setCurrent(Application::resourcesPath());
         setStyleSheet(styleSheet.readAll());
     }
     setWindowOpacity(0.95);

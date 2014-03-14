@@ -20,7 +20,7 @@ class FramelessDialog : public QDialog {
     
 public:
     FramelessDialog(QWidget* parent = 0, Qt::WindowFlags flags = 0);
-    ~FramelessDialog();
+    virtual ~FramelessDialog();
 
 };
 

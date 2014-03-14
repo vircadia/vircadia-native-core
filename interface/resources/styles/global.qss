@@ -33,18 +33,18 @@ QPushButton {
     padding: 10px 15px;
 }
 
-
 QSpinBox {
     padding: 5px;
     border-width: 1;
     
 }
 
+QDoubleSpinBox::up-button,
 QSpinBox::up-button {
     
     width: 25px;
     height: 18px;
-    background-image: url(resources/styles/up.svg);
+    background-image: url(styles/up.svg);
     background-repeat: no-repeat;
     border: 1px #ccc solid;
     
@@ -52,14 +52,32 @@ QSpinBox::up-button {
     border-top-right-radius: 2px;
 }
 
+QDoubleSpinBox::down-button,
 QSpinBox::down-button {
     
     width: 25px;
     height: 18px;
-    background-image: url(resources/styles/down.svg);
+    background-image: url(styles/down.svg);
     background-repeat: no-repeat;
     border: 1px #ccc solid;
-    
-    border-top-left-radius: 2px;
-    border-top-right-radius: 2px;
+}
+
+QSlider {
+    width: 125px;
+    height: 18px;
+}
+
+QSlider::groove:horizontal {
+    border: none;
+    background-image: url(styles/slider-bg.svg);
+    background-repeat: no-repeat;
+    background-position: center center;
+}
+
+QSlider::handle:horizontal {
+    width: 18px;
+    height: 18px;
+    background-image: url(styles/slider-handle.svg);
+    background-repeat: no-repeat;
+    background-position: center center;
 }
