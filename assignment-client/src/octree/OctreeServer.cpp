@@ -20,10 +20,13 @@
 
 OctreeServer* OctreeServer::_instance = NULL;
 int OctreeServer::_clientCount = 0;
-SimpleMovingAverage OctreeServer::_averageLoopTime(10000);
-SimpleMovingAverage OctreeServer::_averageEncodeTime(10000);
-SimpleMovingAverage OctreeServer::_averageTreeWaitTime(10000);
-SimpleMovingAverage OctreeServer::_averageNodeWaitTime(10000);
+SimpleMovingAverage OctreeServer::_averageLoopTime(100000);
+SimpleMovingAverage OctreeServer::_averageEncodeTime(100000);
+SimpleMovingAverage OctreeServer::_averageInsideTime(100000);
+SimpleMovingAverage OctreeServer::_averageTreeWaitTime(100000);
+SimpleMovingAverage OctreeServer::_averageNodeWaitTime(100000);
+SimpleMovingAverage OctreeServer::_averageCompressAndWriteTime(100000);
+SimpleMovingAverage OctreeServer::_averagePacketSendingTime(100000);
 
 void OctreeServer::attachQueryNodeToNode(Node* newNode) {
     if (!newNode->getLinkedData()) {
@@ -276,9 +279,20 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
         qDebug() << "averageLoopTime=" << averageLoopTime;
 
         float averageEncodeTime = getAverageEncodeTime();
-        statsString += QString().sprintf("              Average encode time:      %5.2f msecs\r\n", averageEncodeTime);
+        statsString += QString().sprintf("              Average encode time:    %7.2f usecs\r\n", averageEncodeTime);
         qDebug() << "averageEncodeTime=" << averageEncodeTime;
 
+        float averageInsideTime = getAverageInsideTime();
+        statsString += QString().sprintf("            Average 'inside' time:    %7.2f usecs\r\n", averageInsideTime);
+        qDebug() << "averageInsideTime=" << averageInsideTime;
+
+        float averageCompressAndWriteTime = getAverageCompressAndWriteTime();
+        statsString += QString().sprintf("  Average compress and write time:    %7.2f usecs\r\n", averageCompressAndWriteTime);
+        qDebug() << "averageCompressAndWriteTime=" << averageCompressAndWriteTime;
+
+        float averagePacketSendingTime = getAveragePacketSendingTime();
+        statsString += QString().sprintf("      Average packet sending time:    %7.2f usecs\r\n", averagePacketSendingTime);
+        qDebug() << "averagePacketSendingTime=" << averagePacketSendingTime;
 
         float averageTreeWaitTime = getAverageTreeWaitTime();
         statsString += QString().sprintf("      Average tree lock wait time:    %7.2f usecs\r\n", averageTreeWaitTime);
@@ -287,6 +301,11 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
         float averageNodeWaitTime = getAverageNodeWaitTime();
         statsString += QString().sprintf("      Average node lock wait time:    %7.2f usecs\r\n", averageNodeWaitTime);
         qDebug() << "averageNodeWaitTime=" << averageNodeWaitTime;
+
+        float encodeToInsidePercent = (averageEncodeTime / averageInsideTime) * AS_PERCENT;
+        statsString += QString().sprintf("  Percent 'inside' time is encode:      %5.2f%%\r\n", encodeToInsidePercent);
+        qDebug() << "averageInsideTime=" << averageInsideTime;
+        
 
 
         statsString += QString("\r\n");
