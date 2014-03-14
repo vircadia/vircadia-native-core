@@ -22,7 +22,7 @@ public:
 
     SkeletonModel(Avatar* owningAvatar);
     
-    void simulate(float deltaTime, bool delayLoad = false);
+    void simulate(float deltaTime, bool fullUpdate = true);
     bool render(float alpha);
 
     /// \param jointIndex index of hand joint
