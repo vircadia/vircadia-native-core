@@ -76,7 +76,7 @@ Menu::Menu() :
     _lastAdjust(usecTimestampNow()),
     _fpsAverage(FIVE_SECONDS_OF_FRAMES),
     _loginAction(NULL),
-    _preferencesDialog()
+    _preferencesDialog(NULL)
 
 {
     Application *appInstance = Application::getInstance();
@@ -678,6 +678,14 @@ void Menu::loginForCurrentDomain() {
 }
 
 void Menu::editPreferences() {
+    if (! _preferencesDialog) {
+        _preferencesDialog = new PreferencesDialog(Application::getInstance()->getGLWidget());
+        _preferencesDialog->show();
+    }
+    _preferencesDialog->raise();
+
+    /*
+
     Application* applicationInstance = Application::getInstance();
 
     QDialog dialog(applicationInstance->getWindow());
@@ -812,7 +820,7 @@ void Menu::editPreferences() {
         _faceshiftEyeDeflection = faceshiftEyeDeflection->value() / (float)faceshiftEyeDeflection->maximum();
     }
     QMetaObject::invokeMethod(applicationInstance->getAudio(), "reset", Qt::QueuedConnection);
-
+*/
     sendFakeEnterEvent();
 }
 
