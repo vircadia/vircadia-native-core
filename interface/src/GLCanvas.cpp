@@ -13,9 +13,11 @@
 #include <QUrl>
 #include <QMainWindow>
 
+const int MSECS_PER_FRAME_WHEN_THROTTLED = 66;
+
 GLCanvas::GLCanvas() : QGLWidget(QGLFormat(QGL::NoDepthBuffer)),
     _throttleRendering(false),
-    _idleRenderInterval(64)
+    _idleRenderInterval(MSECS_PER_FRAME_WHEN_THROTTLED)
 {
 }
 
