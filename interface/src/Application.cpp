@@ -1607,8 +1607,8 @@ bool Application::isLookingAtMyAvatar(Avatar* avatar) {
 }
 
 void Application::updateLOD() {
-    // adjust it unless we were asked to disable this feature
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableAutoAdjustLOD)) {
+    // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableAutoAdjustLOD) && !isThrottleRendering()) {
         Menu::getInstance()->autoAdjustLOD(_fps);
     }
 }
