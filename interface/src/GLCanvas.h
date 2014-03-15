@@ -17,7 +17,7 @@ class GLCanvas : public QGLWidget {
     Q_OBJECT
 public:
     GLCanvas();
-    bool isThrottleRendering() const { return _throttleRendering; }
+    bool isThrottleRendering() const;
 protected:
     
     QTimer _frameTimer;
