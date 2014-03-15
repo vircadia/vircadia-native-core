@@ -21,3 +21,10 @@ Script.update.connect(function(deltaTime) {
     MyAvatar.setJointData("joint_L_knee", Quat.fromPitchYawRollDegrees(0.0, 0.0,
         AMPLITUDE * (1.0 - Math.sin(cumulativeTime * FREQUENCY))));
 });
+
+Script.scriptEnding.connect(function() {
+    MyAvatar.clearJointData("joint_R_hip");
+    MyAvatar.clearJointData("joint_L_hip");
+    MyAvatar.clearJointData("joint_R_knee");
+    MyAvatar.clearJointData("joint_L_knee");
+});
