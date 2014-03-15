@@ -147,6 +147,7 @@ public:
     glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVoxel);
 
     QGLWidget* getGLWidget() { return _glWidget; }
+    bool isThrottleRendering() const { return _glWidget->isThrottleRendering(); }
     MyAvatar* getAvatar() { return _myAvatar; }
     Audio* getAudio() { return &_audio; }
     Camera* getCamera() { return &_myCamera; }
@@ -339,7 +340,7 @@ private:
     void displayRearMirrorTools();
 
     QMainWindow* _window;
-    QGLWidget* _glWidget;
+    GLCanvas* _glWidget; // our GLCanvas has a couple extra features
 
     bool _statsExpanded;
     BandwidthMeter _bandwidthMeter;
