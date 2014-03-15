@@ -363,8 +363,9 @@ void MyAvatar::updateFromGyros(float deltaTime) {
         // restore rotation, lean to neutral positions
         const float RESTORE_PERIOD = 1.f;   // seconds
         float restorePercentage = glm::clamp(deltaTime/RESTORE_PERIOD, 0.f, 1.f);
-        head->setYaw(glm::mix(head->getYaw(), 0.0f, restorePercentage));
-        head->setRoll(glm::mix(head->getRoll(), 0.0f, restorePercentage));
+        head->setPitchTweak(glm::mix(head->getPitchTweak(), 0.0f, restorePercentage));
+        head->setYawTweak(glm::mix(head->getYawTweak(), 0.0f, restorePercentage));
+        head->setRollTweak(glm::mix(head->getRollTweak(), 0.0f, restorePercentage));
         head->setLeanSideways(glm::mix(head->getLeanSideways(), 0.0f, restorePercentage));
         head->setLeanForward(glm::mix(head->getLeanForward(), 0.0f, restorePercentage));
         return;
@@ -375,9 +376,9 @@ void MyAvatar::updateFromGyros(float deltaTime) {
     const float AVATAR_HEAD_PITCH_MAGNIFY = 1.0f;
     const float AVATAR_HEAD_YAW_MAGNIFY = 1.0f;
     const float AVATAR_HEAD_ROLL_MAGNIFY = 1.0f;
-    head->tweakPitch(estimatedRotation.x * AVATAR_HEAD_PITCH_MAGNIFY);
-    head->tweakYaw(estimatedRotation.y * AVATAR_HEAD_YAW_MAGNIFY);
-    head->tweakRoll(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
+    head->setPitchTweak(estimatedRotation.x * AVATAR_HEAD_PITCH_MAGNIFY);
+    head->setYawTweak(estimatedRotation.y * AVATAR_HEAD_YAW_MAGNIFY);
+    head->setRollTweak(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
 
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;

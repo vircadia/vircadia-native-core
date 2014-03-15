@@ -28,17 +28,21 @@ const int NUM_MESSAGES_TO_TIME_STAMP = 20;
 const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?))://\\S+)");
 
 ChatWindow::ChatWindow() :
-    QWidget(),
     ui(new Ui::ChatWindow),
     numMessagesAfterLastTimeStamp(0)
 {
-    ui->setupUi(this);
+    QWidget* widget = new QWidget();
+    setWidget(widget);
+    
+    ui->setupUi(widget);
 
     FlowLayout* flowLayout = new FlowLayout(0, 4, 4);
     ui->usersWidget->setLayout(flowLayout);
 
     ui->messagePlainTextEdit->installEventFilter(this);
 
+    ui->closeButton->hide();
+    
 #ifdef HAVE_QXMPP
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
     if (xmppClient.isConnected()) {

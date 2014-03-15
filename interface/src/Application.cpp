@@ -27,7 +27,6 @@
 #include <QColorDialog>
 #include <QDesktopWidget>
 #include <QCheckBox>
-#include <QHBoxLayout>
 #include <QImage>
 #include <QKeyEvent>
 #include <QMainWindow>
@@ -292,14 +291,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     ResourceCache::setNetworkAccessManager(_networkAccessManager);
     ResourceCache::setRequestLimit(3);
 
-    QWidget* centralWidget = new QWidget();
-    QHBoxLayout* mainLayout = new QHBoxLayout();
-    mainLayout->setSpacing(0);
-    mainLayout->setContentsMargins(0, 0, 0, 0);
-    centralWidget->setLayout(mainLayout);
-    _glWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    centralWidget->layout()->addWidget(_glWidget);
-    _window->setCentralWidget(centralWidget);
+    _window->setCentralWidget(_glWidget);
 
     restoreSizeAndPosition();
 
@@ -1615,8 +1607,8 @@ bool Application::isLookingAtMyAvatar(Avatar* avatar) {
 }
 
 void Application::updateLOD() {
-    // adjust it unless we were asked to disable this feature
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableAutoAdjustLOD)) {
+    // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableAutoAdjustLOD) && !isThrottleRendering()) {
         Menu::getInstance()->autoAdjustLOD(_fps);
     }
 }

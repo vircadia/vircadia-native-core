@@ -28,13 +28,6 @@ const int NUM_FINGERS = NUM_HANDS * NUM_FINGERS_PER_HAND;
 const int LEAPID_INVALID = -1;
 const int SIXENSEID_INVALID = -1;
 
-const int BUTTON_0 = 1; // the skinny button between 1 and 2
-const int BUTTON_1 = 32;
-const int BUTTON_2 = 64;
-const int BUTTON_3 = 8;
-const int BUTTON_4 = 16;
-const int BUTTON_FWD = 128;
-
 const float LEAP_UNIT_SCALE = 0.001f; ///< convert mm to meters
 
 const int SIXENSE_CONTROLLER_ID_LEFT_HAND = 0;
@@ -55,7 +48,6 @@ public:
     glm::vec3 leapDirectionToWorldDirection(const glm::vec3& leapDirection) {
         return getBaseOrientation() * leapDirection;
     }
-    glm::vec3 worldPositionToLeapPosition(const glm::vec3& worldPosition) const;
     glm::vec3 worldVectorToLeapVector(const glm::vec3& worldVector) const;
 
     std::vector<PalmData>& getPalms() { return _palms; }
@@ -182,11 +174,11 @@ public:
     int  getFramesWithoutData() const { return _numFramesWithoutData; }
     
     // Controller buttons
-    void setControllerButtons(int controllerButtons) { _controllerButtons = controllerButtons; }
-    void setLastControllerButtons(int controllerButtons) { _lastControllerButtons = controllerButtons; }
+    void setControllerButtons(unsigned int controllerButtons) { _controllerButtons = controllerButtons; }
+    void setLastControllerButtons(unsigned int controllerButtons) { _lastControllerButtons = controllerButtons; }
 
-    int getControllerButtons() const { return _controllerButtons; }
-    int getLastControllerButtons() const { return _lastControllerButtons; }
+    unsigned int getControllerButtons() const { return _controllerButtons; }
+    unsigned int getLastControllerButtons() const { return _lastControllerButtons; }
     
     void setTrigger(float trigger) { _trigger = trigger; }
     float getTrigger() const { return _trigger; }
@@ -217,8 +209,8 @@ private:
     
     glm::vec3 _tipPosition;
     glm::vec3 _tipVelocity;
-    int _controllerButtons;
-    int _lastControllerButtons;
+    unsigned int _controllerButtons;
+    unsigned int _lastControllerButtons;
     float _trigger;
     float _joystickX, _joystickY;
     

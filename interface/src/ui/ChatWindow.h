@@ -10,8 +10,8 @@
 #define __interface__ChatWindow__
 
 #include <QDateTime>
+#include <QDockWidget>
 #include <QTimer>
-#include <QWidget>
 
 #include <Application.h>
 
@@ -26,7 +26,7 @@ namespace Ui {
 class ChatWindow;
 }
 
-class ChatWindow : public QWidget {
+class ChatWindow : public QDockWidget {
     Q_OBJECT
 
 public:
