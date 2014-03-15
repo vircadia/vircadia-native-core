@@ -13,9 +13,11 @@
 #include <QUrl>
 #include <QMainWindow>
 
-GLCanvas::GLCanvas() : QGLWidget(QGLFormat(QGL::NoDepthBuffer, QGL::NoStencilBuffer)),
+const int MSECS_PER_FRAME_WHEN_THROTTLED = 66;
+
+GLCanvas::GLCanvas() : QGLWidget(QGLFormat(QGL::NoDepthBuffer)),
     _throttleRendering(false),
-    _idleRenderInterval(100)
+    _idleRenderInterval(MSECS_PER_FRAME_WHEN_THROTTLED)
 {
 }
 
@@ -25,11 +27,15 @@ void GLCanvas::initializeGL() {
     setAcceptDrops(true);
     connect(Application::getInstance(), SIGNAL(applicationStateChanged(Qt::ApplicationState)), this, SLOT(activeChanged(Qt::ApplicationState)));
     connect(&_frameTimer, SIGNAL(timeout()), this, SLOT(throttleRender()));
+    
+    // Note, we *DO NOT* want Qt to automatically swap buffers for us.  This results in the "ringing" bug mentioned in WL#19514 when we're throttling the framerate.
+    setAutoBufferSwap(false);
 }
 
 void GLCanvas::paintGL() {
     if (!_throttleRendering && !Application::getInstance()->getWindow()->isMinimized()) {
         Application::getInstance()->paintGL();
+        swapBuffers();
     }
 }
 
@@ -86,6 +92,7 @@ void GLCanvas::throttleRender() {
     _frameTimer.start(_idleRenderInterval);
     if (!Application::getInstance()->getWindow()->isMinimized()) {
         Application::getInstance()->paintGL();
+        swapBuffers();
     }
 }
 
