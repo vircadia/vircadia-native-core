@@ -45,6 +45,10 @@ public:
     int getSampleCapacity() const { return _sampleCapacity; }
     
     int parseData(const QByteArray& packet);
+    
+    // assume callers using this will never wrap around the end
+    const int16_t* getNextOutput() { return _nextOutput; }
+    const int16_t* getBuffer() { return _buffer; }
 
     qint64 readSamples(int16_t* destination, qint64 maxSamples);
     qint64 writeSamples(const int16_t* source, qint64 maxSamples);

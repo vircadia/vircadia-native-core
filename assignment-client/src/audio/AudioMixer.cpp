@@ -6,6 +6,7 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
+#include <mmintrin.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <fstream>
@@ -157,27 +158,59 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
     // if the bearing relative angle to source is > 0 then the delayed channel is the right one
     int delayedChannelOffset = (bearingRelativeAngleToSource > 0.0f) ? 1 : 0;
     int goodChannelOffset = delayedChannelOffset == 0 ? 1 : 0;
+    
+    const int16_t* nextOutputStart = bufferToAdd->getNextOutput();
+    const int16_t* delayNextOutputStart = nextOutputStart - numSamplesDelay;
+    const int16_t* bufferStart = bufferToAdd->getBuffer();
+    int ringBufferSampleCapacity = bufferToAdd->getSampleCapacity();
+    
+    if (delayNextOutputStart < bufferStart) {
+        delayNextOutputStart = bufferStart + ringBufferSampleCapacity - numSamplesDelay;
+    }
 
-    for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 2) {
-        if ((s / 2) < numSamplesDelay) {
-            // pull the earlier sample for the delayed channel
-            int earlierSample = (*bufferToAdd)[(s / 2) - numSamplesDelay] * attenuationCoefficient * weakChannelAmplitudeRatio;
-            _clientSamples[s + delayedChannelOffset] = glm::clamp(_clientSamples[s + delayedChannelOffset] + earlierSample,
-                                                                    MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+    int16_t correctMixSample[2], correctBufferSample[2], delayMixSample[2], delayBufferSample[2];
+    int delayedChannelIndex[2];
+    
+    float attenuationAndWeakChannelRatio = attenuationCoefficient * weakChannelAmplitudeRatio;
+    
+    for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 4) {
+        
+        // setup the int16_t variables for the two sample sets
+        correctBufferSample[0] = nextOutputStart[s / 2] * attenuationCoefficient;
+        correctBufferSample[1] = nextOutputStart[(s / 2) + 1] * attenuationCoefficient;
+        correctMixSample[0] = _clientSamples[s + goodChannelOffset];
+        correctMixSample[1] = _clientSamples[s + goodChannelOffset + 2];
+        
+        for (int i = 0; i < 2; ++i) {
+            if ((s / 2) + numSamplesDelay + i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
+                // for the delayed channel we fill the range (n + numSamplesDelay) to NETWORK_BUFFER_LENGTH_SAMPLES_STEREO first
+                delayedChannelIndex[i] = s + (numSamplesDelay * 2) + (i * 2) + delayedChannelOffset;
+                delayBufferSample[i] = correctBufferSample[i] * weakChannelAmplitudeRatio;
+            } else {
+                // now that the right most range has been filled, we go back to fill in numSamples delay at the beginning
+                int samplesBack = (s / 2) - NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL + i;
+                
+                delayBufferSample[i] = delayNextOutputStart[numSamplesDelay + samplesBack] * attenuationAndWeakChannelRatio;
+                delayedChannelIndex[i] = (numSamplesDelay + samplesBack) * 2 + delayedChannelOffset;
+            }
         }
-
-        // pull the current sample for the good channel
-        int16_t currentSample = (*bufferToAdd)[s / 2] * attenuationCoefficient;
-        _clientSamples[s + goodChannelOffset] = glm::clamp(_clientSamples[s + goodChannelOffset] + currentSample,
-                                                           MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-
-        if ((s / 2) + numSamplesDelay < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-            // place the current sample at the right spot in the delayed channel
-            int16_t clampedSample = glm::clamp((int) (_clientSamples[s + (numSamplesDelay * 2) + delayedChannelOffset]
-                                               + (currentSample * weakChannelAmplitudeRatio)),
-                                               MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-            _clientSamples[s + (numSamplesDelay * 2) + delayedChannelOffset] = clampedSample;
-        }
+        
+        delayMixSample[0] = _clientSamples[delayedChannelIndex[0]];
+        delayMixSample[1] = _clientSamples[delayedChannelIndex[1]];
+        
+        __m64 bufferSamples = _mm_set_pi16(correctMixSample[0], correctMixSample[1], delayMixSample[0], delayMixSample[1]);
+        __m64 addedSamples = _mm_set_pi16(correctBufferSample[0], correctBufferSample[1],
+                                         delayBufferSample[0], delayBufferSample[1]);
+        
+        // perform the MMX add (with saturation) of two correct and delayed samples
+        __m64 mmxResult = _mm_adds_pi16(bufferSamples, addedSamples);
+        int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
+        
+        // assign the results from the result of the mmx arithmetic
+        _clientSamples[s + goodChannelOffset] = shortResults[3];
+        _clientSamples[s + goodChannelOffset + 2] = shortResults[2];
+        _clientSamples[delayedChannelIndex[0]] = shortResults[1];
+        _clientSamples[delayedChannelIndex[1]] = shortResults[0];
     }
 }
 
