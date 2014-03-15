@@ -90,11 +90,12 @@ QList<const QMetaObject*> Bitstream::getMetaObjectSubClasses(const QMetaObject* 
     return getMetaObjectSubClasses().values(metaObject);
 }
 
-Bitstream::Bitstream(QDataStream& underlying, QObject* parent) :
+Bitstream::Bitstream(QDataStream& underlying, MetadataType metadataType, QObject* parent) :
     QObject(parent),
     _underlying(underlying),
     _byte(0),
     _position(0),
+    _metadataType(metadataType),
     _metaObjectStreamer(*this),
     _typeStreamerStreamer(*this),
     _attributeStreamer(*this),

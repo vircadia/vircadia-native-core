@@ -143,7 +143,7 @@ private:
 };
 
 SetSpannerEditVisitor::SetSpannerEditVisitor(Spanner* spanner) :
-    MetavoxelVisitor(QVector<AttributePointer>(), spanner->getAttributes()),
+    MetavoxelVisitor(spanner->getAttributes(), spanner->getAttributes()),
     _spanner(spanner) {
 }
 
