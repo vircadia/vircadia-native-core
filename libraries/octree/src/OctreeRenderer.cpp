@@ -57,9 +57,9 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
     bool showTimingDetails = false; // Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showTimingDetails, "OctreeRenderer::processDatagram()",showTimingDetails);
     
-    int packetLength = dataByteArray.size();
+    size_t packetLength = dataByteArray.size();
     PacketType command = packetTypeForPacket(dataByteArray);
-    int numBytesPacketHeader = numBytesForPacketHeader(dataByteArray);
+    size_t numBytesPacketHeader = numBytesForPacketHeader(dataByteArray);
     QUuid sourceUUID = uuidFromPacketHeader(dataByteArray);
     PacketType expectedType = getExpectedPacketType();
     
@@ -86,11 +86,11 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
         int flightTime = arrivedAt - sentAt + clockSkew;
 
         OCTREE_PACKET_INTERNAL_SECTION_SIZE sectionLength = 0;
-        int dataBytes = packetLength - (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE);
+        size_t dataBytes = packetLength - (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE);
 
         if (extraDebugging) {
             qDebug("OctreeRenderer::processDatagram() ... Got Packet Section"
-                   " color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%d",
+                   " color:%s compressed:%s sequence: %u flight:%d usec size:%lu data:%lu",
                    debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
                    sequence, flightTime, packetLength, dataBytes);
         }
@@ -119,7 +119,7 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
                 packetData.loadFinalizedContent(dataAt, sectionLength);
                 if (extraDebugging) {
                     qDebug("OctreeRenderer::processDatagram() ... Got Packet Section"
-                           " color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%d"
+                           " color:%s compressed:%s sequence: %u flight:%d usec size:%lu data:%lu"
                            " subsection:%d sectionLength:%d uncompressed:%d",
                            debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
                            sequence, flightTime, packetLength, dataBytes, subsection, sectionLength,

@@ -30,15 +30,15 @@ typedef uint16_t OCTREE_PACKET_INTERNAL_SECTION_SIZE;
 const int MAX_OCTREE_PACKET_SIZE = MAX_PACKET_SIZE;
 
 // this is overly conservative - sizeof(PacketType) is 8 bytes but a packed PacketType could be as small as one byte
-const int OCTREE_PACKET_EXTRA_HEADERS_SIZE = sizeof(OCTREE_PACKET_FLAGS)
+const size_t OCTREE_PACKET_EXTRA_HEADERS_SIZE = sizeof(OCTREE_PACKET_FLAGS)
                 + sizeof(OCTREE_PACKET_SEQUENCE) + sizeof(OCTREE_PACKET_SENT_TIME);
 
-const int MAX_OCTREE_PACKET_DATA_SIZE = MAX_PACKET_SIZE - (MAX_PACKET_HEADER_BYTES + OCTREE_PACKET_EXTRA_HEADERS_SIZE);
+const size_t MAX_OCTREE_PACKET_DATA_SIZE = MAX_PACKET_SIZE - (MAX_PACKET_HEADER_BYTES + OCTREE_PACKET_EXTRA_HEADERS_SIZE);
             
-const int MAX_OCTREE_UNCOMRESSED_PACKET_SIZE = MAX_OCTREE_PACKET_DATA_SIZE;
+const size_t MAX_OCTREE_UNCOMRESSED_PACKET_SIZE = MAX_OCTREE_PACKET_DATA_SIZE;
 
-const int MINIMUM_ATTEMPT_MORE_PACKING = sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE) + 40;
-const int COMPRESS_PADDING = 15;
+const size_t MINIMUM_ATTEMPT_MORE_PACKING = sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE) + 40;
+const size_t COMPRESS_PADDING = 15;
 const int REASONABLE_NUMBER_OF_PACKING_ATTEMPTS = 5;
 
 const int PACKET_IS_COLOR_BIT = 0;
@@ -69,7 +69,7 @@ public:
     ~OctreePacketData();
 
     /// change compression and target size settings
-    void changeSettings(bool enableCompression = false, int targetSize = MAX_OCTREE_PACKET_DATA_SIZE);
+    void changeSettings(bool enableCompression = false, size_t targetSize = MAX_OCTREE_PACKET_DATA_SIZE);
 
     /// reset completely, all data is discarded
     void reset();
@@ -186,7 +186,7 @@ private:
     /// append a single byte, might fail if byte would cause packet to be too large
     bool append(unsigned char byte);
 
-    int _targetSize;
+    size_t _targetSize;
     bool _enableCompression;
     
     unsigned char _uncompressed[MAX_OCTREE_UNCOMRESSED_PACKET_SIZE];

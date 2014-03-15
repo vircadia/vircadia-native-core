@@ -23,7 +23,7 @@ OctreePacketData::OctreePacketData(bool enableCompression, int targetSize) {
     changeSettings(enableCompression, targetSize); // does reset...
 }
 
-void OctreePacketData::changeSettings(bool enableCompression, int targetSize) {
+void OctreePacketData::changeSettings(bool enableCompression, size_t targetSize) {
     _enableCompression = enableCompression;
     _targetSize = std::min(MAX_OCTREE_UNCOMRESSED_PACKET_SIZE, targetSize);
     reset();
