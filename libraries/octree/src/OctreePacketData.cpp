@@ -369,7 +369,7 @@ bool OctreePacketData::compressContent() {
 
     QByteArray compressedData = qCompress(uncompressedData, uncompressedSize, MAX_COMPRESSION);
 
-    if (compressedData.size() < MAX_OCTREE_PACKET_DATA_SIZE) {
+    if (compressedData.size() < (int)MAX_OCTREE_PACKET_DATA_SIZE) {
         _compressedBytes = compressedData.size();
         for (int i = 0; i < _compressedBytes; i++) {
             _compressed[i] = compressedData[i];
