@@ -54,15 +54,13 @@ bool OctreeSendThread::process() {
 
             nodeData = (OctreeQueryNode*) node->getLinkedData();
 
-            int packetsSent = 0;
-
             // Sometimes the node data has not yet been linked, in which case we can't really do anything
             if (nodeData) {
                 bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
                 if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
                     printf("nodeData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
                 }
-                packetsSent = packetDistributor(node, nodeData, viewFrustumChanged);
+                packetDistributor(node, nodeData, viewFrustumChanged);
             }
         } else {
             _nodeMissingCount++;
