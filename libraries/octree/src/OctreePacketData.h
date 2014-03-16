@@ -168,7 +168,7 @@ public:
     bool isCompressed() const { return _enableCompression; }
     
     /// returns the target uncompressed size
-    int getTargetSize() const { return _targetSize; }
+    size_t getTargetSize() const { return _targetSize; }
 
     /// displays contents for debugging
     void debugContent();

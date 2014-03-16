@@ -506,7 +506,7 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
                     }
 
                     if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
-                        qDebug(">>>>>> calling writeToPacket() available=%d compressedSize=%d uncompressedSize=%d target=%d",
+                        qDebug(">>>>>> calling writeToPacket() available=%d compressedSize=%d uncompressedSize=%d target=%lu",
                                 nodeData->getAvailable(), _packetData.getFinalizedSize(),
                                 _packetData.getUncompressedSize(), _packetData.getTargetSize());
                     }
