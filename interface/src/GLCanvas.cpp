@@ -21,6 +21,10 @@ GLCanvas::GLCanvas() : QGLWidget(QGLFormat(QGL::NoDepthBuffer)),
 {
 }
 
+bool GLCanvas::isThrottleRendering() const { 
+    return _throttleRendering || Application::getInstance()->getWindow()->isMinimized(); 
+}
+
 void GLCanvas::initializeGL() {
     Application::getInstance()->initializeGL();
     setAttribute(Qt::WA_AcceptTouchEvents);
