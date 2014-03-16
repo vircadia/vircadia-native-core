@@ -550,7 +550,7 @@ int VoxelSystem::parseData(const QByteArray& packet) {
             int flightTime = arrivedAt - sentAt;
 
             OCTREE_PACKET_INTERNAL_SECTION_SIZE sectionLength = 0;
-            size_t dataBytes = packet.size() - (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE);
+            unsigned int dataBytes = packet.size() - (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE);
 
             int subsection = 1;
             while (dataBytes > 0) {
@@ -576,7 +576,7 @@ int VoxelSystem::parseData(const QByteArray& packet) {
                     packetData.loadFinalizedContent(dataAt, sectionLength);
                     if (Application::getInstance()->getLogger()->extraDebugging()) {
                         qDebug("VoxelSystem::parseData() ... Got Packet Section"
-                               " color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%lu"
+                               " color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%u"
                                " subsection:%d sectionLength:%d uncompressed:%d",
                             debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
                             sequence, flightTime, packet.size(), dataBytes, subsection, sectionLength,
