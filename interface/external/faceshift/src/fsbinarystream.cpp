@@ -160,7 +160,7 @@ void fsBinaryStream::received(long int sz, const char *data) {
         new_end = m_end + sz;
     }
 
-    if (new_end > Size(m_buffer.size())) m_buffer.resize((new_end * 15 / 10)); // HIFI: to get 1.5 without warnings
+    if (new_end > Size(m_buffer.size())) m_buffer.resize((int)(1.5f * (float)new_end)); // HIFI: to get 1.5 without warnings
 
     memcpy(&m_buffer[0] + m_end, data, sz);
     m_end   += sz;
