@@ -140,7 +140,7 @@ int OctreeSendThread::handlePacketSend(const SharedNodePointer& node, OctreeQuer
     if (nodeData->stats.isReadyToSend()) {
         // Send the stats message to the client
         unsigned char* statsMessage = nodeData->stats.getStatsMessage();
-        int statsMessageLength = nodeData->stats.getStatsMessageLength();
+        unsigned int statsMessageLength = nodeData->stats.getStatsMessageLength();
 
         // If the size of the stats message and the voxel message will fit in a packet, then piggyback them
         if (nodeData->getPacketLength() + statsMessageLength < MAX_PACKET_SIZE) {

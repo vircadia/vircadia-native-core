@@ -96,7 +96,7 @@ private:
     bool _octreePacketWaiting;
 
     unsigned char* _lastOctreePacket;
-    int _lastOctreePacketLength;
+    unsigned int _lastOctreePacketLength;
     int _duplicatePacketCount;
     quint64 _firstSuppressedPacket;
 
