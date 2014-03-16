@@ -695,8 +695,9 @@ void Menu::loginForCurrentDomain() {
 void Menu::editPreferences() {
     if (! _preferencesDialog) {
         _preferencesDialog = new PreferencesDialog(Application::getInstance()->getGLWidget());
+        _preferencesDialog->show();
     }
-    _preferencesDialog->show();
+    _preferencesDialog->raise();
 }
 
 void Menu::goToDomain(const QString newDomain) {

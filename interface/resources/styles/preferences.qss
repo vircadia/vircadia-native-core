@@ -1,0 +1,11 @@
+QLabel#avatarLabel {
+    background-image: url(styles/avatar.svg);
+    background-repeat: no-repeat;
+    background-position: left center;
+}
+
+QLabel#advancedTuningLabel {
+    background-image: url(styles/wrench.svg);
+    background-repeat: no-repeat;
+    background-position: left center;
+}

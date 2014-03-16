@@ -10,10 +10,10 @@
 #define __hifi__FramelessDialog__
 
 #include <QDialog>
+#include <QGridLayout>
+#include <QString>
 #include <QPainter>
 #include <QStyleOptionTitleBar>
-#include <QGridLayout>
-#include <QLabel>
 
 class FramelessDialog : public QDialog {
     Q_OBJECT
@@ -21,6 +21,15 @@ class FramelessDialog : public QDialog {
 public:
     FramelessDialog(QWidget* parent = 0, Qt::WindowFlags flags = 0);
     virtual ~FramelessDialog();
+    void setStyleSheet(const QString& fileName);
+
+protected:
+    void mouseMoveEvent(QMouseEvent* mouseEvent);
+    void mousePressEvent(QMouseEvent* mouseEvent);
+    void mouseReleaseEvent(QMouseEvent* mouseEvent);
+
+private:
+    bool isResizing;
 
 };
 
