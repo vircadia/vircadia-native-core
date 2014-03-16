@@ -492,7 +492,7 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
                     // if for some reason the finalized size is greater than our available size, then probably the "compressed"
                     // form actually inflated beyond our padding, and in this case we will send the current packet, then
                     // write to out new packet...
-                    int writtenSize = _packetData.getFinalizedSize()
+                    unsigned int writtenSize = _packetData.getFinalizedSize()
                             + (nodeData->getCurrentPacketIsCompressed() ? sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE) : 0);
 
 
