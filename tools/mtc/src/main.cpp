@@ -100,21 +100,45 @@ void generateOutput (QTextStream& out, const QList<Streamable>& streamables) {
 
         out << "const int " << name << "::Type = registerStreamableMetaType<" << name << ">();\n";
 
-        out << "int " << name << "::getFieldCount() {\n";
-        out << "    return " << str.fields.size();
-        foreach(const QString& base, str.clazz.bases) {
-            out << " + " << base << "::getFieldCount()";
+        out << "const QVector<MetaField>& " << name << "::getMetaFields() {\n";
+        out << "    static QVector<MetaField> metaFields = QVector<MetaField>()";
+        foreach (const QString& base, str.clazz.bases) {
+            out << " << " << base << "::getMetaFields()";
+        }
+        foreach (const Field& field, str.fields) {
+            out << "\n        << MetaField(\"" << field.name << "\", Bitstream::getTypeStreamer(qMetaTypeId<" <<
+                field.type << ">()))";
         }
         out << ";\n";
+        out << "    return metaFields;\n";
         out << "}\n";
 
-        out << "void " << name << "::setFieldValue(int index, const QVariant& value) {\n";
+        out << "int " << name << "::getFieldIndex(const QByteArray& name) {\n";
+        out << "    static QHash<QByteArray, int> fieldIndices = createFieldIndices();\n";
+        out << "    return fieldIndices.value(name) - 1;\n";
+        out << "}\n";
+
+        out << "QHash<QByteArray, int> " << name << "::createFieldIndices() {\n";
+        out << "    QHash<QByteArray, int> indices;\n";
+        out << "    int index = 0;\n";
+        foreach (const QString& base, str.clazz.bases) {
+            out << "    foreach (const MetaField& field, " << base << "::getMetaFields()) {\n";
+            out << "        indices.insert(field.getName(), index++);\n";
+            out << "    }\n";
+        }
+        out << "    foreach (const MetaField& field, getMetaFields()) {\n";
+        out << "        indices.insert(field.getName(), index++);\n";
+        out << "    }\n";
+        out << "    return indices;\n";
+        out << "}\n";
+
+        out << "void " << name << "::setField(int index, const QVariant& value) {\n";
         if (!str.clazz.bases.isEmpty()) {
             out << "    int nextIndex;\n";
         }
         foreach (const QString& base, str.clazz.bases) {
-            out << "    if ((nextIndex = index - " << base << "::getFieldCount()) < 0) {\n";
-            out << "        " << base << "::setFieldValue(index, value);\n";
+            out << "    if ((nextIndex = index - " << base << "::getMetaFields().size()) < 0) {\n";
+            out << "        " << base << "::setField(index, value);\n";
             out << "        return;\n";
             out << "    }\n";
             out << "    index = nextIndex;\n";        

@@ -82,6 +82,10 @@ int Bitstream::registerTypeStreamer(int type, TypeStreamer* streamer) {
     return 0;
 }
 
+const TypeStreamer* Bitstream::getTypeStreamer(int type) {
+    return getTypeStreamers().value(type);
+}
+
 const QMetaObject* Bitstream::getMetaObject(const QByteArray& className) {
     return getMetaObjects().value(className);
 }
@@ -325,11 +329,9 @@ Bitstream& Bitstream::operator<<(const QVariant& value) {
 }
 
 Bitstream& Bitstream::operator>>(QVariant& value) {
-    const TypeStreamer* streamer;
-    _typeStreamerStreamer >> streamer;
-    if (streamer) {
-        value = streamer->read(*this);
-    }
+    TypeReader reader;
+    _typeStreamerStreamer >> reader;
+    value = reader.read(*this);
     return *this;
 }
 
@@ -406,7 +408,14 @@ Bitstream& Bitstream::operator<<(const TypeStreamer* streamer) {
 }
 
 Bitstream& Bitstream::operator>>(const TypeStreamer*& streamer) {
-    _typeStreamerStreamer >> streamer;
+    TypeReader typeReader;
+    _typeStreamerStreamer >> typeReader;
+    streamer = typeReader.getStreamer();
+    return *this;
+}
+
+Bitstream& Bitstream::operator>>(TypeReader& reader) {
+    _typeStreamerStreamer >> reader;
     return *this;
 }
 
@@ -499,8 +508,8 @@ Bitstream& Bitstream::operator>(ObjectReader& objectReader) {
     *this >> storedPropertyCount;
     QVector<PropertyReader> properties(storedPropertyCount);
     for (int i = 0; i < storedPropertyCount; i++) {
-        const TypeStreamer* typeStreamer;
-        *this >> typeStreamer;
+        TypeReader typeReader;
+        *this >> typeReader;
         QMetaProperty property = QMetaProperty();
         if (_metadataType == FULL_METADATA) {
             QByteArray propertyName;
@@ -509,7 +518,7 @@ Bitstream& Bitstream::operator>(ObjectReader& objectReader) {
                 property = metaObject->property(metaObject->indexOfProperty(propertyName));
             }
         }
-        properties[i] = PropertyReader(typeStreamer, property);
+        properties[i] = PropertyReader(typeReader, property);
     }
     // for hash metadata, check the names/types of the properties as well as the name hash against our own class
     if (_metadataType == HASH_METADATA) {
@@ -525,7 +534,8 @@ Bitstream& Bitstream::operator>(ObjectReader& objectReader) {
                 if (!typeStreamer) {
                     continue;
                 }
-                if (propertyIndex >= properties.size() || properties.at(propertyIndex).getStreamer() != typeStreamer) {
+                if (propertyIndex >= properties.size() ||
+                        !properties.at(propertyIndex).getReader().matchesExactly(typeStreamer)) {
                     objectReader = ObjectReader(className, metaObject, properties);
                     return *this;
                 }
@@ -551,16 +561,106 @@ Bitstream& Bitstream::operator>(ObjectReader& objectReader) {
 
 Bitstream& Bitstream::operator<(const TypeStreamer* streamer) {
     const char* typeName = QMetaType::typeName(streamer->getType());
-    return *this << QByteArray::fromRawData(typeName, strlen(typeName));
+    *this << QByteArray::fromRawData(typeName, strlen(typeName));
+    if (_metadataType == NO_METADATA) {
+        return *this;
+    }
+    const QVector<MetaField>& metaFields = streamer->getMetaFields();
+    *this << metaFields.size();
+    if (metaFields.isEmpty()) {
+        return *this;
+    }
+    QCryptographicHash hash(QCryptographicHash::Md5);
+    foreach (const MetaField& metaField, metaFields) {
+        _typeStreamerStreamer << metaField.getStreamer();
+        if (_metadataType == FULL_METADATA) {
+            *this << metaField.getName();
+        } else {
+            hash.addData(metaField.getName().constData(), metaField.getName().size() + 1);
+        }
+    }
+    if (_metadataType == HASH_METADATA) {
+        QByteArray hashResult = hash.result();
+        write(hashResult.constData(), hashResult.size() * BITS_IN_BYTE);
+    }
+    return *this;
 }
 
-Bitstream& Bitstream::operator>(const TypeStreamer*& streamer) {
+Bitstream& Bitstream::operator>(TypeReader& reader) {
     QByteArray typeName;
     *this >> typeName;
-    streamer = getTypeStreamers().value(QMetaType::type(typeName.constData()));
+    const TypeStreamer* streamer = getTypeStreamers().value(QMetaType::type(typeName.constData()));
     if (!streamer) {
         qWarning() << "Unknown type name: " << typeName << "\n";
     }
+    if (_metadataType == NO_METADATA) {
+        reader = TypeReader(typeName, streamer);
+        return *this;
+    }
+    int fieldCount;
+    *this >> fieldCount;
+    QVector<FieldReader> fields(fieldCount);
+    for (int i = 0; i < fieldCount; i++) {
+        TypeReader typeReader;
+        *this >> typeReader;
+        int index = -1;
+        if (_metadataType == FULL_METADATA) {
+            QByteArray fieldName;
+            *this >> fieldName;
+            if (streamer) {
+                index = streamer->getFieldIndex(fieldName);
+            }
+        }
+        fields[i] = FieldReader(typeReader, index);
+    }
+    // for hash metadata, check the names/types of the fields as well as the name hash against our own class
+    if (_metadataType == HASH_METADATA) {
+        QCryptographicHash hash(QCryptographicHash::Md5);
+        if (streamer) {
+            const QVector<MetaField>& localFields = streamer->getMetaFields();
+            if (fieldCount != localFields.size()) {
+                reader = TypeReader(typeName, streamer, false, fields);
+                return *this;
+            }
+            if (fieldCount == 0) {
+                reader = TypeReader(typeName, streamer);
+                return *this;
+            }
+            for (int i = 0; i < fieldCount; i++) {
+                const MetaField& localField = localFields.at(i);
+                if (!fields.at(i).getReader().matchesExactly(localField.getStreamer())) {
+                    reader = TypeReader(typeName, streamer, false, fields);
+                    return *this;
+                }
+                hash.addData(localField.getName().constData(), localField.getName().size() + 1);
+            }
+        }
+        QByteArray localHashResult = hash.result();
+        QByteArray remoteHashResult(localHashResult.size(), 0);
+        read(remoteHashResult.data(), remoteHashResult.size() * BITS_IN_BYTE);
+        if (streamer && localHashResult == remoteHashResult) {
+            // since everything is the same, we can use the default streamer
+            reader = TypeReader(typeName, streamer);
+            return *this;
+        }
+    } else if (streamer) {
+        // if all fields are the same type and in the right order, we can use the (more efficient) default streamer
+        const QVector<MetaField>& localFields = streamer->getMetaFields();
+        if (fieldCount != localFields.size()) {
+            reader = TypeReader(typeName, streamer, false, fields);
+            return *this;
+        }
+        for (int i = 0; i < fieldCount; i++) {
+            const FieldReader& fieldReader = fields.at(i);
+            if (!fieldReader.getReader().matchesExactly(localFields.at(i).getStreamer()) || fieldReader.getIndex() != i) {
+                reader = TypeReader(typeName, streamer, false, fields);
+                return *this;
+            }
+        }
+        reader = TypeReader(typeName, streamer);
+        return *this;
+    }
+    reader = TypeReader(typeName, streamer, false, fields);
     return *this;
 }
 
@@ -650,10 +750,49 @@ QVector<PropertyReader> Bitstream::getPropertyReaders(const QMetaObject* metaObj
         }
         const TypeStreamer* typeStreamer = getTypeStreamers().value(property.userType());
         if (typeStreamer) {
-            propertyReaders.append(PropertyReader(typeStreamer, property));
+            propertyReaders.append(PropertyReader(TypeReader(QByteArray(), typeStreamer), property));
         }
     }
     return propertyReaders;
+}
+
+TypeReader::TypeReader(const QByteArray& typeName, const TypeStreamer* streamer,
+        bool exactMatch, const QVector<FieldReader>& fields) :
+    _typeName(typeName),
+    _streamer(streamer),
+    _exactMatch(exactMatch),
+    _fields(fields) {
+}
+
+QVariant TypeReader::read(Bitstream& in) const {
+    if (_exactMatch) {
+        return _streamer->read(in);
+    }
+    QVariant object = _streamer ? QVariant(_streamer->getType(), 0) : QVariant();
+    foreach (const FieldReader& field, _fields) {
+        field.read(in, _streamer, object);
+    }
+    return object;
+}
+
+bool TypeReader::matchesExactly(const TypeStreamer* streamer) const {
+    return _exactMatch && _streamer == streamer;
+}
+
+uint qHash(const TypeReader& typeReader, uint seed) {
+    return qHash(typeReader.getTypeName(), seed);
+}
+
+FieldReader::FieldReader(const TypeReader& reader, int index) :
+    _reader(reader),
+    _index(index) {
+}
+
+void FieldReader::read(Bitstream& in, const TypeStreamer* streamer, QVariant& object) const {
+    QVariant value = _reader.read(in);
+    if (_index != -1 && streamer) {
+        streamer->setField(_index, object, value);
+    }    
 }
 
 ObjectReader::ObjectReader(const QByteArray& className, const QMetaObject* metaObject,
@@ -677,14 +816,35 @@ uint qHash(const ObjectReader& objectReader, uint seed) {
     return qHash(objectReader.getClassName(), seed);
 }
 
-PropertyReader::PropertyReader(const TypeStreamer* streamer, const QMetaProperty& property) :
-    _streamer(streamer),
+PropertyReader::PropertyReader(const TypeReader& reader, const QMetaProperty& property) :
+    _reader(reader),
     _property(property) {
 }
 
 void PropertyReader::read(Bitstream& in, QObject* object) const {
-    QVariant value = _streamer->read(in);
+    QVariant value = _reader.read(in);
     if (_property.isValid() && object) {
         _property.write(object, value);
     }
+}
+
+MetaField::MetaField(const QByteArray& name, const TypeStreamer* streamer) :
+    _name(name),
+    _streamer(streamer) {
+}
+
+TypeStreamer::~TypeStreamer() {
+}
+
+const QVector<MetaField>& TypeStreamer::getMetaFields() const {
+    static QVector<MetaField> emptyMetaFields;
+    return emptyMetaFields;
+}
+
+int TypeStreamer::getFieldIndex(const QByteArray& name) const {
+    return -1;
+}
+
+void TypeStreamer::setField(int index, QVariant& object, const QVariant& value) const {
+    // nothing by default
 }

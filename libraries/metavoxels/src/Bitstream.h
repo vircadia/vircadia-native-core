@@ -16,6 +16,7 @@
 #include <QScriptString>
 #include <QSharedPointer>
 #include <QVariant>
+#include <QVector>
 #include <QtDebug>
 
 #include <glm/glm.hpp>
@@ -30,9 +31,11 @@ class QUrl;
 class Attribute;
 class AttributeValue;
 class Bitstream;
+class FieldReader;
 class ObjectReader;
 class OwnedAttributeValue;
 class PropertyReader;
+class TypeReader;
 class TypeStreamer;
 
 typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
@@ -191,7 +194,7 @@ public:
     class ReadMappings {
     public:
         QHash<int, ObjectReader> metaObjectValues;
-        QHash<int, const TypeStreamer*> typeStreamerValues;
+        QHash<int, TypeReader> typeStreamerValues;
         QHash<int, AttributePointer> attributeValues;
         QHash<int, QScriptString> scriptStringValues;
         QHash<int, SharedObjectPointer> sharedObjectValues;
@@ -204,6 +207,9 @@ public:
     /// Registers a streamer for the specified Qt-registered type.
     /// \return zero; the function only returns a value so that it can be used in static initialization
     static int registerTypeStreamer(int type, TypeStreamer* streamer);
+
+    /// Returns the streamer registered for the supplied type, if any.
+    static const TypeStreamer* getTypeStreamer(int type);
 
     /// Returns the meta-object registered under the supplied class name, if any.
     static const QMetaObject* getMetaObject(const QByteArray& className);
@@ -307,6 +313,7 @@ public:
     
     Bitstream& operator<<(const TypeStreamer* streamer);
     Bitstream& operator>>(const TypeStreamer*& streamer);
+    Bitstream& operator>>(TypeReader& reader);
     
     Bitstream& operator<<(const AttributePointer& attribute);
     Bitstream& operator>>(AttributePointer& attribute);
@@ -321,7 +328,7 @@ public:
     Bitstream& operator>(ObjectReader& objectReader);
     
     Bitstream& operator<(const TypeStreamer* streamer);
-    Bitstream& operator>(const TypeStreamer*& streamer);
+    Bitstream& operator>(TypeReader& reader);
     
     Bitstream& operator<(const AttributePointer& attribute);
     Bitstream& operator>(AttributePointer& attribute);
@@ -349,7 +356,7 @@ private:
     MetadataType _metadataType;
 
     RepeatedValueStreamer<const QMetaObject*, const QMetaObject*, ObjectReader> _metaObjectStreamer;
-    RepeatedValueStreamer<const TypeStreamer*> _typeStreamerStreamer;
+    RepeatedValueStreamer<const TypeStreamer*, const TypeStreamer*, TypeReader> _typeStreamerStreamer;
     RepeatedValueStreamer<AttributePointer> _attributeStreamer;
     RepeatedValueStreamer<QScriptString> _scriptStringStreamer;
     RepeatedValueStreamer<SharedObjectPointer, SharedObject*> _sharedObjectStreamer;
@@ -428,6 +435,50 @@ template<class K, class V> inline Bitstream& Bitstream::operator>>(QHash<K, V>& 
     return *this;
 }
 
+/// Contains the information required to read a type from the stream.
+class TypeReader {
+public:
+
+    TypeReader(const QByteArray& typeName = QByteArray(), const TypeStreamer* streamer = NULL,
+        bool exactMatch = true, const QVector<FieldReader>& fields = QVector<FieldReader>());
+
+    const QByteArray& getTypeName() const { return _typeName; }
+    const TypeStreamer* getStreamer() const { return _streamer; }
+
+    QVariant read(Bitstream& in) const;
+
+    bool matchesExactly(const TypeStreamer* streamer) const;
+
+    bool operator==(const TypeReader& other) const { return _typeName == other._typeName; }
+    bool operator!=(const TypeReader& other) const { return _typeName != other._typeName; }
+    
+private:
+    
+    QByteArray _typeName;
+    const TypeStreamer* _streamer;
+    bool _exactMatch;
+    QVector<FieldReader> _fields;
+};
+
+uint qHash(const TypeReader& typeReader, uint seed = 0);
+
+/// Contains the information required to read a metatype field from the stream and apply it.
+class FieldReader {
+public:
+    
+    FieldReader(const TypeReader& reader = TypeReader(), int index = -1);
+
+    const TypeReader& getReader() const { return _reader; }
+    int getIndex() const { return _index; }
+
+    void read(Bitstream& in, const TypeStreamer* streamer, QVariant& object) const;
+
+private:
+    
+    TypeReader _reader;
+    int _index;
+};
+
 /// Contains the information required to read an object from the stream.
 class ObjectReader {
 public:
@@ -437,8 +488,6 @@ public:
 
     const QByteArray& getClassName() const { return _className; }
     const QMetaObject* getMetaObject() const { return _metaObject; }
-
-    bool isNull() const { return _className.isEmpty(); }
 
     QObject* read(Bitstream& in, QObject* object = NULL) const;
 
@@ -458,16 +507,31 @@ uint qHash(const ObjectReader& objectReader, uint seed = 0);
 class PropertyReader {
 public:
 
-    PropertyReader(const TypeStreamer* streamer = NULL, const QMetaProperty& property = QMetaProperty());
+    PropertyReader(const TypeReader& reader = TypeReader(), const QMetaProperty& property = QMetaProperty());
 
-    const TypeStreamer* getStreamer() const { return _streamer; }
+    const TypeReader& getReader() const { return _reader; }
 
     void read(Bitstream& in, QObject* object) const;
 
 private:
 
-    const TypeStreamer* _streamer;
+    TypeReader _reader;
     QMetaProperty _property;
+};
+
+/// Describes a metatype field.
+class MetaField {
+public:
+    
+    MetaField(const QByteArray& name = QByteArray(), const TypeStreamer* streamer = NULL);
+    
+    const QByteArray& getName() const { return _name; }
+    const TypeStreamer* getStreamer() const { return _streamer; }
+    
+private:
+
+    QByteArray _name;
+    const TypeStreamer* _streamer;
 };
 
 Q_DECLARE_METATYPE(const QMetaObject*)
@@ -479,11 +543,17 @@ Q_DECLARE_METATYPE(const QMetaObject*)
 class TypeStreamer {
 public:
     
+    virtual ~TypeStreamer();
+    
     void setType(int type) { _type = type; }
     int getType() const { return _type; }
     
     virtual void write(Bitstream& out, const QVariant& value) const = 0;
     virtual QVariant read(Bitstream& in) const = 0;
+
+    virtual const QVector<MetaField>& getMetaFields() const;
+    virtual int getFieldIndex(const QByteArray& name) const;
+    virtual void setField(int index, QVariant& object, const QVariant& value) const;
 
 private:
     
@@ -496,6 +566,16 @@ public:
     
     virtual void write(Bitstream& out, const QVariant& value) const { out << value.value<T>(); }
     virtual QVariant read(Bitstream& in) const { T value; in >> value; return QVariant::fromValue(value); }
+};
+
+/// A streamer that works with Bitstream's operators.
+template<class T> class CompoundTypeStreamer : public SimpleTypeStreamer<T> {
+public:
+    
+    virtual const QVector<MetaField>& getMetaFields() const { return T::getMetaFields(); }
+    virtual int getFieldIndex(const QByteArray& name) const { return T::getFieldIndex(name); }
+    virtual void setField(int index, QVariant& object, const QVariant& value) const {
+        static_cast<T*>(object.data())->setField(index, value); }
 };
 
 /// Macro for registering simple type streamers.
@@ -532,16 +612,18 @@ public:
 /// Registers a streamable type and its streamer.
 template<class T> int registerStreamableMetaType() {
     int type = qRegisterMetaType<T>();
-    Bitstream::registerTypeStreamer(type, new SimpleTypeStreamer<T>());
+    Bitstream::registerTypeStreamer(type, new CompoundTypeStreamer<T>());
     return type;
 }
 
 /// Flags a class as streamable (use as you would Q_OBJECT).
 #define STREAMABLE public: \
     static const int Type; \
-    static int getFieldCount(); \
-    void setFieldValue(int index, const QVariant& value); \
-    private:
+    static const QVector<MetaField>& getMetaFields(); \
+    static int getFieldIndex(const QByteArray& name); \
+    void setField(int index, const QVariant& value); \
+    private: \
+    static QHash<QByteArray, int> createFieldIndices();
 
 /// Flags a field or base class as streaming.
 #define STREAM
