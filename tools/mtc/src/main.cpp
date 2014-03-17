@@ -120,7 +120,7 @@ void generateOutput (QTextStream& out, const QList<Streamable>& streamables) {
 
         out << "QHash<QByteArray, int> " << name << "::createFieldIndices() {\n";
         out << "    QHash<QByteArray, int> indices;\n";
-        out << "    int index = 0;\n";
+        out << "    int index = 1;\n";
         foreach (const QString& base, str.clazz.bases) {
             out << "    foreach (const MetaField& field, " << base << "::getMetaFields()) {\n";
             out << "        indices.insert(field.getName(), index++);\n";
