@@ -156,6 +156,19 @@ unsigned int AudioRingBuffer::samplesAvailable() const {
     }
 }
 
+void AudioRingBuffer::addSilentFrame(int numSilentSamples) {
+    // setup the silent frame
+    int numSilentBytes = numSilentSamples * sizeof(int16_t);
+    char* silentFrame = new char[numSilentBytes];
+    memset(silentFrame, 0, numSilentBytes);
+    
+    // write it
+    writeData(silentFrame, numSilentBytes);
+    
+    // delete the temporary silent frame
+    delete[] silentFrame;
+}
+
 bool AudioRingBuffer::isNotStarvedOrHasMinimumSamples(unsigned int numRequiredSamples) const {
     if (!_isStarved) {
         return true;
