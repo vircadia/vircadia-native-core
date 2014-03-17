@@ -122,34 +122,34 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>358</width>
-        <height>464</height>
+        <width>382</width>
+        <height>16</height>
        </rect>
+      </property>
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
       </property>
       <property name="styleSheet">
        <string notr="true">margin-top: 0px;</string>
       </property>
-      <layout class="QFormLayout" name="messagesFormLayout">
-       <property name="fieldGrowthPolicy">
-        <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
-       </property>
-       <property name="horizontalSpacing">
-        <number>0</number>
-       </property>
-       <property name="verticalSpacing">
-        <number>0</number>
-       </property>
+      <layout class="QGridLayout" name="messagesGridLayout">
        <property name="leftMargin">
-        <number>4</number>
+        <number>0</number>
        </property>
        <property name="topMargin">
-        <number>4</number>
+        <number>0</number>
        </property>
        <property name="rightMargin">
-        <number>4</number>
+        <number>0</number>
        </property>
        <property name="bottomMargin">
-        <number>4</number>
+        <number>0</number>
+       </property>
+       <property name="spacing">
+        <number>0</number>
        </property>
       </layout>
      </widget>

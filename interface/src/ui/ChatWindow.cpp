@@ -6,7 +6,7 @@
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
 //
 
-#include <QFormLayout>
+#include <QGridLayout>
 #include <QFrame>
 #include <QLayoutItem>
 #include <QPalette>
@@ -37,6 +37,9 @@ ChatWindow::ChatWindow() :
 
     FlowLayout* flowLayout = new FlowLayout(0, 4, 4);
     ui->usersWidget->setLayout(flowLayout);
+
+    ui->messagesGridLayout->setColumnStretch(0, 1);
+    ui->messagesGridLayout->setColumnStretch(1, 3);
 
     ui->messagePlainTextEdit->installEventFilter(this);
 
@@ -143,8 +146,9 @@ void ChatWindow::addTimeStamp() {
         timeLabel->setStyleSheet("color: palette(shadow);"
                                  "background-color: palette(highlight);"
                                  "padding: 4px;");
+        timeLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
         timeLabel->setAlignment(Qt::AlignHCenter);
-        ui->messagesFormLayout->addRow(timeLabel);
+        ui->messagesGridLayout->addWidget(timeLabel, ui->messagesGridLayout->rowCount(), 0, 1, 2);
         numMessagesAfterLastTimeStamp = 0;
     }
 }
@@ -217,7 +221,7 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     }
 
     QLabel* userLabel = new QLabel(getParticipantName(message.from()));
-    userLabel->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    userLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     userLabel->setStyleSheet("padding: 2px; font-weight: bold");
     userLabel->setAlignment(Qt::AlignTop);
 
@@ -228,8 +232,9 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     messageLabel->setStyleSheet("padding: 2px; margin-right: 20px");
     messageLabel->setAlignment(Qt::AlignTop);
 
-    ui->messagesFormLayout->addRow(userLabel, messageLabel);
-    ui->messagesFormLayout->parentWidget()->updateGeometry();
+    ui->messagesGridLayout->addWidget(userLabel, ui->messagesGridLayout->rowCount(), 0, Qt::AlignTop | Qt::AlignRight);
+    ui->messagesGridLayout->addWidget(messageLabel, ui->messagesGridLayout->rowCount() - 1, 1);
+    ui->messagesGridLayout->parentWidget()->updateGeometry();
     Application::processEvents();
     QScrollBar* verticalScrollBar = ui->messagesScrollArea->verticalScrollBar();
     verticalScrollBar->setSliderPosition(verticalScrollBar->maximum());
