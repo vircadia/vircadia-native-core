@@ -217,7 +217,7 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
         while (i + 3 < numSamplesDelay) {
             // handle the first cases where we can MMX add four samples at once
             int parentIndex = i * 2;
-            __m64 bufferSamples = _mm_setr_pi16(_clientSamples[parentIndex + delayedChannelOffset],
+            __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset],
                                                _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset],
                                                _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset],
                                                _clientSamples[parentIndex + TRIPLE_STEREO_OFFSET + delayedChannelOffset]);
