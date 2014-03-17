@@ -23,6 +23,7 @@ class OctreeSendThread;
 class OctreeServer;
 
 class OctreeQueryNode : public OctreeQuery {
+    Q_OBJECT
 public:
     OctreeQueryNode();
     virtual ~OctreeQueryNode();
@@ -85,6 +86,9 @@ public:
     
     void dumpOutOfView();
     
+    bool isScheduledForDelete() const { return _scheduleForDelete; }
+    void scheduleForDelete() { _scheduleForDelete = true; }
+    
 private:
     OctreeQueryNode(const OctreeQueryNode &);
     OctreeQueryNode& operator= (const OctreeQueryNode&);
@@ -119,6 +123,8 @@ private:
     bool _lodInitialized;
     
     OCTREE_PACKET_SEQUENCE _sequenceNumber;
+    
+    bool _scheduleForDelete;
 };
 
 #endif /* defined(__hifi__OctreeQueryNode__) */

@@ -35,11 +35,13 @@ OctreeQueryNode::OctreeQueryNode() :
     _lastClientOctreeSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _lodChanged(false),
     _lodInitialized(false),
-    _sequenceNumber(0)
+    _sequenceNumber(0),
+    _scheduleForDelete(false)
 {
 }
 
 OctreeQueryNode::~OctreeQueryNode() {
+qDebug() << "OctreeQueryNode::~OctreeQueryNode()";
     if (_octreeSendThread) {
         _octreeSendThread->terminate();
         delete _octreeSendThread;

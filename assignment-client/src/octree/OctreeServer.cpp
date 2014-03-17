@@ -766,12 +766,7 @@ void OctreeServer::nodeAdded(SharedNodePointer node) {
 void OctreeServer::nodeKilled(SharedNodePointer node) {
     OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(node->getLinkedData());
     if (nodeData) {
-        // Note: It should be safe to do this without locking the node, because if any other threads
-        // are using the SharedNodePointer, then they have a reference to the SharedNodePointer and the deleteLater()
-        // won't actually delete it until all threads have released their references to the pointer. 
-        // But we can and should clear the linked data so that no one else tries to access it.
-        nodeData->deleteLater();
-        node->setLinkedData(NULL);
+        nodeData->scheduleForDelete();
     }
 }
 

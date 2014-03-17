@@ -44,7 +44,7 @@ typedef std::map<QUuid, SingleSenderStats>::iterator NodeToSenderStatsMapIterato
 /// Handles processing of incoming network packets for the voxel-server. As with other ReceivedPacketProcessor classes 
 /// the user is responsible for reading inbound packets and adding them to the processing queue by calling queueReceivedPacket()
 class OctreeInboundPacketProcessor : public ReceivedPacketProcessor {
-
+    Q_OBJECT
 public:
     OctreeInboundPacketProcessor(OctreeServer* myServer);
 

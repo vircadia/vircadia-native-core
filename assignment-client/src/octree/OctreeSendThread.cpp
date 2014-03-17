@@ -34,7 +34,6 @@ OctreeSendThread::~OctreeSendThread() {
 
 
 bool OctreeSendThread::process() {
-
     const int MAX_NODE_MISSING_CHECKS = 10;
     if (_nodeMissingCount > MAX_NODE_MISSING_CHECKS) {
         qDebug() << "our target node:" << _nodeUUID << "has been missing the last" << _nodeMissingCount 
@@ -64,6 +63,10 @@ bool OctreeSendThread::process() {
                 }
                 packetsSent = packetDistributor(node, nodeData, viewFrustumChanged);
             }
+            if (nodeData->isScheduledForDelete()) {
+                nodeData->deleteLater();
+                node->setLinkedData(NULL);
+            }
         } else {
             _nodeMissingCount++;
         }
@@ -83,7 +86,7 @@ bool OctreeSendThread::process() {
             PerformanceWarning warn(false,"OctreeSendThread... usleep()",false,&_usleepTime,&_usleepCalls);
             usleep(usecToSleep);
         } else {
-            if (true || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
+            if ((_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
                 qDebug() << "Last send took too much time (" << (elapsed / USECS_PER_MSEC) 
                                 <<" msecs), barely sleeping 1 usec!\n";
             }
@@ -576,13 +579,16 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
             quint64 elapsedInsideUsecs = endInside - startInside;
             OctreeServer::trackInsideTime((float)elapsedInsideUsecs);
             
-            float insideMsecs = (float)elapsedInsideUsecs / (float)USECS_PER_MSEC;
-            if (insideMsecs > 1.0f) {
-                qDebug()<< "inside msecs=" << insideMsecs 
-                        << "lockWait usec=" << lockWaitElapsedUsec
-                        << "encode usec=" << encodeElapsedUsec
-                        << "compress usec=" << compressAndWriteElapsedUsec
-                        << "sending usec=" << packetSendingElapsedUsec;
+            const bool wantExtraDebugging = false;
+            if (wantExtraDebugging) {
+                float insideMsecs = (float)elapsedInsideUsecs / (float)USECS_PER_MSEC;
+                if (insideMsecs > 1.0f) {
+                    qDebug()<< "inside msecs=" << insideMsecs 
+                            << "lockWait usec=" << lockWaitElapsedUsec
+                            << "encode usec=" << encodeElapsedUsec
+                            << "compress usec=" << compressAndWriteElapsedUsec
+                            << "sending usec=" << packetSendingElapsedUsec;
+                 }
              }
         }
 
@@ -607,24 +613,27 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
         quint64 endCompressTimeMsecs = OctreePacketData::getCompressContentTime() / 1000;
         int elapsedCompressTimeMsecs = endCompressTimeMsecs - startCompressTimeMsecs;
 
-        if (elapsedmsec > 100) {
-            if (elapsedmsec > 1000) {
-                int elapsedsec = (end - start)/1000000;
-                qDebug("WARNING! packetLoop() took %d seconds [%d milliseconds %d calls in compress] "
-                        "to generate %d bytes in %d packets %d nodes still to send",
-                        elapsedsec, elapsedCompressTimeMsecs, elapsedCompressCalls,
-                        trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
-            } else {
-                qDebug("WARNING! packetLoop() took %d milliseconds [%d milliseconds %d calls in compress] "
+        bool wantsExtraDebugging = false;
+        if (wantsExtraDebugging) {
+            if (elapsedmsec > 100) {
+                if (elapsedmsec > 1000) {
+                    int elapsedsec = (end - start)/1000000;
+                    qDebug("WARNING! packetLoop() took %d seconds [%d milliseconds %d calls in compress] "
+                            "to generate %d bytes in %d packets %d nodes still to send",
+                            elapsedsec, elapsedCompressTimeMsecs, elapsedCompressCalls,
+                            trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
+                } else {
+                    qDebug("WARNING! packetLoop() took %d milliseconds [%d milliseconds %d calls in compress] "
+                            "to generate %d bytes in %d packets, %d nodes still to send",
+                            elapsedmsec, elapsedCompressTimeMsecs, elapsedCompressCalls,
+                            trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
+                }
+            } else if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
+                qDebug("packetLoop() took %d milliseconds [%d milliseconds %d calls in compress] "
                         "to generate %d bytes in %d packets, %d nodes still to send",
                         elapsedmsec, elapsedCompressTimeMsecs, elapsedCompressCalls,
                         trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
             }
-        } else if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-            qDebug("packetLoop() took %d milliseconds [%d milliseconds %d calls in compress] "
-                    "to generate %d bytes in %d packets, %d nodes still to send",
-                    elapsedmsec, elapsedCompressTimeMsecs, elapsedCompressCalls,
-                    trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
         }
 
         // if after sending packets we've emptied our bag, then we want to remember that we've sent all
@@ -648,8 +657,11 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
 
     } // end if bag wasn't empty, and so we sent stuff...
 
-    if (truePacketsSent > 0 || packetsSentThisInterval > 0) {
-        qDebug() << "truePacketsSent=" << truePacketsSent << "packetsSentThisInterval=" << packetsSentThisInterval;
+    const bool wantExtraDebugging = false;
+    if (wantExtraDebugging) {
+        if (truePacketsSent > 0 || packetsSentThisInterval > 0) {
+            qDebug() << "truePacketsSent=" << truePacketsSent << "packetsSentThisInterval=" << packetsSentThisInterval;
+        }
     }
 
     return truePacketsSent;
