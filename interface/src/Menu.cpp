@@ -923,12 +923,16 @@ void Menu::goTo() {
     gotoDialog.resize(gotoDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, gotoDialog.size().height());
     
     int dialogReturn = gotoDialog.exec();
-    if (dialogReturn == QDialog::Accepted && !gotoDialog.textValue().isEmpty()) {
+    goToUser(dialogReturn == QDialog::Accepted && !gotoDialog.textValue().isEmpty(),
+             gotoDialog.textValue());
+}
+
+void Menu::goToUser(bool go, const QString& user) {
+    if (go) {
         LocationManager* manager = &LocationManager::getInstance();
-        manager->goTo(gotoDialog.textValue());
+        manager->goTo(user);
         connect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
     }
-    
     sendFakeEnterEvent();
 }
 

@@ -12,7 +12,6 @@
 #include <QPalette>
 #include <QScrollBar>
 #include <QSizePolicy>
-#include <QTextDocument>
 #include <QTimer>
 
 #include "Application.h"
@@ -90,27 +89,33 @@ void ChatWindow::showEvent(QShowEvent* event) {
 }
 
 bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
-    Q_UNUSED(sender);
-
-    if (event->type() != QEvent::KeyPress) {
-        return false;
-    }
-    QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
-    if ((keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter) &&
-        (keyEvent->modifiers() & Qt::ShiftModifier) == 0) {
-        QString messageText = ui->messagePlainTextEdit->document()->toPlainText().trimmed();
-        if (!messageText.isEmpty()) {
-#ifdef HAVE_QXMPP
-            const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
-            QXmppMessage message;
-            message.setTo(publicChatRoom->jid());
-            message.setType(QXmppMessage::GroupChat);
-            message.setBody(messageText);
-            XmppClient::getInstance().getXMPPClient().sendPacket(message);
-#endif
-            ui->messagePlainTextEdit->document()->clear();
+    if (sender == ui->messagePlainTextEdit) {
+        if (event->type() != QEvent::KeyPress) {
+            return false;
         }
-        return true;
+        QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
+        if ((keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter) &&
+            (keyEvent->modifiers() & Qt::ShiftModifier) == 0) {
+            QString messageText = ui->messagePlainTextEdit->document()->toPlainText().trimmed();
+            if (!messageText.isEmpty()) {
+    #ifdef HAVE_QXMPP
+                const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
+                QXmppMessage message;
+                message.setTo(publicChatRoom->jid());
+                message.setType(QXmppMessage::GroupChat);
+                message.setBody(messageText);
+                XmppClient::getInstance().getXMPPClient().sendPacket(message);
+    #endif
+                ui->messagePlainTextEdit->document()->clear();
+            }
+            return true;
+        }
+    } else {
+        if (event->type() != QEvent::MouseButtonRelease) {
+            return false;
+        }
+        QString user = sender->property("user").toString();
+        Menu::getInstance()->goToUser(true, user);
     }
     return false;
 }
@@ -187,16 +192,21 @@ void ChatWindow::participantsChanged() {
         delete item;
     }
     foreach (const QString& participant, participants) {
-        QLabel* userLabel = new QLabel(getParticipantName(participant));
+        QString participantName = getParticipantName(participant);
+        QLabel* userLabel = new QLabel();
+        userLabel->setText(participantName);
         userLabel->setStyleSheet("background-color: palette(light);"
-                                 "border-radius: 5px;"
-                                 "color: #267077;"
-                                 "padding-top: 3px;"
-                                 "padding-right: 2px;"
-                                 "padding-bottom: 2px;"
-                                 "padding-left: 2px;"
-                                 "border: 1px solid palette(shadow);"
-                                 "font-weight: bold");
+                                  "border-radius: 5px;"
+                                  "color: #267077;"
+                                  "padding-top: 3px;"
+                                  "padding-right: 2px;"
+                                  "padding-bottom: 2px;"
+                                  "padding-left: 2px;"
+                                  "border: 1px solid palette(shadow);"
+                                  "font-weight: bold");
+        userLabel->setProperty("user", participantName);
+        userLabel->setCursor(Qt::PointingHandCursor);
+        userLabel->installEventFilter(this);
         ui->usersWidget->layout()->addWidget(userLabel);
     }
 }

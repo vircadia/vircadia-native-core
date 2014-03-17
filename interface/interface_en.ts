@@ -45,7 +45,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location filename="src/ui/ChatWindow.cpp" line="128"/>
+        <location filename="src/ui/ChatWindow.cpp" line="133"/>
         <source>day</source>
         <translation>
             <numerusform>%n day</numerusform>
@@ -53,7 +53,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="src/ui/ChatWindow.cpp" line="128"/>
+        <location filename="src/ui/ChatWindow.cpp" line="133"/>
         <source>hour</source>
         <translation>
             <numerusform>%n hour</numerusform>
@@ -61,7 +61,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="src/ui/ChatWindow.cpp" line="128"/>
+        <location filename="src/ui/ChatWindow.cpp" line="133"/>
         <source>minute</source>
         <translation>
             <numerusform>%n minute</numerusform>
@@ -76,7 +76,7 @@
         </translation>
     </message>
     <message>
-        <location filename="src/ui/ChatWindow.cpp" line="183"/>
+        <location filename="src/ui/ChatWindow.cpp" line="188"/>
         <source>%1 online now:</source>
         <translation type="unfinished"></translation>
     </message>
