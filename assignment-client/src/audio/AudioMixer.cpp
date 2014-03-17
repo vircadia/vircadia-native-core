@@ -165,6 +165,8 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
     int16_t correctBufferSample[2], delayBufferSample[2];
     int delayedChannelIndex = 0;
     
+    const int SINGLE_STEREO_OFFSET = 2;
+    
     for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 4) {
         
         // setup the int16_t variables for the two sample sets
@@ -177,9 +179,9 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
         delayBufferSample[1] = correctBufferSample[1] * weakChannelAmplitudeRatio;
         
         __m64 bufferSamples = _mm_set_pi16(_clientSamples[s + goodChannelOffset],
-                                           _clientSamples[s + goodChannelOffset + 2],
+                                           _clientSamples[s + goodChannelOffset + SINGLE_STEREO_OFFSET],
                                            _clientSamples[delayedChannelIndex],
-                                           _clientSamples[delayedChannelIndex + 2]);
+                                           _clientSamples[delayedChannelIndex + SINGLE_STEREO_OFFSET]);
         __m64 addedSamples = _mm_set_pi16(correctBufferSample[0], correctBufferSample[1],
                                          delayBufferSample[0], delayBufferSample[1]);
         
@@ -189,15 +191,18 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
         
         // assign the results from the result of the mmx arithmetic
         _clientSamples[s + goodChannelOffset] = shortResults[3];
-        _clientSamples[s + goodChannelOffset + 2] = shortResults[2];
+        _clientSamples[s + goodChannelOffset + SINGLE_STEREO_OFFSET] = shortResults[2];
         _clientSamples[delayedChannelIndex] = shortResults[1];
-        _clientSamples[delayedChannelIndex + 2] = shortResults[0];
+        _clientSamples[delayedChannelIndex + SINGLE_STEREO_OFFSET] = shortResults[0];
     }
     
     // The following code is pretty gross and redundant, but AFAIK it's the best way to avoid
     // too many conditionals in handling the delay samples at the beginning of _clientSamples.
     // Basically we try to take the samples in batches of four, and then handle the remainder
     // conditionally to get rid of the rest.
+    
+    const int DOUBLE_STEREO_OFFSET = 4;
+    const int TRIPLE_STEREO_OFFSET = 6;
     
     if (numSamplesDelay > 0) {
         // if there was a sample delay for this buffer, we need to pull samples prior to the nextOutput
@@ -214,9 +219,9 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
             // handle the first cases where we can MMX add four samples at once
             int parentIndex = i * 2;
             __m64 bufferSamples = _mm_setr_pi16(_clientSamples[parentIndex + delayedChannelOffset],
-                                               _clientSamples[parentIndex + 2 + delayedChannelOffset],
-                                               _clientSamples[parentIndex + 4 + delayedChannelOffset],
-                                               _clientSamples[parentIndex + 6 + delayedChannelOffset]);
+                                               _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset],
+                                               _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset],
+                                               _clientSamples[parentIndex + TRIPLE_STEREO_OFFSET + delayedChannelOffset]);
             __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio,
                                             delayNextOutputStart[i + 1] * attenuationAndWeakChannelRatio,
                                             delayNextOutputStart[i + 2] * attenuationAndWeakChannelRatio,
@@ -225,9 +230,9 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
             int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
             
             _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
-            _clientSamples[parentIndex + 2 + delayedChannelOffset] = shortResults[2];
-            _clientSamples[parentIndex + 4 + delayedChannelOffset] = shortResults[1];
-            _clientSamples[parentIndex + 6 + delayedChannelOffset] = shortResults[0];
+            _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[2];
+            _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[1];
+            _clientSamples[parentIndex + TRIPLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[0];
             
             // push the index
             i += 4;
@@ -239,8 +244,8 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
             // MMX add only three delayed samples
             
             __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset],
-                                               _clientSamples[parentIndex + 2 + delayedChannelOffset],
-                                               _clientSamples[parentIndex + 4 + delayedChannelOffset],
+                                               _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset],
+                                               _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset],
                                                0);
             __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio,
                                             delayNextOutputStart[i + 1] * attenuationAndWeakChannelRatio,
@@ -250,13 +255,13 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
             int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
             
             _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
-            _clientSamples[parentIndex + 2 + delayedChannelOffset] = shortResults[2];
-            _clientSamples[parentIndex + 4 + delayedChannelOffset] = shortResults[1];
+            _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[2];
+            _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[1];
             
         } else if (i + 1 < numSamplesDelay) {
             // MMX add two delayed samples
             __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset],
-                                               _clientSamples[parentIndex + 2 + delayedChannelOffset], 0, 0);
+                                               _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset], 0, 0);
             __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio,
                                             delayNextOutputStart[i + 1] * attenuationAndWeakChannelRatio, 0, 0);
             
@@ -264,7 +269,7 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
             int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
             
             _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
-            _clientSamples[parentIndex + 2 + delayedChannelOffset] = shortResults[2];
+            _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[2];
             
         } else if (i < numSamplesDelay) {
             // MMX add a single delayed sample
