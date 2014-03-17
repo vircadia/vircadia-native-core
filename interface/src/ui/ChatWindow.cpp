@@ -191,7 +191,10 @@ void ChatWindow::participantsChanged() {
         userLabel->setStyleSheet("background-color: palette(light);"
                                  "border-radius: 5px;"
                                  "color: #267077;"
-                                 "padding: 2px;"
+                                 "padding-top: 3px;"
+                                 "padding-right: 2px;"
+                                 "padding-bottom: 2px;"
+                                 "padding-left: 2px;"
                                  "border: 1px solid palette(shadow);"
                                  "font-weight: bold");
         ui->usersWidget->layout()->addWidget(userLabel);
