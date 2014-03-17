@@ -23,8 +23,10 @@ class Quat : public QObject {
 
 public slots:
     glm::quat multiply(const glm::quat& q1, const glm::quat& q2);
-    glm::quat fromVec3(const glm::vec3& vec3);
-    glm::quat fromPitchYawRoll(float pitch, float yaw, float roll); // degrees
+    glm::quat fromVec3Degrees(const glm::vec3& vec3); // degrees
+    glm::quat fromVec3Radians(const glm::vec3& vec3); // radians
+    glm::quat fromPitchYawRollDegrees(float pitch, float yaw, float roll); // degrees
+    glm::quat fromPitchYawRollRadians(float pitch, float yaw, float roll); // radians
     glm::quat inverse(const glm::quat& q);
     glm::vec3 getFront(const glm::quat& orientation);
     glm::vec3 getRight(const glm::quat& orientation);

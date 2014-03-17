@@ -18,7 +18,7 @@ var vantagePoint = {x: 5000, y: 500, z: 5000};
 var isLocal = false;
 
 // set up our VoxelViewer with a position and orientation
-var orientation = Quat.fromPitchYawRoll(0, yaw, 0);
+var orientation = Quat.fromPitchYawRollDegrees(0, yaw, 0);
 
 function init() {
     if (isLocal) {
@@ -41,7 +41,7 @@ function keepLooking(deltaTime) {
     count++;
     if (count % 10 == 0) {
         yaw += yawDirection;
-        orientation = Quat.fromPitchYawRoll(0, yaw, 0);
+        orientation = Quat.fromPitchYawRollDegrees(0, yaw, 0);
         if (yaw > yawMax || yaw < yawMin) {
             yawDirection = yawDirection * -1;
         }

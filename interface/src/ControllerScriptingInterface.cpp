@@ -8,6 +8,7 @@
 
 #include <HandData.h>
 #include "Application.h"
+#include "devices/SixenseManager.h"
 #include "ControllerScriptingInterface.h"
 
 ControllerScriptingInterface::ControllerScriptingInterface() :

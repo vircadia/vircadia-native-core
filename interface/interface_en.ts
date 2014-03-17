@@ -4,22 +4,22 @@
 <context>
     <name>Application</name>
     <message>
-        <location filename="src/Application.cpp" line="1362"/>
+        <location filename="src/Application.cpp" line="1354"/>
         <source>Export Voxels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="1363"/>
+        <location filename="src/Application.cpp" line="1355"/>
         <source>Sparse Voxel Octree Files (*.svo)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3573"/>
+        <location filename="src/Application.cpp" line="3565"/>
         <source>Open Script</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3574"/>
+        <location filename="src/Application.cpp" line="3566"/>
         <source>JavaScript Files (*.js)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -45,7 +45,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location filename="src/ui/ChatWindow.cpp" line="124"/>
+        <location filename="src/ui/ChatWindow.cpp" line="128"/>
         <source>day</source>
         <translation>
             <numerusform>%n day</numerusform>
@@ -53,7 +53,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="src/ui/ChatWindow.cpp" line="124"/>
+        <location filename="src/ui/ChatWindow.cpp" line="128"/>
         <source>hour</source>
         <translation>
             <numerusform>%n hour</numerusform>
@@ -61,7 +61,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="src/ui/ChatWindow.cpp" line="124"/>
+        <location filename="src/ui/ChatWindow.cpp" line="128"/>
         <source>minute</source>
         <translation>
             <numerusform>%n minute</numerusform>
@@ -76,7 +76,7 @@
         </translation>
     </message>
     <message>
-        <location filename="src/ui/ChatWindow.cpp" line="179"/>
+        <location filename="src/ui/ChatWindow.cpp" line="183"/>
         <source>%1 online now:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -113,18 +113,18 @@
 <context>
     <name>Menu</name>
     <message>
-        <location filename="src/Menu.cpp" line="429"/>
+        <location filename="src/Menu.cpp" line="437"/>
         <source>Open .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="431"/>
-        <location filename="src/Menu.cpp" line="443"/>
+        <location filename="src/Menu.cpp" line="439"/>
+        <location filename="src/Menu.cpp" line="451"/>
         <source>Text files (*.ini)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="441"/>
+        <location filename="src/Menu.cpp" line="449"/>
         <source>Save .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
