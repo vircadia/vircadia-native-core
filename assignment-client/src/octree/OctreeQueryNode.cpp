@@ -158,7 +158,7 @@ void OctreeQueryNode::resetOctreePacket(bool lastWasSurpressed) {
     _octreePacketWaiting = false;
 }
 
-void OctreeQueryNode::writeToPacket(const unsigned char* buffer, int bytes) {
+void OctreeQueryNode::writeToPacket(const unsigned char* buffer, unsigned int bytes) {
     // compressed packets include lead bytes which contain compressed size, this allows packing of
     // multiple compressed portions together
     if (_currentPacketIsCompressed) {

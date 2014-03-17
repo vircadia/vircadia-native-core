@@ -79,7 +79,6 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
     if (bufferToAdd != listeningNodeBuffer) {
         // if the two buffer pointers do not match then these are different buffers
 
-        glm::vec3 listenerPosition = listeningNodeBuffer->getPosition();
         glm::vec3 relativePosition = bufferToAdd->getPosition() - listeningNodeBuffer->getPosition();
         glm::quat inverseOrientation = glm::inverse(listeningNodeBuffer->getOrientation());
 

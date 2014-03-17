@@ -313,7 +313,7 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
 
             // Since there are only three comparisons to do we unroll the sort algorithm...
             // and use a fifth slot as temp during swap.
-            if (points[4] > points[2]) {
+            if (points[1] > points[2]) {
                 points[4] = points[1];
                 points[1] = points[2];
                 points[2] = points[4];
