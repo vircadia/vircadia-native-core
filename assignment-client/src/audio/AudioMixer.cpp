@@ -301,7 +301,8 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
 
                 if ((*otherNode != *node
                      || otherNodeBuffer->shouldLoopbackForNode())
-                    && otherNodeBuffer->willBeAddedToMix()) {
+                    && otherNodeBuffer->willBeAddedToMix()
+                    && otherNodeClientData->getNextOutputLoudness() != 0) {
                     addBufferToMixForListeningNodeWithBuffer(otherNodeBuffer, nodeRingBuffer);
                 }
             }
@@ -355,12 +356,6 @@ void AudioMixer::run() {
 
     while (!_isFinished) {
 
-        QCoreApplication::processEvents();
-
-        if (_isFinished) {
-            break;
-        }
-
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
                 ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(JITTER_BUFFER_SAMPLES);
@@ -382,6 +377,12 @@ void AudioMixer::run() {
             if (node->getLinkedData()) {
                 ((AudioMixerClientData*) node->getLinkedData())->pushBuffersAfterFrameSend();
             }
+        }
+        
+        QCoreApplication::processEvents();
+        
+        if (_isFinished) {
+            break;
         }
 
         int usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
