@@ -18,6 +18,7 @@
 
 /// Generalized threaded processor for handling received inbound packets. 
 class ReceivedPacketProcessor : public GenericThread {
+    Q_OBJECT
 public:
     ReceivedPacketProcessor() { }
 
