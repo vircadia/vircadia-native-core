@@ -34,23 +34,65 @@ static int streamedBytesReceived = 0;
 static int sharedObjectsCreated = 0;
 static int sharedObjectsDestroyed = 0;
 
+static QByteArray createRandomBytes(int minimumSize, int maximumSize) {
+    QByteArray bytes(randIntInRange(minimumSize, maximumSize), 0);
+    for (int i = 0; i < bytes.size(); i++) {
+        bytes[i] = rand();
+    }
+    return bytes;
+}
+
+static QByteArray createRandomBytes() {
+    const int MIN_BYTES = 4;
+    const int MAX_BYTES = 16;
+    return createRandomBytes(MIN_BYTES, MAX_BYTES);
+}
+
 static bool testSerialization(Bitstream::MetadataType metadataType) {
     QByteArray array;
     QDataStream outStream(&array, QIODevice::WriteOnly);
     Bitstream out(outStream, metadataType);
-    SharedObjectPointer testObjectWritten = new TestSharedObjectA(randFloat());
-    out << testObjectWritten;
+    SharedObjectPointer testObjectWrittenA = new TestSharedObjectA(randFloat());
+    out << testObjectWrittenA;
+    SharedObjectPointer testObjectWrittenB = new TestSharedObjectB(randFloat(), createRandomBytes());
+    out << testObjectWrittenB;
+    QByteArray endWritten = "end";
+    out << endWritten;
     out.flush();
     
     QDataStream inStream(array);
     Bitstream in(inStream, metadataType);
-    SharedObjectPointer testObjectRead;
-    in >> testObjectRead;
+    in.addMetaObjectSubstitution("TestSharedObjectA", &TestSharedObjectB::staticMetaObject);
+    in.addMetaObjectSubstitution("TestSharedObjectB", &TestSharedObjectA::staticMetaObject);
+    SharedObjectPointer testObjectReadA, testObjectReadB;
+    in >> testObjectReadA >> testObjectReadB;
     
-    if (!testObjectWritten->equals(testObjectRead)) {
-        QDebug debug = qDebug() << "Read/write mismatch";
-        testObjectWritten->dump(debug);
-        testObjectRead->dump(debug);
+    if (!testObjectReadA || testObjectReadA->metaObject() != &TestSharedObjectB::staticMetaObject) {
+        qDebug() << "Wrong class for A" << testObjectReadA << metadataType;
+        return true;
+    }
+    if (metadataType == Bitstream::FULL_METADATA && static_cast<TestSharedObjectA*>(testObjectWrittenA.data())->getFoo() !=
+            static_cast<TestSharedObjectB*>(testObjectReadA.data())->getFoo()) {
+        QDebug debug = qDebug() << "Failed to transfer shared field from A to B";
+        testObjectWrittenA->dump(debug);
+        testObjectReadA->dump(debug); 
+    }
+    
+    if (!testObjectReadB || testObjectReadB->metaObject() != &TestSharedObjectA::staticMetaObject) {
+        qDebug() << "Wrong class for B" << testObjectReadB << metadataType;
+        return true;
+    }
+    if (metadataType == Bitstream::FULL_METADATA && static_cast<TestSharedObjectB*>(testObjectWrittenB.data())->getFoo() !=
+            static_cast<TestSharedObjectA*>(testObjectReadB.data())->getFoo()) {
+        QDebug debug = qDebug() << "Failed to transfer shared field from B to A";
+        testObjectWrittenB->dump(debug);
+        testObjectReadB->dump(debug); 
+    }
+    
+    QByteArray endRead;
+    in >> endRead;
+    if (endWritten != endRead) {
+        qDebug() << "End tag mismatch." << endRead;
         return true;
     }
     
@@ -98,20 +140,6 @@ bool MetavoxelTests::run() {
     qDebug() << "All tests passed!";
     
     return false;
-}
-
-static QByteArray createRandomBytes(int minimumSize, int maximumSize) {
-    QByteArray bytes(randIntInRange(minimumSize, maximumSize), 0);
-    for (int i = 0; i < bytes.size(); i++) {
-        bytes[i] = rand();
-    }
-    return bytes;
-}
-
-static QByteArray createRandomBytes() {
-    const int MIN_BYTES = 4;
-    const int MAX_BYTES = 16;
-    return createRandomBytes(MIN_BYTES, MAX_BYTES);
 }
 
 static SharedObjectPointer createRandomSharedObject() {
@@ -354,7 +382,9 @@ void TestSharedObjectA::setFoo(float foo) {
     }
 }
 
-TestSharedObjectB::TestSharedObjectB() {
+TestSharedObjectB::TestSharedObjectB(float foo, const QByteArray& bar) :
+        _foo(foo),
+        _bar(bar) {
     sharedObjectsCreated++;
 }
 

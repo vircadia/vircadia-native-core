@@ -107,6 +107,14 @@ Bitstream::Bitstream(QDataStream& underlying, MetadataType metadataType, QObject
     _sharedObjectStreamer(*this) {
 }
 
+void Bitstream::addMetaObjectSubstitution(const QByteArray& className, const QMetaObject* metaObject) {
+    _metaObjectSubstitutions.insert(className, metaObject);
+}
+
+void Bitstream::addTypeSubstitution(const QByteArray& typeName, int type) {
+    _typeStreamerSubstitutions.insert(typeName, getTypeStreamers().value(type));
+}
+
 const int LAST_BIT_POSITION = BITS_IN_BYTE - 1;
 
 Bitstream& Bitstream::write(const void* data, int bits, int offset) {
@@ -496,7 +504,10 @@ Bitstream& Bitstream::operator>(ObjectReader& objectReader) {
         objectReader = ObjectReader();
         return *this;
     }
-    const QMetaObject* metaObject = getMetaObjects().value(className);
+    const QMetaObject* metaObject = _metaObjectSubstitutions.value(className);
+    if (!metaObject) {
+        metaObject = getMetaObjects().value(className);
+    }
     if (!metaObject) {
         qWarning() << "Unknown class name: " << className << "\n";
     }
@@ -523,6 +534,7 @@ Bitstream& Bitstream::operator>(ObjectReader& objectReader) {
     // for hash metadata, check the names/types of the properties as well as the name hash against our own class
     if (_metadataType == HASH_METADATA) {
         QCryptographicHash hash(QCryptographicHash::Md5);
+        bool matches = true;
         if (metaObject) {
             int propertyIndex = 0;
             for (int i = 0; i < metaObject->propertyCount(); i++) {
@@ -536,21 +548,20 @@ Bitstream& Bitstream::operator>(ObjectReader& objectReader) {
                 }
                 if (propertyIndex >= properties.size() ||
                         !properties.at(propertyIndex).getReader().matchesExactly(typeStreamer)) {
-                    objectReader = ObjectReader(className, metaObject, properties);
-                    return *this;
+                    matches = false;
+                    break;
                 }
                 hash.addData(property.name(), strlen(property.name()) + 1); 
                 propertyIndex++;
             }
             if (propertyIndex != properties.size()) {
-                objectReader = ObjectReader(className, metaObject, properties);
-                return *this;
+                matches = false;
             }
         }
         QByteArray localHashResult = hash.result();
         QByteArray remoteHashResult(localHashResult.size(), 0);
         read(remoteHashResult.data(), remoteHashResult.size() * BITS_IN_BYTE);
-        if (metaObject && localHashResult == remoteHashResult) {
+        if (metaObject && matches && localHashResult == remoteHashResult) {
             objectReader = ObjectReader(className, metaObject, getPropertyReaders(metaObject));
             return *this;
         }
@@ -589,7 +600,10 @@ Bitstream& Bitstream::operator<(const TypeStreamer* streamer) {
 Bitstream& Bitstream::operator>(TypeReader& reader) {
     QByteArray typeName;
     *this >> typeName;
-    const TypeStreamer* streamer = getTypeStreamers().value(QMetaType::type(typeName.constData()));
+    const TypeStreamer* streamer = _typeStreamerSubstitutions.value(typeName);
+    if (!streamer) {
+        streamer = getTypeStreamers().value(QMetaType::type(typeName.constData()));
+    }
     if (!streamer) {
         qWarning() << "Unknown type name: " << typeName << "\n";
     }

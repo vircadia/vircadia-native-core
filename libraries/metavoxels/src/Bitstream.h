@@ -222,6 +222,12 @@ public:
     /// Creates a new bitstream.  Note: the stream may be used for reading or writing, but not both.
     Bitstream(QDataStream& underlying, MetadataType metadataType = NO_METADATA, QObject* parent = NULL);
 
+    /// Substitutes the supplied metaobject for the given class name's default mapping.
+    void addMetaObjectSubstitution(const QByteArray& className, const QMetaObject* metaObject);
+    
+    /// Substitutes the supplied type for the given type name's default mapping.
+    void addTypeSubstitution(const QByteArray& typeName, int type);
+
     /// Writes a set of bits to the underlying stream.
     /// \param bits the number of bits to write
     /// \param offset the offset of the first bit
@@ -362,6 +368,9 @@ private:
     RepeatedValueStreamer<SharedObjectPointer, SharedObject*> _sharedObjectStreamer;
 
     WeakSharedObjectHash _weakSharedObjectHash;
+
+    QHash<QByteArray, const QMetaObject*> _metaObjectSubstitutions;
+    QHash<QByteArray, const TypeStreamer*> _typeStreamerSubstitutions;
 
     static QHash<QByteArray, const QMetaObject*>& getMetaObjects();
     static QMultiHash<const QMetaObject*, const QMetaObject*>& getMetaObjectSubClasses();
