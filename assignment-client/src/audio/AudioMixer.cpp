@@ -368,8 +368,7 @@ void AudioMixer::run() {
                 && ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer()) {
                 prepareMixForListeningNode(node.data());
                 
-                _clientMixBuffer.replace(numBytesPacketHeader, NETWORK_BUFFER_LENGTH_BYTES_STEREO,
-                                         reinterpret_cast<char*>(_clientSamples));
+                memcpy(_clientMixBuffer.data() + numBytesPacketHeader, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
                 nodeList->writeDatagram(_clientMixBuffer, node);
             }
         }
