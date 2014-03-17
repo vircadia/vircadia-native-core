@@ -287,7 +287,7 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
     AvatarAudioRingBuffer* nodeRingBuffer = ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer();
 
     // zero out the client mix for this node
-    memset(_clientSamples, 0, sizeof(_clientSamples));
+    memset(_clientSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
 
     // loop through all other nodes that have sufficient audio to mix
     foreach (const SharedNodePointer& otherNode, NodeList::getInstance()->getNodeHash()) {
@@ -367,8 +367,9 @@ void AudioMixer::run() {
             if (node->getType() == NodeType::Agent && node->getActiveSocket() && node->getLinkedData()
                 && ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer()) {
                 prepareMixForListeningNode(node.data());
-
-                memcpy(_clientMixBuffer.data() + numBytesPacketHeader, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
+                
+                _clientMixBuffer.replace(numBytesPacketHeader, NETWORK_BUFFER_LENGTH_BYTES_STEREO,
+                                         reinterpret_cast<char*>(_clientSamples));
                 nodeList->writeDatagram(_clientMixBuffer, node);
             }
         }
