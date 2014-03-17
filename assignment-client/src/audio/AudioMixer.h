@@ -16,6 +16,8 @@
 class PositionalAudioRingBuffer;
 class AvatarAudioRingBuffer;
 
+const int SAMPLE_PHASE_DELAY_AT_90 = 20;
+
 /// Handles assignments of type AudioMixer - mixing streams of audio and re-distributing to various clients.
 class AudioMixer : public ThreadedAssignment {
     Q_OBJECT
@@ -38,7 +40,8 @@ private:
     
     QByteArray _clientMixBuffer;
     
-    int16_t _clientSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO];
+    // client samples capacity is larger than what will be sent to optimize mixing
+    int16_t _clientSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + SAMPLE_PHASE_DELAY_AT_90];
 };
 
 #endif /* defined(__hifi__AudioMixer__) */
