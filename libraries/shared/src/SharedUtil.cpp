@@ -631,8 +631,7 @@ void debug::setDeadBeef(void* memoryVoid, int size) {
 }
 
 void debug::checkDeadBeef(void* memoryVoid, int size) {
-    unsigned char* memoryAt = (unsigned char*)memoryVoid;
-    assert(memcmp(memoryAt, DEADBEEF, std::min(size, DEADBEEF_SIZE)) != 0);
+    assert(memcmp((unsigned char*)memoryVoid, DEADBEEF, std::min(size, DEADBEEF_SIZE)) != 0);
 }
 
 //  Safe version of glm::eulerAngles; uses the factorization method described in David Eberly's

@@ -269,7 +269,7 @@ private:
     unsigned int _incomingLate; /// out of order later than expected
     unsigned int _incomingReallyLate; /// out of order and later than MAX_MISSING_SEQUENCE_OLD_AGE late
     unsigned int _incomingPossibleDuplicate; /// out of order possibly a duplicate
-    QSet<unsigned int> _missingSequenceNumbers;
+    QSet<uint16_t> _missingSequenceNumbers;
     SimpleMovingAverage _incomingFlightTimeAverage;
     
     // features related items

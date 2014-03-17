@@ -288,7 +288,7 @@ int AvatarData::parseData(const QByteArray& packet) {
     // joint data
     int jointCount = *sourceBuffer++;
     _jointData.resize(jointCount);
-    unsigned char validity;
+    unsigned char validity = 0; // although always set below, this fixes a warning of potential uninitialized use
     int validityBit = 0;
     for (int i = 0; i < jointCount; i++) {
         if (validityBit == 0) {

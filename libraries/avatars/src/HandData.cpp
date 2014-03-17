@@ -217,11 +217,12 @@ int HandData::decodeRemoteData(const QByteArray& dataByteArray) {
         palm.setActive(false);
     }
     
-    // One byte for error checking safety.
-    unsigned char requiredLength = (unsigned char)(sourceBuffer - startPosition);
-    unsigned char checkLength = *sourceBuffer++;
-    assert(checkLength == requiredLength);
-    
+    // One byte for error checking safety. Last byte contains the expected length (less itself)
+    // actualLength less expected byte = (sourceBuffer - startPosition)
+    // expectedLength less expected byte = (*sourceBuffer)
+    assert((unsigned char)(sourceBuffer - startPosition) == (unsigned char)(*sourceBuffer));
+    sourceBuffer++; // skip the trailing byte which is expected length
+
     return sourceBuffer - startPosition;
 }
 
