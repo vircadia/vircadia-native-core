@@ -24,10 +24,16 @@ public:
     QStringList bases;
 };
 
+class Field {
+public:
+    QString type;
+    QString name;
+};
+
 class Streamable {
 public:
     Class clazz;
-    QStringList fields;
+    QList<Field> fields;
 };
 
 void processInput(QTextStream& in, QList<Streamable>* streamables) {
@@ -66,8 +72,10 @@ void processInput(QTextStream& in, QList<Streamable>* streamables) {
 
         } else if (match.startsWith("STREAM")) {
             match.chop(1); // get rid of the semicolon
-            match = match.trimmed(); // and any space before it
-            currentStreamable.fields.append(match.mid(match.lastIndexOf(' ') + 1));
+            match = match.mid(match.indexOf(' ') + 1).trimmed(); // and STREAM, and any space before it
+            int index = match.lastIndexOf(' ');
+            Field field = { match.left(index).simplified(), match.mid(index + 1) };
+            currentStreamable.fields.append(field);
 
         } else { // match.startsWith("class")
             classExp.exactMatch(match);
@@ -90,12 +98,42 @@ void generateOutput (QTextStream& out, const QList<Streamable>& streamables) {
     foreach (const Streamable& str, streamables) {
         const QString& name = str.clazz.name;
 
+        out << "const int " << name << "::Type = registerStreamableMetaType<" << name << ">();\n";
+
+        out << "int " << name << "::getFieldCount() {\n";
+        out << "    return " << str.fields.size();
+        foreach(const QString& base, str.clazz.bases) {
+            out << " + " << base << "::getFieldCount()";
+        }
+        out << ";\n";
+        out << "}\n";
+
+        out << "void " << name << "::setFieldValue(int index, const QVariant& value) {\n";
+        if (!str.clazz.bases.isEmpty()) {
+            out << "    int nextIndex;\n";
+        }
+        foreach (const QString& base, str.clazz.bases) {
+            out << "    if ((nextIndex = index - " << base << "::getFieldCount()) < 0) {\n";
+            out << "        " << base << "::setFieldValue(index, value);\n";
+            out << "        return;\n";
+            out << "    }\n";
+            out << "    index = nextIndex;\n";        
+        }
+        out << "    switch (index) {\n";
+        for (int i = 0; i < str.fields.size(); i++) {
+            out << "        case " << i << ":\n";
+            out << "            this->" << str.fields.at(i).name << " = value.value<" << str.fields.at(i).type << ">();\n";
+            out << "            break;\n";
+        }
+        out << "    }\n";
+        out << "}\n";
+
         out << "Bitstream& operator<<(Bitstream& out, const " << name << "& obj) {\n";
         foreach (const QString& base, str.clazz.bases) {
             out << "    out << static_cast<const " << base << "&>(obj);\n";
         }
-        foreach (const QString& field, str.fields) {
-            out << "    out << obj." << field << ";\n";
+        foreach (const Field& field, str.fields) {
+            out << "    out << obj." << field.name << ";\n";
         }
         out << "    return out;\n";
         out << "}\n";
@@ -104,8 +142,8 @@ void generateOutput (QTextStream& out, const QList<Streamable>& streamables) {
         foreach (const QString& base, str.clazz.bases) {
             out << "    in >> static_cast<" << base << "&>(obj);\n";
         }
-        foreach (const QString& field, str.fields) {
-            out << "    in >> obj." << field << ";\n";
+        foreach (const Field& field, str.fields) {
+            out << "    in >> obj." << field.name << ";\n";
         }
         out << "    return in;\n";
         out << "}\n";
@@ -124,12 +162,12 @@ void generateOutput (QTextStream& out, const QList<Streamable>& streamables) {
                 out << "static_cast<const " << base << "&>(first) == static_cast<const " << base << "&>(second)";
                 first = false;
             }
-            foreach (const QString& field, str.fields) {
+            foreach (const Field& field, str.fields) {
                 if (!first) {
                     out << " &&\n";
                     out << "        ";
                 }
-                out << "first." << field << " == second." << field;    
+                out << "first." << field.name << " == second." << field.name;    
                 first = false;
             }
         }
@@ -150,19 +188,17 @@ void generateOutput (QTextStream& out, const QList<Streamable>& streamables) {
                 out << "static_cast<const " << base << "&>(first) != static_cast<const " << base << "&>(second)";
                 first = false;
             }
-            foreach (const QString& field, str.fields) {
+            foreach (const Field& field, str.fields) {
                 if (!first) {
                     out << " ||\n";
                     out << "        ";
                 }
-                out << "first." << field << " != second." << field;    
+                out << "first." << field.name << " != second." << field.name;    
                 first = false;
             }
         }
         out << ";\n";
-        out << "}\n";
-        
-        out << "const int " << name << "::Type = registerStreamableMetaType<" << name << ">();\n\n";
+        out << "}\n\n";
     }
 }
 

@@ -29,6 +29,8 @@ class MetavoxelStreamState;
 
 typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
 
+Q_DECLARE_METATYPE(AttributePointer)
+
 /// Maintains information about metavoxel attribute types.
 class AttributeRegistry {
 public:
@@ -149,6 +151,8 @@ public:
     /// Destroys the current value, if any, and copies the specified other value.
     OwnedAttributeValue& operator=(const OwnedAttributeValue& other);
 };
+
+Q_DECLARE_METATYPE(OwnedAttributeValue)
 
 /// Represents a registered attribute.
 class Attribute : public SharedObject {

@@ -17,6 +17,9 @@ REGISTER_META_OBJECT(SharedObjectAttribute)
 REGISTER_META_OBJECT(SharedObjectSetAttribute)
 REGISTER_META_OBJECT(SpannerSetAttribute)
 
+static int attributePointerMetaTypeId = qRegisterMetaType<AttributePointer>();
+static int ownedAttributeValueMetaTypeId = qRegisterMetaType<OwnedAttributeValue>();
+
 AttributeRegistry* AttributeRegistry::getInstance() {
     static AttributeRegistry registry;
     return &registry;

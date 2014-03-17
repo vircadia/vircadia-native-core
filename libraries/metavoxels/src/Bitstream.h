@@ -537,7 +537,11 @@ template<class T> int registerStreamableMetaType() {
 }
 
 /// Flags a class as streamable (use as you would Q_OBJECT).
-#define STREAMABLE public: static const int Type; private:
+#define STREAMABLE public: \
+    static const int Type; \
+    static int getFieldCount(); \
+    void setFieldValue(int index, const QVariant& value); \
+    private:
 
 /// Flags a field or base class as streaming.
 #define STREAM
