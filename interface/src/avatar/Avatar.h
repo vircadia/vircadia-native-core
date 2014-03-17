@@ -133,7 +133,7 @@ public:
 
     void setShowDisplayName(bool showDisplayName);
     
-    int parseData(const QByteArray& packet);
+    int parseDataAtOffset(const QByteArray& packet, int offset);
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
 

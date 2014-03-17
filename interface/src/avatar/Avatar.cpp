@@ -633,11 +633,11 @@ void Avatar::setBillboard(const QByteArray& billboard) {
     _billboardTexture.reset();
 }
 
-int Avatar::parseData(const QByteArray& packet) {
+int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
     // change in position implies movement
     glm::vec3 oldPosition = _position;
     
-    int bytesRead = AvatarData::parseData(packet);
+    int bytesRead = AvatarData::parseDataAtOffset(packet, offset);
     
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, _position) > MOVE_DISTANCE_THRESHOLD;

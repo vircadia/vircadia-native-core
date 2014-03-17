@@ -9,8 +9,15 @@
 #include "AvatarMixerClientData.h"
 
 AvatarMixerClientData::AvatarMixerClientData() :
+    NodeData(),
     _hasSentIdentityBetweenKeyFrames(false),
     _hasSentBillboardBetweenKeyFrames(false)
 {
     
+}
+
+int AvatarMixerClientData::parseData(const QByteArray& packet) {
+    // increment to push past the packet header
+    int offset = numBytesForPacketHeader(packet);
+    return _avatar.parseDataAtOffset(packet, offset);
 }

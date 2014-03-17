@@ -29,7 +29,6 @@ using namespace std;
 QNetworkAccessManager* AvatarData::networkAccessManager = NULL;
 
 AvatarData::AvatarData() :
-    NodeData(),
     _handPosition(0,0,0),
     _bodyYaw(-90.f),
     _bodyPitch(0.0f),
@@ -184,8 +183,8 @@ QByteArray AvatarData::toByteArray() {
     return avatarDataByteArray.left(destinationBuffer - startPosition);
 }
 
-// called on the other nodes - assigns it to my views of the others
-int AvatarData::parseData(const QByteArray& packet) {
+// read data in packet starting at byte offset and return number of bytes parsed
+int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
 
     // lazily allocate memory for HeadData in case we're not an Avatar instance
     if (!_headData) {
@@ -197,9 +196,8 @@ int AvatarData::parseData(const QByteArray& packet) {
         _handData = new HandData(this);
     }
     
-    // increment to push past the packet header
     const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(packet.data());
-    const unsigned char* sourceBuffer = startPosition + numBytesForPacketHeader(packet);
+    const unsigned char* sourceBuffer = startPosition + offset;
     
     // Body world position
     memcpy(&_position, sourceBuffer, sizeof(float) * 3);
@@ -288,13 +286,13 @@ int AvatarData::parseData(const QByteArray& packet) {
     // joint data
     int jointCount = *sourceBuffer++;
     _jointData.resize(jointCount);
-    unsigned char validity = 0; // although always set below, this fixes a warning of potential uninitialized use
+    unsigned char validity = 0;
     int validityBit = 0;
     for (int i = 0; i < jointCount; i++) {
         if (validityBit == 0) {
             validity = *sourceBuffer++;
         }   
-        _jointData[i].valid = validity & (1 << validityBit);
+        _jointData[i].valid = (bool)(validity & (1 << validityBit));
         validityBit = (validityBit + 1) % BITS_IN_BYTE; 
     }
     for (int i = 0; i < jointCount; i++) {
