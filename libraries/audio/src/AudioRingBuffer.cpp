@@ -60,7 +60,7 @@ float AudioRingBuffer::averageLoudnessForBoundarySamples(int numSamples) {
     float averageLoudness = 0;
     
     for (int i = 0; i < numSamples; ++i) {
-        averageLoudness += _nextOutput[i];
+        averageLoudness += fabsf(_nextOutput[i]);
     }
     
     averageLoudness /= numSamples;
