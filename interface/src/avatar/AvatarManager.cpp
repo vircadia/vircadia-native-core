@@ -77,7 +77,7 @@ void AvatarManager::renderAvatars(bool forShadowMapOrMirror, bool selfAvatarOnly
                             "Application::renderAvatars()");
     bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors);
     
-  
+    glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
 
     if (!selfAvatarOnly) {
         foreach (const AvatarSharedPointer& avatarPointer, _avatarHash) {
@@ -85,17 +85,13 @@ void AvatarManager::renderAvatars(bool forShadowMapOrMirror, bool selfAvatarOnly
             if (!avatar->isInitialized()) {
                 continue;
             }
-            if (avatar == static_cast<Avatar*>(_myAvatar.data())) {
-                _myAvatar->render(forShadowMapOrMirror);
-            } else {
-                avatar->render(forShadowMapOrMirror);
-            }
+            avatar->render(cameraPosition, forShadowMapOrMirror);
             avatar->setDisplayingLookatVectors(renderLookAtVectors);
         }
-        renderAvatarFades(forShadowMapOrMirror);
+        renderAvatarFades(cameraPosition, forShadowMapOrMirror);
     } else {
         // just render myAvatar
-        _myAvatar->render(forShadowMapOrMirror);
+        _myAvatar->render(cameraPosition, forShadowMapOrMirror);
         _myAvatar->setDisplayingLookatVectors(renderLookAtVectors);
     }
 }
@@ -118,13 +114,15 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     }
 }
 
-void AvatarManager::renderAvatarFades(bool forShadowMap) {
+void AvatarManager::renderAvatarFades(const glm::vec3& cameraPosition, bool forShadowMap) {
     // render avatar fades
     Glower glower(forShadowMap ? 0.0f : 1.0f);
     
     foreach(const AvatarSharedPointer& fadingAvatar, _avatarFades) {
         Avatar* avatar = static_cast<Avatar*>(fadingAvatar.data());
-        avatar->render(forShadowMap);
+        if (avatar != static_cast<Avatar*>(_myAvatar.data())) {
+            avatar->render(cameraPosition, forShadowMap);
+        }
     }
 }
 

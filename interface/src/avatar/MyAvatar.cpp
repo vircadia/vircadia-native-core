@@ -453,68 +453,14 @@ void MyAvatar::renderDebugBodyPoints() {
 
 
 }
-void MyAvatar::render(bool forShadowMapOrMirror) {
+
+// virtual
+void MyAvatar::render(const glm::vec3& cameraPosition, bool forShadowMapOrMirror) {
     // don't render if we've been asked to disable local rendering
     if (!_shouldRender) {
         return; // exit early
     }
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
-        renderBody(forShadowMapOrMirror);
-    }
-    // render body
-    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
-        _skeletonModel.renderCollisionProxies(0.8f);
-    }
-    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionProxies)) {
-        getHead()->getFaceModel().renderCollisionProxies(0.8f);
-    }
-    setShowDisplayName(!forShadowMapOrMirror);
-    if (forShadowMapOrMirror) {
-        return;
-    }
-    renderDisplayName();
-
-    if (!_chatMessage.empty()) {
-        int width = 0;
-        int lastWidth = 0;
-        for (string::iterator it = _chatMessage.begin(); it != _chatMessage.end(); it++) {
-            width += (lastWidth = textRenderer()->computeWidth(*it));
-        }
-        glPushMatrix();
-
-        glm::vec3 chatPosition = getHead()->getEyePosition() + getBodyUpDirection() * CHAT_MESSAGE_HEIGHT * _scale;
-        glTranslatef(chatPosition.x, chatPosition.y, chatPosition.z);
-        glm::quat chatRotation = Application::getInstance()->getCamera()->getRotation();
-        glm::vec3 chatAxis = glm::axis(chatRotation);
-        glRotatef(glm::degrees(glm::angle(chatRotation)), chatAxis.x, chatAxis.y, chatAxis.z);
-
-        glColor3f(0.f, 0.8f, 0.f);
-        glRotatef(180.f, 0.f, 1.f, 0.f);
-        glRotatef(180.f, 0.f, 0.f, 1.f);
-        glScalef(_scale * CHAT_MESSAGE_SCALE, _scale * CHAT_MESSAGE_SCALE, 1.0f);
-
-        glDisable(GL_LIGHTING);
-        glDepthMask(false);
-        if (_keyState == NO_KEY_DOWN) {
-            textRenderer()->draw(-width / 2.0f, 0, _chatMessage.c_str());
-
-        } else {
-            // rather than using substr and allocating a new string, just replace the last
-            // character with a null, then restore it
-            int lastIndex = _chatMessage.size() - 1;
-            char lastChar = _chatMessage[lastIndex];
-            _chatMessage[lastIndex] = '\0';
-            textRenderer()->draw(-width / 2.0f, 0, _chatMessage.c_str());
-            _chatMessage[lastIndex] = lastChar;
-            glColor3f(0.f, 1.f, 0.f);
-            textRenderer()->draw(width / 2.0f - lastWidth, 0, _chatMessage.c_str() + lastIndex);
-        }
-        glEnable(GL_LIGHTING);
-        glDepthMask(true);
-
-        glPopMatrix();
-    }
+    Avatar::render(cameraPosition, forShadowMapOrMirror);
 }
 
 void MyAvatar::renderHeadMouse() const {

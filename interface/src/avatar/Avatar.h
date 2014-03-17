@@ -74,7 +74,7 @@ public:
 
     void init();
     void simulate(float deltaTime);
-    void render(bool forShadowMap = false);
+    virtual void render(const glm::vec3& cameraPosition, bool forShadowMap);
 
     //setters
     void setDisplayingLookatVectors(bool displayingLookatVectors) { getHead()->setRenderLookatVectors(displayingLookatVectors); }
@@ -181,6 +181,7 @@ protected:
     float getPelvisToHeadLength() const;
 
     void renderDisplayName();
+    virtual void renderBody(bool forShadowMap);
 
 private:
 
@@ -189,7 +190,6 @@ private:
     bool _shouldRenderBillboard;
     bool _modelsDirty;
 
-    void renderBody();
     void renderBillboard();
     
     float getBillboardSize() const;

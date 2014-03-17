@@ -189,55 +189,60 @@ static TextRenderer* textRenderer(TextRendererType type) {
     return displayNameRenderer;
 }
 
-void Avatar::render(bool forShadowMap) {
+void Avatar::render(const glm::vec3& cameraPosition, bool forShadowMap) {
     // simple frustum check
     float boundingRadius = getBillboardSize();
-    if (Application::getInstance()->getViewFrustum()->sphereInFrustum(_position, boundingRadius) == ViewFrustum::OUTSIDE) {
+    if (Application::getInstance()->getViewFrustum()->sphereInFrustum(cameraPosition, boundingRadius) == ViewFrustum::OUTSIDE) {
         return;
     }
 
-    glm::vec3 toTarget = _position - Application::getInstance()->getAvatar()->getPosition();
-    float lengthToTarget = glm::length(toTarget);
+    glm::vec3 toTarget = cameraPosition - Application::getInstance()->getAvatar()->getPosition();
+    float distanceToTarget = glm::length(toTarget);
    
     {
-        // glow when moving in the distance
-        
+        // glow when moving far away
         const float GLOW_DISTANCE = 20.0f;
-        Glower glower(_moving && lengthToTarget > GLOW_DISTANCE && !forShadowMap ? 1.0f : 0.0f);
+        Glower glower(_moving && distanceToTarget > GLOW_DISTANCE && !forShadowMap ? 1.0f : 0.0f);
 
         // render body
+        if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
+            renderBody(forShadowMap);
+        }
         if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
             _skeletonModel.renderCollisionProxies(0.7f);
         }
         if (Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionProxies)) {
             getHead()->getFaceModel().renderCollisionProxies(0.7f);
         }
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
-            renderBody();
-        }
 
-        // render voice intensity sphere for avatars that are farther away
-        const float MAX_SPHERE_ANGLE = 10.f * RADIANS_PER_DEGREE;
-        const float MIN_SPHERE_ANGLE = 1.f * RADIANS_PER_DEGREE;
-        const float MIN_SPHERE_SIZE = 0.01f;
-        const float SPHERE_LOUDNESS_SCALING = 0.0005f;
-        const float SPHERE_COLOR[] = { 0.5f, 0.8f, 0.8f };
-        float height = getSkeletonHeight();
-        glm::vec3 delta = height * (getHead()->getCameraOrientation() * IDENTITY_UP) / 2.f;
-        float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
-        float sphereRadius = getHead()->getAverageLoudness() * SPHERE_LOUDNESS_SCALING;
-        
-        if (!forShadowMap && (sphereRadius > MIN_SPHERE_SIZE) && (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
-            glColor4f(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.f - angle / MAX_SPHERE_ANGLE);
-            glPushMatrix();
-            glTranslatef(_position.x, _position.y, _position.z);
-            glScalef(height, height, height);
-            glutSolidSphere(sphereRadius, 15, 15);
-            glPopMatrix();
+        // quick check before falling into the code below:
+        // (a 10 degree breadth of an almost 2 meter avatar kicks in at about 12m)
+        const float MIN_VOICE_SPHERE_DISTANCE = 12.f;
+        if (distanceToTarget > MIN_VOICE_SPHERE_DISTANCE) {
+            // render voice intensity sphere for avatars that are farther away
+            const float MAX_SPHERE_ANGLE = 10.f * RADIANS_PER_DEGREE;
+            const float MIN_SPHERE_ANGLE = 1.f * RADIANS_PER_DEGREE;
+            const float MIN_SPHERE_SIZE = 0.01f;
+            const float SPHERE_LOUDNESS_SCALING = 0.0005f;
+            const float SPHERE_COLOR[] = { 0.5f, 0.8f, 0.8f };
+            float height = getSkeletonHeight();
+            glm::vec3 delta = height * (getHead()->getCameraOrientation() * IDENTITY_UP) / 2.f;
+            float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
+            float sphereRadius = getHead()->getAverageLoudness() * SPHERE_LOUDNESS_SCALING;
+            
+            if (!forShadowMap && (sphereRadius > MIN_SPHERE_SIZE) && (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
+                glColor4f(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.f - angle / MAX_SPHERE_ANGLE);
+                glPushMatrix();
+                glTranslatef(_position.x, _position.y, _position.z);
+                glScalef(height, height, height);
+                glutSolidSphere(sphereRadius, 15, 15);
+                glPopMatrix();
+            }
         }
     }
+
     const float DISPLAYNAME_DISTANCE = 10.0f;
-    setShowDisplayName(!forShadowMap && lengthToTarget < DISPLAYNAME_DISTANCE);
+    setShowDisplayName(!forShadowMap && distanceToTarget < DISPLAYNAME_DISTANCE);
     if (forShadowMap) {
         return;
     }
@@ -256,7 +261,6 @@ void Avatar::render(bool forShadowMap) {
         glm::quat chatRotation = Application::getInstance()->getCamera()->getRotation();
         glm::vec3 chatAxis = glm::axis(chatRotation);
         glRotatef(glm::degrees(glm::angle(chatRotation)), chatAxis.x, chatAxis.y, chatAxis.z);
-        
         
         glColor3f(0.f, 0.8f, 0.f);
         glRotatef(180.f, 0.f, 1.f, 0.f);
@@ -302,9 +306,12 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::renderBody() {    
+void Avatar::renderBody(bool forShadowMap) {    
     if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         // render the billboard until both models are loaded
+        if (forShadowMap) {
+            return;
+        }
         renderBillboard();
         return;
     }
