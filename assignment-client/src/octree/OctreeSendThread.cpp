@@ -117,7 +117,7 @@ int OctreeSendThread::handlePacketSend(const SharedNodePointer& node, OctreeQuer
     quint64 lockWaitEnd = usecTimestampNow();
     float lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
     OctreeServer::trackNodeWaitTime(lockWaitElapsedUsec);
-
+    
     const HifiSockAddr* nodeAddress = node->getActiveSocket();
     if (!nodeAddress) {
         return packetsSent; // without sending...
@@ -452,15 +452,13 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
                 _myServer->getOctree()->lockForRead();
                 quint64 lockWaitEnd = usecTimestampNow();
                 lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
-                OctreeServer::trackTreeWaitTime(lockWaitElapsedUsec);
-                
+
                 nodeData->stats.encodeStarted();
 
                 quint64 encodeStart = usecTimestampNow();
                 bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->nodeBag, params);
                 quint64 encodeEnd = usecTimestampNow();
                 encodeElapsedUsec = (float)(encodeEnd - encodeStart);
-                OctreeServer::trackEncodeTime(encodeElapsedUsec);
 
                 // If after calling encodeTreeBitstream() there are no nodes left to send, then we know we've
                 // sent the entire scene. We want to know this below so we'll actually write this content into

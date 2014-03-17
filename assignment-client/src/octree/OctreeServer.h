@@ -83,8 +83,9 @@ public:
     static void trackInsideTime(float time) { _averageInsideTime.updateAverage(time); }
     static float getAverageInsideTime() { return _averageInsideTime.getAverage(); }
 
-    static void trackTreeWaitTime(float time) { _averageTreeWaitTime.updateAverage(time); }
+    static void trackTreeWaitTime(float time);
     static float getAverageTreeWaitTime() { return _averageTreeWaitTime.getAverage(); }
+
     static void trackNodeWaitTime(float time) { _averageNodeWaitTime.updateAverage(time); }
     static float getAverageNodeWaitTime() { return _averageNodeWaitTime.getAverage(); }
 
@@ -95,6 +96,7 @@ public:
     static float getAveragePacketSendingTime() { return _averagePacketSendingTime.getAverage(); }
 
     bool handleHTTPRequest(HTTPConnection* connection, const QString& path);
+    
 public slots:
     /// runs the voxel server assignment
     void run();
@@ -105,6 +107,7 @@ public slots:
 protected:
     void parsePayload();
     void initHTTPManager(int port);
+    void resetSendingStats();
 
     int _argc;
     const char** _argv;
@@ -135,9 +138,15 @@ protected:
     static SimpleMovingAverage _averageEncodeTime;
     static SimpleMovingAverage _averageInsideTime;
     static SimpleMovingAverage _averageTreeWaitTime;
+    static SimpleMovingAverage _averageTreeShortWaitTime;
+    static SimpleMovingAverage _averageTreeLongWaitTime;
+    static SimpleMovingAverage _averageTreeExtraLongWaitTime;
     static SimpleMovingAverage _averageNodeWaitTime;
     static SimpleMovingAverage _averageCompressAndWriteTime;
     static SimpleMovingAverage _averagePacketSendingTime;
+    static int _extraLongTreeWait;
+    static int _longTreeWait;
+    static int _shortTreeWait;
 };
 
 #endif // __octree_server__OctreeServer__
