@@ -42,6 +42,8 @@ int SimpleMovingAverage::updateAverage(float sample) {
 
 void SimpleMovingAverage::reset() {
     _numSamples = 0;
+    _average = 0;
+    _eventDeltaAverage = 0;
 }
 
 float SimpleMovingAverage::getEventDeltaAverage() const {
