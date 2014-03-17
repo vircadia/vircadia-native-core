@@ -19,6 +19,7 @@
 #include <QLineEdit>
 #include <QMainWindow>
 #include <QMenuBar>
+#include <QMessageBox>
 #include <QShortcut>
 #include <QSlider>
 #include <QStandardPaths>
@@ -35,6 +36,7 @@
 #include "Util.h"
 #include "InfoView.h"
 #include "ui/MetavoxelEditor.h"
+
 
 Menu* Menu::_instance = NULL;
 
@@ -78,7 +80,7 @@ Menu::Menu() :
     _loginAction(NULL)
 {
     Application *appInstance = Application::getInstance();
-
+    
     QMenu* fileMenu = addMenu("File");
 
 #ifdef Q_OS_MAC
@@ -116,13 +118,18 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::GoToDomain,
                                   Qt::CTRL | Qt::Key_D,
-                                   this,
-                                   SLOT(goToDomainDialog()));
+                                  this,
+                                  SLOT(goToDomainDialog()));
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::GoToLocation,
                                   Qt::CTRL | Qt::SHIFT | Qt::Key_L,
-                                   this,
-                                   SLOT(goToLocation()));
+                                  this,
+                                  SLOT(goToLocation()));
+    addActionToQMenuAndActionHash(fileMenu,
+                                  MenuOption::NameLocation,
+                                  Qt::CTRL | Qt::Key_N,
+                                  this,
+                                  SLOT(nameLocation()));
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::GoTo,
                                   Qt::Key_At,
@@ -272,11 +279,16 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu,
-                                           MenuOption::FaceshiftTCP,
+                                           MenuOption::Faceshift,
                                            0,
-                                           false,
+                                           true,
                                            appInstance->getFaceshift(),
                                            SLOT(setTCPEnabled(bool)));
+#ifdef HAVE_VISAGE
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Visage, 0, true,
+        appInstance->getVisage(), SLOT(updateEnabled()));
+#endif
+
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, false);
 
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
@@ -416,6 +428,7 @@ void Menu::saveSettings(QSettings* settings) {
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
     NodeList::getInstance()->saveData(settings);
+
 }
 
 void Menu::importSettings() {
@@ -859,67 +872,11 @@ void Menu::goToDomainDialog() {
 }
 
 void Menu::goToOrientation(QString orientation) {
-    
-    if (orientation.isEmpty()) {
-        return;
-    }
-    
-    QStringList orientationItems = orientation.split(QRegExp("_|,"), QString::SkipEmptyParts);
-    
-    const int NUMBER_OF_ORIENTATION_ITEMS = 4;
-    const int W_ITEM = 0;
-    const int X_ITEM = 1;
-    const int Y_ITEM = 2;
-    const int Z_ITEM = 3;
-    
-    if (orientationItems.size() == NUMBER_OF_ORIENTATION_ITEMS) {
-        
-        double w = replaceLastOccurrence('-', '.', orientationItems[W_ITEM].trimmed()).toDouble();
-        double x = replaceLastOccurrence('-', '.', orientationItems[X_ITEM].trimmed()).toDouble();
-        double y = replaceLastOccurrence('-', '.', orientationItems[Y_ITEM].trimmed()).toDouble();
-        double z = replaceLastOccurrence('-', '.', orientationItems[Z_ITEM].trimmed()).toDouble();
-        
-        glm::quat newAvatarOrientation(w, x, y, z);
-        
-        MyAvatar* myAvatar = Application::getInstance()->getAvatar();
-        glm::quat avatarOrientation = myAvatar->getOrientation();
-        if (newAvatarOrientation != avatarOrientation) {
-            myAvatar->setOrientation(newAvatarOrientation);
-        }
-    }
+    LocationManager::getInstance().goToDestination(orientation);
 }
 
 bool Menu::goToDestination(QString destination) {
-    
-    QStringList coordinateItems = destination.split(QRegExp("_|,"), QString::SkipEmptyParts);
-    
-    const int NUMBER_OF_COORDINATE_ITEMS = 3;
-    const int X_ITEM = 0;
-    const int Y_ITEM = 1;
-    const int Z_ITEM = 2;
-    if (coordinateItems.size() == NUMBER_OF_COORDINATE_ITEMS) {
-        
-        double x = replaceLastOccurrence('-', '.', coordinateItems[X_ITEM].trimmed()).toDouble();
-        double y = replaceLastOccurrence('-', '.', coordinateItems[Y_ITEM].trimmed()).toDouble();
-        double z = replaceLastOccurrence('-', '.', coordinateItems[Z_ITEM].trimmed()).toDouble();
-        
-        glm::vec3 newAvatarPos(x, y, z);
-        
-        MyAvatar* myAvatar = Application::getInstance()->getAvatar();
-        glm::vec3 avatarPos = myAvatar->getPosition();
-        if (newAvatarPos != avatarPos) {
-            // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-            MyAvatar::sendKillAvatar();
-            
-            qDebug("Going To Location: %f, %f, %f...", x, y, z);
-            myAvatar->setPosition(newAvatarPos);
-        }
-        
-        return true;
-    }
-    
-    // no coordinates were parsed
-    return false;
+    return LocationManager::getInstance().goToDestination(destination);
 }
 
 void Menu::goTo() {
@@ -934,23 +891,31 @@ void Menu::goTo() {
     
     int dialogReturn = gotoDialog.exec();
     if (dialogReturn == QDialog::Accepted && !gotoDialog.textValue().isEmpty()) {
-        
-        destination = gotoDialog.textValue();
-        
-        // go to coordinate destination or to Username
-        if (!goToDestination(destination)) {
-            JSONCallbackParameters callbackParams;
-            callbackParams.jsonCallbackReceiver = Application::getInstance()->getAvatar();
-            callbackParams.jsonCallbackMethod = "goToLocationFromResponse";
-            
-            // there's a username entered by the user, make a request to the data-server for the associated location
-            AccountManager::getInstance().authenticatedRequest("/api/v1/users/" + gotoDialog.textValue() + "/address",
-                                                               QNetworkAccessManager::GetOperation,
-                                                               callbackParams);
-        }
+        LocationManager* manager = &LocationManager::getInstance();
+        manager->goTo(gotoDialog.textValue());
+        connect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
     }
     
     sendFakeEnterEvent();
+}
+
+void Menu::multipleDestinationsDecision(const QJsonObject& userData, const QJsonObject& placeData) {
+    QMessageBox msgBox;
+    msgBox.setText("Both user and location exists with same name");
+    msgBox.setInformativeText("Where you wanna go?");
+    msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Open);
+    msgBox.button(QMessageBox::Ok)->setText("User");
+    msgBox.button(QMessageBox::Open)->setText("Place");
+    int userResponse = msgBox.exec();
+
+    if (userResponse == QMessageBox::Ok) {
+        Application::getInstance()->getAvatar()->goToLocationFromResponse(userData);
+    } else if (userResponse == QMessageBox::Open) {
+        Application::getInstance()->getAvatar()->goToLocationFromResponse(userData);
+    }
+
+    LocationManager* manager = reinterpret_cast<LocationManager*>(sender());
+    disconnect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
 }
 
 void Menu::goToLocation() {
@@ -973,6 +938,69 @@ void Menu::goToLocation() {
     }
 
     sendFakeEnterEvent();
+}
+
+void Menu::namedLocationCreated(LocationManager::NamedLocationCreateResponse response) {
+
+    if (response == LocationManager::Created) {
+        return;
+    }
+
+    QMessageBox msgBox;
+    switch (response) {
+        case LocationManager::AlreadyExists:
+            msgBox.setText("That name has been already claimed, try something else.");
+            break;
+        default:
+            msgBox.setText("An unexpected error has occurred, please try again later.");
+            break;
+    }
+
+    msgBox.exec();
+}
+
+void Menu::nameLocation() {
+    // check if user is logged in or show login dialog if not
+
+    AccountManager& accountManager = AccountManager::getInstance();
+    if (!accountManager.isLoggedIn()) {
+        QMessageBox msgBox;
+        msgBox.setText("We need to tie this location to your username.");
+        msgBox.setInformativeText("Please login first, then try naming the location again.");
+        msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+        msgBox.button(QMessageBox::Ok)->setText("Login");
+        if (msgBox.exec() == QMessageBox::Ok) {
+            loginForCurrentDomain();
+        }
+
+        return;
+    }
+
+    QInputDialog nameDialog(Application::getInstance()->getWindow());
+    nameDialog.setWindowTitle("Name this location");
+    nameDialog.setLabelText("Name this location, then share that name with others.\n"
+                            "When they come here, they'll be in the same location and orientation\n"
+                            "(wherever you are standing and looking now) as you.\n\n"
+                            "Location name:");
+
+    nameDialog.setWindowFlags(Qt::Sheet);
+    nameDialog.resize((int) (nameDialog.parentWidget()->size().width() * 0.30), nameDialog.size().height());
+
+    if (nameDialog.exec() == QDialog::Accepted) {
+
+        QString locationName = nameDialog.textValue().trimmed();
+        if (locationName.isEmpty()) {
+            return;
+        }
+
+        MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+        LocationManager* manager = new LocationManager();
+        connect(manager, &LocationManager::creationCompleted, this, &Menu::namedLocationCreated);
+        NamedLocation* location = new NamedLocation(locationName,
+                                                    myAvatar->getPosition(), myAvatar->getOrientation(),
+                                                    NodeList::getInstance()->getDomainInfo().getHostname());
+        manager->createNamedLocation(location);
+    }
 }
 
 void Menu::pasteToVoxel() {
@@ -1039,24 +1067,20 @@ void Menu::showMetavoxelEditor() {
 
 void Menu::showChat() {
     if (!_chatWindow) {
-        _chatWindow = new ChatWindow();
-        QMainWindow* mainWindow = Application::getInstance()->getWindow();
-        _chatWindow->setGeometry(mainWindow->width() - _chatWindow->width(),
-                                 mainWindow->geometry().y(),
-                                 _chatWindow->width(),
-                                 mainWindow->height());
+        Application::getInstance()->getWindow()->addDockWidget(Qt::RightDockWidgetArea, _chatWindow = new ChatWindow());
+        
+    } else {
+        if (!_chatWindow->toggleViewAction()->isChecked()) {
+            _chatWindow->toggleViewAction()->trigger();
+        }
     }
-    if (!_chatWindow->isVisible()) {
-        _chatWindow->show();
-    }
-    _chatWindow->raise();
 }
 
 void Menu::toggleChat() {
 #ifdef HAVE_QXMPP
     _chatAction->setEnabled(XmppClient::getInstance().getXMPPClient().isConnected());
-    if (!_chatAction->isEnabled() && _chatWindow) {
-        _chatWindow->close();
+    if (!_chatAction->isEnabled() && _chatWindow && _chatWindow->toggleViewAction()->isChecked()) {
+        _chatWindow->toggleViewAction()->trigger();
     }
 #endif
 }
@@ -1243,17 +1267,6 @@ void Menu::addAvatarCollisionSubMenu(QMenu* overMenu) {
             0, false, avatar, SLOT(updateCollisionFlags()));
     addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithParticles, 
             0, true, avatar, SLOT(updateCollisionFlags()));
-}
-
-QString Menu::replaceLastOccurrence(QChar search, QChar replace, QString string) {
-    int lastIndex;
-    lastIndex = string.lastIndexOf(search);
-    if (lastIndex > 0) {
-        lastIndex = string.lastIndexOf(search);
-        string.replace(lastIndex, 1, replace);
-    }
-    
-    return string;
 }
 
 QAction* Menu::getActionFromName(const QString& menuName, QMenu* menu) {

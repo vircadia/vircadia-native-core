@@ -174,7 +174,7 @@ void ShapeColliderTests::sphereMissesCapsule() {
     CapsuleShape capsuleB(radiusB, halfHeightB);
 
     // give the capsule some arbirary transform
-    float angle = 37.8;
+    float angle = 37.8f;
     glm::vec3 axis = glm::normalize( glm::vec3(-7.f, 2.8f, 9.3f) );
     glm::quat rotation = glm::angleAxis(angle, axis);
     glm::vec3 translation(15.1f, -27.1f, -38.6f);

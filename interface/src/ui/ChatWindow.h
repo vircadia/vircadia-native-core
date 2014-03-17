@@ -9,8 +9,8 @@
 #ifndef __interface__ChatWindow__
 #define __interface__ChatWindow__
 
-#include <QDialog>
 #include <QDateTime>
+#include <QDockWidget>
 #include <QTimer>
 
 #include <Application.h>
@@ -26,14 +26,15 @@ namespace Ui {
 class ChatWindow;
 }
 
-class ChatWindow : public QDialog {
+class ChatWindow : public QDockWidget {
     Q_OBJECT
 
 public:
     ChatWindow();
     ~ChatWindow();
 
-    virtual void reject();
+    virtual void keyPressEvent(QKeyEvent *event);
+    virtual void showEvent(QShowEvent* event);
 
 protected:
     bool eventFilter(QObject* sender, QEvent* event);

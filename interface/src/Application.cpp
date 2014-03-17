@@ -1526,6 +1526,10 @@ void Application::init() {
     }
     qDebug("Loaded settings");
     
+    // initialize Visage and Faceshift after loading the menu settings
+    _faceshift.init();
+    _visage.init();
+    
     // fire off an immediate domain-server check in now that settings are loaded
     NodeList::getInstance()->sendDomainServerCheckIn();
 
@@ -1603,8 +1607,8 @@ bool Application::isLookingAtMyAvatar(Avatar* avatar) {
 }
 
 void Application::updateLOD() {
-    // adjust it unless we were asked to disable this feature
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableAutoAdjustLOD)) {
+    // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableAutoAdjustLOD) && !isThrottleRendering()) {
         Menu::getInstance()->autoAdjustLOD(_fps);
     }
 }
