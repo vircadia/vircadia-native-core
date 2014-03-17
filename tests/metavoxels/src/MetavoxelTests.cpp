@@ -34,9 +34,33 @@ static int streamedBytesReceived = 0;
 static int sharedObjectsCreated = 0;
 static int sharedObjectsDestroyed = 0;
 
+static bool testSerialization(Bitstream::MetadataType metadataType) {
+    QByteArray array;
+    QDataStream outStream(&array, QIODevice::WriteOnly);
+    Bitstream out(outStream, metadataType);
+    SharedObjectPointer testObjectWritten = new TestSharedObjectA(randFloat());
+    out << testObjectWritten;
+    out.flush();
+    
+    QDataStream inStream(array);
+    Bitstream in(inStream, metadataType);
+    SharedObjectPointer testObjectRead;
+    in >> testObjectRead;
+    
+    if (!testObjectWritten->equals(testObjectRead)) {
+        QDebug debug = qDebug() << "Read/write mismatch";
+        testObjectWritten->dump(debug);
+        testObjectRead->dump(debug);
+        return true;
+    }
+    
+    return false;
+}
+
 bool MetavoxelTests::run() {
     
-    qDebug() << "Running metavoxel tests...";
+    qDebug() << "Running transmission tests...";
+    qDebug();
     
     // seed the random number generator so that our tests are reproducible
     srand(0xBAAAAABE);
@@ -62,6 +86,14 @@ bool MetavoxelTests::run() {
     qDebug() << "Sent" << streamedBytesSent << "streamed bytes, received" << streamedBytesReceived;
     qDebug() << "Sent" << datagramsSent << "datagrams, received" << datagramsReceived;
     qDebug() << "Created" << sharedObjectsCreated << "shared objects, destroyed" << sharedObjectsDestroyed;
+    qDebug();
+    
+    qDebug() << "Running serialization tests...";
+    qDebug();
+    
+    if (testSerialization(Bitstream::HASH_METADATA) || testSerialization(Bitstream::FULL_METADATA)) {
+        return true;
+    }
     
     qDebug() << "All tests passed!";
     

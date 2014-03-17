@@ -8,8 +8,8 @@
 
 #include <cstring>
 
+#include <QCryptographicHash>
 #include <QDataStream>
-#include <QMetaProperty>
 #include <QMetaType>
 #include <QUrl>
 #include <QtDebug>
@@ -377,13 +377,9 @@ Bitstream& Bitstream::operator<<(const QObject* object) {
 }
 
 Bitstream& Bitstream::operator>>(QObject*& object) {
-    const QMetaObject* metaObject;
-    _metaObjectStreamer >> metaObject;
-    if (!metaObject) {
-        object = NULL;
-        return *this;
-    }
-    readProperties(object = metaObject->newInstance());
+    ObjectReader objectReader;
+    _metaObjectStreamer >> objectReader;
+    object = objectReader.read(*this);
     return *this;
 }
 
@@ -393,7 +389,14 @@ Bitstream& Bitstream::operator<<(const QMetaObject* metaObject) {
 }
 
 Bitstream& Bitstream::operator>>(const QMetaObject*& metaObject) {
-    _metaObjectStreamer >> metaObject;
+    ObjectReader objectReader;
+    _metaObjectStreamer >> objectReader;
+    metaObject = objectReader.getMetaObject();
+    return *this;
+}
+
+Bitstream& Bitstream::operator>>(ObjectReader& objectReader) {
+    _metaObjectStreamer >> objectReader;
     return *this;
 }
 
@@ -438,21 +441,111 @@ Bitstream& Bitstream::operator>>(SharedObjectPointer& object) {
 }
 
 Bitstream& Bitstream::operator<(const QMetaObject* metaObject) {
-    return *this << (metaObject ? QByteArray::fromRawData(metaObject->className(),
-        strlen(metaObject->className())) : QByteArray());
+    if (!metaObject) {
+        return *this << QByteArray();
+    }
+    *this << QByteArray::fromRawData(metaObject->className(), strlen(metaObject->className()));
+    if (_metadataType == NO_METADATA) {
+        return *this;
+    }
+    int storedPropertyCount = 0;
+    for (int i = 0; i < metaObject->propertyCount(); i++) {
+        QMetaProperty property = metaObject->property(i);
+        if (property.isStored() && getTypeStreamers().contains(property.userType())) {
+            storedPropertyCount++;
+        }    
+    }
+    *this << storedPropertyCount;
+    QCryptographicHash hash(QCryptographicHash::Md5);
+    for (int i = 0; i < metaObject->propertyCount(); i++) {
+        QMetaProperty property = metaObject->property(i);
+        if (!property.isStored()) {
+            continue;
+        }
+        const TypeStreamer* typeStreamer = getTypeStreamers().value(property.userType());
+        if (!typeStreamer) {
+            continue;
+        }
+        _typeStreamerStreamer << typeStreamer;
+        if (_metadataType == FULL_METADATA) {
+            *this << QByteArray::fromRawData(property.name(), strlen(property.name()));
+        } else {
+            hash.addData(property.name(), strlen(property.name()) + 1);
+        }
+    }
+    if (_metadataType == HASH_METADATA) {
+        QByteArray hashResult = hash.result();
+        write(hashResult.constData(), hashResult.size() * BITS_IN_BYTE);
+    }
+    return *this;
 }
 
-Bitstream& Bitstream::operator>(const QMetaObject*& metaObject) {
+Bitstream& Bitstream::operator>(ObjectReader& objectReader) {
     QByteArray className;
     *this >> className;
     if (className.isEmpty()) {
-        metaObject = NULL;
+        objectReader = ObjectReader();
         return *this;
     }
-    metaObject = getMetaObjects().value(className);
+    const QMetaObject* metaObject = getMetaObjects().value(className);
     if (!metaObject) {
         qWarning() << "Unknown class name: " << className << "\n";
     }
+    if (_metadataType == NO_METADATA) {
+        objectReader = ObjectReader(className, metaObject, getPropertyReaders(metaObject));
+        return *this;
+    }
+    int storedPropertyCount;
+    *this >> storedPropertyCount;
+    QVector<PropertyReader> properties(storedPropertyCount);
+    for (int i = 0; i < storedPropertyCount; i++) {
+        const TypeStreamer* typeStreamer;
+        *this >> typeStreamer;
+        QMetaProperty property = QMetaProperty();
+        if (_metadataType == FULL_METADATA) {
+            QByteArray propertyName;
+            *this >> propertyName;
+            if (metaObject) {
+                property = metaObject->property(metaObject->indexOfProperty(propertyName));
+            }
+        }
+        properties[i] = PropertyReader(typeStreamer, property);
+    }
+    // for hash metadata, check the names/types of the properties as well as the name hash against our own class
+    if (_metadataType == HASH_METADATA) {
+        QCryptographicHash hash(QCryptographicHash::Md5);
+        if (metaObject) {
+            int propertyIndex = 0;
+            for (int i = 0; i < metaObject->propertyCount(); i++) {
+                QMetaProperty property = metaObject->property(i);
+                if (!property.isStored()) {
+                    continue;
+                }
+                const TypeStreamer* typeStreamer = getTypeStreamers().value(property.userType());
+                if (!typeStreamer) {
+                    continue;
+                }
+                if (propertyIndex >= properties.size() || properties.at(propertyIndex).getStreamer() != typeStreamer) {
+                    objectReader = ObjectReader(className, metaObject, properties);
+                    return *this;
+                }
+                hash.addData(property.name(), strlen(property.name()) + 1); 
+                propertyIndex++;
+            }
+            if (propertyIndex != properties.size()) {
+                objectReader = ObjectReader(className, metaObject, properties);
+                return *this;
+            }
+        }
+        QByteArray localHashResult = hash.result();
+        QByteArray remoteHashResult(localHashResult.size(), 0);
+        read(remoteHashResult.data(), remoteHashResult.size() * BITS_IN_BYTE);
+        if (metaObject && localHashResult == remoteHashResult) {
+            objectReader = ObjectReader(className, metaObject, getPropertyReaders(metaObject));
+            return *this;
+        }
+    }
+    objectReader = ObjectReader(className, metaObject, properties);
     return *this;
 }
 
@@ -509,12 +602,9 @@ Bitstream& Bitstream::operator>(SharedObjectPointer& object) {
     }
     QPointer<SharedObject>& pointer = _weakSharedObjectHash[id];
     if (pointer) {
-        const QMetaObject* metaObject;
-        _metaObjectStreamer >> metaObject;
-        if (metaObject != pointer->metaObject()) {
-            qWarning() << "Class mismatch: " << pointer->metaObject()->className() << metaObject->className();
-        }
-        readProperties(pointer.data());
+        ObjectReader objectReader;
+        _metaObjectStreamer >> objectReader;
+        objectReader.read(*this, pointer.data());
     
     } else {
         QObject* rawObject;
@@ -533,20 +623,6 @@ void Bitstream::clearSharedObject(QObject* object) {
     }
 }
 
-void Bitstream::readProperties(QObject* object) {
-    const QMetaObject* metaObject = object->metaObject();
-    for (int i = 0; i < metaObject->propertyCount(); i++) {
-        QMetaProperty property = metaObject->property(i);
-        if (!property.isStored(object)) {
-            continue;
-        }
-        const TypeStreamer* streamer = getTypeStreamers().value(property.userType());
-        if (streamer) {
-            property.write(object, streamer->read(*this));    
-        }
-    }
-}
-
 QHash<QByteArray, const QMetaObject*>& Bitstream::getMetaObjects() {
     static QHash<QByteArray, const QMetaObject*> metaObjects;
     return metaObjects;
@@ -562,3 +638,53 @@ QHash<int, const TypeStreamer*>& Bitstream::getTypeStreamers() {
     return typeStreamers;
 }
 
+QVector<PropertyReader> Bitstream::getPropertyReaders(const QMetaObject* metaObject) {
+    QVector<PropertyReader> propertyReaders;
+    if (!metaObject) {
+        return propertyReaders;
+    }
+    for (int i = 0; i < metaObject->propertyCount(); i++) {
+        QMetaProperty property = metaObject->property(i);
+        if (!property.isStored()) {
+            continue;
+        }
+        const TypeStreamer* typeStreamer = getTypeStreamers().value(property.userType());
+        if (typeStreamer) {
+            propertyReaders.append(PropertyReader(typeStreamer, property));
+        }
+    }
+    return propertyReaders;
+}
+
+ObjectReader::ObjectReader(const QByteArray& className, const QMetaObject* metaObject,
+        const QVector<PropertyReader>& properties) :
+    _className(className),
+    _metaObject(metaObject),
+    _properties(properties) {
+}
+
+QObject* ObjectReader::read(Bitstream& in, QObject* object) const {
+    if (!object && _metaObject) {
+        object = _metaObject->newInstance();
+    }
+    foreach (const PropertyReader& property, _properties) {
+        property.read(in, object);
+    }
+    return object;
+}
+
+uint qHash(const ObjectReader& objectReader, uint seed) {
+    return qHash(objectReader.getClassName(), seed);
+}
+
+PropertyReader::PropertyReader(const TypeStreamer* streamer, const QMetaProperty& property) :
+    _streamer(streamer),
+    _property(property) {
+}
+
+void PropertyReader::read(Bitstream& in, QObject* object) const {
+    QVariant value = _streamer->read(in);
+    if (_property.isValid() && object) {
+        _property.write(object, value);
+    }
+}

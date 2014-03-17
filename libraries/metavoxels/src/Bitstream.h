@@ -10,6 +10,7 @@
 #define __interface__Bitstream__
 
 #include <QHash>
+#include <QMetaProperty>
 #include <QMetaType>
 #include <QPointer>
 #include <QScriptString>
@@ -29,7 +30,9 @@ class QUrl;
 class Attribute;
 class AttributeValue;
 class Bitstream;
+class ObjectReader;
 class OwnedAttributeValue;
+class PropertyReader;
 class TypeStreamer;
 
 typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
@@ -187,7 +190,7 @@ public:
 
     class ReadMappings {
     public:
-        QHash<int, const QMetaObject*> metaObjectValues;
+        QHash<int, ObjectReader> metaObjectValues;
         QHash<int, const TypeStreamer*> typeStreamerValues;
         QHash<int, AttributePointer> attributeValues;
         QHash<int, QScriptString> scriptStringValues;
@@ -300,6 +303,7 @@ public:
     
     Bitstream& operator<<(const QMetaObject* metaObject);
     Bitstream& operator>>(const QMetaObject*& metaObject);
+    Bitstream& operator>>(ObjectReader& objectReader);
     
     Bitstream& operator<<(const TypeStreamer* streamer);
     Bitstream& operator>>(const TypeStreamer*& streamer);
@@ -314,7 +318,7 @@ public:
     Bitstream& operator>>(SharedObjectPointer& object);
     
     Bitstream& operator<(const QMetaObject* metaObject);
-    Bitstream& operator>(const QMetaObject*& metaObject);
+    Bitstream& operator>(ObjectReader& objectReader);
     
     Bitstream& operator<(const TypeStreamer* streamer);
     Bitstream& operator>(const TypeStreamer*& streamer);
@@ -338,15 +342,13 @@ private slots:
 
 private:
     
-    void readProperties(QObject* object);
-   
     QDataStream& _underlying;
     quint8 _byte;
     int _position;
 
     MetadataType _metadataType;
 
-    RepeatedValueStreamer<const QMetaObject*, const QMetaObject*, const QMetaObject*> _metaObjectStreamer;
+    RepeatedValueStreamer<const QMetaObject*, const QMetaObject*, ObjectReader> _metaObjectStreamer;
     RepeatedValueStreamer<const TypeStreamer*> _typeStreamerStreamer;
     RepeatedValueStreamer<AttributePointer> _attributeStreamer;
     RepeatedValueStreamer<QScriptString> _scriptStringStreamer;
@@ -357,6 +359,7 @@ private:
     static QHash<QByteArray, const QMetaObject*>& getMetaObjects();
     static QMultiHash<const QMetaObject*, const QMetaObject*>& getMetaObjectSubClasses();
     static QHash<int, const TypeStreamer*>& getTypeStreamers();
+    static QVector<PropertyReader> getPropertyReaders(const QMetaObject* metaObject);
 };
 
 template<class T> inline Bitstream& Bitstream::operator<<(const QList<T>& list) {
@@ -424,6 +427,48 @@ template<class K, class V> inline Bitstream& Bitstream::operator>>(QHash<K, V>& 
     }
     return *this;
 }
+
+/// Contains the information required to read an object from the stream.
+class ObjectReader {
+public:
+
+    ObjectReader(const QByteArray& className = QByteArray(), const QMetaObject* metaObject = NULL,
+        const QVector<PropertyReader>& properties = QVector<PropertyReader>());
+
+    const QByteArray& getClassName() const { return _className; }
+    const QMetaObject* getMetaObject() const { return _metaObject; }
+
+    bool isNull() const { return _className.isEmpty(); }
+
+    QObject* read(Bitstream& in, QObject* object = NULL) const;
+
+    bool operator==(const ObjectReader& other) const { return _className == other._className; }
+    bool operator!=(const ObjectReader& other) const { return _className != other._className; }
+
+private:
+
+    QByteArray _className;
+    const QMetaObject* _metaObject;
+    QVector<PropertyReader> _properties;
+};
+
+uint qHash(const ObjectReader& objectReader, uint seed = 0);
+
+/// Contains the information required to read an object property from the stream and apply it.
+class PropertyReader {
+public:
+
+    PropertyReader(const TypeStreamer* streamer = NULL, const QMetaProperty& property = QMetaProperty());
+
+    const TypeStreamer* getStreamer() const { return _streamer; }
+
+    void read(Bitstream& in, QObject* object) const;
+
+private:
+
+    const TypeStreamer* _streamer;
+    QMetaProperty _property;
+};
 
 Q_DECLARE_METATYPE(const QMetaObject*)
 
