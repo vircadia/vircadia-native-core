@@ -423,17 +423,25 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     QDataStream broadcastDataStream(&broadcastPacket, QIODevice::Append);
     broadcastDataStream << node->getUUID();
     
+    int numBroadcastPacketLeadBytes = broadcastDataStream.device()->pos();
+    
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
     
     NodeList* nodeList = NodeList::getInstance();
     
+    
     if (nodeInterestList.size() > 0) {
         // if the node has any interest types, send back those nodes as well
         foreach (const SharedNodePointer& otherNode, nodeList->getNodeHash()) {
+            
+            // reset our nodeByteArray and nodeDataStream
+            QByteArray nodeByteArray;
+            QDataStream nodeDataStream(&nodeByteArray, QIODevice::Append);
+            
             if (otherNode->getUUID() != node->getUUID() && nodeInterestList.contains(otherNode->getType())) {
                 
                 // don't send avatar nodes to other avatars, that will come from avatar mixer
-                broadcastDataStream << *otherNode.data();
+                nodeDataStream << *otherNode.data();
                 
                 // pack the secret that these two nodes will use to communicate with each other
                 QUuid secretUUID = nodeData->getSessionSecretHash().value(otherNode->getUUID());
@@ -450,11 +458,26 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
                     
                 }
                 
-                broadcastDataStream << secretUUID;
+                nodeDataStream << secretUUID;
+                
+                if (broadcastPacket.size() +  nodeByteArray.size() > MAX_PACKET_SIZE) {
+                    // we need to break here and start a new packet
+                    // so send the current one
+                    
+                    nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
+                    
+                    // reset the broadcastPacket structure
+                    broadcastPacket.resize(numBroadcastPacketLeadBytes);
+                    broadcastDataStream.device()->seek(numBroadcastPacketLeadBytes);
+                }
+                
+                // append the nodeByteArray to the current state of broadcastDataStream
+                broadcastPacket.append(nodeByteArray);
             }
         }
     }
     
+    // always write the last broadcastPacket
     nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
 }
 
