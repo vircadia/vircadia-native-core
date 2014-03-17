@@ -20,6 +20,10 @@ var isLocal = false;
 // set up our VoxelViewer with a position and orientation
 var orientation = Quat.fromPitchYawRollDegrees(0, yaw, 0);
 
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 function init() {
     if (isLocal) {
         MyAvatar.position = vantagePoint;
@@ -39,21 +43,26 @@ function keepLooking(deltaTime) {
         init();
     }
     count++;
-    if (count % 10 == 0) {
+    if (count % getRandomInt(5, 15) == 0) {
         yaw += yawDirection;
         orientation = Quat.fromPitchYawRollDegrees(0, yaw, 0);
         if (yaw > yawMax || yaw < yawMin) {
             yawDirection = yawDirection * -1;
         }
 
-        print("calling VoxelViewer.queryOctree()... count=" + count + " yaw=" + yaw);
+        if (count % 10000 == 0) {
+            print("calling VoxelViewer.queryOctree()... count=" + count + " yaw=" + yaw);
+        }
 
         if (isLocal) {
             MyAvatar.orientation = orientation;
         } else {
             VoxelViewer.setOrientation(orientation);
             VoxelViewer.queryOctree();
-            print("VoxelViewer.getOctreeElementsCount()=" + VoxelViewer.getOctreeElementsCount());
+            
+            if (count % 10000 == 0) {
+                print("VoxelViewer.getOctreeElementsCount()=" + VoxelViewer.getOctreeElementsCount());
+            }
         }
         
     }
