@@ -14,20 +14,12 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-<<<<<<< HEAD
-        <location filename="src/Application.cpp" line="3561"/>
-=======
         <location filename="src/Application.cpp" line="3565"/>
->>>>>>> 5182ab190432324cdb0d0221c15fe57fe1e602c6
         <source>Open Script</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-<<<<<<< HEAD
-        <location filename="src/Application.cpp" line="3562"/>
-=======
         <location filename="src/Application.cpp" line="3566"/>
->>>>>>> 5182ab190432324cdb0d0221c15fe57fe1e602c6
         <source>JavaScript Files (*.js)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -121,31 +113,18 @@
 <context>
     <name>Menu</name>
     <message>
-<<<<<<< HEAD
-        <location filename="src/Menu.cpp" line="424"/>
-=======
         <location filename="src/Menu.cpp" line="437"/>
->>>>>>> 5182ab190432324cdb0d0221c15fe57fe1e602c6
         <source>Open .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-<<<<<<< HEAD
-        <location filename="src/Menu.cpp" line="426"/>
-        <location filename="src/Menu.cpp" line="438"/>
-=======
         <location filename="src/Menu.cpp" line="439"/>
         <location filename="src/Menu.cpp" line="451"/>
->>>>>>> 5182ab190432324cdb0d0221c15fe57fe1e602c6
         <source>Text files (*.ini)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-<<<<<<< HEAD
-        <location filename="src/Menu.cpp" line="436"/>
-=======
         <location filename="src/Menu.cpp" line="449"/>
->>>>>>> 5182ab190432324cdb0d0221c15fe57fe1e602c6
         <source>Save .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
