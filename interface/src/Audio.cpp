@@ -436,7 +436,7 @@ void Audio::handleAudioInput() {
                     }
                 }
                 if (!_noiseGateOpen) {
-                    memset(monoAudioSamples, 0, NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+                    memset(monoAudioSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
                     _lastInputLoudness = 0;
                 }
             }
@@ -450,7 +450,7 @@ void Audio::handleAudioInput() {
             // our input loudness is 0, since we're muted
             _lastInputLoudness = 0;
         }
-
+        
         // add procedural effects to the appropriate input samples
         addProceduralSounds(monoAudioSamples,
                             NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
@@ -486,7 +486,7 @@ void Audio::handleAudioInput() {
             
             PacketType packetType;
             if (_lastInputLoudness == 0) {
-                packetType = PacketTypeSilentAudioListener;
+                packetType = PacketTypeSilentAudioFrame;
                 
                 // we need to indicate how many silent samples this is to the audio mixer
                 monoAudioSamples[0] = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
@@ -515,7 +515,7 @@ void Audio::handleAudioInput() {
             nodeList->writeDatagram(monoAudioDataPacket, numAudioBytes + leadingBytes, audioMixer);
 
             Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
-                .updateValue(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
+                .updateValue(numAudioBytes + leadingBytes);
         }
         delete[] inputAudioSamples;
     }

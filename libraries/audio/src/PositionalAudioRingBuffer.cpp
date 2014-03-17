@@ -45,11 +45,12 @@ int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
     
     packetStream.skipRawData(parsePositionalData(packet.mid(packetStream.device()->pos())));
    
-    if (packetTypeForPacket(packet) == PacketTypeSilentAudioListener) {
+    if (packetTypeForPacket(packet) == PacketTypeSilentAudioFrame) {
         // this source had no audio to send us, but this counts as a packet
         // write silence equivalent to the number of silent samples they just sent us
         int16_t numSilentSamples;
-        packetStream >> numSilentSamples;
+        packetStream.readRawData(reinterpret_cast<char*>(&numSilentSamples), sizeof(int16_t));
+        
         addSilentFrame(numSilentSamples);
     } else {
         // there is audio data to read

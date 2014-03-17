@@ -41,7 +41,8 @@ AvatarAudioRingBuffer* AudioMixerClientData::getAvatarAudioRingBuffer() const {
 int AudioMixerClientData::parseData(const QByteArray& packet) {
     PacketType packetType = packetTypeForPacket(packet);
     if (packetType == PacketTypeMicrophoneAudioWithEcho
-        || packetType == PacketTypeMicrophoneAudioNoEcho) {
+        || packetType == PacketTypeMicrophoneAudioNoEcho
+        || packetType == PacketTypeSilentAudioFrame) {
 
         // grab the AvatarAudioRingBuffer from the vector (or create it if it doesn't exist)
         AvatarAudioRingBuffer* avatarRingBuffer = getAvatarAudioRingBuffer();

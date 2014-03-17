@@ -32,7 +32,7 @@ enum PacketType {
     PacketTypeMicrophoneAudioNoEcho,
     PacketTypeMicrophoneAudioWithEcho,
     PacketTypeBulkAvatarData,
-    PacketTypeSilentAudioListener,
+    PacketTypeSilentAudioFrame,
     PacketTypeEnvironmentData,
     PacketTypeDomainListRequest,
     PacketTypeRequestAssignment,

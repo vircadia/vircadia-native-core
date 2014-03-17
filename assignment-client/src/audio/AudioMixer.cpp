@@ -322,7 +322,8 @@ void AudioMixer::readPendingDatagrams() {
             PacketType mixerPacketType = packetTypeForPacket(receivedPacket);
             if (mixerPacketType == PacketTypeMicrophoneAudioNoEcho
                 || mixerPacketType == PacketTypeMicrophoneAudioWithEcho
-                || mixerPacketType == PacketTypeInjectAudio) {
+                || mixerPacketType == PacketTypeInjectAudio
+                || mixerPacketType == PacketTypeSilentAudioFrame) {
                 
                 nodeList->findNodeAndUpdateWithDataFromPacket(receivedPacket);
             } else {
