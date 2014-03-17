@@ -16,6 +16,7 @@
 /// Handles processing of incoming voxel packets for the interface application. As with other ReceivedPacketProcessor classes 
 /// the user is responsible for reading inbound packets and adding them to the processing queue by calling queueReceivedPacket()
 class VoxelPacketProcessor : public ReceivedPacketProcessor {
+    Q_OBJECT
 protected:
     virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
 };
