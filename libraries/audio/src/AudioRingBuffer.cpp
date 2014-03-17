@@ -121,9 +121,6 @@ qint64 AudioRingBuffer::writeData(const char* data, qint64 maxSize) {
 }
 
 int16_t& AudioRingBuffer::operator[](const int index) {
-    // make sure this is a valid index
-    assert(index > -_sampleCapacity && index < _sampleCapacity);
-
     return *shiftedPositionAccomodatingWrap(_nextOutput, index);
 }
 
