@@ -31,16 +31,16 @@ public:
 
     void resetOctreePacket(bool lastWasSurpressed = false);  // resets octree packet to after "V" header
 
-    void writeToPacket(const unsigned char* buffer, int bytes); // writes to end of packet
+    void writeToPacket(const unsigned char* buffer, unsigned int bytes); // writes to end of packet
 
     const unsigned char* getPacket() const { return _octreePacket; }
-    int getPacketLength() const { return (MAX_PACKET_SIZE - _octreePacketAvailableBytes); }
+    unsigned int getPacketLength() const { return (MAX_PACKET_SIZE - _octreePacketAvailableBytes); }
     bool isPacketWaiting() const { return _octreePacketWaiting; }
 
     bool packetIsDuplicate() const;
     bool shouldSuppressDuplicatePacket();
 
-    int getAvailable() const { return _octreePacketAvailableBytes; }
+    unsigned int getAvailable() const { return _octreePacketAvailableBytes; }
     int getMaxSearchLevel() const { return _maxSearchLevel; }
     void resetMaxSearchLevel() { _maxSearchLevel = 1; }
     void incrementMaxSearchLevel() { _maxSearchLevel++; }
@@ -92,11 +92,11 @@ private:
     bool _viewSent;
     unsigned char* _octreePacket;
     unsigned char* _octreePacketAt;
-    int _octreePacketAvailableBytes;
+    unsigned int _octreePacketAvailableBytes;
     bool _octreePacketWaiting;
 
     unsigned char* _lastOctreePacket;
-    int _lastOctreePacketLength;
+    unsigned int _lastOctreePacketLength;
     int _duplicatePacketCount;
     quint64 _firstSuppressedPacket;
 

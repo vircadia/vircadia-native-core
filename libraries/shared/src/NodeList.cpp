@@ -348,7 +348,7 @@ void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes)
 
 const uint32_t RFC_5389_MAGIC_COOKIE = 0x2112A442;
 const int NUM_BYTES_STUN_HEADER = 20;
-const int NUM_STUN_REQUESTS_BEFORE_FALLBACK = 5;
+const unsigned int NUM_STUN_REQUESTS_BEFORE_FALLBACK = 5;
 
 void NodeList::sendSTUNRequest() {
     const char STUN_SERVER_HOSTNAME[] = "stun.highfidelity.io";

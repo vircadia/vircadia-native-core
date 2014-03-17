@@ -919,13 +919,13 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
         if (wantExtraDebugging) {
             qDebug() << "too many _missingSequenceNumbers:" << _missingSequenceNumbers.size();
         }
-        foreach(unsigned int missingItem, _missingSequenceNumbers) {
+        foreach(uint16_t missingItem, _missingSequenceNumbers) {
             if (wantExtraDebugging) {
                 qDebug() << "checking item:" << missingItem << "is it in need of pruning?";
                 qDebug() << "(_incomingLastSequence - MAX_MISSING_SEQUENCE_OLD_AGE):" 
                                 << (_incomingLastSequence - MAX_MISSING_SEQUENCE_OLD_AGE);
             }
-            if (missingItem <= std::max(0, (_incomingLastSequence - MAX_MISSING_SEQUENCE_OLD_AGE))) {
+            if (missingItem <= std::max(0, _incomingLastSequence - MAX_MISSING_SEQUENCE_OLD_AGE)) {
                 if (wantExtraDebugging) {
                     qDebug() << "pruning really old missing sequence:" << missingItem;
                 }
