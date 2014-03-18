@@ -38,10 +38,9 @@ private:
     /// prepares and sends a mix to one Node
     void prepareMixForListeningNode(Node* node);
     
-    QByteArray _clientMixBuffer;
-    
     // client samples capacity is larger than what will be sent to optimize mixing
     int16_t _clientSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + SAMPLE_PHASE_DELAY_AT_90];
+    char _clientMixBuffer[NETWORK_BUFFER_LENGTH_BYTES_STEREO + MAX_PACKET_HEADER_BYTES];
 };
 
 #endif /* defined(__hifi__AudioMixer__) */
