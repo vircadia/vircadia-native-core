@@ -865,6 +865,21 @@ QVariant TypeReader::read(Bitstream& in) const {
     return object;
 }
 
+void TypeReader::readDelta(Bitstream& in, QVariant& object, const QVariant& reference) const {
+    if (_exactMatch) {
+        _streamer->readDelta(in, object, reference);
+        return;
+    }
+    if (_valueReader) {
+        // TODO: collection deltas
+        
+    } else {
+        foreach (const FieldReader& field, _fields) {
+            field.readDelta(in, _streamer, object, reference);
+        }    
+    }
+}
+
 bool TypeReader::matchesExactly(const TypeStreamer* streamer) const {
     return _exactMatch && _streamer == streamer;
 }
@@ -883,6 +898,10 @@ void FieldReader::read(Bitstream& in, const TypeStreamer* streamer, QVariant& ob
     if (_index != -1 && streamer) {
         streamer->setField(_index, object, value);
     }    
+}
+
+void FieldReader::readDelta(Bitstream& in, const TypeStreamer* streamer, QVariant& object, const QVariant& reference) const {
+    // TODO: field delta
 }
 
 ObjectReader::ObjectReader(const QByteArray& className, const QMetaObject* metaObject,

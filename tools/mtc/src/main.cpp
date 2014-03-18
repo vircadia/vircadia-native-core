@@ -172,6 +172,26 @@ void generateOutput (QTextStream& out, const QList<Streamable>& streamables) {
         out << "    return in;\n";
         out << "}\n";
 
+        out << "template<> void Bitstream::writeDelta(const " << name << "& value, const " << name << "& reference) {\n";
+        foreach (const QString& base, str.clazz.bases) {
+            out << "    writeDelta(static_cast<const " << base << "&>(value), static_cast<const " <<
+                base << "&>(reference));\n";
+        }
+        foreach (const Field& field, str.fields) {
+            out << "    writeDelta(value." << field.name << ", reference." << field.name << ");\n";
+        }
+        out << "}\n";
+
+        out << "template<> void Bitstream::readDelta(" << name << "& value, const " << name << "& reference) {\n";
+        foreach (const QString& base, str.clazz.bases) {
+            out << "    readDelta(static_cast<" << base << "&>(value), static_cast<const " <<
+                base << "&>(reference));\n";
+        }
+        foreach (const Field& field, str.fields) {
+            out << "    readDelta(value." << field.name << ", reference." << field.name << ");\n";
+        }
+        out << "}\n";
+        
         out << "bool operator==(const " << name << "& first, const " << name << "& second) {\n";
         if (str.clazz.bases.isEmpty() && str.fields.isEmpty()) {
             out << "    return true";   

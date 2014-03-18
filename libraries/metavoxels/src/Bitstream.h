@@ -268,6 +268,9 @@ public:
     /// Removes a shared object from the read mappings.
     void clearSharedObject(int id);
 
+    template<class T> void writeDelta(const T& value, const T& reference);
+    template<class T> void readDelta(T& value, const T& reference); 
+    
     Bitstream& operator<<(bool value);
     Bitstream& operator>>(bool& value);
     
@@ -378,6 +381,23 @@ private:
     static QVector<PropertyReader> getPropertyReaders(const QMetaObject* metaObject);
 };
 
+template<class T> inline void Bitstream::writeDelta(const T& value, const T& reference) {
+    if (value == reference) {
+        *this << false;
+    } else {
+        *this << true;
+        *this << value;
+    }
+}
+
+template<class T> inline void Bitstream::readDelta(T& value, const T& reference) {
+    bool changed;
+    *this >> changed;
+    if (changed) {
+        *this >> value;
+    }
+}
+
 template<class T> inline Bitstream& Bitstream::operator<<(const QList<T>& list) {
     *this << list.size();
     foreach (const T& entry, list) {
@@ -458,6 +478,7 @@ public:
     const TypeStreamer* getStreamer() const { return _streamer; }
 
     QVariant read(Bitstream& in) const;
+    void readDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
 
     bool matchesExactly(const TypeStreamer* streamer) const;
 
@@ -486,7 +507,8 @@ public:
     int getIndex() const { return _index; }
 
     void read(Bitstream& in, const TypeStreamer* streamer, QVariant& object) const;
-
+    void readDelta(Bitstream& in, const TypeStreamer* streamer, QVariant& object, const QVariant& reference) const;
+    
 private:
     
     TypeReader _reader;
@@ -565,6 +587,9 @@ public:
     virtual void write(Bitstream& out, const QVariant& value) const = 0;
     virtual QVariant read(Bitstream& in) const = 0;
 
+    virtual void writeDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const = 0;
+    virtual void readDelta(Bitstream& in, QVariant& value, const QVariant& reference) const = 0;
+
     virtual const QVector<MetaField>& getMetaFields() const;
     virtual int getFieldIndex(const QByteArray& name) const;
     virtual void setField(int index, QVariant& object, const QVariant& value) const;
@@ -590,6 +615,10 @@ public:
     
     virtual void write(Bitstream& out, const QVariant& value) const { out << value.value<T>(); }
     virtual QVariant read(Bitstream& in) const { T value; in >> value; return QVariant::fromValue(value); }
+    virtual void writeDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const {
+        out.writeDelta(value.value<T>(), reference.value<T>()); }
+    virtual void readDelta(Bitstream& in, QVariant& value, const QVariant& reference) const {
+        in.readDelta(*static_cast<T*>(value.data()), reference.value<T>()); }
 };
 
 /// A streamer for types compiled by mtc.
@@ -652,6 +681,8 @@ public:
 #define DECLARE_STREAMABLE_METATYPE(X) Q_DECLARE_METATYPE(X) \
     Bitstream& operator<<(Bitstream& out, const X& obj); \
     Bitstream& operator>>(Bitstream& in, X& obj); \
+    template<> void Bitstream::writeDelta(const X& value, const X& reference); \
+    template<> void Bitstream::readDelta(X& value, const X& reference); \
     bool operator==(const X& first, const X& second); \
     bool operator!=(const X& first, const X& second); \
     static const int* _TypePtr##X = &X::Type;
@@ -659,6 +690,8 @@ public:
 #define DECLARE_STREAMABLE_METATYPE(X) Q_DECLARE_METATYPE(X) \
     Bitstream& operator<<(Bitstream& out, const X& obj); \
     Bitstream& operator>>(Bitstream& in, X& obj); \
+    template<> void Bitstream::writeDelta(const X& value, const X& reference); \
+    template<> void Bitstream::readDelta(X& value, const X& reference); \
     bool operator==(const X& first, const X& second); \
     bool operator!=(const X& first, const X& second); \
     __attribute__((unused)) static const int* _TypePtr##X = &X::Type;
@@ -667,6 +700,8 @@ public:
 #define DECLARE_STREAMABLE_METATYPE(X) Q_DECLARE_METATYPE(X) \
     Bitstream& operator<<(Bitstream& out, const X& obj); \
     Bitstream& operator>>(Bitstream& in, X& obj); \
+    template<> void Bitstream::writeDelta(const X& value, const X& reference); \
+    template<> void Bitstream::readDelta(X& value, const X& reference); \
     bool operator==(const X& first, const X& second); \
     bool operator!=(const X& first, const X& second); \
     static const int* _TypePtr##X = &X::Type; \
