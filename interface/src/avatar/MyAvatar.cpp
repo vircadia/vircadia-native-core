@@ -1157,7 +1157,7 @@ void MyAvatar::updateLocationInDataServer() {
     
     if (accountManager.isLoggedIn()) {
         QString positionString(createByteArray(_position));
-        QString orientationString(createByteArray(safeEulerAngles(getOrientation())));
+        QString orientationString(createByteArray(glm::degrees(safeEulerAngles(getOrientation()))));
         
         qDebug() << orientationString;
         
@@ -1194,9 +1194,9 @@ void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
         qDebug() << orientationItems[0] << orientationItems[1] << orientationItems[2];
         
         // orient the user to face the target
-        glm::quat newOrientation = glm::quat(glm::vec3(orientationItems[0].toFloat(),
-                                                       orientationItems[1].toFloat(),
-                                                       orientationItems[2].toFloat()))
+        glm::quat newOrientation = glm::quat(glm::radians(glm::vec3(orientationItems[0].toFloat(),
+                                                                    orientationItems[1].toFloat(),
+                                                                    orientationItems[2].toFloat())))
             * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
         setOrientation(newOrientation);
         
