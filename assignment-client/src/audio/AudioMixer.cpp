@@ -347,7 +347,8 @@ void AudioMixer::run() {
 
     gettimeofday(&startTime, NULL);
     
-    char clientMixBuffer[NETWORK_BUFFER_LENGTH_BYTES_STEREO + MAX_PACKET_HEADER_BYTES];
+    char* clientMixBuffer = new char[NETWORK_BUFFER_LENGTH_BYTES_STEREO
+                                     + numBytesForPacketHeaderGivenPacketType(PacketTypeMixedAudio)];
 
     while (!_isFinished) {
 
@@ -391,4 +392,6 @@ void AudioMixer::run() {
         }
 
     }
+    
+    delete[] clientMixBuffer;
 }
