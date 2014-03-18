@@ -267,15 +267,36 @@ void ScriptEngine::run() {
             
             if (_avatarAudioBuffer && _numAvatarAudioBufferSamples > 0) {
                 // if have an avatar audio stream then send it out to our audio-mixer
-                QByteArray audioPacket = byteArrayWithPopulatedHeader(PacketTypeMicrophoneAudioNoEcho);
+                
+                bool silentFrame = true;
+                
+                // check if the all of the _numAvatarAudioBufferSamples to be sent are silence
+                for (int i = 0; i < _numAvatarAudioBufferSamples; ++i) {
+                    if (_avatarAudioBuffer[i] != 0) {
+                        silentFrame = false;
+                        break;
+                    }
+                }
+                
+                QByteArray audioPacket = byteArrayWithPopulatedHeader(silentFrame
+                                                                      ? PacketTypeSilentAudioFrame
+                                                                      : PacketTypeMicrophoneAudioNoEcho);
                 QDataStream packetStream(&audioPacket, QIODevice::Append);
                 
                 // use the orientation and position of this avatar for the source of this audio
                 packetStream.writeRawData(reinterpret_cast<const char*>(&_avatarData->getPosition()), sizeof(glm::vec3));
                 glm::quat headOrientation = _avatarData->getHeadOrientation();
                 packetStream.writeRawData(reinterpret_cast<const char*>(&headOrientation), sizeof(glm::quat));
-                packetStream.writeRawData(reinterpret_cast<const char*>(_avatarAudioBuffer),
-                                        _numAvatarAudioBufferSamples * sizeof(int16_t));
+                
+                if (silentFrame) {
+                    // write the number of silent samples so the audio-mixer can uphold timing
+                    int16_t numSilentSamples = _numAvatarAudioBufferSamples;
+                    packetStream.writeRawData(reinterpret_cast<const char*>(&numSilentSamples), sizeof(int16_t));
+                } else {
+                    // write the raw audio data
+                    packetStream.writeRawData(reinterpret_cast<const char*>(_avatarAudioBuffer),
+                                              _numAvatarAudioBufferSamples * sizeof(int16_t));
+                }
                 
                 nodeList->broadcastToNodes(audioPacket, NodeSet() << NodeType::AudioMixer);
             }
