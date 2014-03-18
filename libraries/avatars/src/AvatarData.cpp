@@ -93,7 +93,6 @@ QByteArray AvatarData::toByteArray() {
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedPitch());
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedRoll());
     
-    
     // Head lean X,Z (head lateral and fwd/back motion relative to torso)
     memcpy(destinationBuffer, &_headData->_leanSideways, sizeof(_headData->_leanSideways));
     destinationBuffer += sizeof(_headData->_leanSideways);
@@ -177,9 +176,6 @@ QByteArray AvatarData::toByteArray() {
         }
     }
         
-    // hand data
-    destinationBuffer += HandData::encodeData(_handData, destinationBuffer);
-    
     return avatarDataByteArray.left(destinationBuffer - startPosition);
 }
 
@@ -300,12 +296,6 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         if (data.valid) {
             sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, data.rotation);
         }
-    }
-    
-    // hand data
-    if (sourceBuffer - startPosition < packet.size()) {
-        // check passed, bytes match
-        sourceBuffer += _handData->decodeRemoteData(packet.mid(sourceBuffer - startPosition));
     }
     
     return sourceBuffer - startPosition;

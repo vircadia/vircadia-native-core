@@ -63,12 +63,6 @@ public:
     void setFingerTrailLength(unsigned int length);
     void updateFingerTrails();
 
-    static int encodeData(HandData* hand, unsigned char* destinationBuffer);
-
-    // Use these for sending and receiving hand data
-    int encodeRemoteData(unsigned char* destinationBuffer);
-    int decodeRemoteData(const QByteArray& dataByteArray);
-
     /// Checks for penetration between the described sphere and the hand.
     /// \param penetratorCenter the center of the penetration test sphere
     /// \param penetratorRadius the radius of the penetration test sphere
