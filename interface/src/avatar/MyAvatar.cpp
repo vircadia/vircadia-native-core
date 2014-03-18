@@ -85,6 +85,7 @@ void MyAvatar::reset() {
 
     setVelocity(glm::vec3(0,0,0));
     setThrust(glm::vec3(0,0,0));
+    setOrientation(glm::quat(glm::vec3(0,0,0)));
 }
 
 void MyAvatar::setMoveTarget(const glm::vec3 moveTarget) {
@@ -1156,7 +1157,7 @@ void MyAvatar::updateLocationInDataServer() {
     
     if (accountManager.isLoggedIn()) {
         QString positionString(createByteArray(_position));
-        QString orientationString(createByteArray(glm::degrees(safeEulerAngles(getOrientation()))));
+        QString orientationString(createByteArray(safeEulerAngles(getOrientation())));
         
         qDebug() << orientationString;
         
@@ -1196,7 +1197,7 @@ void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
         glm::quat newOrientation = glm::quat(glm::vec3(orientationItems[0].toFloat(),
                                                        orientationItems[1].toFloat(),
                                                        orientationItems[2].toFloat()))
-            * glm::angleAxis(180.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+            * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
         setOrientation(newOrientation);
         
         // move the user a couple units away
