@@ -829,7 +829,10 @@ int Octree::encodeTreeBitstream(OctreeElement* node,
         params.stats->traversed(node);
     }
 
-    int childBytesWritten = encodeTreeBitstreamRecursion(node, packetData, bag, params, currentEncodeLevel);
+    ViewFrustum::location parentLocationThisView = ViewFrustum::INTERSECT; // assume parent is in view, but not fully
+
+    int childBytesWritten = encodeTreeBitstreamRecursion(node, packetData, bag, params,
+                                                            currentEncodeLevel, parentLocationThisView);
 
     // if childBytesWritten == 1 then something went wrong... that's not possible
     assert(childBytesWritten != 1);
@@ -861,7 +864,8 @@ int Octree::encodeTreeBitstream(OctreeElement* node,
 
 int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
                                             OctreePacketData* packetData, OctreeElementBag& bag,
-                                            EncodeBitstreamParams& params, int& currentEncodeLevel) const {
+                                            EncodeBitstreamParams& params, int& currentEncodeLevel,
+                                            const ViewFrustum::location& parentLocationThisView) const {
     // How many bytes have we written so far at this level;
     int bytesAtThisLevel = 0;
 
@@ -909,8 +913,13 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
             params.stopReason = EncodeBitstreamParams::LOD_SKIP;
             return bytesAtThisLevel;
         }
-        
-        nodeLocationThisView = node->inFrustum(*params.viewFrustum);
+
+        // if the parent isn't known to be INSIDE, then it must be INTERSECT, and we should double check to see
+        // if we are INSIDE, INTERSECT, or OUTSIDE
+        if (parentLocationThisView != ViewFrustum::INSIDE) {
+            assert(parentLocationThisView != ViewFrustum::OUTSIDE); // we shouldn't be here if our parent was OUTSIDE!
+            nodeLocationThisView = node->inFrustum(*params.viewFrustum);
+        }
 
         // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
         // although technically, we really shouldn't ever be here, because our callers shouldn't be calling us if
@@ -1300,7 +1309,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
                 // This only applies in the view frustum case, in other cases, like file save and copy/past where
                 // no viewFrustum was requested, we still want to recurse the child tree.
                 if (!params.viewFrustum || !oneAtBit(childrenColoredBits, originalIndex)) {
-                    childTreeBytesOut = encodeTreeBitstreamRecursion(childNode, packetData, bag, params, thisLevel);
+                    childTreeBytesOut = encodeTreeBitstreamRecursion(childNode, packetData, bag, params, 
+                                                                            thisLevel, nodeLocationThisView);
                 }
 
                 // remember this for reshuffling
