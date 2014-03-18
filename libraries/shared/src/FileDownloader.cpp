@@ -9,12 +9,15 @@
 
 #include <QUrl>
 #include <QNetworkRequest>
-#include <QNetworkReply>
 #include <QEventLoop>
+#include <QTimer>
 
 #include "FileDownloader.h"
 
-FileDownloader::FileDownloader(const QUrl dataURL, QObject* parent) : QObject(parent) {
+FileDownloader::FileDownloader(const QUrl dataURL, QObject* parent) :
+    QObject(parent),
+    _done(false)
+{
     connect(&_networkAccessManager, SIGNAL(finished(QNetworkReply*)), this, SLOT(processReply(QNetworkReply*)));
 
     QNetworkRequest request(dataURL);
@@ -22,21 +25,41 @@ FileDownloader::FileDownloader(const QUrl dataURL, QObject* parent) : QObject(pa
 }
 
 void FileDownloader::processReply(QNetworkReply *reply) {
-    if (reply->error() != QNetworkReply::NoError) {
-        emit done(reply->error());
-        return;
+    if (reply->error() == QNetworkReply::NoError) {
+        _downloadedData = reply->readAll();
     }
     
-    _downloadedData = reply->readAll();
     reply->deleteLater();
-    
-    emit done(QNetworkReply::NoError);
+    _done = true;
+    emit done(reply->error());
 }
 
-QByteArray FileDownloader::download(const QUrl dataURL) {
+void FileDownloader::waitForFile(int timeout) {
+    QTimer timer;
     QEventLoop loop;
+    connect(&timer, SIGNAL(timeout()), &loop, SLOT(quit()));
+    connect(this, SIGNAL(done(QNetworkReply::NetworkError)), &loop, SLOT(quit()));
+    
+    if (!_done) {
+        if (timeout > 0) {
+            timer.start(timeout);
+        }
+        loop.exec();
+    }
+}
+
+QByteArray FileDownloader::download(const QUrl dataURL, int timeout) {
+    QTimer timer;
+    QEventLoop loop;
+    connect(&timer, SIGNAL(timeout()), &loop, SLOT(quit));
+    
     FileDownloader downloader(dataURL);
-    connect(&downloader, SIGNAL(done()), &loop, SLOT(quit()));
+    connect(&downloader, SIGNAL(done(QNetworkReply::NetworkError)), &loop, SLOT(quit()));
+    
+    if (timeout > 0) {
+        timer.start(timeout);
+    }
     loop.exec();
+    
     return downloader.getData();
 }

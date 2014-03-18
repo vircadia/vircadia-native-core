@@ -12,13 +12,20 @@
 
 #include <QObject>
 #include <QNetworkAccessManager>
+#include <QNetworkReply>
 
 class FileDownloader : public QObject {
+    Q_OBJECT
+    
 public:
     FileDownloader(const QUrl dataURL, QObject* parent = NULL);
-    QByteArray getData() const { return _downloadedData; }
     
-    static QByteArray download(const QUrl dataURL);
+    void waitForFile(int timeout = 0);
+    
+    QByteArray getData() const { return _downloadedData; }
+    bool done() { return _done; }
+    
+    static QByteArray download(const QUrl dataURL, int timeout = 0);
     
 signals:
     void done(QNetworkReply::NetworkError);
@@ -29,6 +36,8 @@ private slots:
 private:
     QNetworkAccessManager _networkAccessManager;
     QByteArray _downloadedData;
+    
+    bool _done;
 };
 
 
