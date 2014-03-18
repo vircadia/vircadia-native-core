@@ -164,7 +164,7 @@ void AudioRingBuffer::addSilentFrame(int numSilentSamples) {
         _endOfLastWrite += numSilentSamples;
     } else {
         int numSamplesToEnd = (_buffer + _sampleCapacity) - _endOfLastWrite;
-        memset(_endOfLastWrite, 0, numSilentSamples * sizeof(int16_t));
+        memset(_endOfLastWrite, 0, numSamplesToEnd * sizeof(int16_t));
         memset(_buffer, 0, (numSilentSamples - numSamplesToEnd) * sizeof(int16_t));
         
         _endOfLastWrite = _buffer + (numSilentSamples - numSamplesToEnd);
