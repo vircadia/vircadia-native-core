@@ -16,7 +16,7 @@
 
 #include "HifiSockAddr.h"
 
-const QString DEFAULT_DOMAIN_HOSTNAME = "root.highfidelity.io";
+const QString DEFAULT_DOMAIN_HOSTNAME = "alpha.highfidelity.io";
 const unsigned short DEFAULT_DOMAIN_SERVER_PORT = 40102;
 
 class DomainInfo : public QObject {
