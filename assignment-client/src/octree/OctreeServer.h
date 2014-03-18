@@ -94,7 +94,7 @@ public:
     static void trackCompressAndWriteTime(float time);
     static float getAverageCompressAndWriteTime() { return _averageCompressAndWriteTime.getAverage(); }
 
-    static void trackPacketSendingTime(float time) { _averagePacketSendingTime.updateAverage(time); }
+    static void trackPacketSendingTime(float time);
     static float getAveragePacketSendingTime() { return _averagePacketSendingTime.getAverage(); }
 
     bool handleHTTPRequest(HTTPConnection* connection, const QString& path);
@@ -169,6 +169,7 @@ protected:
     static int _noCompress;
 
     static SimpleMovingAverage _averagePacketSendingTime;
+    static int _noSend;
 
 };
 

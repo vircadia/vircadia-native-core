@@ -57,6 +57,7 @@ int OctreeServer::_shortCompress = 0;
 int OctreeServer::_noCompress = 0;
 
 SimpleMovingAverage OctreeServer::_averagePacketSendingTime(MOVING_AVERAGE_SAMPLE_COUNTS);
+int OctreeServer::_noSend = 0;
 
 
 void OctreeServer::resetSendingStats() {
@@ -93,6 +94,7 @@ void OctreeServer::resetSendingStats() {
     _noCompress = 0;
 
     _averagePacketSendingTime.reset();
+    _noSend = 0;
 }
 
 void OctreeServer::trackEncodeTime(float time) { 
@@ -152,6 +154,15 @@ void OctreeServer::trackCompressAndWriteTime(float time) {
     }
     _averageCompressAndWriteTime.updateAverage(time); 
 }
+
+void OctreeServer::trackPacketSendingTime(float time) { 
+    if (time == SKIP_TIME) {
+        _noSend++;
+        time = 0.0f;
+    }
+    _averagePacketSendingTime.updateAverage(time); 
+}
+
 
 
 void OctreeServer::attachQueryNodeToNode(Node* newNode) {
@@ -499,6 +510,12 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
         float averagePacketSendingTime = getAveragePacketSendingTime();
         statsString += QString().sprintf("         Average packet sending time:    %9.2f usecs (includes node lock)\r\n", 
                                         averagePacketSendingTime);
+
+        float noVsTotalSend = (_averagePacketSendingTime.getSampleCount() > 0) ? 
+                                        ((float)_noSend / (float)_averagePacketSendingTime.getSampleCount()) : 0.0f;
+        statsString += QString().sprintf("                         Not sending:"
+                                         "                          (%6.2f%%) samples: %12d \r\n",
+                                         noVsTotalSend * AS_PERCENT, _noSend);
                                         
         float averageNodeWaitTime = getAverageNodeWaitTime();
         statsString += QString().sprintf("         Average node lock wait time:    %9.2f usecs\r\n", averageNodeWaitTime);

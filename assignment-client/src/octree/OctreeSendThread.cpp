@@ -419,7 +419,7 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
             float lockWaitElapsedUsec = OctreeServer::SKIP_TIME;
             float encodeElapsedUsec = OctreeServer::SKIP_TIME;
             float compressAndWriteElapsedUsec = OctreeServer::SKIP_TIME;
-            float packetSendingElapsedUsec = 0.0f;
+            float packetSendingElapsedUsec = OctreeServer::SKIP_TIME;
             
             quint64 startInside = usecTimestampNow();            
 
@@ -532,8 +532,6 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
                 // the packet doesn't have enough space to bother attempting to pack more...
                 bool sendNow = true;
                 
-                quint64 packetSendingStart = usecTimestampNow();
-
                 if (nodeData->getCurrentPacketIsCompressed() &&
                     nodeData->getAvailable() >= MINIMUM_ATTEMPT_MORE_PACKING &&
                     extraPackingAttempts <= REASONABLE_NUMBER_OF_PACKING_ATTEMPTS) {
@@ -542,10 +540,11 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
 
                 int targetSize = MAX_OCTREE_PACKET_DATA_SIZE;
                 if (sendNow) {
-                    if (forceDebugging) {
-                        qDebug("about to call handlePacketSend() .... line: %d -- sendNow = TRUE", __LINE__);
-                    }
+                    quint64 packetSendingStart = usecTimestampNow();
                     packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
+                    quint64 packetSendingEnd = usecTimestampNow();
+                    packetSendingElapsedUsec = (float)(packetSendingEnd - packetSendingStart);
+
                     if (wantCompression) {
                         targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
                     }
@@ -558,14 +557,8 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
                     // a larger compressed size then uncompressed size
                     targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE) - COMPRESS_PADDING;
                 }
-                if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-                    qDebug("line:%d _packetData.changeSettings() wantCompression=%s targetSize=%d",__LINE__,
-                        debug::valueOf(nodeData->getWantCompression()), targetSize);
-                }
                 _packetData.changeSettings(nodeData->getWantCompression(), targetSize); // will do reset
 
-                quint64 packetSendingEnd = usecTimestampNow();
-                packetSendingElapsedUsec = (float)(packetSendingEnd - packetSendingStart);
             }
             OctreeServer::trackTreeWaitTime(lockWaitElapsedUsec);
             OctreeServer::trackEncodeTime(encodeElapsedUsec);
