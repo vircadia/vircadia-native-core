@@ -13,6 +13,7 @@
 
 #include "Application.h"
 #include "GeometryCache.h"
+#include "Model.h"
 #include "world.h"
 
 GeometryCache::~GeometryCache() {
@@ -289,6 +290,13 @@ void GeometryCache::renderGrid(int xDivisions, int yDivisions) {
 
 QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, const QUrl& fallback, bool delayLoad) {
     return getResource(url, fallback, delayLoad).staticCast<NetworkGeometry>();
+}
+
+void GeometryCache::setBlendedVertices(const QPointer<Model>& model, const QWeakPointer<NetworkGeometry>& geometry,
+        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
+    if (!model.isNull() && model->getGeometry() == geometry) {
+        model->setBlendedVertices(vertices, normals);
+    }
 }
 
 QSharedPointer<Resource> GeometryCache::createResource(const QUrl& url,

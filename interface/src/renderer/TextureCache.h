@@ -27,7 +27,7 @@ class TextureCache : public ResourceCache {
 public:
     
     TextureCache();
-    ~TextureCache();
+    virtual ~TextureCache();
     
     /// Returns the ID of the permutation/normal texture used for Perlin noise shader programs.  This texture
     /// has two lines: the first, a set of random numbers in [0, 255] to be used as permutation offsets, and
