@@ -21,42 +21,107 @@
 OctreeServer* OctreeServer::_instance = NULL;
 int OctreeServer::_clientCount = 0;
 const int MOVING_AVERAGE_SAMPLE_COUNTS = 1000000;
+
+float OctreeServer::SKIP_TIME = -1.0f; // use this for trackXXXTime() calls for non-times
+
 SimpleMovingAverage OctreeServer::_averageLoopTime(MOVING_AVERAGE_SAMPLE_COUNTS);
-SimpleMovingAverage OctreeServer::_averageEncodeTime(MOVING_AVERAGE_SAMPLE_COUNTS);
 SimpleMovingAverage OctreeServer::_averageInsideTime(MOVING_AVERAGE_SAMPLE_COUNTS);
+
+SimpleMovingAverage OctreeServer::_averageEncodeTime(MOVING_AVERAGE_SAMPLE_COUNTS);
+SimpleMovingAverage OctreeServer::_averageShortEncodeTime(MOVING_AVERAGE_SAMPLE_COUNTS);
+SimpleMovingAverage OctreeServer::_averageLongEncodeTime(MOVING_AVERAGE_SAMPLE_COUNTS);
+SimpleMovingAverage OctreeServer::_averageExtraLongEncodeTime(MOVING_AVERAGE_SAMPLE_COUNTS);
+int OctreeServer::_extraLongEncode = 0;
+int OctreeServer::_longEncode = 0;
+int OctreeServer::_shortEncode = 0;
+int OctreeServer::_noEncode = 0;
+
 SimpleMovingAverage OctreeServer::_averageTreeWaitTime(MOVING_AVERAGE_SAMPLE_COUNTS);
 SimpleMovingAverage OctreeServer::_averageTreeShortWaitTime(MOVING_AVERAGE_SAMPLE_COUNTS);
 SimpleMovingAverage OctreeServer::_averageTreeLongWaitTime(MOVING_AVERAGE_SAMPLE_COUNTS);
 SimpleMovingAverage OctreeServer::_averageTreeExtraLongWaitTime(MOVING_AVERAGE_SAMPLE_COUNTS);
-SimpleMovingAverage OctreeServer::_averageNodeWaitTime(MOVING_AVERAGE_SAMPLE_COUNTS);
-SimpleMovingAverage OctreeServer::_averageCompressAndWriteTime(MOVING_AVERAGE_SAMPLE_COUNTS);
-SimpleMovingAverage OctreeServer::_averagePacketSendingTime(MOVING_AVERAGE_SAMPLE_COUNTS);
 int OctreeServer::_extraLongTreeWait = 0;
 int OctreeServer::_longTreeWait = 0;
 int OctreeServer::_shortTreeWait = 0;
+int OctreeServer::_noTreeWait = 0;
+
+SimpleMovingAverage OctreeServer::_averageNodeWaitTime(MOVING_AVERAGE_SAMPLE_COUNTS);
+
+SimpleMovingAverage OctreeServer::_averageCompressAndWriteTime(MOVING_AVERAGE_SAMPLE_COUNTS);
+SimpleMovingAverage OctreeServer::_averageShortCompressTime(MOVING_AVERAGE_SAMPLE_COUNTS);
+SimpleMovingAverage OctreeServer::_averageLongCompressTime(MOVING_AVERAGE_SAMPLE_COUNTS);
+SimpleMovingAverage OctreeServer::_averageExtraLongCompressTime(MOVING_AVERAGE_SAMPLE_COUNTS);
+int OctreeServer::_extraLongCompress = 0;
+int OctreeServer::_longCompress = 0;
+int OctreeServer::_shortCompress = 0;
+int OctreeServer::_noCompress = 0;
+
+SimpleMovingAverage OctreeServer::_averagePacketSendingTime(MOVING_AVERAGE_SAMPLE_COUNTS);
 
 
 void OctreeServer::resetSendingStats() {
     _averageLoopTime.reset();
+
     _averageEncodeTime.reset();
+    _averageShortEncodeTime.reset();
+    _averageLongEncodeTime.reset();
+    _averageExtraLongEncodeTime.reset();
+    _extraLongEncode = 0;
+    _longEncode = 0;
+    _shortEncode = 0;
+    _noEncode = 0;
+
     _averageInsideTime.reset();
     _averageTreeWaitTime.reset();
     _averageTreeShortWaitTime.reset();
     _averageTreeLongWaitTime.reset();
     _averageTreeExtraLongWaitTime.reset();
-    _averageNodeWaitTime.reset();
-    _averageCompressAndWriteTime.reset();
-    _averagePacketSendingTime.reset();
     _extraLongTreeWait = 0;
     _longTreeWait = 0;
     _shortTreeWait = 0;
+    _noTreeWait = 0;
+
+    _averageNodeWaitTime.reset();
+
+    _averageCompressAndWriteTime.reset();
+    _averageShortCompressTime.reset();
+    _averageLongCompressTime.reset();
+    _averageExtraLongCompressTime.reset();
+    _extraLongCompress = 0;
+    _longCompress = 0;
+    _shortCompress = 0;
+    _noCompress = 0;
+
+    _averagePacketSendingTime.reset();
+}
+
+void OctreeServer::trackEncodeTime(float time) { 
+    const float MAX_SHORT_TIME = 10.0f;
+    const float MAX_LONG_TIME = 100.0f;
+
+    if (time == SKIP_TIME) {
+        _noEncode++;
+        time = 0.0f;
+    } else if (time <= MAX_SHORT_TIME) {
+        _shortEncode++;
+        _averageShortEncodeTime.updateAverage(time);
+    } else if (time <= MAX_LONG_TIME) {
+        _longEncode++;
+        _averageLongEncodeTime.updateAverage(time);
+    } else {
+        _extraLongEncode++;
+        _averageExtraLongEncodeTime.updateAverage(time);
+    }
+    _averageEncodeTime.updateAverage(time); 
 }
 
 void OctreeServer::trackTreeWaitTime(float time) { 
-    _averageTreeWaitTime.updateAverage(time);
     const float MAX_SHORT_TIME = 10.0f;
     const float MAX_LONG_TIME = 100.0f;
-    if (time <= MAX_SHORT_TIME) {
+    if (time == SKIP_TIME) {
+        _noTreeWait++;
+        time = 0.0f;
+    } else if (time <= MAX_SHORT_TIME) {
         _shortTreeWait++;
         _averageTreeShortWaitTime.updateAverage(time);
     } else if (time <= MAX_LONG_TIME) {
@@ -66,6 +131,26 @@ void OctreeServer::trackTreeWaitTime(float time) {
         _extraLongTreeWait++;
         _averageTreeExtraLongWaitTime.updateAverage(time);
     }
+    _averageTreeWaitTime.updateAverage(time);
+}
+
+void OctreeServer::trackCompressAndWriteTime(float time) { 
+    const float MAX_SHORT_TIME = 10.0f;
+    const float MAX_LONG_TIME = 100.0f;
+    if (time == SKIP_TIME) {
+        _noCompress++;
+        time = 0.0f;
+    } else if (time <= MAX_SHORT_TIME) {
+        _shortCompress++;
+        _averageShortCompressTime.updateAverage(time);
+    } else if (time <= MAX_LONG_TIME) {
+        _longCompress++;
+        _averageLongCompressTime.updateAverage(time);
+    } else {
+        _extraLongCompress++;
+        _averageExtraLongCompressTime.updateAverage(time);
+    }
+    _averageCompressAndWriteTime.updateAverage(time); 
 }
 
 
@@ -319,67 +404,123 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
             .arg(locale.toString((uint)getCurrentClientCount()).rightJustified(COLUMN_WIDTH, ' '));
 
         float averageLoopTime = getAverageLoopTime();
-        statsString += QString().sprintf("         Average packetLoop() time:      %7.2f msecs\r\n", averageLoopTime);
-        qDebug() << "averageLoopTime=" << averageLoopTime;
+        statsString += QString().sprintf("           Average packetLoop() time:      %7.2f msecs\r\n", averageLoopTime);
 
         float averageInsideTime = getAverageInsideTime();
-        statsString += QString().sprintf("             Average 'inside' time:    %9.2f usecs\r\n", averageInsideTime);
-        qDebug() << "averageInsideTime=" << averageInsideTime;
+        statsString += QString().sprintf("               Average 'inside' time:    %9.2f usecs\r\n\r\n", averageInsideTime);
 
-        int allWaitTimes = _extraLongTreeWait +_longTreeWait + _shortTreeWait;
+        int allWaitTimes = _extraLongTreeWait +_longTreeWait + _shortTreeWait + _noTreeWait;
 
         float averageTreeWaitTime = getAverageTreeWaitTime();
-        statsString += QString().sprintf("       Average tree lock wait time:    %9.2f usecs           samples: %12d \r\n",
-                averageTreeWaitTime, allWaitTimes);
-        qDebug() << "averageTreeWaitTime=" << averageTreeWaitTime;
+        statsString += QString().sprintf("         Average tree lock wait time:"
+                                         "    %9.2f usecs                 samples: %12d \r\n",
+                                         averageTreeWaitTime, allWaitTimes);
+
+        float zeroVsTotal = (allWaitTimes > 0) ? ((float)_noTreeWait / (float)allWaitTimes) : 0.0f;
+        statsString += QString().sprintf("                        No Lock Wait:"
+                                         "                          (%6.2f%%) samples: %12d \r\n",
+                                         zeroVsTotal * AS_PERCENT, _noTreeWait);
 
         float shortVsTotal = (allWaitTimes > 0) ? ((float)_shortTreeWait / (float)allWaitTimes) : 0.0f;
-        statsString += QString().sprintf("     Avg tree lock short wait time:    %9.2f usecs (%6.2f%%) samples: %12d \r\n",
-                _averageTreeShortWaitTime.getAverage(), 
-                shortVsTotal * AS_PERCENT, _shortTreeWait);
-        qDebug() << "averageTreeShortWaitTime=" << _averageTreeShortWaitTime.getAverage();
+        statsString += QString().sprintf("       Avg tree lock short wait time:"
+                                         "          %9.2f usecs (%6.2f%%) samples: %12d \r\n",
+                                         _averageTreeShortWaitTime.getAverage(), 
+                                         shortVsTotal * AS_PERCENT, _shortTreeWait);
 
         float longVsTotal = (allWaitTimes > 0) ? ((float)_longTreeWait / (float)allWaitTimes) : 0.0f;
-        statsString += QString().sprintf("      Avg tree lock long wait time:    %9.2f usecs (%6.2f%%) samples: %12d \r\n",
-                _averageTreeLongWaitTime.getAverage(), 
-                longVsTotal * AS_PERCENT, _longTreeWait);
-        qDebug() << "averageTreeLongWaitTime=" << _averageTreeLongWaitTime.getAverage();
+        statsString += QString().sprintf("        Avg tree lock long wait time:"
+                                         "          %9.2f usecs (%6.2f%%) samples: %12d \r\n",
+                                         _averageTreeLongWaitTime.getAverage(), 
+                                         longVsTotal * AS_PERCENT, _longTreeWait);
 
         float extraLongVsTotal = (allWaitTimes > 0) ? ((float)_extraLongTreeWait / (float)allWaitTimes) : 0.0f;
-        statsString += QString().sprintf("Avg tree lock extra long wait time:    %9.2f usecs (%6.2f%%) samples: %12d \r\n",
-                _averageTreeExtraLongWaitTime.getAverage(), 
-                extraLongVsTotal * AS_PERCENT, _extraLongTreeWait);
-        qDebug() << "averageTreeExtraLongWaitTime=" << _averageTreeExtraLongWaitTime.getAverage();
+        statsString += QString().sprintf("  Avg tree lock extra long wait time:"
+                                         "          %9.2f usecs (%6.2f%%) samples: %12d \r\n\r\n",
+                                         _averageTreeExtraLongWaitTime.getAverage(), 
+                                         extraLongVsTotal * AS_PERCENT, _extraLongTreeWait);
 
         float averageEncodeTime = getAverageEncodeTime();
-        statsString += QString().sprintf("               Average encode time:    %9.2f usecs\r\n", averageEncodeTime);
-        qDebug() << "averageEncodeTime=" << averageEncodeTime;
+        statsString += QString().sprintf("                 Average encode time:    %9.2f usecs\r\n", averageEncodeTime);
+        
+        int allEncodeTimes = _noEncode + _shortEncode + _longEncode + _extraLongEncode;
+
+        float zeroVsTotalEncode = (allEncodeTimes > 0) ? ((float)_noEncode / (float)allEncodeTimes) : 0.0f;
+        statsString += QString().sprintf("                           No Encode:"
+                                         "                          (%6.2f%%) samples: %12d \r\n",
+                                         zeroVsTotalEncode * AS_PERCENT, _noEncode);
+
+        float shortVsTotalEncode = (allEncodeTimes > 0) ? ((float)_shortEncode / (float)allEncodeTimes) : 0.0f;
+        statsString += QString().sprintf("     Avg tree lock short encode time:"
+                                         "          %9.2f usecs (%6.2f%%) samples: %12d \r\n",
+                                         _averageShortEncodeTime.getAverage(), 
+                                         shortVsTotalEncode * AS_PERCENT, _shortEncode);
+
+        float longVsTotalEncode = (allEncodeTimes > 0) ? ((float)_longEncode / (float)allEncodeTimes) : 0.0f;
+        statsString += QString().sprintf("      Avg tree lock long encode time:"
+                                         "          %9.2f usecs (%6.2f%%) samples: %12d \r\n",
+                                         _averageLongEncodeTime.getAverage(), 
+                                         longVsTotalEncode * AS_PERCENT, _longEncode);
+
+        float extraLongVsTotalEncode = (allEncodeTimes > 0) ? ((float)_extraLongEncode / (float)allEncodeTimes) : 0.0f;
+        statsString += QString().sprintf("Avg tree lock extra long encode time:"
+                                         "          %9.2f usecs (%6.2f%%) samples: %12d \r\n\r\n",
+                                         _averageExtraLongEncodeTime.getAverage(), 
+                                         extraLongVsTotalEncode * AS_PERCENT, _extraLongEncode);
+
 
         float averageCompressAndWriteTime = getAverageCompressAndWriteTime();
-        statsString += QString().sprintf("   Average compress and write time:    %9.2f usecs\r\n", averageCompressAndWriteTime);
-        qDebug() << "averageCompressAndWriteTime=" << averageCompressAndWriteTime;
+        statsString += QString().sprintf("     Average compress and write time:    %9.2f usecs\r\n", averageCompressAndWriteTime);
+
+        int allCompressTimes = _noCompress + _shortCompress + _longCompress + _extraLongCompress;
+
+        float zeroVsTotalCompress = (allCompressTimes > 0) ? ((float)_noCompress / (float)allCompressTimes) : 0.0f;
+        statsString += QString().sprintf("                      No compression:"
+                                         "                          (%6.2f%%) samples: %12d \r\n",
+                                         zeroVsTotalCompress * AS_PERCENT, _noCompress);
+
+        float shortVsTotalCompress = (allCompressTimes > 0) ? ((float)_shortCompress / (float)allCompressTimes) : 0.0f;
+        statsString += QString().sprintf("             Avg short compress time:"
+                                         "          %9.2f usecs (%6.2f%%) samples: %12d \r\n",
+                                         _averageShortCompressTime.getAverage(), 
+                                         shortVsTotalCompress * AS_PERCENT, _shortCompress);
+
+        float longVsTotalCompress = (allCompressTimes > 0) ? ((float)_longCompress / (float)allCompressTimes) : 0.0f;
+        statsString += QString().sprintf("              Avg long compress time:"
+                                         "          %9.2f usecs (%6.2f%%) samples: %12d \r\n",
+                                         _averageLongCompressTime.getAverage(), 
+                                         longVsTotalCompress * AS_PERCENT, _longCompress);
+
+        float extraLongVsTotalCompress = (allCompressTimes > 0) ? ((float)_extraLongCompress / (float)allCompressTimes) : 0.0f;
+        statsString += QString().sprintf("        Avg extra long compress time:"
+                                         "          %9.2f usecs (%6.2f%%) samples: %12d \r\n\r\n",
+                                         _averageExtraLongCompressTime.getAverage(), 
+                                         extraLongVsTotalCompress * AS_PERCENT, _extraLongCompress);
 
         float averagePacketSendingTime = getAveragePacketSendingTime();
-        statsString += QString().sprintf("       Average packet sending time:    %9.2f usecs (includes node lock)\r\n", 
+        statsString += QString().sprintf("         Average packet sending time:    %9.2f usecs (includes node lock)\r\n", 
                                         averagePacketSendingTime);
                                         
-        qDebug() << "averagePacketSendingTime=" << averagePacketSendingTime;
-
         float averageNodeWaitTime = getAverageNodeWaitTime();
-        statsString += QString().sprintf("       Average node lock wait time:    %9.2f usecs\r\n", averageNodeWaitTime);
-        qDebug() << "averageNodeWaitTime=" << averageNodeWaitTime;
+        statsString += QString().sprintf("         Average node lock wait time:    %9.2f usecs\r\n", averageNodeWaitTime);
 
-        statsString += QString().sprintf("------------------------------------------------------\r\n");
+        statsString += QString().sprintf("--------------------------------------------------------------\r\n");
 
         float encodeToInsidePercent = averageInsideTime == 0.0f ? 0.0f : (averageEncodeTime / averageInsideTime) * AS_PERCENT;
-        statsString += QString().sprintf("                        encode ratio:      %5.2f%%\r\n", 
+        statsString += QString().sprintf("                          encode ratio:      %5.2f%%\r\n", 
                                         encodeToInsidePercent);
-        qDebug() << "encodeToInsidePercent=" << encodeToInsidePercent;
 
         float waitToInsidePercent = averageInsideTime == 0.0f ? 0.0f 
                     : ((averageTreeWaitTime + averageNodeWaitTime) / averageInsideTime) * AS_PERCENT;
-        statsString += QString().sprintf("                       waiting ratio:      %5.2f%%\r\n", waitToInsidePercent);
-        qDebug() << "waitToInsidePercent=" << waitToInsidePercent;
+        statsString += QString().sprintf("                         waiting ratio:      %5.2f%%\r\n", waitToInsidePercent);
+
+        float compressAndWriteToInsidePercent = averageInsideTime == 0.0f ? 0.0f 
+                    : (averageCompressAndWriteTime / averageInsideTime) * AS_PERCENT;
+        statsString += QString().sprintf("              compress and write ratio:      %5.2f%%\r\n", 
+                    compressAndWriteToInsidePercent);
+
+        float sendingToInsidePercent = averageInsideTime == 0.0f ? 0.0f 
+                    : (averagePacketSendingTime / averageInsideTime) * AS_PERCENT;
+        statsString += QString().sprintf("                         sending ratio:      %5.2f%%\r\n", sendingToInsidePercent);
         
 
 

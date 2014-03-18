@@ -73,11 +73,13 @@ public:
     virtual int sendSpecialPacket(const SharedNodePointer& node) { return 0; }
 
     static void attachQueryNodeToNode(Node* newNode);
+    
+    static float SKIP_TIME; // use this for trackXXXTime() calls for non-times
 
     static void trackLoopTime(float time) { _averageLoopTime.updateAverage(time); }
     static float getAverageLoopTime() { return _averageLoopTime.getAverage(); }
 
-    static void trackEncodeTime(float time) { _averageEncodeTime.updateAverage(time); }
+    static void trackEncodeTime(float time);
     static float getAverageEncodeTime() { return _averageEncodeTime.getAverage(); }
 
     static void trackInsideTime(float time) { _averageInsideTime.updateAverage(time); }
@@ -89,7 +91,7 @@ public:
     static void trackNodeWaitTime(float time) { _averageNodeWaitTime.updateAverage(time); }
     static float getAverageNodeWaitTime() { return _averageNodeWaitTime.getAverage(); }
 
-    static void trackCompressAndWriteTime(float time) { _averageCompressAndWriteTime.updateAverage(time); }
+    static void trackCompressAndWriteTime(float time);
     static float getAverageCompressAndWriteTime() { return _averageCompressAndWriteTime.getAverage(); }
 
     static void trackPacketSendingTime(float time) { _averagePacketSendingTime.updateAverage(time); }
@@ -135,18 +137,39 @@ protected:
     
     static int _clientCount;
     static SimpleMovingAverage _averageLoopTime;
+
     static SimpleMovingAverage _averageEncodeTime;
+    static SimpleMovingAverage _averageShortEncodeTime;
+    static SimpleMovingAverage _averageLongEncodeTime;
+    static SimpleMovingAverage _averageExtraLongEncodeTime;
+    static int _extraLongEncode;
+    static int _longEncode;
+    static int _shortEncode;
+    static int _noEncode;
+
     static SimpleMovingAverage _averageInsideTime;
     static SimpleMovingAverage _averageTreeWaitTime;
     static SimpleMovingAverage _averageTreeShortWaitTime;
     static SimpleMovingAverage _averageTreeLongWaitTime;
     static SimpleMovingAverage _averageTreeExtraLongWaitTime;
-    static SimpleMovingAverage _averageNodeWaitTime;
-    static SimpleMovingAverage _averageCompressAndWriteTime;
-    static SimpleMovingAverage _averagePacketSendingTime;
     static int _extraLongTreeWait;
     static int _longTreeWait;
     static int _shortTreeWait;
+    static int _noTreeWait;
+
+    static SimpleMovingAverage _averageNodeWaitTime;
+
+    static SimpleMovingAverage _averageCompressAndWriteTime;
+    static SimpleMovingAverage _averageShortCompressTime;
+    static SimpleMovingAverage _averageLongCompressTime;
+    static SimpleMovingAverage _averageExtraLongCompressTime;
+    static int _extraLongCompress;
+    static int _longCompress;
+    static int _shortCompress;
+    static int _noCompress;
+
+    static SimpleMovingAverage _averagePacketSendingTime;
+
 };
 
 #endif // __octree_server__OctreeServer__

@@ -416,9 +416,9 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
         int extraPackingAttempts = 0;
         bool completedScene = false;
         while (somethingToSend && packetsSentThisInterval < maxPacketsPerInterval) {
-            float lockWaitElapsedUsec = 0.0f;
-            float encodeElapsedUsec = 0.0f;
-            float compressAndWriteElapsedUsec = 0.0f;
+            float lockWaitElapsedUsec = OctreeServer::SKIP_TIME;
+            float encodeElapsedUsec = OctreeServer::SKIP_TIME;
+            float compressAndWriteElapsedUsec = OctreeServer::SKIP_TIME;
             float packetSendingElapsedUsec = 0.0f;
             
             quint64 startInside = usecTimestampNow();            
