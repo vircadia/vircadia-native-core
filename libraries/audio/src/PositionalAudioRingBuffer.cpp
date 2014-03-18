@@ -38,28 +38,27 @@ PositionalAudioRingBuffer::~PositionalAudioRingBuffer() {
 }
 
 int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
-    QDataStream packetStream(packet);
     
     // skip the packet header (includes the source UUID)
-    packetStream.skipRawData(numBytesForPacketHeader(packet));
+    int readBytes = numBytesForPacketHeader(packet);
     
-    packetStream.skipRawData(parsePositionalData(packet.mid(packetStream.device()->pos())));
+    readBytes += parsePositionalData(packet.mid(readBytes));
    
     if (packetTypeForPacket(packet) == PacketTypeSilentAudioFrame) {
         // this source had no audio to send us, but this counts as a packet
         // write silence equivalent to the number of silent samples they just sent us
         int16_t numSilentSamples;
-        packetStream.readRawData(reinterpret_cast<char*>(&numSilentSamples), sizeof(int16_t));
+        memcpy(&numSilentSamples, packet.data(), sizeof(int16_t));
+        readBytes += sizeof(int16_t);
+        
         
         addSilentFrame(numSilentSamples);
     } else {
         // there is audio data to read
-        packetStream.skipRawData(writeData(packet.data() + packetStream.device()->pos(),
-                                           packet.size() - packetStream.device()->pos()));
+        readBytes += writeData(packet.data() + readBytes, packet.size() - readBytes);
     }
     
-
-    return packetStream.device()->pos();
+    return readBytes;
 }
 
 int PositionalAudioRingBuffer::parsePositionalData(const QByteArray& positionalByteArray) {
