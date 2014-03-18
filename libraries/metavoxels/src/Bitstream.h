@@ -444,12 +444,15 @@ template<class K, class V> inline Bitstream& Bitstream::operator>>(QHash<K, V>& 
     return *this;
 }
 
+typedef QSharedPointer<TypeReader> TypeReaderPointer;
+
 /// Contains the information required to read a type from the stream.
 class TypeReader {
 public:
 
-    TypeReader(const QByteArray& typeName = QByteArray(), const TypeStreamer* streamer = NULL,
-        bool exactMatch = true, const QVector<FieldReader>& fields = QVector<FieldReader>());
+    TypeReader(const QByteArray& typeName = QByteArray(), const TypeStreamer* streamer = NULL, bool exactMatch = true, 
+        const TypeReaderPointer& keyReader = TypeReaderPointer(), const TypeReaderPointer& valueReader = TypeReaderPointer(),
+        const QVector<FieldReader>& fields = QVector<FieldReader>());
 
     const QByteArray& getTypeName() const { return _typeName; }
     const TypeStreamer* getStreamer() const { return _streamer; }
@@ -466,6 +469,8 @@ private:
     QByteArray _typeName;
     const TypeStreamer* _streamer;
     bool _exactMatch;
+    TypeReaderPointer _keyReader;
+    TypeReaderPointer _valueReader;
     QVector<FieldReader> _fields;
 };
 
@@ -552,8 +557,6 @@ Q_DECLARE_METATYPE(const QMetaObject*)
 class TypeStreamer {
 public:
     
-    enum Category { SIMPLE_CATEGORY, STREAMABLE_CATEGORY };
-    
     virtual ~TypeStreamer();
     
     void setType(int type) { _type = type; }
@@ -565,11 +568,15 @@ public:
     virtual const QVector<MetaField>& getMetaFields() const;
     virtual int getFieldIndex(const QByteArray& name) const;
     virtual void setField(int index, QVariant& object, const QVariant& value) const;
+    
+    enum Category { SIMPLE_CATEGORY, STREAMABLE_CATEGORY, LIST_CATEGORY, MAP_CATEGORY };
+
+    virtual Category getCategory() const;
 
     virtual const TypeStreamer* getKeyStreamer() const;
     virtual const TypeStreamer* getValueStreamer() const;
 
-    virtual void append(QVariant& object, const QVariant& element) const;
+    virtual void insert(QVariant& object, const QVariant& value) const;
     virtual void insert(QVariant& object, const QVariant& key, const QVariant& value) const;
 
 private:
@@ -589,6 +596,7 @@ public:
 template<class T> class StreamableTypeStreamer : public SimpleTypeStreamer<T> {
 public:
     
+    virtual TypeStreamer::Category getCategory() const { return TypeStreamer::STREAMABLE_CATEGORY; }
     virtual const QVector<MetaField>& getMetaFields() const { return T::getMetaFields(); }
     virtual int getFieldIndex(const QByteArray& name) const { return T::getFieldIndex(name); }
     virtual void setField(int index, QVariant& object, const QVariant& value) const {
@@ -603,22 +611,29 @@ template<class T> class CollectionTypeStreamer : public SimpleTypeStreamer<T> {
 template<class T> class CollectionTypeStreamer<QList<T> > : public SimpleTypeStreamer<QList<T> > {
 public:
     
-    virtual void append(QVariant& object, const QVariant& element) const {
-        static_cast<QList<T>*>(object.data())->append(element.value<T>()); }
+    virtual TypeStreamer::Category getCategory() const { return TypeStreamer::LIST_CATEGORY; }
+    virtual const TypeStreamer* getValueStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<T>()); }
+    virtual void insert(QVariant& object, const QVariant& value) const {
+        static_cast<QList<T>*>(object.data())->append(value.value<T>()); }
 };
 
 /// A streamer for set types.
 template<class T> class CollectionTypeStreamer<QSet<T> > : public SimpleTypeStreamer<QSet<T> > {
 public:
     
-    virtual void append(QVariant& object, const QVariant& element) const {
-        static_cast<QSet<T>*>(object.data())->insert(element.value<T>()); }
+    virtual TypeStreamer::Category getCategory() const { return TypeStreamer::LIST_CATEGORY; }
+    virtual const TypeStreamer* getValueStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<T>()); }
+    virtual void insert(QVariant& object, const QVariant& value) const {
+        static_cast<QSet<T>*>(object.data())->insert(value.value<T>()); }
 };
 
 /// A streamer for hash types.
 template<class K, class V> class CollectionTypeStreamer<QHash<K, V> > : public SimpleTypeStreamer<QHash<K, V> > {
 public:
     
+    virtual TypeStreamer::Category getCategory() const { return TypeStreamer::MAP_CATEGORY; }
+    virtual const TypeStreamer* getKeyStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<K>()); }
+    virtual const TypeStreamer* getValueStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<V>()); }
     virtual void insert(QVariant& object, const QVariant& key, const QVariant& value) const {
         static_cast<QHash<K, V>*>(object.data())->insert(key.value<K>(), value.value<V>()); }
 };

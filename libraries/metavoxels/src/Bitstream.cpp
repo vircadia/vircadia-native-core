@@ -577,6 +577,22 @@ Bitstream& Bitstream::operator<(const TypeStreamer* streamer) {
     if (_metadataType == NO_METADATA) {
         return *this;
     }
+    TypeStreamer::Category category = streamer->getCategory();
+    *this << (int)category;
+    switch (category) {
+        case TypeStreamer::SIMPLE_CATEGORY:
+            return *this;
+        
+        case TypeStreamer::LIST_CATEGORY:
+            return *this << streamer->getValueStreamer();
+    
+        case TypeStreamer::MAP_CATEGORY:
+            return *this << streamer->getKeyStreamer() << streamer->getValueStreamer();
+        
+        default:
+            break; // fall through
+    }
+    // streamable type
     const QVector<MetaField>& metaFields = streamer->getMetaFields();
     *this << metaFields.size();
     if (metaFields.isEmpty()) {
@@ -612,6 +628,40 @@ Bitstream& Bitstream::operator>(TypeReader& reader) {
         reader = TypeReader(typeName, streamer);
         return *this;
     }
+    int category;
+    *this >> category;
+    switch (category) {
+        case TypeStreamer::SIMPLE_CATEGORY:
+            reader = TypeReader(typeName, streamer);
+            return *this;
+            
+        case TypeStreamer::LIST_CATEGORY: {
+            TypeReader valueReader;
+            *this >> valueReader;
+            if (streamer && streamer->getCategory() == TypeStreamer::LIST_CATEGORY &&
+                    valueReader.matchesExactly(streamer->getValueStreamer())) {
+                reader = TypeReader(typeName, streamer);
+            } else {
+                reader = TypeReader(typeName, streamer, false, TypeReaderPointer(),
+                    TypeReaderPointer(new TypeReader(valueReader)));
+            }
+            return *this;
+        }
+        case TypeStreamer::MAP_CATEGORY: {
+            TypeReader keyReader, valueReader;
+            *this >> keyReader >> valueReader;
+            if (streamer && streamer->getCategory() == TypeStreamer::MAP_CATEGORY &&
+                    keyReader.matchesExactly(streamer->getKeyStreamer()) &&
+                    valueReader.matchesExactly(streamer->getValueStreamer())) {
+                reader = TypeReader(typeName, streamer);
+            } else {
+                reader = TypeReader(typeName, streamer, false, TypeReaderPointer(new TypeReader(keyReader)),
+                    TypeReaderPointer(new TypeReader(valueReader)));
+            }
+            return *this;
+        }
+    }
+    // streamable type
     int fieldCount;
     *this >> fieldCount;
     QVector<FieldReader> fields(fieldCount);
@@ -664,20 +714,20 @@ Bitstream& Bitstream::operator>(TypeReader& reader) {
         // if all fields are the same type and in the right order, we can use the (more efficient) default streamer
         const QVector<MetaField>& localFields = streamer->getMetaFields();
         if (fieldCount != localFields.size()) {
-            reader = TypeReader(typeName, streamer, false, fields);
+            reader = TypeReader(typeName, streamer, false, TypeReaderPointer(), TypeReaderPointer(), fields);
             return *this;
         }
         for (int i = 0; i < fieldCount; i++) {
             const FieldReader& fieldReader = fields.at(i);
             if (!fieldReader.getReader().matchesExactly(localFields.at(i).getStreamer()) || fieldReader.getIndex() != i) {
-                reader = TypeReader(typeName, streamer, false, fields);
+                reader = TypeReader(typeName, streamer, false, TypeReaderPointer(), TypeReaderPointer(), fields);
                 return *this;
             }
         }
         reader = TypeReader(typeName, streamer);
         return *this;
     }
-    reader = TypeReader(typeName, streamer, false, fields);
+    reader = TypeReader(typeName, streamer, false, TypeReaderPointer(), TypeReaderPointer(), fields);
     return *this;
 }
 
@@ -773,11 +823,13 @@ QVector<PropertyReader> Bitstream::getPropertyReaders(const QMetaObject* metaObj
     return propertyReaders;
 }
 
-TypeReader::TypeReader(const QByteArray& typeName, const TypeStreamer* streamer,
-        bool exactMatch, const QVector<FieldReader>& fields) :
+TypeReader::TypeReader(const QByteArray& typeName, const TypeStreamer* streamer, bool exactMatch,
+        const TypeReaderPointer& keyReader, const TypeReaderPointer& valueReader, const QVector<FieldReader>& fields) :
     _typeName(typeName),
     _streamer(streamer),
     _exactMatch(exactMatch),
+    _keyReader(keyReader),
+    _valueReader(valueReader),
     _fields(fields) {
 }
 
@@ -786,8 +838,29 @@ QVariant TypeReader::read(Bitstream& in) const {
         return _streamer->read(in);
     }
     QVariant object = _streamer ? QVariant(_streamer->getType(), 0) : QVariant();
-    foreach (const FieldReader& field, _fields) {
-        field.read(in, _streamer, object);
+    if (_valueReader) {
+        int size;
+        in >> size;
+        if (_keyReader) {
+            for (int i = 0; i < size; i++) {
+                QVariant key = _keyReader->read(in);
+                QVariant value = _valueReader->read(in);
+                if (_streamer) {
+                    _streamer->insert(object, key, value);
+                }
+            }
+        } else {
+            for (int i = 0; i < size; i++) {
+                QVariant value = _valueReader->read(in);
+                if (_streamer) {
+                    _streamer->insert(object, value);
+                }
+            }
+        }
+    } else {
+        foreach (const FieldReader& field, _fields) {
+            field.read(in, _streamer, object);
+        }
     }
     return object;
 }
@@ -866,6 +939,10 @@ void TypeStreamer::setField(int index, QVariant& object, const QVariant& value) 
     // nothing by default
 }
 
+TypeStreamer::Category TypeStreamer::getCategory() const {
+    return SIMPLE_CATEGORY;
+}
+
 const TypeStreamer* TypeStreamer::getKeyStreamer() const {
     return NULL;
 }
@@ -874,7 +951,7 @@ const TypeStreamer* TypeStreamer::getValueStreamer() const {
     return NULL;
 }
 
-void TypeStreamer::append(QVariant& object, const QVariant& element) const {
+void TypeStreamer::insert(QVariant& object, const QVariant& element) const {
     // nothing by default
 }
 
