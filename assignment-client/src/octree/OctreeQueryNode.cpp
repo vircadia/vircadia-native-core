@@ -36,12 +36,12 @@ OctreeQueryNode::OctreeQueryNode() :
     _lodChanged(false),
     _lodInitialized(false),
     _sequenceNumber(0),
-    _scheduleForDelete(false)
+    _scheduleForDelete(false),
+    _lastRootTimestamp(0)
 {
 }
 
 OctreeQueryNode::~OctreeQueryNode() {
-qDebug() << "OctreeQueryNode::~OctreeQueryNode()";
     if (_octreeSendThread) {
         _octreeSendThread->terminate();
         delete _octreeSendThread;

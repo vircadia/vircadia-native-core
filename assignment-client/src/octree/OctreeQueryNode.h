@@ -89,6 +89,10 @@ public:
     bool isScheduledForDelete() const { return _scheduleForDelete; }
     void scheduleForDelete() { _scheduleForDelete = true; }
     
+    quint64 getLastRootTimestamp() const { return _lastRootTimestamp; }
+    void setLastRootTimestamp(quint64 timestamp) { _lastRootTimestamp = timestamp; }
+    
+    
 private:
     OctreeQueryNode(const OctreeQueryNode &);
     OctreeQueryNode& operator= (const OctreeQueryNode&);
@@ -125,6 +129,8 @@ private:
     OCTREE_PACKET_SEQUENCE _sequenceNumber;
     
     bool _scheduleForDelete;
+
+    quint64 _lastRootTimestamp;
 };
 
 #endif /* defined(__hifi__OctreeQueryNode__) */
