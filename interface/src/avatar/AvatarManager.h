@@ -45,7 +45,7 @@ private:
     void processKillAvatar(const QByteArray& datagram);
 
     void simulateAvatarFades(float deltaTime);
-    void renderAvatarFades(bool forShadowMap);
+    void renderAvatarFades(const glm::vec3& cameraPosition, bool forShadowMap);
     
     // virtual override
     AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
