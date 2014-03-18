@@ -13,6 +13,13 @@
 
 #include "AudioMixerClientData.h"
 
+AudioMixerClientData::AudioMixerClientData() :
+    _ringBuffers(),
+    _nextOutputLoudness(0)
+{
+    
+}
+
 AudioMixerClientData::~AudioMixerClientData() {
     for (unsigned int i = 0; i < _ringBuffers.size(); i++) {
         // delete this attached PositionalAudioRingBuffer
@@ -80,6 +87,10 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSam
             // this is a ring buffer that is ready to go
             // set its flag so we know to push its buffer when all is said and done
             _ringBuffers[i]->setWillBeAddedToMix(true);
+            
+            // calculate the average loudness for the next NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL
+            // that would be mixed in
+            _nextOutputLoudness = _ringBuffers[i]->averageLoudnessForBoundarySamples(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
         }
     }
 }

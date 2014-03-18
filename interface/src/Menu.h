@@ -18,7 +18,8 @@
 #include <MenuItemProperties.h>
 #include <OctreeConstants.h>
 
-#include <ui/ChatWindow.h>
+#include "location/LocationManager.h"
+#include "ui/ChatWindow.h"
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
@@ -138,6 +139,7 @@ private slots:
     void editPreferences();
     void goToDomainDialog();
     void goToLocation();
+    void nameLocation();
     void bandwidthDetailsClosed();
     void octreeStatsDetailsClosed();
     void lodToolsClosed();
@@ -147,6 +149,8 @@ private slots:
     void showChat();
     void toggleChat();
     void audioMuteToggled();
+    void namedLocationCreated(LocationManager::NamedLocationCreateResponse response);
+    void multipleDestinationsDecision(const QJsonObject& userData, const QJsonObject& placeData);
 
 private:
     static Menu* _instance;
@@ -248,6 +252,7 @@ namespace MenuOption {
     const QString GlowMode = "Cycle Glow Mode";
     const QString GoToDomain = "Go To Domain...";
     const QString GoToLocation = "Go To Location...";
+    const QString NameLocation = "Name this location";
     const QString GoTo = "Go To...";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IncreaseVoxelSize = "Increase Voxel Size";

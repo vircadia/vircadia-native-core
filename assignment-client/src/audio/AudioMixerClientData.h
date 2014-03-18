@@ -18,16 +18,20 @@
 
 class AudioMixerClientData : public NodeData {
 public:
+    AudioMixerClientData();
     ~AudioMixerClientData();
     
     const std::vector<PositionalAudioRingBuffer*> getRingBuffers() const { return _ringBuffers; }
     AvatarAudioRingBuffer* getAvatarAudioRingBuffer() const;
+    
+    float getNextOutputLoudness() const { return _nextOutputLoudness; }
     
     int parseData(const QByteArray& packet);
     void checkBuffersBeforeFrameSend(int jitterBufferLengthSamples);
     void pushBuffersAfterFrameSend();
 private:
     std::vector<PositionalAudioRingBuffer*> _ringBuffers;
+    float _nextOutputLoudness;
 };
 
 #endif /* defined(__hifi__AudioMixerClientData__) */

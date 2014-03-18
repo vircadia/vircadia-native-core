@@ -23,7 +23,7 @@ OctreePacketData::OctreePacketData(bool enableCompression, int targetSize) {
     changeSettings(enableCompression, targetSize); // does reset...
 }
 
-void OctreePacketData::changeSettings(bool enableCompression, int targetSize) {
+void OctreePacketData::changeSettings(bool enableCompression, unsigned int targetSize) {
     _enableCompression = enableCompression;
     _targetSize = std::min(MAX_OCTREE_UNCOMRESSED_PACKET_SIZE, targetSize);
     reset();
@@ -369,7 +369,7 @@ bool OctreePacketData::compressContent() {
 
     QByteArray compressedData = qCompress(uncompressedData, uncompressedSize, MAX_COMPRESSION);
 
-    if (compressedData.size() < MAX_OCTREE_PACKET_DATA_SIZE) {
+    if (compressedData.size() < (int)MAX_OCTREE_PACKET_DATA_SIZE) {
         _compressedBytes = compressedData.size();
         for (int i = 0; i < _compressedBytes; i++) {
             _compressed[i] = compressedData[i];

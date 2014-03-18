@@ -40,13 +40,13 @@ bool waitForVoxelServer = true;
 const int ANIMATION_LISTEN_PORT = 40107;
 int ANIMATE_FPS = 60;
 double ANIMATE_FPS_IN_MILLISECONDS = 1000.0/ANIMATE_FPS; // determines FPS from our desired FPS
-int ANIMATE_VOXELS_INTERVAL_USECS = (ANIMATE_FPS_IN_MILLISECONDS * 1000.0); // converts from milliseconds to usecs
+quint64 ANIMATE_VOXELS_INTERVAL_USECS = (ANIMATE_FPS_IN_MILLISECONDS * 1000); // converts from milliseconds to usecs
 
 
 int PROCESSING_FPS = 60;
 double PROCESSING_FPS_IN_MILLISECONDS = 1000.0/PROCESSING_FPS; // determines FPS from our desired FPS
 int FUDGE_USECS = 650; // a little bit of fudge to actually do some processing
-int PROCESSING_INTERVAL_USECS = (PROCESSING_FPS_IN_MILLISECONDS * 1000.0) - FUDGE_USECS; // converts from milliseconds to usecs
+quint64 PROCESSING_INTERVAL_USECS = (PROCESSING_FPS_IN_MILLISECONDS * 1000) - FUDGE_USECS; // converts from milliseconds to usecs
 
 bool wantLocalDomain = false;
 
@@ -611,9 +611,6 @@ void* animateVoxels(void* args) {
             }
             lastProcessTime = usecTimestampNow();
             
-            int packetsStarting = 0;
-            int packetsEnding = 0;
-            
             // The while loop will be running at PROCESSING_FPS, but we only want to call these animation functions at
             // ANIMATE_FPS. So we check out last animate time and only call these if we've elapsed that time.
             quint64 now = usecTimestampNow();
@@ -627,8 +624,6 @@ void* animateVoxels(void* args) {
                 animateLoopsPerAnimate++;
                 
                 lastAnimateTime = now;
-                packetsStarting =  ::voxelEditPacketSender->packetsToSendCount();
-                
                 // some animations
                 //sendVoxelBlinkMessage();
                 
@@ -652,8 +647,6 @@ void* animateVoxels(void* args) {
                     doBuildStreet();
                 }
                 
-                packetsEnding = ::voxelEditPacketSender->packetsToSendCount();
-                
                 if (animationElapsed > ANIMATE_VOXELS_INTERVAL_USECS) {
                     animationElapsed -= ANIMATE_VOXELS_INTERVAL_USECS; // credit ourselves one animation frame
                 } else {
@@ -670,9 +663,9 @@ void* animateVoxels(void* args) {
             processesPerAnimate++;
         }
         // dynamically sleep until we need to fire off the next set of voxels
-        quint64 usecToSleep =  PROCESSING_INTERVAL_USECS - (usecTimestampNow() - lastProcessTime);
-        if (usecToSleep > PROCESSING_INTERVAL_USECS) {
-            usecToSleep = PROCESSING_INTERVAL_USECS;
+        quint64 usecToSleep =  ::PROCESSING_INTERVAL_USECS - (usecTimestampNow() - lastProcessTime);
+        if (usecToSleep > ::PROCESSING_INTERVAL_USECS) {
+            usecToSleep = ::PROCESSING_INTERVAL_USECS;
         }
         
         if (usecToSleep > 0) {
@@ -758,7 +751,7 @@ AnimationServer::AnimationServer(int &argc, char **argv) :
         }
     }
     printf("ANIMATE_FPS=%d\n",ANIMATE_FPS);
-    printf("ANIMATE_VOXELS_INTERVAL_USECS=%d\n",ANIMATE_VOXELS_INTERVAL_USECS);
+    printf("ANIMATE_VOXELS_INTERVAL_USECS=%llu\n",ANIMATE_VOXELS_INTERVAL_USECS);
     
     const char* processingFPSCommand = getCmdOption(argc, (const char**) argv, "--ProcessingFPS");
     const char* processingIntervalCommand = getCmdOption(argc, (const char**) argv, "--ProcessingInterval");
@@ -774,7 +767,7 @@ AnimationServer::AnimationServer(int &argc, char **argv) :
         }
     }
     printf("PROCESSING_FPS=%d\n",PROCESSING_FPS);
-    printf("PROCESSING_INTERVAL_USECS=%d\n",PROCESSING_INTERVAL_USECS);
+    printf("PROCESSING_INTERVAL_USECS=%llu\n",PROCESSING_INTERVAL_USECS);
     
     nodeList->linkedDataCreateCallback = NULL; // do we need a callback?
     
