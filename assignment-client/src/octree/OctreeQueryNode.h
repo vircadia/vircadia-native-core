@@ -91,6 +91,8 @@ public:
     
     quint64 getLastRootTimestamp() const { return _lastRootTimestamp; }
     void setLastRootTimestamp(quint64 timestamp) { _lastRootTimestamp = timestamp; }
+    unsigned int getlastOctreePacketLength() const { return _lastOctreePacketLength; }
+    int getDuplicatePacketCount() const { return _duplicatePacketCount; }
     
     
 private:

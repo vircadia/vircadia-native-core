@@ -262,23 +262,8 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
     // then let's just send that waiting packet.
     if (!nodeData->getCurrentPacketFormatMatches()) {
         if (nodeData->isPacketWaiting()) {
-            if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
-                qDebug("about to call handlePacketSend() .... line: %d -- format change "
-                        "wantColor=%s wantCompression=%s SENDING PARTIAL PACKET! currentPacketIsColor=%s "
-                        "currentPacketIsCompressed=%s",
-                        __LINE__,
-                        debug::valueOf(wantColor), debug::valueOf(wantCompression),
-                        debug::valueOf(nodeData->getCurrentPacketIsColor()),
-                        debug::valueOf(nodeData->getCurrentPacketIsCompressed()) );
-            }
             packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
         } else {
-            if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
-                qDebug("wantColor=%s wantCompression=%s FIXING HEADER! currentPacketIsColor=%s currentPacketIsCompressed=%s",
-                        debug::valueOf(wantColor), debug::valueOf(wantCompression),
-                        debug::valueOf(nodeData->getCurrentPacketIsColor()),
-                        debug::valueOf(nodeData->getCurrentPacketIsCompressed()) );
-            }
             nodeData->resetOctreePacket();
         }
         int targetSize = MAX_OCTREE_PACKET_DATA_SIZE;
@@ -345,44 +330,25 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
 
         // track completed scenes and send out the stats packet accordingly
         nodeData->stats.sceneCompleted();
-        ::endSceneSleepTime = _usleepTime;
-        unsigned long sleepTime = ::endSceneSleepTime - ::startSceneSleepTime;
+        nodeData->setLastRootTimestamp(_myServer->getOctree()->getRoot()->getLastChanged());
 
-        unsigned long encodeTime = nodeData->stats.getTotalEncodeTime();
-        unsigned long elapsedTime = nodeData->stats.getElapsedTime();
+        // TODO: add these to stats page
+        //::endSceneSleepTime = _usleepTime;
+        //unsigned long sleepTime = ::endSceneSleepTime - ::startSceneSleepTime;
+        //unsigned long encodeTime = nodeData->stats.getTotalEncodeTime();
+        //unsigned long elapsedTime = nodeData->stats.getElapsedTime();
 
-        if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
-            qDebug("about to call handlePacketSend() .... line: %d -- completed scene", __LINE__ );
-        }
         int packetsJustSent = handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
         packetsSentThisInterval += packetsJustSent;
-        if (forceDebugging) {
-            qDebug("packetsJustSent=%d packetsSentThisInterval=%d", packetsJustSent, packetsSentThisInterval);
-        }
-
-        if (forceDebugging || _myServer->wantsDebugSending()) {
-            qDebug() << "Scene completed at " << usecTimestampNow()
-                << "encodeTime:" << encodeTime
-                << " sleepTime:" << sleepTime
-                << " elapsed:" << elapsedTime
-                << " Packets:" << _totalPackets
-                << " Bytes:" << _totalBytes
-                << " Wasted:" << _totalWastedBytes;
-        }
 
         // If we're starting a full scene, then definitely we want to empty the nodeBag
         if (isFullScene) {
             nodeData->nodeBag.deleteAll();
         }
 
-        if (forceDebugging || _myServer->wantsDebugSending()) {
-            qDebug() << "Scene started at " << usecTimestampNow()
-                << " Packets:" << _totalPackets
-                << " Bytes:" << _totalBytes
-                << " Wasted:" << _totalWastedBytes;
-        }
-
-        ::startSceneSleepTime = _usleepTime;
+        // TODO: add these to stats page
+        //::startSceneSleepTime = _usleepTime;
+        
         // start tracking our stats
         nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, _myServer->getOctree()->getRoot(), _myServer->getJurisdiction());
 
@@ -401,8 +367,10 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
     if (!nodeData->nodeBag.isEmpty()) {
         int bytesWritten = 0;
         quint64 start = usecTimestampNow();
-        quint64 startCompressTimeMsecs = OctreePacketData::getCompressContentTime() / 1000;
-        quint64 startCompressCalls = OctreePacketData::getCompressContentCalls();
+
+        // TODO: add these to stats page
+        //quint64 startCompressTimeMsecs = OctreePacketData::getCompressContentTime() / 1000;
+        //quint64 startCompressCalls = OctreePacketData::getCompressContentCalls();
 
         int clientMaxPacketsPerInterval = std::max(1,(nodeData->getMaxOctreePacketsPerSecond() / INTERVALS_PER_SECOND));
         int maxPacketsPerInterval = std::min(clientMaxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval());
@@ -432,34 +400,58 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
             bool lastNodeDidntFit = false; // assume each node fits
             if (!nodeData->nodeBag.isEmpty()) {
                 OctreeElement* subTree = nodeData->nodeBag.extract();
+                
+                /* TODO: Looking for a way to prevent locking and encoding a tree that is not
+                // going to result in any packets being sent...
+                //
+                // If our node is root, and the root hasn't changed, and our view hasn't changed,
+                // and we've already seen at least one duplicate packet, then we probably don't need 
+                // to lock the tree and encode, because the result should be that no bytes will be 
+                // encoded, and this will be a duplicate packet from the  last one we sent...
+                OctreeElement* root = _myServer->getOctree()->getRoot();
+                bool skipEncode = false;
+                if (
+                        (subTree == root)
+                        && (nodeData->getLastRootTimestamp() == root->getLastChanged())
+                        && !viewFrustumChanged 
+                        && (nodeData->getDuplicatePacketCount() > 0)
+                ) {
+                    qDebug() << "is root, root not changed, view not changed, already seen a duplicate!"
+                        << "Can we skip it?";
+                    skipEncode = true;
+                }
+                */
+
                 bool wantOcclusionCulling = nodeData->getWantOcclusionCulling();
                 CoverageMap* coverageMap = wantOcclusionCulling ? &nodeData->map : IGNORE_COVERAGE_MAP;
-
+                
                 float voxelSizeScale = nodeData->getOctreeSizeScale();
                 int boundaryLevelAdjustClient = nodeData->getBoundaryLevelAdjust();
-
+                
                 int boundaryLevelAdjust = boundaryLevelAdjustClient + (viewFrustumChanged && nodeData->getWantLowResMoving()
-                                                                              ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
-
+                                                                       ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
+                
                 EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor,
                                              WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
                                              wantOcclusionCulling, coverageMap, boundaryLevelAdjust, voxelSizeScale,
                                              nodeData->getLastTimeBagEmpty(),
                                              isFullScene, &nodeData->stats, _myServer->getJurisdiction());
 
-
+                // TODO: should this include the lock time or not? This stat is sent down to the client,
+                // it seems like it may be a good idea to include the lock time as part of the encode time
+                // are reported to client. Since you can encode without the lock
+                nodeData->stats.encodeStarted();
+                
                 quint64 lockWaitStart = usecTimestampNow();
                 _myServer->getOctree()->lockForRead();
                 quint64 lockWaitEnd = usecTimestampNow();
                 lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
 
-                nodeData->stats.encodeStarted();
-
                 quint64 encodeStart = usecTimestampNow();
                 bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->nodeBag, params);
                 quint64 encodeEnd = usecTimestampNow();
                 encodeElapsedUsec = (float)(encodeEnd - encodeStart);
-
+                
                 // If after calling encodeTreeBitstream() there are no nodes left to send, then we know we've
                 // sent the entire scene. We want to know this below so we'll actually write this content into
                 // the packet and send it
@@ -509,19 +501,9 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
 
 
                     if (writtenSize > nodeData->getAvailable()) {
-                        if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
-                            qDebug("about to call handlePacketSend() .... line: %d -- "
-                                   "writtenSize[%d] > available[%d] too big, sending packet as is.",
-                                    __LINE__, writtenSize, nodeData->getAvailable());
-                        }
                         packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
                     }
 
-                    if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
-                        qDebug(">>>>>> calling writeToPacket() available=%d compressedSize=%d uncompressedSize=%d target=%u",
-                                nodeData->getAvailable(), _packetData.getFinalizedSize(),
-                                _packetData.getUncompressedSize(), _packetData.getTargetSize());
-                    }
                     nodeData->writeToPacket(_packetData.getFinalizedData(), _packetData.getFinalizedSize());
                     extraPackingAttempts = 0;
                     quint64 compressAndWriteEnd = usecTimestampNow();
@@ -568,18 +550,6 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
             quint64 endInside = usecTimestampNow();
             quint64 elapsedInsideUsecs = endInside - startInside;
             OctreeServer::trackInsideTime((float)elapsedInsideUsecs);
-            
-            const bool wantExtraDebugging = false;
-            if (wantExtraDebugging) {
-                float insideMsecs = (float)elapsedInsideUsecs / (float)USECS_PER_MSEC;
-                if (insideMsecs > 1.0f) {
-                    qDebug()<< "inside msecs=" << insideMsecs 
-                            << "lockWait usec=" << lockWaitElapsedUsec
-                            << "encode usec=" << encodeElapsedUsec
-                            << "compress usec=" << compressAndWriteElapsedUsec
-                            << "sending usec=" << packetSendingElapsedUsec;
-                 }
-             }
         }
 
 
@@ -597,62 +567,21 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
         int elapsedmsec = (end - start)/USECS_PER_MSEC;
         OctreeServer::trackLoopTime(elapsedmsec);
 
-        quint64 endCompressCalls = OctreePacketData::getCompressContentCalls();
-        int elapsedCompressCalls = endCompressCalls - startCompressCalls;
-
-        quint64 endCompressTimeMsecs = OctreePacketData::getCompressContentTime() / 1000;
-        int elapsedCompressTimeMsecs = endCompressTimeMsecs - startCompressTimeMsecs;
-
-        bool wantsExtraDebugging = false;
-        if (wantsExtraDebugging) {
-            if (elapsedmsec > 100) {
-                if (elapsedmsec > 1000) {
-                    int elapsedsec = (end - start)/1000000;
-                    qDebug("WARNING! packetLoop() took %d seconds [%d milliseconds %d calls in compress] "
-                            "to generate %d bytes in %d packets %d nodes still to send",
-                            elapsedsec, elapsedCompressTimeMsecs, elapsedCompressCalls,
-                            trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
-                } else {
-                    qDebug("WARNING! packetLoop() took %d milliseconds [%d milliseconds %d calls in compress] "
-                            "to generate %d bytes in %d packets, %d nodes still to send",
-                            elapsedmsec, elapsedCompressTimeMsecs, elapsedCompressCalls,
-                            trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
-                }
-            } else if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-                qDebug("packetLoop() took %d milliseconds [%d milliseconds %d calls in compress] "
-                        "to generate %d bytes in %d packets, %d nodes still to send",
-                        elapsedmsec, elapsedCompressTimeMsecs, elapsedCompressCalls,
-                        trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
-            }
-        }
+        // TODO: add these to stats page
+        //quint64 endCompressCalls = OctreePacketData::getCompressContentCalls();
+        //int elapsedCompressCalls = endCompressCalls - startCompressCalls;
+        //quint64 endCompressTimeMsecs = OctreePacketData::getCompressContentTime() / 1000;
+        //int elapsedCompressTimeMsecs = endCompressTimeMsecs - startCompressTimeMsecs;
 
         // if after sending packets we've emptied our bag, then we want to remember that we've sent all
         // the voxels from the current view frustum
         if (nodeData->nodeBag.isEmpty()) {
             nodeData->updateLastKnownViewFrustum();
             nodeData->setViewSent(true);
-            if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-                nodeData->map.printStats();
-            }
             nodeData->map.erase(); // It would be nice if we could save this, and only reset it when the view frustum changes
         }
 
-        if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-            qDebug("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d "
-                    "server PPI=%d nodePPS=%d nodePPI=%d",
-                    truePacketsSent, packetsSentThisInterval, maxPacketsPerInterval,
-                    _myServer->getPacketsPerClientPerInterval(), nodeData->getMaxOctreePacketsPerSecond(),
-                    clientMaxPacketsPerInterval);
-        }
-
     } // end if bag wasn't empty, and so we sent stuff...
-
-    const bool wantExtraDebugging = false;
-    if (wantExtraDebugging) {
-        if (truePacketsSent > 0 || packetsSentThisInterval > 0) {
-            qDebug() << "truePacketsSent=" << truePacketsSent << "packetsSentThisInterval=" << packetsSentThisInterval;
-        }
-    }
 
     return truePacketsSent;
 }
