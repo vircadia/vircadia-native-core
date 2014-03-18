@@ -55,6 +55,20 @@ int AudioRingBuffer::parseData(const QByteArray& packet) {
     return writeData(packet.data() + numBytesPacketHeader, packet.size() - numBytesPacketHeader);
 }
 
+float AudioRingBuffer::averageLoudnessForBoundarySamples(int numSamples) {
+    // ForBoundarySamples means that we expect the number of samples not to roll of the end of the ring buffer
+    float averageLoudness = 0;
+    
+    for (int i = 0; i < numSamples; ++i) {
+        averageLoudness += fabsf(_nextOutput[i]);
+    }
+    
+    averageLoudness /= numSamples;
+    averageLoudness /= MAX_SAMPLE_VALUE;
+    
+    return averageLoudness;
+}
+
 qint64 AudioRingBuffer::readSamples(int16_t* destination, qint64 maxSamples) {
     return readData((char*) destination, maxSamples * sizeof(int16_t));
 }

@@ -62,10 +62,9 @@ void attachNewBufferToNode(Node *newNode) {
 }
 
 AudioMixer::AudioMixer(const QByteArray& packet) :
-    ThreadedAssignment(packet),
-    _clientMixBuffer(NETWORK_BUFFER_LENGTH_BYTES_STEREO + numBytesForPacketHeaderGivenPacketType(PacketTypeMixedAudio), 0)
+    ThreadedAssignment(packet)
 {
-    connect(NodeList::getInstance(), &NodeList::uuidChanged, this, &AudioMixer::receivedSessionUUID);
+    
 }
 
 void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,
@@ -301,7 +300,8 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
 
                 if ((*otherNode != *node
                      || otherNodeBuffer->shouldLoopbackForNode())
-                    && otherNodeBuffer->willBeAddedToMix()) {
+                    && otherNodeBuffer->willBeAddedToMix()
+                    && otherNodeClientData->getNextOutputLoudness() > 0) {
                     addBufferToMixForListeningNodeWithBuffer(otherNodeBuffer, nodeRingBuffer);
                 }
             }
@@ -332,10 +332,6 @@ void AudioMixer::readPendingDatagrams() {
     }
 }
 
-void AudioMixer::receivedSessionUUID(const QUuid& sessionUUID) {
-    populatePacketHeader(_clientMixBuffer, PacketTypeMixedAudio);
-}
-
 void AudioMixer::run() {
 
     commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NodeType::AudioMixer);
@@ -350,16 +346,11 @@ void AudioMixer::run() {
     timeval startTime;
 
     gettimeofday(&startTime, NULL);
-
-    int numBytesPacketHeader = numBytesForPacketHeaderGivenPacketType(PacketTypeMixedAudio);
+    
+    char* clientMixBuffer = new char[NETWORK_BUFFER_LENGTH_BYTES_STEREO
+                                     + numBytesForPacketHeaderGivenPacketType(PacketTypeMixedAudio)];
 
     while (!_isFinished) {
-
-        QCoreApplication::processEvents();
-
-        if (_isFinished) {
-            break;
-        }
 
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
@@ -371,9 +362,11 @@ void AudioMixer::run() {
             if (node->getType() == NodeType::Agent && node->getActiveSocket() && node->getLinkedData()
                 && ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer()) {
                 prepareMixForListeningNode(node.data());
+                
+                int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeMixedAudio);
 
-                memcpy(_clientMixBuffer.data() + numBytesPacketHeader, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
-                nodeList->writeDatagram(_clientMixBuffer, node);
+                memcpy(clientMixBuffer + numBytesPacketHeader, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
+                nodeList->writeDatagram(clientMixBuffer, NETWORK_BUFFER_LENGTH_BYTES_STEREO + numBytesPacketHeader, node);
             }
         }
 
@@ -382,6 +375,12 @@ void AudioMixer::run() {
             if (node->getLinkedData()) {
                 ((AudioMixerClientData*) node->getLinkedData())->pushBuffersAfterFrameSend();
             }
+        }
+        
+        QCoreApplication::processEvents();
+        
+        if (_isFinished) {
+            break;
         }
 
         int usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
@@ -393,4 +392,6 @@ void AudioMixer::run() {
         }
 
     }
+    
+    delete[] clientMixBuffer;
 }
