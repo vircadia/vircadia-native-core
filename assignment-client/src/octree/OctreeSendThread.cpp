@@ -56,9 +56,6 @@ bool OctreeSendThread::process() {
             // Sometimes the node data has not yet been linked, in which case we can't really do anything
             if (nodeData) {
                 bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
-                if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-                    printf("nodeData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
-                }
                 packetDistributor(node, nodeData, viewFrustumChanged);
             }
             if (nodeData->isScheduledForDelete()) {
@@ -67,10 +64,6 @@ bool OctreeSendThread::process() {
             }
         } else {
             _nodeMissingCount++;
-        }
-    } else {
-        if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-            qDebug("OctreeSendThread::process() waiting for isInitialLoadComplete()");
         }
     }
 
@@ -84,10 +77,6 @@ bool OctreeSendThread::process() {
             PerformanceWarning warn(false,"OctreeSendThread... usleep()",false,&_usleepTime,&_usleepCalls);
             usleep(usecToSleep);
         } else {
-            if ((_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
-                qDebug() << "Last send took too much time (" << (elapsed / USECS_PER_MSEC) 
-                                <<" msecs), barely sleeping 1 usec!\n";
-            }
             const int MIN_USEC_TO_SLEEP = 1;
             usleep(MIN_USEC_TO_SLEEP);
         }
@@ -270,49 +259,15 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
         if (wantCompression) {
             targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
         }
-        if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-            qDebug("line:%d _packetData.changeSettings() wantCompression=%s targetSize=%d", __LINE__,
-                debug::valueOf(wantCompression), targetSize);
-        }
-
         _packetData.changeSettings(wantCompression, targetSize);
     }
 
-    if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-        qDebug("wantColor/isColor=%s/%s wantCompression/isCompressed=%s/%s viewFrustumChanged=%s, getWantLowResMoving()=%s",
-                debug::valueOf(wantColor), debug::valueOf(nodeData->getCurrentPacketIsColor()),
-                debug::valueOf(wantCompression), debug::valueOf(nodeData->getCurrentPacketIsCompressed()),
-                debug::valueOf(viewFrustumChanged), debug::valueOf(nodeData->getWantLowResMoving()));
-    }
-
     const ViewFrustum* lastViewFrustum =  wantDelta ? &nodeData->getLastKnownViewFrustum() : NULL;
-
-    if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
-        qDebug("packetDistributor() viewFrustumChanged=%s, nodeBag.isEmpty=%s, viewSent=%s",
-                debug::valueOf(viewFrustumChanged), debug::valueOf(nodeData->nodeBag.isEmpty()),
-                debug::valueOf(nodeData->getViewSent())
-            );
-    }
 
     // If the current view frustum has changed OR we have nothing to send, then search against
     // the current view frustum for things to send.
     if (viewFrustumChanged || nodeData->nodeBag.isEmpty()) {
         quint64 now = usecTimestampNow();
-        if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
-            qDebug("(viewFrustumChanged=%s || nodeData->nodeBag.isEmpty() =%s)...",
-                   debug::valueOf(viewFrustumChanged), debug::valueOf(nodeData->nodeBag.isEmpty()));
-            if (nodeData->getLastTimeBagEmpty() > 0) {
-                float elapsedSceneSend = (now - nodeData->getLastTimeBagEmpty()) / 1000000.0f;
-                if (viewFrustumChanged) {
-                    qDebug("viewFrustumChanged resetting after elapsed time to send scene = %f seconds", elapsedSceneSend);
-                } else {
-                    qDebug("elapsed time to send scene = %f seconds", elapsedSceneSend);
-                }
-                qDebug("[ occlusionCulling:%s, wantDelta:%s, wantColor:%s ]",
-                       debug::valueOf(nodeData->getWantOcclusionCulling()), debug::valueOf(wantDelta),
-                       debug::valueOf(wantColor));
-            }
-        }
 
         // if our view has changed, we need to reset these things...
         if (viewFrustumChanged) {
@@ -375,12 +330,6 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
         int clientMaxPacketsPerInterval = std::max(1,(nodeData->getMaxOctreePacketsPerSecond() / INTERVALS_PER_SECOND));
         int maxPacketsPerInterval = std::min(clientMaxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval());
 
-        if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-            qDebug("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d",
-                truePacketsSent, packetsSentThisInterval, maxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval(),
-                nodeData->getMaxOctreePacketsPerSecond(), clientMaxPacketsPerInterval);
-        }
-
         int extraPackingAttempts = 0;
         bool completedScene = false;
         while (somethingToSend && packetsSentThisInterval < maxPacketsPerInterval) {
@@ -390,12 +339,6 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
             float packetSendingElapsedUsec = OctreeServer::SKIP_TIME;
             
             quint64 startInside = usecTimestampNow();            
-
-            if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-                qDebug("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d",
-                    truePacketsSent, packetsSentThisInterval, maxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval(),
-                    nodeData->getMaxOctreePacketsPerSecond(), clientMaxPacketsPerInterval);
-            }
 
             bool lastNodeDidntFit = false; // assume each node fits
             if (!nodeData->nodeBag.isEmpty()) {
@@ -585,4 +528,3 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
 
     return truePacketsSent;
 }
-
