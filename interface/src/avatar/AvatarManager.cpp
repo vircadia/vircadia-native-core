@@ -152,6 +152,7 @@ void AvatarManager::processAvatarDataPacket(const QByteArray &datagram, const QW
     // only add them if mixerWeakPointer points to something (meaning that mixer is still around)
     while (bytesRead < datagram.size() && mixerWeakPointer.data()) {
         QUuid nodeUUID = QUuid::fromRfc4122(datagram.mid(bytesRead, NUM_BYTES_RFC4122_UUID));
+        bytesRead += NUM_BYTES_RFC4122_UUID;
         
         AvatarSharedPointer matchingAvatar = _avatarHash.value(nodeUUID);
         
@@ -166,7 +167,6 @@ void AvatarManager::processAvatarDataPacket(const QByteArray &datagram, const QW
             
             qDebug() << "Adding avatar with UUID" << nodeUUID << "to AvatarManager hash.";
         }
-        
         
         // have the matching (or new) avatar parse the data from the packet
         bytesRead += matchingAvatar->parseDataAtOffset(datagram, bytesRead);
