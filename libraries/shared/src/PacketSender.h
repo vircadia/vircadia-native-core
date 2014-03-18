@@ -11,6 +11,8 @@
 #ifndef __shared__PacketSender__
 #define __shared__PacketSender__
 
+#include <QWaitCondition>
+
 #include "GenericThread.h"
 #include "NetworkPacket.h"
 #include "NodeList.h"
@@ -44,6 +46,7 @@ public:
     int getPacketsPerSecond() const { return _packetsPerSecond; }
 
     virtual bool process();
+    virtual void terminating();
 
     /// are there packets waiting in the send queue to be sent
     bool hasPacketsToSend() const { return _packets.size() > 0; }
@@ -113,6 +116,9 @@ private:
 
     quint64 _totalPacketsQueued;
     quint64 _totalBytesQueued;
+
+    QWaitCondition _hasPackets;
+    QMutex _waitingOnPacketsMutex;
 };
 
 #endif // __shared__PacketSender__

@@ -1,5 +1,5 @@
 //
-//  VoxelStatsDialog.cpp
+//  OctreeStatsDialog.cpp
 //  interface
 //
 //  Created by Brad Hefta-Gaub on 7/19/13.
@@ -14,13 +14,13 @@
 #include <QPalette>
 #include <QColor>
 
-#include <VoxelSceneStats.h>
+#include <OctreeSceneStats.h>
 
 #include "Application.h"
 
-#include "ui/VoxelStatsDialog.h"
+#include "ui/OctreeStatsDialog.h"
 
-VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, NodeToVoxelSceneStats* model) :
+OctreeStatsDialog::OctreeStatsDialog(QWidget* parent, NodeToOctreeSceneStats* model) :
     QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint),
     _model(model) {
     
@@ -52,7 +52,7 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, NodeToVoxelSceneStats* model
     layout()->setSizeConstraint(QLayout::SetFixedSize); 
 }
 
-void VoxelStatsDialog::RemoveStatItem(int item) {
+void OctreeStatsDialog::RemoveStatItem(int item) {
     QLabel* myLabel = _labels[item];
     QWidget* automaticLabel = _form->labelForField(myLabel);
     _form->removeWidget(myLabel);
@@ -62,7 +62,7 @@ void VoxelStatsDialog::RemoveStatItem(int item) {
     _labels[item] = NULL;
 }
 
-void VoxelStatsDialog::moreless(const QString& link) {
+void OctreeStatsDialog::moreless(const QString& link) {
     QStringList linkDetails = link.split("-");
     const int COMMAND_ITEM = 0;
     const int SERVER_NUMBER_ITEM = 1;
@@ -80,7 +80,7 @@ void VoxelStatsDialog::moreless(const QString& link) {
 }
 
 
-int VoxelStatsDialog::AddStatItem(const char* caption, unsigned colorRGBA) {
+int OctreeStatsDialog::AddStatItem(const char* caption, unsigned colorRGBA) {
     char strBuf[64];
     const int STATS_LABEL_WIDTH = 600;
     
@@ -109,13 +109,13 @@ int VoxelStatsDialog::AddStatItem(const char* caption, unsigned colorRGBA) {
     return _statCount;
 }
 
-VoxelStatsDialog::~VoxelStatsDialog() {
+OctreeStatsDialog::~OctreeStatsDialog() {
     for (int i = 0; i < _statCount; i++) {
         delete _labels[i];
     }
 }
 
-void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
+void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
 
     // Update labels
 
@@ -157,9 +157,9 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
 
     statsValue.str("");
     statsValue << 
-        "Total: " << localTotalString.toLocal8Bit().constData() << " / " <<
-        "Internal: " << localInternalString.toLocal8Bit().constData() << " / " <<
-        "Leaves: " << localLeavesString.toLocal8Bit().constData() << "";
+        "Total: " << qPrintable(localTotalString) << " / " <<
+        "Internal: " << qPrintable(localInternalString) << " / " <<
+        "Leaves: " << qPrintable(localLeavesString) << "";
     label->setText(statsValue.str().c_str());
 
     // iterate all the current voxel stats, and list their sending modes, total their voxels, etc...
@@ -171,11 +171,11 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
     unsigned long totalInternal = 0;
     unsigned long totalLeaves = 0;
 
-    Application::getInstance()->lockVoxelSceneStats();
-    NodeToVoxelSceneStats* sceneStats = Application::getInstance()->getOcteeSceneStats();
-    for(NodeToVoxelSceneStatsIterator i = sceneStats->begin(); i != sceneStats->end(); i++) {
+    Application::getInstance()->lockOctreeSceneStats();
+    NodeToOctreeSceneStats* sceneStats = Application::getInstance()->getOcteeSceneStats();
+    for(NodeToOctreeSceneStatsIterator i = sceneStats->begin(); i != sceneStats->end(); i++) {
         //const QUuid& uuid = i->first;
-        VoxelSceneStats& stats = i->second;
+        OctreeSceneStats& stats = i->second;
         serverCount++;
 
         // calculate server node totals
@@ -194,7 +194,7 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
             sendingMode << "S";
         }
     }
-    Application::getInstance()->unlockVoxelSceneStats();
+    Application::getInstance()->unlockOctreeSceneStats();
     sendingMode << " - " << serverCount << " servers";
     if (movingServerCount > 0) {
         sendingMode << " <SCENE NOT STABLE>";
@@ -212,16 +212,16 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
     label = _labels[_serverVoxels];
     statsValue.str("");
     statsValue << 
-        "Total: " << serversTotalString.toLocal8Bit().constData() << " / " <<
-        "Internal: " << serversInternalString.toLocal8Bit().constData() << " / " <<
-        "Leaves: " << serversLeavesString.toLocal8Bit().constData() << "";
+        "Total: " << qPrintable(serversTotalString) << " / " <<
+        "Internal: " << qPrintable(serversInternalString) << " / " <<
+        "Leaves: " << qPrintable(serversLeavesString) << "";
     label->setText(statsValue.str().c_str());
 
     showAllOctreeServers();
 
     this->QDialog::paintEvent(event);
 }
-void VoxelStatsDialog::showAllOctreeServers() {
+void OctreeStatsDialog::showAllOctreeServers() {
     int serverCount = 0;
 
     showOctreeServersOfType(serverCount, NodeType::VoxelServer, "Voxel",
@@ -239,7 +239,7 @@ void VoxelStatsDialog::showAllOctreeServers() {
     }
 }
 
-void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t serverType, const char* serverTypeName,
+void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t serverType, const char* serverTypeName,
                                                 NodeToJurisdictionMap& serverJurisdictions) {
                                                 
     QLocale locale(QLocale::English);
@@ -290,7 +290,7 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t serv
                     AABox serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
                     serverBounds.scale(TREE_SCALE);
                     serverDetails << " jurisdiction: "
-                    << rootCodeHex.toLocal8Bit().constData()
+                    << qPrintable(rootCodeHex)
                     << " ["
                     << rootDetails.x << ", "
                     << rootDetails.y << ", "
@@ -303,10 +303,10 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t serv
             
             // now lookup stats details for this server...
             if (_extraServerDetails[serverCount-1] != LESS) {
-                Application::getInstance()->lockVoxelSceneStats();
-                NodeToVoxelSceneStats* sceneStats = Application::getInstance()->getOcteeSceneStats();
+                Application::getInstance()->lockOctreeSceneStats();
+                NodeToOctreeSceneStats* sceneStats = Application::getInstance()->getOcteeSceneStats();
                 if (sceneStats->find(nodeUUID) != sceneStats->end()) {
-                    VoxelSceneStats& stats = sceneStats->at(nodeUUID);
+                    OctreeSceneStats& stats = sceneStats->at(nodeUUID);
                     
                     switch (_extraServerDetails[serverCount-1]) {
                         case MOST: {
@@ -315,17 +315,29 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t serv
                             const unsigned long USECS_PER_MSEC = 1000;
                             float lastFullEncode = stats.getLastFullTotalEncodeTime() / USECS_PER_MSEC;
                             float lastFullSend = stats.getLastFullElapsedTime() / USECS_PER_MSEC;
+                            float lastFullSendInSeconds = stats.getLastFullElapsedTime() / USECS_PER_SECOND;
+                            float lastFullPackets = stats.getLastFullTotalPackets();
+                            float lastFullPPS = lastFullPackets;
+                            if (lastFullSendInSeconds > 0) {
+                                lastFullPPS = lastFullPackets / lastFullSendInSeconds;
+                            }
                             
                             QString lastFullEncodeString = locale.toString(lastFullEncode);
                             QString lastFullSendString = locale.toString(lastFullSend);
+                            QString lastFullPacketsString = locale.toString(lastFullPackets);
+                            QString lastFullBytesString = locale.toString((uint)stats.getLastFullTotalBytes());
+                            QString lastFullPPSString = locale.toString(lastFullPPS);
                             
                             extraDetails << "<br/>" << "Last Full Scene... " <<
-                            "Encode Time: " << lastFullEncodeString.toLocal8Bit().constData() << " ms " <<
-                            "Send Time: " << lastFullSendString.toLocal8Bit().constData() << " ms ";
+                                "Encode: " << qPrintable(lastFullEncodeString) << " ms " <<
+                                "Send: " << qPrintable(lastFullSendString) << " ms " <<
+                                "Packets: " << qPrintable(lastFullPacketsString) << " " << 
+                                "Bytes: " << qPrintable(lastFullBytesString) << " " <<
+                                "Rate: " <<  qPrintable(lastFullPPSString) << " PPS";
                             
-                            for (int i = 0; i < VoxelSceneStats::ITEM_COUNT; i++) {
-                                VoxelSceneStats::Item item = (VoxelSceneStats::Item)(i);
-                                VoxelSceneStats::ItemInfo& itemInfo = stats.getItemInfo(item);
+                            for (int i = 0; i < OctreeSceneStats::ITEM_COUNT; i++) {
+                                OctreeSceneStats::Item item = (OctreeSceneStats::Item)(i);
+                                OctreeSceneStats::ItemInfo& itemInfo = stats.getItemInfo(item);
                                 extraDetails << "<br/>" << itemInfo.caption << " " << stats.getItemValue(item);
                             }
                         } // fall through... since MOST has all of MORE
@@ -334,42 +346,51 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t serv
                             QString internalString = locale.toString((uint)stats.getTotalInternal());
                             QString leavesString = locale.toString((uint)stats.getTotalLeaves());
                             
-                            serverDetails << "<br/>" << "Node UUID: " <<
-                            nodeUUID.toString().toLocal8Bit().constData() << " ";
+                            serverDetails << "<br/>" << "Node UUID: " << qPrintable(nodeUUID.toString()) << " ";
                             
                             serverDetails << "<br/>" << "Voxels: " <<
-                            totalString.toLocal8Bit().constData() << " total " <<
-                            internalString.toLocal8Bit().constData() << " internal " <<
-                            leavesString.toLocal8Bit().constData() << " leaves ";
+                                qPrintable(totalString) << " total " <<
+                                qPrintable(internalString) << " internal " <<
+                                qPrintable(leavesString) << " leaves ";
                             
                             QString incomingPacketsString = locale.toString((uint)stats.getIncomingPackets());
                             QString incomingBytesString = locale.toString((uint)stats.getIncomingBytes());
                             QString incomingWastedBytesString = locale.toString((uint)stats.getIncomingWastedBytes());
                             QString incomingOutOfOrderString = locale.toString((uint)stats.getIncomingOutOfOrder());
+                            QString incomingLateString = locale.toString((uint)stats.getIncomingLate());
+                            QString incomingReallyLateString = locale.toString((uint)stats.getIncomingReallyLate());
+                            QString incomingEarlyString = locale.toString((uint)stats.getIncomingEarly());
                             QString incomingLikelyLostString = locale.toString((uint)stats.getIncomingLikelyLost());
+                            QString incomingRecovered = locale.toString((uint)stats.getIncomingRecovered());
+                            QString incomingDuplicateString = locale.toString((uint)stats.getIncomingPossibleDuplicate());
                             
                             int clockSkewInMS = node->getClockSkewUsec() / (int)USECS_PER_MSEC;
                             QString incomingFlightTimeString = locale.toString((int)stats.getIncomingFlightTimeAverage());
                             QString incomingPingTimeString = locale.toString(node->getPingMs());
                             QString incomingClockSkewString = locale.toString(clockSkewInMS);
                             
-                            serverDetails << "<br/>" << "Incoming Packets: " <<
-                            incomingPacketsString.toLocal8Bit().constData() <<
-                            " Out of Order: " << incomingOutOfOrderString.toLocal8Bit().constData() <<
-                            " Likely Lost: " << incomingLikelyLostString.toLocal8Bit().constData();
+                            serverDetails << "<br/>" << "Incoming Packets: " << qPrintable(incomingPacketsString) <<
+                                "/ Lost: " << qPrintable(incomingLikelyLostString) <<
+                                "/ Recovered: " << qPrintable(incomingRecovered);
+
+                            serverDetails << "<br/>" << " Out of Order: " << qPrintable(incomingOutOfOrderString) <<
+                                "/ Early: " << qPrintable(incomingEarlyString) <<
+                                "/ Late: " << qPrintable(incomingLateString) <<
+                                "/ Really Late: " << qPrintable(incomingReallyLateString) <<
+                                "/ Duplicate: " << qPrintable(incomingDuplicateString);
                             
                             serverDetails << "<br/>" <<
-                            " Average Flight Time: " << incomingFlightTimeString.toLocal8Bit().constData() << " msecs";
+                                " Average Flight Time: " << qPrintable(incomingFlightTimeString) << " msecs";
                             
                             serverDetails << "<br/>" <<
-                            " Average Ping Time: " << incomingPingTimeString.toLocal8Bit().constData() << " msecs";
+                                " Average Ping Time: " << qPrintable(incomingPingTimeString) << " msecs";
                             
                             serverDetails << "<br/>" <<
-                            " Average Clock Skew: " << incomingClockSkewString.toLocal8Bit().constData() << " msecs";
-                            
+                                " Average Clock Skew: " << qPrintable(incomingClockSkewString) << " msecs";
+                
                             serverDetails << "<br/>" << "Incoming" <<
-                            " Bytes: " <<  incomingBytesString.toLocal8Bit().constData() <<
-                            " Wasted Bytes: " << incomingWastedBytesString.toLocal8Bit().constData();
+                                " Bytes: " <<  qPrintable(incomingBytesString) <<
+                                " Wasted Bytes: " << qPrintable(incomingWastedBytesString);
                             
                             serverDetails << extraDetails.str();
                             if (_extraServerDetails[serverCount-1] == MORE) {
@@ -386,7 +407,7 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t serv
                         } break;
                     }
                 }
-                Application::getInstance()->unlockVoxelSceneStats();
+                Application::getInstance()->unlockOctreeSceneStats();
             } else {
                 linkDetails << "   " << " [<a href='more-" << serverCount << "'>more...</a>]";
                 linkDetails << "   " << " [<a href='most-" << serverCount << "'>most...</a>]";
@@ -397,12 +418,12 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t serv
     }
 }
 
-void VoxelStatsDialog::reject() {
+void OctreeStatsDialog::reject() {
     // Just regularly close upon ESC
     this->QDialog::close();
 }
 
-void VoxelStatsDialog::closeEvent(QCloseEvent* event) {
+void OctreeStatsDialog::closeEvent(QCloseEvent* event) {
     this->QDialog::closeEvent(event);
     emit closed();
 }

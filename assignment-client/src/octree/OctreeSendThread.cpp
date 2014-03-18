@@ -54,15 +54,13 @@ bool OctreeSendThread::process() {
 
             nodeData = (OctreeQueryNode*) node->getLinkedData();
 
-            int packetsSent = 0;
-
             // Sometimes the node data has not yet been linked, in which case we can't really do anything
             if (nodeData) {
                 bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
                 if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
                     printf("nodeData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
                 }
-                packetsSent = packetDistributor(node, nodeData, viewFrustumChanged);
+                packetDistributor(node, nodeData, viewFrustumChanged);
             }
         } else {
             _nodeMissingCount++;
@@ -143,9 +141,10 @@ int OctreeSendThread::handlePacketSend(const SharedNodePointer& node, OctreeQuer
         // Send the stats message to the client
         unsigned char* statsMessage = nodeData->stats.getStatsMessage();
         int statsMessageLength = nodeData->stats.getStatsMessageLength();
+        int piggyBackSize = nodeData->getPacketLength() + statsMessageLength;
 
         // If the size of the stats message and the voxel message will fit in a packet, then piggyback them
-        if (nodeData->getPacketLength() + statsMessageLength < MAX_PACKET_SIZE) {
+        if (piggyBackSize < MAX_PACKET_SIZE) {
 
             // copy voxel message to back of stats message
             memcpy(statsMessage + statsMessageLength, nodeData->getPacket(), nodeData->getPacketLength());
@@ -241,6 +240,9 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
     int truePacketsSent = 0;
     int trueBytesSent = 0;
     int packetsSentThisInterval = 0;
+    bool isFullScene = ((!viewFrustumChanged || !nodeData->getWantDelta()) && nodeData->getViewFrustumJustStoppedChanging()) 
+                                || nodeData->hasLodChanged();
+
     bool somethingToSend = true; // assume we have something
 
     // FOR NOW... node tells us if it wants to receive only view frustum deltas
@@ -365,10 +367,6 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
                 << " Wasted:" << _totalWastedBytes;
         }
 
-        // start tracking our stats
-        bool isFullScene = ((!viewFrustumChanged || !nodeData->getWantDelta())
-                                && nodeData->getViewFrustumJustStoppedChanging()) || nodeData->hasLodChanged();
-
         // If we're starting a full scene, then definitely we want to empty the nodeBag
         if (isFullScene) {
             nodeData->nodeBag.deleteAll();
@@ -382,6 +380,7 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
         }
 
         ::startSceneSleepTime = _usleepTime;
+        // start tracking our stats
         nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, _myServer->getOctree()->getRoot(), _myServer->getJurisdiction());
 
         // This is the start of "resending" the scene.
@@ -431,10 +430,6 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
 
                 int boundaryLevelAdjust = boundaryLevelAdjustClient + (viewFrustumChanged && nodeData->getWantLowResMoving()
                                                                               ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
-
-
-                bool isFullScene = ((!viewFrustumChanged || !nodeData->getWantDelta()) &&
-                                 nodeData->getViewFrustumJustStoppedChanging()) || nodeData->hasLodChanged();
 
                 EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor,
                                              WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
@@ -498,7 +493,7 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
                     // if for some reason the finalized size is greater than our available size, then probably the "compressed"
                     // form actually inflated beyond our padding, and in this case we will send the current packet, then
                     // write to out new packet...
-                    int writtenSize = _packetData.getFinalizedSize()
+                    unsigned int writtenSize = _packetData.getFinalizedSize()
                             + (nodeData->getCurrentPacketIsCompressed() ? sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE) : 0);
 
 
@@ -512,7 +507,7 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
                     }
 
                     if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
-                        qDebug(">>>>>> calling writeToPacket() available=%d compressedSize=%d uncompressedSize=%d target=%d",
+                        qDebug(">>>>>> calling writeToPacket() available=%d compressedSize=%d uncompressedSize=%d target=%u",
                                 nodeData->getAvailable(), _packetData.getFinalizedSize(),
                                 _packetData.getUncompressedSize(), _packetData.getTargetSize());
                     }

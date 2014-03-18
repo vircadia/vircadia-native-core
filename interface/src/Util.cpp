@@ -68,19 +68,21 @@ void printVector(glm::vec3 vec) {
     printf("%4.2f, %4.2f, %4.2f\n", vec.x, vec.y, vec.z);
 }
 
-//  Return the azimuth angle in degrees between two points.
+//  Return the azimuth angle (in radians) between two points.
 float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos) {
-    return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z) * 180.0f / PIf;
+    return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z);
 }
 
-//  Return the angle in degrees between the head and an object in the scene.  The value is zero if you are looking right at it.  The angle is negative if the object is to your right.
+// Return the angle (in radians) between the head and an object in the scene.  
+// The value is zero if you are looking right at it.
+// The angle is negative if the object is to your right.
 float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float head_yaw) {
-    return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z) * 180.0f / PIf + render_yaw + head_yaw;
+    return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z) + render_yaw + head_yaw;
 }
 
-//  Helper function returns the positive angle in degrees between two 3D vectors
+//  Helper function returns the positive angle (in radians) between two 3D vectors
 float angleBetween(const glm::vec3& v1, const glm::vec3& v2) {
-    return acos((glm::dot(v1, v2)) / (glm::length(v1) * glm::length(v2))) * 180.f / PIf;
+    return acosf((glm::dot(v1, v2)) / (glm::length(v1) * glm::length(v2)));
 }
 
 //  Helper function return the rotation from the first vector onto the second
@@ -90,7 +92,7 @@ glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
         return glm::quat();
     }
     glm::vec3 axis;
-    if (angle > 179.99f) { // 180 degree rotation; must use another axis
+    if (angle > 179.99f * RADIANS_PER_DEGREE) { // 180 degree rotation; must use another axis
         axis = glm::cross(v1, glm::vec3(1.0f, 0.0f, 0.0f));
         float axisLength = glm::length(axis);
         if (axisLength < EPSILON) { // parallel to x; y will work
@@ -314,7 +316,7 @@ float widthChar(float scale, int mono, char ch) {
     return textRenderer(mono)->computeWidth(ch) * (scale / 0.10);
 }
 
-void drawText(int x, int y, float scale, float rotate, int mono,
+void drawText(int x, int y, float scale, float radians, int mono,
               char const* string, const float* color) {
     //
     //  Draws text on screen as stroked so it can be resized
@@ -322,16 +324,16 @@ void drawText(int x, int y, float scale, float rotate, int mono,
     glPushMatrix();
     glTranslatef(static_cast<float>(x), static_cast<float>(y), 0.0f);
     glColor3fv(color);
-    glRotated(rotate,0,0,1);
-    glScalef(scale / 0.10, scale / 0.10, 1.0);
+    glRotated(double(radians * DEGREES_PER_RADIAN), 0.0, 0.0, 1.0);
+    glScalef(scale / 0.1f, scale / 0.1f, 1.f);
     textRenderer(mono)->draw(0, 0, string);
     glPopMatrix();
 }
 
 
-void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, glm::vec3 vec, float r, float g, float b) {
+void drawvec3(int x, int y, float scale, float radians, float thick, int mono, glm::vec3 vec, float r, float g, float b) {
     //
-    //  Draws text on screen as stroked so it can be resized
+    //  Draws vec3 on screen as stroked so it can be resized
     //
     char vectext[20];
     sprintf(vectext,"%3.1f,%3.1f,%3.1f", vec.x, vec.y, vec.z);
@@ -339,10 +341,10 @@ void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, gl
     glPushMatrix();
     glTranslatef(static_cast<float>(x), static_cast<float>(y), 0);
     glColor3f(r,g,b);
-    glRotated(180+rotate,0,0,1);
-    glRotated(180,0,1,0);
+    glRotated(180.0 + double(radians * DEGREES_PER_RADIAN), 0.0, 0.0, 1.0);
+    glRotated(180.0, 0.0, 1.0, 0.0);
     glLineWidth(thick);
-    glScalef(scale, scale, 1.0);
+    glScalef(scale, scale, 1.f);
     len = (int) strlen(vectext);
 	for (i = 0; i < len; i++) {
         if (!mono) glutStrokeCharacter(GLUT_STROKE_ROMAN, int(vectext[i]));
@@ -371,9 +373,9 @@ void renderSphereOutline(glm::vec3 position, float radius, int numSides, glm::ve
 
     glBegin(GL_LINE_STRIP);
     for (int i=0; i<numSides+1; i++) {
-        float r = ((float)i / (float)numSides) * PIf * 2.0;
-        float s = radius * sin(r);
-        float c = radius * cos(r);
+        float r = ((float)i / (float)numSides) * TWO_PI;
+        float s = radius * sinf(r);
+        float c = radius * cosf(r);
 
         glVertex3f
         (
@@ -394,9 +396,9 @@ void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int
     glBegin(GL_LINE_STRIP);
 
     for (int i=0; i<numSides+1; i++) {
-        float r = ((float)i / (float)numSides) * PIf * 2.0;
-        float s = radius * sin(r);
-        float c = radius * cos(r);
+        float r = ((float)i / (float)numSides) * TWO_PI;
+        float s = radius * sinf(r);
+        float c = radius * cosf(r);
         glVertex3f
         (
             position.x + perp1.x * s + perp2.x * c,
@@ -440,12 +442,12 @@ void renderRoundedCornersRect(int x, int y, int width, int height, int radius, i
         numPointsCorner = MAX_POINTS_CORNER;
     }
 
-    // Precompute sin and cos for [0, pi/2) for the number of points (numPointCorner)
+    // Precompute sin and cos for [0, PI/2) for the number of points (numPointCorner)
     double radiusTimesSin[MAX_POINTS_CORNER];
     double radiusTimesCos[MAX_POINTS_CORNER];
     int i = 0;
     for (int i = 0; i < numPointsCorner; i++) {
-        double t = i * PIf /  (2.0f * (numPointsCorner - 1)); 
+        double t = (double)i * (double)PI_OVER_TWO / (double)(numPointsCorner - 1); 
         radiusTimesSin[i] = radius * sin(t);
         radiusTimesCos[i] = radius * cos(t);
     }
@@ -533,7 +535,7 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    qDebug("rand() stored in array usecs: %f", 1000.0f * elapsedMsecs / (float) numTests);
+    qDebug("rand() stored in array usecs: %f, first result:%d", 1000.0f * elapsedMsecs / (float) numTests, iResults[0]);
 
     // Random number generation using randFloat()
     gettimeofday(&startTime, NULL);
@@ -542,7 +544,7 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    qDebug("randFloat() stored in array usecs: %f", 1000.0f * elapsedMsecs / (float) numTests);
+    qDebug("randFloat() stored in array usecs: %f, first result: %f", 1000.0f * elapsedMsecs / (float) numTests, fResults[0]);
 
     //  PowF function
     fTest = 1145323.2342f;
@@ -565,8 +567,8 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    qDebug("vector math usecs: %f [%f msecs total for %d tests]",
-             1000.0f * elapsedMsecs / (float) numTests, elapsedMsecs, numTests);
+    qDebug("vector math usecs: %f [%f msecs total for %d tests], last result:%f",
+             1000.0f * elapsedMsecs / (float) numTests, elapsedMsecs, numTests, distance);
 
     //  Vec3 test
     glm::vec3 vecA(randVector()), vecB(randVector());
@@ -579,7 +581,7 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    qDebug("vec3 assign and dot() usecs: %f", 1000.0f * elapsedMsecs / (float) numTests);
+    qDebug("vec3 assign and dot() usecs: %f, last result:%f", 1000.0f * elapsedMsecs / (float) numTests, result);
 }
 
 float loadSetting(QSettings* settings, const char* name, float defaultValue) {

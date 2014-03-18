@@ -57,7 +57,7 @@ public:
     void clearShapes();
     void createCollisionShapes();
     void updateShapePositions();
-    void simulate(float deltaTime, bool delayLoad = false);
+    void simulate(float deltaTime, bool fullUpdate = true);
     bool render(float alpha);
     
     /// Sets the URL of the model to render.
@@ -159,9 +159,6 @@ public:
     /// Returns the extended length from the right hand to its first free ancestor.
     float getRightArmLength() const;
     
-    /// Returns the average color of all meshes in the geometry.
-    glm::vec4 computeAverageColor() const;
-
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
     
     /// \param shapes list of pointers shapes to test against Model
@@ -215,6 +212,9 @@ protected:
     
     QVector<MeshState> _meshStates;
     
+    QVector<JointState> updateGeometry();
+    void simulate(float deltaTime, bool fullUpdate, const QVector<JointState>& newJointStates);
+    
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);
     
@@ -245,7 +245,6 @@ protected:
     
 private:
     
-    QVector<JointState> updateGeometry(bool delayLoad);
     void applyNextGeometry();
     void deleteGeometry();
     void renderMeshes(float alpha, bool translucent);

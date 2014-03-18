@@ -26,16 +26,14 @@
 
 using namespace std;
 
-static const float fingerVectorRadix = 4; // bits of precision when converting from float<->fixed
-
 QNetworkAccessManager* AvatarData::networkAccessManager = NULL;
 
 AvatarData::AvatarData() :
     NodeData(),
     _handPosition(0,0,0),
-    _bodyYaw(-90.0),
-    _bodyPitch(0.0),
-    _bodyRoll(0.0),
+    _bodyYaw(-90.f),
+    _bodyPitch(0.0f),
+    _bodyRoll(0.0f),
     _targetScale(1.0f),
     _handState(0),
     _keyState(NO_KEY_DOWN),
@@ -290,7 +288,7 @@ int AvatarData::parseData(const QByteArray& packet) {
     // joint data
     int jointCount = *sourceBuffer++;
     _jointData.resize(jointCount);
-    unsigned char validity;
+    unsigned char validity = 0; // although always set below, this fixes a warning of potential uninitialized use
     int validityBit = 0;
     for (int i = 0; i < jointCount; i++) {
         if (validityBit == 0) {
@@ -510,7 +508,7 @@ void AvatarData::setClampedTargetScale(float targetScale) {
 }
 
 void AvatarData::setOrientation(const glm::quat& orientation) {
-    glm::vec3 eulerAngles = safeEulerAngles(orientation);
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(orientation));
     _bodyPitch = eulerAngles.x;
     _bodyYaw = eulerAngles.y;
     _bodyRoll = eulerAngles.z;

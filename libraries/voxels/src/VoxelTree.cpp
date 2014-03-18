@@ -8,8 +8,6 @@
 
 #include <algorithm>
 
-#include <glm/gtc/noise.hpp>
-
 #include <QtCore/QDebug>
 #include <QImage>
 #include <QRgb>
@@ -20,7 +18,8 @@
 
 // Voxel Specific operations....
 
-VoxelTree::VoxelTree(bool shouldReaverage) : Octree(shouldReaverage) {
+VoxelTree::VoxelTree(bool shouldReaverage) : Octree(shouldReaverage) 
+{
     _rootNode = createNewElement();
 }
 

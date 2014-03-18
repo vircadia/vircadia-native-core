@@ -178,13 +178,14 @@ void VoxelTreeElement::calculateAverageFromChildren() {
 bool VoxelTreeElement::collapseChildren() {
     // scan children, verify that they are ALL present and accounted for
     bool allChildrenMatch = true; // assume the best (ottimista)
-    int red,green,blue;
+    int red = 0;
+    int green = 0;
+    int blue = 0;
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         VoxelTreeElement* childAt = getChildAtIndex(i);
         // if no child, child isn't a leaf, or child doesn't have a color
         if (!childAt || !childAt->isLeaf() || !childAt->isColored()) {
-            allChildrenMatch=false;
-            //qDebug("SADNESS child missing or not colored! i=%d\n",i);
+            allChildrenMatch = false;
             break;
         } else {
             if (i==0) {

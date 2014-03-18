@@ -20,7 +20,6 @@
 #include <QtMultimedia/QAudioOutput>
 #include <QSvgRenderer>
 
-#include <AngleUtil.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -31,9 +30,6 @@
 #include "Audio.h"
 #include "Menu.h"
 #include "Util.h"
-
-static const float JITTER_BUFFER_LENGTH_MSECS = 12;
-static const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_LENGTH_MSECS * NUM_AUDIO_CHANNELS * (SAMPLE_RATE / 1000.0);
 
 static const float AUDIO_CALLBACK_MSECS = (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float)SAMPLE_RATE * 1000.0;
 
@@ -440,9 +436,8 @@ void Audio::handleAudioInput() {
                     }
                 }
                 if (!_noiseGateOpen) {
-                    for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
-                        monoAudioSamples[i] = 0;
-                    }
+                    memset(monoAudioSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
+                    _lastInputLoudness = 0;
                 }
             }
 
@@ -455,7 +450,7 @@ void Audio::handleAudioInput() {
             // our input loudness is 0, since we're muted
             _lastInputLoudness = 0;
         }
-
+        
         // add procedural effects to the appropriate input samples
         addProceduralSounds(monoAudioSamples,
                             NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
@@ -486,9 +481,26 @@ void Audio::handleAudioInput() {
 
             // we need the amount of bytes in the buffer + 1 for type
             // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
-
-            PacketType packetType = Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio)
-                ? PacketTypeMicrophoneAudioWithEcho : PacketTypeMicrophoneAudioNoEcho;
+            
+            int numAudioBytes = 0;
+            
+            PacketType packetType;
+            if (_lastInputLoudness == 0) {
+                packetType = PacketTypeSilentAudioFrame;
+                
+                // we need to indicate how many silent samples this is to the audio mixer
+                monoAudioSamples[0] = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                numAudioBytes = sizeof(int16_t);
+                
+            } else {
+                numAudioBytes = NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL;
+                
+                if (Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio)) {
+                    packetType = PacketTypeMicrophoneAudioWithEcho;
+                } else {
+                    packetType = PacketTypeMicrophoneAudioNoEcho;
+                }
+            }
 
             char* currentPacketPtr = monoAudioDataPacket + populatePacketHeader(monoAudioDataPacket, packetType);
 
@@ -499,13 +511,11 @@ void Audio::handleAudioInput() {
             // memcpy our orientation
             memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
             currentPacketPtr += sizeof(headOrientation);
-
-            nodeList->writeDatagram(monoAudioDataPacket,
-                                    NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes,
-                                    audioMixer);
+            
+            nodeList->writeDatagram(monoAudioDataPacket, numAudioBytes + leadingBytes, audioMixer);
 
             Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
-                .updateValue(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
+                .updateValue(numAudioBytes + leadingBytes);
         }
         delete[] inputAudioSamples;
     }
@@ -642,7 +652,14 @@ void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
 
             int16_t collisionSample = (int16_t) sample;
 
+            _lastInputLoudness = 0;
+            
             monoInput[i] = glm::clamp(monoInput[i] + collisionSample, MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+            
+            _lastInputLoudness += fabsf(monoInput[i]);
+            _lastInputLoudness /= numSamples;
+            _lastInputLoudness /= MAX_SAMPLE_VALUE;
+            
             _localProceduralSamples[i] = glm::clamp(_localProceduralSamples[i] + collisionSample,
                                                   MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
 
@@ -656,7 +673,7 @@ void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
     const float MAX_DURATION = 2.f;
     const float MIN_AUDIBLE_VOLUME = 0.001f;
     const float NOISE_MAGNITUDE = 0.02f;
-    float frequency = (_drumSoundFrequency / SAMPLE_RATE) * PI_TIMES_TWO;
+    float frequency = (_drumSoundFrequency / SAMPLE_RATE) * TWO_PI;
     if (_drumSoundVolume > 0.f) {
         for (int i = 0; i < numSamples; i++) {
             t = (float) _drumSoundSample + (float) i;
@@ -666,7 +683,14 @@ void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
 
             int16_t collisionSample = (int16_t) sample;
 
+            _lastInputLoudness = 0;
+            
             monoInput[i] = glm::clamp(monoInput[i] + collisionSample, MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+            
+            _lastInputLoudness += fabsf(monoInput[i]);
+            _lastInputLoudness /= numSamples;
+            _lastInputLoudness /= MAX_SAMPLE_VALUE;
+            
             _localProceduralSamples[i] = glm::clamp(_localProceduralSamples[i] + collisionSample,
                                                   MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
 

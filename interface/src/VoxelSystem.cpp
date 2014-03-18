@@ -243,7 +243,7 @@ VoxelSystem::~VoxelSystem() {
 
 // This is called by the main application thread on both the initialization of the application and when
 // the preferences dialog box is called/saved
-void VoxelSystem::setMaxVoxels(int maxVoxels) {
+void VoxelSystem::setMaxVoxels(unsigned long maxVoxels) {
     if (maxVoxels == _maxVoxels) {
         return;
     }
@@ -550,7 +550,7 @@ int VoxelSystem::parseData(const QByteArray& packet) {
             int flightTime = arrivedAt - sentAt;
 
             OCTREE_PACKET_INTERNAL_SECTION_SIZE sectionLength = 0;
-            int dataBytes = packet.size() - (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE);
+            unsigned int dataBytes = packet.size() - (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE);
 
             int subsection = 1;
             while (dataBytes > 0) {
@@ -576,7 +576,7 @@ int VoxelSystem::parseData(const QByteArray& packet) {
                     packetData.loadFinalizedContent(dataAt, sectionLength);
                     if (Application::getInstance()->getLogger()->extraDebugging()) {
                         qDebug("VoxelSystem::parseData() ... Got Packet Section"
-                               " color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%d"
+                               " color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%u"
                                " subsection:%d sectionLength:%d uncompressed:%d",
                             debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
                             sequence, flightTime, packet.size(), dataBytes, subsection, sectionLength,
@@ -919,13 +919,11 @@ void VoxelSystem::copyWrittenDataSegmentToReadArrays(glBufferIndex segmentStart,
         // Depending on if we're using per vertex normals, we will need more or less vertex points per voxel
         int vertexPointsPerVoxel = GLOBAL_NORMALS_VERTEX_POINTS_PER_VOXEL;
 
-        GLintptr   segmentStartAt   = segmentStart * vertexPointsPerVoxel * sizeof(GLfloat);
         GLsizeiptr segmentSizeBytes = segmentLength * vertexPointsPerVoxel * sizeof(GLfloat);
         GLfloat* readVerticesAt     = _readVerticesArray  + (segmentStart * vertexPointsPerVoxel);
         GLfloat* writeVerticesAt    = _writeVerticesArray + (segmentStart * vertexPointsPerVoxel);
         memcpy(readVerticesAt, writeVerticesAt, segmentSizeBytes);
 
-        segmentStartAt          = segmentStart * vertexPointsPerVoxel * sizeof(GLubyte);
         segmentSizeBytes        = segmentLength * vertexPointsPerVoxel * sizeof(GLubyte);
         GLubyte* readColorsAt   = _readColorsArray   + (segmentStart * vertexPointsPerVoxel);
         GLubyte* writeColorsAt  = _writeColorsArray  + (segmentStart * vertexPointsPerVoxel);
@@ -1177,8 +1175,6 @@ void VoxelSystem::init() {
 }
 
 void VoxelSystem::changeTree(VoxelTree* newTree) {
-    disconnect(_tree, 0, this, 0);
-
     _tree = newTree;
 
     _tree->setDirtyBit();
@@ -1960,10 +1956,8 @@ bool VoxelSystem::showAllSubTreeOperation(OctreeElement* element, void* extraDat
     // If we've culled at least once, then we will use the status of this voxel in the last culled frustum to determine
     // how to proceed. If we've never culled, then we just consider all these voxels to be UNKNOWN so that we will not
     // consider that case.
-    ViewFrustum::location inLastCulledFrustum;
-
     if (args->culledOnce && args->wantDeltaFrustums) {
-        inLastCulledFrustum = voxel->inFrustum(args->lastViewFrustum);
+        ViewFrustum::location inLastCulledFrustum = voxel->inFrustum(args->lastViewFrustum);
 
         // if this node is fully inside our last culled view frustum, then we don't need to recurse further
         if (inLastCulledFrustum == ViewFrustum::INSIDE) {
@@ -2003,7 +1997,7 @@ bool VoxelSystem::hideOutOfViewOperation(OctreeElement* element, void* extraData
     // If we've culled at least once, then we will use the status of this voxel in the last culled frustum to determine
     // how to proceed. If we've never culled, then we just consider all these voxels to be UNKNOWN so that we will not
     // consider that case.
-    ViewFrustum::location inLastCulledFrustum;
+    ViewFrustum::location inLastCulledFrustum = ViewFrustum::OUTSIDE; // assume outside, but should get reset to actual value
 
     if (args->culledOnce && args->wantDeltaFrustums) {
         inLastCulledFrustum = voxel->inFrustum(args->lastViewFrustum);

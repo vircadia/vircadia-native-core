@@ -17,6 +17,9 @@ set(LIBOVR_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/oculus")
 set(SIXENSE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/Sixense")
 set(VISAGE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/visage")
 
+find_package(Qt5LinguistTools REQUIRED)
+find_package(Qt5LinguistToolsMacros)
+
 if (DEFINED ENV{JOB_ID})
   set(BUILD_SEQ $ENV{JOB_ID})
 else ()
@@ -32,7 +35,7 @@ elseif (WIN32)
     add_definitions( -D_USE_MATH_DEFINES ) # apparently needed to get M_PI and other defines from cmath/math.h
     add_definitions( -DWINDOWS_LEAN_AND_MEAN ) # needed to make sure windows doesn't go to crazy with its defines
 
-    set(GL_HEADERS "#define GLEW_STATIC\n#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/glut.h>")
+    set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/glut.h>")
 endif ()
 
 # set up the external glm library
@@ -45,7 +48,7 @@ configure_file(InterfaceVersion.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceVe
 
 # grab the implementation and header files from src dirs
 file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
-foreach(SUBDIR avatar devices renderer ui starfield)
+foreach(SUBDIR avatar devices renderer ui starfield location)
   file(GLOB_RECURSE SUBDIR_SRCS src/${SUBDIR}/*.cpp src/${SUBDIR}/*.h)
   set(INTERFACE_SRCS ${INTERFACE_SRCS} "${SUBDIR_SRCS}")
 endforeach(SUBDIR)
@@ -70,8 +73,17 @@ file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
 # have qt5 wrap them and generate the appropriate header files
 qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 
+# grab the resource files in resources
+file (GLOB_RECURSE QT_RESOURCE_FILES resources/*.qrc)
+# have qt5 wrap them and generate the appropriate source files
+qt5_add_resources(QT_RESOURCES "${QT_RESOURCE_FILES}")
+
 # add them to the interface source files
-set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}")
+set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
+
+set(QM ${TARGET_NAME}_en.qm)
+set(TS ${TARGET_NAME}_en.ts)
+qt5_create_translation_custom(${QM} ${INTERFACE_SRCS} ${QT_UI_FILES} ${TS})
 
 if (APPLE)
   # configure CMake to use a custom Info.plist
@@ -101,7 +113,7 @@ if (APPLE)
 endif()
 
 # create the executable, make it a bundle on OS X
-add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS})
+add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
 # link in the hifi shared library
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
@@ -122,6 +134,7 @@ find_package(LibOVR)
 find_package(Sixense)
 find_package(Visage)
 find_package(ZLIB)
+find_package(Qxmpp)
 
 # include the Sixense library for Razer Hydra if available
 if (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
@@ -139,7 +152,8 @@ if (VISAGE_FOUND AND NOT DISABLE_VISAGE)
     include_directories(SYSTEM "${VISAGE_INCLUDE_DIRS}")
     if (APPLE)
         add_definitions(-DMAC_OS_X)
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-comment -isystem ${VISAGE_INCLUDE_DIRS}")
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-comment")
+        include_directories(SYSTEM "${VISAGE_INCLUDE_DIRS}")
         find_library(AVFoundation AVFoundation)
         find_library(CoreMedia CoreMedia)
         find_library(NEW_STD_LIBRARY libc++.dylib /usr/lib/)
@@ -159,6 +173,14 @@ if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
     
     target_link_libraries(${TARGET_NAME} "${LIBOVR_LIBRARIES}")
 endif (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
+
+# and with qxmpp for chat
+if (QXMPP_FOUND AND NOT DISABLE_QXMPP)
+    add_definitions(-DHAVE_QXMPP -DQXMPP_STATIC)
+    include_directories(SYSTEM ${QXMPP_INCLUDE_DIR})
+
+    target_link_libraries(${TARGET_NAME} "${QXMPP_LIBRARY}")
+endif (QXMPP_FOUND AND NOT DISABLE_QXMPP)
 
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")
@@ -208,11 +230,7 @@ if (APPLE)
         RUNTIME DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
     )
 else (APPLE)
-  # remove and then copy the resources files beside the executable
-  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E remove_directory
-    $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
-  )
+  # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
     "${PROJECT_SOURCE_DIR}/resources"

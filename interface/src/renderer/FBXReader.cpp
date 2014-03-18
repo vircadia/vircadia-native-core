@@ -66,7 +66,7 @@ template<class T> QVariant readBinaryArray(QDataStream& in) {
     in >> compressedLength;
 
     QVector<T> values;
-    const int DEFLATE_ENCODING = 1;
+    const unsigned int DEFLATE_ENCODING = 1;
     if (encoding == DEFLATE_ENCODING) {
         // preface encoded data with uncompressed length
         QByteArray compressed(sizeof(quint32) + compressedLength, 0);
@@ -163,7 +163,7 @@ FBXNode parseBinaryFBXNode(QDataStream& in) {
     in >> nameLength;
 
     FBXNode node;
-    const int MIN_VALID_OFFSET = 40;
+    const unsigned int MIN_VALID_OFFSET = 40;
     if (endOffset < MIN_VALID_OFFSET || nameLength == 0) {
         // use a null name to indicate a null node
         return node;
@@ -533,8 +533,8 @@ public:
     glm::quat postRotation;
     glm::mat4 postTransform;
 
-    glm::vec3 rotationMin;
-    glm::vec3 rotationMax;
+    glm::vec3 rotationMin;  // radians
+    glm::vec3 rotationMax;  // radians
 };
 
 glm::mat4 getGlobalTransform(const QMultiHash<QString, QString>& parentMap,
@@ -806,7 +806,7 @@ void setTangents(FBXMesh& mesh, int firstIndex, int secondIndex) {
     }
     glm::vec2 texCoordDelta = mesh.texCoords.at(secondIndex) - mesh.texCoords.at(firstIndex);
     mesh.tangents[firstIndex] += glm::cross(glm::angleAxis(
-        -glm::degrees(atan2f(-texCoordDelta.t, texCoordDelta.s)), normal) * glm::normalize(bitangent), normal);
+                - atan2f(-texCoordDelta.t, texCoordDelta.s), normal) * glm::normalize(bitangent), normal);
 }
 
 QVector<int> getIndices(const QVector<QString> ids, QVector<QString> modelIDs) {
@@ -1000,6 +1000,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         jointRightFingertipIDs[index] = getID(object.properties);
                     }
                     glm::vec3 translation;
+                    // NOTE: the euler angles as supplied by the FBX file are in degrees
                     glm::vec3 rotationOffset;
                     glm::vec3 preRotation, rotation, postRotation;
                     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -1054,7 +1055,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                                     } else if (property.properties.at(0) == "RotationMin") {
                                         rotationMin = getVec3(property.properties, index);
 
-                                    } else if (property.properties.at(0) == "RotationMax") {
+                                    } 
+                                    // NOTE: these rotation limits are stored in degrees (NOT radians)
+                                    else if (property.properties.at(0) == "RotationMax") {
                                         rotationMax = getVec3(property.properties, index);
 
                                     } else if (property.properties.at(0) == "RotationMinX") {
@@ -1104,10 +1107,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     model.postRotation = glm::quat(glm::radians(postRotation));
                     model.postTransform = glm::translate(-rotationPivot) * glm::translate(scalePivot) *
                         glm::scale(scale) * glm::translate(-scalePivot);
-                    model.rotationMin = glm::vec3(rotationMinX ? rotationMin.x : -180.0f,
-                        rotationMinY ? rotationMin.y : -180.0f, rotationMinZ ? rotationMin.z : -180.0f);
-                    model.rotationMax = glm::vec3(rotationMaxX ? rotationMax.x : 180.0f,
-                        rotationMaxY ? rotationMax.y : 180.0f, rotationMaxZ ? rotationMax.z : 180.0f);
+                    // NOTE: anbgles from the FBX file are in degrees
+                    // so we convert them to radians for the FBXModel class
+                    model.rotationMin = glm::radians(glm::vec3(rotationMinX ? rotationMin.x : -180.0f,
+                        rotationMinY ? rotationMin.y : -180.0f, rotationMinZ ? rotationMin.z : -180.0f));
+                    model.rotationMax = glm::radians(glm::vec3(rotationMaxX ? rotationMax.x : 180.0f,
+                        rotationMaxY ? rotationMax.y : 180.0f, rotationMaxZ ? rotationMax.z : 180.0f));
                     models.insert(getID(object.properties), model);
 
                 } else if (object.name == "Texture") {
@@ -1324,6 +1329,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
 
     geometry.bindExtents.reset();
     geometry.staticExtents.reset();
+    geometry.meshExtents.reset();
     
     QVariantHash springs = mapping.value("spring").toHash();
     QVariant defaultSpring = springs.value("default");
@@ -1334,6 +1340,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         QString modelID = models.contains(it.key()) ? it.key() : parentMap.value(it.key());
         extracted.mesh.springiness = springs.value(models.value(modelID).name, defaultSpring).toFloat();
         glm::mat4 modelTransform = getGlobalTransform(parentMap, models, modelID);
+
+        // compute the mesh extents from the transformed vertices
+        foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
+            glm::vec3 transformedVertex = glm::vec3(modelTransform * glm::vec4(vertex, 1.0f));
+            geometry.meshExtents.minimum = glm::min(geometry.meshExtents.minimum, transformedVertex);
+            geometry.meshExtents.maximum = glm::max(geometry.meshExtents.maximum, transformedVertex);
+        }
 
         // look for textures, material properties
         int materialIndex = 0;
@@ -1811,6 +1824,8 @@ FBXGeometry readSVO(const QByteArray& model) {
     tree.recurseTreeWithOperation(addMeshVoxelsOperation, &mesh);
 
     geometry.meshes.append(mesh);
+
+    geometry.meshExtents.maximum = glm::vec3(1.0f, 1.0f, 1.0f);
 
     return geometry;
 }

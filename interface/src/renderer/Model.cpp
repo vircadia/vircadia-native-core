@@ -22,6 +22,7 @@ using namespace std;
 
 Model::Model(QObject* parent) :
     QObject(parent),
+    _scale(1.0f, 1.0f, 1.0f),
     _shapesAreDirty(true),
     _lodDistance(0.0f),
     _pupilDilation(0.0f),
@@ -163,142 +164,9 @@ void Model::updateShapePositions() {
     }
 }
 
-void Model::simulate(float deltaTime, bool delayLoad) {
-    // update our LOD
-    QVector<JointState> newJointStates = updateGeometry(delayLoad);
-    if (!isActive()) {
-        return;
-    }
-    
-    // set up world vertices on first simulate after load
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    if (_jointStates.isEmpty()) {
-        _jointStates = newJointStates.isEmpty() ? createJointStates(geometry) : newJointStates;
-        foreach (const FBXMesh& mesh, geometry.meshes) {
-            MeshState state;
-            state.clusterMatrices.resize(mesh.clusters.size());
-            if (mesh.springiness > 0.0f) {
-                state.worldSpaceVertices.resize(mesh.vertices.size());
-                state.vertexVelocities.resize(mesh.vertices.size());
-                state.worldSpaceNormals.resize(mesh.vertices.size());
-            }
-            _meshStates.append(state);    
-        }
-        foreach (const FBXAttachment& attachment, geometry.attachments) {
-            Model* model = new Model(this);
-            model->init();
-            model->setURL(attachment.url);
-            _attachments.append(model);
-        }
-        _resetStates = true;
-        createCollisionShapes();
-    }
-    
-    // update the world space transforms for all joints
-    for (int i = 0; i < _jointStates.size(); i++) {
-        updateJointState(i);
-    }
-    
-    // update the attachment transforms and simulate them
-    for (int i = 0; i < _attachments.size(); i++) {
-        const FBXAttachment& attachment = geometry.attachments.at(i);
-        Model* model = _attachments.at(i);
-        
-        glm::vec3 jointTranslation = _translation;
-        glm::quat jointRotation = _rotation;
-        getJointPosition(attachment.jointIndex, jointTranslation);
-        getJointRotation(attachment.jointIndex, jointRotation);
-        
-        model->setTranslation(jointTranslation + jointRotation * attachment.translation * _scale);
-        model->setRotation(jointRotation * attachment.rotation);
-        model->setScale(_scale * attachment.scale);
-        
-        model->simulate(deltaTime);
-    }
-    
-    for (int i = 0; i < _meshStates.size(); i++) {
-        MeshState& state = _meshStates[i];
-        const FBXMesh& mesh = geometry.meshes.at(i);
-        for (int j = 0; j < mesh.clusters.size(); j++) {
-            const FBXCluster& cluster = mesh.clusters.at(j);
-            state.clusterMatrices[j] = _jointStates[cluster.jointIndex].transform * cluster.inverseBindMatrix;
-        }
-        int vertexCount = state.worldSpaceVertices.size();
-        if (vertexCount == 0) {
-            continue;
-        }
-        glm::vec3* destVertices = state.worldSpaceVertices.data();
-        glm::vec3* destVelocities = state.vertexVelocities.data();
-        glm::vec3* destNormals = state.worldSpaceNormals.data();
-        
-        const glm::vec3* sourceVertices = mesh.vertices.constData();
-        if (!mesh.blendshapes.isEmpty()) {
-            _blendedVertices.resize(max(_blendedVertices.size(), vertexCount));
-            memcpy(_blendedVertices.data(), mesh.vertices.constData(), vertexCount * sizeof(glm::vec3));
-            
-            // blend in each coefficient
-            for (unsigned int j = 0; j < _blendshapeCoefficients.size(); j++) {
-                float coefficient = _blendshapeCoefficients[j];
-                if (coefficient == 0.0f || j >= (unsigned int)mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
-                    continue;
-                }
-                const glm::vec3* vertex = mesh.blendshapes[j].vertices.constData();
-                for (const int* index = mesh.blendshapes[j].indices.constData(),
-                        *end = index + mesh.blendshapes[j].indices.size(); index != end; index++, vertex++) {
-                    _blendedVertices[*index] += *vertex * coefficient;
-                }
-            }
-            sourceVertices = _blendedVertices.constData();
-        }
-        glm::mat4 transform = glm::translate(_translation);
-        if (mesh.clusters.size() > 1) {
-            _blendedVertices.resize(max(_blendedVertices.size(), vertexCount));
-
-            // skin each vertex
-            const glm::vec4* clusterIndices = mesh.clusterIndices.constData();
-            const glm::vec4* clusterWeights = mesh.clusterWeights.constData();
-            for (int j = 0; j < vertexCount; j++) {
-                _blendedVertices[j] =
-                    glm::vec3(state.clusterMatrices[clusterIndices[j][0]] *
-                        glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][0] +
-                    glm::vec3(state.clusterMatrices[clusterIndices[j][1]] *
-                        glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][1] +
-                    glm::vec3(state.clusterMatrices[clusterIndices[j][2]] *
-                        glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][2] +
-                    glm::vec3(state.clusterMatrices[clusterIndices[j][3]] *
-                        glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][3];
-            }
-            sourceVertices = _blendedVertices.constData();
-            
-        } else {
-            transform = state.clusterMatrices[0];
-        }
-        if (_resetStates) {
-            for (int j = 0; j < vertexCount; j++) {
-                destVertices[j] = glm::vec3(transform * glm::vec4(sourceVertices[j], 1.0f));        
-                destVelocities[j] = glm::vec3();
-            }        
-        } else {
-            const float SPRINGINESS_MULTIPLIER = 200.0f;
-            const float DAMPING = 5.0f;
-            for (int j = 0; j < vertexCount; j++) {
-                destVelocities[j] += ((glm::vec3(transform * glm::vec4(sourceVertices[j], 1.0f)) - destVertices[j]) *
-                    mesh.springiness * SPRINGINESS_MULTIPLIER - destVelocities[j] * DAMPING) * deltaTime;
-                destVertices[j] += destVelocities[j] * deltaTime;
-            }
-        }
-        for (int j = 0; j < vertexCount; j++) {
-            destNormals[j] = glm::vec3();
-            
-            const glm::vec3& middle = destVertices[j];
-            for (QVarLengthArray<QPair<int, int>, 4>::const_iterator connection = mesh.vertexConnections.at(j).constBegin(); 
-                    connection != mesh.vertexConnections.at(j).constEnd(); connection++) {
-                destNormals[j] += glm::normalize(glm::cross(destVertices[connection->second] - middle,
-                    destVertices[connection->first] - middle));
-            }
-        }
-    }
-    _resetStates = false;
+void Model::simulate(float deltaTime, bool fullUpdate) {
+    // update our LOD, then simulate
+    simulate(deltaTime, fullUpdate, updateGeometry());
 }
 
 bool Model::render(float alpha) {
@@ -335,6 +203,8 @@ bool Model::render(float alpha) {
     
     glDisable(GL_COLOR_MATERIAL);
     
+    glEnable(GL_CULL_FACE);
+    
     // render opaque meshes with alpha testing
     
     glEnable(GL_ALPHA_TEST);
@@ -345,8 +215,6 @@ bool Model::render(float alpha) {
     glDisable(GL_ALPHA_TEST);
     
     // render translucent meshes afterwards, with back face culling
-    
-    glEnable(GL_CULL_FACE);
     
     renderMeshes(alpha, true);
     
@@ -488,10 +356,6 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     }
 }
 
-glm::vec4 Model::computeAverageColor() const {
-    return _geometry ? _geometry->computeAverageColor() : glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-}
-
 bool Model::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
     const glm::vec3 relativeOrigin = origin - _translation;
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -565,6 +429,186 @@ bool Model::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadi
         outerContinue: ;
     }
     return collided;
+}
+
+QVector<Model::JointState> Model::updateGeometry() {
+    QVector<JointState> newJointStates;
+    if (_nextGeometry) {
+        _nextGeometry = _nextGeometry->getLODOrFallback(_lodDistance, _nextLODHysteresis);
+        _nextGeometry->setLoadPriority(this, -_lodDistance);
+        _nextGeometry->ensureLoading();
+        if (_nextGeometry->isLoaded()) {
+            applyNextGeometry();
+            return newJointStates;
+        }
+    }
+    if (!_geometry) {
+        return newJointStates;
+    }
+    QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(_lodDistance, _lodHysteresis);
+    if (_geometry != geometry) {
+        if (!_jointStates.isEmpty()) {
+            // copy the existing joint states
+            const FBXGeometry& oldGeometry = _geometry->getFBXGeometry();
+            const FBXGeometry& newGeometry = geometry->getFBXGeometry();
+            newJointStates = createJointStates(newGeometry);
+            for (QHash<QString, int>::const_iterator it = oldGeometry.jointIndices.constBegin();
+                    it != oldGeometry.jointIndices.constEnd(); it++) {
+                int oldIndex = it.value() - 1;
+                int newIndex = newGeometry.getJointIndex(it.key());
+                if (newIndex != -1) {
+                    newJointStates[newIndex] = _jointStates.at(oldIndex);
+                }
+            }
+        }
+        deleteGeometry();
+        _dilatedTextures.clear();
+        _geometry = geometry;
+    }
+    _geometry->setLoadPriority(this, -_lodDistance);
+    _geometry->ensureLoading();
+    return newJointStates;
+}
+
+void Model::simulate(float deltaTime, bool fullUpdate, const QVector<JointState>& newJointStates) {
+    if (!isActive()) {
+        return;
+    }
+    
+    // set up world vertices on first simulate after load
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    if (_jointStates.isEmpty()) {
+        _jointStates = newJointStates.isEmpty() ? createJointStates(geometry) : newJointStates;
+        foreach (const FBXMesh& mesh, geometry.meshes) {
+            MeshState state;
+            state.clusterMatrices.resize(mesh.clusters.size());
+            if (mesh.springiness > 0.0f) {
+                state.worldSpaceVertices.resize(mesh.vertices.size());
+                state.vertexVelocities.resize(mesh.vertices.size());
+                state.worldSpaceNormals.resize(mesh.vertices.size());
+            }
+            _meshStates.append(state);    
+        }
+        foreach (const FBXAttachment& attachment, geometry.attachments) {
+            Model* model = new Model(this);
+            model->init();
+            model->setURL(attachment.url);
+            _attachments.append(model);
+        }
+        _resetStates = fullUpdate = true;
+        createCollisionShapes();
+    }
+    
+    // exit early if we don't have to perform a full update
+    if (!(fullUpdate || _resetStates)) {
+        return;
+    }
+    
+    // update the world space transforms for all joints
+    for (int i = 0; i < _jointStates.size(); i++) {
+        updateJointState(i);
+    }
+    
+    // update the attachment transforms and simulate them
+    for (int i = 0; i < _attachments.size(); i++) {
+        const FBXAttachment& attachment = geometry.attachments.at(i);
+        Model* model = _attachments.at(i);
+        
+        glm::vec3 jointTranslation = _translation;
+        glm::quat jointRotation = _rotation;
+        getJointPosition(attachment.jointIndex, jointTranslation);
+        getJointRotation(attachment.jointIndex, jointRotation);
+        
+        model->setTranslation(jointTranslation + jointRotation * attachment.translation * _scale);
+        model->setRotation(jointRotation * attachment.rotation);
+        model->setScale(_scale * attachment.scale);
+        
+        model->simulate(deltaTime);
+    }
+    
+    for (int i = 0; i < _meshStates.size(); i++) {
+        MeshState& state = _meshStates[i];
+        const FBXMesh& mesh = geometry.meshes.at(i);
+        for (int j = 0; j < mesh.clusters.size(); j++) {
+            const FBXCluster& cluster = mesh.clusters.at(j);
+            state.clusterMatrices[j] = _jointStates[cluster.jointIndex].transform * cluster.inverseBindMatrix;
+        }
+        int vertexCount = state.worldSpaceVertices.size();
+        if (vertexCount == 0) {
+            continue;
+        }
+        glm::vec3* destVertices = state.worldSpaceVertices.data();
+        glm::vec3* destVelocities = state.vertexVelocities.data();
+        glm::vec3* destNormals = state.worldSpaceNormals.data();
+        
+        const glm::vec3* sourceVertices = mesh.vertices.constData();
+        if (!mesh.blendshapes.isEmpty()) {
+            _blendedVertices.resize(max(_blendedVertices.size(), vertexCount));
+            memcpy(_blendedVertices.data(), mesh.vertices.constData(), vertexCount * sizeof(glm::vec3));
+            
+            // blend in each coefficient
+            for (unsigned int j = 0; j < _blendshapeCoefficients.size(); j++) {
+                float coefficient = _blendshapeCoefficients[j];
+                if (coefficient == 0.0f || j >= (unsigned int)mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
+                    continue;
+                }
+                const glm::vec3* vertex = mesh.blendshapes[j].vertices.constData();
+                for (const int* index = mesh.blendshapes[j].indices.constData(),
+                        *end = index + mesh.blendshapes[j].indices.size(); index != end; index++, vertex++) {
+                    _blendedVertices[*index] += *vertex * coefficient;
+                }
+            }
+            sourceVertices = _blendedVertices.constData();
+        }
+        glm::mat4 transform = glm::translate(_translation);
+        if (mesh.clusters.size() > 1) {
+            _blendedVertices.resize(max(_blendedVertices.size(), vertexCount));
+
+            // skin each vertex
+            const glm::vec4* clusterIndices = mesh.clusterIndices.constData();
+            const glm::vec4* clusterWeights = mesh.clusterWeights.constData();
+            for (int j = 0; j < vertexCount; j++) {
+                _blendedVertices[j] =
+                    glm::vec3(state.clusterMatrices[clusterIndices[j][0]] *
+                        glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][0] +
+                    glm::vec3(state.clusterMatrices[clusterIndices[j][1]] *
+                        glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][1] +
+                    glm::vec3(state.clusterMatrices[clusterIndices[j][2]] *
+                        glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][2] +
+                    glm::vec3(state.clusterMatrices[clusterIndices[j][3]] *
+                        glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][3];
+            }
+            sourceVertices = _blendedVertices.constData();
+            
+        } else {
+            transform = state.clusterMatrices[0];
+        }
+        if (_resetStates) {
+            for (int j = 0; j < vertexCount; j++) {
+                destVertices[j] = glm::vec3(transform * glm::vec4(sourceVertices[j], 1.0f));        
+                destVelocities[j] = glm::vec3();
+            }        
+        } else {
+            const float SPRINGINESS_MULTIPLIER = 200.0f;
+            const float DAMPING = 5.0f;
+            for (int j = 0; j < vertexCount; j++) {
+                destVelocities[j] += ((glm::vec3(transform * glm::vec4(sourceVertices[j], 1.0f)) - destVertices[j]) *
+                    mesh.springiness * SPRINGINESS_MULTIPLIER - destVelocities[j] * DAMPING) * deltaTime;
+                destVertices[j] += destVelocities[j] * deltaTime;
+            }
+        }
+        for (int j = 0; j < vertexCount; j++) {
+            destNormals[j] = glm::vec3();
+            
+            const glm::vec3& middle = destVertices[j];
+            for (QVarLengthArray<QPair<int, int>, 4>::const_iterator connection = mesh.vertexConnections.at(j).constBegin(); 
+                    connection != mesh.vertexConnections.at(j).constEnd(); connection++) {
+                destNormals[j] += glm::normalize(glm::cross(destVertices[connection->second] - middle,
+                    destVertices[connection->first] - middle));
+            }
+        }
+    }
+    _resetStates = false;
 }
 
 void Model::updateJointState(int index) {
@@ -751,15 +795,15 @@ float Model::getLimbLength(int jointIndex) const {
 void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain) {
     JointState& state = _jointStates[jointIndex];
     const FBXJoint& joint = _geometry->getFBXGeometry().joints[jointIndex];
-    if (!constrain || (joint.rotationMin == glm::vec3(-180.0f, -180.0f, -180.0f) &&
-            joint.rotationMax == glm::vec3(180.0f, 180.0f, 180.0f))) {
+    if (!constrain || (joint.rotationMin == glm::vec3(-PI, -PI, -PI) &&
+            joint.rotationMax == glm::vec3(PI, PI, PI))) {
         // no constraints
         state.rotation = state.rotation * glm::inverse(state.combinedRotation) * delta * state.combinedRotation;
         state.combinedRotation = delta * state.combinedRotation;
         return;
     }
-    glm::quat newRotation = glm::quat(glm::radians(glm::clamp(safeEulerAngles(state.rotation *
-        glm::inverse(state.combinedRotation) * delta * state.combinedRotation), joint.rotationMin, joint.rotationMax)));
+    glm::quat newRotation = glm::quat(glm::clamp(safeEulerAngles(state.rotation *
+        glm::inverse(state.combinedRotation) * delta * state.combinedRotation), joint.rotationMin, joint.rotationMax));
     state.combinedRotation = state.combinedRotation * glm::inverse(state.rotation) * newRotation;
     state.rotation = newRotation;
 }
@@ -780,7 +824,7 @@ void Model::renderCollisionProxies(float alpha) {
             glTranslatef(position.x, position.y, position.z);
             const glm::quat& rotation = shape->getRotation();
             glm::vec3 axis = glm::axis(rotation);
-            glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
 
             // draw a grey sphere at shape position
             glColor4f(0.75f, 0.75f, 0.75f, alpha);
@@ -855,55 +899,12 @@ void Model::applyCollision(CollisionInfo& collision) {
                 axis = glm::normalize(axis);
                 glm::vec3 end;
                 getJointPosition(jointIndex, end);
-                glm::vec3 newEnd = start + glm::angleAxis(glm::degrees(angle), axis) * (end - start);
+                glm::vec3 newEnd = start + glm::angleAxis(angle, axis) * (end - start);
                 // try to move it
                 setJointPosition(jointIndex, newEnd, -1, true);
             }
         }
     }
-}
-
-QVector<Model::JointState> Model::updateGeometry(bool delayLoad) {
-    QVector<JointState> newJointStates;
-    if (_nextGeometry) {
-        _nextGeometry = _nextGeometry->getLODOrFallback(_lodDistance, _nextLODHysteresis, delayLoad);
-        if (!delayLoad) {
-            _nextGeometry->setLoadPriority(this, -_lodDistance);
-            _nextGeometry->ensureLoading();
-        }
-        if (_nextGeometry->isLoaded()) {
-            applyNextGeometry();
-            return newJointStates;
-        }
-    }
-    if (!_geometry) {
-        return newJointStates;
-    }
-    QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(_lodDistance, _lodHysteresis, delayLoad);
-    if (_geometry != geometry) {
-        if (!_jointStates.isEmpty()) {
-            // copy the existing joint states
-            const FBXGeometry& oldGeometry = _geometry->getFBXGeometry();
-            const FBXGeometry& newGeometry = geometry->getFBXGeometry();
-            newJointStates = createJointStates(newGeometry);
-            for (QHash<QString, int>::const_iterator it = oldGeometry.jointIndices.constBegin();
-                    it != oldGeometry.jointIndices.constEnd(); it++) {
-                int oldIndex = it.value() - 1;
-                int newIndex = newGeometry.getJointIndex(it.key());
-                if (newIndex != -1) {
-                    newJointStates[newIndex] = _jointStates.at(oldIndex);
-                }
-            }
-        }
-        deleteGeometry();
-        _dilatedTextures.clear();
-        _geometry = geometry;
-    }
-    if (!delayLoad) {
-        _geometry->setLoadPriority(this, -_lodDistance);
-        _geometry->ensureLoading();
-    }
-    return newJointStates;
 }
 
 void Model::applyNextGeometry() {

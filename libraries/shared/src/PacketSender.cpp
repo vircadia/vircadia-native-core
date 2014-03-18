@@ -54,6 +54,9 @@ void PacketSender::queuePacketForSending(const SharedNodePointer& destinationNod
     unlock();
     _totalPacketsQueued++;
     _totalBytesQueued += packet.size();
+
+    // Make sure to  wake our actual processing thread because we  now have packets for it to process.
+    _hasPackets.wakeAll();
 }
 
 void PacketSender::setPacketsPerSecond(int packetsPerSecond) {
@@ -68,6 +71,9 @@ bool PacketSender::process() {
     return nonThreadedProcess();
 }
 
+void PacketSender::terminating() {
+    _hasPackets.wakeAll();
+}
 
 bool PacketSender::threadedProcess() {
     bool hasSlept = false;
@@ -109,11 +115,12 @@ bool PacketSender::threadedProcess() {
         }
     }
 
-    // if threaded and we haven't slept? We want to sleep a little so we don't hog the CPU, but
-    // we don't want to sleep too long because how ever much we sleep will delay any future unsent
-    // packets that arrive while we're sleeping. So we sleep 1/2 of our target fps interval
+    // if threaded and we haven't slept? We want to wait for our consumer to signal us with new packets
     if (!hasSlept) {
-        usleep(MINIMAL_SLEEP_INTERVAL);
+        // wait till we have packets        
+        _waitingOnPacketsMutex.lock();
+        _hasPackets.wait(&_waitingOnPacketsMutex);
+        _waitingOnPacketsMutex.unlock();
     }
 
     return isStillRunning();

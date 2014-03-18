@@ -70,10 +70,15 @@ public:
     /// Returns the point about which scaling occurs.
     glm::vec3 getScalePivot() const;
 
-    void tweakPitch(float pitch) { _tweakedPitch = pitch; }
-    void tweakYaw(float yaw) { _tweakedYaw = yaw; }
-    void tweakRoll(float roll) { _tweakedRoll = roll; }
+    void setPitchTweak(float pitch) { _pitchTweak = pitch; }
+    float getPitchTweak() const { return _pitchTweak; }
 
+    void setYawTweak(float yaw) { _yawTweak = yaw; }
+    float getYawTweak() const { return _yawTweak; }
+    
+    void setRollTweak(float roll) { _rollTweak = roll; }
+    float getRollTweak() const { return _rollTweak; }
+    
     virtual float getTweakedPitch() const;
     virtual float getTweakedYaw() const;
     virtual float getTweakedRoll() const;
@@ -105,9 +110,9 @@ private:
     float _timeWithoutTalking;
 
     // tweaked angles affect the rendered head, but not the camera
-    float _tweakedPitch;
-    float _tweakedYaw;
-    float _tweakedRoll;
+    float _pitchTweak;
+    float _yawTweak;
+    float _rollTweak;
 
     bool _isCameraMoving;
     FaceModel _faceModel;

@@ -55,6 +55,20 @@ int AudioRingBuffer::parseData(const QByteArray& packet) {
     return writeData(packet.data() + numBytesPacketHeader, packet.size() - numBytesPacketHeader);
 }
 
+float AudioRingBuffer::averageLoudnessForBoundarySamples(int numSamples) {
+    // ForBoundarySamples means that we expect the number of samples not to roll of the end of the ring buffer
+    float averageLoudness = 0;
+    
+    for (int i = 0; i < numSamples; ++i) {
+        averageLoudness += fabsf(_nextOutput[i]);
+    }
+    
+    averageLoudness /= numSamples;
+    averageLoudness /= MAX_SAMPLE_VALUE;
+    
+    return averageLoudness;
+}
+
 qint64 AudioRingBuffer::readSamples(int16_t* destination, qint64 maxSamples) {
     return readData((char*) destination, maxSamples * sizeof(int16_t));
 }
@@ -121,9 +135,6 @@ qint64 AudioRingBuffer::writeData(const char* data, qint64 maxSize) {
 }
 
 int16_t& AudioRingBuffer::operator[](const int index) {
-    // make sure this is a valid index
-    assert(index > -_sampleCapacity && index < _sampleCapacity);
-
     return *shiftedPositionAccomodatingWrap(_nextOutput, index);
 }
 
@@ -142,6 +153,21 @@ unsigned int AudioRingBuffer::samplesAvailable() const {
         }
 
         return sampleDifference;
+    }
+}
+
+void AudioRingBuffer::addSilentFrame(int numSilentSamples) {
+    // memset zeroes into the buffer, accomodate a wrap around the end
+    // push the _endOfLastWrite to the correct spot
+    if (_endOfLastWrite + numSilentSamples <= _buffer + _sampleCapacity) {
+        memset(_endOfLastWrite, 0, numSilentSamples * sizeof(int16_t));
+        _endOfLastWrite += numSilentSamples;
+    } else {
+        int numSamplesToEnd = (_buffer + _sampleCapacity) - _endOfLastWrite;
+        memset(_endOfLastWrite, 0, numSilentSamples * sizeof(int16_t));
+        memset(_buffer, 0, (numSilentSamples - numSamplesToEnd) * sizeof(int16_t));
+        
+        _endOfLastWrite = _buffer + (numSilentSamples - numSamplesToEnd);
     }
 }
 

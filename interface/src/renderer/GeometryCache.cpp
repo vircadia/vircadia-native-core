@@ -30,11 +30,11 @@ void GeometryCache::renderHemisphere(int slices, int stacks) {
         GLfloat* vertexData = new GLfloat[vertices * 3];
         GLfloat* vertex = vertexData;
         for (int i = 0; i < stacks - 1; i++) {
-            float phi = PIf * 0.5f * i / (stacks - 1);
+            float phi = PI_OVER_TWO * float(i) / float(stacks - 1);
             float z = sinf(phi), radius = cosf(phi);
             
             for (int j = 0; j < slices; j++) {
-                float theta = PIf * 2.0f * j / slices;
+                float theta = TWO_PI * float(j) / float(slices);
 
                 *(vertex++) = sinf(theta) * radius;
                 *(vertex++) = cosf(theta) * radius;
@@ -180,7 +180,7 @@ void GeometryCache::renderHalfCylinder(int slices, int stacks) {
             float y = (float)i / (stacks - 1);
             
             for (int j = 0; j <= slices; j++) {
-                float theta = 3 * PIf / 2 + PIf * j / slices;
+                float theta = 3.f * PI_OVER_TWO + PI * float(j) / float(slices);
 
                 //normals
                 *(vertex++) = sinf(theta);
@@ -294,7 +294,8 @@ QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, cons
 QSharedPointer<Resource> GeometryCache::createResource(const QUrl& url,
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
     
-    QSharedPointer<NetworkGeometry> geometry(new NetworkGeometry(url, fallback.staticCast<NetworkGeometry>(), delayLoad));
+    QSharedPointer<NetworkGeometry> geometry(new NetworkGeometry(url, fallback.staticCast<NetworkGeometry>(), delayLoad),
+        &Resource::allReferencesCleared);
     geometry->setLODParent(geometry);
     return geometry.staticCast<Resource>();
 }
@@ -375,30 +376,6 @@ QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance
     }
     hysteresis = NO_HYSTERESIS;
     return lod;
-}
-
-glm::vec4 NetworkGeometry::computeAverageColor() const {
-    glm::vec4 totalColor;
-    int totalTriangles = 0;
-    for (int i = 0; i < _meshes.size(); i++) {
-        const FBXMesh& mesh = _geometry.meshes.at(i);
-        if (mesh.isEye) {
-            continue; // skip eyes
-        }
-        const NetworkMesh& networkMesh = _meshes.at(i);
-        for (int j = 0; j < mesh.parts.size(); j++) {
-            const FBXMeshPart& part = mesh.parts.at(j);
-            const NetworkMeshPart& networkPart = networkMesh.parts.at(j);
-            glm::vec4 color = glm::vec4(part.diffuseColor, 1.0f);
-            if (networkPart.diffuseTexture) {
-                color *= networkPart.diffuseTexture->getAverageColor();
-            }
-            int triangles = part.quadIndices.size() * 2 + part.triangleIndices.size();
-            totalColor += color * (float) triangles;
-            totalTriangles += triangles;
-        }
-    }
-    return (totalTriangles == 0) ? glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) : totalColor / (float) totalTriangles;
 }
 
 void NetworkGeometry::setLoadPriority(const QPointer<QObject>& owner, float priority) {
@@ -534,6 +511,15 @@ void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
     
     // send the reader off to the thread pool
     QThreadPool::globalInstance()->start(new GeometryReader(_self, url, reply, _mapping));
+}
+
+void NetworkGeometry::reinsert() {
+    Resource::reinsert();
+    
+    _lodParent = qWeakPointerCast<NetworkGeometry, Resource>(_self);
+    foreach (const QSharedPointer<NetworkGeometry>& lod, _lods) {
+        lod->setLODParent(_lodParent);
+    }
 }
 
 void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {

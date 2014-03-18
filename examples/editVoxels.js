@@ -26,6 +26,10 @@ var PIXELS_PER_EXTRUDE_VOXEL = 16;
 var WHEEL_PIXELS_PER_SCALE_CHANGE = 100;
 var MAX_VOXEL_SCALE = 1.0;
 var MIN_VOXEL_SCALE = 1.0 / Math.pow(2.0, 8.0);
+var WHITE_COLOR = { red: 255, green: 255, blue: 255 };
+
+var MAX_PASTE_VOXEL_SCALE = 256;
+var MIN_PASTE_VOXEL_SCALE = .256;
 
 var zFightingSizeAdjust = 0.002; // used to adjust preview voxels to prevent z fighting
 var previewLineWidth = 1.5;
@@ -199,6 +203,8 @@ var voxelToolAt = 0;
 var recolorToolAt = 1;
 var eyedropperToolAt = 2;
 
+var pasteModeColor = { red: 132,  green: 61,  blue: 255 };
+
 var voxelTool = Overlays.addOverlay("image", {
                     x: 0, y: 0, width: toolWidth, height: toolHeight,
                     subImage: { x: 0, y: toolHeight, width: toolWidth, height: toolHeight },
@@ -262,7 +268,7 @@ var thumb = Overlays.addOverlay("image", {
                     visible: false
                 });
 
-var pointerVoxelScale = 0; // this is the voxel scale used for click to add or delete
+var pointerVoxelScale = Math.floor(MAX_VOXEL_SCALE + MIN_VOXEL_SCALE) / 2; // this is the voxel scale used for click to add or delete
 var pointerVoxelScaleSet = false; // if voxel scale has not yet been set, we use the intersection size
 
 var pointerVoxelScaleSteps = 8; // the number of slider position steps
@@ -270,6 +276,106 @@ var pointerVoxelScaleOriginStep = 8; // the position of slider for the 1 meter s
 var pointerVoxelScaleMin = Math.pow(2, (1-pointerVoxelScaleOriginStep));
 var pointerVoxelScaleMax = Math.pow(2, (pointerVoxelScaleSteps-pointerVoxelScaleOriginStep));
 var thumbDeltaPerStep = thumbExtents / (pointerVoxelScaleSteps - 1);
+
+
+
+///////////////////////////////////// IMPORT MODULE ///////////////////////////////
+// Move the following code to a separate file when include will be available.
+var importTree;
+var importPreview;
+var importBoundaries;
+var isImporting;
+var importPosition;
+var importScale;
+
+function initImport() {
+    importPreview = Overlays.addOverlay("localvoxels", {
+                                        name: "import",
+                                        position: { x: 0, y: 0, z: 0},
+                                        scale: 1,
+                                        visible: false
+                                        });
+    importBoundaries = Overlays.addOverlay("cube", {
+                                           position: { x: 0, y: 0, z: 0 },
+                                           scale: 1,
+                                           color: { red: 128, blue: 128, green: 128 },
+                                           solid: false,
+                                           visible: false
+                                           })
+    isImporting = false;
+    importPosition = { x: 0, y: 0, z: 0 };
+    importScale = 0;
+}
+
+function importVoxels() {
+    if (Clipboard.importVoxels()) {
+        isImporting = true;
+        if (importScale <= 0) {
+            importScale = 1;
+        }
+    } else {
+        isImporting = false;
+    }
+
+    return isImporting;
+}
+
+function moveImport(position) {
+    if (0 < position.x && 0 < position.y && 0 < position.z) {
+        importPosition = position;
+        Overlays.editOverlay(importPreview, {
+                             position: { x: importPosition.x, y: importPosition.y, z: importPosition.z }
+                             });
+        Overlays.editOverlay(importBoundaries, {
+                             position: { x: importPosition.x, y: importPosition.y, z: importPosition.z }
+                             });
+    }
+}
+
+function rescaleImport(scale) {
+    if (0 < scale) {
+        importScale = scale;
+        Overlays.editOverlay(importPreview, {
+                             scale: importScale
+                             });
+        Overlays.editOverlay(importBoundaries, {
+                             scale: importScale
+                             });
+    }
+}
+
+function showImport(doShow) {
+    Overlays.editOverlay(importPreview, {
+                         visible: doShow
+                         });
+    Overlays.editOverlay(importBoundaries, {
+                         visible: doShow
+                         });
+}
+
+function placeImport() {
+    if (isImporting) {
+        Clipboard.pasteVoxel(importPosition.x, importPosition.y, importPosition.z, importScale);
+        isImporting = false;
+    }
+}
+
+function cancelImport() {
+    if (isImporting) {
+        isImporting = false;
+        showImport(false);
+    }
+}
+
+function cleanupImport() {
+    Overlays.deleteOverlay(importPreview);
+    Overlays.deleteOverlay(importBoundaries);
+    isImporting = false;
+    importPostion = { x: 0, y: 0, z: 0 };
+    importScale = 0;
+}
+/////////////////////////////////// END IMPORT MODULE /////////////////////////////
+initImport();
 
 if (editToolsOn) {
     moveTools();
@@ -295,6 +401,13 @@ function calcScaleFromThumb(newThumbX) {
     thumbAt = newThumbX - minThumbX;
     thumbStep = Math.floor((thumbAt/ thumbExtents) * (pointerVoxelScaleSteps-1)) + 1;
     pointerVoxelScale = Math.pow(2, (thumbStep-pointerVoxelScaleOriginStep));
+
+    // if importing, rescale import ...
+    if (isImporting) {
+        var importScale = (pointerVoxelScale / MAX_VOXEL_SCALE) * MAX_PASTE_VOXEL_SCALE;
+        rescaleImport(importScale);
+    }
+
     // now reset the display accordingly...
     calcThumbFromScale(pointerVoxelScale);
     
@@ -308,7 +421,23 @@ function setAudioPosition() {
     audioOptions.position = Vec3.sum(camera, forwardVector);
 }
 
-function getNewVoxelPosition() { 
+function getNewPasteVoxel(pickRay) {
+
+    var voxelSize = MIN_PASTE_VOXEL_SCALE + (MAX_PASTE_VOXEL_SCALE - MIN_PASTE_VOXEL_SCALE) * pointerVoxelScale - 1;
+    var origin = { x: pickRay.direction.x, y: pickRay.direction.y, z: pickRay.direction.z };
+
+    origin.x += pickRay.origin.x;
+    origin.y += pickRay.origin.y;
+    origin.z += pickRay.origin.z;
+
+    origin.x -= voxelSize / 2;
+    origin.y -= voxelSize / 2;
+    origin.z += voxelSize / 2;
+
+    return {origin: origin, voxelSize: voxelSize};
+}
+
+function getNewVoxelPosition() {
     var camera = Camera.getPosition();
     var forwardVector = Quat.getFront(MyAvatar.orientation);
     var newPosition = Vec3.sum(camera, Vec3.multiply(forwardVector, NEW_VOXEL_DISTANCE_FROM_CAMERA));
@@ -337,6 +466,7 @@ var trackAsOrbitOrPan = false;
 var voxelToolSelected = true;
 var recolorToolSelected = false;
 var eyedropperToolSelected = false;
+var pasteMode = false;
 
 function playRandomAddSound(audioOptions) {
     if (Math.random() < 0.33) {
@@ -523,6 +653,38 @@ function showPreviewVoxel() {
 function showPreviewLines() {
 
     var pickRay = Camera.computePickRay(trackLastMouseX, trackLastMouseY);
+
+    if (pasteMode) { // free voxel pasting
+
+        Overlays.editOverlay(voxelPreview, { visible: false });
+        Overlays.editOverlay(linePreviewLeft, { visible: false });
+
+        var pasteVoxel = getNewPasteVoxel(pickRay);
+
+        // X axis
+        Overlays.editOverlay(linePreviewBottom, {
+            position: pasteVoxel.origin,
+            end: {x: pasteVoxel.origin.x + pasteVoxel.voxelSize, y: pasteVoxel.origin.y, z: pasteVoxel.origin.z },
+            visible: true
+        });
+
+        // Y axis
+        Overlays.editOverlay(linePreviewRight, {
+            position: pasteVoxel.origin,
+            end: {x: pasteVoxel.origin.x, y: pasteVoxel.origin.y + pasteVoxel.voxelSize, z: pasteVoxel.origin.z },
+            visible: true
+        });
+
+        // Z axis
+        Overlays.editOverlay(linePreviewTop, {
+            position: pasteVoxel.origin,
+            end: {x: pasteVoxel.origin.x, y: pasteVoxel.origin.y, z: pasteVoxel.origin.z - pasteVoxel.voxelSize },
+            visible: true
+        });
+
+        return;
+    }
+
     var intersection = Voxels.findRayIntersection(pickRay);
     
     if (intersection.intersects) {
@@ -617,6 +779,8 @@ function trackKeyReleaseEvent(event) {
     if (editToolsOn) {
         if (event.text == "ESC") {
             pointerVoxelScaleSet = false;
+            pasteMode = false;
+            moveTools();
         }
         if (event.text == "-") {
             thumbX -= thumbDeltaPerStep;
@@ -821,6 +985,23 @@ function mousePressEvent(event) {
     var pickRay = Camera.computePickRay(event.x, event.y);
     var intersection = Voxels.findRayIntersection(pickRay);
     audioOptions.position = Vec3.sum(pickRay.origin, pickRay.direction);
+
+    if (isImporting) {
+        print("placing import...");
+        placeImport();
+        showImport(false);
+        moveTools();
+        return;
+    }
+
+    if (pasteMode) {
+        var pasteVoxel = getNewPasteVoxel(pickRay);
+        Clipboard.pasteVoxel(pasteVoxel.origin.x, pasteVoxel.origin.y, pasteVoxel.origin.z, pasteVoxel.voxelSize);
+        pasteMode = false;
+        moveTools();
+        return;
+    }
+
     if (intersection.intersects) {
         // if the user hasn't updated the 
         if (!pointerVoxelScaleSet) {
@@ -927,13 +1108,6 @@ function keyPressEvent(event) {
         }
     }
     
-    // do this even if not in edit tools
-    if (event.text == " ") {
-        //  Reset my orientation!
-        var orientation = { x:0, y:0, z:0, w:1 };
-        Camera.setOrientation(orientation);
-        MyAvatar.orientation = orientation;
-    }
     trackKeyPressEvent(event); // used by preview support
 }
 
@@ -974,25 +1148,42 @@ function cleanupMenus() {
 function menuItemEvent(menuItem) {
 
     // handle clipboard items
-    if (selectToolSelected) {
+    if (editToolsOn) {
+
         var pickRay = Camera.computePickRay(trackLastMouseX, trackLastMouseY);
         var intersection = Voxels.findRayIntersection(pickRay);
         selectedVoxel = calculateVoxelFromIntersection(intersection,"select");
         if (menuItem == "Copy") {
             print("copying...");
             Clipboard.copyVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
+            pasteMode = true;
+            moveTools();
         }
         if (menuItem == "Cut") {
             print("cutting...");
             Clipboard.cutVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
+            pasteMode = true;
+            moveTools();
         }
         if (menuItem == "Paste") {
-            print("pasting...");
-            Clipboard.pasteVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
+            if (isImporting) {
+                print("placing import...");
+                placeImport();
+                showImport(false);
+            } else {
+                print("pasting...");
+                Clipboard.pasteVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
+            }
+            pasteMode = false;
+            moveTools();
         }
         if (menuItem == "Delete") {
             print("deleting...");
-            Clipboard.deleteVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
+            if (isImporting) {
+                cancelImport();
+            } else {
+                Clipboard.deleteVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
+            }
         }
     
         if (menuItem == "Export Voxels") {
@@ -1000,8 +1191,11 @@ function menuItemEvent(menuItem) {
             Clipboard.exportVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
         }
         if (menuItem == "Import Voxels") {
-            print("import");
-            Clipboard.importVoxels();
+            print("importing...");
+            if (importVoxels()) {
+                showImport(true);
+            }
+            moveTools();
         }
         if (menuItem == "Nudge") {
             print("nudge");
@@ -1156,19 +1350,23 @@ function moveTools() {
         recolorToolOffset = 1,
         eyedropperToolOffset = 1;
 
-    if (trackAsRecolor || recolorToolSelected) {
+    var voxelToolColor = WHITE_COLOR;
+
+    if (recolorToolSelected) {
         recolorToolOffset = 2;
-    } else if (trackAsEyedropper || eyedropperToolSelected) {
+    } else if (eyedropperToolSelected) {
         eyedropperToolOffset = 2;
-    } else if (trackAsOrbitOrPan) {
-        // nothing gets selected in this case...
     } else {
+        if (pasteMode) {
+            voxelToolColor = pasteModeColor;
+        }
         voxelToolOffset = 2;
     }
 
     Overlays.editOverlay(voxelTool, {
                     subImage: { x: 0, y: toolHeight * voxelToolOffset, width: toolWidth, height: toolHeight },
                     x: toolsX, y: toolsY + ((toolHeight + toolVerticalSpacing) * voxelToolAt), width: toolWidth, height: toolHeight,
+                    color: voxelToolColor,
                     visible: editToolsOn
                 });
 
@@ -1330,14 +1528,27 @@ function checkControllers() {
 }
 
 function update(deltaTime) {
-    var newWindowDimensions = Controller.getViewportDimensions();
-    if (newWindowDimensions.x != windowDimensions.x || newWindowDimensions.y != windowDimensions.y) {
-        windowDimensions = newWindowDimensions;
-        moveTools();
-    }
-    
     if (editToolsOn) {
+        var newWindowDimensions = Controller.getViewportDimensions();
+        if (newWindowDimensions.x != windowDimensions.x || newWindowDimensions.y != windowDimensions.y) {
+            windowDimensions = newWindowDimensions;
+            moveTools();
+        }
+
         checkControllers();
+
+        // Move Import Preview
+        if (isImporting) {
+            var position = MyAvatar.position;
+            var forwardVector = Quat.getFront(MyAvatar.orientation);
+            var targetPosition = Vec3.sum(position, Vec3.multiply(forwardVector, importScale));
+            var newPosition = {
+                x: Math.floor(targetPosition.x / importScale) * importScale,
+                y: Math.floor(targetPosition.y / importScale) * importScale,
+                z: Math.floor(targetPosition.z / importScale) * importScale
+            }
+            moveImport(newPosition);
+        }
     }
 }
 
@@ -1363,6 +1574,11 @@ function wheelEvent(event) {
         calcThumbFromScale(pointerVoxelScale);
         trackMouseEvent(event);
         wheelPixelsMoved = 0;
+
+        if (isImporting) {
+            var importScale = (pointerVoxelScale / MAX_VOXEL_SCALE) * MAX_PASTE_VOXEL_SCALE;
+            rescaleImport(importScale);
+        }
     }
 }
 
@@ -1395,6 +1611,7 @@ function scriptEnding() {
     Overlays.deleteOverlay(thumb);
     Controller.releaseKeyEvents({ text: "+" });
     Controller.releaseKeyEvents({ text: "-" });
+    cleanupImport();
     cleanupMenus();
 }
 Script.scriptEnding.connect(scriptEnding);

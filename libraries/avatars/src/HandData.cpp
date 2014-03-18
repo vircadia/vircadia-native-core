@@ -25,10 +25,6 @@ HandData::HandData(AvatarData* owningAvatar) :
     addNewPalm();
 }
 
-glm::vec3 HandData::worldPositionToLeapPosition(const glm::vec3& worldPosition) const {
-    return glm::inverse(getBaseOrientation()) * (worldPosition - getBasePosition()) / LEAP_UNIT_SCALE;
-}
-
 glm::vec3 HandData::worldVectorToLeapVector(const glm::vec3& worldVector) const {
     return glm::inverse(getBaseOrientation()) * worldVector / LEAP_UNIT_SCALE;
 }
@@ -222,11 +218,12 @@ int HandData::decodeRemoteData(const QByteArray& dataByteArray) {
         palm.setActive(false);
     }
     
-    // One byte for error checking safety.
-    unsigned char requiredLength = (unsigned char)(sourceBuffer - startPosition);
-    unsigned char checkLength = *sourceBuffer++;
-    assert(checkLength == requiredLength);
-    
+    // One byte for error checking safety. Last byte contains the expected length (less itself)
+    // actualLength less expected byte = (sourceBuffer - startPosition)
+    // expectedLength less expected byte = (*sourceBuffer)
+    assert((unsigned char)(sourceBuffer - startPosition) == (unsigned char)(*sourceBuffer));
+    sourceBuffer++; // skip the trailing byte which is expected length
+
     return sourceBuffer - startPosition;
 }
 
@@ -273,9 +270,7 @@ glm::quat HandData::getBaseOrientation() const {
 }
 
 glm::vec3 HandData::getBasePosition() const {
-    const glm::vec3 LEAP_HANDS_OFFSET_FROM_TORSO(0.0, 0.3, -0.3);
-    return _owningAvatarData->getPosition() + getBaseOrientation() * LEAP_HANDS_OFFSET_FROM_TORSO *
-        _owningAvatarData->getTargetScale();
+    return _owningAvatarData->getPosition();
 }
 
 void FingerData::setTrailLength(unsigned int length) {

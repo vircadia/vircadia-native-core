@@ -174,7 +174,7 @@ void ShapeColliderTests::sphereMissesCapsule() {
     CapsuleShape capsuleB(radiusB, halfHeightB);
 
     // give the capsule some arbirary transform
-    float angle = 37.8;
+    float angle = 37.8f;
     glm::vec3 axis = glm::normalize( glm::vec3(-7.f, 2.8f, 9.3f) );
     glm::quat rotation = glm::angleAxis(angle, axis);
     glm::vec3 translation(15.1f, -27.1f, -38.6f);
@@ -485,7 +485,7 @@ void ShapeColliderTests::capsuleMissesCapsule() {
     }
 
     // rotate B and move it to the side
-    glm::quat rotation = glm::angleAxis(rightAngle, zAxis);
+    glm::quat rotation = glm::angleAxis(PI_OVER_TWO, zAxis);
     capsuleB.setRotation(rotation);
     capsuleB.setPosition((1.01f * (totalRadius + capsuleB.getHalfHeight())) * xAxis);
     if (ShapeCollider::shapeShape(&capsuleA, &capsuleB, collisions))
@@ -566,7 +566,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
     }
 
     { // rotate B and move it to the side
-        glm::quat rotation = glm::angleAxis(rightAngle, zAxis);
+        glm::quat rotation = glm::angleAxis(PI_OVER_TWO, zAxis);
         capsuleB.setRotation(rotation);
         capsuleB.setPosition((0.99f * (totalRadius + capsuleB.getHalfHeight())) * xAxis);
 
@@ -590,7 +590,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
 
     { // again, but this time check collision details
         float overlap = 0.1f;
-        glm::quat rotation = glm::angleAxis(rightAngle, zAxis);
+        glm::quat rotation = glm::angleAxis(PI_OVER_TWO, zAxis);
         capsuleB.setRotation(rotation);
         glm::vec3 positionB = ((totalRadius + capsuleB.getHalfHeight()) - overlap) * xAxis;
         capsuleB.setPosition(positionB);
@@ -657,7 +657,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
     { // collide cylinder wall against cylinder wall
         float overlap = 0.137f;
         float shift = 0.317f * halfHeightA;
-        glm::quat rotation = glm::angleAxis(rightAngle, zAxis);
+        glm::quat rotation = glm::angleAxis(PI_OVER_TWO, zAxis);
         capsuleB.setRotation(rotation);
         glm::vec3 positionB = (totalRadius - overlap) * zAxis + shift * yAxis;
         capsuleB.setPosition(positionB);

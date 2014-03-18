@@ -359,8 +359,6 @@ void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packe
     sendDomainListToNode(newNode, senderSockAddr, nodeInterestListFromPacket(packet, numPreInterestBytes));
 }
 
-const int NUM_BYTES_DATA_SERVER_REGISTRATION_TOKEN = 16;
-
 int DomainServer::parseNodeDataFromByteArray(NodeType_t& nodeType, HifiSockAddr& publicSockAddr,
                                               HifiSockAddr& localSockAddr, const QByteArray& packet,
                                               const HifiSockAddr& senderSockAddr) {
@@ -425,17 +423,25 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     QDataStream broadcastDataStream(&broadcastPacket, QIODevice::Append);
     broadcastDataStream << node->getUUID();
     
+    int numBroadcastPacketLeadBytes = broadcastDataStream.device()->pos();
+    
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
     
     NodeList* nodeList = NodeList::getInstance();
     
+    
     if (nodeInterestList.size() > 0) {
         // if the node has any interest types, send back those nodes as well
         foreach (const SharedNodePointer& otherNode, nodeList->getNodeHash()) {
+            
+            // reset our nodeByteArray and nodeDataStream
+            QByteArray nodeByteArray;
+            QDataStream nodeDataStream(&nodeByteArray, QIODevice::Append);
+            
             if (otherNode->getUUID() != node->getUUID() && nodeInterestList.contains(otherNode->getType())) {
                 
                 // don't send avatar nodes to other avatars, that will come from avatar mixer
-                broadcastDataStream << *otherNode.data();
+                nodeDataStream << *otherNode.data();
                 
                 // pack the secret that these two nodes will use to communicate with each other
                 QUuid secretUUID = nodeData->getSessionSecretHash().value(otherNode->getUUID());
@@ -452,11 +458,26 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
                     
                 }
                 
-                broadcastDataStream << secretUUID;
+                nodeDataStream << secretUUID;
+                
+                if (broadcastPacket.size() +  nodeByteArray.size() > MAX_PACKET_SIZE) {
+                    // we need to break here and start a new packet
+                    // so send the current one
+                    
+                    nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
+                    
+                    // reset the broadcastPacket structure
+                    broadcastPacket.resize(numBroadcastPacketLeadBytes);
+                    broadcastDataStream.device()->seek(numBroadcastPacketLeadBytes);
+                }
+                
+                // append the nodeByteArray to the current state of broadcastDataStream
+                broadcastPacket.append(nodeByteArray);
             }
         }
     }
     
+    // always write the last broadcastPacket
     nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
 }
 
@@ -546,8 +567,16 @@ void DomainServer::readAvailableDatagrams() {
                 // construct the requested assignment from the packet data
                 Assignment requestAssignment(receivedPacket);
                 
-                qDebug() << "Received a request for assignment type" << requestAssignment.getType()
-                    << "from" << senderSockAddr;
+                // Suppress these for Assignment::AgentType to once per 5 seconds
+                static quint64 lastNoisyMessage = usecTimestampNow();
+                quint64 timeNow = usecTimestampNow();
+                const quint64 NOISY_TIME_ELAPSED = 5 * USECS_PER_SECOND;
+                bool noisyMessage = false;
+                if (requestAssignment.getType() != Assignment::AgentType || (timeNow - lastNoisyMessage) > NOISY_TIME_ELAPSED) {
+                    qDebug() << "Received a request for assignment type" << requestAssignment.getType()
+                        << "from" << senderSockAddr;
+                    noisyMessage = true;
+                }
                 
                 SharedAssignmentPointer assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
                 
@@ -564,8 +593,15 @@ void DomainServer::readAvailableDatagrams() {
                     nodeList->getNodeSocket().writeDatagram(assignmentPacket,
                                                             senderSockAddr.getAddress(), senderSockAddr.getPort());
                 } else {
-                    qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
-                        << "from" << senderSockAddr;
+                    if (requestAssignment.getType() != Assignment::AgentType || (timeNow - lastNoisyMessage) > NOISY_TIME_ELAPSED) {
+                        qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
+                            << "from" << senderSockAddr;
+                        noisyMessage = true;
+                    }
+                }
+                
+                if (noisyMessage) {
+                    lastNoisyMessage = timeNow;
                 }
             }
         }

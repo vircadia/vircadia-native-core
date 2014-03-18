@@ -36,9 +36,9 @@ Head::Head(Avatar* owningAvatar) :
     _leftEyeBlinkVelocity(0.0f),
     _rightEyeBlinkVelocity(0.0f),
     _timeWithoutTalking(0.0f),
-    _tweakedPitch(0.f),
-    _tweakedYaw(0.f),
-    _tweakedRoll(0.f),
+    _pitchTweak(0.f),
+    _yawTweak(0.f),
+    _rollTweak(0.f),
     _isCameraMoving(false),
     _faceModel(this)
 {
@@ -90,8 +90,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         _saccade += (_saccadeTarget - _saccade) * 0.50f;
     
         const float AUDIO_AVERAGING_SECS = 0.05f;
-        _averageLoudness = (1.f - deltaTime / AUDIO_AVERAGING_SECS) * _averageLoudness +
-                                 (deltaTime / AUDIO_AVERAGING_SECS) * _audioLoudness;
+        _averageLoudness = glm::mix(_averageLoudness, _audioLoudness, glm::min(deltaTime / AUDIO_AVERAGING_SECS, 1.0f));
         
         //  Detect transition from talking to not; force blink after that and a delay
         bool forceBlink = false;
@@ -183,13 +182,13 @@ void Head::setScale (float scale) {
 }
 
 glm::quat Head::getTweakedOrientation() const {
-    return _owningAvatar->getOrientation() * glm::quat(glm::radians(glm::vec3(getTweakedPitch(), getTweakedYaw(), getTweakedRoll() )));
+    return _owningAvatar->getOrientation() * glm::quat(glm::radians(
+                glm::vec3(getTweakedPitch(), getTweakedYaw(), getTweakedRoll() )));
 }
 
 glm::quat Head::getCameraOrientation () const {
     Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
-    return owningAvatar->getWorldAlignedOrientation()
-            * glm::quat(glm::radians(glm::vec3(_pitch, 0.f, 0.0f)));
+    return owningAvatar->getWorldAlignedOrientation() * glm::quat(glm::radians(glm::vec3(_pitch, 0.f, 0.0f)));
 }
 
 glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {
@@ -202,15 +201,15 @@ glm::vec3 Head::getScalePivot() const {
 }
 
 float Head::getTweakedYaw() const {
-    return glm::clamp(_yaw + _tweakedYaw, MIN_HEAD_YAW, MAX_HEAD_YAW);
+    return glm::clamp(_yaw + _yawTweak, MIN_HEAD_YAW, MAX_HEAD_YAW);
 }
 
 float Head::getTweakedPitch() const {
-    return glm::clamp(_pitch + _tweakedPitch, MIN_HEAD_PITCH, MAX_HEAD_PITCH);
+    return glm::clamp(_pitch + _pitchTweak, MIN_HEAD_PITCH, MAX_HEAD_PITCH);
 }
 
 float Head::getTweakedRoll() const {
-    return glm::clamp(_roll + _tweakedRoll, MIN_HEAD_ROLL, MAX_HEAD_ROLL);
+    return glm::clamp(_roll + _rollTweak, MIN_HEAD_ROLL, MAX_HEAD_ROLL);
 }
 
 void Head::applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) {

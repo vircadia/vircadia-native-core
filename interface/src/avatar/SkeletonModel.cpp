@@ -18,19 +18,15 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar) :
     _owningAvatar(owningAvatar) {
 }
 
-void SkeletonModel::simulate(float deltaTime, bool delayLoad) {
-    if (!isActive()) {
-        Model::simulate(deltaTime, delayLoad);
-        return;
-    }
+void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     setTranslation(_owningAvatar->getPosition());
-    setRotation(_owningAvatar->getOrientation() * glm::angleAxis(180.0f, glm::vec3(0.0f, 1.0f, 0.0f)));
+    setRotation(_owningAvatar->getOrientation() * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)));
     const float MODEL_SCALE = 0.0006f;
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale() * MODEL_SCALE);
-
-    Model::simulate(deltaTime, delayLoad);
-
-    if (!_owningAvatar->isMyAvatar()) {
+    
+    Model::simulate(deltaTime, fullUpdate);
+    
+    if (!(isActive() && _owningAvatar->isMyAvatar())) {
         return; // only simulate for own avatar
     }
 
@@ -140,6 +136,7 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
         return;
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    setJointPosition(jointIndex, palm.getPosition());
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
     glm::quat palmRotation;
     getJointRotation(jointIndex, palmRotation, true);
@@ -163,7 +160,7 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
 
     // rotate palm according to average finger direction
     float directionLength = glm::length(direction);
-    const int MIN_ROTATION_FINGERS = 3;
+    const unsigned int MIN_ROTATION_FINGERS = 3;
     if (directionLength > EPSILON && palm.getNumFingers() >= MIN_ROTATION_FINGERS) {
         applyRotationDelta(jointIndex, rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), direction), false);
         getJointRotation(jointIndex, palmRotation, true);
@@ -171,7 +168,6 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
 
     // no point in continuing if there are no fingers
     if (palm.getNumFingers() == 0 || fingerJointIndices.isEmpty()) {
-        stretchArm(jointIndex, palm);
         return;
     }
 
@@ -189,8 +185,6 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
 
         setJointRotation(fingerJointIndex, rotationBetween(palmRotation * jointVector, fingerVector) * palmRotation, true);
     }
-    
-    stretchArm(jointIndex, palm);
 }
 
 void SkeletonModel::updateJointState(int index) {
@@ -212,46 +206,8 @@ void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, const
     glm::mat3 axes = glm::mat3_cast(_rotation);
     glm::mat3 inverse = glm::mat3(glm::inverse(parentState.transform * glm::translate(state.translation) * 
         joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation)));
-    state.rotation = glm::angleAxis(-_owningAvatar->getHead()->getLeanSideways(), glm::normalize(inverse * axes[2])) *
-        glm::angleAxis(-_owningAvatar->getHead()->getLeanForward(), glm::normalize(inverse * axes[0])) * joint.rotation;
+    state.rotation = glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getLeanSideways(), 
+        glm::normalize(inverse * axes[2])) * glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getLeanForward(), 
+        glm::normalize(inverse * axes[0])) * joint.rotation;
 }
 
-void SkeletonModel::stretchArm(int jointIndex, PalmData& palm) {
-//        const glm::vec3& position) {
-    // find out where the hand is pointing
-    glm::quat handRotation;
-    getJointRotation(jointIndex, handRotation, true);
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::vec3 forwardVector(jointIndex == geometry.rightHandJointIndex ? -1.0f : 1.0f, 0.0f, 0.0f);
-    glm::vec3 handVector = handRotation * forwardVector;
-    
-    // align elbow with hand
-    const FBXJoint& joint = geometry.joints.at(jointIndex);
-    if (joint.parentIndex == -1) {
-        return;
-    }
-    glm::quat elbowRotation;
-    getJointRotation(joint.parentIndex, elbowRotation, true);
-    applyRotationDelta(joint.parentIndex, rotationBetween(elbowRotation * forwardVector, handVector), false);
-
-    // set position according to normal length
-    float scale = extractUniformScale(_scale);
-    palm.resolvePenetrations();
-    glm::vec3 elbowPosition = palm.getPosition() - _translation; - handVector * (joint.distanceToParent * scale);
-    
-    // set shoulder orientation to point to elbow
-    const FBXJoint& parentJoint = geometry.joints.at(joint.parentIndex);
-    if (parentJoint.parentIndex == -1) {
-        return;
-    }
-    glm::quat shoulderRotation;
-    getJointRotation(parentJoint.parentIndex, shoulderRotation, true);
-    applyRotationDelta(parentJoint.parentIndex, rotationBetween(shoulderRotation * forwardVector,
-        elbowPosition - extractTranslation(_jointStates.at(parentJoint.parentIndex).transform)), false);
-        
-    // update the shoulder state
-    updateJointState(parentJoint.parentIndex);
-    
-    // adjust the elbow's local translation
-    setJointTranslation(joint.parentIndex, elbowPosition);
-}

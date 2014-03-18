@@ -64,6 +64,38 @@ private:
     CircularBuffer _dataStreamed;
 };
 
+/// A simple shared object.
+class TestSharedObjectA : public SharedObject {
+    Q_OBJECT
+    Q_PROPERTY(float foo READ getFoo WRITE setFoo NOTIFY fooChanged)
+
+public:
+    
+    Q_INVOKABLE TestSharedObjectA(float foo = 0.0f);
+    virtual ~TestSharedObjectA();
+
+    void setFoo(float foo);
+    float getFoo() const { return _foo; }
+
+signals:
+    
+    void fooChanged(float foo);    
+    
+private:
+    
+    float _foo;
+};
+
+/// Another simple shared object.
+class TestSharedObjectB : public SharedObject {
+    Q_OBJECT
+
+public:
+    
+    Q_INVOKABLE TestSharedObjectB();
+    virtual ~TestSharedObjectB();
+};
+
 /// A simple test message.
 class TestMessageA {
     STREAMABLE
@@ -84,6 +116,7 @@ class TestMessageB {
 public:
     
     STREAM QByteArray foo;
+    STREAM SharedObjectPointer bar;
 };
 
 DECLARE_STREAMABLE_METATYPE(TestMessageB)

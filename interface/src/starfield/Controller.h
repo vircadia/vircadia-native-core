@@ -8,7 +8,7 @@
 //
 
 #ifndef __interface__starfield__Controller__
-#define __interface__starfield__Confroller__
+#define __interface__starfield__Controller__
 
 #include <time.h>
 
