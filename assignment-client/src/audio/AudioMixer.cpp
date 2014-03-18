@@ -64,7 +64,7 @@ void attachNewBufferToNode(Node *newNode) {
 AudioMixer::AudioMixer(const QByteArray& packet) :
     ThreadedAssignment(packet)
 {
-    connect(NodeList::getInstance(), &NodeList::uuidChanged, this, &AudioMixer::receivedSessionUUID);
+    
 }
 
 void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,
@@ -332,10 +332,6 @@ void AudioMixer::readPendingDatagrams() {
     }
 }
 
-void AudioMixer::receivedSessionUUID(const QUuid& sessionUUID) {
-    populatePacketHeader(_clientMixBuffer, PacketTypeMixedAudio);
-}
-
 void AudioMixer::run() {
 
     commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NodeType::AudioMixer);
@@ -350,8 +346,8 @@ void AudioMixer::run() {
     timeval startTime;
 
     gettimeofday(&startTime, NULL);
-
-    int numBytesPacketHeader = numBytesForPacketHeaderGivenPacketType(PacketTypeMixedAudio);
+    
+    char clientMixBuffer[NETWORK_BUFFER_LENGTH_BYTES_STEREO + MAX_PACKET_HEADER_BYTES];
 
     while (!_isFinished) {
 
@@ -365,9 +361,11 @@ void AudioMixer::run() {
             if (node->getType() == NodeType::Agent && node->getActiveSocket() && node->getLinkedData()
                 && ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer()) {
                 prepareMixForListeningNode(node.data());
+                
+                int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeMixedAudio);
 
-                memcpy(_clientMixBuffer + numBytesPacketHeader, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
-                nodeList->writeDatagram(_clientMixBuffer, NETWORK_BUFFER_LENGTH_BYTES_STEREO + numBytesPacketHeader, node);
+                memcpy(clientMixBuffer + numBytesPacketHeader, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
+                nodeList->writeDatagram(clientMixBuffer, NETWORK_BUFFER_LENGTH_BYTES_STEREO + numBytesPacketHeader, node);
             }
         }
 
