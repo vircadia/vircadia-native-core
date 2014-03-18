@@ -552,6 +552,8 @@ Q_DECLARE_METATYPE(const QMetaObject*)
 class TypeStreamer {
 public:
     
+    enum Category { SIMPLE_CATEGORY, STREAMABLE_CATEGORY };
+    
     virtual ~TypeStreamer();
     
     void setType(int type) { _type = type; }
@@ -563,6 +565,12 @@ public:
     virtual const QVector<MetaField>& getMetaFields() const;
     virtual int getFieldIndex(const QByteArray& name) const;
     virtual void setField(int index, QVariant& object, const QVariant& value) const;
+
+    virtual const TypeStreamer* getKeyStreamer() const;
+    virtual const TypeStreamer* getValueStreamer() const;
+
+    virtual void append(QVariant& object, const QVariant& element) const;
+    virtual void insert(QVariant& object, const QVariant& key, const QVariant& value) const;
 
 private:
     
@@ -577,8 +585,8 @@ public:
     virtual QVariant read(Bitstream& in) const { T value; in >> value; return QVariant::fromValue(value); }
 };
 
-/// A streamer that works with Bitstream's operators.
-template<class T> class CompoundTypeStreamer : public SimpleTypeStreamer<T> {
+/// A streamer for types compiled by mtc.
+template<class T> class StreamableTypeStreamer : public SimpleTypeStreamer<T> {
 public:
     
     virtual const QVector<MetaField>& getMetaFields() const { return T::getMetaFields(); }
@@ -587,9 +595,41 @@ public:
         static_cast<T*>(object.data())->setField(index, value); }
 };
 
+/// Base template for collection streamers.
+template<class T> class CollectionTypeStreamer : public SimpleTypeStreamer<T> {
+};
+
+/// A streamer for list types.
+template<class T> class CollectionTypeStreamer<QList<T> > : public SimpleTypeStreamer<QList<T> > {
+public:
+    
+    virtual void append(QVariant& object, const QVariant& element) const {
+        static_cast<QList<T>*>(object.data())->append(element.value<T>()); }
+};
+
+/// A streamer for set types.
+template<class T> class CollectionTypeStreamer<QSet<T> > : public SimpleTypeStreamer<QSet<T> > {
+public:
+    
+    virtual void append(QVariant& object, const QVariant& element) const {
+        static_cast<QSet<T>*>(object.data())->insert(element.value<T>()); }
+};
+
+/// A streamer for hash types.
+template<class K, class V> class CollectionTypeStreamer<QHash<K, V> > : public SimpleTypeStreamer<QHash<K, V> > {
+public:
+    
+    virtual void insert(QVariant& object, const QVariant& key, const QVariant& value) const {
+        static_cast<QHash<K, V>*>(object.data())->insert(key.value<K>(), value.value<V>()); }
+};
+
 /// Macro for registering simple type streamers.
 #define REGISTER_SIMPLE_TYPE_STREAMER(x) static int x##Streamer = \
     Bitstream::registerTypeStreamer(qMetaTypeId<x>(), new SimpleTypeStreamer<x>());
+
+/// Macro for registering collection type streamers.
+#define REGISTER_COLLECTION_TYPE_STREAMER(x) static int x##Streamer = \
+    Bitstream::registerTypeStreamer(qMetaTypeId<x>(), new CollectionTypeStreamer<x>());
 
 /// Declares the metatype and the streaming operators.  The last lines
 /// ensure that the generated file will be included in the link phase. 
@@ -621,7 +661,7 @@ public:
 /// Registers a streamable type and its streamer.
 template<class T> int registerStreamableMetaType() {
     int type = qRegisterMetaType<T>();
-    Bitstream::registerTypeStreamer(type, new CompoundTypeStreamer<T>());
+    Bitstream::registerTypeStreamer(type, new StreamableTypeStreamer<T>());
     return type;
 }
 

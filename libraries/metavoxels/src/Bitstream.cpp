@@ -865,3 +865,19 @@ int TypeStreamer::getFieldIndex(const QByteArray& name) const {
 void TypeStreamer::setField(int index, QVariant& object, const QVariant& value) const {
     // nothing by default
 }
+
+const TypeStreamer* TypeStreamer::getKeyStreamer() const {
+    return NULL;
+}
+
+const TypeStreamer* TypeStreamer::getValueStreamer() const {
+    return NULL;
+}
+
+void TypeStreamer::append(QVariant& object, const QVariant& element) const {
+    // nothing by default
+}
+
+void TypeStreamer::insert(QVariant& object, const QVariant& key, const QVariant& value) const {
+    // nothing by default
+}
