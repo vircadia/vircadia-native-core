@@ -17,7 +17,7 @@ AvatarMixerClientData::AvatarMixerClientData() :
 }
 
 int AvatarMixerClientData::parseData(const QByteArray& packet) {
-    // increment to push past the packet header
+    // compute the offset to the data payload
     int offset = numBytesForPacketHeader(packet);
     return _avatar.parseDataAtOffset(packet, offset);
 }
