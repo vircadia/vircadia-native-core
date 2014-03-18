@@ -267,7 +267,9 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             // the node decided not to do anything with this packet
             // if it comes from a known source we should keep that node alive
             SharedNodePointer matchingNode = sendingNodeForPacket(packet);
-            matchingNode->setLastHeardMicrostamp(usecTimestampNow());
+            if (matchingNode) {
+                matchingNode->setLastHeardMicrostamp(usecTimestampNow());
+            }
             
             break;
     }
