@@ -12,11 +12,14 @@
 #include <QtCore/QUrl>
 
 #include <AvatarData.h>
+#include <NodeData.h>
 
-class AvatarMixerClientData : public AvatarData {
+class AvatarMixerClientData : public NodeData {
     Q_OBJECT
 public:
     AvatarMixerClientData();
+
+    int parseData(const QByteArray& packet);
     
     bool hasSentIdentityBetweenKeyFrames() const { return _hasSentIdentityBetweenKeyFrames; }
     void setHasSentIdentityBetweenKeyFrames(bool hasSentIdentityBetweenKeyFrames)
@@ -25,11 +28,14 @@ public:
     bool hasSentBillboardBetweenKeyFrames() const { return _hasSentBillboardBetweenKeyFrames; }
     void setHasSentBillboardBetweenKeyFrames(bool hasSentBillboardBetweenKeyFrames)
         { _hasSentBillboardBetweenKeyFrames = hasSentBillboardBetweenKeyFrames; }
+
+    AvatarData& getAvatar() { return _avatar; }
         
 private:
    
     bool _hasSentIdentityBetweenKeyFrames;
     bool _hasSentBillboardBetweenKeyFrames;
+    AvatarData _avatar;
 };
 
 #endif /* defined(__hifi__AvatarMixerClientData__) */
