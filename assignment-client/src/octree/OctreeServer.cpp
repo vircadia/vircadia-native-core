@@ -461,19 +461,19 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
                                          zeroVsTotalEncode * AS_PERCENT, _noEncode);
 
         float shortVsTotalEncode = (allEncodeTimes > 0) ? ((float)_shortEncode / (float)allEncodeTimes) : 0.0f;
-        statsString += QString().sprintf("     Avg tree lock short encode time:"
+        statsString += QString().sprintf("               Avg short encode time:"
                                          "          %9.2f usecs (%6.2f%%) samples: %12d \r\n",
                                          _averageShortEncodeTime.getAverage(), 
                                          shortVsTotalEncode * AS_PERCENT, _shortEncode);
 
         float longVsTotalEncode = (allEncodeTimes > 0) ? ((float)_longEncode / (float)allEncodeTimes) : 0.0f;
-        statsString += QString().sprintf("      Avg tree lock long encode time:"
+        statsString += QString().sprintf("                Avg long encode time:"
                                          "          %9.2f usecs (%6.2f%%) samples: %12d \r\n",
                                          _averageLongEncodeTime.getAverage(), 
                                          longVsTotalEncode * AS_PERCENT, _longEncode);
 
         float extraLongVsTotalEncode = (allEncodeTimes > 0) ? ((float)_extraLongEncode / (float)allEncodeTimes) : 0.0f;
-        statsString += QString().sprintf("Avg tree lock extra long encode time:"
+        statsString += QString().sprintf("          Avg extra long encode time:"
                                          "          %9.2f usecs (%6.2f%%) samples: %12d \r\n\r\n",
                                          _averageExtraLongEncodeTime.getAverage(), 
                                          extraLongVsTotalEncode * AS_PERCENT, _extraLongEncode);
