@@ -227,8 +227,6 @@ int OctreeSendThread::handlePacketSend(const SharedNodePointer& node, OctreeQuer
 
 /// Version of voxel distributor that sends the deepest LOD level at once
 int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQueryNode* nodeData, bool viewFrustumChanged) {
-    bool forceDebugging = false;
-
     int truePacketsSent = 0;
     int trueBytesSent = 0;
     int packetsSentThisInterval = 0;
@@ -267,7 +265,6 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
     // If the current view frustum has changed OR we have nothing to send, then search against
     // the current view frustum for things to send.
     if (viewFrustumChanged || nodeData->nodeBag.isEmpty()) {
-        quint64 now = usecTimestampNow();
 
         // if our view has changed, we need to reset these things...
         if (viewFrustumChanged) {
