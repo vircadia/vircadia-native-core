@@ -1189,8 +1189,6 @@ void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
         
         NodeList::getInstance()->getDomainInfo().setHostname(domainHostnameString);
         
-        qDebug() << orientationItems[0] << orientationItems[1] << orientationItems[2];
-        
         // orient the user to face the target
         glm::quat newOrientation = glm::quat(glm::radians(glm::vec3(orientationItems[0].toFloat(),
                                                                     orientationItems[1].toFloat(),
