@@ -43,7 +43,7 @@ bool SampleReadThread::process() {
         for(int i = 0; i < LOTS_OF_OPERATIONS; i++) {
             float x = rand();
             float y = rand();
-            float z = x * y;
+            y = x * y;
         }
     }
     quint64 endWork = usecTimestampNow();
