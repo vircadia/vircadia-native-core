@@ -267,7 +267,9 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             // the node decided not to do anything with this packet
             // if it comes from a known source we should keep that node alive
             SharedNodePointer matchingNode = sendingNodeForPacket(packet);
-            matchingNode->setLastHeardMicrostamp(usecTimestampNow());
+            if (matchingNode) {
+                matchingNode->setLastHeardMicrostamp(usecTimestampNow());
+            }
             
             break;
     }
@@ -348,7 +350,7 @@ void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes)
 
 const uint32_t RFC_5389_MAGIC_COOKIE = 0x2112A442;
 const int NUM_BYTES_STUN_HEADER = 20;
-const int NUM_STUN_REQUESTS_BEFORE_FALLBACK = 5;
+const unsigned int NUM_STUN_REQUESTS_BEFORE_FALLBACK = 5;
 
 void NodeList::sendSTUNRequest() {
     const char STUN_SERVER_HOSTNAME[] = "stun.highfidelity.io";

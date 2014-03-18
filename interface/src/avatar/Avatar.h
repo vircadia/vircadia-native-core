@@ -74,7 +74,7 @@ public:
 
     void init();
     void simulate(float deltaTime);
-    void render(bool forShadowMap = false);
+    virtual void render(const glm::vec3& cameraPosition, bool forShadowMap);
 
     //setters
     void setDisplayingLookatVectors(bool displayingLookatVectors) { getHead()->setRenderLookatVectors(displayingLookatVectors); }
@@ -133,7 +133,7 @@ public:
 
     void setShowDisplayName(bool showDisplayName);
     
-    int parseData(const QByteArray& packet);
+    int parseDataAtOffset(const QByteArray& packet, int offset);
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
 
@@ -181,6 +181,7 @@ protected:
     float getPelvisToHeadLength() const;
 
     void renderDisplayName();
+    virtual void renderBody(bool forShadowMap);
 
 private:
 
@@ -189,7 +190,6 @@ private:
     bool _shouldRenderBillboard;
     bool _modelsDirty;
 
-    void renderBody();
     void renderBillboard();
     
     float getBillboardSize() const;

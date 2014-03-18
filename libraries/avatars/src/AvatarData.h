@@ -40,7 +40,6 @@ typedef unsigned long long quint64;
 
 #include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
-#include <NodeData.h>
 
 #include "HeadData.h"
 #include "HandData.h"
@@ -74,7 +73,7 @@ class QNetworkAccessManager;
 
 class JointData;
 
-class AvatarData : public NodeData {
+class AvatarData : public QObject {
     Q_OBJECT
 
     Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
@@ -97,7 +96,7 @@ class AvatarData : public NodeData {
     Q_PROPERTY(QString billboardURL READ getBillboardURL WRITE setBillboardFromURL)
 public:
     AvatarData();
-    ~AvatarData();
+    virtual ~AvatarData();
 
     const glm::vec3& getPosition() const { return _position; }
     void setPosition(const glm::vec3 position) { _position = position; }
@@ -106,7 +105,11 @@ public:
     void setHandPosition(const glm::vec3& handPosition);
 
     QByteArray toByteArray();
-    int parseData(const QByteArray& packet);
+
+    /// \param packet byte array of data
+    /// \param offset number of bytes into packet where data starts
+    /// \return number of bytes parsed
+    virtual int parseDataAtOffset(const QByteArray& packet, int offset);
 
     //  Body Rotation (degrees)
     float getBodyYaw() const { return _bodyYaw; }
