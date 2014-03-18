@@ -48,9 +48,9 @@ int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
         // this source had no audio to send us, but this counts as a packet
         // write silence equivalent to the number of silent samples they just sent us
         int16_t numSilentSamples;
-        memcpy(&numSilentSamples, packet.data(), sizeof(int16_t));
-        readBytes += sizeof(int16_t);
         
+        memcpy(&numSilentSamples, packet.data() + readBytes, sizeof(int16_t));
+        readBytes += sizeof(int16_t);
         
         addSilentFrame(numSilentSamples);
     } else {
