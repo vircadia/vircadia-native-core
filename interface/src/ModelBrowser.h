@@ -15,8 +15,8 @@
 #include <QListView>
 
 static const QString S3_URL = "http://highfidelity-public.s3-us-west-1.amazonaws.com";
-static const QString HEAD_MODELS_LOCATION = "meshes/";
-static const QString SKELETON_MODELS_LOCATION = "meshes/";
+static const QString HEAD_MODELS_LOCATION = "models/heads/";
+static const QString SKELETON_MODELS_LOCATION = "models/skeletons/";
 
 enum ModelType {
     Head,
