@@ -1158,6 +1158,8 @@ void MyAvatar::updateLocationInDataServer() {
         QString positionString(createByteArray(_position));
         QString orientationString(createByteArray(glm::degrees(safeEulerAngles(getOrientation()))));
         
+        qDebug() << orientationString;
+        
         // construct the json to put the user's location
         QString locationPutJson = QString() + "{\"address\":{\"position\":\""
             + positionString + "\", \"orientation\":\"" + orientationString + "\"}}";
@@ -1188,11 +1190,13 @@ void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
         
         NodeList::getInstance()->getDomainInfo().setHostname(domainHostnameString);
         
+        qDebug() << orientationItems[0] << orientationItems[1] << orientationItems[2];
+        
         // orient the user to face the target
         glm::quat newOrientation = glm::quat(glm::vec3(orientationItems[0].toFloat(),
                                                        orientationItems[1].toFloat(),
                                                        orientationItems[2].toFloat()))
-            * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
+            * glm::angleAxis(180.0f, glm::vec3(0.0f, 1.0f, 0.0f));
         setOrientation(newOrientation);
         
         // move the user a couple units away
