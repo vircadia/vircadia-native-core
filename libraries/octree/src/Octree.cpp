@@ -892,6 +892,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
             return bytesAtThisLevel;
         }
     }
+    
+    ViewFrustum::location nodeLocationThisView = ViewFrustum::INSIDE; // assume we're inside
 
     // caller can pass NULL as viewFrustum if they want everything
     if (params.viewFrustum) {
@@ -907,11 +909,13 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
             params.stopReason = EncodeBitstreamParams::LOD_SKIP;
             return bytesAtThisLevel;
         }
+        
+        nodeLocationThisView = node->inFrustum(*params.viewFrustum);
 
         // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
         // although technically, we really shouldn't ever be here, because our callers shouldn't be calling us if
         // we're out of view
-        if (!node->isInView(*params.viewFrustum)) {
+        if (nodeLocationThisView == ViewFrustum::OUTSIDE) {
             if (params.stats) {
                 params.stats->skippedOutOfView(node);
             }
@@ -1065,7 +1069,11 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
         OctreeElement* childNode = sortedChildren[i];
         int originalIndex = indexOfChildren[i];
 
-        bool childIsInView  = (childNode && (!params.viewFrustum || childNode->isInView(*params.viewFrustum)));
+        bool childIsInView  = (childNode && 
+                ( !params.viewFrustum || // no view frustum was given, everything is assumed in view
+                  (nodeLocationThisView == ViewFrustum::INSIDE) || // the parent was fully in view, we can assume ALL children are
+                  (nodeLocationThisView == ViewFrustum::INTERSECT && childNode->isInView(*params.viewFrustum)) // the parent intersects and the child is in view
+                ));
 
         if (!childIsInView) {
             // must check childNode here, because it could be we got here because there was no childNode
