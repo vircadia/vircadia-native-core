@@ -70,6 +70,8 @@ public:
     void setIsStarved(bool isStarved) { _isStarved = isStarved; }
     
     bool hasStarted() const { return _hasStarted; }
+    
+    void addSilentFrame(int numSilentSamples);
 protected:
     // disallow copying of AudioRingBuffer objects
     AudioRingBuffer(const AudioRingBuffer&);

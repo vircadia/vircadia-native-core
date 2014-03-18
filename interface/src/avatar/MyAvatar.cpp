@@ -85,6 +85,7 @@ void MyAvatar::reset() {
 
     setVelocity(glm::vec3(0,0,0));
     setThrust(glm::vec3(0,0,0));
+    setOrientation(glm::quat(glm::vec3(0,0,0)));
 }
 
 void MyAvatar::setMoveTarget(const glm::vec3 moveTarget) {
@@ -1189,9 +1190,9 @@ void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
         NodeList::getInstance()->getDomainInfo().setHostname(domainHostnameString);
         
         // orient the user to face the target
-        glm::quat newOrientation = glm::quat(glm::vec3(orientationItems[0].toFloat(),
-                                                       orientationItems[1].toFloat(),
-                                                       orientationItems[2].toFloat()))
+        glm::quat newOrientation = glm::quat(glm::radians(glm::vec3(orientationItems[0].toFloat(),
+                                                                    orientationItems[1].toFloat(),
+                                                                    orientationItems[2].toFloat())))
             * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
         setOrientation(newOrientation);
         
