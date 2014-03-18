@@ -219,9 +219,6 @@ protected:
     class MeshState {
     public:
         QVector<glm::mat4> clusterMatrices;
-        QVector<glm::vec3> worldSpaceVertices;
-        QVector<glm::vec3> vertexVelocities;
-        QVector<glm::vec3> worldSpaceNormals;
     };
     
     QVector<MeshState> _meshStates;

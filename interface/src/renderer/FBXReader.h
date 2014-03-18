@@ -130,10 +130,6 @@ public:
     bool isEye;
     
     QVector<FBXBlendshape> blendshapes;
-    
-    float springiness;
-    QVector<QPair<int, int> > springEdges;
-    QVector<QVarLengthArray<QPair<int, int>, 4> > vertexConnections;
 };
 
 /// An attachment to an FBX document.

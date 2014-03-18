@@ -1331,14 +1331,11 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     geometry.staticExtents.reset();
     geometry.meshExtents.reset();
     
-    QVariantHash springs = mapping.value("spring").toHash();
-    QVariant defaultSpring = springs.value("default");
     for (QHash<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
         ExtractedMesh& extracted = it.value();
 
         // accumulate local transforms
         QString modelID = models.contains(it.key()) ? it.key() : parentMap.value(it.key());
-        extracted.mesh.springiness = springs.value(models.value(modelID).name, defaultSpring).toFloat();
         glm::mat4 modelTransform = getGlobalTransform(parentMap, models, modelID);
 
         // compute the mesh extents from the transformed vertices
@@ -1591,49 +1588,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             }
         }
         extracted.mesh.isEye = (maxJointIndex == geometry.leftEyeJointIndex || maxJointIndex == geometry.rightEyeJointIndex);
-
-        // extract spring edges, connections if springy
-        if (extracted.mesh.springiness > 0.0f) {
-            QSet<QPair<int, int> > edges;
-
-            extracted.mesh.vertexConnections.resize(extracted.mesh.vertices.size());
-            foreach (const FBXMeshPart& part, extracted.mesh.parts) {
-                for (int i = 0; i < part.quadIndices.size(); i += 4) {
-                    int index0 = part.quadIndices.at(i);
-                    int index1 = part.quadIndices.at(i + 1);
-                    int index2 = part.quadIndices.at(i + 2);
-                    int index3 = part.quadIndices.at(i + 3);
-
-                    edges.insert(QPair<int, int>(qMin(index0, index1), qMax(index0, index1)));
-                    edges.insert(QPair<int, int>(qMin(index1, index2), qMax(index1, index2)));
-                    edges.insert(QPair<int, int>(qMin(index2, index3), qMax(index2, index3)));
-                    edges.insert(QPair<int, int>(qMin(index3, index0), qMax(index3, index0)));
-
-                    extracted.mesh.vertexConnections[index0].append(QPair<int, int>(index3, index1));
-                    extracted.mesh.vertexConnections[index1].append(QPair<int, int>(index0, index2));
-                    extracted.mesh.vertexConnections[index2].append(QPair<int, int>(index1, index3));
-                    extracted.mesh.vertexConnections[index3].append(QPair<int, int>(index2, index0));
-                }
-                for (int i = 0; i < part.triangleIndices.size(); i += 3) {
-                    int index0 = part.triangleIndices.at(i);
-                    int index1 = part.triangleIndices.at(i + 1);
-                    int index2 = part.triangleIndices.at(i + 2);
-
-                    edges.insert(QPair<int, int>(qMin(index0, index1), qMax(index0, index1)));
-                    edges.insert(QPair<int, int>(qMin(index1, index2), qMax(index1, index2)));
-                    edges.insert(QPair<int, int>(qMin(index2, index0), qMax(index2, index0)));
-
-                    extracted.mesh.vertexConnections[index0].append(QPair<int, int>(index2, index1));
-                    extracted.mesh.vertexConnections[index1].append(QPair<int, int>(index0, index2));
-                    extracted.mesh.vertexConnections[index2].append(QPair<int, int>(index1, index0));
-                }
-            }
-
-            for (QSet<QPair<int, int> >::const_iterator edge = edges.constBegin(); edge != edges.constEnd(); edge++) {
-                extracted.mesh.springEdges.append(*edge);
-            }
-        }
-
+        
         geometry.meshes.append(extracted.mesh);
     }
 
@@ -1797,7 +1752,6 @@ FBXGeometry readSVO(const QByteArray& model) {
     // and one mesh with one cluster and one part
     FBXMesh mesh;
     mesh.isEye = false;
-    mesh.springiness = 0.0f;
 
     FBXCluster cluster = { 0 };
     mesh.clusters.append(cluster);

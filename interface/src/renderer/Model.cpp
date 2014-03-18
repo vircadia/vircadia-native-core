@@ -175,7 +175,7 @@ bool Model::render(float alpha) {
     if (_blendedVertexBufferIDs.isEmpty()) {
         foreach (const FBXMesh& mesh, geometry.meshes) {
             GLuint id = 0;
-            if (!mesh.blendshapes.isEmpty() || mesh.springiness > 0.0f) {
+            if (!mesh.blendshapes.isEmpty()) {
                 glGenBuffers(1, &id);
                 glBindBuffer(GL_ARRAY_BUFFER, id);
                 glBufferData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3),
@@ -490,11 +490,6 @@ void Model::simulate(float deltaTime, bool fullUpdate, const QVector<JointState>
         foreach (const FBXMesh& mesh, geometry.meshes) {
             MeshState state;
             state.clusterMatrices.resize(mesh.clusters.size());
-            if (mesh.springiness > 0.0f) {
-                state.worldSpaceVertices.resize(mesh.vertices.size());
-                state.vertexVelocities.resize(mesh.vertices.size());
-                state.worldSpaceNormals.resize(mesh.vertices.size());
-            }
             _meshStates.append(state);    
         }
         foreach (const FBXAttachment& attachment, geometry.attachments) {
@@ -540,80 +535,6 @@ void Model::simulate(float deltaTime, bool fullUpdate, const QVector<JointState>
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
             state.clusterMatrices[j] = _jointStates[cluster.jointIndex].transform * cluster.inverseBindMatrix;
-        }
-        int vertexCount = state.worldSpaceVertices.size();
-        if (vertexCount == 0) {
-            continue;
-        }
-        glm::vec3* destVertices = state.worldSpaceVertices.data();
-        glm::vec3* destVelocities = state.vertexVelocities.data();
-        glm::vec3* destNormals = state.worldSpaceNormals.data();
-        
-        const glm::vec3* sourceVertices = mesh.vertices.constData();
-        if (!mesh.blendshapes.isEmpty()) {
-            _blendedVertices.resize(max(_blendedVertices.size(), vertexCount));
-            memcpy(_blendedVertices.data(), mesh.vertices.constData(), vertexCount * sizeof(glm::vec3));
-            
-            // blend in each coefficient
-            for (unsigned int j = 0; j < _blendshapeCoefficients.size(); j++) {
-                float coefficient = _blendshapeCoefficients[j];
-                if (coefficient == 0.0f || j >= (unsigned int)mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
-                    continue;
-                }
-                const glm::vec3* vertex = mesh.blendshapes[j].vertices.constData();
-                for (const int* index = mesh.blendshapes[j].indices.constData(),
-                        *end = index + mesh.blendshapes[j].indices.size(); index != end; index++, vertex++) {
-                    _blendedVertices[*index] += *vertex * coefficient;
-                }
-            }
-            sourceVertices = _blendedVertices.constData();
-        }
-        glm::mat4 transform = glm::translate(_translation);
-        if (mesh.clusters.size() > 1) {
-            _blendedVertices.resize(max(_blendedVertices.size(), vertexCount));
-
-            // skin each vertex
-            const glm::vec4* clusterIndices = mesh.clusterIndices.constData();
-            const glm::vec4* clusterWeights = mesh.clusterWeights.constData();
-            for (int j = 0; j < vertexCount; j++) {
-                _blendedVertices[j] =
-                    glm::vec3(state.clusterMatrices[clusterIndices[j][0]] *
-                        glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][0] +
-                    glm::vec3(state.clusterMatrices[clusterIndices[j][1]] *
-                        glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][1] +
-                    glm::vec3(state.clusterMatrices[clusterIndices[j][2]] *
-                        glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][2] +
-                    glm::vec3(state.clusterMatrices[clusterIndices[j][3]] *
-                        glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][3];
-            }
-            sourceVertices = _blendedVertices.constData();
-            
-        } else {
-            transform = state.clusterMatrices[0];
-        }
-        if (_resetStates) {
-            for (int j = 0; j < vertexCount; j++) {
-                destVertices[j] = glm::vec3(transform * glm::vec4(sourceVertices[j], 1.0f));        
-                destVelocities[j] = glm::vec3();
-            }        
-        } else {
-            const float SPRINGINESS_MULTIPLIER = 200.0f;
-            const float DAMPING = 5.0f;
-            for (int j = 0; j < vertexCount; j++) {
-                destVelocities[j] += ((glm::vec3(transform * glm::vec4(sourceVertices[j], 1.0f)) - destVertices[j]) *
-                    mesh.springiness * SPRINGINESS_MULTIPLIER - destVelocities[j] * DAMPING) * deltaTime;
-                destVertices[j] += destVelocities[j] * deltaTime;
-            }
-        }
-        for (int j = 0; j < vertexCount; j++) {
-            destNormals[j] = glm::vec3();
-            
-            const glm::vec3& middle = destVertices[j];
-            for (QVarLengthArray<QPair<int, int>, 4>::const_iterator connection = mesh.vertexConnections.at(j).constBegin(); 
-                    connection != mesh.vertexConnections.at(j).constEnd(); connection++) {
-                destNormals[j] += glm::normalize(glm::cross(destVertices[connection->second] - middle,
-                    destVertices[connection->first] - middle));
-            }
         }
     }
     _resetStates = false;
@@ -980,34 +901,30 @@ void Model::renderMeshes(float alpha, bool translucent) {
         const MeshState& state = _meshStates.at(i);
         ProgramObject* activeProgram = program;
         int tangentLocation = _normalMapTangentLocation;
-        if (state.worldSpaceVertices.isEmpty()) {
-            glPushMatrix();
-            Application::getInstance()->loadTranslatedViewMatrix(_translation);
-            
-            if (state.clusterMatrices.size() > 1) {
-                skinProgram->bind();
-                glUniformMatrix4fvARB(skinLocations->clusterMatrices, state.clusterMatrices.size(), false,
-                    (const float*)state.clusterMatrices.constData());
-                int offset = (mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3) +
-                    mesh.texCoords.size() * sizeof(glm::vec2) +
-                    (mesh.blendshapes.isEmpty() ? vertexCount * 2 * sizeof(glm::vec3) : 0);
-                skinProgram->setAttributeBuffer(skinLocations->clusterIndices, GL_FLOAT, offset, 4);
-                skinProgram->setAttributeBuffer(skinLocations->clusterWeights, GL_FLOAT,
-                    offset + vertexCount * sizeof(glm::vec4), 4);
-                skinProgram->enableAttributeArray(skinLocations->clusterIndices);
-                skinProgram->enableAttributeArray(skinLocations->clusterWeights);
-                activeProgram = skinProgram;
-                tangentLocation = skinLocations->tangent;
-         
-            } else {    
-                glMultMatrixf((const GLfloat*)&state.clusterMatrices[0]);
-                program->bind();
-            }
-        } else {
+        glPushMatrix();
+        Application::getInstance()->loadTranslatedViewMatrix(_translation);
+        
+        if (state.clusterMatrices.size() > 1) {
+            skinProgram->bind();
+            glUniformMatrix4fvARB(skinLocations->clusterMatrices, state.clusterMatrices.size(), false,
+                (const float*)state.clusterMatrices.constData());
+            int offset = (mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3) +
+                mesh.texCoords.size() * sizeof(glm::vec2) +
+                (mesh.blendshapes.isEmpty() ? vertexCount * 2 * sizeof(glm::vec3) : 0);
+            skinProgram->setAttributeBuffer(skinLocations->clusterIndices, GL_FLOAT, offset, 4);
+            skinProgram->setAttributeBuffer(skinLocations->clusterWeights, GL_FLOAT,
+                offset + vertexCount * sizeof(glm::vec4), 4);
+            skinProgram->enableAttributeArray(skinLocations->clusterIndices);
+            skinProgram->enableAttributeArray(skinLocations->clusterWeights);
+            activeProgram = skinProgram;
+            tangentLocation = skinLocations->tangent;
+     
+        } else {    
+            glMultMatrixf((const GLfloat*)&state.clusterMatrices[0]);
             program->bind();
         }
 
-        if (mesh.blendshapes.isEmpty() && mesh.springiness == 0.0f) {
+        if (mesh.blendshapes.isEmpty()) {
             if (!mesh.tangents.isEmpty()) {
                 activeProgram->setAttributeBuffer(tangentLocation, GL_FLOAT, vertexCount * 2 * sizeof(glm::vec3), 3);
                 activeProgram->enableAttributeArray(tangentLocation);
@@ -1026,38 +943,31 @@ void Model::renderMeshes(float alpha, bool translucent) {
             glTexCoordPointer(2, GL_FLOAT, 0, (void*)((mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3)));
             glBindBuffer(GL_ARRAY_BUFFER, _blendedVertexBufferIDs.at(i));
             
-            if (!state.worldSpaceVertices.isEmpty()) {
-                glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(glm::vec3), state.worldSpaceVertices.constData());
-                glBufferSubData(GL_ARRAY_BUFFER, vertexCount * sizeof(glm::vec3),
-                    vertexCount * sizeof(glm::vec3), state.worldSpaceNormals.constData());
-                
-            } else {
-                _blendedVertices.resize(max(_blendedVertices.size(), vertexCount));
-                _blendedNormals.resize(_blendedVertices.size());
-                memcpy(_blendedVertices.data(), mesh.vertices.constData(), vertexCount * sizeof(glm::vec3));
-                memcpy(_blendedNormals.data(), mesh.normals.constData(), vertexCount * sizeof(glm::vec3));
-                
-                // blend in each coefficient
-                for (unsigned int j = 0; j < _blendshapeCoefficients.size(); j++) {
-                    float coefficient = _blendshapeCoefficients[j];
-                    if (coefficient == 0.0f || j >= (unsigned int)mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
-                        continue;
-                    }
-                    const float NORMAL_COEFFICIENT_SCALE = 0.01f;
-                    float normalCoefficient = coefficient * NORMAL_COEFFICIENT_SCALE;
-                    const glm::vec3* vertex = mesh.blendshapes[j].vertices.constData();
-                    const glm::vec3* normal = mesh.blendshapes[j].normals.constData();
-                    for (const int* index = mesh.blendshapes[j].indices.constData(),
-                            *end = index + mesh.blendshapes[j].indices.size(); index != end; index++, vertex++, normal++) {
-                        _blendedVertices[*index] += *vertex * coefficient;
-                        _blendedNormals[*index] += *normal * normalCoefficient;
-                    }
+            _blendedVertices.resize(max(_blendedVertices.size(), vertexCount));
+            _blendedNormals.resize(_blendedVertices.size());
+            memcpy(_blendedVertices.data(), mesh.vertices.constData(), vertexCount * sizeof(glm::vec3));
+            memcpy(_blendedNormals.data(), mesh.normals.constData(), vertexCount * sizeof(glm::vec3));
+            
+            // blend in each coefficient
+            for (unsigned int j = 0; j < _blendshapeCoefficients.size(); j++) {
+                float coefficient = _blendshapeCoefficients[j];
+                if (coefficient == 0.0f || j >= (unsigned int)mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
+                    continue;
                 }
-        
-                glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(glm::vec3), _blendedVertices.constData());
-                glBufferSubData(GL_ARRAY_BUFFER, vertexCount * sizeof(glm::vec3),
-                    vertexCount * sizeof(glm::vec3), _blendedNormals.constData());
+                const float NORMAL_COEFFICIENT_SCALE = 0.01f;
+                float normalCoefficient = coefficient * NORMAL_COEFFICIENT_SCALE;
+                const glm::vec3* vertex = mesh.blendshapes[j].vertices.constData();
+                const glm::vec3* normal = mesh.blendshapes[j].normals.constData();
+                for (const int* index = mesh.blendshapes[j].indices.constData(),
+                        *end = index + mesh.blendshapes[j].indices.size(); index != end; index++, vertex++, normal++) {
+                    _blendedVertices[*index] += *vertex * coefficient;
+                    _blendedNormals[*index] += *normal * normalCoefficient;
+                }
             }
+    
+            glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(glm::vec3), _blendedVertices.constData());
+            glBufferSubData(GL_ARRAY_BUFFER, vertexCount * sizeof(glm::vec3),
+                vertexCount * sizeof(glm::vec3), _blendedNormals.constData());
         }
         glVertexPointer(3, GL_FLOAT, 0, 0);
         glNormalPointer(GL_FLOAT, 0, (void*)(vertexCount * sizeof(glm::vec3)));
@@ -1126,14 +1036,13 @@ void Model::renderMeshes(float alpha, bool translucent) {
             
             activeProgram->disableAttributeArray(tangentLocation);
         }
-        
-        if (state.worldSpaceVertices.isEmpty()) {
-            if (state.clusterMatrices.size() > 1) {
-                skinProgram->disableAttributeArray(skinLocations->clusterIndices);
-                skinProgram->disableAttributeArray(skinLocations->clusterWeights);  
-            } 
-            glPopMatrix();
-        }
+                
+        if (state.clusterMatrices.size() > 1) {
+            skinProgram->disableAttributeArray(skinLocations->clusterIndices);
+            skinProgram->disableAttributeArray(skinLocations->clusterWeights);  
+        } 
+        glPopMatrix();
+
         activeProgram->release();
     }
 }
