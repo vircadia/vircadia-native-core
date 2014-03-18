@@ -31,6 +31,7 @@ REGISTER_SIMPLE_TYPE_STREAMER(QString)
 REGISTER_SIMPLE_TYPE_STREAMER(QUrl)
 REGISTER_SIMPLE_TYPE_STREAMER(QVariantList)
 REGISTER_SIMPLE_TYPE_STREAMER(QVariantHash)
+REGISTER_SIMPLE_TYPE_STREAMER(SharedObjectPointer)
 
 // some types don't quite work with our macro
 static int vec3Streamer = Bitstream::registerTypeStreamer(qMetaTypeId<glm::vec3>(), new SimpleTypeStreamer<glm::vec3>());
@@ -630,29 +631,31 @@ Bitstream& Bitstream::operator>(TypeReader& reader) {
     // for hash metadata, check the names/types of the fields as well as the name hash against our own class
     if (_metadataType == HASH_METADATA) {
         QCryptographicHash hash(QCryptographicHash::Md5);
+        bool matches = true;
         if (streamer) {
             const QVector<MetaField>& localFields = streamer->getMetaFields();
             if (fieldCount != localFields.size()) {
-                reader = TypeReader(typeName, streamer, false, fields);
-                return *this;
-            }
-            if (fieldCount == 0) {
-                reader = TypeReader(typeName, streamer);
-                return *this;
-            }
-            for (int i = 0; i < fieldCount; i++) {
-                const MetaField& localField = localFields.at(i);
-                if (!fields.at(i).getReader().matchesExactly(localField.getStreamer())) {
-                    reader = TypeReader(typeName, streamer, false, fields);
+                matches = false;
+                
+            } else {
+                if (fieldCount == 0) {
+                    reader = TypeReader(typeName, streamer);
                     return *this;
                 }
-                hash.addData(localField.getName().constData(), localField.getName().size() + 1);
+                for (int i = 0; i < fieldCount; i++) {
+                    const MetaField& localField = localFields.at(i);
+                    if (!fields.at(i).getReader().matchesExactly(localField.getStreamer())) {
+                        matches = false;
+                        break;
+                    }
+                    hash.addData(localField.getName().constData(), localField.getName().size() + 1);
+                }   
             }
         }
         QByteArray localHashResult = hash.result();
         QByteArray remoteHashResult(localHashResult.size(), 0);
         read(remoteHashResult.data(), remoteHashResult.size() * BITS_IN_BYTE);
-        if (streamer && localHashResult == remoteHashResult) {
+        if (streamer && matches && localHashResult == remoteHashResult) {
             // since everything is the same, we can use the default streamer
             reader = TypeReader(typeName, streamer);
             return *this;

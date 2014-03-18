@@ -48,6 +48,15 @@ static QByteArray createRandomBytes() {
     return createRandomBytes(MIN_BYTES, MAX_BYTES);
 }
 
+static TestMessageC createRandomMessageC() {
+    TestMessageC message;
+    message.foo = randomBoolean();
+    message.bar = rand();
+    message.baz = randFloat();
+    message.bong.foo = createRandomBytes();
+    return message;
+}
+
 static bool testSerialization(Bitstream::MetadataType metadataType) {
     QByteArray array;
     QDataStream outStream(&array, QIODevice::WriteOnly);
@@ -56,6 +65,8 @@ static bool testSerialization(Bitstream::MetadataType metadataType) {
     out << testObjectWrittenA;
     SharedObjectPointer testObjectWrittenB = new TestSharedObjectB(randFloat(), createRandomBytes());
     out << testObjectWrittenB;
+    TestMessageC messageWritten = createRandomMessageC();
+    out << QVariant::fromValue(messageWritten);
     QByteArray endWritten = "end";
     out << endWritten;
     out.flush();
@@ -64,8 +75,9 @@ static bool testSerialization(Bitstream::MetadataType metadataType) {
     Bitstream in(inStream, metadataType);
     in.addMetaObjectSubstitution("TestSharedObjectA", &TestSharedObjectB::staticMetaObject);
     in.addMetaObjectSubstitution("TestSharedObjectB", &TestSharedObjectA::staticMetaObject);
-    SharedObjectPointer testObjectReadA, testObjectReadB;
-    in >> testObjectReadA >> testObjectReadB;
+    in.addTypeSubstitution("TestMessageC", TestMessageA::Type);
+    SharedObjectPointer testObjectReadA;
+    in >> testObjectReadA;
     
     if (!testObjectReadA || testObjectReadA->metaObject() != &TestSharedObjectB::staticMetaObject) {
         qDebug() << "Wrong class for A" << testObjectReadA << metadataType;
@@ -76,8 +88,11 @@ static bool testSerialization(Bitstream::MetadataType metadataType) {
         QDebug debug = qDebug() << "Failed to transfer shared field from A to B";
         testObjectWrittenA->dump(debug);
         testObjectReadA->dump(debug); 
+        return true;
     }
     
+    SharedObjectPointer testObjectReadB;
+    in >> testObjectReadB;
     if (!testObjectReadB || testObjectReadB->metaObject() != &TestSharedObjectA::staticMetaObject) {
         qDebug() << "Wrong class for B" << testObjectReadB << metadataType;
         return true;
@@ -87,6 +102,19 @@ static bool testSerialization(Bitstream::MetadataType metadataType) {
         QDebug debug = qDebug() << "Failed to transfer shared field from B to A";
         testObjectWrittenB->dump(debug);
         testObjectReadB->dump(debug); 
+        return true;
+    }
+    
+    QVariant messageRead;
+    in >> messageRead;
+    if (!messageRead.isValid() || messageRead.userType() != TestMessageA::Type) {
+        qDebug() << "Wrong type for message" << messageRead;
+        return true;
+    }
+    if (metadataType == Bitstream::FULL_METADATA && messageWritten.foo != messageRead.value<TestMessageA>().foo) {
+        QDebug debug = qDebug() << "Failed to transfer shared field between messages" <<
+            messageWritten.foo << messageRead.value<TestMessageA>().foo;
+        return true;
     }
     
     QByteArray endRead;
@@ -192,12 +220,7 @@ static QVariant createRandomMessage() {
         }
         case 2:
         default: {
-            TestMessageC message;
-            message.foo = randomBoolean();
-            message.bar = rand();
-            message.baz = randFloat();
-            message.bong.foo = createRandomBytes();
-            return QVariant::fromValue(message);
+            return QVariant::fromValue(createRandomMessageC());
         }
     }
 }

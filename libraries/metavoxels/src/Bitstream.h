@@ -589,7 +589,7 @@ public:
 
 /// Macro for registering simple type streamers.
 #define REGISTER_SIMPLE_TYPE_STREAMER(x) static int x##Streamer = \
-    Bitstream::registerTypeStreamer(QMetaType::type(#x), new SimpleTypeStreamer<x>());
+    Bitstream::registerTypeStreamer(qMetaTypeId<x>(), new SimpleTypeStreamer<x>());
 
 /// Declares the metatype and the streaming operators.  The last lines
 /// ensure that the generated file will be included in the link phase. 
