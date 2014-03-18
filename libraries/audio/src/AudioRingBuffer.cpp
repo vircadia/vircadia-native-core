@@ -157,16 +157,18 @@ unsigned int AudioRingBuffer::samplesAvailable() const {
 }
 
 void AudioRingBuffer::addSilentFrame(int numSilentSamples) {
-    // setup the silent frame
-    int numSilentBytes = numSilentSamples * sizeof(int16_t);
-    char* silentFrame = new char[numSilentBytes];
-    memset(silentFrame, 0, numSilentBytes);
-    
-    // write it
-    writeData(silentFrame, numSilentBytes);
-    
-    // delete the temporary silent frame
-    delete[] silentFrame;
+    // memset zeroes into the buffer, accomodate a wrap around the end
+    // push the _endOfLastWrite to the correct spot
+    if (_endOfLastWrite + numSilentSamples <= _buffer + _sampleCapacity) {
+        memset(_endOfLastWrite, 0, numSilentSamples * sizeof(int16_t));
+        _endOfLastWrite += numSilentSamples;
+    } else {
+        int numSamplesToEnd = (_buffer + _sampleCapacity) - _endOfLastWrite;
+        memset(_endOfLastWrite, 0, numSilentSamples * sizeof(int16_t));
+        memset(_buffer, 0, (numSilentSamples - numSamplesToEnd) * sizeof(int16_t));
+        
+        _endOfLastWrite = _buffer + (numSilentSamples - numSamplesToEnd);
+    }
 }
 
 bool AudioRingBuffer::isNotStarvedOrHasMinimumSamples(unsigned int numRequiredSamples) const {
