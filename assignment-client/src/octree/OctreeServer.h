@@ -98,6 +98,8 @@ public:
     static float getAveragePacketSendingTime() { return _averagePacketSendingTime.getAverage(); }
 
     bool handleHTTPRequest(HTTPConnection* connection, const QString& path);
+
+    virtual void aboutToFinish();
     
 public slots:
     /// runs the voxel server assignment
@@ -134,6 +136,7 @@ protected:
 
     time_t _started;
     quint64 _startedUSecs;
+    QString _safeServerName;
     
     static int _clientCount;
     static SimpleMovingAverage _averageLoopTime;

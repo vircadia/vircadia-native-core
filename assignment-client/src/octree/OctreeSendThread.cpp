@@ -23,12 +23,23 @@ OctreeSendThread::OctreeSendThread(const QUuid& nodeUUID, OctreeServer* myServer
     _packetData(),
     _nodeMissingCount(0)
 {
-    qDebug() << "client connected - starting sending thread";
+    QString safeServerName("Octree");
+    if (_myServer) {
+        safeServerName = _myServer->getMyServerName();
+    }
+    qDebug() << qPrintable(safeServerName)  << "server [" << _myServer << "]: client connected "
+                                            "- starting sending thread [" << this << "]";
+
     OctreeServer::clientConnected();
 }
 
 OctreeSendThread::~OctreeSendThread() { 
-    qDebug() << "client disconnected - ending sending thread";
+    QString safeServerName("Octree");
+    if (_myServer) {
+        safeServerName = _myServer->getMyServerName();
+    }
+    qDebug() << qPrintable(safeServerName)  << "server [" << _myServer << "]: client disconnected "
+                                            "- ending sending thread [" << this << "]";
     OctreeServer::clientDisconnected(); 
 }
 

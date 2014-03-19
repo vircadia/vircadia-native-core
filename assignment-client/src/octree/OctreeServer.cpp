@@ -195,9 +195,11 @@ OctreeServer::OctreeServer(const QByteArray& packet) :
 {
     _instance = this;
     _averageLoopTime.updateAverage(0);
+    qDebug() << "Octree server starting... [" << this << "]";
 }
 
 OctreeServer::~OctreeServer() {
+    qDebug() << qPrintable(_safeServerName) << "server shutting down... [" << this << "]";
     if (_parsedArgV) {
         for (int i = 0; i < _argc; i++) {
             delete[] _parsedArgV[i];
@@ -222,7 +224,7 @@ OctreeServer::~OctreeServer() {
 
     delete _jurisdiction;
     _jurisdiction = NULL;
-    qDebug() << "OctreeServer::~OctreeServer()... DONE";
+    qDebug() << qPrintable(_safeServerName) << "server DONE shutting down... [" << this << "]";
 }
 
 void OctreeServer::initHTTPManager(int port) {
@@ -808,6 +810,7 @@ void OctreeServer::readPendingDatagrams() {
 }
 
 void OctreeServer::run() {
+    _safeServerName = getMyServerName();
     // Before we do anything else, create our tree...
     _tree = createTree();
 
@@ -862,6 +865,7 @@ void OctreeServer::run() {
 
     connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)),SLOT(nodeKilled(SharedNodePointer)));
+
 
     // we need to ask the DS about agents so we can ping/reply with them
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
@@ -984,13 +988,26 @@ void OctreeServer::run() {
 
 void OctreeServer::nodeAdded(SharedNodePointer node) {
     // we might choose to use this notifier to track clients in a pending state
-    qDebug() << "OctreeServer::nodeAdded() node:" << *node;
+    qDebug() << qPrintable(_safeServerName) << "server added node:" << *node;
 }
 
 void OctreeServer::nodeKilled(SharedNodePointer node) {
+    qDebug() << qPrintable(_safeServerName) << "server killed node:" << *node;
     OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(node->getLinkedData());
     if (nodeData) {
-        nodeData->scheduleForDelete();
+        qDebug() << qPrintable(_safeServerName) << "server resetting Linked Data for node:" << *node;
+        node->setLinkedData(NULL); // set this first in case another thread comes through and tryes to acces this
+        qDebug() << qPrintable(_safeServerName) << "server deleting Linked Data for node:" << *node;
+        delete nodeData;
     }
+}
+
+void OctreeServer::aboutToFinish() {
+    qDebug() << qPrintable(_safeServerName) << "server STARTING about to finish...";
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+        qDebug() << qPrintable(_safeServerName) << "server about to finish while node still connected node:" << *node;
+        nodeKilled(node);
+    }
+    qDebug() << qPrintable(_safeServerName) << "server ENDING about to finish...";
 }
 
