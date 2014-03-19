@@ -1183,13 +1183,6 @@ float OctreeElement::getEnclosingRadius() const {
     return getScale() * sqrtf(3.0f) / 2.0f;
 }
 
-bool OctreeElement::isInView(const ViewFrustum& viewFrustum) const {
-    AABox box = _box; // use temporary box so we can scale it
-    box.scale(TREE_SCALE);
-    bool inView = (ViewFrustum::OUTSIDE != viewFrustum.boxInFrustum(box));
-    return inView;
-}
-
 ViewFrustum::location OctreeElement::inFrustum(const ViewFrustum& viewFrustum) const {
     AABox box = _box; // use temporary box so we can scale it
     box.scale(TREE_SCALE);

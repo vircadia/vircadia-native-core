@@ -112,9 +112,7 @@ public:
     int getLevel() const { return numberOfThreeBitSectionsInCode(getOctalCode()) + 1; }
     
     float getEnclosingRadius() const;
-
-
-    bool isInView(const ViewFrustum& viewFrustum) const; 
+    bool isInView(const ViewFrustum& viewFrustum) const { return inFrustum(viewFrustum) != ViewFrustum::OUTSIDE; }
     ViewFrustum::location inFrustum(const ViewFrustum& viewFrustum) const;
     float distanceToCamera(const ViewFrustum& viewFrustum) const; 
     float furthestDistanceToCamera(const ViewFrustum& viewFrustum) const;
