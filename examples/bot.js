@@ -28,7 +28,9 @@ var CHANCE_OF_HEAD_TURNING = 0.05;
 var CHANCE_OF_BIG_MOVE = 0.1;
 var CHANCE_OF_WAVING = 0.000;     //  Currently this isn't working
 
-var shouldReceiveVoxels = false; 
+var shouldReceiveVoxels = true; 
+var VOXEL_FPS = 60.0;
+var lastVoxelQueryTime = 0.0;
 
 var isMoving = false;
 var isTurningHead = false;
@@ -129,6 +131,17 @@ function stopWaving() {
 function updateBehavior(deltaTime) {
   
   cumulativeTime += deltaTime;
+
+  if (shouldReceiveVoxels && ((cumulativeTime - lastVoxelQueryTime) > (1.0 / VOXEL_FPS))) {
+    VoxelViewer.setPosition(Avatar.position);
+    VoxelViewer.setOrientation(Avatar.orientation);
+    VoxelViewer.queryOctree();
+    lastVoxelQueryTime = cumulativeTime;
+    /*
+    if (Math.random() < (1.0 / VOXEL_FPS)) {
+      print("Voxels in view = " + VoxelViewer.getOctreeElementsCount());
+    }*/
+  }
 
   if (!isWaving && (Math.random() < CHANCE_OF_WAVING)) {
     isWaving = true;
