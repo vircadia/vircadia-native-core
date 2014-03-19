@@ -56,10 +56,11 @@ public:
     
     void setAvatarData(AvatarData* avatarData, const QString& objectName);
     
-    void setAvatarAudioBuffer(int16_t* avatarAudioBuffer) { _avatarAudioBuffer = avatarAudioBuffer; }
-    bool sendsAvatarAudioStream() const { return (bool) _avatarAudioBuffer; }
-    void setNumAvatarAudioBufferSamples(int numAvatarAudioBufferSamples)
-        { _numAvatarAudioBufferSamples = numAvatarAudioBufferSamples; }
+    bool isListeningToAudioStream() const { return _isListeningToAudioStream; }
+    void setIsListeningToAudioStream(bool isListeningToAudioStream) { _isListeningToAudioStream = isListeningToAudioStream; }
+    
+    void setAvatarSound(Sound* avatarSound) { _avatarSound = avatarSound; }
+    bool isPlayingAvatarSound() const { return _avatarSound != NULL; }
     
     void init();
     void run(); /// runs continuously until Agent.stop() is called
@@ -91,8 +92,9 @@ protected:
     QTimer* _avatarIdentityTimer;
     QTimer* _avatarBillboardTimer;
     QHash<QTimer*, QScriptValue> _timerFunctionMap;
-    int16_t* _avatarAudioBuffer;
-    int _numAvatarAudioBufferSamples;
+    bool _isListeningToAudioStream;
+    Sound* _avatarSound;
+    int _numAvatarSoundSentBytes;
 
 private:
     void sendAvatarIdentityPacket();

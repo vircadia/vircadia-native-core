@@ -26,38 +26,13 @@
 Agent::Agent(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _voxelEditSender(),
-    _particleEditSender(),
-    _avatarAudioStream(NULL)
+    _particleEditSender()
 {
     // be the parent of the script engine so it gets moved when we do
     _scriptEngine.setParent(this);
     
     _scriptEngine.getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
     _scriptEngine.getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
-}
-
-Agent::~Agent() {
-    delete _avatarAudioStream;
-}
-
-const int SCRIPT_AUDIO_BUFFER_SAMPLES = floor(((SCRIPT_DATA_CALLBACK_USECS * SAMPLE_RATE) / (1000 * 1000)) + 0.5);
-
-void Agent::setSendAvatarAudioStream(bool sendAvatarAudioStream) {
-    if (sendAvatarAudioStream) {
-        // the agentAudioStream number of samples is related to the ScriptEngine callback rate
-        _avatarAudioStream = new int16_t[SCRIPT_AUDIO_BUFFER_SAMPLES];
-        
-        // fill the _audioStream with zeroes to start
-        memset(_avatarAudioStream, 0, SCRIPT_AUDIO_BUFFER_SAMPLES * sizeof(int16_t));
-        
-        _scriptEngine.setNumAvatarAudioBufferSamples(SCRIPT_AUDIO_BUFFER_SAMPLES);
-        _scriptEngine.setAvatarAudioBuffer(_avatarAudioStream);
-    } else {
-        delete _avatarAudioStream;
-        _avatarAudioStream = NULL;
-        
-        _scriptEngine.setAvatarAudioBuffer(NULL);
-    }
 }
 
 void Agent::readPendingDatagrams() {
