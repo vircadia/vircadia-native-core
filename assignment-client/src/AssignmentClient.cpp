@@ -200,13 +200,13 @@ void AssignmentClient::assignmentCompleted() {
     qDebug("Assignment finished or never started - waiting for new assignment.");
     
     NodeList* nodeList = NodeList::getInstance();
-    
+
     // have us handle incoming NodeList datagrams again
     disconnect(&nodeList->getNodeSocket(), 0, _currentAssignment, 0);
     connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClient::readPendingDatagrams);
     
     _currentAssignment = NULL;
-    
+
     // reset our NodeList by switching back to unassigned and clearing the list
     nodeList->setOwnerType(NodeType::Unassigned);
     nodeList->reset();

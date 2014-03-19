@@ -35,7 +35,8 @@ OctreeQueryNode::OctreeQueryNode() :
     _lastClientOctreeSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _lodChanged(false),
     _lodInitialized(false),
-    _sequenceNumber(0)
+    _sequenceNumber(0),
+    _lastRootTimestamp(0)
 {
 }
 
