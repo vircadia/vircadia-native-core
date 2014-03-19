@@ -176,8 +176,8 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         _handData = new HandData(this);
     }
     
-    const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(packet.data());
-    const unsigned char* sourceBuffer = startPosition + offset;
+    const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(packet.data()) + offset;
+    const unsigned char* sourceBuffer = startPosition;
     
     // Body world position
     memcpy(&_position, sourceBuffer, sizeof(float) * 3);
