@@ -54,6 +54,15 @@ QStringList FBXGeometry::getJointNames() const {
     return names;
 }
 
+bool FBXGeometry::hasBlendedMeshes() const {
+    foreach (const FBXMesh& mesh, meshes) {
+        if (!mesh.blendshapes.isEmpty()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
 
 template<class T> QVariant readBinaryArray(QDataStream& in) {

@@ -610,7 +610,9 @@ void Model::simulate(float deltaTime, bool fullUpdate, const QVector<JointState>
     }
     
     // post the blender
-    QThreadPool::globalInstance()->start(new Blender(this, _geometry, geometry.meshes, _blendshapeCoefficients));
+    if (geometry.hasBlendedMeshes()) {
+        QThreadPool::globalInstance()->start(new Blender(this, _geometry, geometry.meshes, _blendshapeCoefficients));
+    }
 }
 
 void Model::updateJointState(int index) {
