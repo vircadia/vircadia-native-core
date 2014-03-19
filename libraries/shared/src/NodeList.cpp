@@ -91,6 +91,8 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
         qDebug() << "Packet version mismatch on" << packetTypeForPacket(packet) << "- Sender"
             << uuidFromPacketHeader(packet) << "sent" << qPrintable(QString::number(packet[numPacketTypeBytes])) << "but"
             << qPrintable(QString::number(versionForPacketType(mismatchType))) << "expected.";
+        
+        return false;
     }
     
     const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
