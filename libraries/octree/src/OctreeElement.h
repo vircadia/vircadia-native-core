@@ -112,9 +112,7 @@ public:
     int getLevel() const { return numberOfThreeBitSectionsInCode(getOctalCode()) + 1; }
     
     float getEnclosingRadius() const;
-
-
-    bool isInView(const ViewFrustum& viewFrustum) const; 
+    bool isInView(const ViewFrustum& viewFrustum) const { return inFrustum(viewFrustum) != ViewFrustum::OUTSIDE; }
     ViewFrustum::location inFrustum(const ViewFrustum& viewFrustum) const;
     float distanceToCamera(const ViewFrustum& viewFrustum) const; 
     float furthestDistanceToCamera(const ViewFrustum& viewFrustum) const;
@@ -126,7 +124,7 @@ public:
     float distanceSquareToPoint(const glm::vec3& point) const; // when you don't need the actual distance, use this.
     float distanceToPoint(const glm::vec3& point) const;
 
-    bool isLeaf() const { return getChildCount() == 0; }
+    bool isLeaf() const { return _childBitmask == 0; }
     int getChildCount() const { return numberOfOnes(_childBitmask); }
     void printDebugDetails(const char* label) const;
     bool isDirty() const { return _isDirty; }
