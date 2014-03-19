@@ -26,10 +26,16 @@ var CHANCE_OF_MOVING = 0.005;
 var CHANCE_OF_SOUND = 0.005;
 var CHANCE_OF_HEAD_TURNING = 0.05;
 var CHANCE_OF_BIG_MOVE = 0.1;
+var CHANCE_OF_WAVING = 0.000;     //  Currently this isn't working
+
+var shouldReceiveVoxels = false; 
 
 var isMoving = false;
 var isTurningHead = false;
 var isPlayingAudio = false; 
+var isWaving = false;
+var waveFrequency = 0.0;
+var waveAmplitude = 0.0; 
 
 var X_MIN = 0.0;
 var X_MAX = 5.0;
@@ -51,6 +57,8 @@ var targetPosition =  { x: 0, y: 0, z: 0 };
 var targetDirection = { x: 0, y: 0, z: 0, w: 0 };
 var currentDirection = { x: 0, y: 0, z: 0, w: 0 };
 var targetHeadPitch = 0.0;
+
+var cumulativeTime = 0.0;
 
 var sounds = [];
 loadSounds();
@@ -105,11 +113,32 @@ Avatar.billboardURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/me
 
 Agent.isAvatar = true;
 
+print("Joint List:");
+var jointList = Avatar.getJointNames(); 
+print(jointList);
+
 // change the avatar's position to the random one
 Avatar.position = firstPosition;  
 printVector("New bot, position = ", Avatar.position);
 
+function stopWaving() {
+  isWaving = false; 
+  Avatar.clearJointData("joint_L_shoulder");
+}
+
 function updateBehavior(deltaTime) {
+  
+  cumulativeTime += deltaTime;
+
+  if (!isWaving && (Math.random() < CHANCE_OF_WAVING)) {
+    isWaving = true;
+    waveFrequency = 1.0 + Math.random() * 5.0;
+    waveAmplitude = 5.0 + Math.random() * 60.0;
+    Script.setTimeout(stopWaving, 1000 + Math.random() * 2000);
+  } else if (isWaving) {
+    Avatar.setJointData("joint_L_shoulder", Quat.fromPitchYawRollDegrees(0.0, 0.0,  waveAmplitude * Math.sin(cumulativeTime * waveFrequency)));
+  }
+
   if (Math.random() < CHANCE_OF_SOUND) {
     playRandomSound(Avatar.position);
   }

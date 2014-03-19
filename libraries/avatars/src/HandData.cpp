@@ -8,10 +8,11 @@
 
 #include <QtCore/QDataStream>
 
-#include "HandData.h"
-#include "AvatarData.h"
-#include <SharedUtil.h>
 #include <GeometryUtil.h>
+#include <SharedUtil.h>
+
+#include "AvatarData.h"
+#include "HandData.h"
 
 
 HandData::HandData(AvatarData* owningAvatar) :
