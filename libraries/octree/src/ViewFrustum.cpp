@@ -25,6 +25,7 @@ using namespace std;
 
 ViewFrustum::ViewFrustum() :
     _position(0,0,0),
+    _positionVoxelScale(0,0,0),
     _orientation(),
     _direction(IDENTITY_FRONT),
     _up(IDENTITY_UP),
@@ -724,3 +725,31 @@ void ViewFrustum::getFurthestPointFromCamera(const AABox& box, glm::vec3& furthe
         furthestPoint.z = bottomNearRight.z;
     }
 }
+
+void ViewFrustum::getFurthestPointFromCameraVoxelScale(const AABox& box, glm::vec3& furthestPoint) const {
+    const glm::vec3& bottomNearRight = box.getCorner();
+    float scale = box.getScale();
+    float halfScale = scale * 0.5f;
+
+    if (_positionVoxelScale.x < bottomNearRight.x + halfScale) {
+        // we are to the right of the center, so the left edge is furthest
+        furthestPoint.x = bottomNearRight.x + scale;
+    } else {
+        furthestPoint.x = bottomNearRight.x;
+    }
+
+    if (_positionVoxelScale.y < bottomNearRight.y + halfScale) {
+        // we are below of the center, so the top edge is furthest
+        furthestPoint.y = bottomNearRight.y + scale;
+    } else {
+        furthestPoint.y = bottomNearRight.y;
+    }
+
+    if (_positionVoxelScale.z < bottomNearRight.z + halfScale) {
+        // we are to the near side of the center, so the far side edge is furthest
+        furthestPoint.z = bottomNearRight.z + scale;
+    } else {
+        furthestPoint.z = bottomNearRight.z;
+    }
+}
+

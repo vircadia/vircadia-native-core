@@ -1219,14 +1219,13 @@ bool OctreeElement::calculateShouldRender(const ViewFrustum* viewFrustum, float 
 }
 
 // Calculates the distance to the furthest point of the voxel to the camera
+// does as much math as possible in voxel scale and then scales up to TREE_SCALE at end
 float OctreeElement::furthestDistanceToCamera(const ViewFrustum& viewFrustum) const {
-    AABox box = getAABox();
-    box.scale(TREE_SCALE);
     glm::vec3 furthestPoint;
-    viewFrustum.getFurthestPointFromCamera(box, furthestPoint);
-    glm::vec3 temp = viewFrustum.getPosition() - furthestPoint;
+    viewFrustum.getFurthestPointFromCameraVoxelScale(getAABox(), furthestPoint);
+    glm::vec3 temp = viewFrustum.getPositionVoxelScale() - furthestPoint;
     float distanceToFurthestPoint = sqrtf(glm::dot(temp, temp));
-    return distanceToFurthestPoint;
+    return distanceToFurthestPoint * (float)TREE_SCALE;
 }
 
 float OctreeElement::distanceToCamera(const ViewFrustum& viewFrustum) const {

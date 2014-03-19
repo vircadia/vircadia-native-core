@@ -29,11 +29,12 @@ const float DEFAULT_FAR_CLIP = 50.0f * TREE_SCALE;
 class ViewFrustum {
 public:
     // setters for camera attributes
-    void setPosition(const glm::vec3& p) { _position = p; }
+    void setPosition(const glm::vec3& p) { _position = p; _positionVoxelScale = (p / (float)TREE_SCALE); }
     void setOrientation(const glm::quat& orientationAsQuaternion);
 
     // getters for camera attributes
     const glm::vec3& getPosition() const { return _position; }
+    const glm::vec3& getPositionVoxelScale() const { return _positionVoxelScale; }
     const glm::quat& getOrientation() const { return _orientation; }
     const glm::vec3& getDirection() const { return _direction; }
     const glm::vec3& getUp() const { return _up; }
@@ -102,8 +103,10 @@ public:
 
     glm::vec2 projectPoint(glm::vec3 point, bool& pointInView) const;
     OctreeProjectedPolygon getProjectedPolygon(const AABox& box) const;
-    //glm::vec3 getFurthestPointFromCamera(const AABox& box) const;
     void getFurthestPointFromCamera(const AABox& box, glm::vec3& furthestPoint) const;
+    
+    // assumes box is in voxel scale, not TREE_SCALE, will scale view frustum's position accordingly
+    void getFurthestPointFromCameraVoxelScale(const AABox& box, glm::vec3& furthestPoint) const;
     
 private:
     // Used for keyhole calculations
@@ -112,7 +115,8 @@ private:
     ViewFrustum::location boxInKeyhole(const AABox& box) const;
 
     // camera location/orientation attributes
-    glm::vec3   _position;
+    glm::vec3   _position; // the position in TREE_SCALE
+    glm::vec3   _positionVoxelScale; // the position in voxel scale
     glm::quat   _orientation;
 
     // calculated for orientation
