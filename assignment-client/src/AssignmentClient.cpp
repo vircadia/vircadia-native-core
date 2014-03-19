@@ -194,8 +194,6 @@ void AssignmentClient::handleAuthenticationRequest() {
 }
 
 void AssignmentClient::assignmentCompleted() {
-qDebug() << "START AssignmentClient::assignmentCompleted()... this=" << this << "_currentAssignment=" << _currentAssignment;
-
     // reset the logging target to the the CHILD_TARGET_NAME
     Logging::setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
     
@@ -203,15 +201,14 @@ qDebug() << "START AssignmentClient::assignmentCompleted()... this=" << this << 
     
     NodeList* nodeList = NodeList::getInstance();
 
-    // reset our NodeList by switching back to unassigned and clearing the list
-    nodeList->reset();
-    nodeList->setOwnerType(NodeType::Unassigned);
-    nodeList->resetNodeInterestSet();
-    
     // have us handle incoming NodeList datagrams again
     disconnect(&nodeList->getNodeSocket(), 0, _currentAssignment, 0);
     connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClient::readPendingDatagrams);
     
-qDebug() << "DONE AssignmentClient::assignmentCompleted()... this=" << this << "_currentAssignment was=" << _currentAssignment;
     _currentAssignment = NULL;
+
+    // reset our NodeList by switching back to unassigned and clearing the list
+    nodeList->setOwnerType(NodeType::Unassigned);
+    nodeList->reset();
+    nodeList->resetNodeInterestSet();
 }
