@@ -36,7 +36,6 @@ OctreeQueryNode::OctreeQueryNode() :
     _lodChanged(false),
     _lodInitialized(false),
     _sequenceNumber(0),
-    _scheduleForDelete(false),
     _lastRootTimestamp(0)
 {
 }

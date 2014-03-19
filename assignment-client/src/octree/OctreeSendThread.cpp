@@ -69,10 +69,6 @@ bool OctreeSendThread::process() {
                 bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
                 packetDistributor(node, nodeData, viewFrustumChanged);
             }
-            if (nodeData->isScheduledForDelete()) {
-                nodeData->deleteLater();
-                node->setLinkedData(NULL);
-            }
         } else {
             _nodeMissingCount++;
         }

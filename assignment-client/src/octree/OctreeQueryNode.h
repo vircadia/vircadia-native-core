@@ -86,9 +86,6 @@ public:
     
     void dumpOutOfView();
     
-    bool isScheduledForDelete() const { return _scheduleForDelete; }
-    void scheduleForDelete() { _scheduleForDelete = true; }
-    
     quint64 getLastRootTimestamp() const { return _lastRootTimestamp; }
     void setLastRootTimestamp(quint64 timestamp) { _lastRootTimestamp = timestamp; }
     unsigned int getlastOctreePacketLength() const { return _lastOctreePacketLength; }
@@ -129,9 +126,6 @@ private:
     bool _lodInitialized;
     
     OCTREE_PACKET_SEQUENCE _sequenceNumber;
-    
-    bool _scheduleForDelete;
-
     quint64 _lastRootTimestamp;
 };
 
