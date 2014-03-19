@@ -714,7 +714,7 @@ void Menu::editPreferences() {
     QLineEdit headURLEdit(faceURLString);
     QPushButton headBrowseButton(BROWSE_BUTTON_TEXT);
     connect(&headBrowseButton, SIGNAL(clicked()), &headBrowser, SLOT(browse()));
-    connect(&headBrowser, SIGNAL(selected (QString)), &headURLEdit, SLOT(setText(QString)));
+    connect(&headBrowser, SIGNAL(selected(QString)), &headURLEdit, SLOT(setText(QString)));
     headURLEdit.setReadOnly(true);
     headURLEdit.setMinimumWidth(QLINE_MINIMUM_WIDTH);
     headURLEdit.setPlaceholderText(DEFAULT_HEAD_MODEL_URL.toString());
