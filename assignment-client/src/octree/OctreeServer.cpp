@@ -998,7 +998,7 @@ void OctreeServer::nodeKilled(SharedNodePointer node) {
         qDebug() << qPrintable(_safeServerName) << "server resetting Linked Data for node:" << *node;
         node->setLinkedData(NULL); // set this first in case another thread comes through and tryes to acces this
         qDebug() << qPrintable(_safeServerName) << "server deleting Linked Data for node:" << *node;
-        delete nodeData;
+        nodeData->deleteLater();
     }
 }
 
