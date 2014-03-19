@@ -29,6 +29,7 @@ void ThreadedAssignment::setFinished(bool isFinished) {
     _isFinished = isFinished;
 
     if (_isFinished) {
+        aboutToFinish();
         emit finished();
     }
 }

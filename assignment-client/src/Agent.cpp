@@ -95,12 +95,19 @@ void Agent::readPendingDatagrams() {
                 // also give our local particle tree a chance to remap any internal locally created particles
                 _particleViewer.getTree()->handleAddParticleResponse(receivedPacket);
 
+                // Make sure our Node and NodeList knows we've heard from this node.
+                SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
+                sourceNode->setLastHeardMicrostamp(usecTimestampNow());
+
             } else if (datagramPacketType == PacketTypeParticleData
                         || datagramPacketType == PacketTypeParticleErase
                         || datagramPacketType == PacketTypeOctreeStats
                         || datagramPacketType == PacketTypeVoxelData
             ) {
+                // Make sure our Node and NodeList knows we've heard from this node.
                 SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
+                sourceNode->setLastHeardMicrostamp(usecTimestampNow());
+
                 QByteArray mutablePacket = receivedPacket;
                 ssize_t messageLength = mutablePacket.size();
 

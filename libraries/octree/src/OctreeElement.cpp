@@ -1183,13 +1183,6 @@ float OctreeElement::getEnclosingRadius() const {
     return getScale() * sqrtf(3.0f) / 2.0f;
 }
 
-bool OctreeElement::isInView(const ViewFrustum& viewFrustum) const {
-    AABox box = _box; // use temporary box so we can scale it
-    box.scale(TREE_SCALE);
-    bool inView = (ViewFrustum::OUTSIDE != viewFrustum.boxInFrustum(box));
-    return inView;
-}
-
 ViewFrustum::location OctreeElement::inFrustum(const ViewFrustum& viewFrustum) const {
     AABox box = _box; // use temporary box so we can scale it
     box.scale(TREE_SCALE);
@@ -1209,23 +1202,27 @@ bool OctreeElement::calculateShouldRender(const ViewFrustum* viewFrustum, float 
     bool shouldRender = false;
     if (hasContent()) {
         float furthestDistance = furthestDistanceToCamera(*viewFrustum);
-        float boundary         = boundaryDistanceForRenderLevel(getLevel() + boundaryLevelAdjust, voxelScaleSize);
-        float childBoundary    = boundaryDistanceForRenderLevel(getLevel() + 1 + boundaryLevelAdjust, voxelScaleSize);
-        bool  inBoundary       = (furthestDistance <= boundary);
-        bool  inChildBoundary  = (furthestDistance <= childBoundary);
-        shouldRender = (isLeaf() && inChildBoundary) || (inBoundary && !inChildBoundary);
+        float childBoundary = boundaryDistanceForRenderLevel(getLevel() + 1 + boundaryLevelAdjust, voxelScaleSize);
+        bool inChildBoundary = (furthestDistance <= childBoundary);
+        if (isLeaf() && inChildBoundary) {
+            shouldRender = true;
+        } else {
+            float boundary = childBoundary * 2.0f; // the boundary is always twice the distance of the child boundary
+            bool inBoundary = (furthestDistance <= boundary);
+            shouldRender = inBoundary && !inChildBoundary;
+        }
     }
     return shouldRender;
 }
 
 // Calculates the distance to the furthest point of the voxel to the camera
+// does as much math as possible in voxel scale and then scales up to TREE_SCALE at end
 float OctreeElement::furthestDistanceToCamera(const ViewFrustum& viewFrustum) const {
-    AABox box = getAABox();
-    box.scale(TREE_SCALE);
-    glm::vec3 furthestPoint = viewFrustum.getFurthestPointFromCamera(box);
-    glm::vec3 temp = viewFrustum.getPosition() - furthestPoint;
-    float distanceToVoxelCenter = sqrtf(glm::dot(temp, temp));
-    return distanceToVoxelCenter;
+    glm::vec3 furthestPoint;
+    viewFrustum.getFurthestPointFromCameraVoxelScale(getAABox(), furthestPoint);
+    glm::vec3 temp = viewFrustum.getPositionVoxelScale() - furthestPoint;
+    float distanceToFurthestPoint = sqrtf(glm::dot(temp, temp));
+    return distanceToFurthestPoint * (float)TREE_SCALE;
 }
 
 float OctreeElement::distanceToCamera(const ViewFrustum& viewFrustum) const {
