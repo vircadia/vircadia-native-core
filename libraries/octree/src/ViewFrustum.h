@@ -102,8 +102,9 @@ public:
 
     glm::vec2 projectPoint(glm::vec3 point, bool& pointInView) const;
     OctreeProjectedPolygon getProjectedPolygon(const AABox& box) const;
-    glm::vec3 getFurthestPointFromCamera(const AABox& box) const;
-
+    //glm::vec3 getFurthestPointFromCamera(const AABox& box) const;
+    void getFurthestPointFromCamera(const AABox& box, glm::vec3& furthestPoint) const;
+    
 private:
     // Used for keyhole calculations
     ViewFrustum::location pointInKeyhole(const glm::vec3& point) const;

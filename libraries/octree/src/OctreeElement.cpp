@@ -1222,10 +1222,11 @@ bool OctreeElement::calculateShouldRender(const ViewFrustum* viewFrustum, float 
 float OctreeElement::furthestDistanceToCamera(const ViewFrustum& viewFrustum) const {
     AABox box = getAABox();
     box.scale(TREE_SCALE);
-    glm::vec3 furthestPoint = viewFrustum.getFurthestPointFromCamera(box);
+    glm::vec3 furthestPoint;
+    viewFrustum.getFurthestPointFromCamera(box, furthestPoint);
     glm::vec3 temp = viewFrustum.getPosition() - furthestPoint;
-    float distanceToVoxelCenter = sqrtf(glm::dot(temp, temp));
-    return distanceToVoxelCenter;
+    float distanceToFurthestPoint = sqrtf(glm::dot(temp, temp));
+    return distanceToFurthestPoint;
 }
 
 float OctreeElement::distanceToCamera(const ViewFrustum& viewFrustum) const {
