@@ -9,8 +9,6 @@
 #ifndef __hifi__ThreadedAssignment__
 #define __hifi__ThreadedAssignment__
 
-#include <QDebug>
-
 #include "Assignment.h"
 
 class ThreadedAssignment : public Assignment {
@@ -18,7 +16,6 @@ class ThreadedAssignment : public Assignment {
 public:
     ThreadedAssignment(const QByteArray& packet);
     void setFinished(bool isFinished);
-
     virtual void aboutToFinish() { };
 
 public slots:
@@ -29,7 +26,6 @@ public slots:
 
 protected:
     bool readAvailableDatagram(QByteArray& destinationByteArray, HifiSockAddr& senderSockAddr);
-    
     void commonInit(const QString& targetName, NodeType_t nodeType);
     bool _isFinished;
 private slots:
