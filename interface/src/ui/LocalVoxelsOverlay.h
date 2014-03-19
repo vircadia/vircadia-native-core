@@ -43,7 +43,7 @@ private:
     
     QString _treeName;
     StrongVoxelTreePointer _tree; // so that the tree doesn't get freed
-    int _voxelCount;
+    unsigned long _voxelCount;
     StrongVoxelSystemPointer _voxelSystem;
 };
 

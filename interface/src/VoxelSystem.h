@@ -67,7 +67,7 @@ public:
 
     ViewFrustum* getLastCulledViewFrustum() { return &_lastCulledViewFrustum; }
 
-    void setMaxVoxels(int maxVoxels);
+    void setMaxVoxels(unsigned long maxVoxels);
     long int getMaxVoxels() const { return _maxVoxels; }
     unsigned long getVoxelMemoryUsageRAM() const { return _memoryUsageRAM; }
     unsigned long getVoxelMemoryUsageVBO() const { return _memoryUsageVBO; }
@@ -263,7 +263,7 @@ private:
     bool _usePrimitiveRenderer;                 ///< Flag primitive renderer for use
     PrimitiveRenderer* _renderer;               ///< Voxel renderer
 
-    static const int _sNumOctantsPerHemiVoxel = 4;
+    static const unsigned int _sNumOctantsPerHemiVoxel = 4;
     static int _sCorrectedChildIndex[8];
     static unsigned short _sSwizzledOcclusionBits[64];          ///< Swizzle value of bit pairs of the value of index
     static unsigned char _sOctantIndexToBitMask[8];             ///< Map octant index to partition mask

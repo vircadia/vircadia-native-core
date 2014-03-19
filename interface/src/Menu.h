@@ -277,7 +277,6 @@ namespace MenuOption {
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
     const QString TurnWithHead = "Turn using Head";
-    const QString ClickToFly = "Fly to voxel on click";
     const QString LoadScript = "Open and Run Script...";
     const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";

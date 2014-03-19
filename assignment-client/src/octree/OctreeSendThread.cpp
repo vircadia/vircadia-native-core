@@ -54,15 +54,13 @@ bool OctreeSendThread::process() {
 
             nodeData = (OctreeQueryNode*) node->getLinkedData();
 
-            int packetsSent = 0;
-
             // Sometimes the node data has not yet been linked, in which case we can't really do anything
             if (nodeData) {
                 bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
                 if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
                     printf("nodeData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
                 }
-                packetsSent = packetDistributor(node, nodeData, viewFrustumChanged);
+                packetDistributor(node, nodeData, viewFrustumChanged);
             }
         } else {
             _nodeMissingCount++;
@@ -143,9 +141,10 @@ int OctreeSendThread::handlePacketSend(const SharedNodePointer& node, OctreeQuer
         // Send the stats message to the client
         unsigned char* statsMessage = nodeData->stats.getStatsMessage();
         int statsMessageLength = nodeData->stats.getStatsMessageLength();
+        int piggyBackSize = nodeData->getPacketLength() + statsMessageLength;
 
         // If the size of the stats message and the voxel message will fit in a packet, then piggyback them
-        if (nodeData->getPacketLength() + statsMessageLength < MAX_PACKET_SIZE) {
+        if (piggyBackSize < MAX_PACKET_SIZE) {
 
             // copy voxel message to back of stats message
             memcpy(statsMessage + statsMessageLength, nodeData->getPacket(), nodeData->getPacketLength());
@@ -494,7 +493,7 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
                     // if for some reason the finalized size is greater than our available size, then probably the "compressed"
                     // form actually inflated beyond our padding, and in this case we will send the current packet, then
                     // write to out new packet...
-                    int writtenSize = _packetData.getFinalizedSize()
+                    unsigned int writtenSize = _packetData.getFinalizedSize()
                             + (nodeData->getCurrentPacketIsCompressed() ? sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE) : 0);
 
 
@@ -508,7 +507,7 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
                     }
 
                     if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
-                        qDebug(">>>>>> calling writeToPacket() available=%d compressedSize=%d uncompressedSize=%d target=%d",
+                        qDebug(">>>>>> calling writeToPacket() available=%d compressedSize=%d uncompressedSize=%d target=%u",
                                 nodeData->getAvailable(), _packetData.getFinalizedSize(),
                                 _packetData.getUncompressedSize(), _packetData.getTargetSize());
                     }

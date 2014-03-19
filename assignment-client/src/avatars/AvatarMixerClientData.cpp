@@ -9,8 +9,15 @@
 #include "AvatarMixerClientData.h"
 
 AvatarMixerClientData::AvatarMixerClientData() :
+    NodeData(),
     _hasSentIdentityBetweenKeyFrames(false),
     _hasSentBillboardBetweenKeyFrames(false)
 {
     
+}
+
+int AvatarMixerClientData::parseData(const QByteArray& packet) {
+    // compute the offset to the data payload
+    int offset = numBytesForPacketHeader(packet);
+    return _avatar.parseDataAtOffset(packet, offset);
 }

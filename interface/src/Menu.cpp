@@ -167,7 +167,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::Gravity, Qt::SHIFT | Qt::Key_G, false);
 
     
-    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ClickToFly);
+  
 
     addAvatarCollisionSubMenu(editMenu);
 

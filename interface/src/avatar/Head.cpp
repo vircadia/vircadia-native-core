@@ -90,8 +90,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         _saccade += (_saccadeTarget - _saccade) * 0.50f;
     
         const float AUDIO_AVERAGING_SECS = 0.05f;
-        _averageLoudness = (1.f - deltaTime / AUDIO_AVERAGING_SECS) * _averageLoudness +
-                                 (deltaTime / AUDIO_AVERAGING_SECS) * _audioLoudness;
+        _averageLoudness = glm::mix(_averageLoudness, _audioLoudness, glm::min(deltaTime / AUDIO_AVERAGING_SECS, 1.0f));
         
         //  Detect transition from talking to not; force blink after that and a delay
         bool forceBlink = false;
