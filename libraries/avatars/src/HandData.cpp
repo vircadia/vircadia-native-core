@@ -14,9 +14,6 @@
 #include <GeometryUtil.h>
 
 
-// When converting between fixed and float, use this as the radix.
-const int fingerVectorRadix = 4;
-
 HandData::HandData(AvatarData* owningAvatar) :
     _owningAvatarData(owningAvatar)
 {
