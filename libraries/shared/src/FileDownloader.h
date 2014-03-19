@@ -28,7 +28,7 @@ public:
     static QByteArray download(const QUrl dataURL, int timeout = 0);
     
 signals:
-    void done(QNetworkReply::NetworkError);
+    void done(QNetworkReply::NetworkError error);
     
 private slots:
     void processReply(QNetworkReply* reply);
