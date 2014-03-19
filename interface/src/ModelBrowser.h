@@ -27,24 +27,27 @@ class ModelBrowser : public QWidget {
     Q_OBJECT
     
 public:
-    ModelBrowser(QWidget* parent = NULL);
-    
-    QString browse(ModelType modelType);
+    ModelBrowser(ModelType modelType, QWidget* parent = NULL);
+    ~ModelBrowser();
     
 signals:
-    void selectedHead(QString);
-    void selectedSkeleton(QString);
+    void selected(QString);
     
 public slots:
-    void browseHead();
-    void browseSkeleton();
+    void browse();
+    
+private slots:
+    void downloadFinished();
     
 private:
-    FileDownloader _downloader;
+    ModelType _type;
+    FileDownloader* _downloader;
     QHash<QString, QString> _models;
     
-    bool parseXML(ModelType modelType);
+    bool parseXML(QByteArray xmlFile);
 };
+
+
 
 class ListView : public QListView {
     Q_OBJECT

@@ -694,7 +694,8 @@ void Menu::loginForCurrentDomain() {
 
 void Menu::editPreferences() {
     Application* applicationInstance = Application::getInstance();
-    ModelBrowser browser;
+    ModelBrowser headBrowser(Head);
+    ModelBrowser skeletonBrowser(Skeleton);
     
     const QString BROWSE_BUTTON_TEXT = "Browse";
 
@@ -712,8 +713,8 @@ void Menu::editPreferences() {
     QString faceURLString = applicationInstance->getAvatar()->getHead()->getFaceModel().getURL().toString();
     QLineEdit headURLEdit(faceURLString);
     QPushButton headBrowseButton(BROWSE_BUTTON_TEXT);
-    connect(&headBrowseButton, SIGNAL(clicked()), &browser, SLOT(browseHead()));
-    connect(&browser, SIGNAL(selectedHead(QString)), &headURLEdit, SLOT(setText(QString)));
+    connect(&headBrowseButton, SIGNAL(clicked()), &headBrowser, SLOT(browse()));
+    connect(&headBrowser, SIGNAL(selected (QString)), &headURLEdit, SLOT(setText(QString)));
     headURLEdit.setReadOnly(true);
     headURLEdit.setMinimumWidth(QLINE_MINIMUM_WIDTH);
     headURLEdit.setPlaceholderText(DEFAULT_HEAD_MODEL_URL.toString());
@@ -725,8 +726,8 @@ void Menu::editPreferences() {
     QString skeletonURLString = applicationInstance->getAvatar()->getSkeletonModel().getURL().toString();
     QLineEdit skeletonURLEdit(skeletonURLString);
     QPushButton SkeletonBrowseButton(BROWSE_BUTTON_TEXT);
-    connect(&SkeletonBrowseButton, SIGNAL(clicked()), &browser, SLOT(browseSkeleton()));
-    connect(&browser, SIGNAL(selectedSkeleton(QString)), &skeletonURLEdit, SLOT(setText(QString)));
+    connect(&SkeletonBrowseButton, SIGNAL(clicked()), &skeletonBrowser, SLOT(browse()));
+    connect(&skeletonBrowser, SIGNAL(selected(QString)), &skeletonURLEdit, SLOT(setText(QString)));
     skeletonURLEdit.setReadOnly(true);
     skeletonURLEdit.setMinimumWidth(QLINE_MINIMUM_WIDTH);
     skeletonURLEdit.setPlaceholderText(DEFAULT_BODY_MODEL_URL.toString());

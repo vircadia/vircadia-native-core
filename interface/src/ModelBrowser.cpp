@@ -19,23 +19,36 @@
 
 #include "ModelBrowser.h"
 
-static const int DOWNLOAD_TIMEOUT = 1000;
+static const QString PREFIX_PARAMETER_NAME = "prefix";
+static const QString MARKER_PARAMETER_NAME = "marker";
+static const QString IS_TRUNCATED_NAME = "IsTruncated";
 static const QString CONTAINER_NAME = "Contents";
 static const QString KEY_NAME = "Key";
 
-ModelBrowser::ModelBrowser(QWidget* parent) :
-    QWidget(parent),
-    _downloader(QUrl(S3_URL))
-{
+ModelBrowser::ModelBrowser(ModelType modelType, QWidget* parent) : QWidget(parent), _type(modelType) {
+    QUrl url(S3_URL);
+    QUrlQuery query;
+    
+    if (_type == Head) {
+        query.addQueryItem(PREFIX_PARAMETER_NAME, HEAD_MODELS_LOCATION);
+    } else if (_type == Skeleton) {
+        query.addQueryItem(PREFIX_PARAMETER_NAME, SKELETON_MODELS_LOCATION);
+    }
+    url.setQuery(query);
+    
+    _downloader = new FileDownloader(url);
+    connect(_downloader, SIGNAL(done(QNetworkReply::NetworkError)), SLOT(downloadFinished()));
 }
 
-QString ModelBrowser::browse(ModelType modelType) {
-    _models.clear();
-    if (!parseXML(modelType)) {
-        return QString();
-    }
-    
-    
+ModelBrowser::~ModelBrowser() {
+    delete _downloader;
+}
+
+void ModelBrowser::downloadFinished() {
+    parseXML(_downloader->getData());
+}
+
+void ModelBrowser::browse() {
     QDialog dialog(this);
     dialog.setWindowTitle("Browse models");
     
@@ -61,47 +74,38 @@ QString ModelBrowser::browse(ModelType modelType) {
     dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
     
     if (dialog.exec() == QDialog::Rejected) {
-        return QString();
+        return;
     }
     
     QString selectedKey = model->data(listView->currentIndex(), Qt::DisplayRole).toString();
-    return _models[selectedKey];
-}
-
-void ModelBrowser::browseHead() {
-    QString model = browse(Head);
-    emit selectedHead(model);
-}
-
-void ModelBrowser::browseSkeleton() {
-    QString model = browse(Skeleton);
-    emit selectedSkeleton(model);
-}
-
-bool ModelBrowser::parseXML(ModelType modelType) {
-    _downloader.waitForFile(DOWNLOAD_TIMEOUT);
-    QString location;
-    switch (modelType) {
-        case Head:
-            location = HEAD_MODELS_LOCATION;
-            break;
-        case Skeleton:
-            location = SKELETON_MODELS_LOCATION;
-            break;
-        default:
-            return false;
-    }
     
-    QXmlStreamReader xml(_downloader.getData());
-    QRegExp rx(location + "[^/]*fst");
+    emit selected(_models[selectedKey]);
+}
+
+bool ModelBrowser::parseXML(QByteArray xmlFile) {
+    QXmlStreamReader xml(xmlFile);
+    QRegExp rx(".*fst");
+    bool truncated = false;
+    QString lastKey;
     
     // Read xml until the end or an error is detected
     while(!xml.atEnd() && !xml.hasError()) {
+        if(xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == IS_TRUNCATED_NAME) {
+            while(!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == IS_TRUNCATED_NAME)) {
+                // Let's check if there is more
+                xml.readNext();
+                if (xml.text().toString() == "True") {
+                    truncated = true;
+                }
+            }
+        }
+
         if(xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == CONTAINER_NAME) {
             while(!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == CONTAINER_NAME)) {
                 // If a file is find, process it
                 if(xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == KEY_NAME) {
                     xml.readNext();
+                    lastKey = xml.text().toString();
                     if (rx.exactMatch(xml.text().toString())) {
                         // Add the found file to the list
                         _models.insert(QFileInfo(xml.text().toString()).baseName(),
@@ -123,5 +127,24 @@ bool ModelBrowser::parseXML(ModelType modelType) {
                               QMessageBox::Ok);
         return false;
     }
+    
+    // If we didn't all the files, download the next ones
+    if (truncated) {
+        QUrl url(S3_URL);
+        QUrlQuery query;
+        
+        if (_type == Head) {
+            query.addQueryItem(PREFIX_PARAMETER_NAME, HEAD_MODELS_LOCATION);
+        } else if (_type == Skeleton) {
+            query.addQueryItem(PREFIX_PARAMETER_NAME, SKELETON_MODELS_LOCATION);
+        }
+        query.addQueryItem(MARKER_PARAMETER_NAME, lastKey);
+        url.setQuery(query);
+        
+        delete _downloader;
+        _downloader = new FileDownloader(url);
+        connect(_downloader, SIGNAL(done(QNetworkReply::NetworkError)), SLOT(downloadFinished()));
+    }
+    
     return true;
 }
