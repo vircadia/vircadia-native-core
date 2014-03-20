@@ -33,10 +33,10 @@ typedef unsigned long long quint64;
 #include <QtCore/QObject>
 #include <QtCore/QStringList>
 #include <QtCore/QUrl>
-#include <QtCore/QUuid>
 #include <QtCore/QVector>
 #include <QtCore/QVariantMap>
 #include <QRect>
+#include <QMap>
 
 #include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
@@ -255,6 +255,8 @@ protected:
     QString _billboardURL;
     
     static QNetworkAccessManager* networkAccessManager;
+
+    quint64 _debugLogExpiry;
 
 private:
     // privatize the copy constructor and assignment operator so they cannot be called

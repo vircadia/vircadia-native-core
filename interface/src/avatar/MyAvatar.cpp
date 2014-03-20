@@ -551,6 +551,14 @@ void MyAvatar::loadData(QSettings* settings) {
     settings->endGroup();
 }
 
+int MyAvatar::parseDataAtOffset(const QByteArray& packet, int offset) {
+    qDebug() << "Error: ignoring update packet for MyAvatar"
+        << " packetLength = " << packet.size() 
+        << "  offset = " << offset;
+    // this packet is just bad, so we pretend that we unpacked it ALL
+    return packet.size() - offset;
+}
+
 void MyAvatar::sendKillAvatar() {
     QByteArray killPacket = byteArrayWithPopulatedHeader(PacketTypeKillAvatar);
     NodeList::getInstance()->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);

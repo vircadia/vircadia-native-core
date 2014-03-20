@@ -71,6 +71,8 @@ public:
     void jump() { _shouldJump = true; };
     
     bool isMyAvatar() { return true; }
+
+    virtual int parseDataAtOffset(const QByteArray& packet, int offset);
     
     static void sendKillAvatar();
 
