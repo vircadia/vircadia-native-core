@@ -63,7 +63,7 @@ var AVERAGE_AUDIO_LENGTH = 8000;
 function playRandomSound() {
   if (!Agent.isPlayingAvatarSound) {
     var whichSound = Math.floor((Math.random() * sounds.length) % sounds.length);
-    Audio.playSound(sounds[whichSound]);
+    Agent.playAvatarSound(sounds[whichSound]);
   }
 }
 
