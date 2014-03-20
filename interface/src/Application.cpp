@@ -2150,7 +2150,8 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
 }
 
 glm::vec3 Application::getSunDirection() {
-    return glm::normalize(_environment.getClosestData(_myCamera.getPosition()).getSunLocation() - _myCamera.getPosition());
+    return glm::normalize(_environment.getClosestData(_myCamera.getPosition()).getSunLocation(_myCamera.getPosition()) -
+        _myCamera.getPosition());
 }
 
 void Application::updateShadowMap() {
@@ -2312,7 +2313,8 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         float alpha = 1.0f;
         if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
             const EnvironmentData& closestData = _environment.getClosestData(whichCamera.getPosition());
-            float height = glm::distance(whichCamera.getPosition(), closestData.getAtmosphereCenter());
+            float height = glm::distance(whichCamera.getPosition(),
+                closestData.getAtmosphereCenter(whichCamera.getPosition()));
             if (height < closestData.getAtmosphereInnerRadius()) {
                 alpha = 0.0f;
 
