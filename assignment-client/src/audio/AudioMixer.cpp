@@ -62,7 +62,9 @@ void attachNewBufferToNode(Node *newNode) {
 }
 
 AudioMixer::AudioMixer(const QByteArray& packet) :
-    ThreadedAssignment(packet)
+    ThreadedAssignment(packet),
+    _minSourceLoudnessInFrame(1.0f),
+    _maxSourceLoudnessInFrame(0.0f)
 {
     
 }
@@ -353,9 +355,14 @@ void AudioMixer::run() {
 
     while (!_isFinished) {
 
+        _minSourceLoudnessInFrame = 1.0f;
+        _maxSourceLoudnessInFrame = 0.0f;
+        
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
-                ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(JITTER_BUFFER_SAMPLES);
+                ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(JITTER_BUFFER_SAMPLES,
+                                                                                             _minSourceLoudnessInFrame,
+                                                                                             _maxSourceLoudnessInFrame);
             }
         }
 

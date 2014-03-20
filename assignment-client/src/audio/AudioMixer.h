@@ -38,6 +38,9 @@ private:
     
     // client samples capacity is larger than what will be sent to optimize mixing
     int16_t _clientSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + SAMPLE_PHASE_DELAY_AT_90];
+    
+    float _minSourceLoudnessInFrame;
+    float _maxSourceLoudnessInFrame;
 };
 
 #endif /* defined(__hifi__AudioMixer__) */
