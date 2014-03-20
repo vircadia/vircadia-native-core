@@ -305,7 +305,7 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
                 if ((*otherNode != *node
                      || otherNodeBuffer->shouldLoopbackForNode())
                     && otherNodeBuffer->willBeAddedToMix()
-                    && otherNodeClientData->getNextOutputLoudness() > 0) {
+                    && otherNodeClientData->getNextOutputLoudness() > _minRequiredLoudness) {
                     addBufferToMixForListeningNodeWithBuffer(otherNodeBuffer, nodeRingBuffer);
                 }
             }

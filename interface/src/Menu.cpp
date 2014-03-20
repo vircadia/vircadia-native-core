@@ -138,9 +138,8 @@ Menu::Menu() :
                                   this,
                                   SLOT(goTo()));
 
-    addDisabledActionAndSeparator(fileMenu, "Upload/Browse");
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploaderAvatarHead, 0, Application::getInstance(), SLOT(uploadFST()));
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploaderAvatarSkeleton, 0, Application::getInstance(), SLOT(uploadFST()));
+    addDisabledActionAndSeparator(fileMenu, "Upload Avatar Model");
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadFST, 0, Application::getInstance(), SLOT(uploadFST()));
     
     addDisabledActionAndSeparator(fileMenu, "Settings");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::SettingsImport, 0, this, SLOT(importSettings()));
@@ -715,7 +714,6 @@ void Menu::editPreferences() {
     QPushButton headBrowseButton(BROWSE_BUTTON_TEXT);
     connect(&headBrowseButton, SIGNAL(clicked()), &headBrowser, SLOT(browse()));
     connect(&headBrowser, SIGNAL(selected(QString)), &headURLEdit, SLOT(setText(QString)));
-    headURLEdit.setReadOnly(true);
     headURLEdit.setMinimumWidth(QLINE_MINIMUM_WIDTH);
     headURLEdit.setPlaceholderText(DEFAULT_HEAD_MODEL_URL.toString());
     headModelLayout.addWidget(&headURLEdit);
@@ -728,7 +726,6 @@ void Menu::editPreferences() {
     QPushButton SkeletonBrowseButton(BROWSE_BUTTON_TEXT);
     connect(&SkeletonBrowseButton, SIGNAL(clicked()), &skeletonBrowser, SLOT(browse()));
     connect(&skeletonBrowser, SIGNAL(selected(QString)), &skeletonURLEdit, SLOT(setText(QString)));
-    skeletonURLEdit.setReadOnly(true);
     skeletonURLEdit.setMinimumWidth(QLINE_MINIMUM_WIDTH);
     skeletonURLEdit.setPlaceholderText(DEFAULT_BODY_MODEL_URL.toString());
     skeletonModelLayout.addWidget(&skeletonURLEdit);
