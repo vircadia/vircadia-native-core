@@ -93,9 +93,13 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSam
             // set its flag so we know to push its buffer when all is said and done
             _ringBuffers[i]->setWillBeAddedToMix(true);
             
+            const int TRAILING_AVERAGE_FRAMES = 100;
+            const float CURRENT_FRAME_RATIO = 1 / TRAILING_AVERAGE_FRAMES;
+            const float PREVIOUS_FRAMES_RATIO = 1 - CURRENT_FRAME_RATIO;
+            
             // calculate the average loudness for the next NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL
             // that would be mixed in
-            _nextOutputLoudness = _ringBuffers[i]->averageLoudnessForBoundarySamples(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+            _nextOutputLoudness = (_nextOutputLoudness * PREVIOUS_FRAMES_RATIO) + (CURRENT_FRAME_RATIO * _ringBuffers[i]->averageLoudnessForBoundarySamples(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL));
             
             if (_nextOutputLoudness != 0 && _nextOutputLoudness < currentMinLoudness) {
                 currentMinLoudness = _nextOutputLoudness;
