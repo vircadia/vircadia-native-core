@@ -25,6 +25,7 @@ using namespace std;
 
 ViewFrustum::ViewFrustum() :
     _position(0,0,0),
+    _positionVoxelScale(0,0,0),
     _orientation(),
     _direction(IDENTITY_FRONT),
     _up(IDENTITY_UP),
@@ -277,6 +278,10 @@ ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
         return keyholeResult;
     }
 
+    // TODO: These calculations are expensive, taking up 80% of our time in this function.
+    // This appears to be expensive because we have to test the distance to each plane.
+    // One suggested optimization is to first check against the approximated cone. We might
+    // also be able to test against the cone to the bounding sphere of the box.
     for(int i=0; i < 6; i++) {
         const glm::vec3& normal = _planes[i].getNormal();
         const glm::vec3& boxVertexP = box.getVertexP(normal);
@@ -691,39 +696,60 @@ OctreeProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const 
     return projectedPolygon;
 }
 
-
 // Similar strategy to getProjectedPolygon() we use the knowledge of camera position relative to the
 // axis-aligned voxels to determine which of the voxels vertices must be the furthest. No need for
 // squares and square-roots. Just compares.
-glm::vec3 ViewFrustum::getFurthestPointFromCamera(const AABox& box) const {
+void ViewFrustum::getFurthestPointFromCamera(const AABox& box, glm::vec3& furthestPoint) const {
     const glm::vec3& bottomNearRight = box.getCorner();
-    glm::vec3 center = box.calcCenter();
-    glm::vec3 topFarLeft = box.calcTopFarLeft();
+    float scale = box.getScale();
+    float halfScale = scale * 0.5f;
 
-    glm::vec3 furthestPoint;
-    if (_position.x < center.x) {
+    if (_position.x < bottomNearRight.x + halfScale) {
         // we are to the right of the center, so the left edge is furthest
-        furthestPoint.x = topFarLeft.x;
+        furthestPoint.x = bottomNearRight.x + scale;
     } else {
-        // we are to the left of the center, so the right edge is furthest (at center ok too)
         furthestPoint.x = bottomNearRight.x;
     }
 
-    if (_position.y < center.y) {
+    if (_position.y < bottomNearRight.y + halfScale) {
         // we are below of the center, so the top edge is furthest
-        furthestPoint.y = topFarLeft.y;
+        furthestPoint.y = bottomNearRight.y + scale;
     } else {
-        // we are above the center, so the lower edge is furthest (at center ok too)
         furthestPoint.y = bottomNearRight.y;
     }
 
-    if (_position.z < center.z) {
+    if (_position.z < bottomNearRight.z + halfScale) {
         // we are to the near side of the center, so the far side edge is furthest
-        furthestPoint.z = topFarLeft.z;
+        furthestPoint.z = bottomNearRight.z + scale;
     } else {
-        // we are to the far side of the center, so the near side edge is furthest (at center ok too)
         furthestPoint.z = bottomNearRight.z;
     }
-
-    return furthestPoint;
 }
+
+void ViewFrustum::getFurthestPointFromCameraVoxelScale(const AABox& box, glm::vec3& furthestPoint) const {
+    const glm::vec3& bottomNearRight = box.getCorner();
+    float scale = box.getScale();
+    float halfScale = scale * 0.5f;
+
+    if (_positionVoxelScale.x < bottomNearRight.x + halfScale) {
+        // we are to the right of the center, so the left edge is furthest
+        furthestPoint.x = bottomNearRight.x + scale;
+    } else {
+        furthestPoint.x = bottomNearRight.x;
+    }
+
+    if (_positionVoxelScale.y < bottomNearRight.y + halfScale) {
+        // we are below of the center, so the top edge is furthest
+        furthestPoint.y = bottomNearRight.y + scale;
+    } else {
+        furthestPoint.y = bottomNearRight.y;
+    }
+
+    if (_positionVoxelScale.z < bottomNearRight.z + halfScale) {
+        // we are to the near side of the center, so the far side edge is furthest
+        furthestPoint.z = bottomNearRight.z + scale;
+    } else {
+        furthestPoint.z = bottomNearRight.z;
+    }
+}
+

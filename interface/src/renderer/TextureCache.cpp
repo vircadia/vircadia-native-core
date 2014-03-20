@@ -38,9 +38,6 @@ TextureCache::~TextureCache() {
     if (_whiteTextureID != 0) {
         glDeleteTextures(1, &_whiteTextureID);
     }
-    foreach (GLuint id, _fileTextureIDs) {
-        glDeleteTextures(1, &id);
-    }
     if (_primaryFramebufferObject) {
         glDeleteTextures(1, &_primaryDepthTextureID);
     }
@@ -102,23 +99,6 @@ GLuint TextureCache::getBlueTextureID() {
         glBindTexture(GL_TEXTURE_2D, 0);
     }
     return _blueTextureID;
-}
-
-GLuint TextureCache::getFileTextureID(const QString& filename) {
-    GLuint id = _fileTextureIDs.value(filename);
-    if (id == 0) {
-        QImage image = QImage(filename).convertToFormat(QImage::Format_ARGB32);
-    
-        glGenTextures(1, &id);
-        glBindTexture(GL_TEXTURE_2D, id);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1,
-            GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        
-        _fileTextureIDs.insert(filename, id);
-    }
-    return id;
 }
 
 QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url, bool normalMap, bool dilatable) {
@@ -293,27 +273,50 @@ void ImageReader::run() {
         _reply->deleteLater();
         return;
     }
+    QUrl url = _reply->url();
     QImage image = QImage::fromData(_reply->readAll());
+    _reply->deleteLater();
+    
+    // enforce a fixed maximum
+    const int MAXIMUM_SIZE = 1024;
+    if (image.width() > MAXIMUM_SIZE || image.height() > MAXIMUM_SIZE) {
+        qDebug() << "Image greater than maximum size:" << url << image.width() << image.height();
+        image = image.scaled(MAXIMUM_SIZE, MAXIMUM_SIZE, Qt::KeepAspectRatio);
+    }
+    
+    if (!image.hasAlphaChannel()) {
+        if (image.format() != QImage::Format_RGB888) {
+            image = image.convertToFormat(QImage::Format_RGB888);
+        }
+        QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image), Q_ARG(bool, false));
+        return;
+    }
     if (image.format() != QImage::Format_ARGB32) {
         image = image.convertToFormat(QImage::Format_ARGB32);
     }
     
-    // check for translucency
+    // check for translucency/false transparency
+    int opaquePixels = 0;
     int translucentPixels = 0;
     const int EIGHT_BIT_MAXIMUM = 255;
     const int RGB_BITS = 24;
     for (int y = 0; y < image.height(); y++) {
         for (int x = 0; x < image.width(); x++) {
             int alpha = image.pixel(x, y) >> RGB_BITS;
-            if (alpha != 0 && alpha != EIGHT_BIT_MAXIMUM) {
+            if (alpha == EIGHT_BIT_MAXIMUM) {
+                opaquePixels++;
+            } else if (alpha != 0) {
                 translucentPixels++;
             }
         }
     }
     int imageArea = image.width() * image.height();
+    if (opaquePixels == imageArea) {
+        qDebug() << "Image with alpha channel is completely opaque:" << url;
+        image.convertToFormat(QImage::Format_RGB888);
+    }
     QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image),
         Q_ARG(bool, translucentPixels >= imageArea / 2));
-    _reply->deleteLater();
 }
 
 void NetworkTexture::downloadFinished(QNetworkReply* reply) {
@@ -327,8 +330,13 @@ void NetworkTexture::setImage(const QImage& image, bool translucent) {
     finishedLoading(true);
     imageLoaded(image);
     glBindTexture(GL_TEXTURE_2D, getID());
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1,
-        GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
+    if (image.hasAlphaChannel()) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1,
+            GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
+    } else {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.width(), image.height(), 1,
+            GL_RGB, GL_UNSIGNED_BYTE, image.constBits());
+    }
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
@@ -360,8 +368,13 @@ QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilatio
             painter.end();
             
             glBindTexture(GL_TEXTURE_2D, texture->getID());
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dilatedImage.width(), dilatedImage.height(), 1,
-                GL_BGRA, GL_UNSIGNED_BYTE, dilatedImage.constBits());
+            if (dilatedImage.hasAlphaChannel()) {
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dilatedImage.width(), dilatedImage.height(), 1,
+                    GL_BGRA, GL_UNSIGNED_BYTE, dilatedImage.constBits());
+            } else {
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, dilatedImage.width(), dilatedImage.height(), 1,
+                    GL_RGB, GL_UNSIGNED_BYTE, dilatedImage.constBits());
+            }
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glBindTexture(GL_TEXTURE_2D, 0);
         }

@@ -29,7 +29,6 @@ using namespace std;
 QNetworkAccessManager* AvatarData::networkAccessManager = NULL;
 
 AvatarData::AvatarData() :
-    NodeData(),
     _handPosition(0,0,0),
     _bodyYaw(-90.f),
     _bodyPitch(0.0f),
@@ -94,17 +93,11 @@ QByteArray AvatarData::toByteArray() {
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedPitch());
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedRoll());
     
-    
     // Head lean X,Z (head lateral and fwd/back motion relative to torso)
     memcpy(destinationBuffer, &_headData->_leanSideways, sizeof(_headData->_leanSideways));
     destinationBuffer += sizeof(_headData->_leanSideways);
     memcpy(destinationBuffer, &_headData->_leanForward, sizeof(_headData->_leanForward));
     destinationBuffer += sizeof(_headData->_leanForward);
-
-    // Hand Position - is relative to body position
-    glm::vec3 handPositionRelative = _handPosition - _position;
-    memcpy(destinationBuffer, &handPositionRelative, sizeof(float) * 3);
-    destinationBuffer += sizeof(float) * 3;
 
     // Lookat Position
     memcpy(destinationBuffer, &_headData->_lookAtPosition, sizeof(_headData->_lookAtPosition));
@@ -178,14 +171,11 @@ QByteArray AvatarData::toByteArray() {
         }
     }
         
-    // hand data
-    destinationBuffer += HandData::encodeData(_handData, destinationBuffer);
-    
     return avatarDataByteArray.left(destinationBuffer - startPosition);
 }
 
-// called on the other nodes - assigns it to my views of the others
-int AvatarData::parseData(const QByteArray& packet) {
+// read data in packet starting at byte offset and return number of bytes parsed
+int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
 
     // lazily allocate memory for HeadData in case we're not an Avatar instance
     if (!_headData) {
@@ -197,9 +187,8 @@ int AvatarData::parseData(const QByteArray& packet) {
         _handData = new HandData(this);
     }
     
-    // increment to push past the packet header
-    const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(packet.data());
-    const unsigned char* sourceBuffer = startPosition + numBytesForPacketHeader(packet);
+    const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(packet.data()) + offset;
+    const unsigned char* sourceBuffer = startPosition;
     
     // Body world position
     memcpy(&_position, sourceBuffer, sizeof(float) * 3);
@@ -218,7 +207,6 @@ int AvatarData::parseData(const QByteArray& packet) {
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headYaw);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headPitch);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headRoll);
-    
     _headData->setYaw(headYaw);
     _headData->setPitch(headPitch);
     _headData->setRoll(headRoll);
@@ -228,12 +216,6 @@ int AvatarData::parseData(const QByteArray& packet) {
     sourceBuffer += sizeof(float);
     memcpy(&_headData->_leanForward, sourceBuffer, sizeof(_headData->_leanForward));
     sourceBuffer += sizeof(_headData->_leanForward);
-    
-    // Hand Position - is relative to body position
-    glm::vec3 handPositionRelative;
-    memcpy(&handPositionRelative, sourceBuffer, sizeof(float) * 3);
-    _handPosition = _position + handPositionRelative;
-    sourceBuffer += sizeof(float) * 3;
     
     // Lookat Position
     memcpy(&_headData->_lookAtPosition, sourceBuffer, sizeof(_headData->_lookAtPosition));
@@ -288,13 +270,13 @@ int AvatarData::parseData(const QByteArray& packet) {
     // joint data
     int jointCount = *sourceBuffer++;
     _jointData.resize(jointCount);
-    unsigned char validity = 0; // although always set below, this fixes a warning of potential uninitialized use
+    unsigned char validity = 0;
     int validityBit = 0;
     for (int i = 0; i < jointCount; i++) {
         if (validityBit == 0) {
             validity = *sourceBuffer++;
         }   
-        _jointData[i].valid = validity & (1 << validityBit);
+        _jointData[i].valid = (bool)(validity & (1 << validityBit));
         validityBit = (validityBit + 1) % BITS_IN_BYTE; 
     }
     for (int i = 0; i < jointCount; i++) {
@@ -302,12 +284,6 @@ int AvatarData::parseData(const QByteArray& packet) {
         if (data.valid) {
             sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, data.rotation);
         }
-    }
-    
-    // hand data
-    if (sourceBuffer - startPosition < packet.size()) {
-        // check passed, bytes match
-        sourceBuffer += _handData->decodeRemoteData(packet.mid(sourceBuffer - startPosition));
     }
     
     return sourceBuffer - startPosition;

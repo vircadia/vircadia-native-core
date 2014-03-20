@@ -27,18 +27,14 @@ public:
     bool contains(OctreeElement* element); // is this element in the bag?
     void remove(OctreeElement* element); // remove a specific element from the bag
     
-    bool isEmpty() const { return (_elementsInUse == 0); }
-    int count() const { return _elementsInUse; }
+    bool isEmpty() const { return _bagElements.isEmpty(); }
+    int count() const { return _bagElements.size(); }
 
     void deleteAll();
     virtual void elementDeleted(OctreeElement* element);
 
 private:
-    
-    OctreeElement** _bagElements;
-    int _elementsInUse;
-    int _sizeOfElementsArray;
-    //int _hookID;
+    QSet<OctreeElement*> _bagElements;
 };
 
 #endif /* defined(__hifi__OctreeElementBag__) */

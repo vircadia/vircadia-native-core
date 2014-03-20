@@ -185,10 +185,11 @@ int MetavoxelSystem::SimulateVisitor::visit(MetavoxelInfo& info) {
     }
     QRgb color = info.inputValues.at(0).getInlineValue<QRgb>();
     QRgb normal = info.inputValues.at(1).getInlineValue<QRgb>();
-    int alpha = qAlpha(color);
+    quint8 alpha = qAlpha(color);
     if (alpha > 0) {
         Point point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),
-            { qRed(color), qGreen(color), qBlue(color), alpha }, { qRed(normal), qGreen(normal), qBlue(normal) } };
+            { quint8(qRed(color)), quint8(qGreen(color)), quint8(qBlue(color)), alpha }, 
+            { quint8(qRed(normal)), quint8(qGreen(normal)), quint8(qBlue(normal)) } };
         _points.append(point);
     }
     return STOP_RECURSION;

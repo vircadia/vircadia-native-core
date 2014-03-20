@@ -24,11 +24,12 @@
 #include <QSlider>
 #include <QStandardPaths>
 #include <QUuid>
-#include <QWindow>
+#include <QHBoxLayout>
 
 #include <AccountManager.h>
 #include <XmppClient.h>
 #include <UUID.h>
+#include <FileDownloader.h>
 
 #include "Application.h"
 #include "Menu.h"
@@ -36,6 +37,7 @@
 #include "Util.h"
 #include "InfoView.h"
 #include "ui/MetavoxelEditor.h"
+#include "ModelBrowser.h"
 
 
 Menu* Menu::_instance = NULL;
@@ -165,7 +167,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::Gravity, Qt::SHIFT | Qt::Key_G, false);
 
     
-    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ClickToFly);
+  
 
     addAvatarCollisionSubMenu(editMenu);
 
@@ -692,6 +694,10 @@ void Menu::loginForCurrentDomain() {
 
 void Menu::editPreferences() {
     Application* applicationInstance = Application::getInstance();
+    ModelBrowser headBrowser(Head);
+    ModelBrowser skeletonBrowser(Skeleton);
+    
+    const QString BROWSE_BUTTON_TEXT = "Browse";
 
     QDialog dialog(applicationInstance->getWindow());
     dialog.setWindowTitle("Interface Preferences");
@@ -702,17 +708,33 @@ void Menu::editPreferences() {
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form, 1);
 
+    
+    QHBoxLayout headModelLayout;
     QString faceURLString = applicationInstance->getAvatar()->getHead()->getFaceModel().getURL().toString();
-    QLineEdit* faceURLEdit = new QLineEdit(faceURLString);
-    faceURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    faceURLEdit->setPlaceholderText(DEFAULT_HEAD_MODEL_URL.toString());
-    form->addRow("Face URL:", faceURLEdit);
-
+    QLineEdit headURLEdit(faceURLString);
+    QPushButton headBrowseButton(BROWSE_BUTTON_TEXT);
+    connect(&headBrowseButton, SIGNAL(clicked()), &headBrowser, SLOT(browse()));
+    connect(&headBrowser, SIGNAL(selected(QString)), &headURLEdit, SLOT(setText(QString)));
+    headURLEdit.setReadOnly(true);
+    headURLEdit.setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    headURLEdit.setPlaceholderText(DEFAULT_HEAD_MODEL_URL.toString());
+    headModelLayout.addWidget(&headURLEdit);
+    headModelLayout.addWidget(&headBrowseButton);
+    form->addRow("Head URL:", &headModelLayout);
+    
+    QHBoxLayout skeletonModelLayout;
     QString skeletonURLString = applicationInstance->getAvatar()->getSkeletonModel().getURL().toString();
-    QLineEdit* skeletonURLEdit = new QLineEdit(skeletonURLString);
-    skeletonURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    skeletonURLEdit->setPlaceholderText(DEFAULT_BODY_MODEL_URL.toString());
-    form->addRow("Skeleton URL:", skeletonURLEdit);
+    QLineEdit skeletonURLEdit(skeletonURLString);
+    QPushButton SkeletonBrowseButton(BROWSE_BUTTON_TEXT);
+    connect(&SkeletonBrowseButton, SIGNAL(clicked()), &skeletonBrowser, SLOT(browse()));
+    connect(&skeletonBrowser, SIGNAL(selected(QString)), &skeletonURLEdit, SLOT(setText(QString)));
+    skeletonURLEdit.setReadOnly(true);
+    skeletonURLEdit.setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    skeletonURLEdit.setPlaceholderText(DEFAULT_BODY_MODEL_URL.toString());
+    skeletonModelLayout.addWidget(&skeletonURLEdit);
+    skeletonModelLayout.addWidget(&SkeletonBrowseButton);
+    form->addRow("Skeleton URL:", &skeletonModelLayout);
+    
 
     QString displayNameString = applicationInstance->getAvatar()->getDisplayName();
     QLineEdit* displayNameEdit = new QLineEdit(displayNameString);
@@ -774,21 +796,17 @@ void Menu::editPreferences() {
 
     int ret = dialog.exec();
     if (ret == QDialog::Accepted) {
-        QUrl faceModelURL(faceURLEdit->text());
-        
         bool shouldDispatchIdentityPacket = false;
 
-        if (faceModelURL.toString() != faceURLString) {
+        if (headURLEdit.text() != faceURLString && !headURLEdit.text().isEmpty()) {
             // change the faceModelURL in the profile, it will also update this user's BlendFace
-            applicationInstance->getAvatar()->setFaceModelURL(faceModelURL);
+            applicationInstance->getAvatar()->setFaceModelURL(QUrl(headURLEdit.text()));
             shouldDispatchIdentityPacket = true;
         }
 
-        QUrl skeletonModelURL(skeletonURLEdit->text());
-
-        if (skeletonModelURL.toString() != skeletonURLString) {
+        if (skeletonURLEdit.text() != skeletonURLString && !skeletonURLEdit.text().isEmpty()) {
             // change the skeletonModelURL in the profile, it will also update this user's Body
-            applicationInstance->getAvatar()->setSkeletonModelURL(skeletonModelURL);
+            applicationInstance->getAvatar()->setSkeletonModelURL(QUrl(skeletonURLEdit.text()));
             shouldDispatchIdentityPacket = true;
         }
 

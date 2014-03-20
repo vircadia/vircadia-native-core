@@ -19,6 +19,7 @@
 
 /// Threaded processor for sending voxel packets to a single client
 class OctreeSendThread : public GenericThread {
+    Q_OBJECT
 public:
     OctreeSendThread(const QUuid& nodeUUID, OctreeServer* myServer);
     virtual ~OctreeSendThread();
