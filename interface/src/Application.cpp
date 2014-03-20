@@ -692,6 +692,8 @@ bool Application::event(QEvent* event) {
 
 void Application::keyPressEvent(QKeyEvent* event) {
 
+    _keysPressed.insert(event->key());
+
     _controllerScriptingInterface.emitKeyPressEvent(event); // send events to any registered scripts
     
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -914,6 +916,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
 
+    _keysPressed.remove(event->key());
+
     _controllerScriptingInterface.emitKeyReleaseEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -921,58 +925,64 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
         return;
     }
 
+    switch (event->key()) {
+        case Qt::Key_E:
+            _myAvatar->setDriveKeys(UP, 0.f);
+            break;
 
-    if (activeWindow() == _window) {
-        switch (event->key()) {
-            case Qt::Key_E:
-                _myAvatar->setDriveKeys(UP, 0.f);
-                break;
+        case Qt::Key_C:
+            _myAvatar->setDriveKeys(DOWN, 0.f);
+            break;
 
-            case Qt::Key_C:
-                _myAvatar->setDriveKeys(DOWN, 0.f);
-                break;
+        case Qt::Key_W:
+            _myAvatar->setDriveKeys(FWD, 0.f);
+            break;
 
-            case Qt::Key_W:
-                _myAvatar->setDriveKeys(FWD, 0.f);
-                break;
+        case Qt::Key_S:
+            _myAvatar->setDriveKeys(BACK, 0.f);
+            break;
 
-            case Qt::Key_S:
-                _myAvatar->setDriveKeys(BACK, 0.f);
-                break;
+        case Qt::Key_A:
+            _myAvatar->setDriveKeys(ROT_LEFT, 0.f);
+            break;
 
-            case Qt::Key_A:
-                _myAvatar->setDriveKeys(ROT_LEFT, 0.f);
-                break;
+        case Qt::Key_D:
+            _myAvatar->setDriveKeys(ROT_RIGHT, 0.f);
+            break;
 
-            case Qt::Key_D:
-                _myAvatar->setDriveKeys(ROT_RIGHT, 0.f);
-                break;
+        case Qt::Key_Up:
+            _myAvatar->setDriveKeys(FWD, 0.f);
+            _myAvatar->setDriveKeys(UP, 0.f);
+            break;
 
-            case Qt::Key_Up:
-                _myAvatar->setDriveKeys(FWD, 0.f);
-                _myAvatar->setDriveKeys(UP, 0.f);
-                break;
+        case Qt::Key_Down:
+            _myAvatar->setDriveKeys(BACK, 0.f);
+            _myAvatar->setDriveKeys(DOWN, 0.f);
+            break;
 
-            case Qt::Key_Down:
-                _myAvatar->setDriveKeys(BACK, 0.f);
-                _myAvatar->setDriveKeys(DOWN, 0.f);
-                break;
+        case Qt::Key_Left:
+            _myAvatar->setDriveKeys(LEFT, 0.f);
+            _myAvatar->setDriveKeys(ROT_LEFT, 0.f);
+            break;
 
-            case Qt::Key_Left:
-                _myAvatar->setDriveKeys(LEFT, 0.f);
-                _myAvatar->setDriveKeys(ROT_LEFT, 0.f);
-                break;
+        case Qt::Key_Right:
+            _myAvatar->setDriveKeys(RIGHT, 0.f);
+            _myAvatar->setDriveKeys(ROT_RIGHT, 0.f);
+            break;
 
-            case Qt::Key_Right:
-                _myAvatar->setDriveKeys(RIGHT, 0.f);
-                _myAvatar->setDriveKeys(ROT_RIGHT, 0.f);
-                break;
-
-            default:
-                event->ignore();
-                break;
-        }
+        default:
+            event->ignore();
+            break;
     }
+}
+
+void Application::focusOutEvent(QFocusEvent* event) {
+    // synthesize events for keys currently pressed, since we may not get their release events
+    foreach (int key, _keysPressed) {
+        QKeyEvent event(QEvent::KeyRelease, key, Qt::NoModifier);
+        keyReleaseEvent(&event);
+    }
+    _keysPressed.clear();
 }
 
 void Application::mouseMoveEvent(QMouseEvent* event) {
