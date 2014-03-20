@@ -88,6 +88,17 @@ QByteArray AvatarData::toByteArray() {
     // Body scale
     destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _targetScale);
 
+    // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedYaw());
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedPitch());
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedRoll());
+    
+    // Head lean X,Z (head lateral and fwd/back motion relative to torso)
+    memcpy(destinationBuffer, &_headData->_leanSideways, sizeof(_headData->_leanSideways));
+    destinationBuffer += sizeof(_headData->_leanSideways);
+    memcpy(destinationBuffer, &_headData->_leanForward, sizeof(_headData->_leanForward));
+    destinationBuffer += sizeof(_headData->_leanForward);
+
     // Lookat Position
     memcpy(destinationBuffer, &_headData->_lookAtPosition, sizeof(_headData->_lookAtPosition));
     destinationBuffer += sizeof(_headData->_lookAtPosition);
@@ -190,6 +201,21 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
     
     // Body scale
     sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer, _targetScale);
+    
+    // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
+    float headYaw, headPitch, headRoll;
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headYaw);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headPitch);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headRoll);
+    _headData->setYaw(headYaw);
+    _headData->setPitch(headPitch);
+    _headData->setRoll(headRoll);
+    
+    //  Head position relative to pelvis
+    memcpy(&_headData->_leanSideways, sourceBuffer, sizeof(_headData->_leanSideways));
+    sourceBuffer += sizeof(float);
+    memcpy(&_headData->_leanForward, sourceBuffer, sizeof(_headData->_leanForward));
+    sourceBuffer += sizeof(_headData->_leanForward);
     
     // Lookat Position
     memcpy(&_headData->_lookAtPosition, sourceBuffer, sizeof(_headData->_lookAtPosition));
