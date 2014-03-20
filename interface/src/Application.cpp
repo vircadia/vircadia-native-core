@@ -1680,7 +1680,7 @@ void Application::updateMyAvatarLookAtPosition() {
     } else {
         // look in direction of the mouse ray, but use distance from intersection, if any
         float distance = TREE_SCALE;
-        if (_myAvatar->getLookAtTargetAvatar()) {
+        if (_myAvatar->getLookAtTargetAvatar() && _myAvatar != _myAvatar->getLookAtTargetAvatar()) {
             distance = glm::distance(_mouseRayOrigin,
                 static_cast<Avatar*>(_myAvatar->getLookAtTargetAvatar())->getHead()->calculateAverageEyePosition()); 
         }
