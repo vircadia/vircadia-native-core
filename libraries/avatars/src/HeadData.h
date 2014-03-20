@@ -10,7 +10,8 @@
 #define __hifi__HeadData__
 
 #include <iostream>
-#include <vector>
+
+#include <QVector>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -54,7 +55,7 @@ public:
     float getAudioAverageLoudness() const { return _audioAverageLoudness; }
 	void setAudioAverageLoudness(float audioAverageLoudness) { _audioAverageLoudness = audioAverageLoudness; }
 
-    const std::vector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
+    const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
     
     float getPupilDilation() const { return _pupilDilation; }
     void setPupilDilation(float pupilDilation) { _pupilDilation = pupilDilation; }
@@ -86,7 +87,7 @@ protected:
     float _averageLoudness;
     float _browAudioLift;
     float _audioAverageLoudness;
-    std::vector<float> _blendshapeCoefficients;
+    QVector<float> _blendshapeCoefficients;
     float _pupilDilation;
     AvatarData* _owningAvatar;
     

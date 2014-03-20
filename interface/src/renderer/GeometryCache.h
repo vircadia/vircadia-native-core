@@ -19,15 +19,18 @@
 
 #include "FBXReader.h"
 
+class Model;
 class NetworkGeometry;
 class NetworkMesh;
 class NetworkTexture;
 
 /// Stores cached geometry.
 class GeometryCache : public ResourceCache {
+    Q_OBJECT
+
 public:
     
-    ~GeometryCache();
+    virtual ~GeometryCache();
     
     void renderHemisphere(int slices, int stacks);
     void renderSquare(int xDivisions, int yDivisions);
@@ -38,7 +41,12 @@ public:
     /// \param fallback a fallback URL to load if the desired one is unavailable
     /// \param delayLoad if true, don't load the geometry immediately; wait until load is first requested
     QSharedPointer<NetworkGeometry> getGeometry(const QUrl& url, const QUrl& fallback = QUrl(), bool delayLoad = false);
-    
+
+public slots:
+
+    void setBlendedVertices(const QPointer<Model>& model, const QWeakPointer<NetworkGeometry>& geometry,
+        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
+
 protected:
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url,

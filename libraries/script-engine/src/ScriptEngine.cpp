@@ -14,6 +14,7 @@
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
+#include <AudioRingBuffer.h>
 #include <AvatarData.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
@@ -52,7 +53,9 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, co
     _avatarIdentityTimer(NULL),
     _avatarBillboardTimer(NULL),
     _timerFunctionMap(),
-    _avatarAudioBuffer(NULL),
+    _isListeningToAudioStream(false),
+    _avatarSound(NULL),
+    _numAvatarSoundSentBytes(0),
     _controllerScriptingInterface(controllerScriptingInterface),
     _avatarData(NULL),
     _wantMenuItems(wantMenuItems),
@@ -260,27 +263,55 @@ void ScriptEngine::run() {
         }
         
         if (_isAvatar && _avatarData) {
+            
+            const int SCRIPT_AUDIO_BUFFER_SAMPLES = floor(((SCRIPT_DATA_CALLBACK_USECS * SAMPLE_RATE) / (1000 * 1000)) + 0.5);
+            const int SCRIPT_AUDIO_BUFFER_BYTES = SCRIPT_AUDIO_BUFFER_SAMPLES * sizeof(int16_t);
+            
             QByteArray avatarPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
             avatarPacket.append(_avatarData->toByteArray());
             
             nodeList->broadcastToNodes(avatarPacket, NodeSet() << NodeType::AvatarMixer);
             
-            if (_avatarAudioBuffer && _numAvatarAudioBufferSamples > 0) {
-                // if have an avatar audio stream then send it out to our audio-mixer
-                
+            if (_isListeningToAudioStream || _avatarSound) {
+                // if we have an avatar audio stream then send it out to our audio-mixer
                 bool silentFrame = true;
                 
-                // check if the all of the _numAvatarAudioBufferSamples to be sent are silence
-                for (int i = 0; i < _numAvatarAudioBufferSamples; ++i) {
-                    if (_avatarAudioBuffer[i] != 0) {
-                        silentFrame = false;
-                        break;
+                int16_t numAvailableSamples = SCRIPT_AUDIO_BUFFER_SAMPLES;
+                const int16_t* nextSoundOutput = NULL;
+                
+                if (_avatarSound) {
+                    
+                    const QByteArray& soundByteArray = _avatarSound->getByteArray();
+                    nextSoundOutput = reinterpret_cast<const int16_t*>(soundByteArray.data()
+                                                                       + _numAvatarSoundSentBytes);
+                    
+                    int numAvailableBytes = (soundByteArray.size() - _numAvatarSoundSentBytes) > SCRIPT_AUDIO_BUFFER_BYTES
+                        ? SCRIPT_AUDIO_BUFFER_BYTES
+                        : soundByteArray.size() - _numAvatarSoundSentBytes;
+                    numAvailableSamples = numAvailableBytes / sizeof(int16_t);
+                    
+                    
+                    // check if the all of the _numAvatarAudioBufferSamples to be sent are silence
+                    for (int i = 0; i < numAvailableSamples; ++i) {
+                        if (nextSoundOutput[i] != 0) {
+                            silentFrame = false;
+                            break;
+                        }
+                    }
+                    
+                    _numAvatarSoundSentBytes += numAvailableBytes;
+                    if (_numAvatarSoundSentBytes == soundByteArray.size()) {
+                        // we're done with this sound object - so set our pointer back to NULL
+                        // and our sent bytes back to zero
+                        _avatarSound = NULL;
+                        _numAvatarSoundSentBytes = 0;
                     }
                 }
                 
                 QByteArray audioPacket = byteArrayWithPopulatedHeader(silentFrame
                                                                       ? PacketTypeSilentAudioFrame
                                                                       : PacketTypeMicrophoneAudioNoEcho);
+                
                 QDataStream packetStream(&audioPacket, QIODevice::Append);
                 
                 // use the orientation and position of this avatar for the source of this audio
@@ -289,13 +320,17 @@ void ScriptEngine::run() {
                 packetStream.writeRawData(reinterpret_cast<const char*>(&headOrientation), sizeof(glm::quat));
                 
                 if (silentFrame) {
+                    if (!_isListeningToAudioStream) {
+                        // if we have a silent frame and we're not listening then just send nothing and break out of here
+                        break;
+                    }
+                    
                     // write the number of silent samples so the audio-mixer can uphold timing
-                    int16_t numSilentSamples = _numAvatarAudioBufferSamples;
-                    packetStream.writeRawData(reinterpret_cast<const char*>(&numSilentSamples), sizeof(int16_t));
-                } else {
+                    packetStream.writeRawData(reinterpret_cast<const char*>(&SCRIPT_AUDIO_BUFFER_SAMPLES), sizeof(int16_t));
+                } else if (nextSoundOutput) {
                     // write the raw audio data
-                    packetStream.writeRawData(reinterpret_cast<const char*>(_avatarAudioBuffer),
-                                              _numAvatarAudioBufferSamples * sizeof(int16_t));
+                    packetStream.writeRawData(reinterpret_cast<const char*>(nextSoundOutput),
+                                              numAvailableSamples * sizeof(int16_t));
                 }
                 
                 nodeList->broadcastToNodes(audioPacket, NodeSet() << NodeType::AudioMixer);
@@ -303,7 +338,7 @@ void ScriptEngine::run() {
         }
 
         qint64 now = usecTimestampNow();
-        float deltaTime = (float)(now - lastUpdate)/(float)USECS_PER_SECOND;
+        float deltaTime = (float) (now - lastUpdate) / (float) USECS_PER_SECOND;
         emit update(deltaTime);
         lastUpdate = now;
 

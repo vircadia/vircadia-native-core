@@ -424,11 +424,6 @@ void MyAvatar::updateFromGyros(float deltaTime) {
     }
 }
 
-static TextRenderer* textRenderer() {
-    static TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 24, -1, false, TextRenderer::SHADOW_EFFECT);
-    return renderer;
-}
-
 void MyAvatar::renderDebugBodyPoints() {
     glm::vec3 torsoPosition(getPosition());
     glm::vec3 headPosition(getHead()->getEyePosition());
