@@ -44,6 +44,7 @@ var X_MAX = 5.0;
 var Z_MIN = 0.0;
 var Z_MAX = 5.0;
 var Y_PELVIS = 2.5;
+var SHOULDER_JOINT_NUMBER = 15; 
 
 var MOVE_RANGE_SMALL = 0.5;
 var MOVE_RANGE_BIG = Math.max(X_MAX - X_MIN, Z_MAX - Z_MIN) / 2.0;
@@ -107,17 +108,13 @@ Avatar.billboardURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/me
 Agent.isAvatar = true;
 Agent.isListeningToAudioStream = true;
 
-print("Joint List:");
-var jointList = Avatar.getJointNames(); 
-print(jointList);
-
 // change the avatar's position to the random one
 Avatar.position = firstPosition;  
 printVector("New bot, position = ", Avatar.position);
 
 function stopWaving() {
   isWaving = false; 
-  Avatar.clearJointData("joint_L_shoulder");
+  Avatar.clearJointData(SHOULDER_JOINT_NUMBER);
 }
 
 function updateBehavior(deltaTime) {
@@ -141,7 +138,7 @@ function updateBehavior(deltaTime) {
     waveAmplitude = 5.0 + Math.random() * 60.0;
     Script.setTimeout(stopWaving, 1000 + Math.random() * 2000);
   } else if (isWaving) {
-    Avatar.setJointData(15, Quat.fromPitchYawRollDegrees(0.0, 0.0,  waveAmplitude * Math.sin(cumulativeTime * waveFrequency)));
+    Avatar.setJointData(SHOULDER_JOINT_NUMBER, Quat.fromPitchYawRollDegrees(0.0, 0.0,  waveAmplitude * Math.sin(cumulativeTime * waveFrequency)));
   }
 
   if (Math.random() < CHANCE_OF_SOUND) {
