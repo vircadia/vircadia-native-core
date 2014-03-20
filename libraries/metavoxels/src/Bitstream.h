@@ -271,6 +271,9 @@ public:
     template<class T> void writeDelta(const T& value, const T& reference);
     template<class T> void readDelta(T& value, const T& reference); 
     
+    template<class T> void writeDelta(const QSet<T>& value, const QSet<T>& reference);
+    template<class T> void readDelta(QSet<T>& value, const QSet<T>& reference); 
+    
     Bitstream& operator<<(bool value);
     Bitstream& operator>>(bool& value);
     
@@ -395,7 +398,17 @@ template<class T> inline void Bitstream::readDelta(T& value, const T& reference)
     *this >> changed;
     if (changed) {
         *this >> value;
+    } else {
+        value = reference;
     }
+}
+
+template<class T> inline void Bitstream::writeDelta(const QSet<T>& value, const QSet<T>& reference) {
+    
+}
+
+template<class T> inline void Bitstream::readDelta(QSet<T>& value, const QSet<T>& reference) {
+    
 }
 
 template<class T> inline Bitstream& Bitstream::operator<<(const QList<T>& list) {
