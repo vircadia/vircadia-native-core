@@ -6,6 +6,8 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
+#include <QDebug>
+
 #include <PacketHeaders.h>
 #include <UUID.h>
 
@@ -82,7 +84,9 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
     return 0;
 }
 
-void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSamples) {
+void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSamples,
+                                                       float& currentMinLoudness,
+                                                       float& currentMaxLoudness) {
     for (unsigned int i = 0; i < _ringBuffers.size(); i++) {
         if (_ringBuffers[i]->shouldBeAddedToMix(jitterBufferLengthSamples)) {
             // this is a ring buffer that is ready to go
@@ -92,6 +96,14 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSam
             // calculate the average loudness for the next NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL
             // that would be mixed in
             _nextOutputLoudness = _ringBuffers[i]->averageLoudnessForBoundarySamples(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+            
+            if (_nextOutputLoudness != 0 && _nextOutputLoudness < currentMinLoudness) {
+                currentMinLoudness = _nextOutputLoudness;
+            }
+            
+            if (_nextOutputLoudness > currentMaxLoudness) {
+                currentMaxLoudness = _nextOutputLoudness;
+            }
         }
     }
 }
