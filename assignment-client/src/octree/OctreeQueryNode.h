@@ -23,6 +23,7 @@ class OctreeSendThread;
 class OctreeServer;
 
 class OctreeQueryNode : public OctreeQuery {
+    Q_OBJECT
 public:
     OctreeQueryNode();
     virtual ~OctreeQueryNode();
@@ -85,6 +86,12 @@ public:
     
     void dumpOutOfView();
     
+    quint64 getLastRootTimestamp() const { return _lastRootTimestamp; }
+    void setLastRootTimestamp(quint64 timestamp) { _lastRootTimestamp = timestamp; }
+    unsigned int getlastOctreePacketLength() const { return _lastOctreePacketLength; }
+    int getDuplicatePacketCount() const { return _duplicatePacketCount; }
+    
+    
 private:
     OctreeQueryNode(const OctreeQueryNode &);
     OctreeQueryNode& operator= (const OctreeQueryNode&);
@@ -119,6 +126,7 @@ private:
     bool _lodInitialized;
     
     OCTREE_PACKET_SEQUENCE _sequenceNumber;
+    quint64 _lastRootTimestamp;
 };
 
 #endif /* defined(__hifi__OctreeQueryNode__) */

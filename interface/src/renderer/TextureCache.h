@@ -27,7 +27,7 @@ class TextureCache : public ResourceCache {
 public:
     
     TextureCache();
-    ~TextureCache();
+    virtual ~TextureCache();
     
     /// Returns the ID of the permutation/normal texture used for Perlin noise shader programs.  This texture
     /// has two lines: the first, a set of random numbers in [0, 255] to be used as permutation offsets, and
@@ -39,9 +39,6 @@ public:
 
     /// Returns the ID of a pale blue texture (useful for a normal map).
     GLuint getBlueTextureID();
-    
-    /// Returns the ID of a texture containing the contents of the specified file, loading it if necessary. 
-    GLuint getFileTextureID(const QString& filename);
 
     /// Loads a texture from the specified URL.
     QSharedPointer<NetworkTexture> getTexture(const QUrl& url, bool normalMap = false, bool dilatable = false);
@@ -84,8 +81,6 @@ private:
     GLuint _whiteTextureID;
     GLuint _blueTextureID;
     
-    QHash<QString, GLuint> _fileTextureIDs;
-
     QHash<QUrl, QWeakPointer<NetworkTexture> > _dilatableNetworkTextures;
     
     GLuint _primaryDepthTextureID;

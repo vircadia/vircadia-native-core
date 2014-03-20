@@ -15,18 +15,17 @@ class ThreadedAssignment : public Assignment {
     Q_OBJECT
 public:
     ThreadedAssignment(const QByteArray& packet);
-    
     void setFinished(bool isFinished);
+    virtual void aboutToFinish() { };
+
 public slots:
     /// threaded run of assignment
     virtual void run() = 0;
-    
     virtual void deleteLater();
-    
     virtual void readPendingDatagrams() = 0;
+
 protected:
     bool readAvailableDatagram(QByteArray& destinationByteArray, HifiSockAddr& senderSockAddr);
-    
     void commonInit(const QString& targetName, NodeType_t nodeType);
     bool _isFinished;
 private slots:
