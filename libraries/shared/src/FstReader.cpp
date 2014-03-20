@@ -24,6 +24,7 @@ static const QString NAME_FIELD = "name";
 static const QString FILENAME_FIELD = "filename";
 static const QString TEXDIR_FIELD = "texdir";
 static const QString LOD_FIELD = "lod";
+static const QString HEAD_SPECIFIC_FIELD = "bs";
 
 static const QString MODEL_URL = "/api/v1/models";
 
@@ -32,6 +33,7 @@ static const int MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 FstReader::FstReader() :
     _lodCount(-1),
     _texturesCount(-1),
+    _isHead(false),
     _readyToSend(false),
     _dataMultiPart(new QHttpMultiPart(QHttpMultiPart::FormDataType))
 {
@@ -81,13 +83,15 @@ bool FstReader::zip() {
         }
         
         // according to what is read, we modify the command
-        if (line.first() == NAME_FIELD) {
+        if (line[1] == HEAD_SPECIFIC_FIELD) {
+            _isHead = true;
+        } else if (line[1] == NAME_FIELD) {
             QHttpPart textPart;
             textPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data;"
                                " name=\"model_name\"");
             textPart.setBody(line[1].toUtf8());
             _dataMultiPart->append(textPart);
-        } else if (line.first() == FILENAME_FIELD) {
+        } else if (line[1] == FILENAME_FIELD) {
             QFileInfo fbx(QFileInfo(fst).path() + "/" + line[1]);
             if (!fbx.exists() || !fbx.isFile()) { // Check existence
                 qDebug() << "[ERROR] FBX file " << fbx.absoluteFilePath() << " doesn't exist.";
@@ -101,7 +105,7 @@ bool FstReader::zip() {
             if (!addPart(_zipDir.path() + "/" + line[1], "fbx")) {
                 return false;
             }
-        } else if (line.first() == TEXDIR_FIELD) { // Check existence
+        } else if (line[1] == TEXDIR_FIELD) { // Check existence
             QFileInfo texdir(QFileInfo(fst).path() + "/" + line[1]);
             if (!texdir.exists() || !texdir.isDir()) {
                 qDebug() << "[ERROR] Texture directory " << texdir.absolutePath() << " doesn't exist.";
@@ -110,7 +114,7 @@ bool FstReader::zip() {
             if (!addTextures(texdir)) { // Recursive compress and copy
                 return false;
             }
-        } else if (line.first() == LOD_FIELD) {
+        } else if (line[1] == LOD_FIELD) {
             QFileInfo lod(QFileInfo(fst).path() + "/" + line[1]);
             if (!lod.exists() || !lod.isFile()) { // Check existence
                 qDebug() << "[ERROR] FBX file " << lod.absoluteFilePath() << " doesn't exist.";
@@ -126,6 +130,17 @@ bool FstReader::zip() {
             }
         }
     }
+    
+    
+    QHttpPart textPart;
+    textPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data;"
+                       " name=\"model_type\"");
+    if (_isHead) {
+        textPart.setBody("head");
+    } else {
+        textPart.setBody("skeleton");
+    }
+    _dataMultiPart->append(textPart);
     
     _readyToSend = true;
     return true;
