@@ -26,7 +26,7 @@ var CHANCE_OF_MOVING = 0.005;
 var CHANCE_OF_SOUND = 0.005;
 var CHANCE_OF_HEAD_TURNING = 0.05;
 var CHANCE_OF_BIG_MOVE = 0.1;
-var CHANCE_OF_WAVING = 0.000;     //  Currently this isn't working
+var CHANCE_OF_WAVING = 0.005;     //  Currently this isn't working
 
 var shouldReceiveVoxels = true; 
 var VOXEL_FPS = 60.0;
@@ -141,15 +141,11 @@ function updateBehavior(deltaTime) {
     waveAmplitude = 5.0 + Math.random() * 60.0;
     Script.setTimeout(stopWaving, 1000 + Math.random() * 2000);
   } else if (isWaving) {
-    Avatar.setJointData("joint_L_shoulder", Quat.fromPitchYawRollDegrees(0.0, 0.0,  waveAmplitude * Math.sin(cumulativeTime * waveFrequency)));
+    Avatar.setJointData(15, Quat.fromPitchYawRollDegrees(0.0, 0.0,  waveAmplitude * Math.sin(cumulativeTime * waveFrequency)));
   }
 
   if (Math.random() < CHANCE_OF_SOUND) {
     playRandomSound();
-  }
-
-  if (Agent.isPlayingAvatarSound) {
-    Avatar.handPosition = Vec3.sum(Avatar.position, Quat.getFront(Avatar.orientation));
   }
 
   if (!isTurningHead && (Math.random() < CHANCE_OF_HEAD_TURNING)) {

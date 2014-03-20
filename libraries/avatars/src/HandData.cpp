@@ -11,7 +11,7 @@
 #include <GeometryUtil.h>
 #include <SharedUtil.h>
 
-#include "AvatarData.h"
+#include "AvatarData.h" 
 #include "HandData.h"
 
 
