@@ -18,6 +18,7 @@
 #include <QSettings>
 #include <QTouchEvent>
 #include <QList>
+#include <QSet>
 #include <QStringList>
 #include <QPointer>
 
@@ -121,6 +122,8 @@ public:
 
     void keyPressEvent(QKeyEvent* event);
     void keyReleaseEvent(QKeyEvent* event);
+
+    void focusOutEvent(QFocusEvent* event);
 
     void mouseMoveEvent(QMouseEvent* event);
     void mousePressEvent(QMouseEvent* event);
@@ -431,6 +434,8 @@ private:
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
 
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
+
+    QSet<int> _keysPressed;
 
     GeometryCache _geometryCache;
     TextureCache _textureCache;
