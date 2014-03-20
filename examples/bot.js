@@ -29,7 +29,6 @@ var CHANCE_OF_BIG_MOVE = 0.1;
 
 var isMoving = false;
 var isTurningHead = false;
-var isPlayingAudio = false; 
 
 var X_MIN = 0.0;
 var X_MAX = 5.0;
@@ -60,20 +59,11 @@ function clamp(val, min, max){
 }
 
 //  Play a random sound from a list of conversational audio clips
-function audioDone() {
-  isPlayingAudio = false;
-}
-
 var AVERAGE_AUDIO_LENGTH = 8000;
-function playRandomSound(position) {
-  if (!isPlayingAudio) {
+function playRandomSound() {
+  if (!Agent.isPlayingAvatarSound) {
     var whichSound = Math.floor((Math.random() * sounds.length) % sounds.length);
-    var audioOptions = new AudioInjectionOptions();
-    audioOptions.volume = 0.25 + (Math.random() * 0.75);
-    audioOptions.position = position;
-    Audio.playSound(sounds[whichSound], audioOptions);
-    isPlayingAudio = true;
-    Script.setTimeout(audioDone, AVERAGE_AUDIO_LENGTH);
+    Audio.playSound(sounds[whichSound]);
   }
 }
 
@@ -104,6 +94,7 @@ Avatar.skeletonModelURL = "https://s3-us-west-1.amazonaws.com/highfidelity-publi
 Avatar.billboardURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/billboards/bot" + botNumber + ".png";
 
 Agent.isAvatar = true;
+Agent.isListeningToAudioStream = true;
 
 // change the avatar's position to the random one
 Avatar.position = firstPosition;  
@@ -111,10 +102,10 @@ printVector("New bot, position = ", Avatar.position);
 
 function updateBehavior(deltaTime) {
   if (Math.random() < CHANCE_OF_SOUND) {
-    playRandomSound(Avatar.position);
+    playRandomSound();
   }
 
-  if (isPlayingAudio) {
+  if (Agent.isPlayingAvatarSound) {
     Avatar.handPosition = Vec3.sum(Avatar.position, Quat.getFront(Avatar.orientation));
   }
 
