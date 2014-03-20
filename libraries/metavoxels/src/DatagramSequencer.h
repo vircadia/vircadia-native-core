@@ -34,6 +34,9 @@ public:
     
     DatagramSequencer(const QByteArray& datagramHeader = QByteArray(), QObject* parent = NULL);
     
+    /// Returns a reference to the weak hash mapping remote ids to shared objects.
+    const WeakSharedObjectHash& getWeakSharedObjectHash() const { return _inputStream.getWeakSharedObjectHash(); }
+    
     /// Returns the packet number of the last packet sent.
     int getOutgoingPacketNumber() const { return _outgoingPacketNumber; }
     

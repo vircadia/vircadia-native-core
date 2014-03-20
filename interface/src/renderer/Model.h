@@ -17,6 +17,8 @@
 #include "ProgramObject.h"
 #include "TextureCache.h"
 
+class Shape;
+
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject {
     Q_OBJECT
@@ -41,8 +43,8 @@ public:
     void setPupilDilation(float dilation) { _pupilDilation = dilation; }
     float getPupilDilation() const { return _pupilDilation; }
     
-    void setBlendshapeCoefficients(const std::vector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
-    const std::vector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
+    void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
+    const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
     
     bool isActive() const { return _geometry && _geometry->isLoaded(); }
     
@@ -52,7 +54,10 @@ public:
     
     void init();
     void reset();
-    void simulate(float deltaTime, bool delayLoad = false);
+    void clearShapes();
+    void createCollisionShapes();
+    void updateShapePositions();
+    void simulate(float deltaTime, bool fullUpdate = true);
     bool render(float alpha);
     
     /// Sets the URL of the model to render.
@@ -75,6 +80,16 @@ public:
     
     /// Returns a reference to the shared geometry.
     const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }
+    
+    /// Returns the number of joint states in the model.
+    int getJointStateCount() const { return _jointStates.size(); }
+    
+    /// Fetches the joint state at the specified index.
+    /// \return whether or not the joint state is "valid" (that is, non-default)
+    bool getJointState(int index, glm::quat& rotation) const;
+    
+    /// Sets the joint state at the specified index.
+    void setJointState(int index, bool valid, const glm::quat& rotation = glm::quat());
     
     /// Returns the index of the left hand joint, or -1 if not found.
     int getLeftHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().leftHandJointIndex : -1; }
@@ -160,13 +175,15 @@ public:
     /// Returns the extended length from the right hand to its first free ancestor.
     float getRightArmLength() const;
     
-    /// Returns the average color of all meshes in the geometry.
-    glm::vec4 computeAverageColor() const;
-
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+    
+    /// \param shapes list of pointers shapes to test against Model
+    /// \param collisions list to store collision results
+    /// \return true if at least one shape collided agains Model
+    bool findCollisions(const QVector<const Shape*> shapes, CollisionList& collisions);
 
     bool findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
-        CollisionList& collisions, float boneScale = 1.0f, int skipIndex = -1) const;
+        CollisionList& collisions, int skipIndex = -1);
     
     void renderCollisionProxies(float alpha);
 
@@ -177,6 +194,9 @@ public:
     /// \param collision details about the collision
     /// Use the collision to affect the model
     void applyCollision(CollisionInfo& collision);
+
+    /// Sets blended vertices computed in a separate thread.
+    void setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
 
 protected:
 
@@ -189,23 +209,25 @@ protected:
     
     class JointState {
     public:
-        glm::vec3 translation;
-        glm::quat rotation;
-        glm::mat4 transform;
-        glm::quat combinedRotation;
+        glm::vec3 translation;  // translation relative to parent
+        glm::quat rotation;     // rotation relative to parent
+        glm::mat4 transform;    // rotation to world frame + translation in model frame
+        glm::quat combinedRotation; // rotation from joint local to world frame
     };
     
+    bool _shapesAreDirty;
     QVector<JointState> _jointStates;
+    QVector<Shape*> _shapes;
     
     class MeshState {
     public:
         QVector<glm::mat4> clusterMatrices;
-        QVector<glm::vec3> worldSpaceVertices;
-        QVector<glm::vec3> vertexVelocities;
-        QVector<glm::vec3> worldSpaceNormals;
     };
     
     QVector<MeshState> _meshStates;
+    
+    QVector<JointState> updateGeometry();
+    void simulate(float deltaTime, bool fullUpdate, const QVector<JointState>& newJointStates);
     
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);
@@ -237,7 +259,6 @@ protected:
     
 private:
     
-    QVector<JointState> updateGeometry(bool delayLoad);
     void applyNextGeometry();
     void deleteGeometry();
     void renderMeshes(float alpha, bool translucent);
@@ -247,18 +268,16 @@ private:
     QSharedPointer<NetworkGeometry> _nextGeometry;
     float _lodDistance;
     float _lodHysteresis;
+    float _nextLODHysteresis;
     
     float _pupilDilation;
-    std::vector<float> _blendshapeCoefficients;
+    QVector<float> _blendshapeCoefficients;
     
     QUrl _url;
         
-    QVector<GLuint> _blendedVertexBufferIDs;
-    QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
-    bool _resetStates;
+    QVector<QOpenGLBuffer> _blendedVertexBuffers;
     
-    QVector<glm::vec3> _blendedVertices;
-    QVector<glm::vec3> _blendedNormals;
+    QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
     
     QVector<Model*> _attachments;
     
@@ -283,5 +302,9 @@ private:
     static void initSkinProgram(ProgramObject& program, SkinLocations& locations);
     static QVector<JointState> createJointStates(const FBXGeometry& geometry);
 };
+
+Q_DECLARE_METATYPE(QPointer<Model>)
+Q_DECLARE_METATYPE(QWeakPointer<NetworkGeometry>)
+Q_DECLARE_METATYPE(QVector<glm::vec3>)
 
 #endif /* defined(__interface__Model__) */

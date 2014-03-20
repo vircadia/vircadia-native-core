@@ -13,7 +13,9 @@
 #define __hifi__Quat__
 
 #include <glm/gtc/quaternion.hpp>
-#include <QtCore/QObject>
+
+#include <QObject>
+#include <QString>
 
 /// Scriptable interface a Quaternion helper class object. Used exclusively in the JavaScript API
 class Quat : public QObject {
@@ -21,15 +23,18 @@ class Quat : public QObject {
 
 public slots:
     glm::quat multiply(const glm::quat& q1, const glm::quat& q2);
-    glm::quat fromVec3(const glm::vec3& vec3);
-    glm::quat fromPitchYawRoll(float pitch, float yaw, float roll);
+    glm::quat fromVec3Degrees(const glm::vec3& vec3); // degrees
+    glm::quat fromVec3Radians(const glm::vec3& vec3); // radians
+    glm::quat fromPitchYawRollDegrees(float pitch, float yaw, float roll); // degrees
+    glm::quat fromPitchYawRollRadians(float pitch, float yaw, float roll); // radians
     glm::quat inverse(const glm::quat& q);
     glm::vec3 getFront(const glm::quat& orientation);
     glm::vec3 getRight(const glm::quat& orientation);
     glm::vec3 getUp(const glm::quat& orientation);
-    glm::vec3 safeEulerAngles(const glm::quat& orientation);
-    glm::quat angleAxis(float angle, const glm::vec3& v);
+    glm::vec3 safeEulerAngles(const glm::quat& orientation); // degrees
+    glm::quat angleAxis(float angle, const glm::vec3& v);   // degrees
     glm::quat mix(const glm::quat& q1, const glm::quat& q2, float alpha);
+    void print(const QString& lable, const glm::quat& q);
 };
 
 #endif /* defined(__hifi__Quat__) */

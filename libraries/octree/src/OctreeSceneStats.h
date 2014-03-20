@@ -150,8 +150,10 @@ public:
     unsigned long getTotalEncodeTime() const { return _totalEncodeTime; }
     unsigned long getElapsedTime() const { return _elapsed; }
 
-    unsigned long getLastFullTotalEncodeTime() const { return _lastFullTotalEncodeTime; }
     unsigned long getLastFullElapsedTime() const { return _lastFullElapsed; }
+    unsigned long getLastFullTotalEncodeTime() const { return _lastFullTotalEncodeTime; }
+    unsigned int getLastFullTotalPackets() const { return _lastFullTotalPackets; }
+    unsigned long getLastFullTotalBytes() const { return _lastFullTotalBytes; }
 
     // Used in client implementations to track individual octree packets
     void trackIncomingOctreePacket(const QByteArray& packet, bool wasStatsPacket, int nodeClockSkewUsec);
@@ -159,8 +161,13 @@ public:
     unsigned int getIncomingPackets() const { return _incomingPacket; }
     unsigned long getIncomingBytes() const { return _incomingBytes; } 
     unsigned long getIncomingWastedBytes() const { return _incomingWastedBytes; }
-    unsigned int getIncomingOutOfOrder() const { return _incomingOutOfOrder; }
+    unsigned int getIncomingOutOfOrder() const { return _incomingLate + _incomingEarly; }
     unsigned int getIncomingLikelyLost() const { return _incomingLikelyLost; }
+    unsigned int getIncomingRecovered() const { return _incomingRecovered; }
+    unsigned int getIncomingEarly() const { return _incomingEarly; }
+    unsigned int getIncomingLate() const { return _incomingLate; }
+    unsigned int getIncomingReallyLate() const { return _incomingReallyLate; }
+    unsigned int getIncomingPossibleDuplicate() const { return _incomingPossibleDuplicate; }
     float getIncomingFlightTimeAverage() { return _incomingFlightTimeAverage.getAverage(); }
 
 private:
@@ -176,13 +183,16 @@ private:
     quint64 _start;
     quint64 _end;
     quint64 _elapsed;
+
     quint64 _lastFullElapsed;
+    quint64 _lastFullTotalEncodeTime;
+    unsigned int  _lastFullTotalPackets;
+    unsigned long _lastFullTotalBytes;
     
     SimpleMovingAverage _elapsedAverage;
     SimpleMovingAverage _bitsPerOctreeAverage;
 
     quint64 _totalEncodeTime;
-    quint64 _lastFullTotalEncodeTime;
     quint64 _encodeStart;
     
     // scene octree related data
@@ -251,9 +261,15 @@ private:
     unsigned int _incomingPacket;
     unsigned long _incomingBytes;
     unsigned long _incomingWastedBytes;
-    unsigned int _incomingLastSequence;
-    unsigned int _incomingOutOfOrder;
-    unsigned int _incomingLikelyLost;
+
+    uint16_t _incomingLastSequence; /// last incoming sequence number
+    unsigned int _incomingLikelyLost; /// count of packets likely lost, may be off by _incomingReallyLate count
+    unsigned int _incomingRecovered; /// packets that were late, and we had in our missing list, we consider recovered
+    unsigned int _incomingEarly; /// out of order earlier than expected
+    unsigned int _incomingLate; /// out of order later than expected
+    unsigned int _incomingReallyLate; /// out of order and later than MAX_MISSING_SEQUENCE_OLD_AGE late
+    unsigned int _incomingPossibleDuplicate; /// out of order possibly a duplicate
+    QSet<uint16_t> _missingSequenceNumbers;
     SimpleMovingAverage _incomingFlightTimeAverage;
     
     // features related items

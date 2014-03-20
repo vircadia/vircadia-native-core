@@ -20,10 +20,10 @@ public:
     int updateAverage(float sample);
     void reset();
     
-    int getSampleCount() { return _numSamples; };
-    float getAverage() { return _average; };
-    float getEventDeltaAverage();
-    float getAverageSampleValuePerSecond();
+    int getSampleCount() const { return _numSamples; };
+    float getAverage() const { return _average; };
+    float getEventDeltaAverage() const;
+    float getAverageSampleValuePerSecond() const;
 private:
     int _numSamples;
     uint64_t _lastEventTimestamp;

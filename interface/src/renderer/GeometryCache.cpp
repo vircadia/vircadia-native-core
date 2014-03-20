@@ -13,6 +13,7 @@
 
 #include "Application.h"
 #include "GeometryCache.h"
+#include "Model.h"
 #include "world.h"
 
 GeometryCache::~GeometryCache() {
@@ -30,11 +31,11 @@ void GeometryCache::renderHemisphere(int slices, int stacks) {
         GLfloat* vertexData = new GLfloat[vertices * 3];
         GLfloat* vertex = vertexData;
         for (int i = 0; i < stacks - 1; i++) {
-            float phi = PIf * 0.5f * i / (stacks - 1);
+            float phi = PI_OVER_TWO * float(i) / float(stacks - 1);
             float z = sinf(phi), radius = cosf(phi);
             
             for (int j = 0; j < slices; j++) {
-                float theta = PIf * 2.0f * j / slices;
+                float theta = TWO_PI * float(j) / float(slices);
 
                 *(vertex++) = sinf(theta) * radius;
                 *(vertex++) = cosf(theta) * radius;
@@ -180,7 +181,7 @@ void GeometryCache::renderHalfCylinder(int slices, int stacks) {
             float y = (float)i / (stacks - 1);
             
             for (int j = 0; j <= slices; j++) {
-                float theta = 3 * PIf / 2 + PIf * j / slices;
+                float theta = 3.f * PI_OVER_TWO + PI * float(j) / float(slices);
 
                 //normals
                 *(vertex++) = sinf(theta);
@@ -291,10 +292,18 @@ QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, cons
     return getResource(url, fallback, delayLoad).staticCast<NetworkGeometry>();
 }
 
+void GeometryCache::setBlendedVertices(const QPointer<Model>& model, const QWeakPointer<NetworkGeometry>& geometry,
+        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
+    if (!model.isNull() && model->getGeometry() == geometry) {
+        model->setBlendedVertices(vertices, normals);
+    }
+}
+
 QSharedPointer<Resource> GeometryCache::createResource(const QUrl& url,
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
     
-    QSharedPointer<NetworkGeometry> geometry(new NetworkGeometry(url, fallback.staticCast<NetworkGeometry>(), delayLoad));
+    QSharedPointer<NetworkGeometry> geometry(new NetworkGeometry(url, fallback.staticCast<NetworkGeometry>(), delayLoad),
+        &Resource::allReferencesCleared);
     geometry->setLODParent(geometry);
     return geometry.staticCast<Resource>();
 }
@@ -343,7 +352,14 @@ QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance
         // if we previously selected a different distance, make sure we've moved far enough to justify switching
         const float HYSTERESIS_PROPORTION = 0.1f;
         if (glm::abs(distance - qMax(hysteresis, lodDistance)) / fabsf(hysteresis - lodDistance) < HYSTERESIS_PROPORTION) {
-            return getLODOrFallback(hysteresis, hysteresis);
+            lod = _lodParent;
+            lodDistance = 0.0f;
+            it = _lods.upperBound(hysteresis);
+            if (it != _lods.constBegin()) {
+                it = it - 1;
+                lod = it.value();
+                lodDistance = it.key();
+            }
         }
     }
     if (lod->isLoaded()) {
@@ -368,30 +384,6 @@ QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance
     }
     hysteresis = NO_HYSTERESIS;
     return lod;
-}
-
-glm::vec4 NetworkGeometry::computeAverageColor() const {
-    glm::vec4 totalColor;
-    int totalTriangles = 0;
-    for (int i = 0; i < _meshes.size(); i++) {
-        const FBXMesh& mesh = _geometry.meshes.at(i);
-        if (mesh.isEye) {
-            continue; // skip eyes
-        }
-        const NetworkMesh& networkMesh = _meshes.at(i);
-        for (int j = 0; j < mesh.parts.size(); j++) {
-            const FBXMeshPart& part = mesh.parts.at(j);
-            const NetworkMeshPart& networkPart = networkMesh.parts.at(j);
-            glm::vec4 color = glm::vec4(part.diffuseColor, 1.0f);
-            if (networkPart.diffuseTexture) {
-                color *= networkPart.diffuseTexture->getAverageColor();
-            }
-            int triangles = part.quadIndices.size() * 2 + part.triangleIndices.size();
-            totalColor += color * triangles;
-            totalTriangles += triangles;
-        }
-    }
-    return (totalTriangles == 0) ? glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) : totalColor / totalTriangles;
 }
 
 void NetworkGeometry::setLoadPriority(const QPointer<QObject>& owner, float priority) {
@@ -450,7 +442,7 @@ class GeometryReader : public QRunnable {
 public:
 
     GeometryReader(const QWeakPointer<Resource>& geometry, const QUrl& url,
-        const QByteArray& data, const QVariantHash& mapping);
+        QNetworkReply* reply, const QVariantHash& mapping);
 
     virtual void run();
 
@@ -458,40 +450,41 @@ private:
      
     QWeakPointer<Resource> _geometry;
     QUrl _url;
-    QByteArray _data;
+    QNetworkReply* _reply;
     QVariantHash _mapping;
 };
 
 GeometryReader::GeometryReader(const QWeakPointer<Resource>& geometry, const QUrl& url,
-        const QByteArray& data, const QVariantHash& mapping) :
+        QNetworkReply* reply, const QVariantHash& mapping) :
     _geometry(geometry),
     _url(url),
-    _data(data),
+    _reply(reply),
     _mapping(mapping) {
 }
 
 void GeometryReader::run() {
     QSharedPointer<Resource> geometry = _geometry.toStrongRef();
     if (geometry.isNull()) {
+        _reply->deleteLater();
         return;
     }
     try {
         QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&,
-            _url.path().toLower().endsWith(".svo") ? readSVO(_data) : readFBX(_data, _mapping)));
+            _url.path().toLower().endsWith(".svo") ? readSVO(_reply->readAll()) : readFBX(_reply->readAll(), _mapping)));
         
     } catch (const QString& error) {
         qDebug() << "Error reading " << _url << ": " << error;
         QMetaObject::invokeMethod(geometry.data(), "finishedLoading", Q_ARG(bool, false));
     }
+    _reply->deleteLater();
 }
 
 void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
     QUrl url = reply->url();
-    QByteArray data = reply->readAll();
-    
     if (url.path().toLower().endsWith(".fst")) {
         // it's a mapping file; parse it and get the mesh filename
-        _mapping = readMapping(data);
+        _mapping = readMapping(reply->readAll());
+        reply->deleteLater();
         QString filename = _mapping.value("filename").toString();
         if (filename.isNull()) {
             qDebug() << "Mapping file " << url << " has no filename.";
@@ -525,7 +518,16 @@ void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
     }
     
     // send the reader off to the thread pool
-    QThreadPool::globalInstance()->start(new GeometryReader(_self, url, data, _mapping));
+    QThreadPool::globalInstance()->start(new GeometryReader(_self, url, reply, _mapping));
+}
+
+void NetworkGeometry::reinsert() {
+    Resource::reinsert();
+    
+    _lodParent = qWeakPointerCast<NetworkGeometry, Resource>(_self);
+    foreach (const QSharedPointer<NetworkGeometry>& lod, _lods) {
+        lod->setLODParent(_lodParent);
+    }
 }
 
 void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
@@ -571,8 +573,8 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
         networkMesh.vertexBuffer.bind();
         networkMesh.vertexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
         
-        // if we don't need to do any blending or springing, then the positions/normals can be static
-        if (mesh.blendshapes.isEmpty() && mesh.springiness == 0.0f) {
+        // if we don't need to do any blending, the positions/normals can be static
+        if (mesh.blendshapes.isEmpty()) {
             int normalsOffset = mesh.vertices.size() * sizeof(glm::vec3);
             int tangentsOffset = normalsOffset + mesh.normals.size() * sizeof(glm::vec3);
             int colorsOffset = tangentsOffset + mesh.tangents.size() * sizeof(glm::vec3);
@@ -593,8 +595,8 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
             networkMesh.vertexBuffer.write(clusterWeightsOffset, mesh.clusterWeights.constData(),
                 mesh.clusterWeights.size() * sizeof(glm::vec4));
         
-        // if there's no springiness, then the cluster indices/weights can be static
-        } else if (mesh.springiness == 0.0f) {
+        // otherwise, at least the cluster indices/weights can be static
+        } else {
             int colorsOffset = mesh.tangents.size() * sizeof(glm::vec3);
             int texCoordsOffset = colorsOffset + mesh.colors.size() * sizeof(glm::vec3);
             int clusterIndicesOffset = texCoordsOffset + mesh.texCoords.size() * sizeof(glm::vec2);
@@ -607,16 +609,7 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
             networkMesh.vertexBuffer.write(clusterIndicesOffset, mesh.clusterIndices.constData(),
                 mesh.clusterIndices.size() * sizeof(glm::vec4));
             networkMesh.vertexBuffer.write(clusterWeightsOffset, mesh.clusterWeights.constData(),
-                mesh.clusterWeights.size() * sizeof(glm::vec4));
-            
-        } else {
-            int colorsOffset = mesh.tangents.size() * sizeof(glm::vec3);
-            int texCoordsOffset = colorsOffset + mesh.colors.size() * sizeof(glm::vec3);
-            networkMesh.vertexBuffer.allocate(texCoordsOffset + mesh.texCoords.size() * sizeof(glm::vec2));
-            networkMesh.vertexBuffer.write(0, mesh.tangents.constData(), mesh.tangents.size() * sizeof(glm::vec3));
-            networkMesh.vertexBuffer.write(colorsOffset, mesh.colors.constData(), mesh.colors.size() * sizeof(glm::vec3));
-            networkMesh.vertexBuffer.write(texCoordsOffset, mesh.texCoords.constData(),
-                mesh.texCoords.size() * sizeof(glm::vec2));
+                mesh.clusterWeights.size() * sizeof(glm::vec4));   
         }
         
         networkMesh.vertexBuffer.release();

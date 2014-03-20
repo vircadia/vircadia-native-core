@@ -23,7 +23,7 @@ public:
         jsonCallbackReceiver(NULL), jsonCallbackMethod(),
         errorCallbackReceiver(NULL), errorCallbackMethod() {};
     
-    bool isEmpty() const { return jsonCallbackReceiver == NULL && errorCallbackReceiver == NULL; }
+    bool isEmpty() const { return !jsonCallbackReceiver && !errorCallbackReceiver; }
     
     QObject* jsonCallbackReceiver;
     QString jsonCallbackMethod;
@@ -39,7 +39,8 @@ public:
     void authenticatedRequest(const QString& path,
                               QNetworkAccessManager::Operation operation = QNetworkAccessManager::GetOperation,
                               const JSONCallbackParameters& callbackParams = JSONCallbackParameters(),
-                              const QByteArray& dataByteArray = QByteArray());
+                              const QByteArray& dataByteArray = QByteArray(),
+                              QHttpMultiPart* dataMultiPart = NULL);
     
     const QUrl& getAuthURL() const { return _authURL; }
     void setAuthURL(const QUrl& authURL);
@@ -52,6 +53,10 @@ public:
     void requestAccessToken(const QString& login, const QString& password);
     
     QString getUsername() const { return _accountInfo.getUsername(); }
+
+    const QString& getXMPPPassword() const { return _accountInfo.getXMPPPassword(); }
+    
+    void destroy() { delete _networkAccessManager; }
     
 public slots:
     void requestFinished();
@@ -73,10 +78,12 @@ private:
     void operator=(AccountManager const& other); // not implemented
     
     Q_INVOKABLE void invokedRequest(const QString& path, QNetworkAccessManager::Operation operation,
-                                    const JSONCallbackParameters& callbackParams, const QByteArray& dataByteArray);
+                                    const JSONCallbackParameters& callbackParams,
+                                    const QByteArray& dataByteArray,
+                                    QHttpMultiPart* dataMultiPart);
     
     QUrl _authURL;
-    QNetworkAccessManager _networkAccessManager;
+    QNetworkAccessManager* _networkAccessManager;
     QMap<QNetworkReply*, JSONCallbackParameters> _pendingCallbackMap;
     
     DataServerAccountInfo _accountInfo;

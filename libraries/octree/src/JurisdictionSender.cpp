@@ -19,9 +19,9 @@
 JurisdictionSender::JurisdictionSender(JurisdictionMap* map, NodeType_t type) :
     ReceivedPacketProcessor(),
     _jurisdictionMap(map),
+    _nodeType(type),
     _packetSender(JurisdictionSender::DEFAULT_PACKETS_PER_SECOND)
 {
-    _nodeType = type;
 }
 
 JurisdictionSender::~JurisdictionSender() {
@@ -62,7 +62,7 @@ bool JurisdictionSender::process() {
             _nodesRequestingJurisdictions.pop();
             SharedNodePointer node = NodeList::getInstance()->nodeWithUUID(nodeUUID);
 
-            if (node && node->getActiveSocket() != NULL) {
+            if (node && node->getActiveSocket()) {
                 _packetSender.queuePacketForSending(node, QByteArray(reinterpret_cast<char *>(bufferOut), sizeOut));
                 nodeCount++;
             }

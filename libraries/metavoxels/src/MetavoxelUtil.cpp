@@ -62,7 +62,7 @@ DelegatingItemEditorFactory::DelegatingItemEditorFactory() :
 
 QWidget* DelegatingItemEditorFactory::createEditor(int userType, QWidget* parent) const {
     QWidget* editor = QItemEditorFactory::createEditor(userType, parent);
-    return (editor == NULL) ? _parentFactory->createEditor(userType, parent) : editor;
+    return (!editor) ? _parentFactory->createEditor(userType, parent) : editor;
 }
 
 QByteArray DelegatingItemEditorFactory::valuePropertyName(int userType) const {
@@ -150,6 +150,12 @@ Box::Box(const glm::vec3& minimum, const glm::vec3& maximum) :
     minimum(minimum), maximum(maximum) {
 }
 
+bool Box::contains(const glm::vec3& point) const {
+    return point.x >= minimum.x && point.x <= maximum.x &&
+        point.y >= minimum.y && point.y <= maximum.y &&
+        point.z >= minimum.z && point.z <= maximum.z;
+}
+
 bool Box::contains(const Box& other) const {
     return other.minimum.x >= minimum.x && other.maximum.x <= maximum.x &&
         other.minimum.y >= minimum.y && other.maximum.y <= maximum.y &&
@@ -160,6 +166,137 @@ bool Box::intersects(const Box& other) const {
     return other.maximum.x >= minimum.x && other.minimum.x <= maximum.x &&
         other.maximum.y >= minimum.y && other.minimum.y <= maximum.y &&
         other.maximum.z >= minimum.z && other.minimum.z <= maximum.z;
+}
+
+const int X_MAXIMUM_FLAG = 1;
+const int Y_MAXIMUM_FLAG = 2;
+const int Z_MAXIMUM_FLAG = 4;
+
+glm::vec3 Box::getVertex(int index) const {
+    return glm::vec3(
+        (index & X_MAXIMUM_FLAG) ? maximum.x : minimum.x,
+        (index & Y_MAXIMUM_FLAG) ? maximum.y : minimum.y,
+        (index & Z_MAXIMUM_FLAG) ? maximum.z : minimum.z); 
+}
+
+// finds the intersection between a ray and the facing plane on one axis
+static bool findIntersection(float origin, float direction, float minimum, float maximum, float& distance) {
+    if (direction > EPSILON) {
+        distance = (minimum - origin) / direction;
+        return true;
+    } else if (direction < -EPSILON) {
+        distance = (maximum - origin) / direction;
+        return true;
+    }
+    return false;
+}
+
+// determines whether a value is within the extents
+static bool isWithin(float value, float minimum, float maximum) {
+    return value >= minimum && value <= maximum;
+}
+
+bool Box::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+    // handle the trivial case where the box contains the origin
+    if (contains(origin)) {
+        distance = 0.0f;
+        return true;
+    }
+    // check each axis
+    float axisDistance;
+    if ((findIntersection(origin.x, direction.x, minimum.x, maximum.x, axisDistance) && axisDistance >= 0 &&
+            isWithin(origin.y + axisDistance*direction.y, minimum.y, maximum.y) &&
+            isWithin(origin.z + axisDistance*direction.z, minimum.z, maximum.z))) {
+        distance = axisDistance;
+        return true;
+    }
+    if ((findIntersection(origin.y, direction.y, minimum.y, maximum.y, axisDistance) && axisDistance >= 0 &&
+            isWithin(origin.x + axisDistance*direction.x, minimum.x, maximum.x) &&
+            isWithin(origin.z + axisDistance*direction.z, minimum.z, maximum.z))) {
+        distance = axisDistance;
+        return true;
+    }
+    if ((findIntersection(origin.z, direction.z, minimum.z, maximum.z, axisDistance) && axisDistance >= 0 &&
+            isWithin(origin.y + axisDistance*direction.y, minimum.y, maximum.y) &&
+            isWithin(origin.x + axisDistance*direction.x, minimum.x, maximum.x))) {
+        distance = axisDistance;
+        return true;
+    }
+    return false;
+}
+
+Box operator*(const glm::mat4& matrix, const Box& box) {
+    // start with the constant component
+    Box newBox(glm::vec3(matrix[3][0], matrix[3][1], matrix[3][2]), glm::vec3(matrix[3][0], matrix[3][1], matrix[3][2]));
+
+    // for each element, we choose the minimum or maximum based on the matrix sign
+    if (matrix[0][0] >= 0.0f) {
+        newBox.minimum.x += matrix[0][0] * box.minimum.x;
+        newBox.maximum.x += matrix[0][0] * box.maximum.x;
+    } else {
+        newBox.minimum.x += matrix[0][0] * box.maximum.x;
+        newBox.maximum.x += matrix[0][0] * box.minimum.x;
+    }
+    if (matrix[1][0] >= 0.0f) {
+        newBox.minimum.x += matrix[1][0] * box.minimum.y;
+        newBox.maximum.x += matrix[1][0] * box.maximum.y;
+    } else {
+        newBox.minimum.x += matrix[1][0] * box.maximum.y;
+        newBox.maximum.x += matrix[1][0] * box.minimum.y;
+    }
+    if (matrix[2][0] >= 0.0f) {
+        newBox.minimum.x += matrix[2][0] * box.minimum.z;
+        newBox.maximum.x += matrix[2][0] * box.maximum.z;
+    } else {
+        newBox.minimum.x += matrix[2][0] * box.maximum.z;
+        newBox.maximum.x += matrix[2][0] * box.minimum.z;
+    }
+    
+    if (matrix[0][1] >= 0.0f) {
+        newBox.minimum.y += matrix[0][1] * box.minimum.x;
+        newBox.maximum.y += matrix[0][1] * box.maximum.x;
+    } else {
+        newBox.minimum.y += matrix[0][1] * box.maximum.x;
+        newBox.maximum.y += matrix[0][1] * box.minimum.x;
+    }
+    if (matrix[1][1] >= 0.0f) {
+        newBox.minimum.y += matrix[1][1] * box.minimum.y;
+        newBox.maximum.y += matrix[1][1] * box.maximum.y;
+    } else {
+        newBox.minimum.y += matrix[1][1] * box.maximum.y;
+        newBox.maximum.y += matrix[1][1] * box.minimum.y;
+    }
+    if (matrix[2][1] >= 0.0f) {
+        newBox.minimum.y += matrix[2][1] * box.minimum.z;
+        newBox.maximum.y += matrix[2][1] * box.maximum.z;
+    } else {
+        newBox.minimum.y += matrix[2][1] * box.maximum.z;
+        newBox.maximum.y += matrix[2][1] * box.minimum.z;
+    }
+    
+    if (matrix[0][2] >= 0.0f) {
+        newBox.minimum.z += matrix[0][2] * box.minimum.x;
+        newBox.maximum.z += matrix[0][2] * box.maximum.x;
+    } else {
+        newBox.minimum.z += matrix[0][2] * box.maximum.x;
+        newBox.maximum.z += matrix[0][2] * box.minimum.x;
+    }
+    if (matrix[1][2] >= 0.0f) {
+        newBox.minimum.z += matrix[1][2] * box.minimum.y;
+        newBox.maximum.z += matrix[1][2] * box.maximum.y;
+    } else {
+        newBox.minimum.z += matrix[1][2] * box.maximum.y;
+        newBox.maximum.z += matrix[1][2] * box.minimum.y;
+    }
+    if (matrix[2][2] >= 0.0f) {
+        newBox.minimum.z += matrix[2][2] * box.minimum.z;
+        newBox.maximum.z += matrix[2][2] * box.maximum.z;
+    } else {
+        newBox.minimum.z += matrix[2][2] * box.maximum.z;
+        newBox.maximum.z += matrix[2][2] * box.minimum.z;
+    }
+
+    return newBox;
 }
 
 QMetaObjectEditor::QMetaObjectEditor(QWidget* parent) : QWidget(parent) {

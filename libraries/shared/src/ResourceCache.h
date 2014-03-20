@@ -11,6 +11,7 @@
 
 #include <QHash>
 #include <QList>
+#include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QObject>
 #include <QPointer>
@@ -20,6 +21,7 @@
 
 class QNetworkAccessManager;
 class QNetworkReply;
+class QTimer;
 
 class Resource;
 
@@ -36,8 +38,11 @@ public:
     static int getRequestLimit() { return _requestLimit; }
 
     ResourceCache(QObject* parent = NULL);
+    virtual ~ResourceCache();
 
 protected:
+
+    QMap<int, QSharedPointer<Resource> > _unusedResources;
 
     /// Loads a resource from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable
@@ -50,14 +55,17 @@ protected:
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) = 0;
 
+    void addUnusedResource(const QSharedPointer<Resource>& resource);
+    
     static void attemptRequest(Resource* resource);
     static void requestCompleted();
 
 private:
     
     friend class Resource;
-    
+
     QHash<QUrl, QWeakPointer<Resource> > _resources;
+    int _lastLRUKey;
     
     static QNetworkAccessManager* _networkAccessManager;
     static int _requestLimit;
@@ -73,6 +81,9 @@ public:
     Resource(const QUrl& url, bool delayLoad = false);
     ~Resource();
     
+    /// Returns the key last used to identify this resource in the unused map.
+    int getLRUKey() const { return _lruKey; }
+
     /// Makes sure that the resource has started loading.
     void ensureLoading();
 
@@ -93,36 +104,56 @@ public:
 
     void setSelf(const QWeakPointer<Resource>& self) { _self = self; }
 
+    void setCache(ResourceCache* cache) { _cache = cache; }
+
+    void allReferencesCleared();
+
 protected slots:
 
     void attemptRequest();
 
 protected:
 
+    /// Called when the download has finished.  The recipient should delete the reply when done with it.
     virtual void downloadFinished(QNetworkReply* reply) = 0;
 
     /// Should be called by subclasses when all the loading that will be done has been done.
     Q_INVOKABLE void finishedLoading(bool success);
 
+    /// Reinserts this resource into the cache.
+    virtual void reinsert();
+
+    QUrl _url;
     QNetworkRequest _request;
     bool _startedLoading;
     bool _failedToLoad;
     bool _loaded;
     QHash<QPointer<QObject>, float> _loadPriorities;
     QWeakPointer<Resource> _self;
+    QPointer<ResourceCache> _cache;
     
 private slots:
     
     void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
     void handleReplyError();
+    void handleReplyFinished();
+    void handleReplyTimeout();
 
 private:
     
+    void setLRUKey(int lruKey) { _lruKey = lruKey; }
+    
     void makeRequest();
+    
+    void handleReplyError(QNetworkReply::NetworkError error, QDebug debug);
     
     friend class ResourceCache;
     
+    int _lruKey;
     QNetworkReply* _reply;
+    QTimer* _replyTimer;
+    qint64 _bytesReceived;
+    qint64 _bytesTotal;
     int _attempts;
 };
 

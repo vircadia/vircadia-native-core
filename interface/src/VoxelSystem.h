@@ -14,7 +14,6 @@
 
 #include <SharedUtil.h>
 
-#include <CoverageMapV2.h>
 #include <NodeData.h>
 #include <ViewFrustum.h>
 #include <VoxelTree.h>
@@ -45,7 +44,7 @@ class VoxelSystem : public NodeData, public OctreeElementDeleteHook, public Octr
     friend class VoxelHideShowThread;
 
 public:
-    VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = DEFAULT_MAX_VOXELS_PER_SYSTEM);
+    VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = DEFAULT_MAX_VOXELS_PER_SYSTEM, VoxelTree* tree = NULL);
     ~VoxelSystem();
 
     void setDataSourceUUID(const QUuid& dataSourceUUID) { _dataSourceUUID = dataSourceUUID; }
@@ -53,8 +52,8 @@ public:
 
     int parseData(const QByteArray& packet);
 
+    bool isInitialized() { return _initialized; }
     virtual void init();
-    void simulate(float deltaTime) { }
     void render();
 
     void changeTree(VoxelTree* newTree);
@@ -68,12 +67,7 @@ public:
 
     ViewFrustum* getLastCulledViewFrustum() { return &_lastCulledViewFrustum; }
 
-    void writeToSVOFile(const char* filename, VoxelTreeElement* element) const;
-    bool readFromSVOFile(const char* filename);
-    bool readFromSquareARGB32Pixels(const char* filename);
-    bool readFromSchematicFile(const char* filename);
-
-    void setMaxVoxels(int maxVoxels);
+    void setMaxVoxels(unsigned long maxVoxels);
     long int getMaxVoxels() const { return _maxVoxels; }
     unsigned long getVoxelMemoryUsageRAM() const { return _memoryUsageRAM; }
     unsigned long getVoxelMemoryUsageVBO() const { return _memoryUsageVBO; }
@@ -82,65 +76,24 @@ public:
 
     void killLocalVoxels();
 
-    virtual void removeOutOfView();
     virtual void hideOutOfView(bool forceFullFrustum = false);
     void inspectForOcclusions();
     bool hasViewChanged();
     bool isViewChanging();
 
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                             VoxelDetail& detail, float& distance, BoxFace& face);
-
-    bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration);
-    bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration);
-
-    void deleteVoxelAt(float x, float y, float z, float s);
-    VoxelTreeElement* getVoxelAt(float x, float y, float z, float s) const;
-    void createVoxel(float x, float y, float z, float s,
-                     unsigned char red, unsigned char green, unsigned char blue, bool destructive = false);
-    void createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color, bool destructive = false);
-
-    void copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelSystem* destinationTree, bool rebaseToRoot);
-    void copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelTree* destinationTree, bool rebaseToRoot);
-    void copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelTreeElement* destinationNode);
-
-    void recurseTreeWithOperation(RecurseOctreeOperation operation, void* extraData=NULL);
-
-    CoverageMapV2 myCoverageMapV2;
-    CoverageMap   myCoverageMap;
-
     virtual void elementDeleted(OctreeElement* element);
     virtual void elementUpdated(OctreeElement* element);
-
-    VoxelTreeElement* getVoxelEnclosing(const glm::vec3& point);
-
-signals:
-    void importSize(float x, float y, float z);
-    void importProgress(int progress);
 
 public slots:
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
                         
-    void collectStatsForTreesAndVBOs();
 
     // Methods that recurse tree
-    void showAllLocalVoxels();
-    void randomizeVoxelColors();
-    void falseColorizeRandom();
-    void trueColorize();
-    void falseColorizeInView();
-    void falseColorizeDistanceFromView();
-    void falseColorizeRandomEveryOther();
-    void falseColorizeOccluded();
-    void falseColorizeOccludedV2();
-    void falseColorizeBySource();
     void forceRedrawEntireTree();
     void clearAllNodesBufferIndex();
     void cullSharedFaces();
     void showCulledSharedFaces();
-
-    void cancelImport();
 
     void setDisableFastVoxelPipeline(bool disableFastVoxelPipeline);
     void setUseVoxelShader(bool useVoxelShader);
@@ -154,18 +107,24 @@ protected:
     void setupNewVoxelsForDrawing();
     static const bool DONT_BAIL_EARLY; // by default we will bail early, if you want to force not bailing, then use this
     void setupNewVoxelsForDrawingSingleNode(bool allowBailEarly = true);
+
+    /// called on the hide/show thread to hide any out of view voxels and show any newly in view voxels. 
     void checkForCulling();
+    
+    /// single pass to remove old VBO data and fill it with correct current view, used when switching LOD or needing to force
+    /// a full redraw of everything in view
     void recreateVoxelGeometryInView();
 
     glm::vec3 computeVoxelVertex(const glm::vec3& startVertex, float voxelScale, int index) const;
-
 
     virtual void updateArraysDetails(glBufferIndex nodeIndex, const glm::vec3& startVertex,
                                     float voxelScale, const nodeColor& color);
     virtual void copyWrittenDataSegmentToReadArrays(glBufferIndex segmentStart, glBufferIndex segmentEnd);
     virtual void updateVBOSegment(glBufferIndex segmentStart, glBufferIndex segmentEnd);
-    virtual void applyScaleAndBindProgram(bool texture);
-    virtual void removeScaleAndReleaseProgram(bool texture);
+
+    
+    virtual void applyScaleAndBindProgram(bool texture); /// used in render() to apply shadows and textures
+    virtual void removeScaleAndReleaseProgram(bool texture); /// stop the shaders for shadows and textures
 
 private:
     // disallow copying of VoxelSystem objects
@@ -178,19 +137,6 @@ private:
 
     // Operation functions for tree recursion methods
     static int _nodeCount;
-    static bool randomColorOperation(OctreeElement* element, void* extraData);
-    static bool falseColorizeRandomOperation(OctreeElement* element, void* extraData);
-    static bool trueColorizeOperation(OctreeElement* element, void* extraData);
-    static bool falseColorizeInViewOperation(OctreeElement* element, void* extraData);
-    static bool falseColorizeDistanceFromViewOperation(OctreeElement* element, void* extraData);
-    static bool getDistanceFromViewRangeOperation(OctreeElement* element, void* extraData);
-    static bool removeOutOfViewOperation(OctreeElement* element, void* extraData);
-    static bool falseColorizeRandomEveryOtherOperation(OctreeElement* element, void* extraData);
-    static bool collectStatsForTreesAndVBOsOperation(OctreeElement* element, void* extraData);
-    static bool falseColorizeOccludedOperation(OctreeElement* element, void* extraData);
-    static bool falseColorizeSubTreeOperation(OctreeElement* element, void* extraData);
-    static bool falseColorizeOccludedV2Operation(OctreeElement* element, void* extraData);
-    static bool falseColorizeBySourceOperation(OctreeElement* element, void* extraData);
     static bool killSourceVoxelsOperation(OctreeElement* element, void* extraData);
     static bool forceRedrawEntireTreeOperation(OctreeElement* element, void* extraData);
     static bool clearAllNodesBufferIndexOperation(OctreeElement* element, void* extraData);
@@ -199,7 +145,6 @@ private:
     static bool hideOutOfViewOperation(OctreeElement* element, void* extraData);
     static bool hideAllSubTreeOperation(OctreeElement* element, void* extraData);
     static bool showAllSubTreeOperation(OctreeElement* element, void* extraData);
-    static bool showAllLocalVoxelsOperation(OctreeElement* element, void* extraData);
     static bool getVoxelEnclosingOperation(OctreeElement* element, void* extraData);
     static bool recreateVoxelGeometryInViewOperation(OctreeElement* element, void* extraData);
 
@@ -318,7 +263,7 @@ private:
     bool _usePrimitiveRenderer;                 ///< Flag primitive renderer for use
     PrimitiveRenderer* _renderer;               ///< Voxel renderer
 
-    static const int _sNumOctantsPerHemiVoxel = 4;
+    static const unsigned int _sNumOctantsPerHemiVoxel = 4;
     static int _sCorrectedChildIndex[8];
     static unsigned short _sSwizzledOcclusionBits[64];          ///< Swizzle value of bit pairs of the value of index
     static unsigned char _sOctantIndexToBitMask[8];             ///< Map octant index to partition mask

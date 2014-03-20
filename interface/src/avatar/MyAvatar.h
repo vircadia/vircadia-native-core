@@ -35,7 +35,8 @@ public:
     void simulate(float deltaTime);
     void updateFromGyros(float deltaTime);
 
-    void render(bool forceRenderHead, bool avatarOnly = false);
+    void render(const glm::vec3& cameraPosition, bool forShadowMapOrMirror = false);
+    void renderBody(bool forceRenderHead);
     void renderDebugBodyPoints();
     void renderHeadMouse() const;
 
@@ -44,10 +45,8 @@ public:
     void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
     void setLeanScale(float scale) { _leanScale = scale; }
     void setGravity(glm::vec3 gravity);
-    void setOrientation(const glm::quat& orientation);
     void setMoveTarget(const glm::vec3 moveTarget);
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; }
-    
 
     // getters
     float getSpeed() const { return _speed; }
@@ -55,7 +54,7 @@ public:
     float getLeanScale() const { return _leanScale; }
     float getElapsedTimeStopped() const { return _elapsedTimeStopped; }
     float getElapsedTimeMoving() const { return _elapsedTimeMoving; }
-    float getAbsoluteHeadYaw() const;
+    float getAbsoluteHeadYaw() const;   // degrees
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     glm::vec3 getGravity() const { return _gravity; }
@@ -68,7 +67,7 @@ public:
 
     //  Set what driving keys are being pressed to control thrust levels
     void setDriveKeys(int key, float val) { _driveKeys[key] = val; };
-    bool getDriveKeys(int key) { return _driveKeys[key]; };
+    bool getDriveKeys(int key) { return _driveKeys[key] != 0.f; };
     void jump() { _shouldJump = true; };
     
     bool isMyAvatar() { return true; }
@@ -81,6 +80,8 @@ public:
     void updateLookAtTargetAvatar();
     void clearLookAtTargetAvatar();
     
+    virtual void setJointData(int index, const glm::quat& rotation);
+    virtual void clearJointData(int index);
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 public slots:
@@ -99,8 +100,8 @@ public slots:
 
 private:
     bool _mousePressed;
-    float _bodyPitchDelta;
-    float _bodyRollDelta;
+    float _bodyPitchDelta;  // degrees
+    float _bodyRollDelta;   // degrees
     bool _shouldJump;
     float _driveKeys[MAX_DRIVE_KEYS];
     glm::vec3 _gravity;
@@ -120,7 +121,6 @@ private:
     bool _billboardValid;
 
 	// private methods
-    void renderBody(bool forceRenderHead);
     void updateThrust(float deltaTime);
     void updateHandMovementAndTouching(float deltaTime);
     void updateCollisionWithAvatars(float deltaTime);

@@ -13,46 +13,56 @@ var yawDirection = -1;
 var yaw = 45;
 var yawMax = 70;
 var yawMin = 20;
+var vantagePoint = {x: 5000, y: 500, z: 5000};
 
 var isLocal = false;
 
 // set up our VoxelViewer with a position and orientation
-var orientation = Quat.fromPitchYawRoll(0, yaw, 0);
+var orientation = Quat.fromPitchYawRollDegrees(0, yaw, 0);
+
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
 function init() {
     if (isLocal) {
-        MyAvatar.position = {x: 5000, y: 500, z: 5000};
+        MyAvatar.position = vantagePoint;
         MyAvatar.orientation = orientation;
     } else {
-        VoxelViewer.setPosition({x: 5000, y: 500, z: 5000});
+        VoxelViewer.setPosition(vantagePoint);
         VoxelViewer.setOrientation(orientation);
         VoxelViewer.queryOctree();
         Agent.isAvatar = true;
     }
 }
 
-function keepLooking() {
+function keepLooking(deltaTime) {
     //print("count =" + count);
 
     if (count == 0) {
         init();
     }
     count++;
-    if (count % 10 == 0) {
+    if (count % getRandomInt(5, 15) == 0) {
         yaw += yawDirection;
-        orientation = Quat.fromPitchYawRoll(0, yaw, 0);
+        orientation = Quat.fromPitchYawRollDegrees(0, yaw, 0);
         if (yaw > yawMax || yaw < yawMin) {
             yawDirection = yawDirection * -1;
         }
 
-        print("calling VoxelViewer.queryOctree()... count=" + count + " yaw=" + yaw);
+        if (count % 10000 == 0) {
+            print("calling VoxelViewer.queryOctree()... count=" + count + " yaw=" + yaw);
+        }
 
         if (isLocal) {
             MyAvatar.orientation = orientation;
         } else {
             VoxelViewer.setOrientation(orientation);
             VoxelViewer.queryOctree();
-            print("VoxelViewer.getOctreeElementsCount()=" + VoxelViewer.getOctreeElementsCount());
+            
+            if (count % 10000 == 0) {
+                print("VoxelViewer.getOctreeElementsCount()=" + VoxelViewer.getOctreeElementsCount());
+            }
         }
         
     }
@@ -63,7 +73,7 @@ function scriptEnding() {
 }
 
 // register the call back so it fires before each data send
-Script.willSendVisualDataCallback.connect(keepLooking);
+Script.update.connect(keepLooking);
 
 // register our scriptEnding callback
 Script.scriptEnding.connect(scriptEnding);

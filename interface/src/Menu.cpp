@@ -19,6 +19,7 @@
 #include <QLineEdit>
 #include <QMainWindow>
 #include <QMenuBar>
+#include <QMessageBox>
 #include <QShortcut>
 #include <QSlider>
 #include <QStandardPaths>
@@ -26,6 +27,7 @@
 #include <QWindow>
 
 #include <AccountManager.h>
+#include <XmppClient.h>
 #include <UUID.h>
 
 #include "Application.h"
@@ -34,6 +36,7 @@
 #include "Util.h"
 #include "InfoView.h"
 #include "ui/MetavoxelEditor.h"
+
 
 Menu* Menu::_instance = NULL;
 
@@ -66,7 +69,7 @@ Menu::Menu() :
     _faceshiftEyeDeflection(DEFAULT_FACESHIFT_EYE_DEFLECTION),
     _frustumDrawMode(FRUSTUM_DRAW_MODE_ALL),
     _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET),
-    _voxelStatsDialog(NULL),
+    _octreeStatsDialog(NULL),
     _lodToolsDialog(NULL),
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
     _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
@@ -77,7 +80,7 @@ Menu::Menu() :
     _loginAction(NULL)
 {
     Application *appInstance = Application::getInstance();
-
+    
     QMenu* fileMenu = addMenu("File");
 
 #ifdef Q_OS_MAC
@@ -115,20 +118,28 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::GoToDomain,
                                   Qt::CTRL | Qt::Key_D,
-                                   this,
-                                   SLOT(goToDomainDialog()));
+                                  this,
+                                  SLOT(goToDomainDialog()));
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::GoToLocation,
                                   Qt::CTRL | Qt::SHIFT | Qt::Key_L,
-                                   this,
-                                   SLOT(goToLocation()));
+                                  this,
+                                  SLOT(goToLocation()));
+    addActionToQMenuAndActionHash(fileMenu,
+                                  MenuOption::NameLocation,
+                                  Qt::CTRL | Qt::Key_N,
+                                  this,
+                                  SLOT(nameLocation()));
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::GoTo,
                                   Qt::Key_At,
                                   this,
                                   SLOT(goTo()));
 
-
+    addDisabledActionAndSeparator(fileMenu, "Upload/Browse");
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploaderAvatarHead, 0, Application::getInstance(), SLOT(uploadFST()));
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploaderAvatarSkeleton, 0, Application::getInstance(), SLOT(uploadFST()));
+    
     addDisabledActionAndSeparator(fileMenu, "Settings");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::SettingsImport, 0, this, SLOT(importSettings()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::SettingsExport, 0, this, SLOT(exportSettings()));
@@ -154,13 +165,26 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::Gravity, Qt::SHIFT | Qt::Key_G, false);
 
     
-    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ClickToFly);
+  
 
     addAvatarCollisionSubMenu(editMenu);
 
     QMenu* toolsMenu = addMenu("Tools");
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
 
+    _chatAction = addActionToQMenuAndActionHash(toolsMenu,
+                                                MenuOption::Chat,
+                                                Qt::Key_Return,
+                                                this,
+                                                SLOT(showChat()));
+#ifdef HAVE_QXMPP
+    const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
+    toggleChat();
+    connect(&xmppClient, SIGNAL(connected()), this, SLOT(toggleChat()));
+    connect(&xmppClient, SIGNAL(disconnected()), this, SLOT(toggleChat()));
+#else
+    _chatAction->setEnabled(false);
+#endif
 
     QMenu* viewMenu = addMenu("View");
 
@@ -212,7 +236,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Oscilloscope, 0, true);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Bandwidth, 0, true);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0, this, SLOT(bandwidthDetails()));
-    addActionToQMenuAndActionHash(viewMenu, MenuOption::VoxelStats, 0, this, SLOT(voxelStatsDetails()));
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0, this, SLOT(octreeStatsDetails()));
 
     QMenu* developerMenu = addMenu("Developer");
 
@@ -255,11 +279,16 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu,
-                                           MenuOption::FaceshiftTCP,
+                                           MenuOption::Faceshift,
                                            0,
-                                           false,
+                                           true,
                                            appInstance->getFaceshift(),
                                            SLOT(setTCPEnabled(bool)));
+#ifdef HAVE_VISAGE
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Visage, 0, true,
+        appInstance->getVisage(), SLOT(updateEnabled()));
+#endif
+
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, false);
 
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
@@ -272,7 +301,6 @@ Menu::Menu() :
                                            SLOT(setFilter(bool)));
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHands, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::VoxelDrumming, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::PlaySlaps, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::HandsCollideWithSelf, 0, false);
 
@@ -282,11 +310,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::TestPing, 0, true);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::FrameTimer);
     addActionToQMenuAndActionHash(timingMenu, MenuOption::RunTimingTests, 0, this, SLOT(runTests()));
-    addActionToQMenuAndActionHash(timingMenu,
-                                  MenuOption::TreeStats,
-                                  Qt::SHIFT | Qt::Key_S,
-                                  appInstance->getVoxels(),
-                                  SLOT(collectStatsForTreesAndVBOs()));
 
     QMenu* frustumMenu = developerMenu->addMenu("View Frustum Debugging Tools");
     addCheckableActionToQMenuAndActionHash(frustumMenu, MenuOption::DisplayFrustum, Qt::SHIFT | Qt::Key_F);
@@ -302,62 +325,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::PipelineWarnings, Qt::CTRL | Qt::SHIFT | Qt::Key_P);
     addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::SuppressShortTimings, Qt::CTRL | Qt::SHIFT | Qt::Key_S);
 
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::AutomaticallyAuditTree);
-
-
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::ShowAllLocalVoxels,
-                                  Qt::CTRL | Qt::Key_A,
-                                  appInstance->getVoxels(),
-                                  SLOT(showAllLocalVoxels()));
-
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::KillLocalVoxels,
-                                  Qt::CTRL | Qt::Key_K,
-                                  appInstance, SLOT(doKillLocalVoxels()));
-
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::RandomizeVoxelColors,
-                                  Qt::CTRL | Qt::Key_R,
-                                  appInstance->getVoxels(),
-                                  SLOT(randomizeVoxelColors()));
-
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::FalseColorRandomly,
-                                  0,
-                                  appInstance->getVoxels(),
-                                  SLOT(falseColorizeRandom()));
-
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::FalseColorEveryOtherVoxel,
-                                  0,
-                                  appInstance->getVoxels(),
-                                  SLOT(falseColorizeRandomEveryOther()));
-
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::FalseColorByDistance,
-                                  0,
-                                  appInstance->getVoxels(),
-                                  SLOT(falseColorizeDistanceFromView()));
-
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::FalseColorOutOfView,
-                                  0,
-                                  appInstance->getVoxels(),
-                                  SLOT(falseColorizeInView()));
-
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::FalseColorBySource,
-                                  0,
-                                  appInstance->getVoxels(),
-                                  SLOT(falseColorizeBySource()));
-
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::ShowTrueColors,
-                                  Qt::CTRL | Qt::Key_T,
-                                  appInstance->getVoxels(),
-                                  SLOT(trueColorize()));
-
     addCheckableActionToQMenuAndActionHash(renderDebugMenu, 
                                   MenuOption::CullSharedFaces, 
                                   Qt::CTRL | Qt::SHIFT | Qt::Key_C, 
@@ -371,22 +338,6 @@ Menu::Menu() :
                                   false,
                                   appInstance->getVoxels(),
                                   SLOT(showCulledSharedFaces()));
-
-    addDisabledActionAndSeparator(renderDebugMenu, "Coverage Maps");
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::FalseColorOccluded,
-                                  0,
-                                  appInstance->getVoxels(),
-                                  SLOT(falseColorizeOccluded()));
-
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::FalseColorOccludedV2,
-                                  0,
-                                  appInstance->getVoxels(),
-                                  SLOT(falseColorizeOccludedV2()));
-
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::CoverageMap, Qt::SHIFT | Qt::CTRL | Qt::Key_O);
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::CoverageMapV2, Qt::SHIFT | Qt::CTRL | Qt::Key_P);
 
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio Debugging Tools");
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction,
@@ -418,7 +369,7 @@ Menu::Menu() :
 
 Menu::~Menu() {
     bandwidthDetailsClosed();
-    voxelStatsDetailsClosed();
+    octreeStatsDetailsClosed();
 }
 
 void Menu::loadSettings(QSettings* settings) {
@@ -477,6 +428,7 @@ void Menu::saveSettings(QSettings* settings) {
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
     NodeList::getInstance()->saveData(settings);
+
 }
 
 void Menu::importSettings() {
@@ -587,9 +539,24 @@ void Menu::handleViewFrustumOffsetKeyModifier(int key) {
     }
 }
 
-void Menu::addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName) {
-    destinationMenu->addSeparator();
-    (destinationMenu->addAction(actionName))->setEnabled(false);
+void Menu::addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName, int menuItemLocation) {
+    QAction* actionBefore = NULL;
+    if (menuItemLocation >= 0 && destinationMenu->actions().size() > menuItemLocation) {
+        actionBefore = destinationMenu->actions()[menuItemLocation];
+    }
+    if (actionBefore) {
+        QAction* separator = new QAction("",destinationMenu);
+        destinationMenu->insertAction(actionBefore, separator);
+        separator->setSeparator(true);
+
+        QAction* separatorText = new QAction(actionName,destinationMenu);
+        separatorText->setEnabled(false);
+        destinationMenu->insertAction(actionBefore, separatorText);
+        
+    } else {
+        destinationMenu->addSeparator();
+        (destinationMenu->addAction(actionName))->setEnabled(false);
+    }
 }
 
 QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
@@ -650,11 +617,18 @@ void Menu::removeAction(QMenu* menu, const QString& actionName) {
 }
 
 void Menu::setIsOptionChecked(const QString& menuOption, bool isChecked) {
-    return _actionHash.value(menuOption)->setChecked(isChecked);
+    QAction* menu = _actionHash.value(menuOption);
+    if (menu) {
+        menu->setChecked(isChecked);
+    }
 }
 
 bool Menu::isOptionChecked(const QString& menuOption) {
-    return _actionHash.value(menuOption)->isChecked();
+    QAction* menu = _actionHash.value(menuOption);
+    if (menu) {
+        return menu->isChecked();
+    }
+    return false;
 }
 
 void Menu::triggerOption(const QString& menuOption) {
@@ -754,8 +728,8 @@ void Menu::editPreferences() {
     form->addRow("Faceshift Eye Deflection:", faceshiftEyeDeflection);
 
     QSpinBox* fieldOfView = new QSpinBox();
-    fieldOfView->setMaximum(180);
-    fieldOfView->setMinimum(1);
+    fieldOfView->setMaximum(180.f);
+    fieldOfView->setMinimum(1.f);
     fieldOfView->setValue(_fieldOfView);
     form->addRow("Vertical Field of View (Degrees):", fieldOfView);
 
@@ -898,67 +872,11 @@ void Menu::goToDomainDialog() {
 }
 
 void Menu::goToOrientation(QString orientation) {
-    
-    if (orientation.isEmpty()) {
-        return;
-    }
-    
-    QStringList orientationItems = orientation.split(QRegExp("_|,"), QString::SkipEmptyParts);
-    
-    const int NUMBER_OF_ORIENTATION_ITEMS = 4;
-    const int W_ITEM = 0;
-    const int X_ITEM = 1;
-    const int Y_ITEM = 2;
-    const int Z_ITEM = 3;
-    
-    if (orientationItems.size() == NUMBER_OF_ORIENTATION_ITEMS) {
-        
-        double w = replaceLastOccurrence('-', '.', orientationItems[W_ITEM].trimmed()).toDouble();
-        double x = replaceLastOccurrence('-', '.', orientationItems[X_ITEM].trimmed()).toDouble();
-        double y = replaceLastOccurrence('-', '.', orientationItems[Y_ITEM].trimmed()).toDouble();
-        double z = replaceLastOccurrence('-', '.', orientationItems[Z_ITEM].trimmed()).toDouble();
-        
-        glm::quat newAvatarOrientation(w, x, y, z);
-        
-        MyAvatar* myAvatar = Application::getInstance()->getAvatar();
-        glm::quat avatarOrientation = myAvatar->getOrientation();
-        if (newAvatarOrientation != avatarOrientation) {
-            myAvatar->setOrientation(newAvatarOrientation);
-        }
-    }
+    LocationManager::getInstance().goToDestination(orientation);
 }
 
 bool Menu::goToDestination(QString destination) {
-    
-    QStringList coordinateItems = destination.split(QRegExp("_|,"), QString::SkipEmptyParts);
-    
-    const int NUMBER_OF_COORDINATE_ITEMS = 3;
-    const int X_ITEM = 0;
-    const int Y_ITEM = 1;
-    const int Z_ITEM = 2;
-    if (coordinateItems.size() == NUMBER_OF_COORDINATE_ITEMS) {
-        
-        double x = replaceLastOccurrence('-', '.', coordinateItems[X_ITEM].trimmed()).toDouble();
-        double y = replaceLastOccurrence('-', '.', coordinateItems[Y_ITEM].trimmed()).toDouble();
-        double z = replaceLastOccurrence('-', '.', coordinateItems[Z_ITEM].trimmed()).toDouble();
-        
-        glm::vec3 newAvatarPos(x, y, z);
-        
-        MyAvatar* myAvatar = Application::getInstance()->getAvatar();
-        glm::vec3 avatarPos = myAvatar->getPosition();
-        if (newAvatarPos != avatarPos) {
-            // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-            MyAvatar::sendKillAvatar();
-            
-            qDebug("Going To Location: %f, %f, %f...", x, y, z);
-            myAvatar->setPosition(newAvatarPos);
-        }
-        
-        return true;
-    }
-    
-    // no coordinates were parsed
-    return false;
+    return LocationManager::getInstance().goToDestination(destination);
 }
 
 void Menu::goTo() {
@@ -973,23 +891,31 @@ void Menu::goTo() {
     
     int dialogReturn = gotoDialog.exec();
     if (dialogReturn == QDialog::Accepted && !gotoDialog.textValue().isEmpty()) {
-        
-        destination = gotoDialog.textValue();
-        
-        // go to coordinate destination or to Username
-        if (!goToDestination(destination)) {
-            JSONCallbackParameters callbackParams;
-            callbackParams.jsonCallbackReceiver = Application::getInstance()->getAvatar();
-            callbackParams.jsonCallbackMethod = "goToLocationFromResponse";
-            
-            // there's a username entered by the user, make a request to the data-server for the associated location
-            AccountManager::getInstance().authenticatedRequest("/api/v1/users/" + gotoDialog.textValue() + "/address",
-                                                               QNetworkAccessManager::GetOperation,
-                                                               callbackParams);
-        }
+        LocationManager* manager = &LocationManager::getInstance();
+        manager->goTo(gotoDialog.textValue());
+        connect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
     }
     
     sendFakeEnterEvent();
+}
+
+void Menu::multipleDestinationsDecision(const QJsonObject& userData, const QJsonObject& placeData) {
+    QMessageBox msgBox;
+    msgBox.setText("Both user and location exists with same name");
+    msgBox.setInformativeText("Where you wanna go?");
+    msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Open);
+    msgBox.button(QMessageBox::Ok)->setText("User");
+    msgBox.button(QMessageBox::Open)->setText("Place");
+    int userResponse = msgBox.exec();
+
+    if (userResponse == QMessageBox::Ok) {
+        Application::getInstance()->getAvatar()->goToLocationFromResponse(userData);
+    } else if (userResponse == QMessageBox::Open) {
+        Application::getInstance()->getAvatar()->goToLocationFromResponse(userData);
+    }
+
+    LocationManager* manager = reinterpret_cast<LocationManager*>(sender());
+    disconnect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
 }
 
 void Menu::goToLocation() {
@@ -1012,6 +938,69 @@ void Menu::goToLocation() {
     }
 
     sendFakeEnterEvent();
+}
+
+void Menu::namedLocationCreated(LocationManager::NamedLocationCreateResponse response) {
+
+    if (response == LocationManager::Created) {
+        return;
+    }
+
+    QMessageBox msgBox;
+    switch (response) {
+        case LocationManager::AlreadyExists:
+            msgBox.setText("That name has been already claimed, try something else.");
+            break;
+        default:
+            msgBox.setText("An unexpected error has occurred, please try again later.");
+            break;
+    }
+
+    msgBox.exec();
+}
+
+void Menu::nameLocation() {
+    // check if user is logged in or show login dialog if not
+
+    AccountManager& accountManager = AccountManager::getInstance();
+    if (!accountManager.isLoggedIn()) {
+        QMessageBox msgBox;
+        msgBox.setText("We need to tie this location to your username.");
+        msgBox.setInformativeText("Please login first, then try naming the location again.");
+        msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+        msgBox.button(QMessageBox::Ok)->setText("Login");
+        if (msgBox.exec() == QMessageBox::Ok) {
+            loginForCurrentDomain();
+        }
+
+        return;
+    }
+
+    QInputDialog nameDialog(Application::getInstance()->getWindow());
+    nameDialog.setWindowTitle("Name this location");
+    nameDialog.setLabelText("Name this location, then share that name with others.\n"
+                            "When they come here, they'll be in the same location and orientation\n"
+                            "(wherever you are standing and looking now) as you.\n\n"
+                            "Location name:");
+
+    nameDialog.setWindowFlags(Qt::Sheet);
+    nameDialog.resize((int) (nameDialog.parentWidget()->size().width() * 0.30), nameDialog.size().height());
+
+    if (nameDialog.exec() == QDialog::Accepted) {
+
+        QString locationName = nameDialog.textValue().trimmed();
+        if (locationName.isEmpty()) {
+            return;
+        }
+
+        MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+        LocationManager* manager = new LocationManager();
+        connect(manager, &LocationManager::creationCompleted, this, &Menu::namedLocationCreated);
+        NamedLocation* location = new NamedLocation(locationName,
+                                                    myAvatar->getPosition(), myAvatar->getOrientation(),
+                                                    NodeList::getInstance()->getDomainInfo().getHostname());
+        manager->createNamedLocation(location);
+    }
 }
 
 void Menu::pasteToVoxel() {
@@ -1076,6 +1065,26 @@ void Menu::showMetavoxelEditor() {
     _MetavoxelEditor->raise();
 }
 
+void Menu::showChat() {
+    if (!_chatWindow) {
+        Application::getInstance()->getWindow()->addDockWidget(Qt::RightDockWidgetArea, _chatWindow = new ChatWindow());
+        
+    } else {
+        if (!_chatWindow->toggleViewAction()->isChecked()) {
+            _chatWindow->toggleViewAction()->trigger();
+        }
+    }
+}
+
+void Menu::toggleChat() {
+#ifdef HAVE_QXMPP
+    _chatAction->setEnabled(XmppClient::getInstance().getXMPPClient().isConnected());
+    if (!_chatAction->isEnabled() && _chatWindow && _chatWindow->toggleViewAction()->isChecked()) {
+        _chatWindow->toggleViewAction()->trigger();
+    }
+#endif
+}
+
 void Menu::audioMuteToggled() {
     QAction *muteAction = _actionHash.value(MenuOption::MuteAudio);
     muteAction->setChecked(Application::getInstance()->getAudio()->getMuted());
@@ -1088,21 +1097,55 @@ void Menu::bandwidthDetailsClosed() {
     }
 }
 
-void Menu::voxelStatsDetails() {
-    if (!_voxelStatsDialog) {
-        _voxelStatsDialog = new VoxelStatsDialog(Application::getInstance()->getGLWidget(),
+void Menu::octreeStatsDetails() {
+    if (!_octreeStatsDialog) {
+        _octreeStatsDialog = new OctreeStatsDialog(Application::getInstance()->getGLWidget(),
                                                  Application::getInstance()->getOcteeSceneStats());
-        connect(_voxelStatsDialog, SIGNAL(closed()), SLOT(voxelStatsDetailsClosed()));
-        _voxelStatsDialog->show();
+        connect(_octreeStatsDialog, SIGNAL(closed()), SLOT(octreeStatsDetailsClosed()));
+        _octreeStatsDialog->show();
     }
-    _voxelStatsDialog->raise();
+    _octreeStatsDialog->raise();
 }
 
-void Menu::voxelStatsDetailsClosed() {
-    if (_voxelStatsDialog) {
-        delete _voxelStatsDialog;
-        _voxelStatsDialog = NULL;
+void Menu::octreeStatsDetailsClosed() {
+    if (_octreeStatsDialog) {
+        delete _octreeStatsDialog;
+        _octreeStatsDialog = NULL;
     }
+}
+
+QString Menu::getLODFeedbackText() {
+    // determine granularity feedback
+    int boundaryLevelAdjust = getBoundaryLevelAdjust();
+    QString granularityFeedback;
+
+    switch (boundaryLevelAdjust) {
+        case 0: {
+            granularityFeedback = QString("at standard granularity.");
+        } break;
+        case 1: {
+            granularityFeedback = QString("at half of standard granularity.");
+        } break;
+        case 2: {
+            granularityFeedback = QString("at a third of standard granularity.");
+        } break;
+        default: {
+            granularityFeedback = QString("at 1/%1th of standard granularity.").arg(boundaryLevelAdjust + 1);
+        } break;
+    }
+
+    // distance feedback    
+    float voxelSizeScale = getVoxelSizeScale();
+    float relativeToDefault = voxelSizeScale / DEFAULT_OCTREE_SIZE_SCALE;
+    QString result;
+    if (relativeToDefault > 1.01) {
+        result = QString("%1 further %2").arg(relativeToDefault,8,'f',2).arg(granularityFeedback);
+    } else if (relativeToDefault > 0.99) {
+            result = QString("the default distance %1").arg(granularityFeedback);
+    } else {
+        result = QString("%1 of default %2").arg(relativeToDefault,8,'f',3).arg(granularityFeedback);
+    }
+    return result;
 }
 
 void Menu::autoAdjustLOD(float currentFPS) {
@@ -1226,17 +1269,6 @@ void Menu::addAvatarCollisionSubMenu(QMenu* overMenu) {
             0, true, avatar, SLOT(updateCollisionFlags()));
 }
 
-QString Menu::replaceLastOccurrence(QChar search, QChar replace, QString string) {
-    int lastIndex;
-    lastIndex = string.lastIndexOf(search);
-    if (lastIndex > 0) {
-        lastIndex = string.lastIndexOf(search);
-        string.replace(lastIndex, 1, replace);
-    }
-    
-    return string;
-}
-
 QAction* Menu::getActionFromName(const QString& menuName, QMenu* menu) {
     QList<QAction*> menuActions;
     if (menu) {
@@ -1317,6 +1349,18 @@ int Menu::findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem) {
     return UNSPECIFIED_POSITION; // not found
 }
 
+int Menu::positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition) {
+    QList<QAction*> menuActions = menu->actions();
+    if (requestedPosition > 1 && requestedPosition < menuActions.size()) {
+        QAction* beforeRequested = menuActions[requestedPosition - 1];
+        if (beforeRequested->isSeparator()) {
+            requestedPosition--;
+        }
+    }
+    return requestedPosition;
+}
+
+
 QMenu* Menu::addMenu(const QString& menuName) {
     QStringList menuTree = menuName.split(">");
     QMenu* addTo = NULL;
@@ -1362,6 +1406,29 @@ void Menu::addSeparator(const QString& menuName, const QString& separatorName) {
     }
 }
 
+void Menu::removeSeparator(const QString& menuName, const QString& separatorName) {
+    QMenu* menu = getMenu(menuName);
+    bool separatorRemoved = false;
+    if (menu) {
+        int textAt = findPositionOfMenuItem(menu, separatorName);
+        QList<QAction*> menuActions = menu->actions();
+        QAction* separatorText = menuActions[textAt];
+        if (textAt > 0 && textAt < menuActions.size()) {
+            QAction* separatorLine = menuActions[textAt - 1];
+            if (separatorLine) {
+                if (separatorLine->isSeparator()) {
+                    menu->removeAction(separatorText);
+                    menu->removeAction(separatorLine);
+                    separatorRemoved = true;
+                }
+            }
+        }
+    }
+    if (separatorRemoved) {
+        QMenuBar::repaint();
+    }
+}
+
 void Menu::addMenuItem(const MenuItemProperties& properties) {
     QMenu* menuObj = getMenu(properties.menuName);
     if (menuObj) {
@@ -1374,6 +1441,8 @@ void Menu::addMenuItem(const MenuItemProperties& properties) {
         int requestedPosition = properties.position;
         if (requestedPosition == UNSPECIFIED_POSITION && !properties.beforeItem.isEmpty()) {
             requestedPosition = findPositionOfMenuItem(menuObj, properties.beforeItem);
+            // double check that the requested location wasn't a separator label
+            requestedPosition = positionBeforeSeparatorIfNeeded(menuObj, requestedPosition);
         }
         if (requestedPosition == UNSPECIFIED_POSITION && !properties.afterItem.isEmpty()) {
             int afterPosition = findPositionOfMenuItem(menuObj, properties.afterItem);
@@ -1382,9 +1451,11 @@ void Menu::addMenuItem(const MenuItemProperties& properties) {
             }
         }
         
-        QAction* menuItemAction;
-        if (properties.isCheckable) {
-            menuItemAction = addCheckableActionToQMenuAndActionHash(menuObj, properties.menuItemName, 
+        QAction* menuItemAction = NULL;
+        if (properties.isSeparator) {
+            addDisabledActionAndSeparator(menuObj, properties.menuItemName, requestedPosition);
+        } else if (properties.isCheckable) {
+            menuItemAction = addCheckableActionToQMenuAndActionHash(menuObj, properties.menuItemName,
                                     properties.shortcutKeySequence, properties.isChecked, 
                                     MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()), requestedPosition);
         } else {
@@ -1392,7 +1463,7 @@ void Menu::addMenuItem(const MenuItemProperties& properties) {
                                     MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()),
                                     QAction::NoRole, requestedPosition);
         }
-        if (shortcut) {
+        if (shortcut && menuItemAction) {
             connect(shortcut, SIGNAL(activated()), menuItemAction, SLOT(trigger()));
         }
         QMenuBar::repaint();

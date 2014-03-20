@@ -34,15 +34,10 @@
 using namespace std;
 
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
-const float YAW_MAG = 500.0f;
-const float PITCH_MAG = 100.0f;
+const float YAW_SPEED = 500.0f;   // degrees/sec
+const float PITCH_SPEED = 100.0f; // degrees/sec
 const float COLLISION_RADIUS_SCALAR = 1.2f; // pertains to avatar-to-avatar collisions
-const float COLLISION_BODY_FORCE = 30.0f; // pertains to avatar-to-avatar collisions
 const float COLLISION_RADIUS_SCALE = 0.125f;
-const float MOUSE_RAY_TOUCH_RANGE = 0.01f;
-const bool USING_HEAD_LEAN = false;
-const float SKIN_COLOR[] = {1.0f, 0.84f, 0.66f};
-const float DARK_SKIN_COLOR[] = {0.9f, 0.78f, 0.63f};
 
 const float DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
 
@@ -90,6 +85,7 @@ void MyAvatar::reset() {
 
     setVelocity(glm::vec3(0,0,0));
     setThrust(glm::vec3(0,0,0));
+    setOrientation(glm::quat(glm::vec3(0,0,0)));
 }
 
 void MyAvatar::setMoveTarget(const glm::vec3 moveTarget) {
@@ -103,9 +99,8 @@ void MyAvatar::update(float deltaTime) {
     // Update head mouse from faceshift if active
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
     if (faceshift->isActive()) {
-        glm::vec3 headVelocity = faceshift->getHeadAngularVelocity();
-
         // TODO? resurrect headMouse stuff?
+        //glm::vec3 headVelocity = faceshift->getHeadAngularVelocity();
         //// sets how quickly head angular rotation moves the head mouse
         //const float HEADMOUSE_FACESHIFT_YAW_SCALE = 40.f;
         //const float HEADMOUSE_FACESHIFT_PITCH_SCALE = 30.f;
@@ -119,12 +114,13 @@ void MyAvatar::update(float deltaTime) {
 
     Head* head = getHead();
     if (OculusManager::isConnected()) {
-        float yaw, pitch, roll;
+        float yaw, pitch, roll; // these angles will be in radians
         OculusManager::getEulerAngles(yaw, pitch, roll);
 
-        head->setYaw(yaw);
-        head->setPitch(pitch);
-        head->setRoll(roll);
+        // but these euler angles are stored in degrees
+        head->setYaw(yaw * DEGREES_PER_RADIAN);
+        head->setPitch(pitch * DEGREES_PER_RADIAN);
+        head->setRoll(roll * DEGREES_PER_RADIAN);
     }
 
     //  Get audio loudness data from audio input device
@@ -187,7 +183,7 @@ void MyAvatar::simulate(float deltaTime) {
 
         float radius = getSkeletonHeight() * COLLISION_RADIUS_SCALE;
         if (myCamera->getMode() == CAMERA_MODE_FIRST_PERSON && !OculusManager::isConnected()) {
-            radius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.f));
+            radius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cosf(0.5f * RADIANS_PER_DEGREE * myCamera->getFieldOfView()));
             radius *= COLLISION_RADIUS_SCALAR;
         }
 
@@ -207,11 +203,11 @@ void MyAvatar::simulate(float deltaTime) {
 
     // update body yaw by body yaw delta
     orientation = orientation * glm::quat(glm::radians(
-        glm::vec3(_bodyPitchDelta, _bodyYawDelta, _bodyRollDelta) * deltaTime));
+                glm::vec3(_bodyPitchDelta, _bodyYawDelta, _bodyRollDelta) * deltaTime));
     // decay body rotation momentum
 
     const float BODY_SPIN_FRICTION = 7.5f;
-    float bodySpinMomentum = 1.0 - BODY_SPIN_FRICTION * deltaTime;
+    float bodySpinMomentum = 1.f - BODY_SPIN_FRICTION * deltaTime;
     if (bodySpinMomentum < 0.0f) { bodySpinMomentum = 0.0f; }
     _bodyPitchDelta *= bodySpinMomentum;
     _bodyYawDelta *= bodySpinMomentum;
@@ -307,6 +303,13 @@ void MyAvatar::simulate(float deltaTime) {
 
     _skeletonModel.simulate(deltaTime);
 
+    // copy out the skeleton joints from the model
+    _jointData.resize(_skeletonModel.getJointStateCount());
+    for (int i = 0; i < _jointData.size(); i++) {
+        JointData& data = _jointData[i];
+        data.valid = _skeletonModel.getJointState(i, data.rotation);
+    }
+
     Head* head = getHead();
     glm::vec3 headPosition;
     if (!_skeletonModel.getHeadPosition(headPosition)) {
@@ -323,8 +326,6 @@ void MyAvatar::simulate(float deltaTime) {
     maybeUpdateBillboard();
 }
 
-const float MAX_PITCH = 90.0f;
-
 //  Update avatar head rotation with sensor data
 void MyAvatar::updateFromGyros(float deltaTime) {
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
@@ -334,12 +335,12 @@ void MyAvatar::updateFromGyros(float deltaTime) {
     bool trackerActive = false;
     if (faceshift->isActive()) {
         estimatedPosition = faceshift->getHeadTranslation();
-        estimatedRotation = safeEulerAngles(faceshift->getHeadRotation());
+        estimatedRotation = glm::degrees(safeEulerAngles(faceshift->getHeadRotation()));
         trackerActive = true;
     
     } else if (visage->isActive()) {
         estimatedPosition = visage->getHeadTranslation();
-        estimatedRotation = safeEulerAngles(visage->getHeadRotation());
+        estimatedRotation = glm::degrees(safeEulerAngles(visage->getHeadRotation()));
         trackerActive = true;
     }
 
@@ -363,8 +364,9 @@ void MyAvatar::updateFromGyros(float deltaTime) {
         // restore rotation, lean to neutral positions
         const float RESTORE_PERIOD = 1.f;   // seconds
         float restorePercentage = glm::clamp(deltaTime/RESTORE_PERIOD, 0.f, 1.f);
-        head->setYaw(glm::mix(head->getYaw(), 0.0f, restorePercentage));
-        head->setRoll(glm::mix(head->getRoll(), 0.0f, restorePercentage));
+        head->setPitchTweak(glm::mix(head->getPitchTweak(), 0.0f, restorePercentage));
+        head->setYawTweak(glm::mix(head->getYawTweak(), 0.0f, restorePercentage));
+        head->setRollTweak(glm::mix(head->getRollTweak(), 0.0f, restorePercentage));
         head->setLeanSideways(glm::mix(head->getLeanSideways(), 0.0f, restorePercentage));
         head->setLeanForward(glm::mix(head->getLeanForward(), 0.0f, restorePercentage));
         return;
@@ -375,9 +377,9 @@ void MyAvatar::updateFromGyros(float deltaTime) {
     const float AVATAR_HEAD_PITCH_MAGNIFY = 1.0f;
     const float AVATAR_HEAD_YAW_MAGNIFY = 1.0f;
     const float AVATAR_HEAD_ROLL_MAGNIFY = 1.0f;
-    head->tweakPitch(estimatedRotation.x * AVATAR_HEAD_PITCH_MAGNIFY);
-    head->tweakYaw(estimatedRotation.y * AVATAR_HEAD_YAW_MAGNIFY);
-    head->tweakRoll(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
+    head->setPitchTweak(estimatedRotation.x * AVATAR_HEAD_PITCH_MAGNIFY);
+    head->setYawTweak(estimatedRotation.y * AVATAR_HEAD_YAW_MAGNIFY);
+    head->setRollTweak(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
 
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
@@ -422,11 +424,6 @@ void MyAvatar::updateFromGyros(float deltaTime) {
     }
 }
 
-static TextRenderer* textRenderer() {
-    static TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 24, -1, false, TextRenderer::SHADOW_EFFECT);
-    return renderer;
-}
-
 void MyAvatar::renderDebugBodyPoints() {
     glm::vec3 torsoPosition(getPosition());
     glm::vec3 headPosition(getHead()->getEyePosition());
@@ -452,76 +449,21 @@ void MyAvatar::renderDebugBodyPoints() {
 
 
 }
-void MyAvatar::render(bool forceRenderHead, bool avatarOnly) {
+
+// virtual
+void MyAvatar::render(const glm::vec3& cameraPosition, bool forShadowMapOrMirror) {
     // don't render if we've been asked to disable local rendering
     if (!_shouldRender) {
         return; // exit early
     }
-
-    // render body
-    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
-        _skeletonModel.renderCollisionProxies(1.f);
-    }
-    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionProxies)) {
-        _skeletonModel.renderCollisionProxies(1.f);
-    }
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
-        renderBody(forceRenderHead);
-    }
-    setShowDisplayName(!avatarOnly);
-    if (avatarOnly) {
-        return;
-    }
-    renderDisplayName();
-
-    if (!_chatMessage.empty()) {
-        int width = 0;
-        int lastWidth = 0;
-        for (string::iterator it = _chatMessage.begin(); it != _chatMessage.end(); it++) {
-            width += (lastWidth = textRenderer()->computeWidth(*it));
-        }
-        glPushMatrix();
-
-        glm::vec3 chatPosition = getHead()->getEyePosition() + getBodyUpDirection() * CHAT_MESSAGE_HEIGHT * _scale;
-        glTranslatef(chatPosition.x, chatPosition.y, chatPosition.z);
-        glm::quat chatRotation = Application::getInstance()->getCamera()->getRotation();
-        glm::vec3 chatAxis = glm::axis(chatRotation);
-        glRotatef(glm::angle(chatRotation), chatAxis.x, chatAxis.y, chatAxis.z);
-
-
-        glColor3f(0, 0.8f, 0);
-        glRotatef(180, 0, 1, 0);
-        glRotatef(180, 0, 0, 1);
-        glScalef(_scale * CHAT_MESSAGE_SCALE, _scale * CHAT_MESSAGE_SCALE, 1.0f);
-
-        glDisable(GL_LIGHTING);
-        glDepthMask(false);
-        if (_keyState == NO_KEY_DOWN) {
-            textRenderer()->draw(-width / 2.0f, 0, _chatMessage.c_str());
-
-        } else {
-            // rather than using substr and allocating a new string, just replace the last
-            // character with a null, then restore it
-            int lastIndex = _chatMessage.size() - 1;
-            char lastChar = _chatMessage[lastIndex];
-            _chatMessage[lastIndex] = '\0';
-            textRenderer()->draw(-width / 2.0f, 0, _chatMessage.c_str());
-            _chatMessage[lastIndex] = lastChar;
-            glColor3f(0, 1, 0);
-            textRenderer()->draw(width / 2.0f - lastWidth, 0, _chatMessage.c_str() + lastIndex);
-        }
-        glEnable(GL_LIGHTING);
-        glDepthMask(true);
-
-        glPopMatrix();
-    }
+    Avatar::render(cameraPosition, forShadowMapOrMirror);
 }
 
 void MyAvatar::renderHeadMouse() const {
     // TODO? resurrect headMouse stuff?
     /*
     //  Display small target box at center or head mouse target that can also be used to measure LOD
-    glColor3f(1.0, 1.0, 1.0);
+    glColor3f(1.f, 1.f, 1.f);
     glDisable(GL_LINE_SMOOTH);
     const int PIXEL_BOX = 16;
     glBegin(GL_LINES);
@@ -543,7 +485,7 @@ void MyAvatar::renderHeadMouse() const {
         int eyeTargetX = (_glWidget->width() / 2) -  _faceshift.getEstimatedEyeYaw() * EYE_TARGET_PIXELS_PER_DEGREE;
         int eyeTargetY = (_glWidget->height() / 2) -  _faceshift.getEstimatedEyePitch() * EYE_TARGET_PIXELS_PER_DEGREE;
 
-        glColor3f(0.0, 1.0, 1.0);
+        glColor3f(0.f, 1.f, 1.f);
         glDisable(GL_LINE_SMOOTH);
         glBegin(GL_LINES);
         glVertex2f(eyeTargetX - PIXEL_BOX/2, eyeTargetY);
@@ -618,15 +560,15 @@ void MyAvatar::orbit(const glm::vec3& position, int deltaX, int deltaY) {
     // first orbit horizontally
     glm::quat orientation = getOrientation();
     const float ANGULAR_SCALE = 0.5f;
-    glm::quat rotation = glm::angleAxis(deltaX * -ANGULAR_SCALE, orientation * IDENTITY_UP);
+    glm::quat rotation = glm::angleAxis(glm::radians(- deltaX * ANGULAR_SCALE), orientation * IDENTITY_UP);
     setPosition(position + rotation * (getPosition() - position));
     orientation = rotation * orientation;
     setOrientation(orientation);
     
     // then vertically
     float oldPitch = getHead()->getPitch();
-    getHead()->setPitch(oldPitch + deltaY * -ANGULAR_SCALE);
-    rotation = glm::angleAxis(getHead()->getPitch() - oldPitch, orientation * IDENTITY_RIGHT);
+    getHead()->setPitch(oldPitch - deltaY * ANGULAR_SCALE);
+    rotation = glm::angleAxis(glm::radians((getHead()->getPitch() - oldPitch)), orientation * IDENTITY_RIGHT);
 
     setPosition(position + rotation * (getPosition() - position));
 }
@@ -664,6 +606,20 @@ float MyAvatar::getAbsoluteHeadYaw() const {
 
 glm::vec3 MyAvatar::getUprightHeadPosition() const {
     return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, getPelvisToHeadLength(), 0.0f);
+}
+
+void MyAvatar::setJointData(int index, const glm::quat& rotation) {
+    Avatar::setJointData(index, rotation);
+    if (QThread::currentThread() == thread()) {
+        _skeletonModel.setJointState(index, true, rotation);
+    }
+}
+
+void MyAvatar::clearJointData(int index) {
+    Avatar::clearJointData(index);
+    if (QThread::currentThread() == thread()) {
+        _skeletonModel.setJointState(index, false);
+    }
 }
 
 void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
@@ -717,9 +673,9 @@ void MyAvatar::updateThrust(float deltaTime) {
     _thrust -= _driveKeys[LEFT] * _scale * THRUST_MAG_LATERAL * _thrustMultiplier * deltaTime * right;
     _thrust += _driveKeys[UP] * _scale * THRUST_MAG_UP * _thrustMultiplier * deltaTime * up;
     _thrust -= _driveKeys[DOWN] * _scale * THRUST_MAG_DOWN * _thrustMultiplier * deltaTime * up;
-    _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_MAG * deltaTime;
-    _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_MAG * deltaTime;
-    getHead()->setPitch(getHead()->getPitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_MAG * deltaTime);
+    _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_SPEED * deltaTime;
+    _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_SPEED * deltaTime;
+    getHead()->setPitch(getHead()->getPitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
 
     //  If thrust keys are being held down, slowly increase thrust to allow reaching great speeds
     if (_driveKeys[FWD] || _driveKeys[BACK] || _driveKeys[RIGHT] || _driveKeys[LEFT] || _driveKeys[UP] || _driveKeys[DOWN]) {
@@ -810,7 +766,7 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
     const float VOXEL_COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
     float pelvisFloatingHeight = getPelvisFloatingHeight();
-    if (Application::getInstance()->getVoxels()->findCapsulePenetration(
+    if (Application::getInstance()->getVoxelTree()->findCapsulePenetration(
             _position - glm::vec3(0.0f, pelvisFloatingHeight - radius, 0.0f),
             _position + glm::vec3(0.0f, getSkeletonHeight() - pelvisFloatingHeight + radius, 0.0f), radius, penetration)) {
         _lastCollisionPosition = _position;
@@ -923,10 +879,13 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
 
     // HACK: body-body collision uses two coaxial capsules with axes parallel to y-axis
     // TODO: make the collision work without assuming avatar orientation
-    Extents myStaticExtents = _skeletonModel.getStaticExtents();
-    glm::vec3 staticScale = myStaticExtents.maximum - myStaticExtents.minimum;
-    float myCapsuleRadius = 0.25f * (staticScale.x + staticScale.z);
-    float myCapsuleHeight = staticScale.y;
+
+    // TODO: these local variables are not used in the live code, only in the
+    // commented-outTODO code below.
+    //Extents myStaticExtents = _skeletonModel.getStaticExtents();
+    //glm::vec3 staticScale = myStaticExtents.maximum - myStaticExtents.minimum;
+    //float myCapsuleRadius = 0.25f * (staticScale.x + staticScale.z);
+    //float myCapsuleHeight = staticScale.y;
 
     CollisionInfo collisionInfo;
     foreach (const AvatarSharedPointer& avatarPointer, avatars) {
@@ -941,6 +900,11 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
         }
         float theirBoundingRadius = avatar->getBoundingRadius();
         if (distance < myBoundingRadius + theirBoundingRadius) {
+            _skeletonModel.updateShapePositions();
+            Model& headModel = getHead()->getFaceModel();
+            headModel.updateShapePositions();
+
+            /* TODO: Andrew to fix Avatar-Avatar body collisions
             Extents theirStaticExtents = _skeletonModel.getStaticExtents();
             glm::vec3 staticScale = theirStaticExtents.maximum - theirStaticExtents.minimum;
             float theirCapsuleRadius = 0.25f * (staticScale.x + staticScale.z);
@@ -952,6 +916,7 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
                 // move the avatar out by half the penetration
                 setPosition(_position - 0.5f * penetration);
             }
+            */
 
             // collide our hands against them
             getHand()->collideAgainstAvatar(avatar, true);
@@ -1008,7 +973,7 @@ void MyAvatar::updateChatCircle(float deltaTime) {
     const float CIRCLE_INFLUENCE_SCALE = 2.0f;
     const float MIN_RADIUS = 0.3f;
     for (int i = sortedAvatars.size() - 1; i >= 0; i--) {
-        float radius = qMax(MIN_RADIUS, (CIRCUMFERENCE_PER_MEMBER * (i + 2)) / PI_TIMES_TWO);
+        float radius = qMax(MIN_RADIUS, (CIRCUMFERENCE_PER_MEMBER * (i + 2)) / TWO_PI);
         if (glm::distance(_position, sortedAvatars[i].accumulatedCenter) > radius * CIRCLE_INFLUENCE_SCALE) {
             sortedAvatars.remove(i);
         } else {
@@ -1019,7 +984,7 @@ void MyAvatar::updateChatCircle(float deltaTime) {
         return;
     }
     center = sortedAvatars.last().accumulatedCenter;
-    float radius = qMax(MIN_RADIUS, (CIRCUMFERENCE_PER_MEMBER * (sortedAvatars.size() + 1)) / PI_TIMES_TWO);
+    float radius = qMax(MIN_RADIUS, (CIRCUMFERENCE_PER_MEMBER * (sortedAvatars.size() + 1)) / TWO_PI);
 
     // compute the average up vector
     glm::vec3 up = getWorldAlignedOrientation() * IDENTITY_UP;
@@ -1040,18 +1005,18 @@ void MyAvatar::updateChatCircle(float deltaTime) {
     glm::vec3 delta = _position - center;
     glm::vec3 projected = glm::vec3(glm::dot(right, delta), glm::dot(front, delta), 0.0f);
     float myAngle = glm::length(projected) > EPSILON ? atan2f(projected.y, projected.x) : 0.0f;
-    float leftDistance = PI_TIMES_TWO;
-    float rightDistance = PI_TIMES_TWO;
+    float leftDistance = TWO_PI;
+    float rightDistance = TWO_PI;
     foreach (const SortedAvatar& sortedAvatar, sortedAvatars) {
         delta = sortedAvatar.avatar->getPosition() - center;
         projected = glm::vec3(glm::dot(right, delta), glm::dot(front, delta), 0.0f);
         float angle = glm::length(projected) > EPSILON ? atan2f(projected.y, projected.x) : 0.0f;
         if (angle < myAngle) {
             leftDistance = min(myAngle - angle, leftDistance);
-            rightDistance = min(PI_TIMES_TWO - (myAngle - angle), rightDistance);
+            rightDistance = min(TWO_PI - (myAngle - angle), rightDistance);
 
         } else {
-            leftDistance = min(PI_TIMES_TWO - (angle - myAngle), leftDistance);
+            leftDistance = min(TWO_PI - (angle - myAngle), leftDistance);
             rightDistance = min(angle - myAngle, rightDistance);
         }
     }
@@ -1097,13 +1062,6 @@ void MyAvatar::setGravity(glm::vec3 gravity) {
     }
 }
 
-void MyAvatar::setOrientation(const glm::quat& orientation) {
-    glm::vec3 eulerAngles = safeEulerAngles(orientation);
-    _bodyPitch = eulerAngles.x;
-    _bodyYaw = eulerAngles.y;
-    _bodyRoll = eulerAngles.z;
-}
-
 void MyAvatar::goHome() {
     qDebug("Going Home!");
     setPosition(START_LOCATION);
@@ -1140,7 +1098,7 @@ void MyAvatar::updateLocationInDataServer() {
     
     if (accountManager.isLoggedIn()) {
         QString positionString(createByteArray(_position));
-        QString orientationString(createByteArray(safeEulerAngles(getOrientation())));
+        QString orientationString(createByteArray(glm::degrees(safeEulerAngles(getOrientation()))));
         
         // construct the json to put the user's location
         QString locationPutJson = QString() + "{\"address\":{\"position\":\""
@@ -1176,7 +1134,7 @@ void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
         glm::quat newOrientation = glm::quat(glm::radians(glm::vec3(orientationItems[0].toFloat(),
                                                                     orientationItems[1].toFloat(),
                                                                     orientationItems[2].toFloat())))
-            * glm::angleAxis(180.0f, 0.0f, 1.0f, 0.0f);
+            * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
         setOrientation(newOrientation);
         
         // move the user a couple units away

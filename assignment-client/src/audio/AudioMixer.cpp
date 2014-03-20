@@ -6,6 +6,7 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
+#include <mmintrin.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <fstream>
@@ -61,10 +62,9 @@ void attachNewBufferToNode(Node *newNode) {
 }
 
 AudioMixer::AudioMixer(const QByteArray& packet) :
-    ThreadedAssignment(packet),
-    _clientMixBuffer(NETWORK_BUFFER_LENGTH_BYTES_STEREO + numBytesForPacketHeaderGivenPacketType(PacketTypeMixedAudio), 0)
+    ThreadedAssignment(packet)
 {
-    connect(NodeList::getInstance(), &NodeList::uuidChanged, this, &AudioMixer::receivedSessionUUID);
+    
 }
 
 void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,
@@ -73,13 +73,10 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
     float attenuationCoefficient = 1.0f;
     int numSamplesDelay = 0;
     float weakChannelAmplitudeRatio = 1.0f;
-
-    const int PHASE_DELAY_AT_90 = 20;
-
+    
     if (bufferToAdd != listeningNodeBuffer) {
         // if the two buffer pointers do not match then these are different buffers
 
-        glm::vec3 listenerPosition = listeningNodeBuffer->getPosition();
         glm::vec3 relativePosition = bufferToAdd->getPosition() - listeningNodeBuffer->getPosition();
         glm::quat inverseOrientation = glm::inverse(listeningNodeBuffer->getOrientation());
 
@@ -114,7 +111,7 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
                 const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
 
                 float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
-                    (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / 90.0f));
+                    (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / PI_OVER_TWO));
 
                 // multiply the current attenuation coefficient by the calculated off axis coefficient
                 attenuationCoefficient *= offAxisCoefficient;
@@ -148,8 +145,8 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
 
             // figure out the number of samples of delay and the ratio of the amplitude
             // in the weak channel for audio spatialization
-            float sinRatio = fabsf(sinf(glm::radians(bearingRelativeAngleToSource)));
-            numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
+            float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
+            numSamplesDelay = SAMPLE_PHASE_DELAY_AT_90 * sinRatio;
             weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
         }
     }
@@ -157,26 +154,130 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
     // if the bearing relative angle to source is > 0 then the delayed channel is the right one
     int delayedChannelOffset = (bearingRelativeAngleToSource > 0.0f) ? 1 : 0;
     int goodChannelOffset = delayedChannelOffset == 0 ? 1 : 0;
+    
+    const int16_t* nextOutputStart = bufferToAdd->getNextOutput();
+   
+    const int16_t* bufferStart = bufferToAdd->getBuffer();
+    int ringBufferSampleCapacity = bufferToAdd->getSampleCapacity();
 
-    for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 2) {
-        if ((s / 2) < numSamplesDelay) {
-            // pull the earlier sample for the delayed channel
-            int earlierSample = (*bufferToAdd)[(s / 2) - numSamplesDelay] * attenuationCoefficient * weakChannelAmplitudeRatio;
-            _clientSamples[s + delayedChannelOffset] = glm::clamp(_clientSamples[s + delayedChannelOffset] + earlierSample,
-                                                                    MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+    int16_t correctBufferSample[2], delayBufferSample[2];
+    int delayedChannelIndex = 0;
+    
+    const int SINGLE_STEREO_OFFSET = 2;
+    
+    for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 4) {
+        
+        // setup the int16_t variables for the two sample sets
+        correctBufferSample[0] = nextOutputStart[s / 2] * attenuationCoefficient;
+        correctBufferSample[1] = nextOutputStart[(s / 2) + 1] * attenuationCoefficient;
+        
+        delayedChannelIndex = s + (numSamplesDelay * 2) + delayedChannelOffset;
+        
+        delayBufferSample[0] = correctBufferSample[0] * weakChannelAmplitudeRatio;
+        delayBufferSample[1] = correctBufferSample[1] * weakChannelAmplitudeRatio;
+        
+        __m64 bufferSamples = _mm_set_pi16(_clientSamples[s + goodChannelOffset],
+                                           _clientSamples[s + goodChannelOffset + SINGLE_STEREO_OFFSET],
+                                           _clientSamples[delayedChannelIndex],
+                                           _clientSamples[delayedChannelIndex + SINGLE_STEREO_OFFSET]);
+        __m64 addedSamples = _mm_set_pi16(correctBufferSample[0], correctBufferSample[1],
+                                         delayBufferSample[0], delayBufferSample[1]);
+        
+        // perform the MMX add (with saturation) of two correct and delayed samples
+        __m64 mmxResult = _mm_adds_pi16(bufferSamples, addedSamples);
+        int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
+        
+        // assign the results from the result of the mmx arithmetic
+        _clientSamples[s + goodChannelOffset] = shortResults[3];
+        _clientSamples[s + goodChannelOffset + SINGLE_STEREO_OFFSET] = shortResults[2];
+        _clientSamples[delayedChannelIndex] = shortResults[1];
+        _clientSamples[delayedChannelIndex + SINGLE_STEREO_OFFSET] = shortResults[0];
+    }
+    
+    // The following code is pretty gross and redundant, but AFAIK it's the best way to avoid
+    // too many conditionals in handling the delay samples at the beginning of _clientSamples.
+    // Basically we try to take the samples in batches of four, and then handle the remainder
+    // conditionally to get rid of the rest.
+    
+    const int DOUBLE_STEREO_OFFSET = 4;
+    const int TRIPLE_STEREO_OFFSET = 6;
+    
+    if (numSamplesDelay > 0) {
+        // if there was a sample delay for this buffer, we need to pull samples prior to the nextOutput
+        // to stick at the beginning
+        float attenuationAndWeakChannelRatio = attenuationCoefficient * weakChannelAmplitudeRatio;
+        const int16_t* delayNextOutputStart = nextOutputStart - numSamplesDelay;
+        if (delayNextOutputStart < bufferStart) {
+            delayNextOutputStart = bufferStart + ringBufferSampleCapacity - numSamplesDelay;
         }
-
-        // pull the current sample for the good channel
-        int16_t currentSample = (*bufferToAdd)[s / 2] * attenuationCoefficient;
-        _clientSamples[s + goodChannelOffset] = glm::clamp(_clientSamples[s + goodChannelOffset] + currentSample,
-                                                           MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-
-        if ((s / 2) + numSamplesDelay < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-            // place the current sample at the right spot in the delayed channel
-            int16_t clampedSample = glm::clamp((int) (_clientSamples[s + (numSamplesDelay * 2) + delayedChannelOffset]
-                                               + (currentSample * weakChannelAmplitudeRatio)),
-                                               MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-            _clientSamples[s + (numSamplesDelay * 2) + delayedChannelOffset] = clampedSample;
+        
+        int i = 0;
+        
+        while (i + 3 < numSamplesDelay) {
+            // handle the first cases where we can MMX add four samples at once
+            int parentIndex = i * 2;
+            __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset],
+                                               _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset],
+                                               _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset],
+                                               _clientSamples[parentIndex + TRIPLE_STEREO_OFFSET + delayedChannelOffset]);
+            __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio,
+                                            delayNextOutputStart[i + 1] * attenuationAndWeakChannelRatio,
+                                            delayNextOutputStart[i + 2] * attenuationAndWeakChannelRatio,
+                                            delayNextOutputStart[i + 3] * attenuationAndWeakChannelRatio);
+            __m64 mmxResult = _mm_adds_pi16(bufferSamples, addSamples);
+            int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
+            
+            _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
+            _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[2];
+            _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[1];
+            _clientSamples[parentIndex + TRIPLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[0];
+            
+            // push the index
+            i += 4;
+        }
+        
+        int parentIndex = i * 2;
+        
+        if (i + 2 < numSamplesDelay) {
+            // MMX add only three delayed samples
+            
+            __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset],
+                                               _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset],
+                                               _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset],
+                                               0);
+            __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio,
+                                            delayNextOutputStart[i + 1] * attenuationAndWeakChannelRatio,
+                                            delayNextOutputStart[i + 2] * attenuationAndWeakChannelRatio,
+                                            0);
+            __m64 mmxResult = _mm_adds_pi16(bufferSamples, addSamples);
+            int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
+            
+            _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
+            _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[2];
+            _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[1];
+            
+        } else if (i + 1 < numSamplesDelay) {
+            // MMX add two delayed samples
+            __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset],
+                                               _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset], 0, 0);
+            __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio,
+                                            delayNextOutputStart[i + 1] * attenuationAndWeakChannelRatio, 0, 0);
+            
+            __m64 mmxResult = _mm_adds_pi16(bufferSamples, addSamples);
+            int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
+            
+            _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
+            _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[2];
+            
+        } else if (i < numSamplesDelay) {
+            // MMX add a single delayed sample
+            __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset], 0, 0, 0);
+            __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio, 0, 0, 0);
+            
+            __m64 mmxResult = _mm_adds_pi16(bufferSamples, addSamples);
+            int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
+            
+            _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
         }
     }
 }
@@ -185,7 +286,7 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
     AvatarAudioRingBuffer* nodeRingBuffer = ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer();
 
     // zero out the client mix for this node
-    memset(_clientSamples, 0, sizeof(_clientSamples));
+    memset(_clientSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
 
     // loop through all other nodes that have sufficient audio to mix
     foreach (const SharedNodePointer& otherNode, NodeList::getInstance()->getNodeHash()) {
@@ -199,7 +300,8 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
 
                 if ((*otherNode != *node
                      || otherNodeBuffer->shouldLoopbackForNode())
-                    && otherNodeBuffer->willBeAddedToMix()) {
+                    && otherNodeBuffer->willBeAddedToMix()
+                    && otherNodeClientData->getNextOutputLoudness() > 0) {
                     addBufferToMixForListeningNodeWithBuffer(otherNodeBuffer, nodeRingBuffer);
                 }
             }
@@ -219,7 +321,8 @@ void AudioMixer::readPendingDatagrams() {
             PacketType mixerPacketType = packetTypeForPacket(receivedPacket);
             if (mixerPacketType == PacketTypeMicrophoneAudioNoEcho
                 || mixerPacketType == PacketTypeMicrophoneAudioWithEcho
-                || mixerPacketType == PacketTypeInjectAudio) {
+                || mixerPacketType == PacketTypeInjectAudio
+                || mixerPacketType == PacketTypeSilentAudioFrame) {
                 
                 nodeList->findNodeAndUpdateWithDataFromPacket(receivedPacket);
             } else {
@@ -228,10 +331,6 @@ void AudioMixer::readPendingDatagrams() {
             }
         }
     }
-}
-
-void AudioMixer::receivedSessionUUID(const QUuid& sessionUUID) {
-    populatePacketHeader(_clientMixBuffer, PacketTypeMixedAudio);
 }
 
 void AudioMixer::run() {
@@ -248,16 +347,11 @@ void AudioMixer::run() {
     timeval startTime;
 
     gettimeofday(&startTime, NULL);
-
-    int numBytesPacketHeader = numBytesForPacketHeaderGivenPacketType(PacketTypeMixedAudio);
+    
+    char* clientMixBuffer = new char[NETWORK_BUFFER_LENGTH_BYTES_STEREO
+                                     + numBytesForPacketHeaderGivenPacketType(PacketTypeMixedAudio)];
 
     while (!_isFinished) {
-
-        QCoreApplication::processEvents();
-
-        if (_isFinished) {
-            break;
-        }
 
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
@@ -269,9 +363,11 @@ void AudioMixer::run() {
             if (node->getType() == NodeType::Agent && node->getActiveSocket() && node->getLinkedData()
                 && ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer()) {
                 prepareMixForListeningNode(node.data());
+                
+                int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeMixedAudio);
 
-                memcpy(_clientMixBuffer.data() + numBytesPacketHeader, _clientSamples, sizeof(_clientSamples));
-                nodeList->writeDatagram(_clientMixBuffer, node);
+                memcpy(clientMixBuffer + numBytesPacketHeader, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
+                nodeList->writeDatagram(clientMixBuffer, NETWORK_BUFFER_LENGTH_BYTES_STEREO + numBytesPacketHeader, node);
             }
         }
 
@@ -280,6 +376,12 @@ void AudioMixer::run() {
             if (node->getLinkedData()) {
                 ((AudioMixerClientData*) node->getLinkedData())->pushBuffersAfterFrameSend();
             }
+        }
+        
+        QCoreApplication::processEvents();
+        
+        if (_isFinished) {
+            break;
         }
 
         int usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
@@ -291,4 +393,6 @@ void AudioMixer::run() {
         }
 
     }
+    
+    delete[] clientMixBuffer;
 }

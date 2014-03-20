@@ -18,6 +18,8 @@ class AudioScriptingInterface : public QObject {
     Q_OBJECT
 public slots:
     static void playSound(Sound* sound, const AudioInjectorOptions* injectorOptions = NULL);
+    static void startDrumSound(float volume, float frequency, float duration, float decay, 
+                    const AudioInjectorOptions* injectorOptions = NULL);
 
 };
 #endif /* defined(__hifi__AudioScriptingInterface__) */

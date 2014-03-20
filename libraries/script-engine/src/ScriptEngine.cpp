@@ -14,6 +14,7 @@
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
+#include <AudioRingBuffer.h>
 #include <AvatarData.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
@@ -25,9 +26,8 @@
 #include <Sound.h>
 
 #include "MenuItemProperties.h"
+#include "LocalVoxels.h"
 #include "ScriptEngine.h"
-
-const unsigned int VISUAL_DATA_CALLBACK_USECS = (1.0 / 60.0) * 1000 * 1000;
 
 int ScriptEngine::_scriptNumber = 1;
 VoxelsScriptingInterface ScriptEngine::_voxelsScriptingInterface;
@@ -43,22 +43,31 @@ static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* eng
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, const QString& fileNameString,
                            AbstractControllerScriptingInterface* controllerScriptingInterface) :
+
+    _scriptContents(scriptContents),
+    _isFinished(false),
+    _isRunning(false),
+    _isInitialized(false),
+    _engine(),
     _isAvatar(false),
     _avatarIdentityTimer(NULL),
     _avatarBillboardTimer(NULL),
-    _avatarData(NULL)
+    _timerFunctionMap(),
+    _isListeningToAudioStream(false),
+    _avatarSound(NULL),
+    _numAvatarSoundSentBytes(0),
+    _controllerScriptingInterface(controllerScriptingInterface),
+    _avatarData(NULL),
+    _wantMenuItems(wantMenuItems),
+    _scriptMenuName(),
+    _fileNameString(fileNameString),
+    _quatLibrary(),
+    _vec3Library()
 {
-    _scriptContents = scriptContents;
-    _isFinished = false;
-    _isRunning = false;
-    _isInitialized = false;
-    _fileNameString = fileNameString;
-
     QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* scriptMenuName = fileNameAscii.data();
 
     // some clients will use these menu features
-    _wantMenuItems = wantMenuItems;
     if (!fileNameString.isEmpty()) {
         _scriptMenuName = "Stop ";
         _scriptMenuName.append(scriptMenuName);
@@ -68,11 +77,6 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, co
         _scriptMenuName.append(_scriptNumber);
     }
     _scriptNumber++;
-    _controllerScriptingInterface = controllerScriptingInterface;
-}
-
-ScriptEngine::~ScriptEngine() {
-    //printf("ScriptEngine::~ScriptEngine()...\n");
 }
 
 void ScriptEngine::setIsAvatar(bool isAvatar) {
@@ -118,6 +122,7 @@ bool ScriptEngine::setScriptContents(const QString& scriptContents) {
 }
 
 Q_SCRIPT_DECLARE_QMETAOBJECT(AudioInjectorOptions, QObject*)
+Q_SCRIPT_DECLARE_QMETAOBJECT(LocalVoxels, QString)
 
 void ScriptEngine::init() {
     if (_isInitialized) {
@@ -146,6 +151,9 @@ void ScriptEngine::init() {
 
     QScriptValue injectionOptionValue = _engine.scriptValueFromQMetaObject<AudioInjectorOptions>();
     _engine.globalObject().setProperty("AudioInjectionOptions", injectionOptionValue);
+    
+    QScriptValue localVoxelsValue = _engine.scriptValueFromQMetaObject<LocalVoxels>();
+    _engine.globalObject().setProperty("LocalVoxels", localVoxelsValue);
 
     registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &_audioScriptingInterface);
@@ -160,8 +168,8 @@ void ScriptEngine::init() {
     _engine.globalObject().setProperty("TREE_SCALE", treeScaleValue);
 
     // let the VoxelPacketSender know how frequently we plan to call it
-    _voxelsScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
-    _particlesScriptingInterface.getParticlePacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
+    _voxelsScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(SCRIPT_DATA_CALLBACK_USECS);
+    _particlesScriptingInterface.getParticlePacketSender()->setProcessCallIntervalHint(SCRIPT_DATA_CALLBACK_USECS);
 
 }
 
@@ -215,9 +223,11 @@ void ScriptEngine::run() {
     int thisFrame = 0;
     
     NodeList* nodeList = NodeList::getInstance();
+    
+    qint64 lastUpdate = usecTimestampNow();
 
     while (!_isFinished) {
-        int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * VISUAL_DATA_CALLBACK_USECS) - usecTimestampNow();
+        int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * SCRIPT_DATA_CALLBACK_USECS) - usecTimestampNow();
         if (usecToSleep > 0) {
             usleep(usecToSleep);
         }
@@ -253,13 +263,84 @@ void ScriptEngine::run() {
         }
         
         if (_isAvatar && _avatarData) {
+            
+            const int SCRIPT_AUDIO_BUFFER_SAMPLES = floor(((SCRIPT_DATA_CALLBACK_USECS * SAMPLE_RATE) / (1000 * 1000)) + 0.5);
+            const int SCRIPT_AUDIO_BUFFER_BYTES = SCRIPT_AUDIO_BUFFER_SAMPLES * sizeof(int16_t);
+            
             QByteArray avatarPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
             avatarPacket.append(_avatarData->toByteArray());
             
             nodeList->broadcastToNodes(avatarPacket, NodeSet() << NodeType::AvatarMixer);
+            
+            if (_isListeningToAudioStream || _avatarSound) {
+                // if we have an avatar audio stream then send it out to our audio-mixer
+                bool silentFrame = true;
+                
+                int16_t numAvailableSamples = SCRIPT_AUDIO_BUFFER_SAMPLES;
+                const int16_t* nextSoundOutput = NULL;
+                
+                if (_avatarSound) {
+                    
+                    const QByteArray& soundByteArray = _avatarSound->getByteArray();
+                    nextSoundOutput = reinterpret_cast<const int16_t*>(soundByteArray.data()
+                                                                       + _numAvatarSoundSentBytes);
+                    
+                    int numAvailableBytes = (soundByteArray.size() - _numAvatarSoundSentBytes) > SCRIPT_AUDIO_BUFFER_BYTES
+                        ? SCRIPT_AUDIO_BUFFER_BYTES
+                        : soundByteArray.size() - _numAvatarSoundSentBytes;
+                    numAvailableSamples = numAvailableBytes / sizeof(int16_t);
+                    
+                    
+                    // check if the all of the _numAvatarAudioBufferSamples to be sent are silence
+                    for (int i = 0; i < numAvailableSamples; ++i) {
+                        if (nextSoundOutput[i] != 0) {
+                            silentFrame = false;
+                            break;
+                        }
+                    }
+                    
+                    _numAvatarSoundSentBytes += numAvailableBytes;
+                    if (_numAvatarSoundSentBytes == soundByteArray.size()) {
+                        // we're done with this sound object - so set our pointer back to NULL
+                        // and our sent bytes back to zero
+                        _avatarSound = NULL;
+                        _numAvatarSoundSentBytes = 0;
+                    }
+                }
+                
+                QByteArray audioPacket = byteArrayWithPopulatedHeader(silentFrame
+                                                                      ? PacketTypeSilentAudioFrame
+                                                                      : PacketTypeMicrophoneAudioNoEcho);
+                
+                QDataStream packetStream(&audioPacket, QIODevice::Append);
+                
+                // use the orientation and position of this avatar for the source of this audio
+                packetStream.writeRawData(reinterpret_cast<const char*>(&_avatarData->getPosition()), sizeof(glm::vec3));
+                glm::quat headOrientation = _avatarData->getHeadOrientation();
+                packetStream.writeRawData(reinterpret_cast<const char*>(&headOrientation), sizeof(glm::quat));
+                
+                if (silentFrame) {
+                    if (!_isListeningToAudioStream) {
+                        // if we have a silent frame and we're not listening then just send nothing and break out of here
+                        break;
+                    }
+                    
+                    // write the number of silent samples so the audio-mixer can uphold timing
+                    packetStream.writeRawData(reinterpret_cast<const char*>(&SCRIPT_AUDIO_BUFFER_SAMPLES), sizeof(int16_t));
+                } else if (nextSoundOutput) {
+                    // write the raw audio data
+                    packetStream.writeRawData(reinterpret_cast<const char*>(nextSoundOutput),
+                                              numAvailableSamples * sizeof(int16_t));
+                }
+                
+                nodeList->broadcastToNodes(audioPacket, NodeSet() << NodeType::AudioMixer);
+            }
         }
 
-        emit willSendVisualDataCallback();
+        qint64 now = usecTimestampNow();
+        float deltaTime = (float) (now - lastUpdate) / (float) USECS_PER_SECOND;
+        emit update(deltaTime);
+        lastUpdate = now;
 
         if (_engine.hasUncaughtException()) {
             int line = _engine.uncaughtExceptionLineNumber();

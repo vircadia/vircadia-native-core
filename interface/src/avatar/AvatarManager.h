@@ -29,7 +29,7 @@ public:
     MyAvatar* getMyAvatar() { return _myAvatar.data(); }
     
     void updateOtherAvatars(float deltaTime);
-    void renderAvatars(bool forceRenderMyHead, bool selfAvatarOnly = false);
+    void renderAvatars(bool forShadowMapOrMirror = false, bool selfAvatarOnly = false);
     
     void clearOtherAvatars();
 
@@ -45,7 +45,7 @@ private:
     void processKillAvatar(const QByteArray& datagram);
 
     void simulateAvatarFades(float deltaTime);
-    void renderAvatarFades();
+    void renderAvatarFades(const glm::vec3& cameraPosition, bool forShadowMap);
     
     // virtual override
     AvatarHash::iterator erase(const AvatarHash::iterator& iterator);

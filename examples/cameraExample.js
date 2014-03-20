@@ -20,9 +20,8 @@ var joysticksCaptured = false;
 var THRUST_CONTROLLER = 0;
 var VIEW_CONTROLLER = 1;
 
-function checkCamera() {
+function checkCamera(deltaTime) {
     if (Camera.getMode() == "independent") {
-        var deltaTime = 1/60; // approximately our FPS - maybe better to be elapsed time since last call
         var THRUST_MAG_UP = 800.0;
         var THRUST_MAG_DOWN = 300.0;
         var THRUST_MAG_FWD = 500.0;
@@ -75,12 +74,12 @@ function checkCamera() {
         if (yaw < -360) {
             yaw += 360;
         }
-        var orientation = Quat.fromPitchYawRoll(pitch, yaw, roll);
+        var orientation = Quat.fromPitchYawRollDegrees(pitch, yaw, roll);
         Camera.setOrientation(orientation);
     }
 }
 
-Script.willSendVisualDataCallback.connect(checkCamera);
+Script.update.connect(checkCamera);
 
 function mouseMoveEvent(event) {
     print("mouseMoveEvent event.x,y=" + event.x + ", " + event.y);

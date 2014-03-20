@@ -32,6 +32,7 @@ public slots:
     void removeMenu(const QString& menuName);
 
     void addSeparator(const QString& menuName, const QString& separatorName);
+    void removeSeparator(const QString& menuName, const QString& separatorName);
     
     void addMenuItem(const MenuItemProperties& properties);
     void addMenuItem(const QString& menuName, const QString& menuitem, const QString& shortcutKey);

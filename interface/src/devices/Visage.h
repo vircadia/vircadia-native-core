@@ -9,8 +9,6 @@
 #ifndef __interface__Visage__
 #define __interface__Visage__
 
-#include <vector>
-
 #include <QMultiHash>
 #include <QPair>
 #include <QVector>
@@ -24,11 +22,15 @@ namespace VisageSDK {
 }
 
 /// Handles input from the Visage webcam feature tracking software.
-class Visage {
+class Visage : public QObject {
+    Q_OBJECT
+    
 public:
     
     Visage();
-    ~Visage();
+    virtual ~Visage();
+    
+    void init();
     
     bool isActive() const { return _active; }
     
@@ -38,10 +40,14 @@ public:
     float getEstimatedEyePitch() const { return _estimatedEyePitch; }
     float getEstimatedEyeYaw() const { return _estimatedEyeYaw; }
     
-    const std::vector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
+    const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
     
     void update();
     void reset();
+
+public slots:
+
+    void updateEnabled();
     
 private:
 
@@ -51,6 +57,9 @@ private:
     QMultiHash<int, QPair<int, float> > _actionUnitIndexMap; 
 #endif
     
+    void setEnabled(bool enabled);
+    
+    bool _enabled;
     bool _active;
     glm::quat _headRotation;
     glm::vec3 _headTranslation;
@@ -60,7 +69,7 @@ private:
     float _estimatedEyePitch;
     float _estimatedEyeYaw;
     
-    std::vector<float> _blendshapeCoefficients;
+    QVector<float> _blendshapeCoefficients;
 };
 
 #endif /* defined(__interface__Visage__) */

@@ -9,8 +9,6 @@
 #ifndef __interface__Faceshift__
 #define __interface__Faceshift__
 
-#include <vector>
-
 #include <QTcpSocket>
 #include <QUdpSocket>
 
@@ -27,12 +25,17 @@ public:
 
     Faceshift();
 
+    void init();
+
+    bool isConnectedOrConnecting() const; 
+
     bool isActive() const;
 
     const glm::quat& getHeadRotation() const { return _headRotation; }
     const glm::vec3& getHeadAngularVelocity() const { return _headAngularVelocity; }
     const glm::vec3& getHeadTranslation() const { return _headTranslation; }
 
+    // these pitch/yaw angles are in degrees
     float getEyeGazeLeftPitch() const { return _eyeGazeLeftPitch; }
     float getEyeGazeLeftYaw() const { return _eyeGazeLeftYaw; }
     
@@ -42,7 +45,7 @@ public:
     float getEstimatedEyePitch() const { return _estimatedEyePitch; }
     float getEstimatedEyeYaw() const { return _estimatedEyeYaw; }
 
-    const std::vector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
+    const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
 
     float getLeftBlink() const { return getBlendshapeCoefficient(_leftBlinkIndex); }
     float getRightBlink() const { return getBlendshapeCoefficient(_rightBlinkIndex); }
@@ -63,8 +66,12 @@ public:
     void reset();
     
     void updateFakeCoefficients(float leftBlink, float rightBlink, float browUp,
-        float jawOpen, std::vector<float>& coefficients) const;
+        float jawOpen, QVector<float>& coefficients) const;
     
+signals:
+
+    void connectionStateChanged();
+
 public slots:
     
     void setTCPEnabled(bool enabled);
@@ -96,13 +103,13 @@ private:
     glm::vec3 _headAngularVelocity;
     glm::vec3 _headTranslation;
     
+    // degrees
     float _eyeGazeLeftPitch;
     float _eyeGazeLeftYaw;
-    
     float _eyeGazeRightPitch;
     float _eyeGazeRightYaw;
     
-    std::vector<float> _blendshapeCoefficients;
+    QVector<float> _blendshapeCoefficients;
     
     int _leftBlinkIndex;
     int _rightBlinkIndex;
@@ -121,10 +128,12 @@ private:
     
     int _jawOpenIndex;
     
+    // degrees
     float _longTermAverageEyePitch;
     float _longTermAverageEyeYaw;
     bool _longTermAverageInitialized;
     
+    // degrees
     float _estimatedEyePitch;
     float _estimatedEyeYaw;
 };

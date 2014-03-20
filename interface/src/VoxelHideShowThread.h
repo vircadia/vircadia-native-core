@@ -16,6 +16,7 @@
 
 /// Generalized threaded processor for handling received inbound packets. 
 class VoxelHideShowThread : public GenericThread {
+    Q_OBJECT
 public:
 
     VoxelHideShowThread(VoxelSystem* theSystem);

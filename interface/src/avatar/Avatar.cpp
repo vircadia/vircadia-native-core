@@ -31,28 +31,6 @@
 using namespace std;
 
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
-const float YAW_MAG = 500.0f;
-const float MY_HAND_HOLDING_PULL = 0.2f;
-const float YOUR_HAND_HOLDING_PULL = 1.0f;
-const float BODY_SPRING_DEFAULT_TIGHTNESS = 1000.0f;
-const float BODY_SPRING_FORCE = 300.0f;
-const float BODY_SPRING_DECAY = 16.0f;
-const float COLLISION_RADIUS_SCALAR = 1.2f; // pertains to avatar-to-avatar collisions
-const float COLLISION_BODY_FORCE = 30.0f; // pertains to avatar-to-avatar collisions
-const float HEAD_ROTATION_SCALE = 0.70f;
-const float HEAD_ROLL_SCALE = 0.40f;
-const float HEAD_MAX_PITCH = 45;
-const float HEAD_MIN_PITCH = -45;
-const float HEAD_MAX_YAW = 85;
-const float HEAD_MIN_YAW = -85;
-const float AVATAR_BRAKING_STRENGTH = 40.0f;
-const float MOUSE_RAY_TOUCH_RANGE = 0.01f;
-const float FLOATING_HEIGHT = 0.13f;
-const bool  USING_HEAD_LEAN = false;
-const float LEAN_SENSITIVITY = 0.15f;
-const float LEAN_MAX = 0.45f;
-const float LEAN_AVERAGING = 10.0f;
-const float HEAD_RATE_MAX = 50.f;
 const int   NUM_BODY_CONE_SIDES = 9;
 const float CHAT_MESSAGE_SCALE = 0.0015f;
 const float CHAT_MESSAGE_HEIGHT = 0.1f;
@@ -78,7 +56,8 @@ Avatar::Avatar() :
     _owningAvatarMixer(),
     _collisionFlags(0),
     _initialized(false),
-    _shouldRenderBillboard(true)
+    _shouldRenderBillboard(true),
+    _modelsDirty(true)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -112,7 +91,8 @@ glm::quat Avatar::getWorldAlignedOrientation () const {
 }
 
 float Avatar::getLODDistance() const {
-    return glm::distance(Application::getInstance()->getCamera()->getPosition(), _position) / _scale;
+    return Menu::getInstance()->getAvatarLODDistanceMultiplier() *
+        glm::distance(Application::getInstance()->getCamera()->getPosition(), _position) / _scale;
 }
 
 void Avatar::simulate(float deltaTime) {
@@ -130,15 +110,24 @@ void Avatar::simulate(float deltaTime) {
         _shouldRenderBillboard = true;
     }
 
-    // copy velocity so we can use it later for acceleration
-    glm::vec3 oldVelocity = getVelocity();
-    
+    // simple frustum check
+    float boundingRadius = getBillboardSize();
+    bool inViewFrustum = Application::getInstance()->getViewFrustum()->sphereInFrustum(_position, boundingRadius) !=
+        ViewFrustum::OUTSIDE;
+
     getHand()->simulate(deltaTime, false);
     _skeletonModel.setLODDistance(getLODDistance());
-    _skeletonModel.simulate(deltaTime, _shouldRenderBillboard);
-    glm::vec3 headPosition;
-    if (!_skeletonModel.getHeadPosition(headPosition)) {
-        headPosition = _position;
+    
+    // copy joint data to skeleton
+    for (int i = 0; i < _jointData.size(); i++) {
+        const JointData& data = _jointData.at(i);
+        _skeletonModel.setJointState(i, data.valid, data.rotation);
+    }
+    glm::vec3 headPosition = _position;
+    if (!_shouldRenderBillboard && inViewFrustum) {
+        _skeletonModel.simulate(deltaTime, _modelsDirty);
+        _modelsDirty = false;
+        _skeletonModel.getHeadPosition(headPosition);
     }
     Head* head = getHead();
     head->setPosition(headPosition);
@@ -200,49 +189,63 @@ static TextRenderer* textRenderer(TextRendererType type) {
     return displayNameRenderer;
 }
 
-void Avatar::render() {
-    glm::vec3 toTarget = _position - Application::getInstance()->getAvatar()->getPosition();
-    float lengthToTarget = glm::length(toTarget);
+void Avatar::render(const glm::vec3& cameraPosition, bool forShadowMap) {
+    // simple frustum check
+    float boundingRadius = getBillboardSize();
+    if (Application::getInstance()->getViewFrustum()->sphereInFrustum(cameraPosition, boundingRadius) == ViewFrustum::OUTSIDE) {
+        return;
+    }
+
+    glm::vec3 toTarget = cameraPosition - Application::getInstance()->getAvatar()->getPosition();
+    float distanceToTarget = glm::length(toTarget);
    
     {
-        // glow when moving in the distance
-        
-        const float GLOW_DISTANCE = 5.0f;
-        Glower glower(_moving && lengthToTarget > GLOW_DISTANCE ? 1.0f : 0.0f);
+        // glow when moving far away
+        const float GLOW_DISTANCE = 20.0f;
+        Glower glower(_moving && distanceToTarget > GLOW_DISTANCE && !forShadowMap ? 1.0f : 0.0f);
 
         // render body
+        if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
+            renderBody(forShadowMap);
+        }
         if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
             _skeletonModel.renderCollisionProxies(0.7f);
         }
         if (Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionProxies)) {
             getHead()->getFaceModel().renderCollisionProxies(0.7f);
         }
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
-            renderBody();
-        }
 
-        // render voice intensity sphere for avatars that are farther away
-        const float MAX_SPHERE_ANGLE = 10.f;
-        const float MIN_SPHERE_ANGLE = 1.f;
-        const float MIN_SPHERE_SIZE = 0.01f;
-        const float SPHERE_LOUDNESS_SCALING = 0.0005f;
-        const float SPHERE_COLOR[] = { 0.5f, 0.8f, 0.8f };
-        float height = getSkeletonHeight();
-        glm::vec3 delta = height * (getHead()->getCameraOrientation() * IDENTITY_UP) / 2.f;
-        float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
-        float sphereRadius = getHead()->getAverageLoudness() * SPHERE_LOUDNESS_SCALING;
-        
-        if ((sphereRadius > MIN_SPHERE_SIZE) && (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
-            glColor4f(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.f - angle / MAX_SPHERE_ANGLE);
-            glPushMatrix();
-            glTranslatef(_position.x, _position.y, _position.z);
-            glScalef(height, height, height);
-            glutSolidSphere(sphereRadius, 15, 15);
-            glPopMatrix();
+        // quick check before falling into the code below:
+        // (a 10 degree breadth of an almost 2 meter avatar kicks in at about 12m)
+        const float MIN_VOICE_SPHERE_DISTANCE = 12.f;
+        if (distanceToTarget > MIN_VOICE_SPHERE_DISTANCE) {
+            // render voice intensity sphere for avatars that are farther away
+            const float MAX_SPHERE_ANGLE = 10.f * RADIANS_PER_DEGREE;
+            const float MIN_SPHERE_ANGLE = 1.f * RADIANS_PER_DEGREE;
+            const float MIN_SPHERE_SIZE = 0.01f;
+            const float SPHERE_LOUDNESS_SCALING = 0.0005f;
+            const float SPHERE_COLOR[] = { 0.5f, 0.8f, 0.8f };
+            float height = getSkeletonHeight();
+            glm::vec3 delta = height * (getHead()->getCameraOrientation() * IDENTITY_UP) / 2.f;
+            float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
+            float sphereRadius = getHead()->getAverageLoudness() * SPHERE_LOUDNESS_SCALING;
+            
+            if (!forShadowMap && (sphereRadius > MIN_SPHERE_SIZE) && (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
+                glColor4f(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.f - angle / MAX_SPHERE_ANGLE);
+                glPushMatrix();
+                glTranslatef(_position.x, _position.y, _position.z);
+                glScalef(height, height, height);
+                glutSolidSphere(sphereRadius, 15, 15);
+                glPopMatrix();
+            }
         }
     }
+
     const float DISPLAYNAME_DISTANCE = 10.0f;
-    setShowDisplayName(lengthToTarget < DISPLAYNAME_DISTANCE);
+    setShowDisplayName(!forShadowMap && distanceToTarget < DISPLAYNAME_DISTANCE);
+    if (forShadowMap) {
+        return;
+    }
     renderDisplayName();
     
     if (!_chatMessage.empty()) {
@@ -257,12 +260,11 @@ void Avatar::render() {
         glTranslatef(chatPosition.x, chatPosition.y, chatPosition.z);
         glm::quat chatRotation = Application::getInstance()->getCamera()->getRotation();
         glm::vec3 chatAxis = glm::axis(chatRotation);
-        glRotatef(glm::angle(chatRotation), chatAxis.x, chatAxis.y, chatAxis.z);
+        glRotatef(glm::degrees(glm::angle(chatRotation)), chatAxis.x, chatAxis.y, chatAxis.z);
         
-        
-        glColor3f(0, 0.8f, 0);
-        glRotatef(180, 0, 1, 0);
-        glRotatef(180, 0, 0, 1);
+        glColor3f(0.f, 0.8f, 0.f);
+        glRotatef(180.f, 0.f, 1.f, 0.f);
+        glRotatef(180.f, 0.f, 0.f, 1.f);
         glScalef(_scale * CHAT_MESSAGE_SCALE, _scale * CHAT_MESSAGE_SCALE, 1.0f);
         
         glDisable(GL_LIGHTING);
@@ -278,7 +280,7 @@ void Avatar::render() {
             _chatMessage[lastIndex] = '\0';
             textRenderer(CHAT)->draw(-width / 2.0f, 0, _chatMessage.c_str());
             _chatMessage[lastIndex] = lastChar;
-            glColor3f(0, 1, 0);
+            glColor3f(0.f, 1.f, 0.f);
             textRenderer(CHAT)->draw(width / 2.0f - lastWidth, 0, _chatMessage.c_str() + lastIndex);
         }
         glEnable(GL_LIGHTING);
@@ -291,12 +293,12 @@ void Avatar::render() {
 glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     glm::quat orientation = getOrientation();
     glm::vec3 currentUp = orientation * IDENTITY_UP;
-    float angle = glm::degrees(acosf(glm::clamp(glm::dot(currentUp, _worldUpDirection), -1.0f, 1.0f)));
+    float angle = acosf(glm::clamp(glm::dot(currentUp, _worldUpDirection), -1.0f, 1.0f));
     if (angle < EPSILON) {
         return glm::quat();
     }
     glm::vec3 axis;
-    if (angle > 179.99f) { // 180 degree rotation; must use another axis
+    if (angle > 179.99f * RADIANS_PER_DEGREE) { // 180 degree rotation; must use another axis
         axis = orientation * IDENTITY_RIGHT;
     } else {
         axis = glm::normalize(glm::cross(currentUp, _worldUpDirection));
@@ -304,13 +306,14 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::renderBody() {    
-    if (_shouldRenderBillboard) {
+void Avatar::renderBody(bool forShadowMap) {    
+    if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
+        // render the billboard until both models are loaded
+        if (forShadowMap) {
+            return;
+        }
         renderBillboard();
         return;
-    }
-    if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
-        return; // wait until both models are loaded
     }
     _skeletonModel.render(1.0f);
     getHead()->render(1.0f);
@@ -348,12 +351,12 @@ void Avatar::renderBillboard() {
     // rotate about vertical to face the camera
     glm::quat rotation = getOrientation();
     glm::vec3 cameraVector = glm::inverse(rotation) * (Application::getInstance()->getCamera()->getPosition() - _position);
-    rotation = rotation * glm::angleAxis(glm::degrees(atan2f(-cameraVector.x, -cameraVector.z)), 0.0f, 1.0f, 0.0f);
+    rotation = rotation * glm::angleAxis(atan2f(-cameraVector.x, -cameraVector.z), glm::vec3(0.0f, 1.0f, 0.0f));
     glm::vec3 axis = glm::axis(rotation);
-    glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+    glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
     
     // compute the size from the billboard camera parameters and scale
-    float size = _scale * BILLBOARD_DISTANCE * tanf(glm::radians(BILLBOARD_FIELD_OF_VIEW / 2.0f));
+    float size = getBillboardSize();
     glScalef(size, size, size);
     
     glColor3f(1.0f, 1.0f, 1.0f);
@@ -378,6 +381,10 @@ void Avatar::renderBillboard() {
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+float Avatar::getBillboardSize() const {
+    return _scale * BILLBOARD_DISTANCE * tanf(glm::radians(BILLBOARD_FIELD_OF_VIEW / 2.0f));
+}
+
 void Avatar::renderDisplayName() {
 
     if (_displayName.isEmpty() || _displayNameAlpha == 0.0f) {
@@ -396,7 +403,7 @@ void Avatar::renderDisplayName() {
     // we need "always facing camera": we must remove the camera rotation from the stack
     glm::quat rotation = Application::getInstance()->getCamera()->getRotation();
     glm::vec3 axis = glm::axis(rotation);
-    glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+    glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
 
     // We need to compute the scale factor such as the text remains with fixed size respect to window coordinates
     // We project a unit vector and check the difference in screen coordinates, to check which is the 
@@ -410,10 +417,10 @@ void Avatar::renderDisplayName() {
     glGetIntegerv(GL_VIEWPORT, viewportMatrix);
     GLdouble result0[3], result1[3];
 
-    glm::dvec3 upVector(modelViewMatrix[1]);
-    
+    // The up vector must be relative to the rotation current rotation matrix:
+    // we set the identity
     glm::dvec3 testPoint0 = glm::dvec3(textPosition);
-    glm::dvec3 testPoint1 = glm::dvec3(textPosition) + upVector;
+    glm::dvec3 testPoint1 = glm::dvec3(textPosition) + glm::dvec3(IDENTITY_UP);
     
     bool success;
     success = gluProject(testPoint0.x, testPoint0.y, testPoint0.z,
@@ -485,10 +492,19 @@ bool Avatar::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
 
 bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
         CollisionList& collisions, int skeletonSkipIndex) {
-    // Temporarily disabling collisions against the skeleton because the collision proxies up
-    // near the neck are bad and prevent the hand from hitting the face.
-    //return _skeletonModel.findSphereCollisions(penetratorCenter, penetratorRadius, collisions, 1.0f, skeletonSkipIndex);
-    return getHead()->getFaceModel().findSphereCollisions(penetratorCenter, penetratorRadius, collisions);
+    return _skeletonModel.findSphereCollisions(penetratorCenter, penetratorRadius, collisions, skeletonSkipIndex);
+    // Temporarily disabling collisions against the head because most of its collision proxies are bad.
+    //return getHead()->getFaceModel().findSphereCollisions(penetratorCenter, penetratorRadius, collisions);
+}
+
+bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& collisions) {
+    _skeletonModel.updateShapePositions();
+    bool collided = _skeletonModel.findCollisions(shapes, collisions);
+
+    Model& headModel = getHead()->getFaceModel();
+    headModel.updateShapePositions();
+    collided = headModel.findCollisions(shapes, collisions);
+    return collided;
 }
 
 bool Avatar::findParticleCollisions(const glm::vec3& particleCenter, float particleRadius, CollisionList& collisions) {
@@ -564,15 +580,44 @@ bool Avatar::findParticleCollisions(const glm::vec3& particleCenter, float parti
     return collided;
 }
 
+glm::quat Avatar::getJointRotation(int index) const {
+    if (QThread::currentThread() != thread()) {
+        return AvatarData::getJointRotation(index);
+    }
+    glm::quat rotation;
+    _skeletonModel.getJointState(index, rotation);
+    return rotation;
+}
+
+int Avatar::getJointIndex(const QString& name) const {
+    if (QThread::currentThread() != thread()) {
+        int result;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointIndex", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(int, result), Q_ARG(const QString&, name));
+        return result;
+    }
+    return _skeletonModel.isActive() ? _skeletonModel.getGeometry()->getFBXGeometry().getJointIndex(name) : -1;
+}
+
+QStringList Avatar::getJointNames() const {
+    if (QThread::currentThread() != thread()) {
+        QStringList result;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointNames", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(QStringList, result));
+        return result;
+    }
+    return _skeletonModel.isActive() ? _skeletonModel.getGeometry()->getFBXGeometry().getJointNames() : QStringList();
+}
+
 void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
-    const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_head.fst");
+    const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile(Application::resourcesPath() + "meshes/defaultAvatar_head.fst");
     getHead()->getFaceModel().setURL(_faceModelURL, DEFAULT_FACE_MODEL_URL, true, !isMyAvatar());
 }
 
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
-    const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_body.fst");
+    const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile(Application::resourcesPath() + "meshes/defaultAvatar_body.fst");
     _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
 }
 
@@ -588,14 +633,17 @@ void Avatar::setBillboard(const QByteArray& billboard) {
     _billboardTexture.reset();
 }
 
-int Avatar::parseData(const QByteArray& packet) {
+int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
     // change in position implies movement
     glm::vec3 oldPosition = _position;
     
-    int bytesRead = AvatarData::parseData(packet);
+    int bytesRead = AvatarData::parseDataAtOffset(packet, offset);
     
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, _position) > MOVE_DISTANCE_THRESHOLD;
+    
+    // note that we need to update our models
+    _modelsDirty = true;
     
     return bytesRead;
 }
@@ -616,15 +664,15 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
         glm::vec3 perpCos = glm::normalize(glm::cross(axis, perpSin));
         perpSin = glm::cross(perpCos, axis);
         
-        float anglea = 0.0;
-        float angleb = 0.0;
+        float anglea = 0.f;
+        float angleb = 0.f;
         
         for (int i = 0; i < NUM_BODY_CONE_SIDES; i ++) {
             
             // the rectangles that comprise the sides of the cone section are
             // referenced by "a" and "b" in one dimension, and "1", and "2" in the other dimension.
             anglea = angleb;
-            angleb = ((float)(i+1) / (float)NUM_BODY_CONE_SIDES) * PIf * 2.0f;
+            angleb = ((float)(i+1) / (float)NUM_BODY_CONE_SIDES) * TWO_PI;
             
             float sa = sinf(anglea);
             float sb = sinf(angleb);

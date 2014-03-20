@@ -14,16 +14,32 @@
 #include <PerfStat.h>
 #include "OctreeRenderer.h"
 
-OctreeRenderer::OctreeRenderer() {
-    _tree = NULL;
-    _viewFrustum = NULL;
+OctreeRenderer::OctreeRenderer() :
+    _tree(NULL),
+    _managedTree(false),
+    _viewFrustum(NULL)
+{
 }
 
 void OctreeRenderer::init() {
-    _tree = createTree();
+    if (!_tree) {
+        _tree = createTree();
+        _managedTree = true;
+    }
 }
 
 OctreeRenderer::~OctreeRenderer() {
+    if (_tree && _managedTree) {
+        delete _tree;
+    }
+}
+
+void OctreeRenderer::setTree(Octree* newTree) { 
+    if (_tree && _managedTree) {
+        delete _tree;
+        _managedTree = false;
+    }
+    _tree = newTree; 
 }
 
 void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
@@ -41,9 +57,9 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
     bool showTimingDetails = false; // Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showTimingDetails, "OctreeRenderer::processDatagram()",showTimingDetails);
     
-    int packetLength = dataByteArray.size();
+    unsigned int packetLength = dataByteArray.size();
     PacketType command = packetTypeForPacket(dataByteArray);
-    int numBytesPacketHeader = numBytesForPacketHeader(dataByteArray);
+    unsigned int numBytesPacketHeader = numBytesForPacketHeader(dataByteArray);
     QUuid sourceUUID = uuidFromPacketHeader(dataByteArray);
     PacketType expectedType = getExpectedPacketType();
     
@@ -70,11 +86,11 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
         int flightTime = arrivedAt - sentAt + clockSkew;
 
         OCTREE_PACKET_INTERNAL_SECTION_SIZE sectionLength = 0;
-        int dataBytes = packetLength - (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE);
+        unsigned int dataBytes = packetLength - (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE);
 
         if (extraDebugging) {
             qDebug("OctreeRenderer::processDatagram() ... Got Packet Section"
-                   " color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%d",
+                   " color:%s compressed:%s sequence: %u flight:%d usec size:%u data:%u",
                    debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
                    sequence, flightTime, packetLength, dataBytes);
         }
@@ -103,7 +119,7 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
                 packetData.loadFinalizedContent(dataAt, sectionLength);
                 if (extraDebugging) {
                     qDebug("OctreeRenderer::processDatagram() ... Got Packet Section"
-                           " color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%d"
+                           " color:%s compressed:%s sequence: %u flight:%d usec size:%u data:%u"
                            " subsection:%d sectionLength:%d uncompressed:%d",
                            debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
                            sequence, flightTime, packetLength, dataBytes, subsection, sectionLength,

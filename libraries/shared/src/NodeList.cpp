@@ -88,9 +88,18 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
         PacketType mismatchType = packetTypeForPacket(packet);
         int numPacketTypeBytes = numBytesArithmeticCodingFromBuffer(packet.data());
         
-        qDebug() << "Packet version mismatch on" << packetTypeForPacket(packet) << "- Sender"
+        static QMultiMap<QUuid, PacketType> versionDebugSuppressMap;
+        
+        QUuid senderUUID = uuidFromPacketHeader(packet);
+        if (!versionDebugSuppressMap.contains(senderUUID, checkType)) {
+            qDebug() << "Packet version mismatch on" << packetTypeForPacket(packet) << "- Sender"
             << uuidFromPacketHeader(packet) << "sent" << qPrintable(QString::number(packet[numPacketTypeBytes])) << "but"
             << qPrintable(QString::number(versionForPacketType(mismatchType))) << "expected.";
+            
+            versionDebugSuppressMap.insert(senderUUID, checkType);
+        }
+        
+        return false;
     }
     
     const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
@@ -264,6 +273,13 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             break;
         }
         default:
+            // the node decided not to do anything with this packet
+            // if it comes from a known source we should keep that node alive
+            SharedNodePointer matchingNode = sendingNodeForPacket(packet);
+            if (matchingNode) {
+                matchingNode->setLastHeardMicrostamp(usecTimestampNow());
+            }
+            
             break;
     }
 }
@@ -343,7 +359,7 @@ void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes)
 
 const uint32_t RFC_5389_MAGIC_COOKIE = 0x2112A442;
 const int NUM_BYTES_STUN_HEADER = 20;
-const int NUM_STUN_REQUESTS_BEFORE_FALLBACK = 5;
+const unsigned int NUM_STUN_REQUESTS_BEFORE_FALLBACK = 5;
 
 void NodeList::sendSTUNRequest() {
     const char STUN_SERVER_HOSTNAME[] = "stun.highfidelity.io";
@@ -810,7 +826,7 @@ void NodeList::activateSocketFromNodeCommunication(const QByteArray& packet, con
 
 SharedNodePointer NodeList::soloNodeOfType(char nodeType) {
 
-    if (memchr(SOLO_NODE_TYPES, nodeType, sizeof(SOLO_NODE_TYPES)) != NULL) {
+    if (memchr(SOLO_NODE_TYPES, nodeType, sizeof(SOLO_NODE_TYPES))) {
         foreach (const SharedNodePointer& node, getNodeHash()) {
             if (node->getType() == nodeType) {
                 return node;

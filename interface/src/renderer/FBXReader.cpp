@@ -6,6 +6,7 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <iostream>
 #include <QBuffer>
 #include <QDataStream>
 #include <QIODevice>
@@ -21,12 +22,46 @@
 #include <OctalCode.h>
 
 #include <GeometryUtil.h>
+#include <Shape.h>
 #include <VoxelTree.h>
 
 #include "FBXReader.h"
 #include "Util.h"
 
 using namespace std;
+
+void Extents::reset() {
+    minimum = glm::vec3(FLT_MAX);
+    maximum = glm::vec3(-FLT_MAX);
+}
+
+bool Extents::containsPoint(const glm::vec3& point) const {
+    return (point.x >= minimum.x && point.x <= maximum.x
+        && point.y >= minimum.y && point.y <= maximum.y
+        && point.z >= minimum.z && point.z <= maximum.z);
+}
+
+void Extents::addPoint(const glm::vec3& point) {
+    minimum = glm::min(minimum, point);
+    maximum = glm::max(maximum, point);
+}
+
+QStringList FBXGeometry::getJointNames() const {
+    QStringList names;
+    foreach (const FBXJoint& joint, joints) {
+        names.append(joint.name);
+    }
+    return names;
+}
+
+bool FBXGeometry::hasBlendedMeshes() const {
+    foreach (const FBXMesh& mesh, meshes) {
+        if (!mesh.blendshapes.isEmpty()) {
+            return true;
+        }
+    }
+    return false;
+}
 
 static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
 
@@ -40,7 +75,7 @@ template<class T> QVariant readBinaryArray(QDataStream& in) {
     in >> compressedLength;
 
     QVector<T> values;
-    const int DEFLATE_ENCODING = 1;
+    const unsigned int DEFLATE_ENCODING = 1;
     if (encoding == DEFLATE_ENCODING) {
         // preface encoded data with uncompressed length
         QByteArray compressed(sizeof(quint32) + compressedLength, 0);
@@ -137,7 +172,7 @@ FBXNode parseBinaryFBXNode(QDataStream& in) {
     in >> nameLength;
 
     FBXNode node;
-    const int MIN_VALID_OFFSET = 40;
+    const unsigned int MIN_VALID_OFFSET = 40;
     if (endOffset < MIN_VALID_OFFSET || nameLength == 0) {
         // use a null name to indicate a null node
         return node;
@@ -507,8 +542,8 @@ public:
     glm::quat postRotation;
     glm::mat4 postTransform;
 
-    glm::vec3 rotationMin;
-    glm::vec3 rotationMax;
+    glm::vec3 rotationMin;  // radians
+    glm::vec3 rotationMax;  // radians
 };
 
 glm::mat4 getGlobalTransform(const QMultiHash<QString, QString>& parentMap,
@@ -538,8 +573,9 @@ public:
     FBXBlendshape blendshape;
 };
 
-void printNode(const FBXNode& node, int indent) {
-    QByteArray spaces(indent, ' ');
+void printNode(const FBXNode& node, int indentLevel) {
+    int indentLength = 2;
+    QByteArray spaces(indentLevel * indentLength, ' ');
     QDebug nodeDebug = qDebug();
     
     nodeDebug.nospace() << spaces.data() << node.name.data() << ": ";
@@ -548,7 +584,7 @@ void printNode(const FBXNode& node, int indent) {
     }
     
     foreach (const FBXNode& child, node.children) {
-        printNode(child, indent + 1);
+        printNode(child, indentLevel + 1);
     }
 }
 
@@ -779,7 +815,7 @@ void setTangents(FBXMesh& mesh, int firstIndex, int secondIndex) {
     }
     glm::vec2 texCoordDelta = mesh.texCoords.at(secondIndex) - mesh.texCoords.at(firstIndex);
     mesh.tangents[firstIndex] += glm::cross(glm::angleAxis(
-        -glm::degrees(atan2f(-texCoordDelta.t, texCoordDelta.s)), normal) * glm::normalize(bitangent), normal);
+                - atan2f(-texCoordDelta.t, texCoordDelta.s), normal) * glm::normalize(bitangent), normal);
 }
 
 QVector<int> getIndices(const QVector<QString> ids, QVector<QString> modelIDs) {
@@ -841,6 +877,21 @@ QString getString(const QVariant& value) {
     QVariantList list = value.toList();
     return list.isEmpty() ? value.toString() : list.at(0).toString();
 }
+
+class JointShapeInfo {
+public:
+    JointShapeInfo() : numVertices(0), numProjectedVertices(0), averageVertex(0.f), boneBegin(0.f), averageRadius(0.f) {
+        extents.reset();
+    }
+
+    // NOTE: the points here are in the "joint frame" which has the "jointEnd" at the origin
+    int numVertices;            // num vertices from contributing meshes
+    int numProjectedVertices;   // num vertices that successfully project onto bone axis
+    Extents extents;            // max and min extents of mesh vertices (in joint frame)
+    glm::vec3 averageVertex;    // average of all mesh vertices (in joint frame)
+    glm::vec3 boneBegin;        // parent joint location (in joint frame)
+    float averageRadius;        // average distance from mesh points to averageVertex
+};
 
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
     QHash<QString, ExtractedMesh> meshes;
@@ -958,6 +1009,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         jointRightFingertipIDs[index] = getID(object.properties);
                     }
                     glm::vec3 translation;
+                    // NOTE: the euler angles as supplied by the FBX file are in degrees
                     glm::vec3 rotationOffset;
                     glm::vec3 preRotation, rotation, postRotation;
                     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -1012,7 +1064,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                                     } else if (property.properties.at(0) == "RotationMin") {
                                         rotationMin = getVec3(property.properties, index);
 
-                                    } else if (property.properties.at(0) == "RotationMax") {
+                                    } 
+                                    // NOTE: these rotation limits are stored in degrees (NOT radians)
+                                    else if (property.properties.at(0) == "RotationMax") {
                                         rotationMax = getVec3(property.properties, index);
 
                                     } else if (property.properties.at(0) == "RotationMinX") {
@@ -1062,10 +1116,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     model.postRotation = glm::quat(glm::radians(postRotation));
                     model.postTransform = glm::translate(-rotationPivot) * glm::translate(scalePivot) *
                         glm::scale(scale) * glm::translate(-scalePivot);
-                    model.rotationMin = glm::vec3(rotationMinX ? rotationMin.x : -180.0f,
-                        rotationMinY ? rotationMin.y : -180.0f, rotationMinZ ? rotationMin.z : -180.0f);
-                    model.rotationMax = glm::vec3(rotationMaxX ? rotationMax.x : 180.0f,
-                        rotationMaxY ? rotationMax.y : 180.0f, rotationMaxZ ? rotationMax.z : 180.0f);
+                    // NOTE: anbgles from the FBX file are in degrees
+                    // so we convert them to radians for the FBXModel class
+                    model.rotationMin = glm::radians(glm::vec3(rotationMinX ? rotationMin.x : -180.0f,
+                        rotationMinY ? rotationMin.y : -180.0f, rotationMinZ ? rotationMin.z : -180.0f));
+                    model.rotationMax = glm::radians(glm::vec3(rotationMaxX ? rotationMax.x : 180.0f,
+                        rotationMaxY ? rotationMax.y : 180.0f, rotationMaxZ ? rotationMax.z : 180.0f));
                     models.insert(getID(object.properties), model);
 
                 } else if (object.name == "Texture") {
@@ -1174,8 +1230,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     float offsetScale = mapping.value("scale", 1.0f).toFloat();
     glm::quat offsetRotation = glm::quat(glm::radians(glm::vec3(mapping.value("rx").toFloat(),
             mapping.value("ry").toFloat(), mapping.value("rz").toFloat())));
-    geometry.offset = glm::translate(mapping.value("tx").toFloat(), mapping.value("ty").toFloat(),
-        mapping.value("tz").toFloat()) * glm::mat4_cast(offsetRotation) * glm::scale(offsetScale, offsetScale, offsetScale);
+    geometry.offset = glm::translate(glm::vec3(mapping.value("tx").toFloat(), mapping.value("ty").toFloat(),
+                                               mapping.value("tz").toFloat())) * glm::mat4_cast(offsetRotation) * glm::scale(glm::vec3(offsetScale, offsetScale, offsetScale));
 
     // get the list of models in depth-first traversal order
     QVector<QString> modelIDs;
@@ -1250,9 +1306,15 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         }
         joint.boneRadius = 0.0f;
         joint.inverseBindRotation = joint.inverseDefaultRotation;
+        joint.name = model.name;
+        joint.shapePosition = glm::vec3(0.f);
+        joint.shapeType = Shape::UNKNOWN_SHAPE;
         geometry.joints.append(joint);
         geometry.jointIndices.insert(model.name, geometry.joints.size());
     }
+    // for each joint we allocate a JointShapeInfo in which we'll store collision shape info
+    QVector<JointShapeInfo> jointShapeInfos;
+    jointShapeInfos.resize(geometry.joints.size());
 
     // find our special joints
     geometry.leftEyeJointIndex = modelIDs.indexOf(jointEyeLeftID);
@@ -1274,20 +1336,23 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         geometry.neckPivot = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
     }
 
-    geometry.bindExtents.minimum = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
-    geometry.bindExtents.maximum = glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-    geometry.staticExtents.minimum = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
-    geometry.staticExtents.maximum = glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+    geometry.bindExtents.reset();
+    geometry.staticExtents.reset();
+    geometry.meshExtents.reset();
     
-    QVariantHash springs = mapping.value("spring").toHash();
-    QVariant defaultSpring = springs.value("default");
     for (QHash<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
         ExtractedMesh& extracted = it.value();
 
         // accumulate local transforms
         QString modelID = models.contains(it.key()) ? it.key() : parentMap.value(it.key());
-        extracted.mesh.springiness = springs.value(models.value(modelID).name, defaultSpring).toFloat();
         glm::mat4 modelTransform = getGlobalTransform(parentMap, models, modelID);
+
+        // compute the mesh extents from the transformed vertices
+        foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
+            glm::vec3 transformedVertex = glm::vec3(modelTransform * glm::vec4(vertex, 1.0f));
+            geometry.meshExtents.minimum = glm::min(geometry.meshExtents.minimum, transformedVertex);
+            geometry.meshExtents.maximum = glm::max(geometry.meshExtents.maximum, transformedVertex);
+        }
 
         // look for textures, material properties
         int materialIndex = 0;
@@ -1393,8 +1458,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 
                 // update the bind pose extents
                 glm::vec3 bindTranslation = extractTranslation(geometry.offset * joint.bindTransform);
-                geometry.bindExtents.minimum = glm::min(geometry.bindExtents.minimum, bindTranslation);
-                geometry.bindExtents.maximum = glm::max(geometry.bindExtents.maximum, bindTranslation);
+                geometry.bindExtents.addPoint(bindTranslation);
             }
         }
 
@@ -1407,11 +1471,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 cluster.jointIndex = 0;
             }
             extracted.mesh.clusters.append(cluster);
-            // BUG: joints that fall into this context do not get their bindTransform and
-            // inverseBindRotation data members properly set.  This causes bad boneRadius 
-            // and boneLength calculations for collision proxies.  Affected joints are usually:
-            // hair, teeth, tongue.  I tried to figure out how to fix this but was going
-            // crosseyed trying to understand FBX so I gave up for the time being -- Andrew.
         }
 
         // whether we're skinned depends on how many clusters are attached
@@ -1428,20 +1487,26 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 const FBXCluster& fbxCluster = extracted.mesh.clusters.at(i);
                 int jointIndex = fbxCluster.jointIndex;
                 FBXJoint& joint = geometry.joints[jointIndex];
-                glm::vec3 boneEnd = extractTranslation(inverseModelTransform * joint.bindTransform);
+                glm::mat4 transformJointToMesh = inverseModelTransform * joint.bindTransform;
+                glm::quat rotateMeshToJoint = glm::inverse(extractRotation(transformJointToMesh));
+                glm::vec3 boneEnd = extractTranslation(transformJointToMesh);
+                glm::vec3 boneBegin = boneEnd;
                 glm::vec3 boneDirection;
                 float boneLength;
                 if (joint.parentIndex != -1) {
-                    boneDirection = boneEnd - extractTranslation(inverseModelTransform *
-                        geometry.joints[joint.parentIndex].bindTransform);
+                    boneBegin = extractTranslation(inverseModelTransform * geometry.joints[joint.parentIndex].bindTransform);
+                    boneDirection = boneEnd - boneBegin;
                     boneLength = glm::length(boneDirection);
                     if (boneLength > EPSILON) {
                         boneDirection /= boneLength;
                     }
                 }
+                float radiusScale = extractUniformScale(joint.transform * fbxCluster.inverseBindMatrix);
+                JointShapeInfo& jointShapeInfo = jointShapeInfos[jointIndex];
+                jointShapeInfo.boneBegin = rotateMeshToJoint * (radiusScale * (boneBegin - boneEnd));
+
                 bool jointIsStatic = joint.freeLineage.isEmpty();
                 glm::vec3 jointTranslation = extractTranslation(geometry.offset * joint.bindTransform);
-                float radiusScale = extractUniformScale(joint.transform * fbxCluster.inverseBindMatrix);
                 float totalWeight = 0.0f;
                 for (int j = 0; j < cluster.indices.size(); j++) {
                     int oldIndex = cluster.indices.at(j);
@@ -1455,13 +1520,17 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                             const glm::vec3& vertex = extracted.mesh.vertices.at(it.value());
                             float proj = glm::dot(boneDirection, vertex - boneEnd);
                             if (proj < 0.0f && proj > -boneLength) {
-                                joint.boneRadius = glm::max(joint.boneRadius, radiusScale * glm::distance(
-                                    vertex, boneEnd + boneDirection * proj));
+                                joint.boneRadius = glm::max(joint.boneRadius, 
+                                        radiusScale * glm::distance(vertex, boneEnd + boneDirection * proj));
+                                ++jointShapeInfo.numProjectedVertices;
                             }
+                            glm::vec3 vertexInJointFrame = rotateMeshToJoint * (radiusScale * (vertex - boneEnd));
+                            jointShapeInfo.extents.addPoint(vertexInJointFrame);
+                            jointShapeInfo.averageVertex += vertexInJointFrame;
+                            ++jointShapeInfo.numVertices;
                             if (jointIsStatic) {
                                 // expand the extents of static (nonmovable) joints
-                                geometry.staticExtents.minimum = glm::min(geometry.staticExtents.minimum, vertex + jointTranslation);
-                                geometry.staticExtents.maximum = glm::max(geometry.staticExtents.maximum, vertex + jointTranslation);
+                                geometry.staticExtents.addPoint(vertex + jointTranslation);
                             }
                         }
 
@@ -1484,73 +1553,87 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         } else {
             int jointIndex = maxJointIndex;
             FBXJoint& joint = geometry.joints[jointIndex];
-            glm::vec3 boneEnd = extractTranslation(inverseModelTransform * joint.bindTransform);
+            JointShapeInfo& jointShapeInfo = jointShapeInfos[jointIndex];
+
+            glm::mat4 transformJointToMesh = inverseModelTransform * joint.bindTransform;
+            glm::quat rotateMeshToJoint = glm::inverse(extractRotation(transformJointToMesh));
+            glm::vec3 boneEnd = extractTranslation(transformJointToMesh);
+            glm::vec3 boneBegin = boneEnd;
+
             glm::vec3 boneDirection;
             float boneLength;
             if (joint.parentIndex != -1) {
-                boneDirection = boneEnd - extractTranslation(inverseModelTransform *
-                    geometry.joints[joint.parentIndex].bindTransform);
+                boneBegin = extractTranslation(inverseModelTransform * geometry.joints[joint.parentIndex].bindTransform);
+                boneDirection = boneEnd - boneBegin;
                 boneLength = glm::length(boneDirection);
                 if (boneLength > EPSILON) {
                     boneDirection /= boneLength;
                 }
             }
             float radiusScale = extractUniformScale(joint.transform * firstFBXCluster.inverseBindMatrix);
+            jointShapeInfo.boneBegin = rotateMeshToJoint * (radiusScale * (boneBegin - boneEnd));
+
+            glm::vec3 averageVertex(0.f);
             foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
                 float proj = glm::dot(boneDirection, vertex - boneEnd);
                 if (proj < 0.0f && proj > -boneLength) {
-                    joint.boneRadius = glm::max(joint.boneRadius, radiusScale * glm::distance(
-                        vertex, boneEnd + boneDirection * proj));
+                    joint.boneRadius = glm::max(joint.boneRadius, radiusScale * glm::distance(vertex, boneEnd + boneDirection * proj));
+                    ++jointShapeInfo.numProjectedVertices;
                 }
+                glm::vec3 vertexInJointFrame = rotateMeshToJoint * (radiusScale * (vertex - boneEnd));
+                jointShapeInfo.extents.addPoint(vertexInJointFrame);
+                jointShapeInfo.averageVertex += vertexInJointFrame;
+                averageVertex += vertex;
+            }
+            int numVertices = extracted.mesh.vertices.size();
+            jointShapeInfo.numVertices = numVertices;
+            if (numVertices > 0) {
+                averageVertex /= float(jointShapeInfo.numVertices);
+                float averageRadius = 0.f;
+                foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
+                    averageRadius += glm::distance(vertex, averageVertex);
+                }
+                jointShapeInfo.averageRadius = averageRadius * radiusScale;
             }
         }
         extracted.mesh.isEye = (maxJointIndex == geometry.leftEyeJointIndex || maxJointIndex == geometry.rightEyeJointIndex);
-
-        // extract spring edges, connections if springy
-        if (extracted.mesh.springiness > 0.0f) {
-            QSet<QPair<int, int> > edges;
-
-            extracted.mesh.vertexConnections.resize(extracted.mesh.vertices.size());
-            foreach (const FBXMeshPart& part, extracted.mesh.parts) {
-                for (int i = 0; i < part.quadIndices.size(); i += 4) {
-                    int index0 = part.quadIndices.at(i);
-                    int index1 = part.quadIndices.at(i + 1);
-                    int index2 = part.quadIndices.at(i + 2);
-                    int index3 = part.quadIndices.at(i + 3);
-
-                    edges.insert(QPair<int, int>(qMin(index0, index1), qMax(index0, index1)));
-                    edges.insert(QPair<int, int>(qMin(index1, index2), qMax(index1, index2)));
-                    edges.insert(QPair<int, int>(qMin(index2, index3), qMax(index2, index3)));
-                    edges.insert(QPair<int, int>(qMin(index3, index0), qMax(index3, index0)));
-
-                    extracted.mesh.vertexConnections[index0].append(QPair<int, int>(index3, index1));
-                    extracted.mesh.vertexConnections[index1].append(QPair<int, int>(index0, index2));
-                    extracted.mesh.vertexConnections[index2].append(QPair<int, int>(index1, index3));
-                    extracted.mesh.vertexConnections[index3].append(QPair<int, int>(index2, index0));
-                }
-                for (int i = 0; i < part.triangleIndices.size(); i += 3) {
-                    int index0 = part.triangleIndices.at(i);
-                    int index1 = part.triangleIndices.at(i + 1);
-                    int index2 = part.triangleIndices.at(i + 2);
-
-                    edges.insert(QPair<int, int>(qMin(index0, index1), qMax(index0, index1)));
-                    edges.insert(QPair<int, int>(qMin(index1, index2), qMax(index1, index2)));
-                    edges.insert(QPair<int, int>(qMin(index2, index0), qMax(index2, index0)));
-
-                    extracted.mesh.vertexConnections[index0].append(QPair<int, int>(index2, index1));
-                    extracted.mesh.vertexConnections[index1].append(QPair<int, int>(index0, index2));
-                    extracted.mesh.vertexConnections[index2].append(QPair<int, int>(index1, index0));
-                }
-            }
-
-            for (QSet<QPair<int, int> >::const_iterator edge = edges.constBegin(); edge != edges.constEnd(); edge++) {
-                extracted.mesh.springEdges.append(*edge);
-            }
-        }
-
+        
         geometry.meshes.append(extracted.mesh);
     }
 
+    // now that all joints have been scanned, compute a collision shape for each joint
+    glm::vec3 defaultCapsuleAxis(0.f, 1.f, 0.f);
+    for (int i = 0; i < geometry.joints.size(); ++i) {
+        FBXJoint& joint = geometry.joints[i];
+        JointShapeInfo& jointShapeInfo = jointShapeInfos[i];
+
+        // we use a capsule if the joint ANY mesh vertices successfully projected onto the bone
+        // AND its boneRadius is not too close to zero
+        bool collideLikeCapsule = jointShapeInfo.numProjectedVertices > 0
+                && glm::length(jointShapeInfo.boneBegin) > EPSILON;
+
+        if (collideLikeCapsule) {
+            joint.shapeRotation = rotationBetween(defaultCapsuleAxis, jointShapeInfo.boneBegin);
+            joint.shapePosition = 0.5f * jointShapeInfo.boneBegin;
+            joint.shapeType = Shape::CAPSULE_SHAPE;
+        } else {
+            // collide the joint like a sphere
+            if (jointShapeInfo.numVertices > 0) {
+                jointShapeInfo.averageVertex /= float(jointShapeInfo.numVertices);
+                joint.shapePosition = jointShapeInfo.averageVertex;
+            } else {
+                joint.shapePosition = glm::vec3(0.f);
+                joint.shapeType = Shape::SPHERE_SHAPE;
+            }
+            if (jointShapeInfo.numProjectedVertices == 0
+                   && jointShapeInfo.numVertices > 0) {
+                // the bone projection algorithm was not able to compute the joint radius
+                // so we use an alternative measure
+                jointShapeInfo.averageRadius /= float(jointShapeInfo.numVertices);
+                joint.boneRadius = jointShapeInfo.averageRadius;
+            }
+        }
+    }
     geometry.palmDirection = parseVec3(mapping.value("palmDirection", "0, -1, 0").toString());
 
     // process attachments
@@ -1678,7 +1761,6 @@ FBXGeometry readSVO(const QByteArray& model) {
     // and one mesh with one cluster and one part
     FBXMesh mesh;
     mesh.isEye = false;
-    mesh.springiness = 0.0f;
 
     FBXCluster cluster = { 0 };
     mesh.clusters.append(cluster);
@@ -1705,6 +1787,8 @@ FBXGeometry readSVO(const QByteArray& model) {
     tree.recurseTreeWithOperation(addMeshVoxelsOperation, &mesh);
 
     geometry.meshes.append(mesh);
+
+    geometry.meshExtents.maximum = glm::vec3(1.0f, 1.0f, 1.0f);
 
     return geometry;
 }

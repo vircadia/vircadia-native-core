@@ -13,6 +13,7 @@
 #include <QtCore/QStringList>
 #include <QtCore/QUrlQuery>
 #include <QtNetwork/QNetworkRequest>
+#include <QHttpMultiPart>
 
 #include "NodeList.h"
 #include "PacketHeaders.h"
@@ -35,7 +36,7 @@ const QString ACCOUNTS_GROUP = "accounts";
 
 AccountManager::AccountManager() :
     _authURL(),
-    _networkAccessManager(),
+    _networkAccessManager(NULL),
     _pendingCallbackMap(),
     _accountInfo()
 {
@@ -99,16 +100,25 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
 }
 
 void AccountManager::authenticatedRequest(const QString& path, QNetworkAccessManager::Operation operation,
-                                          const JSONCallbackParameters& callbackParams, const QByteArray& dataByteArray) {
+                                          const JSONCallbackParameters& callbackParams,
+                                          const QByteArray& dataByteArray,
+                                          QHttpMultiPart* dataMultiPart) {
     QMetaObject::invokeMethod(this, "invokedRequest",
                               Q_ARG(const QString&, path),
                               Q_ARG(QNetworkAccessManager::Operation, operation),
                               Q_ARG(const JSONCallbackParameters&, callbackParams),
-                              Q_ARG(const QByteArray&, dataByteArray));
+                              Q_ARG(const QByteArray&, dataByteArray),
+                              Q_ARG(QHttpMultiPart*, dataMultiPart));
 }
 
 void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::Operation operation,
-                                    const JSONCallbackParameters& callbackParams, const QByteArray& dataByteArray) {
+                                    const JSONCallbackParameters& callbackParams,
+                                    const QByteArray& dataByteArray, QHttpMultiPart* dataMultiPart) {
+    
+    if (!_networkAccessManager) {
+        _networkAccessManager = new QNetworkAccessManager(this);
+    }
+    
     if (hasValidAccessToken()) {
         QNetworkRequest authenticatedRequest;
         
@@ -130,16 +140,23 @@ void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::
         
         switch (operation) {
             case QNetworkAccessManager::GetOperation:
-                networkReply = _networkAccessManager.get(authenticatedRequest);
+                networkReply = _networkAccessManager->get(authenticatedRequest);
                 break;
             case QNetworkAccessManager::PostOperation:
             case QNetworkAccessManager::PutOperation:
                 authenticatedRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-                
-                if (operation == QNetworkAccessManager::PostOperation) {
-                    networkReply = _networkAccessManager.post(authenticatedRequest, dataByteArray);
+                if (dataMultiPart) {
+                    if (operation == QNetworkAccessManager::PostOperation) {
+                        networkReply = _networkAccessManager->post(authenticatedRequest, dataMultiPart);
+                    } else {
+                        networkReply = _networkAccessManager->put(authenticatedRequest, dataMultiPart);
+                    }
                 } else {
-                    networkReply = _networkAccessManager.put(authenticatedRequest, dataByteArray);
+                    if (operation == QNetworkAccessManager::PostOperation) {
+                        networkReply = _networkAccessManager->post(authenticatedRequest, dataByteArray);
+                    } else {
+                        networkReply = _networkAccessManager->put(authenticatedRequest, dataByteArray);
+                    }
                 }
                 
                 break;
@@ -229,6 +246,11 @@ bool AccountManager::checkAndSignalForAccessToken() {
 }
 
 void AccountManager::requestAccessToken(const QString& login, const QString& password) {
+
+    if (!_networkAccessManager) {
+        _networkAccessManager = new QNetworkAccessManager(this);
+    }
+
     QNetworkRequest request;
     
     QUrl grantURL = _authURL;
@@ -242,7 +264,7 @@ void AccountManager::requestAccessToken(const QString& login, const QString& pas
     request.setUrl(grantURL);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
     
-    QNetworkReply* requestReply = _networkAccessManager.post(request, postData);
+    QNetworkReply* requestReply = _networkAccessManager->post(request, postData);
     connect(requestReply, &QNetworkReply::finished, this, &AccountManager::requestFinished);
     connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestError(QNetworkReply::NetworkError)));
 }

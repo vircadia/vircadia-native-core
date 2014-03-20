@@ -90,9 +90,9 @@ Controller.touchEndEvent.connect(touchEndEvent);
 
 
 
-function update() {
+function update(deltaTime) {
     // rotate body yaw for yaw received from multitouch rotate
-    var newOrientation = Quat.multiply(MyAvatar.orientation, Quat.fromVec3( { x: 0, y: yawFromMultiTouch, z: 0 } ));
+    var newOrientation = Quat.multiply(MyAvatar.orientation, Quat.fromVec3Radians( { x: 0, y: yawFromMultiTouch, z: 0 } ));
     if (wantDebugging) {
         print("changing orientation"
             + " [old]MyAvatar.orientation="+MyAvatar.orientation.x + "," + MyAvatar.orientation.y + "," 
@@ -110,7 +110,7 @@ function update() {
     MyAvatar.headPitch = newPitch;
     pitchFromMultiTouch = 0;
 }
-Script.willSendVisualDataCallback.connect(update);
+Script.update.connect(update);
 
 
 function scriptEnding() {

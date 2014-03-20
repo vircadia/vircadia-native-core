@@ -130,14 +130,22 @@ void outputBits(unsigned char byte, QDebug* continuedDebug) {
 }
 
 int numberOfOnes(unsigned char byte) {
-    return (byte >> 7)
-        + ((byte >> 6) & 1)
-        + ((byte >> 5) & 1)
-        + ((byte >> 4) & 1)
-        + ((byte >> 3) & 1)
-        + ((byte >> 2) & 1)
-        + ((byte >> 1) & 1)
-        + (byte & 1);
+
+    static const int nbits[256] = {
+        0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,1,2,2,3,2,3,3,4,2,3,3,
+        4,3,4,4,5,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,
+        4,5,3,4,4,5,4,5,5,6,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,
+        3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,2,3,3,4,3,4,4,5,3,4,4,5,
+        4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,1,2,2,3,2,3,3,
+        4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,2,3,
+        3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,
+        6,6,7,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,
+        4,5,5,6,5,6,6,7,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,4,5,5,
+        6,5,6,6,7,5,6,6,7,6,7,7,8
+    };
+
+    return nbits[(unsigned char) byte];
+
 }
 
 bool oneAtBit(unsigned char byte, int bitIndex) {
@@ -196,21 +204,6 @@ bool isInEnvironment(const char* environment) {
     } else {
         return false;
     }
-}
-
-void switchToResourcesParentIfRequired() {
-#ifdef __APPLE__
-    CFBundleRef mainBundle = CFBundleGetMainBundle();
-    CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
-    char path[PATH_MAX];
-    if (!CFURLGetFileSystemRepresentation(resourcesURL, TRUE, (UInt8 *)path, PATH_MAX)) {
-        // error!
-    }
-    CFRelease(resourcesURL);
-
-    chdir(path);
-    chdir("..");
-#endif
 }
 
 void loadRandomIdentifier(unsigned char* identifierBuffer, int numBytes) {
@@ -516,27 +509,27 @@ int unpackFloatVec3FromSignedTwoByteFixed(const unsigned char* sourceBuffer, glm
 }
 
 
-int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {
-    const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.0);
+int packFloatAngleToTwoByte(unsigned char* buffer, float degrees) {
+    const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.f);
 
-    uint16_t angleHolder = floorf((angle + 180) * ANGLE_CONVERSION_RATIO);
+    uint16_t angleHolder = floorf((degrees + 180.f) * ANGLE_CONVERSION_RATIO);
     memcpy(buffer, &angleHolder, sizeof(uint16_t));
 
     return sizeof(uint16_t);
 }
 
 int unpackFloatAngleFromTwoByte(const uint16_t* byteAnglePointer, float* destinationPointer) {
-    *destinationPointer = (*byteAnglePointer / (float) std::numeric_limits<uint16_t>::max()) * 360.0 - 180;
+    *destinationPointer = (*byteAnglePointer / (float) std::numeric_limits<uint16_t>::max()) * 360.f - 180.f;
     return sizeof(uint16_t);
 }
 
 int packOrientationQuatToBytes(unsigned char* buffer, const glm::quat& quatInput) {
-    const float QUAT_PART_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 2.0);
+    const float QUAT_PART_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 2.f);
     uint16_t quatParts[4];
-    quatParts[0] = floorf((quatInput.x + 1.0) * QUAT_PART_CONVERSION_RATIO);
-    quatParts[1] = floorf((quatInput.y + 1.0) * QUAT_PART_CONVERSION_RATIO);
-    quatParts[2] = floorf((quatInput.z + 1.0) * QUAT_PART_CONVERSION_RATIO);
-    quatParts[3] = floorf((quatInput.w + 1.0) * QUAT_PART_CONVERSION_RATIO);
+    quatParts[0] = floorf((quatInput.x + 1.f) * QUAT_PART_CONVERSION_RATIO);
+    quatParts[1] = floorf((quatInput.y + 1.f) * QUAT_PART_CONVERSION_RATIO);
+    quatParts[2] = floorf((quatInput.z + 1.f) * QUAT_PART_CONVERSION_RATIO);
+    quatParts[3] = floorf((quatInput.w + 1.f) * QUAT_PART_CONVERSION_RATIO);
 
     memcpy(buffer, &quatParts, sizeof(quatParts));
     return sizeof(quatParts);
@@ -546,16 +539,16 @@ int unpackOrientationQuatFromBytes(const unsigned char* buffer, glm::quat& quatO
     uint16_t quatParts[4];
     memcpy(&quatParts, buffer, sizeof(quatParts));
 
-    quatOutput.x = ((quatParts[0] / (float) std::numeric_limits<uint16_t>::max()) * 2.0) - 1.0;
-    quatOutput.y = ((quatParts[1] / (float) std::numeric_limits<uint16_t>::max()) * 2.0) - 1.0;
-    quatOutput.z = ((quatParts[2] / (float) std::numeric_limits<uint16_t>::max()) * 2.0) - 1.0;
-    quatOutput.w = ((quatParts[3] / (float) std::numeric_limits<uint16_t>::max()) * 2.0) - 1.0;
+    quatOutput.x = ((quatParts[0] / (float) std::numeric_limits<uint16_t>::max()) * 2.f) - 1.f;
+    quatOutput.y = ((quatParts[1] / (float) std::numeric_limits<uint16_t>::max()) * 2.f) - 1.f;
+    quatOutput.z = ((quatParts[2] / (float) std::numeric_limits<uint16_t>::max()) * 2.f) - 1.f;
+    quatOutput.w = ((quatParts[3] / (float) std::numeric_limits<uint16_t>::max()) * 2.f) - 1.f;
 
     return sizeof(quatParts);
 }
 
-float SMALL_LIMIT = 10.0;
-float LARGE_LIMIT = 1000.0;
+float SMALL_LIMIT = 10.f;
+float LARGE_LIMIT = 1000.f;
 
 int packFloatRatioToTwoByte(unsigned char* buffer, float ratio) {
     // if the ratio is less than 10, then encode it as a positive number scaled from 0 to int16::max()
@@ -646,8 +639,7 @@ void debug::setDeadBeef(void* memoryVoid, int size) {
 }
 
 void debug::checkDeadBeef(void* memoryVoid, int size) {
-    unsigned char* memoryAt = (unsigned char*)memoryVoid;
-    assert(memcmp(memoryAt, DEADBEEF, std::min(size, DEADBEEF_SIZE)) != 0);
+    assert(memcmp((unsigned char*)memoryVoid, DEADBEEF, std::min(size, DEADBEEF_SIZE)) != 0);
 }
 
 //  Safe version of glm::eulerAngles; uses the factorization method described in David Eberly's
@@ -657,24 +649,24 @@ glm::vec3 safeEulerAngles(const glm::quat& q) {
     float sy = 2.0f * (q.y * q.w - q.x * q.z);
     if (sy < 1.0f - EPSILON) {
         if (sy > -1.0f + EPSILON) {
-            return glm::degrees(glm::vec3(
+            return glm::vec3(
                 atan2f(q.y * q.z + q.x * q.w, 0.5f - (q.x * q.x + q.y * q.y)),
                 asinf(sy),
-                atan2f(q.x * q.y + q.z * q.w, 0.5f - (q.y * q.y + q.z * q.z))));
+                atan2f(q.x * q.y + q.z * q.w, 0.5f - (q.y * q.y + q.z * q.z)));
 
         } else {
             // not a unique solution; x + z = atan2(-m21, m11)
-            return glm::degrees(glm::vec3(
+            return glm::vec3(
                 0.0f,
-                PIf * -0.5f,
-                atan2f(q.x * q.w - q.y * q.z, 0.5f - (q.x * q.x + q.z * q.z))));
+                - PI_OVER_TWO,
+                atan2f(q.x * q.w - q.y * q.z, 0.5f - (q.x * q.x + q.z * q.z)));
         }
     } else {
         // not a unique solution; x - z = atan2(-m21, m11)
-        return glm::degrees(glm::vec3(
+        return glm::vec3(
             0.0f,
-            PIf * 0.5f,
-            -atan2f(q.x * q.w - q.y * q.z, 0.5f - (q.x * q.x + q.z * q.z))));
+            PI_OVER_TWO,
+            -atan2f(q.x * q.w - q.y * q.z, 0.5f - (q.x * q.x + q.z * q.z)));
     }
 }
 

@@ -30,17 +30,18 @@
 #include <OctreeQuery.h>
 
 #include "Audio.h"
-
 #include "BandwidthMeter.h"
 #include "BuckyBalls.h"
 #include "Camera.h"
+#include "ControllerScriptingInterface.h"
 #include "DatagramProcessor.h"
 #include "Environment.h"
+#include "FileLogger.h"
 #include "GLCanvas.h"
 #include "Menu.h"
 #include "MetavoxelSystem.h"
 #include "PacketHeaders.h"
-#include "PieMenu.h"
+#include "ParticleTreeRenderer.h"
 #include "Stars.h"
 #include "ViewFrustum.h"
 #include "VoxelFade.h"
@@ -62,15 +63,11 @@
 #include "renderer/TextureCache.h"
 #include "renderer/VoxelShader.h"
 #include "ui/BandwidthDialog.h"
-#include "ui/ChatEntry.h"
-#include "ui/VoxelStatsDialog.h"
+#include "ui/OctreeStatsDialog.h"
 #include "ui/RearMirrorTools.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
 #include "ui/UpdateDialog.h"
-#include "FileLogger.h"
-#include "ParticleTreeRenderer.h"
-#include "ControllerScriptingInterface.h"
 #include "ui/Overlays.h"
 
 
@@ -96,8 +93,8 @@ static const float NODE_KILLED_BLUE  = 0.0f;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 
-static const float BILLBOARD_FIELD_OF_VIEW = 30.0f;
-static const float BILLBOARD_DISTANCE = 5.0f;
+static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
+static const float BILLBOARD_DISTANCE = 5.0f;       // meters
 
 class Application : public QApplication {
     Q_OBJECT
@@ -108,6 +105,7 @@ class Application : public QApplication {
 
 public:
     static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
+    static QString& resourcesPath();
 
     Application(int& argc, char** argv, timeval &startup_time);
     ~Application();
@@ -149,13 +147,16 @@ public:
     glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVoxel);
 
     QGLWidget* getGLWidget() { return _glWidget; }
+    bool isThrottleRendering() const { return _glWidget->isThrottleRendering(); }
     MyAvatar* getAvatar() { return _myAvatar; }
     Audio* getAudio() { return &_audio; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
+    VoxelTree* getVoxelTree() { return _voxels.getTree(); }
     ParticleTreeRenderer* getParticles() { return &_particles; }
     MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
+    bool getImportSucceded() { return _importSucceded; }
     VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
     VoxelTree* getClipboard() { return &_clipboard; }
     Environment* getEnvironment() { return &_environment; }
@@ -169,9 +170,9 @@ public:
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QSettings* getSettings() { return _settings; }
     QMainWindow* getWindow() { return _window; }
-    NodeToVoxelSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
-    void lockVoxelSceneStats() { _voxelSceneStatsLock.lockForRead(); }
-    void unlockVoxelSceneStats() { _voxelSceneStatsLock.unlock(); }
+    NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
+    void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
+    void unlockOctreeSceneStats() { _octreeSceneStatsLock.unlock(); }
 
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
@@ -214,10 +215,6 @@ public:
     NodeToJurisdictionMap& getParticleServerJurisdictions() { return _particleServerJurisdictions; }
     void pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination);
 
-    /// set a voxel which is to be rendered with a highlight
-    void setHighlightVoxel(const VoxelDetail& highlightVoxel) { _highlightVoxel = highlightVoxel; }
-    void setIsHighlightVoxel(bool isHighlightVoxel) { _isHighlightVoxel = isHighlightVoxel; }
-    
     void skipVersion(QString latestVersion);
 
 signals:
@@ -227,6 +224,9 @@ signals:
 
     /// Fired when we're rendering in-world interface elements; allows external parties to hook in.
     void renderingInWorldInterface();
+    
+    /// Fired when the import window is closed
+    void importDone();
     
 public slots:
     void domainChanged(const QString& domainHostname);
@@ -250,6 +250,8 @@ public slots:
     void initAvatarAndViewFrustum();
     void stopAllScripts();
     void reloadAllScripts();
+    
+    void uploadFST();
 
 private slots:
     void timer();
@@ -261,12 +263,6 @@ private slots:
     void setEnable3DTVMode(bool enable3DTVMode);
     void cameraMenuChanged();
     
-    void renderCoverageMap();
-    void renderCoverageMapsRecursively(CoverageMap* map);
-
-    void renderCoverageMapV2();
-    void renderCoverageMapsV2Recursively(CoverageMapV2* map);
-
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
 
     void closeMirrorView();
@@ -293,11 +289,11 @@ private:
     void update(float deltaTime);
 
     // Various helper functions called during update()
+    void updateLOD();
     void updateMouseRay();
     void updateFaceshift();
     void updateVisage();
     void updateMyAvatarLookAtPosition();
-    void updateHoverVoxels(float deltaTime, float& distance, BoxFace& face);
     void updateHandAndTouch(float deltaTime);
     void updateLeap(float deltaTime);
     void updateSixense(float deltaTime);
@@ -313,7 +309,6 @@ private:
     bool isLookingAtMyAvatar(Avatar* avatar);
 
     void renderLookatIndicator(glm::vec3 pointOfInterest);
-    void renderHighlightVoxel(VoxelDetail voxel);
 
     void updateMyAvatar(float deltaTime);
     void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
@@ -345,7 +340,7 @@ private:
     void displayRearMirrorTools();
 
     QMainWindow* _window;
-    QGLWidget* _glWidget;
+    GLCanvas* _glWidget; // our GLCanvas has a couple extra features
 
     bool _statsExpanded;
     BandwidthMeter _bandwidthMeter;
@@ -359,13 +354,13 @@ private:
     glm::vec3 _gravity;
 
     // Frame Rate Measurement
+
     int _frameCount;
     float _fps;
     timeval _applicationStartupTime;
     timeval _timerStart, _timerEnd;
     timeval _lastTimeUpdated;
     bool _justStarted;
-
     Stars _stars;
     
     BuckyBalls _buckyBalls;
@@ -373,6 +368,7 @@ private:
     VoxelSystem _voxels;
     VoxelTree _clipboard; // if I copy/paste
     VoxelImporter* _voxelImporter;
+    bool _importSucceded;
     VoxelSystem _sharedVoxelSystem;
     ViewFrustum _sharedVoxelSystemViewFrustum;
 
@@ -385,6 +381,8 @@ private:
     MetavoxelSystem _metavoxels;
 
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
+    ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels, particles)
+    quint64 _lastQueriedTime;
 
     Oscilloscope _audioScope;
 
@@ -434,15 +432,6 @@ private:
 
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
 
-    VoxelDetail _hoverVoxel;      // Stuff about the voxel I am hovering or clicking
-    bool _isHoverVoxel;
-
-    VoxelDetail _highlightVoxel;
-    bool _isHighlightVoxel;
-
-    ChatEntry _chatEntry; // chat entry field
-    bool _chatEntryOn;    // Whether to show the chat entry
-
     GeometryCache _geometryCache;
     TextureCache _textureCache;
 
@@ -468,15 +457,13 @@ private:
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
 
-    PieMenu _pieMenu;
-
     int parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sendingNode);
     void trackIncomingVoxelPacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);
 
     NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToJurisdictionMap _particleServerJurisdictions;
-    NodeToVoxelSceneStats _octreeServerSceneStats;
-    QReadWriteLock _voxelSceneStatsLock;
+    NodeToOctreeSceneStats _octreeServerSceneStats;
+    QReadWriteLock _octreeSceneStatsLock;
 
     std::vector<VoxelFade> _voxelFades;
     ControllerScriptingInterface _controllerScriptingInterface;

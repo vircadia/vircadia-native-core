@@ -815,11 +815,6 @@ void Particle::applyHardCollision(const CollisionInfo& collisionInfo) {
     setVelocity(velocity);
 }
 
-// MIN_VALID_SPEED is obtained by computing speed gained at one gravity during the shortest expected frame period
-// This is a HACK for particles that bounce in a 1.0 gravitational field and should eventually be made more universal.
-const float MIN_EXPECTED_FRAME_PERIOD = 0.005f;  // 1/200th of a second
-const float MIN_VALID_SPEED = 9.8 * MIN_EXPECTED_FRAME_PERIOD / (float)(TREE_SCALE);
-
 void Particle::update(const quint64& now) {
     float timeElapsed = (float)(now - _lastUpdated) / (float)(USECS_PER_SECOND);
     _lastUpdated = now;
@@ -884,25 +879,25 @@ void Particle::executeUpdateScripts() {
     }
 }
 
-void Particle::collisionWithParticle(Particle* other) {
+void Particle::collisionWithParticle(Particle* other, const glm::vec3& penetration) {
     // Only run this particle script if there's a script attached directly to the particle.
     if (!_script.isEmpty()) {
         ScriptEngine engine(_script);
         ParticleScriptObject particleScriptable(this);
         startParticleScriptContext(engine, particleScriptable);
         ParticleScriptObject otherParticleScriptable(other);
-        particleScriptable.emitCollisionWithParticle(&otherParticleScriptable);
+        particleScriptable.emitCollisionWithParticle(&otherParticleScriptable, penetration);
         endParticleScriptContext(engine, particleScriptable);
     }
 }
 
-void Particle::collisionWithVoxel(VoxelDetail* voxelDetails) {
+void Particle::collisionWithVoxel(VoxelDetail* voxelDetails, const glm::vec3& penetration) {
     // Only run this particle script if there's a script attached directly to the particle.
     if (!_script.isEmpty()) {
         ScriptEngine engine(_script);
         ParticleScriptObject particleScriptable(this);
         startParticleScriptContext(engine, particleScriptable);
-        particleScriptable.emitCollisionWithVoxel(*voxelDetails);
+        particleScriptable.emitCollisionWithVoxel(*voxelDetails, penetration);
         endParticleScriptContext(engine, particleScriptable);
     }
 }

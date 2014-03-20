@@ -36,7 +36,7 @@ AvatarMixer::AvatarMixer(const QByteArray& packet) :
 }
 
 void attachAvatarDataToNode(Node* newNode) {
-    if (newNode->getLinkedData() == NULL) {
+    if (!newNode->getLinkedData()) {
         newNode->setLinkedData(new AvatarMixerClientData());
     }
 }
@@ -62,7 +62,8 @@ void broadcastAvatarData() {
             mixedAvatarByteArray.resize(numPacketHeaderBytes);
             
             AvatarMixerClientData* myData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
-            glm::vec3 myPosition = myData->getPosition();
+            AvatarData& avatar = myData->getAvatar();
+            glm::vec3 myPosition = avatar.getPosition();
             
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
@@ -70,7 +71,8 @@ void broadcastAvatarData() {
                 if (otherNode->getLinkedData() && otherNode->getUUID() != node->getUUID()) {
                     
                     AvatarMixerClientData* otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
-                    glm::vec3 otherPosition = otherNodeData->getPosition();
+                    AvatarData& otherAvatar = otherNodeData->getAvatar();
+                    glm::vec3 otherPosition = otherAvatar.getPosition();
                     float distanceToAvatar = glm::length(myPosition - otherPosition);
                     //  The full rate distance is the distance at which EVERY update will be sent for this avatar
                     //  at a distance of twice the full rate distance, there will be a 50% chance of sending this avatar's update
@@ -79,7 +81,7 @@ void broadcastAvatarData() {
                     if ((distanceToAvatar == 0.f) || (randFloat() < FULL_RATE_DISTANCE / distanceToAvatar)) {
                         QByteArray avatarByteArray;
                         avatarByteArray.append(otherNode->getUUID().toRfc4122());
-                        avatarByteArray.append(otherNodeData->toByteArray());
+                        avatarByteArray.append(otherAvatar.toByteArray());
                         
                         if (avatarByteArray.size() + mixedAvatarByteArray.size() > MAX_PACKET_SIZE) {
                             nodeList->writeDatagram(mixedAvatarByteArray, node);
@@ -110,7 +112,8 @@ void broadcastIdentityPacket() {
         if (node->getLinkedData() && node->getType() == NodeType::Agent) {
             
             AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
-            QByteArray individualData = nodeData->identityByteArray();
+            AvatarData& avatar = nodeData->getAvatar();
+            QByteArray individualData = avatar.identityByteArray();
             individualData.replace(0, NUM_BYTES_RFC4122_UUID, node->getUUID().toRfc4122());
             
             if (avatarIdentityPacket.size() + individualData.size() > MAX_PACKET_SIZE) {
@@ -135,9 +138,10 @@ void broadcastIdentityPacket() {
 
 void broadcastBillboardPacket(const SharedNodePointer& sendingNode) {
     AvatarMixerClientData* nodeData = static_cast<AvatarMixerClientData*>(sendingNode->getLinkedData());
+    AvatarData& avatar = nodeData->getAvatar();
     QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
     packet.append(sendingNode->getUUID().toRfc4122());
-    packet.append(nodeData->getBillboard());
+    packet.append(avatar.getBillboard());
     
     NodeList* nodeList = NodeList::getInstance();
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
@@ -190,12 +194,13 @@ void AvatarMixer::readPendingDatagrams() {
                     
                     if (avatarNode && avatarNode->getLinkedData()) {
                         AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(avatarNode->getLinkedData());
-                        if (nodeData->hasIdentityChangedAfterParsing(receivedPacket)
+                        AvatarData& avatar = nodeData->getAvatar();
+                        if (avatar.hasIdentityChangedAfterParsing(receivedPacket)
                             && !nodeData->hasSentIdentityBetweenKeyFrames()) {
                             // this avatar changed their identity in some way and we haven't sent a packet in this keyframe
                             QByteArray identityPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
                             
-                            QByteArray individualByteArray = nodeData->identityByteArray();
+                            QByteArray individualByteArray = avatar.identityByteArray();
                             individualByteArray.replace(0, NUM_BYTES_RFC4122_UUID, avatarNode->getUUID().toRfc4122());
                             
                             identityPacket.append(individualByteArray);
@@ -213,7 +218,8 @@ void AvatarMixer::readPendingDatagrams() {
                     
                     if (avatarNode && avatarNode->getLinkedData()) {
                         AvatarMixerClientData* nodeData = static_cast<AvatarMixerClientData*>(avatarNode->getLinkedData());
-                        if (nodeData->hasBillboardChangedAfterParsing(receivedPacket)
+                        AvatarData& avatar = nodeData->getAvatar();
+                        if (avatar.hasBillboardChangedAfterParsing(receivedPacket)
                                 && !nodeData->hasSentBillboardBetweenKeyFrames()) {
                             // this avatar changed their billboard and we haven't sent a packet in this keyframe
                             broadcastBillboardPacket(avatarNode);

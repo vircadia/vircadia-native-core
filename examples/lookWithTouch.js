@@ -43,9 +43,9 @@ function touchUpdateEvent(event) {
     lastY = event.y;
 }
 
-function update() {
+function update(deltaTime) {
     // rotate body yaw for yaw received from mouse
-    var newOrientation = Quat.multiply(MyAvatar.orientation, Quat.fromVec3( { x: 0, y: yawFromMouse, z: 0 } ));
+    var newOrientation = Quat.multiply(MyAvatar.orientation, Quat.fromPitchYawRollRadians(0, yawFromMouse, 0));
     if (wantDebugging) {
         print("changing orientation"
             + " [old]MyAvatar.orientation="+MyAvatar.orientation.x + "," + MyAvatar.orientation.y + "," 
@@ -82,5 +82,5 @@ MyAvatar.bodyPitch = 0;
 MyAvatar.bodyRoll = 0;
 
 // would be nice to change to update
-Script.willSendVisualDataCallback.connect(update);
+Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);

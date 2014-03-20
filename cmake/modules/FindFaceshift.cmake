@@ -15,7 +15,7 @@
 if (FACESHIFT_LIBRARIES AND FACESHIFT_INCLUDE_DIRS)
   # in cache already
   set(FACESHIFT_FOUND TRUE)
-else (FACESHIFT_LIBRARIES AND FACESHIFT_INCLUDE_DIRS)
+else ()
   find_path(FACESHIFT_INCLUDE_DIRS fsbinarystream.h ${FACESHIFT_ROOT_DIR}/include)
 
   if (APPLE)
@@ -34,25 +34,25 @@ else (FACESHIFT_LIBRARIES AND FACESHIFT_INCLUDE_DIRS)
     # Windows only cares about the headers
     if (FACESHIFT_INCLUDE_DIRS)
       set(FACESHIFT_FOUND TRUE)
-    endif (FACESHIFT_INCLUDE_DIRS AND FACESHIFT_LIBRARIES)
-  else (WIN32)
+    endif (FACESHIFT_INCLUDE_DIRS)
+  else ()
     # Mac and Unix requires libraries
     if (FACESHIFT_INCLUDE_DIRS AND FACESHIFT_LIBRARIES)
       set(FACESHIFT_FOUND TRUE)
     endif (FACESHIFT_INCLUDE_DIRS AND FACESHIFT_LIBRARIES)
-  endif (WIN32)
+  endif ()
 
   if (FACESHIFT_FOUND)
     if (NOT FACESHIFT_FIND_QUIETLY)
       message(STATUS "Found Faceshift... ${FACESHIFT_LIBRARIES}")
     endif (NOT FACESHIFT_FIND_QUIETLY)
-  else (FACESHIFT_FOUND)
+  else ()
     if (FACESHIFT_FIND_REQUIRED)
       message(FATAL_ERROR "Could not find Faceshift")
     endif (FACESHIFT_FIND_REQUIRED)
-  endif (FACESHIFT_FOUND)
+  endif ()
 
   # show the FACESHIFT_INCLUDE_DIRS and FACESHIFT_LIBRARIES variables only in the advanced view
   mark_as_advanced(FACESHIFT_INCLUDE_DIRS FACESHIFT_LIBRARIES)
 
-endif (FACESHIFT_LIBRARIES AND FACESHIFT_INCLUDE_DIRS)
+endif ()

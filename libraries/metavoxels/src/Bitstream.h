@@ -55,7 +55,7 @@ private:
 
 /// Provides a means to stream repeated values efficiently.  The value is first streamed along with a unique ID.  When
 /// subsequently streamed, only the ID is sent.
-template<class T> class RepeatedValueStreamer {
+template<class T, class P = T> class RepeatedValueStreamer {
 public:
     
     RepeatedValueStreamer(Bitstream& stream) : _stream(stream), _idStreamer(stream),
@@ -69,9 +69,9 @@ public:
     
     void persistTransientValues(const QHash<int, T>& transientValues);
     
-    int takePersistentID(T value) { return _persistentIDs.take(value); }
+    int takePersistentID(P value) { return _persistentIDs.take(value); }
     
-    void removePersistentValue(int id) { _persistentValues.remove(id); }
+    T takePersistentValue(int id) { T value = _persistentValues.take(id); _persistentIDs.remove(value); return value; }
     
     RepeatedValueStreamer& operator<<(T value);
     RepeatedValueStreamer& operator>>(T& value);
@@ -82,13 +82,13 @@ private:
     IDStreamer _idStreamer;
     int _lastPersistentID;
     int _lastTransientOffset;
-    QHash<T, int> _persistentIDs;
+    QHash<P, int> _persistentIDs;
     QHash<T, int> _transientOffsets;
     QHash<int, T> _persistentValues;
     QHash<int, T> _transientValues;
 };
 
-template<class T> inline QHash<T, int> RepeatedValueStreamer<T>::getAndResetTransientOffsets() {
+template<class T, class P> inline QHash<T, int> RepeatedValueStreamer<T, P>::getAndResetTransientOffsets() {
     QHash<T, int> transientOffsets;
     _transientOffsets.swap(transientOffsets);
     _lastTransientOffset = 0;
@@ -96,7 +96,8 @@ template<class T> inline QHash<T, int> RepeatedValueStreamer<T>::getAndResetTran
     return transientOffsets;
 }
 
-template<class T> inline void RepeatedValueStreamer<T>::persistTransientOffsets(const QHash<T, int>& transientOffsets) {
+template<class T, class P> inline void RepeatedValueStreamer<T, P>::persistTransientOffsets(
+        const QHash<T, int>& transientOffsets) {
     int oldLastPersistentID = _lastPersistentID;
     for (typename QHash<T, int>::const_iterator it = transientOffsets.constBegin(); it != transientOffsets.constEnd(); it++) {
         int& id = _persistentIDs[it.key()];
@@ -108,14 +109,15 @@ template<class T> inline void RepeatedValueStreamer<T>::persistTransientOffsets(
     _idStreamer.setBitsFromValue(_lastPersistentID);
 }
 
-template<class T> inline QHash<int, T> RepeatedValueStreamer<T>::getAndResetTransientValues() {
+template<class T, class P> inline QHash<int, T> RepeatedValueStreamer<T, P>::getAndResetTransientValues() {
     QHash<int, T> transientValues;
     _transientValues.swap(transientValues);
     _idStreamer.setBitsFromValue(_lastPersistentID);
     return transientValues;
 }
 
-template<class T> inline void RepeatedValueStreamer<T>::persistTransientValues(const QHash<int, T>& transientValues) {
+template<class T, class P> inline void RepeatedValueStreamer<T, P>::persistTransientValues(
+        const QHash<int, T>& transientValues) {
     int oldLastPersistentID = _lastPersistentID;
     for (typename QHash<int, T>::const_iterator it = transientValues.constBegin(); it != transientValues.constEnd(); it++) {
         int& id = _persistentIDs[it.value()];
@@ -128,7 +130,7 @@ template<class T> inline void RepeatedValueStreamer<T>::persistTransientValues(c
     _idStreamer.setBitsFromValue(_lastPersistentID);
 }
 
-template<class T> inline RepeatedValueStreamer<T>& RepeatedValueStreamer<T>::operator<<(T value) {
+template<class T, class P> inline RepeatedValueStreamer<T, P>& RepeatedValueStreamer<T, P>::operator<<(T value) {
     int id = _persistentIDs.value(value);
     if (id == 0) {
         int& offset = _transientOffsets[value];
@@ -145,7 +147,7 @@ template<class T> inline RepeatedValueStreamer<T>& RepeatedValueStreamer<T>::ope
     return *this;
 }
 
-template<class T> inline RepeatedValueStreamer<T>& RepeatedValueStreamer<T>::operator>>(T& value) {
+template<class T, class P> inline RepeatedValueStreamer<T, P>& RepeatedValueStreamer<T, P>::operator>>(T& value) {
     int id;
     _idStreamer >> id;
     if (id <= _lastPersistentID) {
@@ -228,20 +230,32 @@ public:
     /// Persists a set of write mappings recorded earlier.
     void persistWriteMappings(const WriteMappings& mappings);
 
+    /// Immediately persists and resets the write mappings.
+    void persistAndResetWriteMappings();
+
     /// Returns the set of transient mappings gathered during reading and resets them.
     ReadMappings getAndResetReadMappings();
     
     /// Persists a set of read mappings recorded earlier.
     void persistReadMappings(const ReadMappings& mappings);
 
+    /// Immediately persists and resets the read mappings.
+    void persistAndResetReadMappings();
+
+    /// Returns a reference to the weak hash storing shared objects for this stream.
+    const WeakSharedObjectHash& getWeakSharedObjectHash() const { return _weakSharedObjectHash; }
+
     /// Removes a shared object from the read mappings.
-    void clearSharedObject(int id) { _sharedObjectStreamer.removePersistentValue(id); }
+    void clearSharedObject(int id);
 
     Bitstream& operator<<(bool value);
     Bitstream& operator>>(bool& value);
     
     Bitstream& operator<<(int value);
     Bitstream& operator>>(int& value);
+    
+    Bitstream& operator<<(uint value);
+    Bitstream& operator>>(uint& value);
     
     Bitstream& operator<<(float value);
     Bitstream& operator>>(float& value);
@@ -315,7 +329,7 @@ signals:
 
 private slots:
     
-    void clearSharedObject();
+    void clearSharedObject(QObject* object);
 
 private:
     
@@ -329,9 +343,9 @@ private:
     RepeatedValueStreamer<const TypeStreamer*> _typeStreamerStreamer;
     RepeatedValueStreamer<AttributePointer> _attributeStreamer;
     RepeatedValueStreamer<QScriptString> _scriptStringStreamer;
-    RepeatedValueStreamer<SharedObjectPointer> _sharedObjectStreamer;
+    RepeatedValueStreamer<SharedObjectPointer, SharedObject*> _sharedObjectStreamer;
 
-    QHash<int, QPointer<SharedObject> > _transientSharedObjects;
+    WeakSharedObjectHash _weakSharedObjectHash;
 
     static QHash<QByteArray, const QMetaObject*>& getMetaObjects();
     static QMultiHash<const QMetaObject*, const QMetaObject*>& getMetaObjectSubClasses();
@@ -450,6 +464,13 @@ public:
     bool operator==(const X& first, const X& second); \
     bool operator!=(const X& first, const X& second); \
     static const int* _TypePtr##X = &X::Type;
+#elif __GNUC__
+#define DECLARE_STREAMABLE_METATYPE(X) Q_DECLARE_METATYPE(X) \
+    Bitstream& operator<<(Bitstream& out, const X& obj); \
+    Bitstream& operator>>(Bitstream& in, X& obj); \
+    bool operator==(const X& first, const X& second); \
+    bool operator!=(const X& first, const X& second); \
+    __attribute__((unused)) static const int* _TypePtr##X = &X::Type;
 #else
 #define STRINGIFY(x) #x
 #define DECLARE_STREAMABLE_METATYPE(X) Q_DECLARE_METATYPE(X) \

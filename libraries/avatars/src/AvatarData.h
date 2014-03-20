@@ -31,14 +31,15 @@ typedef unsigned long long quint64;
 
 #include <QtCore/QByteArray>
 #include <QtCore/QObject>
+#include <QtCore/QStringList>
 #include <QtCore/QUrl>
 #include <QtCore/QUuid>
+#include <QtCore/QVector>
 #include <QtCore/QVariantMap>
 #include <QRect>
 
 #include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
-#include <NodeData.h>
 
 #include "HeadData.h"
 #include "HandData.h"
@@ -70,7 +71,9 @@ const glm::vec3 vec3Zero(0.0f);
 
 class QNetworkAccessManager;
 
-class AvatarData : public NodeData {
+class JointData;
+
+class AvatarData : public QObject {
     Q_OBJECT
 
     Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
@@ -93,7 +96,7 @@ class AvatarData : public NodeData {
     Q_PROPERTY(QString billboardURL READ getBillboardURL WRITE setBillboardFromURL)
 public:
     AvatarData();
-    ~AvatarData();
+    virtual ~AvatarData();
 
     const glm::vec3& getPosition() const { return _position; }
     void setPosition(const glm::vec3 position) { _position = position; }
@@ -102,9 +105,13 @@ public:
     void setHandPosition(const glm::vec3& handPosition);
 
     QByteArray toByteArray();
-    int parseData(const QByteArray& packet);
 
-    //  Body Rotation
+    /// \param packet byte array of data
+    /// \param offset number of bytes into packet where data starts
+    /// \return number of bytes parsed
+    virtual int parseDataAtOffset(const QByteArray& packet, int offset);
+
+    //  Body Rotation (degrees)
     float getBodyYaw() const { return _bodyYaw; }
     void setBodyYaw(float bodyYaw) { _bodyYaw = bodyYaw; }
     float getBodyPitch() const { return _bodyPitch; }
@@ -118,7 +125,7 @@ public:
     glm::quat getHeadOrientation() const { return _headData->getOrientation(); }
     void setHeadOrientation(const glm::quat& orientation) { _headData->setOrientation(orientation); }
 
-    // access to Head().set/getMousePitch
+    // access to Head().set/getMousePitch (degrees)
     float getHeadPitch() const { return _headData->getPitch(); }
     void setHeadPitch(float value) { _headData->setPitch(value); };
 
@@ -136,6 +143,24 @@ public:
     //  Hand State
     void setHandState(char s) { _handState = s; }
     char getHandState() const { return _handState; }
+
+    const QVector<JointData>& getJointData() const { return _jointData; }
+    void setJointData(const QVector<JointData>& jointData) { _jointData = jointData; }
+
+    Q_INVOKABLE virtual void setJointData(int index, const glm::quat& rotation);
+    Q_INVOKABLE virtual void clearJointData(int index);
+    Q_INVOKABLE bool isJointDataValid(int index) const;
+    Q_INVOKABLE virtual glm::quat getJointRotation(int index) const;
+
+    Q_INVOKABLE void setJointData(const QString& name, const glm::quat& rotation);
+    Q_INVOKABLE void clearJointData(const QString& name);
+    Q_INVOKABLE bool isJointDataValid(const QString& name) const;
+    Q_INVOKABLE glm::quat getJointRotation(const QString& name) const;
+
+    /// Returns the index of the joint with the specified name, or -1 if not found/unknown.
+    Q_INVOKABLE virtual int getJointIndex(const QString& name) const { return -1; } 
+
+    Q_INVOKABLE virtual QStringList getJointNames() const { return QStringList(); }
 
     // key state
     void setKeyState(KeyState s) { _keyState = s; }
@@ -195,15 +220,17 @@ protected:
     glm::vec3 _handPosition;
 
     //  Body rotation
-    float _bodyYaw;
-    float _bodyPitch;
-    float _bodyRoll;
+    float _bodyYaw;     // degrees
+    float _bodyPitch;   // degrees
+    float _bodyRoll;    // degrees
 
     // Body scale
     float _targetScale;
 
     //  Hand state (are we grabbing something or not)
     char _handState;
+
+    QVector<JointData> _jointData; ///< the state of the skeleton joints
 
     // key state
     KeyState _keyState;
@@ -233,6 +260,12 @@ private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);
     AvatarData& operator= (const AvatarData&);
+};
+
+class JointData {
+public:
+    bool valid;
+    glm::quat rotation;
 };
 
 #endif /* defined(__hifi__AvatarData__) */

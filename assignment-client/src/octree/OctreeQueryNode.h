@@ -23,6 +23,7 @@ class OctreeSendThread;
 class OctreeServer;
 
 class OctreeQueryNode : public OctreeQuery {
+    Q_OBJECT
 public:
     OctreeQueryNode();
     virtual ~OctreeQueryNode();
@@ -31,16 +32,16 @@ public:
 
     void resetOctreePacket(bool lastWasSurpressed = false);  // resets octree packet to after "V" header
 
-    void writeToPacket(const unsigned char* buffer, int bytes); // writes to end of packet
+    void writeToPacket(const unsigned char* buffer, unsigned int bytes); // writes to end of packet
 
     const unsigned char* getPacket() const { return _octreePacket; }
-    int getPacketLength() const { return (MAX_PACKET_SIZE - _octreePacketAvailableBytes); }
+    unsigned int getPacketLength() const { return (MAX_PACKET_SIZE - _octreePacketAvailableBytes); }
     bool isPacketWaiting() const { return _octreePacketWaiting; }
 
     bool packetIsDuplicate() const;
     bool shouldSuppressDuplicatePacket();
 
-    int getAvailable() const { return _octreePacketAvailableBytes; }
+    unsigned int getAvailable() const { return _octreePacketAvailableBytes; }
     int getMaxSearchLevel() const { return _maxSearchLevel; }
     void resetMaxSearchLevel() { _maxSearchLevel = 1; }
     void incrementMaxSearchLevel() { _maxSearchLevel++; }
@@ -85,6 +86,12 @@ public:
     
     void dumpOutOfView();
     
+    quint64 getLastRootTimestamp() const { return _lastRootTimestamp; }
+    void setLastRootTimestamp(quint64 timestamp) { _lastRootTimestamp = timestamp; }
+    unsigned int getlastOctreePacketLength() const { return _lastOctreePacketLength; }
+    int getDuplicatePacketCount() const { return _duplicatePacketCount; }
+    
+    
 private:
     OctreeQueryNode(const OctreeQueryNode &);
     OctreeQueryNode& operator= (const OctreeQueryNode&);
@@ -92,11 +99,11 @@ private:
     bool _viewSent;
     unsigned char* _octreePacket;
     unsigned char* _octreePacketAt;
-    int _octreePacketAvailableBytes;
+    unsigned int _octreePacketAvailableBytes;
     bool _octreePacketWaiting;
 
     unsigned char* _lastOctreePacket;
-    int _lastOctreePacketLength;
+    unsigned int _lastOctreePacketLength;
     int _duplicatePacketCount;
     quint64 _firstSuppressedPacket;
 
@@ -119,6 +126,7 @@ private:
     bool _lodInitialized;
     
     OCTREE_PACKET_SEQUENCE _sequenceNumber;
+    quint64 _lastRootTimestamp;
 };
 
 #endif /* defined(__hifi__OctreeQueryNode__) */

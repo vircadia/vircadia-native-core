@@ -28,19 +28,25 @@ class Agent : public ThreadedAssignment {
     Q_OBJECT
     
     Q_PROPERTY(bool isAvatar READ isAvatar WRITE setIsAvatar)
+    Q_PROPERTY(bool isPlayingAvatarSound READ isPlayingAvatarSound)
+    Q_PROPERTY(bool isListeningToAudioStream READ isListeningToAudioStream WRITE setIsListeningToAudioStream)
 public:
     Agent(const QByteArray& packet);
     
     void setIsAvatar(bool isAvatar) { QMetaObject::invokeMethod(&_scriptEngine, "setIsAvatar", Q_ARG(bool, isAvatar)); }
     bool isAvatar() const { return _scriptEngine.isAvatar(); }
     
+    bool isPlayingAvatarSound() const  { return _scriptEngine.isPlayingAvatarSound(); }
+    
+    bool isListeningToAudioStream() const { return _scriptEngine.isListeningToAudioStream(); }
+    void setIsListeningToAudioStream(bool isListeningToAudioStream)
+        { _scriptEngine.setIsListeningToAudioStream(isListeningToAudioStream); }
+    
 public slots:
     void run();
-    
     void readPendingDatagrams();
-signals:
-    void willSendAudioDataCallback();
-    void willSendVisualDataCallback();
+    void playAvatarSound(Sound* avatarSound) { _scriptEngine.setAvatarSound(avatarSound); }
+
 private:
     ScriptEngine _scriptEngine;
     VoxelEditPacketSender _voxelEditSender;

@@ -47,9 +47,7 @@ void VoxelsScriptingInterface::setVoxelNonDestructive(float x, float y, float z,
     
     // handle the local tree also...
     if (_tree) {
-        _tree->lockForWrite();
         _tree->createVoxel(addVoxelDetail.x, addVoxelDetail.y, addVoxelDetail.z, addVoxelDetail.s, red, green, blue, false);
-        _tree->unlock();
     }
 }
 
@@ -64,9 +62,7 @@ void VoxelsScriptingInterface::setVoxel(float x, float y, float z, float scale,
 
     // handle the local tree also...
     if (_tree) {
-        _tree->lockForWrite();
         _tree->createVoxel(addVoxelDetail.x, addVoxelDetail.y, addVoxelDetail.z, addVoxelDetail.s, red, green, blue, true);
-        _tree->unlock();
     }
 }
 
@@ -80,9 +76,7 @@ void VoxelsScriptingInterface::eraseVoxel(float x, float y, float z, float scale
 
     // handle the local tree also...
     if (_tree) {
-        _tree->lockForWrite();
         _tree->deleteVoxelAt(deleteVoxelDetail.x, deleteVoxelDetail.y, deleteVoxelDetail.z, deleteVoxelDetail.s);
-        _tree->unlock();
     }
 }
 
@@ -90,21 +84,18 @@ void VoxelsScriptingInterface::eraseVoxel(float x, float y, float z, float scale
 RayToVoxelIntersectionResult VoxelsScriptingInterface::findRayIntersection(const PickRay& ray) {
     RayToVoxelIntersectionResult result;
     if (_tree) {
-        if (_tree->tryLockForRead()) {
-            OctreeElement* element;
-            result.intersects = _tree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face);
-            if (result.intersects) {
-                VoxelTreeElement* voxel = (VoxelTreeElement*)element;
-                result.voxel.x = voxel->getCorner().x;
-                result.voxel.y = voxel->getCorner().y;
-                result.voxel.z = voxel->getCorner().z;
-                result.voxel.s = voxel->getScale();
-                result.voxel.red = voxel->getColor()[0];
-                result.voxel.green = voxel->getColor()[1];
-                result.voxel.blue = voxel->getColor()[2];
-                result.intersection = ray.origin + (ray.direction * result.distance);
-            }
-            _tree->unlock();
+        OctreeElement* element;
+        result.intersects = _tree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face);
+        if (result.intersects) {
+            VoxelTreeElement* voxel = (VoxelTreeElement*)element;
+            result.voxel.x = voxel->getCorner().x;
+            result.voxel.y = voxel->getCorner().y;
+            result.voxel.z = voxel->getCorner().z;
+            result.voxel.s = voxel->getScale();
+            result.voxel.red = voxel->getColor()[0];
+            result.voxel.green = voxel->getColor()[1];
+            result.voxel.blue = voxel->getColor()[2];
+            result.intersection = ray.origin + (ray.direction * result.distance);
         }
     }
     return result;
@@ -126,4 +117,23 @@ glm::vec3 VoxelsScriptingInterface::getFaceVector(const QString& face) {
     }
     return glm::vec3(0, 0, 0); //error case
 }
+
+VoxelDetail VoxelsScriptingInterface::getVoxelEnclosingPoint(const glm::vec3& point) {
+    VoxelDetail result = { 0.0f, 0.0f, 0.0f, 0.0f, 0, 0, 0 };
+    if (_tree) {
+        OctreeElement* element = _tree->getElementEnclosingPoint(point / (float)TREE_SCALE);
+        if (element) {
+            VoxelTreeElement* voxel = static_cast<VoxelTreeElement*>(element);
+            result.x = voxel->getCorner().x;
+            result.y = voxel->getCorner().y;
+            result.z = voxel->getCorner().z;
+            result.s = voxel->getScale();
+            result.red = voxel->getColor()[0];
+            result.green = voxel->getColor()[1];
+            result.blue = voxel->getColor()[2];
+        }
+    }
+    return result;
+}
+
 

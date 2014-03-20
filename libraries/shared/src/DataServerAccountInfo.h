@@ -25,6 +25,9 @@ public:
     
     const QString& getUsername() const { return _username; }
     void setUsername(const QString& username);
+
+    const QString& getXMPPPassword() const { return _xmppPassword; }
+    void setXMPPPassword(const QString& xmppPassword);
     
     friend QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info);
     friend QDataStream& operator>>(QDataStream &in, DataServerAccountInfo& info);
@@ -33,6 +36,7 @@ private:
     
     OAuthAccessToken _accessToken;
     QString _username;
+    QString _xmppPassword;
 };
 
 #endif /* defined(__hifi__DataServerAccountInfo__) */

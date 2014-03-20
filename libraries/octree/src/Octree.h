@@ -12,7 +12,6 @@
 #include <set>
 #include <SimpleMovingAverage.h>
 
-//#include "CoverageMap.h"
 class CoverageMap;
 class ReadBitstreamToTreeParams;
 class Octree;
@@ -222,13 +221,29 @@ public:
     void clearDirtyBit() { _isDirty = false; }
     void setDirtyBit() { _isDirty = true; }
 
+    // Octree does not currently handle its own locking, caller must use these to lock/unlock
+    void lockForRead() { _lock.lockForRead(); }
+    bool tryLockForRead() { return _lock.tryLockForRead(); }
+    void lockForWrite() { _lock.lockForWrite(); }
+    bool tryLockForWrite() { return _lock.tryLockForWrite(); }
+    void unlock() { _lock.unlock(); }
+    // output hints from the encode process
+    typedef enum {
+        Lock,
+        TryLock,
+        NoLock
+    } lockType;
+
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                             OctreeElement*& node, float& distance, BoxFace& face);
+                             OctreeElement*& node, float& distance, BoxFace& face, Octree::lockType lockType = Octree::TryLock);
 
     bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration,
-                                void** penetratedObject = NULL);
+                                    void** penetratedObject = NULL, Octree::lockType lockType = Octree::TryLock);
 
-    bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration);
+    bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, 
+                                    glm::vec3& penetration, Octree::lockType lockType = Octree::TryLock);
+
+    OctreeElement* getElementEnclosingPoint(const glm::vec3& point, Octree::lockType lockType = Octree::TryLock);
 
     // Note: this assumes the fileFormat is the HIO individual voxels code files
     void loadOctreeFile(const char* fileName, bool wantColorRandomizer);
@@ -236,16 +251,7 @@ public:
     // these will read/write files that match the wireformat, excluding the 'V' leading
     void writeToSVOFile(const char* filename, OctreeElement* node = NULL);
     bool readFromSVOFile(const char* filename);
-    // reads voxels from square image with alpha as a Y-axis
-    bool readFromSquareARGB32Pixels(const char *filename);
-    bool readFromSchematicFile(const char* filename);
-
-    // Octree does not currently handle its own locking, caller must use these to lock/unlock
-    void lockForRead() { lock.lockForRead(); }
-    bool tryLockForRead() { return lock.tryLockForRead(); }
-    void lockForWrite() { lock.lockForWrite(); }
-    bool tryLockForWrite() { return lock.tryLockForWrite(); }
-    void unlock() { lock.unlock(); }
+    
 
     unsigned long getOctreeElementsCount();
 
@@ -281,7 +287,8 @@ protected:
 
     int encodeTreeBitstreamRecursion(OctreeElement* node,
                                      OctreePacketData* packetData, OctreeElementBag& bag,
-                                     EncodeBitstreamParams& params, int& currentEncodeLevel) const;
+                                     EncodeBitstreamParams& params, int& currentEncodeLevel,
+                                     const ViewFrustum::location& parentLocationThisView) const;
 
     static bool countOctreeElementsOperation(OctreeElement* node, void* extraData);
 
@@ -296,41 +303,7 @@ protected:
     bool _shouldReaverage;
     bool _stopImport;
 
-    /// Octal Codes of any subtrees currently being encoded. While any of these codes is being encoded, ancestors and
-    /// descendants of them can not be deleted.
-    std::set<const unsigned char*>  _codesBeingEncoded;
-    /// mutex lock to protect the encoding set
-    QMutex _encodeSetLock;
-
-    /// Called to indicate that a OctreeElement is in the process of being encoded.
-    void startEncoding(OctreeElement* node);
-    /// Called to indicate that a OctreeElement is done being encoded.
-    void doneEncoding(OctreeElement* node);
-    /// Is the Octal Code currently being deleted?
-    bool isEncoding(const unsigned char* codeBuffer);
-
-    /// Octal Codes of any subtrees currently being deleted. While any of these codes is being deleted, ancestors and
-    /// descendants of them can not be encoded.
-    std::set<const unsigned char*> _codesBeingDeleted;
-    /// mutex lock to protect the deleting set
-    QMutex _deleteSetLock;
-
-    /// Called to indicate that an octal code is in the process of being deleted.
-    void startDeleting(const unsigned char* code);
-    /// Called to indicate that an octal code is done being deleted.
-    void doneDeleting(const unsigned char* code);
-    /// Octal Codes that were attempted to be deleted but couldn't be because they were actively being encoded, and were
-    /// instead queued for later delete
-    std::set<const unsigned char*> _codesPendingDelete;
-    /// mutex lock to protect the deleting set
-    QMutex _deletePendingSetLock;
-
-    /// Adds an Octal Code to the set of codes that needs to be deleted
-    void queueForLaterDelete(const unsigned char* codeBuffer);
-    /// flushes out any Octal Codes that had to be queued
-    void emptyDeleteQueue();
-
-    QReadWriteLock lock;
+    QReadWriteLock _lock;
     
     /// This tree is receiving inbound viewer datagrams.
     bool _isViewing;

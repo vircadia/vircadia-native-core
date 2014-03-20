@@ -19,7 +19,6 @@
 #include <OctalCode.h>
 #include <PacketHeaders.h>
 #include <JurisdictionListener.h>
-#include <SceneUtils.h>
 #include <SharedUtil.h>
 #include <VoxelEditPacketSender.h>
 #include <VoxelTree.h>
@@ -41,13 +40,13 @@ bool waitForVoxelServer = true;
 const int ANIMATION_LISTEN_PORT = 40107;
 int ANIMATE_FPS = 60;
 double ANIMATE_FPS_IN_MILLISECONDS = 1000.0/ANIMATE_FPS; // determines FPS from our desired FPS
-int ANIMATE_VOXELS_INTERVAL_USECS = (ANIMATE_FPS_IN_MILLISECONDS * 1000.0); // converts from milliseconds to usecs
+quint64 ANIMATE_VOXELS_INTERVAL_USECS = (ANIMATE_FPS_IN_MILLISECONDS * 1000); // converts from milliseconds to usecs
 
 
 int PROCESSING_FPS = 60;
 double PROCESSING_FPS_IN_MILLISECONDS = 1000.0/PROCESSING_FPS; // determines FPS from our desired FPS
 int FUDGE_USECS = 650; // a little bit of fudge to actually do some processing
-int PROCESSING_INTERVAL_USECS = (PROCESSING_FPS_IN_MILLISECONDS * 1000.0) - FUDGE_USECS; // converts from milliseconds to usecs
+quint64 PROCESSING_INTERVAL_USECS = (PROCESSING_FPS_IN_MILLISECONDS * 1000) - FUDGE_USECS; // converts from milliseconds to usecs
 
 bool wantLocalDomain = false;
 
@@ -79,9 +78,9 @@ glm::vec3 bugDirection = glm::vec3(0, 0, 1);
 const int VOXELS_PER_BUG = 18;
 glm::vec3 bugPathCenter = glm::vec3(0.25f,0.15f,0.25f); // glm::vec3(BUG_VOXEL_SIZE * 150.0, BUG_VOXEL_SIZE * 30.0, BUG_VOXEL_SIZE * 150.0);
 float bugPathRadius = 0.2f; //BUG_VOXEL_SIZE * 140.0;
-float bugPathTheta = 0.0 * PI_OVER_180;
-float bugRotation = 0.0 * PI_OVER_180;
-float bugAngleDelta = 0.2 * PI_OVER_180;
+float bugPathTheta = 0.0f * RADIANS_PER_DEGREE;
+float bugRotation = 0.0f * RADIANS_PER_DEGREE;
+float bugAngleDelta = 0.2f * RADIANS_PER_DEGREE;
 bool moveBugInLine = false;
 
 class BugPart {
@@ -161,11 +160,11 @@ static void renderMovingBug() {
         bugPosition.z += (bugDirection.z * BUG_VOXEL_SIZE);
         
         // Check boundaries
-        if (bugPosition.z > 1.0) {
-            bugDirection.z = -1;
+        if (bugPosition.z > 1.0f) {
+            bugDirection.z = -1.f;
         }
         if (bugPosition.z < BUG_VOXEL_SIZE) {
-            bugDirection.z = 1;
+            bugDirection.z = 1.f;
         }
     } else {
         
@@ -175,9 +174,9 @@ static void renderMovingBug() {
         bugRotation  -= bugAngleDelta; // rotate slightly
         
         // If we loop past end of circle, just reset back into normal range
-        if (bugPathTheta > (360.0f * PI_OVER_180)) {
-            bugPathTheta = 0;
-            bugRotation  = 0;
+        if (bugPathTheta > TWO_PI) {
+            bugPathTheta = 0.f;
+            bugRotation  = 0.f;
         }
         
         float x = bugPathCenter.x + bugPathRadius * cos(bugPathTheta);
@@ -226,7 +225,7 @@ static void sendVoxelBlinkMessage() {
     VoxelDetail detail;
     detail.s = BEACON_SIZE;
     
-    glm::vec3 position = glm::vec3(0, 0, detail.s);
+    glm::vec3 position = glm::vec3(0.f, 0.f, detail.s);
     
     detail.x = detail.s * floor(position.x / detail.s);
     detail.y = detail.s * floor(position.y / detail.s);
@@ -365,7 +364,6 @@ float danceFloorGradientIncrement = 1.0f / FRAMES_PER_BEAT;
 const float DANCE_FLOOR_MAX_GRADIENT = 1.0f;
 const float DANCE_FLOOR_MIN_GRADIENT = 0.0f;
 const int DANCE_FLOOR_VOXELS_PER_PACKET = 100;
-const int PACKETS_PER_DANCE_FLOOR = DANCE_FLOOR_VOXELS_PER_PACKET / (DANCE_FLOOR_WIDTH * DANCE_FLOOR_LENGTH);
 int danceFloorColors[DANCE_FLOOR_WIDTH][DANCE_FLOOR_LENGTH];
 
 void sendDanceFloor() {
@@ -468,8 +466,6 @@ const float BILLBOARD_MAX_GRADIENT = 1.0f;
 const float BILLBOARD_MIN_GRADIENT = 0.0f;
 const float BILLBOARD_LIGHT_SIZE   = 0.125f / TREE_SCALE; // approximately 1/8 meter per light
 const int VOXELS_PER_PACKET = 81;
-const int PACKETS_PER_BILLBOARD = VOXELS_PER_PACKET / (BILLBOARD_HEIGHT * BILLBOARD_WIDTH);
-
 
 // top to bottom...
 bool billboardMessage[BILLBOARD_HEIGHT][BILLBOARD_WIDTH] = {
@@ -542,14 +538,12 @@ static void sendBillboard() {
 }
 
 bool roadInitialized = false;
-const int ROAD_WIDTH_METERS  = 3.0f;
 const int BRICKS_ACROSS_ROAD = 32;
 const float ROAD_BRICK_SIZE = 0.125f/TREE_SCALE; //(ROAD_WIDTH_METERS / TREE_SCALE) / BRICKS_ACROSS_ROAD; // in voxel units
 const int ROAD_LENGTH = 1.0f / ROAD_BRICK_SIZE; // in bricks
 const int ROAD_WIDTH  = BRICKS_ACROSS_ROAD; // in bricks
 glm::vec3 roadPosition(0.5f - (ROAD_BRICK_SIZE * BRICKS_ACROSS_ROAD), 0.0f, 0.0f);
 const int BRICKS_PER_PACKET = 32; // guessing
-const int PACKETS_PER_ROAD = VOXELS_PER_PACKET / (ROAD_LENGTH * ROAD_WIDTH);
 
 void doBuildStreet() {
     if (roadInitialized) {
@@ -617,9 +611,6 @@ void* animateVoxels(void* args) {
             }
             lastProcessTime = usecTimestampNow();
             
-            int packetsStarting = 0;
-            int packetsEnding = 0;
-            
             // The while loop will be running at PROCESSING_FPS, but we only want to call these animation functions at
             // ANIMATE_FPS. So we check out last animate time and only call these if we've elapsed that time.
             quint64 now = usecTimestampNow();
@@ -633,8 +624,6 @@ void* animateVoxels(void* args) {
                 animateLoopsPerAnimate++;
                 
                 lastAnimateTime = now;
-                packetsStarting =  ::voxelEditPacketSender->packetsToSendCount();
-                
                 // some animations
                 //sendVoxelBlinkMessage();
                 
@@ -658,8 +647,6 @@ void* animateVoxels(void* args) {
                     doBuildStreet();
                 }
                 
-                packetsEnding = ::voxelEditPacketSender->packetsToSendCount();
-                
                 if (animationElapsed > ANIMATE_VOXELS_INTERVAL_USECS) {
                     animationElapsed -= ANIMATE_VOXELS_INTERVAL_USECS; // credit ourselves one animation frame
                 } else {
@@ -676,9 +663,9 @@ void* animateVoxels(void* args) {
             processesPerAnimate++;
         }
         // dynamically sleep until we need to fire off the next set of voxels
-        quint64 usecToSleep =  PROCESSING_INTERVAL_USECS - (usecTimestampNow() - lastProcessTime);
-        if (usecToSleep > PROCESSING_INTERVAL_USECS) {
-            usecToSleep = PROCESSING_INTERVAL_USECS;
+        quint64 usecToSleep =  ::PROCESSING_INTERVAL_USECS - (usecTimestampNow() - lastProcessTime);
+        if (usecToSleep > ::PROCESSING_INTERVAL_USECS) {
+            usecToSleep = ::PROCESSING_INTERVAL_USECS;
         }
         
         if (usecToSleep > 0) {
@@ -764,7 +751,7 @@ AnimationServer::AnimationServer(int &argc, char **argv) :
         }
     }
     printf("ANIMATE_FPS=%d\n",ANIMATE_FPS);
-    printf("ANIMATE_VOXELS_INTERVAL_USECS=%d\n",ANIMATE_VOXELS_INTERVAL_USECS);
+    printf("ANIMATE_VOXELS_INTERVAL_USECS=%llu\n",ANIMATE_VOXELS_INTERVAL_USECS);
     
     const char* processingFPSCommand = getCmdOption(argc, (const char**) argv, "--ProcessingFPS");
     const char* processingIntervalCommand = getCmdOption(argc, (const char**) argv, "--ProcessingInterval");
@@ -780,7 +767,7 @@ AnimationServer::AnimationServer(int &argc, char **argv) :
         }
     }
     printf("PROCESSING_FPS=%d\n",PROCESSING_FPS);
-    printf("PROCESSING_INTERVAL_USECS=%d\n",PROCESSING_INTERVAL_USECS);
+    printf("PROCESSING_INTERVAL_USECS=%llu\n",PROCESSING_INTERVAL_USECS);
     
     nodeList->linkedDataCreateCallback = NULL; // do we need a callback?
     

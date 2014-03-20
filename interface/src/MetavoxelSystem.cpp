@@ -9,6 +9,8 @@
 #include <QMutexLocker>
 #include <QtDebug>
 
+#include <glm/gtx/transform.hpp>
+
 #include <SharedUtil.h>
 
 #include <MetavoxelUtil.h>
@@ -18,6 +20,7 @@
 #include "MetavoxelSystem.h"
 #include "renderer/Model.h"
 
+REGISTER_META_OBJECT(SphereRenderer)
 REGISTER_META_OBJECT(StaticModelRenderer)
 
 ProgramObject MetavoxelSystem::_program;
@@ -30,8 +33,7 @@ MetavoxelSystem::MetavoxelSystem() :
 
 void MetavoxelSystem::init() {
     if (!_program.isLinked()) {
-        switchToResourcesParentIfRequired();
-        _program.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/metavoxel_point.vert");
+        _program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/metavoxel_point.vert");
         _program.link();
        
         _pointScaleLocation = _program.uniformLocation("pointScale");
@@ -40,6 +42,31 @@ void MetavoxelSystem::init() {
     _buffer.create();
     
     connect(NodeList::getInstance(), SIGNAL(nodeAdded(SharedNodePointer)), SLOT(maybeAttachClient(const SharedNodePointer&)));
+}
+
+SharedObjectPointer MetavoxelSystem::findFirstRaySpannerIntersection(
+        const glm::vec3& origin, const glm::vec3& direction, const AttributePointer& attribute, float& distance) {
+   SharedObjectPointer closestSpanner;
+   float closestDistance = FLT_MAX;
+   foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+        if (node->getType() == NodeType::MetavoxelServer) {
+            QMutexLocker locker(&node->getMutex());
+            MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
+            if (client) {
+                float clientDistance;
+                SharedObjectPointer clientSpanner = client->getData().findFirstRaySpannerIntersection(
+                    origin, direction, attribute, clientDistance);
+                if (clientSpanner && clientDistance < closestDistance) {
+                    closestSpanner = clientSpanner;
+                    closestDistance = clientDistance;
+                }
+            }
+        }
+    }
+    if (closestSpanner) {
+        distance = closestDistance;
+    }
+    return closestSpanner;
 }
 
 void MetavoxelSystem::applyEdit(const MetavoxelEditMessage& edit) {
@@ -58,13 +85,14 @@ void MetavoxelSystem::simulate(float deltaTime) {
     // simulate the clients
     _points.clear();
     _simulateVisitor.setDeltaTime(deltaTime);
+    _simulateVisitor.setOrder(-Application::getInstance()->getViewFrustum()->getDirection());
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
             if (client) {
                 client->simulate(deltaTime);
-                client->getData().guide(_simulateVisitor);
+                client->guide(_simulateVisitor);
             }
         }
     }
@@ -106,7 +134,7 @@ void MetavoxelSystem::render() {
     glEnableClientState(GL_NORMAL_ARRAY);
 
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
-    
+
     glDrawArrays(GL_POINTS, 0, _points.size());
     
     glDisable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
@@ -124,7 +152,7 @@ void MetavoxelSystem::render() {
             QMutexLocker locker(&node->getMutex());
             MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
             if (client) {
-                client->getData().guide(_renderVisitor);
+                client->guide(_renderVisitor);
             }
         }
     }
@@ -144,33 +172,36 @@ MetavoxelSystem::SimulateVisitor::SimulateVisitor(QVector<Point>& points) :
     _points(points) {
 }
 
-void MetavoxelSystem::SimulateVisitor::visit(Spanner* spanner) {
+bool MetavoxelSystem::SimulateVisitor::visit(Spanner* spanner) {
     spanner->getRenderer()->simulate(_deltaTime);
+    return true;
 }
 
-bool MetavoxelSystem::SimulateVisitor::visit(MetavoxelInfo& info) {
+int MetavoxelSystem::SimulateVisitor::visit(MetavoxelInfo& info) {
     SpannerVisitor::visit(info);
 
     if (!info.isLeaf) {
-        return true;
+        return _order;
     }
     QRgb color = info.inputValues.at(0).getInlineValue<QRgb>();
     QRgb normal = info.inputValues.at(1).getInlineValue<QRgb>();
-    int alpha = qAlpha(color);
+    quint8 alpha = qAlpha(color);
     if (alpha > 0) {
         Point point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),
-            { qRed(color), qGreen(color), qBlue(color), alpha }, { qRed(normal), qGreen(normal), qBlue(normal) } };
+            { quint8(qRed(color)), quint8(qGreen(color)), quint8(qBlue(color)), alpha }, 
+            { quint8(qRed(normal)), quint8(qGreen(normal)), quint8(qBlue(normal)) } };
         _points.append(point);
     }
-    return false;
+    return STOP_RECURSION;
 }
 
 MetavoxelSystem::RenderVisitor::RenderVisitor() :
     SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute()) {
 }
 
-void MetavoxelSystem::RenderVisitor::visit(Spanner* spanner) {
+bool MetavoxelSystem::RenderVisitor::visit(Spanner* spanner) {
     spanner->getRenderer()->render(1.0f);
+    return true;
 }
 
 MetavoxelClient::MetavoxelClient(const SharedNodePointer& node) :
@@ -179,11 +210,16 @@ MetavoxelClient::MetavoxelClient(const SharedNodePointer& node) :
     
     connect(&_sequencer, SIGNAL(readyToWrite(const QByteArray&)), SLOT(sendData(const QByteArray&)));
     connect(&_sequencer, SIGNAL(readyToRead(Bitstream&)), SLOT(readPacket(Bitstream&)));
+    connect(&_sequencer, SIGNAL(sendAcknowledged(int)), SLOT(clearSendRecordsBefore(int)));
     connect(&_sequencer, SIGNAL(receiveAcknowledged(int)), SLOT(clearReceiveRecordsBefore(int)));
     
+    // insert the baseline send record
+    SendRecord sendRecord = { 0 };
+    _sendRecords.append(sendRecord);
+    
     // insert the baseline receive record
-    ReceiveRecord record = { 0, _data };
-    _receiveRecords.append(record);
+    ReceiveRecord receiveRecord = { 0, _data };
+    _receiveRecords.append(receiveRecord);
 }
 
 MetavoxelClient::~MetavoxelClient() {
@@ -193,9 +229,19 @@ MetavoxelClient::~MetavoxelClient() {
     _sequencer.endPacket();
 }
 
+static MetavoxelLOD getLOD() {
+    const float FIXED_LOD_THRESHOLD = 0.01f;
+    return MetavoxelLOD(Application::getInstance()->getCamera()->getPosition(), FIXED_LOD_THRESHOLD);
+}
+
+void MetavoxelClient::guide(MetavoxelVisitor& visitor) {
+    visitor.setLOD(getLOD());
+    _data.guide(visitor);
+}
+
 void MetavoxelClient::applyEdit(const MetavoxelEditMessage& edit) {
     // apply immediately to local tree
-    edit.apply(_data);
+    edit.apply(_data, _sequencer.getWeakSharedObjectHash());
 
     // start sending it out
     _sequencer.sendHighPriorityMessage(QVariant::fromValue(edit));
@@ -203,9 +249,14 @@ void MetavoxelClient::applyEdit(const MetavoxelEditMessage& edit) {
 
 void MetavoxelClient::simulate(float deltaTime) {
     Bitstream& out = _sequencer.startPacket();
-    ClientStateMessage state = { Application::getInstance()->getCamera()->getPosition() };
+    
+    ClientStateMessage state = { getLOD() };
     out << QVariant::fromValue(state);
     _sequencer.endPacket();
+    
+    // record the send
+    SendRecord record = { _sequencer.getOutgoingPacketNumber(), state.lod };
+    _sendRecords.append(record);
 }
 
 int MetavoxelClient::parseData(const QByteArray& packet) {
@@ -224,15 +275,19 @@ void MetavoxelClient::readPacket(Bitstream& in) {
     handleMessage(message, in);
     
     // record the receipt
-    ReceiveRecord record = { _sequencer.getIncomingPacketNumber(), _data };
+    ReceiveRecord record = { _sequencer.getIncomingPacketNumber(), _data, _sendRecords.first().lod };
     _receiveRecords.append(record);
     
     // reapply local edits
     foreach (const DatagramSequencer::HighPriorityMessage& message, _sequencer.getHighPriorityMessages()) {
         if (message.data.userType() == MetavoxelEditMessage::Type) {
-            message.data.value<MetavoxelEditMessage>().apply(_data);
+            message.data.value<MetavoxelEditMessage>().apply(_data, _sequencer.getWeakSharedObjectHash());
         }
     }
+}
+
+void MetavoxelClient::clearSendRecordsBefore(int index) {
+    _sendRecords.erase(_sendRecords.begin(), _sendRecords.begin() + index + 1);
 }
 
 void MetavoxelClient::clearReceiveRecordsBefore(int index) {
@@ -242,13 +297,33 @@ void MetavoxelClient::clearReceiveRecordsBefore(int index) {
 void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
     int userType = message.userType();
     if (userType == MetavoxelDeltaMessage::Type) {
-        _data.readDelta(_receiveRecords.first().data, in);
+        _data.readDelta(_receiveRecords.first().data, _receiveRecords.first().lod, in, _sendRecords.first().lod);
         
     } else if (userType == QMetaType::QVariantList) {
         foreach (const QVariant& element, message.toList()) {
             handleMessage(element, in);
         }
     }
+}
+
+SphereRenderer::SphereRenderer() {
+}
+
+void SphereRenderer::render(float alpha) {
+    Sphere* sphere = static_cast<Sphere*>(parent());
+    const QColor& color = sphere->getColor();
+    glColor4f(color.redF(), color.greenF(), color.blueF(), color.alphaF() * alpha);
+    
+    glPushMatrix();
+    const glm::vec3& translation = sphere->getTranslation();
+    glTranslatef(translation.x, translation.y, translation.z);
+    glm::quat rotation = glm::quat(glm::radians(sphere->getRotation()));
+    glm::vec3 axis = glm::axis(rotation);
+    glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+    
+    glutSolidSphere(sphere->getScale(), 10, 10);
+    
+    glPopMatrix();
 }
 
 StaticModelRenderer::StaticModelRenderer() :
@@ -271,11 +346,23 @@ void StaticModelRenderer::init(Spanner* spanner) {
 }
 
 void StaticModelRenderer::simulate(float deltaTime) {
+    // update the bounds
+    Box bounds;
+    if (_model->isActive()) {
+        const Extents& extents = _model->getGeometry()->getFBXGeometry().meshExtents;
+        bounds = Box(extents.minimum, extents.maximum);
+    }
+    static_cast<StaticModel*>(parent())->setBounds(glm::translate(_model->getTranslation()) *
+        glm::mat4_cast(_model->getRotation()) * glm::scale(_model->getScale()) * bounds);
     _model->simulate(deltaTime);
 }
 
 void StaticModelRenderer::render(float alpha) {
     _model->render(alpha);
+}
+
+bool StaticModelRenderer::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+    return _model->findRayIntersection(origin, direction, distance);
 }
 
 void StaticModelRenderer::applyTranslation(const glm::vec3& translation) {

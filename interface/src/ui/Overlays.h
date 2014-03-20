@@ -18,6 +18,7 @@ public:
     Overlays();
     ~Overlays();
     void init(QGLWidget* parent);
+    void update(float deltatime);
     void render3D();
     void render2D();
 
@@ -38,7 +39,8 @@ public slots:
 private:
     QMap<unsigned int, Overlay*> _overlays2D;
     QMap<unsigned int, Overlay*> _overlays3D;
-    static unsigned int _nextOverlayID;
+    QList<Overlay*> _overlaysToDelete;
+    unsigned int _nextOverlayID;
     QGLWidget* _parent;
 };
 

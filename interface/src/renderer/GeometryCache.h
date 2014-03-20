@@ -19,15 +19,18 @@
 
 #include "FBXReader.h"
 
+class Model;
 class NetworkGeometry;
 class NetworkMesh;
 class NetworkTexture;
 
 /// Stores cached geometry.
 class GeometryCache : public ResourceCache {
+    Q_OBJECT
+
 public:
     
-    ~GeometryCache();
+    virtual ~GeometryCache();
     
     void renderHemisphere(int slices, int stacks);
     void renderSquare(int xDivisions, int yDivisions);
@@ -38,7 +41,12 @@ public:
     /// \param fallback a fallback URL to load if the desired one is unavailable
     /// \param delayLoad if true, don't load the geometry immediately; wait until load is first requested
     QSharedPointer<NetworkGeometry> getGeometry(const QUrl& url, const QUrl& fallback = QUrl(), bool delayLoad = false);
-    
+
+public slots:
+
+    void setBlendedVertices(const QPointer<Model>& model, const QWeakPointer<NetworkGeometry>& geometry,
+        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
+
 protected:
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
@@ -79,9 +87,6 @@ public:
     const FBXGeometry& getFBXGeometry() const { return _geometry; }
     const QVector<NetworkMesh>& getMeshes() const { return _meshes; }
 
-    /// Returns the average color of all meshes in the geometry.
-    glm::vec4 computeAverageColor() const;
-
     virtual void setLoadPriority(const QPointer<QObject>& owner, float priority);
     virtual void setLoadPriorities(const QHash<QPointer<QObject>, float>& priorities);
     virtual void clearLoadPriority(const QPointer<QObject>& owner);
@@ -89,6 +94,7 @@ public:
 protected:
 
     virtual void downloadFinished(QNetworkReply* reply);
+    virtual void reinsert();
     
     Q_INVOKABLE void setGeometry(const FBXGeometry& geometry);
     
