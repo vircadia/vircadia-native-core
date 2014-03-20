@@ -134,7 +134,7 @@ bool FstReader::zip() {
     
     QHttpPart textPart;
     textPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data;"
-                       " name=\"model_type\"");
+                       " name=\"model_categorie\"");
     if (_isHead) {
         textPart.setBody("head");
     } else {
