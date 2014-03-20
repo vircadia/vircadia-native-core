@@ -313,7 +313,7 @@ void ImageReader::run() {
     int imageArea = image.width() * image.height();
     if (opaquePixels == imageArea) {
         qDebug() << "Image with alpha channel is completely opaque:" << url;
-        image.convertToFormat(QImage::Format_RGB888);
+        image = image.convertToFormat(QImage::Format_RGB888);
     }
     QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image),
         Q_ARG(bool, translucentPixels >= imageArea / 2));

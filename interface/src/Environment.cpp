@@ -92,7 +92,7 @@ glm::vec3 Environment::getGravity (const glm::vec3& position) {
     
     foreach (const ServerData& serverData, _data) {
         foreach (const EnvironmentData& environmentData, serverData) {
-            glm::vec3 vector = environmentData.getAtmosphereCenter() - position;
+            glm::vec3 vector = environmentData.getAtmosphereCenter(position) - position;
             float surfaceRadius = environmentData.getAtmosphereInnerRadius();
             if (glm::length(vector) <= surfaceRadius) {
                 //  At or inside a planet, gravity is as set for the planet
@@ -116,7 +116,7 @@ const EnvironmentData Environment::getClosestData(const glm::vec3& position) {
     float closestDistance = FLT_MAX;
     foreach (const ServerData& serverData, _data) {
         foreach (const EnvironmentData& environmentData, serverData) {
-            float distance = glm::distance(position, environmentData.getAtmosphereCenter()) -
+            float distance = glm::distance(position, environmentData.getAtmosphereCenter(position)) -
                 environmentData.getAtmosphereOuterRadius();
             if (distance < closestDistance) {
                 closest = environmentData;
@@ -132,6 +132,8 @@ bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3
     // collide with the "floor"
     bool found = findCapsulePlanePenetration(start, end, radius, glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), penetration);
     
+    glm::vec3 middle = (start + end) * 0.5f;
+    
     // get the lock for the duration of the call
     QMutexLocker locker(&_mutex);
     
@@ -141,7 +143,7 @@ bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3
                 continue; // don't bother colliding with gravity-less environments
             }
             glm::vec3 environmentPenetration;
-            if (findCapsuleSpherePenetration(start, end, radius, environmentData.getAtmosphereCenter(),
+            if (findCapsuleSpherePenetration(start, end, radius, environmentData.getAtmosphereCenter(middle),
                     environmentData.getAtmosphereInnerRadius(), environmentPenetration)) {
                 penetration = addPenetrations(penetration, environmentPenetration);
                 found = true;
@@ -203,10 +205,12 @@ ProgramObject* Environment::createSkyProgram(const char* from, int* locations) {
 }
 
 void Environment::renderAtmosphere(Camera& camera, const EnvironmentData& data) {
+    glm::vec3 center = data.getAtmosphereCenter(camera.getPosition());
+    
     glPushMatrix();
-    glTranslatef(data.getAtmosphereCenter().x, data.getAtmosphereCenter().y, data.getAtmosphereCenter().z);
-
-    glm::vec3 relativeCameraPos = camera.getPosition() - data.getAtmosphereCenter();
+    glTranslatef(center.x, center.y, center.z);
+    
+    glm::vec3 relativeCameraPos = camera.getPosition() - center;
     float height = glm::length(relativeCameraPos);
     
     // use the appropriate shader depending on whether we're inside or outside

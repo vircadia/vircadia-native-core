@@ -27,7 +27,7 @@ public:
     float getNextOutputLoudness() const { return _nextOutputLoudness; }
     
     int parseData(const QByteArray& packet);
-    void checkBuffersBeforeFrameSend(int jitterBufferLengthSamples);
+    void checkBuffersBeforeFrameSend(int jitterBufferLengthSamples, float& currentMinLoudness, float& currentMaxLoudness);
     void pushBuffersAfterFrameSend();
 private:
     std::vector<PositionalAudioRingBuffer*> _ringBuffers;

@@ -55,6 +55,10 @@ void GLCanvas::keyReleaseEvent(QKeyEvent* event) {
     Application::getInstance()->keyReleaseEvent(event);
 }
 
+void GLCanvas::focusOutEvent(QFocusEvent* event) {
+    Application::getInstance()->focusOutEvent(event);
+}
+
 void GLCanvas::mouseMoveEvent(QMouseEvent* event) {
     Application::getInstance()->mouseMoveEvent(event);
 }

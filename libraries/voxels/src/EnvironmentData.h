@@ -19,6 +19,9 @@ public:
     void setID(int id) { _id = id; }
     int getID() const { return _id; }
 
+    void setFlat(bool flat) { _flat = flat; }
+    bool isFlat() const { return _flat; }
+
     void setGravity(float gravity) { _gravity = gravity; }
     float getGravity() const { return _gravity; }
 
@@ -42,12 +45,17 @@ public:
     const glm::vec3& getSunLocation() const { return _sunLocation; }
     float getSunBrightness() const { return _sunBrightness; }
 
+    glm::vec3 getAtmosphereCenter(const glm::vec3& cameraPosition) const;
+    glm::vec3 getSunLocation(const glm::vec3& cameraPosition) const;
+
     int getBroadcastData(unsigned char* destinationBuffer) const;
     int parseData(const unsigned char* sourceBuffer, int numBytes);
     
 private:
 
     int _id;
+    
+    bool _flat;
     
     float _gravity;
 

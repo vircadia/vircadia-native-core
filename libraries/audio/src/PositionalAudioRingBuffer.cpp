@@ -50,6 +50,7 @@ int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
         int16_t numSilentSamples;
         
         memcpy(&numSilentSamples, packet.data() + readBytes, sizeof(int16_t));
+        
         readBytes += sizeof(int16_t);
         
         addSilentFrame(numSilentSamples);
