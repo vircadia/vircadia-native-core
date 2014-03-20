@@ -28,6 +28,7 @@ public:
     OctreeQueryNode();
     virtual ~OctreeQueryNode();
     
+    void init(); // called after creation to set up some virtual items
     virtual PacketType getMyPacketType() const = 0;
 
     void resetOctreePacket(bool lastWasSurpressed = false);  // resets octree packet to after "V" header
@@ -91,6 +92,7 @@ public:
     unsigned int getlastOctreePacketLength() const { return _lastOctreePacketLength; }
     int getDuplicatePacketCount() const { return _duplicatePacketCount; }
     
+    bool isShuttingDown() const { return _isShuttingDown; }
     
 private:
     OctreeQueryNode(const OctreeQueryNode &);
@@ -127,6 +129,9 @@ private:
     
     OCTREE_PACKET_SEQUENCE _sequenceNumber;
     quint64 _lastRootTimestamp;
+    
+    PacketType _myPacketType;
+    bool _isShuttingDown;
 };
 
 #endif /* defined(__hifi__OctreeQueryNode__) */
