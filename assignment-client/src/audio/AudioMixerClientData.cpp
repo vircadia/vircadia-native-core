@@ -97,7 +97,7 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSam
             // that would be mixed in
             _nextOutputLoudness = _ringBuffers[i]->averageLoudnessForBoundarySamples(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
             
-            if (_nextOutputLoudness < currentMinLoudness) {
+            if (_nextOutputLoudness != 0 && _nextOutputLoudness < currentMinLoudness) {
                 currentMinLoudness = _nextOutputLoudness;
             }
             
