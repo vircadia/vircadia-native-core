@@ -399,7 +399,7 @@ void AudioMixer::run() {
                 audabilityCutoffRatio += (1.0f - audabilityCutoffRatio) / 2.0f;
                 
                 qDebug() << "Mixer is struggling, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
-                << lastCutoffRatio << "and is now" << audabilityCutoffRatio;
+                    << lastCutoffRatio << "and is now" << audabilityCutoffRatio;
                 hasRatioChanged = true;
             } else if (_trailingSleepRatio >= BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD && audabilityCutoffRatio != 0) {
                 // we've recovered and can back off the required loudness
@@ -410,7 +410,7 @@ void AudioMixer::run() {
                 }
                 
                 qDebug() << "Mixer is recovering, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
-                << lastCutoffRatio << "and is now" << audabilityCutoffRatio;
+                    << lastCutoffRatio << "and is now" << audabilityCutoffRatio;
                 hasRatioChanged = true;
             }
             
