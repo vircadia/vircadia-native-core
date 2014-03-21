@@ -5,6 +5,8 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <QMutexLocker>
+
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <PerfStat.h>
@@ -21,7 +23,9 @@ OctreeSendThread::OctreeSendThread(const QUuid& nodeUUID, OctreeServer* myServer
     _nodeUUID(nodeUUID),
     _myServer(myServer),
     _packetData(),
-    _nodeMissingCount(0)
+    _nodeMissingCount(0),
+    _processLock(),
+    _isShuttingDown(false)
 {
     QString safeServerName("Octree");
     if (_myServer) {
@@ -43,8 +47,19 @@ OctreeSendThread::~OctreeSendThread() {
     OctreeServer::clientDisconnected(); 
 }
 
+void OctreeSendThread::setIsShuttingDown() {
+    QMutexLocker locker(&_processLock); // this will cause us to wait till the process loop is complete
+    _isShuttingDown = true;
+}
+
 
 bool OctreeSendThread::process() {
+    QMutexLocker locker(&_processLock);
+    
+    if (_isShuttingDown) {
+        return false; // exit early if we're shutting down
+    }
+    
     const int MAX_NODE_MISSING_CHECKS = 10;
     if (_nodeMissingCount > MAX_NODE_MISSING_CHECKS) {
         qDebug() << "our target node:" << _nodeUUID << "has been missing the last" << _nodeMissingCount 
@@ -56,7 +71,10 @@ bool OctreeSendThread::process() {
 
     // don't do any send processing until the initial load of the octree is complete...
     if (_myServer->isInitialLoadComplete()) {
-        SharedNodePointer node = NodeList::getInstance()->nodeWithUUID(_nodeUUID);
+    
+        // see if we can get access to our node, but don't wait on the lock, if the nodeList is busy
+        // it might not return a node that is known, but that's ok we can handle that case.
+        SharedNodePointer node = NodeList::getInstance()->nodeWithUUID(_nodeUUID, false);
 
         if (node) {
             _nodeMissingCount = 0;
@@ -112,19 +130,6 @@ int OctreeSendThread::handlePacketSend(const SharedNodePointer& node,
 
     bool packetSent = false; // did we send a packet?
     int packetsSent = 0;
-    
-    // double check that the node has an active socket, otherwise, don't send...
-
-    quint64 lockWaitStart = usecTimestampNow();
-    QMutexLocker locker(&node->getMutex());
-    quint64 lockWaitEnd = usecTimestampNow();
-    float lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
-    OctreeServer::trackNodeWaitTime(lockWaitElapsedUsec);
-    
-    const HifiSockAddr* nodeAddress = node->getActiveSocket();
-    if (!nodeAddress) {
-        return packetsSent; // without sending...
-    }
     
     // Here's where we check to see if this packet is a duplicate of the last packet. If it is, we will silently
     // obscure the packet and not send it. This allows the callers and upper level logic to not need to know about

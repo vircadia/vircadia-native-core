@@ -101,7 +101,8 @@ public:
     QByteArray constructPingReplyPacket(const QByteArray& pingPacket);
     void pingPublicAndLocalSocketsForInactiveNode(const SharedNodePointer& node);
 
-    SharedNodePointer nodeWithUUID(const QUuid& nodeUUID);
+    /// passing false for blockingLock, will tryLock, and may return NULL when a node with the UUID actually does exist
+    SharedNodePointer nodeWithUUID(const QUuid& nodeUUID, bool blockingLock = true);
     SharedNodePointer sendingNodeForPacket(const QByteArray& packet);
     
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, char nodeType,
