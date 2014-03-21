@@ -62,7 +62,12 @@ void attachNewBufferToNode(Node *newNode) {
 }
 
 AudioMixer::AudioMixer(const QByteArray& packet) :
-    ThreadedAssignment(packet)
+    ThreadedAssignment(packet),
+    _trailingSleepRatio(1.0f),
+    _minSourceLoudnessInFrame(1.0f),
+    _maxSourceLoudnessInFrame(0.0f),
+    _loudnessCutoffRatio(0.0f),
+    _minRequiredLoudness(0.0f)
 {
     
 }
@@ -301,7 +306,7 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
                 if ((*otherNode != *node
                      || otherNodeBuffer->shouldLoopbackForNode())
                     && otherNodeBuffer->willBeAddedToMix()
-                    && otherNodeClientData->getNextOutputLoudness() > 0) {
+                    && otherNodeBuffer->getAverageLoudness() > _minRequiredLoudness) {
                     addBufferToMixForListeningNodeWithBuffer(otherNodeBuffer, nodeRingBuffer);
                 }
             }
@@ -350,12 +355,19 @@ void AudioMixer::run() {
     
     char* clientMixBuffer = new char[NETWORK_BUFFER_LENGTH_BYTES_STEREO
                                      + numBytesForPacketHeaderGivenPacketType(PacketTypeMixedAudio)];
+    
+    int usecToSleep = BUFFER_SEND_INTERVAL_USECS;
 
     while (!_isFinished) {
 
+        _minSourceLoudnessInFrame = 1.0f;
+        _maxSourceLoudnessInFrame = 0.0f;
+        
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
-                ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(JITTER_BUFFER_SAMPLES);
+                ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(JITTER_BUFFER_SAMPLES,
+                                                                                             _minSourceLoudnessInFrame,
+                                                                                             _maxSourceLoudnessInFrame);
             }
         }
 
@@ -384,7 +396,7 @@ void AudioMixer::run() {
             break;
         }
 
-        int usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
+        usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
 
         if (usecToSleep > 0) {
             usleep(usecToSleep);

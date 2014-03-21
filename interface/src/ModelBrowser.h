@@ -31,7 +31,7 @@ public:
     ~ModelBrowser();
     
 signals:
-    void selected(QString);
+    void selected(QString filename);
     
 public slots:
     void browse();
