@@ -96,16 +96,7 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSam
             // calculate the average loudness for the next NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL
             // that would be mixed in
             _ringBuffers[i]->updateAverageLoudnessForBoundarySamples(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-            
-            float ringBufferLoudness = _ringBuffers[i]->getAverageLoudness();
-            
-            if (ringBufferLoudness != 0 && ringBufferLoudness < currentMinLoudness) {
-                currentMinLoudness = ringBufferLoudness;
-            }
-            
-            if (ringBufferLoudness > currentMaxLoudness) {
-                currentMaxLoudness = ringBufferLoudness;
-            }
+
         }
     }
 }
