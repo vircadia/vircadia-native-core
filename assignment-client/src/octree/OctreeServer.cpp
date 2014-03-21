@@ -880,7 +880,9 @@ void OctreeServer::run() {
     // we need to ask the DS about agents so we can ping/reply with them
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
+#ifndef WIN32
     setvbuf(stdout, NULL, _IOLBF, 0);
+#endif
 
     nodeList->linkedDataCreateCallback = &OctreeServer::attachQueryNodeToNode;
 

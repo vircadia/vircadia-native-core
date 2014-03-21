@@ -86,7 +86,8 @@ const char* stringForLogType(QtMsgType msgType) {
 }
 
 // the following will produce 2000-10-02 13:55:36 -0700
-const char DATE_STRING_FORMAT[] = "%F %H:%M:%S %z";
+const char DATE_STRING_FORMAT[] = "%Y-%m-%d %H:%M:%S %z";
+//const char DATE_STRING_FORMAT[] = "%F %H:%M:%S %z";
 
 void Logging::verboseMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     if (message.isEmpty()) {
