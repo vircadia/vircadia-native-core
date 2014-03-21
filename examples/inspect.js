@@ -165,7 +165,7 @@ function keyReleaseEvent(event) {
 }
 
 function mousePressEvent(event) {
-    if (alt) {
+    if (alt && !isActive) {
         isActive = true;
         mouseLastX = event.x;
         mouseLastY = event.y;
