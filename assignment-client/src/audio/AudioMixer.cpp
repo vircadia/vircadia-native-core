@@ -63,6 +63,7 @@ void attachNewBufferToNode(Node *newNode) {
 
 AudioMixer::AudioMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
+    _trailingSleepRatio(1.0f),
     _minSourceLoudnessInFrame(1.0f),
     _maxSourceLoudnessInFrame(0.0f),
     _loudnessCutoffRatio(0.0f),
@@ -305,7 +306,7 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
                 if ((*otherNode != *node
                      || otherNodeBuffer->shouldLoopbackForNode())
                     && otherNodeBuffer->willBeAddedToMix()
-                    && otherNodeClientData->getNextOutputLoudness() > _minRequiredLoudness) {
+                    && otherNodeBuffer->getAverageLoudness() > _minRequiredLoudness) {
                     addBufferToMixForListeningNodeWithBuffer(otherNodeBuffer, nodeRingBuffer);
                 }
             }
@@ -355,8 +356,7 @@ void AudioMixer::run() {
     char* clientMixBuffer = new char[NETWORK_BUFFER_LENGTH_BYTES_STEREO
                                      + numBytesForPacketHeaderGivenPacketType(PacketTypeMixedAudio)];
     
-    int usecToSleep = 0;
-    bool isFirstRun = true;
+    int usecToSleep = BUFFER_SEND_INTERVAL_USECS;
 
     while (!_isFinished) {
 
@@ -371,46 +371,48 @@ void AudioMixer::run() {
             }
         }
         
-        if (!isFirstRun) {
-            const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10;
-            const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.30;
-            const float CUTOFF_EPSILON = 0.0001;
-            
-            float percentageSleep = (usecToSleep / (float) BUFFER_SEND_INTERVAL_USECS);
-            
-            float lastCutoffRatio = _loudnessCutoffRatio;
-            bool hasRatioChanged = false;
-            
-            if (percentageSleep <= STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD || usecToSleep < 0) {
-                // we're struggling - change our min required loudness to reduce some load
-                _loudnessCutoffRatio += (1 - _loudnessCutoffRatio) / 2;
-                
-                qDebug() << "Mixer is struggling, sleeping" << percentageSleep * 100 << "% of frame time. Old cutoff was"
-                    << lastCutoffRatio << "and is now" << _loudnessCutoffRatio;
-                hasRatioChanged = true;
-            } else if (percentageSleep >= BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD && _loudnessCutoffRatio != 0) {
-                // we've recovered and can back off the required loudness
-                _loudnessCutoffRatio -= _loudnessCutoffRatio / 2;
-                
-                if (_loudnessCutoffRatio < CUTOFF_EPSILON) {
-                    _loudnessCutoffRatio = 0;
-                }
-                
-                qDebug() << "Mixer is recovering, sleeping" << percentageSleep * 100 << "% of frame time. Old cutoff was"
-                    << lastCutoffRatio << "and is now" << _loudnessCutoffRatio;
-                hasRatioChanged = true;
-            }
-            
-            if (hasRatioChanged) {
-                // set out min required loudness from the new ratio
-                _minRequiredLoudness = _loudnessCutoffRatio * (_maxSourceLoudnessInFrame - _minSourceLoudnessInFrame);
-                qDebug() << "Minimum loudness required to be mixed is now" << _minRequiredLoudness;
-            }
-            
-            
+        const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10;
+        const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.30;
+        const float CUTOFF_EPSILON = 0.0001;
         
-        } else {
-            isFirstRun = false;
+        const int TRAILING_AVERAGE_FRAMES = 100;
+        const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
+        const float PREVIOUS_FRAMES_RATIO = 1 - CURRENT_FRAME_RATIO;
+        
+        if (usecToSleep < 0) {
+            usecToSleep = 0;
+        }
+        
+        _trailingSleepRatio = (PREVIOUS_FRAMES_RATIO * _trailingSleepRatio)
+        + (usecToSleep * CURRENT_FRAME_RATIO / (float) BUFFER_SEND_INTERVAL_USECS);
+        
+        float lastCutoffRatio = _loudnessCutoffRatio;
+        bool hasRatioChanged = false;
+        
+        if (_trailingSleepRatio <= STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD) {
+            // we're struggling - change our min required loudness to reduce some load
+            _loudnessCutoffRatio += (1 - _loudnessCutoffRatio) / 2;
+            
+            qDebug() << "Mixer is struggling, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
+            << lastCutoffRatio << "and is now" << _loudnessCutoffRatio;
+            hasRatioChanged = true;
+        } else if (_trailingSleepRatio >= BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD && _loudnessCutoffRatio != 0) {
+            // we've recovered and can back off the required loudness
+            _loudnessCutoffRatio -= _loudnessCutoffRatio / 2;
+            
+            if (_loudnessCutoffRatio < CUTOFF_EPSILON) {
+                _loudnessCutoffRatio = 0;
+            }
+            
+            qDebug() << "Mixer is recovering, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
+            << lastCutoffRatio << "and is now" << _loudnessCutoffRatio;
+            hasRatioChanged = true;
+        }
+        
+        if (hasRatioChanged) {
+            // set out min required loudness from the new ratio
+            _minRequiredLoudness = _loudnessCutoffRatio * (_maxSourceLoudnessInFrame - _minSourceLoudnessInFrame);
+            qDebug() << "Minimum loudness required to be mixed is now" << _minRequiredLoudness;
         }
 
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
