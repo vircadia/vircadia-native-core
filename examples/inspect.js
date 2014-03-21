@@ -14,9 +14,11 @@
 //  Dragging the mouse will move your camera according to the mode you are in.
 //
 
+var PI = 3.14 // No need for something more precise
+
 var AZIMUTH_RATE = 90.0;
 var ALTITUDE_RATE = 200.0;
-var RADIUS_RATE = 20.0;
+var RADIUS_RATE = 1.0 / 100.0;
 var PAN_RATE = 50.0;
 
 var alt = false;
@@ -46,7 +48,7 @@ var altitude = 0.0;
 
 function handleRadialMode(dx, dy) {
     azimuth += dx / AZIMUTH_RATE;
-    radius += radius * dy / RADIUS_RATE;
+    radius += radius * dy * RADIUS_RATE;
     if (radius < 1) {
         radius = 1;
     }
@@ -61,6 +63,12 @@ function handleRadialMode(dx, dy) {
 function handleOrbitMode(dx, dy) {
     azimuth += dx / AZIMUTH_RATE;
     altitude += dy / ALTITUDE_RATE;
+    if (altitude > PI / 2.0) {
+        altitude = PI / 2.0;
+    }
+    if (altitude < -PI / 2.0) {
+        altitude = -PI / 2.0;
+    }
     
     vector = { x:(Math.cos(altitude) * Math.cos(azimuth)) * radius,
                y:Math.sin(altitude) * radius,
