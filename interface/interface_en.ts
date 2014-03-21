@@ -113,18 +113,18 @@
 <context>
     <name>Menu</name>
     <message>
-        <location filename="src/Menu.cpp" line="439"/>
+        <location filename="src/Menu.cpp" line="438"/>
         <source>Open .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="441"/>
-        <location filename="src/Menu.cpp" line="453"/>
+        <location filename="src/Menu.cpp" line="440"/>
+        <location filename="src/Menu.cpp" line="452"/>
         <source>Text files (*.ini)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="451"/>
+        <location filename="src/Menu.cpp" line="450"/>
         <source>Save .ini config file</source>
         <translation type="unfinished"></translation>
     </message>

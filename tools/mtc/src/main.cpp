@@ -152,6 +152,25 @@ void generateOutput (QTextStream& out, const QList<Streamable>& streamables) {
         out << "    }\n";
         out << "}\n";
 
+        out << "QVariant " << name << "::getField(int index) const {\n";
+        if (!str.clazz.bases.isEmpty()) {
+            out << "    int nextIndex;\n";
+        }
+        foreach (const QString& base, str.clazz.bases) {
+            out << "    if ((nextIndex = index - " << base << "::getMetaFields().size()) < 0) {\n";
+            out << "        return " << base << "::getField(index);\n";
+            out << "    }\n";
+            out << "    index = nextIndex;\n";        
+        }
+        out << "    switch (index) {\n";
+        for (int i = 0; i < str.fields.size(); i++) {
+            out << "        case " << i << ":\n";
+            out << "            return QVariant::fromValue(this->" << str.fields.at(i).name << ");\n";
+        }
+        out << "    }\n";
+        out << "    return QVariant();\n";
+        out << "}\n";
+        
         out << "Bitstream& operator<<(Bitstream& out, const " << name << "& obj) {\n";
         foreach (const QString& base, str.clazz.bases) {
             out << "    out << static_cast<const " << base << "&>(obj);\n";
@@ -172,14 +191,9 @@ void generateOutput (QTextStream& out, const QList<Streamable>& streamables) {
         out << "    return in;\n";
         out << "}\n";
 
-        out << "template<> void Bitstream::writeDelta(const " << name << "& value, const " << name << "& reference) {\n";
-        out << "    if (value == reference) {\n";
-        out << "        *this << false;\n";
-        out << "        return;\n";
-        out << "    }\n";
-        out << "    *this << true;\n";
+        out << "template<> void Bitstream::writeRawDelta(const " << name << "& value, const " << name << "& reference) {\n";
         foreach (const QString& base, str.clazz.bases) {
-            out << "    writeDelta(static_cast<const " << base << "&>(value), static_cast<const " <<
+            out << "    writeRawDelta(static_cast<const " << base << "&>(value), static_cast<const " <<
                 base << "&>(reference));\n";
         }
         foreach (const Field& field, str.fields) {
@@ -187,15 +201,9 @@ void generateOutput (QTextStream& out, const QList<Streamable>& streamables) {
         }
         out << "}\n";
 
-        out << "template<> void Bitstream::readDelta(" << name << "& value, const " << name << "& reference) {\n";
-        out << "    bool changed;\n";
-        out << "    *this >> changed;\n";
-        out << "    if (!changed) {\n";
-        out << "        value = reference;\n";
-        out << "        return;\n";
-        out << "    }\n";
+        out << "template<> void Bitstream::readRawDelta(" << name << "& value, const " << name << "& reference) {\n";
         foreach (const QString& base, str.clazz.bases) {
-            out << "    readDelta(static_cast<" << base << "&>(value), static_cast<const " <<
+            out << "    readRawDelta(static_cast<" << base << "&>(value), static_cast<const " <<
                 base << "&>(reference));\n";
         }
         foreach (const Field& field, str.fields) {

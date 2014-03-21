@@ -903,7 +903,29 @@ void TypeReader::readDelta(Bitstream& in, QVariant& object, const QVariant& refe
             object = reference;
             int size, referenceSize;
             in >> size >> referenceSize;
-            
+            if (_streamer) {
+                if (size < referenceSize) {
+                    _streamer->prune(object, size);
+                }
+                for (int i = 0; i < size; i++) {
+                    if (i < referenceSize) {
+                        QVariant value;
+                        _valueReader->readDelta(in, value, _streamer->getValue(reference, i));
+                        _streamer->setValue(object, i, value);
+                    } else {
+                        _streamer->insert(object, _valueReader->read(in));
+                    }
+                }
+            } else {
+                for (int i = 0; i < size; i++) {
+                    if (i < referenceSize) {
+                        QVariant value;
+                        _valueReader->readDelta(in, value, QVariant());
+                    } else {
+                        _valueReader->read(in);
+                    }
+                }
+            }
             break;
         }
         case SET_TYPE: {
@@ -933,7 +955,13 @@ void TypeReader::readDelta(Bitstream& in, QVariant& object, const QVariant& refe
             in >> modified;
             for (int i = 0; i < modified; i++) {
                 QVariant key = _keyReader->read(in);
-                
+                QVariant value;
+                if (_streamer) {
+                    _valueReader->readDelta(in, value, _streamer->getValue(reference, key));
+                    _streamer->insert(object, key, value);
+                } else {
+                    _valueReader->readDelta(in, value, QVariant());
+                }
             }
             int removed;
             in >> removed;
@@ -966,12 +994,18 @@ FieldReader::FieldReader(const TypeReader& reader, int index) :
 void FieldReader::read(Bitstream& in, const TypeStreamer* streamer, QVariant& object) const {
     QVariant value = _reader.read(in);
     if (_index != -1 && streamer) {
-        streamer->setField(_index, object, value);
+        streamer->setField(object, _index, value);
     }    
 }
 
 void FieldReader::readDelta(Bitstream& in, const TypeStreamer* streamer, QVariant& object, const QVariant& reference) const {
-    // TODO: field delta
+    QVariant value;
+    if (_index != -1 && streamer) {
+        _reader.readDelta(in, value, streamer->getField(reference, _index));
+        streamer->setField(object, _index, value);
+    } else {
+        _reader.readDelta(in, value, QVariant());
+    }
 }
 
 ObjectReader::ObjectReader(const QByteArray& className, const QMetaObject* metaObject,
@@ -1024,8 +1058,12 @@ int TypeStreamer::getFieldIndex(const QByteArray& name) const {
     return -1;
 }
 
-void TypeStreamer::setField(int index, QVariant& object, const QVariant& value) const {
+void TypeStreamer::setField(QVariant& object, int index, const QVariant& value) const {
     // nothing by default
+}
+
+QVariant TypeStreamer::getField(const QVariant& object, int index) const {
+    return QVariant();
 }
 
 TypeReader::Type TypeStreamer::getReaderType() const {
@@ -1050,4 +1088,20 @@ void TypeStreamer::insert(QVariant& object, const QVariant& key, const QVariant&
 
 bool TypeStreamer::remove(QVariant& object, const QVariant& key) const {
     return false;
+}
+
+QVariant TypeStreamer::getValue(const QVariant& object, const QVariant& key) const {
+    return QVariant();
+}
+
+void TypeStreamer::prune(QVariant& object, int size) const {
+    // nothing by default
+}
+
+QVariant TypeStreamer::getValue(const QVariant& object, int index) const {
+    return QVariant();
+}
+
+void TypeStreamer::setValue(QVariant& object, int index, const QVariant& value) const {
+    // nothing by default
 }
