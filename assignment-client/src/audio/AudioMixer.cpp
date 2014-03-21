@@ -393,7 +393,6 @@ void AudioMixer::run() {
         QCoreApplication::processEvents();
         
         if (_isFinished) {
-            qDebug() << "NRDC:" << NodeList::getInstance()->getNumNoReplyDomainCheckIns();
             break;
         }
 
