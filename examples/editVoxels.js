@@ -32,8 +32,6 @@ var MIN_PASTE_VOXEL_SCALE = .256;
 var zFightingSizeAdjust = 0.002; // used to adjust preview voxels to prevent z fighting
 var previewLineWidth = 1.5;
 
-var oldMode = Camera.getMode();
-var trackAsOrbitOrPan = false;
 var isAdding = false; 
 var isExtruding = false;
 var extrudeDirection = { x: 0, y: 0, z: 0 };
@@ -614,8 +612,6 @@ function showPreviewVoxel() {
     var guidePosition;
     if (trackAsRecolor || recolorToolSelected || trackAsEyedropper || eyedropperToolSelected) {
         Overlays.editOverlay(voxelPreview, { visible: true });
-    } else if (trackAsOrbitOrPan) {
-        Overlays.editOverlay(voxelPreview, { visible: false });
     } else if (voxelToolSelected && !isExtruding) {
         Overlays.editOverlay(voxelPreview, { visible: true });
     } else if (isExtruding) {
@@ -706,15 +702,12 @@ function showPreviewGuides() {
 }
 
 function trackMouseEvent(event) {
-    if (!trackAsOrbitOrPan) {
-        trackLastMouseX = event.x;
-        trackLastMouseY = event.y;
-        trackAsDelete = event.isControl;
-        trackAsRecolor = event.isShifted;
-        trackAsEyedropper = event.isMeta;
-        trackAsOrbitOrPan = event.isAlt; // TODO: double check this...??
-        showPreviewGuides();
-    }
+    trackLastMouseX = event.x;
+    trackLastMouseY = event.y;
+    trackAsDelete = event.isControl;
+    trackAsRecolor = event.isShifted;
+    trackAsEyedropper = event.isMeta;
+    showPreviewGuides();
 }
 
 function trackKeyPressEvent(event) {
@@ -789,67 +782,64 @@ function mousePressEvent(event) {
         return; 
     }
     
-    // no clicking on overlays while in panning mode
-    if (!trackAsOrbitOrPan) {
-        var clickedOnSomething = false;
-        var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
-
-        // If the user clicked on the thumb, handle the slider logic
-        if (clickedOverlay == thumb) {
-            isMovingSlider = true;
-            thumbClickOffsetX = event.x - (sliderX + thumbX); // this should be the position of the mouse relative to the thumb
-            clickedOnSomething = true;
-
-            Overlays.editOverlay(thumb, { imageURL: toolIconUrl + "voxel-size-slider-handle.svg", });
-
-        } else if (clickedOverlay == voxelTool) {
-            voxelToolSelected = true;
-            recolorToolSelected = false;
-            eyedropperToolSelected = false;
-            moveTools();
-            clickedOnSomething = true;
-        } else if (clickedOverlay == recolorTool) {
-            voxelToolSelected = false;
-            recolorToolSelected = true;
-            eyedropperToolSelected = false;
-            moveTools();
-            clickedOnSomething = true;
-        } else if (clickedOverlay == eyedropperTool) {
-            voxelToolSelected = false;
-            recolorToolSelected = false;
-            eyedropperToolSelected = true;
-            moveTools();
-            clickedOnSomething = true;
-        } else if (clickedOverlay == slider) {
-
-            if (event.x < sliderX + minThumbX) {
-                thumbX -= thumbDeltaPerStep;
-                calcScaleFromThumb(thumbX);
-            }
-
-            if (event.x > sliderX + maxThumbX) {
-                thumbX += thumbDeltaPerStep;
-                calcScaleFromThumb(thumbX);
-            }
-
-            moveTools();
-            clickedOnSomething = true;
-        } else {
-            // if the user clicked on one of the color swatches, update the selectedSwatch
-            for (s = 0; s < numColors; s++) {
-                if (clickedOverlay == swatches[s]) {
-                    whichColor = s;
-                    moveTools();
-                    clickedOnSomething = true;
-                    break;
-                }
-            }
+    var clickedOnSomething = false;
+    var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
+    
+    // If the user clicked on the thumb, handle the slider logic
+    if (clickedOverlay == thumb) {
+        isMovingSlider = true;
+        thumbClickOffsetX = event.x - (sliderX + thumbX); // this should be the position of the mouse relative to the thumb
+        clickedOnSomething = true;
+        
+        Overlays.editOverlay(thumb, { imageURL: toolIconUrl + "voxel-size-slider-handle.svg", });
+        
+    } else if (clickedOverlay == voxelTool) {
+        voxelToolSelected = true;
+        recolorToolSelected = false;
+        eyedropperToolSelected = false;
+        moveTools();
+        clickedOnSomething = true;
+    } else if (clickedOverlay == recolorTool) {
+        voxelToolSelected = false;
+        recolorToolSelected = true;
+        eyedropperToolSelected = false;
+        moveTools();
+        clickedOnSomething = true;
+    } else if (clickedOverlay == eyedropperTool) {
+        voxelToolSelected = false;
+        recolorToolSelected = false;
+        eyedropperToolSelected = true;
+        moveTools();
+        clickedOnSomething = true;
+    } else if (clickedOverlay == slider) {
+        
+        if (event.x < sliderX + minThumbX) {
+            thumbX -= thumbDeltaPerStep;
+            calcScaleFromThumb(thumbX);
         }
-        if (clickedOnSomething) {
-            return; // no further processing
+        
+        if (event.x > sliderX + maxThumbX) {
+            thumbX += thumbDeltaPerStep;
+            calcScaleFromThumb(thumbX);
+        }
+        
+        moveTools();
+        clickedOnSomething = true;
+    } else {
+        // if the user clicked on one of the color swatches, update the selectedSwatch
+        for (s = 0; s < numColors; s++) {
+            if (clickedOverlay == swatches[s]) {
+                whichColor = s;
+                moveTools();
+                clickedOnSomething = true;
+                break;
+            }
         }
     }
-    
+    if (clickedOnSomething) {
+        return; // no further processing
+    }
+
     // TODO: does any of this stuff need to execute if we're panning or orbiting?
     trackMouseEvent(event); // used by preview support
     mouseX = event.x;
@@ -1072,7 +1062,7 @@ function mouseMoveEvent(event) {
     }
 
     
-    if (!trackAsOrbitOrPan && isMovingSlider) {
+    if (isMovingSlider) {
         thumbX = (event.x - thumbClickOffsetX) - sliderX;
         if (thumbX < minThumbX) {
             thumbX = minThumbX;
@@ -1082,7 +1072,7 @@ function mouseMoveEvent(event) {
         }
         calcScaleFromThumb(thumbX);
         
-    } else if (!trackAsOrbitOrPan && isAdding) {
+    } else if (isAdding) {
         //  Watch the drag direction to tell which way to 'extrude' this voxel
         if (!isExtruding) {
             var pickRay = Camera.computePickRay(event.x, event.y);
