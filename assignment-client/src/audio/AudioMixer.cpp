@@ -66,7 +66,7 @@ void attachNewBufferToNode(Node *newNode) {
 AudioMixer::AudioMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _trailingSleepRatio(1.0f),
-    _minAudibilityThreshold(LOUDNESS_TO_DISTANCE_RATIO / 2)
+    _minAudibilityThreshold(LOUDNESS_TO_DISTANCE_RATIO / 2.0f)
 {
     
 }
