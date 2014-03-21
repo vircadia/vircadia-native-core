@@ -24,14 +24,11 @@ public:
     const std::vector<PositionalAudioRingBuffer*> getRingBuffers() const { return _ringBuffers; }
     AvatarAudioRingBuffer* getAvatarAudioRingBuffer() const;
     
-    float getNextOutputLoudness() const { return _nextOutputLoudness; }
-    
     int parseData(const QByteArray& packet);
     void checkBuffersBeforeFrameSend(int jitterBufferLengthSamples, float& currentMinLoudness, float& currentMaxLoudness);
     void pushBuffersAfterFrameSend();
 private:
     std::vector<PositionalAudioRingBuffer*> _ringBuffers;
-    float _nextOutputLoudness;
 };
 
 #endif /* defined(__hifi__AudioMixerClientData__) */
