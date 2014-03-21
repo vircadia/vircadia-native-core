@@ -11,8 +11,9 @@
 #include <GeometryUtil.h>
 #include <SharedUtil.h>
 
-#include "AvatarData.h"
+#include "AvatarData.h" 
 #include "HandData.h"
+
 
 HandData::HandData(AvatarData* owningAvatar) :
     _owningAvatarData(owningAvatar)
