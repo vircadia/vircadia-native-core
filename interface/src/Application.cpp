@@ -62,6 +62,7 @@
 #include <UUID.h>
 #include <OctreeSceneStats.h>
 #include <LocalVoxelsList.h>
+#include <FstReader.h>
 
 #include "Application.h"
 #include "ClipboardScriptingInterface.h"
@@ -121,8 +122,6 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
 QString& Application::resourcesPath() {
 #ifdef Q_OS_MAC
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
-#elif defined Q_OS_LINUX
-    static QString staticResourcePath = "resources/";
 #else
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
 #endif
@@ -693,6 +692,8 @@ bool Application::event(QEvent* event) {
 
 void Application::keyPressEvent(QKeyEvent* event) {
 
+    _keysPressed.insert(event->key());
+
     _controllerScriptingInterface.emitKeyPressEvent(event); // send events to any registered scripts
     
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -915,6 +916,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
 
+    _keysPressed.remove(event->key());
+
     _controllerScriptingInterface.emitKeyReleaseEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -922,58 +925,64 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
         return;
     }
 
+    switch (event->key()) {
+        case Qt::Key_E:
+            _myAvatar->setDriveKeys(UP, 0.f);
+            break;
 
-    if (activeWindow() == _window) {
-        switch (event->key()) {
-            case Qt::Key_E:
-                _myAvatar->setDriveKeys(UP, 0.f);
-                break;
+        case Qt::Key_C:
+            _myAvatar->setDriveKeys(DOWN, 0.f);
+            break;
 
-            case Qt::Key_C:
-                _myAvatar->setDriveKeys(DOWN, 0.f);
-                break;
+        case Qt::Key_W:
+            _myAvatar->setDriveKeys(FWD, 0.f);
+            break;
 
-            case Qt::Key_W:
-                _myAvatar->setDriveKeys(FWD, 0.f);
-                break;
+        case Qt::Key_S:
+            _myAvatar->setDriveKeys(BACK, 0.f);
+            break;
 
-            case Qt::Key_S:
-                _myAvatar->setDriveKeys(BACK, 0.f);
-                break;
+        case Qt::Key_A:
+            _myAvatar->setDriveKeys(ROT_LEFT, 0.f);
+            break;
 
-            case Qt::Key_A:
-                _myAvatar->setDriveKeys(ROT_LEFT, 0.f);
-                break;
+        case Qt::Key_D:
+            _myAvatar->setDriveKeys(ROT_RIGHT, 0.f);
+            break;
 
-            case Qt::Key_D:
-                _myAvatar->setDriveKeys(ROT_RIGHT, 0.f);
-                break;
+        case Qt::Key_Up:
+            _myAvatar->setDriveKeys(FWD, 0.f);
+            _myAvatar->setDriveKeys(UP, 0.f);
+            break;
 
-            case Qt::Key_Up:
-                _myAvatar->setDriveKeys(FWD, 0.f);
-                _myAvatar->setDriveKeys(UP, 0.f);
-                break;
+        case Qt::Key_Down:
+            _myAvatar->setDriveKeys(BACK, 0.f);
+            _myAvatar->setDriveKeys(DOWN, 0.f);
+            break;
 
-            case Qt::Key_Down:
-                _myAvatar->setDriveKeys(BACK, 0.f);
-                _myAvatar->setDriveKeys(DOWN, 0.f);
-                break;
+        case Qt::Key_Left:
+            _myAvatar->setDriveKeys(LEFT, 0.f);
+            _myAvatar->setDriveKeys(ROT_LEFT, 0.f);
+            break;
 
-            case Qt::Key_Left:
-                _myAvatar->setDriveKeys(LEFT, 0.f);
-                _myAvatar->setDriveKeys(ROT_LEFT, 0.f);
-                break;
+        case Qt::Key_Right:
+            _myAvatar->setDriveKeys(RIGHT, 0.f);
+            _myAvatar->setDriveKeys(ROT_RIGHT, 0.f);
+            break;
 
-            case Qt::Key_Right:
-                _myAvatar->setDriveKeys(RIGHT, 0.f);
-                _myAvatar->setDriveKeys(ROT_RIGHT, 0.f);
-                break;
-
-            default:
-                event->ignore();
-                break;
-        }
+        default:
+            event->ignore();
+            break;
     }
+}
+
+void Application::focusOutEvent(QFocusEvent* event) {
+    // synthesize events for keys currently pressed, since we may not get their release events
+    foreach (int key, _keysPressed) {
+        QKeyEvent event(QEvent::KeyRelease, key, Qt::NoModifier);
+        keyReleaseEvent(&event);
+    }
+    _keysPressed.clear();
 }
 
 void Application::mouseMoveEvent(QMouseEvent* event) {
@@ -1527,6 +1536,10 @@ void Application::init() {
     }
     qDebug("Loaded settings");
     
+    // initialize Visage and Faceshift after loading the menu settings
+    _faceshift.init();
+    _visage.init();
+    
     // fire off an immediate domain-server check in now that settings are loaded
     NodeList::getInstance()->sendDomainServerCheckIn();
 
@@ -1604,8 +1617,8 @@ bool Application::isLookingAtMyAvatar(Avatar* avatar) {
 }
 
 void Application::updateLOD() {
-    // adjust it unless we were asked to disable this feature
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableAutoAdjustLOD)) {
+    // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableAutoAdjustLOD) && !isThrottleRendering()) {
         Menu::getInstance()->autoAdjustLOD(_fps);
     }
 }
@@ -1677,7 +1690,7 @@ void Application::updateMyAvatarLookAtPosition() {
     } else {
         // look in direction of the mouse ray, but use distance from intersection, if any
         float distance = TREE_SCALE;
-        if (_myAvatar->getLookAtTargetAvatar()) {
+        if (_myAvatar->getLookAtTargetAvatar() && _myAvatar != _myAvatar->getLookAtTargetAvatar()) {
             distance = glm::distance(_mouseRayOrigin,
                 static_cast<Avatar*>(_myAvatar->getLookAtTargetAvatar())->getHead()->calculateAverageEyePosition()); 
         }
@@ -2137,7 +2150,8 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
 }
 
 glm::vec3 Application::getSunDirection() {
-    return glm::normalize(_environment.getClosestData(_myCamera.getPosition()).getSunLocation() - _myCamera.getPosition());
+    return glm::normalize(_environment.getClosestData(_myCamera.getPosition()).getSunLocation(_myCamera.getPosition()) -
+        _myCamera.getPosition());
 }
 
 void Application::updateShadowMap() {
@@ -2299,7 +2313,8 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         float alpha = 1.0f;
         if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
             const EnvironmentData& closestData = _environment.getClosestData(whichCamera.getPosition());
-            float height = glm::distance(whichCamera.getPosition(), closestData.getAtmosphereCenter());
+            float height = glm::distance(whichCamera.getPosition(),
+                closestData.getAtmosphereCenter(whichCamera.getPosition()));
             if (height < closestData.getAtmosphereInnerRadius()) {
                 alpha = 0.0f;
 
@@ -3462,7 +3477,10 @@ void Application::reloadAllScripts() {
 }
 
 void Application::uploadFST() {
-    _fstReader.zip();
+    FstReader reader;
+    if (reader.zip()) {
+        reader.send();
+    }
 }
 
 void Application::removeScriptName(const QString& fileNameString) {

@@ -130,14 +130,22 @@ void outputBits(unsigned char byte, QDebug* continuedDebug) {
 }
 
 int numberOfOnes(unsigned char byte) {
-    return (byte >> 7)
-        + ((byte >> 6) & 1)
-        + ((byte >> 5) & 1)
-        + ((byte >> 4) & 1)
-        + ((byte >> 3) & 1)
-        + ((byte >> 2) & 1)
-        + ((byte >> 1) & 1)
-        + (byte & 1);
+
+    static const int nbits[256] = {
+        0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,1,2,2,3,2,3,3,4,2,3,3,
+        4,3,4,4,5,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,
+        4,5,3,4,4,5,4,5,5,6,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,
+        3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,2,3,3,4,3,4,4,5,3,4,4,5,
+        4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,1,2,2,3,2,3,3,
+        4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,2,3,
+        3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,
+        6,6,7,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,
+        4,5,5,6,5,6,6,7,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,4,5,5,
+        6,5,6,6,7,5,6,6,7,6,7,7,8
+    };
+
+    return nbits[(unsigned char) byte];
+
 }
 
 bool oneAtBit(unsigned char byte, int bitIndex) {
@@ -631,8 +639,7 @@ void debug::setDeadBeef(void* memoryVoid, int size) {
 }
 
 void debug::checkDeadBeef(void* memoryVoid, int size) {
-    unsigned char* memoryAt = (unsigned char*)memoryVoid;
-    assert(memcmp(memoryAt, DEADBEEF, std::min(size, DEADBEEF_SIZE)) != 0);
+    assert(memcmp((unsigned char*)memoryVoid, DEADBEEF, std::min(size, DEADBEEF_SIZE)) != 0);
 }
 
 //  Safe version of glm::eulerAngles; uses the factorization method described in David Eberly's

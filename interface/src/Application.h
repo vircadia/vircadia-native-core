@@ -18,6 +18,7 @@
 #include <QSettings>
 #include <QTouchEvent>
 #include <QList>
+#include <QSet>
 #include <QStringList>
 #include <QPointer>
 
@@ -28,7 +29,6 @@
 #include <ParticleEditPacketSender.h>
 #include <ScriptEngine.h>
 #include <OctreeQuery.h>
-#include <FstReader.h>
 
 #include "Audio.h"
 #include "BandwidthMeter.h"
@@ -123,6 +123,8 @@ public:
     void keyPressEvent(QKeyEvent* event);
     void keyReleaseEvent(QKeyEvent* event);
 
+    void focusOutEvent(QFocusEvent* event);
+
     void mouseMoveEvent(QMouseEvent* event);
     void mousePressEvent(QMouseEvent* event);
     void mouseReleaseEvent(QMouseEvent* event);
@@ -148,6 +150,7 @@ public:
     glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVoxel);
 
     QGLWidget* getGLWidget() { return _glWidget; }
+    bool isThrottleRendering() const { return _glWidget->isThrottleRendering(); }
     MyAvatar* getAvatar() { return _myAvatar; }
     Audio* getAudio() { return &_audio; }
     Camera* getCamera() { return &_myCamera; }
@@ -340,7 +343,7 @@ private:
     void displayRearMirrorTools();
 
     QMainWindow* _window;
-    QGLWidget* _glWidget;
+    GLCanvas* _glWidget; // our GLCanvas has a couple extra features
 
     bool _statsExpanded;
     BandwidthMeter _bandwidthMeter;
@@ -432,6 +435,8 @@ private:
 
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
 
+    QSet<int> _keysPressed;
+
     GeometryCache _geometryCache;
     TextureCache _textureCache;
 
@@ -479,8 +484,6 @@ private:
     TouchEvent _lastTouchEvent;
     
     Overlays _overlays;
-    
-    FstReader _fstReader;
 };
 
 #endif /* defined(__interface__Application__) */

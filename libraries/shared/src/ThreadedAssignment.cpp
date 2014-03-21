@@ -29,6 +29,7 @@ void ThreadedAssignment::setFinished(bool isFinished) {
     _isFinished = isFinished;
 
     if (_isFinished) {
+        aboutToFinish();
         emit finished();
     }
 }
@@ -55,6 +56,7 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
 
 void ThreadedAssignment::checkInWithDomainServerOrExit() {
     if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+        qDebug() << "NRDC:" << NodeList::getInstance()->getNumNoReplyDomainCheckIns();
         setFinished(true);
     } else {
         NodeList::getInstance()->sendDomainServerCheckIn();

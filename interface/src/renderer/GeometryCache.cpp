@@ -13,6 +13,7 @@
 
 #include "Application.h"
 #include "GeometryCache.h"
+#include "Model.h"
 #include "world.h"
 
 GeometryCache::~GeometryCache() {
@@ -291,6 +292,13 @@ QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, cons
     return getResource(url, fallback, delayLoad).staticCast<NetworkGeometry>();
 }
 
+void GeometryCache::setBlendedVertices(const QPointer<Model>& model, const QWeakPointer<NetworkGeometry>& geometry,
+        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
+    if (!model.isNull() && model->getGeometry() == geometry) {
+        model->setBlendedVertices(vertices, normals);
+    }
+}
+
 QSharedPointer<Resource> GeometryCache::createResource(const QUrl& url,
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
     
@@ -565,8 +573,8 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
         networkMesh.vertexBuffer.bind();
         networkMesh.vertexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
         
-        // if we don't need to do any blending or springing, then the positions/normals can be static
-        if (mesh.blendshapes.isEmpty() && mesh.springiness == 0.0f) {
+        // if we don't need to do any blending, the positions/normals can be static
+        if (mesh.blendshapes.isEmpty()) {
             int normalsOffset = mesh.vertices.size() * sizeof(glm::vec3);
             int tangentsOffset = normalsOffset + mesh.normals.size() * sizeof(glm::vec3);
             int colorsOffset = tangentsOffset + mesh.tangents.size() * sizeof(glm::vec3);
@@ -587,8 +595,8 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
             networkMesh.vertexBuffer.write(clusterWeightsOffset, mesh.clusterWeights.constData(),
                 mesh.clusterWeights.size() * sizeof(glm::vec4));
         
-        // if there's no springiness, then the cluster indices/weights can be static
-        } else if (mesh.springiness == 0.0f) {
+        // otherwise, at least the cluster indices/weights can be static
+        } else {
             int colorsOffset = mesh.tangents.size() * sizeof(glm::vec3);
             int texCoordsOffset = colorsOffset + mesh.colors.size() * sizeof(glm::vec3);
             int clusterIndicesOffset = texCoordsOffset + mesh.texCoords.size() * sizeof(glm::vec2);
@@ -601,16 +609,7 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
             networkMesh.vertexBuffer.write(clusterIndicesOffset, mesh.clusterIndices.constData(),
                 mesh.clusterIndices.size() * sizeof(glm::vec4));
             networkMesh.vertexBuffer.write(clusterWeightsOffset, mesh.clusterWeights.constData(),
-                mesh.clusterWeights.size() * sizeof(glm::vec4));
-            
-        } else {
-            int colorsOffset = mesh.tangents.size() * sizeof(glm::vec3);
-            int texCoordsOffset = colorsOffset + mesh.colors.size() * sizeof(glm::vec3);
-            networkMesh.vertexBuffer.allocate(texCoordsOffset + mesh.texCoords.size() * sizeof(glm::vec2));
-            networkMesh.vertexBuffer.write(0, mesh.tangents.constData(), mesh.tangents.size() * sizeof(glm::vec3));
-            networkMesh.vertexBuffer.write(colorsOffset, mesh.colors.constData(), mesh.colors.size() * sizeof(glm::vec3));
-            networkMesh.vertexBuffer.write(texCoordsOffset, mesh.texCoords.constData(),
-                mesh.texCoords.size() * sizeof(glm::vec2));
+                mesh.clusterWeights.size() * sizeof(glm::vec4));   
         }
         
         networkMesh.vertexBuffer.release();

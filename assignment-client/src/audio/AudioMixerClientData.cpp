@@ -6,12 +6,20 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
+#include <QDebug>
+
 #include <PacketHeaders.h>
 #include <UUID.h>
 
 #include "InjectedAudioRingBuffer.h"
 
 #include "AudioMixerClientData.h"
+
+AudioMixerClientData::AudioMixerClientData() :
+    _ringBuffers()
+{
+    
+}
 
 AudioMixerClientData::~AudioMixerClientData() {
     for (unsigned int i = 0; i < _ringBuffers.size(); i++) {
@@ -34,7 +42,8 @@ AvatarAudioRingBuffer* AudioMixerClientData::getAvatarAudioRingBuffer() const {
 int AudioMixerClientData::parseData(const QByteArray& packet) {
     PacketType packetType = packetTypeForPacket(packet);
     if (packetType == PacketTypeMicrophoneAudioWithEcho
-        || packetType == PacketTypeMicrophoneAudioNoEcho) {
+        || packetType == PacketTypeMicrophoneAudioNoEcho
+        || packetType == PacketTypeSilentAudioFrame) {
 
         // grab the AvatarAudioRingBuffer from the vector (or create it if it doesn't exist)
         AvatarAudioRingBuffer* avatarRingBuffer = getAvatarAudioRingBuffer();
@@ -80,6 +89,10 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSam
             // this is a ring buffer that is ready to go
             // set its flag so we know to push its buffer when all is said and done
             _ringBuffers[i]->setWillBeAddedToMix(true);
+            
+            // calculate the average loudness for the next NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL
+            // that would be mixed in
+            _ringBuffers[i]->updateAverageLoudnessForBoundarySamples(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
         }
     }
 }

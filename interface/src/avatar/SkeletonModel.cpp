@@ -18,13 +18,13 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar) :
     _owningAvatar(owningAvatar) {
 }
 
-void SkeletonModel::simulate(float deltaTime, bool delayLoad) {
+void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     setTranslation(_owningAvatar->getPosition());
     setRotation(_owningAvatar->getOrientation() * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)));
     const float MODEL_SCALE = 0.0006f;
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale() * MODEL_SCALE);
     
-    Model::simulate(deltaTime, delayLoad);
+    Model::simulate(deltaTime, fullUpdate);
     
     if (!(isActive() && _owningAvatar->isMyAvatar())) {
         return; // only simulate for own avatar
@@ -123,6 +123,7 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
         return;
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    setJointPosition(jointIndex, palm.getPosition());
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
     glm::quat palmRotation;
     getJointRotation(jointIndex, palmRotation, true);
@@ -139,7 +140,7 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
             direction += fingerVector / length;
         }
         fingerVector = glm::inverse(palmRotation) * fingerVector * -sign;
-        IndexValue indexValue = { i, atan2f(fingerVector.z, fingerVector.x) };
+        IndexValue indexValue = { int(i), atan2f(fingerVector.z, fingerVector.x) };
         fingerIndices.append(indexValue);
     }
     qSort(fingerIndices.begin(), fingerIndices.end());
@@ -154,7 +155,6 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
 
     // no point in continuing if there are no fingers
     if (palm.getNumFingers() == 0 || fingerJointIndices.isEmpty()) {
-        stretchArm(jointIndex, palm.getPosition());
         return;
     }
 
@@ -172,8 +172,6 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
 
         setJointRotation(fingerJointIndex, rotationBetween(palmRotation * jointVector, fingerVector) * palmRotation, true);
     }
-    
-    stretchArm(jointIndex, palm.getPosition());
 }
 
 void SkeletonModel::updateJointState(int index) {
@@ -200,41 +198,3 @@ void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, const
         glm::normalize(inverse * axes[0])) * joint.rotation;
 }
 
-void SkeletonModel::stretchArm(int jointIndex, const glm::vec3& position) {
-    // find out where the hand is pointing
-    glm::quat handRotation;
-    getJointRotation(jointIndex, handRotation, true);
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::vec3 forwardVector(jointIndex == geometry.rightHandJointIndex ? -1.0f : 1.0f, 0.0f, 0.0f);
-    glm::vec3 handVector = handRotation * forwardVector;
-    
-    // align elbow with hand
-    const FBXJoint& joint = geometry.joints.at(jointIndex);
-    if (joint.parentIndex == -1) {
-        return;
-    }
-    glm::quat elbowRotation;
-    getJointRotation(joint.parentIndex, elbowRotation, true);
-    applyRotationDelta(joint.parentIndex, rotationBetween(elbowRotation * forwardVector, handVector), false);
-    
-    // set position according to normal length
-    float scale = extractUniformScale(_scale);
-    glm::vec3 handPosition = position - _translation;
-    glm::vec3 elbowPosition = handPosition - handVector * joint.distanceToParent * scale;
-    
-    // set shoulder orientation to point to elbow
-    const FBXJoint& parentJoint = geometry.joints.at(joint.parentIndex);
-    if (parentJoint.parentIndex == -1) {
-        return;
-    }
-    glm::quat shoulderRotation;
-    getJointRotation(parentJoint.parentIndex, shoulderRotation, true);
-    applyRotationDelta(parentJoint.parentIndex, rotationBetween(shoulderRotation * forwardVector,
-        elbowPosition - extractTranslation(_jointStates.at(parentJoint.parentIndex).transform)), false);
-        
-    // update the shoulder state
-    updateJointState(parentJoint.parentIndex);
-    
-    // adjust the elbow's local translation
-    setJointTranslation(joint.parentIndex, elbowPosition);
-}

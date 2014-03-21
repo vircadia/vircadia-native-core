@@ -206,8 +206,8 @@ void Hand::collideAgainstOurself() {
         }
         // ignoring everything below the parent of the parent of the last free joint
         int skipIndex = skeletonModel.getParentJointIndex(skeletonModel.getParentJointIndex(
-            skeletonModel.getLastFreeJointIndex((i == leftPalmIndex) ? skeletonModel.getLeftHandJointIndex() :
-                (i == rightPalmIndex) ? skeletonModel.getRightHandJointIndex() : -1)));
+            skeletonModel.getLastFreeJointIndex((int(i) == leftPalmIndex) ? skeletonModel.getLeftHandJointIndex() :
+                (int(i) == rightPalmIndex) ? skeletonModel.getRightHandJointIndex() : -1)));
 
         handCollisions.clear();
         if (_owningAvatar->findSphereCollisions(palm.getPosition(), scaledPalmRadius, handCollisions, skipIndex)) {

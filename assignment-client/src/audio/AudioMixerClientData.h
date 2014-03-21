@@ -18,6 +18,7 @@
 
 class AudioMixerClientData : public NodeData {
 public:
+    AudioMixerClientData();
     ~AudioMixerClientData();
     
     const std::vector<PositionalAudioRingBuffer*> getRingBuffers() const { return _ringBuffers; }

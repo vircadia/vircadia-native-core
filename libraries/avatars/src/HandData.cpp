@@ -8,14 +8,12 @@
 
 #include <QtCore/QDataStream>
 
-#include "HandData.h"
-#include "AvatarData.h"
-#include <SharedUtil.h>
 #include <GeometryUtil.h>
+#include <SharedUtil.h>
 
+#include "AvatarData.h" 
+#include "HandData.h"
 
-// When converting between fixed and float, use this as the radix.
-const int fingerVectorRadix = 4;
 
 HandData::HandData(AvatarData* owningAvatar) :
     _owningAvatarData(owningAvatar)
@@ -23,10 +21,6 @@ HandData::HandData(AvatarData* owningAvatar) :
     // Start with two palms
     addNewPalm();
     addNewPalm();
-}
-
-glm::vec3 HandData::worldPositionToLeapPosition(const glm::vec3& worldPosition) const {
-    return glm::inverse(getBaseOrientation()) * (worldPosition - getBasePosition()) / LEAP_UNIT_SCALE;
 }
 
 glm::vec3 HandData::worldVectorToLeapVector(const glm::vec3& worldVector) const {
@@ -113,122 +107,6 @@ _owningHandData(owningHandData)
     setTrailLength(standardTrailLength);
 }
 
-// static
-int HandData::encodeData(HandData* hand, unsigned char* destinationBuffer) {
-    if (hand) {
-        return hand->encodeRemoteData(destinationBuffer);
-    }
-    // else encode empty data: 
-    // One byte for zero hands
-    // One byte for error checking.
-    *destinationBuffer = 0;
-    *(destinationBuffer + 1) = 1;
-    return 2;
-}
-
-int HandData::encodeRemoteData(unsigned char* destinationBuffer) {
-    const unsigned char* startPosition = destinationBuffer;
-
-    unsigned int numPalms = 0;
-    for (unsigned int handIndex = 0; handIndex < getNumPalms(); ++handIndex) {
-        PalmData& palm = getPalms()[handIndex];
-        if (palm.isActive()) {
-            numPalms++;
-        }
-    }
-    *destinationBuffer++ = numPalms;
-
-    for (unsigned int handIndex = 0; handIndex < getNumPalms(); ++handIndex) {
-        PalmData& palm = getPalms()[handIndex];
-        if (palm.isActive()) {
-            destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, palm.getRawPosition(), fingerVectorRadix);
-            destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, palm.getRawNormal(), fingerVectorRadix);
-
-            unsigned int numFingers = 0;
-            for (unsigned int fingerIndex = 0; fingerIndex < palm.getNumFingers(); ++fingerIndex) {
-                FingerData& finger = palm.getFingers()[fingerIndex];
-                if (finger.isActive()) {
-                    numFingers++;
-                }
-            }
-            *destinationBuffer++ = numFingers;
-
-            for (unsigned int fingerIndex = 0; fingerIndex < palm.getNumFingers(); ++fingerIndex) {
-                FingerData& finger = palm.getFingers()[fingerIndex];
-                if (finger.isActive()) {
-                    destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, finger.getTipRawPosition(), fingerVectorRadix);
-                    destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, finger.getRootRawPosition(), fingerVectorRadix);
-                }
-            }
-        }
-    }
-    // One byte for error checking safety.
-    size_t checkLength = destinationBuffer - startPosition;
-    *destinationBuffer++ = (unsigned char)checkLength;
-
-    // just a double-check, while tracing a crash.
-//    decodeRemoteData(destinationBuffer - (destinationBuffer - startPosition));
-    
-    return destinationBuffer - startPosition;
-}
-
-int HandData::decodeRemoteData(const QByteArray& dataByteArray) {
-    const unsigned char* startPosition;
-    const unsigned char* sourceBuffer = startPosition = reinterpret_cast<const unsigned char*>(dataByteArray.data());
-    unsigned int numPalms = *sourceBuffer++;
-    
-    for (unsigned int handIndex = 0; handIndex < numPalms; ++handIndex) {
-        if (handIndex >= (unsigned int)getNumPalms())
-            addNewPalm();
-        PalmData& palm = getPalms()[handIndex];
-        
-        glm::vec3 handPosition;
-        glm::vec3 handNormal;
-        sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, handPosition, fingerVectorRadix);
-        sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, handNormal, fingerVectorRadix);
-        unsigned int numFingers = *sourceBuffer++;
-        
-        palm.setRawPosition(handPosition);
-        palm.setRawNormal(handNormal);
-        palm.setActive(true);
-        
-        //  For received data, set the sixense controller ID to match the order initialized and sent - 0 Left, 1 Right
-        palm.setSixenseID(handIndex);
-        
-        for (unsigned int fingerIndex = 0; fingerIndex < numFingers; ++fingerIndex) {
-            if (fingerIndex < (unsigned int)palm.getNumFingers()) {
-                FingerData& finger = palm.getFingers()[fingerIndex];
-                
-                glm::vec3 tipPosition;
-                glm::vec3 rootPosition;
-                sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, tipPosition, fingerVectorRadix);
-                sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, rootPosition, fingerVectorRadix);
-                
-                finger.setRawTipPosition(tipPosition);
-                finger.setRawRootPosition(rootPosition);
-                finger.setActive(true);
-            }
-        }
-        // Turn off any fingers which weren't used.
-        for (unsigned int fingerIndex = numFingers; fingerIndex < palm.getNumFingers(); ++fingerIndex) {
-            FingerData& finger = palm.getFingers()[fingerIndex];
-            finger.setActive(false);
-        }
-    }
-    // Turn off any hands which weren't used.
-    for (unsigned int handIndex = numPalms; handIndex < getNumPalms(); ++handIndex) {
-        PalmData& palm = getPalms()[handIndex];
-        palm.setActive(false);
-    }
-    
-    // One byte for error checking safety.
-    unsigned char requiredLength = (unsigned char)(sourceBuffer - startPosition);
-    unsigned char checkLength = *sourceBuffer++;
-    assert(checkLength == requiredLength);
-    
-    return sourceBuffer - startPosition;
-}
-
 void HandData::setFingerTrailLength(unsigned int length) {
     for (size_t i = 0; i < getNumPalms(); ++i) {
         PalmData& palm = getPalms()[i];
@@ -272,9 +150,7 @@ glm::quat HandData::getBaseOrientation() const {
 }
 
 glm::vec3 HandData::getBasePosition() const {
-    const glm::vec3 LEAP_HANDS_OFFSET_FROM_TORSO(0.0, 0.3, -0.3);
-    return _owningAvatarData->getPosition() + getBaseOrientation() * LEAP_HANDS_OFFSET_FROM_TORSO *
-        _owningAvatarData->getTargetScale();
+    return _owningAvatarData->getPosition();
 }
 
 void FingerData::setTrailLength(unsigned int length) {

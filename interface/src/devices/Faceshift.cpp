@@ -21,7 +21,7 @@ using namespace std;
 const quint16 FACESHIFT_PORT = 33433;
 
 Faceshift::Faceshift() :
-    _tcpEnabled(false),
+    _tcpEnabled(true),
     _tcpRetryCount(0),
     _lastTrackingStateReceived(0),
     _eyeGazeLeftPitch(0.0f),
@@ -49,10 +49,20 @@ Faceshift::Faceshift() :
     connect(&_tcpSocket, SIGNAL(connected()), SLOT(noteConnected()));
     connect(&_tcpSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(noteError(QAbstractSocket::SocketError)));
     connect(&_tcpSocket, SIGNAL(readyRead()), SLOT(readFromSocket()));
+    connect(&_tcpSocket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), SIGNAL(connectionStateChanged()));
 
     connect(&_udpSocket, SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
 
     _udpSocket.bind(FACESHIFT_PORT);
+}
+
+void Faceshift::init() {
+    setTCPEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift));
+}
+
+bool Faceshift::isConnectedOrConnecting() const {
+    return _tcpSocket.state() == QAbstractSocket::ConnectedState ||
+        (_tcpRetryCount == 0 && _tcpSocket.state() != QAbstractSocket::UnconnectedState);
 }
 
 bool Faceshift::isActive() const {
@@ -93,7 +103,7 @@ void Faceshift::reset() {
 }
 
 void Faceshift::updateFakeCoefficients(float leftBlink, float rightBlink, float browUp,
-        float jawOpen, std::vector<float>& coefficients) const {
+        float jawOpen, QVector<float>& coefficients) const {
     coefficients.resize(max((int)coefficients.size(), _jawOpenIndex + 1));
     qFill(coefficients.begin(), coefficients.end(), 0.0f);
     coefficients[_leftBlinkIndex] = leftBlink;
@@ -194,7 +204,7 @@ void Faceshift::receive(const QByteArray& buffer) {
                     _eyeGazeLeftYaw = data.m_eyeGazeLeftYaw;
                     _eyeGazeRightPitch = -data.m_eyeGazeRightPitch;
                     _eyeGazeRightYaw = data.m_eyeGazeRightYaw;
-                    _blendshapeCoefficients = data.m_coeffs;
+                    _blendshapeCoefficients = QVector<float>::fromStdVector(data.m_coeffs);
 
                     _lastTrackingStateReceived = usecTimestampNow();
                 }

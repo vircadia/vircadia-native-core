@@ -287,7 +287,8 @@ protected:
 
     int encodeTreeBitstreamRecursion(OctreeElement* node,
                                      OctreePacketData* packetData, OctreeElementBag& bag,
-                                     EncodeBitstreamParams& params, int& currentEncodeLevel) const;
+                                     EncodeBitstreamParams& params, int& currentEncodeLevel,
+                                     const ViewFrustum::location& parentLocationThisView) const;
 
     static bool countOctreeElementsOperation(OctreeElement* node, void* extraData);
 
@@ -301,40 +302,6 @@ protected:
     bool _isDirty;
     bool _shouldReaverage;
     bool _stopImport;
-
-    /// Octal Codes of any subtrees currently being encoded. While any of these codes is being encoded, ancestors and
-    /// descendants of them can not be deleted.
-    std::set<const unsigned char*>  _codesBeingEncoded;
-    /// mutex lock to protect the encoding set
-    QMutex _encodeSetLock;
-
-    /// Called to indicate that a OctreeElement is in the process of being encoded.
-    void startEncoding(OctreeElement* node);
-    /// Called to indicate that a OctreeElement is done being encoded.
-    void doneEncoding(OctreeElement* node);
-    /// Is the Octal Code currently being deleted?
-    bool isEncoding(const unsigned char* codeBuffer);
-
-    /// Octal Codes of any subtrees currently being deleted. While any of these codes is being deleted, ancestors and
-    /// descendants of them can not be encoded.
-    std::set<const unsigned char*> _codesBeingDeleted;
-    /// mutex lock to protect the deleting set
-    QMutex _deleteSetLock;
-
-    /// Called to indicate that an octal code is in the process of being deleted.
-    void startDeleting(const unsigned char* code);
-    /// Called to indicate that an octal code is done being deleted.
-    void doneDeleting(const unsigned char* code);
-    /// Octal Codes that were attempted to be deleted but couldn't be because they were actively being encoded, and were
-    /// instead queued for later delete
-    std::set<const unsigned char*> _codesPendingDelete;
-    /// mutex lock to protect the deleting set
-    QMutex _deletePendingSetLock;
-
-    /// Adds an Octal Code to the set of codes that needs to be deleted
-    void queueForLaterDelete(const unsigned char* codeBuffer);
-    /// flushes out any Octal Codes that had to be queued
-    void emptyDeleteQueue();
 
     QReadWriteLock _lock;
     

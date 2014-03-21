@@ -130,10 +130,6 @@ public:
     bool isEye;
     
     QVector<FBXBlendshape> blendshapes;
-    
-    float springiness;
-    QVector<QPair<int, int> > springEdges;
-    QVector<QVarLengthArray<QPair<int, int>, 4> > vertexConnections;
 };
 
 /// An attachment to an FBX document.
@@ -185,6 +181,8 @@ public:
     
     int getJointIndex(const QString& name) const { return jointIndices.value(name) - 1; }
     QStringList getJointNames() const;
+    
+    bool hasBlendedMeshes() const;
 };
 
 Q_DECLARE_METATYPE(FBXGeometry)

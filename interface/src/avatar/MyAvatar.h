@@ -35,7 +35,8 @@ public:
     void simulate(float deltaTime);
     void updateFromGyros(float deltaTime);
 
-    void render(bool forShadowMapOrMirror = false);
+    void render(const glm::vec3& cameraPosition, bool forShadowMapOrMirror = false);
+    void renderBody(bool forceRenderHead);
     void renderDebugBodyPoints();
     void renderHeadMouse() const;
 
@@ -70,11 +71,14 @@ public:
     void jump() { _shouldJump = true; };
     
     bool isMyAvatar() { return true; }
+
+    virtual int parseDataAtOffset(const QByteArray& packet, int offset);
     
     static void sendKillAvatar();
 
     void orbit(const glm::vec3& position, int deltaX, int deltaY);
 
+    Q_INVOKABLE glm::vec3 getTargetAvatarPosition() const { return _targetAvatarPosition; }
     AvatarData* getLookAtTargetAvatar() const { return _lookAtTargetAvatar.data(); }
     void updateLookAtTargetAvatar();
     void clearLookAtTargetAvatar();
@@ -115,12 +119,12 @@ private:
     glm::vec3 _moveTarget;
     int _moveTargetStepCounter;
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
+    glm::vec3 _targetAvatarPosition;
     bool _shouldRender;
 
     bool _billboardValid;
 
 	// private methods
-    void renderBody(bool forceRenderHead);
     void updateThrust(float deltaTime);
     void updateHandMovementAndTouching(float deltaTime);
     void updateCollisionWithAvatars(float deltaTime);

@@ -85,6 +85,7 @@ void MyAvatar::reset() {
 
     setVelocity(glm::vec3(0,0,0));
     setThrust(glm::vec3(0,0,0));
+    setOrientation(glm::quat(glm::vec3(0,0,0)));
 }
 
 void MyAvatar::setMoveTarget(const glm::vec3 moveTarget) {
@@ -363,8 +364,9 @@ void MyAvatar::updateFromGyros(float deltaTime) {
         // restore rotation, lean to neutral positions
         const float RESTORE_PERIOD = 1.f;   // seconds
         float restorePercentage = glm::clamp(deltaTime/RESTORE_PERIOD, 0.f, 1.f);
-        head->setYaw(glm::mix(head->getYaw(), 0.0f, restorePercentage));
-        head->setRoll(glm::mix(head->getRoll(), 0.0f, restorePercentage));
+        head->setPitchTweak(glm::mix(head->getPitchTweak(), 0.0f, restorePercentage));
+        head->setYawTweak(glm::mix(head->getYawTweak(), 0.0f, restorePercentage));
+        head->setRollTweak(glm::mix(head->getRollTweak(), 0.0f, restorePercentage));
         head->setLeanSideways(glm::mix(head->getLeanSideways(), 0.0f, restorePercentage));
         head->setLeanForward(glm::mix(head->getLeanForward(), 0.0f, restorePercentage));
         return;
@@ -375,9 +377,9 @@ void MyAvatar::updateFromGyros(float deltaTime) {
     const float AVATAR_HEAD_PITCH_MAGNIFY = 1.0f;
     const float AVATAR_HEAD_YAW_MAGNIFY = 1.0f;
     const float AVATAR_HEAD_ROLL_MAGNIFY = 1.0f;
-    head->tweakPitch(estimatedRotation.x * AVATAR_HEAD_PITCH_MAGNIFY);
-    head->tweakYaw(estimatedRotation.y * AVATAR_HEAD_YAW_MAGNIFY);
-    head->tweakRoll(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
+    head->setPitchTweak(estimatedRotation.x * AVATAR_HEAD_PITCH_MAGNIFY);
+    head->setYawTweak(estimatedRotation.y * AVATAR_HEAD_YAW_MAGNIFY);
+    head->setRollTweak(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
 
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
@@ -422,11 +424,6 @@ void MyAvatar::updateFromGyros(float deltaTime) {
     }
 }
 
-static TextRenderer* textRenderer() {
-    static TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 24, -1, false, TextRenderer::SHADOW_EFFECT);
-    return renderer;
-}
-
 void MyAvatar::renderDebugBodyPoints() {
     glm::vec3 torsoPosition(getPosition());
     glm::vec3 headPosition(getHead()->getEyePosition());
@@ -452,68 +449,14 @@ void MyAvatar::renderDebugBodyPoints() {
 
 
 }
-void MyAvatar::render(bool forShadowMapOrMirror) {
+
+// virtual
+void MyAvatar::render(const glm::vec3& cameraPosition, bool forShadowMapOrMirror) {
     // don't render if we've been asked to disable local rendering
     if (!_shouldRender) {
         return; // exit early
     }
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
-        renderBody(forShadowMapOrMirror);
-    }
-    // render body
-    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
-        _skeletonModel.renderCollisionProxies(0.8f);
-    }
-    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionProxies)) {
-        getHead()->getFaceModel().renderCollisionProxies(0.8f);
-    }
-    setShowDisplayName(!forShadowMapOrMirror);
-    if (forShadowMapOrMirror) {
-        return;
-    }
-    renderDisplayName();
-
-    if (!_chatMessage.empty()) {
-        int width = 0;
-        int lastWidth = 0;
-        for (string::iterator it = _chatMessage.begin(); it != _chatMessage.end(); it++) {
-            width += (lastWidth = textRenderer()->computeWidth(*it));
-        }
-        glPushMatrix();
-
-        glm::vec3 chatPosition = getHead()->getEyePosition() + getBodyUpDirection() * CHAT_MESSAGE_HEIGHT * _scale;
-        glTranslatef(chatPosition.x, chatPosition.y, chatPosition.z);
-        glm::quat chatRotation = Application::getInstance()->getCamera()->getRotation();
-        glm::vec3 chatAxis = glm::axis(chatRotation);
-        glRotatef(glm::degrees(glm::angle(chatRotation)), chatAxis.x, chatAxis.y, chatAxis.z);
-
-        glColor3f(0.f, 0.8f, 0.f);
-        glRotatef(180.f, 0.f, 1.f, 0.f);
-        glRotatef(180.f, 0.f, 0.f, 1.f);
-        glScalef(_scale * CHAT_MESSAGE_SCALE, _scale * CHAT_MESSAGE_SCALE, 1.0f);
-
-        glDisable(GL_LIGHTING);
-        glDepthMask(false);
-        if (_keyState == NO_KEY_DOWN) {
-            textRenderer()->draw(-width / 2.0f, 0, _chatMessage.c_str());
-
-        } else {
-            // rather than using substr and allocating a new string, just replace the last
-            // character with a null, then restore it
-            int lastIndex = _chatMessage.size() - 1;
-            char lastChar = _chatMessage[lastIndex];
-            _chatMessage[lastIndex] = '\0';
-            textRenderer()->draw(-width / 2.0f, 0, _chatMessage.c_str());
-            _chatMessage[lastIndex] = lastChar;
-            glColor3f(0.f, 1.f, 0.f);
-            textRenderer()->draw(width / 2.0f - lastWidth, 0, _chatMessage.c_str() + lastIndex);
-        }
-        glEnable(GL_LIGHTING);
-        glDepthMask(true);
-
-        glPopMatrix();
-    }
+    Avatar::render(cameraPosition, forShadowMapOrMirror);
 }
 
 void MyAvatar::renderHeadMouse() const {
@@ -608,6 +551,14 @@ void MyAvatar::loadData(QSettings* settings) {
     settings->endGroup();
 }
 
+int MyAvatar::parseDataAtOffset(const QByteArray& packet, int offset) {
+    qDebug() << "Error: ignoring update packet for MyAvatar"
+        << " packetLength = " << packet.size() 
+        << "  offset = " << offset;
+    // this packet is just bad, so we pretend that we unpacked it ALL
+    return packet.size() - offset;
+}
+
 void MyAvatar::sendKillAvatar() {
     QByteArray killPacket = byteArrayWithPopulatedHeader(PacketTypeKillAvatar);
     NodeList::getInstance()->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);
@@ -639,16 +590,15 @@ void MyAvatar::updateLookAtTargetAvatar() {
 
         foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
             Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
-            if (avatar == static_cast<Avatar*>(this)) {
-                continue;
-            }
             float distance;
             if (avatar->findRayIntersection(mouseOrigin, mouseDirection, distance)) {
                 _lookAtTargetAvatar = avatarPointer;
+                _targetAvatarPosition = avatarPointer->getPosition();
                 return;
             }
         }
         _lookAtTargetAvatar.clear();
+        _targetAvatarPosition = glm::vec3(0, 0, 0);
     }
 }
 
@@ -1188,9 +1138,9 @@ void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
         NodeList::getInstance()->getDomainInfo().setHostname(domainHostnameString);
         
         // orient the user to face the target
-        glm::quat newOrientation = glm::quat(glm::vec3(orientationItems[0].toFloat(),
-                                                       orientationItems[1].toFloat(),
-                                                       orientationItems[2].toFloat()))
+        glm::quat newOrientation = glm::quat(glm::radians(glm::vec3(orientationItems[0].toFloat(),
+                                                                    orientationItems[1].toFloat(),
+                                                                    orientationItems[2].toFloat())))
             * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
         setOrientation(newOrientation);
         

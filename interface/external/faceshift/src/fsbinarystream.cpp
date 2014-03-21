@@ -160,7 +160,7 @@ void fsBinaryStream::received(long int sz, const char *data) {
         new_end = m_end + sz;
     }
 
-    if (new_end > Size(m_buffer.size())) m_buffer.resize(1.5*new_end);
+    if (new_end > Size(m_buffer.size())) m_buffer.resize((int)(1.5f * (float)new_end)); // HIFI: to get 1.5 without warnings
 
     memcpy(&m_buffer[0] + m_end, data, sz);
     m_end   += sz;
@@ -172,7 +172,7 @@ static bool decodeInfo(fsTrackingData & _trackingData, const std::string &buffer
     success &= read_pod<double>(_trackingData.m_timestamp, buffer, start);
     unsigned char tracking_successfull = 0;
     success &= read_pod<unsigned char>( tracking_successfull, buffer, start );
-    _trackingData.m_trackingSuccessful = bool(tracking_successfull);
+    _trackingData.m_trackingSuccessful = bool(tracking_successfull != 0); // HIFI: get rid of windows warning
     return success;
 }
 

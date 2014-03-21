@@ -355,15 +355,7 @@ void Octree::deleteOctalCodeFromTree(const unsigned char* codeBuffer, bool colla
 
     OctreeElement* node = _rootNode;
 
-    // We can't encode and delete nodes at the same time, so we guard against deleting any node that is actively
-    // being encoded. And we stick that code on our pendingDelete list.
-    if (isEncoding(codeBuffer)) {
-        queueForLaterDelete(codeBuffer);
-    } else {
-        startDeleting(codeBuffer);
-        deleteOctalCodeFromTreeRecursion(node, &args);
-        doneDeleting(codeBuffer);
-    }
+    deleteOctalCodeFromTreeRecursion(node, &args);
 }
 
 void Octree::deleteOctalCodeFromTreeRecursion(OctreeElement* node, void* extraData) {
@@ -796,24 +788,22 @@ int Octree::encodeTreeBitstream(OctreeElement* node,
         return bytesWritten;
     }
 
-    startEncoding(node);
-
     // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
     if (params.viewFrustum && !node->isInView(*params.viewFrustum)) {
-        doneEncoding(node);
         params.stopReason = EncodeBitstreamParams::OUT_OF_VIEW;
         return bytesWritten;
     }
 
     // write the octal code
     bool roomForOctalCode = false; // assume the worst
-    int codeLength;
+    int codeLength = 1; // assume root
     if (params.chopLevels) {
         unsigned char* newCode = chopOctalCode(node->getOctalCode(), params.chopLevels);
         roomForOctalCode = packetData->startSubTree(newCode);
 
         if (newCode) {
             delete newCode;
+            codeLength = numberOfThreeBitSectionsInCode(newCode);
         } else {
             codeLength = 1;
         }
@@ -824,7 +814,6 @@ int Octree::encodeTreeBitstream(OctreeElement* node,
 
     // If the octalcode couldn't fit, then we can return, because no nodes below us will fit...
     if (!roomForOctalCode) {
-        doneEncoding(node);
         bag.insert(node); // add the node back to the bag so it will eventually get included
         params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
         return bytesWritten;
@@ -840,7 +829,10 @@ int Octree::encodeTreeBitstream(OctreeElement* node,
         params.stats->traversed(node);
     }
 
-    int childBytesWritten = encodeTreeBitstreamRecursion(node, packetData, bag, params, currentEncodeLevel);
+    ViewFrustum::location parentLocationThisView = ViewFrustum::INTERSECT; // assume parent is in view, but not fully
+
+    int childBytesWritten = encodeTreeBitstreamRecursion(node, packetData, bag, params,
+                                                            currentEncodeLevel, parentLocationThisView);
 
     // if childBytesWritten == 1 then something went wrong... that's not possible
     assert(childBytesWritten != 1);
@@ -867,14 +859,13 @@ int Octree::encodeTreeBitstream(OctreeElement* node,
         packetData->endSubTree();
     }
 
-    doneEncoding(node);
-
     return bytesWritten;
 }
 
 int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
                                             OctreePacketData* packetData, OctreeElementBag& bag,
-                                            EncodeBitstreamParams& params, int& currentEncodeLevel) const {
+                                            EncodeBitstreamParams& params, int& currentEncodeLevel,
+                                            const ViewFrustum::location& parentLocationThisView) const {
     // How many bytes have we written so far at this level;
     int bytesAtThisLevel = 0;
 
@@ -905,6 +896,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
             return bytesAtThisLevel;
         }
     }
+    
+    ViewFrustum::location nodeLocationThisView = ViewFrustum::INSIDE; // assume we're inside
 
     // caller can pass NULL as viewFrustum if they want everything
     if (params.viewFrustum) {
@@ -921,10 +914,17 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
             return bytesAtThisLevel;
         }
 
+        // if the parent isn't known to be INSIDE, then it must be INTERSECT, and we should double check to see
+        // if we are INSIDE, INTERSECT, or OUTSIDE
+        if (parentLocationThisView != ViewFrustum::INSIDE) {
+            assert(parentLocationThisView != ViewFrustum::OUTSIDE); // we shouldn't be here if our parent was OUTSIDE!
+            nodeLocationThisView = node->inFrustum(*params.viewFrustum);
+        }
+
         // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
         // although technically, we really shouldn't ever be here, because our callers shouldn't be calling us if
         // we're out of view
-        if (!node->isInView(*params.viewFrustum)) {
+        if (nodeLocationThisView == ViewFrustum::OUTSIDE) {
             if (params.stats) {
                 params.stats->skippedOutOfView(node);
             }
@@ -1078,7 +1078,11 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
         OctreeElement* childNode = sortedChildren[i];
         int originalIndex = indexOfChildren[i];
 
-        bool childIsInView  = (childNode && (!params.viewFrustum || childNode->isInView(*params.viewFrustum)));
+        bool childIsInView  = (childNode && 
+                ( !params.viewFrustum || // no view frustum was given, everything is assumed in view
+                  (nodeLocationThisView == ViewFrustum::INSIDE) || // the parent was fully in view, we can assume ALL children are
+                  (nodeLocationThisView == ViewFrustum::INTERSECT && childNode->isInView(*params.viewFrustum)) // the parent intersects and the child is in view
+                ));
 
         if (!childIsInView) {
             // must check childNode here, because it could be we got here because there was no childNode
@@ -1305,7 +1309,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
                 // This only applies in the view frustum case, in other cases, like file save and copy/past where
                 // no viewFrustum was requested, we still want to recurse the child tree.
                 if (!params.viewFrustum || !oneAtBit(childrenColoredBits, originalIndex)) {
-                    childTreeBytesOut = encodeTreeBitstreamRecursion(childNode, packetData, bag, params, thisLevel);
+                    childTreeBytesOut = encodeTreeBitstreamRecursion(childNode, packetData, bag, params, 
+                                                                            thisLevel, nodeLocationThisView);
                 }
 
                 // remember this for reshuffling
@@ -1559,14 +1564,13 @@ void Octree::copySubTreeIntoNewTree(OctreeElement* startNode, Octree* destinatio
     }
 
     static OctreePacketData packetData;
-    int bytesWritten = 0;
 
     while (!nodeBag.isEmpty()) {
         OctreeElement* subTree = nodeBag.extract();
         packetData.reset(); // reset the packet between usage
         // ask our tree to write a bitsteam
         EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS, chopLevels);
-        bytesWritten = encodeTreeBitstream(subTree, &packetData, nodeBag, params);
+        encodeTreeBitstream(subTree, &packetData, nodeBag, params);
         // ask destination tree to read the bitstream
         ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS);
         destinationTree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
@@ -1595,7 +1599,6 @@ void Octree::copyFromTreeIntoSubTree(Octree* sourceTree, OctreeElement* destinat
     nodeBag.insert(sourceTree->_rootNode);
 
     static OctreePacketData packetData;
-    int bytesWritten = 0;
 
     while (!nodeBag.isEmpty()) {
         OctreeElement* subTree = nodeBag.extract();
@@ -1604,7 +1607,7 @@ void Octree::copyFromTreeIntoSubTree(Octree* sourceTree, OctreeElement* destinat
 
         // ask our tree to write a bitsteam
         EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
-        bytesWritten = sourceTree->encodeTreeBitstream(subTree, &packetData, nodeBag, params);
+        sourceTree->encodeTreeBitstream(subTree, &packetData, nodeBag, params);
 
         // ask destination tree to read the bitstream
         bool wantImportProgress = true;
@@ -1620,56 +1623,6 @@ void dumpSetContents(const char* name, std::set<unsigned char*> set) {
         printOctalCode(*i);
     }
     */
-}
-
-void Octree::startEncoding(OctreeElement* node) {
-    _encodeSetLock.lock();
-    _codesBeingEncoded.insert(node->getOctalCode());
-    _encodeSetLock.unlock();
-}
-
-void Octree::doneEncoding(OctreeElement* node) {
-    _encodeSetLock.lock();
-    _codesBeingEncoded.erase(node->getOctalCode());
-    _encodeSetLock.unlock();
-
-    // if we have any pending delete codes, then delete them now.
-    emptyDeleteQueue();
-}
-
-void Octree::startDeleting(const unsigned char* code) {
-    _deleteSetLock.lock();
-    _codesBeingDeleted.insert(code);
-    _deleteSetLock.unlock();
-}
-
-void Octree::doneDeleting(const unsigned char* code) {
-    _deleteSetLock.lock();
-    _codesBeingDeleted.erase(code);
-    _deleteSetLock.unlock();
-}
-
-bool Octree::isEncoding(const unsigned char* codeBuffer) {
-    _encodeSetLock.lock();
-    bool isEncoding = (_codesBeingEncoded.find(codeBuffer) != _codesBeingEncoded.end());
-    _encodeSetLock.unlock();
-    return isEncoding;
-}
-
-void Octree::queueForLaterDelete(const unsigned char* codeBuffer) {
-    _deletePendingSetLock.lock();
-    _codesPendingDelete.insert(codeBuffer);
-    _deletePendingSetLock.unlock();
-}
-
-void Octree::emptyDeleteQueue() {
-    _deletePendingSetLock.lock();
-    for (std::set<const unsigned char*>::iterator i = _codesPendingDelete.begin(); i != _codesPendingDelete.end(); ++i) {
-        const unsigned char* codeToDelete = *i;
-        _codesBeingDeleted.erase(codeToDelete);
-        deleteOctalCodeFromTree(codeToDelete, COLLAPSE_EMPTY_TREE);
-    }
-    _deletePendingSetLock.unlock();
 }
 
 void Octree::cancelImport() {

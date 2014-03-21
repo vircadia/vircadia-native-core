@@ -77,7 +77,7 @@ void AvatarManager::renderAvatars(bool forShadowMapOrMirror, bool selfAvatarOnly
                             "Application::renderAvatars()");
     bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors);
     
-  
+    glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
 
     if (!selfAvatarOnly) {
         foreach (const AvatarSharedPointer& avatarPointer, _avatarHash) {
@@ -85,17 +85,13 @@ void AvatarManager::renderAvatars(bool forShadowMapOrMirror, bool selfAvatarOnly
             if (!avatar->isInitialized()) {
                 continue;
             }
-            if (avatar == static_cast<Avatar*>(_myAvatar.data())) {
-                _myAvatar->render(forShadowMapOrMirror);
-            } else {
-                avatar->render(forShadowMapOrMirror);
-            }
+            avatar->render(cameraPosition, forShadowMapOrMirror);
             avatar->setDisplayingLookatVectors(renderLookAtVectors);
         }
-        renderAvatarFades(forShadowMapOrMirror);
+        renderAvatarFades(cameraPosition, forShadowMapOrMirror);
     } else {
         // just render myAvatar
-        _myAvatar->render(forShadowMapOrMirror);
+        _myAvatar->render(cameraPosition, forShadowMapOrMirror);
         _myAvatar->setDisplayingLookatVectors(renderLookAtVectors);
     }
 }
@@ -118,13 +114,15 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     }
 }
 
-void AvatarManager::renderAvatarFades(bool forShadowMap) {
+void AvatarManager::renderAvatarFades(const glm::vec3& cameraPosition, bool forShadowMap) {
     // render avatar fades
     Glower glower(forShadowMap ? 0.0f : 1.0f);
     
     foreach(const AvatarSharedPointer& fadingAvatar, _avatarFades) {
         Avatar* avatar = static_cast<Avatar*>(fadingAvatar.data());
-        avatar->render(forShadowMap);
+        if (avatar != static_cast<Avatar*>(_myAvatar.data())) {
+            avatar->render(cameraPosition, forShadowMap);
+        }
     }
 }
 
@@ -150,14 +148,11 @@ void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const
 void AvatarManager::processAvatarDataPacket(const QByteArray &datagram, const QWeakPointer<Node> &mixerWeakPointer) {
     int bytesRead = numBytesForPacketHeader(datagram);
     
-    QByteArray dummyAvatarByteArray = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
-    int numDummyHeaderBytes = dummyAvatarByteArray.size();
-    int numDummyHeaderBytesWithoutUUID = numDummyHeaderBytes - NUM_BYTES_RFC4122_UUID;
-    
     // enumerate over all of the avatars in this packet
     // only add them if mixerWeakPointer points to something (meaning that mixer is still around)
     while (bytesRead < datagram.size() && mixerWeakPointer.data()) {
         QUuid nodeUUID = QUuid::fromRfc4122(datagram.mid(bytesRead, NUM_BYTES_RFC4122_UUID));
+        bytesRead += NUM_BYTES_RFC4122_UUID;
         
         AvatarSharedPointer matchingAvatar = _avatarHash.value(nodeUUID);
         
@@ -173,16 +168,9 @@ void AvatarManager::processAvatarDataPacket(const QByteArray &datagram, const QW
             qDebug() << "Adding avatar with UUID" << nodeUUID << "to AvatarManager hash.";
         }
         
-        // copy the rest of the packet to the avatarData holder so we can read the next Avatar from there
-        dummyAvatarByteArray.resize(numDummyHeaderBytesWithoutUUID);
-        
-        // make this Avatar's UUID the UUID in the packet and tack the remaining data onto the end
-        dummyAvatarByteArray.append(datagram.mid(bytesRead));
-        
         // have the matching (or new) avatar parse the data from the packet
-        bytesRead += matchingAvatar->parseData(dummyAvatarByteArray) - numDummyHeaderBytesWithoutUUID;
+        bytesRead += matchingAvatar->parseDataAtOffset(datagram, bytesRead);
     }
-
 }
 
 void AvatarManager::processAvatarIdentityPacket(const QByteArray &packet) {

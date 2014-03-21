@@ -18,7 +18,8 @@
 #include <MenuItemProperties.h>
 #include <OctreeConstants.h>
 
-#include <ui/ChatWindow.h>
+#include "location/LocationManager.h"
+#include "ui/ChatWindow.h"
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
@@ -138,6 +139,7 @@ private slots:
     void editPreferences();
     void goToDomainDialog();
     void goToLocation();
+    void nameLocation();
     void bandwidthDetailsClosed();
     void octreeStatsDetailsClosed();
     void lodToolsClosed();
@@ -147,6 +149,8 @@ private slots:
     void showChat();
     void toggleChat();
     void audioMuteToggled();
+    void namedLocationCreated(LocationManager::NamedLocationCreateResponse response);
+    void multipleDestinationsDecision(const QJsonObject& userData, const QJsonObject& placeData);
 
 private:
     static Menu* _instance;
@@ -239,16 +243,16 @@ namespace MenuOption {
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString HeadMouse = "Head Mouse";
     const QString HandsCollideWithSelf = "Collide With Self";
-    const QString FaceshiftTCP = "Faceshift (TCP)";
+    const QString Faceshift = "Faceshift";
     const QString FirstPerson = "First Person";
     const QString FrameTimer = "Show Timer";
     const QString FrustumRenderMode = "Render Mode";
-    const QString FstUploader = "Upload .fst file";
     const QString Fullscreen = "Fullscreen";
     const QString FullscreenMirror = "Fullscreen Mirror";
     const QString GlowMode = "Cycle Glow Mode";
     const QString GoToDomain = "Go To Domain...";
     const QString GoToLocation = "Go To Location...";
+    const QString NameLocation = "Name this location";
     const QString GoTo = "Go To...";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IncreaseVoxelSize = "Increase Voxel Size";
@@ -268,7 +272,6 @@ namespace MenuOption {
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
     const QString TurnWithHead = "Turn using Head";
-    const QString ClickToFly = "Fly to voxel on click";
     const QString LoadScript = "Open and Run Script...";
     const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
@@ -292,6 +295,8 @@ namespace MenuOption {
     const QString StopAllScripts = "Stop All Scripts";
     const QString TestPing = "Test Ping";
     const QString TransmitterDrive = "Transmitter Drive";
+    const QString UploadFST = "Upload FST file";
+    const QString Visage = "Visage";
     const QString Quit =  "Quit";
     const QString Voxels = "Voxels";
     const QString VoxelMode = "Cycle Voxel Mode";

@@ -535,7 +535,7 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    qDebug("rand() stored in array usecs: %f", 1000.0f * elapsedMsecs / (float) numTests);
+    qDebug("rand() stored in array usecs: %f, first result:%d", 1000.0f * elapsedMsecs / (float) numTests, iResults[0]);
 
     // Random number generation using randFloat()
     gettimeofday(&startTime, NULL);
@@ -544,7 +544,7 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    qDebug("randFloat() stored in array usecs: %f", 1000.0f * elapsedMsecs / (float) numTests);
+    qDebug("randFloat() stored in array usecs: %f, first result: %f", 1000.0f * elapsedMsecs / (float) numTests, fResults[0]);
 
     //  PowF function
     fTest = 1145323.2342f;
@@ -567,8 +567,8 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    qDebug("vector math usecs: %f [%f msecs total for %d tests]",
-             1000.0f * elapsedMsecs / (float) numTests, elapsedMsecs, numTests);
+    qDebug("vector math usecs: %f [%f msecs total for %d tests], last result:%f",
+             1000.0f * elapsedMsecs / (float) numTests, elapsedMsecs, numTests, distance);
 
     //  Vec3 test
     glm::vec3 vecA(randVector()), vecB(randVector());
@@ -581,7 +581,7 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    qDebug("vec3 assign and dot() usecs: %f", 1000.0f * elapsedMsecs / (float) numTests);
+    qDebug("vec3 assign and dot() usecs: %f, last result:%f", 1000.0f * elapsedMsecs / (float) numTests, result);
 }
 
 float loadSetting(QSettings* settings, const char* name, float defaultValue) {

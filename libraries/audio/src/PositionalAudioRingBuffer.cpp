@@ -38,16 +38,28 @@ PositionalAudioRingBuffer::~PositionalAudioRingBuffer() {
 }
 
 int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
-    QDataStream packetStream(packet);
     
     // skip the packet header (includes the source UUID)
-    packetStream.skipRawData(numBytesForPacketHeader(packet));
+    int readBytes = numBytesForPacketHeader(packet);
     
-    packetStream.skipRawData(parsePositionalData(packet.mid(packetStream.device()->pos())));
-    packetStream.skipRawData(writeData(packet.data() + packetStream.device()->pos(),
-                                       packet.size() - packetStream.device()->pos()));
-
-    return packetStream.device()->pos();
+    readBytes += parsePositionalData(packet.mid(readBytes));
+   
+    if (packetTypeForPacket(packet) == PacketTypeSilentAudioFrame) {
+        // this source had no audio to send us, but this counts as a packet
+        // write silence equivalent to the number of silent samples they just sent us
+        int16_t numSilentSamples;
+        
+        memcpy(&numSilentSamples, packet.data() + readBytes, sizeof(int16_t));
+        
+        readBytes += sizeof(int16_t);
+        
+        addSilentFrame(numSilentSamples);
+    } else {
+        // there is audio data to read
+        readBytes += writeData(packet.data() + readBytes, packet.size() - readBytes);
+    }
+    
+    return readBytes;
 }
 
 int PositionalAudioRingBuffer::parsePositionalData(const QByteArray& positionalByteArray) {
@@ -68,13 +80,11 @@ int PositionalAudioRingBuffer::parsePositionalData(const QByteArray& positionalB
 bool PositionalAudioRingBuffer::shouldBeAddedToMix(int numJitterBufferSamples) {
     if (!isNotStarvedOrHasMinimumSamples(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL + numJitterBufferSamples)) {
         if (_shouldOutputStarveDebug) {
-            qDebug() << "Starved and do not have minimum samples to start. Buffer held back.";
             _shouldOutputStarveDebug = false;
         }
         
         return false;
     } else if (samplesAvailable() < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-        qDebug() << "Do not have number of samples needed for interval. Buffer starved.";
         _isStarved = true;
         
         // reset our _shouldOutputStarveDebug to true so the next is printed

@@ -104,9 +104,7 @@ We don't currently have a Windows installer, so before running Interface, you wi
 
 CMake will need to know where the headers and libraries for required external dependencies are. If you installed ZLIB using the installer, the FindZLIB cmake module will be able to find it. This isn't the case for the others.
 
-You have the choice of setting a variable specific to each library, or having a folder using a defined structure that contains all of the libs.
-
-The recommended route is to place all of the dependencies in one place and set one ENV variable - HIFI_LIB_DIR. That ENV variable should point to a directory with the following structure:
+The recommended route for CMake to find external dependencies is to place all of the dependencies in one folder and set one ENV variable - HIFI_LIB_DIR. That ENV variable should point to a directory with the following structure:
 
     root_lib_dir
         -> glm
@@ -127,14 +125,6 @@ The recommended route is to place all of the dependencies in one place and set o
 *NOTE: Be careful with glm. For the folder other libraries would normally call 'include', the folder containing the headers, glm opts to use 'glm'. You will have a glm folder nested inside the top-level glm folder.*
 
 For many of the external libraries where precompiled binaries are readily available you should be able to simply copy the extracted folder that you get from the download links provided at the top of the guide. Otherwise you may need to build from source and install the built product to this directory. The `root_lib_dir` in the above example can be wherever you choose on your system - as long as the environment variable HIFI_LIB_DIR is set to it.
-
-Should you want to define a location for each library, these are the associated variables you will want to set:
-
-`GLM_ROOT_DIR, GLUT_ROOT_DIR, GLEW_ROOT_DIR`
-
-They can be set in your ENV or by passing them to the cmake command on the command line. (There is an example of this in the CMake section earlier in this guide.)
-
-Each of those designates the root directory that contains the sub-folders for each library. For example, if the GLEW_ROOT_DIR is `C:\libs\glew`, then we would expect to find an `include` folder and a `lib` folder inside `C:\libs\glew`. 
 
 *NOTE: Qt does not support 64-bit builds on Windows 7, so you must use the 32-bit version of libraries for interface.exe to run. The 32-bit version of the static library is the one linked by our CMake find modules*
 
