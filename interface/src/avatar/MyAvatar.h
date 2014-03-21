@@ -76,6 +76,7 @@ public:
 
     void orbit(const glm::vec3& position, int deltaX, int deltaY);
 
+    Q_INVOKABLE glm::vec3 getTargetAvatarPosition() const { return _targetAvatarPosition; }
     AvatarData* getLookAtTargetAvatar() const { return _lookAtTargetAvatar.data(); }
     void updateLookAtTargetAvatar();
     void clearLookAtTargetAvatar();
@@ -116,6 +117,7 @@ private:
     glm::vec3 _moveTarget;
     int _moveTargetStepCounter;
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
+    glm::vec3 _targetAvatarPosition;
     bool _shouldRender;
 
     bool _billboardValid;

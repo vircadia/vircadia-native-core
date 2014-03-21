@@ -582,16 +582,15 @@ void MyAvatar::updateLookAtTargetAvatar() {
 
         foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
             Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
-            if (avatar == static_cast<Avatar*>(this)) {
-                continue;
-            }
             float distance;
             if (avatar->findRayIntersection(mouseOrigin, mouseDirection, distance)) {
                 _lookAtTargetAvatar = avatarPointer;
+                _targetAvatarPosition = avatarPointer->getPosition();
                 return;
             }
         }
         _lookAtTargetAvatar.clear();
+        _targetAvatarPosition = glm::vec3(0, 0, 0);
     }
 }
 
