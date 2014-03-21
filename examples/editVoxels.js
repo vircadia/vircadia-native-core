@@ -33,7 +33,7 @@ var zFightingSizeAdjust = 0.002; // used to adjust preview voxels to prevent z f
 var previewLineWidth = 1.5;
 
 var oldMode = Camera.getMode();
-
+var trackAsOrbitOrPan = false;
 var isAdding = false; 
 var isExtruding = false;
 var extrudeDirection = { x: 0, y: 0, z: 0 };
@@ -792,7 +792,6 @@ function mousePressEvent(event) {
     if (!trackAsOrbitOrPan) {
         var clickedOnSomething = false;
         var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
-      
 
         // If the user clicked on the thumb, handle the slider logic
         if (clickedOverlay == thumb) {
