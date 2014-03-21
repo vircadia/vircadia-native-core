@@ -415,9 +415,9 @@ void AudioMixer::run() {
             }
             
             if (hasRatioChanged) {
-                // set out min required loudness from the new ratio
+                // set out min audability threshold from the new ratio
                 _minAudibilityThreshold = LOUDNESS_TO_DISTANCE_RATIO / (2.0f * (1.0f - audabilityCutoffRatio));
-                qDebug() << "Minimum loudness required to be mixed is now" << _minAudibilityThreshold;
+                qDebug() << "Minimum audability required to be mixed is now" << _minAudibilityThreshold;
                 
                 framesSinceCutoffEvent = 0;
             }
