@@ -24,11 +24,12 @@
 #include <QSlider>
 #include <QStandardPaths>
 #include <QUuid>
-#include <QWindow>
+#include <QHBoxLayout>
 
 #include <AccountManager.h>
 #include <XmppClient.h>
 #include <UUID.h>
+#include <FileDownloader.h>
 
 #include "Application.h"
 #include "Menu.h"
@@ -36,6 +37,7 @@
 #include "Util.h"
 #include "InfoView.h"
 #include "ui/MetavoxelEditor.h"
+#include "ModelBrowser.h"
 
 
 Menu* Menu::_instance = NULL;
@@ -138,9 +140,8 @@ Menu::Menu() :
                                   this,
                                   SLOT(goTo()));
 
-    addDisabledActionAndSeparator(fileMenu, "Upload/Browse");
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploaderAvatarHead, 0, Application::getInstance(), SLOT(uploadFST()));
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploaderAvatarSkeleton, 0, Application::getInstance(), SLOT(uploadFST()));
+    addDisabledActionAndSeparator(fileMenu, "Upload Avatar Model");
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadFST, 0, Application::getInstance(), SLOT(uploadFST()));
     
     addDisabledActionAndSeparator(fileMenu, "Settings");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::SettingsImport, 0, this, SLOT(importSettings()));
@@ -693,7 +694,7 @@ void Menu::loginForCurrentDomain() {
 }
 
 void Menu::editPreferences() {
-    if (! _preferencesDialog) {
+    if (!_preferencesDialog) {
         _preferencesDialog = new PreferencesDialog(Application::getInstance()->getGLWidget());
         _preferencesDialog->show();
     }

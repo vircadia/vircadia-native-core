@@ -6,6 +6,7 @@
 //
 //
 
+#include <QDesktopWidget>
 #include <QFile>
 #include <QPushButton>
 #include <QSizeGrip>
@@ -13,13 +14,29 @@
 #include "Application.h"
 #include "FramelessDialog.h"
 
-FramelessDialog::FramelessDialog(QWidget *parent, Qt::WindowFlags flags) : QDialog(parent, flags | Qt::FramelessWindowHint) {
-    setWindowOpacity(0.9);
+const int RESIZE_HANDLE_WIDTH = 7;
+
+FramelessDialog::FramelessDialog(QWidget *parent, Qt::WindowFlags flags) :
+    QDialog(parent, flags | Qt::FramelessWindowHint),
+    _isResizing(false) {
+
+    setWindowOpacity(0.95);
     setAttribute(Qt::WA_DeleteOnClose);
-    isResizing = false;
+
+    installEventFilter(this);
 }
 
-void FramelessDialog::setStyleSheet(const QString& fileName) {
+void FramelessDialog::showEvent(QShowEvent* event) {
+    QDesktopWidget desktop;
+
+    // move to upper left
+    move(desktop.availableGeometry().x(), desktop.availableGeometry().y());
+
+    // keep full height
+    resize(size().width(), desktop.availableGeometry().height());
+}
+
+void FramelessDialog::setStyleSheetFile(const QString& fileName) {
     QFile globalStyleSheet(Application::resourcesPath() + "styles/global.qss");
     QFile styleSheet(Application::resourcesPath() + fileName);
     if (styleSheet.open(QIODevice::ReadOnly) && globalStyleSheet.open(QIODevice::ReadOnly) ) {
@@ -27,27 +44,24 @@ void FramelessDialog::setStyleSheet(const QString& fileName) {
         QDialog::setStyleSheet(globalStyleSheet.readAll() + styleSheet.readAll());
     }
 }
+
 void FramelessDialog::mousePressEvent(QMouseEvent* mouseEvent) {
-    if (abs(mouseEvent->pos().x() - size().width()) < 2 && mouseEvent->button() == Qt::LeftButton) {
-        isResizing = true;
+
+    if (abs(mouseEvent->pos().x() - size().width()) < RESIZE_HANDLE_WIDTH && mouseEvent->button() == Qt::LeftButton) {
+        _isResizing = true;
         QApplication::setOverrideCursor(Qt::SizeHorCursor);
     }
-    // propagate the event
-    QDialog::mousePressEvent(mouseEvent);
 }
 
 void FramelessDialog::mouseReleaseEvent(QMouseEvent* mouseEvent) {
     QApplication::restoreOverrideCursor();
-    isResizing = false;
-    // propagate the event
-    QDialog::mouseReleaseEvent(mouseEvent);
+    _isResizing = false;
 }
 
 void FramelessDialog::mouseMoveEvent(QMouseEvent* mouseEvent) {
-    if (isResizing) {
+    if (_isResizing) {
         resize(mouseEvent->pos().x(), size().height());
     }
-    QDialog::mouseMoveEvent(mouseEvent);
 }
 
 FramelessDialog::~FramelessDialog() {

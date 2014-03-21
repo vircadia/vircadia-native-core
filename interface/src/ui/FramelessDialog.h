@@ -21,15 +21,16 @@ class FramelessDialog : public QDialog {
 public:
     FramelessDialog(QWidget* parent = 0, Qt::WindowFlags flags = 0);
     virtual ~FramelessDialog();
-    void setStyleSheet(const QString& fileName);
+    void setStyleSheetFile(const QString& fileName);
 
 protected:
-    void mouseMoveEvent(QMouseEvent* mouseEvent);
-    void mousePressEvent(QMouseEvent* mouseEvent);
-    void mouseReleaseEvent(QMouseEvent* mouseEvent);
+    virtual void mouseMoveEvent(QMouseEvent* mouseEvent);
+    virtual void mousePressEvent(QMouseEvent* mouseEvent);
+    virtual void mouseReleaseEvent(QMouseEvent* mouseEvent);
+    virtual void showEvent(QShowEvent* event);
 
 private:
-    bool isResizing;
+    bool _isResizing;
 
 };
 

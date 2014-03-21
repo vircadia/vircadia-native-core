@@ -50,7 +50,8 @@ public:
     const int16_t* getNextOutput() { return _nextOutput; }
     const int16_t* getBuffer() { return _buffer; }
     
-    float averageLoudnessForBoundarySamples(int numSamples);
+    void updateAverageLoudnessForBoundarySamples(int numSamples);
+    float getAverageLoudness() const { return _averageLoudness; }
 
     qint64 readSamples(int16_t* destination, qint64 maxSamples);
     qint64 writeSamples(const int16_t* source, qint64 maxSamples);
@@ -85,6 +86,8 @@ protected:
     int16_t* _buffer;
     bool _isStarved;
     bool _hasStarted;
+    
+    float _averageLoudness;
 };
 
 #endif /* defined(__interface__AudioRingBuffer__) */

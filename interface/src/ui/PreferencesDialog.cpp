@@ -6,19 +6,65 @@
 //
 //
 
-#include "PreferencesDialog.h"
 #include "Application.h"
 #include "Menu.h"
+#include "ModelBrowser.h"
+#include "PreferencesDialog.h"
+
+const int SCROLL_PANEL_BOTTOM_MARGIN = 30;
+const int OK_BUTTON_RIGHT_MARGIN = 30;
+const int BUTTONS_TOP_MARGIN = 24;
 
 PreferencesDialog::PreferencesDialog(QWidget* parent, Qt::WindowFlags flags) : FramelessDialog(parent, flags) {
+
     ui.setupUi(this);
-    setStyleSheet("styles/preferences.qss");
+    setStyleSheetFile("styles/preferences.qss");
     loadPreferences();
+    connect(ui.closeButton, &QPushButton::clicked, this, &QDialog::close);
+    connect(ui.buttonBrowseHead, &QPushButton::clicked, this, &PreferencesDialog::openHeadModelBrowser);
+    connect(ui.buttonBrowseBody, &QPushButton::clicked, this, &PreferencesDialog::openBodyModelBrowser);
+}
+
+PreferencesDialog::~PreferencesDialog() {
+    deleteLater();
 }
 
 void PreferencesDialog::accept() {
     savePreferences();
     close();
+}
+
+void PreferencesDialog::openHeadModelBrowser() {
+    ModelBrowser modelBrowser(Head);
+    modelBrowser.browse();
+    connect(&modelBrowser, &ModelBrowser::selected, ui.faceURLEdit, &QLineEdit::setText);
+}
+
+void PreferencesDialog::openBodyModelBrowser() {
+    ModelBrowser modelBrowser(Skeleton);
+    modelBrowser.browse();
+    connect(&modelBrowser, &ModelBrowser::selected, ui.skeletonURLEdit, &QLineEdit::setText);
+}
+
+void PreferencesDialog::resizeEvent(QResizeEvent *resizeEvent) {
+
+    // keep buttons panel at the bottom
+    ui.buttonsPanel->setGeometry(0, size().height() - ui.buttonsPanel->height(), size().width(), ui.buttonsPanel->height());
+
+    // set width and height of srcollarea to match bottom panel and width
+    ui.scrollArea->setGeometry(ui.scrollArea->geometry().x(), ui.scrollArea->geometry().y(),
+                               size().width(),
+                               size().height() - ui.buttonsPanel->height() -
+                               SCROLL_PANEL_BOTTOM_MARGIN - ui.scrollArea->geometry().y());
+
+    // move Save button to left position
+    ui.defaultButton->move(size().width() - OK_BUTTON_RIGHT_MARGIN - ui.defaultButton->size().width(), BUTTONS_TOP_MARGIN);
+
+    // move Save button to left position
+    ui.cancelButton->move(ui.defaultButton->pos().x() - ui.cancelButton->size().width(), BUTTONS_TOP_MARGIN);
+
+    // move close button
+    ui.closeButton->move(size().width() - OK_BUTTON_RIGHT_MARGIN - ui.closeButton->size().width(), ui.closeButton->pos().y());
 }
 
 void PreferencesDialog::loadPreferences() {

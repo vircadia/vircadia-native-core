@@ -19,16 +19,22 @@ class PreferencesDialog : public FramelessDialog {
     
 public:
     PreferencesDialog(QWidget* parent = 0, Qt::WindowFlags flags = 0);
+    ~PreferencesDialog();
+
+protected:
+    void resizeEvent(QResizeEvent* resizeEvent);
     
 private:
-    Ui_PreferencesDialog ui;
     void loadPreferences();
     void savePreferences();
-    
+    void openHeadModelBrowser();
+    void openBodyModelBrowser();
+
+    Ui_PreferencesDialog ui;
     QString _faceURLString;
     QString _skeletonURLString;
     QString _displayNameString;
-    
+
 private slots:
     void accept();
     

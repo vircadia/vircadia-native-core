@@ -1,5 +1,6 @@
 <RCC>
-    <qresource prefix="/">
-        <file>images/close.svg</file>
-    </qresource>
+  <qresource prefix="/">
+    <file>images/close.svg</file>
+    <file>styles/search.svg</file>
+  </qresource>
 </RCC>

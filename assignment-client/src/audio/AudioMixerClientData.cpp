@@ -6,6 +6,8 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
+#include <QDebug>
+
 #include <PacketHeaders.h>
 #include <UUID.h>
 
@@ -14,8 +16,7 @@
 #include "AudioMixerClientData.h"
 
 AudioMixerClientData::AudioMixerClientData() :
-    _ringBuffers(),
-    _nextOutputLoudness(0)
+    _ringBuffers()
 {
     
 }
@@ -82,16 +83,29 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
     return 0;
 }
 
-void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSamples) {
+void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSamples,
+                                                       float& currentMinLoudness,
+                                                       float& currentMaxLoudness) {
     for (unsigned int i = 0; i < _ringBuffers.size(); i++) {
         if (_ringBuffers[i]->shouldBeAddedToMix(jitterBufferLengthSamples)) {
             // this is a ring buffer that is ready to go
             // set its flag so we know to push its buffer when all is said and done
             _ringBuffers[i]->setWillBeAddedToMix(true);
             
+            
             // calculate the average loudness for the next NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL
             // that would be mixed in
-            _nextOutputLoudness = _ringBuffers[i]->averageLoudnessForBoundarySamples(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+            _ringBuffers[i]->updateAverageLoudnessForBoundarySamples(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+            
+            float ringBufferLoudness = _ringBuffers[i]->getAverageLoudness();
+            
+            if (ringBufferLoudness != 0 && ringBufferLoudness < currentMinLoudness) {
+                currentMinLoudness = ringBufferLoudness;
+            }
+            
+            if (ringBufferLoudness > currentMaxLoudness) {
+                currentMaxLoudness = ringBufferLoudness;
+            }
         }
     }
 }

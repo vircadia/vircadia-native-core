@@ -13,8 +13,9 @@ QLineEdit {
     border-style: solid;
     border-width: 1px;
     border-color: #ccc;
-    padding: 7px;
-    opacity: 1;
+    padding: 8px;
+    font-size: 16px;
+    color: rgb(51, 51, 51);
 }
 
 QLabel p {
@@ -27,14 +28,15 @@ QPushButton {
     border-radius: 9px;
     font-family: Arial;
     font-size: 18px;
-    font-weight: 100;
     color: #ffffff;
-    padding: 10px 15px;
+    padding: 10px 0px;
 }
 
 QSpinBox, QDoubleSpinBox {
     padding: 5px;
     border-width: 1;
+    font-size: 16px;
+    color: rgb(51, 51, 51);
 }
 
 QDoubleSpinBox::up-arrow,
@@ -95,6 +97,17 @@ QSlider::handle:horizontal {
     width: 18px;
     height: 18px;
     background-image: url(styles/slider-handle.svg);
+    background-repeat: no-repeat;
+    background-position: center center;
+}
+
+QPushButton#closeButton {
+    border-color: #ccc;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 0;
+    background-color: #fff;
+    background-image: url(styles/close.svg);
     background-repeat: no-repeat;
     background-position: center center;
 }
