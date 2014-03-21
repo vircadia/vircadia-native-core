@@ -189,4 +189,9 @@ void Agent::run() {
 
     _scriptEngine.setScriptContents(scriptContents);
     _scriptEngine.run();
+    setFinished(true);
+}
+
+void Agent::aboutToFinish() {
+    _scriptEngine.stop();
 }
