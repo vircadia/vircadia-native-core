@@ -23,6 +23,8 @@ class OctreeSendThread : public GenericThread {
 public:
     OctreeSendThread(const QUuid& nodeUUID, OctreeServer* myServer);
     virtual ~OctreeSendThread();
+    
+    void setIsShuttingDown();
 
     static quint64 _totalBytes;
     static quint64 _totalWastedBytes;
@@ -45,6 +47,8 @@ private:
     OctreePacketData _packetData;
     
     int _nodeMissingCount;
+    QMutex _processLock; // don't allow us to have our nodeData, or our thread to be deleted while we're processing
+    bool _isShuttingDown;
 };
 
 #endif // __octree_server__OctreeSendThread__

@@ -67,6 +67,14 @@ OctreeQueryNode::~OctreeQueryNode() {
 }
 
 
+void OctreeQueryNode::deleteLater() {
+    _isShuttingDown = true;
+    if (_octreeSendThread) {
+        _octreeSendThread->setIsShuttingDown();
+    }
+    OctreeQuery::deleteLater();
+}
+
 
 void OctreeQueryNode::initializeOctreeSendThread(OctreeServer* octreeServer, const QUuid& nodeUUID) {
     // Create octree sending thread...
