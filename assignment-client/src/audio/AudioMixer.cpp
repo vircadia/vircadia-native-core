@@ -454,10 +454,7 @@ void AudioMixer::run() {
 
         if (usecToSleep > 0) {
             usleep(usecToSleep);
-        } else {
-            qDebug() << "AudioMixer loop took" << -usecToSleep << "of extra time. Not sleeping.";
         }
-
     }
     
     delete[] clientMixBuffer;
