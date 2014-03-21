@@ -25,7 +25,7 @@ public:
     AvatarAudioRingBuffer* getAvatarAudioRingBuffer() const;
     
     int parseData(const QByteArray& packet);
-    void checkBuffersBeforeFrameSend(int jitterBufferLengthSamples, float& currentMinLoudness, float& currentMaxLoudness);
+    void checkBuffersBeforeFrameSend(int jitterBufferLengthSamples);
     void pushBuffersAfterFrameSend();
 private:
     std::vector<PositionalAudioRingBuffer*> _ringBuffers;

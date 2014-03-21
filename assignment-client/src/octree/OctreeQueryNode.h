@@ -27,6 +27,7 @@ class OctreeQueryNode : public OctreeQuery {
 public:
     OctreeQueryNode();
     virtual ~OctreeQueryNode();
+    virtual void deleteLater();
     
     void init(); // called after creation to set up some virtual items
     virtual PacketType getMyPacketType() const = 0;
