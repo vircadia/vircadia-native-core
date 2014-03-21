@@ -321,10 +321,6 @@ private:
 
     void updateShadowMap();
     void displayOverlay();
-    void displayStatsBackground(unsigned int rgba, int x, int y, int width, int height);
-    void displayStats();
-    void checkStatsClick();
-    void toggleStatsExpanded();
     void renderRearViewMirror(const QRect& region, bool billboard = false);
     void renderViewFrustum(ViewFrustum& viewFrustum);
 
@@ -345,7 +341,6 @@ private:
     QMainWindow* _window;
     GLCanvas* _glWidget; // our GLCanvas has a couple extra features
 
-    bool _statsExpanded;
     BandwidthMeter _bandwidthMeter;
     
     QThread* _nodeThread;
@@ -455,9 +450,6 @@ private:
 
     int _packetsPerSecond;
     int _bytesPerSecond;
-
-    int _recentMaxPackets; // recent max incoming voxel packets to process
-    bool _resetRecentMaxPacketsSoon;
 
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
