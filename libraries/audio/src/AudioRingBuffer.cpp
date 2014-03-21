@@ -70,8 +70,13 @@ void AudioRingBuffer::updateAverageLoudnessForBoundarySamples(int numSamples) {
     const int TRAILING_AVERAGE_FRAMES = 100;
     const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
     const float PREVIOUS_FRAMES_RATIO = 1 - CURRENT_FRAME_RATIO;
+    const float LOUDNESS_EPSILON = 0.05;
     
     _averageLoudness = (_averageLoudness * PREVIOUS_FRAMES_RATIO) + (CURRENT_FRAME_RATIO * nextLoudness);
+    
+    if (_averageLoudness < LOUDNESS_EPSILON) {
+        _averageLoudness = 0;
+    }
 }
 
 qint64 AudioRingBuffer::readSamples(int16_t* destination, qint64 maxSamples) {
