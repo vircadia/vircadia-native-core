@@ -742,6 +742,7 @@ function trackKeyReleaseEvent(event) {
     if (event.text == "TAB") {
         editToolsOn = !editToolsOn;
         moveTools();
+        showPreviewGuides();
         Audio.playSound(clickSound, audioOptions);
     }
 
