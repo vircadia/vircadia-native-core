@@ -66,7 +66,7 @@ void attachNewBufferToNode(Node *newNode) {
 AudioMixer::AudioMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _trailingSleepRatio(1.0f),
-    _minAudabilityThreshold(LOUDNESS_TO_DISTANCE_RATIO / 2)
+    _minAudibilityThreshold(LOUDNESS_TO_DISTANCE_RATIO / 2)
 {
     
 }
@@ -83,7 +83,7 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
 
         glm::vec3 relativePosition = bufferToAdd->getPosition() - listeningNodeBuffer->getPosition();
         
-        if (bufferToAdd->getAverageLoudness() / glm::length(relativePosition) <= _minAudabilityThreshold) {
+        if (bufferToAdd->getAverageLoudness() / glm::length(relativePosition) <= _minAudibilityThreshold) {
             // according to mixer performance we have decided this does not get to be mixed in
             // bail out
             return;
@@ -372,13 +372,13 @@ void AudioMixer::run() {
             }
         }
         
-        const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10;
-        const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.30;
-        const float CUTOFF_EPSILON = 0.0001;
+        const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
+        const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.30f;
+        const float CUTOFF_EPSILON = 0.0001f;
         
         const int TRAILING_AVERAGE_FRAMES = 100;
         const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
-        const float PREVIOUS_FRAMES_RATIO = 1 - CURRENT_FRAME_RATIO;
+        const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
         
         if (usecToSleep < 0) {
             usecToSleep = 0;
@@ -392,17 +392,17 @@ void AudioMixer::run() {
         
         if (_trailingSleepRatio <= STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD) {
             // we're struggling - change our min required loudness to reduce some load
-            audabilityCutoffRatio += (1 - audabilityCutoffRatio) / 2;
+            audabilityCutoffRatio += (1.0f - audabilityCutoffRatio) / 2.0f;
             
             qDebug() << "Mixer is struggling, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
                 << lastCutoffRatio << "and is now" << audabilityCutoffRatio;
             hasRatioChanged = true;
         } else if (_trailingSleepRatio >= BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD && audabilityCutoffRatio != 0) {
             // we've recovered and can back off the required loudness
-            audabilityCutoffRatio -= audabilityCutoffRatio / 2;
+            audabilityCutoffRatio -= audabilityCutoffRatio / 2.0f;
             
             if (audabilityCutoffRatio < CUTOFF_EPSILON) {
-                audabilityCutoffRatio = 0;
+                audabilityCutoffRatio = 0.0f;
             }
             
             qDebug() << "Mixer is recovering, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
@@ -412,8 +412,8 @@ void AudioMixer::run() {
         
         if (hasRatioChanged) {
             // set out min required loudness from the new ratio
-            _minAudabilityThreshold = LOUDNESS_TO_DISTANCE_RATIO / (2 * (1 - audabilityCutoffRatio));
-            qDebug() << "Minimum loudness required to be mixed is now" << _minAudabilityThreshold;
+            _minAudibilityThreshold = LOUDNESS_TO_DISTANCE_RATIO / (2.0f * (1.0f - audabilityCutoffRatio));
+            qDebug() << "Minimum loudness required to be mixed is now" << _minAudibilityThreshold;
         }
 
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
