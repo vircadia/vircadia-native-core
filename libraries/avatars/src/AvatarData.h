@@ -36,7 +36,6 @@ typedef unsigned long long quint64;
 #include <QtCore/QVector>
 #include <QtCore/QVariantMap>
 #include <QRect>
-#include <QMap>
 
 #include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
