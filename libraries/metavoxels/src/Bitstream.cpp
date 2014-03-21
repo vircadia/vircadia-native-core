@@ -577,16 +577,17 @@ Bitstream& Bitstream::operator<(const TypeStreamer* streamer) {
     if (_metadataType == NO_METADATA) {
         return *this;
     }
-    TypeStreamer::Category category = streamer->getCategory();
-    *this << (int)category;
-    switch (category) {
-        case TypeStreamer::SIMPLE_CATEGORY:
+    TypeReader::Type type = streamer->getReaderType();
+    *this << (int)type;
+    switch (type) {
+        case TypeReader::SIMPLE_TYPE:
             return *this;
         
-        case TypeStreamer::LIST_CATEGORY:
+        case TypeReader::LIST_TYPE:
+        case TypeReader::SET_TYPE:
             return *this << streamer->getValueStreamer();
     
-        case TypeStreamer::MAP_CATEGORY:
+        case TypeReader::MAP_TYPE:
             return *this << streamer->getKeyStreamer() << streamer->getValueStreamer();
         
         default:
@@ -628,35 +629,36 @@ Bitstream& Bitstream::operator>(TypeReader& reader) {
         reader = TypeReader(typeName, streamer);
         return *this;
     }
-    int category;
-    *this >> category;
-    switch (category) {
-        case TypeStreamer::SIMPLE_CATEGORY:
+    int type;
+    *this >> type;
+    switch (type) {
+        case TypeReader::SIMPLE_TYPE:
             reader = TypeReader(typeName, streamer);
             return *this;
             
-        case TypeStreamer::LIST_CATEGORY: {
+        case TypeReader::LIST_TYPE:
+        case TypeReader::SET_TYPE: {
             TypeReader valueReader;
             *this >> valueReader;
-            if (streamer && streamer->getCategory() == TypeStreamer::LIST_CATEGORY &&
+            if (streamer && streamer->getReaderType() == type &&
                     valueReader.matchesExactly(streamer->getValueStreamer())) {
                 reader = TypeReader(typeName, streamer);
             } else {
-                reader = TypeReader(typeName, streamer, false, TypeReaderPointer(),
+                reader = TypeReader(typeName, streamer, false, (TypeReader::Type)type, TypeReaderPointer(),
                     TypeReaderPointer(new TypeReader(valueReader)));
             }
             return *this;
         }
-        case TypeStreamer::MAP_CATEGORY: {
+        case TypeReader::MAP_TYPE: {
             TypeReader keyReader, valueReader;
             *this >> keyReader >> valueReader;
-            if (streamer && streamer->getCategory() == TypeStreamer::MAP_CATEGORY &&
+            if (streamer && streamer->getReaderType() == TypeReader::MAP_TYPE &&
                     keyReader.matchesExactly(streamer->getKeyStreamer()) &&
                     valueReader.matchesExactly(streamer->getValueStreamer())) {
                 reader = TypeReader(typeName, streamer);
             } else {
-                reader = TypeReader(typeName, streamer, false, TypeReaderPointer(new TypeReader(keyReader)),
-                    TypeReaderPointer(new TypeReader(valueReader)));
+                reader = TypeReader(typeName, streamer, false, TypeReader::MAP_TYPE,
+                    TypeReaderPointer(new TypeReader(keyReader)), TypeReaderPointer(new TypeReader(valueReader)));
             }
             return *this;
         }
@@ -714,20 +716,23 @@ Bitstream& Bitstream::operator>(TypeReader& reader) {
         // if all fields are the same type and in the right order, we can use the (more efficient) default streamer
         const QVector<MetaField>& localFields = streamer->getMetaFields();
         if (fieldCount != localFields.size()) {
-            reader = TypeReader(typeName, streamer, false, TypeReaderPointer(), TypeReaderPointer(), fields);
+            reader = TypeReader(typeName, streamer, false, TypeReader::STREAMABLE_TYPE,
+                TypeReaderPointer(), TypeReaderPointer(), fields);
             return *this;
         }
         for (int i = 0; i < fieldCount; i++) {
             const FieldReader& fieldReader = fields.at(i);
             if (!fieldReader.getReader().matchesExactly(localFields.at(i).getStreamer()) || fieldReader.getIndex() != i) {
-                reader = TypeReader(typeName, streamer, false, TypeReaderPointer(), TypeReaderPointer(), fields);
+                reader = TypeReader(typeName, streamer, false, TypeReader::STREAMABLE_TYPE,
+                    TypeReaderPointer(), TypeReaderPointer(), fields);
                 return *this;
             }
         }
         reader = TypeReader(typeName, streamer);
         return *this;
     }
-    reader = TypeReader(typeName, streamer, false, TypeReaderPointer(), TypeReaderPointer(), fields);
+    reader = TypeReader(typeName, streamer, false, TypeReader::STREAMABLE_TYPE,
+        TypeReaderPointer(), TypeReaderPointer(), fields);
     return *this;
 }
 
@@ -823,11 +828,12 @@ QVector<PropertyReader> Bitstream::getPropertyReaders(const QMetaObject* metaObj
     return propertyReaders;
 }
 
-TypeReader::TypeReader(const QByteArray& typeName, const TypeStreamer* streamer, bool exactMatch,
+TypeReader::TypeReader(const QByteArray& typeName, const TypeStreamer* streamer, bool exactMatch, Type type,
         const TypeReaderPointer& keyReader, const TypeReaderPointer& valueReader, const QVector<FieldReader>& fields) :
     _typeName(typeName),
     _streamer(streamer),
     _exactMatch(exactMatch),
+    _type(type),
     _keyReader(keyReader),
     _valueReader(valueReader),
     _fields(fields) {
@@ -838,10 +844,28 @@ QVariant TypeReader::read(Bitstream& in) const {
         return _streamer->read(in);
     }
     QVariant object = _streamer ? QVariant(_streamer->getType(), 0) : QVariant();
-    if (_valueReader) {
-        int size;
-        in >> size;
-        if (_keyReader) {
+    switch (_type) {
+        case STREAMABLE_TYPE: {
+            foreach (const FieldReader& field, _fields) {
+                field.read(in, _streamer, object);
+            }
+            break;
+        }
+        case LIST_TYPE:
+        case SET_TYPE: {
+            int size;
+            in >> size;
+            for (int i = 0; i < size; i++) {
+                QVariant value = _valueReader->read(in);
+                if (_streamer) {
+                    _streamer->insert(object, value);
+                }
+            }
+            break;
+        }
+        case MAP_TYPE: {
+            int size;
+            in >> size;
             for (int i = 0; i < size; i++) {
                 QVariant key = _keyReader->read(in);
                 QVariant value = _valueReader->read(in);
@@ -849,18 +873,10 @@ QVariant TypeReader::read(Bitstream& in) const {
                     _streamer->insert(object, key, value);
                 }
             }
-        } else {
-            for (int i = 0; i < size; i++) {
-                QVariant value = _valueReader->read(in);
-                if (_streamer) {
-                    _streamer->insert(object, value);
-                }
-            }
+            break;
         }
-    } else {
-        foreach (const FieldReader& field, _fields) {
-            field.read(in, _streamer, object);
-        }
+        default:
+            break;
     }
     return object;
 }
@@ -870,13 +886,67 @@ void TypeReader::readDelta(Bitstream& in, QVariant& object, const QVariant& refe
         _streamer->readDelta(in, object, reference);
         return;
     }
-    if (_valueReader) {
-        // TODO: collection deltas
-        
-    } else {
-        foreach (const FieldReader& field, _fields) {
-            field.readDelta(in, _streamer, object, reference);
-        }    
+    bool changed;
+    in >> changed;
+    if (!changed) {
+        object = reference;
+        return;
+    }
+    switch (_type) {
+        case STREAMABLE_TYPE: {
+            foreach (const FieldReader& field, _fields) {
+                field.readDelta(in, _streamer, object, reference);
+            }
+            break;
+        }
+        case LIST_TYPE: {
+            object = reference;
+            int size, referenceSize;
+            in >> size >> referenceSize;
+            
+            break;
+        }
+        case SET_TYPE: {
+            object = reference;
+            int addedOrRemoved;
+            in >> addedOrRemoved;
+            for (int i = 0; i < addedOrRemoved; i++) {
+                QVariant value = _valueReader->read(in);
+                if (_streamer && !_streamer->remove(object, value)) {
+                    _streamer->insert(object, value);
+                }
+            }
+            break;
+        }
+        case MAP_TYPE: {
+            object = reference;
+            int added;
+            in >> added;
+            for (int i = 0; i < added; i++) {
+                QVariant key = _keyReader->read(in);
+                QVariant value = _valueReader->read(in);
+                if (_streamer) {
+                    _streamer->insert(object, key, value);
+                }
+            }
+            int modified;
+            in >> modified;
+            for (int i = 0; i < modified; i++) {
+                QVariant key = _keyReader->read(in);
+                
+            }
+            int removed;
+            in >> removed;
+            for (int i = 0; i < removed; i++) {
+                QVariant key = _keyReader->read(in);
+                if (_streamer) {
+                    _streamer->remove(object, key);
+                }
+            }
+            break;
+        }
+        default:
+            break;
     }
 }
 
@@ -958,8 +1028,8 @@ void TypeStreamer::setField(int index, QVariant& object, const QVariant& value) 
     // nothing by default
 }
 
-TypeStreamer::Category TypeStreamer::getCategory() const {
-    return SIMPLE_CATEGORY;
+TypeReader::Type TypeStreamer::getReaderType() const {
+    return TypeReader::SIMPLE_TYPE;
 }
 
 const TypeStreamer* TypeStreamer::getKeyStreamer() const {
@@ -976,4 +1046,8 @@ void TypeStreamer::insert(QVariant& object, const QVariant& element) const {
 
 void TypeStreamer::insert(QVariant& object, const QVariant& key, const QVariant& value) const {
     // nothing by default
+}
+
+bool TypeStreamer::remove(QVariant& object, const QVariant& key) const {
+    return false;
 }

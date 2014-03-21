@@ -173,6 +173,11 @@ void generateOutput (QTextStream& out, const QList<Streamable>& streamables) {
         out << "}\n";
 
         out << "template<> void Bitstream::writeDelta(const " << name << "& value, const " << name << "& reference) {\n";
+        out << "    if (value == reference) {\n";
+        out << "        *this << false;\n";
+        out << "        return;\n";
+        out << "    }\n";
+        out << "    *this << true;\n";
         foreach (const QString& base, str.clazz.bases) {
             out << "    writeDelta(static_cast<const " << base << "&>(value), static_cast<const " <<
                 base << "&>(reference));\n";
@@ -183,6 +188,12 @@ void generateOutput (QTextStream& out, const QList<Streamable>& streamables) {
         out << "}\n";
 
         out << "template<> void Bitstream::readDelta(" << name << "& value, const " << name << "& reference) {\n";
+        out << "    bool changed;\n";
+        out << "    *this >> changed;\n";
+        out << "    if (!changed) {\n";
+        out << "        value = reference;\n";
+        out << "        return;\n";
+        out << "    }\n";
         foreach (const QString& base, str.clazz.bases) {
             out << "    readDelta(static_cast<" << base << "&>(value), static_cast<const " <<
                 base << "&>(reference));\n";
