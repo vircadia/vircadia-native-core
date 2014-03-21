@@ -315,12 +315,9 @@ SharedNodePointer NodeList::nodeWithUUID(const QUuid& nodeUUID, bool blockingLoc
         // this will block till we can get access
         QMutexLocker locker(&_nodeHashMutex);
         node = _nodeHash.value(nodeUUID);
-    } else {
-        // some callers are willing to get wrong answers but not block
-        if (_nodeHashMutex.tryLock()) {
-            node = _nodeHash.value(nodeUUID);
-            _nodeHashMutex.unlock();
-        }
+    } else if (_nodeHashMutex.tryLock()) { // some callers are willing to get wrong answers but not block
+        node = _nodeHash.value(nodeUUID);
+        _nodeHashMutex.unlock();
     }
     return node;
 }
