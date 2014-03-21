@@ -410,8 +410,6 @@ void AudioMixer::run() {
             hasRatioChanged = true;
         }
         
-        
-        
         if (hasRatioChanged) {
             // set out min required loudness from the new ratio
             _minAudabilityThreshold = LOUDNESS_TO_DISTANCE_RATIO / (2 * (1 - audabilityCutoffRatio));
