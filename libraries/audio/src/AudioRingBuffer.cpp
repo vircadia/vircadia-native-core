@@ -68,9 +68,9 @@ void AudioRingBuffer::updateAverageLoudnessForBoundarySamples(int numSamples) {
     nextLoudness /= MAX_SAMPLE_VALUE;
     
     const int TRAILING_AVERAGE_FRAMES = 100;
-    const float CURRENT_FRAME_RATIO = 1 / TRAILING_AVERAGE_FRAMES;
-    const float PREVIOUS_FRAMES_RATIO = 1 - CURRENT_FRAME_RATIO;
-    const float LOUDNESS_EPSILON = 0.001;
+    const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
+    const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
+    const float LOUDNESS_EPSILON = 0.01f;
     
     if (nextLoudness >= _averageLoudness) {
         _averageLoudness = nextLoudness;
