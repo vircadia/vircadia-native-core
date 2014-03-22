@@ -41,10 +41,8 @@ private:
     int16_t _clientSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)];
     
     float _trailingSleepRatio;
-    float _minSourceLoudnessInFrame;
-    float _maxSourceLoudnessInFrame;
-    float _loudnessCutoffRatio;
-    float _minRequiredLoudness;
+    float _minAudibilityThreshold;
+    int _numClientsMixedInFrame;
 };
 
 #endif /* defined(__hifi__AudioMixer__) */
