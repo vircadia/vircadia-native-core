@@ -223,6 +223,68 @@ void Bitstream::clearSharedObject(int id) {
     }
 }
 
+void Bitstream::writeDelta(bool value, bool reference) {
+    *this << value;
+}
+
+void Bitstream::readDelta(bool& value, bool reference) {
+    *this >> value;
+}
+
+void Bitstream::writeRawDelta(const QObject* value, const QObject* reference) {
+    if (!value) {
+        _metaObjectStreamer << NULL;
+        return;
+    }
+    const QMetaObject* metaObject = value->metaObject();
+    _metaObjectStreamer << metaObject;
+    for (int i = 0; i < metaObject->propertyCount(); i++) {
+        QMetaProperty property = metaObject->property(i);
+        if (!property.isStored(value)) {
+            continue;
+        }
+        const TypeStreamer* streamer = getTypeStreamers().value(property.userType());
+        if (streamer) {
+            streamer->writeDelta(*this, property.read(value), reference && metaObject == reference->metaObject() ?
+                property.read(reference) : QVariant());
+        }
+    }
+}
+
+void Bitstream::readRawDelta(QObject*& value, const QObject* reference) {
+    ObjectReader objectReader;
+    _metaObjectStreamer >> objectReader;
+    value = objectReader.readDelta(*this, reference);
+}
+
+void Bitstream::writeRawDelta(const SharedObjectPointer& value, const SharedObjectPointer& reference) {
+    if (!value) {
+        *this << (int)0;
+        return;
+    }
+    *this << value->getID();
+    writeRawDelta((const QObject*)value.data(), (const QObject*)reference.data());   
+}
+
+void Bitstream::readRawDelta(SharedObjectPointer& value, const SharedObjectPointer& reference) {
+    int id;
+    *this >> id;
+    if (id == 0) {
+        value = SharedObjectPointer();
+        return;
+    }
+    QPointer<SharedObject>& sharedObject = _weakSharedObjectHash[id];
+    if (!sharedObject) {
+        QObject* object;
+        readRawDelta(object, (const QObject*)reference.data());
+        sharedObject = static_cast<SharedObject*>(object);
+        return;
+    }
+    ObjectReader objectReader;
+    _metaObjectStreamer >> objectReader;
+    objectReader.readDelta(*this, reference, sharedObject.data());
+}
+
 Bitstream& Bitstream::operator<<(bool value) {
     if (value) {
         _byte |= (1 << _position);
@@ -1025,6 +1087,16 @@ QObject* ObjectReader::read(Bitstream& in, QObject* object) const {
     return object;
 }
 
+QObject* ObjectReader::readDelta(Bitstream& in, const QObject* reference, QObject* object) const {
+    if (!object && _metaObject) {
+        object = _metaObject->newInstance();
+    }
+    foreach (const PropertyReader& property, _properties) {
+        property.readDelta(in, object, reference);
+    }
+    return object;
+}
+
 uint qHash(const ObjectReader& objectReader, uint seed) {
     return qHash(objectReader.getClassName(), seed);
 }
@@ -1036,6 +1108,14 @@ PropertyReader::PropertyReader(const TypeReader& reader, const QMetaProperty& pr
 
 void PropertyReader::read(Bitstream& in, QObject* object) const {
     QVariant value = _reader.read(in);
+    if (_property.isValid() && object) {
+        _property.write(object, value);
+    }
+}
+
+void PropertyReader::readDelta(Bitstream& in, QObject* object, const QObject* reference) const {
+    QVariant value;
+    _reader.readDelta(in, value, (_property.isValid() && reference) ? _property.read(reference) : QVariant());
     if (_property.isValid() && object) {
         _property.write(object, value);
     }

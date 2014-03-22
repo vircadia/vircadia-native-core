@@ -268,8 +268,17 @@ public:
     /// Removes a shared object from the read mappings.
     void clearSharedObject(int id);
 
+    void writeDelta(bool value, bool reference);
+    void readDelta(bool& value, bool reference);
+
     template<class T> void writeDelta(const T& value, const T& reference);
     template<class T> void readDelta(T& value, const T& reference); 
+
+    void writeRawDelta(const QObject* value, const QObject* reference);
+    void readRawDelta(QObject*& value, const QObject* reference);
+
+    void writeRawDelta(const SharedObjectPointer& value, const SharedObjectPointer& reference);
+    void readRawDelta(SharedObjectPointer& value, const SharedObjectPointer& reference);
     
     template<class T> void writeRawDelta(const T& value, const T& reference);
     template<class T> void readRawDelta(T& value, const T& reference); 
@@ -410,14 +419,6 @@ template<class T> inline void Bitstream::readDelta(T& value, const T& reference)
     } else {
         value = reference;
     }
-}
-
-template<> inline void Bitstream::writeDelta(const bool& value, const bool& reference) {
-    *this << value;
-}
-
-template<> inline void Bitstream::readDelta(bool& value, const bool& reference) {
-    *this >> value;
 }
 
 template<class T> inline void Bitstream::writeRawDelta(const T& value, const T& reference) {
@@ -697,6 +698,7 @@ public:
     const QMetaObject* getMetaObject() const { return _metaObject; }
 
     QObject* read(Bitstream& in, QObject* object = NULL) const;
+    QObject* readDelta(Bitstream& in, const QObject* reference, QObject* object = NULL) const;
 
     bool operator==(const ObjectReader& other) const { return _className == other._className; }
     bool operator!=(const ObjectReader& other) const { return _className != other._className; }
@@ -719,6 +721,7 @@ public:
     const TypeReader& getReader() const { return _reader; }
 
     void read(Bitstream& in, QObject* object) const;
+    void readDelta(Bitstream& in, QObject* object, const QObject* reference) const;
 
 private:
 
