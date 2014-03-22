@@ -66,7 +66,8 @@ void attachNewBufferToNode(Node *newNode) {
 AudioMixer::AudioMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _trailingSleepRatio(1.0f),
-    _minAudibilityThreshold(LOUDNESS_TO_DISTANCE_RATIO / 2.0f)
+    _minAudibilityThreshold(LOUDNESS_TO_DISTANCE_RATIO / 2.0f),
+    _numClientsMixedInFrame(0)
 {
     
 }
@@ -80,14 +81,21 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
     
     if (bufferToAdd != listeningNodeBuffer) {
         // if the two buffer pointers do not match then these are different buffers
-
         glm::vec3 relativePosition = bufferToAdd->getPosition() - listeningNodeBuffer->getPosition();
         
-        if (bufferToAdd->getAverageLoudness() / glm::length(relativePosition) <= _minAudibilityThreshold) {
+        float distanceBetween = glm::length(relativePosition);
+       
+        if (distanceBetween < EPSILON) {
+            distanceBetween = EPSILON;
+        }
+        
+        if (bufferToAdd->getAverageLoudness() / distanceBetween <= _minAudibilityThreshold) {
             // according to mixer performance we have decided this does not get to be mixed in
             // bail out
             return;
         }
+        
+        ++_numClientsMixedInFrame;
         
         glm::quat inverseOrientation = glm::inverse(listeningNodeBuffer->getOrientation());
         
@@ -441,6 +449,9 @@ void AudioMixer::run() {
                 nodeList->writeDatagram(clientMixBuffer, NETWORK_BUFFER_LENGTH_BYTES_STEREO + numBytesPacketHeader, node);
             }
         }
+        
+        qDebug() << "There were" << _numClientsMixedInFrame << "clients mixed in the last frame";
+        _numClientsMixedInFrame = 0;
 
         // push forward the next output pointers for any audio buffers we used
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
