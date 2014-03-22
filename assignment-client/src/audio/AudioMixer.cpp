@@ -386,7 +386,6 @@ void AudioMixer::run() {
         
         const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
         const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.20f;
-        const float CUTOFF_EPSILON = 0.0001f;
         const float CUTOFF_DELTA = 0.02f;
         
         const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
