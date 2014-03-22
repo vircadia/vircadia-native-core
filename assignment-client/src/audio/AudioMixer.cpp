@@ -379,7 +379,7 @@ void AudioMixer::run() {
         const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
         const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.20f;
         const float CUTOFF_EPSILON = 0.0001f;
-        const float CUTOFF_DELTA = 0.05;
+        const float CUTOFF_DELTA = 0.02;
         
         const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
         const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
@@ -399,8 +399,8 @@ void AudioMixer::run() {
                 // we're struggling - change our min required loudness to reduce some load
                 audabilityCutoffRatio += CUTOFF_DELTA;
                 
-                if (audabilityCutoffRatio > 1) {
-                    audabilityCutoffRatio = 1;
+                if (audabilityCutoffRatio >= 1) {
+                    audabilityCutoffRatio = 1 - CUTOFF_DELTA;
                 }
                 
                 qDebug() << "Mixer is struggling, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
