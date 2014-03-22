@@ -449,7 +449,6 @@ void AudioMixer::run() {
             }
         }
         
-        qDebug() << "There were" << _numClientsMixedInFrame << "clients mixed in the last frame";
         _numClientsMixedInFrame = 0;
 
         // push forward the next output pointers for any audio buffers we used
