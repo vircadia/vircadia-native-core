@@ -92,6 +92,16 @@ void Audio::reset() {
     _ringBuffer.reset();
 }
 
+QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
+    QAudioDeviceInfo result;
+    foreach(QAudioDeviceInfo audioDevice, QAudioDeviceInfo::availableDevices(mode)) {
+        if (audioDevice.deviceName().trimmed() == deviceName.trimmed()) {
+            result = audioDevice;
+        }
+    }
+    return result;
+}
+
 QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
 #ifdef __APPLE__
     if (QAudioDeviceInfo::availableDevices(mode).size() > 1) {
@@ -249,27 +259,92 @@ void Audio::start() {
     _desiredOutputFormat.setChannelCount(2);
 
     QAudioDeviceInfo inputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioInput);
-    qDebug() << "The audio input device is" << inputDeviceInfo.deviceName();
+    qDebug() << "The default audio input device is" << inputDeviceInfo.deviceName();
+    bool inputFormatSupported = switchInputToAudioDevice(inputDeviceInfo.deviceName());
+
+    QAudioDeviceInfo outputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioOutput);
+    qDebug() << "The default audio output device is" << outputDeviceInfo.deviceName();
+    bool outputFormatSupported = switchOutputToAudioDevice(outputDeviceInfo.deviceName());
     
-    if (adjustedFormatForAudioDevice(inputDeviceInfo, _desiredInputFormat, _inputFormat)) {
-        qDebug() << "The format to be used for audio input is" << _inputFormat;
+    if (!inputFormatSupported || !outputFormatSupported) {
+        qDebug() << "Unable to set up audio I/O because of a problem with input or output formats.";
+    }
+}
+
+bool Audio::switchInputToAudioDevice(const QString& inputDeviceName) {
+    bool supportedFormat = false;
+    
+    // cleanup any previously initialized device
+    if (_audioInput) {
+        _audioInput->stop();
+        disconnect(_inputDevice, 0, 0, 0);
+        _inputDevice = NULL;
+
+        delete _audioInput;
+        _audioInput = NULL;
+        _numInputCallbackBytes = 0;
+
+        _inputAudioDeviceName = "";
+    }
+
+    QAudioDeviceInfo inputDeviceInfo = getNamedAudioDeviceForMode(QAudio::AudioInput, inputDeviceName);
+    
+    if (!inputDeviceInfo.isNull()) {
+        qDebug() << "The audio input device " << inputDeviceInfo.deviceName() << "is available.";
+        _inputAudioDeviceName = inputDeviceInfo.deviceName().trimmed();
+    
+        if (adjustedFormatForAudioDevice(inputDeviceInfo, _desiredInputFormat, _inputFormat)) {
+            qDebug() << "The format to be used for audio input is" << _inputFormat;
         
-        _audioInput = new QAudioInput(inputDeviceInfo, _inputFormat, this);
-        _numInputCallbackBytes = NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL * _inputFormat.channelCount()
-            * (_inputFormat.sampleRate() / SAMPLE_RATE)
-            / CALLBACK_ACCELERATOR_RATIO;
-        _audioInput->setBufferSize(_numInputCallbackBytes);
+            _audioInput = new QAudioInput(inputDeviceInfo, _inputFormat, this);
+            _numInputCallbackBytes = NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL * _inputFormat.channelCount()
+                * (_inputFormat.sampleRate() / SAMPLE_RATE)
+                / CALLBACK_ACCELERATOR_RATIO;
+            _audioInput->setBufferSize(_numInputCallbackBytes);
 
-        QAudioDeviceInfo outputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioOutput);
-        qDebug() << "The audio output device is" << outputDeviceInfo.deviceName();
-
-        if (adjustedFormatForAudioDevice(outputDeviceInfo, _desiredOutputFormat, _outputFormat)) {
-            qDebug() << "The format to be used for audio output is" << _outputFormat;
-            
+            // how do we want to handle input working, but output not working?
             _inputRingBuffer.resizeForFrameSize(_numInputCallbackBytes * CALLBACK_ACCELERATOR_RATIO / sizeof(int16_t));
             _inputDevice = _audioInput->start();
             connect(_inputDevice, SIGNAL(readyRead()), this, SLOT(handleAudioInput()));
 
+            supportedFormat = true;
+        }
+    }
+    return supportedFormat;
+}
+
+bool Audio::switchOutputToAudioDevice(const QString& outputDeviceName) {
+    bool supportedFormat = false;
+
+    // cleanup any previously initialized device
+    if (_audioOutput) {
+        _audioOutput->stop();
+        disconnect(_outputDevice, 0, 0, 0);
+        _outputDevice = NULL;
+        
+        delete _audioOutput;
+        _audioOutput = NULL;
+        _numInputCallbackBytes = 0;
+
+        _loopbackOutputDevice = NULL;
+        delete _loopbackAudioOutput;
+        _loopbackAudioOutput = NULL;
+
+        _proceduralOutputDevice = NULL;
+        delete _proceduralAudioOutput;
+        _proceduralAudioOutput = NULL;
+        _outputAudioDeviceName = "";
+    }
+
+    QAudioDeviceInfo outputDeviceInfo = getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName);
+
+    if (!outputDeviceInfo.isNull()) {
+        qDebug() << "The audio output device " << outputDeviceInfo.deviceName() << "is available.";
+        _outputAudioDeviceName = outputDeviceInfo.deviceName().trimmed();
+
+        if (adjustedFormatForAudioDevice(outputDeviceInfo, _desiredOutputFormat, _outputFormat)) {
+            qDebug() << "The format to be used for audio output is" << _outputFormat;
+        
             // setup our general output device for audio-mixer audio
             _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
             _audioOutput->setBufferSize(_ringBuffer.getSampleCapacity() * sizeof(int16_t));
@@ -278,17 +353,15 @@ void Audio::start() {
 
             // setup a loopback audio output device
             _loopbackAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
-            
+        
             // setup a procedural audio output device
             _proceduralAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
 
             gettimeofday(&_lastReceiveTime, NULL);
+            supportedFormat = true;
         }
-
-        return;
     }
-    
-    qDebug() << "Unable to set up audio I/O because of a problem with input or output formats.";
+    return supportedFormat;
 }
 
 void Audio::handleAudioInput() {
@@ -315,7 +388,9 @@ void Audio::handleAudioInput() {
         }
 
         if (_inputFormat == _outputFormat) {
-            _loopbackOutputDevice->write(inputByteArray);
+            if (_loopbackOutputDevice) {
+                _loopbackOutputDevice->write(inputByteArray);
+            }
         } else {
             static float loopbackOutputToInputRatio = (_outputFormat.sampleRate() / (float) _inputFormat.sampleRate())
                 * (_outputFormat.channelCount() / _inputFormat.channelCount());
@@ -326,7 +401,9 @@ void Audio::handleAudioInput() {
                              inputByteArray.size() / sizeof(int16_t),
                              loopBackByteArray.size() / sizeof(int16_t), _inputFormat, _outputFormat);
 
-            _loopbackOutputDevice->write(loopBackByteArray);
+            if (_loopbackOutputDevice) {
+                _loopbackOutputDevice->write(loopBackByteArray);
+            }
         }
     }
 
@@ -469,7 +546,9 @@ void Audio::handleAudioInput() {
                          NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 4,
                          _desiredInputFormat, _outputFormat);
         
-        _proceduralOutputDevice->write(proceduralOutput);
+        if (_proceduralOutputDevice) {
+            _proceduralOutputDevice->write(proceduralOutput);
+        }
 
         NodeList* nodeList = NodeList::getInstance();
         SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);

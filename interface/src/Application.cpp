@@ -72,6 +72,7 @@
 #include "devices/TV3DManager.h"
 #include "renderer/ProgramObject.h"
 
+#include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
@@ -3552,6 +3553,7 @@ void Application::loadScript(const QString& fileNameString) {
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
 
     QThread* workerThread = new QThread(this);
 
