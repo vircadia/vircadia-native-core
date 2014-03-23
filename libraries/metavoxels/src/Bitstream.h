@@ -75,7 +75,11 @@ public:
     
     void persistTransientValues(const QHash<int, V>& transientValues);
     
+    void removePersistentID(P value) { _persistentIDs.remove(value); }
+    
     int takePersistentID(P value) { return _persistentIDs.take(value); }
+    
+    void removePersistentValue(V value) { int id = _valueIDs.take(value); _persistentValues.remove(id); }
     
     V takePersistentValue(int id) { V value = _persistentValues.take(id); _valueIDs.remove(value); return value; }
     
@@ -277,9 +281,6 @@ public:
     void writeRawDelta(const QObject* value, const QObject* reference);
     void readRawDelta(QObject*& value, const QObject* reference);
 
-    void writeRawDelta(const SharedObjectPointer& value, const SharedObjectPointer& reference);
-    void readRawDelta(SharedObjectPointer& value, const SharedObjectPointer& reference);
-    
     template<class T> void writeRawDelta(const T& value, const T& reference);
     template<class T> void readRawDelta(T& value, const T& reference); 
     
@@ -390,6 +391,8 @@ private:
     RepeatedValueStreamer<AttributePointer> _attributeStreamer;
     RepeatedValueStreamer<QScriptString> _scriptStringStreamer;
     RepeatedValueStreamer<SharedObjectPointer, SharedObject*> _sharedObjectStreamer;
+    
+    WeakSharedObjectHash _sharedObjectReferences;
 
     WeakSharedObjectHash _weakSharedObjectHash;
 

@@ -185,9 +185,16 @@ void Bitstream::persistWriteMappings(const WriteMappings& mappings) {
     // find out when shared objects are deleted in order to clear their mappings
     for (QHash<SharedObjectPointer, int>::const_iterator it = mappings.sharedObjectOffsets.constBegin();
             it != mappings.sharedObjectOffsets.constEnd(); it++) {
-        if (it.key()) {
-            connect(it.key().data(), SIGNAL(destroyed(QObject*)), SLOT(clearSharedObject(QObject*)));
+        if (!it.key()) {
+            continue;
         }
+        connect(it.key().data(), SIGNAL(destroyed(QObject*)), SLOT(clearSharedObject(QObject*)));
+        QPointer<SharedObject>& reference = _sharedObjectReferences[it.key()->getID()];
+        if (reference) {
+            _sharedObjectStreamer.removePersistentID(reference);
+            reference->disconnect(this);
+        }
+        reference = it.key();
     }
 }
 
@@ -210,6 +217,19 @@ void Bitstream::persistReadMappings(const ReadMappings& mappings) {
     _attributeStreamer.persistTransientValues(mappings.attributeValues);
     _scriptStringStreamer.persistTransientValues(mappings.scriptStringValues);
     _sharedObjectStreamer.persistTransientValues(mappings.sharedObjectValues);
+    
+    for (QHash<int, SharedObjectPointer>::const_iterator it = mappings.sharedObjectValues.constBegin();
+            it != mappings.sharedObjectValues.constEnd(); it++) {
+        if (!it.value()) {
+            continue;
+        }
+        QPointer<SharedObject>& reference = _sharedObjectReferences[it.value()->getID()];
+        if (reference) {
+            _sharedObjectStreamer.removePersistentValue(reference.data());
+        }
+        reference = it.value();
+        _weakSharedObjectHash.remove(it.value()->getID());
+    }
 }
 
 void Bitstream::persistAndResetReadMappings() {
@@ -255,34 +275,6 @@ void Bitstream::readRawDelta(QObject*& value, const QObject* reference) {
     ObjectReader objectReader;
     _metaObjectStreamer >> objectReader;
     value = objectReader.readDelta(*this, reference);
-}
-
-void Bitstream::writeRawDelta(const SharedObjectPointer& value, const SharedObjectPointer& reference) {
-    if (!value) {
-        *this << (int)0;
-        return;
-    }
-    *this << value->getID();
-    writeRawDelta((const QObject*)value.data(), (const QObject*)reference.data());   
-}
-
-void Bitstream::readRawDelta(SharedObjectPointer& value, const SharedObjectPointer& reference) {
-    int id;
-    *this >> id;
-    if (id == 0) {
-        value = SharedObjectPointer();
-        return;
-    }
-    QPointer<SharedObject>& sharedObject = _weakSharedObjectHash[id];
-    if (!sharedObject) {
-        QObject* object;
-        readRawDelta(object, (const QObject*)reference.data());
-        sharedObject = static_cast<SharedObject*>(object);
-        return;
-    }
-    ObjectReader objectReader;
-    _metaObjectStreamer >> objectReader;
-    objectReader.readDelta(*this, reference, sharedObject.data());
 }
 
 Bitstream& Bitstream::operator<<(bool value) {
@@ -824,7 +816,14 @@ Bitstream& Bitstream::operator<(const SharedObjectPointer& object) {
     if (!object) {
         return *this << (int)0;
     }
-    return *this << object->getID() << (QObject*)object.data();
+    *this << object->getID();
+    QPointer<SharedObject> reference = _sharedObjectReferences.value(object->getID());
+    if (reference) {
+        writeRawDelta((QObject*)object.data(), (QObject*)reference.data());
+    } else {
+        *this << (QObject*)object.data();
+    }
+    return *this;
 }
 
 Bitstream& Bitstream::operator>(SharedObjectPointer& object) {
@@ -834,15 +833,23 @@ Bitstream& Bitstream::operator>(SharedObjectPointer& object) {
         object = SharedObjectPointer();
         return *this;
     }
+    QPointer<SharedObject> reference = _sharedObjectReferences.value(id);
     QPointer<SharedObject>& pointer = _weakSharedObjectHash[id];
     if (pointer) {
         ObjectReader objectReader;
         _metaObjectStreamer >> objectReader;
-        objectReader.read(*this, pointer.data());
-    
+        if (reference) {
+            objectReader.readDelta(*this, reference.data(), pointer.data());
+        } else {
+            objectReader.read(*this, pointer.data());
+        }
     } else {
-        QObject* rawObject;
-        *this >> rawObject;
+        QObject* rawObject; 
+        if (reference) {   
+            readRawDelta(rawObject, (QObject*)reference.data());
+        } else {
+            *this >> rawObject;
+        }
         pointer = static_cast<SharedObject*>(rawObject);
         pointer->setRemoteID(id);
     }
@@ -851,7 +858,9 @@ Bitstream& Bitstream::operator>(SharedObjectPointer& object) {
 }
 
 void Bitstream::clearSharedObject(QObject* object) {
-    int id = _sharedObjectStreamer.takePersistentID(static_cast<SharedObject*>(object));
+    SharedObject* sharedObject = static_cast<SharedObject*>(object);
+    _sharedObjectReferences.remove(sharedObject->getID());
+    int id = _sharedObjectStreamer.takePersistentID(sharedObject);
     if (id != 0) {
         emit sharedObjectCleared(id);
     }
