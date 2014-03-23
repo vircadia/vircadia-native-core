@@ -33,11 +33,11 @@
 
 #include "Application.h"
 #include "Menu.h"
-#include "MenuScriptingInterface.h"
+#include "scripting/MenuScriptingInterface.h"
 #include "Util.h"
-#include "InfoView.h"
+#include "ui/InfoView.h"
 #include "ui/MetavoxelEditor.h"
-#include "ModelBrowser.h"
+#include "ui/ModelBrowser.h"
 
 
 Menu* Menu::_instance = NULL;

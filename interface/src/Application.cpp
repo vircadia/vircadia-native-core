@@ -65,17 +65,19 @@
 #include <FstReader.h>
 
 #include "Application.h"
-#include "ClipboardScriptingInterface.h"
 #include "InterfaceVersion.h"
 #include "Menu.h"
-#include "MenuScriptingInterface.h"
 #include "Util.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
 #include "renderer/ProgramObject.h"
-#include "ui/TextRenderer.h"
-#include "InfoView.h"
+
+#include "scripting/ClipboardScriptingInterface.h"
+#include "scripting/MenuScriptingInterface.h"
+
+#include "ui/InfoView.h"
 #include "ui/Snapshot.h"
+#include "ui/TextRenderer.h"
 
 using namespace std;
 

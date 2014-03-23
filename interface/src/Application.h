@@ -29,12 +29,12 @@
 #include <ParticleEditPacketSender.h>
 #include <ScriptEngine.h>
 #include <OctreeQuery.h>
+#include <ViewFrustum.h>
+#include <VoxelEditPacketSender.h>
 
 #include "Audio.h"
-#include "BandwidthMeter.h"
 #include "BuckyBalls.h"
 #include "Camera.h"
-#include "ControllerScriptingInterface.h"
 #include "DatagramProcessor.h"
 #include "Environment.h"
 #include "FileLogger.h"
@@ -44,9 +44,7 @@
 #include "PacketHeaders.h"
 #include "ParticleTreeRenderer.h"
 #include "Stars.h"
-#include "ViewFrustum.h"
 #include "VoxelFade.h"
-#include "VoxelEditPacketSender.h"
 #include "VoxelHideShowThread.h"
 #include "VoxelPacketProcessor.h"
 #include "VoxelSystem.h"
@@ -63,13 +61,15 @@
 #include "renderer/PointShader.h"
 #include "renderer/TextureCache.h"
 #include "renderer/VoxelShader.h"
+#include "scripting/ControllerScriptingInterface.h"
 #include "ui/BandwidthDialog.h"
+#include "ui/BandwidthMeter.h"
 #include "ui/OctreeStatsDialog.h"
 #include "ui/RearMirrorTools.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
 #include "ui/UpdateDialog.h"
-#include "ui/Overlays.h"
+#include "ui/overlays/Overlays.h"
 
 
 class QAction;

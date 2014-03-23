@@ -27,7 +27,7 @@
 #include <AudioRingBuffer.h>
 #include <StdDev.h>
 
-#include "Oscilloscope.h"
+#include "ui/Oscilloscope.h"
 
 #include <QGLWidget>
 
