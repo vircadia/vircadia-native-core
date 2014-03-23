@@ -374,8 +374,10 @@ Menu::~Menu() {
 }
 
 void Menu::loadSettings(QSettings* settings) {
+    bool lockedSettings = false;
     if (!settings) {
-        settings = Application::getInstance()->getSettings();
+        settings = Application::getInstance()->lockSettings();
+        lockedSettings = true;
     }
 
     _audioJitterBufferSamples = loadSetting(settings, "audioJitterBufferSamples", 0);
@@ -404,11 +406,17 @@ void Menu::loadSettings(QSettings* settings) {
     // TODO: cache more settings in MyAvatar that are checked with very high frequency.
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
     myAvatar->updateCollisionFlags();
+
+    if (lockedSettings) {
+        Application::getInstance()->unlockSettings();
+    }
 }
 
 void Menu::saveSettings(QSettings* settings) {
+    bool lockedSettings = false;
     if (!settings) {
-        settings = Application::getInstance()->getSettings();
+        settings = Application::getInstance()->lockSettings();
+        lockedSettings = true;
     }
 
     settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
@@ -430,6 +438,9 @@ void Menu::saveSettings(QSettings* settings) {
     Application::getInstance()->getAvatar()->saveData(settings);
     NodeList::getInstance()->saveData(settings);
 
+    if (lockedSettings) {
+        Application::getInstance()->unlockSettings();
+    }
 }
 
 void Menu::importSettings() {

@@ -171,7 +171,11 @@ public:
     Visage* getVisage() { return &_visage; }
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
-    QSettings* getSettings() { return _settings; }
+
+    /// if you need to access the application settings, use lockSettings()/unlockSettings()
+    QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }
+    void unlockSettings() { _settingsMutex.unlock(); }
+
     QMainWindow* getWindow() { return _window; }
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
@@ -352,6 +356,7 @@ private:
     DatagramProcessor _datagramProcessor;
 
     QNetworkAccessManager* _networkAccessManager;
+    QMutex _settingsMutex;
     QSettings* _settings;
 
     glm::vec3 _gravity;

@@ -74,6 +74,7 @@
 
 #include "scripting/ClipboardScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
+#include "scripting/SettingsScriptingInterface.h"
 
 #include "ui/InfoView.h"
 #include "ui/Snapshot.h"
@@ -3550,6 +3551,7 @@ void Application::loadScript(const QString& fileNameString) {
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
 
     QThread* workerThread = new QThread(this);
 
