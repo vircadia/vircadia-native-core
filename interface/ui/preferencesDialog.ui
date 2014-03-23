@@ -573,7 +573,7 @@ padding: 0;</string>
         <string notr="true">color: #0e7077</string>
        </property>
        <property name="text">
-        <string>&lt;p&gt;Avatar&lt;/p&gt;</string>
+        <string>Avatar</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
@@ -627,8 +627,8 @@ padding: 0;</string>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
-           <width>40</width>
-           <height>20</height>
+           <width>0</width>
+           <height>0</height>
           </size>
          </property>
         </spacer>
@@ -649,8 +649,8 @@ padding: 0;</string>
          </property>
          <property name="maximumSize">
           <size>
-           <width>70</width>
-           <height>16777215</height>
+           <width>95</width>
+           <height>36</height>
           </size>
          </property>
          <property name="font">
@@ -1100,7 +1100,7 @@ padding: 0;</string>
       </layout>
      </item>
      <item>
-      <widget class="QLabel" name="avatarTitleLabel_2">
+      <widget class="QLabel" name="voxelsTitleLabel">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -1125,7 +1125,7 @@ padding: 0;</string>
         <string notr="true">color: #0e7077</string>
        </property>
        <property name="text">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Voxels&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        <string>Voxels</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>

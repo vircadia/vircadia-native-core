@@ -75,6 +75,7 @@ public:
     float getAudioJitterBufferSamples() const { return _audioJitterBufferSamples; }
     void setAudioJitterBufferSamples(float audioJitterBufferSamples) { _audioJitterBufferSamples = audioJitterBufferSamples; }
     float getFieldOfView() const { return _fieldOfView; }
+    void setFieldOfView(float fieldOfView) { _fieldOfView = fieldOfView; }
     float getFaceshiftEyeDeflection() const { return _faceshiftEyeDeflection; }
     void setFaceshiftEyeDeflection(float faceshiftEyeDeflection) { _faceshiftEyeDeflection = faceshiftEyeDeflection; }
     BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }

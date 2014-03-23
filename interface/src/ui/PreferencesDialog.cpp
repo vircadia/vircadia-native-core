@@ -71,16 +71,16 @@ void PreferencesDialog::loadPreferences() {
     
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
     Menu* menuInstance = Menu::getInstance();
-    
+
     _displayNameString = myAvatar->getDisplayName();
     ui.displayNameEdit->setText(_displayNameString);
-    
+
     _faceURLString = myAvatar->getHead()->getFaceModel().getURL().toString();
     ui.faceURLEdit->setText(_faceURLString);
-    
+
     _skeletonURLString = myAvatar->getSkeletonModel().getURL().toString();
     ui.skeletonURLEdit->setText(_skeletonURLString);
-    
+
     ui.pupilDilationSlider->setValue(myAvatar->getHead()->getPupilDilation() *
                                      ui.pupilDilationSlider->maximum());
     
@@ -137,10 +137,14 @@ void PreferencesDialog::savePreferences() {
     Application::getInstance()->resizeGL(Application::getInstance()->getGLWidget()->width(),
                                          Application::getInstance()->getGLWidget()->height());
 
+    Menu::getInstance()->setFieldOfView(ui.fieldOfViewSpin->value());
+
     Menu::getInstance()->setFaceshiftEyeDeflection(ui.faceshiftEyeDeflectionSider->value() /
                                                      (float)ui.faceshiftEyeDeflectionSider->maximum());
     Menu::getInstance()->setMaxVoxelPacketsPerSecond(ui.maxVoxelsPPSSpin->value());
 
     Menu::getInstance()->setAudioJitterBufferSamples(ui.audioJitterSpin->value());
-    
+
+    Application::getInstance()->resizeGL(Application::getInstance()->getGLWidget()->width(),
+                                         Application::getInstance()->getGLWidget()->height());
 }
