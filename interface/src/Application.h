@@ -66,6 +66,7 @@
 #include "ui/BandwidthDialog.h"
 #include "ui/OctreeStatsDialog.h"
 #include "ui/RearMirrorTools.h"
+#include "ui/SnapshotShareDialog.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
 #include "ui/UpdateDialog.h"
@@ -473,6 +474,7 @@ private:
     std::vector<VoxelFade> _voxelFades;
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;
+    QPointer<SnapshotShareDialog> _snapshotShareDialog;
 
     FileLogger* _logger;
 

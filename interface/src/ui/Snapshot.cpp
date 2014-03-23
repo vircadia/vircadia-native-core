@@ -11,7 +11,6 @@
 
 #include <AccountManager.h>
 #include <FileUtils.h>
-#include <ui/snapshotShareDialog.cpp>
 
 #include "Snapshot.h"
 
@@ -61,7 +60,7 @@ SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
     return data;
 }
 
-void Snapshot::saveSnapshot(QGLWidget* widget, Avatar* avatar) {
+QString Snapshot::saveSnapshot(QGLWidget* widget, Avatar* avatar) {
     QImage shot = widget->grabFrameBuffer();
     
     glm::vec3 location = avatar->getPosition();
@@ -93,7 +92,7 @@ void Snapshot::saveSnapshot(QGLWidget* widget, Avatar* avatar) {
     fileName.append(QString(FILENAME_PATH_FORMAT.arg(username, now.toString(DATETIME_FORMAT), formattedLocation)));
     shot.save(fileName, 0, 100);
     
-    
+    return fileName;
 }
 
 

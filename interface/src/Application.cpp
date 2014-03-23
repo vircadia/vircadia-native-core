@@ -3671,5 +3671,10 @@ void Application::takeSnapshot() {
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
-    Snapshot::saveSnapshot(_glWidget, _myAvatar);
+    QString fileName = Snapshot::saveSnapshot(_glWidget, _myAvatar);
+
+    if (!_snapshotShareDialog) {
+        _snapshotShareDialog = new SnapshotShareDialog(fileName, _glWidget);
+    }
+    _snapshotShareDialog->exec();
 }
