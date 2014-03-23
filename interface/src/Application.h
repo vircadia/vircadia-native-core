@@ -44,11 +44,6 @@
 #include "PacketHeaders.h"
 #include "ParticleTreeRenderer.h"
 #include "Stars.h"
-#include "VoxelFade.h"
-#include "VoxelHideShowThread.h"
-#include "VoxelPacketProcessor.h"
-#include "VoxelSystem.h"
-#include "VoxelImporter.h"
 #include "avatar/Avatar.h"
 #include "avatar/AvatarManager.h"
 #include "avatar/MyAvatar.h"
@@ -70,6 +65,11 @@
 #include "ui/LogDialog.h"
 #include "ui/UpdateDialog.h"
 #include "ui/overlays/Overlays.h"
+#include "voxels/VoxelFade.h"
+#include "voxels/VoxelHideShowThread.h"
+#include "voxels/VoxelImporter.h"
+#include "voxels/VoxelPacketProcessor.h"
+#include "voxels/VoxelSystem.h"
 
 
 class QAction;

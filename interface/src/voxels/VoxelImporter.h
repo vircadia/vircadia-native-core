@@ -12,9 +12,8 @@
 #include <QThread>
 #include <QRunnable>
 
-#include <VoxelSystem.h>
-
 #include "ui/ImportDialog.h"
+#include "voxels/VoxelSystem.h"
 
 class ImportTask;
 

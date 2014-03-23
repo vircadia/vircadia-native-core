@@ -26,7 +26,6 @@
 #include "Menu.h"
 #include "MyAvatar.h"
 #include "Physics.h"
-#include "VoxelSystem.h"
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
 #include "ui/TextRenderer.h"
