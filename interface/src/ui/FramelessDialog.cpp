@@ -19,10 +19,7 @@ const int RESIZE_HANDLE_WIDTH = 7;
 FramelessDialog::FramelessDialog(QWidget *parent, Qt::WindowFlags flags) :
     QDialog(parent, flags | Qt::FramelessWindowHint),
     _isResizing(false) {
-
-    setWindowOpacity(0.95);
     setAttribute(Qt::WA_DeleteOnClose);
-
     installEventFilter(this);
 }
 
