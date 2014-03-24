@@ -28,6 +28,8 @@ public slots:
     void run();
     
     void readPendingDatagrams();
+    
+    void sendStatsPacket();
 private:
     /// adds one buffer to the mix for a listening node
     void addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,

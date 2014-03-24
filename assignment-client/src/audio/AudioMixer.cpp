@@ -33,6 +33,7 @@
 #include <glm/gtx/vector_angle.hpp>
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QJsonObject>
 #include <QtCore/QTimer>
 
 #include <Logging.h>
@@ -349,11 +350,24 @@ void AudioMixer::readPendingDatagrams() {
     }
 }
 
+void AudioMixer::sendStatsPacket() {
+    static QJsonObject statsObject;
+    statsObject["trailing_sleep"] = _trailingSleepRatio;
+    statsObject["min_audability_threshold"] = _minAudibilityThreshold;
+    
+    NodeList::getInstance()->sendStatsToDomainServer(statsObject);
+}
+
 void AudioMixer::run() {
 
     commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NodeType::AudioMixer);
 
     NodeList* nodeList = NodeList::getInstance();
+    
+    // send a stats packet every 1 second
+    QTimer* statsTimer = new QTimer(this);
+    connect(statsTimer, SIGNAL(timeout()), this, SLOT(sendStatsPacket()));
+    statsTimer->start(1000);
 
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
