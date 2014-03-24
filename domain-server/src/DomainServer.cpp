@@ -603,6 +603,11 @@ void DomainServer::readAvailableDatagrams() {
                 if (noisyMessage) {
                     lastNoisyMessage = timeNow;
                 }
+            } else if (requestType == PacketTypeNodeJsonStats) {
+                SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
+                if (matchingNode) {
+                    reinterpret_cast<DomainServerNodeData*>(matchingNode->getLinkedData())->parseJSONStatsPacket(receivedPacket);
+                }
             }
         }
     }
