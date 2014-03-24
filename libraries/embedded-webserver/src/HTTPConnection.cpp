@@ -180,7 +180,7 @@ void HTTPConnection::readHeaders() {
 
             QByteArray clength = _requestHeaders.value("Content-Length");
             if (clength.isEmpty()) {
-                _parentManager->handleHTTPRequest(this, _requestUrl.path());
+                _parentManager->handleHTTPRequest(this, _requestUrl);
 
             } else {
                 _requestContent.resize(clength.toInt());

@@ -236,7 +236,7 @@ void OctreeServer::initHTTPManager(int port) {
     _httpManager = new HTTPManager(port, documentRoot, this, this);
 }
 
-bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& path) {
+bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url) {
 
 #ifdef FORCE_CRASH
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation
@@ -259,9 +259,9 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
     bool showStats = false;
 
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
-        if (path == "/") {
+        if (url.path() == "/") {
             showStats = true;
-        } else if (path == "/resetStats") {
+        } else if (url.path() == "/resetStats") {
             _octreeInboundPacketProcessor->resetStats();
             resetSendingStats();
             showStats = true;
