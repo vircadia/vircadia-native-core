@@ -26,7 +26,6 @@
 #include "Menu.h"
 #include "MyAvatar.h"
 #include "Physics.h"
-#include "VoxelSystem.h"
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
 #include "ui/TextRenderer.h"
@@ -551,6 +550,14 @@ void MyAvatar::loadData(QSettings* settings) {
     settings->endGroup();
 }
 
+int MyAvatar::parseDataAtOffset(const QByteArray& packet, int offset) {
+    qDebug() << "Error: ignoring update packet for MyAvatar"
+        << " packetLength = " << packet.size() 
+        << "  offset = " << offset;
+    // this packet is just bad, so we pretend that we unpacked it ALL
+    return packet.size() - offset;
+}
+
 void MyAvatar::sendKillAvatar() {
     QByteArray killPacket = byteArrayWithPopulatedHeader(PacketTypeKillAvatar);
     NodeList::getInstance()->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);
@@ -582,16 +589,15 @@ void MyAvatar::updateLookAtTargetAvatar() {
 
         foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
             Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
-            if (avatar == static_cast<Avatar*>(this)) {
-                continue;
-            }
             float distance;
             if (avatar->findRayIntersection(mouseOrigin, mouseDirection, distance)) {
                 _lookAtTargetAvatar = avatarPointer;
+                _targetAvatarPosition = avatarPointer->getPosition();
                 return;
             }
         }
         _lookAtTargetAvatar.clear();
+        _targetAvatarPosition = glm::vec3(0, 0, 0);
     }
 }
 

@@ -20,8 +20,6 @@ var windowDimensions = Controller.getViewportDimensions();
 
 var NEW_VOXEL_SIZE = 1.0;
 var NEW_VOXEL_DISTANCE_FROM_CAMERA = 3.0;
-var ORBIT_RATE_ALTITUDE = 200.0;
-var ORBIT_RATE_AZIMUTH = 90.0;
 var PIXELS_PER_EXTRUDE_VOXEL = 16;
 var WHEEL_PIXELS_PER_SCALE_CHANGE = 100;
 var MAX_VOXEL_SCALE = 1.0;
@@ -34,22 +32,8 @@ var MIN_PASTE_VOXEL_SCALE = .256;
 var zFightingSizeAdjust = 0.002; // used to adjust preview voxels to prevent z fighting
 var previewLineWidth = 1.5;
 
-var oldMode = Camera.getMode();
-
 var isAdding = false; 
-var isExtruding = false; 
-var isOrbiting = false;
-var isOrbitingFromTouch = false;
-var isPanning = false;
-var isPanningFromTouch = false;
-var touchPointsToOrbit = 2; // you can change these, but be mindful that on some track pads 2 touch points = right click+drag
-var touchPointsToPan = 3; 
-var orbitAzimuth = 0.0;
-var orbitAltitude = 0.0;
-var orbitCenter = { x: 0, y: 0, z: 0 };
-var orbitPosition = { x: 0, y: 0, z: 0 };
-var torsoToEyeVector = { x: 0, y: 0, z: 0 }; 
-var orbitRadius = 0.0;
+var isExtruding = false;
 var extrudeDirection = { x: 0, y: 0, z: 0 };
 var extrudeScale = 0.0;
 var lastVoxelPosition = { x: 0, y: 0, z: 0 };
@@ -444,24 +428,11 @@ function getNewVoxelPosition() {
     return newPosition;
 }
 
-function fixEulerAngles(eulers) {
-    var rVal = { x: 0, y: 0, z: eulers.z };
-    if (eulers.x >= 90.0) {
-        rVal.x = 180.0 - eulers.x;
-        rVal.y = eulers.y - 180.0;
-    } else if (eulers.x <= -90.0) {
-        rVal.x = 180.0 - eulers.x;
-        rVal.y = eulers.y - 180.0;
-    }
-    return rVal;
-}
-
 var trackLastMouseX = 0;
 var trackLastMouseY = 0;
 var trackAsDelete = false;
 var trackAsRecolor = false;
 var trackAsEyedropper = false;
-var trackAsOrbitOrPan = false;
 
 var voxelToolSelected = true;
 var recolorToolSelected = false;
@@ -641,8 +612,6 @@ function showPreviewVoxel() {
     var guidePosition;
     if (trackAsRecolor || recolorToolSelected || trackAsEyedropper || eyedropperToolSelected) {
         Overlays.editOverlay(voxelPreview, { visible: true });
-    } else if (trackAsOrbitOrPan) {
-        Overlays.editOverlay(voxelPreview, { visible: false });
     } else if (voxelToolSelected && !isExtruding) {
         Overlays.editOverlay(voxelPreview, { visible: true });
     } else if (isExtruding) {
@@ -733,15 +702,12 @@ function showPreviewGuides() {
 }
 
 function trackMouseEvent(event) {
-    if (!trackAsOrbitOrPan) {
-        trackLastMouseX = event.x;
-        trackLastMouseY = event.y;
-        trackAsDelete = event.isControl;
-        trackAsRecolor = event.isShifted;
-        trackAsEyedropper = event.isMeta;
-        trackAsOrbitOrPan = event.isAlt; // TODO: double check this...??
-        showPreviewGuides();
-    }
+    trackLastMouseX = event.x;
+    trackLastMouseY = event.y;
+    trackAsDelete = event.isControl;
+    trackAsRecolor = event.isShifted;
+    trackAsEyedropper = event.isMeta;
+    showPreviewGuides();
 }
 
 function trackKeyPressEvent(event) {
@@ -761,10 +727,6 @@ function trackKeyPressEvent(event) {
         trackAsEyedropper = true;
         moveTools();
     }
-    if (event.text == "ALT") {
-        trackAsOrbitOrPan = true;
-        moveTools();
-    }
     showPreviewGuides();
 }
 
@@ -773,6 +735,7 @@ function trackKeyReleaseEvent(event) {
     if (event.text == "TAB") {
         editToolsOn = !editToolsOn;
         moveTools();
+        showPreviewGuides();
         Audio.playSound(clickSound, audioOptions);
     }
 
@@ -802,10 +765,6 @@ function trackKeyReleaseEvent(event) {
             trackAsEyedropper = false;
             moveTools();
         }
-        if (event.text == "ALT") {
-            trackAsOrbitOrPan = false;
-            moveTools();
-        }
         
         // on F1 toggle the preview mode between cubes and lines
         if (event.text == "F1") {
@@ -816,74 +775,6 @@ function trackKeyReleaseEvent(event) {
     }    
 }
 
-function startOrbitMode(event) {
-    mouseX = event.x;
-    mouseY = event.y;
-    var pickRay = Camera.computePickRay(event.x, event.y);
-    var intersection = Voxels.findRayIntersection(pickRay);
-
-    // start orbit camera! 
-    var cameraPosition = Camera.getPosition();
-    torsoToEyeVector = Vec3.subtract(cameraPosition, MyAvatar.position);
-    torsoToEyeVector.x = 0.0;
-    torsoToEyeVector.z = 0.0;
-    oldMode = Camera.getMode();
-    Camera.setMode("independent");
-    Camera.keepLookingAt(intersection.intersection);
-    // get position for initial azimuth, elevation
-    orbitCenter = intersection.intersection; 
-    var orbitVector = Vec3.subtract(cameraPosition, orbitCenter);
-    orbitRadius = Vec3.length(orbitVector); 
-    orbitAzimuth = Math.atan2(orbitVector.z, orbitVector.x);
-    orbitAltitude = Math.asin(orbitVector.y / Vec3.length(orbitVector));
-    
-    //print("startOrbitMode...");
-}
-
-function handleOrbitingMove(event) {
-    var cameraOrientation = Camera.getOrientation();
-    var origEulers = Quat.safeEulerAngles(cameraOrientation);
-    var newEulers = fixEulerAngles(Quat.safeEulerAngles(cameraOrientation));
-    var dx = event.x - mouseX; 
-    var dy = event.y - mouseY;
-    orbitAzimuth += dx / ORBIT_RATE_AZIMUTH;
-    orbitAltitude += dy / ORBIT_RATE_ALTITUDE;
-     var orbitVector = { x:(Math.cos(orbitAltitude) * Math.cos(orbitAzimuth)) * orbitRadius, 
-                        y:Math.sin(orbitAltitude) * orbitRadius,
-                        z:(Math.cos(orbitAltitude) * Math.sin(orbitAzimuth)) * orbitRadius }; 
-    orbitPosition = Vec3.sum(orbitCenter, orbitVector);
-    Camera.setPosition(orbitPosition);
-
-    mouseX = event.x; 
-    mouseY = event.y;
-    //print("handleOrbitingMove...");
-}
-
-function endOrbitMode(event) {
-    var cameraOrientation = Camera.getOrientation();
-    MyAvatar.position = Vec3.subtract(Camera.getPosition(), torsoToEyeVector);
-    MyAvatar.headOrientation = cameraOrientation;
-    Camera.stopLooking();
-    Camera.setMode(oldMode);
-    Camera.setOrientation(cameraOrientation);
-    //print("endOrbitMode...");
-}
-
-function startPanMode(event, intersection) {
-    // start pan camera! 
-    print("handle PAN mode!!!");
-}
-
-function handlePanMove(event) {
-    print("PANNING mode!!! ");
-    //print("isPanning="+isPanning + " inPanningFromTouch="+isPanningFromTouch + " trackAsOrbitOrPan="+trackAsOrbitOrPan);
-}
-
-function endPanMode(event) {
-    print("ending PAN mode!!!");
-}
-
-
 function mousePressEvent(event) {
 
     // if our tools are off, then don't do anything
@@ -891,93 +782,64 @@ function mousePressEvent(event) {
         return; 
     }
     
-    // Normally, if we're panning or orbiting from touch, ignore these... because our touch takes precedence. 
-    // but In the case of a button="RIGHT" click, we may get some touch messages first, and we actually want to 
-    // cancel any touch mode, and then let the right-click through
-    if (isOrbitingFromTouch || isPanningFromTouch) {
+    var clickedOnSomething = false;
+    var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
     
-        // if the user is holding the ALT key AND they are clicking the RIGHT button (or on multi-touch doing a two
-        // finger touch, then we want to let the new panning behavior take over.
-        // if it's any other case we still want to bail
-        if (event.button == "RIGHT" && trackAsOrbitOrPan) {
-            // cancel our current multitouch operation...
-            if (isOrbitingFromTouch) {
-                endOrbitMode(event);
-                isOrbitingFromTouch = false;
+    // If the user clicked on the thumb, handle the slider logic
+    if (clickedOverlay == thumb) {
+        isMovingSlider = true;
+        thumbClickOffsetX = event.x - (sliderX + thumbX); // this should be the position of the mouse relative to the thumb
+        clickedOnSomething = true;
+        
+        Overlays.editOverlay(thumb, { imageURL: toolIconUrl + "voxel-size-slider-handle.svg", });
+        
+    } else if (clickedOverlay == voxelTool) {
+        voxelToolSelected = true;
+        recolorToolSelected = false;
+        eyedropperToolSelected = false;
+        moveTools();
+        clickedOnSomething = true;
+    } else if (clickedOverlay == recolorTool) {
+        voxelToolSelected = false;
+        recolorToolSelected = true;
+        eyedropperToolSelected = false;
+        moveTools();
+        clickedOnSomething = true;
+    } else if (clickedOverlay == eyedropperTool) {
+        voxelToolSelected = false;
+        recolorToolSelected = false;
+        eyedropperToolSelected = true;
+        moveTools();
+        clickedOnSomething = true;
+    } else if (clickedOverlay == slider) {
+        
+        if (event.x < sliderX + minThumbX) {
+            thumbX -= thumbDeltaPerStep;
+            calcScaleFromThumb(thumbX);
+        }
+        
+        if (event.x > sliderX + maxThumbX) {
+            thumbX += thumbDeltaPerStep;
+            calcScaleFromThumb(thumbX);
+        }
+        
+        moveTools();
+        clickedOnSomething = true;
+    } else {
+        // if the user clicked on one of the color swatches, update the selectedSwatch
+        for (s = 0; s < numColors; s++) {
+            if (clickedOverlay == swatches[s]) {
+                whichColor = s;
+                moveTools();
+                clickedOnSomething = true;
+                break;
             }
-            if (isPanningFromTouch) {
-                //print("mousePressEvent... calling endPanMode()");
-                endPanMode(event);
-                isPanningFromTouch = false;
-            }
-            // let things fall through
-        } else {
-            return; 
         }
     }
-    
-    // no clicking on overlays while in panning mode
-    if (!trackAsOrbitOrPan) {
-        var clickedOnSomething = false;
-        var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
-      
-
-        // If the user clicked on the thumb, handle the slider logic
-        if (clickedOverlay == thumb) {
-            isMovingSlider = true;
-            thumbClickOffsetX = event.x - (sliderX + thumbX); // this should be the position of the mouse relative to the thumb
-            clickedOnSomething = true;
-
-            Overlays.editOverlay(thumb, { imageURL: toolIconUrl + "voxel-size-slider-handle.svg", });
-
-        } else if (clickedOverlay == voxelTool) {
-            voxelToolSelected = true;
-            recolorToolSelected = false;
-            eyedropperToolSelected = false;
-            moveTools();
-            clickedOnSomething = true;
-        } else if (clickedOverlay == recolorTool) {
-            voxelToolSelected = false;
-            recolorToolSelected = true;
-            eyedropperToolSelected = false;
-            moveTools();
-            clickedOnSomething = true;
-        } else if (clickedOverlay == eyedropperTool) {
-            voxelToolSelected = false;
-            recolorToolSelected = false;
-            eyedropperToolSelected = true;
-            moveTools();
-            clickedOnSomething = true;
-        } else if (clickedOverlay == slider) {
-
-            if (event.x < sliderX + minThumbX) {
-                thumbX -= thumbDeltaPerStep;
-                calcScaleFromThumb(thumbX);
-            }
-
-            if (event.x > sliderX + maxThumbX) {
-                thumbX += thumbDeltaPerStep;
-                calcScaleFromThumb(thumbX);
-            }
-
-            moveTools();
-            clickedOnSomething = true;
-        } else {
-            // if the user clicked on one of the color swatches, update the selectedSwatch
-            for (s = 0; s < numColors; s++) {
-                if (clickedOverlay == swatches[s]) {
-                    whichColor = s;
-                    moveTools();
-                    clickedOnSomething = true;
-                    break;
-                }
-            }
-        }
-        if (clickedOnSomething) {
-            return; // no further processing
-        }
+    if (clickedOnSomething) {
+        return; // no further processing
     }
-    
+
     // TODO: does any of this stuff need to execute if we're panning or orbiting?
     trackMouseEvent(event); // used by preview support
     mouseX = event.x;
@@ -1008,17 +870,7 @@ function mousePressEvent(event) {
             calcThumbFromScale(intersection.voxel.s);
         }
         
-        // Note: touch and mouse events can cross paths, so we want to ignore any mouse events that would
-        // start a pan or orbit if we're already doing a pan or orbit via touch...
-        if ((event.isAlt || trackAsOrbitOrPan) && !(isOrbitingFromTouch || isPanningFromTouch)) {
-            if (event.isLeftButton && !event.isRightButton) {
-                startOrbitMode(event);
-                isOrbiting = true;
-            } else if (event.isRightButton && !event.isLeftButton) {
-                startPanMode(event);
-                isPanning = true;
-            }
-        } else if (trackAsDelete || event.isRightButton && !trackAsEyedropper) {
+        if (trackAsDelete || event.isRightButton && !trackAsEyedropper) {
             //  Delete voxel
             voxelDetails = calculateVoxelFromIntersection(intersection,"delete");
             Voxels.eraseVoxel(voxelDetails.x, voxelDetails.y, voxelDetails.z, voxelDetails.s);
@@ -1209,24 +1061,8 @@ function mouseMoveEvent(event) {
         return;
     }
 
-    // if we're panning or orbiting from touch, ignore these... because our touch takes precedence. 
-    if (isOrbitingFromTouch || isPanningFromTouch) {
-        return; 
-    }
     
-    // double check that we didn't accidentally miss a pan or orbit click request
-    if (trackAsOrbitOrPan && !isPanning && !isOrbiting) {
-        if (event.isLeftButton && !event.isRightButton) {
-            startOrbitMode(event);
-            isOrbiting = true;
-        }
-        if (!event.isLeftButton && event.isRightButton) {
-            startPanMode(event);
-            isPanning = true;
-        }
-    }
-
-    if (!trackAsOrbitOrPan && isMovingSlider) {
+    if (isMovingSlider) {
         thumbX = (event.x - thumbClickOffsetX) - sliderX;
         if (thumbX < minThumbX) {
             thumbX = minThumbX;
@@ -1236,11 +1072,7 @@ function mouseMoveEvent(event) {
         }
         calcScaleFromThumb(thumbX);
         
-    } else if (isOrbiting) {
-        handleOrbitingMove(event);
-    } else if (isPanning) {
-        handlePanMove(event);
-    } else if (!trackAsOrbitOrPan && isAdding) {
+    } else if (isAdding) {
         //  Watch the drag direction to tell which way to 'extrude' this voxel
         if (!isExtruding) {
             var pickRay = Camera.computePickRay(event.x, event.y);
@@ -1271,7 +1103,6 @@ function mouseMoveEvent(event) {
             var dy = event.y - mouseY;
             if (Math.sqrt(dx*dx + dy*dy) > PIXELS_PER_EXTRUDE_VOXEL)  {
                 lastVoxelPosition = Vec3.sum(lastVoxelPosition, extrudeDirection);
-                Voxels.eraseVoxel(voxelDetails.x, voxelDetails.y, voxelDetails.z, voxelDetails.s);
                 Voxels.setVoxel(lastVoxelPosition.x, lastVoxelPosition.y, lastVoxelPosition.z, 
                             extrudeScale, lastVoxelColor.red, lastVoxelColor.green, lastVoxelColor.blue);
                 mouseX = event.x;
@@ -1292,16 +1123,6 @@ function mouseReleaseEvent(event) {
 
     if (isMovingSlider) {
         isMovingSlider = false;
-    }
-    
-    if (isOrbiting) {
-        endOrbitMode(event);
-        isOrbiting = false;
-    }
-    if (isPanning) {
-        print("mouseReleaseEvent... calling endPanMode()");
-        endPanMode(event);
-        isPanning = false;
     }
     isAdding = false;
     isExtruding = false; 
@@ -1396,95 +1217,17 @@ function touchBeginEvent(event) {
     if (!editToolsOn) {
         return;
     }
-    
-    // if we're already in the middle of orbiting or panning, then ignore these multi-touch events...
-    if (isOrbiting || isPanning) {
-        return;
-    }    
-    
-    if (event.isAlt || trackAsOrbitOrPan) {
-        if (event.touchPoints == touchPointsToOrbit) {
-            // we need to double check that we didn't start an orbit, because the touch events will sometimes
-            // come in as 2 then 3 touches... 
-            if (isPanningFromTouch) {
-                print("touchBeginEvent... calling endPanMode()");
-                endPanMode(event);
-                isPanningFromTouch = false;
-            }
-            startOrbitMode(event);
-            isOrbitingFromTouch = true;
-        } else if (event.touchPoints == touchPointsToPan) {
-            // we need to double check that we didn't start an orbit, because the touch events will sometimes
-            // come in as 2 then 3 touches... 
-            if (isOrbitingFromTouch) {
-                endOrbitMode(event);
-                isOrbitingFromTouch = false;
-            }
-            startPanMode(event);
-            isPanningFromTouch = true;
-        }
-    }
 }
 
 function touchUpdateEvent(event) {
     if (!editToolsOn) {
         return;
     }
-
-    // if we're already in the middle of orbiting or panning, then ignore these multi-touch events...
-    if (isOrbiting || isPanning) {
-        return;
-    }    
-    
-    if (isOrbitingFromTouch) {
-        // we need to double check that we didn't start an orbit, because the touch events will sometimes
-        // come in as 2 then 3 touches... 
-        if (event.touchPoints == touchPointsToPan) {
-            //print("we now have touchPointsToPan touches... switch to pan...");
-            endOrbitMode(event);
-            isOrbitingFromTouch = false;
-            startPanMode(event);
-            isPanningFromTouch = true;
-        } else {
-            handleOrbitingMove(event);
-        }
-    }
-    if (isPanningFromTouch) {
-        //print("touchUpdateEvent... isPanningFromTouch... event.touchPoints=" + event.touchPoints);
-        // we need to double check that we didn't start an orbit, because the touch events will sometimes
-        // come in as 2 then 3 touches... 
-        if (event.touchPoints == touchPointsToOrbit) {
-            //print("we now have touchPointsToOrbit touches... switch to orbit...");
-            //print("touchUpdateEvent... calling endPanMode()");
-            endPanMode(event);
-            isPanningFromTouch = false;
-            startOrbitMode(event);
-            isOrbitingFromTouch = true;
-            handleOrbitingMove(event);
-        } else {
-            handlePanMove(event);
-        }
-    }
 }
 
 function touchEndEvent(event) {
     if (!editToolsOn) {
         return;
-    }
-
-    // if we're already in the middle of orbiting or panning, then ignore these multi-touch events...
-    if (isOrbiting || isPanning) {
-        return;
-    }    
-    
-    if (isOrbitingFromTouch) {
-        endOrbitMode(event);
-        isOrbitingFromTouch = false;
-    }
-    if (isPanningFromTouch) {
-        print("touchEndEvent... calling endPanMode()");
-        endPanMode(event);
-        isPanningFromTouch = false;
     }
 }
 

@@ -36,20 +36,44 @@ OctreeQueryNode::OctreeQueryNode() :
     _lodChanged(false),
     _lodInitialized(false),
     _sequenceNumber(0),
-    _lastRootTimestamp(0)
+    _lastRootTimestamp(0),
+    _myPacketType(PacketTypeUnknown),
+    _isShuttingDown(false)
 {
 }
 
 OctreeQueryNode::~OctreeQueryNode() {
+    _isShuttingDown = true;
+    const bool extraDebugging = false;
+    if (extraDebugging) {
+        qDebug() << "OctreeQueryNode::~OctreeQueryNode()";
+    }
     if (_octreeSendThread) {
+        if (extraDebugging) {
+            qDebug() << "OctreeQueryNode::~OctreeQueryNode()... calling _octreeSendThread->terminate()";
+        }
         _octreeSendThread->terminate();
+        if (extraDebugging) {
+            qDebug() << "OctreeQueryNode::~OctreeQueryNode()... calling delete _octreeSendThread";
+        }
         delete _octreeSendThread;
     }
 
     delete[] _octreePacket;
     delete[] _lastOctreePacket;
+    if (extraDebugging) {
+        qDebug() << "OctreeQueryNode::~OctreeQueryNode()... DONE...";
+    }
 }
 
+
+void OctreeQueryNode::deleteLater() {
+    _isShuttingDown = true;
+    if (_octreeSendThread) {
+        _octreeSendThread->setIsShuttingDown();
+    }
+    OctreeQuery::deleteLater();
+}
 
 
 void OctreeQueryNode::initializeOctreeSendThread(OctreeServer* octreeServer, const QUuid& nodeUUID) {
@@ -59,9 +83,13 @@ void OctreeQueryNode::initializeOctreeSendThread(OctreeServer* octreeServer, con
 }
 
 bool OctreeQueryNode::packetIsDuplicate() const {
+    // if shutting down, return immediately
+    if (_isShuttingDown) {
+        return false;
+    }
     // since our packets now include header information, like sequence number, and createTime, we can't just do a memcmp
     // of the entire packet, we need to compare only the packet content...
-    int numBytesPacketHeader = numBytesForPacketHeaderGivenPacketType(getMyPacketType());
+    int numBytesPacketHeader = numBytesForPacketHeaderGivenPacketType(_myPacketType);
     
     if (_lastOctreePacketLength == getPacketLength()) {
         if (memcmp(_lastOctreePacket + (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE),
@@ -74,6 +102,11 @@ bool OctreeQueryNode::packetIsDuplicate() const {
 }
 
 bool OctreeQueryNode::shouldSuppressDuplicatePacket() {
+    // if shutting down, return immediately
+    if (_isShuttingDown) {
+        return true;
+    }
+
     bool shouldSuppress = false; // assume we won't suppress
 
     // only consider duplicate packets
@@ -107,7 +140,17 @@ bool OctreeQueryNode::shouldSuppressDuplicatePacket() {
     return shouldSuppress;
 }
 
+void OctreeQueryNode::init() {
+    _myPacketType = getMyPacketType();
+    resetOctreePacket(true); // don't bump sequence
+}
+
 void OctreeQueryNode::resetOctreePacket(bool lastWasSurpressed) {
+    // if shutting down, return immediately
+    if (_isShuttingDown) {
+        return;
+    }
+
     // Whenever we call this, we will keep a copy of the last packet, so we can determine if the last packet has
     // changed since we last reset it. Since we know that no two packets can ever be identical without being the same
     // scene information, (e.g. the root node packet of a static scene), we can use this as a strategy for reducing
@@ -128,7 +171,7 @@ void OctreeQueryNode::resetOctreePacket(bool lastWasSurpressed) {
     }
 
     _octreePacketAvailableBytes = MAX_PACKET_SIZE;
-    int numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(_octreePacket), getMyPacketType());
+    int numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(_octreePacket), _myPacketType);
     _octreePacketAt = _octreePacket + numBytesPacketHeader;
     _octreePacketAvailableBytes -= numBytesPacketHeader;
 
@@ -158,6 +201,11 @@ void OctreeQueryNode::resetOctreePacket(bool lastWasSurpressed) {
 }
 
 void OctreeQueryNode::writeToPacket(const unsigned char* buffer, unsigned int bytes) {
+    // if shutting down, return immediately
+    if (_isShuttingDown) {
+        return;
+    }
+
     // compressed packets include lead bytes which contain compressed size, this allows packing of
     // multiple compressed portions together
     if (_currentPacketIsCompressed) {
@@ -174,6 +222,11 @@ void OctreeQueryNode::writeToPacket(const unsigned char* buffer, unsigned int by
 }
 
 bool OctreeQueryNode::updateCurrentViewFrustum() {
+    // if shutting down, return immediately
+    if (_isShuttingDown) {
+        return false;
+    }
+
     bool currentViewFrustumChanged = false;
     ViewFrustum newestViewFrustum;
     // get position and orientation details from the camera
@@ -233,6 +286,11 @@ void OctreeQueryNode::setViewSent(bool viewSent) {
 }
 
 void OctreeQueryNode::updateLastKnownViewFrustum() {
+    // if shutting down, return immediately
+    if (_isShuttingDown) {
+        return;
+    }
+
     bool frustumChanges = !_lastKnownViewFrustum.isVerySimilar(_currentViewFrustum);
 
     if (frustumChanges) {
@@ -247,6 +305,11 @@ void OctreeQueryNode::updateLastKnownViewFrustum() {
 
 
 bool OctreeQueryNode::moveShouldDump() const {
+    // if shutting down, return immediately
+    if (_isShuttingDown) {
+        return false;
+    }
+
     glm::vec3 oldPosition = _lastKnownViewFrustum.getPosition();
     glm::vec3 newPosition = _currentViewFrustum.getPosition();
 
@@ -259,6 +322,11 @@ bool OctreeQueryNode::moveShouldDump() const {
 }
 
 void OctreeQueryNode::dumpOutOfView() {
+    // if shutting down, return immediately
+    if (_isShuttingDown) {
+        return;
+    }
+    
     int stillInView = 0;
     int outOfView = 0;
     OctreeElementBag tempBag;

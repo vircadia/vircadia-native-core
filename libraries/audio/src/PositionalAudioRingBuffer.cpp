@@ -50,6 +50,7 @@ int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
         int16_t numSilentSamples;
         
         memcpy(&numSilentSamples, packet.data() + readBytes, sizeof(int16_t));
+        
         readBytes += sizeof(int16_t);
         
         addSilentFrame(numSilentSamples);
@@ -79,13 +80,11 @@ int PositionalAudioRingBuffer::parsePositionalData(const QByteArray& positionalB
 bool PositionalAudioRingBuffer::shouldBeAddedToMix(int numJitterBufferSamples) {
     if (!isNotStarvedOrHasMinimumSamples(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL + numJitterBufferSamples)) {
         if (_shouldOutputStarveDebug) {
-            qDebug() << "Starved and do not have minimum samples to start. Buffer held back.";
             _shouldOutputStarveDebug = false;
         }
         
         return false;
     } else if (samplesAvailable() < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-        qDebug() << "Do not have number of samples needed for interval. Buffer starved.";
         _isStarved = true;
         
         // reset our _shouldOutputStarveDebug to true so the next is printed

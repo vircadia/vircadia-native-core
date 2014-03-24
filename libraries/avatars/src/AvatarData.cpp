@@ -12,6 +12,7 @@
 
 #include <QtCore/QDataStream>
 #include <QtCore/QThread>
+#include <QtCore/QUuid>
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
@@ -23,6 +24,8 @@
 #include <VoxelConstants.h>
 
 #include "AvatarData.h"
+
+quint64 DEFAULT_FILTERED_LOG_EXPIRY = 20 * USECS_PER_SECOND;
 
 using namespace std;
 
@@ -42,7 +45,8 @@ AvatarData::AvatarData() :
     _displayNameBoundingRect(), 
     _displayNameTargetAlpha(0.0f), 
     _displayNameAlpha(0.0f),
-    _billboard()
+    _billboard(),
+    _debugLogExpiry(0)
 {
     
 }
@@ -87,6 +91,17 @@ QByteArray AvatarData::toByteArray() {
 
     // Body scale
     destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _targetScale);
+
+    // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedYaw());
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedPitch());
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedRoll());
+    
+    // Head lean X,Z (head lateral and fwd/back motion relative to torso)
+    memcpy(destinationBuffer, &_headData->_leanSideways, sizeof(_headData->_leanSideways));
+    destinationBuffer += sizeof(_headData->_leanSideways);
+    memcpy(destinationBuffer, &_headData->_leanForward, sizeof(_headData->_leanForward));
+    destinationBuffer += sizeof(_headData->_leanForward);
 
     // Lookat Position
     memcpy(destinationBuffer, &_headData->_lookAtPosition, sizeof(_headData->_lookAtPosition));
@@ -165,7 +180,6 @@ QByteArray AvatarData::toByteArray() {
 
 // read data in packet starting at byte offset and return number of bytes parsed
 int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
-
     // lazily allocate memory for HeadData in case we're not an Avatar instance
     if (!_headData) {
         _headData = new HeadData(this);
@@ -178,87 +192,204 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
     
     const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(packet.data()) + offset;
     const unsigned char* sourceBuffer = startPosition;
+
+    // 50 bytes of "plain old data" (POD)
+    // 1 byte for messageSize (0)
+    // 1 byte for pupilSize
+    // 1 byte for numJoints (0)
+    int minPossibleSize = 53; 
     
-    // Body world position
-    memcpy(&_position, sourceBuffer, sizeof(float) * 3);
-    sourceBuffer += sizeof(float) * 3;
-    
-    // Body rotation (NOTE: This needs to become a quaternion to save two bytes)
-    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyYaw);
-    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyPitch);
-    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyRoll);
-    
-    // Body scale
-    sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer, _targetScale);
-    
-    // Lookat Position
-    memcpy(&_headData->_lookAtPosition, sourceBuffer, sizeof(_headData->_lookAtPosition));
-    sourceBuffer += sizeof(_headData->_lookAtPosition);
-    
-    // Instantaneous audio loudness (used to drive facial animation)
-    memcpy(&_headData->_audioLoudness, sourceBuffer, sizeof(float));
-    sourceBuffer += sizeof(float);
-    
-    // the rest is a chat message
-    int chatMessageSize = *sourceBuffer++;
-    _chatMessage = string((char*)sourceBuffer, chatMessageSize);
-    sourceBuffer += chatMessageSize * sizeof(char);
-    
-    // voxel sending features...
-    unsigned char bitItems = 0;
-    bitItems = (unsigned char)*sourceBuffer++;
-    
-    // key state, stored as a semi-nibble in the bitItems
-    _keyState = (KeyState)getSemiNibbleAt(bitItems,KEY_STATE_START_BIT);
-    
-    // hand state, stored as a semi-nibble in the bitItems
-    _handState = getSemiNibbleAt(bitItems,HAND_STATE_START_BIT);
-    
-    _headData->_isFaceshiftConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
-    
-    _isChatCirclingEnabled = oneAtBit(bitItems, IS_CHAT_CIRCLING_ENABLED);
-    
-    // If it is connected, pack up the data
-    if (_headData->_isFaceshiftConnected) {
-        memcpy(&_headData->_leftEyeBlink, sourceBuffer, sizeof(float));
-        sourceBuffer += sizeof(float);
-        
-        memcpy(&_headData->_rightEyeBlink, sourceBuffer, sizeof(float));
-        sourceBuffer += sizeof(float);
-        
-        memcpy(&_headData->_averageLoudness, sourceBuffer, sizeof(float));
-        sourceBuffer += sizeof(float);
-        
-        memcpy(&_headData->_browAudioLift, sourceBuffer, sizeof(float));
-        sourceBuffer += sizeof(float);
-        
-        _headData->_blendshapeCoefficients.resize(*sourceBuffer++);
-        memcpy(_headData->_blendshapeCoefficients.data(), sourceBuffer,
-               _headData->_blendshapeCoefficients.size() * sizeof(float));
-        sourceBuffer += _headData->_blendshapeCoefficients.size() * sizeof(float);
+    int maxAvailableSize = packet.size() - offset;
+    if (minPossibleSize > maxAvailableSize) {
+        // this packet is malformed so we pretend to read to the end
+        quint64 now = usecTimestampNow();
+        if (now > _debugLogExpiry) {
+            qDebug() << "Malformed AvatarData packet at the start: minPossibleSize = " << minPossibleSize 
+                << " but maxAvailableSize = " << maxAvailableSize;
+            _debugLogExpiry = now + DEFAULT_FILTERED_LOG_EXPIRY;
+        }
+        return maxAvailableSize;
     }
+
+    { // Body world position, rotation, and scale
+        // position
+        memcpy(&_position, sourceBuffer, sizeof(float) * 3);
+        sourceBuffer += sizeof(float) * 3;
+        
+        // rotation (NOTE: This needs to become a quaternion to save two bytes)
+        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyYaw);
+        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyPitch);
+        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyRoll);
+        
+        // scale
+        sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer, _targetScale);
+    } // 20 bytes
     
-    // pupil dilation
-    sourceBuffer += unpackFloatFromByte(sourceBuffer, _headData->_pupilDilation, 1.0f);
+    { // Head rotation 
+        //(NOTE: This needs to become a quaternion to save two bytes)
+        float headYaw, headPitch, headRoll;
+        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headYaw);
+        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headPitch);
+        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headRoll);
+        _headData->setYaw(headYaw);
+        _headData->setPitch(headPitch);
+        _headData->setRoll(headRoll);
+    } // 6 bytes
+        
+    // Head lean (relative to pelvis)
+    {
+        memcpy(&_headData->_leanSideways, sourceBuffer, sizeof(_headData->_leanSideways));
+        sourceBuffer += sizeof(float);
+        memcpy(&_headData->_leanForward, sourceBuffer, sizeof(_headData->_leanForward));
+        sourceBuffer += sizeof(float);
+    } // 8 bytes
+    
+    { // Lookat Position
+        memcpy(&_headData->_lookAtPosition, sourceBuffer, sizeof(_headData->_lookAtPosition));
+        sourceBuffer += sizeof(_headData->_lookAtPosition);
+    } // 12 bytes
+    
+    { // AudioLoudness
+        // Instantaneous audio loudness (used to drive facial animation)
+        memcpy(&_headData->_audioLoudness, sourceBuffer, sizeof(float));
+        sourceBuffer += sizeof(float);
+    } // 4 bytes
+    
+    // chat
+    int chatMessageSize = *sourceBuffer++;
+    minPossibleSize += chatMessageSize;
+    if (minPossibleSize > maxAvailableSize) {
+        // this packet is malformed so we pretend to read to the end
+        quint64 now = usecTimestampNow();
+        if (now > _debugLogExpiry) {
+            qDebug() << "Malformed AvatarData packet before ChatMessage: minPossibleSize = " << minPossibleSize 
+                << " but maxAvailableSize = " << maxAvailableSize;
+            _debugLogExpiry = now + DEFAULT_FILTERED_LOG_EXPIRY;
+        }
+        return maxAvailableSize;
+    }
+    { // chat payload
+        _chatMessage = string((char*)sourceBuffer, chatMessageSize);
+        sourceBuffer += chatMessageSize * sizeof(char);
+    } // 1 + chatMessageSize bytes
+    
+    { // bitFlags and face data
+        unsigned char bitItems = 0;
+        bitItems = (unsigned char)*sourceBuffer++;
+    
+        // key state, stored as a semi-nibble in the bitItems
+        _keyState = (KeyState)getSemiNibbleAt(bitItems,KEY_STATE_START_BIT);
+        
+        // hand state, stored as a semi-nibble in the bitItems
+        _handState = getSemiNibbleAt(bitItems,HAND_STATE_START_BIT);
+        
+        _headData->_isFaceshiftConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
+        _isChatCirclingEnabled = oneAtBit(bitItems, IS_CHAT_CIRCLING_ENABLED);
+        
+        if (_headData->_isFaceshiftConnected) {
+            minPossibleSize += 4 * sizeof(float) + 1;   // four floats + one byte for blendDataSize
+            if (minPossibleSize > maxAvailableSize) {
+                // this packet is malformed so we pretend to read to the end
+                quint64 now = usecTimestampNow();
+                if (now > _debugLogExpiry) {
+                    qDebug() << "Malformed AvatarData packet after BitItems: minPossibleSize = " << minPossibleSize 
+                        << " but maxAvailableSize = " << maxAvailableSize;
+                    _debugLogExpiry = now + DEFAULT_FILTERED_LOG_EXPIRY;
+                }
+                return maxAvailableSize;
+            }
+            // unpack face data
+            memcpy(&_headData->_leftEyeBlink, sourceBuffer, sizeof(float));
+            sourceBuffer += sizeof(float);
+            
+            memcpy(&_headData->_rightEyeBlink, sourceBuffer, sizeof(float));
+            sourceBuffer += sizeof(float);
+            
+            memcpy(&_headData->_averageLoudness, sourceBuffer, sizeof(float));
+            sourceBuffer += sizeof(float);
+            
+            memcpy(&_headData->_browAudioLift, sourceBuffer, sizeof(float));
+            sourceBuffer += sizeof(float);
+            
+            int numCoefficients = (int)(*sourceBuffer++);
+            int blendDataSize = numCoefficients * sizeof(float);
+            minPossibleSize += blendDataSize;
+            if (minPossibleSize > maxAvailableSize) {
+                // this packet is malformed so we pretend to read to the end
+                quint64 now = usecTimestampNow();
+                if (now > _debugLogExpiry) {
+                    qDebug() << "Malformed AvatarData packet after Blendshapes: minPossibleSize = " << minPossibleSize 
+                        << " but maxAvailableSize = " << maxAvailableSize;
+                    _debugLogExpiry = now + DEFAULT_FILTERED_LOG_EXPIRY;
+                }
+                return maxAvailableSize;
+            }
+
+            _headData->_blendshapeCoefficients.resize(numCoefficients);
+            memcpy(_headData->_blendshapeCoefficients.data(), sourceBuffer, blendDataSize);
+            sourceBuffer += numCoefficients * sizeof(float);
+    
+            //bitItemsDataSize = 4 * sizeof(float) + 1 + blendDataSize;
+        }
+    } // 1 + bitItemsDataSize bytes
+    
+    { // pupil dilation
+        sourceBuffer += unpackFloatFromByte(sourceBuffer, _headData->_pupilDilation, 1.0f);
+    } // 1 byte
     
     // joint data
-    int jointCount = *sourceBuffer++;
-    _jointData.resize(jointCount);
-    unsigned char validity = 0;
-    int validityBit = 0;
-    for (int i = 0; i < jointCount; i++) {
-        if (validityBit == 0) {
-            validity = *sourceBuffer++;
-        }   
-        _jointData[i].valid = (bool)(validity & (1 << validityBit));
-        validityBit = (validityBit + 1) % BITS_IN_BYTE; 
+    int numJoints = *sourceBuffer++;
+    int bytesOfValidity = (int)ceil((float)numJoints / 8.f);
+    minPossibleSize += bytesOfValidity;
+    if (minPossibleSize > maxAvailableSize) {
+        // this packet is malformed so we pretend to read to the end
+        quint64 now = usecTimestampNow();
+        if (now > _debugLogExpiry) {
+            qDebug() << "Malformed AvatarData packet after JointValidityBits: minPossibleSize = " << minPossibleSize 
+                << " but maxAvailableSize = " << maxAvailableSize;
+            _debugLogExpiry = now + DEFAULT_FILTERED_LOG_EXPIRY;
+        }
+        return maxAvailableSize;
     }
-    for (int i = 0; i < jointCount; i++) {
-        JointData& data = _jointData[i];
-        if (data.valid) {
-            sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, data.rotation);
+    int numValidJoints = 0;
+    _jointData.resize(numJoints);
+    { // validity bits
+        unsigned char validity = 0;
+        int validityBit = 0;
+        for (int i = 0; i < numJoints; i++) {
+            if (validityBit == 0) {
+                validity = *sourceBuffer++;
+            }
+            bool valid = (bool)(validity & (1 << validityBit));
+            if (valid) {
+                ++numValidJoints;
+            }
+            _jointData[i].valid = valid;
+            validityBit = (validityBit + 1) % BITS_IN_BYTE; 
         }
     }
+    // 1 + bytesOfValidity bytes
+
+    minPossibleSize += numValidJoints * 8;  // 8 bytes per quaternion
+    if (minPossibleSize > maxAvailableSize) {
+        // this packet is malformed so we pretend to read to the end
+        quint64 now = usecTimestampNow();
+        if (now > _debugLogExpiry) {
+            qDebug() << "Malformed AvatarData packet after JointData: minPossibleSize = " << minPossibleSize 
+                << " but maxAvailableSize = " << maxAvailableSize;
+            _debugLogExpiry = now + DEFAULT_FILTERED_LOG_EXPIRY;
+        }
+        return maxAvailableSize;
+    }
+
+    { // joint data
+        for (int i = 0; i < numJoints; i++) {
+            JointData& data = _jointData[i];
+            if (data.valid) {
+                sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, data.rotation);
+            }
+        }
+    } // numJoints * 8 bytes
     
     return sourceBuffer - startPosition;
 }

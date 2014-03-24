@@ -5,6 +5,8 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <QMutexLocker>
+
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <PerfStat.h>
@@ -21,7 +23,9 @@ OctreeSendThread::OctreeSendThread(const QUuid& nodeUUID, OctreeServer* myServer
     _nodeUUID(nodeUUID),
     _myServer(myServer),
     _packetData(),
-    _nodeMissingCount(0)
+    _nodeMissingCount(0),
+    _processLock(),
+    _isShuttingDown(false)
 {
     QString safeServerName("Octree");
     if (_myServer) {
@@ -43,8 +47,19 @@ OctreeSendThread::~OctreeSendThread() {
     OctreeServer::clientDisconnected(); 
 }
 
+void OctreeSendThread::setIsShuttingDown() {
+    QMutexLocker locker(&_processLock); // this will cause us to wait till the process loop is complete
+    _isShuttingDown = true;
+}
+
 
 bool OctreeSendThread::process() {
+    QMutexLocker locker(&_processLock);
+    
+    if (_isShuttingDown) {
+        return false; // exit early if we're shutting down
+    }
+    
     const int MAX_NODE_MISSING_CHECKS = 10;
     if (_nodeMissingCount > MAX_NODE_MISSING_CHECKS) {
         qDebug() << "our target node:" << _nodeUUID << "has been missing the last" << _nodeMissingCount 
@@ -56,7 +71,10 @@ bool OctreeSendThread::process() {
 
     // don't do any send processing until the initial load of the octree is complete...
     if (_myServer->isInitialLoadComplete()) {
-        SharedNodePointer node = NodeList::getInstance()->nodeWithUUID(_nodeUUID);
+    
+        // see if we can get access to our node, but don't wait on the lock, if the nodeList is busy
+        // it might not return a node that is known, but that's ok we can handle that case.
+        SharedNodePointer node = NodeList::getInstance()->nodeWithUUID(_nodeUUID, false);
 
         if (node) {
             _nodeMissingCount = 0;
@@ -65,7 +83,7 @@ bool OctreeSendThread::process() {
             nodeData = (OctreeQueryNode*) node->getLinkedData();
 
             // Sometimes the node data has not yet been linked, in which case we can't really do anything
-            if (nodeData) {
+            if (nodeData && !nodeData->isShuttingDown()) {
                 bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
                 packetDistributor(node, nodeData, viewFrustumChanged);
             }
@@ -99,25 +117,19 @@ quint64 OctreeSendThread::_totalBytes = 0;
 quint64 OctreeSendThread::_totalWastedBytes = 0;
 quint64 OctreeSendThread::_totalPackets = 0;
 
-int OctreeSendThread::handlePacketSend(const SharedNodePointer& node, OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent) {
+int OctreeSendThread::handlePacketSend(const SharedNodePointer& node, 
+                        OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent) {
+                 
+    // if we're shutting down, then exit early       
+    if (nodeData->isShuttingDown()) {
+        return 0;
+    }
+    
     bool debug = _myServer->wantsDebugSending();
     quint64 now = usecTimestampNow();
 
     bool packetSent = false; // did we send a packet?
     int packetsSent = 0;
-    
-    // double check that the node has an active socket, otherwise, don't send...
-
-    quint64 lockWaitStart = usecTimestampNow();
-    QMutexLocker locker(&node->getMutex());
-    quint64 lockWaitEnd = usecTimestampNow();
-    float lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
-    OctreeServer::trackNodeWaitTime(lockWaitElapsedUsec);
-    
-    const HifiSockAddr* nodeAddress = node->getActiveSocket();
-    if (!nodeAddress) {
-        return packetsSent; // without sending...
-    }
     
     // Here's where we check to see if this packet is a duplicate of the last packet. If it is, we will silently
     // obscure the packet and not send it. This allows the callers and upper level logic to not need to know about
@@ -136,7 +148,7 @@ int OctreeSendThread::handlePacketSend(const SharedNodePointer& node, OctreeQuer
 
 
     // If we've got a stats message ready to send, then see if we can piggyback them together
-    if (nodeData->stats.isReadyToSend()) {
+    if (nodeData->stats.isReadyToSend() && !nodeData->isShuttingDown()) {
         // Send the stats message to the client
         unsigned char* statsMessage = nodeData->stats.getStatsMessage();
         int statsMessageLength = nodeData->stats.getStatsMessageLength();
@@ -203,7 +215,7 @@ int OctreeSendThread::handlePacketSend(const SharedNodePointer& node, OctreeQuer
         nodeData->stats.markAsSent();
     } else {
         // If there's actually a packet waiting, then send it.
-        if (nodeData->isPacketWaiting()) {
+        if (nodeData->isPacketWaiting() && !nodeData->isShuttingDown()) {
             // just send the voxel packet
             NodeList::getInstance()->writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
                                                    SharedNodePointer(node));
@@ -234,6 +246,12 @@ int OctreeSendThread::handlePacketSend(const SharedNodePointer& node, OctreeQuer
 
 /// Version of voxel distributor that sends the deepest LOD level at once
 int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQueryNode* nodeData, bool viewFrustumChanged) {
+
+    // if shutting down, exit early
+    if (nodeData->isShuttingDown()) {
+        return 0;
+    }
+    
     int truePacketsSent = 0;
     int trueBytesSent = 0;
     int packetsSentThisInterval = 0;
@@ -336,7 +354,7 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
 
         int extraPackingAttempts = 0;
         bool completedScene = false;
-        while (somethingToSend && packetsSentThisInterval < maxPacketsPerInterval) {
+        while (somethingToSend && packetsSentThisInterval < maxPacketsPerInterval && !nodeData->isShuttingDown()) {
             float lockWaitElapsedUsec = OctreeServer::SKIP_TIME;
             float encodeElapsedUsec = OctreeServer::SKIP_TIME;
             float compressAndWriteElapsedUsec = OctreeServer::SKIP_TIME;
@@ -503,7 +521,7 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
         // Here's where we can/should allow the server to send other data...
         // send the environment packet
         // TODO: should we turn this into a while loop to better handle sending multiple special packets
-        if (_myServer->hasSpecialPacketToSend(node)) {
+        if (_myServer->hasSpecialPacketToSend(node) && !nodeData->isShuttingDown()) {
             trueBytesSent += _myServer->sendSpecialPacket(node);
             truePacketsSent++;
             packetsSentThisInterval++;

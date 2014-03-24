@@ -48,7 +48,7 @@ configure_file(InterfaceVersion.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceVe
 
 # grab the implementation and header files from src dirs
 file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
-foreach(SUBDIR avatar devices renderer ui starfield location)
+foreach(SUBDIR avatar devices renderer ui starfield location scripting voxels)
   file(GLOB_RECURSE SUBDIR_SRCS src/${SUBDIR}/*.cpp src/${SUBDIR}/*.h)
   set(INTERFACE_SRCS ${INTERFACE_SRCS} "${SUBDIR_SRCS}")
 endforeach(SUBDIR)

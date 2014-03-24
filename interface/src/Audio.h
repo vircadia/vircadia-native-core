@@ -19,17 +19,20 @@
 
 #include "InterfaceConfig.h"
 
+#include <QAudio>
+#include <QAudioInput>
+#include <QGLWidget>
 #include <QtCore/QObject>
 #include <QtCore/QVector>
 #include <QtMultimedia/QAudioFormat>
+#include <QVector>
 
 #include <AbstractAudioInterface.h>
 #include <AudioRingBuffer.h>
 #include <StdDev.h>
 
-#include "Oscilloscope.h"
+#include "ui/Oscilloscope.h"
 
-#include <QGLWidget>
 
 static const int NUM_AUDIO_CHANNELS = 2;
 
@@ -72,7 +75,7 @@ public:
     
     int getNetworkSampleRate() { return SAMPLE_RATE; }
     int getNetworkBufferLengthSamplesPerChannel() { return NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; }
-    
+
 public slots:
     void start();
     void addReceivedAudioToBuffer(const QByteArray& audioByteArray);
@@ -83,10 +86,21 @@ public slots:
     
     virtual void handleAudioByteArray(const QByteArray& audioByteArray);
 
+    bool switchInputToAudioDevice(const QString& inputDeviceName);
+    bool switchOutputToAudioDevice(const QString& outputDeviceName);
+    QString getDeviceName(QAudio::Mode mode) const { return (mode == QAudio::AudioInput) ?
+                                                            _inputAudioDeviceName : _outputAudioDeviceName; }
+    QString getDefaultDeviceName(QAudio::Mode mode);
+    QVector<QString> getDeviceNames(QAudio::Mode mode);
+
+    float getInputVolume() const { return (_audioInput) ? _audioInput->volume() : 0.0f; }
+    void setInputVolume(float volume) { if (_audioInput) _audioInput->setVolume(volume); }
+
 signals:
     bool muteToggled();
     
 private:
+
     QByteArray firstInputFrame;
     QAudioInput* _audioInput;
     QAudioFormat _desiredInputFormat;
@@ -105,6 +119,9 @@ private:
     QIODevice* _proceduralOutputDevice;
     AudioRingBuffer _inputRingBuffer;
     AudioRingBuffer _ringBuffer;
+
+    QString _inputAudioDeviceName;
+    QString _outputAudioDeviceName;
     
     Oscilloscope* _scope;
     StDev _stdev;

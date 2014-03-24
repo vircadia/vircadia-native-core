@@ -41,6 +41,8 @@ public:
     bool isListeningToAudioStream() const { return _scriptEngine.isListeningToAudioStream(); }
     void setIsListeningToAudioStream(bool isListeningToAudioStream)
         { _scriptEngine.setIsListeningToAudioStream(isListeningToAudioStream); }
+
+    virtual void aboutToFinish();
     
 public slots:
     void run();

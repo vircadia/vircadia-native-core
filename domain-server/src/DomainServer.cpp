@@ -603,6 +603,11 @@ void DomainServer::readAvailableDatagrams() {
                 if (noisyMessage) {
                     lastNoisyMessage = timeNow;
                 }
+            } else if (requestType == PacketTypeNodeJsonStats) {
+                SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
+                if (matchingNode) {
+                    reinterpret_cast<DomainServerNodeData*>(matchingNode->getLinkedData())->parseJSONStatsPacket(receivedPacket);
+                }
             }
         }
     }
@@ -650,7 +655,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
     const QString JSON_MIME_TYPE = "application/json";
     
     const QString URI_ASSIGNMENT = "/assignment";
-    const QString URI_NODE = "/node";
+    const QString URI_NODES = "/nodes";
     
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
         if (path == "/assignments.json") {
@@ -697,7 +702,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
             
             // we've processed this request
             return true;
-        } else if (path == "/nodes.json") {
+        } else if (path == QString("%1.json").arg(URI_NODES)) {
             // setup the JSON
             QJsonObject rootJSON;
             QJsonObject nodesJSON;
@@ -718,13 +723,35 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
             
             // send the response
             connection->respond(HTTPConnection::StatusCode200, nodesDocument.toJson(), qPrintable(JSON_MIME_TYPE));
+            
+            return true;
+        } else {
+            const QString NODE_REGEX_STRING =
+                QString("\\%1\\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\\/?$").arg(URI_NODES);
+            QRegExp nodeShowRegex(NODE_REGEX_STRING);
+            
+            if (nodeShowRegex.indexIn(path) != -1) {
+                QUuid matchingUUID = QUuid(nodeShowRegex.cap(1));
+                
+                // see if we have a node that matches this ID
+                SharedNodePointer matchingNode = NodeList::getInstance()->nodeWithUUID(matchingUUID);
+                if (matchingNode) {
+                    // create a QJsonDocument with the stats QJsonObject
+                    QJsonDocument statsDocument(reinterpret_cast<DomainServerNodeData*>(matchingNode->getLinkedData())
+                                                ->getStatsJSONObject());
+                    
+                    // send the resposne
+                    connection->respond(HTTPConnection::StatusCode200, statsDocument.toJson(), qPrintable(JSON_MIME_TYPE));
+                    
+                    // tell the caller we processed the request
+                    return true;
+                }
+            }
         }
     } else if (connection->requestOperation() == QNetworkAccessManager::PostOperation) {
         if (path == URI_ASSIGNMENT) {
             // this is a script upload - ask the HTTPConnection to parse the form data
             QList<FormData> formData = connection->parseFormData();
-            
-            
             
             // check how many instances of this assignment the user wants by checking the ASSIGNMENT-INSTANCES header
             const QString ASSIGNMENT_INSTANCES_HEADER = "ASSIGNMENT-INSTANCES";
@@ -765,13 +792,15 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
             
             // respond with a 200 code for successful upload
             connection->respond(HTTPConnection::StatusCode200);
+            
+            return true;
         }
     } else if (connection->requestOperation() == QNetworkAccessManager::DeleteOperation) {
-        if (path.startsWith(URI_NODE)) {
+        if (path.startsWith(URI_NODES)) {
             // this is a request to DELETE a node by UUID
             
             // pull the UUID from the url
-            QUuid deleteUUID = QUuid(path.mid(URI_NODE.size() + sizeof('/')));
+            QUuid deleteUUID = QUuid(path.mid(URI_NODES.size() + sizeof('/')));
             
             if (!deleteUUID.isNull()) {
                 SharedNodePointer nodeToKill = NodeList::getInstance()->nodeWithUUID(deleteUUID);

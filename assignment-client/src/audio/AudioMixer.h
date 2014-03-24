@@ -28,6 +28,8 @@ public slots:
     void run();
     
     void readPendingDatagrams();
+    
+    void sendStatsPacket();
 private:
     /// adds one buffer to the mix for a listening node
     void addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,
@@ -37,7 +39,11 @@ private:
     void prepareMixForListeningNode(Node* node);
     
     // client samples capacity is larger than what will be sent to optimize mixing
-    int16_t _clientSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + SAMPLE_PHASE_DELAY_AT_90];
+    // we are MMX adding 4 samples at a time so we need client samples to have an extra 4
+    int16_t _clientSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)];
+    
+    float _trailingSleepRatio;
+    float _minAudibilityThreshold;
 };
 
 #endif /* defined(__hifi__AudioMixer__) */

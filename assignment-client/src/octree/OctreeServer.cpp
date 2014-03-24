@@ -168,7 +168,7 @@ void OctreeServer::trackPacketSendingTime(float time) {
 void OctreeServer::attachQueryNodeToNode(Node* newNode) {
     if (!newNode->getLinkedData()) {
         OctreeQueryNode* newQueryNodeData = _instance->createOctreeQueryNode();
-        newQueryNodeData->resetOctreePacket(true); // don't bump sequence
+        newQueryNodeData->init();
         newNode->setLinkedData(newQueryNodeData);
     }
 }
@@ -784,16 +784,26 @@ void OctreeServer::readPendingDatagrams() {
             if (packetType == getMyQueryMessageType()) {
                 bool debug = false;
                 if (debug) {
-                    qDebug() << "Got PacketTypeVoxelQuery at" << usecTimestampNow();
+                    if (matchingNode) {
+                        qDebug() << "Got PacketTypeVoxelQuery at" << usecTimestampNow() << "node:" << *matchingNode;
+                    } else {
+                        qDebug() << "Got PacketTypeVoxelQuery at" << usecTimestampNow() << "node: ??????";
+                    }
                 }
                 
                 // If we got a PacketType_VOXEL_QUERY, then we're talking to an NodeType_t_AVATAR, and we
                 // need to make sure we have it in our nodeList.
                 if (matchingNode) {
+                    if (debug) {
+                        qDebug() << "calling updateNodeWithDataFromPacket()... node:" << *matchingNode;
+                    }
                     nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
                     
                     OctreeQueryNode* nodeData = (OctreeQueryNode*) matchingNode->getLinkedData();
                     if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
+                        if (debug) {
+                            qDebug() << "calling initializeOctreeSendThread()... node:" << *matchingNode;
+                        }
                         nodeData->initializeOctreeSendThread(this, matchingNode->getUUID());
                     }
                 }
@@ -870,7 +880,9 @@ void OctreeServer::run() {
     // we need to ask the DS about agents so we can ping/reply with them
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
+#ifndef WIN32
     setvbuf(stdout, NULL, _IOLBF, 0);
+#endif
 
     nodeList->linkedDataCreateCallback = &OctreeServer::attachQueryNodeToNode;
 
@@ -999,6 +1011,8 @@ void OctreeServer::nodeKilled(SharedNodePointer node) {
         node->setLinkedData(NULL); // set this first in case another thread comes through and tryes to acces this
         qDebug() << qPrintable(_safeServerName) << "server deleting Linked Data for node:" << *node;
         nodeData->deleteLater();
+    } else {
+        qDebug() << qPrintable(_safeServerName) << "server node missing linked data node:" << *node;
     }
 }
 
