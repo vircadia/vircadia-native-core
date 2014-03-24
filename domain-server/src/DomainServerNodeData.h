@@ -19,13 +19,20 @@ public:
     DomainServerNodeData();
     int parseData(const QByteArray& packet) { return 0; }
     
+    const QJsonObject& getStatsJSONObject() const { return _statsJSONObject; }
+    
+    void parseJSONStatsPacket(const QByteArray& statsPacket);
+    
     void setStaticAssignmentUUID(const QUuid& staticAssignmentUUID) { _staticAssignmentUUID = staticAssignmentUUID; }
     const QUuid& getStaticAssignmentUUID() const { return _staticAssignmentUUID; }
     
     QHash<QUuid, QUuid>& getSessionSecretHash() { return _sessionSecretHash; }
 private:
+    QJsonObject mergeJSONStatsFromNewObject(const QJsonObject& newObject, QJsonObject destinationObject);
+    
     QHash<QUuid, QUuid> _sessionSecretHash;
     QUuid _staticAssignmentUUID;
+    QJsonObject _statsJSONObject;
 };
 
 #endif /* defined(__hifi__DomainServerNodeData__) */
