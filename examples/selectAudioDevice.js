@@ -85,11 +85,7 @@ function setupAudioMenus() {
 setupAudioMenus();
 
 function scriptEnding() {
-    print("scriptEnding()");
-    //Menu.removeMenuItem("Tools > Audio");
     Menu.removeMenu("Tools > Audio");
-    //Menu.removeMenu("Tools");
-    print("DONE... scriptEnding()");
 }
 Script.scriptEnding.connect(scriptEnding);
 
