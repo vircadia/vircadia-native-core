@@ -15,7 +15,7 @@ $(document).ready(function(){
     $.getJSON("/nodes/" + uuid + ".json", function(json){
       
       // update the table header with the right node type
-      $('#stats-lead h3').html(json.node_type + " stats (" + uuid +);
+      $('#stats-lead h3').html(json.node_type + " stats (" + uuid + ")");
       
       delete json.node_type;
       
@@ -27,6 +27,10 @@ $(document).ready(function(){
       });
       
       $('#stats-table tbody').html(statsTableBody);
+    }).fail(function(data) {
+      $('#stats-table td').each(function(){
+        $(this).addClass('stale');
+      });
     });    
   }
   
