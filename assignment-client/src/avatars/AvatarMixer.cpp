@@ -31,7 +31,7 @@ const unsigned int AVATAR_DATA_SEND_INTERVAL_USECS = (1 / 60.0) * 1000 * 1000;
 
 AvatarMixer::AvatarMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
-    _trailingSleepRatio(0.0f),
+    _trailingSleepRatio(1.0f),
     _performanceThrottlingRatio(0.0f),
     _sumListeners(0),
     _numStatFrames(0)
@@ -324,10 +324,6 @@ void AvatarMixer::run() {
         bool hasRatioChanged = false;
         
         if (framesSinceCutoffEvent >= TRAILING_AVERAGE_FRAMES) {
-            if (framesSinceCutoffEvent % TRAILING_AVERAGE_FRAMES == 0) {
-                qDebug() << "Current trailing sleep ratio:" << _trailingSleepRatio;
-            }
-            
             if (_trailingSleepRatio <= STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD) {
                 // we're struggling - change our min required loudness to reduce some load
                 _performanceThrottlingRatio = _performanceThrottlingRatio + (0.5f * (1.0f - _performanceThrottlingRatio));
@@ -351,10 +347,6 @@ void AvatarMixer::run() {
             if (hasRatioChanged) {
                 framesSinceCutoffEvent = 0;
             }
-        }
-        
-        if (!hasRatioChanged) {
-            ++framesSinceCutoffEvent;
         }
         
         broadcastAvatarData();
