@@ -212,7 +212,7 @@ void Stats::display(
     }
 
     verticalOffset = 0;
-    horizontalOffset = _generalStatsWidth +1;
+    horizontalOffset = _lastHorizontalOffset + _generalStatsWidth +1;
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
         int pingAudio = 0, pingAvatar = 0, pingVoxel = 0, pingVoxelMax = 0;
@@ -281,7 +281,7 @@ void Stats::display(
         }
 
         verticalOffset = 0;
-        horizontalOffset = _generalStatsWidth + _pingStatsWidth + 2;
+        horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + _pingStatsWidth + 2;
     }
 
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
@@ -321,7 +321,7 @@ void Stats::display(
     }
 
     verticalOffset = 0;
-    horizontalOffset = _generalStatsWidth + _pingStatsWidth + _geoStatsWidth + 3;
+    horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + _pingStatsWidth + _geoStatsWidth + 3;
 
     VoxelSystem* voxels = Application::getInstance()->getVoxels();
 
