@@ -384,6 +384,8 @@ void AudioMixer::run() {
         const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
         const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.20f;
         
+        const float RATIO_BACK_OFF = 0.02f;
+        
         const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
         const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
         
@@ -398,6 +400,10 @@ void AudioMixer::run() {
         bool hasRatioChanged = false;
         
         if (framesSinceCutoffEvent >= TRAILING_AVERAGE_FRAMES) {
+            if (framesSinceCutoffEvent % TRAILING_AVERAGE_FRAMES == 0) {
+                qDebug() << "Current trailing sleep ratio:" << _trailingSleepRatio;
+            }
+            
             if (_trailingSleepRatio <= STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD) {
                 // we're struggling - change our min required loudness to reduce some load
                 audabilityCutoffRatio = audabilityCutoffRatio + (0.5f * (1.0f - audabilityCutoffRatio));
@@ -407,7 +413,7 @@ void AudioMixer::run() {
                 hasRatioChanged = true;
             } else if (_trailingSleepRatio >= BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD && audabilityCutoffRatio != 0) {
                 // we've recovered and can back off the required loudness
-                audabilityCutoffRatio = audabilityCutoffRatio - (1.0f - audabilityCutoffRatio);
+                audabilityCutoffRatio = audabilityCutoffRatio - RATIO_BACK_OFF;
                 
                 if (audabilityCutoffRatio < 0) {
                     audabilityCutoffRatio = 0;
