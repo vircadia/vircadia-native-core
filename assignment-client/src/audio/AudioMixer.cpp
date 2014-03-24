@@ -361,10 +361,10 @@ void AudioMixer::sendStatsPacket() {
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100.0f;
     statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
 
-    statsObject["average_listeners_per_frame"] = _sumListeners / (float) _numStatFrames;
+    statsObject["average_listeners_per_frame"] = (float) _sumListeners / (float) _numStatFrames;
     
     if (_sumListeners > 0) {
-        statsObject["average_mixes_per_listener"] = _sumMixes / (float) _sumListeners;
+        statsObject["average_mixes_per_listener"] = (float) _sumMixes / (float) _sumListeners;
     } else {
         statsObject["average_mixes_per_listener"] = 0.0;
     }

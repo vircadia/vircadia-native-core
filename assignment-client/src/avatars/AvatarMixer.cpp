@@ -249,7 +249,7 @@ void AvatarMixer::readPendingDatagrams() {
 
 void AvatarMixer::sendStatsPacket() {
     QJsonObject statsObject;
-    statsObject["average_listeners_last_second"] = _sumListeners / (float) _numStatFrames;
+    statsObject["average_listeners_last_second"] = (float) _sumListeners / (float) _numStatFrames;
     
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100;
     statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
