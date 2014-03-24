@@ -192,8 +192,9 @@ static TextRenderer* textRenderer(TextRendererType type) {
 void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
     // simple frustum check
     float boundingRadius = getBillboardSize();
-    if (Application::getInstance()->getViewFrustum()->sphereInFrustum(
-            cameraPosition, boundingRadius) == ViewFrustum::OUTSIDE) {
+    ViewFrustum* frustum = (renderMode == Avatar::SHADOW_RENDER_MODE) ?
+        Application::getInstance()->getShadowViewFrustum() : Application::getInstance()->getViewFrustum();
+    if (frustum->sphereInFrustum(_position, boundingRadius) == ViewFrustum::OUTSIDE) {
         return;
     }
 
