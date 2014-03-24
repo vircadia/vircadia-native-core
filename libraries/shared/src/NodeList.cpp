@@ -193,8 +193,13 @@ qint64 NodeList::writeDatagram(const char* data, qint64 size, const SharedNodePo
     return writeDatagram(QByteArray(data, size), destinationNode, overridenSockAddr);
 }
 
-qint64 NodeList::sendDatagramToDomainServer(const QByteArray &datagram) {
-    return writeDatagram(datagram, _domainInfo.getSockAddr(), _domainInfo.getConnectionSecret());
+qint64 NodeList::sendStatsToDomainServer(const QJsonObject& statsObject) {
+    QByteArray statsPacket = byteArrayWithPopulatedHeader(PacketTypeNodeJsonStats);
+    QDataStream statsPacketStream(&statsPacket, QIODevice::Append);
+    
+    statsPacketStream << statsObject.toVariantMap();
+    
+    return writeDatagram(statsPacket, _domainInfo.getSockAddr(), _domainInfo.getConnectionSecret());
 }
 
 void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode) {

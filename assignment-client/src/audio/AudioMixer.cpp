@@ -355,13 +355,7 @@ void AudioMixer::sendStatsPacket() {
     statsObject["trailing_sleep"] = _trailingSleepRatio;
     statsObject["min_audability_threshold"] = _minAudibilityThreshold;
     
-    QByteArray statsPacket = byteArrayWithPopulatedHeader(PacketTypeNodeJsonStats);
-    QDataStream statsPacketStream(&statsPacket, QIODevice::Append);
-    
-    statsPacketStream << statsObject.toVariantMap();
-    
-    NodeList* nodeList = NodeList::getInstance();
-    nodeList->sendDatagramToDomainServer(statsPacket);
+    NodeList::getInstance()->sendStatsToDomainServer(statsObject);
 }
 
 void AudioMixer::run() {

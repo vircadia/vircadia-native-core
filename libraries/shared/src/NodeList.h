@@ -78,7 +78,7 @@ public:
                          const HifiSockAddr& overridenSockAddr = HifiSockAddr());
     qint64 writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
                          const HifiSockAddr& overridenSockAddr = HifiSockAddr());
-    qint64 sendDatagramToDomainServer(const QByteArray& datagram);
+    qint64 sendStatsToDomainServer(const QJsonObject& statsObject);
 
     void(*linkedDataCreateCallback)(Node *);
 
