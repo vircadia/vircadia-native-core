@@ -58,3 +58,12 @@ QVector<QString> AudioDeviceScriptingInterface::getInputDevices() {
 QVector<QString> AudioDeviceScriptingInterface::getOutputDevices() {
     return Application::getInstance()->getAudio()->getDeviceNames(QAudio::AudioOutput);
 }
+
+
+float AudioDeviceScriptingInterface::getInputVolume() {
+    return Application::getInstance()->getAudio()->getInputVolume();
+}
+
+void AudioDeviceScriptingInterface::setInputVolume(float volume) {
+    Application::getInstance()->getAudio()->setInputVolume(volume);
+}

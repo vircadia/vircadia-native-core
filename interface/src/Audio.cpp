@@ -395,7 +395,7 @@ void Audio::handleAudioInput() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio) && !_muted) {
         // if this person wants local loopback add that to the locally injected audio
 
-        if (!_loopbackOutputDevice) {
+        if (!_loopbackOutputDevice && _loopbackAudioOutput) {
             // we didn't have the loopback output device going so set that up now
             _loopbackOutputDevice = _loopbackAudioOutput->start();
         }
@@ -545,7 +545,7 @@ void Audio::handleAudioInput() {
         addProceduralSounds(monoAudioSamples,
                             NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
         
-        if (!_proceduralOutputDevice) {
+        if (!_proceduralOutputDevice && _proceduralAudioOutput) {
             _proceduralOutputDevice = _proceduralAudioOutput->start();
         }
         
@@ -645,7 +645,7 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     static float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())
         * (_desiredOutputFormat.channelCount() / (float) _outputFormat.channelCount());
     
-    if (!_ringBuffer.isStarved() && _audioOutput->bytesFree() == _audioOutput->bufferSize()) {
+    if (!_ringBuffer.isStarved() && _audioOutput && _audioOutput->bytesFree() == _audioOutput->bufferSize()) {
         // we don't have any audio data left in the output buffer
         // we just starved
         //qDebug() << "Audio output just starved.";

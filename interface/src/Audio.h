@@ -20,6 +20,7 @@
 #include "InterfaceConfig.h"
 
 #include <QAudio>
+#include <QAudioInput>
 #include <QGLWidget>
 #include <QtCore/QObject>
 #include <QtCore/QVector>
@@ -91,6 +92,9 @@ public slots:
                                                             _inputAudioDeviceName : _outputAudioDeviceName; }
     QString getDefaultDeviceName(QAudio::Mode mode);
     QVector<QString> getDeviceNames(QAudio::Mode mode);
+
+    float getInputVolume() const { return (_audioInput) ? _audioInput->volume() : 0.0f; }
+    void setInputVolume(float volume) { if (_audioInput) _audioInput->setVolume(volume); }
 
 signals:
     bool muteToggled();

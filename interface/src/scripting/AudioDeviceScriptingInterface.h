@@ -33,6 +33,9 @@ public slots:
 
     QVector<QString> getInputDevices();
     QVector<QString> getOutputDevices();
+
+    float getInputVolume();
+    void setInputVolume(float volume);
 };
 
 #endif /* defined(__hifi__AudioDeviceScriptingInterface__) */
