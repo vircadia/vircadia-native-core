@@ -30,6 +30,9 @@ public slots:
 private:
     void broadcastAvatarData();
     
+    float _trailingSleepRatio;
+    float _performanceThrottlingRatio;
+    
     int _sumListeners;
     int _numStatFrames;
 };
