@@ -864,8 +864,8 @@ SharedNodePointer NodeList::soloNodeOfType(char nodeType) {
 }
 
 void NodeList::getPacketStats(float& packetsPerSecond, float& bytesPerSecond) {
-    packetsPerSecond = (float) _numCollectedPackets / (float) (_packetStatTimer.elapsed() / 1000.0f);
-    bytesPerSecond = (float) _numCollectedBytes / (float) (_packetStatTimer.elapsed() / 1000.0f);
+    packetsPerSecond = (float) _numCollectedPackets / ((float) _packetStatTimer.elapsed() / 1000.0f);
+    bytesPerSecond = (float) _numCollectedBytes / ((float) _packetStatTimer.elapsed() / 1000.0f);
 }
 
 void NodeList::resetPacketStats() {
