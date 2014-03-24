@@ -15,8 +15,10 @@
 
 int main(int argc, char* argv[]) {
     
+#ifndef WIN32
     setvbuf(stdout, NULL, _IOLBF, 0);
-    
+#endif
+
     // use the verbose message handler in Logging
     qInstallMessageHandler(Logging::verboseMessageHandler);
     
