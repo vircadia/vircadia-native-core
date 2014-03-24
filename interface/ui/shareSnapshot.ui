@@ -53,6 +53,9 @@
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="spacing">
+     <number>0</number>
+    </property>
     <item>
      <widget class="QFrame" name="frame">
       <property name="sizePolicy">
@@ -68,13 +71,13 @@
        </size>
       </property>
       <property name="styleSheet">
-       <string notr="true">background-color: #333;</string>
+       <string notr="true">background-color: #000</string>
       </property>
       <property name="frameShape">
-       <enum>QFrame::StyledPanel</enum>
+       <enum>QFrame::NoFrame</enum>
       </property>
       <property name="frameShadow">
-       <enum>QFrame::Raised</enum>
+       <enum>QFrame::Plain</enum>
       </property>
       <property name="lineWidth">
        <number>0</number>
@@ -84,7 +87,7 @@
         <rect>
          <x>-1</x>
          <y>1</y>
-         <width>791</width>
+         <width>792</width>
          <height>512</height>
         </rect>
        </property>
@@ -187,8 +190,27 @@
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>30</height>
+       </size>
+      </property>
+      <property name="font">
+       <font>
+        <family>Helvetica</family>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">color: #666;</string>
+      </property>
       <property name="text">
        <string>Notes about this image</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
       </property>
       <property name="margin">
        <number>0</number>
@@ -216,6 +238,11 @@
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
+        </property>
+        <property name="font">
+         <font>
+          <family>Helvetica</family>
+         </font>
         </property>
        </widget>
       </item>
