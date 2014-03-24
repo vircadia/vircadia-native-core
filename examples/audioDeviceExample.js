@@ -10,6 +10,27 @@
 
 
 
+var inputDevices = AudioDevice.getInputDevices();
+var defaultInputDevice = AudioDevice.getDefaultInputDevice();
+print("Input Devices:");
+for(var i = 0; i < inputDevices.length; i++) {
+    if (inputDevices[i] == defaultInputDevice) {
+        print("    " + inputDevices[i] + " << default");
+    } else {
+        print("    " + inputDevices[i]);
+    }
+}
+
+var outputDevices = AudioDevice.getInputDevices();
+var defaultOutputDevice = AudioDevice.getDefaultInputDevice();
+print("Output Devices:");
+for(var i = 0; i < outputDevices.length; i++) {
+    if (outputDevices[i] == defaultOutputDevice) {
+        print("    " + outputDevices[i] + " << default");
+    } else {
+        print("    " + outputDevices[i]);
+    }
+}
 
 print("Audio Input Device: " + AudioDevice.getInputDevice());
 AudioDevice.setInputDevice("Shure Digital");

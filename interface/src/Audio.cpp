@@ -271,6 +271,19 @@ void Audio::start() {
     }
 }
 
+QString Audio::getDefaultDeviceName(QAudio::Mode mode) {
+    QAudioDeviceInfo deviceInfo = defaultAudioDeviceForMode(mode);
+    return deviceInfo.deviceName();
+}
+
+QVector<QString> Audio::getDeviceNames(QAudio::Mode mode) {
+    QVector<QString> deviceNames;
+    foreach(QAudioDeviceInfo audioDevice, QAudioDeviceInfo::availableDevices(mode)) {
+        deviceNames << audioDevice.deviceName().trimmed();
+    }
+    return deviceNames;
+}
+
 bool Audio::switchInputToAudioDevice(const QString& inputDeviceName) {
     bool supportedFormat = false;
     

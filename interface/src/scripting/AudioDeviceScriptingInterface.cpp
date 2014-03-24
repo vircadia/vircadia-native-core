@@ -36,9 +36,25 @@ bool AudioDeviceScriptingInterface::setOutputDevice(const QString& deviceName) {
 }
 
 QString AudioDeviceScriptingInterface::getInputDevice() {
-    return Application::getInstance()->getAudio()->getInputAudioDeviceName();
+    return Application::getInstance()->getAudio()->getDeviceName(QAudio::AudioInput);
 }
 
 QString AudioDeviceScriptingInterface::getOutputDevice() {
-    return Application::getInstance()->getAudio()->getOutputAudioDeviceName();
+    return Application::getInstance()->getAudio()->getDeviceName(QAudio::AudioOutput);
+}
+
+QString AudioDeviceScriptingInterface::getDefaultInputDevice() {
+    return Application::getInstance()->getAudio()->getDefaultDeviceName(QAudio::AudioInput);
+}
+
+QString AudioDeviceScriptingInterface::getDefaultOutputDevice() {
+    return Application::getInstance()->getAudio()->getDefaultDeviceName(QAudio::AudioOutput);
+}
+
+QVector<QString> AudioDeviceScriptingInterface::getInputDevices() {
+    return Application::getInstance()->getAudio()->getDeviceNames(QAudio::AudioInput);
+}
+
+QVector<QString> AudioDeviceScriptingInterface::getOutputDevices() {
+    return Application::getInstance()->getAudio()->getDeviceNames(QAudio::AudioOutput);
 }

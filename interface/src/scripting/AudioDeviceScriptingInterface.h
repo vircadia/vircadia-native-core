@@ -24,8 +24,15 @@ public:
 public slots:
     bool setInputDevice(const QString& deviceName);
     bool setOutputDevice(const QString& deviceName);
+
     QString getInputDevice();
     QString getOutputDevice();
+
+    QString getDefaultInputDevice();
+    QString getDefaultOutputDevice();
+
+    QVector<QString> getInputDevices();
+    QVector<QString> getOutputDevices();
 };
 
 #endif /* defined(__hifi__AudioDeviceScriptingInterface__) */

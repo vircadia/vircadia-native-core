@@ -19,9 +19,12 @@
 
 #include "InterfaceConfig.h"
 
+#include <QAudio>
+#include <QGLWidget>
 #include <QtCore/QObject>
 #include <QtCore/QVector>
 #include <QtMultimedia/QAudioFormat>
+#include <QVector>
 
 #include <AbstractAudioInterface.h>
 #include <AudioRingBuffer.h>
@@ -29,7 +32,6 @@
 
 #include "ui/Oscilloscope.h"
 
-#include <QGLWidget>
 
 static const int NUM_AUDIO_CHANNELS = 2;
 
@@ -85,10 +87,10 @@ public slots:
 
     bool switchInputToAudioDevice(const QString& inputDeviceName);
     bool switchOutputToAudioDevice(const QString& outputDeviceName);
-
-    QString getInputAudioDeviceName() const { return _inputAudioDeviceName; }
-    QString getOutputAudioDeviceName() const { return _outputAudioDeviceName; }
-    
+    QString getDeviceName(QAudio::Mode mode) const { return (mode == QAudio::AudioInput) ?
+                                                            _inputAudioDeviceName : _outputAudioDeviceName; }
+    QString getDefaultDeviceName(QAudio::Mode mode);
+    QVector<QString> getDeviceNames(QAudio::Mode mode);
 
 signals:
     bool muteToggled();
