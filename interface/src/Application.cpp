@@ -2142,7 +2142,6 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     viewFrustum.setOrientation(rotation);
 
     // Also make sure it's got the correct lens details from the camera
-    viewFrustum.setOrthographic(false);
     viewFrustum.setAspectRatio(aspectRatio);
     viewFrustum.setFieldOfView(fov);    // degrees
     viewFrustum.setNearClip(nearClip);
@@ -2218,8 +2217,8 @@ void Application::updateShadowMap() {
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadIdentity();
-    glm::vec3 axis = glm::axis(rotation);
-    glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+    glm::vec3 axis = glm::axis(inverseRotation);
+    glRotatef(glm::degrees(glm::angle(inverseRotation)), axis.x, axis.y, axis.z);
 
     // store view matrix without translation, which we'll use for precision-sensitive objects
     glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
