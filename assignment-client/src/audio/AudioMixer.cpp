@@ -393,7 +393,7 @@ void AudioMixer::run() {
     
     // send a stats packet every 1 second
     QTimer* statsTimer = new QTimer(this);
-    connect(statsTimer, SIGNAL(timeout()), this, SLOT(sendStatsPacket()));
+    connect(statsTimer, &QTimer::timeout, this, &AudioMixer::sendStatsPacket);
     statsTimer->start(1000);
 
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);

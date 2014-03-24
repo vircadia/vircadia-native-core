@@ -12,6 +12,7 @@
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QElapsedTimer>
+#include <QtCore/QJsonObject>
 #include <QtCore/QTimer>
 
 #include <Logging.h>
@@ -29,7 +30,9 @@ const QString AVATAR_MIXER_LOGGING_NAME = "avatar-mixer";
 const unsigned int AVATAR_DATA_SEND_INTERVAL_USECS = (1 / 60.0) * 1000 * 1000;
 
 AvatarMixer::AvatarMixer(const QByteArray& packet) :
-    ThreadedAssignment(packet)
+    ThreadedAssignment(packet),
+    _sumListeners(0),
+    _numStatFrames(0)
 {
     // make sure we hear about node kills so we can tell the other nodes
     connect(NodeList::getInstance(), &NodeList::nodeKilled, this, &AvatarMixer::nodeKilled);
@@ -48,7 +51,7 @@ void attachAvatarDataToNode(Node* newNode) {
 //    3) if we need to rate limit the amount of data we send, we can use a distance weighted "semi-random" function to
 //       determine which avatars are included in the packet stream
 //    4) we should optimize the avatar data format to be more compact (100 bytes is pretty wasteful).
-void broadcastAvatarData() {
+void AvatarMixer::broadcastAvatarData() {
     static QByteArray mixedAvatarByteArray;
     
     int numPacketHeaderBytes = populatePacketHeader(mixedAvatarByteArray, PacketTypeBulkAvatarData);
@@ -57,6 +60,7 @@ void broadcastAvatarData() {
     
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
         if (node->getLinkedData() && node->getType() == NodeType::Agent && node->getActiveSocket()) {
+            ++_sumListeners;
             
             // reset packet pointers for this node
             mixedAvatarByteArray.resize(numPacketHeaderBytes);
@@ -241,6 +245,25 @@ void AvatarMixer::readPendingDatagrams() {
     }
 }
 
+void AvatarMixer::sendStatsPacket() {
+    QJsonObject statsObject;
+    statsObject["average_listeners_last_second"] = _sumListeners / (float) _numStatFrames;
+    
+    NodeList* nodeList = NodeList::getInstance();
+    
+    float packetsPerSecond, bytesPerSecond;
+    nodeList->getPacketStats(packetsPerSecond, bytesPerSecond);
+    nodeList->resetPacketStats();
+    
+    statsObject["packets_per_second"] = packetsPerSecond;
+    statsObject["bytes_per_second"] = bytesPerSecond;
+    
+    nodeList->sendStatsToDomainServer(statsObject);
+    
+    _sumListeners = 0;
+    _numStatFrames = 0;
+}
+
 const qint64 AVATAR_IDENTITY_KEYFRAME_MSECS = 5000;
 const qint64 AVATAR_BILLBOARD_KEYFRAME_MSECS = 5000;
 
@@ -249,6 +272,11 @@ void AvatarMixer::run() {
     
     NodeList* nodeList = NodeList::getInstance();
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
+    
+    // send a stats packet every 1 second
+    QTimer* statsTimer = new QTimer(this);
+    connect(statsTimer, &QTimer::timeout, this, &AvatarMixer::sendStatsPacket);
+    statsTimer->start(1000);
     
     nodeList->linkedDataCreateCallback = attachAvatarDataToNode;
     
@@ -264,6 +292,8 @@ void AvatarMixer::run() {
     billboardTimer.start();
     
     while (!_isFinished) {
+        
+        ++_numStatFrames;
         
         QCoreApplication::processEvents();
         
