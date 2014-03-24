@@ -65,17 +65,21 @@
 #include <FstReader.h>
 
 #include "Application.h"
-#include "ClipboardScriptingInterface.h"
 #include "InterfaceVersion.h"
 #include "Menu.h"
-#include "MenuScriptingInterface.h"
 #include "Util.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
 #include "renderer/ProgramObject.h"
-#include "ui/TextRenderer.h"
-#include "InfoView.h"
+
+#include "scripting/AudioDeviceScriptingInterface.h"
+#include "scripting/ClipboardScriptingInterface.h"
+#include "scripting/MenuScriptingInterface.h"
+#include "scripting/SettingsScriptingInterface.h"
+
+#include "ui/InfoView.h"
 #include "ui/Snapshot.h"
+#include "ui/TextRenderer.h"
 
 using namespace std;
 
@@ -3559,6 +3563,8 @@ void Application::loadScript(const QString& fileNameString) {
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
 
     QThread* workerThread = new QThread(this);
 

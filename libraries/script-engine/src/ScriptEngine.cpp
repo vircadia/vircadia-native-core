@@ -144,6 +144,7 @@ void ScriptEngine::init() {
     qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<ParticleID> >(&_engine);
     qScriptRegisterSequenceMetaType<QVector<glm::vec2> >(&_engine);
+    qScriptRegisterSequenceMetaType<QVector<QString> >(&_engine);
 
     QScriptValue soundConstructorValue = _engine.newFunction(soundConstructor);
     QScriptValue soundMetaObject = _engine.newQMetaObject(&Sound::staticMetaObject, soundConstructorValue);
