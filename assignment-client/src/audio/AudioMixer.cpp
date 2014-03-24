@@ -358,11 +358,17 @@ void AudioMixer::readPendingDatagrams() {
 
 void AudioMixer::sendStatsPacket() {
     static QJsonObject statsObject;
-    statsObject["trailing_sleep_time"] = _trailingSleepRatio;
-    statsObject["performance_cutoff"] = _minAudibilityThreshold;
+    statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100.0f;
+    statsObject["performance_throttling"] = _performanceThrottling;
 
     statsObject["average_listeners_per_frame"] = _sumListeners / (float) _numStatFrames;
-    statsObject["average_mixes_per_listeners"] = _sumMixes / _sumListeners / _numStatFrames;
+    
+    if (_sumListeners > 0) {
+        statsObject["average_mixes_per_listener"] = _sumMixes / (float) _sumListeners;
+    } else {
+        statsObject["average_mixes_per_listener"] = 0.0;
+    }
+    
     
     _sumListeners = 0;
     _sumMixes = 0;
