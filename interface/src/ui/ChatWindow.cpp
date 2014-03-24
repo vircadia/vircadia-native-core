@@ -200,14 +200,14 @@ void ChatWindow::participantsChanged() {
         QLabel* userLabel = new QLabel();
         userLabel->setText(participantName);
         userLabel->setStyleSheet("background-color: palette(light);"
-                                  "border-radius: 5px;"
-                                  "color: #267077;"
-                                  "padding-top: 3px;"
-                                  "padding-right: 2px;"
-                                  "padding-bottom: 2px;"
-                                  "padding-left: 2px;"
-                                  "border: 1px solid palette(shadow);"
-                                  "font-weight: bold");
+                                 "border-radius: 5px;"
+                                 "color: #267077;"
+                                 "padding-top: 3px;"
+                                 "padding-right: 2px;"
+                                 "padding-bottom: 2px;"
+                                 "padding-left: 2px;"
+                                 "border: 1px solid palette(shadow);"
+                                 "font-weight: bold");
         userLabel->setProperty("user", participantName);
         userLabel->setCursor(Qt::PointingHandCursor);
         userLabel->installEventFilter(this);
@@ -231,6 +231,11 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     messageLabel->setOpenExternalLinks(true);
     messageLabel->setStyleSheet("padding: 2px; margin-right: 20px");
     messageLabel->setAlignment(Qt::AlignTop);
+
+    if (getParticipantName(message.from()) == AccountManager::getInstance().getUsername()) {
+        userLabel->setStyleSheet(userLabel->styleSheet() + "; color: palette(highlight)");
+        messageLabel->setStyleSheet(messageLabel->styleSheet() + "; color: palette(highlight)");
+    }
 
     ui->messagesGridLayout->addWidget(userLabel, ui->messagesGridLayout->rowCount(), 0, Qt::AlignTop | Qt::AlignRight);
     ui->messagesGridLayout->addWidget(messageLabel, ui->messagesGridLayout->rowCount() - 1, 1);
