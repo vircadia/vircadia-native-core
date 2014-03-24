@@ -24,9 +24,8 @@ int main(int argc, char* argv[]) {
     setvbuf(stdout, NULL, _IOLBF, 0);
 #endif
 
-	qInstallMessageHandler(Logging::verboseMessageHandler);
-
-	DomainServer domainServer(argc, argv);
+    qInstallMessageHandler(Logging::verboseMessageHandler);
+    DomainServer domainServer(argc, argv);
     
     return domainServer.exec();
 }
