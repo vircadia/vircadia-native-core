@@ -13,7 +13,13 @@ $(document).ready(function(){
     var statsTableBody = "";
     
     $.getJSON("/nodes/" + uuid + ".json", function(json){
-      $.each(json, function (key, value) {
+      
+      // update the table header with the right node type
+      $('#stats-lead h3').html(json.node_type + " stats (" + uuid +);
+      
+      delete json.node_type;
+      
+      $.each(json, function(key, value) {
         statsTableBody += "<tr>";
         statsTableBody += "<td>" + key + "</td>";
         statsTableBody += "<td>" + value + "</td>";
@@ -21,7 +27,7 @@ $(document).ready(function(){
       });
       
       $('#stats-table tbody').html(statsTableBody);
-    });
+    });    
   }
   
   // do the first GET on page load
