@@ -431,8 +431,10 @@ void AudioMixer::run() {
                 
                 framesSinceCutoffEvent = 0;
             }
-        } else {
-            framesSinceCutoffEvent++;
+        }
+        
+        if (!hasRatioChanged) {
+            ++framesSinceCutoffEvent;
         }
 
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
