@@ -189,10 +189,11 @@ static TextRenderer* textRenderer(TextRendererType type) {
     return displayNameRenderer;
 }
 
-void Avatar::render(const glm::vec3& cameraPosition, bool forShadowMap) {
+void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
     // simple frustum check
     float boundingRadius = getBillboardSize();
-    if (Application::getInstance()->getViewFrustum()->sphereInFrustum(cameraPosition, boundingRadius) == ViewFrustum::OUTSIDE) {
+    if (Application::getInstance()->getViewFrustum()->sphereInFrustum(
+            cameraPosition, boundingRadius) == ViewFrustum::OUTSIDE) {
         return;
     }
 
@@ -202,11 +203,11 @@ void Avatar::render(const glm::vec3& cameraPosition, bool forShadowMap) {
     {
         // glow when moving far away
         const float GLOW_DISTANCE = 20.0f;
-        Glower glower(_moving && distanceToTarget > GLOW_DISTANCE && !forShadowMap ? 1.0f : 0.0f);
+        Glower glower(_moving && distanceToTarget > GLOW_DISTANCE && renderMode == NORMAL_RENDER_MODE ? 1.0f : 0.0f);
 
         // render body
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
-            renderBody(forShadowMap);
+            renderBody(renderMode);
         }
         if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
             _skeletonModel.renderCollisionProxies(0.7f);
@@ -230,7 +231,8 @@ void Avatar::render(const glm::vec3& cameraPosition, bool forShadowMap) {
             float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
             float sphereRadius = getHead()->getAverageLoudness() * SPHERE_LOUDNESS_SCALING;
             
-            if (!forShadowMap && (sphereRadius > MIN_SPHERE_SIZE) && (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
+            if (renderMode == NORMAL_RENDER_MODE && (sphereRadius > MIN_SPHERE_SIZE) &&
+                    (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
                 glColor4f(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.f - angle / MAX_SPHERE_ANGLE);
                 glPushMatrix();
                 glTranslatef(_position.x, _position.y, _position.z);
@@ -242,8 +244,8 @@ void Avatar::render(const glm::vec3& cameraPosition, bool forShadowMap) {
     }
 
     const float DISPLAYNAME_DISTANCE = 10.0f;
-    setShowDisplayName(!forShadowMap && distanceToTarget < DISPLAYNAME_DISTANCE);
-    if (forShadowMap) {
+    setShowDisplayName(renderMode == NORMAL_RENDER_MODE && distanceToTarget < DISPLAYNAME_DISTANCE);
+    if (renderMode != NORMAL_RENDER_MODE) {
         return;
     }
     renderDisplayName();
@@ -306,17 +308,16 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::renderBody(bool forShadowMap) {    
+void Avatar::renderBody(RenderMode renderMode) {    
     if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         // render the billboard until both models are loaded
-        if (forShadowMap) {
-            return;
+        if (renderMode != SHADOW_RENDER_MODE) {
+            renderBillboard();
         }
-        renderBillboard();
         return;
     }
-    _skeletonModel.render(1.0f);
-    getHead()->render(1.0f);
+    _skeletonModel.render(1.0f, renderMode == SHADOW_RENDER_MODE);
+    getHead()->render(1.0f, renderMode == SHADOW_RENDER_MODE);
     getHand()->render(false);
 }
 

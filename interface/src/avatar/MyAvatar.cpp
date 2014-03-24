@@ -451,12 +451,12 @@ void MyAvatar::renderDebugBodyPoints() {
 }
 
 // virtual
-void MyAvatar::render(const glm::vec3& cameraPosition, bool forShadowMapOrMirror) {
+void MyAvatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
     // don't render if we've been asked to disable local rendering
     if (!_shouldRender) {
         return; // exit early
     }
-    Avatar::render(cameraPosition, forShadowMapOrMirror);
+    Avatar::render(cameraPosition, renderMode);
 }
 
 void MyAvatar::renderHeadMouse() const {
@@ -639,20 +639,20 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _billboardValid = false;
 }
 
-void MyAvatar::renderBody(bool forceRenderHead) {
+void MyAvatar::renderBody(RenderMode renderMode) {
     if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         return; // wait until both models are loaded
     }
     
     //  Render the body's voxels and head
-    _skeletonModel.render(1.0f);
+    _skeletonModel.render(1.0f, renderMode == SHADOW_RENDER_MODE);
 
     //  Render head so long as the camera isn't inside it
     const float RENDER_HEAD_CUTOFF_DISTANCE = 0.40f;
     Camera* myCamera = Application::getInstance()->getCamera();
-    if (forceRenderHead || (glm::length(myCamera->getPosition() - getHead()->calculateAverageEyePosition()) >
+    if (renderMode != NORMAL_RENDER_MODE || (glm::length(myCamera->getPosition() - getHead()->calculateAverageEyePosition()) >
             RENDER_HEAD_CUTOFF_DISTANCE * _scale)) {
-        getHead()->render(1.0f);
+        getHead()->render(1.0f, renderMode == SHADOW_RENDER_MODE);
     }
     getHand()->render(true);
 }

@@ -62,17 +62,6 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     }
 }
 
-bool SkeletonModel::render(float alpha) {
-
-    if (_jointStates.isEmpty()) {
-        return false;
-    }
-
-    Model::render(alpha);
-
-    return true;
-}
-
 void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes) const {
     if (jointIndex == -1) {
         return;

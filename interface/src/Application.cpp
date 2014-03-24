@@ -2210,7 +2210,7 @@ void Application::updateShadowMap() {
 
     glTranslatef(translation.x, translation.y, translation.z);
 
-    _avatarManager.renderAvatars(true);
+    _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
     _particles.render();
 
     glPopMatrix();
@@ -2388,7 +2388,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     }
 
     bool mirrorMode = (whichCamera.getInterpolatedMode() == CAMERA_MODE_MIRROR);
-    _avatarManager.renderAvatars(mirrorMode, selfAvatarOnly);
+    _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE, selfAvatarOnly);
 
     if (!selfAvatarOnly) {
         //  Render the world box
