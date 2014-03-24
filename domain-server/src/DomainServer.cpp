@@ -737,8 +737,13 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                 SharedNodePointer matchingNode = NodeList::getInstance()->nodeWithUUID(matchingUUID);
                 if (matchingNode) {
                     // create a QJsonDocument with the stats QJsonObject
-                    QJsonDocument statsDocument(reinterpret_cast<DomainServerNodeData*>(matchingNode->getLinkedData())
-                                                ->getStatsJSONObject());
+                    QJsonObject statsObject =
+                        reinterpret_cast<DomainServerNodeData*>(matchingNode->getLinkedData())->getStatsJSONObject();
+                    
+                    // add the node type to the JSON data for output purposes
+                    statsObject["node_type"] = NodeType::getNodeTypeName(matchingNode->getType()).toLower().replace(' ', '-');
+                    
+                    QJsonDocument statsDocument(statsObject);
                     
                     // send the response
                     connection->respond(HTTPConnection::StatusCode200, statsDocument.toJson(), qPrintable(JSON_MIME_TYPE));

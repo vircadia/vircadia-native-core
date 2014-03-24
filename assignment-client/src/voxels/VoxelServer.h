@@ -46,7 +46,6 @@ public:
     virtual bool hasSpecialPacketToSend(const SharedNodePointer& node);
     virtual int sendSpecialPacket(const SharedNodePointer& node);
 
-
 private:
     bool _sendEnvironments;
     bool _sendMinimalEnvironment;

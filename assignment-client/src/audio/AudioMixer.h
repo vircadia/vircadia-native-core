@@ -44,7 +44,7 @@ private:
     
     float _trailingSleepRatio;
     float _minAudibilityThreshold;
-    float _performanceThrottling;
+    float _performanceThrottlingRatio;
     int _numStatFrames;
     int _sumListeners;
     int _sumMixes;
