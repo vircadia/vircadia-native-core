@@ -35,7 +35,6 @@ void DomainServerNodeData::parseJSONStatsPacket(const QByteArray& statsPacket) {
     _statsJSONObject = mergeJSONStatsFromNewObject(unpackedStatsJSON, _statsJSONObject);
 }
 
-
 QJsonObject DomainServerNodeData::mergeJSONStatsFromNewObject(const QJsonObject& newObject, QJsonObject destinationObject) {
     foreach(const QString& key, newObject.keys()) {
         if (newObject[key].isObject() && destinationObject.contains(key)) {

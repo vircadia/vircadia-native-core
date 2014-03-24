@@ -193,6 +193,10 @@ qint64 NodeList::writeDatagram(const char* data, qint64 size, const SharedNodePo
     return writeDatagram(QByteArray(data, size), destinationNode, overridenSockAddr);
 }
 
+qint64 NodeList::sendDatagramToDomainServer(const QByteArray &datagram) {
+    return writeDatagram(datagram, _domainInfo.getSockAddr(), _domainInfo.getConnectionSecret());
+}
+
 void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode) {
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));
