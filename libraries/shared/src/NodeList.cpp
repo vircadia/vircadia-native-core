@@ -69,7 +69,10 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _assignmentServerSocket(),
     _publicSockAddr(),
     _hasCompletedInitialSTUNFailure(false),
-    _stunRequestsSinceSuccess(0)
+    _stunRequestsSinceSuccess(0),
+    _numCollectedPackets(0),
+    _numCollectedBytes(0),
+    _packetStatTimer()
 {
     _nodeSocket.bind(QHostAddress::AnyIPv4, newSocketListenPort);
     qDebug() << "NodeList socket is listening on" << _nodeSocket.localPort();
@@ -79,6 +82,8 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     
     // clear our NodeList when logout is requested
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
+    
+    _packetStatTimer.start();
 }
 
 bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
@@ -161,7 +166,11 @@ qint64 NodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& d
     
     // setup the MD5 hash for source verification in the header
     replaceHashInPacketGivenConnectionUUID(datagramCopy, connectionSecret);
-
+    
+    // stat collection for packets
+    ++_numCollectedPackets;
+    _numCollectedBytes += datagram.size();
+    
     return _nodeSocket.writeDatagram(datagramCopy, destinationSockAddr.getAddress(), destinationSockAddr.getPort());
     
 }
@@ -852,6 +861,17 @@ SharedNodePointer NodeList::soloNodeOfType(char nodeType) {
         }
     }
     return SharedNodePointer();
+}
+
+void NodeList::getPacketStats(float& packetsPerSecond, float& bytesPerSecond) {
+    packetsPerSecond = _numCollectedPackets / (float) (_packetStatTimer.elapsed() / 1000.0f);
+    bytesPerSecond = _numCollectedBytes / (float) (_packetStatTimer.elapsed() / 1000.0f);
+}
+
+void NodeList::resetPacketStats() {
+    _numCollectedPackets = 0;
+    _numCollectedBytes = 0;
+    _packetStatTimer.restart();
 }
 
 void NodeList::removeSilentNodes() {

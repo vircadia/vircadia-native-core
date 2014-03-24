@@ -369,12 +369,20 @@ void AudioMixer::sendStatsPacket() {
         statsObject["average_mixes_per_listener"] = 0.0;
     }
     
+    NodeList* nodeList = NodeList::getInstance();
+    
+    float packetsPerSecond, bytesPerSecond;
+    nodeList->getPacketStats(packetsPerSecond, bytesPerSecond);
+    nodeList->resetPacketStats();
+    
+    statsObject["packets_per_second"] = packetsPerSecond;
+    statsObject["bytes_per_second"] = bytesPerSecond;
     
     _sumListeners = 0;
     _sumMixes = 0;
     _numStatFrames = 0;
     
-    NodeList::getInstance()->sendStatsToDomainServer(statsObject);
+    nodeList->sendStatsToDomainServer(statsObject);
 }
 
 void AudioMixer::run() {
