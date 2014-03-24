@@ -30,10 +30,10 @@ ChatWindow::ChatWindow() :
     ui(new Ui::ChatWindow),
     numMessagesAfterLastTimeStamp(0)
 {
-    QWidget* widget = new QWidget();
-    setWidget(widget);
-    
-    ui->setupUi(widget);
+    ui->setupUi(this);
+
+    // remove the title bar (see the Qt docs on setTitleBarWidget)
+    setTitleBarWidget(new QWidget());
 
     FlowLayout* flowLayout = new FlowLayout(0, 4, 4);
     ui->usersWidget->setLayout(flowLayout);
@@ -42,8 +42,6 @@ ChatWindow::ChatWindow() :
     ui->messagesGridLayout->setColumnStretch(1, 3);
 
     ui->messagePlainTextEdit->installEventFilter(this);
-
-    ui->closeButton->hide();
     
 #ifdef HAVE_QXMPP
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
@@ -78,15 +76,16 @@ ChatWindow::~ChatWindow() {
 }
 
 void ChatWindow::keyPressEvent(QKeyEvent* event) {
-    QWidget::keyPressEvent(event);
+    QDockWidget::keyPressEvent(event);
     if (event->key() == Qt::Key_Escape) {
         hide();
     }
 }
 
 void ChatWindow::showEvent(QShowEvent* event) {
-    QWidget::showEvent(event);
+    QDockWidget::showEvent(event);
     if (!event->spontaneous()) {
+        activateWindow();
         ui->messagePlainTextEdit->setFocus();
     }
 }
