@@ -19,6 +19,8 @@ public:
     DomainServerNodeData();
     int parseData(const QByteArray& packet) { return 0; }
     
+    const QJsonObject& getStatsJSONObject() const { return _statsJSONObject; }
+    
     void parseJSONStatsPacket(const QByteArray& statsPacket);
     
     void setStaticAssignmentUUID(const QUuid& staticAssignmentUUID) { _staticAssignmentUUID = staticAssignmentUUID; }

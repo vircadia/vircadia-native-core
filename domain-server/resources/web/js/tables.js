@@ -42,7 +42,7 @@ $(document).ready(function(){
   $(document.body).on('click', '.glyphicon-remove', function(){
     // fire off a delete for this node
     $.ajax({
-        url: "/node/" + $(this).data('uuid'),
+        url: "/nodes/" + $(this).data('uuid'),
         type: 'DELETE',
         success: function(result) {
           console.log("Succesful request to delete node.");
