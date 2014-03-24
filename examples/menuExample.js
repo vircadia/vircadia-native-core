@@ -32,6 +32,7 @@ function setupMenus() {
     Menu.addSeparator("Foo","Removable Tools");
     Menu.addMenuItem("Foo","Remove Foo item 4");
     Menu.addMenuItem("Foo","Remove Foo");
+    Menu.addMenuItem("Foo","Remove Bar-Spam");
     Menu.addMenu("Bar");
 
     Menu.addMenuItem("Bar","Bar item 1", "b");
@@ -91,6 +92,10 @@ function menuItemEvent(menuItem) {
     if (menuItem == "Remove Foo") {
         Menu.removeMenu("Foo");
     }
+    if (menuItem == "Remove Bar-Spam") {
+        Menu.removeMenu("Bar > Spam");
+    }
+
     if (menuItem == "Remove Spam item 2") {
         Menu.removeMenuItem("Bar > Spam", "Spam item 2");
     }

@@ -1414,9 +1414,8 @@ void Menu::removeMenu(const QString& menuName) {
     if (action) {
         QString finalMenuPart;
         QMenu* parent = getMenuParent(menuName, finalMenuPart);
-    
         if (parent) {
-            removeAction(parent, finalMenuPart);
+            parent->removeAction(action);
         } else {
             QMenuBar::removeAction(action);
         }
