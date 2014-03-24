@@ -369,32 +369,18 @@ void AudioMixer::sendStatsPacket() {
         statsObject["average_mixes_per_listener"] = 0.0;
     }
     
-    NodeList* nodeList = NodeList::getInstance();
-    
-    float packetsPerSecond, bytesPerSecond;
-    nodeList->getPacketStats(packetsPerSecond, bytesPerSecond);
-    nodeList->resetPacketStats();
-    
-    statsObject["packets_per_second"] = packetsPerSecond;
-    statsObject["bytes_per_second"] = bytesPerSecond;
+    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
     
     _sumListeners = 0;
     _sumMixes = 0;
     _numStatFrames = 0;
-    
-    nodeList->sendStatsToDomainServer(statsObject);
 }
 
 void AudioMixer::run() {
 
-    commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NodeType::AudioMixer);
+    ThreadedAssignment::commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NodeType::AudioMixer);
 
     NodeList* nodeList = NodeList::getInstance();
-    
-    // send a stats packet every 1 second
-    QTimer* statsTimer = new QTimer(this);
-    connect(statsTimer, &QTimer::timeout, this, &AudioMixer::sendStatsPacket);
-    statsTimer->start(1000);
 
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 

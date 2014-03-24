@@ -251,19 +251,10 @@ void AvatarMixer::sendStatsPacket() {
     QJsonObject statsObject;
     statsObject["average_listeners_last_second"] = _sumListeners / (float) _numStatFrames;
     
-    NodeList* nodeList = NodeList::getInstance();
-    
-    float packetsPerSecond, bytesPerSecond;
-    nodeList->getPacketStats(packetsPerSecond, bytesPerSecond);
-    nodeList->resetPacketStats();
-    
-    statsObject["packets_per_second"] = packetsPerSecond;
-    statsObject["bytes_per_second"] = bytesPerSecond;
-    
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100;
     statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
     
-    nodeList->sendStatsToDomainServer(statsObject);
+    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
     
     _sumListeners = 0;
     _numStatFrames = 0;
@@ -273,15 +264,10 @@ const qint64 AVATAR_IDENTITY_KEYFRAME_MSECS = 5000;
 const qint64 AVATAR_BILLBOARD_KEYFRAME_MSECS = 5000;
 
 void AvatarMixer::run() {
-    commonInit(AVATAR_MIXER_LOGGING_NAME, NodeType::AvatarMixer);
+    ThreadedAssignment::commonInit(AVATAR_MIXER_LOGGING_NAME, NodeType::AvatarMixer);
     
     NodeList* nodeList = NodeList::getInstance();
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
-    
-    // send a stats packet every 1 second
-    QTimer* statsTimer = new QTimer(this);
-    connect(statsTimer, &QTimer::timeout, this, &AvatarMixer::sendStatsPacket);
-    statsTimer->start(1000);
     
     nodeList->linkedDataCreateCallback = attachAvatarDataToNode;
     

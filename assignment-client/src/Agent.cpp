@@ -120,10 +120,12 @@ void Agent::readPendingDatagrams() {
     }
 }
 
+const QString AGENT_LOGGING_NAME = "agent";
+
 void Agent::run() {
-    NodeList* nodeList = NodeList::getInstance();
-    nodeList->setOwnerType(NodeType::Agent);
+    ThreadedAssignment::commonInit(AGENT_LOGGING_NAME, NodeType::Agent);
     
+    NodeList* nodeList = NodeList::getInstance();
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer);
     
     // figure out the URL for the script for this agent assignment
@@ -147,17 +149,6 @@ void Agent::run() {
     QString scriptContents(reply->readAll());
     
     qDebug() << "Downloaded script:" << scriptContents;
-    
-    timeval startTime;
-    gettimeofday(&startTime, NULL);
-    
-    QTimer* domainServerTimer = new QTimer(this);
-    connect(domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
-    domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_USECS / 1000);
-    
-    QTimer* silentNodeTimer = new QTimer(this);
-    connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
-    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
     
     // setup an Avatar for the script to use
     AvatarData scriptedAvatar;
