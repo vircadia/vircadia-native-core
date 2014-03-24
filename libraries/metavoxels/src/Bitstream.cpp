@@ -251,6 +251,24 @@ void Bitstream::readDelta(bool& value, bool reference) {
     *this >> value;
 }
 
+void Bitstream::writeDelta(const QVariant& value, const QVariant& reference) {
+    // QVariant only handles == for built-in types; we need to use our custom operators
+    const TypeStreamer* streamer = getTypeStreamers().value(value.userType());
+    if (value.userType() == reference.userType() && (!streamer || streamer->equal(value, reference))) {
+        *this << false;
+         return;
+    }
+    *this << true;
+    _typeStreamerStreamer << streamer;
+    streamer->writeRawDelta(*this, value, reference);
+}
+
+void Bitstream::readRawDelta(QVariant& value, const QVariant& reference) {
+    TypeReader typeReader;
+    _typeStreamerStreamer >> typeReader;
+    typeReader.readRawDelta(*this, value, reference);
+}
+
 void Bitstream::writeRawDelta(const QObject* value, const QObject* reference) {
     if (!value) {
         _metaObjectStreamer << NULL;
@@ -959,8 +977,16 @@ void TypeReader::readDelta(Bitstream& in, QVariant& object, const QVariant& refe
     }
     bool changed;
     in >> changed;
-    if (!changed) {
+    if (changed) {
+        readRawDelta(in, object, reference);
+    } else {
         object = reference;
+    }
+}
+
+void TypeReader::readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const {
+    if (_exactMatch) {
+        _streamer->readRawDelta(in, object, reference);
         return;
     }
     switch (_type) {

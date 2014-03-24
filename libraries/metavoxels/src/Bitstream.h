@@ -275,8 +275,12 @@ public:
     void writeDelta(bool value, bool reference);
     void readDelta(bool& value, bool reference);
 
+    void writeDelta(const QVariant& value, const QVariant& reference);
+    
     template<class T> void writeDelta(const T& value, const T& reference);
     template<class T> void readDelta(T& value, const T& reference); 
+
+    void readRawDelta(QVariant& value, const QVariant& reference);
 
     void writeRawDelta(const QObject* value, const QObject* reference);
     void readRawDelta(QObject*& value, const QObject* reference);
@@ -653,6 +657,7 @@ public:
 
     QVariant read(Bitstream& in) const;
     void readDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
+    void readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
 
     bool matchesExactly(const TypeStreamer* streamer) const;
 
@@ -761,12 +766,17 @@ public:
     void setType(int type) { _type = type; }
     int getType() const { return _type; }
     
+    virtual bool equal(const QVariant& first, const QVariant& second) const = 0;
+    
     virtual void write(Bitstream& out, const QVariant& value) const = 0;
     virtual QVariant read(Bitstream& in) const = 0;
 
     virtual void writeDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const = 0;
     virtual void readDelta(Bitstream& in, QVariant& value, const QVariant& reference) const = 0;
 
+    virtual void writeRawDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const = 0;
+    virtual void readRawDelta(Bitstream& in, QVariant& value, const QVariant& reference) const = 0;
+    
     virtual const QVector<MetaField>& getMetaFields() const;
     virtual int getFieldIndex(const QByteArray& name) const;
     virtual void setField(QVariant& object, int index, const QVariant& value) const;
@@ -796,12 +806,17 @@ private:
 template<class T> class SimpleTypeStreamer : public TypeStreamer {
 public:
     
+    virtual bool equal(const QVariant& first, const QVariant& second) const { return first.value<T>() == second.value<T>(); }
     virtual void write(Bitstream& out, const QVariant& value) const { out << value.value<T>(); }
     virtual QVariant read(Bitstream& in) const { T value; in >> value; return QVariant::fromValue(value); }
     virtual void writeDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const {
         out.writeDelta(value.value<T>(), reference.value<T>()); }
     virtual void readDelta(Bitstream& in, QVariant& value, const QVariant& reference) const {
         in.readDelta(*static_cast<T*>(value.data()), reference.value<T>()); }
+    virtual void writeRawDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const {
+        out.writeRawDelta(value.value<T>(), reference.value<T>()); }
+    virtual void readRawDelta(Bitstream& in, QVariant& value, const QVariant& reference) const {
+        in.readRawDelta(*static_cast<T*>(value.data()), reference.value<T>()); }
 };
 
 /// A streamer for types compiled by mtc.
