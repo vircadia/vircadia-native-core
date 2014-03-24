@@ -2,14 +2,13 @@
 //  Stats.h
 //  interface
 //
+//  Created by Lucas Crisman on 22/03/14.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
 #include <QObject>
 
 #include <NodeList.h>
-
-//#include "Menu.h"
 
 class Stats: public QObject {
     Q_OBJECT
@@ -23,7 +22,7 @@ public:
 
     void toggleExpanded();
     void checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseDragStartedY, int horizontalOffset);
-    void resetWidthOnResizeGL(int width);
+    void resetWidth(int width, int horizontalOffset);
     void display(const float* color, int horizontalOffset, float fps, int packetsPerSecond, int bytesPerSecond, int voxelPacketsToProcess);
 private:
     static Stats* _sharedInstance;
@@ -37,4 +36,6 @@ private:
     int _pingStatsWidth;
     int _geoStatsWidth;
     int _voxelStatsWidth;
+
+    int _lastHorizontalOffset;
 };

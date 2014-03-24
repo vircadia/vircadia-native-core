@@ -2,6 +2,7 @@
 //  Stats.cpp
 //  interface
 //
+//  Created by Lucas Crisman on 22/03/14.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved
 //
 
@@ -38,9 +39,11 @@ Stats::Stats():
         _generalStatsWidth(STATS_GENERAL_MIN_WIDTH),
         _pingStatsWidth(STATS_PING_MIN_WIDTH),
         _geoStatsWidth(STATS_GEO_MIN_WIDTH),
-        _voxelStatsWidth(STATS_VOXEL_MIN_WIDTH)
+        _voxelStatsWidth(STATS_VOXEL_MIN_WIDTH),
+        _lastHorizontalOffset(0)
 {
-    // no constructor behavior yet, only members initialization
+    QGLWidget* glWidget = Application::getInstance()->getGLWidget();
+    resetWidth(glWidget->width(), 0);
 }
 
 void Stats::toggleExpanded() {
@@ -75,15 +78,17 @@ void Stats::checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseD
     statsX += _generalStatsWidth;
 
     // ping stats click
-    lines = _expanded ? 4 : 3;
-    statsHeight = lines * STATS_PELS_PER_LINE + 10;
-    if (mouseX > statsX && mouseX < statsX + _pingStatsWidth && mouseY > statsY && mouseY < statsY + statsHeight) {
-        toggleExpanded();
-        return;
+    if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
+        lines = _expanded ? 4 : 3;
+        statsHeight = lines * STATS_PELS_PER_LINE + 10;
+        if (mouseX > statsX && mouseX < statsX + _pingStatsWidth && mouseY > statsY && mouseY < statsY + statsHeight) {
+            toggleExpanded();
+            return;
+        }
+        statsX += _pingStatsWidth;
     }
-    statsX += _pingStatsWidth;
 
-    // top-center stats panel click
+    // geo stats panel click
     lines = _expanded ? 4 : 3;
     statsHeight = lines * STATS_PELS_PER_LINE + 10;
     if (mouseX > statsX && mouseX < statsX + _geoStatsWidth  && mouseY > statsY && mouseY < statsY + statsHeight) {
@@ -102,24 +107,32 @@ void Stats::checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseD
     }
 }
 
-void Stats::resetWidthOnResizeGL(int width) {
+void Stats::resetWidth(int width, int horizontalOffset) {
     QGLWidget* glWidget = Application::getInstance()->getGLWidget();
-    int extraSpace = glWidget->width()
+    int extraSpace = glWidget->width() - horizontalOffset -2
                    - STATS_GENERAL_MIN_WIDTH
-                   - STATS_PING_MIN_WIDTH
+                   - (Menu::getInstance()->isOptionChecked(MenuOption::TestPing) ? STATS_PING_MIN_WIDTH -1 : 0)
                    - STATS_GEO_MIN_WIDTH
-                   - STATS_VOXEL_MIN_WIDTH
-                   - 3;
+                   - STATS_VOXEL_MIN_WIDTH;
+
+    int panels = 4;
 
     _generalStatsWidth = STATS_GENERAL_MIN_WIDTH;
-    _pingStatsWidth = STATS_PING_MIN_WIDTH;
+    if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
+        _pingStatsWidth = STATS_PING_MIN_WIDTH;
+    } else {
+        _pingStatsWidth = 0;
+        panels = 3;
+    }
     _geoStatsWidth = STATS_GEO_MIN_WIDTH;
     _voxelStatsWidth = STATS_VOXEL_MIN_WIDTH;
 
-    if (extraSpace > 4) {
-        _generalStatsWidth += (int) extraSpace / 4;
-        _pingStatsWidth += (int) extraSpace / 4;
-        _geoStatsWidth += (int) extraSpace / 4;
+    if (extraSpace > panels) {
+        _generalStatsWidth += (int) extraSpace / panels;
+        if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
+            _pingStatsWidth += (int) extraSpace / panels;
+        }
+        _geoStatsWidth += (int) extraSpace / panels;
         _voxelStatsWidth += glWidget->width() - (_generalStatsWidth + _pingStatsWidth + _geoStatsWidth + 3);
     }
 }
@@ -156,6 +169,11 @@ void Stats::display(
 
     QLocale locale(QLocale::English);
     std::stringstream voxelStats;
+
+    if (_lastHorizontalOffset != horizontalOffset) {
+        resetWidth(glWidget->width(), horizontalOffset);
+        _lastHorizontalOffset = horizontalOffset;
+    }
 
     glPointSize(1.0f);
 
@@ -307,7 +325,7 @@ void Stats::display(
 
     VoxelSystem* voxels = Application::getInstance()->getVoxels();
 
-    lines = _expanded ? 11 : 3;
+    lines = _expanded ? 12 : 3;
     drawBackground(backgroundColor, horizontalOffset, 0, glWidget->width() - horizontalOffset, lines * STATS_PELS_PER_LINE + 10);
     horizontalOffset += 5;
 

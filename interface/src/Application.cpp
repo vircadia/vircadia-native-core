@@ -591,7 +591,13 @@ void Application::resizeGL(int width, int height) {
     updateProjectionMatrix();
     glLoadIdentity();
 
-    Stats::getInstance()->resetWidthOnResizeGL(width);
+    // update Stats width
+    int horizontalOffset = 0;
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+        // mirror is enabled, let's set horizontal offset to give stats some margin
+        horizontalOffset += MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
+    }
+    Stats::getInstance()->resetWidth(width, horizontalOffset);
 }
 
 void Application::updateProjectionMatrix() {
