@@ -35,7 +35,7 @@ public:
     virtual void run();
     
     virtual void readPendingDatagrams();
-
+    
 private slots:
 
     void maybeAttachSession(const SharedNodePointer& node);
