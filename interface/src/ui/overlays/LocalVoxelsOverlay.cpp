@@ -12,10 +12,10 @@
 #include <QGLWidget>
 #include <QScriptValue>
 
-#include <VoxelSystem.h>
 #include <Application.h>
 
 #include "LocalVoxelsOverlay.h"
+#include "voxels/VoxelSystem.h"
 
 QMap<QString, WeakVoxelSystemPointer> LocalVoxelsOverlay::_voxelSystemMap;
 

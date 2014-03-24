@@ -12,7 +12,7 @@
 #include <SharedUtil.h>
 
 #include "TextOverlay.h"
-#include "TextRenderer.h"
+#include "ui/TextRenderer.h"
 
 TextOverlay::TextOverlay() :
     _leftMargin(DEFAULT_MARGIN),
