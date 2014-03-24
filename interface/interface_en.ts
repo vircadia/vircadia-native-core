@@ -162,19 +162,19 @@
     <name>SnapshotShareDialog</name>
     <message>
         <location filename="ui/shareSnapshot.ui" line="38"/>
-        <location filename="../build/interface/ui_shareSnapshot.h" line="187"/>
+        <location filename="../build/interface/ui_shareSnapshot.h" line="166"/>
         <source>Share with community</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="ui/shareSnapshot.ui" line="210"/>
-        <location filename="../build/interface/ui_shareSnapshot.h" line="188"/>
+        <location filename="ui/shareSnapshot.ui" line="170"/>
+        <location filename="../build/interface/ui_shareSnapshot.h" line="167"/>
         <source>Notes about this image</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="ui/shareSnapshot.ui" line="280"/>
-        <location filename="../build/interface/ui_shareSnapshot.h" line="189"/>
+        <location filename="ui/shareSnapshot.ui" line="240"/>
+        <location filename="../build/interface/ui_shareSnapshot.h" line="168"/>
         <source>Share</source>
         <translation type="unfinished"></translation>
     </message>
