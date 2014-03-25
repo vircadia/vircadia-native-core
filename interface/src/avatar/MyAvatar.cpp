@@ -895,7 +895,6 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
     float myCapsuleHeight = staticScale.y;
     */
 
-    CollisionInfo collisionInfo;
     foreach (const AvatarSharedPointer& avatarPointer, avatars) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
         if (static_cast<Avatar*>(this) == avatar) {
@@ -926,10 +925,13 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
             // collide our hands against them
             getHand()->collideAgainstAvatar(avatar, true);
 
+            /* TODO: Andrew to fix them-into-us collision checks
             // collide their hands against us
             avatar->getHand()->collideAgainstAvatar(this, false);
+            */
         }
     }
+    getHand()->resolvePenetrations();
 }
 
 class SortedAvatar {

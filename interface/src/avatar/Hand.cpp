@@ -9,6 +9,7 @@
 #include <NodeList.h>
 
 #include <GeometryUtil.h>
+#include <StreamUtils.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -216,6 +217,13 @@ void Hand::collideAgainstOurself() {
             // resolve penetration
             palm.addToPenetration(totalPenetration);
         }
+    }
+}
+
+void Hand::resolvePenetrations() {
+    for (size_t i = 0; i < getNumPalms(); ++i) {
+        PalmData& palm = getPalms()[i];
+        palm.resolvePenetrations();
     }
 }
 
