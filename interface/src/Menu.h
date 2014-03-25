@@ -89,7 +89,7 @@ public:
     void autoAdjustLOD(float currentFPS);
     void setVoxelSizeScale(float sizeScale);
     float getVoxelSizeScale() const { return _voxelSizeScale; }
-    float getAvatarLODDistanceMultiplier() const { return DEFAULT_OCTREE_SIZE_SCALE / _voxelSizeScale; }
+    float getAvatarLODDistanceMultiplier() const { return _avatarLODDistanceMultiplier; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust);
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
 
@@ -202,12 +202,14 @@ private:
     LodToolsDialog* _lodToolsDialog;
     int _maxVoxels;
     float _voxelSizeScale;
+    float _avatarLODDistanceMultiplier;
     int _boundaryLevelAdjust;
     QAction* _useVoxelShader;
     int _maxVoxelPacketsPerSecond;
     QMenu* _activeScriptsMenu;
     QString replaceLastOccurrence(QChar search, QChar replace, QString string);
     quint64 _lastAdjust;
+    quint64 _lastAvatarDetailDrop;
     SimpleMovingAverage _fpsAverage;
     QAction* _loginAction;
     QAction* _chatAction;
