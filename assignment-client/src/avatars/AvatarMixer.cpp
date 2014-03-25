@@ -102,14 +102,16 @@ void AvatarMixer::broadcastAvatarData() {
                         // copy the avatar into the mixedAvatarByteArray packet
                         mixedAvatarByteArray.append(avatarByteArray);
                         
-                        if (randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY) {
+                        bool forceSend = !myData->checkAndSetHasReceivedFirstPackets();
+                        
+                        if (randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY || forceSend) {
                             QByteArray billboardPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
                             billboardPacket.append(otherNode->getUUID().toRfc4122());
                             billboardPacket.append(otherNodeData->getAvatar().getBillboard());
                             nodeList->writeDatagram(billboardPacket, node);
                         }
                         
-                        if (randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY) {
+                        if (randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY || forceSend) {
                             QByteArray identityPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
                             
                             QByteArray individualData = otherNodeData->getAvatar().identityByteArray();

@@ -21,9 +21,12 @@ public:
 
     int parseData(const QByteArray& packet);
     AvatarData& getAvatar() { return _avatar; }
-        
+    
+    bool checkAndSetHasReceivedFirstPackets();
+    
 private:
     AvatarData _avatar;
+    bool _hasReceivedFirstPackets;
 };
 
 #endif /* defined(__hifi__AvatarMixerClientData__) */

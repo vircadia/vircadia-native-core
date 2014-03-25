@@ -9,7 +9,8 @@
 #include "AvatarMixerClientData.h"
 
 AvatarMixerClientData::AvatarMixerClientData() :
-    NodeData()
+    NodeData(),
+    _hasReceivedFirstPackets(false)
 {
     
 }
@@ -18,4 +19,10 @@ int AvatarMixerClientData::parseData(const QByteArray& packet) {
     // compute the offset to the data payload
     int offset = numBytesForPacketHeader(packet);
     return _avatar.parseDataAtOffset(packet, offset);
+}
+
+bool AvatarMixerClientData::checkAndSetHasReceivedFirstPackets() {
+    bool oldValue = _hasReceivedFirstPackets;
+    _hasReceivedFirstPackets = true;
+    return oldValue;
 }
