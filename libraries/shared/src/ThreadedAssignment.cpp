@@ -82,9 +82,9 @@ void ThreadedAssignment::sendStatsPacket() {
 
 void ThreadedAssignment::checkInWithDomainServerOrExit() {
     if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
-        qDebug() << "NRDC:" << NodeList::getInstance()->getNumNoReplyDomainCheckIns();
         setFinished(true);
     } else {
+        qDebug() << "Sending DS check in. There are" << NodeList::getInstance()->getNumNoReplyDomainCheckIns() << "unreplied.";
         NodeList::getInstance()->sendDomainServerCheckIn();
     }
 }

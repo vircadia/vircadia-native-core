@@ -89,7 +89,7 @@ public:
     void autoAdjustLOD(float currentFPS);
     void setVoxelSizeScale(float sizeScale);
     float getVoxelSizeScale() const { return _voxelSizeScale; }
-    float getAvatarLODDistanceMultiplier() const { return DEFAULT_OCTREE_SIZE_SCALE / _voxelSizeScale; }
+    float getAvatarLODDistanceMultiplier() const { return _avatarLODDistanceMultiplier; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust);
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
 
@@ -202,12 +202,14 @@ private:
     LodToolsDialog* _lodToolsDialog;
     int _maxVoxels;
     float _voxelSizeScale;
+    float _avatarLODDistanceMultiplier;
     int _boundaryLevelAdjust;
     QAction* _useVoxelShader;
     int _maxVoxelPacketsPerSecond;
     QMenu* _activeScriptsMenu;
     QString replaceLastOccurrence(QChar search, QChar replace, QString string);
     quint64 _lastAdjust;
+    quint64 _lastAvatarDetailDrop;
     SimpleMovingAverage _fpsAverage;
     QAction* _loginAction;
     QAction* _chatAction;
@@ -272,7 +274,8 @@ namespace MenuOption {
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
     const QString TurnWithHead = "Turn using Head";
-    const QString LoadScript = "Open and Run Script...";
+    const QString LoadScript = "Open and Run Script File...";
+    const QString LoadScriptURL = "Open and Run Script from URL...";
     const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
     const QString Particles = "Particles";
@@ -303,5 +306,7 @@ namespace MenuOption {
     const QString OctreeStats = "Voxel and Particle Statistics";
     const QString VoxelTextures = "Voxel Textures";
 }
+
+void sendFakeEnterEvent();
 
 #endif /* defined(__hifi__Menu__) */
