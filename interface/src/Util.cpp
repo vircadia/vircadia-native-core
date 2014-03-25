@@ -14,6 +14,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/noise.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <glm/detail/func_common.hpp>
 
 #include <SharedUtil.h>
 
@@ -23,12 +24,6 @@
 #include "world.h"
 
 #include "Util.h"
-
-#ifdef _WIN32
-int isnan(double value) { return _isnan(value); }
-#else
-int isnan(double value) { return std::isnan(value); }
-#endif
 
 using namespace std;
 
@@ -88,7 +83,7 @@ float angleBetween(const glm::vec3& v1, const glm::vec3& v2) {
 //  Helper function return the rotation from the first vector onto the second
 glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
     float angle = angleBetween(v1, v2);
-    if (isnan(angle) || angle < EPSILON) {
+    if (glm::isnan(angle) || angle < EPSILON) {
         return glm::quat();
     }
     glm::vec3 axis;
@@ -586,7 +581,7 @@ void runTimingTests() {
 
 float loadSetting(QSettings* settings, const char* name, float defaultValue) {
     float value = settings->value(name, defaultValue).toFloat();
-    if (isnan(value)) {
+    if (glm::isnan(value)) {
         value = defaultValue;
     }
     return value;
