@@ -33,8 +33,11 @@ const unsigned int SCRIPT_DATA_CALLBACK_USECS = floor(((1.0 / 60.0f) * 1000 * 10
 class ScriptEngine : public QObject {
     Q_OBJECT
 public:
-    ScriptEngine(const QString& scriptContents = NO_SCRIPT, bool wantMenuItems = false,
-                 const QString& scriptMenuName = QString(""), 
+    ScriptEngine(const QUrl& scriptURL, bool wantMenuItems = false, 
+                 AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
+
+    ScriptEngine(const QString& scriptContents = NO_SCRIPT, bool wantMenuItems = false, 
+                 const QString& fileNameString = QString(""), 
                  AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
 
     /// Access the VoxelsScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
@@ -44,7 +47,7 @@ public:
     static ParticlesScriptingInterface* getParticlesScriptingInterface() { return &_particlesScriptingInterface; }
 
     /// sets the script contents, will return false if failed, will fail if script is already running
-    bool setScriptContents(const QString& scriptContents);
+    bool setScriptContents(const QString& scriptContents, const QString& fileNameString = QString(""));
 
     const QString& getScriptMenuName() const { return _scriptMenuName; }
     void cleanupMenuItems();
@@ -68,6 +71,8 @@ public:
     
     void timerFired();
 
+    bool hasScript() const { return !_scriptContents.isEmpty(); }
+
 public slots:
     void stop();
     
@@ -75,6 +80,7 @@ public slots:
     QObject* setTimeout(const QScriptValue& function, int timeoutMS);
     void clearInterval(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
     void clearTimeout(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
+    void include(const QString& includeFile);
     
 signals:
     void update(float deltaTime);
@@ -97,6 +103,7 @@ protected:
     int _numAvatarSoundSentBytes;
 
 private:
+    QUrl resolveInclude(const QString& include) const;
     void sendAvatarIdentityPacket();
     void sendAvatarBillboardPacket();
     

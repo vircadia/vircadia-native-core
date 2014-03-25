@@ -21,8 +21,9 @@ $(document).ready(function(){
       
       $.each(json, function(key, value) {
         statsTableBody += "<tr>";
-        statsTableBody += "<td>" + key + "</td>";
-        statsTableBody += "<td>" + value + "</td>";
+        statsTableBody += "<td class='stats-key'>" + key + "</td>";
+        var formattedValue = (typeof value == 'number' ? value.toLocaleString() : value);
+        statsTableBody += "<td>" + formattedValue + "</td>";
         statsTableBody += "</tr>";
       });
       
