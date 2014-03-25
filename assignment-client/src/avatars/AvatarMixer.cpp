@@ -306,6 +306,10 @@ void AvatarMixer::run() {
             }
         }
         
+        if (!hasRatioChanged) {
+            ++framesSinceCutoffEvent;
+        }
+        
         broadcastAvatarData();
         
         QCoreApplication::processEvents();
