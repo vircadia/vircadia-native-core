@@ -115,6 +115,7 @@ public:
     void loadScript(const QString& fileNameString);    
     void loadScripts();
     void storeSizeAndPosition();
+    void clearScriptsBeforeRunning();
     void saveScripts();
     void initializeGL();
     void paintGL();

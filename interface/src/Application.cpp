@@ -251,7 +251,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
 
     _settings = new QSettings(this);
-
+    
     // Check to see if the user passed in a command line option for loading a local
     // Voxel File.
     _voxelsFilename = getCmdOption(argc, constArgv, "-i");
@@ -330,9 +330,18 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     LocalVoxelsList::getInstance()->addPersistantTree(DOMAIN_TREE_NAME, _voxels.getTree());
     LocalVoxelsList::getInstance()->addPersistantTree(CLIPBOARD_TREE_NAME, &_clipboard);
-    
-    // do this as late as possible so that all required subsystems are inialized
-    loadScripts();
+
+    // check first run...
+    QVariant firstRunValue = _settings->value("firstRun",QVariant(true));
+    if (firstRunValue.isValid() && firstRunValue.toBool()) {
+        qDebug() << "This is a first run...";
+        // clear the scripts, and set out script to our default scripts
+        clearScriptsBeforeRunning();
+        loadScript("http://public.highfidelity.io/scripts/defaultScripts.js");
+    } else {
+        // do this as late as possible so that all required subsystems are inialized
+        loadScripts();
+    }
 }
 
 Application::~Application() {
@@ -3451,6 +3460,13 @@ void Application::loadScripts() {
         loadScript(string);
     }
     
+    settings->endArray();
+}
+
+void Application::clearScriptsBeforeRunning() {
+    // clears all scripts from the settings
+    QSettings* settings = new QSettings(this);
+    settings->beginWriteArray("Settings");
     settings->endArray();
 }
 
