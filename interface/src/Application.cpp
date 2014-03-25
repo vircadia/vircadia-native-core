@@ -338,6 +338,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         // clear the scripts, and set out script to our default scripts
         clearScriptsBeforeRunning();
         loadScript("http://public.highfidelity.io/scripts/defaultScripts.js");
+        
+        _settings->setValue("firstRun",QVariant(false));
     } else {
         // do this as late as possible so that all required subsystems are inialized
         loadScripts();
