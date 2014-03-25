@@ -158,4 +158,25 @@
         <translation type="unfinished"></translation>
     </message>
 </context>
+<context>
+    <name>SnapshotShareDialog</name>
+    <message>
+        <location filename="ui/shareSnapshot.ui" line="38"/>
+        <location filename="../build/interface/ui_shareSnapshot.h" line="156"/>
+        <source>Share with community</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/shareSnapshot.ui" line="133"/>
+        <location filename="../build/interface/ui_shareSnapshot.h" line="157"/>
+        <source>Notes about this image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/shareSnapshot.ui" line="219"/>
+        <location filename="../build/interface/ui_shareSnapshot.h" line="158"/>
+        <source>Share</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
 </TS>
