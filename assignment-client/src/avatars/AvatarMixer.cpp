@@ -306,6 +306,10 @@ void AvatarMixer::run() {
             }
         }
         
+        if (!hasRatioChanged) {
+            ++framesSinceCutoffEvent;
+        }
+        
         broadcastAvatarData();
         
         QCoreApplication::processEvents();
@@ -318,8 +322,6 @@ void AvatarMixer::run() {
         
         if (usecToSleep > 0) {
             usleep(usecToSleep);
-        } else {
-            qDebug() << "AvatarMixer loop took too" << -usecToSleep << "of extra time. Won't sleep.";
         }
     }
 }
