@@ -20,21 +20,9 @@ public:
     AvatarMixerClientData();
 
     int parseData(const QByteArray& packet);
-    
-    bool hasSentIdentityBetweenKeyFrames() const { return _hasSentIdentityBetweenKeyFrames; }
-    void setHasSentIdentityBetweenKeyFrames(bool hasSentIdentityBetweenKeyFrames)
-        { _hasSentIdentityBetweenKeyFrames = hasSentIdentityBetweenKeyFrames; }
-    
-    bool hasSentBillboardBetweenKeyFrames() const { return _hasSentBillboardBetweenKeyFrames; }
-    void setHasSentBillboardBetweenKeyFrames(bool hasSentBillboardBetweenKeyFrames)
-        { _hasSentBillboardBetweenKeyFrames = hasSentBillboardBetweenKeyFrames; }
-
     AvatarData& getAvatar() { return _avatar; }
         
 private:
-   
-    bool _hasSentIdentityBetweenKeyFrames;
-    bool _hasSentBillboardBetweenKeyFrames;
     AvatarData _avatar;
 };
 

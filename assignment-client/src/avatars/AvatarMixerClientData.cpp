@@ -9,9 +9,7 @@
 #include "AvatarMixerClientData.h"
 
 AvatarMixerClientData::AvatarMixerClientData() :
-    NodeData(),
-    _hasSentIdentityBetweenKeyFrames(false),
-    _hasSentBillboardBetweenKeyFrames(false)
+    NodeData()
 {
     
 }

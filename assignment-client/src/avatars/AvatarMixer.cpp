@@ -46,6 +46,8 @@ void attachAvatarDataToNode(Node* newNode) {
     }
 }
 
+const float BILLBOARD_AND_IDENTITY_SEND_PROBABILITY = 1.0f / 300.0f;
+
 // NOTE: some additional optimizations to consider.
 //    1) use the view frustum to cull those avatars that are out of view. Since avatar data doesn't need to be present
 //       if the avatar is not in view or in the keyhole.
@@ -99,71 +101,28 @@ void AvatarMixer::broadcastAvatarData() {
                         
                         // copy the avatar into the mixedAvatarByteArray packet
                         mixedAvatarByteArray.append(avatarByteArray);
+                        
+                        if (randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY) {
+                            QByteArray billboardPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
+                            billboardPacket.append(otherNode->getUUID().toRfc4122());
+                            billboardPacket.append(otherNodeData->getAvatar().getBillboard());
+                            nodeList->writeDatagram(billboardPacket, node);
+                        }
+                        
+                        if (randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY) {
+                            QByteArray identityPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
+                            
+                            QByteArray individualData = otherNodeData->getAvatar().identityByteArray();
+                            individualData.replace(0, NUM_BYTES_RFC4122_UUID, otherNode->getUUID().toRfc4122());
+                            identityPacket.append(individualData);
+                            
+                            nodeList->writeDatagram(identityPacket, node);
+                        }
                     }
                 }
             }
             
             nodeList->writeDatagram(mixedAvatarByteArray, node);
-        }
-    }
-}
-
-void broadcastIdentityPacket() {
-   
-    NodeList* nodeList = NodeList::getInstance();
-    
-    QByteArray avatarIdentityPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
-    int numPacketHeaderBytes = avatarIdentityPacket.size();
-    
-    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-        if (node->getLinkedData() && node->getType() == NodeType::Agent) {
-            
-            AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
-            AvatarData& avatar = nodeData->getAvatar();
-            QByteArray individualData = avatar.identityByteArray();
-            individualData.replace(0, NUM_BYTES_RFC4122_UUID, node->getUUID().toRfc4122());
-            
-            if (avatarIdentityPacket.size() + individualData.size() > MAX_PACKET_SIZE) {
-                // we've hit MTU, send out the current packet before appending
-                nodeList->broadcastToNodes(avatarIdentityPacket, NodeSet() << NodeType::Agent);
-                avatarIdentityPacket.resize(numPacketHeaderBytes);
-            }
-            
-            // append the individual data to the current the avatarIdentityPacket
-            avatarIdentityPacket.append(individualData);
-            
-            // re-set the bool in AvatarMixerClientData so a change between key frames gets sent out
-            nodeData->setHasSentIdentityBetweenKeyFrames(false);
-        }
-    }
-    
-    // send out the final packet
-    if (avatarIdentityPacket.size() > numPacketHeaderBytes) {
-        nodeList->broadcastToNodes(avatarIdentityPacket, NodeSet() << NodeType::Agent);
-    }
-}
-
-void broadcastBillboardPacket(const SharedNodePointer& sendingNode) {
-    AvatarMixerClientData* nodeData = static_cast<AvatarMixerClientData*>(sendingNode->getLinkedData());
-    AvatarData& avatar = nodeData->getAvatar();
-    QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
-    packet.append(sendingNode->getUUID().toRfc4122());
-    packet.append(avatar.getBillboard());
-    
-    NodeList* nodeList = NodeList::getInstance();
-    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-        if (node->getType() == NodeType::Agent && node != sendingNode) {       
-            nodeList->writeDatagram(packet, node);
-        }
-    }
-}
-
-void broadcastBillboardPackets() {
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-        if (node->getLinkedData() && node->getType() == NodeType::Agent) {       
-            AvatarMixerClientData* nodeData = static_cast<AvatarMixerClientData*>(node->getLinkedData());
-            broadcastBillboardPacket(node);
-            nodeData->setHasSentBillboardBetweenKeyFrames(false);
         }
     }
 }
@@ -202,19 +161,7 @@ void AvatarMixer::readPendingDatagrams() {
                     if (avatarNode && avatarNode->getLinkedData()) {
                         AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(avatarNode->getLinkedData());
                         AvatarData& avatar = nodeData->getAvatar();
-                        if (avatar.hasIdentityChangedAfterParsing(receivedPacket)
-                            && !nodeData->hasSentIdentityBetweenKeyFrames()) {
-                            // this avatar changed their identity in some way and we haven't sent a packet in this keyframe
-                            QByteArray identityPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
-                            
-                            QByteArray individualByteArray = avatar.identityByteArray();
-                            individualByteArray.replace(0, NUM_BYTES_RFC4122_UUID, avatarNode->getUUID().toRfc4122());
-                            
-                            identityPacket.append(individualByteArray);
-                            
-                            nodeData->setHasSentIdentityBetweenKeyFrames(true);
-                            nodeList->broadcastToNodes(identityPacket, NodeSet() << NodeType::Agent);
-                        }
+                        avatar.hasIdentityChangedAfterParsing(receivedPacket);
                     }
                     break;
                 }
@@ -226,12 +173,7 @@ void AvatarMixer::readPendingDatagrams() {
                     if (avatarNode && avatarNode->getLinkedData()) {
                         AvatarMixerClientData* nodeData = static_cast<AvatarMixerClientData*>(avatarNode->getLinkedData());
                         AvatarData& avatar = nodeData->getAvatar();
-                        if (avatar.hasBillboardChangedAfterParsing(receivedPacket)
-                                && !nodeData->hasSentBillboardBetweenKeyFrames()) {
-                            // this avatar changed their billboard and we haven't sent a packet in this keyframe
-                            broadcastBillboardPacket(avatarNode);
-                            nodeData->setHasSentBillboardBetweenKeyFrames(true);
-                        }
+                        avatar.hasBillboardChangedAfterParsing(receivedPacket);
                     }
                     break;
                 }
@@ -261,9 +203,6 @@ void AvatarMixer::sendStatsPacket() {
     _numStatFrames = 0;
 }
 
-const qint64 AVATAR_IDENTITY_KEYFRAME_MSECS = 5000;
-const qint64 AVATAR_BILLBOARD_KEYFRAME_MSECS = 5000;
-
 void AvatarMixer::run() {
     ThreadedAssignment::commonInit(AVATAR_MIXER_LOGGING_NAME, NodeType::AvatarMixer);
     
@@ -276,12 +215,6 @@ void AvatarMixer::run() {
     timeval startTime;
     
     gettimeofday(&startTime, NULL);
-    
-    QElapsedTimer identityTimer;
-    identityTimer.start();
-    
-    QElapsedTimer billboardTimer;
-    billboardTimer.start();
     
     int usecToSleep = AVATAR_DATA_SEND_INTERVAL_USECS;
     
@@ -337,19 +270,6 @@ void AvatarMixer::run() {
         }
         
         broadcastAvatarData();
-        
-        if (identityTimer.elapsed() >= AVATAR_IDENTITY_KEYFRAME_MSECS) {
-            // it's time to broadcast the keyframe identity packets
-            broadcastIdentityPacket();
-            
-            // restart the timer so we do it again in AVATAR_IDENTITY_KEYFRAME_MSECS
-            identityTimer.restart();
-        }
- 
-        if (billboardTimer.elapsed() >= AVATAR_BILLBOARD_KEYFRAME_MSECS) {
-            broadcastBillboardPackets();
-            billboardTimer.restart();
-        }
         
         QCoreApplication::processEvents();
         
