@@ -714,7 +714,7 @@ void Menu::loginForCurrentDomain() {
 
 void Menu::editPreferences() {
     if (!_preferencesDialog) {
-        _preferencesDialog = new PreferencesDialog(Application::getInstance()->getGLWidget());
+        _preferencesDialog = new PreferencesDialog(Application::getInstance()->getWindow());
         _preferencesDialog->show();
     }
     _preferencesDialog->raise();

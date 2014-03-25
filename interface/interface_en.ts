@@ -4,22 +4,22 @@
 <context>
     <name>Application</name>
     <message>
-        <location filename="src/Application.cpp" line="1368"/>
+        <location filename="src/Application.cpp" line="1380"/>
         <source>Export Voxels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="1369"/>
+        <location filename="src/Application.cpp" line="1381"/>
         <source>Sparse Voxel Octree Files (*.svo)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3596"/>
+        <location filename="src/Application.cpp" line="3597"/>
         <source>Open Script</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3597"/>
+        <location filename="src/Application.cpp" line="3598"/>
         <source>JavaScript Files (*.js)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -113,19 +113,132 @@
 <context>
     <name>Menu</name>
     <message>
-        <location filename="src/Menu.cpp" line="455"/>
+        <location filename="src/Menu.cpp" line="459"/>
         <source>Open .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="457"/>
-        <location filename="src/Menu.cpp" line="469"/>
+        <location filename="src/Menu.cpp" line="461"/>
+        <location filename="src/Menu.cpp" line="473"/>
         <source>Text files (*.ini)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="467"/>
+        <location filename="src/Menu.cpp" line="471"/>
         <source>Save .ini config file</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>PreferencesDialog</name>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="93"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="619"/>
+        <source>Cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="128"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="620"/>
+        <source>Save all changes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="199"/>
+        <location filename="ui/preferencesDialog.ui" line="576"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="621"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="630"/>
+        <source>Avatar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="233"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="622"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Avatar display name &lt;span style=&quot; color:#909090;&quot;&gt;(optional)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="269"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="623"/>
+        <source>Not showing a name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="297"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="624"/>
+        <source>Head</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="398"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="626"/>
+        <source>Body</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="509"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="628"/>
+        <source>Advanced Tuning</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="540"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="629"/>
+        <source>It&apos;s not recomended that you play with these settings unless you&apos;ve looked into exactly what they do.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="608"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="631"/>
+        <source>Vertical field of view</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="711"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="632"/>
+        <source>Lean scale (applies to Faceshift users)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="796"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="633"/>
+        <source>Avatar scale &lt;span style=&quot; color:#909090;&quot;&gt;(default is 1.0)&lt;/span&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="878"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="634"/>
+        <source>Pupil dillation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="957"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="635"/>
+        <source>Audio Jitter Buffer Samples (0 for automatic)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="1048"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="636"/>
+        <source>Faceshift eye detection</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="1128"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="637"/>
+        <source>Voxels</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="1160"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="638"/>
+        <source>Maximum voxels</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="1239"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="639"/>
+        <source>Max voxels sent each second</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

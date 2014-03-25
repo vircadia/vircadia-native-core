@@ -14,6 +14,7 @@
 #include <QString>
 #include <QPainter>
 #include <QStyleOptionTitleBar>
+#include <QtCore/QTimer>
 
 class FramelessDialog : public QDialog {
     Q_OBJECT
@@ -28,6 +29,8 @@ protected:
     virtual void mousePressEvent(QMouseEvent* mouseEvent);
     virtual void mouseReleaseEvent(QMouseEvent* mouseEvent);
     virtual void showEvent(QShowEvent* event);
+    void paintEvent(QPaintEvent* event);
+    void timerEvent(QTimerEvent *event);
 
 private:
     bool _isResizing;
