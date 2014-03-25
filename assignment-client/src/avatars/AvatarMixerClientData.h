@@ -9,7 +9,6 @@
 #ifndef __hifi__AvatarMixerClientData__
 #define __hifi__AvatarMixerClientData__
 
-#include <QtCore/QMutex>
 #include <QtCore/QUrl>
 
 #include <AvatarData.h>

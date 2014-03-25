@@ -9,6 +9,7 @@
 #ifndef hifi_NodeData_h
 #define hifi_NodeData_h
 
+#include <QtCore/QMutex>
 #include <QtCore/QObject>
 
 class Node;
