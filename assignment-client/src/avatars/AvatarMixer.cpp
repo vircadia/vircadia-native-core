@@ -14,6 +14,7 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QJsonObject>
 #include <QtCore/QTimer>
+#include <QtCore/QThread>
 
 #include <Logging.h>
 #include <NodeList.h>
@@ -27,7 +28,7 @@
 
 const QString AVATAR_MIXER_LOGGING_NAME = "avatar-mixer";
 
-const unsigned int AVATAR_DATA_SEND_INTERVAL_USECS = (1 / 60.0) * 1000 * 1000;
+const unsigned int AVATAR_DATA_SEND_INTERVAL_MSECS = (1.0f / 60.0f) * 1000;
 
 AvatarMixer::AvatarMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
@@ -55,6 +56,58 @@ const float BILLBOARD_AND_IDENTITY_SEND_PROBABILITY = 1.0f / 300.0f;
 //    1) use the view frustum to cull those avatars that are out of view. Since avatar data doesn't need to be present
 //       if the avatar is not in view or in the keyhole.
 void AvatarMixer::broadcastAvatarData() {
+    
+    int idleTime = QDateTime::currentMSecsSinceEpoch() - _lastFrameTimestamp;
+    
+    ++_numStatFrames;
+    
+    const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
+    const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.20f;
+    
+    const float RATIO_BACK_OFF = 0.02f;
+    
+    const int TRAILING_AVERAGE_FRAMES = 100;
+    int framesSinceCutoffEvent = TRAILING_AVERAGE_FRAMES;
+    
+    const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
+    const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
+    
+    _trailingSleepRatio = (PREVIOUS_FRAMES_RATIO * _trailingSleepRatio)
+        + (idleTime * CURRENT_FRAME_RATIO / (float) AVATAR_DATA_SEND_INTERVAL_MSECS);
+    
+    float lastCutoffRatio = _performanceThrottlingRatio;
+    bool hasRatioChanged = false;
+    
+    if (framesSinceCutoffEvent >= TRAILING_AVERAGE_FRAMES) {
+        if (_trailingSleepRatio <= STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD) {
+            // we're struggling - change our min required loudness to reduce some load
+            _performanceThrottlingRatio = _performanceThrottlingRatio + (0.5f * (1.0f - _performanceThrottlingRatio));
+            
+            qDebug() << "Mixer is struggling, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
+            << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
+            hasRatioChanged = true;
+        } else if (_trailingSleepRatio >= BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD && _performanceThrottlingRatio != 0) {
+            // we've recovered and can back off the required loudness
+            _performanceThrottlingRatio = _performanceThrottlingRatio - RATIO_BACK_OFF;
+            
+            if (_performanceThrottlingRatio < 0) {
+                _performanceThrottlingRatio = 0;
+            }
+            
+            qDebug() << "Mixer is recovering, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
+            << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
+            hasRatioChanged = true;
+        }
+        
+        if (hasRatioChanged) {
+            framesSinceCutoffEvent = 0;
+        }
+    }
+    
+    if (!hasRatioChanged) {
+        ++framesSinceCutoffEvent;
+    }
+    
     static QByteArray mixedAvatarByteArray;
     
     int numPacketHeaderBytes = populatePacketHeader(mixedAvatarByteArray, PacketTypeBulkAvatarData);
@@ -246,80 +299,10 @@ void AvatarMixer::run() {
     
     nodeList->linkedDataCreateCallback = attachAvatarDataToNode;
     
-    int nextFrame = 0;
-    timeval startTime;
+    // setup and start a timer to broadcast avatar data
+    QTimer* broadcastTimer = new QTimer(this);
+    broadcastTimer->setInterval(AVATAR_DATA_SEND_INTERVAL_MSECS);
     
-    gettimeofday(&startTime, NULL);
-    
-    int usecToSleep = AVATAR_DATA_SEND_INTERVAL_USECS;
-    
-    const int TRAILING_AVERAGE_FRAMES = 100;
-    int framesSinceCutoffEvent = TRAILING_AVERAGE_FRAMES;
-    
-    while (!_isFinished) {
-        
-        ++_numStatFrames;
-        
-        const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
-        const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.20f;
-        
-        const float RATIO_BACK_OFF = 0.02f;
-        
-        const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
-        const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
-        
-        if (usecToSleep < 0) {
-            usecToSleep = 0;
-        }
-        
-        _trailingSleepRatio = (PREVIOUS_FRAMES_RATIO * _trailingSleepRatio)
-            + (usecToSleep * CURRENT_FRAME_RATIO / (float) AVATAR_DATA_SEND_INTERVAL_USECS);
-        
-        float lastCutoffRatio = _performanceThrottlingRatio;
-        bool hasRatioChanged = false;
-        
-        if (framesSinceCutoffEvent >= TRAILING_AVERAGE_FRAMES) {
-            if (_trailingSleepRatio <= STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD) {
-                // we're struggling - change our min required loudness to reduce some load
-                _performanceThrottlingRatio = _performanceThrottlingRatio + (0.5f * (1.0f - _performanceThrottlingRatio));
-                
-                qDebug() << "Mixer is struggling, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
-                    << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
-                hasRatioChanged = true;
-            } else if (_trailingSleepRatio >= BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD && _performanceThrottlingRatio != 0) {
-                // we've recovered and can back off the required loudness
-                _performanceThrottlingRatio = _performanceThrottlingRatio - RATIO_BACK_OFF;
-                
-                if (_performanceThrottlingRatio < 0) {
-                    _performanceThrottlingRatio = 0;
-                }
-                
-                qDebug() << "Mixer is recovering, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
-                    << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
-                hasRatioChanged = true;
-            }
-            
-            if (hasRatioChanged) {
-                framesSinceCutoffEvent = 0;
-            }
-        }
-        
-        if (!hasRatioChanged) {
-            ++framesSinceCutoffEvent;
-        }
-        
-        broadcastAvatarData();
-        
-        QCoreApplication::processEvents();
-        
-        if (_isFinished) {
-            break;
-        }
-        
-        usecToSleep = usecTimestamp(&startTime) + (++nextFrame * AVATAR_DATA_SEND_INTERVAL_USECS) - usecTimestampNow();
-        
-        if (usecToSleep > 0) {
-            usleep(usecToSleep);
-        }
-    }
+    connect(broadcastTimer, &QTimer::timeout, this, &AvatarMixer::broadcastAvatarData);
+    broadcastTimer->start();
 }
