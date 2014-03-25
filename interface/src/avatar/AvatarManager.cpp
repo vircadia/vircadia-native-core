@@ -101,14 +101,12 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
 
     while (fadingIterator != _avatarFades.end()) {
         Avatar* avatar = static_cast<Avatar*>(fadingIterator->data());
-        if (avatar->isInitialized()) {
-            avatar->setTargetScale(avatar->getScale() * SHRINK_RATE);
-            if (avatar->getTargetScale() < MIN_FADE_SCALE) {
-                fadingIterator = _avatarFades.erase(fadingIterator);
-            } else {
-                avatar->simulate(deltaTime);
-                ++fadingIterator;
-            }
+        avatar->setTargetScale(avatar->getScale() * SHRINK_RATE);
+        if (avatar->getTargetScale() < MIN_FADE_SCALE) {
+            fadingIterator = _avatarFades.erase(fadingIterator);
+        } else {
+            avatar->simulate(deltaTime);
+            ++fadingIterator;
         }
     }
 }
@@ -246,7 +244,9 @@ void AvatarManager::processKillAvatar(const QByteArray& datagram) {
 AvatarHash::iterator AvatarManager::erase(const AvatarHash::iterator& iterator) {
     if (iterator.key() != MY_AVATAR_KEY) {
         qDebug() << "Removing Avatar with UUID" << iterator.key() << "from AvatarManager hash.";
-        _avatarFades.push_back(iterator.value());
+        if (reinterpret_cast<Avatar*>(iterator.value().data())->isInitialized()) {
+            _avatarFades.push_back(iterator.value());
+        }
         return AvatarHashMap::erase(iterator);
     } else {
         // never remove _myAvatar from the list
