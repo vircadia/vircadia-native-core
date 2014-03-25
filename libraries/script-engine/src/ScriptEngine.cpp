@@ -113,11 +113,12 @@ void ScriptEngine::cleanupMenuItems() {
     }
 }
 
-bool ScriptEngine::setScriptContents(const QString& scriptContents) {
+bool ScriptEngine::setScriptContents(const QString& scriptContents, const QString& fileNameString) {
     if (_isRunning) {
         return false;
     }
     _scriptContents = scriptContents;
+    _fileNameString = fileNameString;
     return true;
 }
 
@@ -434,5 +435,57 @@ void ScriptEngine::stopTimer(QTimer *timer) {
         timer->stop();
         _timerFunctionMap.remove(timer);
         delete timer;
+    }
+}
+
+QUrl ScriptEngine::resolveInclude(const QString& include) const {
+    // first lets check to see if it's already a full URL
+    QUrl url(include);
+    if (!url.scheme().isEmpty()) {
+        return url;
+    }
+    
+    // we apparently weren't a fully qualified url, so, let's assume we're relative 
+    // to the original URL of our script
+    QUrl parentURL(_fileNameString);
+    
+    // if the parent URL's scheme is empty, then this is probably a local file...
+    if (parentURL.scheme().isEmpty()) {
+        parentURL = QUrl::fromLocalFile(_fileNameString);
+    }
+    
+    // at this point we should have a legitimate fully qualified URL for our parent 
+    url = parentURL.resolved(url);
+    return url;
+}
+
+void ScriptEngine::include(const QString& includeFile) {
+    QUrl url = resolveInclude(includeFile);
+    QString includeContents;
+
+    if (url.scheme() == "file") {
+        QString fileName = url.toLocalFile();
+        QFile scriptFile(fileName);
+        if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {
+            qDebug() << "Loading file:" << fileName;
+            QTextStream in(&scriptFile);
+            includeContents = in.readAll();
+        } else {
+            qDebug() << "ERROR Loading file:" << fileName;
+        }
+    } else {
+        QNetworkAccessManager* networkManager = new QNetworkAccessManager(this);
+        QNetworkReply* reply = networkManager->get(QNetworkRequest(url));
+        qDebug() << "Downloading included script at" << includeFile;
+        QEventLoop loop;
+        QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
+        loop.exec();
+        includeContents = reply->readAll();
+    }
+    
+    QScriptValue result = _engine.evaluate(includeContents);
+    if (_engine.hasUncaughtException()) {
+        int line = _engine.uncaughtExceptionLineNumber();
+        qDebug() << "Uncaught exception at (" << includeFile << ") line" << line << ":" << result.toString();
     }
 }
