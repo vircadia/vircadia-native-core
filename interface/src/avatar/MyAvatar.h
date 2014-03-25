@@ -35,8 +35,8 @@ public:
     void simulate(float deltaTime);
     void updateFromGyros(float deltaTime);
 
-    void render(const glm::vec3& cameraPosition, bool forShadowMapOrMirror = false);
-    void renderBody(bool forceRenderHead);
+    void render(const glm::vec3& cameraPosition, RenderMode renderMode = NORMAL_RENDER_MODE);
+    void renderBody(RenderMode renderMode);
     void renderDebugBodyPoints();
     void renderHeadMouse() const;
 

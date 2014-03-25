@@ -24,6 +24,21 @@ public slots:
     void nodeKilled(SharedNodePointer killedNode);
     
     void readPendingDatagrams();
+    
+    void sendStatsPacket();
+    
+private:
+    void broadcastAvatarData();
+    
+    quint64 _lastFrameTimestamp;
+    
+    float _trailingSleepRatio;
+    float _performanceThrottlingRatio;
+    
+    int _sumListeners;
+    int _numStatFrames;
+    int _sumBillboardPackets;
+    int _sumIdentityPackets;
 };
 
 #endif /* defined(__hifi__AvatarMixer__) */

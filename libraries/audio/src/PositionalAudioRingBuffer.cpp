@@ -8,6 +8,7 @@
 
 #include <cstring>
 
+#include <glm/detail/func_common.hpp>
 #include <QtCore/QDataStream>
 
 #include <Node.h>
@@ -15,12 +16,6 @@
 #include <UUID.h>
 
 #include "PositionalAudioRingBuffer.h"
-
-#ifdef _WIN32
-int isnan(double value) { return _isnan(value); }
-#else
-int isnan(double value) { return std::isnan(value); }
-#endif
 
 PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type) :
     AudioRingBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL),
@@ -69,7 +64,7 @@ int PositionalAudioRingBuffer::parsePositionalData(const QByteArray& positionalB
     packetStream.readRawData(reinterpret_cast<char*>(&_orientation), sizeof(_orientation));
 
     // if this node sent us a NaN for first float in orientation then don't consider this good audio and bail
-    if (isnan(_orientation.x)) {
+    if (glm::isnan(_orientation.x)) {
         reset();
         return 0;
     }

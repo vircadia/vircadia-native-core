@@ -6,12 +6,16 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include <VoxelImporter.h>
-#include <Application.h>
-#include <LocalVoxelsList.h>
+// include this before QGLWidget, which includes an earlier version of OpenGL
+#include "InterfaceConfig.h"
 
 #include <QFileInfo>
 #include <QThreadPool>
+
+#include <Application.h>
+#include <LocalVoxelsList.h>
+
+#include "voxels/VoxelImporter.h"
 
 const QString SETTINGS_GROUP_NAME = "VoxelImport";
 const QString IMPORT_DIALOG_SETTINGS_KEY = "ImportDialogSettings";

@@ -28,6 +28,7 @@
 #include <QDesktopWidget>
 #include <QCheckBox>
 #include <QImage>
+#include <QInputDialog>
 #include <QKeyEvent>
 #include <QMainWindow>
 #include <QMenuBar>
@@ -65,17 +66,21 @@
 #include <FstReader.h>
 
 #include "Application.h"
-#include "ClipboardScriptingInterface.h"
 #include "InterfaceVersion.h"
 #include "Menu.h"
-#include "MenuScriptingInterface.h"
 #include "Util.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
 #include "renderer/ProgramObject.h"
-#include "ui/TextRenderer.h"
-#include "InfoView.h"
+
+#include "scripting/AudioDeviceScriptingInterface.h"
+#include "scripting/ClipboardScriptingInterface.h"
+#include "scripting/MenuScriptingInterface.h"
+#include "scripting/SettingsScriptingInterface.h"
+
+#include "ui/InfoView.h"
 #include "ui/Snapshot.h"
+#include "ui/TextRenderer.h"
 
 using namespace std;
 
@@ -246,7 +251,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
 
     _settings = new QSettings(this);
-
+    
     // Check to see if the user passed in a command line option for loading a local
     // Voxel File.
     _voxelsFilename = getCmdOption(argc, constArgv, "-i");
@@ -325,9 +330,20 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     LocalVoxelsList::getInstance()->addPersistantTree(DOMAIN_TREE_NAME, _voxels.getTree());
     LocalVoxelsList::getInstance()->addPersistantTree(CLIPBOARD_TREE_NAME, &_clipboard);
-    
-    // do this as late as possible so that all required subsystems are inialized
-    loadScripts();
+
+    // check first run...
+    QVariant firstRunValue = _settings->value("firstRun",QVariant(true));
+    if (firstRunValue.isValid() && firstRunValue.toBool()) {
+        qDebug() << "This is a first run...";
+        // clear the scripts, and set out script to our default scripts
+        clearScriptsBeforeRunning();
+        loadScript("http://public.highfidelity.io/scripts/defaultScripts.js");
+        
+        _settings->setValue("firstRun",QVariant(false));
+    } else {
+        // do this as late as possible so that all required subsystems are inialized
+        loadScripts();
+    }
 }
 
 Application::~Application() {
@@ -2163,21 +2179,22 @@ void Application::updateShadowMap() {
     glViewport(0, 0, fbo->width(), fbo->height());
 
     glm::vec3 lightDirection = -getSunDirection();
-    glm::quat rotation = glm::inverse(rotationBetween(IDENTITY_FRONT, lightDirection));
-    glm::vec3 translation = glm::vec3();
+    glm::quat rotation = rotationBetween(IDENTITY_FRONT, lightDirection);
+    glm::quat inverseRotation = glm::inverse(rotation);
     float nearScale = 0.0f;
     const float MAX_SHADOW_DISTANCE = 2.0f;
-    float farScale = (MAX_SHADOW_DISTANCE - _viewFrustum.getNearClip()) / (_viewFrustum.getFarClip() - _viewFrustum.getNearClip());
+    float farScale = (MAX_SHADOW_DISTANCE - _viewFrustum.getNearClip()) /
+        (_viewFrustum.getFarClip() - _viewFrustum.getNearClip());
     loadViewFrustum(_myCamera, _viewFrustum);
     glm::vec3 points[] = {
-        rotation * (glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), nearScale) + translation),
-        rotation * (glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), nearScale) + translation),
-        rotation * (glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), nearScale) + translation),
-        rotation * (glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), nearScale) + translation),
-        rotation * (glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), farScale) + translation),
-        rotation * (glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), farScale) + translation),
-        rotation * (glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), farScale) + translation),
-        rotation * (glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), farScale) + translation) };
+        inverseRotation * (glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), nearScale)),
+        inverseRotation * (glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), nearScale)),
+        inverseRotation * (glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), nearScale)),
+        inverseRotation * (glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), nearScale)),
+        inverseRotation * (glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), farScale)),
+        inverseRotation * (glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), farScale)),
+        inverseRotation * (glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), farScale)),
+        inverseRotation * (glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), farScale)) };
     glm::vec3 minima(FLT_MAX, FLT_MAX, FLT_MAX), maxima(-FLT_MAX, -FLT_MAX, -FLT_MAX);
     for (size_t i = 0; i < sizeof(points) / sizeof(points[0]); i++) {
         minima = glm::min(minima, points[i]);
@@ -2190,9 +2207,20 @@ void Application::updateShadowMap() {
 
     // save the combined matrix for rendering
     _shadowMatrix = glm::transpose(glm::translate(glm::vec3(0.5f, 0.5f, 0.5f)) * glm::scale(glm::vec3(0.5f, 0.5f, 0.5f)) *
-        glm::ortho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z) *
-        glm::mat4_cast(rotation) * glm::translate(translation));
+        glm::ortho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z) * glm::mat4_cast(inverseRotation));
 
+    // update the shadow view frustum
+    _shadowViewFrustum.setPosition(rotation * ((minima + maxima) * 0.5f));
+    _shadowViewFrustum.setOrientation(rotation);
+    _shadowViewFrustum.setOrthographic(true);
+    _shadowViewFrustum.setWidth(maxima.x - minima.x);
+    _shadowViewFrustum.setHeight(maxima.y - minima.y);
+    _shadowViewFrustum.setNearClip(minima.z);
+    _shadowViewFrustum.setFarClip(maxima.z);
+    _shadowViewFrustum.setEyeOffsetPosition(glm::vec3());
+    _shadowViewFrustum.setEyeOffsetOrientation(glm::quat());
+    _shadowViewFrustum.calculate();
+    
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
@@ -2201,16 +2229,14 @@ void Application::updateShadowMap() {
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadIdentity();
-    glm::vec3 axis = glm::axis(rotation);
-    glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+    glm::vec3 axis = glm::axis(inverseRotation);
+    glRotatef(glm::degrees(glm::angle(inverseRotation)), axis.x, axis.y, axis.z);
 
     // store view matrix without translation, which we'll use for precision-sensitive objects
     glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
-    _viewMatrixTranslation = translation;
+    _viewMatrixTranslation = glm::vec3();
 
-    glTranslatef(translation.x, translation.y, translation.z);
-
-    _avatarManager.renderAvatars(true);
+    _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
     _particles.render();
 
     glPopMatrix();
@@ -2388,7 +2414,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     }
 
     bool mirrorMode = (whichCamera.getInterpolatedMode() == CAMERA_MODE_MIRROR);
-    _avatarManager.renderAvatars(mirrorMode, selfAvatarOnly);
+    _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE, selfAvatarOnly);
 
     if (!selfAvatarOnly) {
         //  Render the world box
@@ -3439,6 +3465,13 @@ void Application::loadScripts() {
     settings->endArray();
 }
 
+void Application::clearScriptsBeforeRunning() {
+    // clears all scripts from the settings
+    QSettings* settings = new QSettings(this);
+    settings->beginWriteArray("Settings");
+    settings->endArray();
+}
+
 void Application::saveScripts() {
     // saves all current running scripts
     QSettings* settings = new QSettings(this);
@@ -3494,35 +3527,17 @@ void Application::cleanupScriptMenuItem(const QString& scriptMenuName) {
     Menu::getInstance()->removeAction(Menu::getInstance()->getActiveScriptsMenu(), scriptMenuName);
 }
 
-void Application::loadScript(const QString& fileNameString) {
-    QByteArray fileNameAscii = fileNameString.toLocal8Bit();
-    const char* fileName = fileNameAscii.data();
-
-    std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
-    if(!file.is_open()) {
-        qDebug("Error loading file %s", fileName);
-        return;
-    }
-    qDebug("Loading file %s...", fileName);
-    _activeScripts.append(fileNameString);
-
-    // get file length....
-    unsigned long fileLength = file.tellg();
-    file.seekg( 0, std::ios::beg );
-
-    // read the entire file into a buffer, WHAT!? Why not.
-    char* entireFile = new char[fileLength+1];
-    file.read((char*)entireFile, fileLength);
-    file.close();
-
-    entireFile[fileLength] = 0;// null terminate
-    QString script(entireFile);
-    delete[] entireFile;
+void Application::loadScript(const QString& scriptName) {
 
     // start the script on a new thread...
     bool wantMenuItems = true; // tells the ScriptEngine object to add menu items for itself
+    ScriptEngine* scriptEngine = new ScriptEngine(QUrl(scriptName), wantMenuItems, &_controllerScriptingInterface);
 
-    ScriptEngine* scriptEngine = new ScriptEngine(script, wantMenuItems, fileName, &_controllerScriptingInterface);
+    if (!scriptEngine->hasScript()) {
+        qDebug() << "Application::loadScript(), script failed to load...";
+        return;
+    }
+    _activeScripts.append(scriptName);
     
     // add a stop menu item
     Menu::getInstance()->addActionToQMenuAndActionHash(Menu::getInstance()->getActiveScriptsMenu(), 
@@ -3548,6 +3563,8 @@ void Application::loadScript(const QString& fileNameString) {
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
 
     QThread* workerThread = new QThread(this);
 
@@ -3582,6 +3599,31 @@ void Application::loadDialog() {
     
     loadScript(fileNameString);
 }
+
+void Application::loadScriptURLDialog() {
+
+    QInputDialog scriptURLDialog(Application::getInstance()->getWindow());
+    scriptURLDialog.setWindowTitle("Open and Run Script URL");
+    scriptURLDialog.setLabelText("Script:");
+    scriptURLDialog.setWindowFlags(Qt::Sheet);
+    const float DIALOG_RATIO_OF_WINDOW = 0.30f;
+    scriptURLDialog.resize(scriptURLDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, 
+                        scriptURLDialog.size().height());
+
+    int dialogReturn = scriptURLDialog.exec();
+    QString newScript;
+    if (dialogReturn == QDialog::Accepted) {
+        if (scriptURLDialog.textValue().size() > 0) {
+            // the user input a new hostname, use that
+            newScript = scriptURLDialog.textValue();
+        }
+        loadScript(newScript);
+    }
+
+    sendFakeEnterEvent();
+}
+
+
 
 void Application::toggleLogDialog() {
     if (! _logDialog) {

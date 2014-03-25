@@ -21,6 +21,7 @@
 #include <unistd.h> // not on windows, not needed for mac or windows
 #endif
 
+#include <QtCore/QElapsedTimer>
 #include <QtCore/QMutex>
 #include <QtCore/QSet>
 #include <QtCore/QSettings>
@@ -78,6 +79,7 @@ public:
                          const HifiSockAddr& overridenSockAddr = HifiSockAddr());
     qint64 writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
                          const HifiSockAddr& overridenSockAddr = HifiSockAddr());
+    qint64 sendStatsToDomainServer(const QJsonObject& statsObject);
 
     void(*linkedDataCreateCallback)(Node *);
 
@@ -119,6 +121,9 @@ public:
     unsigned broadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
     SharedNodePointer soloNodeOfType(char nodeType);
 
+    void getPacketStats(float &packetsPerSecond, float &bytesPerSecond);
+    void resetPacketStats();
+    
     void loadData(QSettings* settings);
     void saveData(QSettings* settings);
 public slots:
@@ -154,6 +159,8 @@ private:
 
     void processDomainServerAuthRequest(const QByteArray& packet);
     void requestAuthForDomainServer();
+    void activateSocketFromNodeCommunication(const QByteArray& packet, const SharedNodePointer& sendingNode);
+    void timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode);
 
     NodeHash _nodeHash;
     QMutex _nodeHashMutex;
@@ -167,9 +174,9 @@ private:
     HifiSockAddr _publicSockAddr;
     bool _hasCompletedInitialSTUNFailure;
     unsigned int _stunRequestsSinceSuccess;
-
-    void activateSocketFromNodeCommunication(const QByteArray& packet, const SharedNodePointer& sendingNode);
-    void timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode);    
+    int _numCollectedPackets;
+    int _numCollectedBytes;
+    QElapsedTimer _packetStatTimer;
 };
 
 #endif /* defined(__hifi__NodeList__) */

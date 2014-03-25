@@ -7,6 +7,7 @@
 //
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QJsonObject>
 #include <QtCore/QTimer>
 
 #include "Logging.h"
@@ -34,7 +35,7 @@ void ThreadedAssignment::setFinished(bool isFinished) {
     }
 }
 
-void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeType) {
+void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeType, bool shouldSendStats) {
     // change the logging target name while the assignment is running
     Logging::setTargetName(targetName);
     
@@ -52,13 +53,38 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
     QTimer* silentNodeRemovalTimer = new QTimer(this);
     connect(silentNodeRemovalTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeRemovalTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
+    
+    if (shouldSendStats) {
+        // send a stats packet every 1 second
+        QTimer* statsTimer = new QTimer(this);
+        connect(statsTimer, &QTimer::timeout, this, &ThreadedAssignment::sendStatsPacket);
+        statsTimer->start(1000);
+    }
+}
+
+void ThreadedAssignment::addPacketStatsAndSendStatsPacket(QJsonObject &statsObject) {
+    NodeList* nodeList = NodeList::getInstance();
+    
+    float packetsPerSecond, bytesPerSecond;
+    nodeList->getPacketStats(packetsPerSecond, bytesPerSecond);
+    nodeList->resetPacketStats();
+    
+    statsObject["packets_per_second"] = packetsPerSecond;
+    statsObject["bytes_per_second"] = bytesPerSecond;
+    
+    nodeList->sendStatsToDomainServer(statsObject);
+}
+
+void ThreadedAssignment::sendStatsPacket() {
+    QJsonObject statsObject;
+    addPacketStatsAndSendStatsPacket(statsObject);
 }
 
 void ThreadedAssignment::checkInWithDomainServerOrExit() {
     if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
-        qDebug() << "NRDC:" << NodeList::getInstance()->getNumNoReplyDomainCheckIns();
         setFinished(true);
     } else {
+        qDebug() << "Sending DS check in. There are" << NodeList::getInstance()->getNumNoReplyDomainCheckIns() << "unreplied.";
         NodeList::getInstance()->sendDomainServerCheckIn();
     }
 }
