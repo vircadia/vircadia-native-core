@@ -30,6 +30,8 @@ public slots:
 private:
     void broadcastAvatarData();
     
+    quint64 _lastFrameTimestamp;
+    
     float _trailingSleepRatio;
     float _performanceThrottlingRatio;
     

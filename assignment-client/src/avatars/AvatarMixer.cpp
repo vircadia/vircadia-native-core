@@ -11,7 +11,7 @@
 //  nodes, and broadcasts that data back to them, every BROADCAST_INTERVAL ms.
 
 #include <QtCore/QCoreApplication>
-#include <QtCore/QElapsedTimer>
+#include <QtCore/QDateTime>
 #include <QtCore/QJsonObject>
 #include <QtCore/QTimer>
 
@@ -31,6 +31,7 @@ const unsigned int AVATAR_DATA_SEND_INTERVAL_USECS = (1 / 60.0) * 1000 * 1000;
 
 AvatarMixer::AvatarMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
+    _lastFrameTimestamp(QDateTime::currentMSecsSinceEpoch()),
     _trailingSleepRatio(1.0f),
     _performanceThrottlingRatio(0.0f),
     _sumListeners(0),
@@ -102,16 +103,27 @@ void AvatarMixer::broadcastAvatarData() {
                         // copy the avatar into the mixedAvatarByteArray packet
                         mixedAvatarByteArray.append(avatarByteArray);
                         
+                        // if the receiving avatar has just connected make sure we send out the mesh and billboard
+                        // for this avatar (assuming they exist)
                         bool forceSend = !myData->checkAndSetHasReceivedFirstPackets();
                         
-                        if (randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY || forceSend) {
+                        // we will also force a send of billboard or identity packet
+                        // if either has changed in the last frame
+                        
+                        if (otherNodeData->getBillboardChangeTimestamp() > 0
+                            && (forceSend
+                                || otherNodeData->getBillboardChangeTimestamp() > _lastFrameTimestamp
+                                || randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
                             QByteArray billboardPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
                             billboardPacket.append(otherNode->getUUID().toRfc4122());
                             billboardPacket.append(otherNodeData->getAvatar().getBillboard());
                             nodeList->writeDatagram(billboardPacket, node);
                         }
                         
-                        if (randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY || forceSend) {
+                        if (otherNodeData->getIdentityChangeTimestamp() > 0
+                            && (forceSend
+                                || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
+                                || randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
                             QByteArray identityPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
                             
                             QByteArray individualData = otherNodeData->getAvatar().identityByteArray();
@@ -127,6 +139,8 @@ void AvatarMixer::broadcastAvatarData() {
             nodeList->writeDatagram(mixedAvatarByteArray, node);
         }
     }
+    
+    _lastFrameTimestamp = QDateTime::currentMSecsSinceEpoch();
 }
 
 void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
@@ -163,7 +177,11 @@ void AvatarMixer::readPendingDatagrams() {
                     if (avatarNode && avatarNode->getLinkedData()) {
                         AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(avatarNode->getLinkedData());
                         AvatarData& avatar = nodeData->getAvatar();
-                        avatar.hasIdentityChangedAfterParsing(receivedPacket);
+                        
+                        // parse the identity packet and update the change timestamp if appropriate
+                        if (avatar.hasIdentityChangedAfterParsing(receivedPacket)) {
+                            nodeData->setIdentityChangeTimestamp(QDateTime::currentMSecsSinceEpoch());
+                        }
                     }
                     break;
                 }
@@ -175,7 +193,12 @@ void AvatarMixer::readPendingDatagrams() {
                     if (avatarNode && avatarNode->getLinkedData()) {
                         AvatarMixerClientData* nodeData = static_cast<AvatarMixerClientData*>(avatarNode->getLinkedData());
                         AvatarData& avatar = nodeData->getAvatar();
-                        avatar.hasBillboardChangedAfterParsing(receivedPacket);
+                        
+                        // parse the billboard packet and update the change timestamp if appropriate
+                        if (avatar.hasBillboardChangedAfterParsing(receivedPacket)) {
+                            nodeData->setBillboardChangeTimestamp(QDateTime::currentMSecsSinceEpoch());
+                        }
+                        
                     }
                     break;
                 }

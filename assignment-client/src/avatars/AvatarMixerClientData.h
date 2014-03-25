@@ -24,9 +24,17 @@ public:
     
     bool checkAndSetHasReceivedFirstPackets();
     
+    quint64 getBillboardChangeTimestamp() const { return _billboardChangeTimestamp; }
+    void setBillboardChangeTimestamp(quint64 billboardChangeTimestamp) { _billboardChangeTimestamp = billboardChangeTimestamp; }
+    
+    quint64 getIdentityChangeTimestamp() const { return _identityChangeTimestamp; }
+    void setIdentityChangeTimestamp(quint64 identityChangeTimestamp) { _identityChangeTimestamp = identityChangeTimestamp; }
+    
 private:
     AvatarData _avatar;
     bool _hasReceivedFirstPackets;
+    quint64 _billboardChangeTimestamp;
+    quint64 _identityChangeTimestamp;
 };
 
 #endif /* defined(__hifi__AvatarMixerClientData__) */

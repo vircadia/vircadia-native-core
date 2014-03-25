@@ -10,7 +10,9 @@
 
 AvatarMixerClientData::AvatarMixerClientData() :
     NodeData(),
-    _hasReceivedFirstPackets(false)
+    _hasReceivedFirstPackets(false),
+    _billboardChangeTimestamp(0),
+    _identityChangeTimestamp(0)
 {
     
 }
