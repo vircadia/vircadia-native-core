@@ -171,7 +171,13 @@ qint64 NodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& d
     ++_numCollectedPackets;
     _numCollectedBytes += datagram.size();
     
-    return _nodeSocket.writeDatagram(datagramCopy, destinationSockAddr.getAddress(), destinationSockAddr.getPort());
+    qint64 bytesWritten = _nodeSocket.writeDatagram(datagramCopy,
+                                                    destinationSockAddr.getAddress(),
+                                                    destinationSockAddr.getPort());
+    
+    // ask the underlying QUdpSocket to flush its buffers to avoid filling them up
+    _nodeSocket.flush();
+    return bytesWritten;
     
 }
 
