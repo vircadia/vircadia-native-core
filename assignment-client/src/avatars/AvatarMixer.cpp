@@ -114,28 +114,38 @@ void AvatarMixer::broadcastAvatarData() {
     
     NodeList* nodeList = NodeList::getInstance();
     
+    AvatarMixerClientData* nodeData = NULL;
+    AvatarMixerClientData* otherNodeData = NULL;
+    
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-        if (node->getLinkedData() && node->getType() == NodeType::Agent && node->getActiveSocket()) {
+        if (node->getLinkedData() && node->getType() == NodeType::Agent && node->getActiveSocket()
+            && (nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData()))->getMutex().tryLock()) {
             ++_sumListeners;
             
             // reset packet pointers for this node
             mixedAvatarByteArray.resize(numPacketHeaderBytes);
             
-            AvatarMixerClientData* myData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
-            AvatarData& avatar = myData->getAvatar();
+            AvatarData& avatar = nodeData->getAvatar();
             glm::vec3 myPosition = avatar.getPosition();
             
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
             foreach (const SharedNodePointer& otherNode, nodeList->getNodeHash()) {
-                if (otherNode->getLinkedData() && otherNode->getUUID() != node->getUUID()) {
+                if (otherNode->getLinkedData() && otherNode->getUUID() != node->getUUID()
+                    && (otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData()))->getMutex().tryLock()) {
                     
                     AvatarMixerClientData* otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
                     AvatarData& otherAvatar = otherNodeData->getAvatar();
                     glm::vec3 otherPosition = otherAvatar.getPosition();
             
-                    //  Decide whether to send this avatar's data based on current performance throttling
-                    if (_performanceThrottlingRatio == 0 || randFloat() < (1.0f - _performanceThrottlingRatio)) {
+                    float distanceToAvatar = glm::length(myPosition - otherPosition);
+                    //  The full rate distance is the distance at which EVERY update will be sent for this avatar
+                    //  at a distance of twice the full rate distance, there will be a 50% chance of sending this avatar's update
+                    const float FULL_RATE_DISTANCE = 2.f;
+                    
+                    //  Decide whether to send this avatar's data based on it's distance from us
+                    if ((_performanceThrottlingRatio == 0 || randFloat() < (1.0f - _performanceThrottlingRatio))
+                        && (distanceToAvatar == 0.f || randFloat() < FULL_RATE_DISTANCE / distanceToAvatar)) {
                         QByteArray avatarByteArray;
                         avatarByteArray.append(otherNode->getUUID().toRfc4122());
                         avatarByteArray.append(otherAvatar.toByteArray());
@@ -152,7 +162,7 @@ void AvatarMixer::broadcastAvatarData() {
                         
                         // if the receiving avatar has just connected make sure we send out the mesh and billboard
                         // for this avatar (assuming they exist)
-                        bool forceSend = !myData->checkAndSetHasReceivedFirstPackets();
+                        bool forceSend = !nodeData->checkAndSetHasReceivedFirstPackets();
                         
                         // we will also force a send of billboard or identity packet
                         // if either has changed in the last frame
@@ -185,10 +195,14 @@ void AvatarMixer::broadcastAvatarData() {
                             ++_sumIdentityPackets;
                         }
                     }
+                
+                    otherNodeData->getMutex().unlock();
                 }
             }
             
             nodeList->writeDatagram(mixedAvatarByteArray, node);
+            
+            nodeData->getMutex().unlock();
         }
     }
     
@@ -232,6 +246,7 @@ void AvatarMixer::readPendingDatagrams() {
                         
                         // parse the identity packet and update the change timestamp if appropriate
                         if (avatar.hasIdentityChangedAfterParsing(receivedPacket)) {
+                            QMutexLocker nodeDataLocker(&nodeData->getMutex());
                             nodeData->setIdentityChangeTimestamp(QDateTime::currentMSecsSinceEpoch());
                         }
                     }
@@ -248,6 +263,7 @@ void AvatarMixer::readPendingDatagrams() {
                         
                         // parse the billboard packet and update the change timestamp if appropriate
                         if (avatar.hasBillboardChangedAfterParsing(receivedPacket)) {
+                            QMutexLocker nodeDataLocker(&nodeData->getMutex());
                             nodeData->setBillboardChangeTimestamp(QDateTime::currentMSecsSinceEpoch());
                         }
                         
