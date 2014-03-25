@@ -184,8 +184,6 @@ void AvatarMixer::broadcastAvatarData() {
                                 
                             ++_sumIdentityPackets;
                         }
-                        
-                        nodeList->getNodeSocket().waitForBytesWritten(-1);
                     }
                 }
             }
