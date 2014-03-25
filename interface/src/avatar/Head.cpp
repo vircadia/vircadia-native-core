@@ -168,8 +168,8 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     _eyePosition = calculateAverageEyePosition();
 }
 
-void Head::render(float alpha) {
-    if (_faceModel.render(alpha) && _renderLookatVectors) {
+void Head::render(float alpha, bool forShadowMap) {
+    if (_faceModel.render(alpha, forShadowMap) && _renderLookatVectors) {
         renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
     }
 }

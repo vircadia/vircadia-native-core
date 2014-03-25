@@ -27,10 +27,7 @@ Hand::Hand(Avatar* owningAvatar) :
     HandData((AvatarData*)owningAvatar),
 
     _owningAvatar(owningAvatar),
-    _renderAlpha(1.0),
-    _collisionCenter(0,0,0),
-    _collisionAge(0),
-    _collisionDuration(0)
+    _renderAlpha(1.0)
 {
 }
 
@@ -41,10 +38,6 @@ void Hand::reset() {
 }
 
 void Hand::simulate(float deltaTime, bool isMine) {
-    
-    if (_collisionAge > 0.f) {
-        _collisionAge += deltaTime;
-    }
     
     calculateGeometry();
     
@@ -222,26 +215,6 @@ void Hand::collideAgainstOurself() {
     }
 }
 
-void Hand::handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelTreeElement* voxel, float deltaTime) {
-    //  Collision between finger and a voxel plays sound
-    const float LOWEST_FREQUENCY = 100.f;
-    const float HERTZ_PER_RGB = 3.f;
-    const float DECAY_PER_SAMPLE = 0.0005f;
-    const float DURATION_MAX = 2.0f;
-    const float MIN_VOLUME = 0.1f;
-    float volume = MIN_VOLUME + glm::clamp(glm::length(palm->getRawVelocity()), 0.f, (1.f - MIN_VOLUME));
-    float duration = volume;
-    _collisionCenter = fingerTipPosition;
-    _collisionAge = deltaTime;
-    _collisionDuration = duration;
-    int voxelBrightness = voxel->getColor()[0] + voxel->getColor()[1] + voxel->getColor()[2];
-    float frequency = LOWEST_FREQUENCY + (voxelBrightness * HERTZ_PER_RGB);
-    Application::getInstance()->getAudio()->startDrumSound(volume,
-                                                           frequency,
-                                                           DURATION_MAX,
-                                                           DECAY_PER_SAMPLE);
-}
-
 void Hand::calculateGeometry() {
     // generate finger tip balls....
     _leapFingerTipBalls.clear();
@@ -310,21 +283,6 @@ void Hand::render(bool isMine) {
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayHands)) {
         renderLeapHands(isMine);
-    }
-
-    if (isMine) {
-        //  If hand/voxel collision has happened, render a little expanding sphere
-        if (_collisionAge > 0.f) {
-            float opacity = glm::clamp(1.f - (_collisionAge / _collisionDuration), 0.f, 1.f);
-            glColor4f(1, 0, 0, 0.5 * opacity);
-            glPushMatrix();
-            glTranslatef(_collisionCenter.x, _collisionCenter.y, _collisionCenter.z);
-            glutSolidSphere(_collisionAge * 0.25f, 20, 20);
-            glPopMatrix();
-            if (_collisionAge > _collisionDuration) {
-                _collisionAge = 0.f;
-            }
-        }
     }
 
     glEnable(GL_DEPTH_TEST);

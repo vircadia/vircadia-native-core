@@ -41,6 +41,9 @@ public:
     const glm::vec3& getRight() const { return _right; }
 
     // setters for lens attributes
+    void setOrthographic(bool orthographic) { _orthographic = orthographic; }
+    void setWidth(float width) { _width = width; }
+    void setHeight(float height) { _height = height; }
     void setFieldOfView(float f) { _fieldOfView = f; }
     void setAspectRatio(float a) { _aspectRatio = a; }
     void setNearClip(float n) { _nearClip = n; }
@@ -50,6 +53,9 @@ public:
     void setEyeOffsetOrientation(const glm::quat& o) { _eyeOffsetOrientation = o; }
 
     // getters for lens attributes
+    bool isOrthographic() const { return _orthographic; }
+    float getWidth() const { return _width; }
+    float getHeight() const { return _height; }
     float getFieldOfView() const { return _fieldOfView; }
     float getAspectRatio() const { return _aspectRatio; }
     float getNearClip() const { return _nearClip; }
@@ -114,6 +120,8 @@ private:
     ViewFrustum::location sphereInKeyhole(const glm::vec3& center, float radius) const;
     ViewFrustum::location boxInKeyhole(const AABox& box) const;
 
+    void calculateOrthographic();
+
     // camera location/orientation attributes
     glm::vec3   _position; // the position in TREE_SCALE
     glm::vec3   _positionVoxelScale; // the position in voxel scale
@@ -125,6 +133,9 @@ private:
     glm::vec3   _right;
 
     // Lens attributes
+    bool _orthographic;
+    float _width;
+    float _height;
     float _fieldOfView; // degrees
     float _aspectRatio;
     float _nearClip;

@@ -12,6 +12,11 @@
 //
 //
 
+
+function getRandomFloat(min, max) {
+    return Math.random() * (max - min) + min;
+}
+
 var lastX = 0;
 var lastY = 0;
 var yawFromMouse = 0;
@@ -19,16 +24,21 @@ var pitchFromMouse = 0;
 var isMouseDown = false; 
 
 var BULLET_VELOCITY = 5.0;
+var MIN_THROWER_DELAY = 1000;
+var MAX_THROWER_DELAY = 1000;
 var LEFT_BUTTON_3 = 3;
 
 // Load some sound to use for loading and firing 
 var fireSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guns/GUN-SHOT2.raw");
 var loadSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guns/Gun_Reload_Weapon22.raw");
 var impactSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guns/BulletImpact2.raw");
-var targetLaunchSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guns/GUN-SHOT2.raw");
+var targetHitSound = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/hit.raw");
+var targetLaunchSound = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/shoot.raw");
 
 var audioOptions = new AudioInjectionOptions();
 audioOptions.volume = 0.9;
+
+var shotTime = new Date(); 
 
 // initialize our triggers
 var triggerPulled = new Array();
@@ -94,7 +104,9 @@ function shootTarget() {
     var DISTANCE_TO_LAUNCH_FROM = 3.0;
     var camera = Camera.getPosition();
     //printVector("camera", camera);
-    var forwardVector = Quat.getFront(Camera.getOrientation());
+    var targetDirection = Quat.angleAxis(getRandomFloat(-20.0, 20.0), { x:0, y:1, z:0 });
+    targetDirection = Quat.multiply(Camera.getOrientation(), targetDirection);
+    var forwardVector = Quat.getFront(targetDirection);
     //printVector("forwardVector", forwardVector);
     var newPosition = Vec3.sum(camera, Vec3.multiply(forwardVector, DISTANCE_TO_LAUNCH_FROM));
     //printVector("newPosition", newPosition);
@@ -111,6 +123,9 @@ function shootTarget() {
           lifetime: 1000.0,
           damping: 0.99 });
 
+    // Record start time 
+    shotTime = new Date();
+
     // Play target shoot sound
     audioOptions.position = newPosition;   
     Audio.playSound(targetLaunchSound, audioOptions);
@@ -119,31 +134,43 @@ function shootTarget() {
 
 
 function particleCollisionWithVoxel(particle, voxel, penetration) {
-    Vec3.print('particleCollisionWithVoxel() ... penetration=', penetration);
-
     var HOLE_SIZE = 0.125;
     var particleProperties = Particles.getParticleProperties(particle);
     var position = particleProperties.position; 
     Particles.deleteParticle(particle);
     //  Make a hole in this voxel 
+    Vec3.print("penetration", penetration);
+    Vec3.print("position", position);
+    var pointOfEntry = Vec3.subtract(position, penetration);
+    Vec3.print("pointOfEntry", pointOfEntry);
+    Voxels.eraseVoxel(pointOfEntry.x, pointOfEntry.y, pointOfEntry.z, HOLE_SIZE);
     Voxels.eraseVoxel(position.x, position.y, position.z, HOLE_SIZE);
     //audioOptions.position = position; 
     audioOptions.position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));
-    Audio.playSound(impactSound, audioOptions); 
+    Audio.playSound(targetHitSound, audioOptions); 
 }
 
 function particleCollisionWithParticle(particle1, particle2) {
-    print("Particle/Particle!");
     score++;
     Overlays.editOverlay(text, { text: "Score: " + score } );
+    //  Sort out which particle is which 
+
+    //  Record shot time 
+    var endTime = new Date(); 
+    var msecs = endTime.valueOf() - shotTime.valueOf();
+    print("hit, msecs = " + msecs);
     Particles.deleteParticle(particle1);
     Particles.deleteParticle(particle2);
+    audioOptions.position = newPosition;
+    audioOptions.position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));   
+    Audio.playSound(targetHitSound, audioOptions);
 }
 
 function keyPressEvent(event) {
     // if our tools are off, then don't do anything
     if (event.text == "t") {
-        shootTarget();
+        var time = MIN_THROWER_DELAY + Math.random() * MAX_THROWER_DELAY;
+        Script.setTimeout(shootTarget, time); 
     }
 }
 
@@ -164,7 +191,8 @@ function update(deltaTime) {
     //  Check hydra controller for launch button press 
     if (!isLaunchButtonPressed && Controller.isButtonPressed(LEFT_BUTTON_3)) {
         isLaunchButtonPressed = true; 
-        shootTarget();
+        var time = MIN_THROWER_DELAY + Math.random() * MAX_THROWER_DELAY;
+        Script.setTimeout(shootTarget, time);
     } else if (isLaunchButtonPressed && !Controller.isButtonPressed(LEFT_BUTTON_3)) {
         isLaunchButtonPressed = false;   
         
