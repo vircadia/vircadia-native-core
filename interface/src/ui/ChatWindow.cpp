@@ -220,23 +220,23 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     }
 
     QLabel* userLabel = new QLabel(getParticipantName(message.from()));
-    userLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    userLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     userLabel->setStyleSheet("padding: 2px; font-weight: bold");
-    userLabel->setAlignment(Qt::AlignTop);
+    userLabel->setAlignment(Qt::AlignTop | Qt::AlignRight);
 
     QLabel* messageLabel = new QLabel(message.body().replace(regexLinks, "<a href=\"\\1\">\\1</a>"));
     messageLabel->setWordWrap(true);
     messageLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
     messageLabel->setOpenExternalLinks(true);
-    messageLabel->setStyleSheet("padding: 2px; margin-right: 20px");
-    messageLabel->setAlignment(Qt::AlignTop);
+    messageLabel->setStyleSheet("padding-bottom: 2px; padding-right: 2px; padding-top: 2px; padding-right: 20px");
+    messageLabel->setAlignment(Qt::AlignTop | Qt::AlignLeft);
 
     if (getParticipantName(message.from()) == AccountManager::getInstance().getUsername()) {
-        userLabel->setStyleSheet(userLabel->styleSheet() + "; color: palette(highlight)");
-        messageLabel->setStyleSheet(messageLabel->styleSheet() + "; color: palette(highlight)");
+        userLabel->setStyleSheet(userLabel->styleSheet() + "; background-color: #e1e8ea");
+        messageLabel->setStyleSheet(messageLabel->styleSheet() + "; background-color: #e1e8ea");
     }
 
-    ui->messagesGridLayout->addWidget(userLabel, ui->messagesGridLayout->rowCount(), 0, Qt::AlignTop | Qt::AlignRight);
+    ui->messagesGridLayout->addWidget(userLabel, ui->messagesGridLayout->rowCount(), 0);
     ui->messagesGridLayout->addWidget(messageLabel, ui->messagesGridLayout->rowCount() - 1, 1);
     ui->messagesGridLayout->parentWidget()->updateGeometry();
     Application::processEvents();
