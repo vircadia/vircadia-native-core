@@ -584,7 +584,11 @@ void NodeList::sendDomainServerCheckIn() {
             }
             
             qDebug() << "sending DS check in size" << domainServerPacket.size() << "to" << _domainInfo.getSockAddr();
-            qDebug() << "Code returned is" << writeDatagram(domainServerPacket, _domainInfo.getSockAddr(), _domainInfo.getConnectionSecret());
+            qint64 code = writeDatagram(domainServerPacket, _domainInfo.getSockAddr(), _domainInfo.getConnectionSecret());
+            qDebug() << "Code returned is" << code;
+            if (code == -1) {
+                qDebug() << "the socket error is" << _nodeSocket.error();
+            }
             const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
             static unsigned int numDomainCheckins = 0;
             
