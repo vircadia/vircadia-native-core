@@ -33,6 +33,9 @@ const unsigned int SCRIPT_DATA_CALLBACK_USECS = floor(((1.0 / 60.0f) * 1000 * 10
 class ScriptEngine : public QObject {
     Q_OBJECT
 public:
+    ScriptEngine(const QUrl& scriptURL, bool wantMenuItems = false, 
+                 AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
+
     ScriptEngine(const QString& scriptContents = NO_SCRIPT, bool wantMenuItems = false, 
                  const QString& fileNameString = QString(""), 
                  AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
@@ -67,6 +70,8 @@ public:
     void evaluate(); /// initializes the engine, and evaluates the script, but then returns control to caller
     
     void timerFired();
+
+    bool hasScript() const { return !_scriptContents.isEmpty(); }
 
 public slots:
     void stop();

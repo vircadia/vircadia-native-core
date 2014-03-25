@@ -28,6 +28,7 @@
 #include <QDesktopWidget>
 #include <QCheckBox>
 #include <QImage>
+#include <QInputDialog>
 #include <QKeyEvent>
 #include <QMainWindow>
 #include <QMenuBar>
@@ -3508,35 +3509,17 @@ void Application::cleanupScriptMenuItem(const QString& scriptMenuName) {
     Menu::getInstance()->removeAction(Menu::getInstance()->getActiveScriptsMenu(), scriptMenuName);
 }
 
-void Application::loadScript(const QString& fileNameString) {
-    QByteArray fileNameAscii = fileNameString.toLocal8Bit();
-    const char* fileName = fileNameAscii.data();
-
-    std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
-    if(!file.is_open()) {
-        qDebug("Error loading file %s", fileName);
-        return;
-    }
-    qDebug("Loading file %s...", fileName);
-    _activeScripts.append(fileNameString);
-
-    // get file length....
-    unsigned long fileLength = file.tellg();
-    file.seekg( 0, std::ios::beg );
-
-    // read the entire file into a buffer, WHAT!? Why not.
-    char* entireFile = new char[fileLength+1];
-    file.read((char*)entireFile, fileLength);
-    file.close();
-
-    entireFile[fileLength] = 0;// null terminate
-    QString script(entireFile);
-    delete[] entireFile;
+void Application::loadScript(const QString& scriptName) {
 
     // start the script on a new thread...
     bool wantMenuItems = true; // tells the ScriptEngine object to add menu items for itself
+    ScriptEngine* scriptEngine = new ScriptEngine(QUrl(scriptName), wantMenuItems, &_controllerScriptingInterface);
 
-    ScriptEngine* scriptEngine = new ScriptEngine(script, wantMenuItems, fileName, &_controllerScriptingInterface);
+    if (!scriptEngine->hasScript()) {
+        qDebug() << "Application::loadScript(), script failed to load...";
+        return;
+    }
+    _activeScripts.append(scriptName);
     
     // add a stop menu item
     Menu::getInstance()->addActionToQMenuAndActionHash(Menu::getInstance()->getActiveScriptsMenu(), 
@@ -3598,6 +3581,31 @@ void Application::loadDialog() {
     
     loadScript(fileNameString);
 }
+
+void Application::loadScriptURLDialog() {
+
+    QInputDialog scriptURLDialog(Application::getInstance()->getWindow());
+    scriptURLDialog.setWindowTitle("Open and Run Script URL");
+    scriptURLDialog.setLabelText("Script:");
+    scriptURLDialog.setWindowFlags(Qt::Sheet);
+    const float DIALOG_RATIO_OF_WINDOW = 0.30f;
+    scriptURLDialog.resize(scriptURLDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, 
+                        scriptURLDialog.size().height());
+
+    int dialogReturn = scriptURLDialog.exec();
+    QString newScript;
+    if (dialogReturn == QDialog::Accepted) {
+        if (scriptURLDialog.textValue().size() > 0) {
+            // the user input a new hostname, use that
+            newScript = scriptURLDialog.textValue();
+        }
+        loadScript(newScript);
+    }
+
+    sendFakeEnterEvent();
+}
+
+
 
 void Application::toggleLogDialog() {
     if (! _logDialog) {

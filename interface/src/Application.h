@@ -254,6 +254,7 @@ public slots:
     void setRenderVoxels(bool renderVoxels);
     void doKillLocalVoxels();
     void loadDialog();
+    void loadScriptURLDialog();
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
     void stopAllScripts();
