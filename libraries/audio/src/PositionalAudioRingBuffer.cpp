@@ -8,6 +8,7 @@
 
 #include <cstring>
 
+#include <glm/detail/func_common.hpp>
 #include <QtCore/QDataStream>
 
 #include <Node.h>
@@ -15,12 +16,6 @@
 #include <UUID.h>
 
 #include "PositionalAudioRingBuffer.h"
-
-#ifdef _WIN32
-int isnan(double value) { return _isnan(value); }
-#else
-int isnan(double value) { return std::isnan(value); }
-#endif
 
 PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type) :
     AudioRingBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL),
@@ -38,28 +33,28 @@ PositionalAudioRingBuffer::~PositionalAudioRingBuffer() {
 }
 
 int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
-    QDataStream packetStream(packet);
     
     // skip the packet header (includes the source UUID)
-    packetStream.skipRawData(numBytesForPacketHeader(packet));
+    int readBytes = numBytesForPacketHeader(packet);
     
-    packetStream.skipRawData(parsePositionalData(packet.mid(packetStream.device()->pos())));
+    readBytes += parsePositionalData(packet.mid(readBytes));
    
     if (packetTypeForPacket(packet) == PacketTypeSilentAudioFrame) {
         // this source had no audio to send us, but this counts as a packet
         // write silence equivalent to the number of silent samples they just sent us
         int16_t numSilentSamples;
-        packetStream.readRawData(reinterpret_cast<char*>(&numSilentSamples), sizeof(int16_t));
+        
+        memcpy(&numSilentSamples, packet.data() + readBytes, sizeof(int16_t));
+        
+        readBytes += sizeof(int16_t);
         
         addSilentFrame(numSilentSamples);
     } else {
         // there is audio data to read
-        packetStream.skipRawData(writeData(packet.data() + packetStream.device()->pos(),
-                                           packet.size() - packetStream.device()->pos()));
+        readBytes += writeData(packet.data() + readBytes, packet.size() - readBytes);
     }
     
-
-    return packetStream.device()->pos();
+    return readBytes;
 }
 
 int PositionalAudioRingBuffer::parsePositionalData(const QByteArray& positionalByteArray) {
@@ -69,7 +64,7 @@ int PositionalAudioRingBuffer::parsePositionalData(const QByteArray& positionalB
     packetStream.readRawData(reinterpret_cast<char*>(&_orientation), sizeof(_orientation));
 
     // if this node sent us a NaN for first float in orientation then don't consider this good audio and bail
-    if (isnan(_orientation.x)) {
+    if (glm::isnan(_orientation.x)) {
         reset();
         return 0;
     }
@@ -80,13 +75,11 @@ int PositionalAudioRingBuffer::parsePositionalData(const QByteArray& positionalB
 bool PositionalAudioRingBuffer::shouldBeAddedToMix(int numJitterBufferSamples) {
     if (!isNotStarvedOrHasMinimumSamples(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL + numJitterBufferSamples)) {
         if (_shouldOutputStarveDebug) {
-            qDebug() << "Starved and do not have minimum samples to start. Buffer held back.";
             _shouldOutputStarveDebug = false;
         }
         
         return false;
     } else if (samplesAvailable() < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-        qDebug() << "Do not have number of samples needed for interval. Buffer starved.";
         _isStarved = true;
         
         // reset our _shouldOutputStarveDebug to true so the next is printed

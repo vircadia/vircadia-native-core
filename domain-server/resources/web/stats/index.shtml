@@ -1,0 +1,6 @@
+<!--#include virtual="header.html"-->
+<div id="stats-lead" class="table-lead"><h3>Stats</h3><div class="lead-line"></div></div>
+<table id="stats-table" class="table"><tbody></tbody></table>
+<!--#include virtual="footer.html"-->
+<script src='js/stats.js'></script>
+<!--#include virtual="page-end.html"-->

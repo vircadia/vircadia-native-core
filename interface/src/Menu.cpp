@@ -24,18 +24,20 @@
 #include <QSlider>
 #include <QStandardPaths>
 #include <QUuid>
-#include <QWindow>
+#include <QHBoxLayout>
 
 #include <AccountManager.h>
 #include <XmppClient.h>
 #include <UUID.h>
+#include <FileDownloader.h>
 
 #include "Application.h"
 #include "Menu.h"
-#include "MenuScriptingInterface.h"
+#include "scripting/MenuScriptingInterface.h"
 #include "Util.h"
-#include "InfoView.h"
+#include "ui/InfoView.h"
 #include "ui/MetavoxelEditor.h"
+#include "ui/ModelBrowser.h"
 
 
 Menu* Menu::_instance = NULL;
@@ -59,6 +61,7 @@ Menu* Menu::getInstance() {
 
 const ViewFrustumOffset DEFAULT_FRUSTUM_OFFSET = {-135.0f, 0.0f, 0.0f, 25.0f, 0.0f};
 const float DEFAULT_FACESHIFT_EYE_DEFLECTION = 0.25f;
+const float DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER = 1.0f;
 const int FIVE_SECONDS_OF_FRAMES = 5 * 60;
 
 Menu::Menu() :
@@ -73,9 +76,11 @@ Menu::Menu() :
     _lodToolsDialog(NULL),
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
     _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
+    _avatarLODDistanceMultiplier(DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER),
     _boundaryLevelAdjust(0),
     _maxVoxelPacketsPerSecond(DEFAULT_MAX_VOXEL_PPS),
     _lastAdjust(usecTimestampNow()),
+    _lastAvatarDetailDrop(usecTimestampNow()),
     _fpsAverage(FIVE_SECONDS_OF_FRAMES),
     _loginAction(NULL)
 {
@@ -105,6 +110,8 @@ Menu::Menu() :
 
     addDisabledActionAndSeparator(fileMenu, "Scripts");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O, appInstance, SLOT(loadDialog()));
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScriptURL, 
+                                    Qt::CTRL | Qt::SHIFT | Qt::Key_O, appInstance, SLOT(loadScriptURLDialog()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::StopAllScripts, 0, appInstance, SLOT(stopAllScripts()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::ReloadAllScripts, 0, appInstance, SLOT(reloadAllScripts()));
     _activeScriptsMenu = fileMenu->addMenu("Running Scripts");
@@ -136,9 +143,8 @@ Menu::Menu() :
                                   this,
                                   SLOT(goTo()));
 
-    addDisabledActionAndSeparator(fileMenu, "Upload/Browse");
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploaderAvatarHead, 0, Application::getInstance(), SLOT(uploadFST()));
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploaderAvatarSkeleton, 0, Application::getInstance(), SLOT(uploadFST()));
+    addDisabledActionAndSeparator(fileMenu, "Upload Avatar Model");
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadFST, 0, Application::getInstance(), SLOT(uploadFST()));
     
     addDisabledActionAndSeparator(fileMenu, "Settings");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::SettingsImport, 0, this, SLOT(importSettings()));
@@ -165,7 +171,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::Gravity, Qt::SHIFT | Qt::Key_G, false);
 
     
-    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ClickToFly);
+  
 
     addAvatarCollisionSubMenu(editMenu);
 
@@ -373,8 +379,10 @@ Menu::~Menu() {
 }
 
 void Menu::loadSettings(QSettings* settings) {
+    bool lockedSettings = false;
     if (!settings) {
-        settings = Application::getInstance()->getSettings();
+        settings = Application::getInstance()->lockSettings();
+        lockedSettings = true;
     }
 
     _audioJitterBufferSamples = loadSetting(settings, "audioJitterBufferSamples", 0);
@@ -383,6 +391,8 @@ void Menu::loadSettings(QSettings* settings) {
     _maxVoxels = loadSetting(settings, "maxVoxels", DEFAULT_MAX_VOXELS_PER_SYSTEM);
     _maxVoxelPacketsPerSecond = loadSetting(settings, "maxVoxelsPPS", DEFAULT_MAX_VOXEL_PPS);
     _voxelSizeScale = loadSetting(settings, "voxelSizeScale", DEFAULT_OCTREE_SIZE_SCALE);
+    _avatarLODDistanceMultiplier = loadSetting(settings, "avatarLODDistanceMultiplier",
+        DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER);
     _boundaryLevelAdjust = loadSetting(settings, "boundaryLevelAdjust", 0);
 
     settings->beginGroup("View Frustum Offset Camera");
@@ -403,11 +413,17 @@ void Menu::loadSettings(QSettings* settings) {
     // TODO: cache more settings in MyAvatar that are checked with very high frequency.
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
     myAvatar->updateCollisionFlags();
+
+    if (lockedSettings) {
+        Application::getInstance()->unlockSettings();
+    }
 }
 
 void Menu::saveSettings(QSettings* settings) {
+    bool lockedSettings = false;
     if (!settings) {
-        settings = Application::getInstance()->getSettings();
+        settings = Application::getInstance()->lockSettings();
+        lockedSettings = true;
     }
 
     settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
@@ -416,6 +432,7 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("maxVoxels", _maxVoxels);
     settings->setValue("maxVoxelsPPS", _maxVoxelPacketsPerSecond);
     settings->setValue("voxelSizeScale", _voxelSizeScale);
+    settings->setValue("avatarLODDistanceMultiplier", _avatarLODDistanceMultiplier);
     settings->setValue("boundaryLevelAdjust", _boundaryLevelAdjust);
     settings->beginGroup("View Frustum Offset Camera");
     settings->setValue("viewFrustumOffsetYaw", _viewFrustumOffset.yaw);
@@ -429,6 +446,9 @@ void Menu::saveSettings(QSettings* settings) {
     Application::getInstance()->getAvatar()->saveData(settings);
     NodeList::getInstance()->saveData(settings);
 
+    if (lockedSettings) {
+        Application::getInstance()->unlockSettings();
+    }
 }
 
 void Menu::importSettings() {
@@ -692,6 +712,10 @@ void Menu::loginForCurrentDomain() {
 
 void Menu::editPreferences() {
     Application* applicationInstance = Application::getInstance();
+    ModelBrowser headBrowser(Head);
+    ModelBrowser skeletonBrowser(Skeleton);
+    
+    const QString BROWSE_BUTTON_TEXT = "Browse";
 
     QDialog dialog(applicationInstance->getWindow());
     dialog.setWindowTitle("Interface Preferences");
@@ -702,17 +726,31 @@ void Menu::editPreferences() {
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form, 1);
 
+    
+    QHBoxLayout headModelLayout;
     QString faceURLString = applicationInstance->getAvatar()->getHead()->getFaceModel().getURL().toString();
-    QLineEdit* faceURLEdit = new QLineEdit(faceURLString);
-    faceURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    faceURLEdit->setPlaceholderText(DEFAULT_HEAD_MODEL_URL.toString());
-    form->addRow("Face URL:", faceURLEdit);
-
+    QLineEdit headURLEdit(faceURLString);
+    QPushButton headBrowseButton(BROWSE_BUTTON_TEXT);
+    connect(&headBrowseButton, SIGNAL(clicked()), &headBrowser, SLOT(browse()));
+    connect(&headBrowser, SIGNAL(selected(QString)), &headURLEdit, SLOT(setText(QString)));
+    headURLEdit.setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    headURLEdit.setPlaceholderText(DEFAULT_HEAD_MODEL_URL.toString());
+    headModelLayout.addWidget(&headURLEdit);
+    headModelLayout.addWidget(&headBrowseButton);
+    form->addRow("Head URL:", &headModelLayout);
+    
+    QHBoxLayout skeletonModelLayout;
     QString skeletonURLString = applicationInstance->getAvatar()->getSkeletonModel().getURL().toString();
-    QLineEdit* skeletonURLEdit = new QLineEdit(skeletonURLString);
-    skeletonURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    skeletonURLEdit->setPlaceholderText(DEFAULT_BODY_MODEL_URL.toString());
-    form->addRow("Skeleton URL:", skeletonURLEdit);
+    QLineEdit skeletonURLEdit(skeletonURLString);
+    QPushButton SkeletonBrowseButton(BROWSE_BUTTON_TEXT);
+    connect(&SkeletonBrowseButton, SIGNAL(clicked()), &skeletonBrowser, SLOT(browse()));
+    connect(&skeletonBrowser, SIGNAL(selected(QString)), &skeletonURLEdit, SLOT(setText(QString)));
+    skeletonURLEdit.setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    skeletonURLEdit.setPlaceholderText(DEFAULT_BODY_MODEL_URL.toString());
+    skeletonModelLayout.addWidget(&skeletonURLEdit);
+    skeletonModelLayout.addWidget(&SkeletonBrowseButton);
+    form->addRow("Skeleton URL:", &skeletonModelLayout);
+    
 
     QString displayNameString = applicationInstance->getAvatar()->getDisplayName();
     QLineEdit* displayNameEdit = new QLineEdit(displayNameString);
@@ -774,21 +812,17 @@ void Menu::editPreferences() {
 
     int ret = dialog.exec();
     if (ret == QDialog::Accepted) {
-        QUrl faceModelURL(faceURLEdit->text());
-        
         bool shouldDispatchIdentityPacket = false;
 
-        if (faceModelURL.toString() != faceURLString) {
+        if (headURLEdit.text() != faceURLString && !headURLEdit.text().isEmpty()) {
             // change the faceModelURL in the profile, it will also update this user's BlendFace
-            applicationInstance->getAvatar()->setFaceModelURL(faceModelURL);
+            applicationInstance->getAvatar()->setFaceModelURL(QUrl(headURLEdit.text()));
             shouldDispatchIdentityPacket = true;
         }
 
-        QUrl skeletonModelURL(skeletonURLEdit->text());
-
-        if (skeletonModelURL.toString() != skeletonURLString) {
+        if (skeletonURLEdit.text() != skeletonURLString && !skeletonURLEdit.text().isEmpty()) {
             // change the skeletonModelURL in the profile, it will also update this user's Body
-            applicationInstance->getAvatar()->setSkeletonModelURL(skeletonModelURL);
+            applicationInstance->getAvatar()->setSkeletonModelURL(QUrl(skeletonURLEdit.text()));
             shouldDispatchIdentityPacket = true;
         }
 
@@ -1159,8 +1193,24 @@ void Menu::autoAdjustLOD(float currentFPS) {
     }
     _fpsAverage.updateAverage(currentFPS);
 
-    bool changed = false;
     quint64 now = usecTimestampNow();
+    
+    if (_fpsAverage.getAverage() < ADJUST_LOD_DOWN_FPS) {
+        if (now - _lastAvatarDetailDrop > ADJUST_LOD_DOWN_DELAY) {
+            // attempt to lower the detail in proportion to the fps difference
+            float targetFps = (ADJUST_LOD_DOWN_FPS + ADJUST_LOD_UP_FPS) * 0.5f;
+            _avatarLODDistanceMultiplier *= (targetFps / _fpsAverage.getAverage()); 
+            _lastAvatarDetailDrop = now;
+        }
+    } else if (_fpsAverage.getAverage() > ADJUST_LOD_UP_FPS) {
+        // let the detail level creep slowly upwards
+        const float DISTANCE_DECREASE_RATE = 0.01f;
+        const float MINIMUM_DISTANCE_MULTIPLIER = 0.1f;
+        _avatarLODDistanceMultiplier = qMax(MINIMUM_DISTANCE_MULTIPLIER,
+            _avatarLODDistanceMultiplier - DISTANCE_DECREASE_RATE);
+    }
+    
+    bool changed = false;
     quint64 elapsed = now - _lastAdjust;
 
     if (elapsed > ADJUST_LOD_DOWN_DELAY && _fpsAverage.getAverage() < ADJUST_LOD_DOWN_FPS 
@@ -1388,9 +1438,8 @@ void Menu::removeMenu(const QString& menuName) {
     if (action) {
         QString finalMenuPart;
         QMenu* parent = getMenuParent(menuName, finalMenuPart);
-    
         if (parent) {
-            removeAction(parent, finalMenuPart);
+            parent->removeAction(action);
         } else {
             QMenuBar::removeAction(action);
         }

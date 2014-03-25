@@ -30,7 +30,7 @@ public:
     
     bool requiresAuthentication() const { return !_nodeAuthenticationURL.isEmpty(); }
     
-    bool handleHTTPRequest(HTTPConnection* connection, const QString& path);
+    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
     
     void exit(int retCode = 0);
     

@@ -19,7 +19,8 @@ AudioRingBuffer::AudioRingBuffer(int numFrameSamples) :
     NodeData(),
     _sampleCapacity(numFrameSamples * RING_BUFFER_LENGTH_FRAMES),
     _isStarved(true),
-    _hasStarted(false)
+    _hasStarted(false),
+    _averageLoudness(0)
 {
     if (numFrameSamples) {
         _buffer = new int16_t[_sampleCapacity];
@@ -55,18 +56,31 @@ int AudioRingBuffer::parseData(const QByteArray& packet) {
     return writeData(packet.data() + numBytesPacketHeader, packet.size() - numBytesPacketHeader);
 }
 
-float AudioRingBuffer::averageLoudnessForBoundarySamples(int numSamples) {
+void AudioRingBuffer::updateAverageLoudnessForBoundarySamples(int numSamples) {
     // ForBoundarySamples means that we expect the number of samples not to roll of the end of the ring buffer
-    float averageLoudness = 0;
+    float nextLoudness = 0;
     
     for (int i = 0; i < numSamples; ++i) {
-        averageLoudness += fabsf(_nextOutput[i]);
+        nextLoudness += fabsf(_nextOutput[i]);
     }
     
-    averageLoudness /= numSamples;
-    averageLoudness /= MAX_SAMPLE_VALUE;
+    nextLoudness /= numSamples;
+    nextLoudness /= MAX_SAMPLE_VALUE;
     
-    return averageLoudness;
+    const int TRAILING_AVERAGE_FRAMES = 100;
+    const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
+    const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
+    const float LOUDNESS_EPSILON = 0.01f;
+    
+    if (nextLoudness >= _averageLoudness) {
+        _averageLoudness = nextLoudness;
+    } else {
+        _averageLoudness = (_averageLoudness * PREVIOUS_FRAMES_RATIO) + (CURRENT_FRAME_RATIO * nextLoudness);
+        
+        if (_averageLoudness < LOUDNESS_EPSILON) {
+            _averageLoudness = 0;
+        }
+    }
 }
 
 qint64 AudioRingBuffer::readSamples(int16_t* destination, qint64 maxSamples) {
@@ -164,7 +178,7 @@ void AudioRingBuffer::addSilentFrame(int numSilentSamples) {
         _endOfLastWrite += numSilentSamples;
     } else {
         int numSamplesToEnd = (_buffer + _sampleCapacity) - _endOfLastWrite;
-        memset(_endOfLastWrite, 0, numSilentSamples * sizeof(int16_t));
+        memset(_endOfLastWrite, 0, numSamplesToEnd * sizeof(int16_t));
         memset(_buffer, 0, (numSilentSamples - numSamplesToEnd) * sizeof(int16_t));
         
         _endOfLastWrite = _buffer + (numSilentSamples - numSamplesToEnd);

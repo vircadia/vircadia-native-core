@@ -27,6 +27,7 @@ private:
     int _lodCount;
     int _texturesCount;
     int _totalSize;
+    bool _isHead;
     bool _readyToSend;
     
     QHttpMultiPart* _dataMultiPart;

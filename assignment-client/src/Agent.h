@@ -28,20 +28,26 @@ class Agent : public ThreadedAssignment {
     Q_OBJECT
     
     Q_PROPERTY(bool isAvatar READ isAvatar WRITE setIsAvatar)
-    Q_PROPERTY(bool sendAvatarAudioStream READ isSendingAvatarAudioStream WRITE setSendAvatarAudioStream)
+    Q_PROPERTY(bool isPlayingAvatarSound READ isPlayingAvatarSound)
+    Q_PROPERTY(bool isListeningToAudioStream READ isListeningToAudioStream WRITE setIsListeningToAudioStream)
 public:
     Agent(const QByteArray& packet);
-    ~Agent();
     
     void setIsAvatar(bool isAvatar) { QMetaObject::invokeMethod(&_scriptEngine, "setIsAvatar", Q_ARG(bool, isAvatar)); }
     bool isAvatar() const { return _scriptEngine.isAvatar(); }
     
-    void setSendAvatarAudioStream(bool sendAvatarAudioStream);
-    bool isSendingAvatarAudioStream() const { return (bool) _scriptEngine.sendsAvatarAudioStream(); }
+    bool isPlayingAvatarSound() const  { return _scriptEngine.isPlayingAvatarSound(); }
+    
+    bool isListeningToAudioStream() const { return _scriptEngine.isListeningToAudioStream(); }
+    void setIsListeningToAudioStream(bool isListeningToAudioStream)
+        { _scriptEngine.setIsListeningToAudioStream(isListeningToAudioStream); }
+
+    virtual void aboutToFinish();
     
 public slots:
     void run();
     void readPendingDatagrams();
+    void playAvatarSound(Sound* avatarSound) { _scriptEngine.setAvatarSound(avatarSound); }
 
 private:
     ScriptEngine _scriptEngine;
@@ -50,8 +56,6 @@ private:
 
     ParticleTreeHeadlessViewer _particleViewer;
     VoxelTreeHeadlessViewer _voxelViewer;
-    
-    int16_t* _avatarAudioStream;
 };
 
 #endif /* defined(__hifi__Agent__) */

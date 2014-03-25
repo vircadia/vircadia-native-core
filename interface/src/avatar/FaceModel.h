@@ -22,7 +22,6 @@ public:
     FaceModel(Head* owningHead);
 
     void simulate(float deltaTime);
-    bool render(float alpha);
     
 protected:
 

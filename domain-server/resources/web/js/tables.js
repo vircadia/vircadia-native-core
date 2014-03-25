@@ -7,7 +7,7 @@ $(document).ready(function(){
       $.each(json.nodes, function (uuid, data) {
         nodesTableBody += "<tr>";
         nodesTableBody += "<td>" + data.type + "</td>";
-        nodesTableBody += "<td>" + uuid + "</td>";
+        nodesTableBody += "<td><a href='stats/?uuid=" + uuid + "'>" + uuid + "</a></td>";
         nodesTableBody += "<td>" + (data.pool ? data.pool : "") + "</td>";
         nodesTableBody += "<td>" + data.public.ip + "<span class='port'>:" + data.public.port + "</span></td>";
         nodesTableBody += "<td>" + data.local.ip + "<span class='port'>:" + data.local.port + "</span></td>";
@@ -42,7 +42,7 @@ $(document).ready(function(){
   $(document.body).on('click', '.glyphicon-remove', function(){
     // fire off a delete for this node
     $.ajax({
-        url: "/node/" + $(this).data('uuid'),
+        url: "/nodes/" + $(this).data('uuid'),
         type: 'DELETE',
         success: function(result) {
           console.log("Succesful request to delete node.");

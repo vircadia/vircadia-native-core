@@ -26,38 +26,13 @@
 Agent::Agent(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _voxelEditSender(),
-    _particleEditSender(),
-    _avatarAudioStream(NULL)
+    _particleEditSender()
 {
     // be the parent of the script engine so it gets moved when we do
     _scriptEngine.setParent(this);
     
     _scriptEngine.getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
     _scriptEngine.getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
-}
-
-Agent::~Agent() {
-    delete _avatarAudioStream;
-}
-
-const int SCRIPT_AUDIO_BUFFER_SAMPLES = floor(((SCRIPT_DATA_CALLBACK_USECS * SAMPLE_RATE) / (1000 * 1000)) + 0.5);
-
-void Agent::setSendAvatarAudioStream(bool sendAvatarAudioStream) {
-    if (sendAvatarAudioStream) {
-        // the agentAudioStream number of samples is related to the ScriptEngine callback rate
-        _avatarAudioStream = new int16_t[SCRIPT_AUDIO_BUFFER_SAMPLES];
-        
-        // fill the _audioStream with zeroes to start
-        memset(_avatarAudioStream, 0, SCRIPT_AUDIO_BUFFER_SAMPLES * sizeof(int16_t));
-        
-        _scriptEngine.setNumAvatarAudioBufferSamples(SCRIPT_AUDIO_BUFFER_SAMPLES);
-        _scriptEngine.setAvatarAudioBuffer(_avatarAudioStream);
-    } else {
-        delete _avatarAudioStream;
-        _avatarAudioStream = NULL;
-        
-        _scriptEngine.setAvatarAudioBuffer(NULL);
-    }
 }
 
 void Agent::readPendingDatagrams() {
@@ -95,12 +70,19 @@ void Agent::readPendingDatagrams() {
                 // also give our local particle tree a chance to remap any internal locally created particles
                 _particleViewer.getTree()->handleAddParticleResponse(receivedPacket);
 
+                // Make sure our Node and NodeList knows we've heard from this node.
+                SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
+                sourceNode->setLastHeardMicrostamp(usecTimestampNow());
+
             } else if (datagramPacketType == PacketTypeParticleData
                         || datagramPacketType == PacketTypeParticleErase
                         || datagramPacketType == PacketTypeOctreeStats
                         || datagramPacketType == PacketTypeVoxelData
             ) {
+                // Make sure our Node and NodeList knows we've heard from this node.
                 SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
+                sourceNode->setLastHeardMicrostamp(usecTimestampNow());
+
                 QByteArray mutablePacket = receivedPacket;
                 ssize_t messageLength = mutablePacket.size();
 
@@ -138,10 +120,12 @@ void Agent::readPendingDatagrams() {
     }
 }
 
+const QString AGENT_LOGGING_NAME = "agent";
+
 void Agent::run() {
-    NodeList* nodeList = NodeList::getInstance();
-    nodeList->setOwnerType(NodeType::Agent);
+    ThreadedAssignment::commonInit(AGENT_LOGGING_NAME, NodeType::Agent);
     
+    NodeList* nodeList = NodeList::getInstance();
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer);
     
     // figure out the URL for the script for this agent assignment
@@ -165,17 +149,6 @@ void Agent::run() {
     QString scriptContents(reply->readAll());
     
     qDebug() << "Downloaded script:" << scriptContents;
-    
-    timeval startTime;
-    gettimeofday(&startTime, NULL);
-    
-    QTimer* domainServerTimer = new QTimer(this);
-    connect(domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
-    domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_USECS / 1000);
-    
-    QTimer* silentNodeTimer = new QTimer(this);
-    connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
-    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
     
     // setup an Avatar for the script to use
     AvatarData scriptedAvatar;
@@ -207,4 +180,9 @@ void Agent::run() {
 
     _scriptEngine.setScriptContents(scriptContents);
     _scriptEngine.run();
+    setFinished(true);
+}
+
+void Agent::aboutToFinish() {
+    _scriptEngine.stop();
 }

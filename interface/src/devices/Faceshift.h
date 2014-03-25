@@ -9,8 +9,6 @@
 #ifndef __interface__Faceshift__
 #define __interface__Faceshift__
 
-#include <vector>
-
 #include <QTcpSocket>
 #include <QUdpSocket>
 
@@ -47,7 +45,7 @@ public:
     float getEstimatedEyePitch() const { return _estimatedEyePitch; }
     float getEstimatedEyeYaw() const { return _estimatedEyeYaw; }
 
-    const std::vector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
+    const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
 
     float getLeftBlink() const { return getBlendshapeCoefficient(_leftBlinkIndex); }
     float getRightBlink() const { return getBlendshapeCoefficient(_rightBlinkIndex); }
@@ -68,7 +66,7 @@ public:
     void reset();
     
     void updateFakeCoefficients(float leftBlink, float rightBlink, float browUp,
-        float jawOpen, std::vector<float>& coefficients) const;
+        float jawOpen, QVector<float>& coefficients) const;
     
 signals:
 
@@ -111,7 +109,7 @@ private:
     float _eyeGazeRightPitch;
     float _eyeGazeRightYaw;
     
-    std::vector<float> _blendshapeCoefficients;
+    QVector<float> _blendshapeCoefficients;
     
     int _leftBlinkIndex;
     int _rightBlinkIndex;

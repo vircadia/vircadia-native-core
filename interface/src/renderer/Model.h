@@ -43,8 +43,8 @@ public:
     void setPupilDilation(float dilation) { _pupilDilation = dilation; }
     float getPupilDilation() const { return _pupilDilation; }
     
-    void setBlendshapeCoefficients(const std::vector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
-    const std::vector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
+    void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
+    const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
     
     bool isActive() const { return _geometry && _geometry->isLoaded(); }
     
@@ -58,7 +58,7 @@ public:
     void createCollisionShapes();
     void updateShapePositions();
     void simulate(float deltaTime, bool fullUpdate = true);
-    bool render(float alpha);
+    bool render(float alpha = 1.0f, bool forShadowMap = false);
     
     /// Sets the URL of the model to render.
     /// \param fallback the URL of a fallback model to render if the requested model fails to load
@@ -181,6 +181,9 @@ public:
 
     float getBoundingRadius() const { return _boundingRadius; }
 
+    /// Sets blended vertices computed in a separate thread.
+    void setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
+
 protected:
 
     QSharedPointer<NetworkGeometry> _geometry;
@@ -205,9 +208,6 @@ protected:
     class MeshState {
     public:
         QVector<glm::mat4> clusterMatrices;
-        QVector<glm::vec3> worldSpaceVertices;
-        QVector<glm::vec3> vertexVelocities;
-        QVector<glm::vec3> worldSpaceNormals;
     };
     
     QVector<MeshState> _meshStates;
@@ -247,7 +247,7 @@ private:
     
     void applyNextGeometry();
     void deleteGeometry();
-    void renderMeshes(float alpha, bool translucent);
+    void renderMeshes(float alpha, bool forShadowMap, bool translucent);
     
     QSharedPointer<NetworkGeometry> _baseGeometry; ///< reference required to prevent collection of base
     QSharedPointer<NetworkGeometry> _nextBaseGeometry;
@@ -257,16 +257,13 @@ private:
     float _nextLODHysteresis;
     
     float _pupilDilation;
-    std::vector<float> _blendshapeCoefficients;
+    QVector<float> _blendshapeCoefficients;
     
     QUrl _url;
         
-    QVector<GLuint> _blendedVertexBufferIDs;
-    QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
-    bool _resetStates;
+    QVector<QOpenGLBuffer> _blendedVertexBuffers;
     
-    QVector<glm::vec3> _blendedVertices;
-    QVector<glm::vec3> _blendedNormals;
+    QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
     
     QVector<Model*> _attachments;
 
@@ -274,8 +271,10 @@ private:
     
     static ProgramObject _program;
     static ProgramObject _normalMapProgram;
+    static ProgramObject _shadowProgram;
     static ProgramObject _skinProgram;
     static ProgramObject _skinNormalMapProgram;
+    static ProgramObject _skinShadowProgram;
     
     static int _normalMapTangentLocation;
     
@@ -289,9 +288,14 @@ private:
     
     static SkinLocations _skinLocations;
     static SkinLocations _skinNormalMapLocations;
+    static SkinLocations _skinShadowLocations;
     
     static void initSkinProgram(ProgramObject& program, SkinLocations& locations);
     static QVector<JointState> createJointStates(const FBXGeometry& geometry);
 };
+
+Q_DECLARE_METATYPE(QPointer<Model>)
+Q_DECLARE_METATYPE(QWeakPointer<NetworkGeometry>)
+Q_DECLARE_METATYPE(QVector<glm::vec3>)
 
 #endif /* defined(__interface__Model__) */

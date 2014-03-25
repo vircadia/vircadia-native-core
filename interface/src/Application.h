@@ -18,6 +18,7 @@
 #include <QSettings>
 #include <QTouchEvent>
 #include <QList>
+#include <QSet>
 #include <QStringList>
 #include <QPointer>
 
@@ -28,12 +29,12 @@
 #include <ParticleEditPacketSender.h>
 #include <ScriptEngine.h>
 #include <OctreeQuery.h>
+#include <ViewFrustum.h>
+#include <VoxelEditPacketSender.h>
 
 #include "Audio.h"
-#include "BandwidthMeter.h"
 #include "BuckyBalls.h"
 #include "Camera.h"
-#include "ControllerScriptingInterface.h"
 #include "DatagramProcessor.h"
 #include "Environment.h"
 #include "FileLogger.h"
@@ -43,13 +44,6 @@
 #include "PacketHeaders.h"
 #include "ParticleTreeRenderer.h"
 #include "Stars.h"
-#include "ViewFrustum.h"
-#include "VoxelFade.h"
-#include "VoxelEditPacketSender.h"
-#include "VoxelHideShowThread.h"
-#include "VoxelPacketProcessor.h"
-#include "VoxelSystem.h"
-#include "VoxelImporter.h"
 #include "avatar/Avatar.h"
 #include "avatar/AvatarManager.h"
 #include "avatar/MyAvatar.h"
@@ -62,13 +56,20 @@
 #include "renderer/PointShader.h"
 #include "renderer/TextureCache.h"
 #include "renderer/VoxelShader.h"
+#include "scripting/ControllerScriptingInterface.h"
 #include "ui/BandwidthDialog.h"
+#include "ui/BandwidthMeter.h"
 #include "ui/OctreeStatsDialog.h"
 #include "ui/RearMirrorTools.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
 #include "ui/UpdateDialog.h"
-#include "ui/Overlays.h"
+#include "ui/overlays/Overlays.h"
+#include "voxels/VoxelFade.h"
+#include "voxels/VoxelHideShowThread.h"
+#include "voxels/VoxelImporter.h"
+#include "voxels/VoxelPacketProcessor.h"
+#include "voxels/VoxelSystem.h"
 
 
 class QAction;
@@ -114,6 +115,7 @@ public:
     void loadScript(const QString& fileNameString);    
     void loadScripts();
     void storeSizeAndPosition();
+    void clearScriptsBeforeRunning();
     void saveScripts();
     void initializeGL();
     void paintGL();
@@ -121,6 +123,8 @@ public:
 
     void keyPressEvent(QKeyEvent* event);
     void keyReleaseEvent(QKeyEvent* event);
+
+    void focusOutEvent(QFocusEvent* event);
 
     void mouseMoveEvent(QMouseEvent* event);
     void mousePressEvent(QMouseEvent* event);
@@ -152,6 +156,7 @@ public:
     Audio* getAudio() { return &_audio; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
+    ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
     VoxelTree* getVoxelTree() { return _voxels.getTree(); }
     ParticleTreeRenderer* getParticles() { return &_particles; }
@@ -168,7 +173,11 @@ public:
     Visage* getVisage() { return &_visage; }
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
-    QSettings* getSettings() { return _settings; }
+
+    /// if you need to access the application settings, use lockSettings()/unlockSettings()
+    QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }
+    void unlockSettings() { _settingsMutex.unlock(); }
+
     QMainWindow* getWindow() { return _window; }
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
@@ -246,6 +255,7 @@ public slots:
     void setRenderVoxels(bool renderVoxels);
     void doKillLocalVoxels();
     void loadDialog();
+    void loadScriptURLDialog();
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
     void stopAllScripts();
@@ -349,6 +359,7 @@ private:
     DatagramProcessor _datagramProcessor;
 
     QNetworkAccessManager* _networkAccessManager;
+    QMutex _settingsMutex;
     QSettings* _settings;
 
     glm::vec3 _gravity;
@@ -382,6 +393,7 @@ private:
 
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels, particles)
+    ViewFrustum _shadowViewFrustum;
     quint64 _lastQueriedTime;
 
     Oscilloscope _audioScope;
@@ -431,6 +443,8 @@ private:
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
 
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
+
+    QSet<int> _keysPressed;
 
     GeometryCache _geometryCache;
     TextureCache _textureCache;

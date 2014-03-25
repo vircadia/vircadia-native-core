@@ -12,6 +12,10 @@ var AMPLITUDE = 45.0;
 
 var cumulativeTime = 0.0;
 
+print("Joint List:");
+var jointList = MyAvatar.getJointNames(); 
+print(jointList);
+
 Script.update.connect(function(deltaTime) {
     cumulativeTime += deltaTime;
     MyAvatar.setJointData("joint_R_hip", Quat.fromPitchYawRollDegrees(0.0, 0.0, AMPLITUDE * Math.sin(cumulativeTime * FREQUENCY)));

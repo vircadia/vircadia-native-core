@@ -8,14 +8,12 @@
 
 #include <QtCore/QDataStream>
 
-#include "HandData.h"
-#include "AvatarData.h"
-#include <SharedUtil.h>
 #include <GeometryUtil.h>
+#include <SharedUtil.h>
 
+#include "AvatarData.h" 
+#include "HandData.h"
 
-// When converting between fixed and float, use this as the radix.
-const int fingerVectorRadix = 4;
 
 HandData::HandData(AvatarData* owningAvatar) :
     _owningAvatarData(owningAvatar)

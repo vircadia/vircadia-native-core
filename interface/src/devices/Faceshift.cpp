@@ -103,7 +103,7 @@ void Faceshift::reset() {
 }
 
 void Faceshift::updateFakeCoefficients(float leftBlink, float rightBlink, float browUp,
-        float jawOpen, std::vector<float>& coefficients) const {
+        float jawOpen, QVector<float>& coefficients) const {
     coefficients.resize(max((int)coefficients.size(), _jawOpenIndex + 1));
     qFill(coefficients.begin(), coefficients.end(), 0.0f);
     coefficients[_leftBlinkIndex] = leftBlink;
@@ -204,7 +204,7 @@ void Faceshift::receive(const QByteArray& buffer) {
                     _eyeGazeLeftYaw = data.m_eyeGazeLeftYaw;
                     _eyeGazeRightPitch = -data.m_eyeGazeRightPitch;
                     _eyeGazeRightYaw = data.m_eyeGazeRightYaw;
-                    _blendshapeCoefficients = data.m_coeffs;
+                    _blendshapeCoefficients = QVector<float>::fromStdVector(data.m_coeffs);
 
                     _lastTrackingStateReceived = usecTimestampNow();
                 }

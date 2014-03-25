@@ -23,10 +23,13 @@ class OctreeSendThread;
 class OctreeServer;
 
 class OctreeQueryNode : public OctreeQuery {
+    Q_OBJECT
 public:
     OctreeQueryNode();
     virtual ~OctreeQueryNode();
+    virtual void deleteLater();
     
+    void init(); // called after creation to set up some virtual items
     virtual PacketType getMyPacketType() const = 0;
 
     void resetOctreePacket(bool lastWasSurpressed = false);  // resets octree packet to after "V" header
@@ -85,6 +88,13 @@ public:
     
     void dumpOutOfView();
     
+    quint64 getLastRootTimestamp() const { return _lastRootTimestamp; }
+    void setLastRootTimestamp(quint64 timestamp) { _lastRootTimestamp = timestamp; }
+    unsigned int getlastOctreePacketLength() const { return _lastOctreePacketLength; }
+    int getDuplicatePacketCount() const { return _duplicatePacketCount; }
+    
+    bool isShuttingDown() const { return _isShuttingDown; }
+    
 private:
     OctreeQueryNode(const OctreeQueryNode &);
     OctreeQueryNode& operator= (const OctreeQueryNode&);
@@ -119,6 +129,10 @@ private:
     bool _lodInitialized;
     
     OCTREE_PACKET_SEQUENCE _sequenceNumber;
+    quint64 _lastRootTimestamp;
+    
+    PacketType _myPacketType;
+    bool _isShuttingDown;
 };
 
 #endif /* defined(__hifi__OctreeQueryNode__) */

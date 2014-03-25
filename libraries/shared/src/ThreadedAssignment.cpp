@@ -7,6 +7,7 @@
 //
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QJsonObject>
 #include <QtCore/QTimer>
 
 #include "Logging.h"
@@ -29,11 +30,12 @@ void ThreadedAssignment::setFinished(bool isFinished) {
     _isFinished = isFinished;
 
     if (_isFinished) {
+        aboutToFinish();
         emit finished();
     }
 }
 
-void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeType) {
+void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeType, bool shouldSendStats) {
     // change the logging target name while the assignment is running
     Logging::setTargetName(targetName);
     
@@ -44,13 +46,34 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
     connect(domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
     domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_USECS / 1000);
     
-    QTimer* pingNodesTimer = new QTimer(this);
-    connect(pingNodesTimer, SIGNAL(timeout()), nodeList, SLOT(pingInactiveNodes()));
-    pingNodesTimer->start(PING_INACTIVE_NODE_INTERVAL_USECS / 1000);
-    
     QTimer* silentNodeRemovalTimer = new QTimer(this);
     connect(silentNodeRemovalTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeRemovalTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
+    
+    if (shouldSendStats) {
+        // send a stats packet every 1 second
+        QTimer* statsTimer = new QTimer(this);
+        connect(statsTimer, &QTimer::timeout, this, &ThreadedAssignment::sendStatsPacket);
+        statsTimer->start(1000);
+    }
+}
+
+void ThreadedAssignment::addPacketStatsAndSendStatsPacket(QJsonObject &statsObject) {
+    NodeList* nodeList = NodeList::getInstance();
+    
+    float packetsPerSecond, bytesPerSecond;
+    nodeList->getPacketStats(packetsPerSecond, bytesPerSecond);
+    nodeList->resetPacketStats();
+    
+    statsObject["packets_per_second"] = packetsPerSecond;
+    statsObject["bytes_per_second"] = bytesPerSecond;
+    
+    nodeList->sendStatsToDomainServer(statsObject);
+}
+
+void ThreadedAssignment::sendStatsPacket() {
+    QJsonObject statsObject;
+    addPacketStatsAndSendStatsPacket(statsObject);
 }
 
 void ThreadedAssignment::checkInWithDomainServerOrExit() {

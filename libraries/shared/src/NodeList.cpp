@@ -69,7 +69,10 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _assignmentServerSocket(),
     _publicSockAddr(),
     _hasCompletedInitialSTUNFailure(false),
-    _stunRequestsSinceSuccess(0)
+    _stunRequestsSinceSuccess(0),
+    _numCollectedPackets(0),
+    _numCollectedBytes(0),
+    _packetStatTimer()
 {
     _nodeSocket.bind(QHostAddress::AnyIPv4, newSocketListenPort);
     qDebug() << "NodeList socket is listening on" << _nodeSocket.localPort();
@@ -79,6 +82,8 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     
     // clear our NodeList when logout is requested
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
+    
+    _packetStatTimer.start();
 }
 
 bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
@@ -88,9 +93,18 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
         PacketType mismatchType = packetTypeForPacket(packet);
         int numPacketTypeBytes = numBytesArithmeticCodingFromBuffer(packet.data());
         
-        qDebug() << "Packet version mismatch on" << packetTypeForPacket(packet) << "- Sender"
+        static QMultiMap<QUuid, PacketType> versionDebugSuppressMap;
+        
+        QUuid senderUUID = uuidFromPacketHeader(packet);
+        if (!versionDebugSuppressMap.contains(senderUUID, checkType)) {
+            qDebug() << "Packet version mismatch on" << packetTypeForPacket(packet) << "- Sender"
             << uuidFromPacketHeader(packet) << "sent" << qPrintable(QString::number(packet[numPacketTypeBytes])) << "but"
             << qPrintable(QString::number(versionForPacketType(mismatchType))) << "expected.";
+            
+            versionDebugSuppressMap.insert(senderUUID, checkType);
+        }
+        
+        return false;
     }
     
     const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
@@ -152,9 +166,18 @@ qint64 NodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& d
     
     // setup the MD5 hash for source verification in the header
     replaceHashInPacketGivenConnectionUUID(datagramCopy, connectionSecret);
-
-    return _nodeSocket.writeDatagram(datagramCopy, destinationSockAddr.getAddress(), destinationSockAddr.getPort());
     
+    // stat collection for packets
+    ++_numCollectedPackets;
+    _numCollectedBytes += datagram.size();
+    
+    qint64 bytesWritten = _nodeSocket.writeDatagram(datagramCopy, destinationSockAddr.getAddress(), destinationSockAddr.getPort());
+    
+    if (bytesWritten < 0) {
+        qDebug() << "ERROR in writeDatagram:" << _nodeSocket.error() << "-" << _nodeSocket.errorString();
+    }
+    
+    return bytesWritten;
 }
 
 qint64 NodeList::writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
@@ -182,6 +205,15 @@ qint64 NodeList::writeDatagram(const QByteArray& datagram, const SharedNodePoint
 qint64 NodeList::writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
                                const HifiSockAddr& overridenSockAddr) {
     return writeDatagram(QByteArray(data, size), destinationNode, overridenSockAddr);
+}
+
+qint64 NodeList::sendStatsToDomainServer(const QJsonObject& statsObject) {
+    QByteArray statsPacket = byteArrayWithPopulatedHeader(PacketTypeNodeJsonStats);
+    QDataStream statsPacketStream(&statsPacket, QIODevice::Append);
+    
+    statsPacketStream << statsObject.toVariantMap();
+    
+    return writeDatagram(statsPacket, _domainInfo.getSockAddr(), _domainInfo.getConnectionSecret());
 }
 
 void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode) {
@@ -299,9 +331,18 @@ int NodeList::findNodeAndUpdateWithDataFromPacket(const QByteArray& packet) {
     return 0;
 }
 
-SharedNodePointer NodeList::nodeWithUUID(const QUuid& nodeUUID) {
-    QMutexLocker locker(&_nodeHashMutex);
-    return _nodeHash.value(nodeUUID);
+SharedNodePointer NodeList::nodeWithUUID(const QUuid& nodeUUID, bool blockingLock) {
+    SharedNodePointer node;
+    // if caller wants us to block and guarantee the correct answer, then honor that request
+    if (blockingLock) {
+        // this will block till we can get access
+        QMutexLocker locker(&_nodeHashMutex);
+        node = _nodeHash.value(nodeUUID);
+    } else if (_nodeHashMutex.tryLock()) { // some callers are willing to get wrong answers but not block
+        node = _nodeHash.value(nodeUUID);
+        _nodeHashMutex.unlock();
+    }
+    return node;
 }
 
 SharedNodePointer NodeList::sendingNodeForPacket(const QByteArray& packet) {
@@ -377,9 +418,8 @@ void NodeList::sendSTUNRequest() {
 
     // transaction ID (random 12-byte unsigned integer)
     const uint NUM_TRANSACTION_ID_BYTES = 12;
-    unsigned char transactionID[NUM_TRANSACTION_ID_BYTES];
-    loadRandomIdentifier(transactionID, NUM_TRANSACTION_ID_BYTES);
-    memcpy(stunRequestPacket + packetIndex, &transactionID, sizeof(transactionID));
+    QUuid randomUUID = QUuid::createUuid();
+    memcpy(stunRequestPacket + packetIndex, randomUUID.toRfc4122().data(), NUM_TRANSACTION_ID_BYTES);
 
     // lookup the IP for the STUN server
     static HifiSockAddr stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
@@ -825,6 +865,17 @@ SharedNodePointer NodeList::soloNodeOfType(char nodeType) {
         }
     }
     return SharedNodePointer();
+}
+
+void NodeList::getPacketStats(float& packetsPerSecond, float& bytesPerSecond) {
+    packetsPerSecond = (float) _numCollectedPackets / ((float) _packetStatTimer.elapsed() / 1000.0f);
+    bytesPerSecond = (float) _numCollectedBytes / ((float) _packetStatTimer.elapsed() / 1000.0f);
+}
+
+void NodeList::resetPacketStats() {
+    _numCollectedPackets = 0;
+    _numCollectedBytes = 0;
+    _packetStatTimer.restart();
 }
 
 void NodeList::removeSilentNodes() {

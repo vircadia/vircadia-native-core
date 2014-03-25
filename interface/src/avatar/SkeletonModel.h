@@ -24,7 +24,6 @@ public:
     
     void simulate(float deltaTime, bool fullUpdate = true);
     void syncToPalms();
-    bool render(float alpha);
 
     /// \param jointIndex index of hand joint
     /// \param shapes[out] list in which is stored pointers to hand shapes

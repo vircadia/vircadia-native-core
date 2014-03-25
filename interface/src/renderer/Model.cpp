@@ -6,6 +6,10 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <QMetaType>
+#include <QRunnable>
+#include <QThreadPool>
+
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/norm.hpp>
 
@@ -19,6 +23,10 @@
 #include <ShapeCollider.h>
 
 using namespace std;
+
+static int modelPointerTypeId = qRegisterMetaType<QPointer<Model> >();
+static int weakNetworkGeometryPointerTypeId = qRegisterMetaType<QWeakPointer<NetworkGeometry> >();
+static int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
 
 Model::Model(QObject* parent) :
     QObject(parent),
@@ -37,11 +45,14 @@ Model::~Model() {
 
 ProgramObject Model::_program;
 ProgramObject Model::_normalMapProgram;
+ProgramObject Model::_shadowProgram;
 ProgramObject Model::_skinProgram;
 ProgramObject Model::_skinNormalMapProgram;
+ProgramObject Model::_skinShadowProgram;
 int Model::_normalMapTangentLocation;
 Model::SkinLocations Model::_skinLocations;
 Model::SkinLocations Model::_skinNormalMapLocations;
+Model::SkinLocations Model::_skinShadowLocations;
 
 void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locations) {
     program.bind();
@@ -87,6 +98,11 @@ void Model::init() {
         _normalMapTangentLocation = _normalMapProgram.attributeLocation("tangent");
         _normalMapProgram.release();
         
+        _shadowProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/model_shadow.vert");
+        _shadowProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+            "shaders/model_shadow.frag");
+        _shadowProgram.link();
+        
         _skinProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath()
                                              + "shaders/skin_model.vert");
         _skinProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath()
@@ -102,12 +118,18 @@ void Model::init() {
         _skinNormalMapProgram.link();
         
         initSkinProgram(_skinNormalMapProgram, _skinNormalMapLocations);
+        
+        _skinShadowProgram.addShaderFromSourceFile(QGLShader::Vertex,
+            Application::resourcesPath() + "shaders/skin_model_shadow.vert");
+        _skinShadowProgram.addShaderFromSourceFile(QGLShader::Fragment,
+            Application::resourcesPath() + "shaders/model_shadow.frag");
+        _skinShadowProgram.link();
+        
+        initSkinProgram(_skinShadowProgram, _skinShadowLocations);
     }
 }
 
 void Model::reset() {
-    _resetStates = true;
-    
     foreach (Model* attachment, _attachments) {
         attachment->reset();
     }
@@ -169,7 +191,7 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
     simulate(deltaTime, fullUpdate, updateGeometry());
 }
 
-bool Model::render(float alpha) {
+bool Model::render(float alpha, bool forShadowMap) {
     // render the attachments
     foreach (Model* attachment, _attachments) {
         attachment->render(alpha);
@@ -178,20 +200,10 @@ bool Model::render(float alpha) {
         return false;
     }
     
-    // set up blended buffer ids on first render after load/simulate
+    // set up dilated textures on first render after load/simulate
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    if (_blendedVertexBufferIDs.isEmpty()) {
+    if (_dilatedTextures.isEmpty()) {
         foreach (const FBXMesh& mesh, geometry.meshes) {
-            GLuint id = 0;
-            if (!mesh.blendshapes.isEmpty() || mesh.springiness > 0.0f) {
-                glGenBuffers(1, &id);
-                glBindBuffer(GL_ARRAY_BUFFER, id);
-                glBufferData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3),
-                    NULL, GL_DYNAMIC_DRAW);
-                glBindBuffer(GL_ARRAY_BUFFER, 0);
-            }
-            _blendedVertexBufferIDs.append(id);
-            
             QVector<QSharedPointer<Texture> > dilated;
             dilated.resize(mesh.parts.size());
             _dilatedTextures.append(dilated);
@@ -210,13 +222,13 @@ bool Model::render(float alpha) {
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GREATER, 0.5f * alpha);
     
-    renderMeshes(alpha, false);
+    renderMeshes(alpha, forShadowMap, false);
     
     glDisable(GL_ALPHA_TEST);
     
     // render translucent meshes afterwards, with back face culling
     
-    renderMeshes(alpha, true);
+    renderMeshes(alpha, forShadowMap, true);
     
     glDisable(GL_CULL_FACE);
     
@@ -470,6 +482,68 @@ QVector<Model::JointState> Model::updateGeometry() {
     return newJointStates;
 }
 
+class Blender : public QRunnable {
+public:
+
+    Blender(Model* model, const QWeakPointer<NetworkGeometry>& geometry,
+        const QVector<FBXMesh>& meshes, const QVector<float>& blendshapeCoefficients);
+    
+    virtual void run();
+
+private:
+    
+    QPointer<Model> _model;
+    QWeakPointer<NetworkGeometry> _geometry;
+    QVector<FBXMesh> _meshes;
+    QVector<float> _blendshapeCoefficients;
+};
+
+Blender::Blender(Model* model, const QWeakPointer<NetworkGeometry>& geometry,
+        const QVector<FBXMesh>& meshes, const QVector<float>& blendshapeCoefficients) :
+    _model(model),
+    _geometry(geometry),
+    _meshes(meshes),
+    _blendshapeCoefficients(blendshapeCoefficients) {
+}
+
+void Blender::run() {
+    // make sure the model/geometry still exists
+    if (_model.isNull() || _geometry.isNull()) {
+        return;
+    }
+    QVector<glm::vec3> vertices, normals;
+    int offset = 0;
+    foreach (const FBXMesh& mesh, _meshes) {
+        if (mesh.blendshapes.isEmpty()) {
+            continue;
+        }
+        vertices += mesh.vertices;
+        normals += mesh.normals;
+        glm::vec3* meshVertices = vertices.data() + offset;
+        glm::vec3* meshNormals = normals.data() + offset;
+        offset += mesh.vertices.size();
+        const float NORMAL_COEFFICIENT_SCALE = 0.01f;
+        for (int i = 0, n = qMin(_blendshapeCoefficients.size(), mesh.blendshapes.size()); i < n; i++) {
+            float vertexCoefficient = _blendshapeCoefficients.at(i);
+            if (vertexCoefficient < EPSILON) {
+                continue;
+            }
+            float normalCoefficient = vertexCoefficient * NORMAL_COEFFICIENT_SCALE;
+            const FBXBlendshape& blendshape = mesh.blendshapes.at(i);
+            for (int j = 0; j < blendshape.indices.size(); j++) {
+                int index = blendshape.indices.at(j);
+                meshVertices[index] += blendshape.vertices.at(j) * vertexCoefficient;
+                meshNormals[index] += blendshape.normals.at(j) * normalCoefficient;
+            }
+        }
+    }
+    
+    // post the result to the geometry cache, which will dispatch to the model if still alive
+    QMetaObject::invokeMethod(Application::getInstance()->getGeometryCache(), "setBlendedVertices",
+        Q_ARG(const QPointer<Model>&, _model), Q_ARG(const QWeakPointer<NetworkGeometry>&, _geometry),
+        Q_ARG(const QVector<glm::vec3>&, vertices), Q_ARG(const QVector<glm::vec3>&, normals));
+}
+
 void Model::simulate(float deltaTime, bool fullUpdate, const QVector<JointState>& newJointStates) {
     if (!isActive()) {
         return;
@@ -482,12 +556,20 @@ void Model::simulate(float deltaTime, bool fullUpdate, const QVector<JointState>
         foreach (const FBXMesh& mesh, geometry.meshes) {
             MeshState state;
             state.clusterMatrices.resize(mesh.clusters.size());
-            if (mesh.springiness > 0.0f) {
-                state.worldSpaceVertices.resize(mesh.vertices.size());
-                state.vertexVelocities.resize(mesh.vertices.size());
-                state.worldSpaceNormals.resize(mesh.vertices.size());
-            }
             _meshStates.append(state);    
+            
+            QOpenGLBuffer buffer;
+            if (!mesh.blendshapes.isEmpty()) {
+                buffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
+                buffer.create();
+                buffer.bind();
+                buffer.allocate((mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3));
+                buffer.write(0, mesh.vertices.constData(), mesh.vertices.size() * sizeof(glm::vec3));
+                buffer.write(mesh.vertices.size() * sizeof(glm::vec3), mesh.normals.constData(),
+                    mesh.normals.size() * sizeof(glm::vec3));
+                buffer.release();
+            }
+            _blendedVertexBuffers.append(buffer);
         }
         foreach (const FBXAttachment& attachment, geometry.attachments) {
             Model* model = new Model(this);
@@ -495,12 +577,12 @@ void Model::simulate(float deltaTime, bool fullUpdate, const QVector<JointState>
             model->setURL(attachment.url);
             _attachments.append(model);
         }
-        _resetStates = fullUpdate = true;
+        fullUpdate = true;
         createCollisionShapes();
     }
     
     // exit early if we don't have to perform a full update
-    if (!(fullUpdate || _resetStates)) {
+    if (!fullUpdate) {
         return;
     }
     
@@ -533,82 +615,12 @@ void Model::simulate(float deltaTime, bool fullUpdate, const QVector<JointState>
             const FBXCluster& cluster = mesh.clusters.at(j);
             state.clusterMatrices[j] = _jointStates[cluster.jointIndex].transform * cluster.inverseBindMatrix;
         }
-        int vertexCount = state.worldSpaceVertices.size();
-        if (vertexCount == 0) {
-            continue;
-        }
-        glm::vec3* destVertices = state.worldSpaceVertices.data();
-        glm::vec3* destVelocities = state.vertexVelocities.data();
-        glm::vec3* destNormals = state.worldSpaceNormals.data();
-        
-        const glm::vec3* sourceVertices = mesh.vertices.constData();
-        if (!mesh.blendshapes.isEmpty()) {
-            _blendedVertices.resize(max(_blendedVertices.size(), vertexCount));
-            memcpy(_blendedVertices.data(), mesh.vertices.constData(), vertexCount * sizeof(glm::vec3));
-            
-            // blend in each coefficient
-            for (unsigned int j = 0; j < _blendshapeCoefficients.size(); j++) {
-                float coefficient = _blendshapeCoefficients[j];
-                if (coefficient == 0.0f || j >= (unsigned int)mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
-                    continue;
-                }
-                const glm::vec3* vertex = mesh.blendshapes[j].vertices.constData();
-                for (const int* index = mesh.blendshapes[j].indices.constData(),
-                        *end = index + mesh.blendshapes[j].indices.size(); index != end; index++, vertex++) {
-                    _blendedVertices[*index] += *vertex * coefficient;
-                }
-            }
-            sourceVertices = _blendedVertices.constData();
-        }
-        glm::mat4 transform = glm::translate(_translation);
-        if (mesh.clusters.size() > 1) {
-            _blendedVertices.resize(max(_blendedVertices.size(), vertexCount));
-
-            // skin each vertex
-            const glm::vec4* clusterIndices = mesh.clusterIndices.constData();
-            const glm::vec4* clusterWeights = mesh.clusterWeights.constData();
-            for (int j = 0; j < vertexCount; j++) {
-                _blendedVertices[j] =
-                    glm::vec3(state.clusterMatrices[clusterIndices[j][0]] *
-                        glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][0] +
-                    glm::vec3(state.clusterMatrices[clusterIndices[j][1]] *
-                        glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][1] +
-                    glm::vec3(state.clusterMatrices[clusterIndices[j][2]] *
-                        glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][2] +
-                    glm::vec3(state.clusterMatrices[clusterIndices[j][3]] *
-                        glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][3];
-            }
-            sourceVertices = _blendedVertices.constData();
-            
-        } else {
-            transform = state.clusterMatrices[0];
-        }
-        if (_resetStates) {
-            for (int j = 0; j < vertexCount; j++) {
-                destVertices[j] = glm::vec3(transform * glm::vec4(sourceVertices[j], 1.0f));        
-                destVelocities[j] = glm::vec3();
-            }        
-        } else {
-            const float SPRINGINESS_MULTIPLIER = 200.0f;
-            const float DAMPING = 5.0f;
-            for (int j = 0; j < vertexCount; j++) {
-                destVelocities[j] += ((glm::vec3(transform * glm::vec4(sourceVertices[j], 1.0f)) - destVertices[j]) *
-                    mesh.springiness * SPRINGINESS_MULTIPLIER - destVelocities[j] * DAMPING) * deltaTime;
-                destVertices[j] += destVelocities[j] * deltaTime;
-            }
-        }
-        for (int j = 0; j < vertexCount; j++) {
-            destNormals[j] = glm::vec3();
-            
-            const glm::vec3& middle = destVertices[j];
-            for (QVarLengthArray<QPair<int, int>, 4>::const_iterator connection = mesh.vertexConnections.at(j).constBegin(); 
-                    connection != mesh.vertexConnections.at(j).constEnd(); connection++) {
-                destNormals[j] += glm::normalize(glm::cross(destVertices[connection->second] - middle,
-                    destVertices[connection->first] - middle));
-            }
-        }
     }
-    _resetStates = false;
+    
+    // post the blender
+    if (geometry.hasBlendedMeshes()) {
+        QThreadPool::globalInstance()->start(new Blender(this, _geometry, geometry.meshes, _blendshapeCoefficients));
+    }
 }
 
 void Model::updateJointState(int index) {
@@ -907,6 +919,27 @@ void Model::applyCollision(CollisionInfo& collision) {
     }
 }
 
+void Model::setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
+    if (_blendedVertexBuffers.isEmpty()) {
+        return;
+    }
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    int index = 0;
+    for (int i = 0; i < geometry.meshes.size(); i++) {
+        const FBXMesh& mesh = geometry.meshes.at(i);
+        if (mesh.blendshapes.isEmpty()) {
+            continue;
+        }
+        QOpenGLBuffer& buffer = _blendedVertexBuffers[i];
+        buffer.bind();
+        buffer.write(0, vertices.constData() + index, mesh.vertices.size() * sizeof(glm::vec3));
+        buffer.write(mesh.vertices.size() * sizeof(glm::vec3), normals.constData() + index,
+            mesh.normals.size() * sizeof(glm::vec3));
+        buffer.release();
+        index += mesh.vertices.size();
+    }
+}
+
 void Model::applyNextGeometry() {
     // delete our local geometry and custom textures
     deleteGeometry();
@@ -925,10 +958,7 @@ void Model::deleteGeometry() {
         delete attachment;
     }
     _attachments.clear();
-    foreach (GLuint id, _blendedVertexBufferIDs) {
-        glDeleteBuffers(1, &id);
-    }
-    _blendedVertexBufferIDs.clear();
+    _blendedVertexBuffers.clear();
     _jointStates.clear();
     _meshStates.clear();
     clearShapes();
@@ -938,7 +968,7 @@ void Model::deleteGeometry() {
     }
 }
 
-void Model::renderMeshes(float alpha, bool translucent) {
+void Model::renderMeshes(float alpha, bool forShadowMap, bool translucent) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
     
@@ -963,7 +993,12 @@ void Model::renderMeshes(float alpha, bool translucent) {
         ProgramObject* program = &_program;
         ProgramObject* skinProgram = &_skinProgram;
         SkinLocations* skinLocations = &_skinLocations;
-        if (!mesh.tangents.isEmpty()) {
+        if (forShadowMap) {
+            program = &_shadowProgram;
+            skinProgram = &_skinShadowProgram;
+            skinLocations = &_skinShadowLocations;
+            
+        } else if (!mesh.tangents.isEmpty()) {
             program = &_normalMapProgram;
             skinProgram = &_skinNormalMapProgram;
             skinLocations = &_skinNormalMapLocations;
@@ -972,35 +1007,31 @@ void Model::renderMeshes(float alpha, bool translucent) {
         const MeshState& state = _meshStates.at(i);
         ProgramObject* activeProgram = program;
         int tangentLocation = _normalMapTangentLocation;
-        if (state.worldSpaceVertices.isEmpty()) {
-            glPushMatrix();
-            Application::getInstance()->loadTranslatedViewMatrix(_translation);
-            
-            if (state.clusterMatrices.size() > 1) {
-                skinProgram->bind();
-                glUniformMatrix4fvARB(skinLocations->clusterMatrices, state.clusterMatrices.size(), false,
-                    (const float*)state.clusterMatrices.constData());
-                int offset = (mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3) +
-                    mesh.texCoords.size() * sizeof(glm::vec2) +
-                    (mesh.blendshapes.isEmpty() ? vertexCount * 2 * sizeof(glm::vec3) : 0);
-                skinProgram->setAttributeBuffer(skinLocations->clusterIndices, GL_FLOAT, offset, 4);
-                skinProgram->setAttributeBuffer(skinLocations->clusterWeights, GL_FLOAT,
-                    offset + vertexCount * sizeof(glm::vec4), 4);
-                skinProgram->enableAttributeArray(skinLocations->clusterIndices);
-                skinProgram->enableAttributeArray(skinLocations->clusterWeights);
-                activeProgram = skinProgram;
-                tangentLocation = skinLocations->tangent;
-         
-            } else {    
-                glMultMatrixf((const GLfloat*)&state.clusterMatrices[0]);
-                program->bind();
-            }
-        } else {
+        glPushMatrix();
+        Application::getInstance()->loadTranslatedViewMatrix(_translation);
+        
+        if (state.clusterMatrices.size() > 1) {
+            skinProgram->bind();
+            glUniformMatrix4fvARB(skinLocations->clusterMatrices, state.clusterMatrices.size(), false,
+                (const float*)state.clusterMatrices.constData());
+            int offset = (mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3) +
+                mesh.texCoords.size() * sizeof(glm::vec2) +
+                (mesh.blendshapes.isEmpty() ? vertexCount * 2 * sizeof(glm::vec3) : 0);
+            skinProgram->setAttributeBuffer(skinLocations->clusterIndices, GL_FLOAT, offset, 4);
+            skinProgram->setAttributeBuffer(skinLocations->clusterWeights, GL_FLOAT,
+                offset + vertexCount * sizeof(glm::vec4), 4);
+            skinProgram->enableAttributeArray(skinLocations->clusterIndices);
+            skinProgram->enableAttributeArray(skinLocations->clusterWeights);
+            activeProgram = skinProgram;
+            tangentLocation = skinLocations->tangent;
+     
+        } else {    
+            glMultMatrixf((const GLfloat*)&state.clusterMatrices[0]);
             program->bind();
         }
 
-        if (mesh.blendshapes.isEmpty() && mesh.springiness == 0.0f) {
-            if (!mesh.tangents.isEmpty()) {
+        if (mesh.blendshapes.isEmpty()) {
+            if (!(mesh.tangents.isEmpty() || forShadowMap)) {
                 activeProgram->setAttributeBuffer(tangentLocation, GL_FLOAT, vertexCount * 2 * sizeof(glm::vec3), 3);
                 activeProgram->enableAttributeArray(tangentLocation);
             }
@@ -1010,46 +1041,13 @@ void Model::renderMeshes(float alpha, bool translucent) {
                 (mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3)));    
         
         } else {
-            if (!mesh.tangents.isEmpty()) {
+            if (!(mesh.tangents.isEmpty() || forShadowMap)) {
                 activeProgram->setAttributeBuffer(tangentLocation, GL_FLOAT, 0, 3);
                 activeProgram->enableAttributeArray(tangentLocation);
             }
             glColorPointer(3, GL_FLOAT, 0, (void*)(mesh.tangents.size() * sizeof(glm::vec3)));
             glTexCoordPointer(2, GL_FLOAT, 0, (void*)((mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3)));
-            glBindBuffer(GL_ARRAY_BUFFER, _blendedVertexBufferIDs.at(i));
-            
-            if (!state.worldSpaceVertices.isEmpty()) {
-                glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(glm::vec3), state.worldSpaceVertices.constData());
-                glBufferSubData(GL_ARRAY_BUFFER, vertexCount * sizeof(glm::vec3),
-                    vertexCount * sizeof(glm::vec3), state.worldSpaceNormals.constData());
-                
-            } else {
-                _blendedVertices.resize(max(_blendedVertices.size(), vertexCount));
-                _blendedNormals.resize(_blendedVertices.size());
-                memcpy(_blendedVertices.data(), mesh.vertices.constData(), vertexCount * sizeof(glm::vec3));
-                memcpy(_blendedNormals.data(), mesh.normals.constData(), vertexCount * sizeof(glm::vec3));
-                
-                // blend in each coefficient
-                for (unsigned int j = 0; j < _blendshapeCoefficients.size(); j++) {
-                    float coefficient = _blendshapeCoefficients[j];
-                    if (coefficient == 0.0f || j >= (unsigned int)mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
-                        continue;
-                    }
-                    const float NORMAL_COEFFICIENT_SCALE = 0.01f;
-                    float normalCoefficient = coefficient * NORMAL_COEFFICIENT_SCALE;
-                    const glm::vec3* vertex = mesh.blendshapes[j].vertices.constData();
-                    const glm::vec3* normal = mesh.blendshapes[j].normals.constData();
-                    for (const int* index = mesh.blendshapes[j].indices.constData(),
-                            *end = index + mesh.blendshapes[j].indices.size(); index != end; index++, vertex++, normal++) {
-                        _blendedVertices[*index] += *vertex * coefficient;
-                        _blendedNormals[*index] += *normal * normalCoefficient;
-                    }
-                }
-        
-                glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(glm::vec3), _blendedVertices.constData());
-                glBufferSubData(GL_ARRAY_BUFFER, vertexCount * sizeof(glm::vec3),
-                    vertexCount * sizeof(glm::vec3), _blendedNormals.constData());
-            }
+            _blendedVertexBuffers[i].bind();
         }
         glVertexPointer(3, GL_FLOAT, 0, 0);
         glNormalPointer(GL_FLOAT, 0, (void*)(vertexCount * sizeof(glm::vec3)));
@@ -1072,31 +1070,33 @@ void Model::renderMeshes(float alpha, bool translucent) {
                 continue;
             }
             // apply material properties
-            glm::vec4 diffuse = glm::vec4(part.diffuseColor, alpha);
-            glm::vec4 specular = glm::vec4(part.specularColor, alpha);
-            glMaterialfv(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
-            glMaterialfv(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
-            glMaterialfv(GL_FRONT, GL_SPECULAR, (const float*)&specular);
-            glMaterialf(GL_FRONT, GL_SHININESS, part.shininess);
-        
-            Texture* diffuseMap = networkPart.diffuseTexture.data();
-            if (mesh.isEye) {
-                if (diffuseMap) {
+            if (forShadowMap) {
+                glBindTexture(GL_TEXTURE_2D, 0);
+                
+            } else {
+                glm::vec4 diffuse = glm::vec4(part.diffuseColor, alpha);
+                glm::vec4 specular = glm::vec4(part.specularColor, alpha);
+                glMaterialfv(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
+                glMaterialfv(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
+                glMaterialfv(GL_FRONT, GL_SPECULAR, (const float*)&specular);
+                glMaterialf(GL_FRONT, GL_SHININESS, part.shininess);
+            
+                Texture* diffuseMap = networkPart.diffuseTexture.data();
+                if (mesh.isEye && diffuseMap) {
                     diffuseMap = (_dilatedTextures[i][j] =
                         static_cast<DilatableNetworkTexture*>(diffuseMap)->getDilatedTexture(_pupilDilation)).data();
                 }
+                glBindTexture(GL_TEXTURE_2D, !diffuseMap ?
+                    Application::getInstance()->getTextureCache()->getWhiteTextureID() : diffuseMap->getID());
+                
+                if (!mesh.tangents.isEmpty()) {
+                    glActiveTexture(GL_TEXTURE1);                
+                    Texture* normalMap = networkPart.normalTexture.data();
+                    glBindTexture(GL_TEXTURE_2D, !normalMap ?
+                        Application::getInstance()->getTextureCache()->getBlueTextureID() : normalMap->getID());
+                    glActiveTexture(GL_TEXTURE0);
+                }
             }
-            glBindTexture(GL_TEXTURE_2D, !diffuseMap ?
-                Application::getInstance()->getTextureCache()->getWhiteTextureID() : diffuseMap->getID());
-            
-            if (!mesh.tangents.isEmpty()) {
-                glActiveTexture(GL_TEXTURE1);                
-                Texture* normalMap = networkPart.normalTexture.data();
-                glBindTexture(GL_TEXTURE_2D, !normalMap ?
-                    Application::getInstance()->getTextureCache()->getBlueTextureID() : normalMap->getID());
-                glActiveTexture(GL_TEXTURE0);
-            }
-            
             glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, part.quadIndices.size(), GL_UNSIGNED_INT, (void*)offset);
             offset += part.quadIndices.size() * sizeof(int);
             glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, part.triangleIndices.size(),
@@ -1111,21 +1111,20 @@ void Model::renderMeshes(float alpha, bool translucent) {
             glDisableClientState(GL_TEXTURE_COORD_ARRAY);
         }
         
-        if (!mesh.tangents.isEmpty()) {
+        if (!(mesh.tangents.isEmpty() || forShadowMap)) {
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, 0);
             glActiveTexture(GL_TEXTURE0);
             
             activeProgram->disableAttributeArray(tangentLocation);
         }
-        
-        if (state.worldSpaceVertices.isEmpty()) {
-            if (state.clusterMatrices.size() > 1) {
-                skinProgram->disableAttributeArray(skinLocations->clusterIndices);
-                skinProgram->disableAttributeArray(skinLocations->clusterWeights);  
-            } 
-            glPopMatrix();
-        }
+                
+        if (state.clusterMatrices.size() > 1) {
+            skinProgram->disableAttributeArray(skinLocations->clusterIndices);
+            skinProgram->disableAttributeArray(skinLocations->clusterWeights);  
+        } 
+        glPopMatrix();
+
         activeProgram->release();
     }
 }

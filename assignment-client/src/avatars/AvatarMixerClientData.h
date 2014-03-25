@@ -20,22 +20,21 @@ public:
     AvatarMixerClientData();
 
     int parseData(const QByteArray& packet);
-    
-    bool hasSentIdentityBetweenKeyFrames() const { return _hasSentIdentityBetweenKeyFrames; }
-    void setHasSentIdentityBetweenKeyFrames(bool hasSentIdentityBetweenKeyFrames)
-        { _hasSentIdentityBetweenKeyFrames = hasSentIdentityBetweenKeyFrames; }
-    
-    bool hasSentBillboardBetweenKeyFrames() const { return _hasSentBillboardBetweenKeyFrames; }
-    void setHasSentBillboardBetweenKeyFrames(bool hasSentBillboardBetweenKeyFrames)
-        { _hasSentBillboardBetweenKeyFrames = hasSentBillboardBetweenKeyFrames; }
-
     AvatarData& getAvatar() { return _avatar; }
-        
+    
+    bool checkAndSetHasReceivedFirstPackets();
+    
+    quint64 getBillboardChangeTimestamp() const { return _billboardChangeTimestamp; }
+    void setBillboardChangeTimestamp(quint64 billboardChangeTimestamp) { _billboardChangeTimestamp = billboardChangeTimestamp; }
+    
+    quint64 getIdentityChangeTimestamp() const { return _identityChangeTimestamp; }
+    void setIdentityChangeTimestamp(quint64 identityChangeTimestamp) { _identityChangeTimestamp = identityChangeTimestamp; }
+    
 private:
-   
-    bool _hasSentIdentityBetweenKeyFrames;
-    bool _hasSentBillboardBetweenKeyFrames;
     AvatarData _avatar;
+    bool _hasReceivedFirstPackets;
+    quint64 _billboardChangeTimestamp;
+    quint64 _identityChangeTimestamp;
 };
 
 #endif /* defined(__hifi__AvatarMixerClientData__) */

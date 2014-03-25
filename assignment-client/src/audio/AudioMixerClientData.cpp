@@ -6,6 +6,8 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
+#include <QDebug>
+
 #include <PacketHeaders.h>
 #include <UUID.h>
 
@@ -14,8 +16,7 @@
 #include "AudioMixerClientData.h"
 
 AudioMixerClientData::AudioMixerClientData() :
-    _ringBuffers(),
-    _nextOutputLoudness(0)
+    _ringBuffers()
 {
     
 }
@@ -91,7 +92,7 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSam
             
             // calculate the average loudness for the next NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL
             // that would be mixed in
-            _nextOutputLoudness = _ringBuffers[i]->averageLoudnessForBoundarySamples(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+            _ringBuffers[i]->updateAverageLoudnessForBoundarySamples(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
         }
     }
 }

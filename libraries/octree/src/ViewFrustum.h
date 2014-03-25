@@ -29,17 +29,21 @@ const float DEFAULT_FAR_CLIP = 50.0f * TREE_SCALE;
 class ViewFrustum {
 public:
     // setters for camera attributes
-    void setPosition(const glm::vec3& p) { _position = p; }
+    void setPosition(const glm::vec3& p) { _position = p; _positionVoxelScale = (p / (float)TREE_SCALE); }
     void setOrientation(const glm::quat& orientationAsQuaternion);
 
     // getters for camera attributes
     const glm::vec3& getPosition() const { return _position; }
+    const glm::vec3& getPositionVoxelScale() const { return _positionVoxelScale; }
     const glm::quat& getOrientation() const { return _orientation; }
     const glm::vec3& getDirection() const { return _direction; }
     const glm::vec3& getUp() const { return _up; }
     const glm::vec3& getRight() const { return _right; }
 
     // setters for lens attributes
+    void setOrthographic(bool orthographic) { _orthographic = orthographic; }
+    void setWidth(float width) { _width = width; }
+    void setHeight(float height) { _height = height; }
     void setFieldOfView(float f) { _fieldOfView = f; }
     void setAspectRatio(float a) { _aspectRatio = a; }
     void setNearClip(float n) { _nearClip = n; }
@@ -49,6 +53,9 @@ public:
     void setEyeOffsetOrientation(const glm::quat& o) { _eyeOffsetOrientation = o; }
 
     // getters for lens attributes
+    bool isOrthographic() const { return _orthographic; }
+    float getWidth() const { return _width; }
+    float getHeight() const { return _height; }
     float getFieldOfView() const { return _fieldOfView; }
     float getAspectRatio() const { return _aspectRatio; }
     float getNearClip() const { return _nearClip; }
@@ -102,16 +109,22 @@ public:
 
     glm::vec2 projectPoint(glm::vec3 point, bool& pointInView) const;
     OctreeProjectedPolygon getProjectedPolygon(const AABox& box) const;
-    glm::vec3 getFurthestPointFromCamera(const AABox& box) const;
-
+    void getFurthestPointFromCamera(const AABox& box, glm::vec3& furthestPoint) const;
+    
+    // assumes box is in voxel scale, not TREE_SCALE, will scale view frustum's position accordingly
+    void getFurthestPointFromCameraVoxelScale(const AABox& box, glm::vec3& furthestPoint) const;
+    
 private:
     // Used for keyhole calculations
     ViewFrustum::location pointInKeyhole(const glm::vec3& point) const;
     ViewFrustum::location sphereInKeyhole(const glm::vec3& center, float radius) const;
     ViewFrustum::location boxInKeyhole(const AABox& box) const;
 
+    void calculateOrthographic();
+
     // camera location/orientation attributes
-    glm::vec3   _position;
+    glm::vec3   _position; // the position in TREE_SCALE
+    glm::vec3   _positionVoxelScale; // the position in voxel scale
     glm::quat   _orientation;
 
     // calculated for orientation
@@ -120,6 +133,9 @@ private:
     glm::vec3   _right;
 
     // Lens attributes
+    bool _orthographic;
+    float _width;
+    float _height;
     float _fieldOfView; // degrees
     float _aspectRatio;
     float _nearClip;

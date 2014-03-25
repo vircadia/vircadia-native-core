@@ -26,7 +26,6 @@
 #include "Menu.h"
 #include "MyAvatar.h"
 #include "Physics.h"
-#include "VoxelSystem.h"
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
 #include "ui/TextRenderer.h"
@@ -85,6 +84,7 @@ void MyAvatar::reset() {
 
     setVelocity(glm::vec3(0,0,0));
     setThrust(glm::vec3(0,0,0));
+    setOrientation(glm::quat(glm::vec3(0,0,0)));
 }
 
 void MyAvatar::setMoveTarget(const glm::vec3 moveTarget) {
@@ -427,11 +427,6 @@ void MyAvatar::updateFromGyros(float deltaTime) {
     }
 }
 
-static TextRenderer* textRenderer() {
-    static TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 24, -1, false, TextRenderer::SHADOW_EFFECT);
-    return renderer;
-}
-
 void MyAvatar::renderDebugBodyPoints() {
     glm::vec3 torsoPosition(getPosition());
     glm::vec3 headPosition(getHead()->getEyePosition());
@@ -459,12 +454,12 @@ void MyAvatar::renderDebugBodyPoints() {
 }
 
 // virtual
-void MyAvatar::render(const glm::vec3& cameraPosition, bool forShadowMapOrMirror) {
+void MyAvatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
     // don't render if we've been asked to disable local rendering
     if (!_shouldRender) {
         return; // exit early
     }
-    Avatar::render(cameraPosition, forShadowMapOrMirror);
+    Avatar::render(cameraPosition, renderMode);
 }
 
 void MyAvatar::renderHeadMouse() const {
@@ -559,6 +554,14 @@ void MyAvatar::loadData(QSettings* settings) {
     settings->endGroup();
 }
 
+int MyAvatar::parseDataAtOffset(const QByteArray& packet, int offset) {
+    qDebug() << "Error: ignoring update packet for MyAvatar"
+        << " packetLength = " << packet.size() 
+        << "  offset = " << offset;
+    // this packet is just bad, so we pretend that we unpacked it ALL
+    return packet.size() - offset;
+}
+
 void MyAvatar::sendKillAvatar() {
     QByteArray killPacket = byteArrayWithPopulatedHeader(PacketTypeKillAvatar);
     NodeList::getInstance()->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);
@@ -590,16 +593,15 @@ void MyAvatar::updateLookAtTargetAvatar() {
 
         foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
             Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
-            if (avatar == static_cast<Avatar*>(this)) {
-                continue;
-            }
             float distance;
             if (avatar->findRayIntersection(mouseOrigin, mouseDirection, distance)) {
                 _lookAtTargetAvatar = avatarPointer;
+                _targetAvatarPosition = avatarPointer->getPosition();
                 return;
             }
         }
         _lookAtTargetAvatar.clear();
+        _targetAvatarPosition = glm::vec3(0, 0, 0);
     }
 }
 
@@ -640,20 +642,20 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _billboardValid = false;
 }
 
-void MyAvatar::renderBody(bool forceRenderHead) {
+void MyAvatar::renderBody(RenderMode renderMode) {
     if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         return; // wait until both models are loaded
     }
     
     //  Render the body's voxels and head
-    _skeletonModel.render(1.0f);
+    _skeletonModel.render(1.0f, renderMode == SHADOW_RENDER_MODE);
 
     //  Render head so long as the camera isn't inside it
     const float RENDER_HEAD_CUTOFF_DISTANCE = 0.40f;
     Camera* myCamera = Application::getInstance()->getCamera();
-    if (forceRenderHead || (glm::length(myCamera->getPosition() - getHead()->calculateAverageEyePosition()) >
+    if (renderMode != NORMAL_RENDER_MODE || (glm::length(myCamera->getPosition() - getHead()->calculateAverageEyePosition()) >
             RENDER_HEAD_CUTOFF_DISTANCE * _scale)) {
-        getHead()->render(1.0f);
+        getHead()->render(1.0f, renderMode == SHADOW_RENDER_MODE);
     }
     getHand()->render(true);
 }
@@ -1138,9 +1140,9 @@ void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
         NodeList::getInstance()->getDomainInfo().setHostname(domainHostnameString);
         
         // orient the user to face the target
-        glm::quat newOrientation = glm::quat(glm::vec3(orientationItems[0].toFloat(),
-                                                       orientationItems[1].toFloat(),
-                                                       orientationItems[2].toFloat()))
+        glm::quat newOrientation = glm::quat(glm::radians(glm::vec3(orientationItems[0].toFloat(),
+                                                                    orientationItems[1].toFloat(),
+                                                                    orientationItems[2].toFloat())))
             * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
         setOrientation(newOrientation);
         

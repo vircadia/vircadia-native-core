@@ -75,17 +75,6 @@ void SkeletonModel::syncToPalms() {
     }
 }
 
-bool SkeletonModel::render(float alpha) {
-
-    if (_jointStates.isEmpty()) {
-        return false;
-    }
-
-    Model::render(alpha);
-
-    return true;
-}
-
 void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes) const {
     if (jointIndex < 0 || jointIndex >= int(_shapes.size())) {
         return;
@@ -153,7 +142,7 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
             direction += fingerVector / length;
         }
         fingerVector = glm::inverse(palmRotation) * fingerVector * -sign;
-        IndexValue indexValue = { i, atan2f(fingerVector.z, fingerVector.x) };
+        IndexValue indexValue = { int(i), atan2f(fingerVector.z, fingerVector.x) };
         fingerIndices.append(indexValue);
     }
     qSort(fingerIndices.begin(), fingerIndices.end());

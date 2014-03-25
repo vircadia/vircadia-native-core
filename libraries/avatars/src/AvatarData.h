@@ -33,7 +33,6 @@ typedef unsigned long long quint64;
 #include <QtCore/QObject>
 #include <QtCore/QStringList>
 #include <QtCore/QUrl>
-#include <QtCore/QUuid>
 #include <QtCore/QVector>
 #include <QtCore/QVariantMap>
 #include <QRect>
@@ -105,6 +104,9 @@ public:
     void setHandPosition(const glm::vec3& handPosition);
 
     QByteArray toByteArray();
+
+    /// \return true if an error should be logged
+    bool shouldLogError(const quint64& now);
 
     /// \param packet byte array of data
     /// \param offset number of bytes into packet where data starts
@@ -255,6 +257,8 @@ protected:
     QString _billboardURL;
     
     static QNetworkAccessManager* networkAccessManager;
+
+    quint64 _errorLogExpiry; ///< time in future when to log an error
 
 private:
     // privatize the copy constructor and assignment operator so they cannot be called

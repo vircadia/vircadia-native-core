@@ -25,10 +25,14 @@ using namespace std;
 
 ViewFrustum::ViewFrustum() :
     _position(0,0,0),
+    _positionVoxelScale(0,0,0),
     _orientation(),
     _direction(IDENTITY_FRONT),
     _up(IDENTITY_UP),
     _right(IDENTITY_RIGHT),
+    _orthographic(false),
+    _width(1.0f),
+    _height(1.0f),
     _fieldOfView(0.0),
     _aspectRatio(1.0f),
     _nearClip(0.1f),
@@ -61,6 +65,11 @@ void ViewFrustum::setOrientation(const glm::quat& orientationAsQuaternion) {
 //     http://www.lighthouse3d.com/tutorials/view-frustum-culling/view-frustums-shape/
 //
 void ViewFrustum::calculate() {
+    if (_orthographic) {
+        calculateOrthographic();
+        return;
+    }
+
     // compute the off-axis frustum parameters as we would for glFrustum
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
@@ -130,6 +139,49 @@ void ViewFrustum::calculate() {
     // Set up our keyhole bounding box...
     glm::vec3 corner = _position - _keyholeRadius;
     _keyholeBoundingBox = AABox(corner,(_keyholeRadius * 2.0f));
+}
+
+void ViewFrustum::calculateOrthographic() {
+    float halfWidth = _width * 0.5f;
+    float halfHeight = _height * 0.5f;
+
+    // find the corners of the view box in world space
+    glm::mat4 worldMatrix = glm::translate(_position) * glm::mat4(glm::mat3(_right, _up, -_direction)) *
+        glm::translate(_eyeOffsetPosition) * glm::mat4_cast(_eyeOffsetOrientation);
+    _farTopLeft = glm::vec3(worldMatrix * glm::vec4(-halfWidth, halfHeight, -_farClip, 1.0f));
+    _farTopRight = glm::vec3(worldMatrix * glm::vec4(halfWidth, halfHeight, -_farClip, 1.0f));
+    _farBottomLeft = glm::vec3(worldMatrix * glm::vec4(-halfWidth, -halfHeight, -_farClip, 1.0f));
+    _farBottomRight = glm::vec3(worldMatrix * glm::vec4(halfWidth, -halfHeight, -_farClip, 1.0f));
+    _nearTopLeft = glm::vec3(worldMatrix * glm::vec4(-halfWidth, halfHeight, -_nearClip, 1.0f));
+    _nearTopRight = glm::vec3(worldMatrix * glm::vec4(halfWidth, halfHeight, -_nearClip, 1.0f));
+    _nearBottomLeft = glm::vec3(worldMatrix * glm::vec4(-halfWidth, -halfHeight, -_nearClip, 1.0f));
+    _nearBottomRight = glm::vec3(worldMatrix * glm::vec4(halfWidth, -halfHeight, -_nearClip, 1.0f));
+    
+    // compute the offset position and axes in world space
+    _offsetPosition = glm::vec3(worldMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+    _offsetDirection = glm::vec3(worldMatrix * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f));
+    _offsetUp = glm::vec3(worldMatrix * glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
+    _offsetRight = glm::vec3(worldMatrix * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f));
+    
+    _planes[TOP_PLANE].set3Points(_nearTopRight, _nearTopLeft, _farTopLeft);
+    _planes[BOTTOM_PLANE].set3Points(_nearBottomLeft, _nearBottomRight, _farBottomRight);
+    _planes[LEFT_PLANE].set3Points(_nearBottomLeft, _farBottomLeft, _farTopLeft);
+    _planes[RIGHT_PLANE].set3Points(_farBottomRight, _nearBottomRight, _nearTopRight);
+    _planes[NEAR_PLANE].set3Points(_nearBottomRight, _nearBottomLeft, _nearTopLeft);
+    _planes[FAR_PLANE].set3Points(_farBottomLeft, _farBottomRight, _farTopRight);
+
+    // Also calculate our projection matrix in case people want to project points...
+    // Projection matrix : Field of View, ratio, display range : near to far
+    glm::mat4 projection = glm::ortho(-halfWidth, halfWidth, -halfHeight, halfHeight, _nearClip, _farClip);
+    glm::vec3 lookAt = _position + _direction;
+    glm::mat4 view = glm::lookAt(_position, lookAt, _up);
+
+    // Our ModelViewProjection : multiplication of our 3 matrices (note: model is identity, so we can drop it)
+    _ourModelViewProjectionMatrix = projection * view; // Remember, matrix multiplication is the other way around
+
+    // Set up our keyhole bounding box...
+    glm::vec3 corner = _position - _keyholeRadius;
+    _keyholeBoundingBox = AABox(corner, (_keyholeRadius * 2.0f));
 }
 
 //enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
@@ -277,6 +329,10 @@ ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
         return keyholeResult;
     }
 
+    // TODO: These calculations are expensive, taking up 80% of our time in this function.
+    // This appears to be expensive because we have to test the distance to each plane.
+    // One suggested optimization is to first check against the approximated cone. We might
+    // also be able to test against the cone to the bounding sphere of the box.
     for(int i=0; i < 6; i++) {
         const glm::vec3& normal = _planes[i].getNormal();
         const glm::vec3& boxVertexP = box.getVertexP(normal);
@@ -691,39 +747,60 @@ OctreeProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const 
     return projectedPolygon;
 }
 
-
 // Similar strategy to getProjectedPolygon() we use the knowledge of camera position relative to the
 // axis-aligned voxels to determine which of the voxels vertices must be the furthest. No need for
 // squares and square-roots. Just compares.
-glm::vec3 ViewFrustum::getFurthestPointFromCamera(const AABox& box) const {
+void ViewFrustum::getFurthestPointFromCamera(const AABox& box, glm::vec3& furthestPoint) const {
     const glm::vec3& bottomNearRight = box.getCorner();
-    glm::vec3 center = box.calcCenter();
-    glm::vec3 topFarLeft = box.calcTopFarLeft();
+    float scale = box.getScale();
+    float halfScale = scale * 0.5f;
 
-    glm::vec3 furthestPoint;
-    if (_position.x < center.x) {
+    if (_position.x < bottomNearRight.x + halfScale) {
         // we are to the right of the center, so the left edge is furthest
-        furthestPoint.x = topFarLeft.x;
+        furthestPoint.x = bottomNearRight.x + scale;
     } else {
-        // we are to the left of the center, so the right edge is furthest (at center ok too)
         furthestPoint.x = bottomNearRight.x;
     }
 
-    if (_position.y < center.y) {
+    if (_position.y < bottomNearRight.y + halfScale) {
         // we are below of the center, so the top edge is furthest
-        furthestPoint.y = topFarLeft.y;
+        furthestPoint.y = bottomNearRight.y + scale;
     } else {
-        // we are above the center, so the lower edge is furthest (at center ok too)
         furthestPoint.y = bottomNearRight.y;
     }
 
-    if (_position.z < center.z) {
+    if (_position.z < bottomNearRight.z + halfScale) {
         // we are to the near side of the center, so the far side edge is furthest
-        furthestPoint.z = topFarLeft.z;
+        furthestPoint.z = bottomNearRight.z + scale;
     } else {
-        // we are to the far side of the center, so the near side edge is furthest (at center ok too)
         furthestPoint.z = bottomNearRight.z;
     }
-
-    return furthestPoint;
 }
+
+void ViewFrustum::getFurthestPointFromCameraVoxelScale(const AABox& box, glm::vec3& furthestPoint) const {
+    const glm::vec3& bottomNearRight = box.getCorner();
+    float scale = box.getScale();
+    float halfScale = scale * 0.5f;
+
+    if (_positionVoxelScale.x < bottomNearRight.x + halfScale) {
+        // we are to the right of the center, so the left edge is furthest
+        furthestPoint.x = bottomNearRight.x + scale;
+    } else {
+        furthestPoint.x = bottomNearRight.x;
+    }
+
+    if (_positionVoxelScale.y < bottomNearRight.y + halfScale) {
+        // we are below of the center, so the top edge is furthest
+        furthestPoint.y = bottomNearRight.y + scale;
+    } else {
+        furthestPoint.y = bottomNearRight.y;
+    }
+
+    if (_positionVoxelScale.z < bottomNearRight.z + halfScale) {
+        // we are to the near side of the center, so the far side edge is furthest
+        furthestPoint.z = bottomNearRight.z + scale;
+    } else {
+        furthestPoint.z = bottomNearRight.z;
+    }
+}
+
