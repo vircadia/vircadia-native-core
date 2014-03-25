@@ -582,7 +582,8 @@ void NodeList::sendDomainServerCheckIn() {
             foreach (NodeType_t nodeTypeOfInterest, _nodeTypesOfInterest) {
                 packetStream << nodeTypeOfInterest;
             }
- 
+            
+            qDebug() << "sending DS check in size" << domainServerPacket.size() << "to" << _domainInfo.getSockAddr();
             writeDatagram(domainServerPacket, _domainInfo.getSockAddr(), _domainInfo.getConnectionSecret());
             const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
             static unsigned int numDomainCheckins = 0;
