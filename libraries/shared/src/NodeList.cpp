@@ -413,9 +413,8 @@ void NodeList::sendSTUNRequest() {
 
     // transaction ID (random 12-byte unsigned integer)
     const uint NUM_TRANSACTION_ID_BYTES = 12;
-    unsigned char transactionID[NUM_TRANSACTION_ID_BYTES];
-    loadRandomIdentifier(transactionID, NUM_TRANSACTION_ID_BYTES);
-    memcpy(stunRequestPacket + packetIndex, &transactionID, sizeof(transactionID));
+    QUuid randomUUID = QUuid::createUuid();
+    memcpy(stunRequestPacket + packetIndex, randomUUID.toRfc4122().data(), NUM_TRANSACTION_ID_BYTES);
 
     // lookup the IP for the STUN server
     static HifiSockAddr stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
