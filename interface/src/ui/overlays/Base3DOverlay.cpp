@@ -12,7 +12,6 @@
 #include <SharedUtil.h>
 
 #include "Base3DOverlay.h"
-#include "TextRenderer.h"
 
 const glm::vec3 DEFAULT_POSITION = glm::vec3(0.0f, 0.0f, 0.0f);
 const float DEFAULT_LINE_WIDTH = 1.0f;

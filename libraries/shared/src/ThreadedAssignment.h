@@ -17,16 +17,18 @@ public:
     ThreadedAssignment(const QByteArray& packet);
     void setFinished(bool isFinished);
     virtual void aboutToFinish() { };
+    void addPacketStatsAndSendStatsPacket(QJsonObject& statsObject);
 
 public slots:
     /// threaded run of assignment
     virtual void run() = 0;
     virtual void deleteLater();
     virtual void readPendingDatagrams() = 0;
+    virtual void sendStatsPacket();
 
 protected:
     bool readAvailableDatagram(QByteArray& destinationByteArray, HifiSockAddr& senderSockAddr);
-    void commonInit(const QString& targetName, NodeType_t nodeType);
+    void commonInit(const QString& targetName, NodeType_t nodeType, bool shouldSendStats = true);
     bool _isFinished;
 private slots:
     void checkInWithDomainServerOrExit();

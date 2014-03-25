@@ -74,7 +74,10 @@ public:
 
     void init();
     void simulate(float deltaTime);
-    virtual void render(const glm::vec3& cameraPosition, bool forShadowMap);
+    
+    enum RenderMode { NORMAL_RENDER_MODE, SHADOW_RENDER_MODE, MIRROR_RENDER_MODE };
+    
+    virtual void render(const glm::vec3& cameraPosition, RenderMode renderMode = NORMAL_RENDER_MODE);
 
     //setters
     void setDisplayingLookatVectors(bool displayingLookatVectors) { getHead()->setRenderLookatVectors(displayingLookatVectors); }
@@ -181,7 +184,7 @@ protected:
     float getPelvisToHeadLength() const;
 
     void renderDisplayName();
-    virtual void renderBody(bool forShadowMap);
+    virtual void renderBody(RenderMode renderMode);
 
 private:
 

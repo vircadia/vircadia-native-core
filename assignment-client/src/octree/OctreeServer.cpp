@@ -236,7 +236,7 @@ void OctreeServer::initHTTPManager(int port) {
     _httpManager = new HTTPManager(port, documentRoot, this, this);
 }
 
-bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& path) {
+bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url) {
 
 #ifdef FORCE_CRASH
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation
@@ -259,9 +259,9 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
     bool showStats = false;
 
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
-        if (path == "/") {
+        if (url.path() == "/") {
             showStats = true;
-        } else if (path == "/resetStats") {
+        } else if (url.path() == "/resetStats") {
             _octreeInboundPacketProcessor->resetStats();
             resetSendingStats();
             showStats = true;
@@ -823,9 +823,9 @@ void OctreeServer::run() {
     _safeServerName = getMyServerName();
     // Before we do anything else, create our tree...
     _tree = createTree();
-
-    // change the logging target name while this is running
-    Logging::setTargetName(getMyLoggingServerTargetName());
+    
+    // use common init to setup common timers and logging
+    commonInit(getMyLoggingServerTargetName(), getMyNodeType());
 
     // Now would be a good time to parse our arguments, if we got them as assignment
     if (getPayload().size() > 0) {
@@ -880,7 +880,9 @@ void OctreeServer::run() {
     // we need to ask the DS about agents so we can ping/reply with them
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
+#ifndef WIN32
     setvbuf(stdout, NULL, _IOLBF, 0);
+#endif
 
     nodeList->linkedDataCreateCallback = &OctreeServer::attachQueryNodeToNode;
 
@@ -986,14 +988,6 @@ void OctreeServer::run() {
         strftime(utcBuffer, MAX_TIME_LENGTH, " [%m/%d/%Y %X UTC]", gmtm);
     }
     qDebug() << "Now running... started at: " << localBuffer << utcBuffer;
-
-    QTimer* domainServerTimer = new QTimer(this);
-    connect(domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
-    domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_USECS / 1000);
-
-    QTimer* silentNodeTimer = new QTimer(this);
-    connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
-    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
 }
 
 void OctreeServer::nodeAdded(SharedNodePointer node) {

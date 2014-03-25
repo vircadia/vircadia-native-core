@@ -63,4 +63,5 @@ To test things out you'll want to run the Interface client.
 
 To access your local domain in Interface, open your Preferences -- on OS X this is available in the Interface menu, on Linux you'll find it in the File menu. Enter "localhost" in the "Domain server" field.
 
-If everything worked you should see that you are connected to at least one server. Nice work!
+If everything worked you should see that you are connected to at least one server.
+Nice work!

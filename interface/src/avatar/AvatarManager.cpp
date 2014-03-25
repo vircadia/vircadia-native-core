@@ -72,7 +72,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     simulateAvatarFades(deltaTime);
 }
 
-void AvatarManager::renderAvatars(bool forShadowMapOrMirror, bool selfAvatarOnly) {
+void AvatarManager::renderAvatars(Avatar::RenderMode renderMode, bool selfAvatarOnly) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "Application::renderAvatars()");
     bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors);
@@ -85,13 +85,13 @@ void AvatarManager::renderAvatars(bool forShadowMapOrMirror, bool selfAvatarOnly
             if (!avatar->isInitialized()) {
                 continue;
             }
-            avatar->render(cameraPosition, forShadowMapOrMirror);
+            avatar->render(cameraPosition, renderMode);
             avatar->setDisplayingLookatVectors(renderLookAtVectors);
         }
-        renderAvatarFades(cameraPosition, forShadowMapOrMirror);
+        renderAvatarFades(cameraPosition, renderMode);
     } else {
         // just render myAvatar
-        _myAvatar->render(cameraPosition, forShadowMapOrMirror);
+        _myAvatar->render(cameraPosition, renderMode);
         _myAvatar->setDisplayingLookatVectors(renderLookAtVectors);
     }
 }
@@ -114,14 +114,14 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     }
 }
 
-void AvatarManager::renderAvatarFades(const glm::vec3& cameraPosition, bool forShadowMap) {
+void AvatarManager::renderAvatarFades(const glm::vec3& cameraPosition, Avatar::RenderMode renderMode) {
     // render avatar fades
-    Glower glower(forShadowMap ? 0.0f : 1.0f);
+    Glower glower(renderMode == Avatar::NORMAL_RENDER_MODE ? 1.0f : 0.0f);
     
     foreach(const AvatarSharedPointer& fadingAvatar, _avatarFades) {
         Avatar* avatar = static_cast<Avatar*>(fadingAvatar.data());
         if (avatar != static_cast<Avatar*>(_myAvatar.data())) {
-            avatar->render(cameraPosition, forShadowMap);
+            avatar->render(cameraPosition, renderMode);
         }
     }
 }

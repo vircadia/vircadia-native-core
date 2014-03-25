@@ -58,7 +58,8 @@ enum PacketType {
     PacketTypeAvatarIdentity,
     PacketTypeAvatarBillboard,
     PacketTypeDomainConnectRequest,
-    PacketTypeDomainServerAuthRequest
+    PacketTypeDomainServerAuthRequest,
+    PacketTypeNodeJsonStats
 };
 
 typedef char PacketVersion;

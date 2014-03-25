@@ -15,15 +15,15 @@
 #include "HTTPConnection.h"
 #include "HTTPManager.h"
 
-bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QString& path) {
-    if (_requestHandler && _requestHandler->handleHTTPRequest(connection, path)) {
+bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QUrl& url) {
+    if (_requestHandler && _requestHandler->handleHTTPRequest(connection, url)) {
         // this request was handled by our _requestHandler object
         // so we don't need to attempt to do so in the document root
         return true;
     }
     
     // check to see if there is a file to serve from the document root for this path
-    QString subPath = path;
+    QString subPath = url.path();
     
     // remove any slash at the beginning of the path
     if (subPath.startsWith('/')) {
@@ -38,6 +38,10 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QString& p
         // this could be a directory with a trailing slash
         // send a redirect to the path with a slash so we can
         QString redirectLocation = '/' + subPath + '/';
+
+        if (!url.query().isEmpty()) {
+            redirectLocation += "?" + url.query();
+        }
         
         QHash<QByteArray, QByteArray> redirectHeader;
         redirectHeader.insert(QByteArray("Location"), redirectLocation.toUtf8());
