@@ -54,10 +54,6 @@ const float BILLBOARD_AND_IDENTITY_SEND_PROBABILITY = 1.0f / 300.0f;
 // NOTE: some additional optimizations to consider.
 //    1) use the view frustum to cull those avatars that are out of view. Since avatar data doesn't need to be present
 //       if the avatar is not in view or in the keyhole.
-//    2) after culling for view frustum, sort order the avatars by distance, send the closest ones first.
-//    3) if we need to rate limit the amount of data we send, we can use a distance weighted "semi-random" function to
-//       determine which avatars are included in the packet stream
-//    4) we should optimize the avatar data format to be more compact (100 bytes is pretty wasteful).
 void AvatarMixer::broadcastAvatarData() {
     static QByteArray mixedAvatarByteArray;
     
@@ -139,6 +135,8 @@ void AvatarMixer::broadcastAvatarData() {
                                 
                             ++_sumIdentityPackets;
                         }
+                        
+                        nodeList->getNodeSocket().waitForBytesWritten(-1);
                     }
                 }
             }
