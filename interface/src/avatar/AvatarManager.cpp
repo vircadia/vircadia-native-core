@@ -48,14 +48,11 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     AvatarHash::iterator avatarIterator = _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
         Avatar* avatar = static_cast<Avatar*>(avatarIterator.value().data());
-        if (avatar == static_cast<Avatar*>(_myAvatar.data())) {
+        if (avatar == static_cast<Avatar*>(_myAvatar.data()) || !avatar->isInitialized()) {
             // DO NOT update _myAvatar!  Its update has already been done earlier in the main loop.
-            //updateMyAvatar(deltaTime);
+            // DO NOT update uninitialized Avatars
             ++avatarIterator;
             continue;
-        }
-        if (!avatar->isInitialized()) {
-            avatar->init();
         }
         if (avatar->getOwningAvatarMixer()) {
             // this avatar's mixer is still around, go ahead and simulate it
@@ -104,12 +101,14 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
 
     while (fadingIterator != _avatarFades.end()) {
         Avatar* avatar = static_cast<Avatar*>(fadingIterator->data());
-        avatar->setTargetScale(avatar->getScale() * SHRINK_RATE);
-        if (avatar->getTargetScale() < MIN_FADE_SCALE) {
-            fadingIterator = _avatarFades.erase(fadingIterator);
-        } else {
-            avatar->simulate(deltaTime);
-            ++fadingIterator;
+        if (avatar->isInitialized()) {
+            avatar->setTargetScale(avatar->getScale() * SHRINK_RATE);
+            if (avatar->getTargetScale() < MIN_FADE_SCALE) {
+                fadingIterator = _avatarFades.erase(fadingIterator);
+            } else {
+                avatar->simulate(deltaTime);
+                ++fadingIterator;
+            }
         }
     }
 }
@@ -120,10 +119,28 @@ void AvatarManager::renderAvatarFades(const glm::vec3& cameraPosition, Avatar::R
     
     foreach(const AvatarSharedPointer& fadingAvatar, _avatarFades) {
         Avatar* avatar = static_cast<Avatar*>(fadingAvatar.data());
-        if (avatar != static_cast<Avatar*>(_myAvatar.data())) {
+        if (avatar != static_cast<Avatar*>(_myAvatar.data()) && avatar->isInitialized()) {
             avatar->render(cameraPosition, renderMode);
         }
     }
+}
+
+AvatarSharedPointer AvatarManager::matchingOrNewAvatar(const QUuid& nodeUUID, const QWeakPointer<Node>& mixerWeakPointer) {
+    AvatarSharedPointer matchingAvatar = _avatarHash.value(nodeUUID);
+    
+    if (!matchingAvatar) {
+        // construct a new Avatar for this node
+        Avatar* avatar =  new Avatar();
+        avatar->setOwningAvatarMixer(mixerWeakPointer);
+        
+        // insert the new avatar into our hash
+        matchingAvatar = AvatarSharedPointer(avatar);
+        _avatarHash.insert(nodeUUID, matchingAvatar);
+        
+        qDebug() << "Adding avatar with UUID" << nodeUUID << "to AvatarManager hash.";
+    }
+    
+    return matchingAvatar;
 }
 
 void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer) {
@@ -132,10 +149,10 @@ void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const
             processAvatarDataPacket(datagram, mixerWeakPointer);
             break;
         case PacketTypeAvatarIdentity:
-            processAvatarIdentityPacket(datagram);
+            processAvatarIdentityPacket(datagram, mixerWeakPointer);
             break;
         case PacketTypeAvatarBillboard:
-            processAvatarBillboardPacket(datagram);
+            processAvatarBillboardPacket(datagram, mixerWeakPointer);
             break;
         case PacketTypeKillAvatar:
             processKillAvatar(datagram);
@@ -154,26 +171,21 @@ void AvatarManager::processAvatarDataPacket(const QByteArray &datagram, const QW
         QUuid nodeUUID = QUuid::fromRfc4122(datagram.mid(bytesRead, NUM_BYTES_RFC4122_UUID));
         bytesRead += NUM_BYTES_RFC4122_UUID;
         
-        AvatarSharedPointer matchingAvatar = _avatarHash.value(nodeUUID);
-        
-        if (!matchingAvatar) {
-            // construct a new Avatar for this node
-            Avatar* avatar =  new Avatar();
-            avatar->setOwningAvatarMixer(mixerWeakPointer);
-            
-            // insert the new avatar into our hash
-            matchingAvatar = AvatarSharedPointer(avatar);
-            _avatarHash.insert(nodeUUID, matchingAvatar);
-            
-            qDebug() << "Adding avatar with UUID" << nodeUUID << "to AvatarManager hash.";
-        }
+        AvatarSharedPointer matchingAvatarData = matchingOrNewAvatar(nodeUUID, mixerWeakPointer);
         
         // have the matching (or new) avatar parse the data from the packet
-        bytesRead += matchingAvatar->parseDataAtOffset(datagram, bytesRead);
+        bytesRead += matchingAvatarData->parseDataAtOffset(datagram, bytesRead);
+        
+        Avatar* matchingAvatar = reinterpret_cast<Avatar*>(matchingAvatarData.data());
+        
+        if (!matchingAvatar->isInitialized()) {
+            // now that we have AvatarData for this Avatar we are go for init
+            matchingAvatar->init();
+        }
     }
 }
 
-void AvatarManager::processAvatarIdentityPacket(const QByteArray &packet) {
+void AvatarManager::processAvatarIdentityPacket(const QByteArray &packet, const QWeakPointer<Node>& mixerWeakPointer) {
     // setup a data stream to parse the packet
     QDataStream identityStream(packet);
     identityStream.skipRawData(numBytesForPacketHeader(packet));
@@ -187,7 +199,7 @@ void AvatarManager::processAvatarIdentityPacket(const QByteArray &packet) {
         identityStream >> nodeUUID >> faceMeshURL >> skeletonURL >> displayName;
 
         // mesh URL for a UUID, find avatar in our list
-        AvatarSharedPointer matchingAvatar = _avatarHash.value(nodeUUID);
+        AvatarSharedPointer matchingAvatar = matchingOrNewAvatar(nodeUUID, mixerWeakPointer);
         if (matchingAvatar) {
             Avatar* avatar = static_cast<Avatar*>(matchingAvatar.data());
             
@@ -206,11 +218,11 @@ void AvatarManager::processAvatarIdentityPacket(const QByteArray &packet) {
     }
 }
 
-void AvatarManager::processAvatarBillboardPacket(const QByteArray& packet) {
+void AvatarManager::processAvatarBillboardPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer) {
     int headerSize = numBytesForPacketHeader(packet);
     QUuid nodeUUID = QUuid::fromRfc4122(QByteArray::fromRawData(packet.constData() + headerSize, NUM_BYTES_RFC4122_UUID));
     
-    AvatarSharedPointer matchingAvatar = _avatarHash.value(nodeUUID);
+    AvatarSharedPointer matchingAvatar = matchingOrNewAvatar(nodeUUID, mixerWeakPointer);
     if (matchingAvatar) {
         Avatar* avatar = static_cast<Avatar*>(matchingAvatar.data());
         QByteArray billboard = packet.mid(headerSize + NUM_BYTES_RFC4122_UUID);
