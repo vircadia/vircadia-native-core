@@ -299,10 +299,18 @@ void AvatarMixer::run() {
     
     nodeList->linkedDataCreateCallback = attachAvatarDataToNode;
     
-    // setup and start a timer to broadcast avatar data
-    QTimer* broadcastTimer = new QTimer(this);
-    broadcastTimer->setInterval(AVATAR_DATA_SEND_INTERVAL_MSECS);
+    // create a thead for broadcast of avatar data
+    QThread* broadcastThread = new QThread(this);
     
-    connect(broadcastTimer, &QTimer::timeout, this, &AvatarMixer::broadcastAvatarData);
-    broadcastTimer->start();
+    // setup the timer that will be fired on the broadcast thread
+    QTimer* broadcastTimer = new QTimer();
+    broadcastTimer->setInterval(AVATAR_DATA_SEND_INTERVAL_MSECS);
+    broadcastTimer->moveToThread(broadcastThread);
+    
+    // connect appropriate signals and slots
+    connect(broadcastTimer, &QTimer::timeout, this, &AvatarMixer::broadcastAvatarData, Qt::DirectConnection);
+    connect(broadcastThread, SIGNAL(started()), broadcastTimer, SLOT(start()));
+    
+    // start the broadcastThread
+    broadcastThread->start();
 }
