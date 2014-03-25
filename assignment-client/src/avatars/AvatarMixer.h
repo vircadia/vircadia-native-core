@@ -37,6 +37,8 @@ private:
     
     int _sumListeners;
     int _numStatFrames;
+    int _sumBillboardPackets;
+    int _sumIdentityPackets;
 };
 
 #endif /* defined(__hifi__AvatarMixer__) */

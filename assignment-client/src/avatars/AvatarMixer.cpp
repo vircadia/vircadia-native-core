@@ -35,7 +35,9 @@ AvatarMixer::AvatarMixer(const QByteArray& packet) :
     _trailingSleepRatio(1.0f),
     _performanceThrottlingRatio(0.0f),
     _sumListeners(0),
-    _numStatFrames(0)
+    _numStatFrames(0),
+    _sumBillboardPackets(0),
+    _sumIdentityPackets(0)
 {
     // make sure we hear about node kills so we can tell the other nodes
     connect(NodeList::getInstance(), &NodeList::nodeKilled, this, &AvatarMixer::nodeKilled);
@@ -118,12 +120,15 @@ void AvatarMixer::broadcastAvatarData() {
                             billboardPacket.append(otherNode->getUUID().toRfc4122());
                             billboardPacket.append(otherNodeData->getAvatar().getBillboard());
                             nodeList->writeDatagram(billboardPacket, node);
+                            
+                            ++_sumBillboardPackets;
                         }
                         
                         if (otherNodeData->getIdentityChangeTimestamp() > 0
                             && (forceSend
                                 || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
                                 || randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
+                                
                             QByteArray identityPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
                             
                             QByteArray individualData = otherNodeData->getAvatar().identityByteArray();
@@ -131,6 +136,8 @@ void AvatarMixer::broadcastAvatarData() {
                             identityPacket.append(individualData);
                             
                             nodeList->writeDatagram(identityPacket, node);
+                                
+                            ++_sumIdentityPackets;
                         }
                     }
                 }
@@ -219,12 +226,17 @@ void AvatarMixer::sendStatsPacket() {
     QJsonObject statsObject;
     statsObject["average_listeners_last_second"] = (float) _sumListeners / (float) _numStatFrames;
     
+    statsObject["average_billboard_packets_per_frame"] = (float) _sumBillboardPackets / (float) _numStatFrames;
+    statsObject["average_identity_packets_per_frame"] = (float) _sumIdentityPackets / (float) _numStatFrames;
+    
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100;
     statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
     
     ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
     
     _sumListeners = 0;
+    _sumBillboardPackets = 0;
+    _sumIdentityPackets = 0;
     _numStatFrames = 0;
 }
 
