@@ -115,6 +115,7 @@ public:
     void loadScript(const QString& fileNameString);    
     void loadScripts();
     void storeSizeAndPosition();
+    void clearScriptsBeforeRunning();
     void saveScripts();
     void initializeGL();
     void paintGL();
@@ -254,6 +255,7 @@ public slots:
     void setRenderVoxels(bool renderVoxels);
     void doKillLocalVoxels();
     void loadDialog();
+    void loadScriptURLDialog();
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
     void stopAllScripts();
