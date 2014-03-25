@@ -58,7 +58,7 @@ public:
     void createCollisionShapes();
     void updateShapePositions();
     void simulate(float deltaTime, bool fullUpdate = true);
-    bool render(float alpha);
+    bool render(float alpha = 1.0f, bool forShadowMap = false);
     
     /// Sets the URL of the model to render.
     /// \param fallback the URL of a fallback model to render if the requested model fails to load
@@ -261,7 +261,7 @@ private:
     
     void applyNextGeometry();
     void deleteGeometry();
-    void renderMeshes(float alpha, bool translucent);
+    void renderMeshes(float alpha, bool forShadowMap, bool translucent);
     
     QSharedPointer<NetworkGeometry> _baseGeometry; ///< reference required to prevent collection of base
     QSharedPointer<NetworkGeometry> _nextBaseGeometry;
@@ -283,8 +283,10 @@ private:
     
     static ProgramObject _program;
     static ProgramObject _normalMapProgram;
+    static ProgramObject _shadowProgram;
     static ProgramObject _skinProgram;
     static ProgramObject _skinNormalMapProgram;
+    static ProgramObject _skinShadowProgram;
     
     static int _normalMapTangentLocation;
     
@@ -298,6 +300,7 @@ private:
     
     static SkinLocations _skinLocations;
     static SkinLocations _skinNormalMapLocations;
+    static SkinLocations _skinShadowLocations;
     
     static void initSkinProgram(ProgramObject& program, SkinLocations& locations);
     static QVector<JointState> createJointStates(const FBXGeometry& geometry);

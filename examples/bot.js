@@ -26,15 +26,25 @@ var CHANCE_OF_MOVING = 0.005;
 var CHANCE_OF_SOUND = 0.005;
 var CHANCE_OF_HEAD_TURNING = 0.05;
 var CHANCE_OF_BIG_MOVE = 0.1;
+var CHANCE_OF_WAVING = 0.005;     //  Currently this isn't working
+
+var shouldReceiveVoxels = true; 
+var VOXEL_FPS = 60.0;
+var lastVoxelQueryTime = 0.0;
 
 var isMoving = false;
 var isTurningHead = false;
+var isPlayingAudio = false; 
+var isWaving = false;
+var waveFrequency = 0.0;
+var waveAmplitude = 0.0; 
 
 var X_MIN = 0.0;
 var X_MAX = 5.0;
 var Z_MIN = 0.0;
 var Z_MAX = 5.0;
 var Y_PELVIS = 2.5;
+var SHOULDER_JOINT_NUMBER = 15; 
 
 var MOVE_RANGE_SMALL = 0.5;
 var MOVE_RANGE_BIG = Math.max(X_MAX - X_MIN, Z_MAX - Z_MIN) / 2.0;
@@ -50,6 +60,8 @@ var targetPosition =  { x: 0, y: 0, z: 0 };
 var targetDirection = { x: 0, y: 0, z: 0, w: 0 };
 var currentDirection = { x: 0, y: 0, z: 0, w: 0 };
 var targetHeadPitch = 0.0;
+
+var cumulativeTime = 0.0;
 
 var sounds = [];
 loadSounds();
@@ -100,13 +112,37 @@ Agent.isListeningToAudioStream = true;
 Avatar.position = firstPosition;  
 printVector("New bot, position = ", Avatar.position);
 
+function stopWaving() {
+  isWaving = false; 
+  Avatar.clearJointData(SHOULDER_JOINT_NUMBER);
+}
+
 function updateBehavior(deltaTime) {
-  if (Math.random() < CHANCE_OF_SOUND) {
-    playRandomSound();
+  
+  cumulativeTime += deltaTime;
+
+  if (shouldReceiveVoxels && ((cumulativeTime - lastVoxelQueryTime) > (1.0 / VOXEL_FPS))) {
+    VoxelViewer.setPosition(Avatar.position);
+    VoxelViewer.setOrientation(Avatar.orientation);
+    VoxelViewer.queryOctree();
+    lastVoxelQueryTime = cumulativeTime;
+    /*
+    if (Math.random() < (1.0 / VOXEL_FPS)) {
+      print("Voxels in view = " + VoxelViewer.getOctreeElementsCount());
+    }*/
   }
 
-  if (Agent.isPlayingAvatarSound) {
-    Avatar.handPosition = Vec3.sum(Avatar.position, Quat.getFront(Avatar.orientation));
+  if (!isWaving && (Math.random() < CHANCE_OF_WAVING)) {
+    isWaving = true;
+    waveFrequency = 1.0 + Math.random() * 5.0;
+    waveAmplitude = 5.0 + Math.random() * 60.0;
+    Script.setTimeout(stopWaving, 1000 + Math.random() * 2000);
+  } else if (isWaving) {
+    Avatar.setJointData(SHOULDER_JOINT_NUMBER, Quat.fromPitchYawRollDegrees(0.0, 0.0,  waveAmplitude * Math.sin(cumulativeTime * waveFrequency)));
+  }
+
+  if (Math.random() < CHANCE_OF_SOUND) {
+    playRandomSound();
   }
 
   if (!isTurningHead && (Math.random() < CHANCE_OF_HEAD_TURNING)) {

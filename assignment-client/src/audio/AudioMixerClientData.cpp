@@ -83,20 +83,16 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
     return 0;
 }
 
-void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSamples,
-                                                       float& currentMinLoudness,
-                                                       float& currentMaxLoudness) {
+void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSamples) {
     for (unsigned int i = 0; i < _ringBuffers.size(); i++) {
         if (_ringBuffers[i]->shouldBeAddedToMix(jitterBufferLengthSamples)) {
             // this is a ring buffer that is ready to go
             // set its flag so we know to push its buffer when all is said and done
             _ringBuffers[i]->setWillBeAddedToMix(true);
             
-            
             // calculate the average loudness for the next NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL
             // that would be mixed in
             _ringBuffers[i]->updateAverageLoudnessForBoundarySamples(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-
         }
     }
 }

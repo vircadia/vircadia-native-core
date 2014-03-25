@@ -22,7 +22,6 @@
 
 #include "InterfaceConfig.h"
 #include "world.h"
-#include "VoxelSystem.h"
 
 
 class Avatar;
@@ -72,13 +71,6 @@ private:
     std::vector<HandBall> _leapFingerTipBalls;
     std::vector<HandBall> _leapFingerRootBalls;
     
-    glm::vec3 _lastFingerAddVoxel, _lastFingerDeleteVoxel;
-    VoxelDetail _collidingVoxel;
-    
-    glm::vec3 _collisionCenter;
-    float _collisionAge;
-    float _collisionDuration;
-    
     // private methods
     void setLeapHands(const std::vector<glm::vec3>& handPositions,
                       const std::vector<glm::vec3>& handNormals);
@@ -88,8 +80,6 @@ private:
     
     void calculateGeometry();
     
-    void handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelTreeElement* voxel, float deltaTime);
-
     void playSlaps(PalmData& palm, Avatar* avatar);
 };
 
