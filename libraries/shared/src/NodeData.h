@@ -16,9 +16,14 @@ class Node;
 class NodeData : public QObject {
     Q_OBJECT
 public:
-    
+    NodeData();
     virtual ~NodeData() = 0;
     virtual int parseData(const QByteArray& packet) = 0;
+    
+    QMutex& getMutex() { return _mutex; }
+
+private:
+    QMutex _mutex;
 };
 
 #endif

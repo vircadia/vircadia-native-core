@@ -317,6 +317,8 @@ int NodeList::updateNodeWithDataFromPacket(const SharedNodePointer& matchingNode
         linkedDataCreateCallback(matchingNode.data());
     }
     
+    QMutexLocker linkedDataLocker(&matchingNode->getLinkedData()->getMutex());
+    
     return matchingNode->getLinkedData()->parseData(packet);
 }
 
