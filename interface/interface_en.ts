@@ -4,22 +4,22 @@
 <context>
     <name>Application</name>
     <message>
-        <location filename="src/Application.cpp" line="1364"/>
+        <location filename="src/Application.cpp" line="1368"/>
         <source>Export Voxels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="1365"/>
+        <location filename="src/Application.cpp" line="1369"/>
         <source>Sparse Voxel Octree Files (*.svo)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3580"/>
+        <location filename="src/Application.cpp" line="3596"/>
         <source>Open Script</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3581"/>
+        <location filename="src/Application.cpp" line="3597"/>
         <source>JavaScript Files (*.js)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -113,18 +113,18 @@
 <context>
     <name>Menu</name>
     <message>
-        <location filename="src/Menu.cpp" line="438"/>
+        <location filename="src/Menu.cpp" line="449"/>
         <source>Open .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="440"/>
-        <location filename="src/Menu.cpp" line="452"/>
+        <location filename="src/Menu.cpp" line="451"/>
+        <location filename="src/Menu.cpp" line="463"/>
         <source>Text files (*.ini)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="450"/>
+        <location filename="src/Menu.cpp" line="461"/>
         <source>Save .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
@@ -132,50 +132,29 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="src/ImportDialog.cpp" line="22"/>
-        <location filename="src/ImportDialog.cpp" line="23"/>
+        <location filename="src/ui/ImportDialog.cpp" line="22"/>
+        <location filename="src/ui/ImportDialog.cpp" line="23"/>
         <source>Import Voxels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/ImportDialog.cpp" line="24"/>
+        <location filename="src/ui/ImportDialog.cpp" line="24"/>
         <source>Loading ...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/ImportDialog.cpp" line="25"/>
+        <location filename="src/ui/ImportDialog.cpp" line="25"/>
         <source>Place voxels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/ImportDialog.cpp" line="26"/>
+        <location filename="src/ui/ImportDialog.cpp" line="26"/>
         <source>&lt;b&gt;Import&lt;/b&gt; %1 as voxels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/ImportDialog.cpp" line="27"/>
+        <location filename="src/ui/ImportDialog.cpp" line="27"/>
         <source>Cancel</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>SnapshotShareDialog</name>
-    <message>
-        <location filename="ui/shareSnapshot.ui" line="38"/>
-        <location filename="../build/interface/ui_shareSnapshot.h" line="166"/>
-        <source>Share with community</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/shareSnapshot.ui" line="170"/>
-        <location filename="../build/interface/ui_shareSnapshot.h" line="167"/>
-        <source>Notes about this image</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/shareSnapshot.ui" line="240"/>
-        <location filename="../build/interface/ui_shareSnapshot.h" line="168"/>
-        <source>Share</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

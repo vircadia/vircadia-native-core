@@ -9,11 +9,11 @@
 #ifndef __hifi__VoxelImporter__
 #define __hifi__VoxelImporter__
 
-#include <VoxelSystem.h>
-#include <ImportDialog.h>
-
 #include <QThread>
 #include <QRunnable>
+
+#include "ui/ImportDialog.h"
+#include "voxels/VoxelSystem.h"
 
 class ImportTask;
 

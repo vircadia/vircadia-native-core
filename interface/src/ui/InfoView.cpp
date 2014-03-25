@@ -38,11 +38,12 @@ void InfoView::forcedShow() {
 }
 
 bool InfoView::shouldShow() {
+    bool shouldShow = false;
     if (_forced) {
         return true;
     }
     
-    QSettings* settings = Application::getInstance()->getSettings();
+    QSettings* settings = Application::getInstance()->lockSettings();
     
     QString lastVersion = settings->value(SETTINGS_VERSION_KEY).toString();
     
@@ -51,10 +52,12 @@ bool InfoView::shouldShow() {
     
     if (version != QString::null && (lastVersion == QString::null || lastVersion != version)) {
         settings->setValue(SETTINGS_VERSION_KEY, version);
-        return true;
+        shouldShow = true;
     } else {
-        return false;
-    }   
+        shouldShow = false;
+    }
+    Application::getInstance()->unlockSettings();
+    return shouldShow;
 }
 
 void InfoView::loaded(bool ok) {

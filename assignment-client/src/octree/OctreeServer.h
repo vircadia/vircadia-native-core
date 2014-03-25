@@ -97,7 +97,7 @@ public:
     static void trackPacketSendingTime(float time);
     static float getAveragePacketSendingTime() { return _averagePacketSendingTime.getAverage(); }
 
-    bool handleHTTPRequest(HTTPConnection* connection, const QString& path);
+    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
 
     virtual void aboutToFinish();
     

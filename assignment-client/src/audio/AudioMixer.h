@@ -28,6 +28,8 @@ public slots:
     void run();
     
     void readPendingDatagrams();
+    
+    void sendStatsPacket();
 private:
     /// adds one buffer to the mix for a listening node
     void addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,
@@ -42,6 +44,10 @@ private:
     
     float _trailingSleepRatio;
     float _minAudibilityThreshold;
+    float _performanceThrottlingRatio;
+    int _numStatFrames;
+    int _sumListeners;
+    int _sumMixes;
 };
 
 #endif /* defined(__hifi__AudioMixer__) */

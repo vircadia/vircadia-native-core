@@ -38,7 +38,7 @@ Any variables that need to be set for CMake to find dependencies can be set as E
 
 For example, to pass the QT_CMAKE_PREFIX_PATH variable during build file generation:
 
-    cmake .. -DQT_CMAKE_PREFIX_PATH=/usr/local/qt/5.2.0/clang_64/lib/cmake
+    cmake .. -DQT_CMAKE_PREFIX_PATH=/usr/local/qt/5.2.0/lib/cmake
 
 
 UNIX

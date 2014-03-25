@@ -39,3 +39,7 @@
 span.port {
   color: #666666;
 }
+
+.stale {
+  color: red;
+}
