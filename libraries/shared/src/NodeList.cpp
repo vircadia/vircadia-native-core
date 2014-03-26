@@ -89,7 +89,13 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
 void NodeList::changeSendSocketBufferSize(int numSendBytes) {
     // change the socket send buffer size to be 1MB
     int oldBufferSize = 0;
+    
+#ifdef Q_OS_WIN
+    int sizeOfInt = sizeof(oldBufferSize);
+#else
     unsigned int sizeOfInt = sizeof(oldBufferSize);
+#endif
+    
     getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<char*>(&oldBufferSize), &sizeOfInt);
     
     const int LARGER_SNDBUF_SIZE = 1048576;
