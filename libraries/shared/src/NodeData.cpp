@@ -8,6 +8,12 @@
 
 #include "NodeData.h"
 
+NodeData::NodeData() :
+    _mutex()
+{
+    
+}
+
 NodeData::~NodeData() {
     
 }
