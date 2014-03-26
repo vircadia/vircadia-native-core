@@ -110,8 +110,6 @@ void Hand::collideAgainstAvatarOld(Avatar* avatar, bool isMyHand) {
             for (int j = 0; j < handCollisions.size(); ++j) {
                 CollisionInfo* collision = handCollisions.getCollision(j);
                 if (isMyHand) {
-                    // we resolve the hand from collision when it belongs to MyAvatar AND the other Avatar is 
-                    // not expected to respond to the collision (hand hit unmovable part of their Avatar)
                     totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
                 }
             }
@@ -129,27 +127,15 @@ void Hand::collideAgainstAvatar(Avatar* avatar, bool isMyHand) {
         return;
     }
 
-    // 2 = NUM_HANDS
-    int palmIndices[2];
-    getLeftRightPalmIndices(*palmIndices, *(palmIndices + 1));
-
     const SkeletonModel& skeletonModel = _owningAvatar->getSkeletonModel();
     int jointIndices[2];
     jointIndices[0] = skeletonModel.getLeftHandJointIndex();
     jointIndices[1] = skeletonModel.getRightHandJointIndex();
 
     for (size_t i = 0; i < 2; i++) {
-        int palmIndex = palmIndices[i];
         int jointIndex = jointIndices[i];
-        if (palmIndex == -1 || jointIndex == -1) {
+        if (jointIndex < 0) {
             continue;
-        }
-        PalmData& palm = _palms[palmIndex];
-        if (!palm.isActive()) {
-            continue;
-        }
-        if (isMyHand && Menu::getInstance()->isOptionChecked(MenuOption::PlaySlaps)) {
-            playSlaps(palm, avatar);
         }
 
         handCollisions.clear();
@@ -157,26 +143,23 @@ void Hand::collideAgainstAvatar(Avatar* avatar, bool isMyHand) {
         skeletonModel.getHandShapes(jointIndex, shapes);
 
         if (avatar->findCollisions(shapes, handCollisions)) {
-            glm::vec3 averagePenetration;
+            glm::vec3 totalPenetration(0.f);
             glm::vec3 averageContactPoint;
             for (int j = 0; j < handCollisions.size(); ++j) {
                 CollisionInfo* collision = handCollisions.getCollision(j);
-                averagePenetration += collision->_penetration;
+                totalPenetration += collision->_penetration;
                 averageContactPoint += collision->_contactPoint;
             }
-            averagePenetration /= float(handCollisions.size());
             if (isMyHand) {
                 // our hand against other avatar 
-                // for now we resolve it to test shapes/collisions
-                // TODO: only partially resolve this penetration
-                palm.addToPenetration(averagePenetration);
+                // TODO: resolve this penetration when we don't think the other avatar will yield
+                //palm.addToPenetration(averagePenetration);
             } else {
                 // someone else's hand against MyAvatar
-                // TODO: submit collision info to MyAvatar which should lean accordingly
                 averageContactPoint /= float(handCollisions.size());
-                avatar->applyCollision(averageContactPoint, averagePenetration);
+                avatar->applyCollision(averageContactPoint, totalPenetration);
             }
-        } 
+        }
     }
 }
 

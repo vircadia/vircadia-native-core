@@ -322,9 +322,6 @@ void MyAvatar::simulate(float deltaTime) {
         }
     }
 
-    // resolve collision results
-    _skeletonModel.syncToPalms();
-    
     // consider updating our billboard
     maybeUpdateBillboard();
 }
@@ -925,15 +922,16 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
             */
 
             // collide our hands against them
-            getHand()->collideAgainstAvatar(avatar, true);
+            // TODO: make this work when we can figure out when the other avatar won't yeild
+            // (for example, we're colling against their chest or leg)
+            //getHand()->collideAgainstAvatar(avatar, true);
 
-            /* TODO: Andrew to fix them-into-us collision checks
             // collide their hands against us
             avatar->getHand()->collideAgainstAvatar(this, false);
-            */
         }
     }
-    getHand()->resolvePenetrations();
+    // TODO: uncomment this when we handle collisions that won't affect other avatar
+    //getHand()->resolvePenetrations();
 }
 
 class SortedAvatar {
