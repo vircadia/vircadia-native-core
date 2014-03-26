@@ -49,4 +49,18 @@ $(document).ready(function(){
         }
     });
   });
+  
+  $(document.body).on('click', '#kill-all-btn', function() {
+    var confirmed_kill = confirm("Are you sure?");
+    
+    if (confirmed_kill == true) {
+      $.ajax({
+        url: "/nodes/",
+        type: 'DELETE',
+        success: function(result) {
+          console.log("Successful request to delete all nodes.");
+        }
+      });
+    }
+  });
 });
