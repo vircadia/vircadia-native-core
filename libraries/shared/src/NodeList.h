@@ -160,6 +160,8 @@ private:
     void requestAuthForDomainServer();
     void activateSocketFromNodeCommunication(const QByteArray& packet, const SharedNodePointer& sendingNode);
     void timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode);
+    
+    void changeSendSocketBufferSize(int numSendBytes);
 
     NodeHash _nodeHash;
     QMutex _nodeHashMutex;
