@@ -212,27 +212,6 @@ float Head::getTweakedRoll() const {
     return glm::clamp(_roll + _rollTweak, MIN_HEAD_ROLL, MAX_HEAD_ROLL);
 }
 
-void Head::applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) {
-    // compute lean angles
-    Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
-    glm::quat bodyRotation = owningAvatar->getOrientation();
-    glm::vec3 neckPosition;
-    if (owningAvatar->getSkeletonModel().getNeckPosition(neckPosition)) {
-        glm::vec3 yAxis = bodyRotation * glm::vec3(0.f, 1.f, 0.f);
-        glm::vec3 leverArm = _position - neckPosition;
-        if (glm::dot(leverArm, yAxis) > 0.f) {
-            float neckLength = glm::length(_position - neckPosition);
-            if (neckLength > 0.f) {
-                glm::vec3 xAxis = bodyRotation * glm::vec3(1.f, 0.f, 0.f);
-                glm::vec3 zAxis = bodyRotation * glm::vec3(0.f, 0.f, 1.f);
-                float forward = DEGREES_PER_RADIAN * glm::dot(penetration, zAxis) / neckLength;
-                float sideways = DEGREES_PER_RADIAN * glm::dot(penetration, xAxis) / neckLength;
-                addLean(sideways, forward);
-            }
-        }
-    }
-}
-
 void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
 
     Application::getInstance()->getGlowEffect()->begin();
