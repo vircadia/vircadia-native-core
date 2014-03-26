@@ -83,21 +83,24 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     // clear our NodeList when logout is requested
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
     
+    _packetStatTimer.start();
+}
+
+void NodeList::changeSendSocketBufferSize(int numSendBytes) {
     // change the socket send buffer size to be 1MB
     int oldBufferSize = 0;
     unsigned int sizeOfInt = sizeof(oldBufferSize);
-    getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, &oldBufferSize, &sizeOfInt);
+    getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<char*>(&oldBufferSize), &sizeOfInt);
     
     const int LARGER_SNDBUF_SIZE = 1048576;
     
-    setsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, &LARGER_SNDBUF_SIZE, sizeof(LARGER_SNDBUF_SIZE));
+    setsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<const char*>(&LARGER_SNDBUF_SIZE),
+               sizeof(LARGER_SNDBUF_SIZE));
     
     int newBufferSize = 0;
-    getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, &newBufferSize, &sizeOfInt);
+    getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<char*>(&newBufferSize), &sizeOfInt);
     
     qDebug() << "Changed socket send buffer size from" << oldBufferSize << "to" << newBufferSize << "bytes";
-    
-    _packetStatTimer.start();
 }
 
 bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
