@@ -216,6 +216,7 @@ OctreeServer::OctreeServer(const QByteArray& packet) :
     _argv(NULL),
     _parsedArgV(NULL),
     _httpManager(NULL),
+    _statusPort(0),
     _packetsPerClientPerInterval(10),
     _packetsTotalPerInterval(DEFAULT_PACKETS_PER_INTERVAL),
     _tree(NULL),
@@ -867,9 +868,19 @@ void OctreeServer::run() {
     const char* STATUS_PORT = "--statusPort";
     const char* statusPort = getCmdOption(_argc, _argv, STATUS_PORT);
     if (statusPort) {
-        _statusPortNumber = atoi(statusPort);
-        initHTTPManager(_statusPortNumber);
+        _statusPort = atoi(statusPort);
+        initHTTPManager(_statusPort);
     }
+    
+    const char* STATUS_HOST = "--statusHost";
+    const char* statusHost = getCmdOption(_argc, _argv, STATUS_HOST);
+    if (statusHost) {
+        qDebug("--statusHost=%s", statusHost);
+        _statusHost = statusHost;
+    } else {
+        _statusHost = QHostAddress(getHostOrderLocalAddress()).toString();
+    }
+    qDebug("statusHost=%s", qPrintable(_statusHost));
 
 
     const char* JURISDICTION_FILE = "--jurisdictionFile";
@@ -1133,6 +1144,17 @@ QString OctreeServer::getConfiguration() {
     return result;
 }
 
+QString OctreeServer::getStatusLink() {
+    QString result;
+    if (_statusPort > 0) {
+        QString detailedStats= QString("http://") +  _statusHost + QString(":%1").arg(_statusPort);
+        result = "<a href='" + detailedStats + "'>"+detailedStats+"</a>";
+    } else {
+        result = "Status port not enabled.";
+    }
+    return result;
+}
+
 void OctreeServer::sendStatsPacket() {
 
     // TODO: we have too many stats to fit in a single MTU... so for now, we break it into multiple JSON objects and
@@ -1147,11 +1169,7 @@ void OctreeServer::sendStatsPacket() {
     
     statsObject1[baseName + QString(".0.1.configuration")] = getConfiguration();
     
-    QString detailedStats= QString("http://") + QHostAddress(getHostOrderLocalAddress()).toString() 
-                                + QString(":%1").arg(_statusPortNumber);
-
-    detailedStats = "<a href='" + detailedStats + "'>"+detailedStats+"</a>";
-    statsObject1[baseName + QString(".0.2.detailed_stats_url")] = detailedStats;
+    statsObject1[baseName + QString(".0.2.detailed_stats_url")] = getStatusLink();
         
     statsObject1[baseName + QString(".0.3.uptime")] = getUptime();
     statsObject1[baseName + QString(".0.4.persistFileLoadTime")] = getFileLoadTime();

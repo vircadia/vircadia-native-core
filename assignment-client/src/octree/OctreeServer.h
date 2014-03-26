@@ -131,13 +131,15 @@ protected:
     QString getUptime();
     QString getFileLoadTime();
     QString getConfiguration();
+    QString getStatusLink();
 
     int _argc;
     const char** _argv;
     char** _parsedArgV;
 
     HTTPManager* _httpManager;
-    int _statusPortNumber;
+    int _statusPort;
+    QString _statusHost;
 
     char _persistFilename[MAX_FILENAME_LENGTH];
     int _packetsPerClientPerInterval;
