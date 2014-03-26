@@ -84,15 +84,18 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
     
     // change the socket send buffer size to be 128KB
+    int oldBufferSize = 0;
+    unsigned int sizeOfInt = sizeof(oldBufferSize);
+    getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, &oldBufferSize, &sizeOfInt);
+    
     const int LARGER_SNDBUF_SIZE = 131072;
     
     setsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, &LARGER_SNDBUF_SIZE, sizeof(LARGER_SNDBUF_SIZE));
     
     int newBufferSize = 0;
-    unsigned int sizeOfInt = sizeof(newBufferSize);
     getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, &newBufferSize, &sizeOfInt);
     
-    qDebug() << "Changed socket send buffer size to" << newBufferSize << "bytes";
+    qDebug() << "Changed socket send buffer size from" << oldBufferSize << "to" << newBufferSize << "bytes";
     
     _packetStatTimer.start();
 }
