@@ -128,6 +128,7 @@ function stopWaving() {
 
 function keepWalking() {
       Avatar.setJointData(JOINT_R_HIP, Quat.fromPitchYawRollDegrees(walkAmplitude * Math.sin(cumulativeTime * walkFrequency), 0.0, 0.0));
+      Avatar.setJointData(JOINT_R_KNEE, Quat.fromPitchYawRollDegrees(walkAmplitude * Math.sin(cumulativeTime * walkFrequency), 0.0, 0.0));
 }
 
 function stopWalking() {
@@ -141,7 +142,7 @@ function updateBehavior(deltaTime) {
 
   //  Hack - right now you need to set the avatar position a bit after the avatar is made to make sure it's there. 
 
-  if (CHANCE_OF_MOVING = 0.000) {
+  if (CHANCE_OF_MOVING == 0.000) {
       Avatar.position = firstPosition;
   }
 
