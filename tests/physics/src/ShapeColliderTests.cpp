@@ -189,7 +189,7 @@ void ShapeColliderTests::sphereMissesCapsule() {
     float delta = 1.3f * (totalRadius + halfHeightB) / (numberOfSteps - 1);
     for (int i = 0; i < numberOfSteps; ++i) {
         // translate sphereA into world-frame
-        glm::vec3 localPosition = localStartPosition + (float(i) * delta) * yAxis;
+        glm::vec3 localPosition = localStartPosition + ((float)i * delta) * yAxis;
         sphereA.setPosition(rotation * localPosition + translation);
 
         // sphereA agains capsuleB
