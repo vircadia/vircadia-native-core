@@ -28,6 +28,9 @@ public:
     int parsePositionalData(const QByteArray& positionalByteArray);
     int parseListenModeData(const QByteArray& listenModeByteArray);
     
+    void updateNextOutputTrailingLoudness();
+    float getNextOutputTrailingLoudness() const { return _nextOutputTrailingLoudness; }
+    
     bool shouldBeAddedToMix(int numJitterBufferSamples);
     
     bool willBeAddedToMix() const { return _willBeAddedToMix; }
@@ -50,6 +53,8 @@ protected:
     bool _willBeAddedToMix;
     bool _shouldLoopbackForNode;
     bool _shouldOutputStarveDebug;
+    
+    float _nextOutputTrailingLoudness;
 };
 
 #endif /* defined(__hifi__PositionalAudioRingBuffer__) */
