@@ -1157,6 +1157,13 @@ void OctreeServer::sendStatsPacket() {
     statsObject1[baseName + QString(".0.4.persistFileLoadTime")] = getFileLoadTime();
     statsObject1[baseName + QString(".0.5.clients")] = getCurrentClientCount();
     
+    quint64 oneSecondAgo = usecTimestampNow() - USECS_PER_SECOND;
+    
+    statsObject1[baseName + QString(".0.6.threads.1.processing")] = (double)howManyThreadsDidProcess(oneSecondAgo);
+    statsObject1[baseName + QString(".0.6.threads.2.packetDistributor")] = (double)howManyThreadsDidPacketDistributor(oneSecondAgo);
+    statsObject1[baseName + QString(".0.6.threads.3.handlePacektSend")] = (double)howManyThreadsDidHandlePacketSend(oneSecondAgo);
+    statsObject1[baseName + QString(".0.6.threads.4.writeDatagram")] = (double)howManyThreadsDidCallWriteDatagram(oneSecondAgo);    
+    
     statsObject1[baseName + QString(".1.1.octree.elementCount")] = (double)OctreeElement::getNodeCount();
     statsObject1[baseName + QString(".1.2.octree.internalElementCount")] = (double)OctreeElement::getInternalNodeCount();
     statsObject1[baseName + QString(".1.3.octree.leafElementCount")] = (double)OctreeElement::getLeafNodeCount();
