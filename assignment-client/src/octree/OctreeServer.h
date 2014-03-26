@@ -97,6 +97,21 @@ public:
     static void trackPacketSendingTime(float time);
     static float getAveragePacketSendingTime() { return _averagePacketSendingTime.getAverage(); }
 
+    static void trackProcessWaitTime(float time);
+    static float getAverageProcessWaitTime() { return _averageProcessWaitTime.getAverage(); }
+    
+    // these methods allow us to track which threads got to various states
+    static void didProcess(OctreeSendThread* thread);
+    static void didPacketDistributor(OctreeSendThread* thread);
+    static void didHandlePacketSend(OctreeSendThread* thread);
+    static void didCallWriteDatagram(OctreeSendThread* thread);
+    static void stopTrackingThread(OctreeSendThread* thread);
+
+    static int howManyThreadsDidProcess(quint64 since = 0);
+    static int howManyThreadsDidPacketDistributor(quint64 since = 0);
+    static int howManyThreadsDidHandlePacketSend(quint64 since = 0);
+    static int howManyThreadsDidCallWriteDatagram(quint64 since = 0);
+
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
 
     virtual void aboutToFinish();
@@ -107,17 +122,22 @@ public slots:
     void readPendingDatagrams();
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
+    void sendStatsPacket();
 
 protected:
     void parsePayload();
     void initHTTPManager(int port);
     void resetSendingStats();
+    QString getUptime();
+    QString getFileLoadTime();
+    QString getConfiguration();
 
     int _argc;
     const char** _argv;
     char** _parsedArgV;
 
     HTTPManager* _httpManager;
+    int _statusPortNumber;
 
     char _persistFilename[MAX_FILENAME_LENGTH];
     int _packetsPerClientPerInterval;
@@ -151,6 +171,7 @@ protected:
     static int _noEncode;
 
     static SimpleMovingAverage _averageInsideTime;
+
     static SimpleMovingAverage _averageTreeWaitTime;
     static SimpleMovingAverage _averageTreeShortWaitTime;
     static SimpleMovingAverage _averageTreeLongWaitTime;
@@ -173,6 +194,20 @@ protected:
 
     static SimpleMovingAverage _averagePacketSendingTime;
     static int _noSend;
+
+    static SimpleMovingAverage _averageProcessWaitTime;
+    static SimpleMovingAverage _averageProcessShortWaitTime;
+    static SimpleMovingAverage _averageProcessLongWaitTime;
+    static SimpleMovingAverage _averageProcessExtraLongWaitTime;
+    static int _extraLongProcessWait;
+    static int _longProcessWait;
+    static int _shortProcessWait;
+    static int _noProcessWait;
+
+    static QMap<OctreeSendThread*, quint64> _threadsDidProcess;
+    static QMap<OctreeSendThread*, quint64> _threadsDidPacketDistributor;
+    static QMap<OctreeSendThread*, quint64> _threadsDidHandlePacketSend;
+    static QMap<OctreeSendThread*, quint64> _threadsDidCallWriteDatagram;
 
 };
 
