@@ -847,7 +847,7 @@ public:
     virtual void prune(QVariant& object, int size) const {
         QList<T>* list = static_cast<QList<T>*>(object.data()); list->erase(list->begin() + size, list->end()); }
     virtual QVariant getValue(const QVariant& object, int index) const {
-        return QVariant::fromValue(static_cast<const QList<T>*>(object.constData()).at(index)); }
+        return QVariant::fromValue(static_cast<const QList<T>*>(object.constData())->at(index)); }
     virtual void setValue(QVariant& object, int index, const QVariant& value) const {
         static_cast<QList<T>*>(object.data())->replace(index, value.value<T>()); }
 };
