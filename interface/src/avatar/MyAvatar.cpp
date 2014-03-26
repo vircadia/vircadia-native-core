@@ -362,7 +362,7 @@ void MyAvatar::updateFromGyros(float deltaTime) {
         }
     } else {
         // restore rotation, lean to neutral positions
-        const float RESTORE_PERIOD = 1.f;   // seconds
+        const float RESTORE_PERIOD = 0.25f;   // seconds
         float restorePercentage = glm::clamp(deltaTime/RESTORE_PERIOD, 0.f, 1.f);
         head->setPitchTweak(glm::mix(head->getPitchTweak(), 0.0f, restorePercentage));
         head->setYawTweak(glm::mix(head->getYawTweak(), 0.0f, restorePercentage));
