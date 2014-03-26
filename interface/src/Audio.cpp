@@ -274,11 +274,11 @@ void Audio::start() {
 
     QAudioDeviceInfo inputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioInput);
     qDebug() << "The default audio input device is" << inputDeviceInfo.deviceName();
-    bool inputFormatSupported = switchInputToAudioDevice(inputDeviceInfo.deviceName());
+    bool inputFormatSupported = switchInputToAudioDevice(inputDeviceInfo);
 
     QAudioDeviceInfo outputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioOutput);
     qDebug() << "The default audio output device is" << outputDeviceInfo.deviceName();
-    bool outputFormatSupported = switchOutputToAudioDevice(outputDeviceInfo.deviceName());
+    bool outputFormatSupported = switchOutputToAudioDevice(outputDeviceInfo);
     
     if (!inputFormatSupported || !outputFormatSupported) {
         qDebug() << "Unable to set up audio I/O because of a problem with input or output formats.";
@@ -298,8 +298,8 @@ QVector<QString> Audio::getDeviceNames(QAudio::Mode mode) {
     return deviceNames;
 }
 
-bool Audio::switchInputToAudioDevice(const QString& inputDeviceName) {
-    bool supportedFormat = false;
+bool Audio::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {
+	bool supportedFormat = false;
     
     // cleanup any previously initialized device
     if (_audioInput) {
@@ -314,8 +314,6 @@ bool Audio::switchInputToAudioDevice(const QString& inputDeviceName) {
         _inputAudioDeviceName = "";
     }
 
-    QAudioDeviceInfo inputDeviceInfo = getNamedAudioDeviceForMode(QAudio::AudioInput, inputDeviceName);
-    
     if (!inputDeviceInfo.isNull()) {
         qDebug() << "The audio input device " << inputDeviceInfo.deviceName() << "is available.";
         _inputAudioDeviceName = inputDeviceInfo.deviceName().trimmed();
@@ -340,8 +338,8 @@ bool Audio::switchInputToAudioDevice(const QString& inputDeviceName) {
     return supportedFormat;
 }
 
-bool Audio::switchOutputToAudioDevice(const QString& outputDeviceName) {
-    bool supportedFormat = false;
+bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) {
+	bool supportedFormat = false;
 
     // cleanup any previously initialized device
     if (_audioOutput) {
@@ -362,8 +360,6 @@ bool Audio::switchOutputToAudioDevice(const QString& outputDeviceName) {
         _proceduralAudioOutput = NULL;
         _outputAudioDeviceName = "";
     }
-
-    QAudioDeviceInfo outputDeviceInfo = getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName);
 
     if (!outputDeviceInfo.isNull()) {
         qDebug() << "The audio output device " << outputDeviceInfo.deviceName() << "is available.";
@@ -389,6 +385,14 @@ bool Audio::switchOutputToAudioDevice(const QString& outputDeviceName) {
         }
     }
     return supportedFormat;
+}
+
+bool Audio::switchInputToAudioDevice(const QString& inputDeviceName) {
+    return switchInputToAudioDevice(getNamedAudioDeviceForMode(QAudio::AudioInput, inputDeviceName));
+}
+
+bool Audio::switchOutputToAudioDevice(const QString& outputDeviceName) {
+    return switchOutputToAudioDevice(getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName));
 }
 
 void Audio::handleAudioInput() {
