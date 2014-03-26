@@ -1208,7 +1208,7 @@ void Menu::autoAdjustLOD(float currentFPS) {
         }
     } else if (_fastFPSAverage.getAverage() > ADJUST_LOD_UP_FPS) {
         // let the detail level creep slowly upwards
-        const float DISTANCE_DECREASE_RATE = 0.01f;
+        const float DISTANCE_DECREASE_RATE = 0.02f;
         const float MINIMUM_DISTANCE_MULTIPLIER = 0.1f;
         _avatarLODDistanceMultiplier = qMax(MINIMUM_DISTANCE_MULTIPLIER,
             _avatarLODDistanceMultiplier - DISTANCE_DECREASE_RATE);
