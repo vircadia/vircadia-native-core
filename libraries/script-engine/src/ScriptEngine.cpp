@@ -235,7 +235,6 @@ void ScriptEngine::init() {
     // let the VoxelPacketSender know how frequently we plan to call it
     _voxelsScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(SCRIPT_DATA_CALLBACK_USECS);
     _particlesScriptingInterface.getParticlePacketSender()->setProcessCallIntervalHint(SCRIPT_DATA_CALLBACK_USECS);
-
 }
 
 void ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {

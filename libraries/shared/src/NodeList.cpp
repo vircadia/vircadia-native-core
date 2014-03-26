@@ -171,8 +171,13 @@ qint64 NodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& d
     ++_numCollectedPackets;
     _numCollectedBytes += datagram.size();
     
-    return _nodeSocket.writeDatagram(datagramCopy, destinationSockAddr.getAddress(), destinationSockAddr.getPort());
+    qint64 bytesWritten = _nodeSocket.writeDatagram(datagramCopy, destinationSockAddr.getAddress(), destinationSockAddr.getPort());
     
+    if (bytesWritten < 0) {
+        qDebug() << "ERROR in writeDatagram:" << _nodeSocket.error() << "-" << _nodeSocket.errorString();
+    }
+    
+    return bytesWritten;
 }
 
 qint64 NodeList::writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
@@ -312,6 +317,8 @@ int NodeList::updateNodeWithDataFromPacket(const SharedNodePointer& matchingNode
         linkedDataCreateCallback(matchingNode.data());
     }
     
+    QMutexLocker linkedDataLocker(&matchingNode->getLinkedData()->getMutex());
+    
     return matchingNode->getLinkedData()->parseData(packet);
 }
 
@@ -413,9 +420,8 @@ void NodeList::sendSTUNRequest() {
 
     // transaction ID (random 12-byte unsigned integer)
     const uint NUM_TRANSACTION_ID_BYTES = 12;
-    unsigned char transactionID[NUM_TRANSACTION_ID_BYTES];
-    loadRandomIdentifier(transactionID, NUM_TRANSACTION_ID_BYTES);
-    memcpy(stunRequestPacket + packetIndex, &transactionID, sizeof(transactionID));
+    QUuid randomUUID = QUuid::createUuid();
+    memcpy(stunRequestPacket + packetIndex, randomUUID.toRfc4122().data(), NUM_TRANSACTION_ID_BYTES);
 
     // lookup the IP for the STUN server
     static HifiSockAddr stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);

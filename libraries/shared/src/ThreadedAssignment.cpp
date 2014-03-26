@@ -46,10 +46,6 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
     connect(domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
     domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_USECS / 1000);
     
-    QTimer* pingNodesTimer = new QTimer(this);
-    connect(pingNodesTimer, SIGNAL(timeout()), nodeList, SLOT(pingInactiveNodes()));
-    pingNodesTimer->start(PING_INACTIVE_NODE_INTERVAL_USECS / 1000);
-    
     QTimer* silentNodeRemovalTimer = new QTimer(this);
     connect(silentNodeRemovalTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeRemovalTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
@@ -84,7 +80,6 @@ void ThreadedAssignment::checkInWithDomainServerOrExit() {
     if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
         setFinished(true);
     } else {
-        qDebug() << "Sending DS check in. There are" << NodeList::getInstance()->getNumNoReplyDomainCheckIns() << "unreplied.";
         NodeList::getInstance()->sendDomainServerCheckIn();
     }
 }

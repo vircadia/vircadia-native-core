@@ -9,6 +9,7 @@
 //
 //
 
+var startedTouching = false;
 var lastX = 0;
 var lastY = 0;
 var yawFromMouse = 0;
@@ -21,12 +22,14 @@ function touchBeginEvent(event) {
     }
     lastX = event.x;
     lastY = event.y;
+    startedTouching = true;
 }
 
 function touchEndEvent(event) {
     if (wantDebugging) {
         print("touchEndEvent event.x,y=" + event.x + ", " + event.y);
     }
+    startedTouching = false;
 }
 
 function touchUpdateEvent(event) {
@@ -44,24 +47,26 @@ function touchUpdateEvent(event) {
 }
 
 function update(deltaTime) {
-    // rotate body yaw for yaw received from mouse
-    var newOrientation = Quat.multiply(MyAvatar.orientation, Quat.fromPitchYawRollRadians(0, yawFromMouse, 0));
-    if (wantDebugging) {
-        print("changing orientation"
-            + " [old]MyAvatar.orientation="+MyAvatar.orientation.x + "," + MyAvatar.orientation.y + "," 
-            + MyAvatar.orientation.z + "," + MyAvatar.orientation.w
-            + " newOrientation="+newOrientation.x + "," + newOrientation.y + "," + newOrientation.z + "," + newOrientation.w);
-    }
-    MyAvatar.orientation = newOrientation;
-    yawFromMouse = 0;
+    if (startedTouching) {
+        // rotate body yaw for yaw received from mouse
+        var newOrientation = Quat.multiply(MyAvatar.orientation, Quat.fromPitchYawRollRadians(0, yawFromMouse, 0));
+        if (wantDebugging) {
+            print("changing orientation"
+                + " [old]MyAvatar.orientation="+MyAvatar.orientation.x + "," + MyAvatar.orientation.y + "," 
+                + MyAvatar.orientation.z + "," + MyAvatar.orientation.w
+                + " newOrientation="+newOrientation.x + "," + newOrientation.y + "," + newOrientation.z + "," + newOrientation.w);
+        }
+        MyAvatar.orientation = newOrientation;
+        yawFromMouse = 0;
 
-    // apply pitch from mouse
-    var newPitch = MyAvatar.headPitch + pitchFromMouse;
-    if (wantDebugging) {
-        print("changing pitch [old]MyAvatar.headPitch="+MyAvatar.headPitch+ " newPitch="+newPitch);
+        // apply pitch from mouse
+        var newPitch = MyAvatar.headPitch + pitchFromMouse;
+        if (wantDebugging) {
+            print("changing pitch [old]MyAvatar.headPitch="+MyAvatar.headPitch+ " newPitch="+newPitch);
+        }
+        MyAvatar.headPitch = newPitch;
+        pitchFromMouse = 0;
     }
-    MyAvatar.headPitch = newPitch;
-    pitchFromMouse = 0;
 }
 
 // Map the mouse events to our functions
@@ -76,10 +81,6 @@ function scriptEnding() {
     // re-enabled the standard application for mouse events
     Controller.releaseTouchEvents();
 }
-
-MyAvatar.bodyYaw = 0;
-MyAvatar.bodyPitch = 0;
-MyAvatar.bodyRoll = 0;
 
 // would be nice to change to update
 Script.update.connect(update);
