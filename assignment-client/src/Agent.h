@@ -15,6 +15,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 
+#include <MixedAudioRingBuffer.h>
 #include <ParticleEditPacketSender.h>
 #include <ParticleTree.h>
 #include <ParticleTreeHeadlessViewer.h>
@@ -30,6 +31,7 @@ class Agent : public ThreadedAssignment {
     Q_PROPERTY(bool isAvatar READ isAvatar WRITE setIsAvatar)
     Q_PROPERTY(bool isPlayingAvatarSound READ isPlayingAvatarSound)
     Q_PROPERTY(bool isListeningToAudioStream READ isListeningToAudioStream WRITE setIsListeningToAudioStream)
+    Q_PROPERTY(float lastReceivedAudioLoudness READ getLastReceivedAudioLoudness)
 public:
     Agent(const QByteArray& packet);
     
@@ -41,6 +43,8 @@ public:
     bool isListeningToAudioStream() const { return _scriptEngine.isListeningToAudioStream(); }
     void setIsListeningToAudioStream(bool isListeningToAudioStream)
         { _scriptEngine.setIsListeningToAudioStream(isListeningToAudioStream); }
+    
+    float getLastReceivedAudioLoudness() const { return _receivedAudioBuffer.getLastReadFrameAverageLoudness(); }
 
     virtual void aboutToFinish();
     
@@ -56,6 +60,8 @@ private:
 
     ParticleTreeHeadlessViewer _particleViewer;
     VoxelTreeHeadlessViewer _voxelViewer;
+    
+    MixedAudioRingBuffer _receivedAudioBuffer;
 };
 
 #endif /* defined(__hifi__Agent__) */

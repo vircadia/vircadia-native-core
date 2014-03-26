@@ -15,7 +15,7 @@
 class AvatarMixer : public ThreadedAssignment {
 public:
     AvatarMixer(const QByteArray& packet);
-    
+    ~AvatarMixer();
 public slots:
     /// runs the avatar mixer
     void run();
@@ -29,6 +29,8 @@ public slots:
     
 private:
     void broadcastAvatarData();
+    
+    QThread _broadcastThread;
     
     quint64 _lastFrameTimestamp;
     
