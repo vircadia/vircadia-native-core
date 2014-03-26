@@ -274,11 +274,11 @@ void Audio::start() {
 
     QAudioDeviceInfo inputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioInput);
     qDebug() << "The default audio input device is" << inputDeviceInfo.deviceName();
-    bool inputFormatSupported = switchInputToAudioDevice(inputDeviceInfo.deviceName());
+    bool inputFormatSupported = switchInputToAudioDevice(inputDeviceInfo);
 
     QAudioDeviceInfo outputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioOutput);
     qDebug() << "The default audio output device is" << outputDeviceInfo.deviceName();
-    bool outputFormatSupported = switchOutputToAudioDevice(outputDeviceInfo.deviceName());
+    bool outputFormatSupported = switchOutputToAudioDevice(outputDeviceInfo);
     
     if (!inputFormatSupported || !outputFormatSupported) {
         qDebug() << "Unable to set up audio I/O because of a problem with input or output formats.";
@@ -299,96 +299,11 @@ QVector<QString> Audio::getDeviceNames(QAudio::Mode mode) {
 }
 
 bool Audio::switchInputToAudioDevice(const QString& inputDeviceName) {
-    bool supportedFormat = false;
-    
-    // cleanup any previously initialized device
-    if (_audioInput) {
-        _audioInput->stop();
-        disconnect(_inputDevice, 0, 0, 0);
-        _inputDevice = NULL;
-
-        delete _audioInput;
-        _audioInput = NULL;
-        _numInputCallbackBytes = 0;
-
-        _inputAudioDeviceName = "";
-    }
-
-    QAudioDeviceInfo inputDeviceInfo = getNamedAudioDeviceForMode(QAudio::AudioInput, inputDeviceName);
-    
-    if (!inputDeviceInfo.isNull()) {
-        qDebug() << "The audio input device " << inputDeviceInfo.deviceName() << "is available.";
-        _inputAudioDeviceName = inputDeviceInfo.deviceName().trimmed();
-    
-        if (adjustedFormatForAudioDevice(inputDeviceInfo, _desiredInputFormat, _inputFormat)) {
-            qDebug() << "The format to be used for audio input is" << _inputFormat;
-        
-            _audioInput = new QAudioInput(inputDeviceInfo, _inputFormat, this);
-            _numInputCallbackBytes = NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL * _inputFormat.channelCount()
-                * (_inputFormat.sampleRate() / SAMPLE_RATE)
-                / CALLBACK_ACCELERATOR_RATIO;
-            _audioInput->setBufferSize(_numInputCallbackBytes);
-
-            // how do we want to handle input working, but output not working?
-            _inputRingBuffer.resizeForFrameSize(_numInputCallbackBytes * CALLBACK_ACCELERATOR_RATIO / sizeof(int16_t));
-            _inputDevice = _audioInput->start();
-            connect(_inputDevice, SIGNAL(readyRead()), this, SLOT(handleAudioInput()));
-
-            supportedFormat = true;
-        }
-    }
-    return supportedFormat;
+    return switchInputToAudioDevice(getNamedAudioDeviceForMode(QAudio::AudioInput, inputDeviceName));
 }
 
 bool Audio::switchOutputToAudioDevice(const QString& outputDeviceName) {
-    bool supportedFormat = false;
-
-    // cleanup any previously initialized device
-    if (_audioOutput) {
-        _audioOutput->stop();
-        disconnect(_outputDevice, 0, 0, 0);
-        _outputDevice = NULL;
-        
-        delete _audioOutput;
-        _audioOutput = NULL;
-        _numInputCallbackBytes = 0;
-
-        _loopbackOutputDevice = NULL;
-        delete _loopbackAudioOutput;
-        _loopbackAudioOutput = NULL;
-
-        _proceduralOutputDevice = NULL;
-        delete _proceduralAudioOutput;
-        _proceduralAudioOutput = NULL;
-        _outputAudioDeviceName = "";
-    }
-
-    QAudioDeviceInfo outputDeviceInfo = getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName);
-
-    if (!outputDeviceInfo.isNull()) {
-        qDebug() << "The audio output device " << outputDeviceInfo.deviceName() << "is available.";
-        _outputAudioDeviceName = outputDeviceInfo.deviceName().trimmed();
-
-        if (adjustedFormatForAudioDevice(outputDeviceInfo, _desiredOutputFormat, _outputFormat)) {
-            qDebug() << "The format to be used for audio output is" << _outputFormat;
-        
-            // setup our general output device for audio-mixer audio
-            _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
-            _audioOutput->setBufferSize(_ringBuffer.getSampleCapacity() * sizeof(int16_t));
-            qDebug() << "Ring Buffer capacity in samples: " << _ringBuffer.getSampleCapacity();
-            _outputDevice = _audioOutput->start();
-
-            // setup a loopback audio output device
-            _loopbackAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
-        
-            // setup a procedural audio output device
-            _proceduralAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
-
-            gettimeofday(&_lastReceiveTime, NULL);
-            supportedFormat = true;
-        }
-    }
-    return supportedFormat;
+    return switchOutputToAudioDevice(getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName));
 }
 
 void Audio::handleAudioInput() {
@@ -877,4 +792,93 @@ void Audio::renderMuteIcon(int x, int y) {
     }
 
     glDisable(GL_TEXTURE_2D);
+}
+
+bool Audio::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {
+    bool supportedFormat = false;
+    
+    // cleanup any previously initialized device
+    if (_audioInput) {
+        _audioInput->stop();
+        disconnect(_inputDevice, 0, 0, 0);
+        _inputDevice = NULL;
+
+        delete _audioInput;
+        _audioInput = NULL;
+        _numInputCallbackBytes = 0;
+
+        _inputAudioDeviceName = "";
+    }
+
+    if (!inputDeviceInfo.isNull()) {
+        qDebug() << "The audio input device " << inputDeviceInfo.deviceName() << "is available.";
+        _inputAudioDeviceName = inputDeviceInfo.deviceName().trimmed();
+    
+        if (adjustedFormatForAudioDevice(inputDeviceInfo, _desiredInputFormat, _inputFormat)) {
+            qDebug() << "The format to be used for audio input is" << _inputFormat;
+        
+            _audioInput = new QAudioInput(inputDeviceInfo, _inputFormat, this);
+            _numInputCallbackBytes = NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL * _inputFormat.channelCount()
+                * (_inputFormat.sampleRate() / SAMPLE_RATE)
+                / CALLBACK_ACCELERATOR_RATIO;
+            _audioInput->setBufferSize(_numInputCallbackBytes);
+
+            // how do we want to handle input working, but output not working?
+            _inputRingBuffer.resizeForFrameSize(_numInputCallbackBytes * CALLBACK_ACCELERATOR_RATIO / sizeof(int16_t));
+            _inputDevice = _audioInput->start();
+            connect(_inputDevice, SIGNAL(readyRead()), this, SLOT(handleAudioInput()));
+
+            supportedFormat = true;
+        }
+    }
+    return supportedFormat;
+}
+
+bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) {
+    bool supportedFormat = false;
+
+    // cleanup any previously initialized device
+    if (_audioOutput) {
+        _audioOutput->stop();
+        disconnect(_outputDevice, 0, 0, 0);
+        _outputDevice = NULL;
+        
+        delete _audioOutput;
+        _audioOutput = NULL;
+        _numInputCallbackBytes = 0;
+
+        _loopbackOutputDevice = NULL;
+        delete _loopbackAudioOutput;
+        _loopbackAudioOutput = NULL;
+
+        _proceduralOutputDevice = NULL;
+        delete _proceduralAudioOutput;
+        _proceduralAudioOutput = NULL;
+        _outputAudioDeviceName = "";
+    }
+
+    if (!outputDeviceInfo.isNull()) {
+        qDebug() << "The audio output device " << outputDeviceInfo.deviceName() << "is available.";
+        _outputAudioDeviceName = outputDeviceInfo.deviceName().trimmed();
+
+        if (adjustedFormatForAudioDevice(outputDeviceInfo, _desiredOutputFormat, _outputFormat)) {
+            qDebug() << "The format to be used for audio output is" << _outputFormat;
+        
+            // setup our general output device for audio-mixer audio
+            _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
+            _audioOutput->setBufferSize(_ringBuffer.getSampleCapacity() * sizeof(int16_t));
+            qDebug() << "Ring Buffer capacity in samples: " << _ringBuffer.getSampleCapacity();
+            _outputDevice = _audioOutput->start();
+
+            // setup a loopback audio output device
+            _loopbackAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
+        
+            // setup a procedural audio output device
+            _proceduralAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
+
+            gettimeofday(&_lastReceiveTime, NULL);
+            supportedFormat = true;
+        }
+    }
+    return supportedFormat;
 }
