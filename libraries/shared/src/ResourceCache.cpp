@@ -63,10 +63,12 @@ void ResourceCache::attemptRequest(Resource* resource) {
         return;
     }
     _requestLimit--;
+    _loadingRequests.append(resource);
     resource->makeRequest();
 }
 
-void ResourceCache::requestCompleted() {
+void ResourceCache::requestCompleted(Resource* resource) {
+    _loadingRequests.removeOne(resource);
     _requestLimit++;
     
     // look for the highest priority pending request
@@ -96,6 +98,7 @@ const int DEFAULT_REQUEST_LIMIT = 10;
 int ResourceCache::_requestLimit = DEFAULT_REQUEST_LIMIT;
 
 QList<QPointer<Resource> > ResourceCache::_pendingRequests;
+QList<Resource*> ResourceCache::_loadingRequests;
 
 Resource::Resource(const QUrl& url, bool delayLoad) :
     _url(url),
@@ -121,7 +124,7 @@ Resource::Resource(const QUrl& url, bool delayLoad) :
 
 Resource::~Resource() {
     if (_reply) {
-        ResourceCache::requestCompleted();
+        ResourceCache::requestCompleted(this);
         delete _reply;
     }
 }
@@ -215,7 +218,7 @@ void Resource::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
     _replyTimer->disconnect(this);
     _replyTimer->deleteLater();
     _replyTimer = NULL;
-    ResourceCache::requestCompleted();
+    ResourceCache::requestCompleted(this);
     
     downloadFinished(reply);
 }
@@ -250,7 +253,7 @@ void Resource::handleReplyError(QNetworkReply::NetworkError error, QDebug debug)
     _replyTimer->disconnect(this);
     _replyTimer->deleteLater();
     _replyTimer = NULL;
-    ResourceCache::requestCompleted();
+    ResourceCache::requestCompleted(this);
     
     // retry for certain types of failures
     switch (error) {
