@@ -45,12 +45,12 @@ OctreeSendThread::~OctreeSendThread() {
     qDebug() << qPrintable(safeServerName)  << "server [" << _myServer << "]: client disconnected "
                                             "- ending sending thread [" << this << "]";
     OctreeServer::clientDisconnected(); 
-    OctreeServer::stopTrackingThread(this);
 }
 
 void OctreeSendThread::setIsShuttingDown() {
     QMutexLocker locker(&_processLock); // this will cause us to wait till the process loop is complete
     _isShuttingDown = true;
+    OctreeServer::stopTrackingThread(this);
 }
 
 
