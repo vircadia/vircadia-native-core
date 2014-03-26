@@ -4,22 +4,22 @@
 <context>
     <name>Application</name>
     <message>
-        <location filename="src/Application.cpp" line="1368"/>
+        <location filename="src/Application.cpp" line="1380"/>
         <source>Export Voxels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="1369"/>
+        <location filename="src/Application.cpp" line="1381"/>
         <source>Sparse Voxel Octree Files (*.svo)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3596"/>
+        <location filename="src/Application.cpp" line="3597"/>
         <source>Open Script</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3597"/>
+        <location filename="src/Application.cpp" line="3598"/>
         <source>JavaScript Files (*.js)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -113,18 +113,18 @@
 <context>
     <name>Menu</name>
     <message>
-        <location filename="src/Menu.cpp" line="455"/>
+        <location filename="src/Menu.cpp" line="457"/>
         <source>Open .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="457"/>
-        <location filename="src/Menu.cpp" line="469"/>
+        <location filename="src/Menu.cpp" line="459"/>
+        <location filename="src/Menu.cpp" line="471"/>
         <source>Text files (*.ini)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="467"/>
+        <location filename="src/Menu.cpp" line="469"/>
         <source>Save .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
@@ -162,19 +162,30 @@
     <name>SnapshotShareDialog</name>
     <message>
         <location filename="ui/shareSnapshot.ui" line="38"/>
-        <location filename="../build/interface/ui_shareSnapshot.h" line="156"/>
-        <source>Share with community</source>
+        <location filename="../build/interface/ui_shareSnapshot.h" line="181"/>
+        <source>Share with Alphas</source>
+        <oldsource>Share with community</oldsource>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="ui/shareSnapshot.ui" line="133"/>
-        <location filename="../build/interface/ui_shareSnapshot.h" line="157"/>
+        <location filename="ui/shareSnapshot.ui" line="156"/>
+        <location filename="../build/interface/ui_shareSnapshot.h" line="182"/>
         <source>Notes about this image</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="ui/shareSnapshot.ui" line="219"/>
-        <location filename="../build/interface/ui_shareSnapshot.h" line="158"/>
+        <location filename="ui/shareSnapshot.ui" line="232"/>
+        <location filename="../build/interface/ui_shareSnapshot.h" line="183"/>
+        <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:&apos;Helvetica&apos;; font-size:14pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/shareSnapshot.ui" line="271"/>
+        <location filename="../build/interface/ui_shareSnapshot.h" line="188"/>
         <source>Share</source>
         <translation type="unfinished"></translation>
     </message>
