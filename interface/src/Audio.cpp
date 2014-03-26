@@ -60,6 +60,7 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
     _measuredJitter(0),
     _jitterBufferSamples(initialJitterBufferSamples),
     _lastInputLoudness(0),
+    _timeSinceLastClip(-1.0),
     _dcOffset(0),
     _noiseGateMeasuredFloor(0),
     _noiseGateSampleCounter(0),
@@ -469,13 +470,22 @@ void Audio::handleAudioInput() {
             const int NOISE_GATE_CLOSE_FRAME_DELAY = 5;
             const int NOISE_GATE_FRAMES_TO_AVERAGE = 5;
             const float DC_OFFSET_AVERAGING = 0.99f;
+            const float CLIPPING_THRESHOLD = 0.90f;
             
             float measuredDcOffset = 0.f;
+            
+            //  Increment the time since the last clip
+            if (_timeSinceLastClip >= 0.0f) {
+                _timeSinceLastClip += (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float) SAMPLE_RATE;
+            }
             
             for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
                 measuredDcOffset += monoAudioSamples[i];
                 monoAudioSamples[i] -= (int16_t) _dcOffset;
                 thisSample = fabsf(monoAudioSamples[i]);
+                if (thisSample > (32767.f * CLIPPING_THRESHOLD)) {
+                    _timeSinceLastClip = 0.0f;
+                }
                 loudness += thisSample;
                 //  Noise Reduction:  Count peaks above the average loudness
                 if (thisSample > (_noiseGateMeasuredFloor * NOISE_GATE_HEIGHT)) {

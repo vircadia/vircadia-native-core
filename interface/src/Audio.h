@@ -47,6 +47,7 @@ public:
     Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* parent = 0);
 
     float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _noiseGateMeasuredFloor, 0.f); }
+    float getTimeSinceLastClip() const { return _timeSinceLastClip; }
     float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
 
     void setNoiseGateEnabled(bool noiseGateEnabled) { _noiseGateEnabled = noiseGateEnabled; }
@@ -130,6 +131,7 @@ private:
     float _measuredJitter;
     int16_t _jitterBufferSamples;
     float _lastInputLoudness;
+    float _timeSinceLastClip;
     float _dcOffset;
     float _noiseGateMeasuredFloor;
     float* _noiseSampleFrames;

@@ -2494,7 +2494,7 @@ void Application::displayOverlay() {
                 renderCollisionOverlay(_glWidget->width(), _glWidget->height(), _audio.getCollisionSoundMagnitude());
         }
     }
-
+    
     if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
         _audio.renderMuteIcon(1, _glWidget->height() - 50);
         if (Menu::getInstance()->isOptionChecked(MenuOption::Oscilloscope)) {
@@ -2502,6 +2502,42 @@ void Application::displayOverlay() {
             _audioScope.render(25, oscilloscopeTop);
         }
     }
+    
+    const int AUDIO_METER_WIDTH = 300;
+    const int AUDIO_METER_INSET = 2;
+    const int AUDIO_METER_SCALE_WIDTH = AUDIO_METER_WIDTH - 2 * AUDIO_METER_INSET;
+    const int AUDIO_METER_HEIGHT = 8;
+    const int AUDIO_METER_Y = _glWidget->height() - 40;
+    const int AUDIO_METER_X = 25;
+    const float CLIPPING_INDICATOR_TIME = 1.0f;
+    float audioLevel = log10(_audio.getLastInputLoudness() + 1.0) / log10(32767.0) * (float)AUDIO_METER_SCALE_WIDTH;
+    bool isClipping = ((_audio.getTimeSinceLastClip() > 0.f) && (_audio.getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME));
+
+    if (isClipping) {
+        glColor3f(1, 0, 0);
+    } else {
+        glColor3f(0, 0, 0);
+    }
+    glBegin(GL_QUADS);
+     //  Draw background Quad
+    glVertex2i(AUDIO_METER_X, AUDIO_METER_Y);
+    glVertex2i(AUDIO_METER_X + AUDIO_METER_WIDTH, AUDIO_METER_Y);
+    glVertex2i(AUDIO_METER_X + AUDIO_METER_WIDTH, AUDIO_METER_Y + AUDIO_METER_HEIGHT);
+    glVertex2i(AUDIO_METER_X, AUDIO_METER_Y + AUDIO_METER_HEIGHT);
+    
+    //   Draw Meter Quad
+    if (isClipping) {
+        glColor3f(1, 1, 1);
+    } else {
+        glColor3f(0, 1, 1);
+    }
+    // Draw Meter quad
+    glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET, AUDIO_METER_Y + AUDIO_METER_INSET);
+    glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + audioLevel, AUDIO_METER_Y + AUDIO_METER_INSET);
+    glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + audioLevel, AUDIO_METER_Y + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
+    glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET, AUDIO_METER_Y + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
+    
+    glEnd();
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::HeadMouse)) {
         _myAvatar->renderHeadMouse();
