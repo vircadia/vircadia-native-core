@@ -14,6 +14,7 @@
 #include <QStandardPaths>
 #include <QHttpMultiPart>
 #include <QVariant>
+#include <QMessageBox>
 
 #include "AccountManager.h"
 
@@ -33,6 +34,7 @@ static const int MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 FstReader::FstReader() :
     _lodCount(-1),
     _texturesCount(-1),
+    _totalSize(0),
     _isHead(false),
     _readyToSend(false),
     _dataMultiPart(new QHttpMultiPart(QHttpMultiPart::FormDataType))
@@ -49,11 +51,18 @@ bool FstReader::zip() {
                                                     "Select your .fst file ...",
                                                     QStandardPaths::writableLocation(QStandardPaths::DownloadLocation),
                                                     "*.fst");
+    if (filename == "") {
+        // If the user canceled we return.
+        return false;
+    }
     
     // First we check the FST file
     QFile fst(filename);
     if (!fst.open(QFile::ReadOnly | QFile::Text)) {
-        qDebug() << "[ERROR] Could not open FST file : " << fst.fileName();
+        QMessageBox::warning(NULL,
+                             QString("ModelUploader::zip()"),
+                             QString("Could not open FST file."),
+                             QMessageBox::Ok);
         return false;
     }
     
@@ -78,7 +87,10 @@ bool FstReader::zip() {
         }
         
         if (_totalSize > MAX_SIZE) {
-            qDebug() << "[ERROR] Model too big, over " << MAX_SIZE << " Bytes.";
+            QMessageBox::warning(NULL,
+                                 QString("ModelUploader::zip()"),
+                                 QString("Model too big, over %1 Bytes.").arg(MAX_SIZE),
+                                 QMessageBox::Ok);
             return false;
         }
         
@@ -94,7 +106,10 @@ bool FstReader::zip() {
         } else if (line[1] == FILENAME_FIELD) {
             QFileInfo fbx(QFileInfo(fst).path() + "/" + line[1]);
             if (!fbx.exists() || !fbx.isFile()) { // Check existence
-                qDebug() << "[ERROR] FBX file " << fbx.absoluteFilePath() << " doesn't exist.";
+                QMessageBox::warning(NULL,
+                                     QString("ModelUploader::zip()"),
+                                     QString("FBX file %1 could not be found.").arg(fbx.fileName()),
+                                     QMessageBox::Ok);
                 return false;
             }
             // Compress and copy
@@ -108,7 +123,10 @@ bool FstReader::zip() {
         } else if (line[1] == TEXDIR_FIELD) { // Check existence
             QFileInfo texdir(QFileInfo(fst).path() + "/" + line[1]);
             if (!texdir.exists() || !texdir.isDir()) {
-                qDebug() << "[ERROR] Texture directory " << texdir.absolutePath() << " doesn't exist.";
+                QMessageBox::warning(NULL,
+                                     QString("ModelUploader::zip()"),
+                                     QString("Texture directory could not be found."),
+                                     QMessageBox::Ok);
                 return false;
             }
             if (!addTextures(texdir)) { // Recursive compress and copy
@@ -117,7 +135,10 @@ bool FstReader::zip() {
         } else if (line[1] == LOD_FIELD) {
             QFileInfo lod(QFileInfo(fst).path() + "/" + line[1]);
             if (!lod.exists() || !lod.isFile()) { // Check existence
-                qDebug() << "[ERROR] FBX file " << lod.absoluteFilePath() << " doesn't exist.";
+                QMessageBox::warning(NULL,
+                                     QString("ModelUploader::zip()"),
+                                     QString("FBX file %1 could not be found.").arg(lod.fileName()),
+                                     QMessageBox::Ok);
                 return false;
             }
             // Compress and copy
@@ -180,8 +201,6 @@ bool FstReader::addTextures(const QFileInfo& texdir) {
             if (!addTextures(info)) {
                 return false;
             }
-        } else {
-            qDebug() << "[DEBUG] Invalid file type : " << info.filePath();
         }
     }
     
@@ -197,7 +216,10 @@ bool FstReader::compressFile(const QString &inFileName, const QString &outFileNa
     if (!outFile.open(QIODevice::WriteOnly)) {
         QDir(_zipDir.path()).mkpath(QFileInfo(outFileName).path());
         if (!outFile.open(QIODevice::WriteOnly)) {
-            qDebug() << "[ERROR] Could not compress " << inFileName << ".";
+            QMessageBox::warning(NULL,
+                                 QString("ModelUploader::compressFile()"),
+                                 QString("Could not compress %1").arg(inFileName),
+                                 QMessageBox::Ok);
             return false;
         }
     }
@@ -211,7 +233,10 @@ bool FstReader::compressFile(const QString &inFileName, const QString &outFileNa
 bool FstReader::addPart(const QString &path, const QString& name) {
     QFile* file = new QFile(path);
     if (!file->open(QIODevice::ReadOnly)) {
-        qDebug() << "[ERROR] Couldn't open " << file->fileName();
+        QMessageBox::warning(NULL,
+                             QString("ModelUploader::addPart()"),
+                             QString("Could not open %1").arg(path),
+                             QMessageBox::Ok);
         return false;
     }
     
