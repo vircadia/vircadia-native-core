@@ -169,7 +169,7 @@ template<SpannerUpdateFunction F> int SpannerUpdateVisitor<F>::visit(MetavoxelIn
     if (info.size > _longestSide) {
         return DEFAULT_ORDER;
     }
-    SharedObjectSet set = info.inputValues.at(0).getInlineValue<SharedObjectSet>();
+    SharedObjectSet set = info.inputValues.at(0).getSafeInlineValue<SharedObjectSet>();
     F(set, _object);
     info.outputValues[0] = AttributeValue(_attribute, encodeInline(set));
     return STOP_RECURSION;
@@ -177,7 +177,7 @@ template<SpannerUpdateFunction F> int SpannerUpdateVisitor<F>::visit(MetavoxelIn
 
 void MetavoxelData::insert(const AttributePointer& attribute, const SharedObjectPointer& object) {
     Spanner* spanner = static_cast<Spanner*>(object.data());
-    insert(attribute, spanner->getBounds(), spanner->getGranularity(), object);
+    insert(attribute, spanner->getBounds(), spanner->getPlacementGranularity(), object);
 }
 
 void MetavoxelData::insert(const AttributePointer& attribute, const Box& bounds,
@@ -192,7 +192,7 @@ void MetavoxelData::insert(const AttributePointer& attribute, const Box& bounds,
 
 void MetavoxelData::remove(const AttributePointer& attribute, const SharedObjectPointer& object) {
     Spanner* spanner = static_cast<Spanner*>(object.data());
-    remove(attribute, spanner->getBounds(), spanner->getGranularity(), object);
+    remove(attribute, spanner->getBounds(), spanner->getPlacementGranularity(), object);
 }
 
 void MetavoxelData::remove(const AttributePointer& attribute, const Box& bounds,
@@ -203,7 +203,7 @@ void MetavoxelData::remove(const AttributePointer& attribute, const Box& bounds,
 
 void MetavoxelData::toggle(const AttributePointer& attribute, const SharedObjectPointer& object) {
     Spanner* spanner = static_cast<Spanner*>(object.data());
-    toggle(attribute, spanner->getBounds(), spanner->getGranularity(), object);
+    toggle(attribute, spanner->getBounds(), spanner->getPlacementGranularity(), object);
 }
 
 void MetavoxelData::toggle(const AttributePointer& attribute, const Box& bounds,
@@ -875,7 +875,7 @@ void SpannerVisitor::prepare() {
 
 int SpannerVisitor::visit(MetavoxelInfo& info) {
     for (int i = _inputs.size() - _spannerInputCount; i < _inputs.size(); i++) {
-        foreach (const SharedObjectPointer& object, info.inputValues.at(i).getInlineValue<SharedObjectSet>()) {
+        foreach (const SharedObjectPointer& object, info.inputValues.at(i).getSafeInlineValue<SharedObjectSet>()) {
             Spanner* spanner = static_cast<Spanner*>(object.data());
             if (spanner->testAndSetVisited()) {
                 if (!visit(spanner)) {
@@ -927,7 +927,7 @@ bool operator<(const SpannerDistance& first, const SpannerDistance& second) {
 int RaySpannerIntersectionVisitor::visit(MetavoxelInfo& info, float distance) {
     QVarLengthArray<SpannerDistance, 4> spannerDistances;
     for (int i = _inputs.size() - _spannerInputCount; i < _inputs.size(); i++) {
-        foreach (const SharedObjectPointer& object, info.inputValues.at(i).getInlineValue<SharedObjectSet>()) {
+        foreach (const SharedObjectPointer& object, info.inputValues.at(i).getSafeInlineValue<SharedObjectSet>()) {
             Spanner* spanner = static_cast<Spanner*>(object.data());
             if (spanner->testAndSetVisited()) {
                 SpannerDistance spannerDistance = { spanner };
@@ -991,7 +991,7 @@ bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
             MetavoxelNode* child = (node && (visitation.info.size >= lodBase *
                 parentValue.getAttribute()->getLODThresholdMultiplier())) ? node->getChild(index) : NULL;
             nextVisitation.info.inputValues[j] = ((nextVisitation.inputNodes[j] = child)) ?
-                child->getAttributeValue(parentValue.getAttribute()) : parentValue;
+                child->getAttributeValue(parentValue.getAttribute()) : parentValue.split();
         }
         for (int j = 0; j < visitation.outputNodes.size(); j++) {
             MetavoxelNode* node = visitation.outputNodes.at(j);
@@ -1202,11 +1202,13 @@ AttributeValue MetavoxelVisitation::getInheritedOutputValue(int index) const {
     return AttributeValue(visitor.getOutputs().at(index));
 }
 
-const float DEFAULT_GRANULARITY = 0.01f;
+const float DEFAULT_PLACEMENT_GRANULARITY = 0.01f;
+const float DEFAULT_VOXELIZATION_GRANULARITY = powf(2.0f, -3.0f);
 
 Spanner::Spanner() :
     _renderer(NULL),
-    _granularity(DEFAULT_GRANULARITY),
+    _placementGranularity(DEFAULT_PLACEMENT_GRANULARITY),
+    _voxelizationGranularity(DEFAULT_VOXELIZATION_GRANULARITY),
     _lastVisit(0) {
 }
 
@@ -1223,7 +1225,16 @@ const QVector<AttributePointer>& Spanner::getAttributes() const {
     return emptyVector;
 }
 
+const QVector<AttributePointer>& Spanner::getVoxelizedAttributes() const {
+    static QVector<AttributePointer> emptyVector;
+    return emptyVector;
+}
+
 bool Spanner::getAttributeValues(MetavoxelInfo& info) const {
+    return false;
+}
+
+bool Spanner::blendAttributeValues(MetavoxelInfo& info) const {
     return false;
 }
 
@@ -1320,6 +1331,13 @@ const QVector<AttributePointer>& Sphere::getAttributes() const {
     return attributes;
 }
 
+const QVector<AttributePointer>& Sphere::getVoxelizedAttributes() const {
+    static QVector<AttributePointer> attributes = QVector<AttributePointer>() <<
+        AttributeRegistry::getInstance()->getSpannerColorAttribute() <<
+        AttributeRegistry::getInstance()->getSpannerNormalAttribute();
+    return attributes;
+}
+
 bool Sphere::getAttributeValues(MetavoxelInfo& info) const {
     // bounds check
     Box bounds = info.getBounds();
@@ -1339,12 +1357,47 @@ bool Sphere::getAttributeValues(MetavoxelInfo& info) const {
         getNormal(info);
         return false;
     }
-    if (info.size <= getGranularity()) {
+    if (info.size <= getVoxelizationGranularity()) {
         // best guess
         if (pointsWithin > 0) {
             info.outputValues[0] = AttributeValue(getAttributes().at(0), encodeInline<QRgb>(qRgba(
                 _color.red(), _color.green(), _color.blue(), _color.alpha() * pointsWithin / Box::VERTEX_COUNT)));
             getNormal(info);
+        }
+        return false;
+    }
+    return true;
+}
+
+bool Sphere::blendAttributeValues(MetavoxelInfo& info) const {
+    // bounds check
+    Box bounds = info.getBounds();
+    if (!getBounds().intersects(bounds)) {
+        return false;
+    }
+    // count the points inside the sphere
+    int pointsWithin = 0;
+    for (int i = 0; i < Box::VERTEX_COUNT; i++) {
+        if (glm::distance(bounds.getVertex(i), getTranslation()) <= getScale()) {
+            pointsWithin++;
+        }
+    }
+    if (pointsWithin == Box::VERTEX_COUNT) {
+        // entirely contained
+        info.outputValues[0] = AttributeValue(getAttributes().at(0), encodeInline<QRgb>(_color.rgba()));
+        info.outputValues[1] = getNormal(info);
+        return false;
+    }
+    if (info.size <= getVoxelizationGranularity()) {
+        // best guess
+        if (pointsWithin > 0) {
+            int oldAlpha = qAlpha(info.inputValues.at(0).getInlineValue<QRgb>());
+            int newAlpha = _color.alpha() * pointsWithin / Box::VERTEX_COUNT;
+            float combinedAlpha = (float)newAlpha / (oldAlpha + newAlpha);
+            info.outputValues[0].mix(info.inputValues.at(0), AttributeValue(getAttributes().at(0),
+                encodeInline<QRgb>(qRgba(_color.red(), _color.green(), _color.blue(),
+                _color.alpha() * pointsWithin / Box::VERTEX_COUNT))), combinedAlpha);
+            info.outputValues[1].mix(info.inputValues.at(1), getNormal(info), combinedAlpha);
         }
         return false;
     }
@@ -1364,7 +1417,7 @@ void Sphere::updateBounds() {
     setBounds(Box(getTranslation() - extent, getTranslation() + extent));
 }
 
-void Sphere::getNormal(MetavoxelInfo& info) const {
+AttributeValue Sphere::getNormal(MetavoxelInfo& info) const {
     glm::vec3 normal = info.getCenter() - getTranslation();
     float length = glm::length(normal);
     QRgb color;
@@ -1379,7 +1432,7 @@ void Sphere::getNormal(MetavoxelInfo& info) const {
         const QRgb DEFAULT_NORMAL = 0x007F00;
         color = DEFAULT_NORMAL;
     }
-    info.outputValues[1] = AttributeValue(getAttributes().at(1), encodeInline<QRgb>(color));
+    return AttributeValue(getAttributes().at(1), encodeInline<QRgb>(color));
 }
 
 StaticModel::StaticModel() {

@@ -408,8 +408,9 @@ public:
 class Spanner : public SharedObject {
     Q_OBJECT
     Q_PROPERTY(Box bounds MEMBER _bounds WRITE setBounds NOTIFY boundsChanged DESIGNABLE false)
-    Q_PROPERTY(float granularity MEMBER _granularity DESIGNABLE false)
-
+    Q_PROPERTY(float placementGranularity MEMBER _placementGranularity DESIGNABLE false)
+    Q_PROPERTY(float voxelizationGranularity MEMBER _voxelizationGranularity DESIGNABLE false)
+    
 public:
     
     /// Increments the value of the global visit counter.
@@ -420,15 +421,25 @@ public:
     void setBounds(const Box& bounds);
     const Box& getBounds() const { return _bounds; }
     
-    void setGranularity(float granularity) { _granularity = granularity; }
-    float getGranularity() const { return _granularity; }
+    void setPlacementGranularity(float granularity) { _placementGranularity = granularity; }
+    float getPlacementGranularity() const { return _placementGranularity; }
+    
+    void setVoxelizationGranularity(float granularity) { _voxelizationGranularity = granularity; }
+    float getVoxelizationGranularity() const { return _voxelizationGranularity; }
     
     /// Returns a reference to the list of attributes associated with this spanner.
     virtual const QVector<AttributePointer>& getAttributes() const;
     
+    /// Returns a reference to the list of corresponding attributes that we voxelize the spanner into.
+    virtual const QVector<AttributePointer>& getVoxelizedAttributes() const;
+    
     /// Sets the attribute values associated with this spanner in the supplied info.
     /// \return true to recurse, false to stop
     virtual bool getAttributeValues(MetavoxelInfo& info) const;
+    
+    /// Blends the attribute values associated with this spanner into the supplied info.
+    /// \return true to recurse, false to stop
+    virtual bool blendAttributeValues(MetavoxelInfo& info) const;
     
     /// Checks whether we've visited this object on the current traversal.  If we have, returns false.
     /// If we haven't, sets the last visit identifier and returns true.
@@ -455,7 +466,8 @@ protected:
 private:
     
     Box _bounds;
-    float _granularity;
+    float _placementGranularity;
+    float _voxelizationGranularity;
     int _lastVisit; ///< the identifier of the last visit
     
     static int _visit; ///< the global visit counter
@@ -521,7 +533,9 @@ public:
     const QColor& getColor() const { return _color; }
 
     virtual const QVector<AttributePointer>& getAttributes() const;
+    virtual const QVector<AttributePointer>& getVoxelizedAttributes() const;
     virtual bool getAttributeValues(MetavoxelInfo& info) const;
+    virtual bool blendAttributeValues(MetavoxelInfo& info) const;
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
 signals:
@@ -538,7 +552,7 @@ private slots:
     
 private:
     
-    void getNormal(MetavoxelInfo& info) const;
+    AttributeValue getNormal(MetavoxelInfo& info) const;
     
     QColor _color;
 };

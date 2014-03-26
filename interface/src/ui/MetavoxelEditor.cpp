@@ -655,6 +655,5 @@ bool SetSpannerTool::appliesTo(const AttributePointer& attribute) const {
 }
 
 QVariant SetSpannerTool::createEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) {
-    static_cast<Spanner*>(spanner.data())->setGranularity(_editor->getGridSpacing());
     return QVariant::fromValue(SetSpannerEdit(spanner));
 }

@@ -104,8 +104,33 @@ InsertSpannerEdit::InsertSpannerEdit(const AttributePointer& attribute, const Sh
     spanner(spanner) {
 }
 
+class SetSpannerEditVisitor : public MetavoxelVisitor {
+public:
+    
+    SetSpannerEditVisitor(const QVector<AttributePointer>& attributes, Spanner* spanner);
+    
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    Spanner* _spanner;
+};
+
+SetSpannerEditVisitor::SetSpannerEditVisitor(const QVector<AttributePointer>& attributes, Spanner* spanner) :
+    MetavoxelVisitor(attributes, attributes),
+    _spanner(spanner) {
+}
+
+int SetSpannerEditVisitor::visit(MetavoxelInfo& info) {
+    return _spanner->blendAttributeValues(info) ? DEFAULT_ORDER : STOP_RECURSION;
+}
+
 void InsertSpannerEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
-    data.insert(attribute, spanner);
+    data.insert(attribute, this->spanner);
+    
+    Spanner* spanner = static_cast<Spanner*>(this->spanner.data());
+    SetSpannerEditVisitor visitor(spanner->getVoxelizedAttributes(), spanner);
+    data.guide(visitor);  
 }
 
 RemoveSpannerEdit::RemoveSpannerEdit(const AttributePointer& attribute, int id) :
@@ -130,27 +155,6 @@ void ClearSpannersEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& o
     data.clear(attribute);
 }
 
-class SetSpannerEditVisitor : public MetavoxelVisitor {
-public:
-    
-    SetSpannerEditVisitor(Spanner* spanner);
-    
-    virtual int visit(MetavoxelInfo& info);
-
-private:
-    
-    Spanner* _spanner;
-};
-
-SetSpannerEditVisitor::SetSpannerEditVisitor(Spanner* spanner) :
-    MetavoxelVisitor(spanner->getAttributes(), spanner->getAttributes()),
-    _spanner(spanner) {
-}
-
-int SetSpannerEditVisitor::visit(MetavoxelInfo& info) {
-    return _spanner->getAttributeValues(info) ? DEFAULT_ORDER : STOP_RECURSION;
-}
-
 SetSpannerEdit::SetSpannerEdit(const SharedObjectPointer& spanner) :
     spanner(spanner) {
 }
@@ -163,6 +167,6 @@ void SetSpannerEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& obje
         data.expand();
     }
     
-    SetSpannerEditVisitor visitor(spanner);
+    SetSpannerEditVisitor visitor(spanner->getAttributes(), spanner);
     data.guide(visitor);
 }

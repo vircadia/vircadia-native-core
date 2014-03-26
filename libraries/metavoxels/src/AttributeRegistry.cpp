@@ -30,7 +30,9 @@ AttributeRegistry::AttributeRegistry() :
         SharedObjectPointer(new DefaultMetavoxelGuide())))),
     _spannersAttribute(registerAttribute(new SpannerSetAttribute("spanners", &Spanner::staticMetaObject))),
     _colorAttribute(registerAttribute(new QRgbAttribute("color"))),
-    _normalAttribute(registerAttribute(new PackedNormalAttribute("normal", qRgb(0, 127, 0)))) {
+    _normalAttribute(registerAttribute(new PackedNormalAttribute("normal", qRgb(0, 127, 0)))),
+    _spannerColorAttribute(registerAttribute(new QRgbAttribute("spannerColor"))),
+    _spannerNormalAttribute(registerAttribute(new PackedNormalAttribute("spannerNormal", qRgb(0, 127, 0)))) {
     
     // our baseline LOD threshold is for voxels; spanners are a different story
     const float SPANNER_LOD_THRESHOLD_MULTIPLIER = 4.0f;
@@ -92,6 +94,10 @@ bool AttributeValue::isDefault() const {
     return !_attribute || _attribute->equal(_value, _attribute->getDefaultValue());
 }
 
+AttributeValue AttributeValue::split() const {
+    return _attribute ? _attribute->split(*this) : AttributeValue();
+}
+
 bool AttributeValue::operator==(const AttributeValue& other) const {
     return _attribute == other._attribute && (!_attribute || _attribute->equal(_value, other._value));
 }
@@ -128,6 +134,14 @@ OwnedAttributeValue::~OwnedAttributeValue() {
     if (_attribute) {
         _attribute->destroy(_value);
     }
+}
+
+void OwnedAttributeValue::mix(const AttributeValue& first, const AttributeValue& second, float alpha) {
+    if (_attribute) {
+        _attribute->destroy(_value);
+    }
+    _attribute = first.getAttribute();
+    _value = _attribute->mix(first.getValue(), second.getValue(), alpha);
 }
 
 OwnedAttributeValue& OwnedAttributeValue::operator=(const AttributeValue& other) {
@@ -206,6 +220,16 @@ bool QRgbAttribute::merge(void*& parent, void* children[]) const {
     return allChildrenEqual;
 } 
 
+void* QRgbAttribute::mix(void* first, void* second, float alpha) const {
+    QRgb firstValue = decodeInline<QRgb>(first);
+    QRgb secondValue = decodeInline<QRgb>(second);
+    return encodeInline(qRgba(
+        glm::mix((float)qRed(firstValue), (float)qRed(secondValue), alpha),
+        glm::mix((float)qGreen(firstValue), (float)qGreen(secondValue), alpha),
+        glm::mix((float)qBlue(firstValue), (float)qBlue(secondValue), alpha),
+        glm::mix((float)qAlpha(firstValue), (float)qAlpha(secondValue), alpha)));
+}
+
 void* QRgbAttribute::createFromScript(const QScriptValue& value, QScriptEngine* engine) const {
     return encodeInline((QRgb)value.toUInt32());
 }
@@ -232,19 +256,21 @@ PackedNormalAttribute::PackedNormalAttribute(const QString& name, QRgb defaultVa
 
 bool PackedNormalAttribute::merge(void*& parent, void* children[]) const {
     QRgb firstValue = decodeInline<QRgb>(children[0]);
-    int totalRed = (char)qRed(firstValue);
-    int totalGreen = (char)qGreen(firstValue);
-    int totalBlue = (char)qBlue(firstValue);
+    glm::vec3 total = unpackNormal(firstValue);
     bool allChildrenEqual = true;
     for (int i = 1; i < Attribute::MERGE_COUNT; i++) {
         QRgb value = decodeInline<QRgb>(children[i]);
-        totalRed += (char)qRed(value);
-        totalGreen += (char)qGreen(value);
-        totalBlue += (char)qBlue(value);
+        total += unpackNormal(value);
         allChildrenEqual &= (firstValue == value);
     }
-    parent = encodeInline(packNormal(glm::normalize(glm::vec3(totalRed, totalGreen, totalBlue))));
+    parent = encodeInline(packNormal(glm::normalize(total)));
     return allChildrenEqual;
+}
+
+void* PackedNormalAttribute::mix(void* first, void* second, float alpha) const {
+    glm::vec3 firstNormal = unpackNormal(decodeInline<QRgb>(first));
+    glm::vec3 secondNormal = unpackNormal(decodeInline<QRgb>(second));
+    return encodeInline(packNormal(glm::normalize(glm::mix(firstNormal, secondNormal, alpha))));
 }
 
 const float CHAR_SCALE = 127.0f;
@@ -288,6 +314,10 @@ bool SharedObjectAttribute::merge(void*& parent, void* children[]) const {
     }
     *(SharedObjectPointer*)&parent = firstChild;
     return true;
+}
+
+AttributeValue SharedObjectSetAttribute::split(const AttributeValue& parent) const {
+    return AttributeValue();
 }
 
 void* SharedObjectAttribute::createFromVariant(const QVariant& value) const {

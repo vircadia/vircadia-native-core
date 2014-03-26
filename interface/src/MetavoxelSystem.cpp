@@ -168,7 +168,9 @@ void MetavoxelSystem::maybeAttachClient(const SharedNodePointer& node) {
 MetavoxelSystem::SimulateVisitor::SimulateVisitor(QVector<Point>& points) :
     SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
         QVector<AttributePointer>() << AttributeRegistry::getInstance()->getColorAttribute() <<
-            AttributeRegistry::getInstance()->getNormalAttribute()),
+            AttributeRegistry::getInstance()->getNormalAttribute() <<
+            AttributeRegistry::getInstance()->getSpannerColorAttribute() <<
+            AttributeRegistry::getInstance()->getSpannerNormalAttribute()),
     _points(points) {
 }
 
@@ -186,11 +188,36 @@ int MetavoxelSystem::SimulateVisitor::visit(MetavoxelInfo& info) {
     QRgb color = info.inputValues.at(0).getInlineValue<QRgb>();
     QRgb normal = info.inputValues.at(1).getInlineValue<QRgb>();
     quint8 alpha = qAlpha(color);
-    if (alpha > 0) {
-        Point point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),
-            { quint8(qRed(color)), quint8(qGreen(color)), quint8(qBlue(color)), alpha }, 
-            { quint8(qRed(normal)), quint8(qGreen(normal)), quint8(qBlue(normal)) } };
-        _points.append(point);
+    if (info.inputValues.at(4).getAttribute()) {
+        if (alpha > 0) {
+            Point point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),
+                { quint8(qRed(color)), quint8(qGreen(color)), quint8(qBlue(color)), alpha }, 
+                { quint8(qRed(normal)), quint8(qGreen(normal)), quint8(qBlue(normal)) } };
+            _points.append(point);
+        }
+    } else {
+        QRgb spannerColor = info.inputValues.at(2).getInlineValue<QRgb>();
+        QRgb spannerNormal = info.inputValues.at(3).getInlineValue<QRgb>();
+        quint8 spannerAlpha = qAlpha(spannerColor);
+        if (spannerAlpha > 0) {
+            if (alpha > 0) {
+                Point point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),
+                    { quint8(qRed(spannerColor)), quint8(qGreen(spannerColor)), quint8(qBlue(spannerColor)), spannerAlpha }, 
+                    { quint8(qRed(spannerNormal)), quint8(qGreen(spannerNormal)), quint8(qBlue(spannerNormal)) } };
+                _points.append(point);
+                
+            } else {
+                Point point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),
+                    { quint8(qRed(spannerColor)), quint8(qGreen(spannerColor)), quint8(qBlue(spannerColor)), spannerAlpha }, 
+                    { quint8(qRed(spannerNormal)), quint8(qGreen(spannerNormal)), quint8(qBlue(spannerNormal)) } };
+                _points.append(point);
+            }
+        } else if (alpha > 0) {
+            Point point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),
+                { quint8(qRed(color)), quint8(qGreen(color)), quint8(qBlue(color)), alpha }, 
+                { quint8(qRed(normal)), quint8(qGreen(normal)), quint8(qBlue(normal)) } };
+            _points.append(point);
+        }
     }
     return STOP_RECURSION;
 }
