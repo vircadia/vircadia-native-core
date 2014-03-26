@@ -143,6 +143,28 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
         }
     }
 #endif
+#ifdef WIN32
+	QString deviceName;
+	if (mode == QAudio::AudioInput) {
+	    WAVEINCAPS wic;
+		// first use WAVE_MAPPER to get the default devices manufacturer ID
+		waveInGetDevCaps(WAVE_MAPPER, &wic, sizeof(wic));
+	    //Use the received manufacturer id to get the device's real name
+		waveInGetDevCaps(wic.wMid, &wic, sizeof(wic));
+		qDebug() << "input device:" << wic.szPname;
+		deviceName = wic.szPname;
+	} else {
+	    WAVEOUTCAPS woc;
+		// first use WAVE_MAPPER to get the default devices manufacturer ID
+		waveOutGetDevCaps(WAVE_MAPPER, &woc, sizeof(woc));
+	    //Use the received manufacturer id to get the device's real name
+		waveOutGetDevCaps(woc.wMid, &woc, sizeof(woc));
+		qDebug() << "output device:" << woc.szPname;
+		deviceName = woc.szPname;
+	}
+	return getNamedAudioDeviceForMode(mode, deviceName);
+#endif
+
 
     // fallback for failed lookup is the default device
     return (mode == QAudio::AudioInput) ? QAudioDeviceInfo::defaultInputDevice() : QAudioDeviceInfo::defaultOutputDevice();
