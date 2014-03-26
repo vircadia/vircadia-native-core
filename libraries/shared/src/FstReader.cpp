@@ -33,6 +33,7 @@ static const int MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 FstReader::FstReader() :
     _lodCount(-1),
     _texturesCount(-1),
+    _totalSize(0),
     _isHead(false),
     _readyToSend(false),
     _dataMultiPart(new QHttpMultiPart(QHttpMultiPart::FormDataType))
