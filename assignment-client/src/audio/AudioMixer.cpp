@@ -93,7 +93,7 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
             distanceBetween = EPSILON;
         }
         
-        if (bufferToAdd->getAverageLoudness() / distanceBetween <= _minAudibilityThreshold) {
+        if (bufferToAdd->getNextOutputTrailingLoudness() / distanceBetween <= _minAudibilityThreshold) {
             // according to mixer performance we have decided this does not get to be mixed in
             // bail out
             return;
@@ -324,7 +324,7 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
                 if ((*otherNode != *node
                      || otherNodeBuffer->shouldLoopbackForNode())
                     && otherNodeBuffer->willBeAddedToMix()
-                    && otherNodeBuffer->getAverageLoudness() > 0) {
+                    && otherNodeBuffer->getNextOutputTrailingLoudness() > 0) {
                     addBufferToMixForListeningNodeWithBuffer(otherNodeBuffer, nodeRingBuffer);
                 }
             }
