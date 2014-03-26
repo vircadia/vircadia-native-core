@@ -455,6 +455,10 @@ void AudioMixer::run() {
             }
         }
         
+        if (!hasRatioChanged) {
+            ++framesSinceCutoffEvent;
+        }
+        
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getType() == NodeType::Agent && node->getActiveSocket() && node->getLinkedData()
                 && ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer()) {
