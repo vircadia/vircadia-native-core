@@ -32,6 +32,7 @@ const unsigned int AVATAR_DATA_SEND_INTERVAL_MSECS = (1.0f / 60.0f) * 1000;
 
 AvatarMixer::AvatarMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
+    _broadcastThread(),
     _lastFrameTimestamp(QDateTime::currentMSecsSinceEpoch()),
     _trailingSleepRatio(1.0f),
     _performanceThrottlingRatio(0.0f),
@@ -42,6 +43,11 @@ AvatarMixer::AvatarMixer(const QByteArray& packet) :
 {
     // make sure we hear about node kills so we can tell the other nodes
     connect(NodeList::getInstance(), &NodeList::nodeKilled, this, &AvatarMixer::nodeKilled);
+}
+
+AvatarMixer::~AvatarMixer() {
+    _broadcastThread.quit();
+    _broadcastThread.wait();
 }
 
 void attachAvatarDataToNode(Node* newNode) {
@@ -309,18 +315,15 @@ void AvatarMixer::run() {
     
     nodeList->linkedDataCreateCallback = attachAvatarDataToNode;
     
-    // create a thead for broadcast of avatar data
-    QThread* broadcastThread = new QThread(this);
-    
     // setup the timer that will be fired on the broadcast thread
     QTimer* broadcastTimer = new QTimer();
     broadcastTimer->setInterval(AVATAR_DATA_SEND_INTERVAL_MSECS);
-    broadcastTimer->moveToThread(broadcastThread);
+    broadcastTimer->moveToThread(&_broadcastThread);
     
     // connect appropriate signals and slots
     connect(broadcastTimer, &QTimer::timeout, this, &AvatarMixer::broadcastAvatarData, Qt::DirectConnection);
-    connect(broadcastThread, SIGNAL(started()), broadcastTimer, SLOT(start()));
+    connect(&_broadcastThread, SIGNAL(started()), broadcastTimer, SLOT(start()));
     
     // start the broadcastThread
-    broadcastThread->start();
+    _broadcastThread.start();
 }

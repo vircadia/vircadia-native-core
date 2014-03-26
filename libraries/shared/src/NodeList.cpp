@@ -83,7 +83,31 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     // clear our NodeList when logout is requested
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
     
+    const int LARGER_SNDBUF_SIZE = 1048576;
+    changeSendSocketBufferSize(LARGER_SNDBUF_SIZE);
+    
     _packetStatTimer.start();
+}
+
+void NodeList::changeSendSocketBufferSize(int numSendBytes) {
+    // change the socket send buffer size to be 1MB
+    int oldBufferSize = 0;
+    
+#ifdef Q_OS_WIN
+    int sizeOfInt = sizeof(oldBufferSize);
+#else
+    unsigned int sizeOfInt = sizeof(oldBufferSize);
+#endif
+    
+    getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<char*>(&oldBufferSize), &sizeOfInt);
+    
+    setsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<const char*>(&numSendBytes),
+               sizeof(numSendBytes));
+    
+    int newBufferSize = 0;
+    getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<char*>(&newBufferSize), &sizeOfInt);
+    
+    qDebug() << "Changed socket send buffer size from" << oldBufferSize << "to" << newBufferSize << "bytes";
 }
 
 bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
@@ -359,7 +383,7 @@ NodeHash NodeList::getNodeHash() {
     return NodeHash(_nodeHash);
 }
 
-void NodeList::clear() {
+void NodeList::eraseAllNodes() {
     qDebug() << "Clearing the NodeList. Deleting all nodes in list.";
     
     QMutexLocker locker(&_nodeHashMutex);
@@ -373,7 +397,7 @@ void NodeList::clear() {
 }
 
 void NodeList::reset() {
-    clear();
+    eraseAllNodes();
     _numNoReplyDomainCheckIns = 0;
 
     // refresh the owner UUID to the NULL UUID

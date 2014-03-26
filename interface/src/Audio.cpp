@@ -216,6 +216,20 @@ void linearResampling(int16_t* sourceSamples, int16_t* destinationSamples,
             }
 
         } else {
+            if (sourceAudioFormat.sampleRate() == destinationAudioFormat.sampleRate()) {
+                // mono to stereo, same sample rate
+                if (!(sourceAudioFormat.channelCount() == 1 && destinationAudioFormat.channelCount() == 2)) {
+                    qWarning() << "Unsupported format conversion" << sourceAudioFormat << destinationAudioFormat;
+                    return;
+                }
+                for (const int16_t* sourceEnd = sourceSamples + numSourceSamples; sourceSamples != sourceEnd;
+                        sourceSamples++) {
+                    *destinationSamples++ = *sourceSamples;
+                    *destinationSamples++ = *sourceSamples;
+                }
+                return;
+            }
+        
             // upsample from 24 to 48
             // for now this only supports a stereo to stereo conversion - this is our case for network audio to output
             int sourceIndex = 0;
@@ -561,12 +575,14 @@ void Audio::handleAudioInput() {
         
         // send whatever procedural sounds we want to locally loop back to the _proceduralOutputDevice
         QByteArray proceduralOutput;
-        proceduralOutput.resize(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 4 * sizeof(int16_t));
+        proceduralOutput.resize(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * _outputFormat.sampleRate() *
+            _outputFormat.channelCount() * sizeof(int16_t) / (_desiredInputFormat.sampleRate() *
+                _desiredInputFormat.channelCount()));
         
         linearResampling(_localProceduralSamples,
                          reinterpret_cast<int16_t*>(proceduralOutput.data()),
                          NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
-                         NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 4,
+                         proceduralOutput.size() / sizeof(int16_t),
                          _desiredInputFormat, _outputFormat);
         
         if (_proceduralOutputDevice) {
