@@ -49,9 +49,6 @@ public:
     // assume callers using this will never wrap around the end
     const int16_t* getNextOutput() { return _nextOutput; }
     const int16_t* getBuffer() { return _buffer; }
-    
-    void updateAverageLoudnessForBoundarySamples(int numSamples);
-    float getAverageLoudness() const { return _averageLoudness; }
 
     qint64 readSamples(int16_t* destination, qint64 maxSamples);
     qint64 writeSamples(const int16_t* source, qint64 maxSamples);
@@ -81,13 +78,12 @@ protected:
     int16_t* shiftedPositionAccomodatingWrap(int16_t* position, int numSamplesShift) const;
     
     int _sampleCapacity;
+    int _numFrameSamples;
     int16_t* _nextOutput;
     int16_t* _endOfLastWrite;
     int16_t* _buffer;
     bool _isStarved;
     bool _hasStarted;
-    
-    float _averageLoudness;
 };
 
 #endif /* defined(__interface__AudioRingBuffer__) */

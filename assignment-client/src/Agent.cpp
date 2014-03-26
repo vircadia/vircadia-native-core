@@ -26,7 +26,8 @@
 Agent::Agent(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _voxelEditSender(),
-    _particleEditSender()
+    _particleEditSender(),
+    _receivedAudioBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO)
 {
     // be the parent of the script engine so it gets moved when we do
     _scriptEngine.setParent(this);
@@ -113,6 +114,16 @@ void Agent::readPendingDatagrams() {
                     _voxelViewer.processDatagram(mutablePacket, sourceNode);
                 }
 
+            } else if (datagramPacketType == PacketTypeMixedAudio) {
+                // parse the data and grab the average loudness
+                _receivedAudioBuffer.parseData(receivedPacket);
+                
+                // pretend like we have read the samples from this buffer so it does not fill
+                static int16_t garbageAudioBuffer[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO];
+                _receivedAudioBuffer.readSamples(garbageAudioBuffer, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO);
+                
+                // let this continue through to the NodeList so it updates last heard timestamp
+                // for the sending audio mixer
             } else {
                 NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
             }
