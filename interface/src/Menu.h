@@ -298,7 +298,8 @@ namespace MenuOption {
     const QString StopAllScripts = "Stop All Scripts";
     const QString TestPing = "Test Ping";
     const QString TransmitterDrive = "Transmitter Drive";
-    const QString UploadFST = "Upload FST file";
+    const QString UploadHead = "Upload Head Model";
+    const QString UploadSkeleton = "Upload Skeleton Model";
     const QString Visage = "Visage";
     const QString Quit =  "Quit";
     const QString Voxels = "Voxels";

@@ -16,7 +16,7 @@ class QHttpMultiPart;
 
 class FstReader {
 public:
-    FstReader();
+    FstReader(bool isHead);
     ~FstReader();
     
     bool zip();

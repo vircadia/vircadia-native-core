@@ -3512,11 +3512,19 @@ void Application::reloadAllScripts() {
     }
 }
 
-void Application::uploadFST() {
-    FstReader reader;
+void Application::uploadFST(bool isHead) {
+    FstReader reader(isHead);
     if (reader.zip()) {
         reader.send();
     }
+}
+
+void Application::uploadHead() {
+    uploadFST(true);
+}
+
+void Application::uploadSkeleton() {
+    uploadFST(false);
 }
 
 void Application::removeScriptName(const QString& fileNameString) {

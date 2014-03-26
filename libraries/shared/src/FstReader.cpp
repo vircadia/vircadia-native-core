@@ -25,17 +25,16 @@ static const QString NAME_FIELD = "name";
 static const QString FILENAME_FIELD = "filename";
 static const QString TEXDIR_FIELD = "texdir";
 static const QString LOD_FIELD = "lod";
-static const QString HEAD_SPECIFIC_FIELD = "bs";
 
 static const QString MODEL_URL = "/api/v1/models";
 
 static const int MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 
-FstReader::FstReader() :
+FstReader::FstReader(bool isHead) :
     _lodCount(-1),
     _texturesCount(-1),
     _totalSize(0),
-    _isHead(false),
+    _isHead(isHead),
     _readyToSend(false),
     _dataMultiPart(new QHttpMultiPart(QHttpMultiPart::FormDataType))
 {
@@ -95,9 +94,7 @@ bool FstReader::zip() {
         }
         
         // according to what is read, we modify the command
-        if (line[1] == HEAD_SPECIFIC_FIELD) {
-            _isHead = true;
-        } else if (line[1] == NAME_FIELD) {
+        if (line[0] == NAME_FIELD) {
             QHttpPart textPart;
             textPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data;"
                                " name=\"model_name\"");
