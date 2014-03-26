@@ -170,6 +170,7 @@ bool FstReader::send() {
     }
     
     AccountManager::getInstance().authenticatedRequest(MODEL_URL, QNetworkAccessManager::PostOperation, JSONCallbackParameters(), QByteArray(), _dataMultiPart);
+    _dataMultiPart = NULL;
     
     return true;
 }
