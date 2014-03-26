@@ -83,6 +83,9 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     // clear our NodeList when logout is requested
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
     
+    const int LARGER_SNDBUF_SIZE = 1048576;
+    changeSendSocketBufferSize(LARGER_SNDBUF_SIZE);
+    
     _packetStatTimer.start();
 }
 
@@ -98,10 +101,8 @@ void NodeList::changeSendSocketBufferSize(int numSendBytes) {
     
     getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<char*>(&oldBufferSize), &sizeOfInt);
     
-    const int LARGER_SNDBUF_SIZE = 1048576;
-    
-    setsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<const char*>(&LARGER_SNDBUF_SIZE),
-               sizeof(LARGER_SNDBUF_SIZE));
+    setsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<const char*>(&numSendBytes),
+               sizeof(numSendBytes));
     
     int newBufferSize = 0;
     getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<char*>(&newBufferSize), &sizeOfInt);
