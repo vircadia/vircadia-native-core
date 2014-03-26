@@ -83,12 +83,12 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     // clear our NodeList when logout is requested
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
     
-    // change the socket send buffer size to be 128KB
+    // change the socket send buffer size to be 1MB
     int oldBufferSize = 0;
     unsigned int sizeOfInt = sizeof(oldBufferSize);
     getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, &oldBufferSize, &sizeOfInt);
     
-    const int LARGER_SNDBUF_SIZE = 131072;
+    const int LARGER_SNDBUF_SIZE = 1048576;
     
     setsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, &LARGER_SNDBUF_SIZE, sizeof(LARGER_SNDBUF_SIZE));
     
