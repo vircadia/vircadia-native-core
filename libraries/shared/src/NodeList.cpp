@@ -383,7 +383,7 @@ NodeHash NodeList::getNodeHash() {
     return NodeHash(_nodeHash);
 }
 
-void NodeList::clear() {
+void NodeList::eraseAllNodes() {
     qDebug() << "Clearing the NodeList. Deleting all nodes in list.";
     
     QMutexLocker locker(&_nodeHashMutex);
@@ -397,7 +397,7 @@ void NodeList::clear() {
 }
 
 void NodeList::reset() {
-    clear();
+    eraseAllNodes();
     _numNoReplyDomainCheckIns = 0;
 
     // refresh the owner UUID to the NULL UUID

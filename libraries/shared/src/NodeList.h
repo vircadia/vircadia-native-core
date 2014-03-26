@@ -128,6 +128,7 @@ public:
     void saveData(QSettings* settings);
 public slots:
     void reset();
+    void eraseAllNodes();
     
     void sendDomainServerCheckIn();
     void pingInactiveNodes();
@@ -154,8 +155,6 @@ private:
                          const QUuid& connectionSecret);
 
     NodeHash::iterator killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill);
-    
-    void clear();
 
     void processDomainServerAuthRequest(const QByteArray& packet);
     void requestAuthForDomainServer();
