@@ -62,7 +62,8 @@ Menu* Menu::getInstance() {
 const ViewFrustumOffset DEFAULT_FRUSTUM_OFFSET = {-135.0f, 0.0f, 0.0f, 25.0f, 0.0f};
 const float DEFAULT_FACESHIFT_EYE_DEFLECTION = 0.25f;
 const float DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER = 1.0f;
-const int FIVE_SECONDS_OF_FRAMES = 5 * 60;
+const int ONE_SECOND_OF_FRAMES = 60;
+const int FIVE_SECONDS_OF_FRAMES = 5 * ONE_SECOND_OF_FRAMES;
 
 Menu::Menu() :
     _actionHash(),
@@ -82,6 +83,7 @@ Menu::Menu() :
     _lastAdjust(usecTimestampNow()),
     _lastAvatarDetailDrop(usecTimestampNow()),
     _fpsAverage(FIVE_SECONDS_OF_FRAMES),
+    _fastFPSAverage(ONE_SECOND_OF_FRAMES),
     _loginAction(NULL)
 {
     Application *appInstance = Application::getInstance();
@@ -1192,17 +1194,19 @@ void Menu::autoAdjustLOD(float currentFPS) {
         currentFPS = ASSUMED_FPS;
     }
     _fpsAverage.updateAverage(currentFPS);
+    _fastFPSAverage.updateAverage(currentFPS);
 
     quint64 now = usecTimestampNow();
     
-    if (_fpsAverage.getAverage() < ADJUST_LOD_DOWN_FPS) {
-        if (now - _lastAvatarDetailDrop > ADJUST_LOD_DOWN_DELAY) {
+    const quint64 ADJUST_AVATAR_LOD_DOWN_DELAY = 1000 * 1000;
+    if (_fastFPSAverage.getAverage() < ADJUST_LOD_DOWN_FPS) {
+        if (now - _lastAvatarDetailDrop > ADJUST_AVATAR_LOD_DOWN_DELAY) {
             // attempt to lower the detail in proportion to the fps difference
             float targetFps = (ADJUST_LOD_DOWN_FPS + ADJUST_LOD_UP_FPS) * 0.5f;
-            _avatarLODDistanceMultiplier *= (targetFps / _fpsAverage.getAverage()); 
+            _avatarLODDistanceMultiplier *= (targetFps / _fastFPSAverage.getAverage()); 
             _lastAvatarDetailDrop = now;
         }
-    } else if (_fpsAverage.getAverage() > ADJUST_LOD_UP_FPS) {
+    } else if (_fastFPSAverage.getAverage() > ADJUST_LOD_UP_FPS) {
         // let the detail level creep slowly upwards
         const float DISTANCE_DECREASE_RATE = 0.01f;
         const float MINIMUM_DISTANCE_MULTIPLIER = 0.1f;
