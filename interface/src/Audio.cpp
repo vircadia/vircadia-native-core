@@ -840,7 +840,6 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
     // cleanup any previously initialized device
     if (_audioOutput) {
         _audioOutput->stop();
-        disconnect(_outputDevice, 0, 0, 0);
         _outputDevice = NULL;
         
         delete _audioOutput;
