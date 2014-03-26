@@ -22,6 +22,9 @@
   <property name="features">
    <set>QDockWidget::NoDockWidgetFeatures</set>
   </property>
+  <property name="allowedAreas">
+   <set>Qt::NoDockWidgetArea</set>
+  </property>
   <property name="windowTitle">
    <string>Chat</string>
   </property>

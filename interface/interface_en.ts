@@ -27,20 +27,20 @@
 <context>
     <name>ChatWindow</name>
     <message>
-        <location filename="ui/chatWindow.ui" line="26"/>
-        <location filename="../build/interface/ui_chatWindow.h" line="152"/>
+        <location filename="ui/chatWindow.ui" line="29"/>
+        <location filename="../build/interface/ui_chatWindow.h" line="153"/>
         <source>Chat</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="ui/chatWindow.ui" line="54"/>
-        <location filename="../build/interface/ui_chatWindow.h" line="153"/>
+        <location filename="ui/chatWindow.ui" line="57"/>
+        <location filename="../build/interface/ui_chatWindow.h" line="154"/>
         <source>Connecting to XMPP...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="ui/chatWindow.ui" line="75"/>
-        <location filename="../build/interface/ui_chatWindow.h" line="154"/>
+        <location filename="ui/chatWindow.ui" line="78"/>
+        <location filename="../build/interface/ui_chatWindow.h" line="155"/>
         <source> online now:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -113,18 +113,18 @@
 <context>
     <name>Menu</name>
     <message>
-        <location filename="src/Menu.cpp" line="456"/>
+        <location filename="src/Menu.cpp" line="458"/>
         <source>Open .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="458"/>
-        <location filename="src/Menu.cpp" line="470"/>
+        <location filename="src/Menu.cpp" line="460"/>
+        <location filename="src/Menu.cpp" line="472"/>
         <source>Text files (*.ini)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="468"/>
+        <location filename="src/Menu.cpp" line="470"/>
         <source>Save .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
