@@ -357,18 +357,9 @@ int NodeList::findNodeAndUpdateWithDataFromPacket(const QByteArray& packet) {
     return 0;
 }
 
-SharedNodePointer NodeList::nodeWithUUID(const QUuid& nodeUUID, bool blockingLock) {
-    SharedNodePointer node;
-    // if caller wants us to block and guarantee the correct answer, then honor that request
-    if (blockingLock) {
-        // this will block till we can get access
-        QMutexLocker locker(&_nodeHashMutex);
-        node = _nodeHash.value(nodeUUID);
-    } else if (_nodeHashMutex.tryLock()) { // some callers are willing to get wrong answers but not block
-        node = _nodeHash.value(nodeUUID);
-        _nodeHashMutex.unlock();
-    }
-    return node;
+SharedNodePointer NodeList::nodeWithUUID(const QUuid& nodeUUID) {
+    QMutexLocker locker(&_nodeHashMutex);
+    return _nodeHash.value(nodeUUID);
 }
 
 SharedNodePointer NodeList::sendingNodeForPacket(const QByteArray& packet) {

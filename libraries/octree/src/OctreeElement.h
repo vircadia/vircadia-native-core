@@ -152,6 +152,7 @@ public:
     static void addUpdateHook(OctreeElementUpdateHook* hook);
     static void removeUpdateHook(OctreeElementUpdateHook* hook);
     
+    static void resetPopulationStatistics();
     static unsigned long getNodeCount() { return _voxelNodeCount; }
     static unsigned long getInternalNodeCount() { return _voxelNodeCount - _voxelNodeLeafCount; }
     static unsigned long getLeafNodeCount() { return _voxelNodeLeafCount; }
