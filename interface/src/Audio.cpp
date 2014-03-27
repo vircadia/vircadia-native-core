@@ -144,6 +144,28 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
         }
     }
 #endif
+#ifdef WIN32
+    QString deviceName;
+    if (mode == QAudio::AudioInput) {
+        WAVEINCAPS wic;
+        // first use WAVE_MAPPER to get the default devices manufacturer ID
+        waveInGetDevCaps(WAVE_MAPPER, &wic, sizeof(wic));
+        //Use the received manufacturer id to get the device's real name
+        waveInGetDevCaps(wic.wMid, &wic, sizeof(wic));
+        qDebug() << "input device:" << wic.szPname;
+        deviceName = wic.szPname;
+    } else {
+        WAVEOUTCAPS woc;
+        // first use WAVE_MAPPER to get the default devices manufacturer ID
+        waveOutGetDevCaps(WAVE_MAPPER, &woc, sizeof(woc));
+        //Use the received manufacturer id to get the device's real name
+        waveOutGetDevCaps(woc.wMid, &woc, sizeof(woc));
+        qDebug() << "output device:" << woc.szPname;
+        deviceName = woc.szPname;
+    }
+    return getNamedAudioDeviceForMode(mode, deviceName);
+#endif
+
 
     // fallback for failed lookup is the default device
     return (mode == QAudio::AudioInput) ? QAudioDeviceInfo::defaultInputDevice() : QAudioDeviceInfo::defaultOutputDevice();
@@ -510,7 +532,7 @@ void Audio::handleAudioInput() {
         if (audioMixer && audioMixer->getActiveSocket()) {
             MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
             glm::vec3 headPosition = interfaceAvatar->getHead()->getPosition();
-            glm::quat headOrientation = interfaceAvatar->getHead()->getOrientation();
+            glm::quat headOrientation = interfaceAvatar->getHead()->getTweakedOrientation();
 
             // we need the amount of bytes in the buffer + 1 for type
             // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
@@ -850,7 +872,6 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
     // cleanup any previously initialized device
     if (_audioOutput) {
         _audioOutput->stop();
-        disconnect(_outputDevice, 0, 0, 0);
         _outputDevice = NULL;
         
         delete _audioOutput;
