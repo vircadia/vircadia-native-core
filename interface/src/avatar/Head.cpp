@@ -178,7 +178,7 @@ void Head::setScale (float scale) {
     _scale = scale;
 }
 
-glm::quat Head::getTweakedOrientation() const {
+glm::quat Head::getFinalOrientation() const {
     return _owningAvatar->getOrientation() * glm::quat(glm::radians(
                 glm::vec3(getTweakedPitch(), getTweakedYaw(), getTweakedRoll() )));
 }

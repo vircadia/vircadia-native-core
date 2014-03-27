@@ -45,8 +45,12 @@ public:
     void setReturnToCenter (bool returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     void setRenderLookatVectors(bool onOff) { _renderLookatVectors = onOff; }
     
-    glm::quat getTweakedOrientation() const;
+    /// \return orientationBody * orientationBase+Delta
+    glm::quat getFinalOrientation() const;
+
+    /// \return orientationBody * orientationBasePitch
     glm::quat getCameraOrientation () const;
+
     const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
     void setAngularVelocity(glm::vec3 angularVelocity) { _angularVelocity = angularVelocity; }
     
