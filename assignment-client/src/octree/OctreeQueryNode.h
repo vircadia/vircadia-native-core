@@ -83,7 +83,7 @@ public:
     
     OctreeSceneStats stats;
     
-    void initializeOctreeSendThread(OctreeServer* octreeServer, const QUuid& nodeUUID);
+    void initializeOctreeSendThread(OctreeServer* octreeServer, SharedNodePointer node);
     bool isOctreeSendThreadInitalized() { return _octreeSendThread; }
     
     void dumpOutOfView();
