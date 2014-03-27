@@ -170,6 +170,8 @@ private:
     // Add sounds that we want the user to not hear themselves, by adding on top of mic input signal
     void addProceduralSounds(int16_t* monoInput, int numSamples);
     
+    bool switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo);
+    bool switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo);
 };
 
 
