@@ -21,8 +21,9 @@ quint64 endSceneSleepTime = 0;
 
 OctreeSendThread::OctreeSendThread(OctreeServer* myServer, SharedNodePointer node) :
     _myServer(myServer),
-    _node(node),
+    _nodeUUID(node->getUUID()),
     _packetData(),
+    _nodeMissingCount(0),
     _processLock(),
     _isShuttingDown(false)
 {
@@ -43,7 +44,6 @@ OctreeSendThread::~OctreeSendThread() {
     }
     qDebug() << qPrintable(safeServerName)  << "server [" << _myServer << "]: client disconnected "
                                             "- ending sending thread [" << this << "]";
-    _node.clear();
     OctreeServer::clientDisconnected();
 }
 
@@ -72,13 +72,28 @@ bool OctreeSendThread::process() {
 
     // don't do any send processing until the initial load of the octree is complete...
     if (_myServer->isInitialLoadComplete()) {
-        if (!_node.isNull()) {
-            OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(_node->getLinkedData());
+        SharedNodePointer node = NodeList::getInstance()->nodeWithUUID(_nodeUUID, false);
+        if (node) {
+            _nodeMissingCount = 0;
+            OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(node->getLinkedData());
 
             // Sometimes the node data has not yet been linked, in which case we can't really do anything
             if (nodeData && !nodeData->isShuttingDown()) {
                 bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
-                packetDistributor(_node, nodeData, viewFrustumChanged);
+                packetDistributor(node, nodeData, viewFrustumChanged);
+            }
+        } else {
+            _nodeMissingCount++;
+            const int MANY_FAILED_LOCKS = 1;
+            if (_nodeMissingCount >= MANY_FAILED_LOCKS) {
+
+                QString safeServerName("Octree");
+                if (_myServer) {
+                    safeServerName = _myServer->getMyServerName();
+                }
+                
+                qDebug() << qPrintable(safeServerName)  << "server: sending thread [" << this << "]"
+                        << "failed to get nodeWithUUID() " << _nodeUUID <<". Failed:" << _nodeMissingCount << "times";
             }
         }
     }

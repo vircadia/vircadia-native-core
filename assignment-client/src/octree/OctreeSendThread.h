@@ -38,14 +38,15 @@ protected:
     virtual bool process();
 
 private:
-    SharedNodePointer _node;
     OctreeServer* _myServer;
+    QUuid _nodeUUID;
 
     int handlePacketSend(const SharedNodePointer& node, OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent);
     int packetDistributor(const SharedNodePointer& node, OctreeQueryNode* nodeData, bool viewFrustumChanged);
 
     OctreePacketData _packetData;
     
+    int _nodeMissingCount;
     QMutex _processLock; // don't allow us to have our nodeData, or our thread to be deleted while we're processing
     bool _isShuttingDown;
 };

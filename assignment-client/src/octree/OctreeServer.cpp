@@ -1160,7 +1160,6 @@ QString OctreeServer::getStatusLink() {
 }
 
 void OctreeServer::sendStatsPacket() {
-
     // TODO: we have too many stats to fit in a single MTU... so for now, we break it into multiple JSON objects and
     // send them separately. What we really should do is change the NodeList::sendStatsToDomainServer() to handle the
     // the following features:
@@ -1241,59 +1240,78 @@ QMap<OctreeSendThread*, quint64> OctreeServer::_threadsDidPacketDistributor;
 QMap<OctreeSendThread*, quint64> OctreeServer::_threadsDidHandlePacketSend;
 QMap<OctreeSendThread*, quint64> OctreeServer::_threadsDidCallWriteDatagram;
 
+QMutex OctreeServer::_threadsDidProcessMutex;
+QMutex OctreeServer::_threadsDidPacketDistributorMutex;
+QMutex OctreeServer::_threadsDidHandlePacketSendMutex;
+QMutex OctreeServer::_threadsDidCallWriteDatagramMutex;
+
 
 void OctreeServer::didProcess(OctreeSendThread* thread) {
+    QMutexLocker locker(&_threadsDidProcessMutex);
     _threadsDidProcess[thread] = usecTimestampNow();
 }
 
 void OctreeServer::didPacketDistributor(OctreeSendThread* thread) {
+    QMutexLocker locker(&_threadsDidPacketDistributorMutex);
     _threadsDidPacketDistributor[thread] = usecTimestampNow();
 }
 
 void OctreeServer::didHandlePacketSend(OctreeSendThread* thread) {
+    QMutexLocker locker(&_threadsDidHandlePacketSendMutex);
     _threadsDidHandlePacketSend[thread] = usecTimestampNow();
 }
 
 void OctreeServer::didCallWriteDatagram(OctreeSendThread* thread) {
+    QMutexLocker locker(&_threadsDidCallWriteDatagramMutex);
     _threadsDidCallWriteDatagram[thread] = usecTimestampNow();
 }
 
 
 void OctreeServer::stopTrackingThread(OctreeSendThread* thread) {
+    QMutexLocker lockerA(&_threadsDidProcessMutex);
+    QMutexLocker lockerB(&_threadsDidPacketDistributorMutex);
+    QMutexLocker lockerC(&_threadsDidHandlePacketSendMutex);
+    QMutexLocker lockerD(&_threadsDidCallWriteDatagramMutex);
+
     _threadsDidProcess.remove(thread);
     _threadsDidPacketDistributor.remove(thread);
     _threadsDidHandlePacketSend.remove(thread);
+    _threadsDidCallWriteDatagram.remove(thread);
 }
 
-int howManyThreadsDidSomething(QMap<OctreeSendThread*, quint64>& something, quint64 since) {
-    if (since == 0) {
-        return something.size();
-    }
+int howManyThreadsDidSomething(QMutex& mutex, QMap<OctreeSendThread*, quint64>& something, quint64 since) {
     int count = 0;
-    QMap<OctreeSendThread*, quint64>::const_iterator i = something.constBegin();
-    while (i != something.constEnd()) {
-        if (i.value() > since) {
-            count++;
+    if (mutex.tryLock()) {
+        if (since == 0) {
+            count = something.size();
+        } else {
+            QMap<OctreeSendThread*, quint64>::const_iterator i = something.constBegin();
+            while (i != something.constEnd()) {
+                if (i.value() > since) {
+                    count++;
+                }
+                ++i;
+            }
         }
-        ++i;
+        mutex.unlock();
     }
     return count;
 }
 
 
 int OctreeServer::howManyThreadsDidProcess(quint64 since) {
-    return howManyThreadsDidSomething(_threadsDidProcess, since);
+    return howManyThreadsDidSomething(_threadsDidProcessMutex, _threadsDidProcess, since);
 }
 
 int OctreeServer::howManyThreadsDidPacketDistributor(quint64 since) {
-    return howManyThreadsDidSomething(_threadsDidPacketDistributor, since);
+    return howManyThreadsDidSomething(_threadsDidPacketDistributorMutex, _threadsDidPacketDistributor, since);
 }
 
 int OctreeServer::howManyThreadsDidHandlePacketSend(quint64 since) {
-    return howManyThreadsDidSomething(_threadsDidHandlePacketSend, since);
+    return howManyThreadsDidSomething(_threadsDidHandlePacketSendMutex, _threadsDidHandlePacketSend, since);
 }
 
 int OctreeServer::howManyThreadsDidCallWriteDatagram(quint64 since) {
-    return howManyThreadsDidSomething(_threadsDidCallWriteDatagram, since);
+    return howManyThreadsDidSomething(_threadsDidCallWriteDatagramMutex, _threadsDidCallWriteDatagram, since);
 }
 
