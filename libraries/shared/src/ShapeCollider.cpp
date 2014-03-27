@@ -86,7 +86,8 @@ bool sphereCapsule(const SphereShape* sphereA, const CapsuleShape* capsuleB, Col
     if (absAxialDistance < totalRadius + capsuleB->getHalfHeight()) {
         glm::vec3 radialAxis = BA + axialDistance * capsuleAxis; // points from A to axis of B
         float radialDistance2 = glm::length2(radialAxis);
-        if (radialDistance2 > totalRadius * totalRadius) {
+        float totalRadius2 = totalRadius * totalRadius;
+        if (radialDistance2 > totalRadius2) {
             // sphere is too far from capsule axis
             return false;
         }
@@ -95,6 +96,9 @@ bool sphereCapsule(const SphereShape* sphereA, const CapsuleShape* capsuleB, Col
             float sign = (axialDistance > 0.f) ? 1.f : -1.f;
             radialAxis = BA + (sign * capsuleB->getHalfHeight()) * capsuleAxis;
             radialDistance2 = glm::length2(radialAxis);
+            if (radialDistance2 > totalRadius2) {
+                return false;
+            }
         }
         if (radialDistance2 > EPSILON * EPSILON) {
             CollisionInfo* collision = collisions.getNewCollision();
@@ -147,7 +151,8 @@ bool capsuleSphere(const CapsuleShape* capsuleA, const SphereShape* sphereB, Col
     if (absAxialDistance < totalRadius + capsuleA->getHalfHeight()) {
         glm::vec3 radialAxis = AB + axialDistance * capsuleAxis; // from sphereB to axis of capsuleA
         float radialDistance2 = glm::length2(radialAxis);
-        if (radialDistance2 > totalRadius * totalRadius) {
+        float totalRadius2 = totalRadius * totalRadius;
+        if (radialDistance2 > totalRadius2) {
             // sphere is too far from capsule axis
             return false;
         }
@@ -162,6 +167,9 @@ bool capsuleSphere(const CapsuleShape* capsuleA, const SphereShape* sphereB, Col
             closestApproach = capsuleA->getPosition() + (sign * capsuleA->getHalfHeight()) * capsuleAxis;
             radialAxis = closestApproach - sphereB->getPosition();
             radialDistance2 = glm::length2(radialAxis);
+            if (radialDistance2 > totalRadius2) {
+                return false;
+            }
         }
         if (radialDistance2 > EPSILON * EPSILON) {
             CollisionInfo* collision = collisions.getNewCollision();
