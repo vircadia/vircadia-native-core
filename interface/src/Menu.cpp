@@ -393,8 +393,6 @@ void Menu::loadSettings(QSettings* settings) {
     _maxVoxels = loadSetting(settings, "maxVoxels", DEFAULT_MAX_VOXELS_PER_SYSTEM);
     _maxVoxelPacketsPerSecond = loadSetting(settings, "maxVoxelsPPS", DEFAULT_MAX_VOXEL_PPS);
     _voxelSizeScale = loadSetting(settings, "voxelSizeScale", DEFAULT_OCTREE_SIZE_SCALE);
-    _avatarLODDistanceMultiplier = loadSetting(settings, "avatarLODDistanceMultiplier",
-        DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER);
     _boundaryLevelAdjust = loadSetting(settings, "boundaryLevelAdjust", 0);
 
     settings->beginGroup("View Frustum Offset Camera");
@@ -434,7 +432,6 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("maxVoxels", _maxVoxels);
     settings->setValue("maxVoxelsPPS", _maxVoxelPacketsPerSecond);
     settings->setValue("voxelSizeScale", _voxelSizeScale);
-    settings->setValue("avatarLODDistanceMultiplier", _avatarLODDistanceMultiplier);
     settings->setValue("boundaryLevelAdjust", _boundaryLevelAdjust);
     settings->beginGroup("View Frustum Offset Camera");
     settings->setValue("viewFrustumOffsetYaw", _viewFrustumOffset.yaw);
@@ -1203,7 +1200,10 @@ void Menu::autoAdjustLOD(float currentFPS) {
         if (now - _lastAvatarDetailDrop > ADJUST_AVATAR_LOD_DOWN_DELAY) {
             // attempt to lower the detail in proportion to the fps difference
             float targetFps = (ADJUST_LOD_DOWN_FPS + ADJUST_LOD_UP_FPS) * 0.5f;
-            _avatarLODDistanceMultiplier *= (targetFps / _fastFPSAverage.getAverage()); 
+            float averageFps = _fastFPSAverage.getAverage();
+            const float MAXIMUM_MULTIPLIER_SCALE = 2.0f;
+            _avatarLODDistanceMultiplier *= (averageFps < EPSILON) ? MAXIMUM_MULTIPLIER_SCALE :
+                qMin(MAXIMUM_MULTIPLIER_SCALE, targetFps / averageFps);
             _lastAvatarDetailDrop = now;
         }
     } else if (_fastFPSAverage.getAverage() > ADJUST_LOD_UP_FPS) {
