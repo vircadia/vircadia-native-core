@@ -1249,6 +1249,12 @@ void Menu::autoAdjustLOD(float currentFPS) {
     }
 }
 
+void Menu::resetLODAdjust() {
+    _fpsAverage.reset();
+    _fastFPSAverage.reset();
+    _lastAvatarDetailDrop = _lastAdjust = usecTimestampNow();
+}
+
 void Menu::setVoxelSizeScale(float sizeScale) {
     _voxelSizeScale = sizeScale;
 }
