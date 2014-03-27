@@ -48,25 +48,27 @@ OctreeSendThread::~OctreeSendThread() {
 }
 
 void OctreeSendThread::setIsShuttingDown() {
-    QMutexLocker locker(&_processLock); // this will cause us to wait till the process loop is complete
     _isShuttingDown = true;
     OctreeServer::stopTrackingThread(this);
+    
+    // this will cause us to wait till the process loop is complete, we do this after we change _isShuttingDown
+    QMutexLocker locker(&_processLock); 
 }
 
 
 bool OctreeSendThread::process() {
+    if (_isShuttingDown) {
+        return false; // exit early if we're shutting down
+    }
+
     OctreeServer::didProcess(this);
 
     float lockWaitElapsedUsec = OctreeServer::SKIP_TIME;
     quint64 lockWaitStart = usecTimestampNow();
-    QMutexLocker locker(&_processLock);
+    _processLock.lock();
     quint64 lockWaitEnd = usecTimestampNow();
     lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
     OctreeServer::trackProcessWaitTime(lockWaitElapsedUsec);
-    
-    if (_isShuttingDown) {
-        return false; // exit early if we're shutting down
-    }
     
     quint64  start = usecTimestampNow();
 
@@ -96,6 +98,12 @@ bool OctreeSendThread::process() {
                         << "failed to get nodeWithUUID() " << _nodeUUID <<". Failed:" << _nodeMissingCount << "times";
             }
         }
+    }
+
+    _processLock.unlock();
+    
+    if (_isShuttingDown) {
+        return false; // exit early if we're shutting down
     }
 
     // Only sleep if we're still running and we got the lock last time we tried, otherwise try to get the lock asap
