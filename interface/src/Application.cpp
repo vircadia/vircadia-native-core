@@ -3715,6 +3715,11 @@ void Application::takeSnapshot() {
 
     QString fileName = Snapshot::saveSnapshot(_glWidget, _myAvatar);
 
+    AccountManager& accountManager = AccountManager::getInstance();
+    if (!accountManager.isLoggedIn()) {
+        return;
+    }
+
     if (!_snapshotShareDialog) {
         _snapshotShareDialog = new SnapshotShareDialog(fileName, _glWidget);
     }
