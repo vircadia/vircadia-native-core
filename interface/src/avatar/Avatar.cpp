@@ -313,9 +313,7 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 void Avatar::renderBody(RenderMode renderMode) {    
     if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         // render the billboard until both models are loaded
-        if (renderMode != SHADOW_RENDER_MODE) {
-            renderBillboard();
-        }
+        renderBillboard();
         return;
     }
     _skeletonModel.render(1.0f, renderMode == SHADOW_RENDER_MODE);
