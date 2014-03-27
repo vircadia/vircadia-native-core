@@ -288,9 +288,9 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
             }
             return maxAvailableSize;
         }
-        _headData->setYaw(headYaw);
-        _headData->setPitch(headPitch);
-        _headData->setRoll(headRoll);
+        _headData->setBaseYaw(headYaw);
+        _headData->setBasePitch(headPitch);
+        _headData->setBaseRoll(headRoll);
     } // 6 bytes
         
     // Head lean (relative to pelvis)
