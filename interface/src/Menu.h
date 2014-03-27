@@ -211,6 +211,7 @@ private:
     quint64 _lastAdjust;
     quint64 _lastAvatarDetailDrop;
     SimpleMovingAverage _fpsAverage;
+    SimpleMovingAverage _fastFPSAverage;
     QAction* _loginAction;
     QAction* _chatAction;
 };
