@@ -44,6 +44,8 @@ public:
     void setAverageLoudness(float averageLoudness) { _averageLoudness = averageLoudness; }
     void setReturnToCenter (bool returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     void setRenderLookatVectors(bool onOff) { _renderLookatVectors = onOff; }
+    void setLeanSideways(float leanSideways) { _leanSideways = leanSideways; }
+    void setLeanForward(float leanForward) { _leanForward = leanForward; }
     
     /// \return orientationBody * orientationBase+Delta
     glm::quat getFinalOrientation() const;
@@ -61,6 +63,10 @@ public:
     glm::vec3 getRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getUpDirection() const { return getOrientation() * IDENTITY_UP; }
     glm::vec3 getFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
+    float getLeanSideways() const { return _leanSideways; }
+    float getLeanForward() const { return _leanForward; }
+    float getFinalLeanSideways() const { return _leanSideways + _deltaLeanSideways; }
+    float getFinalLeanForward() const { return _leanForward + _deltaLeanForward; }
     
     glm::quat getEyeRotation(const glm::vec3& eyePosition) const;
     
@@ -71,7 +77,7 @@ public:
     float getAverageLoudness() const { return _averageLoudness; }
     glm::vec3 calculateAverageEyePosition() { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
     
-    /// Returns the point about which scaling occurs.
+    /// \return the point about which scaling occurs.
     glm::vec3 getScalePivot() const;
 
     void setDeltaPitch(float pitch) { _deltaPitch = pitch; }
@@ -86,6 +92,9 @@ public:
     virtual float getFinalPitch() const;
     virtual float getFinalYaw() const;
     virtual float getFinalRoll() const;
+
+    void relaxLean(float deltaTime);
+    void addLeanDeltas(float sideways, float forward);
     
 private:
     // disallow copies of the Head, copy of owning Avatar is disallowed too
@@ -110,10 +119,14 @@ private:
     float _rightEyeBlinkVelocity;
     float _timeWithoutTalking;
 
-    // delta angles for local head rotation
+    // delta angles for local head rotation (driven by hardware input)
     float _deltaPitch;
     float _deltaYaw;
     float _deltaRoll;
+
+    // delta lean angles for lean perturbations (driven by collisions)
+    float _deltaLeanSideways;
+    float _deltaLeanForward;
 
     bool _isCameraMoving;
     FaceModel _faceModel;

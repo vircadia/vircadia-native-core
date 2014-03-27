@@ -32,10 +32,6 @@ public:
     virtual ~HeadData() { };
     
     // degrees
-    float getLeanSideways() const { return _leanSideways; }
-    void setLeanSideways(float leanSideways) { _leanSideways = leanSideways; }
-    float getLeanForward() const { return _leanForward; }
-    void setLeanForward(float leanForward) { _leanForward = leanForward; }
     float getBaseYaw() const { return _baseYaw; }
     void setBaseYaw(float yaw) { _baseYaw = glm::clamp(yaw, MIN_HEAD_YAW, MAX_HEAD_YAW); }
     float getBasePitch() const { return _basePitch; }
@@ -64,7 +60,6 @@ public:
     void addYaw(float yaw);
     void addPitch(float pitch);
     void addRoll(float roll);
-    void addLean(float sideways, float forwards);
     
     const glm::vec3& getLookAtPosition() const { return _lookAtPosition; }
     void setLookAtPosition(const glm::vec3& lookAtPosition) { _lookAtPosition = lookAtPosition; }

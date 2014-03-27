@@ -72,11 +72,15 @@ void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes)
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         for (int i = 0; i < _jointStates.size(); i++) {
             const FBXJoint& joint = geometry.joints[i];
+            int parentIndex = joint.parentIndex;
             if (i == jointIndex) {
                 // this shape is the hand
                 shapes.push_back(_shapes[i]);
+                if (parentIndex != -1) {
+                    // also add the forearm
+                    shapes.push_back(_shapes[parentIndex]);
+                }
             } else {
-                int parentIndex = joint.parentIndex;
                 while (parentIndex != -1) {
                     if (parentIndex == jointIndex) {
                         // this shape is a child of the hand
@@ -199,8 +203,8 @@ void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, const
     glm::mat3 axes = glm::mat3_cast(_rotation);
     glm::mat3 inverse = glm::mat3(glm::inverse(parentState.transform * glm::translate(state.translation) * 
         joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation)));
-    state.rotation = glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getLeanSideways(), 
-        glm::normalize(inverse * axes[2])) * glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getLeanForward(), 
+    state.rotation = glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanSideways(), 
+        glm::normalize(inverse * axes[2])) * glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanForward(), 
         glm::normalize(inverse * axes[0])) * joint.rotation;
 }
 

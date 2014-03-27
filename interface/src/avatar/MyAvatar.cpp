@@ -93,7 +93,13 @@ void MyAvatar::setMoveTarget(const glm::vec3 moveTarget) {
 }
 
 void MyAvatar::update(float deltaTime) {
+    Head* head = getHead();
+    head->relaxLean(deltaTime);
     updateFromGyros(deltaTime);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::MoveWithLean)) {
+        // Faceshift drive is enabled, set the avatar drive based on the head position
+        moveWithLean();
+    }
 
     // Update head mouse from faceshift if active
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
@@ -111,7 +117,6 @@ void MyAvatar::update(float deltaTime) {
         //_headMouseY = glm::clamp(_headMouseY, 0, _glWidget->height());
     }
 
-    Head* head = getHead();
     if (OculusManager::isConnected()) {
         float yaw, pitch, roll; // these angles will be in radians
         OculusManager::getEulerAngles(yaw, pitch, roll);
@@ -360,17 +365,7 @@ void MyAvatar::updateFromGyros(float deltaTime) {
                 }
             }
         }
-    } else {
-        // restore rotation, lean to neutral positions
-        const float RESTORE_PERIOD = 0.25f;   // seconds
-        float restorePercentage = glm::clamp(deltaTime/RESTORE_PERIOD, 0.f, 1.f);
-        head->setDeltaPitch(glm::mix(head->getDeltaPitch(), 0.0f, restorePercentage));
-        head->setDeltaYaw(glm::mix(head->getDeltaYaw(), 0.0f, restorePercentage));
-        head->setDeltaRoll(glm::mix(head->getDeltaRoll(), 0.0f, restorePercentage));
-        head->setLeanSideways(glm::mix(head->getLeanSideways(), 0.0f, restorePercentage));
-        head->setLeanForward(glm::mix(head->getLeanForward(), 0.0f, restorePercentage));
-        return;
-    }
+    } 
 
     // Set the rotation of the avatar's head (as seen by others, not affecting view frustum)
     // to be scaled.  Pitch is greater to emphasize nodding behavior / synchrony.
@@ -389,13 +384,11 @@ void MyAvatar::updateFromGyros(float deltaTime) {
         -MAX_LEAN, MAX_LEAN));
     head->setLeanForward(glm::clamp(glm::degrees(atanf(relativePosition.z * _leanScale / TORSO_LENGTH)),
         -MAX_LEAN, MAX_LEAN));
+}
 
-    // if Faceshift drive is enabled, set the avatar drive based on the head position
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::MoveWithLean)) {
-        return;
-    }
-
+void MyAvatar::moveWithLean() {
     //  Move with Lean by applying thrust proportional to leaning
+    Head* head = getHead();
     glm::quat orientation = head->getCameraOrientation();
     glm::vec3 front = orientation * IDENTITY_FRONT;
     glm::vec3 right = orientation * IDENTITY_RIGHT;
@@ -1151,4 +1144,22 @@ void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
         setPosition(newPosition);
     }
     
+}
+
+void MyAvatar::applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) {
+    glm::vec3 leverAxis = contactPoint - getPosition();
+    float leverLength = glm::length(leverAxis);
+    if (leverLength > EPSILON) {
+        // compute lean perturbation angles
+        glm::quat bodyRotation = getOrientation();
+        glm::vec3 xAxis = bodyRotation * glm::vec3(1.f, 0.f, 0.f);
+        glm::vec3 zAxis = bodyRotation * glm::vec3(0.f, 0.f, 1.f);
+
+        leverAxis = leverAxis / leverLength;
+        glm::vec3 effectivePenetration = penetration - glm::dot(penetration, leverAxis) * leverAxis;
+        // use the small-angle approximation for sine
+        float sideways = - glm::dot(effectivePenetration, xAxis) / leverLength;
+        float forward = glm::dot(effectivePenetration, zAxis) / leverLength;
+        getHead()->addLeanDeltas(sideways, forward);
+    }
 }

@@ -758,25 +758,6 @@ bool Avatar::collisionWouldMoveAvatar(CollisionInfo& collision) const {
     return false;
 }
 
-void Avatar::applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) {
-    // compute lean angles
-    glm::vec3 leverAxis = contactPoint - getPosition();
-    float leverLength = glm::length(leverAxis);
-    if (leverLength > EPSILON) {
-        glm::quat bodyRotation = getOrientation();
-        glm::vec3 xAxis = bodyRotation * glm::vec3(1.f, 0.f, 0.f);
-        glm::vec3 zAxis = bodyRotation * glm::vec3(0.f, 0.f, 1.f);
-
-        leverAxis = leverAxis / leverLength;
-        glm::vec3 effectivePenetration = penetration - glm::dot(penetration, leverAxis) * leverAxis;
-        // we use the small-angle approximation for sine below to compute the length of 
-        // the opposite side of a narrow right triangle
-        float sideways = - glm::dot(effectivePenetration, xAxis) / leverLength;
-        float forward = glm::dot(effectivePenetration, zAxis) / leverLength;
-        getHead()->addLean(sideways, forward);
-    }
-}
-
 float Avatar::getBoundingRadius() const {
     // TODO: also use head model when computing the avatar's bounding radius
     return _skeletonModel.getBoundingRadius();
