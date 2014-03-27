@@ -42,9 +42,9 @@ public:
     void setBasePitch(float pitch) { _basePitch = glm::clamp(pitch, MIN_HEAD_PITCH, MAX_HEAD_PITCH); }
     float getBaseRoll() const { return _baseRoll; }
     void setBaseRoll(float roll) { _baseRoll = glm::clamp(roll, MIN_HEAD_ROLL, MAX_HEAD_ROLL); }
-    virtual float getTweakedYaw() const { return _baseYaw; }
-    virtual float getTweakedPitch() const { return _basePitch; }
-    virtual float getTweakedRoll() const { return _baseRoll; }
+    virtual float getFinalYaw() const { return _baseYaw; }
+    virtual float getFinalPitch() const { return _basePitch; }
+    virtual float getFinalRoll() const { return _baseRoll; }
 
     glm::quat getOrientation() const;
     void setOrientation(const glm::quat& orientation);

@@ -50,9 +50,9 @@ void FaceModel::maybeUpdateNeckRotation(const JointState& parentState, const FBX
     glm::mat3 axes = glm::mat3_cast(_rotation);
     glm::mat3 inverse = glm::mat3(glm::inverse(parentState.transform * glm::translate(state.translation) *
         joint.preTransform * glm::mat4_cast(joint.preRotation)));
-    state.rotation = glm::angleAxis(- RADIANS_PER_DEGREE * _owningHead->getTweakedRoll(), glm::normalize(inverse * axes[2])) 
-        * glm::angleAxis(RADIANS_PER_DEGREE * _owningHead->getTweakedYaw(), glm::normalize(inverse * axes[1])) 
-        * glm::angleAxis(- RADIANS_PER_DEGREE * _owningHead->getTweakedPitch(), glm::normalize(inverse * axes[0])) 
+    state.rotation = glm::angleAxis(- RADIANS_PER_DEGREE * _owningHead->getFinalRoll(), glm::normalize(inverse * axes[2])) 
+        * glm::angleAxis(RADIANS_PER_DEGREE * _owningHead->getFinalYaw(), glm::normalize(inverse * axes[1])) 
+        * glm::angleAxis(- RADIANS_PER_DEGREE * _owningHead->getFinalPitch(), glm::normalize(inverse * axes[0])) 
         * joint.rotation;
 }
 

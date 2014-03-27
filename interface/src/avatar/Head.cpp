@@ -36,9 +36,9 @@ Head::Head(Avatar* owningAvatar) :
     _leftEyeBlinkVelocity(0.0f),
     _rightEyeBlinkVelocity(0.0f),
     _timeWithoutTalking(0.0f),
-    _pitchTweak(0.f),
-    _yawTweak(0.f),
-    _rollTweak(0.f),
+    _deltaPitch(0.f),
+    _deltaYaw(0.f),
+    _deltaRoll(0.f),
     _isCameraMoving(false),
     _faceModel(this)
 {
@@ -180,7 +180,7 @@ void Head::setScale (float scale) {
 
 glm::quat Head::getFinalOrientation() const {
     return _owningAvatar->getOrientation() * glm::quat(glm::radians(
-                glm::vec3(getTweakedPitch(), getTweakedYaw(), getTweakedRoll() )));
+                glm::vec3(getFinalPitch(), getFinalYaw(), getFinalRoll() )));
 }
 
 glm::quat Head::getCameraOrientation () const {
@@ -197,16 +197,16 @@ glm::vec3 Head::getScalePivot() const {
     return _faceModel.isActive() ? _faceModel.getTranslation() : _position;
 }
 
-float Head::getTweakedYaw() const {
-    return glm::clamp(_baseYaw + _yawTweak, MIN_HEAD_YAW, MAX_HEAD_YAW);
+float Head::getFinalYaw() const {
+    return glm::clamp(_baseYaw + _deltaYaw, MIN_HEAD_YAW, MAX_HEAD_YAW);
 }
 
-float Head::getTweakedPitch() const {
-    return glm::clamp(_basePitch + _pitchTweak, MIN_HEAD_PITCH, MAX_HEAD_PITCH);
+float Head::getFinalPitch() const {
+    return glm::clamp(_basePitch + _deltaPitch, MIN_HEAD_PITCH, MAX_HEAD_PITCH);
 }
 
-float Head::getTweakedRoll() const {
-    return glm::clamp(_baseRoll + _rollTweak, MIN_HEAD_ROLL, MAX_HEAD_ROLL);
+float Head::getFinalRoll() const {
+    return glm::clamp(_baseRoll + _deltaRoll, MIN_HEAD_ROLL, MAX_HEAD_ROLL);
 }
 
 void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {

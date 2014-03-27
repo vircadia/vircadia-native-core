@@ -74,18 +74,18 @@ public:
     /// Returns the point about which scaling occurs.
     glm::vec3 getScalePivot() const;
 
-    void setPitchTweak(float pitch) { _pitchTweak = pitch; }
-    float getPitchTweak() const { return _pitchTweak; }
+    void setDeltaPitch(float pitch) { _deltaPitch = pitch; }
+    float getDeltaPitch() const { return _deltaPitch; }
 
-    void setYawTweak(float yaw) { _yawTweak = yaw; }
-    float getYawTweak() const { return _yawTweak; }
+    void setDeltaYaw(float yaw) { _deltaYaw = yaw; }
+    float getDeltaYaw() const { return _deltaYaw; }
     
-    void setRollTweak(float roll) { _rollTweak = roll; }
-    float getRollTweak() const { return _rollTweak; }
+    void setDeltaRoll(float roll) { _deltaRoll = roll; }
+    float getDeltaRoll() const { return _deltaRoll; }
     
-    virtual float getTweakedPitch() const;
-    virtual float getTweakedYaw() const;
-    virtual float getTweakedRoll() const;
+    virtual float getFinalPitch() const;
+    virtual float getFinalYaw() const;
+    virtual float getFinalRoll() const;
     
 private:
     // disallow copies of the Head, copy of owning Avatar is disallowed too
@@ -111,9 +111,9 @@ private:
     float _timeWithoutTalking;
 
     // tweaked angles affect the rendered head, but not the camera
-    float _pitchTweak;
-    float _yawTweak;
-    float _rollTweak;
+    float _deltaPitch;
+    float _deltaYaw;
+    float _deltaRoll;
 
     bool _isCameraMoving;
     FaceModel _faceModel;
