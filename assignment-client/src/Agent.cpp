@@ -124,6 +124,7 @@ void Agent::readPendingDatagrams() {
                 
                 // let this continue through to the NodeList so it updates last heard timestamp
                 // for the sending audio mixer
+                NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
             } else {
                 NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
             }

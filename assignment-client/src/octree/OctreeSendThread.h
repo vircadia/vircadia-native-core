@@ -21,7 +21,7 @@
 class OctreeSendThread : public GenericThread {
     Q_OBJECT
 public:
-    OctreeSendThread(const QUuid& nodeUUID, OctreeServer* myServer);
+    OctreeSendThread(OctreeServer* myServer, SharedNodePointer node);
     virtual ~OctreeSendThread();
     
     void setIsShuttingDown();
@@ -38,7 +38,7 @@ protected:
     virtual bool process();
 
 private:
-    QUuid _nodeUUID;
+    SharedNodePointer _node;
     OctreeServer* _myServer;
 
     int handlePacketSend(const SharedNodePointer& node, OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent);
@@ -46,7 +46,6 @@ private:
 
     OctreePacketData _packetData;
     
-    int _nodeMissingCount;
     QMutex _processLock; // don't allow us to have our nodeData, or our thread to be deleted while we're processing
     bool _isShuttingDown;
 };

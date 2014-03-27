@@ -179,8 +179,6 @@ function updateBehavior(deltaTime) {
 
 Script.update.connect(updateBehavior);
 
-var SOUND_BASE_URL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/"
-
 function loadSounds() {
   var sound_filenames = ["AB1.raw", "Anchorman2.raw", "B1.raw", "B1.raw", "Bale1.raw", "Bandcamp.raw",
     "Big1.raw", "Big2.raw", "Brian1.raw", "Buster1.raw", "CES1.raw", "CES2.raw", "CES3.raw", "CES4.raw", 
@@ -190,6 +188,8 @@ function loadSounds() {
     "Spicoli1.raw", "Supernatural.raw", "Swearengen1.raw", "TheDude.raw", "Tony.raw", "Triumph1.raw", "Uma1.raw",
     "Walken1.raw", "Walken2.raw", "Z1.raw", "Z2.raw"
   ];
+  
+  var SOUND_BASE_URL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/";
   
   for (var i = 0; i < sound_filenames.length; i++) {
       sounds.push(new Sound(SOUND_BASE_URL + sound_filenames[i]));

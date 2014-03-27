@@ -37,6 +37,10 @@ public:
     static void setRequestLimit(int limit) { _requestLimit = limit; }
     static int getRequestLimit() { return _requestLimit; }
 
+    static const QList<Resource*>& getLoadingRequests() { return _loadingRequests; }
+
+    static int getPendingRequestCount() { return _pendingRequests.size(); }
+
     ResourceCache(QObject* parent = NULL);
     virtual ~ResourceCache();
 
@@ -58,7 +62,7 @@ protected:
     void addUnusedResource(const QSharedPointer<Resource>& resource);
     
     static void attemptRequest(Resource* resource);
-    static void requestCompleted();
+    static void requestCompleted(Resource* resource);
 
 private:
     
@@ -70,6 +74,7 @@ private:
     static QNetworkAccessManager* _networkAccessManager;
     static int _requestLimit;
     static QList<QPointer<Resource> > _pendingRequests;
+    static QList<Resource*> _loadingRequests;
 };
 
 /// Base class for resources.
@@ -101,6 +106,15 @@ public:
 
     /// Checks whether the resource has loaded.
     bool isLoaded() const { return _loaded; }
+
+    /// For loading resources, returns the number of bytes received.
+    qint64 getBytesReceived() const { return _bytesReceived; }
+    
+    /// For loading resources, returns the number of total bytes (or zero if unknown).
+    qint64 getBytesTotal() const { return _bytesTotal; }
+
+    /// For loading resources, returns the load progress.
+    float getProgress() const { return (_bytesTotal == 0) ? 0.0f : (float)_bytesReceived / _bytesTotal; }
 
     void setSelf(const QWeakPointer<Resource>& self) { _self = self; }
 
@@ -152,6 +166,7 @@ private:
     int _lruKey;
     QNetworkReply* _reply;
     QTimer* _replyTimer;
+    int _index;
     qint64 _bytesReceived;
     qint64 _bytesTotal;
     int _attempts;

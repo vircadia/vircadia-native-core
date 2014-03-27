@@ -9,6 +9,7 @@
 #include <NodeList.h>
 
 #include <GeometryUtil.h>
+#include <StreamUtils.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -109,8 +110,6 @@ void Hand::collideAgainstAvatarOld(Avatar* avatar, bool isMyHand) {
             for (int j = 0; j < handCollisions.size(); ++j) {
                 CollisionInfo* collision = handCollisions.getCollision(j);
                 if (isMyHand) {
-                    // we resolve the hand from collision when it belongs to MyAvatar AND the other Avatar is 
-                    // not expected to respond to the collision (hand hit unmovable part of their Avatar)
                     totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
                 }
             }
@@ -128,55 +127,37 @@ void Hand::collideAgainstAvatar(Avatar* avatar, bool isMyHand) {
         return;
     }
 
-    // 2 = NUM_HANDS
-    int palmIndices[2];
-    getLeftRightPalmIndices(*palmIndices, *(palmIndices + 1));
-
     const SkeletonModel& skeletonModel = _owningAvatar->getSkeletonModel();
     int jointIndices[2];
     jointIndices[0] = skeletonModel.getLeftHandJointIndex();
     jointIndices[1] = skeletonModel.getRightHandJointIndex();
 
-    palmIndices[1] = -1;    // adebug temporarily disable right hand
-    jointIndices[1] = -1;   // adebug temporarily disable right hand
-
-    for (size_t i = 0; i < 1; i++) {
-        int palmIndex = palmIndices[i];
+    for (size_t i = 0; i < 2; i++) {
         int jointIndex = jointIndices[i];
-        if (palmIndex == -1 || jointIndex == -1) {
+        if (jointIndex < 0) {
             continue;
-        }
-        PalmData& palm = _palms[palmIndex];
-        if (!palm.isActive()) {
-            continue;
-        }
-        if (isMyHand && Menu::getInstance()->isOptionChecked(MenuOption::PlaySlaps)) {
-            playSlaps(palm, avatar);
         }
 
         handCollisions.clear();
         QVector<const Shape*> shapes;
         skeletonModel.getHandShapes(jointIndex, shapes);
-        bool collided = isMyHand ? avatar->findCollisions(shapes, handCollisions) : avatar->findCollisions(shapes, handCollisions);
-        if (collided) {
-        //if (avatar->findCollisions(shapes, handCollisions)) {
-            glm::vec3 averagePenetration;
+
+        if (avatar->findCollisions(shapes, handCollisions)) {
+            glm::vec3 totalPenetration(0.f);
             glm::vec3 averageContactPoint;
             for (int j = 0; j < handCollisions.size(); ++j) {
                 CollisionInfo* collision = handCollisions.getCollision(j);
-                averagePenetration += collision->_penetration;
+                totalPenetration += collision->_penetration;
                 averageContactPoint += collision->_contactPoint;
             }
-            averagePenetration /= float(handCollisions.size());
             if (isMyHand) {
                 // our hand against other avatar 
-                // for now we resolve it to test shapes/collisions
-                // TODO: only partially resolve this penetration
-                palm.addToPosition(-averagePenetration);
+                // TODO: resolve this penetration when we don't think the other avatar will yield
+                //palm.addToPenetration(averagePenetration);
             } else {
                 // someone else's hand against MyAvatar
-                // TODO: submit collision info to MyAvatar which should lean accordingly
                 averageContactPoint /= float(handCollisions.size());
+                avatar->applyCollision(averageContactPoint, totalPenetration);
             }
         }
     }
@@ -192,7 +173,7 @@ void Hand::collideAgainstOurself() {
     float scaledPalmRadius = PALM_COLLISION_RADIUS * _owningAvatar->getScale();
     
     const Model& skeletonModel = _owningAvatar->getSkeletonModel();
-    for (size_t i = 0; i < getNumPalms(); i++) {
+    for (int i = 0; i < int(getNumPalms()); i++) {
         PalmData& palm = getPalms()[i];
         if (!palm.isActive()) {
             continue;
@@ -210,8 +191,15 @@ void Hand::collideAgainstOurself() {
                 totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
             }
             // resolve penetration
-            palm.addToPosition(-totalPenetration);
+            palm.addToPenetration(totalPenetration);
         }
+    }
+}
+
+void Hand::resolvePenetrations() {
+    for (size_t i = 0; i < getNumPalms(); ++i) {
+        PalmData& palm = getPalms()[i];
+        palm.resolvePenetrations();
     }
 }
 
@@ -383,21 +371,5 @@ void Hand::renderLeapHands(bool isMine) {
     glEnable(GL_DEPTH_TEST);
 
     glPopMatrix();
-}
-
-
-void Hand::setLeapHands(const std::vector<glm::vec3>& handPositions,
-                          const std::vector<glm::vec3>& handNormals) {
-    for (size_t i = 0; i < getNumPalms(); ++i) {
-        PalmData& palm = getPalms()[i];
-        if (i < handPositions.size()) {
-            palm.setActive(true);
-            palm.setRawPosition(handPositions[i]);
-            palm.setRawNormal(handNormals[i]);
-        }
-        else {
-            palm.setActive(false);
-        }
-    }
 }
 
