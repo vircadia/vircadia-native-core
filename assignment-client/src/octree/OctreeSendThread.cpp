@@ -19,11 +19,10 @@
 quint64 startSceneSleepTime = 0;
 quint64 endSceneSleepTime = 0;
 
-OctreeSendThread::OctreeSendThread(const QUuid& nodeUUID, OctreeServer* myServer) :
-    _nodeUUID(nodeUUID),
+OctreeSendThread::OctreeSendThread(OctreeServer* myServer, SharedNodePointer node) :
     _myServer(myServer),
+    _node(node),
     _packetData(),
-    _nodeMissingCount(0),
     _processLock(),
     _isShuttingDown(false)
 {
@@ -44,7 +43,8 @@ OctreeSendThread::~OctreeSendThread() {
     }
     qDebug() << qPrintable(safeServerName)  << "server [" << _myServer << "]: client disconnected "
                                             "- ending sending thread [" << this << "]";
-    OctreeServer::clientDisconnected(); 
+    _node.clear();
+    OctreeServer::clientDisconnected();
 }
 
 void OctreeSendThread::setIsShuttingDown() {
@@ -68,35 +68,18 @@ bool OctreeSendThread::process() {
         return false; // exit early if we're shutting down
     }
     
-    const int MAX_NODE_MISSING_CHECKS = 10;
-    if (_nodeMissingCount > MAX_NODE_MISSING_CHECKS) {
-        qDebug() << "our target node:" << _nodeUUID << "has been missing the last" << _nodeMissingCount 
-                        << "times we checked, we are going to stop attempting to send.";
-        return false; // stop processing and shutdown, our node no longer exists
-    }
-
     quint64  start = usecTimestampNow();
 
     // don't do any send processing until the initial load of the octree is complete...
     if (_myServer->isInitialLoadComplete()) {
-    
-        // see if we can get access to our node, but don't wait on the lock, if the nodeList is busy
-        // it might not return a node that is known, but that's ok we can handle that case.
-        SharedNodePointer node = NodeList::getInstance()->nodeWithUUID(_nodeUUID, false);
-
-        if (node) {
-            _nodeMissingCount = 0;
-            OctreeQueryNode* nodeData = NULL;
-
-            nodeData = (OctreeQueryNode*) node->getLinkedData();
+        if (!_node.isNull()) {
+            OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(_node->getLinkedData());
 
             // Sometimes the node data has not yet been linked, in which case we can't really do anything
             if (nodeData && !nodeData->isShuttingDown()) {
                 bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
-                packetDistributor(node, nodeData, viewFrustumChanged);
+                packetDistributor(_node, nodeData, viewFrustumChanged);
             }
-        } else {
-            _nodeMissingCount++;
         }
     }
 
