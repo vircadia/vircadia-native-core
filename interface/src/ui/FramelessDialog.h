@@ -9,29 +9,27 @@
 #ifndef __hifi__FramelessDialog__
 #define __hifi__FramelessDialog__
 
-#include <QDialog>
+#include <QDockWidget>
 #include <QGridLayout>
 #include <QString>
 #include <QPainter>
 #include <QStyleOptionTitleBar>
 #include <QtCore/QTimer>
 
-class FramelessDialog : public QDialog {
+class FramelessDialog : public QDockWidget {
     Q_OBJECT
     
 public:
     FramelessDialog(QWidget* parent = 0, Qt::WindowFlags flags = 0);
-    virtual ~FramelessDialog();
     void setStyleSheetFile(const QString& fileName);
 
 protected:
+    /*
     virtual void mouseMoveEvent(QMouseEvent* mouseEvent);
     virtual void mousePressEvent(QMouseEvent* mouseEvent);
     virtual void mouseReleaseEvent(QMouseEvent* mouseEvent);
-    virtual void showEvent(QShowEvent* event);
-    void paintEvent(QPaintEvent* event);
-    void timerEvent(QTimerEvent *event);
-
+     */
+    
 private:
     bool _isResizing;
 

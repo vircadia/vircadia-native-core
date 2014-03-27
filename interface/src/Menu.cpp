@@ -714,10 +714,11 @@ void Menu::loginForCurrentDomain() {
 
 void Menu::editPreferences() {
     if (!_preferencesDialog) {
-        _preferencesDialog = new PreferencesDialog(Application::getInstance()->getWindow());
-        _preferencesDialog->show();
+        Application::getInstance()->getWindow()->addDockWidget(Qt::LeftDockWidgetArea, _preferencesDialog = new PreferencesDialog());
+    } else {
+        Application::getInstance()->getWindow()->removeDockWidget(_preferencesDialog);
+        _preferencesDialog->close();
     }
-    _preferencesDialog->raise();
 }
 
 void Menu::goToDomain(const QString newDomain) {
