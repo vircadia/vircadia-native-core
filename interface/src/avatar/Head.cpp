@@ -55,9 +55,6 @@ void Head::reset() {
     _faceModel.reset();
 }
 
-
-
-
 void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     
     //  Update audio trailing average for rendering facial animations
