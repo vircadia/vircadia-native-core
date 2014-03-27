@@ -2503,14 +2503,22 @@ void Application::displayOverlay() {
         }
     }
     
-    const int AUDIO_METER_WIDTH = 300;
+    const int AUDIO_METER_WIDTH = 200;
     const int AUDIO_METER_INSET = 2;
     const int AUDIO_METER_SCALE_WIDTH = AUDIO_METER_WIDTH - 2 * AUDIO_METER_INSET;
     const int AUDIO_METER_HEIGHT = 8;
     const int AUDIO_METER_Y = _glWidget->height() - 40;
     const int AUDIO_METER_X = 25;
     const float CLIPPING_INDICATOR_TIME = 1.0f;
-    float audioLevel = log10(_audio.getLastInputLoudness() + 1.0) / log10(32767.0) * (float)AUDIO_METER_SCALE_WIDTH;
+    const float LOG2 = log(2.f);
+    float audioLevel = 0.f;
+    float loudness = _audio.getLastInputLoudness() + 1.f;
+    float log2loudness = log(loudness) / LOG2;
+    if (loudness < 2048) {
+        audioLevel = (log2loudness / 11.f) * (AUDIO_METER_SCALE_WIDTH / 5.f);
+    } else {
+        audioLevel = (log2loudness - 10.f) * (AUDIO_METER_SCALE_WIDTH / 5.f);
+    }
     bool isClipping = ((_audio.getTimeSinceLastClip() > 0.f) && (_audio.getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME));
 
     if (isClipping) {
