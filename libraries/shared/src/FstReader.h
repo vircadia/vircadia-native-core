@@ -10,11 +10,10 @@
 #ifndef __hifi__FstReader__
 #define __hifi__FstReader__
 
-#include <QTemporaryDir>
-
+class TemporaryDir;
 class QHttpMultiPart;
 
-class FstReader {
+class FstReader : public QObject {
 public:
     FstReader(bool isHead);
     ~FstReader();
@@ -23,7 +22,7 @@ public:
     bool send();
     
 private:
-    QTemporaryDir _zipDir;
+    TemporaryDir* _zipDir;
     int _lodCount;
     int _texturesCount;
     int _totalSize;
