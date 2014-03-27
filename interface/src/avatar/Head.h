@@ -110,7 +110,7 @@ private:
     float _rightEyeBlinkVelocity;
     float _timeWithoutTalking;
 
-    // tweaked angles affect the rendered head, but not the camera
+    // delta angles for local head rotation
     float _deltaPitch;
     float _deltaYaw;
     float _deltaRoll;
