@@ -11,14 +11,12 @@
 varying vec4 shadowColor;
 
 void main(void) {
-    // the shadow color depends on the light product
-    vec4 normal = normalize(gl_ModelViewMatrix * vec4(gl_Normal, 0.0));
-    float lightProduct = dot(normal, gl_LightSource[0].position);
-    shadowColor = mix(vec4(1.0, 1.0, 1.0, 1.0), vec4(0.8, 0.8, 0.8, 1.0), step(0.0, lightProduct));
+    // the shadow color includes only the ambient terms
+    shadowColor = gl_Color * (gl_LightModel.ambient + gl_LightSource[0].ambient);
     
-    // standard diffuse lighting
-    gl_FrontColor = gl_Color * (gl_LightModel.ambient + gl_LightSource[0].ambient +
-        gl_LightSource[0].diffuse * max(0.0, lightProduct));
+    // the normal color includes diffuse
+    vec4 normal = normalize(gl_ModelViewMatrix * vec4(gl_Normal, 0.0));
+    gl_FrontColor = shadowColor + gl_Color * (gl_LightSource[0].diffuse * max(0.0, dot(normal, gl_LightSource[0].position)));
     
     // generate the shadow texture coordinate using the eye position
     vec4 eyePosition = gl_ModelViewMatrix * gl_Vertex;
