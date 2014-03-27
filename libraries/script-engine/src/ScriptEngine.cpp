@@ -463,7 +463,6 @@ void ScriptEngine::timerFired() {
     
     if (!callingTimer->isActive()) {
         // this timer is done, we can kill it
-        qDebug() << "Deleting a single shot timer";
         delete callingTimer;
     }
 }
