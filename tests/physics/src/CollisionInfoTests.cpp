@@ -13,12 +13,17 @@
 
 #include <CollisionInfo.h>
 #include <SharedUtil.h>
+#include <StreamUtils.h>
 
 #include "CollisionInfoTests.h"
-#include "PhysicsTestUtil.h"
 
 
 /*
+
+static glm::vec3 xAxis(1.f, 0.f, 0.f);
+static glm::vec3 xZxis(0.f, 1.f, 0.f);
+static glm::vec3 xYxis(0.f, 0.f, 1.f);
+
 void CollisionInfoTests::rotateThenTranslate() {
     CollisionInfo collision;
     collision._penetration = xAxis;
