@@ -67,8 +67,6 @@ public:
     static Menu* getInstance();
     ~Menu();
 
-    bool isOptionChecked(const QString& menuOption);
-    void setIsOptionChecked(const QString& menuOption, bool isChecked);
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
     
@@ -138,6 +136,8 @@ public slots:
     void removeSeparator(const QString& menuName, const QString& separatorName);
     void addMenuItem(const MenuItemProperties& properties);
     void removeMenuItem(const QString& menuName, const QString& menuitem);
+    bool isOptionChecked(const QString& menuOption);
+    void setIsOptionChecked(const QString& menuOption, bool isChecked);
 
 private slots:
     void aboutApp();
@@ -216,6 +216,7 @@ private:
     quint64 _lastAdjust;
     quint64 _lastAvatarDetailDrop;
     SimpleMovingAverage _fpsAverage;
+    SimpleMovingAverage _fastFPSAverage;
     QAction* _loginAction;
     QPointer<PreferencesDialog> _preferencesDialog;
     QAction* _chatAction;

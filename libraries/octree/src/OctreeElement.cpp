@@ -29,6 +29,11 @@ quint64 OctreeElement::_externalChildrenMemoryUsage = 0;
 quint64 OctreeElement::_voxelNodeCount = 0;
 quint64 OctreeElement::_voxelNodeLeafCount = 0;
 
+void OctreeElement::resetPopulationStatistics() {
+    _voxelNodeCount = 0;
+    _voxelNodeLeafCount = 0;
+}
+
 OctreeElement::OctreeElement() {
     // Note: you must call init() from your subclass, otherwise the OctreeElement will not be properly
     // initialized. You will see DEADBEEF in your memory debugger if you have not properly called init()

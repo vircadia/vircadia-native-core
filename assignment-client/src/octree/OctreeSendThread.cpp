@@ -19,11 +19,10 @@
 quint64 startSceneSleepTime = 0;
 quint64 endSceneSleepTime = 0;
 
-OctreeSendThread::OctreeSendThread(const QUuid& nodeUUID, OctreeServer* myServer) :
-    _nodeUUID(nodeUUID),
+OctreeSendThread::OctreeSendThread(OctreeServer* myServer, SharedNodePointer node) :
     _myServer(myServer),
+    _node(node),
     _packetData(),
-    _nodeMissingCount(0),
     _processLock(),
     _isShuttingDown(false)
 {
@@ -44,51 +43,43 @@ OctreeSendThread::~OctreeSendThread() {
     }
     qDebug() << qPrintable(safeServerName)  << "server [" << _myServer << "]: client disconnected "
                                             "- ending sending thread [" << this << "]";
-    OctreeServer::clientDisconnected(); 
+    _node.clear();
+    OctreeServer::clientDisconnected();
 }
 
 void OctreeSendThread::setIsShuttingDown() {
     QMutexLocker locker(&_processLock); // this will cause us to wait till the process loop is complete
     _isShuttingDown = true;
+    OctreeServer::stopTrackingThread(this);
 }
 
 
 bool OctreeSendThread::process() {
+    OctreeServer::didProcess(this);
+
+    float lockWaitElapsedUsec = OctreeServer::SKIP_TIME;
+    quint64 lockWaitStart = usecTimestampNow();
     QMutexLocker locker(&_processLock);
+    quint64 lockWaitEnd = usecTimestampNow();
+    lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
+    OctreeServer::trackProcessWaitTime(lockWaitElapsedUsec);
     
     if (_isShuttingDown) {
         return false; // exit early if we're shutting down
     }
     
-    const int MAX_NODE_MISSING_CHECKS = 10;
-    if (_nodeMissingCount > MAX_NODE_MISSING_CHECKS) {
-        qDebug() << "our target node:" << _nodeUUID << "has been missing the last" << _nodeMissingCount 
-                        << "times we checked, we are going to stop attempting to send.";
-        return false; // stop processing and shutdown, our node no longer exists
-    }
-
     quint64  start = usecTimestampNow();
 
     // don't do any send processing until the initial load of the octree is complete...
     if (_myServer->isInitialLoadComplete()) {
-    
-        // see if we can get access to our node, but don't wait on the lock, if the nodeList is busy
-        // it might not return a node that is known, but that's ok we can handle that case.
-        SharedNodePointer node = NodeList::getInstance()->nodeWithUUID(_nodeUUID, false);
-
-        if (node) {
-            _nodeMissingCount = 0;
-            OctreeQueryNode* nodeData = NULL;
-
-            nodeData = (OctreeQueryNode*) node->getLinkedData();
+        if (!_node.isNull()) {
+            OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(_node->getLinkedData());
 
             // Sometimes the node data has not yet been linked, in which case we can't really do anything
             if (nodeData && !nodeData->isShuttingDown()) {
                 bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
-                packetDistributor(node, nodeData, viewFrustumChanged);
+                packetDistributor(_node, nodeData, viewFrustumChanged);
             }
-        } else {
-            _nodeMissingCount++;
         }
     }
 
@@ -119,6 +110,8 @@ quint64 OctreeSendThread::_totalPackets = 0;
 
 int OctreeSendThread::handlePacketSend(const SharedNodePointer& node, 
                         OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent) {
+
+    OctreeServer::didHandlePacketSend(this);
                  
     // if we're shutting down, then exit early       
     if (nodeData->isShuttingDown()) {
@@ -175,10 +168,12 @@ int OctreeSendThread::handlePacketSend(const SharedNodePointer& node,
             }
 
             // actually send it
+            OctreeServer::didCallWriteDatagram(this);
             NodeList::getInstance()->writeDatagram((char*) statsMessage, statsMessageLength, SharedNodePointer(node));
             packetSent = true;
         } else {
             // not enough room in the packet, send two packets
+            OctreeServer::didCallWriteDatagram(this);
             NodeList::getInstance()->writeDatagram((char*) statsMessage, statsMessageLength, SharedNodePointer(node));
 
             // since a stats message is only included on end of scene, don't consider any of these bytes "wasted", since
@@ -197,6 +192,7 @@ int OctreeSendThread::handlePacketSend(const SharedNodePointer& node,
             truePacketsSent++;
             packetsSent++;
 
+            OctreeServer::didCallWriteDatagram(this);
             NodeList::getInstance()->writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
                                                    SharedNodePointer(node));
 
@@ -217,6 +213,7 @@ int OctreeSendThread::handlePacketSend(const SharedNodePointer& node,
         // If there's actually a packet waiting, then send it.
         if (nodeData->isPacketWaiting() && !nodeData->isShuttingDown()) {
             // just send the voxel packet
+            OctreeServer::didCallWriteDatagram(this);
             NodeList::getInstance()->writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
                                                    SharedNodePointer(node));
             packetSent = true;
@@ -246,6 +243,7 @@ int OctreeSendThread::handlePacketSend(const SharedNodePointer& node,
 
 /// Version of voxel distributor that sends the deepest LOD level at once
 int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQueryNode* nodeData, bool viewFrustumChanged) {
+    OctreeServer::didPacketDistributor(this);
 
     // if shutting down, exit early
     if (nodeData->isShuttingDown()) {

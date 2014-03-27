@@ -1,5 +1,9 @@
 <!--#include file="header.html"-->
   <div id="nodes-lead" class="table-lead"><h3>Nodes</h3><div class="lead-line"></div></div>
+  <div style="clear:both;"></div>
+  <button type="button" class="btn btn-danger" id="kill-all-btn">
+    <span class="glyphicon glyphicon-fire"></span> Kill all Nodes
+  </button>
   <table id="nodes-table" class="table table-striped">
     <thead>
       <tr>

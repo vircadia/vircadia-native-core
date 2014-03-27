@@ -397,9 +397,13 @@ void Avatar::renderDisplayName() {
     
     glPushMatrix();
     glm::vec3 textPosition;
-    getSkeletonModel().getNeckPosition(textPosition);
-    textPosition += getBodyUpDirection() * getHeadHeight() * 1.1f;
-
+    if (getSkeletonModel().getNeckPosition(textPosition)) {
+        textPosition += getBodyUpDirection() * getHeadHeight() * 1.1f;
+    } else {    
+        const float HEAD_PROPORTION = 0.75f;
+        textPosition = _position + getBodyUpDirection() * (getBillboardSize() * HEAD_PROPORTION); 
+    }
+    
     glTranslatef(textPosition.x, textPosition.y, textPosition.z); 
 
     // we need "always facing camera": we must remove the camera rotation from the stack
@@ -499,13 +503,19 @@ bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penet
     //return getHead()->getFaceModel().findSphereCollisions(penetratorCenter, penetratorRadius, collisions);
 }
 
-bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& collisions) {
+void Avatar::updateShapePositions() {
     _skeletonModel.updateShapePositions();
-    bool collided = _skeletonModel.findCollisions(shapes, collisions);
-
     Model& headModel = getHead()->getFaceModel();
     headModel.updateShapePositions();
-    collided = headModel.findCollisions(shapes, collisions);
+}
+
+bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& collisions) {
+    // TODO: Andrew to fix: also collide against _skeleton
+    //bool collided = _skeletonModel.findCollisions(shapes, collisions);
+
+    Model& headModel = getHead()->getFaceModel();
+    //collided = headModel.findCollisions(shapes, collisions) || collided;
+    bool collided = headModel.findCollisions(shapes, collisions);
     return collided;
 }
 
@@ -752,15 +762,28 @@ bool Avatar::collisionWouldMoveAvatar(CollisionInfo& collision) const {
     return false;
 }
 
-void Avatar::applyCollision(CollisionInfo& collision) {
-    if (!collision._data || collision._type != MODEL_COLLISION) {
-        return;
+void Avatar::applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) {
+    // compute lean angles
+    glm::vec3 leverAxis = contactPoint - getPosition();
+    float leverLength = glm::length(leverAxis);
+    if (leverLength > EPSILON) {
+        glm::quat bodyRotation = getOrientation();
+        glm::vec3 xAxis = bodyRotation * glm::vec3(1.f, 0.f, 0.f);
+        glm::vec3 zAxis = bodyRotation * glm::vec3(0.f, 0.f, 1.f);
+
+        leverAxis = leverAxis / leverLength;
+        glm::vec3 effectivePenetration = penetration - glm::dot(penetration, leverAxis) * leverAxis;
+        // we use the small-angle approximation for sine below to compute the length of 
+        // the opposite side of a narrow right triangle
+        float sideways = - glm::dot(effectivePenetration, xAxis) / leverLength;
+        float forward = glm::dot(effectivePenetration, zAxis) / leverLength;
+        getHead()->addLean(sideways, forward);
     }
-    // TODO: make skeleton also respond to collisions
-    Model* model = static_cast<Model*>(collision._data);
-    if (model == &(getHead()->getFaceModel())) {
-        getHead()->applyCollision(collision);
-    }
+}
+
+float Avatar::getBoundingRadius() const {
+    // TODO: also use head model when computing the avatar's bounding radius
+    return _skeletonModel.getBoundingRadius();
 }
 
 float Avatar::getPelvisFloatingHeight() const {

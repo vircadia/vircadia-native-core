@@ -103,8 +103,7 @@ public:
     QByteArray constructPingReplyPacket(const QByteArray& pingPacket);
     void pingPublicAndLocalSocketsForInactiveNode(const SharedNodePointer& node);
 
-    /// passing false for blockingLock, will tryLock, and may return NULL when a node with the UUID actually does exist
-    SharedNodePointer nodeWithUUID(const QUuid& nodeUUID, bool blockingLock = true);
+    SharedNodePointer nodeWithUUID(const QUuid& nodeUUID);
     SharedNodePointer sendingNodeForPacket(const QByteArray& packet);
     
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, char nodeType,
@@ -128,6 +127,7 @@ public:
     void saveData(QSettings* settings);
 public slots:
     void reset();
+    void eraseAllNodes();
     
     void sendDomainServerCheckIn();
     void pingInactiveNodes();
@@ -154,13 +154,13 @@ private:
                          const QUuid& connectionSecret);
 
     NodeHash::iterator killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill);
-    
-    void clear();
 
     void processDomainServerAuthRequest(const QByteArray& packet);
     void requestAuthForDomainServer();
     void activateSocketFromNodeCommunication(const QByteArray& packet, const SharedNodePointer& sendingNode);
     void timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode);
+    
+    void changeSendSocketBufferSize(int numSendBytes);
 
     NodeHash _nodeHash;
     QMutex _nodeHashMutex;
