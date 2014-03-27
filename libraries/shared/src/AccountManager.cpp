@@ -148,6 +148,7 @@ void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::
                 if (dataMultiPart) {
                     if (operation == QNetworkAccessManager::PostOperation) {
                         networkReply = _networkAccessManager->post(authenticatedRequest, dataMultiPart);
+                        dataMultiPart->setParent(networkReply);
                     } else {
                         networkReply = _networkAccessManager->put(authenticatedRequest, dataMultiPart);
                     }
@@ -199,6 +200,7 @@ void AccountManager::passSuccessToCallback() {
             qDebug() << jsonResponse;
         }
     }
+    delete requestReply;
 }
 
 void AccountManager::passErrorToCallback(QNetworkReply::NetworkError errorCode) {
@@ -219,6 +221,7 @@ void AccountManager::passErrorToCallback(QNetworkReply::NetworkError errorCode) 
             qDebug() << "Error" << errorCode << "-" << requestReply->errorString();
         }
     }
+    delete requestReply;
 }
 
 bool AccountManager::hasValidAccessToken() {
