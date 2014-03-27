@@ -397,9 +397,13 @@ void Avatar::renderDisplayName() {
     
     glPushMatrix();
     glm::vec3 textPosition;
-    getSkeletonModel().getNeckPosition(textPosition);
-    textPosition += getBodyUpDirection() * getHeadHeight() * 1.1f;
-
+    if (getSkeletonModel().getNeckPosition(textPosition)) {
+        textPosition += getBodyUpDirection() * getHeadHeight() * 1.1f;
+    } else {    
+        const float HEAD_PROPORTION = 0.75f;
+        textPosition = _position + getBodyUpDirection() * (getBillboardSize() * HEAD_PROPORTION); 
+    }
+    
     glTranslatef(textPosition.x, textPosition.y, textPosition.z); 
 
     // we need "always facing camera": we must remove the camera rotation from the stack
