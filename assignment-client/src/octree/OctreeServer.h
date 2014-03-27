@@ -211,6 +211,10 @@ protected:
     static QMap<OctreeSendThread*, quint64> _threadsDidHandlePacketSend;
     static QMap<OctreeSendThread*, quint64> _threadsDidCallWriteDatagram;
 
+    static QMutex _threadsDidProcessMutex;
+    static QMutex _threadsDidPacketDistributorMutex;
+    static QMutex _threadsDidHandlePacketSendMutex;
+    static QMutex _threadsDidCallWriteDatagramMutex;
 };
 
 #endif // __octree_server__OctreeServer__
