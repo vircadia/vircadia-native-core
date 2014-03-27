@@ -835,7 +835,7 @@ void OctreeServer::readPendingDatagrams() {
                         if (debug) {
                             qDebug() << "calling initializeOctreeSendThread()... node:" << *matchingNode;
                         }
-                        nodeData->initializeOctreeSendThread(this, matchingNode->getUUID());
+                        nodeData->initializeOctreeSendThread(this, matchingNode);
                     }
                 }
             } else if (packetType == PacketTypeJurisdictionRequest) {
@@ -852,7 +852,9 @@ void OctreeServer::readPendingDatagrams() {
 
 void OctreeServer::run() {
     _safeServerName = getMyServerName();
+    
     // Before we do anything else, create our tree...
+    OctreeElement::resetPopulationStatistics();
     _tree = createTree();
     
     // use common init to setup common timers and logging

@@ -59,6 +59,8 @@ public:
     void collideAgainstAvatar(Avatar* avatar, bool isMyHand);
     void collideAgainstOurself();
 
+    void resolvePenetrations();
+
 private:
     // disallow copies of the Hand, copy of owning Avatar is disallowed too
     Hand(const Hand&);
@@ -71,10 +73,6 @@ private:
     std::vector<HandBall> _leapFingerTipBalls;
     std::vector<HandBall> _leapFingerRootBalls;
     
-    // private methods
-    void setLeapHands(const std::vector<glm::vec3>& handPositions,
-                      const std::vector<glm::vec3>& handNormals);
-
     void renderLeapHands(bool isMine);
     void renderLeapFingerTrails();
     
@@ -84,3 +82,4 @@ private:
 };
 
 #endif
+

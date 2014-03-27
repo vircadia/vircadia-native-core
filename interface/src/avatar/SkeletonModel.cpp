@@ -63,13 +63,30 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
 }
 
 void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes) const {
-    if (jointIndex == -1) {
+    if (jointIndex < 0 || jointIndex >= int(_shapes.size())) {
         return;
     }
     if (jointIndex == getLeftHandJointIndex()
         || jointIndex == getRightHandJointIndex()) {
-        // TODO: also add fingers and other hand-parts
-        shapes.push_back(_shapes[jointIndex]);
+        // get all shapes that have this hand as an ancestor in the skeleton heirarchy
+        const FBXGeometry& geometry = _geometry->getFBXGeometry();
+        for (int i = 0; i < _jointStates.size(); i++) {
+            const FBXJoint& joint = geometry.joints[i];
+            if (i == jointIndex) {
+                // this shape is the hand
+                shapes.push_back(_shapes[i]);
+            } else {
+                int parentIndex = joint.parentIndex;
+                while (parentIndex != -1) {
+                    if (parentIndex == jointIndex) {
+                        // this shape is a child of the hand
+                        shapes.push_back(_shapes[i]);
+                        break;
+                    }
+                    parentIndex = geometry.joints[parentIndex].parentIndex;
+                }
+            }
+        }
     }
 }
 

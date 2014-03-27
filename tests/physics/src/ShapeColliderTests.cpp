@@ -16,11 +16,14 @@
 #include <ShapeCollider.h>
 #include <SharedUtil.h>
 #include <SphereShape.h>
+#include <StreamUtils.h>
 
-#include "PhysicsTestUtil.h"
 #include "ShapeColliderTests.h"
 
 const glm::vec3 origin(0.f);
+static const glm::vec3 xAxis(1.f, 0.f, 0.f);
+static const glm::vec3 yAxis(0.f, 1.f, 0.f);
+static const glm::vec3 zAxis(0.f, 0.f, 1.f);
 
 void ShapeColliderTests::sphereMissesSphere() {
     // non-overlapping spheres of unequal size
