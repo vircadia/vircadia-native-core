@@ -2,16 +2,35 @@ $(document).ready(function(){
   // setup a function to grab the assignments
   function getNodesAndAssignments() {
     $.getJSON("nodes.json", function(json){
+      
+      json.nodes.sort(function(a, b){
+          if (a.type === b.type) {
+            return 0;
+          } 
+              
+          if (a.type === "agent" && b.type !== "agent") {
+            return 1;
+          }
+              
+          if (a.type > b.type) {
+            return 1;
+          }
+          
+          if (a.type < b.type) {
+            return -1;
+          }   
+      });
+      
       nodesTableBody = "";
       
-      $.each(json.nodes, function (uuid, data) {
+      $.each(json.nodes, function(index, data) {
         nodesTableBody += "<tr>";
         nodesTableBody += "<td>" + data.type + "</td>";
-        nodesTableBody += "<td><a href='stats/?uuid=" + uuid + "'>" + uuid + "</a></td>";
+        nodesTableBody += "<td><a href='stats/?uuid=" + data.uuid + "'>" + data.uuid + "</a></td>";
         nodesTableBody += "<td>" + (data.pool ? data.pool : "") + "</td>";
         nodesTableBody += "<td>" + data.public.ip + "<span class='port'>:" + data.public.port + "</span></td>";
         nodesTableBody += "<td>" + data.local.ip + "<span class='port'>:" + data.local.port + "</span></td>";
-        nodesTableBody += "<td><span class='glyphicon glyphicon-remove' data-uuid=" + uuid + "></span></td>";
+        nodesTableBody += "<td><span class='glyphicon glyphicon-remove' data-uuid=" + data.uuid + "></span></td>";
         nodesTableBody += "</tr>";
       });
       

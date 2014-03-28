@@ -622,6 +622,7 @@ QJsonObject DomainServer::jsonForSocket(const HifiSockAddr& socket) {
     return socketJSON;
 }
 
+const char JSON_KEY_UUID[] = "uuid";
 const char JSON_KEY_TYPE[] = "type";
 const char JSON_KEY_PUBLIC_SOCKET[] = "public";
 const char JSON_KEY_LOCAL_SOCKET[] = "local";
@@ -635,6 +636,9 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
     nodeTypeName = nodeTypeName.toLower();
     nodeTypeName.replace(' ', '-');
 
+    // add the node UUID
+    nodeJson[JSON_KEY_UUID] = uuidStringWithoutCurlyBraces(node->getUUID());
+    
     // add the node type
     nodeJson[JSON_KEY_TYPE] = nodeTypeName;
 
@@ -707,18 +711,17 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         } else if (url.path() == QString("%1.json").arg(URI_NODES)) {
             // setup the JSON
             QJsonObject rootJSON;
-            QJsonObject nodesJSON;
+            QJsonArray nodesJSONArray;
             
             // enumerate the NodeList to find the assigned nodes
             NodeList* nodeList = NodeList::getInstance();
             
             foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
                 // add the node using the UUID as the key
-                QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
-                nodesJSON[uuidString] = jsonObjectForNode(node);
+                nodesJSONArray.append(jsonObjectForNode(node));
             }
             
-            rootJSON["nodes"] = nodesJSON;
+            rootJSON["nodes"] = nodesJSONArray;
             
             // print out the created JSON
             QJsonDocument nodesDocument(rootJSON);
