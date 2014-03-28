@@ -102,7 +102,7 @@ public:
 
     QByteArray constructPingPacket(PingType_t pingType = PingType::Agnostic);
     QByteArray constructPingReplyPacket(const QByteArray& pingPacket);
-    void pingPublicAndLocalSocketsForInactiveNode(const SharedNodePointer& node);
+    void pingPunchForInactiveNode(const SharedNodePointer& node);
 
     SharedNodePointer nodeWithUUID(const QUuid& nodeUUID, bool blockingLock = true);
     SharedNodePointer sendingNodeForPacket(const QByteArray& packet);

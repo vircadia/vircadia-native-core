@@ -791,7 +791,7 @@ QByteArray NodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
     return replyPacket;
 }
 
-void NodeList::pingPublicAndLocalSocketsForInactiveNode(const SharedNodePointer& node) {
+void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
     
     // send the ping packet to the local and public sockets for this node
     QByteArray localPingPacket = constructPingPacket(PingType::Local);
@@ -799,6 +799,11 @@ void NodeList::pingPublicAndLocalSocketsForInactiveNode(const SharedNodePointer&
     
     QByteArray publicPingPacket = constructPingPacket(PingType::Public);
     writeDatagram(publicPingPacket, node, node->getPublicSocket());
+    
+    if (!node->getSymmetricSocket().isNull()) {
+        QByteArray symmetricPingPacket = constructPingPacket(PingType::Symmetric);
+        writeDatagram(symmetricPingPacket, node, node->getSymmetricSocket());
+    }
 }
 
 SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
@@ -869,7 +874,7 @@ void NodeList::pingInactiveNodes() {
     foreach (const SharedNodePointer& node, getNodeHash()) {
         if (!node->getActiveSocket()) {
             // we don't have an active link to this node, ping it to set that up
-            pingPublicAndLocalSocketsForInactiveNode(node);
+            pingPunchForInactiveNode(node);
         }
     }
 }
