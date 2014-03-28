@@ -21,6 +21,7 @@
 
 class OctreeSendThread;
 class OctreeServer;
+typedef QSharedPointer<OctreeServer> SharedOctreeServerPointer;
 
 class OctreeQueryNode : public OctreeQuery {
     Q_OBJECT
@@ -83,7 +84,7 @@ public:
     
     OctreeSceneStats stats;
     
-    void initializeOctreeSendThread(OctreeServer* octreeServer, SharedNodePointer node);
+    void initializeOctreeSendThread(const SharedOctreeServerPointer& octreeServer, SharedNodePointer node);
     bool isOctreeSendThreadInitalized() { return _octreeSendThread; }
     
     void dumpOutOfView();

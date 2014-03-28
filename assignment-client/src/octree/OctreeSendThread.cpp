@@ -19,7 +19,7 @@
 quint64 startSceneSleepTime = 0;
 quint64 endSceneSleepTime = 0;
 
-OctreeSendThread::OctreeSendThread(OctreeServer* myServer, SharedNodePointer node) :
+OctreeSendThread::OctreeSendThread(const SharedOctreeServerPointer& myServer, SharedNodePointer node) :
     _myServer(myServer),
     _node(node),
     _nodeUUID(node->getUUID()),
@@ -29,7 +29,7 @@ OctreeSendThread::OctreeSendThread(OctreeServer* myServer, SharedNodePointer nod
     _isShuttingDown(false)
 {
     QString safeServerName("Octree");
-    if (_myServer) {
+    if (!_myServer.isNull()) {
         safeServerName = _myServer->getMyServerName();
     }
     qDebug() << qPrintable(safeServerName)  << "server [" << _myServer << "]: client connected "
@@ -40,7 +40,7 @@ OctreeSendThread::OctreeSendThread(OctreeServer* myServer, SharedNodePointer nod
 
 OctreeSendThread::~OctreeSendThread() { 
     QString safeServerName("Octree");
-    if (_myServer) {
+    if (!_myServer.isNull()) {
         safeServerName = _myServer->getMyServerName();
     }
     qDebug() << qPrintable(safeServerName)  << "server [" << _myServer << "]: client disconnected "
@@ -63,6 +63,11 @@ bool OctreeSendThread::process() {
         return false; // exit early if we're shutting down
     }
 
+    // check that our WeakPointer to our server is still valid
+    if (_myServer.isNull()) {
+        return false; // exit early if it's not, it means the server is shutting down
+    }
+
     OctreeServer::didProcess(this);
 
     float lockWaitElapsedUsec = OctreeServer::SKIP_TIME;
@@ -83,7 +88,7 @@ bool OctreeSendThread::process() {
             // Sometimes the node data has not yet been linked, in which case we can't really do anything
             if (nodeData && !nodeData->isShuttingDown()) {
                 bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
-                packetDistributor(_node, nodeData, viewFrustumChanged);
+                packetDistributor(nodeData, viewFrustumChanged);
             }
         }
     }
@@ -119,8 +124,7 @@ quint64 OctreeSendThread::_totalBytes = 0;
 quint64 OctreeSendThread::_totalWastedBytes = 0;
 quint64 OctreeSendThread::_totalPackets = 0;
 
-int OctreeSendThread::handlePacketSend(const SharedNodePointer& node, 
-                        OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent) {
+int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent) {
 
     OctreeServer::didHandlePacketSend(this);
                  
@@ -180,12 +184,12 @@ int OctreeSendThread::handlePacketSend(const SharedNodePointer& node,
 
             // actually send it
             OctreeServer::didCallWriteDatagram(this);
-            NodeList::getInstance()->writeDatagram((char*) statsMessage, statsMessageLength, SharedNodePointer(node));
+            NodeList::getInstance()->writeDatagram((char*) statsMessage, statsMessageLength, _node);
             packetSent = true;
         } else {
             // not enough room in the packet, send two packets
             OctreeServer::didCallWriteDatagram(this);
-            NodeList::getInstance()->writeDatagram((char*) statsMessage, statsMessageLength, SharedNodePointer(node));
+            NodeList::getInstance()->writeDatagram((char*) statsMessage, statsMessageLength, _node);
 
             // since a stats message is only included on end of scene, don't consider any of these bytes "wasted", since
             // there was nothing else to send.
@@ -204,8 +208,7 @@ int OctreeSendThread::handlePacketSend(const SharedNodePointer& node,
             packetsSent++;
 
             OctreeServer::didCallWriteDatagram(this);
-            NodeList::getInstance()->writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
-                                                   SharedNodePointer(node));
+            NodeList::getInstance()->writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(), _node);
 
             packetSent = true;
 
@@ -225,8 +228,7 @@ int OctreeSendThread::handlePacketSend(const SharedNodePointer& node,
         if (nodeData->isPacketWaiting() && !nodeData->isShuttingDown()) {
             // just send the voxel packet
             OctreeServer::didCallWriteDatagram(this);
-            NodeList::getInstance()->writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
-                                                   SharedNodePointer(node));
+            NodeList::getInstance()->writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(), _node);
             packetSent = true;
 
             int thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
@@ -253,7 +255,8 @@ int OctreeSendThread::handlePacketSend(const SharedNodePointer& node,
 }
 
 /// Version of voxel distributor that sends the deepest LOD level at once
-int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQueryNode* nodeData, bool viewFrustumChanged) {
+int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrustumChanged) {
+        
     OctreeServer::didPacketDistributor(this);
 
     // if shutting down, exit early
@@ -283,7 +286,7 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
     // then let's just send that waiting packet.
     if (!nodeData->getCurrentPacketFormatMatches()) {
         if (nodeData->isPacketWaiting()) {
-            packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
+            packetsSentThisInterval += handlePacketSend(nodeData, trueBytesSent, truePacketsSent);
         } else {
             nodeData->resetOctreePacket();
         }
@@ -324,7 +327,7 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
         //unsigned long encodeTime = nodeData->stats.getTotalEncodeTime();
         //unsigned long elapsedTime = nodeData->stats.getElapsedTime();
 
-        int packetsJustSent = handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
+        int packetsJustSent = handlePacketSend(nodeData, trueBytesSent, truePacketsSent);
         packetsSentThisInterval += packetsJustSent;
 
         // If we're starting a full scene, then definitely we want to empty the nodeBag
@@ -475,7 +478,7 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
 
 
                     if (writtenSize > nodeData->getAvailable()) {
-                        packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
+                        packetsSentThisInterval += handlePacketSend(nodeData, trueBytesSent, truePacketsSent);
                     }
 
                     nodeData->writeToPacket(_packetData.getFinalizedData(), _packetData.getFinalizedSize());
@@ -497,7 +500,7 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
                 int targetSize = MAX_OCTREE_PACKET_DATA_SIZE;
                 if (sendNow) {
                     quint64 packetSendingStart = usecTimestampNow();
-                    packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
+                    packetsSentThisInterval += handlePacketSend(nodeData, trueBytesSent, truePacketsSent);
                     quint64 packetSendingEnd = usecTimestampNow();
                     packetSendingElapsedUsec = (float)(packetSendingEnd - packetSendingStart);
 
@@ -530,8 +533,8 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
         // Here's where we can/should allow the server to send other data...
         // send the environment packet
         // TODO: should we turn this into a while loop to better handle sending multiple special packets
-        if (_myServer->hasSpecialPacketToSend(node) && !nodeData->isShuttingDown()) {
-            trueBytesSent += _myServer->sendSpecialPacket(node);
+        if (_myServer->hasSpecialPacketToSend(_node) && !nodeData->isShuttingDown()) {
+            trueBytesSent += _myServer->sendSpecialPacket(_node);
             truePacketsSent++;
             packetsSentThisInterval++;
         }

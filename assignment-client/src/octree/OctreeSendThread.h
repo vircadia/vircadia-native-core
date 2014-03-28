@@ -16,12 +16,11 @@
 #include "OctreeQueryNode.h"
 #include "OctreeServer.h"
 
-
 /// Threaded processor for sending voxel packets to a single client
 class OctreeSendThread : public GenericThread {
     Q_OBJECT
 public:
-    OctreeSendThread(OctreeServer* myServer, SharedNodePointer node);
+    OctreeSendThread(const SharedOctreeServerPointer& myServer, SharedNodePointer node);
     virtual ~OctreeSendThread();
     
     void setIsShuttingDown();
@@ -38,12 +37,12 @@ protected:
     virtual bool process();
 
 private:
-    OctreeServer* _myServer;
+    SharedOctreeServerPointer _myServer;
     SharedNodePointer _node;
     QUuid _nodeUUID;
 
-    int handlePacketSend(const SharedNodePointer& node, OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent);
-    int packetDistributor(const SharedNodePointer& node, OctreeQueryNode* nodeData, bool viewFrustumChanged);
+    int handlePacketSend(OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent);
+    int packetDistributor(OctreeQueryNode* nodeData, bool viewFrustumChanged);
 
     OctreePacketData _packetData;
     

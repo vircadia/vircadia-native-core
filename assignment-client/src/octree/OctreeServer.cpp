@@ -19,7 +19,7 @@
 #include "OctreeServer.h"
 #include "OctreeServerConsts.h"
 
-OctreeServer* OctreeServer::_instance = NULL;
+SharedOctreeServerPointer OctreeServer::_instance;
 int OctreeServer::_clientCount = 0;
 const int MOVING_AVERAGE_SAMPLE_COUNTS = 1000000;
 
@@ -203,7 +203,7 @@ void OctreeServer::trackProcessWaitTime(float time) {
 }
 
 void OctreeServer::attachQueryNodeToNode(Node* newNode) {
-    if (!newNode->getLinkedData()) {
+    if (!newNode->getLinkedData() && !_instance.isNull()) {
         OctreeQueryNode* newQueryNodeData = _instance->createOctreeQueryNode();
         newQueryNodeData->init();
         newNode->setLinkedData(newQueryNodeData);
@@ -231,7 +231,8 @@ OctreeServer::OctreeServer(const QByteArray& packet) :
     _started(time(0)),
     _startedUSecs(usecTimestampNow())
 {
-    _instance = this;
+    assert(_instance.isNull()); // you should only ever have one instance at a time!
+    _instance = SharedOctreeServerPointer(this);
     _averageLoopTime.updateAverage(0);
     qDebug() << "Octree server starting... [" << this << "]";
 }
@@ -835,7 +836,8 @@ void OctreeServer::readPendingDatagrams() {
                         if (debug) {
                             qDebug() << "calling initializeOctreeSendThread()... node:" << *matchingNode;
                         }
-                        nodeData->initializeOctreeSendThread(this, matchingNode);
+                        SharedOctreeServerPointer myServer(this);
+                        nodeData->initializeOctreeSendThread(myServer, matchingNode);
                     }
                 }
             } else if (packetType == PacketTypeJurisdictionRequest) {
@@ -1058,6 +1060,9 @@ void OctreeServer::aboutToFinish() {
         nodeKilled(node);
     }
     qDebug() << qPrintable(_safeServerName) << "server ENDING about to finish...";
+    
+    // release our reference to the instance, this will allow the shared pointers to properly unwind
+    _instance.clear();
 }
 
 QString OctreeServer::getUptime() {

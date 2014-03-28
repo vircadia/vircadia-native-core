@@ -13,6 +13,7 @@
 #include <QStringList>
 #include <QDateTime>
 #include <QtCore/QCoreApplication>
+#include <QWeakPointer>
 
 #include <HTTPManager.h>
 
@@ -25,6 +26,9 @@
 #include "OctreeInboundPacketProcessor.h"
 
 const int DEFAULT_PACKETS_PER_INTERVAL = 2000; // some 120,000 packets per second total
+
+class OctreeServer;
+typedef QSharedPointer<OctreeServer> SharedOctreeServerPointer;
 
 /// Handles assignments of type OctreeServer - sending octrees to various clients.
 class OctreeServer : public ThreadedAssignment, public HTTPRequestHandler {
@@ -154,7 +158,7 @@ protected:
     OctreeInboundPacketProcessor* _octreeInboundPacketProcessor;
     OctreePersistThread* _persistThread;
 
-    static OctreeServer* _instance;
+    static SharedOctreeServerPointer _instance;
 
     time_t _started;
     quint64 _startedUSecs;
