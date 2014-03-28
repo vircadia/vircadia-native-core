@@ -58,6 +58,7 @@ namespace PingType {
     const PingType_t Agnostic = 0;
     const PingType_t Local = 1;
     const PingType_t Public = 2;
+    const PingType_t Symmetric = 3;
 }
 
 class NodeList : public QObject {

@@ -294,6 +294,15 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
                 matchingNode->setLastHeardMicrostamp(usecTimestampNow());
                 QByteArray replyPacket = constructPingReplyPacket(packet);
                 writeDatagram(replyPacket, matchingNode, senderSockAddr);
+                
+                // If we don't have a symmetric socket for this node and this socket doesn't match
+                // what we have for public and local then set it as the symmetric.
+                // This allows a server on a reachable port to communicate with nodes on symmetric NATs
+                if (matchingNode->getSymmetricSocket().isNull()) {
+                    if (senderSockAddr != matchingNode->getLocalSocket() && senderSockAddr != matchingNode->getPublicSocket()) {
+                        matchingNode->setSymmetricSocket(senderSockAddr);
+                    }
+                }
             }
             
             break;
@@ -879,6 +888,9 @@ void NodeList::activateSocketFromNodeCommunication(const QByteArray& packet, con
         sendingNode->activateLocalSocket();
     } else if (pingType == PingType::Public && !sendingNode->getActiveSocket()) {
         sendingNode->activatePublicSocket();
+    } else if (pingType == PingType::Symmetric && !sendingNode->getActiveSocket()) {
+        
+
     }
 }
 
