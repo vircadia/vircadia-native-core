@@ -294,10 +294,6 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
                 matchingNode->setLastHeardMicrostamp(usecTimestampNow());
                 QByteArray replyPacket = constructPingReplyPacket(packet);
                 writeDatagram(replyPacket, matchingNode, senderSockAddr);
-                
-                // HACK for hacker dojo network demo
-                matchingNode->setPublicSocket(senderSockAddr);
-                matchingNode->activatePublicSocket();
             }
             
             break;
@@ -833,13 +829,13 @@ SharedNodePointer NodeList::updateSocketsForNode(const QUuid& uuid,
         
         // check if we need to change this node's public or local sockets
         if (publicSocket != matchingNode->getPublicSocket()) {
-//            matchingNode->setPublicSocket(publicSocket);
-//            qDebug() << "Public socket change for node" << *matchingNode;
+            matchingNode->setPublicSocket(publicSocket);
+            qDebug() << "Public socket change for node" << *matchingNode;
         }
         
         if (localSocket != matchingNode->getLocalSocket()) {
-//            matchingNode->setLocalSocket(localSocket);
-//            qDebug() << "Local socket change for node" << *matchingNode;
+            matchingNode->setLocalSocket(localSocket);
+            qDebug() << "Local socket change for node" << *matchingNode;
         }
     }
     
