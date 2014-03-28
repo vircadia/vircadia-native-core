@@ -299,6 +299,28 @@ QRgb packNormal(const glm::vec3& normal);
 /// Unpacks a normal from an RGB value.
 glm::vec3 unpackNormal(QRgb value);
 
+/// RGBA values for voxelized spanners.
+class SpannerQRgbAttribute : public QRgbAttribute {
+    Q_OBJECT
+
+public:
+    
+    Q_INVOKABLE SpannerQRgbAttribute(const QString& name = QString(), QRgb defaultValue = QRgb());
+    
+    virtual bool merge(void*& parent, void* children[]) const;
+};
+
+/// Packed normals for voxelized spanners.
+class SpannerPackedNormalAttribute : public PackedNormalAttribute {
+    Q_OBJECT
+
+public:
+    
+    Q_INVOKABLE SpannerPackedNormalAttribute(const QString& name = QString(), QRgb defaultValue = QRgb());
+    
+    virtual bool merge(void*& parent, void* children[]) const;
+};
+
 /// An attribute that takes the form of QObjects of a given meta-type (a subclass of SharedObject).
 class SharedObjectAttribute : public InlineAttribute<SharedObjectPointer> {
     Q_OBJECT

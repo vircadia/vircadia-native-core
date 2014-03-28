@@ -31,8 +31,8 @@ AttributeRegistry::AttributeRegistry() :
     _spannersAttribute(registerAttribute(new SpannerSetAttribute("spanners", &Spanner::staticMetaObject))),
     _colorAttribute(registerAttribute(new QRgbAttribute("color"))),
     _normalAttribute(registerAttribute(new PackedNormalAttribute("normal"))),
-    _spannerColorAttribute(registerAttribute(new QRgbAttribute("spannerColor"))),
-    _spannerNormalAttribute(registerAttribute(new PackedNormalAttribute("spannerNormal"))) {
+    _spannerColorAttribute(registerAttribute(new SpannerQRgbAttribute("spannerColor"))),
+    _spannerNormalAttribute(registerAttribute(new SpannerPackedNormalAttribute("spannerNormal"))) {
     
     // our baseline LOD threshold is for voxels; spanners are a different story
     const float SPANNER_LOD_THRESHOLD_MULTIPLIER = 4.0f;
@@ -284,6 +284,52 @@ QRgb packNormal(const glm::vec3& normal) {
 glm::vec3 unpackNormal(QRgb value) {
     return glm::vec3((char)qRed(value) * INVERSE_CHAR_SCALE, (char)qGreen(value) * INVERSE_CHAR_SCALE,
         (char)qBlue(value) * INVERSE_CHAR_SCALE);
+}
+
+SpannerQRgbAttribute::SpannerQRgbAttribute(const QString& name, QRgb defaultValue) :
+    QRgbAttribute(name, defaultValue) {
+}
+
+bool SpannerQRgbAttribute::merge(void*& parent, void* children[]) const {
+    QRgb firstValue = decodeInline<QRgb>(children[0]);
+    int totalAlpha = qAlpha(firstValue);
+    int totalRed = qRed(firstValue) * totalAlpha;
+    int totalGreen = qGreen(firstValue) * totalAlpha;
+    int totalBlue = qBlue(firstValue) * totalAlpha;
+    bool allChildrenEqual = true;
+    for (int i = 1; i < Attribute::MERGE_COUNT; i++) {
+        QRgb value = decodeInline<QRgb>(children[i]);
+        int alpha = qAlpha(value);
+        totalRed += qRed(value) * alpha;
+        totalGreen += qGreen(value) * alpha;
+        totalBlue += qBlue(value) * alpha;
+        totalAlpha += alpha;
+        allChildrenEqual &= (firstValue == value);
+    }
+    if (totalAlpha == 0) {
+        parent = encodeInline(QRgb());
+    } else {
+        parent = encodeInline(qRgba(totalRed / totalAlpha, totalGreen / totalAlpha,
+            totalBlue / totalAlpha, totalAlpha / MERGE_COUNT));
+    }
+    return allChildrenEqual;
+} 
+
+SpannerPackedNormalAttribute::SpannerPackedNormalAttribute(const QString& name, QRgb defaultValue) :
+    PackedNormalAttribute(name, defaultValue) {
+}
+
+bool SpannerPackedNormalAttribute::merge(void*& parent, void* children[]) const {
+    QRgb firstValue = decodeInline<QRgb>(children[0]);
+    glm::vec3 total = unpackNormal(firstValue);
+    bool allChildrenEqual = true;
+    for (int i = 1; i < Attribute::MERGE_COUNT; i++) {
+        QRgb value = decodeInline<QRgb>(children[i]);
+        total += unpackNormal(value) * (float)qAlpha(value);
+        allChildrenEqual &= (firstValue == value);
+    }
+    parent = encodeInline(packNormal(glm::normalize(total)));
+    return allChildrenEqual;
 }
 
 SharedObjectAttribute::SharedObjectAttribute(const QString& name, const QMetaObject* metaObject,
