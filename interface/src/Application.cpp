@@ -1636,6 +1636,8 @@ void Application::updateLOD() {
     // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode
     if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableAutoAdjustLOD) && !isThrottleRendering()) {
         Menu::getInstance()->autoAdjustLOD(_fps);
+    } else {
+        Menu::getInstance()->resetLODAdjust();
     }
 }
 
@@ -2676,7 +2678,7 @@ void Application::displayStats() {
 
     glm::vec3 avatarPos = _myAvatar->getPosition();
 
-    lines = _statsExpanded ? 4 : 3;
+    lines = _statsExpanded ? 5 : 3;
     displayStatsBackground(backgroundColor, horizontalOffset, 0, _glWidget->width() - (mirrorEnabled ? 301 : 411) - horizontalOffset, lines * STATS_PELS_PER_LINE + 10);
     horizontalOffset += 5;
 
@@ -2713,12 +2715,23 @@ void Application::displayStats() {
 
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, avatarMixerStats, WHITE_TEXT);
+        
+        stringstream downloadStats;
+        downloadStats << "Downloads: ";
+        foreach (Resource* resource, ResourceCache::getLoadingRequests()) {
+            const float MAXIMUM_PERCENTAGE = 100.0f;
+            downloadStats << roundf(resource->getProgress() * MAXIMUM_PERCENTAGE) << "% ";
+        }
+        downloadStats << "(" << ResourceCache::getPendingRequestCount() << " pending)";
+        
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, downloadStats.str().c_str(), WHITE_TEXT);
     }
 
     verticalOffset = 0;
     horizontalOffset = _glWidget->width() - (mirrorEnabled ? 300 : 410);
 
-    lines = _statsExpanded ? 11 : 3;
+    lines = _statsExpanded ? 12 : 3;
     displayStatsBackground(backgroundColor, horizontalOffset, 0, _glWidget->width() - horizontalOffset, lines * STATS_PELS_PER_LINE + 10);
     horizontalOffset += 5;
 

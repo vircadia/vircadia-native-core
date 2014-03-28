@@ -1259,7 +1259,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         remainingModels.insert(model.key());
     }
     while (!remainingModels.isEmpty()) {
-        QString topID = getTopModelID(parentMap, models, *remainingModels.constBegin());
+        QString first = *remainingModels.constBegin();
+        foreach (const QString& id, remainingModels) {
+            if (id < first) {
+                first = id;
+            }
+        }
+        QString topID = getTopModelID(parentMap, models, first);
         appendModelIDs(parentMap.value(topID), childMap, models, remainingModels, modelIDs);
     }
 
