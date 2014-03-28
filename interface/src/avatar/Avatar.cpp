@@ -246,7 +246,8 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
 
     const float DISPLAYNAME_DISTANCE = 10.0f;
     setShowDisplayName(renderMode == NORMAL_RENDER_MODE && distanceToTarget < DISPLAYNAME_DISTANCE);
-    if (renderMode != NORMAL_RENDER_MODE) {
+    if (renderMode != NORMAL_RENDER_MODE || (isMyAvatar() &&
+            Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON)) {
         return;
     }
     renderDisplayName();
@@ -312,9 +313,7 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 void Avatar::renderBody(RenderMode renderMode) {    
     if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         // render the billboard until both models are loaded
-        if (renderMode != SHADOW_RENDER_MODE) {
-            renderBillboard();
-        }
+        renderBillboard();
         return;
     }
     _skeletonModel.render(1.0f, renderMode == SHADOW_RENDER_MODE);
@@ -760,25 +759,6 @@ bool Avatar::collisionWouldMoveAvatar(CollisionInfo& collision) const {
         return true;
     }
     return false;
-}
-
-void Avatar::applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) {
-    // compute lean angles
-    glm::vec3 leverAxis = contactPoint - getPosition();
-    float leverLength = glm::length(leverAxis);
-    if (leverLength > EPSILON) {
-        glm::quat bodyRotation = getOrientation();
-        glm::vec3 xAxis = bodyRotation * glm::vec3(1.f, 0.f, 0.f);
-        glm::vec3 zAxis = bodyRotation * glm::vec3(0.f, 0.f, 1.f);
-
-        leverAxis = leverAxis / leverLength;
-        glm::vec3 effectivePenetration = penetration - glm::dot(penetration, leverAxis) * leverAxis;
-        // we use the small-angle approximation for sine below to compute the length of 
-        // the opposite side of a narrow right triangle
-        float sideways = - glm::dot(effectivePenetration, xAxis) / leverLength;
-        float forward = glm::dot(effectivePenetration, zAxis) / leverLength;
-        getHead()->addLean(sideways, forward);
-    }
 }
 
 float Avatar::getBoundingRadius() const {
