@@ -228,7 +228,7 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     messageLabel->setWordWrap(true);
     messageLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
     messageLabel->setOpenExternalLinks(true);
-    messageLabel->setStyleSheet("padding-bottom: 2px; padding-right: 2px; padding-top: 2px; padding-right: 20px");
+    messageLabel->setStyleSheet("padding-bottom: 2px; padding-left: 2px; padding-top: 2px; padding-right: 20px");
     messageLabel->setAlignment(Qt::AlignTop | Qt::AlignLeft);
 
     if (getParticipantName(message.from()) == AccountManager::getInstance().getUsername()) {
