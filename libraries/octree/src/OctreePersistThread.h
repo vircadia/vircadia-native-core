@@ -22,6 +22,7 @@ public:
     static const int DEFAULT_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
 
     OctreePersistThread(Octree* tree, const QString& filename, int persistInterval = DEFAULT_PERSIST_INTERVAL);
+    ~OctreePersistThread();
 
     bool isInitialLoadComplete() const { return _initialLoadComplete; }
     quint64 getLoadElapsedTime() const { return _loadTimeUSecs; }
