@@ -117,7 +117,7 @@ bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
             return false;
         }
         QString user = sender->property("user").toString();
-        Menu::getInstance()->goToUser(true, user);
+        Menu::getInstance()->goToUser(user);
     }
     return false;
 }

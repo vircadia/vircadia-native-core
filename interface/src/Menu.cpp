@@ -20,8 +20,6 @@
 #include <QMainWindow>
 #include <QMenuBar>
 #include <QMessageBox>
-#include <QParallelAnimationGroup>
-#include <QPropertyAnimation>
 #include <QShortcut>
 #include <QSlider>
 #include <QStandardPaths>
@@ -925,17 +923,16 @@ void Menu::goTo() {
     gotoDialog.resize(gotoDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, gotoDialog.size().height());
     
     int dialogReturn = gotoDialog.exec();
-    goToUser(dialogReturn == QDialog::Accepted && !gotoDialog.textValue().isEmpty(),
-             gotoDialog.textValue());
-}
-
-void Menu::goToUser(bool go, const QString& user) {
-    if (go) {
-        LocationManager* manager = &LocationManager::getInstance();
-        manager->goTo(user);
-        connect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
+    if (dialogReturn == QDialog::Accepted && !gotoDialog.textValue().isEmpty()) {
+        goToUser(gotoDialog.textValue());
     }
     sendFakeEnterEvent();
+}
+
+void Menu::goToUser(const QString& user) {
+    LocationManager* manager = &LocationManager::getInstance();
+    manager->goTo(user);
+    connect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
 }
 
 void Menu::multipleDestinationsDecision(const QJsonObject& userData, const QJsonObject& placeData) {
@@ -1105,23 +1102,13 @@ void Menu::showMetavoxelEditor() {
 }
 
 void Menu::showChat() {
-    QMainWindow* mainWindow = Application::getInstance()->getWindow();
     if (!_chatWindow) {
-        mainWindow->addDockWidget(Qt::NoDockWidgetArea, _chatWindow = new ChatWindow());
-    }
-    if (!_chatWindow->toggleViewAction()->isChecked()) {
-        int width = _chatWindow->width();
-        int y = qMax((mainWindow->height() - _chatWindow->height()) / 2, 0);
-        _chatWindow->move(mainWindow->width(), y);
-        _chatWindow->resize(0, _chatWindow->height());
-        _chatWindow->toggleViewAction()->trigger();
-
-        QPropertyAnimation* slideAnimation = new QPropertyAnimation(_chatWindow, "geometry", _chatWindow);
-        slideAnimation->setStartValue(_chatWindow->geometry());
-        slideAnimation->setEndValue(QRect(mainWindow->width() - width, _chatWindow->y(),
-                                          width, _chatWindow->height()));
-        slideAnimation->setDuration(250);
-        slideAnimation->start(QAbstractAnimation::DeleteWhenStopped);
+        Application::getInstance()->getWindow()->addDockWidget(Qt::RightDockWidgetArea, _chatWindow = new ChatWindow());
+        
+    } else {
+        if (!_chatWindow->toggleViewAction()->isChecked()) {
+            _chatWindow->toggleViewAction()->trigger();
+        }
     }
 }
 
