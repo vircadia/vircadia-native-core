@@ -39,6 +39,8 @@ Head::Head(Avatar* owningAvatar) :
     _deltaPitch(0.f),
     _deltaYaw(0.f),
     _deltaRoll(0.f),
+    _deltaLeanSideways(0.f),
+    _deltaLeanForward(0.f),
     _isCameraMoving(false),
     _faceModel(this)
 {
@@ -56,7 +58,6 @@ void Head::reset() {
 }
 
 void Head::simulate(float deltaTime, bool isMine, bool billboard) {
-    
     //  Update audio trailing average for rendering facial animations
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
     Visage* visage = Application::getInstance()->getVisage();
@@ -165,6 +166,19 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     _eyePosition = calculateAverageEyePosition();
 }
 
+void Head::relaxLean(float deltaTime) {
+    // restore rotation, lean to neutral positions
+    const float LEAN_RELAXATION_PERIOD = 0.25f;   // seconds
+    float relaxationFactor = 1.f - glm::min(deltaTime / LEAN_RELAXATION_PERIOD, 1.f);
+    _deltaYaw *= relaxationFactor;
+    _deltaPitch *= relaxationFactor;
+    _deltaRoll *= relaxationFactor;
+    _leanSideways *= relaxationFactor;
+    _leanForward *= relaxationFactor;
+    _deltaLeanSideways *= relaxationFactor;
+    _deltaLeanForward *= relaxationFactor;
+}
+
 void Head::render(float alpha, bool forShadowMap) {
     if (_faceModel.render(alpha, forShadowMap) && _renderLookatVectors) {
         renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
@@ -207,6 +221,11 @@ float Head::getFinalPitch() const {
 
 float Head::getFinalRoll() const {
     return glm::clamp(_baseRoll + _deltaRoll, MIN_HEAD_ROLL, MAX_HEAD_ROLL);
+}
+
+void Head::addLeanDeltas(float sideways, float forward) {
+    _deltaLeanSideways += sideways;
+    _deltaLeanForward += forward;
 }
 
 void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
