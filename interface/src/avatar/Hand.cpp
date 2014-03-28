@@ -156,7 +156,8 @@ void Hand::collideAgainstAvatar(Avatar* avatar, bool isMyHand) {
                 //palm.addToPenetration(averagePenetration);
             } else {
                 // someone else's hand against MyAvatar
-                averageContactPoint /= float(handCollisions.size());
+                // TODO: submit collision info to MyAvatar which should lean accordingly
+                averageContactPoint /= (float)handCollisions.size();
                 avatar->applyCollision(averageContactPoint, totalPenetration);
             }
         }
