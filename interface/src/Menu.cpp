@@ -924,12 +924,15 @@ void Menu::goTo() {
     
     int dialogReturn = gotoDialog.exec();
     if (dialogReturn == QDialog::Accepted && !gotoDialog.textValue().isEmpty()) {
-        LocationManager* manager = &LocationManager::getInstance();
-        manager->goTo(gotoDialog.textValue());
-        connect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
+        goToUser(gotoDialog.textValue());
     }
-    
     sendFakeEnterEvent();
+}
+
+void Menu::goToUser(const QString& user) {
+    LocationManager* manager = &LocationManager::getInstance();
+    manager->goTo(user);
+    connect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
 }
 
 void Menu::multipleDestinationsDecision(const QJsonObject& userData, const QJsonObject& placeData) {

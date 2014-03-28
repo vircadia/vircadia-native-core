@@ -122,6 +122,7 @@ public slots:
     void importSettings();
     void exportSettings();
     void goTo();
+    void goToUser(const QString& user);
     void pasteToVoxel();
     
     void toggleLoginMenuItem();
