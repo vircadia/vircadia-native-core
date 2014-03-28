@@ -118,9 +118,9 @@ void MyAvatar::update(float deltaTime) {
         OculusManager::getEulerAngles(yaw, pitch, roll);
 
         // but these euler angles are stored in degrees
-        head->setYaw(yaw * DEGREES_PER_RADIAN);
-        head->setPitch(pitch * DEGREES_PER_RADIAN);
-        head->setRoll(roll * DEGREES_PER_RADIAN);
+        head->setBaseYaw(yaw * DEGREES_PER_RADIAN);
+        head->setBasePitch(pitch * DEGREES_PER_RADIAN);
+        head->setBaseRoll(roll * DEGREES_PER_RADIAN);
     }
 
     //  Get audio loudness data from audio input device
@@ -230,7 +230,7 @@ void MyAvatar::simulate(float deltaTime) {
 
     if (!Application::getInstance()->getFaceshift()->isActive() && OculusManager::isConnected() &&
             fabsf(forwardAcceleration) > OCULUS_ACCELERATION_PULL_THRESHOLD &&
-            fabs(getHead()->getYaw()) > OCULUS_YAW_OFFSET_THRESHOLD) {
+            fabs(getHead()->getBaseYaw()) > OCULUS_YAW_OFFSET_THRESHOLD) {
             
         // if we're wearing the oculus
         // and this acceleration is above the pull threshold
@@ -240,7 +240,7 @@ void MyAvatar::simulate(float deltaTime) {
         _bodyYaw = getAbsoluteHeadYaw();
 
         // set the head yaw to zero for this draw
-        getHead()->setYaw(0);
+        getHead()->setBaseYaw(0);
 
         // correct the oculus yaw offset
         OculusManager::updateYawOffset();
@@ -365,9 +365,9 @@ void MyAvatar::updateFromGyros(float deltaTime) {
         // restore rotation, lean to neutral positions
         const float RESTORE_PERIOD = 0.25f;   // seconds
         float restorePercentage = glm::clamp(deltaTime/RESTORE_PERIOD, 0.f, 1.f);
-        head->setPitchTweak(glm::mix(head->getPitchTweak(), 0.0f, restorePercentage));
-        head->setYawTweak(glm::mix(head->getYawTweak(), 0.0f, restorePercentage));
-        head->setRollTweak(glm::mix(head->getRollTweak(), 0.0f, restorePercentage));
+        head->setDeltaPitch(glm::mix(head->getDeltaPitch(), 0.0f, restorePercentage));
+        head->setDeltaYaw(glm::mix(head->getDeltaYaw(), 0.0f, restorePercentage));
+        head->setDeltaRoll(glm::mix(head->getDeltaRoll(), 0.0f, restorePercentage));
         head->setLeanSideways(glm::mix(head->getLeanSideways(), 0.0f, restorePercentage));
         head->setLeanForward(glm::mix(head->getLeanForward(), 0.0f, restorePercentage));
         return;
@@ -378,9 +378,9 @@ void MyAvatar::updateFromGyros(float deltaTime) {
     const float AVATAR_HEAD_PITCH_MAGNIFY = 1.0f;
     const float AVATAR_HEAD_YAW_MAGNIFY = 1.0f;
     const float AVATAR_HEAD_ROLL_MAGNIFY = 1.0f;
-    head->setPitchTweak(estimatedRotation.x * AVATAR_HEAD_PITCH_MAGNIFY);
-    head->setYawTweak(estimatedRotation.y * AVATAR_HEAD_YAW_MAGNIFY);
-    head->setRollTweak(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
+    head->setDeltaPitch(estimatedRotation.x * AVATAR_HEAD_PITCH_MAGNIFY);
+    head->setDeltaYaw(estimatedRotation.y * AVATAR_HEAD_YAW_MAGNIFY);
+    head->setDeltaRoll(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
 
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
@@ -506,7 +506,7 @@ void MyAvatar::saveData(QSettings* settings) {
     settings->setValue("bodyPitch", _bodyPitch);
     settings->setValue("bodyRoll", _bodyRoll);
 
-    settings->setValue("headPitch", getHead()->getPitch());
+    settings->setValue("headPitch", getHead()->getBasePitch());
 
     settings->setValue("position_x", _position.x);
     settings->setValue("position_y", _position.y);
@@ -532,7 +532,7 @@ void MyAvatar::loadData(QSettings* settings) {
     _bodyPitch = loadSetting(settings, "bodyPitch", 0.0f);
     _bodyRoll = loadSetting(settings, "bodyRoll", 0.0f);
 
-    getHead()->setPitch(loadSetting(settings, "headPitch", 0.0f));
+    getHead()->setBasePitch(loadSetting(settings, "headPitch", 0.0f));
 
     _position.x = loadSetting(settings, "position_x", 0.0f);
     _position.y = loadSetting(settings, "position_y", 0.0f);
@@ -575,9 +575,9 @@ void MyAvatar::orbit(const glm::vec3& position, int deltaX, int deltaY) {
     setOrientation(orientation);
     
     // then vertically
-    float oldPitch = getHead()->getPitch();
-    getHead()->setPitch(oldPitch - deltaY * ANGULAR_SCALE);
-    rotation = glm::angleAxis(glm::radians((getHead()->getPitch() - oldPitch)), orientation * IDENTITY_RIGHT);
+    float oldPitch = getHead()->getBasePitch();
+    getHead()->setBasePitch(oldPitch - deltaY * ANGULAR_SCALE);
+    rotation = glm::angleAxis(glm::radians((getHead()->getBasePitch() - oldPitch)), orientation * IDENTITY_RIGHT);
 
     setPosition(position + rotation * (getPosition() - position));
 }
@@ -683,7 +683,7 @@ void MyAvatar::updateThrust(float deltaTime) {
     _thrust -= _driveKeys[DOWN] * _scale * THRUST_MAG_DOWN * _thrustMultiplier * deltaTime * up;
     _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_SPEED * deltaTime;
     _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_SPEED * deltaTime;
-    getHead()->setPitch(getHead()->getPitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
+    getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
 
     //  If thrust keys are being held down, slowly increase thrust to allow reaching great speeds
     if (_driveKeys[FWD] || _driveKeys[BACK] || _driveKeys[RIGHT] || _driveKeys[LEFT] || _driveKeys[UP] || _driveKeys[DOWN]) {
