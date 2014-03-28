@@ -127,7 +127,7 @@ void Oscilloscope::render(int x, int y) {
     }
 
     // fetch low pass factor (and convert to fix point) / downsample factor
-    int lowPassFixPt = -int(std::numeric_limits<short>::min()) * _lowPassCoeff;
+    int lowPassFixPt = -(int)(std::numeric_limits<short>::min()) * _lowPassCoeff;
     unsigned downsample = _downsampleRatio;
     // keep half of the buffer for writing and ensure an even vertex count
     unsigned usedWidth = min(_width, MAX_SAMPLES_PER_CHANNEL / (downsample * 2)) & ~1u;
@@ -141,7 +141,7 @@ void Oscilloscope::render(int x, int y) {
         short const* inPtr = _samples + _writePos[ch];
         short* outPtr = _vertices + MAX_COORDS_PER_CHANNEL * ch;
         int sample = 0, x = usedWidth;
-        for (int i = int(usedSamples); --i >= 0 ;) {
+        for (int i = (int)usedSamples; --i >= 0 ;) {
             if (inPtr == basePtr) {
                 // handle boundary, reading the circular sample buffer
                 inPtr = endPtr;
