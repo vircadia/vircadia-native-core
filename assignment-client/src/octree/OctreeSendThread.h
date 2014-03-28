@@ -39,6 +39,7 @@ protected:
 
 private:
     OctreeServer* _myServer;
+    SharedNodePointer _node;
     QUuid _nodeUUID;
 
     int handlePacketSend(const SharedNodePointer& node, OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent);
