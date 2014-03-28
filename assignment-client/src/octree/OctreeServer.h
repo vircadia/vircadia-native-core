@@ -158,7 +158,7 @@ protected:
     OctreeInboundPacketProcessor* _octreeInboundPacketProcessor;
     OctreePersistThread* _persistThread;
 
-    static SharedOctreeServerPointer _instance;
+    static OctreeServer* _instance;
 
     time_t _started;
     quint64 _startedUSecs;

@@ -19,7 +19,7 @@
 #include "OctreeServer.h"
 #include "OctreeServerConsts.h"
 
-SharedOctreeServerPointer OctreeServer::_instance;
+OctreeServer* OctreeServer::_instance;
 int OctreeServer::_clientCount = 0;
 const int MOVING_AVERAGE_SAMPLE_COUNTS = 1000000;
 
@@ -203,7 +203,7 @@ void OctreeServer::trackProcessWaitTime(float time) {
 }
 
 void OctreeServer::attachQueryNodeToNode(Node* newNode) {
-    if (!newNode->getLinkedData() && !_instance.isNull()) {
+    if (!newNode->getLinkedData() && _instance) {
         OctreeQueryNode* newQueryNodeData = _instance->createOctreeQueryNode();
         newQueryNodeData->init();
         newNode->setLinkedData(newQueryNodeData);
@@ -231,8 +231,11 @@ OctreeServer::OctreeServer(const QByteArray& packet) :
     _started(time(0)),
     _startedUSecs(usecTimestampNow())
 {
-    assert(_instance.isNull()); // you should only ever have one instance at a time!
-    _instance = SharedOctreeServerPointer(this);
+    assert(!_instance); // you should only ever have one instance at a time!
+
+    qDebug() << "Octree Server starting... setting _instance to=[" << this << "]";
+    _instance = this;
+
     _averageLoopTime.updateAverage(0);
     qDebug() << "Octree server starting... [" << this << "]";
 }
@@ -245,25 +248,40 @@ OctreeServer::~OctreeServer() {
         }
         delete[] _parsedArgV;
     }
+    qDebug() << qPrintable(_safeServerName) << "server shutting down... [" << this << "] OctreeServer::~OctreeServer() line:" << __LINE__;
 
     if (_jurisdictionSender) {
         _jurisdictionSender->terminate();
         _jurisdictionSender->deleteLater();
     }
 
+    qDebug() << qPrintable(_safeServerName) << "server shutting down... [" << this << "] OctreeServer::~OctreeServer() line:" << __LINE__;
+
     if (_octreeInboundPacketProcessor) {
         _octreeInboundPacketProcessor->terminate();
         _octreeInboundPacketProcessor->deleteLater();
     }
 
+    qDebug() << qPrintable(_safeServerName) << "server shutting down... [" << this << "] OctreeServer::~OctreeServer() line:" << __LINE__;
+
     if (_persistThread) {
+        qDebug() << qPrintable(_safeServerName) << "server shutting down... [" << this << "] OctreeServer::~OctreeServer() line:" << __LINE__;
         _persistThread->terminate();
+        qDebug() << qPrintable(_safeServerName) << "server shutting down... [" << this << "] OctreeServer::~OctreeServer() line:" << __LINE__;
         _persistThread->deleteLater();
+        qDebug() << qPrintable(_safeServerName) << "server shutting down... [" << this << "] OctreeServer::~OctreeServer() line:" << __LINE__;
     }
+
+    qDebug() << qPrintable(_safeServerName) << "server shutting down... [" << this << "] OctreeServer::~OctreeServer() line:" << __LINE__;
 
     delete _jurisdiction;
     _jurisdiction = NULL;
     qDebug() << qPrintable(_safeServerName) << "server DONE shutting down... [" << this << "]";
+
+    qDebug() << qPrintable(_safeServerName) << "server shutting down... [" << this << "] OctreeServer::~OctreeServer() line:" << __LINE__;
+    
+    _instance = NULL; // we are gone
+    qDebug() << qPrintable(_safeServerName) << "server shutting down... [" << this << "] OctreeServer::~OctreeServer() line:" << __LINE__;
 }
 
 void OctreeServer::initHTTPManager(int port) {
@@ -836,8 +854,7 @@ void OctreeServer::readPendingDatagrams() {
                         if (debug) {
                             qDebug() << "calling initializeOctreeSendThread()... node:" << *matchingNode;
                         }
-                        SharedOctreeServerPointer myServer(this);
-                        nodeData->initializeOctreeSendThread(myServer, matchingNode);
+                        nodeData->initializeOctreeSendThread(SharedOctreeServerPointer(this), matchingNode);
                     }
                 }
             } else if (packetType == PacketTypeJurisdictionRequest) {
@@ -1059,10 +1076,8 @@ void OctreeServer::aboutToFinish() {
         qDebug() << qPrintable(_safeServerName) << "server about to finish while node still connected node:" << *node;
         nodeKilled(node);
     }
+
     qDebug() << qPrintable(_safeServerName) << "server ENDING about to finish...";
-    
-    // release our reference to the instance, this will allow the shared pointers to properly unwind
-    _instance.clear();
 }
 
 QString OctreeServer::getUptime() {

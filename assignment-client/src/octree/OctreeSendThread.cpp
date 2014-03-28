@@ -28,25 +28,34 @@ OctreeSendThread::OctreeSendThread(const SharedOctreeServerPointer& myServer, Sh
     _processLock(),
     _isShuttingDown(false)
 {
-    QString safeServerName("Octree");
-    if (!_myServer.isNull()) {
-        safeServerName = _myServer->getMyServerName();
-    }
-    qDebug() << qPrintable(safeServerName)  << "server [" << _myServer << "]: client connected "
+    qDebug() << qPrintable(_myServer->getMyServerName())  << "server [" << _myServer.data() << "]: client connected "
                                             "- starting sending thread [" << this << "]";
 
     OctreeServer::clientConnected();
 }
 
-OctreeSendThread::~OctreeSendThread() { 
-    QString safeServerName("Octree");
-    if (!_myServer.isNull()) {
-        safeServerName = _myServer->getMyServerName();
-    }
-    qDebug() << qPrintable(safeServerName)  << "server [" << _myServer << "]: client disconnected "
+OctreeSendThread::~OctreeSendThread() {
+    QString serverName(_myServer->getMyServerName());
+
+    qDebug() << qPrintable(serverName)  << "server [" << _myServer.data() << "]: client disconnected "
                                             "- ending sending thread [" << this << "]";
     OctreeServer::clientDisconnected();
+
+    qDebug() << qPrintable(serverName) << "server [" << _myServer.data() << "]: "
+                                            "- OctreeSendThread::~OctreeSendThread() this=[" << this << "]"
+                                            "line: " << __LINE__;
+
     _node.clear();
+
+    qDebug() << qPrintable(serverName)  << "server [" << _myServer.data() << "]: "
+                                            "- OctreeSendThread::~OctreeSendThread() this=[" << this << "]"
+                                            "line: " << __LINE__;
+    void* serverPtr = _myServer.data();
+    _myServer.clear();
+
+    qDebug() << qPrintable(serverName)  << "server [" << serverPtr << "]: "
+                                        "- OctreeSendThread::~OctreeSendThread() this=[" << this << "]"
+                                        "line: " << __LINE__;
 }
 
 void OctreeSendThread::setIsShuttingDown() {
