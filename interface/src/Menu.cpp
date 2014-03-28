@@ -1102,13 +1102,23 @@ void Menu::showMetavoxelEditor() {
 }
 
 void Menu::showChat() {
+    QMainWindow* mainWindow = Application::getInstance()->getWindow();
     if (!_chatWindow) {
-        Application::getInstance()->getWindow()->addDockWidget(Qt::RightDockWidgetArea, _chatWindow = new ChatWindow());
-        
-    } else {
-        if (!_chatWindow->toggleViewAction()->isChecked()) {
-            _chatWindow->toggleViewAction()->trigger();
-        }
+        mainWindow->addDockWidget(Qt::NoDockWidgetArea, _chatWindow = new ChatWindow());
+    }
+    if (!_chatWindow->toggleViewAction()->isChecked()) {
+        int width = _chatWindow->width();
+        int y = qMax((mainWindow->height() - _chatWindow->height()) / 2, 0);
+        _chatWindow->move(mainWindow->width(), y);
+        _chatWindow->resize(0, _chatWindow->height());
+        _chatWindow->toggleViewAction()->trigger();
+
+        QPropertyAnimation* slideAnimation = new QPropertyAnimation(_chatWindow, "geometry", _chatWindow);
+        slideAnimation->setStartValue(_chatWindow->geometry());
+        slideAnimation->setEndValue(QRect(mainWindow->width() - width, _chatWindow->y(),
+                                          width, _chatWindow->height()));
+        slideAnimation->setDuration(250);
+        slideAnimation->start(QAbstractAnimation::DeleteWhenStopped);
     }
 }
 
