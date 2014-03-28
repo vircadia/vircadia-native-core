@@ -51,6 +51,7 @@ Node::Node(const QUuid& uuid, char type, const HifiSockAddr& publicSocket, const
     _lastHeardMicrostamp(usecTimestampNow()),
     _publicSocket(publicSocket),
     _localSocket(localSocket),
+    _symmetricSocket(),
     _activeSocket(NULL),
     _connectionSecret(),
     _bytesReceivedMovingAverage(NULL),

@@ -70,7 +70,9 @@ public:
     void setPublicSocket(const HifiSockAddr& publicSocket);
     const HifiSockAddr& getLocalSocket() const { return _localSocket; }
     void setLocalSocket(const HifiSockAddr& localSocket);
-
+    const HifiSockAddr& getSymmetricSocket() const { return _symmetricSocket; }
+    void setSymmetricSocket(const HifiSockAddr& symmetricSocket) { _symmetricSocket = symmetricSocket; }
+    
     const HifiSockAddr* getActiveSocket() const { return _activeSocket; }
 
     void activatePublicSocket();
@@ -110,6 +112,7 @@ private:
     quint64 _lastHeardMicrostamp;
     HifiSockAddr _publicSocket;
     HifiSockAddr _localSocket;
+    HifiSockAddr _symmetricSocket;
     HifiSockAddr* _activeSocket;
     QUuid _connectionSecret;
     SimpleMovingAverage* _bytesReceivedMovingAverage;
