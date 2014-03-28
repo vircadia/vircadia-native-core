@@ -132,7 +132,7 @@ public:
 
     static const int CHILD_COUNT = 8;
 
-    MetavoxelNode(const AttributeValue& attributeValue);
+    MetavoxelNode(const AttributeValue& attributeValue, const MetavoxelNode* copyChildren = NULL);
     MetavoxelNode(const AttributePointer& attribute, const MetavoxelNode* copy);
     
     void setAttributeValue(const AttributeValue& attributeValue);
@@ -439,8 +439,9 @@ public:
     virtual bool getAttributeValues(MetavoxelInfo& info) const;
     
     /// Blends the attribute values associated with this spanner into the supplied info.
+    /// \param force if true, blend even if we would normally subdivide
     /// \return true to recurse, false to stop
-    virtual bool blendAttributeValues(MetavoxelInfo& info) const;
+    virtual bool blendAttributeValues(MetavoxelInfo& info, bool force = false) const;
     
     /// Checks whether we've visited this object on the current traversal.  If we have, returns false.
     /// If we haven't, sets the last visit identifier and returns true.
@@ -536,7 +537,7 @@ public:
     virtual const QVector<AttributePointer>& getAttributes() const;
     virtual const QVector<AttributePointer>& getVoxelizedAttributes() const;
     virtual bool getAttributeValues(MetavoxelInfo& info) const;
-    virtual bool blendAttributeValues(MetavoxelInfo& info) const;
+    virtual bool blendAttributeValues(MetavoxelInfo& info, bool force = false) const;
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
 signals:

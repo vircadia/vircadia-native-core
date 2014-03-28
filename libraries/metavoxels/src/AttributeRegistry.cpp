@@ -13,6 +13,8 @@
 
 REGISTER_META_OBJECT(QRgbAttribute)
 REGISTER_META_OBJECT(PackedNormalAttribute)
+REGISTER_META_OBJECT(SpannerQRgbAttribute)
+REGISTER_META_OBJECT(SpannerPackedNormalAttribute)
 REGISTER_META_OBJECT(SharedObjectAttribute)
 REGISTER_META_OBJECT(SharedObjectSetAttribute)
 REGISTER_META_OBJECT(SpannerSetAttribute)
@@ -35,7 +37,7 @@ AttributeRegistry::AttributeRegistry() :
     _spannerNormalAttribute(registerAttribute(new SpannerPackedNormalAttribute("spannerNormal"))) {
     
     // our baseline LOD threshold is for voxels; spanners are a different story
-    const float SPANNER_LOD_THRESHOLD_MULTIPLIER = 4.0f;
+    const float SPANNER_LOD_THRESHOLD_MULTIPLIER = 8.0f;
     _spannersAttribute->setLODThresholdMultiplier(SPANNER_LOD_THRESHOLD_MULTIPLIER);
 }
 
@@ -168,6 +170,10 @@ Attribute::Attribute(const QString& name) :
 Attribute::~Attribute() {
 }
 
+MetavoxelNode* Attribute::createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const {
+    return new MetavoxelNode(value);
+}
+
 void Attribute::readMetavoxelRoot(MetavoxelData& data, MetavoxelStreamState& state) {
     data.createRoot(state.attribute)->read(state);
 }
@@ -257,7 +263,7 @@ PackedNormalAttribute::PackedNormalAttribute(const QString& name, QRgb defaultVa
 
 bool PackedNormalAttribute::merge(void*& parent, void* children[]) const {
     QRgb firstValue = decodeInline<QRgb>(children[0]);
-    glm::vec3 total = unpackNormal(firstValue);
+    glm::vec3 total = unpackNormal(firstValue) * (float)qAlpha(firstValue);
     bool allChildrenEqual = true;
     for (int i = 1; i < Attribute::MERGE_COUNT; i++) {
         QRgb value = decodeInline<QRgb>(children[i]);
@@ -290,46 +296,62 @@ SpannerQRgbAttribute::SpannerQRgbAttribute(const QString& name, QRgb defaultValu
     QRgbAttribute(name, defaultValue) {
 }
 
+void SpannerQRgbAttribute::read(Bitstream& in, void*& value, bool isLeaf) const {
+    value = getDefaultValue();
+    in.read(&value, 32);
+}
+
+void SpannerQRgbAttribute::write(Bitstream& out, void* value, bool isLeaf) const {
+    out.write(&value, 32);
+}
+
+MetavoxelNode* SpannerQRgbAttribute::createMetavoxelNode(
+        const AttributeValue& value, const MetavoxelNode* original) const {
+    return new MetavoxelNode(value, original);
+}
+
 bool SpannerQRgbAttribute::merge(void*& parent, void* children[]) const {
-    QRgb firstValue = decodeInline<QRgb>(children[0]);
-    int totalAlpha = qAlpha(firstValue);
-    int totalRed = qRed(firstValue) * totalAlpha;
-    int totalGreen = qGreen(firstValue) * totalAlpha;
-    int totalBlue = qBlue(firstValue) * totalAlpha;
-    bool allChildrenEqual = true;
-    for (int i = 1; i < Attribute::MERGE_COUNT; i++) {
-        QRgb value = decodeInline<QRgb>(children[i]);
-        int alpha = qAlpha(value);
-        totalRed += qRed(value) * alpha;
-        totalGreen += qGreen(value) * alpha;
-        totalBlue += qBlue(value) * alpha;
-        totalAlpha += alpha;
-        allChildrenEqual &= (firstValue == value);
+    for (int i = 0; i < MERGE_COUNT; i++) {
+        if (qAlpha(decodeInline<QRgb>(children[i])) != 0) {
+            return false;
+        }
     }
-    if (totalAlpha == 0) {
-        parent = encodeInline(QRgb());
-    } else {
-        parent = encodeInline(qRgba(totalRed / totalAlpha, totalGreen / totalAlpha,
-            totalBlue / totalAlpha, totalAlpha / MERGE_COUNT));
-    }
-    return allChildrenEqual;
+    return true;
 } 
+
+AttributeValue SpannerQRgbAttribute::inherit(const AttributeValue& parentValue) const {
+    return AttributeValue(parentValue.getAttribute());
+}
 
 SpannerPackedNormalAttribute::SpannerPackedNormalAttribute(const QString& name, QRgb defaultValue) :
     PackedNormalAttribute(name, defaultValue) {
 }
 
+void SpannerPackedNormalAttribute::read(Bitstream& in, void*& value, bool isLeaf) const {
+    value = getDefaultValue();
+    in.read(&value, 32);
+}
+
+void SpannerPackedNormalAttribute::write(Bitstream& out, void* value, bool isLeaf) const {
+    out.write(&value, 32);
+}
+
+MetavoxelNode* SpannerPackedNormalAttribute::createMetavoxelNode(
+        const AttributeValue& value, const MetavoxelNode* original) const {
+    return new MetavoxelNode(value, original);
+}
+
 bool SpannerPackedNormalAttribute::merge(void*& parent, void* children[]) const {
-    QRgb firstValue = decodeInline<QRgb>(children[0]);
-    glm::vec3 total = unpackNormal(firstValue);
-    bool allChildrenEqual = true;
-    for (int i = 1; i < Attribute::MERGE_COUNT; i++) {
-        QRgb value = decodeInline<QRgb>(children[i]);
-        total += unpackNormal(value) * (float)qAlpha(value);
-        allChildrenEqual &= (firstValue == value);
+    for (int i = 0; i < MERGE_COUNT; i++) {
+        if (qAlpha(decodeInline<QRgb>(children[i])) != 0) {
+            return false;
+        }
     }
-    parent = encodeInline(packNormal(glm::normalize(total)));
-    return allChildrenEqual;
+    return true;
+}
+
+AttributeValue SpannerPackedNormalAttribute::inherit(const AttributeValue& parentValue) const {
+    return AttributeValue(parentValue.getAttribute());
 }
 
 SharedObjectAttribute::SharedObjectAttribute(const QString& name, const QMetaObject* metaObject,
@@ -386,6 +408,11 @@ void SharedObjectSetAttribute::write(Bitstream& out, void* value, bool isLeaf) c
     out << decodeInline<SharedObjectSet>(value);
 }
 
+MetavoxelNode* SharedObjectSetAttribute::createMetavoxelNode(
+        const AttributeValue& value, const MetavoxelNode* original) const {
+    return new MetavoxelNode(value, original);
+}
+
 bool SharedObjectSetAttribute::merge(void*& parent, void* children[]) const {
     for (int i = 0; i < MERGE_COUNT; i++) {
         if (!decodeInline<SharedObjectSet>(children[i]).isEmpty()) {
@@ -393,6 +420,10 @@ bool SharedObjectSetAttribute::merge(void*& parent, void* children[]) const {
         }
     }
     return true;
+}
+
+AttributeValue SharedObjectSetAttribute::inherit(const AttributeValue& parentValue) const {
+    return AttributeValue(parentValue.getAttribute());
 }
 
 QWidget* SharedObjectSetAttribute::createEditor(QWidget* parent) const {

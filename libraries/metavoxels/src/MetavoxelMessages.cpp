@@ -104,32 +104,42 @@ InsertSpannerEdit::InsertSpannerEdit(const AttributePointer& attribute, const Sh
     spanner(spanner) {
 }
 
-class SetSpannerEditVisitor : public MetavoxelVisitor {
+class InsertSpannerEditVisitor : public MetavoxelVisitor {
 public:
     
-    SetSpannerEditVisitor(const QVector<AttributePointer>& attributes, Spanner* spanner);
+    InsertSpannerEditVisitor(const QVector<AttributePointer>& attributes, Spanner* spanner);
     
     virtual int visit(MetavoxelInfo& info);
 
 private:
     
     Spanner* _spanner;
+    float _longestSide;
 };
 
-SetSpannerEditVisitor::SetSpannerEditVisitor(const QVector<AttributePointer>& attributes, Spanner* spanner) :
+InsertSpannerEditVisitor::InsertSpannerEditVisitor(const QVector<AttributePointer>& attributes, Spanner* spanner) :
     MetavoxelVisitor(attributes, attributes),
-    _spanner(spanner) {
+    _spanner(spanner),
+    _longestSide(qMax(spanner->getBounds().getLongestSide(), spanner->getPlacementGranularity()) * 2.0f /
+        AttributeRegistry::getInstance()->getSpannersAttribute()->getLODThresholdMultiplier()) {
 }
 
-int SetSpannerEditVisitor::visit(MetavoxelInfo& info) {
-    return _spanner->blendAttributeValues(info) ? DEFAULT_ORDER : STOP_RECURSION;
+int InsertSpannerEditVisitor::visit(MetavoxelInfo& info) {
+    if (!info.getBounds().intersects(_spanner->getBounds())) {
+        return STOP_RECURSION;
+    }
+    if (info.size > _longestSide) {
+        return DEFAULT_ORDER;
+    }
+    _spanner->blendAttributeValues(info, true);
+    return STOP_RECURSION;
 }
 
 void InsertSpannerEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
     data.insert(attribute, this->spanner);
     
     Spanner* spanner = static_cast<Spanner*>(this->spanner.data());
-    SetSpannerEditVisitor visitor(spanner->getVoxelizedAttributes(), spanner);
+    InsertSpannerEditVisitor visitor(spanner->getVoxelizedAttributes(), spanner);
     data.guide(visitor);  
 }
 
@@ -157,6 +167,27 @@ void ClearSpannersEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& o
 
 SetSpannerEdit::SetSpannerEdit(const SharedObjectPointer& spanner) :
     spanner(spanner) {
+}
+
+class SetSpannerEditVisitor : public MetavoxelVisitor {
+public:
+    
+    SetSpannerEditVisitor(const QVector<AttributePointer>& attributes, Spanner* spanner);
+    
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    Spanner* _spanner;
+};
+
+SetSpannerEditVisitor::SetSpannerEditVisitor(const QVector<AttributePointer>& attributes, Spanner* spanner) :
+    MetavoxelVisitor(attributes, attributes),
+    _spanner(spanner) {
+}
+
+int SetSpannerEditVisitor::visit(MetavoxelInfo& info) {
+    return _spanner->blendAttributeValues(info) ? DEFAULT_ORDER : STOP_RECURSION;
 }
 
 void SetSpannerEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {

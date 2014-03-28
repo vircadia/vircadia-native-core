@@ -191,6 +191,8 @@ public:
     virtual void readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const { read(in, value, isLeaf); }
     virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const { write(out, value, isLeaf); }
 
+    virtual MetavoxelNode* createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const;
+
     virtual void readMetavoxelRoot(MetavoxelData& data, MetavoxelStreamState& state);
     virtual void writeMetavoxelRoot(const MetavoxelNode& root, MetavoxelStreamState& state);
     
@@ -205,6 +207,9 @@ public:
     /// Merges the value of a parent and its children.
     /// \return whether or not the children and parent values are all equal
     virtual bool merge(void*& parent, void* children[]) const = 0;
+
+    /// Given the parent value, returns the value that children should inherit (either the parent value or the default).
+    virtual AttributeValue inherit(const AttributeValue& parentValue) const { return parentValue; }
 
     /// Mixes the first and the second, returning a new value with the result.
     virtual void* mix(void* first, void* second, float alpha) const = 0;
@@ -307,7 +312,14 @@ public:
     
     Q_INVOKABLE SpannerQRgbAttribute(const QString& name = QString(), QRgb defaultValue = QRgb());
     
+    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
+    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
+    
+    virtual MetavoxelNode* createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const;
+    
     virtual bool merge(void*& parent, void* children[]) const;
+    
+    virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 };
 
 /// Packed normals for voxelized spanners.
@@ -318,7 +330,14 @@ public:
     
     Q_INVOKABLE SpannerPackedNormalAttribute(const QString& name = QString(), QRgb defaultValue = QRgb());
     
+    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
+    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
+    
+    virtual MetavoxelNode* createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const;
+    
     virtual bool merge(void*& parent, void* children[]) const;
+    
+    virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 };
 
 /// An attribute that takes the form of QObjects of a given meta-type (a subclass of SharedObject).
@@ -361,7 +380,11 @@ public:
     virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
     virtual void write(Bitstream& out, void* value, bool isLeaf) const;
     
+    virtual MetavoxelNode* createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const;
+    
     virtual bool merge(void*& parent, void* children[]) const;
+
+    virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 
     virtual QWidget* createEditor(QWidget* parent = NULL) const;
 

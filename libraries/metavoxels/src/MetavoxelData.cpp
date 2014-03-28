@@ -485,14 +485,26 @@ void MetavoxelStreamState::setMinimum(const glm::vec3& lastMinimum, int index) {
     minimum = getNextMinimum(lastMinimum, size, index);
 }
 
-MetavoxelNode::MetavoxelNode(const AttributeValue& attributeValue) : _referenceCount(1) {
+MetavoxelNode::MetavoxelNode(const AttributeValue& attributeValue, const MetavoxelNode* copyChildren) :
+        _referenceCount(1) {
+
     _attributeValue = attributeValue.copy();
-    for (int i = 0; i < CHILD_COUNT; i++) {
-        _children[i] = NULL;
+    if (copyChildren) {
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            if ((_children[i] = copyChildren->_children[i])) {
+                _children[i]->incrementReferenceCount();
+            }
+        }
+    } else {
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            _children[i] = NULL;
+        }
     }
 }
 
-MetavoxelNode::MetavoxelNode(const AttributePointer& attribute, const MetavoxelNode* copy) : _referenceCount(1) {
+MetavoxelNode::MetavoxelNode(const AttributePointer& attribute, const MetavoxelNode* copy) :
+        _referenceCount(1) {
+        
     _attributeValue = attribute->create(copy->_attributeValue);
     for (int i = 0; i < CHILD_COUNT; i++) {
         if ((_children[i] = copy->_children[i])) {
@@ -969,7 +981,7 @@ bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
             // "set" to same value; disregard
             value = AttributeValue();
         } else {
-            node = new MetavoxelNode(value);
+            node = value.getAttribute()->createMetavoxelNode(value, node);
         }
     }
     if (encodedOrder == MetavoxelVisitor::STOP_RECURSION) {
@@ -991,7 +1003,7 @@ bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
             MetavoxelNode* child = (node && (visitation.info.size >= lodBase *
                 parentValue.getAttribute()->getLODThresholdMultiplier())) ? node->getChild(index) : NULL;
             nextVisitation.info.inputValues[j] = ((nextVisitation.inputNodes[j] = child)) ?
-                child->getAttributeValue(parentValue.getAttribute()) : parentValue;
+                child->getAttributeValue(parentValue.getAttribute()) : parentValue.getAttribute()->inherit(parentValue);
         }
         for (int j = 0; j < visitation.outputNodes.size(); j++) {
             MetavoxelNode* node = visitation.outputNodes.at(j);
@@ -1019,7 +1031,7 @@ bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
                     node = new MetavoxelNode(value.getAttribute(), node);
                 } else {
                     // create leaf with inherited value
-                    node = new MetavoxelNode(visitation.getInheritedOutputValue(j));
+                    node = new MetavoxelNode(value.getAttribute()->inherit(visitation.getInheritedOutputValue(j)));
                 }
             }
             MetavoxelNode* node = visitation.outputNodes.at(j);
@@ -1028,7 +1040,7 @@ bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
                 child->decrementReferenceCount(value.getAttribute());
             } else {
                 // it's a leaf; we need to split it up
-                AttributeValue nodeValue = node->getAttributeValue(value.getAttribute());
+                AttributeValue nodeValue = value.getAttribute()->inherit(node->getAttributeValue(value.getAttribute()));
                 for (int k = 1; k < MetavoxelNode::CHILD_COUNT; k++) {
                     node->setChild((index + k) % MetavoxelNode::CHILD_COUNT, new MetavoxelNode(nodeValue));
                 }
@@ -1234,7 +1246,7 @@ bool Spanner::getAttributeValues(MetavoxelInfo& info) const {
     return false;
 }
 
-bool Spanner::blendAttributeValues(MetavoxelInfo& info) const {
+bool Spanner::blendAttributeValues(MetavoxelInfo& info, bool force) const {
     return false;
 }
 
@@ -1369,10 +1381,10 @@ bool Sphere::getAttributeValues(MetavoxelInfo& info) const {
     return true;
 }
 
-bool Sphere::blendAttributeValues(MetavoxelInfo& info) const {
+bool Sphere::blendAttributeValues(MetavoxelInfo& info, bool force) const {
     // bounds check
     Box bounds = info.getBounds();
-    if (!getBounds().intersects(bounds)) {
+    if (!(force || getBounds().intersects(bounds))) {
         return false;
     }
     // count the points inside the sphere
@@ -1388,7 +1400,7 @@ bool Sphere::blendAttributeValues(MetavoxelInfo& info) const {
         info.outputValues[1] = getNormal(info);
         return false;
     }
-    if (info.size <= getVoxelizationGranularity()) {
+    if (force || info.size <= getVoxelizationGranularity()) {
         // best guess
         if (pointsWithin > 0) {
             int oldAlpha = qAlpha(info.inputValues.at(0).getInlineValue<QRgb>());
