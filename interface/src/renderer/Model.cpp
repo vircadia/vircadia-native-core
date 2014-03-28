@@ -136,13 +136,13 @@ void Model::reset() {
 }
 
 void Model::clearShapes() {
-    for (int i = 0; i < _shapes.size(); ++i) {
-        delete _shapes[i];
+    for (int i = 0; i < _jointShapes.size(); ++i) {
+        delete _jointShapes[i];
     }
-    _shapes.clear();
+    _jointShapes.clear();
 }
 
-void Model::createCollisionShapes() {
+void Model::createJointCollisionShapes() {
     clearShapes();
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     float uniformScale = extractUniformScale(_scale);
@@ -156,16 +156,21 @@ void Model::createCollisionShapes() {
             float halfHeight = 0.5f * uniformScale * joint.distanceToParent;
             CapsuleShape* shape = new CapsuleShape(radius, halfHeight);
             shape->setPosition(position);
-            _shapes.push_back(shape);
+            _jointShapes.push_back(shape);
         } else {
             SphereShape* shape = new SphereShape(radius, position);
-            _shapes.push_back(shape);
+            _jointShapes.push_back(shape);
         }
     }
 }
 
+void Model::createBoundingShape() {
+    //const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    //float uniformScale = extractUniformScale(_scale);
+}
+
 void Model::updateShapePositions() {
-    if (_shapesAreDirty && _shapes.size() == _jointStates.size()) {
+    if (_shapesAreDirty && _jointShapes.size() == _jointStates.size()) {
         _boundingRadius = 0.f;
         float uniformScale = extractUniformScale(_scale);
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -174,8 +179,8 @@ void Model::updateShapePositions() {
             // shape position and rotation need to be in world-frame
             glm::vec3 jointToShapeOffset = uniformScale * (_jointStates[i].combinedRotation * joint.shapePosition);
             glm::vec3 worldPosition = extractTranslation(_jointStates[i].transform) + jointToShapeOffset + _translation;
-            _shapes[i]->setPosition(worldPosition);
-            _shapes[i]->setRotation(_jointStates[i].combinedRotation * joint.shapeRotation);
+            _jointShapes[i]->setPosition(worldPosition);
+            _jointShapes[i]->setRotation(_jointStates[i].combinedRotation * joint.shapeRotation);
             float distance2 = glm::distance2(worldPosition, _translation);
             if (distance2 > _boundingRadius) {
                 _boundingRadius = distance2;
@@ -401,8 +406,8 @@ bool Model::findCollisions(const QVector<const Shape*> shapes, CollisionList& co
     bool collided = false;
     for (int i = 0; i < shapes.size(); ++i) {
         const Shape* theirShape = shapes[i];
-        for (int j = 0; j < _shapes.size(); ++j) {
-            const Shape* ourShape = _shapes[j];
+        for (int j = 0; j < _jointShapes.size(); ++j) {
+            const Shape* ourShape = _jointShapes[j];
             if (ShapeCollider::shapeShape(theirShape, ourShape, collisions)) {
                 collided = true;
             }
@@ -417,7 +422,7 @@ bool Model::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadi
     updateShapePositions();
     SphereShape sphere(sphereRadius, sphereCenter);
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    for (int i = 0; i < _shapes.size(); i++) {
+    for (int i = 0; i < _jointShapes.size(); i++) {
         const FBXJoint& joint = geometry.joints[i];
         if (joint.parentIndex != -1) {
             if (skipIndex != -1) {
@@ -431,7 +436,7 @@ bool Model::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadi
                 } while (ancestorIndex != -1);
             }
         }
-        if (ShapeCollider::shapeShape(&sphere, _shapes[i], collisions)) {
+        if (ShapeCollider::shapeShape(&sphere, _jointShapes[i], collisions)) {
             CollisionInfo* collision = collisions.getLastCollision();
             collision->_type = MODEL_COLLISION;
             collision->_data = (void*)(this);
@@ -578,7 +583,7 @@ void Model::simulate(float deltaTime, bool fullUpdate, const QVector<JointState>
             _attachments.append(model);
         }
         fullUpdate = true;
-        createCollisionShapes();
+        createJointCollisionShapes();
     }
     
     // exit early if we don't have to perform a full update
@@ -825,10 +830,10 @@ void Model::renderCollisionProxies(float alpha) {
     Application::getInstance()->loadTranslatedViewMatrix(_translation);
     updateShapePositions();
     const int BALL_SUBDIVISIONS = 10;
-    for (int i = 0; i < _shapes.size(); i++) {
+    for (int i = 0; i < _jointShapes.size(); i++) {
         glPushMatrix();
 
-        Shape* shape = _shapes[i];
+        Shape* shape = _jointShapes[i];
         
         if (shape->getType() == Shape::SPHERE_SHAPE) {
             // shapes are stored in world-frame, so we have to transform into model frame

@@ -55,7 +55,8 @@ public:
     void init();
     void reset();
     void clearShapes();
-    void createCollisionShapes();
+    void createJointCollisionShapes();
+    void createBoundingShape();
     void updateShapePositions();
     void simulate(float deltaTime, bool fullUpdate = true);
     bool render(float alpha = 1.0f, bool forShadowMap = false);
@@ -203,7 +204,7 @@ protected:
     
     bool _shapesAreDirty;
     QVector<JointState> _jointStates;
-    QVector<Shape*> _shapes;
+    QVector<Shape*> _jointShapes;
     
     class MeshState {
     public:
