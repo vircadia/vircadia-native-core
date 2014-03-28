@@ -17,6 +17,7 @@ include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} "${ROOT_DIR}")
 
 find_package(Qt5Network REQUIRED)
+find_package(QCA REQUIRED)
 
 include(${MACRO_DIR}/SetupHifiProject.cmake)
 
@@ -36,8 +37,12 @@ include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(embedded-webserver ${TARGET_NAME} "${ROOT_DIR}")
 
+# include the QCA dir
+include_directories(QCA_INCLUDE_DIR)
+
 IF (WIN32)
   target_link_libraries(${TARGET_NAME} Winmm Ws2_32)
 ENDIF(WIN32)
 
-target_link_libraries(${TARGET_NAME} Qt5::Network)
+# link QtNetwork and QCA
+target_link_libraries(${TARGET_NAME} Qt5::Network "${QCA_LIBRARY}")
