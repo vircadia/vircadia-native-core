@@ -121,8 +121,6 @@ public:
 
     bool isDefault() const;
 
-    AttributeValue split() const;
-
     bool operator==(const AttributeValue& other) const;
     bool operator==(void* other) const;
     
@@ -207,9 +205,6 @@ public:
     /// Merges the value of a parent and its children.
     /// \return whether or not the children and parent values are all equal
     virtual bool merge(void*& parent, void* children[]) const = 0;
-
-    /// Returns the attribute value to pass to children below leaves (either the parent, or the default, or a null value).
-    virtual AttributeValue split(const AttributeValue& parent) const { return parent; }
 
     /// Mixes the first and the second, returning a new value with the result.
     virtual void* mix(void* first, void* second, float alpha) const = 0;
@@ -345,8 +340,6 @@ public:
     virtual void write(Bitstream& out, void* value, bool isLeaf) const;
     
     virtual bool merge(void*& parent, void* children[]) const;
-
-    virtual AttributeValue split(const AttributeValue& parent) const;
 
     virtual QWidget* createEditor(QWidget* parent = NULL) const;
 

@@ -189,6 +189,7 @@ public:
     float size; ///< the size of the voxel in all dimensions
     QVector<AttributeValue> inputValues;
     QVector<OwnedAttributeValue> outputValues;
+    bool isLODLeaf;
     bool isLeaf;
     
     Box getBounds() const { return Box(minimum, minimum + glm::vec3(size, size, size)); }

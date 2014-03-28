@@ -953,8 +953,8 @@ bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     // save the core of the LOD calculation; we'll reuse it to determine whether to subdivide each attribute
     float lodBase = glm::distance(visitation.visitor.getLOD().position, visitation.info.getCenter()) *
         visitation.visitor.getLOD().threshold;
-    visitation.info.isLeaf = (visitation.info.size < lodBase * visitation.visitor.getMinimumLODThresholdMultiplier()) ||
-        visitation.allInputNodesLeaves();
+    visitation.info.isLODLeaf = (visitation.info.size < lodBase * visitation.visitor.getMinimumLODThresholdMultiplier());
+    visitation.info.isLeaf = visitation.info.isLODLeaf || visitation.allInputNodesLeaves();
     int encodedOrder = visitation.visitor.visit(visitation.info);
     if (encodedOrder == MetavoxelVisitor::SHORT_CIRCUIT) {
         return false;
@@ -991,7 +991,7 @@ bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
             MetavoxelNode* child = (node && (visitation.info.size >= lodBase *
                 parentValue.getAttribute()->getLODThresholdMultiplier())) ? node->getChild(index) : NULL;
             nextVisitation.info.inputValues[j] = ((nextVisitation.inputNodes[j] = child)) ?
-                child->getAttributeValue(parentValue.getAttribute()) : parentValue.split();
+                child->getAttributeValue(parentValue.getAttribute()) : parentValue;
         }
         for (int j = 0; j < visitation.outputNodes.size(); j++) {
             MetavoxelNode* node = visitation.outputNodes.at(j);
