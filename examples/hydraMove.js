@@ -162,11 +162,11 @@ function flyWithHydra(deltaTime) {
         if (thrustMultiplier < MAX_THRUST_MULTIPLIER) {
             thrustMultiplier *= 1 + (deltaTime * THRUST_INCREASE_RATE);
         }
-        var currentOrientation = MyAvatar.orientation;
+        var headOrientation = MyAvatar.headOrientation;
 
-        var front = Quat.getFront(currentOrientation);
-        var right = Quat.getRight(currentOrientation);
-        var up = Quat.getUp(currentOrientation);
+        var front = Quat.getFront(headOrientation);
+        var right = Quat.getRight(headOrientation);
+        var up = Quat.getUp(headOrientation);
     
         var thrustFront = Vec3.multiply(front, MyAvatar.scale * THRUST_MAG_HAND_JETS * 
                                         thrustJoystickPosition.y * thrustMultiplier * deltaTime);
