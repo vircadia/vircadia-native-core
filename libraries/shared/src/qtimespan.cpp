@@ -1594,7 +1594,7 @@ void QTimeSpan::setFromMonths(qreal months)
 {
     Q_ASSERT_X(hasValidReference(), "setFromMonths", "Can not set interval from time unit month if there is no reference date.");
 
-    int fullMonths = int(months);
+    int fullMonths = (int)months;
     qreal fractionalMonth = months - fullMonths;
 
     QDateTime endDate = d->reference;
@@ -1631,7 +1631,7 @@ void QTimeSpan::setFromYears(qreal years)
 {
     Q_ASSERT_X(hasValidReference(), "setFromYears", "Can not set interval from time unit year if there is no reference date.");
 
-    int fullYears = int(years);
+    int fullYears = (int)years;
     qreal fractionalYear = years - fullYears;
 
     QDateTime endDate = d->reference;

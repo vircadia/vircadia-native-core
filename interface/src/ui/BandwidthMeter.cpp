@@ -160,7 +160,7 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
 
     // Center of coordinate system -> upper left of bar
     glPushMatrix();
-    glTranslatef(float(barX), float(y), 0.0f);
+    glTranslatef((float)barX, (float)y, 0.0f);
 
     // Render captions
     setColorRGBA(COLOR_TEXT);
@@ -202,7 +202,7 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
     // Render scale indicators
     setColorRGBA(COLOR_INDICATOR);
     for (int j = NUMBER_OF_MARKERS; --j > 0;) {
-        renderVerticalLine(int(barWidth * j / NUMBER_OF_MARKERS), 0, h);
+        renderVerticalLine((barWidth * j) / NUMBER_OF_MARKERS, 0, h);
     }
 
     // Render bars
@@ -210,8 +210,8 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
     for (size_t i = 0; i < N_CHANNELS; ++i) {
 
         ChannelIndex chIdx = ChannelIndex(i);
-        int wIn = int(barWidth * inputStream(chIdx).getValue() * UNIT_SCALE / scaleMax);
-        int wOut = int(barWidth * outputStream(chIdx).getValue() * UNIT_SCALE / scaleMax);
+        int wIn = (int)(barWidth * inputStream(chIdx).getValue() * UNIT_SCALE / scaleMax);
+        int wOut = (int)(barWidth * outputStream(chIdx).getValue() * UNIT_SCALE / scaleMax);
 
         setColorRGBA(channelInfo(chIdx).colorRGBA);
 
