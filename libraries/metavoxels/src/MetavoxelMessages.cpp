@@ -104,42 +104,64 @@ InsertSpannerEdit::InsertSpannerEdit(const AttributePointer& attribute, const Sh
     spanner(spanner) {
 }
 
-class InsertSpannerEditVisitor : public MetavoxelVisitor {
+class UpdateSpannerVisitor : public MetavoxelVisitor {
 public:
     
-    InsertSpannerEditVisitor(const QVector<AttributePointer>& attributes, Spanner* spanner);
+    UpdateSpannerVisitor(const QVector<AttributePointer>& attributes, Spanner* spanner);
     
     virtual int visit(MetavoxelInfo& info);
 
 private:
     
     Spanner* _spanner;
-    float _longestSide;
+    float _voxelizationSize;
+    int _steps;
 };
 
-InsertSpannerEditVisitor::InsertSpannerEditVisitor(const QVector<AttributePointer>& attributes, Spanner* spanner) :
-    MetavoxelVisitor(attributes, attributes),
+UpdateSpannerVisitor::UpdateSpannerVisitor(const QVector<AttributePointer>& attributes, Spanner* spanner) :
+    MetavoxelVisitor(QVector<AttributePointer>() << attributes << AttributeRegistry::getInstance()->getSpannersAttribute(),
+        attributes),
     _spanner(spanner),
-    _longestSide(qMax(spanner->getBounds().getLongestSide(), spanner->getPlacementGranularity()) * 2.0f /
-        AttributeRegistry::getInstance()->getSpannersAttribute()->getLODThresholdMultiplier()) {
+    _voxelizationSize(qMax(spanner->getBounds().getLongestSide(), spanner->getPlacementGranularity()) * 2.0f /
+        AttributeRegistry::getInstance()->getSpannersAttribute()->getLODThresholdMultiplier()),
+    _steps(roundf(logf(AttributeRegistry::getInstance()->getSpannersAttribute()->getLODThresholdMultiplier()) /
+        logf(2.0f) - 2.0f)) {
 }
 
-int InsertSpannerEditVisitor::visit(MetavoxelInfo& info) {
+int UpdateSpannerVisitor::visit(MetavoxelInfo& info) {
     if (!info.getBounds().intersects(_spanner->getBounds())) {
         return STOP_RECURSION;
     }
-    if (info.size > _longestSide) {
-        return DEFAULT_ORDER;
+    MetavoxelInfo* parentInfo = info.parentInfo;
+    for (int i = 0; i < _steps && parentInfo; i++) {
+        parentInfo = parentInfo->parentInfo;
     }
-    _spanner->blendAttributeValues(info, true);
-    return STOP_RECURSION;
+    if (!parentInfo) {
+        for (int i = 0; i < _outputs.size(); i++) {
+            info.outputValues[i] = AttributeValue(_outputs.at(i));
+        }
+        return (info.size > _voxelizationSize) ? DEFAULT_ORDER : STOP_RECURSION;
+    }
+    SharedObjectSet objects = parentInfo->inputValues.at(_outputs.size()).getInlineValue<SharedObjectSet>();
+    if (objects.isEmpty()) {
+        for (int i = 0; i < _outputs.size(); i++) {
+            info.outputValues[i] = AttributeValue(_outputs.at(i));
+        }
+        return (info.size > _voxelizationSize) ? DEFAULT_ORDER : STOP_RECURSION;
+    }
+    SharedObjectSet::const_iterator it = objects.constBegin();
+    static_cast<const Spanner*>(it->data())->getAttributeValues(info, true);
+    for (it++; it != objects.constEnd(); it++) {
+        static_cast<const Spanner*>(it->data())->blendAttributeValues(info, true);
+    }
+    return (info.size > _voxelizationSize) ? DEFAULT_ORDER : STOP_RECURSION;
 }
 
 void InsertSpannerEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
     data.insert(attribute, this->spanner);
     
     Spanner* spanner = static_cast<Spanner*>(this->spanner.data());
-    InsertSpannerEditVisitor visitor(spanner->getVoxelizedAttributes(), spanner);
+    UpdateSpannerVisitor visitor(spanner->getVoxelizedAttributes(), spanner);
     data.guide(visitor);  
 }
 
@@ -154,7 +176,13 @@ void RemoveSpannerEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& o
         qDebug() << "Missing object to remove" << id;
         return;
     }
+    // keep a strong reference to the object
+    SharedObjectPointer sharedPointer = object;
     data.remove(attribute, object);
+    
+    Spanner* spanner = static_cast<Spanner*>(object);
+    UpdateSpannerVisitor visitor(spanner->getVoxelizedAttributes(), spanner);
+    data.guide(visitor);
 }
 
 ClearSpannersEdit::ClearSpannersEdit(const AttributePointer& attribute) :

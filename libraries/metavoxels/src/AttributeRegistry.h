@@ -115,7 +115,6 @@ public:
     
     template<class T> void setInlineValue(T value) { _value = encodeInline(value); }
     template<class T> T getInlineValue() const { return decodeInline<T>(_value); }
-    template<class T> T getSafeInlineValue() const { return _attribute ? decodeInline<T>(_value) : T(); }
     
     void* copy() const;
 
@@ -205,8 +204,9 @@ public:
     virtual bool equal(void* first, void* second) const = 0;
 
     /// Merges the value of a parent and its children.
+    /// \param postRead whether or not the merge is happening after a read
     /// \return whether or not the children and parent values are all equal
-    virtual bool merge(void*& parent, void* children[]) const = 0;
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const = 0;
 
     /// Given the parent value, returns the value that children should inherit (either the parent value or the default).
     virtual AttributeValue inherit(const AttributeValue& parentValue) const { return parentValue; }
@@ -274,7 +274,7 @@ public:
     
     Q_INVOKABLE QRgbAttribute(const QString& name = QString(), QRgb defaultValue = QRgb());
     
-    virtual bool merge(void*& parent, void* children[]) const;
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
     
     virtual void* mix(void* first, void* second, float alpha) const;
     
@@ -293,7 +293,7 @@ public:
     
     Q_INVOKABLE PackedNormalAttribute(const QString& name = QString(), QRgb defaultValue = QRgb());
     
-    virtual bool merge(void*& parent, void* children[]) const;
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
     
     virtual void* mix(void* first, void* second, float alpha) const;
 };
@@ -317,7 +317,7 @@ public:
     
     virtual MetavoxelNode* createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const;
     
-    virtual bool merge(void*& parent, void* children[]) const;
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
     
     virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 };
@@ -335,7 +335,7 @@ public:
     
     virtual MetavoxelNode* createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const;
     
-    virtual bool merge(void*& parent, void* children[]) const;
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
     
     virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 };
@@ -354,7 +354,7 @@ public:
     virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
     virtual void write(Bitstream& out, void* value, bool isLeaf) const;
 
-    virtual bool merge(void*& parent, void* children[]) const;
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
     
     virtual void* createFromVariant(const QVariant& value) const;
     
@@ -382,7 +382,7 @@ public:
     
     virtual MetavoxelNode* createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const;
     
-    virtual bool merge(void*& parent, void* children[]) const;
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
 
     virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 

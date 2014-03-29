@@ -140,7 +140,7 @@ public:
     AttributeValue getAttributeValue(const AttributePointer& attribute) const;
     void* getAttributeValue() const { return _attributeValue; }
 
-    void mergeChildren(const AttributePointer& attribute);
+    void mergeChildren(const AttributePointer& attribute, bool postRead = false);
 
     MetavoxelNode* getChild(int index) const { return _children[index]; }
     void setChild(int index, MetavoxelNode* child) { _children[index] = child; }
@@ -185,6 +185,7 @@ private:
 class MetavoxelInfo {
 public:
     
+    MetavoxelInfo* parentInfo;
     glm::vec3 minimum; ///< the minimum extent of the area covered by the voxel
     float size; ///< the size of the voxel in all dimensions
     QVector<AttributeValue> inputValues;
@@ -436,7 +437,7 @@ public:
     
     /// Sets the attribute values associated with this spanner in the supplied info.
     /// \return true to recurse, false to stop
-    virtual bool getAttributeValues(MetavoxelInfo& info) const;
+    virtual bool getAttributeValues(MetavoxelInfo& info, bool force = false) const;
     
     /// Blends the attribute values associated with this spanner into the supplied info.
     /// \param force if true, blend even if we would normally subdivide
@@ -536,7 +537,7 @@ public:
 
     virtual const QVector<AttributePointer>& getAttributes() const;
     virtual const QVector<AttributePointer>& getVoxelizedAttributes() const;
-    virtual bool getAttributeValues(MetavoxelInfo& info) const;
+    virtual bool getAttributeValues(MetavoxelInfo& info, bool force = false) const;
     virtual bool blendAttributeValues(MetavoxelInfo& info, bool force = false) const;
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
@@ -554,7 +555,7 @@ private slots:
     
 private:
     
-    AttributeValue getNormal(MetavoxelInfo& info) const;
+    AttributeValue getNormal(MetavoxelInfo& info, int alpha) const;
     
     QColor _color;
 };

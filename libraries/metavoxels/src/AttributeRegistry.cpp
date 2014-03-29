@@ -202,7 +202,7 @@ QRgbAttribute::QRgbAttribute(const QString& name, QRgb defaultValue) :
     InlineAttribute<QRgb>(name, defaultValue) {
 }
 
-bool QRgbAttribute::merge(void*& parent, void* children[]) const {
+bool QRgbAttribute::merge(void*& parent, void* children[], bool postRead) const {
     QRgb firstValue = decodeInline<QRgb>(children[0]);
     int totalAlpha = qAlpha(firstValue);
     int totalRed = qRed(firstValue) * totalAlpha;
@@ -261,7 +261,7 @@ PackedNormalAttribute::PackedNormalAttribute(const QString& name, QRgb defaultVa
     QRgbAttribute(name, defaultValue) {
 }
 
-bool PackedNormalAttribute::merge(void*& parent, void* children[]) const {
+bool PackedNormalAttribute::merge(void*& parent, void* children[], bool postRead) const {
     QRgb firstValue = decodeInline<QRgb>(children[0]);
     glm::vec3 total = unpackNormal(firstValue) * (float)qAlpha(firstValue);
     bool allChildrenEqual = true;
@@ -270,7 +270,8 @@ bool PackedNormalAttribute::merge(void*& parent, void* children[]) const {
         total += unpackNormal(value) * (float)qAlpha(value);
         allChildrenEqual &= (firstValue == value);
     }
-    parent = encodeInline(packNormal(glm::normalize(total)));
+    float length = glm::length(total);
+    parent = encodeInline(length < EPSILON ? QRgb() : packNormal(total / length));
     return allChildrenEqual;
 }
 
@@ -310,13 +311,37 @@ MetavoxelNode* SpannerQRgbAttribute::createMetavoxelNode(
     return new MetavoxelNode(value, original);
 }
 
-bool SpannerQRgbAttribute::merge(void*& parent, void* children[]) const {
-    for (int i = 0; i < MERGE_COUNT; i++) {
-        if (qAlpha(decodeInline<QRgb>(children[i])) != 0) {
-            return false;
+bool SpannerQRgbAttribute::merge(void*& parent, void* children[], bool postRead) const {
+    if (postRead) {
+        for (int i = 0; i < MERGE_COUNT; i++) {
+            if (qAlpha(decodeInline<QRgb>(children[i])) != 0) {
+                return false;
+            }
         }
+        return true;
     }
-    return true;
+    QRgb parentValue = decodeInline<QRgb>(parent);
+    int totalAlpha = qAlpha(parentValue) * Attribute::MERGE_COUNT;
+    int totalRed = qRed(parentValue) * totalAlpha;
+    int totalGreen = qGreen(parentValue) * totalAlpha;
+    int totalBlue = qBlue(parentValue) * totalAlpha;
+    bool allChildrenTransparent = true;
+    for (int i = 0; i < Attribute::MERGE_COUNT; i++) {
+        QRgb value = decodeInline<QRgb>(children[i]);
+        int alpha = qAlpha(value);
+        totalRed += qRed(value) * alpha;
+        totalGreen += qGreen(value) * alpha;
+        totalBlue += qBlue(value) * alpha;
+        totalAlpha += alpha;
+        allChildrenTransparent &= (alpha == 0);
+    }
+    if (totalAlpha == 0) {
+        parent = encodeInline(QRgb());
+    } else {
+        parent = encodeInline(qRgba(totalRed / totalAlpha, totalGreen / totalAlpha,
+            totalBlue / totalAlpha, totalAlpha / MERGE_COUNT));
+    }
+    return allChildrenTransparent;
 } 
 
 AttributeValue SpannerQRgbAttribute::inherit(const AttributeValue& parentValue) const {
@@ -341,13 +366,27 @@ MetavoxelNode* SpannerPackedNormalAttribute::createMetavoxelNode(
     return new MetavoxelNode(value, original);
 }
 
-bool SpannerPackedNormalAttribute::merge(void*& parent, void* children[]) const {
-    for (int i = 0; i < MERGE_COUNT; i++) {
-        if (qAlpha(decodeInline<QRgb>(children[i])) != 0) {
-            return false;
+bool SpannerPackedNormalAttribute::merge(void*& parent, void* children[], bool postRead) const {
+    if (postRead) {
+        for (int i = 0; i < MERGE_COUNT; i++) {
+            if (qAlpha(decodeInline<QRgb>(children[i])) != 0) {
+                return false;
+            }
         }
+        return true;
     }
-    return true;
+    QRgb parentValue = decodeInline<QRgb>(parent);
+    glm::vec3 total = unpackNormal(parentValue) * (float)(qAlpha(parentValue) * Attribute::MERGE_COUNT);
+    bool allChildrenTransparent = true;
+    for (int i = 0; i < Attribute::MERGE_COUNT; i++) {
+        QRgb value = decodeInline<QRgb>(children[i]);
+        int alpha = qAlpha(value);
+        total += unpackNormal(value) * (float)alpha;
+        allChildrenTransparent &= (alpha == 0);
+    }
+    float length = glm::length(total);
+    parent = encodeInline(length < EPSILON ? QRgb() : packNormal(total / length));
+    return allChildrenTransparent;
 }
 
 AttributeValue SpannerPackedNormalAttribute::inherit(const AttributeValue& parentValue) const {
@@ -373,7 +412,7 @@ void SharedObjectAttribute::write(Bitstream& out, void* value, bool isLeaf) cons
     }
 }
 
-bool SharedObjectAttribute::merge(void*& parent, void* children[]) const {
+bool SharedObjectAttribute::merge(void*& parent, void* children[], bool postRead) const {
     SharedObjectPointer firstChild = decodeInline<SharedObjectPointer>(children[0]);
     for (int i = 1; i < MERGE_COUNT; i++) {
         if (firstChild != decodeInline<SharedObjectPointer>(children[i])) {
@@ -413,7 +452,7 @@ MetavoxelNode* SharedObjectSetAttribute::createMetavoxelNode(
     return new MetavoxelNode(value, original);
 }
 
-bool SharedObjectSetAttribute::merge(void*& parent, void* children[]) const {
+bool SharedObjectSetAttribute::merge(void*& parent, void* children[], bool postRead) const {
     for (int i = 0; i < MERGE_COUNT; i++) {
         if (!decodeInline<SharedObjectSet>(children[i]).isEmpty()) {
             return false;
