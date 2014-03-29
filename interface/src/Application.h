@@ -397,6 +397,7 @@ private:
     quint64 _lastQueriedTime;
 
     Oscilloscope _audioScope;
+    float _trailingAudioLoudness;
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying voxels from voxel server
 
