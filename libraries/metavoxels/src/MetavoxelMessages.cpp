@@ -136,23 +136,14 @@ int UpdateSpannerVisitor::visit(MetavoxelInfo& info) {
     for (int i = 0; i < _steps && parentInfo; i++) {
         parentInfo = parentInfo->parentInfo;
     }
-    if (!parentInfo) {
-        for (int i = 0; i < _outputs.size(); i++) {
-            info.outputValues[i] = AttributeValue(_outputs.at(i));
-        }
-        return (info.size > _voxelizationSize) ? DEFAULT_ORDER : STOP_RECURSION;
+    for (int i = 0; i < _outputs.size(); i++) {
+        info.outputValues[i] = AttributeValue(_outputs.at(i));
     }
-    SharedObjectSet objects = parentInfo->inputValues.at(_outputs.size()).getInlineValue<SharedObjectSet>();
-    if (objects.isEmpty()) {
-        for (int i = 0; i < _outputs.size(); i++) {
-            info.outputValues[i] = AttributeValue(_outputs.at(i));
+    if (parentInfo) {
+        foreach (const SharedObjectPointer& object,
+                parentInfo->inputValues.at(_outputs.size()).getInlineValue<SharedObjectSet>()) {
+            static_cast<const Spanner*>(object.data())->blendAttributeValues(info, true);
         }
-        return (info.size > _voxelizationSize) ? DEFAULT_ORDER : STOP_RECURSION;
-    }
-    SharedObjectSet::const_iterator it = objects.constBegin();
-    static_cast<const Spanner*>(it->data())->getAttributeValues(info, true);
-    for (it++; it != objects.constEnd(); it++) {
-        static_cast<const Spanner*>(it->data())->blendAttributeValues(info, true);
     }
     return (info.size > _voxelizationSize) ? DEFAULT_ORDER : STOP_RECURSION;
 }
