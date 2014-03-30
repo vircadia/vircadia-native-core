@@ -180,8 +180,40 @@ ClearSpannersEdit::ClearSpannersEdit(const AttributePointer& attribute) :
     attribute(attribute) {
 }
 
+class GetSpannerAttributesVisitor : public SpannerVisitor {
+public:
+    
+    GetSpannerAttributesVisitor(const AttributePointer& attribute);
+    
+    const QSet<AttributePointer>& getAttributes() const { return _attributes; }
+    
+    virtual bool visit(Spanner* spanner);
+
+protected:
+    
+    QSet<AttributePointer> _attributes;
+};
+
+GetSpannerAttributesVisitor::GetSpannerAttributesVisitor(const AttributePointer& attribute) :
+    SpannerVisitor(QVector<AttributePointer>() << attribute) {
+}
+
+bool GetSpannerAttributesVisitor::visit(Spanner* spanner) {
+    foreach (const AttributePointer& attribute, spanner->getVoxelizedAttributes()) {
+        _attributes.insert(attribute);
+    }
+    return true;
+}
+
 void ClearSpannersEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
+    // find all the spanner attributes
+    GetSpannerAttributesVisitor visitor(attribute);
+    data.guide(visitor);
+    
     data.clear(attribute);
+    foreach (const AttributePointer& attribute, visitor.getAttributes()) {
+        data.clear(attribute);
+    }
 }
 
 SetSpannerEdit::SetSpannerEdit(const SharedObjectPointer& spanner) :
