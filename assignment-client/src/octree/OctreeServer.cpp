@@ -1052,6 +1052,7 @@ void OctreeServer::nodeKilled(SharedNodePointer node) {
     if (nodeData) {
         qDebug() << qPrintable(_safeServerName) << "server calling nodeData->nodeKilled() for node:" << *node;
         nodeData->nodeKilled(); // tell our node data and sending threads that we'd like to shut down
+        qDebug() << qPrintable(_safeServerName) << "server AFTER nodeData->nodeKilled() for node:" << *node;
     } else {
         qDebug() << qPrintable(_safeServerName) << "server node missing linked data node:" << *node;
     }
