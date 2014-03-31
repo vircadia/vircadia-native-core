@@ -11,6 +11,7 @@ set(TARGET_NAME shared)
 project(${TARGET_NAME})
 
 find_package(Qt5 COMPONENTS Network Widgets Xml)
+find_package(GnuTLS REQUIRED)
 
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
@@ -32,4 +33,5 @@ if (UNIX AND NOT APPLE)
     target_link_libraries(${TARGET_NAME} "${CMAKE_THREAD_LIBS_INIT}")
 endif (UNIX AND NOT APPLE)
 
-target_link_libraries(${TARGET_NAME} Qt5::Network Qt5::Widgets)
+include_directories("${GNUTLS_INCLUDE_DIR}")
+target_link_libraries(${TARGET_NAME} Qt5::Network Qt5::Widgets "${GNUTLS_LIBRARY}")

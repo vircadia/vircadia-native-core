@@ -5,7 +5,7 @@
 #  Once done this will define
 #
 #  GNUTLS_FOUND - system found GnuTLS
-#  GNUTLS_INCLUDE_DIRS - the GnuTLS include directory
+#  GNUTLS_INCLUDE_DIR - the GnuTLS include directory
 #  GNUTLS_LIBRARY - Link this to use GnuTLS
 #
 #  Created on 3/31/2014 by Stephen Birarda

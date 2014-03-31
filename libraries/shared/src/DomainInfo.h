@@ -18,6 +18,7 @@
 
 const QString DEFAULT_DOMAIN_HOSTNAME = "alpha.highfidelity.io";
 const unsigned short DEFAULT_DOMAIN_SERVER_PORT = 40102;
+const unsigned short DEFAULT_DOMAIN_SERVER_DTLS_PORT = 40103;
 
 class DomainInfo : public QObject {
     Q_OBJECT
@@ -25,8 +26,6 @@ public:
     DomainInfo();
     
     void clearConnectionInfo();
-    
-    void parseAuthInformationFromJsonObject(const QJsonObject& jsonObject);
     
     const QUuid& getUUID() const { return _uuid; }
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
@@ -45,21 +44,13 @@ public:
     const QUuid& getAssignmentUUID() const { return _assignmentUUID; }
     void setAssignmentUUID(const QUuid& assignmentUUID) { _assignmentUUID = assignmentUUID; }
     
-    const QUuid& getConnectionSecret() const { return _connectionSecret; }
-    void setConnectionSecret(const QUuid& connectionSecret) { _connectionSecret = connectionSecret; }
-    
-    const QByteArray& getRegistrationToken() const { return _registrationToken; }
-    
-    const QUrl& getRootAuthenticationURL() const { return _rootAuthenticationURL; }
-    void setRootAuthenticationURL(const QUrl& rootAuthenticationURL) { _rootAuthenticationURL = rootAuthenticationURL; }
-    
     bool isConnected() const { return _isConnected; }
     void setIsConnected(bool isConnected);
     
+    void parseDTLSRequirementPacket(const QByteArray& dtlsRequirementPacket);
+    
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);
-    
-    void logout();
 signals:
     void hostnameChanged(const QString& hostname);
     void connectedToDomain(const QString& hostname);
@@ -70,10 +61,7 @@ private:
     QString _hostname;
     HifiSockAddr _sockAddr;
     QUuid _assignmentUUID;
-    QUuid _connectionSecret;
-    QByteArray _registrationToken;
-    QUrl _rootAuthenticationURL;
-    QString _publicKey;
+    bool _requiresDTLS;
     bool _isConnected;
 };
 

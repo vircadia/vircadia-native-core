@@ -52,7 +52,7 @@ PacketVersion versionForPacketType(PacketType type) {
             return 1;
         case PacketTypeDomainList:
         case PacketTypeDomainListRequest:
-            return 1;
+            return 2;
         case PacketTypeCreateAssignment:
         case PacketTypeRequestAssignment:
             return 1;

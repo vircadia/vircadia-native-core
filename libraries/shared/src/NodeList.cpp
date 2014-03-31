@@ -34,11 +34,11 @@ const QUrl DEFAULT_NODE_AUTH_URL = QUrl("https://data-web.highfidelity.io");
 
 NodeList* NodeList::_sharedInstance = NULL;
 
-NodeList* NodeList::createInstance(char ownerType, unsigned short int socketListenPort) {
+NodeList* NodeList::createInstance(char ownerType, unsigned short socketListenPort, unsigned short dtlsPort) {
     if (!_sharedInstance) {
         NodeType::init();
         
-        _sharedInstance = new NodeList(ownerType, socketListenPort);
+        _sharedInstance = new NodeList(ownerType, socketListenPort, dtlsPort);
 
         // register the SharedNodePointer meta-type for signals/slots
         qRegisterMetaType<SharedNodePointer>();
@@ -58,7 +58,7 @@ NodeList* NodeList::getInstance() {
 }
 
 
-NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
+NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned short dtlsListenPort) :
     _nodeHash(),
     _nodeHashMutex(QMutex::Recursive),
     _nodeSocket(this),
@@ -74,8 +74,14 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _numCollectedBytes(0),
     _packetStatTimer()
 {
-    _nodeSocket.bind(QHostAddress::AnyIPv4, newSocketListenPort);
+    _nodeSocket.bind(QHostAddress::AnyIPv4, socketListenPort);
     qDebug() << "NodeList socket is listening on" << _nodeSocket.localPort();
+    
+    if (dtlsListenPort > 0) {
+        // we have a specfic DTLS port, bind that socket now
+        _dtlsSocket.bind(QHostAddress::AnyIPv4, dtlsListenPort);
+        qDebug() << "NodeList DTLS socket is listening on" << _dtlsSocket.localPort();
+    }
     
     // clear our NodeList when the domain changes
     connect(&_domainInfo, &DomainInfo::hostnameChanged, this, &NodeList::reset);
@@ -141,7 +147,7 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
     }
     
     const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
-        << PacketTypeDomainServerAuthRequest << PacketTypeDomainConnectRequest
+        << PacketTypeDomainServerRequireDTLS << PacketTypeDomainList << PacketTypeDomainListRequest
         << PacketTypeStunResponse << PacketTypeDataServerConfirm
         << PacketTypeDataServerGet << PacketTypeDataServerPut << PacketTypeDataServerSend
         << PacketTypeCreateAssignment << PacketTypeRequestAssignment;
@@ -158,31 +164,6 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
                     << uuidFromPacketHeader(packet);
             }
         } else {
-            if (checkType == PacketTypeDomainList) {
-                
-                if (_domainInfo.getRootAuthenticationURL().isEmpty() && _domainInfo.getUUID().isNull()) {
-                    // if this is a domain-server that doesn't require auth,
-                    // pull the UUID from this packet and set it as our domain-server UUID
-                    _domainInfo.setUUID(uuidFromPacketHeader(packet));
-                    
-                    // we also know this domain-server requires no authentication
-                    // so set the account manager root URL to the default one
-                    AccountManager::getInstance().setAuthURL(DEFAULT_NODE_AUTH_URL);
-                }
-                
-                if (_domainInfo.getUUID() == uuidFromPacketHeader(packet)) {
-                    if (hashForPacketAndConnectionUUID(packet, _domainInfo.getConnectionSecret()) == hashFromPacketHeader(packet)) {
-                        // this is a packet from the domain-server (PacketTypeDomainServerListRequest)
-                        // and the sender UUID matches the UUID we expect for the domain
-                        return true;
-                    } else {
-                        // this is a packet from the domain-server but there is a hash mismatch
-                        qDebug() << "Packet hash mismatch on" << checkType << "from domain-server at" << _domainInfo.getHostname();
-                        return false;
-                    }
-                }
-            }
-            
             qDebug() << "Packet of type" << checkType << "received from unknown node with UUID"
                 << uuidFromPacketHeader(packet);
         }
@@ -246,7 +227,7 @@ qint64 NodeList::sendStatsToDomainServer(const QJsonObject& statsObject) {
     
     statsPacketStream << statsObject.toVariantMap();
     
-    return writeDatagram(statsPacket, _domainInfo.getSockAddr(), _domainInfo.getConnectionSecret());
+    return writeDatagram(statsPacket, _domainInfo.getSockAddr(), QUuid());
 }
 
 void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode) {
@@ -290,10 +271,8 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             processDomainServerList(packet);
             break;
         }
-        case PacketTypeDomainServerAuthRequest: {
-            // the domain-server has asked us to auth via a data-server
-            processDomainServerAuthRequest(packet);
-            
+        case PacketTypeDomainServerRequireDTLS: {
+            _domainInfo.parseDTLSRequirementPacket(packet);
             break;
         }
         case PacketTypePing: {
@@ -590,61 +569,44 @@ void NodeList::sendDomainServerCheckIn() {
         // send a STUN request to figure it out
         sendSTUNRequest();
     } else if (!_domainInfo.getIP().isNull()) {
-        if (_domainInfo.getRootAuthenticationURL().isEmpty()
-            || !_sessionUUID.isNull()
-            || !_domainInfo.getRegistrationToken().isEmpty() ) {
-            // construct the DS check in packet
-            
-            PacketType domainPacketType = _sessionUUID.isNull() ? PacketTypeDomainConnectRequest : PacketTypeDomainListRequest;
-            
-            QUuid packetUUID = (domainPacketType == PacketTypeDomainListRequest)
-                ? _sessionUUID : _domainInfo.getAssignmentUUID();
-            
-            QByteArray domainServerPacket = byteArrayWithPopulatedHeader(domainPacketType, packetUUID);
-            QDataStream packetStream(&domainServerPacket, QIODevice::Append);
-            
-            if (domainPacketType == PacketTypeDomainConnectRequest) {
-                // we may need a registration token to present to the domain-server
-                packetStream << (quint8) !_domainInfo.getRegistrationToken().isEmpty();
-                
-                if (!_domainInfo.getRegistrationToken().isEmpty()) {
-                    // if we have a registration token send that along in the request
-                    packetStream << _domainInfo.getRegistrationToken();
-                }
-            }
-            
-            // pack our data to send to the domain-server
-            packetStream << _ownerType << _publicSockAddr
-                << HifiSockAddr(QHostAddress(getHostOrderLocalAddress()), _nodeSocket.localPort())
-                << (quint8) _nodeTypesOfInterest.size();
-            
-            // copy over the bytes for node types of interest, if required
-            foreach (NodeType_t nodeTypeOfInterest, _nodeTypesOfInterest) {
-                packetStream << nodeTypeOfInterest;
-            }
-            
-            writeDatagram(domainServerPacket, _domainInfo.getSockAddr(), _domainInfo.getConnectionSecret());
-            const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
-            static unsigned int numDomainCheckins = 0;
-            
-            // send a STUN request every Nth domain server check in so we update our public socket, if required
-            if (numDomainCheckins++ % NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST == 0) {
-                sendSTUNRequest();
-            }
-            
-            if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
-                // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
-                // so emit our signal that indicates that
-                emit limitOfSilentDomainCheckInsReached();
-            }
-            
-            // increment the count of un-replied check-ins
-            _numNoReplyDomainCheckIns++;
-        }  else if (AccountManager::getInstance().hasValidAccessToken()) {
-            // we have an access token we can use for the authentication server the domain-server requested
-            // so ask that server to provide us with information to connect to the domain-server
-            requestAuthForDomainServer();
+        // construct the DS check in packet
+        
+        PacketType domainPacketType = _sessionUUID.isNull() ? PacketTypeDomainConnectRequest : PacketTypeDomainListRequest;
+        
+        QUuid packetUUID = (domainPacketType == PacketTypeDomainListRequest)
+        ? _sessionUUID : _domainInfo.getAssignmentUUID();
+        
+        QByteArray domainServerPacket = byteArrayWithPopulatedHeader(domainPacketType, packetUUID);
+        QDataStream packetStream(&domainServerPacket, QIODevice::Append);
+        
+        
+        // pack our data to send to the domain-server
+        packetStream << _ownerType << _publicSockAddr
+            << HifiSockAddr(QHostAddress(getHostOrderLocalAddress()), _nodeSocket.localPort())
+            << (quint8) _nodeTypesOfInterest.size();
+        
+        // copy over the bytes for node types of interest, if required
+        foreach (NodeType_t nodeTypeOfInterest, _nodeTypesOfInterest) {
+            packetStream << nodeTypeOfInterest;
         }
+        
+        writeDatagram(domainServerPacket, _domainInfo.getSockAddr(), QUuid());
+        const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
+        static unsigned int numDomainCheckins = 0;
+        
+        // send a STUN request every Nth domain server check in so we update our public socket, if required
+        if (numDomainCheckins++ % NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST == 0) {
+            sendSTUNRequest();
+        }
+        
+        if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+            // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
+            // so emit our signal that indicates that
+            emit limitOfSilentDomainCheckInsReached();
+        }
+        
+        // increment the count of un-replied check-ins
+        _numNoReplyDomainCheckIns++;
     }
 }
 
@@ -705,41 +667,6 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
     pingInactiveNodes();
 
     return readNodes;
-}
-
-void NodeList::domainServerAuthReply(const QJsonObject& jsonObject) {
-    _domainInfo.parseAuthInformationFromJsonObject(jsonObject);
-}
-
-void NodeList::requestAuthForDomainServer() {
-    JSONCallbackParameters callbackParams;
-    callbackParams.jsonCallbackReceiver = this;
-    callbackParams.jsonCallbackMethod = "domainServerAuthReply";
-    
-    AccountManager::getInstance().authenticatedRequest("/api/v1/domains/"
-                                                       + uuidStringWithoutCurlyBraces(_domainInfo.getUUID()) + "/auth.json",
-                                                       QNetworkAccessManager::GetOperation,
-                                                       callbackParams);
-}
-
-void NodeList::processDomainServerAuthRequest(const QByteArray& packet) {
-    QDataStream authPacketStream(packet);
-    authPacketStream.skipRawData(numBytesForPacketHeader(packet));
-    
-    _domainInfo.setUUID(uuidFromPacketHeader(packet));
-    AccountManager& accountManager = AccountManager::getInstance();
-
-    // grab the hostname this domain-server wants us to authenticate with
-    QUrl authenticationRootURL;
-    authPacketStream >> authenticationRootURL;
-    
-    accountManager.setAuthURL(authenticationRootURL);
-    _domainInfo.setRootAuthenticationURL(authenticationRootURL);
-    
-    if (AccountManager::getInstance().checkAndSignalForAccessToken()) {
-        // request a domain-server auth
-        requestAuthForDomainServer();
-    }
 }
 
 void NodeList::sendAssignment(Assignment& assignment) {

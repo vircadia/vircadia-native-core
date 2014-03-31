@@ -57,9 +57,9 @@ enum PacketType {
     PacketTypeMetavoxelData,
     PacketTypeAvatarIdentity,
     PacketTypeAvatarBillboard,
-    PacketTypeDomainConnectRequest,
-    PacketTypeDomainServerAuthRequest,
-    PacketTypeNodeJsonStats
+    PacketTypeDomainConnectRequest, // RE-USABLE
+    PacketTypeDomainServerRequireDTLS,
+    PacketTypeNodeJsonStats,
 };
 
 typedef char PacketVersion;

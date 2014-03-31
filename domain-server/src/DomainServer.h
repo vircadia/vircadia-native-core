@@ -51,7 +51,8 @@ private:
     bool optionallySetupDTLS();
     bool readX509KeyAndCertificate();
     
-    void requestAuthenticationFromPotentialNode(const HifiSockAddr& senderSockAddr);
+    void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
+    
     void addNodeToNodeListAndConfirmConnection(const QByteArray& packet, const HifiSockAddr& senderSockAddr,
                                                const QJsonObject& authJsonObject = QJsonObject());
     int parseNodeDataFromByteArray(NodeType_t& nodeType, HifiSockAddr& publicSockAddr,

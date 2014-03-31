@@ -63,7 +63,7 @@ namespace PingType {
 class NodeList : public QObject {
     Q_OBJECT
 public:
-    static NodeList* createInstance(char ownerType, unsigned short int socketListenPort = 0);
+    static NodeList* createInstance(char ownerType, unsigned short socketListenPort = 0, unsigned short dtlsPort = 0);
     static NodeList* getInstance();
     NodeType_t getOwnerType() const { return _ownerType; }
     void setOwnerType(NodeType_t ownerType) { _ownerType = ownerType; }
@@ -140,12 +140,10 @@ signals:
     void nodeAdded(SharedNodePointer);
     void nodeKilled(SharedNodePointer);
     void limitOfSilentDomainCheckInsReached();
-private slots:
-    void domainServerAuthReply(const QJsonObject& jsonObject);
 private:
     static NodeList* _sharedInstance;
 
-    NodeList(char ownerType, unsigned short int socketListenPort);
+    NodeList(char ownerType, unsigned short socketListenPort, unsigned short dtlsListenPort);
     NodeList(NodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(NodeList const&); // Don't implement, needed to avoid copies of singleton
     void sendSTUNRequest();

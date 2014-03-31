@@ -180,6 +180,18 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
         domainServerPort = _argumentList.value(argumentIndex + 1).toUShort();
     }
     
+    unsigned short domainServerDTLSPort = -1;
+    
+    if (_isUsingDTLS) {
+        domainServerDTLSPort = DEFAULT_DOMAIN_SERVER_DTLS_PORT;
+        
+        const QString CUSTOM_DTLS_PORT_OPTION = "--dtlsPort";
+        
+        if ((argumentIndex = _argumentList.indexOf(CUSTOM_DTLS_PORT_OPTION)) != -1) {
+            domainServerDTLSPort = _argumentList.value(argumentIndex + 1).toUShort();
+        }
+    }
+    
     QSet<Assignment::Type> parsedTypes(QSet<Assignment::Type>() << Assignment::AgentType);
     parseCommandLineTypeConfigs(_argumentList, parsedTypes);
     
@@ -191,7 +203,7 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     
     populateDefaultStaticAssignmentsExcludingTypes(parsedTypes);
     
-    NodeList* nodeList = NodeList::createInstance(NodeType::DomainServer, domainServerPort);
+    NodeList* nodeList = NodeList::createInstance(NodeType::DomainServer, domainServerPort, domainServerDTLSPort);
     
     // create a random UUID for this session for the domain-server
     nodeList->setSessionUUID(sessionUUID);
@@ -519,10 +531,6 @@ void DomainServer::readAvailableDatagrams() {
     NodeList* nodeList = NodeList::getInstance();
 
     HifiSockAddr senderSockAddr;
-    
-    static QByteArray assignmentPacket = byteArrayWithPopulatedHeader(PacketTypeCreateAssignment);
-    static int numAssignmentPacketHeaderBytes = assignmentPacket.size();
-    
     QByteArray receivedPacket;
 
     while (nodeList->getNodeSocket().hasPendingDatagrams()) {
@@ -530,22 +538,42 @@ void DomainServer::readAvailableDatagrams() {
         nodeList->getNodeSocket().readDatagram(receivedPacket.data(), receivedPacket.size(),
                                                senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
         
-        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
-            PacketType requestType = packetTypeForPacket(receivedPacket);
+        if (!_isUsingDTLS) {
+            // not using DTLS, process datagram normally
+            processDatagram(receivedPacket, senderSockAddr);
+        } else {
+            // we're using DTLS, so tell the sender to get back to us using DTLS
+            static QByteArray dtlsRequiredPacket = byteArrayWithPopulatedHeader(PacketTypeDomainServerRequireDTLS);
+            static int numBytesDTLSHeader = numBytesForPacketHeaderGivenPacketType(PacketTypeDomainServerRequireDTLS);
             
-            if (requestType == PacketTypeDomainConnectRequest) {
-                QDataStream packetStream(receivedPacket);
-                packetStream.skipRawData(numBytesForPacketHeader(receivedPacket));
-                
-                quint8 hasRegistrationToken;
-                packetStream >> hasRegistrationToken;
-                
-                // we don't require authentication - add this node to our NodeList
-                // and send back session UUID right away
-                addNodeToNodeListAndConfirmConnection(receivedPacket, senderSockAddr);
-                
-            } else if (requestType == PacketTypeDomainListRequest) {
-                QUuid nodeUUID = uuidFromPacketHeader(receivedPacket);
+            if (dtlsRequiredPacket.size() == numBytesDTLSHeader) {
+                // pack the port that we accept DTLS traffic on
+                unsigned short dtlsPort = nodeList->getDTLSSocket().localPort();
+                dtlsRequiredPacket.replace(numBytesDTLSHeader, sizeof(dtlsPort), reinterpret_cast<const char*>(&dtlsPort));
+            }
+            
+            nodeList->getNodeSocket().writeDatagram(dtlsRequiredPacket, senderSockAddr.getAddress(), senderSockAddr.getPort());
+        }
+    }
+}
+
+void DomainServer::readAvailableDTLSDatagrams() {
+    
+}
+
+void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
+    NodeList* nodeList = NodeList::getInstance();
+    
+    static QByteArray assignmentPacket = byteArrayWithPopulatedHeader(PacketTypeCreateAssignment);
+    static int numAssignmentPacketHeaderBytes = assignmentPacket.size();
+    
+    if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
+        PacketType requestType = packetTypeForPacket(receivedPacket);
+        
+        if (requestType == PacketTypeDomainListRequest) {
+            QUuid nodeUUID = uuidFromPacketHeader(receivedPacket);
+            
+            if (!nodeUUID.isNull() && nodeList->nodeWithUUID(nodeUUID)) {
                 NodeType_t throwawayNodeType;
                 HifiSockAddr nodePublicAddress, nodeLocalAddress;
                 
@@ -553,67 +581,66 @@ void DomainServer::readAvailableDatagrams() {
                                                                   receivedPacket, senderSockAddr);
                 
                 SharedNodePointer checkInNode = nodeList->updateSocketsForNode(nodeUUID, nodePublicAddress, nodeLocalAddress);
-            
+                
                 // update last receive to now
                 quint64 timeNow = usecTimestampNow();
                 checkInNode->setLastHeardMicrostamp(timeNow);
-                
-                
+            
                 sendDomainListToNode(checkInNode, senderSockAddr, nodeInterestListFromPacket(receivedPacket, numNodeInfoBytes));
+            } else {
+                // new node - add this node to our NodeList
+                // and send back session UUID right away
+                addNodeToNodeListAndConfirmConnection(receivedPacket, senderSockAddr);
+            }
+            
+        } else if (requestType == PacketTypeRequestAssignment) {
+            
+            // construct the requested assignment from the packet data
+            Assignment requestAssignment(receivedPacket);
+            
+            // Suppress these for Assignment::AgentType to once per 5 seconds
+            static quint64 lastNoisyMessage = usecTimestampNow();
+            quint64 timeNow = usecTimestampNow();
+            const quint64 NOISY_TIME_ELAPSED = 5 * USECS_PER_SECOND;
+            bool noisyMessage = false;
+            if (requestAssignment.getType() != Assignment::AgentType || (timeNow - lastNoisyMessage) > NOISY_TIME_ELAPSED) {
+                qDebug() << "Received a request for assignment type" << requestAssignment.getType()
+                << "from" << senderSockAddr;
+                noisyMessage = true;
+            }
+            
+            SharedAssignmentPointer assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
+            
+            if (assignmentToDeploy) {
+                qDebug() << "Deploying assignment -" << *assignmentToDeploy.data() << "- to" << senderSockAddr;
                 
-            } else if (requestType == PacketTypeRequestAssignment) {
+                // give this assignment out, either the type matches or the requestor said they will take any
+                assignmentPacket.resize(numAssignmentPacketHeaderBytes);
                 
-                // construct the requested assignment from the packet data
-                Assignment requestAssignment(receivedPacket);
+                QDataStream assignmentStream(&assignmentPacket, QIODevice::Append);
                 
-                // Suppress these for Assignment::AgentType to once per 5 seconds
-                static quint64 lastNoisyMessage = usecTimestampNow();
-                quint64 timeNow = usecTimestampNow();
-                const quint64 NOISY_TIME_ELAPSED = 5 * USECS_PER_SECOND;
-                bool noisyMessage = false;
+                assignmentStream << *assignmentToDeploy.data();
+                
+                nodeList->getNodeSocket().writeDatagram(assignmentPacket,
+                                                        senderSockAddr.getAddress(), senderSockAddr.getPort());
+            } else {
                 if (requestAssignment.getType() != Assignment::AgentType || (timeNow - lastNoisyMessage) > NOISY_TIME_ELAPSED) {
-                    qDebug() << "Received a request for assignment type" << requestAssignment.getType()
+                    qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
                         << "from" << senderSockAddr;
                     noisyMessage = true;
                 }
-                
-                SharedAssignmentPointer assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
-                
-                if (assignmentToDeploy) {
-                    qDebug() << "Deploying assignment -" << *assignmentToDeploy.data() << "- to" << senderSockAddr;
-                    
-                    // give this assignment out, either the type matches or the requestor said they will take any
-                    assignmentPacket.resize(numAssignmentPacketHeaderBytes);
-                    
-                    QDataStream assignmentStream(&assignmentPacket, QIODevice::Append);
-                    
-                    assignmentStream << *assignmentToDeploy.data();
-                    
-                    nodeList->getNodeSocket().writeDatagram(assignmentPacket,
-                                                            senderSockAddr.getAddress(), senderSockAddr.getPort());
-                } else {
-                    if (requestAssignment.getType() != Assignment::AgentType || (timeNow - lastNoisyMessage) > NOISY_TIME_ELAPSED) {
-                        qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
-                            << "from" << senderSockAddr;
-                        noisyMessage = true;
-                    }
-                }
-                
-                if (noisyMessage) {
-                    lastNoisyMessage = timeNow;
-                }
-            } else if (requestType == PacketTypeNodeJsonStats) {
-                SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
-                if (matchingNode) {
-                    reinterpret_cast<DomainServerNodeData*>(matchingNode->getLinkedData())->parseJSONStatsPacket(receivedPacket);
-                }
+            }
+            
+            if (noisyMessage) {
+                lastNoisyMessage = timeNow;
+            }
+        } else if (requestType == PacketTypeNodeJsonStats) {
+            SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
+            if (matchingNode) {
+                reinterpret_cast<DomainServerNodeData*>(matchingNode->getLinkedData())->parseJSONStatsPacket(receivedPacket);
             }
         }
     }
-}
-
-void DomainServer::readAvailableDTLSDatagrams() {
-    
 }
 
 QJsonObject DomainServer::jsonForSocket(const HifiSockAddr& socket) {

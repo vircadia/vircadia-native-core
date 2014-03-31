@@ -8,7 +8,7 @@
 
 #include <QtCore/QJsonObject>
 
-#include "AccountManager.h"
+#include "PacketHeaders.h"
 
 #include "DomainInfo.h"
 
@@ -16,22 +16,14 @@ DomainInfo::DomainInfo() :
     _uuid(),
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _assignmentUUID(),
-    _connectionSecret(),
-    _registrationToken(),
-    _rootAuthenticationURL(),
-    _publicKey(),
+    _requiresDTLS(false),
     _isConnected(false)
 {
-    // clear appropriate variables after a domain-server logout
-    connect(&AccountManager::getInstance(), &AccountManager::logoutComplete, this, &DomainInfo::logout);
+    
 }
 
 void DomainInfo::clearConnectionInfo() {
     _uuid = QUuid();
-    _connectionSecret = QUuid();
-    _registrationToken = QByteArray();
-    _rootAuthenticationURL = QUrl();
-    _publicKey = QString();
     _isConnected = false;
 }
 
@@ -39,13 +31,7 @@ void DomainInfo::reset() {
     clearConnectionInfo();
     _hostname = QString();
     _sockAddr.setAddress(QHostAddress::Null);
-}
-
-void DomainInfo::parseAuthInformationFromJsonObject(const QJsonObject& jsonObject) {
-    QJsonObject dataObject = jsonObject["data"].toObject();
-    _connectionSecret = QUuid(dataObject["connection_secret"].toString());
-    _registrationToken = QByteArray::fromHex(dataObject["registration_token"].toString().toUtf8());
-    _publicKey = dataObject["public_key"].toString();
+    _requiresDTLS = false;
 }
 
 void DomainInfo::setSockAddr(const HifiSockAddr& sockAddr) {
@@ -114,13 +100,15 @@ void DomainInfo::setIsConnected(bool isConnected) {
     }
 }
 
-void DomainInfo::logout() {
-    // clear any information related to auth for this domain, assuming it had requested auth
-    if (!_rootAuthenticationURL.isEmpty()) {
-        _rootAuthenticationURL = QUrl();
-        _connectionSecret = QUuid();
-        _registrationToken = QByteArray();
-        _publicKey = QString();
-        _isConnected = false;
-    }
+void DomainInfo::parseDTLSRequirementPacket(const QByteArray& dtlsRequirementPacket) {
+    // figure out the port that the DS wants us to use for us to talk to them with DTLS
+    int numBytesPacketHeader = numBytesForPacketHeader(dtlsRequirementPacket);
+    
+    unsigned short dtlsPort = 0;
+    memcpy(&dtlsPort, dtlsRequirementPacket.data() + numBytesPacketHeader, sizeof(dtlsPort));
+    
+    _sockAddr.setPort(dtlsPort);
+    _requiresDTLS = true;
+    
+    qDebug() << "domain-server DTLS port changed to" << dtlsPort << "- DTLS enabled.";
 }
