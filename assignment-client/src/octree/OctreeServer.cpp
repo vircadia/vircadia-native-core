@@ -250,40 +250,26 @@ OctreeServer::~OctreeServer() {
         }
         delete[] _parsedArgV;
     }
-    qDebug() << qPrintable(_safeServerName) << "server shutting down... [" << this << "] OctreeServer::~OctreeServer() line:" << __LINE__;
 
     if (_jurisdictionSender) {
         _jurisdictionSender->terminate();
         _jurisdictionSender->deleteLater();
     }
 
-    qDebug() << qPrintable(_safeServerName) << "server shutting down... [" << this << "] OctreeServer::~OctreeServer() line:" << __LINE__;
-
     if (_octreeInboundPacketProcessor) {
         _octreeInboundPacketProcessor->terminate();
         _octreeInboundPacketProcessor->deleteLater();
     }
 
-    qDebug() << qPrintable(_safeServerName) << "server shutting down... [" << this << "] OctreeServer::~OctreeServer() line:" << __LINE__;
-
     if (_persistThread) {
-        qDebug() << qPrintable(_safeServerName) << "server shutting down... [" << this << "] OctreeServer::~OctreeServer() line:" << __LINE__;
         _persistThread->terminate();
-        qDebug() << qPrintable(_safeServerName) << "server shutting down... [" << this << "] OctreeServer::~OctreeServer() line:" << __LINE__;
         _persistThread->deleteLater();
-        qDebug() << qPrintable(_safeServerName) << "server shutting down... [" << this << "] OctreeServer::~OctreeServer() line:" << __LINE__;
     }
-
-    qDebug() << qPrintable(_safeServerName) << "server shutting down... [" << this << "] OctreeServer::~OctreeServer() line:" << __LINE__;
 
     delete _jurisdiction;
     _jurisdiction = NULL;
-    qDebug() << qPrintable(_safeServerName) << "server DONE shutting down... [" << this << "]";
-
-    qDebug() << qPrintable(_safeServerName) << "server shutting down... [" << this << "] OctreeServer::~OctreeServer() line:" << __LINE__;
-    
     _instance = NULL; // we are gone
-    qDebug() << qPrintable(_safeServerName) << "server shutting down... [" << this << "] OctreeServer::~OctreeServer() line:" << __LINE__;
+    qDebug() << qPrintable(_safeServerName) << "server DONE shutting down... [" << this << "]";
 }
 
 void OctreeServer::initHTTPManager(int port) {
