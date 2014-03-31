@@ -26,7 +26,6 @@ OctreeSendThread::OctreeSendThread(const SharedAssignmentPointer& myAssignment, 
     _nodeUUID(node->getUUID()),
     _packetData(),
     _nodeMissingCount(0),
-    _processLock(),
     _isShuttingDown(false)
 {
     qDebug() << qPrintable(_myServer->getMyServerName())  << "server [" << _myServer << "]: client connected "
@@ -61,9 +60,6 @@ OctreeSendThread::~OctreeSendThread() {
 void OctreeSendThread::setIsShuttingDown() {
     _isShuttingDown = true;
     OctreeServer::stopTrackingThread(this);
-    
-    // this will cause us to wait till the process loop is complete, we do this after we change _isShuttingDown
-    QMutexLocker locker(&_processLock); 
 }
 
 
@@ -79,13 +75,6 @@ bool OctreeSendThread::process() {
 
     OctreeServer::didProcess(this);
 
-    float lockWaitElapsedUsec = OctreeServer::SKIP_TIME;
-    quint64 lockWaitStart = usecTimestampNow();
-    _processLock.lock();
-    quint64 lockWaitEnd = usecTimestampNow();
-    lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
-    OctreeServer::trackProcessWaitTime(lockWaitElapsedUsec);
-    
     quint64  start = usecTimestampNow();
 
     // don't do any send processing until the initial load of the octree is complete...
@@ -102,8 +91,6 @@ bool OctreeSendThread::process() {
         }
     }
 
-    _processLock.unlock();
-    
     if (_isShuttingDown) {
         return false; // exit early if we're shutting down
     }

@@ -51,7 +51,6 @@ private:
     OctreePacketData _packetData;
     
     int _nodeMissingCount;
-    QMutex _processLock; // don't allow us to have our nodeData, or our thread to be deleted while we're processing
     bool _isShuttingDown;
 };
 
