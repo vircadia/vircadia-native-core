@@ -13,14 +13,11 @@
 #include <GenericThread.h>
 #include <NetworkPacket.h>
 #include <OctreeElementBag.h>
-
-
-class OctreeServer;
-class OctreeQueryNode;
-
+#include <ThreadedAssignment.h>
 
 #include "OctreeQueryNode.h"
-#include "OctreeServer.h"
+
+class OctreeServer;
 
 /// Threaded processor for sending voxel packets to a single client
 class OctreeSendThread : public GenericThread {
