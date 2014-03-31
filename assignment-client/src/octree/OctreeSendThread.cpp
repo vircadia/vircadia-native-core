@@ -73,7 +73,7 @@ bool OctreeSendThread::process() {
     }
 
     // check that our WeakPointer to our server is still valid
-    if (!_myServer || _myAssignment.isNull()) {
+    if (!_myServer || !_myAssignment) {
         return false; // exit early if it's not, it means the server is shutting down
     }
 
@@ -90,7 +90,7 @@ bool OctreeSendThread::process() {
 
     // don't do any send processing until the initial load of the octree is complete...
     if (_myServer->isInitialLoadComplete()) {
-        if (!_node.isNull()) {
+        if (_node) {
             _nodeMissingCount = 0;
             OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(_node->getLinkedData());
 
