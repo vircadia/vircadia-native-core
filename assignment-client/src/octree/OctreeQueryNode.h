@@ -84,7 +84,7 @@ public:
     
     OctreeSceneStats stats;
     
-    void initializeOctreeSendThread(const SharedAssignmentPointer& myAssignment, SharedNodePointer node);
+    void initializeOctreeSendThread(const SharedAssignmentPointer& myAssignment, const SharedNodePointer& node);
     bool isOctreeSendThreadInitalized() { return _octreeSendThread; }
     
     void dumpOutOfView();

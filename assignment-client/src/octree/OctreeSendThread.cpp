@@ -19,7 +19,7 @@
 quint64 startSceneSleepTime = 0;
 quint64 endSceneSleepTime = 0;
 
-OctreeSendThread::OctreeSendThread(const SharedAssignmentPointer& myAssignment, SharedNodePointer node) :
+OctreeSendThread::OctreeSendThread(const SharedAssignmentPointer& myAssignment, const SharedNodePointer& node) :
     _myAssignment(myAssignment),
     _myServer(static_cast<OctreeServer*>(myAssignment.data())),
     _node(node),
