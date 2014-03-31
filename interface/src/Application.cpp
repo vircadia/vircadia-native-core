@@ -170,6 +170,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _bytesPerSecond(0),
         _recentMaxPackets(0),
         _resetRecentMaxPacketsSoon(true),
+        _previousScriptLocation(),
         _logger(new FileLogger(this))
 {
     // read the ApplicationInfo.ini file for Name/Version/Domain information
@@ -3700,12 +3701,20 @@ void Application::loadScript(const QString& scriptName) {
 }
 
 void Application::loadDialog() {
-    // shut down and stop any existing script
-    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-    QString suggestedName = desktopLocation.append("/script.js");
+    QString suggestedName;
+
+    if (_previousScriptLocation.isEmpty()) {
+        QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+        suggestedName = desktopLocation.append("/script.js");
+    } else {
+        suggestedName = _previousScriptLocation;
+    }
 
     QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Open Script"), suggestedName, 
                                                           tr("JavaScript Files (*.js)"));
+    if (!fileNameString.isEmpty()) {
+        _previousScriptLocation = fileNameString;
+    }
     
     loadScript(fileNameString);
 }
