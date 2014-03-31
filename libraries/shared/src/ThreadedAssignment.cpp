@@ -17,7 +17,7 @@ ThreadedAssignment::ThreadedAssignment(const QByteArray& packet) :
     Assignment(packet),
     _isFinished(false)
 {
-
+    
 }
 
 void ThreadedAssignment::setFinished(bool isFinished) {
