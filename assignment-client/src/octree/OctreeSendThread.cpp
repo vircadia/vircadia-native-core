@@ -72,7 +72,7 @@ bool OctreeSendThread::process() {
         return false; // exit early if we're shutting down
     }
 
-    // check that our WeakPointer to our server is still valid
+    // check that our server and assignment is still valid
     if (!_myServer || !_myAssignment) {
         return false; // exit early if it's not, it means the server is shutting down
     }

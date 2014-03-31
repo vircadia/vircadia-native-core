@@ -13,7 +13,6 @@
 #include <QStringList>
 #include <QDateTime>
 #include <QtCore/QCoreApplication>
-#include <QWeakPointer>
 
 #include <HTTPManager.h>
 
