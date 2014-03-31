@@ -146,12 +146,6 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
         return false;
     }
     
-    const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
-        << PacketTypeDomainServerRequireDTLS << PacketTypeDomainList << PacketTypeDomainListRequest
-        << PacketTypeStunResponse << PacketTypeDataServerConfirm
-        << PacketTypeDataServerGet << PacketTypeDataServerPut << PacketTypeDataServerSend
-        << PacketTypeCreateAssignment << PacketTypeRequestAssignment;
-    
     if (!NON_VERIFIED_PACKETS.contains(checkType)) {
         // figure out which node this is from
         SharedNodePointer sendingNode = sendingNodeForPacket(packet);
@@ -178,14 +172,17 @@ qint64 NodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& d
                                const QUuid& connectionSecret) {
     QByteArray datagramCopy = datagram;
     
-    // setup the MD5 hash for source verification in the header
-    replaceHashInPacketGivenConnectionUUID(datagramCopy, connectionSecret);
+    if (!connectionSecret.isNull()) {
+        // setup the MD5 hash for source verification in the header
+        replaceHashInPacketGivenConnectionUUID(datagramCopy, connectionSecret);
+    }
     
     // stat collection for packets
     ++_numCollectedPackets;
     _numCollectedBytes += datagram.size();
     
-    qint64 bytesWritten = _nodeSocket.writeDatagram(datagramCopy, destinationSockAddr.getAddress(), destinationSockAddr.getPort());
+    qint64 bytesWritten = _nodeSocket.writeDatagram(datagramCopy,
+                                                    destinationSockAddr.getAddress(), destinationSockAddr.getPort());
     
     if (bytesWritten < 0) {
         qDebug() << "ERROR in writeDatagram:" << _nodeSocket.error() << "-" << _nodeSocket.errorString();
@@ -214,6 +211,10 @@ qint64 NodeList::writeDatagram(const QByteArray& datagram, const SharedNodePoint
     
     // didn't have a destinationNode to send to, return 0
     return 0;
+}
+
+qint64 NodeList::writeUnverifiedDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr) {
+    return writeDatagram(datagram, destinationSockAddr, QUuid());
 }
 
 qint64 NodeList::writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,

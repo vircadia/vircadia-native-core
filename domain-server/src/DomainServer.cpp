@@ -551,8 +551,8 @@ void DomainServer::readAvailableDatagrams() {
                 unsigned short dtlsPort = nodeList->getDTLSSocket().localPort();
                 dtlsRequiredPacket.replace(numBytesDTLSHeader, sizeof(dtlsPort), reinterpret_cast<const char*>(&dtlsPort));
             }
-            
-            nodeList->getNodeSocket().writeDatagram(dtlsRequiredPacket, senderSockAddr.getAddress(), senderSockAddr.getPort());
+
+            nodeList->writeUnverifiedDatagram(dtlsRequiredPacket, senderSockAddr);
         }
     }
 }

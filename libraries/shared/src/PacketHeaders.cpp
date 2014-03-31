@@ -56,11 +56,6 @@ PacketVersion versionForPacketType(PacketType type) {
         case PacketTypeCreateAssignment:
         case PacketTypeRequestAssignment:
             return 1;
-        case PacketTypeDataServerGet:
-        case PacketTypeDataServerPut:
-        case PacketTypeDataServerConfirm:
-        case PacketTypeDataServerSend:
-            return 1;
         case PacketTypeVoxelSet:
         case PacketTypeVoxelSetDestructive:
             return 1;
@@ -95,9 +90,11 @@ int populatePacketHeader(char* packet, PacketType type, const QUuid& connectionU
     memcpy(position, rfcUUID.constData(), NUM_BYTES_RFC4122_UUID);
     position += NUM_BYTES_RFC4122_UUID;
     
-    // pack 16 bytes of zeros where the md5 hash will be placed one data is packed
-    memset(position, 0, NUM_BYTES_MD5_HASH);
-    position += NUM_BYTES_MD5_HASH;
+    if (!NON_VERIFIED_PACKETS.contains(type)) {
+        // pack 16 bytes of zeros where the md5 hash will be placed one data is packed
+        memset(position, 0, NUM_BYTES_MD5_HASH);
+        position += NUM_BYTES_MD5_HASH;
+    }
     
     // return the number of bytes written for pointer pushing
     return position - packet;
@@ -105,16 +102,26 @@ int populatePacketHeader(char* packet, PacketType type, const QUuid& connectionU
 
 int numBytesForPacketHeader(const QByteArray& packet) {
     // returns the number of bytes used for the type, version, and UUID
-    return numBytesArithmeticCodingFromBuffer(packet.data()) + NUM_STATIC_HEADER_BYTES;
+    return numBytesArithmeticCodingFromBuffer(packet.data())
+    + numHashBytesInPacketHeaderGivenPacketType(packetTypeForPacket(packet))
+    + NUM_STATIC_HEADER_BYTES;
 }
 
 int numBytesForPacketHeader(const char* packet) {
     // returns the number of bytes used for the type, version, and UUID
-    return numBytesArithmeticCodingFromBuffer(packet) + NUM_STATIC_HEADER_BYTES;
+    return numBytesArithmeticCodingFromBuffer(packet)
+    + numHashBytesInPacketHeaderGivenPacketType(packetTypeForPacket(packet))
+    + NUM_STATIC_HEADER_BYTES;
 }
 
 int numBytesForPacketHeaderGivenPacketType(PacketType type) {
-    return (int) ceilf((float)type / 255) + NUM_STATIC_HEADER_BYTES;
+    return (int) ceilf((float)type / 255)
+    + numHashBytesInPacketHeaderGivenPacketType(type)
+    + NUM_STATIC_HEADER_BYTES;
+}
+
+int numHashBytesInPacketHeaderGivenPacketType(PacketType type) {
+    return (NON_VERIFIED_PACKETS.contains(type) ? 0 : NUM_BYTES_MD5_HASH);
 }
 
 QUuid uuidFromPacketHeader(const QByteArray& packet) {

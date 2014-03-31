@@ -13,6 +13,7 @@
 #define hifi_PacketHeaders_h
 
 #include <QtCore/QCryptographicHash>
+#include <QtCore/QSet>
 #include <QtCore/QUuid>
 
 #include "UUID.h"
@@ -37,9 +38,9 @@ enum PacketType {
     PacketTypeDomainListRequest,
     PacketTypeRequestAssignment,
     PacketTypeCreateAssignment,
-    PacketTypeDataServerPut,
-    PacketTypeDataServerGet,
-    PacketTypeDataServerSend,
+    PacketTypeDataServerPut, // reusable
+    PacketTypeDataServerGet, // reusable
+    PacketTypeDataServerSend, // reusable
     PacketTypeDataServerConfirm,
     PacketTypeVoxelQuery,
     PacketTypeVoxelData,
@@ -57,16 +58,20 @@ enum PacketType {
     PacketTypeMetavoxelData,
     PacketTypeAvatarIdentity,
     PacketTypeAvatarBillboard,
-    PacketTypeDomainConnectRequest, // RE-USABLE
+    PacketTypeDomainConnectRequest, // reusable
     PacketTypeDomainServerRequireDTLS,
     PacketTypeNodeJsonStats,
 };
 
 typedef char PacketVersion;
 
+const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
+    << PacketTypeDomainServerRequireDTLS << PacketTypeDomainList << PacketTypeDomainListRequest
+    << PacketTypeCreateAssignment << PacketTypeRequestAssignment << PacketTypeStunResponse;
+
 const int NUM_BYTES_MD5_HASH = 16;
-const int NUM_STATIC_HEADER_BYTES = sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
-const int MAX_PACKET_HEADER_BYTES = sizeof(PacketType) + NUM_STATIC_HEADER_BYTES;
+const int NUM_STATIC_HEADER_BYTES = sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
+const int MAX_PACKET_HEADER_BYTES = sizeof(PacketType) + NUM_BYTES_MD5_HASH + NUM_STATIC_HEADER_BYTES;
 
 PacketVersion versionForPacketType(PacketType type);
 
@@ -75,6 +80,8 @@ const QUuid nullUUID = QUuid();
 QByteArray byteArrayWithPopulatedHeader(PacketType type, const QUuid& connectionUUID = nullUUID);
 int populatePacketHeader(QByteArray& packet, PacketType type, const QUuid& connectionUUID = nullUUID);
 int populatePacketHeader(char* packet, PacketType type, const QUuid& connectionUUID = nullUUID);
+
+int numHashBytesInPacketHeaderGivenPacketType(PacketType type);
 
 int numBytesForPacketHeader(const QByteArray& packet);
 int numBytesForPacketHeader(const char* packet);
