@@ -13,6 +13,10 @@
 
 #include "Assignment.h"
 
+
+class ThreadedAssignment;
+typedef QSharedPointer<ThreadedAssignment> SharedAssignmentPointer;
+
 class ThreadedAssignment : public Assignment {
     Q_OBJECT
 public:
@@ -35,8 +39,7 @@ private slots:
     void checkInWithDomainServerOrExit();
 signals:
     void finished();
-};
+    };
 
-typedef QSharedPointer<ThreadedAssignment> SharedAssignmentPointer;
 
 #endif /* defined(__hifi__ThreadedAssignment__) */

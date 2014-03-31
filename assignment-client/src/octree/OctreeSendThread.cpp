@@ -19,8 +19,9 @@
 quint64 startSceneSleepTime = 0;
 quint64 endSceneSleepTime = 0;
 
-OctreeSendThread::OctreeSendThread(const SharedOctreeServerPointer& myServer, SharedNodePointer node) :
-    _myServer(myServer),
+OctreeSendThread::OctreeSendThread(const SharedAssignmentPointer& myAssignment, SharedNodePointer node) :
+    _myAssignment(myAssignment),
+    _myServer(static_cast<OctreeServer*>(myAssignment.data())),
     _node(node),
     _nodeUUID(node->getUUID()),
     _packetData(),
@@ -28,7 +29,7 @@ OctreeSendThread::OctreeSendThread(const SharedOctreeServerPointer& myServer, Sh
     _processLock(),
     _isShuttingDown(false)
 {
-    qDebug() << qPrintable(_myServer->getMyServerName())  << "server [" << _myServer.data() << "]: client connected "
+    qDebug() << qPrintable(_myServer->getMyServerName())  << "server [" << _myServer << "]: client connected "
                                             "- starting sending thread [" << this << "]";
 
     OctreeServer::clientConnected();
@@ -37,23 +38,22 @@ OctreeSendThread::OctreeSendThread(const SharedOctreeServerPointer& myServer, Sh
 OctreeSendThread::~OctreeSendThread() {
     QString serverName(_myServer->getMyServerName());
 
-    qDebug() << qPrintable(serverName)  << "server [" << _myServer.data() << "]: client disconnected "
+    qDebug() << qPrintable(serverName)  << "server [" << _myServer << "]: client disconnected "
                                             "- ending sending thread [" << this << "]";
     OctreeServer::clientDisconnected();
 
-    qDebug() << qPrintable(serverName) << "server [" << _myServer.data() << "]: "
+    qDebug() << qPrintable(serverName) << "server [" << _myServer << "]: "
                                             "- OctreeSendThread::~OctreeSendThread() this=[" << this << "]"
                                             "line: " << __LINE__;
 
     _node.clear();
 
-    qDebug() << qPrintable(serverName)  << "server [" << _myServer.data() << "]: "
+    qDebug() << qPrintable(serverName)  << "server [" << _myServer << "]: "
                                             "- OctreeSendThread::~OctreeSendThread() this=[" << this << "]"
                                             "line: " << __LINE__;
-    void* serverPtr = _myServer.data();
-    _myServer.clear();
+    _myAssignment.clear();
 
-    qDebug() << qPrintable(serverName)  << "server [" << serverPtr << "]: "
+    qDebug() << qPrintable(serverName)  << "server [" << _myServer << "]: "
                                         "- OctreeSendThread::~OctreeSendThread() this=[" << this << "]"
                                         "line: " << __LINE__;
 }
@@ -73,7 +73,7 @@ bool OctreeSendThread::process() {
     }
 
     // check that our WeakPointer to our server is still valid
-    if (_myServer.isNull()) {
+    if (!_myServer || _myAssignment.isNull()) {
         return false; // exit early if it's not, it means the server is shutting down
     }
 

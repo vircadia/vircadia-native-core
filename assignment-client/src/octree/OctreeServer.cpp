@@ -16,6 +16,8 @@
 #include <Logging.h>
 #include <UUID.h>
 
+#include "../AssignmentClient.h"
+
 #include "OctreeServer.h"
 #include "OctreeServerConsts.h"
 
@@ -854,7 +856,8 @@ void OctreeServer::readPendingDatagrams() {
                         if (debug) {
                             qDebug() << "calling initializeOctreeSendThread()... node:" << *matchingNode;
                         }
-                        nodeData->initializeOctreeSendThread(SharedOctreeServerPointer(this), matchingNode);
+                        SharedAssignmentPointer sharedAssignment = AssignmentClient::getCurrentAssignment();
+                        nodeData->initializeOctreeSendThread(sharedAssignment, matchingNode);
                     }
                 }
             } else if (packetType == PacketTypeJurisdictionRequest) {

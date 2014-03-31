@@ -19,9 +19,9 @@
 #include <OctreeElementBag.h>
 #include <OctreeSceneStats.h>
 
+#include "OctreeServer.h"
+
 class OctreeSendThread;
-class OctreeServer;
-typedef QSharedPointer<OctreeServer> SharedOctreeServerPointer;
 
 class OctreeQueryNode : public OctreeQuery {
     Q_OBJECT
@@ -84,7 +84,7 @@ public:
     
     OctreeSceneStats stats;
     
-    void initializeOctreeSendThread(const SharedOctreeServerPointer& octreeServer, SharedNodePointer node);
+    void initializeOctreeSendThread(const SharedAssignmentPointer& myAssignment, SharedNodePointer node);
     bool isOctreeSendThreadInitalized() { return _octreeSendThread; }
     
     void dumpOutOfView();

@@ -20,6 +20,10 @@
 #include <ThreadedAssignment.h>
 #include <EnvironmentData.h>
 
+class OctreeServer;
+class OctreeQueryNode;
+class OctreeSendThread;
+
 #include "OctreePersistThread.h"
 #include "OctreeSendThread.h"
 #include "OctreeServerConsts.h"
@@ -27,8 +31,8 @@
 
 const int DEFAULT_PACKETS_PER_INTERVAL = 2000; // some 120,000 packets per second total
 
-class OctreeServer;
-typedef QSharedPointer<OctreeServer> SharedOctreeServerPointer;
+//class OctreeServer;
+//typedef QSharedPointer<OctreeServer> SharedOctreeServerPointer;
 
 /// Handles assignments of type OctreeServer - sending octrees to various clients.
 class OctreeServer : public ThreadedAssignment, public HTTPRequestHandler {

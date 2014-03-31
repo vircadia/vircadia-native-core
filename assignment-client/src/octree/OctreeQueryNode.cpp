@@ -76,9 +76,9 @@ void OctreeQueryNode::deleteLater() {
 }
 
 
-void OctreeQueryNode::initializeOctreeSendThread(const SharedOctreeServerPointer& octreeServer, SharedNodePointer node) {
+void OctreeQueryNode::initializeOctreeSendThread(const SharedAssignmentPointer& myAssignment, SharedNodePointer node) {
     // Create octree sending thread...
-    _octreeSendThread = new OctreeSendThread(octreeServer, node);
+    _octreeSendThread = new OctreeSendThread(myAssignment, node);
     _octreeSendThread->initialize(true);
 }
 

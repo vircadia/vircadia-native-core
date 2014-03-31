@@ -13,6 +13,12 @@
 #include <GenericThread.h>
 #include <NetworkPacket.h>
 #include <OctreeElementBag.h>
+
+
+class OctreeServer;
+class OctreeQueryNode;
+
+
 #include "OctreeQueryNode.h"
 #include "OctreeServer.h"
 
@@ -20,7 +26,7 @@
 class OctreeSendThread : public GenericThread {
     Q_OBJECT
 public:
-    OctreeSendThread(const SharedOctreeServerPointer& myServer, SharedNodePointer node);
+    OctreeSendThread(const SharedAssignmentPointer& myAssignment, SharedNodePointer node);
     virtual ~OctreeSendThread();
     
     void setIsShuttingDown();
@@ -37,7 +43,8 @@ protected:
     virtual bool process();
 
 private:
-    SharedOctreeServerPointer _myServer;
+    SharedAssignmentPointer _myAssignment;
+    OctreeServer* _myServer;
     SharedNodePointer _node;
     QUuid _nodeUUID;
 
