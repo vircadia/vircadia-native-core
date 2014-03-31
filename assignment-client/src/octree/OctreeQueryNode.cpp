@@ -48,6 +48,8 @@ OctreeQueryNode::~OctreeQueryNode() {
     if (extraDebugging) {
         qDebug() << "OctreeQueryNode::~OctreeQueryNode()";
     }
+    
+    /*
     if (_octreeSendThread) {
         if (extraDebugging) {
             qDebug() << "OctreeQueryNode::~OctreeQueryNode()... calling _octreeSendThread->terminate()";
@@ -58,6 +60,7 @@ OctreeQueryNode::~OctreeQueryNode() {
         }
         delete _octreeSendThread;
     }
+    */
 
     delete[] _octreePacket;
     delete[] _lastOctreePacket;
@@ -79,15 +82,19 @@ void OctreeQueryNode::nodeKilled() {
     qDebug() << "OctreeQueryNode::nodeKilled()... ";
     _isShuttingDown = true;
     if (_octreeSendThread) {
-        qDebug() << "OctreeQueryNode::nodeKilled()... calling _octreeSendThread->terminate()";
-        _octreeSendThread->terminate();
-        qDebug() << "OctreeQueryNode::nodeKilled()... AFTER _octreeSendThread->terminate()";
-
         OctreeSendThread* sendThread = _octreeSendThread;
 
         qDebug() << "OctreeQueryNode::nodeKilled()... calling _octreeSendThread = NULL";
         _octreeSendThread = NULL;
         qDebug() << "OctreeQueryNode::nodeKilled()... AFTER _octreeSendThread = NULL";
+
+        qDebug() << "OctreeQueryNode::nodeKilled()... calling _octreeSendThread->setIsShuttingDown()";
+        sendThread->setIsShuttingDown();
+        qDebug() << "OctreeQueryNode::nodeKilled()... AFTER _octreeSendThread->setIsShuttingDown()";
+
+        qDebug() << "OctreeQueryNode::nodeKilled()... calling _octreeSendThread->terminate()";
+        sendThread->terminate();
+        qDebug() << "OctreeQueryNode::nodeKilled()... AFTER _octreeSendThread->terminate()";
 
         qDebug() << "OctreeQueryNode::nodeKilled()... calling delete sendThread";
         delete sendThread;
