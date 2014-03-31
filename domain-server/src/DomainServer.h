@@ -17,6 +17,8 @@
 #include <QtCore/QStringList>
 #include <QtCore/QUrl>
 
+#include <gnutls/gnutls.h>
+
 #include <Assignment.h>
 #include <HTTPManager.h>
 #include <NodeList.h>
@@ -78,6 +80,8 @@ private:
     QQueue<SharedAssignmentPointer> _assignmentQueue;
     
     QStringList _argumentList;
+    
+    gnutls_certificate_credentials_t _x509Credentials;
 };
 
 #endif /* defined(__hifi__DomainServer__) */

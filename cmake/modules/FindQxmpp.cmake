@@ -6,7 +6,7 @@
 #
 #  QXMPP_FOUND - system found qxmpp
 #  QXMPP_INCLUDE_DIRS - the qxmpp include directory
-#  QXMPP_LIBRARIES - Link this to use qxmpp
+#  QXMPP_LIBRARY - Link this to use qxmpp
 #
 #  Created on 3/10/2014 by Stephen Birarda
 #  Copyright (c) 2014 High Fidelity
@@ -25,14 +25,4 @@ else ()
   
   include(FindPackageHandleStandardArgs)
   find_package_handle_standard_args(QXMPP DEFAULT_MSG QXMPP_INCLUDE_DIR QXMPP_LIBRARY)
- 
-  if (QXMPP_FOUND)
-    if (NOT QXMPP_FIND_QUIETLY)
-      message(STATUS "Found qxmpp: ${QXMPP_LIBRARY}")
-    endif ()
-  else ()
-    if (QXMPP_FIND_REQUIRED)
-      message(FATAL_ERROR "Could not find qxmpp")
-    endif ()
-  endif ()
 endif ()

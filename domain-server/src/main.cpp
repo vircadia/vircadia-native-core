@@ -24,6 +24,8 @@ int main(int argc, char* argv[]) {
     setvbuf(stdout, NULL, _IOLBF, 0);
 #endif
     
+    gnutls_global_init();
+    
     qInstallMessageHandler(Logging::verboseMessageHandler);
     DomainServer domainServer(argc, argv);
     

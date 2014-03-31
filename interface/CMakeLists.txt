@@ -67,7 +67,6 @@ foreach(EXTERNAL_SOURCE_SUBDIR ${EXTERNAL_SOURCE_SUBDIRS})
 endforeach(EXTERNAL_SOURCE_SUBDIR)
 
 find_package(Qt5 COMPONENTS Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets Xml UiTools)
-find_package(QCA REQUIRED)
 
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
@@ -188,7 +187,7 @@ include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes"
 
 # include external library headers
 # use system flag so warnings are supressed
-include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}" "${QCA_INCLUDE_DIR}")
+include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}")
 
 target_link_libraries(
   ${TARGET_NAME}
@@ -196,7 +195,6 @@ target_link_libraries(
   "${ZLIB_LIBRARIES}"
   Qt5::Core Qt5::Gui Qt5::Multimedia Qt5::Network Qt5::OpenGL 
   Qt5::Script Qt5::Svg Qt5::WebKit Qt5::WebKitWidgets Qt5::Xml Qt5::UiTools
-  "${QCA_LIBRARY}"
 )
 
 if (APPLE)

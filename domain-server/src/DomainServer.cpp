@@ -16,6 +16,8 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QTimer>
 
+#include <gnutls/dtls.h>
+
 #include <AccountManager.h>
 #include <HTTPConnection.h>
 #include <PacketHeaders.h>
@@ -32,7 +34,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _HTTPManager(DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
     _staticAssignmentHash(),
-    _assignmentQueue()
+    _assignmentQueue(),
+    _x509Credentials()
 {    
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
@@ -49,56 +52,36 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 }
 
 bool DomainServer::readCertificateAndPrivateKey() {
-    const QString X509_CERTIFICATE_PATH_OPTION = "--cert";
-    const QString PRIVATE_KEY_OPTION = "--key";
-    const QString PRIVATE_KEY_PASSPHRASE_ENV = "DOMAIN_SERVER_KEY_PASSPHRASE";
+    const QString X509_CERTIFICATE_OPTION = "--cert";
+    const QString X509_PRIVATE_KEY_OPTION = "--key";
+    const QString X509_KEY_PASSPHRASE_ENV = "DOMAIN_SERVER_KEY_PASSPHRASE";
+
+    int certIndex = _argumentList.indexOf(X509_CERTIFICATE_OPTION);
+    int keyIndex = _argumentList.indexOf(X509_PRIVATE_KEY_OPTION);
     
-    int certificateIndex = _argumentList.indexOf(X509_CERTIFICATE_PATH_OPTION);
-    int keyIndex = _argumentList.indexOf(PRIVATE_KEY_OPTION);
-    
-    if (certificateIndex != -1 && keyIndex != -1) {
+    if (certIndex != -1 && keyIndex != -1) {
         // the user wants to use DTLS to encrypt communication with nodes
-        // let's make sure we can load the certificate and private key
-       
-//        QCA::ConvertResult conversionResult = QCA::ErrorFile;
-//        
-//        QFile certificateFile(_argumentList.value(certificateIndex + 1));
-//        qDebug() << "Attempting to read X.509 certificate from" << certificateFile.fileName();
-//        
-//        if (certificateFile.exists()) {
-//            certificateFile.open(QIODevice::ReadOnly);
-//            QByteArray filearray = certificateFile.readAll();
-//            qDebug() << filearray;
-//            _certificate = QCA::Certificate::fromPEM(filearray, &conversionResult);
-//            certificateFile.close();
-//        }
-//        
-//        if (conversionResult != QCA::ConvertGood) {
-//            // couldn't read the certificate from file, bail
-//            qCritical() << "Error" << conversionResult << "reading certificate from file. domain-server will now quit." ;
-//            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
-//            return false;
-//        }
-//        
-//        QByteArray keyPassphrase = QProcessEnvironment::systemEnvironment().value(PRIVATE_KEY_PASSPHRASE_ENV).toLocal8Bit();
-//        QCA::SecureArray keySecureArray = QCA::SecureArray(keyPassphrase);
-//        
-//        QString keyFileString(_argumentList.value(keyIndex + 1));
-//        qDebug() << "Attempting to read private key from" << keyFileString;
-//        _privateKey = QCA::PrivateKey::fromPEMFile(keyFileString, keySecureArray, &conversionResult);
-//        
-//        if (conversionResult != QCA::ConvertGood) {
-//            // couldn't read the private key from file, bail
-//            qCritical() << "Error" << conversionResult << "reading private key from file. domain-server will now quit.";
-//            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
-//            return false;
-//        }
+        // let's make sure we can load the ey
+        gnutls_certificate_allocate_credentials(&_x509Credentials);
+        
+        QString keyPassphraseString = QProcessEnvironment::systemEnvironment().value(X509_KEY_PASSPHRASE_ENV);
+        
+        int gnutlsReturn = gnutls_certificate_set_x509_key_file2(_x509Credentials,
+                                                                 _argumentList[certIndex + 1].toLocal8Bit().constData(),
+                                                                 _argumentList[keyIndex + 1].toLocal8Bit().constData(),
+                                                                 GNUTLS_X509_FMT_PEM,
+                                                                 keyPassphraseString.toLocal8Bit().constData(),
+                                                                 0);
+        
+        if (gnutlsReturn < 0) {
+            qDebug() << "Unable to load certificate or key file." << "Error" << gnutlsReturn << "- domain-server will now quit.";
+            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+            return false;
+        }
         
         qDebug() << "Successfully read certificate and private key. Using DTLS for node communication.";
-    } else if (certificateIndex != -1 || keyIndex != -1) {
-        // one of the certificate or private key was missing, can't use one without the other
-        // bail
-        qCritical("Missing certificate or private key. domain-server will now quit.");
+    } else if (certIndex != -1 || keyIndex != -1) {
+        qDebug() << "Missing certificate or private key. domain-server will now quit.";
         QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
         return false;
     }
