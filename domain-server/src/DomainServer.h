@@ -28,8 +28,6 @@ class DomainServer : public QCoreApplication, public HTTPRequestHandler {
 public:
     DomainServer(int argc, char* argv[]);
     
-    bool requiresAuthentication() const { return !_nodeAuthenticationURL.isEmpty(); }
-    
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
     
     void exit(int retCode = 0);
@@ -40,8 +38,14 @@ public slots:
     /// Called by NodeList to inform us a node has been killed
     void nodeKilled(SharedNodePointer node);
     
+private slots:
+    void requestCreationFromDataServer();
+    void processCreateResponseFromDataServer(const QJsonObject& jsonObject);
+    
+    void readAvailableDatagrams();
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
+    bool readCertificateAndPrivateKey();
     
     void requestAuthenticationFromPotentialNode(const HifiSockAddr& senderSockAddr);
     void addNodeToNodeListAndConfirmConnection(const QByteArray& packet, const HifiSockAddr& senderSockAddr,
@@ -73,17 +77,7 @@ private:
     QHash<QUuid, SharedAssignmentPointer> _staticAssignmentHash;
     QQueue<SharedAssignmentPointer> _assignmentQueue;
     
-    QUrl _nodeAuthenticationURL;
-    
     QStringList _argumentList;
-    
-    QHash<QString, QJsonObject> _redeemedTokenResponses;
-private slots:
-    void requestCreationFromDataServer();
-    void processCreateResponseFromDataServer(const QJsonObject& jsonObject);
-    void processTokenRedeemResponse(const QJsonObject& jsonObject);
-    
-    void readAvailableDatagrams();
 };
 
 #endif /* defined(__hifi__DomainServer__) */

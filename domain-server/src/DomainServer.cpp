@@ -32,61 +32,78 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _HTTPManager(DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
     _staticAssignmentHash(),
-    _assignmentQueue(),
-    _nodeAuthenticationURL(),
-    _redeemedTokenResponses()
-{
+    _assignmentQueue()
+{    
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
     setApplicationName("domain-server");
     QSettings::setDefaultFormat(QSettings::IniFormat);
     
     _argumentList = arguments();
-    int argumentIndex = 0;
     
-    // check if this domain server should use no authentication or a custom hostname for authentication
-    const QString DEFAULT_AUTH_OPTION = "--defaultAuth";
-    const QString CUSTOM_AUTH_OPTION = "--customAuth";
-    if ((argumentIndex = _argumentList.indexOf(DEFAULT_AUTH_OPTION) != -1)) {
-        _nodeAuthenticationURL = QUrl(DEFAULT_NODE_AUTH_URL);
-    } else if ((argumentIndex = _argumentList.indexOf(CUSTOM_AUTH_OPTION)) != -1)  {
-        _nodeAuthenticationURL = QUrl(_argumentList.value(argumentIndex + 1));
-    }
-    
-    if (!_nodeAuthenticationURL.isEmpty()) {
-        const QString DATA_SERVER_USERNAME_ENV = "HIFI_DS_USERNAME";
-        const QString DATA_SERVER_PASSWORD_ENV = "HIFI_DS_PASSWORD";
-        
-        // this node will be using an authentication server, let's make sure we have a username/password
-        QProcessEnvironment sysEnvironment = QProcessEnvironment::systemEnvironment();
-        
-        QString username = sysEnvironment.value(DATA_SERVER_USERNAME_ENV);
-        QString password = sysEnvironment.value(DATA_SERVER_PASSWORD_ENV);
-        
-        AccountManager& accountManager = AccountManager::getInstance();
-        accountManager.setAuthURL(_nodeAuthenticationURL);
-        
-        if (!username.isEmpty() && !password.isEmpty()) {
-            
-            connect(&accountManager, &AccountManager::loginComplete, this, &DomainServer::requestCreationFromDataServer);
-            
-            // ask the account manager to log us in from the env variables
-            accountManager.requestAccessToken(username, password);
-        } else {
-            qDebug() << "Authentication was requested against" << qPrintable(_nodeAuthenticationURL.toString())
-                << "but both or one of" << qPrintable(DATA_SERVER_USERNAME_ENV)
-                << "/" << qPrintable(DATA_SERVER_PASSWORD_ENV) << "are not set. Qutting!";
-            
-            // bail out
-            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
-            
-            return;
-        }
-        
-    } else {
-        // auth is not requested for domain-server, setup NodeList and assignments now
+    if (readCertificateAndPrivateKey()) {
+        // we either read a certificate and private key or were not passed one, good to load assignments
+        // and set up the node list
         setupNodeListAndAssignments();
     }
+}
+
+bool DomainServer::readCertificateAndPrivateKey() {
+    const QString X509_CERTIFICATE_PATH_OPTION = "--cert";
+    const QString PRIVATE_KEY_OPTION = "--key";
+    const QString PRIVATE_KEY_PASSPHRASE_ENV = "DOMAIN_SERVER_KEY_PASSPHRASE";
+    
+    int certificateIndex = _argumentList.indexOf(X509_CERTIFICATE_PATH_OPTION);
+    int keyIndex = _argumentList.indexOf(PRIVATE_KEY_OPTION);
+    
+    if (certificateIndex != -1 && keyIndex != -1) {
+        // the user wants to use DTLS to encrypt communication with nodes
+        // let's make sure we can load the certificate and private key
+       
+//        QCA::ConvertResult conversionResult = QCA::ErrorFile;
+//        
+//        QFile certificateFile(_argumentList.value(certificateIndex + 1));
+//        qDebug() << "Attempting to read X.509 certificate from" << certificateFile.fileName();
+//        
+//        if (certificateFile.exists()) {
+//            certificateFile.open(QIODevice::ReadOnly);
+//            QByteArray filearray = certificateFile.readAll();
+//            qDebug() << filearray;
+//            _certificate = QCA::Certificate::fromPEM(filearray, &conversionResult);
+//            certificateFile.close();
+//        }
+//        
+//        if (conversionResult != QCA::ConvertGood) {
+//            // couldn't read the certificate from file, bail
+//            qCritical() << "Error" << conversionResult << "reading certificate from file. domain-server will now quit." ;
+//            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+//            return false;
+//        }
+//        
+//        QByteArray keyPassphrase = QProcessEnvironment::systemEnvironment().value(PRIVATE_KEY_PASSPHRASE_ENV).toLocal8Bit();
+//        QCA::SecureArray keySecureArray = QCA::SecureArray(keyPassphrase);
+//        
+//        QString keyFileString(_argumentList.value(keyIndex + 1));
+//        qDebug() << "Attempting to read private key from" << keyFileString;
+//        _privateKey = QCA::PrivateKey::fromPEMFile(keyFileString, keySecureArray, &conversionResult);
+//        
+//        if (conversionResult != QCA::ConvertGood) {
+//            // couldn't read the private key from file, bail
+//            qCritical() << "Error" << conversionResult << "reading private key from file. domain-server will now quit.";
+//            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+//            return false;
+//        }
+        
+        qDebug() << "Successfully read certificate and private key. Using DTLS for node communication.";
+    } else if (certificateIndex != -1 || keyIndex != -1) {
+        // one of the certificate or private key was missing, can't use one without the other
+        // bail
+        qCritical("Missing certificate or private key. domain-server will now quit.");
+        QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+        return false;
+    }
+    
+    return true;
 }
 
 void DomainServer::requestCreationFromDataServer() {
@@ -106,17 +123,6 @@ void DomainServer::processCreateResponseFromDataServer(const QJsonObject& jsonOb
         // pull out the UUID the data-server is telling us to use, and complete our setup with it
         QUuid newSessionUUID = QUuid(jsonObject["data"].toObject()["uuid"].toString());
         setupNodeListAndAssignments(newSessionUUID);
-    }
-}
-
-void DomainServer::processTokenRedeemResponse(const QJsonObject& jsonObject) {
-    // pull out the registration token this is associated with
-    QString registrationToken = jsonObject["data"].toObject()["registration_token"].toString();
-    
-    // if we have a registration token add it to our hash of redeemed token responses
-    if (!registrationToken.isEmpty()) {
-        qDebug() << "Redeemed registration token" << registrationToken;
-        _redeemedTokenResponses.insert(registrationToken, jsonObject);
     }
 }
 
@@ -299,21 +305,6 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
     }
 }
 
-void DomainServer::requestAuthenticationFromPotentialNode(const HifiSockAddr& senderSockAddr) {
-    // this is a node we do not recognize and we need authentication - ask them to do so
-    // by providing them the hostname they should authenticate with
-    QByteArray authenticationRequestPacket = byteArrayWithPopulatedHeader(PacketTypeDomainServerAuthRequest);
-    
-    QDataStream authPacketStream(&authenticationRequestPacket, QIODevice::Append);
-    authPacketStream << _nodeAuthenticationURL;
-    
-    qDebug() << "Asking node at" << senderSockAddr << "to authenticate.";
-    
-    // send the authentication request back to the node
-    NodeList::getInstance()->getNodeSocket().writeDatagram(authenticationRequestPacket,
-                                                           senderSockAddr.getAddress(), senderSockAddr.getPort());
-}
-
 const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
     << NodeType::AvatarMixer << NodeType::VoxelServer << NodeType::ParticleServer
     << NodeType::MetavoxelServer;
@@ -483,7 +474,6 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
 
 void DomainServer::readAvailableDatagrams() {
     NodeList* nodeList = NodeList::getInstance();
-    AccountManager& accountManager = AccountManager::getInstance();
 
     HifiSockAddr senderSockAddr;
     
@@ -507,43 +497,9 @@ void DomainServer::readAvailableDatagrams() {
                 quint8 hasRegistrationToken;
                 packetStream >> hasRegistrationToken;
                 
-                if (requiresAuthentication() && !hasRegistrationToken) {
-                    // we need authentication and this node did not give us a registration token - tell it to auth
-                    requestAuthenticationFromPotentialNode(senderSockAddr);
-                } else if (requiresAuthentication()) {
-                    QByteArray registrationToken;
-                    packetStream >> registrationToken;
-                    
-                    QString registrationTokenString(registrationToken.toHex());
-                    QJsonObject jsonForRedeemedToken = _redeemedTokenResponses.value(registrationTokenString);
-                    
-                    // check if we have redeemed this token and are ready to check the node in
-                    if (jsonForRedeemedToken.isEmpty()) {
-                        // make a request against the data-server to get information required to connect to this node
-                        JSONCallbackParameters tokenCallbackParams;
-                        tokenCallbackParams.jsonCallbackReceiver = this;
-                        tokenCallbackParams.jsonCallbackMethod = "processTokenRedeemResponse";
-                        
-                        QString redeemURLString = QString("/api/v1/nodes/redeem/%1.json").arg(registrationTokenString);
-                        accountManager.authenticatedRequest(redeemURLString, QNetworkAccessManager::GetOperation,
-                                                            tokenCallbackParams);
-                    } else if (jsonForRedeemedToken["status"].toString() != "success") {
-                        // we redeemed the token, but it was invalid - get the node to get another
-                        requestAuthenticationFromPotentialNode(senderSockAddr);
-                    } else {
-                        // we've redeemed the token for this node and are ready to start communicating with it
-                        // add the node to our NodeList
-                        addNodeToNodeListAndConfirmConnection(receivedPacket, senderSockAddr, jsonForRedeemedToken);
-                    }
-                    
-                    // if it exists, remove this response from the in-memory hash
-                    _redeemedTokenResponses.remove(registrationTokenString);
-                    
-                } else {
-                    // we don't require authentication - add this node to our NodeList
-                    // and send back session UUID right away
-                    addNodeToNodeListAndConfirmConnection(receivedPacket, senderSockAddr);
-                }
+                // we don't require authentication - add this node to our NodeList
+                // and send back session UUID right away
+                addNodeToNodeListAndConfirmConnection(receivedPacket, senderSockAddr);
                 
             } else if (requestType == PacketTypeDomainListRequest) {
                 QUuid nodeUUID = uuidFromPacketHeader(receivedPacket);
