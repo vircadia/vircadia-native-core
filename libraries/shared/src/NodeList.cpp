@@ -894,8 +894,7 @@ void NodeList::activateSocketFromNodeCommunication(const QByteArray& packet, con
     } else if (pingType == PingType::Public && !sendingNode->getActiveSocket()) {
         sendingNode->activatePublicSocket();
     } else if (pingType == PingType::Symmetric && !sendingNode->getActiveSocket()) {
-        
-
+        sendingNode->activateSymmetricSocket();
     }
 }
 
