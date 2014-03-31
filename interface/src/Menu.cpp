@@ -1102,6 +1102,11 @@ void Menu::showMetavoxelEditor() {
 }
 
 void Menu::showChat() {
+    if (!_chatAction->isEnabled()) {
+        // Don't do anything if chat is disabled (No
+        // QXMPP library or xmpp is disconnected).
+        return;
+    }
     QMainWindow* mainWindow = Application::getInstance()->getWindow();
     if (!_chatWindow) {
         mainWindow->addDockWidget(Qt::NoDockWidgetArea, _chatWindow = new ChatWindow());
