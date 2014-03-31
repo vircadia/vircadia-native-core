@@ -10,16 +10,16 @@
 #define __hifi__OctreeQueryNode__
 
 #include <iostream>
-#include <NodeData.h>
-#include <OctreePacketData.h>
-#include <OctreeQuery.h>
+
 
 #include <CoverageMap.h>
+#include <NodeData.h>
 #include <OctreeConstants.h>
 #include <OctreeElementBag.h>
+#include <OctreePacketData.h>
+#include <OctreeQuery.h>
 #include <OctreeSceneStats.h>
-
-#include "OctreeServer.h"
+#include <ThreadedAssignment.h> // for SharedAssignmentPointer
 
 class OctreeSendThread;
 
