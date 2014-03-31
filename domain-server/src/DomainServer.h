@@ -45,9 +45,11 @@ private slots:
     void processCreateResponseFromDataServer(const QJsonObject& jsonObject);
     
     void readAvailableDatagrams();
+    void readAvailableDTLSDatagrams();
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
-    bool readCertificateAndPrivateKey();
+    bool optionallySetupDTLS();
+    bool readX509KeyAndCertificate();
     
     void requestAuthenticationFromPotentialNode(const HifiSockAddr& senderSockAddr);
     void addNodeToNodeListAndConfirmConnection(const QByteArray& packet, const HifiSockAddr& senderSockAddr,
@@ -81,7 +83,10 @@ private:
     
     QStringList _argumentList;
     
-    gnutls_certificate_credentials_t _x509Credentials;
+    bool _isUsingDTLS;
+    gnutls_certificate_credentials_t* _x509Credentials;
+    gnutls_dh_params_t* _dhParams;
+    gnutls_priority_t* _priorityCache;
 };
 
 #endif /* defined(__hifi__DomainServer__) */

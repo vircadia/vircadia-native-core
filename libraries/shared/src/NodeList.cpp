@@ -89,6 +89,15 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _packetStatTimer.start();
 }
 
+QUdpSocket& NodeList::getDTLSSocket() {
+    if (_dtlsSocket.state() == QAbstractSocket::UnconnectedState) {
+        _dtlsSocket.bind(QHostAddress::AnyIPv4);
+        qDebug() << "NodeList DTLS socket is listening on" << _dtlsSocket.localPort();
+    }
+    
+    return _dtlsSocket;
+}
+
 void NodeList::changeSendSocketBufferSize(int numSendBytes) {
     // change the socket send buffer size to be 1MB
     int oldBufferSize = 0;

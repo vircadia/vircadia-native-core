@@ -35,7 +35,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _HTTPManager(DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
     _staticAssignmentHash(),
     _assignmentQueue(),
-    _x509Credentials()
+    _isUsingDTLS(false),
+    _x509Credentials(NULL),
+    _dhParams(NULL),
+    _priorityCache(NULL)
 {    
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
@@ -44,29 +47,85 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     
     _argumentList = arguments();
     
-    if (readCertificateAndPrivateKey()) {
+    if (optionallySetupDTLS()) {
         // we either read a certificate and private key or were not passed one, good to load assignments
         // and set up the node list
+        qDebug() << "Setting up NodeList and assignments.";
         setupNodeListAndAssignments();
+        
+        if (_isUsingDTLS) {
+            // we're using DTLS and our NodeList socket is good to go, so make the required DTLS changes
+            // DTLS requires that IP_DONTFRAG be set
+            // This is not accessible on some platforms (OS X) so we need to make sure DTLS still works without it
+            
+            NodeList* nodeList = NodeList::getInstance();
+            
+#if defined(IP_DONTFRAG) || defined(IP_MTU_DISCOVER)
+            qDebug() << "Making required DTLS changes to NodeList DTLS socket.";
+            
+            int socketHandle = NodeList::getInstance()->getDTLSSocket().socketDescriptor();
+#if defined(IP_DONTFRAG)
+            int optValue = 1;yea
+            setsockopt(socketHandle, IPPROTO_IP, IP_DONTFRAG, (const void*) optValue, sizeof(optValue));
+#elif defined(IP_MTU_DISCOVER)
+            int optValue = 1;
+            setsockopt(socketHandle, IPPROTO_IP, IP_MTU_DISCOVER, (const void*) optValue, sizeof(optValue));
+#endif
+#endif
+            // connect our socket to read datagrams received on the DTLS socket
+            connect(&nodeList->getDTLSSocket(), &QUdpSocket::readyRead, this, &DomainServer::readAvailableDTLSDatagrams);
+        }
     }
 }
 
-bool DomainServer::readCertificateAndPrivateKey() {
+bool DomainServer::optionallySetupDTLS() {
+    if (readX509KeyAndCertificate()) {
+        qDebug() << "Generating Diffie-Hellman parameters.";
+        
+        // generate Diffie-Hellman parameters
+        // When short bit length is used, it might be wise to regenerate parameters often.
+        int dhBits = gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, GNUTLS_SEC_PARAM_LEGACY);
+        
+        _dhParams =  new gnutls_dh_params_t;
+        gnutls_dh_params_init(_dhParams);
+        gnutls_dh_params_generate2(*_dhParams, dhBits);
+        
+        qDebug() << "Successfully generated Diffie-Hellman parameters.";
+        
+        // set the D-H paramters on the X509 credentials
+        gnutls_certificate_set_dh_params(*_x509Credentials, *_dhParams);
+        
+        _priorityCache = new gnutls_priority_t;
+        const char DTLS_PRIORITY_STRING[] = "PERFORMANCE:-VERS-TLS-ALL:+VERS-DTLS1.2:%SERVER_PRECEDENCE";
+        gnutls_priority_init(_priorityCache, DTLS_PRIORITY_STRING, NULL);
+        
+        _isUsingDTLS = true;
+        
+        qDebug() << "Initial DTLS setup complete.";
+    
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool DomainServer::readX509KeyAndCertificate() {
     const QString X509_CERTIFICATE_OPTION = "--cert";
     const QString X509_PRIVATE_KEY_OPTION = "--key";
     const QString X509_KEY_PASSPHRASE_ENV = "DOMAIN_SERVER_KEY_PASSPHRASE";
-
+    
     int certIndex = _argumentList.indexOf(X509_CERTIFICATE_OPTION);
     int keyIndex = _argumentList.indexOf(X509_PRIVATE_KEY_OPTION);
     
     if (certIndex != -1 && keyIndex != -1) {
         // the user wants to use DTLS to encrypt communication with nodes
-        // let's make sure we can load the ey
-        gnutls_certificate_allocate_credentials(&_x509Credentials);
+        // let's make sure we can load the key and certificate
+        _x509Credentials = new gnutls_certificate_credentials_t;
+        gnutls_certificate_allocate_credentials(_x509Credentials);
         
         QString keyPassphraseString = QProcessEnvironment::systemEnvironment().value(X509_KEY_PASSPHRASE_ENV);
         
-        int gnutlsReturn = gnutls_certificate_set_x509_key_file2(_x509Credentials,
+        int gnutlsReturn = gnutls_certificate_set_x509_key_file2(*_x509Credentials,
                                                                  _argumentList[certIndex + 1].toLocal8Bit().constData(),
                                                                  _argumentList[keyIndex + 1].toLocal8Bit().constData(),
                                                                  GNUTLS_X509_FMT_PEM,
@@ -79,7 +138,8 @@ bool DomainServer::readCertificateAndPrivateKey() {
             return false;
         }
         
-        qDebug() << "Successfully read certificate and private key. Using DTLS for node communication.";
+        qDebug() << "Successfully read certificate and private key.";
+        
     } else if (certIndex != -1 || keyIndex != -1) {
         qDebug() << "Missing certificate or private key. domain-server will now quit.";
         QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
@@ -550,6 +610,10 @@ void DomainServer::readAvailableDatagrams() {
             }
         }
     }
+}
+
+void DomainServer::readAvailableDTLSDatagrams() {
+    
 }
 
 QJsonObject DomainServer::jsonForSocket(const HifiSockAddr& socket) {

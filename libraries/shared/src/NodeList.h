@@ -72,6 +72,7 @@ public:
     void setSessionUUID(const QUuid& sessionUUID);
 
     QUdpSocket& getNodeSocket() { return _nodeSocket; }
+    QUdpSocket& getDTLSSocket();
     
     bool packetVersionAndHashMatch(const QByteArray& packet);
     
@@ -165,6 +166,7 @@ private:
     NodeHash _nodeHash;
     QMutex _nodeHashMutex;
     QUdpSocket _nodeSocket;
+    QUdpSocket _dtlsSocket;
     NodeType_t _ownerType;
     NodeSet _nodeTypesOfInterest;
     DomainInfo _domainInfo;
