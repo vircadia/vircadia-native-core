@@ -39,5 +39,4 @@ signals:
 
 typedef QSharedPointer<ThreadedAssignment> SharedAssignmentPointer;
 
-
 #endif /* defined(__hifi__ThreadedAssignment__) */
