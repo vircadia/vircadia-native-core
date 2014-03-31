@@ -21,7 +21,7 @@
 #include "OctreeServer.h"
 #include "OctreeServerConsts.h"
 
-OctreeServer* OctreeServer::_instance;
+OctreeServer* OctreeServer::_instance = NULL;
 int OctreeServer::_clientCount = 0;
 const int MOVING_AVERAGE_SAMPLE_COUNTS = 1000000;
 
@@ -1064,10 +1064,8 @@ void OctreeServer::nodeKilled(SharedNodePointer node) {
     qDebug() << qPrintable(_safeServerName) << "server killed node:" << *node;
     OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(node->getLinkedData());
     if (nodeData) {
-        qDebug() << qPrintable(_safeServerName) << "server resetting Linked Data for node:" << *node;
-        node->setLinkedData(NULL); // set this first in case another thread comes through and tryes to acces this
-        qDebug() << qPrintable(_safeServerName) << "server deleting Linked Data for node:" << *node;
-        nodeData->deleteLater();
+        qDebug() << qPrintable(_safeServerName) << "server calling nodeData->nodeKilled() for node:" << *node;
+        nodeData->nodeKilled(); // tell our node data and sending threads that we'd like to shut down
     } else {
         qDebug() << qPrintable(_safeServerName) << "server node missing linked data node:" << *node;
     }

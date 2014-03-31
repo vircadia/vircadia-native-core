@@ -94,6 +94,7 @@ public:
     unsigned int getlastOctreePacketLength() const { return _lastOctreePacketLength; }
     int getDuplicatePacketCount() const { return _duplicatePacketCount; }
     
+    void nodeKilled();
     bool isShuttingDown() const { return _isShuttingDown; }
     
 private:
