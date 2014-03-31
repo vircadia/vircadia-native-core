@@ -40,21 +40,8 @@ OctreeSendThread::~OctreeSendThread() {
     qDebug() << qPrintable(serverName)  << "server [" << _myServer << "]: client disconnected "
                                             "- ending sending thread [" << this << "]";
     OctreeServer::clientDisconnected();
-
-    qDebug() << qPrintable(serverName) << "server [" << _myServer << "]: "
-                                            "- OctreeSendThread::~OctreeSendThread() this=[" << this << "]"
-                                            "line: " << __LINE__;
-
     _node.clear();
-
-    qDebug() << qPrintable(serverName)  << "server [" << _myServer << "]: "
-                                            "- OctreeSendThread::~OctreeSendThread() this=[" << this << "]"
-                                            "line: " << __LINE__;
     _myAssignment.clear();
-
-    qDebug() << qPrintable(serverName)  << "server [" << _myServer << "]: "
-                                        "- OctreeSendThread::~OctreeSendThread() this=[" << this << "]"
-                                        "line: " << __LINE__;
 }
 
 void OctreeSendThread::setIsShuttingDown() {
