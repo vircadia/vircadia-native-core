@@ -840,16 +840,26 @@ void OctreeServer::readPendingDatagrams() {
     quint64 jurisdictionElapsed = 0;
     quint64 editElapsed = 0;
     quint64 nodeListElapsed = 0;
+    quint64 versionMatchElapsed = 0;
+    quint64 matchingElapsed = 0;
     
     
     while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
         readDataGrams++;
-        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
+        
+        quint64 versionMatchStart = usecTimestampNow();
+        bool matches = nodeList->packetVersionAndHashMatch(receivedPacket);
+        quint64 versionMatchEnd = usecTimestampNow();
+        versionMatchElapsed += (versionMatchEnd - versionMatchStart);
+        
+        if (matches) {
             PacketType packetType = packetTypeForPacket(receivedPacket);
             
             quint64 startNodeLookup = usecTimestampNow();
             SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
             quint64 endNodeLookup = usecTimestampNow();
+            matchingElapsed += (endNodeLookup - startNodeLookup);
+
             if ((endNodeLookup - startNodeLookup) > 100000) {
                 qDebug() << "OctreeServer::readPendingDatagrams(): sendingNodeForPacket() took" << (endNodeLookup - startNodeLookup) << "usecs";
             }
@@ -924,7 +934,9 @@ void OctreeServer::readPendingDatagrams() {
             << " nodeListElapsed=" << nodeListElapsed
             << " editElapsed=" << editElapsed
             << " jurisdictionElapsed=" << jurisdictionElapsed
-            << " queryElapsed=" << queryElapsed;
+            << " queryElapsed=" << queryElapsed
+            << " versionMatchElapsed=" << versionMatchElapsed
+            << " matchingElapsed=" << matchingElapsed;
     }
 
 }
