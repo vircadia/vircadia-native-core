@@ -11,5 +11,5 @@
 DTLSClientSession::DTLSClientSession(QUdpSocket& dtlsSocket, HifiSockAddr& destinationSocket) :
     DTLSSession(GNUTLS_CLIENT, dtlsSocket, destinationSocket)
 {
-    
+    gnutls_credentials_set(_gnutlsSession, GNUTLS_CRD_CERTIFICATE, DTLSSession::x509CACredentials());
 }
