@@ -60,12 +60,12 @@ DomainServer::DomainServer(int argc, char* argv[]) :
             // DTLS requires that IP_DONTFRAG be set
             // This is not accessible on some platforms (OS X) so we need to make sure DTLS still works without it
             
-            NodeList* nodeList = NodeList::getInstance();
+            LimitedNodeList* nodeList = LimitedNodeList::getInstance();
             
 #if defined(IP_DONTFRAG) || defined(IP_MTU_DISCOVER)
             qDebug() << "Making required DTLS changes to NodeList DTLS socket.";
             
-            int socketHandle = NodeList::getInstance()->getDTLSSocket().socketDescriptor();
+            int socketHandle = LimitedNodeList::getInstance()->getDTLSSocket().socketDescriptor();
 #if defined(IP_DONTFRAG)
             int optValue = 1;yea
             setsockopt(socketHandle, IPPROTO_IP, IP_DONTFRAG, (const void*) optValue, sizeof(optValue));
@@ -207,13 +207,10 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     
     populateDefaultStaticAssignmentsExcludingTypes(parsedTypes);
     
-    NodeList* nodeList = NodeList::createInstance(NodeType::DomainServer, domainServerPort, domainServerDTLSPort);
+    LimitedNodeList* nodeList = LimitedNodeList::createInstance(domainServerPort, domainServerDTLSPort);
     
-    // create a random UUID for this session for the domain-server
-    nodeList->setSessionUUID(sessionUUID);
-    
-    connect(nodeList, &NodeList::nodeAdded, this, &DomainServer::nodeAdded);
-    connect(nodeList, &NodeList::nodeKilled, this, &DomainServer::nodeKilled);
+    connect(nodeList, &LimitedNodeList::nodeAdded, this, &DomainServer::nodeAdded);
+    connect(nodeList, &LimitedNodeList::nodeKilled, this, &DomainServer::nodeKilled);
     
     QTimer* silentNodeTimer = new QTimer(this);
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
@@ -394,7 +391,7 @@ void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packe
     // create a new session UUID for this node
     QUuid nodeUUID = QUuid::createUuid();
     
-    SharedNodePointer newNode = NodeList::getInstance()->addOrUpdateNode(nodeUUID, nodeType, publicSockAddr, localSockAddr);
+    SharedNodePointer newNode = LimitedNodeList::getInstance()->addOrUpdateNode(nodeUUID, nodeType, publicSockAddr, localSockAddr);
     
     // when the newNode is created the linked data is also created, if this was a static assignment set the UUID
     reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData())->setStaticAssignmentUUID(assignmentUUID);
@@ -477,7 +474,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
     
-    NodeList* nodeList = NodeList::getInstance();
+    LimitedNodeList* nodeList = LimitedNodeList::getInstance();
     
     
     if (nodeInterestList.size() > 0) {
@@ -532,7 +529,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
 }
 
 void DomainServer::readAvailableDatagrams() {
-    NodeList* nodeList = NodeList::getInstance();
+    LimitedNodeList* nodeList = LimitedNodeList::getInstance();
 
     HifiSockAddr senderSockAddr;
     QByteArray receivedPacket;
@@ -610,7 +607,7 @@ void DomainServer::readAvailableDTLSDatagrams() {
 }
 
 void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
-    NodeList* nodeList = NodeList::getInstance();
+    LimitedNodeList* nodeList = LimitedNodeList::getInstance();
     
     if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
         PacketType requestType = packetTypeForPacket(receivedPacket);
@@ -702,7 +699,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             QJsonObject assignedNodesJSON;
             
             // enumerate the NodeList to find the assigned nodes
-            foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+            foreach (const SharedNodePointer& node, LimitedNodeList::getInstance()->getNodeHash()) {
                 if (_staticAssignmentHash.value(node->getUUID())) {
                     // add the node using the UUID as the key
                     QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
@@ -744,7 +741,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             QJsonObject nodesJSON;
             
             // enumerate the NodeList to find the assigned nodes
-            NodeList* nodeList = NodeList::getInstance();
+            LimitedNodeList* nodeList = LimitedNodeList::getInstance();
             
             foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
                 // add the node using the UUID as the key
@@ -769,7 +766,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                 QUuid matchingUUID = QUuid(nodeShowRegex.cap(1));
                 
                 // see if we have a node that matches this ID
-                SharedNodePointer matchingNode = NodeList::getInstance()->nodeWithUUID(matchingUUID);
+                SharedNodePointer matchingNode = LimitedNodeList::getInstance()->nodeWithUUID(matchingUUID);
                 if (matchingNode) {
                     // create a QJsonDocument with the stats QJsonObject
                     QJsonObject statsObject =
@@ -848,14 +845,14 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             // pull the captured string, if it exists
             QUuid deleteUUID = QUuid(nodeDeleteRegex.cap(1));
             
-            SharedNodePointer nodeToKill = NodeList::getInstance()->nodeWithUUID(deleteUUID);
+            SharedNodePointer nodeToKill = LimitedNodeList::getInstance()->nodeWithUUID(deleteUUID);
             
             if (nodeToKill) {
                 // start with a 200 response
                 connection->respond(HTTPConnection::StatusCode200);
                 
                 // we have a valid UUID and node - kill the node that has this assignment
-                QMetaObject::invokeMethod(NodeList::getInstance(), "killNodeWithUUID", Q_ARG(const QUuid&, deleteUUID));
+                QMetaObject::invokeMethod(LimitedNodeList::getInstance(), "killNodeWithUUID", Q_ARG(const QUuid&, deleteUUID));
                 
                 // successfully processed request
                 return true;
@@ -864,7 +861,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             return true;
         } else if (allNodesDeleteRegex.indexIn(url.path()) != -1) {
             qDebug() << "Received request to kill all nodes.";
-            NodeList::getInstance()->eraseAllNodes();
+            LimitedNodeList::getInstance()->eraseAllNodes();
             
             return true;
         }
@@ -911,7 +908,7 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
         
         // cleanup the connection secrets that we set up for this node (on the other nodes)
         foreach (const QUuid& otherNodeSessionUUID, nodeData->getSessionSecretHash().keys()) {
-            SharedNodePointer otherNode = NodeList::getInstance()->nodeWithUUID(otherNodeSessionUUID);
+            SharedNodePointer otherNode = LimitedNodeList::getInstance()->nodeWithUUID(otherNodeSessionUUID);
             if (otherNode) {
                 reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())->getSessionSecretHash().remove(node->getUUID());
             }
@@ -996,7 +993,7 @@ void DomainServer::addStaticAssignmentsToQueue() {
         bool foundMatchingAssignment = false;
         
         // enumerate the nodes and check if there is one with an attached assignment with matching UUID
-        foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+        foreach (const SharedNodePointer& node, LimitedNodeList::getInstance()->getNodeHash()) {
             if (node->getUUID() == staticAssignment->data()->getUUID()) {
                 foundMatchingAssignment = true;
             }
