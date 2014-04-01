@@ -813,7 +813,13 @@ void OctreeServer::parsePayload() {
     }
 }
 
+quint64 lastReadPendingDatagrams = usecTimestampNow();
+quint64 lastProcessNodeData = usecTimestampNow();
+
 void OctreeServer::readPendingDatagrams() {
+    quint64 now = usecTimestampNow();
+    qDebug() << "OctreeServer::readPendingDatagrams(): since lastReadPendingDatagrams=" << (now - lastReadPendingDatagrams) << "usecs";
+
     QByteArray receivedPacket;
     HifiSockAddr senderSockAddr;
     
@@ -843,6 +849,9 @@ void OctreeServer::readPendingDatagrams() {
             } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
                 _octreeInboundPacketProcessor->queueReceivedPacket(matchingNode, receivedPacket);
             } else {
+                quint64 now = usecTimestampNow();
+                qDebug() << "OctreeServer::readPendingDatagrams(): since lastProcessNodeData=" << (now - lastProcessNodeData) << "usecs";
+
                 // let processNodeData handle it.
                 NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
             }
