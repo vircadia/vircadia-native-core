@@ -106,6 +106,7 @@ void ModelsBrowser::applyFilter(const QString &filter) {
 void ModelsBrowser::browse() {
     QDialog dialog;
     dialog.setWindowTitle("Browse models");
+    dialog.setMinimumSize(570, 500);
     
     QGridLayout* layout = new QGridLayout(&dialog);
     dialog.setLayout(layout);
