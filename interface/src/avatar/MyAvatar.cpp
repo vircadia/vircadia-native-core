@@ -11,6 +11,7 @@
 
 #include <QBuffer>
 
+#include <glm/gtx/norm.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
 #include <QtCore/QTimer>
@@ -20,10 +21,7 @@
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
-#ifdef ANDREW_HACKERY
 #include <ShapeCollider.h>
-#include <StreamUtils.h>
-#endif ANDREW_HACKERY
 
 #include "Application.h"
 #include "Audio.h"
@@ -873,6 +871,7 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
 }
 
 static CollisionList bodyCollisions(16);
+const float BODY_COLLISION_RESOLVE_TIMESCALE = 0.5f; // seconds
 
 void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
     //  Reset detector for nearest avatar
@@ -884,6 +883,8 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
     }
     updateShapePositions();
     float myBoundingRadius = getBoundingRadius();
+
+    const float BODY_COLLISION_RESOLVE_FACTOR = deltaTime / BODY_COLLISION_RESOLVE_TIMESCALE;
 
     foreach (const AvatarSharedPointer& avatarPointer, avatars) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
@@ -898,26 +899,27 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
         }
         float theirBoundingRadius = avatar->getBoundingRadius();
         if (distance < myBoundingRadius + theirBoundingRadius) {
-#ifdef ANDREW_HACKERY
+            // collide our body against theirs
             QVector<const Shape*> myShapes;
             _skeletonModel.getBodyShapes(myShapes);
             QVector<const Shape*> theirShapes;
             avatar->getSkeletonModel().getBodyShapes(theirShapes);
             bodyCollisions.clear();
+            // TODO: add method to ShapeCollider for colliding lists of shapes
             foreach (const Shape* myShape, myShapes) {
                 foreach (const Shape* theirShape, theirShapes) {
                     ShapeCollider::shapeShape(myShape, theirShape, bodyCollisions);
-                    if (bodyCollisions.size() > 0) {
-                        std::cout << "adebug myPos = " << myShape->getPosition() 
-                            << "  myRadius = " << myShape->getBoundingRadius()
-                            << "  theirPos = " << theirShape->getPosition() 
-                            << "  theirRadius = " << theirShape->getBoundingRadius()
-                            << std::endl;  // adebug
-                        std::cout << "adebug collision count = " << bodyCollisions.size() << std::endl;  // adebug
-                    }
                 }
             }
-#endif // ANDREW_HACKERY
+            glm::vec3 totalPenetration(0.f);
+            for (int j = 0; j < bodyCollisions.size(); ++j) {
+                CollisionInfo* collision = bodyCollisions.getCollision(j);
+                totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
+            }
+            
+            if (glm::length2(totalPenetration) > EPSILON) {
+                setPosition(getPosition() - BODY_COLLISION_RESOLVE_FACTOR * totalPenetration);
+            }
 
             // collide our hands against them
             // TODO: make this work when we can figure out when the other avatar won't yeild
