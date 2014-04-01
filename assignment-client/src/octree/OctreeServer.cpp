@@ -819,6 +819,7 @@ quint64 lastProcessNodeData = usecTimestampNow();
 void OctreeServer::readPendingDatagrams() {
     quint64 now = usecTimestampNow();
     qDebug() << "OctreeServer::readPendingDatagrams(): since lastReadPendingDatagrams=" << (now - lastReadPendingDatagrams) << "usecs";
+    lastReadPendingDatagrams = now;
 
     QByteArray receivedPacket;
     HifiSockAddr senderSockAddr;
@@ -851,6 +852,7 @@ void OctreeServer::readPendingDatagrams() {
             } else {
                 quint64 now = usecTimestampNow();
                 qDebug() << "OctreeServer::readPendingDatagrams(): since lastProcessNodeData=" << (now - lastProcessNodeData) << "usecs";
+                lastProcessNodeData = now;
 
                 // let processNodeData handle it.
                 NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
