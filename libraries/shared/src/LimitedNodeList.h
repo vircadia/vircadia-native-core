@@ -56,6 +56,9 @@ public:
     static LimitedNodeList* createInstance(unsigned short socketListenPort = 0, unsigned short dtlsPort = 0);
     static LimitedNodeList* getInstance();
 
+    const QUuid& getSessionUUID() const { return _sessionUUID; }
+    void setSessionUUID(const QUuid& sessionUUID);
+    
     QUdpSocket& getNodeSocket() { return _nodeSocket; }
     QUdpSocket& getDTLSSocket();
     
@@ -99,6 +102,7 @@ public slots:
     
     void killNodeWithUUID(const QUuid& nodeUUID);
 signals:
+    void uuidChanged(const QUuid& ownerUUID);
     void nodeAdded(SharedNodePointer);
     void nodeKilled(SharedNodePointer);
 protected:
@@ -116,6 +120,7 @@ protected:
     
     void changeSendSocketBufferSize(int numSendBytes);
 
+    QUuid _sessionUUID;
     NodeHash _nodeHash;
     QMutex _nodeHashMutex;
     QUdpSocket _nodeSocket;

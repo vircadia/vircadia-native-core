@@ -52,7 +52,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     if (optionallySetupDTLS()) {
         // we either read a certificate and private key or were not passed one, good to load assignments
         // and set up the node list
-        qDebug() << "Setting up NodeList and assignments.";
+        qDebug() << "Setting up LimitedNodeList and assignments.";
         setupNodeListAndAssignments();
         
         if (_isUsingDTLS) {
@@ -542,7 +542,8 @@ void DomainServer::readAvailableDatagrams() {
         receivedPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());
         nodeList->getNodeSocket().readDatagram(receivedPacket.data(), receivedPacket.size(),
                                                senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
-        if (packetTypeForPacket(receivedPacket) && nodeList->packetVersionAndHashMatch(receivedPacket)) {
+        if (packetTypeForPacket(receivedPacket) == PacketTypeRequestAssignment
+            && nodeList->packetVersionAndHashMatch(receivedPacket)) {
 
             // construct the requested assignment from the packet data
             Assignment requestAssignment(receivedPacket);

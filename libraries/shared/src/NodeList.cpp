@@ -28,6 +28,7 @@ NodeList* NodeList::createInstance(char ownerType, unsigned short socketListenPo
         NodeType::init();
         
         _sharedInstance = new NodeList(ownerType, socketListenPort, dtlsPort);
+        LimitedNodeList::_sharedInstance = _sharedInstance;
 
         // register the SharedNodePointer meta-type for signals/slots
         qRegisterMetaType<SharedNodePointer>();
@@ -50,7 +51,6 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     LimitedNodeList(socketListenPort, dtlsListenPort),
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(),
-    _sessionUUID(),
     _numNoReplyDomainCheckIns(0),
     _assignmentServerSocket(),
     _publicSockAddr(),
@@ -58,7 +58,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     _stunRequestsSinceSuccess(0)
 {
     // clear our NodeList when the domain changes
-    connect(&_DomainHandler, &DomainHandler::hostnameChanged, this, &NodeList::reset);
+    connect(&_domainHandler, &DomainHandler::hostnameChanged, this, &NodeList::reset);
     
     // clear our NodeList when logout is requested
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
@@ -70,7 +70,7 @@ qint64 NodeList::sendStatsToDomainServer(const QJsonObject& statsObject) {
     
     statsPacketStream << statsObject.toVariantMap();
     
-    return writeDatagram(statsPacket, _DomainHandler.getSockAddr(), QUuid());
+    return writeDatagram(statsPacket, _domainHandler.getSockAddr(), QUuid());
 }
 
 void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode) {
@@ -115,7 +115,7 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             break;
         }
         case PacketTypeDomainServerRequireDTLS: {
-            _DomainHandler.parseDTLSRequirementPacket(packet);
+            _domainHandler.parseDTLSRequirementPacket(packet);
             break;
         }
         case PacketTypePing: {
@@ -165,7 +165,7 @@ void NodeList::reset() {
     setSessionUUID(QUuid());
     
     // clear the domain connection information
-    _DomainHandler.clearConnectionInfo();
+    _domainHandler.clearConnectionInfo();
 }
 
 void NodeList::addNodeTypeToInterestSet(NodeType_t nodeTypeToAdd) {
@@ -317,15 +317,11 @@ void NodeList::sendDomainServerCheckIn() {
         // we don't know our public socket and we need to send it to the domain server
         // send a STUN request to figure it out
         sendSTUNRequest();
-    } else if (!_DomainHandler.getIP().isNull()) {        
+    } else if (!_domainHandler.getIP().isNull()) {
         // construct the DS check in packet
+        QUuid packetUUID = (!_sessionUUID.isNull() ? _sessionUUID : _domainHandler.getAssignmentUUID());
         
-        PacketType domainPacketType = _sessionUUID.isNull() ? PacketTypeDomainConnectRequest : PacketTypeDomainListRequest;
-        
-        QUuid packetUUID = (domainPacketType == PacketTypeDomainListRequest)
-        ? _sessionUUID : _DomainHandler.getAssignmentUUID();
-        
-        QByteArray domainServerPacket = byteArrayWithPopulatedHeader(domainPacketType, packetUUID);
+        QByteArray domainServerPacket = byteArrayWithPopulatedHeader(PacketTypeDomainListRequest, packetUUID);
         QDataStream packetStream(&domainServerPacket, QIODevice::Append);
         
         // pack our data to send to the domain-server
@@ -338,7 +334,7 @@ void NodeList::sendDomainServerCheckIn() {
             packetStream << nodeTypeOfInterest;
         }
         
-        writeDatagram(domainServerPacket, _DomainHandler.getSockAddr(), QUuid());
+        writeDatagram(domainServerPacket, _domainHandler.getSockAddr(), QUuid());
         const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
         static unsigned int numDomainCheckins = 0;
         
@@ -358,23 +354,12 @@ void NodeList::sendDomainServerCheckIn() {
     }
 }
 
-void NodeList::setSessionUUID(const QUuid& sessionUUID) {
-    QUuid oldUUID = _sessionUUID;
-    _sessionUUID = sessionUUID;
-    
-    if (sessionUUID != oldUUID) {
-        qDebug() << "NodeList UUID changed from" <<  uuidStringWithoutCurlyBraces(oldUUID)
-            << "to" << uuidStringWithoutCurlyBraces(_sessionUUID);
-        emit uuidChanged(sessionUUID);
-    }
-}
-
 int NodeList::processDomainServerList(const QByteArray& packet) {
     // this is a packet from the domain server, reset the count of un-replied check-ins
     _numNoReplyDomainCheckIns = 0;
     
     // if this was the first domain-server list from this domain, we've now connected
-    _DomainHandler.setIsConnected(true);
+    _domainHandler.setIsConnected(true);
 
     int readNodes = 0;
     
@@ -401,7 +386,7 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
         // if the public socket address is 0 then it's reachable at the same IP
         // as the domain server
         if (nodePublicSocket.getAddress().isNull()) {
-            nodePublicSocket.setAddress(_DomainHandler.getIP());
+            nodePublicSocket.setAddress(_domainHandler.getIP());
         }
 
         SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket, nodeLocalSocket);
@@ -511,9 +496,9 @@ void NodeList::loadData(QSettings *settings) {
     QString domainServerHostname = settings->value(DOMAIN_SERVER_SETTING_KEY).toString();
 
     if (domainServerHostname.size() > 0) {
-        _DomainHandler.setHostname(domainServerHostname);
+        _domainHandler.setHostname(domainServerHostname);
     } else {
-        _DomainHandler.setHostname(DEFAULT_DOMAIN_HOSTNAME);
+        _domainHandler.setHostname(DEFAULT_DOMAIN_HOSTNAME);
     }
     
     settings->endGroup();
@@ -522,9 +507,9 @@ void NodeList::loadData(QSettings *settings) {
 void NodeList::saveData(QSettings* settings) {
     settings->beginGroup(DOMAIN_SERVER_SETTING_KEY);
 
-    if (_DomainHandler.getHostname() != DEFAULT_DOMAIN_HOSTNAME) {
+    if (_domainHandler.getHostname() != DEFAULT_DOMAIN_HOSTNAME) {
         // the user is using a different hostname, store it
-        settings->setValue(DOMAIN_SERVER_SETTING_KEY, QVariant(_DomainHandler.getHostname()));
+        settings->setValue(DOMAIN_SERVER_SETTING_KEY, QVariant(_domainHandler.getHostname()));
     } else {
         // the user has switched back to default, remove the current setting
         settings->remove(DOMAIN_SERVER_SETTING_KEY);

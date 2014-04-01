@@ -43,7 +43,7 @@ LimitedNodeList* LimitedNodeList::createInstance(unsigned short socketListenPort
         // register the SharedNodePointer meta-type for signals/slots
         qRegisterMetaType<SharedNodePointer>();
     } else {
-        qDebug("NodeList createInstance called with existing instance.");
+        qDebug("LimitedNodeList createInstance called with existing instance.");
     }
 
     return _sharedInstance;
@@ -51,7 +51,7 @@ LimitedNodeList* LimitedNodeList::createInstance(unsigned short socketListenPort
 
 LimitedNodeList* LimitedNodeList::getInstance() {
     if (!_sharedInstance) {
-        qDebug("NodeList getInstance called before call to createInstance. Returning NULL pointer.");
+        qDebug("LimitedNodeList getInstance called before call to createInstance. Returning NULL pointer.");
     }
 
     return _sharedInstance;
@@ -59,6 +59,7 @@ LimitedNodeList* LimitedNodeList::getInstance() {
 
 
 LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short dtlsListenPort) :
+    _sessionUUID(),
     _nodeHash(),
     _nodeHashMutex(QMutex::Recursive),
     _nodeSocket(this),
@@ -82,6 +83,17 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     changeSendSocketBufferSize(LARGER_SNDBUF_SIZE);
     
     _packetStatTimer.start();
+}
+
+void LimitedNodeList::setSessionUUID(const QUuid& sessionUUID) {
+    QUuid oldUUID = _sessionUUID;
+    _sessionUUID = sessionUUID;
+    
+    if (sessionUUID != oldUUID) {
+        qDebug() << "NodeList UUID changed from" <<  uuidStringWithoutCurlyBraces(oldUUID)
+        << "to" << uuidStringWithoutCurlyBraces(_sessionUUID);
+        emit uuidChanged(sessionUUID);
+    }
 }
 
 QUdpSocket& LimitedNodeList::getDTLSSocket() {

@@ -84,7 +84,7 @@ int populatePacketHeader(char* packet, PacketType type, const QUuid& connectionU
     
     char* position = packet + numTypeBytes + sizeof(PacketVersion);
     
-    QUuid packUUID = connectionUUID.isNull() ? NodeList::getInstance()->getSessionUUID() : connectionUUID;
+    QUuid packUUID = connectionUUID.isNull() ? LimitedNodeList::getInstance()->getSessionUUID() : connectionUUID;
     
     QByteArray rfcUUID = packUUID.toRfc4122();
     memcpy(position, rfcUUID.constData(), NUM_BYTES_RFC4122_UUID);

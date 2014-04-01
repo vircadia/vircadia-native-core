@@ -56,13 +56,10 @@ public:
     NodeType_t getOwnerType() const { return _ownerType; }
     void setOwnerType(NodeType_t ownerType) { _ownerType = ownerType; }
 
-    const QUuid& getSessionUUID() const { return _sessionUUID; }
-    void setSessionUUID(const QUuid& sessionUUID);
-
     qint64 sendStatsToDomainServer(const QJsonObject& statsObject);
 
     int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
-    DomainHandler& getDomainHandler() { return _DomainHandler; }
+    DomainHandler& getDomainHandler() { return _domainHandler; }
     
     const NodeSet& getNodeInterestSet() const { return _nodeTypesOfInterest; }
     void addNodeTypeToInterestSet(NodeType_t nodeTypeToAdd);
@@ -86,7 +83,6 @@ public slots:
     void sendDomainServerCheckIn();
     void pingInactiveNodes();
 signals:
-    void uuidChanged(const QUuid& ownerUUID);
     void limitOfSilentDomainCheckInsReached();
 private:
     static NodeList* _sharedInstance;
@@ -104,8 +100,7 @@ private:
     
     NodeType_t _ownerType;
     NodeSet _nodeTypesOfInterest;
-    DomainHandler _DomainHandler;
-    QUuid _sessionUUID;
+    DomainHandler _domainHandler;
     int _numNoReplyDomainCheckIns;
     HifiSockAddr _assignmentServerSocket;
     HifiSockAddr _publicSockAddr;
