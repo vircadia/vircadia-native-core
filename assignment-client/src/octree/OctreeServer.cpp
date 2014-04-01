@@ -826,6 +826,8 @@ void OctreeServer::readPendingDatagrams() {
             SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
             
             if (packetType == getMyQueryMessageType()) {
+            
+                /**
                 // If we got a PacketType_VOXEL_QUERY, then we're talking to an NodeType_t_AVATAR, and we
                 // need to make sure we have it in our nodeList.
                 if (matchingNode) {
@@ -837,6 +839,7 @@ void OctreeServer::readPendingDatagrams() {
                         nodeData->initializeOctreeSendThread(sharedAssignment, matchingNode);
                     }
                 }
+                **/
             } else if (packetType == PacketTypeJurisdictionRequest) {
                 _jurisdictionSender->queueReceivedPacket(matchingNode, receivedPacket);
             } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
@@ -1034,7 +1037,7 @@ void OctreeServer::run() {
 
 void OctreeServer::nodeAdded(SharedNodePointer node) {
     // we might choose to use this notifier to track clients in a pending state
-    qDebug() << qPrintable(_safeServerName) << "server added node:" << *node;
+    //qDebug() << qPrintable(_safeServerName) << "server added node:" << *node;
 }
 
 void OctreeServer::nodeKilled(SharedNodePointer node) {
