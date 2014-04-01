@@ -372,6 +372,9 @@ Application::~Application() {
     _nodeThread->quit();
     _nodeThread->wait();
     
+    // stop the audio process
+    QMetaObject::invokeMethod(&_audio, "stop");
+    
     // ask the audio thread to quit and wait until it is done
     _audio.thread()->quit();
     _audio.thread()->wait();

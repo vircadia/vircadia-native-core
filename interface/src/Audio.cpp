@@ -308,6 +308,12 @@ void Audio::start() {
     }
 }
 
+void Audio::stop() {
+    // "switch" to invalid devices in order to shut down the state
+    switchInputToAudioDevice(QAudioDeviceInfo());
+    switchOutputToAudioDevice(QAudioDeviceInfo());
+}
+
 QString Audio::getDefaultDeviceName(QAudio::Mode mode) {
     QAudioDeviceInfo deviceInfo = defaultAudioDeviceForMode(mode);
     return deviceInfo.deviceName();
@@ -846,7 +852,7 @@ bool Audio::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {
     // cleanup any previously initialized device
     if (_audioInput) {
         _audioInput->stop();
-        disconnect(_inputDevice, 0, 0, 0);
+        disconnect(_inputDevice);
         _inputDevice = NULL;
 
         delete _audioInput;
