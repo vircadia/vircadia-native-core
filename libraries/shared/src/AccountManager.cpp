@@ -144,15 +144,15 @@ void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::
                 break;
             case QNetworkAccessManager::PostOperation:
             case QNetworkAccessManager::PutOperation:
-                authenticatedRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
                 if (dataMultiPart) {
                     if (operation == QNetworkAccessManager::PostOperation) {
                         networkReply = _networkAccessManager->post(authenticatedRequest, dataMultiPart);
-                        dataMultiPart->setParent(networkReply);
                     } else {
                         networkReply = _networkAccessManager->put(authenticatedRequest, dataMultiPart);
                     }
+                    dataMultiPart->setParent(networkReply);
                 } else {
+                    authenticatedRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
                     if (operation == QNetworkAccessManager::PostOperation) {
                         networkReply = _networkAccessManager->post(authenticatedRequest, dataByteArray);
                     } else {
