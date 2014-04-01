@@ -445,12 +445,14 @@ void Model::createShapes() {
 
     // joint shapes
     Extents totalExtents;
+    totalExtents.reset();
     for (int i = 0; i < _jointStates.size(); i++) {
         const FBXJoint& joint = geometry.joints[i];
 
         glm::vec3 jointToShapeOffset = uniformScale * (_jointStates[i].combinedRotation * joint.shapePosition);
         glm::vec3 worldPosition = extractTranslation(_jointStates[i].transform) + jointToShapeOffset + _translation;
         Extents shapeExtents;
+        shapeExtents.reset();
 
         float radius = uniformScale * joint.boneRadius;
         float halfHeight = 0.5f * uniformScale * joint.distanceToParent;
