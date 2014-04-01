@@ -44,28 +44,17 @@ OctreeSendThread::OctreeSendThread(const SharedAssignmentPointer& myAssignment, 
 }
 
 OctreeSendThread::~OctreeSendThread() {
-    //qDebug() << "OctreeSendThread::~OctreeSendThread()... START";
     QString serverName("Octree");
     if (_myServer) {
         serverName = _myServer->getMyServerName();
     }
-
+    
     qDebug() << qPrintable(serverName)  << "server [" << _myServer << "]: client disconnected "
                                             "- ending sending thread [" << this << "]";
 
-    //qDebug() << "OctreeSendThread::~OctreeSendThread()... BEFORE OctreeServer::clientDisconnected();";
     OctreeServer::clientDisconnected();
-    //qDebug() << "OctreeSendThread::~OctreeSendThread()... AFTER OctreeServer::clientDisconnected();";
-
-    //qDebug() << "OctreeSendThread::~OctreeSendThread()... BEFORE _node.clear();";
     _node.clear();
-    //qDebug() << "OctreeSendThread::~OctreeSendThread()... AFTER _node.clear();";
-
-    //qDebug() << "OctreeSendThread::~OctreeSendThread()... BEFORE _myAssignment.clear();";
     _myAssignment.clear();
-    //qDebug() << "OctreeSendThread::~OctreeSendThread()... BEFORE _myAssignment.clear();";
-
-    //qDebug() << "OctreeSendThread::~OctreeSendThread()... DONE";
 }
 
 void OctreeSendThread::setIsShuttingDown() {

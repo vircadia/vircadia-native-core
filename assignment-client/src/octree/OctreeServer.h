@@ -115,6 +115,7 @@ public:
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
 
     virtual void aboutToFinish();
+    void forceNodeShutdown(SharedNodePointer node);
     
 public slots:
     /// runs the voxel server assignment

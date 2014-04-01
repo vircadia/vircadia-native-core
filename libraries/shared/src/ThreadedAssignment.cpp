@@ -74,10 +74,6 @@ void ThreadedAssignment::sendStatsPacket() {
 }
 
 void ThreadedAssignment::checkInWithDomainServerOrExit() {
-    qDebug() << "ThreadedAssignment::checkInWithDomainServerOrExit()... "
-        "Num No Reply Domain Check Ins=" << NodeList::getInstance()->getNumNoReplyDomainCheckIns() 
-        << "MAX_SILENT_DOMAIN_SERVER_CHECK_INS=" << MAX_SILENT_DOMAIN_SERVER_CHECK_INS;
-        
     if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
         setFinished(true);
     } else {

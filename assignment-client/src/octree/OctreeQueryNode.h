@@ -28,8 +28,7 @@ class OctreeQueryNode : public OctreeQuery {
 public:
     OctreeQueryNode();
     virtual ~OctreeQueryNode();
-    virtual void deleteLater();
-    
+
     void init(); // called after creation to set up some virtual items
     virtual PacketType getMyPacketType() const = 0;
 
@@ -95,7 +94,11 @@ public:
     int getDuplicatePacketCount() const { return _duplicatePacketCount; }
     
     void nodeKilled();
+    void forceNodeShutdown();
     bool isShuttingDown() const { return _isShuttingDown; }
+    
+private slots:
+    void sendThreadFinished();
     
 private:
     OctreeQueryNode(const OctreeQueryNode &);

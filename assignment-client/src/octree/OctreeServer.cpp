@@ -233,7 +233,10 @@ OctreeServer::OctreeServer(const QByteArray& packet) :
     _started(time(0)),
     _startedUSecs(usecTimestampNow())
 {
-    assert(!_instance); // you should only ever have one instance at a time!
+    //assert(!_instance); // you should only ever have one instance at a time!
+    if (_instance) {
+        qDebug() << "Octree Server starting... while old instance still running _instance=["<<_instance<<"] this=[" << this << "]";
+    }
 
     qDebug() << "Octree Server starting... setting _instance to=[" << this << "]";
     _instance = this;
@@ -268,7 +271,10 @@ OctreeServer::~OctreeServer() {
 
     delete _jurisdiction;
     _jurisdiction = NULL;
-    _instance = NULL; // we are gone
+    
+    if (_instance == this) {
+        _instance = NULL; // we are gone
+    }
     qDebug() << qPrintable(_safeServerName) << "server DONE shutting down... [" << this << "]";
 }
 
@@ -1065,14 +1071,34 @@ void OctreeServer::nodeKilled(SharedNodePointer node) {
 
     quint64 end  = usecTimestampNow();
     quint64 usecsElapsed = (end - start);
-    qDebug() << qPrintable(_safeServerName) << "server killed node:" << *node << " took: " << usecsElapsed << " usecs";
+    qDebug() << qPrintable(_safeServerName) << "server killed took: " << usecsElapsed << " usecs for node:" << *node;
 }
+
+void OctreeServer::forceNodeShutdown(SharedNodePointer node) {
+    quint64 start  = usecTimestampNow();
+
+    qDebug() << qPrintable(_safeServerName) << "server killed node:" << *node;
+    OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(node->getLinkedData());
+    if (nodeData) {
+        qDebug() << qPrintable(_safeServerName) << "server calling nodeData->forceNodeShutdown() for node:" << *node;
+        nodeData->forceNodeShutdown(); // tell our node data and sending threads that we'd like to shut down
+        qDebug() << qPrintable(_safeServerName) << "server AFTER nodeData->forceNodeShutdown() for node:" << *node;
+    } else {
+        qDebug() << qPrintable(_safeServerName) << "server node missing linked data node:" << *node;
+    }
+
+    quint64 end  = usecTimestampNow();
+    quint64 usecsElapsed = (end - start);
+    qDebug() << qPrintable(_safeServerName) << "server killed took: " << usecsElapsed << " usecs for node:" << *node;
+}
+
 
 void OctreeServer::aboutToFinish() {
     qDebug() << qPrintable(_safeServerName) << "server STARTING about to finish...";
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         qDebug() << qPrintable(_safeServerName) << "server about to finish while node still connected node:" << *node;
-        nodeKilled(node);
+        
+        forceNodeShutdown(node);
     }
 
     qDebug() << qPrintable(_safeServerName) << "server ENDING about to finish...";

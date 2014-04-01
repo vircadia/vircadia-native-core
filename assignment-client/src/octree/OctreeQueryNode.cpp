@@ -49,6 +49,10 @@ OctreeQueryNode::~OctreeQueryNode() {
         qDebug() << "OctreeQueryNode::~OctreeQueryNode()";
     }
     
+    if (_octreeSendThread) {
+        forceNodeShutdown();
+    }
+    
     delete[] _octreePacket;
     delete[] _lastOctreePacket;
     if (extraDebugging) {
@@ -56,51 +60,45 @@ OctreeQueryNode::~OctreeQueryNode() {
     }
 }
 
-
-void OctreeQueryNode::deleteLater() {
+void OctreeQueryNode::nodeKilled() {
     _isShuttingDown = true;
     if (_octreeSendThread) {
+        // just tell our thread we want to shutdown, this is asynchronous, and fast, we don't need or want it to block
+        // while the thread actually shuts down
         _octreeSendThread->setIsShuttingDown();
     }
-    OctreeQuery::deleteLater();
 }
 
-void OctreeQueryNode::nodeKilled() {
-    qDebug() << "OctreeQueryNode::nodeKilled()... ";
+void OctreeQueryNode::forceNodeShutdown() {
     _isShuttingDown = true;
     if (_octreeSendThread) {
+        // we really need to force our thread to shutdown, this is synchronous, we will block while the thread actually 
+        // shuts down because we really need it to shutdown, and it's ok if we wait for it to complete
         OctreeSendThread* sendThread = _octreeSendThread;
-
-        //qDebug() << "OctreeQueryNode::nodeKilled()... calling _octreeSendThread = NULL";
         _octreeSendThread = NULL;
-        //qDebug() << "OctreeQueryNode::nodeKilled()... AFTER _octreeSendThread = NULL";
-
-        //qDebug() << "OctreeQueryNode::nodeKilled()... calling _octreeSendThread->setIsShuttingDown()";
         sendThread->setIsShuttingDown();
-        //qDebug() << "OctreeQueryNode::nodeKilled()... AFTER _octreeSendThread->setIsShuttingDown()";
-
-        //qDebug() << "OctreeQueryNode::nodeKilled()... calling _octreeSendThread->terminate()";
         sendThread->terminate();
-        //qDebug() << "OctreeQueryNode::nodeKilled()... AFTER _octreeSendThread->terminate()";
-
-        //qDebug() << "OctreeQueryNode::nodeKilled()... calling delete sendThread";
         delete sendThread;
-        //qDebug() << "OctreeQueryNode::nodeKilled()... AFTER delete sendThread";
-
     }
-    qDebug() << "OctreeQueryNode::nodeKilled()... DONE";
 }
 
+void OctreeQueryNode::sendThreadFinished() {
+    // We've been notified by our thread that it is shutting down. So we can clean up our reference to it, and
+    // delete the actual thread object. Cleaning up our thread will correctly unroll all refereces to shared
+    // pointers to our node as well as the octree server assignment
+    if (_octreeSendThread) {
+        OctreeSendThread* sendThread = _octreeSendThread;
+        _octreeSendThread = NULL;
+        delete sendThread;
+    }
+}
 
 void OctreeQueryNode::initializeOctreeSendThread(const SharedAssignmentPointer& myAssignment, const SharedNodePointer& node) {
-    // Create octree sending thread...
-    //qDebug() << "OctreeQueryNode::initializeOctreeSendThread()... BEFORE new OctreeSendThread(myAssignment, node);";
     _octreeSendThread = new OctreeSendThread(myAssignment, node);
-    //qDebug() << "OctreeQueryNode::initializeOctreeSendThread()... AFTER new OctreeSendThread(myAssignment, node);";
-
-    //qDebug() << "OctreeQueryNode::initializeOctreeSendThread()... BEFORE _octreeSendThread->initialize(true)";
+    
+    // we want to be notified when the thread finishes
+    connect(_octreeSendThread, &GenericThread::finished, this, &OctreeQueryNode::sendThreadFinished);
     _octreeSendThread->initialize(true);
-    //qDebug() << "OctreeQueryNode::initializeOctreeSendThread()... AFTER _octreeSendThread->initialize(true)";
 }
 
 bool OctreeQueryNode::packetIsDuplicate() const {
