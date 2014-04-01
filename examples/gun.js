@@ -27,6 +27,9 @@ var BULLET_VELOCITY = 5.0;
 var MIN_THROWER_DELAY = 1000;
 var MAX_THROWER_DELAY = 1000;
 var LEFT_BUTTON_3 = 3;
+var RELOAD_INTERVAL = 9;
+
+var showScore = false;
 
 // Load some sound to use for loading and firing 
 var fireSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guns/GUN-SHOT2.raw");
@@ -37,6 +40,8 @@ var targetLaunchSound = new Sound("http://highfidelity-public.s3-us-west-1.amazo
 
 var audioOptions = new AudioInjectionOptions();
 audioOptions.volume = 0.9;
+
+var shotsFired = 0;
 
 var shotTime = new Date(); 
 
@@ -63,7 +68,8 @@ var reticle = Overlays.addOverlay("image", {
                     alpha: 1
                 });
 
-var text = Overlays.addOverlay("text", {
+if (showScore) {
+    var text = Overlays.addOverlay("text", {
                     x: screenSize.x / 2 - 100,
                     y: screenSize.y / 2 - 50,
                     width: 150,
@@ -74,6 +80,8 @@ var text = Overlays.addOverlay("text", {
                     leftMargin: 4,
                     text: "Score: " + score
                 });
+}
+
 
 
 function printVector(string, vector) {
@@ -94,6 +102,10 @@ function shootBullet(position, velocity) {
     // Play firing sounds 
     audioOptions.position = position;   
     Audio.playSound(fireSound, audioOptions);
+    shotsFired++;
+    if ((shotsFired % RELOAD_INTERVAL) == 0) {
+        Audio.playSound(loadSound, audioOptions);
+    }
 }
 
 function shootTarget() {
@@ -147,12 +159,15 @@ function particleCollisionWithVoxel(particle, voxel, penetration) {
     Voxels.eraseVoxel(position.x, position.y, position.z, HOLE_SIZE);
     //audioOptions.position = position; 
     audioOptions.position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));
-    Audio.playSound(targetHitSound, audioOptions); 
+    Audio.playSound(impactSound, audioOptions); 
 }
 
 function particleCollisionWithParticle(particle1, particle2) {
     score++;
-    Overlays.editOverlay(text, { text: "Score: " + score } );
+    if (showScore) {
+        Overlays.editOverlay(text, { text: "Score: " + score } );
+    }
+    
     //  Sort out which particle is which 
 
     //  Record shot time 
@@ -171,12 +186,12 @@ function keyPressEvent(event) {
     if (event.text == "t") {
         var time = MIN_THROWER_DELAY + Math.random() * MAX_THROWER_DELAY;
         Script.setTimeout(shootTarget, time); 
+    } if (event.text == ".") {
+        shootFromMouse();
     }
 }
 
 function update(deltaTime) {
-
-
     //  Check for mouseLook movement, update rotation 
        // rotate body yaw for yaw received from mouse
     var newOrientation = Quat.multiply(MyAvatar.orientation, Quat.fromVec3Radians( { x: 0, y: yawFromMouse, z: 0 } ));
@@ -257,18 +272,21 @@ function mousePressEvent(event) {
     isMouseDown = true;
     lastX = event.x;
     lastY = event.y;
-    audioOptions.position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));
-    Audio.playSound(loadSound, audioOptions);
+    //audioOptions.position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));
+    //Audio.playSound(loadSound, audioOptions);
 }
 
-function mouseReleaseEvent(event) { 
-    //  position 
+function shootFromMouse() {
     var DISTANCE_FROM_CAMERA = 2.0;
     var camera = Camera.getPosition();
     var forwardVector = Quat.getFront(Camera.getOrientation());
     var newPosition = Vec3.sum(camera, Vec3.multiply(forwardVector, DISTANCE_FROM_CAMERA));
     var velocity = Vec3.multiply(forwardVector, BULLET_VELOCITY);
     shootBullet(newPosition, velocity);
+}
+
+function mouseReleaseEvent(event) { 
+    //  position 
     isMouseDown = false;
 }
 

@@ -144,14 +144,15 @@ void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::
                 break;
             case QNetworkAccessManager::PostOperation:
             case QNetworkAccessManager::PutOperation:
-                authenticatedRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
                 if (dataMultiPart) {
                     if (operation == QNetworkAccessManager::PostOperation) {
                         networkReply = _networkAccessManager->post(authenticatedRequest, dataMultiPart);
                     } else {
                         networkReply = _networkAccessManager->put(authenticatedRequest, dataMultiPart);
                     }
+                    dataMultiPart->setParent(networkReply);
                 } else {
+                    authenticatedRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
                     if (operation == QNetworkAccessManager::PostOperation) {
                         networkReply = _networkAccessManager->post(authenticatedRequest, dataByteArray);
                     } else {
@@ -199,6 +200,7 @@ void AccountManager::passSuccessToCallback() {
             qDebug() << jsonResponse;
         }
     }
+    delete requestReply;
 }
 
 void AccountManager::passErrorToCallback(QNetworkReply::NetworkError errorCode) {
@@ -219,6 +221,7 @@ void AccountManager::passErrorToCallback(QNetworkReply::NetworkError errorCode) 
             qDebug() << "Error" << errorCode << "-" << requestReply->errorString();
         }
     }
+    delete requestReply;
 }
 
 bool AccountManager::hasValidAccessToken() {

@@ -4,22 +4,22 @@
 <context>
     <name>Application</name>
     <message>
-        <location filename="src/Application.cpp" line="1381"/>
+        <location filename="src/Application.cpp" line="1382"/>
         <source>Export Voxels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="1382"/>
+        <location filename="src/Application.cpp" line="1383"/>
         <source>Sparse Voxel Octree Files (*.svo)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3623"/>
+        <location filename="src/Application.cpp" line="3703"/>
         <source>Open Script</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3624"/>
+        <location filename="src/Application.cpp" line="3704"/>
         <source>JavaScript Files (*.js)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -113,18 +113,18 @@
 <context>
     <name>Menu</name>
     <message>
-        <location filename="src/Menu.cpp" line="456"/>
+        <location filename="src/Menu.cpp" line="462"/>
         <source>Open .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="458"/>
-        <location filename="src/Menu.cpp" line="470"/>
+        <location filename="src/Menu.cpp" line="464"/>
+        <location filename="src/Menu.cpp" line="476"/>
         <source>Text files (*.ini)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="468"/>
+        <location filename="src/Menu.cpp" line="474"/>
         <source>Save .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
