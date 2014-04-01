@@ -130,8 +130,15 @@ void Model::init() {
 }
 
 void Model::reset() {
+    if (_jointStates.isEmpty()) {
+        return;
+    }
     foreach (Model* attachment, _attachments) {
         attachment->reset();
+    }
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    for (int i = 0; i < _jointStates.size(); i++) {
+        _jointStates[i].rotation = geometry.joints.at(i).rotation;
     }
 }
 

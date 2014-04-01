@@ -169,6 +169,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _bytesPerSecond(0),
         _recentMaxPackets(0),
         _resetRecentMaxPacketsSoon(true),
+        _previousScriptLocation(),
         _logger(new FileLogger(this))
 {
     // read the ApplicationInfo.ini file for Name/Version/Domain information
@@ -1636,6 +1637,8 @@ void Application::updateLOD() {
     // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode
     if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableAutoAdjustLOD) && !isThrottleRendering()) {
         Menu::getInstance()->autoAdjustLOD(_fps);
+    } else {
+        Menu::getInstance()->resetLODAdjust();
     }
 }
 
@@ -2187,19 +2190,26 @@ void Application::updateShadowMap() {
         (_viewFrustum.getFarClip() - _viewFrustum.getNearClip());
     loadViewFrustum(_myCamera, _viewFrustum);
     glm::vec3 points[] = {
-        inverseRotation * (glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), nearScale)),
-        inverseRotation * (glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), nearScale)),
-        inverseRotation * (glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), nearScale)),
-        inverseRotation * (glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), nearScale)),
-        inverseRotation * (glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), farScale)),
-        inverseRotation * (glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), farScale)),
-        inverseRotation * (glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), farScale)),
-        inverseRotation * (glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), farScale)) };
-    glm::vec3 minima(FLT_MAX, FLT_MAX, FLT_MAX), maxima(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+        glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), nearScale),
+        glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), nearScale),
+        glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), nearScale),
+        glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), nearScale),
+        glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), farScale),
+        glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), farScale),
+        glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), farScale),
+        glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), farScale) };
+    glm::vec3 center;
     for (size_t i = 0; i < sizeof(points) / sizeof(points[0]); i++) {
-        minima = glm::min(minima, points[i]);
-        maxima = glm::max(maxima, points[i]);
+        center += points[i];
     }
+    center /= (float)(sizeof(points) / sizeof(points[0]));
+    float radius = 0.0f;
+    for (size_t i = 0; i < sizeof(points) / sizeof(points[0]); i++) {
+        radius = qMax(radius, glm::distance(points[i], center));
+    }
+    center = inverseRotation * center;
+    glm::vec3 minima(center.x - radius, center.y - radius, center.z - radius);
+    glm::vec3 maxima(center.x + radius, center.y + radius, center.z + radius); 
 
     // stretch out our extents in z so that we get all of the avatars
     minima.z -= _viewFrustum.getFarClip() * 0.5f;
@@ -3609,12 +3619,20 @@ void Application::loadScript(const QString& scriptName) {
 }
 
 void Application::loadDialog() {
-    // shut down and stop any existing script
-    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-    QString suggestedName = desktopLocation.append("/script.js");
+    QString suggestedName;
+
+    if (_previousScriptLocation.isEmpty()) {
+        QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+        suggestedName = desktopLocation.append("/script.js");
+    } else {
+        suggestedName = _previousScriptLocation;
+    }
 
     QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Open Script"), suggestedName, 
                                                           tr("JavaScript Files (*.js)"));
+    if (!fileNameString.isEmpty()) {
+        _previousScriptLocation = fileNameString;
+    }
     
     loadScript(fileNameString);
 }

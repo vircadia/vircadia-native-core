@@ -138,7 +138,11 @@ void Agent::run() {
     ThreadedAssignment::commonInit(AGENT_LOGGING_NAME, NodeType::Agent);
     
     NodeList* nodeList = NodeList::getInstance();
-    nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer);
+    nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet()
+                                                 << NodeType::AudioMixer
+                                                 << NodeType::AvatarMixer
+                                                 << NodeType::VoxelServer
+                                                 << NodeType::ParticleServer);
     
     // figure out the URL for the script for this agent assignment
     QString scriptURLString("http://%1:8080/assignment/%2");

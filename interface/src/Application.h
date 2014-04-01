@@ -485,6 +485,8 @@ private:
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;
 
+    QString _previousScriptLocation;
+
     FileLogger* _logger;
 
     void checkVersion();

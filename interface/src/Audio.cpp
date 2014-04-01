@@ -522,7 +522,7 @@ void Audio::handleAudioInput() {
         if (audioMixer && audioMixer->getActiveSocket()) {
             MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
             glm::vec3 headPosition = interfaceAvatar->getHead()->getPosition();
-            glm::quat headOrientation = interfaceAvatar->getHead()->getTweakedOrientation();
+            glm::quat headOrientation = interfaceAvatar->getHead()->getFinalOrientation();
 
             // we need the amount of bytes in the buffer + 1 for type
             // + 12 for 3 floats for position + float for bearing + 1 attenuation byte

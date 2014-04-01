@@ -85,6 +85,7 @@ public:
     // User Tweakable LOD Items
     QString getLODFeedbackText();
     void autoAdjustLOD(float currentFPS);
+    void resetLODAdjust();
     void setVoxelSizeScale(float sizeScale);
     float getVoxelSizeScale() const { return _voxelSizeScale; }
     float getAvatarLODDistanceMultiplier() const { return _avatarLODDistanceMultiplier; }
@@ -121,6 +122,7 @@ public slots:
     void importSettings();
     void exportSettings();
     void goTo();
+    void goToUser(const QString& user);
     void pasteToVoxel();
     
     void toggleLoginMenuItem();

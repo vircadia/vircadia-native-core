@@ -145,7 +145,7 @@ public:
     /// \return true if we expect the avatar would move as a result of the collision
     bool collisionWouldMoveAvatar(CollisionInfo& collision) const;
 
-    void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration);
+    virtual void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) { }
 
     /// \return bounding radius of avatar
     virtual float getBoundingRadius() const;
