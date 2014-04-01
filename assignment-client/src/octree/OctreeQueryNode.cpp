@@ -44,20 +44,12 @@ OctreeQueryNode::OctreeQueryNode() :
 
 OctreeQueryNode::~OctreeQueryNode() {
     _isShuttingDown = true;
-    const bool extraDebugging = true;
-    if (extraDebugging) {
-        qDebug() << "OctreeQueryNode::~OctreeQueryNode()";
-    }
-    
     if (_octreeSendThread) {
         forceNodeShutdown();
     }
     
     delete[] _octreePacket;
     delete[] _lastOctreePacket;
-    if (extraDebugging) {
-        qDebug() << "OctreeQueryNode::~OctreeQueryNode()... DONE...";
-    }
 }
 
 void OctreeQueryNode::nodeKilled() {
