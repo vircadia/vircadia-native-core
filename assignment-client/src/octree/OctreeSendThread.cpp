@@ -28,8 +28,6 @@ OctreeSendThread::OctreeSendThread(const SharedAssignmentPointer& myAssignment, 
     _nodeMissingCount(0),
     _isShuttingDown(false)
 {
-    //qDebug() << "OctreeSendThread::OctreeSendThread()... START";
-    
     QString serverName("Octree");
     if (_myServer) {
         serverName = _myServer->getMyServerName();
@@ -37,10 +35,7 @@ OctreeSendThread::OctreeSendThread(const SharedAssignmentPointer& myAssignment, 
     qDebug() << qPrintable(serverName)  << "server [" << _myServer << "]: client connected "
                                             "- starting sending thread [" << this << "]";
 
-    //qDebug() << "OctreeSendThread::OctreeSendThread()... before OctreeServer::clientConnected()";
     OctreeServer::clientConnected();
-    //qDebug() << "OctreeSendThread::OctreeSendThread()... AFTER OctreeServer::clientConnected()";
-    //qDebug() << "OctreeSendThread::OctreeSendThread()... DONE";
 }
 
 OctreeSendThread::~OctreeSendThread() {
