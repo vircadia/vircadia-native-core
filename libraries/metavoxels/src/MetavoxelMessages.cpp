@@ -168,7 +168,7 @@ UpdateSpannerVisitor::UpdateSpannerVisitor(const QVector<AttributePointer>& attr
     _spanner(spanner),
     _voxelizationSize(qMax(spanner->getBounds().getLongestSide(), spanner->getPlacementGranularity()) * 2.0f /
         AttributeRegistry::getInstance()->getSpannersAttribute()->getLODThresholdMultiplier()),
-    _steps(roundf(logf(AttributeRegistry::getInstance()->getSpannersAttribute()->getLODThresholdMultiplier()) /
+    _steps(glm::round(logf(AttributeRegistry::getInstance()->getSpannersAttribute()->getLODThresholdMultiplier()) /
         logf(2.0f) - 2.0f)) {
 }
 
