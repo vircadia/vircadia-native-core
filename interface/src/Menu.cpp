@@ -360,6 +360,12 @@ Menu::Menu() :
                                            false,
                                            appInstance->getAudio(),
                                            SLOT(toggleMute()));
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioToneInjection,
+                                           0,
+                                           false,
+                                           appInstance->getAudio(),
+                                           SLOT(toggleToneInjection()));
+
     
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
                 Qt::CTRL | Qt::SHIFT | Qt::Key_V,

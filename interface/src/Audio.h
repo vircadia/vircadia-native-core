@@ -81,6 +81,7 @@ public slots:
     void reset();
     void toggleMute();
     void toggleAudioNoiseReduction();
+    void toggleToneInjection();
     
     virtual void handleAudioByteArray(const QByteArray& audioByteArray);
 
@@ -135,8 +136,10 @@ private:
     int _noiseGateSampleCounter;
     bool _noiseGateOpen;
     bool _noiseGateEnabled;
+    bool _toneInjectionEnabled;
     int _noiseGateFramesToClose;
     int _totalPacketsReceived;
+    int _totalInputAudioSamples;
     
     float _collisionSoundMagnitude;
     float _collisionSoundFrequency;

@@ -66,8 +66,10 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
     _noiseGateSampleCounter(0),
     _noiseGateOpen(false),
     _noiseGateEnabled(true),
+    _toneInjectionEnabled(false),
     _noiseGateFramesToClose(0),
     _totalPacketsReceived(0),
+    _totalInputAudioSamples(0),
     _collisionSoundMagnitude(0.0f),
     _collisionSoundFrequency(0.0f),
     _collisionSoundNoise(0.0f),
@@ -390,7 +392,7 @@ void Audio::handleAudioInput() {
                              inputSamplesRequired,
                              NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
                              _inputFormat, _desiredInputFormat);
-
+            
             //
             //  Impose Noise Gate
             //
@@ -421,13 +423,15 @@ void Audio::handleAudioInput() {
             const float DC_OFFSET_AVERAGING = 0.99f;
             const float CLIPPING_THRESHOLD = 0.90f;
             
+            //
+            //  Check clipping, adjust DC offset, and check if should open noise gate
+            //
             float measuredDcOffset = 0.f;
-            
             //  Increment the time since the last clip
             if (_timeSinceLastClip >= 0.0f) {
                 _timeSinceLastClip += (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float) SAMPLE_RATE;
             }
-            
+           
             for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
                 measuredDcOffset += monoAudioSamples[i];
                 monoAudioSamples[i] -= (int16_t) _dcOffset;
@@ -487,6 +491,16 @@ void Audio::handleAudioInput() {
                 if (!_noiseGateOpen) {
                     memset(monoAudioSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
                     _lastInputLoudness = 0;
+                }
+            }
+            //
+            //  Add tone injection if enabled
+            //
+            const float TONE_FREQ = 220.f / SAMPLE_RATE * TWO_PI;
+            const float QUARTER_VOLUME = 8192.f;
+            if (_toneInjectionEnabled) {
+                for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
+                    monoAudioSamples[i] = QUARTER_VOLUME * sinf(TONE_FREQ * (float)(i + _proceduralEffectSample));
                 }
             }
 
@@ -683,7 +697,9 @@ void Audio::toggleAudioNoiseReduction() {
     _noiseGateEnabled = !_noiseGateEnabled;
 }
 
-
+void Audio::toggleToneInjection() {
+    _toneInjectionEnabled = !_toneInjectionEnabled;
+}
 
 //  Take a pointer to the acquired microphone input samples and add procedural sounds
 void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
