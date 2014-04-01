@@ -242,6 +242,7 @@ namespace MenuOption {
     const QString FilterSixense = "Smooth Sixense Movement";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
+    const QString AudioToneInjection = "Inject Test Tone";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString MuteAudio = "Mute Microphone";
