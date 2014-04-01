@@ -14,17 +14,17 @@
 #include "Menu.h"
 #include "SkeletonModel.h"
 
-SkeletonModel::SkeletonModel(Avatar* owningAvatar) :
+SkeletonModel::SkeletonModel(Avatar* owningAvatar) : 
     _owningAvatar(owningAvatar) {
 }
 
-void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
+void SkeletonModel::simulate(float deltaTime) {
     setTranslation(_owningAvatar->getPosition());
     setRotation(_owningAvatar->getOrientation() * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)));
     const float MODEL_SCALE = 0.0006f;
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale() * MODEL_SCALE);
     
-    Model::simulate(deltaTime, fullUpdate);
+    Model::simulate(deltaTime);
     
     if (!(isActive() && _owningAvatar->isMyAvatar())) {
         return; // only simulate for own avatar
@@ -92,6 +92,12 @@ void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes)
             }
         }
     }
+}
+
+void SkeletonModel::getBodyShapes(QVector<const Shape*>& shapes) const {
+    // for now we push a single bounding shape, 
+    // but later we could push a subset of joint shapes
+    shapes.push_back(&_boundingShape);
 }
 
 class IndexValue {

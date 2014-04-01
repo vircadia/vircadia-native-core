@@ -253,7 +253,7 @@ void Hand::render(bool isMine) {
     
     _renderAlpha = 1.0;
     
-    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes)) {
         // draw a green sphere at hand joint location, which is actually near the wrist)
         for (size_t i = 0; i < getNumPalms(); i++) {
             PalmData& palm = getPalms()[i];

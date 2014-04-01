@@ -20,6 +20,11 @@
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
+#ifdef ANDREW_HACKERY
+#include <ShapeCollider.h>
+#include <StreamUtils.h>
+#endif ANDREW_HACKERY
+
 #include "Application.h"
 #include "Audio.h"
 #include "Environment.h"
@@ -867,6 +872,8 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
     return false;
 }
 
+static CollisionList bodyCollisions(16);
+
 void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
     //  Reset detector for nearest avatar
     _distanceToNearestAvatar = std::numeric_limits<float>::max();
@@ -877,15 +884,6 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
     }
     updateShapePositions();
     float myBoundingRadius = getBoundingRadius();
-
-    /* TODO: Andrew to fix Avatar-Avatar body collisions
-    // HACK: body-body collision uses two coaxial capsules with axes parallel to y-axis
-    // TODO: make the collision work without assuming avatar orientation
-    Extents myStaticExtents = _skeletonModel.getStaticExtents();
-    glm::vec3 staticScale = myStaticExtents.maximum - myStaticExtents.minimum;
-    float myCapsuleRadius = 0.25f * (staticScale.x + staticScale.z);
-    float myCapsuleHeight = staticScale.y;
-    */
 
     foreach (const AvatarSharedPointer& avatarPointer, avatars) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
@@ -900,19 +898,26 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
         }
         float theirBoundingRadius = avatar->getBoundingRadius();
         if (distance < myBoundingRadius + theirBoundingRadius) {
-            /* TODO: Andrew to fix Avatar-Avatar body collisions
-            Extents theirStaticExtents = _skeletonModel.getStaticExtents();
-            glm::vec3 staticScale = theirStaticExtents.maximum - theirStaticExtents.minimum;
-            float theirCapsuleRadius = 0.25f * (staticScale.x + staticScale.z);
-            float theirCapsuleHeight = staticScale.y;
-
-            glm::vec3 penetration(0.f);
-            if (findAvatarAvatarPenetration(_position, myCapsuleRadius, myCapsuleHeight,
-                avatar->getPosition(), theirCapsuleRadius, theirCapsuleHeight, penetration)) {
-                // move the avatar out by half the penetration
-                setPosition(_position - 0.5f * penetration);
+#ifdef ANDREW_HACKERY
+            QVector<const Shape*> myShapes;
+            _skeletonModel.getBodyShapes(myShapes);
+            QVector<const Shape*> theirShapes;
+            avatar->getSkeletonModel().getBodyShapes(theirShapes);
+            bodyCollisions.clear();
+            foreach (const Shape* myShape, myShapes) {
+                foreach (const Shape* theirShape, theirShapes) {
+                    ShapeCollider::shapeShape(myShape, theirShape, bodyCollisions);
+                    if (bodyCollisions.size() > 0) {
+                        std::cout << "adebug myPos = " << myShape->getPosition() 
+                            << "  myRadius = " << myShape->getBoundingRadius()
+                            << "  theirPos = " << theirShape->getPosition() 
+                            << "  theirRadius = " << theirShape->getBoundingRadius()
+                            << std::endl;  // adebug
+                        std::cout << "adebug collision count = " << bodyCollisions.size() << std::endl;  // adebug
+                    }
+                }
             }
-            */
+#endif // ANDREW_HACKERY
 
             // collide our hands against them
             // TODO: make this work when we can figure out when the other avatar won't yeild
