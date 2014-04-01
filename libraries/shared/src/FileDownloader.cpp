@@ -14,14 +14,25 @@
 
 #include "FileDownloader.h"
 
-FileDownloader::FileDownloader(const QUrl dataURL, QObject* parent) :
-    QObject(parent),
-    _done(false)
-{
-    connect(&_networkAccessManager, SIGNAL(finished(QNetworkReply*)), this, SLOT(processReply(QNetworkReply*)));
+FileDownloader::FileDownloader(QObject* parent) : QObject(parent) {
+    connect(&_networkAccessManager, SIGNAL(finished(QNetworkReply*)), SLOT(processReply(QNetworkReply*)));
+}
 
+void FileDownloader::download(const QUrl dataURL, QNetworkAccessManager::Operation operation) {
     QNetworkRequest request(dataURL);
-    _networkAccessManager.get(request);
+    
+    _downloadedData.clear();
+    switch (operation) {
+        case QNetworkAccessManager::GetOperation:
+            _networkAccessManager.get(request);
+            break;
+        case QNetworkAccessManager::HeadOperation:
+            _networkAccessManager.head(request);
+            break;
+        default:
+            emit done(QNetworkReply::ProtocolInvalidOperationError);
+            break;
+    }
 }
 
 void FileDownloader::processReply(QNetworkReply *reply) {
@@ -30,36 +41,5 @@ void FileDownloader::processReply(QNetworkReply *reply) {
     }
     
     reply->deleteLater();
-    _done = true;
     emit done(reply->error());
-}
-
-void FileDownloader::waitForFile(int timeout) {
-    QTimer timer;
-    QEventLoop loop;
-    connect(&timer, SIGNAL(timeout()), &loop, SLOT(quit()));
-    connect(this, SIGNAL(done(QNetworkReply::NetworkError)), &loop, SLOT(quit()));
-    
-    if (!_done) {
-        if (timeout > 0) {
-            timer.start(timeout);
-        }
-        loop.exec();
-    }
-}
-
-QByteArray FileDownloader::download(const QUrl dataURL, int timeout) {
-    QTimer timer;
-    QEventLoop loop;
-    connect(&timer, SIGNAL(timeout()), &loop, SLOT(quit));
-    
-    FileDownloader downloader(dataURL);
-    connect(&downloader, SIGNAL(done(QNetworkReply::NetworkError)), &loop, SLOT(quit()));
-    
-    if (timeout > 0) {
-        timer.start(timeout);
-    }
-    loop.exec();
-    
-    return downloader.getData();
 }
