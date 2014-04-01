@@ -48,13 +48,14 @@ OctreeSendThread::~OctreeSendThread() {
                                             "- ending sending thread [" << this << "]";
 
     OctreeServer::clientDisconnected();
+    OctreeServer::stopTrackingThread(this);
+
     _node.clear();
     _myAssignment.clear();
 }
 
 void OctreeSendThread::setIsShuttingDown() {
     _isShuttingDown = true;
-    OctreeServer::stopTrackingThread(this);
 }
 
 
