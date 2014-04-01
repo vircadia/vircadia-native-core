@@ -863,7 +863,9 @@ void OctreeServer::readPendingDatagrams() {
                 _octreeInboundPacketProcessor->queueReceivedPacket(matchingNode, receivedPacket);
             } else {
                 quint64 now = usecTimestampNow();
-                qDebug() << "OctreeServer::readPendingDatagrams(): since lastProcessNodeData=" << (now - lastProcessNodeData) << "usecs";
+                if ((now - lastProcessNodeData) > 500000) {
+                    qDebug() << "OctreeServer::readPendingDatagrams(): since lastProcessNodeData=" << (now - lastProcessNodeData) << "usecs";
+                }
                 lastProcessNodeData = now;
 
                 // let processNodeData handle it.
