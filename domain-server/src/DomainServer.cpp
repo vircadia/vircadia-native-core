@@ -6,8 +6,6 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#include <signal.h>
-
 #include <QtCore/QDir>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
@@ -393,8 +391,12 @@ void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packe
     
     SharedNodePointer newNode = LimitedNodeList::getInstance()->addOrUpdateNode(nodeUUID, nodeType, publicSockAddr, localSockAddr);
     
-    // when the newNode is created the linked data is also created, if this was a static assignment set the UUID
-    reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData())->setStaticAssignmentUUID(assignmentUUID);
+    // when the newNode is created the linked data is also created
+    // if this was a static assignment set the UUID, set the sendingSockAddr
+    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
+    
+    nodeData->setStaticAssignmentUUID(assignmentUUID);
+    nodeData->setSendingSockAddr(senderSockAddr);
     
     if (!authJsonObject.isEmpty()) {
         // pull the connection secret from the authJsonObject and set it as the connection secret for this node
@@ -533,7 +535,6 @@ void DomainServer::readAvailableDatagrams() {
     HifiSockAddr senderSockAddr;
     QByteArray receivedPacket;
     
-    
     static QByteArray assignmentPacket = byteArrayWithPopulatedHeader(PacketTypeCreateAssignment);
     static int numAssignmentPacketHeaderBytes = assignmentPacket.size();
 
@@ -603,7 +604,30 @@ void DomainServer::readAvailableDatagrams() {
 }
 
 void DomainServer::readAvailableDTLSDatagrams() {
+    LimitedNodeList* nodeList = LimitedNodeList::getInstance();
     
+    QUdpSocket& dtlsSocket = nodeList->getDTLSSocket();
+    
+    static sockaddr senderSockAddr;
+    static socklen_t sockAddrSize = sizeof(senderSockAddr);
+    
+    while (dtlsSocket.hasPendingDatagrams()) {
+        // check if we have an active DTLS session for this sender
+        QByteArray peekDatagram(dtlsSocket.pendingDatagramSize(), 0);
+       
+        recvfrom(dtlsSocket.socketDescriptor(), peekDatagram.data(), dtlsSocket.pendingDatagramSize(),
+                 MSG_PEEK, &senderSockAddr, &sockAddrSize);
+        
+        DTLSSession* existingSession = _dtlsSessions.value(HifiSockAddr(&senderSockAddr));
+        
+        qDebug() << "Checking for a session with" << HifiSockAddr(&senderSockAddr);
+        
+        if (existingSession) {
+            // use GnuTLS to receive the encrypted data
+        } else {
+            // no existing session - set up a new session now
+        }
+    }
 }
 
 void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {

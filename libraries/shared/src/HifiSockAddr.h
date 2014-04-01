@@ -17,6 +17,7 @@ public:
     HifiSockAddr(const QHostAddress& address, quint16 port);
     HifiSockAddr(const HifiSockAddr& otherSockAddr);
     HifiSockAddr(const QString& hostname, quint16 hostOrderPort);
+    HifiSockAddr(const sockaddr* sockaddr);
     
     bool isNull() const { return _address.isNull() && _port == 0; }
 
@@ -44,6 +45,8 @@ private:
     QHostAddress _address;
     quint16 _port;
 };
+
+uint qHash(const HifiSockAddr& key, uint seed);
 
 quint32 getHostOrderLocalAddress();
 

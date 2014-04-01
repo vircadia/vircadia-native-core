@@ -6,11 +6,13 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#include "HifiSockAddr.h"
+#include <netinet/in.h>
 
 #include <QtCore/QDataStream>
 #include <QtNetwork/QHostInfo>
 #include <QtNetwork/QNetworkInterface>
+
+#include "HifiSockAddr.h"
 
 static int hifiSockAddrMetaTypeId = qMetaTypeId<HifiSockAddr>();
 
@@ -41,6 +43,16 @@ HifiSockAddr::HifiSockAddr(const QString& hostname, quint16 hostOrderPort) {
             _address = address;
             _port = hostOrderPort;
         }
+    }
+}
+
+HifiSockAddr::HifiSockAddr(const sockaddr* sockaddr) {
+    _address = QHostAddress(sockaddr);
+    
+    if (sockaddr->sa_family == AF_INET) {
+        _port = reinterpret_cast<const sockaddr_in*>(sockaddr)->sin_port;
+    } else {
+        _port = reinterpret_cast<const sockaddr_in6*>(sockaddr)->sin6_port;
     }
 }
 
@@ -108,4 +120,9 @@ quint32 getHostOrderLocalAddress() {
     
     // return the looked up local address
     return localAddress;
+}
+
+uint qHash(const HifiSockAddr& key, uint seed) {
+    // use the existing QHostAddress and quint16 hash functions to get our hash
+    return qHash(key.getAddress(), seed) + qHash(key.getPort(), seed);
 }

@@ -14,7 +14,7 @@
 #include <QtCore/QUrl>
 #include <QtNetwork/QHostInfo>
 
-#include "DTLSSession.h"
+#include "DTLSClientSession.h"
 #include "HifiSockAddr.h"
 
 const QString DEFAULT_DOMAIN_HOSTNAME = "alpha.highfidelity.io";
@@ -67,7 +67,7 @@ private:
     QUuid _assignmentUUID;
     bool _isConnected;
     bool _requiresDTLS;
-    DTLSSession* _dtlsSession;
+    DTLSClientSession* _dtlsSession;
 };
 
 #endif /* defined(__hifi__DomainHandler__) */

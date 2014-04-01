@@ -23,6 +23,8 @@
 #include <HTTPManager.h>
 #include <NodeList.h>
 
+#include "DTLSServerSession.h"
+
 typedef QSharedPointer<Assignment> SharedAssignmentPointer;
 
 class DomainServer : public QCoreApplication, public HTTPRequestHandler {
@@ -88,6 +90,8 @@ private:
     gnutls_certificate_credentials_t* _x509Credentials;
     gnutls_dh_params_t* _dhParams;
     gnutls_priority_t* _priorityCache;
+    
+    QHash<HifiSockAddr, DTLSServerSession*> _dtlsSessions;
 };
 
 #endif /* defined(__hifi__DomainServer__) */

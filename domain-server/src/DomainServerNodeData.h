@@ -12,6 +12,7 @@
 #include <QtCore/QHash>
 #include <QtCore/QUuid>
 
+#include <HifiSockAddr.h>
 #include <NodeData.h>
 
 class DomainServerNodeData : public NodeData {
@@ -26,6 +27,9 @@ public:
     void setStaticAssignmentUUID(const QUuid& staticAssignmentUUID) { _staticAssignmentUUID = staticAssignmentUUID; }
     const QUuid& getStaticAssignmentUUID() const { return _staticAssignmentUUID; }
     
+    void setSendingSockAddr(const HifiSockAddr& sendingSockAddr) { _sendingSockAddr = sendingSockAddr; }
+    const HifiSockAddr& getSendingSockAddr() { return _sendingSockAddr; }
+    
     QHash<QUuid, QUuid>& getSessionSecretHash() { return _sessionSecretHash; }
 private:
     QJsonObject mergeJSONStatsFromNewObject(const QJsonObject& newObject, QJsonObject destinationObject);
@@ -33,6 +37,7 @@ private:
     QHash<QUuid, QUuid> _sessionSecretHash;
     QUuid _staticAssignmentUUID;
     QJsonObject _statsJSONObject;
+    HifiSockAddr _sendingSockAddr;
 };
 
 #endif /* defined(__hifi__DomainServerNodeData__) */

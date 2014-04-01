@@ -34,7 +34,7 @@ ssize_t DTLSSession::socketPush(gnutls_transport_ptr_t ptr, const void* buffer, 
                                     session->_destinationSocket.getAddress(), session->_destinationSocket.getPort());
 }
 
-static gnutls_certificate_credentials_t* x509ClientCredentials() {
+gnutls_certificate_credentials_t* x509CACredentials() {
     static gnutls_certificate_credentials_t x509Credentials;
     static bool credentialsInitialized = false;
     
@@ -45,23 +45,9 @@ static gnutls_certificate_credentials_t* x509ClientCredentials() {
     return &x509Credentials;
 }
 
-DTLSSession::DTLSSession(QUdpSocket& dtlsSocket, HifiSockAddr& destinationSocket) :
+DTLSSession::DTLSSession(int end, QUdpSocket& dtlsSocket, HifiSockAddr& destinationSocket) :
     _dtlsSocket(dtlsSocket),
     _destinationSocket(destinationSocket)
 {
-    qDebug() << "Initializing DTLS Session.";
-    
-    gnutls_init(&_gnutlsSession, GNUTLS_CLIENT | GNUTLS_DATAGRAM);
-    gnutls_priority_set_direct(_gnutlsSession, "NORMAL", NULL);
-    
-    gnutls_credentials_set(_gnutlsSession, GNUTLS_CRD_CERTIFICATE, x509ClientCredentials());
-    
-    // tell GnuTLS to call us for push or pull
-    gnutls_transport_set_ptr(_gnutlsSession, this);
-    gnutls_transport_set_push_function(_gnutlsSession, socketPush);
-    gnutls_transport_set_pull_function(_gnutlsSession, socketPull);
-    gnutls_transport_set_pull_timeout_function(_gnutlsSession, socketPullTimeout);
-    
-    // start the handshake process with domain-server now
-    gnutls_handshake(_gnutlsSession);
+    gnutls_init(&_gnutlsSession, end | GNUTLS_DATAGRAM);
 }

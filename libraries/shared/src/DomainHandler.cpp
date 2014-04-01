@@ -42,7 +42,7 @@ void DomainHandler::reset() {
 
 void DomainHandler::initializeDTLSSession() {
     if (!_dtlsSession) {
-        _dtlsSession = new DTLSSession(NodeList::getInstance()->getDTLSSocket(), _sockAddr);
+        _dtlsSession = new DTLSClientSession(NodeList::getInstance()->getDTLSSocket(), _sockAddr);
     }
 }
 
