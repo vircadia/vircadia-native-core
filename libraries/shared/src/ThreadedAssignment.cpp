@@ -11,6 +11,7 @@
 #include <QtCore/QTimer>
 
 #include "Logging.h"
+#include "SharedUtil.h"
 #include "ThreadedAssignment.h"
 
 ThreadedAssignment::ThreadedAssignment(const QByteArray& packet) :
@@ -73,7 +74,14 @@ void ThreadedAssignment::sendStatsPacket() {
     addPacketStatsAndSendStatsPacket(statsObject);
 }
 
+quint64 lastCheckIn = usecTimestampNow();
 void ThreadedAssignment::checkInWithDomainServerOrExit() {
+    quint64 now = usecTimestampNow();
+    if ((now - lastCheckIn) > 100000) {
+        qDebug() << "ThreadedAssignment::checkInWithDomainServerOrExit(): since lastCheckIn=" << (now - lastCheckIn) << "usecs";
+    }
+    lastCheckIn = now;
+
     if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
         setFinished(true);
     } else {
