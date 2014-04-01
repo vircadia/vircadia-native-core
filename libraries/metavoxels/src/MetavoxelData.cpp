@@ -212,6 +212,67 @@ void MetavoxelData::toggle(const AttributePointer& attribute, const Box& bounds,
     guide(visitor);
 }
 
+void MetavoxelData::replace(const AttributePointer& attribute, const SharedObjectPointer& oldObject,
+        const SharedObjectPointer& newObject) {
+    Spanner* spanner = static_cast<Spanner*>(oldObject.data());
+    replace(attribute, spanner->getBounds(), spanner->getPlacementGranularity(), oldObject, newObject);
+}
+
+class SpannerReplaceVisitor : public MetavoxelVisitor {
+public:
+    
+    SpannerReplaceVisitor(const AttributePointer& attribute, const Box& bounds,
+        float granularity, const SharedObjectPointer& oldObject, const SharedObjectPointer& newObject);
+    
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    const AttributePointer& _attribute;
+    const Box& _bounds;
+    float _longestSide;
+    const SharedObjectPointer& _oldObject;
+    const SharedObjectPointer& _newObject;
+};
+
+SpannerReplaceVisitor::SpannerReplaceVisitor(const AttributePointer& attribute, const Box& bounds, float granularity,
+        const SharedObjectPointer& oldObject, const SharedObjectPointer& newObject) :
+    MetavoxelVisitor(QVector<AttributePointer>() << attribute, QVector<AttributePointer>() << attribute),
+    _attribute(attribute),
+    _bounds(bounds),
+    _longestSide(qMax(bounds.getLongestSide(), granularity)),
+    _oldObject(oldObject),
+    _newObject(newObject) {
+}
+
+int SpannerReplaceVisitor::visit(MetavoxelInfo& info) {
+    if (!info.getBounds().intersects(_bounds)) {
+        return STOP_RECURSION;
+    }
+    if (info.size > _longestSide) {
+        return DEFAULT_ORDER;
+    }
+    SharedObjectSet set = info.inputValues.at(0).getInlineValue<SharedObjectSet>();
+    if (set.remove(_oldObject)) {
+        set.insert(_newObject);
+    }
+    info.outputValues[0] = AttributeValue(_attribute, encodeInline(set));
+    return STOP_RECURSION;
+}
+
+void MetavoxelData::replace(const AttributePointer& attribute, const Box& bounds, float granularity,
+        const SharedObjectPointer& oldObject, const SharedObjectPointer& newObject) {
+    Spanner* newSpanner = static_cast<Spanner*>(newObject.data());
+    if (bounds != newSpanner->getBounds() || granularity != newSpanner->getPlacementGranularity()) {
+        // if the bounds have changed, we must remove and reinsert
+        remove(attribute, bounds, granularity, oldObject);
+        insert(attribute, newSpanner->getBounds(), newSpanner->getPlacementGranularity(), newObject);
+        return;
+    }
+    SpannerReplaceVisitor visitor(attribute, bounds, granularity, oldObject, newObject);
+    guide(visitor);
+}
+
 void MetavoxelData::clear(const AttributePointer& attribute) {
     MetavoxelNode* node = _roots.take(attribute);
     if (node) {
@@ -239,7 +300,7 @@ private:
 FirstRaySpannerIntersectionVisitor::FirstRaySpannerIntersectionVisitor(
         const glm::vec3& origin, const glm::vec3& direction, const AttributePointer& attribute, const MetavoxelLOD& lod) :
     RaySpannerIntersectionVisitor(origin, direction, QVector<AttributePointer>() << attribute,
-        QVector<AttributePointer>(), QVector<AttributePointer>(), lod),
+        QVector<AttributePointer>(), QVector<AttributePointer>(), QVector<AttributePointer>(), lod),
     _spanner(NULL) {
 }
 
@@ -878,10 +939,11 @@ void MetavoxelVisitor::prepare() {
     // nothing by default
 }
 
-SpannerVisitor::SpannerVisitor(const QVector<AttributePointer>& spannerInputs, const QVector<AttributePointer>& inputs,
-        const QVector<AttributePointer>& outputs, const MetavoxelLOD& lod) :
-    MetavoxelVisitor(inputs + spannerInputs, outputs, lod),
-    _spannerInputCount(spannerInputs.size()) {
+SpannerVisitor::SpannerVisitor(const QVector<AttributePointer>& spannerInputs, const QVector<AttributePointer>& spannerMasks,
+        const QVector<AttributePointer>& inputs, const QVector<AttributePointer>& outputs, const MetavoxelLOD& lod) :
+    MetavoxelVisitor(inputs + spannerInputs + spannerMasks, outputs, lod),
+    _spannerInputCount(spannerInputs.size()),
+    _spannerMaskCount(spannerMasks.size()) {
 }
 
 void SpannerVisitor::prepare() {
@@ -889,17 +951,34 @@ void SpannerVisitor::prepare() {
 }
 
 int SpannerVisitor::visit(MetavoxelInfo& info) {
-    for (int i = _inputs.size() - _spannerInputCount; i < _inputs.size(); i++) {
+    for (int end = _inputs.size() - _spannerMaskCount, i = end - _spannerInputCount, j = end; i < end; i++, j++) {
         foreach (const SharedObjectPointer& object, info.inputValues.at(i).getInlineValue<SharedObjectSet>()) {
             Spanner* spanner = static_cast<Spanner*>(object.data());
-            if (spanner->testAndSetVisited()) {
-                if (!visit(spanner)) {
-                    return SHORT_CIRCUIT;
-                }
+            if (!(spanner->isMasked() && j < _inputs.size()) && spanner->testAndSetVisited() &&
+                    !visit(spanner, glm::vec3(), 0.0f)) {
+                return SHORT_CIRCUIT;
             }
         }
     }
-    return info.isLeaf ? STOP_RECURSION : DEFAULT_ORDER;
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    for (int i = _inputs.size() - _spannerMaskCount; i < _inputs.size(); i++) {
+        float maskValue = info.inputValues.at(i).getInlineValue<float>();
+        if (maskValue < 0.5f) {
+            const MetavoxelInfo* nextInfo = &info;
+            do {
+                foreach (const SharedObjectPointer& object, nextInfo->inputValues.at(
+                        i - _spannerInputCount).getInlineValue<SharedObjectSet>()) {
+                    Spanner* spanner = static_cast<Spanner*>(object.data());
+                    if (spanner->isMasked() && !visit(spanner, info.minimum, info.size)) {
+                        return SHORT_CIRCUIT;
+                    }
+                }                
+            } while ((nextInfo = nextInfo->parentInfo));
+        }
+    }
+    return STOP_RECURSION;
 }
 
 RayIntersectionVisitor::RayIntersectionVisitor(const glm::vec3& origin, const glm::vec3& direction,
@@ -919,10 +998,11 @@ int RayIntersectionVisitor::visit(MetavoxelInfo& info) {
 }
 
 RaySpannerIntersectionVisitor::RaySpannerIntersectionVisitor(const glm::vec3& origin, const glm::vec3& direction,
-        const QVector<AttributePointer>& spannerInputs, const QVector<AttributePointer>& inputs,
-        const QVector<AttributePointer>& outputs, const MetavoxelLOD& lod) :
-    RayIntersectionVisitor(origin, direction, inputs + spannerInputs, outputs, lod),
-    _spannerInputCount(spannerInputs.size()) {
+        const QVector<AttributePointer>& spannerInputs, const QVector<AttributePointer>& spannerMasks,
+        const QVector<AttributePointer>& inputs, const QVector<AttributePointer>& outputs, const MetavoxelLOD& lod) :
+    RayIntersectionVisitor(origin, direction, inputs + spannerInputs + spannerMasks, outputs, lod),
+    _spannerInputCount(spannerInputs.size()),
+    _spannerMaskCount(spannerMasks.size()) {
 }
 
 void RaySpannerIntersectionVisitor::prepare() {
@@ -941,12 +1021,12 @@ bool operator<(const SpannerDistance& first, const SpannerDistance& second) {
 
 int RaySpannerIntersectionVisitor::visit(MetavoxelInfo& info, float distance) {
     QVarLengthArray<SpannerDistance, 4> spannerDistances;
-    for (int i = _inputs.size() - _spannerInputCount; i < _inputs.size(); i++) {
+    for (int end = _inputs.size() - _spannerMaskCount, i = end - _spannerInputCount, j = end; i < end; i++, j++) {
         foreach (const SharedObjectPointer& object, info.inputValues.at(i).getInlineValue<SharedObjectSet>()) {
             Spanner* spanner = static_cast<Spanner*>(object.data());
-            if (spanner->testAndSetVisited()) {
+            if (!(spanner->isMasked() && j < _inputs.size()) && spanner->testAndSetVisited()) {
                 SpannerDistance spannerDistance = { spanner };
-                if (spanner->findRayIntersection(_origin, _direction, spannerDistance.distance)) {
+                if (spanner->findRayIntersection(_origin, _direction, glm::vec3(), 0.0f, spannerDistance.distance)) {
                     spannerDistances.append(spannerDistance);
                 }
             }
@@ -958,7 +1038,36 @@ int RaySpannerIntersectionVisitor::visit(MetavoxelInfo& info, float distance) {
             }
         }
     }
-    return info.isLeaf ? STOP_RECURSION : _order;
+    if (!info.isLeaf) {
+        return _order;
+    }
+    for (int i = _inputs.size() - _spannerMaskCount; i < _inputs.size(); i++) {
+        float maskValue = info.inputValues.at(i).getInlineValue<float>();
+        if (maskValue < 0.5f) {
+            const MetavoxelInfo* nextInfo = &info;
+            do {
+                foreach (const SharedObjectPointer& object, nextInfo->inputValues.at(
+                        i - _spannerInputCount).getInlineValue<SharedObjectSet>()) {
+                    Spanner* spanner = static_cast<Spanner*>(object.data());
+                    if (spanner->isMasked()) {
+                        SpannerDistance spannerDistance = { spanner };
+                        if (spanner->findRayIntersection(_origin, _direction,
+                                info.minimum, info.size, spannerDistance.distance)) {
+                            spannerDistances.append(spannerDistance);
+                        }
+                    }
+                }                
+            } while ((nextInfo = nextInfo->parentInfo));
+            
+            qStableSort(spannerDistances);
+            foreach (const SpannerDistance& spannerDistance, spannerDistances) {
+                if (!visitSpanner(spannerDistance.spanner, spannerDistance.distance)) {
+                    return SHORT_CIRCUIT;
+                }
+            }
+        }
+    }
+    return STOP_RECURSION;
 }
 
 DefaultMetavoxelGuide::DefaultMetavoxelGuide() {
@@ -1224,6 +1333,7 @@ Spanner::Spanner() :
     _renderer(NULL),
     _placementGranularity(DEFAULT_PLACEMENT_GRANULARITY),
     _voxelizationGranularity(DEFAULT_VOXELIZATION_GRANULARITY),
+    _masked(false),
     _lastVisit(0) {
 }
 
@@ -1276,7 +1386,8 @@ SpannerRenderer* Spanner::getRenderer() {
     return _renderer;
 }
 
-bool Spanner::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+bool Spanner::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const glm::vec3& clipMinimum, float clipSize, float& distance) const {
     return _bounds.findRayIntersection(origin, direction, distance);
 }
 
@@ -1297,11 +1408,12 @@ void SpannerRenderer::simulate(float deltaTime) {
     // nothing by default
 }
 
-void SpannerRenderer::render(float alpha) {
+void SpannerRenderer::render(float alpha, const glm::vec3& clipMinimum, float clipSize) {
     // nothing by default
 }
 
-bool SpannerRenderer::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+bool SpannerRenderer::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const glm::vec3& clipMinimum, float clipSize, float& distance) const {
     return false;
 }
 
@@ -1424,7 +1536,8 @@ bool Sphere::blendAttributeValues(MetavoxelInfo& info, bool force) const {
     return true;
 }
 
-bool Sphere::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+bool Sphere::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const glm::vec3& clipMinimum, float clipSize, float& distance) const {
     return findRaySphereIntersection(origin, direction, getTranslation(), getScale(), distance);
 }
 
@@ -1463,10 +1576,11 @@ void StaticModel::setURL(const QUrl& url) {
     }
 }
 
-bool StaticModel::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+bool StaticModel::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const glm::vec3& clipMinimum, float clipSize, float& distance) const {
     // delegate to renderer, if we have one
-    return _renderer ? _renderer->findRayIntersection(origin, direction, distance) :
-        Spanner::findRayIntersection(origin, direction, distance);
+    return _renderer ? _renderer->findRayIntersection(origin, direction, clipMinimum, clipSize, distance) :
+        Spanner::findRayIntersection(origin, direction, clipMinimum, clipSize, distance);
 }
 
 QByteArray StaticModel::getRendererClassName() const {

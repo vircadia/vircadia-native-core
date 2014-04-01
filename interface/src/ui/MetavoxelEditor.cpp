@@ -565,7 +565,7 @@ void PlaceSpannerTool::render() {
     }
     Spanner* spanner = static_cast<Spanner*>(_editor->getValue().value<SharedObjectPointer>().data());
     const float SPANNER_ALPHA = 0.25f;
-    spanner->getRenderer()->render(SPANNER_ALPHA);
+    spanner->getRenderer()->render(SPANNER_ALPHA, glm::vec3(), 0.0f);
 }
 
 bool PlaceSpannerTool::appliesTo(const AttributePointer& attribute) const {

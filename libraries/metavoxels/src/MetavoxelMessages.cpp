@@ -32,7 +32,8 @@ private:
 };
 
 BoxSetEditVisitor::BoxSetEditVisitor(const BoxSetEdit& edit) :
-    MetavoxelVisitor(QVector<AttributePointer>(), QVector<AttributePointer>() << edit.value.getAttribute()),
+    MetavoxelVisitor(QVector<AttributePointer>(), QVector<AttributePointer>() << edit.value.getAttribute() <<
+        AttributeRegistry::getInstance()->getSpannerMaskAttribute()),
     _edit(edit) {
 }
 
@@ -47,15 +48,55 @@ int BoxSetEditVisitor::visit(MetavoxelInfo& info) {
     float volume = (size.x * size.y * size.z) / (info.size * info.size * info.size);
     if (volume >= 1.0f) {
         info.outputValues[0] = _edit.value;
+        info.outputValues[1] = AttributeValue(_outputs.at(1), encodeInline<float>(1.0f));
         return STOP_RECURSION; // entirely contained
     }
     if (info.size <= _edit.granularity) {
         if (volume >= 0.5f) {
             info.outputValues[0] = _edit.value;
+            info.outputValues[1] = AttributeValue(_outputs.at(1), encodeInline<float>(1.0f));
         }
         return STOP_RECURSION; // reached granularity limit; take best guess
     }
     return DEFAULT_ORDER; // subdivide
+}
+
+class GatherUnmaskedSpannersVisitor : public SpannerVisitor {
+public:
+    
+    GatherUnmaskedSpannersVisitor(const Box& bounds);
+
+    const QList<SharedObjectPointer>& getUnmaskedSpanners() const { return _unmaskedSpanners; }
+
+    virtual bool visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize);
+
+private:
+    
+    Box _bounds;
+    QList<SharedObjectPointer> _unmaskedSpanners;
+};
+
+GatherUnmaskedSpannersVisitor::GatherUnmaskedSpannersVisitor(const Box& bounds) :
+    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute()),
+    _bounds(bounds) {
+}
+
+bool GatherUnmaskedSpannersVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) {
+    if (!spanner->isMasked() && spanner->getBounds().intersects(_bounds)) {
+        _unmaskedSpanners.append(spanner);
+    }
+    return true;
+}
+
+static void setIntersectingMasked(const Box& bounds, MetavoxelData& data) {
+    GatherUnmaskedSpannersVisitor visitor(bounds);
+    data.guide(visitor);
+    
+    foreach (const SharedObjectPointer& object, visitor.getUnmaskedSpanners()) {
+        Spanner* newSpanner = static_cast<Spanner*>(object->clone(true));
+        newSpanner->setMasked(true);
+        data.replace(AttributeRegistry::getInstance()->getSpannersAttribute(), object, newSpanner);
+    }
 }
 
 void BoxSetEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
@@ -64,8 +105,11 @@ void BoxSetEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects)
         data.expand();
     }
 
-    BoxSetEditVisitor visitor(*this);
-    data.guide(visitor);
+    BoxSetEditVisitor setVisitor(*this);
+    data.guide(setVisitor);
+    
+    // flip the mask flag of all intersecting spanners
+    setIntersectingMasked(region, data);
 }
 
 GlobalSetEdit::GlobalSetEdit(const OwnedAttributeValue& value) :
@@ -180,25 +224,25 @@ ClearSpannersEdit::ClearSpannersEdit(const AttributePointer& attribute) :
     attribute(attribute) {
 }
 
-class GetSpannerAttributesVisitor : public SpannerVisitor {
+class GatherSpannerAttributesVisitor : public SpannerVisitor {
 public:
     
-    GetSpannerAttributesVisitor(const AttributePointer& attribute);
+    GatherSpannerAttributesVisitor(const AttributePointer& attribute);
     
     const QSet<AttributePointer>& getAttributes() const { return _attributes; }
     
-    virtual bool visit(Spanner* spanner);
+    virtual bool visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize);
 
 protected:
     
     QSet<AttributePointer> _attributes;
 };
 
-GetSpannerAttributesVisitor::GetSpannerAttributesVisitor(const AttributePointer& attribute) :
+GatherSpannerAttributesVisitor::GatherSpannerAttributesVisitor(const AttributePointer& attribute) :
     SpannerVisitor(QVector<AttributePointer>() << attribute) {
 }
 
-bool GetSpannerAttributesVisitor::visit(Spanner* spanner) {
+bool GatherSpannerAttributesVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) {
     foreach (const AttributePointer& attribute, spanner->getVoxelizedAttributes()) {
         _attributes.insert(attribute);
     }
@@ -207,7 +251,7 @@ bool GetSpannerAttributesVisitor::visit(Spanner* spanner) {
 
 void ClearSpannersEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
     // find all the spanner attributes
-    GetSpannerAttributesVisitor visitor(attribute);
+    GatherSpannerAttributesVisitor visitor(attribute);
     data.guide(visitor);
     
     data.clear(attribute);
@@ -233,12 +277,19 @@ private:
 };
 
 SetSpannerEditVisitor::SetSpannerEditVisitor(const QVector<AttributePointer>& attributes, Spanner* spanner) :
-    MetavoxelVisitor(attributes, attributes),
+    MetavoxelVisitor(attributes, QVector<AttributePointer>() << attributes <<
+        AttributeRegistry::getInstance()->getSpannerMaskAttribute()),
     _spanner(spanner) {
 }
 
 int SetSpannerEditVisitor::visit(MetavoxelInfo& info) {
-    return _spanner->blendAttributeValues(info) ? DEFAULT_ORDER : STOP_RECURSION;
+    if (_spanner->blendAttributeValues(info)) {
+        return DEFAULT_ORDER;
+    }
+    if (info.outputValues.at(0).getAttribute()) {
+        info.outputValues.last() = AttributeValue(_outputs.last(), encodeInline<float>(1.0f));
+    }
+    return STOP_RECURSION;
 }
 
 void SetSpannerEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
@@ -251,4 +302,6 @@ void SetSpannerEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& obje
     
     SetSpannerEditVisitor visitor(spanner->getAttributes(), spanner);
     data.guide(visitor);
+    
+    setIntersectingMasked(spanner->getBounds(), data);
 }

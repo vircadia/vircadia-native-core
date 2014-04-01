@@ -80,6 +80,9 @@ public:
     /// Returns a reference to the standard packed normal "spannerNormal" attribute.
     const AttributePointer& getSpannerNormalAttribute() const { return _spannerNormalAttribute; }
     
+    /// Returns a reference to the standard "spannerMask" attribute.
+    const AttributePointer& getSpannerMaskAttribute() const { return _spannerMaskAttribute; }
+    
 private:
 
     static QScriptValue getAttribute(QScriptContext* context, QScriptEngine* engine);
@@ -91,6 +94,7 @@ private:
     AttributePointer _normalAttribute;
     AttributePointer _spannerColorAttribute;
     AttributePointer _spannerNormalAttribute;
+    AttributePointer _spannerMaskAttribute;
 };
 
 /// Converts a value to a void pointer.
@@ -264,6 +268,39 @@ template<class T, int bits> inline void InlineAttribute<T, bits>::write(Bitstrea
         out.write(&value, bits);
     }
 }
+
+/// Provides averaging using the +=, ==, and / operators.
+template<class T, int bits = 32> class SimpleInlineAttribute : public InlineAttribute<T, bits> {
+public:
+    
+    SimpleInlineAttribute(const QString& name, const T& defaultValue = T()) : InlineAttribute<T, bits>(name, defaultValue) { }
+    
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+};
+
+template<class T, int bits> inline bool SimpleInlineAttribute<T, bits>::merge(
+        void*& parent, void* children[], bool postRead) const {
+    T firstValue = decodeInline<T>(children[0]);
+    T totalValue = firstValue;
+    bool allChildrenEqual = true;
+    for (int i = 1; i < Attribute::MERGE_COUNT; i++) {
+        T value = decodeInline<T>(children[i]);
+        totalValue += value;
+        allChildrenEqual &= (firstValue == value);
+    }
+    parent = encodeInline(totalValue / Attribute::MERGE_COUNT);
+    return allChildrenEqual;
+}
+
+/// Simple float attribute.
+class FloatAttribute : public SimpleInlineAttribute<float> {
+    Q_OBJECT
+    Q_PROPERTY(float defaultValue MEMBER _defaultValue)
+
+public:
+    
+    Q_INVOKABLE FloatAttribute(const QString& name = QString(), float defaultValue = 0.0f);
+};
 
 /// Provides appropriate averaging for RGBA values.
 class QRgbAttribute : public InlineAttribute<QRgb> {

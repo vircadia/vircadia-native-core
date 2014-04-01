@@ -79,6 +79,11 @@ public:
     void toggle(const AttributePointer& attribute, const SharedObjectPointer& object);
     void toggle(const AttributePointer& attribute, const Box& bounds, float granularity, const SharedObjectPointer& object);
 
+    void replace(const AttributePointer& attribute, const SharedObjectPointer& oldObject,
+        const SharedObjectPointer& newObject);
+    void replace(const AttributePointer& attribute, const Box& bounds, float granularity, const SharedObjectPointer& oldObject,
+        const SharedObjectPointer& newObject);
+        
     void clear(const AttributePointer& attribute);
 
     /// Convenience function that finds the first spanner intersecting the provided ray.    
@@ -255,13 +260,15 @@ class SpannerVisitor : public MetavoxelVisitor {
 public:
     
     SpannerVisitor(const QVector<AttributePointer>& spannerInputs,
+        const QVector<AttributePointer>& spannerMasks = QVector<AttributePointer>(),
         const QVector<AttributePointer>& inputs = QVector<AttributePointer>(),
         const QVector<AttributePointer>& outputs = QVector<AttributePointer>(),
         const MetavoxelLOD& lod = MetavoxelLOD());
     
-    /// Visits a spanner.
+    /// Visits a spanner (or part thereof).
+    /// \param clipSize the size of the clip volume, or zero if unclipped
     /// \return true to continue, false to short-circuit the tour
-    virtual bool visit(Spanner* spanner) = 0;
+    virtual bool visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) = 0;
     
     virtual void prepare();
     virtual int visit(MetavoxelInfo& info);
@@ -269,6 +276,7 @@ public:
 protected:
     
     int _spannerInputCount;
+    int _spannerMaskCount;
 };
 
 /// Base class for ray intersection visitors.
@@ -298,11 +306,12 @@ public:
     
     RaySpannerIntersectionVisitor(const glm::vec3& origin, const glm::vec3& direction,
         const QVector<AttributePointer>& spannerInputs,
+        const QVector<AttributePointer>& spannerMasks = QVector<AttributePointer>(),
         const QVector<AttributePointer>& inputs = QVector<AttributePointer>(),
         const QVector<AttributePointer>& outputs = QVector<AttributePointer>(),
         const MetavoxelLOD& lod = MetavoxelLOD());
 
-    /// Visits a spanner that the ray intersects.
+    /// Visits a spannerthat the ray intersects.
     /// \return true to continue, false to short-circuit the tour
     virtual bool visitSpanner(Spanner* spanner, float distance) = 0;
     
@@ -312,6 +321,7 @@ public:
 protected:
     
     int _spannerInputCount;
+    int _spannerMaskCount;
 };
 
 /// Interface for objects that guide metavoxel visitors.
@@ -412,6 +422,7 @@ class Spanner : public SharedObject {
     Q_PROPERTY(Box bounds MEMBER _bounds WRITE setBounds NOTIFY boundsChanged DESIGNABLE false)
     Q_PROPERTY(float placementGranularity MEMBER _placementGranularity DESIGNABLE false)
     Q_PROPERTY(float voxelizationGranularity MEMBER _voxelizationGranularity DESIGNABLE false)
+    Q_PROPERTY(float masked MEMBER _masked DESIGNABLE false)
     
 public:
     
@@ -428,6 +439,9 @@ public:
     
     void setVoxelizationGranularity(float granularity) { _voxelizationGranularity = granularity; }
     float getVoxelizationGranularity() const { return _voxelizationGranularity; }
+    
+    void setMasked(bool masked) { _masked = masked; }
+    bool isMasked() const { return _masked; }
     
     /// Returns a reference to the list of attributes associated with this spanner.
     virtual const QVector<AttributePointer>& getAttributes() const;
@@ -452,7 +466,9 @@ public:
     SpannerRenderer* getRenderer();
 
     /// Finds the intersection between the described ray and this spanner.
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+    /// \param clipSize the size of the clip region, or zero if unclipped
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const glm::vec3& clipMinimum, float clipSize, float& distance) const;
 
 signals:
 
@@ -471,6 +487,7 @@ private:
     Box _bounds;
     float _placementGranularity;
     float _voxelizationGranularity;
+    bool _masked;
     int _lastVisit; ///< the identifier of the last visit
     
     static int _visit; ///< the global visit counter
@@ -486,8 +503,9 @@ public:
     
     virtual void init(Spanner* spanner);
     virtual void simulate(float deltaTime);
-    virtual void render(float alpha);
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+    virtual void render(float alpha, const glm::vec3& clipMinimum, float clipSize);
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const glm::vec3& clipMinimum, float clipSize, float& distance) const;
 };
 
 /// An object with a 3D transform.
@@ -539,7 +557,8 @@ public:
     virtual const QVector<AttributePointer>& getVoxelizedAttributes() const;
     virtual bool getAttributeValues(MetavoxelInfo& info, bool force = false) const;
     virtual bool blendAttributeValues(MetavoxelInfo& info, bool force = false) const;
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const glm::vec3& clipMinimum, float clipSize, float& distance) const;
 
 signals:
 
@@ -572,7 +591,8 @@ public:
     void setURL(const QUrl& url);
     const QUrl& getURL() const { return _url; }
 
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const glm::vec3& clipMinimum, float clipSize,float& distance) const;
     
 signals:
 

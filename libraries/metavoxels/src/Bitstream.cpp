@@ -223,12 +223,12 @@ void Bitstream::persistReadMappings(const ReadMappings& mappings) {
         if (!it.value()) {
             continue;
         }
-        QPointer<SharedObject>& reference = _sharedObjectReferences[it.value()->getID()];
+        QPointer<SharedObject>& reference = _sharedObjectReferences[it.value()->getRemoteID()];
         if (reference) {
             _sharedObjectStreamer.removePersistentValue(reference.data());
         }
         reference = it.value();
-        _weakSharedObjectHash.remove(it.value()->getID());
+        _weakSharedObjectHash.remove(it.value()->getRemoteID());
     }
 }
 
@@ -863,7 +863,7 @@ Bitstream& Bitstream::operator>(SharedObjectPointer& object) {
         }
     } else {
         QObject* rawObject; 
-        if (reference) {   
+        if (reference) {
             readRawDelta(rawObject, (QObject*)reference.data());
         } else {
             *this >> rawObject;

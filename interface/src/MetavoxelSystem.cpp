@@ -167,14 +167,14 @@ void MetavoxelSystem::maybeAttachClient(const SharedNodePointer& node) {
 
 MetavoxelSystem::SimulateVisitor::SimulateVisitor(QVector<Point>& points) :
     SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
-        QVector<AttributePointer>() << AttributeRegistry::getInstance()->getColorAttribute() <<
+        QVector<AttributePointer>(), QVector<AttributePointer>() << AttributeRegistry::getInstance()->getColorAttribute() <<
             AttributeRegistry::getInstance()->getNormalAttribute() <<
             AttributeRegistry::getInstance()->getSpannerColorAttribute() <<
             AttributeRegistry::getInstance()->getSpannerNormalAttribute()),
     _points(points) {
 }
 
-bool MetavoxelSystem::SimulateVisitor::visit(Spanner* spanner) {
+bool MetavoxelSystem::SimulateVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) {
     spanner->getRenderer()->simulate(_deltaTime);
     return true;
 }
@@ -223,11 +223,12 @@ int MetavoxelSystem::SimulateVisitor::visit(MetavoxelInfo& info) {
 }
 
 MetavoxelSystem::RenderVisitor::RenderVisitor() :
-    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute()) {
+    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
+        QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannerMaskAttribute()) {
 }
 
-bool MetavoxelSystem::RenderVisitor::visit(Spanner* spanner) {
-    spanner->getRenderer()->render(1.0f);
+bool MetavoxelSystem::RenderVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) {
+    spanner->getRenderer()->render(1.0f, clipMinimum, clipSize);
     return true;
 }
 
@@ -333,10 +334,55 @@ void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
     }
 }
 
+static void enableClipPlane(GLenum plane, float x, float y, float z, float w) {
+    GLdouble coefficients[] = { x, y, z, w };
+    glClipPlane(plane, coefficients);
+    glEnable(plane);
+}
+
+void ClippedRenderer::render(float alpha, const glm::vec3& clipMinimum, float clipSize) {
+    if (clipSize == 0.0f) {
+        renderUnclipped(alpha);
+        return;
+    }
+    enableClipPlane(GL_CLIP_PLANE0, -1.0f, 0.0f, 0.0f, clipMinimum.x + clipSize);
+    enableClipPlane(GL_CLIP_PLANE1, 1.0f, 0.0f, 0.0f, -clipMinimum.x);
+    enableClipPlane(GL_CLIP_PLANE2, 0.0f, -1.0f, 0.0f, clipMinimum.y + clipSize);
+    enableClipPlane(GL_CLIP_PLANE3, 0.0f, 1.0f, 0.0f, -clipMinimum.y);
+    enableClipPlane(GL_CLIP_PLANE4, 0.0f, 0.0f, -1.0f, clipMinimum.z + clipSize);
+    enableClipPlane(GL_CLIP_PLANE5, 0.0f, 0.0f, 1.0f, -clipMinimum.z);
+    
+    renderUnclipped(alpha);
+    
+    glDisable(GL_CLIP_PLANE0);
+    glDisable(GL_CLIP_PLANE1);
+    glDisable(GL_CLIP_PLANE2);
+    glDisable(GL_CLIP_PLANE3);
+    glDisable(GL_CLIP_PLANE4);
+    glDisable(GL_CLIP_PLANE5);
+}
+
 SphereRenderer::SphereRenderer() {
 }
 
-void SphereRenderer::render(float alpha) {
+void SphereRenderer::render(float alpha, const glm::vec3& clipMinimum, float clipSize) {
+    if (clipSize == 0.0f) {
+        renderUnclipped(alpha);
+        return;
+    }
+    // slight performance optimization: don't render if clip bounds are entirely within sphere
+    Sphere* sphere = static_cast<Sphere*>(parent());
+    Box clipBox(clipMinimum, clipMinimum + glm::vec3(clipSize, clipSize, clipSize));
+    for (int i = 0; i < Box::VERTEX_COUNT; i++) {
+        const float CLIP_PROPORTION = 0.95f;
+        if (glm::distance(sphere->getTranslation(), clipBox.getVertex(i)) >= sphere->getScale() * CLIP_PROPORTION) {
+            ClippedRenderer::render(alpha, clipMinimum, clipSize);
+            return;
+        }
+    }
+}
+
+void SphereRenderer::renderUnclipped(float alpha) {
     Sphere* sphere = static_cast<Sphere*>(parent());
     const QColor& color = sphere->getColor();
     glColor4f(color.redF(), color.greenF(), color.blueF(), color.alphaF() * alpha);
@@ -384,11 +430,12 @@ void StaticModelRenderer::simulate(float deltaTime) {
     _model->simulate(deltaTime);
 }
 
-void StaticModelRenderer::render(float alpha) {
+void StaticModelRenderer::renderUnclipped(float alpha) {
     _model->render(alpha);
 }
 
-bool StaticModelRenderer::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+bool StaticModelRenderer::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const glm::vec3& clipMinimum, float clipSize, float& distance) const {
     return _model->findRayIntersection(origin, direction, distance);
 }
 

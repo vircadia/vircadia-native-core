@@ -11,6 +11,7 @@
 #include "AttributeRegistry.h"
 #include "MetavoxelData.h"
 
+REGISTER_META_OBJECT(FloatAttribute)
 REGISTER_META_OBJECT(QRgbAttribute)
 REGISTER_META_OBJECT(PackedNormalAttribute)
 REGISTER_META_OBJECT(SpannerQRgbAttribute)
@@ -34,7 +35,8 @@ AttributeRegistry::AttributeRegistry() :
     _colorAttribute(registerAttribute(new QRgbAttribute("color"))),
     _normalAttribute(registerAttribute(new PackedNormalAttribute("normal"))),
     _spannerColorAttribute(registerAttribute(new SpannerQRgbAttribute("spannerColor"))),
-    _spannerNormalAttribute(registerAttribute(new SpannerPackedNormalAttribute("spannerNormal"))) {
+    _spannerNormalAttribute(registerAttribute(new SpannerPackedNormalAttribute("spannerNormal"))),
+    _spannerMaskAttribute(registerAttribute(new FloatAttribute("spannerMask"))) {
     
     // our baseline LOD threshold is for voxels; spanners are a different story
     const float SPANNER_LOD_THRESHOLD_MULTIPLIER = 8.0f;
@@ -196,6 +198,10 @@ void Attribute::readMetavoxelSubdivision(MetavoxelData& data, MetavoxelStreamSta
 
 void Attribute::writeMetavoxelSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state) {
     root.writeSubdivision(state);
+}
+
+FloatAttribute::FloatAttribute(const QString& name, float defaultValue) :
+    SimpleInlineAttribute<float>(name, defaultValue) {
 }
 
 QRgbAttribute::QRgbAttribute(const QString& name, QRgb defaultValue) :
