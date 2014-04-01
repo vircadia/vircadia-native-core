@@ -156,7 +156,7 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
             direction += fingerVector / length;
         }
         fingerVector = glm::inverse(palmRotation) * fingerVector * -sign;
-        IndexValue indexValue = { int(i), atan2f(fingerVector.z, fingerVector.x) };
+        IndexValue indexValue = { (int)i, atan2f(fingerVector.z, fingerVector.x) };
         fingerIndices.append(indexValue);
     }
     qSort(fingerIndices.begin(), fingerIndices.end());

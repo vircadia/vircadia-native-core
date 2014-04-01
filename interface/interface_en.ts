@@ -4,22 +4,22 @@
 <context>
     <name>Application</name>
     <message>
-        <location filename="src/Application.cpp" line="1380"/>
+        <location filename="src/Application.cpp" line="1382"/>
         <source>Export Voxels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="1381"/>
+        <location filename="src/Application.cpp" line="1383"/>
         <source>Sparse Voxel Octree Files (*.svo)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3608"/>
+        <location filename="src/Application.cpp" line="3711"/>
         <source>Open Script</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3609"/>
+        <location filename="src/Application.cpp" line="3712"/>
         <source>JavaScript Files (*.js)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -27,56 +27,49 @@
 <context>
     <name>ChatWindow</name>
     <message>
-        <location filename="ui/chatWindow.ui" line="20"/>
-        <location filename="../build/interface/ui_chatWindow.h" line="143"/>
+        <location filename="ui/chatWindow.ui" line="29"/>
+        <location filename="../build/interface/ui_chatWindow.h" line="153"/>
         <source>Chat</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="ui/chatWindow.ui" line="50"/>
-        <location filename="../build/interface/ui_chatWindow.h" line="144"/>
+        <location filename="ui/chatWindow.ui" line="57"/>
+        <location filename="../build/interface/ui_chatWindow.h" line="154"/>
         <source>Connecting to XMPP...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="ui/chatWindow.ui" line="71"/>
-        <location filename="../build/interface/ui_chatWindow.h" line="145"/>
+        <location filename="ui/chatWindow.ui" line="78"/>
+        <location filename="../build/interface/ui_chatWindow.h" line="155"/>
         <source> online now:</source>
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location filename="src/ui/ChatWindow.cpp" line="128"/>
+        <location filename="src/ui/ChatWindow.cpp" line="135"/>
         <source>day</source>
-        <translation>
-            <numerusform>%n day</numerusform>
-            <numerusform>%n days</numerusform>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="src/ui/ChatWindow.cpp" line="128"/>
+        <location filename="src/ui/ChatWindow.cpp" line="135"/>
         <source>hour</source>
-        <translation>
-            <numerusform>%n hour</numerusform>
-            <numerusform>%n hours</numerusform>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="src/ui/ChatWindow.cpp" line="128"/>
+        <location filename="src/ui/ChatWindow.cpp" line="135"/>
         <source>minute</source>
-        <translation>
-            <numerusform>%n minute</numerusform>
-            <numerusform>%n minutes</numerusform>
-        </translation>
-    </message>
-    <message numerus="yes">
-        <source>second</source>
-        <translation type="vanished">
-            <numerusform>%n second</numerusform>
-            <numerusform>%n seconds</numerusform>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
         </translation>
     </message>
     <message>
-        <location filename="src/ui/ChatWindow.cpp" line="183"/>
+        <location filename="src/ui/ChatWindow.cpp" line="191"/>
         <source>%1 online now:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -113,18 +106,18 @@
 <context>
     <name>Menu</name>
     <message>
-        <location filename="src/Menu.cpp" line="460"/>
+        <location filename="src/Menu.cpp" line="464"/>
         <source>Open .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="462"/>
-        <location filename="src/Menu.cpp" line="474"/>
+        <location filename="src/Menu.cpp" line="466"/>
+        <location filename="src/Menu.cpp" line="478"/>
         <source>Text files (*.ini)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="472"/>
+        <location filename="src/Menu.cpp" line="476"/>
         <source>Save .ini config file</source>
         <translation type="unfinished"></translation>
     </message>

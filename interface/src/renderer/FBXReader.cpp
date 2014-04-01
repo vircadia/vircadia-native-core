@@ -1264,7 +1264,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         remainingModels.insert(model.key());
     }
     while (!remainingModels.isEmpty()) {
-        QString topID = getTopModelID(parentMap, models, *remainingModels.constBegin());
+        QString first = *remainingModels.constBegin();
+        foreach (const QString& id, remainingModels) {
+            if (id < first) {
+                first = id;
+            }
+        }
+        QString topID = getTopModelID(parentMap, models, first);
         appendModelIDs(parentMap.value(topID), childMap, models, remainingModels, modelIDs);
     }
 
@@ -1586,7 +1592,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             int numVertices = extracted.mesh.vertices.size();
             jointShapeInfo.numVertices = numVertices;
             if (numVertices > 0) {
-                averageVertex /= float(jointShapeInfo.numVertices);
+                averageVertex /= (float)jointShapeInfo.numVertices;
                 float averageRadius = 0.f;
                 foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
                     averageRadius += glm::distance(vertex, averageVertex);
@@ -1617,7 +1623,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         } else {
             // collide the joint like a sphere
             if (jointShapeInfo.numVertices > 0) {
-                jointShapeInfo.averageVertex /= float(jointShapeInfo.numVertices);
+                jointShapeInfo.averageVertex /= (float)jointShapeInfo.numVertices;
                 joint.shapePosition = jointShapeInfo.averageVertex;
             } else {
                 joint.shapePosition = glm::vec3(0.f);
@@ -1627,7 +1633,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                    && jointShapeInfo.numVertices > 0) {
                 // the bone projection algorithm was not able to compute the joint radius
                 // so we use an alternative measure
-                jointShapeInfo.averageRadius /= float(jointShapeInfo.numVertices);
+                jointShapeInfo.averageRadius /= (float)jointShapeInfo.numVertices;
                 joint.boneRadius = jointShapeInfo.averageRadius;
             }
         }

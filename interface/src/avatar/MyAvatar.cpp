@@ -82,6 +82,7 @@ void MyAvatar::reset() {
     // TODO? resurrect headMouse stuff?
     //_headMouseX = _glWidget->width() / 2;
     //_headMouseY = _glWidget->height() / 2;
+    _skeletonModel.reset();
     getHead()->reset();
     getHand()->reset();
 

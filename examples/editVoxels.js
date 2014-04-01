@@ -1326,7 +1326,7 @@ function wheelEvent(event) {
     }
 }
 
-Controller.wheelEvent.connect(wheelEvent);
+// Controller.wheelEvent.connect(wheelEvent);
 Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 Controller.mouseMoveEvent.connect(mouseMoveEvent);

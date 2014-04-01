@@ -23,7 +23,7 @@ Running Interface
 When you launch interface, you will automatically connect to our default domain: "root.highfidelity.io".
 
 If you don't see anything, make sure your preferences are pointing to 
-root.highfidelity.io, if you still have no luck it's possible our servers are 
+root.highfidelity.io (set your domain via Cmnd+D/Cntrl+D), if you still have no luck it's possible our servers are 
 simply down; if you're experiencing a major bug, let us know by adding an issue to this repository. 
 Make sure to include details about your computer and how to reproduce the bug. 
 

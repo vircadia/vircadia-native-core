@@ -1096,7 +1096,7 @@ QScriptValue ScriptedMetavoxelGuide::visit(QScriptContext* context, QScriptEngin
     QScriptValue minimum = infoValue.property(guide->_minimumHandle);
     MetavoxelInfo info = {
         glm::vec3(minimum.property(0).toNumber(), minimum.property(1).toNumber(), minimum.property(2).toNumber()),
-        float(infoValue.property(guide->_sizeHandle).toNumber()), guide->_visitation->info.inputValues,
+        (float)infoValue.property(guide->_sizeHandle).toNumber(), guide->_visitation->info.inputValues,
         guide->_visitation->info.outputValues, infoValue.property(guide->_isLeafHandle).toBool() };
     
     // extract and convert the values provided by the script

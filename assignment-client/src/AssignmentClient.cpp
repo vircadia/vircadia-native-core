@@ -18,6 +18,7 @@
 #include <SharedUtil.h>
 
 #include "AssignmentFactory.h"
+#include "AssignmentThread.h"
 
 #include "AssignmentClient.h"
 
@@ -28,7 +29,7 @@ int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
 
 AssignmentClient::AssignmentClient(int &argc, char **argv) :
     QCoreApplication(argc, argv),
-    _currentAssignment(NULL)
+    _currentAssignment()
 {
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
@@ -124,7 +125,7 @@ void AssignmentClient::readPendingDatagrams() {
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
             if (packetTypeForPacket(receivedPacket) == PacketTypeCreateAssignment) {
                 // construct the deployed assignment from the packet data
-                _currentAssignment = AssignmentFactory::unpackAssignment(receivedPacket);
+                _currentAssignment = SharedAssignmentPointer(AssignmentFactory::unpackAssignment(receivedPacket));
                 
                 if (_currentAssignment) {
                     qDebug() << "Received an assignment -" << *_currentAssignment;
@@ -137,14 +138,13 @@ void AssignmentClient::readPendingDatagrams() {
                     qDebug() << "Destination IP for assignment is" << nodeList->getDomainInfo().getIP().toString();
                     
                     // start the deployed assignment
-                    QThread* workerThread = new QThread(this);
+                    AssignmentThread* workerThread = new AssignmentThread(_currentAssignment, this);
                     
-                    connect(workerThread, SIGNAL(started()), _currentAssignment, SLOT(run()));
-                    
-                    connect(_currentAssignment, SIGNAL(finished()), this, SLOT(assignmentCompleted()));
-                    connect(_currentAssignment, SIGNAL(finished()), workerThread, SLOT(quit()));
-                    connect(_currentAssignment, SIGNAL(finished()), _currentAssignment, SLOT(deleteLater()));
-                    connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
+                    connect(workerThread, &QThread::started, _currentAssignment.data(), &ThreadedAssignment::run);
+                    connect(_currentAssignment.data(), &ThreadedAssignment::finished, workerThread, &QThread::quit);
+                    connect(_currentAssignment.data(), &ThreadedAssignment::finished,
+                            this, &AssignmentClient::assignmentCompleted);
+                    connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
                     
                     _currentAssignment->moveToThread(workerThread);
                     
@@ -153,7 +153,7 @@ void AssignmentClient::readPendingDatagrams() {
                     
                     // let the assignment handle the incoming datagrams for its duration
                     disconnect(&nodeList->getNodeSocket(), 0, this, 0);
-                    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, _currentAssignment,
+                    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, _currentAssignment.data(),
                             &ThreadedAssignment::readPendingDatagrams);
                     
                     // Starts an event loop, and emits workerThread->started()
@@ -202,10 +202,12 @@ void AssignmentClient::assignmentCompleted() {
     NodeList* nodeList = NodeList::getInstance();
 
     // have us handle incoming NodeList datagrams again
-    disconnect(&nodeList->getNodeSocket(), 0, _currentAssignment, 0);
+    disconnect(&nodeList->getNodeSocket(), 0, _currentAssignment.data(), 0);
     connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClient::readPendingDatagrams);
     
-    _currentAssignment = NULL;
+    // clear our current assignment shared pointer now that we're done with it
+    // if the assignment thread is still around it has its own shared pointer to the assignment
+    _currentAssignment.clear();
 
     // reset our NodeList by switching back to unassigned and clearing the list
     nodeList->setOwnerType(NodeType::Unassigned);

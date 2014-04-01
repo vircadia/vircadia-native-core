@@ -252,7 +252,8 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
 
     const float DISPLAYNAME_DISTANCE = 10.0f;
     setShowDisplayName(renderMode == NORMAL_RENDER_MODE && distanceToTarget < DISPLAYNAME_DISTANCE);
-    if (renderMode != NORMAL_RENDER_MODE) {
+    if (renderMode != NORMAL_RENDER_MODE || (isMyAvatar() &&
+            Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON)) {
         return;
     }
     renderDisplayName();
@@ -318,9 +319,7 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 void Avatar::renderBody(RenderMode renderMode) {    
     if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         // render the billboard until both models are loaded
-        if (renderMode != SHADOW_RENDER_MODE) {
-            renderBillboard();
-        }
+        renderBillboard();
         return;
     }
     _skeletonModel.render(1.0f, renderMode == SHADOW_RENDER_MODE);
@@ -403,9 +402,13 @@ void Avatar::renderDisplayName() {
     
     glPushMatrix();
     glm::vec3 textPosition;
-    getSkeletonModel().getNeckPosition(textPosition);
-    textPosition += getBodyUpDirection() * getHeadHeight() * 1.1f;
-
+    if (getSkeletonModel().getNeckPosition(textPosition)) {
+        textPosition += getBodyUpDirection() * getHeadHeight() * 1.1f;
+    } else {    
+        const float HEAD_PROPORTION = 0.75f;
+        textPosition = _position + getBodyUpDirection() * (getBillboardSize() * HEAD_PROPORTION); 
+    }
+    
     glTranslatef(textPosition.x, textPosition.y, textPosition.z); 
 
     // we need "always facing camera": we must remove the camera rotation from the stack
