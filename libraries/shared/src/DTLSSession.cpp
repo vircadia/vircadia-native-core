@@ -34,7 +34,7 @@ ssize_t DTLSSession::socketPush(gnutls_transport_ptr_t ptr, const void* buffer, 
                                     session->_destinationSocket.getAddress(), session->_destinationSocket.getPort());
 }
 
-gnutls_certificate_credentials_t* x509CACredentials() {
+gnutls_certificate_credentials_t* DTLSSession::x509CACredentials() {
     static gnutls_certificate_credentials_t x509Credentials;
     static bool credentialsInitialized = false;
     
