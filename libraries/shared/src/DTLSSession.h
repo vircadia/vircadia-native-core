@@ -13,20 +13,19 @@
 
 #include <gnutls/gnutls.h>
 
-static int socketPullTimeout(gnutls_transport_ptr_t ptr, unsigned int ms);
-static ssize_t socketPull(gnutls_transport_ptr_t ptr, void* buffer, size_t size);
-static ssize_t socketPush(gnutls_transport_ptr_t ptr, const void* buffer, size_t size);
+#include "HifiSockAddr.h"
 
 class DTLSSession {
 public:
-    DTLSSession(QUdpSocket& dtlsSocket);
-    
-    friend int socketPullTimeout(gnutls_transport_ptr_t ptr, unsigned int ms);
-    friend ssize_t socketPull(gnutls_transport_ptr_t ptr, void* buffer, size_t size);
-    friend ssize_t socketPush(gnutls_transport_ptr_t ptr, const void* buffer, size_t size);    
+    DTLSSession(QUdpSocket& dtlsSocket, HifiSockAddr& destinationSocket);
 private:
+    static int socketPullTimeout(gnutls_transport_ptr_t ptr, unsigned int ms);
+    static ssize_t socketPull(gnutls_transport_ptr_t ptr, void* buffer, size_t size);
+    static ssize_t socketPush(gnutls_transport_ptr_t ptr, const void* buffer, size_t size);
+    
     QUdpSocket& _dtlsSocket;
     gnutls_session_t _gnutlsSession;
+    HifiSockAddr _destinationSocket;
 };
 
 #endif /* defined(__hifi__DTLSSession__) */

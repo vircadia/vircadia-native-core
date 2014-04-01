@@ -42,7 +42,7 @@ void DomainHandler::reset() {
 
 void DomainHandler::initializeDTLSSession() {
     if (!_dtlsSession) {
-        _dtlsSession = new DTLSSession(NodeList::getInstance()->getDTLSSocket());
+        _dtlsSession = new DTLSSession(NodeList::getInstance()->getDTLSSocket(), _sockAddr);
     }
 }
 
@@ -118,7 +118,6 @@ void DomainHandler::parseDTLSRequirementPacket(const QByteArray& dtlsRequirement
     
     unsigned short dtlsPort = 0;
     memcpy(&dtlsPort, dtlsRequirementPacket.data() + numBytesPacketHeader, sizeof(dtlsPort));
-    
     
     qDebug() << "domain-server DTLS port changed to" << dtlsPort << "- Enabling DTLS.";
     
