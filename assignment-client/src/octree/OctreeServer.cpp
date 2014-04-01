@@ -832,14 +832,24 @@ void OctreeServer::readPendingDatagrams() {
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
             PacketType packetType = packetTypeForPacket(receivedPacket);
             
+            quint64 startNodeLookup = usecTimestampNow();
             SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
+            quint64 endNodeLookup = usecTimestampNow();
+            if ((endNodeLookup - startNodeLookup) > 100000) {
+                qDebug() << "OctreeServer::readPendingDatagrams(): sendingNodeForPacket() took" << (endNodeLookup - startNodeLookup) << "usecs";
+            }
             
             if (packetType == getMyQueryMessageType()) {
             
                 // If we got a PacketType_VOXEL_QUERY, then we're talking to an NodeType_t_AVATAR, and we
                 // need to make sure we have it in our nodeList.
                 if (matchingNode) {
+                    quint64 startUpdateNode = usecTimestampNow();
                     nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
+                    quint64 endUpdateNode = usecTimestampNow();
+                    if ((endUpdateNode - startUpdateNode) > 100000) {
+                        qDebug() << "OctreeServer::readPendingDatagrams(): updateNodeWithDataFromPacket() took" << (endUpdateNode - startUpdateNode) << "usecs";
+                    }
                     
                     OctreeQueryNode* nodeData = (OctreeQueryNode*) matchingNode->getLinkedData();
                     if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
@@ -857,7 +867,12 @@ void OctreeServer::readPendingDatagrams() {
                 lastProcessNodeData = now;
 
                 // let processNodeData handle it.
+                quint64 startProcessNodeData = usecTimestampNow();
                 NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
+                quint64 endProcessNodeData = usecTimestampNow();
+                if ((endProcessNodeData - startProcessNodeData) > 100000) {
+                    qDebug() << "OctreeServer::readPendingDatagrams(): processNodeData() took" << (endProcessNodeData - startProcessNodeData) << "usecs";
+                }
             }
         }
     }
