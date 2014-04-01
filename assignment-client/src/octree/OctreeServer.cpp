@@ -830,6 +830,18 @@ void OctreeServer::readPendingDatagrams() {
     
     quint64 startReadAvailable = usecTimestampNow();
     int readDataGrams = 0;
+
+    int queryPackets = 0;
+    int jurisdictionRequests = 0;
+    int editPackets = 0;
+    int nodeListPackets = 0;
+
+    quint64 queryElapsed = 0;
+    quint64 jurisdictionElapsed = 0;
+    quint64 editElapsed = 0;
+    quint64 nodeListElapsed = 0;
+    
+    
     while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
         readDataGrams++;
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
@@ -843,6 +855,8 @@ void OctreeServer::readPendingDatagrams() {
             }
             
             if (packetType == getMyQueryMessageType()) {
+                quint64 queryStart = usecTimestampNow();
+                queryPackets++;
             
                 // If we got a PacketType_VOXEL_QUERY, then we're talking to an NodeType_t_AVATAR, and we
                 // need to make sure we have it in our nodeList.
@@ -860,11 +874,24 @@ void OctreeServer::readPendingDatagrams() {
                         nodeData->initializeOctreeSendThread(sharedAssignment, matchingNode);
                     }
                 }
+                quint64 queryEnd = usecTimestampNow();
+                queryElapsed += (queryEnd - queryStart);
             } else if (packetType == PacketTypeJurisdictionRequest) {
+                quint64 jurisdictionStart = usecTimestampNow();
+                jurisdictionRequests++;
                 _jurisdictionSender->queueReceivedPacket(matchingNode, receivedPacket);
+                quint64 jurisdictionEnd = usecTimestampNow();
+                jurisdictionElapsed += (jurisdictionEnd - jurisdictionStart);
             } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
+                quint64 editStart = usecTimestampNow();
+                editPackets++;
                 _octreeInboundPacketProcessor->queueReceivedPacket(matchingNode, receivedPacket);
+                quint64 editEnd = usecTimestampNow();
+                editElapsed += (editEnd - editStart);
             } else {
+                quint64 nodeListStart = usecTimestampNow();
+
+                nodeListPackets++;
                 quint64 now = usecTimestampNow();
                 if ((now - lastProcessNodeData) > 500000) {
                     qDebug() << "OctreeServer::readPendingDatagrams(): since lastProcessNodeData=" << (now - lastProcessNodeData) << "usecs";
@@ -878,13 +905,26 @@ void OctreeServer::readPendingDatagrams() {
                 if ((endProcessNodeData - startProcessNodeData) > 100000) {
                     qDebug() << "OctreeServer::readPendingDatagrams(): processNodeData() took" << (endProcessNodeData - startProcessNodeData) << "usecs";
                 }
+
+                quint64 nodeListEnd = usecTimestampNow();
+                nodeListElapsed += (nodeListEnd - nodeListStart);
             }
         }
     }
     quint64 endReadAvailable = usecTimestampNow();
     if (endReadAvailable - startReadAvailable > 1000) {
         qDebug() << "OctreeServer::readPendingDatagrams(): while(readAvailable) took" << (endReadAvailable - startReadAvailable) << "usecs"
-            << " readDataGrams=" << readDataGrams;
+            << " readDataGrams=" << readDataGrams
+            << " nodeListPackets=" << nodeListPackets
+            << " editPackets=" << editPackets
+            << " jurisdictionRequests=" << jurisdictionRequests
+            << " queryPackets=" << queryPackets;
+
+        qDebug() << "OctreeServer::readPendingDatagrams(): while(readAvailable) took" << (endReadAvailable - startReadAvailable) << "usecs"
+            << " nodeListElapsed=" << nodeListElapsed
+            << " editElapsed=" << editElapsed
+            << " jurisdictionElapsed=" << jurisdictionElapsed
+            << " queryElapsed=" << queryElapsed;
     }
 
 }
