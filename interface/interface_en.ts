@@ -14,12 +14,12 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3703"/>
+        <location filename="src/Application.cpp" line="3718"/>
         <source>Open Script</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3704"/>
+        <location filename="src/Application.cpp" line="3719"/>
         <source>JavaScript Files (*.js)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -113,18 +113,18 @@
 <context>
     <name>Menu</name>
     <message>
-        <location filename="src/Menu.cpp" line="462"/>
+        <location filename="src/Menu.cpp" line="463"/>
         <source>Open .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="464"/>
-        <location filename="src/Menu.cpp" line="476"/>
+        <location filename="src/Menu.cpp" line="465"/>
+        <location filename="src/Menu.cpp" line="477"/>
         <source>Text files (*.ini)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="474"/>
+        <location filename="src/Menu.cpp" line="475"/>
         <source>Save .ini config file</source>
         <translation type="unfinished"></translation>
     </message>

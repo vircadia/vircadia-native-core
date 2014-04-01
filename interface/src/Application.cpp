@@ -2540,6 +2540,13 @@ void Application::displayOverlay() {
 
     audioLevel = log2loudness / MAX_LOG2_SAMPLE * AUDIO_METER_SCALE_WIDTH;
     
+    
+    if (log2loudness <= 11.f) {
+        audioLevel = log2loudness / 11.f * AUDIO_METER_SCALE_WIDTH / 5.f;
+    } else {
+        audioLevel = (log2loudness - 10.f) * AUDIO_METER_SCALE_WIDTH / 5.f;
+    }
+    
     bool isClipping = ((_audio.getTimeSinceLastClip() > 0.f) && (_audio.getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME));
 
     glBegin(GL_QUADS);
