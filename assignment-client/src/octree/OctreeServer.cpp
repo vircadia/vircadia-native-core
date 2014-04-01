@@ -1051,6 +1051,8 @@ void OctreeServer::nodeAdded(SharedNodePointer node) {
 }
 
 void OctreeServer::nodeKilled(SharedNodePointer node) {
+    quint64 start  = usecTimestampNow();
+
     qDebug() << qPrintable(_safeServerName) << "server killed node:" << *node;
     OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(node->getLinkedData());
     if (nodeData) {
@@ -1060,6 +1062,10 @@ void OctreeServer::nodeKilled(SharedNodePointer node) {
     } else {
         qDebug() << qPrintable(_safeServerName) << "server node missing linked data node:" << *node;
     }
+
+    quint64 end  = usecTimestampNow();
+    quint64 usecsElapsed = (end - start);
+    qDebug() << qPrintable(_safeServerName) << "server killed node:" << *node << " took: " << usecsElapsed << " usecs";
 }
 
 void OctreeServer::aboutToFinish() {
