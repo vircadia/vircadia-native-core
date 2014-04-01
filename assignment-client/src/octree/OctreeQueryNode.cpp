@@ -107,8 +107,13 @@ void OctreeQueryNode::nodeKilled() {
 
 void OctreeQueryNode::initializeOctreeSendThread(const SharedAssignmentPointer& myAssignment, const SharedNodePointer& node) {
     // Create octree sending thread...
+    qDebug() << "OctreeQueryNode::initializeOctreeSendThread()... BEFORE new OctreeSendThread(myAssignment, node);";
     _octreeSendThread = new OctreeSendThread(myAssignment, node);
+    qDebug() << "OctreeQueryNode::initializeOctreeSendThread()... AFTER new OctreeSendThread(myAssignment, node);";
+
+    qDebug() << "OctreeQueryNode::initializeOctreeSendThread()... BEFORE _octreeSendThread->initialize(true)";
     _octreeSendThread->initialize(true);
+    qDebug() << "OctreeQueryNode::initializeOctreeSendThread()... AFTER _octreeSendThread->initialize(true)";
 }
 
 bool OctreeQueryNode::packetIsDuplicate() const {

@@ -842,8 +842,12 @@ void OctreeServer::readPendingDatagrams() {
                         if (debug) {
                             qDebug() << "calling initializeOctreeSendThread()... node:" << *matchingNode;
                         }
+
+
+                        qDebug() << "OctreeServer::readPendingDatagrams()... BEFORE nodeData->initializeOctreeSendThread()";
                         SharedAssignmentPointer sharedAssignment = AssignmentClient::getCurrentAssignment();
                         nodeData->initializeOctreeSendThread(sharedAssignment, matchingNode);
+                        qDebug() << "OctreeServer::readPendingDatagrams()... AFTER nodeData->initializeOctreeSendThread()";
                     }
                 }
             } else if (packetType == PacketTypeJurisdictionRequest) {
