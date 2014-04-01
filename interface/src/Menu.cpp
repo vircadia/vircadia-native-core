@@ -145,7 +145,8 @@ Menu::Menu() :
                                   SLOT(goTo()));
 
     addDisabledActionAndSeparator(fileMenu, "Upload Avatar Model");
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadFST, 0, Application::getInstance(), SLOT(uploadFST()));
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadHead, 0, Application::getInstance(), SLOT(uploadHead()));
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadSkeleton, 0, Application::getInstance(), SLOT(uploadSkeleton()));
     
     addDisabledActionAndSeparator(fileMenu, "Settings");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::SettingsImport, 0, this, SLOT(importSettings()));
@@ -240,7 +241,7 @@ Menu::Menu() :
     addDisabledActionAndSeparator(viewMenu, "Stats");
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats, Qt::Key_Slash);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::Log, Qt::CTRL | Qt::Key_L, appInstance, SLOT(toggleLogDialog()));
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Oscilloscope, 0, true);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Oscilloscope, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Bandwidth, 0, true);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0, this, SLOT(bandwidthDetails()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0, this, SLOT(octreeStatsDetails()));
@@ -359,6 +360,12 @@ Menu::Menu() :
                                            false,
                                            appInstance->getAudio(),
                                            SLOT(toggleMute()));
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioToneInjection,
+                                           0,
+                                           false,
+                                           appInstance->getAudio(),
+                                           SLOT(toggleToneInjection()));
+
     
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
                 Qt::CTRL | Qt::SHIFT | Qt::Key_V,
@@ -392,8 +399,6 @@ void Menu::loadSettings(QSettings* settings) {
     _maxVoxels = loadSetting(settings, "maxVoxels", DEFAULT_MAX_VOXELS_PER_SYSTEM);
     _maxVoxelPacketsPerSecond = loadSetting(settings, "maxVoxelsPPS", DEFAULT_MAX_VOXEL_PPS);
     _voxelSizeScale = loadSetting(settings, "voxelSizeScale", DEFAULT_OCTREE_SIZE_SCALE);
-    _avatarLODDistanceMultiplier = loadSetting(settings, "avatarLODDistanceMultiplier",
-        DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER);
     _boundaryLevelAdjust = loadSetting(settings, "boundaryLevelAdjust", 0);
 
     settings->beginGroup("View Frustum Offset Camera");
@@ -433,7 +438,6 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("maxVoxels", _maxVoxels);
     settings->setValue("maxVoxelsPPS", _maxVoxelPacketsPerSecond);
     settings->setValue("voxelSizeScale", _voxelSizeScale);
-    settings->setValue("avatarLODDistanceMultiplier", _avatarLODDistanceMultiplier);
     settings->setValue("boundaryLevelAdjust", _boundaryLevelAdjust);
     settings->beginGroup("View Frustum Offset Camera");
     settings->setValue("viewFrustumOffsetYaw", _viewFrustumOffset.yaw);
@@ -934,12 +938,15 @@ void Menu::goTo() {
     
     int dialogReturn = gotoDialog.exec();
     if (dialogReturn == QDialog::Accepted && !gotoDialog.textValue().isEmpty()) {
-        LocationManager* manager = &LocationManager::getInstance();
-        manager->goTo(gotoDialog.textValue());
-        connect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
+        goToUser(gotoDialog.textValue());
     }
-    
     sendFakeEnterEvent();
+}
+
+void Menu::goToUser(const QString& user) {
+    LocationManager* manager = &LocationManager::getInstance();
+    manager->goTo(user);
+    connect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
 }
 
 void Menu::multipleDestinationsDecision(const QJsonObject& userData, const QJsonObject& placeData) {
@@ -1109,13 +1116,28 @@ void Menu::showMetavoxelEditor() {
 }
 
 void Menu::showChat() {
+    if (!_chatAction->isEnabled()) {
+        // Don't do anything if chat is disabled (No
+        // QXMPP library or xmpp is disconnected).
+        return;
+    }
+    QMainWindow* mainWindow = Application::getInstance()->getWindow();
     if (!_chatWindow) {
-        Application::getInstance()->getWindow()->addDockWidget(Qt::RightDockWidgetArea, _chatWindow = new ChatWindow());
-        
-    } else {
-        if (!_chatWindow->toggleViewAction()->isChecked()) {
-            _chatWindow->toggleViewAction()->trigger();
-        }
+        mainWindow->addDockWidget(Qt::NoDockWidgetArea, _chatWindow = new ChatWindow());
+    }
+    if (!_chatWindow->toggleViewAction()->isChecked()) {
+        int width = _chatWindow->width();
+        int y = qMax((mainWindow->height() - _chatWindow->height()) / 2, 0);
+        _chatWindow->move(mainWindow->width(), y);
+        _chatWindow->resize(0, _chatWindow->height());
+        _chatWindow->toggleViewAction()->trigger();
+
+        QPropertyAnimation* slideAnimation = new QPropertyAnimation(_chatWindow, "geometry", _chatWindow);
+        slideAnimation->setStartValue(_chatWindow->geometry());
+        slideAnimation->setEndValue(QRect(mainWindow->width() - width, _chatWindow->y(),
+                                          width, _chatWindow->height()));
+        slideAnimation->setDuration(250);
+        slideAnimation->start(QAbstractAnimation::DeleteWhenStopped);
     }
 }
 
@@ -1210,7 +1232,10 @@ void Menu::autoAdjustLOD(float currentFPS) {
         if (now - _lastAvatarDetailDrop > ADJUST_AVATAR_LOD_DOWN_DELAY) {
             // attempt to lower the detail in proportion to the fps difference
             float targetFps = (ADJUST_LOD_DOWN_FPS + ADJUST_LOD_UP_FPS) * 0.5f;
-            _avatarLODDistanceMultiplier *= (targetFps / _fastFPSAverage.getAverage()); 
+            float averageFps = _fastFPSAverage.getAverage();
+            const float MAXIMUM_MULTIPLIER_SCALE = 2.0f;
+            _avatarLODDistanceMultiplier *= (averageFps < EPSILON) ? MAXIMUM_MULTIPLIER_SCALE :
+                qMin(MAXIMUM_MULTIPLIER_SCALE, targetFps / averageFps);
             _lastAvatarDetailDrop = now;
         }
     } else if (_fastFPSAverage.getAverage() > ADJUST_LOD_UP_FPS) {
@@ -1254,6 +1279,12 @@ void Menu::autoAdjustLOD(float currentFPS) {
             _lodToolsDialog->reloadSliders();
         }
     }
+}
+
+void Menu::resetLODAdjust() {
+    _fpsAverage.reset();
+    _fastFPSAverage.reset();
+    _lastAvatarDetailDrop = _lastAdjust = usecTimestampNow();
 }
 
 void Menu::setVoxelSizeScale(float sizeScale) {

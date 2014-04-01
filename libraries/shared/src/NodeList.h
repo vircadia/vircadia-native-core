@@ -58,6 +58,7 @@ namespace PingType {
     const PingType_t Agnostic = 0;
     const PingType_t Local = 1;
     const PingType_t Public = 2;
+    const PingType_t Symmetric = 3;
 }
 
 class NodeList : public QObject {
@@ -101,9 +102,9 @@ public:
 
     QByteArray constructPingPacket(PingType_t pingType = PingType::Agnostic);
     QByteArray constructPingReplyPacket(const QByteArray& pingPacket);
-    void pingPublicAndLocalSocketsForInactiveNode(const SharedNodePointer& node);
+    void pingPunchForInactiveNode(const SharedNodePointer& node);
 
-    SharedNodePointer nodeWithUUID(const QUuid& nodeUUID);
+    SharedNodePointer nodeWithUUID(const QUuid& nodeUUID, bool blockingLock = true);
     SharedNodePointer sendingNodeForPacket(const QByteArray& packet);
     
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, char nodeType,
