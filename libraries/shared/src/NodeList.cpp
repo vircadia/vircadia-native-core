@@ -924,6 +924,7 @@ void NodeList::resetPacketStats() {
 }
 
 void NodeList::removeSilentNodes() {
+    quint64 removeSilentNodesStart = usecTimestampNow();
 
     _nodeHashMutex.lock();
     
@@ -946,6 +947,12 @@ void NodeList::removeSilentNodes() {
     }
     
     _nodeHashMutex.unlock();
+
+    quint64 removeSilentNodesEnd = usecTimestampNow();
+    quint64 removeSilentNodesElapsed = (removeSilentNodesEnd - removeSilentNodesStart);
+    if (removeSilentNodesElapsed > 100000) {
+        qDebug() << "removeSilentNodesElapsed="<<removeSilentNodesElapsed;
+    }
 }
 
 const QString QSETTINGS_GROUP_NAME = "NodeList";
