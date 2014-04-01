@@ -476,7 +476,6 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     
     LimitedNodeList* nodeList = LimitedNodeList::getInstance();
     
-    
     if (nodeInterestList.size() > 0) {
         // if the node has any interest types, send back those nodes as well
         foreach (const SharedNodePointer& otherNode, nodeList->getNodeHash()) {

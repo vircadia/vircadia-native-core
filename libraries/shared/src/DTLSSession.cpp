@@ -63,7 +63,5 @@ DTLSSession::DTLSSession(QUdpSocket& dtlsSocket, HifiSockAddr& destinationSocket
     gnutls_transport_set_pull_timeout_function(_gnutlsSession, socketPullTimeout);
     
     // start the handshake process with domain-server now
-    int handshakeReturn = gnutls_handshake(_gnutlsSession);
-    gnutls_perror(handshakeReturn);
-    qDebug() << "HR" << handshakeReturn;
+    gnutls_handshake(_gnutlsSession);
 }
