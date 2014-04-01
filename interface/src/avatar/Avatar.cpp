@@ -217,10 +217,10 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
             getHead()->getFaceModel().renderJointCollisionShapes(0.7f);
         }
         if (Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes)) {
-            _skeletonModel.updateShapePositions();
-            _skeletonModel.renderBoundingCollisionShapes(0.7f);
             getHead()->getFaceModel().updateShapePositions();
             getHead()->getFaceModel().renderBoundingCollisionShapes(0.7f);
+            _skeletonModel.updateShapePositions();
+            _skeletonModel.renderBoundingCollisionShapes(0.7f);
         }
 
         // quick check before falling into the code below:
