@@ -827,7 +827,6 @@ void OctreeServer::readPendingDatagrams() {
             
             if (packetType == getMyQueryMessageType()) {
             
-                /**
                 // If we got a PacketType_VOXEL_QUERY, then we're talking to an NodeType_t_AVATAR, and we
                 // need to make sure we have it in our nodeList.
                 if (matchingNode) {
@@ -835,11 +834,12 @@ void OctreeServer::readPendingDatagrams() {
                     
                     OctreeQueryNode* nodeData = (OctreeQueryNode*) matchingNode->getLinkedData();
                     if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
+                        /**
                         SharedAssignmentPointer sharedAssignment = AssignmentClient::getCurrentAssignment();
                         nodeData->initializeOctreeSendThread(sharedAssignment, matchingNode);
+                        **/
                     }
                 }
-                **/
             } else if (packetType == PacketTypeJurisdictionRequest) {
                 _jurisdictionSender->queueReceivedPacket(matchingNode, receivedPacket);
             } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
