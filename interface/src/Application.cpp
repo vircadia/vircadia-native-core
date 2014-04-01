@@ -1846,15 +1846,6 @@ void Application::updateDialogs(float deltaTime) {
     }
 }
 
-void Application::updateAudio(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateAudio()");
-
-    //  Update audio stats for procedural sounds
-    _audio.setLastAcceleration(_myAvatar->getThrust());
-    _audio.setLastVelocity(_myAvatar->getVelocity());
-}
-
 void Application::updateCursor(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateCursor()");
@@ -1903,7 +1894,6 @@ void Application::update(float deltaTime) {
     updateMetavoxels(deltaTime); // update metavoxels
     updateCamera(deltaTime); // handle various camera tweaks like off axis projection
     updateDialogs(deltaTime); // update various stats dialogs if present
-    updateAudio(deltaTime); // Update audio stats for procedural sounds
     updateCursor(deltaTime); // Handle cursor updates
 
     _particles.update(); // update the particles...

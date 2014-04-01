@@ -312,7 +312,6 @@ private:
     void updateMetavoxels(float deltaTime);
     void updateCamera(float deltaTime);
     void updateDialogs(float deltaTime);
-    void updateAudio(float deltaTime);
     void updateCursor(float deltaTime);
 
     Avatar* findLookatTargetAvatar(glm::vec3& eyePosition, QUuid &nodeUUID);

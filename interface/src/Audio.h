@@ -51,10 +51,7 @@ public:
     float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
 
     void setNoiseGateEnabled(bool noiseGateEnabled) { _noiseGateEnabled = noiseGateEnabled; }
-    
-    void setLastAcceleration(const glm::vec3 lastAcceleration) { _lastAcceleration = lastAcceleration; }
-    void setLastVelocity(const glm::vec3 lastVelocity) { _lastVelocity = lastVelocity; }
-    
+        
     void setJitterBufferSamples(int samples) { _jitterBufferSamples = samples; }
     int getJitterBufferSamples() { return _jitterBufferSamples; }
     
@@ -139,8 +136,6 @@ private:
     bool _noiseGateOpen;
     bool _noiseGateEnabled;
     int _noiseGateFramesToClose;
-    glm::vec3 _lastVelocity;
-    glm::vec3 _lastAcceleration;
     int _totalPacketsReceived;
     
     float _collisionSoundMagnitude;

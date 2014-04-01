@@ -67,8 +67,6 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
     _noiseGateOpen(false),
     _noiseGateEnabled(true),
     _noiseGateFramesToClose(0),
-    _lastVelocity(0),
-    _lastAcceleration(0),
     _totalPacketsReceived(0),
     _collisionSoundMagnitude(0.0f),
     _collisionSoundFrequency(0.0f),
