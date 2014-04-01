@@ -129,9 +129,11 @@ void ViewFrustum::calculate() {
 
     // Also calculate our projection matrix in case people want to project points...
     // Projection matrix : Field of View, ratio, display range : near to far
-    glm::mat4 projection = glm::perspective(_fieldOfView, _aspectRatio, _nearClip, _farClip);
-    glm::vec3 lookAt     = _position + _direction;
-    glm::mat4 view       = glm::lookAt(_position, lookAt, _up);
+    const float CLIP_NUDGE = 1.0f;
+    float farClip = (_farClip != _nearClip) ? _farClip : _nearClip + CLIP_NUDGE; // don't allow near and far to be equal
+    glm::mat4 projection = glm::perspective(_fieldOfView, _aspectRatio, _nearClip, farClip);
+    glm::vec3 lookAt = _position + _direction;
+    glm::mat4 view = glm::lookAt(_position, lookAt, _up);
 
     // Our ModelViewProjection : multiplication of our 3 matrices (note: model is identity, so we can drop it)
     _ourModelViewProjectionMatrix = projection * view; // Remember, matrix multiplication is the other way around
