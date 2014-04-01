@@ -261,7 +261,9 @@ public slots:
     void stopAllScripts();
     void reloadAllScripts();
     
-    void uploadFST();
+    void uploadFST(bool isHead);
+    void uploadHead();
+    void uploadSkeleton();
 
 private slots:
     void timer();
