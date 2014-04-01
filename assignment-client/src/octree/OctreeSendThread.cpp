@@ -81,10 +81,8 @@ bool OctreeSendThread::process() {
 
             // Sometimes the node data has not yet been linked, in which case we can't really do anything
             if (nodeData && !nodeData->isShuttingDown()) {
-                /*
                 bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
                 packetDistributor(nodeData, viewFrustumChanged);
-                */
             }
         }
     }

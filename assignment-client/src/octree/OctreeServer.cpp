@@ -1184,6 +1184,11 @@ QString OctreeServer::getStatusLink() {
 }
 
 void OctreeServer::sendStatsPacket() {
+
+    static QJsonObject statsObject1;
+    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject1);
+
+    /**
     // TODO: we have too many stats to fit in a single MTU... so for now, we break it into multiple JSON objects and
     // send them separately. What we really should do is change the NodeList::sendStatsToDomainServer() to handle the
     // the following features:
@@ -1257,6 +1262,8 @@ void OctreeServer::sendStatsPacket() {
         (double)_octreeInboundPacketProcessor->getAverageLockWaitTimePerElement();
 
     NodeList::getInstance()->sendStatsToDomainServer(statsObject3);
+    
+    **/
 }
 
 QMap<OctreeSendThread*, quint64> OctreeServer::_threadsDidProcess;
