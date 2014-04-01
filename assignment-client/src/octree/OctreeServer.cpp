@@ -834,10 +834,8 @@ void OctreeServer::readPendingDatagrams() {
                     
                     OctreeQueryNode* nodeData = (OctreeQueryNode*) matchingNode->getLinkedData();
                     if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
-                        /**
                         SharedAssignmentPointer sharedAssignment = AssignmentClient::getCurrentAssignment();
                         nodeData->initializeOctreeSendThread(sharedAssignment, matchingNode);
-                        **/
                     }
                 }
             } else if (packetType == PacketTypeJurisdictionRequest) {
