@@ -4,22 +4,22 @@
 <context>
     <name>Application</name>
     <message>
-        <location filename="src/Application.cpp" line="1381"/>
+        <location filename="src/Application.cpp" line="1362"/>
         <source>Export Voxels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="1382"/>
+        <location filename="src/Application.cpp" line="1363"/>
         <source>Sparse Voxel Octree Files (*.svo)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3623"/>
+        <location filename="src/Application.cpp" line="3604"/>
         <source>Open Script</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3624"/>
+        <location filename="src/Application.cpp" line="3605"/>
         <source>JavaScript Files (*.js)</source>
         <translation type="unfinished"></translation>
     </message>

@@ -912,19 +912,58 @@ bool Menu::goToDestination(QString destination) {
     return LocationManager::getInstance().goToDestination(destination);
 }
 
+void Menu::goTo(QString destination) {
+    LocationManager::getInstance().goTo(destination);
+}
+
 void Menu::goTo() {
     
     QInputDialog gotoDialog(Application::getInstance()->getWindow());
     gotoDialog.setWindowTitle("Go to");
-    gotoDialog.setLabelText("Destination:");
+    gotoDialog.setLabelText("Destination or URL:\n @user, #place, hifi://domain/location/orientation");
     QString destination = QString();
+
     gotoDialog.setTextValue(destination);
     gotoDialog.setWindowFlags(Qt::Sheet);
     gotoDialog.resize(gotoDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, gotoDialog.size().height());
     
     int dialogReturn = gotoDialog.exec();
     if (dialogReturn == QDialog::Accepted && !gotoDialog.textValue().isEmpty()) {
-        goToUser(gotoDialog.textValue());
+        QString desiredDestination = gotoDialog.textValue();
+
+        if (desiredDestination.startsWith(CUSTOM_URL_SCHEME + "//")) {
+            QStringList urlParts = desiredDestination.remove(0, CUSTOM_URL_SCHEME.length() + 2).split('/', QString::SkipEmptyParts);
+
+            if (urlParts.count() > 1) {
+                // if url has 2 or more parts, the first one is domain name
+                QString domain = urlParts[0];
+
+                // second part is either a destination coordinate or
+                // a place name
+                QString destination = urlParts[1];
+
+                // any third part is an avatar orientation.
+                QString orientation = urlParts.count() > 2 ? urlParts[2] : QString();
+
+                goToDomain(domain);
+                
+                // goto either @user, #place, or x-xx,y-yy,z-zz
+                // style co-ordinate.
+                goTo(destination);
+
+                if (!orientation.isEmpty()) {
+                    // location orientation
+                    goToOrientation(orientation);
+                }
+            } else if (urlParts.count() == 1) {
+                // location coordinates or place name
+                QString destination = urlParts[0];
+                goTo(destination);
+            }
+
+        } else {
+            goToUser(gotoDialog.textValue());
+        }
     }
     sendFakeEnterEvent();
 }
