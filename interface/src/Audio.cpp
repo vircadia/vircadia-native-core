@@ -436,12 +436,12 @@ void Audio::handleAudioInput() {
                 measuredDcOffset += monoAudioSamples[i];
                 monoAudioSamples[i] -= (int16_t) _dcOffset;
                 thisSample = fabsf(monoAudioSamples[i]);
-                if (thisSample > (32767.f * CLIPPING_THRESHOLD)) {
+                if (thisSample >= (32767.f * CLIPPING_THRESHOLD)) {
                     _timeSinceLastClip = 0.0f;
                 }
                 loudness += thisSample;
                 //  Noise Reduction:  Count peaks above the average loudness
-                if (thisSample > (_noiseGateMeasuredFloor * NOISE_GATE_HEIGHT)) {
+                if (_noiseGateEnabled && (thisSample > (_noiseGateMeasuredFloor * NOISE_GATE_HEIGHT))) {
                     samplesOverNoiseGate++;
                 }
             }
@@ -454,32 +454,41 @@ void Audio::handleAudioInput() {
                 _dcOffset = DC_OFFSET_AVERAGING * _dcOffset + (1.f - DC_OFFSET_AVERAGING) * measuredDcOffset;
             }
             
-            //
-            _lastInputLoudness = fabs(loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-            
-            float averageOfAllSampleFrames = 0.f;
-            _noiseSampleFrames[_noiseGateSampleCounter++] = _lastInputLoudness;
-            if (_noiseGateSampleCounter == NUMBER_OF_NOISE_SAMPLE_FRAMES) {
-                float smallestSample = FLT_MAX;
-                for (int i = 0; i <= NUMBER_OF_NOISE_SAMPLE_FRAMES - NOISE_GATE_FRAMES_TO_AVERAGE; i+= NOISE_GATE_FRAMES_TO_AVERAGE) {
-                    float thisAverage = 0.0f;
-                    for (int j = i; j < i + NOISE_GATE_FRAMES_TO_AVERAGE; j++) {
-                        thisAverage += _noiseSampleFrames[j];
-                        averageOfAllSampleFrames += _noiseSampleFrames[j];
-                    }
-                    thisAverage /= NOISE_GATE_FRAMES_TO_AVERAGE;
-                    
-                    if (thisAverage < smallestSample) {
-                        smallestSample = thisAverage;
-                    }
+            //  Add tone injection if enabled
+            const float TONE_FREQ = 220.f / SAMPLE_RATE * TWO_PI;
+            const float QUARTER_VOLUME = 8192.f;
+            if (_toneInjectionEnabled) {
+                loudness = 0.f;
+                for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
+                    monoAudioSamples[i] = QUARTER_VOLUME * sinf(TONE_FREQ * (float)(i + _proceduralEffectSample));
+                    loudness += fabsf(monoAudioSamples[i]);
                 }
-                averageOfAllSampleFrames /= NUMBER_OF_NOISE_SAMPLE_FRAMES;
-                _noiseGateMeasuredFloor = smallestSample;
-                _noiseGateSampleCounter = 0;
-
             }
+            _lastInputLoudness = fabs(loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
 
-            if (_noiseGateEnabled) {
+            //  If Noise Gate is enabled, check and turn the gate on and off
+            if (!_toneInjectionEnabled && _noiseGateEnabled) {
+                float averageOfAllSampleFrames = 0.f;
+                _noiseSampleFrames[_noiseGateSampleCounter++] = _lastInputLoudness;
+                if (_noiseGateSampleCounter == NUMBER_OF_NOISE_SAMPLE_FRAMES) {
+                    float smallestSample = FLT_MAX;
+                    for (int i = 0; i <= NUMBER_OF_NOISE_SAMPLE_FRAMES - NOISE_GATE_FRAMES_TO_AVERAGE; i+= NOISE_GATE_FRAMES_TO_AVERAGE) {
+                        float thisAverage = 0.0f;
+                        for (int j = i; j < i + NOISE_GATE_FRAMES_TO_AVERAGE; j++) {
+                            thisAverage += _noiseSampleFrames[j];
+                            averageOfAllSampleFrames += _noiseSampleFrames[j];
+                        }
+                        thisAverage /= NOISE_GATE_FRAMES_TO_AVERAGE;
+                        
+                        if (thisAverage < smallestSample) {
+                            smallestSample = thisAverage;
+                        }
+                    }
+                    averageOfAllSampleFrames /= NUMBER_OF_NOISE_SAMPLE_FRAMES;
+                    _noiseGateMeasuredFloor = smallestSample;
+                    _noiseGateSampleCounter = 0;
+
+                }
                 if (samplesOverNoiseGate > NOISE_GATE_WIDTH) {
                     _noiseGateOpen = true;
                     _noiseGateFramesToClose = NOISE_GATE_CLOSE_FRAME_DELAY;
@@ -491,16 +500,6 @@ void Audio::handleAudioInput() {
                 if (!_noiseGateOpen) {
                     memset(monoAudioSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
                     _lastInputLoudness = 0;
-                }
-            }
-            //
-            //  Add tone injection if enabled
-            //
-            const float TONE_FREQ = 220.f / SAMPLE_RATE * TWO_PI;
-            const float QUARTER_VOLUME = 8192.f;
-            if (_toneInjectionEnabled) {
-                for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
-                    monoAudioSamples[i] = QUARTER_VOLUME * sinf(TONE_FREQ * (float)(i + _proceduralEffectSample));
                 }
             }
 

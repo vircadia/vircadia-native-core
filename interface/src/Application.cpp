@@ -2531,20 +2531,21 @@ void Application::displayOverlay() {
     const float CLIPPING_INDICATOR_TIME = 1.0f;
     const float AUDIO_METER_AVERAGING = 0.5;
     const float LOG2 = log(2.f);
-    const float MAX_LOG2_SAMPLE = 15.f;
+    const float METER_LOUDNESS_SCALE = 2.8f / 5.f;
+    const float LOG2_LOUDNESS_FLOOR = 11.f;
     float audioLevel = 0.f;
     float loudness = _audio.getLastInputLoudness() + 1.f;
+    
     _trailingAudioLoudness = AUDIO_METER_AVERAGING * _trailingAudioLoudness + (1.f - AUDIO_METER_AVERAGING) * loudness;
-
     float log2loudness = log(_trailingAudioLoudness) / LOG2;
 
-    audioLevel = log2loudness / MAX_LOG2_SAMPLE * AUDIO_METER_SCALE_WIDTH;
-    
-    
-    if (log2loudness <= 11.f) {
-        audioLevel = log2loudness / 11.f * AUDIO_METER_SCALE_WIDTH / 5.f;
+    if (log2loudness <= LOG2_LOUDNESS_FLOOR) {
+        audioLevel = (log2loudness / LOG2_LOUDNESS_FLOOR) * METER_LOUDNESS_SCALE * AUDIO_METER_SCALE_WIDTH;
     } else {
-        audioLevel = (log2loudness - 10.f) * AUDIO_METER_SCALE_WIDTH / 5.f;
+        audioLevel = (log2loudness - (LOG2_LOUDNESS_FLOOR - 1.f)) * METER_LOUDNESS_SCALE * AUDIO_METER_SCALE_WIDTH;
+    }
+    if (audioLevel > AUDIO_METER_SCALE_WIDTH) {
+        audioLevel = AUDIO_METER_SCALE_WIDTH;
     }
     
     bool isClipping = ((_audio.getTimeSinceLastClip() > 0.f) && (_audio.getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME));
