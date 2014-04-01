@@ -6,8 +6,9 @@
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 
-#include <QtCore/QJsonObject>
+#include <gnutls/dtls.h>
 
+#include "NodeList.h"
 #include "PacketHeaders.h"
 
 #include "DomainInfo.h"
@@ -16,10 +17,15 @@ DomainInfo::DomainInfo() :
     _uuid(),
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _assignmentUUID(),
+    _isConnected(false),
     _requiresDTLS(false),
-    _isConnected(false)
+    _dtlsSession(NULL)
 {
     
+}
+
+DomainInfo::~DomainInfo() {
+    delete _dtlsSession;
 }
 
 void DomainInfo::clearConnectionInfo() {
@@ -32,6 +38,12 @@ void DomainInfo::reset() {
     _hostname = QString();
     _sockAddr.setAddress(QHostAddress::Null);
     _requiresDTLS = false;
+}
+
+void DomainInfo::initializeDTLSSession() {
+    if (!_dtlsSession) {
+        _dtlsSession = new DTLSSession(NodeList::getInstance()->getDTLSSocket());
+    }
 }
 
 void DomainInfo::setSockAddr(const HifiSockAddr& sockAddr) {
@@ -107,8 +119,11 @@ void DomainInfo::parseDTLSRequirementPacket(const QByteArray& dtlsRequirementPac
     unsigned short dtlsPort = 0;
     memcpy(&dtlsPort, dtlsRequirementPacket.data() + numBytesPacketHeader, sizeof(dtlsPort));
     
+    
+    qDebug() << "domain-server DTLS port changed to" << dtlsPort << "- Enabling DTLS.";
+    
     _sockAddr.setPort(dtlsPort);
     _requiresDTLS = true;
     
-    qDebug() << "domain-server DTLS port changed to" << dtlsPort << "- DTLS enabled.";
+    initializeDTLSSession();
 }

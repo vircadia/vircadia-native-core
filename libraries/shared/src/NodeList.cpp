@@ -62,6 +62,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     _nodeHash(),
     _nodeHashMutex(QMutex::Recursive),
     _nodeSocket(this),
+    _dtlsSocket(NULL),
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(),
     _sessionUUID(),
@@ -78,9 +79,11 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     qDebug() << "NodeList socket is listening on" << _nodeSocket.localPort();
     
     if (dtlsListenPort > 0) {
-        // we have a specfic DTLS port, bind that socket now
-        _dtlsSocket.bind(QHostAddress::AnyIPv4, dtlsListenPort);
-        qDebug() << "NodeList DTLS socket is listening on" << _dtlsSocket.localPort();
+        // only create the DTLS socket during constructor if a custom port is passed
+        _dtlsSocket = new QUdpSocket(this);
+        
+        _dtlsSocket->bind(QHostAddress::AnyIPv4, dtlsListenPort);
+        qDebug() << "NodeList DTLS socket is listening on" << _dtlsSocket->localPort();
     }
     
     // clear our NodeList when the domain changes
@@ -96,12 +99,15 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
 }
 
 QUdpSocket& NodeList::getDTLSSocket() {
-    if (_dtlsSocket.state() == QAbstractSocket::UnconnectedState) {
-        _dtlsSocket.bind(QHostAddress::AnyIPv4);
-        qDebug() << "NodeList DTLS socket is listening on" << _dtlsSocket.localPort();
+    if (!_dtlsSocket) {
+        // DTLS socket getter called but no DTLS socket exists, create it now
+        _dtlsSocket = new QUdpSocket(this);
+        
+        _dtlsSocket->bind(QHostAddress::AnyIPv4, 0, QAbstractSocket::DontShareAddress);
+        qDebug() << "NodeList DTLS socket is listening on" << _dtlsSocket->localPort();
     }
     
-    return _dtlsSocket;
+    return *_dtlsSocket;
 }
 
 void NodeList::changeSendSocketBufferSize(int numSendBytes) {
@@ -569,7 +575,7 @@ void NodeList::sendDomainServerCheckIn() {
         // we don't know our public socket and we need to send it to the domain server
         // send a STUN request to figure it out
         sendSTUNRequest();
-    } else if (!_domainInfo.getIP().isNull()) {
+    } else if (!_domainInfo.getIP().isNull()) {        
         // construct the DS check in packet
         
         PacketType domainPacketType = _sessionUUID.isNull() ? PacketTypeDomainConnectRequest : PacketTypeDomainListRequest;
@@ -579,7 +585,6 @@ void NodeList::sendDomainServerCheckIn() {
         
         QByteArray domainServerPacket = byteArrayWithPopulatedHeader(domainPacketType, packetUUID);
         QDataStream packetStream(&domainServerPacket, QIODevice::Append);
-        
         
         // pack our data to send to the domain-server
         packetStream << _ownerType << _publicSockAddr

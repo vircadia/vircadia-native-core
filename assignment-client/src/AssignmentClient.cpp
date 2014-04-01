@@ -10,6 +10,8 @@
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
 
+#include <gnutls/gnutls.h>
+
 #include <AccountManager.h>
 #include <Assignment.h>
 #include <Logging.h>
@@ -31,6 +33,8 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     QCoreApplication(argc, argv),
     _currentAssignment()
 {
+    gnutls_global_init();
+    
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
     setApplicationName("assignment-client");

@@ -29,6 +29,8 @@
 #include <QtNetwork/QHostAddress>
 #include <QtNetwork/QUdpSocket>
 
+#include <gnutls/gnutls.h>
+
 #include "DomainInfo.h"
 #include "Node.h"
 
@@ -165,7 +167,7 @@ private:
     NodeHash _nodeHash;
     QMutex _nodeHashMutex;
     QUdpSocket _nodeSocket;
-    QUdpSocket _dtlsSocket;
+    QUdpSocket* _dtlsSocket;
     NodeType_t _ownerType;
     NodeSet _nodeTypesOfInterest;
     DomainInfo _domainInfo;

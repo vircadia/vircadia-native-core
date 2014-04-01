@@ -39,7 +39,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _x509Credentials(NULL),
     _dhParams(NULL),
     _priorityCache(NULL)
-{    
+{
+    gnutls_global_init();
+    
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
     setApplicationName("domain-server");
@@ -80,28 +82,30 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
 bool DomainServer::optionallySetupDTLS() {
     if (readX509KeyAndCertificate()) {
-        qDebug() << "Generating Diffie-Hellman parameters.";
-        
-        // generate Diffie-Hellman parameters
-        // When short bit length is used, it might be wise to regenerate parameters often.
-        int dhBits = gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, GNUTLS_SEC_PARAM_LEGACY);
-        
-        _dhParams =  new gnutls_dh_params_t;
-        gnutls_dh_params_init(_dhParams);
-        gnutls_dh_params_generate2(*_dhParams, dhBits);
-        
-        qDebug() << "Successfully generated Diffie-Hellman parameters.";
-        
-        // set the D-H paramters on the X509 credentials
-        gnutls_certificate_set_dh_params(*_x509Credentials, *_dhParams);
-        
-        _priorityCache = new gnutls_priority_t;
-        const char DTLS_PRIORITY_STRING[] = "PERFORMANCE:-VERS-TLS-ALL:+VERS-DTLS1.2:%SERVER_PRECEDENCE";
-        gnutls_priority_init(_priorityCache, DTLS_PRIORITY_STRING, NULL);
-        
-        _isUsingDTLS = true;
-        
-        qDebug() << "Initial DTLS setup complete.";
+        if (_x509Credentials) {
+            qDebug() << "Generating Diffie-Hellman parameters.";
+            
+            // generate Diffie-Hellman parameters
+            // When short bit length is used, it might be wise to regenerate parameters often.
+            int dhBits = gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, GNUTLS_SEC_PARAM_LEGACY);
+            
+            _dhParams =  new gnutls_dh_params_t;
+            gnutls_dh_params_init(_dhParams);
+            gnutls_dh_params_generate2(*_dhParams, dhBits);
+            
+            qDebug() << "Successfully generated Diffie-Hellman parameters.";
+            
+            // set the D-H paramters on the X509 credentials
+            gnutls_certificate_set_dh_params(*_x509Credentials, *_dhParams);
+            
+            _priorityCache = new gnutls_priority_t;
+            const char DTLS_PRIORITY_STRING[] = "PERFORMANCE:-VERS-TLS-ALL:+VERS-DTLS1.2:%SERVER_PRECEDENCE";
+            gnutls_priority_init(_priorityCache, DTLS_PRIORITY_STRING, NULL);
+            
+            _isUsingDTLS = true;
+            
+            qDebug() << "Initial DTLS setup complete.";
+        }
     
         return true;
     } else {
@@ -180,7 +184,7 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
         domainServerPort = _argumentList.value(argumentIndex + 1).toUShort();
     }
     
-    unsigned short domainServerDTLSPort = -1;
+    unsigned short domainServerDTLSPort = 0;
     
     if (_isUsingDTLS) {
         domainServerDTLSPort = DEFAULT_DOMAIN_SERVER_DTLS_PORT;
@@ -532,69 +536,17 @@ void DomainServer::readAvailableDatagrams() {
 
     HifiSockAddr senderSockAddr;
     QByteArray receivedPacket;
+    
+    
+    static QByteArray assignmentPacket = byteArrayWithPopulatedHeader(PacketTypeCreateAssignment);
+    static int numAssignmentPacketHeaderBytes = assignmentPacket.size();
 
     while (nodeList->getNodeSocket().hasPendingDatagrams()) {
         receivedPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());
         nodeList->getNodeSocket().readDatagram(receivedPacket.data(), receivedPacket.size(),
                                                senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
-        
-        if (!_isUsingDTLS) {
-            // not using DTLS, process datagram normally
-            processDatagram(receivedPacket, senderSockAddr);
-        } else {
-            // we're using DTLS, so tell the sender to get back to us using DTLS
-            static QByteArray dtlsRequiredPacket = byteArrayWithPopulatedHeader(PacketTypeDomainServerRequireDTLS);
-            static int numBytesDTLSHeader = numBytesForPacketHeaderGivenPacketType(PacketTypeDomainServerRequireDTLS);
-            
-            if (dtlsRequiredPacket.size() == numBytesDTLSHeader) {
-                // pack the port that we accept DTLS traffic on
-                unsigned short dtlsPort = nodeList->getDTLSSocket().localPort();
-                dtlsRequiredPacket.replace(numBytesDTLSHeader, sizeof(dtlsPort), reinterpret_cast<const char*>(&dtlsPort));
-            }
+        if (packetTypeForPacket(receivedPacket) && nodeList->packetVersionAndHashMatch(receivedPacket)) {
 
-            nodeList->writeUnverifiedDatagram(dtlsRequiredPacket, senderSockAddr);
-        }
-    }
-}
-
-void DomainServer::readAvailableDTLSDatagrams() {
-    
-}
-
-void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
-    NodeList* nodeList = NodeList::getInstance();
-    
-    static QByteArray assignmentPacket = byteArrayWithPopulatedHeader(PacketTypeCreateAssignment);
-    static int numAssignmentPacketHeaderBytes = assignmentPacket.size();
-    
-    if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
-        PacketType requestType = packetTypeForPacket(receivedPacket);
-        
-        if (requestType == PacketTypeDomainListRequest) {
-            QUuid nodeUUID = uuidFromPacketHeader(receivedPacket);
-            
-            if (!nodeUUID.isNull() && nodeList->nodeWithUUID(nodeUUID)) {
-                NodeType_t throwawayNodeType;
-                HifiSockAddr nodePublicAddress, nodeLocalAddress;
-                
-                int numNodeInfoBytes = parseNodeDataFromByteArray(throwawayNodeType, nodePublicAddress, nodeLocalAddress,
-                                                                  receivedPacket, senderSockAddr);
-                
-                SharedNodePointer checkInNode = nodeList->updateSocketsForNode(nodeUUID, nodePublicAddress, nodeLocalAddress);
-                
-                // update last receive to now
-                quint64 timeNow = usecTimestampNow();
-                checkInNode->setLastHeardMicrostamp(timeNow);
-            
-                sendDomainListToNode(checkInNode, senderSockAddr, nodeInterestListFromPacket(receivedPacket, numNodeInfoBytes));
-            } else {
-                // new node - add this node to our NodeList
-                // and send back session UUID right away
-                addNodeToNodeListAndConfirmConnection(receivedPacket, senderSockAddr);
-            }
-            
-        } else if (requestType == PacketTypeRequestAssignment) {
-            
             // construct the requested assignment from the packet data
             Assignment requestAssignment(receivedPacket);
             
@@ -626,7 +578,7 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
             } else {
                 if (requestAssignment.getType() != Assignment::AgentType || (timeNow - lastNoisyMessage) > NOISY_TIME_ELAPSED) {
                     qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
-                        << "from" << senderSockAddr;
+                    << "from" << senderSockAddr;
                     noisyMessage = true;
                 }
             }
@@ -634,6 +586,58 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
             if (noisyMessage) {
                 lastNoisyMessage = timeNow;
             }
+        } else if (!_isUsingDTLS) {
+            // not using DTLS, process datagram normally
+            processDatagram(receivedPacket, senderSockAddr);
+        } else {
+            // we're using DTLS, so tell the sender to get back to us using DTLS
+            static QByteArray dtlsRequiredPacket = byteArrayWithPopulatedHeader(PacketTypeDomainServerRequireDTLS);
+            static int numBytesDTLSHeader = numBytesForPacketHeaderGivenPacketType(PacketTypeDomainServerRequireDTLS);
+            
+            if (dtlsRequiredPacket.size() == numBytesDTLSHeader) {
+                // pack the port that we accept DTLS traffic on
+                unsigned short dtlsPort = nodeList->getDTLSSocket().localPort();
+                dtlsRequiredPacket.replace(numBytesDTLSHeader, sizeof(dtlsPort), reinterpret_cast<const char*>(&dtlsPort));
+            }
+
+            nodeList->writeUnverifiedDatagram(dtlsRequiredPacket, senderSockAddr);
+        }
+    }
+}
+
+void DomainServer::readAvailableDTLSDatagrams() {
+    
+}
+
+void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
+    NodeList* nodeList = NodeList::getInstance();
+    
+    if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
+        PacketType requestType = packetTypeForPacket(receivedPacket);
+        
+        if (requestType == PacketTypeDomainListRequest) {
+            QUuid nodeUUID = uuidFromPacketHeader(receivedPacket);
+            
+            if (!nodeUUID.isNull() && nodeList->nodeWithUUID(nodeUUID)) {
+                NodeType_t throwawayNodeType;
+                HifiSockAddr nodePublicAddress, nodeLocalAddress;
+                
+                int numNodeInfoBytes = parseNodeDataFromByteArray(throwawayNodeType, nodePublicAddress, nodeLocalAddress,
+                                                                  receivedPacket, senderSockAddr);
+                
+                SharedNodePointer checkInNode = nodeList->updateSocketsForNode(nodeUUID, nodePublicAddress, nodeLocalAddress);
+                
+                // update last receive to now
+                quint64 timeNow = usecTimestampNow();
+                checkInNode->setLastHeardMicrostamp(timeNow);
+            
+                sendDomainListToNode(checkInNode, senderSockAddr, nodeInterestListFromPacket(receivedPacket, numNodeInfoBytes));
+            } else {
+                // new node - add this node to our NodeList
+                // and send back session UUID right away
+                addNodeToNodeListAndConfirmConnection(receivedPacket, senderSockAddr);
+            }
+            
         } else if (requestType == PacketTypeNodeJsonStats) {
             SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
             if (matchingNode) {
