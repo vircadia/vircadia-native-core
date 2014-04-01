@@ -828,6 +828,7 @@ void OctreeServer::readPendingDatagrams() {
     
     NodeList* nodeList = NodeList::getInstance();
     
+    quint64 startReadAvailable = usecTimestampNow();
     while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
             PacketType packetType = packetTypeForPacket(receivedPacket);
@@ -878,6 +879,9 @@ void OctreeServer::readPendingDatagrams() {
             }
         }
     }
+    quint64 endReadAvailable = usecTimestampNow();
+    qDebug() << "OctreeServer::readPendingDatagrams(): while(readAvailable) took" << (endReadAvailable - startReadAvailable) << "usecs";
+
 }
 
 void OctreeServer::run() {
