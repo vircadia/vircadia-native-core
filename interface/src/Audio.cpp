@@ -95,6 +95,7 @@ void Audio::reset() {
 QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
     QAudioDeviceInfo result;
     foreach(QAudioDeviceInfo audioDevice, QAudioDeviceInfo::availableDevices(mode)) {
+		qDebug() << audioDevice.deviceName() << " " << deviceName;
         if (audioDevice.deviceName().trimmed() == deviceName.trimmed()) {
             result = audioDevice;
         }
@@ -162,6 +163,8 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
         qDebug() << "output device:" << woc.szPname;
         deviceName = woc.szPname;
     }
+	qDebug() << "DEBUG [" << deviceName << "] [" << getNamedAudioDeviceForMode(mode, deviceName).deviceName() << "]";
+    
     return getNamedAudioDeviceForMode(mode, deviceName);
 #endif
 
@@ -321,10 +324,12 @@ QVector<QString> Audio::getDeviceNames(QAudio::Mode mode) {
 }
 
 bool Audio::switchInputToAudioDevice(const QString& inputDeviceName) {
+	qDebug() << "DEBUG [" << inputDeviceName << "] [" << getNamedAudioDeviceForMode(QAudio::AudioInput, inputDeviceName).deviceName() << "]";
     return switchInputToAudioDevice(getNamedAudioDeviceForMode(QAudio::AudioInput, inputDeviceName));
 }
 
 bool Audio::switchOutputToAudioDevice(const QString& outputDeviceName) {
+	qDebug() << "DEBUG [" << outputDeviceName << "] [" << getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName).deviceName() << "]";
     return switchOutputToAudioDevice(getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName));
 }
 
@@ -343,7 +348,7 @@ void Audio::handleAudioInput() {
 
     QByteArray inputByteArray = _inputDevice->readAll();
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio) && !_muted) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio) && !_muted && _audioOutput) {
         // if this person wants local loopback add that to the locally injected audio
 
         if (!_loopbackOutputDevice && _loopbackAudioOutput) {
@@ -356,7 +361,7 @@ void Audio::handleAudioInput() {
                 _loopbackOutputDevice->write(inputByteArray);
             }
         } else {
-            static float loopbackOutputToInputRatio = (_outputFormat.sampleRate() / (float) _inputFormat.sampleRate())
+            float loopbackOutputToInputRatio = (_outputFormat.sampleRate() / (float) _inputFormat.sampleRate())
                 * (_outputFormat.channelCount() / _inputFormat.channelCount());
 
             QByteArray loopBackByteArray(inputByteArray.size() * loopbackOutputToInputRatio, 0);
@@ -380,9 +385,6 @@ void Audio::handleAudioInput() {
 
         // zero out the monoAudioSamples array and the locally injected audio
         memset(monoAudioSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
-
-        // zero out the locally injected audio in preparation for audio procedural sounds
-        memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
 
         if (!_muted) {
             // we aren't muted, downsample the input audio
@@ -492,28 +494,8 @@ void Audio::handleAudioInput() {
             _lastInputLoudness = 0;
         }
         
-        // add procedural effects to the appropriate input samples
-        addProceduralSounds(monoAudioSamples,
-                            NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-        
-        if (!_proceduralOutputDevice && _proceduralAudioOutput) {
-            _proceduralOutputDevice = _proceduralAudioOutput->start();
-        }
-        
-        // send whatever procedural sounds we want to locally loop back to the _proceduralOutputDevice
-        QByteArray proceduralOutput;
-        proceduralOutput.resize(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * _outputFormat.sampleRate() *
-            _outputFormat.channelCount() * sizeof(int16_t) / (_desiredInputFormat.sampleRate() *
-                _desiredInputFormat.channelCount()));
-        
-        linearResampling(_localProceduralSamples,
-                         reinterpret_cast<int16_t*>(proceduralOutput.data()),
-                         NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
-                         proceduralOutput.size() / sizeof(int16_t),
-                         _desiredInputFormat, _outputFormat);
-        
-        if (_proceduralOutputDevice) {
-            _proceduralOutputDevice->write(proceduralOutput);
+        if (_proceduralAudioOutput) {
+            processProceduralAudio(monoAudioSamples, NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
         }
 
         NodeList* nodeList = NodeList::getInstance();
@@ -593,9 +575,43 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
         }
     }
 
+    if (_audioOutput) {
+        // Audio output must exist and be correctly set up if we're going to process received audio
+        processReceivedAudio(audioByteArray);
+    }
+
+    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(audioByteArray.size());
+
+    _lastReceiveTime = currentReceiveTime;
+}
+
+bool Audio::mousePressEvent(int x, int y) {
+    if (_iconBounds.contains(x, y)) {
+        toggleMute();
+        return true;
+    }
+    return false;
+}
+
+void Audio::toggleMute() {
+    _muted = !_muted;
+    muteToggled();
+}
+
+void Audio::toggleAudioNoiseReduction() {
+    _noiseGateEnabled = !_noiseGateEnabled;
+}
+
+void Audio::processReceivedAudio(const QByteArray& audioByteArray)
+{
     _ringBuffer.parseData(audioByteArray);
 
-    static float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())
+    float outSampleRate = _outputFormat.sampleRate();
+    float desSampleRate = _desiredOutputFormat.sampleRate();
+    int outChannelCount = _outputFormat.channelCount();
+    int desChannelCount = _desiredOutputFormat.channelCount();
+    float myOutputRatio = desSampleRate / outSampleRate *  (desChannelCount / outChannelCount);
+    float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())
         * (_desiredOutputFormat.channelCount() / (float) _outputFormat.channelCount());
     
     if (!_ringBuffer.isStarved() && _audioOutput && _audioOutput->bytesFree() == _audioOutput->bufferSize()) {
@@ -650,32 +666,37 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
             }
             delete[] ringBufferSamples;
         }
-
     }
-
-    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(audioByteArray.size());
-
-    _lastReceiveTime = currentReceiveTime;
 }
 
-bool Audio::mousePressEvent(int x, int y) {
-    if (_iconBounds.contains(x, y)) {
-        toggleMute();
-        return true;
+void Audio::processProceduralAudio(int16_t* monoInput, int numSamples) {
+
+    // zero out the locally injected audio in preparation for audio procedural sounds
+    // This is correlated to numSamples, so it really needs to be numSamples * sizeof(sample)
+    memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
+    // add procedural effects to the appropriate input samples
+    addProceduralSounds(monoInput, NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+        
+    if (!_proceduralOutputDevice) {
+        _proceduralOutputDevice = _proceduralAudioOutput->start();
     }
-    return false;
+        
+    // send whatever procedural sounds we want to locally loop back to the _proceduralOutputDevice
+    QByteArray proceduralOutput;
+    proceduralOutput.resize(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * _outputFormat.sampleRate() *
+        _outputFormat.channelCount() * sizeof(int16_t) / (_desiredInputFormat.sampleRate() *
+            _desiredInputFormat.channelCount()));
+        
+    linearResampling(_localProceduralSamples,
+                        reinterpret_cast<int16_t*>(proceduralOutput.data()),
+                        NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
+                        proceduralOutput.size() / sizeof(int16_t),
+                        _desiredInputFormat, _outputFormat);
+        
+    if (_proceduralOutputDevice) {
+        _proceduralOutputDevice->write(proceduralOutput);
+    }
 }
-
-void Audio::toggleMute() {
-    _muted = !_muted;
-    muteToggled();
-}
-
-void Audio::toggleAudioNoiseReduction() {
-    _noiseGateEnabled = !_noiseGateEnabled;
-}
-
-
 
 //  Take a pointer to the acquired microphone input samples and add procedural sounds
 void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {

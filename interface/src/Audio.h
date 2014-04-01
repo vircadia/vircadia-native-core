@@ -165,9 +165,17 @@ private:
     // Audio callback in class context.
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
     
+    // Process procedural audio by
+    //  1. Echo to the local procedural output device
+    //  2. Mix with the audio input
+    void processProceduralAudio(int16_t* monoInput, int numSamples);
+
     // Add sounds that we want the user to not hear themselves, by adding on top of mic input signal
     void addProceduralSounds(int16_t* monoInput, int numSamples);
     
+    // Process received audio
+    void processReceivedAudio(const QByteArray& audioByteArray);
+
     bool switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo);
     bool switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo);
 };
