@@ -818,7 +818,9 @@ quint64 lastProcessNodeData = usecTimestampNow();
 
 void OctreeServer::readPendingDatagrams() {
     quint64 now = usecTimestampNow();
-    qDebug() << "OctreeServer::readPendingDatagrams(): since lastReadPendingDatagrams=" << (now - lastReadPendingDatagrams) << "usecs";
+    if ((now - lastReadPendingDatagrams) > 100000) {
+        qDebug() << "OctreeServer::readPendingDatagrams(): since lastReadPendingDatagrams=" << (now - lastReadPendingDatagrams) << "usecs";
+    }
     lastReadPendingDatagrams = now;
 
     QByteArray receivedPacket;
