@@ -56,7 +56,7 @@ public:
     
     void init();
     void reset();
-    void simulate(float deltaTime);
+    virtual void simulate(float deltaTime);
     bool render(float alpha = 1.0f, bool forShadowMap = false);
 
     /// Sets the URL of the model to render.

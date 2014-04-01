@@ -435,13 +435,20 @@ void Model::clearShapes() {
 
 void Model::createShapes() {
     clearShapes();
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    float uniformScale = extractUniformScale(_scale);
-    glm::quat inverseRotation = glm::inverse(_rotation);
 
+    if (_jointStates.isEmpty()) {
+        return;
+    }
+
+    // make sure all the joints are updated correctly before we try to create their shapes
     for (int i = 0; i < _jointStates.size(); i++) {
         updateJointState(i);
     }
+    
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    float uniformScale = extractUniformScale(_scale);
+    glm::quat inverseRotation = glm::inverse(_rotation);
+    glm::vec3 rootPosition(0.f);
 
     // joint shapes
     Extents totalExtents;
@@ -453,6 +460,10 @@ void Model::createShapes() {
         glm::vec3 worldPosition = extractTranslation(_jointStates[i].transform) + jointToShapeOffset + _translation;
         Extents shapeExtents;
         shapeExtents.reset();
+
+        if (joint.parentIndex == -1) {
+            rootPosition = worldPosition;
+        }
 
         float radius = uniformScale * joint.boneRadius;
         float halfHeight = 0.5f * uniformScale * joint.distanceToParent;
@@ -467,15 +478,15 @@ void Model::createShapes() {
             glm::vec3 startPoint;
             capsule->getStartPoint(startPoint);
             glm::vec3 axis = (halfHeight + radius) * glm::normalize(endPoint - startPoint);
-            shapeExtents.addPoint(inverseRotation * (worldPosition + axis - _translation));
-            shapeExtents.addPoint(inverseRotation * (worldPosition - axis - _translation));
+            shapeExtents.addPoint(worldPosition + axis);
+            shapeExtents.addPoint(worldPosition - axis);
         } else {
             SphereShape* sphere = new SphereShape(radius, worldPosition);
             _jointShapes.push_back(sphere);
 
             glm::vec3 axis = glm::vec3(radius);
-            shapeExtents.addPoint(inverseRotation * (worldPosition + axis - _translation));
-            shapeExtents.addPoint(inverseRotation * (worldPosition - axis - _translation));
+            shapeExtents.addPoint(worldPosition + axis);
+            shapeExtents.addPoint(worldPosition - axis);
         }
         totalExtents.addExtents(shapeExtents);
     }
@@ -486,11 +497,12 @@ void Model::createShapes() {
     float capsuleRadius = 0.25f * (diagonal.x + diagonal.z);    // half the average of x and z
     _boundingShape.setRadius(capsuleRadius);
     _boundingShape.setHalfHeight(0.5f * diagonal.y - capsuleRadius);
-    _boundingShapeLocalOffset = 0.5f * (totalExtents.maximum + totalExtents.minimum);
+    _boundingShapeLocalOffset = inverseRotation * (0.5f * (totalExtents.maximum + totalExtents.minimum) - rootPosition);
 }
 
 void Model::updateShapePositions() {
     if (_shapesAreDirty && _jointShapes.size() == _jointStates.size()) {
+        glm::vec3 rootPosition(0.f);
         _boundingRadius = 0.f;
         float uniformScale = extractUniformScale(_scale);
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -505,11 +517,14 @@ void Model::updateShapePositions() {
             if (distance2 > _boundingRadius) {
                 _boundingRadius = distance2;
             }
+            if (joint.parentIndex == -1) {
+                rootPosition = worldPosition;
+            }
         }
         _boundingRadius = sqrtf(_boundingRadius);
         _shapesAreDirty = false;
+        _boundingShape.setPosition(rootPosition + _rotation * _boundingShapeLocalOffset);
     }
-    _boundingShape.setPosition(_translation + _rotation * _boundingShapeLocalOffset);
 }
 
 bool Model::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
