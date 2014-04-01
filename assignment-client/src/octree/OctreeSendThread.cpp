@@ -28,7 +28,7 @@ OctreeSendThread::OctreeSendThread(const SharedAssignmentPointer& myAssignment, 
     _nodeMissingCount(0),
     _isShuttingDown(false)
 {
-    qDebug() << "OctreeSendThread::OctreeSendThread()... START";
+    //qDebug() << "OctreeSendThread::OctreeSendThread()... START";
     
     QString serverName("Octree");
     if (_myServer) {
@@ -37,14 +37,14 @@ OctreeSendThread::OctreeSendThread(const SharedAssignmentPointer& myAssignment, 
     qDebug() << qPrintable(serverName)  << "server [" << _myServer << "]: client connected "
                                             "- starting sending thread [" << this << "]";
 
-    qDebug() << "OctreeSendThread::OctreeSendThread()... before OctreeServer::clientConnected()";
+    //qDebug() << "OctreeSendThread::OctreeSendThread()... before OctreeServer::clientConnected()";
     OctreeServer::clientConnected();
-    qDebug() << "OctreeSendThread::OctreeSendThread()... AFTER OctreeServer::clientConnected()";
-    qDebug() << "OctreeSendThread::OctreeSendThread()... DONE";
+    //qDebug() << "OctreeSendThread::OctreeSendThread()... AFTER OctreeServer::clientConnected()";
+    //qDebug() << "OctreeSendThread::OctreeSendThread()... DONE";
 }
 
 OctreeSendThread::~OctreeSendThread() {
-    qDebug() << "OctreeSendThread::~OctreeSendThread()... START";
+    //qDebug() << "OctreeSendThread::~OctreeSendThread()... START";
     QString serverName("Octree");
     if (_myServer) {
         serverName = _myServer->getMyServerName();
@@ -53,19 +53,19 @@ OctreeSendThread::~OctreeSendThread() {
     qDebug() << qPrintable(serverName)  << "server [" << _myServer << "]: client disconnected "
                                             "- ending sending thread [" << this << "]";
 
-    qDebug() << "OctreeSendThread::~OctreeSendThread()... BEFORE OctreeServer::clientDisconnected();";
+    //qDebug() << "OctreeSendThread::~OctreeSendThread()... BEFORE OctreeServer::clientDisconnected();";
     OctreeServer::clientDisconnected();
-    qDebug() << "OctreeSendThread::~OctreeSendThread()... AFTER OctreeServer::clientDisconnected();";
+    //qDebug() << "OctreeSendThread::~OctreeSendThread()... AFTER OctreeServer::clientDisconnected();";
 
-    qDebug() << "OctreeSendThread::~OctreeSendThread()... BEFORE _node.clear();";
+    //qDebug() << "OctreeSendThread::~OctreeSendThread()... BEFORE _node.clear();";
     _node.clear();
-    qDebug() << "OctreeSendThread::~OctreeSendThread()... AFTER _node.clear();";
+    //qDebug() << "OctreeSendThread::~OctreeSendThread()... AFTER _node.clear();";
 
-    qDebug() << "OctreeSendThread::~OctreeSendThread()... BEFORE _myAssignment.clear();";
+    //qDebug() << "OctreeSendThread::~OctreeSendThread()... BEFORE _myAssignment.clear();";
     _myAssignment.clear();
-    qDebug() << "OctreeSendThread::~OctreeSendThread()... BEFORE _myAssignment.clear();";
+    //qDebug() << "OctreeSendThread::~OctreeSendThread()... BEFORE _myAssignment.clear();";
 
-    qDebug() << "OctreeSendThread::~OctreeSendThread()... DONE";
+    //qDebug() << "OctreeSendThread::~OctreeSendThread()... DONE";
 }
 
 void OctreeSendThread::setIsShuttingDown() {
