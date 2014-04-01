@@ -1,5 +1,5 @@
 //
-//  DomainInfo.cpp
+//  DomainHandler.cpp
 //  hifi
 //
 //  Created by Stephen Birarda on 2/18/2014.
@@ -11,9 +11,9 @@
 #include "NodeList.h"
 #include "PacketHeaders.h"
 
-#include "DomainInfo.h"
+#include "DomainHandler.h"
 
-DomainInfo::DomainInfo() :
+DomainHandler::DomainHandler() :
     _uuid(),
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _assignmentUUID(),
@@ -24,29 +24,29 @@ DomainInfo::DomainInfo() :
     
 }
 
-DomainInfo::~DomainInfo() {
+DomainHandler::~DomainHandler() {
     delete _dtlsSession;
 }
 
-void DomainInfo::clearConnectionInfo() {
+void DomainHandler::clearConnectionInfo() {
     _uuid = QUuid();
     _isConnected = false;
 }
 
-void DomainInfo::reset() {
+void DomainHandler::reset() {
     clearConnectionInfo();
     _hostname = QString();
     _sockAddr.setAddress(QHostAddress::Null);
     _requiresDTLS = false;
 }
 
-void DomainInfo::initializeDTLSSession() {
+void DomainHandler::initializeDTLSSession() {
     if (!_dtlsSession) {
         _dtlsSession = new DTLSSession(NodeList::getInstance()->getDTLSSocket());
     }
 }
 
-void DomainInfo::setSockAddr(const HifiSockAddr& sockAddr) {
+void DomainHandler::setSockAddr(const HifiSockAddr& sockAddr) {
     if (_sockAddr != sockAddr) {
         // we should reset on a sockAddr change
         reset();
@@ -55,7 +55,7 @@ void DomainInfo::setSockAddr(const HifiSockAddr& sockAddr) {
     }
 }
 
-void DomainInfo::setHostname(const QString& hostname) {
+void DomainHandler::setHostname(const QString& hostname) {
     
     if (hostname != _hostname) {
         // re-set the domain info so that auth information is reloaded
@@ -88,7 +88,7 @@ void DomainInfo::setHostname(const QString& hostname) {
     }
 }
 
-void DomainInfo::completedHostnameLookup(const QHostInfo& hostInfo) {
+void DomainHandler::completedHostnameLookup(const QHostInfo& hostInfo) {
     for (int i = 0; i < hostInfo.addresses().size(); i++) {
         if (hostInfo.addresses()[i].protocol() == QAbstractSocket::IPv4Protocol) {
             _sockAddr.setAddress(hostInfo.addresses()[i]);
@@ -102,7 +102,7 @@ void DomainInfo::completedHostnameLookup(const QHostInfo& hostInfo) {
     qDebug("Failed domain server lookup");
 }
 
-void DomainInfo::setIsConnected(bool isConnected) {
+void DomainHandler::setIsConnected(bool isConnected) {
     if (_isConnected != isConnected) {
         _isConnected = isConnected;
         
@@ -112,7 +112,7 @@ void DomainInfo::setIsConnected(bool isConnected) {
     }
 }
 
-void DomainInfo::parseDTLSRequirementPacket(const QByteArray& dtlsRequirementPacket) {
+void DomainHandler::parseDTLSRequirementPacket(const QByteArray& dtlsRequirementPacket) {
     // figure out the port that the DS wants us to use for us to talk to them with DTLS
     int numBytesPacketHeader = numBytesForPacketHeader(dtlsRequirementPacket);
     

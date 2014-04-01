@@ -1,13 +1,13 @@
 //
-//  DomainInfo.h
+//  DomainHandler.h
 //  hifi
 //
 //  Created by Stephen Birarda on 2/18/2014.
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 
-#ifndef __hifi__DomainInfo__
-#define __hifi__DomainInfo__
+#ifndef __hifi__DomainHandler__
+#define __hifi__DomainHandler__
 
 #include <QtCore/QObject>
 #include <QtCore/QUuid>
@@ -21,11 +21,11 @@ const QString DEFAULT_DOMAIN_HOSTNAME = "alpha.highfidelity.io";
 const unsigned short DEFAULT_DOMAIN_SERVER_PORT = 40102;
 const unsigned short DEFAULT_DOMAIN_SERVER_DTLS_PORT = 40103;
 
-class DomainInfo : public QObject {
+class DomainHandler : public QObject {
     Q_OBJECT
 public:
-    DomainInfo();
-    ~DomainInfo();
+    DomainHandler();
+    ~DomainHandler();
     
     void clearConnectionInfo();
     
@@ -70,4 +70,4 @@ private:
     DTLSSession* _dtlsSession;
 };
 
-#endif /* defined(__hifi__DomainInfo__) */
+#endif /* defined(__hifi__DomainHandler__) */

@@ -228,8 +228,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     audioThread->start();
 
-    connect(&nodeList->getDomainInfo(), SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
-    connect(&nodeList->getDomainInfo(), SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
+    connect(&nodeList->getDomainHandler(), SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
+    connect(&nodeList->getDomainHandler(), SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
 
     connect(nodeList, &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList, &NodeList::nodeKilled, this, &Application::nodeKilled);
@@ -3279,7 +3279,7 @@ void Application::updateWindowTitle(){
     
     QString username = AccountManager::getInstance().getUsername();
     QString title = QString() + (!username.isEmpty() ? username + " " : QString()) + nodeList->getSessionUUID().toString()
-        + " @ " + nodeList->getDomainInfo().getHostname() + buildVersion;
+        + " @ " + nodeList->getDomainHandler().getHostname() + buildVersion;
     
     qDebug("Application title set to: %s", title.toStdString().c_str());
     _window->setWindowTitle(title);

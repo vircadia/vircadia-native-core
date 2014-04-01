@@ -136,10 +136,10 @@ void AssignmentClient::readPendingDatagrams() {
                     
                     // switch our nodelist domain IP and port to whoever sent us the assignment
                     
-                    nodeList->getDomainInfo().setSockAddr(senderSockAddr);
-                    nodeList->getDomainInfo().setAssignmentUUID(_currentAssignment->getUUID());
+                    nodeList->getDomainHandler().setSockAddr(senderSockAddr);
+                    nodeList->getDomainHandler().setAssignmentUUID(_currentAssignment->getUUID());
                     
-                    qDebug() << "Destination IP for assignment is" << nodeList->getDomainInfo().getIP().toString();
+                    qDebug() << "Destination IP for assignment is" << nodeList->getDomainHandler().getIP().toString();
                     
                     // start the deployed assignment
                     AssignmentThread* workerThread = new AssignmentThread(_currentAssignment, this);

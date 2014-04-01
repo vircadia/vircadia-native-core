@@ -31,7 +31,7 @@
 
 #include <gnutls/gnutls.h>
 
-#include "DomainInfo.h"
+#include "DomainHandler.h"
 #include "Node.h"
 
 const quint64 NODE_SILENCE_THRESHOLD_USECS = 2 * 1000 * 1000;
@@ -91,7 +91,7 @@ public:
     int size() const { return _nodeHash.size(); }
 
     int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
-    DomainInfo& getDomainInfo() { return _domainInfo; }
+    DomainHandler& getDomainHandler() { return _DomainHandler; }
     
     const NodeSet& getNodeInterestSet() const { return _nodeTypesOfInterest; }
     void addNodeTypeToInterestSet(NodeType_t nodeTypeToAdd);
@@ -170,7 +170,7 @@ private:
     QUdpSocket* _dtlsSocket;
     NodeType_t _ownerType;
     NodeSet _nodeTypesOfInterest;
-    DomainInfo _domainInfo;
+    DomainHandler _DomainHandler;
     QUuid _sessionUUID;
     int _numNoReplyDomainCheckIns;
     HifiSockAddr _assignmentServerSocket;

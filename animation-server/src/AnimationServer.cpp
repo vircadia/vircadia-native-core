@@ -723,12 +723,12 @@ AnimationServer::AnimationServer(int &argc, char **argv) :
     ::wantLocalDomain = cmdOptionExists(argc, (const char**) argv,local);
     if (::wantLocalDomain) {
         printf("Local Domain MODE!\n");
-        nodeList->getDomainInfo().setIPToLocalhost();
+        nodeList->getDomainHandler().setIPToLocalhost();
     }
     
     const char* domainHostname = getCmdOption(argc, (const char**) argv, "--domain");
     if (domainHostname) {
-        NodeList::getInstance()->getDomainInfo().setHostname(domainHostname);
+        NodeList::getInstance()->getDomainHandler().setHostname(domainHostname);
     }
     
     const char* packetsPerSecondCommand = getCmdOption(argc, (const char**) argv, "--pps");
