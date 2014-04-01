@@ -135,7 +135,8 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
         << PacketTypeDomainServerAuthRequest << PacketTypeDomainConnectRequest
         << PacketTypeStunResponse << PacketTypeDataServerConfirm
         << PacketTypeDataServerGet << PacketTypeDataServerPut << PacketTypeDataServerSend
-        << PacketTypeCreateAssignment << PacketTypeRequestAssignment;
+        << PacketTypeCreateAssignment << PacketTypeRequestAssignment
+        << PacketTypeVoxelQuery << PacketTypeParticleQuery;
     
     if (!NON_VERIFIED_PACKETS.contains(checkType)) {
         // figure out which node this is from
