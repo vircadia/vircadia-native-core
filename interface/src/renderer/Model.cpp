@@ -56,6 +56,14 @@ Model::SkinLocations Model::_skinLocations;
 Model::SkinLocations Model::_skinNormalMapLocations;
 Model::SkinLocations Model::_skinShadowLocations;
 
+void Model::setScale(const glm::vec3& scale) {
+    glm::vec3 deltaScale = _scale - scale;
+    if (glm::length2(deltaScale) > EPSILON) {
+        _scale = scale;
+        rebuildShapes();
+    }
+}
+
 void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locations) {
     program.bind();
     locations.clusterMatrices = program.uniformLocation("clusterMatrices");
@@ -182,10 +190,14 @@ void Model::reset() {
     }
 }
 
-// return 'true' if geometry is up to date
-bool Model::updateGeometry() {
-    bool needToRebuild = false;
+void Model::updateGeometry() {
+    // NOTE: this is a recursive call that walks all attachments, and their attachments
+    for (int i = 0; i < _attachments.size(); i++) {
+        Model* model = _attachments.at(i);
+        model->updateGeometry();
+    }
 
+    bool needToRebuild = false;
     if (_nextGeometry) {
         _nextGeometry = _nextGeometry->getLODOrFallback(_lodDistance, _nextLODHysteresis);
         _nextGeometry->setLoadPriority(this, -_lodDistance);
@@ -197,7 +209,7 @@ bool Model::updateGeometry() {
     }
     if (!_geometry) {
         // geometry is not ready
-        return false;
+        return;
     }
 
     QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(_lodDistance, _lodHysteresis);
@@ -260,9 +272,9 @@ bool Model::updateGeometry() {
             model->setURL(attachment.url);
             _attachments.append(model);
         }
-        createShapes();
+        rebuildShapes();
     }
-    return true;
+    return;
 }
 
 bool Model::render(float alpha, bool forShadowMap) {
@@ -440,7 +452,7 @@ void Model::clearShapes() {
     _jointShapes.clear();
 }
 
-void Model::createShapes() {
+void Model::rebuildShapes() {
     clearShapes();
 
     if (_jointStates.isEmpty()) {
@@ -670,20 +682,16 @@ void Blender::run() {
         Q_ARG(const QVector<glm::vec3>&, vertices), Q_ARG(const QVector<glm::vec3>&, normals));
 }
 
-
 void Model::simulate(float deltaTime) {
-    bool geometryIsUpToDate = updateGeometry();
-    if (!geometryIsUpToDate) {
+    // NOTE: this is a recursive call that walks all attachments, and their attachments
+    if (!isActive()) {
         return;
     }
-    simulateInternal(deltaTime);
-}
-
-void Model::simulateInternal(float deltaTime) {
     // update the world space transforms for all joints
     for (int i = 0; i < _jointStates.size(); i++) {
         updateJointState(i);
     }
+    _shapesAreDirty = true;
     
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
 
@@ -720,7 +728,6 @@ void Model::simulateInternal(float deltaTime) {
 }
 
 void Model::updateJointState(int index) {
-    _shapesAreDirty = true;
     JointState& state = _jointStates[index];
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const FBXJoint& joint = geometry.joints.at(index);
@@ -838,6 +845,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position, int last
     for (int j = freeLineage.size() - 1; j >= 0; j--) {
         updateJointState(freeLineage.at(j));
     }
+    _shapesAreDirty = true;
         
     return true;
 }

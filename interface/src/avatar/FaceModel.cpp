@@ -19,8 +19,7 @@ FaceModel::FaceModel(Head* owningHead) :
 }
 
 void FaceModel::simulate(float deltaTime) {
-    bool geometryIsUpToDate = updateGeometry();
-    if (!geometryIsUpToDate) {
+    if (!isActive()) {
         return;
     }
     Avatar* owningAvatar = static_cast<Avatar*>(_owningHead->_owningAvatar);
@@ -42,7 +41,7 @@ void FaceModel::simulate(float deltaTime) {
     setPupilDilation(_owningHead->getPupilDilation());
     setBlendshapeCoefficients(_owningHead->getBlendshapeCoefficients());
     
-    Model::simulateInternal(deltaTime);
+    Model::simulate(deltaTime);
 }
 
 void FaceModel::maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {

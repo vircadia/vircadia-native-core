@@ -19,6 +19,9 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar) :
 }
 
 void SkeletonModel::simulate(float deltaTime) {
+    if (!isActive()) {
+        return;
+    }
     setTranslation(_owningAvatar->getPosition());
     setRotation(_owningAvatar->getOrientation() * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)));
     const float MODEL_SCALE = 0.0006f;

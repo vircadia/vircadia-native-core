@@ -117,20 +117,29 @@ void Avatar::simulate(float deltaTime) {
     getHand()->simulate(deltaTime, false);
     _skeletonModel.setLODDistance(getLODDistance());
     
-    // copy joint data to skeleton
-    for (int i = 0; i < _jointData.size(); i++) {
-        const JointData& data = _jointData.at(i);
-        _skeletonModel.setJointState(i, data.valid, data.rotation);
-    }
-    glm::vec3 headPosition = _position;
     if (!_shouldRenderBillboard && inViewFrustum) {
-        _skeletonModel.simulate(deltaTime);
-        _skeletonModel.getHeadPosition(headPosition);
+        glm::vec3 headPosition = _position;
+
+        _skeletonModel.updateGeometry();
+        if (_skeletonModel.isActive()) {
+            // copy joint data to skeleton
+            if (_hasNewJointRotations) {
+                for (int i = 0; i < _jointData.size(); i++) {
+                    const JointData& data = _jointData.at(i);
+                    _skeletonModel.setJointState(i, data.valid, data.rotation);
+                }
+                _skeletonModel.simulate(deltaTime);
+                _hasNewJointRotations = false;
+            }
+            _skeletonModel.getHeadPosition(headPosition);
+        }
+
+        Head* head = getHead();
+        head->setPosition(headPosition);
+        head->setScale(_scale);
+        head->getFaceModel().updateGeometry();
+        head->simulate(deltaTime, false, _shouldRenderBillboard);
     }
-    Head* head = getHead();
-    head->setPosition(headPosition);
-    head->setScale(_scale);
-    head->simulate(deltaTime, false, _shouldRenderBillboard);
     
     // use speed and angular velocity to determine walking vs. standing
     if (_speed + fabs(_bodyYawDelta) > 0.2) {

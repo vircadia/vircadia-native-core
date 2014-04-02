@@ -36,7 +36,7 @@ public:
     void setRotation(const glm::quat& rotation) { _rotation = rotation; }
     const glm::quat& getRotation() const { return _rotation; }
     
-    void setScale(const glm::vec3& scale) { _scale = scale; }
+    void setScale(const glm::vec3& scale);
     const glm::vec3& getScale() const { return _scale; }
     
     void setOffset(const glm::vec3& offset) { _offset = offset; }
@@ -156,7 +156,7 @@ public:
     float getRightArmLength() const;
     
     void clearShapes();
-    void createShapes();
+    void rebuildShapes();
     void updateShapePositions();
     void renderJointCollisionShapes(float alpha);
     void renderBoundingCollisionShapes(float alpha);
@@ -184,6 +184,8 @@ public:
 
     /// Sets blended vertices computed in a separate thread.
     void setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
+
+    void updateGeometry();
 
 protected:
 
@@ -216,9 +218,6 @@ protected:
     };
     
     QVector<MeshState> _meshStates;
-    
-    bool updateGeometry();
-    void simulateInternal(float deltaTime);
     
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);
