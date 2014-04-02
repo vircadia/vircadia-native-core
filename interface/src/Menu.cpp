@@ -29,7 +29,6 @@
 #include <AccountManager.h>
 #include <XmppClient.h>
 #include <UUID.h>
-#include <FileDownloader.h>
 
 #include "Application.h"
 #include "Menu.h"
@@ -37,7 +36,7 @@
 #include "Util.h"
 #include "ui/InfoView.h"
 #include "ui/MetavoxelEditor.h"
-#include "ui/ModelBrowser.h"
+#include "ui/ModelsBrowser.h"
 
 
 Menu* Menu::_instance = NULL;
@@ -718,8 +717,8 @@ void Menu::loginForCurrentDomain() {
 
 void Menu::editPreferences() {
     Application* applicationInstance = Application::getInstance();
-    ModelBrowser headBrowser(Head);
-    ModelBrowser skeletonBrowser(Skeleton);
+    ModelsBrowser headBrowser(Head);
+    ModelsBrowser skeletonBrowser(Skeleton);
     
     const QString BROWSE_BUTTON_TEXT = "Browse";
 
@@ -820,15 +819,23 @@ void Menu::editPreferences() {
     if (ret == QDialog::Accepted) {
         bool shouldDispatchIdentityPacket = false;
 
-        if (headURLEdit.text() != faceURLString && !headURLEdit.text().isEmpty()) {
+        if (headURLEdit.text() != faceURLString) {
             // change the faceModelURL in the profile, it will also update this user's BlendFace
-            applicationInstance->getAvatar()->setFaceModelURL(QUrl(headURLEdit.text()));
+            if (headURLEdit.text().isEmpty()) {
+                applicationInstance->getAvatar()->setFaceModelURL(QUrl(headURLEdit.placeholderText()));
+            } else {
+                applicationInstance->getAvatar()->setFaceModelURL(QUrl(headURLEdit.text()));
+            }
             shouldDispatchIdentityPacket = true;
         }
 
-        if (skeletonURLEdit.text() != skeletonURLString && !skeletonURLEdit.text().isEmpty()) {
+        if (skeletonURLEdit.text() != skeletonURLString) {
             // change the skeletonModelURL in the profile, it will also update this user's Body
-            applicationInstance->getAvatar()->setSkeletonModelURL(QUrl(skeletonURLEdit.text()));
+            if (skeletonURLEdit.text().isEmpty()) {
+                applicationInstance->getAvatar()->setSkeletonModelURL(QUrl(skeletonURLEdit.placeholderText()));
+            } else {
+                applicationInstance->getAvatar()->setSkeletonModelURL(QUrl(skeletonURLEdit.text()));
+            }
             shouldDispatchIdentityPacket = true;
         }
 
