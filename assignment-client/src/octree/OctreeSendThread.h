@@ -21,7 +21,7 @@
 class OctreeSendThread : public GenericThread {
     Q_OBJECT
 public:
-    OctreeSendThread(const QUuid& nodeUUID, OctreeServer* myServer);
+    OctreeSendThread(OctreeServer* myServer, SharedNodePointer node);
     virtual ~OctreeSendThread();
     
     void setIsShuttingDown();
@@ -38,8 +38,8 @@ protected:
     virtual bool process();
 
 private:
-    QUuid _nodeUUID;
     OctreeServer* _myServer;
+    QUuid _nodeUUID;
 
     int handlePacketSend(const SharedNodePointer& node, OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent);
     int packetDistributor(const SharedNodePointer& node, OctreeQueryNode* nodeData, bool viewFrustumChanged);

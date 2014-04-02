@@ -16,6 +16,7 @@
 #include "ImageOverlay.h"
 
 ImageOverlay::ImageOverlay() :
+    _manager(0),
     _textureID(0),
     _renderImage(false),
     _textureBound(false),
@@ -33,9 +34,9 @@ ImageOverlay::~ImageOverlay() {
 // TODO: handle setting image multiple times, how do we manage releasing the bound texture?
 void ImageOverlay::setImageURL(const QUrl& url) {
     // TODO: are we creating too many QNetworkAccessManager() when multiple calls to setImageURL are made?
-    QNetworkAccessManager* manager = new QNetworkAccessManager(this);
-    connect(manager, SIGNAL(finished(QNetworkReply*)), this, SLOT(replyFinished(QNetworkReply*)));
-    manager->get(QNetworkRequest(url));
+    _manager = new QNetworkAccessManager();
+    connect(_manager, SIGNAL(finished(QNetworkReply*)), this, SLOT(replyFinished(QNetworkReply*)));
+    _manager->get(QNetworkRequest(url));
 }
 
 void ImageOverlay::replyFinished(QNetworkReply* reply) {
@@ -44,7 +45,7 @@ void ImageOverlay::replyFinished(QNetworkReply* reply) {
     QByteArray rawData = reply->readAll();
     _textureImage.loadFromData(rawData);
     _renderImage = true;
-    
+    _manager->deleteLater();
 }
 
 void ImageOverlay::render() {

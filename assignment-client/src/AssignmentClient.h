@@ -24,7 +24,7 @@ private slots:
     void handleAuthenticationRequest();
 private:
     Assignment _requestAssignment;
-    ThreadedAssignment* _currentAssignment;
+    SharedAssignmentPointer _currentAssignment;
 };
 
 #endif /* defined(__hifi__AssignmentClient__) */

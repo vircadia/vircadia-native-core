@@ -115,6 +115,7 @@ public:
     void loadScript(const QString& fileNameString);    
     void loadScripts();
     void storeSizeAndPosition();
+    void clearScriptsBeforeRunning();
     void saveScripts();
     void initializeGL();
     void paintGL();
@@ -254,12 +255,15 @@ public slots:
     void setRenderVoxels(bool renderVoxels);
     void doKillLocalVoxels();
     void loadDialog();
+    void loadScriptURLDialog();
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
     void stopAllScripts();
     void reloadAllScripts();
     
-    void uploadFST();
+    void uploadFST(bool isHead);
+    void uploadHead();
+    void uploadSkeleton();
 
 private slots:
     void timer();
@@ -310,7 +314,6 @@ private:
     void updateMetavoxels(float deltaTime);
     void updateCamera(float deltaTime);
     void updateDialogs(float deltaTime);
-    void updateAudio(float deltaTime);
     void updateCursor(float deltaTime);
 
     Avatar* findLookatTargetAvatar(glm::vec3& eyePosition, QUuid &nodeUUID);
@@ -390,6 +393,7 @@ private:
     quint64 _lastQueriedTime;
 
     Oscilloscope _audioScope;
+    float _trailingAudioLoudness;
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying voxels from voxel server
 
@@ -472,6 +476,8 @@ private:
     std::vector<VoxelFade> _voxelFades;
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;
+
+    QString _previousScriptLocation;
 
     FileLogger* _logger;
 

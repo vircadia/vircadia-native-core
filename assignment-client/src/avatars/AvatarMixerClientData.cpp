@@ -10,8 +10,9 @@
 
 AvatarMixerClientData::AvatarMixerClientData() :
     NodeData(),
-    _hasSentIdentityBetweenKeyFrames(false),
-    _hasSentBillboardBetweenKeyFrames(false)
+    _hasReceivedFirstPackets(false),
+    _billboardChangeTimestamp(0),
+    _identityChangeTimestamp(0)
 {
     
 }
@@ -20,4 +21,10 @@ int AvatarMixerClientData::parseData(const QByteArray& packet) {
     // compute the offset to the data payload
     int offset = numBytesForPacketHeader(packet);
     return _avatar.parseDataAtOffset(packet, offset);
+}
+
+bool AvatarMixerClientData::checkAndSetHasReceivedFirstPackets() {
+    bool oldValue = _hasReceivedFirstPackets;
+    _hasReceivedFirstPackets = true;
+    return oldValue;
 }

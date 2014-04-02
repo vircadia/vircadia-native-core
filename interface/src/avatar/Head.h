@@ -44,9 +44,15 @@ public:
     void setAverageLoudness(float averageLoudness) { _averageLoudness = averageLoudness; }
     void setReturnToCenter (bool returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     void setRenderLookatVectors(bool onOff) { _renderLookatVectors = onOff; }
+    void setLeanSideways(float leanSideways) { _leanSideways = leanSideways; }
+    void setLeanForward(float leanForward) { _leanForward = leanForward; }
     
-    glm::quat getTweakedOrientation() const;
+    /// \return orientationBody * orientationBase+Delta
+    glm::quat getFinalOrientation() const;
+
+    /// \return orientationBody * orientationBasePitch
     glm::quat getCameraOrientation () const;
+
     const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
     void setAngularVelocity(glm::vec3 angularVelocity) { _angularVelocity = angularVelocity; }
     
@@ -57,6 +63,10 @@ public:
     glm::vec3 getRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getUpDirection() const { return getOrientation() * IDENTITY_UP; }
     glm::vec3 getFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
+    float getLeanSideways() const { return _leanSideways; }
+    float getLeanForward() const { return _leanForward; }
+    float getFinalLeanSideways() const { return _leanSideways + _deltaLeanSideways; }
+    float getFinalLeanForward() const { return _leanForward + _deltaLeanForward; }
     
     glm::quat getEyeRotation(const glm::vec3& eyePosition) const;
     
@@ -67,23 +77,24 @@ public:
     float getAverageLoudness() const { return _averageLoudness; }
     glm::vec3 calculateAverageEyePosition() { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
     
-    /// Returns the point about which scaling occurs.
+    /// \return the point about which scaling occurs.
     glm::vec3 getScalePivot() const;
 
-    void setPitchTweak(float pitch) { _pitchTweak = pitch; }
-    float getPitchTweak() const { return _pitchTweak; }
+    void setDeltaPitch(float pitch) { _deltaPitch = pitch; }
+    float getDeltaPitch() const { return _deltaPitch; }
 
-    void setYawTweak(float yaw) { _yawTweak = yaw; }
-    float getYawTweak() const { return _yawTweak; }
+    void setDeltaYaw(float yaw) { _deltaYaw = yaw; }
+    float getDeltaYaw() const { return _deltaYaw; }
     
-    void setRollTweak(float roll) { _rollTweak = roll; }
-    float getRollTweak() const { return _rollTweak; }
+    void setDeltaRoll(float roll) { _deltaRoll = roll; }
+    float getDeltaRoll() const { return _deltaRoll; }
     
-    virtual float getTweakedPitch() const;
-    virtual float getTweakedYaw() const;
-    virtual float getTweakedRoll() const;
+    virtual float getFinalPitch() const;
+    virtual float getFinalYaw() const;
+    virtual float getFinalRoll() const;
 
-    void  applyCollision(CollisionInfo& collisionInfo);
+    void relaxLean(float deltaTime);
+    void addLeanDeltas(float sideways, float forward);
     
 private:
     // disallow copies of the Head, copy of owning Avatar is disallowed too
@@ -108,10 +119,14 @@ private:
     float _rightEyeBlinkVelocity;
     float _timeWithoutTalking;
 
-    // tweaked angles affect the rendered head, but not the camera
-    float _pitchTweak;
-    float _yawTweak;
-    float _rollTweak;
+    // delta angles for local head rotation (driven by hardware input)
+    float _deltaPitch;
+    float _deltaYaw;
+    float _deltaRoll;
+
+    // delta lean angles for lean perturbations (driven by collisions)
+    float _deltaLeanSideways;
+    float _deltaLeanForward;
 
     bool _isCameraMoving;
     FaceModel _faceModel;

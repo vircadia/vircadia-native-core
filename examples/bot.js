@@ -23,10 +23,10 @@ function printVector(string, vector) {
 }
 
 var CHANCE_OF_MOVING = 0.005; 
-var CHANCE_OF_SOUND = 0.005;
+var CHANCE_OF_SOUND = 0.000;
 var CHANCE_OF_HEAD_TURNING = 0.05;
 var CHANCE_OF_BIG_MOVE = 0.1;
-var CHANCE_OF_WAVING = 0.005;     //  Currently this isn't working
+var CHANCE_OF_WAVING = 0.009;     
 
 var shouldReceiveVoxels = true; 
 var VOXEL_FPS = 60.0;
@@ -39,12 +39,16 @@ var isWaving = false;
 var waveFrequency = 0.0;
 var waveAmplitude = 0.0; 
 
-var X_MIN = 0.0;
-var X_MAX = 5.0;
-var Z_MIN = 0.0;
-var Z_MAX = 5.0;
+var X_MIN = 20.0;
+var X_MAX = 25.0;
+var Z_MIN = 20.0;
+var Z_MAX = 25.0;
 var Y_PELVIS = 2.5;
-var SHOULDER_JOINT_NUMBER = 15; 
+var SPINE_JOINT_NUMBER = 13; 
+var SHOULDER_JOINT_NUMBER = 17; 
+var ELBOW_JOINT_NUMBER = 18;
+var JOINT_R_HIP = 1;
+var JOINT_R_KNEE = 2;
 
 var MOVE_RANGE_SMALL = 0.5;
 var MOVE_RANGE_BIG = Math.max(X_MAX - X_MIN, Z_MAX - Z_MIN) / 2.0;
@@ -60,6 +64,9 @@ var targetPosition =  { x: 0, y: 0, z: 0 };
 var targetDirection = { x: 0, y: 0, z: 0, w: 0 };
 var currentDirection = { x: 0, y: 0, z: 0, w: 0 };
 var targetHeadPitch = 0.0;
+
+var walkFrequency = 5.0;
+var walkAmplitude = 45.0;
 
 var cumulativeTime = 0.0;
 
@@ -115,11 +122,29 @@ printVector("New bot, position = ", Avatar.position);
 function stopWaving() {
   isWaving = false; 
   Avatar.clearJointData(SHOULDER_JOINT_NUMBER);
+  Avatar.clearJointData(ELBOW_JOINT_NUMBER);
+  Avatar.clearJointData(SPINE_JOINT_NUMBER);
+}
+
+function keepWalking() {
+      Avatar.setJointData(JOINT_R_HIP, Quat.fromPitchYawRollDegrees(walkAmplitude * Math.sin(cumulativeTime * walkFrequency), 0.0, 0.0));
+      Avatar.setJointData(JOINT_R_KNEE, Quat.fromPitchYawRollDegrees(walkAmplitude * Math.sin(cumulativeTime * walkFrequency), 0.0, 0.0));
+}
+
+function stopWalking() {
+  Avatar.clearJointData(JOINT_R_HIP);
+  Avatar.clearJointData(JOINT_R_KNEE);
 }
 
 function updateBehavior(deltaTime) {
   
   cumulativeTime += deltaTime;
+
+  //  Hack - right now you need to set the avatar position a bit after the avatar is made to make sure it's there. 
+
+  if (CHANCE_OF_MOVING == 0.000) {
+      Avatar.position = firstPosition;
+  }
 
   if (shouldReceiveVoxels && ((cumulativeTime - lastVoxelQueryTime) > (1.0 / VOXEL_FPS))) {
     VoxelViewer.setPosition(Avatar.position);
@@ -134,12 +159,17 @@ function updateBehavior(deltaTime) {
 
   if (!isWaving && (Math.random() < CHANCE_OF_WAVING)) {
     isWaving = true;
-    waveFrequency = 1.0 + Math.random() * 5.0;
+    waveFrequency = 3.0 + Math.random() * 5.0;
     waveAmplitude = 5.0 + Math.random() * 60.0;
     Script.setTimeout(stopWaving, 1000 + Math.random() * 2000);
+    Avatar.setJointData(ELBOW_JOINT_NUMBER, Quat.fromPitchYawRollDegrees(0.0, 45, 0.0));    //  Initially turn the palm outward
   } else if (isWaving) {
-    Avatar.setJointData(SHOULDER_JOINT_NUMBER, Quat.fromPitchYawRollDegrees(0.0, 0.0,  waveAmplitude * Math.sin(cumulativeTime * waveFrequency)));
+    Avatar.setJointData(SHOULDER_JOINT_NUMBER, Quat.fromPitchYawRollDegrees(0.0, 0.0,  60 + waveAmplitude * Math.sin((cumulativeTime - 0.25) * waveFrequency)));
+    Avatar.setJointData(ELBOW_JOINT_NUMBER, Quat.fromPitchYawRollDegrees(0.0, 0.0,  25 + waveAmplitude/2.0 * Math.sin(cumulativeTime * 1.2 * waveFrequency)));
+    Avatar.setJointData(SPINE_JOINT_NUMBER, Quat.fromPitchYawRollDegrees(0.0, 0.0,  60 + waveAmplitude/4.0 * Math.sin(cumulativeTime * waveFrequency)));
+
   }
+
 
   if (Math.random() < CHANCE_OF_SOUND) {
     playRandomSound();
@@ -168,63 +198,32 @@ function updateBehavior(deltaTime) {
     targetPosition.y = Y_PELVIS;
     
     isMoving = true;
-  } else { 
+  } else if (isMoving) { 
+    keepWalking();
     Avatar.position = Vec3.sum(Avatar.position, Vec3.multiply(Vec3.subtract(targetPosition, Avatar.position), MOVE_RATE));
     Avatar.orientation = Quat.mix(Avatar.orientation, targetDirection, TURN_RATE);
     if (Vec3.length(Vec3.subtract(Avatar.position, targetPosition)) < STOP_TOLERANCE) {
-       isMoving = false;  
+       isMoving = false; 
+       stopWalking(); 
     }
   }
 }
+
 Script.update.connect(updateBehavior);
 
 function loadSounds() {
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/AB1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Anchorman2.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/B1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/B1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Bale1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Bandcamp.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Big1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Big2.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Brian1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Buster1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/CES1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/CES2.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/CES3.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/CES4.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Carrie1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Carrie3.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Charlotte1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/EN1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/EN2.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/EN3.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Eugene1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Francesco1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Italian1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Japanese1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Leigh1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Lucille1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Lucille2.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/MeanGirls.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Murray2.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Nigel1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/PennyLane.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Pitt1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Ricardo.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/SN.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Sake1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Samantha1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Samantha2.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Spicoli1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Supernatural.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Swearengen1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/TheDude.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Tony.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Triumph1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Uma1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Walken1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Walken2.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Z1.raw"));
-  sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/Z2.raw"));
+  var sound_filenames = ["AB1.raw", "Anchorman2.raw", "B1.raw", "B1.raw", "Bale1.raw", "Bandcamp.raw",
+    "Big1.raw", "Big2.raw", "Brian1.raw", "Buster1.raw", "CES1.raw", "CES2.raw", "CES3.raw", "CES4.raw", 
+    "Carrie1.raw", "Carrie3.raw", "Charlotte1.raw", "EN1.raw", "EN2.raw", "EN3.raw", "Eugene1.raw", "Francesco1.raw",
+    "Italian1.raw", "Japanese1.raw", "Leigh1.raw", "Lucille1.raw", "Lucille2.raw", "MeanGirls.raw", "Murray2.raw",
+    "Nigel1.raw", "PennyLane.raw", "Pitt1.raw", "Ricardo.raw", "SN.raw", "Sake1.raw", "Samantha1.raw", "Samantha2.raw", 
+    "Spicoli1.raw", "Supernatural.raw", "Swearengen1.raw", "TheDude.raw", "Tony.raw", "Triumph1.raw", "Uma1.raw",
+    "Walken1.raw", "Walken2.raw", "Z1.raw", "Z2.raw"
+  ];
+  
+  var SOUND_BASE_URL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/";
+  
+  for (var i = 0; i < sound_filenames.length; i++) {
+      sounds.push(new Sound(SOUND_BASE_URL + sound_filenames[i]));
+  }
 }

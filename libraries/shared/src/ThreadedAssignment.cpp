@@ -20,18 +20,15 @@ ThreadedAssignment::ThreadedAssignment(const QByteArray& packet) :
     
 }
 
-void ThreadedAssignment::deleteLater() {
-    // move the NodeList back to the QCoreApplication instance's thread
-    NodeList::getInstance()->moveToThread(QCoreApplication::instance()->thread());
-    QObject::deleteLater();
-}
-
 void ThreadedAssignment::setFinished(bool isFinished) {
     _isFinished = isFinished;
 
     if (_isFinished) {
         aboutToFinish();
         emit finished();
+        
+        // move the NodeList back to the QCoreApplication instance's thread
+        NodeList::getInstance()->moveToThread(QCoreApplication::instance()->thread());
     }
 }
 
@@ -45,10 +42,6 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
     QTimer* domainServerTimer = new QTimer(this);
     connect(domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
     domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_USECS / 1000);
-    
-    QTimer* pingNodesTimer = new QTimer(this);
-    connect(pingNodesTimer, SIGNAL(timeout()), nodeList, SLOT(pingInactiveNodes()));
-    pingNodesTimer->start(PING_INACTIVE_NODE_INTERVAL_USECS / 1000);
     
     QTimer* silentNodeRemovalTimer = new QTimer(this);
     connect(silentNodeRemovalTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
@@ -82,7 +75,6 @@ void ThreadedAssignment::sendStatsPacket() {
 
 void ThreadedAssignment::checkInWithDomainServerOrExit() {
     if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
-        qDebug() << "NRDC:" << NodeList::getInstance()->getNumNoReplyDomainCheckIns();
         setFinished(true);
     } else {
         NodeList::getInstance()->sendDomainServerCheckIn();

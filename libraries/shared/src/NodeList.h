@@ -58,6 +58,7 @@ namespace PingType {
     const PingType_t Agnostic = 0;
     const PingType_t Local = 1;
     const PingType_t Public = 2;
+    const PingType_t Symmetric = 3;
 }
 
 class NodeList : public QObject {
@@ -101,9 +102,8 @@ public:
 
     QByteArray constructPingPacket(PingType_t pingType = PingType::Agnostic);
     QByteArray constructPingReplyPacket(const QByteArray& pingPacket);
-    void pingPublicAndLocalSocketsForInactiveNode(const SharedNodePointer& node);
+    void pingPunchForInactiveNode(const SharedNodePointer& node);
 
-    /// passing false for blockingLock, will tryLock, and may return NULL when a node with the UUID actually does exist
     SharedNodePointer nodeWithUUID(const QUuid& nodeUUID, bool blockingLock = true);
     SharedNodePointer sendingNodeForPacket(const QByteArray& packet);
     
@@ -128,6 +128,7 @@ public:
     void saveData(QSettings* settings);
 public slots:
     void reset();
+    void eraseAllNodes();
     
     void sendDomainServerCheckIn();
     void pingInactiveNodes();
@@ -154,13 +155,13 @@ private:
                          const QUuid& connectionSecret);
 
     NodeHash::iterator killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill);
-    
-    void clear();
 
     void processDomainServerAuthRequest(const QByteArray& packet);
     void requestAuthForDomainServer();
     void activateSocketFromNodeCommunication(const QByteArray& packet, const SharedNodePointer& sendingNode);
     void timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode);
+    
+    void changeSendSocketBufferSize(int numSendBytes);
 
     NodeHash _nodeHash;
     QMutex _nodeHashMutex;

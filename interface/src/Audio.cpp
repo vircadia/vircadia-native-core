@@ -60,15 +60,16 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
     _measuredJitter(0),
     _jitterBufferSamples(initialJitterBufferSamples),
     _lastInputLoudness(0),
+    _timeSinceLastClip(-1.0),
     _dcOffset(0),
     _noiseGateMeasuredFloor(0),
     _noiseGateSampleCounter(0),
     _noiseGateOpen(false),
     _noiseGateEnabled(true),
+    _toneInjectionEnabled(false),
     _noiseGateFramesToClose(0),
-    _lastVelocity(0),
-    _lastAcceleration(0),
     _totalPacketsReceived(0),
+    _totalInputAudioSamples(0),
     _collisionSoundMagnitude(0.0f),
     _collisionSoundFrequency(0.0f),
     _collisionSoundNoise(0.0f),
@@ -95,6 +96,7 @@ void Audio::reset() {
 QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
     QAudioDeviceInfo result;
     foreach(QAudioDeviceInfo audioDevice, QAudioDeviceInfo::availableDevices(mode)) {
+        qDebug() << audioDevice.deviceName() << " " << deviceName;
         if (audioDevice.deviceName().trimmed() == deviceName.trimmed()) {
             result = audioDevice;
         }
@@ -143,6 +145,30 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
         }
     }
 #endif
+#ifdef WIN32
+    QString deviceName;
+    if (mode == QAudio::AudioInput) {
+        WAVEINCAPS wic;
+        // first use WAVE_MAPPER to get the default devices manufacturer ID
+        waveInGetDevCaps(WAVE_MAPPER, &wic, sizeof(wic));
+        //Use the received manufacturer id to get the device's real name
+        waveInGetDevCaps(wic.wMid, &wic, sizeof(wic));
+        qDebug() << "input device:" << wic.szPname;
+        deviceName = wic.szPname;
+    } else {
+        WAVEOUTCAPS woc;
+        // first use WAVE_MAPPER to get the default devices manufacturer ID
+        waveOutGetDevCaps(WAVE_MAPPER, &woc, sizeof(woc));
+        //Use the received manufacturer id to get the device's real name
+        waveOutGetDevCaps(woc.wMid, &woc, sizeof(woc));
+        qDebug() << "output device:" << woc.szPname;
+        deviceName = woc.szPname;
+    }
+	qDebug() << "DEBUG [" << deviceName << "] [" << getNamedAudioDeviceForMode(mode, deviceName).deviceName() << "]";
+    
+    return getNamedAudioDeviceForMode(mode, deviceName);
+#endif
+
 
     // fallback for failed lookup is the default device
     return (mode == QAudio::AudioInput) ? QAudioDeviceInfo::defaultInputDevice() : QAudioDeviceInfo::defaultOutputDevice();
@@ -215,6 +241,20 @@ void linearResampling(int16_t* sourceSamples, int16_t* destinationSamples,
             }
 
         } else {
+            if (sourceAudioFormat.sampleRate() == destinationAudioFormat.sampleRate()) {
+                // mono to stereo, same sample rate
+                if (!(sourceAudioFormat.channelCount() == 1 && destinationAudioFormat.channelCount() == 2)) {
+                    qWarning() << "Unsupported format conversion" << sourceAudioFormat << destinationAudioFormat;
+                    return;
+                }
+                for (const int16_t* sourceEnd = sourceSamples + numSourceSamples; sourceSamples != sourceEnd;
+                        sourceSamples++) {
+                    *destinationSamples++ = *sourceSamples;
+                    *destinationSamples++ = *sourceSamples;
+                }
+                return;
+            }
+        
             // upsample from 24 to 48
             // for now this only supports a stereo to stereo conversion - this is our case for network audio to output
             int sourceIndex = 0;
@@ -243,8 +283,6 @@ void linearResampling(int16_t* sourceSamples, int16_t* destinationSamples,
     }
 }
 
-const int CALLBACK_ACCELERATOR_RATIO = 2;
-
 void Audio::start() {
 
     // set up the desired audio format
@@ -260,15 +298,24 @@ void Audio::start() {
 
     QAudioDeviceInfo inputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioInput);
     qDebug() << "The default audio input device is" << inputDeviceInfo.deviceName();
-    bool inputFormatSupported = switchInputToAudioDevice(inputDeviceInfo.deviceName());
+    bool inputFormatSupported = switchInputToAudioDevice(inputDeviceInfo);
 
     QAudioDeviceInfo outputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioOutput);
     qDebug() << "The default audio output device is" << outputDeviceInfo.deviceName();
-    bool outputFormatSupported = switchOutputToAudioDevice(outputDeviceInfo.deviceName());
+    bool outputFormatSupported = switchOutputToAudioDevice(outputDeviceInfo);
     
-    if (!inputFormatSupported || !outputFormatSupported) {
-        qDebug() << "Unable to set up audio I/O because of a problem with input or output formats.";
+    if (!inputFormatSupported) {
+        qDebug() << "Unable to set up audio input because of a problem with input format.";
     }
+    if (!outputFormatSupported) {
+        qDebug() << "Unable to set up audio output because of a problem with output format.";
+    }
+}
+
+void Audio::stop() {
+    // "switch" to invalid devices in order to shut down the state
+    switchInputToAudioDevice(QAudioDeviceInfo());
+    switchOutputToAudioDevice(QAudioDeviceInfo());
 }
 
 QString Audio::getDefaultDeviceName(QAudio::Mode mode) {
@@ -285,96 +332,13 @@ QVector<QString> Audio::getDeviceNames(QAudio::Mode mode) {
 }
 
 bool Audio::switchInputToAudioDevice(const QString& inputDeviceName) {
-    bool supportedFormat = false;
-    
-    // cleanup any previously initialized device
-    if (_audioInput) {
-        _audioInput->stop();
-        disconnect(_inputDevice, 0, 0, 0);
-        _inputDevice = NULL;
-
-        delete _audioInput;
-        _audioInput = NULL;
-        _numInputCallbackBytes = 0;
-
-        _inputAudioDeviceName = "";
-    }
-
-    QAudioDeviceInfo inputDeviceInfo = getNamedAudioDeviceForMode(QAudio::AudioInput, inputDeviceName);
-    
-    if (!inputDeviceInfo.isNull()) {
-        qDebug() << "The audio input device " << inputDeviceInfo.deviceName() << "is available.";
-        _inputAudioDeviceName = inputDeviceInfo.deviceName().trimmed();
-    
-        if (adjustedFormatForAudioDevice(inputDeviceInfo, _desiredInputFormat, _inputFormat)) {
-            qDebug() << "The format to be used for audio input is" << _inputFormat;
-        
-            _audioInput = new QAudioInput(inputDeviceInfo, _inputFormat, this);
-            _numInputCallbackBytes = NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL * _inputFormat.channelCount()
-                * (_inputFormat.sampleRate() / SAMPLE_RATE)
-                / CALLBACK_ACCELERATOR_RATIO;
-            _audioInput->setBufferSize(_numInputCallbackBytes);
-
-            // how do we want to handle input working, but output not working?
-            _inputRingBuffer.resizeForFrameSize(_numInputCallbackBytes * CALLBACK_ACCELERATOR_RATIO / sizeof(int16_t));
-            _inputDevice = _audioInput->start();
-            connect(_inputDevice, SIGNAL(readyRead()), this, SLOT(handleAudioInput()));
-
-            supportedFormat = true;
-        }
-    }
-    return supportedFormat;
+    qDebug() << "DEBUG [" << inputDeviceName << "] [" << getNamedAudioDeviceForMode(QAudio::AudioInput, inputDeviceName).deviceName() << "]";
+    return switchInputToAudioDevice(getNamedAudioDeviceForMode(QAudio::AudioInput, inputDeviceName));
 }
 
 bool Audio::switchOutputToAudioDevice(const QString& outputDeviceName) {
-    bool supportedFormat = false;
-
-    // cleanup any previously initialized device
-    if (_audioOutput) {
-        _audioOutput->stop();
-        disconnect(_outputDevice, 0, 0, 0);
-        _outputDevice = NULL;
-        
-        delete _audioOutput;
-        _audioOutput = NULL;
-        _numInputCallbackBytes = 0;
-
-        _loopbackOutputDevice = NULL;
-        delete _loopbackAudioOutput;
-        _loopbackAudioOutput = NULL;
-
-        _proceduralOutputDevice = NULL;
-        delete _proceduralAudioOutput;
-        _proceduralAudioOutput = NULL;
-        _outputAudioDeviceName = "";
-    }
-
-    QAudioDeviceInfo outputDeviceInfo = getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName);
-
-    if (!outputDeviceInfo.isNull()) {
-        qDebug() << "The audio output device " << outputDeviceInfo.deviceName() << "is available.";
-        _outputAudioDeviceName = outputDeviceInfo.deviceName().trimmed();
-
-        if (adjustedFormatForAudioDevice(outputDeviceInfo, _desiredOutputFormat, _outputFormat)) {
-            qDebug() << "The format to be used for audio output is" << _outputFormat;
-        
-            // setup our general output device for audio-mixer audio
-            _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
-            _audioOutput->setBufferSize(_ringBuffer.getSampleCapacity() * sizeof(int16_t));
-            qDebug() << "Ring Buffer capacity in samples: " << _ringBuffer.getSampleCapacity();
-            _outputDevice = _audioOutput->start();
-
-            // setup a loopback audio output device
-            _loopbackAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
-        
-            // setup a procedural audio output device
-            _proceduralAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
-
-            gettimeofday(&_lastReceiveTime, NULL);
-            supportedFormat = true;
-        }
-    }
-    return supportedFormat;
+    qDebug() << "DEBUG [" << outputDeviceName << "] [" << getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName).deviceName() << "]";
+    return switchOutputToAudioDevice(getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName));
 }
 
 void Audio::handleAudioInput() {
@@ -385,14 +349,13 @@ void Audio::handleAudioInput() {
 
     static int16_t* monoAudioSamples = (int16_t*) (monoAudioDataPacket + leadingBytes);
 
-    static float inputToNetworkInputRatio = _numInputCallbackBytes * CALLBACK_ACCELERATOR_RATIO
-        / NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL;
+    float inputToNetworkInputRatio = calculateDeviceToNetworkInputRatio(_numInputCallbackBytes);
 
-    static unsigned int inputSamplesRequired = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio;
+    unsigned int inputSamplesRequired = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio;
 
     QByteArray inputByteArray = _inputDevice->readAll();
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio) && !_muted) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio) && !_muted && _audioOutput) {
         // if this person wants local loopback add that to the locally injected audio
 
         if (!_loopbackOutputDevice && _loopbackAudioOutput) {
@@ -405,7 +368,7 @@ void Audio::handleAudioInput() {
                 _loopbackOutputDevice->write(inputByteArray);
             }
         } else {
-            static float loopbackOutputToInputRatio = (_outputFormat.sampleRate() / (float) _inputFormat.sampleRate())
+            float loopbackOutputToInputRatio = (_outputFormat.sampleRate() / (float) _inputFormat.sampleRate())
                 * (_outputFormat.channelCount() / _inputFormat.channelCount());
 
             QByteArray loopBackByteArray(inputByteArray.size() * loopbackOutputToInputRatio, 0);
@@ -430,9 +393,6 @@ void Audio::handleAudioInput() {
         // zero out the monoAudioSamples array and the locally injected audio
         memset(monoAudioSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
 
-        // zero out the locally injected audio in preparation for audio procedural sounds
-        memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
-
         if (!_muted) {
             // we aren't muted, downsample the input audio
             linearResampling((int16_t*) inputAudioSamples,
@@ -440,7 +400,7 @@ void Audio::handleAudioInput() {
                              inputSamplesRequired,
                              NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
                              _inputFormat, _desiredInputFormat);
-
+            
             //
             //  Impose Noise Gate
             //
@@ -469,13 +429,24 @@ void Audio::handleAudioInput() {
             const int NOISE_GATE_CLOSE_FRAME_DELAY = 5;
             const int NOISE_GATE_FRAMES_TO_AVERAGE = 5;
             const float DC_OFFSET_AVERAGING = 0.99f;
+            const float CLIPPING_THRESHOLD = 0.90f;
             
+            //
+            //  Check clipping, adjust DC offset, and check if should open noise gate
+            //
             float measuredDcOffset = 0.f;
-            
+            //  Increment the time since the last clip
+            if (_timeSinceLastClip >= 0.0f) {
+                _timeSinceLastClip += (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float) SAMPLE_RATE;
+            }
+           
             for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
                 measuredDcOffset += monoAudioSamples[i];
                 monoAudioSamples[i] -= (int16_t) _dcOffset;
                 thisSample = fabsf(monoAudioSamples[i]);
+                if (thisSample > (32767.f * CLIPPING_THRESHOLD)) {
+                    _timeSinceLastClip = 0.0f;
+                }
                 loudness += thisSample;
                 //  Noise Reduction:  Count peaks above the average loudness
                 if (thisSample > (_noiseGateMeasuredFloor * NOISE_GATE_HEIGHT)) {
@@ -530,6 +501,16 @@ void Audio::handleAudioInput() {
                     _lastInputLoudness = 0;
                 }
             }
+            //
+            //  Add tone injection if enabled
+            //
+            const float TONE_FREQ = 220.f / SAMPLE_RATE * TWO_PI;
+            const float QUARTER_VOLUME = 8192.f;
+            if (_toneInjectionEnabled) {
+                for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
+                    monoAudioSamples[i] = QUARTER_VOLUME * sinf(TONE_FREQ * (float)(i + _proceduralEffectSample));
+                }
+            }
 
             // add input data just written to the scope
             QMetaObject::invokeMethod(_scope, "addSamples", Qt::QueuedConnection,
@@ -541,26 +522,8 @@ void Audio::handleAudioInput() {
             _lastInputLoudness = 0;
         }
         
-        // add procedural effects to the appropriate input samples
-        addProceduralSounds(monoAudioSamples,
-                            NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-        
-        if (!_proceduralOutputDevice && _proceduralAudioOutput) {
-            _proceduralOutputDevice = _proceduralAudioOutput->start();
-        }
-        
-        // send whatever procedural sounds we want to locally loop back to the _proceduralOutputDevice
-        QByteArray proceduralOutput;
-        proceduralOutput.resize(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 4 * sizeof(int16_t));
-        
-        linearResampling(_localProceduralSamples,
-                         reinterpret_cast<int16_t*>(proceduralOutput.data()),
-                         NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
-                         NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 4,
-                         _desiredInputFormat, _outputFormat);
-        
-        if (_proceduralOutputDevice) {
-            _proceduralOutputDevice->write(proceduralOutput);
+        if (_proceduralAudioOutput) {
+            processProceduralAudio(monoAudioSamples, NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
         }
 
         NodeList* nodeList = NodeList::getInstance();
@@ -569,7 +532,7 @@ void Audio::handleAudioInput() {
         if (audioMixer && audioMixer->getActiveSocket()) {
             MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
             glm::vec3 headPosition = interfaceAvatar->getHead()->getPosition();
-            glm::quat headOrientation = interfaceAvatar->getHead()->getOrientation();
+            glm::quat headOrientation = interfaceAvatar->getHead()->getFinalOrientation();
 
             // we need the amount of bytes in the buffer + 1 for type
             // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
@@ -640,9 +603,37 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
         }
     }
 
+    if (_audioOutput) {
+        // Audio output must exist and be correctly set up if we're going to process received audio
+        processReceivedAudio(audioByteArray);
+    }
+
+    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(audioByteArray.size());
+
+    _lastReceiveTime = currentReceiveTime;
+}
+
+bool Audio::mousePressEvent(int x, int y) {
+    if (_iconBounds.contains(x, y)) {
+        toggleMute();
+        return true;
+    }
+    return false;
+}
+
+void Audio::toggleMute() {
+    _muted = !_muted;
+    muteToggled();
+}
+
+void Audio::toggleAudioNoiseReduction() {
+    _noiseGateEnabled = !_noiseGateEnabled;
+}
+
+void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
     _ringBuffer.parseData(audioByteArray);
 
-    static float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())
+    float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())
         * (_desiredOutputFormat.channelCount() / (float) _outputFormat.channelCount());
     
     if (!_ringBuffer.isStarved() && _audioOutput && _audioOutput->bytesFree() == _audioOutput->bufferSize()) {
@@ -697,32 +688,41 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
             }
             delete[] ringBufferSamples;
         }
-
     }
-
-    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(audioByteArray.size());
-
-    _lastReceiveTime = currentReceiveTime;
 }
 
-bool Audio::mousePressEvent(int x, int y) {
-    if (_iconBounds.contains(x, y)) {
-        toggleMute();
-        return true;
+void Audio::processProceduralAudio(int16_t* monoInput, int numSamples) {
+
+    // zero out the locally injected audio in preparation for audio procedural sounds
+    // This is correlated to numSamples, so it really needs to be numSamples * sizeof(sample)
+    memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
+    // add procedural effects to the appropriate input samples
+    addProceduralSounds(monoInput, NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+        
+    if (!_proceduralOutputDevice) {
+        _proceduralOutputDevice = _proceduralAudioOutput->start();
     }
-    return false;
+        
+    // send whatever procedural sounds we want to locally loop back to the _proceduralOutputDevice
+    QByteArray proceduralOutput;
+    proceduralOutput.resize(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * _outputFormat.sampleRate() *
+        _outputFormat.channelCount() * sizeof(int16_t) / (_desiredInputFormat.sampleRate() *
+            _desiredInputFormat.channelCount()));
+        
+    linearResampling(_localProceduralSamples,
+        reinterpret_cast<int16_t*>(proceduralOutput.data()),
+        NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
+        proceduralOutput.size() / sizeof(int16_t),
+        _desiredInputFormat, _outputFormat);
+        
+    if (_proceduralOutputDevice) {
+        _proceduralOutputDevice->write(proceduralOutput);
+    }
 }
 
-void Audio::toggleMute() {
-    _muted = !_muted;
-    muteToggled();
+void Audio::toggleToneInjection() {
+    _toneInjectionEnabled = !_toneInjectionEnabled;
 }
-
-void Audio::toggleAudioNoiseReduction() {
-    _noiseGateEnabled = !_noiseGateEnabled;
-}
-
-
 
 //  Take a pointer to the acquired microphone input samples and add procedural sounds
 void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
@@ -861,4 +861,129 @@ void Audio::renderMuteIcon(int x, int y) {
     }
 
     glDisable(GL_TEXTURE_2D);
+}
+
+bool Audio::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {
+    bool supportedFormat = false;
+    
+    // cleanup any previously initialized device
+    if (_audioInput) {
+        _audioInput->stop();
+        disconnect(_inputDevice);
+        _inputDevice = NULL;
+
+        delete _audioInput;
+        _audioInput = NULL;
+        _numInputCallbackBytes = 0;
+
+        _inputAudioDeviceName = "";
+    }
+
+    if (!inputDeviceInfo.isNull()) {
+        qDebug() << "The audio input device " << inputDeviceInfo.deviceName() << "is available.";
+        _inputAudioDeviceName = inputDeviceInfo.deviceName().trimmed();
+    
+        if (adjustedFormatForAudioDevice(inputDeviceInfo, _desiredInputFormat, _inputFormat)) {
+            qDebug() << "The format to be used for audio input is" << _inputFormat;
+        
+            _audioInput = new QAudioInput(inputDeviceInfo, _inputFormat, this);
+            _numInputCallbackBytes = calculateNumberOfInputCallbackBytes(_inputFormat);
+            _audioInput->setBufferSize(_numInputCallbackBytes);
+
+            // how do we want to handle input working, but output not working?
+            int numFrameSamples = calculateNumberOfFrameSamples(_numInputCallbackBytes);
+            _inputRingBuffer.resizeForFrameSize(numFrameSamples);
+            _inputDevice = _audioInput->start();
+            connect(_inputDevice, SIGNAL(readyRead()), this, SLOT(handleAudioInput()));
+
+            supportedFormat = true;
+        }
+    }
+    return supportedFormat;
+}
+
+bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) {
+    bool supportedFormat = false;
+
+    // cleanup any previously initialized device
+    if (_audioOutput) {
+        _audioOutput->stop();
+        _outputDevice = NULL;
+        
+        delete _audioOutput;
+        _audioOutput = NULL;
+        _numInputCallbackBytes = 0;
+
+        _loopbackOutputDevice = NULL;
+        delete _loopbackAudioOutput;
+        _loopbackAudioOutput = NULL;
+
+        _proceduralOutputDevice = NULL;
+        delete _proceduralAudioOutput;
+        _proceduralAudioOutput = NULL;
+        _outputAudioDeviceName = "";
+    }
+
+    if (!outputDeviceInfo.isNull()) {
+        qDebug() << "The audio output device " << outputDeviceInfo.deviceName() << "is available.";
+        _outputAudioDeviceName = outputDeviceInfo.deviceName().trimmed();
+
+        if (adjustedFormatForAudioDevice(outputDeviceInfo, _desiredOutputFormat, _outputFormat)) {
+            qDebug() << "The format to be used for audio output is" << _outputFormat;
+        
+            // setup our general output device for audio-mixer audio
+            _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
+            _audioOutput->setBufferSize(_ringBuffer.getSampleCapacity() * sizeof(int16_t));
+            qDebug() << "Ring Buffer capacity in samples: " << _ringBuffer.getSampleCapacity();
+            _outputDevice = _audioOutput->start();
+
+            // setup a loopback audio output device
+            _loopbackAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
+        
+            // setup a procedural audio output device
+            _proceduralAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
+
+            gettimeofday(&_lastReceiveTime, NULL);
+            supportedFormat = true;
+        }
+    }
+    return supportedFormat;
+}
+
+// The following constant is operating system dependent due to differences in
+// the way input audio is handled. The audio input buffer size is inversely
+// proportional to the accelerator ratio. 
+
+#ifdef Q_OS_WIN
+const float Audio::CALLBACK_ACCELERATOR_RATIO = 0.4f;
+#endif
+
+#ifdef Q_OS_MAC
+const float Audio::CALLBACK_ACCELERATOR_RATIO = 2.0f;
+#endif
+
+#ifdef Q_OS_LINUX
+const float Audio::CALLBACK_ACCELERATOR_RATIO = 2.0f;
+#endif
+
+int Audio::calculateNumberOfInputCallbackBytes(const QAudioFormat& format) {
+    int numInputCallbackBytes = (int)(((NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL 
+        * format.channelCount()
+        * (format.sampleRate() / SAMPLE_RATE))
+        / CALLBACK_ACCELERATOR_RATIO) + 0.5f);
+
+    return numInputCallbackBytes;
+}
+
+float Audio::calculateDeviceToNetworkInputRatio(int numBytes) {
+    float inputToNetworkInputRatio = (int)((_numInputCallbackBytes 
+        * CALLBACK_ACCELERATOR_RATIO
+        / NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL) + 0.5f);
+
+    return inputToNetworkInputRatio;
+}
+
+int Audio::calculateNumberOfFrameSamples(int numBytes) {
+    int frameSamples = (int)(numBytes * CALLBACK_ACCELERATOR_RATIO + 0.5f) / sizeof(int16_t);
+    return frameSamples;
 }

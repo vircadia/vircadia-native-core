@@ -145,10 +145,11 @@ public:
     /// \return true if we expect the avatar would move as a result of the collision
     bool collisionWouldMoveAvatar(CollisionInfo& collision) const;
 
-    /// \param collision a data structure for storing info about collisions against Models
-    void applyCollision(CollisionInfo& collision);
+    virtual void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) { }
 
-    float getBoundingRadius() const { return 0.5f * getSkeletonHeight(); }
+    /// \return bounding radius of avatar
+    virtual float getBoundingRadius() const;
+    void updateShapePositions();
 
 public slots:
     void updateCollisionFlags();

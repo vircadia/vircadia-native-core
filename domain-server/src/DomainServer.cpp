@@ -657,6 +657,8 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString URI_ASSIGNMENT = "/assignment";
     const QString URI_NODES = "/nodes";
     
+    const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+    
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
         if (url.path() == "/assignments.json") {
             // user is asking for json list of assignments
@@ -726,9 +728,8 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             
             return true;
         } else {
-            const QString NODE_REGEX_STRING =
-                QString("\\%1\\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}).json\\/?$").arg(URI_NODES);
-            QRegExp nodeShowRegex(NODE_REGEX_STRING);
+            const QString NODE_JSON_REGEX_STRING = QString("\\%1\\/(%2).json\\/?$").arg(URI_NODES).arg(UUID_REGEX_STRING);
+            QRegExp nodeShowRegex(NODE_JSON_REGEX_STRING);
             
             if (nodeShowRegex.indexIn(url.path()) != -1) {
                 QUuid matchingUUID = QUuid(nodeShowRegex.cap(1));
@@ -801,29 +802,35 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             return true;
         }
     } else if (connection->requestOperation() == QNetworkAccessManager::DeleteOperation) {
-        if (url.path().startsWith(URI_NODES)) {
-            // this is a request to DELETE a node by UUID
+        const QString ALL_NODE_DELETE_REGEX_STRING = QString("\\%1\\/?$").arg(URI_NODES);
+        const QString NODE_DELETE_REGEX_STRING = QString("\\%1\\/(%2)\\/$").arg(URI_NODES).arg(UUID_REGEX_STRING);
+        
+        QRegExp allNodesDeleteRegex(ALL_NODE_DELETE_REGEX_STRING);
+        QRegExp nodeDeleteRegex(NODE_DELETE_REGEX_STRING);
+       
+        if (nodeDeleteRegex.indexIn(url.path()) != -1) {
+            // this is a request to DELETE one node by UUID
             
-            // pull the UUID from the url
-            QUuid deleteUUID = QUuid(url.path().mid(URI_NODES.size() + sizeof('/')));
+            // pull the captured string, if it exists
+            QUuid deleteUUID = QUuid(nodeDeleteRegex.cap(1));
             
-            if (!deleteUUID.isNull()) {
-                SharedNodePointer nodeToKill = NodeList::getInstance()->nodeWithUUID(deleteUUID);
+            SharedNodePointer nodeToKill = NodeList::getInstance()->nodeWithUUID(deleteUUID);
+            
+            if (nodeToKill) {
+                // start with a 200 response
+                connection->respond(HTTPConnection::StatusCode200);
                 
-                if (nodeToKill) {
-                    // start with a 200 response
-                    connection->respond(HTTPConnection::StatusCode200);
-                    
-                    // we have a valid UUID and node - kill the node that has this assignment
-                    QMetaObject::invokeMethod(NodeList::getInstance(), "killNodeWithUUID", Q_ARG(const QUuid&, deleteUUID));
-                    
-                    // successfully processed request
-                    return true;
-                }
+                // we have a valid UUID and node - kill the node that has this assignment
+                QMetaObject::invokeMethod(NodeList::getInstance(), "killNodeWithUUID", Q_ARG(const QUuid&, deleteUUID));
+                
+                // successfully processed request
+                return true;
             }
             
-            // bad request, couldn't pull a node ID
-            connection->respond(HTTPConnection::StatusCode400);
+            return true;
+        } else if (allNodesDeleteRegex.indexIn(url.path()) != -1) {
+            qDebug() << "Received request to kill all nodes.";
+            NodeList::getInstance()->eraseAllNodes();
             
             return true;
         }

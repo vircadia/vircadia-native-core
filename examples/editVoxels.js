@@ -400,9 +400,9 @@ function calcScaleFromThumb(newThumbX) {
 }
 
 function setAudioPosition() {
-    var camera = Camera.getPosition();
+    var position = MyAvatar.position;
     var forwardVector = Quat.getFront(MyAvatar.orientation);
-    audioOptions.position = Vec3.sum(camera, forwardVector);
+    audioOptions.position = Vec3.sum(position, forwardVector);
 }
 
 function getNewPasteVoxel(pickRay) {
@@ -735,6 +735,7 @@ function trackKeyReleaseEvent(event) {
     if (event.text == "TAB") {
         editToolsOn = !editToolsOn;
         moveTools();
+        setAudioPosition(); // make sure we set the audio position before playing sounds
         showPreviewGuides();
         Audio.playSound(clickSound, audioOptions);
     }
@@ -1325,7 +1326,7 @@ function wheelEvent(event) {
     }
 }
 
-Controller.wheelEvent.connect(wheelEvent);
+// Controller.wheelEvent.connect(wheelEvent);
 Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 Controller.mouseMoveEvent.connect(mouseMoveEvent);

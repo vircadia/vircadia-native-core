@@ -49,6 +49,8 @@ private:
 
     QUrl _imageURL;
     QImage _textureImage;
+    QNetworkAccessManager* _manager;
+
     GLuint _textureID;
     QRect _fromImage; // where from in the image to sample
     bool _renderImage; // is there an image associated with this overlay, or is it just a colored rectangle

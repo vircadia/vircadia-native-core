@@ -16,11 +16,14 @@
 #include <ShapeCollider.h>
 #include <SharedUtil.h>
 #include <SphereShape.h>
+#include <StreamUtils.h>
 
-#include "PhysicsTestUtil.h"
 #include "ShapeColliderTests.h"
 
 const glm::vec3 origin(0.f);
+static const glm::vec3 xAxis(1.f, 0.f, 0.f);
+static const glm::vec3 yAxis(0.f, 1.f, 0.f);
+static const glm::vec3 zAxis(0.f, 0.f, 1.f);
 
 void ShapeColliderTests::sphereMissesSphere() {
     // non-overlapping spheres of unequal size
@@ -189,7 +192,7 @@ void ShapeColliderTests::sphereMissesCapsule() {
     float delta = 1.3f * (totalRadius + halfHeightB) / (numberOfSteps - 1);
     for (int i = 0; i < numberOfSteps; ++i) {
         // translate sphereA into world-frame
-        glm::vec3 localPosition = localStartPosition + (float(i) * delta) * yAxis;
+        glm::vec3 localPosition = localStartPosition + ((float)i * delta) * yAxis;
         sphereA.setPosition(rotation * localPosition + translation);
 
         // sphereA agains capsuleB

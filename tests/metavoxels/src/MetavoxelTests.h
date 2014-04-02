@@ -89,11 +89,24 @@ private:
 /// Another simple shared object.
 class TestSharedObjectB : public SharedObject {
     Q_OBJECT
+    Q_PROPERTY(float foo READ getFoo WRITE setFoo)
+    Q_PROPERTY(QByteArray bar READ getBar WRITE setBar)
 
 public:
     
-    Q_INVOKABLE TestSharedObjectB();
+    Q_INVOKABLE TestSharedObjectB(float foo = 0.0f, const QByteArray& bar = QByteArray());
     virtual ~TestSharedObjectB();
+
+    void setFoo(float foo) { _foo = foo; }
+    float getFoo() const { return _foo; }
+    
+    void setBar(const QByteArray& bar) { _bar = bar; }
+    const QByteArray& getBar() const { return _bar; }
+
+private:
+    
+    float _foo;
+    QByteArray _bar;
 };
 
 /// A simple test message.

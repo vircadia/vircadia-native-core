@@ -83,7 +83,31 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     // clear our NodeList when logout is requested
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
     
+    const int LARGER_SNDBUF_SIZE = 1048576;
+    changeSendSocketBufferSize(LARGER_SNDBUF_SIZE);
+    
     _packetStatTimer.start();
+}
+
+void NodeList::changeSendSocketBufferSize(int numSendBytes) {
+    // change the socket send buffer size to be 1MB
+    int oldBufferSize = 0;
+    
+#ifdef Q_OS_WIN
+    int sizeOfInt = sizeof(oldBufferSize);
+#else
+    unsigned int sizeOfInt = sizeof(oldBufferSize);
+#endif
+    
+    getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<char*>(&oldBufferSize), &sizeOfInt);
+    
+    setsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<const char*>(&numSendBytes),
+               sizeof(numSendBytes));
+    
+    int newBufferSize = 0;
+    getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<char*>(&newBufferSize), &sizeOfInt);
+    
+    qDebug() << "Changed socket send buffer size from" << oldBufferSize << "to" << newBufferSize << "bytes";
 }
 
 bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
@@ -171,8 +195,13 @@ qint64 NodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& d
     ++_numCollectedPackets;
     _numCollectedBytes += datagram.size();
     
-    return _nodeSocket.writeDatagram(datagramCopy, destinationSockAddr.getAddress(), destinationSockAddr.getPort());
+    qint64 bytesWritten = _nodeSocket.writeDatagram(datagramCopy, destinationSockAddr.getAddress(), destinationSockAddr.getPort());
     
+    if (bytesWritten < 0) {
+        qDebug() << "ERROR in writeDatagram:" << _nodeSocket.error() << "-" << _nodeSocket.errorString();
+    }
+    
+    return bytesWritten;
 }
 
 qint64 NodeList::writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
@@ -265,6 +294,15 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
                 matchingNode->setLastHeardMicrostamp(usecTimestampNow());
                 QByteArray replyPacket = constructPingReplyPacket(packet);
                 writeDatagram(replyPacket, matchingNode, senderSockAddr);
+                
+                // If we don't have a symmetric socket for this node and this socket doesn't match
+                // what we have for public and local then set it as the symmetric.
+                // This allows a server on a reachable port to communicate with nodes on symmetric NATs
+                if (matchingNode->getSymmetricSocket().isNull()) {
+                    if (senderSockAddr != matchingNode->getLocalSocket() && senderSockAddr != matchingNode->getPublicSocket()) {
+                        matchingNode->setSymmetricSocket(senderSockAddr);
+                    }
+                }
             }
             
             break;
@@ -312,6 +350,8 @@ int NodeList::updateNodeWithDataFromPacket(const SharedNodePointer& matchingNode
         linkedDataCreateCallback(matchingNode.data());
     }
     
+    QMutexLocker linkedDataLocker(&matchingNode->getLinkedData()->getMutex());
+    
     return matchingNode->getLinkedData()->parseData(packet);
 }
 
@@ -327,18 +367,19 @@ int NodeList::findNodeAndUpdateWithDataFromPacket(const QByteArray& packet) {
 }
 
 SharedNodePointer NodeList::nodeWithUUID(const QUuid& nodeUUID, bool blockingLock) {
+    const int WAIT_TIME = 10; // wait up to 10ms in the try lock case
     SharedNodePointer node;
     // if caller wants us to block and guarantee the correct answer, then honor that request
     if (blockingLock) {
         // this will block till we can get access
         QMutexLocker locker(&_nodeHashMutex);
         node = _nodeHash.value(nodeUUID);
-    } else if (_nodeHashMutex.tryLock()) { // some callers are willing to get wrong answers but not block
+    } else if (_nodeHashMutex.tryLock(WAIT_TIME)) { // some callers are willing to get wrong answers but not block
         node = _nodeHash.value(nodeUUID);
         _nodeHashMutex.unlock();
     }
     return node;
-}
+ }
 
 SharedNodePointer NodeList::sendingNodeForPacket(const QByteArray& packet) {
     QUuid nodeUUID = uuidFromPacketHeader(packet);
@@ -352,7 +393,7 @@ NodeHash NodeList::getNodeHash() {
     return NodeHash(_nodeHash);
 }
 
-void NodeList::clear() {
+void NodeList::eraseAllNodes() {
     qDebug() << "Clearing the NodeList. Deleting all nodes in list.";
     
     QMutexLocker locker(&_nodeHashMutex);
@@ -366,7 +407,7 @@ void NodeList::clear() {
 }
 
 void NodeList::reset() {
-    clear();
+    eraseAllNodes();
     _numNoReplyDomainCheckIns = 0;
 
     // refresh the owner UUID to the NULL UUID
@@ -413,9 +454,8 @@ void NodeList::sendSTUNRequest() {
 
     // transaction ID (random 12-byte unsigned integer)
     const uint NUM_TRANSACTION_ID_BYTES = 12;
-    unsigned char transactionID[NUM_TRANSACTION_ID_BYTES];
-    loadRandomIdentifier(transactionID, NUM_TRANSACTION_ID_BYTES);
-    memcpy(stunRequestPacket + packetIndex, &transactionID, sizeof(transactionID));
+    QUuid randomUUID = QUuid::createUuid();
+    memcpy(stunRequestPacket + packetIndex, randomUUID.toRfc4122().data(), NUM_TRANSACTION_ID_BYTES);
 
     // lookup the IP for the STUN server
     static HifiSockAddr stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
@@ -751,7 +791,7 @@ QByteArray NodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
     return replyPacket;
 }
 
-void NodeList::pingPublicAndLocalSocketsForInactiveNode(const SharedNodePointer& node) {
+void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
     
     // send the ping packet to the local and public sockets for this node
     QByteArray localPingPacket = constructPingPacket(PingType::Local);
@@ -759,6 +799,11 @@ void NodeList::pingPublicAndLocalSocketsForInactiveNode(const SharedNodePointer&
     
     QByteArray publicPingPacket = constructPingPacket(PingType::Public);
     writeDatagram(publicPingPacket, node, node->getPublicSocket());
+    
+    if (!node->getSymmetricSocket().isNull()) {
+        QByteArray symmetricPingPacket = constructPingPacket(PingType::Symmetric);
+        writeDatagram(symmetricPingPacket, node, node->getSymmetricSocket());
+    }
 }
 
 SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
@@ -829,7 +874,7 @@ void NodeList::pingInactiveNodes() {
     foreach (const SharedNodePointer& node, getNodeHash()) {
         if (!node->getActiveSocket()) {
             // we don't have an active link to this node, ping it to set that up
-            pingPublicAndLocalSocketsForInactiveNode(node);
+            pingPunchForInactiveNode(node);
         }
     }
 }
@@ -848,6 +893,8 @@ void NodeList::activateSocketFromNodeCommunication(const QByteArray& packet, con
         sendingNode->activateLocalSocket();
     } else if (pingType == PingType::Public && !sendingNode->getActiveSocket()) {
         sendingNode->activatePublicSocket();
+    } else if (pingType == PingType::Symmetric && !sendingNode->getActiveSocket()) {
+        sendingNode->activateSymmetricSocket();
     }
 }
 

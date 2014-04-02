@@ -66,8 +66,6 @@ public:
     static Menu* getInstance();
     ~Menu();
 
-    bool isOptionChecked(const QString& menuOption);
-    void setIsOptionChecked(const QString& menuOption, bool isChecked);
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
 
@@ -87,6 +85,7 @@ public:
     // User Tweakable LOD Items
     QString getLODFeedbackText();
     void autoAdjustLOD(float currentFPS);
+    void resetLODAdjust();
     void setVoxelSizeScale(float sizeScale);
     float getVoxelSizeScale() const { return _voxelSizeScale; }
     float getAvatarLODDistanceMultiplier() const { return _avatarLODDistanceMultiplier; }
@@ -123,6 +122,7 @@ public slots:
     void importSettings();
     void exportSettings();
     void goTo();
+    void goToUser(const QString& user);
     void pasteToVoxel();
     
     void toggleLoginMenuItem();
@@ -133,6 +133,8 @@ public slots:
     void removeSeparator(const QString& menuName, const QString& separatorName);
     void addMenuItem(const MenuItemProperties& properties);
     void removeMenuItem(const QString& menuName, const QString& menuitem);
+    bool isOptionChecked(const QString& menuOption);
+    void setIsOptionChecked(const QString& menuOption, bool isChecked);
 
 private slots:
     void aboutApp();
@@ -211,6 +213,7 @@ private:
     quint64 _lastAdjust;
     quint64 _lastAvatarDetailDrop;
     SimpleMovingAverage _fpsAverage;
+    SimpleMovingAverage _fastFPSAverage;
     QAction* _loginAction;
     QAction* _chatAction;
 };
@@ -239,6 +242,7 @@ namespace MenuOption {
     const QString FilterSixense = "Smooth Sixense Movement";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
+    const QString AudioToneInjection = "Inject Test Tone";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString MuteAudio = "Mute Microphone";
@@ -274,7 +278,8 @@ namespace MenuOption {
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
     const QString TurnWithHead = "Turn using Head";
-    const QString LoadScript = "Open and Run Script...";
+    const QString LoadScript = "Open and Run Script File...";
+    const QString LoadScriptURL = "Open and Run Script from URL...";
     const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
     const QString Particles = "Particles";
@@ -297,7 +302,8 @@ namespace MenuOption {
     const QString StopAllScripts = "Stop All Scripts";
     const QString TestPing = "Test Ping";
     const QString TransmitterDrive = "Transmitter Drive";
-    const QString UploadFST = "Upload FST file";
+    const QString UploadHead = "Upload Head Model";
+    const QString UploadSkeleton = "Upload Skeleton Model";
     const QString Visage = "Visage";
     const QString Quit =  "Quit";
     const QString Voxels = "Voxels";
@@ -305,5 +311,7 @@ namespace MenuOption {
     const QString OctreeStats = "Voxel and Particle Statistics";
     const QString VoxelTextures = "Voxel Textures";
 }
+
+void sendFakeEnterEvent();
 
 #endif /* defined(__hifi__Menu__) */
