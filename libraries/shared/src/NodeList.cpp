@@ -923,8 +923,11 @@ void NodeList::resetPacketStats() {
     _packetStatTimer.restart();
 }
 
+quint64 lastSilentNodesStart = usecTimestampNow();
 void NodeList::removeSilentNodes() {
     quint64 removeSilentNodesStart = usecTimestampNow();
+    qDebug() << "since last removeSilentNodes()..." << (lastSilentNodesStart - removeSilentNodesStart);
+    lastSilentNodesStart = removeSilentNodesStart;
 
     _nodeHashMutex.lock();
     

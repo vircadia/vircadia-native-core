@@ -205,10 +205,15 @@ void OctreeServer::trackProcessWaitTime(float time) {
 }
 
 void OctreeServer::attachQueryNodeToNode(Node* newNode) {
+    quint64 start = usecTimestampNow();
     if (!newNode->getLinkedData() && _instance) {
         OctreeQueryNode* newQueryNodeData = _instance->createOctreeQueryNode();
         newQueryNodeData->init();
         newNode->setLinkedData(newQueryNodeData);
+    }
+    quint64 end = usecTimestampNow();
+    if (end - start > 1000) {
+        qDebug() << "OctreeServer::attachQueryNodeToNode() took:" << (end - start);
     }
 }
 
@@ -243,6 +248,21 @@ OctreeServer::OctreeServer(const QByteArray& packet) :
 
     _averageLoopTime.updateAverage(0);
     qDebug() << "Octree server starting... [" << this << "]";
+
+
+    QTimer* timer = new QTimer(this);
+    connect(timer, SIGNAL(timeout()), SLOT(doNothing()));
+    timer->start(0);
+
+}
+
+quint64 lastNothing = usecTimestampNow();
+void OctreeServer::doNothing() {
+    quint64 now = usecTimestampNow();
+    if (now - lastNothing > 100) {
+        qDebug() << "since last doNothing:" << (now - lastNothing);
+    }
+    lastNothing = now;
 }
 
 OctreeServer::~OctreeServer() {
@@ -1275,9 +1295,13 @@ QString OctreeServer::getStatusLink() {
 }
 
 void OctreeServer::sendStatsPacket() {
-
+    quint64 start = usecTimestampNow();
     static QJsonObject statsObject1;
     ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject1);
+    quint64 end = usecTimestampNow();
+    if (end - start > 1000) {
+        qDebug() << "OctreeServer::sendStatsPacket() took:" << (end - start);
+    }
 
     /**
     // TODO: we have too many stats to fit in a single MTU... so for now, we break it into multiple JSON objects and
