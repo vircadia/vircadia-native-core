@@ -95,7 +95,7 @@ void Audio::reset() {
 QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
     QAudioDeviceInfo result;
     foreach(QAudioDeviceInfo audioDevice, QAudioDeviceInfo::availableDevices(mode)) {
-		qDebug() << audioDevice.deviceName() << " " << deviceName;
+        qDebug() << audioDevice.deviceName() << " " << deviceName;
         if (audioDevice.deviceName().trimmed() == deviceName.trimmed()) {
             result = audioDevice;
         }
@@ -602,8 +602,7 @@ void Audio::toggleAudioNoiseReduction() {
     _noiseGateEnabled = !_noiseGateEnabled;
 }
 
-void Audio::processReceivedAudio(const QByteArray& audioByteArray)
-{
+void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
     _ringBuffer.parseData(audioByteArray);
 
     float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())
@@ -935,8 +934,7 @@ const float Audio::CALLBACK_ACCELERATOR_RATIO = 2.0f;
 const float Audio::CALLBACK_ACCELERATOR_RATIO = 2.0f;
 #endif
 
-int Audio::calculateNumberOfInputCallbackBytes(const QAudioFormat& format)
-{
+int Audio::calculateNumberOfInputCallbackBytes(const QAudioFormat& format) {
     int numInputCallbackBytes = (int)(((NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL 
         * format.channelCount()
         * (format.sampleRate() / SAMPLE_RATE))
@@ -945,8 +943,7 @@ int Audio::calculateNumberOfInputCallbackBytes(const QAudioFormat& format)
     return numInputCallbackBytes;
 }
 
-float Audio::calculateDeviceToNetworkInputRatio(int numBytes)
-{
+float Audio::calculateDeviceToNetworkInputRatio(int numBytes) {
     float inputToNetworkInputRatio = (int)((_numInputCallbackBytes 
         * CALLBACK_ACCELERATOR_RATIO
         / NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL) + 0.5f);
@@ -954,8 +951,7 @@ float Audio::calculateDeviceToNetworkInputRatio(int numBytes)
     return inputToNetworkInputRatio;
 }
 
-int Audio::calculateNumberOfFrameSamples(int numBytes)
-{
+int Audio::calculateNumberOfFrameSamples(int numBytes) {
     int frameSamples = (int)(numBytes * CALLBACK_ACCELERATOR_RATIO + 0.5f) / sizeof(int16_t);
     return frameSamples;
 }
