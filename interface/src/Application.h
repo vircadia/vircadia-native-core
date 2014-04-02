@@ -267,7 +267,9 @@ public slots:
     void reloadAllScripts();
     void toggleRunningScriptsWidget();
 
-    void uploadFST();
+    void uploadFST(bool isHead);
+    void uploadHead();
+    void uploadSkeleton();
 
 private slots:
     void timer();
@@ -315,7 +317,6 @@ private:
     void updateMetavoxels(float deltaTime);
     void updateCamera(float deltaTime);
     void updateDialogs(float deltaTime);
-    void updateAudio(float deltaTime);
     void updateCursor(float deltaTime);
 
     Avatar* findLookatTargetAvatar(glm::vec3& eyePosition, QUuid &nodeUUID);
@@ -400,6 +401,7 @@ private:
     quint64 _lastQueriedTime;
 
     Oscilloscope _audioScope;
+    float _trailingAudioLoudness;
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying voxels from voxel server
 

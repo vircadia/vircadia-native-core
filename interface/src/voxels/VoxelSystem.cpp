@@ -1508,7 +1508,9 @@ void VoxelSystem::killLocalVoxels() {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
                             "VoxelSystem::killLocalVoxels()");
     _tree->lockForWrite();
+    VoxelSystem* voxelSystem = _tree->getRoot()->getVoxelSystem();
     _tree->eraseAllOctreeElements();
+    _tree->getRoot()->setVoxelSystem(voxelSystem);
     _tree->unlock();
     clearFreeBufferIndexes();
     if (_usePrimitiveRenderer) {

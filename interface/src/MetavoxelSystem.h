@@ -61,7 +61,7 @@ private:
         SimulateVisitor(QVector<Point>& points);
         void setDeltaTime(float deltaTime) { _deltaTime = deltaTime; }
         void setOrder(const glm::vec3& direction) { _order = encodeOrder(direction); }
-        virtual bool visit(Spanner* spanner);
+        virtual bool visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize);
         virtual int visit(MetavoxelInfo& info);
     
     private:
@@ -73,7 +73,7 @@ private:
     class RenderVisitor : public SpannerVisitor {
     public:
         RenderVisitor();
-        virtual bool visit(Spanner* spanner);
+        virtual bool visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize);
     };
     
     static ProgramObject _program;
@@ -141,19 +141,36 @@ private:
     QList<ReceiveRecord> _receiveRecords;
 };
 
+/// Base class for spanner renderers; provides clipping.
+class ClippedRenderer : public SpannerRenderer {
+    Q_OBJECT
+
+public:
+    
+    virtual void render(float alpha, const glm::vec3& clipMinimum, float clipSize);
+    
+protected:
+
+    virtual void renderUnclipped(float alpha) = 0;
+};
+
 /// Renders spheres.
-class SphereRenderer : public SpannerRenderer {
+class SphereRenderer : public ClippedRenderer {
     Q_OBJECT
 
 public:
     
     Q_INVOKABLE SphereRenderer();
     
-    virtual void render(float alpha);
+    virtual void render(float alpha, const glm::vec3& clipMinimum, float clipSize);
+    
+protected:
+
+    virtual void renderUnclipped(float alpha);
 };
 
 /// Renders static models.
-class StaticModelRenderer : public SpannerRenderer {
+class StaticModelRenderer : public ClippedRenderer {
     Q_OBJECT
 
 public:
@@ -162,8 +179,12 @@ public:
     
     virtual void init(Spanner* spanner);
     virtual void simulate(float deltaTime);
-    virtual void render(float alpha);
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const glm::vec3& clipMinimum, float clipSize, float& distance) const;
+
+protected:
+
+    virtual void renderUnclipped(float alpha);
 
 private slots:
 

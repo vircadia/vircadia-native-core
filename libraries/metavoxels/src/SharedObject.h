@@ -47,7 +47,8 @@ public:
     void decrementReferenceCount();
 
     /// Creates a new clone of this object.
-    virtual SharedObject* clone() const;
+    /// \param withID if true, give the clone the same ID as this object
+    virtual SharedObject* clone(bool withID = false) const;
 
     /// Tests this object for equality with another.    
     virtual bool equals(const SharedObject* other) const;
@@ -56,6 +57,8 @@ public:
     virtual void dump(QDebug debug = QDebug(QtDebugMsg)) const;
 
 private:
+    
+    void setID(int id);
     
     int _id;
     int _remoteID;
