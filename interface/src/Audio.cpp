@@ -325,12 +325,12 @@ QVector<QString> Audio::getDeviceNames(QAudio::Mode mode) {
 }
 
 bool Audio::switchInputToAudioDevice(const QString& inputDeviceName) {
-	qDebug() << "DEBUG [" << inputDeviceName << "] [" << getNamedAudioDeviceForMode(QAudio::AudioInput, inputDeviceName).deviceName() << "]";
+    qDebug() << "DEBUG [" << inputDeviceName << "] [" << getNamedAudioDeviceForMode(QAudio::AudioInput, inputDeviceName).deviceName() << "]";
     return switchInputToAudioDevice(getNamedAudioDeviceForMode(QAudio::AudioInput, inputDeviceName));
 }
 
 bool Audio::switchOutputToAudioDevice(const QString& outputDeviceName) {
-	qDebug() << "DEBUG [" << outputDeviceName << "] [" << getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName).deviceName() << "]";
+    qDebug() << "DEBUG [" << outputDeviceName << "] [" << getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName).deviceName() << "]";
     return switchOutputToAudioDevice(getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName));
 }
 
@@ -682,10 +682,10 @@ void Audio::processProceduralAudio(int16_t* monoInput, int numSamples) {
             _desiredInputFormat.channelCount()));
         
     linearResampling(_localProceduralSamples,
-                        reinterpret_cast<int16_t*>(proceduralOutput.data()),
-                        NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
-                        proceduralOutput.size() / sizeof(int16_t),
-                        _desiredInputFormat, _outputFormat);
+        reinterpret_cast<int16_t*>(proceduralOutput.data()),
+        NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
+        proceduralOutput.size() / sizeof(int16_t),
+        _desiredInputFormat, _outputFormat);
         
     if (_proceduralOutputDevice) {
         _proceduralOutputDevice->write(proceduralOutput);
