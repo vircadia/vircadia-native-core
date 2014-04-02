@@ -20,11 +20,11 @@ class DTLSSession : public QObject {
 public:
     DTLSSession(int end, QUdpSocket& dtlsSocket, HifiSockAddr& destinationSocket);
     
+    static gnutls_certificate_credentials_t* x509CACredentials();
 protected:
     static int socketPullTimeout(gnutls_transport_ptr_t ptr, unsigned int ms);
     static ssize_t socketPull(gnutls_transport_ptr_t ptr, void* buffer, size_t size);
     static ssize_t socketPush(gnutls_transport_ptr_t ptr, const void* buffer, size_t size);
-    static gnutls_certificate_credentials_t* x509CACredentials();
     
     QUdpSocket& _dtlsSocket;
     gnutls_session_t _gnutlsSession;
