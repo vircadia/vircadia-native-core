@@ -336,17 +336,41 @@ static glm::vec3 getNextMinimum(const glm::vec3& minimum, float nextSize, int in
         (index & Z_MAXIMUM_FLAG) ? nextSize : 0.0f);
 }
 
-static void setNode(const AttributePointer& attribute, MetavoxelNode*& node, MetavoxelNode* other) {
-    if (node) {
-        node->decrementReferenceCount(attribute);
+static void setNode(const AttributeValue& value, MetavoxelNode*& node, MetavoxelNode* other, bool blend) {
+    if (!blend) {
+        // if we're not blending, we can just make a shallow copy
+        if (node) {
+            node->decrementReferenceCount(value.getAttribute());
+        }
+        (node = other)->incrementReferenceCount();
+        return;
     }
-    (node = other)->incrementReferenceCount();
+    if (node) {
+        MetavoxelNode* oldNode = node;
+        node = new MetavoxelNode(value.getAttribute(), oldNode);
+        oldNode->decrementReferenceCount(value.getAttribute());
+        
+    } else {
+        node = new MetavoxelNode(value);
+    }
+    OwnedAttributeValue oldValue = node->getAttributeValue(value.getAttribute());
+    node->blendAttributeValues(other->getAttributeValue(value.getAttribute()), oldValue);
+    if (other->isLeaf()) {
+        node->clearChildren(value.getAttribute());
+        return;
+    }
+    for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
+        MetavoxelNode* child = node->getChild(i);
+        setNode(oldValue, child, other->getChild(i), true);
+        node->setChild(i, child);
+    }
+    node->mergeChildren(value.getAttribute());
 }
 
 static void setNode(const AttributeValue& value, MetavoxelNode*& node, const glm::vec3& minimum, float size,
-        MetavoxelNode* other, const glm::vec3& otherMinimum, float otherSize) {
+        MetavoxelNode* other, const glm::vec3& otherMinimum, float otherSize, bool blend) {
     if (otherSize >= size) {
-        setNode(value.getAttribute(), node, other);
+        setNode(value, node, other, blend);
         return;
     }
     if (!node) {
@@ -372,21 +396,27 @@ static void setNode(const AttributeValue& value, MetavoxelNode*& node, const glm
     }
     MetavoxelNode* nextNode = node->getChild(index);
     setNode(node->getAttributeValue(value.getAttribute()), nextNode, getNextMinimum(minimum, nextSize, index),
-        nextSize, other, otherMinimum, otherSize);
+        nextSize, other, otherMinimum, otherSize, blend);
     node->setChild(index, nextNode);
+    node->mergeChildren(value.getAttribute());
 }
 
-void MetavoxelData::set(const glm::vec3& minimum, const MetavoxelData& data) {
+void MetavoxelData::set(const glm::vec3& minimum, const MetavoxelData& data, bool blend) {
     // expand to fit the entire data
     Box bounds = minimum + glm::vec3(data.getSize(), data.getSize(), data.getSize());
     while (!getBounds().contains(bounds)) {
         expand();
     }
     
-    // set each attribute separately
+    // set/mix each attribute separately
     for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = data._roots.constBegin();
             it != data._roots.constEnd(); it++) {
-        setNode(it.key(), _roots[it.key()], getMinimum(), getSize(), it.value(), minimum, data.getSize());
+        MetavoxelNode*& root = _roots[it.key()];
+        setNode(it.key(), root, getMinimum(), getSize(), it.value(), minimum, data.getSize(), blend);
+        if (root->isLeaf() && root->getAttributeValue(it.key()).isDefault()) {
+            _roots.remove(it.key());
+            root->decrementReferenceCount(it.key());
+        }
     }
 }
 
@@ -659,7 +689,11 @@ MetavoxelNode::MetavoxelNode(const AttributePointer& attribute, const MetavoxelN
 void MetavoxelNode::setAttributeValue(const AttributeValue& attributeValue) {
     attributeValue.getAttribute()->destroy(_attributeValue);
     _attributeValue = attributeValue.copy();
-    clearChildren(attributeValue.getAttribute());
+}
+
+void MetavoxelNode::blendAttributeValues(const AttributeValue& source, const AttributeValue& dest) {
+    source.getAttribute()->destroy(_attributeValue);
+    _attributeValue = source.getAttribute()->blend(source.getValue(), dest.getValue());
 }
 
 AttributeValue MetavoxelNode::getAttributeValue(const AttributePointer& attribute) const {

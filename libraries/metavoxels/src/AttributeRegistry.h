@@ -158,6 +158,9 @@ public:
     /// Sets this attribute to a mix of the first and second provided.    
     void mix(const AttributeValue& first, const AttributeValue& second, float alpha);
 
+    /// Sets this attribute to a blend of the source and destination.
+    void blend(const AttributeValue& source, const AttributeValue& dest);
+    
     /// Destroys the current value, if any, and copies the specified other value.
     OwnedAttributeValue& operator=(const AttributeValue& other);
     
@@ -218,6 +221,9 @@ public:
     /// Mixes the first and the second, returning a new value with the result.
     virtual void* mix(void* first, void* second, float alpha) const = 0;
 
+    /// Blends the source with the destination, returning a new value with the result.
+    virtual void* blend(void* source, void* dest) const = 0;
+
     virtual void* getDefaultValue() const = 0;
 
     virtual void* createFromScript(const QScriptValue& value, QScriptEngine* engine) const { return create(); }
@@ -248,6 +254,8 @@ public:
     virtual bool equal(void* first, void* second) const { return decodeInline<T>(first) == decodeInline<T>(second); }
 
     virtual void* mix(void* first, void* second, float alpha) const { return create(alpha < 0.5f ? first : second); }
+
+    virtual void* blend(void* source, void* dest) const { return create(source); }
 
     virtual void* getDefaultValue() const { return encodeInline(_defaultValue); }
 
@@ -315,6 +323,8 @@ public:
     
     virtual void* mix(void* first, void* second, float alpha) const;
     
+    virtual void* blend(void* source, void* dest) const;
+    
     virtual void* createFromScript(const QScriptValue& value, QScriptEngine* engine) const;
     
     virtual void* createFromVariant(const QVariant& value) const;
@@ -333,6 +343,8 @@ public:
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
     
     virtual void* mix(void* first, void* second, float alpha) const;
+    
+    virtual void* blend(void* source, void* dest) const;
 };
 
 /// Packs a normal into an RGB value.

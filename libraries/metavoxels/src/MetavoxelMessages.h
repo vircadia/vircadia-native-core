@@ -183,10 +183,10 @@ class SetDataEdit : public MetavoxelEdit {
 public:
     
     STREAM glm::vec3 minimum;
-    
     STREAM MetavoxelData data;
+    STREAM bool blend;
     
-    SetDataEdit(const glm::vec3& minimum = glm::vec3(), const MetavoxelData& data = MetavoxelData());
+    SetDataEdit(const glm::vec3& minimum = glm::vec3(), const MetavoxelData& data = MetavoxelData(), bool blend = false);
     
     virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };

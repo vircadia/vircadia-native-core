@@ -91,7 +91,7 @@ public:
         const AttributePointer& attribute, float& distance, const MetavoxelLOD& lod = MetavoxelLOD());
 
     /// Sets part of the data.
-    void set(const glm::vec3& minimum, const MetavoxelData& data);
+    void set(const glm::vec3& minimum, const MetavoxelData& data, bool blend = false);
 
     /// Expands the tree, increasing its capacity in all dimensions.
     void expand();
@@ -158,6 +158,8 @@ public:
     
     void setAttributeValue(const AttributeValue& attributeValue);
 
+    void blendAttributeValues(const AttributeValue& source, const AttributeValue& dest);
+
     AttributeValue getAttributeValue(const AttributePointer& attribute) const;
     void* getAttributeValue() const { return _attributeValue; }
 
@@ -190,12 +192,12 @@ public:
 
     void destroy(const AttributePointer& attribute);
 
+    void clearChildren(const AttributePointer& attribute);
+    
 private:
     Q_DISABLE_COPY(MetavoxelNode)
     
     friend class MetavoxelVisitation;
-    
-    void clearChildren(const AttributePointer& attribute);
     
     int _referenceCount;
     void* _attributeValue;
