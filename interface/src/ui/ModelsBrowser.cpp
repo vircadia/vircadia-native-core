@@ -6,17 +6,17 @@
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QEventLoop>
+#include <QGridLayout>
+#include <QHeaderView>
+#include <QMessageBox>
+#include <QStringListModel>
 #include <QUrl>
 #include <QXmlStreamReader>
-#include <QEventLoop>
-#include <QMessageBox>
-#include <QGridLayout>
-#include <QDialog>
-#include <QStringListModel>
-#include <QDialogButtonBox>
-#include <QHeaderView>
 
-#include <Application.h>
+#include "Application.h"
 
 #include "ModelsBrowser.h"
 
@@ -31,17 +31,18 @@ static const QString IS_TRUNCATED_NAME = "IsTruncated";
 static const QString CONTAINER_NAME = "Contents";
 static const QString KEY_NAME = "Key";
 static const QString LOADING_MSG = "Loading...";
+static const QString ERROR_MSG = "Error loading files";
 
 enum ModelMetaData {
-    Name = 0,
-    Creator,
-    UploadeDate,
-    Type,
-    Gender,
+    NAME,
+    CREATOR,
+    UPLOAD_DATE,
+    TYPE,
+    GENDER,
     
-    ModelMetaDataCount
+    MODEL_METADATA_COUNT
 };
-static const QString propertiesNames[ModelMetaDataCount] = {
+static const QString propertiesNames[MODEL_METADATA_COUNT] = {
     "Name",
     "Creator",
     "Upload Date",
@@ -55,7 +56,7 @@ ModelsBrowser::ModelsBrowser(ModelType modelsType, QWidget* parent) :
 {
     // Connect handler
     _handler->connect(this, SIGNAL(startDownloading()), SLOT(download()));
-    _handler->connect(this, SIGNAL(startUpdating()), SLOT(update()));
+    _handler->connect(_handler, SIGNAL(doneDownloading()), SLOT(update()));
     _handler->connect(this, SIGNAL(destroyed()), SLOT(exit()));
     
     // Setup and launch update thread
@@ -72,19 +73,20 @@ ModelsBrowser::ModelsBrowser(ModelType modelsType, QWidget* parent) :
     _view.setModel(_handler->getModel());
 }
 
-ModelsBrowser::~ModelsBrowser() {
-}
-
 void ModelsBrowser::applyFilter(const QString &filter) {
     QStringList filters = filter.split(" ");
     
+    _handler->lockModel();
+    QStandardItemModel* model = _handler->getModel();
+    int rows = model->rowCount();
+    
     // Try and match every filter with each rows
-    for (int i = 0; i < _handler->getModel()->rowCount(); ++i) {
+    for (int i = 0; i < rows; ++i) {
         bool match = false;
         for (int k = 0; k < filters.count(); ++k) {
             match = false;
-            for (int j = 0; j < ModelMetaDataCount; ++j) {
-                if (_handler->getModel()->item(i, j)->text().contains(filters.at(k))) {
+            for (int j = 0; j < MODEL_METADATA_COUNT; ++j) {
+                if (model->item(i, j)->text().contains(filters.at(k))) {
                     match = true;
                     break;
                 }
@@ -101,6 +103,7 @@ void ModelsBrowser::applyFilter(const QString &filter) {
             _view.setRowHidden(i, QModelIndex(), true);
         }
     }
+    _handler->unlockModel();
 }
 
 void ModelsBrowser::browse() {
@@ -124,7 +127,9 @@ void ModelsBrowser::browse() {
     dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
     
     if (dialog.exec() == QDialog::Accepted) {
+        _handler->lockModel();
         QVariant selectedFile = _handler->getModel()->data(_view.currentIndex(), Qt::UserRole);
+        _handler->unlockModel();
         if (selectedFile.isValid()) {
             emit selected(selectedFile.toString());
         }
@@ -144,7 +149,7 @@ ModelHandler::ModelHandler(ModelType modelsType, QWidget* parent) :
 
     // set headers data
     QStringList headerData;
-    for (int i = 0; i < ModelMetaDataCount; ++i) {
+    for (int i = 0; i < MODEL_METADATA_COUNT; ++i) {
         headerData << propertiesNames[i];
     }
     _model.setHorizontalHeaderLabels(headerData);
@@ -154,14 +159,16 @@ void ModelHandler::download() {
     // Query models list
     queryNewFiles();
     
-    QMutexLocker lockerModel(&_modelMutex);
+    _lock.lockForWrite();
     if (_initiateExit) {
+        _lock.unlock();
         return;
     }
     // Show loading message
     QStandardItem* loadingItem = new QStandardItem(LOADING_MSG);
     loadingItem->setEnabled(false);
     _model.appendRow(loadingItem);
+    _lock.unlock();
 }
 
 void ModelHandler::update() {
@@ -169,8 +176,7 @@ void ModelHandler::update() {
 }
 
 void ModelHandler::exit() {
-    QMutexLocker lockerDownload(&_downloadMutex);
-    QMutexLocker lockerModel(&_modelMutex);
+    _lock.lockForWrite();
     _initiateExit = true;
     
     // Disconnect everything
@@ -182,18 +188,18 @@ void ModelHandler::exit() {
     thread()->connect(this, SIGNAL(destroyed()), SLOT(quit()));
     thread()->connect(thread(), SIGNAL(finished()), SLOT(deleteLater()));
     deleteLater();
+    _lock.unlock();
 }
 
 void ModelHandler::downloadFinished() {
-    QMutexLocker lockerDownload(&_downloadMutex);
-    if (_initiateExit) {
-        return;
+    if (_downloader.getData().startsWith("<?xml")) {
+        parseXML(_downloader.getData());
+    } else {
+        qDebug() << _downloader.getData();
     }
-    parseXML(_downloader.getData());
 }
 
 void ModelHandler::queryNewFiles(QString marker) {
-    QMutexLocker lockerDownload(&_downloadMutex);
     if (_initiateExit) {
         return;
     }
@@ -217,8 +223,9 @@ void ModelHandler::queryNewFiles(QString marker) {
 }
 
 bool ModelHandler::parseXML(QByteArray xmlFile) {
-    QMutexLocker lockerModel(&_modelMutex);
+    _lock.lockForWrite();
     if (_initiateExit) {
+        _lock.unlock();
         return false;
     }
     
@@ -234,6 +241,7 @@ bool ModelHandler::parseXML(QByteArray xmlFile) {
     // Read xml until the end or an error is detected
     while(!xml.atEnd() && !xml.hasError()) {
         if (_initiateExit) {
+            _lock.unlock();
             return false;
         }
         
@@ -280,14 +288,14 @@ bool ModelHandler::parseXML(QByteArray xmlFile) {
         xml.readNext();
     }
     
-    static const QString ERROR_MSG = "Error loading files";
     // Error handling
     if(xml.hasError()) {
         _model.clear();
         QStandardItem* errorItem = new QStandardItem(ERROR_MSG);
         errorItem->setEnabled(false);
         _model.appendRow(errorItem);
-
+        
+        _lock.unlock();
         return false;
     }
     
@@ -300,6 +308,12 @@ bool ModelHandler::parseXML(QByteArray xmlFile) {
         
         // query those files
         queryNewFiles(lastKey);
+    }
+    _lock.unlock();
+    
+    if (!truncated) {
+        qDebug() << "Emitting...";
+        emit doneDownloading();
     }
     
     return true;

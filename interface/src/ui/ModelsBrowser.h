@@ -11,22 +11,25 @@
 
 #include <QAbstractTableModel>
 #include <QStandardItem>
-#include <QVector>
 #include <QTreeView>
+#include <QVector>
+#include <QReadWriteLock>
 
-#include <FileDownloader.h>
+#include "FileDownloader.h"
 
-typedef
-enum {
+enum ModelType {
     Head,
     Skeleton
-} ModelType;
+};
 
 class ModelHandler : public QObject {
     Q_OBJECT
 public:
     ModelHandler(ModelType modelsType, QWidget* parent = NULL);
-    QStandardItemModel* getModel() { QMutexLocker locker(&_modelMutex); return &_model; }
+    
+    void lockModel() { _lock.lockForRead(); }
+    QStandardItemModel* getModel() { return &_model; }
+    void unlockModel() { _lock.unlock(); }
     
 signals:
     void doneDownloading();
@@ -43,9 +46,8 @@ private slots:
 private:
     bool _initiateExit;
     ModelType _type;
-    QMutex _downloadMutex;
     FileDownloader _downloader;
-    QMutex _modelMutex;
+    QReadWriteLock _lock;
     QStandardItemModel _model;
     
     void queryNewFiles(QString marker = QString());
@@ -58,7 +60,6 @@ class ModelsBrowser : public QWidget {
 public:
     
     ModelsBrowser(ModelType modelsType, QWidget* parent = NULL);
-    ~ModelsBrowser();
     
 signals:
     void startDownloading();
