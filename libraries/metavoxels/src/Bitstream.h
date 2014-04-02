@@ -10,11 +10,13 @@
 #define __interface__Bitstream__
 
 #include <QHash>
+#include <QMetaProperty>
 #include <QMetaType>
 #include <QPointer>
 #include <QScriptString>
 #include <QSharedPointer>
 #include <QVariant>
+#include <QVector>
 #include <QtDebug>
 
 #include <glm/glm.hpp>
@@ -29,7 +31,11 @@ class QUrl;
 class Attribute;
 class AttributeValue;
 class Bitstream;
+class FieldReader;
+class ObjectReader;
 class OwnedAttributeValue;
+class PropertyReader;
+class TypeReader;
 class TypeStreamer;
 
 typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
@@ -55,26 +61,30 @@ private:
 
 /// Provides a means to stream repeated values efficiently.  The value is first streamed along with a unique ID.  When
 /// subsequently streamed, only the ID is sent.
-template<class T, class P = T> class RepeatedValueStreamer {
+template<class K, class P = K, class V = K> class RepeatedValueStreamer {
 public:
     
     RepeatedValueStreamer(Bitstream& stream) : _stream(stream), _idStreamer(stream),
         _lastPersistentID(0), _lastTransientOffset(0) { }
     
-    QHash<T, int> getAndResetTransientOffsets();
+    QHash<K, int> getAndResetTransientOffsets();
     
-    void persistTransientOffsets(const QHash<T, int>& transientOffsets);
+    void persistTransientOffsets(const QHash<K, int>& transientOffsets);
     
-    QHash<int, T> getAndResetTransientValues();
+    QHash<int, V> getAndResetTransientValues();
     
-    void persistTransientValues(const QHash<int, T>& transientValues);
+    void persistTransientValues(const QHash<int, V>& transientValues);
+    
+    void removePersistentID(P value) { _persistentIDs.remove(value); }
     
     int takePersistentID(P value) { return _persistentIDs.take(value); }
     
-    T takePersistentValue(int id) { T value = _persistentValues.take(id); _persistentIDs.remove(value); return value; }
+    void removePersistentValue(V value) { int id = _valueIDs.take(value); _persistentValues.remove(id); }
     
-    RepeatedValueStreamer& operator<<(T value);
-    RepeatedValueStreamer& operator>>(T& value);
+    V takePersistentValue(int id) { V value = _persistentValues.take(id); _valueIDs.remove(value); return value; }
+    
+    RepeatedValueStreamer& operator<<(K value);
+    RepeatedValueStreamer& operator>>(V& value);
     
 private:
     
@@ -83,23 +93,24 @@ private:
     int _lastPersistentID;
     int _lastTransientOffset;
     QHash<P, int> _persistentIDs;
-    QHash<T, int> _transientOffsets;
-    QHash<int, T> _persistentValues;
-    QHash<int, T> _transientValues;
+    QHash<K, int> _transientOffsets;
+    QHash<int, V> _persistentValues;
+    QHash<int, V> _transientValues;
+    QHash<V, int> _valueIDs;
 };
 
-template<class T, class P> inline QHash<T, int> RepeatedValueStreamer<T, P>::getAndResetTransientOffsets() {
-    QHash<T, int> transientOffsets;
+template<class K, class P, class V> inline QHash<K, int> RepeatedValueStreamer<K, P, V>::getAndResetTransientOffsets() {
+    QHash<K, int> transientOffsets;
     _transientOffsets.swap(transientOffsets);
     _lastTransientOffset = 0;
     _idStreamer.setBitsFromValue(_lastPersistentID);
     return transientOffsets;
 }
 
-template<class T, class P> inline void RepeatedValueStreamer<T, P>::persistTransientOffsets(
-        const QHash<T, int>& transientOffsets) {
+template<class K, class P, class V> inline void RepeatedValueStreamer<K, P, V>::persistTransientOffsets(
+        const QHash<K, int>& transientOffsets) {
     int oldLastPersistentID = _lastPersistentID;
-    for (typename QHash<T, int>::const_iterator it = transientOffsets.constBegin(); it != transientOffsets.constEnd(); it++) {
+    for (typename QHash<K, int>::const_iterator it = transientOffsets.constBegin(); it != transientOffsets.constEnd(); it++) {
         int& id = _persistentIDs[it.key()];
         if (id == 0) {
             id = oldLastPersistentID + it.value();
@@ -109,18 +120,18 @@ template<class T, class P> inline void RepeatedValueStreamer<T, P>::persistTrans
     _idStreamer.setBitsFromValue(_lastPersistentID);
 }
 
-template<class T, class P> inline QHash<int, T> RepeatedValueStreamer<T, P>::getAndResetTransientValues() {
-    QHash<int, T> transientValues;
+template<class K, class P, class V> inline QHash<int, V> RepeatedValueStreamer<K, P, V>::getAndResetTransientValues() {
+    QHash<int, V> transientValues;
     _transientValues.swap(transientValues);
     _idStreamer.setBitsFromValue(_lastPersistentID);
     return transientValues;
 }
 
-template<class T, class P> inline void RepeatedValueStreamer<T, P>::persistTransientValues(
-        const QHash<int, T>& transientValues) {
+template<class K, class P, class V> inline void RepeatedValueStreamer<K, P, V>::persistTransientValues(
+        const QHash<int, V>& transientValues) {
     int oldLastPersistentID = _lastPersistentID;
-    for (typename QHash<int, T>::const_iterator it = transientValues.constBegin(); it != transientValues.constEnd(); it++) {
-        int& id = _persistentIDs[it.value()];
+    for (typename QHash<int, V>::const_iterator it = transientValues.constBegin(); it != transientValues.constEnd(); it++) {
+        int& id = _valueIDs[it.value()];
         if (id == 0) {
             id = oldLastPersistentID + it.key();
             _lastPersistentID = qMax(_lastPersistentID, id);
@@ -130,7 +141,8 @@ template<class T, class P> inline void RepeatedValueStreamer<T, P>::persistTrans
     _idStreamer.setBitsFromValue(_lastPersistentID);
 }
 
-template<class T, class P> inline RepeatedValueStreamer<T, P>& RepeatedValueStreamer<T, P>::operator<<(T value) {
+template<class K, class P, class V> inline RepeatedValueStreamer<K, P, V>&
+        RepeatedValueStreamer<K, P, V>::operator<<(K value) {
     int id = _persistentIDs.value(value);
     if (id == 0) {
         int& offset = _transientOffsets[value];
@@ -147,7 +159,8 @@ template<class T, class P> inline RepeatedValueStreamer<T, P>& RepeatedValueStre
     return *this;
 }
 
-template<class T, class P> inline RepeatedValueStreamer<T, P>& RepeatedValueStreamer<T, P>::operator>>(T& value) {
+template<class K, class P, class V> inline RepeatedValueStreamer<K, P, V>&
+        RepeatedValueStreamer<K, P, V>::operator>>(V& value) {
     int id;
     _idStreamer >> id;
     if (id <= _lastPersistentID) {
@@ -155,7 +168,7 @@ template<class T, class P> inline RepeatedValueStreamer<T, P>& RepeatedValueStre
         
     } else {
         int offset = id - _lastPersistentID;
-        typename QHash<int, T>::iterator it = _transientValues.find(offset);
+        typename QHash<int, V>::iterator it = _transientValues.find(offset);
         if (it == _transientValues.end()) {
             _stream > value;
             _transientValues.insert(offset, value);
@@ -184,8 +197,8 @@ public:
 
     class ReadMappings {
     public:
-        QHash<int, const QMetaObject*> metaObjectValues;
-        QHash<int, const TypeStreamer*> typeStreamerValues;
+        QHash<int, ObjectReader> metaObjectValues;
+        QHash<int, TypeReader> typeStreamerValues;
         QHash<int, AttributePointer> attributeValues;
         QHash<int, QScriptString> scriptStringValues;
         QHash<int, SharedObjectPointer> sharedObjectValues;
@@ -199,14 +212,25 @@ public:
     /// \return zero; the function only returns a value so that it can be used in static initialization
     static int registerTypeStreamer(int type, TypeStreamer* streamer);
 
+    /// Returns the streamer registered for the supplied type, if any.
+    static const TypeStreamer* getTypeStreamer(int type);
+
     /// Returns the meta-object registered under the supplied class name, if any.
     static const QMetaObject* getMetaObject(const QByteArray& className);
 
     /// Returns the list of registered subclasses for the supplied meta-object.
     static QList<const QMetaObject*> getMetaObjectSubClasses(const QMetaObject* metaObject);
 
+    enum MetadataType { NO_METADATA, HASH_METADATA, FULL_METADATA };
+
     /// Creates a new bitstream.  Note: the stream may be used for reading or writing, but not both.
-    Bitstream(QDataStream& underlying, QObject* parent = NULL);
+    Bitstream(QDataStream& underlying, MetadataType metadataType = NO_METADATA, QObject* parent = NULL);
+
+    /// Substitutes the supplied metaobject for the given class name's default mapping.
+    void addMetaObjectSubstitution(const QByteArray& className, const QMetaObject* metaObject);
+    
+    /// Substitutes the supplied type for the given type name's default mapping.
+    void addTypeSubstitution(const QByteArray& typeName, int type);
 
     /// Writes a set of bits to the underlying stream.
     /// \param bits the number of bits to write
@@ -248,6 +272,31 @@ public:
     /// Removes a shared object from the read mappings.
     void clearSharedObject(int id);
 
+    void writeDelta(bool value, bool reference);
+    void readDelta(bool& value, bool reference);
+
+    void writeDelta(const QVariant& value, const QVariant& reference);
+    
+    template<class T> void writeDelta(const T& value, const T& reference);
+    template<class T> void readDelta(T& value, const T& reference); 
+
+    void readRawDelta(QVariant& value, const QVariant& reference);
+
+    void writeRawDelta(const QObject* value, const QObject* reference);
+    void readRawDelta(QObject*& value, const QObject* reference);
+
+    template<class T> void writeRawDelta(const T& value, const T& reference);
+    template<class T> void readRawDelta(T& value, const T& reference); 
+    
+    template<class T> void writeRawDelta(const QList<T>& value, const QList<T>& reference);
+    template<class T> void readRawDelta(QList<T>& value, const QList<T>& reference); 
+    
+    template<class T> void writeRawDelta(const QSet<T>& value, const QSet<T>& reference);
+    template<class T> void readRawDelta(QSet<T>& value, const QSet<T>& reference); 
+    
+    template<class K, class V> void writeRawDelta(const QHash<K, V>& value, const QHash<K, V>& reference);
+    template<class K, class V> void readRawDelta(QHash<K, V>& value, const QHash<K, V>& reference);
+    
     Bitstream& operator<<(bool value);
     Bitstream& operator>>(bool& value);
     
@@ -295,9 +344,11 @@ public:
     
     Bitstream& operator<<(const QMetaObject* metaObject);
     Bitstream& operator>>(const QMetaObject*& metaObject);
+    Bitstream& operator>>(ObjectReader& objectReader);
     
     Bitstream& operator<<(const TypeStreamer* streamer);
     Bitstream& operator>>(const TypeStreamer*& streamer);
+    Bitstream& operator>>(TypeReader& reader);
     
     Bitstream& operator<<(const AttributePointer& attribute);
     Bitstream& operator>>(AttributePointer& attribute);
@@ -309,10 +360,10 @@ public:
     Bitstream& operator>>(SharedObjectPointer& object);
     
     Bitstream& operator<(const QMetaObject* metaObject);
-    Bitstream& operator>(const QMetaObject*& metaObject);
+    Bitstream& operator>(ObjectReader& objectReader);
     
     Bitstream& operator<(const TypeStreamer* streamer);
-    Bitstream& operator>(const TypeStreamer*& streamer);
+    Bitstream& operator>(TypeReader& reader);
     
     Bitstream& operator<(const AttributePointer& attribute);
     Bitstream& operator>(AttributePointer& attribute);
@@ -333,24 +384,194 @@ private slots:
 
 private:
     
-    void readProperties(QObject* object);
-   
     QDataStream& _underlying;
     quint8 _byte;
     int _position;
 
-    RepeatedValueStreamer<const QMetaObject*> _metaObjectStreamer;
-    RepeatedValueStreamer<const TypeStreamer*> _typeStreamerStreamer;
+    MetadataType _metadataType;
+
+    RepeatedValueStreamer<const QMetaObject*, const QMetaObject*, ObjectReader> _metaObjectStreamer;
+    RepeatedValueStreamer<const TypeStreamer*, const TypeStreamer*, TypeReader> _typeStreamerStreamer;
     RepeatedValueStreamer<AttributePointer> _attributeStreamer;
     RepeatedValueStreamer<QScriptString> _scriptStringStreamer;
     RepeatedValueStreamer<SharedObjectPointer, SharedObject*> _sharedObjectStreamer;
+    
+    WeakSharedObjectHash _sharedObjectReferences;
 
     WeakSharedObjectHash _weakSharedObjectHash;
+
+    QHash<QByteArray, const QMetaObject*> _metaObjectSubstitutions;
+    QHash<QByteArray, const TypeStreamer*> _typeStreamerSubstitutions;
 
     static QHash<QByteArray, const QMetaObject*>& getMetaObjects();
     static QMultiHash<const QMetaObject*, const QMetaObject*>& getMetaObjectSubClasses();
     static QHash<int, const TypeStreamer*>& getTypeStreamers();
+    static QVector<PropertyReader> getPropertyReaders(const QMetaObject* metaObject);
 };
+
+template<class T> inline void Bitstream::writeDelta(const T& value, const T& reference) {
+    if (value == reference) {
+        *this << false;
+    } else {
+        *this << true;
+        writeRawDelta(value, reference);
+    }
+}
+
+template<class T> inline void Bitstream::readDelta(T& value, const T& reference) {
+    bool changed;
+    *this >> changed;
+    if (changed) {
+        readRawDelta(value, reference);
+    } else {
+        value = reference;
+    }
+}
+
+template<class T> inline void Bitstream::writeRawDelta(const T& value, const T& reference) {
+    *this << value;
+}
+
+template<class T> inline void Bitstream::readRawDelta(T& value, const T& reference) {
+    *this >> value;
+}
+
+template<class T> inline void Bitstream::writeRawDelta(const QList<T>& value, const QList<T>& reference) {
+    *this << value.size();
+    *this << reference.size();
+    for (int i = 0; i < value.size(); i++) {
+        if (i < reference.size()) {
+            writeDelta(value.at(i), reference.at(i));    
+        } else {
+            *this << value.at(i);
+        }
+    }
+}
+
+template<class T> inline void Bitstream::readRawDelta(QList<T>& value, const QList<T>& reference) {
+    value = reference;
+    int size, referenceSize;
+    *this >> size >> referenceSize;
+    if (size < value.size()) {
+        value.erase(value.begin() + size, value.end());
+    }
+    for (int i = 0; i < size; i++) {
+        if (i < referenceSize) {
+            readDelta(value[i], reference.at(i));
+        } else {
+            T element;
+            *this >> element;
+            value.append(element);
+        }
+    }
+}
+
+template<class T> inline void Bitstream::writeRawDelta(const QSet<T>& value, const QSet<T>& reference) {
+    int addedOrRemoved = 0;
+    foreach (const T& element, value) {
+        if (!reference.contains(element)) {
+            addedOrRemoved++;
+        }
+    }
+    foreach (const T& element, reference) {
+        if (!value.contains(element)) {
+            addedOrRemoved++;
+        }
+    }
+    *this << addedOrRemoved;
+    foreach (const T& element, value) {
+        if (!reference.contains(element)) {
+            *this << element;
+        }
+    }
+    foreach (const T& element, reference) {
+        if (!value.contains(element)) {
+            *this << element;
+        }
+    }
+}
+
+template<class T> inline void Bitstream::readRawDelta(QSet<T>& value, const QSet<T>& reference) {
+    value = reference;
+    int addedOrRemoved;
+    *this >> addedOrRemoved;
+    for (int i = 0; i < addedOrRemoved; i++) {
+        T element;
+        *this >> element;
+        if (!value.remove(element)) {
+            value.insert(element);
+        }
+    }
+}
+
+template<class K, class V> inline void Bitstream::writeRawDelta(const QHash<K, V>& value, const QHash<K, V>& reference) {
+    int added = 0;
+    int modified = 0;
+    for (typename QHash<K, V>::const_iterator it = value.constBegin(); it != value.constEnd(); it++) {
+        typename QHash<K, V>::const_iterator previous = reference.find(it.key());
+        if (previous == reference.constEnd()) {
+            added++;
+        } else if (previous.value() != it.value()) {
+            modified++;
+        }
+    }
+    *this << added;
+    for (typename QHash<K, V>::const_iterator it = value.constBegin(); it != value.constEnd(); it++) {
+        if (!reference.contains(it.key())) {
+            *this << it.key();
+            *this << it.value();
+        }
+    }
+    *this << modified;
+    for (typename QHash<K, V>::const_iterator it = value.constBegin(); it != value.constEnd(); it++) {
+        typename QHash<K, V>::const_iterator previous = reference.find(it.key());
+        if (previous != reference.constEnd() && previous.value() != it.value()) {
+            *this << it.key();
+            writeDelta(it.value(), previous.value());
+        }
+    }
+    int removed = 0;
+    for (typename QHash<K, V>::const_iterator it = reference.constBegin(); it != reference.constEnd(); it++) {
+        if (!value.contains(it.key())) {
+            removed++;
+        }
+    }
+    *this << removed;
+    for (typename QHash<K, V>::const_iterator it = reference.constBegin(); it != reference.constEnd(); it++) {
+        if (!value.contains(it.key())) {
+            *this << it.key();
+        }
+    }
+}
+
+template<class K, class V> inline void Bitstream::readRawDelta(QHash<K, V>& value, const QHash<K, V>& reference) {
+    value = reference;
+    int added;
+    *this >> added;
+    for (int i = 0; i < added; i++) {
+        K key;
+        V mapping;
+        *this >> key >> mapping;
+        value.insert(key, mapping);
+    }
+    int modified;
+    *this >> modified;
+    for (int i = 0; i < modified; i++) {
+        K key;
+        *this >> key;
+        V& mapping = value[key];
+        V newMapping;
+        readDelta(newMapping, mapping);
+        mapping = newMapping;
+    }
+    int removed;
+    *this >> removed;
+    for (int i = 0; i < removed; i++) {
+        K key;
+        *this >> key;
+        value.remove(key);
+    }
+}
 
 template<class T> inline Bitstream& Bitstream::operator<<(const QList<T>& list) {
     *this << list.size();
@@ -418,6 +639,119 @@ template<class K, class V> inline Bitstream& Bitstream::operator>>(QHash<K, V>& 
     return *this;
 }
 
+typedef QSharedPointer<TypeReader> TypeReaderPointer;
+
+/// Contains the information required to read a type from the stream.
+class TypeReader {
+public:
+
+    enum Type { SIMPLE_TYPE, STREAMABLE_TYPE, LIST_TYPE, SET_TYPE, MAP_TYPE };
+    
+    TypeReader(const QByteArray& typeName = QByteArray(), const TypeStreamer* streamer = NULL, bool exactMatch = true, 
+        Type type = SIMPLE_TYPE, const TypeReaderPointer& keyReader = TypeReaderPointer(),
+        const TypeReaderPointer& valueReader = TypeReaderPointer(),
+        const QVector<FieldReader>& fields = QVector<FieldReader>());
+
+    const QByteArray& getTypeName() const { return _typeName; }
+    const TypeStreamer* getStreamer() const { return _streamer; }
+
+    QVariant read(Bitstream& in) const;
+    void readDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
+    void readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
+
+    bool matchesExactly(const TypeStreamer* streamer) const;
+
+    bool operator==(const TypeReader& other) const { return _typeName == other._typeName; }
+    bool operator!=(const TypeReader& other) const { return _typeName != other._typeName; }
+    
+private:
+    
+    QByteArray _typeName;
+    const TypeStreamer* _streamer;
+    bool _exactMatch;
+    Type _type;
+    TypeReaderPointer _keyReader;
+    TypeReaderPointer _valueReader;
+    QVector<FieldReader> _fields;
+};
+
+uint qHash(const TypeReader& typeReader, uint seed = 0);
+
+/// Contains the information required to read a metatype field from the stream and apply it.
+class FieldReader {
+public:
+    
+    FieldReader(const TypeReader& reader = TypeReader(), int index = -1);
+
+    const TypeReader& getReader() const { return _reader; }
+    int getIndex() const { return _index; }
+
+    void read(Bitstream& in, const TypeStreamer* streamer, QVariant& object) const;
+    void readDelta(Bitstream& in, const TypeStreamer* streamer, QVariant& object, const QVariant& reference) const;
+    
+private:
+    
+    TypeReader _reader;
+    int _index;
+};
+
+/// Contains the information required to read an object from the stream.
+class ObjectReader {
+public:
+
+    ObjectReader(const QByteArray& className = QByteArray(), const QMetaObject* metaObject = NULL,
+        const QVector<PropertyReader>& properties = QVector<PropertyReader>());
+
+    const QByteArray& getClassName() const { return _className; }
+    const QMetaObject* getMetaObject() const { return _metaObject; }
+
+    QObject* read(Bitstream& in, QObject* object = NULL) const;
+    QObject* readDelta(Bitstream& in, const QObject* reference, QObject* object = NULL) const;
+
+    bool operator==(const ObjectReader& other) const { return _className == other._className; }
+    bool operator!=(const ObjectReader& other) const { return _className != other._className; }
+
+private:
+
+    QByteArray _className;
+    const QMetaObject* _metaObject;
+    QVector<PropertyReader> _properties;
+};
+
+uint qHash(const ObjectReader& objectReader, uint seed = 0);
+
+/// Contains the information required to read an object property from the stream and apply it.
+class PropertyReader {
+public:
+
+    PropertyReader(const TypeReader& reader = TypeReader(), const QMetaProperty& property = QMetaProperty());
+
+    const TypeReader& getReader() const { return _reader; }
+
+    void read(Bitstream& in, QObject* object) const;
+    void readDelta(Bitstream& in, QObject* object, const QObject* reference) const;
+
+private:
+
+    TypeReader _reader;
+    QMetaProperty _property;
+};
+
+/// Describes a metatype field.
+class MetaField {
+public:
+    
+    MetaField(const QByteArray& name = QByteArray(), const TypeStreamer* streamer = NULL);
+    
+    const QByteArray& getName() const { return _name; }
+    const TypeStreamer* getStreamer() const { return _streamer; }
+    
+private:
+
+    QByteArray _name;
+    const TypeStreamer* _streamer;
+};
+
 Q_DECLARE_METATYPE(const QMetaObject*)
 
 /// Macro for registering streamable meta-objects.
@@ -427,11 +761,41 @@ Q_DECLARE_METATYPE(const QMetaObject*)
 class TypeStreamer {
 public:
     
+    virtual ~TypeStreamer();
+    
     void setType(int type) { _type = type; }
     int getType() const { return _type; }
     
+    virtual bool equal(const QVariant& first, const QVariant& second) const = 0;
+    
     virtual void write(Bitstream& out, const QVariant& value) const = 0;
     virtual QVariant read(Bitstream& in) const = 0;
+
+    virtual void writeDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const = 0;
+    virtual void readDelta(Bitstream& in, QVariant& value, const QVariant& reference) const = 0;
+
+    virtual void writeRawDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const = 0;
+    virtual void readRawDelta(Bitstream& in, QVariant& value, const QVariant& reference) const = 0;
+    
+    virtual const QVector<MetaField>& getMetaFields() const;
+    virtual int getFieldIndex(const QByteArray& name) const;
+    virtual void setField(QVariant& object, int index, const QVariant& value) const;
+    virtual QVariant getField(const QVariant& object, int index) const;
+    
+    virtual TypeReader::Type getReaderType() const;
+
+    virtual const TypeStreamer* getKeyStreamer() const;
+    virtual const TypeStreamer* getValueStreamer() const;
+
+    virtual void insert(QVariant& object, const QVariant& value) const;
+    virtual void insert(QVariant& object, const QVariant& key, const QVariant& value) const;
+    virtual bool remove(QVariant& object, const QVariant& key) const;
+    
+    virtual QVariant getValue(const QVariant& object, const QVariant& key) const;
+
+    virtual void prune(QVariant& object, int size) const;
+    virtual QVariant getValue(const QVariant& object, int index) const;
+    virtual void setValue(QVariant& object, int index, const QVariant& value) const;
 
 private:
     
@@ -442,25 +806,95 @@ private:
 template<class T> class SimpleTypeStreamer : public TypeStreamer {
 public:
     
+    virtual bool equal(const QVariant& first, const QVariant& second) const { return first.value<T>() == second.value<T>(); }
     virtual void write(Bitstream& out, const QVariant& value) const { out << value.value<T>(); }
     virtual QVariant read(Bitstream& in) const { T value; in >> value; return QVariant::fromValue(value); }
+    virtual void writeDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const {
+        out.writeDelta(value.value<T>(), reference.value<T>()); }
+    virtual void readDelta(Bitstream& in, QVariant& value, const QVariant& reference) const {
+        in.readDelta(*static_cast<T*>(value.data()), reference.value<T>()); }
+    virtual void writeRawDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const {
+        out.writeRawDelta(value.value<T>(), reference.value<T>()); }
+    virtual void readRawDelta(Bitstream& in, QVariant& value, const QVariant& reference) const {
+        in.readRawDelta(*static_cast<T*>(value.data()), reference.value<T>()); }
+};
+
+/// A streamer for types compiled by mtc.
+template<class T> class StreamableTypeStreamer : public SimpleTypeStreamer<T> {
+public:
+    
+    virtual TypeReader::Type getReaderType() const { return TypeReader::STREAMABLE_TYPE; }
+    virtual const QVector<MetaField>& getMetaFields() const { return T::getMetaFields(); }
+    virtual int getFieldIndex(const QByteArray& name) const { return T::getFieldIndex(name); }
+    virtual void setField(QVariant& object, int index, const QVariant& value) const {
+        static_cast<T*>(object.data())->setField(index, value); }
+    virtual QVariant getField(const QVariant& object, int index) const {
+        return static_cast<const T*>(object.constData())->getField(index); }
+};
+
+/// Base template for collection streamers.
+template<class T> class CollectionTypeStreamer : public SimpleTypeStreamer<T> {
+};
+
+/// A streamer for list types.
+template<class T> class CollectionTypeStreamer<QList<T> > : public SimpleTypeStreamer<QList<T> > {
+public:
+    
+    virtual TypeReader::Type getReaderType() const { return TypeReader::LIST_TYPE; }
+    virtual const TypeStreamer* getValueStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<T>()); }
+    virtual void insert(QVariant& object, const QVariant& value) const {
+        static_cast<QList<T>*>(object.data())->append(value.value<T>()); }
+    virtual void prune(QVariant& object, int size) const {
+        QList<T>* list = static_cast<QList<T>*>(object.data()); list->erase(list->begin() + size, list->end()); }
+    virtual QVariant getValue(const QVariant& object, int index) const {
+        return QVariant::fromValue(static_cast<const QList<T>*>(object.constData())->at(index)); }
+    virtual void setValue(QVariant& object, int index, const QVariant& value) const {
+        static_cast<QList<T>*>(object.data())->replace(index, value.value<T>()); }
+};
+
+/// A streamer for set types.
+template<class T> class CollectionTypeStreamer<QSet<T> > : public SimpleTypeStreamer<QSet<T> > {
+public:
+    
+    virtual TypeReader::Type getReaderType() const { return TypeReader::SET_TYPE; }
+    virtual const TypeStreamer* getValueStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<T>()); }
+    virtual void insert(QVariant& object, const QVariant& value) const {
+        static_cast<QSet<T>*>(object.data())->insert(value.value<T>()); }
+    virtual bool remove(QVariant& object, const QVariant& key) const {
+        return static_cast<QSet<T>*>(object.data())->remove(key.value<T>()); }
+};
+
+/// A streamer for hash types.
+template<class K, class V> class CollectionTypeStreamer<QHash<K, V> > : public SimpleTypeStreamer<QHash<K, V> > {
+public:
+    
+    virtual TypeReader::Type getReaderType() const { return TypeReader::MAP_TYPE; }
+    virtual const TypeStreamer* getKeyStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<K>()); }
+    virtual const TypeStreamer* getValueStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<V>()); }
+    virtual void insert(QVariant& object, const QVariant& key, const QVariant& value) const {
+        static_cast<QHash<K, V>*>(object.data())->insert(key.value<K>(), value.value<V>()); }
+    virtual bool remove(QVariant& object, const QVariant& key) const {
+        return static_cast<QHash<K, V>*>(object.data())->remove(key.value<K>()); }
+    virtual QVariant getValue(const QVariant& object, const QVariant& key) const {
+        return QVariant::fromValue(static_cast<const QHash<K, V>*>(object.constData())->value(key.value<K>())); }
 };
 
 /// Macro for registering simple type streamers.
 #define REGISTER_SIMPLE_TYPE_STREAMER(x) static int x##Streamer = \
-    Bitstream::registerTypeStreamer(QMetaType::type(#x), new SimpleTypeStreamer<x>());
+    Bitstream::registerTypeStreamer(qMetaTypeId<x>(), new SimpleTypeStreamer<x>());
 
-#ifdef WIN32
-#define _Pragma __pragma
-#endif
+/// Macro for registering collection type streamers.
+#define REGISTER_COLLECTION_TYPE_STREAMER(x) static int x##Streamer = \
+    Bitstream::registerTypeStreamer(qMetaTypeId<x>(), new CollectionTypeStreamer<x>());
 
 /// Declares the metatype and the streaming operators.  The last lines
 /// ensure that the generated file will be included in the link phase. 
-#define STRINGIFY(x) #x
 #ifdef _WIN32
 #define DECLARE_STREAMABLE_METATYPE(X) Q_DECLARE_METATYPE(X) \
     Bitstream& operator<<(Bitstream& out, const X& obj); \
     Bitstream& operator>>(Bitstream& in, X& obj); \
+    template<> void Bitstream::writeRawDelta(const X& value, const X& reference); \
+    template<> void Bitstream::readRawDelta(X& value, const X& reference); \
     bool operator==(const X& first, const X& second); \
     bool operator!=(const X& first, const X& second); \
     static const int* _TypePtr##X = &X::Type;
@@ -468,6 +902,8 @@ public:
 #define DECLARE_STREAMABLE_METATYPE(X) Q_DECLARE_METATYPE(X) \
     Bitstream& operator<<(Bitstream& out, const X& obj); \
     Bitstream& operator>>(Bitstream& in, X& obj); \
+    template<> void Bitstream::writeRawDelta(const X& value, const X& reference); \
+    template<> void Bitstream::readRawDelta(X& value, const X& reference); \
     bool operator==(const X& first, const X& second); \
     bool operator!=(const X& first, const X& second); \
     __attribute__((unused)) static const int* _TypePtr##X = &X::Type;
@@ -476,6 +912,8 @@ public:
 #define DECLARE_STREAMABLE_METATYPE(X) Q_DECLARE_METATYPE(X) \
     Bitstream& operator<<(Bitstream& out, const X& obj); \
     Bitstream& operator>>(Bitstream& in, X& obj); \
+    template<> void Bitstream::writeRawDelta(const X& value, const X& reference); \
+    template<> void Bitstream::readRawDelta(X& value, const X& reference); \
     bool operator==(const X& first, const X& second); \
     bool operator!=(const X& first, const X& second); \
     static const int* _TypePtr##X = &X::Type; \
@@ -485,12 +923,19 @@ public:
 /// Registers a streamable type and its streamer.
 template<class T> int registerStreamableMetaType() {
     int type = qRegisterMetaType<T>();
-    Bitstream::registerTypeStreamer(type, new SimpleTypeStreamer<T>());
+    Bitstream::registerTypeStreamer(type, new StreamableTypeStreamer<T>());
     return type;
 }
 
 /// Flags a class as streamable (use as you would Q_OBJECT).
-#define STREAMABLE public: static const int Type; private:
+#define STREAMABLE public: \
+    static const int Type; \
+    static const QVector<MetaField>& getMetaFields(); \
+    static int getFieldIndex(const QByteArray& name); \
+    void setField(int index, const QVariant& value); \
+    QVariant getField(int index) const; \
+    private: \
+    static QHash<QByteArray, int> createFieldIndices();
 
 /// Flags a field or base class as streaming.
 #define STREAM
