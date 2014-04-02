@@ -4,22 +4,22 @@
 <context>
     <name>Application</name>
     <message>
-        <location filename="src/Application.cpp" line="1381"/>
+        <location filename="src/Application.cpp" line="1385"/>
         <source>Export Voxels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="1382"/>
+        <location filename="src/Application.cpp" line="1386"/>
         <source>Sparse Voxel Octree Files (*.svo)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3623"/>
+        <location filename="src/Application.cpp" line="3643"/>
         <source>Open Script</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3624"/>
+        <location filename="src/Application.cpp" line="3644"/>
         <source>JavaScript Files (*.js)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -113,18 +113,18 @@
 <context>
     <name>Menu</name>
     <message>
-        <location filename="src/Menu.cpp" line="456"/>
+        <location filename="src/Menu.cpp" line="457"/>
         <source>Open .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="458"/>
-        <location filename="src/Menu.cpp" line="470"/>
+        <location filename="src/Menu.cpp" line="459"/>
+        <location filename="src/Menu.cpp" line="471"/>
         <source>Text files (*.ini)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="468"/>
+        <location filename="src/Menu.cpp" line="469"/>
         <source>Save .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
@@ -155,6 +155,57 @@
     <message>
         <location filename="src/ui/ImportDialog.cpp" line="27"/>
         <source>Cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>RunningScriptsWidget</name>
+    <message>
+        <location filename="ui/runningScriptsWidget.ui" line="14"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="126"/>
+        <source>Form</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/runningScriptsWidget.ui" line="32"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="127"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;Running Scripts&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/runningScriptsWidget.ui" line="48"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="128"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Currently running&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/runningScriptsWidget.ui" line="69"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="129"/>
+        <source>Reload All</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/runningScriptsWidget.ui" line="94"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="130"/>
+        <source>Stop All</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/runningScriptsWidget.ui" line="114"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="131"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Recently loaded&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/runningScriptsWidget.ui" line="146"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="132"/>
+        <source>(click a script or use the 1-9 keys to load and run it)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/runningScriptsWidget.ui" line="236"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="134"/>
+        <source>There are no scripts currently running.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

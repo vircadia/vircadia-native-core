@@ -49,7 +49,7 @@
 #include <QXmlStreamReader>
 #include <QXmlStreamAttributes>
 #include <QMediaPlayer>
-#include <QMimeData> 
+#include <QMimeData>
 #include <QMessageBox>
 
 #include <AccountManager.h>
@@ -118,7 +118,7 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     if (message.size() > 0) {
         QString dateString = QDateTime::currentDateTime().toTimeSpec(Qt::LocalTime).toString(Qt::ISODate);
         QString formattedMessage = QString("[%1] %2\n").arg(dateString).arg(message);
-        
+
         fprintf(stdout, "%s", qPrintable(formattedMessage));
         Application::getInstance()->getLogger()->addMessage(qPrintable(formattedMessage));
     }
@@ -174,23 +174,23 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 {
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
-    
+
     // set the associated application properties
     applicationInfo.beginGroup("INFO");
-   
+
     qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
-    
+
     setApplicationName(applicationInfo.value("name").toString());
     setApplicationVersion(BUILD_VERSION);
     setOrganizationName(applicationInfo.value("organizationName").toString());
     setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
-    
+
     QSettings::setDefaultFormat(QSettings::IniFormat);
-    
+
     _myAvatar = _avatarManager.getMyAvatar();
 
     _applicationStartupTime = startup_time;
-    
+
     QFontDatabase::addApplicationFont(Application::resourcesPath() + "styles/Inconsolata.otf");
     _window->setWindowTitle("Interface");
 
@@ -205,19 +205,19 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     if (portStr) {
         listenPort = atoi(portStr);
     }
-    
+
     // start the nodeThread so its event loop is running
     _nodeThread->start();
-    
+
     // make sure the node thread is given highest priority
     _nodeThread->setPriority(QThread::TimeCriticalPriority);
-    
+
     // put the NodeList and datagram processing on the node thread
     NodeList* nodeList = NodeList::createInstance(NodeType::Agent, listenPort);
-    
+
     nodeList->moveToThread(_nodeThread);
     _datagramProcessor.moveToThread(_nodeThread);
-    
+
     // connect the DataProcessor processDatagrams slot to the QUDPSocket readyRead() signal
     connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), &_datagramProcessor, SLOT(processDatagrams()));
 
@@ -239,20 +239,20 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, &NodeList::uuidChanged, this, &Application::updateWindowTitle);
     connect(nodeList, &NodeList::limitOfSilentDomainCheckInsReached, nodeList, &NodeList::reset);
-   
+
     // connect to appropriate slots on AccountManager
     AccountManager& accountManager = AccountManager::getInstance();
     connect(&accountManager, &AccountManager::authRequired, Menu::getInstance(), &Menu::loginForCurrentDomain);
     connect(&accountManager, &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
-    
+
     // set the account manager's root URL and trigger a login request if we don't have the access token
     accountManager.setAuthURL(DEFAULT_NODE_AUTH_URL);
-    
+
     // once the event loop has started, check and signal for an access token
     QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
 
     _settings = new QSettings(this);
-    
+
     // Check to see if the user passed in a command line option for loading a local
     // Voxel File.
     _voxelsFilename = getCmdOption(argc, constArgv, "-i");
@@ -266,7 +266,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
                                                  << NodeType::VoxelServer << NodeType::ParticleServer
                                                  << NodeType::MetavoxelServer);
-    
+
     // connect to the packet sent signal of the _voxelEditSender and the _particleEditSender
     connect(&_voxelEditSender, &VoxelEditPacketSender::packetSent, this, &Application::packetSent);
     connect(&_particleEditSender, &ParticleEditPacketSender::packetSent, this, &Application::packetSent);
@@ -276,7 +276,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeTimer->moveToThread(_nodeThread);
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
-    
+
     // send the identity packet for our avatar each second to our avatar mixer
     QTimer* identityPacketTimer = new QTimer();
     connect(identityPacketTimer, &QTimer::timeout, _myAvatar, &MyAvatar::sendIdentityPacket);
@@ -324,13 +324,17 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     // Set the sixense filtering
     _sixenseManager.setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
-    
+
     checkVersion();
-    
+
     _overlays.init(_glWidget); // do this before scripts load
-    
+
     LocalVoxelsList::getInstance()->addPersistantTree(DOMAIN_TREE_NAME, _voxels.getTree());
     LocalVoxelsList::getInstance()->addPersistantTree(CLIPBOARD_TREE_NAME, &_clipboard);
+
+    _window->addDockWidget(Qt::NoDockWidgetArea, _runningScriptsWidget = new RunningScriptsWidget());
+    _runningScriptsWidget->setRunningScripts(getRunningScripts());
+    connect(_runningScriptsWidget, &RunningScriptsWidget::stopScriptName, this, &Application::stopScript);
 
     // check first run...
     QVariant firstRunValue = _settings->value("firstRun",QVariant(true));
@@ -339,7 +343,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         // clear the scripts, and set out script to our default scripts
         clearScriptsBeforeRunning();
         loadScript("http://public.highfidelity.io/scripts/defaultScripts.js");
-        
+
         _settings->setValue("firstRun",QVariant(false));
     } else {
         // do this as late as possible so that all required subsystems are inialized
@@ -350,31 +354,31 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 Application::~Application() {
 
     qInstallMessageHandler(NULL);
-    
+
     // make sure we don't call the idle timer any more
     delete idleTimer;
-    
+
     Menu::getInstance()->saveSettings();
     _rearMirrorTools->saveSettings(_settings);
-    
+
     _sharedVoxelSystem.changeTree(new VoxelTree);
     if (_voxelImporter) {
         _voxelImporter->saveSettings(_settings);
         delete _voxelImporter;
     }
     _settings->sync();
-    
+
     // let the avatar mixer know we're out
     MyAvatar::sendKillAvatar();
-    
+
     // ask the datagram processing thread to quit and wait until it is done
     _nodeThread->quit();
     _nodeThread->wait();
-    
+
     // ask the audio thread to quit and wait until it is done
     _audio.thread()->quit();
     _audio.thread()->wait();
-    
+
     _voxelProcessor.terminate();
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
@@ -387,9 +391,9 @@ Application::~Application() {
     Menu::getInstance()->deleteLater();
 
     _myAvatar = NULL;
-    
+
     delete _glWidget;
-    
+
     AccountManager::getInstance().destroy();
 }
 
@@ -581,7 +585,7 @@ void Application::paintGL() {
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
             renderRearViewMirror(_mirrorViewRect);
-            
+
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             _rearMirrorTools->render(true);
         }
@@ -654,10 +658,10 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
         if (type == NodeType::VoxelServer && !Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
             continue;
         }
-        
+
         // Perform the broadcast for one type
         int nReceivingNodes = NodeList::getInstance()->broadcastToNodes(packet, NodeSet() << type);
-        
+
         // Feed number of bytes to corresponding channel of the bandwidth meter, if any (done otherwise)
         BandwidthMeter::ChannelIndex channel;
         switch (type) {
@@ -676,7 +680,7 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
 }
 
 bool Application::event(QEvent* event) {
-    
+
     // handle custom URL
     if (event->type() == QEvent::FileOpen) {
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
@@ -687,11 +691,11 @@ bool Application::event(QEvent* event) {
             if (urlParts.count() > 1) {
                 // if url has 2 or more parts, the first one is domain name
                 Menu::getInstance()->goToDomain(urlParts[0]);
-                
+
                 // location coordinates
                 Menu::getInstance()->goToDestination(urlParts[1]);
                 if (urlParts.count() > 2) {
-                    
+
                     // location orientation
                     Menu::getInstance()->goToOrientation(urlParts[2]);
                 }
@@ -701,7 +705,7 @@ bool Application::event(QEvent* event) {
                 Menu::getInstance()->goToDestination(urlParts[0]);
             }
         }
-        
+
         return false;
     }
     return QApplication::event(event);
@@ -712,7 +716,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
     _keysPressed.insert(event->key());
 
     _controllerScriptingInterface.emitKeyPressEvent(event); // send events to any registered scripts
-    
+
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isKeyCaptured(event)) {
         return;
@@ -1071,7 +1075,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
             checkBandwidthMeterClick();
             if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
                 checkStatsClick();
-            }            
+            }
         }
     }
 }
@@ -1120,7 +1124,7 @@ void Application::touchBeginEvent(QTouchEvent* event) {
     if (_controllerScriptingInterface.isTouchCaptured()) {
         return;
     }
-    
+
     // put any application specific touch behavior below here..
     _lastTouchAvgX = _touchAvgX;
     _lastTouchAvgY = _touchAvgY;
@@ -1163,13 +1167,13 @@ void Application::dropEvent(QDropEvent *event) {
             break;
         }
     }
-    
+
     SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
     if (snapshotData) {
         if (!snapshotData->getDomain().isEmpty()) {
             Menu::getInstance()->goToDomain(snapshotData->getDomain());
         }
-        
+
         _myAvatar->setPosition(snapshotData->getLocation());
         _myAvatar->setOrientation(snapshotData->getOrientation());
     } else {
@@ -1197,19 +1201,19 @@ void Application::timer() {
     }
 
     _fps = (float)_frameCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
-    
+
     _packetsPerSecond = (float) _datagramProcessor.getPacketCount() / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
     _bytesPerSecond = (float) _datagramProcessor.getByteCount() / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
     _frameCount = 0;
-    
+
     _datagramProcessor.resetCounters();
 
     gettimeofday(&_timerStart, NULL);
 
     // ask the node list to check in with the domain server
     NodeList::getInstance()->sendDomainServerCheckIn();
-    
-    
+
+
 }
 
 void Application::idle() {
@@ -1246,11 +1250,11 @@ void Application::idle() {
                 _idleLoopMeasuredJitter = _idleLoopStdev.getStDev();
                 _idleLoopStdev.reset();
             }
-            
+
             if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
                 _buckyBalls.simulate(timeSinceLastUpdate / 1000.f, Application::getInstance()->getAvatar()->getHandData());
             }
-            
+
             // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
             idleTimer->start(2);
         }
@@ -1382,7 +1386,7 @@ void Application::exportVoxels(const VoxelDetail& sourceVoxel) {
                                                           tr("Sparse Voxel Octree Files (*.svo)"));
     QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
-    
+
     VoxelTreeElement* selectedNode = _voxels.getTree()->getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
     if (selectedNode) {
         VoxelTree exportTree;
@@ -1396,12 +1400,12 @@ void Application::exportVoxels(const VoxelDetail& sourceVoxel) {
 
 void Application::importVoxels() {
     _importSucceded = false;
-    
+
     if (!_voxelImporter) {
         _voxelImporter = new VoxelImporter(_window);
         _voxelImporter->loadSettings(_settings);
     }
-    
+
     if (!_voxelImporter->exec()) {
         qDebug() << "[DEBUG] Import succeeded." << endl;
         _importSucceded = true;
@@ -1415,7 +1419,7 @@ void Application::importVoxels() {
 
     // restore the main window's active state
     _window->activateWindow();
-    
+
     emit importDone();
 }
 
@@ -1471,7 +1475,7 @@ void Application::pasteVoxels(const VoxelDetail& sourceVoxel) {
     }
 
     pasteVoxelsToOctalCode(octalCodeDestination);
-    
+
     if (calculatedOctCode) {
         delete[] calculatedOctCode;
     }
@@ -1508,9 +1512,9 @@ void Application::init() {
 
     // Cleanup of the original shared tree
     _sharedVoxelSystem.init();
-    
+
     _voxelImporter = new VoxelImporter(_window);
-    
+
     _environment.init();
 
     _glowEffect.init();
@@ -1552,11 +1556,11 @@ void Application::init() {
         _audio.setJitterBufferSamples(Menu::getInstance()->getAudioJitterBufferSamples());
     }
     qDebug("Loaded settings");
-    
+
     // initialize Visage and Faceshift after loading the menu settings
     _faceshift.init();
     _visage.init();
-    
+
     // fire off an immediate domain-server check in now that settings are loaded
     NodeList::getInstance()->sendDomainServerCheckIn();
 
@@ -1575,20 +1579,20 @@ void Application::init() {
     _particleCollisionSystem.init(&_particleEditSender, _particles.getTree(), _voxels.getTree(), &_audio, &_avatarManager);
 
     // connect the _particleCollisionSystem to our script engine's ParticleScriptingInterface
-    connect(&_particleCollisionSystem, 
+    connect(&_particleCollisionSystem,
             SIGNAL(particleCollisionWithVoxel(const ParticleID&, const VoxelDetail&, const glm::vec3&)),
-            ScriptEngine::getParticlesScriptingInterface(), 
+            ScriptEngine::getParticlesScriptingInterface(),
             SLOT(forwardParticleCollisionWithVoxel(const ParticleID&, const VoxelDetail&, const glm::vec3&)));
 
-    connect(&_particleCollisionSystem, 
+    connect(&_particleCollisionSystem,
             SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&, const glm::vec3&)),
-            ScriptEngine::getParticlesScriptingInterface(), 
+            ScriptEngine::getParticlesScriptingInterface(),
             SLOT(forwardParticleCollisionWithParticle(const ParticleID&, const ParticleID&, const glm::vec3&)));
-    
+
     _audio.init(_glWidget);
 
     _rearMirrorTools = new RearMirrorTools(_glWidget, _mirrorViewRect, _settings);
-    
+
     connect(_rearMirrorTools, SIGNAL(closeView()), SLOT(closeMirrorView()));
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
@@ -1711,7 +1715,7 @@ void Application::updateMyAvatarLookAtPosition() {
         float distance = TREE_SCALE;
         if (_myAvatar->getLookAtTargetAvatar() && _myAvatar != _myAvatar->getLookAtTargetAvatar()) {
             distance = glm::distance(_mouseRayOrigin,
-                static_cast<Avatar*>(_myAvatar->getLookAtTargetAvatar())->getHead()->calculateAverageEyePosition()); 
+                static_cast<Avatar*>(_myAvatar->getLookAtTargetAvatar())->getHead()->calculateAverageEyePosition());
         }
         const float FIXED_MIN_EYE_DISTANCE = 0.3f;
         float minEyeDistance = FIXED_MIN_EYE_DISTANCE + (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON ? 0.0f :
@@ -1724,7 +1728,7 @@ void Application::updateMyAvatarLookAtPosition() {
         eyePitch = _faceshift.getEstimatedEyePitch();
         eyeYaw = _faceshift.getEstimatedEyeYaw();
         trackerActive = true;
-        
+
     } else if (_visage.isActive()) {
         eyePitch = _visage.getEstimatedEyePitch();
         eyeYaw = _visage.getEstimatedEyeYaw();
@@ -1907,9 +1911,9 @@ void Application::update(float deltaTime) {
 
     _particles.update(); // update the particles...
     _particleCollisionSystem.update(); // collide the particles...
-    
+
     _overlays.update(deltaTime);
-    
+
     // let external parties know we're updating
     emit simulating(deltaTime);
 }
@@ -1933,7 +1937,7 @@ void Application::updateMyAvatar(float deltaTime) {
     // actually need to calculate the view frustum planes to send these details
     // to the server.
     loadViewFrustum(_myCamera, _viewFrustum);
-    
+
     // Update my voxel servers with my current voxel query...
     quint64 now = usecTimestampNow();
     quint64 sinceLastQuery = now - _lastQueriedTime;
@@ -2209,7 +2213,7 @@ void Application::updateShadowMap() {
     }
     center = inverseRotation * center;
     glm::vec3 minima(center.x - radius, center.y - radius, center.z - radius);
-    glm::vec3 maxima(center.x + radius, center.y + radius, center.z + radius); 
+    glm::vec3 maxima(center.x + radius, center.y + radius, center.z + radius);
 
     // stretch out our extents in z so that we get all of the avatars
     minima.z -= _viewFrustum.getFarClip() * 0.5f;
@@ -2230,7 +2234,7 @@ void Application::updateShadowMap() {
     _shadowViewFrustum.setEyeOffsetPosition(glm::vec3());
     _shadowViewFrustum.setEyeOffsetOrientation(glm::quat());
     _shadowViewFrustum.calculate();
-    
+
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
@@ -2285,19 +2289,19 @@ void Application::setupWorldLight() {
 
 QImage Application::renderAvatarBillboard() {
     _textureCache.getPrimaryFramebufferObject()->bind();
-    
+
     glDisable(GL_BLEND);
 
     const int BILLBOARD_SIZE = 64;
     renderRearViewMirror(QRect(0, _glWidget->height() - BILLBOARD_SIZE, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
-    
+
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
-    
+
     glEnable(GL_BLEND);
-    
+
     _textureCache.getPrimaryFramebufferObject()->release();
-    
+
     return image;
 }
 
@@ -2398,7 +2402,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                 "Application::displaySide() ... metavoxels...");
             _metavoxels.render();
         }
-        
+
         if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... bucky balls...");
@@ -2411,7 +2415,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                 "Application::displaySide() ... particles...");
             _particles.render();
         }
-        
+
         // render the ambient occlusion effect if enabled
         if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
@@ -2455,7 +2459,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // give external parties a change to hook in
         emit renderingInWorldInterface();
-        
+
         // render JS/scriptable overlays
         _overlays.render3D();
     }
@@ -2536,8 +2540,8 @@ void Application::displayOverlay() {
         char frameTimer[10];
         quint64 mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
         sprintf(frameTimer, "%d\n", (int)(mSecsNow % 1000));
-        int timerBottom = 
-            (Menu::getInstance()->isOptionChecked(MenuOption::Stats) && 
+        int timerBottom =
+            (Menu::getInstance()->isOptionChecked(MenuOption::Stats) &&
             Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth))
                 ? 80 : 20;
         drawText(_glWidget->width() - 100, _glWidget->height() - timerBottom, 0.30f, 1.0f, 0.f, frameTimer, WHITE_TEXT);
@@ -2552,7 +2556,7 @@ void Application::displayOverlay() {
 void Application::displayStatsBackground(unsigned int rgba, int x, int y, int width, int height) {
     glBegin(GL_QUADS);
     glColor4f(((rgba >> 24) & 0xff) / 255.0f,
-              ((rgba >> 16) & 0xff) / 255.0f, 
+              ((rgba >> 16) & 0xff) / 255.0f,
               ((rgba >> 8) & 0xff)  / 255.0f,
               (rgba & 0xff) / 255.0f);
     glVertex3f(x, y, 0);
@@ -2560,7 +2564,7 @@ void Application::displayStatsBackground(unsigned int rgba, int x, int y, int wi
     glVertex3f(x + width, y + height, 0);
     glVertex3f(x , y + height, 0);
     glEnd();
-    glColor4f(1, 1, 1, 1); 
+    glColor4f(1, 1, 1, 1);
 }
 
 // display expanded or contracted stats
@@ -2654,12 +2658,12 @@ void Application::displayStats() {
                 (float) (_audio.getNetworkBufferLengthSamplesPerChannel() + (float) _audio.getJitterBufferSamples()) /
                 (float)_audio.getNetworkSampleRate() * 1000.f);
         drawText(30, _glWidget->height() - 22, 0.10f, 0.f, 2.f, audioJitter, WHITE_TEXT);
-        
-                 
+
+
         char audioPing[30];
         sprintf(audioPing, "Audio ping: %d", pingAudio);
-       
-                 
+
+
         char avatarPing[30];
         sprintf(avatarPing, "Avatar ping: %d", pingAvatar);
         char voxelAvgPing[30];
@@ -2697,7 +2701,7 @@ void Application::displayStats() {
     } else {
         // longhand way
         sprintf(avatarPosition, "Position: %.1f, %.1f, %.1f", avatarPos.x, avatarPos.y, avatarPos.z);
-    }    
+    }
     char avatarVelocity[30];
     sprintf(avatarVelocity, "Velocity: %.1f", glm::length(_myAvatar->getVelocity()));
     char avatarBodyYaw[30];
@@ -2723,7 +2727,7 @@ void Application::displayStats() {
 
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, avatarMixerStats, WHITE_TEXT);
-        
+
         stringstream downloadStats;
         downloadStats << "Downloads: ";
         foreach (Resource* resource, ResourceCache::getLoadingRequests()) {
@@ -2731,7 +2735,7 @@ void Application::displayStats() {
             downloadStats << roundf(resource->getProgress() * MAXIMUM_PERCENTAGE) << "% ";
         }
         downloadStats << "(" << ResourceCache::getPendingRequestCount() << " pending)";
-        
+
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, downloadStats.str().c_str(), WHITE_TEXT);
     }
@@ -2751,7 +2755,7 @@ void Application::displayStats() {
         drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
 
         voxelStats.str("");
-        voxelStats << 
+        voxelStats <<
                 "Geometry RAM: " << _voxels.getVoxelMemoryUsageRAM() / 1000000.f << "MB / " <<
                 "VBO: " << _voxels.getVoxelMemoryUsageVBO() / 1000000.f << "MB";
         if (_voxels.hasVoxelMemoryUsageGPU()) {
@@ -2803,7 +2807,7 @@ void Application::displayStats() {
         totalNodes += stats.getTotalElements();
         if (_statsExpanded) {
             totalInternal += stats.getTotalInternal();
-            totalLeaves += stats.getTotalLeaves();                
+            totalLeaves += stats.getTotalLeaves();
         }
     }
     if (_statsExpanded) {
@@ -2827,7 +2831,7 @@ void Application::displayStats() {
         QString packetsString = locale.toString((int)voxelPacketsToProcess);
         QString maxString = locale.toString((int)_recentMaxPackets);
         voxelStats << "Voxel Packets to Process: " << qPrintable(packetsString)
-                    << " [Recent Max: " << qPrintable(maxString) << "]";        
+                    << " [Recent Max: " << qPrintable(maxString) << "]";
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
     }
@@ -2989,12 +2993,12 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
         _mirrorCamera.setFieldOfView(BILLBOARD_FIELD_OF_VIEW);  // degees
         _mirrorCamera.setDistance(BILLBOARD_DISTANCE * _myAvatar->getScale());
         _mirrorCamera.setTargetPosition(_myAvatar->getPosition());
-        
+
     } else if (_rearMirrorTools->getZoomLevel() == BODY) {
         _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
         _mirrorCamera.setDistance(MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
         _mirrorCamera.setTargetPosition(_myAvatar->getChestPosition());
-    
+
     } else { // HEAD zoom level
         _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
         _mirrorCamera.setDistance(MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
@@ -3009,7 +3013,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
         }
     }
     _mirrorCamera.setAspectRatio((float)region.width() / region.height());
-    
+
     _mirrorCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
     _mirrorCamera.update(1.0f/_fps);
 
@@ -3054,7 +3058,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     if (!billboard) {
         _rearMirrorTools->render(false);
     }
-    
+
     // reset Viewport and projection matrix
     glViewport(0, 0, _glWidget->width(), _glWidget->height());
     glDisable(GL_SCISSOR_TEST);
@@ -3274,14 +3278,14 @@ void Application::setMenuShortcutsEnabled(bool enabled) {
 }
 
 void Application::updateWindowTitle(){
-    
+
     QString buildVersion = " (build " + applicationVersion() + ")";
     NodeList* nodeList = NodeList::getInstance();
-    
+
     QString username = AccountManager::getInstance().getUsername();
     QString title = QString() + (!username.isEmpty() ? username + " " : QString()) + nodeList->getSessionUUID().toString()
         + " @ " + nodeList->getDomainInfo().getHostname() + buildVersion;
-    
+
     qDebug("Application title set to: %s", title.toStdString().c_str());
     _window->setWindowTitle(title);
 }
@@ -3296,7 +3300,7 @@ void Application::domainChanged(const QString& domainHostname) {
     _voxelServerJurisdictions.clear();
     _octreeServerSceneStats.clear();
     _particleServerJurisdictions.clear();
-    
+
     // reset the particle renderer
     _particles.clear();
 
@@ -3306,12 +3310,12 @@ void Application::domainChanged(const QString& domainHostname) {
 
 void Application::connectedToDomain(const QString& hostname) {
     AccountManager& accountManager = AccountManager::getInstance();
-    
+
     if (accountManager.isLoggedIn()) {
         // update our domain-server with the data-server we're logged in with
-        
+
         QString domainPutJsonString = "{\"address\":{\"domain\":\"" + hostname + "\"}}";
-        
+
         accountManager.authenticatedRequest("/api/v1/users/address", QNetworkAccessManager::PutOperation,
                                             JSONCallbackParameters(), domainPutJsonString.toUtf8());
     }
@@ -3476,13 +3480,13 @@ void Application::loadScripts() {
     // loads all saved scripts
     QSettings* settings = new QSettings(this);
     int size = settings->beginReadArray("Settings");
-    
+
     for (int i = 0; i < size; ++i){
         settings->setArrayIndex(i);
         QString string = settings->value("script").toString();
         loadScript(string);
     }
-    
+
     settings->endArray();
 }
 
@@ -3497,39 +3501,69 @@ void Application::saveScripts() {
     // saves all current running scripts
     QSettings* settings = new QSettings(this);
     settings->beginWriteArray("Settings");
-    for (int i = 0; i < _activeScripts.size(); ++i){
+    for (int i = 0; i < getRunningScripts().size(); ++i){
         settings->setArrayIndex(i);
-        settings->setValue("script", _activeScripts.at(i));
+        settings->setValue("script", getRunningScripts().at(i));
     }
-    
+
     settings->endArray();
 }
 
 void Application::stopAllScripts() {
     // stops all current running scripts
-    QList<QAction*> scriptActions = Menu::getInstance()->getActiveScriptsMenu()->actions();
-    foreach (QAction* scriptAction, scriptActions) {
-        scriptAction->activate(QAction::Trigger);
-        qDebug() << "stopping script..." << scriptAction->text();
+    for (int i = 0; i < _scriptEnginesHash.size(); ++i) {
+        _scriptEnginesHash.values().at(i)->stop();
+        qDebug() << "stopping script..." << getRunningScripts().at(i);
     }
-    _activeScripts.clear();
+    _scriptEnginesHash.clear();
+    _runningScriptsWidget->setRunningScripts(getRunningScripts());
+}
+
+void Application::stopScript(const QString &scriptName)
+{
+    _scriptEnginesHash.value(scriptName)->stop();
+    qDebug() << "stopping script..." << scriptName;
+    _scriptEnginesHash.remove(scriptName);
+    _runningScriptsWidget->setRunningScripts(getRunningScripts());
 }
 
 void Application::reloadAllScripts() {
     // remember all the current scripts so we can reload them
-    QStringList reloadList = _activeScripts;
+    QStringList reloadList = getRunningScripts();
     // reloads all current running scripts
-    QList<QAction*> scriptActions = Menu::getInstance()->getActiveScriptsMenu()->actions();
-    foreach (QAction* scriptAction, scriptActions) {
-        scriptAction->activate(QAction::Trigger);
-        qDebug() << "stopping script..." << scriptAction->text();
-    }
+    stopAllScripts();
 
-    // NOTE: we don't need to clear the _activeScripts list because that is handled on script shutdown.
-    
     foreach (QString scriptName, reloadList){
         qDebug() << "reloading script..." << scriptName;
         loadScript(scriptName);
+    }
+}
+
+void Application::toggleRunningScriptsWidget()
+{
+    if (!_runningScriptsWidget->toggleViewAction()->isChecked()) {
+        _runningScriptsWidget->move(_window->geometry().topLeft().x(), _window->geometry().topLeft().y());
+        _runningScriptsWidget->resize(0, _window->height());
+        _runningScriptsWidget->toggleViewAction()->trigger();
+        _runningScriptsWidget->grabKeyboard();
+
+        QPropertyAnimation* slideAnimation = new QPropertyAnimation(_runningScriptsWidget, "geometry", _runningScriptsWidget);
+        slideAnimation->setStartValue(_runningScriptsWidget->geometry());
+        slideAnimation->setEndValue(QRect(_window->geometry().topLeft().x(), _window->geometry().topLeft().y(),
+                                          310, _runningScriptsWidget->height()));
+        slideAnimation->setDuration(250);
+        slideAnimation->start(QAbstractAnimation::DeleteWhenStopped);
+    } else {
+        _runningScriptsWidget->releaseKeyboard();
+
+        QPropertyAnimation* slideAnimation = new QPropertyAnimation(_runningScriptsWidget, "geometry", _runningScriptsWidget);
+        slideAnimation->setStartValue(_runningScriptsWidget->geometry());
+        slideAnimation->setEndValue(QRect(_window->geometry().topLeft().x(), _window->geometry().topLeft().y(),
+                                          0, _runningScriptsWidget->height()));
+        slideAnimation->setDuration(250);
+        slideAnimation->start(QAbstractAnimation::DeleteWhenStopped);
+
+        QTimer::singleShot(260, _runningScriptsWidget->toggleViewAction(), SLOT(trigger()));
     }
 }
 
@@ -3540,29 +3574,17 @@ void Application::uploadFST() {
     }
 }
 
-void Application::removeScriptName(const QString& fileNameString) {
-    _activeScripts.removeOne(fileNameString);
-}
-
-void Application::cleanupScriptMenuItem(const QString& scriptMenuName) {
-    Menu::getInstance()->removeAction(Menu::getInstance()->getActiveScriptsMenu(), scriptMenuName);
-}
-
 void Application::loadScript(const QString& scriptName) {
 
     // start the script on a new thread...
-    bool wantMenuItems = true; // tells the ScriptEngine object to add menu items for itself
-    ScriptEngine* scriptEngine = new ScriptEngine(QUrl(scriptName), wantMenuItems, &_controllerScriptingInterface);
+    ScriptEngine* scriptEngine = new ScriptEngine(QUrl(scriptName), &_controllerScriptingInterface);
+    _scriptEnginesHash.insert(scriptName, scriptEngine);
 
     if (!scriptEngine->hasScript()) {
         qDebug() << "Application::loadScript(), script failed to load...";
         return;
     }
-    _activeScripts.append(scriptName);
-    
-    // add a stop menu item
-    Menu::getInstance()->addActionToQMenuAndActionHash(Menu::getInstance()->getActiveScriptsMenu(), 
-                            scriptEngine->getScriptMenuName(), 0, scriptEngine, SLOT(stop()));
+    _runningScriptsWidget->setRunningScripts(getRunningScripts());
 
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
     // we can use the same ones from the application.
@@ -3570,7 +3592,7 @@ void Application::loadScript(const QString& scriptName) {
     scriptEngine->getVoxelsScriptingInterface()->setVoxelTree(_voxels.getTree());
     scriptEngine->getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
     scriptEngine->getParticlesScriptingInterface()->setParticleTree(_particles.getTree());
-    
+
     // hook our avatar object into this script engine
     scriptEngine->setAvatarData(_myAvatar, "MyAvatar"); // leave it as a MyAvatar class to expose thrust features
 
@@ -3595,8 +3617,6 @@ void Application::loadScript(const QString& scriptName) {
     // when the thread is terminated, add both scriptEngine and thread to the deleteLater queue
     connect(scriptEngine, SIGNAL(finished(const QString&)), scriptEngine, SLOT(deleteLater()));
     connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
-    connect(scriptEngine, SIGNAL(finished(const QString&)), this, SLOT(removeScriptName(const QString&)));
-    connect(scriptEngine, SIGNAL(cleanupMenuItem(const QString&)), this, SLOT(cleanupScriptMenuItem(const QString&)));
 
     // when the application is about to quit, stop our script engine so it unwinds properly
     connect(this, SIGNAL(aboutToQuit()), scriptEngine, SLOT(stop()));
@@ -3620,12 +3640,12 @@ void Application::loadDialog() {
         suggestedName = _previousScriptLocation;
     }
 
-    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Open Script"), suggestedName, 
+    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Open Script"), suggestedName,
                                                           tr("JavaScript Files (*.js)"));
     if (!fileNameString.isEmpty()) {
         _previousScriptLocation = fileNameString;
     }
-    
+
     loadScript(fileNameString);
 }
 
@@ -3636,7 +3656,7 @@ void Application::loadScriptURLDialog() {
     scriptURLDialog.setLabelText("Script:");
     scriptURLDialog.setWindowFlags(Qt::Sheet);
     const float DIALOG_RATIO_OF_WINDOW = 0.30f;
-    scriptURLDialog.resize(scriptURLDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, 
+    scriptURLDialog.resize(scriptURLDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW,
                         scriptURLDialog.size().height());
 
     int dialogReturn = scriptURLDialog.exec();
@@ -3674,29 +3694,29 @@ void Application::checkVersion() {
 }
 
 void Application::parseVersionXml() {
-    
+
     #ifdef Q_OS_WIN32
     QString operatingSystem("win");
     #endif
-    
+
     #ifdef Q_OS_MAC
     QString operatingSystem("mac");
     #endif
-    
+
     #ifdef Q_OS_LINUX
     QString operatingSystem("ubuntu");
     #endif
-    
+
     QString releaseDate;
     QString releaseNotes;
     QString latestVersion;
     QUrl downloadUrl;
     QObject* sender = QObject::sender();
-    
+
     QXmlStreamReader xml(qobject_cast<QNetworkReply*>(sender));
     while (!xml.atEnd() && !xml.hasError()) {
         QXmlStreamReader::TokenType token = xml.readNext();
-        
+
         if (token == QXmlStreamReader::StartElement) {
             if (xml.name() == "ReleaseDate") {
                 xml.readNext();

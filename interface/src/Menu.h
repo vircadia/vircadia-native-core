@@ -95,8 +95,6 @@ public:
     // User Tweakable PPS from Voxel Server
     int getMaxVoxelPacketsPerSecond() const { return _maxVoxelPacketsPerSecond; }
 
-    QMenu* getActiveScriptsMenu() { return _activeScriptsMenu;}
-
     QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
                                            const QString& actionName,
                                            const QKeySequence& shortcut = 0,
@@ -124,7 +122,7 @@ public slots:
     void goTo();
     void goToUser(const QString& user);
     void pasteToVoxel();
-    
+
     void toggleLoginMenuItem();
 
     QMenu* addMenu(const QString& menuName);
@@ -166,7 +164,7 @@ private:
     void scanMenu(QMenu* menu, settingsAction modifySetting, QSettings* set);
 
     /// helper method to have separators with labels that are also compatible with OS X
-    void addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName, 
+    void addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName,
                                                 int menuItemLocation = UNSPECIFIED_POSITION);
 
     QAction* addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
@@ -189,7 +187,7 @@ private:
     int findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem);
     int positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition);
     QMenu* getMenu(const QString& menuName);
-    
+
 
     QHash<QString, QAction*> _actionHash;
     int _audioJitterBufferSamples; /// number of extra samples to wait before starting audio playback
@@ -208,7 +206,6 @@ private:
     int _boundaryLevelAdjust;
     QAction* _useVoxelShader;
     int _maxVoxelPacketsPerSecond;
-    QMenu* _activeScriptsMenu;
     QString replaceLastOccurrence(QChar search, QChar replace, QString string);
     quint64 _lastAdjust;
     quint64 _lastAvatarDetailDrop;
@@ -290,6 +287,7 @@ namespace MenuOption {
     const QString RenderSkeletonCollisionProxies = "Skeleton Collision Proxies";
     const QString RenderHeadCollisionProxies = "Head Collision Proxies";
     const QString ResetAvatarSize = "Reset Avatar Size";
+    const QString RunningScripts = "Running Scripts";
     const QString RunTimingTests = "Run Timing Tests";
     const QString SettingsImport = "Import Settings";
     const QString Shadows = "Shadows";
