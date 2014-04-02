@@ -190,11 +190,14 @@ void Model::reset() {
     }
 }
 
-void Model::updateGeometry() {
+bool Model::updateGeometry() {
     // NOTE: this is a recursive call that walks all attachments, and their attachments
+    bool needFullUpdate = false;
     for (int i = 0; i < _attachments.size(); i++) {
         Model* model = _attachments.at(i);
-        model->updateGeometry();
+        if (model->updateGeometry()) {
+            needFullUpdate = true;
+        }
     }
 
     bool needToRebuild = false;
@@ -209,7 +212,7 @@ void Model::updateGeometry() {
     }
     if (!_geometry) {
         // geometry is not ready
-        return;
+        return false;
     }
 
     QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(_lodDistance, _lodHysteresis);
@@ -273,8 +276,9 @@ void Model::updateGeometry() {
             _attachments.append(model);
         }
         rebuildShapes();
+        needFullUpdate = true;
     }
-    return;
+    return needFullUpdate;
 }
 
 bool Model::render(float alpha, bool forShadowMap) {
@@ -682,11 +686,15 @@ void Blender::run() {
         Q_ARG(const QVector<glm::vec3>&, vertices), Q_ARG(const QVector<glm::vec3>&, normals));
 }
 
-void Model::simulate(float deltaTime) {
-    // NOTE: this is a recursive call that walks all attachments, and their attachments
-    if (!isActive()) {
-        return;
+void Model::simulate(float deltaTime, bool fullUpdate) {
+    fullUpdate = updateGeometry() || fullUpdate;
+    if (isActive() && fullUpdate) {
+        simulateInternal(deltaTime);
     }
+}
+
+void Model::simulateInternal(float deltaTime) {
+    // NOTE: this is a recursive call that walks all attachments, and their attachments
     // update the world space transforms for all joints
     for (int i = 0; i < _jointStates.size(); i++) {
         updateJointState(i);
@@ -709,7 +717,9 @@ void Model::simulate(float deltaTime) {
         model->setRotation(jointRotation * attachment.rotation);
         model->setScale(_scale * attachment.scale);
         
-        model->simulate(deltaTime);
+        if (model->isActive()) {
+            model->simulateInternal(deltaTime);
+        }
     }
     
     for (int i = 0; i < _meshStates.size(); i++) {

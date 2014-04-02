@@ -289,7 +289,6 @@ void MyAvatar::simulate(float deltaTime) {
     getHand()->collideAgainstOurself(); 
     getHand()->simulate(deltaTime, true);
 
-    _skeletonModel.updateGeometry();
     _skeletonModel.simulate(deltaTime);
 
     // copy out the skeleton joints from the model
@@ -306,7 +305,6 @@ void MyAvatar::simulate(float deltaTime) {
     }
     head->setPosition(headPosition);
     head->setScale(_scale);
-    head->getFaceModel().updateGeometry();
     head->simulate(deltaTime, true);
 
     // Zero thrust out now that we've added it to velocity in this frame

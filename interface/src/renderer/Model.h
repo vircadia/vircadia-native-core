@@ -56,7 +56,7 @@ public:
     
     void init();
     void reset();
-    virtual void simulate(float deltaTime);
+    virtual void simulate(float deltaTime, bool fullUpdate = true);
     bool render(float alpha = 1.0f, bool forShadowMap = false);
 
     /// Sets the URL of the model to render.
@@ -185,8 +185,6 @@ public:
     /// Sets blended vertices computed in a separate thread.
     void setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
 
-    void updateGeometry();
-
 protected:
 
     QSharedPointer<NetworkGeometry> _geometry;
@@ -219,6 +217,11 @@ protected:
     
     QVector<MeshState> _meshStates;
     
+    // returns 'true' if needs fullUpdate after geometry change
+    bool updateGeometry();
+
+    void simulateInternal(float deltaTime);
+
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);
     
