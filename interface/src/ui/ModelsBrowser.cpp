@@ -8,11 +8,10 @@
 
 #include <QDialog>
 #include <QDialogButtonBox>
-#include <QEventLoop>
 #include <QGridLayout>
 #include <QHeaderView>
 #include <QMessageBox>
-#include <QStringListModel>
+#include <QNetworkAccessManager>
 #include <QUrl>
 #include <QXmlStreamReader>
 
@@ -33,27 +32,39 @@ static const QString KEY_NAME = "Key";
 static const QString LOADING_MSG = "Loading...";
 static const QString ERROR_MSG = "Error loading files";
 
+static const QString DO_NOT_MODIFY_TAG = "DoNotModify";
+
 enum ModelMetaData {
     NAME,
-    CREATOR,
-    UPLOAD_DATE,
     TYPE,
     GENDER,
+    CREATOR,
+    UPLOAD_DATE,
     
     MODEL_METADATA_COUNT
 };
 static const QString propertiesNames[MODEL_METADATA_COUNT] = {
     "Name",
-    "Creator",
-    "Upload Date",
     "Type",
-    "Gender"
+    "Gender",
+    "Creator",
+    "Last Modified"
+};
+static const QString propertiesIds[MODEL_METADATA_COUNT] = {
+    DO_NOT_MODIFY_TAG,
+    "Type",
+    "Gender",
+    "x-amz-request-id",
+    "Last-Modified"
 };
 
 ModelsBrowser::ModelsBrowser(ModelType modelsType, QWidget* parent) :
     QWidget(parent),
     _handler(new ModelHandler(modelsType))
 {
+    connect(_handler, SIGNAL(doneDownloading()), SLOT(resizeView()));
+    connect(_handler, SIGNAL(updated()), SLOT(resizeView()));
+    
     // Connect handler
     _handler->connect(this, SIGNAL(startDownloading()), SLOT(download()));
     _handler->connect(_handler, SIGNAL(doneDownloading()), SLOT(update()));
@@ -106,6 +117,12 @@ void ModelsBrowser::applyFilter(const QString &filter) {
     _handler->unlockModel();
 }
 
+void ModelsBrowser::resizeView() {
+    for (int i = 0; i < MODEL_METADATA_COUNT; ++i) {
+        _view.resizeColumnToContents(i);
+    }
+}
+
 void ModelsBrowser::browse() {
     QDialog dialog;
     dialog.setWindowTitle("Browse models");
@@ -145,8 +162,6 @@ ModelHandler::ModelHandler(ModelType modelsType, QWidget* parent) :
     _initiateExit(false),
     _type(modelsType)
 {
-    connect(&_downloader, SIGNAL(done(QNetworkReply::NetworkError)), SLOT(downloadFinished()));
-
     // set headers data
     QStringList headerData;
     for (int i = 0; i < MODEL_METADATA_COUNT; ++i) {
@@ -156,9 +171,6 @@ ModelHandler::ModelHandler(ModelType modelsType, QWidget* parent) :
 }
 
 void ModelHandler::download() {
-    // Query models list
-    queryNewFiles();
-    
     _lock.lockForWrite();
     if (_initiateExit) {
         _lock.unlock();
@@ -169,10 +181,25 @@ void ModelHandler::download() {
     loadingItem->setEnabled(false);
     _model.appendRow(loadingItem);
     _lock.unlock();
+    
+    // Query models list
+    queryNewFiles();
 }
 
 void ModelHandler::update() {
-    // Will be implemented in my next PR
+    _lock.lockForWrite();
+    if (_initiateExit) {
+        _lock.unlock();
+        return;
+    }
+    for (int i = 0; i < _model.rowCount(); ++i) {
+        QUrl url(_model.item(i,0)->data(Qt::UserRole).toString());
+        QNetworkAccessManager* accessManager = new QNetworkAccessManager(this);
+        QNetworkRequest request(url);
+        accessManager->head(request);
+        connect(accessManager, SIGNAL(finished(QNetworkReply*)), SLOT(downloadFinished(QNetworkReply*)));
+    }
+    _lock.unlock();
 }
 
 void ModelHandler::exit() {
@@ -180,7 +207,6 @@ void ModelHandler::exit() {
     _initiateExit = true;
     
     // Disconnect everything
-    _downloader.disconnect();
     disconnect();
     thread()->disconnect();
     
@@ -191,12 +217,16 @@ void ModelHandler::exit() {
     _lock.unlock();
 }
 
-void ModelHandler::downloadFinished() {
-    if (_downloader.getData().startsWith("<?xml")) {
-        parseXML(_downloader.getData());
+void ModelHandler::downloadFinished(QNetworkReply* reply) {
+    QByteArray data = reply->readAll();
+    
+    if (!data.isEmpty()) {
+        parseXML(data);
     } else {
-        qDebug() << _downloader.getData();
+        parseHeaders(reply);
     }
+    reply->deleteLater();
+    sender()->deleteLater();
 }
 
 void ModelHandler::queryNewFiles(QString marker) {
@@ -219,7 +249,11 @@ void ModelHandler::queryNewFiles(QString marker) {
     
     // Download
     url.setQuery(query);
-    _downloader.download(url);
+    QNetworkAccessManager* accessManager = new QNetworkAccessManager(this);
+    QNetworkRequest request(url);
+    accessManager->get(request);
+    connect(accessManager, SIGNAL(finished(QNetworkReply*)), SLOT(downloadFinished(QNetworkReply*)));
+            
 }
 
 bool ModelHandler::parseXML(QByteArray xmlFile) {
@@ -266,18 +300,9 @@ bool ModelHandler::parseXML(QByteArray xmlFile) {
                         QList<QStandardItem*> model;
                         model << new QStandardItem(QFileInfo(xml.text().toString()).baseName());
                         model.first()->setData(PUBLIC_URL + "/" + xml.text().toString(), Qt::UserRole);
-                        
-                        // Rand properties for now (Will be taken out in the next PR)
-                        static QString creator[] = {"Ryan", "Philip", "Andzrej"};
-                        static QString type[] = {"human", "beast", "pet", "elfe"};
-                        static QString gender[] = {"male", "female", "none"};
-                        model << new QStandardItem(creator[randIntInRange(0, 2)]);
-                        model << new QStandardItem(QDate(randIntInRange(2013, 2014),
-                                                         randIntInRange(1, 12),
-                                                         randIntInRange(1, 30)).toString());
-                        model << new QStandardItem(type[randIntInRange(0, 3)]);
-                        model << new QStandardItem(gender[randIntInRange(0, 2)]);
-                        ////////////////////////////////////////////////////////////
+                        for (int i = 1; i < MODEL_METADATA_COUNT; ++i) {
+                            model << new QStandardItem();
+                        }
                         
                         _model.appendRow(model);
                     }
@@ -312,9 +337,32 @@ bool ModelHandler::parseXML(QByteArray xmlFile) {
     _lock.unlock();
     
     if (!truncated) {
-        qDebug() << "Emitting...";
         emit doneDownloading();
     }
     
     return true;
 }
+
+bool ModelHandler::parseHeaders(QNetworkReply* reply) {
+    _lock.lockForWrite();
+    
+    QList<QStandardItem*> items = _model.findItems(QFileInfo(reply->url().toString()).baseName());
+    if (items.isEmpty() || items.first()->text() == DO_NOT_MODIFY_TAG) {
+        return false;
+    }
+    
+    for (int i = 0; i < MODEL_METADATA_COUNT; ++i) {
+        for (int k = 1; k < reply->rawHeaderPairs().count(); ++k) {
+            QString key = reply->rawHeaderPairs().at(k).first.data();
+            QString item = reply->rawHeaderPairs().at(k).second.data();
+            if (key == propertiesIds[i]) {
+                _model.item(_model.indexFromItem(items.first()).row(), i)->setText(item);
+            }
+        }
+    }
+    _lock.unlock();
+    
+    emit updated();
+    return true;
+}
+

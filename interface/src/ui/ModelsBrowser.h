@@ -9,13 +9,10 @@
 #ifndef __hifi__ModelsBrowser__
 #define __hifi__ModelsBrowser__
 
-#include <QAbstractTableModel>
-#include <QStandardItem>
-#include <QTreeView>
-#include <QVector>
 #include <QReadWriteLock>
+#include <QStandardItemModel>
+#include <QTreeView>
 
-#include "FileDownloader.h"
 
 enum ModelType {
     Head,
@@ -33,7 +30,7 @@ public:
     
 signals:
     void doneDownloading();
-    void doneUpdating();
+    void updated();
     
 public slots:
     void download();
@@ -41,17 +38,17 @@ public slots:
     void exit();
     
 private slots:
-    void downloadFinished();
+    void downloadFinished(QNetworkReply* reply);
     
 private:
     bool _initiateExit;
     ModelType _type;
-    FileDownloader _downloader;
     QReadWriteLock _lock;
     QStandardItemModel _model;
     
     void queryNewFiles(QString marker = QString());
     bool parseXML(QByteArray xmlFile);
+    bool parseHeaders(QNetworkReply* reply);
 };
 
 
@@ -71,6 +68,7 @@ public slots:
     
 private slots:
     void applyFilter(const QString& filter);
+    void resizeView();
     
 private:
     ModelHandler* _handler;
