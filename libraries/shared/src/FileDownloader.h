@@ -27,7 +27,7 @@ signals:
     void done(QNetworkReply::NetworkError error);
     
 public slots:
-    void download(const QUrl dataURL, QNetworkAccessManager::Operation operation = QNetworkAccessManager::GetOperation);
+    void download(const QUrl& dataURL, QNetworkAccessManager::Operation operation = QNetworkAccessManager::GetOperation);
     
 private slots:
     void processReply(QNetworkReply* reply);

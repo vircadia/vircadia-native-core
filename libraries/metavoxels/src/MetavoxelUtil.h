@@ -60,6 +60,8 @@ DECLARE_STREAMABLE_METATYPE(Box)
 
 Box operator*(const glm::mat4& matrix, const Box& box);
 
+QDebug& operator<<(QDebug& out, const Box& box);
+
 /// Editor for meta-object values.
 class QMetaObjectEditor : public QWidget {
     Q_OBJECT

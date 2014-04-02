@@ -18,7 +18,7 @@ FileDownloader::FileDownloader(QObject* parent) : QObject(parent) {
     connect(&_networkAccessManager, SIGNAL(finished(QNetworkReply*)), SLOT(processReply(QNetworkReply*)));
 }
 
-void FileDownloader::download(const QUrl dataURL, QNetworkAccessManager::Operation operation) {
+void FileDownloader::download(const QUrl& dataURL, QNetworkAccessManager::Operation operation) {
     QNetworkRequest request(dataURL);
     
     _downloadedData.clear();
