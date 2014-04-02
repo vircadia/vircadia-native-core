@@ -282,8 +282,6 @@ void linearResampling(int16_t* sourceSamples, int16_t* destinationSamples,
     }
 }
 
-const int CALLBACK_ACCELERATOR_RATIO = 2;
-
 void Audio::start() {
 
     // set up the desired audio format
@@ -305,8 +303,11 @@ void Audio::start() {
     qDebug() << "The default audio output device is" << outputDeviceInfo.deviceName();
     bool outputFormatSupported = switchOutputToAudioDevice(outputDeviceInfo);
     
-    if (!inputFormatSupported || !outputFormatSupported) {
-        qDebug() << "Unable to set up audio I/O because of a problem with input or output formats.";
+    if (!inputFormatSupported) {
+        qDebug() << "Unable to set up audio input because of a problem with input format.";
+    }
+    if (!outputFormatSupported) {
+        qDebug() << "Unable to set up audio output because of a problem with output format.";
     }
 }
 
@@ -341,10 +342,9 @@ void Audio::handleAudioInput() {
 
     static int16_t* monoAudioSamples = (int16_t*) (monoAudioDataPacket + leadingBytes);
 
-    static float inputToNetworkInputRatio = _numInputCallbackBytes * CALLBACK_ACCELERATOR_RATIO
-        / NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL;
+    float inputToNetworkInputRatio = calculateDeviceToNetworkInputRatio(_numInputCallbackBytes);
 
-    static unsigned int inputSamplesRequired = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio;
+    unsigned int inputSamplesRequired = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio;
 
     QByteArray inputByteArray = _inputDevice->readAll();
 
@@ -606,11 +606,6 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray)
 {
     _ringBuffer.parseData(audioByteArray);
 
-    float outSampleRate = _outputFormat.sampleRate();
-    float desSampleRate = _desiredOutputFormat.sampleRate();
-    int outChannelCount = _outputFormat.channelCount();
-    int desChannelCount = _desiredOutputFormat.channelCount();
-    float myOutputRatio = desSampleRate / outSampleRate *  (desChannelCount / outChannelCount);
     float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())
         * (_desiredOutputFormat.channelCount() / (float) _outputFormat.channelCount());
     
@@ -861,13 +856,12 @@ bool Audio::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {
             qDebug() << "The format to be used for audio input is" << _inputFormat;
         
             _audioInput = new QAudioInput(inputDeviceInfo, _inputFormat, this);
-            _numInputCallbackBytes = NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL * _inputFormat.channelCount()
-                * (_inputFormat.sampleRate() / SAMPLE_RATE)
-                / CALLBACK_ACCELERATOR_RATIO;
+            _numInputCallbackBytes = calculateNumberOfInputCallbackBytes(_inputFormat);
             _audioInput->setBufferSize(_numInputCallbackBytes);
 
             // how do we want to handle input working, but output not working?
-            _inputRingBuffer.resizeForFrameSize(_numInputCallbackBytes * CALLBACK_ACCELERATOR_RATIO / sizeof(int16_t));
+            int numFrameSamples = calculateNumberOfFrameSamples(_numInputCallbackBytes);
+            _inputRingBuffer.resizeForFrameSize(numFrameSamples);
             _inputDevice = _audioInput->start();
             connect(_inputDevice, SIGNAL(readyRead()), this, SLOT(handleAudioInput()));
 
@@ -923,4 +917,45 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
         }
     }
     return supportedFormat;
+}
+
+// The following constant is operating system dependent due to differences in
+// the way input audio is handled. The audio input buffer size is inversely
+// proportional to the accelerator ratio. 
+
+#ifdef Q_OS_WIN
+const float Audio::CALLBACK_ACCELERATOR_RATIO = 0.4f;
+#endif
+
+#ifdef Q_OS_MAC
+const float Audio::CALLBACK_ACCELERATOR_RATIO = 2.0f;
+#endif
+
+#ifdef Q_OS_LINUX
+const float Audio::CALLBACK_ACCELERATOR_RATIO = 2.0f;
+#endif
+
+int Audio::calculateNumberOfInputCallbackBytes(const QAudioFormat& format)
+{
+    int numInputCallbackBytes = (int)(((NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL 
+        * format.channelCount()
+        * (format.sampleRate() / SAMPLE_RATE))
+        / CALLBACK_ACCELERATOR_RATIO) + 0.5f);
+
+    return numInputCallbackBytes;
+}
+
+float Audio::calculateDeviceToNetworkInputRatio(int numBytes)
+{
+    float inputToNetworkInputRatio = (int)((_numInputCallbackBytes 
+        * CALLBACK_ACCELERATOR_RATIO
+        / NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL) + 0.5f);
+
+    return inputToNetworkInputRatio;
+}
+
+int Audio::calculateNumberOfFrameSamples(int numBytes)
+{
+    int frameSamples = (int)(numBytes * CALLBACK_ACCELERATOR_RATIO + 0.5f) / sizeof(int16_t);
+    return frameSamples;
 }

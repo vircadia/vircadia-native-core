@@ -178,6 +178,13 @@ private:
 
     bool switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo);
     bool switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo);
+
+    // Callback acceleration dependent calculations
+    static const float CALLBACK_ACCELERATOR_RATIO;
+    int calculateNumberOfInputCallbackBytes(const QAudioFormat& format);
+    int calculateNumberOfFrameSamples(int numBytes);
+    float calculateDeviceToNetworkInputRatio(int numBytes);
+
 };
 
 
