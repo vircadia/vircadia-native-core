@@ -299,6 +299,11 @@ Box operator*(const glm::mat4& matrix, const Box& box) {
     return newBox;
 }
 
+QDebug& operator<<(QDebug& out, const Box& box) {
+    return out << '(' << box.minimum.x << box.minimum.y << box.minimum.z << ") (" <<
+        box.maximum.x << box.maximum.y << box.maximum.z << ')';
+}
+
 QMetaObjectEditor::QMetaObjectEditor(QWidget* parent) : QWidget(parent) {
     QVBoxLayout* layout = new QVBoxLayout();
     layout->setContentsMargins(QMargins());
