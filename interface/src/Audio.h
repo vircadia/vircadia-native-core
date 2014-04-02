@@ -76,6 +76,7 @@ public:
 
 public slots:
     void start();
+    void stop();
     void addReceivedAudioToBuffer(const QByteArray& audioByteArray);
     void handleAudioInput();
     void reset();
