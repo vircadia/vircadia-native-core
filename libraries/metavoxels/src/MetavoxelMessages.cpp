@@ -305,3 +305,12 @@ void SetSpannerEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& obje
     
     setIntersectingMasked(spanner->getBounds(), data);
 }
+
+SetDataEdit::SetDataEdit(const glm::vec3& minimum, const MetavoxelData& data) :
+    minimum(minimum),
+    data(data) {
+}
+
+void SetDataEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
+    data.set(minimum, this->data);
+}

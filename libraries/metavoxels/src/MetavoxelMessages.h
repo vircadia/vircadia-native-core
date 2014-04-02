@@ -176,4 +176,21 @@ public:
 
 DECLARE_STREAMABLE_METATYPE(SetSpannerEdit)
 
+/// An edit that directly sets part of the metavoxel data.
+class SetDataEdit : public MetavoxelEdit {
+    STREAMABLE
+    
+public:
+    
+    STREAM glm::vec3 minimum;
+    
+    STREAM MetavoxelData data;
+    
+    SetDataEdit(const glm::vec3& minimum = glm::vec3(), const MetavoxelData& data = MetavoxelData());
+    
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
+};
+
+DECLARE_STREAMABLE_METATYPE(SetDataEdit)
+
 #endif /* defined(__interface__MetavoxelMessages__) */

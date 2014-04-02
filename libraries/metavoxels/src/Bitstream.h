@@ -920,6 +920,13 @@ public:
     _Pragma(STRINGIFY(unused(_TypePtr##X)))
 #endif
 
+/// Registers a simple type and its streamer.
+template<class T> int registerSimpleMetaType() {
+    int type = qRegisterMetaType<T>();
+    Bitstream::registerTypeStreamer(type, new SimpleTypeStreamer<T>());
+    return type;
+}
+
 /// Registers a streamable type and its streamer.
 template<class T> int registerStreamableMetaType() {
     int type = qRegisterMetaType<T>();

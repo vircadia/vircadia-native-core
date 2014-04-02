@@ -90,6 +90,9 @@ public:
     SharedObjectPointer findFirstRaySpannerIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const AttributePointer& attribute, float& distance, const MetavoxelLOD& lod = MetavoxelLOD());
 
+    /// Sets part of the data.
+    void set(const glm::vec3& minimum, const MetavoxelData& data);
+
     /// Expands the tree, increasing its capacity in all dimensions.
     void expand();
 
@@ -103,6 +106,9 @@ public:
     MetavoxelNode* getRoot(const AttributePointer& attribute) const { return _roots.value(attribute); }
     MetavoxelNode* createRoot(const AttributePointer& attribute);
 
+    bool operator==(const MetavoxelData& other) const;
+    bool operator!=(const MetavoxelData& other) const;
+
 private:
 
     friend class MetavoxelVisitation;
@@ -113,6 +119,16 @@ private:
     float _size;
     QHash<AttributePointer, MetavoxelNode*> _roots;
 };
+
+Bitstream& operator<<(Bitstream& out, const MetavoxelData& data);
+
+Bitstream& operator>>(Bitstream& in, MetavoxelData& data);
+
+template<> void Bitstream::writeDelta(const MetavoxelData& value, const MetavoxelData& reference);
+
+template<> void Bitstream::readDelta(MetavoxelData& value, const MetavoxelData& reference);
+
+Q_DECLARE_METATYPE(MetavoxelData)
 
 /// Holds the state used in streaming metavoxel data.
 class MetavoxelStreamState {
@@ -592,7 +608,7 @@ public:
     const QUrl& getURL() const { return _url; }
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        const glm::vec3& clipMinimum, float clipSize,float& distance) const;
+        const glm::vec3& clipMinimum, float clipSize, float& distance) const;
     
 signals:
 

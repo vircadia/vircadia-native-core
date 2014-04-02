@@ -24,6 +24,8 @@ REGISTER_META_OBJECT(Spanner)
 REGISTER_META_OBJECT(Sphere)
 REGISTER_META_OBJECT(StaticModel)
 
+static int metavoxelDataTypeId = registerSimpleMetaType<MetavoxelData>();
+
 MetavoxelLOD::MetavoxelLOD(const glm::vec3& position, float threshold) :
     position(position),
     threshold(threshold) {
@@ -327,6 +329,67 @@ const int Y_MAXIMUM_FLAG = 2;
 const int Z_MAXIMUM_FLAG = 4;
 const int MAXIMUM_FLAG_MASK = X_MAXIMUM_FLAG | Y_MAXIMUM_FLAG | Z_MAXIMUM_FLAG;
 
+static glm::vec3 getNextMinimum(const glm::vec3& minimum, float nextSize, int index) {
+    return minimum + glm::vec3(
+        (index & X_MAXIMUM_FLAG) ? nextSize : 0.0f,
+        (index & Y_MAXIMUM_FLAG) ? nextSize : 0.0f,
+        (index & Z_MAXIMUM_FLAG) ? nextSize : 0.0f);
+}
+
+static void setNode(const AttributePointer& attribute, MetavoxelNode*& node, MetavoxelNode* other) {
+    if (node) {
+        node->decrementReferenceCount(attribute);
+    }
+    (node = other)->incrementReferenceCount();
+}
+
+static void setNode(const AttributeValue& value, MetavoxelNode*& node, const glm::vec3& minimum, float size,
+        MetavoxelNode* other, const glm::vec3& otherMinimum, float otherSize) {
+    if (otherSize >= size) {
+        setNode(value.getAttribute(), node, other);
+        return;
+    }
+    if (!node) {
+        node = new MetavoxelNode(value);
+    }
+    int index = 0;
+    float otherHalfSize = otherSize * 0.5f;
+    float nextSize = size * 0.5f;
+    if (otherMinimum.x + otherHalfSize >= minimum.x + nextSize) {
+        index |= X_MAXIMUM_FLAG;
+    }
+    if (otherMinimum.y + otherHalfSize >= minimum.y + nextSize) {
+        index |= Y_MAXIMUM_FLAG;
+    }
+    if (otherMinimum.z + otherHalfSize >= minimum.z + nextSize) {
+        index |= Z_MAXIMUM_FLAG;
+    }
+    if (node->isLeaf()) {
+        for (int i = 1; i < MetavoxelNode::CHILD_COUNT; i++) {
+            node->setChild((index + i) % MetavoxelNode::CHILD_COUNT, new MetavoxelNode(
+                node->getAttributeValue(value.getAttribute())));
+        }
+    }
+    MetavoxelNode* nextNode = node->getChild(index);
+    setNode(node->getAttributeValue(value.getAttribute()), nextNode, getNextMinimum(minimum, nextSize, index),
+        nextSize, other, otherMinimum, otherSize);
+    node->setChild(index, nextNode);
+}
+
+void MetavoxelData::set(const glm::vec3& minimum, const MetavoxelData& data) {
+    // expand to fit the entire data
+    Box bounds = minimum + glm::vec3(data.getSize(), data.getSize(), data.getSize());
+    while (!getBounds().contains(bounds)) {
+        expand();
+    }
+    
+    // set each attribute separately
+    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = data._roots.constBegin();
+            it != data._roots.constEnd(); it++) {
+        setNode(it.key(), _roots[it.key()], getMinimum(), getSize(), it.value(), minimum, data.getSize());
+    }
+}
+
 static int getOppositeIndex(int index) {
     return index ^ MAXIMUM_FLAG_MASK;
 }
@@ -511,6 +574,14 @@ MetavoxelNode* MetavoxelData::createRoot(const AttributePointer& attribute) {
     return root = new MetavoxelNode(attribute);
 }
 
+bool MetavoxelData::operator==(const MetavoxelData& other) const {
+    return _size == other._size && _roots == other._roots;
+}
+
+bool MetavoxelData::operator!=(const MetavoxelData& other) const {
+    return _size != other._size || _roots != other._roots;
+}
+
 void MetavoxelData::incrementRootReferenceCounts() {
     for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
         it.value()->incrementReferenceCount();
@@ -523,11 +594,22 @@ void MetavoxelData::decrementRootReferenceCounts() {
     }
 }
 
-static glm::vec3 getNextMinimum(const glm::vec3& minimum, float nextSize, int index) {
-    return minimum + glm::vec3(
-        (index & X_MAXIMUM_FLAG) ? nextSize : 0.0f,
-        (index & Y_MAXIMUM_FLAG) ? nextSize : 0.0f,
-        (index & Z_MAXIMUM_FLAG) ? nextSize : 0.0f);
+Bitstream& operator<<(Bitstream& out, const MetavoxelData& data) {
+    data.write(out);
+    return out;
+}
+
+Bitstream& operator>>(Bitstream& in, MetavoxelData& data) {
+    data.read(in);
+    return in;
+}
+
+template<> void Bitstream::writeDelta(const MetavoxelData& value, const MetavoxelData& reference) {
+    value.writeDelta(reference, MetavoxelLOD(), *this, MetavoxelLOD());
+}
+
+template<> void Bitstream::readDelta(MetavoxelData& value, const MetavoxelData& reference) {
+    value.readDelta(reference, MetavoxelLOD(), *this, MetavoxelLOD());
 }
 
 bool MetavoxelStreamState::shouldSubdivide() const {
