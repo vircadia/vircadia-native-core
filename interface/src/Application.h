@@ -500,7 +500,7 @@ private:
 
     Overlays _overlays;
 
-    QPointer<RunningScriptsWidget> _runningScriptsWidget;
+    RunningScriptsWidget* _runningScriptsWidget;
     QHash<QString, ScriptEngine*> _scriptEnginesHash;
 };
 
