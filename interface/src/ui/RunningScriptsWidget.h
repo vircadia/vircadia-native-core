@@ -25,7 +25,7 @@ public:
     void setRunningScripts(const QStringList& list);
 
 signals:
-    void stopScriptName(QString name);
+    void stopScriptName(const QString& name);
 
 protected:
     void keyPressEvent(QKeyEvent *e);
