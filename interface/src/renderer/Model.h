@@ -180,6 +180,7 @@ public:
     void applyCollision(CollisionInfo& collision);
 
     float getBoundingRadius() const { return _boundingRadius; }
+    float getBoundingShapeRadius() const { return _boundingShape.getRadius(); }
 
     /// Sets blended vertices computed in a separate thread.
     void setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);

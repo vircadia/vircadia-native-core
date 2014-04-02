@@ -86,9 +86,9 @@ void MyAvatar::reset() {
     getHead()->reset();
     getHand()->reset();
 
-    setVelocity(glm::vec3(0,0,0));
-    setThrust(glm::vec3(0,0,0));
-    setOrientation(glm::quat(glm::vec3(0,0,0)));
+    setVelocity(glm::vec3(0.f));
+    setThrust(glm::vec3(0.f));
+    setOrientation(glm::quat(glm::vec3(0.f)));
 }
 
 void MyAvatar::setMoveTarget(const glm::vec3 moveTarget) {
@@ -677,6 +677,28 @@ void MyAvatar::updateThrust(float deltaTime) {
     _thrust -= _driveKeys[LEFT] * _scale * THRUST_MAG_LATERAL * _thrustMultiplier * deltaTime * right;
     _thrust += _driveKeys[UP] * _scale * THRUST_MAG_UP * _thrustMultiplier * deltaTime * up;
     _thrust -= _driveKeys[DOWN] * _scale * THRUST_MAG_DOWN * _thrustMultiplier * deltaTime * up;
+
+    // attenuate thrust when in penetration
+    if (glm::dot(_thrust, _lastBodyPenetration) > 0.f) {
+        const float MAX_BODY_PENETRATION_DEPTH = 0.6f * _skeletonModel.getBoundingShapeRadius();
+        float penetrationFactor = glm::min(1.f, glm::length(_lastBodyPenetration) / MAX_BODY_PENETRATION_DEPTH);
+        glm::vec3 penetrationDirection = glm::normalize(_lastBodyPenetration);
+        // attenuate parallel component
+        glm::vec3 parallelThrust = glm::dot(_thrust, penetrationDirection) * penetrationDirection;
+        // attenuate perpendicular component (friction)
+        glm::vec3 perpendicularThrust = _thrust - parallelThrust;
+        // recombine to get the final thrust
+        _thrust = (1.f - penetrationFactor) * parallelThrust + (1.f - penetrationFactor * penetrationFactor) * perpendicularThrust;
+
+        // attenuate the growth of _thrustMultiplier when in penetration
+        // otherwise the avatar will eventually be able to tunnel through the obstacle
+        _thrustMultiplier *= (1.f - penetrationFactor * penetrationFactor);
+    } else if (_thrustMultiplier < 1.f) {
+        // rapid healing of attenuated thrustMultiplier after penetration event
+        _thrustMultiplier = 1.f;
+    }
+    _lastBodyPenetration = glm::vec3(0.f);
+
     _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_SPEED * deltaTime;
     _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_SPEED * deltaTime;
     getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
@@ -686,8 +708,9 @@ void MyAvatar::updateThrust(float deltaTime) {
         const float THRUST_INCREASE_RATE = 1.05f;
         const float MAX_THRUST_MULTIPLIER = 75.0f;
         //printf("m = %.3f\n", _thrustMultiplier);
-        if (_thrustMultiplier < MAX_THRUST_MULTIPLIER) {
-            _thrustMultiplier *= 1.f + deltaTime * THRUST_INCREASE_RATE;
+        _thrustMultiplier *= 1.f + deltaTime * THRUST_INCREASE_RATE;
+        if (_thrustMultiplier > MAX_THRUST_MULTIPLIER) {
+            _thrustMultiplier = MAX_THRUST_MULTIPLIER;
         }
     } else {
         _thrustMultiplier = 1.f;
@@ -917,10 +940,10 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
                 CollisionInfo* collision = bodyCollisions.getCollision(j);
                 totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
             }
-            
             if (glm::length2(totalPenetration) > EPSILON) {
                 setPosition(getPosition() - BODY_COLLISION_RESOLVE_FACTOR * totalPenetration);
             }
+            _lastBodyPenetration += totalPenetration;
 
             // collide our hands against them
             // TODO: make this work when we can figure out when the other avatar won't yeild
