@@ -1,5 +1,5 @@
 //
-//  FstReader.cpp
+//  ModelUploader.cpp
 //  hifi
 //
 //  Created by Clément Brisset on 3/4/14.
@@ -18,7 +18,7 @@
 #include <QMessageBox>
 
 #include "AccountManager.h"
-#include "FstReader.h"
+#include "ModelUploader.h"
 
 
 static const QString NAME_FIELD = "name";
@@ -38,7 +38,7 @@ public:
     }
 };
 
-FstReader::FstReader(bool isHead) :
+ModelUploader::ModelUploader(bool isHead) :
     _zipDir(new TemporaryDir()),
     _lodCount(-1),
     _texturesCount(-1),
@@ -51,11 +51,11 @@ FstReader::FstReader(bool isHead) :
     
 }
 
-FstReader::~FstReader() {
+ModelUploader::~ModelUploader() {
     delete _dataMultiPart;
 }
 
-bool FstReader::zip() {
+bool ModelUploader::zip() {
     // File Dialog
     QString filename = QFileDialog::getOpenFileName(NULL,
                                                     "Select your .fst file ...",
@@ -167,7 +167,7 @@ bool FstReader::zip() {
     return true;
 }
 
-bool FstReader::send() {
+bool ModelUploader::send() {
     if (!_readyToSend) {
         return false;
     }
@@ -185,13 +185,13 @@ bool FstReader::send() {
     return true;
 }
 
-void FstReader::uploadSuccess(const QJsonObject& jsonResponse) {
+void ModelUploader::uploadSuccess(const QJsonObject& jsonResponse) {
     qDebug() << "Model sent with success to the data server.";
     qDebug() << "It might take a few minute for it to appear in your model browser.";
     deleteLater();
 }
 
-void FstReader::uploadFailed(QNetworkReply::NetworkError errorCode, const QString& errorString) {
+void ModelUploader::uploadFailed(QNetworkReply::NetworkError errorCode, const QString& errorString) {
     QMessageBox::warning(NULL,
                          QString("ModelUploader::uploadFailed()"),
                          QString("Model could not be sent to the data server."),
@@ -200,7 +200,7 @@ void FstReader::uploadFailed(QNetworkReply::NetworkError errorCode, const QStrin
     deleteLater();
 }
 
-bool FstReader::addTextures(const QFileInfo& texdir) {
+bool ModelUploader::addTextures(const QFileInfo& texdir) {
     QStringList filter;
     filter << "*.png" << "*.tif" << "*.jpg" << "*.jpeg";
     
@@ -229,7 +229,7 @@ bool FstReader::addTextures(const QFileInfo& texdir) {
     return true;
 }
 
-bool FstReader::compressFile(const QString &inFileName, const QString &outFileName) {
+bool ModelUploader::compressFile(const QString &inFileName, const QString &outFileName) {
     QFile inFile(inFileName);
     inFile.open(QIODevice::ReadOnly);
     QByteArray buffer = inFile.readAll();
@@ -253,7 +253,7 @@ bool FstReader::compressFile(const QString &inFileName, const QString &outFileNa
 }
 
 
-bool FstReader::addPart(const QString &path, const QString& name) {
+bool ModelUploader::addPart(const QString &path, const QString& name) {
     QFile* file = new QFile(path);
     if (!file->open(QIODevice::ReadOnly)) {
         QMessageBox::warning(NULL,
