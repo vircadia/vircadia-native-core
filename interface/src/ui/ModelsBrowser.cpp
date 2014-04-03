@@ -36,26 +36,29 @@ static const QString DO_NOT_MODIFY_TAG = "DoNotModify";
 
 enum ModelMetaData {
     NAME,
-    TYPE,
-    GENDER,
     CREATOR,
-    UPLOAD_DATE,
+    DATE_ADDED,
+    TOTAL_SIZE,
+    POLY_NUM,
+    TAGS,
     
     MODEL_METADATA_COUNT
 };
 static const QString propertiesNames[MODEL_METADATA_COUNT] = {
     "Name",
-    "Type",
-    "Gender",
     "Creator",
-    "Last Modified"
+    "Date Added",
+    "Total Size",
+    "Poly#",
+    "Tags"
 };
 static const QString propertiesIds[MODEL_METADATA_COUNT] = {
     DO_NOT_MODIFY_TAG,
-    "Type",
-    "Gender",
     "Creator",
-    "Last-Modified"
+    "Date-Added",
+    "Total-Size",
+    "Poly-Num",
+    "Tags"
 };
 
 ModelsBrowser::ModelsBrowser(ModelType modelsType, QWidget* parent) :
@@ -359,22 +362,6 @@ bool ModelHandler::parseHeaders(QNetworkReply* reply) {
                 _model.item(_model.indexFromItem(items.first()).row(), i)->setText(item);
             }
         }
-        
-        // Rand properties for now (Will be taken out when we have real metadata on the server)
-        if (_model.item(_model.indexFromItem(items.first()).row(), i)->text().isEmpty()) {
-            if (i == CREATOR) {
-                static QString creator[] = {"Ryan", "Philip", "Andzrej", "Phteven", "Brad"};
-                _model.item(_model.indexFromItem(items.first()).row(), i)->setText(creator[randIntInRange(0, 4)]);
-            } else if (i == TYPE) {
-                static QString type[] = {"human", "beast", "pet", "elfe"};
-                _model.item(_model.indexFromItem(items.first()).row(), i)->setText(type[randIntInRange(0, 3)]);
-            } else if (i == GENDER) {
-                static QString gender[] = {"male", "female", "none"};
-                _model.item(_model.indexFromItem(items.first()).row(), i)->setText(gender[randIntInRange(0, 2)]);
-            }
-        }
-        ////////////////////////////////////////////////////////////
-        
     }
     _lock.unlock();
     
