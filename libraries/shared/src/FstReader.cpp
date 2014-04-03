@@ -157,9 +157,9 @@ bool FstReader::zip() {
     textPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data;"
                        " name=\"model_category\"");
     if (_isHead) {
-        textPart.setBody("head");
+        textPart.setBody("heads");
     } else {
-        textPart.setBody("skeleton");
+        textPart.setBody("skeletons");
     }
     _dataMultiPart->append(textPart);
     
