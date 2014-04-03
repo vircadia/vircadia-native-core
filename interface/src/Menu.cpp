@@ -371,6 +371,9 @@ Menu::Menu() :
                                            false,
                                            appInstance->getAudio(),
                                            SLOT(toggleAudioSpatialProcessing()));
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::LowPassFilter,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_F,
+                                           false);
 
     
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
