@@ -9,8 +9,6 @@
 #ifndef __interface__AmbientOcclusionEffect__
 #define __interface__AmbientOcclusionEffect__
 
-#include "InterfaceConfig.h"
-
 class ProgramObject;
 
 /// A screen space ambient occlusion effect.  See John Chapman's tutorial at
@@ -30,6 +28,8 @@ private:
     int _leftBottomLocation;
     int _rightTopLocation;
     int _noiseScaleLocation;
+    int _texCoordOffsetLocation;
+    int _texCoordScaleLocation;
     
     ProgramObject* _blurProgram;
     int _blurScaleLocation;

@@ -7,6 +7,11 @@
 // Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#ifdef _WIN32
+#define WANT_TIMEVAL
+#include <Systime.h>
+#endif
+
 #include "starfield/Controller.h"
 
 using namespace starfield;
@@ -19,7 +24,8 @@ bool Controller::computeStars(unsigned numStars, unsigned seed) {
     
     this->retile(numStars, _tileResolution);
     
-    qDebug("Total time to generate stars: %llu msec\n", (usecTimestampNow() - usecTimestamp(&startTime)) / 1000);
+    qDebug() << "Total time to retile and generate stars: "
+        << ((usecTimestampNow() - usecTimestamp(&startTime)) / 1000) << "msec";
     
     return true;
 }

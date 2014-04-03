@@ -9,133 +9,183 @@
 #ifndef __interface__Audio__
 #define __interface__Audio__
 
+#ifdef _WIN32
+#define WANT_TIMEVAL
+#include <Systime.h>
+#endif
+
 #include <fstream>
 #include <vector>
 
 #include "InterfaceConfig.h"
 
-#include <QObject>
+#include <QAudio>
+#include <QAudioInput>
+#include <QGLWidget>
+#include <QtCore/QObject>
+#include <QtCore/QVector>
+#include <QtMultimedia/QAudioFormat>
+#include <QVector>
 
-#include <portaudio.h>
-
+#include <AbstractAudioInterface.h>
 #include <AudioRingBuffer.h>
 #include <StdDev.h>
 
-#include "Oscilloscope.h"
+#include "ui/Oscilloscope.h"
 
-#include <QGLWidget>
 
 static const int NUM_AUDIO_CHANNELS = 2;
 
-static const int PACKET_LENGTH_BYTES = 1024;
-static const int PACKET_LENGTH_BYTES_PER_CHANNEL = PACKET_LENGTH_BYTES / 2;
-static const int PACKET_LENGTH_SAMPLES = PACKET_LENGTH_BYTES / sizeof(int16_t);
-static const int PACKET_LENGTH_SAMPLES_PER_CHANNEL = PACKET_LENGTH_SAMPLES / 2;
+class QAudioInput;
+class QAudioOutput;
+class QIODevice;
 
-class Audio : public QObject {
+class Audio : public AbstractAudioInterface {
     Q_OBJECT
 public:
-    // initializes audio I/O
-    Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples);
-    
-    void shutdown();
+    // setup for audio I/O
+    Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* parent = 0);
 
-    void reset(); 
-    void render(int screenWidth, int screenHeight);
-    
-    void addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes);
+    float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _noiseGateMeasuredFloor, 0.f); }
+    float getTimeSinceLastClip() const { return _timeSinceLastClip; }
+    float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
 
-    float getLastInputLoudness() const { return _lastInputLoudness; }
-    
-    void setLastAcceleration(const glm::vec3 lastAcceleration) { _lastAcceleration = lastAcceleration; }
-    void setLastVelocity(const glm::vec3 lastVelocity) { _lastVelocity = lastVelocity; }
-    
+    void setNoiseGateEnabled(bool noiseGateEnabled) { _noiseGateEnabled = noiseGateEnabled; }
+        
     void setJitterBufferSamples(int samples) { _jitterBufferSamples = samples; }
     int getJitterBufferSamples() { return _jitterBufferSamples; }
     
     void lowPassFilter(int16_t* inputBuffer);
     
-    void startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen);
+    virtual void startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen);
+    virtual void startDrumSound(float volume, float frequency, float duration, float decay);
     
     float getCollisionSoundMagnitude() { return _collisionSoundMagnitude; }
     
     bool getCollisionFlashesScreen() { return _collisionFlashesScreen; }
     
-    void ping();
+    bool getMuted() { return _muted; }
     
     void init(QGLWidget *parent = 0);
     bool mousePressEvent(int x, int y);
-
-    // Call periodically to eventually perform round trip time analysis,
-    // in which case 'true' is returned - otherwise the return value is 'false'.
-    // The results of the analysis are written to the log.
-    bool eventuallyAnalyzePing();
-private:
     
-    PaStream* _stream;
+    void renderMuteIcon(int x, int y);
+    
+    int getNetworkSampleRate() { return SAMPLE_RATE; }
+    int getNetworkBufferLengthSamplesPerChannel() { return NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; }
+
+public slots:
+    void start();
+    void stop();
+    void addReceivedAudioToBuffer(const QByteArray& audioByteArray);
+    void handleAudioInput();
+    void reset();
+    void toggleMute();
+    void toggleAudioNoiseReduction();
+    void toggleToneInjection();
+    
+    virtual void handleAudioByteArray(const QByteArray& audioByteArray);
+
+    bool switchInputToAudioDevice(const QString& inputDeviceName);
+    bool switchOutputToAudioDevice(const QString& outputDeviceName);
+    QString getDeviceName(QAudio::Mode mode) const { return (mode == QAudio::AudioInput) ?
+                                                            _inputAudioDeviceName : _outputAudioDeviceName; }
+    QString getDefaultDeviceName(QAudio::Mode mode);
+    QVector<QString> getDeviceNames(QAudio::Mode mode);
+
+    float getInputVolume() const { return (_audioInput) ? _audioInput->volume() : 0.0f; }
+    void setInputVolume(float volume) { if (_audioInput) _audioInput->setVolume(volume); }
+
+signals:
+    bool muteToggled();
+    
+private:
+
+    QByteArray firstInputFrame;
+    QAudioInput* _audioInput;
+    QAudioFormat _desiredInputFormat;
+    QAudioFormat _inputFormat;
+    QIODevice* _inputDevice;
+    int _numInputCallbackBytes;
+    int16_t _localProceduralSamples[NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL];
+    QAudioOutput* _audioOutput;
+    QAudioFormat _desiredOutputFormat;
+    QAudioFormat _outputFormat;
+    QIODevice* _outputDevice;
+    int _numOutputCallbackBytes;
+    QAudioOutput* _loopbackAudioOutput;
+    QIODevice* _loopbackOutputDevice;
+    QAudioOutput* _proceduralAudioOutput;
+    QIODevice* _proceduralOutputDevice;
+    AudioRingBuffer _inputRingBuffer;
     AudioRingBuffer _ringBuffer;
+
+    QString _inputAudioDeviceName;
+    QString _outputAudioDeviceName;
+    
     Oscilloscope* _scope;
     StDev _stdev;
-    timeval _lastCallbackTime;
     timeval _lastReceiveTime;
     float _averagedLatency;
     float _measuredJitter;
     int16_t _jitterBufferSamples;
-    int _wasStarved;
-    int _numStarves;
     float _lastInputLoudness;
-    glm::vec3 _lastVelocity;
-    glm::vec3 _lastAcceleration;
+    float _timeSinceLastClip;
+    float _dcOffset;
+    float _noiseGateMeasuredFloor;
+    float* _noiseSampleFrames;
+    int _noiseGateSampleCounter;
+    bool _noiseGateOpen;
+    bool _noiseGateEnabled;
+    bool _toneInjectionEnabled;
+    int _noiseGateFramesToClose;
     int _totalPacketsReceived;
-    timeval _firstPacketReceivedTime;
-    int _packetsReceivedThisPlayback;
-    // Ping analysis
-    int16_t* _echoSamplesLeft;
-    volatile bool _isSendingEchoPing;
-    volatile bool _pingAnalysisPending;
-    int _pingFramesToRecord;
-    // Flange effect
-    int _samplesLeftForFlange;
-    int _lastYawMeasuredMaximum;
-    float _flangeIntensity;
-    float _flangeRate;
-    float _flangeWeight;
+    int _totalInputAudioSamples;
+    
     float _collisionSoundMagnitude;
     float _collisionSoundFrequency;
     float _collisionSoundNoise;
     float _collisionSoundDuration;
     bool _collisionFlashesScreen;
+    
+    // Drum sound generator
+    float _drumSoundVolume;
+    float _drumSoundFrequency;
+    float _drumSoundDuration;
+    float _drumSoundDecay;
+    int _drumSoundSample;
+    
     int _proceduralEffectSample;
-    float _heartbeatMagnitude;
-
+    int _numFramesDisplayStarve;
     bool _muted;
+    bool _localEcho;
     GLuint _micTextureId;
     GLuint _muteTextureId;
     QRect _iconBounds;
     
     // Audio callback in class context.
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
-
-    // When requested, sends/receives a signal for round trip time determination.
-    // Called from 'performIO'.
-    inline void eventuallySendRecvPing(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
-
-    // Determines round trip time of the audio system. Called from 'eventuallyAnalyzePing'.
-    inline void analyzePing();
+    
+    // Process procedural audio by
+    //  1. Echo to the local procedural output device
+    //  2. Mix with the audio input
+    void processProceduralAudio(int16_t* monoInput, int numSamples);
 
     // Add sounds that we want the user to not hear themselves, by adding on top of mic input signal
-    void addProceduralSounds(int16_t* inputBuffer, int16_t* outputLeft, int16_t* outputRight, int numSamples);
+    void addProceduralSounds(int16_t* monoInput, int numSamples);
+    
+    // Process received audio
+    void processReceivedAudio(const QByteArray& audioByteArray);
 
+    bool switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo);
+    bool switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo);
 
-    // Audio callback called by portaudio. Calls 'performIO'.
-    static int audioCallback(const void *inputBuffer,
-                             void *outputBuffer,
-                             unsigned long framesPerBuffer,
-                             const PaStreamCallbackTimeInfo *timeInfo,
-                             PaStreamCallbackFlags statusFlags,
-                             void *userData);
+    // Callback acceleration dependent calculations
+    static const float CALLBACK_ACCELERATOR_RATIO;
+    int calculateNumberOfInputCallbackBytes(const QAudioFormat& format);
+    int calculateNumberOfFrameSamples(int numBytes);
+    float calculateDeviceToNetworkInputRatio(int numBytes);
 
-    void renderToolIcon(int screenHeight);
 };
 
 

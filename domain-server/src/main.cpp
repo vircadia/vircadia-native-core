@@ -20,13 +20,13 @@
 
 int main(int argc, char* argv[]) {
     
+#ifndef WIN32
     setvbuf(stdout, NULL, _IOLBF, 0);
-    
+#endif
+
     qInstallMessageHandler(Logging::verboseMessageHandler);
-    
-    QCoreApplication application(argc, argv);
     DomainServer domainServer(argc, argv);
     
-    return domainServer.run();
+    return domainServer.exec();
 }
 

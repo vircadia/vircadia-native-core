@@ -2,136 +2,113 @@
 //  AudioInjector.cpp
 //  hifi
 //
-//  Created by Stephen Birarda on 4/23/13.
-//  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
+//  Created by Stephen Birarda on 1/2/2014.
+//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 
-#include <cstring>
-#include <fstream>
-#include <limits>
+#include <QtCore/QDataStream>
 
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <UUID.h>
 
+#include "AbstractAudioInterface.h"
+#include "AudioRingBuffer.h"
+
 #include "AudioInjector.h"
 
-AudioInjector::AudioInjector(int maxNumSamples) :
-    _streamIdentifier(QUuid::createUuid()),
-    _numTotalSamples(maxNumSamples),
-    _position(0.0f, 0.0f, 0.0f),
-    _orientation(),
-    _radius(0.0f),
-    _volume(MAX_INJECTOR_VOLUME),
-    _indexOfNextSlot(0),
-    _isInjectingAudio(false)
+AudioInjector::AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions) :
+    _sound(sound),
+    _options(injectorOptions)
 {
-    _audioSampleArray = new int16_t[maxNumSamples];
-    memset(_audioSampleArray, 0, _numTotalSamples * sizeof(int16_t));
+    
 }
 
-AudioInjector::~AudioInjector() {
-    delete[] _audioSampleArray;
-}
+const uchar MAX_INJECTOR_VOLUME = 0xFF;
 
-void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destinationSocket) {
-    if (_audioSampleArray && _indexOfNextSlot > 0) {
-        _isInjectingAudio = true;
+void AudioInjector::injectAudio() {
+    
+    QByteArray soundByteArray = _sound->getByteArray();
+    
+    // make sure we actually have samples downloaded to inject
+    if (soundByteArray.size()) {
+        // give our sample byte array to the local audio interface, if we have it, so it can be handled locally
+        if (_options.getLoopbackAudioInterface()) {
+            // assume that localAudioInterface could be on a separate thread, use Qt::AutoConnection to handle properly
+            QMetaObject::invokeMethod(_options.getLoopbackAudioInterface(), "handleAudioByteArray",
+                                      Qt::AutoConnection,
+                                      Q_ARG(QByteArray, soundByteArray));
+            
+        }
         
-        timeval startTime;
+        NodeList* nodeList = NodeList::getInstance();
         
-        // calculate the number of bytes required for additional data
-        int leadingBytes = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_INJECT_AUDIO)
-            + NUM_BYTES_RFC4122_UUID
-            + NUM_BYTES_RFC4122_UUID
-            + sizeof(_position)
-            + sizeof(_orientation)
-            + sizeof(_radius)
-            + sizeof(_volume);
+        // setup the packet for injected audio
+        QByteArray injectAudioPacket = byteArrayWithPopulatedHeader(PacketTypeInjectAudio);
+        QDataStream packetStream(&injectAudioPacket, QIODevice::Append);
         
-        unsigned char dataPacket[(BUFFER_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int16_t)) + leadingBytes];
+        packetStream << QUuid::createUuid();
         
-        unsigned char* currentPacketPtr = dataPacket + populateTypeAndVersion(dataPacket, PACKET_TYPE_INJECT_AUDIO);
+        // pack the flag for loopback
+        uchar loopbackFlag = (uchar) (!_options.getLoopbackAudioInterface());
+        packetStream << loopbackFlag;
         
-        // copy the UUID for the owning node
-        QByteArray rfcUUID = NodeList::getInstance()->getOwnerUUID().toRfc4122();
-        memcpy(currentPacketPtr, rfcUUID.constData(), rfcUUID.size());
-        currentPacketPtr += rfcUUID.size();
+        // pack the position for injected audio
+        packetStream.writeRawData(reinterpret_cast<const char*>(&_options.getPosition()), sizeof(_options.getPosition()));
         
-        // copy the stream identifier
-        QByteArray rfcStreamIdentifier = _streamIdentifier.toRfc4122();
-        memcpy(currentPacketPtr, rfcStreamIdentifier.constData(), rfcStreamIdentifier.size());
-        currentPacketPtr += rfcStreamIdentifier.size();
+        // pack our orientation for injected audio
+        packetStream.writeRawData(reinterpret_cast<const char*>(&_options.getOrientation()), sizeof(_options.getOrientation()));
         
-        memcpy(currentPacketPtr, &_position, sizeof(_position));
-        currentPacketPtr += sizeof(_position);
+        // pack zero for radius
+        float radius = 0;
+        packetStream << radius;
         
-        memcpy(currentPacketPtr, &_orientation, sizeof(_orientation));
-        currentPacketPtr += sizeof(_orientation);
+        // pack 255 for attenuation byte
+        quint8 volume = MAX_INJECTOR_VOLUME * _options.getVolume();
+        packetStream << volume;
         
-        memcpy(currentPacketPtr, &_radius, sizeof(_radius));
-        currentPacketPtr += sizeof(_radius);
-        
-        *currentPacketPtr = _volume;
-        currentPacketPtr++;        
-        
+        timeval startTime = {};
         gettimeofday(&startTime, NULL);
         int nextFrame = 0;
         
-        for (int i = 0; i < _numTotalSamples; i += BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-            int usecToSleep = usecTimestamp(&startTime) + (nextFrame++ * INJECT_INTERVAL_USECS) - usecTimestampNow();
-            if (usecToSleep > 0) {
-                usleep(usecToSleep);
-            }
-            
-            int numSamplesToCopy = BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
-            
-            if (_numTotalSamples - i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-                numSamplesToCopy = _numTotalSamples - i;
-                memset(currentPacketPtr + numSamplesToCopy,
-                       0,
-                       BUFFER_LENGTH_BYTES_PER_CHANNEL - (numSamplesToCopy * sizeof(int16_t)));
-            }
-            
-            memcpy(currentPacketPtr, _audioSampleArray + i, numSamplesToCopy * sizeof(int16_t));
-            
-            injectorSocket->send(destinationSocket, dataPacket, sizeof(dataPacket));
-        }
+        int currentSendPosition = 0;
         
-        _isInjectingAudio = false;
+        int numPreAudioDataBytes = injectAudioPacket.size();
+        
+        // loop to send off our audio in NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL byte chunks
+        while (currentSendPosition < soundByteArray.size()) {
+            
+            int bytesToCopy = std::min(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL,
+                                       soundByteArray.size() - currentSendPosition);
+            
+            // resize the QByteArray to the right size
+            injectAudioPacket.resize(numPreAudioDataBytes + bytesToCopy);
+            
+            // copy the next NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL bytes to the packet
+            memcpy(injectAudioPacket.data() + numPreAudioDataBytes, soundByteArray.data() + currentSendPosition, bytesToCopy);
+            
+            // grab our audio mixer from the NodeList, if it exists
+            SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
+            
+            // send off this audio packet
+            nodeList->writeDatagram(injectAudioPacket, audioMixer);
+            
+            currentSendPosition += bytesToCopy;
+            
+            // send two packets before the first sleep so the mixer can start playback right away
+            
+            if (currentSendPosition != bytesToCopy && currentSendPosition < soundByteArray.size()) {
+                // not the first packet and not done
+                // sleep for the appropriate time
+                int usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
+                
+                if (usecToSleep > 0) {
+                    usleep(usecToSleep);
+                }
+            }
+        }
     }
-}
-
-void AudioInjector::addSample(const int16_t sample) {
-    if (_indexOfNextSlot != _numTotalSamples) {
-        // only add this sample if we actually have space for it
-        _audioSampleArray[_indexOfNextSlot++] = sample;
-    }
-}
-
-void AudioInjector::addSamples(int16_t* sampleBuffer, int numSamples) {    
-    if (_audioSampleArray + _indexOfNextSlot + numSamples <= _audioSampleArray + _numTotalSamples) {
-        // only copy the audio from the sample buffer if there's space
-        memcpy(_audioSampleArray + _indexOfNextSlot, sampleBuffer, numSamples * sizeof(int16_t));
-        _indexOfNextSlot += numSamples;
-    }
-}
-
-void AudioInjector::clear() {
-    _indexOfNextSlot = 0;
-    memset(_audioSampleArray, 0, _numTotalSamples * sizeof(int16_t));
-}
-
-int16_t& AudioInjector::sampleAt(const int index) {
-    assert(index >= 0 && index < _numTotalSamples);
     
-    return _audioSampleArray[index];
-}
-
-void AudioInjector::insertSample(const int index, int sample) {
-    assert (index >= 0 && index < _numTotalSamples);
-    
-    _audioSampleArray[index] = (int16_t) sample;
-    _indexOfNextSlot = index + 1;
+    emit finished();
 }

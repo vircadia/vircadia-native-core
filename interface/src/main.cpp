@@ -19,20 +19,36 @@
 
 #include <QDebug>
 #include <QDir>
+#include <QTranslator>
+#include <SharedUtil.h>
 
 int main(int argc, const char * argv[]) {
     timeval startup_time;
     gettimeofday(&startup_time, NULL);
     
-    #if defined(Q_OS_MAC)
-    const QString QT_RELEASE_PLUGIN_PATH = "/usr/local/lib/qt5/plugins"; 
-    QCoreApplication::addLibraryPath(QT_RELEASE_PLUGIN_PATH);
-    #endif
-
-    Application app(argc, const_cast<char**>(argv), startup_time);
+    // Debug option to demonstrate that the client's local time does not 
+    // need to be in sync with any other network node. This forces clock 
+    // skew for the individual client
+    const char* CLOCK_SKEW = "--clockSkew";
+    const char* clockSkewOption = getCmdOption(argc, argv, CLOCK_SKEW);
+    if (clockSkewOption) {
+        int clockSkew = atoi(clockSkewOption);
+        usecTimestampNowForceClockSkew(clockSkew);
+        qDebug("clockSkewOption=%s clockSkew=%d", clockSkewOption, clockSkew);
+    }
     
-    qDebug( "Created QT Application.\n" );
-    int exitCode = app.exec();
-    qDebug("Normal exit.\n");
+    int exitCode;
+    {
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        Application app(argc, const_cast<char**>(argv), startup_time);
+
+        QTranslator translator;
+        translator.load("interface_en");
+        app.installTranslator(&translator);
+    
+        qDebug( "Created QT Application.");
+        exitCode = app.exec();
+    }
+    qDebug("Normal exit.");
     return exitCode;
 }   

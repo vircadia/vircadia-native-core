@@ -8,6 +8,7 @@
 
 #include <cstring>
 
+#include <QtCore/QDataStream>
 #include <QtCore/qdebug.h>
 
 #include <PacketHeaders.h>
@@ -24,23 +25,33 @@ InjectedAudioRingBuffer::InjectedAudioRingBuffer(const QUuid& streamIdentifier) 
     
 }
 
-int InjectedAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
-    unsigned char* currentBuffer =  sourceBuffer + numBytesForPacketHeader(sourceBuffer);
+const uchar MAX_INJECTOR_VOLUME = 255;
+
+int InjectedAudioRingBuffer::parseData(const QByteArray& packet) {
+    // setup a data stream to read from this packet
+    QDataStream packetStream(packet);
+    packetStream.skipRawData(numBytesForPacketHeader(packet));
     
-    // push past the UUID for this node and the stream identifier
-    currentBuffer += (NUM_BYTES_RFC4122_UUID * 2);
+    // push past the stream identifier
+    packetStream.skipRawData(NUM_BYTES_RFC4122_UUID);
+    
+    // pull the loopback flag and set our boolean
+    uchar shouldLoopback;
+    packetStream >> shouldLoopback;
+    _shouldLoopbackForNode = (shouldLoopback == 1);
     
     // use parsePositionalData in parent PostionalAudioRingBuffer class to pull common positional data
-    currentBuffer += parsePositionalData(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
+    packetStream.skipRawData(parsePositionalData(packet.mid(packetStream.device()->pos())));
     
     // pull out the radius for this injected source - if it's zero this is a point source
-    memcpy(&_radius, currentBuffer, sizeof(_radius));
-    currentBuffer += sizeof(_radius);
+    packetStream >> _radius;
     
-    unsigned int attenuationByte = *(currentBuffer++);
+    quint8 attenuationByte = 0;
+    packetStream >> attenuationByte;
     _attenuationRatio = attenuationByte / (float) MAX_INJECTOR_VOLUME;
     
-    currentBuffer += parseAudioSamples(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
+    packetStream.skipRawData(writeData(packet.data() + packetStream.device()->pos(),
+                                       packet.size() - packetStream.device()->pos()));
     
-    return currentBuffer - sourceBuffer;
+    return packetStream.device()->pos();
 }

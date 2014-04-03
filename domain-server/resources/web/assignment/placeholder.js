@@ -8,10 +8,8 @@ var NUMBER_OF_CELLS = NUMBER_OF_CELLS_EACH_DIMENSION * NUMBER_OF_CELLS_EACH_DIME
 var currentCells = [];
 var nextCells = [];
 
-var METER_LENGTH = 1 / TREE_SCALE;
+var METER_LENGTH = 1;
 var cellScale = (NUMBER_OF_CELLS_EACH_DIMENSION * METER_LENGTH) / NUMBER_OF_CELLS_EACH_DIMENSION; 
-
-print("TREE_SCALE = " + TREE_SCALE + "\n");
 
 // randomly populate the cell start values
 for (var i = 0; i < NUMBER_OF_CELLS_EACH_DIMENSION; i++) {
@@ -108,7 +106,7 @@ function sendNextCells() {
 
         // queue a packet to add a voxel for the new cell
         var color = (nextCells[i][j] == 1) ? 255 : 1;
-        Voxels.queueDestructiveVoxelAdd(x, y, 0, cellScale, color, color, color);
+        Voxels.setVoxel(x, y, 0, cellScale, color, color, color);
       }
     }
   } 
@@ -116,7 +114,7 @@ function sendNextCells() {
 
 var sentFirstBoard = false;
 
-function step() {
+function step(deltaTime) {
   if (sentFirstBoard) {
     // we've already sent the first full board, perform a step in time
     updateCells();
@@ -128,4 +126,6 @@ function step() {
   sendNextCells();  
 }
 
-Agent.willSendVisualDataCallback.connect(step);
+
+Script.update.connect(step);
+Voxels.setPacketsPerSecond(200);

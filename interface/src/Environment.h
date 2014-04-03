@@ -12,10 +12,9 @@
 #include <QHash>
 #include <QMutex>
 
-#include <UDPSocket.h>
+#include <HifiSockAddr.h>
 
 #include "EnvironmentData.h"
-#include "InterfaceConfig.h"
 
 class Camera;
 class ProgramObject;
@@ -34,7 +33,7 @@ public:
     
     bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration);
     
-    int parseData(sockaddr *senderAddress, unsigned char* sourceBuffer, int numBytes);
+    int parseData(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
     
 private:
 
@@ -71,7 +70,7 @@ private:
     
     typedef QHash<int, EnvironmentData> ServerData;
     
-    QHash<sockaddr, ServerData> _data;
+    QHash<HifiSockAddr, ServerData> _data;
     
     QMutex _mutex;
 };

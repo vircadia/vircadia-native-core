@@ -12,17 +12,18 @@
 #define __shared_NetworkPacket__
 
 #include <stdlib.h>
-#include <arpa/inet.h>
-#include <ifaddrs.h>
 
-#include "NodeList.h" // for MAX_PACKET_SIZE
+#ifndef _WIN32
+#include <arpa/inet.h> // not available on windows
+#include <ifaddrs.h>
+#endif
+
+#include "NodeList.h"
 
 /// Storage of not-yet processed inbound, or not yet sent outbound generic UDP network packet
 class NetworkPacket {
 public:
-    NetworkPacket();
     NetworkPacket(const NetworkPacket& packet); // copy constructor
-    ~NetworkPacket(); // destructor
     NetworkPacket& operator= (const NetworkPacket& other);    // copy assignment
 
 #ifdef HAS_MOVE_SEMANTICS
@@ -30,21 +31,16 @@ public:
     NetworkPacket& operator= (NetworkPacket&& other);         // move assignment
 #endif
 
-    NetworkPacket(sockaddr& address, unsigned char*  packetData, ssize_t packetLength);
+    NetworkPacket(const SharedNodePointer& destinationNode, const QByteArray& byteArray);
 
-    sockaddr& getAddress() { return _address; }
-    ssize_t getLength() const { return _packetLength; }
-    unsigned char* getData() { return &_packetData[0]; }
-
-    const sockaddr& getAddress() const { return _address; }
-    const unsigned char* getData() const { return &_packetData[0]; }
+    const SharedNodePointer& getDestinationNode() const { return _destinationNode; }
+    const QByteArray& getByteArray() const { return _byteArray; }
 
 private:
-    void copyContents(const sockaddr& address, const unsigned char*  packetData, ssize_t packetLength);
-    
-    sockaddr _address;
-    ssize_t _packetLength;
-    unsigned char _packetData[MAX_PACKET_SIZE];
+    void copyContents(const SharedNodePointer& destinationNode, const QByteArray& byteArray);
+
+    SharedNodePointer _destinationNode;
+    QByteArray _byteArray;
 };
 
 #endif /* defined(__shared_NetworkPacket__) */

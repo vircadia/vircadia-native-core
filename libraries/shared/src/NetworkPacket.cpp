@@ -8,55 +8,46 @@
 //  A really simple class that stores a network packet between being received and being processed
 //
 
+#include <cassert>
 #include <cstring>
 #include <QtDebug>
-#include <cassert>
+
+#include "SharedUtil.h"
 
 #include "NetworkPacket.h"
 
-NetworkPacket::NetworkPacket() {
-    _packetLength = 0;
-}
-
-NetworkPacket::~NetworkPacket() {
-    // nothing to do
-}
-
-void NetworkPacket::copyContents(const sockaddr& address, const unsigned char*  packetData, ssize_t packetLength) {
-    _packetLength = 0;
-    if (packetLength >=0 && packetLength <= MAX_PACKET_SIZE) {
-        memcpy(&_address, &address, sizeof(_address));
-        _packetLength = packetLength;
-        memcpy(&_packetData[0], packetData, packetLength);
+void NetworkPacket::copyContents(const SharedNodePointer& destinationNode, const QByteArray& packet) {
+    if (packet.size() && packet.size() <= MAX_PACKET_SIZE) {
+        _destinationNode = destinationNode;
+        _byteArray = packet;
     } else {
-        qDebug(">>> NetworkPacket::copyContents() unexpected length=%lu\n",packetLength);
+        qDebug(">>> NetworkPacket::copyContents() unexpected length = %d", packet.size());
     }
 }
 
 NetworkPacket::NetworkPacket(const NetworkPacket& packet) {
-    copyContents(packet.getAddress(), packet.getData(), packet.getLength());
+    copyContents(packet.getDestinationNode(), packet.getByteArray());
 }
 
-NetworkPacket::NetworkPacket(sockaddr& address, unsigned char*  packetData, ssize_t packetLength) {
-    copyContents(address, packetData, packetLength);
+NetworkPacket::NetworkPacket(const SharedNodePointer& destinationNode, const QByteArray& packet) {
+    copyContents(destinationNode, packet);
 };
 
 // copy assignment 
 NetworkPacket& NetworkPacket::operator=(NetworkPacket const& other) {
-    copyContents(other.getAddress(), other.getData(), other.getLength());
+    copyContents(other.getDestinationNode(), other.getByteArray());
     return *this;
 }
 
 #ifdef HAS_MOVE_SEMANTICS
 // move, same as copy, but other packet won't be used further
 NetworkPacket::NetworkPacket(NetworkPacket && packet) {
-    copyContents(packet.getAddress(), packet.getData(), packet.getLength());
+    copyContents(packet.getDestinationNode(), packet.getByteArray());
 }
 
 // move assignment
 NetworkPacket& NetworkPacket::operator=(NetworkPacket&& other) {
-    _packetLength = 0;
-    copyContents(other.getAddress(), other.getData(), other.getLength());
+    copyContents(other.getDestinationNode(), other.getByteArray());
     return *this;
 }
 #endif

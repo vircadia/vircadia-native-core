@@ -9,28 +9,25 @@
 #ifndef __interface__TextureCache__
 #define __interface__TextureCache__
 
-#include <QHash>
 #include <QImage>
 #include <QMap>
-#include <QObject>
-#include <QSharedPointer>
-#include <QWeakPointer>
+
+#include <ResourceCache.h>
 
 #include "InterfaceConfig.h"
 
-class QNetworkReply;
 class QOpenGLFramebufferObject;
 
 class NetworkTexture;
 
 /// Stores cached textures, including render-to-texture targets.
-class TextureCache : public QObject {
+class TextureCache : public ResourceCache {
     Q_OBJECT
     
 public:
     
     TextureCache();
-    ~TextureCache();
+    virtual ~TextureCache();
     
     /// Returns the ID of the permutation/normal texture used for Perlin noise shader programs.  This texture
     /// has two lines: the first, a set of random numbers in [0, 255] to be used as permutation offsets, and
@@ -42,9 +39,6 @@ public:
 
     /// Returns the ID of a pale blue texture (useful for a normal map).
     GLuint getBlueTextureID();
-    
-    /// Returns the ID of a texture containing the contents of the specified file, loading it if necessary. 
-    GLuint getFileTextureID(const QString& filename);
 
     /// Loads a texture from the specified URL.
     QSharedPointer<NetworkTexture> getTexture(const QUrl& url, bool normalMap = false, bool dilatable = false);
@@ -64,9 +58,22 @@ public:
     /// screen effects.
     QOpenGLFramebufferObject* getTertiaryFramebufferObject();
     
+    /// Returns a pointer to the framebuffer object used to render shadow maps.
+    QOpenGLFramebufferObject* getShadowFramebufferObject();
+    
+    /// Returns the ID of the shadow framebuffer object's depth texture.
+    GLuint getShadowDepthTextureID();
+    
     virtual bool eventFilter(QObject* watched, QEvent* event);
 
+protected:
+
+    virtual QSharedPointer<Resource> createResource(const QUrl& url,
+        const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra);
+        
 private:
+    
+    friend class DilatableNetworkTexture;
     
     QOpenGLFramebufferObject* createFramebufferObject();
     
@@ -74,15 +81,15 @@ private:
     GLuint _whiteTextureID;
     GLuint _blueTextureID;
     
-    QHash<QString, GLuint> _fileTextureIDs;
-
-    QHash<QUrl, QWeakPointer<NetworkTexture> > _networkTextures;
     QHash<QUrl, QWeakPointer<NetworkTexture> > _dilatableNetworkTextures;
     
     GLuint _primaryDepthTextureID;
     QOpenGLFramebufferObject* _primaryFramebufferObject;
     QOpenGLFramebufferObject* _secondaryFramebufferObject;
     QOpenGLFramebufferObject* _tertiaryFramebufferObject;
+    
+    QOpenGLFramebufferObject* _shadowFramebufferObject;
+    GLuint _shadowDepthTextureID;
 };
 
 /// A simple object wrapper for an OpenGL texture.
@@ -100,30 +107,27 @@ private:
 };
 
 /// A texture loaded from the network.
-class NetworkTexture : public QObject, public Texture {
+class NetworkTexture : public Resource, public Texture {
     Q_OBJECT
 
 public:
     
     NetworkTexture(const QUrl& url, bool normalMap);
-    ~NetworkTexture();
 
-    /// Returns the average color over the entire texture.
-    const glm::vec4& getAverageColor() const { return _averageColor; }
+    /// Checks whether it "looks like" this texture is translucent
+    /// (majority of pixels neither fully opaque or fully transparent).
+    bool isTranslucent() const { return _translucent; }
 
 protected:
 
-    virtual void imageLoaded(const QImage& image);    
-    
-private slots:
-    
-    void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
-    void handleReplyError();    
-    
+    virtual void downloadFinished(QNetworkReply* reply);
+    virtual void imageLoaded(const QImage& image);      
+
+    Q_INVOKABLE void setImage(const QImage& image, bool translucent);
+
 private:
-    
-    QNetworkReply* _reply;
-    glm::vec4 _averageColor;
+
+    bool _translucent;
 };
 
 /// Caches derived, dilated textures.
@@ -132,7 +136,7 @@ class DilatableNetworkTexture : public NetworkTexture {
     
 public:
     
-    DilatableNetworkTexture(const QUrl& url, bool normalMap);
+    DilatableNetworkTexture(const QUrl& url);
     
     /// Returns a pointer to a texture with the requested amount of dilation.
     QSharedPointer<Texture> getDilatedTexture(float dilation);
@@ -140,6 +144,7 @@ public:
 protected:
 
     virtual void imageLoaded(const QImage& image);
+    virtual void reinsert();
     
 private:
     

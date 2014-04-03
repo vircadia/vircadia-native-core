@@ -5,6 +5,8 @@
 //  Created by Andrzej Kapolka on 5/6/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
+#include "InterfaceConfig.h"
+
 #include <QByteArray>
 #include <QMutexLocker>
 #include <QtDebug>
@@ -13,29 +15,20 @@
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
+#include "Application.h"
 #include "Camera.h"
-#include "Environment.h"
 #include "renderer/ProgramObject.h"
 #include "world.h"
 
-uint qHash(const sockaddr& address) {
-    const sockaddr_in* inetAddress = reinterpret_cast<const sockaddr_in*>(&address);
-    if (inetAddress->sin_family != AF_INET) {
+#include "Environment.h"
+
+uint qHash(const HifiSockAddr& sockAddr) {
+    if (sockAddr.getAddress().isNull()) {
         return 0; // shouldn't happen, but if it does, zero is a perfectly valid hash
     }
-    return inetAddress->sin_port + qHash(QByteArray::fromRawData(
-        reinterpret_cast<const char*>(&inetAddress->sin_addr), sizeof(in_addr)));
-}
-
-bool operator== (const sockaddr& addr1, const sockaddr& addr2) {
-    return socketMatch(&addr1, &addr2);
-}
-
-static sockaddr getZeroAddress() {
-    sockaddr addr;
-    memset(&addr, 0, sizeof(sockaddr));
-    addr.sa_family = AF_INET;
-    return addr;
+    quint32 address = sockAddr.getAddress().toIPv4Address();
+    return sockAddr.getPort() + qHash(QByteArray::fromRawData((char*) &address,
+                                                              sizeof(address)));
 }
 
 Environment::Environment()
@@ -51,23 +44,22 @@ Environment::~Environment() {
 
 void Environment::init() {
     if (_initialized) {
-        qDebug("[ERROR] Environment is already initialized.\n");
+        qDebug("[ERROR] Environment is already initialized.");
         return;
     }
 
-    switchToResourcesParentIfRequired();
     _skyFromAtmosphereProgram = createSkyProgram("Atmosphere", _skyFromAtmosphereUniformLocations);
     _skyFromSpaceProgram = createSkyProgram("Space", _skyFromSpaceUniformLocations);
     
     // start off with a default-constructed environment data
-    _data[getZeroAddress()][0];
+    _data[HifiSockAddr()][0];
 
     _initialized = true;
 }
 
 void Environment::resetToDefault() {
     _data.clear();
-    _data[getZeroAddress()][0];
+    _data[HifiSockAddr()][0];
 }
 
 void Environment::renderAtmospheres(Camera& camera) {    
@@ -100,7 +92,7 @@ glm::vec3 Environment::getGravity (const glm::vec3& position) {
     
     foreach (const ServerData& serverData, _data) {
         foreach (const EnvironmentData& environmentData, serverData) {
-            glm::vec3 vector = environmentData.getAtmosphereCenter() - position;
+            glm::vec3 vector = environmentData.getAtmosphereCenter(position) - position;
             float surfaceRadius = environmentData.getAtmosphereInnerRadius();
             if (glm::length(vector) <= surfaceRadius) {
                 //  At or inside a planet, gravity is as set for the planet
@@ -124,7 +116,7 @@ const EnvironmentData Environment::getClosestData(const glm::vec3& position) {
     float closestDistance = FLT_MAX;
     foreach (const ServerData& serverData, _data) {
         foreach (const EnvironmentData& environmentData, serverData) {
-            float distance = glm::distance(position, environmentData.getAtmosphereCenter()) -
+            float distance = glm::distance(position, environmentData.getAtmosphereCenter(position)) -
                 environmentData.getAtmosphereOuterRadius();
             if (distance < closestDistance) {
                 closest = environmentData;
@@ -140,6 +132,8 @@ bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3
     // collide with the "floor"
     bool found = findCapsulePlanePenetration(start, end, radius, glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), penetration);
     
+    glm::vec3 middle = (start + end) * 0.5f;
+    
     // get the lock for the duration of the call
     QMutexLocker locker(&_mutex);
     
@@ -149,7 +143,7 @@ bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3
                 continue; // don't bother colliding with gravity-less environments
             }
             glm::vec3 environmentPenetration;
-            if (findCapsuleSpherePenetration(start, end, radius, environmentData.getAtmosphereCenter(),
+            if (findCapsuleSpherePenetration(start, end, radius, environmentData.getAtmosphereCenter(middle),
                     environmentData.getAtmosphereInnerRadius(), environmentPenetration)) {
                 penetration = addPenetrations(penetration, environmentPenetration);
                 found = true;
@@ -159,37 +153,33 @@ bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3
     return found;
 }
 
-int Environment::parseData(sockaddr *senderAddress, unsigned char* sourceBuffer, int numBytes) {
+int Environment::parseData(const HifiSockAddr& senderAddress, const QByteArray& packet) {
     // push past the packet header
-    unsigned char* start = sourceBuffer;
-    
-    int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
-    sourceBuffer += numBytesPacketHeader;
-    numBytes -= numBytesPacketHeader;
+    int bytesRead = numBytesForPacketHeader(packet);
     
     // get the lock for the duration of the call
     QMutexLocker locker(&_mutex);
     
     EnvironmentData newData;
-    while (numBytes > 0) {
-        int dataLength = newData.parseData(sourceBuffer, numBytes);
+    while (bytesRead < packet.size()) {
+        int dataLength = newData.parseData(reinterpret_cast<const unsigned char*>(packet.data()) + bytesRead,
+                                           packet.size() - bytesRead);
         
         // update the mapping by address/ID
-        _data[*senderAddress][newData.getID()] = newData;    
+        _data[senderAddress][newData.getID()] = newData;
         
-        sourceBuffer += dataLength;
-        numBytes -= dataLength;    
+        bytesRead += dataLength;
     }
     
     // remove the default mapping, if any
-    _data.remove(getZeroAddress());
+    _data.remove(HifiSockAddr());
     
-    return sourceBuffer - start;
+    return bytesRead;
 }
 
 ProgramObject* Environment::createSkyProgram(const char* from, int* locations) {
     ProgramObject* program = new ProgramObject();
-    QByteArray prefix = QByteArray("resources/shaders/SkyFrom") + from;
+    QByteArray prefix = QString(Application::resourcesPath() + "/shaders/SkyFrom" + from).toUtf8();
     program->addShaderFromSourceFile(QGLShader::Vertex, prefix + ".vert");
     program->addShaderFromSourceFile(QGLShader::Fragment, prefix + ".frag");
     program->link();
@@ -215,10 +205,12 @@ ProgramObject* Environment::createSkyProgram(const char* from, int* locations) {
 }
 
 void Environment::renderAtmosphere(Camera& camera, const EnvironmentData& data) {
+    glm::vec3 center = data.getAtmosphereCenter(camera.getPosition());
+    
     glPushMatrix();
-    glTranslatef(data.getAtmosphereCenter().x, data.getAtmosphereCenter().y, data.getAtmosphereCenter().z);
-
-    glm::vec3 relativeCameraPos = camera.getPosition() - data.getAtmosphereCenter();
+    glTranslatef(center.x, center.y, center.z);
+    
+    glm::vec3 relativeCameraPos = camera.getPosition() - center;
     float height = glm::length(relativeCameraPos);
     
     // use the appropriate shader depending on whether we're inside or outside
@@ -249,8 +241,8 @@ void Environment::renderAtmosphere(Camera& camera, const EnvironmentData& data) 
     program->setUniformValue(locations[INNER_RADIUS_LOCATION], data.getAtmosphereInnerRadius());
     program->setUniformValue(locations[KR_ESUN_LOCATION], data.getRayleighScattering() * data.getSunBrightness());
     program->setUniformValue(locations[KM_ESUN_LOCATION], data.getMieScattering() * data.getSunBrightness());
-    program->setUniformValue(locations[KR_4PI_LOCATION], data.getRayleighScattering() * 4.0f * PIf);
-    program->setUniformValue(locations[KM_4PI_LOCATION], data.getMieScattering() * 4.0f * PIf);
+    program->setUniformValue(locations[KR_4PI_LOCATION], data.getRayleighScattering() * 4.0f * PI);
+    program->setUniformValue(locations[KM_4PI_LOCATION], data.getMieScattering() * 4.0f * PI);
     program->setUniformValue(locations[SCALE_LOCATION], 1.0f / (data.getAtmosphereOuterRadius() - data.getAtmosphereInnerRadius()));
     program->setUniformValue(locations[SCALE_DEPTH_LOCATION], 0.25f);
     program->setUniformValue(locations[SCALE_OVER_SCALE_DEPTH_LOCATION],

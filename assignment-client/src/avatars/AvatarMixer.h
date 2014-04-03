@@ -9,15 +9,38 @@
 #ifndef __hifi__AvatarMixer__
 #define __hifi__AvatarMixer__
 
-#include <Assignment.h>
+#include <ThreadedAssignment.h>
 
 /// Handles assignments of type AvatarMixer - distribution of avatar data to various clients
-class AvatarMixer : public Assignment {
+class AvatarMixer : public ThreadedAssignment {
 public:
-    AvatarMixer(const unsigned char* dataBuffer, int numBytes);
-    
+    AvatarMixer(const QByteArray& packet);
+    ~AvatarMixer();
+public slots:
     /// runs the avatar mixer
     void run();
+
+    void nodeAdded(SharedNodePointer nodeAdded);
+    void nodeKilled(SharedNodePointer killedNode);
+    
+    void readPendingDatagrams();
+    
+    void sendStatsPacket();
+    
+private:
+    void broadcastAvatarData();
+    
+    QThread _broadcastThread;
+    
+    quint64 _lastFrameTimestamp;
+    
+    float _trailingSleepRatio;
+    float _performanceThrottlingRatio;
+    
+    int _sumListeners;
+    int _numStatFrames;
+    int _sumBillboardPackets;
+    int _sumIdentityPackets;
 };
 
 #endif /* defined(__hifi__AvatarMixer__) */

@@ -9,202 +9,175 @@
 #ifndef __hifi__NodeList__
 #define __hifi__NodeList__
 
+#ifdef _WIN32
+#include "Syssocket.h"
+#else
 #include <netinet/in.h>
+#endif
 #include <stdint.h>
 #include <iterator>
-#include <unistd.h>
 
-#include <QtNetwork/QHostAddress>
-#include <QtCore/QSettings>
-
-#include "Node.h"
-#include "NodeTypes.h"
-#include "UDPSocket.h"
-
-#ifdef _WIN32
-#include "pthread.h"
+#ifndef _WIN32
+#include <unistd.h> // not on windows, not needed for mac or windows
 #endif
 
-const int MAX_NUM_NODES = 10000;
-const int NODES_PER_BUCKET = 100;
+#include <QtCore/QElapsedTimer>
+#include <QtCore/QMutex>
+#include <QtCore/QSet>
+#include <QtCore/QSettings>
+#include <QtCore/QSharedPointer>
+#include <QtNetwork/QHostAddress>
+#include <QtNetwork/QUdpSocket>
 
-const int MAX_PACKET_SIZE = 1500;
+#include "DomainInfo.h"
+#include "Node.h"
 
-const uint64_t NODE_SILENCE_THRESHOLD_USECS = 2 * 1000 * 1000;
-const int DOMAIN_SERVER_CHECK_IN_USECS = 1 * 1000000;
+const quint64 NODE_SILENCE_THRESHOLD_USECS = 2 * 1000 * 1000;
+const quint64 DOMAIN_SERVER_CHECK_IN_USECS = 1 * 1000000;
+const quint64 PING_INACTIVE_NODE_INTERVAL_USECS = 1 * 1000 * 1000;
 
 extern const char SOLO_NODE_TYPES[2];
 
-const int MAX_HOSTNAME_BYTES = 256;
+extern const QUrl DEFAULT_NODE_AUTH_URL;
 
-extern const QString DEFAULT_DOMAIN_HOSTNAME;
-extern const unsigned short DEFAULT_DOMAIN_SERVER_PORT;
-
-const char LOCAL_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
+const char DEFAULT_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
 
 const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 5;
 
 class Assignment;
-class NodeListIterator;
+class HifiSockAddr;
 
-// Callers who want to hook add/kill callbacks should implement this class
-class NodeListHook {
-public:
-    virtual void nodeAdded(Node* node) = 0;
-    virtual void nodeKilled(Node* node) = 0;
-};
+typedef QSet<NodeType_t> NodeSet;
 
-class DomainChangeListener {
-public:
-    virtual void domainChanged(QString domain) = 0;
-};
+typedef QSharedPointer<Node> SharedNodePointer;
+typedef QHash<QUuid, SharedNodePointer> NodeHash;
+Q_DECLARE_METATYPE(SharedNodePointer)
 
-class NodeList {
+typedef quint8 PingType_t;
+namespace PingType {
+    const PingType_t Agnostic = 0;
+    const PingType_t Local = 1;
+    const PingType_t Public = 2;
+    const PingType_t Symmetric = 3;
+}
+
+class NodeList : public QObject {
+    Q_OBJECT
 public:
     static NodeList* createInstance(char ownerType, unsigned short int socketListenPort = 0);
     static NodeList* getInstance();
-    
-    typedef NodeListIterator iterator;
-  
-    NodeListIterator begin() const;
-    NodeListIterator end() const;
-    
-    NODE_TYPE getOwnerType() const { return _ownerType; }
-    void setOwnerType(NODE_TYPE ownerType) { _ownerType = ownerType; }
+    NodeType_t getOwnerType() const { return _ownerType; }
+    void setOwnerType(NodeType_t ownerType) { _ownerType = ownerType; }
 
-    const QString& getDomainHostname() const { return _domainHostname; }
-    void setDomainHostname(const QString& domainHostname);
+    const QUuid& getSessionUUID() const { return _sessionUUID; }
+    void setSessionUUID(const QUuid& sessionUUID);
+
+    QUdpSocket& getNodeSocket() { return _nodeSocket; }
     
-    const QHostAddress& getDomainIP() const { return _domainIP; }
-    void setDomainIP(const QHostAddress& domainIP) { _domainIP = domainIP; }
-    void setDomainIPToLocalhost() { _domainIP = QHostAddress(INADDR_LOOPBACK); }
+    bool packetVersionAndHashMatch(const QByteArray& packet);
     
-    unsigned short getDomainPort() const { return _domainPort; }
-    void setDomainPort(unsigned short domainPort) { _domainPort = domainPort; }
-    
-    const QUuid& getOwnerUUID() const { return _ownerUUID; }
-    void setOwnerUUID(const QUuid& ownerUUID) { _ownerUUID = ownerUUID; }
-    
-    UDPSocket* getNodeSocket() { return &_nodeSocket; }
-    
-    unsigned short int getSocketListenPort() const { return _nodeSocket.getListeningPort(); }
-    
+    qint64 writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
+                         const HifiSockAddr& overridenSockAddr = HifiSockAddr());
+    qint64 writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
+                         const HifiSockAddr& overridenSockAddr = HifiSockAddr());
+    qint64 sendStatsToDomainServer(const QJsonObject& statsObject);
+
     void(*linkedDataCreateCallback)(Node *);
-    
-    int size() { return _numNodes; }
-    int getNumAliveNodes() const;
-    
+
+    NodeHash getNodeHash();
+    int size() const { return _nodeHash.size(); }
+
     int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
+    DomainInfo& getDomainInfo() { return _domainInfo; }
     
-    void clear();
-    void reset();
-    
-    void setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest);
-    
-    void sendDomainServerCheckIn();
-    int processDomainServerList(unsigned char *packetData, size_t dataBytes);
-    
-    void setAssignmentServerSocket(sockaddr* serverSocket) { _assignmentServerSocket = serverSocket; }
+    const NodeSet& getNodeInterestSet() const { return _nodeTypesOfInterest; }
+    void addNodeTypeToInterestSet(NodeType_t nodeTypeToAdd);
+    void addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes);
+    void resetNodeInterestSet() { _nodeTypesOfInterest.clear(); }
+
+    int processDomainServerList(const QByteArray& packet);
+
+    void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
+
+    QByteArray constructPingPacket(PingType_t pingType = PingType::Agnostic);
+    QByteArray constructPingReplyPacket(const QByteArray& pingPacket);
+    void pingPunchForInactiveNode(const SharedNodePointer& node);
+
+    SharedNodePointer nodeWithUUID(const QUuid& nodeUUID, bool blockingLock = true);
+    SharedNodePointer sendingNodeForPacket(const QByteArray& packet);
     
-    void pingPublicAndLocalSocketsForInactiveNode(Node* node) const;
-    
-    Node* nodeWithAddress(sockaddr *senderAddress);
-    Node* nodeWithUUID(const QUuid& nodeUUID);
-    
-    Node* addOrUpdateNode(const QUuid& uuid, char nodeType, sockaddr* publicSocket, sockaddr* localSocket);
-    void killNode(Node* node, bool mustLockNode = true);
-    
-    void processNodeData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes);
-    void processBulkNodeData(sockaddr *senderAddress, unsigned char *packetData, int numTotalBytes);
-   
-    int updateNodeWithData(Node *node, sockaddr* senderAddress, unsigned char *packetData, int dataBytes);
-    
-    unsigned broadcastToNodes(unsigned char *broadcastData, size_t dataBytes, const char* nodeTypes, int numNodeTypes);
-    
-    Node* soloNodeOfType(char nodeType);
-    
-    void startSilentNodeRemovalThread();
-    void stopSilentNodeRemovalThread();
+    SharedNodePointer addOrUpdateNode(const QUuid& uuid, char nodeType,
+                                      const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
+    SharedNodePointer updateSocketsForNode(const QUuid& uuid,
+                                           const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
+
+    void processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
+    void processKillNode(const QByteArray& datagram);
+
+    int updateNodeWithDataFromPacket(const SharedNodePointer& matchingNode, const QByteArray& packet);
+    int findNodeAndUpdateWithDataFromPacket(const QByteArray& packet);
+
+    unsigned broadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
+    SharedNodePointer soloNodeOfType(char nodeType);
+
+    void getPacketStats(float &packetsPerSecond, float &bytesPerSecond);
+    void resetPacketStats();
     
     void loadData(QSettings* settings);
     void saveData(QSettings* settings);
+public slots:
+    void reset();
+    void eraseAllNodes();
     
-    friend class NodeListIterator;
+    void sendDomainServerCheckIn();
+    void pingInactiveNodes();
+    void removeSilentNodes();
     
-    void addHook(NodeListHook* hook);
-    void removeHook(NodeListHook* hook);
-    void notifyHooksOfAddedNode(Node* node);
-    void notifyHooksOfKilledNode(Node* node);
-    
-    void addDomainListener(DomainChangeListener* listener);
-    void removeDomainListener(DomainChangeListener* listener);
-    
-    void possiblyPingInactiveNodes();
-    sockaddr* getNodeActiveSocketOrPing(Node* node);
+    void killNodeWithUUID(const QUuid& nodeUUID);
+signals:
+    void uuidChanged(const QUuid& ownerUUID);
+    void nodeAdded(SharedNodePointer);
+    void nodeKilled(SharedNodePointer);
+    void limitOfSilentDomainCheckInsReached();
+private slots:
+    void domainServerAuthReply(const QJsonObject& jsonObject);
 private:
     static NodeList* _sharedInstance;
-    
+
     NodeList(char ownerType, unsigned short int socketListenPort);
-    ~NodeList();
     NodeList(NodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(NodeList const&); // Don't implement, needed to avoid copies of singleton
-    
-    void addNodeToList(Node* newNode);
-    
     void sendSTUNRequest();
-    void processSTUNResponse(unsigned char* packetData, size_t dataBytes);
+    void processSTUNResponse(const QByteArray& packet);
     
-    QString _domainHostname;
-    QHostAddress _domainIP;
-    unsigned short _domainPort;
-    Node** _nodeBuckets[MAX_NUM_NODES / NODES_PER_BUCKET];
-    int _numNodes;
-    UDPSocket _nodeSocket;
-    char _ownerType;
-    char* _nodeTypesOfInterest;
-    QUuid _ownerUUID;
-    pthread_t removeSilentNodesThread;
-    pthread_t checkInWithDomainServerThread;
+    qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr,
+                         const QUuid& connectionSecret);
+
+    NodeHash::iterator killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill);
+
+    void processDomainServerAuthRequest(const QByteArray& packet);
+    void requestAuthForDomainServer();
+    void activateSocketFromNodeCommunication(const QByteArray& packet, const SharedNodePointer& sendingNode);
+    void timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode);
+    
+    void changeSendSocketBufferSize(int numSendBytes);
+
+    NodeHash _nodeHash;
+    QMutex _nodeHashMutex;
+    QUdpSocket _nodeSocket;
+    NodeType_t _ownerType;
+    NodeSet _nodeTypesOfInterest;
+    DomainInfo _domainInfo;
+    QUuid _sessionUUID;
     int _numNoReplyDomainCheckIns;
-    sockaddr* _assignmentServerSocket;
-    QHostAddress _publicAddress;
-    uint16_t _publicPort;
+    HifiSockAddr _assignmentServerSocket;
+    HifiSockAddr _publicSockAddr;
     bool _hasCompletedInitialSTUNFailure;
     unsigned int _stunRequestsSinceSuccess;
-    
-    void activateSocketFromNodeCommunication(sockaddr *nodeAddress);
-    void timePingReply(sockaddr *nodeAddress, unsigned char *packetData);
-    
-    std::vector<NodeListHook*> _hooks;
-    std::vector<DomainChangeListener*> _domainListeners;
-    
-    void resetDomainData(char domainField[], const char* domainData);
-    void notifyDomainChanged();
-    void domainLookup();
-};
-
-class NodeListIterator : public std::iterator<std::input_iterator_tag, Node> {
-public:
-    NodeListIterator(const NodeList* nodeList, int nodeIndex);
-    
-    int getNodeIndex() { return _nodeIndex; }
-    
-	NodeListIterator& operator=(const NodeListIterator& otherValue);
-    
-    bool operator==(const NodeListIterator& otherValue);
-	bool operator!= (const NodeListIterator& otherValue);
-    
-    Node& operator*();
-    Node* operator->();
-    
-	NodeListIterator& operator++();
-    NodeListIterator operator++(int);
-private:
-    void skipDeadAndStopIncrement();
-    
-    const NodeList* _nodeList;
-    int _nodeIndex;
+    int _numCollectedPackets;
+    int _numCollectedBytes;
+    QElapsedTimer _packetStatTimer;
 };
 
 #endif /* defined(__hifi__NodeList__) */

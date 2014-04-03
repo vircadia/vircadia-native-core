@@ -8,6 +8,8 @@
 #include <QFont>
 #include <QPaintEngine>
 #include <QtDebug>
+#include <QString>
+#include <QStringList>
 
 #include "InterfaceConfig.h"
 #include "TextRenderer.h"
@@ -30,10 +32,25 @@ TextRenderer::~TextRenderer() {
     glDeleteTextures(_allTextureIDs.size(), _allTextureIDs.constData());
 }
 
-void TextRenderer::draw(int x, int y, const char* str) {
+int TextRenderer::calculateHeight(const char* str) {
+    int maxHeight = 0;
+    for (const char* ch = str; *ch != 0; ch++) {
+        const Glyph& glyph = getGlyph(*ch);
+        if (glyph.textureID() == 0) {
+            continue;
+        }
+        
+        if (glyph.bounds().height() > maxHeight) {
+            maxHeight = glyph.bounds().height();
+        }
+    }
+    return maxHeight;
+}
 
+int TextRenderer::draw(int x, int y, const char* str) {
     glEnable(GL_TEXTURE_2D);    
     
+    int maxHeight = 0;
     for (const char* ch = str; *ch != 0; ch++) {
         const Glyph& glyph = getGlyph(*ch);
         if (glyph.textureID() == 0) {
@@ -41,19 +58,23 @@ void TextRenderer::draw(int x, int y, const char* str) {
             continue;
         }
         
+        if (glyph.bounds().height() > maxHeight) {
+            maxHeight = glyph.bounds().height();
+        }
+    
         glBindTexture(GL_TEXTURE_2D, glyph.textureID());
-        
+    
         int left = x + glyph.bounds().x();
         int right = x + glyph.bounds().x() + glyph.bounds().width();
         int bottom = y + glyph.bounds().y();
         int top = y + glyph.bounds().y() + glyph.bounds().height();
-        
+    
         float scale = 1.0 / IMAGE_SIZE;
         float ls = glyph.location().x() * scale;
         float rs = (glyph.location().x() + glyph.bounds().width()) * scale;
         float bt = glyph.location().y() * scale;
         float tt = (glyph.location().y() + glyph.bounds().height()) * scale;
-        
+    
         glBegin(GL_QUADS);
         glTexCoord2f(ls, bt);
         glVertex2f(left, bottom);
@@ -64,12 +85,13 @@ void TextRenderer::draw(int x, int y, const char* str) {
         glTexCoord2f(ls, tt);
         glVertex2f(left, top);
         glEnd();
-        
+    
         x += glyph.width();
     }
-    
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_TEXTURE_2D);
+    
+    return maxHeight;
 }
 
 int TextRenderer::computeWidth(char ch)

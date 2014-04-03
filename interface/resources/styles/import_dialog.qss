@@ -1,0 +1,114 @@
+/*
+*  import_dialog.qss
+*  hifi
+*
+*  Created by Stojce on 1/5/2014.
+*  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+*/
+
+* {
+    font-family: Helvetica, Arial, sans-serif;
+}
+
+QLabel {
+    font-size: 16px;
+    color: #333333;
+}
+
+QLabel#infoLabel {
+    padding: 7px 0 0 7px;
+    color: #666666;
+}
+
+QProgressBar  {
+    border: 0px;
+    border-radius: 0px;
+    background-color: #BFE4E4;
+    margin-right: 60px;
+}
+
+QProgressBar::chunk  {
+    background-color: #000000;
+}
+
+QPushButton {
+    border-width: 0;
+    border-radius: 9px;
+    font-size: 18px;
+    padding: 17px 0px 15px;
+    width: 150px;
+    margin-top: 20px;
+    margin-bottom: 18px;
+}
+
+QPushButton#importButton {
+    color: #FFFFFF;
+    font-weight: bold;
+    margin-right: 6px;
+}
+
+QPushButton#importButton:enabled {
+    background: #333333;
+}
+
+QPushButton#importButton:!enabled {
+    background: rgba(50, 50, 50, 0.5);
+}
+
+QPushButton#cancelButton {
+    color: #333333;
+    background-color: #FFFFFF;
+    width: 74px;
+    margin-right: 11px;
+}
+
+#backButton {
+    background-image: url(icons/backButton.svg);
+    border-radius: 0px;
+}
+
+#forwardButton {
+	background-image: url(icons/forwardButton.svg);
+    border-radius: 0px;
+}
+
+#toParentButton {
+	background-image: url(icons/toParentButton.svg);
+    border-radius: 0px;
+}
+
+QSidebar, QTreeView {
+    border: 1px solid #C5C5C5;
+    font-size: 14px;
+    margin: 0px;
+    selection-background-color: #BDE4E3;
+    selection-color: #333333;
+
+}
+
+QTreeView {
+    border-left: none;
+}
+
+QSplitter::handle, QDialog {
+    background-color: white;
+}
+
+QTreeView QHeaderView {
+    background: white;
+}
+
+QTreeView QHeaderView:section {
+    border-left: none;
+    border-top: none;
+    border-bottom: 1px solid #C5C5C5;
+    border-right: 1px solid #C5C5C5;
+    background: white;
+    color: #666666;
+    padding: 10px 20px;
+}
+
+QSidebar::item,
+QTreeView::item {
+    padding: 5px 0 4px;
+}

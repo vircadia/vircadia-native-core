@@ -42,13 +42,15 @@ int SimpleMovingAverage::updateAverage(float sample) {
 
 void SimpleMovingAverage::reset() {
     _numSamples = 0;
+    _average = 0;
+    _eventDeltaAverage = 0;
 }
 
-float SimpleMovingAverage::getEventDeltaAverage() {
+float SimpleMovingAverage::getEventDeltaAverage() const {
     return (ONE_MINUS_WEIGHTING * _eventDeltaAverage) +
         (WEIGHTING * ((usecTimestampNow() - _lastEventTimestamp) / 1000000.0f));
 }
 
-float SimpleMovingAverage::getAverageSampleValuePerSecond() {
+float SimpleMovingAverage::getAverageSampleValuePerSecond() const {
     return _average * (1 / getEventDeltaAverage());
 }

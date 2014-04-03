@@ -8,9 +8,12 @@
 #include <cmath>
 
 #include <QNetworkReply>
+#include <QRunnable>
+#include <QThreadPool>
 
 #include "Application.h"
 #include "GeometryCache.h"
+#include "Model.h"
 #include "world.h"
 
 GeometryCache::~GeometryCache() {
@@ -28,11 +31,11 @@ void GeometryCache::renderHemisphere(int slices, int stacks) {
         GLfloat* vertexData = new GLfloat[vertices * 3];
         GLfloat* vertex = vertexData;
         for (int i = 0; i < stacks - 1; i++) {
-            float phi = PIf * 0.5f * i / (stacks - 1);
+            float phi = PI_OVER_TWO * (float)i / (float)(stacks - 1);
             float z = sinf(phi), radius = cosf(phi);
             
             for (int j = 0; j < slices; j++) {
-                float theta = PIf * 2.0f * j / slices;
+                float theta = TWO_PI * (float)j / (float)slices;
 
                 *(vertex++) = sinf(theta) * radius;
                 *(vertex++) = cosf(theta) * radius;
@@ -178,7 +181,7 @@ void GeometryCache::renderHalfCylinder(int slices, int stacks) {
             float y = (float)i / (stacks - 1);
             
             for (int j = 0; j <= slices; j++) {
-                float theta = 3 * PIf / 2 + PIf * j / slices;
+                float theta = 3.f * PI_OVER_TWO + PI * (float)j / (float)slices;
 
                 //normals
                 *(vertex++) = sinf(theta);
@@ -241,144 +244,320 @@ void GeometryCache::renderHalfCylinder(int slices, int stacks) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url) {
-    QSharedPointer<NetworkGeometry> geometry = _networkGeometry.value(url);
-    if (geometry.isNull()) {
-        geometry = QSharedPointer<NetworkGeometry>(new NetworkGeometry(url));
-        _networkGeometry.insert(url, geometry);
+void GeometryCache::renderGrid(int xDivisions, int yDivisions) {
+    QOpenGLBuffer& buffer = _gridBuffers[IntPair(xDivisions, yDivisions)];
+    int vertices = (xDivisions + 1 + yDivisions + 1) * 2;
+    if (!buffer.isCreated()) {
+        GLfloat* vertexData = new GLfloat[vertices * 2];
+        GLfloat* vertex = vertexData;
+        for (int i = 0; i <= xDivisions; i++) {
+            float x = (float)i / xDivisions;
+        
+            *(vertex++) = x;
+            *(vertex++) = 0.0f;
+            
+            *(vertex++) = x;
+            *(vertex++) = 1.0f;
+        }
+        for (int i = 0; i <= yDivisions; i++) {
+            float y = (float)i / yDivisions;
+            
+            *(vertex++) = 0.0f;
+            *(vertex++) = y;
+            
+            *(vertex++) = 1.0f;
+            *(vertex++) = y;
+        }
+        buffer.create();
+        buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+        buffer.bind();
+        buffer.allocate(vertexData, vertices * 2 * sizeof(GLfloat));
+        delete[] vertexData;
+        
+    } else {
+        buffer.bind();
     }
-    return geometry;
+    glEnableClientState(GL_VERTEX_ARRAY);
+    
+    glVertexPointer(2, GL_FLOAT, 0, 0);
+    
+    glDrawArrays(GL_LINES, 0, vertices);
+    
+    glDisableClientState(GL_VERTEX_ARRAY);
+    
+    buffer.release();
 }
 
-NetworkGeometry::NetworkGeometry(const QUrl& url) :
-    _modelReply(NULL),
-    _mappingReply(NULL)
-{
-    if (!url.isValid()) {
-        return;
-    }
-    QNetworkRequest modelRequest(url);
-    modelRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
-    _modelReply = Application::getInstance()->getNetworkAccessManager()->get(modelRequest);
-    
-    connect(_modelReply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(maybeReadModelWithMapping()));
-    connect(_modelReply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleModelReplyError()));
-    
-    QUrl mappingURL = url;
-    QString path = url.path();
-    mappingURL.setPath(path.left(path.lastIndexOf('.')) + ".fst");
-    QNetworkRequest mappingRequest(mappingURL);
-    mappingRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
-    _mappingReply = Application::getInstance()->getNetworkAccessManager()->get(mappingRequest);
-    
-    connect(_mappingReply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(maybeReadModelWithMapping()));
-    connect(_mappingReply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleMappingReplyError()));
+QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, const QUrl& fallback, bool delayLoad) {
+    return getResource(url, fallback, delayLoad).staticCast<NetworkGeometry>();
 }
 
-NetworkGeometry::~NetworkGeometry() {
-    if (_modelReply != NULL) {
-        delete _modelReply;
+void GeometryCache::setBlendedVertices(const QPointer<Model>& model, const QWeakPointer<NetworkGeometry>& geometry,
+        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
+    if (!model.isNull() && model->getGeometry() == geometry) {
+        model->setBlendedVertices(vertices, normals);
     }
-    if (_mappingReply != NULL) {
-        delete _mappingReply;
+}
+
+QSharedPointer<Resource> GeometryCache::createResource(const QUrl& url,
+        const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
+    
+    QSharedPointer<NetworkGeometry> geometry(new NetworkGeometry(url, fallback.staticCast<NetworkGeometry>(), delayLoad),
+        &Resource::allReferencesCleared);
+    geometry->setLODParent(geometry);
+    return geometry.staticCast<Resource>();
+}
+
+const float NetworkGeometry::NO_HYSTERESIS = -1.0f;
+
+NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGeometry>& fallback, bool delayLoad,
+        const QVariantHash& mapping, const QUrl& textureBase) :
+    Resource(url, delayLoad),
+    _mapping(mapping),
+    _textureBase(textureBase.isValid() ? textureBase : url),
+    _fallback(fallback) {
+}
+
+bool NetworkGeometry::isLoadedWithTextures() const {
+    if (!isLoaded()) {
+        return false;
     }
     foreach (const NetworkMesh& mesh, _meshes) {
-        glDeleteBuffers(1, &mesh.indexBufferID);
-        glDeleteBuffers(1, &mesh.vertexBufferID);
-    }    
-}
-
-glm::vec4 NetworkGeometry::computeAverageColor() const {
-    glm::vec4 totalColor;
-    int totalTriangles = 0;
-    for (int i = 0; i < _meshes.size(); i++) {
-        const FBXMesh& mesh = _geometry.meshes.at(i);
-        if (mesh.isEye) {
-            continue; // skip eyes
-        }
-        const NetworkMesh& networkMesh = _meshes.at(i);
-        for (int j = 0; j < mesh.parts.size(); j++) {
-            const FBXMeshPart& part = mesh.parts.at(j);
-            const NetworkMeshPart& networkPart = networkMesh.parts.at(j);
-            glm::vec4 color = glm::vec4(part.diffuseColor, 1.0f);
-            if (networkPart.diffuseTexture) {
-                color *= networkPart.diffuseTexture->getAverageColor();
+        foreach (const NetworkMeshPart& part, mesh.parts) {
+            if ((part.diffuseTexture && !part.diffuseTexture->isLoaded()) ||
+                    (part.normalTexture && !part.normalTexture->isLoaded())) {
+                return false;
             }
-            int triangles = part.quadIndices.size() * 2 + part.triangleIndices.size();
-            totalColor += color * triangles;
-            totalTriangles += triangles;
         }
     }
-    return (totalTriangles == 0) ? glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) : totalColor / totalTriangles;
+    return true;
 }
 
-void NetworkGeometry::handleModelReplyError() {
-    qDebug() << _modelReply->errorString() << "\n";
+QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance, float& hysteresis, bool delayLoad) const {
+    if (_lodParent.data() != this) {
+        return _lodParent.data()->getLODOrFallback(distance, hysteresis, delayLoad);
+    }
+    if (_failedToLoad && _fallback) {
+        return _fallback;
+    }
+    QSharedPointer<NetworkGeometry> lod = _lodParent;
+    float lodDistance = 0.0f;
+    QMap<float, QSharedPointer<NetworkGeometry> >::const_iterator it = _lods.upperBound(distance);
+    if (it != _lods.constBegin()) {
+        it = it - 1;
+        lod = it.value();
+        lodDistance = it.key();
+    }
+    if (hysteresis != NO_HYSTERESIS && hysteresis != lodDistance) {
+        // if we previously selected a different distance, make sure we've moved far enough to justify switching
+        const float HYSTERESIS_PROPORTION = 0.1f;
+        if (glm::abs(distance - qMax(hysteresis, lodDistance)) / fabsf(hysteresis - lodDistance) < HYSTERESIS_PROPORTION) {
+            lod = _lodParent;
+            lodDistance = 0.0f;
+            it = _lods.upperBound(hysteresis);
+            if (it != _lods.constBegin()) {
+                it = it - 1;
+                lod = it.value();
+                lodDistance = it.key();
+            }
+        }
+    }
+    if (lod->isLoaded()) {
+        hysteresis = lodDistance;
+        return lod;
+    }
+    // if the ideal LOD isn't loaded, we need to make sure it's started to load, and possibly return the closest loaded one
+    if (!delayLoad) {
+        lod->ensureLoading();
+    }
+    float closestDistance = FLT_MAX;
+    if (isLoaded()) {
+        lod = _lodParent;
+        closestDistance = distance;
+    }
+    for (it = _lods.constBegin(); it != _lods.constEnd(); it++) {
+        float distanceToLOD = glm::abs(distance - it.key());
+        if (it.value()->isLoaded() && distanceToLOD < closestDistance) {
+            lod = it.value();
+            closestDistance = distanceToLOD;
+        }    
+    }
+    hysteresis = NO_HYSTERESIS;
+    return lod;
+}
+
+void NetworkGeometry::setLoadPriority(const QPointer<QObject>& owner, float priority) {
+    Resource::setLoadPriority(owner, priority);
     
-    _modelReply->disconnect(this);
-    _modelReply->deleteLater();
-    _modelReply = NULL;
+    for (int i = 0; i < _meshes.size(); i++) {
+        NetworkMesh& mesh = _meshes[i];
+        for (int j = 0; j < mesh.parts.size(); j++) {
+            NetworkMeshPart& part = mesh.parts[j];
+            if (part.diffuseTexture) {
+                part.diffuseTexture->setLoadPriority(owner, priority);
+            }
+            if (part.normalTexture) {
+                part.normalTexture->setLoadPriority(owner, priority);
+            }
+        }
+    }
 }
 
-void NetworkGeometry::handleMappingReplyError() {
-    _mappingReply->disconnect(this);
-    _mappingReply->deleteLater();
-    _mappingReply = NULL;
+void NetworkGeometry::setLoadPriorities(const QHash<QPointer<QObject>, float>& priorities) {
+    Resource::setLoadPriorities(priorities);
     
-    maybeReadModelWithMapping();
+    for (int i = 0; i < _meshes.size(); i++) {
+        NetworkMesh& mesh = _meshes[i];
+        for (int j = 0; j < mesh.parts.size(); j++) {
+            NetworkMeshPart& part = mesh.parts[j];
+            if (part.diffuseTexture) {
+                part.diffuseTexture->setLoadPriorities(priorities);
+            }
+            if (part.normalTexture) {
+                part.normalTexture->setLoadPriorities(priorities);
+            }
+        }
+    }
 }
 
-void NetworkGeometry::maybeReadModelWithMapping() {
-    if (_modelReply == NULL || !_modelReply->isFinished() || (_mappingReply != NULL && !_mappingReply->isFinished())) {
+void NetworkGeometry::clearLoadPriority(const QPointer<QObject>& owner) {
+    Resource::clearLoadPriority(owner);
+    
+    for (int i = 0; i < _meshes.size(); i++) {
+        NetworkMesh& mesh = _meshes[i];
+        for (int j = 0; j < mesh.parts.size(); j++) {
+            NetworkMeshPart& part = mesh.parts[j];
+            if (part.diffuseTexture) {
+                part.diffuseTexture->clearLoadPriority(owner);
+            }
+            if (part.normalTexture) {
+                part.normalTexture->clearLoadPriority(owner);
+            }
+        }
+    }
+}
+
+/// Reads geometry in a worker thread.
+class GeometryReader : public QRunnable {
+public:
+
+    GeometryReader(const QWeakPointer<Resource>& geometry, const QUrl& url,
+        QNetworkReply* reply, const QVariantHash& mapping);
+
+    virtual void run();
+
+private:
+     
+    QWeakPointer<Resource> _geometry;
+    QUrl _url;
+    QNetworkReply* _reply;
+    QVariantHash _mapping;
+};
+
+GeometryReader::GeometryReader(const QWeakPointer<Resource>& geometry, const QUrl& url,
+        QNetworkReply* reply, const QVariantHash& mapping) :
+    _geometry(geometry),
+    _url(url),
+    _reply(reply),
+    _mapping(mapping) {
+}
+
+void GeometryReader::run() {
+    QSharedPointer<Resource> geometry = _geometry.toStrongRef();
+    if (geometry.isNull()) {
+        _reply->deleteLater();
         return;
     }
-    
-    QUrl url = _modelReply->url();
-    QByteArray model = _modelReply->readAll();
-    _modelReply->disconnect(this);
-    _modelReply->deleteLater();
-    _modelReply = NULL;
-    
-    QByteArray mapping;
-    if (_mappingReply != NULL) {
-        mapping = _mappingReply->readAll();
-        _mappingReply->disconnect(this);
-        _mappingReply->deleteLater();
-        _mappingReply = NULL;
-    }
-    
     try {
-        _geometry = url.path().toLower().endsWith(".svo") ? readSVO(model) : readFBX(model, mapping);
+        QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&,
+            _url.path().toLower().endsWith(".svo") ? readSVO(_reply->readAll()) : readFBX(_reply->readAll(), _mapping)));
         
     } catch (const QString& error) {
-        qDebug() << "Error reading " << url << ": " << error << "\n";
+        qDebug() << "Error reading " << _url << ": " << error;
+        QMetaObject::invokeMethod(geometry.data(), "finishedLoading", Q_ARG(bool, false));
+    }
+    _reply->deleteLater();
+}
+
+void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
+    QUrl url = reply->url();
+    if (url.path().toLower().endsWith(".fst")) {
+        // it's a mapping file; parse it and get the mesh filename
+        _mapping = readMapping(reply->readAll());
+        reply->deleteLater();
+        QString filename = _mapping.value("filename").toString();
+        if (filename.isNull()) {
+            qDebug() << "Mapping file " << url << " has no filename.";
+            finishedLoading(false);
+            
+        } else {
+            QString texdir = _mapping.value("texdir").toString();
+            if (!texdir.isNull()) {
+                if (!texdir.endsWith('/')) {
+                    texdir += '/';
+                }
+                _textureBase = url.resolved(texdir);
+            }
+            QVariantHash lods = _mapping.value("lod").toHash();
+            for (QVariantHash::const_iterator it = lods.begin(); it != lods.end(); it++) {
+                QSharedPointer<NetworkGeometry> geometry(new NetworkGeometry(url.resolved(it.key()),
+                    QSharedPointer<NetworkGeometry>(), true, _mapping, _textureBase));    
+                geometry->setSelf(geometry.staticCast<Resource>());
+                geometry->setLODParent(_lodParent);
+                _lods.insert(it.value().toFloat(), geometry);
+            }     
+            _request.setUrl(url.resolved(filename));
+            
+            // make the request immediately only if we have no LODs to switch between
+            _startedLoading = false;
+            if (_lods.isEmpty()) {
+                attemptRequest();
+            }
+        }
         return;
     }
     
+    // send the reader off to the thread pool
+    QThreadPool::globalInstance()->start(new GeometryReader(_self, url, reply, _mapping));
+}
+
+void NetworkGeometry::reinsert() {
+    Resource::reinsert();
+    
+    _lodParent = qWeakPointerCast<NetworkGeometry, Resource>(_self);
+    foreach (const QSharedPointer<NetworkGeometry>& lod, _lods) {
+        lod->setLODParent(_lodParent);
+    }
+}
+
+void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
+    _geometry = geometry;
+    
     foreach (const FBXMesh& mesh, _geometry.meshes) {
-        NetworkMesh networkMesh;
+        NetworkMesh networkMesh = { QOpenGLBuffer(QOpenGLBuffer::IndexBuffer), QOpenGLBuffer(QOpenGLBuffer::VertexBuffer) };
         
         int totalIndices = 0;
         foreach (const FBXMeshPart& part, mesh.parts) {
             NetworkMeshPart networkPart;
-            QString basePath = url.path();
-            basePath = basePath.left(basePath.lastIndexOf('/') + 1);
             if (!part.diffuseFilename.isEmpty()) {
-                url.setPath(basePath + part.diffuseFilename);
-                networkPart.diffuseTexture = Application::getInstance()->getTextureCache()->getTexture(url, false, mesh.isEye);
+                networkPart.diffuseTexture = Application::getInstance()->getTextureCache()->getTexture(
+                    _textureBase.resolved(QUrl(part.diffuseFilename)), false, mesh.isEye);
+                networkPart.diffuseTexture->setLoadPriorities(_loadPriorities);
             }
             if (!part.normalFilename.isEmpty()) {
-                url.setPath(basePath + part.normalFilename);
-                networkPart.normalTexture = Application::getInstance()->getTextureCache()->getTexture(url, true);
+                networkPart.normalTexture = Application::getInstance()->getTextureCache()->getTexture(
+                    _textureBase.resolved(QUrl(part.normalFilename)), true);
+                networkPart.normalTexture->setLoadPriorities(_loadPriorities);
             }
             networkMesh.parts.append(networkPart);
                         
             totalIndices += (part.quadIndices.size() + part.triangleIndices.size());
         }
-                        
-        glGenBuffers(1, &networkMesh.indexBufferID);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, networkMesh.indexBufferID);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, totalIndices * sizeof(int), NULL, GL_STATIC_DRAW);
+        
+        networkMesh.indexBuffer.create();
+        networkMesh.indexBuffer.bind();
+        networkMesh.indexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+        networkMesh.indexBuffer.allocate(totalIndices * sizeof(int));
         int offset = 0;
         foreach (const FBXMeshPart& part, mesh.parts) {
             glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset, part.quadIndices.size() * sizeof(int),
@@ -388,60 +567,69 @@ void NetworkGeometry::maybeReadModelWithMapping() {
                 part.triangleIndices.constData());
             offset += part.triangleIndices.size() * sizeof(int);
         }
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        networkMesh.indexBuffer.release();
         
-        glGenBuffers(1, &networkMesh.vertexBufferID);
-        glBindBuffer(GL_ARRAY_BUFFER, networkMesh.vertexBufferID);
-            
-        // if we don't need to do any blending or springing, then the positions/normals can be static
-        if (mesh.blendshapes.isEmpty() && mesh.springiness == 0.0f) {
+        networkMesh.vertexBuffer.create();
+        networkMesh.vertexBuffer.bind();
+        networkMesh.vertexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+        
+        // if we don't need to do any blending, the positions/normals can be static
+        if (mesh.blendshapes.isEmpty()) {
             int normalsOffset = mesh.vertices.size() * sizeof(glm::vec3);
             int tangentsOffset = normalsOffset + mesh.normals.size() * sizeof(glm::vec3);
             int colorsOffset = tangentsOffset + mesh.tangents.size() * sizeof(glm::vec3);
             int texCoordsOffset = colorsOffset + mesh.colors.size() * sizeof(glm::vec3);
             int clusterIndicesOffset = texCoordsOffset + mesh.texCoords.size() * sizeof(glm::vec2);
             int clusterWeightsOffset = clusterIndicesOffset + mesh.clusterIndices.size() * sizeof(glm::vec4);
-            glBufferData(GL_ARRAY_BUFFER, clusterWeightsOffset + mesh.clusterWeights.size() * sizeof(glm::vec4),
-                NULL, GL_STATIC_DRAW);
-            glBufferSubData(GL_ARRAY_BUFFER, 0, mesh.vertices.size() * sizeof(glm::vec3), mesh.vertices.constData());
-            glBufferSubData(GL_ARRAY_BUFFER, normalsOffset, mesh.normals.size() * sizeof(glm::vec3), mesh.normals.constData());
-            glBufferSubData(GL_ARRAY_BUFFER, tangentsOffset, mesh.tangents.size() * sizeof(glm::vec3), mesh.tangents.constData());
-            glBufferSubData(GL_ARRAY_BUFFER, colorsOffset, mesh.colors.size() * sizeof(glm::vec3), mesh.colors.constData());
-            glBufferSubData(GL_ARRAY_BUFFER, texCoordsOffset, mesh.texCoords.size() * sizeof(glm::vec2),
-                mesh.texCoords.constData());
-            glBufferSubData(GL_ARRAY_BUFFER, clusterIndicesOffset, mesh.clusterIndices.size() * sizeof(glm::vec4),
-                mesh.clusterIndices.constData());
-            glBufferSubData(GL_ARRAY_BUFFER, clusterWeightsOffset, mesh.clusterWeights.size() * sizeof(glm::vec4),
-                mesh.clusterWeights.constData());
+            
+            networkMesh.vertexBuffer.allocate(clusterWeightsOffset + mesh.clusterWeights.size() * sizeof(glm::vec4));
+            networkMesh.vertexBuffer.write(0, mesh.vertices.constData(), mesh.vertices.size() * sizeof(glm::vec3));
+            networkMesh.vertexBuffer.write(normalsOffset, mesh.normals.constData(), mesh.normals.size() * sizeof(glm::vec3));
+            networkMesh.vertexBuffer.write(tangentsOffset, mesh.tangents.constData(),
+                mesh.tangents.size() * sizeof(glm::vec3));
+            networkMesh.vertexBuffer.write(colorsOffset, mesh.colors.constData(), mesh.colors.size() * sizeof(glm::vec3));
+            networkMesh.vertexBuffer.write(texCoordsOffset, mesh.texCoords.constData(),
+                mesh.texCoords.size() * sizeof(glm::vec2));
+            networkMesh.vertexBuffer.write(clusterIndicesOffset, mesh.clusterIndices.constData(),
+                mesh.clusterIndices.size() * sizeof(glm::vec4));
+            networkMesh.vertexBuffer.write(clusterWeightsOffset, mesh.clusterWeights.constData(),
+                mesh.clusterWeights.size() * sizeof(glm::vec4));
         
-        // if there's no springiness, then the cluster indices/weights can be static
-        } else if (mesh.springiness == 0.0f) {
+        // otherwise, at least the cluster indices/weights can be static
+        } else {
             int colorsOffset = mesh.tangents.size() * sizeof(glm::vec3);
             int texCoordsOffset = colorsOffset + mesh.colors.size() * sizeof(glm::vec3);
             int clusterIndicesOffset = texCoordsOffset + mesh.texCoords.size() * sizeof(glm::vec2);
             int clusterWeightsOffset = clusterIndicesOffset + mesh.clusterIndices.size() * sizeof(glm::vec4);
-            glBufferData(GL_ARRAY_BUFFER, clusterWeightsOffset + mesh.clusterWeights.size() * sizeof(glm::vec4),
-                NULL, GL_STATIC_DRAW);
-            glBufferSubData(GL_ARRAY_BUFFER, 0, mesh.tangents.size() * sizeof(glm::vec3), mesh.tangents.constData());        
-            glBufferSubData(GL_ARRAY_BUFFER, colorsOffset, mesh.colors.size() * sizeof(glm::vec3), mesh.colors.constData());    
-            glBufferSubData(GL_ARRAY_BUFFER, texCoordsOffset, mesh.texCoords.size() * sizeof(glm::vec2), mesh.texCoords.constData());
-            glBufferSubData(GL_ARRAY_BUFFER, clusterIndicesOffset, mesh.clusterIndices.size() * sizeof(glm::vec4),
-                mesh.clusterIndices.constData());
-            glBufferSubData(GL_ARRAY_BUFFER, clusterWeightsOffset, mesh.clusterWeights.size() * sizeof(glm::vec4),
-                mesh.clusterWeights.constData());
-            
-        } else {
-            int colorsOffset = mesh.tangents.size() * sizeof(glm::vec3);
-            int texCoordsOffset = colorsOffset + mesh.colors.size() * sizeof(glm::vec3);
-            glBufferData(GL_ARRAY_BUFFER, texCoordsOffset + mesh.texCoords.size() * sizeof(glm::vec2), NULL, GL_STATIC_DRAW);
-            glBufferSubData(GL_ARRAY_BUFFER, 0, mesh.tangents.size() * sizeof(glm::vec3), mesh.tangents.constData());
-            glBufferSubData(GL_ARRAY_BUFFER, colorsOffset, mesh.colors.size() * sizeof(glm::vec3), mesh.colors.constData());
-            glBufferSubData(GL_ARRAY_BUFFER, texCoordsOffset, mesh.texCoords.size() * sizeof(glm::vec2),
-                mesh.texCoords.constData());
+            networkMesh.vertexBuffer.allocate(clusterWeightsOffset + mesh.clusterWeights.size() * sizeof(glm::vec4));
+            networkMesh.vertexBuffer.write(0, mesh.tangents.constData(), mesh.tangents.size() * sizeof(glm::vec3));        
+            networkMesh.vertexBuffer.write(colorsOffset, mesh.colors.constData(), mesh.colors.size() * sizeof(glm::vec3));    
+            networkMesh.vertexBuffer.write(texCoordsOffset, mesh.texCoords.constData(),
+                mesh.texCoords.size() * sizeof(glm::vec2));
+            networkMesh.vertexBuffer.write(clusterIndicesOffset, mesh.clusterIndices.constData(),
+                mesh.clusterIndices.size() * sizeof(glm::vec4));
+            networkMesh.vertexBuffer.write(clusterWeightsOffset, mesh.clusterWeights.constData(),
+                mesh.clusterWeights.size() * sizeof(glm::vec4));   
         }
         
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        networkMesh.vertexBuffer.release();
         
         _meshes.append(networkMesh);
     }
+    
+    finishedLoading(true);
+}
+
+bool NetworkMeshPart::isTranslucent() const {
+    return diffuseTexture && diffuseTexture->isTranslucent();
+}
+
+int NetworkMesh::getTranslucentPartCount() const {
+    int count = 0;
+    foreach (const NetworkMeshPart& part, parts) {
+        if (part.isTranslucent()) {
+            count++;
+        }
+    }
+    return count;
 }

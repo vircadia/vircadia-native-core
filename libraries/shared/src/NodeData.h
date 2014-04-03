@@ -9,23 +9,22 @@
 #ifndef hifi_NodeData_h
 #define hifi_NodeData_h
 
+#include <QtCore/QMutex>
 #include <QtCore/QObject>
 
 class Node;
 
 class NodeData : public QObject {
-  Q_OBJECT
+    Q_OBJECT
 public:
-    NodeData(Node* owningNode = NULL);
-    
+    NodeData();
     virtual ~NodeData() = 0;
-    virtual int parseData(unsigned char* sourceBuffer, int numBytes) = 0;
+    virtual int parseData(const QByteArray& packet) = 0;
     
-    virtual void deleteOrDeleteLater();
-    
-    Node* getOwningNode() { return _owningNode; }
-protected:
-    Node* _owningNode;
+    QMutex& getMutex() { return _mutex; }
+
+private:
+    QMutex _mutex;
 };
 
 #endif

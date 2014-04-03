@@ -9,61 +9,81 @@
 #ifndef __hifi__DomainServer__
 #define __hifi__DomainServer__
 
-#include <deque>
-
 #include <QtCore/QCoreApplication>
-#include <QtCore/QFile>
-#include <QtCore/QMutex>
+#include <QtCore/QHash>
+#include <QtCore/QJsonObject>
+#include <QtCore/QQueue>
+#include <QtCore/QSharedPointer>
+#include <QtCore/QStringList>
+#include <QtCore/QUrl>
 
 #include <Assignment.h>
+#include <HTTPManager.h>
 #include <NodeList.h>
 
-#include "civetweb.h"
+typedef QSharedPointer<Assignment> SharedAssignmentPointer;
 
-const int MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS = 1000;
-
-class DomainServer : public NodeListHook {
+class DomainServer : public QCoreApplication, public HTTPRequestHandler {
+    Q_OBJECT
 public:
     DomainServer(int argc, char* argv[]);
     
-    int run();
+    bool requiresAuthentication() const { return !_nodeAuthenticationURL.isEmpty(); }
     
-    static void signalHandler(int signal);
-    static void setDomainServerInstance(DomainServer* domainServer);
+    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
     
-    /// Called by NodeList to inform us that a node has been added.
-    void nodeAdded(Node* node);
-    /// Called by NodeList to inform us that a node has been killed.
-    void nodeKilled(Node* node);
+    void exit(int retCode = 0);
+    
+public slots:
+    /// Called by NodeList to inform us a node has been added
+    void nodeAdded(SharedNodePointer node);
+    /// Called by NodeList to inform us a node has been killed
+    void nodeKilled(SharedNodePointer node);
+    
 private:
-    static int civetwebRequestHandler(struct mg_connection *connection);
-    static void civetwebUploadHandler(struct mg_connection *connection, const char *path);
+    void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
     
-    static DomainServer* domainServerInstance;
+    void requestAuthenticationFromPotentialNode(const HifiSockAddr& senderSockAddr);
+    void addNodeToNodeListAndConfirmConnection(const QByteArray& packet, const HifiSockAddr& senderSockAddr,
+                                               const QJsonObject& authJsonObject = QJsonObject());
+    int parseNodeDataFromByteArray(NodeType_t& nodeType, HifiSockAddr& publicSockAddr,
+                                    HifiSockAddr& localSockAddr, const QByteArray& packet, const HifiSockAddr& senderSockAddr);
+    NodeSet nodeInterestListFromPacket(const QByteArray& packet, int numPreceedingBytes);
+    void sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr& senderSockAddr,
+                              const NodeSet& nodeInterestList);
     
-    void prepopulateStaticAssignmentFile();
-    Assignment* matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NODE_TYPE nodeType);
-    Assignment* deployableAssignmentForRequest(Assignment& requestAssignment);
-    void removeAssignmentFromQueue(Assignment* removableAssignment);
-    bool checkInWithUUIDMatchesExistingNode(sockaddr* nodePublicSocket, sockaddr* nodeLocalSocket, const QUuid& checkInUUI);
-    void possiblyAddStaticAssignmentsBackToQueueAfterRestart(timeval* startTime);
-    void addReleasedAssignmentBackToQueue(Assignment* releasedAssignment);
+    void parseCommandLineTypeConfigs(const QStringList& argumentList, QSet<Assignment::Type>& excludedTypes);
+    void readConfigFile(const QString& path, QSet<Assignment::Type>& excludedTypes);
+    QString readServerAssignmentConfig(const QJsonObject& jsonObject, const QString& nodeName);
+    void addStaticAssignmentToAssignmentHash(Assignment* newAssignment);
+    void createStaticAssignmentsForTypeGivenConfigString(Assignment::Type type, const QString& configString);
+    void populateDefaultStaticAssignmentsExcludingTypes(const QSet<Assignment::Type>& excludedTypes);
     
-    void cleanup();
+    SharedAssignmentPointer matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType);
+    SharedAssignmentPointer deployableAssignmentForRequest(const Assignment& requestAssignment);
+    void removeMatchingAssignmentFromQueue(const SharedAssignmentPointer& removableAssignment);
+    void refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment);
+    void addStaticAssignmentsToQueue();
     
-    unsigned char* addNodeToBroadcastPacket(unsigned char* currentPosition, Node* nodeToAdd);
+    QJsonObject jsonForSocket(const HifiSockAddr& socket);
+    QJsonObject jsonObjectForNode(const SharedNodePointer& node);
     
-    QMutex _assignmentQueueMutex;
-    std::deque<Assignment*> _assignmentQueue;
+    HTTPManager _HTTPManager;
     
-    QFile _staticAssignmentFile;
-    uchar* _staticAssignmentFileData;
+    QHash<QUuid, SharedAssignmentPointer> _staticAssignmentHash;
+    QQueue<SharedAssignmentPointer> _assignmentQueue;
     
-    Assignment* _staticAssignments;
+    QUrl _nodeAuthenticationURL;
     
-    const char* _voxelServerConfig;
+    QStringList _argumentList;
     
-    bool _hasCompletedRestartHold;
+    QHash<QString, QJsonObject> _redeemedTokenResponses;
+private slots:
+    void requestCreationFromDataServer();
+    void processCreateResponseFromDataServer(const QJsonObject& jsonObject);
+    void processTokenRedeemResponse(const QJsonObject& jsonObject);
+    
+    void readAvailableDatagrams();
 };
 
 #endif /* defined(__hifi__DomainServer__) */

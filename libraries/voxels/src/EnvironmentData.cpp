@@ -14,6 +14,7 @@
 // GameEngine.cpp
 EnvironmentData::EnvironmentData(int id) :
     _id(id),
+    _flat(true),
     _gravity(0.0f),
     _atmosphereCenter(0, -1000, 0),
     _atmosphereInnerRadius(1000),
@@ -25,11 +26,22 @@ EnvironmentData::EnvironmentData(int id) :
     _sunBrightness(20.0f) {
 }
 
+glm::vec3 EnvironmentData::getAtmosphereCenter(const glm::vec3& cameraPosition) const {
+    return _atmosphereCenter + (_flat ? glm::vec3(cameraPosition.x, 0.0f, cameraPosition.z) : glm::vec3());
+}
+
+glm::vec3 EnvironmentData::getSunLocation(const glm::vec3& cameraPosition) const {
+    return _sunLocation + (_flat ? glm::vec3(cameraPosition.x, 0.0f, cameraPosition.z) : glm::vec3());
+}
+
 int EnvironmentData::getBroadcastData(unsigned char* destinationBuffer) const {
     unsigned char* bufferStart = destinationBuffer;
     
     memcpy(destinationBuffer, &_id, sizeof(_id));
     destinationBuffer += sizeof(_id);
+    
+    memcpy(destinationBuffer, &_flat, sizeof(_flat));
+    destinationBuffer += sizeof(_flat);
     
     memcpy(destinationBuffer, &_gravity, sizeof(_gravity));
     destinationBuffer += sizeof(_gravity);
@@ -61,11 +73,14 @@ int EnvironmentData::getBroadcastData(unsigned char* destinationBuffer) const {
     return destinationBuffer - bufferStart;
 }
 
-int EnvironmentData::parseData(unsigned char* sourceBuffer, int numBytes) {
-    unsigned char* startPosition = sourceBuffer;
+int EnvironmentData::parseData(const unsigned char* sourceBuffer, int numBytes) {
+    const unsigned char* startPosition = sourceBuffer;
     
     memcpy(&_id, sourceBuffer, sizeof(_id));
     sourceBuffer += sizeof(_id);
+    
+    memcpy(&_flat, sourceBuffer, sizeof(_flat));
+    sourceBuffer += sizeof(_flat);
     
     memcpy(&_gravity, sourceBuffer, sizeof(_gravity));
     sourceBuffer += sizeof(_gravity);

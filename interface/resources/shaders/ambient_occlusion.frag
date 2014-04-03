@@ -30,6 +30,12 @@ uniform vec2 leftBottom;
 // the right and top edges of the view window
 uniform vec2 rightTop;
 
+// an offset value to apply to the texture coordinates
+uniform vec2 texCoordOffset;
+
+// a scale value to apply to the texture coordinates
+uniform vec2 texCoordScale;
+
 // the radius of the effect
 uniform float radius;
 
@@ -38,7 +44,7 @@ uniform vec2 noiseScale;
 
 // given a texture coordinate, returns the 3D view space z coordinate
 float texCoordToViewSpaceZ(vec2 texCoord) {
-    return (far * near) / (texture2D(depthTexture, texCoord).r * (far - near) - far);
+    return (far * near) / (texture2D(depthTexture, texCoord * texCoordScale + texCoordOffset).r * (far - near) - far);
 }
 
 // given a texture coordinate, returns the 3D view space coordinate
@@ -54,11 +60,15 @@ void main(void) {
     
     vec3 center = texCoordToViewSpace(gl_TexCoord[0].st);
     
+    vec2 rdenominator = 1.0 / (rightTop - leftBottom);
+    vec2 xyFactor = 2.0 * near * rdenominator;
+    vec2 zFactor = (rightTop + leftBottom) * rdenominator;
+    
     float occlusion = 4.0;
     for (int i = 0; i < SAMPLE_KERNEL_SIZE; i++) {
         vec3 offset = center + rotation * (radius * sampleKernel[i]);
-        vec4 projected = gl_ProjectionMatrix * vec4(offset, 1.0);
-        float depth = texCoordToViewSpaceZ(projected.xy * 0.5 / projected.w + vec2(0.5, 0.5));
+        vec2 projected = offset.xy * xyFactor + offset.z * zFactor;
+        float depth = texCoordToViewSpaceZ(projected * -0.5 / offset.z + vec2(0.5, 0.5));
         occlusion += 1.0 - step(offset.z, depth);
     }
     

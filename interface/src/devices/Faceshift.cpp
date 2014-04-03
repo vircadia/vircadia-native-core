@@ -10,6 +10,7 @@
 
 #include <SharedUtil.h>
 
+#include "Application.h"
 #include "Faceshift.h"
 #include "Menu.h"
 #include "Util.h"
@@ -20,7 +21,7 @@ using namespace std;
 const quint16 FACESHIFT_PORT = 33433;
 
 Faceshift::Faceshift() :
-    _tcpEnabled(false),
+    _tcpEnabled(true),
     _tcpRetryCount(0),
     _lastTrackingStateReceived(0),
     _eyeGazeLeftPitch(0.0f),
@@ -31,7 +32,7 @@ Faceshift::Faceshift() :
     _rightBlinkIndex(1),
     _leftEyeOpenIndex(8),
     _rightEyeOpenIndex(9),
-    _browDownLeftIndex(14), 
+    _browDownLeftIndex(14),
     _browDownRightIndex(15),
     _browUpCenterIndex(16),
     _browUpLeftIndex(17),
@@ -48,14 +49,24 @@ Faceshift::Faceshift() :
     connect(&_tcpSocket, SIGNAL(connected()), SLOT(noteConnected()));
     connect(&_tcpSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(noteError(QAbstractSocket::SocketError)));
     connect(&_tcpSocket, SIGNAL(readyRead()), SLOT(readFromSocket()));
-    
+    connect(&_tcpSocket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), SIGNAL(connectionStateChanged()));
+
     connect(&_udpSocket, SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
-    
+
     _udpSocket.bind(FACESHIFT_PORT);
 }
 
+void Faceshift::init() {
+    setTCPEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift));
+}
+
+bool Faceshift::isConnectedOrConnecting() const {
+    return _tcpSocket.state() == QAbstractSocket::ConnectedState ||
+        (_tcpRetryCount == 0 && _tcpSocket.state() != QAbstractSocket::UnconnectedState);
+}
+
 bool Faceshift::isActive() const {
-    const uint64_t ACTIVE_TIMEOUT_USECS = 1000000;
+    const quint64 ACTIVE_TIMEOUT_USECS = 1000000;
     return (usecTimestampNow() - _lastTrackingStateReceived) < ACTIVE_TIMEOUT_USECS;
 }
 
@@ -64,16 +75,16 @@ void Faceshift::update() {
         return;
     }
     // get the euler angles relative to the window
-    glm::vec3 eulers = safeEulerAngles(_headRotation * glm::quat(glm::radians(glm::vec3(
-        (_eyeGazeLeftPitch + _eyeGazeRightPitch) / 2.0f, (_eyeGazeLeftYaw + _eyeGazeRightYaw) / 2.0f, 0.0f))));
-    
+    glm::vec3 eulers = glm::degrees(safeEulerAngles(_headRotation * glm::quat(glm::radians(glm::vec3(
+        (_eyeGazeLeftPitch + _eyeGazeRightPitch) / 2.0f, (_eyeGazeLeftYaw + _eyeGazeRightYaw) / 2.0f, 0.0f)))));
+
     // compute and subtract the long term average
     const float LONG_TERM_AVERAGE_SMOOTHING = 0.999f;
     if (!_longTermAverageInitialized) {
         _longTermAverageEyePitch = eulers.x;
         _longTermAverageEyeYaw = eulers.y;
         _longTermAverageInitialized = true;
-        
+
     } else {
         _longTermAverageEyePitch = glm::mix(eulers.x, _longTermAverageEyePitch, LONG_TERM_AVERAGE_SMOOTHING);
         _longTermAverageEyeYaw = glm::mix(eulers.y, _longTermAverageEyeYaw, LONG_TERM_AVERAGE_SMOOTHING);
@@ -91,10 +102,22 @@ void Faceshift::reset() {
     _longTermAverageInitialized = false;
 }
 
+void Faceshift::updateFakeCoefficients(float leftBlink, float rightBlink, float browUp,
+        float jawOpen, QVector<float>& coefficients) const {
+    coefficients.resize(max((int)coefficients.size(), _jawOpenIndex + 1));
+    qFill(coefficients.begin(), coefficients.end(), 0.0f);
+    coefficients[_leftBlinkIndex] = leftBlink;
+    coefficients[_rightBlinkIndex] = rightBlink;
+    coefficients[_browUpCenterIndex] = browUp;
+    coefficients[_browUpLeftIndex] = browUp;
+    coefficients[_browUpRightIndex] = browUp;
+    coefficients[_jawOpenIndex] = jawOpen;
+}
+
 void Faceshift::setTCPEnabled(bool enabled) {
     if ((_tcpEnabled = enabled)) {
         connectSocket();
-    
+
     } else {
         _tcpSocket.disconnectFromHost();
     }
@@ -103,17 +126,16 @@ void Faceshift::setTCPEnabled(bool enabled) {
 void Faceshift::connectSocket() {
     if (_tcpEnabled) {
         if (!_tcpRetryCount) {
-            qDebug("Faceshift: Connecting...\n");
+            qDebug("Faceshift: Connecting...");
         }
-    
+
         _tcpSocket.connectToHost("localhost", FACESHIFT_PORT);
         _tracking = false;
     }
 }
 
 void Faceshift::noteConnected() {
-    qDebug("Faceshift: Connected.\n");
-    
+    qDebug("Faceshift: Connected.");
     // request the list of blendshape names
     string message;
     fsBinaryStream::encode_message(message, fsMsgSendBlendshapeNames());
@@ -123,7 +145,7 @@ void Faceshift::noteConnected() {
 void Faceshift::noteError(QAbstractSocket::SocketError error) {
     if (!_tcpRetryCount) {
        // Only spam log with fail to connect the first time, so that we can keep waiting for server
-       qDebug() << "Faceshift: " << _tcpSocket.errorString() << "\n";
+       qDebug() << "Faceshift: " << _tcpSocket.errorString();
     }
     // retry connection after a 2 second delay
     if (_tcpEnabled) {
@@ -146,7 +168,7 @@ void Faceshift::readFromSocket() {
 }
 
 float Faceshift::getBlendshapeCoefficient(int index) const {
-    return (index >= 0 && index < _blendshapeCoefficients.size()) ? _blendshapeCoefficients[index] : 0.0f;
+    return (index >= 0 && index < (int)_blendshapeCoefficients.size()) ? _blendshapeCoefficients[index] : 0.0f;
 }
 
 void Faceshift::send(const std::string& message) {
@@ -163,7 +185,7 @@ void Faceshift::receive(const QByteArray& buffer) {
                 if ((_tracking = data.m_trackingSuccessful)) {
                     glm::quat newRotation = glm::quat(data.m_headRotation.w, -data.m_headRotation.x,
                                                       data.m_headRotation.y, -data.m_headRotation.z);
-                    // Compute angular velocity of the head 
+                    // Compute angular velocity of the head
                     glm::quat r = newRotation * glm::inverse(_headRotation);
                     float theta = 2 * acos(r.w);
                     if (theta > EPSILON) {
@@ -174,7 +196,7 @@ void Faceshift::receive(const QByteArray& buffer) {
                         _headAngularVelocity = glm::vec3(0,0,0);
                     }
                     _headRotation = newRotation;
-                    
+
                     const float TRANSLATION_SCALE = 0.02f;
                     _headTranslation = glm::vec3(data.m_headTranslation.x, data.m_headTranslation.y,
                         -data.m_headTranslation.z) * TRANSLATION_SCALE;
@@ -182,18 +204,18 @@ void Faceshift::receive(const QByteArray& buffer) {
                     _eyeGazeLeftYaw = data.m_eyeGazeLeftYaw;
                     _eyeGazeRightPitch = -data.m_eyeGazeRightPitch;
                     _eyeGazeRightYaw = data.m_eyeGazeRightYaw;
-                    _blendshapeCoefficients = data.m_coeffs;
-                    
+                    _blendshapeCoefficients = QVector<float>::fromStdVector(data.m_coeffs);
+
                     _lastTrackingStateReceived = usecTimestampNow();
                 }
                 break;
             }
             case fsMsg::MSG_OUT_BLENDSHAPE_NAMES: {
                 const vector<string>& names = static_cast<fsMsgBlendshapeNames*>(msg.get())->blendshape_names();
-                for (int i = 0; i < names.size(); i++) {
+                for (size_t i = 0; i < names.size(); i++) {
                     if (names[i] == "EyeBlink_L") {
                         _leftBlinkIndex = i;
-                    
+
                     } else if (names[i] == "EyeBlink_R") {
                         _rightBlinkIndex = i;
 
@@ -220,10 +242,10 @@ void Faceshift::receive(const QByteArray& buffer) {
 
                     } else if (names[i] == "JawOpen") {
                         _jawOpenIndex = i;
-                        
+
                     } else if (names[i] == "MouthSmile_L") {
                         _mouthSmileLeftIndex = i;
-                        
+
                     } else if (names[i] == "MouthSmile_R") {
                         _mouthSmileRightIndex = i;
                     }

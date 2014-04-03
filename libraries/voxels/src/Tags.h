@@ -9,6 +9,8 @@
 #ifndef __hifi__Tags__
 #define __hifi__Tags__
 
+#include <stdint.h>
+
 #include <cstdlib>
 #include <cstring>
 

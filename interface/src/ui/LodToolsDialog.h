@@ -28,6 +28,7 @@ public slots:
     void sizeScaleValueChanged(int value);
     void boundaryLevelValueChanged(int value);
     void resetClicked(bool checked);
+    void reloadSliders();
 
 protected:
 
@@ -35,8 +36,6 @@ protected:
     void closeEvent(QCloseEvent*);
 
 private:
-    QString getFeedbackText();
-
     QSlider* _lodSize;
     QSlider* _boundaryLevelAdjust;
     QLabel* _feedback;

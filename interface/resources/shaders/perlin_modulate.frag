@@ -12,7 +12,7 @@
 uniform sampler2D permutationNormalTexture;
 
 // the noise frequency
-const float frequency = 1024.0;
+const float frequency = 65536.0; // looks better with current TREE_SCALE, was 1024 when TREE_SCALE was either 512 or 128
 
 // the noise amplitude
 const float amplitude = 0.1;

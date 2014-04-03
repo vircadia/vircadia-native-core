@@ -19,114 +19,30 @@
 #include "PerfStat.h"
 
 // Static class members initialization here!
-std::map<std::string,PerfStatHistory,std::less<std::string> > PerfStat::groupHistoryMap;
-bool PerfStat::wantDebugOut = false;
-timeval PerfStat::firstDumpTime;
-bool PerfStat::firstDumpTimeSet = false;
-
-// Constructor handles starting the timer
-PerfStat::PerfStat(std::string groupName) {
-	this->group = groupName;
-	gettimeofday(&this->start,NULL);
-
-	// If this is our first ever PerfStat object, we'll also initialize this
-	if (!firstDumpTimeSet) {
-		gettimeofday(&firstDumpTime,NULL);
-		firstDumpTimeSet=true;
-	}
-}
-
-// Destructor handles recording all of our stats
-PerfStat::~PerfStat() {
-	timeval end;
-	gettimeofday(&end,NULL);
-	double elapsed = ((end.tv_usec-start.tv_usec)/1000000.0)+(end.tv_sec-start.tv_sec);
-	
-	double average = elapsed;
-	double totalTime = elapsed;
-	long int count = 1;
-	
-	// check to see if this group exists in the history...
-	if (groupHistoryMap.find(group) == groupHistoryMap.end()) {
-		groupHistoryMap[group]=PerfStatHistory(group,elapsed,1);
-	} else {
-		PerfStatHistory history = groupHistoryMap[group];
-		history.recordTime(elapsed);
-		groupHistoryMap[group] = history;
-		average = history.getAverage();
-		count = history.getCount();
-		totalTime = history.getTotalTime();
-	}
-
-	if (wantDebugOut) {	
-		qDebug("PerfStats: %s elapsed:%f average:%lf count:%ld total:%lf ut:%ld us:%ld ue:%ld t:%ld s:%ld e:%ld\n",
-               this->group.c_str(),elapsed,average,count,totalTime,
-               (long)(end.tv_usec-start.tv_usec), (long)start.tv_usec, (long)end.tv_usec,
-               (long)(end.tv_sec-start.tv_sec), (long)start.tv_sec, (long)end.tv_sec
-        );
-	}
-};
-
-// How many groups have we added?
-int PerfStat::getGroupCount() { 
-	return groupHistoryMap.size(); 
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Method:		DumpStats()
-// Description:	Generates some lines of debug stats for all the groups of PerfStats you've created.
-// Note: 		Caller is responsible for allocating an array of char*'s that is large enough to hold 
-//				groupCount + 1. Caller is also responsible for deleting all this memory.
-int PerfStat::DumpStats(char** array) {
-	// If we haven't yet set a dump time, we'll also initialize this now, but this is unlikely
-	if (!firstDumpTimeSet) {
-		gettimeofday(&firstDumpTime,NULL);
-		firstDumpTimeSet=true;
-	}
-
-	timeval now;
-	gettimeofday(&now,NULL);
-	double elapsed = ((now.tv_usec-firstDumpTime.tv_usec)/1000000.0)+(now.tv_sec-firstDumpTime.tv_sec);
-	
-	array[0] = new char[MAX_PERFSTAT_DEBUG_LINE_LEN];
-	snprintf(array[0],MAX_PERFSTAT_DEBUG_LINE_LEN,"PerfStats:");
-	int lineCount=1;
-	// For each active performance group
-	for (PerfStatMapItr i = groupHistoryMap.begin(); i != groupHistoryMap.end(); i++) {
-		float percent = (i->second.getTotalTime()/elapsed) * 100.0;
-	
-		array[lineCount] = new char[MAX_PERFSTAT_DEBUG_LINE_LEN];
-		snprintf(array[lineCount],MAX_PERFSTAT_DEBUG_LINE_LEN,"%s Avg: %lf Num: %ld TTime: %lf (%.2f%%)",
-			i->second.group.c_str(),i->second.getAverage(),i->second.getCount(),i->second.getTotalTime(),percent);
-		lineCount++;
-	}
-	return lineCount;
-}
-
 bool PerformanceWarning::_suppressShortTimings = false;
 
 // Destructor handles recording all of our stats
 PerformanceWarning::~PerformanceWarning() {
-    uint64_t end = usecTimestampNow();
-    uint64_t elapsedusec = (end - _start);
+    quint64 end = usecTimestampNow();
+    quint64 elapsedusec = (end - _start);
     double elapsedmsec = elapsedusec / 1000.0;
     if ((_alwaysDisplay || _renderWarningsOn) && elapsedmsec > 1) {
         if (elapsedmsec > 1000) {
             double elapsedsec = (end - _start) / 1000000.0;
-            qDebug("%s took %lf seconds %s\n", _message, elapsedsec, (_alwaysDisplay ? "" : "WARNING!") );
+            qDebug("%s took %.2lf seconds %s", _message, elapsedsec, (_alwaysDisplay ? "" : "WARNING!") );
         } else {
             if (_suppressShortTimings) {
                 if (elapsedmsec > 10) {
-                    qDebug("%s took %lf milliseconds %s\n", _message, elapsedmsec, 
+                    qDebug("%s took %.1lf milliseconds %s", _message, elapsedmsec,
                         (_alwaysDisplay || (elapsedmsec < 10) ? "" : "WARNING!"));
                 }
             } else {
-                qDebug("%s took %lf milliseconds %s\n", _message, elapsedmsec, 
+                qDebug("%s took %.2lf milliseconds %s", _message, elapsedmsec,
                     (_alwaysDisplay || (elapsedmsec < 10) ? "" : "WARNING!"));
             }
         }
     } else if (_alwaysDisplay) {
-        qDebug("%s took %lf milliseconds\n", _message, elapsedmsec);
+        qDebug("%s took %.2lf milliseconds", _message, elapsedmsec);
     }
     // if the caller gave us a pointer to store the running total, track it now.
     if (_runningTotal) {

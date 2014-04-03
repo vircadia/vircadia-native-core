@@ -9,9 +9,6 @@
 #ifndef __interface__world__
 #define __interface__world__
 
-
-#define PIf 3.14159265f
-
 const float GRAVITY_EARTH = 9.80665f;
 const float EDGE_SIZE_GROUND_PLANE = 20.f;
 

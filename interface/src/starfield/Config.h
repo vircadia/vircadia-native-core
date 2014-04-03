@@ -36,7 +36,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_access.hpp>
 
-#include "UrlReader.h"
 #include "AngleUtil.h"
 #include "Radix2InplaceSort.h"
 #include "Radix2IntegerScanner.h"
@@ -50,17 +49,13 @@ namespace starfield {
     using glm::vec4;
     using glm::dot;
     using glm::normalize;
-    using glm::X;
-    using glm::Y;
-    using glm::Z;
-    using glm::W;
     using glm::mat4;
     using glm::row;
 
     using namespace std;
 
     typedef uint32_t nuint;
-    typedef uint64_t wuint;
+    typedef quint64 wuint;
 
 }
 

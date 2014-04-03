@@ -6,15 +6,20 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <glm/gtx/quaternion.hpp>
+
+#include <OctreeConstants.h>
+
+#include "AvatarData.h"
 #include "HeadData.h"
 
 HeadData::HeadData(AvatarData* owningAvatar) :
-    _yaw(0.0f),
-    _pitch(0.0f),
-    _roll(0.0f),
-    _lookAtPosition(0.0f, 0.0f, 0.0f),
+    _baseYaw(0.0f),
+    _basePitch(0.0f),
+    _baseRoll(0.0f),
     _leanSideways(0.0f),
     _leanForward(0.0f),
+    _lookAtPosition(0.0f, 0.0f, 0.0f),
     _audioLoudness(0.0f),
     _isFaceshiftConnected(false),
     _leftEyeBlink(0.0f),
@@ -26,21 +31,33 @@ HeadData::HeadData(AvatarData* owningAvatar) :
     
 }
 
+glm::quat HeadData::getOrientation() const {
+    return _owningAvatar->getOrientation() * glm::quat(glm::radians(glm::vec3(_basePitch, _baseYaw, _baseRoll)));
+}
+
+void HeadData::setOrientation(const glm::quat& orientation) {
+    // rotate body about vertical axis
+    glm::quat bodyOrientation = _owningAvatar->getOrientation();
+    glm::vec3 newFront = glm::inverse(bodyOrientation) * (orientation * IDENTITY_FRONT);
+    bodyOrientation = bodyOrientation * glm::angleAxis(atan2f(-newFront.x, -newFront.z), glm::vec3(0.0f, 1.0f, 0.0f));
+    _owningAvatar->setOrientation(bodyOrientation);
+    
+    // the rest goes to the head
+    glm::vec3 eulers = glm::degrees(safeEulerAngles(glm::inverse(bodyOrientation) * orientation));
+    _basePitch = eulers.x;
+    _baseYaw = eulers.y;
+    _baseRoll = eulers.z;
+}
+
 void HeadData::addYaw(float yaw) {
-    setYaw(_yaw + yaw);
+    setBaseYaw(_baseYaw + yaw);
 }
 
 void HeadData::addPitch(float pitch) {
-    setPitch(_pitch + pitch);
+    setBasePitch(_basePitch + pitch);
 }
 
 void HeadData::addRoll(float roll) {
-    setRoll(_roll + roll);
+    setBaseRoll(_baseRoll + roll);
 }
 
-
-void HeadData::addLean(float sideways, float forwards) {
-    // Add lean as impulse
-    _leanSideways += sideways;
-    _leanForward  += forwards;
-}

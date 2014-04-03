@@ -25,7 +25,7 @@ namespace type_traits { // those are needed for the declaration, see below
     template< typename T > struct make_unsigned< T, 1 > { typedef uint8_t type; };
     template< typename T > struct make_unsigned< T, 2 > { typedef uint16_t type; };
     template< typename T > struct make_unsigned< T, 4 > { typedef uint32_t type; };
-    template< typename T > struct make_unsigned< T, 8 > { typedef uint64_t type; };
+    template< typename T > struct make_unsigned< T, 8 > { typedef quint64 type; };
 }
 
 

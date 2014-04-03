@@ -12,56 +12,84 @@
 #ifndef hifi_PacketHeaders_h
 #define hifi_PacketHeaders_h
 
-typedef char PACKET_TYPE;
-const PACKET_TYPE PACKET_TYPE_UNKNOWN = 0;
-const PACKET_TYPE PACKET_TYPE_STUN_RESPONSE = 1;
-const PACKET_TYPE PACKET_TYPE_DOMAIN = 'D';
-const PACKET_TYPE PACKET_TYPE_PING = 'P';
-const PACKET_TYPE PACKET_TYPE_PING_REPLY = 'R';
-const PACKET_TYPE PACKET_TYPE_HEAD_DATA = 'H';
-const PACKET_TYPE PACKET_TYPE_Z_COMMAND = 'Z';
-const PACKET_TYPE PACKET_TYPE_INJECT_AUDIO = 'I';
-const PACKET_TYPE PACKET_TYPE_MIXED_AUDIO = 'A';
-const PACKET_TYPE PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO = 'M';
-const PACKET_TYPE PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO = 'm';
-const PACKET_TYPE PACKET_TYPE_BULK_AVATAR_DATA = 'X';
-const PACKET_TYPE PACKET_TYPE_AVATAR_URLS = 'U';
-const PACKET_TYPE PACKET_TYPE_AVATAR_FACE_VIDEO = 'F';
-const PACKET_TYPE PACKET_TYPE_TRANSMITTER_DATA_V2 = 'T';
-const PACKET_TYPE PACKET_TYPE_ENVIRONMENT_DATA = 'e';
-const PACKET_TYPE PACKET_TYPE_DOMAIN_LIST_REQUEST = 'L';
-const PACKET_TYPE PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY = 'C';
-const PACKET_TYPE PACKET_TYPE_REQUEST_ASSIGNMENT = 'r';
-const PACKET_TYPE PACKET_TYPE_CREATE_ASSIGNMENT = 's';
-const PACKET_TYPE PACKET_TYPE_DEPLOY_ASSIGNMENT = 'd';
-const PACKET_TYPE PACKET_TYPE_DATA_SERVER_PUT = 'p';
-const PACKET_TYPE PACKET_TYPE_DATA_SERVER_GET = 'g';
-const PACKET_TYPE PACKET_TYPE_DATA_SERVER_SEND = 'u';
-const PACKET_TYPE PACKET_TYPE_DATA_SERVER_CONFIRM = 'c';
-const PACKET_TYPE PACKET_TYPE_VOXEL_QUERY = 'q';
-const PACKET_TYPE PACKET_TYPE_VOXEL_DATA = 'V';
-const PACKET_TYPE PACKET_TYPE_VOXEL_DATA_MONOCHROME = 'v';
-const PACKET_TYPE PACKET_TYPE_VOXEL_STATS = '#';
-const PACKET_TYPE PACKET_TYPE_VOXEL_JURISDICTION = 'J';
-const PACKET_TYPE PACKET_TYPE_VOXEL_JURISDICTION_REQUEST = 'j';
-const PACKET_TYPE PACKET_TYPE_SET_VOXEL = 'S';
-const PACKET_TYPE PACKET_TYPE_SET_VOXEL_DESTRUCTIVE = 'O';
-const PACKET_TYPE PACKET_TYPE_ERASE_VOXEL = 'E';
+#include <QtCore/QCryptographicHash>
+#include <QtCore/QUuid>
 
-typedef char PACKET_VERSION;
+#include "UUID.h"
 
-PACKET_VERSION versionForPacketType(PACKET_TYPE type);
+// NOTE: if adding a new packet type, you can replace one marked usable or add at the end
 
-bool packetVersionMatch(unsigned char* packetHeader);
+enum PacketType {
+    PacketTypeUnknown,
+    PacketTypeStunResponse,
+    PacketTypeDomainList,
+    PacketTypePing,
+    PacketTypePingReply,
+    PacketTypeKillAvatar,
+    PacketTypeAvatarData,
+    PacketTypeInjectAudio,
+    PacketTypeMixedAudio,
+    PacketTypeMicrophoneAudioNoEcho,
+    PacketTypeMicrophoneAudioWithEcho,
+    PacketTypeBulkAvatarData,
+    PacketTypeSilentAudioFrame,
+    PacketTypeEnvironmentData,
+    PacketTypeDomainListRequest,
+    PacketTypeRequestAssignment,
+    PacketTypeCreateAssignment,
+    PacketTypeDataServerPut,
+    PacketTypeDataServerGet,
+    PacketTypeDataServerSend,
+    PacketTypeDataServerConfirm,
+    PacketTypeVoxelQuery,
+    PacketTypeVoxelData,
+    PacketTypeVoxelSet,
+    PacketTypeVoxelSetDestructive,
+    PacketTypeVoxelErase,
+    PacketTypeOctreeStats,
+    PacketTypeJurisdiction,
+    PacketTypeJurisdictionRequest,
+    PacketTypeParticleQuery,
+    PacketTypeParticleData,
+    PacketTypeParticleAddOrEdit,
+    PacketTypeParticleErase,
+    PacketTypeParticleAddResponse,
+    PacketTypeMetavoxelData,
+    PacketTypeAvatarIdentity,
+    PacketTypeAvatarBillboard,
+    PacketTypeDomainConnectRequest,
+    PacketTypeDomainServerAuthRequest,
+    PacketTypeNodeJsonStats
+};
 
-int populateTypeAndVersion(unsigned char* destinationHeader, PACKET_TYPE type);
-int numBytesForPacketHeader(const unsigned char* packetHeader);
+typedef char PacketVersion;
 
-const int MAX_PACKET_HEADER_BYTES = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION);
+const int NUM_BYTES_MD5_HASH = 16;
+const int NUM_STATIC_HEADER_BYTES = sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
+const int MAX_PACKET_HEADER_BYTES = sizeof(PacketType) + NUM_STATIC_HEADER_BYTES;
 
-// These are supported Z-Command
-#define ERASE_ALL_COMMAND "erase all"
-#define ADD_SCENE_COMMAND "add scene"
-#define TEST_COMMAND      "a message"
+PacketVersion versionForPacketType(PacketType type);
+
+const QUuid nullUUID = QUuid();
+
+QByteArray byteArrayWithPopulatedHeader(PacketType type, const QUuid& connectionUUID = nullUUID);
+int populatePacketHeader(QByteArray& packet, PacketType type, const QUuid& connectionUUID = nullUUID);
+int populatePacketHeader(char* packet, PacketType type, const QUuid& connectionUUID = nullUUID);
+
+int numBytesForPacketHeader(const QByteArray& packet);
+int numBytesForPacketHeader(const char* packet);
+int numBytesForPacketHeaderGivenPacketType(PacketType type);
+
+QUuid uuidFromPacketHeader(const QByteArray& packet);
+
+QByteArray hashFromPacketHeader(const QByteArray& packet);
+QByteArray hashForPacketAndConnectionUUID(const QByteArray& packet, const QUuid& connectionUUID);
+void replaceHashInPacketGivenConnectionUUID(QByteArray& packet, const QUuid& connectionUUID);
+
+PacketType packetTypeForPacket(const QByteArray& packet);
+PacketType packetTypeForPacket(const char* packet);
+
+int arithmeticCodingValueFromBuffer(const char* checkValue);
+int numBytesArithmeticCodingFromBuffer(const char* checkValue);
 
 #endif

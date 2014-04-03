@@ -7,133 +7,113 @@
 //
 
 #include <cstring>
-#include <pthread.h>
 #include <stdio.h>
 
 #ifdef _WIN32
 #include "Syssocket.h"
 #else
-#include <arpa/inet.h>
+#include <arpa/inet.h> // not available on windows, apparently not needed on mac
 #endif
 
 #include "Node.h"
-#include "NodeTypes.h"
 #include "SharedUtil.h"
-#include "UDPSocket.h"
 
+#include <QtCore/QDataStream>
 #include <QtCore/QDebug>
 
-Node::Node(const QUuid& uuid, char type, sockaddr* publicSocket, sockaddr* localSocket) :
+const QString UNKNOWN_NodeType_t_NAME = "Unknown";
+
+namespace NodeType {
+    QHash<NodeType_t, QString> TypeNameHash;
+}
+
+void NodeType::init() {
+    TypeNameHash.insert(NodeType::DomainServer, "Domain Server");
+    TypeNameHash.insert(NodeType::VoxelServer, "Voxel Server");
+    TypeNameHash.insert(NodeType::ParticleServer, "Particle Server");
+    TypeNameHash.insert(NodeType::MetavoxelServer, "Metavoxel Server");
+    TypeNameHash.insert(NodeType::Agent, "Agent");
+    TypeNameHash.insert(NodeType::AudioMixer, "Audio Mixer");
+    TypeNameHash.insert(NodeType::AvatarMixer, "Avatar Mixer");
+    TypeNameHash.insert(NodeType::AnimationServer, "Animation Server");
+    TypeNameHash.insert(NodeType::Unassigned, "Unassigned");
+}
+
+const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
+    QHash<NodeType_t, QString>::iterator matchedTypeName = TypeNameHash.find(nodeType);
+    return matchedTypeName != TypeNameHash.end() ? matchedTypeName.value() : UNKNOWN_NodeType_t_NAME;
+}
+
+Node::Node(const QUuid& uuid, char type, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) :
     _type(type),
     _uuid(uuid),
     _wakeMicrostamp(usecTimestampNow()),
     _lastHeardMicrostamp(usecTimestampNow()),
+    _publicSocket(publicSocket),
+    _localSocket(localSocket),
+    _symmetricSocket(),
     _activeSocket(NULL),
+    _connectionSecret(),
     _bytesReceivedMovingAverage(NULL),
     _linkedData(NULL),
-    _isAlive(true)
+    _isAlive(true),
+    _clockSkewUsec(0),
+    _mutex()
 {
-    setPublicSocket(publicSocket);
-    setLocalSocket(localSocket);
-    
-    pthread_mutex_init(&_mutex, 0);
 }
 
 Node::~Node() {
-    delete _publicSocket;
-    delete _localSocket;
-    
-    if (_linkedData) {
-        _linkedData->deleteOrDeleteLater();
-    }
-    
+    delete _linkedData;
     delete _bytesReceivedMovingAverage;
-    
-    pthread_mutex_destroy(&_mutex);
 }
 
-// Names of Node Types
-const char* NODE_TYPE_NAME_DOMAIN = "Domain";
-const char* NODE_TYPE_NAME_VOXEL_SERVER = "Voxel Server";
-const char* NODE_TYPE_NAME_AGENT = "Agent";
-const char* NODE_TYPE_NAME_AUDIO_MIXER = "Audio Mixer";
-const char* NODE_TYPE_NAME_AVATAR_MIXER = "Avatar Mixer";
-const char* NODE_TYPE_NAME_AUDIO_INJECTOR = "Audio Injector";
-const char* NODE_TYPE_NAME_ANIMATION_SERVER = "Animation Server";
-const char* NODE_TYPE_NAME_UNASSIGNED = "Unassigned";
-const char* NODE_TYPE_NAME_UNKNOWN = "Unknown";
-
-const char* Node::getTypeName() const {
-	switch (this->_type) {
-		case NODE_TYPE_DOMAIN:
-			return NODE_TYPE_NAME_DOMAIN;
-		case NODE_TYPE_VOXEL_SERVER:
-			return NODE_TYPE_NAME_VOXEL_SERVER;
-		case NODE_TYPE_AGENT:
-			return NODE_TYPE_NAME_AGENT;
-		case NODE_TYPE_AUDIO_MIXER:
-			return NODE_TYPE_NAME_AUDIO_MIXER;
-        case NODE_TYPE_AVATAR_MIXER:
-            return NODE_TYPE_NAME_AVATAR_MIXER;
-        case NODE_TYPE_AUDIO_INJECTOR:
-            return NODE_TYPE_NAME_AUDIO_INJECTOR;
-        case NODE_TYPE_ANIMATION_SERVER:
-            return NODE_TYPE_NAME_ANIMATION_SERVER;
-        case NODE_TYPE_UNASSIGNED:
-            return NODE_TYPE_NAME_UNASSIGNED;
-        default:
-            return NODE_TYPE_NAME_UNKNOWN;
-	}
-}
-
-void Node::setPublicSocket(sockaddr* publicSocket) {
-    if (_activeSocket == _publicSocket) {
+void Node::setPublicSocket(const HifiSockAddr& publicSocket) {
+    if (_activeSocket == &_publicSocket) {
         // if the active socket was the public socket then reset it to NULL
         _activeSocket = NULL;
     }
-    
-    if (publicSocket) {
-        _publicSocket = new sockaddr(*publicSocket);
-    } else {
-        _publicSocket = NULL;
-    }
+
+    _publicSocket = publicSocket;
 }
 
-void Node::setLocalSocket(sockaddr* localSocket) {
-    if (_activeSocket == _localSocket) {
+void Node::setLocalSocket(const HifiSockAddr& localSocket) {
+    if (_activeSocket == &_localSocket) {
         // if the active socket was the local socket then reset it to NULL
         _activeSocket = NULL;
     }
-    
-    if (localSocket) {
-        _localSocket = new sockaddr(*localSocket);
-    } else {
-        _localSocket = NULL;
+
+    _localSocket = localSocket;
+}
+
+void Node::setSymmetricSocket(const HifiSockAddr& symmetricSocket) {
+    if (_activeSocket == &_symmetricSocket) {
+        // if the active socket was the symmetric socket then reset it to NULL
+        _activeSocket = NULL;
     }
+    
+    _symmetricSocket = symmetricSocket;
 }
 
 void Node::activateLocalSocket() {
-    qDebug() << "Activating local socket for node" << *this << "\n";
-    _activeSocket = _localSocket;
+    qDebug() << "Activating local socket for node" << *this;
+    _activeSocket = &_localSocket;
 }
 
 void Node::activatePublicSocket() {
-    qDebug() << "Activating public socket for node" << *this << "\n";
-    _activeSocket = _publicSocket;
+    qDebug() << "Activating public socket for node" << *this;
+    _activeSocket = &_publicSocket;
 }
 
-bool Node::matches(sockaddr* otherPublicSocket, sockaddr* otherLocalSocket, char otherNodeType) {
-    // checks if two node objects are the same node (same type + local + public address)
-    return _type == otherNodeType
-        && socketMatch(_publicSocket, otherPublicSocket)
-        && socketMatch(_localSocket, otherLocalSocket);
+void Node::activateSymmetricSocket() {
+    qDebug() << "Activating symmetric socket for node" << *this;
+    _activeSocket = &_symmetricSocket;
 }
 
 void Node::recordBytesReceived(int bytesReceived) {
-    if (_bytesReceivedMovingAverage == NULL) {
+    if (!_bytesReceivedMovingAverage) {
         _bytesReceivedMovingAverage = new SimpleMovingAverage(100);
     }
-    
+
     _bytesReceivedMovingAverage->updateAverage((float) bytesReceived);
 }
 
@@ -153,16 +133,27 @@ float Node::getAverageKilobitsPerSecond() {
     }
 }
 
+QDataStream& operator<<(QDataStream& out, const Node& node) {
+    out << node._type;
+    out << node._uuid;
+    out << node._publicSocket;
+    out << node._localSocket;
+    
+    return out;
+}
+
+QDataStream& operator>>(QDataStream& in, Node& node) {
+    in >> node._type;
+    in >> node._uuid;
+    in >> node._publicSocket;
+    in >> node._localSocket;
+    
+    return in;
+}
+
 QDebug operator<<(QDebug debug, const Node &node) {
-    char publicAddressBuffer[16] = {'\0'};
-    unsigned short publicAddressPort = loadBufferWithSocketInfo(publicAddressBuffer, node.getPublicSocket());
-    
-    char localAddressBuffer[16] = {'\0'};
-    unsigned short localAddressPort = loadBufferWithSocketInfo(localAddressBuffer, node.getLocalSocket());
-    
-    debug.nospace() << node.getTypeName() << " (" << node.getType() << ")";
+    debug.nospace() << NodeType::getNodeTypeName(node.getType()) << " (" << node.getType() << ")";
     debug << " " << node.getUUID().toString().toLocal8Bit().constData() << " ";
-    debug.nospace() << publicAddressBuffer << ":" << publicAddressPort;
-    debug.nospace() << " / " << localAddressBuffer << ":" << localAddressPort;
+    debug.nospace() << node.getPublicSocket() << "/" << node.getLocalSocket();
     return debug.nospace();
 }

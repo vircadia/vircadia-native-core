@@ -13,26 +13,19 @@
 
 #include <SharedUtil.h>
 
-#include <AvatarData.h>
+#include <HeadData.h>
 
 #include <VoxelConstants.h>
 
-#include "BendyLine.h"
 #include "FaceModel.h"
 #include "InterfaceConfig.h"
-#include "VideoFace.h"
 #include "world.h"
-#include "devices/SerialInterface.h"
-#include "renderer/TextureCache.h"
 
 enum eyeContactTargets {
     LEFT_EYE, 
     RIGHT_EYE, 
     MOUTH
 };
-
-const int MOHAWK_TRIANGLES = 50;
-const int NUM_HAIR_TUFTS = 4;
 
 class Avatar;
 class ProgramObject;
@@ -43,119 +36,103 @@ public:
     
     void init();
     void reset();
-    void simulate(float deltaTime, bool isMine);
-    void render(float alpha, bool isMine);
-    void renderMohawk();
-
+    void simulate(float deltaTime, bool isMine, bool billboard = false);
+    void render(float alpha, bool forShadowMap);
     void setScale(float scale);
     void setPosition(glm::vec3 position) { _position = position; }
-    void setBodyRotation(glm::vec3 bodyRotation) { _bodyRotation = bodyRotation; }
     void setGravity(glm::vec3 gravity) { _gravity = gravity; }
-    void setSkinColor(glm::vec3 skinColor) { _skinColor = skinColor; }
-    void setSpringScale(float returnSpringScale) { _returnSpringScale = returnSpringScale; }
     void setAverageLoudness(float averageLoudness) { _averageLoudness = averageLoudness; }
     void setReturnToCenter (bool returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     void setRenderLookatVectors(bool onOff) { _renderLookatVectors = onOff; }
+    void setLeanSideways(float leanSideways) { _leanSideways = leanSideways; }
+    void setLeanForward(float leanForward) { _leanForward = leanForward; }
     
-    float getMousePitch() const { return _mousePitch; }
-    void  setMousePitch(float mousePitch) { _mousePitch = mousePitch; }
+    /// \return orientationBody * orientationBase+Delta
+    glm::quat getFinalOrientation() const;
 
-    glm::quat getOrientation() const;
+    /// \return orientationBody * orientationBasePitch
     glm::quat getCameraOrientation () const;
+
     const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
     void setAngularVelocity(glm::vec3 angularVelocity) { _angularVelocity = angularVelocity; }
     
     float getScale() const { return _scale; }
     glm::vec3 getPosition() const { return _position; }
-    const glm::vec3& getSkinColor() const { return _skinColor; }
     const glm::vec3& getEyePosition() const { return _eyePosition; }
     const glm::vec3& getSaccade() const { return _saccade; }
     glm::vec3 getRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getUpDirection() const { return getOrientation() * IDENTITY_UP; }
     glm::vec3 getFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
+    float getLeanSideways() const { return _leanSideways; }
+    float getLeanForward() const { return _leanForward; }
+    float getFinalLeanSideways() const { return _leanSideways + _deltaLeanSideways; }
+    float getFinalLeanForward() const { return _leanForward + _deltaLeanForward; }
     
     glm::quat getEyeRotation(const glm::vec3& eyePosition) const;
     
-    VideoFace& getVideoFace() { return _videoFace; }
     FaceModel& getFaceModel() { return _faceModel; }
+    const FaceModel& getFaceModel() const { return _faceModel; }
     
     const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() const { return _averageLoudness; }
     glm::vec3 calculateAverageEyePosition() { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
     
-    /// Returns the point about which scaling occurs.
+    /// \return the point about which scaling occurs.
     glm::vec3 getScalePivot() const;
-    
-    float yawRate;
 
+    void setDeltaPitch(float pitch) { _deltaPitch = pitch; }
+    float getDeltaPitch() const { return _deltaPitch; }
+
+    void setDeltaYaw(float yaw) { _deltaYaw = yaw; }
+    float getDeltaYaw() const { return _deltaYaw; }
+    
+    void setDeltaRoll(float roll) { _deltaRoll = roll; }
+    float getDeltaRoll() const { return _deltaRoll; }
+    
+    virtual float getFinalPitch() const;
+    virtual float getFinalYaw() const;
+    virtual float getFinalRoll() const;
+
+    void relaxLean(float deltaTime);
+    void addLeanDeltas(float sideways, float forward);
+    
 private:
     // disallow copies of the Head, copy of owning Avatar is disallowed too
     Head(const Head&);
     Head& operator= (const Head&);
 
-    struct Nose {
-        glm::vec3 top;
-        glm::vec3 left;
-        glm::vec3 right;
-        glm::vec3 front;
-    };
-
-    float _renderAlpha;
     bool _returnHeadToCenter;
-    glm::vec3 _skinColor;
     glm::vec3 _position;
     glm::vec3 _rotation;
     glm::vec3 _leftEyePosition;
     glm::vec3 _rightEyePosition;
     glm::vec3 _eyePosition;
-    glm::vec3 _leftEyeBrowPosition;
-    glm::vec3 _rightEyeBrowPosition;
-    glm::vec3 _leftEarPosition;
-    glm::vec3 _rightEarPosition;
-    glm::vec3 _mouthPosition;
-    Nose _nose;
     float _scale;
     glm::vec3 _gravity;
     float _lastLoudness;
     float _audioAttack;
-    float _returnSpringScale; //strength of return springs
-    glm::vec3 _bodyRotation;
     glm::vec3 _angularVelocity;
     bool _renderLookatVectors;
-    BendyLine _hairTuft[NUM_HAIR_TUFTS];
-    bool _mohawkInitialized;
-    glm::vec3 _mohawkTriangleFan[MOHAWK_TRIANGLES];
-    glm::vec3 _mohawkColors[MOHAWK_TRIANGLES];
     glm::vec3 _saccade;
     glm::vec3 _saccadeTarget;
     float _leftEyeBlinkVelocity;
     float _rightEyeBlinkVelocity;
     float _timeWithoutTalking;
-    float _cameraPitch; //  Used to position the camera differently from the head
-    float _mousePitch;
-    float _cameraYaw;
+
+    // delta angles for local head rotation (driven by hardware input)
+    float _deltaPitch;
+    float _deltaYaw;
+    float _deltaRoll;
+
+    // delta lean angles for lean perturbations (driven by collisions)
+    float _deltaLeanSideways;
+    float _deltaLeanForward;
+
     bool _isCameraMoving;
-    VideoFace _videoFace;
     FaceModel _faceModel;
-
-    QSharedPointer<Texture> _dilatedIrisTexture;
-
-    static ProgramObject _irisProgram;
-    static QSharedPointer<DilatableNetworkTexture> _irisTexture;
-    static int _eyePositionLocation;
     
     // private methods
-    void createMohawk();
-    void renderHeadSphere();
-    void renderEyeBalls();
-    void renderEyeBrows();
-    void renderEars();
-    void renderNose();
-    void renderMouth();
     void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
-    void calculateGeometry();
-    void resetHairPhysics();
-    void updateHairPhysics(float deltaTime);
 
     friend class FaceModel;
 };

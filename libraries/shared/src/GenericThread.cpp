@@ -8,57 +8,71 @@
 //  Generic Threaded or non-threaded processing class
 //
 
+#include <QDebug>
+
 #include "GenericThread.h"
+
 
 GenericThread::GenericThread() :
     _stopThread(false),
     _isThreaded(false) // assume non-threaded, must call initialize()
 {
-    pthread_mutex_init(&_mutex, 0);
 }
 
 GenericThread::~GenericThread() {
-    terminate();
-    pthread_mutex_destroy(&_mutex);
+    // we only need to call terminate() if we're actually threaded and still running
+    if (isStillRunning() && isThreaded()) {
+        terminate();
+    }
 }
 
 void GenericThread::initialize(bool isThreaded) {
     _isThreaded = isThreaded;
     if (_isThreaded) {
-        pthread_create(&_thread, NULL, GenericThreadEntry, this);
+        _thread = new QThread(this);
+
+        // when the worker thread is started, call our engine's run..
+        connect(_thread, SIGNAL(started()), this, SLOT(threadRoutine()));
+
+        this->moveToThread(_thread);
+
+        // Starts an event loop, and emits _thread->started()
+        _thread->start();
     }
 }
 
 void GenericThread::terminate() {
     if (_isThreaded) {
         _stopThread = true;
-        pthread_join(_thread, NULL); 
-        _isThreaded = false;
+        
+        terminating();
+
+        if (_thread) {
+            _thread->wait();
+            _thread->deleteLater();
+            _thread = NULL;
+        }
     }
 }
 
-void* GenericThread::threadRoutine() {
+void GenericThread::threadRoutine() {
     while (!_stopThread) {
-    
+
         // override this function to do whatever your class actually does, return false to exit thread early
         if (!process()) {
             break;
         }
-        
-        // In non-threaded mode, this will break each time you call it so it's the 
+
+        // In non-threaded mode, this will break each time you call it so it's the
         // callers responsibility to continuously call this method
         if (!_isThreaded) {
             break;
         }
     }
-    
-    if (_isThreaded) {
-        pthread_exit(0); 
-    }
-    return NULL; 
-}
 
-extern "C" void* GenericThreadEntry(void* arg) {
-    GenericThread* genericThread = (GenericThread*)arg;
-    return genericThread->threadRoutine();
+    // If we were on a thread, then quit our thread
+    if (_isThreaded && _thread) {
+        _thread->quit();
+    }
+    emit finished();
 }

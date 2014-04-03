@@ -15,25 +15,53 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 
-#include <AudioInjector.h>
-#include <Assignment.h>
+#include <MixedAudioRingBuffer.h>
+#include <ParticleEditPacketSender.h>
+#include <ParticleTree.h>
+#include <ParticleTreeHeadlessViewer.h>
+#include <ScriptEngine.h>
+#include <ThreadedAssignment.h>
+#include <VoxelEditPacketSender.h>
+#include <VoxelTreeHeadlessViewer.h>
 
-class Agent : public Assignment {
+
+class Agent : public ThreadedAssignment {
     Q_OBJECT
+    
+    Q_PROPERTY(bool isAvatar READ isAvatar WRITE setIsAvatar)
+    Q_PROPERTY(bool isPlayingAvatarSound READ isPlayingAvatarSound)
+    Q_PROPERTY(bool isListeningToAudioStream READ isListeningToAudioStream WRITE setIsListeningToAudioStream)
+    Q_PROPERTY(float lastReceivedAudioLoudness READ getLastReceivedAudioLoudness)
 public:
-    Agent(const unsigned char* dataBuffer, int numBytes);
+    Agent(const QByteArray& packet);
     
-    void run();
+    void setIsAvatar(bool isAvatar) { QMetaObject::invokeMethod(&_scriptEngine, "setIsAvatar", Q_ARG(bool, isAvatar)); }
+    bool isAvatar() const { return _scriptEngine.isAvatar(); }
+    
+    bool isPlayingAvatarSound() const  { return _scriptEngine.isPlayingAvatarSound(); }
+    
+    bool isListeningToAudioStream() const { return _scriptEngine.isListeningToAudioStream(); }
+    void setIsListeningToAudioStream(bool isListeningToAudioStream)
+        { _scriptEngine.setIsListeningToAudioStream(isListeningToAudioStream); }
+    
+    float getLastReceivedAudioLoudness() const { return _receivedAudioBuffer.getLastReadFrameAverageLoudness(); }
+
+    virtual void aboutToFinish();
+    
 public slots:
-    void stop();
-signals:
-    void willSendAudioDataCallback();
-    void willSendVisualDataCallback();
+    void run();
+    void readPendingDatagrams();
+    void playAvatarSound(Sound* avatarSound) { _scriptEngine.setAvatarSound(avatarSound); }
+
 private:
-    static QScriptValue AudioInjectorConstructor(QScriptContext *context, QScriptEngine *engine);
+    ScriptEngine _scriptEngine;
+    VoxelEditPacketSender _voxelEditSender;
+    ParticleEditPacketSender _particleEditSender;
+
+    ParticleTreeHeadlessViewer _particleViewer;
+    VoxelTreeHeadlessViewer _voxelViewer;
     
-    bool volatile _shouldStop;
-    std::vector<AudioInjector*> _audioInjectors;
+    MixedAudioRingBuffer _receivedAudioBuffer;
 };
 
 #endif /* defined(__hifi__Agent__) */

@@ -11,20 +11,23 @@
 #ifndef __shared__ReceivedPacketProcessor__
 #define __shared__ReceivedPacketProcessor__
 
+#include <QWaitCondition>
+
 #include "GenericThread.h"
 #include "NetworkPacket.h"
 
 /// Generalized threaded processor for handling received inbound packets. 
-class ReceivedPacketProcessor : public virtual GenericThread {
+class ReceivedPacketProcessor : public GenericThread {
+    Q_OBJECT
 public:
-    ReceivedPacketProcessor();
+    ReceivedPacketProcessor() { }
 
     /// Add packet from network receive thread to the processing queue.
     /// \param sockaddr& senderAddress the address of the sender
     /// \param packetData pointer to received data
     /// \param ssize_t packetLength size of received data
     /// \thread network receive thread
-    void queueReceivedPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
+    void queueReceivedPacket(const SharedNodePointer& destinationNode, const QByteArray& packet);
 
     /// Are there received packets waiting to be processed
     bool hasPacketsToProcess() const { return _packets.size() > 0; }
@@ -38,16 +41,18 @@ protected:
     /// \param packetData pointer to received data
     /// \param ssize_t packetLength size of received data
     /// \thread "this" individual processing thread
-    virtual void processPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength) = 0;
+    virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) = 0;
 
     /// Implements generic processing behavior for this thread.
     virtual bool process();
 
-    bool _dontSleep;
+    virtual void terminating();
 
 private:
 
     std::vector<NetworkPacket> _packets;
+    QWaitCondition _hasPackets;
+    QMutex _waitingOnPacketsMutex;
 };
 
 #endif // __shared__PacketReceiver__

@@ -1,0 +1,115 @@
+//
+//  GeometryUtil.h
+//  interface
+//
+//  Created by Andrzej Kapolka on 5/21/13.
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//
+
+#ifndef __interface__GeometryUtil__
+#define __interface__GeometryUtil__
+
+#include <glm/glm.hpp>
+
+glm::vec3 computeVectorFromPointToSegment(const glm::vec3& point, const glm::vec3& start, const glm::vec3& end);
+
+/// Computes the penetration between a point and a sphere (centered at the origin)
+/// \param point the point location relative to sphere center (origin)
+/// \param defaultDirection the direction of the pentration when the point is near the origin
+/// \param sphereRadius the radius of the sphere
+/// \param penetration[out] the displacement that would move the point out of penetration with the sphere
+/// \return true if point is inside sphere, otherwise false
+bool findSpherePenetration(const glm::vec3& point, const glm::vec3& defaultDirection, 
+                           float sphereRadius, glm::vec3& penetration);
+
+bool findSpherePointPenetration(const glm::vec3& sphereCenter, float sphereRadius,
+                                const glm::vec3& point, glm::vec3& penetration);
+
+bool findPointSpherePenetration(const glm::vec3& point, const glm::vec3& sphereCenter,
+    float sphereRadius, glm::vec3& penetration);
+
+bool findSphereSpherePenetration(const glm::vec3& firstCenter, float firstRadius,
+                                 const glm::vec3& secondCenter, float secondRadius, glm::vec3& penetration);
+                     
+bool findSphereSegmentPenetration(const glm::vec3& sphereCenter, float sphereRadius,
+                                  const glm::vec3& segmentStart, const glm::vec3& segmentEnd, glm::vec3& penetration);
+
+bool findSphereCapsulePenetration(const glm::vec3& sphereCenter, float sphereRadius, const glm::vec3& capsuleStart,
+                                  const glm::vec3& capsuleEnd, float capsuleRadius, glm::vec3& penetration);
+
+bool findPointCapsuleConePenetration(const glm::vec3& point, const glm::vec3& capsuleStart,
+    const glm::vec3& capsuleEnd, float startRadius, float endRadius, glm::vec3& penetration);
+    
+bool findSphereCapsuleConePenetration(const glm::vec3& sphereCenter, float sphereRadius, 
+    const glm::vec3& capsuleStart, const glm::vec3& capsuleEnd,
+    float startRadius, float endRadius, glm::vec3& penetration);
+                                  
+bool findSpherePlanePenetration(const glm::vec3& sphereCenter, float sphereRadius, 
+                                const glm::vec4& plane, glm::vec3& penetration);
+                                  
+/// Computes the penetration between a sphere and a disk.
+/// \param sphereCenter center of sphere
+/// \param sphereRadius radius of sphere
+/// \param diskCenter center of disk
+/// \param diskRadius radius of disk
+/// \param diskNormal normal of disk plan
+/// \param penetration[out] the depth that the sphere penetrates the disk
+/// \return true if sphere touches disk (does not handle collisions with disk edge)
+bool findSphereDiskPenetration(const glm::vec3& sphereCenter, float sphereRadius, 
+                               const glm::vec3& diskCenter, float diskRadius, float diskThickness, const glm::vec3& diskNormal, 
+                               glm::vec3& penetration);
+
+bool findCapsuleSpherePenetration(const glm::vec3& capsuleStart, const glm::vec3& capsuleEnd, float capsuleRadius,
+                                  const glm::vec3& sphereCenter, float sphereRadius, glm::vec3& penetration);
+
+bool findCapsulePlanePenetration(const glm::vec3& capsuleStart, const glm::vec3& capsuleEnd, float capsuleRadius,
+                                 const glm::vec4& plane, glm::vec3& penetration);
+
+glm::vec3 addPenetrations(const glm::vec3& currentPenetration, const glm::vec3& newPenetration);
+
+bool findRaySphereIntersection(const glm::vec3& origin, const glm::vec3& direction,
+    const glm::vec3& center, float radius, float& distance);
+
+bool findRayCapsuleIntersection(const glm::vec3& origin, const glm::vec3& direction,
+    const glm::vec3& start, const glm::vec3& end, float radius, float& distance);
+
+bool doLineSegmentsIntersect(glm::vec2 r1p1, glm::vec2 r1p2, glm::vec2 r2p1, glm::vec2 r2p2);
+bool isOnSegment(float xi, float yi, float xj, float yj, float xk, float yk);
+int computeDirection(float xi, float yi, float xj, float yj, float xk, float yk);
+
+
+typedef glm::vec2 LineSegment2[2];
+
+// Polygon Clipping routines inspired by, pseudo code found here: http://www.cs.rit.edu/~icss571/clipTrans/PolyClipBack.html
+class PolygonClip {
+
+public:
+    static void clipToScreen(const glm::vec2* inputVertexArray, int length, glm::vec2*& outputVertexArray, int& outLength);
+
+    static const float TOP_OF_CLIPPING_WINDOW;
+    static const float BOTTOM_OF_CLIPPING_WINDOW;
+    static const float LEFT_OF_CLIPPING_WINDOW;
+    static const float RIGHT_OF_CLIPPING_WINDOW;
+
+    static const glm::vec2 TOP_LEFT_CLIPPING_WINDOW;
+    static const glm::vec2 TOP_RIGHT_CLIPPING_WINDOW;
+    static const glm::vec2 BOTTOM_LEFT_CLIPPING_WINDOW;
+    static const glm::vec2 BOTTOM_RIGHT_CLIPPING_WINDOW;
+    
+private:
+
+    static void sutherlandHodgmanPolygonClip(glm::vec2* inVertexArray, glm::vec2* outVertexArray, 
+                                             int inLength, int& outLength,  const LineSegment2& clipBoundary);
+
+    static bool pointInsideBoundary(const glm::vec2& testVertex, const LineSegment2& clipBoundary);
+
+    static void segmentIntersectsBoundary(const glm::vec2& first, const glm::vec2&  second, 
+                                          const LineSegment2& clipBoundary, glm::vec2& intersection);
+
+    static void appendPoint(glm::vec2 newVertex, int& outLength, glm::vec2* outVertexArray);
+
+    static void copyCleanArray(int& lengthA, glm::vec2* vertexArrayA, int& lengthB, glm::vec2* vertexArrayB);
+};
+
+
+#endif /* defined(__interface__GeometryUtil__) */

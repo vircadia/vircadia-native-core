@@ -14,93 +14,79 @@
 
 #include "Assignment.h"
 
-const char IPv4_ADDRESS_DESIGNATOR = 4;
-const char IPv6_ADDRESS_DESIGNATOR = 6;
-
-Assignment::Type Assignment::typeForNodeType(NODE_TYPE nodeType) {
+Assignment::Type Assignment::typeForNodeType(NodeType_t nodeType) {
     switch (nodeType) {
-        case NODE_TYPE_AUDIO_MIXER:
+        case NodeType::AudioMixer:
             return Assignment::AudioMixerType;
-        case NODE_TYPE_AVATAR_MIXER:
+        case NodeType::AvatarMixer:
             return Assignment::AvatarMixerType;
-        case NODE_TYPE_AGENT:
+        case NodeType::Agent:
             return Assignment::AgentType;
-        case NODE_TYPE_VOXEL_SERVER:
+        case NodeType::VoxelServer:
             return Assignment::VoxelServerType;
+        case NodeType::ParticleServer:
+            return Assignment::ParticleServerType;
+        case NodeType::MetavoxelServer:
+            return Assignment::MetavoxelServerType;
         default:
             return Assignment::AllTypes;
     }
 }
 
+#ifdef WIN32
+//warning C4351: new behavior: elements of array 'Assignment::_payload' will be default initialized 
+// We're disabling this warning because the new behavior which is to initialize the array with 0 is acceptable to us.
+#pragma warning(disable:4351) 
+#endif
+
 Assignment::Assignment() :
     _uuid(),
     _command(Assignment::RequestCommand),
     _type(Assignment::AllTypes),
+    _pool(),
     _location(Assignment::LocalLocation),
-    _numberOfInstances(1),
-    _payload(),
-    _numPayloadBytes(0)
+    _payload()
 {
-    setPool(NULL);
+    
 }
 
-Assignment::Assignment(Assignment::Command command, Assignment::Type type, const char* pool, Assignment::Location location) :
+Assignment::Assignment(Assignment::Command command, Assignment::Type type, const QString& pool, Assignment::Location location) :
+    _uuid(),
     _command(command),
     _type(type),
+    _pool(pool),
     _location(location),
-    _numberOfInstances(1),
-    _payload(),
-    _numPayloadBytes(0)
+    _payload()
 {
     if (_command == Assignment::CreateCommand) {
         // this is a newly created assignment, generate a random UUID
         _uuid = QUuid::createUuid();
     }
-    
-    setPool(pool);
 }
 
-Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
+Assignment::Assignment(const QByteArray& packet) :
+    _pool(),
     _location(GlobalLocation),
-    _numberOfInstances(1),
-    _payload(),
-    _numPayloadBytes(0)
+    _payload()
 {
-    int numBytesRead = 0;
+    PacketType packetType = packetTypeForPacket(packet);
     
-    if (dataBuffer[0] == PACKET_TYPE_REQUEST_ASSIGNMENT) {
+    if (packetType == PacketTypeRequestAssignment) {
         _command = Assignment::RequestCommand;
-    } else if (dataBuffer[0] == PACKET_TYPE_CREATE_ASSIGNMENT) {
+    } else if (packetType == PacketTypeCreateAssignment) {
         _command = Assignment::CreateCommand;
-    } else if (dataBuffer[0] == PACKET_TYPE_DEPLOY_ASSIGNMENT) {
-        _command = Assignment::DeployCommand;
     }
     
-    numBytesRead += numBytesForPacketHeader(dataBuffer);
+    QDataStream packetStream(packet);
+    packetStream.skipRawData(numBytesForPacketHeader(packet));
     
-    memcpy(&_type, dataBuffer + numBytesRead, sizeof(Assignment::Type));
-    numBytesRead += sizeof(Assignment::Type);
-    
-    if (_command != Assignment::RequestCommand) {
-        // read the GUID for this assignment
-        _uuid = QUuid::fromRfc4122(QByteArray((const char*) dataBuffer + numBytesRead, NUM_BYTES_RFC4122_UUID));
-        numBytesRead += NUM_BYTES_RFC4122_UUID;
-    }
-    
-    if (dataBuffer[numBytesRead] != '\0') {
-        // read the pool from the data buffer
-        setPool((const char*) dataBuffer + numBytesRead);
-        numBytesRead += strlen(_pool) + sizeof('\0');
-    } else {
-        // skip past the null pool and null out our pool
-        setPool(NULL);
-        numBytesRead++;
-    }
-    
-    if (numBytes > numBytesRead) {
-        setPayload(dataBuffer + numBytesRead, numBytes - numBytesRead);
-    }
+    packetStream >> *this;
 }
+
+#ifdef WIN32
+#pragma warning(default:4351) 
+#endif
+
 
 Assignment::Assignment(const Assignment& otherAssignment) {
     
@@ -109,10 +95,8 @@ Assignment::Assignment(const Assignment& otherAssignment) {
     _command = otherAssignment._command;
     _type = otherAssignment._type;
     _location = otherAssignment._location;
-    setPool(otherAssignment._pool);
-    _numberOfInstances = otherAssignment._numberOfInstances;
-    
-    setPayload(otherAssignment._payload, otherAssignment._numPayloadBytes);
+    _pool = otherAssignment._pool;
+    _payload = otherAssignment._payload;
 }
 
 Assignment& Assignment::operator=(const Assignment& rhsAssignment) {
@@ -128,42 +112,8 @@ void Assignment::swap(Assignment& otherAssignment) {
     swap(_command, otherAssignment._command);
     swap(_type, otherAssignment._type);
     swap(_location, otherAssignment._location);
-    
-    for (int i = 0; i < sizeof(_pool); i++) {
-        swap(_pool[i], otherAssignment._pool[i]);
-    }
-    
-    swap(_numberOfInstances, otherAssignment._numberOfInstances);
-    
-    for (int i = 0; i < MAX_PAYLOAD_BYTES; i++) {
-        swap(_payload[i], otherAssignment._payload[i]);
-    }
-    
-    swap(_numPayloadBytes, otherAssignment._numPayloadBytes);
-}
-
-void Assignment::setPayload(const uchar* payload, int numBytes) {
-    
-    if (numBytes > MAX_PAYLOAD_BYTES) {
-        qDebug("Set payload called with number of bytes greater than maximum (%d). Will only transfer %d bytes.\n",
-               MAX_PAYLOAD_BYTES,
-               MAX_PAYLOAD_BYTES);
-        
-        _numPayloadBytes = 1024;
-    } else {
-        _numPayloadBytes = numBytes;
-    }
-    
-    memset(_payload, 0, MAX_PAYLOAD_BYTES);
-    memcpy(_payload, payload, _numPayloadBytes);
-}
-
-void Assignment::setPool(const char* pool) {
-    memset(_pool, '\0', sizeof(_pool));
-    
-    if (pool) {
-        strcpy(_pool, pool);
-    }
+    swap(_pool, otherAssignment._pool);
+    swap(_payload, otherAssignment._payload);
 }
 
 const char* Assignment::getTypeName() const {
@@ -176,47 +126,38 @@ const char* Assignment::getTypeName() const {
             return "agent";
         case Assignment::VoxelServerType:
             return "voxel-server";
+        case Assignment::ParticleServerType:
+            return "particle-server";
+        case Assignment::MetavoxelServerType:
+            return "metavoxel-server";
         default:
             return "unknown";
     }
 }
 
-int Assignment::packToBuffer(unsigned char* buffer) {
-    int numPackedBytes = 0;
-    
-    memcpy(buffer + numPackedBytes, &_type, sizeof(_type));
-    numPackedBytes += sizeof(_type);
-    
-    // pack the UUID for this assignment, if this is an assignment create or deploy
-    if (_command != Assignment::RequestCommand) {
-        memcpy(buffer + numPackedBytes, _uuid.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
-        numPackedBytes += NUM_BYTES_RFC4122_UUID;
-    }
-    
-    if (hasPool()) {
-        // pack the pool for this assignment, it exists
-        int numBytesNullTerminatedPool = strlen(_pool) + sizeof('\0');
-        memcpy(buffer + numPackedBytes, _pool, numBytesNullTerminatedPool);
-        numPackedBytes += numBytesNullTerminatedPool;
-    } else {
-        // otherwise pack the null character
-        buffer[numPackedBytes++] = '\0';
-    }
-    
-    if (_numPayloadBytes) {
-        memcpy(buffer + numPackedBytes, _payload, _numPayloadBytes);
-        numPackedBytes += _numPayloadBytes;
-    }
-    
-    return numPackedBytes;
-}
-
-void Assignment::run() {
-    // run method ovveridden by subclasses
-}
-
 QDebug operator<<(QDebug debug, const Assignment &assignment) {
-    debug.nospace() << "UUID: " << assignment.getUUID().toString().toStdString().c_str() <<
+    debug.nospace() << "UUID: " << qPrintable(assignment.getUUID().toString()) <<
         ", Type: " << assignment.getType();
-    return debug.nospace();
+    
+    if (!assignment.getPool().isEmpty()) {
+        debug << ", Pool: " << assignment.getPool();
+    }
+
+    return debug.space();
+}
+
+QDataStream& operator<<(QDataStream &out, const Assignment& assignment) {
+    out << (quint8) assignment._type << assignment._uuid << assignment._pool << assignment._payload;
+    
+    return out;
+}
+
+QDataStream& operator>>(QDataStream &in, Assignment& assignment) {
+    quint8 packedType;
+    in >> packedType;
+    assignment._type = (Assignment::Type) packedType;
+    
+    in >> assignment._uuid >> assignment._pool >> assignment._payload;
+    
+    return in;
 }

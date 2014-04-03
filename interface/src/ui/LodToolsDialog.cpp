@@ -68,7 +68,7 @@ LodToolsDialog::LodToolsDialog(QWidget* parent) :
     const unsigned redish  = 0xfff00000;
     palette.setColor(QPalette::WindowText, QColor::fromRgb(redish));
     _feedback->setPalette(palette);
-    _feedback->setText(getFeedbackText());
+    _feedback->setText(Menu::getInstance()->getLODFeedbackText());
     const int FEEDBACK_WIDTH = 350;
     _feedback->setFixedWidth(FEEDBACK_WIDTH);
     form->addRow("You can see... ", _feedback);
@@ -81,60 +81,32 @@ LodToolsDialog::LodToolsDialog(QWidget* parent) :
     this->QDialog::setLayout(form);
 }
 
-QString LodToolsDialog::getFeedbackText() {
-    // determine granularity feedback
-    int boundaryLevelAdjust = Menu::getInstance()->getBoundaryLevelAdjust();
-    QString granularityFeedback;
-
-    switch (boundaryLevelAdjust) {
-        case 0: {
-            granularityFeedback = QString("at standard granularity.");
-        } break;
-        case 1: {
-            granularityFeedback = QString("at half of standard granularity.");
-        } break;
-        case 2: {
-            granularityFeedback = QString("at a third of standard granularity.");
-        } break;
-        default: {
-            granularityFeedback = QString("at 1/%1th of standard granularity.").arg(boundaryLevelAdjust + 1);
-        } break;
-    }
-
-    // distance feedback    
-    float voxelSizeScale = Menu::getInstance()->getVoxelSizeScale();
-    float relativeToDefault = voxelSizeScale / DEFAULT_VOXEL_SIZE_SCALE;
-    QString result;
-    if (relativeToDefault > 1.01) {
-        result = QString("%1 further %2").arg(relativeToDefault,8,'f',2).arg(granularityFeedback);
-    } else if (relativeToDefault > 0.99) {
-            result = QString("the default distance %1").arg(granularityFeedback);
-    } else {
-        result = QString("%1 of default %2").arg(relativeToDefault,8,'f',3).arg(granularityFeedback);
-    }
-    return result;
-}
-
 LodToolsDialog::~LodToolsDialog() {
     delete _feedback;
     delete _lodSize;
     delete _boundaryLevelAdjust;
 }
 
+void LodToolsDialog::reloadSliders() {
+    _lodSize->setValue(Menu::getInstance()->getVoxelSizeScale() / TREE_SCALE);
+    _boundaryLevelAdjust->setValue(Menu::getInstance()->getBoundaryLevelAdjust());
+    _feedback->setText(Menu::getInstance()->getLODFeedbackText());
+}
+
 void LodToolsDialog::sizeScaleValueChanged(int value) {
     float realValue = value * TREE_SCALE;
     Menu::getInstance()->setVoxelSizeScale(realValue);
     
-    _feedback->setText(getFeedbackText());
+    _feedback->setText(Menu::getInstance()->getLODFeedbackText());
 }
 
 void LodToolsDialog::boundaryLevelValueChanged(int value) {
     Menu::getInstance()->setBoundaryLevelAdjust(value);
-    _feedback->setText(getFeedbackText());
+    _feedback->setText(Menu::getInstance()->getLODFeedbackText());
 }
 
 void LodToolsDialog::resetClicked(bool checked) {
-    int sliderValue = DEFAULT_VOXEL_SIZE_SCALE / TREE_SCALE;
+    int sliderValue = DEFAULT_OCTREE_SIZE_SCALE / TREE_SCALE;
     //sizeScaleValueChanged(sliderValue);
     _lodSize->setValue(sliderValue);
     _boundaryLevelAdjust->setValue(0);

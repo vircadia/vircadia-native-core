@@ -22,7 +22,7 @@ struct Radians {
 
     static float pi() { return 3.141592653589793f; }
     static float twicePi() { return 6.283185307179586f; }
-    static float halfPi()  { return 1.5707963267948966; }
+    static float halfPi()  { return 1.5707963267948966f; }
 };
 
 struct Rotations {

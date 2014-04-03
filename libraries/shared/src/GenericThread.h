@@ -11,48 +11,55 @@
 #ifndef __shared__GenericThread__
 #define __shared__GenericThread__
 
-#include <pthread.h>
+#include <QtCore/QObject>
+#include <QMutex>
+#include <QThread>
 
 /// A basic generic "thread" class. Handles a single thread of control within the application. Can operate in non-threaded
 /// mode but caller must regularly call threadRoutine() method.
-class GenericThread {
+class GenericThread : public QObject {
+    Q_OBJECT
 public:
     GenericThread();
     virtual ~GenericThread();
 
-    /// Call to start the thread. 
+    /// Call to start the thread.
     /// \param bool isThreaded true by default. false for non-threaded mode and caller must call threadRoutine() regularly.
     void initialize(bool isThreaded = true);
 
     /// Call to stop the thread
     void terminate();
-    
-    /// If you're running in non-threaded mode, you must call this regularly
-    void* threadRoutine();
 
     /// Override this function to do whatever your class actually does, return false to exit thread early.
     virtual bool process() = 0;
 
+    virtual void terminating() { }; // lets your subclass know we're terminating, and it should respond appropriately
+
+    bool isThreaded() const { return _isThreaded; }
+
+public slots:
+    /// If you're running in non-threaded mode, you must call this regularly
+    void threadRoutine();
+
+signals:
+    void finished();
+
 protected:
 
     /// Locks all the resources of the thread.
-    void lock() { pthread_mutex_lock(&_mutex); }
+    void lock() { _mutex.lock(); }
 
     /// Unlocks all the resources of the thread.
-    void unlock() { pthread_mutex_unlock(&_mutex); }
-    
+    void unlock() { _mutex.unlock(); }
+
     bool isStillRunning() const { return !_stopThread; }
 
-    bool isThreaded() const { return _isThreaded; }
-    
 private:
-    pthread_mutex_t _mutex;
+    QMutex _mutex;
 
     bool _stopThread;
     bool _isThreaded;
-    pthread_t _thread;
+    QThread* _thread;
 };
-
-extern "C" void* GenericThreadEntry(void* arg);
 
 #endif // __shared__GenericThread__

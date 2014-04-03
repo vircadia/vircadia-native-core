@@ -1,0 +1,58 @@
+
+QPlainTextEdit {
+    font-family: Inconsolata, Lucida Console, Andale Mono, Monaco;
+    font-size: 16px;
+    padding-left: 28px;
+    padding-top: 7px;
+    color: #333333;
+    background-color: #FFFFFF;
+    border: none;
+}
+
+QLineEdit {
+    font-family: Inconsolata, Lucida Console, Andale Mono, Monaco;
+    padding-left: 7px;
+    background-color: #CCCCCC;
+    border-width: 0;
+    border-top-right-radius: 9px;
+    border-bottom-right-radius: 9px;
+    color: #333333;
+    font-size: 12px;
+}
+
+QPushButton#searchButton {
+    background: url(styles/search.svg);
+    background-repeat: none;
+    background-position: left center;
+    background-origin: content;
+    padding-left: 7px;
+    background-color: #CCCCCC;
+    border-width: 0;
+    border-top-left-radius: 9px;
+    border-bottom-left-radius: 9px;
+}
+
+QPushButton#revealLogButton {
+    background: url(styles/txt-file.svg);
+    background-repeat: none;
+    background-position: left center;
+    background-origin: content;
+    padding-left: 10px;
+    background-color: #333333;
+    color: #BBBBBB;
+    border-width: 0;
+    border-radius: 9px;
+    font-size: 11px;
+}
+
+QCheckBox {
+    font-family: Helvetica, Arial, sans-serif;
+}
+
+QCheckBox::indicator:unchecked {
+    image: url(:/styles/unchecked.svg);
+}
+
+QCheckBox::indicator:checked {
+    image: url(:/styles/checked.svg);
+}

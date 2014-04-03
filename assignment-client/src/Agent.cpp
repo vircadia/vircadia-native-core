@@ -6,203 +6,199 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#include <curl/curl.h>
+#include <QtCore/QCoreApplication>
+#include <QtCore/QEventLoop>
+#include <QtCore/QTimer>
+#include <QtNetwork/QNetworkAccessManager>
+#include <QtNetwork/QNetworkRequest>
+#include <QtNetwork/QNetworkReply>
 
+#include <AudioRingBuffer.h>
 #include <AvatarData.h>
 #include <NodeList.h>
+#include <PacketHeaders.h>
 #include <UUID.h>
 #include <VoxelConstants.h>
+#include <ParticlesScriptingInterface.h>
 
 #include "Agent.h"
-#include "voxels/VoxelScriptingInterface.h"
 
-Agent::Agent(const unsigned char* dataBuffer, int numBytes) :
-    Assignment(dataBuffer, numBytes),
-    _shouldStop(false)
+Agent::Agent(const QByteArray& packet) :
+    ThreadedAssignment(packet),
+    _voxelEditSender(),
+    _particleEditSender(),
+    _receivedAudioBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO)
 {
-}
-
-
-void Agent::stop() {
-    _shouldStop = true;
-}
-
-static size_t writeScriptDataToString(void *contents, size_t size, size_t nmemb, void *userdata) {
-    size_t realSize = size * nmemb;
+    // be the parent of the script engine so it gets moved when we do
+    _scriptEngine.setParent(this);
     
-    QString* scriptContents = (QString*) userdata;
-    
-    // append this chunk to the scriptContents
-    scriptContents->append(QByteArray((char*) contents, realSize));
-    
-    // return the amount of data read
-    return realSize;
+    _scriptEngine.getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
+    _scriptEngine.getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
 }
 
-QScriptValue vec3toScriptValue(QScriptEngine *engine, const glm::vec3 &vec3) {
-    QScriptValue obj = engine->newObject();
-    obj.setProperty("x", vec3.x);
-    obj.setProperty("y", vec3.y);
-    obj.setProperty("z", vec3.z);
-    return obj;
+void Agent::readPendingDatagrams() {
+    QByteArray receivedPacket;
+    HifiSockAddr senderSockAddr;
+    NodeList* nodeList = NodeList::getInstance();
+    
+    while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
+        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
+            PacketType datagramPacketType = packetTypeForPacket(receivedPacket);
+            
+            if (datagramPacketType == PacketTypeJurisdiction) {
+                int headerBytes = numBytesForPacketHeader(receivedPacket);
+                
+                SharedNodePointer matchedNode = nodeList->sendingNodeForPacket(receivedPacket);
+                
+                if (matchedNode) {
+                    // PacketType_JURISDICTION, first byte is the node type...
+                    switch (receivedPacket[headerBytes]) {
+                        case NodeType::VoxelServer:
+                            _scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener()->
+                                                                queueReceivedPacket(matchedNode,receivedPacket);
+                            break;
+                        case NodeType::ParticleServer:
+                            _scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener()->
+                                                                queueReceivedPacket(matchedNode, receivedPacket);
+                            break;
+                    }
+                }
+                
+            } else if (datagramPacketType == PacketTypeParticleAddResponse) {
+                // this will keep creatorTokenIDs to IDs mapped correctly
+                Particle::handleAddParticleResponse(receivedPacket);
+                
+                // also give our local particle tree a chance to remap any internal locally created particles
+                _particleViewer.getTree()->handleAddParticleResponse(receivedPacket);
+
+                // Make sure our Node and NodeList knows we've heard from this node.
+                SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
+                sourceNode->setLastHeardMicrostamp(usecTimestampNow());
+
+            } else if (datagramPacketType == PacketTypeParticleData
+                        || datagramPacketType == PacketTypeParticleErase
+                        || datagramPacketType == PacketTypeOctreeStats
+                        || datagramPacketType == PacketTypeVoxelData
+            ) {
+                // Make sure our Node and NodeList knows we've heard from this node.
+                SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
+                sourceNode->setLastHeardMicrostamp(usecTimestampNow());
+
+                QByteArray mutablePacket = receivedPacket;
+                ssize_t messageLength = mutablePacket.size();
+
+                if (datagramPacketType == PacketTypeOctreeStats) {
+
+                    int statsMessageLength = OctreeHeadlessViewer::parseOctreeStats(mutablePacket, sourceNode);
+                    if (messageLength > statsMessageLength) {
+                        mutablePacket = mutablePacket.mid(statsMessageLength);
+                        
+                        // TODO: this needs to be fixed, the goal is to test the packet version for the piggyback, but
+                        //       this is testing the version and hash of the original packet
+                        //       need to use numBytesArithmeticCodingFromBuffer()...
+                        if (!NodeList::getInstance()->packetVersionAndHashMatch(receivedPacket)) {
+                            return; // bail since piggyback data doesn't match our versioning
+                        }
+                    } else {
+                        return; // bail since no piggyback data
+                    }
+
+                    datagramPacketType = packetTypeForPacket(mutablePacket);
+                } // fall through to piggyback message
+
+                if (datagramPacketType == PacketTypeParticleData || datagramPacketType == PacketTypeParticleErase) {
+                    _particleViewer.processDatagram(mutablePacket, sourceNode);
+                }
+
+                if (datagramPacketType == PacketTypeVoxelData) {
+                    _voxelViewer.processDatagram(mutablePacket, sourceNode);
+                }
+
+            } else if (datagramPacketType == PacketTypeMixedAudio) {
+                // parse the data and grab the average loudness
+                _receivedAudioBuffer.parseData(receivedPacket);
+                
+                // pretend like we have read the samples from this buffer so it does not fill
+                static int16_t garbageAudioBuffer[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO];
+                _receivedAudioBuffer.readSamples(garbageAudioBuffer, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO);
+                
+                // let this continue through to the NodeList so it updates last heard timestamp
+                // for the sending audio mixer
+                NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
+            } else {
+                NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
+            }
+        }
+    }
 }
 
-void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3) {
-    vec3.x = object.property("x").toVariant().toFloat();
-    vec3.y = object.property("y").toVariant().toFloat();
-    vec3.z = object.property("z").toVariant().toFloat();
-}
+const QString AGENT_LOGGING_NAME = "agent";
 
 void Agent::run() {
+    ThreadedAssignment::commonInit(AGENT_LOGGING_NAME, NodeType::Agent);
+    
     NodeList* nodeList = NodeList::getInstance();
-    nodeList->setOwnerType(NODE_TYPE_AGENT);
-    
-    const char AGENT_NODE_TYPES_OF_INTEREST[1] = { NODE_TYPE_VOXEL_SERVER };
-    
-    nodeList->setNodeTypesOfInterest(AGENT_NODE_TYPES_OF_INTEREST, sizeof(AGENT_NODE_TYPES_OF_INTEREST));
-
-    nodeList->getNodeSocket()->setBlocking(false);
+    nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet()
+                                                 << NodeType::AudioMixer
+                                                 << NodeType::AvatarMixer
+                                                 << NodeType::VoxelServer
+                                                 << NodeType::ParticleServer);
     
     // figure out the URL for the script for this agent assignment
     QString scriptURLString("http://%1:8080/assignment/%2");
-    scriptURLString = scriptURLString.arg(NodeList::getInstance()->getDomainIP().toString(),
+    scriptURLString = scriptURLString.arg(NodeList::getInstance()->getDomainInfo().getIP().toString(),
                                           uuidStringWithoutCurlyBraces(_uuid));
     
-    // setup curl for script download
-    CURLcode curlResult;
+    QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
+    QNetworkReply *reply = networkManager->get(QNetworkRequest(QUrl(scriptURLString)));
     
-    CURL* curlHandle = curl_easy_init();
+    qDebug() << "Downloading script at" << scriptURLString;
     
-    // tell curl which file to grab
-    curl_easy_setopt(curlHandle, CURLOPT_URL, scriptURLString.toStdString().c_str());
+    QEventLoop loop;
+    QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
     
-    // send the data to the WriteMemoryCallback function
-    curl_easy_setopt(curlHandle, CURLOPT_WRITEFUNCTION, writeScriptDataToString);
+    loop.exec();
     
-    QString scriptContents;
+    // let the AvatarData class use our QNetworkAcessManager
+    AvatarData::setNetworkAccessManager(networkManager);
     
-    // pass the scriptContents QString to append data to
-    curl_easy_setopt(curlHandle, CURLOPT_WRITEDATA, (void *)&scriptContents);
+    QString scriptContents(reply->readAll());
     
-    // send a user agent since some servers will require it
-    curl_easy_setopt(curlHandle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+    qDebug() << "Downloaded script:" << scriptContents;
     
-    // make sure CURL fails on a 400 code
-    curl_easy_setopt(curlHandle, CURLOPT_FAILONERROR, true);
+    // setup an Avatar for the script to use
+    AvatarData scriptedAvatar;
     
-    qDebug() << "Downloading script at" << scriptURLString << "\n";
+    // call model URL setters with empty URLs so our avatar, if user, will have the default models
+    scriptedAvatar.setFaceModelURL(QUrl());
+    scriptedAvatar.setSkeletonModelURL(QUrl());
     
-    // blocking get for JS file
-    curlResult = curl_easy_perform(curlHandle);
-  
-    if (curlResult == CURLE_OK) {
-        // cleanup curl
-        curl_easy_cleanup(curlHandle);
-        curl_global_cleanup();
-        
-        QScriptEngine engine;
-        
-        // register meta-type for glm::vec3 conversions
-        qScriptRegisterMetaType(&engine, vec3toScriptValue, vec3FromScriptValue);
-        
-        QScriptValue agentValue = engine.newQObject(this);
-        engine.globalObject().setProperty("Agent", agentValue);
-        
-        VoxelScriptingInterface voxelScripter;
-        QScriptValue voxelScripterValue =  engine.newQObject(&voxelScripter);
-        engine.globalObject().setProperty("Voxels", voxelScripterValue);
-        
-        QScriptValue treeScaleValue = engine.newVariant(QVariant(TREE_SCALE));
-        engine.globalObject().setProperty("TREE_SCALE", treeScaleValue);
-        
-        const unsigned int VISUAL_DATA_CALLBACK_USECS = (1.0 / 60.0) * 1000 * 1000;
+    // give this AvatarData object to the script engine
+    _scriptEngine.setAvatarData(&scriptedAvatar, "Avatar");
+    
+    // register ourselves to the script engine
+    _scriptEngine.registerGlobalObject("Agent", this);
 
-        // let the VoxelPacketSender know how frequently we plan to call it
-        voxelScripter.getVoxelPacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
-        
-        // hook in a constructor for audio injectorss
-        AudioInjector scriptedAudioInjector(BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-        QScriptValue audioInjectorValue = engine.newQObject(&scriptedAudioInjector);
-        engine.globalObject().setProperty("AudioInjector", audioInjectorValue);
-        
-        qDebug() << "Downloaded script:" << scriptContents << "\n";
-        QScriptValue result = engine.evaluate(scriptContents);
-        qDebug() << "Evaluated script.\n";
-        
-        if (engine.hasUncaughtException()) {
-            int line = engine.uncaughtExceptionLineNumber();
-            qDebug() << "Uncaught exception at line" << line << ":" << result.toString() << "\n";
-        }
-        
-        timeval startTime;
-        gettimeofday(&startTime, NULL);
-        
-        timeval lastDomainServerCheckIn = {};
-        
-        sockaddr_in senderAddress;
-        unsigned char receivedData[MAX_PACKET_SIZE];
-        ssize_t receivedBytes;
-        
-        int thisFrame = 0;
-        
-        NodeList::getInstance()->startSilentNodeRemovalThread();
-        
-        while (!_shouldStop) {
-            
-            // if we're not hearing from the domain-server we should stop running
-            if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
-                break;
-            }
-            
-            // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
-            if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
-                gettimeofday(&lastDomainServerCheckIn, NULL);
-                NodeList::getInstance()->sendDomainServerCheckIn();
-            }
-            
-            int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * VISUAL_DATA_CALLBACK_USECS) - usecTimestampNow();
-            if (usecToSleep > 0) {
-                usleep(usecToSleep);
-            }
-            
-            if (voxelScripter.getVoxelPacketSender()->voxelServersExist()) {
-                timeval thisSend = {};
-                gettimeofday(&thisSend, NULL);
-                // allow the scripter's call back to setup visual data
-                emit willSendVisualDataCallback();
-                
-                // release the queue of edit voxel messages.
-                voxelScripter.getVoxelPacketSender()->releaseQueuedMessages();
-                
-                // since we're in non-threaded mode, call process so that the packets are sent
-                voxelScripter.getVoxelPacketSender()->process();
-            }            
-            
-            if (engine.hasUncaughtException()) {
-                int line = engine.uncaughtExceptionLineNumber();
-                qDebug() << "Uncaught exception at line" << line << ":" << engine.uncaughtException().toString() << "\n";
-            }
-            
-            while (NodeList::getInstance()->getNodeSocket()->receive((sockaddr*) &senderAddress, receivedData, &receivedBytes)
-                   && packetVersionMatch(receivedData)) {
-                if (receivedData[0] == PACKET_TYPE_VOXEL_JURISDICTION) {
-                    voxelScripter.getJurisdictionListener()->queueReceivedPacket((sockaddr&) senderAddress,
-                                                                                 receivedData,
-                                                                                 receivedBytes);
-                } else {
-                    NodeList::getInstance()->processNodeData((sockaddr*) &senderAddress, receivedData, receivedBytes);
-                }
-            }
-        }
+    _scriptEngine.init(); // must be done before we set up the viewers
+
+    _scriptEngine.registerGlobalObject("VoxelViewer", &_voxelViewer);
+    // connect the VoxelViewer and the VoxelScriptingInterface to each other
+    JurisdictionListener* voxelJL = _scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener();
+    _voxelViewer.setJurisdictionListener(voxelJL);
+    _voxelViewer.init();
+    _scriptEngine.getVoxelsScriptingInterface()->setVoxelTree(_voxelViewer.getTree());
     
-        NodeList::getInstance()->stopSilentNodeRemovalThread(); 
-        
-    } else {
-        // error in curl_easy_perform
-        qDebug() << "curl_easy_perform for JS failed:" << curl_easy_strerror(curlResult) << "\n";
-        
-        // cleanup curl
-        curl_easy_cleanup(curlHandle);
-        curl_global_cleanup();
-    }
+    _scriptEngine.registerGlobalObject("ParticleViewer", &_particleViewer);
+    JurisdictionListener* particleJL = _scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener();
+    _particleViewer.setJurisdictionListener(particleJL);
+    _particleViewer.init();
+    _scriptEngine.getParticlesScriptingInterface()->setParticleTree(_particleViewer.getTree());
+
+    _scriptEngine.setScriptContents(scriptContents);
+    _scriptEngine.run();
+    setFinished(true);
+}
+
+void Agent::aboutToFinish() {
+    _scriptEngine.stop();
 }

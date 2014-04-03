@@ -12,12 +12,12 @@
 #include "starfield/Config.h"
 
 namespace starfield {
-    const float LOG2 = 1.4426950408889634;
+    const float LOG2 = 1.4426950408889634f;
     
     class Tiling {
     public:
         Tiling(unsigned tileResolution) : _tileResolution(tileResolution), _rcpSlice(tileResolution / Radians::twicePi()) {
-                                    _nBits = ceil(log(getTileCount()) * LOG2); }
+                                    _nBits = ceil(log((float)getTileCount()) * LOG2); }
         
         unsigned getAzimuthalTiles() const { return _tileResolution; }
         unsigned getAltitudinalTiles() const { return _tileResolution / 2 + 1; }

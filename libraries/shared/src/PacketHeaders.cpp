@@ -6,88 +6,140 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#include <stdio.h>
+#include <math.h>
 
 #include <QtCore/QDebug>
 
+#include "NodeList.h"
+
 #include "PacketHeaders.h"
 
-PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
+int arithmeticCodingValueFromBuffer(const char* checkValue) {
+    if (((uchar) *checkValue) < 255) {
+        return *checkValue;
+    } else {
+        return 255 + arithmeticCodingValueFromBuffer(checkValue + 1);
+    }
+}
+
+int numBytesArithmeticCodingFromBuffer(const char* checkValue) {
+    if (((uchar) *checkValue) < 255) {
+        return 1;
+    } else {
+        return 1 + numBytesArithmeticCodingFromBuffer(checkValue + 1);
+    }
+}
+
+int packArithmeticallyCodedValue(int value, char* destination) {
+    if (value < 255) {
+        // less than 255, just pack our value
+        destination[0] = (uchar) value;
+        return 1;
+    } else {
+        // pack 255 and then recursively pack on
+        ((unsigned char*)destination)[0] = 255;
+        return 1 + packArithmeticallyCodedValue(value - 255, destination + 1);
+    }
+}
+
+PacketVersion versionForPacketType(PacketType type) {
     switch (type) {
-
-        case PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO:
-        case PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO:
-            return 2;
-
-        case PACKET_TYPE_HEAD_DATA:
-            return 11;
-        
-        case PACKET_TYPE_AVATAR_URLS:
-            return 2;
-            
-        case PACKET_TYPE_AVATAR_FACE_VIDEO:
-            return 2;
-
-        case PACKET_TYPE_VOXEL_STATS:
-            return 2;
-       
-        case PACKET_TYPE_DOMAIN:
-        case PACKET_TYPE_DOMAIN_LIST_REQUEST:
-        case PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY:
+        case PacketTypeAvatarData:
+            return 3;
+        case PacketTypeEnvironmentData:
             return 1;
-        
-        case PACKET_TYPE_VOXEL_QUERY:
+        case PacketTypeParticleData:
             return 1;
-
-        case PACKET_TYPE_SET_VOXEL:
-        case PACKET_TYPE_SET_VOXEL_DESTRUCTIVE:
-        case PACKET_TYPE_ERASE_VOXEL:
+        case PacketTypeDomainList:
+        case PacketTypeDomainListRequest:
             return 1;
-        
+        case PacketTypeCreateAssignment:
+        case PacketTypeRequestAssignment:
+            return 1;
+        case PacketTypeDataServerGet:
+        case PacketTypeDataServerPut:
+        case PacketTypeDataServerConfirm:
+        case PacketTypeDataServerSend:
+            return 1;
+        case PacketTypeVoxelSet:
+        case PacketTypeVoxelSetDestructive:
+            return 1;
         default:
             return 0;
     }
 }
 
-bool packetVersionMatch(unsigned char* packetHeader) {
-    // currently this just checks if the version in the packet matches our return from versionForPacketType
-    // may need to be expanded in the future for types and versions that take > than 1 byte
-    if (packetHeader[1] == versionForPacketType(packetHeader[0]) || packetHeader[0] == PACKET_TYPE_STUN_RESPONSE) {
-        return true;
-    } else {
-        qDebug("There is a packet version mismatch for packet with header %c\n", packetHeader[0]);
-        return false;
-    }
+QByteArray byteArrayWithPopulatedHeader(PacketType type, const QUuid& connectionUUID) {
+    QByteArray freshByteArray(MAX_PACKET_HEADER_BYTES, 0);
+    freshByteArray.resize(populatePacketHeader(freshByteArray, type, connectionUUID));
+    return freshByteArray;
 }
 
-int populateTypeAndVersion(unsigned char* destinationHeader, PACKET_TYPE type) {
-    destinationHeader[0] = type;
-    destinationHeader[1] = versionForPacketType(type);
+int populatePacketHeader(QByteArray& packet, PacketType type, const QUuid& connectionUUID) {
+    if (packet.size() < numBytesForPacketHeaderGivenPacketType(type)) {
+        packet.resize(numBytesForPacketHeaderGivenPacketType(type));
+    }
+    
+    return populatePacketHeader(packet.data(), type, connectionUUID);
+}
+
+int populatePacketHeader(char* packet, PacketType type, const QUuid& connectionUUID) {
+    int numTypeBytes = packArithmeticallyCodedValue(type, packet);
+    packet[numTypeBytes] = versionForPacketType(type);
+    
+    char* position = packet + numTypeBytes + sizeof(PacketVersion);
+    
+    QUuid packUUID = connectionUUID.isNull() ? NodeList::getInstance()->getSessionUUID() : connectionUUID;
+    
+    QByteArray rfcUUID = packUUID.toRfc4122();
+    memcpy(position, rfcUUID.constData(), NUM_BYTES_RFC4122_UUID);
+    position += NUM_BYTES_RFC4122_UUID;
+    
+    // pack 16 bytes of zeros where the md5 hash will be placed one data is packed
+    memset(position, 0, NUM_BYTES_MD5_HASH);
+    position += NUM_BYTES_MD5_HASH;
     
     // return the number of bytes written for pointer pushing
-    return 2;
+    return position - packet;
 }
 
-int numBytesForPacketType(const unsigned char* packetType) {
-    if (packetType[0] == 255) {
-        return 1 + numBytesForPacketType(packetType + 1);
-    } else {
-        return 1;
-    }
+int numBytesForPacketHeader(const QByteArray& packet) {
+    // returns the number of bytes used for the type, version, and UUID
+    return numBytesArithmeticCodingFromBuffer(packet.data()) + NUM_STATIC_HEADER_BYTES;
 }
 
-int numBytesForPacketVersion(const unsigned char* packetVersion) {
-    if (packetVersion[0] == 255) {
-        return 1 + numBytesForPacketVersion(packetVersion + 1);
-    } else {
-        return 1;
-    }
+int numBytesForPacketHeader(const char* packet) {
+    // returns the number of bytes used for the type, version, and UUID
+    return numBytesArithmeticCodingFromBuffer(packet) + NUM_STATIC_HEADER_BYTES;
 }
 
-int numBytesForPacketHeader(const unsigned char* packetHeader) {
-    // int numBytesType = numBytesForPacketType(packetHeader);
-    // return numBytesType + numBytesForPacketVersion(packetHeader + numBytesType);
-    
-    // currently this need not be dynamic - there are 2 bytes for each packet header
-    return 2;
+int numBytesForPacketHeaderGivenPacketType(PacketType type) {
+    return (int) ceilf((float)type / 255) + NUM_STATIC_HEADER_BYTES;
+}
+
+QUuid uuidFromPacketHeader(const QByteArray& packet) {
+    return QUuid::fromRfc4122(packet.mid(numBytesArithmeticCodingFromBuffer(packet.data()) + sizeof(PacketVersion),
+                                         NUM_BYTES_RFC4122_UUID));
+}
+
+QByteArray hashFromPacketHeader(const QByteArray& packet) {
+    return packet.mid(numBytesForPacketHeader(packet) - NUM_BYTES_MD5_HASH, NUM_BYTES_MD5_HASH);
+}
+
+QByteArray hashForPacketAndConnectionUUID(const QByteArray& packet, const QUuid& connectionUUID) {
+    return QCryptographicHash::hash(packet.mid(numBytesForPacketHeader(packet)) + connectionUUID.toRfc4122(),
+                                    QCryptographicHash::Md5);
+}
+
+void replaceHashInPacketGivenConnectionUUID(QByteArray& packet, const QUuid& connectionUUID) {
+    packet.replace(numBytesForPacketHeader(packet) - NUM_BYTES_MD5_HASH, NUM_BYTES_MD5_HASH,
+                   hashForPacketAndConnectionUUID(packet, connectionUUID));
+}
+
+PacketType packetTypeForPacket(const QByteArray& packet) {
+    return (PacketType) arithmeticCodingValueFromBuffer(packet.data());
+}
+
+PacketType packetTypeForPacket(const char* packet) {
+    return (PacketType) arithmeticCodingValueFromBuffer(packet);
 }

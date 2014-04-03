@@ -9,8 +9,6 @@
 #ifndef __interface__SkeletonModel__
 #define __interface__SkeletonModel__
 
-#include <HandData.h>
-
 #include "renderer/Model.h"
 
 class Avatar;
@@ -23,10 +21,18 @@ public:
 
     SkeletonModel(Avatar* owningAvatar);
     
-    void simulate(float deltaTime);
-    bool render(float alpha);
-    
+    void simulate(float deltaTime, bool fullUpdate = true);
+
+    /// \param jointIndex index of hand joint
+    /// \param shapes[out] list in which is stored pointers to hand shapes
+    void getHandShapes(int jointIndex, QVector<const Shape*>& shapes) const;
+
+    ///  \param shapes[out] list of shapes for body collisions
+    void getBodyShapes(QVector<const Shape*>& shapes) const;
+
 protected:
+
+    void applyHandPosition(int jointIndex, const glm::vec3& position);
     
     void applyPalmData(int jointIndex, const QVector<int>& fingerJointIndices,
         const QVector<int>& fingertipJointIndices, PalmData& palm);
