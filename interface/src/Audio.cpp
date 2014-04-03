@@ -468,8 +468,8 @@ void Audio::handleAudioInput() {
             }
             
             //  Add tone injection if enabled
-            //const float TONE_FREQ = 220.f / SAMPLE_RATE * TWO_PI;
-            const float TONE_FREQ = 440.f / SAMPLE_RATE * TWO_PI;
+            const float TONE_FREQ = 220.f / SAMPLE_RATE * TWO_PI;
+            //const float TONE_FREQ = 5000.f / SAMPLE_RATE * TWO_PI;
             const float QUARTER_VOLUME = 8192.f;
             if (_toneInjectionEnabled) {
                 loudness = 0.f;
@@ -912,9 +912,9 @@ void Audio::lowPassFilter(int16_t* inputBuffer, int samples, int channels) {
     //const int POLE_COUNT = 3;
     
     for (int c = 0; c < channels; c++) {
-        const float C1 = 0.0f; // 0.25f;
-        const float C2 = 1.0f; // 0.5f;
-        const float C3 = 0.0f; // 0.25f;
+        const float C1 = 0.25f; // 0.0f; // 
+        const float C2 = 0.5f; // 1.0f; // 
+        const float C3 = 0.25f; // 0.0f; // 
         int16_t S1,S2,S3;
         S1 = inputBuffer[c]; // start with the Nth sample, based on the current channel, this is the fist sample for the channel
         for (int i = 0; i < samples; i++) {

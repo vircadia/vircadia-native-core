@@ -73,6 +73,42 @@ glm::vec3 getFaceNormal(BoxFace face) {
     return glm::vec3(0, 0, 0); //error case
 }
 
+QVector<glm::vec3> AudioReflector::calculateReflections(const glm::vec3& origin, const glm::vec3& originalDirection, int maxBounces) {
+    QVector<glm::vec3> reflectionPoints;
+    glm::vec3 start = origin;
+    glm::vec3 direction = originalDirection;
+    OctreeElement* elementHit;
+    float distance;
+    BoxFace face;
+    const float SLIGHTLY_SHORT = 0.999f; // slightly inside the distance so we're on the inside of the reflection point
+    
+    for (int i = 0; i < maxBounces; i++) {
+        if (_voxels->findRayIntersection(start, direction, elementHit, distance, face)) {
+            glm::vec3 end = start + (direction * (distance * SLIGHTLY_SHORT));
+            
+            reflectionPoints.push_back(end);
+        
+            glm::vec3 faceNormal = getFaceNormal(face);
+            direction = glm::normalize(glm::reflect(direction,faceNormal));
+            start = end;
+        }
+    }
+    return reflectionPoints;
+}
+
+
+void AudioReflector::newDrawReflections(const glm::vec3& origin, const glm::vec3& originalColor, const QVector<glm::vec3>& reflections) {
+                                        
+    glm::vec3 start = origin;
+    glm::vec3 color = originalColor;
+    const float COLOR_ADJUST_PER_BOUNCE = 0.75f;
+    
+    foreach (glm::vec3 end, reflections) {
+        drawVector(start, end, color);
+        start = end;
+        color = color * COLOR_ADJUST_PER_BOUNCE;
+    }
+}
 
 void AudioReflector::drawReflections(const glm::vec3& origin, const glm::vec3& originalDirection, 
                                         int bounces, const glm::vec3& originalColor) {
@@ -98,12 +134,9 @@ void AudioReflector::drawReflections(const glm::vec3& origin, const glm::vec3& o
         }
     }
 }
-
 // set up our buffers for our attenuated and delayed samples
 const int NUMBER_OF_CHANNELS = 2;
-
-
-void AudioReflector::calculateReflections(const glm::vec3& origin, const glm::vec3& originalDirection, 
+void AudioReflector::echoReflections(const glm::vec3& origin, const glm::vec3& originalDirection,
                                         int bounces, const QByteArray& originalSamples, 
                                         unsigned int sampleTime, int sampleRate) {
                                         
@@ -191,73 +224,59 @@ void AudioReflector::calculateReflections(const glm::vec3& origin, const glm::ve
 }
 
 void AudioReflector::processSpatialAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
+    bool doNothing = true;
+    bool doSimpleEcho = false;
 
-    
-    qDebug() << "AudioReflector::processSpatialAudio()...sampleTime=" << sampleTime << " threadID=" << QThread::currentThreadId();
+    if (doNothing) {
+        return;
+    } else if (doSimpleEcho) {
+        int totalNumberOfSamples = samples.size() / (sizeof(int16_t));
+        AudioRingBuffer samplesRingBuffer(totalNumberOfSamples);
+        samplesRingBuffer.writeData(samples.constData(),samples.size());
+        _audio->addSpatialAudioToBuffer(sampleTime + 12000, samplesRingBuffer);
+        return;
+    } else {
+        quint64 start = usecTimestampNow();
 
-    int totalNumberOfSamples = samples.size() / (sizeof(int16_t));
+        glm::vec3 origin = _myAvatar->getHead()->getPosition();
 
-    qDebug() << "    totalNumberOfSamples=" << totalNumberOfSamples;
-    qDebug() << "          samples.size()=" << samples.size();
-    qDebug() << "         sizeof(int16_t)=" << sizeof(int16_t);
-    
+        glm::quat orientation = _myAvatar->getOrientation(); // _myAvatar->getHead()->getOrientation();
+        glm::vec3 right = glm::normalize(orientation * IDENTITY_RIGHT);
+        glm::vec3 up = glm::normalize(orientation * IDENTITY_UP);
+        glm::vec3 front = glm::normalize(orientation * IDENTITY_FRONT);
+        glm::vec3 left = -right;
+        glm::vec3 down = -up;
+        glm::vec3 back = -front;
+        glm::vec3 frontRightUp = glm::normalize(front + right + up);
+        glm::vec3 frontLeftUp = glm::normalize(front + left + up);
+        glm::vec3 backRightUp = glm::normalize(back + right + up);
+        glm::vec3 backLeftUp = glm::normalize(back + left + up);
+        glm::vec3 frontRightDown = glm::normalize(front + right + down);
+        glm::vec3 frontLeftDown = glm::normalize(front + left + down);
+        glm::vec3 backRightDown = glm::normalize(back + right + down);
+        glm::vec3 backLeftDown = glm::normalize(back + left + down);
 
-    AudioRingBuffer samplesRingBuffer(totalNumberOfSamples);
-    qint64 bytesCopied = samplesRingBuffer.writeData(samples.constData(),samples.size());
-    
-    /*
-    for(int i = 0; i < totalNumberOfSamples; i++) {
-        samplesRingBuffer[i] = samplesRingBuffer[i] * 0.25f;
+        const int BOUNCE_COUNT = 5;
+
+        echoReflections(origin, frontRightUp, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, frontLeftUp, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, backRightUp, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, backLeftUp, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, frontRightDown, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, frontLeftDown, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, backRightDown, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, backLeftDown, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+
+        echoReflections(origin, front, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, back, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, left, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, right, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, up, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, down, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+        quint64 end = usecTimestampNow();
+
+        qDebug() << "AudioReflector::addSamples()... elapsed=" << (end - start);
     }
-     */
-
-    qDebug() << "          bytesCopied=" << bytesCopied;
-
-    _audio->addSpatialAudioToBuffer(sampleTime + 12000, samplesRingBuffer);
-
-    return;
-
-    quint64 start = usecTimestampNow();
-
-    glm::vec3 origin = _myAvatar->getHead()->getPosition();
-
-    glm::quat orientation = _myAvatar->getOrientation(); // _myAvatar->getHead()->getOrientation();
-    glm::vec3 right = glm::normalize(orientation * IDENTITY_RIGHT);
-    glm::vec3 up = glm::normalize(orientation * IDENTITY_UP);
-    glm::vec3 front = glm::normalize(orientation * IDENTITY_FRONT);
-    glm::vec3 left = -right;
-    glm::vec3 down = -up;
-    glm::vec3 back = -front;
-    glm::vec3 frontRightUp = glm::normalize(front + right + up);
-    glm::vec3 frontLeftUp = glm::normalize(front + left + up);
-    glm::vec3 backRightUp = glm::normalize(back + right + up);
-    glm::vec3 backLeftUp = glm::normalize(back + left + up);
-    glm::vec3 frontRightDown = glm::normalize(front + right + down);
-    glm::vec3 frontLeftDown = glm::normalize(front + left + down);
-    glm::vec3 backRightDown = glm::normalize(back + right + down);
-    glm::vec3 backLeftDown = glm::normalize(back + left + down);
-
-    const int BOUNCE_COUNT = 5;
-
-    calculateReflections(origin, frontRightUp, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-    calculateReflections(origin, frontLeftUp, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-    calculateReflections(origin, backRightUp, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-    calculateReflections(origin, backLeftUp, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-    calculateReflections(origin, frontRightDown, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-    calculateReflections(origin, frontLeftDown, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-    calculateReflections(origin, backRightDown, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-    calculateReflections(origin, backLeftDown, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-
-    calculateReflections(origin, front, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-    calculateReflections(origin, back, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-    calculateReflections(origin, left, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-    calculateReflections(origin, right, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-    calculateReflections(origin, up, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-    calculateReflections(origin, down, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-    quint64 end = usecTimestampNow();
-
-    //qDebug() << "AudioReflector::addSamples()... samples.size()=" << samples.size() << " elapsed=" << (end - start);
-
 }
 
 void AudioReflector::drawRays() {
@@ -299,21 +318,130 @@ void AudioReflector::drawRays() {
     
     const int BOUNCE_COUNT = 5;
 
-    drawReflections(origin, frontRightUp, BOUNCE_COUNT, RED);
-    drawReflections(origin, frontLeftUp, BOUNCE_COUNT, GREEN);
-    drawReflections(origin, backRightUp, BOUNCE_COUNT, BLUE);
-    drawReflections(origin, backLeftUp, BOUNCE_COUNT, CYAN);
-    drawReflections(origin, frontRightDown, BOUNCE_COUNT, PURPLE);
-    drawReflections(origin, frontLeftDown, BOUNCE_COUNT, YELLOW);
-    drawReflections(origin, backRightDown, BOUNCE_COUNT, WHITE);
-    drawReflections(origin, backLeftDown, BOUNCE_COUNT, DARK_RED);
+    bool oldWay = false;
+    
+    if (oldWay) {
+        drawReflections(origin, frontRightUp, BOUNCE_COUNT, RED);
+        drawReflections(origin, frontLeftUp, BOUNCE_COUNT, GREEN);
+        drawReflections(origin, backRightUp, BOUNCE_COUNT, BLUE);
+        drawReflections(origin, backLeftUp, BOUNCE_COUNT, CYAN);
+        drawReflections(origin, frontRightDown, BOUNCE_COUNT, PURPLE);
+        drawReflections(origin, frontLeftDown, BOUNCE_COUNT, YELLOW);
+        drawReflections(origin, backRightDown, BOUNCE_COUNT, WHITE);
+        drawReflections(origin, backLeftDown, BOUNCE_COUNT, DARK_RED);
 
-    drawReflections(origin, front, BOUNCE_COUNT, DARK_GREEN);
-    drawReflections(origin, back, BOUNCE_COUNT, DARK_BLUE);
-    drawReflections(origin, left, BOUNCE_COUNT, DARK_CYAN);
-    drawReflections(origin, right, BOUNCE_COUNT, DARK_PURPLE);
-    drawReflections(origin, up, BOUNCE_COUNT, DARK_YELLOW);
-    drawReflections(origin, down, BOUNCE_COUNT, GRAY);
+        drawReflections(origin, front, BOUNCE_COUNT, DARK_GREEN);
+        drawReflections(origin, back, BOUNCE_COUNT, DARK_BLUE);
+        drawReflections(origin, left, BOUNCE_COUNT, DARK_CYAN);
+        drawReflections(origin, right, BOUNCE_COUNT, DARK_PURPLE);
+        drawReflections(origin, up, BOUNCE_COUNT, DARK_YELLOW);
+        drawReflections(origin, down, BOUNCE_COUNT, GRAY);
+    } else {
+        QVector<glm::vec3> frontRightUpReflections = calculateReflections(origin, frontRightUp, BOUNCE_COUNT);
+        QVector<glm::vec3> frontLeftUpReflections = calculateReflections(origin, frontLeftUp, BOUNCE_COUNT);
+        QVector<glm::vec3> backRightUpReflections = calculateReflections(origin, backRightUp, BOUNCE_COUNT);
+        QVector<glm::vec3> backLeftUpReflections = calculateReflections(origin, backLeftUp, BOUNCE_COUNT);
+        QVector<glm::vec3> frontRightDownReflections = calculateReflections(origin, frontRightDown, BOUNCE_COUNT);
+        QVector<glm::vec3> frontLeftDownReflections = calculateReflections(origin, frontLeftDown, BOUNCE_COUNT);
+        QVector<glm::vec3> backRightDownReflections = calculateReflections(origin, backRightDown, BOUNCE_COUNT);
+        QVector<glm::vec3> backLeftDownReflections = calculateReflections(origin, backLeftDown, BOUNCE_COUNT);
+        QVector<glm::vec3> frontReflections = calculateReflections(origin, front, BOUNCE_COUNT);
+        QVector<glm::vec3> backReflections = calculateReflections(origin, back, BOUNCE_COUNT);
+        QVector<glm::vec3> leftReflections = calculateReflections(origin, left, BOUNCE_COUNT);
+        QVector<glm::vec3> rightReflections = calculateReflections(origin, right, BOUNCE_COUNT);
+        QVector<glm::vec3> upReflections = calculateReflections(origin, up, BOUNCE_COUNT);
+        QVector<glm::vec3> downReflections = calculateReflections(origin, down, BOUNCE_COUNT);
+
+        glm::vec3 frontRightUpColor = RED;
+        glm::vec3 frontLeftUpColor = GREEN;
+        glm::vec3 backRightUpColor = BLUE;
+        glm::vec3 backLeftUpColor = CYAN;
+        glm::vec3 frontRightDownColor = PURPLE;
+        glm::vec3 frontLeftDownColor = YELLOW;
+        glm::vec3 backRightDownColor = WHITE;
+        glm::vec3 backLeftDownColor = DARK_RED;
+        glm::vec3 frontColor = GRAY;
+        glm::vec3 backColor = DARK_GREEN;
+        glm::vec3 leftColor = DARK_BLUE;
+        glm::vec3 rightColor = DARK_CYAN;
+        glm::vec3 upColor = DARK_PURPLE;
+        glm::vec3 downColor = DARK_YELLOW;
+        
+        // attempt to determine insidness/outsideness based on number of directional rays that reflect
+        bool inside = false;
+        
+        bool blockedUp = (frontRightUpReflections.size() > 0) && 
+                         (frontLeftUpReflections.size() > 0) && 
+                         (backRightUpReflections.size() > 0) && 
+                         (backLeftUpReflections.size() > 0) && 
+                         (upReflections.size() > 0);
+
+        bool blockedDown = (frontRightDownReflections.size() > 0) && 
+                         (frontLeftDownReflections.size() > 0) && 
+                         (backRightDownReflections.size() > 0) && 
+                         (backLeftDownReflections.size() > 0) && 
+                         (downReflections.size() > 0);
+
+        bool blockedFront = (frontRightUpReflections.size() > 0) && 
+                         (frontLeftUpReflections.size() > 0) && 
+                         (frontRightDownReflections.size() > 0) && 
+                         (frontLeftDownReflections.size() > 0) && 
+                         (frontReflections.size() > 0);
+
+        bool blockedBack = (backRightUpReflections.size() > 0) && 
+                         (backLeftUpReflections.size() > 0) && 
+                         (backRightDownReflections.size() > 0) && 
+                         (backLeftDownReflections.size() > 0) && 
+                         (backReflections.size() > 0);
+        
+        bool blockedLeft = (frontLeftUpReflections.size() > 0) && 
+                         (backLeftUpReflections.size() > 0) && 
+                         (frontLeftDownReflections.size() > 0) && 
+                         (backLeftDownReflections.size() > 0) && 
+                         (leftReflections.size() > 0);
+
+        bool blockedRight = (frontRightUpReflections.size() > 0) && 
+                         (backRightUpReflections.size() > 0) && 
+                         (frontRightDownReflections.size() > 0) && 
+                         (backRightDownReflections.size() > 0) && 
+                         (rightReflections.size() > 0);
+
+        inside = blockedUp && blockedDown && blockedFront && blockedBack && blockedLeft && blockedRight;
+           
+        if (inside) {
+            frontRightUpColor = RED;
+            frontLeftUpColor = RED;
+            backRightUpColor = RED;
+            backLeftUpColor = RED;
+            frontRightDownColor = RED;
+            frontLeftDownColor = RED;
+            backRightDownColor = RED;
+            backLeftDownColor = RED;
+            frontColor = RED;
+            backColor = RED;
+            leftColor = RED;
+            rightColor = RED;
+            upColor = RED;
+            downColor = RED;
+        }
+
+        newDrawReflections(origin, frontRightUpColor, frontRightUpReflections);
+        newDrawReflections(origin, frontLeftUpColor, frontLeftUpReflections);
+        newDrawReflections(origin, backRightUpColor, backRightUpReflections);
+        newDrawReflections(origin, backLeftUpColor, backLeftUpReflections);
+        newDrawReflections(origin, frontRightDownColor, frontRightDownReflections);
+        newDrawReflections(origin, frontLeftDownColor, frontLeftDownReflections);
+        newDrawReflections(origin, backRightDownColor, backRightDownReflections);
+        newDrawReflections(origin, backLeftDownColor, backLeftDownReflections);
+
+        newDrawReflections(origin, frontColor, frontReflections);
+        newDrawReflections(origin, backColor, backReflections);
+        newDrawReflections(origin, leftColor, leftReflections);
+        newDrawReflections(origin, rightColor, rightReflections);
+        newDrawReflections(origin, upColor, upReflections);
+        newDrawReflections(origin, downColor, downReflections);
+
+    }
 }
 
 void AudioReflector::drawVector(const glm::vec3& start, const glm::vec3& end, const glm::vec3& color) {
