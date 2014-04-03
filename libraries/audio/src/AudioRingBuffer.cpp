@@ -125,6 +125,10 @@ int16_t& AudioRingBuffer::operator[](const int index) {
     return *shiftedPositionAccomodatingWrap(_nextOutput, index);
 }
 
+const int16_t& AudioRingBuffer::operator[] (const int index) const {
+    return *shiftedPositionAccomodatingWrap(_nextOutput, index);
+}
+
 void AudioRingBuffer::shiftReadPosition(unsigned int numSamples) {
     _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, numSamples);
 }

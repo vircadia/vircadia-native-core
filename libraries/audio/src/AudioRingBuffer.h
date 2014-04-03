@@ -57,6 +57,7 @@ public:
     qint64 writeData(const char* data, qint64 maxSize);
     
     int16_t& operator[](const int index);
+    const int16_t& operator[] (const int index) const;
     
     void shiftReadPosition(unsigned int numSamples);
     
