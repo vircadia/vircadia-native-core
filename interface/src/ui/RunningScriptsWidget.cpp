@@ -10,6 +10,7 @@
 
 #include <QKeyEvent>
 #include <QFileInfo>
+#include <QScrollArea>
 #include <QPainter>
 #include <QTableWidgetItem>
 
@@ -26,14 +27,14 @@ RunningScriptsWidget::RunningScriptsWidget(QDockWidget *parent) :
 
     _runningScriptsTable = new ScriptsTableWidget(ui->runningScriptsTableWidget);
     _runningScriptsTable->setColumnCount(2);
-    _runningScriptsTable->setColumnWidth(0, 245);
+    _runningScriptsTable->setColumnWidth(0, 252);
     _runningScriptsTable->setColumnWidth(1, 22);
     connect(_runningScriptsTable, &QTableWidget::cellClicked, this, &RunningScriptsWidget::stopScript);
 
     _recentlyLoadedScriptsTable = new ScriptsTableWidget(ui->recentlyLoadedScriptsTableWidget);
     _recentlyLoadedScriptsTable->setColumnCount(2);
     _recentlyLoadedScriptsTable->setColumnWidth(0, 25);
-    _recentlyLoadedScriptsTable->setColumnWidth(1, 235);
+    _recentlyLoadedScriptsTable->setColumnWidth(1, 242);
     connect(_recentlyLoadedScriptsTable, &QTableWidget::cellClicked,
             this, &RunningScriptsWidget::loadScript);
 
@@ -147,13 +148,13 @@ void RunningScriptsWidget::paintEvent(QPaintEvent *)
     if (ui->currentlyRunningLabel->isVisible()) {
         // line below the 'Currently Running' label
         painter.drawLine(20, ui->currentlyRunningLabel->y() + ui->currentlyRunningLabel->height(),
-                         width() - 20, ui->currentlyRunningLabel->y() + ui->currentlyRunningLabel->height());
+                         width() - 21, ui->currentlyRunningLabel->y() + ui->currentlyRunningLabel->height());
     }
 
     if (ui->recentlyLoadedLabel->isVisible()) {
         // line below the 'Recently loaded' label
         painter.drawLine(20, ui->recentlyLoadedLabel->y() + ui->recentlyLoadedLabel->height(),
-                         width() - 20, ui->recentlyLoadedLabel->y() + ui->recentlyLoadedLabel->height());
+                         width() - 21, ui->recentlyLoadedLabel->y() + ui->recentlyLoadedLabel->height());
     }
 
     painter.end();

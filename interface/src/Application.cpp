@@ -171,7 +171,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _recentMaxPackets(0),
         _resetRecentMaxPacketsSoon(true),
         _previousScriptLocation(),
-        _logger(new FileLogger(this))
+        _logger(new FileLogger(this)),
+        _runningScriptsWidget(new RunningScriptsWidget)
 {
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
@@ -333,7 +334,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     LocalVoxelsList::getInstance()->addPersistantTree(DOMAIN_TREE_NAME, _voxels.getTree());
     LocalVoxelsList::getInstance()->addPersistantTree(CLIPBOARD_TREE_NAME, &_clipboard);
 
-    _window->addDockWidget(Qt::NoDockWidgetArea, _runningScriptsWidget = new RunningScriptsWidget());
+    _window->addDockWidget(Qt::NoDockWidgetArea, _runningScriptsWidget);
+    _runningScriptsWidget->hide();
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
     connect(_runningScriptsWidget, &RunningScriptsWidget::stopScriptName, this, &Application::stopScript);
 
@@ -620,10 +622,11 @@ void Application::resizeGL(int width, int height) {
     updateProjectionMatrix();
     glLoadIdentity();
 
-    if (_runningScriptsWidgetVisible)
+    if (_runningScriptsWidget->isVisible()) {
         _runningScriptsWidget->setGeometry(_window->geometry().topLeft().x(),
                                            _window->geometry().topLeft().y(),
                                            _runningScriptsWidget->width(), _window->height());
+    }
 }
 
 void Application::updateProjectionMatrix() {
@@ -3630,30 +3633,16 @@ void Application::reloadAllScripts() {
 void Application::toggleRunningScriptsWidget()
 {
     if (!_runningScriptsWidget->toggleViewAction()->isChecked()) {
-        _runningScriptsWidget->move(_window->geometry().topLeft().x(), _window->geometry().topLeft().y());
-        _runningScriptsWidget->resize(0, _window->height());
+        _runningScriptsWidget->setGeometry(_window->geometry().topLeft().x(),
+                                           _window->geometry().topLeft().y(),
+                                           310, _window->height());
         _runningScriptsWidget->toggleViewAction()->trigger();
         _runningScriptsWidget->grabKeyboard();
-        _runningScriptsWidgetVisible = true;
-
-        QPropertyAnimation* slideAnimation = new QPropertyAnimation(_runningScriptsWidget, "geometry", _runningScriptsWidget);
-        slideAnimation->setStartValue(_runningScriptsWidget->geometry());
-        slideAnimation->setEndValue(QRect(_window->geometry().topLeft().x(), _window->geometry().topLeft().y(),
-                                          310, _runningScriptsWidget->height()));
-        slideAnimation->setDuration(250);
-        slideAnimation->start(QAbstractAnimation::DeleteWhenStopped);
+        _runningScriptsWidget->show();
     } else {
+        _runningScriptsWidget->toggleViewAction()->trigger();
         _runningScriptsWidget->releaseKeyboard();
-        _runningScriptsWidgetVisible = false;
-
-        QPropertyAnimation* slideAnimation = new QPropertyAnimation(_runningScriptsWidget, "geometry", _runningScriptsWidget);
-        slideAnimation->setStartValue(_runningScriptsWidget->geometry());
-        slideAnimation->setEndValue(QRect(_window->geometry().topLeft().x(), _window->geometry().topLeft().y(),
-                                          0, _runningScriptsWidget->height()));
-        slideAnimation->setDuration(250);
-        slideAnimation->start(QAbstractAnimation::DeleteWhenStopped);
-
-        QTimer::singleShot(260, _runningScriptsWidget->toggleViewAction(), SLOT(trigger()));
+        _runningScriptsWidget->hide();
     }
 }
 

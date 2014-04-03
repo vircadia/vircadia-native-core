@@ -39,7 +39,7 @@ font-size: 20pt;</string>
     <rect>
      <x>20</x>
      <y>40</y>
-     <width>301</width>
+     <width>270</width>
      <height>20</height>
     </rect>
    </property>
@@ -54,10 +54,10 @@ font-size: 14pt;</string>
   <widget class="QPushButton" name="reloadAllButton">
    <property name="geometry">
     <rect>
-     <x>40</x>
+     <x>20</x>
      <y>230</y>
      <width>111</width>
-     <height>31</height>
+     <height>35</height>
     </rect>
    </property>
    <property name="cursor">
@@ -69,11 +69,11 @@ font-size: 14pt;</string>
    <property name="styleSheet">
     <string notr="true">background: #0e7077;
 color: #fff;
-border-radius: 6px;
+border-radius: 4px;
 font: 14pt 75pt;</string>
    </property>
    <property name="text">
-    <string>Reload All</string>
+    <string>Reload all</string>
    </property>
    <property name="icon">
     <iconset resource="../resources/resources.qrc">
@@ -83,10 +83,10 @@ font: 14pt 75pt;</string>
   <widget class="QPushButton" name="stopAllButton">
    <property name="geometry">
     <rect>
-     <x>160</x>
+     <x>144</x>
      <y>230</y>
      <width>101</width>
-     <height>31</height>
+     <height>35</height>
     </rect>
    </property>
    <property name="cursor">
@@ -95,11 +95,11 @@ font: 14pt 75pt;</string>
    <property name="styleSheet">
     <string notr="true">background: #0e7077;
 color: #fff;
-border-radius: 6px;
+border-radius: 4px;
 font: 14pt 75pt;</string>
    </property>
    <property name="text">
-    <string>Stop All</string>
+    <string>Stop all</string>
    </property>
    <property name="icon">
     <iconset resource="../resources/resources.qrc">
@@ -194,9 +194,9 @@ font-size: 14pt;</string>
   <widget class="QWidget" name="recentlyLoadedScriptsTableWidget" native="true">
    <property name="geometry">
     <rect>
-     <x>20</x>
+     <x>14</x>
      <y>300</y>
-     <width>270</width>
+     <width>276</width>
      <height>280</height>
     </rect>
    </property>
@@ -204,14 +204,15 @@ font-size: 14pt;</string>
     <string notr="true">background: transparent;
 font-size: 14pt;</string>
    </property>
+   <zorder>reloadAllButton</zorder>
   </widget>
   <widget class="QWidget" name="runningScriptsTableWidget" native="true">
    <property name="geometry">
     <rect>
-     <x>20</x>
+     <x>14</x>
      <y>60</y>
-     <width>270</width>
-     <height>140</height>
+     <width>276</width>
+     <height>161</height>
     </rect>
    </property>
    <property name="styleSheet">
