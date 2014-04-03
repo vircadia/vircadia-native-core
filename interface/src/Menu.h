@@ -108,6 +108,7 @@ public:
     bool goToDestination(QString destination);
     void goToOrientation(QString orientation);
     void goToDomain(const QString newDomain);
+    void goTo(QString destination);
 
 public slots:
 

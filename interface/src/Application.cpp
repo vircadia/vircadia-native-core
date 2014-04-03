@@ -112,8 +112,6 @@ const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::D
 
 const int STATS_PELS_PER_LINE = 20;
 
-const QString CUSTOM_URL_SCHEME = "hifi:";
-
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     if (message.size() > 0) {
         QString dateString = QDateTime::currentDateTime().toTimeSpec(Qt::LocalTime).toString(Qt::ISODate);
@@ -688,26 +686,9 @@ bool Application::event(QEvent* event) {
     // handle custom URL
     if (event->type() == QEvent::FileOpen) {
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
-        if (!fileEvent->url().isEmpty() && fileEvent->url().toLocalFile().startsWith(CUSTOM_URL_SCHEME)) {
-            QString destination = fileEvent->url().toLocalFile().remove(CUSTOM_URL_SCHEME);
-            QStringList urlParts = destination.split('/', QString::SkipEmptyParts);
-
-            if (urlParts.count() > 1) {
-                // if url has 2 or more parts, the first one is domain name
-                Menu::getInstance()->goToDomain(urlParts[0]);
-
-                // location coordinates
-                Menu::getInstance()->goToDestination(urlParts[1]);
-                if (urlParts.count() > 2) {
-
-                    // location orientation
-                    Menu::getInstance()->goToOrientation(urlParts[2]);
-                }
-            } else if (urlParts.count() == 1) {
-
-                // location coordinates
-                Menu::getInstance()->goToDestination(urlParts[0]);
-            }
+        bool isHifiSchemeURL = !fileEvent->url().isEmpty() && fileEvent->url().toLocalFile().startsWith(CUSTOM_URL_SCHEME);
+        if (isHifiSchemeURL) {
+            Menu::getInstance()->goTo(fileEvent->url().toString());
         }
 
         return false;

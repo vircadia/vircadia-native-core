@@ -4,30 +4,22 @@
 <context>
     <name>Application</name>
     <message>
-        <location filename="src/Application.cpp" line="1389"/>
+        <location filename="src/Application.cpp" line="1370"/>
         <source>Export Voxels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="1390"/>
+        <location filename="src/Application.cpp" line="1371"/>
         <source>Sparse Voxel Octree Files (*.svo)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-<<<<<<< HEAD
-        <location filename="src/Application.cpp" line="3722"/>
-=======
-        <location filename="src/Application.cpp" line="3734"/>
->>>>>>> 0fa910c61fd4ffb4e4eb4b7c53f1e67da9ac0913
+        <location filename="src/Application.cpp" line="3723"/>
         <source>Open Script</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-<<<<<<< HEAD
-        <location filename="src/Application.cpp" line="3723"/>
-=======
-        <location filename="src/Application.cpp" line="3735"/>
->>>>>>> 0fa910c61fd4ffb4e4eb4b7c53f1e67da9ac0913
+        <location filename="src/Application.cpp" line="3724"/>
         <source>JavaScript Files (*.js)</source>
         <translation type="unfinished"></translation>
     </message>
