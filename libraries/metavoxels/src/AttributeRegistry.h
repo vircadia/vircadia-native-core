@@ -29,6 +29,8 @@ class MetavoxelStreamState;
 
 typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
 
+Q_DECLARE_METATYPE(AttributePointer)
+
 /// Maintains information about metavoxel attribute types.
 class AttributeRegistry {
 public:
@@ -69,8 +71,17 @@ public:
     /// Returns a reference to the standard QRgb "color" attribute.
     const AttributePointer& getColorAttribute() const { return _colorAttribute; }
     
-    /// Returns a reference to the standard QRgb "normal" attribute.
+    /// Returns a reference to the standard packed normal "normal" attribute.
     const AttributePointer& getNormalAttribute() const { return _normalAttribute; }
+    
+    /// Returns a reference to the standard QRgb "spannerColor" attribute.
+    const AttributePointer& getSpannerColorAttribute() const { return _spannerColorAttribute; }
+    
+    /// Returns a reference to the standard packed normal "spannerNormal" attribute.
+    const AttributePointer& getSpannerNormalAttribute() const { return _spannerNormalAttribute; }
+    
+    /// Returns a reference to the standard "spannerMask" attribute.
+    const AttributePointer& getSpannerMaskAttribute() const { return _spannerMaskAttribute; }
     
 private:
 
@@ -81,6 +92,9 @@ private:
     AttributePointer _spannersAttribute;
     AttributePointer _colorAttribute;
     AttributePointer _normalAttribute;
+    AttributePointer _spannerColorAttribute;
+    AttributePointer _spannerNormalAttribute;
+    AttributePointer _spannerMaskAttribute;
 };
 
 /// Converts a value to a void pointer.
@@ -105,8 +119,6 @@ public:
     
     template<class T> void setInlineValue(T value) { _value = encodeInline(value); }
     template<class T> T getInlineValue() const { return decodeInline<T>(_value); }
-    
-    template<class T> T* getPointerValue() const { return static_cast<T*>(_value); }
     
     void* copy() const;
 
@@ -143,12 +155,17 @@ public:
     /// Destroys the current value, if any.
     ~OwnedAttributeValue();
     
+    /// Sets this attribute to a mix of the first and second provided.    
+    void mix(const AttributeValue& first, const AttributeValue& second, float alpha);
+
     /// Destroys the current value, if any, and copies the specified other value.
     OwnedAttributeValue& operator=(const AttributeValue& other);
     
     /// Destroys the current value, if any, and copies the specified other value.
     OwnedAttributeValue& operator=(const OwnedAttributeValue& other);
 };
+
+Q_DECLARE_METATYPE(OwnedAttributeValue)
 
 /// Represents a registered attribute.
 class Attribute : public SharedObject {
@@ -177,6 +194,8 @@ public:
     virtual void readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const { read(in, value, isLeaf); }
     virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const { write(out, value, isLeaf); }
 
+    virtual MetavoxelNode* createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const;
+
     virtual void readMetavoxelRoot(MetavoxelData& data, MetavoxelStreamState& state);
     virtual void writeMetavoxelRoot(const MetavoxelNode& root, MetavoxelStreamState& state);
     
@@ -189,8 +208,15 @@ public:
     virtual bool equal(void* first, void* second) const = 0;
 
     /// Merges the value of a parent and its children.
+    /// \param postRead whether or not the merge is happening after a read
     /// \return whether or not the children and parent values are all equal
-    virtual bool merge(void*& parent, void* children[]) const = 0;
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const = 0;
+
+    /// Given the parent value, returns the value that children should inherit (either the parent value or the default).
+    virtual AttributeValue inherit(const AttributeValue& parentValue) const { return parentValue; }
+
+    /// Mixes the first and the second, returning a new value with the result.
+    virtual void* mix(void* first, void* second, float alpha) const = 0;
 
     virtual void* getDefaultValue() const = 0;
 
@@ -221,6 +247,8 @@ public:
 
     virtual bool equal(void* first, void* second) const { return decodeInline<T>(first) == decodeInline<T>(second); }
 
+    virtual void* mix(void* first, void* second, float alpha) const { return create(alpha < 0.5f ? first : second); }
+
     virtual void* getDefaultValue() const { return encodeInline(_defaultValue); }
 
 protected:
@@ -241,26 +269,38 @@ template<class T, int bits> inline void InlineAttribute<T, bits>::write(Bitstrea
     }
 }
 
-/// Provides merging using the =, ==, += and /= operators.
+/// Provides averaging using the +=, ==, and / operators.
 template<class T, int bits = 32> class SimpleInlineAttribute : public InlineAttribute<T, bits> {
 public:
     
-    SimpleInlineAttribute(const QString& name, T defaultValue = T()) : InlineAttribute<T, bits>(name, defaultValue) { }
+    SimpleInlineAttribute(const QString& name, const T& defaultValue = T()) : InlineAttribute<T, bits>(name, defaultValue) { }
     
-    virtual bool merge(void*& parent, void* children[]) const;
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
 };
 
-template<class T, int bits> inline bool SimpleInlineAttribute<T, bits>::merge(void*& parent, void* children[]) const {
-    T& merged = *(T*)&parent;
-    merged = decodeInline<T>(children[0]);
+template<class T, int bits> inline bool SimpleInlineAttribute<T, bits>::merge(
+        void*& parent, void* children[], bool postRead) const {
+    T firstValue = decodeInline<T>(children[0]);
+    T totalValue = firstValue;
     bool allChildrenEqual = true;
     for (int i = 1; i < Attribute::MERGE_COUNT; i++) {
-        merged += decodeInline<T>(children[i]);
-        allChildrenEqual &= (decodeInline<T>(children[0]) == decodeInline<T>(children[i]));
+        T value = decodeInline<T>(children[i]);
+        totalValue += value;
+        allChildrenEqual &= (firstValue == value);
     }
-    merged /= Attribute::MERGE_COUNT;
+    parent = encodeInline(totalValue / Attribute::MERGE_COUNT);
     return allChildrenEqual;
 }
+
+/// Simple float attribute.
+class FloatAttribute : public SimpleInlineAttribute<float> {
+    Q_OBJECT
+    Q_PROPERTY(float defaultValue MEMBER _defaultValue)
+
+public:
+    
+    Q_INVOKABLE FloatAttribute(const QString& name = QString(), float defaultValue = 0.0f);
+};
 
 /// Provides appropriate averaging for RGBA values.
 class QRgbAttribute : public InlineAttribute<QRgb> {
@@ -271,7 +311,9 @@ public:
     
     Q_INVOKABLE QRgbAttribute(const QString& name = QString(), QRgb defaultValue = QRgb());
     
-    virtual bool merge(void*& parent, void* children[]) const;
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+    
+    virtual void* mix(void* first, void* second, float alpha) const;
     
     virtual void* createFromScript(const QScriptValue& value, QScriptEngine* engine) const;
     
@@ -288,7 +330,9 @@ public:
     
     Q_INVOKABLE PackedNormalAttribute(const QString& name = QString(), QRgb defaultValue = QRgb());
     
-    virtual bool merge(void*& parent, void* children[]) const;
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+    
+    virtual void* mix(void* first, void* second, float alpha) const;
 };
 
 /// Packs a normal into an RGB value.
@@ -296,6 +340,42 @@ QRgb packNormal(const glm::vec3& normal);
 
 /// Unpacks a normal from an RGB value.
 glm::vec3 unpackNormal(QRgb value);
+
+/// RGBA values for voxelized spanners.
+class SpannerQRgbAttribute : public QRgbAttribute {
+    Q_OBJECT
+
+public:
+    
+    Q_INVOKABLE SpannerQRgbAttribute(const QString& name = QString(), QRgb defaultValue = QRgb());
+    
+    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
+    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
+    
+    virtual MetavoxelNode* createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const;
+    
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+    
+    virtual AttributeValue inherit(const AttributeValue& parentValue) const;
+};
+
+/// Packed normals for voxelized spanners.
+class SpannerPackedNormalAttribute : public PackedNormalAttribute {
+    Q_OBJECT
+
+public:
+    
+    Q_INVOKABLE SpannerPackedNormalAttribute(const QString& name = QString(), QRgb defaultValue = QRgb());
+    
+    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
+    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
+    
+    virtual MetavoxelNode* createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const;
+    
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+    
+    virtual AttributeValue inherit(const AttributeValue& parentValue) const;
+};
 
 /// An attribute that takes the form of QObjects of a given meta-type (a subclass of SharedObject).
 class SharedObjectAttribute : public InlineAttribute<SharedObjectPointer> {
@@ -311,7 +391,7 @@ public:
     virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
     virtual void write(Bitstream& out, void* value, bool isLeaf) const;
 
-    virtual bool merge(void*& parent, void* children[]) const;
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
     
     virtual void* createFromVariant(const QVariant& value) const;
     
@@ -337,7 +417,11 @@ public:
     virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
     virtual void write(Bitstream& out, void* value, bool isLeaf) const;
     
-    virtual bool merge(void*& parent, void* children[]) const;
+    virtual MetavoxelNode* createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const;
+    
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+
+    virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 
     virtual QWidget* createEditor(QWidget* parent = NULL) const;
 
