@@ -675,6 +675,8 @@ public:
 
 private:
     
+    void voxelize(const glm::vec3& minimum);
+    
     float _size;
     Box _bounds;
     QVector<DirectionImages> _directionImages;
@@ -687,7 +689,18 @@ Voxelizer::Voxelizer(float size, const Box& bounds, const QVector<DirectionImage
 }
 
 void Voxelizer::run() {
-    
+    // voxelize separately each cell within the bounds
+    float halfSize = _size * 0.5f;
+    for (float x = _bounds.minimum.x + halfSize; x < _bounds.maximum.x; x += _size) {
+        for (float y = _bounds.minimum.y + halfSize; y < _bounds.maximum.y; y += _size) {
+            for (float z = _bounds.minimum.z + halfSize; z < _bounds.maximum.z; z += _size) {
+                
+            }
+        }
+    }
+}
+
+void Voxelizer::voxelize(const glm::vec3& minimum) {
 }
 
 void SetSpannerTool::applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) {

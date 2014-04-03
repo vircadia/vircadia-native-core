@@ -38,7 +38,7 @@ public:
     SharedObjectPointer findFirstRaySpannerIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const AttributePointer& attribute, float& distance);
     
-    void applyEdit(const MetavoxelEditMessage& edit);
+    Q_INVOKABLE void applyEdit(const MetavoxelEditMessage& edit, bool reliable = false);
     
     void simulate(float deltaTime);
     void render();
@@ -98,7 +98,7 @@ public:
 
     void guide(MetavoxelVisitor& visitor);
 
-    void applyEdit(const MetavoxelEditMessage& edit);
+    void applyEdit(const MetavoxelEditMessage& edit, bool reliable = false);
 
     void simulate(float deltaTime);
 

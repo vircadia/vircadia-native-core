@@ -69,13 +69,13 @@ SharedObjectPointer MetavoxelSystem::findFirstRaySpannerIntersection(
     return closestSpanner;
 }
 
-void MetavoxelSystem::applyEdit(const MetavoxelEditMessage& edit) {
+void MetavoxelSystem::applyEdit(const MetavoxelEditMessage& edit, bool reliable) {
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
             if (client) {
-                client->applyEdit(edit);
+                client->applyEdit(edit, reliable);
             }
         }
     }
@@ -267,12 +267,17 @@ void MetavoxelClient::guide(MetavoxelVisitor& visitor) {
     _data.guide(visitor);
 }
 
-void MetavoxelClient::applyEdit(const MetavoxelEditMessage& edit) {
-    // apply immediately to local tree
-    edit.apply(_data, _sequencer.getWeakSharedObjectHash());
+void MetavoxelClient::applyEdit(const MetavoxelEditMessage& edit, bool reliable) {
+    if (reliable) {
+        _sequencer.getReliableOutputChannel()->sendMessage(QVariant::fromValue(edit));
+    
+    } else {
+        // apply immediately to local tree
+        edit.apply(_data, _sequencer.getWeakSharedObjectHash());
 
-    // start sending it out
-    _sequencer.sendHighPriorityMessage(QVariant::fromValue(edit));
+        // start sending it out
+        _sequencer.sendHighPriorityMessage(QVariant::fromValue(edit));
+    }
 }
 
 void MetavoxelClient::simulate(float deltaTime) {
