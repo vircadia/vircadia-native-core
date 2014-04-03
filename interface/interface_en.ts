@@ -4,22 +4,22 @@
 <context>
     <name>Application</name>
     <message>
-        <location filename="src/Application.cpp" line="1385"/>
+        <location filename="src/Application.cpp" line="1370"/>
         <source>Export Voxels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="1386"/>
+        <location filename="src/Application.cpp" line="1371"/>
         <source>Sparse Voxel Octree Files (*.svo)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3714"/>
+        <location filename="src/Application.cpp" line="3723"/>
         <source>Open Script</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Application.cpp" line="3715"/>
+        <location filename="src/Application.cpp" line="3724"/>
         <source>JavaScript Files (*.js)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -44,39 +44,37 @@
         <source> online now:</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <location filename="src/ui/ChatWindow.cpp" line="47"/>
+        <source>You must be logged in to chat with others.</source>
+        <translation type="unfinished"></translation>
+    </message>
     <message numerus="yes">
-        <location filename="src/ui/ChatWindow.cpp" line="135"/>
+        <location filename="src/ui/ChatWindow.cpp" line="139"/>
         <source>day</source>
-        <translation>
+        <translation type="unfinished">
             <numerusform>%n day</numerusform>
             <numerusform>%n days</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="src/ui/ChatWindow.cpp" line="135"/>
+        <location filename="src/ui/ChatWindow.cpp" line="139"/>
         <source>hour</source>
-        <translation>
+        <translation type="unfinished">
             <numerusform>%n hour</numerusform>
             <numerusform>%n hours</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="src/ui/ChatWindow.cpp" line="135"/>
+        <location filename="src/ui/ChatWindow.cpp" line="139"/>
         <source>minute</source>
-        <translation>
+        <translation type="unfinished">
             <numerusform>%n minute</numerusform>
             <numerusform>%n minutes</numerusform>
         </translation>
     </message>
-    <message numerus="yes">
-        <source>second</source>
-        <translation type="vanished">
-            <numerusform>%n second</numerusform>
-            <numerusform>%n seconds</numerusform>
-        </translation>
-    </message>
     <message>
-        <location filename="src/ui/ChatWindow.cpp" line="191"/>
+        <location filename="src/ui/ChatWindow.cpp" line="195"/>
         <source>%1 online now:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -113,18 +111,18 @@
 <context>
     <name>Menu</name>
     <message>
-        <location filename="src/Menu.cpp" line="463"/>
+        <location filename="src/Menu.cpp" line="461"/>
         <source>Open .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="465"/>
-        <location filename="src/Menu.cpp" line="477"/>
+        <location filename="src/Menu.cpp" line="463"/>
+        <location filename="src/Menu.cpp" line="475"/>
         <source>Text files (*.ini)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="475"/>
+        <location filename="src/Menu.cpp" line="473"/>
         <source>Save .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
@@ -155,6 +153,57 @@
     <message>
         <location filename="src/ui/ImportDialog.cpp" line="27"/>
         <source>Cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>RunningScriptsWidget</name>
+    <message>
+        <location filename="ui/runningScriptsWidget.ui" line="14"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="127"/>
+        <source>Form</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/runningScriptsWidget.ui" line="33"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="128"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;Running Scripts&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/runningScriptsWidget.ui" line="49"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="129"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Currently running&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/runningScriptsWidget.ui" line="70"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="130"/>
+        <source>Reload All</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/runningScriptsWidget.ui" line="95"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="131"/>
+        <source>Stop All</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/runningScriptsWidget.ui" line="115"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="132"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Recently loaded&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/runningScriptsWidget.ui" line="147"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="133"/>
+        <source>(click a script or use the 1-9 keys to load and run it)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/runningScriptsWidget.ui" line="237"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="135"/>
+        <source>There are no scripts currently running.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

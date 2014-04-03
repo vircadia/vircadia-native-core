@@ -41,6 +41,11 @@ bool Extents::containsPoint(const glm::vec3& point) const {
         && point.z >= minimum.z && point.z <= maximum.z);
 }
 
+void Extents::addExtents(const Extents& extents) {
+     minimum = glm::min(minimum, extents.minimum);
+     maximum = glm::max(maximum, extents.maximum);
+}
+
 void Extents::addPoint(const glm::vec3& point) {
     minimum = glm::min(minimum, point);
     maximum = glm::max(maximum, point);
@@ -1343,7 +1348,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     }
 
     geometry.bindExtents.reset();
-    geometry.staticExtents.reset();
     geometry.meshExtents.reset();
     
     for (QHash<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
@@ -1511,8 +1515,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 JointShapeInfo& jointShapeInfo = jointShapeInfos[jointIndex];
                 jointShapeInfo.boneBegin = rotateMeshToJoint * (radiusScale * (boneBegin - boneEnd));
 
-                bool jointIsStatic = joint.freeLineage.isEmpty();
-                glm::vec3 jointTranslation = extractTranslation(geometry.offset * joint.bindTransform);
                 float totalWeight = 0.0f;
                 for (int j = 0; j < cluster.indices.size(); j++) {
                     int oldIndex = cluster.indices.at(j);
@@ -1534,10 +1536,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                             jointShapeInfo.extents.addPoint(vertexInJointFrame);
                             jointShapeInfo.averageVertex += vertexInJointFrame;
                             ++jointShapeInfo.numVertices;
-                            if (jointIsStatic) {
-                                // expand the extents of static (nonmovable) joints
-                                geometry.staticExtents.addPoint(vertex + jointTranslation);
-                            }
                         }
 
                         // look for an unused slot in the weights vector

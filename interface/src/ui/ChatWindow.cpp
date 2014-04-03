@@ -42,6 +42,10 @@ ChatWindow::ChatWindow() :
     ui->messagesGridLayout->setColumnStretch(1, 3);
 
     ui->messagePlainTextEdit->installEventFilter(this);
+
+    if (!AccountManager::getInstance().isLoggedIn()) {
+        ui->connectingToXMPPLabel->setText(tr("You must be logged in to chat with others."));
+    }
     
 #ifdef HAVE_QXMPP
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
