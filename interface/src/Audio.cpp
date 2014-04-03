@@ -60,15 +60,16 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
     _measuredJitter(0),
     _jitterBufferSamples(initialJitterBufferSamples),
     _lastInputLoudness(0),
+    _timeSinceLastClip(-1.0),
     _dcOffset(0),
     _noiseGateMeasuredFloor(0),
     _noiseGateSampleCounter(0),
     _noiseGateOpen(false),
     _noiseGateEnabled(true),
+    _toneInjectionEnabled(false),
     _noiseGateFramesToClose(0),
-    _lastVelocity(0),
-    _lastAcceleration(0),
     _totalPacketsReceived(0),
+    _totalInputAudioSamples(0),
     _collisionSoundMagnitude(0.0f),
     _collisionSoundFrequency(0.0f),
     _collisionSoundNoise(0.0f),
@@ -393,7 +394,7 @@ void Audio::handleAudioInput() {
                              inputSamplesRequired,
                              NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
                              _inputFormat, _desiredInputFormat);
-
+            
             //
             //  Impose Noise Gate
             //
@@ -422,13 +423,24 @@ void Audio::handleAudioInput() {
             const int NOISE_GATE_CLOSE_FRAME_DELAY = 5;
             const int NOISE_GATE_FRAMES_TO_AVERAGE = 5;
             const float DC_OFFSET_AVERAGING = 0.99f;
+            const float CLIPPING_THRESHOLD = 0.90f;
             
+            //
+            //  Check clipping, adjust DC offset, and check if should open noise gate
+            //
             float measuredDcOffset = 0.f;
-            
+            //  Increment the time since the last clip
+            if (_timeSinceLastClip >= 0.0f) {
+                _timeSinceLastClip += (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float) SAMPLE_RATE;
+            }
+           
             for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
                 measuredDcOffset += monoAudioSamples[i];
                 monoAudioSamples[i] -= (int16_t) _dcOffset;
                 thisSample = fabsf(monoAudioSamples[i]);
+                if (thisSample > (32767.f * CLIPPING_THRESHOLD)) {
+                    _timeSinceLastClip = 0.0f;
+                }
                 loudness += thisSample;
                 //  Noise Reduction:  Count peaks above the average loudness
                 if (thisSample > (_noiseGateMeasuredFloor * NOISE_GATE_HEIGHT)) {
@@ -483,6 +495,16 @@ void Audio::handleAudioInput() {
                     _lastInputLoudness = 0;
                 }
             }
+            //
+            //  Add tone injection if enabled
+            //
+            const float TONE_FREQ = 220.f / SAMPLE_RATE * TWO_PI;
+            const float QUARTER_VOLUME = 8192.f;
+            if (_toneInjectionEnabled) {
+                for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
+                    monoAudioSamples[i] = QUARTER_VOLUME * sinf(TONE_FREQ * (float)(i + _proceduralEffectSample));
+                }
+            }
 
             // add input data just written to the scope
             QMetaObject::invokeMethod(_scope, "addSamples", Qt::QueuedConnection,
@@ -504,7 +526,7 @@ void Audio::handleAudioInput() {
         if (audioMixer && audioMixer->getActiveSocket()) {
             MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
             glm::vec3 headPosition = interfaceAvatar->getHead()->getPosition();
-            glm::quat headOrientation = interfaceAvatar->getHead()->getTweakedOrientation();
+            glm::quat headOrientation = interfaceAvatar->getHead()->getFinalOrientation();
 
             // we need the amount of bytes in the buffer + 1 for type
             // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
@@ -690,6 +712,10 @@ void Audio::processProceduralAudio(int16_t* monoInput, int numSamples) {
     if (_proceduralOutputDevice) {
         _proceduralOutputDevice->write(proceduralOutput);
     }
+}
+
+void Audio::toggleToneInjection() {
+    _toneInjectionEnabled = !_toneInjectionEnabled;
 }
 
 //  Take a pointer to the acquired microphone input samples and add procedural sounds

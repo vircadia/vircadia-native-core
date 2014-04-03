@@ -85,6 +85,7 @@ public:
     // User Tweakable LOD Items
     QString getLODFeedbackText();
     void autoAdjustLOD(float currentFPS);
+    void resetLODAdjust();
     void setVoxelSizeScale(float sizeScale);
     float getVoxelSizeScale() const { return _voxelSizeScale; }
     float getAvatarLODDistanceMultiplier() const { return _avatarLODDistanceMultiplier; }
@@ -121,6 +122,7 @@ public slots:
     void importSettings();
     void exportSettings();
     void goTo();
+    void goToUser(const QString& user);
     void pasteToVoxel();
     
     void toggleLoginMenuItem();
@@ -240,6 +242,7 @@ namespace MenuOption {
     const QString FilterSixense = "Smooth Sixense Movement";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
+    const QString AudioToneInjection = "Inject Test Tone";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString MuteAudio = "Mute Microphone";
@@ -299,7 +302,8 @@ namespace MenuOption {
     const QString StopAllScripts = "Stop All Scripts";
     const QString TestPing = "Test Ping";
     const QString TransmitterDrive = "Transmitter Drive";
-    const QString UploadFST = "Upload FST file";
+    const QString UploadHead = "Upload Head Model";
+    const QString UploadSkeleton = "Upload Skeleton Model";
     const QString Visage = "Visage";
     const QString Quit =  "Quit";
     const QString Voxels = "Voxels";

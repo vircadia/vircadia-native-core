@@ -151,6 +151,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _lastQueriedViewFrustum(),
         _lastQueriedTime(usecTimestampNow()),
         _audioScope(256, 200, true),
+        _trailingAudioLoudness(0.f),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
         _mouseX(0),
         _mouseY(0),
@@ -169,6 +170,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _bytesPerSecond(0),
         _recentMaxPackets(0),
         _resetRecentMaxPacketsSoon(true),
+        _previousScriptLocation(),
         _logger(new FileLogger(this))
 {
     // read the ApplicationInfo.ini file for Name/Version/Domain information
@@ -1636,6 +1638,8 @@ void Application::updateLOD() {
     // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode
     if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableAutoAdjustLOD) && !isThrottleRendering()) {
         Menu::getInstance()->autoAdjustLOD(_fps);
+    } else {
+        Menu::getInstance()->resetLODAdjust();
     }
 }
 
@@ -1842,15 +1846,6 @@ void Application::updateDialogs(float deltaTime) {
     }
 }
 
-void Application::updateAudio(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateAudio()");
-
-    //  Update audio stats for procedural sounds
-    _audio.setLastAcceleration(_myAvatar->getThrust());
-    _audio.setLastVelocity(_myAvatar->getVelocity());
-}
-
 void Application::updateCursor(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateCursor()");
@@ -1899,7 +1894,6 @@ void Application::update(float deltaTime) {
     updateMetavoxels(deltaTime); // update metavoxels
     updateCamera(deltaTime); // handle various camera tweaks like off axis projection
     updateDialogs(deltaTime); // update various stats dialogs if present
-    updateAudio(deltaTime); // Update audio stats for procedural sounds
     updateCursor(deltaTime); // Handle cursor updates
 
     _particles.update(); // update the particles...
@@ -2187,19 +2181,26 @@ void Application::updateShadowMap() {
         (_viewFrustum.getFarClip() - _viewFrustum.getNearClip());
     loadViewFrustum(_myCamera, _viewFrustum);
     glm::vec3 points[] = {
-        inverseRotation * (glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), nearScale)),
-        inverseRotation * (glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), nearScale)),
-        inverseRotation * (glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), nearScale)),
-        inverseRotation * (glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), nearScale)),
-        inverseRotation * (glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), farScale)),
-        inverseRotation * (glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), farScale)),
-        inverseRotation * (glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), farScale)),
-        inverseRotation * (glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), farScale)) };
-    glm::vec3 minima(FLT_MAX, FLT_MAX, FLT_MAX), maxima(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+        glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), nearScale),
+        glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), nearScale),
+        glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), nearScale),
+        glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), nearScale),
+        glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), farScale),
+        glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), farScale),
+        glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), farScale),
+        glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), farScale) };
+    glm::vec3 center;
     for (size_t i = 0; i < sizeof(points) / sizeof(points[0]); i++) {
-        minima = glm::min(minima, points[i]);
-        maxima = glm::max(maxima, points[i]);
+        center += points[i];
     }
+    center /= (float)(sizeof(points) / sizeof(points[0]));
+    float radius = 0.0f;
+    for (size_t i = 0; i < sizeof(points) / sizeof(points[0]); i++) {
+        radius = qMax(radius, glm::distance(points[i], center));
+    }
+    center = inverseRotation * center;
+    glm::vec3 minima(center.x - radius, center.y - radius, center.z - radius);
+    glm::vec3 maxima(center.x + radius, center.y + radius, center.z + radius); 
 
     // stretch out our extents in z so that we get all of the avatars
     minima.z -= _viewFrustum.getFarClip() * 0.5f;
@@ -2494,14 +2495,103 @@ void Application::displayOverlay() {
                 renderCollisionOverlay(_glWidget->width(), _glWidget->height(), _audio.getCollisionSoundMagnitude());
         }
     }
-
+    
+    //  Audio Scope
+    const int AUDIO_SCOPE_Y_OFFSET = 135;
     if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
-        _audio.renderMuteIcon(1, _glWidget->height() - 50);
         if (Menu::getInstance()->isOptionChecked(MenuOption::Oscilloscope)) {
-            int oscilloscopeTop = _glWidget->height() - 135;
-            _audioScope.render(25, oscilloscopeTop);
+            int oscilloscopeTop = _glWidget->height() - AUDIO_SCOPE_Y_OFFSET;
+            _audioScope.render(MIRROR_VIEW_LEFT_PADDING, oscilloscopeTop);
         }
     }
+    
+    //  Audio VU Meter and Mute Icon
+    const int MUTE_ICON_SIZE = 24;
+    const int AUDIO_METER_INSET = 2;
+    const int AUDIO_METER_WIDTH = MIRROR_VIEW_WIDTH - MUTE_ICON_SIZE - AUDIO_METER_INSET;
+    const int AUDIO_METER_SCALE_WIDTH = AUDIO_METER_WIDTH - 2 * AUDIO_METER_INSET;
+    const int AUDIO_METER_HEIGHT = 8;
+    const int AUDIO_METER_Y_GAP = 8;
+    const int AUDIO_METER_X = MIRROR_VIEW_LEFT_PADDING + MUTE_ICON_SIZE + AUDIO_METER_INSET;
+    
+    int audioMeterY;
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+        audioMeterY = MIRROR_VIEW_HEIGHT + AUDIO_METER_Y_GAP;
+    } else {
+        audioMeterY = AUDIO_METER_Y_GAP;
+    }
+    _audio.renderMuteIcon(MIRROR_VIEW_LEFT_PADDING, audioMeterY);
+    
+    
+    const float AUDIO_METER_BLUE[] = {0.0, 0.0, 1.0};
+    const float AUDIO_METER_GREEN[] = {0.0, 1.0, 0.0};
+    const float AUDIO_METER_RED[] = {1.0, 0.0, 0.0};
+    const float AUDIO_GREEN_START = 0.25 * AUDIO_METER_SCALE_WIDTH;
+    const float AUDIO_RED_START = 0.80 * AUDIO_METER_SCALE_WIDTH;
+    const float CLIPPING_INDICATOR_TIME = 1.0f;
+    const float AUDIO_METER_AVERAGING = 0.5;
+    const float LOG2 = log(2.f);
+    const float MAX_LOG2_SAMPLE = 15.f;
+    float audioLevel = 0.f;
+    float loudness = _audio.getLastInputLoudness() + 1.f;
+    _trailingAudioLoudness = AUDIO_METER_AVERAGING * _trailingAudioLoudness + (1.f - AUDIO_METER_AVERAGING) * loudness;
+
+    float log2loudness = log(_trailingAudioLoudness) / LOG2;
+
+    audioLevel = log2loudness / MAX_LOG2_SAMPLE * AUDIO_METER_SCALE_WIDTH;
+    
+    bool isClipping = ((_audio.getTimeSinceLastClip() > 0.f) && (_audio.getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME));
+
+    glBegin(GL_QUADS);
+    if (isClipping) {
+        glColor3f(1, 0, 0);
+    } else {
+        glColor3f(0, 0, 0);
+    }
+    //  Draw audio meter background Quad
+    glVertex2i(AUDIO_METER_X, audioMeterY);
+    glVertex2i(AUDIO_METER_X + AUDIO_METER_WIDTH, audioMeterY);
+    glVertex2i(AUDIO_METER_X + AUDIO_METER_WIDTH, audioMeterY + AUDIO_METER_HEIGHT);
+    glVertex2i(AUDIO_METER_X, audioMeterY + AUDIO_METER_HEIGHT);
+
+    if (audioLevel > AUDIO_RED_START) {
+        if (!isClipping) {
+            glColor3fv(AUDIO_METER_RED);
+        } else {
+            glColor3f(1, 1, 1);
+        }
+        // Draw Red Quad
+        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_RED_START, audioMeterY + AUDIO_METER_INSET);
+        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + audioLevel, audioMeterY + AUDIO_METER_INSET);
+        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + audioLevel, audioMeterY + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
+        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_RED_START, audioMeterY + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
+        audioLevel = AUDIO_RED_START;
+    }
+    if (audioLevel > AUDIO_GREEN_START) {
+        if (!isClipping) {
+            glColor3fv(AUDIO_METER_GREEN);
+        } else {
+            glColor3f(1, 1, 1);
+        }
+        // Draw Green Quad
+        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_GREEN_START, audioMeterY + AUDIO_METER_INSET);
+        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + audioLevel, audioMeterY + AUDIO_METER_INSET);
+        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + audioLevel, audioMeterY + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
+        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_GREEN_START, audioMeterY + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
+        audioLevel = AUDIO_GREEN_START;
+    }
+    //   Draw Blue Quad
+    if (!isClipping) {
+        glColor3fv(AUDIO_METER_BLUE);
+    } else {
+        glColor3f(1, 1, 1);
+    }
+    // Draw Blue (low level) quad
+    glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET, audioMeterY + AUDIO_METER_INSET);
+    glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + audioLevel, audioMeterY + AUDIO_METER_INSET);
+    glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + audioLevel, audioMeterY + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
+    glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET, audioMeterY + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
+    glEnd();
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::HeadMouse)) {
         _myAvatar->renderHeadMouse();
@@ -3523,11 +3613,19 @@ void Application::reloadAllScripts() {
     }
 }
 
-void Application::uploadFST() {
-    FstReader reader;
+void Application::uploadFST(bool isHead) {
+    FstReader reader(isHead);
     if (reader.zip()) {
         reader.send();
     }
+}
+
+void Application::uploadHead() {
+    uploadFST(true);
+}
+
+void Application::uploadSkeleton() {
+    uploadFST(false);
 }
 
 void Application::removeScriptName(const QString& fileNameString) {
@@ -3601,12 +3699,20 @@ void Application::loadScript(const QString& scriptName) {
 }
 
 void Application::loadDialog() {
-    // shut down and stop any existing script
-    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-    QString suggestedName = desktopLocation.append("/script.js");
+    QString suggestedName;
+
+    if (_previousScriptLocation.isEmpty()) {
+        QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+        suggestedName = desktopLocation.append("/script.js");
+    } else {
+        suggestedName = _previousScriptLocation;
+    }
 
     QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Open Script"), suggestedName, 
                                                           tr("JavaScript Files (*.js)"));
+    if (!fileNameString.isEmpty()) {
+        _previousScriptLocation = fileNameString;
+    }
     
     loadScript(fileNameString);
 }

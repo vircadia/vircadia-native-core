@@ -47,13 +47,11 @@ public:
     Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* parent = 0);
 
     float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _noiseGateMeasuredFloor, 0.f); }
+    float getTimeSinceLastClip() const { return _timeSinceLastClip; }
     float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
 
     void setNoiseGateEnabled(bool noiseGateEnabled) { _noiseGateEnabled = noiseGateEnabled; }
-    
-    void setLastAcceleration(const glm::vec3 lastAcceleration) { _lastAcceleration = lastAcceleration; }
-    void setLastVelocity(const glm::vec3 lastVelocity) { _lastVelocity = lastVelocity; }
-    
+        
     void setJitterBufferSamples(int samples) { _jitterBufferSamples = samples; }
     int getJitterBufferSamples() { return _jitterBufferSamples; }
     
@@ -83,6 +81,7 @@ public slots:
     void reset();
     void toggleMute();
     void toggleAudioNoiseReduction();
+    void toggleToneInjection();
     
     virtual void handleAudioByteArray(const QByteArray& audioByteArray);
 
@@ -130,16 +129,17 @@ private:
     float _measuredJitter;
     int16_t _jitterBufferSamples;
     float _lastInputLoudness;
+    float _timeSinceLastClip;
     float _dcOffset;
     float _noiseGateMeasuredFloor;
     float* _noiseSampleFrames;
     int _noiseGateSampleCounter;
     bool _noiseGateOpen;
     bool _noiseGateEnabled;
+    bool _toneInjectionEnabled;
     int _noiseGateFramesToClose;
-    glm::vec3 _lastVelocity;
-    glm::vec3 _lastAcceleration;
     int _totalPacketsReceived;
+    int _totalInputAudioSamples;
     
     float _collisionSoundMagnitude;
     float _collisionSoundFrequency;

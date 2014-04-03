@@ -51,6 +51,7 @@ Node::Node(const QUuid& uuid, char type, const HifiSockAddr& publicSocket, const
     _lastHeardMicrostamp(usecTimestampNow()),
     _publicSocket(publicSocket),
     _localSocket(localSocket),
+    _symmetricSocket(),
     _activeSocket(NULL),
     _connectionSecret(),
     _bytesReceivedMovingAverage(NULL),
@@ -84,6 +85,15 @@ void Node::setLocalSocket(const HifiSockAddr& localSocket) {
     _localSocket = localSocket;
 }
 
+void Node::setSymmetricSocket(const HifiSockAddr& symmetricSocket) {
+    if (_activeSocket == &_symmetricSocket) {
+        // if the active socket was the symmetric socket then reset it to NULL
+        _activeSocket = NULL;
+    }
+    
+    _symmetricSocket = symmetricSocket;
+}
+
 void Node::activateLocalSocket() {
     qDebug() << "Activating local socket for node" << *this;
     _activeSocket = &_localSocket;
@@ -92,6 +102,11 @@ void Node::activateLocalSocket() {
 void Node::activatePublicSocket() {
     qDebug() << "Activating public socket for node" << *this;
     _activeSocket = &_publicSocket;
+}
+
+void Node::activateSymmetricSocket() {
+    qDebug() << "Activating symmetric socket for node" << *this;
+    _activeSocket = &_symmetricSocket;
 }
 
 void Node::recordBytesReceived(int bytesReceived) {
