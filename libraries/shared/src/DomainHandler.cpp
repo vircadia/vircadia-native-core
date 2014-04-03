@@ -13,12 +13,14 @@
 
 #include "DomainHandler.h"
 
-DomainHandler::DomainHandler() :
+DomainHandler::DomainHandler(QObject* parent) :
+    QObject(parent),
     _uuid(),
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _assignmentUUID(),
     _isConnected(false),
-    _dtlsSession(NULL)
+    _dtlsSession(NULL),
+    _handshakeTimer(NULL)
 {
     
 }
@@ -33,6 +35,12 @@ void DomainHandler::clearConnectionInfo() {
     
     delete _dtlsSession;
     _dtlsSession = NULL;
+    
+    if (_handshakeTimer) {
+        _handshakeTimer->stop();
+        delete _handshakeTimer;
+        _handshakeTimer = NULL;
+    }
 }
 
 void DomainHandler::reset() {
@@ -44,9 +52,21 @@ void DomainHandler::reset() {
     _dtlsSession = NULL;
 }
 
+const unsigned int DTLS_HANDSHAKE_INTERVAL_MSECS = 100;
+
 void DomainHandler::initializeDTLSSession() {
     if (!_dtlsSession) {
         _dtlsSession = new DTLSClientSession(NodeList::getInstance()->getDTLSSocket(), _sockAddr);
+        
+        // start a timer to complete the handshake process
+        _handshakeTimer = new QTimer(this);
+        connect(_handshakeTimer, &QTimer::timeout, this, &DomainHandler::completeDTLSHandshake);
+        
+        // start the handshake right now
+        completeDTLSHandshake();
+        
+        // start the timer to finish off the handshake
+        _handshakeTimer->start(DTLS_HANDSHAKE_INTERVAL_MSECS);
     }
 }
 
@@ -89,6 +109,28 @@ void DomainHandler::setHostname(const QString& hostname) {
         QHostInfo::lookupHost(_hostname, this, SLOT(completedHostnameLookup(const QHostInfo&)));
         
         emit hostnameChanged(_hostname);
+    }
+}
+
+void DomainHandler::completeDTLSHandshake() {
+    int handshakeReturn = gnutls_handshake(*_dtlsSession->getGnuTLSSession());
+    
+    qDebug() << "handshake return is" << handshakeReturn;
+    
+    if (handshakeReturn == 0) {
+        // we've shaken hands, so we're good to go now
+        _dtlsSession->setCompletedHandshake(true);
+        
+        _handshakeTimer->stop();
+        delete _handshakeTimer;
+        _handshakeTimer = NULL;
+        
+    } else if (gnutls_error_is_fatal(handshakeReturn)) {
+        // this was a fatal error handshaking, so remove this session
+        qDebug() << "Fatal error -" << gnutls_strerror(handshakeReturn)
+            << "- during DTLS handshake with DS at" << getHostname();
+        
+        clearConnectionInfo();
     }
 }
 

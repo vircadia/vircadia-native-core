@@ -10,6 +10,7 @@
 #define __hifi__DomainHandler__
 
 #include <QtCore/QObject>
+#include <QtCore/QTimer>
 #include <QtCore/QUuid>
 #include <QtCore/QUrl>
 #include <QtNetwork/QHostInfo>
@@ -24,7 +25,7 @@ const unsigned short DEFAULT_DOMAIN_SERVER_DTLS_PORT = 40103;
 class DomainHandler : public QObject {
     Q_OBJECT
 public:
-    DomainHandler();
+    DomainHandler(QObject* parent = 0);
     ~DomainHandler();
     
     void clearConnectionInfo();
@@ -54,6 +55,7 @@ public:
     void parseDTLSRequirementPacket(const QByteArray& dtlsRequirementPacket);
     
 private slots:
+    void completeDTLSHandshake();
     void completedHostnameLookup(const QHostInfo& hostInfo);
 signals:
     void hostnameChanged(const QString& hostname);
@@ -69,6 +71,7 @@ private:
     QUuid _assignmentUUID;
     bool _isConnected;
     DTLSClientSession* _dtlsSession;
+    QTimer* _handshakeTimer;
 };
 
 #endif /* defined(__hifi__DomainHandler__) */

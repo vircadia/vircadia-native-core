@@ -53,6 +53,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     LimitedNodeList(socketListenPort, dtlsListenPort),
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(),
+    _domainHandler(this),
     _numNoReplyDomainCheckIns(0),
     _assignmentServerSocket(),
     _publicSockAddr(),
@@ -323,22 +324,8 @@ void NodeList::sendDomainServerCheckIn() {
         
         DTLSClientSession* dtlsSession = _domainHandler.getDTLSSession();
         
-        if (dtlsSession) {
-            if (dtlsSession->completedHandshake()) {
-                qDebug() << "we can send a DTLS check in!";
-            } else {
-                int handshakeReturn = gnutls_handshake(*dtlsSession->getGnuTLSSession());
-                if (handshakeReturn == 0) {
-                    dtlsSession->setCompletedHandshake(true);
-                } else if (gnutls_error_is_fatal(handshakeReturn)) {
-                    // this was a fatal error handshaking, so remove this session
-                    qDebug() << "Fatal error -" << gnutls_strerror(handshakeReturn)
-                        << "- during DTLS handshake with DS at" << _domainHandler.getHostname();
-                    
-                    _domainHandler.clearConnectionInfo();
-                }
-            }
-            
+        if (dtlsSession && dtlsSession->completedHandshake()) {
+            qDebug() << "we can send a DTLS check in!";
         } else {
             // construct the DS check in packet
             QUuid packetUUID = (!_sessionUUID.isNull() ? _sessionUUID : _domainHandler.getAssignmentUUID());
