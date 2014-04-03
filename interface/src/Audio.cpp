@@ -76,7 +76,11 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
     _collisionSoundDuration(0.0f),
     _proceduralEffectSample(0),
     _numFramesDisplayStarve(0),
-    _muted(false)
+    _muted(false),
+    _processSpatialAudio(false),
+    _spatialAudioStart(0),
+    _spatialAudioFinish(0),
+    _spatialAudioRingBuffer(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL)
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
@@ -584,7 +588,7 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     _totalPacketsReceived++;
 
     double timeDiff = diffclock(&_lastReceiveTime, &currentReceiveTime);
-    
+
     //  Discard first few received packets for computing jitter (often they pile up on start)
     if (_totalPacketsReceived > NUM_INITIAL_PACKETS_DISCARD) {
         _stdev.addValue(timeDiff);
@@ -604,12 +608,75 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
 
     if (_audioOutput) {
         // Audio output must exist and be correctly set up if we're going to process received audio
-        processReceivedAudio(audioByteArray);
+        _ringBuffer.parseData(audioByteArray);
+        processReceivedAudio(_spatialAudioStart, _ringBuffer);
     }
 
     Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(audioByteArray.size());
 
     _lastReceiveTime = currentReceiveTime;
+}
+
+unsigned int Audio::timeValToSampleTick(const quint64 time, int sampleRate) {
+    unsigned int sample =  (unsigned int)(time / 1000000 * sampleRate);
+    return sample;
+}
+
+void Audio::addSpatialAudioToBuffer(unsigned int sampleTime, AudioRingBuffer& spatialAudio) {
+
+    // Calculate the number of remaining samples available
+    unsigned int remaining = _spatialAudioRingBuffer.getSampleCapacity() - _spatialAudioRingBuffer.samplesAvailable();
+    if (sampleTime >= _spatialAudioFinish) {
+        if (_spatialAudioStart == _spatialAudioFinish) {
+
+            // Nothing in the spatial audio ring buffer yet
+            // Just do a straight copy, clipping if necessary
+            unsigned int sampleCt = (remaining < spatialAudio.samplesAvailable()) ? remaining : spatialAudio.samplesAvailable();
+            if (sampleCt) {
+                _spatialAudioRingBuffer.writeSamples(spatialAudio.getBuffer(), sampleCt);
+            }
+            _spatialAudioFinish = _spatialAudioStart + spatialAudio.samplesAvailable() / _desiredOutputFormat.channelCount();
+
+        } else {
+
+            // Spatial audio ring buffer already has data, but there is no overlap with the new sample
+            // compute the appropriate time delay and pad with silence until the new start time
+            unsigned int delay = sampleTime - _spatialAudioFinish;
+            unsigned int ct = delay * _desiredOutputFormat.channelCount();
+            unsigned int silentCt = (remaining < ct) ? remaining : ct;
+            if (silentCt) {
+                _spatialAudioRingBuffer.addSilentFrame(silentCt);
+            }
+
+            // Recalculate the number of remaining samples
+            remaining -= silentCt;
+            unsigned int sampleCt = (remaining < spatialAudio.samplesAvailable()) ? remaining : spatialAudio.samplesAvailable();
+
+            // Copy the new spatial audio to the accumulation ring buffer
+            if (sampleCt) {
+                _spatialAudioRingBuffer.writeSamples(spatialAudio.getBuffer(), sampleCt);
+            }
+            _spatialAudioFinish += (sampleCt + silentCt) / _desiredOutputFormat.channelCount();
+        }
+    } else {
+
+        // There is overlap between the spatial audio buffer and the new sample,
+        // acumulate the overlap
+        unsigned int offset = (sampleTime - _spatialAudioStart) * _desiredOutputFormat.channelCount();
+        unsigned int accumulationCt = (_spatialAudioFinish - sampleTime) * _desiredOutputFormat.channelCount();
+        int j = 0;
+        for (int i = accumulationCt; --i >= 0; j++) {
+            _spatialAudioRingBuffer[j + offset] += spatialAudio[j];
+        }
+
+        // Copy the remaining unoverlapped spatial audio to the accumulation buffer
+        unsigned int sampleCt = (remaining < spatialAudio.samplesAvailable()) ? remaining : spatialAudio.samplesAvailable();
+        if (sampleCt) {
+            _spatialAudioRingBuffer.writeSamples(spatialAudio.getBuffer() + accumulationCt, sampleCt);
+        }
+        _spatialAudioFinish += sampleCt / _desiredOutputFormat.channelCount();
+    }
+    spatialAudio.reset();
 }
 
 bool Audio::mousePressEvent(int x, int y) {
@@ -629,24 +696,23 @@ void Audio::toggleAudioNoiseReduction() {
     _noiseGateEnabled = !_noiseGateEnabled;
 }
 
-void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
-    _ringBuffer.parseData(audioByteArray);
+void Audio::processReceivedAudio(unsigned int sampleTime, AudioRingBuffer& ringBuffer) {
 
     float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())
         * (_desiredOutputFormat.channelCount() / (float) _outputFormat.channelCount());
     
-    if (!_ringBuffer.isStarved() && _audioOutput && _audioOutput->bytesFree() == _audioOutput->bufferSize()) {
+    if (!ringBuffer.isStarved() && _audioOutput && _audioOutput->bytesFree() == _audioOutput->bufferSize()) {
         // we don't have any audio data left in the output buffer
         // we just starved
         //qDebug() << "Audio output just starved.";
-        _ringBuffer.setIsStarved(true);
+        ringBuffer.setIsStarved(true);
         _numFramesDisplayStarve = 10;
     }
     
     // if there is anything in the ring buffer, decide what to do
-    if (_ringBuffer.samplesAvailable() > 0) {
+    if (ringBuffer.samplesAvailable() > 0) {
         
-        int numNetworkOutputSamples = _ringBuffer.samplesAvailable();
+        int numNetworkOutputSamples = ringBuffer.samplesAvailable();
         int numDeviceOutputSamples = numNetworkOutputSamples / networkOutputToOutputRatio;
         
         QByteArray outputBuffer;
@@ -654,19 +720,35 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
         
         int numSamplesNeededToStartPlayback = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (_jitterBufferSamples * 2);
         
-        if (!_ringBuffer.isNotStarvedOrHasMinimumSamples(numSamplesNeededToStartPlayback)) {
+        if (!ringBuffer.isNotStarvedOrHasMinimumSamples(numSamplesNeededToStartPlayback)) {
             //  We are still waiting for enough samples to begin playback
             // qDebug() << numNetworkOutputSamples << " samples so far, waiting for " << numSamplesNeededToStartPlayback;
         } else {
             //  We are either already playing back, or we have enough audio to start playing back.
             //qDebug() << "pushing " << numNetworkOutputSamples;
-            _ringBuffer.setIsStarved(false);
+            ringBuffer.setIsStarved(false);
 
-            // copy the samples we'll resample from the ring buffer - this also
-            // pushes the read pointer of the ring buffer forwards
             int16_t* ringBufferSamples= new int16_t[numNetworkOutputSamples];
-            _ringBuffer.readSamples(ringBufferSamples, numNetworkOutputSamples);
-        
+            if (_processSpatialAudio) {
+                unsigned int sampleTime = _spatialAudioFinish;
+                // Accumulate direct transmission of audio from sender to receiver
+                addSpatialAudioToBuffer(sampleTime, ringBuffer);
+
+                // Send audio off for spatial processing
+                emit processSpatialAudio(sampleTime, ringBuffer, _desiredOutputFormat);
+
+                // copy the samples we'll resample from the spatial audio ring buffer - this also
+                // pushes the read pointer of the spatial audio ring buffer forwards
+                _spatialAudioRingBuffer.readSamples(ringBufferSamples, numNetworkOutputSamples);
+                _spatialAudioStart += ringBuffer.samplesAvailable() / _desiredOutputFormat.channelCount();
+
+            } else {
+
+                // copy the samples we'll resample from the ring buffer - this also
+                // pushes the read pointer of the ring buffer forwards
+                ringBuffer.readSamples(ringBufferSamples, numNetworkOutputSamples);
+            }
+
             // add the next numNetworkOutputSamples from each QByteArray
             // in our _localInjectionByteArrays QVector to the localInjectedSamples
 
@@ -721,6 +803,10 @@ void Audio::processProceduralAudio(int16_t* monoInput, int numSamples) {
 
 void Audio::toggleToneInjection() {
     _toneInjectionEnabled = !_toneInjectionEnabled;
+}
+
+void Audio::toggleAudioSpatialProcessing() {
+    _processSpatialAudio = !_processSpatialAudio;
 }
 
 //  Take a pointer to the acquired microphone input samples and add procedural sounds
@@ -943,6 +1029,12 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
             _proceduralAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
 
             gettimeofday(&_lastReceiveTime, NULL);
+
+            // setup spatial audio ringbuffer
+            int numFrameSamples = _outputFormat.sampleRate() * _desiredOutputFormat.channelCount();
+            _spatialAudioRingBuffer.resizeForFrameSize(numFrameSamples);
+            _spatialAudioStart = _spatialAudioFinish = 0;
+
             supportedFormat = true;
         }
     }

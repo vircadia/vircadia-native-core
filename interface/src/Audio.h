@@ -78,11 +78,13 @@ public slots:
     void start();
     void stop();
     void addReceivedAudioToBuffer(const QByteArray& audioByteArray);
+    void addSpatialAudioToBuffer(unsigned int sampleTime, AudioRingBuffer& spatialAudio);
     void handleAudioInput();
     void reset();
     void toggleMute();
     void toggleAudioNoiseReduction();
     void toggleToneInjection();
+    void toggleAudioSpatialProcessing();
     
     virtual void handleAudioByteArray(const QByteArray& audioByteArray);
 
@@ -98,6 +100,7 @@ public slots:
 
 signals:
     bool muteToggled();
+    void processSpatialAudio(unsigned int sampleTime, const AudioRingBuffer& ringBuffer, const QAudioFormat& format);
     
 private:
 
@@ -166,6 +169,14 @@ private:
     // Audio callback in class context.
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
     
+    // Process received audio by spatial attenuation geometric response
+    bool _processSpatialAudio;
+    unsigned int _spatialAudioStart;            ///< Start of spatial audio interval (in sample rate time base)
+    unsigned int _spatialAudioFinish;           ///< End of spatial audio interval (in sample rate time base)
+    AudioRingBuffer _spatialAudioRingBuffer;    ///< Spatially processed audio
+
+    unsigned int timeValToSampleTick(const quint64 time, int sampleRate);
+
     // Process procedural audio by
     //  1. Echo to the local procedural output device
     //  2. Mix with the audio input
@@ -175,7 +186,7 @@ private:
     void addProceduralSounds(int16_t* monoInput, int numSamples);
     
     // Process received audio
-    void processReceivedAudio(const QByteArray& audioByteArray);
+    void processReceivedAudio(unsigned int sampleTime, AudioRingBuffer& ringBuffer);
 
     bool switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo);
     bool switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo);
