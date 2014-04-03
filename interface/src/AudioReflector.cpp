@@ -163,10 +163,6 @@ void AudioReflector::echoReflections(const glm::vec3& origin, const glm::vec3& o
     int16_t* attenuatedLeftSamplesData = (int16_t*)attenuatedLeftSamples.data();
     int16_t* attenuatedRightSamplesData = (int16_t*)attenuatedRightSamples.data();
     
-    AudioRingBuffer attenuatedLeftBuffer(totalNumberOfSamples);
-    AudioRingBuffer attenuatedRightBuffer(totalNumberOfSamples);
-    
-
     for (int bounceNumber = 1; bounceNumber <= bounces; bounceNumber++) {
         if (_voxels->findRayIntersection(start, direction, elementHit, distance, face)) {
             glm::vec3 end = start + (direction * (distance * SLIGHTLY_SHORT));
@@ -212,13 +208,8 @@ void AudioReflector::echoReflections(const glm::vec3& origin, const glm::vec3& o
             
             //qDebug() << "sampleTimeLeft=" << sampleTimeLeft << "sampleTimeRight=" << sampleTimeRight;
 
-            attenuatedLeftBuffer.writeSamples(attenuatedLeftSamplesData, totalNumberOfSamples);
-            attenuatedRightBuffer.writeSamples(attenuatedRightSamplesData, totalNumberOfSamples);
-            
-            _audio->addSpatialAudioToBuffer(sampleTimeLeft, attenuatedLeftBuffer);
-            _audio->addSpatialAudioToBuffer(sampleTimeRight, attenuatedRightBuffer);
-            attenuatedLeftBuffer.reset();
-            attenuatedRightBuffer.reset();
+            _audio->addSpatialAudioToBuffer(sampleTimeLeft, attenuatedLeftSamples, totalNumberOfSamples);
+            _audio->addSpatialAudioToBuffer(sampleTimeRight, attenuatedRightSamples, totalNumberOfSamples);
         }
     }
 }
@@ -231,9 +222,7 @@ void AudioReflector::processSpatialAudio(unsigned int sampleTime, const QByteArr
         return;
     } else if (doSimpleEcho) {
         int totalNumberOfSamples = samples.size() / (sizeof(int16_t));
-        AudioRingBuffer samplesRingBuffer(totalNumberOfSamples);
-        samplesRingBuffer.writeData(samples.constData(),samples.size());
-        _audio->addSpatialAudioToBuffer(sampleTime + 12000, samplesRingBuffer);
+        _audio->addSpatialAudioToBuffer(sampleTime + 12000, samples, totalNumberOfSamples);
         return;
     } else {
         quint64 start = usecTimestampNow();
