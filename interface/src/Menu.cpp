@@ -282,8 +282,9 @@ Menu::Menu() :
     QMenu* avatarOptionsMenu = developerMenu->addMenu("Avatar Options");
 
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Avatars, 0, true);
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderSkeletonCollisionProxies);
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderHeadCollisionProxies);
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderSkeletonCollisionShapes);
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderHeadCollisionShapes);
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderBoundingCollisionShapes);
 
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu,

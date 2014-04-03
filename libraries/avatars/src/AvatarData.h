@@ -242,6 +242,8 @@ protected:
 
     bool _isChatCirclingEnabled;
 
+    bool _hasNewJointRotations; // set in AvatarData, cleared in Avatar
+
     HeadData* _headData;
     HandData* _handData;
 
