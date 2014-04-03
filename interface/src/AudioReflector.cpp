@@ -215,7 +215,7 @@ void AudioReflector::echoReflections(const glm::vec3& origin, const glm::vec3& o
 }
 
 void AudioReflector::processSpatialAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
-    bool doNothing = true;
+    bool doNothing = false;
     bool doSimpleEcho = false;
 
     if (doNothing) {
@@ -264,7 +264,7 @@ void AudioReflector::processSpatialAudio(unsigned int sampleTime, const QByteArr
         echoReflections(origin, down, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
         quint64 end = usecTimestampNow();
 
-        qDebug() << "AudioReflector::addSamples()... elapsed=" << (end - start);
+        //qDebug() << "AudioReflector::addSamples()... elapsed=" << (end - start);
     }
 }
 
