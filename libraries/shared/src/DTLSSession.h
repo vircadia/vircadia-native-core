@@ -26,10 +26,14 @@ public:
     
     gnutls_session_t* getGnuTLSSession() { return &_gnutlsSession; }
     
+    bool completedHandshake() const { return _completedHandshake; }
+    void setCompletedHandshake(bool completedHandshake) { _completedHandshake = completedHandshake; }
+    
 protected:
     QUdpSocket& _dtlsSocket;
     gnutls_session_t _gnutlsSession;
     HifiSockAddr _destinationSocket;
+    bool _completedHandshake;
 };
 
 #endif /* defined(__hifi__DTLSSession__) */

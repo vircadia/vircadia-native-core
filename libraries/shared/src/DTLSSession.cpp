@@ -77,7 +77,8 @@ ssize_t DTLSSession::socketPush(gnutls_transport_ptr_t ptr, const void* buffer, 
 
 DTLSSession::DTLSSession(int end, QUdpSocket& dtlsSocket, HifiSockAddr& destinationSocket) :
     _dtlsSocket(dtlsSocket),
-    _destinationSocket(destinationSocket)
+    _destinationSocket(destinationSocket),
+    _completedHandshake(false)
 {
     gnutls_init(&_gnutlsSession, end | GNUTLS_DATAGRAM | GNUTLS_NONBLOCK);
     

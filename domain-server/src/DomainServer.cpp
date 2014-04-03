@@ -628,9 +628,22 @@ void DomainServer::readAvailableDTLSDatagrams() {
         DTLSServerSession* existingSession = _dtlsSessions.value(senderHifiSockAddr);
         
         if (existingSession) {
-            // check if we have completed handshake with this user
-            int handshakeReturn = gnutls_handshake(*existingSession->getGnuTLSSession());
-            qDebug() << "Handshake return for user is" << handshakeReturn;
+            if (!existingSession->completedHandshake()) {
+                // check if we have completed handshake with this user
+                int handshakeReturn = gnutls_handshake(*existingSession->getGnuTLSSession());
+                
+                if (handshakeReturn == 0) {
+                    existingSession->setCompletedHandshake(true);
+                } else if (gnutls_error_is_fatal(handshakeReturn)) {
+                    // this was a fatal error handshaking, so remove this session
+                    qDebug() << "Fatal error -" << gnutls_strerror(handshakeReturn) << "- during DTLS handshake with"
+                        << senderHifiSockAddr;
+                    _dtlsSessions.remove(senderHifiSockAddr);
+                }
+            } else {
+                // pull the data from this user off the stack and process it
+                dtlsSocket.readDatagram(peekDatagram.data(), peekDatagram.size());
+            }
         } else {
             // first we verify the cookie
             // see http://gnutls.org/manual/html_node/DTLS-sessions.html for why this is required
@@ -659,8 +672,7 @@ void DomainServer::readAvailableDTLSDatagrams() {
                 gnutls_dtls_prestate_set(*gnutlsSession, &prestate);
                 
                 // handshake to begin the session
-                int handshakeReturn = gnutls_handshake(*gnutlsSession);
-                qDebug() << "initial handshake return" << handshakeReturn;
+                gnutls_handshake(*gnutlsSession);
                 
                 qDebug() << "Beginning DTLS session with node at" << senderHifiSockAddr;
                 _dtlsSessions[senderHifiSockAddr] = newServerSession;

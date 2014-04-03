@@ -324,15 +324,21 @@ void NodeList::sendDomainServerCheckIn() {
         DTLSClientSession* dtlsSession = _domainHandler.getDTLSSession();
         
         if (dtlsSession) {
-            int handshakeReturn = gnutls_handshake(*dtlsSession->getGnuTLSSession());
+            if (dtlsSession->completedHandshake()) {
+                qDebug() << "we can send a DTLS check in!";
+            } else {
+                int handshakeReturn = gnutls_handshake(*dtlsSession->getGnuTLSSession());
+                if (handshakeReturn == 0) {
+                    dtlsSession->setCompletedHandshake(true);
+                } else if (gnutls_error_is_fatal(handshakeReturn)) {
+                    // this was a fatal error handshaking, so remove this session
+                    qDebug() << "Fatal error -" << gnutls_strerror(handshakeReturn)
+                        << "- during DTLS handshake with DS at" << _domainHandler.getHostname();
+                    
+                    _domainHandler.clearConnectionInfo();
+                }
+            }
             
-            gnutls_handshake_description_t inType = gnutls_handshake_get_last_in(*dtlsSession->getGnuTLSSession());
-            gnutls_handshake_description_t outType = gnutls_handshake_get_last_out(*dtlsSession->getGnuTLSSession());
-            qDebug() << "in" << gnutls_handshake_description_get_name(inType);
-            qDebug() << "out" << gnutls_handshake_description_get_name(outType);
-            
-            // make sure DTLS handshake with the domain-server is complete
-            qDebug() << "GnuTLS handshake return is" << handshakeReturn;
         } else {
             // construct the DS check in packet
             QUuid packetUUID = (!_sessionUUID.isNull() ? _sessionUUID : _domainHandler.getAssignmentUUID());
