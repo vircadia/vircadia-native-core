@@ -82,8 +82,8 @@ qt5_add_resources(QT_RESOURCES "${QT_RESOURCE_FILES}")
 set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 
 # translation disabled until we strip out the line numbers
-set(QM ${TARGET_NAME}_en.qm)
-set(TS ${TARGET_NAME}_en.ts)
+# set(QM ${TARGET_NAME}_en.qm)
+# set(TS ${TARGET_NAME}_en.ts)
 # qt5_create_translation_custom(${QM} ${INTERFACE_SRCS} ${QT_UI_FILES} ${TS})
 
 if (APPLE)
