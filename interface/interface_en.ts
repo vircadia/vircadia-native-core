@@ -162,49 +162,49 @@
     <name>RunningScriptsWidget</name>
     <message>
         <location filename="ui/runningScriptsWidget.ui" line="14"/>
-        <location filename="../build/interface/ui_runningScriptsWidget.h" line="127"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="120"/>
         <source>Form</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="ui/runningScriptsWidget.ui" line="33"/>
-        <location filename="../build/interface/ui_runningScriptsWidget.h" line="128"/>
+        <location filename="ui/runningScriptsWidget.ui" line="34"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="121"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;Running Scripts&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="ui/runningScriptsWidget.ui" line="49"/>
-        <location filename="../build/interface/ui_runningScriptsWidget.h" line="129"/>
+        <location filename="ui/runningScriptsWidget.ui" line="51"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="122"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Currently running&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="ui/runningScriptsWidget.ui" line="70"/>
-        <location filename="../build/interface/ui_runningScriptsWidget.h" line="130"/>
+        <location filename="ui/runningScriptsWidget.ui" line="76"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="123"/>
         <source>Reload All</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="ui/runningScriptsWidget.ui" line="95"/>
-        <location filename="../build/interface/ui_runningScriptsWidget.h" line="131"/>
+        <location filename="ui/runningScriptsWidget.ui" line="102"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="124"/>
         <source>Stop All</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="ui/runningScriptsWidget.ui" line="115"/>
-        <location filename="../build/interface/ui_runningScriptsWidget.h" line="132"/>
+        <location filename="ui/runningScriptsWidget.ui" line="123"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="125"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Recently loaded&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="ui/runningScriptsWidget.ui" line="147"/>
-        <location filename="../build/interface/ui_runningScriptsWidget.h" line="133"/>
+        <location filename="ui/runningScriptsWidget.ui" line="140"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="126"/>
         <source>(click a script or use the 1-9 keys to load and run it)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="ui/runningScriptsWidget.ui" line="237"/>
-        <location filename="../build/interface/ui_runningScriptsWidget.h" line="135"/>
+        <location filename="ui/runningScriptsWidget.ui" line="188"/>
+        <location filename="../build/interface/ui_runningScriptsWidget.h" line="128"/>
         <source>There are no scripts currently running.</source>
         <translation type="unfinished"></translation>
     </message>

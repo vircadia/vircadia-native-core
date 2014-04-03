@@ -1,5 +1,5 @@
 //
-//  RunningScripts.h
+//  RunningScriptsWidget.h
 //  interface
 //
 //  Created by Mohammed Nafees on 03/28/2014.
@@ -8,8 +8,9 @@
 #ifndef __hifi__RunningScriptsWidget__
 #define __hifi__RunningScriptsWidget__
 
-// Qt
 #include <QDockWidget>
+
+#include "ScriptsTableWidget.h"
 
 namespace Ui {
     class RunningScriptsWidget;
@@ -28,7 +29,8 @@ signals:
     void stopScriptName(const QString& name);
 
 protected:
-    void keyPressEvent(QKeyEvent *e);
+    virtual void keyPressEvent(QKeyEvent *e);
+    virtual void paintEvent(QPaintEvent *);
 
 private slots:
     void stopScript(int row, int column);
@@ -37,6 +39,8 @@ private slots:
 
 private:
     Ui::RunningScriptsWidget *ui;
+    ScriptsTableWidget *_runningScriptsTable;
+    ScriptsTableWidget *_recentlyLoadedScriptsTable;
     QStringList _recentlyLoadedScripts;
     QString _lastStoppedScript;
 

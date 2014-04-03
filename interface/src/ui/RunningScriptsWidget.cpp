@@ -1,5 +1,5 @@
 //
-//  RunningScripts.cpp
+//  RunningScriptsWidget.cpp
 //  interface
 //
 //  Created by Mohammed Nafees on 03/28/2014.
@@ -9,6 +9,8 @@
 #include "RunningScriptsWidget.h"
 
 #include <QKeyEvent>
+#include <QFileInfo>
+#include <QPainter>
 #include <QTableWidgetItem>
 
 #include "Application.h"
@@ -22,25 +24,17 @@ RunningScriptsWidget::RunningScriptsWidget(QDockWidget *parent) :
     // remove the title bar (see the Qt docs on setTitleBarWidget)
     setTitleBarWidget(new QWidget());
 
-    ui->runningScriptsTableWidget->setColumnCount(2);
-    ui->runningScriptsTableWidget->verticalHeader()->setVisible(false);
-    ui->runningScriptsTableWidget->horizontalHeader()->setVisible(false);
-    ui->runningScriptsTableWidget->setSelectionMode(QAbstractItemView::NoSelection);
-    ui->runningScriptsTableWidget->setShowGrid(false);
-    ui->runningScriptsTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    ui->runningScriptsTableWidget->setColumnWidth(0, 235);
-    ui->runningScriptsTableWidget->setColumnWidth(1, 25);
-    connect(ui->runningScriptsTableWidget, &QTableWidget::cellClicked, this, &RunningScriptsWidget::stopScript);
+    _runningScriptsTable = new ScriptsTableWidget(ui->runningScriptsTableWidget);
+    _runningScriptsTable->setColumnCount(2);
+    _runningScriptsTable->setColumnWidth(0, 245);
+    _runningScriptsTable->setColumnWidth(1, 22);
+    connect(_runningScriptsTable, &QTableWidget::cellClicked, this, &RunningScriptsWidget::stopScript);
 
-    ui->recentlyLoadedScriptsTableWidget->setColumnCount(2);
-    ui->recentlyLoadedScriptsTableWidget->verticalHeader()->setVisible(false);
-    ui->recentlyLoadedScriptsTableWidget->horizontalHeader()->setVisible(false);
-    ui->recentlyLoadedScriptsTableWidget->setSelectionMode(QAbstractItemView::NoSelection);
-    ui->recentlyLoadedScriptsTableWidget->setShowGrid(false);
-    ui->recentlyLoadedScriptsTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    ui->recentlyLoadedScriptsTableWidget->setColumnWidth(0, 25);
-    ui->recentlyLoadedScriptsTableWidget->setColumnWidth(1, 235);
-    connect(ui->recentlyLoadedScriptsTableWidget, &QTableWidget::cellClicked,
+    _recentlyLoadedScriptsTable = new ScriptsTableWidget(ui->recentlyLoadedScriptsTableWidget);
+    _recentlyLoadedScriptsTable->setColumnCount(2);
+    _recentlyLoadedScriptsTable->setColumnWidth(0, 25);
+    _recentlyLoadedScriptsTable->setColumnWidth(1, 235);
+    connect(_recentlyLoadedScriptsTable, &QTableWidget::cellClicked,
             this, &RunningScriptsWidget::loadScript);
 
     connect(ui->hideWidgetButton, &QPushButton::clicked,
@@ -58,25 +52,24 @@ RunningScriptsWidget::~RunningScriptsWidget()
 
 void RunningScriptsWidget::setRunningScripts(const QStringList& list)
 {
-    ui->runningScriptsTableWidget->setRowCount(list.size());
+    _runningScriptsTable->setRowCount(list.size());
 
     ui->noRunningScriptsLabel->setVisible(list.isEmpty());
     ui->currentlyRunningLabel->setVisible(!list.isEmpty());
-    ui->line1->setVisible(!list.isEmpty());
     ui->runningScriptsTableWidget->setVisible(!list.isEmpty());
     ui->reloadAllButton->setVisible(!list.isEmpty());
     ui->stopAllButton->setVisible(!list.isEmpty());
 
     for (int i = 0; i < list.size(); ++i) {
         QTableWidgetItem *scriptName = new QTableWidgetItem;
-        scriptName->setText(list.at(i));
+        scriptName->setText(QFileInfo(list.at(i)).fileName());
         scriptName->setToolTip(list.at(i));
-        scriptName->setTextAlignment(Qt::AlignCenter);
+        scriptName->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
         QTableWidgetItem *closeIcon = new QTableWidgetItem;
-        closeIcon->setIcon(QIcon(":/images/kill-script.svg"));
+        closeIcon->setIcon(QIcon(QPixmap(":/images/kill-script.svg").scaledToHeight(12)));
 
-        ui->runningScriptsTableWidget->setItem(i, 0, scriptName);
-        ui->runningScriptsTableWidget->setItem(i, 1, closeIcon);
+        _runningScriptsTable->setItem(i, 0, scriptName);
+        _runningScriptsTable->setItem(i, 1, closeIcon);
     }
 
     createRecentlyLoadedScriptsTable();
@@ -146,17 +139,37 @@ void RunningScriptsWidget::keyPressEvent(QKeyEvent *e)
     }
 }
 
+void RunningScriptsWidget::paintEvent(QPaintEvent *)
+{
+    QPainter painter(this);
+    painter.setPen(QColor::fromRgb(196, 196, 196));
+
+    if (ui->currentlyRunningLabel->isVisible()) {
+        // line below the 'Currently Running' label
+        painter.drawLine(20, ui->currentlyRunningLabel->y() + ui->currentlyRunningLabel->height(),
+                         width() - 20, ui->currentlyRunningLabel->y() + ui->currentlyRunningLabel->height());
+    }
+
+    if (ui->recentlyLoadedLabel->isVisible()) {
+        // line below the 'Recently loaded' label
+        painter.drawLine(20, ui->recentlyLoadedLabel->y() + ui->recentlyLoadedLabel->height(),
+                         width() - 20, ui->recentlyLoadedLabel->y() + ui->recentlyLoadedLabel->height());
+    }
+
+    painter.end();
+}
+
 void RunningScriptsWidget::stopScript(int row, int column)
 {
     if (column == 1) { // make sure the user has clicked on the close icon
-        _lastStoppedScript = ui->runningScriptsTableWidget->item(row, 0)->text();
-        emit stopScriptName(ui->runningScriptsTableWidget->item(row, 0)->text());
+        _lastStoppedScript = _runningScriptsTable->item(row, 0)->toolTip();
+        emit stopScriptName(_runningScriptsTable->item(row, 0)->toolTip());
     }
 }
 
 void RunningScriptsWidget::loadScript(int row, int column)
 {
-    Application::getInstance()->loadScript(ui->recentlyLoadedScriptsTableWidget->item(row, column)->text());
+    Application::getInstance()->loadScript(_recentlyLoadedScriptsTable->item(row, column)->toolTip());
 }
 
 void RunningScriptsWidget::allScriptsStopped()
@@ -183,21 +196,30 @@ void RunningScriptsWidget::createRecentlyLoadedScriptsTable()
     }
 
     ui->recentlyLoadedLabel->setVisible(!_recentlyLoadedScripts.isEmpty());
-    ui->line2->setVisible(!_recentlyLoadedScripts.isEmpty());
     ui->recentlyLoadedScriptsTableWidget->setVisible(!_recentlyLoadedScripts.isEmpty());
     ui->recentlyLoadedInstruction->setVisible(!_recentlyLoadedScripts.isEmpty());
 
     int limit = _recentlyLoadedScripts.size() > 9 ? 9 : _recentlyLoadedScripts.size();
-    ui->recentlyLoadedScriptsTableWidget->setRowCount(limit);
+    _recentlyLoadedScriptsTable->setRowCount(limit);
     for (int i = 0; i < limit; ++i) {
         QTableWidgetItem *scriptName = new QTableWidgetItem;
-        scriptName->setText(_recentlyLoadedScripts.at(i));
+        scriptName->setText(QFileInfo(_recentlyLoadedScripts.at(i)).fileName());
         scriptName->setToolTip(_recentlyLoadedScripts.at(i));
-        scriptName->setTextAlignment(Qt::AlignCenter);
+        scriptName->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
         QTableWidgetItem *number = new QTableWidgetItem;
         number->setText(QString::number(i+1) + ".");
+        number->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
-        ui->recentlyLoadedScriptsTableWidget->setItem(i, 0, number);
-        ui->recentlyLoadedScriptsTableWidget->setItem(i, 1, scriptName);
+        _recentlyLoadedScriptsTable->setItem(i, 0, number);
+        _recentlyLoadedScriptsTable->setItem(i, 1, scriptName);
     }
+
+    int y = ui->recentlyLoadedScriptsTableWidget->y() + 15;
+    for (int i = 0; i < _recentlyLoadedScriptsTable->rowCount(); ++i) {
+        y += _recentlyLoadedScriptsTable->rowHeight(i);
+    }
+
+    ui->recentlyLoadedInstruction->setGeometry(20, y, width() - 20, ui->recentlyLoadedInstruction->height());
+
+    repaint();
 }
