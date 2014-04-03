@@ -734,13 +734,14 @@ void Audio::processReceivedAudio(unsigned int sampleTime, AudioRingBuffer& ringB
                 // Accumulate direct transmission of audio from sender to receiver
                 addSpatialAudioToBuffer(sampleTime, ringBuffer);
 
-                // Send audio off for spatial processing
-                emit processSpatialAudio(sampleTime, ringBuffer, _desiredOutputFormat);
-
                 // copy the samples we'll resample from the spatial audio ring buffer - this also
                 // pushes the read pointer of the spatial audio ring buffer forwards
                 _spatialAudioRingBuffer.readSamples(ringBufferSamples, numNetworkOutputSamples);
                 _spatialAudioStart += ringBuffer.samplesAvailable() / _desiredOutputFormat.channelCount();
+
+                // Send audio off for spatial processing
+                emit processSpatialAudio(sampleTime, QByteArray((char*)ringBufferSamples, numNetworkOutputSamples), _desiredOutputFormat);
+
 
             } else {
 

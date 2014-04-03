@@ -26,7 +26,7 @@ public:
     void render();
     
 public slots:
-    void processSpatialAudio(unsigned int sampleTime, AudioRingBuffer& ringBuffer, const QAudioFormat& format);
+    void processSpatialAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
     
 signals:
     
@@ -40,7 +40,7 @@ private:
     void drawReflections(const glm::vec3& origin, const glm::vec3& direction, int bounces, const glm::vec3& color);
 
     void calculateReflections(const glm::vec3& origin, const glm::vec3& originalDirection, 
-                                        int bounces, const AudioRingBuffer& samplesRingBuffer, 
+                                        int bounces, const QByteArray& samples, 
                                         unsigned int sampleTime, int sampleRate);
 
 };

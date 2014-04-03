@@ -100,7 +100,7 @@ public slots:
 
 signals:
     bool muteToggled();
-    void processSpatialAudio(unsigned int sampleTime, AudioRingBuffer& ringBuffer, const QAudioFormat& format);
+    void processSpatialAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
     
 private:
 

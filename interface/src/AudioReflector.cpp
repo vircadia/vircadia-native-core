@@ -101,7 +101,7 @@ void AudioReflector::drawReflections(const glm::vec3& origin, const glm::vec3& o
 
 
 void AudioReflector::calculateReflections(const glm::vec3& origin, const glm::vec3& originalDirection, 
-                                        int bounces, const AudioRingBuffer& samplesRingBuffer, 
+                                        int bounces, const QByteArray& originalSamples, 
                                         unsigned int sampleTime, int sampleRate) {
                                         
     int samplesTouched = 0;
@@ -117,10 +117,13 @@ void AudioReflector::calculateReflections(const glm::vec3& origin, const glm::ve
 
     // set up our buffers for our attenuated and delayed samples
     const int NUMBER_OF_CHANNELS = 2;
-    AudioRingBuffer attenuatedLeftSamples(samplesRingBuffer.samplesAvailable());
-    AudioRingBuffer attenuatedRightSamples(samplesRingBuffer.samplesAvailable());
+
+    int totalNumberOfSamples = originalSamples.size() / (sizeof(int16_t) * NUMBER_OF_CHANNELS);
+
+    const int16_t* originalSamplesData = (const int16_t*)originalSamples.constData();
+    AudioRingBuffer attenuatedLeftSamples(totalNumberOfSamples);
+    AudioRingBuffer attenuatedRightSamples(totalNumberOfSamples);
     
-    int totalNumberOfSamples = samplesRingBuffer.samplesAvailable();
 
     for (int bounceNumber = 1; bounceNumber <= bounces; bounceNumber++) {
         if (_voxels->findRayIntersection(start, direction, elementHit, distance, face)) {
@@ -145,14 +148,18 @@ void AudioReflector::calculateReflections(const glm::vec3& origin, const glm::ve
 
             // run through the samples, and attenuate them                                                            
             for (int sample = 0; sample < totalNumberOfSamples; sample++) {
-                int16_t leftSample = samplesRingBuffer[sample * NUMBER_OF_CHANNELS];
-                int16_t rightSample = samplesRingBuffer[(sample * NUMBER_OF_CHANNELS) + 1];
+                int16_t leftSample = originalSamplesData[sample * NUMBER_OF_CHANNELS];
+                int16_t rightSample = originalSamplesData[(sample * NUMBER_OF_CHANNELS) + 1];
+
+                //qDebug() << "leftSample=" << leftSample << "rightSample=" << rightSample;
                 
                 attenuatedLeftSamples[sample * NUMBER_OF_CHANNELS] = leftSample * leftEarAttenuation;
                 attenuatedLeftSamples[sample * NUMBER_OF_CHANNELS + 1] = 0;
 
                 attenuatedRightSamples[sample * NUMBER_OF_CHANNELS] = 0;
                 attenuatedRightSamples[sample * NUMBER_OF_CHANNELS + 1] = rightSample * rightEarAttenuation;
+
+                //qDebug() << "attenuated... leftSample=" << (leftSample * leftEarAttenuation) << "rightSample=" << (rightSample * rightEarAttenuation);
                 
                 samplesTouched++;
             }
@@ -162,13 +169,15 @@ void AudioReflector::calculateReflections(const glm::vec3& origin, const glm::ve
             unsigned int sampleTimeLeft = sampleTime + leftEarDelay;
             unsigned int sampleTimeRight = sampleTime + rightEarDelay;
             
+            qDebug() << "sampleTimeLeft=" << sampleTimeLeft << "sampleTimeRight=" << sampleTimeRight;
+            
             _audio->addSpatialAudioToBuffer(sampleTimeLeft, attenuatedLeftSamples);
             _audio->addSpatialAudioToBuffer(sampleTimeRight, attenuatedRightSamples);
         }
     }
 }
 
-void AudioReflector::processSpatialAudio(unsigned int sampleTime, AudioRingBuffer& ringBuffer, const QAudioFormat& format) {
+void AudioReflector::processSpatialAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
     quint64 start = usecTimestampNow();
 
     glm::vec3 origin = _myAvatar->getHead()->getPosition();
@@ -191,21 +200,21 @@ void AudioReflector::processSpatialAudio(unsigned int sampleTime, AudioRingBuffe
 
     const int BOUNCE_COUNT = 5;
 
-    calculateReflections(origin, frontRightUp, BOUNCE_COUNT, ringBuffer, sampleTime, format.sampleRate());
-    calculateReflections(origin, frontLeftUp, BOUNCE_COUNT, ringBuffer, sampleTime, format.sampleRate());
-    calculateReflections(origin, backRightUp, BOUNCE_COUNT, ringBuffer, sampleTime, format.sampleRate());
-    calculateReflections(origin, backLeftUp, BOUNCE_COUNT, ringBuffer, sampleTime, format.sampleRate());
-    calculateReflections(origin, frontRightDown, BOUNCE_COUNT, ringBuffer, sampleTime, format.sampleRate());
-    calculateReflections(origin, frontLeftDown, BOUNCE_COUNT, ringBuffer, sampleTime, format.sampleRate());
-    calculateReflections(origin, backRightDown, BOUNCE_COUNT, ringBuffer, sampleTime, format.sampleRate());
-    calculateReflections(origin, backLeftDown, BOUNCE_COUNT, ringBuffer, sampleTime, format.sampleRate());
+    calculateReflections(origin, frontRightUp, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+    calculateReflections(origin, frontLeftUp, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+    calculateReflections(origin, backRightUp, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+    calculateReflections(origin, backLeftUp, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+    calculateReflections(origin, frontRightDown, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+    calculateReflections(origin, frontLeftDown, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+    calculateReflections(origin, backRightDown, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+    calculateReflections(origin, backLeftDown, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
 
-    calculateReflections(origin, front, BOUNCE_COUNT, ringBuffer, sampleTime, format.sampleRate());
-    calculateReflections(origin, back, BOUNCE_COUNT, ringBuffer, sampleTime, format.sampleRate());
-    calculateReflections(origin, left, BOUNCE_COUNT, ringBuffer, sampleTime, format.sampleRate());
-    calculateReflections(origin, right, BOUNCE_COUNT, ringBuffer, sampleTime, format.sampleRate());
-    calculateReflections(origin, up, BOUNCE_COUNT, ringBuffer, sampleTime, format.sampleRate());
-    calculateReflections(origin, down, BOUNCE_COUNT, ringBuffer, sampleTime, format.sampleRate());
+    calculateReflections(origin, front, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+    calculateReflections(origin, back, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+    calculateReflections(origin, left, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+    calculateReflections(origin, right, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+    calculateReflections(origin, up, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+    calculateReflections(origin, down, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
     quint64 end = usecTimestampNow();
 
     //qDebug() << "AudioReflector::addSamples()... samples.size()=" << samples.size() << " elapsed=" << (end - start);
