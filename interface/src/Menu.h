@@ -102,7 +102,13 @@ public:
                                            const char* member = NULL,
                                            QAction::MenuRole role = QAction::NoRole,
                                            int menuItemLocation = UNSPECIFIED_POSITION);
-
+    QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
+                                           QAction* action,
+                                           const QString& actionName = QString(),
+                                           const QKeySequence& shortcut = 0,
+                                           QAction::MenuRole role = QAction::NoRole,
+                                           int menuItemLocation = UNSPECIFIED_POSITION);
+    
     void removeAction(QMenu* menu, const QString& actionName);
 
     bool goToDestination(QString destination);

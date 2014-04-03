@@ -161,6 +161,14 @@ Menu::Menu() :
 
 
     QMenu* editMenu = addMenu("Edit");
+    QUndoStack* undoStack = Application::getInstance()->getUndoStack();
+    QAction* undoAction = undoStack->createUndoAction(editMenu);
+    QAction* redoAction = undoStack->createRedoAction(editMenu);
+
+    addActionToQMenuAndActionHash(editMenu,
+                                  undoAction);
+    addActionToQMenuAndActionHash(editMenu,
+                                  redoAction);
 
     addActionToQMenuAndActionHash(editMenu,
                                   MenuOption::Preferences,
@@ -617,6 +625,41 @@ QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
 
     _actionHash.insert(actionName, action);
 
+    return action;
+}
+
+QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
+                                             QAction* action,
+                                             const QString& actionName,
+                                             const QKeySequence& shortcut,
+                                             QAction::MenuRole role,
+                                             int menuItemLocation) {
+    QAction* actionBefore = NULL;
+    
+    if (menuItemLocation >= 0 && destinationMenu->actions().size() > menuItemLocation) {
+        actionBefore = destinationMenu->actions()[menuItemLocation];
+    }
+    
+    if (!actionName.isEmpty()) {
+        action->setText(actionName);
+    }
+    
+    if (shortcut != 0) {
+        action->setShortcut(shortcut);
+    }
+    
+    if (role != QAction::NoRole) {
+        action->setMenuRole(role);
+    }
+    
+    if (!actionBefore) {
+        destinationMenu->addAction(action);
+    } else {
+        destinationMenu->insertAction(actionBefore, action);
+    }
+    
+    _actionHash.insert(action->text(), action);
+    
     return action;
 }
 
