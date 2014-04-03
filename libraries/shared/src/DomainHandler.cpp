@@ -18,7 +18,6 @@ DomainHandler::DomainHandler() :
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _assignmentUUID(),
     _isConnected(false),
-    _requiresDTLS(false),
     _dtlsSession(NULL)
 {
     
@@ -31,13 +30,18 @@ DomainHandler::~DomainHandler() {
 void DomainHandler::clearConnectionInfo() {
     _uuid = QUuid();
     _isConnected = false;
+    
+    delete _dtlsSession;
+    _dtlsSession = NULL;
 }
 
 void DomainHandler::reset() {
     clearConnectionInfo();
     _hostname = QString();
     _sockAddr.setAddress(QHostAddress::Null);
-    _requiresDTLS = false;
+    
+    delete _dtlsSession;
+    _dtlsSession = NULL;
 }
 
 void DomainHandler::initializeDTLSSession() {
@@ -122,7 +126,6 @@ void DomainHandler::parseDTLSRequirementPacket(const QByteArray& dtlsRequirement
     qDebug() << "domain-server DTLS port changed to" << dtlsPort << "- Enabling DTLS.";
     
     _sockAddr.setPort(dtlsPort);
-    _requiresDTLS = true;
     
     initializeDTLSSession();
 }

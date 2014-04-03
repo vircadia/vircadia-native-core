@@ -18,6 +18,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <qendian.h>
 
+#include <LimitedNodeList.h>
 #include <SharedUtil.h>
 
 #include "AudioRingBuffer.h"

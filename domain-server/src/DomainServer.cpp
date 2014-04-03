@@ -96,8 +96,12 @@ bool DomainServer::optionallySetupDTLS() {
             // set the D-H paramters on the X509 credentials
             gnutls_certificate_set_dh_params(*_x509Credentials, *_dhParams);
             
+            // setup the key used for cookie verification
+            _cookieKey = new gnutls_datum_t;
+            gnutls_key_generate(_cookieKey, GNUTLS_COOKIE_KEY_SIZE);
+            
             _priorityCache = new gnutls_priority_t;
-            const char DTLS_PRIORITY_STRING[] = "PERFORMANCE:-VERS-TLS-ALL:+VERS-DTLS1.2:%SERVER_PRECEDENCE";
+            const char DTLS_PRIORITY_STRING[] = "PERFORMANCE:-VERS-TLS-ALL:+VERS-DTLS1.0:%SERVER_PRECEDENCE";
             gnutls_priority_init(_priorityCache, DTLS_PRIORITY_STRING, NULL);
             
             _isUsingDTLS = true;
@@ -612,20 +616,55 @@ void DomainServer::readAvailableDTLSDatagrams() {
     static socklen_t sockAddrSize = sizeof(senderSockAddr);
     
     while (dtlsSocket.hasPendingDatagrams()) {
+        qDebug() << "Looking at a datagram";
+        
         // check if we have an active DTLS session for this sender
         QByteArray peekDatagram(dtlsSocket.pendingDatagramSize(), 0);
        
         recvfrom(dtlsSocket.socketDescriptor(), peekDatagram.data(), dtlsSocket.pendingDatagramSize(),
                  MSG_PEEK, &senderSockAddr, &sockAddrSize);
         
-        DTLSSession* existingSession = _dtlsSessions.value(HifiSockAddr(&senderSockAddr));
-        
-        qDebug() << "Checking for a session with" << HifiSockAddr(&senderSockAddr);
+        HifiSockAddr senderHifiSockAddr(&senderSockAddr);
+        DTLSServerSession* existingSession = _dtlsSessions.value(senderHifiSockAddr);
         
         if (existingSession) {
-            // use GnuTLS to receive the encrypted data
+            // check if we have completed handshake with this user
+            int handshakeReturn = gnutls_handshake(*existingSession->getGnuTLSSession());
+            qDebug() << "Handshake return for user is" << handshakeReturn;
         } else {
-            // no existing session - set up a new session now
+            // first we verify the cookie
+            // see http://gnutls.org/manual/html_node/DTLS-sessions.html for why this is required
+            gnutls_dtls_prestate_st prestate;
+            memset(&prestate, 0, sizeof(prestate));
+            int cookieValid = gnutls_dtls_cookie_verify(_cookieKey, &senderSockAddr, sizeof(senderSockAddr),
+                                                        peekDatagram.data(), peekDatagram.size(), &prestate);
+            
+            if (cookieValid < 0) {
+                // the cookie sent by the client was not valid
+                // send a valid one
+                DTLSServerSession tempServerSession(LimitedNodeList::getInstance()->getDTLSSocket(), senderHifiSockAddr);
+                gnutls_dtls_cookie_send(_cookieKey, &senderSockAddr, sizeof(senderSockAddr), &prestate,
+                                        &tempServerSession, DTLSSession::socketPush);
+                
+                // acutally pull the peeked data off the network stack so that it gets discarded
+                dtlsSocket.readDatagram(peekDatagram.data(), peekDatagram.size());
+            } else {
+                // cookie valid but no existing session - set up a new session now
+                DTLSServerSession* newServerSession = new DTLSServerSession(LimitedNodeList::getInstance()->getDTLSSocket(),
+                                                                            senderHifiSockAddr);
+                gnutls_session_t* gnutlsSession = newServerSession->getGnuTLSSession();
+                
+                gnutls_priority_set(*gnutlsSession, *_priorityCache);
+                gnutls_credentials_set(*gnutlsSession, GNUTLS_CRD_CERTIFICATE, *_x509Credentials);
+                gnutls_dtls_prestate_set(*gnutlsSession, &prestate);
+                
+                // handshake to begin the session
+                int handshakeReturn = gnutls_handshake(*gnutlsSession);
+                qDebug() << "initial handshake return" << handshakeReturn;
+                
+                qDebug() << "Beginning DTLS session with node at" << senderHifiSockAddr;
+                _dtlsSessions[senderHifiSockAddr] = newServerSession;
+            }
         }
     }
 }

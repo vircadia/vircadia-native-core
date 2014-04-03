@@ -12,6 +12,8 @@
 #include <QtCore/QUrl>
 #include <QtNetwork/QHostInfo>
 
+#include <gnutls/dtls.h>
+
 #include "AccountManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
@@ -318,39 +320,54 @@ void NodeList::sendDomainServerCheckIn() {
         // send a STUN request to figure it out
         sendSTUNRequest();
     } else if (!_domainHandler.getIP().isNull()) {
-        // construct the DS check in packet
-        QUuid packetUUID = (!_sessionUUID.isNull() ? _sessionUUID : _domainHandler.getAssignmentUUID());
         
-        QByteArray domainServerPacket = byteArrayWithPopulatedHeader(PacketTypeDomainListRequest, packetUUID);
-        QDataStream packetStream(&domainServerPacket, QIODevice::Append);
+        DTLSClientSession* dtlsSession = _domainHandler.getDTLSSession();
         
-        // pack our data to send to the domain-server
-        packetStream << _ownerType << _publicSockAddr
-            << HifiSockAddr(QHostAddress(getHostOrderLocalAddress()), _nodeSocket.localPort())
-            << (quint8) _nodeTypesOfInterest.size();
-        
-        // copy over the bytes for node types of interest, if required
-        foreach (NodeType_t nodeTypeOfInterest, _nodeTypesOfInterest) {
-            packetStream << nodeTypeOfInterest;
-        }
-        
-        writeDatagram(domainServerPacket, _domainHandler.getSockAddr(), QUuid());
-        const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
-        static unsigned int numDomainCheckins = 0;
-        
-        // send a STUN request every Nth domain server check in so we update our public socket, if required
-        if (numDomainCheckins++ % NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST == 0) {
-            sendSTUNRequest();
-        }
-        
-        if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
-            // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
-            // so emit our signal that indicates that
-            emit limitOfSilentDomainCheckInsReached();
-        }
-        
-        // increment the count of un-replied check-ins
-        _numNoReplyDomainCheckIns++;
+        if (dtlsSession) {
+            int handshakeReturn = gnutls_handshake(*dtlsSession->getGnuTLSSession());
+            
+            gnutls_handshake_description_t inType = gnutls_handshake_get_last_in(*dtlsSession->getGnuTLSSession());
+            gnutls_handshake_description_t outType = gnutls_handshake_get_last_out(*dtlsSession->getGnuTLSSession());
+            qDebug() << "in" << gnutls_handshake_description_get_name(inType);
+            qDebug() << "out" << gnutls_handshake_description_get_name(outType);
+            
+            // make sure DTLS handshake with the domain-server is complete
+            qDebug() << "GnuTLS handshake return is" << handshakeReturn;
+        } else {
+            // construct the DS check in packet
+            QUuid packetUUID = (!_sessionUUID.isNull() ? _sessionUUID : _domainHandler.getAssignmentUUID());
+            
+            QByteArray domainServerPacket = byteArrayWithPopulatedHeader(PacketTypeDomainListRequest, packetUUID);
+            QDataStream packetStream(&domainServerPacket, QIODevice::Append);
+            
+            // pack our data to send to the domain-server
+            packetStream << _ownerType << _publicSockAddr
+                << HifiSockAddr(QHostAddress(getHostOrderLocalAddress()), _nodeSocket.localPort())
+                << (quint8) _nodeTypesOfInterest.size();
+            
+            // copy over the bytes for node types of interest, if required
+            foreach (NodeType_t nodeTypeOfInterest, _nodeTypesOfInterest) {
+                packetStream << nodeTypeOfInterest;
+            }
+            
+            writeDatagram(domainServerPacket, _domainHandler.getSockAddr(), QUuid());
+            const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
+            static unsigned int numDomainCheckins = 0;
+            
+            // send a STUN request every Nth domain server check in so we update our public socket, if required
+            if (numDomainCheckins++ % NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST == 0) {
+                sendSTUNRequest();
+            }
+            
+            if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+                // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
+                // so emit our signal that indicates that
+                emit limitOfSilentDomainCheckInsReached();
+            }
+            
+            // increment the count of un-replied check-ins
+            _numNoReplyDomainCheckIns++;
+        }        
     }
 }
 

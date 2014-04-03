@@ -50,9 +50,9 @@ HifiSockAddr::HifiSockAddr(const sockaddr* sockaddr) {
     _address = QHostAddress(sockaddr);
     
     if (sockaddr->sa_family == AF_INET) {
-        _port = reinterpret_cast<const sockaddr_in*>(sockaddr)->sin_port;
+        _port = ntohs(reinterpret_cast<const sockaddr_in*>(sockaddr)->sin_port);
     } else {
-        _port = reinterpret_cast<const sockaddr_in6*>(sockaddr)->sin6_port;
+        _port = ntohs(reinterpret_cast<const sockaddr_in6*>(sockaddr)->sin6_port);
     }
 }
 

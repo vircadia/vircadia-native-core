@@ -49,6 +49,8 @@ public:
     bool isConnected() const { return _isConnected; }
     void setIsConnected(bool isConnected);
     
+    DTLSClientSession* getDTLSSession() { return _dtlsSession; }
+    
     void parseDTLSRequirementPacket(const QByteArray& dtlsRequirementPacket);
     
 private slots:
@@ -66,7 +68,6 @@ private:
     HifiSockAddr _sockAddr;
     QUuid _assignmentUUID;
     bool _isConnected;
-    bool _requiresDTLS;
     DTLSClientSession* _dtlsSession;
 };
 

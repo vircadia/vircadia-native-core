@@ -42,7 +42,6 @@ struct xColor {
     unsigned char blue;
 };
 
-
 static const float ZERO             = 0.0f;
 static const float ONE              = 1.0f;
 static const float ONE_HALF			= 0.5f;
@@ -65,8 +64,6 @@ static const quint64 MSECS_PER_SECOND = 1000;
 static const quint64 USECS_PER_SECOND = USECS_PER_MSEC * MSECS_PER_SECOND;
 
 const int BITS_IN_BYTE  = 8;
-
-const int MAX_PACKET_SIZE = 1500;
 
 quint64 usecTimestamp(const timeval *time);
 quint64 usecTimestampNow();

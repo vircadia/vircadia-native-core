@@ -797,7 +797,7 @@ AnimationServer::AnimationServer(int &argc, char **argv) :
     
     QTimer* domainServerTimer = new QTimer(this);
     connect(domainServerTimer, SIGNAL(timeout()), nodeList, SLOT(sendDomainServerCheckIn()));
-    domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_USECS / 1000);
+    domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
     
     QTimer* silentNodeTimer = new QTimer(this);
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));

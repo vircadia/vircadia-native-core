@@ -9,6 +9,8 @@
 #ifndef __hifi__DTLSServerSession__
 #define __hifi__DTLSServerSession__
 
+#include <gnutls/dtls.h>
+
 #include <DTLSSession.h>
 
 class DTLSServerSession : public DTLSSession {

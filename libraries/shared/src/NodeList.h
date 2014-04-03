@@ -35,7 +35,7 @@
 #include "LimitedNodeList.h"
 #include "Node.h"
 
-const quint64 DOMAIN_SERVER_CHECK_IN_USECS = 1 * 1000000;
+const quint64 DOMAIN_SERVER_CHECK_IN_MSECS = 1 * 1000;
 
 const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 5;
 

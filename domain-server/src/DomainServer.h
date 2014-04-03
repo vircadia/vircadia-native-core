@@ -89,6 +89,7 @@ private:
     bool _isUsingDTLS;
     gnutls_certificate_credentials_t* _x509Credentials;
     gnutls_dh_params_t* _dhParams;
+    gnutls_datum_t* _cookieKey;
     gnutls_priority_t* _priorityCache;
     
     QHash<HifiSockAddr, DTLSServerSession*> _dtlsSessions;

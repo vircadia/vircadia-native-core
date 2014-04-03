@@ -41,7 +41,7 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
     
     QTimer* domainServerTimer = new QTimer(this);
     connect(domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
-    domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_USECS / 1000);
+    domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
     
     QTimer* silentNodeRemovalTimer = new QTimer(this);
     connect(silentNodeRemovalTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));

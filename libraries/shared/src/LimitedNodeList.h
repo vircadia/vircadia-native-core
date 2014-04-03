@@ -34,6 +34,8 @@
 #include "DomainHandler.h"
 #include "Node.h"
 
+const int MAX_PACKET_SIZE = 1500;
+
 const quint64 NODE_SILENCE_THRESHOLD_USECS = 2 * 1000 * 1000;
 
 extern const char SOLO_NODE_TYPES[2];
