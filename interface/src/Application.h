@@ -14,14 +14,14 @@
 
 #include <QApplication>
 #include <QAction>
-#include <QImage>
-#include <QSettings>
-#include <QTouchEvent>
-#include <QList>
-#include <QSet>
-#include <QStringList>
-#include <QPointer>
 #include <QHash>
+#include <QImage>
+#include <QList>
+#include <QPointer>
+#include <QSet>
+#include <QSettings>
+#include <QStringList>
+#include <QTouchEvent>
 
 #include <NetworkPacket.h>
 #include <NodeList.h>
