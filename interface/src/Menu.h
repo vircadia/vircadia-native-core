@@ -288,8 +288,9 @@ namespace MenuOption {
     const QString PlaySlaps = "Play Slaps";
     const QString Preferences = "Preferences...";
     const QString ReloadAllScripts = "Reload All Scripts";
-    const QString RenderSkeletonCollisionProxies = "Skeleton Collision Proxies";
-    const QString RenderHeadCollisionProxies = "Head Collision Proxies";
+    const QString RenderSkeletonCollisionShapes = "Skeleton Collision Shapes";
+    const QString RenderHeadCollisionShapes = "Head Collision Shapes";
+    const QString RenderBoundingCollisionShapes = "Bounding Collision Shapes";
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString RunTimingTests = "Run Timing Tests";
     const QString SettingsImport = "Import Settings";

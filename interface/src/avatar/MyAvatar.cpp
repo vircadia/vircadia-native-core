@@ -11,6 +11,7 @@
 
 #include <QBuffer>
 
+#include <glm/gtx/norm.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
 #include <QtCore/QTimer>
@@ -19,6 +20,8 @@
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
+
+#include <ShapeCollider.h>
 
 #include "Application.h"
 #include "Audio.h"
@@ -83,9 +86,9 @@ void MyAvatar::reset() {
     getHead()->reset();
     getHand()->reset();
 
-    setVelocity(glm::vec3(0,0,0));
-    setThrust(glm::vec3(0,0,0));
-    setOrientation(glm::quat(glm::vec3(0,0,0)));
+    setVelocity(glm::vec3(0.f));
+    setThrust(glm::vec3(0.f));
+    setOrientation(glm::quat(glm::vec3(0.f)));
 }
 
 void MyAvatar::setMoveTarget(const glm::vec3 moveTarget) {
@@ -674,6 +677,28 @@ void MyAvatar::updateThrust(float deltaTime) {
     _thrust -= _driveKeys[LEFT] * _scale * THRUST_MAG_LATERAL * _thrustMultiplier * deltaTime * right;
     _thrust += _driveKeys[UP] * _scale * THRUST_MAG_UP * _thrustMultiplier * deltaTime * up;
     _thrust -= _driveKeys[DOWN] * _scale * THRUST_MAG_DOWN * _thrustMultiplier * deltaTime * up;
+
+    // attenuate thrust when in penetration
+    if (glm::dot(_thrust, _lastBodyPenetration) > 0.f) {
+        const float MAX_BODY_PENETRATION_DEPTH = 0.6f * _skeletonModel.getBoundingShapeRadius();
+        float penetrationFactor = glm::min(1.f, glm::length(_lastBodyPenetration) / MAX_BODY_PENETRATION_DEPTH);
+        glm::vec3 penetrationDirection = glm::normalize(_lastBodyPenetration);
+        // attenuate parallel component
+        glm::vec3 parallelThrust = glm::dot(_thrust, penetrationDirection) * penetrationDirection;
+        // attenuate perpendicular component (friction)
+        glm::vec3 perpendicularThrust = _thrust - parallelThrust;
+        // recombine to get the final thrust
+        _thrust = (1.f - penetrationFactor) * parallelThrust + (1.f - penetrationFactor * penetrationFactor) * perpendicularThrust;
+
+        // attenuate the growth of _thrustMultiplier when in penetration
+        // otherwise the avatar will eventually be able to tunnel through the obstacle
+        _thrustMultiplier *= (1.f - penetrationFactor * penetrationFactor);
+    } else if (_thrustMultiplier < 1.f) {
+        // rapid healing of attenuated thrustMultiplier after penetration event
+        _thrustMultiplier = 1.f;
+    }
+    _lastBodyPenetration = glm::vec3(0.f);
+
     _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_SPEED * deltaTime;
     _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_SPEED * deltaTime;
     getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
@@ -683,8 +708,9 @@ void MyAvatar::updateThrust(float deltaTime) {
         const float THRUST_INCREASE_RATE = 1.05f;
         const float MAX_THRUST_MULTIPLIER = 75.0f;
         //printf("m = %.3f\n", _thrustMultiplier);
-        if (_thrustMultiplier < MAX_THRUST_MULTIPLIER) {
-            _thrustMultiplier *= 1.f + deltaTime * THRUST_INCREASE_RATE;
+        _thrustMultiplier *= 1.f + deltaTime * THRUST_INCREASE_RATE;
+        if (_thrustMultiplier > MAX_THRUST_MULTIPLIER) {
+            _thrustMultiplier = MAX_THRUST_MULTIPLIER;
         }
     } else {
         _thrustMultiplier = 1.f;
@@ -868,6 +894,9 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
     return false;
 }
 
+static CollisionList bodyCollisions(16);
+const float BODY_COLLISION_RESOLVE_TIMESCALE = 0.5f; // seconds
+
 void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
     //  Reset detector for nearest avatar
     _distanceToNearestAvatar = std::numeric_limits<float>::max();
@@ -879,14 +908,7 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
     updateShapePositions();
     float myBoundingRadius = getBoundingRadius();
 
-    /* TODO: Andrew to fix Avatar-Avatar body collisions
-    // HACK: body-body collision uses two coaxial capsules with axes parallel to y-axis
-    // TODO: make the collision work without assuming avatar orientation
-    Extents myStaticExtents = _skeletonModel.getStaticExtents();
-    glm::vec3 staticScale = myStaticExtents.maximum - myStaticExtents.minimum;
-    float myCapsuleRadius = 0.25f * (staticScale.x + staticScale.z);
-    float myCapsuleHeight = staticScale.y;
-    */
+    const float BODY_COLLISION_RESOLVE_FACTOR = deltaTime / BODY_COLLISION_RESOLVE_TIMESCALE;
 
     foreach (const AvatarSharedPointer& avatarPointer, avatars) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
@@ -901,19 +923,27 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
         }
         float theirBoundingRadius = avatar->getBoundingRadius();
         if (distance < myBoundingRadius + theirBoundingRadius) {
-            /* TODO: Andrew to fix Avatar-Avatar body collisions
-            Extents theirStaticExtents = _skeletonModel.getStaticExtents();
-            glm::vec3 staticScale = theirStaticExtents.maximum - theirStaticExtents.minimum;
-            float theirCapsuleRadius = 0.25f * (staticScale.x + staticScale.z);
-            float theirCapsuleHeight = staticScale.y;
-
-            glm::vec3 penetration(0.f);
-            if (findAvatarAvatarPenetration(_position, myCapsuleRadius, myCapsuleHeight,
-                avatar->getPosition(), theirCapsuleRadius, theirCapsuleHeight, penetration)) {
-                // move the avatar out by half the penetration
-                setPosition(_position - 0.5f * penetration);
+            // collide our body against theirs
+            QVector<const Shape*> myShapes;
+            _skeletonModel.getBodyShapes(myShapes);
+            QVector<const Shape*> theirShapes;
+            avatar->getSkeletonModel().getBodyShapes(theirShapes);
+            bodyCollisions.clear();
+            // TODO: add method to ShapeCollider for colliding lists of shapes
+            foreach (const Shape* myShape, myShapes) {
+                foreach (const Shape* theirShape, theirShapes) {
+                    ShapeCollider::shapeShape(myShape, theirShape, bodyCollisions);
+                }
             }
-            */
+            glm::vec3 totalPenetration(0.f);
+            for (int j = 0; j < bodyCollisions.size(); ++j) {
+                CollisionInfo* collision = bodyCollisions.getCollision(j);
+                totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
+            }
+            if (glm::length2(totalPenetration) > EPSILON) {
+                setPosition(getPosition() - BODY_COLLISION_RESOLVE_FACTOR * totalPenetration);
+            }
+            _lastBodyPenetration += totalPenetration;
 
             // collide our hands against them
             // TODO: make this work when we can figure out when the other avatar won't yeild
