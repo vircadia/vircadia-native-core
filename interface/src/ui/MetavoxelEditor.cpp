@@ -13,8 +13,12 @@
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMetaProperty>
+#include <QMetaProperty>
+#include <QOpenGLFramebufferObject>
 #include <QPushButton>
+#include <QRunnable>
 #include <QScrollArea>
+#include <QThreadPool>
 #include <QVBoxLayout>
 
 #include <AttributeRegistry.h>
@@ -582,20 +586,18 @@ bool PlaceSpannerTool::eventFilter(QObject* watched, QEvent* event) {
 
 void PlaceSpannerTool::place() {
     AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(_editor->getSelectedAttribute());
-    if (!attribute) {
-        return;
+    if (attribute) {
+        applyEdit(attribute, _editor->getValue().value<SharedObjectPointer>());
     }
-    SharedObjectPointer spanner = _editor->getValue().value<SharedObjectPointer>();
-    MetavoxelEditMessage message = { createEdit(attribute, spanner) };
-    Application::getInstance()->getMetavoxels()->applyEdit(message);
 }
 
 InsertSpannerTool::InsertSpannerTool(MetavoxelEditor* editor) :
     PlaceSpannerTool(editor, "Insert Spanner", "Insert") {
 }
 
-QVariant InsertSpannerTool::createEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) {
-    return QVariant::fromValue(InsertSpannerEdit(attribute, spanner));
+void InsertSpannerTool::applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) {
+    MetavoxelEditMessage message = { QVariant::fromValue(InsertSpannerEdit(attribute, spanner)) };
+    Application::getInstance()->getMetavoxels()->applyEdit(message);
 }
 
 RemoveSpannerTool::RemoveSpannerTool(MetavoxelEditor* editor) :
@@ -654,6 +656,107 @@ bool SetSpannerTool::appliesTo(const AttributePointer& attribute) const {
     return attribute == AttributeRegistry::getInstance()->getSpannersAttribute();
 }
 
-QVariant SetSpannerTool::createEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) {
-    return QVariant::fromValue(SetSpannerEdit(spanner));
+glm::vec3 DIRECTION_VECTORS[] = { glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f),
+    glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 1.0f) };
+
+/// Represents a view from one direction of the spanner to be voxelized.
+class DirectionImages {
+public:
+    QImage color;
+    QVector<float> depth;
+};
+
+class Voxelizer : public QRunnable {
+public:
+
+    Voxelizer(float size, const Box& bounds, const QVector<DirectionImages>& directionImages);
+    
+    virtual void run();
+
+private:
+    
+    float _size;
+    Box _bounds;
+    QVector<DirectionImages> _directionImages;
+};
+
+Voxelizer::Voxelizer(float size, const Box& bounds, const QVector<DirectionImages>& directionImages) :
+    _size(size),
+    _bounds(bounds),
+    _directionImages(directionImages) {
+}
+
+void Voxelizer::run() {
+    
+}
+
+void SetSpannerTool::applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) {
+    Spanner* spannerData = static_cast<Spanner*>(spanner.data());
+    Box bounds = spannerData->getBounds();
+    float longestSide(qMax(bounds.getLongestSide(), spannerData->getPlacementGranularity()));
+    float size = powf(2.0f, floorf(logf(longestSide) / logf(2.0f)));
+    Box cellBounds(glm::floor(bounds.minimum / size) * size, glm::ceil(bounds.maximum / size) * size);
+    
+    Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->bind();
+    
+    glEnable(GL_SCISSOR_TEST);
+    glEnable(GL_LIGHTING);
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
+        
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    
+    QVector<DirectionImages> directionImages;
+    
+    for (unsigned int i = 0; i < sizeof(DIRECTION_VECTORS) / sizeof(DIRECTION_VECTORS[0]); i++) {
+        glm::quat rotation = rotationBetween(DIRECTION_VECTORS[i], IDENTITY_FRONT);
+        glm::vec3 minima(FLT_MAX, FLT_MAX, FLT_MAX);
+        glm::vec3 maxima(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+        for (int j = 0; j < Box::VERTEX_COUNT; j++) {
+            glm::vec3 rotated = rotation * cellBounds.getVertex(j);
+            minima = glm::min(minima, rotated);
+            maxima = glm::max(maxima, rotated);
+        }
+        int width = glm::round((maxima.x - minima.x) / spannerData->getVoxelizationGranularity());
+        int height = glm::round((maxima.y - minima.y) / spannerData->getVoxelizationGranularity());
+        
+        glViewport(0, 0, width, height);
+        glScissor(0, 0, width, height);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
+        glLoadIdentity();
+        glOrtho(minima.x, maxima.x, minima.y, maxima.y, -minima.z, -maxima.z);
+        
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        glm::vec3 axis = glm::axis(rotation);
+        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+        
+        spannerData->getRenderer()->render(1.0f, glm::vec3(), 0.0f);
+        
+        DirectionImages images = { QImage(width, height, QImage::Format_ARGB32), QVector<float>(width * height) };
+        glReadPixels(0, 0, width, height, GL_BGRA, GL_UNSIGNED_BYTE, images.color.bits());
+        glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, images.depth.data());
+        directionImages.append(images);
+        
+        glMatrixMode(GL_PROJECTION);
+    }
+    glPopMatrix();
+ 
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+    
+    glEnable(GL_BLEND);
+    glDisable(GL_SCISSOR_TEST);
+    
+    Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->release();
+
+    glViewport(0, 0, Application::getInstance()->getGLWidget()->width(), Application::getInstance()->getGLWidget()->height());
+    
+    // send the images off to the lab for processing
+    QThreadPool::globalInstance()->start(new Voxelizer(size, cellBounds, directionImages));
 }

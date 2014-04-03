@@ -157,7 +157,7 @@ public:
 
 protected:
 
-    virtual QVariant createEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) = 0;
+    virtual void applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) = 0;
 
 private slots:
     
@@ -174,7 +174,7 @@ public:
 
 protected:
 
-    virtual QVariant createEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner);
+    virtual void applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner);
 };
 
 /// Allows removing a spanner from the scene.
@@ -217,7 +217,7 @@ public:
 
 protected:
 
-    virtual QVariant createEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner);
+    virtual void applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner);
 };
 
 #endif /* defined(__interface__MetavoxelEditor__) */
