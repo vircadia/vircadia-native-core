@@ -37,7 +37,7 @@ int getDelayFromDistance(float distance) {
     return MS_DELAY_PER_METER * distance;
 }
 
-const float BOUNCE_ATTENUATION_FACTOR = 0.5f;
+const float BOUNCE_ATTENUATION_FACTOR = 0.125f;
 
 float getDistanceAttenuationCoefficient(float distance) {
     const float DISTANCE_SCALE = 2.5f;
@@ -99,6 +99,9 @@ void AudioReflector::drawReflections(const glm::vec3& origin, const glm::vec3& o
     }
 }
 
+// set up our buffers for our attenuated and delayed samples
+const int NUMBER_OF_CHANNELS = 2;
+
 
 void AudioReflector::calculateReflections(const glm::vec3& origin, const glm::vec3& originalDirection, 
                                         int bounces, const QByteArray& originalSamples, 
@@ -115,14 +118,20 @@ void AudioReflector::calculateReflections(const glm::vec3& origin, const glm::ve
     BoxFace face;
     const float SLIGHTLY_SHORT = 0.999f; // slightly inside the distance so we're on the inside of the reflection point
 
-    // set up our buffers for our attenuated and delayed samples
-    const int NUMBER_OF_CHANNELS = 2;
-
-    int totalNumberOfSamples = originalSamples.size() / (sizeof(int16_t) * NUMBER_OF_CHANNELS);
+    int totalNumberOfSamples = originalSamples.size() / sizeof(int16_t);
+    int totalNumberOfStereoSamples = originalSamples.size() / (sizeof(int16_t) * NUMBER_OF_CHANNELS);
 
     const int16_t* originalSamplesData = (const int16_t*)originalSamples.constData();
-    AudioRingBuffer attenuatedLeftSamples(totalNumberOfSamples);
-    AudioRingBuffer attenuatedRightSamples(totalNumberOfSamples);
+    QByteArray attenuatedLeftSamples;
+    QByteArray attenuatedRightSamples;
+    attenuatedLeftSamples.resize(originalSamples.size());
+    attenuatedRightSamples.resize(originalSamples.size());
+
+    int16_t* attenuatedLeftSamplesData = (int16_t*)attenuatedLeftSamples.data();
+    int16_t* attenuatedRightSamplesData = (int16_t*)attenuatedRightSamples.data();
+    
+    AudioRingBuffer attenuatedLeftBuffer(totalNumberOfSamples);
+    AudioRingBuffer attenuatedRightBuffer(totalNumberOfSamples);
     
 
     for (int bounceNumber = 1; bounceNumber <= bounces; bounceNumber++) {
@@ -138,26 +147,25 @@ void AudioReflector::calculateReflections(const glm::vec3& origin, const glm::ve
             float leftEarDistance = glm::distance(end, leftEarPosition);
             int rightEarDelayMsecs = getDelayFromDistance(rightEarDistance);
             int leftEarDelayMsecs = getDelayFromDistance(leftEarDistance);
-            int rightEarDelay = rightEarDelayMsecs / MSECS_PER_SECOND * sampleRate;
-            int leftEarDelay = leftEarDelayMsecs / MSECS_PER_SECOND * sampleRate;
+            int rightEarDelay = rightEarDelayMsecs * sampleRate / MSECS_PER_SECOND;
+            int leftEarDelay = leftEarDelayMsecs * sampleRate / MSECS_PER_SECOND;
 
-            float rightEarAttenuation = getDistanceAttenuationCoefficient(rightEarDistance) * 
-                                                            (bounceNumber * BOUNCE_ATTENUATION_FACTOR);
-            float leftEarAttenuation = getDistanceAttenuationCoefficient(leftEarDistance) * 
-                                                            (bounceNumber * BOUNCE_ATTENUATION_FACTOR);
+            float rightEarAttenuation = getDistanceAttenuationCoefficient(rightEarDistance) * (bounceNumber * BOUNCE_ATTENUATION_FACTOR);
+            float leftEarAttenuation = getDistanceAttenuationCoefficient(leftEarDistance) * (bounceNumber * BOUNCE_ATTENUATION_FACTOR);
+            //qDebug() << "leftEarAttenuation=" << leftEarAttenuation << "rightEarAttenuation=" << rightEarAttenuation;
 
             // run through the samples, and attenuate them                                                            
-            for (int sample = 0; sample < totalNumberOfSamples; sample++) {
+            for (int sample = 0; sample < totalNumberOfStereoSamples; sample++) {
                 int16_t leftSample = originalSamplesData[sample * NUMBER_OF_CHANNELS];
                 int16_t rightSample = originalSamplesData[(sample * NUMBER_OF_CHANNELS) + 1];
 
                 //qDebug() << "leftSample=" << leftSample << "rightSample=" << rightSample;
                 
-                attenuatedLeftSamples[sample * NUMBER_OF_CHANNELS] = leftSample * leftEarAttenuation;
-                attenuatedLeftSamples[sample * NUMBER_OF_CHANNELS + 1] = 0;
+                attenuatedLeftSamplesData[sample * NUMBER_OF_CHANNELS] = leftSample * leftEarAttenuation;
+                attenuatedLeftSamplesData[sample * NUMBER_OF_CHANNELS + 1] = 0;
 
-                attenuatedRightSamples[sample * NUMBER_OF_CHANNELS] = 0;
-                attenuatedRightSamples[sample * NUMBER_OF_CHANNELS + 1] = rightSample * rightEarAttenuation;
+                attenuatedRightSamplesData[sample * NUMBER_OF_CHANNELS] = 0;
+                attenuatedRightSamplesData[sample * NUMBER_OF_CHANNELS + 1] = rightSample * rightEarAttenuation;
 
                 //qDebug() << "attenuated... leftSample=" << (leftSample * leftEarAttenuation) << "rightSample=" << (rightSample * rightEarAttenuation);
                 
@@ -169,15 +177,47 @@ void AudioReflector::calculateReflections(const glm::vec3& origin, const glm::ve
             unsigned int sampleTimeLeft = sampleTime + leftEarDelay;
             unsigned int sampleTimeRight = sampleTime + rightEarDelay;
             
-            qDebug() << "sampleTimeLeft=" << sampleTimeLeft << "sampleTimeRight=" << sampleTimeRight;
+            //qDebug() << "sampleTimeLeft=" << sampleTimeLeft << "sampleTimeRight=" << sampleTimeRight;
+
+            attenuatedLeftBuffer.writeSamples(attenuatedLeftSamplesData, totalNumberOfSamples);
+            attenuatedRightBuffer.writeSamples(attenuatedRightSamplesData, totalNumberOfSamples);
             
-            _audio->addSpatialAudioToBuffer(sampleTimeLeft, attenuatedLeftSamples);
-            _audio->addSpatialAudioToBuffer(sampleTimeRight, attenuatedRightSamples);
+            _audio->addSpatialAudioToBuffer(sampleTimeLeft, attenuatedLeftBuffer);
+            _audio->addSpatialAudioToBuffer(sampleTimeRight, attenuatedRightBuffer);
+            attenuatedLeftBuffer.reset();
+            attenuatedRightBuffer.reset();
         }
     }
 }
 
 void AudioReflector::processSpatialAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
+
+    
+    //qDebug() << "AudioReflector::processSpatialAudio()...sampleTime=" << sampleTime << " threadID=" << QThread::currentThreadId();
+
+    /*
+    int totalNumberOfSamples = samples.size() / (sizeof(int16_t));
+    int numFrameSamples = format.sampleRate() * format.channelCount();
+
+    qDebug() << "    totalNumberOfSamples=" << totalNumberOfSamples;
+    qDebug() << "         numFrameSamples=" << numFrameSamples;
+    qDebug() << "          samples.size()=" << samples.size();
+    qDebug() << "         sizeof(int16_t)=" << sizeof(int16_t);
+    
+
+    AudioRingBuffer samplesRingBuffer(totalNumberOfSamples);
+    qint64 bytesCopied = samplesRingBuffer.writeData(samples.constData(),samples.size());
+    for(int i = 0; i < totalNumberOfSamples; i++) {
+        samplesRingBuffer[i] = samplesRingBuffer[i] * 0.25f;
+    }
+
+    qDebug() << "          bytesCopied=" << bytesCopied;
+
+    _audio->addSpatialAudioToBuffer(sampleTime + 12000, samplesRingBuffer);
+
+    return;
+    */
+
     quint64 start = usecTimestampNow();
 
     glm::vec3 origin = _myAvatar->getHead()->getPosition();

@@ -1603,7 +1603,7 @@ void Application::init() {
     _audioReflector.setMyAvatar(getAvatar());
     _audioReflector.setVoxels(_voxels.getTree());
     _audioReflector.setAudio(getAudio());
-    connect(getAudio(), &Audio::processSpatialAudio, &_audioReflector, &AudioReflector::processSpatialAudio);
+    connect(getAudio(), &Audio::processSpatialAudio, &_audioReflector, &AudioReflector::processSpatialAudio,Qt::DirectConnection);
 }
 
 void Application::closeMirrorView() {
