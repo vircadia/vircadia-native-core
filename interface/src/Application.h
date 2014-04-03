@@ -502,6 +502,7 @@ private:
 
     RunningScriptsWidget* _runningScriptsWidget;
     QHash<QString, ScriptEngine*> _scriptEnginesHash;
+    bool _runningScriptsWidgetVisible;
 };
 
 #endif /* defined(__interface__Application__) */

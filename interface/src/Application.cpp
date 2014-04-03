@@ -619,6 +619,11 @@ void Application::resizeGL(int width, int height) {
 
     updateProjectionMatrix();
     glLoadIdentity();
+
+    if (_runningScriptsWidgetVisible)
+        _runningScriptsWidget->setGeometry(_window->geometry().topLeft().x(),
+                                           _window->geometry().topLeft().y(),
+                                           _runningScriptsWidget->width(), _window->height());
 }
 
 void Application::updateProjectionMatrix() {
@@ -3629,6 +3634,7 @@ void Application::toggleRunningScriptsWidget()
         _runningScriptsWidget->resize(0, _window->height());
         _runningScriptsWidget->toggleViewAction()->trigger();
         _runningScriptsWidget->grabKeyboard();
+        _runningScriptsWidgetVisible = true;
 
         QPropertyAnimation* slideAnimation = new QPropertyAnimation(_runningScriptsWidget, "geometry", _runningScriptsWidget);
         slideAnimation->setStartValue(_runningScriptsWidget->geometry());
@@ -3638,6 +3644,7 @@ void Application::toggleRunningScriptsWidget()
         slideAnimation->start(QAbstractAnimation::DeleteWhenStopped);
     } else {
         _runningScriptsWidget->releaseKeyboard();
+        _runningScriptsWidgetVisible = false;
 
         QPropertyAnimation* slideAnimation = new QPropertyAnimation(_runningScriptsWidget, "geometry", _runningScriptsWidget);
         slideAnimation->setStartValue(_runningScriptsWidget->geometry());

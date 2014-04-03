@@ -8,9 +8,7 @@
 #include "ScriptsTableWidget.h"
 
 #include <QHeaderView>
-#include <QFont>
 #include <QPainter>
-#include <QIcon>
 #include <QDebug>
 
 ScriptsTableWidget::ScriptsTableWidget(QWidget *parent) :
