@@ -30,6 +30,10 @@ public:
     /// set minimum and maximum to FLT_MAX and -FLT_MAX respectively
     void reset();
 
+    /// \param extents another intance of extents
+    /// expand current limits to contain other extents
+    void addExtents(const Extents& extents);
+
     /// \param point new point to compare against existing limits
     /// compare point to current limits and expand them if necessary to contain point
     void addPoint(const glm::vec3& point);
@@ -174,7 +178,6 @@ public:
     glm::vec3 neckPivot;
     
     Extents bindExtents;
-    Extents staticExtents;
     Extents meshExtents;
     
     QVector<FBXAttachment> attachments;
