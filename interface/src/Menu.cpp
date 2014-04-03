@@ -180,18 +180,17 @@ Menu::Menu() :
     QMenu* toolsMenu = addMenu("Tools");
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
 
+#ifdef HAVE_QXMPP
     _chatAction = addActionToQMenuAndActionHash(toolsMenu,
                                                 MenuOption::Chat,
                                                 Qt::Key_Return,
                                                 this,
                                                 SLOT(showChat()));
-#ifdef HAVE_QXMPP
+
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
     toggleChat();
     connect(&xmppClient, SIGNAL(connected()), this, SLOT(toggleChat()));
     connect(&xmppClient, SIGNAL(disconnected()), this, SLOT(toggleChat()));
-#else
-    _chatAction->setEnabled(false);
 #endif
 
     QMenu* viewMenu = addMenu("View");
@@ -1155,11 +1154,6 @@ void Menu::showMetavoxelEditor() {
 }
 
 void Menu::showChat() {
-    if (!_chatAction->isEnabled()) {
-        // Don't do anything if chat is disabled (No
-        // QXMPP library or xmpp is disconnected).
-        return;
-    }
     QMainWindow* mainWindow = Application::getInstance()->getWindow();
     if (!_chatWindow) {
         mainWindow->addDockWidget(Qt::NoDockWidgetArea, _chatWindow = new ChatWindow());
