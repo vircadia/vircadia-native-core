@@ -33,6 +33,7 @@
 #include <VoxelEditPacketSender.h>
 
 #include "Audio.h"
+#include "AudioReflector.h"
 #include "BuckyBalls.h"
 #include "Camera.h"
 #include "DatagramProcessor.h"
@@ -497,6 +498,7 @@ private:
     TouchEvent _lastTouchEvent;
     
     Overlays _overlays;
+    AudioReflector _audioReflector;
 };
 
 #endif /* defined(__interface__Application__) */

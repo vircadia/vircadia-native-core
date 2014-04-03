@@ -1597,6 +1597,13 @@ void Application::init() {
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
+    
+    
+    // set up our audio reflector
+    _audioReflector.setMyAvatar(getAvatar());
+    _audioReflector.setVoxels(_voxels.getTree());
+    _audioReflector.setAudio(getAudio());
+    connect(getAudio(), &Audio::audioBufferWrittenToDevice, &_audioReflector, &AudioReflector::addSamples);
 }
 
 void Application::closeMirrorView() {
@@ -2378,6 +2385,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // disable specular lighting for ground and voxels
         glMaterialfv(GL_FRONT, GL_SPECULAR, NO_SPECULAR_COLOR);
+        
+        // draw the audio reflector overlay
+        _audioReflector.render();
 
         //  Draw voxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
