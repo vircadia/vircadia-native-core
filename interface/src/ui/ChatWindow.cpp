@@ -136,7 +136,7 @@ QString ChatWindow::getParticipantName(const QString& participant) {
 void ChatWindow::addTimeStamp() {
     QTimeSpan timePassed = QDateTime::currentDateTime() - lastMessageStamp;
     int times[] = { timePassed.daysPart(), timePassed.hoursPart(), timePassed.minutesPart() };
-    QString strings[] = { tr("day", 0, times[0]), tr("hour", 0, times[1]), tr("minute", 0, times[2]) };
+    QString strings[] = { tr("%n day(s)", 0, times[0]), tr("%n hour(s)", 0, times[1]), tr("%n minute(s)", 0, times[2]) };
     QString timeString = "";
     for (int i = 0; i < 3; i++) {
         if (times[i] > 0) {
