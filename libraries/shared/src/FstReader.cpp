@@ -172,12 +172,32 @@ bool FstReader::send() {
         return false;
     }
     
-    AccountManager::getInstance().authenticatedRequest(MODEL_URL, QNetworkAccessManager::PostOperation, JSONCallbackParameters(), QByteArray(), _dataMultiPart);
+    JSONCallbackParameters callbackParams;
+    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.jsonCallbackMethod = "uploadSuccess";
+    callbackParams.errorCallbackReceiver = this;
+    callbackParams.errorCallbackMethod = "uploadFailed";
+    
+    AccountManager::getInstance().authenticatedRequest(MODEL_URL, QNetworkAccessManager::PostOperation, callbackParams, QByteArray(), _dataMultiPart);
     _zipDir = NULL;
     _dataMultiPart = NULL;
-    qDebug() << "Model sent.";
     
     return true;
+}
+
+void FstReader::uploadSuccess(const QJsonObject& jsonResponse) {
+    qDebug() << "Model sent with success to the data server.";
+    qDebug() << "It might take a few minute for it to appear in your model browser.";
+    deleteLater();
+}
+
+void FstReader::uploadFailed(QNetworkReply::NetworkError errorCode, const QString& errorString) {
+    QMessageBox::warning(NULL,
+                         QString("ModelUploader::uploadFailed()"),
+                         QString("Model could not be sent to the data server."),
+                         QMessageBox::Ok);
+    qDebug() << "Model upload failed (" << errorCode << "): " << errorString;
+    deleteLater();
 }
 
 bool FstReader::addTextures(const QFileInfo& texdir) {

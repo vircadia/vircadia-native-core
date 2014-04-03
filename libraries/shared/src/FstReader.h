@@ -12,14 +12,21 @@
 
 class TemporaryDir;
 class QHttpMultiPart;
+class QFileInfo;
 
 class FstReader : public QObject {
+    Q_OBJECT
+    
 public:
     FstReader(bool isHead);
     ~FstReader();
     
     bool zip();
     bool send();
+    
+private slots:
+    void uploadSuccess(const QJsonObject& jsonResponse);
+    void uploadFailed(QNetworkReply::NetworkError errorCode, const QString& errorString);
     
 private:
     TemporaryDir* _zipDir;
