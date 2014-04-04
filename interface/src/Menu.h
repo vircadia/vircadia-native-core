@@ -245,6 +245,8 @@ namespace MenuOption {
     const QString AudioToneInjection = "Inject Test Tone";
     const QString AudioSpatialProcessing = "Audio Spatial Processing";
     const QString AudioSpatialProcessingIncudeOriginal = "Audio Spatial Processing includes Original";
+    const QString AudioSpatialProcessingSeparateEars = "Audio Spatial Processing separates ears";
+    const QString AudioSpatialProcessingPreDelay = "Audio Spatial Processing add Pre-Delay";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString MuteAudio = "Mute Microphone";

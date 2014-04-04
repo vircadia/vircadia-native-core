@@ -2835,6 +2835,36 @@ void Application::displayStats() {
         
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, downloadStats.str().c_str(), WHITE_TEXT);
+
+        if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessing)) {
+            // add some reflection stats
+            char reflectionsStatus[128];
+
+            sprintf(reflectionsStatus, "Reflections: %d, Pre-Delay: %f, Separate Ears:%s", 
+                    _audioReflector.getReflections(),
+                    _audioReflector.getDelayFromDistance(0.0f),
+                    debug::valueOf(Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingSeparateEars)));
+                    
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, WHITE_TEXT);
+
+            sprintf(reflectionsStatus, "Delay: average %f, max %f, min %f", 
+                    _audioReflector.getAverageDelayMsecs(),
+                    _audioReflector.getMaxDelayMsecs(),
+                    _audioReflector.getMinDelayMsecs());
+                    
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, WHITE_TEXT);
+
+            sprintf(reflectionsStatus, "Attenuation: average %f, max %f, min %f", 
+                    _audioReflector.getAverageAttenuation(),
+                    _audioReflector.getMaxAttenuation(),
+                    _audioReflector.getMinAttenuation());
+                    
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, WHITE_TEXT);
+        }
+
     }
 
     verticalOffset = 0;

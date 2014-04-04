@@ -28,12 +28,13 @@ public:
     void render();
     
     int getReflections() const { return _reflections; }
-    int getAverageDelayMsecs() const { return _averageDelay; }
+    float getAverageDelayMsecs() const { return _averageDelay; }
     float getAverageAttenuation() const { return _averageAttenuation; }
-    int getMaxDelayMsecs() const { return _maxDelay; }
+    float getMaxDelayMsecs() const { return _maxDelay; }
     float getMaxAttenuation() const { return _maxAttenuation; }
-    int getMinDelayMsecs() const { return _minDelay; }
+    float getMinDelayMsecs() const { return _minDelay; }
     float getMinAttenuation() const { return _minAttenuation; }
+    float getDelayFromDistance(float distance);
     
 public slots:
     void processSpatialAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
@@ -60,10 +61,10 @@ private:
     int _reflections;
 
     int _delayCount;
-    int _totalDelay;
-    int _averageDelay;
-    int _maxDelay;
-    int _minDelay;
+    float _totalDelay;
+    float _averageDelay;
+    float _maxDelay;
+    float _minDelay;
 
     int _attenuationCount;
     float _totalAttenuation;

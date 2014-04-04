@@ -9,6 +9,7 @@
 #include <QMutexLocker>
 
 #include "AudioReflector.h"
+#include "Menu.h"
 
 AudioReflector::AudioReflector(QObject* parent) : 
     QObject(parent) 
@@ -28,14 +29,23 @@ void AudioReflector::render() {
 }
 
 
+
 // delay = 1ms per foot
 //       = 3ms per meter
 // attenuation =
 //        BOUNCE_ATTENUATION_FACTOR [0.5] * (1/(1+distance))
+const float PRE_DELAY = 20.0f; // this delay in msecs will always be added to all reflections
 
-int getDelayFromDistance(float distance) {
+float AudioReflector::getDelayFromDistance(float distance) {
     const int MS_DELAY_PER_METER = 3;
-    return MS_DELAY_PER_METER * distance;
+    float delay = (MS_DELAY_PER_METER * distance);
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingPreDelay)) {
+        delay += PRE_DELAY;
+    }
+    
+    
+    return delay;
 }
 
 // **option 1**: this is what we're using
@@ -61,24 +71,29 @@ float getDistanceAttenuationCoefficient(float distance) {
     float distanceCoefficient = powf(GEOMETRIC_AMPLITUDE_SCALAR,
                                      DISTANCE_SCALE_LOG +
                                      (0.5f * logf(distanceSquareToSource) / logf(DISTANCE_LOG_BASE)) - 1);
-    distanceCoefficient = std::min(1.0f, distanceCoefficient);
+
+    const float DISTANCE_SCALING_FACTOR = 2.0f; 
+
+    distanceCoefficient = std::min(1.0f, distanceCoefficient * DISTANCE_SCALING_FACTOR);
     
     return distanceCoefficient;
 }
 
 glm::vec3 getFaceNormal(BoxFace face) {
+    float surfaceRandomness = randFloatInRange(0.99,1.0);
+    float surfaceRemainder = (1.0f - surfaceRandomness)/2.0f;
     if (face == MIN_X_FACE) {
-        return glm::vec3(-1, 0, 0);
+        return glm::vec3(-surfaceRandomness, surfaceRemainder, surfaceRemainder);
     } else if (face == MAX_X_FACE) {
-        return glm::vec3(1, 0, 0);
+        return glm::vec3(surfaceRandomness, surfaceRemainder, surfaceRemainder);
     } else if (face == MIN_Y_FACE) {
-        return glm::vec3(0, -1, 0);
+        return glm::vec3(surfaceRemainder, -surfaceRandomness, surfaceRemainder);
     } else if (face == MAX_Y_FACE) {
-        return glm::vec3(0, 1, 0);
+        return glm::vec3(surfaceRemainder, surfaceRandomness, surfaceRemainder);
     } else if (face == MIN_Z_FACE) {
-        return glm::vec3(0, 0, -1);
+        return glm::vec3(surfaceRemainder, surfaceRemainder, -surfaceRandomness);
     } else if (face == MAX_Z_FACE) {
-        return glm::vec3(0, 0, 1);
+        return glm::vec3(surfaceRemainder, surfaceRemainder, surfaceRandomness);
     }
     return glm::vec3(0, 0, 0); //error case
 }
@@ -113,7 +128,7 @@ void AudioReflector::calculateAllReflections() {
 
     // only recalculate when we've moved...
     // TODO: what about case where new voxels are added in front of us???
-    if (_myAvatar->getHead()->getPosition() != _origin) {
+    if (_reflections == 0 || _myAvatar->getHead()->getPosition() != _origin) {
         QMutexLocker locker(&_mutex);
 
         qDebug() << "origin has changed...";
@@ -218,8 +233,11 @@ const int NUMBER_OF_CHANNELS = 2;
 void AudioReflector::echoReflections(const glm::vec3& origin, const QVector<glm::vec3>& reflections, const QByteArray& samples, 
                                     unsigned int sampleTime, int sampleRate) {
 
-    glm::vec3 rightEarPosition = _myAvatar->getHead()->getRightEarPosition();
-    glm::vec3 leftEarPosition = _myAvatar->getHead()->getLeftEarPosition();
+    bool wantEarSeparation = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingSeparateEars);
+    glm::vec3 rightEarPosition = wantEarSeparation ? _myAvatar->getHead()->getRightEarPosition() : 
+                                    _myAvatar->getHead()->getPosition();
+    glm::vec3 leftEarPosition = wantEarSeparation ? _myAvatar->getHead()->getLeftEarPosition() :
+                                    _myAvatar->getHead()->getPosition();
     glm::vec3 start = origin;
 
     int totalNumberOfSamples = samples.size() / sizeof(int16_t);
@@ -253,8 +271,8 @@ void AudioReflector::echoReflections(const glm::vec3& origin, const QVector<glm:
         float rightTotalDistance = rightEarDistance + rightDistance;
         float leftTotalDistance = leftEarDistance + leftDistance;
         
-        int rightEarDelayMsecs = getDelayFromDistance(rightTotalDistance);
-        int leftEarDelayMsecs = getDelayFromDistance(leftTotalDistance);
+        float rightEarDelayMsecs = getDelayFromDistance(rightTotalDistance);
+        float leftEarDelayMsecs = getDelayFromDistance(leftTotalDistance);
         
         _totalDelay += rightEarDelayMsecs + leftEarDelayMsecs;
         _delayCount += 2;
@@ -324,7 +342,7 @@ void AudioReflector::processSpatialAudio(unsigned int sampleTime, const QByteArr
     _maxAttenuation = 0.0f;
     _minDelay = std::numeric_limits<int>::max();
     _minAttenuation = std::numeric_limits<float>::max();
-    _totalDelay = 0;
+    _totalDelay = 0.0f;
     _delayCount = 0;
     _totalAttenuation = 0.0f;
     _attenuationCount = 0;

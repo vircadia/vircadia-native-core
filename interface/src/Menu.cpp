@@ -375,6 +375,14 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSpatialProcessingIncudeOriginal,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_O,
                                            true);
+
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSpatialProcessingSeparateEars,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_E,
+                                           true);
+
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSpatialProcessingPreDelay,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_D,
+                                           true);
                                            
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::LowPassFilter,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_F,
