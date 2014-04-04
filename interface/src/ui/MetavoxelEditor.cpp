@@ -855,6 +855,8 @@ void SetSpannerTool::applyEdit(const AttributePointer& attribute, const SharedOb
         
         Application::getInstance()->setupWorldLight();
         
+        Application::getInstance()->updateUntranslatedViewMatrix();
+        
         spannerData->getRenderer()->render(1.0f, glm::vec3(), 0.0f);
         
         DirectionImages images = { QImage(width, height, QImage::Format_ARGB32),
