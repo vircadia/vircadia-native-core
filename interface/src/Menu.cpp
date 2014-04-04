@@ -1303,20 +1303,22 @@ void Menu::autoAdjustLOD(float currentFPS) {
 
     quint64 now = usecTimestampNow();
 
+    const float ADJUST_AVATAR_LOD_DOWN_FPS = 30.0f; 
     const quint64 ADJUST_AVATAR_LOD_DOWN_DELAY = 1000 * 1000;
-    if (_fastFPSAverage.getAverage() < ADJUST_LOD_DOWN_FPS) {
+    if (_fastFPSAverage.getAverage() < ADJUST_AVATAR_LOD_DOWN_FPS) {
         if (now - _lastAvatarDetailDrop > ADJUST_AVATAR_LOD_DOWN_DELAY) {
             // attempt to lower the detail in proportion to the fps difference
-            float targetFps = (ADJUST_LOD_DOWN_FPS + ADJUST_LOD_UP_FPS) * 0.5f;
+            float targetFps = (ADJUST_AVATAR_LOD_DOWN_FPS + ADJUST_LOD_UP_FPS) * 0.5f;
             float averageFps = _fastFPSAverage.getAverage();
             const float MAXIMUM_MULTIPLIER_SCALE = 2.0f;
-            _avatarLODDistanceMultiplier *= (averageFps < EPSILON) ? MAXIMUM_MULTIPLIER_SCALE :
-                qMin(MAXIMUM_MULTIPLIER_SCALE, targetFps / averageFps);
+            const float MAXIMUM_DISTANCE_MULTIPLIER = 15.0f;
+            _avatarLODDistanceMultiplier = qMin(MAXIMUM_DISTANCE_MULTIPLIER, _avatarLODDistanceMultiplier *
+                (averageFps < EPSILON ? MAXIMUM_MULTIPLIER_SCALE : qMin(MAXIMUM_MULTIPLIER_SCALE, targetFps / averageFps)));
             _lastAvatarDetailDrop = now;
         }
     } else if (_fastFPSAverage.getAverage() > ADJUST_LOD_UP_FPS) {
         // let the detail level creep slowly upwards
-        const float DISTANCE_DECREASE_RATE = 0.02f;
+        const float DISTANCE_DECREASE_RATE = 0.05f;
         const float MINIMUM_DISTANCE_MULTIPLIER = 0.1f;
         _avatarLODDistanceMultiplier = qMax(MINIMUM_DISTANCE_MULTIPLIER,
             _avatarLODDistanceMultiplier - DISTANCE_DECREASE_RATE);
