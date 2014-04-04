@@ -1527,7 +1527,7 @@ void SpannerRenderer::simulate(float deltaTime) {
     // nothing by default
 }
 
-void SpannerRenderer::render(float alpha, const glm::vec3& clipMinimum, float clipSize) {
+void SpannerRenderer::render(float alpha, Mode mode, const glm::vec3& clipMinimum, float clipSize) {
     // nothing by default
 }
 

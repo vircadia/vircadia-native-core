@@ -57,7 +57,10 @@ public:
     void init();
     void reset();
     virtual void simulate(float deltaTime, bool fullUpdate = true);
-    bool render(float alpha = 1.0f, bool forShadowMap = false);
+    
+    enum RenderMode { DEFAULT_MODE, SHADOW_MAP_MODE, DIFFUSE_MODE, NORMAL_MODE };
+    
+    bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_MODE);
 
     /// Sets the URL of the model to render.
     /// \param fallback the URL of a fallback model to render if the requested model fails to load
@@ -254,7 +257,7 @@ private:
     
     void applyNextGeometry();
     void deleteGeometry();
-    void renderMeshes(float alpha, bool forShadowMap, bool translucent);
+    void renderMeshes(float alpha, RenderMode mode, bool translucent);
     QVector<JointState> createJointStates(const FBXGeometry& geometry);
     
     QSharedPointer<NetworkGeometry> _baseGeometry; ///< reference required to prevent collection of base

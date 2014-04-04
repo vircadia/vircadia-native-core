@@ -281,7 +281,7 @@ bool Model::updateGeometry() {
     return needFullUpdate;
 }
 
-bool Model::render(float alpha, bool forShadowMap) {
+bool Model::render(float alpha, RenderMode mode) {
     // render the attachments
     foreach (Model* attachment, _attachments) {
         attachment->render(alpha);
@@ -305,20 +305,20 @@ bool Model::render(float alpha, bool forShadowMap) {
     
     glDisable(GL_COLOR_MATERIAL);
     
-    glEnable(GL_CULL_FACE);
+    // glEnable(GL_CULL_FACE);
     
     // render opaque meshes with alpha testing
     
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GREATER, 0.5f * alpha);
     
-    renderMeshes(alpha, forShadowMap, false);
+    renderMeshes(alpha, mode, false);
     
     glDisable(GL_ALPHA_TEST);
     
     // render translucent meshes afterwards, with back face culling
     
-    renderMeshes(alpha, forShadowMap, true);
+    renderMeshes(alpha, mode, true);
     
     glDisable(GL_CULL_FACE);
     
@@ -1112,7 +1112,7 @@ void Model::deleteGeometry() {
     }
 }
 
-void Model::renderMeshes(float alpha, bool forShadowMap, bool translucent) {
+void Model::renderMeshes(float alpha, RenderMode mode, bool translucent) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
     
@@ -1137,7 +1137,7 @@ void Model::renderMeshes(float alpha, bool forShadowMap, bool translucent) {
         ProgramObject* program = &_program;
         ProgramObject* skinProgram = &_skinProgram;
         SkinLocations* skinLocations = &_skinLocations;
-        if (forShadowMap) {
+        if (mode == SHADOW_MAP_MODE) {
             program = &_shadowProgram;
             skinProgram = &_skinShadowProgram;
             skinLocations = &_skinShadowLocations;
@@ -1175,7 +1175,7 @@ void Model::renderMeshes(float alpha, bool forShadowMap, bool translucent) {
         }
 
         if (mesh.blendshapes.isEmpty()) {
-            if (!(mesh.tangents.isEmpty() || forShadowMap)) {
+            if (!(mesh.tangents.isEmpty() || mode == SHADOW_MAP_MODE)) {
                 activeProgram->setAttributeBuffer(tangentLocation, GL_FLOAT, vertexCount * 2 * sizeof(glm::vec3), 3);
                 activeProgram->enableAttributeArray(tangentLocation);
             }
@@ -1185,7 +1185,7 @@ void Model::renderMeshes(float alpha, bool forShadowMap, bool translucent) {
                 (mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3)));    
         
         } else {
-            if (!(mesh.tangents.isEmpty() || forShadowMap)) {
+            if (!(mesh.tangents.isEmpty() || mode == SHADOW_MAP_MODE)) {
                 activeProgram->setAttributeBuffer(tangentLocation, GL_FLOAT, 0, 3);
                 activeProgram->enableAttributeArray(tangentLocation);
             }
@@ -1214,7 +1214,7 @@ void Model::renderMeshes(float alpha, bool forShadowMap, bool translucent) {
                 continue;
             }
             // apply material properties
-            if (forShadowMap) {
+            if (mode == SHADOW_MAP_MODE) {
                 glBindTexture(GL_TEXTURE_2D, 0);
                 
             } else {
@@ -1255,7 +1255,7 @@ void Model::renderMeshes(float alpha, bool forShadowMap, bool translucent) {
             glDisableClientState(GL_TEXTURE_COORD_ARRAY);
         }
         
-        if (!(mesh.tangents.isEmpty() || forShadowMap)) {
+        if (!(mesh.tangents.isEmpty() || mode == SHADOW_MAP_MODE)) {
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, 0);
             glActiveTexture(GL_TEXTURE0);

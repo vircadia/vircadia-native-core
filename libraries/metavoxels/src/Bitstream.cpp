@@ -869,7 +869,11 @@ Bitstream& Bitstream::operator>(SharedObjectPointer& object) {
             *this >> rawObject;
         }
         pointer = static_cast<SharedObject*>(rawObject);
-        pointer->setRemoteID(id);
+        if (pointer) {
+            pointer->setRemoteID(id);
+        } else {
+            qDebug() << "Null object" << pointer << reference;
+        }
     }
     object = static_cast<SharedObject*>(pointer.data());
     return *this;

@@ -569,7 +569,7 @@ void PlaceSpannerTool::render() {
     }
     Spanner* spanner = static_cast<Spanner*>(_editor->getValue().value<SharedObjectPointer>().data());
     const float SPANNER_ALPHA = 0.25f;
-    spanner->getRenderer()->render(SPANNER_ALPHA, glm::vec3(), 0.0f);
+    spanner->getRenderer()->render(SPANNER_ALPHA, SpannerRenderer::DEFAULT_MODE, glm::vec3(), 0.0f);
 }
 
 bool PlaceSpannerTool::appliesTo(const AttributePointer& attribute) const {
@@ -773,6 +773,7 @@ int VoxelizationVisitor::visit(MetavoxelInfo& info) {
         int y = qMax(qMin((int)glm::round(relative.y), images.color.height() - 1), 0);
         float depth = 1.0f - images.depth.at(y * images.color.width() + x);
         float distance = depth - relative.z;
+        float extent = images.scale.z * halfSize;
         if (distance < 0.0f) {
             info.outputValues[0] = AttributeValue(_outputs.at(0));
             return STOP_RECURSION;
@@ -838,8 +839,9 @@ void SetSpannerTool::applyEdit(const AttributePointer& attribute, const SharedOb
             minima = glm::min(minima, rotated);
             maxima = glm::max(maxima, rotated);
         }
-        int width = glm::round((maxima.x - minima.x) / spannerData->getVoxelizationGranularity());
-        int height = glm::round((maxima.y - minima.y) / spannerData->getVoxelizationGranularity());
+        float renderGranularity = spannerData->getVoxelizationGranularity() / 4.0f;
+        int width = glm::round((maxima.x - minima.x) / renderGranularity);
+        int height = glm::round((maxima.y - minima.y) / renderGranularity);
         
         glViewport(0, 0, width, height);
         glScissor(0, 0, width, height);
@@ -857,7 +859,7 @@ void SetSpannerTool::applyEdit(const AttributePointer& attribute, const SharedOb
         
         Application::getInstance()->updateUntranslatedViewMatrix();
         
-        spannerData->getRenderer()->render(1.0f, glm::vec3(), 0.0f);
+        spannerData->getRenderer()->render(1.0f, SpannerRenderer::DIFFUSE_MODE, glm::vec3(), 0.0f);
         
         DirectionImages images = { QImage(width, height, QImage::Format_ARGB32),
             QVector<float>(width * height), minima, maxima, glm::vec3(width / (maxima.x - minima.x),
@@ -865,6 +867,8 @@ void SetSpannerTool::applyEdit(const AttributePointer& attribute, const SharedOb
         glReadPixels(0, 0, width, height, GL_BGRA, GL_UNSIGNED_BYTE, images.color.bits());
         glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, images.depth.data());
         directionImages.append(images);
+        
+        images.color.save(QString::number(i) + ".png");
         
         glMatrixMode(GL_PROJECTION);
     }

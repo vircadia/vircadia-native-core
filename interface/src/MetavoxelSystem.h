@@ -147,11 +147,11 @@ class ClippedRenderer : public SpannerRenderer {
 
 public:
     
-    virtual void render(float alpha, const glm::vec3& clipMinimum, float clipSize);
+    virtual void render(float alpha, Mode mode, const glm::vec3& clipMinimum, float clipSize);
     
 protected:
 
-    virtual void renderUnclipped(float alpha) = 0;
+    virtual void renderUnclipped(float alpha, Mode mode) = 0;
 };
 
 /// Renders spheres.
@@ -162,11 +162,11 @@ public:
     
     Q_INVOKABLE SphereRenderer();
     
-    virtual void render(float alpha, const glm::vec3& clipMinimum, float clipSize);
+    virtual void render(float alpha, Mode mode, const glm::vec3& clipMinimum, float clipSize);
     
 protected:
 
-    virtual void renderUnclipped(float alpha);
+    virtual void renderUnclipped(float alpha, Mode mode);
 };
 
 /// Renders static models.
@@ -184,7 +184,7 @@ public:
 
 protected:
 
-    virtual void renderUnclipped(float alpha);
+    virtual void renderUnclipped(float alpha, Mode mode);
 
 private slots:
 

@@ -518,11 +518,13 @@ class SpannerRenderer : public QObject {
     
 public:
     
+    enum Mode { DEFAULT_MODE, DIFFUSE_MODE, NORMAL_MODE };
+    
     Q_INVOKABLE SpannerRenderer();
     
     virtual void init(Spanner* spanner);
     virtual void simulate(float deltaTime);
-    virtual void render(float alpha, const glm::vec3& clipMinimum, float clipSize);
+    virtual void render(float alpha, Mode mode, const glm::vec3& clipMinimum, float clipSize);
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const glm::vec3& clipMinimum, float clipSize, float& distance) const;
 };
