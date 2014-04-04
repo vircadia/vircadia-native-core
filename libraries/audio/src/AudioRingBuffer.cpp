@@ -24,6 +24,7 @@ AudioRingBuffer::AudioRingBuffer(int numFrameSamples) :
 {
     if (numFrameSamples) {
         _buffer = new int16_t[_sampleCapacity];
+        memset(_buffer, 0, _sampleCapacity * sizeof(int16_t));
         _nextOutput = _buffer;
         _endOfLastWrite = _buffer;
     } else {
@@ -47,6 +48,7 @@ void AudioRingBuffer::resizeForFrameSize(qint64 numFrameSamples) {
     delete[] _buffer;
     _sampleCapacity = numFrameSamples * RING_BUFFER_LENGTH_FRAMES;
     _buffer = new int16_t[_sampleCapacity];
+    memset(_buffer, 0, _sampleCapacity * sizeof(int16_t));
     _nextOutput = _buffer;
     _endOfLastWrite = _buffer;
 }
@@ -63,7 +65,8 @@ qint64 AudioRingBuffer::readSamples(int16_t* destination, qint64 maxSamples) {
 qint64 AudioRingBuffer::readData(char *data, qint64 maxSize) {
 
     // only copy up to the number of samples we have available
-    int numReadSamples = std::min((unsigned) (maxSize / sizeof(int16_t)), samplesAvailable());
+    //int numReadSamples = std::min((unsigned) (maxSize / sizeof(int16_t)), samplesAvailable());
+    int numReadSamples = _endOfLastWrite ? (maxSize / sizeof(int16_t)) : samplesAvailable();
 
     if (_nextOutput + numReadSamples > _buffer + _sampleCapacity) {
         // we're going to need to do two reads to get this data, it wraps around the edge
@@ -71,12 +74,15 @@ qint64 AudioRingBuffer::readData(char *data, qint64 maxSize) {
         // read to the end of the buffer
         int numSamplesToEnd = (_buffer + _sampleCapacity) - _nextOutput;
         memcpy(data, _nextOutput, numSamplesToEnd * sizeof(int16_t));
+        memset(_nextOutput, 0, numSamplesToEnd * sizeof(int16_t)); // clear it
         
         // read the rest from the beginning of the buffer
         memcpy(data + (numSamplesToEnd * sizeof(int16_t)), _buffer, (numReadSamples - numSamplesToEnd) * sizeof(int16_t));
+        memset(_buffer, 0, (numReadSamples - numSamplesToEnd) * sizeof(int16_t)); // clear it
     } else {
         // read the data
         memcpy(data, _nextOutput, numReadSamples * sizeof(int16_t));
+        memset(_nextOutput, 0, numReadSamples * sizeof(int16_t)); // clear it
     }
 
     // push the position of _nextOutput by the number of samples read
@@ -102,7 +108,7 @@ qint64 AudioRingBuffer::writeData(const char* data, qint64 maxSize) {
         && (less(_endOfLastWrite, _nextOutput)
             && lessEqual(_nextOutput, shiftedPositionAccomodatingWrap(_endOfLastWrite, samplesToCopy)))) {
         // this read will cross the next output, so call us starved and reset the buffer
-        qDebug() << "Filled the ring buffer. Resetting.";
+        qDebug() << "Filled the ring buffer. Resetting. <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
         _endOfLastWrite = _buffer;
         _nextOutput = _buffer;
         _isStarved = true;
@@ -141,6 +147,13 @@ unsigned int AudioRingBuffer::samplesAvailable() const {
 
         if (sampleDifference < 0) {
             sampleDifference += _sampleCapacity;
+        }
+        
+        if (sampleDifference == 0) {
+            qDebug() << "ran dry!!! _endOfLastWrite=" << _endOfLastWrite
+                << "_nextOutput=" << _nextOutput 
+                << "_buffer + _sampleCapacity=" << (_buffer + _sampleCapacity)
+                << " samplesAvailable() == 0!!!!!!!!!!!!!!!!!!!!";
         }
 
         return sampleDifference;
