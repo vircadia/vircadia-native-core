@@ -38,12 +38,14 @@ int getDelayFromDistance(float distance) {
     return MS_DELAY_PER_METER * distance;
 }
 
-const float BOUNCE_ATTENUATION_FACTOR = 0.125f;
+// **option 1**: this is what we're using
+const float PER_BOUNCE_ATTENUATION_FACTOR = 0.5f; 
 
+// **option 2**: we're not using these
+const float BOUNCE_ATTENUATION_FACTOR = 0.125f;
 // each bounce we adjust our attenuation by this factor, the result is an asymptotically decreasing attenuation...
 // 0.125, 0.25, 0.5, ...
 const float PER_BOUNCE_ATTENUATION_ADJUSTMENT = 2.0f;
-
 // we don't grow larger than this, which means by the 4th bounce we don't get that much less quiet
 const float MAX_BOUNCE_ATTENUATION = 0.99f;
 
@@ -234,9 +236,12 @@ void AudioReflector::echoReflections(const glm::vec3& origin, const QVector<glm:
     
     float rightDistance = 0;
     float leftDistance = 0;
-    float bounceAttenuation = BOUNCE_ATTENUATION_FACTOR;
+    float bounceAttenuation = PER_BOUNCE_ATTENUATION_FACTOR;
+    
+    int bounce = 0;
 
     foreach (glm::vec3 end, reflections) {
+        bounce++;
 
         rightDistance += glm::distance(start, end);
         leftDistance += glm::distance(start, end);
@@ -276,7 +281,10 @@ void AudioReflector::echoReflections(const glm::vec3& origin, const QVector<glm:
 
         //qDebug() << "leftEarAttenuation=" << leftEarAttenuation << "rightEarAttenuation=" << rightEarAttenuation;
 
-        bounceAttenuation = std::min(MAX_BOUNCE_ATTENUATION, bounceAttenuation * PER_BOUNCE_ATTENUATION_ADJUSTMENT);
+        //qDebug() << "bounce=" << bounce <<
+        //            "bounceAttenuation=" << bounceAttenuation;
+        //bounceAttenuationFactor = std::min(MAX_BOUNCE_ATTENUATION, bounceAttenuationFactor * PER_BOUNCE_ATTENUATION_ADJUSTMENT);
+        bounceAttenuation *= PER_BOUNCE_ATTENUATION_FACTOR;
         
         // run through the samples, and attenuate them                                                            
         for (int sample = 0; sample < totalNumberOfStereoSamples; sample++) {
@@ -320,6 +328,8 @@ void AudioReflector::processSpatialAudio(unsigned int sampleTime, const QByteArr
     _delayCount = 0;
     _totalAttenuation = 0.0f;
     _attenuationCount = 0;
+
+    QMutexLocker locker(&_mutex);
 
     echoReflections(_origin, _frontRightUpReflections, samples, sampleTime, format.sampleRate());
     echoReflections(_origin, _frontLeftUpReflections, samples, sampleTime, format.sampleRate());
@@ -436,6 +446,8 @@ void AudioReflector::drawRays() {
         upColor = RED;
         downColor = RED;
     }
+
+    QMutexLocker locker(&_mutex);
 
     drawReflections(_origin, frontRightUpColor, _frontRightUpReflections);
     drawReflections(_origin, frontLeftUpColor, _frontLeftUpReflections);
