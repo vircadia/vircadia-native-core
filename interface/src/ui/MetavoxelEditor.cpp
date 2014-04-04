@@ -797,12 +797,8 @@ void Voxelizer::voxelize(const glm::vec3& center) {
     MetavoxelData data;
     data.setSize(_size);
     
-    qDebug() << "Started voxelizing " << center.x << center.y << center.z;
-    
     VoxelizationVisitor visitor(_directionImages, center, _granularity);
     data.guide(visitor);
-    
-    qDebug() << "Finished voxelizing " << center.x << center.y << center.z;
     
     MetavoxelEditMessage edit = { QVariant::fromValue(SetDataEdit(
         center - glm::vec3(_size, _size, _size) * 0.5f, data, true)) };
@@ -868,8 +864,6 @@ void SetSpannerTool::applyEdit(const AttributePointer& attribute, const SharedOb
         glReadPixels(0, 0, width, height, GL_BGRA, GL_UNSIGNED_BYTE, images.color.bits());
         glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, images.depth.data());
         directionImages.append(images);
-        
-        images.color.save(QString::number(i) + ".png");
         
         glMatrixMode(GL_PROJECTION);
     }
