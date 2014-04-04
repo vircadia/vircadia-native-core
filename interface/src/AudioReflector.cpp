@@ -130,10 +130,6 @@ void AudioReflector::calculateReflections(const glm::vec3& origin, const glm::ve
     int16_t* attenuatedLeftSamplesData = (int16_t*)attenuatedLeftSamples.data();
     int16_t* attenuatedRightSamplesData = (int16_t*)attenuatedRightSamples.data();
     
-    AudioRingBuffer attenuatedLeftBuffer(totalNumberOfSamples);
-    AudioRingBuffer attenuatedRightBuffer(totalNumberOfSamples);
-    
-
     for (int bounceNumber = 1; bounceNumber <= bounces; bounceNumber++) {
         if (_voxels->findRayIntersection(start, direction, elementHit, distance, face)) {
             glm::vec3 end = start + (direction * (distance * SLIGHTLY_SHORT));
@@ -179,13 +175,8 @@ void AudioReflector::calculateReflections(const glm::vec3& origin, const glm::ve
             
             //qDebug() << "sampleTimeLeft=" << sampleTimeLeft << "sampleTimeRight=" << sampleTimeRight;
 
-            attenuatedLeftBuffer.writeSamples(attenuatedLeftSamplesData, totalNumberOfSamples);
-            attenuatedRightBuffer.writeSamples(attenuatedRightSamplesData, totalNumberOfSamples);
-            
-            _audio->addSpatialAudioToBuffer(sampleTimeLeft, attenuatedLeftBuffer);
-            _audio->addSpatialAudioToBuffer(sampleTimeRight, attenuatedRightBuffer);
-            attenuatedLeftBuffer.reset();
-            attenuatedRightBuffer.reset();
+            _audio->addSpatialAudioToBuffer(sampleTimeLeft, attenuatedLeftSamples, totalNumberOfSamples);
+            _audio->addSpatialAudioToBuffer(sampleTimeRight, attenuatedRightSamples, totalNumberOfSamples);
         }
     }
 }
@@ -195,7 +186,6 @@ void AudioReflector::processSpatialAudio(unsigned int sampleTime, const QByteArr
     
     //qDebug() << "AudioReflector::processSpatialAudio()...sampleTime=" << sampleTime << " threadID=" << QThread::currentThreadId();
 
-    /*
     int totalNumberOfSamples = samples.size() / (sizeof(int16_t));
     int numFrameSamples = format.sampleRate() * format.channelCount();
 
@@ -205,6 +195,7 @@ void AudioReflector::processSpatialAudio(unsigned int sampleTime, const QByteArr
     qDebug() << "         sizeof(int16_t)=" << sizeof(int16_t);
     
 
+    /*
     AudioRingBuffer samplesRingBuffer(totalNumberOfSamples);
     qint64 bytesCopied = samplesRingBuffer.writeData(samples.constData(),samples.size());
     for(int i = 0; i < totalNumberOfSamples; i++) {
@@ -212,8 +203,7 @@ void AudioReflector::processSpatialAudio(unsigned int sampleTime, const QByteArr
     }
 
     qDebug() << "          bytesCopied=" << bytesCopied;
-
-    _audio->addSpatialAudioToBuffer(sampleTime + 12000, samplesRingBuffer);
+    _audio->addSpatialAudioToBuffer(sampleTime + 12000, samples, totalNumberOfSamples);
 
     return;
     */

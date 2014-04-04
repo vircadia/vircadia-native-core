@@ -78,7 +78,7 @@ public slots:
     void start();
     void stop();
     void addReceivedAudioToBuffer(const QByteArray& audioByteArray);
-    void addSpatialAudioToBuffer(unsigned int sampleTime, const AudioRingBuffer& spatialAudio);
+    void addSpatialAudioToBuffer(unsigned int sampleTime, QByteArray& spatialAudio, unsigned int numSamples);
     void handleAudioInput();
     void reset();
     void toggleMute();
