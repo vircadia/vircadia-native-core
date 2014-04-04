@@ -74,6 +74,8 @@ public:
     int getNetworkSampleRate() { return SAMPLE_RATE; }
     int getNetworkBufferLengthSamplesPerChannel() { return NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; }
 
+    bool getProcessSpatialAudio() const { return _processSpatialAudio; }
+
 public slots:
     void start();
     void stop();
@@ -186,7 +188,7 @@ private:
     void addProceduralSounds(int16_t* monoInput, int numSamples);
     
     // Process received audio
-    void processReceivedAudio(unsigned int sampleTime, AudioRingBuffer& ringBuffer);
+    void processReceivedAudio(AudioRingBuffer& ringBuffer);
 
     bool switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo);
     bool switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo);

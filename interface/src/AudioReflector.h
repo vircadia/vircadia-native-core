@@ -37,13 +37,15 @@ private:
 
     void drawRays();
     void drawVector(const glm::vec3& start, const glm::vec3& end, const glm::vec3& color);
-    void drawReflections(const glm::vec3& origin, const glm::vec3& direction, int bounces, const glm::vec3& color);
-    void echoReflections(const glm::vec3& origin, const glm::vec3& originalDirection, 
+    void oldEchoReflections(const glm::vec3& origin, const glm::vec3& originalDirection, 
                                         int bounces, const QByteArray& samples, 
                                         unsigned int sampleTime, int sampleRate);
 
+    void echoReflections(const glm::vec3& origin, const QVector<glm::vec3>& reflections, const QByteArray& samples, 
+                                        unsigned int sampleTime, int sampleRate);
+
     QVector<glm::vec3> calculateReflections(const glm::vec3& origin, const glm::vec3& originalDirection, int maxBounces);
-    void newDrawReflections(const glm::vec3& origin, const glm::vec3& originalColor, const QVector<glm::vec3>& reflections);
+    void drawReflections(const glm::vec3& origin, const glm::vec3& originalColor, const QVector<glm::vec3>& reflections);
 };
 
 

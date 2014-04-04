@@ -611,7 +611,7 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     if (_audioOutput) {
         // Audio output must exist and be correctly set up if we're going to process received audio
         _ringBuffer.parseData(audioByteArray);
-        processReceivedAudio(_spatialAudioStart, _ringBuffer);
+        processReceivedAudio(_ringBuffer);
     }
 
     Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(audioByteArray.size());
@@ -711,7 +711,7 @@ void Audio::toggleAudioNoiseReduction() {
     _noiseGateEnabled = !_noiseGateEnabled;
 }
 
-void Audio::processReceivedAudio(unsigned int sampleTime, AudioRingBuffer& ringBuffer) {
+void Audio::processReceivedAudio(AudioRingBuffer& ringBuffer) {
 
     float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())
         * (_desiredOutputFormat.channelCount() / (float) _outputFormat.channelCount());
@@ -751,8 +751,9 @@ void Audio::processReceivedAudio(unsigned int sampleTime, AudioRingBuffer& ringB
 
                 ringBuffer.readSamples((int16_t*)buffer.data(), numNetworkOutputSamples);
                 // Accumulate direct transmission of audio from sender to receiver
-                addSpatialAudioToBuffer(sampleTime, buffer, numNetworkOutputSamples);
-                //addSpatialAudioToBuffer(sampleTime + 48000, buffer, numNetworkOutputSamples);
+                if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncudeOriginal)) {
+                    addSpatialAudioToBuffer(sampleTime, buffer, numNetworkOutputSamples);
+                }
 
                 // Send audio off for spatial processing
                 emit processSpatialAudio(sampleTime, buffer, _desiredOutputFormat);

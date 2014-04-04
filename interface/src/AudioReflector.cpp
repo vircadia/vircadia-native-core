@@ -13,17 +13,9 @@ void AudioReflector::render() {
         return; // exit early if not set up correctly
     }
 
-    
-    /*
-    glm::vec3 position = _myAvatar->getHead()->getPosition();
-    const float radius = 0.25f;
-    glPushMatrix();
-        glTranslatef(position.x, position.y, position.z);
-        glutWireSphere(radius, 15, 15);
-    glPopMatrix();
-    */
-    
-    drawRays();
+    if (_audio->getProcessSpatialAudio()) {
+        drawRays();
+    }
 }
 
 
@@ -38,6 +30,13 @@ int getDelayFromDistance(float distance) {
 }
 
 const float BOUNCE_ATTENUATION_FACTOR = 0.125f;
+
+// each bounce we adjust our attenuation by this factor, the result is an asymptotically decreasing attenuation...
+// 0.125, 0.25, 0.5, ...
+const float PER_BOUNCE_ATTENUATION_ADJUSTMENT = 2.0f;
+
+// we don't grow larger than this, which means by the 4th bounce we don't get that much less quiet
+const float MAX_BOUNCE_ATTENUATION = 0.9f;
 
 float getDistanceAttenuationCoefficient(float distance) {
     const float DISTANCE_SCALE = 2.5f;
@@ -97,7 +96,7 @@ QVector<glm::vec3> AudioReflector::calculateReflections(const glm::vec3& origin,
 }
 
 
-void AudioReflector::newDrawReflections(const glm::vec3& origin, const glm::vec3& originalColor, const QVector<glm::vec3>& reflections) {
+void AudioReflector::drawReflections(const glm::vec3& origin, const glm::vec3& originalColor, const QVector<glm::vec3>& reflections) {
                                         
     glm::vec3 start = origin;
     glm::vec3 color = originalColor;
@@ -110,33 +109,94 @@ void AudioReflector::newDrawReflections(const glm::vec3& origin, const glm::vec3
     }
 }
 
-void AudioReflector::drawReflections(const glm::vec3& origin, const glm::vec3& originalDirection, 
-                                        int bounces, const glm::vec3& originalColor) {
-                                        
-    glm::vec3 start = origin;
-    glm::vec3 direction = originalDirection;
-    glm::vec3 color = originalColor;
-    OctreeElement* elementHit;
-    float distance;
-    BoxFace face;
-    const float SLIGHTLY_SHORT = 0.999f; // slightly inside the distance so we're on the inside of the reflection point
-    const float COLOR_ADJUST_PER_BOUNCE = 0.75f;
-    
-    for (int i = 0; i < bounces; i++) {
-        if (_voxels->findRayIntersection(start, direction, elementHit, distance, face)) {
-            glm::vec3 end = start + (direction * (distance * SLIGHTLY_SHORT));
-            drawVector(start, end, color);
-        
-            glm::vec3 faceNormal = getFaceNormal(face);
-            direction = glm::normalize(glm::reflect(direction,faceNormal));
-            start = end;
-            color = color * COLOR_ADJUST_PER_BOUNCE;
-        }
-    }
-}
 // set up our buffers for our attenuated and delayed samples
 const int NUMBER_OF_CHANNELS = 2;
-void AudioReflector::echoReflections(const glm::vec3& origin, const glm::vec3& originalDirection,
+
+
+void AudioReflector::echoReflections(const glm::vec3& origin, const QVector<glm::vec3>& reflections, const QByteArray& samples, 
+                                    unsigned int sampleTime, int sampleRate) {
+
+    glm::vec3 rightEarPosition = _myAvatar->getHead()->getRightEarPosition();
+    glm::vec3 leftEarPosition = _myAvatar->getHead()->getLeftEarPosition();
+    glm::vec3 start = origin;
+
+    int totalNumberOfSamples = samples.size() / sizeof(int16_t);
+    int totalNumberOfStereoSamples = samples.size() / (sizeof(int16_t) * NUMBER_OF_CHANNELS);
+
+    const int16_t* originalSamplesData = (const int16_t*)samples.constData();
+    QByteArray attenuatedLeftSamples;
+    QByteArray attenuatedRightSamples;
+    attenuatedLeftSamples.resize(samples.size());
+    attenuatedRightSamples.resize(samples.size());
+
+    int16_t* attenuatedLeftSamplesData = (int16_t*)attenuatedLeftSamples.data();
+    int16_t* attenuatedRightSamplesData = (int16_t*)attenuatedRightSamples.data();
+    
+    float rightDistance = 0;
+    float leftDistance = 0;
+    float bounceAttenuation = BOUNCE_ATTENUATION_FACTOR;
+
+    foreach (glm::vec3 end, reflections) {
+
+        rightDistance += glm::distance(start, end);
+        leftDistance += glm::distance(start, end);
+
+        // calculate the distance to the ears
+        float rightEarDistance = glm::distance(end, rightEarPosition);
+        float leftEarDistance = glm::distance(end, leftEarPosition);
+
+        float rightTotalDistance = rightEarDistance + rightDistance;
+        float leftTotalDistance = leftEarDistance + leftDistance;
+        
+        int rightEarDelayMsecs = getDelayFromDistance(rightTotalDistance);
+        int leftEarDelayMsecs = getDelayFromDistance(leftTotalDistance);
+        int rightEarDelay = rightEarDelayMsecs * sampleRate / MSECS_PER_SECOND;
+        int leftEarDelay = leftEarDelayMsecs * sampleRate / MSECS_PER_SECOND;
+
+        //qDebug() << "leftTotalDistance=" << leftTotalDistance << "rightTotalDistance=" << rightTotalDistance;
+        //qDebug() << "leftEarDelay=" << leftEarDelay << "rightEarDelay=" << rightEarDelay;
+
+        float rightEarAttenuation = getDistanceAttenuationCoefficient(rightTotalDistance) * bounceAttenuation;
+        float leftEarAttenuation = getDistanceAttenuationCoefficient(leftTotalDistance) * bounceAttenuation;
+
+        //qDebug() << "leftEarAttenuation=" << leftEarAttenuation << "rightEarAttenuation=" << rightEarAttenuation;
+
+
+        bounceAttenuation = std::min(MAX_BOUNCE_ATTENUATION, bounceAttenuation * PER_BOUNCE_ATTENUATION_ADJUSTMENT);
+        
+        // run through the samples, and attenuate them                                                            
+        for (int sample = 0; sample < totalNumberOfStereoSamples; sample++) {
+            int16_t leftSample = originalSamplesData[sample * NUMBER_OF_CHANNELS];
+            int16_t rightSample = originalSamplesData[(sample * NUMBER_OF_CHANNELS) + 1];
+
+            //qDebug() << "leftSample=" << leftSample << "rightSample=" << rightSample;
+            
+            attenuatedLeftSamplesData[sample * NUMBER_OF_CHANNELS] = leftSample * leftEarAttenuation;
+            attenuatedLeftSamplesData[sample * NUMBER_OF_CHANNELS + 1] = 0;
+
+            attenuatedRightSamplesData[sample * NUMBER_OF_CHANNELS] = 0;
+            attenuatedRightSamplesData[sample * NUMBER_OF_CHANNELS + 1] = rightSample * rightEarAttenuation;
+
+            //qDebug() << "attenuated... leftSample=" << (leftSample * leftEarAttenuation) << "rightSample=" << (rightSample * rightEarAttenuation);
+        }
+        
+        // now inject the attenuated array with the appropriate delay
+        
+        unsigned int sampleTimeLeft = sampleTime + leftEarDelay;
+        unsigned int sampleTimeRight = sampleTime + rightEarDelay;
+        
+        //qDebug() << "sampleTimeLeft=" << sampleTimeLeft << "sampleTimeRight=" << sampleTimeRight;
+
+        _audio->addSpatialAudioToBuffer(sampleTimeLeft, attenuatedLeftSamples, totalNumberOfSamples);
+        _audio->addSpatialAudioToBuffer(sampleTimeRight, attenuatedRightSamples, totalNumberOfSamples);
+
+
+        start = end;
+    }
+}
+
+
+void AudioReflector::oldEchoReflections(const glm::vec3& origin, const glm::vec3& originalDirection,
                                         int bounces, const QByteArray& originalSamples, 
                                         unsigned int sampleTime, int sampleRate) {
                                         
@@ -225,7 +285,7 @@ void AudioReflector::processSpatialAudio(unsigned int sampleTime, const QByteArr
         _audio->addSpatialAudioToBuffer(sampleTime + 12000, samples, totalNumberOfSamples);
         return;
     } else {
-        quint64 start = usecTimestampNow();
+        //quint64 start = usecTimestampNow();
 
         glm::vec3 origin = _myAvatar->getHead()->getPosition();
 
@@ -247,22 +307,37 @@ void AudioReflector::processSpatialAudio(unsigned int sampleTime, const QByteArr
 
         const int BOUNCE_COUNT = 5;
 
-        echoReflections(origin, frontRightUp, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-        echoReflections(origin, frontLeftUp, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-        echoReflections(origin, backRightUp, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-        echoReflections(origin, backLeftUp, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-        echoReflections(origin, frontRightDown, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-        echoReflections(origin, frontLeftDown, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-        echoReflections(origin, backRightDown, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-        echoReflections(origin, backLeftDown, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
+        QVector<glm::vec3> frontRightUpReflections = calculateReflections(origin, frontRightUp, BOUNCE_COUNT);
+        QVector<glm::vec3> frontLeftUpReflections = calculateReflections(origin, frontLeftUp, BOUNCE_COUNT);
+        QVector<glm::vec3> backRightUpReflections = calculateReflections(origin, backRightUp, BOUNCE_COUNT);
+        QVector<glm::vec3> backLeftUpReflections = calculateReflections(origin, backLeftUp, BOUNCE_COUNT);
+        QVector<glm::vec3> frontRightDownReflections = calculateReflections(origin, frontRightDown, BOUNCE_COUNT);
+        QVector<glm::vec3> frontLeftDownReflections = calculateReflections(origin, frontLeftDown, BOUNCE_COUNT);
+        QVector<glm::vec3> backRightDownReflections = calculateReflections(origin, backRightDown, BOUNCE_COUNT);
+        QVector<glm::vec3> backLeftDownReflections = calculateReflections(origin, backLeftDown, BOUNCE_COUNT);
+        QVector<glm::vec3> frontReflections = calculateReflections(origin, front, BOUNCE_COUNT);
+        QVector<glm::vec3> backReflections = calculateReflections(origin, back, BOUNCE_COUNT);
+        QVector<glm::vec3> leftReflections = calculateReflections(origin, left, BOUNCE_COUNT);
+        QVector<glm::vec3> rightReflections = calculateReflections(origin, right, BOUNCE_COUNT);
+        QVector<glm::vec3> upReflections = calculateReflections(origin, up, BOUNCE_COUNT);
+        QVector<glm::vec3> downReflections = calculateReflections(origin, down, BOUNCE_COUNT);
 
-        echoReflections(origin, front, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-        echoReflections(origin, back, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-        echoReflections(origin, left, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-        echoReflections(origin, right, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-        echoReflections(origin, up, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-        echoReflections(origin, down, BOUNCE_COUNT, samples, sampleTime, format.sampleRate());
-        quint64 end = usecTimestampNow();
+        echoReflections(origin, frontRightUpReflections, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, frontLeftUpReflections, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, backRightUpReflections, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, backLeftUpReflections, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, frontRightDownReflections, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, frontLeftDownReflections, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, backRightDownReflections, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, backLeftDownReflections, samples, sampleTime, format.sampleRate());
+
+        echoReflections(origin, frontReflections, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, backReflections, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, leftReflections, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, rightReflections, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, upReflections, samples, sampleTime, format.sampleRate());
+        echoReflections(origin, downReflections, samples, sampleTime, format.sampleRate());
+        //quint64 end = usecTimestampNow();
 
         //qDebug() << "AudioReflector::addSamples()... elapsed=" << (end - start);
     }
@@ -307,130 +382,109 @@ void AudioReflector::drawRays() {
     
     const int BOUNCE_COUNT = 5;
 
-    bool oldWay = false;
+    QVector<glm::vec3> frontRightUpReflections = calculateReflections(origin, frontRightUp, BOUNCE_COUNT);
+    QVector<glm::vec3> frontLeftUpReflections = calculateReflections(origin, frontLeftUp, BOUNCE_COUNT);
+    QVector<glm::vec3> backRightUpReflections = calculateReflections(origin, backRightUp, BOUNCE_COUNT);
+    QVector<glm::vec3> backLeftUpReflections = calculateReflections(origin, backLeftUp, BOUNCE_COUNT);
+    QVector<glm::vec3> frontRightDownReflections = calculateReflections(origin, frontRightDown, BOUNCE_COUNT);
+    QVector<glm::vec3> frontLeftDownReflections = calculateReflections(origin, frontLeftDown, BOUNCE_COUNT);
+    QVector<glm::vec3> backRightDownReflections = calculateReflections(origin, backRightDown, BOUNCE_COUNT);
+    QVector<glm::vec3> backLeftDownReflections = calculateReflections(origin, backLeftDown, BOUNCE_COUNT);
+    QVector<glm::vec3> frontReflections = calculateReflections(origin, front, BOUNCE_COUNT);
+    QVector<glm::vec3> backReflections = calculateReflections(origin, back, BOUNCE_COUNT);
+    QVector<glm::vec3> leftReflections = calculateReflections(origin, left, BOUNCE_COUNT);
+    QVector<glm::vec3> rightReflections = calculateReflections(origin, right, BOUNCE_COUNT);
+    QVector<glm::vec3> upReflections = calculateReflections(origin, up, BOUNCE_COUNT);
+    QVector<glm::vec3> downReflections = calculateReflections(origin, down, BOUNCE_COUNT);
+
+    glm::vec3 frontRightUpColor = RED;
+    glm::vec3 frontLeftUpColor = GREEN;
+    glm::vec3 backRightUpColor = BLUE;
+    glm::vec3 backLeftUpColor = CYAN;
+    glm::vec3 frontRightDownColor = PURPLE;
+    glm::vec3 frontLeftDownColor = YELLOW;
+    glm::vec3 backRightDownColor = WHITE;
+    glm::vec3 backLeftDownColor = DARK_RED;
+    glm::vec3 frontColor = GRAY;
+    glm::vec3 backColor = DARK_GREEN;
+    glm::vec3 leftColor = DARK_BLUE;
+    glm::vec3 rightColor = DARK_CYAN;
+    glm::vec3 upColor = DARK_PURPLE;
+    glm::vec3 downColor = DARK_YELLOW;
     
-    if (oldWay) {
-        drawReflections(origin, frontRightUp, BOUNCE_COUNT, RED);
-        drawReflections(origin, frontLeftUp, BOUNCE_COUNT, GREEN);
-        drawReflections(origin, backRightUp, BOUNCE_COUNT, BLUE);
-        drawReflections(origin, backLeftUp, BOUNCE_COUNT, CYAN);
-        drawReflections(origin, frontRightDown, BOUNCE_COUNT, PURPLE);
-        drawReflections(origin, frontLeftDown, BOUNCE_COUNT, YELLOW);
-        drawReflections(origin, backRightDown, BOUNCE_COUNT, WHITE);
-        drawReflections(origin, backLeftDown, BOUNCE_COUNT, DARK_RED);
+    // attempt to determine insidness/outsideness based on number of directional rays that reflect
+    bool inside = false;
+    
+    bool blockedUp = (frontRightUpReflections.size() > 0) && 
+                     (frontLeftUpReflections.size() > 0) && 
+                     (backRightUpReflections.size() > 0) && 
+                     (backLeftUpReflections.size() > 0) && 
+                     (upReflections.size() > 0);
 
-        drawReflections(origin, front, BOUNCE_COUNT, DARK_GREEN);
-        drawReflections(origin, back, BOUNCE_COUNT, DARK_BLUE);
-        drawReflections(origin, left, BOUNCE_COUNT, DARK_CYAN);
-        drawReflections(origin, right, BOUNCE_COUNT, DARK_PURPLE);
-        drawReflections(origin, up, BOUNCE_COUNT, DARK_YELLOW);
-        drawReflections(origin, down, BOUNCE_COUNT, GRAY);
-    } else {
-        QVector<glm::vec3> frontRightUpReflections = calculateReflections(origin, frontRightUp, BOUNCE_COUNT);
-        QVector<glm::vec3> frontLeftUpReflections = calculateReflections(origin, frontLeftUp, BOUNCE_COUNT);
-        QVector<glm::vec3> backRightUpReflections = calculateReflections(origin, backRightUp, BOUNCE_COUNT);
-        QVector<glm::vec3> backLeftUpReflections = calculateReflections(origin, backLeftUp, BOUNCE_COUNT);
-        QVector<glm::vec3> frontRightDownReflections = calculateReflections(origin, frontRightDown, BOUNCE_COUNT);
-        QVector<glm::vec3> frontLeftDownReflections = calculateReflections(origin, frontLeftDown, BOUNCE_COUNT);
-        QVector<glm::vec3> backRightDownReflections = calculateReflections(origin, backRightDown, BOUNCE_COUNT);
-        QVector<glm::vec3> backLeftDownReflections = calculateReflections(origin, backLeftDown, BOUNCE_COUNT);
-        QVector<glm::vec3> frontReflections = calculateReflections(origin, front, BOUNCE_COUNT);
-        QVector<glm::vec3> backReflections = calculateReflections(origin, back, BOUNCE_COUNT);
-        QVector<glm::vec3> leftReflections = calculateReflections(origin, left, BOUNCE_COUNT);
-        QVector<glm::vec3> rightReflections = calculateReflections(origin, right, BOUNCE_COUNT);
-        QVector<glm::vec3> upReflections = calculateReflections(origin, up, BOUNCE_COUNT);
-        QVector<glm::vec3> downReflections = calculateReflections(origin, down, BOUNCE_COUNT);
+    bool blockedDown = (frontRightDownReflections.size() > 0) && 
+                     (frontLeftDownReflections.size() > 0) && 
+                     (backRightDownReflections.size() > 0) && 
+                     (backLeftDownReflections.size() > 0) && 
+                     (downReflections.size() > 0);
 
-        glm::vec3 frontRightUpColor = RED;
-        glm::vec3 frontLeftUpColor = GREEN;
-        glm::vec3 backRightUpColor = BLUE;
-        glm::vec3 backLeftUpColor = CYAN;
-        glm::vec3 frontRightDownColor = PURPLE;
-        glm::vec3 frontLeftDownColor = YELLOW;
-        glm::vec3 backRightDownColor = WHITE;
-        glm::vec3 backLeftDownColor = DARK_RED;
-        glm::vec3 frontColor = GRAY;
-        glm::vec3 backColor = DARK_GREEN;
-        glm::vec3 leftColor = DARK_BLUE;
-        glm::vec3 rightColor = DARK_CYAN;
-        glm::vec3 upColor = DARK_PURPLE;
-        glm::vec3 downColor = DARK_YELLOW;
-        
-        // attempt to determine insidness/outsideness based on number of directional rays that reflect
-        bool inside = false;
-        
-        bool blockedUp = (frontRightUpReflections.size() > 0) && 
-                         (frontLeftUpReflections.size() > 0) && 
-                         (backRightUpReflections.size() > 0) && 
-                         (backLeftUpReflections.size() > 0) && 
-                         (upReflections.size() > 0);
+    bool blockedFront = (frontRightUpReflections.size() > 0) && 
+                     (frontLeftUpReflections.size() > 0) && 
+                     (frontRightDownReflections.size() > 0) && 
+                     (frontLeftDownReflections.size() > 0) && 
+                     (frontReflections.size() > 0);
 
-        bool blockedDown = (frontRightDownReflections.size() > 0) && 
-                         (frontLeftDownReflections.size() > 0) && 
-                         (backRightDownReflections.size() > 0) && 
-                         (backLeftDownReflections.size() > 0) && 
-                         (downReflections.size() > 0);
+    bool blockedBack = (backRightUpReflections.size() > 0) && 
+                     (backLeftUpReflections.size() > 0) && 
+                     (backRightDownReflections.size() > 0) && 
+                     (backLeftDownReflections.size() > 0) && 
+                     (backReflections.size() > 0);
+    
+    bool blockedLeft = (frontLeftUpReflections.size() > 0) && 
+                     (backLeftUpReflections.size() > 0) && 
+                     (frontLeftDownReflections.size() > 0) && 
+                     (backLeftDownReflections.size() > 0) && 
+                     (leftReflections.size() > 0);
 
-        bool blockedFront = (frontRightUpReflections.size() > 0) && 
-                         (frontLeftUpReflections.size() > 0) && 
-                         (frontRightDownReflections.size() > 0) && 
-                         (frontLeftDownReflections.size() > 0) && 
-                         (frontReflections.size() > 0);
+    bool blockedRight = (frontRightUpReflections.size() > 0) && 
+                     (backRightUpReflections.size() > 0) && 
+                     (frontRightDownReflections.size() > 0) && 
+                     (backRightDownReflections.size() > 0) && 
+                     (rightReflections.size() > 0);
 
-        bool blockedBack = (backRightUpReflections.size() > 0) && 
-                         (backLeftUpReflections.size() > 0) && 
-                         (backRightDownReflections.size() > 0) && 
-                         (backLeftDownReflections.size() > 0) && 
-                         (backReflections.size() > 0);
-        
-        bool blockedLeft = (frontLeftUpReflections.size() > 0) && 
-                         (backLeftUpReflections.size() > 0) && 
-                         (frontLeftDownReflections.size() > 0) && 
-                         (backLeftDownReflections.size() > 0) && 
-                         (leftReflections.size() > 0);
-
-        bool blockedRight = (frontRightUpReflections.size() > 0) && 
-                         (backRightUpReflections.size() > 0) && 
-                         (frontRightDownReflections.size() > 0) && 
-                         (backRightDownReflections.size() > 0) && 
-                         (rightReflections.size() > 0);
-
-        inside = blockedUp && blockedDown && blockedFront && blockedBack && blockedLeft && blockedRight;
-           
-        if (inside) {
-            frontRightUpColor = RED;
-            frontLeftUpColor = RED;
-            backRightUpColor = RED;
-            backLeftUpColor = RED;
-            frontRightDownColor = RED;
-            frontLeftDownColor = RED;
-            backRightDownColor = RED;
-            backLeftDownColor = RED;
-            frontColor = RED;
-            backColor = RED;
-            leftColor = RED;
-            rightColor = RED;
-            upColor = RED;
-            downColor = RED;
-        }
-
-        newDrawReflections(origin, frontRightUpColor, frontRightUpReflections);
-        newDrawReflections(origin, frontLeftUpColor, frontLeftUpReflections);
-        newDrawReflections(origin, backRightUpColor, backRightUpReflections);
-        newDrawReflections(origin, backLeftUpColor, backLeftUpReflections);
-        newDrawReflections(origin, frontRightDownColor, frontRightDownReflections);
-        newDrawReflections(origin, frontLeftDownColor, frontLeftDownReflections);
-        newDrawReflections(origin, backRightDownColor, backRightDownReflections);
-        newDrawReflections(origin, backLeftDownColor, backLeftDownReflections);
-
-        newDrawReflections(origin, frontColor, frontReflections);
-        newDrawReflections(origin, backColor, backReflections);
-        newDrawReflections(origin, leftColor, leftReflections);
-        newDrawReflections(origin, rightColor, rightReflections);
-        newDrawReflections(origin, upColor, upReflections);
-        newDrawReflections(origin, downColor, downReflections);
-
+    inside = blockedUp && blockedDown && blockedFront && blockedBack && blockedLeft && blockedRight;
+       
+    if (inside) {
+        frontRightUpColor = RED;
+        frontLeftUpColor = RED;
+        backRightUpColor = RED;
+        backLeftUpColor = RED;
+        frontRightDownColor = RED;
+        frontLeftDownColor = RED;
+        backRightDownColor = RED;
+        backLeftDownColor = RED;
+        frontColor = RED;
+        backColor = RED;
+        leftColor = RED;
+        rightColor = RED;
+        upColor = RED;
+        downColor = RED;
     }
+
+    drawReflections(origin, frontRightUpColor, frontRightUpReflections);
+    drawReflections(origin, frontLeftUpColor, frontLeftUpReflections);
+    drawReflections(origin, backRightUpColor, backRightUpReflections);
+    drawReflections(origin, backLeftUpColor, backLeftUpReflections);
+    drawReflections(origin, frontRightDownColor, frontRightDownReflections);
+    drawReflections(origin, frontLeftDownColor, frontLeftDownReflections);
+    drawReflections(origin, backRightDownColor, backRightDownReflections);
+    drawReflections(origin, backLeftDownColor, backLeftDownReflections);
+
+    drawReflections(origin, frontColor, frontReflections);
+    drawReflections(origin, backColor, backReflections);
+    drawReflections(origin, leftColor, leftReflections);
+    drawReflections(origin, rightColor, rightReflections);
+    drawReflections(origin, upColor, upReflections);
+    drawReflections(origin, downColor, downReflections);
 }
 
 void AudioReflector::drawVector(const glm::vec3& start, const glm::vec3& end, const glm::vec3& color) {
