@@ -733,11 +733,11 @@ VoxelizationVisitor::VoxelizationVisitor(const QVector<DirectionImages>& directi
     _granularity(granularity) {
 }
 
-bool checkDisjoint(const DirectionImages& images, const glm::vec3& minimum, const glm::vec3& maximum) {
+bool checkDisjoint(const DirectionImages& images, const glm::vec3& minimum, const glm::vec3& maximum, float extent) {
     for (int x = qMax(0, (int)minimum.x), xmax = qMin(images.color.width(), (int)maximum.x); x < xmax; x++) {
         for (int y = qMax(0, (int)minimum.y), ymax = qMin(images.color.height(), (int)maximum.y); y < ymax; y++) {
             float depth = 1.0f - images.depth.at(y * images.color.width() + x);
-            if (depth - minimum.z >= 0.0f) {
+            if (depth - minimum.z >= -extent - EPSILON) {
                 return false;
             }
         }
@@ -748,6 +748,7 @@ bool checkDisjoint(const DirectionImages& images, const glm::vec3& minimum, cons
 int VoxelizationVisitor::visit(MetavoxelInfo& info) {
     float halfSize = info.size * 0.5f;
     glm::vec3 center = info.minimum + _center + glm::vec3(halfSize, halfSize, halfSize);
+    const float EXTENT_SCALE = 2.0f;
     if (info.size > _granularity) {    
         for (unsigned int i = 0; i < sizeof(DIRECTION_ROTATIONS) / sizeof(DIRECTION_ROTATIONS[0]); i++) {
             glm::vec3 rotated = DIRECTION_ROTATIONS[i] * center;
@@ -756,7 +757,7 @@ int VoxelizationVisitor::visit(MetavoxelInfo& info) {
             glm::vec3 extents = images.scale * halfSize;
             glm::vec3 minimum = relative - extents;
             glm::vec3 maximum = relative + extents;
-            if (checkDisjoint(images, minimum, maximum)) {
+            if (checkDisjoint(images, minimum, maximum, extents.z * EXTENT_SCALE)) {
                 info.outputValues[0] = AttributeValue(_outputs.at(0));
                 return STOP_RECURSION;
             }
@@ -773,7 +774,7 @@ int VoxelizationVisitor::visit(MetavoxelInfo& info) {
         int y = qMax(qMin((int)glm::round(relative.y), images.color.height() - 1), 0);
         float depth = 1.0f - images.depth.at(y * images.color.width() + x);
         float distance = depth - relative.z;
-        float extent = images.scale.z * halfSize;
+        float extent = images.scale.z * halfSize * EXTENT_SCALE;
         if (distance < -extent - EPSILON) {
             info.outputValues[0] = AttributeValue(_outputs.at(0));
             return STOP_RECURSION;
