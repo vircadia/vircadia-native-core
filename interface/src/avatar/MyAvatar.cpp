@@ -169,9 +169,6 @@ void MyAvatar::simulate(float deltaTime) {
     //  Collect thrust forces from keyboard and devices
     updateThrust(deltaTime);
 
-    // copy velocity so we can use it later for acceleration
-    glm::vec3 oldVelocity = getVelocity();
-
     // calculate speed
     _speed = glm::length(_velocity);
 
@@ -231,29 +228,6 @@ void MyAvatar::simulate(float deltaTime) {
     // update the euler angles
     setOrientation(orientation);
 
-    // Compute instantaneous acceleration
-    float forwardAcceleration = glm::length(glm::dot(getBodyFrontDirection(), getVelocity() - oldVelocity)) / deltaTime;
-    const float OCULUS_ACCELERATION_PULL_THRESHOLD = 1.0f;
-    const int OCULUS_YAW_OFFSET_THRESHOLD = 10;
-
-    if (!Application::getInstance()->getFaceshift()->isActive() && OculusManager::isConnected() &&
-            fabsf(forwardAcceleration) > OCULUS_ACCELERATION_PULL_THRESHOLD &&
-            fabs(getHead()->getBaseYaw()) > OCULUS_YAW_OFFSET_THRESHOLD) {
-            
-        // if we're wearing the oculus
-        // and this acceleration is above the pull threshold
-        // and the head yaw if off the body by more than OCULUS_YAW_OFFSET_THRESHOLD
-
-        // match the body yaw to the oculus yaw
-        _bodyYaw = getAbsoluteHeadYaw();
-
-        // set the head yaw to zero for this draw
-        getHead()->setBaseYaw(0);
-
-        // correct the oculus yaw offset
-        OculusManager::updateYawOffset();
-    }
-
     const float WALKING_SPEED_THRESHOLD = 0.2f;
     // use speed and angular velocity to determine walking vs. standing
     if (_speed + fabs(_bodyYawDelta) > WALKING_SPEED_THRESHOLD) {
@@ -308,7 +282,7 @@ void MyAvatar::simulate(float deltaTime) {
     head->simulate(deltaTime, true);
 
     // Zero thrust out now that we've added it to velocity in this frame
-    _thrust = glm::vec3(0, 0, 0);
+    _thrust = glm::vec3(0.f);
 
     // now that we're done stepping the avatar forward in time, compute new collisions
     if (_collisionFlags != 0) {
