@@ -29,12 +29,11 @@ public:
     gnutls_session_t* getGnuTLSSession() { return &_gnutlsSession; }
     
     bool completedHandshake() const { return _completedHandshake; }
-    void setCompletedHandshake(bool completedHandshake) { _completedHandshake = completedHandshake; }
-    
+    void setCompletedHandshake(bool completedHandshake);
 protected:
     QUdpSocket& _dtlsSocket;
-    gnutls_session_t _gnutlsSession;
     HifiSockAddr _destinationSocket;
+    gnutls_session_t _gnutlsSession;
     bool _completedHandshake;
 };
 

@@ -104,6 +104,11 @@ DTLSSession::DTLSSession(int end, QUdpSocket& dtlsSocket, HifiSockAddr& destinat
     gnutls_transport_set_pull_timeout_function(_gnutlsSession, socketPullTimeout);
 }
 
+void DTLSSession::setCompletedHandshake(bool completedHandshake) {
+     _completedHandshake = completedHandshake;
+    qDebug() << "Completed DTLS handshake with" << _destinationSocket;
+}
+
 qint64 DTLSSession::writeDatagram(const QByteArray& datagram) {
     // we don't need to put a hash in this packet, so just send it off
     return gnutls_record_send(_gnutlsSession, datagram.data(), datagram.size());
