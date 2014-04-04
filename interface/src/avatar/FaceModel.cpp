@@ -18,7 +18,7 @@ FaceModel::FaceModel(Head* owningHead) :
 {
 }
 
-void FaceModel::simulate(float deltaTime) {
+void FaceModel::simulate(float deltaTime, bool fullUpdate) {
     updateGeometry();
     Avatar* owningAvatar = static_cast<Avatar*>(_owningHead->_owningAvatar);
     glm::vec3 neckPosition;
