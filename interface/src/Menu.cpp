@@ -366,6 +366,11 @@ Menu::Menu() :
                                            false,
                                            appInstance->getAudio(),
                                            SLOT(toggleToneInjection()));
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSpatialProcessing,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_M,
+                                           false,
+                                           appInstance->getAudio(),
+                                           SLOT(toggleAudioSpatialProcessing()));
 
     
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
