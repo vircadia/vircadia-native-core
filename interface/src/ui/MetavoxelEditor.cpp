@@ -774,12 +774,12 @@ int VoxelizationVisitor::visit(MetavoxelInfo& info) {
         float depth = 1.0f - images.depth.at(y * images.color.width() + x);
         float distance = depth - relative.z;
         float extent = images.scale.z * halfSize;
-        if (distance < 0.0f) {
+        if (distance < -extent - EPSILON) {
             info.outputValues[0] = AttributeValue(_outputs.at(0));
             return STOP_RECURSION;
         }
         QRgb color = images.color.pixel(x, y);
-        if (distance < EPSILON) {
+        if (distance < extent + EPSILON) {
             info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<QRgb>(color));
             return STOP_RECURSION;
         }

@@ -58,9 +58,9 @@ public:
     void reset();
     virtual void simulate(float deltaTime, bool fullUpdate = true);
     
-    enum RenderMode { DEFAULT_MODE, SHADOW_MAP_MODE, DIFFUSE_MODE, NORMAL_MODE };
+    enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE };
     
-    bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_MODE);
+    bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE);
 
     /// Sets the URL of the model to render.
     /// \param fallback the URL of a fallback model to render if the requested model fails to load

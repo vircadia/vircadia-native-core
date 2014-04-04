@@ -436,6 +436,19 @@ void StaticModelRenderer::simulate(float deltaTime) {
 }
 
 void StaticModelRenderer::renderUnclipped(float alpha, Mode mode) {
+    switch (mode) {
+        case DIFFUSE_MODE:
+            _model->render(alpha, Model::DIFFUSE_RENDER_MODE);
+            break;
+            
+        case NORMAL_MODE:
+            _model->render(alpha, Model::NORMAL_RENDER_MODE);
+            break;
+            
+        default:
+            _model->render(alpha);
+            break;
+    }
     _model->render(alpha);
 }
 
