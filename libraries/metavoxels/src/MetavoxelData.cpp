@@ -373,7 +373,12 @@ static void setNode(const AttributeValue& value, MetavoxelNode*& node, const glm
         setNode(value, node, other, blend);
         return;
     }
-    if (!node) {
+    if (node) {
+        MetavoxelNode* oldNode = node;
+        node = new MetavoxelNode(value.getAttribute(), oldNode);
+        oldNode->decrementReferenceCount(value.getAttribute());
+        
+    } else {
         node = new MetavoxelNode(value);
     }
     int index = 0;
@@ -403,7 +408,7 @@ static void setNode(const AttributeValue& value, MetavoxelNode*& node, const glm
 
 void MetavoxelData::set(const glm::vec3& minimum, const MetavoxelData& data, bool blend) {
     // expand to fit the entire data
-    Box bounds = minimum + glm::vec3(data.getSize(), data.getSize(), data.getSize());
+    Box bounds(minimum, minimum + glm::vec3(data.getSize(), data.getSize(), data.getSize()));
     while (!getBounds().contains(bounds)) {
         expand();
     }

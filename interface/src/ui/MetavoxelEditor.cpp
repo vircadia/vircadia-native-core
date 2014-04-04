@@ -656,35 +656,45 @@ bool SetSpannerTool::appliesTo(const AttributePointer& attribute) const {
     return attribute == AttributeRegistry::getInstance()->getSpannersAttribute();
 }
 
-glm::vec3 DIRECTION_VECTORS[] = { glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f),
-    glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 1.0f) };
+glm::quat DIRECTION_ROTATIONS[] = {
+    rotationBetween(glm::vec3(-1.0f, 0.0f, 0.0f), IDENTITY_FRONT),
+    rotationBetween(glm::vec3(1.0f, 0.0f, 0.0f), IDENTITY_FRONT),
+    rotationBetween(glm::vec3(0.0f, -1.0f, 0.0f), IDENTITY_FRONT),
+    rotationBetween(glm::vec3(0.0f, 1.0f, 0.0f), IDENTITY_FRONT),
+    rotationBetween(glm::vec3(0.0f, 0.0f, -1.0f), IDENTITY_FRONT),
+    rotationBetween(glm::vec3(0.0f, 0.0f, 1.0f), IDENTITY_FRONT) };
 
 /// Represents a view from one direction of the spanner to be voxelized.
 class DirectionImages {
 public:
     QImage color;
     QVector<float> depth;
+    glm::vec3 minima;
+    glm::vec3 maxima;
+    glm::vec3 scale;
 };
 
 class Voxelizer : public QRunnable {
 public:
 
-    Voxelizer(float size, const Box& bounds, const QVector<DirectionImages>& directionImages);
+    Voxelizer(float size, const Box& bounds, float granularity, const QVector<DirectionImages>& directionImages);
     
     virtual void run();
 
 private:
     
-    void voxelize(const glm::vec3& minimum);
+    void voxelize(const glm::vec3& center);
     
     float _size;
     Box _bounds;
+    float _granularity;
     QVector<DirectionImages> _directionImages;
 };
 
-Voxelizer::Voxelizer(float size, const Box& bounds, const QVector<DirectionImages>& directionImages) :
+Voxelizer::Voxelizer(float size, const Box& bounds, float granularity, const QVector<DirectionImages>& directionImages) :
     _size(size),
     _bounds(bounds),
+    _granularity(granularity),
     _directionImages(directionImages) {
 }
 
@@ -694,13 +704,108 @@ void Voxelizer::run() {
     for (float x = _bounds.minimum.x + halfSize; x < _bounds.maximum.x; x += _size) {
         for (float y = _bounds.minimum.y + halfSize; y < _bounds.maximum.y; y += _size) {
             for (float z = _bounds.minimum.z + halfSize; z < _bounds.maximum.z; z += _size) {
-                
+                voxelize(glm::vec3(x, y, z));
             }
         }
     }
 }
 
-void Voxelizer::voxelize(const glm::vec3& minimum) {
+class VoxelizationVisitor : public MetavoxelVisitor {
+public:
+    
+    VoxelizationVisitor(const QVector<DirectionImages>& directionImages, const glm::vec3& center, float granularity);
+    
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    QVector<DirectionImages> _directionImages;
+    glm::vec3 _center;
+    float _granularity;
+};
+
+VoxelizationVisitor::VoxelizationVisitor(const QVector<DirectionImages>& directionImages,
+        const glm::vec3& center, float granularity) :
+    MetavoxelVisitor(QVector<AttributePointer>(), QVector<AttributePointer>() <<
+        AttributeRegistry::getInstance()->getColorAttribute()),
+    _directionImages(directionImages),
+    _center(center),
+    _granularity(granularity) {
+}
+
+bool checkDisjoint(const DirectionImages& images, const glm::vec3& minimum, const glm::vec3& maximum) {
+    for (int x = qMax(0, (int)minimum.x), xmax = qMin(images.color.width(), (int)maximum.x); x < xmax; x++) {
+        for (int y = qMax(0, (int)minimum.y), ymax = qMin(images.color.height(), (int)maximum.y); y < ymax; y++) {
+            float depth = 1.0f - images.depth.at(y * images.color.width() + x);
+            if (depth - minimum.z >= 0.0f) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+int VoxelizationVisitor::visit(MetavoxelInfo& info) {
+    float halfSize = info.size * 0.5f;
+    glm::vec3 center = info.minimum + _center + glm::vec3(halfSize, halfSize, halfSize);
+    if (info.size > _granularity) {    
+        for (unsigned int i = 0; i < sizeof(DIRECTION_ROTATIONS) / sizeof(DIRECTION_ROTATIONS[0]); i++) {
+            glm::vec3 rotated = DIRECTION_ROTATIONS[i] * center;
+            const DirectionImages& images = _directionImages.at(i);
+            glm::vec3 relative = (rotated - images.minima) * images.scale;
+            glm::vec3 extents = images.scale * halfSize;
+            glm::vec3 minimum = relative - extents;
+            glm::vec3 maximum = relative + extents;
+            if (checkDisjoint(images, minimum, maximum)) {
+                info.outputValues[0] = AttributeValue(_outputs.at(0));
+                return STOP_RECURSION;
+            }
+        }
+        return DEFAULT_ORDER;
+    }
+    QRgb closestColor;
+    float closestDistance = FLT_MAX;
+    for (unsigned int i = 0; i < sizeof(DIRECTION_ROTATIONS) / sizeof(DIRECTION_ROTATIONS[0]); i++) {
+        glm::vec3 rotated = DIRECTION_ROTATIONS[i] * center;
+        const DirectionImages& images = _directionImages.at(i);
+        glm::vec3 relative = (rotated - images.minima) * images.scale;
+        int x = qMax(qMin((int)glm::round(relative.x), images.color.width() - 1), 0);
+        int y = qMax(qMin((int)glm::round(relative.y), images.color.height() - 1), 0);
+        float depth = 1.0f - images.depth.at(y * images.color.width() + x);
+        float distance = depth - relative.z;
+        if (distance < 0.0f) {
+            info.outputValues[0] = AttributeValue(_outputs.at(0));
+            return STOP_RECURSION;
+        }
+        QRgb color = images.color.pixel(x, y);
+        if (distance < EPSILON) {
+            info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<QRgb>(color));
+            return STOP_RECURSION;
+        }
+        if (distance < closestDistance) {
+            closestColor = color;
+            closestDistance = distance;
+        }
+    }
+    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<QRgb>(closestColor));
+    return STOP_RECURSION;
+}
+
+void Voxelizer::voxelize(const glm::vec3& center) {
+    MetavoxelData data;
+    data.setSize(_size);
+    
+    qDebug() << "Started voxelizing " << center.x << center.y << center.z;
+    
+    VoxelizationVisitor visitor(_directionImages, center, _granularity);
+    data.guide(visitor);
+    
+    qDebug() << "Finished voxelizing " << center.x << center.y << center.z;
+    
+    MetavoxelEditMessage edit = { QVariant::fromValue(SetDataEdit(
+        center - glm::vec3(_size, _size, _size) * 0.5f, data, false)) };
+    QMetaObject::invokeMethod(Application::getInstance()->getMetavoxels(), "applyEdit",
+        Q_ARG(const MetavoxelEditMessage&, edit), Q_ARG(bool, true));
 }
 
 void SetSpannerTool::applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) {
@@ -725,12 +830,11 @@ void SetSpannerTool::applyEdit(const AttributePointer& attribute, const SharedOb
     
     QVector<DirectionImages> directionImages;
     
-    for (unsigned int i = 0; i < sizeof(DIRECTION_VECTORS) / sizeof(DIRECTION_VECTORS[0]); i++) {
-        glm::quat rotation = rotationBetween(DIRECTION_VECTORS[i], IDENTITY_FRONT);
+    for (unsigned int i = 0; i < sizeof(DIRECTION_ROTATIONS) / sizeof(DIRECTION_ROTATIONS[0]); i++) {
         glm::vec3 minima(FLT_MAX, FLT_MAX, FLT_MAX);
         glm::vec3 maxima(-FLT_MAX, -FLT_MAX, -FLT_MAX);
         for (int j = 0; j < Box::VERTEX_COUNT; j++) {
-            glm::vec3 rotated = rotation * cellBounds.getVertex(j);
+            glm::vec3 rotated = DIRECTION_ROTATIONS[i] * cellBounds.getVertex(j);
             minima = glm::min(minima, rotated);
             maxima = glm::max(maxima, rotated);
         }
@@ -742,16 +846,20 @@ void SetSpannerTool::applyEdit(const AttributePointer& attribute, const SharedOb
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         glLoadIdentity();
-        glOrtho(minima.x, maxima.x, minima.y, maxima.y, -minima.z, -maxima.z);
+        glOrtho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z);
         
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+        glm::vec3 axis = glm::axis(DIRECTION_ROTATIONS[i]);
+        glRotatef(glm::degrees(glm::angle(DIRECTION_ROTATIONS[i])), axis.x, axis.y, axis.z);
+        
+        Application::getInstance()->setupWorldLight();
         
         spannerData->getRenderer()->render(1.0f, glm::vec3(), 0.0f);
         
-        DirectionImages images = { QImage(width, height, QImage::Format_ARGB32), QVector<float>(width * height) };
+        DirectionImages images = { QImage(width, height, QImage::Format_ARGB32),
+            QVector<float>(width * height), minima, maxima, glm::vec3(width / (maxima.x - minima.x),
+                height / (maxima.y - minima.y), 1.0f / (maxima.z - minima.z)) };
         glReadPixels(0, 0, width, height, GL_BGRA, GL_UNSIGNED_BYTE, images.color.bits());
         glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, images.depth.data());
         directionImages.append(images);
@@ -771,5 +879,6 @@ void SetSpannerTool::applyEdit(const AttributePointer& attribute, const SharedOb
     glViewport(0, 0, Application::getInstance()->getGLWidget()->width(), Application::getInstance()->getGLWidget()->height());
     
     // send the images off to the lab for processing
-    QThreadPool::globalInstance()->start(new Voxelizer(size, cellBounds, directionImages));
+    QThreadPool::globalInstance()->start(new Voxelizer(size, cellBounds,
+        spannerData->getVoxelizationGranularity(), directionImages));
 }

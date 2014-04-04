@@ -61,6 +61,7 @@ public:
 
     MetavoxelData& operator=(const MetavoxelData& other);
 
+    void setSize(float size) { _size = size; }
     float getSize() const { return _size; }
 
     glm::vec3 getMinimum() const { return glm::vec3(_size, _size, _size) * -0.5f; }
