@@ -171,6 +171,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _resetRecentMaxPacketsSoon(true),
         _logger(new FileLogger(this))
 {
+    // init GnuTLS for DTLS with domain-servers
+    gnutls_global_init();
+    
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
     
