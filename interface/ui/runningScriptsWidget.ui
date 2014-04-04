@@ -140,8 +140,8 @@ font: bold 14pt;</string>
     <rect>
      <x>36</x>
      <y>590</y>
-     <width>203</width>
-     <height>31</height>
+     <width>211</width>
+     <height>41</height>
     </rect>
    </property>
    <property name="styleSheet">

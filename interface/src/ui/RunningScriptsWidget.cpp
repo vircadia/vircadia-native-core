@@ -32,9 +32,8 @@ RunningScriptsWidget::RunningScriptsWidget(QDockWidget *parent) :
     connect(_runningScriptsTable, &QTableWidget::cellClicked, this, &RunningScriptsWidget::stopScript);
 
     _recentlyLoadedScriptsTable = new ScriptsTableWidget(ui->recentlyLoadedScriptsTableWidget);
-    _recentlyLoadedScriptsTable->setColumnCount(2);
-    _recentlyLoadedScriptsTable->setColumnWidth(0, 25);
-    _recentlyLoadedScriptsTable->setColumnWidth(1, 242);
+    _recentlyLoadedScriptsTable->setColumnCount(1);
+    _recentlyLoadedScriptsTable->setColumnWidth(0, 265);
     connect(_recentlyLoadedScriptsTable, &QTableWidget::cellClicked,
             this, &RunningScriptsWidget::loadScript);
 
@@ -219,15 +218,11 @@ void RunningScriptsWidget::createRecentlyLoadedScriptsTable()
     _recentlyLoadedScriptsTable->setRowCount(limit);
     for (int i = 0; i < limit; ++i) {
         QTableWidgetItem *scriptName = new QTableWidgetItem;
-        scriptName->setText(QFileInfo(_recentlyLoadedScripts.at(i)).fileName());
+        scriptName->setText(QString::number(i+1) + ". " +QFileInfo(_recentlyLoadedScripts.at(i)).fileName());
         scriptName->setToolTip(_recentlyLoadedScripts.at(i));
         scriptName->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-        QTableWidgetItem *number = new QTableWidgetItem;
-        number->setText(QString::number(i+1) + ".");
-        number->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
-        _recentlyLoadedScriptsTable->setItem(i, 0, number);
-        _recentlyLoadedScriptsTable->setItem(i, 1, scriptName);
+        _recentlyLoadedScriptsTable->setItem(i, 0, scriptName);
     }
 
     int y = ui->recentlyLoadedScriptsTableWidget->y() + 15;
@@ -235,7 +230,9 @@ void RunningScriptsWidget::createRecentlyLoadedScriptsTable()
         y += _recentlyLoadedScriptsTable->rowHeight(i);
     }
 
-    ui->recentlyLoadedInstruction->setGeometry(20, y, width() - 20, ui->recentlyLoadedInstruction->height());
+    ui->recentlyLoadedInstruction->setGeometry(36, y,
+                                               ui->recentlyLoadedInstruction->width(),
+                                               ui->recentlyLoadedInstruction->height());
 
     repaint();
 }
