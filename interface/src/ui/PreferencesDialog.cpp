@@ -8,8 +8,8 @@
 
 #include "Application.h"
 #include "Menu.h"
-#include "ModelBrowser.h"
 #include "PreferencesDialog.h"
+#include "ModelsBrowser.h"
 
 const int SCROLL_PANEL_BOTTOM_MARGIN = 30;
 const int OK_BUTTON_RIGHT_MARGIN = 30;
@@ -35,15 +35,15 @@ void PreferencesDialog::accept() {
 }
 
 void PreferencesDialog::openHeadModelBrowser() {
-    ModelBrowser modelBrowser(Head);
+    ModelsBrowser modelBrowser(Head);
     modelBrowser.browse();
-    connect(&modelBrowser, &ModelBrowser::selected, ui.faceURLEdit, &QLineEdit::setText);
+    connect(&modelBrowser, &ModelsBrowser::selected, ui.faceURLEdit, &QLineEdit::setText);
 }
 
 void PreferencesDialog::openBodyModelBrowser() {
-    ModelBrowser modelBrowser(Skeleton);
+    ModelsBrowser modelBrowser(Skeleton);
     modelBrowser.browse();
-    connect(&modelBrowser, &ModelBrowser::selected, ui.skeletonURLEdit, &QLineEdit::setText);
+    connect(&modelBrowser, &ModelsBrowser::selected, ui.skeletonURLEdit, &QLineEdit::setText);
 }
 
 void PreferencesDialog::resizeEvent(QResizeEvent *resizeEvent) {

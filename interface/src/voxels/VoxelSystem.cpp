@@ -506,8 +506,10 @@ void VoxelSystem::initVoxelMemory() {
             _perlinModulateProgram.setUniformValue("permutationNormalTexture", 0);
             _perlinModulateProgram.release();
 
-            _shadowMapProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath()
-                                                      + "shaders/shadow_map.frag");
+            _shadowMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
+                Application::resourcesPath() + "shaders/shadow_map.vert");
+            _shadowMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
+                Application::resourcesPath() + "shaders/shadow_map.frag");
             _shadowMapProgram.link();
 
             _shadowMapProgram.bind();
@@ -1471,10 +1473,6 @@ void VoxelSystem::applyScaleAndBindProgram(bool texture) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Shadows)) {
         _shadowMapProgram.bind();
         glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getShadowDepthTextureID());
-        glEnable(GL_TEXTURE_GEN_S);
-        glEnable(GL_TEXTURE_GEN_T);
-        glEnable(GL_TEXTURE_GEN_R);
-        glEnable(GL_TEXTURE_2D);
 
         glTexGenfv(GL_S, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrix()[0]);
         glTexGenfv(GL_T, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrix()[1]);
@@ -1496,10 +1494,7 @@ void VoxelSystem::removeScaleAndReleaseProgram(bool texture) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Shadows)) {
         _shadowMapProgram.release();
         glBindTexture(GL_TEXTURE_2D, 0);
-        glDisable(GL_TEXTURE_GEN_S);
-        glDisable(GL_TEXTURE_GEN_T);
-        glDisable(GL_TEXTURE_GEN_R);
-        glDisable(GL_TEXTURE_2D);
+        
 
     } else if (texture) {
         _perlinModulateProgram.release();
@@ -1513,7 +1508,9 @@ void VoxelSystem::killLocalVoxels() {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
                             "VoxelSystem::killLocalVoxels()");
     _tree->lockForWrite();
+    VoxelSystem* voxelSystem = _tree->getRoot()->getVoxelSystem();
     _tree->eraseAllOctreeElements();
+    _tree->getRoot()->setVoxelSystem(voxelSystem);
     _tree->unlock();
     clearFreeBufferIndexes();
     if (_usePrimitiveRenderer) {

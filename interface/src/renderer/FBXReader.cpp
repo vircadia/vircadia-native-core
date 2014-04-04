@@ -41,6 +41,11 @@ bool Extents::containsPoint(const glm::vec3& point) const {
         && point.z >= minimum.z && point.z <= maximum.z);
 }
 
+void Extents::addExtents(const Extents& extents) {
+     minimum = glm::min(minimum, extents.minimum);
+     maximum = glm::max(maximum, extents.maximum);
+}
+
 void Extents::addPoint(const glm::vec3& point) {
     minimum = glm::min(minimum, point);
     maximum = glm::max(maximum, point);
@@ -1259,7 +1264,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         remainingModels.insert(model.key());
     }
     while (!remainingModels.isEmpty()) {
-        QString topID = getTopModelID(parentMap, models, *remainingModels.constBegin());
+        QString first = *remainingModels.constBegin();
+        foreach (const QString& id, remainingModels) {
+            if (id < first) {
+                first = id;
+            }
+        }
+        QString topID = getTopModelID(parentMap, models, first);
         appendModelIDs(parentMap.value(topID), childMap, models, remainingModels, modelIDs);
     }
 
@@ -1337,7 +1348,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     }
 
     geometry.bindExtents.reset();
-    geometry.staticExtents.reset();
     geometry.meshExtents.reset();
     
     for (QHash<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
@@ -1505,8 +1515,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 JointShapeInfo& jointShapeInfo = jointShapeInfos[jointIndex];
                 jointShapeInfo.boneBegin = rotateMeshToJoint * (radiusScale * (boneBegin - boneEnd));
 
-                bool jointIsStatic = joint.freeLineage.isEmpty();
-                glm::vec3 jointTranslation = extractTranslation(geometry.offset * joint.bindTransform);
                 float totalWeight = 0.0f;
                 for (int j = 0; j < cluster.indices.size(); j++) {
                     int oldIndex = cluster.indices.at(j);
@@ -1528,10 +1536,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                             jointShapeInfo.extents.addPoint(vertexInJointFrame);
                             jointShapeInfo.averageVertex += vertexInJointFrame;
                             ++jointShapeInfo.numVertices;
-                            if (jointIsStatic) {
-                                // expand the extents of static (nonmovable) joints
-                                geometry.staticExtents.addPoint(vertex + jointTranslation);
-                            }
                         }
 
                         // look for an unused slot in the weights vector
@@ -1588,7 +1592,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             int numVertices = extracted.mesh.vertices.size();
             jointShapeInfo.numVertices = numVertices;
             if (numVertices > 0) {
-                averageVertex /= float(jointShapeInfo.numVertices);
+                averageVertex /= (float)jointShapeInfo.numVertices;
                 float averageRadius = 0.f;
                 foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
                     averageRadius += glm::distance(vertex, averageVertex);
@@ -1619,7 +1623,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         } else {
             // collide the joint like a sphere
             if (jointShapeInfo.numVertices > 0) {
-                jointShapeInfo.averageVertex /= float(jointShapeInfo.numVertices);
+                jointShapeInfo.averageVertex /= (float)jointShapeInfo.numVertices;
                 joint.shapePosition = jointShapeInfo.averageVertex;
             } else {
                 joint.shapePosition = glm::vec3(0.f);
@@ -1629,7 +1633,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                    && jointShapeInfo.numVertices > 0) {
                 // the bone projection algorithm was not able to compute the joint radius
                 // so we use an alternative measure
-                jointShapeInfo.averageRadius /= float(jointShapeInfo.numVertices);
+                jointShapeInfo.averageRadius /= (float)jointShapeInfo.numVertices;
                 joint.boneRadius = jointShapeInfo.averageRadius;
             }
         }

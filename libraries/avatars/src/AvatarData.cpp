@@ -40,6 +40,7 @@ AvatarData::AvatarData() :
     _handState(0),
     _keyState(NO_KEY_DOWN),
     _isChatCirclingEnabled(false),
+    _hasNewJointRotations(true),
     _headData(NULL),
     _handData(NULL), 
     _displayNameBoundingRect(), 
@@ -93,9 +94,9 @@ QByteArray AvatarData::toByteArray() {
     destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _targetScale);
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedYaw());
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedPitch());
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedRoll());
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getFinalYaw());
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getFinalPitch());
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getFinalRoll());
     
     // Head lean X,Z (head lateral and fwd/back motion relative to torso)
     memcpy(destinationBuffer, &_headData->_leanSideways, sizeof(_headData->_leanSideways));
@@ -288,9 +289,9 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
             }
             return maxAvailableSize;
         }
-        _headData->setYaw(headYaw);
-        _headData->setPitch(headPitch);
-        _headData->setRoll(headRoll);
+        _headData->setBaseYaw(headYaw);
+        _headData->setBasePitch(headPitch);
+        _headData->setBaseRoll(headRoll);
     } // 6 bytes
         
     // Head lean (relative to pelvis)
@@ -483,6 +484,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
             }
         }
     } // numJoints * 8 bytes
+    _hasNewJointRotations = true;
     
     return sourceBuffer - startPosition;
 }

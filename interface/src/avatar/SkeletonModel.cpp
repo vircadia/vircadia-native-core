@@ -14,7 +14,7 @@
 #include "Menu.h"
 #include "SkeletonModel.h"
 
-SkeletonModel::SkeletonModel(Avatar* owningAvatar) :
+SkeletonModel::SkeletonModel(Avatar* owningAvatar) : 
     _owningAvatar(owningAvatar) {
 }
 
@@ -63,7 +63,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
 }
 
 void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes) const {
-    if (jointIndex < 0 || jointIndex >= int(_shapes.size())) {
+    if (jointIndex < 0 || jointIndex >= int(_jointShapes.size())) {
         return;
     }
     if (jointIndex == getLeftHandJointIndex()
@@ -72,15 +72,19 @@ void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes)
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         for (int i = 0; i < _jointStates.size(); i++) {
             const FBXJoint& joint = geometry.joints[i];
+            int parentIndex = joint.parentIndex;
             if (i == jointIndex) {
                 // this shape is the hand
-                shapes.push_back(_shapes[i]);
+                shapes.push_back(_jointShapes[i]);
+                if (parentIndex != -1) {
+                    // also add the forearm
+                    shapes.push_back(_jointShapes[parentIndex]);
+                }
             } else {
-                int parentIndex = joint.parentIndex;
                 while (parentIndex != -1) {
                     if (parentIndex == jointIndex) {
                         // this shape is a child of the hand
-                        shapes.push_back(_shapes[i]);
+                        shapes.push_back(_jointShapes[i]);
                         break;
                     }
                     parentIndex = geometry.joints[parentIndex].parentIndex;
@@ -88,6 +92,12 @@ void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes)
             }
         }
     }
+}
+
+void SkeletonModel::getBodyShapes(QVector<const Shape*>& shapes) const {
+    // for now we push a single bounding shape, 
+    // but later we could push a subset of joint shapes
+    shapes.push_back(&_boundingShape);
 }
 
 class IndexValue {
@@ -129,12 +139,17 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
         return;
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    setJointPosition(jointIndex, palm.getPosition());
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
+    int parentJointIndex = geometry.joints.at(jointIndex).parentIndex;
+    if (parentJointIndex == -1) {
+        return;
+    }
+    
+    // rotate forearm to align with palm direction
     glm::quat palmRotation;
-    getJointRotation(jointIndex, palmRotation, true);
-    applyRotationDelta(jointIndex, rotationBetween(palmRotation * geometry.palmDirection, palm.getNormal()), false);
-    getJointRotation(jointIndex, palmRotation, true);
+    getJointRotation(parentJointIndex, palmRotation, true);
+    applyRotationDelta(parentJointIndex, rotationBetween(palmRotation * geometry.palmDirection, palm.getNormal()), false);
+    getJointRotation(parentJointIndex, palmRotation, true);
 
     // sort the finger indices by raw x, get the average direction
     QVector<IndexValue> fingerIndices;
@@ -146,38 +161,26 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
             direction += fingerVector / length;
         }
         fingerVector = glm::inverse(palmRotation) * fingerVector * -sign;
-        IndexValue indexValue = { int(i), atan2f(fingerVector.z, fingerVector.x) };
+        IndexValue indexValue = { (int)i, atan2f(fingerVector.z, fingerVector.x) };
         fingerIndices.append(indexValue);
     }
     qSort(fingerIndices.begin(), fingerIndices.end());
 
-    // rotate palm according to average finger direction
+    // rotate forearm according to average finger direction
     float directionLength = glm::length(direction);
     const unsigned int MIN_ROTATION_FINGERS = 3;
     if (directionLength > EPSILON && palm.getNumFingers() >= MIN_ROTATION_FINGERS) {
-        applyRotationDelta(jointIndex, rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), direction), false);
-        getJointRotation(jointIndex, palmRotation, true);
+        applyRotationDelta(parentJointIndex, rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), direction), false);
+        getJointRotation(parentJointIndex, palmRotation, true);
     }
 
-    // no point in continuing if there are no fingers
-    if (palm.getNumFingers() == 0 || fingerJointIndices.isEmpty()) {
-        return;
-    }
+    // let wrist inherit forearm rotation
+    _jointStates[jointIndex].rotation = glm::quat();
 
-    // match them up as best we can
-    float proportion = fingerIndices.size() / (float)fingerJointIndices.size();
-    for (int i = 0; i < fingerJointIndices.size(); i++) {
-        int fingerIndex = fingerIndices.at(roundf(i * proportion)).index;
-        glm::vec3 fingerVector = palm.getFingers()[fingerIndex].getTipPosition() -
-            palm.getFingers()[fingerIndex].getRootPosition();
-
-        int fingerJointIndex = fingerJointIndices.at(i);
-        int fingertipJointIndex = fingertipJointIndices.at(i);
-        glm::vec3 jointVector = extractTranslation(geometry.joints.at(fingertipJointIndex).bindTransform) -
-            extractTranslation(geometry.joints.at(fingerJointIndex).bindTransform);
-
-        setJointRotation(fingerJointIndex, rotationBetween(palmRotation * jointVector, fingerVector) * palmRotation, true);
-    }
+    // set elbow position from wrist position
+    glm::vec3 forearmVector = palmRotation * glm::vec3(sign, 0.0f, 0.0f);
+    setJointPosition(parentJointIndex, palm.getPosition() + forearmVector *
+        geometry.joints.at(jointIndex).distanceToParent * extractUniformScale(_scale));
 }
 
 void SkeletonModel::updateJointState(int index) {
@@ -199,8 +202,8 @@ void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, const
     glm::mat3 axes = glm::mat3_cast(_rotation);
     glm::mat3 inverse = glm::mat3(glm::inverse(parentState.transform * glm::translate(state.translation) * 
         joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation)));
-    state.rotation = glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getLeanSideways(), 
-        glm::normalize(inverse * axes[2])) * glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getLeanForward(), 
+    state.rotation = glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanSideways(), 
+        glm::normalize(inverse * axes[2])) * glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanForward(), 
         glm::normalize(inverse * axes[0])) * joint.rotation;
 }
 

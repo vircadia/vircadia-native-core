@@ -128,8 +128,8 @@ public:
     void setHeadOrientation(const glm::quat& orientation) { _headData->setOrientation(orientation); }
 
     // access to Head().set/getMousePitch (degrees)
-    float getHeadPitch() const { return _headData->getPitch(); }
-    void setHeadPitch(float value) { _headData->setPitch(value); };
+    float getHeadPitch() const { return _headData->getBasePitch(); }
+    void setHeadPitch(float value) { _headData->setBasePitch(value); };
 
     // access to Head().set/getAverageLoudness
     float getAudioLoudness() const { return _headData->getAudioLoudness(); }
@@ -241,6 +241,8 @@ protected:
     std::string _chatMessage;
 
     bool _isChatCirclingEnabled;
+
+    bool _hasNewJointRotations; // set in AvatarData, cleared in Avatar
 
     HeadData* _headData;
     HandData* _handData;

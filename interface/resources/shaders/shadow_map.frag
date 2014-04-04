@@ -10,7 +10,8 @@
 
 uniform sampler2DShadow shadowMap;
 
+varying vec4 shadowColor;
+
 void main(void) {
-    gl_FragColor = gl_Color * mix(vec4(0.8, 0.8, 0.8, 1.0), vec4(1.0, 1.0, 1.0, 1.0),
-        shadow2D(shadowMap, gl_TexCoord[0].stp));
+    gl_FragColor = mix(shadowColor, gl_Color, shadow2D(shadowMap, gl_TexCoord[0].stp));
 }

@@ -34,6 +34,7 @@ public:
     void update(float deltaTime);
     void simulate(float deltaTime);
     void updateFromGyros(float deltaTime);
+    void moveWithLean();
 
     void render(const glm::vec3& cameraPosition, RenderMode renderMode = NORMAL_RENDER_MODE);
     void renderBody(RenderMode renderMode);
@@ -87,6 +88,9 @@ public:
     virtual void clearJointData(int index);
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+
+    void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration);
+
 public slots:
     void goHome();
     void increaseSize();
@@ -117,6 +121,7 @@ private:
     bool _isThrustOn;
     float _thrustMultiplier;
     glm::vec3 _moveTarget;
+    glm::vec3 _lastBodyPenetration;
     int _moveTargetStepCounter;
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
