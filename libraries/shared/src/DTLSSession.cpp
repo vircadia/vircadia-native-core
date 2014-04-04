@@ -95,8 +95,9 @@ DTLSSession::DTLSSession(int end, QUdpSocket& dtlsSocket, HifiSockAddr& destinat
     const unsigned int DTLS_MAX_MTU = 1452;
     gnutls_dtls_set_mtu(_gnutlsSession, DTLS_MAX_MTU);
     
-    const unsigned int DTLS_TOTAL_CONNECTION_TIMEOUT = 10 * DOMAIN_SERVER_CHECK_IN_MSECS;
-    gnutls_dtls_set_timeouts(_gnutlsSession, 1, DTLS_TOTAL_CONNECTION_TIMEOUT);
+    const unsigned int DTLS_HANDSHAKE_RETRANSMISSION_TIMEOUT = DOMAIN_SERVER_CHECK_IN_MSECS;
+    const unsigned int DTLS_TOTAL_CONNECTION_TIMEOUT = 2 * NODE_SILENCE_THRESHOLD_MSECS;
+    gnutls_dtls_set_timeouts(_gnutlsSession, DTLS_HANDSHAKE_RETRANSMISSION_TIMEOUT, DTLS_TOTAL_CONNECTION_TIMEOUT);
     
     gnutls_transport_set_ptr(_gnutlsSession, this);
     gnutls_transport_set_push_function(_gnutlsSession, socketPush);

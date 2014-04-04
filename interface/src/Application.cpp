@@ -274,7 +274,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     QTimer* silentNodeTimer = new QTimer();
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeTimer->moveToThread(_nodeThread);
-    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
+    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
     
     // send the identity packet for our avatar each second to our avatar mixer
     QTimer* identityPacketTimer = new QTimer();

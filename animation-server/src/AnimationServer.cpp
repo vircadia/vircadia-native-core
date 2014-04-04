@@ -801,7 +801,7 @@ AnimationServer::AnimationServer(int &argc, char **argv) :
     
     QTimer* silentNodeTimer = new QTimer(this);
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
-    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
+    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
     
     connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
 }
