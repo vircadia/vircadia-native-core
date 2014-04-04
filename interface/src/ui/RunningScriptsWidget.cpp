@@ -143,18 +143,18 @@ void RunningScriptsWidget::keyPressEvent(QKeyEvent *e)
 void RunningScriptsWidget::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);
-    painter.setPen(QColor::fromRgb(196, 196, 196));
+    painter.setPen(QColor::fromRgb(225, 225, 225));
 
     if (ui->currentlyRunningLabel->isVisible()) {
         // line below the 'Currently Running' label
-        painter.drawLine(20, ui->currentlyRunningLabel->y() + ui->currentlyRunningLabel->height(),
-                         width() - 21, ui->currentlyRunningLabel->y() + ui->currentlyRunningLabel->height());
+        painter.drawLine(21, ui->currentlyRunningLabel->y() + ui->currentlyRunningLabel->height(),
+                         width() - 22, ui->currentlyRunningLabel->y() + ui->currentlyRunningLabel->height());
     }
 
     if (ui->recentlyLoadedLabel->isVisible()) {
         // line below the 'Recently loaded' label
-        painter.drawLine(20, ui->recentlyLoadedLabel->y() + ui->recentlyLoadedLabel->height(),
-                         width() - 21, ui->recentlyLoadedLabel->y() + ui->recentlyLoadedLabel->height());
+        painter.drawLine(21, ui->recentlyLoadedLabel->y() + ui->recentlyLoadedLabel->height(),
+                         width() - 22, ui->recentlyLoadedLabel->y() + ui->recentlyLoadedLabel->height());
     }
 
     painter.end();

@@ -14,15 +14,19 @@
    <string>Form</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">background: #f7f7f7;
-font-family: Helvetica, Arial, &quot;DejaVu Sans&quot;; </string>
+   <string notr="true">* {
+	font-family: Helvetica, Arial, sans-serif;
+}
+QWidget {
+	background: #f7f7f7; 
+}</string>
   </property>
   <widget class="QLabel" name="widgetTitle">
    <property name="geometry">
     <rect>
      <x>20</x>
      <y>10</y>
-     <width>221</width>
+     <width>251</width>
      <height>31</height>
     </rect>
    </property>
@@ -32,6 +36,12 @@ font-size: 20pt;</string>
    </property>
    <property name="text">
     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;Running Scripts&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="margin">
+    <number>0</number>
+   </property>
+   <property name="indent">
+    <number>-1</number>
    </property>
   </widget>
   <widget class="QLabel" name="currentlyRunningLabel">
@@ -45,7 +55,7 @@ font-size: 20pt;</string>
    </property>
    <property name="styleSheet">
     <string notr="true">color: #0e7077;
-font-size: 14pt;</string>
+font: bold 14pt;</string>
    </property>
    <property name="text">
     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Currently running&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -70,7 +80,7 @@ font-size: 14pt;</string>
     <string notr="true">background: #0e7077;
 color: #fff;
 border-radius: 4px;
-font: 14pt 75pt;</string>
+font: bold 14pt;</string>
    </property>
    <property name="text">
     <string>Reload all</string>
@@ -96,7 +106,7 @@ font: 14pt 75pt;</string>
     <string notr="true">background: #0e7077;
 color: #fff;
 border-radius: 4px;
-font: 14pt 75pt;</string>
+font: bold 14pt;</string>
    </property>
    <property name="text">
     <string>Stop all</string>
@@ -117,7 +127,7 @@ font: 14pt 75pt;</string>
    </property>
    <property name="styleSheet">
     <string notr="true">color: #0e7077;
-font-size: 14pt;</string>
+font: bold 14pt;</string>
    </property>
    <property name="text">
     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Recently loaded&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -204,7 +214,6 @@ font-size: 14pt;</string>
     <string notr="true">background: transparent;
 font-size: 14pt;</string>
    </property>
-   <zorder>reloadAllButton</zorder>
   </widget>
   <widget class="QWidget" name="runningScriptsTableWidget" native="true">
    <property name="geometry">
