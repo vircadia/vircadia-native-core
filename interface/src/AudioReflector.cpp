@@ -184,13 +184,11 @@ void AudioReflector::calculateReflections(const glm::vec3& origin, const glm::ve
 void AudioReflector::processSpatialAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
 
     
-    //qDebug() << "AudioReflector::processSpatialAudio()...sampleTime=" << sampleTime << " threadID=" << QThread::currentThreadId();
+    qDebug() << "AudioReflector::processSpatialAudio()...sampleTime=" << sampleTime << " threadID=" << QThread::currentThreadId();
 
     int totalNumberOfSamples = samples.size() / (sizeof(int16_t));
-    int numFrameSamples = format.sampleRate() * format.channelCount();
 
     qDebug() << "    totalNumberOfSamples=" << totalNumberOfSamples;
-    qDebug() << "         numFrameSamples=" << numFrameSamples;
     qDebug() << "          samples.size()=" << samples.size();
     qDebug() << "         sizeof(int16_t)=" << sizeof(int16_t);
     
@@ -198,15 +196,17 @@ void AudioReflector::processSpatialAudio(unsigned int sampleTime, const QByteArr
     /*
     AudioRingBuffer samplesRingBuffer(totalNumberOfSamples);
     qint64 bytesCopied = samplesRingBuffer.writeData(samples.constData(),samples.size());
+    
+    /*
     for(int i = 0; i < totalNumberOfSamples; i++) {
         samplesRingBuffer[i] = samplesRingBuffer[i] * 0.25f;
     }
+     */
 
     qDebug() << "          bytesCopied=" << bytesCopied;
     _audio->addSpatialAudioToBuffer(sampleTime + 12000, samples, totalNumberOfSamples);
 
     return;
-    */
 
     quint64 start = usecTimestampNow();
 

@@ -55,7 +55,7 @@ public:
     void setJitterBufferSamples(int samples) { _jitterBufferSamples = samples; }
     int getJitterBufferSamples() { return _jitterBufferSamples; }
     
-    void lowPassFilter(int16_t* inputBuffer);
+    void lowPassFilter(int16_t* inputBuffer, int samples, int channels);
     
     virtual void startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen);
     virtual void startDrumSound(float volume, float frequency, float duration, float decay);

@@ -468,7 +468,8 @@ void Audio::handleAudioInput() {
             }
             
             //  Add tone injection if enabled
-            const float TONE_FREQ = 220.f / SAMPLE_RATE * TWO_PI;
+            //const float TONE_FREQ = 220.f / SAMPLE_RATE * TWO_PI;
+            const float TONE_FREQ = 440.f / SAMPLE_RATE * TWO_PI;
             const float QUARTER_VOLUME = 8192.f;
             if (_toneInjectionEnabled) {
                 loudness = 0.f;
@@ -768,10 +769,19 @@ void Audio::processReceivedAudio(unsigned int sampleTime, AudioRingBuffer& ringB
                 // copy the samples we'll resample from the ring buffer - this also
                 // pushes the read pointer of the ring buffer forwards
                 ringBuffer.readSamples(ringBufferSamples, numNetworkOutputSamples);
+
+
             }
 
             // add the next numNetworkOutputSamples from each QByteArray
             // in our _localInjectionByteArrays QVector to the localInjectedSamples
+
+
+            if (Menu::getInstance()->isOptionChecked(MenuOption::LowPassFilter)) {
+                int channels = _desiredOutputFormat.channelCount();
+                int filterSamples = numNetworkOutputSamples / channels;
+                lowPassFilter(ringBufferSamples, filterSamples, channels);
+            }
 
             // copy the packet from the RB to the output
             linearResampling(ringBufferSamples,
@@ -901,6 +911,37 @@ void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
         }
     }
 }
+
+
+// simple 3 pole low pass filter
+void Audio::lowPassFilter(int16_t* inputBuffer, int samples, int channels) {
+
+    //qDebug() << "lowPassFilter() samples=" << samples << " channels=" << channels;
+    //const int POLE_COUNT = 3;
+    
+    for (int c = 0; c < channels; c++) {
+        const float C1 = 0.0f; // 0.25f;
+        const float C2 = 1.0f; // 0.5f;
+        const float C3 = 0.0f; // 0.25f;
+        int16_t S1,S2,S3;
+        S1 = inputBuffer[c]; // start with the Nth sample, based on the current channel, this is the fist sample for the channel
+        for (int i = 0; i < samples; i++) {
+            int sampleAt = (i * channels) + c;
+            int nextSampleAt = sampleAt + channels;
+            S2 = inputBuffer[sampleAt];
+            if (i == samples - 1) {
+                S3 = inputBuffer[sampleAt];
+            } else {
+                S3 = inputBuffer[nextSampleAt];
+            }
+            // save our S1 for next time before we mod this
+            S1 = inputBuffer[sampleAt];
+            inputBuffer[sampleAt] = (C1 * S1) + (C2 * S2) + (C3 * S3);
+            //qDebug() << "channel=" << c << " sampleAt=" << sampleAt;
+        }
+    }
+}
+
 
 //  Starts a collision sound.  magnitude is 0-1, with 1 the loudest possible sound.
 void Audio::startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen) {
