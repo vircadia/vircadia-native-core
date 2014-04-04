@@ -633,7 +633,7 @@ void Audio::addSpatialAudioToBuffer(unsigned int sampleTime, AudioRingBuffer& sp
             // Just do a straight copy, clipping if necessary
             unsigned int sampleCt = (remaining < spatialAudio.samplesAvailable()) ? remaining : spatialAudio.samplesAvailable();
             if (sampleCt) {
-                _spatialAudioRingBuffer.writeSamples(spatialAudio.getBuffer(), sampleCt);
+                _spatialAudioRingBuffer.writeSamples(spatialAudio.getNextOutput(), sampleCt);
             }
             _spatialAudioFinish = _spatialAudioStart + spatialAudio.samplesAvailable() / _desiredOutputFormat.channelCount();
 
@@ -654,7 +654,7 @@ void Audio::addSpatialAudioToBuffer(unsigned int sampleTime, AudioRingBuffer& sp
 
             // Copy the new spatial audio to the accumulation ring buffer
             if (sampleCt) {
-                _spatialAudioRingBuffer.writeSamples(spatialAudio.getBuffer(), sampleCt);
+                _spatialAudioRingBuffer.writeSamples(spatialAudio.getNextOutput(), sampleCt);
             }
             _spatialAudioFinish += (sampleCt + silentCt) / _desiredOutputFormat.channelCount();
         }
@@ -664,19 +664,20 @@ void Audio::addSpatialAudioToBuffer(unsigned int sampleTime, AudioRingBuffer& sp
         // acumulate the overlap
         unsigned int offset = (sampleTime - _spatialAudioStart) * _desiredOutputFormat.channelCount();
         unsigned int accumulationCt = (_spatialAudioFinish - sampleTime) * _desiredOutputFormat.channelCount();
+        accumulationCt = (accumulationCt < spatialAudio.samplesAvailable()) ? accumulationCt : spatialAudio.samplesAvailable();
         int j = 0;
         for (int i = accumulationCt; --i >= 0; j++) {
             _spatialAudioRingBuffer[j + offset] += spatialAudio[j];
         }
 
         // Copy the remaining unoverlapped spatial audio to the accumulation buffer
-        unsigned int sampleCt = (remaining < spatialAudio.samplesAvailable()) ? remaining : spatialAudio.samplesAvailable();
+        unsigned int sampleCt = spatialAudio.samplesAvailable() - accumulationCt;
+        sampleCt = (remaining < sampleCt) ? remaining : sampleCt;
         if (sampleCt) {
-            _spatialAudioRingBuffer.writeSamples(spatialAudio.getBuffer() + accumulationCt, sampleCt);
+            _spatialAudioRingBuffer.writeSamples(spatialAudio.getNextOutput() + accumulationCt, sampleCt);
         }
         _spatialAudioFinish += sampleCt / _desiredOutputFormat.channelCount();
     }
-    spatialAudio.reset();
 }
 
 bool Audio::mousePressEvent(int x, int y) {
@@ -730,18 +731,20 @@ void Audio::processReceivedAudio(unsigned int sampleTime, AudioRingBuffer& ringB
 
             int16_t* ringBufferSamples= new int16_t[numNetworkOutputSamples];
             if (_processSpatialAudio) {
-                unsigned int sampleTime = _spatialAudioFinish;
+                unsigned int sampleTime = _spatialAudioStart;
                 // Accumulate direct transmission of audio from sender to receiver
                 addSpatialAudioToBuffer(sampleTime, ringBuffer);
+                addSpatialAudioToBuffer(sampleTime + 48000, ringBuffer);
+
+                // Send audio off for spatial processing
+                emit processSpatialAudio(sampleTime, QByteArray((char*)ringBuffer.getBuffer(), numNetworkOutputSamples), _desiredOutputFormat);
 
                 // copy the samples we'll resample from the spatial audio ring buffer - this also
                 // pushes the read pointer of the spatial audio ring buffer forwards
                 _spatialAudioRingBuffer.readSamples(ringBufferSamples, numNetworkOutputSamples);
-                _spatialAudioStart += ringBuffer.samplesAvailable() / _desiredOutputFormat.channelCount();
-
-                // Send audio off for spatial processing
-                emit processSpatialAudio(sampleTime, QByteArray((char*)ringBufferSamples, numNetworkOutputSamples), _desiredOutputFormat);
-
+                int samples = ringBuffer.samplesAvailable();
+                _spatialAudioStart += samples / _desiredOutputFormat.channelCount();
+                ringBuffer.reset();
 
             } else {
 
