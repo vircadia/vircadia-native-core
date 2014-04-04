@@ -63,7 +63,7 @@
 #include <UUID.h>
 #include <OctreeSceneStats.h>
 #include <LocalVoxelsList.h>
-#include <FstReader.h>
+#include <ModelUploader.h>
 
 #include "Application.h"
 #include "InterfaceVersion.h"
@@ -3247,9 +3247,9 @@ void Application::toggleRunningScriptsWidget()
 }
 
 void Application::uploadFST(bool isHead) {
-    FstReader reader(isHead);
-    if (reader.zip()) {
-        reader.send();
+    ModelUploader* uploader = new ModelUploader(isHead);
+    if (uploader->zip()) {
+        uploader->send();
     }
 }
 
