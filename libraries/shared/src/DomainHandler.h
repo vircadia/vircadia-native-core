@@ -61,6 +61,7 @@ signals:
     void hostnameChanged(const QString& hostname);
     void connectedToDomain(const QString& hostname);
     void completedDTLSHandshake();
+    void DTLSConnectionLost();
     
 private:
     void reset();

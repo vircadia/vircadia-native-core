@@ -196,6 +196,9 @@ void NodeList::reset() {
     
     // clear the domain connection information
     _domainHandler.clearConnectionInfo();
+    
+    // also disconnect from the DTLS socket readyRead() so it can handle handshaking
+    disconnect(_dtlsSocket, 0, this, 0);
 }
 
 void NodeList::addNodeTypeToInterestSet(NodeType_t nodeTypeToAdd) {

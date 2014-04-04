@@ -652,7 +652,6 @@ void DomainServer::readAvailableDTLSDatagrams() {
         DTLSServerSession* existingSession = _dtlsSessions.value(senderHifiSockAddr);
         
         if (existingSession) {
-            qDebug() << "There is an existing session for" << senderHifiSockAddr;
             if (!existingSession->completedHandshake()) {
                 // check if we have completed handshake with this user
                 int handshakeReturn = gnutls_handshake(*existingSession->getGnuTLSSession());

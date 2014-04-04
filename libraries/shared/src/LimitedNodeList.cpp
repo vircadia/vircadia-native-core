@@ -426,7 +426,7 @@ void LimitedNodeList::removeSilentNodes() {
 
         node->getMutex().lock();
 
-        if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > (NODE_SILENCE_THRESHOLD_MSECS * 1)) {
+        if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > (NODE_SILENCE_THRESHOLD_MSECS * 1000)) {
             // call our private method to kill this node (removes it and emits the right signal)
             nodeItem = killNodeAtHashIterator(nodeItem);
         } else {

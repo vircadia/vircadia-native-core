@@ -15,7 +15,7 @@
 
 #include "HifiSockAddr.h"
 
-#define DTLS_VERBOSE_DEBUG 1
+#define DTLS_VERBOSE_DEBUG 0
 
 class DummyDTLSSession : public QObject {
     Q_OBJECT
