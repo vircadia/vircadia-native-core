@@ -176,7 +176,6 @@ function particleCollisionWithParticle(particle1, particle2) {
     print("hit, msecs = " + msecs);
     Particles.deleteParticle(particle1);
     Particles.deleteParticle(particle2);
-    audioOptions.position = newPosition;
     audioOptions.position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));   
     Audio.playSound(targetHitSound, audioOptions);
 }
