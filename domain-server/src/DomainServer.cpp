@@ -101,7 +101,7 @@ bool DomainServer::optionallySetupDTLS() {
             gnutls_key_generate(_cookieKey, GNUTLS_COOKIE_KEY_SIZE);
             
             _priorityCache = new gnutls_priority_t;
-            const char DTLS_PRIORITY_STRING[] = "PERFORMANCE:-VERS-TLS-ALL:+VERS-DTLS1.0:%SERVER_PRECEDENCE";
+            const char DTLS_PRIORITY_STRING[] = "PERFORMANCE:-VERS-TLS-ALL:+VERS-DTLS1.2:%SERVER_PRECEDENCE";
             gnutls_priority_init(_priorityCache, DTLS_PRIORITY_STRING, NULL);
             
             _isUsingDTLS = true;
@@ -616,8 +616,6 @@ void DomainServer::readAvailableDTLSDatagrams() {
     static socklen_t sockAddrSize = sizeof(senderSockAddr);
     
     while (dtlsSocket.hasPendingDatagrams()) {
-        qDebug() << "Looking at a datagram";
-        
         // check if we have an active DTLS session for this sender
         QByteArray peekDatagram(dtlsSocket.pendingDatagramSize(), 0);
        
@@ -642,7 +640,14 @@ void DomainServer::readAvailableDTLSDatagrams() {
                 }
             } else {
                 // pull the data from this user off the stack and process it
-                dtlsSocket.readDatagram(peekDatagram.data(), peekDatagram.size());
+                int receiveCode = gnutls_record_recv(*existingSession->getGnuTLSSession(),
+                                                     peekDatagram.data(), peekDatagram.size());
+                if (receiveCode > 0) {
+                    processDatagram(peekDatagram, senderHifiSockAddr);
+                } else if (gnutls_error_is_fatal(receiveCode)) {
+                    qDebug() << "Fatal error -" << gnutls_strerror(receiveCode) << "- during DTLS handshake with"
+                        << senderHifiSockAddr;
+                }
             }
         } else {
             // first we verify the cookie

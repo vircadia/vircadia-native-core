@@ -54,9 +54,8 @@ ssize_t DTLSSession::socketPull(gnutls_transport_ptr_t ptr, void* buffer, size_t
     if (pulledSockAddr == session->_destinationSocket) {
         // bytes received from the correct sender, return number of bytes received
         qDebug() << "Received" << bytesReceived << "on DTLS socket from" << pulledSockAddr;
+        qDebug() << QByteArray(reinterpret_cast<char*>(buffer), bytesReceived).toHex();
         return bytesReceived;
-    } else {
-        qDebug() << pulledSockAddr << "is not" << session->_destinationSocket;
     }
     
     // we pulled a packet not matching this session, so output that
@@ -71,6 +70,7 @@ ssize_t DTLSSession::socketPush(gnutls_transport_ptr_t ptr, const void* buffer, 
     QUdpSocket& dtlsSocket = session->_dtlsSocket;
     
     qDebug() << "Pushing a message of size" << size << "to" << session->_destinationSocket;
+    qDebug() << QByteArray(reinterpret_cast<const char*>(buffer), size).toHex();
     return dtlsSocket.writeDatagram(reinterpret_cast<const char*>(buffer), size,
                                     session->_destinationSocket.getAddress(), session->_destinationSocket.getPort());
 }
@@ -87,7 +87,7 @@ DTLSSession::DTLSSession(int end, QUdpSocket& dtlsSocket, HifiSockAddr& destinat
     gnutls_dtls_set_mtu(_gnutlsSession, DTLS_MAX_MTU);
     
     const unsigned int DTLS_TOTAL_CONNECTION_TIMEOUT = 10 * DOMAIN_SERVER_CHECK_IN_MSECS;
-    gnutls_dtls_set_timeouts(_gnutlsSession, 0, DTLS_TOTAL_CONNECTION_TIMEOUT);
+    gnutls_dtls_set_timeouts(_gnutlsSession, 1, DTLS_TOTAL_CONNECTION_TIMEOUT);
     
     gnutls_transport_set_ptr(_gnutlsSession, this);
     gnutls_transport_set_push_function(_gnutlsSession, socketPush);
