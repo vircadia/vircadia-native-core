@@ -82,7 +82,8 @@ background: transparent;</string>
     <string notr="true">background: #0e7077;
 color: #fff;
 border-radius: 4px;
-font: bold 14pt;</string>
+font: bold 14pt;
+padding-top: 3px;</string>
    </property>
    <property name="text">
     <string>Reload all</string>
@@ -108,7 +109,8 @@ font: bold 14pt;</string>
     <string notr="true">background: #0e7077;
 color: #fff;
 border-radius: 4px;
-font: bold 14pt;</string>
+font: bold 14pt;
+padding-top: 3px;</string>
    </property>
    <property name="text">
     <string>Stop all</string>
