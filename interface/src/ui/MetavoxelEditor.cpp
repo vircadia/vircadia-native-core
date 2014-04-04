@@ -803,7 +803,7 @@ void Voxelizer::voxelize(const glm::vec3& center) {
     qDebug() << "Finished voxelizing " << center.x << center.y << center.z;
     
     MetavoxelEditMessage edit = { QVariant::fromValue(SetDataEdit(
-        center - glm::vec3(_size, _size, _size) * 0.5f, data, false)) };
+        center - glm::vec3(_size, _size, _size) * 0.5f, data, true)) };
     QMetaObject::invokeMethod(Application::getInstance()->getMetavoxels(), "applyEdit",
         Q_ARG(const MetavoxelEditMessage&, edit), Q_ARG(bool, true));
 }

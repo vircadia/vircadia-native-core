@@ -355,14 +355,12 @@ static void setNode(const AttributeValue& value, MetavoxelNode*& node, Metavoxel
     }
     OwnedAttributeValue oldValue = node->getAttributeValue(value.getAttribute());
     node->blendAttributeValues(other->getAttributeValue(value.getAttribute()), oldValue);
-    if (other->isLeaf()) {
-        node->clearChildren(value.getAttribute());
-        return;
-    }
-    for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
-        MetavoxelNode* child = node->getChild(i);
-        setNode(oldValue, child, other->getChild(i), true);
-        node->setChild(i, child);
+    if (!other->isLeaf()) {
+        for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
+            MetavoxelNode* child = node->getChild(i);
+            setNode(oldValue, child, other->getChild(i), true);
+            node->setChild(i, child);
+        }
     }
     node->mergeChildren(value.getAttribute());
 }
