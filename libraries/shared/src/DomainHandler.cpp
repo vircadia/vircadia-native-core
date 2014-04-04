@@ -33,14 +33,14 @@ void DomainHandler::clearConnectionInfo() {
     _uuid = QUuid();
     _isConnected = false;
     
-    delete _dtlsSession;
-    _dtlsSession = NULL;
-    
     if (_handshakeTimer) {
         _handshakeTimer->stop();
         delete _handshakeTimer;
         _handshakeTimer = NULL;
     }
+    
+    delete _dtlsSession;
+    _dtlsSession = NULL;
 }
 
 void DomainHandler::reset() {

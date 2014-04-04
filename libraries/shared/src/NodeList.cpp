@@ -132,6 +132,8 @@ void NodeList::processAvailableDTLSDatagrams() {
             processNodeData(_domainHandler.getSockAddr(), dtlsPacket.left(receivedBytes));
         } else if (gnutls_error_is_fatal(receivedBytes)) {
             qDebug() << "Fatal error -" << gnutls_strerror(receivedBytes) << "- receiving DTLS packet from domain-server.";
+        } else {
+            qDebug() << "non fatal receive" << receivedBytes;
         }
     }
 }

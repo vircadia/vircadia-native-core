@@ -11,8 +11,6 @@
 #include "NodeList.h"
 #include "DTLSSession.h"
 
-#define DTLS_VERBOSE_DEBUG 0
-
 int DTLSSession::socketPullTimeout(gnutls_transport_ptr_t ptr, unsigned int ms) {
     DTLSSession* session = static_cast<DTLSSession*>(ptr);
     QUdpSocket& dtlsSocket = session->_dtlsSocket;
@@ -72,21 +70,8 @@ ssize_t DTLSSession::socketPull(gnutls_transport_ptr_t ptr, void* buffer, size_t
     return -1;
 }
 
-ssize_t DTLSSession::socketPush(gnutls_transport_ptr_t ptr, const void* buffer, size_t size) {
-    DTLSSession* session = static_cast<DTLSSession*>(ptr);
-    QUdpSocket& dtlsSocket = session->_dtlsSocket;
-    
-#if DTLS_VERBOSE_DEBUG
-    qDebug() << "Pushing a message of size" << size << "to" << session->_destinationSocket;
-#endif
-    
-    return dtlsSocket.writeDatagram(reinterpret_cast<const char*>(buffer), size,
-                                    session->_destinationSocket.getAddress(), session->_destinationSocket.getPort());
-}
-
 DTLSSession::DTLSSession(int end, QUdpSocket& dtlsSocket, HifiSockAddr& destinationSocket) :
-    _dtlsSocket(dtlsSocket),
-    _destinationSocket(destinationSocket),
+    DummyDTLSSession(dtlsSocket, destinationSocket),
     _completedHandshake(false)
 {
     gnutls_init(&_gnutlsSession, end | GNUTLS_DATAGRAM | GNUTLS_NONBLOCK);
@@ -100,13 +85,13 @@ DTLSSession::DTLSSession(int end, QUdpSocket& dtlsSocket, HifiSockAddr& destinat
     gnutls_dtls_set_timeouts(_gnutlsSession, DTLS_HANDSHAKE_RETRANSMISSION_TIMEOUT, DTLS_TOTAL_CONNECTION_TIMEOUT);
     
     gnutls_transport_set_ptr(_gnutlsSession, this);
-    gnutls_transport_set_push_function(_gnutlsSession, socketPush);
+    gnutls_transport_set_push_function(_gnutlsSession, DummyDTLSSession::socketPush);
     gnutls_transport_set_pull_function(_gnutlsSession, socketPull);
     gnutls_transport_set_pull_timeout_function(_gnutlsSession, socketPullTimeout);
 }
 
 DTLSSession::~DTLSSession() {
-    gnutls_bye(_gnutlsSession, GNUTLS_SHUT_WR);
+    qDebug() << "cleaning up current session";
     gnutls_deinit(_gnutlsSession);
 }
 

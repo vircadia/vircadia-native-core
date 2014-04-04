@@ -23,6 +23,7 @@
 #include <UUID.h>
 
 #include "DomainServerNodeData.h"
+#include "DummyDTLSSession.h"
 
 #include "DomainServer.h"
 
@@ -651,6 +652,7 @@ void DomainServer::readAvailableDTLSDatagrams() {
         DTLSServerSession* existingSession = _dtlsSessions.value(senderHifiSockAddr);
         
         if (existingSession) {
+            qDebug() << "There is an existing session for" << senderHifiSockAddr;
             if (!existingSession->completedHandshake()) {
                 // check if we have completed handshake with this user
                 int handshakeReturn = gnutls_handshake(*existingSession->getGnuTLSSession());
@@ -685,7 +687,8 @@ void DomainServer::readAvailableDTLSDatagrams() {
             if (cookieValid < 0) {
                 // the cookie sent by the client was not valid
                 // send a valid one
-                DTLSServerSession tempServerSession(LimitedNodeList::getInstance()->getDTLSSocket(), senderHifiSockAddr);
+                DummyDTLSSession tempServerSession(LimitedNodeList::getInstance()->getDTLSSocket(), senderHifiSockAddr);
+                qDebug() << "sending back a fresh cookie!";
                 gnutls_dtls_cookie_send(_cookieKey, &senderSockAddr, sizeof(senderSockAddr), &prestate,
                                         &tempServerSession, DTLSSession::socketPush);
                 

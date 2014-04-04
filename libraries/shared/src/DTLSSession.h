@@ -13,9 +13,10 @@
 
 #include <gnutls/gnutls.h>
 
+#include "DummyDTLSSession.h"
 #include "HifiSockAddr.h"
 
-class DTLSSession : public QObject {
+class DTLSSession : public DummyDTLSSession {
     Q_OBJECT
 public:
     DTLSSession(int end, QUdpSocket& dtlsSocket, HifiSockAddr& destinationSocket);
@@ -23,7 +24,6 @@ public:
     
     static int socketPullTimeout(gnutls_transport_ptr_t ptr, unsigned int ms);
     static ssize_t socketPull(gnutls_transport_ptr_t ptr, void* buffer, size_t size);
-    static ssize_t socketPush(gnutls_transport_ptr_t ptr, const void* buffer, size_t size);
     
     qint64 writeDatagram(const QByteArray& datagram);
     
@@ -32,8 +32,6 @@ public:
     bool completedHandshake() const { return _completedHandshake; }
     void setCompletedHandshake(bool completedHandshake);
 protected:
-    QUdpSocket& _dtlsSocket;
-    HifiSockAddr _destinationSocket;
     gnutls_session_t _gnutlsSession;
     bool _completedHandshake;
 };
