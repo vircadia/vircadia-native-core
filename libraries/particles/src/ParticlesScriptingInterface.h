@@ -27,17 +27,6 @@ public:
     void setParticleTree(ParticleTree* particleTree) { _particleTree = particleTree; }
     ParticleTree* getParticleTree(ParticleTree*) { return _particleTree; }
     
-private slots:
-    /// inbound slots for external collision systems
-    void forwardParticleCollisionWithVoxel(const ParticleID& particleID, 
-                            const VoxelDetail& voxel, const glm::vec3& penetration) {
-        emit particleCollisionWithVoxel(particleID, voxel, penetration);
-    }
-
-    void forwardParticleCollisionWithParticle(const ParticleID& idA, const ParticleID& idB, const glm::vec3& penetration) {
-        emit particleCollisionWithParticle(idA, idB, penetration);
-    }
-    
 public slots:
     /// adds a particle with the specific properties
     ParticleID addParticle(const ParticleProperties& properties);
