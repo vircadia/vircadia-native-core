@@ -25,6 +25,7 @@
 #include <SharedUtil.h>
 #include <StdDev.h>
 #include <UUID.h>
+#include <glm/glm.hpp>
 
 #include "Application.h"
 #include "Audio.h"
@@ -624,9 +625,11 @@ unsigned int Audio::timeValToSampleTick(const quint64 time, int sampleRate) {
 
 void Audio::addSpatialAudioToBuffer(unsigned int sampleTime, const AudioRingBuffer& spatialAudio) {
 
-    // Calculate the number of remaining samples available
+    // Calculate the number of remaining samples available, the source spatial audio buffer will get
+    // clipped if there are insufficient samples available in the accumulation buffer.
     unsigned int remaining = _spatialAudioRingBuffer.getSampleCapacity() - _spatialAudioRingBuffer.samplesAvailable();
 
+    // Locate where in the accumulation buffer the new samples need to go
     if (sampleTime >= _spatialAudioFinish) {
         if (_spatialAudioStart == _spatialAudioFinish) {
 
@@ -636,12 +639,12 @@ void Audio::addSpatialAudioToBuffer(unsigned int sampleTime, const AudioRingBuff
             if (sampleCt) {
                 _spatialAudioRingBuffer.writeSamples(spatialAudio.getNextOutput(), sampleCt);
             }
-            _spatialAudioFinish = _spatialAudioStart + spatialAudio.samplesAvailable() / _desiredOutputFormat.channelCount();
+            _spatialAudioFinish = _spatialAudioStart + sampleCt / _desiredOutputFormat.channelCount();
 
         } else {
 
-            // Spatial audio ring buffer already has data, but there is no overlap with the new sample
-            // compute the appropriate time delay and pad with silence until the new start time
+            // Spatial audio ring buffer already has data, but there is no overlap with the new sample.
+            // Compute the appropriate time delay and pad with silence until the new start time.
             unsigned int delay = sampleTime - _spatialAudioFinish;
             unsigned int ct = delay * _desiredOutputFormat.channelCount();
             unsigned int silentCt = (remaining < ct) ? remaining : ct;
@@ -670,16 +673,18 @@ void Audio::addSpatialAudioToBuffer(unsigned int sampleTime, const AudioRingBuff
 
         int j = 0;
         for (int i = accumulationCt; --i >= 0; j++) {
-            _spatialAudioRingBuffer[j + offset] += spatialAudio[j];
+            int tmp = _spatialAudioRingBuffer[j + offset] + spatialAudio[j];
+            _spatialAudioRingBuffer[j + offset] = 
+                static_cast<int16_t>(glm::clamp<int>(tmp, std::numeric_limits<short>::min(), std::numeric_limits<short>::max()));
         }
 
-        // Copy the remaining unoverlapped spatial audio to the accumulation buffer
+        // Copy the remaining unoverlapped spatial audio to the accumulation buffer, if any
         unsigned int sampleCt = spatialAudio.samplesAvailable() - accumulationCt;
         sampleCt = (remaining < sampleCt) ? remaining : sampleCt;
         if (sampleCt) {
             _spatialAudioRingBuffer.writeSamples(spatialAudio.getNextOutput() + accumulationCt, sampleCt);
+            _spatialAudioFinish += sampleCt / _desiredOutputFormat.channelCount();
         }
-        _spatialAudioFinish += sampleCt / _desiredOutputFormat.channelCount();
     }
 }
 
