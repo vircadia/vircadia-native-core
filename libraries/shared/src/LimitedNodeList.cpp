@@ -173,7 +173,7 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
 }
 
 qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr,
-                               const QUuid& connectionSecret) {
+                                      const QUuid& connectionSecret) {
     QByteArray datagramCopy = datagram;
     
     if (!connectionSecret.isNull()) {

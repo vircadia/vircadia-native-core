@@ -67,6 +67,7 @@ public:
     void resetNodeInterestSet() { _nodeTypesOfInterest.clear(); }
 
     void processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
+    
     int processDomainServerList(const QByteArray& packet);
 
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
@@ -82,6 +83,8 @@ public slots:
     void reset();
     void sendDomainServerCheckIn();
     void pingInactiveNodes();
+    void completedDTLSHandshake();
+    void processAvailableDTLSDatagrams();
 signals:
     void limitOfSilentDomainCheckInsReached();
 private:

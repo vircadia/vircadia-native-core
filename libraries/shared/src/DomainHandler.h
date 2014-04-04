@@ -60,7 +60,8 @@ private slots:
 signals:
     void hostnameChanged(const QString& hostname);
     void connectedToDomain(const QString& hostname);
-    void initializedDTLSSession();
+    void completedDTLSHandshake();
+    
 private:
     void reset();
     void initializeDTLSSession();

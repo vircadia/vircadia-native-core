@@ -483,6 +483,9 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     LimitedNodeList* nodeList = LimitedNodeList::getInstance();
     
     if (nodeInterestList.size() > 0) {
+        
+        DTLSServerSession* dtlsSession = _isUsingDTLS ? _dtlsSessions[senderSockAddr] : NULL;
+        
         // if the node has any interest types, send back those nodes as well
         foreach (const SharedNodePointer& otherNode, nodeList->getNodeHash()) {
             
@@ -516,7 +519,11 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
                     // we need to break here and start a new packet
                     // so send the current one
                     
-                    nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
+                    if (!dtlsSession) {
+                        nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
+                    } else {
+                        dtlsSession->writeDatagram(broadcastPacket);
+                    }
                     
                     // reset the broadcastPacket structure
                     broadcastPacket.resize(numBroadcastPacketLeadBytes);
@@ -527,10 +534,14 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
                 broadcastPacket.append(nodeByteArray);
             }
         }
+        
+        // always write the last broadcastPacket
+        if (!dtlsSession) {
+            nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
+        } else {
+            dtlsSession->writeDatagram(broadcastPacket);
+        }
     }
-    
-    // always write the last broadcastPacket
-    nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
 }
 
 void DomainServer::readAvailableDatagrams() {
@@ -640,12 +651,12 @@ void DomainServer::readAvailableDTLSDatagrams() {
                 }
             } else {
                 // pull the data from this user off the stack and process it
-                int receiveCode = gnutls_record_recv(*existingSession->getGnuTLSSession(),
-                                                     peekDatagram.data(), peekDatagram.size());
-                if (receiveCode > 0) {
-                    processDatagram(peekDatagram, senderHifiSockAddr);
-                } else if (gnutls_error_is_fatal(receiveCode)) {
-                    qDebug() << "Fatal error -" << gnutls_strerror(receiveCode) << "- during DTLS handshake with"
+                int receivedBytes = gnutls_record_recv(*existingSession->getGnuTLSSession(),
+                                                       peekDatagram.data(), peekDatagram.size());
+                if (receivedBytes > 0) {
+                    processDatagram(peekDatagram.left(receivedBytes), senderHifiSockAddr);
+                } else if (gnutls_error_is_fatal(receivedBytes)) {
+                    qDebug() << "Fatal error -" << gnutls_strerror(receivedBytes) << "- during DTLS handshake with"
                         << senderHifiSockAddr;
                 }
             }

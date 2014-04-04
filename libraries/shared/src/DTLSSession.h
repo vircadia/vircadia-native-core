@@ -24,6 +24,8 @@ public:
     static ssize_t socketPull(gnutls_transport_ptr_t ptr, void* buffer, size_t size);
     static ssize_t socketPush(gnutls_transport_ptr_t ptr, const void* buffer, size_t size);
     
+    qint64 writeDatagram(const QByteArray& datagram);
+    
     gnutls_session_t* getGnuTLSSession() { return &_gnutlsSession; }
     
     bool completedHandshake() const { return _completedHandshake; }

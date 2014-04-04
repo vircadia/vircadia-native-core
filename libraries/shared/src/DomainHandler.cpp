@@ -115,8 +115,6 @@ void DomainHandler::setHostname(const QString& hostname) {
 void DomainHandler::completeDTLSHandshake() {
     int handshakeReturn = gnutls_handshake(*_dtlsSession->getGnuTLSSession());
     
-    qDebug() << "handshake return is" << handshakeReturn;
-    
     if (handshakeReturn == 0) {
         // we've shaken hands, so we're good to go now
         _dtlsSession->setCompletedHandshake(true);
@@ -124,6 +122,9 @@ void DomainHandler::completeDTLSHandshake() {
         _handshakeTimer->stop();
         delete _handshakeTimer;
         _handshakeTimer = NULL;
+        
+        // emit a signal so NodeList can handle incoming DTLS packets
+        emit completedDTLSHandshake();
         
     } else if (gnutls_error_is_fatal(handshakeReturn)) {
         // this was a fatal error handshaking, so remove this session

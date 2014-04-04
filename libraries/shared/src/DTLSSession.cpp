@@ -11,6 +11,8 @@
 #include "NodeList.h"
 #include "DTLSSession.h"
 
+#define DTLS_VERBOSE_DEBUG 0
+
 int DTLSSession::socketPullTimeout(gnutls_transport_ptr_t ptr, unsigned int ms) {
     DTLSSession* session = static_cast<DTLSSession*>(ptr);
     QUdpSocket& dtlsSocket = session->_dtlsSocket;
@@ -47,14 +49,19 @@ ssize_t DTLSSession::socketPull(gnutls_transport_ptr_t ptr, void* buffer, size_t
                                                    pulledSockAddr.getAddressPointer(), pulledSockAddr.getPortPointer());
     if (bytesReceived == -1) {
         // no data to pull, return -1
+#if DTLS_VERBOSE_DEBUG
         qDebug() << "Received no data on call to readDatagram";
+#endif
         return bytesReceived;
     }
     
     if (pulledSockAddr == session->_destinationSocket) {
         // bytes received from the correct sender, return number of bytes received
+
+#if DTLS_VERBOSE_DEBUG
         qDebug() << "Received" << bytesReceived << "on DTLS socket from" << pulledSockAddr;
-        qDebug() << QByteArray(reinterpret_cast<char*>(buffer), bytesReceived).toHex();
+#endif
+        
         return bytesReceived;
     }
     
@@ -69,8 +76,10 @@ ssize_t DTLSSession::socketPush(gnutls_transport_ptr_t ptr, const void* buffer, 
     DTLSSession* session = static_cast<DTLSSession*>(ptr);
     QUdpSocket& dtlsSocket = session->_dtlsSocket;
     
+#if DTLS_VERBOSE_DEBUG
     qDebug() << "Pushing a message of size" << size << "to" << session->_destinationSocket;
-    qDebug() << QByteArray(reinterpret_cast<const char*>(buffer), size).toHex();
+#endif
+    
     return dtlsSocket.writeDatagram(reinterpret_cast<const char*>(buffer), size,
                                     session->_destinationSocket.getAddress(), session->_destinationSocket.getPort());
 }
@@ -93,4 +102,9 @@ DTLSSession::DTLSSession(int end, QUdpSocket& dtlsSocket, HifiSockAddr& destinat
     gnutls_transport_set_push_function(_gnutlsSession, socketPush);
     gnutls_transport_set_pull_function(_gnutlsSession, socketPull);
     gnutls_transport_set_pull_timeout_function(_gnutlsSession, socketPullTimeout);
+}
+
+qint64 DTLSSession::writeDatagram(const QByteArray& datagram) {
+    // we don't need to put a hash in this packet, so just send it off
+    return gnutls_record_send(_gnutlsSession, datagram.data(), datagram.size());
 }

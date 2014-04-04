@@ -65,6 +65,9 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     
     // clear our NodeList when logout is requested
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
+    
+    // perform a function when DTLS handshake is completed
+    connect(&_domainHandler, &DomainHandler::completedDTLSHandshake, this, &NodeList::completedDTLSHandshake);
 }
 
 qint64 NodeList::sendStatsToDomainServer(const QJsonObject& statsObject) {
@@ -108,6 +111,28 @@ void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& 
         "         othersReplyTime: " << othersReplyTime << "\n" <<
         "    othersExprectedReply: " << othersExprectedReply << "\n" <<
         "               clockSkew: " << clockSkew;
+    }
+}
+
+void NodeList::completedDTLSHandshake() {
+    // at this point, we've got a DTLS socket
+    // make this NodeList the handler of DTLS packets
+    connect(_dtlsSocket, &QUdpSocket::readyRead, this, &NodeList::processAvailableDTLSDatagrams);
+}
+
+void NodeList::processAvailableDTLSDatagrams() {
+    while (_dtlsSocket->hasPendingDatagrams()) {
+        QByteArray dtlsPacket(_dtlsSocket->pendingDatagramSize(), 0);
+        
+        // pull the data from this user off the stack and process it
+        int receivedBytes = gnutls_record_recv(*_domainHandler.getDTLSSession()->getGnuTLSSession(),
+                                             dtlsPacket.data(), dtlsPacket.size());
+        if (receivedBytes > 0) {
+            // successful data receive, hand this off to processNodeData
+            processNodeData(_domainHandler.getSockAddr(), dtlsPacket.left(receivedBytes));
+        } else if (gnutls_error_is_fatal(receivedBytes)) {
+            qDebug() << "Fatal error -" << gnutls_strerror(receivedBytes) << "- receiving DTLS packet from domain-server.";
+        }
     }
 }
 
@@ -342,8 +367,8 @@ void NodeList::sendDomainServerCheckIn() {
         
         // pack our data to send to the domain-server
         packetStream << _ownerType << _publicSockAddr
-        << HifiSockAddr(QHostAddress(getHostOrderLocalAddress()), _nodeSocket.localPort())
-        << (quint8) _nodeTypesOfInterest.size();
+            << HifiSockAddr(QHostAddress(getHostOrderLocalAddress()), _nodeSocket.localPort())
+            << (quint8) _nodeTypesOfInterest.size();
         
         // copy over the bytes for node types of interest, if required
         foreach (NodeType_t nodeTypeOfInterest, _nodeTypesOfInterest) {
@@ -353,7 +378,7 @@ void NodeList::sendDomainServerCheckIn() {
         if (!isUsingDTLS) {
             writeDatagram(domainServerPacket, _domainHandler.getSockAddr(), QUuid());
         } else {
-            gnutls_record_send(*dtlsSession->getGnuTLSSession(), domainServerPacket.data(), domainServerPacket.size());
+            dtlsSession->writeDatagram(domainServerPacket);
         }
         
         
