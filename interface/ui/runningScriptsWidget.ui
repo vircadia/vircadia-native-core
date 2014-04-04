@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>310</width>
+    <width>323</width>
     <height>651</height>
    </rect>
   </property>
@@ -24,15 +24,16 @@ QWidget {
   <widget class="QLabel" name="widgetTitle">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>10</y>
+     <x>37</x>
+     <y>29</y>
      <width>251</width>
-     <height>31</height>
+     <height>20</height>
     </rect>
    </property>
    <property name="styleSheet">
     <string notr="true">color: #0e7077;
-font-size: 20pt;</string>
+font-size: 20pt;
+background: transparent;</string>
    </property>
    <property name="text">
     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;Running Scripts&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -47,15 +48,16 @@ font-size: 20pt;</string>
   <widget class="QLabel" name="currentlyRunningLabel">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>40</y>
+     <x>36</x>
+     <y>70</y>
      <width>270</width>
      <height>20</height>
     </rect>
    </property>
    <property name="styleSheet">
     <string notr="true">color: #0e7077;
-font: bold 14pt;</string>
+font: bold 14pt;
+background: transparent;</string>
    </property>
    <property name="text">
     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Currently running&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -64,7 +66,7 @@ font: bold 14pt;</string>
   <widget class="QPushButton" name="reloadAllButton">
    <property name="geometry">
     <rect>
-     <x>20</x>
+     <x>36</x>
      <y>230</y>
      <width>111</width>
      <height>35</height>
@@ -93,9 +95,9 @@ font: bold 14pt;</string>
   <widget class="QPushButton" name="stopAllButton">
    <property name="geometry">
     <rect>
-     <x>144</x>
+     <x>160</x>
      <y>230</y>
-     <width>101</width>
+     <width>93</width>
      <height>35</height>
     </rect>
    </property>
@@ -119,9 +121,9 @@ font: bold 14pt;</string>
   <widget class="QLabel" name="recentlyLoadedLabel">
    <property name="geometry">
     <rect>
-     <x>20</x>
+     <x>36</x>
      <y>280</y>
-     <width>301</width>
+     <width>265</width>
      <height>20</height>
     </rect>
    </property>
@@ -136,10 +138,10 @@ font: bold 14pt;</string>
   <widget class="QLabel" name="recentlyLoadedInstruction">
    <property name="geometry">
     <rect>
-     <x>20</x>
+     <x>36</x>
      <y>590</y>
-     <width>271</width>
-     <height>41</height>
+     <width>203</width>
+     <height>31</height>
     </rect>
    </property>
    <property name="styleSheet">
@@ -156,10 +158,10 @@ font-size: 14pt;</string>
   <widget class="QPushButton" name="hideWidgetButton">
    <property name="geometry">
     <rect>
-     <x>270</x>
-     <y>10</y>
-     <width>31</width>
-     <height>31</height>
+     <x>285</x>
+     <y>29</y>
+     <width>16</width>
+     <height>16</height>
     </rect>
    </property>
    <property name="cursor">
@@ -174,8 +176,8 @@ font-size: 14pt;</string>
    </property>
    <property name="iconSize">
     <size>
-     <width>20</width>
-     <height>20</height>
+     <width>16</width>
+     <height>16</height>
     </size>
    </property>
    <property name="flat">
@@ -185,8 +187,8 @@ font-size: 14pt;</string>
   <widget class="QLabel" name="noRunningScriptsLabel">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>60</y>
+     <x>36</x>
+     <y>70</y>
      <width>271</width>
      <height>51</height>
     </rect>
@@ -198,15 +200,15 @@ font-size: 14pt;</string>
     <string>There are no scripts currently running.</string>
    </property>
    <property name="alignment">
-    <set>Qt::AlignCenter</set>
+    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
    </property>
   </widget>
   <widget class="QWidget" name="recentlyLoadedScriptsTableWidget" native="true">
    <property name="geometry">
     <rect>
-     <x>14</x>
+     <x>30</x>
      <y>300</y>
-     <width>276</width>
+     <width>272</width>
      <height>280</height>
     </rect>
    </property>
@@ -218,9 +220,9 @@ font-size: 14pt;</string>
   <widget class="QWidget" name="runningScriptsTableWidget" native="true">
    <property name="geometry">
     <rect>
-     <x>14</x>
-     <y>60</y>
-     <width>276</width>
+     <x>30</x>
+     <y>88</y>
+     <width>272</width>
      <height>161</height>
     </rect>
    </property>
@@ -229,6 +231,16 @@ font-size: 14pt;</string>
 font-size: 14pt;</string>
    </property>
   </widget>
+  <zorder>widgetTitle</zorder>
+  <zorder>currentlyRunningLabel</zorder>
+  <zorder>recentlyLoadedLabel</zorder>
+  <zorder>recentlyLoadedInstruction</zorder>
+  <zorder>hideWidgetButton</zorder>
+  <zorder>recentlyLoadedScriptsTableWidget</zorder>
+  <zorder>runningScriptsTableWidget</zorder>
+  <zorder>noRunningScriptsLabel</zorder>
+  <zorder>reloadAllButton</zorder>
+  <zorder>stopAllButton</zorder>
  </widget>
  <resources>
   <include location="../resources/resources.qrc"/>

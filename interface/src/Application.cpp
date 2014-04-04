@@ -3635,7 +3635,7 @@ void Application::toggleRunningScriptsWidget()
     if (!_runningScriptsWidget->toggleViewAction()->isChecked()) {
         _runningScriptsWidget->setGeometry(_window->geometry().topLeft().x(),
                                            _window->geometry().topLeft().y(),
-                                           310, _window->height());
+                                           _runningScriptsWidget->width(), _window->height());
         _runningScriptsWidget->toggleViewAction()->trigger();
         _runningScriptsWidget->grabKeyboard();
         _runningScriptsWidget->show();

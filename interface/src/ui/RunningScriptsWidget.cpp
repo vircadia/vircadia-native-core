@@ -27,7 +27,7 @@ RunningScriptsWidget::RunningScriptsWidget(QDockWidget *parent) :
 
     _runningScriptsTable = new ScriptsTableWidget(ui->runningScriptsTableWidget);
     _runningScriptsTable->setColumnCount(2);
-    _runningScriptsTable->setColumnWidth(0, 252);
+    _runningScriptsTable->setColumnWidth(0, 245);
     _runningScriptsTable->setColumnWidth(1, 22);
     connect(_runningScriptsTable, &QTableWidget::cellClicked, this, &RunningScriptsWidget::stopScript);
 
@@ -72,6 +72,21 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list)
         _runningScriptsTable->setItem(i, 0, scriptName);
         _runningScriptsTable->setItem(i, 1, closeIcon);
     }
+
+    int y = ui->runningScriptsTableWidget->y() + 12;
+    for (int i = 0; i < _runningScriptsTable->rowCount(); ++i) {
+        y += _runningScriptsTable->rowHeight(i);
+    }
+
+    ui->runningScriptsTableWidget->resize(ui->runningScriptsTableWidget->width(), y - 12);
+    _runningScriptsTable->resize(_runningScriptsTable->width(), y - 12);
+    ui->reloadAllButton->move(ui->reloadAllButton->x(), y);
+    ui->stopAllButton->move(ui->stopAllButton->x(), y);
+    ui->recentlyLoadedLabel->move(ui->recentlyLoadedLabel->x(),
+                                  ui->stopAllButton->y() + ui->stopAllButton->height() + 61);
+    ui->recentlyLoadedScriptsTableWidget->move(ui->recentlyLoadedScriptsTableWidget->x(),
+                                               ui->recentlyLoadedLabel->y() + 19);
+
 
     createRecentlyLoadedScriptsTable();
 }
@@ -143,18 +158,18 @@ void RunningScriptsWidget::keyPressEvent(QKeyEvent *e)
 void RunningScriptsWidget::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);
-    painter.setPen(QColor::fromRgb(225, 225, 225));
+    painter.setPen(QColor::fromRgb(225, 225, 225)); // #e1e1e1
 
     if (ui->currentlyRunningLabel->isVisible()) {
         // line below the 'Currently Running' label
-        painter.drawLine(21, ui->currentlyRunningLabel->y() + ui->currentlyRunningLabel->height(),
-                         width() - 22, ui->currentlyRunningLabel->y() + ui->currentlyRunningLabel->height());
+        painter.drawLine(36, ui->currentlyRunningLabel->y() + ui->currentlyRunningLabel->height(),
+                         300, ui->currentlyRunningLabel->y() + ui->currentlyRunningLabel->height());
     }
 
     if (ui->recentlyLoadedLabel->isVisible()) {
         // line below the 'Recently loaded' label
-        painter.drawLine(21, ui->recentlyLoadedLabel->y() + ui->recentlyLoadedLabel->height(),
-                         width() - 22, ui->recentlyLoadedLabel->y() + ui->recentlyLoadedLabel->height());
+        painter.drawLine(36, ui->recentlyLoadedLabel->y() + ui->recentlyLoadedLabel->height(),
+                         300, ui->recentlyLoadedLabel->y() + ui->recentlyLoadedLabel->height());
     }
 
     painter.end();

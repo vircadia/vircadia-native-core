@@ -28,11 +28,11 @@ ScriptsTableWidget::ScriptsTableWidget(QWidget *parent) :
 void ScriptsTableWidget::paintEvent(QPaintEvent *event)
 {
     QPainter painter(viewport());
-    painter.setPen(QColor::fromRgb(225, 225, 225));
+    painter.setPen(QColor::fromRgb(225, 225, 225)); // #e1e1e1
 
     int y = 0;
     for (int i = 0; i < rowCount(); ++i) {
-        painter.drawLine(6, rowHeight(i) + y, width(), rowHeight(i) + y);
+        painter.drawLine(5, rowHeight(i) + y, width(), rowHeight(i) + y);
         y += rowHeight(i);
     }
     painter.end();
