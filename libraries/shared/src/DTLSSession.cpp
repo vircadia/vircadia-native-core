@@ -105,6 +105,11 @@ DTLSSession::DTLSSession(int end, QUdpSocket& dtlsSocket, HifiSockAddr& destinat
     gnutls_transport_set_pull_timeout_function(_gnutlsSession, socketPullTimeout);
 }
 
+DTLSSession::~DTLSSession() {
+    gnutls_bye(_gnutlsSession, GNUTLS_SHUT_WR);
+    gnutls_deinit(_gnutlsSession);
+}
+
 void DTLSSession::setCompletedHandshake(bool completedHandshake) {
      _completedHandshake = completedHandshake;
     qDebug() << "Completed DTLS handshake with" << _destinationSocket;

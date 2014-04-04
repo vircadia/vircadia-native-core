@@ -19,6 +19,7 @@ class DTLSSession : public QObject {
     Q_OBJECT
 public:
     DTLSSession(int end, QUdpSocket& dtlsSocket, HifiSockAddr& destinationSocket);
+    ~DTLSSession();
     
     static int socketPullTimeout(gnutls_transport_ptr_t ptr, unsigned int ms);
     static ssize_t socketPull(gnutls_transport_ptr_t ptr, void* buffer, size_t size);

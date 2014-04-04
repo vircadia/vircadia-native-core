@@ -1001,6 +1001,7 @@ void DomainServer::nodeAdded(SharedNodePointer node) {
 void DomainServer::nodeKilled(SharedNodePointer node) {
     
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+    
     if (nodeData) {
         // if this node's UUID matches a static assignment we need to throw it back in the assignment queue
         if (!nodeData->getStaticAssignmentUUID().isNull()) {
@@ -1016,6 +1017,14 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
             SharedNodePointer otherNode = LimitedNodeList::getInstance()->nodeWithUUID(otherNodeSessionUUID);
             if (otherNode) {
                 reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())->getSessionSecretHash().remove(node->getUUID());
+            }
+        }
+        
+        if (_isUsingDTLS) {
+            // check if we need to remove a DTLS session from our in-memory hash
+            DTLSServerSession* existingSession = _dtlsSessions.take(nodeData->getSendingSockAddr());
+            if (existingSession) {
+                delete existingSession;
             }
         }
     }
