@@ -78,6 +78,20 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     }
 }
 
+DomainServer::~DomainServer() {
+    if (_x509Credentials) {
+        gnutls_certificate_free_credentials(*_x509Credentials);
+        gnutls_priority_deinit(*_priorityCache);
+        gnutls_dh_params_deinit(*_dhParams);
+        
+        delete _x509Credentials;
+        delete _priorityCache;
+        delete _dhParams;
+        delete _cookieKey;
+    }
+    gnutls_global_deinit();
+}
+
 bool DomainServer::optionallySetupDTLS() {
     if (readX509KeyAndCertificate()) {
         if (_x509Credentials) {

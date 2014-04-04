@@ -393,6 +393,8 @@ Application::~Application() {
     delete _glWidget;
     
     AccountManager::getInstance().destroy();
+    
+    gnutls_global_deinit();
 }
 
 void Application::restoreSizeAndPosition() {

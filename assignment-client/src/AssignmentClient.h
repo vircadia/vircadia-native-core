@@ -17,6 +17,7 @@ class AssignmentClient : public QCoreApplication {
     Q_OBJECT
 public:
     AssignmentClient(int &argc, char **argv);
+    ~AssignmentClient();
 private slots:
     void sendAssignmentRequest();
     void readPendingDatagrams();

@@ -31,6 +31,7 @@ class DomainServer : public QCoreApplication, public HTTPRequestHandler {
     Q_OBJECT
 public:
     DomainServer(int argc, char* argv[]);
+    ~DomainServer();
     
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
     

@@ -14,8 +14,9 @@
 class DTLSClientSession : public DTLSSession {
 public:
     DTLSClientSession(QUdpSocket& dtlsSocket, HifiSockAddr& destinationSocket);
-    
-    static gnutls_certificate_credentials_t* x509CACredentials();
+    ~DTLSClientSession();
+private:
+    gnutls_certificate_credentials_t _x509Credentials;
 };
 
 #endif /* defined(__hifi__DTLSClientSession__) */

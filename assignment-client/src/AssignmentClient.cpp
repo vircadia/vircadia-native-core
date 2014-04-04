@@ -109,6 +109,10 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
             this, &AssignmentClient::handleAuthenticationRequest);
 }
 
+AssignmentClient::~AssignmentClient() {
+    gnutls_global_deinit();
+}
+
 void AssignmentClient::sendAssignmentRequest() {
     if (!_currentAssignment) {
         NodeList::getInstance()->sendAssignment(_requestAssignment);
