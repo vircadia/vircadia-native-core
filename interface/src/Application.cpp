@@ -63,7 +63,7 @@
 #include <UUID.h>
 #include <OctreeSceneStats.h>
 #include <LocalVoxelsList.h>
-#include <FstReader.h>
+#include <ModelUploader.h>
 
 #include "Application.h"
 #include "InterfaceVersion.h"
@@ -510,7 +510,7 @@ void Application::paintGL() {
         _myCamera.setDistance(0.0f);
         _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
         _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
-        _myCamera.setTargetRotation(_myAvatar->getHead()->getOrientation());
+        _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
 
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows (untweaked) head exactly without delay
@@ -3244,9 +3244,9 @@ void Application::toggleRunningScriptsWidget()
 }
 
 void Application::uploadFST(bool isHead) {
-    FstReader reader(isHead);
-    if (reader.zip()) {
-        reader.send();
+    ModelUploader* uploader = new ModelUploader(isHead);
+    if (uploader->zip()) {
+        uploader->send();
     }
 }
 
