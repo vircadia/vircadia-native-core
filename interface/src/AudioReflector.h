@@ -35,9 +35,19 @@ public:
     float getMinDelayMsecs() const { return _minDelay; }
     float getMinAttenuation() const { return _minAttenuation; }
     float getDelayFromDistance(float distance);
-    
-public slots:
+
     void processSpatialAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
+
+public slots:
+
+    float getPreDelay() const { return _preDelay; }
+    void setPreDelay(float preDelay) { _preDelay = preDelay; }
+    float getSoundMsPerMeter() const { return _soundMsPerMeter; } /// ms per meter, larger means slower
+    void setSoundMsPerMeter(float soundMsPerMeter) { _soundMsPerMeter = soundMsPerMeter; }
+    float getDistanceAttenuationScalingFactor() const { return _distanceAttenuationScalingFactor; } /// ms per meter, larger means slower
+    void setDistanceAttenuationScalingFactor(float factor) { _distanceAttenuationScalingFactor = factor; }
+    
+    
     
 signals:
     
@@ -52,11 +62,12 @@ private:
     void echoReflections(const glm::vec3& origin, const QVector<glm::vec3>& reflections, const QByteArray& samples, 
                                         unsigned int sampleTime, int sampleRate);
 
-    QVector<glm::vec3> calculateReflections(const glm::vec3& origin, const glm::vec3& originalDirection, int maxBounces);
+    QVector<glm::vec3> calculateReflections(const glm::vec3& earPosition, const glm::vec3& origin, const glm::vec3& originalDirection);
     void drawReflections(const glm::vec3& origin, const glm::vec3& originalColor, const QVector<glm::vec3>& reflections);
 
     void calculateAllReflections();
     void reset();
+    float getDistanceAttenuationCoefficient(float distance);
     
     int _reflections;
 
@@ -73,6 +84,7 @@ private:
     float _minAttenuation;
 
     glm::vec3 _origin;
+    glm::quat _orientation;
     QVector<glm::vec3> _frontRightUpReflections;
     QVector<glm::vec3> _frontLeftUpReflections;
     QVector<glm::vec3> _backRightUpReflections;
@@ -89,6 +101,10 @@ private:
     QVector<glm::vec3> _downReflections;
     
     QMutex _mutex;
+
+    float _preDelay;
+    float _soundMsPerMeter;
+    float _distanceAttenuationScalingFactor;
     
 };
 

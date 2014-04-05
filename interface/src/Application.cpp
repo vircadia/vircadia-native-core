@@ -2787,7 +2787,7 @@ void Application::displayStats() {
 
     glm::vec3 avatarPos = _myAvatar->getPosition();
 
-    lines = _statsExpanded ? 5 : 3;
+    lines = _statsExpanded ? 8 : 3;
     displayStatsBackground(backgroundColor, horizontalOffset, 0, _glWidget->width() - (mirrorEnabled ? 301 : 411) - horizontalOffset, lines * STATS_PELS_PER_LINE + 10);
     horizontalOffset += 5;
 
@@ -2840,26 +2840,34 @@ void Application::displayStats() {
             // add some reflection stats
             char reflectionsStatus[128];
 
-            sprintf(reflectionsStatus, "Reflections: %d, Pre-Delay: %f, Separate Ears:%s", 
+            sprintf(reflectionsStatus, "Reflections: %d, Original: %s, Ears: %s, Source: %s", 
                     _audioReflector.getReflections(),
-                    _audioReflector.getDelayFromDistance(0.0f),
-                    debug::valueOf(Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingSeparateEars)));
+                    (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncudeOriginal)
+                        ? "with" : "without"),
+                    (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingSeparateEars)
+                        ? "two" : "one"),
+                    (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingStereoSource)
+                        ? "stereo" : "mono")
+                    );
                     
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, WHITE_TEXT);
 
-            sprintf(reflectionsStatus, "Delay: average %f, max %f, min %f", 
+            sprintf(reflectionsStatus, "Delay: pre: %f, average %f, max %f, min %f, speed: %f", 
+                    _audioReflector.getDelayFromDistance(0.0f),
                     _audioReflector.getAverageDelayMsecs(),
                     _audioReflector.getMaxDelayMsecs(),
-                    _audioReflector.getMinDelayMsecs());
+                    _audioReflector.getMinDelayMsecs(),
+                    _audioReflector.getSoundMsPerMeter());
                     
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, WHITE_TEXT);
 
-            sprintf(reflectionsStatus, "Attenuation: average %f, max %f, min %f", 
+            sprintf(reflectionsStatus, "Attenuation: average %f, max %f, min %f, distance scale: %f", 
                     _audioReflector.getAverageAttenuation(),
                     _audioReflector.getMaxAttenuation(),
-                    _audioReflector.getMinAttenuation());
+                    _audioReflector.getMinAttenuation(),
+                    _audioReflector.getDistanceAttenuationScalingFactor());
                     
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, WHITE_TEXT);
@@ -3725,6 +3733,7 @@ void Application::loadScript(const QString& scriptName) {
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
 
     QThread* workerThread = new QThread(this);
 

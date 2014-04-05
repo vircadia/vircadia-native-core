@@ -331,8 +331,8 @@ Menu::Menu() :
 
 
     QMenu* renderDebugMenu = developerMenu->addMenu("Render Debugging Tools");
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::PipelineWarnings, Qt::CTRL | Qt::SHIFT | Qt::Key_P);
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::SuppressShortTimings, Qt::CTRL | Qt::SHIFT | Qt::Key_S);
+    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::PipelineWarnings);
+    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::SuppressShortTimings);
 
     addCheckableActionToQMenuAndActionHash(renderDebugMenu, 
                                   MenuOption::CullSharedFaces, 
@@ -383,7 +383,15 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSpatialProcessingPreDelay,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_D,
                                            true);
-                                           
+
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSpatialProcessingStereoSource,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_S,
+                                           true);
+
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSpatialProcessingHeadOriented,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_H,
+                                           true);
+
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::LowPassFilter,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_F,
                                            false);
