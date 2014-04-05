@@ -115,6 +115,7 @@ public:
     void loadScript(const QString& fileNameString);    
     void loadScripts();
     void storeSizeAndPosition();
+    void clearScriptsBeforeRunning();
     void saveScripts();
     void initializeGL();
     void paintGL();
@@ -155,6 +156,7 @@ public:
     Audio* getAudio() { return &_audio; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
+    ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
     VoxelTree* getVoxelTree() { return _voxels.getTree(); }
     ParticleTreeRenderer* getParticles() { return &_particles; }
@@ -253,6 +255,7 @@ public slots:
     void setRenderVoxels(bool renderVoxels);
     void doKillLocalVoxels();
     void loadDialog();
+    void loadScriptURLDialog();
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
     void stopAllScripts();
@@ -390,6 +393,7 @@ private:
 
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels, particles)
+    ViewFrustum _shadowViewFrustum;
     quint64 _lastQueriedTime;
 
     Oscilloscope _audioScope;

@@ -26,7 +26,8 @@
 Agent::Agent(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _voxelEditSender(),
-    _particleEditSender()
+    _particleEditSender(),
+    _receivedAudioBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO)
 {
     // be the parent of the script engine so it gets moved when we do
     _scriptEngine.setParent(this);
@@ -113,6 +114,17 @@ void Agent::readPendingDatagrams() {
                     _voxelViewer.processDatagram(mutablePacket, sourceNode);
                 }
 
+            } else if (datagramPacketType == PacketTypeMixedAudio) {
+                // parse the data and grab the average loudness
+                _receivedAudioBuffer.parseData(receivedPacket);
+                
+                // pretend like we have read the samples from this buffer so it does not fill
+                static int16_t garbageAudioBuffer[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO];
+                _receivedAudioBuffer.readSamples(garbageAudioBuffer, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO);
+                
+                // let this continue through to the NodeList so it updates last heard timestamp
+                // for the sending audio mixer
+                NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
             } else {
                 NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
             }
@@ -120,10 +132,12 @@ void Agent::readPendingDatagrams() {
     }
 }
 
+const QString AGENT_LOGGING_NAME = "agent";
+
 void Agent::run() {
-    NodeList* nodeList = NodeList::getInstance();
-    nodeList->setOwnerType(NodeType::Agent);
+    ThreadedAssignment::commonInit(AGENT_LOGGING_NAME, NodeType::Agent);
     
+    NodeList* nodeList = NodeList::getInstance();
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer);
     
     // figure out the URL for the script for this agent assignment
@@ -147,17 +161,6 @@ void Agent::run() {
     QString scriptContents(reply->readAll());
     
     qDebug() << "Downloaded script:" << scriptContents;
-    
-    timeval startTime;
-    gettimeofday(&startTime, NULL);
-    
-    QTimer* domainServerTimer = new QTimer(this);
-    connect(domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
-    domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_USECS / 1000);
-    
-    QTimer* silentNodeTimer = new QTimer(this);
-    connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
-    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
     
     // setup an Avatar for the script to use
     AvatarData scriptedAvatar;

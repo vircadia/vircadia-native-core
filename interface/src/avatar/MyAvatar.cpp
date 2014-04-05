@@ -79,6 +79,7 @@ void MyAvatar::reset() {
     // TODO? resurrect headMouse stuff?
     //_headMouseX = _glWidget->width() / 2;
     //_headMouseY = _glWidget->height() / 2;
+    _skeletonModel.reset();
     getHead()->reset();
     getHand()->reset();
 
@@ -175,26 +176,6 @@ void MyAvatar::simulate(float deltaTime) {
     const float MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY = 0.02f;
     if (glm::length(_position - _lastCollisionPosition) > MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY) {
         _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
-    }
-
-    if (_collisionFlags != 0) {
-        Camera* myCamera = Application::getInstance()->getCamera();
-
-        float radius = getSkeletonHeight() * COLLISION_RADIUS_SCALE;
-        if (myCamera->getMode() == CAMERA_MODE_FIRST_PERSON && !OculusManager::isConnected()) {
-            radius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cosf(0.5f * RADIANS_PER_DEGREE * myCamera->getFieldOfView()));
-            radius *= COLLISION_RADIUS_SCALAR;
-        }
-
-        if (_collisionFlags & COLLISION_GROUP_ENVIRONMENT) {
-            updateCollisionWithEnvironment(deltaTime, radius);
-        }
-        if (_collisionFlags & COLLISION_GROUP_VOXELS) {
-            updateCollisionWithVoxels(deltaTime, radius);
-        }
-        if (_collisionFlags & COLLISION_GROUP_AVATARS) {
-            updateCollisionWithAvatars(deltaTime);
-        }
     }
 
     // add thrust to velocity
@@ -320,7 +301,28 @@ void MyAvatar::simulate(float deltaTime) {
 
     // Zero thrust out now that we've added it to velocity in this frame
     _thrust = glm::vec3(0, 0, 0);
-    
+
+    // now that we're done stepping the avatar forward in time, compute new collisions
+    if (_collisionFlags != 0) {
+        Camera* myCamera = Application::getInstance()->getCamera();
+
+        float radius = getSkeletonHeight() * COLLISION_RADIUS_SCALE;
+        if (myCamera->getMode() == CAMERA_MODE_FIRST_PERSON && !OculusManager::isConnected()) {
+            radius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.f));
+            radius *= COLLISION_RADIUS_SCALAR;
+        }
+
+        if (_collisionFlags & COLLISION_GROUP_ENVIRONMENT) {
+            updateCollisionWithEnvironment(deltaTime, radius);
+        }
+        if (_collisionFlags & COLLISION_GROUP_VOXELS) {
+            updateCollisionWithVoxels(deltaTime, radius);
+        }
+        if (_collisionFlags & COLLISION_GROUP_AVATARS) {
+            updateCollisionWithAvatars(deltaTime);
+        }
+    }
+
     // consider updating our billboard
     maybeUpdateBillboard();
 }
@@ -361,7 +363,7 @@ void MyAvatar::updateFromGyros(float deltaTime) {
         }
     } else {
         // restore rotation, lean to neutral positions
-        const float RESTORE_PERIOD = 1.f;   // seconds
+        const float RESTORE_PERIOD = 0.25f;   // seconds
         float restorePercentage = glm::clamp(deltaTime/RESTORE_PERIOD, 0.f, 1.f);
         head->setPitchTweak(glm::mix(head->getPitchTweak(), 0.0f, restorePercentage));
         head->setYawTweak(glm::mix(head->getYawTweak(), 0.0f, restorePercentage));
@@ -450,12 +452,12 @@ void MyAvatar::renderDebugBodyPoints() {
 }
 
 // virtual
-void MyAvatar::render(const glm::vec3& cameraPosition, bool forShadowMapOrMirror) {
+void MyAvatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
     // don't render if we've been asked to disable local rendering
     if (!_shouldRender) {
         return; // exit early
     }
-    Avatar::render(cameraPosition, forShadowMapOrMirror);
+    Avatar::render(cameraPosition, renderMode);
 }
 
 void MyAvatar::renderHeadMouse() const {
@@ -638,20 +640,20 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _billboardValid = false;
 }
 
-void MyAvatar::renderBody(bool forceRenderHead) {
+void MyAvatar::renderBody(RenderMode renderMode) {
     if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         return; // wait until both models are loaded
     }
     
     //  Render the body's voxels and head
-    _skeletonModel.render(1.0f);
+    _skeletonModel.render(1.0f, renderMode == SHADOW_RENDER_MODE);
 
     //  Render head so long as the camera isn't inside it
     const float RENDER_HEAD_CUTOFF_DISTANCE = 0.40f;
     Camera* myCamera = Application::getInstance()->getCamera();
-    if (forceRenderHead || (glm::length(myCamera->getPosition() - getHead()->calculateAverageEyePosition()) >
+    if (renderMode != NORMAL_RENDER_MODE || (glm::length(myCamera->getPosition() - getHead()->calculateAverageEyePosition()) >
             RENDER_HEAD_CUTOFF_DISTANCE * _scale)) {
-        getHead()->render(1.0f);
+        getHead()->render(1.0f, renderMode == SHADOW_RENDER_MODE);
     }
     getHand()->render(true);
 }
@@ -881,35 +883,31 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
         // no need to compute a bunch of stuff if we have one or fewer avatars
         return;
     }
+    updateShapePositions();
     float myBoundingRadius = getBoundingRadius();
 
+    /* TODO: Andrew to fix Avatar-Avatar body collisions
     // HACK: body-body collision uses two coaxial capsules with axes parallel to y-axis
     // TODO: make the collision work without assuming avatar orientation
+    Extents myStaticExtents = _skeletonModel.getStaticExtents();
+    glm::vec3 staticScale = myStaticExtents.maximum - myStaticExtents.minimum;
+    float myCapsuleRadius = 0.25f * (staticScale.x + staticScale.z);
+    float myCapsuleHeight = staticScale.y;
+    */
 
-    // TODO: these local variables are not used in the live code, only in the
-    // commented-outTODO code below.
-    //Extents myStaticExtents = _skeletonModel.getStaticExtents();
-    //glm::vec3 staticScale = myStaticExtents.maximum - myStaticExtents.minimum;
-    //float myCapsuleRadius = 0.25f * (staticScale.x + staticScale.z);
-    //float myCapsuleHeight = staticScale.y;
-
-    CollisionInfo collisionInfo;
     foreach (const AvatarSharedPointer& avatarPointer, avatars) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
         if (static_cast<Avatar*>(this) == avatar) {
             // don't collide with ourselves
             continue;
         }
+        avatar->updateShapePositions();
         float distance = glm::length(_position - avatar->getPosition());        
         if (_distanceToNearestAvatar > distance) {
             _distanceToNearestAvatar = distance;
         }
         float theirBoundingRadius = avatar->getBoundingRadius();
         if (distance < myBoundingRadius + theirBoundingRadius) {
-            _skeletonModel.updateShapePositions();
-            Model& headModel = getHead()->getFaceModel();
-            headModel.updateShapePositions();
-
             /* TODO: Andrew to fix Avatar-Avatar body collisions
             Extents theirStaticExtents = _skeletonModel.getStaticExtents();
             glm::vec3 staticScale = theirStaticExtents.maximum - theirStaticExtents.minimum;
@@ -925,12 +923,16 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
             */
 
             // collide our hands against them
-            getHand()->collideAgainstAvatar(avatar, true);
+            // TODO: make this work when we can figure out when the other avatar won't yeild
+            // (for example, we're colling against their chest or leg)
+            //getHand()->collideAgainstAvatar(avatar, true);
 
             // collide their hands against us
             avatar->getHand()->collideAgainstAvatar(this, false);
         }
     }
+    // TODO: uncomment this when we handle collisions that won't affect other avatar
+    //getHand()->resolvePenetrations();
 }
 
 class SortedAvatar {

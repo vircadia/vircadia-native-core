@@ -8,6 +8,7 @@
 
 #include <cstring>
 
+#include <glm/detail/func_common.hpp>
 #include <QtCore/QDataStream>
 
 #include <Node.h>
@@ -15,12 +16,6 @@
 #include <UUID.h>
 
 #include "PositionalAudioRingBuffer.h"
-
-#ifdef _WIN32
-int isnan(double value) { return _isnan(value); }
-#else
-int isnan(double value) { return std::isnan(value); }
-#endif
 
 PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type) :
     AudioRingBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL),
@@ -69,12 +64,39 @@ int PositionalAudioRingBuffer::parsePositionalData(const QByteArray& positionalB
     packetStream.readRawData(reinterpret_cast<char*>(&_orientation), sizeof(_orientation));
 
     // if this node sent us a NaN for first float in orientation then don't consider this good audio and bail
-    if (isnan(_orientation.x)) {
+    if (glm::isnan(_orientation.x)) {
         reset();
         return 0;
     }
 
     return packetStream.device()->pos();
+}
+
+void PositionalAudioRingBuffer::updateNextOutputTrailingLoudness() {
+    // ForBoundarySamples means that we expect the number of samples not to roll of the end of the ring buffer
+    float nextLoudness = 0;
+    
+    for (int i = 0; i < _numFrameSamples; ++i) {
+        nextLoudness += fabsf(_nextOutput[i]);
+    }
+    
+    nextLoudness /= _numFrameSamples;
+    nextLoudness /= MAX_SAMPLE_VALUE;
+    
+    const int TRAILING_AVERAGE_FRAMES = 100;
+    const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
+    const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
+    const float LOUDNESS_EPSILON = 0.01f;
+    
+    if (nextLoudness >= _nextOutputTrailingLoudness) {
+        _nextOutputTrailingLoudness = nextLoudness;
+    } else {
+        _nextOutputTrailingLoudness = (_nextOutputTrailingLoudness * PREVIOUS_FRAMES_RATIO) + (CURRENT_FRAME_RATIO * nextLoudness);
+        
+        if (_nextOutputTrailingLoudness < LOUDNESS_EPSILON) {
+            _nextOutputTrailingLoudness = 0;
+        }
+    }
 }
 
 bool PositionalAudioRingBuffer::shouldBeAddedToMix(int numJitterBufferSamples) {

@@ -58,7 +58,7 @@ public:
     void createCollisionShapes();
     void updateShapePositions();
     void simulate(float deltaTime, bool fullUpdate = true);
-    bool render(float alpha);
+    bool render(float alpha = 1.0f, bool forShadowMap = false);
     
     /// Sets the URL of the model to render.
     /// \param fallback the URL of a fallback model to render if the requested model fails to load
@@ -135,18 +135,10 @@ public:
     /// \return true whether or not the rotation was found
     bool getRightHandRotation(glm::quat& rotation) const;
     
-    /// Sets the position of the left hand using inverse kinematics.
-    /// \return whether or not the left hand joint was found
-    bool setLeftHandPosition(const glm::vec3& position);
-    
     /// Restores some percentage of the default position of the left hand.
     /// \param percent the percentage of the default position to restore
     /// \return whether or not the left hand joint was found
     bool restoreLeftHandPosition(float percent = 1.0f);
-    
-    /// Sets the rotation of the left hand.
-    /// \return whether or not the left hand joint was found
-    bool setLeftHandRotation(const glm::quat& rotation);
     
     /// Gets the position of the left shoulder.
     /// \return whether or not the left shoulder joint was found
@@ -155,18 +147,10 @@ public:
     /// Returns the extended length from the left hand to its last free ancestor.
     float getLeftArmLength() const;
     
-    /// Sets the position of the right hand using inverse kinematics.
-    /// \return whether or not the right hand joint was found
-    bool setRightHandPosition(const glm::vec3& position);
-    
     /// Restores some percentage of the default position of the right hand.
     /// \param percent the percentage of the default position to restore
     /// \return whether or not the right hand joint was found
     bool restoreRightHandPosition(float percent = 1.0f);
-    
-    /// Sets the rotation of the right hand.
-    /// \return whether or not the right hand joint was found
-    bool setRightHandRotation(const glm::quat& rotation);
     
     /// Gets the position of the right shoulder.
     /// \return whether or not the right shoulder joint was found
@@ -194,6 +178,8 @@ public:
     /// \param collision details about the collision
     /// Use the collision to affect the model
     void applyCollision(CollisionInfo& collision);
+
+    float getBoundingRadius() const { return _boundingRadius; }
 
     /// Sets blended vertices computed in a separate thread.
     void setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
@@ -254,14 +240,14 @@ protected:
     /// Computes and returns the extended length of the limb terminating at the specified joint and starting at the joint's
     /// first free ancestor.
     float getLimbLength(int jointIndex) const;
-    
+
     void applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain = true);
     
 private:
     
     void applyNextGeometry();
     void deleteGeometry();
-    void renderMeshes(float alpha, bool translucent);
+    void renderMeshes(float alpha, bool forShadowMap, bool translucent);
     
     QSharedPointer<NetworkGeometry> _baseGeometry; ///< reference required to prevent collection of base
     QSharedPointer<NetworkGeometry> _nextBaseGeometry;
@@ -280,11 +266,15 @@ private:
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
     
     QVector<Model*> _attachments;
+
+    float _boundingRadius;
     
     static ProgramObject _program;
     static ProgramObject _normalMapProgram;
+    static ProgramObject _shadowProgram;
     static ProgramObject _skinProgram;
     static ProgramObject _skinNormalMapProgram;
+    static ProgramObject _skinShadowProgram;
     
     static int _normalMapTangentLocation;
     
@@ -298,6 +288,7 @@ private:
     
     static SkinLocations _skinLocations;
     static SkinLocations _skinNormalMapLocations;
+    static SkinLocations _skinShadowLocations;
     
     static void initSkinProgram(ProgramObject& program, SkinLocations& locations);
     static QVector<JointState> createJointStates(const FBXGeometry& geometry);

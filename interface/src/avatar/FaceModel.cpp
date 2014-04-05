@@ -45,13 +45,6 @@ void FaceModel::simulate(float deltaTime) {
     Model::simulate(deltaTime, true, newJointStates);
 }
 
-bool FaceModel::render(float alpha) {
-    if (!Model::render(alpha)) {
-        return false;
-    }
-    return true;
-}
-
 void FaceModel::maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
     // get the rotation axes in joint space and use them to adjust the rotation
     glm::mat3 axes = glm::mat3_cast(_rotation);

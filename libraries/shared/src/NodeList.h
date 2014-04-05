@@ -21,6 +21,7 @@
 #include <unistd.h> // not on windows, not needed for mac or windows
 #endif
 
+#include <QtCore/QElapsedTimer>
 #include <QtCore/QMutex>
 #include <QtCore/QSet>
 #include <QtCore/QSettings>
@@ -102,8 +103,7 @@ public:
     QByteArray constructPingReplyPacket(const QByteArray& pingPacket);
     void pingPublicAndLocalSocketsForInactiveNode(const SharedNodePointer& node);
 
-    /// passing false for blockingLock, will tryLock, and may return NULL when a node with the UUID actually does exist
-    SharedNodePointer nodeWithUUID(const QUuid& nodeUUID, bool blockingLock = true);
+    SharedNodePointer nodeWithUUID(const QUuid& nodeUUID);
     SharedNodePointer sendingNodeForPacket(const QByteArray& packet);
     
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, char nodeType,
@@ -120,10 +120,14 @@ public:
     unsigned broadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
     SharedNodePointer soloNodeOfType(char nodeType);
 
+    void getPacketStats(float &packetsPerSecond, float &bytesPerSecond);
+    void resetPacketStats();
+    
     void loadData(QSettings* settings);
     void saveData(QSettings* settings);
 public slots:
     void reset();
+    void eraseAllNodes();
     
     void sendDomainServerCheckIn();
     void pingInactiveNodes();
@@ -150,11 +154,13 @@ private:
                          const QUuid& connectionSecret);
 
     NodeHash::iterator killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill);
-    
-    void clear();
 
     void processDomainServerAuthRequest(const QByteArray& packet);
     void requestAuthForDomainServer();
+    void activateSocketFromNodeCommunication(const QByteArray& packet, const SharedNodePointer& sendingNode);
+    void timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode);
+    
+    void changeSendSocketBufferSize(int numSendBytes);
 
     NodeHash _nodeHash;
     QMutex _nodeHashMutex;
@@ -168,9 +174,9 @@ private:
     HifiSockAddr _publicSockAddr;
     bool _hasCompletedInitialSTUNFailure;
     unsigned int _stunRequestsSinceSuccess;
-
-    void activateSocketFromNodeCommunication(const QByteArray& packet, const SharedNodePointer& sendingNode);
-    void timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode);    
+    int _numCollectedPackets;
+    int _numCollectedBytes;
+    QElapsedTimer _packetStatTimer;
 };
 
 #endif /* defined(__hifi__NodeList__) */

@@ -189,10 +189,12 @@ static TextRenderer* textRenderer(TextRendererType type) {
     return displayNameRenderer;
 }
 
-void Avatar::render(const glm::vec3& cameraPosition, bool forShadowMap) {
+void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
     // simple frustum check
     float boundingRadius = getBillboardSize();
-    if (Application::getInstance()->getViewFrustum()->sphereInFrustum(cameraPosition, boundingRadius) == ViewFrustum::OUTSIDE) {
+    ViewFrustum* frustum = (renderMode == Avatar::SHADOW_RENDER_MODE) ?
+        Application::getInstance()->getShadowViewFrustum() : Application::getInstance()->getViewFrustum();
+    if (frustum->sphereInFrustum(_position, boundingRadius) == ViewFrustum::OUTSIDE) {
         return;
     }
 
@@ -202,11 +204,11 @@ void Avatar::render(const glm::vec3& cameraPosition, bool forShadowMap) {
     {
         // glow when moving far away
         const float GLOW_DISTANCE = 20.0f;
-        Glower glower(_moving && distanceToTarget > GLOW_DISTANCE && !forShadowMap ? 1.0f : 0.0f);
+        Glower glower(_moving && distanceToTarget > GLOW_DISTANCE && renderMode == NORMAL_RENDER_MODE ? 1.0f : 0.0f);
 
         // render body
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
-            renderBody(forShadowMap);
+            renderBody(renderMode);
         }
         if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
             _skeletonModel.renderCollisionProxies(0.7f);
@@ -230,7 +232,8 @@ void Avatar::render(const glm::vec3& cameraPosition, bool forShadowMap) {
             float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
             float sphereRadius = getHead()->getAverageLoudness() * SPHERE_LOUDNESS_SCALING;
             
-            if (!forShadowMap && (sphereRadius > MIN_SPHERE_SIZE) && (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
+            if (renderMode == NORMAL_RENDER_MODE && (sphereRadius > MIN_SPHERE_SIZE) &&
+                    (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
                 glColor4f(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.f - angle / MAX_SPHERE_ANGLE);
                 glPushMatrix();
                 glTranslatef(_position.x, _position.y, _position.z);
@@ -242,8 +245,8 @@ void Avatar::render(const glm::vec3& cameraPosition, bool forShadowMap) {
     }
 
     const float DISPLAYNAME_DISTANCE = 10.0f;
-    setShowDisplayName(!forShadowMap && distanceToTarget < DISPLAYNAME_DISTANCE);
-    if (forShadowMap) {
+    setShowDisplayName(renderMode == NORMAL_RENDER_MODE && distanceToTarget < DISPLAYNAME_DISTANCE);
+    if (renderMode != NORMAL_RENDER_MODE) {
         return;
     }
     renderDisplayName();
@@ -306,17 +309,16 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::renderBody(bool forShadowMap) {    
+void Avatar::renderBody(RenderMode renderMode) {    
     if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         // render the billboard until both models are loaded
-        if (forShadowMap) {
-            return;
+        if (renderMode != SHADOW_RENDER_MODE) {
+            renderBillboard();
         }
-        renderBillboard();
         return;
     }
-    _skeletonModel.render(1.0f);
-    getHead()->render(1.0f);
+    _skeletonModel.render(1.0f, renderMode == SHADOW_RENDER_MODE);
+    getHead()->render(1.0f, renderMode == SHADOW_RENDER_MODE);
     getHand()->render(false);
 }
 
@@ -395,9 +397,13 @@ void Avatar::renderDisplayName() {
     
     glPushMatrix();
     glm::vec3 textPosition;
-    getSkeletonModel().getNeckPosition(textPosition);
-    textPosition += getBodyUpDirection() * getHeadHeight() * 1.1f;
-
+    if (getSkeletonModel().getNeckPosition(textPosition)) {
+        textPosition += getBodyUpDirection() * getHeadHeight() * 1.1f;
+    } else {    
+        const float HEAD_PROPORTION = 0.75f;
+        textPosition = _position + getBodyUpDirection() * (getBillboardSize() * HEAD_PROPORTION); 
+    }
+    
     glTranslatef(textPosition.x, textPosition.y, textPosition.z); 
 
     // we need "always facing camera": we must remove the camera rotation from the stack
@@ -497,13 +503,19 @@ bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penet
     //return getHead()->getFaceModel().findSphereCollisions(penetratorCenter, penetratorRadius, collisions);
 }
 
-bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& collisions) {
+void Avatar::updateShapePositions() {
     _skeletonModel.updateShapePositions();
-    bool collided = _skeletonModel.findCollisions(shapes, collisions);
-
     Model& headModel = getHead()->getFaceModel();
     headModel.updateShapePositions();
-    collided = headModel.findCollisions(shapes, collisions);
+}
+
+bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& collisions) {
+    // TODO: Andrew to fix: also collide against _skeleton
+    //bool collided = _skeletonModel.findCollisions(shapes, collisions);
+
+    Model& headModel = getHead()->getFaceModel();
+    //collided = headModel.findCollisions(shapes, collisions) || collided;
+    bool collided = headModel.findCollisions(shapes, collisions);
     return collided;
 }
 
@@ -750,15 +762,28 @@ bool Avatar::collisionWouldMoveAvatar(CollisionInfo& collision) const {
     return false;
 }
 
-void Avatar::applyCollision(CollisionInfo& collision) {
-    if (!collision._data || collision._type != MODEL_COLLISION) {
-        return;
+void Avatar::applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) {
+    // compute lean angles
+    glm::vec3 leverAxis = contactPoint - getPosition();
+    float leverLength = glm::length(leverAxis);
+    if (leverLength > EPSILON) {
+        glm::quat bodyRotation = getOrientation();
+        glm::vec3 xAxis = bodyRotation * glm::vec3(1.f, 0.f, 0.f);
+        glm::vec3 zAxis = bodyRotation * glm::vec3(0.f, 0.f, 1.f);
+
+        leverAxis = leverAxis / leverLength;
+        glm::vec3 effectivePenetration = penetration - glm::dot(penetration, leverAxis) * leverAxis;
+        // we use the small-angle approximation for sine below to compute the length of 
+        // the opposite side of a narrow right triangle
+        float sideways = - glm::dot(effectivePenetration, xAxis) / leverLength;
+        float forward = glm::dot(effectivePenetration, zAxis) / leverLength;
+        getHead()->addLean(sideways, forward);
     }
-    // TODO: make skeleton also respond to collisions
-    Model* model = static_cast<Model*>(collision._data);
-    if (model == &(getHead()->getFaceModel())) {
-        getHead()->applyCollision(collision);
-    }
+}
+
+float Avatar::getBoundingRadius() const {
+    // TODO: also use head model when computing the avatar's bounding radius
+    return _skeletonModel.getBoundingRadius();
 }
 
 float Avatar::getPelvisFloatingHeight() const {

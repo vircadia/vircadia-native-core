@@ -67,7 +67,11 @@ void attachNewBufferToNode(Node *newNode) {
 AudioMixer::AudioMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _trailingSleepRatio(1.0f),
-    _minAudibilityThreshold(LOUDNESS_TO_DISTANCE_RATIO / 2.0f)
+    _minAudibilityThreshold(LOUDNESS_TO_DISTANCE_RATIO / 2.0f),
+    _performanceThrottlingRatio(0.0f),
+    _numStatFrames(0),
+    _sumListeners(0),
+    _sumMixes(0)
 {
     
 }
@@ -89,11 +93,13 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
             distanceBetween = EPSILON;
         }
         
-        if (bufferToAdd->getAverageLoudness() / distanceBetween <= _minAudibilityThreshold) {
+        if (bufferToAdd->getNextOutputTrailingLoudness() / distanceBetween <= _minAudibilityThreshold) {
             // according to mixer performance we have decided this does not get to be mixed in
             // bail out
             return;
         }
+        
+        ++_sumMixes;
         
         glm::quat inverseOrientation = glm::inverse(listeningNodeBuffer->getOrientation());
         
@@ -318,7 +324,7 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
                 if ((*otherNode != *node
                      || otherNodeBuffer->shouldLoopbackForNode())
                     && otherNodeBuffer->willBeAddedToMix()
-                    && otherNodeBuffer->getAverageLoudness() > 0) {
+                    && otherNodeBuffer->getNextOutputTrailingLoudness() > 0) {
                     addBufferToMixForListeningNodeWithBuffer(otherNodeBuffer, nodeRingBuffer);
                 }
             }
@@ -352,22 +358,29 @@ void AudioMixer::readPendingDatagrams() {
 
 void AudioMixer::sendStatsPacket() {
     static QJsonObject statsObject;
-    statsObject["trailing_sleep"] = _trailingSleepRatio;
-    statsObject["min_audability_threshold"] = _minAudibilityThreshold;
+    statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100.0f;
+    statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
+
+    statsObject["average_listeners_per_frame"] = (float) _sumListeners / (float) _numStatFrames;
     
-    NodeList::getInstance()->sendStatsToDomainServer(statsObject);
+    if (_sumListeners > 0) {
+        statsObject["average_mixes_per_listener"] = (float) _sumMixes / (float) _sumListeners;
+    } else {
+        statsObject["average_mixes_per_listener"] = 0.0;
+    }
+    
+    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
+    
+    _sumListeners = 0;
+    _sumMixes = 0;
+    _numStatFrames = 0;
 }
 
 void AudioMixer::run() {
 
-    commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NodeType::AudioMixer);
+    ThreadedAssignment::commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NodeType::AudioMixer);
 
     NodeList* nodeList = NodeList::getInstance();
-    
-    // send a stats packet every 1 second
-    QTimer* statsTimer = new QTimer(this);
-    connect(statsTimer, SIGNAL(timeout()), this, SLOT(sendStatsPacket()));
-    statsTimer->start(1000);
 
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
@@ -382,7 +395,6 @@ void AudioMixer::run() {
                                      + numBytesForPacketHeaderGivenPacketType(PacketTypeMixedAudio)];
     
     int usecToSleep = BUFFER_SEND_INTERVAL_USECS;
-    float audabilityCutoffRatio = 0;
     
     const int TRAILING_AVERAGE_FRAMES = 100;
     int framesSinceCutoffEvent = TRAILING_AVERAGE_FRAMES;
@@ -410,37 +422,33 @@ void AudioMixer::run() {
         _trailingSleepRatio = (PREVIOUS_FRAMES_RATIO * _trailingSleepRatio)
             + (usecToSleep * CURRENT_FRAME_RATIO / (float) BUFFER_SEND_INTERVAL_USECS);
         
-        float lastCutoffRatio = audabilityCutoffRatio;
+        float lastCutoffRatio = _performanceThrottlingRatio;
         bool hasRatioChanged = false;
         
         if (framesSinceCutoffEvent >= TRAILING_AVERAGE_FRAMES) {
-            if (framesSinceCutoffEvent % TRAILING_AVERAGE_FRAMES == 0) {
-                qDebug() << "Current trailing sleep ratio:" << _trailingSleepRatio;
-            }
-            
             if (_trailingSleepRatio <= STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD) {
                 // we're struggling - change our min required loudness to reduce some load
-                audabilityCutoffRatio = audabilityCutoffRatio + (0.5f * (1.0f - audabilityCutoffRatio));
+                _performanceThrottlingRatio = _performanceThrottlingRatio + (0.5f * (1.0f - _performanceThrottlingRatio));
                 
                 qDebug() << "Mixer is struggling, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
-                    << lastCutoffRatio << "and is now" << audabilityCutoffRatio;
+                    << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
                 hasRatioChanged = true;
-            } else if (_trailingSleepRatio >= BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD && audabilityCutoffRatio != 0) {
+            } else if (_trailingSleepRatio >= BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD && _performanceThrottlingRatio != 0) {
                 // we've recovered and can back off the required loudness
-                audabilityCutoffRatio = audabilityCutoffRatio - RATIO_BACK_OFF;
+                _performanceThrottlingRatio = _performanceThrottlingRatio - RATIO_BACK_OFF;
                 
-                if (audabilityCutoffRatio < 0) {
-                    audabilityCutoffRatio = 0;
+                if (_performanceThrottlingRatio < 0) {
+                    _performanceThrottlingRatio = 0;
                 }
                 
                 qDebug() << "Mixer is recovering, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
-                    << lastCutoffRatio << "and is now" << audabilityCutoffRatio;
+                    << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
                 hasRatioChanged = true;
             }
             
             if (hasRatioChanged) {
                 // set out min audability threshold from the new ratio
-                _minAudibilityThreshold = LOUDNESS_TO_DISTANCE_RATIO / (2.0f * (1.0f - audabilityCutoffRatio));
+                _minAudibilityThreshold = LOUDNESS_TO_DISTANCE_RATIO / (2.0f * (1.0f - _performanceThrottlingRatio));
                 qDebug() << "Minimum audability required to be mixed is now" << _minAudibilityThreshold;
                 
                 framesSinceCutoffEvent = 0;
@@ -450,7 +458,7 @@ void AudioMixer::run() {
         if (!hasRatioChanged) {
             ++framesSinceCutoffEvent;
         }
-
+        
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getType() == NodeType::Agent && node->getActiveSocket() && node->getLinkedData()
                 && ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer()) {
@@ -460,6 +468,8 @@ void AudioMixer::run() {
 
                 memcpy(clientMixBuffer + numBytesPacketHeader, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
                 nodeList->writeDatagram(clientMixBuffer, NETWORK_BUFFER_LENGTH_BYTES_STEREO + numBytesPacketHeader, node);
+                
+                ++_sumListeners;
             }
         }
 
@@ -469,6 +479,8 @@ void AudioMixer::run() {
                 ((AudioMixerClientData*) node->getLinkedData())->pushBuffersAfterFrameSend();
             }
         }
+        
+        ++_numStatFrames;
         
         QCoreApplication::processEvents();
         

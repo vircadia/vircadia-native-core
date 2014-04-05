@@ -64,19 +64,82 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, co
     _quatLibrary(),
     _vec3Library()
 {
-    QByteArray fileNameAscii = fileNameString.toLocal8Bit();
-    const char* scriptMenuName = fileNameAscii.data();
-
     // some clients will use these menu features
     if (!fileNameString.isEmpty()) {
         _scriptMenuName = "Stop ";
-        _scriptMenuName.append(scriptMenuName);
+        _scriptMenuName.append(qPrintable(fileNameString));
         _scriptMenuName.append(QString(" [%1]").arg(_scriptNumber));
     } else {
         _scriptMenuName = "Stop Script ";
         _scriptMenuName.append(_scriptNumber);
     }
     _scriptNumber++;
+}
+
+ScriptEngine::ScriptEngine(const QUrl& scriptURL, bool wantMenuItems, 
+                AbstractControllerScriptingInterface* controllerScriptingInterface)  :
+    _scriptContents(),
+    _isFinished(false),
+    _isRunning(false),
+    _isInitialized(false),
+    _engine(),
+    _isAvatar(false),
+    _avatarIdentityTimer(NULL),
+    _avatarBillboardTimer(NULL),
+    _timerFunctionMap(),
+    _isListeningToAudioStream(false),
+    _avatarSound(NULL),
+    _numAvatarSoundSentBytes(0),
+    _controllerScriptingInterface(controllerScriptingInterface),
+    _avatarData(NULL),
+    _wantMenuItems(wantMenuItems),
+    _scriptMenuName(),
+    _fileNameString(),
+    _quatLibrary(),
+    _vec3Library()
+{
+    QString scriptURLString = scriptURL.toString();
+    _fileNameString = scriptURLString;
+    // some clients will use these menu features
+    if (!scriptURLString.isEmpty()) {
+        _scriptMenuName = "Stop ";
+        _scriptMenuName.append(qPrintable(scriptURLString));
+        _scriptMenuName.append(QString(" [%1]").arg(_scriptNumber));
+    } else {
+        _scriptMenuName = "Stop Script ";
+        _scriptMenuName.append(_scriptNumber);
+    }
+    _scriptNumber++;
+    
+    QUrl url(scriptURL);
+    
+    // if the scheme is empty, maybe they typed in a file, let's try
+    if (url.scheme().isEmpty()) {
+        url = QUrl::fromLocalFile(scriptURLString);
+    }
+    
+    // ok, let's see if it's valid... and if so, load it
+    if (url.isValid()) {
+        if (url.scheme() == "file") {
+            QString fileName = url.toLocalFile();
+            QFile scriptFile(fileName);
+            if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {
+                qDebug() << "Loading file:" << fileName;
+                QTextStream in(&scriptFile);
+                _scriptContents = in.readAll();
+            } else {
+                qDebug() << "ERROR Loading file:" << fileName;
+            }
+        } else {
+            QNetworkAccessManager* networkManager = new QNetworkAccessManager(this);
+            QNetworkReply* reply = networkManager->get(QNetworkRequest(url));
+            qDebug() << "Downloading included script at" << url;
+            QEventLoop loop;
+            QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
+            loop.exec();
+            _scriptContents = reply->readAll();
+        }
+    }
 }
 
 void ScriptEngine::setIsAvatar(bool isAvatar) {
@@ -113,11 +176,12 @@ void ScriptEngine::cleanupMenuItems() {
     }
 }
 
-bool ScriptEngine::setScriptContents(const QString& scriptContents) {
+bool ScriptEngine::setScriptContents(const QString& scriptContents, const QString& fileNameString) {
     if (_isRunning) {
         return false;
     }
     _scriptContents = scriptContents;
+    _fileNameString = fileNameString;
     return true;
 }
 
@@ -171,7 +235,6 @@ void ScriptEngine::init() {
     // let the VoxelPacketSender know how frequently we plan to call it
     _voxelsScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(SCRIPT_DATA_CALLBACK_USECS);
     _particlesScriptingInterface.getParticlePacketSender()->setProcessCallIntervalHint(SCRIPT_DATA_CALLBACK_USECS);
-
 }
 
 void ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
@@ -400,7 +463,6 @@ void ScriptEngine::timerFired() {
     
     if (!callingTimer->isActive()) {
         // this timer is done, we can kill it
-        qDebug() << "Deleting a single shot timer";
         delete callingTimer;
     }
 }
@@ -434,5 +496,57 @@ void ScriptEngine::stopTimer(QTimer *timer) {
         timer->stop();
         _timerFunctionMap.remove(timer);
         delete timer;
+    }
+}
+
+QUrl ScriptEngine::resolveInclude(const QString& include) const {
+    // first lets check to see if it's already a full URL
+    QUrl url(include);
+    if (!url.scheme().isEmpty()) {
+        return url;
+    }
+    
+    // we apparently weren't a fully qualified url, so, let's assume we're relative 
+    // to the original URL of our script
+    QUrl parentURL(_fileNameString);
+    
+    // if the parent URL's scheme is empty, then this is probably a local file...
+    if (parentURL.scheme().isEmpty()) {
+        parentURL = QUrl::fromLocalFile(_fileNameString);
+    }
+    
+    // at this point we should have a legitimate fully qualified URL for our parent 
+    url = parentURL.resolved(url);
+    return url;
+}
+
+void ScriptEngine::include(const QString& includeFile) {
+    QUrl url = resolveInclude(includeFile);
+    QString includeContents;
+
+    if (url.scheme() == "file") {
+        QString fileName = url.toLocalFile();
+        QFile scriptFile(fileName);
+        if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {
+            qDebug() << "Loading file:" << fileName;
+            QTextStream in(&scriptFile);
+            includeContents = in.readAll();
+        } else {
+            qDebug() << "ERROR Loading file:" << fileName;
+        }
+    } else {
+        QNetworkAccessManager* networkManager = new QNetworkAccessManager(this);
+        QNetworkReply* reply = networkManager->get(QNetworkRequest(url));
+        qDebug() << "Downloading included script at" << includeFile;
+        QEventLoop loop;
+        QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
+        loop.exec();
+        includeContents = reply->readAll();
+    }
+    
+    QScriptValue result = _engine.evaluate(includeContents);
+    if (_engine.hasUncaughtException()) {
+        int line = _engine.uncaughtExceptionLineNumber();
+        qDebug() << "Uncaught exception at (" << includeFile << ") line" << line << ":" << result.toString();
     }
 }

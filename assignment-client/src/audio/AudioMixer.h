@@ -44,6 +44,10 @@ private:
     
     float _trailingSleepRatio;
     float _minAudibilityThreshold;
+    float _performanceThrottlingRatio;
+    int _numStatFrames;
+    int _sumListeners;
+    int _sumMixes;
 };
 
 #endif /* defined(__hifi__AudioMixer__) */

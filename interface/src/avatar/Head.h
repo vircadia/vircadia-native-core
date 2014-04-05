@@ -37,7 +37,7 @@ public:
     void init();
     void reset();
     void simulate(float deltaTime, bool isMine, bool billboard = false);
-    void render(float alpha);
+    void render(float alpha, bool forShadowMap);
     void setScale(float scale);
     void setPosition(glm::vec3 position) { _position = position; }
     void setGravity(glm::vec3 gravity) { _gravity = gravity; }
@@ -82,8 +82,6 @@ public:
     virtual float getTweakedPitch() const;
     virtual float getTweakedYaw() const;
     virtual float getTweakedRoll() const;
-
-    void  applyCollision(CollisionInfo& collisionInfo);
     
 private:
     // disallow copies of the Head, copy of owning Avatar is disallowed too

@@ -65,9 +65,15 @@ void MenuScriptingInterface::removeMenuItem(const QString& menu, const QString& 
 };
 
 bool MenuScriptingInterface::isOptionChecked(const QString& menuOption) {
-    return Menu::getInstance()->isOptionChecked(menuOption);
+    bool result;
+    QMetaObject::invokeMethod(Menu::getInstance(), "isOptionChecked", Qt::BlockingQueuedConnection,
+                Q_RETURN_ARG(bool, result), 
+                Q_ARG(const QString&, menuOption));
+    return result;
 }
 
 void MenuScriptingInterface::setIsOptionChecked(const QString& menuOption, bool isChecked) {
-    return Menu::getInstance()->setIsOptionChecked(menuOption, isChecked);
+    QMetaObject::invokeMethod(Menu::getInstance(), "setIsOptionChecked", Qt::BlockingQueuedConnection,
+                Q_ARG(const QString&, menuOption),
+                Q_ARG(bool, isChecked));
 }

@@ -74,7 +74,10 @@ public:
 
     void init();
     void simulate(float deltaTime);
-    virtual void render(const glm::vec3& cameraPosition, bool forShadowMap);
+    
+    enum RenderMode { NORMAL_RENDER_MODE, SHADOW_RENDER_MODE, MIRROR_RENDER_MODE };
+    
+    virtual void render(const glm::vec3& cameraPosition, RenderMode renderMode = NORMAL_RENDER_MODE);
 
     //setters
     void setDisplayingLookatVectors(bool displayingLookatVectors) { getHead()->setRenderLookatVectors(displayingLookatVectors); }
@@ -142,10 +145,11 @@ public:
     /// \return true if we expect the avatar would move as a result of the collision
     bool collisionWouldMoveAvatar(CollisionInfo& collision) const;
 
-    /// \param collision a data structure for storing info about collisions against Models
-    void applyCollision(CollisionInfo& collision);
+    void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration);
 
-    float getBoundingRadius() const { return 0.5f * getSkeletonHeight(); }
+    /// \return bounding radius of avatar
+    virtual float getBoundingRadius() const;
+    void updateShapePositions();
 
 public slots:
     void updateCollisionFlags();
@@ -181,7 +185,7 @@ protected:
     float getPelvisToHeadLength() const;
 
     void renderDisplayName();
-    virtual void renderBody(bool forShadowMap);
+    virtual void renderBody(RenderMode renderMode);
 
 private:
 

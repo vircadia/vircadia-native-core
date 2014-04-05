@@ -11,6 +11,7 @@
 #include <QThreadPool>
 
 #include <glm/gtx/transform.hpp>
+#include <glm/gtx/norm.hpp>
 
 #include <GeometryUtil.h>
 
@@ -32,7 +33,8 @@ Model::Model(QObject* parent) :
     _scale(1.0f, 1.0f, 1.0f),
     _shapesAreDirty(true),
     _lodDistance(0.0f),
-    _pupilDilation(0.0f) {
+    _pupilDilation(0.0f),
+    _boundingRadius(0.f) {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
 }
@@ -43,11 +45,14 @@ Model::~Model() {
 
 ProgramObject Model::_program;
 ProgramObject Model::_normalMapProgram;
+ProgramObject Model::_shadowProgram;
 ProgramObject Model::_skinProgram;
 ProgramObject Model::_skinNormalMapProgram;
+ProgramObject Model::_skinShadowProgram;
 int Model::_normalMapTangentLocation;
 Model::SkinLocations Model::_skinLocations;
 Model::SkinLocations Model::_skinNormalMapLocations;
+Model::SkinLocations Model::_skinShadowLocations;
 
 void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locations) {
     program.bind();
@@ -93,6 +98,11 @@ void Model::init() {
         _normalMapTangentLocation = _normalMapProgram.attributeLocation("tangent");
         _normalMapProgram.release();
         
+        _shadowProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/model_shadow.vert");
+        _shadowProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+            "shaders/model_shadow.frag");
+        _shadowProgram.link();
+        
         _skinProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath()
                                              + "shaders/skin_model.vert");
         _skinProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath()
@@ -108,12 +118,27 @@ void Model::init() {
         _skinNormalMapProgram.link();
         
         initSkinProgram(_skinNormalMapProgram, _skinNormalMapLocations);
+        
+        _skinShadowProgram.addShaderFromSourceFile(QGLShader::Vertex,
+            Application::resourcesPath() + "shaders/skin_model_shadow.vert");
+        _skinShadowProgram.addShaderFromSourceFile(QGLShader::Fragment,
+            Application::resourcesPath() + "shaders/model_shadow.frag");
+        _skinShadowProgram.link();
+        
+        initSkinProgram(_skinShadowProgram, _skinShadowLocations);
     }
 }
 
 void Model::reset() {
+    if (_jointStates.isEmpty()) {
+        return;
+    }
     foreach (Model* attachment, _attachments) {
         attachment->reset();
+    }
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    for (int i = 0; i < _jointStates.size(); i++) {
+        _jointStates[i].rotation = geometry.joints.at(i).rotation;
     }
 }
 
@@ -148,6 +173,7 @@ void Model::createCollisionShapes() {
 
 void Model::updateShapePositions() {
     if (_shapesAreDirty && _shapes.size() == _jointStates.size()) {
+        _boundingRadius = 0.f;
         float uniformScale = extractUniformScale(_scale);
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         for (int i = 0; i < _jointStates.size(); i++) {
@@ -157,7 +183,12 @@ void Model::updateShapePositions() {
             glm::vec3 worldPosition = extractTranslation(_jointStates[i].transform) + jointToShapeOffset + _translation;
             _shapes[i]->setPosition(worldPosition);
             _shapes[i]->setRotation(_jointStates[i].combinedRotation * joint.shapeRotation);
+            float distance2 = glm::distance2(worldPosition, _translation);
+            if (distance2 > _boundingRadius) {
+                _boundingRadius = distance2;
+            }
         }
+        _boundingRadius = sqrtf(_boundingRadius);
         _shapesAreDirty = false;
     }
 }
@@ -167,7 +198,7 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
     simulate(deltaTime, fullUpdate, updateGeometry());
 }
 
-bool Model::render(float alpha) {
+bool Model::render(float alpha, bool forShadowMap) {
     // render the attachments
     foreach (Model* attachment, _attachments) {
         attachment->render(alpha);
@@ -198,13 +229,13 @@ bool Model::render(float alpha) {
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GREATER, 0.5f * alpha);
     
-    renderMeshes(alpha, false);
+    renderMeshes(alpha, forShadowMap, false);
     
     glDisable(GL_ALPHA_TEST);
     
     // render translucent meshes afterwards, with back face culling
     
-    renderMeshes(alpha, true);
+    renderMeshes(alpha, forShadowMap, true);
     
     glDisable(GL_CULL_FACE);
     
@@ -305,16 +336,8 @@ bool Model::getRightHandRotation(glm::quat& rotation) const {
     return getJointRotation(getRightHandJointIndex(), rotation);
 }
 
-bool Model::setLeftHandPosition(const glm::vec3& position) {
-    return setJointPosition(getLeftHandJointIndex(), position);
-}
-
 bool Model::restoreLeftHandPosition(float percent) {
     return restoreJointPosition(getLeftHandJointIndex(), percent);
-}
-
-bool Model::setLeftHandRotation(const glm::quat& rotation) {
-    return setJointRotation(getLeftHandJointIndex(), rotation);
 }
 
 bool Model::getLeftShoulderPosition(glm::vec3& position) const {
@@ -325,16 +348,8 @@ float Model::getLeftArmLength() const {
     return getLimbLength(getLeftHandJointIndex());
 }
 
-bool Model::setRightHandPosition(const glm::vec3& position) {
-    return setJointPosition(getRightHandJointIndex(), position);
-}
-
 bool Model::restoreRightHandPosition(float percent) {
     return restoreJointPosition(getRightHandJointIndex(), percent);
-}
-
-bool Model::setRightHandRotation(const glm::quat& rotation) {
-    return setJointRotation(getRightHandJointIndex(), rotation);
 }
 
 bool Model::getRightShoulderPosition(glm::vec3& position) const {
@@ -960,7 +975,7 @@ void Model::deleteGeometry() {
     }
 }
 
-void Model::renderMeshes(float alpha, bool translucent) {
+void Model::renderMeshes(float alpha, bool forShadowMap, bool translucent) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
     
@@ -985,7 +1000,12 @@ void Model::renderMeshes(float alpha, bool translucent) {
         ProgramObject* program = &_program;
         ProgramObject* skinProgram = &_skinProgram;
         SkinLocations* skinLocations = &_skinLocations;
-        if (!mesh.tangents.isEmpty()) {
+        if (forShadowMap) {
+            program = &_shadowProgram;
+            skinProgram = &_skinShadowProgram;
+            skinLocations = &_skinShadowLocations;
+            
+        } else if (!mesh.tangents.isEmpty()) {
             program = &_normalMapProgram;
             skinProgram = &_skinNormalMapProgram;
             skinLocations = &_skinNormalMapLocations;
@@ -1018,7 +1038,7 @@ void Model::renderMeshes(float alpha, bool translucent) {
         }
 
         if (mesh.blendshapes.isEmpty()) {
-            if (!mesh.tangents.isEmpty()) {
+            if (!(mesh.tangents.isEmpty() || forShadowMap)) {
                 activeProgram->setAttributeBuffer(tangentLocation, GL_FLOAT, vertexCount * 2 * sizeof(glm::vec3), 3);
                 activeProgram->enableAttributeArray(tangentLocation);
             }
@@ -1028,7 +1048,7 @@ void Model::renderMeshes(float alpha, bool translucent) {
                 (mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3)));    
         
         } else {
-            if (!mesh.tangents.isEmpty()) {
+            if (!(mesh.tangents.isEmpty() || forShadowMap)) {
                 activeProgram->setAttributeBuffer(tangentLocation, GL_FLOAT, 0, 3);
                 activeProgram->enableAttributeArray(tangentLocation);
             }
@@ -1057,31 +1077,33 @@ void Model::renderMeshes(float alpha, bool translucent) {
                 continue;
             }
             // apply material properties
-            glm::vec4 diffuse = glm::vec4(part.diffuseColor, alpha);
-            glm::vec4 specular = glm::vec4(part.specularColor, alpha);
-            glMaterialfv(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
-            glMaterialfv(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
-            glMaterialfv(GL_FRONT, GL_SPECULAR, (const float*)&specular);
-            glMaterialf(GL_FRONT, GL_SHININESS, part.shininess);
-        
-            Texture* diffuseMap = networkPart.diffuseTexture.data();
-            if (mesh.isEye) {
-                if (diffuseMap) {
+            if (forShadowMap) {
+                glBindTexture(GL_TEXTURE_2D, 0);
+                
+            } else {
+                glm::vec4 diffuse = glm::vec4(part.diffuseColor, alpha);
+                glm::vec4 specular = glm::vec4(part.specularColor, alpha);
+                glMaterialfv(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
+                glMaterialfv(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
+                glMaterialfv(GL_FRONT, GL_SPECULAR, (const float*)&specular);
+                glMaterialf(GL_FRONT, GL_SHININESS, part.shininess);
+            
+                Texture* diffuseMap = networkPart.diffuseTexture.data();
+                if (mesh.isEye && diffuseMap) {
                     diffuseMap = (_dilatedTextures[i][j] =
                         static_cast<DilatableNetworkTexture*>(diffuseMap)->getDilatedTexture(_pupilDilation)).data();
                 }
+                glBindTexture(GL_TEXTURE_2D, !diffuseMap ?
+                    Application::getInstance()->getTextureCache()->getWhiteTextureID() : diffuseMap->getID());
+                
+                if (!mesh.tangents.isEmpty()) {
+                    glActiveTexture(GL_TEXTURE1);                
+                    Texture* normalMap = networkPart.normalTexture.data();
+                    glBindTexture(GL_TEXTURE_2D, !normalMap ?
+                        Application::getInstance()->getTextureCache()->getBlueTextureID() : normalMap->getID());
+                    glActiveTexture(GL_TEXTURE0);
+                }
             }
-            glBindTexture(GL_TEXTURE_2D, !diffuseMap ?
-                Application::getInstance()->getTextureCache()->getWhiteTextureID() : diffuseMap->getID());
-            
-            if (!mesh.tangents.isEmpty()) {
-                glActiveTexture(GL_TEXTURE1);                
-                Texture* normalMap = networkPart.normalTexture.data();
-                glBindTexture(GL_TEXTURE_2D, !normalMap ?
-                    Application::getInstance()->getTextureCache()->getBlueTextureID() : normalMap->getID());
-                glActiveTexture(GL_TEXTURE0);
-            }
-            
             glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, part.quadIndices.size(), GL_UNSIGNED_INT, (void*)offset);
             offset += part.quadIndices.size() * sizeof(int);
             glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, part.triangleIndices.size(),
@@ -1096,7 +1118,7 @@ void Model::renderMeshes(float alpha, bool translucent) {
             glDisableClientState(GL_TEXTURE_COORD_ARRAY);
         }
         
-        if (!mesh.tangents.isEmpty()) {
+        if (!(mesh.tangents.isEmpty() || forShadowMap)) {
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, 0);
             glActiveTexture(GL_TEXTURE0);
