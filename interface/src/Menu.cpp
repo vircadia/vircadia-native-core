@@ -717,9 +717,9 @@ void Menu::loginForCurrentDomain() {
 
 void Menu::editPreferences() {
     if (!_preferencesDialog) {
-        Application::getInstance()->getWindow()->addDockWidget(Qt::LeftDockWidgetArea, _preferencesDialog = new PreferencesDialog());
+        _preferencesDialog = new PreferencesDialog(Application::getInstance()->getWindow());
+        _preferencesDialog->show();
     } else {
-        Application::getInstance()->getWindow()->removeDockWidget(_preferencesDialog);
         _preferencesDialog->close();
     }
 }
