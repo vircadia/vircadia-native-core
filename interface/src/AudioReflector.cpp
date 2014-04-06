@@ -16,13 +16,16 @@ const float DEFAULT_PRE_DELAY = 20.0f; // this delay in msecs will always be add
 const float DEFAULT_MS_DELAY_PER_METER = 3.0f;
 const float MINIMUM_ATTENUATION_TO_REFLECT = 1.0f / 256.0f;
 const float DEFAULT_DISTANCE_SCALING_FACTOR = 2.0f; 
-
+const float MAXIMUM_DELAY_MS = 1000.0 * 20.0f; // stop reflecting after path is this long
+const int DEFAULT_DIFFUSION_FANOUT = 2;
+const int ABSOLUTE_MAXIMUM_BOUNCE_COUNT = 10;
 
 AudioReflector::AudioReflector(QObject* parent) : 
     QObject(parent),
     _preDelay(DEFAULT_PRE_DELAY),
     _soundMsPerMeter(DEFAULT_MS_DELAY_PER_METER),
-    _distanceAttenuationScalingFactor(DEFAULT_DISTANCE_SCALING_FACTOR)
+    _distanceAttenuationScalingFactor(DEFAULT_DISTANCE_SCALING_FACTOR),
+    _diffusionFanout(DEFAULT_DIFFUSION_FANOUT)
 {
     reset();
 }
@@ -90,22 +93,27 @@ float getBounceAttenuationCoefficient(int bounceCount) {
 }
 
 glm::vec3 getFaceNormal(BoxFace face) {
-    float surfaceRandomness = randFloatInRange(0.99,1.0);
+    glm::vec3 slightlyRandomFaceNormal;
+
+    float surfaceRandomness = randFloatInRange(0.99f,1.0f);
     float surfaceRemainder = (1.0f - surfaceRandomness)/2.0f;
+    float altRemainderSignA = (randFloatInRange(-1.0f,1.0f) < 0.0f) ? -1.0 : 1.0;
+    float altRemainderSignB = (randFloatInRange(-1.0f,1.0f) < 0.0f) ? -1.0 : 1.0;
+
     if (face == MIN_X_FACE) {
-        return glm::vec3(-surfaceRandomness, surfaceRemainder, surfaceRemainder);
+        slightlyRandomFaceNormal = glm::vec3(-surfaceRandomness, surfaceRemainder * altRemainderSignA, surfaceRemainder * altRemainderSignB);
     } else if (face == MAX_X_FACE) {
-        return glm::vec3(surfaceRandomness, surfaceRemainder, surfaceRemainder);
+        slightlyRandomFaceNormal = glm::vec3(surfaceRandomness, surfaceRemainder * altRemainderSignA, surfaceRemainder * altRemainderSignB);
     } else if (face == MIN_Y_FACE) {
-        return glm::vec3(surfaceRemainder, -surfaceRandomness, surfaceRemainder);
+        slightlyRandomFaceNormal = glm::vec3(surfaceRemainder * altRemainderSignA, -surfaceRandomness, surfaceRemainder * altRemainderSignB);
     } else if (face == MAX_Y_FACE) {
-        return glm::vec3(surfaceRemainder, surfaceRandomness, surfaceRemainder);
+        slightlyRandomFaceNormal = glm::vec3(surfaceRemainder * altRemainderSignA, surfaceRandomness, surfaceRemainder * altRemainderSignB);
     } else if (face == MIN_Z_FACE) {
-        return glm::vec3(surfaceRemainder, surfaceRemainder, -surfaceRandomness);
+        slightlyRandomFaceNormal = glm::vec3(surfaceRemainder * altRemainderSignA, surfaceRemainder * altRemainderSignB, -surfaceRandomness);
     } else if (face == MAX_Z_FACE) {
-        return glm::vec3(surfaceRemainder, surfaceRemainder, surfaceRandomness);
+        slightlyRandomFaceNormal = glm::vec3(surfaceRemainder * altRemainderSignA, surfaceRemainder * altRemainderSignB, surfaceRandomness);
     }
-    return glm::vec3(0, 0, 0); //error case
+    return slightlyRandomFaceNormal;
 }
 
 void AudioReflector::reset() {
@@ -214,13 +222,96 @@ void AudioReflector::calculateAllReflections() {
         quint64 end = usecTimestampNow();
 
         reset();
-
+        
         //qDebug() << "Reflections recalculated in " << (end - start) << "usecs";
         
     }
 }
 
-QVector<glm::vec3> AudioReflector::calculateReflections(const glm::vec3& earPosition, const glm::vec3& origin, const glm::vec3& originalDirection) {
+// TODO: add diffusion ratio. percentage of echo energy that diffuses
+// so say that 50% of the energy that hits the echo point diffuses in fanout directions
+void AudioReflector::calculateDiffusions(const glm::vec3& earPosition, const glm::vec3& origin, 
+                const glm::vec3& thisReflection, float thisDistance, float thisAttenuation, int thisBounceCount, 
+                BoxFace thisReflectionFace, QVector<glm::vec3> reflectionPoints) {
+                
+    //return; // do nothing
+
+    QVector<glm::vec3> diffusionDirections;
+    
+    // diffusions fan out from random places on the semisphere of the collision point
+    for(int i = 0; i < _diffusionFanout; i++) {
+        glm::vec3 randomDirection;
+
+        float surfaceRandomness = randFloatInRange(0.5f,1.0f);
+        float surfaceRemainder = (1.0f - surfaceRandomness)/2.0f;
+        float altRemainderSignA = (randFloatInRange(-1.0f,1.0f) < 0.0f) ? -1.0 : 1.0;
+        float altRemainderSignB = (randFloatInRange(-1.0f,1.0f) < 0.0f) ? -1.0 : 1.0;
+
+        if (thisReflectionFace == MIN_X_FACE) {
+            randomDirection = glm::vec3(-surfaceRandomness, surfaceRemainder * altRemainderSignA, surfaceRemainder * altRemainderSignB);
+        } else if (thisReflectionFace == MAX_X_FACE) {
+            randomDirection = glm::vec3(surfaceRandomness, surfaceRemainder * altRemainderSignA, surfaceRemainder * altRemainderSignB);
+        } else if (thisReflectionFace == MIN_Y_FACE) {
+            randomDirection = glm::vec3(surfaceRemainder * altRemainderSignA, -surfaceRandomness, surfaceRemainder * altRemainderSignB);
+        } else if (thisReflectionFace == MAX_Y_FACE) {
+            randomDirection = glm::vec3(surfaceRemainder * altRemainderSignA, surfaceRandomness, surfaceRemainder * altRemainderSignB);
+        } else if (thisReflectionFace == MIN_Z_FACE) {
+            randomDirection = glm::vec3(surfaceRemainder * altRemainderSignA, surfaceRemainder * altRemainderSignB, -surfaceRandomness);
+        } else if (thisReflectionFace == MAX_Z_FACE) {
+            randomDirection = glm::vec3(surfaceRemainder * altRemainderSignA, surfaceRemainder * altRemainderSignB, surfaceRandomness);
+        }
+        diffusionDirections.push_back(randomDirection);
+    }
+
+    foreach(glm::vec3 direction, diffusionDirections) {
+                                
+        glm::vec3 start = thisReflection;
+        OctreeElement* elementHit;
+        float distance;
+        BoxFace face;
+        const float SLIGHTLY_SHORT = 0.999f; // slightly inside the distance so we're on the inside of the reflection point
+        float currentAttenuation = thisAttenuation;
+        float totalDistance = thisDistance;
+        float totalDelay = getDelayFromDistance(totalDistance);
+        int bounceCount = thisBounceCount;
+    
+        while (currentAttenuation > MINIMUM_ATTENUATION_TO_REFLECT && totalDelay < MAXIMUM_DELAY_MS && bounceCount < ABSOLUTE_MAXIMUM_BOUNCE_COUNT) {
+            if (_voxels->findRayIntersection(start, direction, elementHit, distance, face)) {
+                glm::vec3 end = start + (direction * (distance * SLIGHTLY_SHORT));
+
+                totalDistance += glm::distance(start, end);
+                float earDistance = glm::distance(end, earPosition);
+                float totalDistanceToEar = earDistance + distance;
+                totalDelay = getDelayFromDistance(totalDistanceToEar);
+                currentAttenuation = getDistanceAttenuationCoefficient(totalDistanceToEar) * getBounceAttenuationCoefficient(bounceCount);
+            
+                if (currentAttenuation > MINIMUM_ATTENUATION_TO_REFLECT && totalDelay < MAXIMUM_DELAY_MS) {
+                    reflectionPoints.push_back(end);
+                    glm::vec3 faceNormal = getFaceNormal(face);
+                    direction = glm::normalize(glm::reflect(direction,faceNormal));
+                    start = end;
+                    bounceCount++;
+                
+                    /*
+                    // handle diffusion here
+                    if (_diffusionFanout > 0 && bounceCount < ABSOLUTE_MAXIMUM_BOUNCE_COUNT) {
+                        glm::vec3 thisReflection = end;
+                        calculateDiffusions(earPosition, origin, end, totalDistance, 
+                                currentAttenuation, bounceCount, face, reflectionPoints);
+                    }
+                    */
+                }
+            } else {
+                currentAttenuation = 0.0f;
+            }
+        }
+    }
+}
+
+
+QVector<glm::vec3> AudioReflector::calculateReflections(const glm::vec3& earPosition, 
+                                const glm::vec3& origin, const glm::vec3& originalDirection) {
+                                
     QVector<glm::vec3> reflectionPoints;
     glm::vec3 start = origin;
     glm::vec3 direction = originalDirection;
@@ -230,23 +321,32 @@ QVector<glm::vec3> AudioReflector::calculateReflections(const glm::vec3& earPosi
     const float SLIGHTLY_SHORT = 0.999f; // slightly inside the distance so we're on the inside of the reflection point
     float currentAttenuation = 1.0f;
     float totalDistance = 0.0f;
+    float totalDelay = 0.0f;
     int bounceCount = 1;
     
-    while (currentAttenuation > MINIMUM_ATTENUATION_TO_REFLECT) {
+    while (currentAttenuation > MINIMUM_ATTENUATION_TO_REFLECT && totalDelay < MAXIMUM_DELAY_MS && bounceCount < ABSOLUTE_MAXIMUM_BOUNCE_COUNT) {
         if (_voxels->findRayIntersection(start, direction, elementHit, distance, face)) {
             glm::vec3 end = start + (direction * (distance * SLIGHTLY_SHORT));
 
             totalDistance += glm::distance(start, end);
             float earDistance = glm::distance(end, earPosition);
             float totalDistance = earDistance + distance;
+            totalDelay = getDelayFromDistance(totalDistance);
             currentAttenuation = getDistanceAttenuationCoefficient(totalDistance) * getBounceAttenuationCoefficient(bounceCount);
             
-            if (currentAttenuation > MINIMUM_ATTENUATION_TO_REFLECT) {
+            if (currentAttenuation > MINIMUM_ATTENUATION_TO_REFLECT && totalDelay < MAXIMUM_DELAY_MS) {
                 reflectionPoints.push_back(end);
                 glm::vec3 faceNormal = getFaceNormal(face);
                 direction = glm::normalize(glm::reflect(direction,faceNormal));
                 start = end;
                 bounceCount++;
+                
+                // handle diffusion here
+                if (_diffusionFanout > 0) {
+                    glm::vec3 thisReflection = end;
+                    calculateDiffusions(earPosition, origin, end, totalDistance, 
+                                currentAttenuation, bounceCount, face, reflectionPoints);
+                }
             }
         } else {
             currentAttenuation = 0.0f;
@@ -373,7 +473,11 @@ void AudioReflector::echoReflections(const glm::vec3& origin, const QVector<glm:
     }
 }
 
-void AudioReflector::processSpatialAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
+void AudioReflector::processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
+    // nothing yet, but will do local reflections too...
+}
+
+void AudioReflector::processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
     //quint64 start = usecTimestampNow();
 
     _maxDelay = 0;

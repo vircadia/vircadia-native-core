@@ -36,7 +36,8 @@ public:
     float getMinAttenuation() const { return _minAttenuation; }
     float getDelayFromDistance(float distance);
 
-    void processSpatialAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
+    void processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
+    void processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
 
 public slots:
 
@@ -46,8 +47,9 @@ public slots:
     void setSoundMsPerMeter(float soundMsPerMeter) { _soundMsPerMeter = soundMsPerMeter; }
     float getDistanceAttenuationScalingFactor() const { return _distanceAttenuationScalingFactor; } /// ms per meter, larger means slower
     void setDistanceAttenuationScalingFactor(float factor) { _distanceAttenuationScalingFactor = factor; }
-    
-    
+
+    int getDiffusionFanout() const { return _diffusionFanout; } /// number of points of diffusion from each reflection point
+    void setDiffusionFanout(int fanout) { _diffusionFanout = fanout; } /// number of points of diffusion from each reflection point
     
 signals:
     
@@ -63,6 +65,11 @@ private:
                                         unsigned int sampleTime, int sampleRate);
 
     QVector<glm::vec3> calculateReflections(const glm::vec3& earPosition, const glm::vec3& origin, const glm::vec3& originalDirection);
+    void calculateDiffusions(const glm::vec3& earPosition, const glm::vec3& origin, 
+                const glm::vec3& thisReflection, float thisDistance, float thisAttenuation, int thisBounceCount, 
+                BoxFace thisReflectionFace, QVector<glm::vec3> reflectionPoints);
+
+
     void drawReflections(const glm::vec3& origin, const glm::vec3& originalColor, const QVector<glm::vec3>& reflections);
 
     void calculateAllReflections();
@@ -105,6 +112,8 @@ private:
     float _preDelay;
     float _soundMsPerMeter;
     float _distanceAttenuationScalingFactor;
+
+    int _diffusionFanout; // number of points of diffusion from each reflection point
     
 };
 

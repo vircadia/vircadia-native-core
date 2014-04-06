@@ -360,6 +360,11 @@ void Audio::handleAudioInput() {
 
     QByteArray inputByteArray = _inputDevice->readAll();
 
+    // send our local loopback to any interested parties
+    if (_processSpatialAudio && !_muted && _audioOutput) {
+        emit processLocalAudio(_spatialAudioStart, inputByteArray, _inputFormat);
+    }
+
     if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio) && !_muted && _audioOutput) {
         // if this person wants local loopback add that to the locally injected audio
 
@@ -367,7 +372,7 @@ void Audio::handleAudioInput() {
             // we didn't have the loopback output device going so set that up now
             _loopbackOutputDevice = _loopbackAudioOutput->start();
         }
-
+        
         if (_inputFormat == _outputFormat) {
             if (_loopbackOutputDevice) {
                 _loopbackOutputDevice->write(inputByteArray);
@@ -756,7 +761,7 @@ void Audio::processReceivedAudio(AudioRingBuffer& ringBuffer) {
                 }
 
                 // Send audio off for spatial processing
-                emit processSpatialAudio(sampleTime, buffer, _desiredOutputFormat);
+                emit processInboundAudio(sampleTime, buffer, _desiredOutputFormat);
 
                 // copy the samples we'll resample from the spatial audio ring buffer - this also
                 // pushes the read pointer of the spatial audio ring buffer forwards
