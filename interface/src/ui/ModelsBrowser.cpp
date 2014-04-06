@@ -62,7 +62,7 @@ static const QString propertiesIds[MODEL_METADATA_COUNT] = {
 };
 
 ModelsBrowser::ModelsBrowser(ModelType modelsType, QWidget* parent) :
-    QWidget(parent),
+    QWidget(parent, Qt::WindowStaysOnTopHint),
     _handler(new ModelHandler(modelsType))
 {
     connect(_handler, SIGNAL(doneDownloading()), SLOT(resizeView()));

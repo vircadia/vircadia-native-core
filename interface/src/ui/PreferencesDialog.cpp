@@ -21,6 +21,7 @@ PreferencesDialog::PreferencesDialog(QWidget* parent, Qt::WindowFlags flags) : F
     setStyleSheetFile("styles/preferences.qss");
     loadPreferences();
     connect(ui.closeButton, &QPushButton::clicked, this, &QDialog::close);
+
     connect(ui.buttonBrowseHead, &QPushButton::clicked, this, &PreferencesDialog::openHeadModelBrowser);
     connect(ui.buttonBrowseBody, &QPushButton::clicked, this, &PreferencesDialog::openBodyModelBrowser);
 }
@@ -34,16 +35,28 @@ void PreferencesDialog::accept() {
     close();
 }
 
+void PreferencesDialog::setHeadUrl(QString modelUrl) {
+    ui.faceURLEdit->setText(modelUrl);
+    setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
+}
+
+void PreferencesDialog::setSkeletonUrl(QString modelUrl) {
+    ui.skeletonURLEdit->setText(modelUrl);
+    setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
+}
+
 void PreferencesDialog::openHeadModelBrowser() {
+    setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
     ModelsBrowser modelBrowser(Head);
+    connect(&modelBrowser, &ModelsBrowser::selected, this, &PreferencesDialog::setHeadUrl);
     modelBrowser.browse();
-    connect(&modelBrowser, &ModelsBrowser::selected, ui.faceURLEdit, &QLineEdit::setText);
 }
 
 void PreferencesDialog::openBodyModelBrowser() {
+    setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
     ModelsBrowser modelBrowser(Skeleton);
+    connect(&modelBrowser, &ModelsBrowser::selected, this, &PreferencesDialog::setSkeletonUrl);
     modelBrowser.browse();
-    connect(&modelBrowser, &ModelsBrowser::selected, ui.skeletonURLEdit, &QLineEdit::setText);
 }
 
 void PreferencesDialog::resizeEvent(QResizeEvent *resizeEvent) {

@@ -10,11 +10,6 @@
 #define __hifi__FramelessDialog__
 
 #include <QDialog>
-#include <QGridLayout>
-#include <QString>
-#include <QPainter>
-#include <QStyleOptionTitleBar>
-#include <QtCore/QTimer>
 
 class FramelessDialog : public QDialog {
     Q_OBJECT
