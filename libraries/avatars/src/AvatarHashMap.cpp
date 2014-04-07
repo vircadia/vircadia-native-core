@@ -15,6 +15,7 @@ AvatarHashMap::AvatarHashMap() :
 
 void AvatarHashMap::insert(const QUuid& id, AvatarSharedPointer avatar) {
     _avatarHash.insert(id, avatar);
+    avatar->setSessionID(id);
 }
 
 AvatarHash::iterator AvatarHashMap::erase(const AvatarHash::iterator& iterator) {

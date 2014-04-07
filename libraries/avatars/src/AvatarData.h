@@ -36,6 +36,7 @@ typedef unsigned long long quint64;
 #include <QtCore/QVector>
 #include <QtCore/QVariantMap>
 #include <QRect>
+#include <QUuid>
 
 #include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
@@ -96,6 +97,9 @@ class AvatarData : public QObject {
 public:
     AvatarData();
     virtual ~AvatarData();
+
+    const QUuid& getSessionID() { return _sessionID; }
+    void setSessionID(const QUuid& id) { _sessionID = id; }
 
     const glm::vec3& getPosition() const { return _position; }
     void setPosition(const glm::vec3 position) { _position = position; }
@@ -218,6 +222,7 @@ public slots:
     void sendBillboardPacket();
     void setBillboardFromNetworkReply();
 protected:
+    QUuid _sessionID;
     glm::vec3 _position;
     glm::vec3 _handPosition;
 
