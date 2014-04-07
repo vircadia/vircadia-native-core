@@ -167,7 +167,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _logger(new FileLogger(this))
 {
     // init GnuTLS for DTLS with domain-servers
-    gnutls_global_init();
+    DTLSClientSession::globalInit();
     
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
@@ -396,7 +396,7 @@ Application::~Application() {
 
     AccountManager::getInstance().destroy();
     
-    gnutls_global_deinit();
+    DTLSClientSession::globalDeinit();
 }
 
 void Application::restoreSizeAndPosition() {

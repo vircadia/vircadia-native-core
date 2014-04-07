@@ -8,20 +8,26 @@
 
 #include "DTLSClientSession.h"
 
-gnutls_certificate_credentials_t* DTLSClientSession::x509CACredentials() {
-    static gnutls_certificate_credentials_t x509Credentials;
-    static bool credentialsInitialized = false;
+gnutls_certificate_credentials_t DTLSClientSession::_x509CACredentials;
+
+void DTLSClientSession::globalInit() {
+    static bool initialized = false;
     
-    if (!credentialsInitialized) {
-        gnutls_certificate_allocate_credentials(&x509Credentials);
+    if (!initialized) {
+        gnutls_global_init();
+        gnutls_certificate_allocate_credentials(&_x509CACredentials);
     }
+}
+
+void DTLSClientSession::globalDeinit() {
+    gnutls_certificate_free_credentials(_x509CACredentials);
     
-    return &x509Credentials;
+    gnutls_global_deinit();
 }
 
 DTLSClientSession::DTLSClientSession(QUdpSocket& dtlsSocket, HifiSockAddr& destinationSocket) :
     DTLSSession(GNUTLS_CLIENT, dtlsSocket, destinationSocket)
 {
     gnutls_priority_set_direct(_gnutlsSession, "PERFORMANCE", NULL);
-    gnutls_credentials_set(_gnutlsSession, GNUTLS_CRD_CERTIFICATE, *x509CACredentials());
+    gnutls_credentials_set(_gnutlsSession, GNUTLS_CRD_CERTIFICATE, _x509CACredentials);
 }

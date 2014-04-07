@@ -33,7 +33,7 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     QCoreApplication(argc, argv),
     _currentAssignment()
 {
-    gnutls_global_init();
+    DTLSClientSession::globalInit();
     
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
@@ -110,7 +110,7 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
 }
 
 AssignmentClient::~AssignmentClient() {
-    gnutls_global_deinit();
+    DTLSClientSession::globalDeinit();
 }
 
 void AssignmentClient::sendAssignmentRequest() {
