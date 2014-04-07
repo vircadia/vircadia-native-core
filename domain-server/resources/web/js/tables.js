@@ -5,13 +5,21 @@ $(document).ready(function(){
       
       json.nodes.sort(function(a, b){
           if (a.type === b.type) {
-            return 0;
+            if (a.wake_timestamp < b.wake_timestamp) {
+              return 1;
+            } else if (a.wake_timestamp > b.wake_timestamp) {
+              return -1;
+            } else {
+              return 0;
+            }
           } 
               
           if (a.type === "agent" && b.type !== "agent") {
             return 1;
+          } else if (b.type === "agent" && a.type !== "agent") {
+            return -1;
           }
-              
+          
           if (a.type > b.type) {
             return 1;
           }
@@ -30,6 +38,10 @@ $(document).ready(function(){
         nodesTableBody += "<td>" + (data.pool ? data.pool : "") + "</td>";
         nodesTableBody += "<td>" + data.public.ip + "<span class='port'>:" + data.public.port + "</span></td>";
         nodesTableBody += "<td>" + data.local.ip + "<span class='port'>:" + data.local.port + "</span></td>";
+        
+        var uptimeSeconds = (Date.now() - data.wake_timestamp) / 1000;
+        nodesTableBody += "<td>" + uptimeSeconds.toLocaleString() + "</td>";
+        
         nodesTableBody += "<td><span class='glyphicon glyphicon-remove' data-uuid=" + data.uuid + "></span></td>";
         nodesTableBody += "</tr>";
       });
