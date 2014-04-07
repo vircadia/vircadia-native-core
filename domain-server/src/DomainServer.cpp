@@ -37,7 +37,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _isUsingDTLS(false),
     _x509Credentials(NULL),
     _dhParams(NULL),
-    _priorityCache(NULL)
+    _priorityCache(NULL),
+    _dtlsSessions()
 {
     gnutls_global_init();
     
@@ -500,6 +501,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     if (nodeInterestList.size() > 0) {
         
         DTLSServerSession* dtlsSession = _isUsingDTLS ? _dtlsSessions[senderSockAddr] : NULL;
+        unsigned int dataMTU = dtlsSession ? gnutls_dtls_get_data_mtu(*dtlsSession->getGnuTLSSession()) : MAX_PACKET_SIZE;
         
         // if the node has any interest types, send back those nodes as well
         foreach (const SharedNodePointer& otherNode, nodeList->getNodeHash()) {
@@ -530,7 +532,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
                 
                 nodeDataStream << secretUUID;
                 
-                if (broadcastPacket.size() +  nodeByteArray.size() > MAX_PACKET_SIZE) {
+                if (broadcastPacket.size() +  nodeByteArray.size() > dataMTU) {
                     // we need to break here and start a new packet
                     // so send the current one
                     
