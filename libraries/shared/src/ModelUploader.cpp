@@ -9,13 +9,15 @@
 
 #include <QDebug>
 #include <QFile>
-#include <QTextStream>
 #include <QFileDialog>
-#include <QStandardPaths>
+#include <QGridLayout>
 #include <QHttpMultiPart>
-#include <QTemporaryDir>
-#include <QVariant>
 #include <QMessageBox>
+#include <QProgressBar>
+#include <QStandardPaths>
+#include <QTemporaryDir>
+#include <QTextStream>
+#include <QVariant>
 
 #include "AccountManager.h"
 #include "ModelUploader.h"
@@ -26,9 +28,12 @@ static const QString FILENAME_FIELD = "filename";
 static const QString TEXDIR_FIELD = "texdir";
 static const QString LOD_FIELD = "lod";
 
+static const QString S3_URL = "http://highfidelity-public.s3-us-west-1.amazonaws.com";
 static const QString MODEL_URL = "/api/v1/models";
 
 static const int MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+static const int TIMEOUT = 1000;
+static const int MAX_CHECK = 30;
 
 // Class providing the QObject parent system to QTemporaryDir
 class TemporaryDir : public QTemporaryDir, public QObject {
@@ -45,10 +50,11 @@ ModelUploader::ModelUploader(bool isHead) :
     _totalSize(0),
     _isHead(isHead),
     _readyToSend(false),
-    _dataMultiPart(new QHttpMultiPart(QHttpMultiPart::FormDataType))
+    _dataMultiPart(new QHttpMultiPart(QHttpMultiPart::FormDataType)),
+    _numberOfChecks(MAX_CHECK)
 {
     _zipDir->setParent(_dataMultiPart);
-    
+    connect(&_timer, SIGNAL(timeout()), SLOT(checkS3()));
 }
 
 ModelUploader::~ModelUploader() {
@@ -59,8 +65,9 @@ bool ModelUploader::zip() {
     // File Dialog
     QString filename = QFileDialog::getOpenFileName(NULL,
                                                     "Select your .fst file ...",
-                                                    QStandardPaths::writableLocation(QStandardPaths::DownloadLocation),
+                                                    QStandardPaths::writableLocation(QStandardPaths::HomeLocation),
                                                     "*.fst");
+    qDebug() << QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
     if (filename == "") {
         // If the user canceled we return.
         return false;
@@ -103,6 +110,7 @@ bool ModelUploader::zip() {
                                " name=\"model_name\"");
             textPart.setBody(line[1].toUtf8());
             _dataMultiPart->append(textPart);
+            _url = S3_URL + ((_isHead)? "/models/heads/" : "/models/skeletons/") + line[1].toUtf8() + ".fst";
         } else if (line[0] == FILENAME_FIELD) {
             QFileInfo fbx(QFileInfo(fst).path() + "/" + line[1]);
             if (!fbx.exists() || !fbx.isFile()) { // Check existence
@@ -167,9 +175,9 @@ bool ModelUploader::zip() {
     return true;
 }
 
-bool ModelUploader::send() {
-    if (!_readyToSend) {
-        return false;
+void ModelUploader::send() {
+    if (!zip()) {
+        return;
     }
     
     JSONCallbackParameters callbackParams;
@@ -177,28 +185,94 @@ bool ModelUploader::send() {
     callbackParams.jsonCallbackMethod = "uploadSuccess";
     callbackParams.errorCallbackReceiver = this;
     callbackParams.errorCallbackMethod = "uploadFailed";
+    callbackParams.updateReciever = this;
+    callbackParams.updateSlot = SLOT(uploadUpdate(qint64, qint64));
     
     AccountManager::getInstance().authenticatedRequest(MODEL_URL, QNetworkAccessManager::PostOperation, callbackParams, QByteArray(), _dataMultiPart);
     _zipDir = NULL;
     _dataMultiPart = NULL;
     qDebug() << "Sending model...";
+    _progressDialog = new QDialog();
+    _progressBar = new QProgressBar(_progressDialog);
+    _progressBar->setRange(0, 100);
+    _progressBar->setValue(0);
     
-    return true;
+    _progressDialog->setWindowTitle("Uploading model...");
+    _progressDialog->setLayout(new QGridLayout(_progressDialog));
+    _progressDialog->layout()->addWidget(_progressBar);
+    
+    _progressDialog->exec();
+
+    delete _progressDialog;
+    _progressDialog = NULL;
+    _progressBar = NULL;
+}
+
+void ModelUploader::uploadUpdate(qint64 bytesSent, qint64 bytesTotal) {
+    if (_progressDialog) {
+        _progressBar->setRange(0, bytesTotal);
+        _progressBar->setValue(bytesSent);
+    }
 }
 
 void ModelUploader::uploadSuccess(const QJsonObject& jsonResponse) {
-    qDebug() << "Model sent with success to the data server.";
-    qDebug() << "It might take a few minute for it to appear in your model browser.";
-    deleteLater();
+    if (_progressDialog) {
+        _progressDialog->accept();
+    }
+    QMessageBox::information(NULL,
+                             QString("ModelUploader::uploadSuccess()"),
+                             QString("Your model is being processed by the system."),
+                             QMessageBox::Ok);
+    qDebug() << "Model sent with success";
+    checkS3();
 }
 
 void ModelUploader::uploadFailed(QNetworkReply::NetworkError errorCode, const QString& errorString) {
+    if (_progressDialog) {
+        _progressDialog->reject();
+    }
     QMessageBox::warning(NULL,
                          QString("ModelUploader::uploadFailed()"),
                          QString("Model could not be sent to the data server."),
                          QMessageBox::Ok);
     qDebug() << "Model upload failed (" << errorCode << "): " << errorString;
     deleteLater();
+}
+
+void ModelUploader::checkS3() {
+    qDebug() << "Checking S3 for " << _url;
+    QNetworkRequest request(_url);
+    QNetworkReply* reply = _networkAccessManager.head(request);
+    connect(reply, SIGNAL(finished()), SLOT(processCheck()));
+}
+
+void ModelUploader::processCheck() {
+    QNetworkReply* reply = static_cast<QNetworkReply*>(sender());
+    _timer.stop();
+    
+    switch (reply->error()) {
+        case QNetworkReply::NoError:
+            QMessageBox::information(NULL,
+                                     QString("ModelUploader::processCheck()"),
+                                     QString("Your model is now available in the browser."),
+                                     QMessageBox::Ok);
+            deleteLater();
+            break;
+        case QNetworkReply::ContentNotFoundError:
+            if (--_numberOfChecks) {
+                _timer.start(TIMEOUT);
+                break;
+            }
+        default:
+            QMessageBox::warning(NULL,
+                                 QString("ModelUploader::processCheck()"),
+                                 QString("Could not verify that the model is present on the server."),
+                                 QMessageBox::Ok);
+            deleteLater();
+            break;
+    }
+    
+    delete reply;
 }
 
 bool ModelUploader::addTextures(const QFileInfo& texdir) {

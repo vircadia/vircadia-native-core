@@ -10,9 +10,14 @@
 #ifndef __hifi__ModelUploader__
 #define __hifi__ModelUploader__
 
-class TemporaryDir;
-class QHttpMultiPart;
+#include <QTimer>
+
+class QDialog;
 class QFileInfo;
+class QHttpMultiPart;
+class QProgressBar;
+
+class TemporaryDir;
 
 class ModelUploader : public QObject {
     Q_OBJECT
@@ -21,14 +26,18 @@ public:
     ModelUploader(bool isHead);
     ~ModelUploader();
     
-    bool zip();
-    bool send();
+public slots:
+    void send();
     
 private slots:
+    void uploadUpdate(qint64 bytesSent, qint64 bytesTotal);
     void uploadSuccess(const QJsonObject& jsonResponse);
     void uploadFailed(QNetworkReply::NetworkError errorCode, const QString& errorString);
+    void checkS3();
+    void processCheck();
     
 private:
+    QString _url;
     TemporaryDir* _zipDir;
     int _lodCount;
     int _texturesCount;
@@ -37,8 +46,16 @@ private:
     bool _readyToSend;
     
     QHttpMultiPart* _dataMultiPart;
+    QNetworkAccessManager _networkAccessManager;
+    
+    int _numberOfChecks;
+    QTimer _timer;
+    
+    QDialog* _progressDialog;
+    QProgressBar* _progressBar;
     
     
+    bool zip();
     bool addTextures(const QFileInfo& texdir);
     bool compressFile(const QString& inFileName, const QString& outFileName);
     bool addPart(const QString& path, const QString& name);
