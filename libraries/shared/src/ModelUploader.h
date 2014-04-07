@@ -1,5 +1,5 @@
 //
-//  FstReader.h
+//  ModelUploader.h
 //  hifi
 //
 //  Created by Clément Brisset on 3/4/14.
@@ -7,19 +7,26 @@
 //
 //
 
-#ifndef __hifi__FstReader__
-#define __hifi__FstReader__
+#ifndef __hifi__ModelUploader__
+#define __hifi__ModelUploader__
 
 class TemporaryDir;
 class QHttpMultiPart;
+class QFileInfo;
 
-class FstReader : public QObject {
+class ModelUploader : public QObject {
+    Q_OBJECT
+    
 public:
-    FstReader(bool isHead);
-    ~FstReader();
+    ModelUploader(bool isHead);
+    ~ModelUploader();
     
     bool zip();
     bool send();
+    
+private slots:
+    void uploadSuccess(const QJsonObject& jsonResponse);
+    void uploadFailed(QNetworkReply::NetworkError errorCode, const QString& errorString);
     
 private:
     TemporaryDir* _zipDir;
@@ -37,4 +44,4 @@ private:
     bool addPart(const QString& path, const QString& name);
 };
 
-#endif /* defined(__hifi__FstReader__) */
+#endif /* defined(__hifi__ModelUploader__) */

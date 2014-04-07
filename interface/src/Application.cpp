@@ -63,7 +63,7 @@
 #include <UUID.h>
 #include <OctreeSceneStats.h>
 #include <LocalVoxelsList.h>
-#include <FstReader.h>
+#include <ModelUploader.h>
 
 #include "Application.h"
 #include "InterfaceVersion.h"
@@ -81,6 +81,7 @@
 #include "ui/InfoView.h"
 #include "ui/Snapshot.h"
 #include "ui/TextRenderer.h"
+#include "ui/Stats.h"
 
 using namespace std;
 
@@ -110,8 +111,6 @@ const float MIRROR_FIELD_OF_VIEW = 30.0f;
 const QString CHECK_VERSION_URL = "http://highfidelity.io/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
-const int STATS_PELS_PER_LINE = 20;
-
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     if (message.size() > 0) {
         QString dateString = QDateTime::currentDateTime().toTimeSpec(Qt::LocalTime).toString(Qt::ISODate);
@@ -135,7 +134,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         QApplication(argc, argv),
         _window(new QMainWindow(desktop())),
         _glWidget(new GLCanvas()),
-        _statsExpanded(false),
         _nodeThread(new QThread(this)),
         _datagramProcessor(),
         _frameCount(0),
@@ -149,7 +147,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _lastQueriedViewFrustum(),
         _lastQueriedTime(usecTimestampNow()),
         _audioScope(256, 200, true),
-        _trailingAudioLoudness(0.f),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
         _mouseX(0),
         _mouseY(0),
@@ -166,8 +163,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _voxelHideShowThread(&_voxels),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
-        _recentMaxPackets(0),
-        _resetRecentMaxPacketsSoon(true),
         _previousScriptLocation(),
         _logger(new FileLogger(this))
 {
@@ -515,7 +510,7 @@ void Application::paintGL() {
         _myCamera.setDistance(0.0f);
         _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
         _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
-        _myCamera.setTargetRotation(_myAvatar->getHead()->getOrientation());
+        _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
 
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows (untweaked) head exactly without delay
@@ -617,6 +612,14 @@ void Application::resizeGL(int width, int height) {
 
     updateProjectionMatrix();
     glLoadIdentity();
+
+    // update Stats width
+    int horizontalOffset = 0;
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+        // mirror is enabled, let's set horizontal offset to give stats some margin
+        horizontalOffset += MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
+    }
+    Stats::getInstance()->resetWidth(width, horizontalOffset);
 }
 
 void Application::updateProjectionMatrix() {
@@ -1059,7 +1062,11 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
             _mousePressed = false;
             checkBandwidthMeterClick();
             if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
-                checkStatsClick();
+                int horizontalOffset = 0;
+                if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+                    horizontalOffset = MIRROR_VIEW_WIDTH;
+                }
+                Stats::getInstance()->checkClick(_mouseX, _mouseY, _mouseDragStartedX, _mouseDragStartedY, horizontalOffset);
             }
         }
     }
@@ -2598,11 +2605,17 @@ void Application::displayOverlay() {
     glPointSize(1.0f);
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+        int horizontalOffset = 0;
+        if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+            // mirror is enabled, let's set horizontal offset to give stats some margin
+            horizontalOffset += MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
+        }
+        int voxelPacketsToProcess = _voxelProcessor.packetsToProcessCount();
         //  Onscreen text about position, servers, etc
-        displayStats();
+        Stats::getInstance()->display(WHITE_TEXT, horizontalOffset, _fps, _packetsPerSecond, _bytesPerSecond, voxelPacketsToProcess);
         //  Bandwidth meter
         if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth)) {
-            displayStatsBackground(0x33333399, _glWidget->width() - 296, _glWidget->height() - 68, 296, 68);
+            Stats::drawBackground(0x33333399, _glWidget->width() - 296, _glWidget->height() - 68, 296, 68);
             _bandwidthMeter.render(_glWidget->width(), _glWidget->height());
         }
     }
@@ -2622,415 +2635,6 @@ void Application::displayOverlay() {
     _overlays.render2D();
 
     glPopMatrix();
-}
-
-// translucent background box that makes stats more readable
-void Application::displayStatsBackground(unsigned int rgba, int x, int y, int width, int height) {
-    glBegin(GL_QUADS);
-    glColor4f(((rgba >> 24) & 0xff) / 255.0f,
-              ((rgba >> 16) & 0xff) / 255.0f,
-              ((rgba >> 8) & 0xff)  / 255.0f,
-              (rgba & 0xff) / 255.0f);
-    glVertex3f(x, y, 0);
-    glVertex3f(x + width, y, 0);
-    glVertex3f(x + width, y + height, 0);
-    glVertex3f(x , y + height, 0);
-    glEnd();
-    glColor4f(1, 1, 1, 1);
-}
-
-// display expanded or contracted stats
-
-void Application::displayStats() {
-    unsigned int backgroundColor = 0x33333399;
-    int verticalOffset = 0, horizontalOffset = 0, lines = 0;
-    bool mirrorEnabled = Menu::getInstance()->isOptionChecked(MenuOption::Mirror);
-
-    QLocale locale(QLocale::English);
-    std::stringstream voxelStats;
-
-    glPointSize(1.0f);
-
-    // we need to take one avatar out so we don't include ourselves
-    int totalAvatars = _avatarManager.size() - 1;
-    int totalServers = NodeList::getInstance()->size();
-
-    if (mirrorEnabled) {
-        horizontalOffset += MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
-    }
-
-    lines = _statsExpanded ? 5 : 3;
-    displayStatsBackground(backgroundColor, horizontalOffset, 0, 165, lines * STATS_PELS_PER_LINE + 10);
-    horizontalOffset += 5;
-
-    char serverNodes[30];
-    sprintf(serverNodes, "Servers: %d", totalServers);
-    char avatarNodes[30];
-    sprintf(avatarNodes, "Avatars: %d", totalAvatars);
-    char framesPerSecond[30];
-    sprintf(framesPerSecond, "Framerate: %3.0f FPS", _fps);
-
-    verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, serverNodes, WHITE_TEXT);
-    verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, avatarNodes, WHITE_TEXT);
-    verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, framesPerSecond, WHITE_TEXT);
-
-    if (_statsExpanded) {
-        char packetsPerSecond[30];
-        sprintf(packetsPerSecond, "Pkts/sec: %d", _packetsPerSecond);
-        char averageMegabitsPerSecond[30];
-        sprintf(averageMegabitsPerSecond, "Mbps: %3.2f", (float)_bytesPerSecond * 8.f / 1000000.f);
-
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, packetsPerSecond, WHITE_TEXT);
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, averageMegabitsPerSecond, WHITE_TEXT);
-    }
-
-    verticalOffset = 0;
-    horizontalOffset += 161;
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
-        int pingAudio = 0, pingAvatar = 0, pingVoxel = 0, pingVoxelMax = 0;
-
-        NodeList* nodeList = NodeList::getInstance();
-        SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
-        SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NodeType::AvatarMixer);
-
-        pingAudio = audioMixerNode ? audioMixerNode->getPingMs() : 0;
-        pingAvatar = avatarMixerNode ? avatarMixerNode->getPingMs() : 0;
-
-        // Now handle voxel servers, since there could be more than one, we average their ping times
-        unsigned long totalPingVoxel = 0;
-        int voxelServerCount = 0;
-
-        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-            if (node->getType() == NodeType::VoxelServer) {
-                totalPingVoxel += node->getPingMs();
-                voxelServerCount++;
-                if (pingVoxelMax < node->getPingMs()) {
-                    pingVoxelMax = node->getPingMs();
-                }
-            }
-        }
-
-        if (voxelServerCount) {
-            pingVoxel = totalPingVoxel/voxelServerCount;
-        }
-
-        lines = _statsExpanded ? 4 : 3;
-        displayStatsBackground(backgroundColor, horizontalOffset, 0, 175, lines * STATS_PELS_PER_LINE + 10);
-        horizontalOffset += 5;
-
-        char audioJitter[30];
-        sprintf(audioJitter,
-                "Buffer msecs %.1f",
-                (float) (_audio.getNetworkBufferLengthSamplesPerChannel() + (float) _audio.getJitterBufferSamples()) /
-                (float)_audio.getNetworkSampleRate() * 1000.f);
-        drawText(30, _glWidget->height() - 22, 0.10f, 0.f, 2.f, audioJitter, WHITE_TEXT);
-
-
-        char audioPing[30];
-        sprintf(audioPing, "Audio ping: %d", pingAudio);
-
-
-        char avatarPing[30];
-        sprintf(avatarPing, "Avatar ping: %d", pingAvatar);
-        char voxelAvgPing[30];
-        sprintf(voxelAvgPing, "Voxel avg ping: %d", pingVoxel);
-
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, audioPing, WHITE_TEXT);
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, avatarPing, WHITE_TEXT);
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, voxelAvgPing, WHITE_TEXT);
-
-        if (_statsExpanded) {
-            char voxelMaxPing[30];
-            sprintf(voxelMaxPing, "Voxel max ping: %d", pingVoxelMax);
-
-            verticalOffset += STATS_PELS_PER_LINE;
-            drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, voxelMaxPing, WHITE_TEXT);
-        }
-
-        verticalOffset = 0;
-        horizontalOffset += 171;
-    }
-
-    glm::vec3 avatarPos = _myAvatar->getPosition();
-
-    lines = _statsExpanded ? 5 : 3;
-    displayStatsBackground(backgroundColor, horizontalOffset, 0, _glWidget->width() - (mirrorEnabled ? 301 : 411) - horizontalOffset, lines * STATS_PELS_PER_LINE + 10);
-    horizontalOffset += 5;
-
-    char avatarPosition[200];
-    if (mirrorEnabled) {
-        // shorthand formatting
-        sprintf(avatarPosition, "Pos: %.0f,%.0f,%.0f", avatarPos.x, avatarPos.y, avatarPos.z);
-    } else {
-        // longhand way
-        sprintf(avatarPosition, "Position: %.1f, %.1f, %.1f", avatarPos.x, avatarPos.y, avatarPos.z);
-    }
-    char avatarVelocity[30];
-    sprintf(avatarVelocity, "Velocity: %.1f", glm::length(_myAvatar->getVelocity()));
-    char avatarBodyYaw[30];
-    sprintf(avatarBodyYaw, "Yaw: %.1f", _myAvatar->getBodyYaw());
-    char avatarMixerStats[200];
-
-    verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, avatarPosition, WHITE_TEXT);
-    verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, avatarVelocity, WHITE_TEXT);
-    verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, avatarBodyYaw, WHITE_TEXT);
-
-    if (_statsExpanded) {
-        SharedNodePointer avatarMixer = NodeList::getInstance()->soloNodeOfType(NodeType::AvatarMixer);
-        if (avatarMixer) {
-            sprintf(avatarMixerStats, "Avatar Mixer: %.f kbps, %.f pps",
-                    roundf(avatarMixer->getAverageKilobitsPerSecond()),
-                    roundf(avatarMixer->getAveragePacketsPerSecond()));
-        } else {
-            sprintf(avatarMixerStats, "No Avatar Mixer");
-        }
-
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, avatarMixerStats, WHITE_TEXT);
-
-        stringstream downloadStats;
-        downloadStats << "Downloads: ";
-        foreach (Resource* resource, ResourceCache::getLoadingRequests()) {
-            const float MAXIMUM_PERCENTAGE = 100.0f;
-            downloadStats << roundf(resource->getProgress() * MAXIMUM_PERCENTAGE) << "% ";
-        }
-        downloadStats << "(" << ResourceCache::getPendingRequestCount() << " pending)";
-
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, downloadStats.str().c_str(), WHITE_TEXT);
-    }
-
-    verticalOffset = 0;
-    horizontalOffset = _glWidget->width() - (mirrorEnabled ? 300 : 410);
-
-    lines = _statsExpanded ? 12 : 3;
-    displayStatsBackground(backgroundColor, horizontalOffset, 0, _glWidget->width() - horizontalOffset, lines * STATS_PELS_PER_LINE + 10);
-    horizontalOffset += 5;
-
-    if (_statsExpanded) {
-        // Local Voxel Memory Usage
-        voxelStats.str("");
-        voxelStats << "Voxels Memory Nodes: " << VoxelTreeElement::getTotalMemoryUsage() / 1000000.f << "MB";
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
-
-        voxelStats.str("");
-        voxelStats <<
-                "Geometry RAM: " << _voxels.getVoxelMemoryUsageRAM() / 1000000.f << "MB / " <<
-                "VBO: " << _voxels.getVoxelMemoryUsageVBO() / 1000000.f << "MB";
-        if (_voxels.hasVoxelMemoryUsageGPU()) {
-            voxelStats << " / GPU: " << _voxels.getVoxelMemoryUsageGPU() / 1000000.f << "MB";
-        }
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
-
-        // Voxel Rendering
-        voxelStats.str("");
-        voxelStats.precision(4);
-        voxelStats << "Voxel Rendering Slots Max: " << _voxels.getMaxVoxels() / 1000.f << "K";
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
-    }
-
-    voxelStats.str("");
-    voxelStats.precision(4);
-    voxelStats << "Drawn: " << _voxels.getVoxelsWritten() / 1000.f << "K " <<
-        "Abandoned: " << _voxels.getAbandonedVoxels() / 1000.f << "K ";
-    verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
-
-    // iterate all the current voxel stats, and list their sending modes, and total voxel counts
-    std::stringstream sendingMode("");
-    sendingMode << "Octree Sending Mode: [";
-    int serverCount = 0;
-    int movingServerCount = 0;
-    unsigned long totalNodes = 0;
-    unsigned long totalInternal = 0;
-    unsigned long totalLeaves = 0;
-    for(NodeToOctreeSceneStatsIterator i = _octreeServerSceneStats.begin(); i != _octreeServerSceneStats.end(); i++) {
-        //const QUuid& uuid = i->first;
-        OctreeSceneStats& stats = i->second;
-        serverCount++;
-        if (_statsExpanded) {
-            if (serverCount > 1) {
-                sendingMode << ",";
-            }
-            if (stats.isMoving()) {
-                sendingMode << "M";
-                movingServerCount++;
-            } else {
-                sendingMode << "S";
-            }
-        }
-
-        // calculate server node totals
-        totalNodes += stats.getTotalElements();
-        if (_statsExpanded) {
-            totalInternal += stats.getTotalInternal();
-            totalLeaves += stats.getTotalLeaves();
-        }
-    }
-    if (_statsExpanded) {
-        if (serverCount == 0) {
-            sendingMode << "---";
-        }
-        sendingMode << "] " << serverCount << " servers";
-        if (movingServerCount > 0) {
-            sendingMode << " <SCENE NOT STABLE>";
-        } else {
-            sendingMode << " <SCENE STABLE>";
-        }
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)sendingMode.str().c_str(), WHITE_TEXT);
-    }
-
-    // Incoming packets
-    int voxelPacketsToProcess = _voxelProcessor.packetsToProcessCount();
-    if (_statsExpanded) {
-        voxelStats.str("");
-        QString packetsString = locale.toString((int)voxelPacketsToProcess);
-        QString maxString = locale.toString((int)_recentMaxPackets);
-        voxelStats << "Voxel Packets to Process: " << qPrintable(packetsString)
-                    << " [Recent Max: " << qPrintable(maxString) << "]";
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
-    }
-
-    if (_resetRecentMaxPacketsSoon && voxelPacketsToProcess > 0) {
-        _recentMaxPackets = 0;
-        _resetRecentMaxPacketsSoon = false;
-    }
-    if (voxelPacketsToProcess == 0) {
-        _resetRecentMaxPacketsSoon = true;
-    } else {
-        if (voxelPacketsToProcess > _recentMaxPackets) {
-            _recentMaxPackets = voxelPacketsToProcess;
-        }
-    }
-
-    verticalOffset += (_statsExpanded ? STATS_PELS_PER_LINE : 0);
-
-    QString serversTotalString = locale.toString((uint)totalNodes); // consider adding: .rightJustified(10, ' ');
-
-    // Server Voxels
-    voxelStats.str("");
-    voxelStats << "Server voxels: " << qPrintable(serversTotalString);
-    verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
-
-    if (_statsExpanded) {
-        QString serversInternalString = locale.toString((uint)totalInternal);
-        QString serversLeavesString = locale.toString((uint)totalLeaves);
-
-        voxelStats.str("");
-        voxelStats <<
-            "Internal: " << qPrintable(serversInternalString) << "  " <<
-            "Leaves: " << qPrintable(serversLeavesString) << "";
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
-    }
-
-    unsigned long localTotal = VoxelTreeElement::getNodeCount();
-    QString localTotalString = locale.toString((uint)localTotal); // consider adding: .rightJustified(10, ' ');
-
-    // Local Voxels
-    voxelStats.str("");
-    voxelStats << "Local voxels: " << qPrintable(localTotalString);
-    verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
-
-    if (_statsExpanded) {
-        unsigned long localInternal = VoxelTreeElement::getInternalNodeCount();
-        unsigned long localLeaves = VoxelTreeElement::getLeafNodeCount();
-        QString localInternalString = locale.toString((uint)localInternal);
-        QString localLeavesString = locale.toString((uint)localLeaves);
-
-        voxelStats.str("");
-        voxelStats <<
-            "Internal: " << qPrintable(localInternalString) << "  " <<
-            "Leaves: " << qPrintable(localLeavesString) << "";
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, (char*)voxelStats.str().c_str(), WHITE_TEXT);
-    }
-
-    // LOD Details
-    if (_statsExpanded) {
-        voxelStats.str("");
-        QString displayLODDetails = Menu::getInstance()->getLODFeedbackText();
-        voxelStats << "LOD: You can see " << qPrintable(displayLODDetails.trimmed());
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), WHITE_TEXT);
-    }
-}
-
-// called on mouse click release
-// check for clicks over stats  in order to expand or contract them
-void Application::checkStatsClick() {
-    if (0 != glm::compMax(glm::abs(glm::ivec2(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY)))) {
-        // not worried about dragging on stats
-        return;
-    }
-
-    int statsHeight = 0, statsWidth = 0, statsX = 0, statsY = 0, lines = 0;
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        statsX += MIRROR_VIEW_WIDTH;
-    }
-
-    // top-left stats click
-    lines = _statsExpanded ? 5 : 3;
-    statsHeight = lines * STATS_PELS_PER_LINE + 10;
-    statsWidth = 165;
-    if (_mouseX > statsX && _mouseX < statsX + statsWidth  && _mouseY > statsY && _mouseY < statsY + statsHeight) {
-        toggleStatsExpanded();
-        return;
-    }
-
-    // ping stats click
-    lines = _statsExpanded ? 4 : 3;
-    statsX += statsWidth;
-    statsHeight = lines * STATS_PELS_PER_LINE + 10;
-    statsWidth = 175;
-    if (_mouseX > statsX && _mouseX < statsX + statsWidth  && _mouseY > statsY && _mouseY < statsY + statsHeight) {
-        toggleStatsExpanded();
-        return;
-    }
-
-    // top-center stats panel click
-    lines = _statsExpanded ? 4 : 3;
-    statsX += statsWidth;
-    statsHeight = lines * STATS_PELS_PER_LINE + 10;
-    statsWidth = _glWidget->width() - 411 - statsX;
-    if (_mouseX > statsX && _mouseX < statsX + statsWidth  && _mouseY > statsY && _mouseY < statsY + statsHeight) {
-        toggleStatsExpanded();
-        return;
-    }
-
-    // top-right stats click
-    lines = _statsExpanded ? 11 : 3;
-    statsX = _glWidget->width() - 410;
-    statsHeight = lines * STATS_PELS_PER_LINE + 10;
-    statsWidth = _glWidget->width() - statsX;
-    if (_mouseX > statsX && _mouseX < statsX + statsWidth  && _mouseY > statsY && _mouseY < statsY + statsHeight) {
-        toggleStatsExpanded();
-        return;
-    }
-}
-
-void Application::toggleStatsExpanded() {
-    _statsExpanded = !_statsExpanded;
 }
 
 glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
@@ -3640,9 +3244,9 @@ void Application::toggleRunningScriptsWidget()
 }
 
 void Application::uploadFST(bool isHead) {
-    FstReader reader(isHead);
-    if (reader.zip()) {
-        reader.send();
+    ModelUploader* uploader = new ModelUploader(isHead);
+    if (uploader->zip()) {
+        uploader->send();
     }
 }
 
