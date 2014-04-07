@@ -35,6 +35,7 @@ REGISTER_SIMPLE_TYPE_STREAMER(SharedObjectPointer)
 
 // some types don't quite work with our macro
 static int vec3Streamer = Bitstream::registerTypeStreamer(qMetaTypeId<glm::vec3>(), new SimpleTypeStreamer<glm::vec3>());
+static int quatStreamer = Bitstream::registerTypeStreamer(qMetaTypeId<glm::quat>(), new SimpleTypeStreamer<glm::quat>());
 static int metaObjectStreamer = Bitstream::registerTypeStreamer(qMetaTypeId<const QMetaObject*>(),
     new SimpleTypeStreamer<const QMetaObject*>());
 
@@ -350,6 +351,14 @@ Bitstream& Bitstream::operator<<(const glm::vec3& value) {
 
 Bitstream& Bitstream::operator>>(glm::vec3& value) {
     return *this >> value.x >> value.y >> value.z;
+}
+
+Bitstream& Bitstream::operator<<(const glm::quat& value) {
+    return *this << value.w << value.x << value.y << value.z;
+}
+
+Bitstream& Bitstream::operator>>(glm::quat& value) {
+    return *this >> value.w >> value.x >> value.y >> value.z;
 }
 
 Bitstream& Bitstream::operator<<(const QByteArray& string) {

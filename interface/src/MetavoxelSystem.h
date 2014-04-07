@@ -189,7 +189,7 @@ protected:
 private slots:
 
     void applyTranslation(const glm::vec3& translation);
-    void applyRotation(const glm::vec3& eulerAngles);   // eulerAngles are in degrees
+    void applyRotation(const glm::quat& rotation);
     void applyScale(float scale);
     void applyURL(const QUrl& url);
 

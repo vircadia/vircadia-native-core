@@ -58,7 +58,10 @@ Model::SkinLocations Model::_skinShadowLocations;
 
 void Model::setScale(const glm::vec3& scale) {
     glm::vec3 deltaScale = _scale - scale;
-    if (glm::length2(deltaScale) > EPSILON) {
+    
+    // decreased epsilon because this wasn't handling scale changes of 0.01
+    const float SMALLER_EPSILON = EPSILON * 0.0001f;
+    if (glm::length2(deltaScale) > SMALLER_EPSILON) {
         _scale = scale;
         rebuildShapes();
     }

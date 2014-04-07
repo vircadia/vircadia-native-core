@@ -312,6 +312,9 @@ public:
     Bitstream& operator<<(const glm::vec3& value);
     Bitstream& operator>>(glm::vec3& value);
     
+    Bitstream& operator<<(const glm::quat& value);
+    Bitstream& operator>>(glm::quat& value);
+    
     Bitstream& operator<<(const QByteArray& string);
     Bitstream& operator>>(QByteArray& string);
     

@@ -1545,7 +1545,7 @@ void Transformable::setTranslation(const glm::vec3& translation) {
     }
 }
 
-void Transformable::setRotation(const glm::vec3& rotation) {
+void Transformable::setRotation(const glm::quat& rotation) {
     if (_rotation != rotation) {
         emit rotationChanged(_rotation = rotation);
     }

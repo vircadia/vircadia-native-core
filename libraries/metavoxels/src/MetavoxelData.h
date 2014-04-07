@@ -533,7 +533,7 @@ public:
 class Transformable : public Spanner {
     Q_OBJECT
     Q_PROPERTY(glm::vec3 translation MEMBER _translation WRITE setTranslation NOTIFY translationChanged)
-    Q_PROPERTY(glm::vec3 rotation MEMBER _rotation WRITE setRotation NOTIFY rotationChanged)
+    Q_PROPERTY(glm::quat rotation MEMBER _rotation WRITE setRotation NOTIFY rotationChanged)
     Q_PROPERTY(float scale MEMBER _scale WRITE setScale NOTIFY scaleChanged)
 
 public:
@@ -543,8 +543,8 @@ public:
     void setTranslation(const glm::vec3& translation);
     const glm::vec3& getTranslation() const { return _translation; }
     
-    void setRotation(const glm::vec3& rotation);
-    const glm::vec3& getRotation() const { return _rotation; }
+    void setRotation(const glm::quat& rotation);
+    const glm::quat& getRotation() const { return _rotation; }
     
     void setScale(float scale);
     float getScale() const { return _scale; }
@@ -552,13 +552,13 @@ public:
 signals:
 
     void translationChanged(const glm::vec3& translation);
-    void rotationChanged(const glm::vec3& rotation);
+    void rotationChanged(const glm::quat& rotation);
     void scaleChanged(float scale);
 
 private:
     
     glm::vec3 _translation;
-    glm::vec3 _rotation; // Euler Angles in degrees
+    glm::quat _rotation;
     float _scale;
 };
 

@@ -395,7 +395,7 @@ void SphereRenderer::renderUnclipped(float alpha, Mode mode) {
     glPushMatrix();
     const glm::vec3& translation = sphere->getTranslation();
     glTranslatef(translation.x, translation.y, translation.z);
-    glm::quat rotation = glm::quat(glm::radians(sphere->getRotation()));
+    glm::quat rotation = sphere->getRotation();
     glm::vec3 axis = glm::axis(rotation);
     glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
     
@@ -418,7 +418,7 @@ void StaticModelRenderer::init(Spanner* spanner) {
     applyURL(staticModel->getURL());
     
     connect(spanner, SIGNAL(translationChanged(const glm::vec3&)), SLOT(applyTranslation(const glm::vec3&)));
-    connect(spanner, SIGNAL(rotationChanged(const glm::vec3&)), SLOT(applyRotation(const glm::vec3&)));
+    connect(spanner, SIGNAL(rotationChanged(const glm::quat&)), SLOT(applyRotation(const glm::quat&)));
     connect(spanner, SIGNAL(scaleChanged(float)), SLOT(applyScale(float)));
     connect(spanner, SIGNAL(urlChanged(const QUrl&)), SLOT(applyURL(const QUrl&)));
 }
@@ -461,8 +461,8 @@ void StaticModelRenderer::applyTranslation(const glm::vec3& translation) {
     _model->setTranslation(translation);
 }
 
-void StaticModelRenderer::applyRotation(const glm::vec3& rotation) {
-    _model->setRotation(glm::quat(glm::radians(rotation)));
+void StaticModelRenderer::applyRotation(const glm::quat& rotation) {
+    _model->setRotation(rotation);
 }
 
 void StaticModelRenderer::applyScale(float scale) {
