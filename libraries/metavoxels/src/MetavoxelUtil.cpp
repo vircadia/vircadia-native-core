@@ -431,9 +431,9 @@ void Vec3Editor::updateValue() {
 }
 
 QuatEditor::QuatEditor(QWidget* parent) : BaseVec3Editor(parent) {
-    _x->setRange(-180.0, 180.0);
-    _y->setRange(-90.0, 90.0);
-    _z->setRange(-180.0, 180.0);
+    _x->setRange(-179.0, 180.0);
+    _y->setRange(-179.0, 180.0);
+    _z->setRange(-179.0, 180.0);
     
     _x->setWrapping(true);
     _y->setWrapping(true);
@@ -441,14 +441,19 @@ QuatEditor::QuatEditor(QWidget* parent) : BaseVec3Editor(parent) {
 }
 
 void QuatEditor::setValue(const glm::quat& value) {
-    glm::vec3 eulers = glm::degrees(safeEulerAngles(_value = value));
-    setComponentValue(_x, eulers.x);
-    setComponentValue(_y, eulers.y);
-    setComponentValue(_z, eulers.z);
+    if (_value != value) {
+        glm::vec3 eulers = glm::degrees(safeEulerAngles(_value = value));
+        setComponentValue(_x, eulers.x);
+        setComponentValue(_y, eulers.y);
+        setComponentValue(_z, eulers.z);
+    }
 }
 
 void QuatEditor::updateValue() {
-    emit valueChanged(_value = glm::quat(glm::radians(glm::vec3(_x->value(), _y->value(), _z->value()))));
+    glm::quat value(glm::radians(glm::vec3(_x->value(), _y->value(), _z->value())));
+    if (_value != value) {
+        emit valueChanged(_value = value);
+    }
 }
 
 ParameterizedURL::ParameterizedURL(const QUrl& url, const ScriptHash& parameters) :
