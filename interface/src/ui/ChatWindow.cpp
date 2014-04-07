@@ -42,6 +42,10 @@ ChatWindow::ChatWindow() :
     ui->messagesGridLayout->setColumnStretch(1, 3);
 
     ui->messagePlainTextEdit->installEventFilter(this);
+
+    if (!AccountManager::getInstance().isLoggedIn()) {
+        ui->connectingToXMPPLabel->setText(tr("You must be logged in to chat with others."));
+    }
     
 #ifdef HAVE_QXMPP
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
@@ -132,7 +136,7 @@ QString ChatWindow::getParticipantName(const QString& participant) {
 void ChatWindow::addTimeStamp() {
     QTimeSpan timePassed = QDateTime::currentDateTime() - lastMessageStamp;
     int times[] = { timePassed.daysPart(), timePassed.hoursPart(), timePassed.minutesPart() };
-    QString strings[] = { tr("day", 0, times[0]), tr("hour", 0, times[1]), tr("minute", 0, times[2]) };
+    QString strings[] = { tr("%n day(s)", 0, times[0]), tr("%n hour(s)", 0, times[1]), tr("%n minute(s)", 0, times[2]) };
     QString timeString = "";
     for (int i = 0; i < 3; i++) {
         if (times[i] > 0) {
@@ -228,7 +232,7 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     messageLabel->setWordWrap(true);
     messageLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
     messageLabel->setOpenExternalLinks(true);
-    messageLabel->setStyleSheet("padding-bottom: 2px; padding-right: 2px; padding-top: 2px; padding-right: 20px");
+    messageLabel->setStyleSheet("padding-bottom: 2px; padding-left: 2px; padding-top: 2px; padding-right: 20px");
     messageLabel->setAlignment(Qt::AlignTop | Qt::AlignLeft);
 
     if (getParticipantName(message.from()) == AccountManager::getInstance().getUsername()) {

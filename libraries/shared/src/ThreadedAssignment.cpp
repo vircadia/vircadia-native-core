@@ -20,18 +20,15 @@ ThreadedAssignment::ThreadedAssignment(const QByteArray& packet) :
     
 }
 
-void ThreadedAssignment::deleteLater() {
-    // move the NodeList back to the QCoreApplication instance's thread
-    NodeList::getInstance()->moveToThread(QCoreApplication::instance()->thread());
-    QObject::deleteLater();
-}
-
 void ThreadedAssignment::setFinished(bool isFinished) {
     _isFinished = isFinished;
 
     if (_isFinished) {
         aboutToFinish();
         emit finished();
+        
+        // move the NodeList back to the QCoreApplication instance's thread
+        NodeList::getInstance()->moveToThread(QCoreApplication::instance()->thread());
     }
 }
 

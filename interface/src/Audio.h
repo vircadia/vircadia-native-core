@@ -47,13 +47,11 @@ public:
     Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* parent = 0);
 
     float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _noiseGateMeasuredFloor, 0.f); }
+    float getTimeSinceLastClip() const { return _timeSinceLastClip; }
     float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
 
     void setNoiseGateEnabled(bool noiseGateEnabled) { _noiseGateEnabled = noiseGateEnabled; }
-    
-    void setLastAcceleration(const glm::vec3 lastAcceleration) { _lastAcceleration = lastAcceleration; }
-    void setLastVelocity(const glm::vec3 lastVelocity) { _lastVelocity = lastVelocity; }
-    
+        
     void setJitterBufferSamples(int samples) { _jitterBufferSamples = samples; }
     int getJitterBufferSamples() { return _jitterBufferSamples; }
     
@@ -78,11 +76,13 @@ public:
 
 public slots:
     void start();
+    void stop();
     void addReceivedAudioToBuffer(const QByteArray& audioByteArray);
     void handleAudioInput();
     void reset();
     void toggleMute();
     void toggleAudioNoiseReduction();
+    void toggleToneInjection();
     
     virtual void handleAudioByteArray(const QByteArray& audioByteArray);
 
@@ -130,16 +130,17 @@ private:
     float _measuredJitter;
     int16_t _jitterBufferSamples;
     float _lastInputLoudness;
+    float _timeSinceLastClip;
     float _dcOffset;
     float _noiseGateMeasuredFloor;
     float* _noiseSampleFrames;
     int _noiseGateSampleCounter;
     bool _noiseGateOpen;
     bool _noiseGateEnabled;
+    bool _toneInjectionEnabled;
     int _noiseGateFramesToClose;
-    glm::vec3 _lastVelocity;
-    glm::vec3 _lastAcceleration;
     int _totalPacketsReceived;
+    int _totalInputAudioSamples;
     
     float _collisionSoundMagnitude;
     float _collisionSoundFrequency;
@@ -165,11 +166,26 @@ private:
     // Audio callback in class context.
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
     
+    // Process procedural audio by
+    //  1. Echo to the local procedural output device
+    //  2. Mix with the audio input
+    void processProceduralAudio(int16_t* monoInput, int numSamples);
+
     // Add sounds that we want the user to not hear themselves, by adding on top of mic input signal
     void addProceduralSounds(int16_t* monoInput, int numSamples);
     
+    // Process received audio
+    void processReceivedAudio(const QByteArray& audioByteArray);
+
     bool switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo);
     bool switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo);
+
+    // Callback acceleration dependent calculations
+    static const float CALLBACK_ACCELERATOR_RATIO;
+    int calculateNumberOfInputCallbackBytes(const QAudioFormat& format);
+    int calculateNumberOfFrameSamples(int numBytes);
+    float calculateDeviceToNetworkInputRatio(int numBytes);
+
 };
 
 

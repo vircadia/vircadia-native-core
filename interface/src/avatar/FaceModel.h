@@ -21,7 +21,7 @@ public:
 
     FaceModel(Head* owningHead);
 
-    void simulate(float deltaTime);
+    virtual void simulate(float deltaTime, bool fullUpdate = true);
     
 protected:
 

@@ -56,8 +56,7 @@ Avatar::Avatar() :
     _owningAvatarMixer(),
     _collisionFlags(0),
     _initialized(false),
-    _shouldRenderBillboard(true),
-    _modelsDirty(true)
+    _shouldRenderBillboard(true)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -118,21 +117,24 @@ void Avatar::simulate(float deltaTime) {
     getHand()->simulate(deltaTime, false);
     _skeletonModel.setLODDistance(getLODDistance());
     
-    // copy joint data to skeleton
-    for (int i = 0; i < _jointData.size(); i++) {
-        const JointData& data = _jointData.at(i);
-        _skeletonModel.setJointState(i, data.valid, data.rotation);
-    }
-    glm::vec3 headPosition = _position;
     if (!_shouldRenderBillboard && inViewFrustum) {
-        _skeletonModel.simulate(deltaTime, _modelsDirty);
-        _modelsDirty = false;
+        if (_hasNewJointRotations) {
+            for (int i = 0; i < _jointData.size(); i++) {
+                const JointData& data = _jointData.at(i);
+                _skeletonModel.setJointState(i, data.valid, data.rotation);
+            }
+            _skeletonModel.simulate(deltaTime);
+        }
+        _skeletonModel.simulate(deltaTime, _hasNewJointRotations);
+        _hasNewJointRotations = false;
+
+        glm::vec3 headPosition = _position;
         _skeletonModel.getHeadPosition(headPosition);
+        Head* head = getHead();
+        head->setPosition(headPosition);
+        head->setScale(_scale);
+        head->simulate(deltaTime, false, _shouldRenderBillboard);
     }
-    Head* head = getHead();
-    head->setPosition(headPosition);
-    head->setScale(_scale);
-    head->simulate(deltaTime, false, _shouldRenderBillboard);
     
     // use speed and angular velocity to determine walking vs. standing
     if (_speed + fabs(_bodyYawDelta) > 0.2) {
@@ -210,11 +212,19 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
             renderBody(renderMode);
         }
-        if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
-            _skeletonModel.renderCollisionProxies(0.7f);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes)) {
+            _skeletonModel.updateShapePositions();
+            _skeletonModel.renderJointCollisionShapes(0.7f);
         }
-        if (Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionProxies)) {
-            getHead()->getFaceModel().renderCollisionProxies(0.7f);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes)) {
+            getHead()->getFaceModel().updateShapePositions();
+            getHead()->getFaceModel().renderJointCollisionShapes(0.7f);
+        }
+        if (Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes)) {
+            getHead()->getFaceModel().updateShapePositions();
+            getHead()->getFaceModel().renderBoundingCollisionShapes(0.7f);
+            _skeletonModel.updateShapePositions();
+            _skeletonModel.renderBoundingCollisionShapes(0.7f);
         }
 
         // quick check before falling into the code below:
@@ -652,9 +662,6 @@ int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
     
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, _position) > MOVE_DISTANCE_THRESHOLD;
-    
-    // note that we need to update our models
-    _modelsDirty = true;
     
     return bytesRead;
 }

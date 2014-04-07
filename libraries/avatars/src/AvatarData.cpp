@@ -40,6 +40,7 @@ AvatarData::AvatarData() :
     _handState(0),
     _keyState(NO_KEY_DOWN),
     _isChatCirclingEnabled(false),
+    _hasNewJointRotations(true),
     _headData(NULL),
     _handData(NULL), 
     _displayNameBoundingRect(), 
@@ -483,6 +484,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
             }
         }
     } // numJoints * 8 bytes
+    _hasNewJointRotations = true;
     
     return sourceBuffer - startPosition;
 }
