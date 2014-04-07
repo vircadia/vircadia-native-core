@@ -38,7 +38,6 @@ private slots:
     
 private:
     QString _url;
-    TemporaryDir* _zipDir;
     int _lodCount;
     int _texturesCount;
     int _totalSize;
@@ -57,7 +56,6 @@ private:
     
     bool zip();
     bool addTextures(const QFileInfo& texdir);
-    bool compressFile(const QString& inFileName, const QString& outFileName);
     bool addPart(const QString& path, const QString& name);
 };
 
