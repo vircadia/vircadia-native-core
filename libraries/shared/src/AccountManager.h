@@ -73,12 +73,14 @@ signals:
     void loginComplete(const QUrl& authURL);
     void logoutComplete();
 private slots:
-    void passSuccessToCallback();
-    void passErrorToCallback(QNetworkReply::NetworkError errorCode);
+    void processReply();
 private:
     AccountManager();
     AccountManager(AccountManager const& other); // not implemented
     void operator=(AccountManager const& other); // not implemented
+    
+    void passSuccessToCallback(QNetworkReply* reply);
+    void passErrorToCallback(QNetworkReply* reply);
     
     Q_INVOKABLE void invokedRequest(const QString& path, QNetworkAccessManager::Operation operation,
                                     const JSONCallbackParameters& callbackParams,
