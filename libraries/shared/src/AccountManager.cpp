@@ -170,12 +170,18 @@ void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::
             if (!callbackParams.isEmpty()) {
                 // if we have information for a callback, insert the callbackParams into our local map
                 _pendingCallbackMap.insert(networkReply, callbackParams);
+                
+                if (callbackParams.updateReciever && !callbackParams.updateSlot.isEmpty()) {
+                    callbackParams.updateReciever->connect(networkReply, SIGNAL(uploadProgress(qint64, qint64)),
+                                                            callbackParams.updateSlot.toStdString().c_str());
+                }
             }
             
             // if we ended up firing of a request, hook up to it now
-            connect(networkReply, SIGNAL(finished()), this, SLOT(passSuccessToCallback()));
+            connect(networkReply, SIGNAL(finished()),
+                                  SLOT(passSuccessToCallback()));
             connect(networkReply, SIGNAL(error(QNetworkReply::NetworkError)),
-                    this, SLOT(passErrorToCallback(QNetworkReply::NetworkError)));
+                                  SLOT(passErrorToCallback(QNetworkReply::NetworkError)));
         }
     }
 }
@@ -194,7 +200,7 @@ void AccountManager::passSuccessToCallback() {
         // remove the related reply-callback group from the map
         _pendingCallbackMap.remove(requestReply);
         
-    } else {
+    } else { 
         if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
             qDebug() << "Received JSON response from data-server that has no matching callback.";
             qDebug() << jsonResponse;

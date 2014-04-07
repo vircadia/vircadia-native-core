@@ -21,7 +21,8 @@ class JSONCallbackParameters {
 public:
     JSONCallbackParameters() :
         jsonCallbackReceiver(NULL), jsonCallbackMethod(),
-        errorCallbackReceiver(NULL), errorCallbackMethod() {};
+        errorCallbackReceiver(NULL), errorCallbackMethod(),
+        updateReciever(NULL), updateSlot() {};
     
     bool isEmpty() const { return !jsonCallbackReceiver && !errorCallbackReceiver; }
     
@@ -29,6 +30,8 @@ public:
     QString jsonCallbackMethod;
     QObject* errorCallbackReceiver;
     QString errorCallbackMethod;
+    QObject* updateReciever;
+    QString updateSlot;
 };
 
 class AccountManager : public QObject {
