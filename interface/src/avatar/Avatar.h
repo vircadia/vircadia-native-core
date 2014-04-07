@@ -160,7 +160,6 @@ protected:
     AvatarMode _mode;
     glm::vec3 _velocity;
     glm::vec3 _thrust;
-    float _speed;
     float _leanScale;
     float _scale;
     glm::vec3 _worldUpDirection;
