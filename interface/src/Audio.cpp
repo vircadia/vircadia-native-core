@@ -16,7 +16,9 @@
 #endif
 
 #ifdef WIN32
-#include <atlbase.h>
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <Mmsystem.h>
 #include <mmdeviceapi.h>
 #include <devicetopology.h>
 #include <Functiondiscoverykeys_devpkey.h>
@@ -153,55 +155,55 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
     }
 #endif
 #ifdef WIN32
-	QString deviceName;
-	//Check for Windows Vista or higher, IMMDeviceEnumerator doesn't work below that.
+    QString deviceName;
+    //Check for Windows Vista or higher, IMMDeviceEnumerator doesn't work below that.
     OSVERSIONINFO osvi;
     ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
     osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
     GetVersionEx(&osvi);
-	if (osvi.dwMajorVersion < 6) {// lower then vista
-		if (mode == QAudio::AudioInput) {
-			WAVEINCAPS wic;
-			// first use WAVE_MAPPER to get the default devices manufacturer ID
-			waveInGetDevCaps(WAVE_MAPPER, &wic, sizeof(wic));
-			//Use the received manufacturer id to get the device's real name
-			waveInGetDevCaps(wic.wMid, &wic, sizeof(wic));
-			qDebug() << "input device:" << wic.szPname;
-			deviceName = wic.szPname;
-		} else {
-			WAVEOUTCAPS woc;
-			// first use WAVE_MAPPER to get the default devices manufacturer ID
-			waveOutGetDevCaps(WAVE_MAPPER, &woc, sizeof(woc));
-			//Use the received manufacturer id to get the device's real name
-			waveOutGetDevCaps(woc.wMid, &woc, sizeof(woc));
-			qDebug() << "output device:" << woc.szPname;
-			deviceName = woc.szPname;
-		}
-	} else {
-		HRESULT hr = S_OK;
-		CoInitialize(NULL);
-		IMMDeviceEnumerator *pMMDeviceEnumerator = NULL;
-		CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&pMMDeviceEnumerator);
-		IMMDevice *pEndpoint;
-		pMMDeviceEnumerator->GetDefaultAudioEndpoint(mode == QAudio::AudioOutput ? eRender : eCapture, eMultimedia, &pEndpoint);
+    if (osvi.dwMajorVersion < 6) {// lower then vista
+        if (mode == QAudio::AudioInput) {
+            WAVEINCAPS wic;
+            // first use WAVE_MAPPER to get the default devices manufacturer ID
+            waveInGetDevCaps(WAVE_MAPPER, &wic, sizeof(wic));
+            //Use the received manufacturer id to get the device's real name
+            waveInGetDevCaps(wic.wMid, &wic, sizeof(wic));
+            qDebug() << "input device:" << wic.szPname;
+            deviceName = wic.szPname;
+        } else {
+            WAVEOUTCAPS woc;
+            // first use WAVE_MAPPER to get the default devices manufacturer ID
+            waveOutGetDevCaps(WAVE_MAPPER, &woc, sizeof(woc));
+            //Use the received manufacturer id to get the device's real name
+            waveOutGetDevCaps(woc.wMid, &woc, sizeof(woc));
+            qDebug() << "output device:" << woc.szPname;
+            deviceName = woc.szPname;
+        }
+    } else {
+        HRESULT hr = S_OK;
+        CoInitialize(NULL);
+        IMMDeviceEnumerator *pMMDeviceEnumerator = NULL;
+        CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&pMMDeviceEnumerator);
+        IMMDevice *pEndpoint;
+        pMMDeviceEnumerator->GetDefaultAudioEndpoint(mode == QAudio::AudioOutput ? eRender : eCapture, eMultimedia, &pEndpoint);
         IPropertyStore *pPropertyStore;
         pEndpoint->OpenPropertyStore(STGM_READ, &pPropertyStore);
         pEndpoint->Release();
-		pEndpoint = NULL;
+        pEndpoint = NULL;
         PROPVARIANT pv;
-		PropVariantInit(&pv);
+        PropVariantInit(&pv);
         hr = pPropertyStore->GetValue(PKEY_Device_FriendlyName, &pv);
         pPropertyStore->Release();
-		pPropertyStore = NULL;
-		//QAudio devices seems to only take the 31 first characters of the Friendly Device Name.
-		deviceName = QString::fromWCharArray((wchar_t *)pv.pwszVal).left(31);
+        pPropertyStore = NULL;
+        //QAudio devices seems to only take the 31 first characters of the Friendly Device Name.
+        deviceName = QString::fromWCharArray((wchar_t *)pv.pwszVal).left(31);
         qDebug() << (mode == QAudio::AudioOutput ? "output" : "input") << " device:" << deviceName;
-		PropVariantClear(&pv);
-		pMMDeviceEnumerator->Release();
-		pMMDeviceEnumerator = NULL;
-		CoUninitialize();
-	}
-	qDebug() << "DEBUG [" << deviceName << "] [" << getNamedAudioDeviceForMode(mode, deviceName).deviceName() << "]";
+        PropVariantClear(&pv);
+        pMMDeviceEnumerator->Release();
+        pMMDeviceEnumerator = NULL;
+        CoUninitialize();
+    }
+    qDebug() << "DEBUG [" << deviceName << "] [" << getNamedAudioDeviceForMode(mode, deviceName).deviceName() << "]";
     
     return getNamedAudioDeviceForMode(mode, deviceName);
 #endif
