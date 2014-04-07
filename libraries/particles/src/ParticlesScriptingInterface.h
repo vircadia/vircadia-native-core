@@ -11,6 +11,8 @@
 
 #include <QtCore/QObject>
 
+#include <CollisionInfo.h>
+
 #include <OctreeScriptingInterface.h>
 #include "ParticleEditPacketSender.h"
 
@@ -55,8 +57,8 @@ public slots:
     QVector<ParticleID> findParticles(const glm::vec3& center, float radius) const;
 
 signals:
-    void particleCollisionWithVoxel(const ParticleID& particleID, const VoxelDetail& voxel, const glm::vec3& penetration);
-    void particleCollisionWithParticle(const ParticleID& idA, const ParticleID& idB, const glm::vec3& penetration);
+    void particleCollisionWithVoxel(const ParticleID& particleID, const VoxelDetail& voxel, const CollisionInfo& collision);
+    void particleCollisionWithParticle(const ParticleID& idA, const ParticleID& idB, const CollisionInfo& collision);
 
 private:
     void queueParticleMessage(PacketType packetType, ParticleID particleID, const ParticleProperties& properties);

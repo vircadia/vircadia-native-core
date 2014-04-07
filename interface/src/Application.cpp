@@ -1565,14 +1565,14 @@ void Application::init() {
 
     // connect the _particleCollisionSystem to our script engine's ParticleScriptingInterface
     connect(&_particleCollisionSystem,
-            SIGNAL(particleCollisionWithVoxel(const ParticleID&, const VoxelDetail&, const glm::vec3&)),
+            SIGNAL(particleCollisionWithVoxel(const ParticleID&, const VoxelDetail&, const CollisionInfo&)),
             ScriptEngine::getParticlesScriptingInterface(),
-            SIGNAL(particleCollisionWithVoxels(const ParticleID&, const VoxelDetail&, const glm::vec3&)));
+            SIGNAL(particleCollisionWithVoxels(const ParticleID&, const VoxelDetail&, const CollisionInfo&)));
 
     connect(&_particleCollisionSystem,
-            SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&, const glm::vec3&)),
+            SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&, const CollisionInfo&)),
             ScriptEngine::getParticlesScriptingInterface(),
-            SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&, const glm::vec3&)));
+            SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&, const CollisionInfo&)));
 
     _audio.init(_glWidget);
 

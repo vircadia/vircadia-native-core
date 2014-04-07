@@ -30,9 +30,10 @@ var gravity = {
 var damping = 0.1;
 
 var scriptA = " " +
-             " function collisionWithParticle(other, penetration) { " +
+             " function collisionWithParticle(other, collision) { " +
              "   print('collisionWithParticle(other.getID()=' + other.getID() + ')...'); " +
-             "   Vec3.print('penetration=', penetration); " +
+             "   Vec3.print('penetration=', collision.penetration); " +
+             "   Vec3.print('contactPoint=', collision.contactPoint); " +
              "   print('myID=' + Particle.getID() + '\\n'); " +
              "   var colorBlack = { red: 0, green: 0, blue: 0 };" +
              "   var otherColor = other.getColor();" +
@@ -46,9 +47,10 @@ var scriptA = " " +
              " ";
 
 var scriptB = " " +
-             " function collisionWithParticle(other, penetration) { " +
+             " function collisionWithParticle(other, collision) { " +
              "   print('collisionWithParticle(other.getID()=' + other.getID() + ')...'); " +
-             "   Vec3.print('penetration=', penetration); " +
+             "   Vec3.print('penetration=', collision.penetration); " +
+             "   Vec3.print('contactPoint=', collision.contactPoint); " +
              "   print('myID=' + Particle.getID() + '\\n'); " +
              "   Particle.setScript('Particle.setShouldDie(true);'); " +
              " } " +
