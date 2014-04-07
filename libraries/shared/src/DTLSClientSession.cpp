@@ -16,8 +16,9 @@ void DTLSClientSession::globalInit() {
     if (!initialized) {
         gnutls_global_init();
         gnutls_certificate_allocate_credentials(&_x509CACredentials);
-        int certsProcessed = gnutls_certificate_set_x509_trust_mem(_x509CACredentials, DTLSSession::highFidelityCADatum(), GNUTLS_X509_FMT_PEM);
-        qDebug() << "There were" << certsProcessed;
+        
+        gnutls_certificate_set_x509_trust_mem(_x509CACredentials, DTLSSession::highFidelityCADatum(), GNUTLS_X509_FMT_PEM);
+        gnutls_certificate_set_verify_function(_x509CACredentials, DTLSClientSession::verifyServerCertificate);
     }
 }
 
@@ -25,6 +26,37 @@ void DTLSClientSession::globalDeinit() {
     gnutls_certificate_free_credentials(_x509CACredentials);
     
     gnutls_global_deinit();
+}
+
+int DTLSClientSession::verifyServerCertificate(gnutls_session_t session) {
+    unsigned int verifyStatus = 0;
+    int certReturn = gnutls_certificate_verify_peers3(session, NULL, &verifyStatus);
+    
+    if (certReturn < 0) {
+        return GNUTLS_E_CERTIFICATE_ERROR;
+    }
+    
+    gnutls_certificate_type_t typeReturn = gnutls_certificate_type_get(session);
+    
+    gnutls_datum_t printOut;
+
+    
+    certReturn = gnutls_certificate_verification_status_print(verifyStatus, typeReturn, &printOut, 0);
+    
+    if (certReturn < 0) {
+        return GNUTLS_E_CERTIFICATE_ERROR;
+    }
+    
+    qDebug() << "Gnutls certificate verification status:" << reinterpret_cast<char *>(printOut.data);
+    gnutls_free(printOut.data);
+    
+    if (verifyStatus != 0) {
+        qDebug() << "Server provided certificate for DTLS is not trusted. Can not complete handshake.";
+        return GNUTLS_E_CERTIFICATE_ERROR;
+    } else {
+        // certificate is valid, continue handshaking as normal
+        return 0;
+    }
 }
 
 DTLSClientSession::DTLSClientSession(QUdpSocket& dtlsSocket, HifiSockAddr& destinationSocket) :

@@ -689,7 +689,7 @@ void DomainServer::readAvailableDTLSDatagrams() {
                 // the cookie sent by the client was not valid
                 // send a valid one
                 DummyDTLSSession tempServerSession(LimitedNodeList::getInstance()->getDTLSSocket(), senderHifiSockAddr);
-                qDebug() << "sending back a fresh cookie!";
+                
                 gnutls_dtls_cookie_send(_cookieKey, &senderSockAddr, sizeof(senderSockAddr), &prestate,
                                         &tempServerSession, DTLSSession::socketPush);
                 

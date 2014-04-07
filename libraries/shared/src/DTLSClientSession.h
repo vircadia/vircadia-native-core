@@ -18,6 +18,8 @@ public:
     static void globalInit();
     static void globalDeinit();
     
+    static int verifyServerCertificate(gnutls_session_t session);
+    
     static gnutls_certificate_credentials_t _x509CACredentials;
     static bool _wasGloballyInitialized;
 };

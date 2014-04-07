@@ -129,7 +129,8 @@ void DomainHandler::completeDTLSHandshake() {
     } else if (gnutls_error_is_fatal(handshakeReturn)) {
         // this was a fatal error handshaking, so remove this session
         qDebug() << "Fatal error -" << gnutls_strerror(handshakeReturn)
-            << "- during DTLS handshake with DS at" << getHostname();
+            << "- during DTLS handshake with DS at"
+            << qPrintable((_hostname.isEmpty() ? _sockAddr.getAddress().toString() : _hostname));
         
         clearConnectionInfo();
     }

@@ -128,7 +128,6 @@ DTLSSession::DTLSSession(int end, QUdpSocket& dtlsSocket, HifiSockAddr& destinat
 }
 
 DTLSSession::~DTLSSession() {
-    qDebug() << "cleaning up current session";
     gnutls_deinit(_gnutlsSession);
 }
 
