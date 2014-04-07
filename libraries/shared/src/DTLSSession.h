@@ -25,6 +25,8 @@ public:
     static int socketPullTimeout(gnutls_transport_ptr_t ptr, unsigned int ms);
     static ssize_t socketPull(gnutls_transport_ptr_t ptr, void* buffer, size_t size);
     
+    static gnutls_datum_t* highFidelityCADatum();
+    
     qint64 writeDatagram(const QByteArray& datagram);
     
     gnutls_session_t* getGnuTLSSession() { return &_gnutlsSession; }

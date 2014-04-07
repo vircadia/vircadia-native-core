@@ -16,6 +16,8 @@ void DTLSClientSession::globalInit() {
     if (!initialized) {
         gnutls_global_init();
         gnutls_certificate_allocate_credentials(&_x509CACredentials);
+        int certsProcessed = gnutls_certificate_set_x509_trust_mem(_x509CACredentials, DTLSSession::highFidelityCADatum(), GNUTLS_X509_FMT_PEM);
+        qDebug() << "There were" << certsProcessed;
     }
 }
 
