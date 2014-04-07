@@ -192,7 +192,6 @@ private:
     bool _initialized;
     QScopedPointer<Texture> _billboardTexture;
     bool _shouldRenderBillboard;
-    bool _modelsDirty;
 
     void renderBillboard();
     

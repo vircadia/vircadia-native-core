@@ -121,6 +121,7 @@ private:
     bool _isThrustOn;
     float _thrustMultiplier;
     glm::vec3 _moveTarget;
+    glm::vec3 _lastBodyPenetration;
     int _moveTargetStepCounter;
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;

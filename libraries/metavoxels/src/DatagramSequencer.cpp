@@ -420,7 +420,7 @@ bool CircularBuffer::atEnd() const {
 }
 
 qint64 CircularBuffer::bytesAvailable() const {
-    return _size - _offset + QIODevice::bytesAvailable();
+    return _size - _offset;
 }
 
 bool CircularBuffer::canReadLine() const {

@@ -14,6 +14,7 @@
 #include "Head.h"
 #include "Menu.h"
 #include "Util.h"
+#include "devices/OculusManager.h"
 
 using namespace std;
 
@@ -198,6 +199,9 @@ glm::quat Head::getFinalOrientation() const {
 }
 
 glm::quat Head::getCameraOrientation () const {
+    if (OculusManager::isConnected()) {
+        return getOrientation();
+    }
     Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
     return owningAvatar->getWorldAlignedOrientation() * glm::quat(glm::radians(glm::vec3(_basePitch, 0.f, 0.0f)));
 }

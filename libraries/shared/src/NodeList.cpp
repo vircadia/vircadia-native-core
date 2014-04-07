@@ -155,6 +155,15 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
                 matchingNode->setLastHeardMicrostamp(usecTimestampNow());
                 QByteArray replyPacket = constructPingReplyPacket(packet);
                 writeDatagram(replyPacket, matchingNode, senderSockAddr);
+                
+                // If we don't have a symmetric socket for this node and this socket doesn't match
+                // what we have for public and local then set it as the symmetric.
+                // This allows a server on a reachable port to communicate with nodes on symmetric NATs
+                if (matchingNode->getSymmetricSocket().isNull()) {
+                    if (senderSockAddr != matchingNode->getLocalSocket() && senderSockAddr != matchingNode->getPublicSocket()) {
+                        matchingNode->setSymmetricSocket(senderSockAddr);
+                    }
+                }
             }
             
             break;
@@ -503,7 +512,7 @@ QByteArray NodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
     return replyPacket;
 }
 
-void NodeList::pingPublicAndLocalSocketsForInactiveNode(const SharedNodePointer& node) {
+void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
     
     // send the ping packet to the local and public sockets for this node
     QByteArray localPingPacket = constructPingPacket(PingType::Local);
@@ -511,13 +520,18 @@ void NodeList::pingPublicAndLocalSocketsForInactiveNode(const SharedNodePointer&
     
     QByteArray publicPingPacket = constructPingPacket(PingType::Public);
     writeDatagram(publicPingPacket, node, node->getPublicSocket());
+    
+    if (!node->getSymmetricSocket().isNull()) {
+        QByteArray symmetricPingPacket = constructPingPacket(PingType::Symmetric);
+        writeDatagram(symmetricPingPacket, node, node->getSymmetricSocket());
+    }
 }
 
 void NodeList::pingInactiveNodes() {
     foreach (const SharedNodePointer& node, getNodeHash()) {
         if (!node->getActiveSocket()) {
             // we don't have an active link to this node, ping it to set that up
-            pingPublicAndLocalSocketsForInactiveNode(node);
+            pingPunchForInactiveNode(node);
         }
     }
 }
@@ -536,6 +550,8 @@ void NodeList::activateSocketFromNodeCommunication(const QByteArray& packet, con
         sendingNode->activateLocalSocket();
     } else if (pingType == PingType::Public && !sendingNode->getActiveSocket()) {
         sendingNode->activatePublicSocket();
+    } else if (pingType == PingType::Symmetric && !sendingNode->getActiveSocket()) {
+        sendingNode->activateSymmetricSocket();
     }
 }
 

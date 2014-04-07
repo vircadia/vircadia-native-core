@@ -21,6 +21,7 @@
 #include <QSet>
 #include <QStringList>
 #include <QPointer>
+#include <QHash>
 
 #include <NetworkPacket.h>
 #include <NodeList.h>
@@ -65,6 +66,7 @@
 #include "ui/LogDialog.h"
 #include "ui/UpdateDialog.h"
 #include "ui/overlays/Overlays.h"
+#include "ui/RunningScriptsWidget.h"
 #include "voxels/VoxelFade.h"
 #include "voxels/VoxelHideShowThread.h"
 #include "voxels/VoxelImporter.h"
@@ -93,6 +95,7 @@ static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
+static const QString CUSTOM_URL_SCHEME = "hifi:";
 
 static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
 static const float BILLBOARD_DISTANCE = 5.0f;       // meters
@@ -112,7 +115,7 @@ public:
     ~Application();
 
     void restoreSizeAndPosition();
-    void loadScript(const QString& fileNameString);    
+    void loadScript(const QString& fileNameString);
     void loadScripts();
     void storeSizeAndPosition();
     void clearScriptsBeforeRunning();
@@ -136,9 +139,9 @@ public:
 
     void wheelEvent(QWheelEvent* event);
     void dropEvent(QDropEvent *event);
-    
+
     bool event(QEvent* event);
-    
+
     void makeVoxel(glm::vec3 position,
                    float scale,
                    unsigned char red,
@@ -226,6 +229,8 @@ public:
 
     void skipVersion(QString latestVersion);
 
+    QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
+
 signals:
 
     /// Fired when we're simulating; allows external parties to hook in.
@@ -233,10 +238,10 @@ signals:
 
     /// Fired when we're rendering in-world interface elements; allows external parties to hook in.
     void renderingInWorldInterface();
-    
+
     /// Fired when the import window is closed
     void importDone();
-    
+
 public slots:
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
@@ -259,31 +264,32 @@ public slots:
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
     void stopAllScripts();
+    void stopScript(const QString& scriptName);
     void reloadAllScripts();
-    
-    void uploadFST();
+    void toggleRunningScriptsWidget();
+
+    void uploadFST(bool isHead);
+    void uploadHead();
+    void uploadSkeleton();
 
 private slots:
     void timer();
     void idle();
-    
+
     void connectedToDomain(const QString& hostname);
 
     void setFullscreen(bool fullscreen);
     void setEnable3DTVMode(bool enable3DTVMode);
     void cameraMenuChanged();
-    
+
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
 
     void closeMirrorView();
     void restoreMirrorView();
     void shrinkMirrorView();
     void resetSensors();
-    
-    void parseVersionXml();
 
-    void removeScriptName(const QString& fileNameString);
-    void cleanupScriptMenuItem(const QString& scriptMenuName);
+    void parseVersionXml();
 
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
@@ -312,7 +318,6 @@ private:
     void updateMetavoxels(float deltaTime);
     void updateCamera(float deltaTime);
     void updateDialogs(float deltaTime);
-    void updateAudio(float deltaTime);
     void updateCursor(float deltaTime);
 
     Avatar* findLookatTargetAvatar(glm::vec3& eyePosition, QUuid &nodeUUID);
@@ -328,10 +333,6 @@ private:
 
     void updateShadowMap();
     void displayOverlay();
-    void displayStatsBackground(unsigned int rgba, int x, int y, int width, int height);
-    void displayStats();
-    void checkStatsClick();
-    void toggleStatsExpanded();
     void renderRearViewMirror(const QRect& region, bool billboard = false);
     void renderViewFrustum(ViewFrustum& viewFrustum);
 
@@ -352,9 +353,8 @@ private:
     QMainWindow* _window;
     GLCanvas* _glWidget; // our GLCanvas has a couple extra features
 
-    bool _statsExpanded;
     BandwidthMeter _bandwidthMeter;
-    
+
     QThread* _nodeThread;
     DatagramProcessor _datagramProcessor;
 
@@ -373,7 +373,7 @@ private:
     timeval _lastTimeUpdated;
     bool _justStarted;
     Stars _stars;
-    
+
     BuckyBalls _buckyBalls;
 
     VoxelSystem _voxels;
@@ -397,6 +397,7 @@ private:
     quint64 _lastQueriedTime;
 
     Oscilloscope _audioScope;
+    float _trailingAudioLoudness;
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying voxels from voxel server
 
@@ -407,7 +408,6 @@ private:
     Visage _visage;
 
     SixenseManager _sixenseManager;
-    QStringList _activeScripts;
 
     Camera _myCamera;                  // My view onto the world
     Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
@@ -465,9 +465,6 @@ private:
     int _packetsPerSecond;
     int _bytesPerSecond;
 
-    int _recentMaxPackets; // recent max incoming voxel packets to process
-    bool _resetRecentMaxPacketsSoon;
-
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
 
@@ -483,16 +480,21 @@ private:
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;
 
+    QString _previousScriptLocation;
+
     FileLogger* _logger;
 
     void checkVersion();
     void displayUpdateDialog();
     bool shouldSkipVersion(QString latestVersion);
     void takeSnapshot();
-    
+
     TouchEvent _lastTouchEvent;
-    
+
     Overlays _overlays;
+
+    RunningScriptsWidget* _runningScriptsWidget;
+    QHash<QString, ScriptEngine*> _scriptEnginesHash;
 };
 
 #endif /* defined(__interface__Application__) */
