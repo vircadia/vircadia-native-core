@@ -58,6 +58,8 @@ void DomainHandler::initializeDTLSSession() {
     if (!_dtlsSession) {
         _dtlsSession = new DTLSClientSession(NodeList::getInstance()->getDTLSSocket(), _sockAddr);
         
+        gnutls_session_set_ptr(*_dtlsSession->getGnuTLSSession(), this);
+        
         // start a timer to complete the handshake process
         _handshakeTimer = new QTimer(this);
         connect(_handshakeTimer, &QTimer::timeout, this, &DomainHandler::completeDTLSHandshake);
@@ -70,13 +72,16 @@ void DomainHandler::initializeDTLSSession() {
     }
 }
 
-void DomainHandler::setSockAddr(const HifiSockAddr& sockAddr) {
+void DomainHandler::setSockAddr(const HifiSockAddr& sockAddr, const QString& hostname) {
     if (_sockAddr != sockAddr) {
         // we should reset on a sockAddr change
         reset();
         // change the sockAddr
         _sockAddr = sockAddr;
     }
+    
+    // some callers may pass a hostname, this is not to be used for lookup but for DTLS certificate verification
+    _hostname = hostname;
 }
 
 void DomainHandler::setHostname(const QString& hostname) {

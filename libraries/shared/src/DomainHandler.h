@@ -40,7 +40,7 @@ public:
     void setIPToLocalhost() { _sockAddr.setAddress(QHostAddress(QHostAddress::LocalHost)); }
     
     const HifiSockAddr& getSockAddr() { return _sockAddr; }
-    void setSockAddr(const HifiSockAddr& sockAddr);
+    void setSockAddr(const HifiSockAddr& sockAddr, const QString& hostname);
     
     unsigned short getPort() const { return _sockAddr.getPort(); }
     

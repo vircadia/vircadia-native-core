@@ -26,6 +26,7 @@ private slots:
 private:
     Assignment _requestAssignment;
     SharedAssignmentPointer _currentAssignment;
+    QString _assignmentServerHostname;
 };
 
 #endif /* defined(__hifi__AssignmentClient__) */

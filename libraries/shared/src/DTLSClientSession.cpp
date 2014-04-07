@@ -6,6 +6,8 @@
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
 //
 
+#include "DomainHandler.h"
+
 #include "DTLSClientSession.h"
 
 gnutls_certificate_credentials_t DTLSClientSession::_x509CACredentials;
@@ -30,7 +32,14 @@ void DTLSClientSession::globalDeinit() {
 
 int DTLSClientSession::verifyServerCertificate(gnutls_session_t session) {
     unsigned int verifyStatus = 0;
-    int certReturn = gnutls_certificate_verify_peers3(session, NULL, &verifyStatus);
+    
+    // grab the hostname from the domain handler that this session is associated with
+    DomainHandler* domainHandler = reinterpret_cast<DomainHandler*>(gnutls_session_get_ptr(session));
+    qDebug() << "Checking for" << domainHandler->getHostname() << "from cert.";
+    
+    int certReturn = gnutls_certificate_verify_peers3(session,
+                                                      domainHandler->getHostname().toLocal8Bit().constData(),
+                                                      &verifyStatus);
     
     if (certReturn < 0) {
         return GNUTLS_E_CERTIFICATE_ERROR;
