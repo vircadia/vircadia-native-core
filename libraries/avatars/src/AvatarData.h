@@ -30,6 +30,7 @@ typedef unsigned long long quint64;
 #include <glm/gtc/quaternion.hpp>
 
 #include <QtCore/QByteArray>
+#include <QtCore/QHash>
 #include <QtCore/QObject>
 #include <QtCore/QStringList>
 #include <QtCore/QUrl>
@@ -160,9 +161,9 @@ public:
     Q_INVOKABLE glm::quat getJointRotation(const QString& name) const;
 
     /// Returns the index of the joint with the specified name, or -1 if not found/unknown.
-    Q_INVOKABLE virtual int getJointIndex(const QString& name) const { return -1; } 
+    Q_INVOKABLE virtual int getJointIndex(const QString& name) const { return _jointIndices.value(name) - 1; } 
 
-    Q_INVOKABLE virtual QStringList getJointNames() const { return QStringList(); }
+    Q_INVOKABLE virtual QStringList getJointNames() const { return _jointNames; }
 
     // key state
     void setKeyState(KeyState s) { _keyState = s; }
@@ -217,6 +218,7 @@ public slots:
     void sendIdentityPacket();
     void sendBillboardPacket();
     void setBillboardFromNetworkReply();
+    void setJointMappingsFromNetworkReply();
 protected:
     glm::vec3 _position;
     glm::vec3 _handPosition;
@@ -258,9 +260,15 @@ protected:
     QByteArray _billboard;
     QString _billboardURL;
     
+    QHash<QString, int> _jointIndices; ///< 1-based, since zero is returned for missing keys
+    QStringList _jointNames; ///< in order of depth-first traversal
+    
     static QNetworkAccessManager* networkAccessManager;
 
     quint64 _errorLogExpiry; ///< time in future when to log an error
+
+    /// Loads the joint indices, names from the FST file (if any)
+    virtual void updateJointMappings();
 
 private:
     // privatize the copy constructor and assignment operator so they cannot be called

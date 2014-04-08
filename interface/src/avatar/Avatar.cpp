@@ -46,7 +46,6 @@ Avatar::Avatar() :
     _mode(AVATAR_MODE_STANDING),
     _velocity(0.0f, 0.0f, 0.0f),
     _thrust(0.0f, 0.0f, 0.0f),
-    _speed(0.0f),
     _leanScale(0.5f),
     _scale(1.0f),
     _worldUpDirection(DEFAULT_UP_DIRECTION),
@@ -137,7 +136,8 @@ void Avatar::simulate(float deltaTime) {
     }
     
     // use speed and angular velocity to determine walking vs. standing
-    if (_speed + fabs(_bodyYawDelta) > 0.2) {
+    float speed = glm::length(_velocity);
+    if (speed + fabs(_bodyYawDelta) > 0.2) {
         _mode = AVATAR_MODE_WALKING;
     } else {
         _mode = AVATAR_MODE_INTERACTING;
@@ -329,6 +329,10 @@ void Avatar::renderBody(RenderMode renderMode) {
     _skeletonModel.render(1.0f, renderMode == SHADOW_RENDER_MODE);
     getHead()->render(1.0f, renderMode == SHADOW_RENDER_MODE);
     getHand()->render(false);
+}
+
+void Avatar::updateJointMappings() {
+    // no-op; joint mappings come from skeleton model
 }
 
 void Avatar::renderBillboard() {
