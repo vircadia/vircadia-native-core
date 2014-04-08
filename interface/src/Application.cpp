@@ -2234,8 +2234,7 @@ void Application::updateShadowMap() {
     glRotatef(glm::degrees(glm::angle(inverseRotation)), axis.x, axis.y, axis.z);
 
     // store view matrix without translation, which we'll use for precision-sensitive objects
-    glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
-    _viewMatrixTranslation = glm::vec3();
+    updateUntranslatedViewMatrix();
 
     _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
     _particles.render();
@@ -2320,8 +2319,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     glRotatef(-glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
 
     // store view matrix without translation, which we'll use for precision-sensitive objects
-    glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
-    _viewMatrixTranslation = -whichCamera.getPosition();
+    updateUntranslatedViewMatrix(-whichCamera.getPosition());
 
     glTranslatef(_viewMatrixTranslation.x, _viewMatrixTranslation.y, _viewMatrixTranslation.z);
 
@@ -2450,6 +2448,11 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         // render JS/scriptable overlays
         _overlays.render3D();
     }
+}
+
+void Application::updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation) {
+    glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
+    _viewMatrixTranslation = viewMatrixTranslation;
 }
 
 void Application::loadTranslatedViewMatrix(const glm::vec3& translation) {
@@ -3249,9 +3252,12 @@ void Application::toggleRunningScriptsWidget()
 
 void Application::uploadFST(bool isHead) {
     ModelUploader* uploader = new ModelUploader(isHead);
-    if (uploader->zip()) {
-        uploader->send();
-    }
+    QThread* thread = new QThread();
+    thread->connect(uploader, SIGNAL(destroyed()), SLOT(quit()));
+    thread->connect(thread, SIGNAL(finished()), SLOT(deleteLater()));
+    uploader->connect(thread, SIGNAL(started()), SLOT(send()));
+    
+    thread->start();
 }
 
 void Application::uploadHead() {
@@ -3278,6 +3284,7 @@ void Application::loadScript(const QString& scriptName) {
     // we can use the same ones from the application.
     scriptEngine->getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
     scriptEngine->getVoxelsScriptingInterface()->setVoxelTree(_voxels.getTree());
+    scriptEngine->getVoxelsScriptingInterface()->setUndoStack(&_undoStack);
     scriptEngine->getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
     scriptEngine->getParticlesScriptingInterface()->setParticleTree(_particles.getTree());
 

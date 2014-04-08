@@ -9,13 +9,14 @@
 
 #include <QDebug>
 #include <QFile>
-#include <QTextStream>
 #include <QFileDialog>
-#include <QStandardPaths>
+#include <QGridLayout>
 #include <QHttpMultiPart>
-#include <QTemporaryDir>
-#include <QVariant>
 #include <QMessageBox>
+#include <QProgressBar>
+#include <QStandardPaths>
+#include <QTextStream>
+#include <QVariant>
 
 #include "AccountManager.h"
 #include "ModelUploader.h"
@@ -26,29 +27,26 @@ static const QString FILENAME_FIELD = "filename";
 static const QString TEXDIR_FIELD = "texdir";
 static const QString LOD_FIELD = "lod";
 
+static const QString S3_URL = "http://highfidelity-public.s3-us-west-1.amazonaws.com";
 static const QString MODEL_URL = "/api/v1/models";
 
 static const int MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+static const int TIMEOUT = 1000;
+static const int MAX_CHECK = 30;
 
-// Class providing the QObject parent system to QTemporaryDir
-class TemporaryDir : public QTemporaryDir, public QObject {
-public:
-    virtual ~TemporaryDir() {
-        // ensuring the entire object gets deleted by the QObject parent.
-    }
-};
+static const int QCOMPRESS_HEADER_POSITION = 0;
+static const int QCOMPRESS_HEADER_SIZE = 4;
 
 ModelUploader::ModelUploader(bool isHead) :
-    _zipDir(new TemporaryDir()),
     _lodCount(-1),
     _texturesCount(-1),
     _totalSize(0),
     _isHead(isHead),
     _readyToSend(false),
-    _dataMultiPart(new QHttpMultiPart(QHttpMultiPart::FormDataType))
+    _dataMultiPart(new QHttpMultiPart(QHttpMultiPart::FormDataType)),
+    _numberOfChecks(MAX_CHECK)
 {
-    _zipDir->setParent(_dataMultiPart);
-    
+    connect(&_timer, SIGNAL(timeout()), SLOT(checkS3()));
 }
 
 ModelUploader::~ModelUploader() {
@@ -59,8 +57,9 @@ bool ModelUploader::zip() {
     // File Dialog
     QString filename = QFileDialog::getOpenFileName(NULL,
                                                     "Select your .fst file ...",
-                                                    QStandardPaths::writableLocation(QStandardPaths::DownloadLocation),
+                                                    QStandardPaths::writableLocation(QStandardPaths::HomeLocation),
                                                     "*.fst");
+    qDebug() << QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
     if (filename == "") {
         // If the user canceled we return.
         return false;
@@ -79,11 +78,7 @@ bool ModelUploader::zip() {
     qDebug() << "Reading FST file : " << QFileInfo(fst).filePath();
     
     // Compress and copy the fst
-    if (!compressFile(QFileInfo(fst).filePath(), _zipDir->path() + "/" + QFileInfo(fst).fileName())) {
-        return false;
-    }
-    if (!addPart(_zipDir->path() + "/" + QFileInfo(fst).fileName(),
-                 QString("fst"))) {
+    if (!addPart(QFileInfo(fst).filePath(), QString("fst"))) {
         return false;
     }
     
@@ -103,6 +98,7 @@ bool ModelUploader::zip() {
                                " name=\"model_name\"");
             textPart.setBody(line[1].toUtf8());
             _dataMultiPart->append(textPart);
+            _url = S3_URL + ((_isHead)? "/models/heads/" : "/models/skeletons/") + line[1].toUtf8() + ".fst";
         } else if (line[0] == FILENAME_FIELD) {
             QFileInfo fbx(QFileInfo(fst).path() + "/" + line[1]);
             if (!fbx.exists() || !fbx.isFile()) { // Check existence
@@ -114,10 +110,7 @@ bool ModelUploader::zip() {
                 return false;
             }
             // Compress and copy
-            if (!compressFile(fbx.filePath(), _zipDir->path() + "/" + line[1])) {
-                return false;
-            }
-            if (!addPart(_zipDir->path() + "/" + line[1], "fbx")) {
+            if (!addPart(fbx.filePath(), "fbx")) {
                 return false;
             }
         } else if (line[0] == TEXDIR_FIELD) { // Check existence
@@ -144,10 +137,7 @@ bool ModelUploader::zip() {
                 return false;
             }
             // Compress and copy
-            if (!compressFile(lod.filePath(), _zipDir->path() + "/" + line[1])) {
-                return false;
-            }
-            if (!addPart(_zipDir->path() + "/" + line[1], QString("lod%1").arg(++_lodCount))) {
+            if (!addPart(lod.filePath(), QString("lod%1").arg(++_lodCount))) {
                 return false;
             }
         }
@@ -167,9 +157,9 @@ bool ModelUploader::zip() {
     return true;
 }
 
-bool ModelUploader::send() {
-    if (!_readyToSend) {
-        return false;
+void ModelUploader::send() {
+    if (!zip()) {
+        return;
     }
     
     JSONCallbackParameters callbackParams;
@@ -177,28 +167,93 @@ bool ModelUploader::send() {
     callbackParams.jsonCallbackMethod = "uploadSuccess";
     callbackParams.errorCallbackReceiver = this;
     callbackParams.errorCallbackMethod = "uploadFailed";
+    callbackParams.updateReciever = this;
+    callbackParams.updateSlot = SLOT(uploadUpdate(qint64, qint64));
     
     AccountManager::getInstance().authenticatedRequest(MODEL_URL, QNetworkAccessManager::PostOperation, callbackParams, QByteArray(), _dataMultiPart);
-    _zipDir = NULL;
     _dataMultiPart = NULL;
     qDebug() << "Sending model...";
+    _progressDialog = new QDialog();
+    _progressBar = new QProgressBar(_progressDialog);
+    _progressBar->setRange(0, 100);
+    _progressBar->setValue(0);
     
-    return true;
+    _progressDialog->setWindowTitle("Uploading model...");
+    _progressDialog->setLayout(new QGridLayout(_progressDialog));
+    _progressDialog->layout()->addWidget(_progressBar);
+    
+    _progressDialog->exec();
+
+    delete _progressDialog;
+    _progressDialog = NULL;
+    _progressBar = NULL;
+}
+
+void ModelUploader::uploadUpdate(qint64 bytesSent, qint64 bytesTotal) {
+    if (_progressDialog) {
+        _progressBar->setRange(0, bytesTotal);
+        _progressBar->setValue(bytesSent);
+    }
 }
 
 void ModelUploader::uploadSuccess(const QJsonObject& jsonResponse) {
-    qDebug() << "Model sent with success to the data server.";
-    qDebug() << "It might take a few minute for it to appear in your model browser.";
-    deleteLater();
+    if (_progressDialog) {
+        _progressDialog->accept();
+    }
+    QMessageBox::information(NULL,
+                             QString("ModelUploader::uploadSuccess()"),
+                             QString("Your model is being processed by the system."),
+                             QMessageBox::Ok);
+    qDebug() << "Model sent with success";
+    checkS3();
 }
 
 void ModelUploader::uploadFailed(QNetworkReply::NetworkError errorCode, const QString& errorString) {
+    if (_progressDialog) {
+        _progressDialog->reject();
+    }
     QMessageBox::warning(NULL,
                          QString("ModelUploader::uploadFailed()"),
                          QString("Model could not be sent to the data server."),
                          QMessageBox::Ok);
     qDebug() << "Model upload failed (" << errorCode << "): " << errorString;
     deleteLater();
+}
+
+void ModelUploader::checkS3() {
+    qDebug() << "Checking S3 for " << _url;
+    QNetworkRequest request(_url);
+    QNetworkReply* reply = _networkAccessManager.head(request);
+    connect(reply, SIGNAL(finished()), SLOT(processCheck()));
+}
+
+void ModelUploader::processCheck() {
+    QNetworkReply* reply = static_cast<QNetworkReply*>(sender());
+    _timer.stop();
+    
+    switch (reply->error()) {
+        case QNetworkReply::NoError:
+            QMessageBox::information(NULL,
+                                     QString("ModelUploader::processCheck()"),
+                                     QString("Your model is now available in the browser."),
+                                     QMessageBox::Ok);
+            deleteLater();
+            break;
+        case QNetworkReply::ContentNotFoundError:
+            if (--_numberOfChecks) {
+                _timer.start(TIMEOUT);
+                break;
+            }
+        default:
+            QMessageBox::warning(NULL,
+                                 QString("ModelUploader::processCheck()"),
+                                 QString("Could not verify that the model is present on the server."),
+                                 QMessageBox::Ok);
+            deleteLater();
+            break;
+    }
+    
+    delete reply;
 }
 
 bool ModelUploader::addTextures(const QFileInfo& texdir) {
@@ -213,11 +268,7 @@ bool ModelUploader::addTextures(const QFileInfo& texdir) {
     foreach (QFileInfo info, list) {
         if (info.isFile()) {
             // Compress and copy
-            if (!compressFile(info.filePath(), _zipDir->path() + "/" + info.fileName())) {
-                return false;
-            }
-            if (!addPart(_zipDir->path() + "/" + info.fileName(),
-                         QString("texture%1").arg(++_texturesCount))) {
+            if (!addPart(info.filePath(), QString("texture%1").arg(++_texturesCount))) {
                 return false;
             }
         } else if (info.isDir()) {
@@ -230,54 +281,33 @@ bool ModelUploader::addTextures(const QFileInfo& texdir) {
     return true;
 }
 
-bool ModelUploader::compressFile(const QString &inFileName, const QString &outFileName) {
-    QFile inFile(inFileName);
-    inFile.open(QIODevice::ReadOnly);
-    QByteArray buffer = inFile.readAll();
-    
-    QFile outFile(outFileName);
-    if (!outFile.open(QIODevice::WriteOnly)) {
-        QDir(_zipDir->path()).mkpath(QFileInfo(outFileName).path());
-        if (!outFile.open(QIODevice::WriteOnly)) {
-            QMessageBox::warning(NULL,
-                                 QString("ModelUploader::compressFile()"),
-                                 QString("Could not compress %1").arg(inFileName),
-                                 QMessageBox::Ok);
-            qDebug() << "[Warning] " << QString("Could not compress %1").arg(inFileName);
-            return false;
-        }
-    }
-    QDataStream out(&outFile);
-    out << qCompress(buffer);
-    
-    return true;
-}
-
-
 bool ModelUploader::addPart(const QString &path, const QString& name) {
-    QFile* file = new QFile(path);
-    if (!file->open(QIODevice::ReadOnly)) {
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
         QMessageBox::warning(NULL,
                              QString("ModelUploader::addPart()"),
                              QString("Could not open %1").arg(path),
                              QMessageBox::Ok);
         qDebug() << "[Warning] " << QString("Could not open %1").arg(path);
-        delete file;
         return false;
     }
+    QByteArray buffer = qCompress(file.readAll());
+    
+    // Qt's qCompress() default compression level (-1) is the standard zLib compression.
+    // Here remove Qt's custom header that prevent the data server from uncompressing the files with zLib.
+    buffer.remove(QCOMPRESS_HEADER_POSITION, QCOMPRESS_HEADER_SIZE);
     
     QHttpPart part;
-    part.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data;"
+    part.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data;"
                    " name=\"" + name.toUtf8() +  "\";"
-                   " filename=\"" + QFileInfo(*file).fileName().toUtf8() +  "\"");
-    part.setHeader(QNetworkRequest::ContentTypeHeader, "application/octet-stream");
-    part.setBodyDevice(file);
+                   " filename=\"" + QFileInfo(file).fileName().toUtf8() +  "\""));
+    part.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
+    part.setBody(buffer);
     _dataMultiPart->append(part);
-    file->setParent(_dataMultiPart);
     
     
-    qDebug() << "File " << QFileInfo(*file).fileName() << " added to model.";
-    _totalSize += file->size();
+    qDebug() << "File " << QFileInfo(file).fileName() << " added to model.";
+    _totalSize += file.size();
     if (_totalSize > MAX_SIZE) {
         QMessageBox::warning(NULL,
                              QString("ModelUploader::zip()"),

@@ -326,8 +326,10 @@ void Avatar::renderBody(RenderMode renderMode) {
         renderBillboard();
         return;
     }
-    _skeletonModel.render(1.0f, renderMode == SHADOW_RENDER_MODE);
-    getHead()->render(1.0f, renderMode == SHADOW_RENDER_MODE);
+    Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
+        Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+    _skeletonModel.render(1.0f, modelRenderMode);
+    getHead()->render(1.0f, modelRenderMode);
     getHand()->render(false);
 }
 

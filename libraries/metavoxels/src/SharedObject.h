@@ -9,6 +9,7 @@
 #ifndef __interface__SharedObject__
 #define __interface__SharedObject__
 
+#include <QAtomicInt>
 #include <QHash>
 #include <QMetaType>
 #include <QObject>
@@ -42,7 +43,7 @@ public:
     
     void setRemoteID(int remoteID) { _remoteID = remoteID; }
 
-    int getReferenceCount() const { return _referenceCount; }
+    int getReferenceCount() const { return _referenceCount.load(); }
     void incrementReferenceCount();
     void decrementReferenceCount();
 
@@ -62,7 +63,7 @@ private:
     
     int _id;
     int _remoteID;
-    int _referenceCount;
+    QAtomicInt _referenceCount;
     
     static int _lastID;
     static WeakSharedObjectHash _weakHash;
