@@ -14,14 +14,15 @@
 
 #include <QApplication>
 #include <QAction>
-#include <QImage>
-#include <QSettings>
-#include <QTouchEvent>
-#include <QList>
-#include <QSet>
-#include <QStringList>
-#include <QPointer>
 #include <QHash>
+#include <QImage>
+#include <QList>
+#include <QPointer>
+#include <QSet>
+#include <QSettings>
+#include <QStringList>
+#include <QTouchEvent>
+#include <QUndoStack>
 
 #include <NetworkPacket.h>
 #include <NodeList.h>
@@ -176,6 +177,7 @@ public:
     Visage* getVisage() { return &_visage; }
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
+    QUndoStack* getUndoStack() { return &_undoStack; }
 
     /// if you need to access the application settings, use lockSettings()/unlockSettings()
     QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }
@@ -366,6 +368,8 @@ private:
     QMutex _settingsMutex;
     QSettings* _settings;
 
+    QUndoStack _undoStack;
+    
     glm::vec3 _gravity;
 
     // Frame Rate Measurement
