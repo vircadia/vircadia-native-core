@@ -161,7 +161,8 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
     ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
     osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
     GetVersionEx(&osvi);
-    if (osvi.dwMajorVersion < 6) {// lower then vista
+    const DWORD VISTA_MAJOR_VERSION = 6;
+    if (osvi.dwMajorVersion < VISTA_MAJOR_VERSION) {// lower then vista
         if (mode == QAudio::AudioInput) {
             WAVEINCAPS wic;
             // first use WAVE_MAPPER to get the default devices manufacturer ID
@@ -182,11 +183,11 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
     } else {
         HRESULT hr = S_OK;
         CoInitialize(NULL);
-        IMMDeviceEnumerator *pMMDeviceEnumerator = NULL;
+        IMMDeviceEnumerator* pMMDeviceEnumerator = NULL;
         CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&pMMDeviceEnumerator);
-        IMMDevice *pEndpoint;
+        IMMDevice* pEndpoint;
         pMMDeviceEnumerator->GetDefaultAudioEndpoint(mode == QAudio::AudioOutput ? eRender : eCapture, eMultimedia, &pEndpoint);
-        IPropertyStore *pPropertyStore;
+        IPropertyStore* pPropertyStore;
         pEndpoint->OpenPropertyStore(STGM_READ, &pPropertyStore);
         pEndpoint->Release();
         pEndpoint = NULL;
@@ -196,7 +197,8 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
         pPropertyStore->Release();
         pPropertyStore = NULL;
         //QAudio devices seems to only take the 31 first characters of the Friendly Device Name.
-        deviceName = QString::fromWCharArray((wchar_t *)pv.pwszVal).left(31);
+        const DWORD QT_WIN_MAX_AUDIO_DEVICENAME_LEN = 31;
+        deviceName = QString::fromWCharArray((wchar_t*)pv.pwszVal).left(QT_WIN_MAX_AUDIO_DEVICENAME_LEN);
         qDebug() << (mode == QAudio::AudioOutput ? "output" : "input") << " device:" << deviceName;
         PropVariantClear(&pv);
         pMMDeviceEnumerator->Release();
