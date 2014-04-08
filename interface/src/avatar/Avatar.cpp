@@ -524,6 +524,11 @@ void Avatar::updateShapePositions() {
     headModel.updateShapePositions();
 }
 
+float Avatar::getHeadHeight() const {
+    Extents extents = getHead()->getFaceModel().getBindExtents();
+    return extents.maximum.y - extents.minimum.y;
+}
+
 bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& collisions) {
     // TODO: Andrew to fix: also collide against _skeleton
     //bool collided = _skeletonModel.findCollisions(shapes, collisions);
@@ -747,11 +752,6 @@ void Avatar::setScale(float scale) {
 
 float Avatar::getSkeletonHeight() const {
     Extents extents = _skeletonModel.getBindExtents();
-    return extents.maximum.y - extents.minimum.y;
-}
-
-float Avatar::getHeadHeight() const {
-    Extents extents = getHead()->getFaceModel().getBindExtents();
     return extents.maximum.y - extents.minimum.y;
 }
 

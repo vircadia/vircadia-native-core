@@ -532,8 +532,8 @@ void Application::paintGL() {
         // if the head would intersect the near clip plane, we must push the camera out
         glm::vec3 relativePosition = glm::inverse(_myCamera.getTargetRotation()) *
             (_myAvatar->getHead()->getPosition() - _myCamera.getTargetPosition());
-        const float HEAD_RADIUS = 0.1f;
-        float pushback = relativePosition.z + _myCamera.getNearClip() + HEAD_RADIUS;
+        const float HEAD_EXPANSION = 1.1f;
+        float pushback = relativePosition.z + _myCamera.getNearClip() + _myAvatar->getHeadHeight() * HEAD_EXPANSION;
         if (pushback > 0.0f) {
             _myCamera.setTargetPosition(_myCamera.getTargetPosition() +
                 _myCamera.getTargetRotation() * glm::vec3(0.0f, 0.0f, pushback));
