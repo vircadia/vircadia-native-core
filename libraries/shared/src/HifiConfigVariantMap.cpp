@@ -1,0 +1,92 @@
+//
+//  HifiConfigVariantMap.cpp
+//  hifi
+//
+//  Created by Stephen Birarda on 2014-04-08.
+//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//
+
+#include <QtCore/QDebug>
+#include <QtCore/QFile>
+#include <QtCore/QJsonDocument>
+#include <QtCore/QJsonArray>
+#include <QtCore/QJsonObject>
+#include <QtCore/QVariant>
+
+#include "HifiConfigVariantMap.h"
+
+QVariantMap HifiConfigVariantMap::mergeCLParametersWithJSONConfig(const QStringList& argumentList) {
+    
+    QVariantMap mergedMap;
+    
+    // Add anything in the CL parameter list to the variant map.
+    // Take anything with a dash in it as a key, and the values after it as the value.
+    
+    const QString DASHED_KEY_REGEX_STRING = "(^-{1,2})([\\w-]+)";
+    QRegExp dashedKeyRegex(DASHED_KEY_REGEX_STRING);
+    
+    int keyIndex = argumentList.indexOf(dashedKeyRegex);
+    int nextKeyIndex = 0;
+    
+    // check if there is a config file to read where we can pull config info not passed on command line
+    const QString CONFIG_FILE_OPTION = "--config";
+    
+    while (keyIndex != -1) {
+        if (argumentList[keyIndex] != CONFIG_FILE_OPTION) {
+            // we have a key - look forward to see how many values associate to it
+            QString key = dashedKeyRegex.cap(2);
+            
+            nextKeyIndex = argumentList.indexOf(dashedKeyRegex, keyIndex + 1);
+            
+            if (nextKeyIndex == keyIndex + 1) {
+                // there's no value associated with this option, it's a boolean
+                // so add it to the variant map with NULL as value
+                mergedMap.insertMulti(key, QVariant());
+            } else {
+                int maxIndex = (nextKeyIndex == -1) ? argumentList.size() : nextKeyIndex;
+                
+                // there's at least one value associated with the option
+                // pull the first value to start
+                QString value = argumentList[keyIndex + 1];
+                
+                // for any extra values, append them, with a space, to the value string
+                for (int i = keyIndex + 2; i < maxIndex; i++) {
+                    value +=  " " + argumentList[i];
+                }
+                
+                // add the finalized value to the merged map
+                mergedMap.insert(key, value);
+            }
+            
+            keyIndex = nextKeyIndex;
+        } else {
+            keyIndex = argumentList.indexOf(dashedKeyRegex, keyIndex + 1);
+        }
+    }
+    
+    int configIndex = argumentList.indexOf(CONFIG_FILE_OPTION);
+    
+    if (configIndex != -1) {
+        // we have a config file - try and read it
+        QString configFilePath = argumentList[configIndex + 1];
+        QFile configFile(configFilePath);
+        
+        if (configFile.exists()) {
+            configFile.open(QIODevice::ReadOnly);
+            
+            QJsonDocument configDocument = QJsonDocument::fromJson(configFile.readAll());
+            QJsonObject rootObject = configDocument.object();
+            
+            // enumerate the keys of the configDocument object
+            foreach(const QString& key, rootObject.keys()) {
+                
+                if (!mergedMap.contains(key)) {
+                    // no match in existing list, add it
+                    mergedMap.insert(key, QVariant(rootObject[key]));
+                }
+            }
+        }
+    }
+    
+    return mergedMap;
+}

@@ -17,6 +17,7 @@
 #include <gnutls/dtls.h>
 
 #include <AccountManager.h>
+#include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -47,7 +48,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     setApplicationName("domain-server");
     QSettings::setDefaultFormat(QSettings::IniFormat);
     
-    _argumentList = arguments();
+    _argumentVariantMap = HifiConfigVariantMap::mergeCLParametersWithJSONConfig(arguments());
     
     if (optionallySetupDTLS()) {
         // we either read a certificate and private key or were not passed one, good to load assignments
@@ -132,14 +133,14 @@ bool DomainServer::optionallySetupDTLS() {
 }
 
 bool DomainServer::readX509KeyAndCertificate() {
-    const QString X509_CERTIFICATE_OPTION = "--cert";
-    const QString X509_PRIVATE_KEY_OPTION = "--key";
+    const QString X509_CERTIFICATE_OPTION = "cert";
+    const QString X509_PRIVATE_KEY_OPTION = "key";
     const QString X509_KEY_PASSPHRASE_ENV = "DOMAIN_SERVER_KEY_PASSPHRASE";
     
-    int certIndex = _argumentList.indexOf(X509_CERTIFICATE_OPTION);
-    int keyIndex = _argumentList.indexOf(X509_PRIVATE_KEY_OPTION);
+    QString certPath = _argumentVariantMap.value(X509_CERTIFICATE_OPTION).toString();
+    QString keyPath = _argumentVariantMap.value(X509_PRIVATE_KEY_OPTION).toString();
     
-    if (certIndex != -1 && keyIndex != -1) {
+    if (!certPath.isEmpty() && !keyPath.isEmpty()) {
         // the user wants to use DTLS to encrypt communication with nodes
         // let's make sure we can load the key and certificate
         _x509Credentials = new gnutls_certificate_credentials_t;
@@ -148,8 +149,8 @@ bool DomainServer::readX509KeyAndCertificate() {
         QString keyPassphraseString = QProcessEnvironment::systemEnvironment().value(X509_KEY_PASSPHRASE_ENV);
         
         int gnutlsReturn = gnutls_certificate_set_x509_key_file2(*_x509Credentials,
-                                                                 _argumentList[certIndex + 1].toLocal8Bit().constData(),
-                                                                 _argumentList[keyIndex + 1].toLocal8Bit().constData(),
+                                                                 certPath.toLocal8Bit().constData(),
+                                                                 keyPath.toLocal8Bit().constData(),
                                                                  GNUTLS_X509_FMT_PEM,
                                                                  keyPassphraseString.toLocal8Bit().constData(),
                                                                  0);
@@ -162,7 +163,7 @@ bool DomainServer::readX509KeyAndCertificate() {
         
         qDebug() << "Successfully read certificate and private key.";
         
-    } else if (certIndex != -1 || keyIndex != -1) {
+    } else if (!certPath.isEmpty() || !keyPath.isEmpty()) {
         qDebug() << "Missing certificate or private key. domain-server will now quit.";
         QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
         return false;
@@ -193,13 +194,11 @@ void DomainServer::processCreateResponseFromDataServer(const QJsonObject& jsonOb
 
 void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     
-    int argumentIndex = 0;
-    
-    const QString CUSTOM_PORT_OPTION = "-p";
+    const QString CUSTOM_PORT_OPTION = "port";
     unsigned short domainServerPort = DEFAULT_DOMAIN_SERVER_PORT;
     
-    if ((argumentIndex = _argumentList.indexOf(CUSTOM_PORT_OPTION)) != -1) {
-        domainServerPort = _argumentList.value(argumentIndex + 1).toUShort();
+    if (_argumentVariantMap.contains(CUSTOM_PORT_OPTION)) {
+        domainServerPort = (unsigned short) _argumentVariantMap.value(CUSTOM_PORT_OPTION).toUInt();
     }
     
     unsigned short domainServerDTLSPort = 0;
@@ -207,21 +206,15 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     if (_isUsingDTLS) {
         domainServerDTLSPort = DEFAULT_DOMAIN_SERVER_DTLS_PORT;
         
-        const QString CUSTOM_DTLS_PORT_OPTION = "--dtlsPort";
+        const QString CUSTOM_DTLS_PORT_OPTION = "dtls-port";
         
-        if ((argumentIndex = _argumentList.indexOf(CUSTOM_DTLS_PORT_OPTION)) != -1) {
-            domainServerDTLSPort = _argumentList.value(argumentIndex + 1).toUShort();
+        if (_argumentVariantMap.contains(CUSTOM_DTLS_PORT_OPTION)) {
+            domainServerDTLSPort = (unsigned short) _argumentVariantMap.value(CUSTOM_DTLS_PORT_OPTION).toUInt();
         }
     }
     
     QSet<Assignment::Type> parsedTypes(QSet<Assignment::Type>() << Assignment::AgentType);
-    parseCommandLineTypeConfigs(_argumentList, parsedTypes);
-    
-    const QString CONFIG_FILE_OPTION = "--configFile";
-    if ((argumentIndex = _argumentList.indexOf(CONFIG_FILE_OPTION)) != -1) {
-        QString configFilePath = _argumentList.value(argumentIndex + 1);
-        readConfigFile(configFilePath, parsedTypes);
-    }
+    parseAssignmentConfigs(parsedTypes);
     
     populateDefaultStaticAssignmentsExcludingTypes(parsedTypes);
     
@@ -240,91 +233,32 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     addStaticAssignmentsToQueue();
 }
 
-void DomainServer::parseCommandLineTypeConfigs(const QStringList& argumentList, QSet<Assignment::Type>& excludedTypes) {
+void DomainServer::parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes) {
     // check for configs from the command line, these take precedence
-    const QString CONFIG_TYPE_OPTION = "--configType";
-    int clConfigIndex = argumentList.indexOf(CONFIG_TYPE_OPTION);
+    const QString ASSIGNMENT_CONFIG_REGEX_STRING = "config-([\\d]+)";
+    QRegExp assignmentConfigRegex(ASSIGNMENT_CONFIG_REGEX_STRING);
     
-    // enumerate all CL config overrides and parse them to files
-    while (clConfigIndex != -1) {
-        int clConfigType = argumentList.value(clConfigIndex + 1).toInt();
-        if (clConfigType < Assignment::AllTypes && !excludedTypes.contains((Assignment::Type) clConfigIndex)) {
-            Assignment::Type assignmentType = (Assignment::Type) clConfigType;
-            createStaticAssignmentsForTypeGivenConfigString((Assignment::Type) assignmentType,
-                                                            argumentList.value(clConfigIndex + 2));
-            excludedTypes.insert(assignmentType);
+    // scan for assignment config keys
+    QStringList variantMapKeys = _argumentVariantMap.keys();
+    int configIndex = variantMapKeys.indexOf(assignmentConfigRegex);
+    
+    while (configIndex != -1) {
+        // figure out which assignment type this matches
+        Assignment::Type assignmentType = (Assignment::Type) assignmentConfigRegex.cap().toInt();
+        
+        QVariant mapValue = _argumentVariantMap[variantMapKeys[configIndex]];
+        
+        if (mapValue.type() == QVariant::String) {
+            QJsonDocument deserializedDocument = QJsonDocument::fromJson(mapValue.toString().toUtf8());
+            createStaticAssignmentsForType(assignmentType, deserializedDocument.array());
+        } else {
+            createStaticAssignmentsForType(assignmentType, mapValue.toJsonArray());
         }
         
-        clConfigIndex = argumentList.indexOf(CONFIG_TYPE_OPTION, clConfigIndex + 1);
-    }
-}
-
-// Attempts to read configuration from specified path
-// returns true on success, false otherwise
-void DomainServer::readConfigFile(const QString& path, QSet<Assignment::Type>& excludedTypes) {
-    if (path.isEmpty()) {
-        // config file not specified
-        return;
-    }
-    
-    if (!QFile::exists(path)) {
-        qWarning("Specified configuration file does not exist!");
-        return;
-    }
-    
-    QFile configFile(path);
-    if (!configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qWarning("Can't open specified configuration file!");
-        return;
-    } else {
-        qDebug() << "Reading configuration from" << path;
-    }
-    
-    QTextStream configStream(&configFile);
-    QByteArray configStringByteArray = configStream.readAll().toUtf8();
-    QJsonObject configDocObject = QJsonDocument::fromJson(configStringByteArray).object();
-    configFile.close();
-    
-    QSet<Assignment::Type> appendedExcludedTypes = excludedTypes;
-    
-    foreach (const QString& rootStringValue, configDocObject.keys()) {
-        int possibleConfigType = rootStringValue.toInt();
+        excludedTypes.insert(assignmentType);
         
-        if (possibleConfigType < Assignment::AllTypes
-            && !excludedTypes.contains((Assignment::Type) possibleConfigType)) {
-            // this is an appropriate config type and isn't already in our excluded types
-            // we are good to parse it
-            Assignment::Type assignmentType = (Assignment::Type) possibleConfigType;
-            QString configString = readServerAssignmentConfig(configDocObject, rootStringValue);
-            createStaticAssignmentsForTypeGivenConfigString(assignmentType, configString);
-            
-            excludedTypes.insert(assignmentType);
-        }
+        configIndex = variantMapKeys.indexOf(assignmentConfigRegex);
     }
-}
-
-// find assignment configurations on the specified node name and json object
-// returns a string in the form of its equivalent cmd line params
-QString DomainServer::readServerAssignmentConfig(const QJsonObject& jsonObject, const QString& nodeName) {
-    QJsonArray nodeArray = jsonObject[nodeName].toArray();
-    
-    QStringList serverConfig;
-    foreach (const QJsonValue& childValue, nodeArray) {
-        QString cmdParams;
-        QJsonObject childObject = childValue.toObject();
-        QStringList keys = childObject.keys();
-        for (int i = 0; i < keys.size(); i++) {
-            QString key = keys[i];
-            QString value = childObject[key].toString();
-            // both cmd line params and json keys are the same
-            cmdParams += QString("--%1 %2 ").arg(key, value);
-        }
-        serverConfig << cmdParams;
-    }
-    
-    // according to split() calls from DomainServer::prepopulateStaticAssignmentFile
-    // we shold simply join them with semicolons
-    return serverConfig.join(';');
 }
 
 void DomainServer::addStaticAssignmentToAssignmentHash(Assignment* newAssignment) {
@@ -332,38 +266,42 @@ void DomainServer::addStaticAssignmentToAssignmentHash(Assignment* newAssignment
     _staticAssignmentHash.insert(newAssignment->getUUID(), SharedAssignmentPointer(newAssignment));
 }
 
-void DomainServer::createStaticAssignmentsForTypeGivenConfigString(Assignment::Type type, const QString& configString) {
+void DomainServer::createStaticAssignmentsForType(Assignment::Type type, const QJsonArray& configArray) {
     // we have a string for config for this type
     qDebug() << "Parsing command line config for assignment type" << type;
     
-    QStringList multiConfigList = configString.split(";", QString::SkipEmptyParts);
+    int configCounter = 0;
     
-    const QString ASSIGNMENT_CONFIG_POOL_REGEX = "--pool\\s*([\\w-]+)";
-    QRegExp poolRegex(ASSIGNMENT_CONFIG_POOL_REGEX);
-    
-    // read each config to a payload for this type of assignment
-    for (int i = 0; i < multiConfigList.size(); i++) {
-        QString config = multiConfigList.at(i);
-        
-        // check the config string for a pool
-        QString assignmentPool;
-        
-        int poolIndex = poolRegex.indexIn(config);
-        
-        if (poolIndex != -1) {
-            assignmentPool = poolRegex.cap(1);
+    foreach(const QJsonValue& jsonValue, configArray) {
+        if (jsonValue.isObject()) {
+            QJsonObject jsonObject = jsonValue.toObject();
             
-            // remove the pool from the config string, the assigned node doesn't need it
-            config.remove(poolIndex, poolRegex.matchedLength());
+            // check the config string for a pool
+            const QString ASSIGNMENT_POOL_KEY = "pool";
+            QString assignmentPool;
+            
+            QJsonValue poolValue = jsonObject[ASSIGNMENT_POOL_KEY];
+            if (!poolValue.isUndefined()) {
+                assignmentPool = poolValue.toString();
+                
+                jsonObject.remove(ASSIGNMENT_POOL_KEY);
+            }
+            
+            ++configCounter;
+            qDebug() << "Type" << type << "config" << configCounter << "=" << jsonObject;
+            
+            Assignment* configAssignment = new Assignment(Assignment::CreateCommand, type, assignmentPool);
+            
+            // setup the payload as a semi-colon separated list of key = value
+            QStringList payloadStringList;
+            foreach(const QString& payloadKey, jsonObject.keys()) {
+                payloadStringList << QString("%1=%2").arg(payloadKey).arg(jsonObject[payloadKey].toString());
+            }
+            
+            configAssignment->setPayload(payloadStringList.join(';').toUtf8());
+            
+            addStaticAssignmentToAssignmentHash(configAssignment);
         }
-        
-        qDebug("Type %d config[%d] = %s", type, i, config.toLocal8Bit().constData());
-        
-        Assignment* configAssignment = new Assignment(Assignment::CreateCommand, type, assignmentPool);
-        
-        configAssignment->setPayload(config.toUtf8());
-        
-        addStaticAssignmentToAssignmentHash(configAssignment);
     }
 }
 

@@ -64,11 +64,9 @@ private:
     void sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr& senderSockAddr,
                               const NodeSet& nodeInterestList);
     
-    void parseCommandLineTypeConfigs(const QStringList& argumentList, QSet<Assignment::Type>& excludedTypes);
-    void readConfigFile(const QString& path, QSet<Assignment::Type>& excludedTypes);
-    QString readServerAssignmentConfig(const QJsonObject& jsonObject, const QString& nodeName);
+    void parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes);
     void addStaticAssignmentToAssignmentHash(Assignment* newAssignment);
-    void createStaticAssignmentsForTypeGivenConfigString(Assignment::Type type, const QString& configString);
+    void createStaticAssignmentsForType(Assignment::Type type, const QJsonArray& configArray);
     void populateDefaultStaticAssignmentsExcludingTypes(const QSet<Assignment::Type>& excludedTypes);
     
     SharedAssignmentPointer matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType);
@@ -85,7 +83,7 @@ private:
     QHash<QUuid, SharedAssignmentPointer> _staticAssignmentHash;
     QQueue<SharedAssignmentPointer> _assignmentQueue;
     
-    QStringList _argumentList;
+    QVariantMap _argumentVariantMap;
     
     bool _isUsingDTLS;
     gnutls_certificate_credentials_t* _x509Credentials;
