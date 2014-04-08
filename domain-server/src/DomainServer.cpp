@@ -226,17 +226,18 @@ void DomainServer::parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes)
         // figure out which assignment type this matches
         Assignment::Type assignmentType = (Assignment::Type) assignmentConfigRegex.cap(1).toInt();
         
-        QVariant mapValue = _argumentVariantMap[variantMapKeys[configIndex]];
-        
-        if (mapValue.type() == QVariant::String) {
-            qDebug() << mapValue.toString();
-            QJsonDocument deserializedDocument = QJsonDocument::fromJson(mapValue.toString().toUtf8());
-            createStaticAssignmentsForType(assignmentType, deserializedDocument.array());
-        } else {
-            createStaticAssignmentsForType(assignmentType, mapValue.toJsonValue().toArray());
-        }
-        
-        excludedTypes.insert(assignmentType);
+        if (assignmentType < Assignment::AllTypes && !excludedTypes.contains(assignmentType)) {
+            QVariant mapValue = _argumentVariantMap[variantMapKeys[configIndex]];
+            
+            if (mapValue.type() == QVariant::String) {
+                QJsonDocument deserializedDocument = QJsonDocument::fromJson(mapValue.toString().toUtf8());
+                createStaticAssignmentsForType(assignmentType, deserializedDocument.array());
+            } else {
+                createStaticAssignmentsForType(assignmentType, mapValue.toJsonValue().toArray());
+            }
+            
+            excludedTypes.insert(assignmentType);
+        }        
         
         configIndex = variantMapKeys.indexOf(assignmentConfigRegex, configIndex + 1);
     }
