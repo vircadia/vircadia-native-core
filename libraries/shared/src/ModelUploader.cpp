@@ -34,6 +34,8 @@ static const int MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 static const int TIMEOUT = 1000;
 static const int MAX_CHECK = 30;
 
+static const int QCOMPRESS_HEADER_POSITION = 0;
+static const int QCOMPRESS_HEADER_SIZE = 4;
 
 ModelUploader::ModelUploader(bool isHead) :
     _lodCount(-1),
@@ -290,7 +292,10 @@ bool ModelUploader::addPart(const QString &path, const QString& name) {
         return false;
     }
     QByteArray buffer = qCompress(file.readAll());
-    buffer.remove(0, 4);
+    
+    // Qt's qCompress() default compression level (-1) is the standard zLib compression.
+    // Here remove Qt's custom header that prevent the data server from uncompressing the files with zLib.
+    buffer.remove(QCOMPRESS_HEADER_POSITION, QCOMPRESS_HEADER_SIZE);
     
     QHttpPart part;
     part.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data;"

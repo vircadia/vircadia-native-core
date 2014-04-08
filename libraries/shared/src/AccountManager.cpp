@@ -34,6 +34,16 @@ Q_DECLARE_METATYPE(JSONCallbackParameters)
 
 const QString ACCOUNTS_GROUP = "accounts";
 
+JSONCallbackParameters::JSONCallbackParameters() :
+    jsonCallbackReceiver(NULL),
+    jsonCallbackMethod(),
+    errorCallbackReceiver(NULL),
+    errorCallbackMethod(),
+    updateReciever(NULL),
+    updateSlot()
+{
+}
+
 AccountManager::AccountManager() :
     _authURL(),
     _networkAccessManager(NULL),
@@ -178,8 +188,7 @@ void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::
             }
             
             // if we ended up firing of a request, hook up to it now
-            connect(networkReply, SIGNAL(finished()),
-                                  SLOT(processReply()));
+            connect(networkReply, SIGNAL(finished()), SLOT(processReply()));
         }
     }
 }
@@ -208,7 +217,7 @@ void AccountManager::passSuccessToCallback(QNetworkReply* requestReply) {
         // remove the related reply-callback group from the map
         _pendingCallbackMap.remove(requestReply);
         
-    } else { 
+    } else {
         if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
             qDebug() << "Received JSON response from data-server that has no matching callback.";
             qDebug() << jsonResponse;

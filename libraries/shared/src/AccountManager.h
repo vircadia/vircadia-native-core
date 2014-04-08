@@ -19,10 +19,7 @@
 
 class JSONCallbackParameters {
 public:
-    JSONCallbackParameters() :
-        jsonCallbackReceiver(NULL), jsonCallbackMethod(),
-        errorCallbackReceiver(NULL), errorCallbackMethod(),
-        updateReciever(NULL), updateSlot() {};
+    JSONCallbackParameters();
     
     bool isEmpty() const { return !jsonCallbackReceiver && !errorCallbackReceiver; }
     
