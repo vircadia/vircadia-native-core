@@ -524,10 +524,22 @@ void Application::paintGL() {
 
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness(0.0f);
-        float headHeight = _myAvatar->getHead()->calculateAverageEyePosition().y - _myAvatar->getPosition().y;
+        glm::vec3 eyePosition = _myAvatar->getHead()->calculateAverageEyePosition();
+        float headHeight = eyePosition.y - _myAvatar->getPosition().y;
         _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _myAvatar->getScale());
         _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight, 0));
         _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
+        
+        // if the head would intersect the near clip plane, we must push the camera out
+        glm::vec3 relativePosition = glm::inverse(_myCamera.getTargetRotation()) *
+            (eyePosition - _myCamera.getTargetPosition());
+        const float PUSHBACK_RADIUS = 0.2f;
+        float pushback = relativePosition.z + _myCamera.getNearClip() +
+            _myAvatar->getScale() * PUSHBACK_RADIUS - _myCamera.getDistance();
+        if (pushback > 0.0f) {
+            _myCamera.setTargetPosition(_myCamera.getTargetPosition() +
+                _myCamera.getTargetRotation() * glm::vec3(0.0f, 0.0f, pushback));
+        }
     }
 
     // Update camera position
