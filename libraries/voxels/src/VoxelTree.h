@@ -1,4 +1,4 @@
- //
+//
 //  VoxelTree.h
 //  hifi
 //
@@ -14,7 +14,6 @@
 #include "VoxelTreeElement.h"
 #include "VoxelEditPacketSender.h"
 
-class QUndoStack;
 class ReadCodeColorBufferToTreeArgs;
 
 class VoxelTree : public Octree {
@@ -45,8 +44,6 @@ public:
     virtual bool handlesEditPacketType(PacketType packetType) const;
     virtual int processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
                     const unsigned char* editData, int maxLength, const SharedNodePointer& node);
-    
-    void setUndoStack(QUndoStack* undoStack) { _undoStack = undoStack; }
 
 private:
     // helper functions for nudgeSubTree
@@ -55,8 +52,6 @@ private:
     void nudgeLeaf(VoxelTreeElement* element, void* extraData);
     void chunkifyLeaf(VoxelTreeElement* element);
     void readCodeColorBufferToTreeRecursion(VoxelTreeElement* node, ReadCodeColorBufferToTreeArgs& args);
-    
-    QUndoStack* _undoStack;
 };
 
 #endif /* defined(__hifi__VoxelTree__) */
