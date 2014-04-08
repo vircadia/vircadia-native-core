@@ -237,7 +237,7 @@ void DomainServer::parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes)
             }
             
             excludedTypes.insert(assignmentType);
-        }        
+        }
         
         configIndex = variantMapKeys.indexOf(assignmentConfigRegex, configIndex + 1);
     }
@@ -250,11 +250,9 @@ void DomainServer::addStaticAssignmentToAssignmentHash(Assignment* newAssignment
 
 void DomainServer::createStaticAssignmentsForType(Assignment::Type type, const QJsonArray& configArray) {
     // we have a string for config for this type
-    qDebug() << "Parsing command line config for assignment type" << type;
+    qDebug() << "Parsing config for assignment type" << type;
     
     int configCounter = 0;
-    
-    qDebug() << configArray;
     
     foreach(const QJsonValue& jsonValue, configArray) {
         if (jsonValue.isObject()) {

@@ -72,6 +72,7 @@ QVariantMap HifiConfigVariantMap::mergeCLParametersWithJSONConfig(const QStringL
         QFile configFile(configFilePath);
         
         if (configFile.exists()) {
+            qDebug() << "Reading JSON config file at" << configFilePath;
             configFile.open(QIODevice::ReadOnly);
             
             QJsonDocument configDocument = QJsonDocument::fromJson(configFile.readAll());
@@ -85,6 +86,8 @@ QVariantMap HifiConfigVariantMap::mergeCLParametersWithJSONConfig(const QStringL
                     mergedMap.insert(key, QVariant(rootObject[key]));
                 }
             }
+        } else {
+            qDebug() << "Could not find JSON config file at" << configFilePath;
         }
     }
     
