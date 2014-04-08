@@ -30,7 +30,6 @@
 #include <QImage>
 #include <QInputDialog>
 #include <QKeyEvent>
-#include <QMainWindow>
 #include <QMenuBar>
 #include <QMouseEvent>
 #include <QNetworkAccessManager>
@@ -135,7 +134,7 @@ QString& Application::resourcesPath() {
 
 Application::Application(int& argc, char** argv, timeval &startup_time) :
         QApplication(argc, argv),
-        _window(new QMainWindow(desktop())),
+        _window(new MainWindow(desktop())),
         _glWidget(new GLCanvas()),
         _statsExpanded(false),
         _nodeThread(new QThread(this)),
@@ -172,7 +171,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _resetRecentMaxPacketsSoon(true),
         _previousScriptLocation(),
         _logger(new FileLogger(this)),
-        _runningScriptsWidget(new RunningScriptsWidget)
+        _runningScriptsWidget(new RunningScriptsWidget),
+        _runningScriptsWidgetWasVisible(false)
 {
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
@@ -335,7 +335,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     LocalVoxelsList::getInstance()->addPersistantTree(CLIPBOARD_TREE_NAME, &_clipboard);
 
     _window->addDockWidget(Qt::NoDockWidgetArea, _runningScriptsWidget);
-    _runningScriptsWidget->hide();
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
     connect(_runningScriptsWidget, &RunningScriptsWidget::stopScriptName, this, &Application::stopScript);
 
@@ -352,6 +351,10 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         // do this as late as possible so that all required subsystems are inialized
         loadScripts();
     }
+
+    connect(_window, &MainWindow::windowGeometryChanged,
+            _runningScriptsWidget, &RunningScriptsWidget::setBoundary);
+    connect(_window, &MainWindow::windowShown, this, &Application::manageRunningScriptsWidgetVisibility);
 }
 
 Application::~Application() {
@@ -622,7 +625,7 @@ void Application::resizeGL(int width, int height) {
     updateProjectionMatrix();
     glLoadIdentity();
 
-    if (_runningScriptsWidget->isVisible()) {
+    if (_runningScriptsWidget->toggleViewAction()->isChecked()) {
         _runningScriptsWidget->setGeometry(_window->geometry().topLeft().x(),
                                            _window->geometry().topLeft().y(),
                                            _runningScriptsWidget->width(), _window->height());
@@ -3630,19 +3633,33 @@ void Application::reloadAllScripts() {
     }
 }
 
+void Application::manageRunningScriptsWidgetVisibility(bool shown)
+{
+    if (_runningScriptsWidgetWasVisible && shown) {
+        _runningScriptsWidget->setWindowFlags(Qt::SubWindow | Qt::FramelessWindowHint |
+                                              Qt::WindowStaysOnTopHint);
+        _runningScriptsWidget->show();
+    } else {
+        _runningScriptsWidget->setWindowFlags(Qt::SubWindow | Qt::FramelessWindowHint);
+        _runningScriptsWidget->hide();
+    }
+}
+
 void Application::toggleRunningScriptsWidget()
 {
-    if (!_runningScriptsWidget->toggleViewAction()->isChecked()) {
+    if (_runningScriptsWidget->toggleViewAction()->isChecked()) {
+        _runningScriptsWidget->toggleViewAction()->setChecked(false);
+        _runningScriptsWidget->hide();
+        _runningScriptsWidgetWasVisible = false;
+    } else {
+        _runningScriptsWidget->setBoundary(QRect(_window->geometry().topLeft(),
+                                                 _window->size()));
         _runningScriptsWidget->setGeometry(_window->geometry().topLeft().x(),
                                            _window->geometry().topLeft().y(),
                                            _runningScriptsWidget->width(), _window->height());
-        _runningScriptsWidget->toggleViewAction()->trigger();
-        _runningScriptsWidget->grabKeyboard();
+        _runningScriptsWidget->toggleViewAction()->setChecked(true);
         _runningScriptsWidget->show();
-    } else {
-        _runningScriptsWidget->toggleViewAction()->trigger();
-        _runningScriptsWidget->releaseKeyboard();
-        _runningScriptsWidget->hide();
+        _runningScriptsWidgetWasVisible = true;
     }
 }
 

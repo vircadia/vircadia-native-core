@@ -33,6 +33,7 @@
 #include <ViewFrustum.h>
 #include <VoxelEditPacketSender.h>
 
+#include "MainWindow.h"
 #include "Audio.h"
 #include "BuckyBalls.h"
 #include "Camera.h"
@@ -78,7 +79,6 @@ class QAction;
 class QActionGroup;
 class QGLWidget;
 class QKeyEvent;
-class QMainWindow;
 class QMouseEvent;
 class QNetworkAccessManager;
 class QSettings;
@@ -127,6 +127,7 @@ public:
     void keyReleaseEvent(QKeyEvent* event);
 
     void focusOutEvent(QFocusEvent* event);
+    void focusInEvent(QFocusEvent* event);
 
     void mouseMoveEvent(QMouseEvent* event);
     void mousePressEvent(QMouseEvent* event);
@@ -180,7 +181,7 @@ public:
     QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }
     void unlockSettings() { _settingsMutex.unlock(); }
 
-    QMainWindow* getWindow() { return _window; }
+    MainWindow* getWindow() { return _window; }
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
     void unlockOctreeSceneStats() { _octreeSceneStatsLock.unlock(); }
@@ -290,6 +291,8 @@ private slots:
 
     void parseVersionXml();
 
+    void manageRunningScriptsWidgetVisibility(bool shown);
+
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
     void updateProjectionMatrix();
@@ -353,7 +356,7 @@ private:
 
     void displayRearMirrorTools();
 
-    QMainWindow* _window;
+    MainWindow* _window;
     GLCanvas* _glWidget; // our GLCanvas has a couple extra features
 
     bool _statsExpanded;
@@ -502,6 +505,7 @@ private:
 
     RunningScriptsWidget* _runningScriptsWidget;
     QHash<QString, ScriptEngine*> _scriptEnginesHash;
+    bool _runningScriptsWidgetWasVisible;
 };
 
 #endif /* defined(__interface__Application__) */

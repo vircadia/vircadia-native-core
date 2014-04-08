@@ -18,12 +18,13 @@
 
 RunningScriptsWidget::RunningScriptsWidget(QDockWidget *parent) :
     QDockWidget(parent),
-    ui(new Ui::RunningScriptsWidget)
+    ui(new Ui::RunningScriptsWidget),
+    _mousePressed(false),
+    _mousePosition(QPoint())
 {
     ui->setupUi(this);
 
-    // remove the title bar (see the Qt docs on setTitleBarWidget)
-    setTitleBarWidget(new QWidget());
+    setWindowFlags(Qt::SubWindow | Qt::FramelessWindowHint);
 
     _runningScriptsTable = new ScriptsTableWidget(ui->runningScriptsTableWidget);
     _runningScriptsTable->setColumnCount(2);
@@ -48,6 +49,11 @@ RunningScriptsWidget::RunningScriptsWidget(QDockWidget *parent) :
 RunningScriptsWidget::~RunningScriptsWidget()
 {
     delete ui;
+}
+
+void RunningScriptsWidget::setBoundary(const QRect &rect)
+{
+    _boundary = rect;
 }
 
 void RunningScriptsWidget::setRunningScripts(const QStringList& list)
@@ -88,6 +94,36 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list)
 
 
     createRecentlyLoadedScriptsTable();
+}
+
+void RunningScriptsWidget::mousePressEvent(QMouseEvent *e)
+{
+    if (e->button() == Qt::LeftButton) {
+        _mousePressed = true;
+        _mousePosition = e->pos();
+    } else {
+        _mousePressed = false;
+        _mousePosition = QPoint();
+    }
+}
+
+void RunningScriptsWidget::mouseMoveEvent(QMouseEvent *e)
+{
+    if (_mousePressed) {
+        QPoint newPosition = mapToParent(e->pos() - _mousePosition);
+        if (newPosition.x() >= _boundary.x() &&
+            newPosition.x() <= (_boundary.width() - width())) {
+            move(newPosition.x(), _boundary.y());
+        }
+    }
+}
+
+void RunningScriptsWidget::mouseReleaseEvent(QMouseEvent *e)
+{
+    if (e->button() == Qt::LeftButton) {
+        _mousePressed = false;
+        _mousePosition = QPoint();
+    }
 }
 
 void RunningScriptsWidget::keyPressEvent(QKeyEvent *e)
