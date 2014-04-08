@@ -38,7 +38,7 @@ public:
     SharedObjectPointer findFirstRaySpannerIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const AttributePointer& attribute, float& distance);
     
-    void applyEdit(const MetavoxelEditMessage& edit);
+    Q_INVOKABLE void applyEdit(const MetavoxelEditMessage& edit, bool reliable = false);
     
     void simulate(float deltaTime);
     void render();
@@ -98,7 +98,7 @@ public:
 
     void guide(MetavoxelVisitor& visitor);
 
-    void applyEdit(const MetavoxelEditMessage& edit);
+    void applyEdit(const MetavoxelEditMessage& edit, bool reliable = false);
 
     void simulate(float deltaTime);
 
@@ -147,11 +147,11 @@ class ClippedRenderer : public SpannerRenderer {
 
 public:
     
-    virtual void render(float alpha, const glm::vec3& clipMinimum, float clipSize);
+    virtual void render(float alpha, Mode mode, const glm::vec3& clipMinimum, float clipSize);
     
 protected:
 
-    virtual void renderUnclipped(float alpha) = 0;
+    virtual void renderUnclipped(float alpha, Mode mode) = 0;
 };
 
 /// Renders spheres.
@@ -162,11 +162,11 @@ public:
     
     Q_INVOKABLE SphereRenderer();
     
-    virtual void render(float alpha, const glm::vec3& clipMinimum, float clipSize);
+    virtual void render(float alpha, Mode mode, const glm::vec3& clipMinimum, float clipSize);
     
 protected:
 
-    virtual void renderUnclipped(float alpha);
+    virtual void renderUnclipped(float alpha, Mode mode);
 };
 
 /// Renders static models.
@@ -184,12 +184,12 @@ public:
 
 protected:
 
-    virtual void renderUnclipped(float alpha);
+    virtual void renderUnclipped(float alpha, Mode mode);
 
 private slots:
 
     void applyTranslation(const glm::vec3& translation);
-    void applyRotation(const glm::vec3& eulerAngles);   // eulerAngles are in degrees
+    void applyRotation(const glm::quat& rotation);
     void applyScale(float scale);
     void applyURL(const QUrl& url);
 

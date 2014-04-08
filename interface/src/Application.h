@@ -203,6 +203,10 @@ public:
 
     void displaySide(Camera& whichCamera, bool selfAvatarOnly = false);
 
+    /// Stores the current modelview matrix as the untranslated view matrix to use for transforms and the supplied vector as
+    /// the view matrix translation.
+    void updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation = glm::vec3());
+
     /// Loads a view matrix that incorporates the specified model translation without the precision issues that can
     /// result from matrix multiplication at high translation magnitudes.
     void loadTranslatedViewMatrix(const glm::vec3& translation);
