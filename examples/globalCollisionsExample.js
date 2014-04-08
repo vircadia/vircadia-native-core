@@ -12,18 +12,20 @@
 
 print("hello...");
 
-function particleCollisionWithVoxel(particle, voxel, penetration) {
+function particleCollisionWithVoxel(particle, voxel, collision) {
     print("particleCollisionWithVoxel()..");
     print("   particle.getID()=" + particle.id);
     print("   voxel color...=" + voxel.red + ", " + voxel.green + ", " + voxel.blue);
-    Vec3.print('penetration=', penetration);
+    Vec3.print('penetration=', collision.penetration);
+    Vec3.print('contactPoint=', collision.contactPoint);
 }
 
-function particleCollisionWithParticle(particleA, particleB, penetration) {
+function particleCollisionWithParticle(particleA, particleB, collision) {
     print("particleCollisionWithParticle()..");
     print("   particleA.getID()=" + particleA.id);
     print("   particleB.getID()=" + particleB.id);
-    Vec3.print('penetration=', penetration);
+    Vec3.print('penetration=', collision.penetration);
+    Vec3.print('contactPoint=', collision.contactPoint);
 }
 
 Particles.particleCollisionWithVoxel.connect(particleCollisionWithVoxel);

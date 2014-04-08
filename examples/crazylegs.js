@@ -12,9 +12,12 @@ var AMPLITUDE = 45.0;
 
 var cumulativeTime = 0.0;
 
-print("Joint List:");
+print("# Joint list start");
 var jointList = MyAvatar.getJointNames(); 
-print(jointList);
+for (var i = 0; i < jointList.length; i++) {
+    print("jointIndex = " + jointList[i] + " = " + i);
+}
+print("# Joint list end"); 
 
 Script.update.connect(function(deltaTime) {
     cumulativeTime += deltaTime;
