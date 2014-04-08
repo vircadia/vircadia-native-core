@@ -3248,9 +3248,12 @@ void Application::toggleRunningScriptsWidget()
 
 void Application::uploadFST(bool isHead) {
     ModelUploader* uploader = new ModelUploader(isHead);
-    if (uploader->zip()) {
-        uploader->send();
-    }
+    QThread* thread = new QThread();
+    thread->connect(uploader, SIGNAL(destroyed()), SLOT(quit()));
+    thread->connect(thread, SIGNAL(finished()), SLOT(deleteLater()));
+    uploader->connect(thread, SIGNAL(started()), SLOT(send()));
+    
+    thread->start();
 }
 
 void Application::uploadHead() {
