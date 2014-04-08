@@ -12,10 +12,10 @@
 #include "VoxelTreeCommands.h"
 
 AddVoxelCommand::AddVoxelCommand(VoxelTree* tree, VoxelDetail& voxel, VoxelEditPacketSender* packetSender, QUndoCommand* parent) :
-QUndoCommand("Add Voxel", parent),
-_tree(tree),
-_packetSender(packetSender),
-_voxel(voxel)
+    QUndoCommand("Add Voxel", parent),
+    _tree(tree),
+    _packetSender(packetSender),
+    _voxel(voxel)
 {
 }
 
@@ -38,10 +38,10 @@ void AddVoxelCommand::undo() {
 }
 
 DeleteVoxelCommand::DeleteVoxelCommand(VoxelTree* tree, VoxelDetail& voxel, VoxelEditPacketSender* packetSender, QUndoCommand* parent) :
-QUndoCommand("Delete Voxel", parent),
-_tree(tree),
-_packetSender(packetSender),
-_voxel(voxel)
+    QUndoCommand("Delete Voxel", parent),
+    _tree(tree),
+    _packetSender(packetSender),
+    _voxel(voxel)
 {
 }
 
