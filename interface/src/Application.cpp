@@ -534,7 +534,8 @@ void Application::paintGL() {
         glm::vec3 relativePosition = glm::inverse(_myCamera.getTargetRotation()) *
             (eyePosition - _myCamera.getTargetPosition());
         const float PUSHBACK_RADIUS = 0.01f;
-        float pushback = relativePosition.z + _myCamera.getNearClip() + _myAvatar->getScale() * PUSHBACK_RADIUS;
+        float pushback = relativePosition.z + _myCamera.getNearClip() +
+            _myAvatar->getScale() * PUSHBACK_RADIUS - _myCamera.getDistance();
         if (pushback > 0.0f) {
             _myCamera.setTargetPosition(_myCamera.getTargetPosition() +
                 _myCamera.getTargetRotation() * glm::vec3(0.0f, 0.0f, pushback));
