@@ -65,6 +65,7 @@ bool ModelUploader::zip() {
         // If the user canceled we return.
         return false;
     }
+    bool _nameIsPresent = false;
     QString texDir;
     QString fbxFile;
     
@@ -103,6 +104,7 @@ bool ModelUploader::zip() {
             textPart.setBody(line[1].toUtf8());
             _dataMultiPart->append(textPart);
             _url = S3_URL + ((_isHead)? "/models/heads/" : "/models/skeletons/") + line[1].toUtf8() + ".fst";
+            _nameIsPresent = true;
         } else if (line[0] == FILENAME_FIELD) {
             fbxFile = QFileInfo(fst).path() + "/" + line[1];
             QFileInfo fbxInfo(fbxFile);
@@ -158,6 +160,15 @@ bool ModelUploader::zip() {
         textPart.setBody("skeletons");
     }
     _dataMultiPart->append(textPart);
+    
+    if (!_nameIsPresent) {
+        QMessageBox::warning(NULL,
+                             QString("ModelUploader::zip()"),
+                             QString("Model name is missing in the .fst file."),
+                             QMessageBox::Ok);
+        qDebug() << "[Warning] " << QString("Model name is missing in the .fst file.");
+        return false;
+    }
     
     _readyToSend = true;
     return true;
