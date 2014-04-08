@@ -151,8 +151,6 @@ public:
     virtual float getBoundingRadius() const;
     void updateShapePositions();
 
-    float getHeadHeight() const;
-
 public slots:
     void updateCollisionFlags();
 
@@ -181,6 +179,7 @@ protected:
     void setScale(float scale);
 
     float getSkeletonHeight() const;
+    float getHeadHeight() const;
     float getPelvisFloatingHeight() const;
     float getPelvisToHeadLength() const;
 
