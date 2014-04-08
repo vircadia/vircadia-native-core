@@ -169,9 +169,6 @@ void MyAvatar::simulate(float deltaTime) {
     //  Collect thrust forces from keyboard and devices
     updateThrust(deltaTime);
 
-    // calculate speed
-    _speed = glm::length(_velocity);
-
     // update the movement of the hand and process handshaking with other avatars...
     updateHandMovementAndTouching(deltaTime);
 
@@ -203,9 +200,9 @@ void MyAvatar::simulate(float deltaTime) {
     if (fabs(_bodyRollDelta) < MINIMUM_ROTATION_RATE) { _bodyRollDelta = 0.f; }
     if (fabs(_bodyPitchDelta) < MINIMUM_ROTATION_RATE) { _bodyPitchDelta = 0.f; }
 
-    const float MAX_STATIC_FRICTION_VELOCITY = 0.5f;
+    const float MAX_STATIC_FRICTION_SPEED = 0.5f;
     const float STATIC_FRICTION_STRENGTH = _scale * 20.f;
-    applyStaticFriction(deltaTime, _velocity, MAX_STATIC_FRICTION_VELOCITY, STATIC_FRICTION_STRENGTH);
+    applyStaticFriction(deltaTime, _velocity, MAX_STATIC_FRICTION_SPEED, STATIC_FRICTION_STRENGTH);
 
     // Damp avatar velocity
     const float LINEAR_DAMPING_STRENGTH = 0.5f;
@@ -230,7 +227,8 @@ void MyAvatar::simulate(float deltaTime) {
 
     const float WALKING_SPEED_THRESHOLD = 0.2f;
     // use speed and angular velocity to determine walking vs. standing
-    if (_speed + fabs(_bodyYawDelta) > WALKING_SPEED_THRESHOLD) {
+    float speed = glm::length(_velocity);
+    if (speed + fabs(_bodyYawDelta) > WALKING_SPEED_THRESHOLD) {
         _mode = AVATAR_MODE_WALKING;
     } else {
         _mode = AVATAR_MODE_INTERACTING;
@@ -238,7 +236,7 @@ void MyAvatar::simulate(float deltaTime) {
 
     // update moving flag based on speed
     const float MOVING_SPEED_THRESHOLD = 0.01f;
-    _moving = _speed > MOVING_SPEED_THRESHOLD;
+    _moving = speed > MOVING_SPEED_THRESHOLD;
 
     // If a move target is set, update position explicitly
     const float MOVE_FINISHED_TOLERANCE = 0.1f;
@@ -683,7 +681,6 @@ void MyAvatar::updateThrust(float deltaTime) {
     if (_driveKeys[FWD] || _driveKeys[BACK] || _driveKeys[RIGHT] || _driveKeys[LEFT] || _driveKeys[UP] || _driveKeys[DOWN]) {
         const float THRUST_INCREASE_RATE = 1.05f;
         const float MAX_THRUST_MULTIPLIER = 75.0f;
-        //printf("m = %.3f\n", _thrustMultiplier);
         _thrustMultiplier *= 1.f + deltaTime * THRUST_INCREASE_RATE;
         if (_thrustMultiplier > MAX_THRUST_MULTIPLIER) {
             _thrustMultiplier = MAX_THRUST_MULTIPLIER;
@@ -705,11 +702,12 @@ void MyAvatar::updateThrust(float deltaTime) {
     if ((glm::length(_thrust) == 0.0f) && _isThrustOn && (glm::length(_velocity) > MIN_SPEED_BRAKE_VELOCITY)) {
         _speedBrakes = true;
     }
+    _isThrustOn = (glm::length(_thrust) > EPSILON);
 
-    if (_speedBrakes && (glm::length(_velocity) < MIN_SPEED_BRAKE_VELOCITY)) {
+    if (_isThrustOn || (_speedBrakes && (glm::length(_velocity) < MIN_SPEED_BRAKE_VELOCITY))) {
         _speedBrakes = false;
     }
-    _isThrustOn = (glm::length(_thrust) > EPSILON);
+
 }
 
 void MyAvatar::updateHandMovementAndTouching(float deltaTime) {

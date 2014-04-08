@@ -12,6 +12,7 @@
         <th>Pool</th>
         <th>Public</th>
         <th>Local</th>
+        <th>Uptime (s)</th>
         <th>Kill?</th>
       </tr>
     </thead>

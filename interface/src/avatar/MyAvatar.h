@@ -50,7 +50,6 @@ public:
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; }
 
     // getters
-    float getSpeed() const { return _speed; }
     AvatarMode getMode() const { return _mode; }
     float getLeanScale() const { return _leanScale; }
     float getElapsedTimeStopped() const { return _elapsedTimeStopped; }
