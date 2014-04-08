@@ -44,8 +44,6 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     
 private slots:
-    void requestCreationFromDataServer();
-    void processCreateResponseFromDataServer(const QJsonObject& jsonObject);
     
     void readAvailableDatagrams();
     void readAvailableDTLSDatagrams();

@@ -172,26 +172,6 @@ bool DomainServer::readX509KeyAndCertificate() {
     return true;
 }
 
-void DomainServer::requestCreationFromDataServer() {
-    // this slot is fired when we get a valid access token from the data-server
-    // now let's ask it to set us up with a UUID
-    JSONCallbackParameters callbackParams;
-    callbackParams.jsonCallbackReceiver = this;
-    callbackParams.jsonCallbackMethod = "processCreateResponseFromDataServer";
-    
-    AccountManager::getInstance().authenticatedRequest("/api/v1/domains/create",
-                                                       QNetworkAccessManager::PostOperation,
-                                                       callbackParams);
-}
-
-void DomainServer::processCreateResponseFromDataServer(const QJsonObject& jsonObject) {
-    if (jsonObject["status"].toString() == "success") {
-        // pull out the UUID the data-server is telling us to use, and complete our setup with it
-        QUuid newSessionUUID = QUuid(jsonObject["data"].toObject()["uuid"].toString());
-        setupNodeListAndAssignments(newSessionUUID);
-    }
-}
-
 void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     
     const QString CUSTOM_PORT_OPTION = "port";
@@ -244,20 +224,21 @@ void DomainServer::parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes)
     
     while (configIndex != -1) {
         // figure out which assignment type this matches
-        Assignment::Type assignmentType = (Assignment::Type) assignmentConfigRegex.cap().toInt();
+        Assignment::Type assignmentType = (Assignment::Type) assignmentConfigRegex.cap(1).toInt();
         
         QVariant mapValue = _argumentVariantMap[variantMapKeys[configIndex]];
         
         if (mapValue.type() == QVariant::String) {
+            qDebug() << mapValue.toString();
             QJsonDocument deserializedDocument = QJsonDocument::fromJson(mapValue.toString().toUtf8());
             createStaticAssignmentsForType(assignmentType, deserializedDocument.array());
         } else {
-            createStaticAssignmentsForType(assignmentType, mapValue.toJsonArray());
+            createStaticAssignmentsForType(assignmentType, mapValue.toJsonValue().toArray());
         }
         
         excludedTypes.insert(assignmentType);
         
-        configIndex = variantMapKeys.indexOf(assignmentConfigRegex);
+        configIndex = variantMapKeys.indexOf(assignmentConfigRegex, configIndex + 1);
     }
 }
 
@@ -271,6 +252,8 @@ void DomainServer::createStaticAssignmentsForType(Assignment::Type type, const Q
     qDebug() << "Parsing command line config for assignment type" << type;
     
     int configCounter = 0;
+    
+    qDebug() << configArray;
     
     foreach(const QJsonValue& jsonValue, configArray) {
         if (jsonValue.isObject()) {
@@ -295,10 +278,11 @@ void DomainServer::createStaticAssignmentsForType(Assignment::Type type, const Q
             // setup the payload as a semi-colon separated list of key = value
             QStringList payloadStringList;
             foreach(const QString& payloadKey, jsonObject.keys()) {
-                payloadStringList << QString("%1=%2").arg(payloadKey).arg(jsonObject[payloadKey].toString());
+                QString dashes = payloadKey.size() == 1 ? "-" : "--";
+                payloadStringList << QString("%1%2 %3").arg(dashes).arg(payloadKey).arg(jsonObject[payloadKey].toString());
             }
             
-            configAssignment->setPayload(payloadStringList.join(';').toUtf8());
+            configAssignment->setPayload(payloadStringList.join(' ').toUtf8());
             
             addStaticAssignmentToAssignmentHash(configAssignment);
         }
