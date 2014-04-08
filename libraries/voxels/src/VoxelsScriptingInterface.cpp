@@ -6,6 +6,8 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
+#include "VoxelTreeCommands.h"
+
 #include "VoxelsScriptingInterface.h"
 
 void VoxelsScriptingInterface::queueVoxelAdd(PacketType addPacketType, VoxelDetail& addVoxelDetails) {
@@ -37,17 +39,24 @@ VoxelDetail VoxelsScriptingInterface::getVoxelAt(float x, float y, float z, floa
 }
 
 void VoxelsScriptingInterface::setVoxelNonDestructive(float x, float y, float z, float scale, 
-                                                        uchar red, uchar green, uchar blue) {
+                                                      uchar red, uchar green, uchar blue) {
     // setup a VoxelDetail struct with the data
-    VoxelDetail addVoxelDetail = {x / (float)TREE_SCALE, y / (float)TREE_SCALE, z / (float)TREE_SCALE, 
+    VoxelDetail addVoxelDetail = {x / (float)TREE_SCALE, y / (float)TREE_SCALE, z / (float)TREE_SCALE,
                                     scale / (float)TREE_SCALE, red, green, blue};
 
-    // queue the add packet
-    queueVoxelAdd(PacketTypeVoxelSet, addVoxelDetail);
     
     // handle the local tree also...
     if (_tree) {
-        _tree->createVoxel(addVoxelDetail.x, addVoxelDetail.y, addVoxelDetail.z, addVoxelDetail.s, red, green, blue, false);
+        if (_undoStack) {
+            AddVoxelCommand* command = new AddVoxelCommand(_tree,
+                                                           addVoxelDetail,
+                                                           getVoxelPacketSender());
+            _undoStack->push(command);
+        } else {
+            // queue the add packet
+            queueVoxelAdd(PacketTypeVoxelSet, addVoxelDetail);
+            _tree->createVoxel(addVoxelDetail.x, addVoxelDetail.y, addVoxelDetail.z, addVoxelDetail.s, red, green, blue, false);
+        }
     }
 }
 
@@ -57,26 +66,68 @@ void VoxelsScriptingInterface::setVoxel(float x, float y, float z, float scale,
     VoxelDetail addVoxelDetail = {x / (float)TREE_SCALE, y / (float)TREE_SCALE, z / (float)TREE_SCALE, 
                                     scale / (float)TREE_SCALE, red, green, blue};
 
-    // queue the destructive add
-    queueVoxelAdd(PacketTypeVoxelSetDestructive, addVoxelDetail);
 
     // handle the local tree also...
     if (_tree) {
-        _tree->createVoxel(addVoxelDetail.x, addVoxelDetail.y, addVoxelDetail.z, addVoxelDetail.s, red, green, blue, true);
+        if (_undoStack) {
+            AddVoxelCommand* addCommand = new AddVoxelCommand(_tree,
+                                                           addVoxelDetail,
+                                                           getVoxelPacketSender());
+            
+            VoxelTreeElement* deleteVoxelElement = _tree->getVoxelAt(addVoxelDetail.x, addVoxelDetail.y, addVoxelDetail.z, addVoxelDetail.s);
+            if (deleteVoxelElement) {
+                nodeColor color;
+                memcpy(&color, &deleteVoxelElement->getColor(), sizeof(nodeColor));
+                VoxelDetail deleteVoxelDetail = {addVoxelDetail.x,
+                                                 addVoxelDetail.y,
+                                                 addVoxelDetail.z,
+                                                 addVoxelDetail.s,
+                                                 color[0],
+                                                 color[1],
+                                                 color[2]};
+                DeleteVoxelCommand* delCommand = new DeleteVoxelCommand(_tree,
+                                                                     deleteVoxelDetail,
+                                                                     getVoxelPacketSender());
+                _undoStack->beginMacro(addCommand->text());
+                qDebug() << "Macro";
+                _undoStack->push(delCommand);
+                _undoStack->push(addCommand);
+                _undoStack->endMacro();
+            } else {
+                _undoStack->push(addCommand);
+            }
+        } else {
+            // queue the destructive add
+            queueVoxelAdd(PacketTypeVoxelSetDestructive, addVoxelDetail);
+            _tree->createVoxel(addVoxelDetail.x, addVoxelDetail.y, addVoxelDetail.z, addVoxelDetail.s, red, green, blue, true);
+        }
     }
 }
 
 void VoxelsScriptingInterface::eraseVoxel(float x, float y, float z, float scale) {
-
     // setup a VoxelDetail struct with data
-    VoxelDetail deleteVoxelDetail = {x / (float)TREE_SCALE, y / (float)TREE_SCALE, z / (float)TREE_SCALE, 
-                                        scale / (float)TREE_SCALE, 0, 0, 0};
+    VoxelDetail deleteVoxelDetail = {x / (float)TREE_SCALE, y / (float)TREE_SCALE, z / (float)TREE_SCALE,
+                                        scale / (float)TREE_SCALE};
 
-    getVoxelPacketSender()->queueVoxelEditMessages(PacketTypeVoxelErase, 1, &deleteVoxelDetail);
 
     // handle the local tree also...
     if (_tree) {
-        _tree->deleteVoxelAt(deleteVoxelDetail.x, deleteVoxelDetail.y, deleteVoxelDetail.z, deleteVoxelDetail.s);
+        VoxelTreeElement* deleteVoxelElement = _tree->getVoxelAt(deleteVoxelDetail.x, deleteVoxelDetail.y, deleteVoxelDetail.z, deleteVoxelDetail.s);
+        if (deleteVoxelElement) {
+            deleteVoxelDetail.red = deleteVoxelElement->getColor()[0];
+            deleteVoxelDetail.green = deleteVoxelElement->getColor()[1];
+            deleteVoxelDetail.blue = deleteVoxelElement->getColor()[2];
+        }
+        
+        if (_undoStack) {
+            DeleteVoxelCommand* command = new DeleteVoxelCommand(_tree,
+                                                                 deleteVoxelDetail,
+                                                                 getVoxelPacketSender());
+            _undoStack->push(command);
+        } else {
+            getVoxelPacketSender()->queueVoxelEditMessages(PacketTypeVoxelErase, 1, &deleteVoxelDetail);
+            _tree->deleteVoxelAt(deleteVoxelDetail.x, deleteVoxelDetail.y, deleteVoxelDetail.z, deleteVoxelDetail.s);
+        }
     }
 }
 

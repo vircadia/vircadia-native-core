@@ -161,14 +161,15 @@ Menu::Menu() :
 
 
     QMenu* editMenu = addMenu("Edit");
+    
     QUndoStack* undoStack = Application::getInstance()->getUndoStack();
     QAction* undoAction = undoStack->createUndoAction(editMenu);
+    undoAction->setShortcut(Qt::CTRL | Qt::Key_Z);
+    addActionToQMenuAndActionHash(editMenu, undoAction);
+    
     QAction* redoAction = undoStack->createRedoAction(editMenu);
-
-    addActionToQMenuAndActionHash(editMenu,
-                                  undoAction);
-    addActionToQMenuAndActionHash(editMenu,
-                                  redoAction);
+    redoAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Z);
+    addActionToQMenuAndActionHash(editMenu, redoAction);
 
     addActionToQMenuAndActionHash(editMenu,
                                   MenuOption::Preferences,

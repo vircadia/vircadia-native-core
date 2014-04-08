@@ -22,12 +22,13 @@
 class VoxelsScriptingInterface : public OctreeScriptingInterface {
     Q_OBJECT
 public:
-    VoxelsScriptingInterface() : _tree(NULL) {};
+    VoxelsScriptingInterface() : _tree(NULL), _undoStack(NULL) {};
     VoxelEditPacketSender* getVoxelPacketSender() { return (VoxelEditPacketSender*)getPacketSender(); }
 
     virtual NodeType_t getServerNodeType() const { return NodeType::VoxelServer; }
     virtual OctreeEditPacketSender* createPacketSender() { return new VoxelEditPacketSender(); }
     void setVoxelTree(VoxelTree* tree) { _tree = tree; }
+    void setUndoStack(QUndoStack* undoStack) { _undoStack = undoStack; }
 
 public slots:
 
@@ -79,6 +80,7 @@ public slots:
 private:
     void queueVoxelAdd(PacketType addPacketType, VoxelDetail& addVoxelDetails);
     VoxelTree* _tree;
+    QUndoStack* _undoStack;
 };
 
 #endif /* defined(__hifi__VoxelsScriptingInterface__) */
