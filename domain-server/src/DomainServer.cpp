@@ -148,6 +148,9 @@ bool DomainServer::readX509KeyAndCertificate() {
         
         QString keyPassphraseString = QProcessEnvironment::systemEnvironment().value(X509_KEY_PASSPHRASE_ENV);
         
+        qDebug() << "Reading certificate file at" << certPath << "for DTLS.";
+        qDebug() << "Reading key file at" << keyPath << "for DTLS.";
+        
         int gnutlsReturn = gnutls_certificate_set_x509_key_file2(*_x509Credentials,
                                                                  certPath.toLocal8Bit().constData(),
                                                                  keyPath.toLocal8Bit().constData(),
