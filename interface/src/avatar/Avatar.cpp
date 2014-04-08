@@ -333,6 +333,10 @@ void Avatar::renderBody(RenderMode renderMode) {
     getHand()->render(false);
 }
 
+void Avatar::updateJointMappings() {
+    // no-op; joint mappings come from skeleton model
+}
+
 void Avatar::renderBillboard() {
     if (_billboard.isEmpty()) {
         return;
