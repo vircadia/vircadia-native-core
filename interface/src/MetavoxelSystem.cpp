@@ -295,11 +295,13 @@ void MetavoxelClient::simulate(float deltaTime) {
 int MetavoxelClient::parseData(const QByteArray& packet) {
     // process through sequencer
     QMetaObject::invokeMethod(&_sequencer, "receivedDatagram", Q_ARG(const QByteArray&, packet));
+    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::METAVOXELS).updateValue(packet.size());
     return packet.size();
 }
 
 void MetavoxelClient::sendData(const QByteArray& data) {
     NodeList::getInstance()->writeDatagram(data, _node);
+    Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::METAVOXELS).updateValue(data.size());
 }
 
 void MetavoxelClient::readPacket(Bitstream& in) {
