@@ -18,6 +18,8 @@
 #include "VoxelEditPacketSender.h"
 #include "VoxelTree.h"
 
+class QUndoStack;
+
 /// handles scripting of voxel commands from JS passed to assigned clients
 class VoxelsScriptingInterface : public OctreeScriptingInterface {
     Q_OBJECT

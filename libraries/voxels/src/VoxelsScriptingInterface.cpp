@@ -51,6 +51,8 @@ void VoxelsScriptingInterface::setVoxelNonDestructive(float x, float y, float z,
             AddVoxelCommand* command = new AddVoxelCommand(_tree,
                                                            addVoxelDetail,
                                                            getVoxelPacketSender());
+            
+            // As QUndoStack automatically executes redo() on push, we don't need to execute the command ourselves.
             _undoStack->push(command);
         } else {
             // queue the add packet
@@ -89,11 +91,12 @@ void VoxelsScriptingInterface::setVoxel(float x, float y, float z, float scale,
                                                                      deleteVoxelDetail,
                                                                      getVoxelPacketSender());
                 _undoStack->beginMacro(addCommand->text());
-                qDebug() << "Macro";
+                // As QUndoStack automatically executes redo() on push, we don't need to execute the command ourselves.
                 _undoStack->push(delCommand);
                 _undoStack->push(addCommand);
                 _undoStack->endMacro();
             } else {
+                // As QUndoStack automatically executes redo() on push, we don't need to execute the command ourselves.
                 _undoStack->push(addCommand);
             }
         } else {
@@ -123,6 +126,7 @@ void VoxelsScriptingInterface::eraseVoxel(float x, float y, float z, float scale
             DeleteVoxelCommand* command = new DeleteVoxelCommand(_tree,
                                                                  deleteVoxelDetail,
                                                                  getVoxelPacketSender());
+            // As QUndoStack automatically executes redo() on push, we don't need to execute the command ourselves.
             _undoStack->push(command);
         } else {
             getVoxelPacketSender()->queueVoxelEditMessages(PacketTypeVoxelErase, 1, &deleteVoxelDetail);
