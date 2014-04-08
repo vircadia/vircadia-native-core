@@ -60,8 +60,8 @@ public:
     const QUuid& getUUID() const { return _uuid; }
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
 
-    quint64 getWakeMicrostamp() const { return _wakeMicrostamp; }
-    void setWakeMicrostamp(quint64 wakeMicrostamp) { _wakeMicrostamp = wakeMicrostamp; }
+    quint64 getWakeTimestamp() const { return _wakeTimestamp; }
+    void setWakeTimestamp(quint64 wakeTimestamp) { _wakeTimestamp = wakeTimestamp; }
 
     quint64 getLastHeardMicrostamp() const { return _lastHeardMicrostamp; }
     void setLastHeardMicrostamp(quint64 lastHeardMicrostamp) { _lastHeardMicrostamp = lastHeardMicrostamp; }
@@ -109,7 +109,7 @@ private:
 
     NodeType_t _type;
     QUuid _uuid;
-    quint64 _wakeMicrostamp;
+    quint64 _wakeTimestamp;
     quint64 _lastHeardMicrostamp;
     HifiSockAddr _publicSocket;
     HifiSockAddr _localSocket;
