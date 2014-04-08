@@ -187,6 +187,8 @@ protected:
     void renderDisplayName();
     virtual void renderBody(RenderMode renderMode);
 
+    virtual void updateJointMappings();
+
 private:
 
     bool _initialized;
