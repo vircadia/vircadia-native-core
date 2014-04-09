@@ -1,13 +1,17 @@
 //
 //  FramelessDialog.h
-//  hifi
+//  interface/src/ui
 //
 //  Created by Stojce Slavkovski on 2/20/14.
+//  Copyright 2014 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__FramelessDialog__
-#define __hifi__FramelessDialog__
+
+#ifndef hifi_FramelessDialog_h
+#define hifi_FramelessDialog_h
 
 #include <QDialog>
 
@@ -16,7 +20,6 @@ class FramelessDialog : public QDialog {
     
 public:
     FramelessDialog(QWidget* parent = 0, Qt::WindowFlags flags = 0);
-    ~FramelessDialog();
     void setStyleSheetFile(const QString& fileName);
 
 protected:
@@ -32,4 +35,4 @@ private:
 
 };
 
-#endif /* defined(__hifi__FramelessDialog__) */
+#endif // hifi_FramelessDialog_h

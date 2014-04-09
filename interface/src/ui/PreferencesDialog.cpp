@@ -1,10 +1,14 @@
 //
 //  PreferencesDialog.cpp
-//  hifi
+//  interface/src/ui
 //
-//  Created by Stojce Slavkovski on 2/22/14.
+//  Created by Stojce Slavkovski on 2/20/14.
+//  Copyright 2014 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
 
 #include "Application.h"
 #include "Menu.h"

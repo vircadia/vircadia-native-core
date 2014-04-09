@@ -1,9 +1,12 @@
 //
 //  FramelessDialog.cpp
-//  hifi
+//  interface/src/ui
 //
 //  Created by Stojce Slavkovski on 2/20/14.
+//  Copyright 2014 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include "Application.h"
@@ -25,20 +28,17 @@ QDialog(parent, flags | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint) {
 bool FramelessDialog::eventFilter(QObject* sender, QEvent* event) {
     switch (event->type()) {
         case QEvent::Move:
-
             if (sender == parentWidget()) {
                 // move to upper left corner on app move
                 move(parentWidget()->geometry().topLeft());
             }
             break;
-
         case QEvent::Resize:
             if (sender == parentWidget()) {
                 // keep full app height on resizing the app
                 setFixedHeight(parentWidget()->size().height());
             }
             break;
-
         case QEvent::WindowStateChange:
             if (parentWidget()->isMinimized()) {
                 setHidden(true);
@@ -46,25 +46,18 @@ bool FramelessDialog::eventFilter(QObject* sender, QEvent* event) {
                 setHidden(false);
             }
             break;
-
         case QEvent::ApplicationDeactivate:
             // hide on minimize and focus lost
             setHidden(true);
             break;
-
         case QEvent::ApplicationActivate:
             setHidden(false);
             break;
-
         default:
             break;
     }
 
     return false;
-}
-
-FramelessDialog::~FramelessDialog() {
-    deleteLater();
 }
 
 void FramelessDialog::setStyleSheetFile(const QString& fileName) {
