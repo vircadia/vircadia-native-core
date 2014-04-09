@@ -13,9 +13,6 @@
 #include <QPair>
 #include <QVector>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
-
 #include "FaceTracker.h"
 
 namespace VisageSDK {

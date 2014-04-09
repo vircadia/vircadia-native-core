@@ -9,6 +9,10 @@
 #ifndef __interface__Faceplus__
 #define __interface__Faceplus__
 
+#include <QMultiHash>
+#include <QPair>
+#include <QVector>
+
 #include "FaceTracker.h"
 
 /// Interface for Mixamo FacePlus.
@@ -18,6 +22,7 @@ class Faceplus : public FaceTracker {
 public:
     
     Faceplus();
+    virtual ~Faceplus();
     
     void init();
     
@@ -26,9 +31,21 @@ public:
     void update();
     void reset();
 
+public slots:
+
+    void updateEnabled();
+    
 private:
     
+    void setEnabled(bool enabled);
+    
+    bool _enabled;
     bool _active;
+    
+#ifdef HAVE_VISAGE
+    QMultiHash<int, QPair<int, float> > _channelIndexMap; 
+    QVector<float> _outputVector;
+#endif
 };
 
 #endif /* defined(__interface__Faceplus__) */

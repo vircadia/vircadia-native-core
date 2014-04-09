@@ -159,6 +159,7 @@ void Visage::reset() {
 
 void Visage::updateEnabled() {
     setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Visage) &&
+        !Menu::getInstance()->isOptionChecked(MenuOption::Faceplus) && 
         !(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift) &&
             Application::getInstance()->getFaceshift()->isConnectedOrConnecting()));
 }

@@ -12,9 +12,6 @@
 #include <QTcpSocket>
 #include <QUdpSocket>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
-
 #include <fsbinarystream.h>
 
 #include "FaceTracker.h"
