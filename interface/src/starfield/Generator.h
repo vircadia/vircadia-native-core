@@ -1,13 +1,16 @@
 //
-// starfield/Generator.h
-// interface
+//  Generator.h
+//  interface/src/starfield
 //
-// Created by Chris Barnard on 10/13/13.
-// Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Created by Chris Barnard on 10/13/13.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__starfield__Generator__
-#define __interface__starfield__Generator__
+#ifndef hifi_Generator_h
+#define hifi_Generator_h
 
 #include <locale.h>
 #include <time.h>
@@ -34,4 +37,4 @@ namespace starfield {
     };
     
 }
-#endif
+#endif // hifi_Generator_h

@@ -1,12 +1,15 @@
 //
 //  Cube3DOverlay.h
-//  interface
+//  interface/src/ui/overlays
 //
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Cube3DOverlay__
-#define __interface__Cube3DOverlay__
+#ifndef hifi_Cube3DOverlay_h
+#define hifi_Cube3DOverlay_h
 
 #include "Volume3DOverlay.h"
 
@@ -20,4 +23,4 @@ public:
 };
 
  
-#endif /* defined(__interface__Cube3DOverlay__) */
+#endif // hifi_Cube3DOverlay_h

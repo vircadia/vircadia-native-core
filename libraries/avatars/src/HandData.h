@@ -1,13 +1,16 @@
 //
 //  HandData.h
-//  hifi
+//  libraries/avatars/src
 //
 //  Created by Eric Johnston on 6/26/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__HandData__
-#define __hifi__HandData__
+#ifndef hifi_HandData_h
+#define hifi_HandData_h
 
 #include <iostream>
 #include <vector>
@@ -223,4 +226,4 @@ private:
     quint64  _collisionlessPaddleExpiry; /// Timestamp after which paddle starts colliding
 };
 
-#endif /* defined(__hifi__HandData__) */
+#endif // hifi_HandData_h

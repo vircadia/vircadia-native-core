@@ -1,12 +1,13 @@
 //
 //  RegisteredMetaTypes.cpp
-//  hifi
+//  libraries/shared/src
 //
 //  Created by Stephen Birarda on 10/3/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
-//  Used to register meta-types with Qt so that they can be used as properties for objects exposed to our
-//  Agent scripting.
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 #include "RegisteredMetaTypes.h"
 

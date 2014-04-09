@@ -1,13 +1,16 @@
 //
 //  AudioMixer.h
-//  hifi
+//  assignment-client/src/audio
 //
 //  Created by Stephen Birarda on 8/22/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AudioMixer__
-#define __hifi__AudioMixer__
+#ifndef hifi_AudioMixer_h
+#define hifi_AudioMixer_h
 
 #include <AudioRingBuffer.h>
 
@@ -50,4 +53,4 @@ private:
     int _sumMixes;
 };
 
-#endif /* defined(__hifi__AudioMixer__) */
+#endif // hifi_AudioMixer_h

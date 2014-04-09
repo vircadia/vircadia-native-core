@@ -1,17 +1,18 @@
 //
 //  gun.js
-//  hifi
+//  examples
 //
 //  Created by Brad Hefta-Gaub on 12/31/13.
 //  Modified by Philip on 3/3/14
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
 //  This is an example script that turns the hydra controllers and mouse into a particle gun.
 //  It reads the controller, watches for trigger pulls, and launches particles.
 //  When particles collide with voxels they blow little holes out of the voxels. 
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
 
 function getRandomFloat(min, max) {
     return Math.random() * (max - min) + min;

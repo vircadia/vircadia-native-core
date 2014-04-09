@@ -1,13 +1,16 @@
 //
 //  ChatWindow.h
-//  interface
+//  interface/src/ui
 //
 //  Created by Dimitar Dobrev on 3/6/14.
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__ChatWindow__
-#define __interface__ChatWindow__
+#ifndef hifi_ChatWindow_h
+#define hifi_ChatWindow_h
 
 #include <QDateTime>
 #include <QDockWidget>
@@ -60,4 +63,4 @@ private slots:
 #endif
 };
 
-#endif /* defined(__interface__ChatWindow__) */
+#endif // hifi_ChatWindow_h

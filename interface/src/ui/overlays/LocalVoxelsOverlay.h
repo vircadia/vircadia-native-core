@@ -1,15 +1,16 @@
 //
 //  LocalVoxelsOverlay.h
-//  hifi
+//  interface/src/ui/overlays
 //
 //  Created by Clément Brisset on 2/28/14.
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
 //
-//  Scriptable interface for LocalVoxels
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__LocalVoxelsOverlay__
-#define __hifi__LocalVoxelsOverlay__
+#ifndef hifi_LocalVoxelsOverlay_h
+#define hifi_LocalVoxelsOverlay_h
 
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
@@ -47,4 +48,4 @@ private:
     StrongVoxelSystemPointer _voxelSystem;
 };
 
-#endif /* defined(__hifi__LocalVoxelsOverlay__) */
+#endif // hifi_LocalVoxelsOverlay_h

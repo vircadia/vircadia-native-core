@@ -1,13 +1,16 @@
 //
 //  MenuScriptingInterface.h
-//  hifi
+//  interface/src/scripting
 //
-//  Created by Brad Hefta-Gaub on 2/25/14
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Created by Brad Hefta-Gaub on 2/25/14.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__MenuScriptingInterface__
-#define __hifi__MenuScriptingInterface__
+#ifndef hifi_MenuScriptingInterface_h
+#define hifi_MenuScriptingInterface_h
 
 #include <QDebug>
 #include <QMutex>
@@ -47,4 +50,4 @@ signals:
     void menuItemEvent(const QString& menuItem);
 };
 
-#endif /* defined(__hifi__MenuScriptingInterface__) */
+#endif // hifi_MenuScriptingInterface_h

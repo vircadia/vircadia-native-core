@@ -1,5 +1,13 @@
 //
+//  drumStick.js
+//  examples
+//
+//  Copyright 2014 High Fidelity, Inc.
+//
 //  This example musical instrument script plays 'air drums' when you move your hands downward
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 function length(v) {

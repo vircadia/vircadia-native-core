@@ -1,13 +1,16 @@
 //
 //  Faceshift.h
-//  interface
+//  interface/src/devices
 //
 //  Created by Andrzej Kapolka on 9/3/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Faceshift__
-#define __interface__Faceshift__
+#ifndef hifi_Faceshift_h
+#define hifi_Faceshift_h
 
 #include <QTcpSocket>
 #include <QUdpSocket>
@@ -138,4 +141,4 @@ private:
     float _estimatedEyeYaw;
 };
 
-#endif /* defined(__interface__Faceshift__) */
+#endif // hifi_Faceshift_h

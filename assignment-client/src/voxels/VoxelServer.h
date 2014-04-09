@@ -1,14 +1,16 @@
 //
 //  VoxelServer.h
-//  voxel-server
+//  assignment-client/src/voxels
 //
-//  Created by Brad Hefta-Gaub on 8/21/13
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Created by Brad Hefta-Gaub on 8/21/13.
+//  Copyright 2013 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __voxel_server__VoxelServer__
-#define __voxel_server__VoxelServer__
+#ifndef hifi_VoxelServer_h
+#define hifi_VoxelServer_h
 
 #include <QStringList>
 #include <QDateTime>
@@ -53,4 +55,4 @@ private:
     unsigned char _tempOutputBuffer[MAX_PACKET_SIZE];
 };
 
-#endif // __voxel_server__VoxelServer__
+#endif // hifi_VoxelServer_h

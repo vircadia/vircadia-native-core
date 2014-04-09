@@ -1,16 +1,18 @@
 //
 //  Vec3.h
-//  hifi
+//  libraries/script-engine/src
 //
-//  Created by Brad Hefta-Gaub on 1/29/14
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Created by Brad Hefta-Gaub on 1/29/14.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  Scriptable Vec3 class library.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__Vec3__
-#define __hifi__Vec3__
+#ifndef hifi_Vec3_h
+#define hifi_Vec3_h
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -35,4 +37,4 @@ public slots:
 
 
 
-#endif /* defined(__hifi__Vec3__) */
+#endif // hifi_Vec3_h

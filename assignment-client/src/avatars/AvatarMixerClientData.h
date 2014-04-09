@@ -1,13 +1,16 @@
 //
 //  AvatarMixerClientData.h
-//  hifi
+//  assignment-client/src/avatars
 //
 //  Created by Stephen Birarda on 2/4/2014.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AvatarMixerClientData__
-#define __hifi__AvatarMixerClientData__
+#ifndef hifi_AvatarMixerClientData_h
+#define hifi_AvatarMixerClientData_h
 
 #include <QtCore/QUrl>
 
@@ -37,4 +40,4 @@ private:
     quint64 _identityChangeTimestamp;
 };
 
-#endif /* defined(__hifi__AvatarMixerClientData__) */
+#endif // hifi_AvatarMixerClientData_h
