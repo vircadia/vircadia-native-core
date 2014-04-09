@@ -159,6 +159,11 @@ void Hand::collideAgainstAvatar(Avatar* avatar, bool isMyHand) {
                 // TODO: submit collision info to MyAvatar which should lean accordingly
                 averageContactPoint /= (float)handCollisions.size();
                 avatar->applyCollision(averageContactPoint, totalPenetration);
+
+                CollisionInfo collision;
+                collision._penetration = totalPenetration;
+                collision._contactPoint = averageContactPoint;
+                emit avatar->collisionWithAvatar(avatar->getSessionUUID(), _owningAvatar->getSessionUUID(), collision);
             }
         }
     }

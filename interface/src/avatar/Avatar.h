@@ -152,6 +152,9 @@ public:
 public slots:
     void updateCollisionFlags();
 
+signals:
+    void collisionWithAvatar(const QUuid&, const QUuid&, const CollisionInfo&);
+
 protected:
     SkeletonModel _skeletonModel;
     float _bodyYawDelta;
