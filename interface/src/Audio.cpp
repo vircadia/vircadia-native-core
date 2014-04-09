@@ -15,6 +15,15 @@
 #include <CoreAudio/AudioHardware.h>
 #endif
 
+#ifdef WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <Mmsystem.h>
+#include <mmdeviceapi.h>
+#include <devicetopology.h>
+#include <Functiondiscoverykeys_devpkey.h>
+#endif
+
 #include <QtCore/QBuffer>
 #include <QtMultimedia/QAudioInput>
 #include <QtMultimedia/QAudioOutput>
@@ -86,7 +95,8 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
 
 void Audio::init(QGLWidget *parent) {
     _micTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/mic.svg"));
-    _muteTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/mute.svg"));
+    _muteTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/mic-mute.svg"));
+    _boxTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/audio-box.svg"));
 }
 
 void Audio::reset() {
@@ -147,24 +157,56 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
 #endif
 #ifdef WIN32
     QString deviceName;
-    if (mode == QAudio::AudioInput) {
-        WAVEINCAPS wic;
-        // first use WAVE_MAPPER to get the default devices manufacturer ID
-        waveInGetDevCaps(WAVE_MAPPER, &wic, sizeof(wic));
-        //Use the received manufacturer id to get the device's real name
-        waveInGetDevCaps(wic.wMid, &wic, sizeof(wic));
-        qDebug() << "input device:" << wic.szPname;
-        deviceName = wic.szPname;
+    //Check for Windows Vista or higher, IMMDeviceEnumerator doesn't work below that.
+    OSVERSIONINFO osvi;
+    ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
+    osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+    GetVersionEx(&osvi);
+    const DWORD VISTA_MAJOR_VERSION = 6;
+    if (osvi.dwMajorVersion < VISTA_MAJOR_VERSION) {// lower then vista
+        if (mode == QAudio::AudioInput) {
+            WAVEINCAPS wic;
+            // first use WAVE_MAPPER to get the default devices manufacturer ID
+            waveInGetDevCaps(WAVE_MAPPER, &wic, sizeof(wic));
+            //Use the received manufacturer id to get the device's real name
+            waveInGetDevCaps(wic.wMid, &wic, sizeof(wic));
+            qDebug() << "input device:" << wic.szPname;
+            deviceName = wic.szPname;
+        } else {
+            WAVEOUTCAPS woc;
+            // first use WAVE_MAPPER to get the default devices manufacturer ID
+            waveOutGetDevCaps(WAVE_MAPPER, &woc, sizeof(woc));
+            //Use the received manufacturer id to get the device's real name
+            waveOutGetDevCaps(woc.wMid, &woc, sizeof(woc));
+            qDebug() << "output device:" << woc.szPname;
+            deviceName = woc.szPname;
+        }
     } else {
-        WAVEOUTCAPS woc;
-        // first use WAVE_MAPPER to get the default devices manufacturer ID
-        waveOutGetDevCaps(WAVE_MAPPER, &woc, sizeof(woc));
-        //Use the received manufacturer id to get the device's real name
-        waveOutGetDevCaps(woc.wMid, &woc, sizeof(woc));
-        qDebug() << "output device:" << woc.szPname;
-        deviceName = woc.szPname;
+        HRESULT hr = S_OK;
+        CoInitialize(NULL);
+        IMMDeviceEnumerator* pMMDeviceEnumerator = NULL;
+        CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&pMMDeviceEnumerator);
+        IMMDevice* pEndpoint;
+        pMMDeviceEnumerator->GetDefaultAudioEndpoint(mode == QAudio::AudioOutput ? eRender : eCapture, eMultimedia, &pEndpoint);
+        IPropertyStore* pPropertyStore;
+        pEndpoint->OpenPropertyStore(STGM_READ, &pPropertyStore);
+        pEndpoint->Release();
+        pEndpoint = NULL;
+        PROPVARIANT pv;
+        PropVariantInit(&pv);
+        hr = pPropertyStore->GetValue(PKEY_Device_FriendlyName, &pv);
+        pPropertyStore->Release();
+        pPropertyStore = NULL;
+        //QAudio devices seems to only take the 31 first characters of the Friendly Device Name.
+        const DWORD QT_WIN_MAX_AUDIO_DEVICENAME_LEN = 31;
+        deviceName = QString::fromWCharArray((wchar_t*)pv.pwszVal).left(QT_WIN_MAX_AUDIO_DEVICENAME_LEN);
+        qDebug() << (mode == QAudio::AudioOutput ? "output" : "input") << " device:" << deviceName;
+        PropVariantClear(&pv);
+        pMMDeviceEnumerator->Release();
+        pMMDeviceEnumerator = NULL;
+        CoUninitialize();
     }
-	qDebug() << "DEBUG [" << deviceName << "] [" << getNamedAudioDeviceForMode(mode, deviceName).deviceName() << "]";
+    qDebug() << "DEBUG [" << deviceName << "] [" << getNamedAudioDeviceForMode(mode, deviceName).deviceName() << "]";
     
     return getNamedAudioDeviceForMode(mode, deviceName);
 #endif
@@ -817,13 +859,52 @@ void Audio::handleAudioByteArray(const QByteArray& audioByteArray) {
     // or send to the mixer and use delayed loopback
 }
 
-void Audio::renderMuteIcon(int x, int y) {
+void Audio::renderToolBox(int x, int y, bool boxed) {
 
-    _iconBounds = QRect(x, y, MUTE_ICON_SIZE, MUTE_ICON_SIZE);
     glEnable(GL_TEXTURE_2D);
 
-    glBindTexture(GL_TEXTURE_2D, _micTextureId);
-    glColor3f(.93f, .93f, .93f);
+    if (boxed) {
+
+        bool isClipping = ((getTimeSinceLastClip() > 0.f) && (getTimeSinceLastClip() < 1.f));
+        const int BOX_LEFT_PADDING = 5;
+        const int BOX_TOP_PADDING = 10;
+        const int BOX_WIDTH = 266;
+        const int BOX_HEIGHT = 44;
+
+        QRect boxBounds = QRect(x - BOX_LEFT_PADDING, y - BOX_TOP_PADDING, BOX_WIDTH, BOX_HEIGHT);
+
+        glBindTexture(GL_TEXTURE_2D, _boxTextureId);
+
+        if (isClipping) {
+            glColor3f(1.f,0.f,0.f);
+        } else {
+            glColor3f(.41f,.41f,.41f);
+        }
+        glBegin(GL_QUADS);
+
+        glTexCoord2f(1, 1);
+        glVertex2f(boxBounds.left(), boxBounds.top());
+
+        glTexCoord2f(0, 1);
+        glVertex2f(boxBounds.right(), boxBounds.top());
+
+        glTexCoord2f(0, 0);
+        glVertex2f(boxBounds.right(), boxBounds.bottom());
+        
+        glTexCoord2f(1, 0);
+        glVertex2f(boxBounds.left(), boxBounds.bottom());
+        
+        glEnd();
+    }
+
+    _iconBounds = QRect(x, y, MUTE_ICON_SIZE, MUTE_ICON_SIZE);
+    if (!_muted) {
+        glBindTexture(GL_TEXTURE_2D, _micTextureId);
+    } else {
+        glBindTexture(GL_TEXTURE_2D, _muteTextureId);
+    }
+
+    glColor3f(1,1,1);
     glBegin(GL_QUADS);
 
     glTexCoord2f(1, 1);
@@ -839,25 +920,6 @@ void Audio::renderMuteIcon(int x, int y) {
     glVertex2f(_iconBounds.left(), _iconBounds.bottom());
 
     glEnd();
-
-    if (_muted) {
-        glBindTexture(GL_TEXTURE_2D, _muteTextureId);
-        glBegin(GL_QUADS);
-
-        glTexCoord2f(1, 1);
-        glVertex2f(_iconBounds.left(), _iconBounds.top());
-
-        glTexCoord2f(0, 1);
-        glVertex2f(_iconBounds.right(), _iconBounds.top());
-
-        glTexCoord2f(0, 0);
-        glVertex2f(_iconBounds.right(), _iconBounds.bottom());
-
-        glTexCoord2f(1, 0);
-        glVertex2f(_iconBounds.left(), _iconBounds.bottom());
-
-        glEnd();
-    }
 
     glDisable(GL_TEXTURE_2D);
 }
