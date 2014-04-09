@@ -44,8 +44,8 @@ static QMultiHash<QByteArray, QPair<int, float> > createChannelNameMap() {
     blendshapeMap.insert("...", QPair<QByteArray, float>("Mix::BrowsIn_Right", 1.0f));
     blendshapeMap.insert("...", QPair<QByteArray, float>("Mix::BrowsOuterLower_Left", 1.0f));
     blendshapeMap.insert("...", QPair<QByteArray, float>("Mix::BrowsOuterLower_Right", 1.0f));
-    blendshapeMap.insert("BrowsU_L", QPair<QByteArray, float>("Mix::BrowsUp_Left", 1.0f));
-    blendshapeMap.insert("BrowsU_R", QPair<QByteArray, float>("Mix::BrowsUp_Right", 1.0f));
+    blendshapeMap.insert("BrowsU_L", QPair<QByteArray, float>("Mix::BrowsUp_Left", 5.0f));
+    blendshapeMap.insert("BrowsU_R", QPair<QByteArray, float>("Mix::BrowsUp_Right", 5.0f));
     blendshapeMap.insert("EyeOpen_L", QPair<QByteArray, float>("Mix::EyesWide_Left", 1.0f));
     blendshapeMap.insert("EyeOpen_R", QPair<QByteArray, float>("Mix::EyesWide_Right", 1.0f));
     blendshapeMap.insert("MouthFrown_L", QPair<QByteArray, float>("Mix::Frown_Left", 1.0f));
@@ -102,12 +102,12 @@ void Faceplus::update() {
     if (!_active) {
         return;
     }
-    if (!(_active = faceplus_current_output_vector(_outputVector.data()))) {
+    if (!(_active = faceplus_synchronous_track() && faceplus_current_output_vector(_outputVector.data()))) {
         return;
     }
-    _headRotation = glm::quat(glm::radians(_outputVector.at(_headRotationIndices[0]),
-        _outputVector.at(_headRotationIndices[1]), _outputVector.at(_headRotationIndices[2])));
-    _estimatedEyePitch = (_outputVector.at(_leftEyeRotationIndices[0]) + _outputVector.at(_rightEyeRotationIndices[0])) * 0.5f;
+    _headRotation = glm::quat(glm::radians(glm::vec3(-_outputVector.at(_headRotationIndices[0]),
+        _outputVector.at(_headRotationIndices[1]), -_outputVector.at(_headRotationIndices[2]))));
+    _estimatedEyePitch = (_outputVector.at(_leftEyeRotationIndices[0]) + _outputVector.at(_rightEyeRotationIndices[0])) * -0.5f;
     _estimatedEyeYaw = (_outputVector.at(_leftEyeRotationIndices[1]) + _outputVector.at(_rightEyeRotationIndices[1])) * 0.5f;
     
     qFill(_blendshapeCoefficients.begin(), _blendshapeCoefficients.end(), 0.0f);
