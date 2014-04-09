@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#ifndef _hifi_Stats_h
+#define _hifi_Stats_h
+
 #include <QObject>
 
 #include <NodeList.h>
@@ -42,3 +45,5 @@ private:
 
     int _lastHorizontalOffset;
 };
+
+#endif
