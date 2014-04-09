@@ -16,6 +16,8 @@
 #include "Faceplus.h"
 #include "renderer/FBXReader.h"
 
+static int floatVectorMetaTypeId = qRegisterMetaType<QVector<float> >();
+
 Faceplus::Faceplus() :
     _enabled(false),
     _active(false) {
@@ -81,8 +83,8 @@ static QMultiHash<QByteArray, QPair<int, float> > createChannelNameMap() {
     blendshapeMap.insert("...", QPair<QByteArray, float>("Mix::BrowsIn_Right", 1.0f));
     blendshapeMap.insert("...", QPair<QByteArray, float>("Mix::BrowsOuterLower_Left", 1.0f));
     blendshapeMap.insert("...", QPair<QByteArray, float>("Mix::BrowsOuterLower_Right", 1.0f));
-    blendshapeMap.insert("BrowsU_L", QPair<QByteArray, float>("Mix::BrowsUp_Left", 5.0f));
-    blendshapeMap.insert("BrowsU_R", QPair<QByteArray, float>("Mix::BrowsUp_Right", 5.0f));
+    blendshapeMap.insert("BrowsU_L", QPair<QByteArray, float>("Mix::BrowsUp_Left", 10.0f));
+    blendshapeMap.insert("BrowsU_R", QPair<QByteArray, float>("Mix::BrowsUp_Right", 10.0f));
     blendshapeMap.insert("EyeOpen_L", QPair<QByteArray, float>("Mix::EyesWide_Left", 1.0f));
     blendshapeMap.insert("EyeOpen_R", QPair<QByteArray, float>("Mix::EyesWide_Right", 1.0f));
     blendshapeMap.insert("MouthFrown_L", QPair<QByteArray, float>("Mix::Frown_Left", 1.0f));
@@ -134,6 +136,14 @@ static const QMultiHash<QByteArray, QPair<int, float> >& getChannelNameMap() {
 }
 #endif
 
+FaceplusReader::~FaceplusReader() {
+#ifdef HAVE_FACEPLUS
+    if (faceplus_teardown()) {
+        qDebug() << "Faceplus torn down.";
+    }
+#endif
+}
+
 void FaceplusReader::init() {
 #ifdef HAVE_FACEPLUS
     if (!faceplus_init("VGA")) {
@@ -183,11 +193,6 @@ void FaceplusReader::init() {
 }
 
 void FaceplusReader::shutdown() {
-#ifdef HAVE_FACEPLUS
-    if (faceplus_teardown()) {
-        qDebug() << "Faceplus torn down.";
-    }
-#endif
     deleteLater();
     thread()->quit();
 }

@@ -174,6 +174,7 @@ public:
     bool isMouseHidden() const { return _mouseHidden; }
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
+	Faceplus* getFaceplus() { return &_faceplus; }
     Faceshift* getFaceshift() { return &_faceshift; }
     Visage* getVisage() { return &_visage; }
     FaceTracker* getActiveFaceTracker();

@@ -47,12 +47,16 @@ private:
     FaceplusReader* _reader;
 };
 
+Q_DECLARE_METATYPE(QVector<float>)
+
 /// The reader object that lives in its own thread.
 class FaceplusReader : public QObject {
     Q_OBJECT
 
 public:
     
+	virtual ~FaceplusReader();
+
     Q_INVOKABLE void init();
     Q_INVOKABLE void shutdown();
     Q_INVOKABLE void update();
@@ -65,7 +69,7 @@ private:
     int _headRotationIndices[3];
     int _leftEyeRotationIndices[2];
     int _rightEyeRotationIndices[2];
-    QVector<float> _blendshapeIndices;
+    QVector<float> _blendshapeCoefficients;
 #endif
 };
 
