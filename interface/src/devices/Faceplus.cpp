@@ -33,78 +33,48 @@ void Faceplus::init() {
     updateEnabled();
 }
 
-/* 
-[2014-04-09T11:42:11] "Mix::Blink_Left"
-[2014-04-09T11:42:11] "Mix::Blink_Right"
-[2014-04-09T11:42:11] "Mix::BrowsDown_Left"
-[2014-04-09T11:42:11] "Mix::BrowsDown_Right"
-[2014-04-09T11:42:11] "Mix::BrowsIn_Left"
-[2014-04-09T11:42:11] "Mix::BrowsIn_Right"
-[2014-04-09T11:42:11] "Mix::BrowsOuterLower_Left"
-[2014-04-09T11:42:11] "Mix::BrowsOuterLower_Right"
-[2014-04-09T11:42:11] "Mix::BrowsUp_Left"
-[2014-04-09T11:42:11] "Mix::BrowsUp_Right"
-[2014-04-09T11:42:11] "Mix::EyesWide_Left"
-[2014-04-09T11:42:11] "Mix::EyesWide_Right"
-[2014-04-09T11:42:11] "Mix::Frown_Left"
-[2014-04-09T11:42:11] "Mix::Frown_Right"
-[2014-04-09T11:42:11] "Mix::Jaw_RotateY_Left"
-[2014-04-09T11:42:11] "Mix::Jaw_RotateY_Right"
-[2014-04-09T11:42:11] "Mix::LowerLipDown_Left"
-[2014-04-09T11:42:11] "Mix::LowerLipDown_Right"
-[2014-04-09T11:42:11] "Mix::LowerLipIn"
-[2014-04-09T11:42:11] "Mix::LowerLipOut"
-[2014-04-09T11:42:11] "Mix::Midmouth_Left"
-[2014-04-09T11:42:11] "Mix::Midmouth_Right"
-[2014-04-09T11:42:11] "Mix::MouthDown"
-[2014-04-09T11:42:11] "Mix::MouthNarrow_Left"
-[2014-04-09T11:42:11] "Mix::MouthNarrow_Right"
-[2014-04-09T11:42:11] "Mix::MouthOpen"
-[2014-04-09T11:42:11] "Mix::MouthUp"
-[2014-04-09T11:42:11] "Mix::MouthWhistle_NarrowAdjust_Left"
-[2014-04-09T11:42:11] "Mix::MouthWhistle_NarrowAdjust_Right"
-[2014-04-09T11:42:11] "Mix::NoseScrunch_Left"
-[2014-04-09T11:42:11] "Mix::NoseScrunch_Right"
-[2014-04-09T11:42:11] "Mix::Smile_Left"
-[2014-04-09T11:42:11] "Mix::Smile_Right"
-[2014-04-09T11:42:11] "Mix::Squint_Left"
-[2014-04-09T11:42:11] "Mix::Squint_Right"
-[2014-04-09T11:42:11] "Mix::UpperLipIn"
-[2014-04-09T11:42:11] "Mix::UpperLipOut"
-[2014-04-09T11:42:11] "Mix::UpperLipUp_Left"
-[2014-04-09T11:42:11] "Mix::UpperLipUp_Right"
-[2014-04-09T11:42:11] "Head_Joint::Rotation_X"
-[2014-04-09T11:42:11] "Head_Joint::Rotation_Y"
-[2014-04-09T11:42:11] "Head_Joint::Rotation_Z"
-[2014-04-09T11:42:11] "Left_Eye_Joint::Rotation_X"
-[2014-04-09T11:42:11] "Left_Eye_Joint::Rotation_Y"
-[2014-04-09T11:42:11] "Right_Eye_Joint::Rotation_X"
-[2014-04-09T11:42:11] "Right_Eye_Joint::Rotation_Y"
-*/
-
 #ifdef HAVE_FACEPLUS
 static QMultiHash<QByteArray, QPair<int, float> > createChannelNameMap() {
     QMultiHash<QByteArray, QPair<QByteArray, float> > blendshapeMap;
-    blendshapeMap.insert("JawFwd", QPair<QByteArray, float>("au_jaw_z_push", 1.0f));
-    blendshapeMap.insert("JawLeft", QPair<QByteArray, float>("au_jaw_x_push", 1.0f));
-    blendshapeMap.insert("JawOpen", QPair<QByteArray, float>("au_jaw_drop", 1.0f));
-    blendshapeMap.insert("LipsLowerDown", QPair<QByteArray, float>("au_lower_lip_drop", 1.0f));
-    blendshapeMap.insert("LipsUpperOpen", QPair<QByteArray, float>("au_upper_lip_raiser", 1.0f));
-    blendshapeMap.insert("LipsStretch_R", QPair<QByteArray, float>("au_lip_stretcher_left", 0.5f));
-    blendshapeMap.insert("MouthSmile_L", QPair<QByteArray, float>("au_lip_corner_depressor", -1.0f));
-    blendshapeMap.insert("MouthSmile_R", QPair<QByteArray, float>("au_lip_corner_depressor", -1.0f));
-    blendshapeMap.insert("BrowsU_R", QPair<QByteArray, float>("au_left_outer_brow_raiser", 1.0f));
-    blendshapeMap.insert("BrowsU_C", QPair<QByteArray, float>("au_left_inner_brow_raiser", 1.0f));
-    blendshapeMap.insert("BrowsD_R", QPair<QByteArray, float>("au_left_brow_lowerer", 1.0f));
-    blendshapeMap.insert("EyeBlink_L", QPair<QByteArray, float>("au_leye_closed", 1.0f));
-    blendshapeMap.insert("EyeBlink_R", QPair<QByteArray, float>("au_reye_closed", 1.0f));
-    blendshapeMap.insert("EyeOpen_L", QPair<QByteArray, float>("au_upper_lid_raiser", 1.0f));
-    blendshapeMap.insert("EyeOpen_R", QPair<QByteArray, float>("au_upper_lid_raiser", 1.0f));
-    blendshapeMap.insert("LipLowerOpen", QPair<QByteArray, float>("au_lower_lip_x_push", 1.0f));
-    blendshapeMap.insert("LipsStretch_L", QPair<QByteArray, float>("au_lip_stretcher_right", 0.5f));
-    blendshapeMap.insert("BrowsU_L", QPair<QByteArray, float>("au_right_outer_brow_raiser", 1.0f));
-    blendshapeMap.insert("BrowsU_C", QPair<QByteArray, float>("au_right_inner_brow_raiser", 1.0f));
-    blendshapeMap.insert("BrowsD_L", QPair<QByteArray, float>("au_right_brow_lowerer", 1.0f));
+    blendshapeMap.insert("EyeBlink_L", QPair<QByteArray, float>("Mix::Blink_Left", 1.0f));
+    blendshapeMap.insert("EyeBlink_R", QPair<QByteArray, float>("Mix::Blink_Right", 1.0f));
+    blendshapeMap.insert("BrowsD_L", QPair<QByteArray, float>("Mix::BrowsDown_Left", 1.0f));
+    blendshapeMap.insert("BrowsD_R", QPair<QByteArray, float>("Mix::BrowsDown_Right", 1.0f));
+    blendshapeMap.insert("...", QPair<QByteArray, float>("Mix::BrowsIn_Left", 1.0f));
+    blendshapeMap.insert("...", QPair<QByteArray, float>("Mix::BrowsIn_Right", 1.0f));
+    blendshapeMap.insert("...", QPair<QByteArray, float>("Mix::BrowsOuterLower_Left", 1.0f));
+    blendshapeMap.insert("...", QPair<QByteArray, float>("Mix::BrowsOuterLower_Right", 1.0f));
+    blendshapeMap.insert("BrowsU_L", QPair<QByteArray, float>("Mix::BrowsUp_Left", 1.0f));
+    blendshapeMap.insert("BrowsU_R", QPair<QByteArray, float>("Mix::BrowsUp_Right", 1.0f));
+    blendshapeMap.insert("EyeOpen_L", QPair<QByteArray, float>("Mix::EyesWide_Left", 1.0f));
+    blendshapeMap.insert("EyeOpen_R", QPair<QByteArray, float>("Mix::EyesWide_Right", 1.0f));
+    blendshapeMap.insert("MouthFrown_L", QPair<QByteArray, float>("Mix::Frown_Left", 1.0f));
+    blendshapeMap.insert("MouthFrown_R", QPair<QByteArray, float>("Mix::Frown_Right", 1.0f));
+    blendshapeMap.insert("JawLeft", QPair<QByteArray, float>("Mix::Jaw_RotateY_Left", 1.0f));
+    blendshapeMap.insert("JawRight", QPair<QByteArray, float>("Mix::Jaw_RotateY_Right", 1.0f));
+    blendshapeMap.insert("LipsLowerDown", QPair<QByteArray, float>("Mix::LowerLipDown_Left", 0.5f));
+    blendshapeMap.insert("LipsLowerDown", QPair<QByteArray, float>("Mix::LowerLipDown_Right", 0.5f));
+    blendshapeMap.insert("...", QPair<QByteArray, float>("Mix::LowerLipIn", 1.0f));
+    blendshapeMap.insert("...", QPair<QByteArray, float>("Mix::LowerLipOut", 1.0f));
+    blendshapeMap.insert("MouthLeft", QPair<QByteArray, float>("Mix::Midmouth_Left", 1.0f));
+    blendshapeMap.insert("MouthRight", QPair<QByteArray, float>("Mix::Midmouth_Right", 1.0f));
+    blendshapeMap.insert("...", QPair<QByteArray, float>("Mix::MouthDown", 1.0f));
+    blendshapeMap.insert("...", QPair<QByteArray, float>("Mix::MouthNarrow_Left", 1.0f));
+    blendshapeMap.insert("...", QPair<QByteArray, float>("Mix::MouthNarrow_Right", 1.0f));
+    blendshapeMap.insert("JawOpen", QPair<QByteArray, float>("Mix::MouthOpen", 1.0f));
+    blendshapeMap.insert("...", QPair<QByteArray, float>("Mix::MouthUp", 1.0f));
+    blendshapeMap.insert("LipsPucker", QPair<QByteArray, float>("Mix::MouthWhistle_NarrowAdjust_Left", 0.5f));
+    blendshapeMap.insert("LipsPucker", QPair<QByteArray, float>("Mix::MouthWhistle_NarrowAdjust_Right", 0.5f));
+    blendshapeMap.insert("Sneer", QPair<QByteArray, float>("Mix::NoseScrunch_Left", 0.5f));
+    blendshapeMap.insert("Sneer", QPair<QByteArray, float>("Mix::NoseScrunch_Right", 0.5f));
+    blendshapeMap.insert("MouthSmile_L", QPair<QByteArray, float>("Mix::Smile_Left", 1.0f));
+    blendshapeMap.insert("MouthSmile_R", QPair<QByteArray, float>("Mix::Smile_Right", 1.0f));
+    blendshapeMap.insert("EyeSquint_L", QPair<QByteArray, float>("Mix::Squint_Left", 1.0f));
+    blendshapeMap.insert("EyeSquint_R", QPair<QByteArray, float>("Mix::Squint_Right", 1.0f));
+    blendshapeMap.insert("...", QPair<QByteArray, float>("Mix::UpperLipIn", 1.0f));
+    blendshapeMap.insert("...", QPair<QByteArray, float>("Mix::UpperLipOut", 1.0f));
+    blendshapeMap.insert("LipsUpperUp", QPair<QByteArray, float>("Mix::UpperLipUp_Left", 0.5f));
+    blendshapeMap.insert("LipsUpperUp", QPair<QByteArray, float>("Mix::UpperLipUp_Right", 0.5f));
     
     QMultiHash<QByteArray, QPair<int, float> > channelNameMap;
     for (int i = 0;; i++) {
@@ -135,6 +105,11 @@ void Faceplus::update() {
     if (!(_active = faceplus_current_output_vector(_outputVector.data()))) {
         return;
     }
+    _headRotation = glm::quat(glm::radians(_outputVector.at(_headRotationIndices[0]),
+        _outputVector.at(_headRotationIndices[1]), _outputVector.at(_headRotationIndices[2])));
+    _estimatedEyePitch = (_outputVector.at(_leftEyeRotationIndices[0]) + _outputVector.at(_rightEyeRotationIndices[0])) * 0.5f;
+    _estimatedEyeYaw = (_outputVector.at(_leftEyeRotationIndices[1]) + _outputVector.at(_rightEyeRotationIndices[1])) * 0.5f;
+    
     qFill(_blendshapeCoefficients.begin(), _blendshapeCoefficients.end(), 0.0f);
     for (int i = 0; i < _outputVector.size(); i++) {
         for (QMultiHash<int, QPair<int, float> >::const_iterator it = _channelIndexMap.constFind(i);
@@ -171,9 +146,27 @@ void Faceplus::setEnabled(bool enabled) {
             _channelIndexMap.clear();
             for (int i = 0; i < channelCount; i++) {
                 QByteArray name = faceplus_output_channel_name(i);
+                if (name == "Head_Joint::Rotation_X") {
+                    _headRotationIndices[0] = i;
                 
-                qDebug() << name;
+                } else if (name == "Head_Joint::Rotation_Y") {
+                    _headRotationIndices[1] = i;
                 
+                } else if (name == "Head_Joint::Rotation_Z") {
+                    _headRotationIndices[2] = i;
+                
+                } else if (name == "Left_Eye_Joint::Rotation_X") {
+                    _leftEyeRotationIndices[0] = i;
+                
+                } else if (name == "Left_Eye_Joint::Rotation_Y") {
+                    _leftEyeRotationIndices[1] = i;
+                
+                } else if (name == "Right_Eye_Joint::Rotation_X") {
+                    _rightEyeRotationIndices[0] = i;
+                
+                } else if (name == "Right_Eye_Joint::Rotation_Y") {
+                    _rightEyeRotationIndices[1] = i;
+                }
                 for (QMultiHash<QByteArray, QPair<int, float> >::const_iterator it = getChannelNameMap().constFind(name);
                         it != getChannelNameMap().constEnd() && it.key() == name; it++) {
                     _channelIndexMap.insert(i, it.value());

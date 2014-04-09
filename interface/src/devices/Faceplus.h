@@ -45,6 +45,9 @@ private:
 #ifdef HAVE_FACEPLUS
     QMultiHash<int, QPair<int, float> > _channelIndexMap; 
     QVector<float> _outputVector;
+    int _headRotationIndices[3];
+    int _leftEyeRotationIndices[2];
+    int _rightEyeRotationIndices[2];
 #endif
 };
 
