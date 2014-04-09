@@ -1689,15 +1689,6 @@ void Application::updateMouseRay() {
     _myAvatar->setMouseRay(_mouseRayOrigin, _mouseRayDirection);
 }
 
-void Application::updateFaceplus() {
-
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateFaceplus()");
-
-    //  Update faceplus
-    _faceplus.update();
-}
-
 void Application::updateFaceshift() {
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
@@ -1894,7 +1885,6 @@ void Application::update(float deltaTime) {
     // check what's under the mouse and update the mouse voxel
     updateMouseRay();
 
-    updateFaceplus();
     updateFaceshift();
     updateVisage();
     _myAvatar->updateLookAtTargetAvatar();
@@ -2945,7 +2935,6 @@ void Application::resetSensors() {
     _mouseX = _glWidget->width() / 2;
     _mouseY = _glWidget->height() / 2;
 
-    _faceplus.reset();
     _faceshift.reset();
     _visage.reset();
 

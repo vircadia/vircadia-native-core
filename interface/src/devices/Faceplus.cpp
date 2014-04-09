@@ -6,6 +6,8 @@
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
 //
 
+#include <QThread>
+
 #ifdef HAVE_FACEPLUS
 #include <faceplus.h>
 #endif
@@ -31,6 +33,41 @@ Faceplus::~Faceplus() {
 void Faceplus::init() {
     connect(Application::getInstance()->getFaceshift(), SIGNAL(connectionStateChanged()), SLOT(updateEnabled()));
     updateEnabled();
+}
+
+void Faceplus::setState(const glm::quat& headRotation, float estimatedEyePitch, float estimatedEyeYaw,
+        const QVector<float>& blendshapeCoefficients) {
+    _headRotation = headRotation;
+    _estimatedEyePitch = estimatedEyePitch;
+    _estimatedEyeYaw = estimatedEyeYaw;
+    _blendshapeCoefficients = blendshapeCoefficients;
+    _active = true;
+}
+
+void Faceplus::updateEnabled() {
+    setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceplus) &&
+        !(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift) &&
+            Application::getInstance()->getFaceshift()->isConnectedOrConnecting()));
+}
+
+void Faceplus::setEnabled(bool enabled) {
+    if (_enabled == enabled) {
+        return;
+    }
+    if ((_enabled = enabled)) {
+        _reader = new FaceplusReader();
+        QThread* readerThread = new QThread(this);
+        _reader->moveToThread(readerThread);
+        readerThread->start();
+        QMetaObject::invokeMethod(_reader, "init");
+        
+    } else {
+        QThread* readerThread = _reader->thread();
+        QMetaObject::invokeMethod(_reader, "shutdown");
+        readerThread->wait();
+        delete readerThread;
+        _active = false;
+    }
 }
 
 #ifdef HAVE_FACEPLUS
@@ -97,18 +134,76 @@ static const QMultiHash<QByteArray, QPair<int, float> >& getChannelNameMap() {
 }
 #endif
 
-void Faceplus::update() {
+void FaceplusReader::init() {
 #ifdef HAVE_FACEPLUS
-    if (!_active) {
+    if (!faceplus_init("VGA")) {
+        qDebug() << "Failed to initialized Faceplus.";
         return;
     }
-    if (!(_active = faceplus_synchronous_track() && faceplus_current_output_vector(_outputVector.data()))) {
+    qDebug() << "Faceplus initialized.";
+    
+    int channelCount = faceplus_output_channels_count();
+    _outputVector.resize(channelCount);
+    
+    int maxIndex = -1;
+    _channelIndexMap.clear();
+    for (int i = 0; i < channelCount; i++) {
+        QByteArray name = faceplus_output_channel_name(i);
+        if (name == "Head_Joint::Rotation_X") {
+            _headRotationIndices[0] = i;
+        
+        } else if (name == "Head_Joint::Rotation_Y") {
+            _headRotationIndices[1] = i;
+        
+        } else if (name == "Head_Joint::Rotation_Z") {
+            _headRotationIndices[2] = i;
+        
+        } else if (name == "Left_Eye_Joint::Rotation_X") {
+            _leftEyeRotationIndices[0] = i;
+        
+        } else if (name == "Left_Eye_Joint::Rotation_Y") {
+            _leftEyeRotationIndices[1] = i;
+        
+        } else if (name == "Right_Eye_Joint::Rotation_X") {
+            _rightEyeRotationIndices[0] = i;
+        
+        } else if (name == "Right_Eye_Joint::Rotation_Y") {
+            _rightEyeRotationIndices[1] = i;
+        }
+        for (QMultiHash<QByteArray, QPair<int, float> >::const_iterator it = getChannelNameMap().constFind(name);
+                it != getChannelNameMap().constEnd() && it.key() == name; it++) {
+            _channelIndexMap.insert(i, it.value());
+            maxIndex = qMax(maxIndex, it.value().first);
+        }
+    }
+    _blendshapeCoefficients.resize(maxIndex + 1);
+    
+    QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
+#endif
+}
+
+void FaceplusReader::shutdown() {
+#ifdef HAVE_FACEPLUS
+    if (faceplus_teardown()) {
+        qDebug() << "Faceplus torn down.";
+    }
+#endif
+    deleteLater();
+    thread()->quit();
+}
+
+void FaceplusReader::update() {
+#ifdef HAVE_FACEPLUS
+    if (!(faceplus_synchronous_track() && faceplus_current_output_vector(_outputVector.data()))) {
+        QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
         return;
     }
-    _headRotation = glm::quat(glm::radians(glm::vec3(-_outputVector.at(_headRotationIndices[0]),
+    glm::quat headRotation(glm::radians(glm::vec3(-_outputVector.at(_headRotationIndices[0]),
         _outputVector.at(_headRotationIndices[1]), -_outputVector.at(_headRotationIndices[2]))));
-    _estimatedEyePitch = (_outputVector.at(_leftEyeRotationIndices[0]) + _outputVector.at(_rightEyeRotationIndices[0])) * -0.5f;
-    _estimatedEyeYaw = (_outputVector.at(_leftEyeRotationIndices[1]) + _outputVector.at(_rightEyeRotationIndices[1])) * 0.5f;
+    float estimatedEyePitch = (_outputVector.at(_leftEyeRotationIndices[0]) +
+        _outputVector.at(_rightEyeRotationIndices[0])) * -0.5f;
+    float estimatedEyeYaw = (_outputVector.at(_leftEyeRotationIndices[1]) +
+        _outputVector.at(_rightEyeRotationIndices[1])) * 0.5f;
     
     qFill(_blendshapeCoefficients.begin(), _blendshapeCoefficients.end(), 0.0f);
     for (int i = 0; i < _outputVector.size(); i++) {
@@ -117,67 +212,11 @@ void Faceplus::update() {
             _blendshapeCoefficients[it.value().first] += _outputVector.at(i) * it.value().second;
         }
     }
+
+    QMetaObject::invokeMethod(Application::getInstance()->getFaceplus(), "setState", Q_ARG(const glm::quat&, headRotation),
+        Q_ARG(float, estimatedEyePitch), Q_ARG(float, estimatedEyeYaw), Q_ARG(const QVector<float>&, _blendshapeCoefficients));
+
+    QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
 #endif
 }
 
-void Faceplus::reset() {
-}
-
-void Faceplus::updateEnabled() {
-    setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceplus) &&
-        !(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift) &&
-            Application::getInstance()->getFaceshift()->isConnectedOrConnecting()));
-}
-
-void Faceplus::setEnabled(bool enabled) {
-#ifdef HAVE_FACEPLUS
-    if (_enabled == enabled) {
-        return;
-    }
-    if ((_enabled = enabled)) {
-        if (faceplus_init("VGA")) {
-            qDebug() << "Faceplus initialized.";
-            _active = true;
-            
-            int channelCount = faceplus_output_channels_count();
-            _outputVector.resize(channelCount);
-            
-            int maxIndex = -1;
-            _channelIndexMap.clear();
-            for (int i = 0; i < channelCount; i++) {
-                QByteArray name = faceplus_output_channel_name(i);
-                if (name == "Head_Joint::Rotation_X") {
-                    _headRotationIndices[0] = i;
-                
-                } else if (name == "Head_Joint::Rotation_Y") {
-                    _headRotationIndices[1] = i;
-                
-                } else if (name == "Head_Joint::Rotation_Z") {
-                    _headRotationIndices[2] = i;
-                
-                } else if (name == "Left_Eye_Joint::Rotation_X") {
-                    _leftEyeRotationIndices[0] = i;
-                
-                } else if (name == "Left_Eye_Joint::Rotation_Y") {
-                    _leftEyeRotationIndices[1] = i;
-                
-                } else if (name == "Right_Eye_Joint::Rotation_X") {
-                    _rightEyeRotationIndices[0] = i;
-                
-                } else if (name == "Right_Eye_Joint::Rotation_Y") {
-                    _rightEyeRotationIndices[1] = i;
-                }
-                for (QMultiHash<QByteArray, QPair<int, float> >::const_iterator it = getChannelNameMap().constFind(name);
-                        it != getChannelNameMap().constEnd() && it.key() == name; it++) {
-                    _channelIndexMap.insert(i, it.value());
-                    maxIndex = qMax(maxIndex, it.value().first);
-                }
-            }
-            _blendshapeCoefficients.resize(maxIndex + 1);
-        }
-    } else if (faceplus_teardown()) {
-        qDebug() << "Faceplus torn down.";
-        _active = false;
-    }
-#endif
-}
