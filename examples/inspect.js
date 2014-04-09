@@ -3,7 +3,7 @@
 //  examples
 //
 //  Created by Clément Brisset on March 20, 2014
-//  Copyright 2014 HighFidelity, Inc.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  Allows you to inspect non moving objects (Voxels or Avatars) using Atl, Control (Command on Mac) and Shift
 //

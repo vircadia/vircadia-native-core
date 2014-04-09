@@ -3,7 +3,7 @@
 //  examples
 //
 //  Created by Brad Hefta-Gaub on 3/4/14.
-//  Copyright 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  This is an example script that generates particles that act like flocking birds
 //

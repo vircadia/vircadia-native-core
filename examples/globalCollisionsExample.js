@@ -3,7 +3,7 @@
 //  examples
 //
 //  Created by Brad Hefta-Gaub on 1/29/14.
-//  Copyright 2014 HighFidelity, Inc.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  This is an example script that demonstrates use of the Controller class
 //

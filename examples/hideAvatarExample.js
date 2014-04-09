@@ -3,7 +3,7 @@
 //  examples
 //
 //  Created by Brad Hefta-Gaub on 1/28/14.
-//  Copyright 2014 HighFidelity, Inc.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  This is an example script that demonstrates how to enable or disable local rendering of your own avatar
 //

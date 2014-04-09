@@ -4,7 +4,7 @@
 //
 //  Created by Brad Hefta-Gaub on 12/31/13.
 //  Modified by Philip on 3/3/14
-//  Copyright 2013 HighFidelity, Inc.
+//  Copyright 2013 High Fidelity, Inc.
 //
 //  This is an example script that turns the hydra controllers and mouse into a particle gun.
 //  It reads the controller, watches for trigger pulls, and launches particles.

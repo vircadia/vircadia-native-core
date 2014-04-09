@@ -3,7 +3,7 @@
 //  examples
 //
 //  Created by Brad Hefta-Gaub on 2/24/14
-//  Copyright (c) 2013 HighFidelity, Inc.
+//  Copyright (c) 2013 High Fidelity, Inc.
 //
 //  This is an example script that demonstrates use of the Menu object
 //
