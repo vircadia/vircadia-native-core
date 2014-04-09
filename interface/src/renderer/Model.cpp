@@ -592,7 +592,7 @@ bool Model::findCollisions(const QVector<const Shape*> shapes, CollisionList& co
         const Shape* theirShape = shapes[i];
         for (int j = 0; j < _jointShapes.size(); ++j) {
             const Shape* ourShape = _jointShapes[j];
-            if (ShapeCollider::shapeShape(theirShape, ourShape, collisions)) {
+            if (ShapeCollider::collideShapes(theirShape, ourShape, collisions)) {
                 collided = true;
             }
         }
@@ -619,7 +619,7 @@ bool Model::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadi
                 } while (ancestorIndex != -1);
             }
         }
-        if (ShapeCollider::shapeShape(&sphere, _jointShapes[i], collisions)) {
+        if (ShapeCollider::collideShapes(&sphere, _jointShapes[i], collisions)) {
             CollisionInfo* collision = collisions.getLastCollision();
             collision->_type = MODEL_COLLISION;
             collision->_data = (void*)(this);
