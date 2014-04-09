@@ -14,6 +14,7 @@
 #include "Head.h"
 #include "Menu.h"
 #include "Util.h"
+#include "devices/OculusManager.h"
 
 using namespace std;
 
@@ -36,9 +37,11 @@ Head::Head(Avatar* owningAvatar) :
     _leftEyeBlinkVelocity(0.0f),
     _rightEyeBlinkVelocity(0.0f),
     _timeWithoutTalking(0.0f),
-    _pitchTweak(0.f),
-    _yawTweak(0.f),
-    _rollTweak(0.f),
+    _deltaPitch(0.f),
+    _deltaYaw(0.f),
+    _deltaRoll(0.f),
+    _deltaLeanSideways(0.f),
+    _deltaLeanForward(0.f),
     _isCameraMoving(false),
     _faceModel(this)
 {
@@ -50,13 +53,12 @@ void Head::init() {
 }
 
 void Head::reset() {
-    _yaw = _pitch = _roll = 0.0f;
+    _baseYaw = _basePitch = _baseRoll = 0.0f;
     _leanForward = _leanSideways = 0.0f;
     _faceModel.reset();
 }
 
 void Head::simulate(float deltaTime, bool isMine, bool billboard) {
-    
     //  Update audio trailing average for rendering facial animations
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
     Visage* visage = Application::getInstance()->getVisage();
@@ -165,8 +167,21 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     _eyePosition = calculateAverageEyePosition();
 }
 
-void Head::render(float alpha, bool forShadowMap) {
-    if (_faceModel.render(alpha, forShadowMap) && _renderLookatVectors) {
+void Head::relaxLean(float deltaTime) {
+    // restore rotation, lean to neutral positions
+    const float LEAN_RELAXATION_PERIOD = 0.25f;   // seconds
+    float relaxationFactor = 1.f - glm::min(deltaTime / LEAN_RELAXATION_PERIOD, 1.f);
+    _deltaYaw *= relaxationFactor;
+    _deltaPitch *= relaxationFactor;
+    _deltaRoll *= relaxationFactor;
+    _leanSideways *= relaxationFactor;
+    _leanForward *= relaxationFactor;
+    _deltaLeanSideways *= relaxationFactor;
+    _deltaLeanForward *= relaxationFactor;
+}
+
+void Head::render(float alpha, Model::RenderMode mode) {
+    if (_faceModel.render(alpha, mode) && _renderLookatVectors) {
         renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
     }
 }
@@ -178,14 +193,17 @@ void Head::setScale (float scale) {
     _scale = scale;
 }
 
-glm::quat Head::getTweakedOrientation() const {
+glm::quat Head::getFinalOrientation() const {
     return _owningAvatar->getOrientation() * glm::quat(glm::radians(
-                glm::vec3(getTweakedPitch(), getTweakedYaw(), getTweakedRoll() )));
+                glm::vec3(getFinalPitch(), getFinalYaw(), getFinalRoll() )));
 }
 
 glm::quat Head::getCameraOrientation () const {
+    if (OculusManager::isConnected()) {
+        return getOrientation();
+    }
     Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
-    return owningAvatar->getWorldAlignedOrientation() * glm::quat(glm::radians(glm::vec3(_pitch, 0.f, 0.0f)));
+    return owningAvatar->getWorldAlignedOrientation() * glm::quat(glm::radians(glm::vec3(_basePitch, 0.f, 0.0f)));
 }
 
 glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {
@@ -197,16 +215,21 @@ glm::vec3 Head::getScalePivot() const {
     return _faceModel.isActive() ? _faceModel.getTranslation() : _position;
 }
 
-float Head::getTweakedYaw() const {
-    return glm::clamp(_yaw + _yawTweak, MIN_HEAD_YAW, MAX_HEAD_YAW);
+float Head::getFinalYaw() const {
+    return glm::clamp(_baseYaw + _deltaYaw, MIN_HEAD_YAW, MAX_HEAD_YAW);
 }
 
-float Head::getTweakedPitch() const {
-    return glm::clamp(_pitch + _pitchTweak, MIN_HEAD_PITCH, MAX_HEAD_PITCH);
+float Head::getFinalPitch() const {
+    return glm::clamp(_basePitch + _deltaPitch, MIN_HEAD_PITCH, MAX_HEAD_PITCH);
 }
 
-float Head::getTweakedRoll() const {
-    return glm::clamp(_roll + _rollTweak, MIN_HEAD_ROLL, MAX_HEAD_ROLL);
+float Head::getFinalRoll() const {
+    return glm::clamp(_baseRoll + _deltaRoll, MIN_HEAD_ROLL, MAX_HEAD_ROLL);
+}
+
+void Head::addLeanDeltas(float sideways, float forward) {
+    _deltaLeanSideways += sideways;
+    _deltaLeanForward += forward;
 }
 
 void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {

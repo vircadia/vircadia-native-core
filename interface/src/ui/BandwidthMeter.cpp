@@ -42,7 +42,8 @@ namespace { // .cpp-local
 BandwidthMeter::ChannelInfo BandwidthMeter::_CHANNELS[] = {
     { "Audio"   , "Kbps", 8000.0 / 1024.0, 0x33cc99ff },
     { "Avatars" , "Kbps", 8000.0 / 1024.0, 0xffef40c0 },
-    { "Voxels"  , "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0 }
+    { "Voxels"  , "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0 },
+    { "Metavoxels", "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0 }
 };
 
 BandwidthMeter::BandwidthMeter() :
@@ -160,7 +161,7 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
 
     // Center of coordinate system -> upper left of bar
     glPushMatrix();
-    glTranslatef(float(barX), float(y), 0.0f);
+    glTranslatef((float)barX, (float)y, 0.0f);
 
     // Render captions
     setColorRGBA(COLOR_TEXT);
@@ -202,7 +203,7 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
     // Render scale indicators
     setColorRGBA(COLOR_INDICATOR);
     for (int j = NUMBER_OF_MARKERS; --j > 0;) {
-        renderVerticalLine(int(barWidth * j / NUMBER_OF_MARKERS), 0, h);
+        renderVerticalLine((barWidth * j) / NUMBER_OF_MARKERS, 0, h);
     }
 
     // Render bars
@@ -210,8 +211,8 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
     for (size_t i = 0; i < N_CHANNELS; ++i) {
 
         ChannelIndex chIdx = ChannelIndex(i);
-        int wIn = int(barWidth * inputStream(chIdx).getValue() * UNIT_SCALE / scaleMax);
-        int wOut = int(barWidth * outputStream(chIdx).getValue() * UNIT_SCALE / scaleMax);
+        int wIn = (int)(barWidth * inputStream(chIdx).getValue() * UNIT_SCALE / scaleMax);
+        int wOut = (int)(barWidth * outputStream(chIdx).getValue() * UNIT_SCALE / scaleMax);
 
         setColorRGBA(channelInfo(chIdx).colorRGBA);
 

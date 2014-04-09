@@ -145,7 +145,7 @@ public:
     /// \return true if we expect the avatar would move as a result of the collision
     bool collisionWouldMoveAvatar(CollisionInfo& collision) const;
 
-    void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration);
+    virtual void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) { }
 
     /// \return bounding radius of avatar
     virtual float getBoundingRadius() const;
@@ -160,7 +160,6 @@ protected:
     AvatarMode _mode;
     glm::vec3 _velocity;
     glm::vec3 _thrust;
-    float _speed;
     float _leanScale;
     float _scale;
     glm::vec3 _worldUpDirection;
@@ -187,12 +186,13 @@ protected:
     void renderDisplayName();
     virtual void renderBody(RenderMode renderMode);
 
+    virtual void updateJointMappings();
+
 private:
 
     bool _initialized;
     QScopedPointer<Texture> _billboardTexture;
     bool _shouldRenderBillboard;
-    bool _modelsDirty;
 
     void renderBillboard();
     

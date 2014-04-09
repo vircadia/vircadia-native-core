@@ -20,24 +20,23 @@ REGISTER_META_OBJECT(SharedObject)
 
 SharedObject::SharedObject() :
     _id(++_lastID),
-    _remoteID(0),
-    _referenceCount(0) {
+    _remoteID(0) {
     
     _weakHash.insert(_id, this);
 }
 
 void SharedObject::incrementReferenceCount() {
-    _referenceCount++;
+    _referenceCount.ref();
 }
 
 void SharedObject::decrementReferenceCount() {
-    if (--_referenceCount == 0) {
+    if (!_referenceCount.deref()) {
         _weakHash.remove(_id);
         delete this;
     }
 }
 
-SharedObject* SharedObject::clone() const {
+SharedObject* SharedObject::clone(bool withID) const {
     // default behavior is to make a copy using the no-arg constructor and copy the stored properties
     const QMetaObject* metaObject = this->metaObject();
     SharedObject* newObject = static_cast<SharedObject*>(metaObject->newInstance());
@@ -49,6 +48,9 @@ SharedObject* SharedObject::clone() const {
     }
     foreach (const QByteArray& propertyName, dynamicPropertyNames()) {
         newObject->setProperty(propertyName, property(propertyName));
+    }
+    if (withID) {
+        newObject->setID(_id);
     }
     return newObject;
 }
@@ -89,6 +91,11 @@ void SharedObject::dump(QDebug debug) const {
     for (int i = 0; i < metaObject->propertyCount(); i++) {
         debug << metaObject->property(i).name() << metaObject->property(i).read(this);
     }
+}
+
+void SharedObject::setID(int id) {
+    _weakHash.remove(_id);
+    _weakHash.insert(_id = id, this);
 }
 
 int SharedObject::_lastID = 0;

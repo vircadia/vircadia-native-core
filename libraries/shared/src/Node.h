@@ -60,8 +60,8 @@ public:
     const QUuid& getUUID() const { return _uuid; }
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
 
-    quint64 getWakeMicrostamp() const { return _wakeMicrostamp; }
-    void setWakeMicrostamp(quint64 wakeMicrostamp) { _wakeMicrostamp = wakeMicrostamp; }
+    quint64 getWakeTimestamp() const { return _wakeTimestamp; }
+    void setWakeTimestamp(quint64 wakeTimestamp) { _wakeTimestamp = wakeTimestamp; }
 
     quint64 getLastHeardMicrostamp() const { return _lastHeardMicrostamp; }
     void setLastHeardMicrostamp(quint64 lastHeardMicrostamp) { _lastHeardMicrostamp = lastHeardMicrostamp; }
@@ -70,11 +70,14 @@ public:
     void setPublicSocket(const HifiSockAddr& publicSocket);
     const HifiSockAddr& getLocalSocket() const { return _localSocket; }
     void setLocalSocket(const HifiSockAddr& localSocket);
-
+    const HifiSockAddr& getSymmetricSocket() const { return _symmetricSocket; }
+    void setSymmetricSocket(const HifiSockAddr& symmetricSocket);
+    
     const HifiSockAddr* getActiveSocket() const { return _activeSocket; }
 
     void activatePublicSocket();
     void activateLocalSocket();
+    void activateSymmetricSocket();
     
     const QUuid& getConnectionSecret() const { return _connectionSecret; }
     void setConnectionSecret(const QUuid& connectionSecret) { _connectionSecret = connectionSecret; }
@@ -106,10 +109,11 @@ private:
 
     NodeType_t _type;
     QUuid _uuid;
-    quint64 _wakeMicrostamp;
+    quint64 _wakeTimestamp;
     quint64 _lastHeardMicrostamp;
     HifiSockAddr _publicSocket;
     HifiSockAddr _localSocket;
+    HifiSockAddr _symmetricSocket;
     HifiSockAddr* _activeSocket;
     QUuid _connectionSecret;
     SimpleMovingAverage* _bytesReceivedMovingAverage;

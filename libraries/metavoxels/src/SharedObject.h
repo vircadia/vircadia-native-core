@@ -9,6 +9,7 @@
 #ifndef __interface__SharedObject__
 #define __interface__SharedObject__
 
+#include <QAtomicInt>
 #include <QHash>
 #include <QMetaType>
 #include <QObject>
@@ -42,12 +43,13 @@ public:
     
     void setRemoteID(int remoteID) { _remoteID = remoteID; }
 
-    int getReferenceCount() const { return _referenceCount; }
+    int getReferenceCount() const { return _referenceCount.load(); }
     void incrementReferenceCount();
     void decrementReferenceCount();
 
     /// Creates a new clone of this object.
-    virtual SharedObject* clone() const;
+    /// \param withID if true, give the clone the same ID as this object
+    virtual SharedObject* clone(bool withID = false) const;
 
     /// Tests this object for equality with another.    
     virtual bool equals(const SharedObject* other) const;
@@ -57,9 +59,11 @@ public:
 
 private:
     
+    void setID(int id);
+    
     int _id;
     int _remoteID;
-    int _referenceCount;
+    QAtomicInt _referenceCount;
     
     static int _lastID;
     static WeakSharedObjectHash _weakHash;

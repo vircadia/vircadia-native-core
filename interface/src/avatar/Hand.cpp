@@ -156,7 +156,8 @@ void Hand::collideAgainstAvatar(Avatar* avatar, bool isMyHand) {
                 //palm.addToPenetration(averagePenetration);
             } else {
                 // someone else's hand against MyAvatar
-                averageContactPoint /= float(handCollisions.size());
+                // TODO: submit collision info to MyAvatar which should lean accordingly
+                averageContactPoint /= (float)handCollisions.size();
                 avatar->applyCollision(averageContactPoint, totalPenetration);
             }
         }
@@ -253,7 +254,7 @@ void Hand::render(bool isMine) {
     
     _renderAlpha = 1.0;
     
-    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes)) {
         // draw a green sphere at hand joint location, which is actually near the wrist)
         for (size_t i = 0; i < getNumPalms(); i++) {
             PalmData& palm = getPalms()[i];

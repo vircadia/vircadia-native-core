@@ -46,7 +46,6 @@ Avatar::Avatar() :
     _mode(AVATAR_MODE_STANDING),
     _velocity(0.0f, 0.0f, 0.0f),
     _thrust(0.0f, 0.0f, 0.0f),
-    _speed(0.0f),
     _leanScale(0.5f),
     _scale(1.0f),
     _worldUpDirection(DEFAULT_UP_DIRECTION),
@@ -56,8 +55,7 @@ Avatar::Avatar() :
     _owningAvatarMixer(),
     _collisionFlags(0),
     _initialized(false),
-    _shouldRenderBillboard(true),
-    _modelsDirty(true)
+    _shouldRenderBillboard(true)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -118,24 +116,28 @@ void Avatar::simulate(float deltaTime) {
     getHand()->simulate(deltaTime, false);
     _skeletonModel.setLODDistance(getLODDistance());
     
-    // copy joint data to skeleton
-    for (int i = 0; i < _jointData.size(); i++) {
-        const JointData& data = _jointData.at(i);
-        _skeletonModel.setJointState(i, data.valid, data.rotation);
-    }
-    glm::vec3 headPosition = _position;
     if (!_shouldRenderBillboard && inViewFrustum) {
-        _skeletonModel.simulate(deltaTime, _modelsDirty);
-        _modelsDirty = false;
+        if (_hasNewJointRotations) {
+            for (int i = 0; i < _jointData.size(); i++) {
+                const JointData& data = _jointData.at(i);
+                _skeletonModel.setJointState(i, data.valid, data.rotation);
+            }
+            _skeletonModel.simulate(deltaTime);
+        }
+        _skeletonModel.simulate(deltaTime, _hasNewJointRotations);
+        _hasNewJointRotations = false;
+
+        glm::vec3 headPosition = _position;
         _skeletonModel.getHeadPosition(headPosition);
+        Head* head = getHead();
+        head->setPosition(headPosition);
+        head->setScale(_scale);
+        head->simulate(deltaTime, false, _shouldRenderBillboard);
     }
-    Head* head = getHead();
-    head->setPosition(headPosition);
-    head->setScale(_scale);
-    head->simulate(deltaTime, false, _shouldRenderBillboard);
     
     // use speed and angular velocity to determine walking vs. standing
-    if (_speed + fabs(_bodyYawDelta) > 0.2) {
+    float speed = glm::length(_velocity);
+    if (speed + fabs(_bodyYawDelta) > 0.2) {
         _mode = AVATAR_MODE_WALKING;
     } else {
         _mode = AVATAR_MODE_INTERACTING;
@@ -210,11 +212,19 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
             renderBody(renderMode);
         }
-        if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
-            _skeletonModel.renderCollisionProxies(0.7f);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes)) {
+            _skeletonModel.updateShapePositions();
+            _skeletonModel.renderJointCollisionShapes(0.7f);
         }
-        if (Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionProxies)) {
-            getHead()->getFaceModel().renderCollisionProxies(0.7f);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes)) {
+            getHead()->getFaceModel().updateShapePositions();
+            getHead()->getFaceModel().renderJointCollisionShapes(0.7f);
+        }
+        if (Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes)) {
+            getHead()->getFaceModel().updateShapePositions();
+            getHead()->getFaceModel().renderBoundingCollisionShapes(0.7f);
+            _skeletonModel.updateShapePositions();
+            _skeletonModel.renderBoundingCollisionShapes(0.7f);
         }
 
         // quick check before falling into the code below:
@@ -246,7 +256,8 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
 
     const float DISPLAYNAME_DISTANCE = 10.0f;
     setShowDisplayName(renderMode == NORMAL_RENDER_MODE && distanceToTarget < DISPLAYNAME_DISTANCE);
-    if (renderMode != NORMAL_RENDER_MODE) {
+    if (renderMode != NORMAL_RENDER_MODE || (isMyAvatar() &&
+            Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON)) {
         return;
     }
     renderDisplayName();
@@ -312,14 +323,18 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 void Avatar::renderBody(RenderMode renderMode) {    
     if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         // render the billboard until both models are loaded
-        if (renderMode != SHADOW_RENDER_MODE) {
-            renderBillboard();
-        }
+        renderBillboard();
         return;
     }
-    _skeletonModel.render(1.0f, renderMode == SHADOW_RENDER_MODE);
-    getHead()->render(1.0f, renderMode == SHADOW_RENDER_MODE);
+    Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
+        Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+    _skeletonModel.render(1.0f, modelRenderMode);
+    getHead()->render(1.0f, modelRenderMode);
     getHand()->render(false);
+}
+
+void Avatar::updateJointMappings() {
+    // no-op; joint mappings come from skeleton model
 }
 
 void Avatar::renderBillboard() {
@@ -654,9 +669,6 @@ int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, _position) > MOVE_DISTANCE_THRESHOLD;
     
-    // note that we need to update our models
-    _modelsDirty = true;
-    
     return bytesRead;
 }
 
@@ -760,25 +772,6 @@ bool Avatar::collisionWouldMoveAvatar(CollisionInfo& collision) const {
         return true;
     }
     return false;
-}
-
-void Avatar::applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) {
-    // compute lean angles
-    glm::vec3 leverAxis = contactPoint - getPosition();
-    float leverLength = glm::length(leverAxis);
-    if (leverLength > EPSILON) {
-        glm::quat bodyRotation = getOrientation();
-        glm::vec3 xAxis = bodyRotation * glm::vec3(1.f, 0.f, 0.f);
-        glm::vec3 zAxis = bodyRotation * glm::vec3(0.f, 0.f, 1.f);
-
-        leverAxis = leverAxis / leverLength;
-        glm::vec3 effectivePenetration = penetration - glm::dot(penetration, leverAxis) * leverAxis;
-        // we use the small-angle approximation for sine below to compute the length of 
-        // the opposite side of a narrow right triangle
-        float sideways = - glm::dot(effectivePenetration, xAxis) / leverLength;
-        float forward = glm::dot(effectivePenetration, zAxis) / leverLength;
-        getHead()->addLean(sideways, forward);
-    }
 }
 
 float Avatar::getBoundingRadius() const {

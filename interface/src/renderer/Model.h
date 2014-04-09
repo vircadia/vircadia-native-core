@@ -12,6 +12,8 @@
 #include <QObject>
 #include <QUrl>
 
+#include <CapsuleShape.h>
+
 #include "GeometryCache.h"
 #include "InterfaceConfig.h"
 #include "ProgramObject.h"
@@ -34,7 +36,7 @@ public:
     void setRotation(const glm::quat& rotation) { _rotation = rotation; }
     const glm::quat& getRotation() const { return _rotation; }
     
-    void setScale(const glm::vec3& scale) { _scale = scale; }
+    void setScale(const glm::vec3& scale);
     const glm::vec3& getScale() const { return _scale; }
     
     void setOffset(const glm::vec3& offset) { _offset = offset; }
@@ -54,12 +56,12 @@ public:
     
     void init();
     void reset();
-    void clearShapes();
-    void createCollisionShapes();
-    void updateShapePositions();
-    void simulate(float deltaTime, bool fullUpdate = true);
-    bool render(float alpha = 1.0f, bool forShadowMap = false);
+    virtual void simulate(float deltaTime, bool fullUpdate = true);
     
+    enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE };
+    
+    bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE);
+
     /// Sets the URL of the model to render.
     /// \param fallback the URL of a fallback model to render if the requested model fails to load
     /// \param retainCurrent if true, keep rendering the current model until the new one is loaded
@@ -75,9 +77,6 @@ public:
     /// Returns the extents of the model in its bind pose.
     Extents getBindExtents() const;
 
-    /// Returns the extents of the unmovable joints of the model.
-    Extents getStaticExtents() const;
-    
     /// Returns a reference to the shared geometry.
     const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }
     
@@ -159,6 +158,12 @@ public:
     /// Returns the extended length from the right hand to its first free ancestor.
     float getRightArmLength() const;
     
+    void clearShapes();
+    void rebuildShapes();
+    void updateShapePositions();
+    void renderJointCollisionShapes(float alpha);
+    void renderBoundingCollisionShapes(float alpha);
+    
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
     
     /// \param shapes list of pointers shapes to test against Model
@@ -169,8 +174,6 @@ public:
     bool findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
         CollisionList& collisions, int skipIndex = -1);
     
-    void renderCollisionProxies(float alpha);
-
     /// \param collision details about the collisions
     /// \return true if the collision is against a moveable joint
     bool collisionHitsMoveableJoint(CollisionInfo& collision) const;
@@ -180,6 +183,7 @@ public:
     void applyCollision(CollisionInfo& collision);
 
     float getBoundingRadius() const { return _boundingRadius; }
+    float getBoundingShapeRadius() const { return _boundingShape.getRadius(); }
 
     /// Sets blended vertices computed in a separate thread.
     void setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
@@ -203,7 +207,11 @@ protected:
     
     bool _shapesAreDirty;
     QVector<JointState> _jointStates;
-    QVector<Shape*> _shapes;
+    QVector<Shape*> _jointShapes;
+    
+    float _boundingRadius;
+    CapsuleShape _boundingShape;
+    glm::vec3 _boundingShapeLocalOffset;
     
     class MeshState {
     public:
@@ -212,9 +220,11 @@ protected:
     
     QVector<MeshState> _meshStates;
     
-    QVector<JointState> updateGeometry();
-    void simulate(float deltaTime, bool fullUpdate, const QVector<JointState>& newJointStates);
-    
+    // returns 'true' if needs fullUpdate after geometry change
+    bool updateGeometry();
+
+    void simulateInternal(float deltaTime);
+
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);
     
@@ -247,7 +257,8 @@ private:
     
     void applyNextGeometry();
     void deleteGeometry();
-    void renderMeshes(float alpha, bool forShadowMap, bool translucent);
+    void renderMeshes(float alpha, RenderMode mode, bool translucent);
+    QVector<JointState> createJointStates(const FBXGeometry& geometry);
     
     QSharedPointer<NetworkGeometry> _baseGeometry; ///< reference required to prevent collection of base
     QSharedPointer<NetworkGeometry> _nextBaseGeometry;
@@ -267,8 +278,6 @@ private:
     
     QVector<Model*> _attachments;
 
-    float _boundingRadius;
-    
     static ProgramObject _program;
     static ProgramObject _normalMapProgram;
     static ProgramObject _shadowProgram;
@@ -291,7 +300,6 @@ private:
     static SkinLocations _skinShadowLocations;
     
     static void initSkinProgram(ProgramObject& program, SkinLocations& locations);
-    static QVector<JointState> createJointStates(const FBXGeometry& geometry);
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)

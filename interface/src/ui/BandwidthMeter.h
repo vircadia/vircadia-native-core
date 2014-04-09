@@ -30,11 +30,11 @@ public:
     bool isWithinArea(int x, int y, int screenWidth, int screenHeight);
 
     // Number of channels / streams.
-    static size_t const N_CHANNELS = 3;
+    static size_t const N_CHANNELS = 4;
     static size_t const N_STREAMS = N_CHANNELS * 2;
 
     // Channel usage.
-    enum ChannelIndex { AUDIO, AVATARS, VOXELS };
+    enum ChannelIndex { AUDIO, AVATARS, VOXELS, METAVOXELS };
 
     // Meta information held for a communication channel (bidirectional).
     struct ChannelInfo {
