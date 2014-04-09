@@ -12,8 +12,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef _PLANE_
-#define _PLANE_
+#ifndef hifi_Plane_h
+#define hifi_Plane_h
 
 #include <glm/glm.hpp>
 
@@ -44,4 +44,4 @@ private:
 };
 
 
-#endif
+#endif // hifi_Plane_h
