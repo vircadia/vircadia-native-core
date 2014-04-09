@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__DTLSSession__
-#define __hifi__DTLSSession__
+#ifndef hifi_DTLSSession_h
+#define hifi_DTLSSession_h
 
 #include <QtNetwork/QUdpSocket>
 
@@ -41,4 +41,4 @@ protected:
     bool _completedHandshake;
 };
 
-#endif /* defined(__hifi__DTLSSession__) */
+#endif // hifi_DTLSSession_h

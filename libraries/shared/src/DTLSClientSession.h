@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__DTLSClientSession__
-#define __hifi__DTLSClientSession__
+#ifndef hifi_DTLSClientSession_h
+#define hifi_DTLSClientSession_h
 
 #include "DTLSSession.h"
 
@@ -27,4 +27,4 @@ public:
     static bool _wasGloballyInitialized;
 };
 
-#endif /* defined(__hifi__DTLSClientSession__) */
+#endif // hifi_DTLSClientSession_h

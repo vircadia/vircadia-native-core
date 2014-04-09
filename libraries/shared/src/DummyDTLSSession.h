@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__DummyDTLSSession__
-#define __hifi__DummyDTLSSession__
+#ifndef hifi_DummyDTLSSession_h
+#define hifi_DummyDTLSSession_h
 
 #include <QtNetwork/QUdpSocket>
 
@@ -31,4 +31,4 @@ protected:
     HifiSockAddr _destinationSocket;
 };
 
-#endif /* defined(__hifi__DummyDTLSSession__) */
+#endif // hifi_DummyDTLSSession_h

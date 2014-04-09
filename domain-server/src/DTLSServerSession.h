@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__DTLSServerSession__
-#define __hifi__DTLSServerSession__
+#ifndef hifi_DTLSServerSession_h
+#define hifi_DTLSServerSession_h
 
 #include <gnutls/dtls.h>
 
@@ -21,4 +21,4 @@ public:
     DTLSServerSession(QUdpSocket& dtlsSocket, HifiSockAddr& destinationSocket);
 };
 
-#endif /* defined(__hifi__DTLSServerSession__) */
+#endif // hifi_DTLSServerSession_h
