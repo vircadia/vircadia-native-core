@@ -5,6 +5,9 @@
 //  Created by Brad Hefta-Gaub on 3/29/13.
 //  Copyright 2013 High Fidelity, Inc.
 //
+//  Poor-man's performance stats collector class. Useful for collecting timing
+//  details from various portions of the code.
+//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //

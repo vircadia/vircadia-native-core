@@ -5,6 +5,9 @@
 //  Created by Brad Hefta-Gaub on 04/11/13.
 //  Copyright 2013 High Fidelity, Inc.
 //
+//  Originally from lighthouse3d. Modified to utilize glm::vec3 and clean up to our coding standards
+//  Simple axis aligned box class.
+//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
@@ -22,7 +25,6 @@ enum BoxFace {
     MIN_Z_FACE,
     MAX_Z_FACE
 };
-
 
 enum BoxVertex {
     BOTTOM_LEFT_NEAR   = 0,
