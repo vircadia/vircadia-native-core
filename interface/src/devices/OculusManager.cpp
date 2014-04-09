@@ -27,7 +27,6 @@ int OculusManager::_scaleLocation;
 int OculusManager::_scaleInLocation;
 int OculusManager::_hmdWarpParamLocation;
 bool OculusManager::_isConnected = false;
-float OculusManager::_yawOffset = 0.0f;     // radians
 
 #ifdef HAVE_LIBOVR
 using namespace OVR;
@@ -187,18 +186,9 @@ void OculusManager::reset() {
 #endif
 }
 
-void OculusManager::updateYawOffset() {
-#ifdef HAVE_LIBOVR
-    float yaw, pitch, roll;
-    _sensorFusion->GetOrientation().GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
-    _yawOffset = yaw;
-#endif
-}
-
 void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
 #ifdef HAVE_LIBOVR
     _sensorFusion->GetOrientation().GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
-    yaw = yaw - _yawOffset;
 #endif
 }
 

@@ -62,7 +62,8 @@ MyAvatar::MyAvatar() :
     _moveTargetStepCounter(0),
     _lookAtTargetAvatar(),
     _shouldRender(true),
-    _billboardValid(false)
+    _billboardValid(false),
+    _oculusYawOffset(0.f)
 {
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
@@ -85,6 +86,7 @@ void MyAvatar::reset() {
     _skeletonModel.reset();
     getHead()->reset();
     getHand()->reset();
+    _oculusYawOffset = 0.f;
 
     setVelocity(glm::vec3(0.f));
     setThrust(glm::vec3(0.f));
@@ -119,16 +121,6 @@ void MyAvatar::update(float deltaTime) {
         ////  Constrain head-driven mouse to edges of screen
         //_headMouseX = glm::clamp(_headMouseX, 0, _glWidget->width());
         //_headMouseY = glm::clamp(_headMouseY, 0, _glWidget->height());
-    }
-
-    if (OculusManager::isConnected()) {
-        float yaw, pitch, roll; // these angles will be in radians
-        OculusManager::getEulerAngles(yaw, pitch, roll);
-
-        // but these euler angles are stored in degrees
-        head->setBaseYaw(yaw * DEGREES_PER_RADIAN);
-        head->setBasePitch(pitch * DEGREES_PER_RADIAN);
-        head->setBaseRoll(roll * DEGREES_PER_RADIAN);
     }
 
     //  Get audio loudness data from audio input device
@@ -220,6 +212,54 @@ void MyAvatar::simulate(float deltaTime) {
         applyDamping(deltaTime, _velocity,  linearDamping * SPEED_BRAKE_POWER, SQUARED_DAMPING_STRENGTH * SPEED_BRAKE_POWER);
     } else {
         applyDamping(deltaTime, _velocity, linearDamping, SQUARED_DAMPING_STRENGTH);
+    }
+
+    if (OculusManager::isConnected()) {
+        // these angles will be in radians
+        float yaw, pitch, roll; 
+        OculusManager::getEulerAngles(yaw, pitch, roll);
+        // ... so they need to be converted to degrees before we do math...
+
+        // The neck is limited in how much it can yaw, so we check its relative
+        // yaw from the body and yaw the body if necessary.
+        yaw *= DEGREES_PER_RADIAN;
+        float bodyToHeadYaw = yaw - _oculusYawOffset;
+        const float MAX_NECK_YAW = 85.f; // degrees
+        if ((fabs(bodyToHeadYaw) > 2.f * MAX_NECK_YAW) && (yaw * _oculusYawOffset < 0.f)) {
+            // We've wrapped around the range for yaw so adjust 
+            // the measured yaw to be relative to _oculusYawOffset.
+            if (yaw > 0.f) {
+                yaw -= 360.f;
+            } else {
+                yaw += 360.f;
+            }
+            bodyToHeadYaw = yaw - _oculusYawOffset;
+        }
+
+        float delta = fabs(bodyToHeadYaw) - MAX_NECK_YAW;
+        if (delta > 0.f) {
+            yaw = MAX_NECK_YAW;
+            if (bodyToHeadYaw < 0.f) {
+                delta *= -1.f;
+                bodyToHeadYaw = -MAX_NECK_YAW;
+            } else {
+                bodyToHeadYaw = MAX_NECK_YAW;
+            }
+            // constrain _oculusYawOffset to be within range [-180,180]
+            _oculusYawOffset = fmod((_oculusYawOffset + delta) + 180.f, 360.f) - 180.f;
+
+            // We must adjust the body orientation using a delta rotation (rather than
+            // doing yaw math) because the body's yaw ranges are not the same
+            // as what the Oculus API provides.
+            glm::vec3 UP_AXIS = glm::vec3(0.f, 1.f, 0.f);
+            glm::quat bodyCorrection = glm::angleAxis(glm::radians(delta), UP_AXIS);
+            orientation = orientation * bodyCorrection;
+        }
+        Head* head = getHead();
+        head->setBaseYaw(bodyToHeadYaw);
+
+        head->setBasePitch(pitch * DEGREES_PER_RADIAN);
+        head->setBaseRoll(roll * DEGREES_PER_RADIAN);
     }
 
     // update the euler angles
@@ -573,11 +613,6 @@ void MyAvatar::updateLookAtTargetAvatar() {
 
 void MyAvatar::clearLookAtTargetAvatar() {
     _lookAtTargetAvatar.clear();
-}
-
-float MyAvatar::getAbsoluteHeadYaw() const {
-    const Head* head = static_cast<const Head*>(_headData);
-    return glm::yaw(head->getOrientation());
 }
 
 glm::vec3 MyAvatar::getUprightHeadPosition() const {

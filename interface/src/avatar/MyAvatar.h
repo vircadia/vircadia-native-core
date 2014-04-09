@@ -125,8 +125,8 @@ private:
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
     bool _shouldRender;
-
     bool _billboardValid;
+    float _oculusYawOffset;
 
 	// private methods
     void updateThrust(float deltaTime);
