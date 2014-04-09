@@ -9,6 +9,54 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#ifndef __interface__starfield__renderer__Renderer__
+#define __interface__starfield__renderer__Renderer__
+
+#include "starfield/Config.h"
+#include "starfield/data/InputVertex.h"
+#include "starfield/data/Tile.h"
+#include "starfield/data/GpuVertex.h"
+#include "starfield/renderer/Tiling.h"
+
+//
+// FOV culling
+// ===========
+//
+// As stars can be thought of as at infinity distance, the field of view only
+// depends on perspective and rotation:
+//
+//                                 _----_  <-- visible stars
+//             from above         +-near-+ -  -
+//                                 \    /     |
+//                near width:       \  /      | cos(p/2)
+//                     2sin(p/2)     \/       _
+//                                  center    
+//
+//
+// Now it is important to note that a change in altitude maps uniformly to a 
+// distance on a sphere. This is NOT the case for azimuthal angles: In this
+// case a factor of 'cos(alt)' (the orbital radius) applies: 
+//
+//
+//             |<-cos alt ->|    | |<-|<----->|->| d_azi cos(alt)
+//                               |
+//                      __--*    |    ---------   -
+//                  __--     *   |   |         |  ^ d_alt 
+//              __-- alt)    *   |  |           | v 
+//             --------------*-  |  ------------- -
+//                               |
+//             side view         | tile on sphere
+//
+//
+// This lets us find a worst-case (Eigen) angle from the center to the edge
+// of a tile as
+//
+//     hypot( 0.5 d_alt, 0.5 d_azi cos(alt_absmin) ).
+//
+// This angle must be added to 'p' (the perspective angle) in order to find
+// an altered near plane for the culling decision.
+//
+
 namespace starfield {
 
     class Renderer {
@@ -91,4 +139,3 @@ namespace starfield {
 }
 
 #endif
-
