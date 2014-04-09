@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__ModelUploader__
-#define __hifi__ModelUploader__
+#ifndef hifi_ModelUploader_h
+#define hifi_ModelUploader_h
 
 #include <QTimer>
 
@@ -61,4 +61,4 @@ private:
     bool addPart(const QString& path, const QString& name);
 };
 
-#endif /* defined(__hifi__ModelUploader__) */
+#endif // hifi_ModelUploader_h

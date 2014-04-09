@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__TV3DManager__
-#define __hifi__TV3DManager__
+#ifndef hifi_TV3DManager_h
+#define hifi_TV3DManager_h
 
 #include <iostream>
 
@@ -41,4 +41,4 @@ private:
     static eyeFrustum _rightEye;
 };
 
-#endif /* defined(__hifi__TV3DManager__) */
+#endif // hifi_TV3DManager_h

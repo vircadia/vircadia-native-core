@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__FaceModel__
-#define __interface__FaceModel__
+#ifndef hifi_FaceModel_h
+#define hifi_FaceModel_h
 
 #include "renderer/Model.h"
 
@@ -36,4 +36,4 @@ private:
     Head* _owningHead;
 };
 
-#endif /* defined(__interface__FaceModel__) */
+#endif // hifi_FaceModel_h

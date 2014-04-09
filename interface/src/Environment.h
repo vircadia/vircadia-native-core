@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Environment__
-#define __interface__Environment__
+#ifndef hifi_Environment_h
+#define hifi_Environment_h
 
 #include <QHash>
 #include <QMutex>
@@ -78,4 +78,4 @@ private:
     QMutex _mutex;
 };
 
-#endif /* defined(__interface__Environment__) */
+#endif // hifi_Environment_h

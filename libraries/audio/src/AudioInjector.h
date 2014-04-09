@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AudioInjector__
-#define __hifi__AudioInjector__
+#ifndef hifi_AudioInjector_h
+#define hifi_AudioInjector_h
 
 #include <QtCore/QObject>
 #include <QtCore/QThread>
@@ -34,4 +34,4 @@ signals:
     void finished();
 };
 
-#endif /* defined(__hifi__AudioInjector__) */
+#endif // hifi_AudioInjector_h

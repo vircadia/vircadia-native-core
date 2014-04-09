@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__JurisdictionMap__
-#define __hifi__JurisdictionMap__
+#ifndef hifi_JurisdictionMap_h
+#define hifi_JurisdictionMap_h
 
 #include <map>
 #include <stdint.h>
@@ -86,6 +86,4 @@ typedef QMap<QUuid, JurisdictionMap> NodeToJurisdictionMap;
 typedef QMap<QUuid, JurisdictionMap>::iterator NodeToJurisdictionMapIterator;
 
 
-#endif /* defined(__hifi__JurisdictionMap__) */
-
-
+#endif // hifi_JurisdictionMap_h

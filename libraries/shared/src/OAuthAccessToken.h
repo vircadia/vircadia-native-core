@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__OAuthAccessToken__
-#define __hifi__OAuthAccessToken__
+#ifndef hifi_OAuthAccessToken_h
+#define hifi_OAuthAccessToken_h
 
 #include <QtCore/QObject>
 #include <QtCore/QDateTime>
@@ -37,4 +37,4 @@ private:
     void swap(OAuthAccessToken& otherToken);
 };
 
-#endif /* defined(__hifi__OAuthAccessToken__) */
+#endif // hifi_OAuthAccessToken_h

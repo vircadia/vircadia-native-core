@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__OctreeSceneStats__
-#define __hifi__OctreeSceneStats__
+#ifndef hifi_OctreeSceneStats_h
+#define hifi_OctreeSceneStats_h
 
 #include <stdint.h>
 #include <NodeList.h>
@@ -292,4 +292,4 @@ private:
 typedef std::map<QUuid, OctreeSceneStats> NodeToOctreeSceneStats;
 typedef std::map<QUuid, OctreeSceneStats>::iterator NodeToOctreeSceneStatsIterator;
 
-#endif /* defined(__hifi__OctreeSceneStats__) */
+#endif // hifi_OctreeSceneStats_h

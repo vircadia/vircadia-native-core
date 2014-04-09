@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__LocalVoxelsList__
-#define __hifi__LocalVoxelsList__
+#ifndef hifi_LocalVoxelsList_h
+#define hifi_LocalVoxelsList_h
 
 #include <QHash>
 #include <QString>
@@ -59,4 +59,4 @@ private:
     QList<StrongVoxelTreePointer> _persistantTrees;
 };
 
-#endif /* defined(__hifi__LocalVoxelsList__) */
+#endif // hifi_LocalVoxelsList_h

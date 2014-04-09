@@ -92,4 +92,4 @@ PacketType packetTypeForPacket(const char* packet);
 int arithmeticCodingValueFromBuffer(const char* checkValue);
 int numBytesArithmeticCodingFromBuffer(const char* checkValue);
 
-#endif
+#endif // hifi_PacketHeaders_h

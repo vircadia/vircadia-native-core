@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi_MenuItemProperties_h__
-#define __hifi_MenuItemProperties_h__
+#ifndef hifi_MenuItemProperties_h
+#define hifi_MenuItemProperties_h
 
 #include <QtScript/QScriptEngine>
 
@@ -51,4 +51,4 @@ void registerMenuItemProperties(QScriptEngine* engine);
 
 
 
-#endif // __hifi_MenuItemProperties_h__
+#endif // hifi_MenuItemProperties_h

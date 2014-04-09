@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AbstractControllerScriptingInterface__
-#define __hifi__AbstractControllerScriptingInterface__
+#ifndef hifi_AbstractControllerScriptingInterface_h
+#define hifi_AbstractControllerScriptingInterface_h
 
 #include <QtCore/QObject>
 
@@ -76,4 +76,4 @@ signals:
 
 };
 
-#endif /* defined(__hifi__AbstractControllerScriptingInterface__) */
+#endif // hifi_AbstractControllerScriptingInterface_h

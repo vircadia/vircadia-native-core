@@ -15,4 +15,4 @@
 void applyStaticFriction(float deltaTime, glm::vec3& velocity, float maxVelocity, float strength);
 void applyDamping(float deltaTime, glm::vec3& velocity, float linearStrength, float squaredStrength);
 
-#endif
+#endif // hifi_Physics_h

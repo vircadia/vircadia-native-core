@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__VoxelImporter__
-#define __hifi__VoxelImporter__
+#ifndef hifi_VoxelImporter_h
+#define hifi_VoxelImporter_h
 
 #include <QThread>
 #include <QRunnable>
@@ -47,4 +47,4 @@ private:
     void cleanupTask();
 };
 
-#endif /* defined(__hifi__VoxelImporter__) */
+#endif // hifi_VoxelImporter_h

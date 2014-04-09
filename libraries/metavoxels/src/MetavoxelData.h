@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__MetavoxelData__
-#define __interface__MetavoxelData__
+#ifndef hifi_MetavoxelData_h
+#define hifi_MetavoxelData_h
 
 #include <QBitArray>
 #include <QHash>
@@ -631,4 +631,4 @@ private:
     QUrl _url;
 };
 
-#endif /* defined(__interface__MetavoxelData__) */
+#endif // hifi_MetavoxelData_h

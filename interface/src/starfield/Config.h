@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__starfield__Config__
-#define __interface__starfield__Config__
+#ifndef hifi_Config_h
+#define hifi_Config_h
 
 #include "InterfaceConfig.h"
 #include "renderer/ProgramObject.h"
@@ -58,4 +58,4 @@ namespace starfield {
 
 }
 
-#endif
+#endif // hifi_Config_h

@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__GlowEffect__
-#define __interface__GlowEffect__
+#ifndef hifi_GlowEffect_h
+#define hifi_GlowEffect_h
 
 #include <QObject>
 #include <QStack>
@@ -83,4 +83,4 @@ public:
     ~Glower();
 };
 
-#endif /* defined(__interface__GlowEffect__) */
+#endif // hifi_GlowEffect_h

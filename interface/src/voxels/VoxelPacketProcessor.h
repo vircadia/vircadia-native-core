@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __shared__VoxelPacketProcessor__
-#define __shared__VoxelPacketProcessor__
+#ifndef hifi_VoxelPacketProcessor_h
+#define hifi_VoxelPacketProcessor_h
 
 #include <ReceivedPacketProcessor.h>
 
@@ -21,4 +21,4 @@ class VoxelPacketProcessor : public ReceivedPacketProcessor {
 protected:
     virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
 };
-#endif // __shared__VoxelPacketProcessor__
+#endif // hifi_VoxelPacketProcessor_h

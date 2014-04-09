@@ -11,8 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi_VoxelConstants_h__
-#define __hifi_VoxelConstants_h__
+#ifndef hifi_VoxelConstants_h
+#define hifi_VoxelConstants_h
 
 #include <limits.h>
 #include <stdint.h>
@@ -47,4 +47,4 @@ const quint64 CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS = 1000 * 5; // 1 packet
 
 const int DEFAULT_MAX_VOXEL_PPS = 600; // the default maximum PPS we think a voxel server should send to a client
 
-#endif
+#endif // hifi_VoxelConstants_h

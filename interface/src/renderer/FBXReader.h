@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__FBXReader__
-#define __interface__FBXReader__
+#ifndef hifi_FBXReader_h
+#define hifi_FBXReader_h
 
 #include <QMetaType>
 #include <QUrl>
@@ -203,4 +203,4 @@ FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping);
 /// Reads SVO geometry from the supplied model data.
 FBXGeometry readSVO(const QByteArray& model);
 
-#endif /* defined(__interface__FBXReader__) */
+#endif // hifi_FBXReader_h

@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__ImportDialog__
-#define __hifi__ImportDialog__
+#ifndef hifi_ImportDialog_h
+#define hifi_ImportDialog_h
 
 #include "InterfaceConfig.h"
 
@@ -70,4 +70,4 @@ private:
     void setImportTypes();
 };
 
-#endif /* defined(__hifi__ImportDialog__) */
+#endif // hifi_ImportDialog_h

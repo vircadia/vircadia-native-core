@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__SkeletonModel__
-#define __interface__SkeletonModel__
+#ifndef hifi_SkeletonModel_h
+#define hifi_SkeletonModel_h
 
 #include "renderer/Model.h"
 
@@ -50,4 +50,4 @@ private:
     Avatar* _owningAvatar;
 };
 
-#endif /* defined(__interface__SkeletonModel__) */
+#endif // hifi_SkeletonModel_h

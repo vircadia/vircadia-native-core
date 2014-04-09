@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__OctreeScriptingInterface__
-#define __hifi__OctreeScriptingInterface__
+#ifndef hifi_OctreeScriptingInterface_h
+#define hifi_OctreeScriptingInterface_h
 
 #include <QtCore/QObject>
 
@@ -99,4 +99,4 @@ protected:
     bool _initialized;
 };
 
-#endif /* defined(__hifi__OctreeScriptingInterface__) */
+#endif // hifi_OctreeScriptingInterface_h

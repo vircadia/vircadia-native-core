@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef _COVERAGE_MAP_V2_
-#define _COVERAGE_MAP_V2_
+#ifndef hifi_CoverageMapV2_h
+#define hifi_CoverageMapV2_h
 
 #include <glm/glm.hpp>
 
@@ -69,4 +69,4 @@ private:
 };
 
 
-#endif // _COVERAGE_MAP_V2_
+#endif // hifi_CoverageMapV2_h

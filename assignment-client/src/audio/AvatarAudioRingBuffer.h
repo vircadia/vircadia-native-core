@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AvatarAudioRingBuffer__
-#define __hifi__AvatarAudioRingBuffer__
+#ifndef hifi_AvatarAudioRingBuffer_h
+#define hifi_AvatarAudioRingBuffer_h
 
 #include <QtCore/QUuid>
 
@@ -27,4 +27,4 @@ private:
     AvatarAudioRingBuffer& operator= (const AvatarAudioRingBuffer&);
 };
 
-#endif /* defined(__hifi__AvatarAudioRingBuffer__) */
+#endif // hifi_AvatarAudioRingBuffer_h

@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__VoxelSystem__
-#define __interface__VoxelSystem__
+#ifndef hifi_VoxelSystem_h
+#define hifi_VoxelSystem_h
 
 #include "InterfaceConfig.h"
 #include <glm/glm.hpp>
@@ -274,4 +274,4 @@ private:
 
 };
 
-#endif
+#endif // hifi_VoxelSystem_h

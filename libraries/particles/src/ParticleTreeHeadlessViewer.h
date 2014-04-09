@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__ParticleTreeHeadlessViewer__
-#define __hifi__ParticleTreeHeadlessViewer__
+#ifndef hifi_ParticleTreeHeadlessViewer_h
+#define hifi_ParticleTreeHeadlessViewer_h
 
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -41,4 +41,4 @@ public:
     virtual void init();
 };
 
-#endif /* defined(__hifi__ParticleTreeHeadlessViewer__) */
+#endif // hifi_ParticleTreeHeadlessViewer_h

@@ -11,8 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__VoxelHideShowThread__
-#define __interface__VoxelHideShowThread__
+#ifndef hifi_VoxelHideShowThread_h
+#define hifi_VoxelHideShowThread_h
 
 #include <GenericThread.h>
 #include "VoxelSystem.h"
@@ -32,4 +32,4 @@ private:
     VoxelSystem* _theSystem;
 };
 
-#endif // __interface__VoxelHideShowThread__
+#endif // hifi_VoxelHideShowThread_h

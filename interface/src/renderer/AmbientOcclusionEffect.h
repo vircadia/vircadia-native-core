@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__AmbientOcclusionEffect__
-#define __interface__AmbientOcclusionEffect__
+#ifndef hifi_AmbientOcclusionEffect_h
+#define hifi_AmbientOcclusionEffect_h
 
 class ProgramObject;
 
@@ -40,4 +40,4 @@ private:
     GLuint _rotationTextureID;
 };
 
-#endif /* defined(__interface__AmbientOcclusionEffect__) */
+#endif // hifi_AmbientOcclusionEffect_h

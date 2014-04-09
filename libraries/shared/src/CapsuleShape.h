@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__CapsuleShape__
-#define __hifi__CapsuleShape__
+#ifndef hifi_CapsuleShape_h
+#define hifi_CapsuleShape_h
 
 #include "Shape.h"
 
@@ -46,4 +46,4 @@ protected:
     float _halfHeight;
 };
 
-#endif /* defined(__hifi__CapsuleShape__) */
+#endif // hifi_CapsuleShape_h

@@ -84,5 +84,4 @@ private:
     void playSlaps(PalmData& palm, Avatar* avatar);
 };
 
-#endif
-
+#endif // hifi_Hand_h

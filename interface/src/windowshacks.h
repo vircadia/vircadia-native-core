@@ -11,8 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__windowshacks__
-#define __hifi__windowshacks__
+#ifndef hifi_windowshacks_h
+#define hifi_windowshacks_h
 
 #ifdef WIN32
 #undef NOMINMAX
@@ -57,4 +57,4 @@ inline int c99_snprintf(char* str, size_t size, const char* format, ...) {
 
 
 #endif // WIN32
-#endif // __hifi__windowshacks__
+#endif // hifi_windowshacks_h

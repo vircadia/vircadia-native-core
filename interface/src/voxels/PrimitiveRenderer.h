@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__PrimitiveRenderer__
-#define __interface__PrimitiveRenderer__
+#ifndef hifi_PrimitiveRenderer_h
+#define hifi_PrimitiveRenderer_h
 
 #include <QStack>
 #include <QVector>
@@ -488,4 +488,4 @@ private:
 };
 
 
-#endif
+#endif // hifi_PrimitiveRenderer_h

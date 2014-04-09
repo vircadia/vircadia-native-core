@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__VoxelTreeHeadlessViewer__
-#define __hifi__VoxelTreeHeadlessViewer__
+#ifndef hifi_VoxelTreeHeadlessViewer_h
+#define hifi_VoxelTreeHeadlessViewer_h
 
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -37,4 +37,4 @@ public:
     virtual void init();
 };
 
-#endif /* defined(__hifi__VoxelTreeHeadlessViewer__) */
+#endif // hifi_VoxelTreeHeadlessViewer_h

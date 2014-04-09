@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AvatarData__
-#define __hifi__AvatarData__
+#ifndef hifi_AvatarData_h
+#define hifi_AvatarData_h
 
 #include <string>
 /* VS2010 defines stdint.h, but not inttypes.h */
@@ -285,4 +285,4 @@ public:
     glm::quat rotation;
 };
 
-#endif /* defined(__hifi__AvatarData__) */
+#endif // hifi_AvatarData_h

@@ -9,10 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__world__
-#define __interface__world__
+#ifndef hifi_world_h
+#define hifi_world_h
 
 const float GRAVITY_EARTH = 9.80665f;
 const float EDGE_SIZE_GROUND_PLANE = 20.f;
 
-#endif
+#endif // hifi_world_h

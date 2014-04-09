@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Oscilloscope__
-#define __interface__Oscilloscope__
+#ifndef hifi_Oscilloscope_h
+#define hifi_Oscilloscope_h
 
 #include <cassert>
 
@@ -81,4 +81,4 @@ private:
     unsigned        _colors[MAX_CHANNELS];
 };
 
-#endif /* defined(__interface__oscilloscope__) */
+#endif // hifi_Oscilloscope_h

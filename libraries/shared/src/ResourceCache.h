@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __shared__ResourceCache__
-#define __shared__ResourceCache__
+#ifndef hifi_ResourceCache_h
+#define hifi_ResourceCache_h
 
 #include <QHash>
 #include <QList>
@@ -177,4 +177,4 @@ private:
 
 uint qHash(const QPointer<QObject>& value, uint seed = 0);
 
-#endif /* defined(__shared__ResourceCache__) */
+#endif // hifi_ResourceCache_h

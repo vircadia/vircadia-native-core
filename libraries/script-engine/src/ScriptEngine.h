@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__ScriptEngine__
-#define __hifi__ScriptEngine__
+#ifndef hifi_ScriptEngine_h
+#define hifi_ScriptEngine_h
 
 #include <vector>
 
@@ -126,4 +126,4 @@ private:
     Vec3 _vec3Library;
 };
 
-#endif /* defined(__hifi__ScriptEngine__) */
+#endif // hifi_ScriptEngine_h

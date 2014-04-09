@@ -10,8 +10,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__starfield__renderer__Renderer__
-#define __interface__starfield__renderer__Renderer__
+#ifndef hifi_Renderer_h
+#define hifi_Renderer_h
 
 #include "starfield/Config.h"
 #include "starfield/data/InputVertex.h"
@@ -139,4 +139,4 @@ namespace starfield {
 
 }
 
-#endif
+#endif // hifi_Renderer_h

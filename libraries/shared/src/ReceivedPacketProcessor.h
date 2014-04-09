@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __shared__ReceivedPacketProcessor__
-#define __shared__ReceivedPacketProcessor__
+#ifndef hifi_ReceivedPacketProcessor_h
+#define hifi_ReceivedPacketProcessor_h
 
 #include <QWaitCondition>
 
@@ -56,4 +56,4 @@ private:
     QMutex _waitingOnPacketsMutex;
 };
 
-#endif // __shared__PacketReceiver__
+#endif // hifi_ReceivedPacketProcessor_h

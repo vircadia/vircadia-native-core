@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__MetavoxelMessages__
-#define __interface__MetavoxelMessages__
+#ifndef hifi_MetavoxelMessages_h
+#define hifi_MetavoxelMessages_h
 
 #include "MetavoxelData.h"
 
@@ -196,4 +196,4 @@ public:
 
 DECLARE_STREAMABLE_METATYPE(SetDataEdit)
 
-#endif /* defined(__interface__MetavoxelMessages__) */
+#endif // hifi_MetavoxelMessages_h

@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AssignmentClient__
-#define __hifi__AssignmentClient__
+#ifndef hifi_AssignmentClient_h
+#define hifi_AssignmentClient_h
 
 #include <QtCore/QCoreApplication>
 
@@ -30,4 +30,4 @@ private:
     SharedAssignmentPointer _currentAssignment;
 };
 
-#endif /* defined(__hifi__AssignmentClient__) */
+#endif // hifi_AssignmentClient_h

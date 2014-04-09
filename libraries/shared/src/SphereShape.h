@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__SphereShape__
-#define __hifi__SphereShape__
+#ifndef hifi_SphereShape_h
+#define hifi_SphereShape_h
 
 #include "Shape.h"
 
@@ -31,4 +31,4 @@ public:
     void setRadius(float radius) { _boundingRadius = radius; }
 };
 
-#endif /* defined(__hifi__SphereShape__) */
+#endif // hifi_SphereShape_h

@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__VoxelDetail__
-#define __hifi__VoxelDetail__
+#ifndef hifi_VoxelDetail_h
+#define hifi_VoxelDetail_h
 
 #include <QtScript/QScriptEngine>
 
@@ -50,4 +50,4 @@ Q_DECLARE_METATYPE(RayToVoxelIntersectionResult)
 QScriptValue rayToVoxelIntersectionResultToScriptValue(QScriptEngine* engine, const RayToVoxelIntersectionResult& results);
 void rayToVoxelIntersectionResultFromScriptValue(const QScriptValue& object, RayToVoxelIntersectionResult& results);
 
-#endif /* defined(__hifi__VoxelDetail__) */
+#endif // hifi_VoxelDetail_h

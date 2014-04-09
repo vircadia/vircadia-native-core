@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__NodeList__
-#define __hifi__NodeList__
+#ifndef hifi_NodeList_h
+#define hifi_NodeList_h
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -183,4 +183,4 @@ private:
     QElapsedTimer _packetStatTimer;
 };
 
-#endif /* defined(__hifi__NodeList__) */
+#endif // hifi_NodeList_h

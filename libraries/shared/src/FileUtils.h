@@ -22,4 +22,4 @@ public:
 
 };
 
-#endif
+#endif // hifi_FileUtils_h

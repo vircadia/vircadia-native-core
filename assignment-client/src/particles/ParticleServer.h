@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __particle_server__ParticleServer__
-#define __particle_server__ParticleServer__
+#ifndef hifi_ParticleServer_h
+#define hifi_ParticleServer_h
 
 #include "../octree/OctreeServer.h"
 
@@ -47,4 +47,4 @@ public slots:
 private:
 };
 
-#endif // __particle_server__ParticleServer__
+#endif // hifi_ParticleServer_h

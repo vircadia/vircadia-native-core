@@ -56,4 +56,4 @@ Q_DECLARE_METATYPE(CollisionInfo)
 QScriptValue collisionToScriptValue(QScriptEngine* engine, const CollisionInfo& collision);
 void collisionFromScriptValue(const QScriptValue &object, CollisionInfo& collision);
 
-#endif
+#endif // hifi_RegisteredMetaTypes_h

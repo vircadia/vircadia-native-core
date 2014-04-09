@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__StdDev__
-#define __hifi__StdDev__
+#ifndef hifi_StdDev_h
+#define hifi_StdDev_h
 
 class StDev {
     public:
@@ -25,4 +25,4 @@ class StDev {
         int sampleCount;
 };
 
-#endif /* defined(__hifi__StdDev__) */
+#endif // hifi_StdDev_h

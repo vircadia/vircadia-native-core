@@ -11,8 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__ListShape__
-#define __hifi__ListShape__
+#ifndef hifi_ListShape_h
+#define hifi_ListShape_h
 
 #include <QVector>
 
@@ -66,4 +66,4 @@ private:
     ListShape(const ListShape& otherList);  // don't implement this
 };
 
-#endif // __hifi__ListShape__
+#endif // hifi_ListShape_h

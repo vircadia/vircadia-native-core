@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__VoxelTreeCommands__
-#define __hifi__VoxelTreeCommands__
+#ifndef hifi_VoxelTreeCommands_h
+#define hifi_VoxelTreeCommands_h
 
 #include <QRgb>
 #include <QUndoCommand>
@@ -46,4 +46,4 @@ private:
     VoxelDetail _voxel;
 };
 
-#endif /* defined(__hifi__VoxelTreeCommands__) */
+#endif // hifi_VoxelTreeCommands_h

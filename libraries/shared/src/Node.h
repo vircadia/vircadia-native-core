@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__Node__
-#define __hifi__Node__
+#ifndef hifi_Node_h
+#define hifi_Node_h
 
 #include <ostream>
 #include <stdint.h>
@@ -129,4 +129,4 @@ private:
 
 QDebug operator<<(QDebug debug, const Node &message);
 
-#endif /* defined(__hifi__Node__) */
+#endif // hifi_Node_h

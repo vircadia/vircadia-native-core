@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__MetavoxelTests__
-#define __interface__MetavoxelTests__
+#ifndef hifi_MetavoxelTests_h
+#define hifi_MetavoxelTests_h
 
 #include <QCoreApplication>
 #include <QVariantList>
@@ -160,4 +160,4 @@ public:
 
 DECLARE_STREAMABLE_METATYPE(SequencedTestMessage)
 
-#endif /* defined(__interface__MetavoxelTests__) */
+#endif // hifi_MetavoxelTests_h

@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__SceneUtil__
-#define __hifi__SceneUtil__
+#ifndef hifi_SceneUtils_h
+#define hifi_SceneUtils_h
 
 #include "VoxelTree.h"
 #include <SharedUtil.h>
@@ -19,4 +19,4 @@ void addCornersAndAxisLines(VoxelTree* tree);
 void addSurfaceScene(VoxelTree * tree);
 
 
-#endif /* defined(__hifi__SceneUtil__) */
+#endif // hifi_SceneUtils_h

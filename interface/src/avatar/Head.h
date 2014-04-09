@@ -140,4 +140,4 @@ private:
     friend class FaceModel;
 };
 
-#endif
+#endif // hifi_Head_h

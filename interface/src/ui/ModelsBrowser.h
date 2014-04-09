@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__ModelsBrowser__
-#define __hifi__ModelsBrowser__
+#ifndef hifi_ModelsBrowser_h
+#define hifi_ModelsBrowser_h
 
 #include <QReadWriteLock>
 #include <QStandardItemModel>
@@ -78,4 +78,4 @@ private:
     QTreeView _view;
 };
 
-#endif /* defined(__hifi__ModelBrowser__) */
+#endif // hifi_ModelsBrowser_h

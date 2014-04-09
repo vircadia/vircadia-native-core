@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__Logging__
-#define __hifi__Logging__
+#ifndef hifi_Logging_h
+#define hifi_Logging_h
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -57,4 +57,4 @@ private:
     static QString _targetName;
 };
 
-#endif /* defined(__hifi__Logstash__) */
+#endif // hifi_Logging_h

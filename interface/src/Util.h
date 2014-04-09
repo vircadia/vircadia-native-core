@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Util__
-#define __interface__Util__
+#ifndef hifi_Util_h
+#define hifi_Util_h
 
 #ifdef _WIN32
 #include "Systime.h"
@@ -80,4 +80,4 @@ bool rayIntersectsSphere(const glm::vec3& rayStarting, const glm::vec3& rayNorma
 
 bool pointInSphere(glm::vec3& point, glm::vec3& sphereCenter, double sphereRadius);
 
-#endif
+#endif // hifi_Util_h

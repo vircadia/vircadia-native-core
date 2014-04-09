@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__OctreeElement__
-#define __hifi__OctreeElement__
+#ifndef hifi_OctreeElement_h
+#define hifi_OctreeElement_h
 
 //#define HAS_AUDIT_CHILDREN
 //#define SIMPLE_CHILD_ARRAY
@@ -319,4 +319,4 @@ protected:
     static quint64 _childrenCount[NUMBER_OF_CHILDREN + 1];
 };
 
-#endif /* defined(__hifi__OctreeElement__) */
+#endif // hifi_OctreeElement_h

@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__ParticleTree__
-#define __hifi__ParticleTree__
+#ifndef hifi_ParticleTree_h
+#define hifi_ParticleTree_h
 
 #include <Octree.h>
 #include "ParticleTreeElement.h"
@@ -95,4 +95,4 @@ private:
     QMultiMap<quint64, uint32_t> _recentlyDeletedParticleIDs;
 };
 
-#endif /* defined(__hifi__ParticleTree__) */
+#endif // hifi_ParticleTree_h

@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__LogDialog__
-#define __interface__LogDialog__
+#ifndef hifi_LogDialog_h
+#define hifi_LogDialog_h
 
 #include "InterfaceConfig.h"
 
@@ -74,5 +74,4 @@ private:
     void showLogData();
 };
 
-#endif
-
+#endif // hifi_LogDialog_h

@@ -8,8 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__ImageOverlay__
-#define __interface__ImageOverlay__
+#ifndef hifi_ImageOverlay_h
+#define hifi_ImageOverlay_h
 
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
@@ -62,4 +62,4 @@ private:
 };
 
  
-#endif /* defined(__interface__ImageOverlay__) */
+#endif // hifi_ImageOverlay_h

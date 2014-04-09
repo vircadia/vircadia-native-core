@@ -11,8 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__ViewFrustum__
-#define __hifi__ViewFrustum__
+#ifndef hifi_ViewFrustum_h
+#define hifi_ViewFrustum_h
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -175,4 +175,4 @@ private:
 };
 
 
-#endif /* defined(__hifi__ViewFrustum__) */
+#endif // hifi_ViewFrustum_h

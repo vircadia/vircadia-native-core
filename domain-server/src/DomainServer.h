@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__DomainServer__
-#define __hifi__DomainServer__
+#ifndef hifi_DomainServer_h
+#define hifi_DomainServer_h
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QHash>
@@ -89,4 +89,4 @@ private slots:
     void readAvailableDatagrams();
 };
 
-#endif /* defined(__hifi__DomainServer__) */
+#endif // hifi_DomainServer_h

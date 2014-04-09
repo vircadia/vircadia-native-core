@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__MenuScriptingInterface__
-#define __hifi__MenuScriptingInterface__
+#ifndef hifi_MenuScriptingInterface_h
+#define hifi_MenuScriptingInterface_h
 
 #include <QDebug>
 #include <QMutex>
@@ -50,4 +50,4 @@ signals:
     void menuItemEvent(const QString& menuItem);
 };
 
-#endif /* defined(__hifi__MenuScriptingInterface__) */
+#endif // hifi_MenuScriptingInterface_h

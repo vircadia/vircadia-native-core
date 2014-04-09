@@ -14,8 +14,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__OctreeElementBag__
-#define __hifi__OctreeElementBag__
+#ifndef hifi_OctreeElementBag_h
+#define hifi_OctreeElementBag_h
 
 #include "OctreeElement.h"
 
@@ -40,4 +40,4 @@ private:
     QSet<OctreeElement*> _bagElements;
 };
 
-#endif /* defined(__hifi__OctreeElementBag__) */
+#endif // hifi_OctreeElementBag_h

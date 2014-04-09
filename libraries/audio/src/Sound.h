@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__Sound__
-#define __hifi__Sound__
+#ifndef hifi_Sound_h
+#define hifi_Sound_h
 
 #include <QtCore/QObject>
 
@@ -34,4 +34,4 @@ private slots:
     void replyFinished(QNetworkReply* reply);
 };
 
-#endif /* defined(__hifi__Sound__) */
+#endif // hifi_Sound_h

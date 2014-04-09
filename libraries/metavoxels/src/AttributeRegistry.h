@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__AttributeRegistry__
-#define __interface__AttributeRegistry__
+#ifndef hifi_AttributeRegistry_h
+#define hifi_AttributeRegistry_h
 
 #include <QHash>
 #include <QObject>
@@ -464,4 +464,4 @@ public:
     virtual void writeMetavoxelSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state);
 };
 
-#endif /* defined(__interface__AttributeRegistry__) */
+#endif // hifi_AttributeRegistry_h

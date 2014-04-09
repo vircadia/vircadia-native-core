@@ -11,8 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __shared__JurisdictionListener__
-#define __shared__JurisdictionListener__
+#ifndef hifi_JurisdictionListener_h
+#define hifi_JurisdictionListener_h
 
 #include <NodeList.h>
 #include <PacketSender.h>
@@ -61,4 +61,4 @@ private:
 
     PacketSender _packetSender;
 };
-#endif // __shared__JurisdictionListener__
+#endif // hifi_JurisdictionListener_h

@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__MetavoxelEditor__
-#define __interface__MetavoxelEditor__
+#ifndef hifi_MetavoxelEditor_h
+#define hifi_MetavoxelEditor_h
 
 #include <QList>
 #include <QWidget>
@@ -223,4 +223,4 @@ protected:
     virtual void applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner);
 };
 
-#endif /* defined(__interface__MetavoxelEditor__) */
+#endif // hifi_MetavoxelEditor_h

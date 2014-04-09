@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__Octree__
-#define __hifi__Octree__
+#ifndef hifi_Octree_h
+#define hifi_Octree_h
 
 #include <set>
 #include <SimpleMovingAverage.h>
@@ -314,4 +314,4 @@ protected:
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale);
 
-#endif /* defined(__hifi__Octree__) */
+#endif // hifi_Octree_h

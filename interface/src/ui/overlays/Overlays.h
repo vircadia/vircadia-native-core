@@ -8,8 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Overlays__
-#define __interface__Overlays__
+#ifndef hifi_Overlays_h
+#define hifi_Overlays_h
 
 #include <QScriptValue>
 
@@ -48,4 +48,4 @@ private:
 };
 
  
-#endif /* defined(__interface__Overlays__) */
+#endif // hifi_Overlays_h

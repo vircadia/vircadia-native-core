@@ -11,8 +11,8 @@
 
 #ifdef HAVE_QXMPP
 
-#ifndef __interface__XmppClient__
-#define __interface__XmppClient__
+#ifndef hifi_XmppClient_h
+#define hifi_XmppClient_h
 
 #include <QObject>
 #include <QXmppClient.h>
@@ -47,4 +47,4 @@ private:
 
 #endif // __interface__XmppClient__
 
-#endif
+#endif // hifi_XmppClient_h

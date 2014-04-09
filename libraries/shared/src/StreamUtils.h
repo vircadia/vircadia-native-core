@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __tests__StreamUtils__
-#define __tests__StreamUtils__
+#ifndef hifi_StreamUtils_h
+#define hifi_StreamUtils_h
 
 #include <iostream>
 
@@ -40,4 +40,4 @@ std::ostream& operator<<(std::ostream& s, const CapsuleShape& capsule);
 #endif // DEBUG
 
 
-#endif // __tests__StreamUtils__
+#endif // hifi_StreamUtils_h

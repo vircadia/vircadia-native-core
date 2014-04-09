@@ -9,11 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __particle_server__ParticleServerConsts__
-#define __particle_server__ParticleServerConsts__
+#ifndef hifi_ParticleServerConsts_h
+#define hifi_ParticleServerConsts_h
 
 extern const char* PARTICLE_SERVER_NAME;
 extern const char* PARTICLE_SERVER_LOGGING_TARGET_NAME;
 extern const char* LOCAL_PARTICLES_PERSIST_FILE;
 
-#endif // __particle_server__ParticleServerConsts__
+#endif // hifi_ParticleServerConsts_h

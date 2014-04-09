@@ -10,8 +10,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__starfield__data__InputVertex__
-#define __interface__starfield__data__InputVertex__
+#ifndef hifi_InputVertex_h
+#define hifi_InputVertex_h
 
 #include "starfield/Config.h"
 
@@ -36,5 +36,4 @@ namespace starfield {
 
 }
 
-#endif
-
+#endif // hifi_InputVertex_h

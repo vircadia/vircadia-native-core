@@ -12,8 +12,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AvatarMixer__
-#define __hifi__AvatarMixer__
+#ifndef hifi_AvatarMixer_h
+#define hifi_AvatarMixer_h
 
 #include <ThreadedAssignment.h>
 
@@ -49,4 +49,4 @@ private:
     int _sumIdentityPackets;
 };
 
-#endif /* defined(__hifi__AvatarMixer__) */
+#endif // hifi_AvatarMixer_h

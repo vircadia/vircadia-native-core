@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __shared__JurisdictionSender__
-#define __shared__JurisdictionSender__
+#ifndef hifi_JurisdictionSender_h
+#define hifi_JurisdictionSender_h
 
 #include <queue>
 #include <QMutex>
@@ -55,4 +55,4 @@ private:
     
     PacketSender _packetSender;
 };
-#endif // __shared__JurisdictionSender__
+#endif // hifi_JurisdictionSender_h

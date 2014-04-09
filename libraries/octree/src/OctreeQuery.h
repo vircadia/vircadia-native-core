@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__OctreeQuery__
-#define __hifi__OctreeQuery__
+#ifndef hifi_OctreeQuery_h
+#define hifi_OctreeQuery_h
 
 /* VS2010 defines stdint.h, but not inttypes.h */
 #if defined(_MSC_VER)
@@ -116,4 +116,4 @@ private:
     OctreeQuery& operator= (const OctreeQuery&);
 };
 
-#endif /* defined(__hifi__OctreeQuery__) */
+#endif // hifi_OctreeQuery_h

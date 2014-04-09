@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__starfield__renderer__VertexOrder__
-#define __interface__starfield__renderer__VertexOrder__
+#ifndef hifi_VertexOrder_h
+#define hifi_VertexOrder_h
 
 #include "starfield/Config.h"
 #include "starfield/data/InputVertex.h"
@@ -38,5 +38,4 @@ namespace starfield {
 
 } // anonymous namespace
 
-#endif
-
+#endif // hifi_VertexOrder_h

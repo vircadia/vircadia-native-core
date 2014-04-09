@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Stars__
-#define __interface__Stars__
+#ifndef hifi_Stars_h
+#define hifi_Stars_h
 
 #include <glm/glm.hpp>
 
@@ -52,5 +52,4 @@ private:
 };
 
 
-#endif
-
+#endif // hifi_Stars_h

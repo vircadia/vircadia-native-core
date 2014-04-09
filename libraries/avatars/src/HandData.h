@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__HandData__
-#define __hifi__HandData__
+#ifndef hifi_HandData_h
+#define hifi_HandData_h
 
 #include <iostream>
 #include <vector>
@@ -226,4 +226,4 @@ private:
     quint64  _collisionlessPaddleExpiry; /// Timestamp after which paddle starts colliding
 };
 
-#endif /* defined(__hifi__HandData__) */
+#endif // hifi_HandData_h

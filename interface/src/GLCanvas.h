@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__GLCanvas__
-#define __hifi__GLCanvas__
+#ifndef hifi_GLCanvas_h
+#define hifi_GLCanvas_h
 
 #include <QGLWidget>
 #include <QTimer>
@@ -52,4 +52,4 @@ private slots:
     void throttleRender();
 };
 
-#endif /* defined(__hifi__GLCanvas__) */
+#endif // hifi_GLCanvas_h

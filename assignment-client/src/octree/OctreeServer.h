@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __octree_server__OctreeServer__
-#define __octree_server__OctreeServer__
+#ifndef hifi_OctreeServer_h
+#define hifi_OctreeServer_h
 
 #include <QStringList>
 #include <QDateTime>
@@ -219,4 +219,4 @@ protected:
     static QMutex _threadsDidCallWriteDatagramMutex;
 };
 
-#endif // __octree_server__OctreeServer__
+#endif // hifi_OctreeServer_h

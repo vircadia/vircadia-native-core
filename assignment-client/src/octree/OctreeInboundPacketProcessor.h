@@ -11,8 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __octree_server__OctreeInboundPacketProcessor__
-#define __octree_server__OctreeInboundPacketProcessor__
+#ifndef hifi_OctreeInboundPacketProcessor_h
+#define hifi_OctreeInboundPacketProcessor_h
 
 #include <map>
 
@@ -83,4 +83,4 @@ private:
     
     NodeToSenderStatsMap _singleSenderStats;
 };
-#endif // __octree_server__OctreeInboundPacketProcessor__
+#endif // hifi_OctreeInboundPacketProcessor_h

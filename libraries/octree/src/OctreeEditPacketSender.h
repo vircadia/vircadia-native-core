@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __shared__OctreeEditPacketSender__
-#define __shared__OctreeEditPacketSender__
+#ifndef hifi_OctreeEditPacketSender_h
+#define hifi_OctreeEditPacketSender_h
 
 #include <PacketSender.h>
 #include <PacketHeaders.h>
@@ -115,4 +115,4 @@ protected:
     unsigned short int _sequenceNumber;
     int _maxPacketSize;
 };
-#endif // __shared__OctreeEditPacketSender__
+#endif // hifi_OctreeEditPacketSender_h

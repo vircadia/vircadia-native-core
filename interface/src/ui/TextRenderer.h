@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__TextRenderer__
-#define __interface__TextRenderer__
+#ifndef hifi_TextRenderer_h
+#define hifi_TextRenderer_h
 
 #include <QFont>
 #include <QFontMetrics>
@@ -114,4 +114,4 @@ private:
     int _width;
 };
 
-#endif /* defined(__interface__TextRenderer__) */
+#endif // hifi_TextRenderer_h

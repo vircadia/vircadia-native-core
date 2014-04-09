@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__ShapeCollider__
-#define __hifi__ShapeCollider__
+#ifndef hifi_ShapeCollider_h
+#define hifi_ShapeCollider_h
 
 #include "CapsuleShape.h"
 #include "CollisionInfo.h"
@@ -82,4 +82,4 @@ namespace ShapeCollider {
 
 }   // namespace ShapeCollider
 
-#endif // __hifi__ShapeCollider__
+#endif // hifi_ShapeCollider_h

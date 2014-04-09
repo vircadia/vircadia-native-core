@@ -8,8 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Sphere3DOverlay__
-#define __interface__Sphere3DOverlay__
+#ifndef hifi_Sphere3DOverlay_h
+#define hifi_Sphere3DOverlay_h
 
 #include "Volume3DOverlay.h"
 
@@ -23,4 +23,4 @@ public:
 };
 
  
-#endif /* defined(__interface__Sphere3DOverlay__) */
+#endif // hifi_Sphere3DOverlay_h

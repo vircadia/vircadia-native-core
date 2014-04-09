@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__DomainServerNodeData__
-#define __hifi__DomainServerNodeData__
+#ifndef hifi_DomainServerNodeData_h
+#define hifi_DomainServerNodeData_h
 
 #include <QtCore/QHash>
 #include <QtCore/QUuid>
@@ -38,4 +38,4 @@ private:
     QJsonObject _statsJSONObject;
 };
 
-#endif /* defined(__hifi__DomainServerNodeData__) */
+#endif // hifi_DomainServerNodeData_h

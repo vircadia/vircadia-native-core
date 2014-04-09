@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AbstractAudioInterface__
-#define __hifi__AbstractAudioInterface__
+#ifndef hifi_AbstractAudioInterface_h
+#define hifi_AbstractAudioInterface_h
 
 #include <QtCore/QObject>
 
@@ -27,4 +27,4 @@ public slots:
 
 Q_DECLARE_METATYPE(AbstractAudioInterface*)
 
-#endif /* defined(__hifi__AbstractAudioInterface__) */
+#endif // hifi_AbstractAudioInterface_h

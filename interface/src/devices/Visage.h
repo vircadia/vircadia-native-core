@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Visage__
-#define __interface__Visage__
+#ifndef hifi_Visage_h
+#define hifi_Visage_h
 
 #include <QMultiHash>
 #include <QPair>
@@ -75,4 +75,4 @@ private:
     QVector<float> _blendshapeCoefficients;
 };
 
-#endif /* defined(__interface__Visage__) */
+#endif // hifi_Visage_h

@@ -11,8 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef _VOXEL_PROJECTED_SHADOW_
-#define _VOXEL_PROJECTED_SHADOW_
+#ifndef hifi_OctreeProjectedPolygon_h
+#define hifi_OctreeProjectedPolygon_h
 
 #include <glm/glm.hpp>
 
@@ -132,4 +132,4 @@ private:
 };
 
 
-#endif // _VOXEL_PROJECTED_SHADOW_
+#endif // hifi_OctreeProjectedPolygon_h

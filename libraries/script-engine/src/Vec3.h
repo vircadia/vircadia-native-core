@@ -11,8 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__Vec3__
-#define __hifi__Vec3__
+#ifndef hifi_Vec3_h
+#define hifi_Vec3_h
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -37,4 +37,4 @@ public slots:
 
 
 
-#endif /* defined(__hifi__Vec3__) */
+#endif // hifi_Vec3_h

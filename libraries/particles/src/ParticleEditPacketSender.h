@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __shared__ParticleEditPacketSender__
-#define __shared__ParticleEditPacketSender__
+#ifndef hifi_ParticleEditPacketSender_h
+#define hifi_ParticleEditPacketSender_h
 
 #include <OctreeEditPacketSender.h>
 #include "Particle.h"
@@ -33,4 +33,4 @@ public:
     virtual unsigned char getMyNodeType() const { return NodeType::ParticleServer; }
     virtual void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
 };
-#endif // __shared__ParticleEditPacketSender__
+#endif // hifi_ParticleEditPacketSender_h

@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AssignmentThread__
-#define __hifi__AssignmentThread__
+#ifndef hifi_AssignmentThread_h
+#define hifi_AssignmentThread_h
 
 #include <QtCore/QThread>
 
@@ -23,4 +23,4 @@ private:
     SharedAssignmentPointer _assignment;
 };
 
-#endif /* defined(__hifi__AssignmentThread__) */
+#endif // hifi_AssignmentThread_h

@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__OctreeHeadlessViewer__
-#define __hifi__OctreeHeadlessViewer__
+#ifndef hifi_OctreeHeadlessViewer_h
+#define hifi_OctreeHeadlessViewer_h
 
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -72,4 +72,4 @@ private:
     int _maxPacketsPerSecond;
 };
 
-#endif /* defined(__hifi__OctreeHeadlessViewer__) */
+#endif // hifi_OctreeHeadlessViewer_h

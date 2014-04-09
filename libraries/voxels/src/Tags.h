@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__Tags__
-#define __hifi__Tags__
+#ifndef hifi_Tags_h
+#define hifi_Tags_h
 
 #include <stdint.h>
 
@@ -180,4 +180,4 @@ private:
     int* _data;
 };
 
-#endif /* defined(__hifi__Tags__) */
+#endif // hifi_Tags_h

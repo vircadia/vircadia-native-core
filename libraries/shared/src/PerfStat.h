@@ -12,8 +12,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__PerfStat__
-#define __hifi__PerfStat__
+#ifndef hifi_PerfStat_h
+#define hifi_PerfStat_h
 
 #include <stdint.h>
 #include "SharedUtil.h"
@@ -56,4 +56,4 @@ public:
 };
 
 
-#endif /* defined(__hifi__PerfStat__) */
+#endif // hifi_PerfStat_h

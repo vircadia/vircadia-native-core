@@ -11,8 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__Quat__
-#define __hifi__Quat__
+#ifndef hifi_Quat_h
+#define hifi_Quat_h
 
 #include <glm/gtc/quaternion.hpp>
 
@@ -39,4 +39,4 @@ public slots:
     void print(const QString& lable, const glm::quat& q);
 };
 
-#endif /* defined(__hifi__Quat__) */
+#endif // hifi_Quat_h

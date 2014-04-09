@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__EnvironmentData__
-#define __interface__EnvironmentData__
+#ifndef hifi_EnvironmentData_h
+#define hifi_EnvironmentData_h
 
 #include <glm/glm.hpp>
 
@@ -75,4 +75,4 @@ private:
     float _sunBrightness;
 };
 
-#endif /* defined(__interface__EnvironmentData__) */
+#endif // hifi_EnvironmentData_h

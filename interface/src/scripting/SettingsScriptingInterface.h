@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__SettingsScriptingInterface__
-#define __hifi__SettingsScriptingInterface__
+#ifndef hifi_SettingsScriptingInterface_h
+#define hifi_SettingsScriptingInterface_h
 
 #include <QDebug>
 #include <QObject>
@@ -30,4 +30,4 @@ public slots:
     void setValue(const QString& setting, const QVariant& value);
 };
 
-#endif /* defined(__hifi__SettingsScriptingInterface__) */
+#endif // hifi_SettingsScriptingInterface_h

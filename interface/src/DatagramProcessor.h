@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__DatagramProcessor__
-#define __hifi__DatagramProcessor__
+#ifndef hifi_DatagramProcessor_h
+#define hifi_DatagramProcessor_h
 
 #include <QtCore/QObject>
 
@@ -31,4 +31,4 @@ private:
     int _byteCount;
 };
 
-#endif /* defined(__hifi__DatagramProcessor__) */
+#endif // hifi_DatagramProcessor_h

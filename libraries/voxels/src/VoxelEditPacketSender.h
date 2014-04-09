@@ -11,8 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __shared__VoxelEditPacketSender__
-#define __shared__VoxelEditPacketSender__
+#ifndef hifi_VoxelEditPacketSender_h
+#define hifi_VoxelEditPacketSender_h
 
 #include <OctreeEditPacketSender.h>
 #include "VoxelDetail.h"
@@ -50,4 +50,4 @@ public:
     // My server type is the voxel server
     virtual unsigned char getMyNodeType() const { return NodeType::VoxelServer; }
 };
-#endif // __shared__VoxelEditPacketSender__
+#endif // hifi_VoxelEditPacketSender_h

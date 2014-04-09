@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__VoxelTreeElement__
-#define __hifi__VoxelTreeElement__
+#ifndef hifi_VoxelTreeElement_h
+#define hifi_VoxelTreeElement_h
 
 //#define HAS_AUDIT_CHILDREN
 //#define SIMPLE_CHILD_ARRAY
@@ -120,5 +120,4 @@ inline unsigned char VoxelTreeElement::getExteriorOcclusions() const {
     return _exteriorOcclusions; 
 }
 
-#endif /* defined(__hifi__VoxelTreeElement__) */
-
+#endif // hifi_VoxelTreeElement_h

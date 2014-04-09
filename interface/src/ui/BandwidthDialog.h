@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__BandwidthDialog__
-#define __hifi__BandwidthDialog__
+#ifndef hifi_BandwidthDialog_h
+#define hifi_BandwidthDialog_h
 
 #include <QDialog>
 #include <QLabel>
@@ -46,5 +46,4 @@ private:
     QLabel*         _labels[BandwidthMeter::N_STREAMS];
 };
 
-#endif /* defined(__interface__BandwidthDialog__) */
-
+#endif // hifi_BandwidthDialog_h

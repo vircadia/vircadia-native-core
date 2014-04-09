@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__VoxelShader__
-#define __interface__VoxelShader__
+#ifndef hifi_VoxelShader_h
+#define hifi_VoxelShader_h
 
 #include <QObject>
 
@@ -46,4 +46,4 @@ private:
     ProgramObject* _program;
 };
 
-#endif /* defined(__interface__VoxelShader__) */
+#endif // hifi_VoxelShader_h

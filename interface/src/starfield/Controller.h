@@ -10,8 +10,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__starfield__Controller__
-#define __interface__starfield__Controller__
+#ifndef hifi_Controller_h
+#define hifi_Controller_h
 
 #include <time.h>
 
@@ -41,4 +41,4 @@ namespace starfield {
         Renderer* _renderer;
     };
 }
-#endif
+#endif // hifi_Controller_h

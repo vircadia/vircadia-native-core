@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__CollisionInfo__
-#define __hifi__CollisionInfo__
+#ifndef hifi_CollisionInfo_h
+#define hifi_CollisionInfo_h
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -101,4 +101,4 @@ private:
     QVector<CollisionInfo> _collisions;
 };
 
-#endif /* defined(__hifi__CollisionInfo__) */
+#endif // hifi_CollisionInfo_h

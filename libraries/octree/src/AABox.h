@@ -12,8 +12,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef _AABOX_
-#define _AABOX_
+#ifndef hifi_AABox_h
+#define hifi_AABox_h
 
 #include <glm/glm.hpp>
 
@@ -82,4 +82,4 @@ private:
     float _scale;
 };
 
-#endif
+#endif // hifi_AABox_h

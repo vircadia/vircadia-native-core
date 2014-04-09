@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__ThreadedAssignment__
-#define __hifi__ThreadedAssignment__
+#ifndef hifi_ThreadedAssignment_h
+#define hifi_ThreadedAssignment_h
 
 #include <QtCore/QSharedPointer>
 
@@ -42,4 +42,4 @@ signals:
 
 typedef QSharedPointer<ThreadedAssignment> SharedAssignmentPointer;
 
-#endif /* defined(__hifi__ThreadedAssignment__) */
+#endif // hifi_ThreadedAssignment_h

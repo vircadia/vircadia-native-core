@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__ParticlesScriptingInterface__
-#define __hifi__ParticlesScriptingInterface__
+#ifndef hifi_ParticlesScriptingInterface_h
+#define hifi_ParticlesScriptingInterface_h
 
 #include <QtCore/QObject>
 
@@ -70,4 +70,4 @@ private:
     ParticleTree* _particleTree;
 };
 
-#endif /* defined(__hifi__ParticlesScriptingInterface__) */
+#endif // hifi_ParticlesScriptingInterface_h

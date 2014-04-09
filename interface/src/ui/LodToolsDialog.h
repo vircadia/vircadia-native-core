@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__LodToolsDialog__
-#define __hifi__LodToolsDialog__
+#ifndef hifi_LodToolsDialog_h
+#define hifi_LodToolsDialog_h
 
 #include <QDialog>
 #include <QLabel>
@@ -44,5 +44,4 @@ private:
     QLabel* _feedback;
 };
 
-#endif /* defined(__interface__LodToolsDialog__) */
-
+#endif // hifi_LodToolsDialog_h

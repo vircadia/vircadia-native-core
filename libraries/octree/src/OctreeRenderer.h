@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__OctreeRenderer__
-#define __hifi__OctreeRenderer__
+#ifndef hifi_OctreeRenderer_h
+#define hifi_OctreeRenderer_h
 
 #include <glm/glm.hpp>
 #include <stdint.h>
@@ -71,4 +71,4 @@ protected:
     ViewFrustum* _viewFrustum;
 };
 
-#endif /* defined(__hifi__OctreeRenderer__) */
+#endif // hifi_OctreeRenderer_h

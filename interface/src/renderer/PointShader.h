@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__PointShader__
-#define __interface__PointShader__
+#ifndef hifi_PointShader_h
+#define hifi_PointShader_h
 
 #include <QObject>
 
@@ -45,4 +45,4 @@ private:
     ProgramObject* _program;
 };
 
-#endif /* defined(__interface__PointShader__) */
+#endif // hifi_PointShader_h

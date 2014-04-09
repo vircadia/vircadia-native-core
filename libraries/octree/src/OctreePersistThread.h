@@ -11,8 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __Octree_server__OctreePersistThread__
-#define __Octree_server__OctreePersistThread__
+#ifndef hifi_OctreePersistThread_h
+#define hifi_OctreePersistThread_h
 
 #include <QString>
 #include <GenericThread.h>
@@ -45,4 +45,4 @@ private:
     quint64 _lastCheck;
 };
 
-#endif // __Octree_server__OctreePersistThread__
+#endif // hifi_OctreePersistThread_h

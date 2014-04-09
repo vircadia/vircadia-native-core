@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Faceshift__
-#define __interface__Faceshift__
+#ifndef hifi_Faceshift_h
+#define hifi_Faceshift_h
 
 #include <QTcpSocket>
 #include <QUdpSocket>
@@ -141,4 +141,4 @@ private:
     float _estimatedEyeYaw;
 };
 
-#endif /* defined(__interface__Faceshift__) */
+#endif // hifi_Faceshift_h

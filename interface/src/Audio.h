@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Audio__
-#define __interface__Audio__
+#ifndef hifi_Audio_h
+#define hifi_Audio_h
 
 #ifdef _WIN32
 #define WANT_TIMEVAL
@@ -192,4 +192,4 @@ private:
 };
 
 
-#endif /* defined(__interface__audio__) */
+#endif // hifi_Audio_h

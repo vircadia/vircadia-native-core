@@ -10,8 +10,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__starfield__data__GpuVertex__
-#define __interface__starfield__data__GpuVertex__
+#ifndef hifi_GpuVertex_h
+#define hifi_GpuVertex_h
 
 #include "starfield/data/InputVertex.h"
 
@@ -34,5 +34,4 @@ namespace starfield {
 
 }
 
-#endif
-
+#endif // hifi_GpuVertex_h

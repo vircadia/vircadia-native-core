@@ -8,8 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Base3DOverlay__
-#define __interface__Base3DOverlay__
+#ifndef hifi_Base3DOverlay_h
+#define hifi_Base3DOverlay_h
 
 #include "Overlay.h"
 
@@ -36,4 +36,4 @@ protected:
 };
 
  
-#endif /* defined(__interface__Base3DOverlay__) */
+#endif // hifi_Base3DOverlay_h

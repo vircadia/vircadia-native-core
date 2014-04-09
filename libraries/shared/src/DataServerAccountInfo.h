@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__DataServerAccountInfo__
-#define __hifi__DataServerAccountInfo__
+#ifndef hifi_DataServerAccountInfo_h
+#define hifi_DataServerAccountInfo_h
 
 #include <QtCore/QObject>
 
@@ -42,4 +42,4 @@ private:
     QString _xmppPassword;
 };
 
-#endif /* defined(__hifi__DataServerAccountInfo__) */
+#endif // hifi_DataServerAccountInfo_h

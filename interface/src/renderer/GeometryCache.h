@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__GeometryCache__
-#define __interface__GeometryCache__
+#ifndef hifi_GeometryCache_h
+#define hifi_GeometryCache_h
 
 // include this before QOpenGLBuffer, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
@@ -140,4 +140,4 @@ public:
     int getTranslucentPartCount() const;
 };
 
-#endif /* defined(__interface__GeometryCache__) */
+#endif // hifi_GeometryCache_h

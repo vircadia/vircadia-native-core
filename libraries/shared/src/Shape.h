@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__Shape__
-#define __hifi__Shape__
+#ifndef hifi_Shape_h
+#define hifi_Shape_h
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -55,4 +55,4 @@ protected:
     glm::quat _rotation;
 };
 
-#endif /* defined(__hifi__Shape__) */
+#endif // hifi_Shape_h

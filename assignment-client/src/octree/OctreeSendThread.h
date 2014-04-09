@@ -11,8 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __octree_server__OctreeSendThread__
-#define __octree_server__OctreeSendThread__
+#ifndef hifi_OctreeSendThread_h
+#define hifi_OctreeSendThread_h
 
 #include <GenericThread.h>
 #include <NetworkPacket.h>
@@ -55,4 +55,4 @@ private:
     bool _isShuttingDown;
 };
 
-#endif // __octree_server__OctreeSendThread__
+#endif // hifi_OctreeSendThread_h

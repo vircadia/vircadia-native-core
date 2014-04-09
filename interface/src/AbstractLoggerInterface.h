@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__AbstractLoggerInterface__
-#define __interface__AbstractLoggerInterface__
+#ifndef hifi_AbstractLoggerInterface_h
+#define hifi_AbstractLoggerInterface_h
 
 #include <QtCore/QObject>
 #include <QString>
@@ -35,4 +35,4 @@ private:
     bool _extraDebugging;
 };
 
-#endif /* defined(__interface__AbstractLoggerInterface__) */
+#endif // hifi_AbstractLoggerInterface_h

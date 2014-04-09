@@ -8,8 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__camera__
-#define __interface__camera__
+#ifndef hifi_Camera_h
+#define hifi_Camera_h
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -154,4 +154,4 @@ private:
     Camera* _camera;
     ViewFrustum* _viewFrustum;
 };
-#endif
+#endif // hifi_Camera_h

@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__Menu__
-#define __hifi__Menu__
+#ifndef hifi_Menu_h
+#define hifi_Menu_h
 
 #include <QMenuBar>
 #include <QHash>
@@ -323,4 +323,4 @@ namespace MenuOption {
 
 void sendFakeEnterEvent();
 
-#endif /* defined(__hifi__Menu__) */
+#endif // hifi_Menu_h

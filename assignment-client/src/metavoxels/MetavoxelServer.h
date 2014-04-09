@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__MetavoxelServer__
-#define __hifi__MetavoxelServer__
+#ifndef hifi_MetavoxelServer_h
+#define hifi_MetavoxelServer_h
 
 #include <QList>
 #include <QTimer>
@@ -95,4 +95,4 @@ private:
     QList<SendRecord> _sendRecords;
 };
 
-#endif /* defined(__hifi__MetavoxelServer__) */
+#endif // hifi_MetavoxelServer_h

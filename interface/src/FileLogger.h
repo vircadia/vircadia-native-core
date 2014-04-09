@@ -32,4 +32,4 @@ private:
 
 };
 
-#endif
+#endif // hifi_FileLogger_h

@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __tests__CollisionInfoTests__
-#define __tests__CollisionInfoTests__
+#ifndef hifi_CollisionInfoTests_h
+#define hifi_CollisionInfoTests_h
 
 namespace CollisionInfoTests {
 
@@ -20,5 +20,4 @@ namespace CollisionInfoTests {
     void runAllTests(); 
 }
 
-#endif // __tests__CollisionInfoTests__
-
+#endif // hifi_CollisionInfoTests_h

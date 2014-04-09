@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__RearMirrorTools__
-#define __hifi__RearMirrorTools__
+#ifndef hifi_RearMirrorTools_h
+#define hifi_RearMirrorTools_h
 
 #include "InterfaceConfig.h"
 
@@ -58,4 +58,4 @@ private:
     void displayIcon(QRect bounds, QRect iconBounds, GLuint textureId, bool selected = false);
 };
 
-#endif /* defined(__hifi__RearMirrorTools__) */
+#endif // hifi_RearMirrorTools_h

@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi_OctreeConstants_h__
-#define __hifi_OctreeConstants_h__
+#ifndef hifi_OctreeConstants_h
+#define hifi_OctreeConstants_h
 
 #include <limits.h>
 #include <stdint.h>
@@ -44,4 +44,4 @@ const int DANGEROUSLY_DEEP_RECURSION = 200; // use this for something that needs
 
 const int DEFAULT_MAX_OCTREE_PPS = 600; // the default maximum PPS we think any octree based server should send to a client
 
-#endif
+#endif // hifi_OctreeConstants_h

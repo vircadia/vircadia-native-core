@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__ParticleCollisionSystem__
-#define __hifi__ParticleCollisionSystem__
+#ifndef hifi_ParticleCollisionSystem_h
+#define hifi_ParticleCollisionSystem_h
 
 #include <glm/glm.hpp>
 #include <stdint.h>
@@ -71,4 +71,4 @@ private:
     CollisionList _collisions;
 };
 
-#endif /* defined(__hifi__ParticleCollisionSystem__) */
+#endif // hifi_ParticleCollisionSystem_h

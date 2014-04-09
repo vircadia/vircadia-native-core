@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__ParticleNodeData__
-#define __hifi__ParticleNodeData__
+#ifndef hifi_ParticleNodeData_h
+#define hifi_ParticleNodeData_h
 
 #include <PacketHeaders.h>
 
@@ -31,4 +31,4 @@ private:
     quint64 _lastDeletedParticlesSentAt;
 };
 
-#endif /* defined(__hifi__ParticleNodeData__) */
+#endif // hifi_ParticleNodeData_h

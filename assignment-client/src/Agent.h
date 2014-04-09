@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__Agent__
-#define __hifi__Agent__
+#ifndef hifi_Agent_h
+#define hifi_Agent_h
 
 #include <vector>
 
@@ -67,4 +67,4 @@ private:
     MixedAudioRingBuffer _receivedAudioBuffer;
 };
 
-#endif /* defined(__hifi__Agent__) */
+#endif // hifi_Agent_h

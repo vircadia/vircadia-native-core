@@ -11,8 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __shared_NetworkPacket__
-#define __shared_NetworkPacket__
+#ifndef hifi_NetworkPacket_h
+#define hifi_NetworkPacket_h
 
 #include <stdlib.h>
 
@@ -46,4 +46,4 @@ private:
     QByteArray _byteArray;
 };
 
-#endif /* defined(__shared_NetworkPacket__) */
+#endif // hifi_NetworkPacket_h

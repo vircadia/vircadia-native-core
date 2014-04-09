@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AvatarMixerClientData__
-#define __hifi__AvatarMixerClientData__
+#ifndef hifi_AvatarMixerClientData_h
+#define hifi_AvatarMixerClientData_h
 
 #include <QtCore/QUrl>
 
@@ -40,4 +40,4 @@ private:
     quint64 _identityChangeTimestamp;
 };
 
-#endif /* defined(__hifi__AvatarMixerClientData__) */
+#endif // hifi_AvatarMixerClientData_h

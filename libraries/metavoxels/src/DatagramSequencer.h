@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__DatagramSequencer__
-#define __interface__DatagramSequencer__
+#ifndef hifi_DatagramSequencer_h
+#define hifi_DatagramSequencer_h
 
 #include <QBuffer>
 #include <QDataStream>
@@ -321,4 +321,4 @@ private:
     bool _messagesEnabled;
 };
 
-#endif /* defined(__interface__DatagramSequencer__) */
+#endif // hifi_DatagramSequencer_h

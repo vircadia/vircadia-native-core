@@ -19,8 +19,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__OctreePacketData__
-#define __hifi__OctreePacketData__
+#ifndef hifi_OctreePacketData_h
+#define hifi_OctreePacketData_h
 
 #include <SharedUtil.h>
 #include "OctreeConstants.h"
@@ -227,4 +227,4 @@ private:
     static quint64 _totalBytesOfRawData;
 };
 
-#endif /* defined(__hifi__OctreePacketData__) */
+#endif // hifi_OctreePacketData_h

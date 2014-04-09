@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__OculusManager__
-#define __hifi__OculusManager__
+#ifndef hifi_OculusManager_h
+#define hifi_OculusManager_h
 
 #include <iostream>
 
@@ -62,4 +62,4 @@ private:
 #endif
 };
 
-#endif /* defined(__hifi__OculusManager__) */
+#endif // hifi_OculusManager_h

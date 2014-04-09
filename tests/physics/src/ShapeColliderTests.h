@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __tests__ShapeColliderTests__
-#define __tests__ShapeColliderTests__
+#ifndef hifi_ShapeColliderTests_h
+#define hifi_ShapeColliderTests_h
 
 namespace ShapeColliderTests {
 
@@ -26,4 +26,4 @@ namespace ShapeColliderTests {
     void runAllTests(); 
 }
 
-#endif // __tests__ShapeColliderTests__
+#endif // hifi_ShapeColliderTests_h

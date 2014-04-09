@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__MixedAudioRingBuffer__
-#define __hifi__MixedAudioRingBuffer__
+#ifndef hifi_MixedAudioRingBuffer_h
+#define hifi_MixedAudioRingBuffer_h
 
 #include "AudioRingBuffer.h"
 
@@ -26,4 +26,4 @@ private:
      float _lastReadFrameAverageLoudness;
 };
 
-#endif /* defined(__hifi__MixedAudioRingBuffer__) */
+#endif // hifi_MixedAudioRingBuffer_h

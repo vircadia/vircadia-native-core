@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__MetavoxelSystem__
-#define __interface__MetavoxelSystem__
+#ifndef hifi_MetavoxelSystem_h
+#define hifi_MetavoxelSystem_h
 
 #include <QList>
 #include <QOpenGLBuffer>
@@ -201,4 +201,4 @@ private:
     Model* _model;
 };
 
-#endif /* defined(__interface__MetavoxelSystem__) */
+#endif // hifi_MetavoxelSystem_h

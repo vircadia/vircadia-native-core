@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__ChatWindow__
-#define __interface__ChatWindow__
+#ifndef hifi_ChatWindow_h
+#define hifi_ChatWindow_h
 
 #include <QDateTime>
 #include <QDockWidget>
@@ -63,4 +63,4 @@ private slots:
 #endif
 };
 
-#endif /* defined(__interface__ChatWindow__) */
+#endif // hifi_ChatWindow_h

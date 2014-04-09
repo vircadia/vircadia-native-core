@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__myavatar__
-#define __interface__myavatar__
+#ifndef hifi_MyAvatar_h
+#define hifi_MyAvatar_h
 
 #include <QSettings>
 
@@ -143,4 +143,4 @@ private:
     void maybeUpdateBillboard();
 };
 
-#endif
+#endif // hifi_MyAvatar_h

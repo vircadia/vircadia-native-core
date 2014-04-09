@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__starfield__Generator__
-#define __interface__starfield__Generator__
+#ifndef hifi_Generator_h
+#define hifi_Generator_h
 
 #include <locale.h>
 #include <time.h>
@@ -37,4 +37,4 @@ namespace starfield {
     };
     
 }
-#endif
+#endif // hifi_Generator_h

@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AvatarHashMap__
-#define __hifi__AvatarHashMap__
+#ifndef hifi_AvatarHashMap_h
+#define hifi_AvatarHashMap_h
 
 #include <QtCore/QHash>
 #include <QtCore/QSharedPointer>
@@ -36,4 +36,4 @@ protected:
     AvatarHash _avatarHash;
 };
 
-#endif /* defined(__hifi__AvatarHashMap__) */
+#endif // hifi_AvatarHashMap_h

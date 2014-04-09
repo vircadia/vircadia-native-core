@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__starfield__data__Tile__
-#define __interface__starfield__data__Tile__
+#ifndef hifi_Tile_h
+#define hifi_Tile_h
 
 #include "starfield/Config.h"
 
@@ -29,5 +29,4 @@ namespace starfield {
     
 }
 
-#endif
-
+#endif // hifi_Tile_h

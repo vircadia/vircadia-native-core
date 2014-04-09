@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__LocalVoxels__
-#define __hifi__LocalVoxels__
+#ifndef hifi_LocalVoxels_h
+#define hifi_LocalVoxels_h
 
 #include <QObject>
 
@@ -90,4 +90,4 @@ private:
 
 
 
-#endif /* defined(__hifi__LocalVoxels__) */
+#endif // hifi_LocalVoxels_h

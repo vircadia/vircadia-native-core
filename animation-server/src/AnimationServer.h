@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AnimationServer__
-#define __hifi__AnimationServer__
+#ifndef hifi_AnimationServer_h
+#define hifi_AnimationServer_h
 
 #include <QtCore/QCoreApplication>
 
@@ -24,4 +24,4 @@ private slots:
 };
 
 
-#endif /* defined(__hifi__AnimationServer__) */
+#endif // hifi_AnimationServer_h

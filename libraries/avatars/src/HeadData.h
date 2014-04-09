@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__HeadData__
-#define __hifi__HeadData__
+#ifndef hifi_HeadData_h
+#define hifi_HeadData_h
 
 #include <iostream>
 
@@ -95,4 +95,4 @@ private:
     HeadData& operator= (const HeadData&);
 };
 
-#endif /* defined(__hifi__HeadData__) */
+#endif // hifi_HeadData_h

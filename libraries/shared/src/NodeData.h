@@ -30,4 +30,4 @@ private:
     QMutex _mutex;
 };
 
-#endif
+#endif // hifi_NodeData_h

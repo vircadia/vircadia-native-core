@@ -11,8 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef _COVERAGE_MAP_
-#define _COVERAGE_MAP_
+#ifndef hifi_CoverageMap_h
+#define hifi_CoverageMap_h
 
 #include <glm/glm.hpp>
 #include "OctreeProjectedPolygon.h"
@@ -117,4 +117,4 @@ private:
 };
 
 
-#endif // _COVERAGE_MAP_
+#endif // hifi_CoverageMap_h

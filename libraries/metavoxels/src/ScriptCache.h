@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__ScriptCache__
-#define __interface__ScriptCache__
+#ifndef hifi_ScriptCache_h
+#define hifi_ScriptCache_h
 
 #include <QScriptProgram>
 #include <QScriptValue>
@@ -145,4 +145,4 @@ private:
     ScriptHash _parameters;
 };
 
-#endif /* defined(__interface__ScriptCache__) */
+#endif // hifi_ScriptCache_h

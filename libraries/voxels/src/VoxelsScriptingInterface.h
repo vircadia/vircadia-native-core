@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__VoxelsScriptingInterface__
-#define __hifi__VoxelsScriptingInterface__
+#ifndef hifi_VoxelsScriptingInterface_h
+#define hifi_VoxelsScriptingInterface_h
 
 #include <QtCore/QObject>
 
@@ -88,4 +88,4 @@ private:
     QUndoStack* _undoStack;
 };
 
-#endif /* defined(__hifi__VoxelsScriptingInterface__) */
+#endif // hifi_VoxelsScriptingInterface_h

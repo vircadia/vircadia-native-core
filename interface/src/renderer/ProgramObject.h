@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__ProgramObject__
-#define __interface__ProgramObject__
+#ifndef hifi_ProgramObject_h
+#define hifi_ProgramObject_h
 
 #include <QGLShaderProgram>
 
@@ -25,4 +25,4 @@ public:
     void setUniform(const char* name, const glm::vec3& value);
 };
 
-#endif /* defined(__interface__ProgramObject__) */
+#endif // hifi_ProgramObject_h

@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__InfoView__
-#define __hifi__InfoView__
+#ifndef hifi_InfoView_h
+#define hifi_InfoView_h
 
 #include <QtWebKitWidgets/QWebView>
 
@@ -29,4 +29,4 @@ private slots:
     void loaded(bool ok);
 };
 
-#endif /* defined(__hifi__InfoView__) */
+#endif // hifi_InfoView_h
