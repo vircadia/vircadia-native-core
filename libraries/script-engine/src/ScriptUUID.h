@@ -1,17 +1,22 @@
 //
 //  ScriptUUID.h
-//  hifi
+//  libraries/script-engine/src/
 //
-//  Created by Andrew Meadows on 2014.04.07
+//  Created by Andrew Meadows on 2014-04-07
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
 //
+//  Scriptable interface for a UUID helper class object. Used exclusively in the JavaScript API
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
-#ifndef __hifi__ScriptUUID__
-#define __hifi__ScriptUUID__
+#ifndef hifi_ScriptUUID_h
+#define hifi_ScriptUUID_h
 
 #include <QUuid>
 
-/// Scriptable interface a UUID helper class object. Used exclusively in the JavaScript API
+/// Scriptable interface for a UUID helper class object. Used exclusively in the JavaScript API
 class ScriptUUID : public QObject {
     Q_OBJECT
 
@@ -24,6 +29,4 @@ public slots:
     void print(const QString& lable, const QUuid& id);
 };
 
-
-
-#endif /* defined(__hifi__Vec3__) */
+#endif // hifi_ScriptUUID_h
