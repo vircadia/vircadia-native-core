@@ -40,7 +40,7 @@ void ShapeColliderTests::sphereMissesSphere() {
 
     // collide A to B...
     {
-        bool touching = ShapeCollider::shapeShape(&sphereA, &sphereB, collisions);
+        bool touching = ShapeCollider::collideShapes(&sphereA, &sphereB, collisions);
         if (touching) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: sphereA and sphereB should NOT touch" << std::endl;
@@ -49,7 +49,7 @@ void ShapeColliderTests::sphereMissesSphere() {
 
     // collide B to A...
     {
-        bool touching = ShapeCollider::shapeShape(&sphereB, &sphereA, collisions);
+        bool touching = ShapeCollider::collideShapes(&sphereB, &sphereA, collisions);
         if (touching) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: sphereA and sphereB should NOT touch" << std::endl;
@@ -58,7 +58,7 @@ void ShapeColliderTests::sphereMissesSphere() {
 
     // also test shapeShape
     {
-        bool touching = ShapeCollider::shapeShape(&sphereB, &sphereA, collisions);
+        bool touching = ShapeCollider::collideShapes(&sphereB, &sphereA, collisions);
         if (touching) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: sphereA and sphereB should NOT touch" << std::endl;
@@ -90,7 +90,7 @@ void ShapeColliderTests::sphereTouchesSphere() {
 
     // collide A to B...
     {
-        bool touching = ShapeCollider::shapeShape(&sphereA, &sphereB, collisions);
+        bool touching = ShapeCollider::collideShapes(&sphereA, &sphereB, collisions);
         if (!touching) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: sphereA and sphereB should touch" << std::endl;
@@ -133,7 +133,7 @@ void ShapeColliderTests::sphereTouchesSphere() {
 
     // collide B to A...
     {
-        bool touching = ShapeCollider::shapeShape(&sphereB, &sphereA, collisions);
+        bool touching = ShapeCollider::collideShapes(&sphereB, &sphereA, collisions);
         if (!touching) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: sphereA and sphereB should touch" << std::endl;
@@ -196,7 +196,7 @@ void ShapeColliderTests::sphereMissesCapsule() {
         sphereA.setPosition(rotation * localPosition + translation);
 
         // sphereA agains capsuleB
-        if (ShapeCollider::shapeShape(&sphereA, &capsuleB, collisions))
+        if (ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: sphere and capsule should NOT touch"
@@ -204,7 +204,7 @@ void ShapeColliderTests::sphereMissesCapsule() {
         }
 
         // capsuleB against sphereA
-        if (ShapeCollider::shapeShape(&capsuleB, &sphereA, collisions))
+        if (ShapeCollider::collideShapes(&capsuleB, &sphereA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: sphere and capsule should NOT touch"
@@ -238,7 +238,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
     {   // sphereA collides with capsuleB's cylindrical wall
         sphereA.setPosition(radialOffset * xAxis);
 
-        if (!ShapeCollider::shapeShape(&sphereA, &capsuleB, collisions))
+        if (!ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: sphere and capsule should touch"
@@ -269,7 +269,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         }
 
         // capsuleB collides with sphereA
-        if (!ShapeCollider::shapeShape(&capsuleB, &sphereA, collisions))
+        if (!ShapeCollider::collideShapes(&capsuleB, &sphereA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: capsule and sphere should touch"
@@ -305,7 +305,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         glm::vec3 axialOffset = (halfHeightB + alpha * radiusA + beta * radiusB) * yAxis;
         sphereA.setPosition(axialOffset * yAxis);
         
-        if (!ShapeCollider::shapeShape(&sphereA, &capsuleB, collisions))
+        if (!ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: sphere and capsule should touch"
@@ -336,7 +336,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         }
 
         // capsuleB collides with sphereA
-        if (!ShapeCollider::shapeShape(&capsuleB, &sphereA, collisions))
+        if (!ShapeCollider::collideShapes(&capsuleB, &sphereA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: capsule and sphere should touch"
@@ -372,7 +372,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         glm::vec3 axialOffset = - (halfHeightB + alpha * radiusA + beta * radiusB) * yAxis;
         sphereA.setPosition(axialOffset * yAxis);
         
-        if (!ShapeCollider::shapeShape(&sphereA, &capsuleB, collisions))
+        if (!ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: sphere and capsule should touch"
@@ -403,7 +403,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         }
 
         // capsuleB collides with sphereA
-        if (!ShapeCollider::shapeShape(&capsuleB, &sphereA, collisions))
+        if (!ShapeCollider::collideShapes(&capsuleB, &sphereA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: capsule and sphere should touch"
@@ -459,13 +459,13 @@ void ShapeColliderTests::capsuleMissesCapsule() {
 
     // side by side
     capsuleB.setPosition((1.01f * totalRadius) * xAxis);
-    if (ShapeCollider::shapeShape(&capsuleA, &capsuleB, collisions))
+    if (ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
     {
         std::cout << __FILE__ << ":" << __LINE__
             << " ERROR: capsule and capsule should NOT touch"
             << std::endl;
     }
-    if (ShapeCollider::shapeShape(&capsuleB, &capsuleA, collisions))
+    if (ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
     {
         std::cout << __FILE__ << ":" << __LINE__
             << " ERROR: capsule and capsule should NOT touch"
@@ -474,13 +474,13 @@ void ShapeColliderTests::capsuleMissesCapsule() {
 
     // end to end
     capsuleB.setPosition((1.01f * totalHalfLength) * xAxis);
-    if (ShapeCollider::shapeShape(&capsuleA, &capsuleB, collisions))
+    if (ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
     {
         std::cout << __FILE__ << ":" << __LINE__
             << " ERROR: capsule and capsule should NOT touch"
             << std::endl;
     }
-    if (ShapeCollider::shapeShape(&capsuleB, &capsuleA, collisions))
+    if (ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
     {
         std::cout << __FILE__ << ":" << __LINE__
             << " ERROR: capsule and capsule should NOT touch"
@@ -491,13 +491,13 @@ void ShapeColliderTests::capsuleMissesCapsule() {
     glm::quat rotation = glm::angleAxis(PI_OVER_TWO, zAxis);
     capsuleB.setRotation(rotation);
     capsuleB.setPosition((1.01f * (totalRadius + capsuleB.getHalfHeight())) * xAxis);
-    if (ShapeCollider::shapeShape(&capsuleA, &capsuleB, collisions))
+    if (ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
     {
         std::cout << __FILE__ << ":" << __LINE__
             << " ERROR: capsule and capsule should NOT touch"
             << std::endl;
     }
-    if (ShapeCollider::shapeShape(&capsuleB, &capsuleA, collisions))
+    if (ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
     {
         std::cout << __FILE__ << ":" << __LINE__
             << " ERROR: capsule and capsule should NOT touch"
@@ -529,7 +529,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
 
     { // side by side
         capsuleB.setPosition((0.99f * totalRadius) * xAxis);
-        if (!ShapeCollider::shapeShape(&capsuleA, &capsuleB, collisions))
+        if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: capsule and capsule should touch"
@@ -537,7 +537,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         } else {
             ++numCollisions;
         }
-        if (!ShapeCollider::shapeShape(&capsuleB, &capsuleA, collisions))
+        if (!ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: capsule and capsule should touch"
@@ -550,7 +550,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
     { // end to end
         capsuleB.setPosition((0.99f * totalHalfLength) * yAxis);
 
-        if (!ShapeCollider::shapeShape(&capsuleA, &capsuleB, collisions))
+        if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: capsule and capsule should touch"
@@ -558,7 +558,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         } else {
             ++numCollisions;
         }
-        if (!ShapeCollider::shapeShape(&capsuleB, &capsuleA, collisions))
+        if (!ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: capsule and capsule should touch"
@@ -573,7 +573,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         capsuleB.setRotation(rotation);
         capsuleB.setPosition((0.99f * (totalRadius + capsuleB.getHalfHeight())) * xAxis);
 
-        if (!ShapeCollider::shapeShape(&capsuleA, &capsuleB, collisions))
+        if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: capsule and capsule should touch"
@@ -581,7 +581,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         } else {
             ++numCollisions;
         }
-        if (!ShapeCollider::shapeShape(&capsuleB, &capsuleA, collisions))
+        if (!ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: capsule and capsule should touch"
@@ -599,7 +599,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         capsuleB.setPosition(positionB);
 
         // capsuleA vs capsuleB
-        if (!ShapeCollider::shapeShape(&capsuleA, &capsuleB, collisions))
+        if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: capsule and capsule should touch"
@@ -628,7 +628,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         }
 
         // capsuleB vs capsuleA
-        if (!ShapeCollider::shapeShape(&capsuleB, &capsuleA, collisions))
+        if (!ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: capsule and capsule should touch"
@@ -666,7 +666,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         capsuleB.setPosition(positionB);
 
         // capsuleA vs capsuleB
-        if (!ShapeCollider::shapeShape(&capsuleA, &capsuleB, collisions))
+        if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: capsule and capsule should touch"

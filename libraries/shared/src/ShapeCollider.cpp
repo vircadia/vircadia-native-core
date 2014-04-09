@@ -10,6 +10,7 @@
 
 #include <glm/gtx/norm.hpp>
 
+#include "GeometryUtil.h"
 #include "ShapeCollider.h"
 
 // NOTE:
@@ -19,7 +20,7 @@
 
 namespace ShapeCollider {
 
-bool shapeShape(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
+bool collideShapes(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
     // ATM we only have two shape types so we just check every case.
     // TODO: make a fast lookup for correct method
     int typeA = shapeA->getType();
@@ -45,6 +46,30 @@ bool shapeShape(const Shape* shapeA, const Shape* shapeB, CollisionList& collisi
         } else if (typeB == Shape::CAPSULE_SHAPE) {
             return listCapsule(listA, static_cast<const CapsuleShape*>(shapeB), collisions);
         }
+    }
+    return false;
+}
+
+static CollisionList tempCollisions(32);
+
+bool collideShapesCoarse(const QVector<const Shape*>& shapesA, const QVector<const Shape*>& shapesB, CollisionInfo& collision) {
+    tempCollisions.clear();
+    foreach (const Shape* shapeA, shapesA) {
+        foreach (const Shape* shapeB, shapesB) {
+            ShapeCollider::collideShapes(shapeA, shapeB, tempCollisions);
+        }
+    }
+    if (tempCollisions.size() > 0) {
+        glm::vec3 totalPenetration(0.f);
+        glm::vec3 averageContactPoint(0.f);
+        for (int j = 0; j < tempCollisions.size(); ++j) {
+            CollisionInfo* c = tempCollisions.getCollision(j);
+            totalPenetration = addPenetrations(totalPenetration, c->_penetration);
+            averageContactPoint += c->_contactPoint;
+        }
+        collision._penetration = totalPenetration;
+        collision._contactPoint = averageContactPoint / (float)(tempCollisions.size());
+        return true;
     }
     return false;
 }
@@ -407,7 +432,7 @@ bool listList(const ListShape* listA, const ListShape* listB, CollisionList& col
     for (int i = 0; i < listA->size() && !collisions.isFull(); ++i) {
         const Shape* subShape = listA->getSubShape(i);
         for (int j = 0; j < listB->size() && !collisions.isFull(); ++j) {
-            touching = shapeShape(subShape, listB->getSubShape(j), collisions) || touching;
+            touching = collideShapes(subShape, listB->getSubShape(j), collisions) || touching;
         }
     }
     return touching;
