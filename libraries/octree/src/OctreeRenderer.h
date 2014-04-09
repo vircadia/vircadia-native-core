@@ -1,14 +1,16 @@
 //
 //  OctreeRenderer.h
-//  hifi
+//  libraries/octree/src
 //
 //  Created by Brad Hefta-Gaub on 12/6/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__OctreeRenderer__
-#define __hifi__OctreeRenderer__
+#ifndef hifi_OctreeRenderer_h
+#define hifi_OctreeRenderer_h
 
 #include <glm/glm.hpp>
 #include <stdint.h>
@@ -69,4 +71,4 @@ protected:
     ViewFrustum* _viewFrustum;
 };
 
-#endif /* defined(__hifi__OctreeRenderer__) */
+#endif // hifi_OctreeRenderer_h

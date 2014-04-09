@@ -5,11 +5,14 @@
 //  fragment shader
 //
 //  Created by Andrzej Kapolka on 11/26/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
-// this shader is an adaptation (HLSL -> GLSL, removed conditional) of the one in the Oculus sample
-// code (Samples/OculusRoomTiny/RenderTiny_D3D1X_Device.cpp), which is under the Apache license
-// (http://www.apache.org/licenses/LICENSE-2.0)
+//  this shader is an adaptation (HLSL -> GLSL, removed conditional) of the one in the Oculus sample
+//  code (Samples/OculusRoomTiny/RenderTiny_D3D1X_Device.cpp), which is under the Apache license
+//  (http://www.apache.org/licenses/LICENSE-2.0)
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 uniform sampler2D texture;

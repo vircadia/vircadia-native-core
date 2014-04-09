@@ -1,13 +1,16 @@
 //
 //  AssignmentClientMonitor.h
-//  hifi
+//  assignment-client/src
 //
 //  Created by Stephen Birarda on 1/10/2014.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AssignmentClientMonitor__
-#define __hifi__AssignmentClientMonitor__
+#ifndef hifi_AssignmentClientMonitor_h
+#define hifi_AssignmentClientMonitor_h
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QProcess>
@@ -28,4 +31,4 @@ private:
     QStringList _childArguments;
 };
 
-#endif /* defined(__hifi__AssignmentClientMonitor__) */
+#endif // hifi_AssignmentClientMonitor_h

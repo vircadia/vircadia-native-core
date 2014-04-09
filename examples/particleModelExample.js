@@ -1,11 +1,14 @@
 //
 //  particleModelExample.js
-//  hifi
+//  examples
 //
 //  Created by Brad Hefta-Gaub on 1/28/14.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  This is an example script that demonstrates creating and editing a particle
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 var count = 0;

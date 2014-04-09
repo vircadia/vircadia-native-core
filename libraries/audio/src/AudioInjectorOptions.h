@@ -1,13 +1,16 @@
 //
 //  AudioInjectorOptions.h
-//  hifi
+//  libraries/audio/src
 //
 //  Created by Stephen Birarda on 1/2/2014.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AudioInjectorOptions__
-#define __hifi__AudioInjectorOptions__
+#ifndef hifi_AudioInjectorOptions_h
+#define hifi_AudioInjectorOptions_h
 
 #include <QtCore/QObject>
 
@@ -46,4 +49,4 @@ private:
     AbstractAudioInterface* _loopbackAudioInterface;
 };
 
-#endif /* defined(__hifi__AudioInjectorOptions__) */
+#endif // hifi_AudioInjectorOptions_h

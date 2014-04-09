@@ -1,13 +1,16 @@
 //
 //  OculusManager.h
-//  hifi
+//  interface/src/devices
 //
 //  Created by Stephen Birarda on 5/9/13.
-//  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
+//  Copyright 2012 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__OculusManager__
-#define __hifi__OculusManager__
+#ifndef hifi_OculusManager_h
+#define hifi_OculusManager_h
 
 #include <iostream>
 
@@ -59,4 +62,4 @@ private:
 #endif
 };
 
-#endif /* defined(__hifi__OculusManager__) */
+#endif // hifi_OculusManager_h

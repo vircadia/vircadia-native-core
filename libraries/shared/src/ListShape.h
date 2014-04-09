@@ -1,14 +1,18 @@
 //
 //  ListShape.h
+//  libraries/shared/src
+//
+//  Created by Andrew Meadows on 02/20/2014.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  ListShape: A collection of shapes, each with a local transform.
 //
-//  Created by Andrew Meadows on 2014.02.20
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__ListShape__
-#define __hifi__ListShape__
+#ifndef hifi_ListShape_h
+#define hifi_ListShape_h
 
 #include <QVector>
 
@@ -62,4 +66,4 @@ private:
     ListShape(const ListShape& otherList);  // don't implement this
 };
 
-#endif // __hifi__ListShape__
+#endif // hifi_ListShape_h
