@@ -1205,7 +1205,10 @@ void Application::timer() {
     // ask the node list to check in with the domain server
     NodeList::getInstance()->sendDomainServerCheckIn();
 
-
+    // as soon as we have a valid sessionUUID, store it in the avatar for reference
+    if (_myAvatar->getSessionUUID().isNull()) {
+        _myAvatar->setSessionUUID(NodeList::getInstance()->getSessionUUID());
+    }
 }
 
 void Application::idle() {

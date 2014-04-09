@@ -32,6 +32,7 @@ using namespace std;
 QNetworkAccessManager* AvatarData::networkAccessManager = NULL;
 
 AvatarData::AvatarData() :
+    _sessionUUID(),
     _handPosition(0,0,0),
     _bodyYaw(-90.f),
     _bodyPitch(0.0f),

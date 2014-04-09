@@ -94,12 +94,14 @@ class AvatarData : public QObject {
     Q_PROPERTY(QString faceModelURL READ getFaceModelURLFromScript WRITE setFaceModelURLFromScript)
     Q_PROPERTY(QString skeletonModelURL READ getSkeletonModelURLFromScript WRITE setSkeletonModelURLFromScript)
     Q_PROPERTY(QString billboardURL READ getBillboardURL WRITE setBillboardFromURL)
+
+    Q_PROPERTY(QUuid sessionUUID READ getSessionUUID);
 public:
     AvatarData();
     virtual ~AvatarData();
 
-    const QUuid& getSessionID() { return _sessionID; }
-    void setSessionID(const QUuid& id) { _sessionID = id; }
+    const QUuid& getSessionUUID() { return _sessionUUID; }
+    void setSessionUUID(const QUuid& id) { _sessionUUID = id; }
 
     const glm::vec3& getPosition() const { return _position; }
     void setPosition(const glm::vec3 position) { _position = position; }
@@ -222,7 +224,7 @@ public slots:
     void sendBillboardPacket();
     void setBillboardFromNetworkReply();
 protected:
-    QUuid _sessionID;
+    QUuid _sessionUUID;
     glm::vec3 _position;
     glm::vec3 _handPosition;
 
