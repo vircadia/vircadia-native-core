@@ -4,6 +4,7 @@
 //
 //  Created by stojce on 23.10.2013.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//
 
 #include "InterfaceConfig.h"
 

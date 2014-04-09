@@ -1,5 +1,5 @@
 //
-//  Plane.h
+//  Plane.cpp
 //  hifi
 //
 //  Created by Brad Hefta-Gaub on 04/11/13.

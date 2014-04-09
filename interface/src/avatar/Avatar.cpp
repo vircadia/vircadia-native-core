@@ -4,6 +4,7 @@
 //
 //  Created by Philip Rosedale on 9/11/12.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//
 
 #include <vector>
 

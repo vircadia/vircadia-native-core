@@ -7,6 +7,7 @@
 //
 //  Used to register meta-types with Qt so that they can be used as properties for objects exposed to our
 //  Agent scripting.
+//
 
 #include "RegisteredMetaTypes.h"
 

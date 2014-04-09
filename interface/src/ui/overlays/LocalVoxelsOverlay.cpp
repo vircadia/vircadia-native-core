@@ -5,7 +5,7 @@
 //  Created by Clément Brisset on 2/28/14.
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
 //
-//
+
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 

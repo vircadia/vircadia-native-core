@@ -9,6 +9,7 @@
 //
 //  The avatar mixer receives head, hand and positional data from all connected
 //  nodes, and broadcasts that data back to them, every BROADCAST_INTERVAL ms.
+//
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDateTime>

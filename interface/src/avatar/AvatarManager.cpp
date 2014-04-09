@@ -5,6 +5,7 @@
 //  Created by Stephen Birarda on 1/23/2014.
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
+
 #include <string>
 
 #include <glm/gtx/string_cast.hpp>

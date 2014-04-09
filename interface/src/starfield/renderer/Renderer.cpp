@@ -1,10 +1,10 @@
 //
-// starfield/renderer/Renderer.cpp
-// interface
+//  starfield/renderer/Renderer.cpp
+//  interface
 //
-// Created by Chris Barnard on 10/17/13.
-// Based on earlier work by Tobias Schwinger 3/22/13.
-// Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Created by Chris Barnard on 10/17/13.
+//  Based on earlier work by Tobias Schwinger 3/22/13.
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
 #include "starfield/renderer/Renderer.h"

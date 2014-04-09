@@ -7,6 +7,7 @@
 //
 //  Used to register meta-types with Qt for very various event types so that they can be exposed to our
 //  scripting engine
+//
 
 #include <QDebug>
 #include <RegisteredMetaTypes.h>

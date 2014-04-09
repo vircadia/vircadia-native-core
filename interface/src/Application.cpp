@@ -4,6 +4,7 @@
 //
 //  Created by Andrzej Kapolka on 5/10/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//
 
 #ifdef WIN32
 #include <Systime.h>

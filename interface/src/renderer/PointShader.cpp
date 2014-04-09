@@ -4,6 +4,7 @@
 //
 //  Created by Brad Hefta-Gaub on 10/30/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//
 
 // include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"

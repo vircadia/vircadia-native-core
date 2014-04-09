@@ -6,6 +6,7 @@
 // Based on code by Tobias Schwinger on 3/29/13.
 // Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
+
 #include "starfield/data/GpuVertex.h"
 
 using namespace starfield;

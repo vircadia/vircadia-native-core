@@ -4,6 +4,7 @@
 //
 //  Created by Mohammed Nafees on 03/28/2014.
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//
 
 #include "ui_runningScriptsWidget.h"
 #include "RunningScriptsWidget.h"
