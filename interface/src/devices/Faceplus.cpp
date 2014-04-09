@@ -33,6 +33,55 @@ void Faceplus::init() {
     updateEnabled();
 }
 
+/* 
+[2014-04-09T11:42:11] "Mix::Blink_Left"
+[2014-04-09T11:42:11] "Mix::Blink_Right"
+[2014-04-09T11:42:11] "Mix::BrowsDown_Left"
+[2014-04-09T11:42:11] "Mix::BrowsDown_Right"
+[2014-04-09T11:42:11] "Mix::BrowsIn_Left"
+[2014-04-09T11:42:11] "Mix::BrowsIn_Right"
+[2014-04-09T11:42:11] "Mix::BrowsOuterLower_Left"
+[2014-04-09T11:42:11] "Mix::BrowsOuterLower_Right"
+[2014-04-09T11:42:11] "Mix::BrowsUp_Left"
+[2014-04-09T11:42:11] "Mix::BrowsUp_Right"
+[2014-04-09T11:42:11] "Mix::EyesWide_Left"
+[2014-04-09T11:42:11] "Mix::EyesWide_Right"
+[2014-04-09T11:42:11] "Mix::Frown_Left"
+[2014-04-09T11:42:11] "Mix::Frown_Right"
+[2014-04-09T11:42:11] "Mix::Jaw_RotateY_Left"
+[2014-04-09T11:42:11] "Mix::Jaw_RotateY_Right"
+[2014-04-09T11:42:11] "Mix::LowerLipDown_Left"
+[2014-04-09T11:42:11] "Mix::LowerLipDown_Right"
+[2014-04-09T11:42:11] "Mix::LowerLipIn"
+[2014-04-09T11:42:11] "Mix::LowerLipOut"
+[2014-04-09T11:42:11] "Mix::Midmouth_Left"
+[2014-04-09T11:42:11] "Mix::Midmouth_Right"
+[2014-04-09T11:42:11] "Mix::MouthDown"
+[2014-04-09T11:42:11] "Mix::MouthNarrow_Left"
+[2014-04-09T11:42:11] "Mix::MouthNarrow_Right"
+[2014-04-09T11:42:11] "Mix::MouthOpen"
+[2014-04-09T11:42:11] "Mix::MouthUp"
+[2014-04-09T11:42:11] "Mix::MouthWhistle_NarrowAdjust_Left"
+[2014-04-09T11:42:11] "Mix::MouthWhistle_NarrowAdjust_Right"
+[2014-04-09T11:42:11] "Mix::NoseScrunch_Left"
+[2014-04-09T11:42:11] "Mix::NoseScrunch_Right"
+[2014-04-09T11:42:11] "Mix::Smile_Left"
+[2014-04-09T11:42:11] "Mix::Smile_Right"
+[2014-04-09T11:42:11] "Mix::Squint_Left"
+[2014-04-09T11:42:11] "Mix::Squint_Right"
+[2014-04-09T11:42:11] "Mix::UpperLipIn"
+[2014-04-09T11:42:11] "Mix::UpperLipOut"
+[2014-04-09T11:42:11] "Mix::UpperLipUp_Left"
+[2014-04-09T11:42:11] "Mix::UpperLipUp_Right"
+[2014-04-09T11:42:11] "Head_Joint::Rotation_X"
+[2014-04-09T11:42:11] "Head_Joint::Rotation_Y"
+[2014-04-09T11:42:11] "Head_Joint::Rotation_Z"
+[2014-04-09T11:42:11] "Left_Eye_Joint::Rotation_X"
+[2014-04-09T11:42:11] "Left_Eye_Joint::Rotation_Y"
+[2014-04-09T11:42:11] "Right_Eye_Joint::Rotation_X"
+[2014-04-09T11:42:11] "Right_Eye_Joint::Rotation_Y"
+*/
+
 #ifdef HAVE_FACEPLUS
 static QMultiHash<QByteArray, QPair<int, float> > createChannelNameMap() {
     QMultiHash<QByteArray, QPair<QByteArray, float> > blendshapeMap;
@@ -121,9 +170,9 @@ void Faceplus::setEnabled(bool enabled) {
             int maxIndex = -1;
             _channelIndexMap.clear();
             for (int i = 0; i < channelCount; i++) {
-                QByteArray channelName = faceplus_output_channel_name(i);
+                QByteArray name = faceplus_output_channel_name(i);
                 
-                qDebug() << channelName;
+                qDebug() << name;
                 
                 for (QMultiHash<QByteArray, QPair<int, float> >::const_iterator it = getChannelNameMap().constFind(name);
                         it != getChannelNameMap().constEnd() && it.key() == name; it++) {

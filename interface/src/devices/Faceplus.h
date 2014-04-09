@@ -42,7 +42,7 @@ private:
     bool _enabled;
     bool _active;
     
-#ifdef HAVE_VISAGE
+#ifdef HAVE_FACEPLUS
     QMultiHash<int, QPair<int, float> > _channelIndexMap; 
     QVector<float> _outputVector;
 #endif
