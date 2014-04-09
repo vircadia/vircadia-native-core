@@ -17,8 +17,6 @@ class QFileInfo;
 class QHttpMultiPart;
 class QProgressBar;
 
-class TemporaryDir;
-
 class ModelUploader : public QObject {
     Q_OBJECT
     
@@ -55,7 +53,7 @@ private:
     
     
     bool zip();
-    bool addTextures(const QFileInfo& texdir);
+    bool addTextures(const QString& texdir, const QString fbxFile);
     bool addPart(const QString& path, const QString& name);
 };
 
