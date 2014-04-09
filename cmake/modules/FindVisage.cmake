@@ -12,7 +12,7 @@
 #  VISAGE_LIBRARIES - Link this to use Visage
 #
 #  Created on 2/11/2014 by Andrzej Kapolka
-#  Copyright (c) 2014 High Fidelity
+#  Copyright 2014 High Fidelity, Inc.
 #
 #  Distributed under the Apache License, Version 2.0.
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html

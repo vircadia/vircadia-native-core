@@ -9,9 +9,10 @@
 #  GLEW_LIBRARY
 # 
 #  Created on 2/6/2014 by Stephen Birarda
+#  Copyright 2014 High Fidelity, Inc.
 #
 #  Adapted from FindGLEW.cmake available in the nvidia-texture-tools repository
-# (https://code.google.com/p/nvidia-texture-tools/source/browse/trunk/cmake/FindGLEW.cmake?r=96)
+#  (https://code.google.com/p/nvidia-texture-tools/source/browse/trunk/cmake/FindGLEW.cmake?r=96)
 # 
 #  Distributed under the Apache License, Version 2.0.
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html

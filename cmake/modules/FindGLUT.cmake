@@ -10,6 +10,7 @@
 #  GLUT_DLL_PATH - Optionally defined for Win32, if not in path
 #
 #  Created on 2/6/2014 by Stephen Birarda
+#  Copyright 2014 High Fidelity, Inc.
 # 
 #  Adapted from FindGLUT.cmake available in tlorach's OpenGLText Repository
 #  https://raw.github.com/tlorach/OpenGLText/master/cmake/FindGLUT.cmake

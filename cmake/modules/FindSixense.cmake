@@ -12,7 +12,7 @@
 #  SIXENSE_LIBRARIES - Link this to use Sixense
 #
 #  Created on 11/15/2013 by Andrzej Kapolka
-#  Copyright (c) 2013 High Fidelity
+#  Copyright 2013 High Fidelity, Inc.
 #
 #  Distributed under the Apache License, Version 2.0.
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
