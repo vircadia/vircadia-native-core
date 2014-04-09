@@ -1,13 +1,16 @@
 //
 //  GeometryCache.h
-//  interface
+//  interface/src/renderer
 //
 //  Created by Andrzej Kapolka on 6/21/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__GeometryCache__
-#define __interface__GeometryCache__
+#ifndef hifi_GeometryCache_h
+#define hifi_GeometryCache_h
 
 // include this before QOpenGLBuffer, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
@@ -137,4 +140,4 @@ public:
     int getTranslucentPartCount() const;
 };
 
-#endif /* defined(__interface__GeometryCache__) */
+#endif // hifi_GeometryCache_h

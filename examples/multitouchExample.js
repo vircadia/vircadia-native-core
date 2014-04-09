@@ -1,15 +1,18 @@
 //
 //  multitouchExample.js
-//  hifi
+//  examples
 //
 //  Created by Brad Hefta-Gaub on 2/9/14.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  This is an example script that demonstrates use of the Controller class's multi-touch features
 //
 //  When this script is running:
 //     * Four finger rotate gesture will rotate your avatar.
 //     * Three finger swipe up/down will adjust the pitch of your avatars head.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 var lastX = 0;

@@ -1,9 +1,9 @@
 //
 //  lookAtExample.js
-//  hifi
+//  examples
 //
 //  Created by Brad Hefta-Gaub on 2/6/14.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  This is an example script that demonstrates use of the Camera class's lookAt(), keepLookingAt(), and stopLookingAt()
 //  features.
@@ -12,6 +12,8 @@
 //  on the face of the voxel that you clicked. Click again and it will stop looking at that point. While in this fixed mode
 //  you can use the arrow keys to change the position of the camera.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 var lookingAtSomething = false;

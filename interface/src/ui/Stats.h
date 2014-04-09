@@ -1,10 +1,16 @@
 //
 //  Stats.h
-//  interface
+//  interface/src/ui
 //
 //  Created by Lucas Crisman on 22/03/14.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+#ifndef hifi_Stats_h
+#define hifi_Stats_h
 
 #include <QObject>
 
@@ -39,3 +45,5 @@ private:
 
     int _lastHorizontalOffset;
 };
+
+#endif // hifi_Stats_h

@@ -1,14 +1,16 @@
 //
 //  ParticleTreeHeadlessViewer.h
-//  hifi
+//  libraries/particles/src
 //
-//  Created by Brad Hefta-Gaub on 2/26/14
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Created by Brad Hefta-Gaub on 2/26/14.
+//  Copyright 2014 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__ParticleTreeHeadlessViewer__
-#define __hifi__ParticleTreeHeadlessViewer__
+#ifndef hifi_ParticleTreeHeadlessViewer_h
+#define hifi_ParticleTreeHeadlessViewer_h
 
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -39,4 +41,4 @@ public:
     virtual void init();
 };
 
-#endif /* defined(__hifi__ParticleTreeHeadlessViewer__) */
+#endif // hifi_ParticleTreeHeadlessViewer_h

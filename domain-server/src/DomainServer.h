@@ -1,13 +1,16 @@
 //
 //  DomainServer.h
-//  hifi
+//  domain-server/src
 //
 //  Created by Stephen Birarda on 9/26/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__DomainServer__
-#define __hifi__DomainServer__
+#ifndef hifi_DomainServer_h
+#define hifi_DomainServer_h
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QHash>
@@ -92,4 +95,4 @@ private:
     QHash<HifiSockAddr, DTLSServerSession*> _dtlsSessions;
 };
 
-#endif /* defined(__hifi__DomainServer__) */
+#endif // hifi_DomainServer_h

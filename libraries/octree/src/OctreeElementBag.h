@@ -1,18 +1,21 @@
 //
 //  OctreeElementBag.h
-//  hifi
+//  libraries/octree/src
 //
-//  Created by Brad Hefta-Gaub on 4/25/2013
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Created by Brad Hefta-Gaub on 4/25/2013.
+//  Copyright 2013 High Fidelity, Inc.
 //
 //  This class is used by the VoxelTree:encodeTreeBitstream() functions to store extra nodes that need to be sent
 //  it's a generic bag style storage mechanism. But It has the property that you can't put the same node into the bag
 //  more than once (in other words, it de-dupes automatically), also, it supports collapsing it's several peer nodes
 //  into a parent node in cases where you add enough peers that it makes more sense to just add the parent.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
-#ifndef __hifi__OctreeElementBag__
-#define __hifi__OctreeElementBag__
+#ifndef hifi_OctreeElementBag_h
+#define hifi_OctreeElementBag_h
 
 #include "OctreeElement.h"
 
@@ -37,4 +40,4 @@ private:
     QSet<OctreeElement*> _bagElements;
 };
 
-#endif /* defined(__hifi__OctreeElementBag__) */
+#endif // hifi_OctreeElementBag_h

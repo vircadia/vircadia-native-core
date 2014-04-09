@@ -1,13 +1,16 @@
 //
-// Radix2IntegerScanner.h
-// hifi
+//  Radix2IntegerScanner.h
+//  libraries/shared/src
 //
-// Created by Tobias Schwinger on 3/23/13.
-// Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Created by Tobias Schwinger on 3/23/13.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__Radix2IntegerScanner__
-#define __hifi__Radix2IntegerScanner__
+#ifndef hifi_Radix2IntegerScanner_h
+#define hifi_Radix2IntegerScanner_h
 
 #include <stddef.h>
 #include <stdint.h>
@@ -82,5 +85,4 @@ class Radix2IntegerScanner< Int, true >
         bool bit(Int const& v, state_type const& s) const { return !!((v-valMsb) & s); }
 };
 
-#endif /* defined(__hifi__Radix2IntegerScanner__) */
-
+#endif // hifi_Radix2IntegerScanner_h

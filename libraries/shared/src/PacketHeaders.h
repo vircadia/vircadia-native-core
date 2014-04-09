@@ -1,13 +1,13 @@
 //
 //  PacketHeaders.h
-//  hifi
+//  libraries/shared/src
 //
 //  Created by Stephen Birarda on 4/8/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
-//  The packet headers below refer to the first byte of a received UDP packet transmitted between
-//  any two Hifi components.  For example, a packet whose first byte is 'P' is always a ping packet.
-//  
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 #ifndef hifi_PacketHeaders_h
 #define hifi_PacketHeaders_h
@@ -100,4 +100,4 @@ PacketType packetTypeForPacket(const char* packet);
 int arithmeticCodingValueFromBuffer(const char* checkValue);
 int numBytesArithmeticCodingFromBuffer(const char* checkValue);
 
-#endif
+#endif // hifi_PacketHeaders_h

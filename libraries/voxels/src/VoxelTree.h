@@ -1,13 +1,16 @@
 //
 //  VoxelTree.h
-//  hifi
+//  libraries/voxels/src
 //
 //  Created by Stephen Birarda on 3/13/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__VoxelTree__
-#define __hifi__VoxelTree__
+#ifndef hifi_VoxelTree_h
+#define hifi_VoxelTree_h
 
 #include <Octree.h>
 
@@ -54,4 +57,4 @@ private:
     void readCodeColorBufferToTreeRecursion(VoxelTreeElement* node, ReadCodeColorBufferToTreeArgs& args);
 };
 
-#endif /* defined(__hifi__VoxelTree__) */
+#endif // hifi_VoxelTree_h

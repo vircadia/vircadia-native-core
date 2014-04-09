@@ -1,13 +1,16 @@
 //
 //  DomainServerNodeData.h
-//  hifi
+//  domain-server/src
 //
 //  Created by Stephen Birarda on 2/6/2014.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__DomainServerNodeData__
-#define __hifi__DomainServerNodeData__
+#ifndef hifi_DomainServerNodeData_h
+#define hifi_DomainServerNodeData_h
 
 #include <QtCore/QHash>
 #include <QtCore/QUuid>
@@ -40,4 +43,4 @@ private:
     HifiSockAddr _sendingSockAddr;
 };
 
-#endif /* defined(__hifi__DomainServerNodeData__) */
+#endif // hifi_DomainServerNodeData_h

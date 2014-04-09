@@ -1,3 +1,6 @@
+#
+#  FindQxmpp.cmake
+# 
 #  Try to find the qxmpp library
 #
 #  You can provide a QXMPP_ROOT_DIR which contains lib and include directories
@@ -9,8 +12,11 @@
 #  QXMPP_LIBRARY - Link this to use qxmpp
 #
 #  Created on 3/10/2014 by Stephen Birarda
-#  Copyright (c) 2014 High Fidelity
+#  Copyright 2014 High Fidelity, Inc.
 #
+#  Distributed under the Apache License, Version 2.0.
+#  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+# 
 
 if (QXMPP_LIBRARIES AND QXMPP_INCLUDE_DIRS)
   # in cache already

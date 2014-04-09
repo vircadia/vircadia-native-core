@@ -1,8 +1,12 @@
 //
-//  OctreeProjectedPolygon.cpp - The projected shadow (on the 2D view plane) for a voxel
-//  hifi
+//  OctreeProjectedPolygon.cpp
+//  libraries/octree/src
 //
-//  Added by Brad Hefta-Gaub on 06/11/13.
+//  Created by Brad Hefta-Gaub on 06/11/13.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <algorithm>

@@ -1,13 +1,16 @@
 //
 //  EventTypes.h
-//  hifi
+//  libraries/script-engine/src
 //
 //  Created by Brad Hefta-Gaub on 1/28/14.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi_EventTypes_h__
-#define __hifi_EventTypes_h__
+#ifndef hifi_EventTypes_h
+#define hifi_EventTypes_h
 
 #include <glm/glm.hpp>
 
@@ -123,4 +126,4 @@ void touchEventFromScriptValue(const QScriptValue& object, TouchEvent& event);
 QScriptValue wheelEventToScriptValue(QScriptEngine* engine, const WheelEvent& event);
 void wheelEventFromScriptValue(const QScriptValue& object, WheelEvent& event);
 
-#endif // __hifi_EventTypes_h__
+#endif // hifi_EventTypes_h

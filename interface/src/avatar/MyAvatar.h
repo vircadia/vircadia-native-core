@@ -1,13 +1,16 @@
 //
 //  MyAvatar.h
-//  interface
+//  interface/src/avatar
 //
 //  Created by Mark Peng on 8/16/13.
-//  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
+//  Copyright 2012 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__myavatar__
-#define __interface__myavatar__
+#ifndef hifi_MyAvatar_h
+#define hifi_MyAvatar_h
 
 #include <QSettings>
 
@@ -140,4 +143,4 @@ private:
     void maybeUpdateBillboard();
 };
 
-#endif
+#endif // hifi_MyAvatar_h
