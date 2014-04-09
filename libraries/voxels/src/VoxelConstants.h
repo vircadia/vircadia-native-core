@@ -7,7 +7,6 @@
 //
 //  Various important constants used throughout the system related to voxels
 //
-//  
 
 #ifndef __hifi_VoxelConstants_h__
 #define __hifi_VoxelConstants_h__

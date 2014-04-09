@@ -13,8 +13,7 @@
 
 #include <glm/glm.hpp>
 
-class Plane  
-{
+class Plane {
 public:
 	Plane(const glm::vec3 &v1, const glm::vec3 &v2, const glm::vec3 &v3) { set3Points(v1,v2,v3); }
 	Plane() : _normal(0,0,0), _point(0,0,0), _dCoefficient(0) {};

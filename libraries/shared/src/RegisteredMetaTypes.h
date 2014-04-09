@@ -7,6 +7,7 @@
 //
 //  Used to register meta-types with Qt so that they can be used as properties for objects exposed to our
 //  Agent scripting.
+//
 
 #ifndef hifi_RegisteredMetaTypes_h
 #define hifi_RegisteredMetaTypes_h

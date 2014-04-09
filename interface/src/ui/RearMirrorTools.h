@@ -4,7 +4,7 @@
 //
 //  Created by stojce on 23.10.2013.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
-
+//
 
 #ifndef __hifi__RearMirrorTools__
 #define __hifi__RearMirrorTools__

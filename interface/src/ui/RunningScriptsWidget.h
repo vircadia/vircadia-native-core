@@ -4,6 +4,7 @@
 //
 //  Created by Mohammed Nafees on 03/28/2014.
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//
 
 #ifndef __hifi__RunningScriptsWidget__
 #define __hifi__RunningScriptsWidget__
