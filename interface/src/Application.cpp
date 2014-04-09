@@ -1342,6 +1342,12 @@ glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVox
         (mouseVoxel.z + mouseVoxel.s / 2.f) * TREE_SCALE);
 }
 
+FaceTracker* Application::getActiveFaceTracker() {
+    return _faceshift.isActive() ? static_cast<FaceTracker*>(&_faceshift) :
+        (_faceplus.isActive() ? static_cast<FaceTracker*>(&_faceplus) :
+            (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL));
+}
+
 struct SendVoxelsOperationArgs {
     const unsigned char*  newBaseOctCode;
 };
@@ -1561,7 +1567,8 @@ void Application::init() {
     }
     qDebug("Loaded settings");
 
-    // initialize Visage and Faceshift after loading the menu settings
+    // initialize our face trackers after loading the menu settings
+    _faceplus.init();
     _faceshift.init();
     _visage.init();
 
@@ -1682,6 +1689,15 @@ void Application::updateMouseRay() {
     _myAvatar->setMouseRay(_mouseRayOrigin, _mouseRayDirection);
 }
 
+void Application::updateFaceplus() {
+
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateFaceplus()");
+
+    //  Update faceplus
+    _faceplus.update();
+}
+
 void Application::updateFaceshift() {
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
@@ -1726,19 +1742,11 @@ void Application::updateMyAvatarLookAtPosition() {
             glm::distance(_mouseRayOrigin, _myAvatar->getHead()->calculateAverageEyePosition()));
         lookAtSpot = _mouseRayOrigin + _mouseRayDirection * qMax(minEyeDistance, distance);
     }
-    bool trackerActive = false;
-    float eyePitch, eyeYaw;
-    if (_faceshift.isActive()) {
-        eyePitch = _faceshift.getEstimatedEyePitch();
-        eyeYaw = _faceshift.getEstimatedEyeYaw();
-        trackerActive = true;
-
-    } else if (_visage.isActive()) {
-        eyePitch = _visage.getEstimatedEyePitch();
-        eyeYaw = _visage.getEstimatedEyeYaw();
-        trackerActive = true;
-    }
-    if (trackerActive) {
+    FaceTracker* tracker = getActiveFaceTracker();
+    if (tracker) {
+        float eyePitch = tracker->getEstimatedEyePitch();
+        float eyeYaw = tracker->getEstimatedEyeYaw();
+        
         // deflect using Faceshift gaze data
         glm::vec3 origin = _myAvatar->getHead()->calculateAverageEyePosition();
         float pitchSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? -1.0f : 1.0f;
@@ -1824,15 +1832,15 @@ void Application::updateCamera(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateCamera()");
 
-    if (!OculusManager::isConnected() && !TV3DManager::isConnected()) {
-        if (Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {
-            float xSign = _myCamera.getMode() == CAMERA_MODE_MIRROR ? 1.0f : -1.0f;
-            if (_faceshift.isActive()) {
-                const float EYE_OFFSET_SCALE = 0.025f;
-                glm::vec3 position = _faceshift.getHeadTranslation() * EYE_OFFSET_SCALE;
-                _myCamera.setEyeOffsetPosition(glm::vec3(position.x * xSign, position.y, -position.z));
-                updateProjectionMatrix();
-            }
+    if (!OculusManager::isConnected() && !TV3DManager::isConnected() &&
+            Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {   
+        FaceTracker* tracker = getActiveFaceTracker();
+        if (tracker) {
+            const float EYE_OFFSET_SCALE = 0.025f;
+            glm::vec3 position = tracker->getHeadTranslation() * EYE_OFFSET_SCALE;
+            float xSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? 1.0f : -1.0f;
+            _myCamera.setEyeOffsetPosition(glm::vec3(position.x * xSign, position.y, -position.z));
+            updateProjectionMatrix();
         }
     }
 }
@@ -1886,6 +1894,7 @@ void Application::update(float deltaTime) {
     // check what's under the mouse and update the mouse voxel
     updateMouseRay();
 
+    updateFaceplus();
     updateFaceshift();
     updateVisage();
     _myAvatar->updateLookAtTargetAvatar();
@@ -2936,6 +2945,7 @@ void Application::resetSensors() {
     _mouseX = _glWidget->width() / 2;
     _mouseY = _glWidget->height() / 2;
 
+    _faceplus.reset();
     _faceshift.reset();
     _visage.reset();
 

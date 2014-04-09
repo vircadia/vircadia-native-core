@@ -42,9 +42,7 @@ Faceshift::Faceshift() :
     _jawOpenIndex(21),
     _longTermAverageEyePitch(0.0f),
     _longTermAverageEyeYaw(0.0f),
-    _longTermAverageInitialized(false),
-    _estimatedEyePitch(0.0f),
-    _estimatedEyeYaw(0.0f)
+    _longTermAverageInitialized(false)
 {
     connect(&_tcpSocket, SIGNAL(connected()), SLOT(noteConnected()));
     connect(&_tcpSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(noteError(QAbstractSocket::SocketError)));

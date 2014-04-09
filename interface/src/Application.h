@@ -49,6 +49,7 @@
 #include "avatar/Avatar.h"
 #include "avatar/AvatarManager.h"
 #include "avatar/MyAvatar.h"
+#include "devices/Faceplus.h"
 #include "devices/Faceshift.h"
 #include "devices/SixenseManager.h"
 #include "devices/Visage.h"
@@ -173,8 +174,10 @@ public:
     bool isMouseHidden() const { return _mouseHidden; }
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
+    Faceplus* getFaceplus() { return &_faceplus; }
     Faceshift* getFaceshift() { return &_faceshift; }
     Visage* getVisage() { return &_visage; }
+    FaceTracker* getActiveFaceTracker();
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QUndoStack* getUndoStack() { return &_undoStack; }
@@ -313,6 +316,7 @@ private:
     // Various helper functions called during update()
     void updateLOD();
     void updateMouseRay();
+    void updateFaceplus();
     void updateFaceshift();
     void updateVisage();
     void updateMyAvatarLookAtPosition();
@@ -412,9 +416,10 @@ private:
     AvatarManager _avatarManager;
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
 
+    Faceplus _faceplus;
     Faceshift _faceshift;
     Visage _visage;
-
+    
     SixenseManager _sixenseManager;
 
     Camera _myCamera;                  // My view onto the world

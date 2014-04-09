@@ -34,9 +34,7 @@ const glm::vec3 DEFAULT_HEAD_ORIGIN(0.0f, 0.0f, 0.7f);
 Visage::Visage() :
     _enabled(false),
     _active(false),
-    _headOrigin(DEFAULT_HEAD_ORIGIN),
-    _estimatedEyePitch(0.0f),
-    _estimatedEyeYaw(0.0f) {
+    _headOrigin(DEFAULT_HEAD_ORIGIN) {
     
 #ifdef HAVE_VISAGE
     QByteArray licensePath = Application::resourcesPath().toLatin1() + "visage/license.vlc";
