@@ -1,6 +1,6 @@
 //
 //  ModelUploader.h
-//  libraries/shared/src
+//  interface/src
 //
 //  Created by Clément Brisset on 3/4/14.
 //  Copyright 2014 High Fidelity, Inc.
