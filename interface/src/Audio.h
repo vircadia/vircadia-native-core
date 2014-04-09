@@ -69,7 +69,7 @@ public:
     void init(QGLWidget *parent = 0);
     bool mousePressEvent(int x, int y);
     
-    void renderMuteIcon(int x, int y);
+    void renderToolBox(int x, int y, bool boxed);
     
     int getNetworkSampleRate() { return SAMPLE_RATE; }
     int getNetworkBufferLengthSamplesPerChannel() { return NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; }
@@ -161,6 +161,7 @@ private:
     bool _localEcho;
     GLuint _micTextureId;
     GLuint _muteTextureId;
+    GLuint _boxTextureId;
     QRect _iconBounds;
     
     // Audio callback in class context.

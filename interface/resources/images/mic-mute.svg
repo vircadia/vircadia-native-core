@@ -23,13 +23,8 @@
    sodipodi:docname="mic-mute.svg"><metadata
    id="metadata27"><rdf:RDF><cc:Work
        rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
-         rdf:resource="http://purl.org/dc/dcmitype/StillImage" /><dc:title></dc:title></cc:Work></rdf:RDF></metadata><defs
-   id="defs25">
-	
-
-		
-		
-	</defs><sodipodi:namedview
+         rdf:resource="http://purl.org/dc/dcmitype/StillImage" /></cc:Work></rdf:RDF></metadata><defs
+   id="defs25" /><sodipodi:namedview
    pagecolor="#ffffff"
    bordercolor="#666666"
    borderopacity="1"
@@ -43,7 +38,7 @@
    id="namedview23"
    showgrid="false"
    inkscape:zoom="11.866667"
-   inkscape:cx="7.5842701"
+   inkscape:cx="22.5"
    inkscape:cy="22.5"
    inkscape:window-x="0"
    inkscape:window-y="0"
@@ -57,12 +52,27 @@
      orientation="0,1"
      position="1.9382022,22.41573"
      id="guide2997" /></sodipodi:namedview>
-<path
+<g
+   id="Layer_3"
+   transform="matrix(1.0539137,0,0,1.0513476,-0.63340535,-1.2603481)">
+	<g
+   id="Layer_2">
+		<path
    stroke-miterlimit="10"
-   d="m 43.947144,22.500108 c 0,11.669958 -9.590615,21.342356 -21.499839,21.447491 -11.803834,0 -21.3944484,-9.567263 -21.3944484,-21.447491 0,-11.880228 9.5906144,-21.4474914 21.3944484,-21.4474914 11.803833,0 21.499839,9.6723984 21.499839,21.4474914 z"
+   d="M 42.3,22.6 C 42.3,33.7 33.2,42.9 21.9,43 10.7,43 1.6,33.9 1.6,22.6 1.6,11.3 10.7,2.2 21.9,2.2 c 11.2,0 20.4,9.2 20.4,20.4 z"
    id="path6"
    inkscape:connector-curvature="0"
-   style="fill:#ffffff;stroke:#000000;stroke-width:2.10525966000000020;stroke-miterlimit:10;fill-opacity:1" />
+   style="fill:#ff0000;stroke:#000000;stroke-width:2;stroke-miterlimit:10" />
+		<line
+   stroke-miterlimit="10"
+   x1="8.1000004"
+   y1="7.6999998"
+   x2="36.799999"
+   y2="36.400002"
+   id="line8"
+   style="fill:#ff0000;stroke:#000000;stroke-width:2;stroke-miterlimit:10" />
+	</g>
+</g>
 <g
    id="Layer_1"
    transform="translate(0.75280932,-0.01573)">
