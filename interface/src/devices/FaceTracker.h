@@ -1,13 +1,16 @@
 //
 //  FaceTracker.h
-//  interface
+//  interface/src/devices
 //
-//  Created by Andrzej Kapolka on 4/8/14.
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Created by Andrzej Kapolka on 4/9/14.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__FaceTracker__
-#define __interface__FaceTracker__
+#ifndef hifi_FaceTracker_h
+#define hifi_FaceTracker_h
 
 #include <QObject>
 #include <QVector>
@@ -40,4 +43,4 @@ protected:
     QVector<float> _blendshapeCoefficients;
 };
 
-#endif /* defined(__interface__FaceTracker__) */
+#endif // hifi_FaceTracker_h

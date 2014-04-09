@@ -1,13 +1,16 @@
 //
 //  Faceplus.h
-//  interface
+//  interface/src/devices
 //
-//  Created by Andrzej Kapolka on 4/8/14.
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Created by Andrzej Kapolka on 4/9/14.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Faceplus__
-#define __interface__Faceplus__
+#ifndef hifi_Faceplus_h
+#define hifi_Faceplus_h
 
 #include <QMultiHash>
 #include <QPair>
@@ -73,4 +76,4 @@ private:
 #endif
 };
 
-#endif /* defined(__interface__Faceplus__) */
+#endif // hifi_Faceplus_h
