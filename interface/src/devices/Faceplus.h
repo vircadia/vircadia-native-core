@@ -55,7 +55,7 @@ class FaceplusReader : public QObject {
 
 public:
     
-	virtual ~FaceplusReader();
+    virtual ~FaceplusReader();
 
     Q_INVOKABLE void init();
     Q_INVOKABLE void shutdown();

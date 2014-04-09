@@ -1570,7 +1570,7 @@ void Application::init() {
     // initialize our face trackers after loading the menu settings
     _faceshift.init();
     _faceplus.init();
-	_visage.init();
+    _visage.init();
 
     // fire off an immediate domain-server check in now that settings are loaded
     NodeList::getInstance()->sendDomainServerCheckIn();
