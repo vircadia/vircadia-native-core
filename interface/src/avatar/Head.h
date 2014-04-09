@@ -37,7 +37,7 @@ public:
     void init();
     void reset();
     void simulate(float deltaTime, bool isMine, bool billboard = false);
-    void render(float alpha, bool forShadowMap);
+    void render(float alpha, Model::RenderMode mode);
     void setScale(float scale);
     void setPosition(glm::vec3 position) { _position = position; }
     void setGravity(glm::vec3 gravity) { _gravity = gravity; }

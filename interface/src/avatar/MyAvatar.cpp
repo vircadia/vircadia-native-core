@@ -649,14 +649,16 @@ void MyAvatar::renderBody(RenderMode renderMode) {
     }
     
     //  Render the body's voxels and head
-    _skeletonModel.render(1.0f, renderMode == SHADOW_RENDER_MODE);
+    Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
+        Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+    _skeletonModel.render(1.0f, modelRenderMode);
 
     //  Render head so long as the camera isn't inside it
     const float RENDER_HEAD_CUTOFF_DISTANCE = 0.40f;
     Camera* myCamera = Application::getInstance()->getCamera();
     if (renderMode != NORMAL_RENDER_MODE || (glm::length(myCamera->getPosition() - getHead()->calculateAverageEyePosition()) >
             RENDER_HEAD_CUTOFF_DISTANCE * _scale)) {
-        getHead()->render(1.0f, renderMode == SHADOW_RENDER_MODE);
+        getHead()->render(1.0f, modelRenderMode);
     }
     getHand()->render(true);
 }

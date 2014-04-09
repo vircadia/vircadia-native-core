@@ -69,13 +69,13 @@ SharedObjectPointer MetavoxelSystem::findFirstRaySpannerIntersection(
     return closestSpanner;
 }
 
-void MetavoxelSystem::applyEdit(const MetavoxelEditMessage& edit) {
+void MetavoxelSystem::applyEdit(const MetavoxelEditMessage& edit, bool reliable) {
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
             if (client) {
-                client->applyEdit(edit);
+                client->applyEdit(edit, reliable);
             }
         }
     }
@@ -228,7 +228,7 @@ MetavoxelSystem::RenderVisitor::RenderVisitor() :
 }
 
 bool MetavoxelSystem::RenderVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) {
-    spanner->getRenderer()->render(1.0f, clipMinimum, clipSize);
+    spanner->getRenderer()->render(1.0f, SpannerRenderer::DEFAULT_MODE, clipMinimum, clipSize);
     return true;
 }
 
@@ -267,12 +267,17 @@ void MetavoxelClient::guide(MetavoxelVisitor& visitor) {
     _data.guide(visitor);
 }
 
-void MetavoxelClient::applyEdit(const MetavoxelEditMessage& edit) {
-    // apply immediately to local tree
-    edit.apply(_data, _sequencer.getWeakSharedObjectHash());
+void MetavoxelClient::applyEdit(const MetavoxelEditMessage& edit, bool reliable) {
+    if (reliable) {
+        _sequencer.getReliableOutputChannel()->sendMessage(QVariant::fromValue(edit));
+    
+    } else {
+        // apply immediately to local tree
+        edit.apply(_data, _sequencer.getWeakSharedObjectHash());
 
-    // start sending it out
-    _sequencer.sendHighPriorityMessage(QVariant::fromValue(edit));
+        // start sending it out
+        _sequencer.sendHighPriorityMessage(QVariant::fromValue(edit));
+    }
 }
 
 void MetavoxelClient::simulate(float deltaTime) {
@@ -290,11 +295,13 @@ void MetavoxelClient::simulate(float deltaTime) {
 int MetavoxelClient::parseData(const QByteArray& packet) {
     // process through sequencer
     QMetaObject::invokeMethod(&_sequencer, "receivedDatagram", Q_ARG(const QByteArray&, packet));
+    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::METAVOXELS).updateValue(packet.size());
     return packet.size();
 }
 
 void MetavoxelClient::sendData(const QByteArray& data) {
     NodeList::getInstance()->writeDatagram(data, _node);
+    Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::METAVOXELS).updateValue(data.size());
 }
 
 void MetavoxelClient::readPacket(Bitstream& in) {
@@ -340,9 +347,9 @@ static void enableClipPlane(GLenum plane, float x, float y, float z, float w) {
     glEnable(plane);
 }
 
-void ClippedRenderer::render(float alpha, const glm::vec3& clipMinimum, float clipSize) {
+void ClippedRenderer::render(float alpha, Mode mode, const glm::vec3& clipMinimum, float clipSize) {
     if (clipSize == 0.0f) {
-        renderUnclipped(alpha);
+        renderUnclipped(alpha, mode);
         return;
     }
     enableClipPlane(GL_CLIP_PLANE0, -1.0f, 0.0f, 0.0f, clipMinimum.x + clipSize);
@@ -352,7 +359,7 @@ void ClippedRenderer::render(float alpha, const glm::vec3& clipMinimum, float cl
     enableClipPlane(GL_CLIP_PLANE4, 0.0f, 0.0f, -1.0f, clipMinimum.z + clipSize);
     enableClipPlane(GL_CLIP_PLANE5, 0.0f, 0.0f, 1.0f, -clipMinimum.z);
     
-    renderUnclipped(alpha);
+    renderUnclipped(alpha, mode);
     
     glDisable(GL_CLIP_PLANE0);
     glDisable(GL_CLIP_PLANE1);
@@ -365,9 +372,9 @@ void ClippedRenderer::render(float alpha, const glm::vec3& clipMinimum, float cl
 SphereRenderer::SphereRenderer() {
 }
 
-void SphereRenderer::render(float alpha, const glm::vec3& clipMinimum, float clipSize) {
+void SphereRenderer::render(float alpha, Mode mode, const glm::vec3& clipMinimum, float clipSize) {
     if (clipSize == 0.0f) {
-        renderUnclipped(alpha);
+        renderUnclipped(alpha, mode);
         return;
     }
     // slight performance optimization: don't render if clip bounds are entirely within sphere
@@ -376,13 +383,13 @@ void SphereRenderer::render(float alpha, const glm::vec3& clipMinimum, float cli
     for (int i = 0; i < Box::VERTEX_COUNT; i++) {
         const float CLIP_PROPORTION = 0.95f;
         if (glm::distance(sphere->getTranslation(), clipBox.getVertex(i)) >= sphere->getScale() * CLIP_PROPORTION) {
-            ClippedRenderer::render(alpha, clipMinimum, clipSize);
+            ClippedRenderer::render(alpha, mode, clipMinimum, clipSize);
             return;
         }
     }
 }
 
-void SphereRenderer::renderUnclipped(float alpha) {
+void SphereRenderer::renderUnclipped(float alpha, Mode mode) {
     Sphere* sphere = static_cast<Sphere*>(parent());
     const QColor& color = sphere->getColor();
     glColor4f(color.redF(), color.greenF(), color.blueF(), color.alphaF() * alpha);
@@ -390,7 +397,7 @@ void SphereRenderer::renderUnclipped(float alpha) {
     glPushMatrix();
     const glm::vec3& translation = sphere->getTranslation();
     glTranslatef(translation.x, translation.y, translation.z);
-    glm::quat rotation = glm::quat(glm::radians(sphere->getRotation()));
+    glm::quat rotation = sphere->getRotation();
     glm::vec3 axis = glm::axis(rotation);
     glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
     
@@ -413,7 +420,7 @@ void StaticModelRenderer::init(Spanner* spanner) {
     applyURL(staticModel->getURL());
     
     connect(spanner, SIGNAL(translationChanged(const glm::vec3&)), SLOT(applyTranslation(const glm::vec3&)));
-    connect(spanner, SIGNAL(rotationChanged(const glm::vec3&)), SLOT(applyRotation(const glm::vec3&)));
+    connect(spanner, SIGNAL(rotationChanged(const glm::quat&)), SLOT(applyRotation(const glm::quat&)));
     connect(spanner, SIGNAL(scaleChanged(float)), SLOT(applyScale(float)));
     connect(spanner, SIGNAL(urlChanged(const QUrl&)), SLOT(applyURL(const QUrl&)));
 }
@@ -430,7 +437,20 @@ void StaticModelRenderer::simulate(float deltaTime) {
     _model->simulate(deltaTime);
 }
 
-void StaticModelRenderer::renderUnclipped(float alpha) {
+void StaticModelRenderer::renderUnclipped(float alpha, Mode mode) {
+    switch (mode) {
+        case DIFFUSE_MODE:
+            _model->render(alpha, Model::DIFFUSE_RENDER_MODE);
+            break;
+            
+        case NORMAL_MODE:
+            _model->render(alpha, Model::NORMAL_RENDER_MODE);
+            break;
+            
+        default:
+            _model->render(alpha);
+            break;
+    }
     _model->render(alpha);
 }
 
@@ -443,8 +463,8 @@ void StaticModelRenderer::applyTranslation(const glm::vec3& translation) {
     _model->setTranslation(translation);
 }
 
-void StaticModelRenderer::applyRotation(const glm::vec3& rotation) {
-    _model->setRotation(glm::quat(glm::radians(rotation)));
+void StaticModelRenderer::applyRotation(const glm::quat& rotation) {
+    _model->setRotation(rotation);
 }
 
 void StaticModelRenderer::applyScale(float scale) {

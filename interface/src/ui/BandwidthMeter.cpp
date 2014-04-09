@@ -42,7 +42,8 @@ namespace { // .cpp-local
 BandwidthMeter::ChannelInfo BandwidthMeter::_CHANNELS[] = {
     { "Audio"   , "Kbps", 8000.0 / 1024.0, 0x33cc99ff },
     { "Avatars" , "Kbps", 8000.0 / 1024.0, 0xffef40c0 },
-    { "Voxels"  , "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0 }
+    { "Voxels"  , "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0 },
+    { "Metavoxels", "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0 }
 };
 
 BandwidthMeter::BandwidthMeter() :
