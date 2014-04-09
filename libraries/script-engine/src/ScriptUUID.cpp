@@ -1,9 +1,14 @@
 //
-//  ScriptUUID.h
-//  hifi
+//  ScriptUUID.cpp
+//  libraries/script-engine/src/
 //
-//  Created by Andrew Meadows on 2014.04.07
+//  Created by Andrew Meadows on 2014-04-07
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//
+// Scriptable interface for a UUID helper class object. Used exclusively in the JavaScript API
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <QDebug>
