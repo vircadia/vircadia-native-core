@@ -30,10 +30,6 @@ PreferencesDialog::PreferencesDialog(QWidget* parent, Qt::WindowFlags flags) : F
     connect(ui.buttonBrowseBody, &QPushButton::clicked, this, &PreferencesDialog::openBodyModelBrowser);
 }
 
-PreferencesDialog::~PreferencesDialog() {
-    deleteLater();
-}
-
 void PreferencesDialog::accept() {
     savePreferences();
     close();

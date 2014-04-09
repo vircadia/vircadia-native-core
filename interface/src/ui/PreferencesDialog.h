@@ -22,7 +22,6 @@ class PreferencesDialog : public FramelessDialog {
     
 public:
     PreferencesDialog(QWidget* parent = 0, Qt::WindowFlags flags = 0);
-    ~PreferencesDialog();
 
 protected:
     void resizeEvent(QResizeEvent* resizeEvent);
