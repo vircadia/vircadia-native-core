@@ -9,6 +9,38 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <iostream>
+#include <cstring>
+#include <time.h>
+#include <math.h>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/noise.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <glm/detail/func_common.hpp>
+
+#include <SharedUtil.h>
+
+#include "InterfaceConfig.h"
+#include "ui/TextRenderer.h"
+#include "VoxelConstants.h"
+#include "world.h"
+
+#include "Util.h"
+
+using namespace std;
+
+// no clue which versions are affected...
+#define WORKAROUND_BROKEN_GLUT_STROKES
+// see http://www.opengl.org/resources/libraries/glut/spec3/node78.html
+
+void eulerToOrthonormals(glm::vec3 * angles, glm::vec3 * front, glm::vec3 * right, glm::vec3 * up) {
+    //
+    //  Converts from three euler angles to the associated orthonormal vectors
+    //
+    //  Angles contains (pitch, yaw, roll) in radians
+    //
+
     //  First, create the quaternion associated with these euler angles
     glm::quat q(glm::vec3(angles->x, -(angles->y), angles->z));
 
