@@ -1,44 +1,12 @@
 //
-//  CoverageMap.cpp - 
-//  hifi
+//  CoverageMap.cpp
+//  libraries/octree/src
 //
-//  Added by Brad Hefta-Gaub on 06/11/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Created by Brad Hefta-Gaub on 06/11/13.
+//  Copyright 2013 High Fidelity, Inc.
 //
-
-#include <cstring>
-
-#include <QtCore/QDebug>
-
-#include <SharedUtil.h>
-
-#include "CoverageMap.h"
-
-int CoverageMap::_mapCount = 0;
-int CoverageMap::_checkMapRootCalls = 0;
-int CoverageMap::_notAllInView = 0;
-bool CoverageMap::wantDebugging = false;
-
-const int MAX_POLYGONS_PER_REGION = 50;
-
-const BoundingBox CoverageMap::ROOT_BOUNDING_BOX = BoundingBox(glm::vec2(-1.f,-1.f), glm::vec2(2.f,2.f));
-
-// Coverage Map's polygon coordinates are from -1 to 1 in the following mapping to screen space.
-//
-//         (0,0)                   (windowWidth, 0)
-//         -1,1                    1,1
-//           +-----------------------+ 
-//           |           |           |
-//           |           |           |
-//           | -1,0      |           |
-//           |-----------+-----------|
-//           |          0,0          |
-//           |           |           |
-//           |           |           |
-//           |           |           |
-//           +-----------------------+
-//           -1,-1                  1,-1
-// (0,windowHeight)                (windowWidth,windowHeight)
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 // Choosing a minimum sized polygon. Since we know a typical window is approximately 1500 pixels wide

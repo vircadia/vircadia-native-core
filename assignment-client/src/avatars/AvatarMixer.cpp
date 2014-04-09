@@ -1,14 +1,12 @@
 //
 //  AvatarMixer.cpp
-//  hifi
+//  assignment-client/src/avatars
 //
 //  Created by Stephen Birarda on 9/5/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
-//  Original avatar-mixer main created by Leonardo Murillo on 03/25/13.
-//
-//  The avatar mixer receives head, hand and positional data from all connected
-//  nodes, and broadcasts that data back to them, every BROADCAST_INTERVAL ms.
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <QtCore/QCoreApplication>
