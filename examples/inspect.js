@@ -1,6 +1,6 @@
 //
 //  inspect.js
-// examples
+//  examples
 //
 //  Created by Clément Brisset on March 20, 2014
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.

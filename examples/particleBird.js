@@ -1,6 +1,6 @@
 //
 //  particleBird.js 
-// examples
+//  examples
 //
 //  This sample script moves a voxel around like a bird and sometimes makes tweeting noises 
 //

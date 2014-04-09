@@ -1,6 +1,6 @@
 //
 //  rayPickExample.js
-// examples
+//  examples
 //
 //  Created by Brad Hefta-Gaub on 2/6/14.
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
