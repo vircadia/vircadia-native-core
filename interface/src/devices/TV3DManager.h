@@ -1,9 +1,12 @@
 //
 //  TV3DManager.h
-//  hifi
+//  interface/src/devices
 //
-//  Created by Brad Hefta-Gaub on 12/24/2013
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Created by Brad Hefta-Gaub on 12/24/2013.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #ifndef __hifi__TV3DManager__

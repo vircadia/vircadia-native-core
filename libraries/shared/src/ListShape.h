@@ -1,10 +1,12 @@
 //
 //  ListShape.h
+//  libraries/shared/src
 //
-//  ListShape: A collection of shapes, each with a local transform.
+//  Created by Andrew Meadows on 2014.
+//  Copyright 2014 High Fidelity, Inc.
 //
-//  Created by Andrew Meadows on 2014.02.20
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #ifndef __hifi__ListShape__

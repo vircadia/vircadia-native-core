@@ -1,10 +1,12 @@
-/// 
-///    @file PrimitiveRenderer.h
-///    A geometric primitive renderer.
-///
-///    @author: Norman Crafts
-///    @copyright 2014, High Fidelity, Inc. All rights reserved.
-///
+//
+//  PrimitiveRenderer.h
+//  interface/src/voxels
+//
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 #ifndef __interface__PrimitiveRenderer__
 #define __interface__PrimitiveRenderer__

@@ -1,9 +1,12 @@
 //
-//  Balls.h
-//  hifi
+//  Physics.h
+//  interface/src
 //
 //  Created by Philip on 4/25/13.
+//  Copyright 2013 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #ifndef hifi_Physics_h

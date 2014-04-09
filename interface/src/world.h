@@ -1,9 +1,12 @@
 //
 //  world.h
-//  interface
+//  interface/src
 //
 //  Created by Philip Rosedale on 8/23/12.
-//  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
+//  Copyright 2012 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #ifndef __interface__world__

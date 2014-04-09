@@ -1,13 +1,12 @@
 //
 //  HTTPConnection.h
-//  hifi
+//  libraries/embedded-webserver/src
 //
 //  Created by Stephen Birarda on 1/16/14.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
 //
-//  Heavily based on Andrzej Kapolka's original HTTPConnection class
-//  found from another one of his projects.
-//  https://github.com/ey6es/witgap/tree/master/src/cpp/server/http
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #ifndef __hifi__HTTPConnection__
