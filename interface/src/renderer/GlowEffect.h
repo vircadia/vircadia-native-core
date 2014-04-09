@@ -1,13 +1,16 @@
 //
 //  GlowEffect.h
-//  interface
+//  interface/src/renderer
 //
 //  Created by Andrzej Kapolka on 8/7/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__GlowEffect__
-#define __interface__GlowEffect__
+#ifndef hifi_GlowEffect_h
+#define hifi_GlowEffect_h
 
 #include <QObject>
 #include <QStack>
@@ -80,4 +83,4 @@ public:
     ~Glower();
 };
 
-#endif /* defined(__interface__GlowEffect__) */
+#endif // hifi_GlowEffect_h

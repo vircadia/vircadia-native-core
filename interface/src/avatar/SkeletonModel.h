@@ -1,13 +1,16 @@
 //
 //  SkeletonModel.h
-//  interface
+//  interface/src/avatar
 //
 //  Created by Andrzej Kapolka on 10/17/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__SkeletonModel__
-#define __interface__SkeletonModel__
+#ifndef hifi_SkeletonModel_h
+#define hifi_SkeletonModel_h
 
 #include "renderer/Model.h"
 
@@ -47,4 +50,4 @@ private:
     Avatar* _owningAvatar;
 };
 
-#endif /* defined(__interface__SkeletonModel__) */
+#endif // hifi_SkeletonModel_h

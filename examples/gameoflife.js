@@ -1,6 +1,14 @@
-// Add your JavaScript for assignment below this line 
-
-// The following is an example of Conway's Game of Life (http://en.wikipedia.org/wiki/Conway's_Game_of_Life)
+//
+//  gameoflife.js
+//  examples
+//
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  The following is an example of Conway's Game of Life (http://en.wikipedia.org/wiki/Conway's_Game_of_Life)
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 var NUMBER_OF_CELLS_EACH_DIMENSION = 64;
 var NUMBER_OF_CELLS = NUMBER_OF_CELLS_EACH_DIMENSION * NUMBER_OF_CELLS_EACH_DIMENSION;

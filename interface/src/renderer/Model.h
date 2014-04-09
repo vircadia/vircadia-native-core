@@ -1,13 +1,16 @@
 //
 //  Model.h
-//  interface
+//  interface/src/renderer
 //
 //  Created by Andrzej Kapolka on 10/18/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Model__
-#define __interface__Model__
+#ifndef hifi_Model_h
+#define hifi_Model_h
 
 #include <QObject>
 #include <QUrl>
@@ -306,4 +309,4 @@ Q_DECLARE_METATYPE(QPointer<Model>)
 Q_DECLARE_METATYPE(QWeakPointer<NetworkGeometry>)
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
 
-#endif /* defined(__interface__Model__) */
+#endif // hifi_Model_h

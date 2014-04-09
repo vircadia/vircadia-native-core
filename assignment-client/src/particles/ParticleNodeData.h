@@ -1,14 +1,16 @@
 //
 //  ParticleNodeData.h
-//  hifi
+//  assignment-client/src/particles
 //
-//  Created by Brad Hefta-Gaub on 12/4/13
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Created by Brad Hefta-Gaub on 12/4/13.
+//  Copyright 2013 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__ParticleNodeData__
-#define __hifi__ParticleNodeData__
+#ifndef hifi_ParticleNodeData_h
+#define hifi_ParticleNodeData_h
 
 #include <PacketHeaders.h>
 
@@ -29,4 +31,4 @@ private:
     quint64 _lastDeletedParticlesSentAt;
 };
 
-#endif /* defined(__hifi__ParticleNodeData__) */
+#endif // hifi_ParticleNodeData_h
