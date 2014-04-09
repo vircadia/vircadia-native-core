@@ -306,7 +306,6 @@ bool ModelUploader::addTextures(const QString& texdir, const QString fbxFile) {
 }
 
 bool ModelUploader::addPart(const QString &path, const QString& name) {
-    qDebug() << path;
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
         QMessageBox::warning(NULL,
