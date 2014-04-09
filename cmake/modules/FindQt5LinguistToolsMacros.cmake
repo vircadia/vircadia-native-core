@@ -30,8 +30,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #=============================================================================
 
-
-
 function(QT5_CREATE_TRANSLATION_CUSTOM _qm_files)
     set(options)
     set(oneValueArgs)

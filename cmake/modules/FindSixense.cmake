@@ -1,3 +1,6 @@
+# 
+#  FindSixense.cmake 
+# 
 #  Try to find the Sixense controller library
 #
 #  You must provide a SIXENSE_ROOT_DIR which contains lib and include directories
@@ -11,6 +14,9 @@
 #  Created on 11/15/2013 by Andrzej Kapolka
 #  Copyright (c) 2013 High Fidelity
 #
+#  Distributed under the Apache License, Version 2.0.
+#  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+# 
 
 if (SIXENSE_LIBRARIES AND SIXENSE_INCLUDE_DIRS)
   # in cache already

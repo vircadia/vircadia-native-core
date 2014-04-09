@@ -1,16 +1,21 @@
 #
-# Try to find GLEW library and include path.
-# Once done this will define
-#
-# GLEW_FOUND
-# GLEW_INCLUDE_DIRS
-# GLEW_LIBRARY
+#  FindGLEW.cmake
 # 
-
+#  Try to find GLEW library and include path.
+#  Once done this will define
+#
+#  GLEW_FOUND
+#  GLEW_INCLUDE_DIRS
+#  GLEW_LIBRARY
+# 
 #  Created on 2/6/2014 by Stephen Birarda
 #
-# Adapted from FindGLEW.cmake available in the nvidia-texture-tools repository
+#  Adapted from FindGLEW.cmake available in the nvidia-texture-tools repository
 # (https://code.google.com/p/nvidia-texture-tools/source/browse/trunk/cmake/FindGLEW.cmake?r=96)
+# 
+#  Distributed under the Apache License, Version 2.0.
+#  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+# 
 
 if (GLEW_INCLUDE_DIRS AND GLEW_LIBRARY)
   set(GLEW_FOUND TRUE)

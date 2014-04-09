@@ -9,5 +9,3 @@ macro(AUTO_MTC TARGET ROOT_DIR)
   
   add_custom_command(OUTPUT ${AUTOMTC_SRC} COMMAND mtc -o ${AUTOMTC_SRC} ${INCLUDE_FILES} DEPENDS mtc ${INCLUDE_FILES})
 endmacro()
-
-

@@ -1,3 +1,6 @@
+# 
+#  FindVisage.cmake
+# 
 #  Try to find the Visage controller library
 #
 #  You must provide a VISAGE_ROOT_DIR which contains lib and include directories
@@ -11,6 +14,9 @@
 #  Created on 2/11/2014 by Andrzej Kapolka
 #  Copyright (c) 2014 High Fidelity
 #
+#  Distributed under the Apache License, Version 2.0.
+#  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+# 
 
 if (VISAGE_LIBRARIES AND VISAGE_INCLUDE_DIRS)
   # in cache already

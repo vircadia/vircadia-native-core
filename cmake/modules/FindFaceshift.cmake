@@ -1,3 +1,6 @@
+# 
+#  FindFaceshift.cmake
+# 
 #  Try to find the Faceshift networking library
 #
 #  You must provide a FACESHIFT_ROOT_DIR which contains lib and include directories
@@ -11,6 +14,9 @@
 #  Created on 8/30/2013 by Andrzej Kapolka
 #  Copyright (c) 2013 High Fidelity
 #
+#  Distributed under the Apache License, Version 2.0.
+#  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+# 
 
 if (FACESHIFT_LIBRARIES AND FACESHIFT_INCLUDE_DIRS)
   # in cache already
