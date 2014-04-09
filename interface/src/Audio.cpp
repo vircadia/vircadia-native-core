@@ -98,7 +98,8 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
 
 void Audio::init(QGLWidget *parent) {
     _micTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/mic.svg"));
-    _muteTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/mute.svg"));
+    _muteTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/mic-mute.svg"));
+    _boxTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/audio-box.svg"));
 }
 
 void Audio::reset() {
@@ -861,13 +862,52 @@ void Audio::handleAudioByteArray(const QByteArray& audioByteArray) {
     // or send to the mixer and use delayed loopback
 }
 
-void Audio::renderMuteIcon(int x, int y) {
+void Audio::renderToolBox(int x, int y, bool boxed) {
 
-    _iconBounds = QRect(x, y, MUTE_ICON_SIZE, MUTE_ICON_SIZE);
     glEnable(GL_TEXTURE_2D);
 
-    glBindTexture(GL_TEXTURE_2D, _micTextureId);
-    glColor3f(.93f, .93f, .93f);
+    if (boxed) {
+
+        bool isClipping = ((getTimeSinceLastClip() > 0.f) && (getTimeSinceLastClip() < 1.f));
+        const int BOX_LEFT_PADDING = 5;
+        const int BOX_TOP_PADDING = 10;
+        const int BOX_WIDTH = 266;
+        const int BOX_HEIGHT = 44;
+
+        QRect boxBounds = QRect(x - BOX_LEFT_PADDING, y - BOX_TOP_PADDING, BOX_WIDTH, BOX_HEIGHT);
+
+        glBindTexture(GL_TEXTURE_2D, _boxTextureId);
+
+        if (isClipping) {
+            glColor3f(1.f,0.f,0.f);
+        } else {
+            glColor3f(.41f,.41f,.41f);
+        }
+        glBegin(GL_QUADS);
+
+        glTexCoord2f(1, 1);
+        glVertex2f(boxBounds.left(), boxBounds.top());
+
+        glTexCoord2f(0, 1);
+        glVertex2f(boxBounds.right(), boxBounds.top());
+
+        glTexCoord2f(0, 0);
+        glVertex2f(boxBounds.right(), boxBounds.bottom());
+        
+        glTexCoord2f(1, 0);
+        glVertex2f(boxBounds.left(), boxBounds.bottom());
+        
+        glEnd();
+    }
+
+    _iconBounds = QRect(x, y, MUTE_ICON_SIZE, MUTE_ICON_SIZE);
+    if (!_muted) {
+        glBindTexture(GL_TEXTURE_2D, _micTextureId);
+    } else {
+        glBindTexture(GL_TEXTURE_2D, _muteTextureId);
+    }
+
+    glColor3f(1,1,1);
     glBegin(GL_QUADS);
 
     glTexCoord2f(1, 1);
@@ -883,25 +923,6 @@ void Audio::renderMuteIcon(int x, int y) {
     glVertex2f(_iconBounds.left(), _iconBounds.bottom());
 
     glEnd();
-
-    if (_muted) {
-        glBindTexture(GL_TEXTURE_2D, _muteTextureId);
-        glBegin(GL_QUADS);
-
-        glTexCoord2f(1, 1);
-        glVertex2f(_iconBounds.left(), _iconBounds.top());
-
-        glTexCoord2f(0, 1);
-        glVertex2f(_iconBounds.right(), _iconBounds.top());
-
-        glTexCoord2f(0, 0);
-        glVertex2f(_iconBounds.right(), _iconBounds.bottom());
-
-        glTexCoord2f(1, 0);
-        glVertex2f(_iconBounds.left(), _iconBounds.bottom());
-
-        glEnd();
-    }
 
     glDisable(GL_TEXTURE_2D);
 }
