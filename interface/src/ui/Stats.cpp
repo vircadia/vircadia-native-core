@@ -20,6 +20,8 @@
 #include "Menu.h"
 #include "Util.h"
 
+using namespace std;
+
 const int STATS_PELS_PER_LINE = 20;
 
 const int STATS_GENERAL_MIN_WIDTH = 165; 
@@ -287,7 +289,7 @@ void Stats::display(
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();
 
-    lines = _expanded ? 4 : 3;
+    lines = _expanded ? 5 : 3;
     drawBackground(backgroundColor, horizontalOffset, 0, _geoStatsWidth, lines * STATS_PELS_PER_LINE + 10);
     horizontalOffset += 5;
 
@@ -318,6 +320,16 @@ void Stats::display(
 
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, avatarMixerStats, color);
+        
+        stringstream downloads;
+        downloads << "Downloads: ";
+        foreach (Resource* resource, ResourceCache::getLoadingRequests()) {
+            downloads << (int)(resource->getProgress() * 100.0f) << "% ";
+        }
+        downloads << "(" << ResourceCache::getPendingRequestCount() << " pending)";
+        
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, downloads.str().c_str(), color);
     }
 
     verticalOffset = 0;
