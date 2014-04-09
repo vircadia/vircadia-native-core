@@ -3,7 +3,7 @@
 //  examples
 //
 //  Created by Brad Hefta-Gaub on 3/24/14
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 HighFidelity, Inc.
 //
 //  This is an example script that demonstrates use of the Script.include() feature
 //

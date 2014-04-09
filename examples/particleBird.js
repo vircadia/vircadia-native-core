@@ -2,6 +2,8 @@
 //  particleBird.js 
 //  examples
 //
+//  Copyright 2014 High Fidelity, Inc.
+//
 //  This sample script moves a voxel around like a bird and sometimes makes tweeting noises 
 //
 //  Distributed under the Apache License, Version 2.0.

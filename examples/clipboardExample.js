@@ -3,7 +3,7 @@
 //  examples
 //
 //  Created by Brad Hefta-Gaub on 1/28/14.
-//  Copyright 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 HighFidelity, Inc.
 //
 //  This is an example script that demonstrates use of the Clipboard class
 //

@@ -3,7 +3,7 @@
 //  examples
 //
 //  Created by Brad Hefta-Gaub on 3/4/14.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 HighFidelity, Inc. All rights reserved.
 //
 //  This is an example script that generates particles that act like flocking birds
 //
@@ -13,11 +13,15 @@
 //       go back to gliding
 //    birds don't like to be below a certain altitude
 //       if they are below that altitude they will keep thrusting up, until they get ove
-
+//
 // flocking
 //    try to align your velocity with velocity of other birds
 //    try to fly toward center of flock
 //    but dont get too close
+//
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 var birdsInFlock = 40;

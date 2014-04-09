@@ -3,7 +3,7 @@
 //  examples
 //
 //  Created by Brad Hefta-Gaub on 2/9/14.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 HighFidelity, Inc.
 //
 //  This is an example script that demonstrates use of the Controller class's multi-touch features
 //

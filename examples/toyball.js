@@ -3,7 +3,7 @@
 //  examples
 //
 //  Created by Brad Hefta-Gaub on 1/20/14.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  This is an example script that turns the hydra controllers into a toy ball catch and throw game.
 //  It reads the controller, watches for button presses and trigger pulls, and launches particles.

@@ -1,4 +1,8 @@
 //
+//  playSound.js
+//  examples
+//
+//  Copyright 2014 High Fidelity, Inc.
 //  This sample script loads a sound file and plays it at the 'fingertip' of the 
 //
 //  Distributed under the Apache License, Version 2.0.

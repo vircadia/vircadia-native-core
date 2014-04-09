@@ -3,7 +3,7 @@
 //  examples
 //
 //  Created by Brad Hefta-Gaub on 2/10/14.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 HighFidelity, Inc.
 //
 //  This is an example script that demonstrates use of the Controller and MyAvatar classes to implement
 //  avatar flying through the hydra/controller joysticks
