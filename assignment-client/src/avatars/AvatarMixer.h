@@ -5,6 +5,9 @@
 //  Created by Stephen Birarda on 9/5/13.
 //  Copyright 2013 High Fidelity, Inc.
 //
+//  The avatar mixer receives head, hand and positional data from all connected
+//  nodes, and broadcasts that data back to them, every BROADCAST_INTERVAL ms.
+//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //

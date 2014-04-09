@@ -2,7 +2,7 @@
 //  CollisionInfo.h
 //  libraries/shared/src
 //
-//  Created by Andrew Meadows on 2014.
+//  Created by Andrew Meadows on 02/14/2014.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.

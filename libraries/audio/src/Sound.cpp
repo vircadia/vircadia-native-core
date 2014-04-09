@@ -9,20 +9,162 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-struct chunk
+#include <stdint.h>
+
+#include <glm/glm.hpp>
+
+#include <QDataStream>
+#include <QtCore/QDebug>
+#include <QtNetwork/QNetworkAccessManager>
+#include <QtNetwork/QNetworkRequest>
+#include <QtNetwork/QNetworkReply>
+#include <qendian.h>
+
+#include <SharedUtil.h>
+
+#include "AudioRingBuffer.h"
+#include "Sound.h"
+
+// procedural audio version of Sound
+Sound::Sound(float volume, float frequency, float duration, float decay, QObject* parent) :
+    QObject(parent)
 {
+    static char monoAudioData[MAX_PACKET_SIZE];
+    static int16_t* monoAudioSamples = (int16_t*)(monoAudioData);
+
+    float t;
+    const float AUDIO_CALLBACK_MSECS = (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float)SAMPLE_RATE * 1000.0;
+    const float MAX_VOLUME = 32000.f;
+    const float MAX_DURATION = 2.f;
+    const float MIN_AUDIBLE_VOLUME = 0.001f;
+    const float NOISE_MAGNITUDE = 0.02f;
+    const int MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
+    const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
+    int numSamples = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; // we add sounds in chunks of this many samples
+    
+    int chunkStartingSample = 0;
+    float waveFrequency = (frequency / SAMPLE_RATE) * TWO_PI;
+    while (volume > 0.f) {
+        for (int i = 0; i < numSamples; i++) {
+            t = (float)chunkStartingSample + (float)i;
+            float sample = sinf(t * waveFrequency);
+            sample += ((randFloat() - 0.5f) * NOISE_MAGNITUDE);
+            sample *= volume * MAX_VOLUME;
+
+            monoAudioSamples[i] = glm::clamp((int)sample, MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+            volume *= (1.f - decay);
+        }
+        // add the monoAudioSamples to our actual output Byte Array
+        _byteArray.append(monoAudioData, numSamples * sizeof(int16_t));
+        chunkStartingSample += numSamples;
+        duration = glm::clamp(duration - (AUDIO_CALLBACK_MSECS / 1000.f), 0.f, MAX_DURATION);
+        //qDebug() << "decaying... _duration=" << _duration;
+        if (duration == 0.f || (volume < MIN_AUDIBLE_VOLUME)) {
+            volume = 0.f;
+        }
+    }
+}
+
+Sound::Sound(const QUrl& sampleURL, QObject* parent) :
+    QObject(parent)
+{
+    // assume we have a QApplication or QCoreApplication instance and use the
+    // QNetworkAccess manager to grab the raw audio file at the given URL
+
+    QNetworkAccessManager *manager = new QNetworkAccessManager(this);
+    connect(manager, SIGNAL(finished(QNetworkReply*)),
+            this, SLOT(replyFinished(QNetworkReply*)));
+
+    qDebug() << "Requesting audio file" << sampleURL.toDisplayString();
+    manager->get(QNetworkRequest(sampleURL));
+}
+
+void Sound::replyFinished(QNetworkReply* reply) {
+
+    // replace our byte array with the downloaded data
+    QByteArray rawAudioByteArray = reply->readAll();
+
+    // foreach(QByteArray b, reply->rawHeaderList())
+    //     qDebug() << b.constData() << ": " << reply->rawHeader(b).constData();
+
+    if (reply->hasRawHeader("Content-Type")) {
+
+        QByteArray headerContentType = reply->rawHeader("Content-Type");
+
+        // WAV audio file encountered
+        if (headerContentType == "audio/x-wav"
+            || headerContentType == "audio/wav"
+            || headerContentType == "audio/wave") {
+
+            QByteArray outputAudioByteArray;
+
+            interpretAsWav(rawAudioByteArray, outputAudioByteArray);
+            downSample(outputAudioByteArray);
+        } else {
+            //  Process as RAW file
+            downSample(rawAudioByteArray);
+        }
+    } else {
+        qDebug() << "Network reply without 'Content-Type'.";
+    }
+}
+
+void Sound::downSample(const QByteArray& rawAudioByteArray) {
+
+    // assume that this was a RAW file and is now an array of samples that are
+    // signed, 16-bit, 48Khz, mono
+
+    // we want to convert it to the format that the audio-mixer wants
+    // which is signed, 16-bit, 24Khz, mono
+
+    _byteArray.resize(rawAudioByteArray.size() / 2);
+
+    int numSourceSamples = rawAudioByteArray.size() / sizeof(int16_t);
+    int16_t* sourceSamples = (int16_t*) rawAudioByteArray.data();
+    int16_t* destinationSamples = (int16_t*) _byteArray.data();
+
+    for (int i = 1; i < numSourceSamples; i += 2) {
+        if (i + 1 >= numSourceSamples) {
+            destinationSamples[(i - 1) / 2] = (sourceSamples[i - 1] / 2) + (sourceSamples[i] / 2);
+        } else {
+            destinationSamples[(i - 1) / 2] = (sourceSamples[i - 1] / 4) + (sourceSamples[i] / 2) + (sourceSamples[i + 1] / 4);
+        }
+    }
+}
+
+//
+// Format description from https://ccrma.stanford.edu/courses/422/projects/WaveFormat/
+//
+// The header for a WAV file looks like this:
+// Positions     Sample Value     Description
+//   00-03         "RIFF"       Marks the file as a riff file. Characters are each 1 byte long.
+//   04-07         File size (int) Size of the overall file - 8 bytes, in bytes (32-bit integer).
+//   08-11         "WAVE"       File Type Header. For our purposes, it always equals "WAVE".
+//   12-15         "fmt "       Format chunk marker.
+//   16-19         16           Length of format data as listed above
+//   20-21         1            Type of format: (1=PCM, 257=Mu-Law, 258=A-Law, 259=ADPCM) - 2 byte integer
+//   22-23         2            Number of Channels - 2 byte integer
+//   24-27         44100        Sample Rate - 32 byte integer. Sample Rate = Number of Samples per second, or Hertz.
+//   28-31         176400       (Sample Rate * BitsPerSample * Channels) / 8.
+//   32-33         4            (BitsPerSample * Channels) / 8 - 8 bit mono2 - 8 bit stereo/16 bit mono4 - 16 bit stereo
+//   34-35         16           Bits per sample
+//   36-39         "data"       Chunk header. Marks the beginning of the data section.
+//   40-43         File size (int) Size of the data section.
+//   44-??                      Actual sound data
+// Sample values are given above for a 16-bit stereo source.
+//
+
+struct chunk {
     char        id[4];
     quint32     size;
 };
 
-struct RIFFHeader
-{
+struct RIFFHeader {
     chunk       descriptor;     // "RIFF"
     char        type[4];        // "WAVE"
 };
 
-struct WAVEHeader
-{
+struct WAVEHeader {
     chunk       descriptor;
     quint16     audioFormat;    // Format type: 1=PCM, 257=Mu-Law, 258=A-Law, 259=ADPCM
     quint16     numChannels;    // Number of channels: 1=mono, 2=stereo
@@ -32,13 +174,11 @@ struct WAVEHeader
     quint16     bitsPerSample;
 };
 
-struct DATAHeader
-{
+struct DATAHeader {
     chunk       descriptor;
 };
 
-struct CombinedHeader
-{
+struct CombinedHeader {
     RIFFHeader  riff;
     WAVEHeader  wave;
 };
