@@ -9,6 +9,41 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <cstring>
+
+#include <QtCore/QDebug>
+
+#include <SharedUtil.h>
+
+#include "CoverageMap.h"
+
+int CoverageMap::_mapCount = 0;
+int CoverageMap::_checkMapRootCalls = 0;
+int CoverageMap::_notAllInView = 0;
+bool CoverageMap::wantDebugging = false;
+
+const int MAX_POLYGONS_PER_REGION = 50;
+
+const BoundingBox CoverageMap::ROOT_BOUNDING_BOX = BoundingBox(glm::vec2(-1.f,-1.f), glm::vec2(2.f,2.f));
+
+// Coverage Map's polygon coordinates are from -1 to 1 in the following mapping to screen space.
+//
+//         (0,0)                   (windowWidth, 0)
+//         -1,1                    1,1
+//           +-----------------------+ 
+//           |           |           |
+//           |           |           |
+//           | -1,0      |           |
+//           |-----------+-----------|
+//           |          0,0          |
+//           |           |           |
+//           |           |           |
+//           |           |           |
+//           +-----------------------+
+//           -1,-1                  1,-1
+// (0,windowHeight)                (windowWidth,windowHeight)
+//
+
 // Choosing a minimum sized polygon. Since we know a typical window is approximately 1500 pixels wide
 // then a pixel on our screen will be ~ 2.0/1500 or 0.0013 "units" wide, similarly pixels are typically
 // about that tall as well. If we say that polygons should be at least 10x10 pixels to be considered "big enough"
