@@ -235,6 +235,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), &_voxels, SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, &NodeList::uuidChanged, this, &Application::updateWindowTitle);
+    connect(nodeList, SIGNAL(uuidChanged(const QUuid&)), _myAvatar, SLOT(setSessionUUID(const QUuid&)));
     connect(nodeList, &NodeList::limitOfSilentDomainCheckInsReached, nodeList, &NodeList::reset);
 
     // connect to appropriate slots on AccountManager
@@ -529,10 +530,22 @@ void Application::paintGL() {
 
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness(0.0f);
-        float headHeight = _myAvatar->getHead()->calculateAverageEyePosition().y - _myAvatar->getPosition().y;
+        glm::vec3 eyePosition = _myAvatar->getHead()->calculateAverageEyePosition();
+        float headHeight = eyePosition.y - _myAvatar->getPosition().y;
         _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _myAvatar->getScale());
         _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight, 0));
         _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
+        
+        // if the head would intersect the near clip plane, we must push the camera out
+        glm::vec3 relativePosition = glm::inverse(_myCamera.getTargetRotation()) *
+            (eyePosition - _myCamera.getTargetPosition());
+        const float PUSHBACK_RADIUS = 0.2f;
+        float pushback = relativePosition.z + _myCamera.getNearClip() +
+            _myAvatar->getScale() * PUSHBACK_RADIUS - _myCamera.getDistance();
+        if (pushback > 0.0f) {
+            _myCamera.setTargetPosition(_myCamera.getTargetPosition() +
+                _myCamera.getTargetRotation() * glm::vec3(0.0f, 0.0f, pushback));
+        }
     }
 
     // Update camera position
@@ -1209,8 +1222,6 @@ void Application::timer() {
 
     // ask the node list to check in with the domain server
     NodeList::getInstance()->sendDomainServerCheckIn();
-
-
 }
 
 void Application::idle() {
@@ -2511,20 +2522,19 @@ void Application::displayOverlay() {
     //  Audio VU Meter and Mute Icon
     const int MUTE_ICON_SIZE = 24;
     const int AUDIO_METER_INSET = 2;
-    const int AUDIO_METER_WIDTH = MIRROR_VIEW_WIDTH - MUTE_ICON_SIZE - AUDIO_METER_INSET;
+    const int MUTE_ICON_PADDING = 10;
+    const int AUDIO_METER_WIDTH = MIRROR_VIEW_WIDTH - MUTE_ICON_SIZE - AUDIO_METER_INSET - MUTE_ICON_PADDING;
     const int AUDIO_METER_SCALE_WIDTH = AUDIO_METER_WIDTH - 2 * AUDIO_METER_INSET;
     const int AUDIO_METER_HEIGHT = 8;
-    const int AUDIO_METER_Y_GAP = 8;
-    const int AUDIO_METER_X = MIRROR_VIEW_LEFT_PADDING + MUTE_ICON_SIZE + AUDIO_METER_INSET;
+    const int AUDIO_METER_GAP = 5;
+    const int AUDIO_METER_X = MIRROR_VIEW_LEFT_PADDING + MUTE_ICON_SIZE + AUDIO_METER_INSET + AUDIO_METER_GAP;
 
     int audioMeterY;
     if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        audioMeterY = MIRROR_VIEW_HEIGHT + AUDIO_METER_Y_GAP;
+        audioMeterY = MIRROR_VIEW_HEIGHT + AUDIO_METER_GAP + MUTE_ICON_PADDING;
     } else {
-        audioMeterY = AUDIO_METER_Y_GAP;
+        audioMeterY = AUDIO_METER_GAP + MUTE_ICON_PADDING;
     }
-    _audio.renderMuteIcon(MIRROR_VIEW_LEFT_PADDING, audioMeterY);
-
 
     const float AUDIO_METER_BLUE[] = {0.0, 0.0, 1.0};
     const float AUDIO_METER_GREEN[] = {0.0, 1.0, 0.0};
@@ -2553,17 +2563,26 @@ void Application::displayOverlay() {
     
     bool isClipping = ((_audio.getTimeSinceLastClip() > 0.f) && (_audio.getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME));
 
+    _audio.renderToolBox(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP,
+                         audioMeterY,
+                         Menu::getInstance()->isOptionChecked(MenuOption::Mirror));
+
     glBegin(GL_QUADS);
     if (isClipping) {
         glColor3f(1, 0, 0);
     } else {
-        glColor3f(0, 0, 0);
+        glColor3f(0.475f, 0.475f, 0.475f);
     }
+
+    audioMeterY += AUDIO_METER_HEIGHT;
+
+    glColor3f(0, 0, 0);
     //  Draw audio meter background Quad
     glVertex2i(AUDIO_METER_X, audioMeterY);
     glVertex2i(AUDIO_METER_X + AUDIO_METER_WIDTH, audioMeterY);
     glVertex2i(AUDIO_METER_X + AUDIO_METER_WIDTH, audioMeterY + AUDIO_METER_HEIGHT);
     glVertex2i(AUDIO_METER_X, audioMeterY + AUDIO_METER_HEIGHT);
+
 
     if (audioLevel > AUDIO_RED_START) {
         if (!isClipping) {
@@ -2603,6 +2622,7 @@ void Application::displayOverlay() {
     glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + audioLevel, audioMeterY + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
     glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET, audioMeterY + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
     glEnd();
+
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::HeadMouse)) {
         _myAvatar->renderHeadMouse();

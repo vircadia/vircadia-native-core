@@ -18,7 +18,9 @@
 #include <QTextStream>
 #include <QVariant>
 
-#include "AccountManager.h"
+#include <AccountManager.h>
+
+#include "renderer/FBXReader.h"
 #include "ModelUploader.h"
 
 
@@ -59,11 +61,14 @@ bool ModelUploader::zip() {
                                                     "Select your .fst file ...",
                                                     QStandardPaths::writableLocation(QStandardPaths::HomeLocation),
                                                     "*.fst");
-    qDebug() << QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
     if (filename == "") {
         // If the user canceled we return.
         return false;
     }
+    bool _nameIsPresent = false;
+    QString texDir;
+    QString fbxFile;
+    
     
     // First we check the FST file
     QFile fst(filename);
@@ -99,23 +104,26 @@ bool ModelUploader::zip() {
             textPart.setBody(line[1].toUtf8());
             _dataMultiPart->append(textPart);
             _url = S3_URL + ((_isHead)? "/models/heads/" : "/models/skeletons/") + line[1].toUtf8() + ".fst";
+            _nameIsPresent = true;
         } else if (line[0] == FILENAME_FIELD) {
-            QFileInfo fbx(QFileInfo(fst).path() + "/" + line[1]);
-            if (!fbx.exists() || !fbx.isFile()) { // Check existence
+            fbxFile = QFileInfo(fst).path() + "/" + line[1];
+            QFileInfo fbxInfo(fbxFile);
+            if (!fbxInfo.exists() || !fbxInfo.isFile()) { // Check existence
                 QMessageBox::warning(NULL,
                                      QString("ModelUploader::zip()"),
-                                     QString("FBX file %1 could not be found.").arg(fbx.fileName()),
+                                     QString("FBX file %1 could not be found.").arg(fbxInfo.fileName()),
                                      QMessageBox::Ok);
-                qDebug() << "[Warning] " << QString("FBX file %1 could not be found.").arg(fbx.fileName());
+                qDebug() << "[Warning] " << QString("FBX file %1 could not be found.").arg(fbxInfo.fileName());
                 return false;
             }
             // Compress and copy
-            if (!addPart(fbx.filePath(), "fbx")) {
+            if (!addPart(fbxInfo.filePath(), "fbx")) {
                 return false;
             }
         } else if (line[0] == TEXDIR_FIELD) { // Check existence
-            QFileInfo texdir(QFileInfo(fst).path() + "/" + line[1]);
-            if (!texdir.exists() || !texdir.isDir()) {
+            texDir = QFileInfo(fst).path() + "/" + line[1];
+            QFileInfo texInfo(texDir);
+            if (!texInfo.exists() || !texInfo.isDir()) {
                 QMessageBox::warning(NULL,
                                      QString("ModelUploader::zip()"),
                                      QString("Texture directory could not be found."),
@@ -123,24 +131,24 @@ bool ModelUploader::zip() {
                 qDebug() << "[Warning] " << QString("Texture directory could not be found.");
                 return false;
             }
-            if (!addTextures(texdir)) { // Recursive compress and copy
-                return false;
-            }
         } else if (line[0] == LOD_FIELD) {
             QFileInfo lod(QFileInfo(fst).path() + "/" + line[1]);
             if (!lod.exists() || !lod.isFile()) { // Check existence
                 QMessageBox::warning(NULL,
                                      QString("ModelUploader::zip()"),
-                                     QString("FBX file %1 could not be found.").arg(lod.fileName()),
+                                     QString("LOD file %1 could not be found.").arg(lod.fileName()),
                                      QMessageBox::Ok);
                 qDebug() << "[Warning] " << QString("FBX file %1 could not be found.").arg(lod.fileName());
-                return false;
             }
             // Compress and copy
             if (!addPart(lod.filePath(), QString("lod%1").arg(++_lodCount))) {
                 return false;
             }
         }
+    }
+    
+    if (!addTextures(texDir, fbxFile)) {
+        return false;
     }
     
     QHttpPart textPart;
@@ -153,12 +161,22 @@ bool ModelUploader::zip() {
     }
     _dataMultiPart->append(textPart);
     
+    if (!_nameIsPresent) {
+        QMessageBox::warning(NULL,
+                             QString("ModelUploader::zip()"),
+                             QString("Model name is missing in the .fst file."),
+                             QMessageBox::Ok);
+        qDebug() << "[Warning] " << QString("Model name is missing in the .fst file.");
+        return false;
+    }
+    
     _readyToSend = true;
     return true;
 }
 
 void ModelUploader::send() {
     if (!zip()) {
+        deleteLater();
         return;
     }
     
@@ -202,7 +220,7 @@ void ModelUploader::uploadSuccess(const QJsonObject& jsonResponse) {
     }
     QMessageBox::information(NULL,
                              QString("ModelUploader::uploadSuccess()"),
-                             QString("Your model is being processed by the system."),
+                             QString("We are reading your model information."),
                              QMessageBox::Ok);
     qDebug() << "Model sent with success";
     checkS3();
@@ -214,7 +232,7 @@ void ModelUploader::uploadFailed(QNetworkReply::NetworkError errorCode, const QS
     }
     QMessageBox::warning(NULL,
                          QString("ModelUploader::uploadFailed()"),
-                         QString("Model could not be sent to the data server."),
+                         QString("There was a problem with your upload, please try again later."),
                          QMessageBox::Ok);
     qDebug() << "Model upload failed (" << errorCode << "): " << errorString;
     deleteLater();
@@ -247,7 +265,8 @@ void ModelUploader::processCheck() {
         default:
             QMessageBox::warning(NULL,
                                  QString("ModelUploader::processCheck()"),
-                                 QString("Could not verify that the model is present on the server."),
+                                 QString("We could not verify that your model was sent sucessfully\n"
+                                         "but it may have. If you do not see it in the model browser, try to upload again."),
                                  QMessageBox::Ok);
             deleteLater();
             break;
@@ -256,24 +275,29 @@ void ModelUploader::processCheck() {
     delete reply;
 }
 
-bool ModelUploader::addTextures(const QFileInfo& texdir) {
-    QStringList filter;
-    filter << "*.png" << "*.tif" << "*.jpg" << "*.jpeg";
+bool ModelUploader::addTextures(const QString& texdir, const QString fbxFile) {
+    QFile fbx(fbxFile);
+    if (!fbx.open(QIODevice::ReadOnly)) {
+        return false;
+    }
     
-    QFileInfoList list = QDir(texdir.filePath()).entryInfoList(filter,
-                                                               QDir::Files |
-                                                               QDir::AllDirs |
-                                                               QDir::NoDotAndDotDot |
-                                                               QDir::NoSymLinks);
-    foreach (QFileInfo info, list) {
-        if (info.isFile()) {
-            // Compress and copy
-            if (!addPart(info.filePath(), QString("texture%1").arg(++_texturesCount))) {
-                return false;
+    QByteArray buffer = fbx.readAll();
+    QVariantHash variantHash = readMapping(buffer);
+    FBXGeometry geometry = readFBX(buffer, variantHash);
+    
+    foreach (FBXMesh mesh, geometry.meshes) {
+        foreach (FBXMeshPart part, mesh.parts) {
+            if (!part.diffuseFilename.isEmpty()) {
+                if (!addPart(QFileInfo(fbxFile).path() + "/" + part.diffuseFilename,
+                             QString("texture%1").arg(++_texturesCount))) {
+                    return false;
+                }
             }
-        } else if (info.isDir()) {
-            if (!addTextures(info)) {
-                return false;
+            if (!part.normalFilename.isEmpty()) {
+                if (!addPart(QFileInfo(fbxFile).path() + "/" + part.normalFilename,
+                             QString("texture%1").arg(++_texturesCount))) {
+                    return false;
+                }
             }
         }
     }
