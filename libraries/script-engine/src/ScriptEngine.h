@@ -22,6 +22,7 @@
 
 #include "AbstractControllerScriptingInterface.h"
 #include "Quat.h"
+#include "ScriptUUID.h"
 #include "Vec3.h"
 
 class ParticlesScriptingInterface;
@@ -121,6 +122,7 @@ private:
     QString _fileNameString;
     Quat _quatLibrary;
     Vec3 _vec3Library;
+    ScriptUUID _uuidLibrary;
 };
 
 #endif /* defined(__hifi__ScriptEngine__) */
