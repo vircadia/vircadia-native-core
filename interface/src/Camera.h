@@ -54,6 +54,7 @@ public:
     const glm::quat& getRotation() const { return _rotation; }
     CameraMode getMode() const { return _mode; }
     float getModeShiftPeriod() const { return _modeShiftPeriod; }
+    float getDistance() const { return _distance; }
     const glm::vec3& getTargetPosition() const { return _targetPosition; }
     const glm::quat& getTargetRotation() const { return _targetRotation; }
     float getFieldOfView() const { return _fieldOfView; }

@@ -180,8 +180,8 @@ void Head::relaxLean(float deltaTime) {
     _deltaLeanForward *= relaxationFactor;
 }
 
-void Head::render(float alpha, bool forShadowMap) {
-    if (_faceModel.render(alpha, forShadowMap) && _renderLookatVectors) {
+void Head::render(float alpha, Model::RenderMode mode) {
+    if (_faceModel.render(alpha, mode) && _renderLookatVectors) {
         renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
     }
 }

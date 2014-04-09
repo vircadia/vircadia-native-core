@@ -640,6 +640,8 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _skeletonModelURL = skeletonModelURL.isEmpty() ? DEFAULT_BODY_MODEL_URL : skeletonModelURL;
     
     qDebug() << "Changing skeleton model for avatar to" << _skeletonModelURL.toString();
+    
+    updateJointMappings();
 }
 
 void AvatarData::setDisplayName(const QString& displayName) {
@@ -674,6 +676,40 @@ void AvatarData::setBillboardFromURL(const QString &billboardURL) {
 void AvatarData::setBillboardFromNetworkReply() {
     QNetworkReply* networkReply = reinterpret_cast<QNetworkReply*>(sender());
     setBillboard(networkReply->readAll());
+    networkReply->deleteLater();
+}
+
+void AvatarData::setJointMappingsFromNetworkReply() {
+    QNetworkReply* networkReply = static_cast<QNetworkReply*>(sender());
+    
+    QByteArray line;
+    while (!(line = networkReply->readLine()).isEmpty()) {
+        if (!(line = line.trimmed()).startsWith("jointIndex")) {
+            continue;
+        }
+        int jointNameIndex = line.indexOf('=') + 1;
+        if (jointNameIndex == 0) {
+            continue;
+        }
+        int secondSeparatorIndex = line.indexOf('=', jointNameIndex);
+        if (secondSeparatorIndex == -1) {
+            continue;
+        }
+        QString jointName = line.mid(jointNameIndex, secondSeparatorIndex - jointNameIndex).trimmed();
+        bool ok;
+        int jointIndex = line.mid(secondSeparatorIndex + 1).trimmed().toInt(&ok);
+        if (ok) {
+            while (_jointNames.size() < jointIndex + 1) {
+                _jointNames.append(QString());
+            }
+            _jointNames[jointIndex] = jointName;
+        }
+    }
+    for (int i = 0; i < _jointNames.size(); i++) {
+        _jointIndices.insert(_jointNames.at(i), i + 1);
+    }
+    
+    networkReply->deleteLater();
 }
 
 void AvatarData::setClampedTargetScale(float targetScale) {
@@ -704,5 +740,15 @@ void AvatarData::sendBillboardPacket() {
         billboardPacket.append(_billboard);
         
         NodeList::getInstance()->broadcastToNodes(billboardPacket, NodeSet() << NodeType::AvatarMixer);
+    }
+}
+
+void AvatarData::updateJointMappings() {
+    _jointIndices.clear();
+    _jointNames.clear();
+    
+    if (networkAccessManager && _skeletonModelURL.fileName().toLower().endsWith(".fst")) {
+        QNetworkReply* networkReply = networkAccessManager->get(QNetworkRequest(_skeletonModelURL));
+        connect(networkReply, SIGNAL(finished()), this, SLOT(setJointMappingsFromNetworkReply()));
     }
 }

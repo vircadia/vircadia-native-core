@@ -312,6 +312,9 @@ public:
     Bitstream& operator<<(const glm::vec3& value);
     Bitstream& operator>>(glm::vec3& value);
     
+    Bitstream& operator<<(const glm::quat& value);
+    Bitstream& operator>>(glm::quat& value);
+    
     Bitstream& operator<<(const QByteArray& string);
     Bitstream& operator>>(QByteArray& string);
     
@@ -919,6 +922,13 @@ public:
     static const int* _TypePtr##X = &X::Type; \
     _Pragma(STRINGIFY(unused(_TypePtr##X)))
 #endif
+
+/// Registers a simple type and its streamer.
+template<class T> int registerSimpleMetaType() {
+    int type = qRegisterMetaType<T>();
+    Bitstream::registerTypeStreamer(type, new SimpleTypeStreamer<T>());
+    return type;
+}
 
 /// Registers a streamable type and its streamer.
 template<class T> int registerStreamableMetaType() {
