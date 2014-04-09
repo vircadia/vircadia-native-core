@@ -1,6 +1,6 @@
 //
 //  spaceInvadersExample.js
-//  hifi
+// examples
 //
 //  Created by Brad Hefta-Gaub on 1/30/14.
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.

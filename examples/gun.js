@@ -1,6 +1,6 @@
 //
 //  gun.js
-//  hifi
+// examples
 //
 //  Created by Brad Hefta-Gaub on 12/31/13.
 //  Modified by Philip on 3/3/14

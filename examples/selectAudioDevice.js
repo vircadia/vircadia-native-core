@@ -1,6 +1,6 @@
 //
 //  audioDeviceExample.js
-//  hifi
+// examples
 //
 //  Created by Brad Hefta-Gaub on 3/22/14
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.

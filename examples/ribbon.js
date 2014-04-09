@@ -1,6 +1,6 @@
 //
 //  ribbon.js
-//  hifi
+// examples
 //
 //  Created by Andrzej Kapolka on 2/24/14.
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.

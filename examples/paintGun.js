@@ -1,6 +1,6 @@
 //
 //  paintGun.js
-//  hifi
+// examples
 //
 //  Created by Brad Hefta-Gaub on 12/31/13.
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
