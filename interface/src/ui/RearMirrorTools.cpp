@@ -2,7 +2,7 @@
 //  RearMirrorTools.cpp
 //  interface/src/ui
 //
-//  Created by stojce on 23.
+//  Created by Stojce Slavkovski on 10/23/2013.
 //  Copyright 2013 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
