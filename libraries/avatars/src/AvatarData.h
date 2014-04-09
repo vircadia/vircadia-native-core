@@ -102,7 +102,6 @@ public:
     virtual ~AvatarData();
 
     const QUuid& getSessionUUID() { return _sessionUUID; }
-    void setSessionUUID(const QUuid& id) { _sessionUUID = id; }
 
     const glm::vec3& getPosition() const { return _position; }
     void setPosition(const glm::vec3 position) { _position = position; }
@@ -225,6 +224,7 @@ public slots:
     void sendBillboardPacket();
     void setBillboardFromNetworkReply();
     void setJointMappingsFromNetworkReply();
+    void setSessionUUID(const QUuid& id) { _sessionUUID = id; }
 protected:
     QUuid _sessionUUID;
     glm::vec3 _position;

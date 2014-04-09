@@ -232,6 +232,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), &_voxels, SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, &NodeList::uuidChanged, this, &Application::updateWindowTitle);
+    connect(nodeList, SIGNAL(uuidChanged(const QUuid&)), _myAvatar, SLOT(setSessionUUID(const QUuid&)));
     connect(nodeList, &NodeList::limitOfSilentDomainCheckInsReached, nodeList, &NodeList::reset);
 
     // connect to appropriate slots on AccountManager
@@ -1216,11 +1217,6 @@ void Application::timer() {
 
     // ask the node list to check in with the domain server
     NodeList::getInstance()->sendDomainServerCheckIn();
-
-    // as soon as we have a valid sessionUUID, store it in the avatar for reference
-    if (_myAvatar->getSessionUUID().isNull()) {
-        _myAvatar->setSessionUUID(NodeList::getInstance()->getSessionUUID());
-    }
 }
 
 void Application::idle() {
