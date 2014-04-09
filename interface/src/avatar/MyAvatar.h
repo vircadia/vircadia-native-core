@@ -54,7 +54,6 @@ public:
     float getLeanScale() const { return _leanScale; }
     float getElapsedTimeStopped() const { return _elapsedTimeStopped; }
     float getElapsedTimeMoving() const { return _elapsedTimeMoving; }
-    float getAbsoluteHeadYaw() const;   // degrees
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     glm::vec3 getGravity() const { return _gravity; }
