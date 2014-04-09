@@ -2518,20 +2518,19 @@ void Application::displayOverlay() {
     //  Audio VU Meter and Mute Icon
     const int MUTE_ICON_SIZE = 24;
     const int AUDIO_METER_INSET = 2;
-    const int AUDIO_METER_WIDTH = MIRROR_VIEW_WIDTH - MUTE_ICON_SIZE - AUDIO_METER_INSET;
+    const int MUTE_ICON_PADDING = 10;
+    const int AUDIO_METER_WIDTH = MIRROR_VIEW_WIDTH - MUTE_ICON_SIZE - AUDIO_METER_INSET - MUTE_ICON_PADDING;
     const int AUDIO_METER_SCALE_WIDTH = AUDIO_METER_WIDTH - 2 * AUDIO_METER_INSET;
     const int AUDIO_METER_HEIGHT = 8;
-    const int AUDIO_METER_Y_GAP = 8;
-    const int AUDIO_METER_X = MIRROR_VIEW_LEFT_PADDING + MUTE_ICON_SIZE + AUDIO_METER_INSET;
+    const int AUDIO_METER_GAP = 5;
+    const int AUDIO_METER_X = MIRROR_VIEW_LEFT_PADDING + MUTE_ICON_SIZE + AUDIO_METER_INSET + AUDIO_METER_GAP;
 
     int audioMeterY;
     if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        audioMeterY = MIRROR_VIEW_HEIGHT + AUDIO_METER_Y_GAP;
+        audioMeterY = MIRROR_VIEW_HEIGHT + AUDIO_METER_GAP + MUTE_ICON_PADDING;
     } else {
-        audioMeterY = AUDIO_METER_Y_GAP;
+        audioMeterY = AUDIO_METER_GAP + MUTE_ICON_PADDING;
     }
-    _audio.renderMuteIcon(MIRROR_VIEW_LEFT_PADDING, audioMeterY);
-
 
     const float AUDIO_METER_BLUE[] = {0.0, 0.0, 1.0};
     const float AUDIO_METER_GREEN[] = {0.0, 1.0, 0.0};
@@ -2560,17 +2559,26 @@ void Application::displayOverlay() {
     
     bool isClipping = ((_audio.getTimeSinceLastClip() > 0.f) && (_audio.getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME));
 
+    _audio.renderToolBox(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP,
+                         audioMeterY,
+                         Menu::getInstance()->isOptionChecked(MenuOption::Mirror));
+
     glBegin(GL_QUADS);
     if (isClipping) {
         glColor3f(1, 0, 0);
     } else {
-        glColor3f(0, 0, 0);
+        glColor3f(0.475f, 0.475f, 0.475f);
     }
+
+    audioMeterY += AUDIO_METER_HEIGHT;
+
+    glColor3f(0, 0, 0);
     //  Draw audio meter background Quad
     glVertex2i(AUDIO_METER_X, audioMeterY);
     glVertex2i(AUDIO_METER_X + AUDIO_METER_WIDTH, audioMeterY);
     glVertex2i(AUDIO_METER_X + AUDIO_METER_WIDTH, audioMeterY + AUDIO_METER_HEIGHT);
     glVertex2i(AUDIO_METER_X, audioMeterY + AUDIO_METER_HEIGHT);
+
 
     if (audioLevel > AUDIO_RED_START) {
         if (!isClipping) {
@@ -2610,6 +2618,7 @@ void Application::displayOverlay() {
     glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + audioLevel, audioMeterY + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
     glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET, audioMeterY + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
     glEnd();
+
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::HeadMouse)) {
         _myAvatar->renderHeadMouse();
