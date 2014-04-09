@@ -3,6 +3,7 @@
 //  interface/src/starfield/renderer
 //
 //  Created by Tobias Schwinger on 3/22/13.
+//  Modified by Chris Barnard on 10/17/13.
 //  Copyright 2013 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
