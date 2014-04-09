@@ -20,18 +20,17 @@ REGISTER_META_OBJECT(SharedObject)
 
 SharedObject::SharedObject() :
     _id(++_lastID),
-    _remoteID(0),
-    _referenceCount(0) {
+    _remoteID(0) {
     
     _weakHash.insert(_id, this);
 }
 
 void SharedObject::incrementReferenceCount() {
-    _referenceCount++;
+    _referenceCount.ref();
 }
 
 void SharedObject::decrementReferenceCount() {
-    if (--_referenceCount == 0) {
+    if (!_referenceCount.deref()) {
         _weakHash.remove(_id);
         delete this;
     }

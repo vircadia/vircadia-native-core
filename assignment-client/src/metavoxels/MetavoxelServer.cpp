@@ -95,6 +95,8 @@ MetavoxelSession::MetavoxelSession(MetavoxelServer* server, const SharedNodePoin
     connect(&_sequencer, SIGNAL(readyToRead(Bitstream&)), SLOT(readPacket(Bitstream&)));
     connect(&_sequencer, SIGNAL(sendAcknowledged(int)), SLOT(clearSendRecordsBefore(int)));
     connect(&_sequencer, SIGNAL(receivedHighPriorityMessage(const QVariant&)), SLOT(handleMessage(const QVariant&)));
+    connect(_sequencer.getReliableInputChannel(), SIGNAL(receivedMessage(const QVariant&)),
+        SLOT(handleMessage(const QVariant&)));
     
     // insert the baseline send record
     SendRecord record = { 0 };

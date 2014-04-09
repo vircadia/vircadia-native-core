@@ -15,6 +15,7 @@
 
 #include <QtScript/QScriptEngine>
 
+#include "CollisionInfo.h"
 #include "SharedUtil.h"
 
 Q_DECLARE_METATYPE(glm::vec4)
@@ -49,5 +50,9 @@ public:
 Q_DECLARE_METATYPE(PickRay)
 QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay);
 void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
+
+Q_DECLARE_METATYPE(CollisionInfo)
+QScriptValue collisionToScriptValue(QScriptEngine* engine, const CollisionInfo& collision);
+void collisionFromScriptValue(const QScriptValue &object, CollisionInfo& collision);
 
 #endif

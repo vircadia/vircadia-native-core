@@ -524,10 +524,22 @@ void Application::paintGL() {
 
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness(0.0f);
-        float headHeight = _myAvatar->getHead()->calculateAverageEyePosition().y - _myAvatar->getPosition().y;
+        glm::vec3 eyePosition = _myAvatar->getHead()->calculateAverageEyePosition();
+        float headHeight = eyePosition.y - _myAvatar->getPosition().y;
         _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _myAvatar->getScale());
         _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight, 0));
         _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
+        
+        // if the head would intersect the near clip plane, we must push the camera out
+        glm::vec3 relativePosition = glm::inverse(_myCamera.getTargetRotation()) *
+            (eyePosition - _myCamera.getTargetPosition());
+        const float PUSHBACK_RADIUS = 0.2f;
+        float pushback = relativePosition.z + _myCamera.getNearClip() +
+            _myAvatar->getScale() * PUSHBACK_RADIUS - _myCamera.getDistance();
+        if (pushback > 0.0f) {
+            _myCamera.setTargetPosition(_myCamera.getTargetPosition() +
+                _myCamera.getTargetRotation() * glm::vec3(0.0f, 0.0f, pushback));
+        }
     }
 
     // Update camera position
@@ -1572,14 +1584,14 @@ void Application::init() {
 
     // connect the _particleCollisionSystem to our script engine's ParticleScriptingInterface
     connect(&_particleCollisionSystem,
-            SIGNAL(particleCollisionWithVoxel(const ParticleID&, const VoxelDetail&, const glm::vec3&)),
+            SIGNAL(particleCollisionWithVoxel(const ParticleID&, const VoxelDetail&, const CollisionInfo&)),
             ScriptEngine::getParticlesScriptingInterface(),
-            SLOT(forwardParticleCollisionWithVoxel(const ParticleID&, const VoxelDetail&, const glm::vec3&)));
+            SIGNAL(particleCollisionWithVoxels(const ParticleID&, const VoxelDetail&, const CollisionInfo&)));
 
     connect(&_particleCollisionSystem,
-            SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&, const glm::vec3&)),
+            SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&, const CollisionInfo&)),
             ScriptEngine::getParticlesScriptingInterface(),
-            SLOT(forwardParticleCollisionWithParticle(const ParticleID&, const ParticleID&, const glm::vec3&)));
+            SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&, const CollisionInfo&)));
 
     _audio.init(_glWidget);
 
@@ -2229,8 +2241,7 @@ void Application::updateShadowMap() {
     glRotatef(glm::degrees(glm::angle(inverseRotation)), axis.x, axis.y, axis.z);
 
     // store view matrix without translation, which we'll use for precision-sensitive objects
-    glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
-    _viewMatrixTranslation = glm::vec3();
+    updateUntranslatedViewMatrix();
 
     _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
     _particles.render();
@@ -2315,8 +2326,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     glRotatef(-glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
 
     // store view matrix without translation, which we'll use for precision-sensitive objects
-    glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
-    _viewMatrixTranslation = -whichCamera.getPosition();
+    updateUntranslatedViewMatrix(-whichCamera.getPosition());
 
     glTranslatef(_viewMatrixTranslation.x, _viewMatrixTranslation.y, _viewMatrixTranslation.z);
 
@@ -2445,6 +2455,11 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         // render JS/scriptable overlays
         _overlays.render3D();
     }
+}
+
+void Application::updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation) {
+    glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
+    _viewMatrixTranslation = viewMatrixTranslation;
 }
 
 void Application::loadTranslatedViewMatrix(const glm::vec3& translation) {
@@ -3254,9 +3269,12 @@ void Application::toggleRunningScriptsWidget()
 
 void Application::uploadFST(bool isHead) {
     ModelUploader* uploader = new ModelUploader(isHead);
-    if (uploader->zip()) {
-        uploader->send();
-    }
+    QThread* thread = new QThread();
+    thread->connect(uploader, SIGNAL(destroyed()), SLOT(quit()));
+    thread->connect(thread, SIGNAL(finished()), SLOT(deleteLater()));
+    uploader->connect(thread, SIGNAL(started()), SLOT(send()));
+    
+    thread->start();
 }
 
 void Application::uploadHead() {
@@ -3283,6 +3301,7 @@ void Application::loadScript(const QString& scriptName) {
     // we can use the same ones from the application.
     scriptEngine->getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
     scriptEngine->getVoxelsScriptingInterface()->setVoxelTree(_voxels.getTree());
+    scriptEngine->getVoxelsScriptingInterface()->setUndoStack(&_undoStack);
     scriptEngine->getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
     scriptEngine->getParticlesScriptingInterface()->setParticleTree(_particles.getTree());
 
