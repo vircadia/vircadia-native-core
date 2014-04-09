@@ -1,5 +1,12 @@
+//
 //  defaultScripts.js
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  examples
+//
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+
 Script.include("lookWithTouch.js");
 Script.include("editVoxels.js");
 Script.include("selectAudioDevice.js");
