@@ -140,8 +140,6 @@ public:
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
 
-
-
     /// \return true if we expect the avatar would move as a result of the collision
     bool collisionWouldMoveAvatar(CollisionInfo& collision) const;
 

@@ -113,7 +113,6 @@ private:
 
     static VoxelsScriptingInterface _voxelsScriptingInterface;
     static ParticlesScriptingInterface _particlesScriptingInterface;
-    static int _scriptNumber;
 
     AbstractControllerScriptingInterface* _controllerScriptingInterface;
     AudioScriptingInterface _audioScriptingInterface;
