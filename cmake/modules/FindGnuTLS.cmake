@@ -1,3 +1,6 @@
+# 
+#  FindFaceshift.cmake
+# 
 #  Try to find the GnuTLS library
 #
 #  You can provide a GNUTLS_ROOT_DIR which contains lib and include directories
@@ -10,6 +13,9 @@
 #
 #  Created on 3/31/2014 by Stephen Birarda
 #  Copyright (c) 2014 High Fidelity
+#
+#  Distributed under the Apache License, Version 2.0.
+#  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 #
 
 if (GNUTLS_LIBRARY AND GNUTLS_INCLUDE_DIRS)
