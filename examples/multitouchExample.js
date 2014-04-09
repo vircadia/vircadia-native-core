@@ -11,6 +11,9 @@
 //     * Four finger rotate gesture will rotate your avatar.
 //     * Three finger swipe up/down will adjust the pitch of your avatars head.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 var lastX = 0;
 var lastY = 0;

@@ -5,6 +5,9 @@
 //  Created by Brad Hefta-Gaub on 12/31/13.
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 // initialize our triggers
 var triggerPulled = new Array();

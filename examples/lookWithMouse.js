@@ -7,6 +7,8 @@
 //
 //  This is an example script that demonstrates use of the Controller class
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 var alwaysLook = true; // if you want the mouse look to happen only when you click, change this to false

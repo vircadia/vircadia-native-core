@@ -13,6 +13,9 @@
 //  Once you are in a mode left click on the object to inspect and hold the click
 //  Dragging the mouse will move your camera according to the mode you are in.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 var PI = 3.14 // No need for something more precise
 

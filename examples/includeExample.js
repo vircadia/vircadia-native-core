@@ -7,6 +7,9 @@
 //
 //  This is an example script that demonstrates use of the Script.include() feature
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 // You can include scripts from URLs
 Script.include("http://public.highfidelity.io/scripts/lookWithTouch.js");

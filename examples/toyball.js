@@ -11,6 +11,8 @@
 //  The particles it creates have a script that when they collide with Voxels, the
 //  particle will change it's color to match the voxel it hits.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 // maybe we should make these constants...

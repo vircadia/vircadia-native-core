@@ -7,6 +7,8 @@
 //
 //  This is an example script that demonstrates use of the Camera class
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 function mouseMoveEvent(event) {
