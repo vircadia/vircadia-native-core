@@ -11,7 +11,7 @@
 
 #include <QtCore/QDataStream>
 #include <QtNetwork/QHostInfo>
-#include <QtNetwork/QNetworkConfigManager>
+#include <QtNetwork/QNetworkConfigurationManager>
 #include <QtNetwork/QNetworkInterface>
 
 #include "HifiSockAddr.h"
