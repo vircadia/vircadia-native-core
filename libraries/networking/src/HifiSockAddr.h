@@ -12,6 +12,12 @@
 #ifndef hifi_HifiSockAddr_h
 #define hifi_HifiSockAddr_h
 
+#ifdef WIN32
+#include <winsock2.h>
+#else
+#include <netinet/in.h>
+#endif
+
 #include <QtNetwork/QHostAddress>
 
 class HifiSockAddr {
