@@ -344,6 +344,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     } else {
         // do this as late as possible so that all required subsystems are inialized
         loadScripts();
+        
+        QMutexLocker locker(&_settingsMutex);
+        _previousScriptLocation = _settings->value("LastScriptLocation", QVariant("")).toString();
     }
 }
 
@@ -3184,11 +3187,10 @@ void Application::packetSent(quint64 length) {
 
 void Application::loadScripts() {
     // loads all saved scripts
-    
-    lockSettings();
-    int size = _settings->beginReadArray("Settings");
+    int size = lockSettings()->beginReadArray("Settings");
+    unlockSettings();
     for (int i = 0; i < size; ++i){
-        _settings->setArrayIndex(i);
+        lockSettings()->setArrayIndex(i);
         QString string = _settings->value("script").toString();
         unlockSettings();
         if (!string.isEmpty()) {
