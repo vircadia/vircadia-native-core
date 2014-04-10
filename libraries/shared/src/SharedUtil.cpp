@@ -15,7 +15,7 @@
 #include <cctype>
 #include <time.h>
 
-#ifdef _WIN32
+#ifdef WIN32
 #ifndef _timeval_
 #define _timeval_
 #endif
