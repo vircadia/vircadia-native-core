@@ -93,7 +93,7 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
     QUrl url(scriptURL);
 
     // if the scheme length is one or lower, maybe they typed in a file, let's try
-    const DWORD WINDOWS_DRIVE_LETTER_SIZE = 1;
+    const int WINDOWS_DRIVE_LETTER_SIZE = 1;
     if (url.scheme().size() <= WINDOWS_DRIVE_LETTER_SIZE) {
         url = QUrl::fromLocalFile(scriptURLString);
     }
