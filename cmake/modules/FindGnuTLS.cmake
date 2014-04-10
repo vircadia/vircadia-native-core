@@ -25,7 +25,7 @@ else ()
   
   set(GNUTLS_SEARCH_DIRS "${GNUTLS_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/gnutls")
   
-  find_path(GNUTLS_INCLUDE_DIR gnutls.h PATH_SUFFIXES include/gnutls gnutls HINTS ${GNUTLS_SEARCH_DIRS})
+  find_path(GNUTLS_INCLUDE_DIR gnutls/gnutls.h PATH_SUFFIXES include HINTS ${GNUTLS_SEARCH_DIRS})
 
   find_library(GNUTLS_LIBRARY NAMES gnutls libgnutls libgnutls-28 PATH_SUFFIXES lib bin HINTS ${GNUTLS_SEARCH_DIRS})
   
