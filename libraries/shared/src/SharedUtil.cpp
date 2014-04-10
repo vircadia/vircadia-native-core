@@ -15,12 +15,6 @@
 #include <cctype>
 #include <time.h>
 
-#ifdef _WIN32
-#ifndef _timeval_
-#define _timeval_
-#endif
-#endif
-
 #ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
 #endif
