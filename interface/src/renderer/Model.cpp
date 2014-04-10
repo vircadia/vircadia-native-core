@@ -638,7 +638,7 @@ bool Model::findPlaneCollisions(const glm::vec4& plane, CollisionList& collision
     bool collided = false;
     PlaneShape planeShape(plane);
     for (int i = 0; i < _jointShapes.size(); i++) {
-        if (ShapeCollider::shapeShape(&planeShape, _jointShapes[i], collisions)) {
+        if (ShapeCollider::collideShapes(&planeShape, _jointShapes[i], collisions)) {
             CollisionInfo* collision = collisions.getLastCollision();
             collision->_type = MODEL_COLLISION;
             collision->_data = (void*)(this);

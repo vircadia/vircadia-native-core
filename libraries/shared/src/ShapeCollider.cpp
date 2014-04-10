@@ -191,7 +191,7 @@ bool spherePlane(const SphereShape* sphereA, const PlaneShape* planeB, Collision
             return false; // collision list is full
         }
         collision->_penetration = penetration;
-        collision->_contactPoint = glm::vec3();
+        collision->_contactPoint = sphereA->getPosition() + sphereA->getRadius() * glm::normalize(penetration);
         return true;
     }
     return false;
@@ -404,18 +404,59 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
 }
 
 bool capsulePlane(const CapsuleShape* capsuleA, const PlaneShape* planeB, CollisionList& collisions) {
+    glm::vec3 start, end, penetration;
+    capsuleA->getStartPoint(start);
+    capsuleA->getEndPoint(end);
+    glm::vec4 plane = planeB->getCoefficients();
+    if (findCapsulePlanePenetration(start, end, capsuleA->getRadius(), plane, penetration)) {
+        CollisionInfo* collision = collisions.getNewCollision();
+        if (!collision) {
+            return false; // collision list is full
+        }
+        collision->_penetration = penetration;
+        glm::vec3 deepestEnd = (glm::dot(start, glm::vec3(plane)) < glm::dot(end, glm::vec3(plane))) ? start : end;
+        collision->_contactPoint = deepestEnd + capsuleA->getRadius() * glm::normalize(penetration);
+        return true;
+    }
     return false;
 }
 
 bool planeSphere(const PlaneShape* planeA, const SphereShape* sphereB, CollisionList& collisions) {
+    glm::vec3 penetration;
+    if (findSpherePlanePenetration(sphereB->getPosition(), sphereB->getRadius(), planeA->getCoefficients(), penetration)) {
+        CollisionInfo* collision = collisions.getNewCollision();
+        if (!collision) {
+            return false; // collision list is full
+        }
+        collision->_penetration = -penetration;
+        collision->_contactPoint = sphereB->getPosition() +
+            (sphereB->getRadius() / glm::length(penetration) - 1.0f) * penetration;
+        return true;
+    }
     return false;
 }
 
 bool planeCapsule(const PlaneShape* planeA, const CapsuleShape* capsuleB, CollisionList& collisions) {
+    glm::vec3 start, end, penetration;
+    capsuleB->getStartPoint(start);
+    capsuleB->getEndPoint(end);
+    glm::vec4 plane = planeA->getCoefficients();
+    if (findCapsulePlanePenetration(start, end, capsuleB->getRadius(), plane, penetration)) {
+        CollisionInfo* collision = collisions.getNewCollision();
+        if (!collision) {
+            return false; // collision list is full
+        }
+        collision->_penetration = -penetration;
+        glm::vec3 deepestEnd = (glm::dot(start, glm::vec3(plane)) < glm::dot(end, glm::vec3(plane))) ? start : end;
+        collision->_contactPoint = deepestEnd + (capsuleB->getRadius() / glm::length(penetration) - 1.0f) * penetration;
+        return true;
+    }
     return false;
 }
 
 bool planePlane(const PlaneShape* planeA, const PlaneShape* planeB, CollisionList& collisions) {
+    // technically, planes always collide unless they're parallel and not coincident; however, that's
+    // not going to give us any useful information
     return false;
 }
 

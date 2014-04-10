@@ -16,15 +16,9 @@
 
 class PlaneShape : public Shape {
 public:
-    PlaneShape() : Shape(Shape::PLANE_SHAPE) {}
-
-    PlaneShape(const glm::vec4& coefficients) : Shape(Shape::PLANE_SHAPE), _coefficients(coefficients) { }
+    PlaneShape(const glm::vec4& coefficients = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
     
-    const glm::vec4& getCoefficients() const { return _coefficients; }
-
-private:
-    
-    glm::vec4 _coefficients;
+    glm::vec4 getCoefficients() const;
 };
 
 #endif // hifi_PlaneShape_h
