@@ -61,7 +61,7 @@ int DTLSClientSession::verifyServerCertificate(gnutls_session_t session) {
     qDebug() << "Gnutls certificate verification status:" << reinterpret_cast<char *>(printOut.data);
     
 #ifdef WIN32
-    free(printOut.data)
+    free(printOut.data);
 #else
     gnutls_free(printOut.data);
 #endif
