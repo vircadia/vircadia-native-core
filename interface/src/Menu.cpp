@@ -708,7 +708,12 @@ bool Menu::isOptionChecked(const QString& menuOption) {
 }
 
 void Menu::triggerOption(const QString& menuOption) {
-    _actionHash.value(menuOption)->trigger();
+    QAction* action = _actionHash.value(menuOption);
+    if (action) {
+        action->trigger();
+    } else {
+        qDebug() << "NULL Action for menuOption '" << menuOption << "'";
+    }
 }
 
 QAction* Menu::getActionForOption(const QString& menuOption) {
