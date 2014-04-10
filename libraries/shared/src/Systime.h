@@ -15,11 +15,12 @@
 
 #include <winsock2.h>
 
-extern "C" {
+struct timezone {
+  int tz_minuteswest; /* minutes west of Greenwich */
+  int tz_dsttime; /* type of dst correction */
+};
 
-int __cdecl gettimeofday(struct timeval *__restrict__, void *__restrict__);
-
-}
+int gettimeofday(struct timeval* p_tv, struct timezone* p_tz);
 
 #endif
 
