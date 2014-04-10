@@ -8,6 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#ifdef WIN32
+
 /**
  * gettimeofday
  * Implementation according to:
@@ -53,3 +55,5 @@ int __cdecl gettimeofday(struct timeval *__restrict__ tp,
      Do not set errno on error.  */
   return 0;
 }
+
+#endif
