@@ -15,10 +15,6 @@
 #include <cctype>
 #include <time.h>
 
-#ifdef _WIN32
-#include "Syssocket.h"
-#endif
-
 #ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
 #endif
