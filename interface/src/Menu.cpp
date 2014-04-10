@@ -1212,12 +1212,6 @@ void Menu::showChat() {
         _chatWindow->resize(0, _chatWindow->height());
         _chatWindow->toggleViewAction()->trigger();
 
-        QPropertyAnimation* slideAnimation = new QPropertyAnimation(_chatWindow, "geometry", _chatWindow);
-        slideAnimation->setStartValue(_chatWindow->geometry());
-        slideAnimation->setEndValue(QRect(mainWindow->width() - width, _chatWindow->y(),
-                                          width, _chatWindow->height()));
-        slideAnimation->setDuration(250);
-        slideAnimation->start(QAbstractAnimation::DeleteWhenStopped);
     }
 }
 
