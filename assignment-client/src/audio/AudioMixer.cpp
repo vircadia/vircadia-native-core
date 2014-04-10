@@ -21,7 +21,6 @@
 #include <string.h>
 
 #ifdef _WIN32
-#include "Syssocket.h"
 #include "Systime.h"
 #include <math.h>
 #else

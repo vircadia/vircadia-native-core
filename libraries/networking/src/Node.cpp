@@ -12,12 +12,6 @@
 #include <cstring>
 #include <stdio.h>
 
-#ifdef _WIN32
-#include "Syssocket.h"
-#else
-#include <arpa/inet.h> // not available on windows, apparently not needed on mac
-#endif
-
 #include "Node.h"
 #include "SharedUtil.h"
 

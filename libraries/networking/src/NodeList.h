@@ -12,11 +12,6 @@
 #ifndef hifi_NodeList_h
 #define hifi_NodeList_h
 
-#ifdef _WIN32
-#include "Syssocket.h"
-#else
-#include <netinet/in.h>
-#endif
 #include <stdint.h>
 #include <iterator>
 
