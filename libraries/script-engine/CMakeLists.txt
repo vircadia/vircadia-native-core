@@ -29,6 +29,6 @@ link_hifi_library(particles ${TARGET_NAME} "${ROOT_DIR}")
 # link ZLIB
 find_package(ZLIB)
 find_package(GnuTLS REQUIRED)
-include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}" "${GNUTLS_INCLUDE_DIRS}")
+include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}" "${GNUTLS_INCLUDE_DIR}")
 
 target_link_libraries(${TARGET_NAME} "${ZLIB_LIBRARIES}" "${GNUTLS_LIBRARY}" Qt5::Widgets)
