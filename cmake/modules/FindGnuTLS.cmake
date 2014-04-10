@@ -27,7 +27,7 @@ else ()
   
   find_path(GNUTLS_INCLUDE_DIR gnutls.h PATH_SUFFIXES include/gnutls gnutls HINTS ${GNUTLS_SEARCH_DIRS})
 
-  find_library(GNUTLS_LIBRARY NAMES gnutls gnutls-28 PATH_SUFFIXES lib bin HINTS ${GNUTLS_SEARCH_DIRS})
+  find_library(GNUTLS_LIBRARY NAMES gnutls "gnutls-28" PATH_SUFFIXES lib bin HINTS ${GNUTLS_SEARCH_DIRS})
   
   include(FindPackageHandleStandardArgs)
   find_package_handle_standard_args(GNUTLS DEFAULT_MSG GNUTLS_INCLUDE_DIR GNUTLS_LIBRARY)
