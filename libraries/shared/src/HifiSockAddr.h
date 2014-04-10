@@ -1,13 +1,16 @@
 //
 //  HifiSockAddr.h
-//  hifi
+//  libraries/shared/src
 //
 //  Created by Stephen Birarda on 11/26/2013.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__HifiSockAddr__
-#define __hifi__HifiSockAddr__
+#ifndef hifi_HifiSockAddr_h
+#define hifi_HifiSockAddr_h
 
 #include <QtNetwork/QHostAddress>
 
@@ -49,4 +52,4 @@ quint32 getHostOrderLocalAddress();
 
 Q_DECLARE_METATYPE(HifiSockAddr)
 
-#endif /* defined(__hifi__HifiSockAddr__) */
+#endif // hifi_HifiSockAddr_h

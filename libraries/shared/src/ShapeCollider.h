@@ -1,13 +1,16 @@
 //
 //  ShapeCollider.h
-//  hifi
+//  libraries/shared/src
 //
-//  Created by Andrew Meadows on 2014.02.20
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Created by Andrew Meadows on 02/20/2014.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__ShapeCollider__
-#define __hifi__ShapeCollider__
+#ifndef hifi_ShapeCollider_h
+#define hifi_ShapeCollider_h
 
 #include "CapsuleShape.h"
 #include "CollisionInfo.h"
@@ -19,9 +22,15 @@ namespace ShapeCollider {
 
     /// \param shapeA pointer to first shape
     /// \param shapeB pointer to second shape
-    /// \param[out] collisions where to append collision details
+    /// \param collisions[out] collision details
     /// \return true if shapes collide
-    bool shapeShape(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions);
+    bool collideShapes(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions);
+
+    /// \param shapesA list of shapes
+    /// \param shapeB list of shapes
+    /// \param collisions[out] average collision details
+    /// \return true if any shapes collide
+    bool collideShapesCoarse(const QVector<const Shape*>& shapesA, const QVector<const Shape*>& shapesB, CollisionInfo& collision);
 
     /// \param sphereA pointer to first shape
     /// \param sphereB pointer to second shape
@@ -79,4 +88,4 @@ namespace ShapeCollider {
 
 }   // namespace ShapeCollider
 
-#endif // __hifi__ShapeCollider__
+#endif // hifi_ShapeCollider_h

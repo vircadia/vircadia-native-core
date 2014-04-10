@@ -1,13 +1,16 @@
 //
 //  Bitstream.h
-//  metavoxels
+//  libraries/metavoxels/src
 //
 //  Created by Andrzej Kapolka on 12/2/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Bitstream__
-#define __interface__Bitstream__
+#ifndef hifi_Bitstream_h
+#define hifi_Bitstream_h
 
 #include <QHash>
 #include <QMetaProperty>
@@ -950,4 +953,4 @@ template<class T> int registerStreamableMetaType() {
 /// Flags a field or base class as streaming.
 #define STREAM
 
-#endif /* defined(__interface__Bitstream__) */
+#endif // hifi_Bitstream_h

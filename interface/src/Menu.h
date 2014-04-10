@@ -1,13 +1,16 @@
 //
 //  Menu.h
-//  hifi
+//  interface/src
 //
 //  Created by Stephen Birarda on 8/12/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__Menu__
-#define __hifi__Menu__
+#ifndef hifi_Menu_h
+#define hifi_Menu_h
 
 #include <QMenuBar>
 #include <QHash>
@@ -256,6 +259,7 @@ namespace MenuOption {
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
+    const QString Faceplus = "Faceplus";
     const QString Faceshift = "Faceshift";
     const QString FilterSixense = "Smooth Sixense Movement";
     const QString FirstPerson = "First Person";
@@ -290,7 +294,6 @@ namespace MenuOption {
     const QString OctreeStats = "Voxel and Particle Statistics";
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
-    const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
     const QString Particles = "Particles";
     const QString PasteToVoxel = "Paste to Voxel...";
@@ -326,4 +329,4 @@ namespace MenuOption {
 
 void sendFakeEnterEvent();
 
-#endif /* defined(__hifi__Menu__) */
+#endif // hifi_Menu_h

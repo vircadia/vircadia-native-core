@@ -1,24 +1,26 @@
 //
 //  Faceshift.h
-//  interface
+//  interface/src/devices
 //
 //  Created by Andrzej Kapolka on 9/3/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Faceshift__
-#define __interface__Faceshift__
+#ifndef hifi_Faceshift_h
+#define hifi_Faceshift_h
 
 #include <QTcpSocket>
 #include <QUdpSocket>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
-
 #include <fsbinarystream.h>
 
+#include "FaceTracker.h"
+
 /// Handles interaction with the Faceshift software, which provides head position/orientation and facial features.
-class Faceshift : public QObject {
+class Faceshift : public FaceTracker {
     Q_OBJECT
 
 public:
@@ -31,9 +33,7 @@ public:
 
     bool isActive() const;
 
-    const glm::quat& getHeadRotation() const { return _headRotation; }
     const glm::vec3& getHeadAngularVelocity() const { return _headAngularVelocity; }
-    const glm::vec3& getHeadTranslation() const { return _headTranslation; }
 
     // these pitch/yaw angles are in degrees
     float getEyeGazeLeftPitch() const { return _eyeGazeLeftPitch; }
@@ -41,11 +41,6 @@ public:
     
     float getEyeGazeRightPitch() const { return _eyeGazeRightPitch; }
     float getEyeGazeRightYaw() const { return _eyeGazeRightYaw; }
-
-    float getEstimatedEyePitch() const { return _estimatedEyePitch; }
-    float getEstimatedEyeYaw() const { return _estimatedEyeYaw; }
-
-    const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
 
     float getLeftBlink() const { return getBlendshapeCoefficient(_leftBlinkIndex); }
     float getRightBlink() const { return getBlendshapeCoefficient(_rightBlinkIndex); }
@@ -99,17 +94,13 @@ private:
     bool _tracking;
     quint64 _lastTrackingStateReceived;
     
-    glm::quat _headRotation;
     glm::vec3 _headAngularVelocity;
-    glm::vec3 _headTranslation;
     
     // degrees
     float _eyeGazeLeftPitch;
     float _eyeGazeLeftYaw;
     float _eyeGazeRightPitch;
     float _eyeGazeRightYaw;
-    
-    QVector<float> _blendshapeCoefficients;
     
     int _leftBlinkIndex;
     int _rightBlinkIndex;
@@ -132,10 +123,6 @@ private:
     float _longTermAverageEyePitch;
     float _longTermAverageEyeYaw;
     bool _longTermAverageInitialized;
-    
-    // degrees
-    float _estimatedEyePitch;
-    float _estimatedEyeYaw;
 };
 
-#endif /* defined(__interface__Faceshift__) */
+#endif // hifi_Faceshift_h

@@ -1,8 +1,12 @@
 //
 //  Head.cpp
-//  interface
+//  interface/src/avatar
 //
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 #include <glm/gtx/quaternion.hpp>
 
@@ -60,17 +64,11 @@ void Head::reset() {
 
 void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     //  Update audio trailing average for rendering facial animations
-    Faceshift* faceshift = Application::getInstance()->getFaceshift();
-    Visage* visage = Application::getInstance()->getVisage();
     if (isMine) {
-        _isFaceshiftConnected = false;
-        if (faceshift->isActive()) {
-            _blendshapeCoefficients = faceshift->getBlendshapeCoefficients();
-            _isFaceshiftConnected = true;
-            
-        } else if (visage->isActive()) {
-            _blendshapeCoefficients = visage->getBlendshapeCoefficients();
-            _isFaceshiftConnected = true;
+		FaceTracker* faceTracker = Application::getInstance()->getActiveFaceTracker();
+        if ((_isFaceshiftConnected = faceTracker)) {
+            _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
+            _isFaceshiftConnected = true;   
         }
     }
     
@@ -152,8 +150,9 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         const float BROW_LIFT_SCALE = 500.0f;
         const float JAW_OPEN_SCALE = 0.01f;
         const float JAW_OPEN_DEAD_ZONE = 0.75f;
-        faceshift->updateFakeCoefficients(_leftEyeBlink, _rightEyeBlink, min(1.0f, _browAudioLift * BROW_LIFT_SCALE),
-            glm::clamp(sqrt(_averageLoudness * JAW_OPEN_SCALE) - JAW_OPEN_DEAD_ZONE, 0.0f, 1.0f), _blendshapeCoefficients);
+        Application::getInstance()->getFaceshift()->updateFakeCoefficients(_leftEyeBlink, _rightEyeBlink,
+			min(1.0f, _browAudioLift * BROW_LIFT_SCALE), glm::clamp(sqrt(_averageLoudness * JAW_OPEN_SCALE) -
+				JAW_OPEN_DEAD_ZONE, 0.0f, 1.0f), _blendshapeCoefficients);
     }
     
     if (!isMine) {

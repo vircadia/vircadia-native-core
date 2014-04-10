@@ -1,12 +1,15 @@
 //
 //  Avatar.h
-//  interface
+//  interface/src/avatar
 //
-//  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
+//  Copyright 2012 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__avatar__
-#define __interface__avatar__
+#ifndef hifi_Avatar_h
+#define hifi_Avatar_h
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -61,7 +64,7 @@ enum ScreenTintLayer {
 // Where one's own Avatar begins in the world (will be overwritten if avatar data file is found)
 // this is basically in the center of the ground plane. Slightly adjusted. This was asked for by
 // Grayson as he's building a street around here for demo dinner 2
-const glm::vec3 START_LOCATION(0.485f * TREE_SCALE, 0.f, 0.5f * TREE_SCALE);
+const glm::vec3 START_LOCATION(0.485f * TREE_SCALE, 0.0f, 0.5f * TREE_SCALE);
 
 class Texture;
 
@@ -140,8 +143,6 @@ public:
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
 
-
-
     /// \return true if we expect the avatar would move as a result of the collision
     bool collisionWouldMoveAvatar(CollisionInfo& collision) const;
 
@@ -153,6 +154,9 @@ public:
 
 public slots:
     void updateCollisionFlags();
+
+signals:
+    void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);
 
 protected:
     SkeletonModel _skeletonModel;
@@ -199,4 +203,4 @@ private:
     float getBillboardSize() const;
 };
 
-#endif
+#endif // hifi_Avatar_h

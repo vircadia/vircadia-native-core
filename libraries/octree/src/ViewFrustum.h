@@ -1,15 +1,18 @@
 //
 //  ViewFrustum.h
-//  hifi
+//  libraries/octree/src
 //
 //  Created by Brad Hefta-Gaub on 04/11/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
 //  Simple view frustum class.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
-#ifndef __hifi__ViewFrustum__
-#define __hifi__ViewFrustum__
+#ifndef hifi_ViewFrustum_h
+#define hifi_ViewFrustum_h
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -172,4 +175,4 @@ private:
 };
 
 
-#endif /* defined(__hifi__ViewFrustum__) */
+#endif // hifi_ViewFrustum_h

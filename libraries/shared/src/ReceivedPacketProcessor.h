@@ -1,15 +1,16 @@
 //
 //  ReceivedPacketProcessor.h
-//  shared
+//  libraries/shared/src
 //
 //  Created by Brad Hefta-Gaub on 8/12/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
-//  Threaded or non-threaded received packet processor.
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __shared__ReceivedPacketProcessor__
-#define __shared__ReceivedPacketProcessor__
+#ifndef hifi_ReceivedPacketProcessor_h
+#define hifi_ReceivedPacketProcessor_h
 
 #include <QWaitCondition>
 
@@ -55,4 +56,4 @@ private:
     QMutex _waitingOnPacketsMutex;
 };
 
-#endif // __shared__PacketReceiver__
+#endif // hifi_ReceivedPacketProcessor_h

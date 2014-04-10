@@ -1,13 +1,16 @@
 //
-// AngleUtils.h
-// hifi
+//  AngleUtil.h
+//  libraries/shared/src
 //
-// Created by Tobias Schwinger on 3/23/13.
-// Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Created by Tobias Schwinger on 3/23/13.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AngleUtils__
-#define __hifi__AngleUtils__
+#ifndef hifi_AngleUtil_h
+#define hifi_AngleUtil_h
 
 #include <math.h>
 
@@ -95,5 +98,4 @@ void angleHorizontalPolar(float& azimuth, float& altitude) {
     azimuth = angleUnsignedNormal<Unit>(azimuth);
 }
 
-#endif
-
+#endif // hifi_AngleUtil_h

@@ -1,14 +1,17 @@
 //
-// starfield/data/InputVertex.h
-// interface
+//  InputVertex.h
+//  interface/src/starfield/data
 //
-// Created by Tobias Schwinger on 3/29/13.
-// Modified by Chris Barnard 10/17/13.
-// Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Created by Tobias Schwinger on 3/29/13.
+//  Modified by Chris Barnard on 10/17/13.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__starfield__data__InputVertex__
-#define __interface__starfield__data__InputVertex__
+#ifndef hifi_InputVertex_h
+#define hifi_InputVertex_h
 
 #include "starfield/Config.h"
 
@@ -33,5 +36,4 @@ namespace starfield {
 
 }
 
-#endif
-
+#endif // hifi_InputVertex_h

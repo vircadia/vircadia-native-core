@@ -1,9 +1,12 @@
 //
 //  ScriptEngine.cpp
-//  hifi
+//  libraries/script-engine/src
 //
 //  Created by Brad Hefta-Gaub on 12/14/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <QtCore/QCoreApplication>
@@ -60,7 +63,8 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _scriptName(),
     _fileNameString(fileNameString),
     _quatLibrary(),
-    _vec3Library()
+    _vec3Library(),
+    _uuidLibrary()
 {
 }
 
@@ -83,7 +87,8 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
     _scriptName(),
     _fileNameString(),
     _quatLibrary(),
-    _vec3Library()
+    _vec3Library(),
+    _uuidLibrary()
 {
     QString scriptURLString = scriptURL.toString();
     _fileNameString = scriptURLString;
@@ -197,6 +202,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Particles", &_particlesScriptingInterface);
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);
+    registerGlobalObject("Uuid", &_uuidLibrary);
 
     registerGlobalObject("Voxels", &_voxelsScriptingInterface);
 

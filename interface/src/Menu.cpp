@@ -1,9 +1,12 @@
 //
 //  Menu.cpp
-//  hifi
+//  interface/src
 //
 //  Created by Stephen Birarda on 8/12/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <cstdlib>
@@ -250,7 +253,6 @@ Menu::Menu() :
     addDisabledActionAndSeparator(viewMenu, "Stats");
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats, Qt::Key_Slash);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::Log, Qt::CTRL | Qt::Key_L, appInstance, SLOT(toggleLogDialog()));
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Oscilloscope, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Bandwidth, 0, true);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0, this, SLOT(bandwidthDetails()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0, this, SLOT(octreeStatsDetails()));
@@ -302,6 +304,11 @@ Menu::Menu() :
                                            true,
                                            appInstance->getFaceshift(),
                                            SLOT(setTCPEnabled(bool)));
+#ifdef HAVE_FACEPLUS
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Faceplus, 0, true,
+        appInstance->getFaceplus(), SLOT(updateEnabled()));
+#endif
+
 #ifdef HAVE_VISAGE
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Visage, 0, true,
         appInstance->getVisage(), SLOT(updateEnabled()));

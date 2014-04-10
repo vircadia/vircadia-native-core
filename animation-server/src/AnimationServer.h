@@ -1,13 +1,16 @@
 //
 //  AnimationServer.h
-//  hifi
+//  animation-server/src
 //
 //  Created by Stephen Birarda on 12/5/2013.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AnimationServer__
-#define __hifi__AnimationServer__
+#ifndef hifi_AnimationServer_h
+#define hifi_AnimationServer_h
 
 #include <QtCore/QCoreApplication>
 
@@ -21,4 +24,4 @@ private slots:
 };
 
 
-#endif /* defined(__hifi__AnimationServer__) */
+#endif // hifi_AnimationServer_h

@@ -42,5 +42,9 @@ interface/external/visage/*
 interface/resources/visage/*
 !interface/resources/visage/tracker.cfg
 
+# Ignore Faceplus
+interface/external/faceplus/*
+!interface/external/faceplus/readme.txt
+
 # Ignore interfaceCache for Linux users
 interface/interfaceCache/

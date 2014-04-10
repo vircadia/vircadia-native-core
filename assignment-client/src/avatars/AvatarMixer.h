@@ -1,13 +1,19 @@
 //
 //  AvatarMixer.h
-//  hifi
+//  assignment-client/src/avatars
 //
 //  Created by Stephen Birarda on 9/5/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  The avatar mixer receives head, hand and positional data from all connected
+//  nodes, and broadcasts that data back to them, every BROADCAST_INTERVAL ms.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AvatarMixer__
-#define __hifi__AvatarMixer__
+#ifndef hifi_AvatarMixer_h
+#define hifi_AvatarMixer_h
 
 #include <ThreadedAssignment.h>
 
@@ -43,4 +49,4 @@ private:
     int _sumIdentityPackets;
 };
 
-#endif /* defined(__hifi__AvatarMixer__) */
+#endif // hifi_AvatarMixer_h

@@ -1,15 +1,18 @@
 //
 //  VoxelEditPacketSender.h
-//  shared
+//  libraries/voxels/src
 //
 //  Created by Brad Hefta-Gaub on 8/12/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
 //  Voxel Packet Sender
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
-#ifndef __shared__VoxelEditPacketSender__
-#define __shared__VoxelEditPacketSender__
+#ifndef hifi_VoxelEditPacketSender_h
+#define hifi_VoxelEditPacketSender_h
 
 #include <OctreeEditPacketSender.h>
 #include "VoxelDetail.h"
@@ -47,4 +50,4 @@ public:
     // My server type is the voxel server
     virtual unsigned char getMyNodeType() const { return NodeType::VoxelServer; }
 };
-#endif // __shared__VoxelEditPacketSender__
+#endif // hifi_VoxelEditPacketSender_h

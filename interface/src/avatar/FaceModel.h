@@ -1,13 +1,16 @@
 //
 //  FaceModel.h
-//  interface
+//  interface/src/avatar
 //
 //  Created by Andrzej Kapolka on 9/16/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__FaceModel__
-#define __interface__FaceModel__
+#ifndef hifi_FaceModel_h
+#define hifi_FaceModel_h
 
 #include "renderer/Model.h"
 
@@ -33,4 +36,4 @@ private:
     Head* _owningHead;
 };
 
-#endif /* defined(__interface__FaceModel__) */
+#endif // hifi_FaceModel_h
