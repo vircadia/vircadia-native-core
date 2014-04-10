@@ -287,7 +287,6 @@ namespace MenuOption {
     const QString OctreeStats = "Voxel and Particle Statistics";
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
-    const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
     const QString Particles = "Particles";
     const QString PasteToVoxel = "Paste to Voxel...";

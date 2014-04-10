@@ -150,7 +150,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _viewFrustum(),
         _lastQueriedViewFrustum(),
         _lastQueriedTime(usecTimestampNow()),
-        _audioScope(256, 200, true),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
         _mouseX(0),
         _mouseY(0),
@@ -161,7 +160,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _touchAvgY(0.0f),
         _isTouchPressed(false),
         _mousePressed(false),
-        _audio(&_audioScope, STARTUP_JITTER_SAMPLES),
+        _audio(STARTUP_JITTER_SAMPLES),
         _enableProcessVoxelsThread(true),
         _voxelProcessor(),
         _voxelHideShowThread(&_voxels),
@@ -743,9 +742,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Comma:
             case Qt::Key_Period:
                 Menu::getInstance()->handleViewFrustumOffsetKeyModifier(event->key());
-                break;
-            case Qt::Key_Apostrophe:
-                _audioScope.inputPaused = !_audioScope.inputPaused;
                 break;
             case Qt::Key_L:
                 if (isShifted) {
@@ -2506,15 +2502,6 @@ void Application::displayOverlay() {
         const float VISIBLE_COLLISION_SOUND_MAGNITUDE = 0.5f;
         if (collisionSoundMagnitude > VISIBLE_COLLISION_SOUND_MAGNITUDE) {
                 renderCollisionOverlay(_glWidget->width(), _glWidget->height(), _audio.getCollisionSoundMagnitude());
-        }
-    }
-
-    //  Audio Scope
-    const int AUDIO_SCOPE_Y_OFFSET = 135;
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Oscilloscope)) {
-            int oscilloscopeTop = _glWidget->height() - AUDIO_SCOPE_Y_OFFSET;
-            _audioScope.render(MIRROR_VIEW_LEFT_PADDING, oscilloscopeTop);
         }
     }
 
