@@ -522,6 +522,11 @@ bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penet
     //return getHead()->getFaceModel().findSphereCollisions(penetratorCenter, penetratorRadius, collisions);
 }
 
+bool Avatar::findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions) {
+    return _skeletonModel.findPlaneCollisions(plane, collisions) ||
+        getHead()->getFaceModel().findPlaneCollisions(plane, collisions);
+}
+
 void Avatar::updateShapePositions() {
     _skeletonModel.updateShapePositions();
     Model& headModel = getHead()->getFaceModel();

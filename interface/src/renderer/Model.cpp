@@ -634,6 +634,21 @@ bool Model::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadi
     return collided;
 }
 
+bool Model::findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions) {
+    bool collided = false;
+    PlaneShape planeShape(plane);
+    for (int i = 0; i < _jointShapes.size(); i++) {
+        if (ShapeCollider::shapeShape(&planeShape, _jointShapes[i], collisions)) {
+            CollisionInfo* collision = collisions.getLastCollision();
+            collision->_type = MODEL_COLLISION;
+            collision->_data = (void*)(this);
+            collision->_flags = i;
+            collided = true;
+        }
+    }
+    return collided;
+}
+
 class Blender : public QRunnable {
 public:
 

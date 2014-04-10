@@ -522,6 +522,19 @@ void Application::paintGL() {
         _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
         _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
 
+        // push camera out of any intersecting avatars
+        float pushback = 0.0f;
+        foreach (const AvatarSharedPointer& avatarData, _avatarManager.getAvatarHash()) {
+            Avatar* avatar = static_cast<Avatar*>(avatarData.data());
+            const float RADIUS_MULTIPLIER = 2.0f;
+            CollisionList collisions(4);
+            if (!avatar->isMyAvatar() && avatar->findSphereCollisions(_myCamera.getTargetPosition(),
+                    _myCamera.getNearClip() * RADIUS_MULTIPLIER, collisions)) {
+                for (int i = 0; i < collisions.size(); i++) {
+                    collisions.getCollision(i)->_penetration;
+                }
+            }
+        }
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
         _myCamera.setTargetPosition(_myAvatar->getUprightHeadPosition());

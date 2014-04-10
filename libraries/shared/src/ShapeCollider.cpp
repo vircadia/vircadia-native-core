@@ -13,6 +13,7 @@
 
 #include <glm/gtx/norm.hpp>
 
+#include "GeometryUtil.h"
 #include "ShapeCollider.h"
 
 // NOTE:
@@ -33,6 +34,8 @@ bool shapeShape(const Shape* shapeA, const Shape* shapeB, CollisionList& collisi
             return sphereSphere(sphereA, static_cast<const SphereShape*>(shapeB), collisions);
         } else if (typeB == Shape::CAPSULE_SHAPE) {
             return sphereCapsule(sphereA, static_cast<const CapsuleShape*>(shapeB), collisions);
+        } else if (typeB == Shape::PLANE_SHAPE) {
+            return spherePlane(sphereA, static_cast<const PlaneShape*>(shapeB), collisions);
         }
     } else if (typeA == Shape::CAPSULE_SHAPE) {
         const CapsuleShape* capsuleA = static_cast<const CapsuleShape*>(shapeA);
@@ -40,6 +43,17 @@ bool shapeShape(const Shape* shapeA, const Shape* shapeB, CollisionList& collisi
             return capsuleSphere(capsuleA, static_cast<const SphereShape*>(shapeB), collisions);
         } else if (typeB == Shape::CAPSULE_SHAPE) {
             return capsuleCapsule(capsuleA, static_cast<const CapsuleShape*>(shapeB), collisions);
+        } else if (typeB == Shape::PLANE_SHAPE) {
+            return capsulePlane(capsuleA, static_cast<const PlaneShape*>(shapeB), collisions);
+        }
+    } else if (typeA == Shape::PLANE_SHAPE) {
+        const PlaneShape* planeA = static_cast<const PlaneShape*>(shapeA);
+        if (typeB == Shape::SPHERE_SHAPE) {
+            return planeSphere(planeA, static_cast<const SphereShape*>(shapeB), collisions);
+        } else if (typeB == Shape::CAPSULE_SHAPE) {
+            return planeCapsule(planeA, static_cast<const CapsuleShape*>(shapeB), collisions);
+        } else if (typeB == Shape::PLANE_SHAPE) {
+            return planePlane(planeA, static_cast<const PlaneShape*>(shapeB), collisions);
         }
     } else if (typeA == Shape::LIST_SHAPE) {
         const ListShape* listA = static_cast<const ListShape*>(shapeA);
@@ -47,6 +61,8 @@ bool shapeShape(const Shape* shapeA, const Shape* shapeB, CollisionList& collisi
             return listSphere(listA, static_cast<const SphereShape*>(shapeB), collisions);
         } else if (typeB == Shape::CAPSULE_SHAPE) {
             return listCapsule(listA, static_cast<const CapsuleShape*>(shapeB), collisions);
+        } else if (typeB == Shape::PLANE_SHAPE) {
+            return listPlane(listA, static_cast<const PlaneShape*>(shapeB), collisions);
         }
     }
     return false;
@@ -138,6 +154,20 @@ bool sphereCapsule(const SphereShape* sphereA, const CapsuleShape* capsuleB, Col
             // contactPoint is on surface of sphereA
             collision->_contactPoint = sphereA->getPosition() + (sign * sphereA->getRadius()) * capsuleAxis;
         }
+        return true;
+    }
+    return false;
+}
+
+bool spherePlane(const SphereShape* sphereA, const PlaneShape* planeB, CollisionList& collisions) {
+    glm::vec3 penetration;
+    if (findSpherePlanePenetration(sphereA->getPosition(), sphereA->getRadius(), planeB->getCoefficients(), penetration)) {
+        CollisionInfo* collision = collisions.getNewCollision();
+        if (!collision) {
+            return false; // collision list is full
+        }
+        collision->_penetration = penetration;
+        collision->_contactPoint = glm::vec3();
         return true;
     }
     return false;
@@ -349,6 +379,22 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
     return false;
 }
 
+bool capsulePlane(const CapsuleShape* capsuleA, const PlaneShape* planeB, CollisionList& collisions) {
+    return false;
+}
+
+bool planeSphere(const PlaneShape* planeA, const SphereShape* sphereB, CollisionList& collisions) {
+    return false;
+}
+
+bool planeCapsule(const PlaneShape* planeA, const CapsuleShape* capsuleB, CollisionList& collisions) {
+    return false;
+}
+
+bool planePlane(const PlaneShape* planeA, const PlaneShape* planeB, CollisionList& collisions) {
+    return false;
+}
+
 bool sphereList(const SphereShape* sphereA, const ListShape* listB, CollisionList& collisions) {
     bool touching = false;
     for (int i = 0; i < listB->size() && !collisions.isFull(); ++i) {
@@ -358,6 +404,8 @@ bool sphereList(const SphereShape* sphereA, const ListShape* listB, CollisionLis
             touching = sphereSphere(sphereA, static_cast<const SphereShape*>(subShape), collisions) || touching;
         } else if (subType == Shape::CAPSULE_SHAPE) {
             touching = sphereCapsule(sphereA, static_cast<const CapsuleShape*>(subShape), collisions) || touching;
+        } else if (subType == Shape::PLANE_SHAPE) {
+            touching = spherePlane(sphereA, static_cast<const PlaneShape*>(subShape), collisions) || touching;
         }
     }
     return touching;
@@ -372,6 +420,24 @@ bool capsuleList(const CapsuleShape* capsuleA, const ListShape* listB, Collision
             touching = capsuleSphere(capsuleA, static_cast<const SphereShape*>(subShape), collisions) || touching;
         } else if (subType == Shape::CAPSULE_SHAPE) {
             touching = capsuleCapsule(capsuleA, static_cast<const CapsuleShape*>(subShape), collisions) || touching;
+        } else if (subType == Shape::PLANE_SHAPE) {
+            touching = capsulePlane(capsuleA, static_cast<const PlaneShape*>(subShape), collisions) || touching;
+        }
+    }
+    return touching;
+}
+
+bool planeList(const PlaneShape* planeA, const ListShape* listB, CollisionList& collisions) {
+    bool touching = false;
+    for (int i = 0; i < listB->size() && !collisions.isFull(); ++i) {
+        const Shape* subShape = listB->getSubShape(i);
+        int subType = subShape->getType();
+        if (subType == Shape::SPHERE_SHAPE) {
+            touching = planeSphere(planeA, static_cast<const SphereShape*>(subShape), collisions) || touching;
+        } else if (subType == Shape::CAPSULE_SHAPE) {
+            touching = planeCapsule(planeA, static_cast<const CapsuleShape*>(subShape), collisions) || touching;
+        } else if (subType == Shape::PLANE_SHAPE) {
+            touching = planePlane(planeA, static_cast<const PlaneShape*>(subShape), collisions) || touching;
         }
     }
     return touching;
@@ -386,6 +452,8 @@ bool listSphere(const ListShape* listA, const SphereShape* sphereB, CollisionLis
             touching = sphereSphere(static_cast<const SphereShape*>(subShape), sphereB, collisions) || touching;
         } else if (subType == Shape::CAPSULE_SHAPE) {
             touching = capsuleSphere(static_cast<const CapsuleShape*>(subShape), sphereB, collisions) || touching;
+        } else if (subType == Shape::PLANE_SHAPE) {
+            touching = planeSphere(static_cast<const PlaneShape*>(subShape), sphereB, collisions) || touching;
         }
     }
     return touching;
@@ -400,6 +468,24 @@ bool listCapsule(const ListShape* listA, const CapsuleShape* capsuleB, Collision
             touching = sphereCapsule(static_cast<const SphereShape*>(subShape), capsuleB, collisions) || touching;
         } else if (subType == Shape::CAPSULE_SHAPE) {
             touching = capsuleCapsule(static_cast<const CapsuleShape*>(subShape), capsuleB, collisions) || touching;
+        } else if (subType == Shape::PLANE_SHAPE) {
+            touching = planeCapsule(static_cast<const PlaneShape*>(subShape), capsuleB, collisions) || touching;
+        }
+    }
+    return touching;
+}
+
+bool listPlane(const ListShape* listA, const PlaneShape* planeB, CollisionList& collisions) {
+    bool touching = false;
+    for (int i = 0; i < listA->size() && !collisions.isFull(); ++i) {
+        const Shape* subShape = listA->getSubShape(i);
+        int subType = subShape->getType();
+        if (subType == Shape::SPHERE_SHAPE) {
+            touching = spherePlane(static_cast<const SphereShape*>(subShape), planeB, collisions) || touching;
+        } else if (subType == Shape::CAPSULE_SHAPE) {
+            touching = capsulePlane(static_cast<const CapsuleShape*>(subShape), planeB, collisions) || touching;
+        } else if (subType == Shape::PLANE_SHAPE) {
+            touching = planePlane(static_cast<const PlaneShape*>(subShape), planeB, collisions) || touching;
         }
     }
     return touching;
