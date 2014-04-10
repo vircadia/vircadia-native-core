@@ -51,7 +51,6 @@ private:
     static int _scaleInLocation;
     static int _hmdWarpParamLocation;    
     static bool _isConnected;
-    static float _yawOffset;
     
 #ifdef HAVE_LIBOVR
     static OVR::Ptr<OVR::DeviceManager> _deviceManager;
