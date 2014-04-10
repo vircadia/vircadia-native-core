@@ -1206,12 +1206,12 @@ void Menu::showChat() {
         mainWindow->addDockWidget(Qt::NoDockWidgetArea, _chatWindow = new ChatWindow());
     }
     if (!_chatWindow->toggleViewAction()->isChecked()) {
-        int width = _chatWindow->width();
-        int y = qMax((mainWindow->height() - _chatWindow->height()) / 2, 0);
-        _chatWindow->move(mainWindow->width(), y);
+        const QRect& windowGeometry = mainWindow->geometry();
+        _chatWindow->move(windowGeometry.topRight().x() - _chatWindow->width(),
+                          windowGeometry.topRight().y() + (windowGeometry.height() / 2) - (_chatWindow->height() / 2));
+
         _chatWindow->resize(0, _chatWindow->height());
         _chatWindow->toggleViewAction()->trigger();
-
     }
 }
 
