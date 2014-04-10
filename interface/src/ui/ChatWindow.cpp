@@ -155,6 +155,8 @@ void ChatWindow::addTimeStamp() {
         timeLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
         timeLabel->setAlignment(Qt::AlignHCenter);
         ui->messagesGridLayout->addWidget(timeLabel, ui->messagesGridLayout->rowCount(), 0, 1, 2);
+        ui->messagesGridLayout->parentWidget()->updateGeometry();
+
         numMessagesAfterLastTimeStamp = 0;
     }
 }
