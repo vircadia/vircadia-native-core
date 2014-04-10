@@ -64,7 +64,7 @@ enum ScreenTintLayer {
 // Where one's own Avatar begins in the world (will be overwritten if avatar data file is found)
 // this is basically in the center of the ground plane. Slightly adjusted. This was asked for by
 // Grayson as he's building a street around here for demo dinner 2
-const glm::vec3 START_LOCATION(0.485f * TREE_SCALE, 0.f, 0.5f * TREE_SCALE);
+const glm::vec3 START_LOCATION(0.485f * TREE_SCALE, 0.0f, 0.5f * TREE_SCALE);
 
 class Texture;
 
@@ -149,8 +149,6 @@ public:
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
 
-
-
     /// \return true if we expect the avatar would move as a result of the collision
     bool collisionWouldMoveAvatar(CollisionInfo& collision) const;
 
@@ -162,6 +160,9 @@ public:
 
 public slots:
     void updateCollisionFlags();
+
+signals:
+    void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);
 
 protected:
     SkeletonModel _skeletonModel;

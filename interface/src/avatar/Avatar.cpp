@@ -233,22 +233,22 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
 
         // quick check before falling into the code below:
         // (a 10 degree breadth of an almost 2 meter avatar kicks in at about 12m)
-        const float MIN_VOICE_SPHERE_DISTANCE = 12.f;
+        const float MIN_VOICE_SPHERE_DISTANCE = 12.0f;
         if (distanceToTarget > MIN_VOICE_SPHERE_DISTANCE) {
             // render voice intensity sphere for avatars that are farther away
-            const float MAX_SPHERE_ANGLE = 10.f * RADIANS_PER_DEGREE;
-            const float MIN_SPHERE_ANGLE = 1.f * RADIANS_PER_DEGREE;
+            const float MAX_SPHERE_ANGLE = 10.0f * RADIANS_PER_DEGREE;
+            const float MIN_SPHERE_ANGLE = 1.0f * RADIANS_PER_DEGREE;
             const float MIN_SPHERE_SIZE = 0.01f;
             const float SPHERE_LOUDNESS_SCALING = 0.0005f;
             const float SPHERE_COLOR[] = { 0.5f, 0.8f, 0.8f };
             float height = getSkeletonHeight();
-            glm::vec3 delta = height * (getHead()->getCameraOrientation() * IDENTITY_UP) / 2.f;
+            glm::vec3 delta = height * (getHead()->getCameraOrientation() * IDENTITY_UP) / 2.0f;
             float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
             float sphereRadius = getHead()->getAverageLoudness() * SPHERE_LOUDNESS_SCALING;
             
             if (renderMode == NORMAL_RENDER_MODE && (sphereRadius > MIN_SPHERE_SIZE) &&
                     (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
-                glColor4f(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.f - angle / MAX_SPHERE_ANGLE);
+                glColor4f(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.0f - angle / MAX_SPHERE_ANGLE);
                 glPushMatrix();
                 glTranslatef(_position.x, _position.y, _position.z);
                 glScalef(height, height, height);
@@ -280,9 +280,9 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         glm::vec3 chatAxis = glm::axis(chatRotation);
         glRotatef(glm::degrees(glm::angle(chatRotation)), chatAxis.x, chatAxis.y, chatAxis.z);
         
-        glColor3f(0.f, 0.8f, 0.f);
-        glRotatef(180.f, 0.f, 1.f, 0.f);
-        glRotatef(180.f, 0.f, 0.f, 1.f);
+        glColor3f(0.0f, 0.8f, 0.0f);
+        glRotatef(180.0f, 0.0f, 1.0f, 0.0f);
+        glRotatef(180.0f, 0.0f, 0.0f, 1.0f);
         glScalef(_scale * CHAT_MESSAGE_SCALE, _scale * CHAT_MESSAGE_SCALE, 1.0f);
         
         glDisable(GL_LIGHTING);
@@ -298,7 +298,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
             _chatMessage[lastIndex] = '\0';
             textRenderer(CHAT)->draw(-width / 2.0f, 0, _chatMessage.c_str());
             _chatMessage[lastIndex] = lastChar;
-            glColor3f(0.f, 1.f, 0.f);
+            glColor3f(0.0f, 1.0f, 0.0f);
             textRenderer(CHAT)->draw(width / 2.0f - lastWidth, 0, _chatMessage.c_str() + lastIndex);
         }
         glEnable(GL_LIGHTING);
@@ -555,7 +555,7 @@ bool Avatar::findParticleCollisions(const glm::vec3& particleCenter, float parti
             const PalmData* palm = handData->getPalm(i);
             if (palm && palm->hasPaddle()) {
                 // create a disk collision proxy where the hand is
-                glm::vec3 fingerAxis(0.f);
+                glm::vec3 fingerAxis(0.0f);
                 for (size_t f = 0; f < palm->getNumFingers(); ++f) {
                     const FingerData& finger = (palm->getFingers())[f];
                     if (finger.isActive()) {
@@ -697,8 +697,8 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
         glm::vec3 perpCos = glm::normalize(glm::cross(axis, perpSin));
         perpSin = glm::cross(perpCos, axis);
         
-        float anglea = 0.f;
-        float angleb = 0.f;
+        float anglea = 0.0f;
+        float angleb = 0.0f;
         
         for (int i = 0; i < NUM_BODY_CONE_SIDES; i ++) {
             
@@ -748,8 +748,8 @@ void Avatar::updateCollisionFlags() {
 void Avatar::setScale(float scale) {
     _scale = scale;
 
-    if (_targetScale * (1.f - RESCALING_TOLERANCE) < _scale &&
-            _scale < _targetScale * (1.f + RESCALING_TOLERANCE)) {
+    if (_targetScale * (1.0f - RESCALING_TOLERANCE) < _scale &&
+            _scale < _targetScale * (1.0f + RESCALING_TOLERANCE)) {
         _scale = _targetScale;
     }
 }

@@ -16,8 +16,7 @@
 #include <QPair>
 #include <QVector>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
+#include "FaceTracker.h"
 
 namespace VisageSDK {
     class VisageTracker2;
@@ -25,7 +24,7 @@ namespace VisageSDK {
 }
 
 /// Handles input from the Visage webcam feature tracking software.
-class Visage : public QObject {
+class Visage : public FaceTracker {
     Q_OBJECT
     
 public:
@@ -36,14 +35,6 @@ public:
     void init();
     
     bool isActive() const { return _active; }
-    
-    const glm::quat& getHeadRotation() const { return _headRotation; }
-    const glm::vec3& getHeadTranslation() const { return _headTranslation; }
-    
-    float getEstimatedEyePitch() const { return _estimatedEyePitch; }
-    float getEstimatedEyeYaw() const { return _estimatedEyeYaw; }
-    
-    const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
     
     void update();
     void reset();
@@ -64,15 +55,8 @@ private:
     
     bool _enabled;
     bool _active;
-    glm::quat _headRotation;
-    glm::vec3 _headTranslation;
-    
+
     glm::vec3 _headOrigin;
-    
-    float _estimatedEyePitch;
-    float _estimatedEyeYaw;
-    
-    QVector<float> _blendshapeCoefficients;
 };
 
 #endif // hifi_Visage_h

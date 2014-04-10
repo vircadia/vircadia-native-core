@@ -253,6 +253,7 @@ namespace MenuOption {
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
+    const QString Faceplus = "Faceplus";
     const QString Faceshift = "Faceshift";
     const QString FilterSixense = "Smooth Sixense Movement";
     const QString FirstPerson = "First Person";
@@ -287,7 +288,6 @@ namespace MenuOption {
     const QString OctreeStats = "Voxel and Particle Statistics";
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
-    const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
     const QString Particles = "Particles";
     const QString PasteToVoxel = "Paste to Voxel...";

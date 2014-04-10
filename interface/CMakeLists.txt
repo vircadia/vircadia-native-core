@@ -12,6 +12,7 @@ project(${TARGET_NAME})
 
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
+set(FACEPLUS_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/faceplus")
 set(FACESHIFT_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/faceshift")
 set(LIBOVR_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/oculus")
 set(SIXENSE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/Sixense")
@@ -130,6 +131,7 @@ link_hifi_library(audio ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(script-engine ${TARGET_NAME} "${ROOT_DIR}")
 
 # find any optional libraries
+find_package(Faceplus)
 find_package(Faceshift)
 find_package(LibOVR)
 find_package(Sixense)
@@ -162,6 +164,13 @@ if (VISAGE_FOUND AND NOT DISABLE_VISAGE)
     endif (APPLE)
     target_link_libraries(${TARGET_NAME} "${VISAGE_LIBRARIES}")
 endif (VISAGE_FOUND AND NOT DISABLE_VISAGE)
+
+# and with Faceplus library, also for webcam feature tracking
+if (FACEPLUS_FOUND AND NOT DISABLE_FACEPLUS)
+    add_definitions(-DHAVE_FACEPLUS)
+    include_directories(SYSTEM "${FACEPLUS_INCLUDE_DIRS}")
+    target_link_libraries(${TARGET_NAME} "${FACEPLUS_LIBRARIES}")
+endif (FACEPLUS_FOUND AND NOT DISABLE_FACEPLUS)
 
 # and with LibOVR for Oculus Rift
 if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
