@@ -40,6 +40,9 @@ include_directories(SYSTEM "${GNUTLS_INCLUDE_DIR}")
 
 IF (WIN32)
 	target_link_libraries(${TARGET_NAME} Winmm Ws2_32)
+  
+  # add a definition for ssize_t so that windows doesn't bail on gnutls.h  
+  add_definitions(-Dssize_t=long)
 ENDIF(WIN32)
 
 target_link_libraries(${TARGET_NAME} Qt5::Script "${GNUTLS_LIBRARY}")

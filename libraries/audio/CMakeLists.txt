@@ -26,4 +26,10 @@ link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
 # link GnuTLS
 find_package(GnuTLS REQUIRED)
 include_directories(SYSTEM "${GNUTLS_INCLUDE_DIR}")
+
+# add a definition for ssize_t so that windows doesn't bail on gnutls.h
+if (WIN32)
+  add_definitions(-Dssize_t=long)
+endif ()
+
 target_link_libraries(${TARGET_NAME} "${GNUTLS_LIBRARY}")

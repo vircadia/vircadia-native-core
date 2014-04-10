@@ -192,6 +192,11 @@ include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes"
 # use system flag so warnings are supressed
 include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}" "${GNUTLS_INCLUDE_DIR}")
 
+# add a definition for ssize_t so that windows doesn't bail on gnutls.h
+if (WIN32)
+  add_definitions(-Dssize_t=long)
+endif ()
+
 target_link_libraries(
   ${TARGET_NAME}
   "${FACESHIFT_LIBRARIES}"

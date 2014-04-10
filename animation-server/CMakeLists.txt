@@ -37,5 +37,10 @@ find_package(GnuTLS REQUIRED)
 # include the GnuTLS dir
 include_directories(SYSTEM "${GNUTLS_INCLUDE_DIR}")
 
+# add a definition for ssize_t so that windows doesn't bail on gnutls.h
+if (WIN32)
+  add_definitions(-Dssize_t=long)
+endif ()
+
 # link GnuTLS
 target_link_libraries(${TARGET_NAME} "${GNUTLS_LIBRARY}")

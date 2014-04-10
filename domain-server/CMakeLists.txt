@@ -41,6 +41,11 @@ link_hifi_library(embedded-webserver ${TARGET_NAME} "${ROOT_DIR}")
 # include the GnuTLS dir
 include_directories(SYSTEM "${GNUTLS_INCLUDE_DIR}")
 
+# add a definition for ssize_t so that windows doesn't bail on gnutls.h
+if (WIN32)
+  add_definitions(-Dssize_t=long)
+endif ()
+
 IF (WIN32)
   target_link_libraries(${TARGET_NAME} Winmm Ws2_32)
 ENDIF(WIN32)
