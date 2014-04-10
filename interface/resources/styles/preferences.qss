@@ -9,3 +9,13 @@ QLabel#advancedTuningLabel {
     background-repeat: no-repeat;
     background-position: left center;
 }
+
+QPushButton#buttonBrowseHead,
+QPushButton#buttonBrowseBody {
+    background-image: url(styles/search.svg);
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-color: #fff;
+    border-radius: 0;
+    padding: 0;
+}

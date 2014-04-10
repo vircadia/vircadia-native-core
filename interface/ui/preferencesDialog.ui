@@ -351,18 +351,23 @@ color: #0e7077</string>
            <height>30</height>
           </size>
          </property>
+         <property name="maximumSize">
+          <size>
+           <width>30</width>
+           <height>30</height>
+          </size>
+         </property>
          <property name="styleSheet">
-          <string notr="true">background-color: #fff;
-border-radius: 0;
-padding: 0;</string>
+          <string notr="true"/>
          </property>
          <property name="text">
           <string/>
          </property>
-         <property name="icon">
-          <iconset>
-           <normalon>:/styles/search.svg</normalon>
-          </iconset>
+         <property name="iconSize">
+          <size>
+           <width>30</width>
+           <height>30</height>
+          </size>
          </property>
         </widget>
        </item>
@@ -449,18 +454,23 @@ padding: 0;</string>
            <height>30</height>
           </size>
          </property>
+         <property name="maximumSize">
+          <size>
+           <width>30</width>
+           <height>30</height>
+          </size>
+         </property>
          <property name="styleSheet">
-          <string notr="true">background-color: #fff;
-border-radius: 0;
-padding: 0;</string>
+          <string notr="true"/>
          </property>
          <property name="text">
           <string/>
          </property>
-         <property name="icon">
-          <iconset>
-           <normalon>:/styles/search.svg</normalon>
-          </iconset>
+         <property name="iconSize">
+          <size>
+           <width>30</width>
+           <height>30</height>
+          </size>
          </property>
         </widget>
        </item>
@@ -1327,9 +1337,7 @@ padding: 0;</string>
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources>
-  <include location="../resources/resources.qrc"/>
- </resources>
+ <resources/>
  <connections>
   <connection>
    <sender>cancelButton</sender>
