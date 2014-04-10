@@ -62,6 +62,7 @@ MyAvatar::MyAvatar() :
     _isThrustOn(false),
     _thrustMultiplier(1.0f),
     _moveTarget(0,0,0),
+    _lastBodyPenetration(0.0f),
     _moveTargetStepCounter(0),
     _lookAtTargetAvatar(),
     _shouldRender(true),
@@ -681,7 +682,7 @@ void MyAvatar::updateThrust(float deltaTime) {
     _thrust -= _driveKeys[DOWN] * _scale * THRUST_MAG_DOWN * _thrustMultiplier * deltaTime * up;
 
     // attenuate thrust when in penetration
-    if (glm::dot(_thrust, _lastBodyPenetration) > 0.0f) {
+    if (glm::dot(_thrust, _lastBodyPenetration) > EPSILON) {
         const float MAX_BODY_PENETRATION_DEPTH = 0.6f * _skeletonModel.getBoundingShapeRadius();
         float penetrationFactor = glm::min(1.0f, glm::length(_lastBodyPenetration) / MAX_BODY_PENETRATION_DEPTH);
         glm::vec3 penetrationDirection = glm::normalize(_lastBodyPenetration);
@@ -932,7 +933,11 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
 
             CollisionInfo collision;
             if (ShapeCollider::collideShapesCoarse(myShapes, theirShapes, collision)) {
-                if (glm::length2(collision._penetration) > EPSILON) {
+                float penetrationDepth = glm::length(collision._penetration);
+                if (penetrationDepth > myBoundingRadius) {
+                    qDebug() << "WARNING: ignoring avatar-avatar penetration depth " << penetrationDepth;
+                }
+                else if (penetrationDepth > EPSILON) {
                     setPosition(getPosition() - BODY_COLLISION_RESOLUTION_FACTOR * collision._penetration);
                     _lastBodyPenetration += collision._penetration;
                     emit collisionWithAvatar(getSessionUUID(), avatar->getSessionUUID(), collision);
