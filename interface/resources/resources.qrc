@@ -4,5 +4,7 @@
         <file>images/kill-script.svg</file>
         <file>images/reload.svg</file>
         <file>images/stop.svg</file>
+        <file>images/pin.svg</file>
+        <file>images/pinned.svg</file>
     </qresource>
 </RCC>
