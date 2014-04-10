@@ -33,17 +33,6 @@ void DTLSClientSession::globalDeinit() {
     gnutls_global_deinit();
 }
 
-// fix for lnk2001 link error on windows
-// call xgnutls_free instead of gnutls_free
-// http://stackoverflow.com/questions/14593949/getting-error-lnk2001-unresolved-external-symbol-gnutls-free-when-using-gnut
-
-typedef void (*gnutls_free_function) (void *);
-__declspec(dllimport) extern gnutls_free_function gnutls_free;
-
-void xgnutls_free(void* p){
-    gnutls_free(p);
-}
-
 int DTLSClientSession::verifyServerCertificate(gnutls_session_t session) {
     unsigned int verifyStatus = 0;
     
@@ -63,7 +52,6 @@ int DTLSClientSession::verifyServerCertificate(gnutls_session_t session) {
     
     gnutls_datum_t printOut;
 
-    
     certReturn = gnutls_certificate_verification_status_print(verifyStatus, typeReturn, &printOut, 0);
     
     if (certReturn < 0) {
