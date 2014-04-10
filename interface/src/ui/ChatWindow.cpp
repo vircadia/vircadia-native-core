@@ -154,10 +154,18 @@ void ChatWindow::addTimeStamp() {
                                  "padding: 4px;");
         timeLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
         timeLabel->setAlignment(Qt::AlignHCenter);
+
+        bool atBottom = isAtBottom();
+
         ui->messagesGridLayout->addWidget(timeLabel, ui->messagesGridLayout->rowCount(), 0, 1, 2);
         ui->messagesGridLayout->parentWidget()->updateGeometry();
 
+        Application::processEvents();
         numMessagesAfterLastTimeStamp = 0;
+
+        if (atBottom) {
+            scrollToBottom();
+        }
     }
 }
 
@@ -245,12 +253,15 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
         messageLabel->setStyleSheet(messageLabel->styleSheet() + "; background-color: #e1e8ea");
     }
 
+    bool atBottom = isAtBottom();
     ui->messagesGridLayout->addWidget(userLabel, ui->messagesGridLayout->rowCount(), 0);
     ui->messagesGridLayout->addWidget(messageLabel, ui->messagesGridLayout->rowCount() - 1, 1);
     ui->messagesGridLayout->parentWidget()->updateGeometry();
     Application::processEvents();
-    QScrollBar* verticalScrollBar = ui->messagesScrollArea->verticalScrollBar();
-    verticalScrollBar->setSliderPosition(verticalScrollBar->maximum());
+
+    if (atBottom) {
+        scrollToBottom();
+    }
 
     ++numMessagesAfterLastTimeStamp;
     if (message.stamp().isValid()) {
@@ -258,6 +269,19 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     } else {
         lastMessageStamp = QDateTime::currentDateTime();
     }
+}
+
+bool ChatWindow::isAtBottom() {
+    QScrollBar* verticalScrollBar = ui->messagesScrollArea->verticalScrollBar();
+    qDebug() << "Checking for bottom " << verticalScrollBar->sliderPosition() << " " << verticalScrollBar->maximum();
+    return verticalScrollBar->sliderPosition() == verticalScrollBar->maximum();
+}
+
+// Scroll chat message area to bottom.
+void ChatWindow::scrollToBottom() {
+    QScrollBar* verticalScrollBar = ui->messagesScrollArea->verticalScrollBar();
+    qDebug() << "Scrolling to " << verticalScrollBar->maximum();
+    verticalScrollBar->setSliderPosition(verticalScrollBar->maximum());
 }
 
 #endif

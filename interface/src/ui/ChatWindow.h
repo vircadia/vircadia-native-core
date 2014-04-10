@@ -48,6 +48,8 @@ private:
 #endif
     void startTimerForTimeStamps();
     void addTimeStamp();
+    bool isAtBottom();
+    void scrollToBottom();
 
     Ui::ChatWindow* ui;
     int numMessagesAfterLastTimeStamp;
