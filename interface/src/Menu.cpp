@@ -303,6 +303,11 @@ Menu::Menu() :
                                            true,
                                            appInstance->getFaceshift(),
                                            SLOT(setTCPEnabled(bool)));
+#ifdef HAVE_FACEPLUS
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Faceplus, 0, true,
+        appInstance->getFaceplus(), SLOT(updateEnabled()));
+#endif
+
 #ifdef HAVE_VISAGE
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Visage, 0, true,
         appInstance->getVisage(), SLOT(updateEnabled()));

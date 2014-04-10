@@ -352,24 +352,13 @@ void MyAvatar::simulate(float deltaTime) {
 
 //  Update avatar head rotation with sensor data
 void MyAvatar::updateFromGyros(float deltaTime) {
-    Faceshift* faceshift = Application::getInstance()->getFaceshift();
-    Visage* visage = Application::getInstance()->getVisage();
     glm::vec3 estimatedPosition, estimatedRotation;
 
-    bool trackerActive = false;
-    if (faceshift->isActive()) {
-        estimatedPosition = faceshift->getHeadTranslation();
-        estimatedRotation = glm::degrees(safeEulerAngles(faceshift->getHeadRotation()));
-        trackerActive = true;
-    
-    } else if (visage->isActive()) {
-        estimatedPosition = visage->getHeadTranslation();
-        estimatedRotation = glm::degrees(safeEulerAngles(visage->getHeadRotation()));
-        trackerActive = true;
-    }
-
-    Head* head = getHead();
-    if (trackerActive) {
+    FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
+    if (tracker) {
+        estimatedPosition = tracker->getHeadTranslation();
+        estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
+        
         //  Rotate the body if the head is turned beyond the screen
         if (Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead)) {
             const float TRACKER_YAW_TURN_SENSITIVITY = 0.5f;
@@ -384,13 +373,14 @@ void MyAvatar::updateFromGyros(float deltaTime) {
                 }
             }
         }
-    } 
+    }
 
     // Set the rotation of the avatar's head (as seen by others, not affecting view frustum)
     // to be scaled.  Pitch is greater to emphasize nodding behavior / synchrony.
     const float AVATAR_HEAD_PITCH_MAGNIFY = 1.0f;
     const float AVATAR_HEAD_YAW_MAGNIFY = 1.0f;
     const float AVATAR_HEAD_ROLL_MAGNIFY = 1.0f;
+    Head* head = getHead();
     head->setDeltaPitch(estimatedRotation.x * AVATAR_HEAD_PITCH_MAGNIFY);
     head->setDeltaYaw(estimatedRotation.y * AVATAR_HEAD_YAW_MAGNIFY);
     head->setDeltaRoll(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
