@@ -34,9 +34,6 @@
 #include <AudioRingBuffer.h>
 #include <StdDev.h>
 
-#include "ui/Oscilloscope.h"
-
-
 static const int NUM_AUDIO_CHANNELS = 2;
 
 class QAudioInput;
@@ -47,7 +44,7 @@ class Audio : public AbstractAudioInterface {
     Q_OBJECT
 public:
     // setup for audio I/O
-    Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* parent = 0);
+    Audio(int16_t initialJitterBufferSamples, QObject* parent = 0);
 
     float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _noiseGateMeasuredFloor, 0.f); }
     float getTimeSinceLastClip() const { return _timeSinceLastClip; }
@@ -126,7 +123,6 @@ private:
     QString _inputAudioDeviceName;
     QString _outputAudioDeviceName;
     
-    Oscilloscope* _scope;
     StDev _stdev;
     timeval _lastReceiveTime;
     float _averagedLatency;
