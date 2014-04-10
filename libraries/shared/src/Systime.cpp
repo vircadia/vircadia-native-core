@@ -30,7 +30,6 @@
  *  Danny Smith <dannysmith@users.sourceforge.net>
  */
 
-#include <sys/time.h>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
