@@ -13,6 +13,7 @@ set(MACRO_DIR "${ROOT_DIR}/cmake/macros")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 
 find_package(Qt5 COMPONENTS Network Script Widgets)
+find_package(GnuTLS REQUIRED)
 
 include("${MACRO_DIR}/SetupHifiProject.cmake")
 setup_hifi_project(${TARGET_NAME} TRUE)
@@ -41,4 +42,5 @@ IF (WIN32)
 	target_link_libraries(${TARGET_NAME} Winmm Ws2_32)
 ENDIF(WIN32)
 
-target_link_libraries(${TARGET_NAME} Qt5::Network Qt5::Widgets Qt5::Script)
+include_directories("${GNUTLS_INCLUDE_DIR}")
+target_link_libraries(${TARGET_NAME} Qt5::Network Qt5::Widgets Qt5::Script "${GNUTLS_LIBRARY}")
