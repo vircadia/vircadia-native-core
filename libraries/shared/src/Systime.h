@@ -15,7 +15,11 @@
 
 #include <winsock2.h>
 
+extern "C" {
+
 int __cdecl gettimeofday(struct timeval *__restrict__, void *__restrict__);
+
+}
 
 #endif
 
