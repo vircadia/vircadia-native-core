@@ -22,9 +22,15 @@ namespace ShapeCollider {
 
     /// \param shapeA pointer to first shape
     /// \param shapeB pointer to second shape
-    /// \param[out] collisions where to append collision details
+    /// \param collisions[out] collision details
     /// \return true if shapes collide
-    bool shapeShape(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions);
+    bool collideShapes(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions);
+
+    /// \param shapesA list of shapes
+    /// \param shapeB list of shapes
+    /// \param collisions[out] average collision details
+    /// \return true if any shapes collide
+    bool collideShapesCoarse(const QVector<const Shape*>& shapesA, const QVector<const Shape*>& shapesB, CollisionInfo& collision);
 
     /// \param sphereA pointer to first shape
     /// \param sphereB pointer to second shape

@@ -896,8 +896,7 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
     return false;
 }
 
-static CollisionList bodyCollisions(16);
-const float BODY_COLLISION_RESOLVE_TIMESCALE = 0.5f; // seconds
+const float BODY_COLLISION_RESOLUTION_TIMESCALE = 0.5f; // seconds
 
 void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
     //  Reset detector for nearest avatar
@@ -910,7 +909,7 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
     updateShapePositions();
     float myBoundingRadius = getBoundingRadius();
 
-    const float BODY_COLLISION_RESOLVE_FACTOR = deltaTime / BODY_COLLISION_RESOLVE_TIMESCALE;
+    const float BODY_COLLISION_RESOLUTION_FACTOR = deltaTime / BODY_COLLISION_RESOLUTION_TIMESCALE;
 
     foreach (const AvatarSharedPointer& avatarPointer, avatars) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
@@ -930,26 +929,19 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
             _skeletonModel.getBodyShapes(myShapes);
             QVector<const Shape*> theirShapes;
             avatar->getSkeletonModel().getBodyShapes(theirShapes);
-            bodyCollisions.clear();
-            // TODO: add method to ShapeCollider for colliding lists of shapes
-            foreach (const Shape* myShape, myShapes) {
-                foreach (const Shape* theirShape, theirShapes) {
-                    ShapeCollider::shapeShape(myShape, theirShape, bodyCollisions);
+
+            CollisionInfo collision;
+            if (ShapeCollider::collideShapesCoarse(myShapes, theirShapes, collision)) {
+                if (glm::length2(collision._penetration) > EPSILON) {
+                    setPosition(getPosition() - BODY_COLLISION_RESOLUTION_FACTOR * collision._penetration);
+                    _lastBodyPenetration += collision._penetration;
+                    emit collisionWithAvatar(getSessionUUID(), avatar->getSessionUUID(), collision);
                 }
             }
-            glm::vec3 totalPenetration(0.0f);
-            for (int j = 0; j < bodyCollisions.size(); ++j) {
-                CollisionInfo* collision = bodyCollisions.getCollision(j);
-                totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
-            }
-            if (glm::length2(totalPenetration) > EPSILON) {
-                setPosition(getPosition() - BODY_COLLISION_RESOLVE_FACTOR * totalPenetration);
-            }
-            _lastBodyPenetration += totalPenetration;
 
             // collide our hands against them
             // TODO: make this work when we can figure out when the other avatar won't yeild
-            // (for example, we're colling against their chest or leg)
+            // (for example, we're colliding against their chest or leg)
             //getHand()->collideAgainstAvatar(avatar, true);
 
             // collide their hands against us
