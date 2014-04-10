@@ -28,9 +28,7 @@ typedef void (*gnutls_free_function) (void *);
 __declspec(dllimport) extern gnutls_free_function gnutls_free;
 #endif
 
-void xgnutls_free(void* gnutlsPtr){
-    gnutls_free(gnutlsPtr);
-}
+void xgnutls_free(void* gnutlsPtr);
 
 class DTLSSession : public DummyDTLSSession {
     Q_OBJECT
