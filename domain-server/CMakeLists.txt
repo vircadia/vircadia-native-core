@@ -39,7 +39,7 @@ link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(embedded-webserver ${TARGET_NAME} "${ROOT_DIR}")
 
 # include the GnuTLS dir
-include_directories("${GNUTLS_INCLUDE_DIR}")
+include_directories(SYSTEM "${GNUTLS_INCLUDE_DIR}")
 
 IF (WIN32)
   target_link_libraries(${TARGET_NAME} Winmm Ws2_32)

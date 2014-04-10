@@ -36,7 +36,7 @@ link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
 
 # link GnuTLS
 find_package(GnuTLS REQUIRED)
-include_directories("${GNUTLS_INCLUDE_DIR}")
+include_directories(SYSTEM "${GNUTLS_INCLUDE_DIR}")
 
 IF (WIN32)
 	target_link_libraries(${TARGET_NAME} Winmm Ws2_32)

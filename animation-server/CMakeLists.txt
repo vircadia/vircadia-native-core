@@ -35,7 +35,7 @@ link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
 find_package(GnuTLS REQUIRED)
 
 # include the GnuTLS dir
-include_directories("${GNUTLS_INCLUDE_DIR}")
+include_directories(SYSTEM "${GNUTLS_INCLUDE_DIR}")
 
 # link GnuTLS
 target_link_libraries(${TARGET_NAME} "${GNUTLS_LIBRARY}")
