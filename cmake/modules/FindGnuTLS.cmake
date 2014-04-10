@@ -26,7 +26,7 @@ else ()
   
   find_path(GNUTLS_INCLUDE_DIR gnutls/gnutls.h PATH_SUFFIXES include HINTS ${GNUTLS_SEARCH_DIRS})
 
-  find_library(GNUTLS_LIBRARY NAMES gnutls libgnutls libgnutls-28 PATH_SUFFIXES lib bin HINTS ${GNUTLS_SEARCH_DIRS})
+  find_library(GNUTLS_LIBRARY NAMES gnutls libgnutls libgnutls-28 PATH_SUFFIXES lib HINTS ${GNUTLS_SEARCH_DIRS})
   
   include(FindPackageHandleStandardArgs)
   find_package_handle_standard_args(GNUTLS DEFAULT_MSG GNUTLS_INCLUDE_DIR GNUTLS_LIBRARY)
@@ -35,7 +35,7 @@ else ()
     message(STATUS "If you're generating a MSVC environment, you'll need to run the command")
     message(STATUS "$GnuTLS-DIR\\bin>lib /def:libgnutls-28.def")
     message(STATUS "From the MSVC command prompt to generate the .lib file and copy it into")
-    message(STATUS "your lib folder. Replace $GnuTLS-DIR in the command with the directory")
+    message(STATUS "the GnuTLS lib folder. Replace $GnuTLS-DIR in the command with the directory")
     message(STATUS "containing GnuTLS.")
   endif ()
 endif ()
