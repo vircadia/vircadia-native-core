@@ -15,9 +15,10 @@
 #include <cctype>
 #include <time.h>
 
-#ifdef WIN32
+#ifdef _WIN32
 #ifndef _timeval_
 #define _timeval_
+#endif
 #endif
 
 #ifdef __APPLE__
@@ -44,7 +45,7 @@ quint64 usecTimestampNow() {
     return (now.tv_sec * 1000000 + now.tv_usec) + ::usecTimestampNowAdjust;
 }
 
-float randFloat () {
+float randFloat() {
     return (rand() % 10000)/10000.f;
 }
 
