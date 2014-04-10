@@ -11,7 +11,6 @@
 
 #include <QtCore/QDataStream>
 #include <QtNetwork/QHostInfo>
-#include <QtNetwork/qnetworkconfigmanager.h>
 #include <QtNetwork/QNetworkInterface>
 
 #include "HifiSockAddr.h"
@@ -96,13 +95,13 @@ quint32 getHostOrderLocalAddress() {
     static int localAddress = 0;
     
     if (localAddress == 0) {
-        foreach(const QNetworkInterface &interface, QNetworkInterface::allInterfaces()) {
-            if (interface.flags() & QNetworkInterface::IsUp
-                && interface.flags() & QNetworkInterface::IsRunning
-                && interface.flags() & ~QNetworkInterface::IsLoopBack) {
+        foreach(const QNetworkInterface &networkInterface, QNetworkInterface::allInterfaces()) {
+            if (networkInterface.flags() & QNetworkInterface::IsUp
+                && networkInterface.flags() & QNetworkInterface::IsRunning
+                && networkInterface.flags() & ~QNetworkInterface::IsLoopBack) {
                 // we've decided that this is the active NIC
                 // enumerate it's addresses to grab the IPv4 address
-                foreach(const QNetworkAddressEntry &entry, interface.addressEntries()) {
+                foreach(const QNetworkAddressEntry &entry, networkInterface.addressEntries()) {
                     // make sure it's an IPv4 address that isn't the loopback
                     if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol && !entry.ip().isLoopback()) {
                         qDebug("Node's local address is %s", entry.ip().toString().toLocal8Bit().constData());
