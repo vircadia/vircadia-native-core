@@ -55,7 +55,6 @@ ModelUploader::ModelUploader(bool isHead) :
     _numberOfChecks(MAX_CHECK)
 {
     connect(&_timer, SIGNAL(timeout()), SLOT(checkS3()));
-    
 }
 
 ModelUploader::~ModelUploader() {
