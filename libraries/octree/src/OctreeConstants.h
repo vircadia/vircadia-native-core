@@ -1,16 +1,16 @@
 //
 //  OctreeConstants.h
-//  hifi
+//  libraries/octree/src
 //
 //  Created by Brad Hefta-Gaub on 4/29/13.
+//  Copyright 2013 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-//  Various important constants used throughout the system related to voxels
-//
-//  
 
-#ifndef __hifi_OctreeConstants_h__
-#define __hifi_OctreeConstants_h__
+#ifndef hifi_OctreeConstants_h
+#define hifi_OctreeConstants_h
 
 #include <limits.h>
 #include <stdint.h>
@@ -44,4 +44,4 @@ const int DANGEROUSLY_DEEP_RECURSION = 200; // use this for something that needs
 
 const int DEFAULT_MAX_OCTREE_PPS = 600; // the default maximum PPS we think any octree based server should send to a client
 
-#endif
+#endif // hifi_OctreeConstants_h

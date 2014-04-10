@@ -1,13 +1,16 @@
 //
 //  VoxelImporter.h
-//  hifi
+//  interface/src/voxels
 //
 //  Created by Clement Brisset on 8/9/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__VoxelImporter__
-#define __hifi__VoxelImporter__
+#ifndef hifi_VoxelImporter_h
+#define hifi_VoxelImporter_h
 
 #include <QThread>
 #include <QRunnable>
@@ -44,4 +47,4 @@ private:
     void cleanupTask();
 };
 
-#endif /* defined(__hifi__VoxelImporter__) */
+#endif // hifi_VoxelImporter_h

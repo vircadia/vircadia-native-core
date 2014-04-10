@@ -1,11 +1,11 @@
 //
 //  OctreePacketData.h
-//  hifi
+//  libraries/octree/src
 //
-//  Created by Brad Hefta-Gaub on 11/19/2013
+//  Created by Brad Hefta-Gaub on 11/19/2013.
+//  Copyright 2013 High Fidelity, Inc.
 //
 //  TO DO:
-//
 //    *  add stats tracking for number of unique colors and consecutive identical colors.
 //          (as research for color dictionaries and RLE)
 //
@@ -15,9 +15,12 @@
 //       but wouldn't work with RLE because the colors in the levels would get reordered and RLE would need
 //       to be recalculated
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
-#ifndef __hifi__OctreePacketData__
-#define __hifi__OctreePacketData__
+#ifndef hifi_OctreePacketData_h
+#define hifi_OctreePacketData_h
 
 #include <SharedUtil.h>
 #include "OctreeConstants.h"
@@ -224,4 +227,4 @@ private:
     static quint64 _totalBytesOfRawData;
 };
 
-#endif /* defined(__hifi__OctreePacketData__) */
+#endif // hifi_OctreePacketData_h

@@ -1,13 +1,16 @@
 //
 //  AvatarHashMap.h
-//  hifi
+//  libraries/avatars/src
 //
 //  Created by Stephen AndrewMeadows on 1/28/2014.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AvatarHashMap__
-#define __hifi__AvatarHashMap__
+#ifndef hifi_AvatarHashMap_h
+#define hifi_AvatarHashMap_h
 
 #include <QtCore/QHash>
 #include <QtCore/QSharedPointer>
@@ -33,4 +36,4 @@ protected:
     AvatarHash _avatarHash;
 };
 
-#endif /* defined(__hifi__AvatarHashMap__) */
+#endif // hifi_AvatarHashMap_h

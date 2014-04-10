@@ -1,11 +1,12 @@
 //
-//  AABox.h - Axis Aligned Boxes
-//  hifi
+//  AABox.cpp
+//  libraries/octree/src
 //
-//  Added by Brad Hefta-Gaub on 04/11/13.
-//  Originally from lighthouse3d. Modified to utilize glm::vec3 and clean up to our coding standards
+//  Created by Brad Hefta-Gaub on 04/11/13.
+//  Copyright 2013 High Fidelity, Inc.
 //
-//  Simple axis aligned box class.
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include "SharedUtil.h"

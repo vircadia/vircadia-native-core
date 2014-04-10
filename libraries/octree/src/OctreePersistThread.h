@@ -1,15 +1,18 @@
 //
 //  OctreePersistThread.h
-//  Octree-server
+//  libraries/octree/src
 //
-//  Created by Brad Hefta-Gaub on 8/21/13
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Created by Brad Hefta-Gaub on 8/21/13.
+//  Copyright 2013 High Fidelity, Inc.
 //
 //  Threaded or non-threaded Octree persistence
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
-#ifndef __Octree_server__OctreePersistThread__
-#define __Octree_server__OctreePersistThread__
+#ifndef hifi_OctreePersistThread_h
+#define hifi_OctreePersistThread_h
 
 #include <QString>
 #include <GenericThread.h>
@@ -42,4 +45,4 @@ private:
     quint64 _lastCheck;
 };
 
-#endif // __Octree_server__OctreePersistThread__
+#endif // hifi_OctreePersistThread_h

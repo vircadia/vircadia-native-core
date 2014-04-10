@@ -1,4 +1,7 @@
-# - Try to find the LibOVR library to use the Oculus
+# 
+#  FindLibOVR.cmake
+# 
+#  Try to find the LibOVR library to use the Oculus
 #
 #  You must provide a LIBOVR_ROOT_DIR which contains Lib and Include directories
 #
@@ -9,8 +12,11 @@
 #  LIBOVR_LIBRARIES - Link this to use LibOVR
 #
 #  Created on 5/9/2013 by Stephen Birarda
-#  Copyright (c) 2013 High Fidelity
+#  Copyright 2013 High Fidelity, Inc.
 #
+#  Distributed under the Apache License, Version 2.0.
+#  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+# 
 
 if (LIBOVR_LIBRARIES AND LIBOVR_INCLUDE_DIRS)
   # in cache already

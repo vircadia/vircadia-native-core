@@ -1,13 +1,16 @@
 //
 //  OctreeScriptingInterface.h
-//  hifi
+//  libraries/octree/src
 //
-//  Created by Brad Hefta-Gaub on 12/6/13
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Created by Brad Hefta-Gaub on 12/6/13.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__OctreeScriptingInterface__
-#define __hifi__OctreeScriptingInterface__
+#ifndef hifi_OctreeScriptingInterface_h
+#define hifi_OctreeScriptingInterface_h
 
 #include <QtCore/QObject>
 
@@ -96,4 +99,4 @@ protected:
     bool _initialized;
 };
 
-#endif /* defined(__hifi__OctreeScriptingInterface__) */
+#endif // hifi_OctreeScriptingInterface_h
