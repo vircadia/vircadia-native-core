@@ -96,12 +96,22 @@
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
         </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: rgba( 0, 0, 0, 0% );
+	border: none;
+    image: url(:images/close.svg)
+}
+
+
+QPushButton:pressed {
+    background-color: rgba( 0, 0, 0, 0% );
+	border: none;
+    image: url(:images/close_down.svg)
+}</string>
+        </property>
         <property name="text">
          <string/>
-        </property>
-        <property name="icon">
-         <iconset resource="../resources/resources.qrc">
-          <normaloff>:/images/close.svg</normaloff>:/images/close.svg</iconset>
         </property>
         <property name="flat">
          <bool>true</bool>
