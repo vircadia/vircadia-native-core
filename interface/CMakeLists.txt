@@ -188,14 +188,14 @@ endif (QXMPP_FOUND AND NOT DISABLE_QXMPP)
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")
 
-# include external library headers
-# use system flag so warnings are supressed
-include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}" "${GNUTLS_INCLUDE_DIR}")
-
 # add a definition for ssize_t so that windows doesn't bail on gnutls.h
 if (WIN32)
   add_definitions(-Dssize_t=long)
 endif ()
+
+# include external library headers
+# use system flag so warnings are supressed
+include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}" "${GNUTLS_INCLUDE_DIR}")
 
 target_link_libraries(
   ${TARGET_NAME}

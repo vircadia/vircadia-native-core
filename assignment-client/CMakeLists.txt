@@ -35,12 +35,13 @@ link_hifi_library(script-engine ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(embedded-webserver ${TARGET_NAME} "${ROOT_DIR}")
 
 find_package(GnuTLS REQUIRED)
-include_directories(SYSTEM "${GNUTLS_INCLUDE_DIR}")
 
 # add a definition for ssize_t so that windows doesn't bail on gnutls.h
 if (WIN32)
   add_definitions(-Dssize_t=long)
 endif ()
+
+include_directories(SYSTEM "${GNUTLS_INCLUDE_DIR}")
 
 if (UNIX)
   target_link_libraries(${TARGET_NAME} ${CMAKE_DL_LIBS})
