@@ -20,7 +20,6 @@
 
 #ifdef WIN32
 #define WIN32_LEAN_AND_MEAN
-#define _WINSOCKAPI_
 #include <windows.h>
 #include <Mmsystem.h>
 #include <mmdeviceapi.h>
