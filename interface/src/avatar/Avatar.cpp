@@ -210,7 +210,10 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
     {
         // glow when moving far away
         const float GLOW_DISTANCE = 20.0f;
-        Glower glower(_moving && distanceToTarget > GLOW_DISTANCE && renderMode == NORMAL_RENDER_MODE ? 1.0f : 0.0f);
+        const float GLOW_MAX_LOUDNESS = 2500.0f;
+        const float MAX_GLOW = 0.7f;
+        const float GLOW_FROM_AVERAGE_LOUDNESS = MAX_GLOW * getHeadData()->getAudioLoudness() / GLOW_MAX_LOUDNESS;
+        Glower glower(_moving && distanceToTarget > GLOW_DISTANCE && renderMode == NORMAL_RENDER_MODE ? 1.0f : GLOW_FROM_AVERAGE_LOUDNESS);
 
         // render body
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
