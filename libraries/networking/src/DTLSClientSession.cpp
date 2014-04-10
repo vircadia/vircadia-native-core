@@ -33,6 +33,17 @@ void DTLSClientSession::globalDeinit() {
     gnutls_global_deinit();
 }
 
+// fix for lnk2001 link error on windows
+// call xgnutls_free instead of gnutls_free
+// http://stackoverflow.com/questions/14593949/getting-error-lnk2001-unresolved-external-symbol-gnutls-free-when-using-gnut
+
+typedef void (*gnutls_free_function) (void *);
+__declspec(dllimport) extern gnutls_free_function gnutls_free;
+
+void xgnutls_free(void* p){
+    gnutls_free(p);
+}
+
 int DTLSClientSession::verifyServerCertificate(gnutls_session_t session) {
     unsigned int verifyStatus = 0;
     
@@ -60,7 +71,7 @@ int DTLSClientSession::verifyServerCertificate(gnutls_session_t session) {
     }
     
     qDebug() << "Gnutls certificate verification status:" << reinterpret_cast<char *>(printOut.data);
-    gnutls_free(printOut.data);
+    xgnutls_free(printOut.data);
     
     if (verifyStatus != 0) {
         qDebug() << "Server provided certificate for DTLS is not trusted. Can not complete handshake.";
