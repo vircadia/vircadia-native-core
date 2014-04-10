@@ -12,12 +12,6 @@
 #ifndef hifi_Logging_h
 #define hifi_Logging_h
 
-#ifdef _WIN32
-#include "Syssocket.h"
-#else
-#include <netinet/in.h>
-#endif
-
 #include <QtCore/QString>
 
 const int LOGSTASH_UDP_PORT = 9500;

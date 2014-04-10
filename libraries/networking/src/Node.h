@@ -15,12 +15,6 @@
 #include <ostream>
 #include <stdint.h>
 
-#ifdef _WIN32
-#include "Syssocket.h"
-#else
-#include <sys/socket.h>
-#endif
-
 #include <QtCore/QDebug>
 #include <QtCore/QMutex>
 #include <QtCore/QUuid>
