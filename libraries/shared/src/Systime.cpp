@@ -10,6 +10,8 @@
 
 #ifdef WIN32
 
+#include "Systime.h"
+
 /**
  * gettimeofday
  * Implementation according to:
