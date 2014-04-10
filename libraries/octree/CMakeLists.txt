@@ -24,8 +24,10 @@ include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
 
-# link ZLIB
+# link ZLIB and GnuTLS
 find_package(ZLIB)
-include_directories("${ZLIB_INCLUDE_DIRS}")
+find_package(GnuTLS REQUIRED)
 
-target_link_libraries(${TARGET_NAME} "${ZLIB_LIBRARIES}" Qt5::Widgets)
+include_directories("${ZLIB_INCLUDE_DIRS}" "${GNUTLS_INCLUDE_DIR}")
+
+target_link_libraries(${TARGET_NAME} "${ZLIB_LIBRARIES}" Qt5::Widgets "${GNUTLS_LIBRARY}")
