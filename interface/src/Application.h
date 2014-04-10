@@ -188,6 +188,8 @@ public:
     /// if you need to access the application settings, use lockSettings()/unlockSettings()
     QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }
     void unlockSettings() { _settingsMutex.unlock(); }
+    
+    void saveSettings();
 
     QMainWindow* getWindow() { return _window; }
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }

@@ -22,7 +22,9 @@
 
 #include <AccountManager.h>
 
+#include "Application.h"
 #include "renderer/FBXReader.h"
+
 #include "ModelUploader.h"
 
 
@@ -33,6 +35,8 @@ static const QString LOD_FIELD = "lod";
 
 static const QString S3_URL = "http://highfidelity-public.s3-us-west-1.amazonaws.com";
 static const QString MODEL_URL = "/api/v1/models";
+
+static const QString SETTING_NAME = "LastModelUploadLocation";
 
 static const int MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 static const int TIMEOUT = 1000;
@@ -59,14 +63,27 @@ ModelUploader::~ModelUploader() {
 
 bool ModelUploader::zip() {
     // File Dialog
-    QString filename = QFileDialog::getOpenFileName(NULL,
-                                                    "Select your .fst file ...",
-                                                    QStandardPaths::writableLocation(QStandardPaths::HomeLocation),
-                                                    "*.fst");
+    QSettings* settings = Application::getInstance()->lockSettings();
+    QString lastLocation = settings->value(SETTING_NAME).toString();
+    
+    if (lastLocation.isEmpty()) {
+       lastLocation  = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+    // Temporary fix to Qt bug: http://stackoverflow.com/questions/16194475
+#ifdef __APPLE__
+    lastLocation.append("/model.fst");
+#endif
+    }
+    
+        
+    QString filename = QFileDialog::getOpenFileName(NULL, "Select your .fst file ...", lastLocation, "*.fst");
     if (filename == "") {
         // If the user canceled we return.
+        Application::getInstance()->unlockSettings();
         return false;
     }
+    settings->setValue(SETTING_NAME, filename);
+    Application::getInstance()->unlockSettings();
+    
     bool _nameIsPresent = false;
     QString texDir;
     QString fbxFile;

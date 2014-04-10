@@ -341,11 +341,15 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         // clear the scripts, and set out script to our default scripts
         clearScriptsBeforeRunning();
         loadScript("http://public.highfidelity.io/scripts/defaultScripts.js");
-
+        
+        QMutexLocker locker(&_settingsMutex);
         _settings->setValue("firstRun",QVariant(false));
     } else {
         // do this as late as possible so that all required subsystems are inialized
         loadScripts();
+        
+        QMutexLocker locker(&_settingsMutex);
+        _previousScriptLocation = _settings->value("LastScriptLocation", QVariant("")).toString();
     }
 }
 
@@ -355,16 +359,12 @@ Application::~Application() {
 
     // make sure we don't call the idle timer any more
     delete idleTimer;
-
-    Menu::getInstance()->saveSettings();
-    _rearMirrorTools->saveSettings(_settings);
-
+    
     _sharedVoxelSystem.changeTree(new VoxelTree);
-    if (_voxelImporter) {
-        _voxelImporter->saveSettings(_settings);
-        delete _voxelImporter;
-    }
-    _settings->sync();
+    
+    saveSettings();
+    
+    delete _voxelImporter;
 
     // let the avatar mixer know we're out
     MyAvatar::sendKillAvatar();
@@ -398,35 +398,45 @@ Application::~Application() {
     AccountManager::getInstance().destroy();
 }
 
+void Application::saveSettings() {
+    Menu::getInstance()->saveSettings();
+    _rearMirrorTools->saveSettings(_settings);
+    
+    if (_voxelImporter) {
+        _voxelImporter->saveSettings(_settings);
+    }
+    _settings->sync();
+}
+
+
 void Application::restoreSizeAndPosition() {
-    QSettings* settings = new QSettings(this);
     QRect available = desktop()->availableGeometry();
 
-    settings->beginGroup("Window");
+    QMutexLocker locker(&_settingsMutex);
+    _settings->beginGroup("Window");
 
-    int x = (int)loadSetting(settings, "x", 0);
-    int y = (int)loadSetting(settings, "y", 0);
+    int x = (int)loadSetting(_settings, "x", 0);
+    int y = (int)loadSetting(_settings, "y", 0);
     _window->move(x, y);
 
-    int width = (int)loadSetting(settings, "width", available.width());
-    int height = (int)loadSetting(settings, "height", available.height());
+    int width = (int)loadSetting(_settings, "width", available.width());
+    int height = (int)loadSetting(_settings, "height", available.height());
     _window->resize(width, height);
 
-    settings->endGroup();
+    _settings->endGroup();
 }
 
 void Application::storeSizeAndPosition() {
-    QSettings* settings = new QSettings(this);
+    QMutexLocker locker(&_settingsMutex);
+    _settings->beginGroup("Window");
 
-    settings->beginGroup("Window");
+    _settings->setValue("width", _window->rect().width());
+    _settings->setValue("height", _window->rect().height());
 
-    settings->setValue("width", _window->rect().width());
-    settings->setValue("height", _window->rect().height());
+    _settings->setValue("x", _window->pos().x());
+    _settings->setValue("y", _window->pos().y());
 
-    settings->setValue("x", _window->pos().x());
-    settings->setValue("y", _window->pos().y());
-
-    settings->endGroup();
+    _settings->endGroup();
 }
 
 void Application::initializeGL() {
@@ -3167,35 +3177,36 @@ void Application::packetSent(quint64 length) {
 
 void Application::loadScripts() {
     // loads all saved scripts
-    QSettings* settings = new QSettings(this);
-    int size = settings->beginReadArray("Settings");
-
+    int size = lockSettings()->beginReadArray("Settings");
+    unlockSettings();
     for (int i = 0; i < size; ++i){
-        settings->setArrayIndex(i);
-        QString string = settings->value("script").toString();
-        loadScript(string);
+        lockSettings()->setArrayIndex(i);
+        QString string = _settings->value("script").toString();
+        unlockSettings();
+        if (!string.isEmpty()) {
+            loadScript(string);
+        }
     }
-
-    settings->endArray();
+    
+    QMutexLocker locker(&_settingsMutex);
+    _settings->endArray();
 }
 
 void Application::clearScriptsBeforeRunning() {
     // clears all scripts from the settings
-    QSettings* settings = new QSettings(this);
-    settings->beginWriteArray("Settings");
-    settings->endArray();
+    QMutexLocker locker(&_settingsMutex);
+    _settings->remove("Settings");
 }
 
 void Application::saveScripts() {
     // saves all current running scripts
-    QSettings* settings = new QSettings(this);
-    settings->beginWriteArray("Settings");
+    QMutexLocker locker(&_settingsMutex);
+    _settings->beginWriteArray("Settings");
     for (int i = 0; i < getRunningScripts().size(); ++i){
-        settings->setArrayIndex(i);
-        settings->setValue("script", getRunningScripts().at(i));
+        _settings->setArrayIndex(i);
+        _settings->setValue("script", getRunningScripts().at(i));
     }
-
-    settings->endArray();
+    _settings->endArray();
 }
 
 void Application::stopAllScripts() {
@@ -3336,7 +3347,10 @@ void Application::loadDialog() {
 
     if (_previousScriptLocation.isEmpty()) {
         QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+// Temporary fix to Qt bug: http://stackoverflow.com/questions/16194475
+#ifdef __APPLE__
         suggestedName = desktopLocation.append("/script.js");
+#endif
     } else {
         suggestedName = _previousScriptLocation;
     }
@@ -3345,9 +3359,11 @@ void Application::loadDialog() {
                                                           tr("JavaScript Files (*.js)"));
     if (!fileNameString.isEmpty()) {
         _previousScriptLocation = fileNameString;
+        QMutexLocker locker(&_settingsMutex);
+        _settings->setValue("LastScriptLocation", _previousScriptLocation);
+        
+        loadScript(fileNameString);
     }
-
-    loadScript(fileNameString);
 }
 
 void Application::loadScriptURLDialog() {
