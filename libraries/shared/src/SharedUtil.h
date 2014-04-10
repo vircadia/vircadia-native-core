@@ -30,8 +30,6 @@
 #include <sys/time.h>
 #endif
 
-#include "PacketHeaders.h"
-
 const int BYTES_PER_COLOR = 3;
 const int BYTES_PER_FLAGS = 1;
 typedef unsigned char rgbColor[BYTES_PER_COLOR];

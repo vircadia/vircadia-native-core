@@ -34,6 +34,7 @@ add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
 
 # link the shared hifi library
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
+link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(embedded-webserver ${TARGET_NAME} "${ROOT_DIR}")
 

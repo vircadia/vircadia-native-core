@@ -26,5 +26,6 @@ link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
 # link in the hifi voxels library
 link_hifi_library(octree ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(voxels ${TARGET_NAME} "${ROOT_DIR}")
+link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
 
 target_link_libraries(${TARGET_NAME} Qt5::Script)

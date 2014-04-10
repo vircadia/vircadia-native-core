@@ -31,6 +31,9 @@ link_hifi_library(octree ${TARGET_NAME} "${ROOT_DIR}")
 # link in the hifi voxels library
 link_hifi_library(voxels ${TARGET_NAME} "${ROOT_DIR}")
 
+# link in the hifi networking library
+link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
+
 IF (WIN32)
 	target_link_libraries(${TARGET_NAME} Winmm Ws2_32)
 ENDIF(WIN32)

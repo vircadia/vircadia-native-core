@@ -26,7 +26,6 @@
 #include <QtCore/QDebug>
 
 #include "OctalCode.h"
-#include "PacketHeaders.h"
 #include "SharedUtil.h"
 
 quint64 usecTimestamp(const timeval *time) {

@@ -32,8 +32,8 @@ elseif (UNIX)
   # include the right GL headers for UNIX
   set(GL_HEADERS "#include <GL/gl.h>\n#include <GL/glut.h>\n#include <GL/glext.h>")
 elseif (WIN32)
-    add_definitions( -D_USE_MATH_DEFINES ) # apparently needed to get M_PI and other defines from cmath/math.h
-    add_definitions( -DWINDOWS_LEAN_AND_MEAN ) # needed to make sure windows doesn't go to crazy with its defines
+    add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h
+    add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines
 
     set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/glut.h>")
 endif ()
@@ -67,7 +67,6 @@ foreach(EXTERNAL_SOURCE_SUBDIR ${EXTERNAL_SOURCE_SUBDIRS})
 endforeach(EXTERNAL_SOURCE_SUBDIR)
 
 find_package(Qt5 COMPONENTS Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets Xml UiTools)
-find_package(GnuTLS REQUIRED)
 
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
@@ -125,6 +124,7 @@ link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(octree ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(voxels ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(metavoxels ${TARGET_NAME} "${ROOT_DIR}")
+link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(particles ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(avatars ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(audio ${TARGET_NAME} "${ROOT_DIR}")
@@ -189,7 +189,7 @@ include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes"
 
 # include external library headers
 # use system flag so warnings are supressed
-include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}" "${GNUTLS_INCLUDE_DIR}")
+include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}")
 
 target_link_libraries(
   ${TARGET_NAME}
@@ -197,7 +197,6 @@ target_link_libraries(
   "${ZLIB_LIBRARIES}"
   Qt5::Core Qt5::Gui Qt5::Multimedia Qt5::Network Qt5::OpenGL 
   Qt5::Script Qt5::Svg Qt5::WebKit Qt5::WebKitWidgets Qt5::Xml Qt5::UiTools
-  "${GNUTLS_LIBRARY}"
 )
 
 if (APPLE)
