@@ -19,17 +19,6 @@
 #include "DummyDTLSSession.h"
 #include "HifiSockAddr.h"
 
-// fix for lnk2001 link error on windows
-// call xgnutls_free instead of gnutls_free
-// http://stackoverflow.com/questions/14593949/getting-error-lnk2001-unresolved-external-symbol-gnutls-free-when-using-gnut
-
-#ifdef WIN32
-typedef void (*gnutls_free_function) (void *);
-__declspec(dllimport) extern gnutls_free_function gnutls_free;
-#endif
-
-void xgnutls_free(void* gnutlsPtr);
-
 class DTLSSession : public DummyDTLSSession {
     Q_OBJECT
 public:

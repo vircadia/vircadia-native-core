@@ -14,10 +14,6 @@
 #include "NodeList.h"
 #include "DTLSSession.h"
 
-void xgnutls_free(void* gnutlsPtr){
-    gnutls_free(gnutlsPtr);
-}
-
 int DTLSSession::socketPullTimeout(gnutls_transport_ptr_t ptr, unsigned int ms) {
     DTLSSession* session = static_cast<DTLSSession*>(ptr);
     QUdpSocket& dtlsSocket = session->_dtlsSocket;

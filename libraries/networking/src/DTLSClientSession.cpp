@@ -59,7 +59,12 @@ int DTLSClientSession::verifyServerCertificate(gnutls_session_t session) {
     }
     
     qDebug() << "Gnutls certificate verification status:" << reinterpret_cast<char *>(printOut.data);
-    xgnutls_free(printOut.data);
+    
+#ifdef WIN32
+    free(printOut.data)
+#else
+    gnutls_free(printOut.data);
+#endif
     
     if (verifyStatus != 0) {
         qDebug() << "Server provided certificate for DTLS is not trusted. Can not complete handshake.";
