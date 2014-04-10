@@ -63,8 +63,8 @@ bool collideShapesCoarse(const QVector<const Shape*>& shapesA, const QVector<con
         }
     }
     if (tempCollisions.size() > 0) {
-        glm::vec3 totalPenetration(0.f);
-        glm::vec3 averageContactPoint(0.f);
+        glm::vec3 totalPenetration(0.0f);
+        glm::vec3 averageContactPoint(0.0f);
         for (int j = 0; j < tempCollisions.size(); ++j) {
             CollisionInfo* c = tempCollisions.getCollision(j);
             totalPenetration = addPenetrations(totalPenetration, c->_penetration);
@@ -86,7 +86,7 @@ bool sphereSphere(const SphereShape* sphereA, const SphereShape* sphereB, Collis
         float distance = sqrtf(distanceSquared);
         if (distance < EPSILON) {
             // the spheres are on top of each other, so we pick an arbitrary penetration direction
-            BA = glm::vec3(0.f, 1.f, 0.f);
+            BA = glm::vec3(0.0f, 1.0f, 0.0f);
             distance = totalRadius;
         } else {
             BA /= distance;
@@ -121,7 +121,7 @@ bool sphereCapsule(const SphereShape* sphereA, const CapsuleShape* capsuleB, Col
         }
         if (absAxialDistance > capsuleB->getHalfHeight()) {
             // sphere hits capsule on a cap --> recompute radialAxis to point from spherA to cap center
-            float sign = (axialDistance > 0.f) ? 1.f : -1.f;
+            float sign = (axialDistance > 0.0f) ? 1.0f : -1.0f;
             radialAxis = BA + (sign * capsuleB->getHalfHeight()) * capsuleAxis;
             radialDistance2 = glm::length2(radialAxis);
             if (radialDistance2 > totalRadius2) {
@@ -153,12 +153,12 @@ bool sphereCapsule(const SphereShape* sphereA, const CapsuleShape* capsuleB, Col
                 return false;
             }
             // ... but still defined for the cap case
-            if (axialDistance < 0.f) {
+            if (axialDistance < 0.0f) {
                 // we're hitting the start cap, so we negate the capsuleAxis
                 capsuleAxis *= -1;
             }
             // penetration points from A into B
-            float sign = (axialDistance > 0.f) ? -1.f : 1.f;
+            float sign = (axialDistance > 0.0f) ? -1.0f : 1.0f;
             collision->_penetration = (sign * (totalRadius + capsuleB->getHalfHeight() - absAxialDistance)) * capsuleAxis;
             // contactPoint is on surface of sphereA
             collision->_contactPoint = sphereA->getPosition() + (sign * sphereA->getRadius()) * capsuleAxis;
@@ -191,7 +191,7 @@ bool capsuleSphere(const CapsuleShape* capsuleA, const SphereShape* sphereB, Col
         if (absAxialDistance > capsuleA->getHalfHeight()) {
             // sphere hits capsule on a cap 
             // --> recompute radialAxis and closestApproach
-            float sign = (axialDistance > 0.f) ? 1.f : -1.f;
+            float sign = (axialDistance > 0.0f) ? 1.0f : -1.0f;
             closestApproach = capsuleA->getPosition() + (sign * capsuleA->getHalfHeight()) * capsuleAxis;
             radialAxis = closestApproach - sphereB->getPosition();
             radialDistance2 = glm::length2(radialAxis);
@@ -224,11 +224,11 @@ bool capsuleSphere(const CapsuleShape* capsuleA, const SphereShape* sphereB, Col
                     return false;
                 }
                 // ... but still defined for the cap case
-                if (axialDistance < 0.f) {
+                if (axialDistance < 0.0f) {
                     // we're hitting the start cap, so we negate the capsuleAxis
                     capsuleAxis *= -1;
                 }
-                float sign = (axialDistance > 0.f) ? 1.f : -1.f;
+                float sign = (axialDistance > 0.0f) ? 1.0f : -1.0f;
                 collision->_penetration = (sign * (totalRadius + capsuleA->getHalfHeight() - absAxialDistance)) * capsuleAxis;
                 // contactPoint is on surface of sphereA
                 collision->_contactPoint = closestApproach + (sign * capsuleA->getRadius()) * capsuleAxis;
@@ -251,7 +251,7 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
     // d = [(B - A) . (a - (a.b)b)] / (1 - (a.b)^2)
 
     float aDotB = glm::dot(axisA, axisB);
-    float denominator = 1.f - aDotB * aDotB;
+    float denominator = 1.0f - aDotB * aDotB;
     float totalRadius = capsuleA->getRadius() + capsuleB->getRadius();
     if (denominator > EPSILON) {
         // distances to points of closest approach
@@ -261,12 +261,12 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
         // clamp the distances to the ends of the capsule line segments
         float absDistanceA = fabs(distanceA);
         if (absDistanceA > capsuleA->getHalfHeight() + capsuleA->getRadius()) {
-            float signA = distanceA < 0.f ? -1.f : 1.f;
+            float signA = distanceA < 0.0f ? -1.0f : 1.0f;
             distanceA = signA * capsuleA->getHalfHeight();
         }
         float absDistanceB = fabs(distanceB);
         if (absDistanceB > capsuleB->getHalfHeight() + capsuleB->getRadius()) {
-            float signB = distanceB < 0.f ? -1.f : 1.f;
+            float signB = distanceB < 0.0f ? -1.0f : 1.0f;
             distanceB = signB * capsuleB->getHalfHeight();
         }
 
@@ -293,7 +293,7 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
                 {
                     // the capsule centers are on top of each other!
                     // give up on a valid penetration direction and just use the yAxis
-                    BA = glm::vec3(0.f, 1.f, 0.f);
+                    BA = glm::vec3(0.0f, 1.0f, 0.0f);
                     distance = glm::max(capsuleB->getRadius(), capsuleA->getRadius());
                 }
             } else {
@@ -325,7 +325,7 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
             float distance = sqrtf(distanceSquared);
             if (distance < EPSILON) {
                 // the spheres are on top of each other, so we pick an arbitrary penetration direction
-                BA = glm::vec3(0.f, 1.f, 0.f);
+                BA = glm::vec3(0.0f, 1.0f, 0.0f);
             } else {
                 BA /= distance;
             }
