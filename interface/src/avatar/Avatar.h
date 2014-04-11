@@ -119,6 +119,12 @@ public:
     bool findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
         CollisionList& collisions, int skeletonSkipIndex = -1);
 
+    /// Checks for penetration between the described plane and the avatar.
+    /// \param plane the penetration plane
+    /// \param collisions[out] a list to which collisions get appended
+    /// \return whether or not the plane penetrated
+    bool findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions);
+
     /// Checks for collision between the a spherical particle and the avatar (including paddle hands)
     /// \param collisionCenter the center of particle's bounding sphere
     /// \param collisionRadius the radius of particle's bounding sphere
