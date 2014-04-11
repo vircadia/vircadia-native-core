@@ -48,7 +48,6 @@ private:
 signals:
     void creationCompleted(LocationManager::NamedLocationCreateResponse response);
     void multipleDestinationsFound(const QJsonObject& userData, const QJsonObject& placeData);
-    void locationChanged();
     
 private slots:
     void namedLocationDataReceived(const QJsonObject& data);
