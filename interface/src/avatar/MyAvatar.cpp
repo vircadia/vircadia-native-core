@@ -910,7 +910,7 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
     updateShapePositions();
     float myBoundingRadius = getBoundingRadius();
 
-    const float BODY_COLLISION_RESOLUTION_FACTOR = deltaTime / BODY_COLLISION_RESOLUTION_TIMESCALE;
+    const float BODY_COLLISION_RESOLUTION_FACTOR = glm::max(1.0f, deltaTime / BODY_COLLISION_RESOLUTION_TIMESCALE);
 
     foreach (const AvatarSharedPointer& avatarPointer, avatars) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
