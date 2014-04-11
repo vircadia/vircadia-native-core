@@ -547,13 +547,19 @@ void Application::paintGL() {
                     avatar->getBoundingRadius() + pushbackRadius) {
                 continue;
             }
+            float angle = angleBetween(avatar->getPosition() - _myCamera.getTargetPosition(), planeNormal);
+            if (angle > PI_OVER_TWO) {
+                continue;
+            }
+            float scale = qMax(angle / PI_OVER_TWO, 0.0f);
+            scale = 1.0f - powf(scale, 4.0f);
             static CollisionList collisions(64);
             collisions.clear();
             if (!avatar->findPlaneCollisions(plane, collisions)) {
                 continue;
             }
             for (int i = 0; i < collisions.size(); i++) {
-                pushback = qMax(pushback, glm::length(collisions.getCollision(i)->_penetration));
+                pushback = qMax(pushback, glm::length(collisions.getCollision(i)->_penetration) * scale);
             }
         }
         const float MAX_PUSHBACK = 0.35f;
