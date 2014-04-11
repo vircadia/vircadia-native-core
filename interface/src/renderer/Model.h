@@ -176,6 +176,8 @@ public:
 
     bool findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
         CollisionList& collisions, int skipIndex = -1);
+
+    bool findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions);
     
     /// \param collision details about the collisions
     /// \return true if the collision is against a moveable joint

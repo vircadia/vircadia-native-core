@@ -647,7 +647,7 @@ void MyAvatar::renderBody(RenderMode renderMode) {
     _skeletonModel.render(1.0f, modelRenderMode);
 
     //  Render head so long as the camera isn't inside it
-    const float RENDER_HEAD_CUTOFF_DISTANCE = 0.40f;
+    const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
     Camera* myCamera = Application::getInstance()->getCamera();
     if (renderMode != NORMAL_RENDER_MODE || (glm::length(myCamera->getPosition() - getHead()->calculateAverageEyePosition()) >
             RENDER_HEAD_CUTOFF_DISTANCE * _scale)) {

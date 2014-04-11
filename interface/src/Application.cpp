@@ -531,6 +531,42 @@ void Application::paintGL() {
         _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
         _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
 
+        glm::vec3 planeNormal = _myCamera.getTargetRotation() * IDENTITY_FRONT;
+        const float BASE_PUSHBACK_RADIUS = 0.25f;
+        float pushbackRadius = _myCamera.getNearClip() + _myAvatar->getScale() * BASE_PUSHBACK_RADIUS;
+        glm::vec4 plane(planeNormal, -glm::dot(planeNormal, _myCamera.getTargetPosition()) - pushbackRadius);
+
+        // push camera out of any intersecting avatars
+        float pushback = 0.0f;
+        foreach (const AvatarSharedPointer& avatarData, _avatarManager.getAvatarHash()) {
+            Avatar* avatar = static_cast<Avatar*>(avatarData.data());
+            if (avatar->isMyAvatar()) {
+                continue;
+            }
+            if (glm::distance(avatar->getPosition(), _myCamera.getTargetPosition()) >
+                    avatar->getBoundingRadius() + pushbackRadius) {
+                continue;
+            }
+            float angle = angleBetween(avatar->getPosition() - _myCamera.getTargetPosition(), planeNormal);
+            if (angle > PI_OVER_TWO) {
+                continue;
+            }
+            float scale = 1.0f - angle / PI_OVER_TWO;
+            scale = qMin(1.0f, scale * 2.5f);
+            static CollisionList collisions(64);
+            collisions.clear();
+            if (!avatar->findPlaneCollisions(plane, collisions)) {
+                continue;
+            }
+            for (int i = 0; i < collisions.size(); i++) {
+                pushback = qMax(pushback, glm::length(collisions.getCollision(i)->_penetration) * scale);
+            }
+        }
+        const float MAX_PUSHBACK = 0.35f;
+        const float PUSHBACK_DECAY = 0.5f;
+        _myCamera.setDistance(qMax(qMin(pushback, MAX_PUSHBACK * _myAvatar->getScale()),
+            _myCamera.getDistance() * PUSHBACK_DECAY));
+        
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
         _myCamera.setTargetPosition(_myAvatar->getUprightHeadPosition());

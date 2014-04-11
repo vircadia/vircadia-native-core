@@ -50,12 +50,14 @@ private:
     void addTimeStamp();
 
     Ui::ChatWindow* ui;
+    QWidget* titleBar;
     int numMessagesAfterLastTimeStamp;
     QDateTime lastMessageStamp;
 
 private slots:
     void connected();
     void timeout();
+    void togglePinned();
 #ifdef HAVE_QXMPP
     void error(QXmppClient::Error error);
     void participantsChanged();
