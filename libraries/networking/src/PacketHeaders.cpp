@@ -58,7 +58,7 @@ PacketVersion versionForPacketType(PacketType type) {
             return 2;
         case PacketTypeCreateAssignment:
         case PacketTypeRequestAssignment:
-            return 1;
+            return 2;
         case PacketTypeVoxelSet:
         case PacketTypeVoxelSetDestructive:
             return 1;
