@@ -566,6 +566,9 @@ void Application::paintGL() {
         const float PUSHBACK_DECAY = 0.5f;
         _myCamera.setDistance(qMax(qMin(pushback, MAX_PUSHBACK * _myAvatar->getScale()),
             _myCamera.getDistance() * PUSHBACK_DECAY));
+        float enlargement = pushbackRadius / (pushbackRadius + _myCamera.getDistance());
+        _myCamera.setFieldOfView(glm::degrees(2.0f * atanf(enlargement * tanf(
+                glm::radians(Menu::getInstance()->getFieldOfView() * 0.5f)))));
         
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
@@ -583,15 +586,17 @@ void Application::paintGL() {
         // if the head would intersect the near clip plane, we must push the camera out
         glm::vec3 relativePosition = glm::inverse(_myCamera.getTargetRotation()) *
             (eyePosition - _myCamera.getTargetPosition());
-        const float PUSHBACK_RADIUS = 0.2f;
-        float pushback = relativePosition.z + _myCamera.getNearClip() +
-            _myAvatar->getScale() * PUSHBACK_RADIUS - _myCamera.getDistance();
+        const float BASE_PUSHBACK_RADIUS = 0.2f;
+        float pushbackRadius = _myCamera.getNearClip() + _myAvatar->getScale() * BASE_PUSHBACK_RADIUS;
+        float pushback = relativePosition.z + pushbackRadius - _myCamera.getDistance();
         if (pushback > 0.0f) {
             _myCamera.setTargetPosition(_myCamera.getTargetPosition() +
                 _myCamera.getTargetRotation() * glm::vec3(0.0f, 0.0f, pushback));
-            float enlargement = _myCamera.getDistance() / (_myCamera.getDistance() + pushback);
+            float enlargement = pushbackRadius / (pushbackRadius + pushback);
             _myCamera.setFieldOfView(glm::degrees(2.0f * atanf(enlargement * tanf(
                 glm::radians(Menu::getInstance()->getFieldOfView() * 0.5f)))));
+        } else {
+            _myCamera.setFieldOfView(Menu::getInstance()->getFieldOfView());
         }
     }
 
