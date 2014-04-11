@@ -683,6 +683,7 @@ QAction* Menu::addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
                                                         QAction::NoRole, menuItemLocation);
     action->setCheckable(true);
     action->setChecked(checked);
+    connect(action, SIGNAL(changed()), Application::getInstance(), SLOT(bumpSettings()));
 
     return action;
 }
