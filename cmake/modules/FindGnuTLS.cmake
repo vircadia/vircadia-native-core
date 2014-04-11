@@ -1,5 +1,5 @@
 # 
-#  FindFaceshift.cmake
+#  FindGnuTLS.cmake
 # 
 #  Try to find the GnuTLS library
 #
