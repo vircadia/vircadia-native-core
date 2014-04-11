@@ -307,13 +307,13 @@ bool ModelUploader::addTextures(const QString& texdir, const QString fbxFile) {
     foreach (FBXMesh mesh, geometry.meshes) {
         foreach (FBXMeshPart part, mesh.parts) {
             if (!part.diffuseFilename.isEmpty()) {
-                if (!addPart(QFileInfo(fbxFile).path() + "/" + part.diffuseFilename,
+                if (!addPart(texdir + "/" + part.diffuseFilename,
                              QString("texture%1").arg(++_texturesCount))) {
                     return false;
                 }
             }
             if (!part.normalFilename.isEmpty()) {
-                if (!addPart(QFileInfo(fbxFile).path() + "/" + part.normalFilename,
+                if (!addPart(texdir + "/" + part.normalFilename,
                              QString("texture%1").arg(++_texturesCount))) {
                     return false;
                 }

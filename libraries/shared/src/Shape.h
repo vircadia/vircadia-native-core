@@ -22,6 +22,7 @@ public:
         UNKNOWN_SHAPE = 0,
         SPHERE_SHAPE,
         CAPSULE_SHAPE,
+        PLANE_SHAPE,
         BOX_SHAPE,
         LIST_SHAPE
     };

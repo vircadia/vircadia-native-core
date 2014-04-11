@@ -151,6 +151,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _lastQueriedViewFrustum(),
         _lastQueriedTime(usecTimestampNow()),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
+        _cameraPushback(0.0f),
         _mouseX(0),
         _mouseY(0),
         _lastMouseMove(usecTimestampNow()),
@@ -521,6 +522,8 @@ void Application::paintGL() {
 
     glEnable(GL_LINE_SMOOTH);
 
+    float pushback = 0.0f;
+    float pushbackFocalLength = 0.0f;
     if (OculusManager::isConnected()) {
         _myCamera.setUpShift(0.0f);
         _myCamera.setDistance(0.0f);
@@ -533,6 +536,41 @@ void Application::paintGL() {
         _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
         _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
 
+        glm::vec3 planeNormal = _myCamera.getTargetRotation() * IDENTITY_FRONT;
+        const float BASE_PUSHBACK_RADIUS = 0.25f;
+        float pushbackRadius = _myCamera.getNearClip() + _myAvatar->getScale() * BASE_PUSHBACK_RADIUS;
+        glm::vec4 plane(planeNormal, -glm::dot(planeNormal, _myCamera.getTargetPosition()) - pushbackRadius);
+
+        // push camera out of any intersecting avatars
+        foreach (const AvatarSharedPointer& avatarData, _avatarManager.getAvatarHash()) {
+            Avatar* avatar = static_cast<Avatar*>(avatarData.data());
+            if (avatar->isMyAvatar()) {
+                continue;
+            }
+            if (glm::distance(avatar->getPosition(), _myCamera.getTargetPosition()) >
+                    avatar->getBoundingRadius() + pushbackRadius) {
+                continue;
+            }
+            float angle = angleBetween(avatar->getPosition() - _myCamera.getTargetPosition(), planeNormal);
+            if (angle > PI_OVER_TWO) {
+                continue;
+            }
+            float scale = 1.0f - angle / PI_OVER_TWO;
+            scale = qMin(1.0f, scale * 2.5f);
+            static CollisionList collisions(64);
+            collisions.clear();
+            if (!avatar->findPlaneCollisions(plane, collisions)) {
+                continue;
+            }
+            for (int i = 0; i < collisions.size(); i++) {
+                pushback = qMax(pushback, glm::length(collisions.getCollision(i)->_penetration) * scale);
+            }
+        }
+        const float MAX_PUSHBACK = 0.35f;
+        pushback = qMin(pushback, MAX_PUSHBACK * _myAvatar->getScale());
+        const float BASE_PUSHBACK_FOCAL_LENGTH = 0.5f;
+        pushbackFocalLength = BASE_PUSHBACK_FOCAL_LENGTH * _myAvatar->getScale();
+        
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
         _myCamera.setTargetPosition(_myAvatar->getUprightHeadPosition());
@@ -549,13 +587,26 @@ void Application::paintGL() {
         // if the head would intersect the near clip plane, we must push the camera out
         glm::vec3 relativePosition = glm::inverse(_myCamera.getTargetRotation()) *
             (eyePosition - _myCamera.getTargetPosition());
-        const float PUSHBACK_RADIUS = 0.2f;
-        float pushback = relativePosition.z + _myCamera.getNearClip() +
-            _myAvatar->getScale() * PUSHBACK_RADIUS - _myCamera.getDistance();
-        if (pushback > 0.0f) {
+        const float BASE_PUSHBACK_RADIUS = 0.2f;
+        float pushbackRadius = _myCamera.getNearClip() + _myAvatar->getScale() * BASE_PUSHBACK_RADIUS;
+        pushback = relativePosition.z + pushbackRadius - _myCamera.getDistance();
+        pushbackFocalLength = _myCamera.getDistance();
+    }
+    
+    // handle pushback, if any
+    if (pushbackFocalLength > 0.0f) {
+        const float PUSHBACK_DECAY = 0.5f;
+        _cameraPushback = qMax(pushback, _cameraPushback * PUSHBACK_DECAY);
+        if (_cameraPushback > EPSILON) {
             _myCamera.setTargetPosition(_myCamera.getTargetPosition() +
-                _myCamera.getTargetRotation() * glm::vec3(0.0f, 0.0f, pushback));
+                _myCamera.getTargetRotation() * glm::vec3(0.0f, 0.0f, _cameraPushback));
+            float enlargement = pushbackFocalLength / (pushbackFocalLength + _cameraPushback);
+            _myCamera.setFieldOfView(glm::degrees(2.0f * atanf(enlargement * tanf(
+                glm::radians(Menu::getInstance()->getFieldOfView() * 0.5f)))));
+        } else {
+            _myCamera.setFieldOfView(Menu::getInstance()->getFieldOfView());
         }
+        updateProjectionMatrix(_myCamera, true);
     }
 
     // Update camera position
@@ -2563,6 +2614,12 @@ void Application::displayOverlay() {
     }
     
     bool isClipping = ((_audio.getTimeSinceLastClip() > 0.f) && (_audio.getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME));
+    
+    if ((_audio.getTimeSinceLastClip() > 0.f) && (_audio.getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME)) {
+        const float MAX_MAGNITUDE = 0.7f;
+        float magnitude = MAX_MAGNITUDE * (1 - _audio.getTimeSinceLastClip() / CLIPPING_INDICATOR_TIME);
+        renderCollisionOverlay(_glWidget->width(), _glWidget->height(), magnitude, 1.0f);
+    }
 
     _audio.renderToolBox(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP,
                          audioMeterY,
