@@ -106,6 +106,9 @@ public slots:
     glm::vec3 getThrust() { return _thrust; };
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
+signals:
+    void transformChanged();
+
 private:
     bool _mousePressed;
     float _bodyPitchDelta;  // degrees

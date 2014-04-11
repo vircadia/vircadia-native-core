@@ -140,6 +140,7 @@ void PreferencesDialog::savePreferences() {
     
     if (shouldDispatchIdentityPacket) {
         myAvatar->sendIdentityPacket();
+        Application::getInstance()->bumpSettings();
     }
 
     myAvatar->getHead()->setPupilDilation(ui.pupilDilationSlider->value() / (float)ui.pupilDilationSlider->maximum());

@@ -251,6 +251,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
 
     _settings = new QSettings(this);
+    _numChangedSettings = 0;
 
     // Check to see if the user passed in a command line option for loading a local
     // Voxel File.
@@ -407,6 +408,7 @@ void Application::saveSettings() {
         _voxelImporter->saveSettings(_settings);
     }
     _settings->sync();
+    _numChangedSettings = 0;
 }
 
 
@@ -1322,6 +1324,9 @@ void Application::idle() {
             // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
             idleTimer->start(2);
         }
+        if (_numChangedSettings > 0) {
+            saveSettings();
+        }
     }
 }
 
@@ -1668,6 +1673,7 @@ void Application::init() {
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
+    connect(_myAvatar, SIGNAL(transformChanged()), this, SLOT(bumpSettings()));
 }
 
 void Application::closeMirrorView() {

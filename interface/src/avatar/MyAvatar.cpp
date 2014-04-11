@@ -1167,6 +1167,7 @@ void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
         glm::vec3 newPosition = glm::vec3(coordinateItems[0].toFloat(), coordinateItems[1].toFloat(),
                                           coordinateItems[2].toFloat()) - newOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
         setPosition(newPosition);
+        emit transformChanged();
     }
     
 }

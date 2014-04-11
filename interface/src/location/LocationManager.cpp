@@ -118,8 +118,6 @@ void LocationManager::checkForMultipleDestinations() {
             Application::getInstance()->getAvatar()->goToLocationFromResponse(_placeData);
             return;
         }
-
-        emit locationChanged();
     }
 }
 
@@ -178,6 +176,7 @@ void LocationManager::goToOrientation(QString orientation) {
         glm::quat avatarOrientation = myAvatar->getOrientation();
         if (newAvatarOrientation != avatarOrientation) {
             myAvatar->setOrientation(newAvatarOrientation);
+            emit myAvatar->transformChanged();
         }
     }
 }
@@ -211,6 +210,7 @@ bool LocationManager::goToDestination(QString destination) {
 
             qDebug("Going To Location: %f, %f, %f...", x, y, z);
             myAvatar->setPosition(newAvatarPos);
+            emit myAvatar->transformChanged();
         }
 
         return true;
