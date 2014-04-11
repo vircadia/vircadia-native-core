@@ -286,6 +286,8 @@ public slots:
     void uploadHead();
     void uploadSkeleton();
 
+    void bumpSettings() { ++_numChangedSettings; }
+
 private slots:
     void timer();
     void idle();
@@ -376,6 +378,7 @@ private:
     QNetworkAccessManager* _networkAccessManager;
     QMutex _settingsMutex;
     QSettings* _settings;
+    int _numChangedSettings;
 
     QUndoStack _undoStack;
     
