@@ -15,6 +15,7 @@
 #include <QPalette>
 #include <QCheckBox>
 #include <QColor>
+#include <QDoubleSpinBox>
 #include <QSlider>
 #include <QPushButton>
 #include <QString>
