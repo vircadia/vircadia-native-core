@@ -589,6 +589,9 @@ void Application::paintGL() {
         if (pushback > 0.0f) {
             _myCamera.setTargetPosition(_myCamera.getTargetPosition() +
                 _myCamera.getTargetRotation() * glm::vec3(0.0f, 0.0f, pushback));
+            float enlargement = _myCamera.getDistance() / (_myCamera.getDistance() + pushback);
+            _myCamera.setFieldOfView(glm::degrees(2.0f * atanf(enlargement * tanf(
+                glm::radians(Menu::getInstance()->getFieldOfView() * 0.5f)))));
         }
     }
 
