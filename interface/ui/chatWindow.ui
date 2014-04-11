@@ -100,8 +100,8 @@
          <string/>
         </property>
         <property name="icon">
-         <iconset resource="../resources/resources.qrc">
-          <normaloff>:/images/close.svg</normaloff>:/images/close.svg</iconset>
+         <iconset>
+          <normaloff>../resources/images/close.svg</normaloff>../resources/images/close.svg</iconset>
         </property>
         <property name="flat">
          <bool>true</bool>
@@ -200,9 +200,7 @@
   <tabstop>messagePlainTextEdit</tabstop>
   <tabstop>messagesScrollArea</tabstop>
  </tabstops>
- <resources>
-  <include location="../resources/resources.qrc"/>
- </resources>
+ <resources/>
  <connections>
   <connection>
    <sender>closeButton</sender>
