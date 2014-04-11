@@ -77,7 +77,7 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list)
         scriptName->setToolTip(list.at(i));
         scriptName->setTextAlignment(Qt::AlignCenter);
         QTableWidgetItem *closeIcon = new QTableWidgetItem;
-        closeIcon->setIcon(QIcon(":/images/kill-script.svg"));
+        closeIcon->setIcon(QIcon(Application::resourcesPath() + "/images/kill-script.svg"));
 
         ui->runningScriptsTableWidget->setItem(i, 0, scriptName);
         ui->runningScriptsTableWidget->setItem(i, 1, closeIcon);

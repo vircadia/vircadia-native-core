@@ -100,9 +100,9 @@
          <string/>
         </property>
         <property name="icon">
-         <iconset resource="../resources/resources.qrc">
-          <normaloff>:/images/pin.svg</normaloff>
-          <normalon>:/images/pinned.svg</normalon>:/images/pin.svg</iconset>
+         <iconset>
+          <normaloff>../resources/images/pin.svg</normaloff>
+          <normalon>../resources/images/pinned.svg</normalon>../resources/images/pin.svg</iconset>
         </property>
         <property name="checkable">
          <bool>true</bool>
@@ -139,8 +139,8 @@
          <string/>
         </property>
         <property name="icon">
-         <iconset resource="../resources/resources.qrc">
-          <normaloff>:/images/close.svg</normaloff>:/images/close.svg</iconset>
+         <iconset>
+          <normaloff>../resources/images/close.svg</normaloff>../resources/images/close.svg</iconset>
         </property>
         <property name="flat">
          <bool>true</bool>
@@ -239,9 +239,7 @@
   <tabstop>messagePlainTextEdit</tabstop>
   <tabstop>messagesScrollArea</tabstop>
  </tabstops>
- <resources>
-  <include location="../resources/resources.qrc"/>
- </resources>
+ <resources/>
  <connections>
   <connection>
    <sender>togglePinnedButton</sender>

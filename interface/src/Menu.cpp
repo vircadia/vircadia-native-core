@@ -695,6 +695,7 @@ QAction* Menu::addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
                                                         QAction::NoRole, menuItemLocation);
     action->setCheckable(true);
     action->setChecked(checked);
+    connect(action, SIGNAL(changed()), Application::getInstance(), SLOT(bumpSettings()));
 
     return action;
 }
@@ -927,7 +928,6 @@ void Menu::goToLocation() {
     glm::vec3 avatarPos = myAvatar->getPosition();
     QString currentLocation = QString("%1, %2, %3").arg(QString::number(avatarPos.x),
                                                         QString::number(avatarPos.y), QString::number(avatarPos.z));
-
 
     QInputDialog coordinateDialog(Application::getInstance()->getWindow());
     coordinateDialog.setWindowTitle("Go to Location");
