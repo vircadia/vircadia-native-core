@@ -551,8 +551,8 @@ void Application::paintGL() {
             if (angle > PI_OVER_TWO) {
                 continue;
             }
-            float scale = qMax(angle / PI_OVER_TWO, 0.0f);
-            scale = 1.0f - powf(scale, 4.0f);
+            float scale = 1.0f - angle / PI_OVER_TWO;
+            scale = qMin(1.0f, scale * 2.5f);
             static CollisionList collisions(64);
             collisions.clear();
             if (!avatar->findPlaneCollisions(plane, collisions)) {
