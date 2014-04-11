@@ -20,7 +20,7 @@
    <string notr="true">font-family: Helvetica, Arial, sans-serif;</string>
   </property>
   <property name="features">
-   <set>QDockWidget::NoDockWidgetFeatures</set>
+   <set>QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable</set>
   </property>
   <property name="allowedAreas">
    <set>Qt::NoDockWidgetArea</set>
@@ -76,6 +76,45 @@
         </property>
         <property name="text">
          <string> online now:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="togglePinnedButton">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>16</width>
+          <height>16</height>
+         </size>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset resource="../resources/resources.qrc">
+          <normaloff>:/images/pin.svg</normaloff>
+          <normalon>:/images/pinned.svg</normalon>:/images/pin.svg</iconset>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+        <property name="default">
+         <bool>false</bool>
+        </property>
+        <property name="flat">
+         <bool>true</bool>
         </property>
        </widget>
       </item>
@@ -204,6 +243,22 @@
   <include location="../resources/resources.qrc"/>
  </resources>
  <connections>
+  <connection>
+   <sender>togglePinnedButton</sender>
+   <signal>clicked()</signal>
+   <receiver>ChatWindow</receiver>
+   <slot>togglePinned()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>390</x>
+     <y>42</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>550</x>
+     <y>42</y>
+    </hint>
+   </hints>
+  </connection>
   <connection>
    <sender>closeButton</sender>
    <signal>clicked()</signal>

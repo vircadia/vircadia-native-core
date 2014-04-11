@@ -1061,7 +1061,7 @@ void Menu::showMetavoxelEditor() {
 void Menu::showChat() {
     QMainWindow* mainWindow = Application::getInstance()->getWindow();
     if (!_chatWindow) {
-        mainWindow->addDockWidget(Qt::NoDockWidgetArea, _chatWindow = new ChatWindow());
+        mainWindow->addDockWidget(Qt::RightDockWidgetArea, _chatWindow = new ChatWindow());
     }
     if (!_chatWindow->toggleViewAction()->isChecked()) {
         int width = _chatWindow->width();
