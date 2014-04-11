@@ -22,6 +22,7 @@
 #include <OctreeConstants.h>
 
 #include "location/LocationManager.h"
+#include "ui/PreferencesDialog.h"
 #include "ui/ChatWindow.h"
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
@@ -71,10 +72,13 @@ public:
 
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
-
+    
     float getAudioJitterBufferSamples() const { return _audioJitterBufferSamples; }
+    void setAudioJitterBufferSamples(float audioJitterBufferSamples) { _audioJitterBufferSamples = audioJitterBufferSamples; }
     float getFieldOfView() const { return _fieldOfView; }
+    void setFieldOfView(float fieldOfView) { _fieldOfView = fieldOfView; }
     float getFaceshiftEyeDeflection() const { return _faceshiftEyeDeflection; }
+    void setFaceshiftEyeDeflection(float faceshiftEyeDeflection) { _faceshiftEyeDeflection = faceshiftEyeDeflection; }
     BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
     FrustumDrawMode getFrustumDrawMode() const { return _frustumDrawMode; }
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
@@ -97,6 +101,7 @@ public:
 
     // User Tweakable PPS from Voxel Server
     int getMaxVoxelPacketsPerSecond() const { return _maxVoxelPacketsPerSecond; }
+    void setMaxVoxelPacketsPerSecond(int maxVoxelPacketsPerSecond) { _maxVoxelPacketsPerSecond = maxVoxelPacketsPerSecond; }
 
     QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
                                            const QString& actionName,
@@ -222,6 +227,7 @@ private:
     SimpleMovingAverage _fpsAverage;
     SimpleMovingAverage _fastFPSAverage;
     QAction* _loginAction;
+    QPointer<PreferencesDialog> _preferencesDialog;
     QAction* _chatAction;
 };
 

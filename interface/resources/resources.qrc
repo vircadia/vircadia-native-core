@@ -1,5 +1,6 @@
 <RCC>
-    <qresource prefix="/">
+  <qresource prefix="/">
+    <file>styles/search.svg</file>
         <file>images/close.svg</file>
         <file>images/kill-script.svg</file>
         <file>images/reload.svg</file>
