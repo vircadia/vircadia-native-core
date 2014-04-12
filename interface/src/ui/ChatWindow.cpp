@@ -22,6 +22,7 @@
 #include "qtimespan.h"
 #include "ui_chatWindow.h"
 #include "XmppClient.h"
+#include "ChatMessageArea.h"
 
 #include "ChatWindow.h"
 
@@ -241,25 +242,39 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     userLabel->setStyleSheet("padding: 2px; font-weight: bold");
     userLabel->setAlignment(Qt::AlignTop | Qt::AlignRight);
 
-    QLabel* messageLabel = new QLabel(message.body().replace(regexLinks, "<a href=\"\\1\">\\1</a>"));
-    messageLabel->setWordWrap(true);
-    messageLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
-    messageLabel->setOpenExternalLinks(true);
-    messageLabel->setStyleSheet("padding-bottom: 2px; padding-left: 2px; padding-top: 2px; padding-right: 20px");
-    messageLabel->setAlignment(Qt::AlignTop | Qt::AlignLeft);
+    ChatMessageArea* messageArea = new ChatMessageArea();
 
-    if (getParticipantName(message.from()) == AccountManager::getInstance().getUsername()) {
+    messageArea->setOpenLinks(true);
+    messageArea->setOpenExternalLinks(true);
+    messageArea->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+    messageArea->setTextInteractionFlags(Qt::TextBrowserInteraction);
+    messageArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    messageArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    messageArea->setReadOnly(true);
+
+    messageArea->setStyleSheet("padding-bottom: 2px;"
+                               "padding-left: 2px;"
+                               "padding-top: 2px;"
+                               "padding-right: 20px;"
+                               "background-color: rgba(0, 0, 0, 0%);"
+                               "border: 0;");
+
+    bool fromSelf = getParticipantName(message.from()) == AccountManager::getInstance().getUsername();
+    if (fromSelf) {
         userLabel->setStyleSheet(userLabel->styleSheet() + "; background-color: #e1e8ea");
-        messageLabel->setStyleSheet(messageLabel->styleSheet() + "; background-color: #e1e8ea");
+        messageArea->setStyleSheet(messageArea->styleSheet() + "; background-color: #e1e8ea");
     }
+
+    messageArea->setHtml(message.body().replace(regexLinks, "<a href=\"\\1\">\\1</a>"));
 
     bool atBottom = isAtBottom();
     ui->messagesGridLayout->addWidget(userLabel, ui->messagesGridLayout->rowCount(), 0);
-    ui->messagesGridLayout->addWidget(messageLabel, ui->messagesGridLayout->rowCount() - 1, 1);
+    ui->messagesGridLayout->addWidget(messageArea, ui->messagesGridLayout->rowCount() - 1, 1);
+
     ui->messagesGridLayout->parentWidget()->updateGeometry();
     Application::processEvents();
 
-    if (atBottom) {
+    if (atBottom || fromSelf) {
         scrollToBottom();
     }
 
