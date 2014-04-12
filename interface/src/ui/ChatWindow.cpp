@@ -309,14 +309,12 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
 
 bool ChatWindow::isAtBottom() {
     QScrollBar* verticalScrollBar = ui->messagesScrollArea->verticalScrollBar();
-    qDebug() << "Checking for bottom " << verticalScrollBar->sliderPosition() << " " << verticalScrollBar->maximum();
     return verticalScrollBar->sliderPosition() == verticalScrollBar->maximum();
 }
 
 // Scroll chat message area to bottom.
 void ChatWindow::scrollToBottom() {
     QScrollBar* verticalScrollBar = ui->messagesScrollArea->verticalScrollBar();
-    qDebug() << "Scrolling to " << verticalScrollBar->maximum();
     verticalScrollBar->setSliderPosition(verticalScrollBar->maximum());
 }
 
