@@ -112,7 +112,7 @@ const float MIRROR_REARVIEW_DISTANCE = 0.65f;
 const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
 const float MIRROR_FIELD_OF_VIEW = 30.0f;
 
-const QString CHECK_VERSION_URL = "http://highfidelity.io/latestVersion.xml";
+const QString CHECK_VERSION_URL = "https://highfidelity.io/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
