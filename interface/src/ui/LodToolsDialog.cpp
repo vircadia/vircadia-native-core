@@ -138,6 +138,10 @@ void LodToolsDialog::updateAvatarLODControls() {
     if (!_automaticAvatarLOD->isChecked()) {
         _avatarLOD->setValue(1.0 / Menu::getInstance()->getAvatarLODDistanceMultiplier());
     }
+    
+    if (isVisible()) {
+        adjustSize();
+    }
 }
 
 void LodToolsDialog::updateAvatarLODValues() {
