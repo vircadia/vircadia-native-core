@@ -41,6 +41,7 @@ public:
 
     void render(const glm::vec3& cameraPosition, RenderMode renderMode = NORMAL_RENDER_MODE);
     void renderBody(RenderMode renderMode);
+    bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
     void renderDebugBodyPoints();
     void renderHeadMouse() const;
 
