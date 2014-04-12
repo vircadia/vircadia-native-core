@@ -16,7 +16,7 @@
 ChatMessageArea::ChatMessageArea() : QTextBrowser() {
     connect(document()->documentLayout(), &QAbstractTextDocumentLayout::documentSizeChanged,
             this, &ChatMessageArea::updateLayout);
-};
+}
 
 void ChatMessageArea::setHtml(const QString& html) {
     // Create format with updated line height
@@ -31,7 +31,7 @@ void ChatMessageArea::setHtml(const QString& html) {
     cursor.insertHtml(html);
     cursor.setPosition(0);
     cursor.deleteChar();
-};
+}
 
 void ChatMessageArea::updateLayout() {
     setFixedHeight(document()->size().height());
@@ -41,4 +41,4 @@ void ChatMessageArea::updateLayout() {
 void ChatMessageArea::wheelEvent(QWheelEvent* event) {
     // Capture wheel events to stop Ctrl-WheelUp/Down zooming
     event->ignore();
-};
+}
