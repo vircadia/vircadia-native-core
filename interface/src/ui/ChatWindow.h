@@ -39,6 +39,10 @@ public:
     virtual void keyPressEvent(QKeyEvent *event);
     virtual void showEvent(QShowEvent* event);
 
+    virtual void mousePressEvent(QMouseEvent *e);
+    virtual void mouseMoveEvent(QMouseEvent *e);
+    virtual void mouseReleaseEvent(QMouseEvent *e);
+
 protected:
     bool eventFilter(QObject* sender, QEvent* event);
 
@@ -54,6 +58,8 @@ private:
     Ui::ChatWindow* ui;
     int numMessagesAfterLastTimeStamp;
     QDateTime lastMessageStamp;
+    bool _mousePressed;
+    QPoint _mouseStartPosition;
 
 private slots:
     void connected();

@@ -32,7 +32,9 @@ const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?))://\\S+)");
 
 ChatWindow::ChatWindow() :
     ui(new Ui::ChatWindow),
-    numMessagesAfterLastTimeStamp(0)
+    numMessagesAfterLastTimeStamp(0),
+    _mousePressed(false),
+    _mouseStartPosition()
 {
     ui->setupUi(this);
 
@@ -81,6 +83,25 @@ ChatWindow::~ChatWindow() {
     disconnect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
 #endif
     delete ui;
+}
+
+void ChatWindow::mousePressEvent(QMouseEvent *e) {
+    if (e->button() == Qt::LeftButton) {
+        _mousePressed = true;
+        _mouseStartPosition = e->pos();
+    }
+}
+
+void ChatWindow::mouseMoveEvent(QMouseEvent *e) {
+    if (_mousePressed) {
+        move(mapToParent(e->pos() - _mouseStartPosition));
+    }
+}
+
+void ChatWindow::mouseReleaseEvent( QMouseEvent *e ) {
+    if ( e->button() == Qt::LeftButton ) {
+        _mousePressed = false;
+    }
 }
 
 void ChatWindow::keyPressEvent(QKeyEvent* event) {
