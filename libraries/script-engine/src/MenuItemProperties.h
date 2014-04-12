@@ -1,13 +1,16 @@
 //
 //  MenuItemProperties.h
-//  hifi
+//  libraries/script-engine/src
 //
 //  Created by Brad Hefta-Gaub on 1/28/14.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi_MenuItemProperties_h__
-#define __hifi_MenuItemProperties_h__
+#ifndef hifi_MenuItemProperties_h
+#define hifi_MenuItemProperties_h
 
 #include <QtScript/QScriptEngine>
 
@@ -48,4 +51,4 @@ void registerMenuItemProperties(QScriptEngine* engine);
 
 
 
-#endif // __hifi_MenuItemProperties_h__
+#endif // hifi_MenuItemProperties_h

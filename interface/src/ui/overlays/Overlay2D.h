@@ -1,12 +1,15 @@
 //
 //  Overlay2D.h
-//  interface
+//  interface/src/ui/overlays
 //
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Overlay2D__
-#define __interface__Overlay2D__
+#ifndef hifi_Overlay2D_h
+#define hifi_Overlay2D_h
 
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
@@ -48,4 +51,4 @@ protected:
 };
 
  
-#endif /* defined(__interface__Overlay2D__) */
+#endif // hifi_Overlay2D_h

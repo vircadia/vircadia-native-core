@@ -1,13 +1,16 @@
 //
 //  AvatarData.h
-//  hifi
+//  libraries/avatars/src
 //
 //  Created by Stephen Birarda on 4/9/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AvatarData__
-#define __hifi__AvatarData__
+#ifndef hifi_AvatarData_h
+#define hifi_AvatarData_h
 
 #include <string>
 /* VS2010 defines stdint.h, but not inttypes.h */
@@ -37,6 +40,7 @@ typedef unsigned long long quint64;
 #include <QtCore/QVector>
 #include <QtCore/QVariantMap>
 #include <QRect>
+#include <QUuid>
 
 #include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
@@ -94,9 +98,13 @@ class AvatarData : public QObject {
     Q_PROPERTY(QString faceModelURL READ getFaceModelURLFromScript WRITE setFaceModelURLFromScript)
     Q_PROPERTY(QString skeletonModelURL READ getSkeletonModelURLFromScript WRITE setSkeletonModelURLFromScript)
     Q_PROPERTY(QString billboardURL READ getBillboardURL WRITE setBillboardFromURL)
+
+    Q_PROPERTY(QUuid sessionUUID READ getSessionUUID);
 public:
     AvatarData();
     virtual ~AvatarData();
+
+    const QUuid& getSessionUUID() { return _sessionUUID; }
 
     const glm::vec3& getPosition() const { return _position; }
     void setPosition(const glm::vec3 position) { _position = position; }
@@ -219,7 +227,9 @@ public slots:
     void sendBillboardPacket();
     void setBillboardFromNetworkReply();
     void setJointMappingsFromNetworkReply();
+    void setSessionUUID(const QUuid& id) { _sessionUUID = id; }
 protected:
+    QUuid _sessionUUID;
     glm::vec3 _position;
     glm::vec3 _handPosition;
 
@@ -282,4 +292,4 @@ public:
     glm::quat rotation;
 };
 
-#endif /* defined(__hifi__AvatarData__) */
+#endif // hifi_AvatarData_h

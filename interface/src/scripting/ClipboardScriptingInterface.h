@@ -1,14 +1,15 @@
 //
 //  ClipboardScriptingInterface.h
-//  interface
+//  interface/src/scripting
 //
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
 //
-//  Scriptable interface for the Application clipboard
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Clipboard__
-#define __interface__Clipboard__
+#ifndef hifi_ClipboardScriptingInterface_h
+#define hifi_ClipboardScriptingInterface_h
 
 #include <QObject>
 #include <VoxelDetail.h>
@@ -43,4 +44,4 @@ public slots:
     void nudgeVoxel(float x, float y, float z, float s, const glm::vec3& nudgeVec);
 };
 
-#endif // __interface__Clipboard__
+#endif // hifi_ClipboardScriptingInterface_h

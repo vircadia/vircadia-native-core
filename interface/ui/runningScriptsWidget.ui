@@ -70,8 +70,8 @@ border-radius: 6px;</string>
     <string>Reload All</string>
    </property>
    <property name="icon">
-    <iconset resource="../resources/resources.qrc">
-     <normaloff>:/images/reload.svg</normaloff>:/images/reload.svg</iconset>
+    <iconset>
+     <normaloff>../resources/images/reload.svg</normaloff>../resources/images/reload.svg</iconset>
    </property>
   </widget>
   <widget class="QPushButton" name="stopAllButton">
@@ -95,8 +95,8 @@ border-radius: 6px;</string>
     <string>Stop All</string>
    </property>
    <property name="icon">
-    <iconset resource="../resources/resources.qrc">
-     <normaloff>:/images/stop.svg</normaloff>:/images/stop.svg</iconset>
+    <iconset>
+     <normaloff>../resources/images/stop.svg</normaloff>../resources/images/stop.svg</iconset>
    </property>
   </widget>
   <widget class="QLabel" name="recentlyLoadedLabel">
@@ -166,8 +166,8 @@ border-radius: 6px;</string>
     <string/>
    </property>
    <property name="icon">
-    <iconset resource="../resources/resources.qrc">
-     <normaloff>:/images/close.svg</normaloff>:/images/close.svg</iconset>
+    <iconset>
+     <normaloff>../resources/images/close.svg</normaloff>../resources/images/close.svg</iconset>
    </property>
    <property name="iconSize">
     <size>
@@ -241,8 +241,6 @@ border-radius: 6px;</string>
    </property>
   </widget>
  </widget>
- <resources>
-  <include location="../resources/resources.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

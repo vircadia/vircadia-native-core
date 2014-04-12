@@ -1,13 +1,16 @@
 //
 //  SixenseManager.h
-//  interface
+//  interface/src/devices
 //
 //  Created by Andrzej Kapolka on 11/15/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__SixenseManager__
-#define __interface__SixenseManager__
+#ifndef hifi_SixenseManager_h
+#define hifi_SixenseManager_h
 
 #include <QObject>
 
@@ -63,5 +66,4 @@ private:
     quint64 _lastMovement;
 };
 
-#endif /* defined(__interface__SixenseManager__) */
-
+#endif // hifi_SixenseManager_h

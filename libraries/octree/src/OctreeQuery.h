@@ -1,13 +1,16 @@
 //
 //  OctreeQuery.h
-//  hifi
+//  libraries/octree/src
 //
 //  Created by Stephen Birarda on 4/9/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__OctreeQuery__
-#define __hifi__OctreeQuery__
+#ifndef hifi_OctreeQuery_h
+#define hifi_OctreeQuery_h
 
 /* VS2010 defines stdint.h, but not inttypes.h */
 #if defined(_MSC_VER)
@@ -113,4 +116,4 @@ private:
     OctreeQuery& operator= (const OctreeQuery&);
 };
 
-#endif /* defined(__hifi__OctreeQuery__) */
+#endif // hifi_OctreeQuery_h

@@ -1,14 +1,16 @@
-
 //
 //  ControllerScriptingInterface.h
-//  hifi
+//  interface/src/scripting
 //
-//  Created by Brad Hefta-Gaub on 12/17/13
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Created by Brad Hefta-Gaub on 12/17/13.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__ControllerScriptingInterface__
-#define __hifi__ControllerScriptingInterface__
+#ifndef hifi_ControllerScriptingInterface_h
+#define hifi_ControllerScriptingInterface_h
 
 #include <QtCore/QObject>
 
@@ -96,4 +98,4 @@ const int NUMBER_OF_BUTTONS_PER_PALM = 6;
 const int PALM_SPATIALCONTROL = 0;
 const int TIP_SPATIALCONTROL = 1;
 
-#endif /* defined(__hifi__ControllerScriptingInterface__) */
+#endif // hifi_ControllerScriptingInterface_h

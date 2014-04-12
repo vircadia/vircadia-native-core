@@ -1,10 +1,11 @@
 //
 //  Physics.cpp
-//  hifi
+//  interface/src
 //
-//  Created by Philip on July 11, 2013
+//  Copyright 2013 High Fidelity, Inc.
 //
-//  Routines to help with doing virtual world physics
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <glm/glm.hpp>
@@ -41,4 +42,3 @@ void applyDamping(float deltaTime, glm::vec3& velocity, float linearStrength, fl
 void applyDampedSpring(float deltaTime, glm::vec3& velocity, glm::vec3& position, glm::vec3& targetPosition, float k, float damping) {
     
 }
-

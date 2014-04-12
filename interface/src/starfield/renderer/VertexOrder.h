@@ -1,13 +1,16 @@
 //
-// starfield/renderer/VertexOrder.h
-// interface
+//  VertexOrder.h
+//  interface/src/starfield/renderer
 //
-// Created by Tobias Schwinger on 3/22/13.
-// Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Created by Tobias Schwinger on 3/22/13.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__starfield__renderer__VertexOrder__
-#define __interface__starfield__renderer__VertexOrder__
+#ifndef hifi_VertexOrder_h
+#define hifi_VertexOrder_h
 
 #include "starfield/Config.h"
 #include "starfield/data/InputVertex.h"
@@ -35,5 +38,4 @@ namespace starfield {
 
 } // anonymous namespace
 
-#endif
-
+#endif // hifi_VertexOrder_h

@@ -1,18 +1,23 @@
 //
 //  ChatWindow.cpp
-//  interface
+//  interface/src/ui
 //
 //  Created by Dimitar Dobrev on 3/6/14.
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <QGridLayout>
 #include <QFrame>
 #include <QLayoutItem>
+#include <QMainWindow>
 #include <QPalette>
 #include <QScrollBar>
 #include <QSizePolicy>
 #include <QTimer>
+#include <QWidget>
 
 #include "Application.h"
 #include "FlowLayout.h"
@@ -32,7 +37,9 @@ ChatWindow::ChatWindow() :
 {
     ui->setupUi(this);
 
-    // remove the title bar (see the Qt docs on setTitleBarWidget)
+    // remove the title bar (see the Qt docs on setTitleBarWidget), but we keep it for undocking
+    //
+    titleBar = titleBarWidget();
     setTitleBarWidget(new QWidget());
 
     FlowLayout* flowLayout = new FlowLayout(0, 4, 4);
@@ -257,3 +264,16 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
 }
 
 #endif
+
+void ChatWindow::togglePinned() {
+    QMainWindow* mainWindow = Application::getInstance()->getWindow();
+    mainWindow->removeDockWidget(this);
+    if (ui->togglePinnedButton->isChecked()) {
+        mainWindow->addDockWidget(ui->togglePinnedButton->isChecked() ? Qt::RightDockWidgetArea : Qt::NoDockWidgetArea, this);
+    }
+    if (!this->toggleViewAction()->isChecked()) {
+        this->toggleViewAction()->trigger();
+    }
+    this->setFloating(!ui->togglePinnedButton->isChecked());
+    setTitleBarWidget(ui->togglePinnedButton->isChecked()?new QWidget():titleBar);
+}

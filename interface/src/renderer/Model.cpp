@@ -1,9 +1,12 @@
 //
 //  Model.cpp
-//  interface
+//  interface/src/renderer
 //
 //  Created by Andrzej Kapolka on 10/18/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <QMetaType>
@@ -592,7 +595,7 @@ bool Model::findCollisions(const QVector<const Shape*> shapes, CollisionList& co
         const Shape* theirShape = shapes[i];
         for (int j = 0; j < _jointShapes.size(); ++j) {
             const Shape* ourShape = _jointShapes[j];
-            if (ShapeCollider::shapeShape(theirShape, ourShape, collisions)) {
+            if (ShapeCollider::collideShapes(theirShape, ourShape, collisions)) {
                 collided = true;
             }
         }
@@ -619,7 +622,7 @@ bool Model::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadi
                 } while (ancestorIndex != -1);
             }
         }
-        if (ShapeCollider::shapeShape(&sphere, _jointShapes[i], collisions)) {
+        if (ShapeCollider::collideShapes(&sphere, _jointShapes[i], collisions)) {
             CollisionInfo* collision = collisions.getLastCollision();
             collision->_type = MODEL_COLLISION;
             collision->_data = (void*)(this);
@@ -627,6 +630,21 @@ bool Model::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadi
             collided = true;
         }
         outerContinue: ;
+    }
+    return collided;
+}
+
+bool Model::findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions) {
+    bool collided = false;
+    PlaneShape planeShape(plane);
+    for (int i = 0; i < _jointShapes.size(); i++) {
+        if (ShapeCollider::collideShapes(&planeShape, _jointShapes[i], collisions)) {
+            CollisionInfo* collision = collisions.getLastCollision();
+            collision->_type = MODEL_COLLISION;
+            collision->_data = (void*)(this);
+            collision->_flags = i;
+            collided = true;
+        }
     }
     return collided;
 }

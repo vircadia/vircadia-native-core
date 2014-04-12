@@ -1,9 +1,13 @@
 //
-//  RunningScripts.cpp
-//  interface
+//  RunningScriptsWidget.cpp
+//  interface/src/ui
 //
 //  Created by Mohammed Nafees on 03/28/2014.
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 #include "ui_runningScriptsWidget.h"
 #include "RunningScriptsWidget.h"
@@ -73,7 +77,7 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list)
         scriptName->setToolTip(list.at(i));
         scriptName->setTextAlignment(Qt::AlignCenter);
         QTableWidgetItem *closeIcon = new QTableWidgetItem;
-        closeIcon->setIcon(QIcon(":/images/kill-script.svg"));
+        closeIcon->setIcon(QIcon(Application::resourcesPath() + "/images/kill-script.svg"));
 
         ui->runningScriptsTableWidget->setItem(i, 0, scriptName);
         ui->runningScriptsTableWidget->setItem(i, 1, closeIcon);

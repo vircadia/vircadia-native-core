@@ -1,15 +1,18 @@
 //
 //  GenericThread.h
-//  shared
+//  libraries/shared/src
 //
 //  Created by Brad Hefta-Gaub on 8/12/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
 //  Generic Threaded or non-threaded processing class.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
-#ifndef __shared__GenericThread__
-#define __shared__GenericThread__
+#ifndef hifi_GenericThread_h
+#define hifi_GenericThread_h
 
 #include <QtCore/QObject>
 #include <QMutex>
@@ -62,4 +65,4 @@ private:
     QThread* _thread;
 };
 
-#endif // __shared__GenericThread__
+#endif // hifi_GenericThread_h

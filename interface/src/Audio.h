@@ -1,13 +1,16 @@
 //
 //  Audio.h
-//  interface
+//  interface/src
 //
 //  Created by Stephen Birarda on 1/22/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Audio__
-#define __interface__Audio__
+#ifndef hifi_Audio_h
+#define hifi_Audio_h
 
 #ifdef _WIN32
 #define WANT_TIMEVAL
@@ -31,9 +34,6 @@
 #include <AudioRingBuffer.h>
 #include <StdDev.h>
 
-#include "ui/Oscilloscope.h"
-
-
 static const int NUM_AUDIO_CHANNELS = 2;
 
 class QAudioInput;
@@ -44,7 +44,7 @@ class Audio : public AbstractAudioInterface {
     Q_OBJECT
 public:
     // setup for audio I/O
-    Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* parent = 0);
+    Audio(int16_t initialJitterBufferSamples, QObject* parent = 0);
 
     float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _noiseGateMeasuredFloor, 0.f); }
     float getTimeSinceLastClip() const { return _timeSinceLastClip; }
@@ -69,7 +69,7 @@ public:
     void init(QGLWidget *parent = 0);
     bool mousePressEvent(int x, int y);
     
-    void renderMuteIcon(int x, int y);
+    void renderToolBox(int x, int y, bool boxed);
     
     int getNetworkSampleRate() { return SAMPLE_RATE; }
     int getNetworkBufferLengthSamplesPerChannel() { return NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; }
@@ -123,7 +123,6 @@ private:
     QString _inputAudioDeviceName;
     QString _outputAudioDeviceName;
     
-    Oscilloscope* _scope;
     StDev _stdev;
     timeval _lastReceiveTime;
     float _averagedLatency;
@@ -161,6 +160,7 @@ private:
     bool _localEcho;
     GLuint _micTextureId;
     GLuint _muteTextureId;
+    GLuint _boxTextureId;
     QRect _iconBounds;
     
     // Audio callback in class context.
@@ -189,4 +189,4 @@ private:
 };
 
 
-#endif /* defined(__interface__audio__) */
+#endif // hifi_Audio_h

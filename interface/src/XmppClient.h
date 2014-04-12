@@ -1,15 +1,18 @@
 //
 //  XmppClient.h
-//  interface
+//  interface/src
 //
-//  Created by Dimitar Dobrev on 10/3/14
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Created by Dimitar Dobrev on 10/3/14.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #ifdef HAVE_QXMPP
 
-#ifndef __interface__XmppClient__
-#define __interface__XmppClient__
+#ifndef hifi_XmppClient_h
+#define hifi_XmppClient_h
 
 #include <QObject>
 #include <QXmppClient.h>
@@ -44,4 +47,4 @@ private:
 
 #endif // __interface__XmppClient__
 
-#endif
+#endif // hifi_XmppClient_h

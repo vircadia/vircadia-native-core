@@ -1,13 +1,16 @@
 //
 //  PhysicsTestUtil.h
-//  physics-tests
+//  tests/physics/src
 //
-//  Created by Andrew Meadows on 2014.02.21
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Created by Andrew Meadows on 02/21/2014.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __tests__PhysicsTestUtil__
-#define __tests__PhysicsTestUtil__
+#ifndef hifi_PhysicsTestUtil_h
+#define hifi_PhysicsTestUtil_h
 
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -23,4 +26,4 @@ std::ostream& operator<<(std::ostream& s, const glm::quat& q);
 std::ostream& operator<<(std::ostream& s, const glm::mat4& m);
 std::ostream& operator<<(std::ostream& s, const CollisionInfo& c);
 
-#endif // __tests__PhysicsTestUtil__
+#endif // hifi_PhysicsTestUtil_h

@@ -1,13 +1,16 @@
 //
 //  BuckyBalls.h
-//  hifi
+//  interface/src
 //
 //  Created by Philip on 1/2/14.
+//  Copyright 2013 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__BuckyBalls__
-#define __hifi__BuckyBalls__
+#ifndef hifi_BuckyBalls_h
+#define hifi_BuckyBalls_h
 
 #include <iostream>
 
@@ -44,4 +47,4 @@ private:
     
 };
 
-#endif /* defined(__hifi__BuckyBalls__) */
+#endif // hifi_BuckyBalls_h

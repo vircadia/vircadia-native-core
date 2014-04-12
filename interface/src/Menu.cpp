@@ -1,9 +1,12 @@
 //
 //  Menu.cpp
-//  hifi
+//  interface/src
 //
 //  Created by Stephen Birarda on 8/12/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <cstdlib>
@@ -83,7 +86,8 @@ Menu::Menu() :
     _lastAvatarDetailDrop(usecTimestampNow()),
     _fpsAverage(FIVE_SECONDS_OF_FRAMES),
     _fastFPSAverage(ONE_SECOND_OF_FRAMES),
-    _loginAction(NULL)
+    _loginAction(NULL),
+    _preferencesDialog(NULL)
 {
     Application *appInstance = Application::getInstance();
 
@@ -249,7 +253,6 @@ Menu::Menu() :
     addDisabledActionAndSeparator(viewMenu, "Stats");
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats, Qt::Key_Slash);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::Log, Qt::CTRL | Qt::Key_L, appInstance, SLOT(toggleLogDialog()));
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Oscilloscope, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Bandwidth, 0, true);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0, this, SLOT(bandwidthDetails()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0, this, SLOT(octreeStatsDetails()));
@@ -301,6 +304,11 @@ Menu::Menu() :
                                            true,
                                            appInstance->getFaceshift(),
                                            SLOT(setTCPEnabled(bool)));
+#ifdef HAVE_FACEPLUS
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Faceplus, 0, true,
+        appInstance->getFaceplus(), SLOT(updateEnabled()));
+#endif
+
 #ifdef HAVE_VISAGE
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Visage, 0, true,
         appInstance->getVisage(), SLOT(updateEnabled()));
@@ -676,6 +684,7 @@ QAction* Menu::addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
                                                         QAction::NoRole, menuItemLocation);
     action->setCheckable(true);
     action->setChecked(checked);
+    connect(action, SIGNAL(changed()), Application::getInstance(), SLOT(bumpSettings()));
 
     return action;
 }
@@ -700,7 +709,12 @@ bool Menu::isOptionChecked(const QString& menuOption) {
 }
 
 void Menu::triggerOption(const QString& menuOption) {
-    _actionHash.value(menuOption)->trigger();
+    QAction* action = _actionHash.value(menuOption);
+    if (action) {
+        action->trigger();
+    } else {
+        qDebug() << "NULL Action for menuOption '" << menuOption << "'";
+    }
 }
 
 QAction* Menu::getActionForOption(const QString& menuOption) {
@@ -759,164 +773,12 @@ void Menu::loginForCurrentDomain() {
 }
 
 void Menu::editPreferences() {
-    Application* applicationInstance = Application::getInstance();    
-    ModelsBrowser headBrowser(Head);
-    ModelsBrowser skeletonBrowser(Skeleton);
-    
-    const QString BROWSE_BUTTON_TEXT = "Browse";
-
-    QDialog dialog(applicationInstance->getWindow());
-    dialog.setWindowTitle("Interface Preferences");
-
-    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
-    dialog.setLayout(layout);
-
-    QFormLayout* form = new QFormLayout();
-    layout->addLayout(form, 1);
-
-
-    QHBoxLayout headModelLayout;
-    QString faceURLString = applicationInstance->getAvatar()->getHead()->getFaceModel().getURL().toString();
-    QLineEdit headURLEdit(faceURLString);
-    QPushButton headBrowseButton(BROWSE_BUTTON_TEXT);
-    connect(&headBrowseButton, SIGNAL(clicked()), &headBrowser, SLOT(browse()));
-    connect(&headBrowser, SIGNAL(selected(QString)), &headURLEdit, SLOT(setText(QString)));
-    headURLEdit.setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    headURLEdit.setPlaceholderText(DEFAULT_HEAD_MODEL_URL.toString());
-    headModelLayout.addWidget(&headURLEdit);
-    headModelLayout.addWidget(&headBrowseButton);
-    form->addRow("Head URL:", &headModelLayout);
-
-    QHBoxLayout skeletonModelLayout;
-    QString skeletonURLString = applicationInstance->getAvatar()->getSkeletonModel().getURL().toString();
-    QLineEdit skeletonURLEdit(skeletonURLString);
-    QPushButton SkeletonBrowseButton(BROWSE_BUTTON_TEXT);
-    connect(&SkeletonBrowseButton, SIGNAL(clicked()), &skeletonBrowser, SLOT(browse()));
-    connect(&skeletonBrowser, SIGNAL(selected(QString)), &skeletonURLEdit, SLOT(setText(QString)));
-    skeletonURLEdit.setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    skeletonURLEdit.setPlaceholderText(DEFAULT_BODY_MODEL_URL.toString());
-    skeletonModelLayout.addWidget(&skeletonURLEdit);
-    skeletonModelLayout.addWidget(&SkeletonBrowseButton);
-    form->addRow("Skeleton URL:", &skeletonModelLayout);
-
-
-    QString displayNameString = applicationInstance->getAvatar()->getDisplayName();
-    QLineEdit* displayNameEdit = new QLineEdit(displayNameString);
-    displayNameEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    form->addRow("Display name:", displayNameEdit);
-
-    QSlider* pupilDilation = new QSlider(Qt::Horizontal);
-    pupilDilation->setValue(applicationInstance->getAvatar()->getHead()->getPupilDilation() * pupilDilation->maximum());
-    form->addRow("Pupil Dilation:", pupilDilation);
-
-    QSlider* faceshiftEyeDeflection = new QSlider(Qt::Horizontal);
-    faceshiftEyeDeflection->setValue(_faceshiftEyeDeflection * faceshiftEyeDeflection->maximum());
-    form->addRow("Faceshift Eye Deflection:", faceshiftEyeDeflection);
-
-    QSpinBox* fieldOfView = new QSpinBox();
-    fieldOfView->setMaximum(180.f);
-    fieldOfView->setMinimum(1.f);
-    fieldOfView->setValue(_fieldOfView);
-    form->addRow("Vertical Field of View (Degrees):", fieldOfView);
-
-    QDoubleSpinBox* leanScale = new QDoubleSpinBox();
-    leanScale->setValue(applicationInstance->getAvatar()->getLeanScale());
-    form->addRow("Lean Scale:", leanScale);
-
-    QDoubleSpinBox* avatarScale = new QDoubleSpinBox();
-    avatarScale->setValue(applicationInstance->getAvatar()->getScale());
-    form->addRow("Avatar Scale:", avatarScale);
-
-    QSpinBox* audioJitterBufferSamples = new QSpinBox();
-    audioJitterBufferSamples->setMaximum(10000);
-    audioJitterBufferSamples->setMinimum(-10000);
-    audioJitterBufferSamples->setValue(_audioJitterBufferSamples);
-    form->addRow("Audio Jitter Buffer Samples (0 for automatic):", audioJitterBufferSamples);
-
-    QSpinBox* maxVoxels = new QSpinBox();
-    const int MAX_MAX_VOXELS = 5000000;
-    const int MIN_MAX_VOXELS = 0;
-    const int STEP_MAX_VOXELS = 50000;
-    maxVoxels->setMaximum(MAX_MAX_VOXELS);
-    maxVoxels->setMinimum(MIN_MAX_VOXELS);
-    maxVoxels->setSingleStep(STEP_MAX_VOXELS);
-    maxVoxels->setValue(_maxVoxels);
-    form->addRow("Maximum Voxels:", maxVoxels);
-
-    QSpinBox* maxVoxelsPPS = new QSpinBox();
-    const int MAX_MAX_VOXELS_PPS = 6000;
-    const int MIN_MAX_VOXELS_PPS = 60;
-    const int STEP_MAX_VOXELS_PPS = 10;
-    maxVoxelsPPS->setMaximum(MAX_MAX_VOXELS_PPS);
-    maxVoxelsPPS->setMinimum(MIN_MAX_VOXELS_PPS);
-    maxVoxelsPPS->setSingleStep(STEP_MAX_VOXELS_PPS);
-    maxVoxelsPPS->setValue(_maxVoxelPacketsPerSecond);
-    form->addRow("Maximum Voxels Packets Per Second:", maxVoxelsPPS);
-
-    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
-    dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
-    dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
-    layout->addWidget(buttons);
-
-    int ret = dialog.exec();
-    if (ret == QDialog::Accepted) {
-        bool shouldDispatchIdentityPacket = false;
-
-        if (headURLEdit.text() != faceURLString) {
-            // change the faceModelURL in the profile, it will also update this user's BlendFace
-            if (headURLEdit.text().isEmpty()) {
-                applicationInstance->getAvatar()->setFaceModelURL(QUrl(headURLEdit.placeholderText()));
-            } else {
-                applicationInstance->getAvatar()->setFaceModelURL(QUrl(headURLEdit.text()));
-            }
-            shouldDispatchIdentityPacket = true;
-        }
-
-        if (skeletonURLEdit.text() != skeletonURLString) {
-            // change the skeletonModelURL in the profile, it will also update this user's Body
-            if (skeletonURLEdit.text().isEmpty()) {
-                applicationInstance->getAvatar()->setSkeletonModelURL(QUrl(skeletonURLEdit.placeholderText()));
-            } else {
-                applicationInstance->getAvatar()->setSkeletonModelURL(QUrl(skeletonURLEdit.text()));
-            }
-            shouldDispatchIdentityPacket = true;
-        }
-
-        QString displayNameStr(displayNameEdit->text());
-
-        if (displayNameStr != displayNameString) {
-            applicationInstance->getAvatar()->setDisplayName(displayNameStr);
-            shouldDispatchIdentityPacket = true;
-        }
-
-        if (shouldDispatchIdentityPacket) {
-            applicationInstance->getAvatar()->sendIdentityPacket();
-        }
-
-        applicationInstance->getAvatar()->getHead()->setPupilDilation(pupilDilation->value() / (float)pupilDilation->maximum());
-
-        _maxVoxels = maxVoxels->value();
-        applicationInstance->getVoxels()->setMaxVoxels(_maxVoxels);
-
-        _maxVoxelPacketsPerSecond = maxVoxelsPPS->value();
-
-        applicationInstance->getAvatar()->setLeanScale(leanScale->value());
-        applicationInstance->getAvatar()->setClampedTargetScale(avatarScale->value());
-
-        _audioJitterBufferSamples = audioJitterBufferSamples->value();
-
-        if (_audioJitterBufferSamples != 0) {
-            applicationInstance->getAudio()->setJitterBufferSamples(_audioJitterBufferSamples);
-        }
-
-        _fieldOfView = fieldOfView->value();
-        applicationInstance->resizeGL(applicationInstance->getGLWidget()->width(), applicationInstance->getGLWidget()->height());
-
-        _faceshiftEyeDeflection = faceshiftEyeDeflection->value() / (float)faceshiftEyeDeflection->maximum();
+    if (!_preferencesDialog) {
+        _preferencesDialog = new PreferencesDialog(Application::getInstance()->getWindow());
+        _preferencesDialog->show();
+    } else {
+        _preferencesDialog->close();
     }
-    QMetaObject::invokeMethod(applicationInstance->getAudio(), "reset", Qt::QueuedConnection);
-
-    sendFakeEnterEvent();
 }
 
 void Menu::goToDomain(const QString newDomain) {
@@ -1055,7 +917,6 @@ void Menu::goToLocation() {
     glm::vec3 avatarPos = myAvatar->getPosition();
     QString currentLocation = QString("%1, %2, %3").arg(QString::number(avatarPos.x),
                                                         QString::number(avatarPos.y), QString::number(avatarPos.z));
-
 
     QInputDialog coordinateDialog(Application::getInstance()->getWindow());
     coordinateDialog.setWindowTitle("Go to Location");
@@ -1200,7 +1061,7 @@ void Menu::showMetavoxelEditor() {
 void Menu::showChat() {
     QMainWindow* mainWindow = Application::getInstance()->getWindow();
     if (!_chatWindow) {
-        mainWindow->addDockWidget(Qt::NoDockWidgetArea, _chatWindow = new ChatWindow());
+        mainWindow->addDockWidget(Qt::RightDockWidgetArea, _chatWindow = new ChatWindow());
     }
     if (!_chatWindow->toggleViewAction()->isChecked()) {
         int width = _chatWindow->width();

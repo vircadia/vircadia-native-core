@@ -1,13 +1,16 @@
 //
 //  Assignment.h
-//  hifi
+//  libraries/shared/src
 //
 //  Created by Stephen Birarda on 8/22/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__Assignment__
-#define __hifi__Assignment__
+#ifndef hifi_Assignment_h
+#define hifi_Assignment_h
 
 #ifdef _WIN32
 #include "Systime.h"
@@ -98,4 +101,4 @@ protected:
     QByteArray _payload; /// an optional payload attached to this assignment, a maximum for 1024 bytes will be packed
 };
 
-#endif /* defined(__hifi__Assignment__) */
+#endif // hifi_Assignment_h

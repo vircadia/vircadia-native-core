@@ -113,19 +113,132 @@
 <context>
     <name>Menu</name>
     <message>
-        <location filename="src/Menu.cpp" line="459"/>
+        <location filename="src/Menu.cpp" line="460"/>
         <source>Open .ini config file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="461"/>
-        <location filename="src/Menu.cpp" line="473"/>
+        <location filename="src/Menu.cpp" line="462"/>
+        <location filename="src/Menu.cpp" line="474"/>
         <source>Text files (*.ini)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/Menu.cpp" line="471"/>
+        <location filename="src/Menu.cpp" line="472"/>
         <source>Save .ini config file</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>PreferencesDialog</name>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="90"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="618"/>
+        <source>Cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="125"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="619"/>
+        <source>Save all changes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="196"/>
+        <location filename="ui/preferencesDialog.ui" line="573"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="620"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="629"/>
+        <source>Avatar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="230"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="621"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Avatar display name &lt;span style=&quot; color:#909090;&quot;&gt;(optional)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="266"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="622"/>
+        <source>Not showing a name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="294"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="623"/>
+        <source>Head</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="395"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="625"/>
+        <source>Body</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="506"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="627"/>
+        <source>Advanced Tuning</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="537"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="628"/>
+        <source>It&apos;s not recomended that you play with these settings unless you&apos;ve looked into exactly what they do.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="605"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="630"/>
+        <source>Vertical field of view</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="708"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="631"/>
+        <source>Lean scale (applies to Faceshift users)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="793"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="632"/>
+        <source>Avatar scale &lt;span style=&quot; color:#909090;&quot;&gt;(default is 1.0)&lt;/span&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="875"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="633"/>
+        <source>Pupil dillation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="954"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="634"/>
+        <source>Audio Jitter Buffer Samples (0 for automatic)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="1045"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="635"/>
+        <source>Faceshift eye detection</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="1125"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="636"/>
+        <source>Voxels</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="1157"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="637"/>
+        <source>Maximum voxels</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="ui/preferencesDialog.ui" line="1236"/>
+        <location filename="../build/interface/ui_preferencesDialog.h" line="638"/>
+        <source>Max voxels sent each second</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -155,38 +268,6 @@
     <message>
         <location filename="src/ui/ImportDialog.cpp" line="27"/>
         <source>Cancel</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>SnapshotShareDialog</name>
-    <message>
-        <location filename="ui/shareSnapshot.ui" line="38"/>
-        <location filename="../build/interface/ui_shareSnapshot.h" line="181"/>
-        <source>Share with Alphas</source>
-        <oldsource>Share with community</oldsource>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/shareSnapshot.ui" line="156"/>
-        <location filename="../build/interface/ui_shareSnapshot.h" line="182"/>
-        <source>Notes about this image</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/shareSnapshot.ui" line="232"/>
-        <location filename="../build/interface/ui_shareSnapshot.h" line="183"/>
-        <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:&apos;Helvetica&apos;; font-size:14pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/shareSnapshot.ui" line="271"/>
-        <location filename="../build/interface/ui_shareSnapshot.h" line="188"/>
-        <source>Share</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
