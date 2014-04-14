@@ -249,6 +249,7 @@ namespace MenuOption {
     const QString AudioSpatialProcessingPreDelay = "Audio Spatial Processing add Pre-Delay";
     const QString AudioSpatialProcessingStereoSource = "Audio Spatial Processing Stereo Source";
     const QString AudioSpatialProcessingHeadOriented = "Audio Spatial Processing Head Oriented";
+    const QString AudioSpatialProcessingWithDiffusions = "Audio Spatial Processing With Diffusions";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString MuteAudio = "Mute Microphone";

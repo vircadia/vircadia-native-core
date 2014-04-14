@@ -11,12 +11,13 @@
 
 
 var delayScale = 100.0;
+var fanoutScale = 10.0;
 var speedScale = 20;
 var factorScale = 5.0;
 
 // This will create a couple of image overlays that make a "slider", we will demonstrate how to trap mouse messages to
 // move the slider
-var delayY = 300;
+var delayY = 250;
 var delaySlider = Overlays.addOverlay("image", {
                     // alternate form of expressing bounds
                     bounds: { x: 100, y: delayY, width: 150, height: 35},
@@ -36,9 +37,36 @@ var delayThumb = Overlays.addOverlay("image", {
                     width: 18,
                     height: 17,
                     imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/thumb.png",
+                    color: { red: 255, green: 0, blue: 0},
+                    alpha: 1
+                });
+
+// This will create a couple of image overlays that make a "slider", we will demonstrate how to trap mouse messages to
+// move the slider
+var fanoutY = 300;
+var fanoutSlider = Overlays.addOverlay("image", {
+                    // alternate form of expressing bounds
+                    bounds: { x: 100, y: fanoutY, width: 150, height: 35},
+                    subImage: { x: 46, y: 0, width: 200, height: 71  },
+                    imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/slider.png",
                     color: { red: 255, green: 255, blue: 255},
                     alpha: 1
                 });
+
+// This is the thumb of our slider
+var fanoutMinThumbX = 110;
+var fanoutMaxThumbX = fanoutMinThumbX + 110;
+var fanoutThumbX = (fanoutMinThumbX + fanoutMaxThumbX) / 2;
+var fanoutThumb = Overlays.addOverlay("image", {
+                    x: fanoutThumbX,
+                    y: fanoutY + 9,
+                    width: 18,
+                    height: 17,
+                    imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/thumb.png",
+                    color: { red: 255, green: 255, blue: 0},
+                    alpha: 1
+                });
+
 
 // This will create a couple of image overlays that make a "slider", we will demonstrate how to trap mouse messages to
 // move the slider
@@ -62,7 +90,7 @@ var speedThumb = Overlays.addOverlay("image", {
                     width: 18,
                     height: 17,
                     imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/thumb.png",
-                    color: { red: 255, green: 255, blue: 255},
+                    color: { red: 0, green: 255, blue: 0},
                     alpha: 1
                 });
 
@@ -88,7 +116,7 @@ var factorThumb = Overlays.addOverlay("image", {
                     width: 18,
                     height: 17,
                     imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/thumb.png",
-                    color: { red: 255, green: 255, blue: 255},
+                    color: { red: 0, green: 0, blue: 255},
                     alpha: 1
                 });
 
@@ -101,6 +129,8 @@ function scriptEnding() {
     Overlays.deleteOverlay(speedSlider);
     Overlays.deleteOverlay(delayThumb);
     Overlays.deleteOverlay(delaySlider);
+    Overlays.deleteOverlay(fanoutThumb);
+    Overlays.deleteOverlay(fanoutSlider);
 }
 Script.scriptEnding.connect(scriptEnding);
 
@@ -116,6 +146,7 @@ Script.update.connect(update);
 
 // The slider is handled in the mouse event callbacks.
 var movingSliderDelay = false;
+var movingSliderFanout = false;
 var movingSliderSpeed = false;
 var movingSliderFactor = false;
 var thumbClickOffsetX = 0;
@@ -130,7 +161,21 @@ function mouseMoveEvent(event) {
         }
         Overlays.editOverlay(delayThumb, { x: newThumbX } );
         var delay = ((newThumbX - delayMinThumbX) / (delayMaxThumbX - delayMinThumbX)) * delayScale;
+        print("delay="+delay);
         AudioReflector.setPreDelay(delay);
+    }
+    if (movingSliderFanout) {
+        newThumbX = event.x - thumbClickOffsetX;
+        if (newThumbX < fanoutMinThumbX) {
+            newThumbX = fanoutMinThumbX;
+        }
+        if (newThumbX > fanoutMaxThumbX) {
+            newThumbX = fanoutMaxThumbX;
+        }
+        Overlays.editOverlay(fanoutThumb, { x: newThumbX } );
+        var fanout = Math.round(((newThumbX - fanoutMinThumbX) / (fanoutMaxThumbX - fanoutMinThumbX)) * fanoutScale);
+        print("fanout="+fanout);
+        AudioReflector.setDiffusionFanout(fanout);
     }
     if (movingSliderSpeed) {
         newThumbX = event.x - thumbClickOffsetX;
@@ -167,7 +212,11 @@ function mousePressEvent(event) {
         movingSliderDelay = true;
         thumbClickOffsetX = event.x - delayThumbX;
     }
-
+    // If the user clicked on the thumb, handle the slider logic
+    if (clickedOverlay == fanoutThumb) {
+        movingSliderFanout = true;
+        thumbClickOffsetX = event.x - fanoutThumbX;
+    }
     // If the user clicked on the thumb, handle the slider logic
     if (clickedOverlay == speedThumb) {
         movingSliderSpeed = true;
@@ -185,8 +234,16 @@ function mouseReleaseEvent(event) {
     if (movingSliderDelay) {
         movingSliderDelay = false;
         var delay = ((newThumbX - delayMinThumbX) / (delayMaxThumbX - delayMinThumbX)) * delayScale;
+        print("delay="+delay);
         AudioReflector.setPreDelay(delay);
         delayThumbX = newThumbX;
+    }
+    if (movingSliderFanout) {
+        movingSliderFanout = false;
+        var fanout = Math.round(((newThumbX - fanoutMinThumbX) / (fanoutMaxThumbX - fanoutMinThumbX)) * fanoutScale);
+        print("fanout="+fanout);
+        AudioReflector.setDiffusionFanout(fanout);
+        fanoutThumbX = newThumbX;
     }
     if (movingSliderSpeed) {
         movingSliderSpeed = false;

@@ -392,6 +392,10 @@ Menu::Menu() :
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_H,
                                            true);
 
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSpatialProcessingWithDiffusions,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_W,
+                                           true);
+                                           
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::LowPassFilter,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_F,
                                            false);

@@ -2854,8 +2854,11 @@ void Application::displayStats() {
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, WHITE_TEXT);
 
+            float preDelay = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingPreDelay) ? 
+                                            _audioReflector.getPreDelay() : 0.0f;
+
             sprintf(reflectionsStatus, "Delay: pre: %f, average %f, max %f, min %f, speed: %f", 
-                    _audioReflector.getDelayFromDistance(0.0f),
+                    preDelay,
                     _audioReflector.getAverageDelayMsecs(),
                     _audioReflector.getMaxDelayMsecs(),
                     _audioReflector.getMinDelayMsecs(),
