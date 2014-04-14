@@ -140,6 +140,11 @@ For many of the external libraries where precompiled binaries are readily availa
 
 *NOTE: Qt does not support 64-bit builds on Windows 7, so you must use the 32-bit version of libraries for interface.exe to run. The 32-bit version of the static library is the one linked by our CMake find modules*
 
+##### DLLs
+As with the Qt libraries, you will need to make sure the directories containing dynamically-linked libraries is in your path. 
+
+For example, for a dynamically linked build of freeglut, the directory to add to your path in which the DLL is found is `FREEGLUT_DIR/bin`. Where possible, you can use static builds of the external dependencies to avoid this requirement.
+
 #####GnuTLS
 You can get a precompiled version of GnuTLS for Windows [here](http://gnutls.org/download.html).
 
@@ -148,9 +153,6 @@ To use GnuTLS with Visual Studio, you will need to create `libgnutls-28.lib`, th
     $GNUTLS_DIR\bin> lib /def:libgnutls-28.def 
 
 This will create `libgnutls-28.lib` in the `bin` folder. Copy that file to the `lib` sub-folder of your GnuTLS folder, and the Cmake FindGnuTLS module in this repo will find it during the Cmake run.
-
-#### DLLs
-As with the Qt libraries, you will need to make sure the directory containing dynamically-linked libraries is in your path. For example, for a dynamically linked build of freeglut, the directory to add to your path in which the DLL is found is `FREEGLUT_DIR/bin`. Where possible, you can use static builds of the external dependencies to avoid this requirement.
 
 ####Building in Visual Studio
 Follow the same build steps from the CMake section, but pass a different generator to CMake.
