@@ -79,7 +79,7 @@ void Snapshot::saveSnapshot(QGLWidget* widget, Avatar* avatar) {
     shot.setText(ORIENTATION_Z, QString::number(orientation.z));
     shot.setText(ORIENTATION_W, QString::number(orientation.w));
     
-    shot.setText(DOMAIN_KEY, NodeList::getInstance()->getDomainInfo().getHostname());
+    shot.setText(DOMAIN_KEY, NodeList::getInstance()->getDomainHandler().getHostname());
 
     QString formattedLocation = QString("%1_%2_%3").arg(location.x).arg(location.y).arg(location.z);
     // replace decimal . with '-'

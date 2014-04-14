@@ -1,39 +1,27 @@
-#ifndef __Systime__
-#define __Systime__
+//
+//  Systime.h
+//  libraries/shared/src
+//
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
+#ifndef hifi_Systime_h
+#define hifi_Systime_h
 
-#ifdef _WIN32
+#ifdef WIN32
 
-#ifdef _WINSOCK2API_
-#define _timeval_
-#endif
-
-#ifndef _timeval_
-#define _timeval_
-/*
- * Structure returned by gettimeofday(2) system call,
- * and used in other calls.
- */
-
-// this is a bit of a hack for now, but sometimes on windows
-// we need timeval defined here, sometimes we get it
-// from winsock.h
-#ifdef WANT_TIMEVAL
-struct timeval {
-	long	tv_sec;		/* seconds */
-	long	tv_usec;	/* and microseconds */
-};
-#endif
-
-#endif _timeval_
+#include <winsock2.h>
 
 struct timezone {
   int tz_minuteswest; /* minutes west of Greenwich */
   int tz_dsttime; /* type of dst correction */
 };
 
-int gettimeofday( struct timeval* p_tv, struct timezone* p_tz );
+int gettimeofday(struct timeval* p_tv, struct timezone* p_tz);
 
-#endif _Win32
+#endif
 
-#endif __Systime__
+#endif // hifi_Systime_h

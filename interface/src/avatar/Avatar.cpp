@@ -228,14 +228,18 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
             _skeletonModel.renderJointCollisionShapes(0.7f);
         }
         if (Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes)) {
-            getHead()->getFaceModel().updateShapePositions();
-            getHead()->getFaceModel().renderJointCollisionShapes(0.7f);
+            if (shouldRenderHead(cameraPosition, renderMode)) {
+                getHead()->getFaceModel().updateShapePositions();
+                getHead()->getFaceModel().renderJointCollisionShapes(0.7f);
+            }
         }
         if (Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes)) {
-            getHead()->getFaceModel().updateShapePositions();
-            getHead()->getFaceModel().renderBoundingCollisionShapes(0.7f);
-            _skeletonModel.updateShapePositions();
-            _skeletonModel.renderBoundingCollisionShapes(0.7f);
+            if (shouldRenderHead(cameraPosition, renderMode)) {
+                getHead()->getFaceModel().updateShapePositions();
+                getHead()->getFaceModel().renderBoundingCollisionShapes(0.7f);
+                _skeletonModel.updateShapePositions();
+                _skeletonModel.renderBoundingCollisionShapes(0.7f);
+            }
         }
 
         // quick check before falling into the code below:
@@ -342,6 +346,10 @@ void Avatar::renderBody(RenderMode renderMode) {
     _skeletonModel.render(1.0f, modelRenderMode);
     getHead()->render(1.0f, modelRenderMode);
     getHand()->render(false);
+}
+
+bool Avatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const {
+    return true;
 }
 
 void Avatar::updateJointMappings() {

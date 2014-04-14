@@ -17,6 +17,7 @@ include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} "${ROOT_DIR}")
 
 find_package(Qt5Network REQUIRED)
+find_package(GnuTLS REQUIRED)
 
 include(${MACRO_DIR}/SetupHifiProject.cmake)
 
@@ -33,11 +34,21 @@ add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
 
 # link the shared hifi library
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
+link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(embedded-webserver ${TARGET_NAME} "${ROOT_DIR}")
+
+# include the GnuTLS dir
+include_directories(SYSTEM "${GNUTLS_INCLUDE_DIR}")
+
+# add a definition for ssize_t so that windows doesn't bail on gnutls.h
+if (WIN32)
+  add_definitions(-Dssize_t=long)
+endif ()
 
 IF (WIN32)
   target_link_libraries(${TARGET_NAME} Winmm Ws2_32)
 ENDIF(WIN32)
 
-target_link_libraries(${TARGET_NAME} Qt5::Network)
+# link QtNetwork and GnuTLS
+target_link_libraries(${TARGET_NAME} Qt5::Network "${GNUTLS_LIBRARY}")

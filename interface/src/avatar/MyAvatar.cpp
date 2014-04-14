@@ -62,6 +62,7 @@ MyAvatar::MyAvatar() :
     _isThrustOn(false),
     _thrustMultiplier(1.0f),
     _moveTarget(0,0,0),
+    _lastBodyPenetration(0.0f),
     _moveTargetStepCounter(0),
     _lookAtTargetAvatar(),
     _shouldRender(true),
@@ -647,13 +648,18 @@ void MyAvatar::renderBody(RenderMode renderMode) {
     _skeletonModel.render(1.0f, modelRenderMode);
 
     //  Render head so long as the camera isn't inside it
-    const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
-    Camera* myCamera = Application::getInstance()->getCamera();
-    if (renderMode != NORMAL_RENDER_MODE || (glm::length(myCamera->getPosition() - getHead()->calculateAverageEyePosition()) >
-            RENDER_HEAD_CUTOFF_DISTANCE * _scale)) {
+    if (shouldRenderHead(Application::getInstance()->getCamera()->getPosition(), renderMode)) {
         getHead()->render(1.0f, modelRenderMode);
     }
     getHand()->render(true);
+}
+
+const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
+
+bool MyAvatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const {
+    const Head* head = getHead();
+    return (renderMode != NORMAL_RENDER_MODE) || 
+        (glm::length(cameraPosition - head->calculateAverageEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE * _scale);
 }
 
 void MyAvatar::updateThrust(float deltaTime) {
@@ -681,7 +687,7 @@ void MyAvatar::updateThrust(float deltaTime) {
     _thrust -= _driveKeys[DOWN] * _scale * THRUST_MAG_DOWN * _thrustMultiplier * deltaTime * up;
 
     // attenuate thrust when in penetration
-    if (glm::dot(_thrust, _lastBodyPenetration) > 0.0f) {
+    if (glm::dot(_thrust, _lastBodyPenetration) > EPSILON) {
         const float MAX_BODY_PENETRATION_DEPTH = 0.6f * _skeletonModel.getBoundingShapeRadius();
         float penetrationFactor = glm::min(1.0f, glm::length(_lastBodyPenetration) / MAX_BODY_PENETRATION_DEPTH);
         glm::vec3 penetrationDirection = glm::normalize(_lastBodyPenetration);
@@ -909,7 +915,7 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
     updateShapePositions();
     float myBoundingRadius = getBoundingRadius();
 
-    const float BODY_COLLISION_RESOLUTION_FACTOR = deltaTime / BODY_COLLISION_RESOLUTION_TIMESCALE;
+    const float BODY_COLLISION_RESOLUTION_FACTOR = glm::max(1.0f, deltaTime / BODY_COLLISION_RESOLUTION_TIMESCALE);
 
     foreach (const AvatarSharedPointer& avatarPointer, avatars) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
@@ -932,7 +938,11 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
 
             CollisionInfo collision;
             if (ShapeCollider::collideShapesCoarse(myShapes, theirShapes, collision)) {
-                if (glm::length2(collision._penetration) > EPSILON) {
+                float penetrationDepth = glm::length(collision._penetration);
+                if (penetrationDepth > myBoundingRadius) {
+                    qDebug() << "WARNING: ignoring avatar-avatar penetration depth " << penetrationDepth;
+                }
+                else if (penetrationDepth > EPSILON) {
                     setPosition(getPosition() - BODY_COLLISION_RESOLUTION_FACTOR * collision._penetration);
                     _lastBodyPenetration += collision._penetration;
                     emit collisionWithAvatar(getSessionUUID(), avatar->getSessionUUID(), collision);
@@ -1153,7 +1163,7 @@ void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
         QStringList coordinateItems = positionString.split(',');
         QStringList orientationItems = orientationString.split(',');
         
-        NodeList::getInstance()->getDomainInfo().setHostname(domainHostnameString);
+        NodeList::getInstance()->getDomainHandler().setHostname(domainHostnameString);
         
         // orient the user to face the target
         glm::quat newOrientation = glm::quat(glm::radians(glm::vec3(orientationItems[0].toFloat(),
