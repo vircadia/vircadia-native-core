@@ -359,7 +359,7 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(renderDebugMenu,
                                   MenuOption::ShowCulledSharedFaces,
-                                  Qt::CTRL | Qt::SHIFT | Qt::Key_X,
+                                  0,
                                   false,
                                   appInstance->getVoxels(),
                                   SLOT(showCulledSharedFaces()));
@@ -415,7 +415,11 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSpatialProcessingRenderPaths,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_R,
                                            true);
-                                           
+
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSpatialProcessingSlightlyRandomSurfaces,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_X,
+                                           true);
+
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::LowPassFilter,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_F,
                                            false);

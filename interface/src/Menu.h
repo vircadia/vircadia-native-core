@@ -245,6 +245,7 @@ namespace MenuOption {
     const QString AudioSpatialProcessingHeadOriented = "Audio Spatial Processing Head Oriented";
     const QString AudioSpatialProcessingWithDiffusions = "Audio Spatial Processing With Diffusions";
     const QString AudioSpatialProcessingRenderPaths = "Audio Spatial Processing Render Paths";
+    const QString AudioSpatialProcessingSlightlyRandomSurfaces = "Audio Spatial Processing Slightly Random Surfaces";
     const QString Avatars = "Avatars";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";

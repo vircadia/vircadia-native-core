@@ -180,6 +180,7 @@ private:
     void drawPath(AudioPath* path, const glm::vec3& originalColor);
     void newCalculateAllReflections();
     int countDiffusionPaths();
+    glm::vec3 getFaceNormal(BoxFace face);
 
     void injectAudiblePoint(const AudioPoint& audiblePoint, const QByteArray& samples, unsigned int sampleTime, int sampleRate);
     void oldEchoAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
@@ -202,6 +203,7 @@ private:
     float _diffusionRatio;
     float _reflectiveRatio;
     
+    bool _withDiffusion;
 };
 
 

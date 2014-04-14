@@ -32,7 +32,8 @@ AudioReflector::AudioReflector(QObject* parent) :
     _distanceAttenuationScalingFactor(DEFAULT_DISTANCE_SCALING_FACTOR),
     _diffusionFanout(DEFAULT_DIFFUSION_FANOUT),
     _absorptionRatio(DEFAULT_ABSORPTION_RATIO),
-    _diffusionRatio(DEFAULT_DIFFUSION_RATIO)
+    _diffusionRatio(DEFAULT_DIFFUSION_RATIO),
+    _withDiffusion(false)
 {
     reset();
 }
@@ -110,28 +111,30 @@ float AudioReflector::getBounceAttenuationCoefficient(int bounceCount) {
     return material.reflectiveRatio * bounceCount;
 }
 
-glm::vec3 getFaceNormal(BoxFace face) {
-    glm::vec3 slightlyRandomFaceNormal;
+glm::vec3 AudioReflector::getFaceNormal(BoxFace face) {
+    bool wantSlightRandomness = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingSlightlyRandomSurfaces);
 
-    float surfaceRandomness = randFloatInRange(0.99f,1.0f);
-    float surfaceRemainder = (1.0f - surfaceRandomness)/2.0f;
-    float altRemainderSignA = (randFloatInRange(-1.0f,1.0f) < 0.0f) ? -1.0 : 1.0;
-    float altRemainderSignB = (randFloatInRange(-1.0f,1.0f) < 0.0f) ? -1.0 : 1.0;
+    glm::vec3 faceNormal;
+
+    float normalLength = wantSlightRandomness ? randFloatInRange(0.99f,1.0f) : 1.0f;
+    float remainder = (1.0f - normalLength)/2.0f;
+    float remainderSignA = (randFloatInRange(-1.0f,1.0f) < 0.0f) ? -1.0 : 1.0;
+    float remainderSignB = (randFloatInRange(-1.0f,1.0f) < 0.0f) ? -1.0 : 1.0;
 
     if (face == MIN_X_FACE) {
-        slightlyRandomFaceNormal = glm::vec3(-surfaceRandomness, surfaceRemainder * altRemainderSignA, surfaceRemainder * altRemainderSignB);
+        faceNormal = glm::vec3(-normalLength, remainder * remainderSignA, remainder * remainderSignB);
     } else if (face == MAX_X_FACE) {
-        slightlyRandomFaceNormal = glm::vec3(surfaceRandomness, surfaceRemainder * altRemainderSignA, surfaceRemainder * altRemainderSignB);
+        faceNormal = glm::vec3(normalLength, remainder * remainderSignA, remainder * remainderSignB);
     } else if (face == MIN_Y_FACE) {
-        slightlyRandomFaceNormal = glm::vec3(surfaceRemainder * altRemainderSignA, -surfaceRandomness, surfaceRemainder * altRemainderSignB);
+        faceNormal = glm::vec3(remainder * remainderSignA, -normalLength, remainder * remainderSignB);
     } else if (face == MAX_Y_FACE) {
-        slightlyRandomFaceNormal = glm::vec3(surfaceRemainder * altRemainderSignA, surfaceRandomness, surfaceRemainder * altRemainderSignB);
+        faceNormal = glm::vec3(remainder * remainderSignA, normalLength, remainder * remainderSignB);
     } else if (face == MIN_Z_FACE) {
-        slightlyRandomFaceNormal = glm::vec3(surfaceRemainder * altRemainderSignA, surfaceRemainder * altRemainderSignB, -surfaceRandomness);
+        faceNormal = glm::vec3(remainder * remainderSignA, remainder * remainderSignB, -normalLength);
     } else if (face == MAX_Z_FACE) {
-        slightlyRandomFaceNormal = glm::vec3(surfaceRemainder * altRemainderSignA, surfaceRemainder * altRemainderSignB, surfaceRandomness);
+        faceNormal = glm::vec3(remainder * remainderSignA, remainder * remainderSignB, normalLength);
     }
-    return slightlyRandomFaceNormal;
+    return faceNormal;
 }
 
 void AudioReflector::reset() {
@@ -166,20 +169,30 @@ void AudioReflector::calculateAllReflections() {
     // TODO: what about case where new voxels are added in front of us???
     bool wantHeadOrientation = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingHeadOriented);
     glm::quat orientation = wantHeadOrientation ? _myAvatar->getHead()->getFinalOrientation() : _myAvatar->getOrientation();
-    
+    glm::vec3 origin = _myAvatar->getHead()->getPosition();
+    glm::vec3 listenerPosition = _myAvatar->getHead()->getPosition();
+
+    bool withDiffusion = false; // this is the non-diffusion mode.
+        
     bool shouldRecalc = _reflections == 0 
-                            || !isSimilarPosition(_myAvatar->getHead()->getPosition(), _origin) 
-                            || !isSimilarOrientation(orientation, _orientation);
+                            || !isSimilarPosition(origin, _origin) 
+                            || !isSimilarOrientation(orientation, _orientation) 
+                            || !isSimilarPosition(listenerPosition, _listenerPosition)
+                            || (withDiffusion != _withDiffusion);
 
     if (shouldRecalc) {
+
+qDebug() << "RECALC...... !!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+
         QMutexLocker locker(&_mutex);
 
         quint64 start = usecTimestampNow();
 
-        _origin = _myAvatar->getHead()->getPosition();
-        glm::vec3 averageEarPosition = _myAvatar->getHead()->getPosition();
-        _listenerPosition = averageEarPosition;
+        _origin = origin;
+        _listenerPosition = listenerPosition;
         _orientation = orientation;
+        _withDiffusion = withDiffusion;
+        
         glm::vec3 right = glm::normalize(_orientation * IDENTITY_RIGHT);
         glm::vec3 up = glm::normalize(_orientation * IDENTITY_UP);
         glm::vec3 front = glm::normalize(_orientation * IDENTITY_FRONT);
@@ -195,20 +208,20 @@ void AudioReflector::calculateAllReflections() {
         glm::vec3 backRightDown = glm::normalize(back + right + down);
         glm::vec3 backLeftDown = glm::normalize(back + left + down);
 
-        _frontRightUpReflections = calculateReflections(averageEarPosition, _origin, frontRightUp);
-        _frontLeftUpReflections = calculateReflections(averageEarPosition, _origin, frontLeftUp);
-        _backRightUpReflections = calculateReflections(averageEarPosition, _origin, backRightUp);
-        _backLeftUpReflections = calculateReflections(averageEarPosition, _origin, backLeftUp);
-        _frontRightDownReflections = calculateReflections(averageEarPosition, _origin, frontRightDown);
-        _frontLeftDownReflections = calculateReflections(averageEarPosition, _origin, frontLeftDown);
-        _backRightDownReflections = calculateReflections(averageEarPosition, _origin, backRightDown);
-        _backLeftDownReflections = calculateReflections(averageEarPosition, _origin, backLeftDown);
-        _frontReflections = calculateReflections(averageEarPosition, _origin, front);
-        _backReflections = calculateReflections(averageEarPosition, _origin, back);
-        _leftReflections = calculateReflections(averageEarPosition, _origin, left);
-        _rightReflections = calculateReflections(averageEarPosition, _origin, right);
-        _upReflections = calculateReflections(averageEarPosition, _origin, up);
-        _downReflections = calculateReflections(averageEarPosition, _origin, down);
+        _frontRightUpReflections = calculateReflections(listenerPosition, _origin, frontRightUp);
+        _frontLeftUpReflections = calculateReflections(listenerPosition, _origin, frontLeftUp);
+        _backRightUpReflections = calculateReflections(listenerPosition, _origin, backRightUp);
+        _backLeftUpReflections = calculateReflections(listenerPosition, _origin, backLeftUp);
+        _frontRightDownReflections = calculateReflections(listenerPosition, _origin, frontRightDown);
+        _frontLeftDownReflections = calculateReflections(listenerPosition, _origin, frontLeftDown);
+        _backRightDownReflections = calculateReflections(listenerPosition, _origin, backRightDown);
+        _backLeftDownReflections = calculateReflections(listenerPosition, _origin, backLeftDown);
+        _frontReflections = calculateReflections(listenerPosition, _origin, front);
+        _backReflections = calculateReflections(listenerPosition, _origin, back);
+        _leftReflections = calculateReflections(listenerPosition, _origin, left);
+        _rightReflections = calculateReflections(listenerPosition, _origin, right);
+        _upReflections = calculateReflections(listenerPosition, _origin, up);
+        _downReflections = calculateReflections(listenerPosition, _origin, down);
 
         quint64 end = usecTimestampNow();
 
@@ -237,7 +250,7 @@ QVector<glm::vec3> AudioReflector::calculateReflections(const glm::vec3& earPosi
     int bounceCount = 1;
     
     while (currentAttenuation > MINIMUM_ATTENUATION_TO_REFLECT && totalDelay < MAXIMUM_DELAY_MS && bounceCount < ABSOLUTE_MAXIMUM_BOUNCE_COUNT) {
-        if (_voxels->findRayIntersection(start, direction, elementHit, distance, face)) {
+        if (_voxels->findRayIntersection(start, direction, elementHit, distance, face, Octree::Lock)) {
             glm::vec3 end = start + (direction * (distance * SLIGHTLY_SHORT));
 
             totalDistance += glm::distance(start, end);
@@ -627,18 +640,26 @@ void AudioReflector::newCalculateAllReflections() {
     glm::quat orientation = wantHeadOrientation ? _myAvatar->getHead()->getFinalOrientation() : _myAvatar->getOrientation();
     glm::vec3 origin = _myAvatar->getHead()->getPosition();
     glm::vec3 listenerPosition = _myAvatar->getHead()->getPosition();
+
+    bool withDiffusion = true; // this is the diffusion mode.
     
-    bool shouldRecalc = _audiblePoints.size() == 0 
+    // _audiblePoints.size() == 0 ??
+    bool shouldRecalc = _reflections == 0 
                             || !isSimilarPosition(origin, _origin) 
                             || !isSimilarOrientation(orientation, _orientation) 
-                            || !isSimilarPosition(listenerPosition, _listenerPosition);
+                            || !isSimilarPosition(listenerPosition, _listenerPosition)
+                            || (withDiffusion != _withDiffusion);
 
     if (shouldRecalc) {
+    
+qDebug() << "RECALC...... !!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+    
         QMutexLocker locker(&_mutex);
         quint64 start = usecTimestampNow();        
         _origin = origin;
         _orientation = orientation;
         _listenerPosition = listenerPosition;
+        _withDiffusion = withDiffusion;
         analyzePaths(); // actually does the work
         quint64 end = usecTimestampNow();
         const bool wantDebugging = false;
@@ -774,7 +795,7 @@ int AudioReflector::analyzePathsSingleStep() {
                 if (wantExtraDebuggging && isDiffusion) {
                     qDebug() << "diffusion bounceCount too high!";
                 }
-            } else if (_voxels->findRayIntersection(start, direction, elementHit, distance, face)) {
+            } else if (_voxels->findRayIntersection(start, direction, elementHit, distance, face, Octree::Lock)) {
                 glm::vec3 end = start + (direction * (distance * SLIGHTLY_SHORT));
 
                 pathDistance += glm::distance(start, end);
@@ -893,12 +914,20 @@ int AudioReflector::analyzePathsSingleStep() {
                     if (wantExtraDebuggging && isDiffusion) {
                         qDebug() << "diffusion too quiet!";
                     }
+                    
+                    if (((reflectiveAttenuation + totalDiffusionAttenuation) * toListenerAttenuation) <= MINIMUM_ATTENUATION_TO_REFLECT) {
+                        qDebug() << "too quiet!";
+                    }
+                    if (totalDelay >= MAXIMUM_DELAY_MS) {
+                        qDebug() << "too much delay!";
+                    }
                 }
             } else {
                 path->finalized = true; // if it doesn't intersect, then it is finished
                 if (wantExtraDebuggging && isDiffusion) {
                     qDebug() << "diffusion doesn't intersect!";
                 }
+                qDebug() << "doesn't intersect!";
             }
         }
     }
