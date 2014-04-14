@@ -770,7 +770,6 @@ qDebug() << "AudioReflector::anylizePaths()...";
         delete path;
     }
     _audioPaths.clear();
-    
     _audiblePoints.clear(); // clear our audible points
     
     // add our initial paths
@@ -816,6 +815,8 @@ qDebug() << "AudioReflector::anylizePaths()...";
         steps++;
         qDebug() << "acitvePaths=" << acitvePaths << "steps=" << steps << "_audioPaths.size()=" << _audioPaths.size();
     }
+    
+    qDebug() << "_audiblePoints.size()=" << _audiblePoints.size();
 }
 
 int AudioReflector::anylizePathsSingleStep() {
