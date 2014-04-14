@@ -147,7 +147,7 @@ To use GnuTLS with Visual Studio, you will need to create `libgnutls-28.lib`, th
 
     $GNUTLS_DIR\bin> lib /def:libgnutls-28.def 
 
-This will create `libgnutls-28.lib` in the `bin` folder. Copy that file to the `lib` sub-folder of your GnuTLS folder, and the Cmake FindGnuTLS module in this repo will find it during the Cmake run. As with other external dependencies for this project, the associated GnuTLS DLL will need to be in your path. 
+This will create `libgnutls-28.lib` in the `bin` folder. Copy that file to the `lib` sub-folder of your GnuTLS folder, and the Cmake FindGnuTLS module in this repo will find it during the Cmake run.
 
 #### DLLs
 As with the Qt libraries, you will need to make sure the directory containing dynamically-linked libraries is in your path. For example, for a dynamically linked build of freeglut, the directory to add to your path in which the DLL is found is `FREEGLUT_DIR/bin`. Where possible, you can use static builds of the external dependencies to avoid this requirement.
