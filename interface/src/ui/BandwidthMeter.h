@@ -13,7 +13,6 @@
 #define hifi_BandwidthMeter_h
 
 #ifdef _WIN32
-#define WANT_TIMEVAL
 #include <Systime.h>
 #endif
 

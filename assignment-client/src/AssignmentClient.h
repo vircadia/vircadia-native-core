@@ -20,6 +20,7 @@ class AssignmentClient : public QCoreApplication {
     Q_OBJECT
 public:
     AssignmentClient(int &argc, char **argv);
+    ~AssignmentClient();
 private slots:
     void sendAssignmentRequest();
     void readPendingDatagrams();
@@ -28,6 +29,7 @@ private slots:
 private:
     Assignment _requestAssignment;
     SharedAssignmentPointer _currentAssignment;
+    QString _assignmentServerHostname;
 };
 
 #endif // hifi_AssignmentClient_h
