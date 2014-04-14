@@ -56,7 +56,7 @@ Should you choose not to install Qt5 via a package manager that handles dependen
 
 If `libgnutls28-dev` 3.2.12 or higher is available via your package manager, it would be easiest to grab it from there. At the time of this writing that is not the case for any version of Ubuntu, so it will need to be built from source.
 
-gmplib is a dependency for GnuTLS. On Ubuntu, we were unable to build hogweed (part of libnettle) with gmp 6.x.x. If nettle is not built with hogweed, GnuTLS will fail to build. If you run into this problem, try version 4.2.1 of gmplib. 
+`gmplib` is a dependency for GnuTLS. On Ubuntu, we were unable to build `hogweed` (part of `libnettle`) with `gmpib` 6.x.x. If nettle is not built with `hogweed`, GnuTLS will fail to build. If you run into this problem, try version 4.2.1 of `gmplib`. 
 
 ####OS X
 #####Package Managers
@@ -143,7 +143,7 @@ To use GnuTLS with Visual Studio, you will need to create `libgnutls-28.lib`, th
 
     $GNUTLS_DIR\bin> lib /def:libgnutls-28.def 
 
-This will create `libgnutls-28.lib`. Copy that file to the `lib` folder of you GnuTLS folder, and the Cmake FindGnuTLS module in this repo will find it during the Cmake run. As will other external dependencies for this project, the associated GnuTLS DLL will need to be in your path. 
+This will create `libgnutls-28.lib` in the `bin` folder. Copy that file to the `lib` sub-folder of your GnuTLS folder, and the Cmake FindGnuTLS module in this repo will find it during the Cmake run. As with other external dependencies for this project, the associated GnuTLS DLL will need to be in your path. 
 
 #### DLLs
 As with the Qt libraries, you will need to make sure the directory containing dynamically-linked libraries is in your path. For example, for a dynamically linked build of freeglut, the directory to add to your path in which the DLL is found is `FREEGLUT_DIR/bin`. Where possible, you can use static builds of the external dependencies to avoid this requirement.
