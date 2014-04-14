@@ -90,7 +90,7 @@ ChatWindow::~ChatWindow() {
 }
 
 void ChatWindow::mousePressEvent(QMouseEvent *e) {
-    if (e->button() == Qt::LeftButton) {
+    if (e->button() == Qt::LeftButton && isFloating()) {
         _mousePressed = true;
         _mouseStartPosition = e->pos();
     }
