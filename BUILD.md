@@ -6,7 +6,7 @@ Dependencies
 * [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.2
 * [qxmpp](https://code.google.com/p/qxmpp/) ~> 0.7.6
 * [GnuTLS](http://gnutls.org/download.html) ~> 3.2.12
-  * IMPORTANT: GnuTLS 3.2.12 is crtiical to avoid a security vulnerability.
+  * IMPORTANT: GnuTLS 3.2.12 is critical to avoid a security vulnerability.
 
 #####Linux only
 * [freeglut](http://freeglut.sourceforge.net/) ~> 2.8.0
