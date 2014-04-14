@@ -79,7 +79,7 @@ If Xcode is your editor of choice, you can ask CMake to generate Xcode project f
 
 After running cmake, you will have the make files or Xcode project file necessary to build all of the components. Open the hifi.xcodeproj file, choose ALL_BUILD from the Product > Scheme menu (or target drop down), and click Run.
 
-If the build completes successfully, you will have built targets for all components located in the `build/${target_name}/Debug directories`.
+If the build completes successfully, you will have built targets for all components located in the `build/${target_name}/Debug` directories.
 
 Windows
 ===
