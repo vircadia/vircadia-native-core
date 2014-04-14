@@ -444,6 +444,34 @@ QVector<int> getIntVector(const QVariantList& properties, int index) {
     return vector;
 }
 
+QVector<qlonglong> getLongVector(const QVariantList& properties, int index) {
+    if (index >= properties.size()) {
+        return QVector<qlonglong>();
+    }
+    QVector<qlonglong> vector = properties.at(index).value<QVector<qlonglong> >();
+    if (!vector.isEmpty()) {
+        return vector;
+    }
+    for (; index < properties.size(); index++) {
+        vector.append(properties.at(index).toLongLong());
+    }
+    return vector;
+}
+
+QVector<float> getFloatVector(const QVariantList& properties, int index) {
+    if (index >= properties.size()) {
+        return QVector<float>();
+    }
+    QVector<float> vector = properties.at(index).value<QVector<float> >();
+    if (!vector.isEmpty()) {
+        return vector;
+    }
+    for (; index < properties.size(); index++) {
+        vector.append(properties.at(index).toFloat());
+    }
+    return vector;
+}
+
 QVector<double> getDoubleVector(const QVariantList& properties, int index) {
     if (index >= properties.size()) {
         return QVector<double>();
@@ -901,6 +929,11 @@ public:
     float averageRadius;        // average distance from mesh points to averageVertex
 };
 
+class AnimationCurve {
+public:
+    QVector<float> values;
+};
+
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
     QHash<QString, ExtractedMesh> meshes;
     QVector<ExtractedBlendshape> blendshapes;
@@ -908,10 +941,15 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QMultiHash<QString, QString> childMap;
     QHash<QString, FBXModel> models;
     QHash<QString, Cluster> clusters;
+    QHash<QString, AnimationCurve> animationCurves;
     QHash<QString, QByteArray> textureFilenames;
     QHash<QString, Material> materials;
     QHash<QString, QString> diffuseTextures;
     QHash<QString, QString> bumpTextures;
+    QHash<QString, QString> localRotations;
+    QHash<QString, QString> xComponents;
+    QHash<QString, QString> yComponents;
+    QHash<QString, QString> zComponents;
 
     QVariantHash joints = mapping.value("joint").toHash();
     QString jointEyeLeftName = processID(getString(joints.value("jointEyeLeft", "jointEyeLeft")));
@@ -1124,7 +1162,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     model.postRotation = glm::quat(glm::radians(postRotation));
                     model.postTransform = glm::translate(-rotationPivot) * glm::translate(scalePivot) *
                         glm::scale(scale) * glm::translate(-scalePivot);
-                    // NOTE: anbgles from the FBX file are in degrees
+                    // NOTE: angles from the FBX file are in degrees
                     // so we convert them to radians for the FBXModel class
                     model.rotationMin = glm::radians(glm::vec3(rotationMinX ? rotationMin.x : -180.0f,
                         rotationMinY ? rotationMin.y : -180.0f, rotationMinZ ? rotationMin.z : -180.0f));
@@ -1204,6 +1242,14 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                             blendshapeChannelIndices.insert(id, index);
                         }
                     }
+                } else if (object.name == "AnimationCurve") {
+                    AnimationCurve curve;
+                    foreach (const FBXNode& subobject, object.children) {
+                        if (subobject.name == "KeyValueFloat") {
+                            curve.values = getFloatVector(subobject.properties, 0);
+                        }
+                    }
+                    animationCurves.insert(getID(object.properties), curve);
                 }
             }
         } else if (child.name == "Connections") {
@@ -1216,6 +1262,18 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
 
                         } else if (type.contains("bump")) {
                             bumpTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                        
+                        } else if (type == "lcl rotation") {
+                            localRotations.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                            
+                        } else if (type == "d|x") {
+                            xComponents.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                        
+                        } else if (type == "d|y") {
+                            yComponents.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                            
+                        } else if (type == "d|z") {
+                            zComponents.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         }
                     }
                     parentMap.insert(getID(connection.properties, 1), getID(connection.properties, 2));
@@ -1239,7 +1297,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     glm::quat offsetRotation = glm::quat(glm::radians(glm::vec3(mapping.value("rx").toFloat(),
             mapping.value("ry").toFloat(), mapping.value("rz").toFloat())));
     geometry.offset = glm::translate(glm::vec3(mapping.value("tx").toFloat(), mapping.value("ty").toFloat(),
-                                               mapping.value("tz").toFloat())) * glm::mat4_cast(offsetRotation) * glm::scale(glm::vec3(offsetScale, offsetScale, offsetScale));
+        mapping.value("tz").toFloat())) * glm::mat4_cast(offsetRotation) *
+            glm::scale(glm::vec3(offsetScale, offsetScale, offsetScale));
 
     // get the list of models in depth-first traversal order
     QVector<QString> modelIDs;
@@ -1277,6 +1336,17 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         appendModelIDs(parentMap.value(topID), childMap, models, remainingModels, modelIDs);
     }
 
+    // figure the number of animation frames from the curves
+    int frameCount = 0;
+    foreach (const AnimationCurve& curve, animationCurves) {
+        frameCount = qMax(frameCount, curve.values.size());
+    }
+    for (int i = 0; i < frameCount; i++) {
+        FBXAnimationFrame frame;
+        frame.rotations.resize(modelIDs.size());
+        geometry.animationFrames.append(frame);
+    }
+    
     // convert the models to joints
     QVariantList freeJoints = mapping.values("freeJoint");
     foreach (const QString& modelID, modelIDs) {
@@ -1286,7 +1356,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         joint.parentIndex = model.parentIndex;
 
         // get the indices of all ancestors starting with the first free one (if any)
-        joint.freeLineage.append(geometry.joints.size());
+        int jointIndex = geometry.joints.size();
+        joint.freeLineage.append(jointIndex);
         int lastFreeIndex = joint.isFree ? 0 : -1;
         for (int index = joint.parentIndex; index != -1; index = geometry.joints.at(index).parentIndex) {
             if (geometry.joints.at(index).isFree) {
@@ -1325,6 +1396,18 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         joint.shapeType = Shape::UNKNOWN_SHAPE;
         geometry.joints.append(joint);
         geometry.jointIndices.insert(model.name, geometry.joints.size());
+        
+        QString rotationID = localRotations.value(modelID);
+        AnimationCurve xCurve = animationCurves.value(xComponents.value(rotationID));
+        AnimationCurve yCurve = animationCurves.value(yComponents.value(rotationID));
+        AnimationCurve zCurve = animationCurves.value(zComponents.value(rotationID));
+        glm::vec3 defaultValues = glm::degrees(safeEulerAngles(joint.rotation));
+        for (int i = 0; i < frameCount; i++) {
+            geometry.animationFrames[i].rotations[jointIndex] = glm::quat(glm::radians(glm::vec3(
+                xCurve.values.isEmpty() ? defaultValues.x : xCurve.values.at(i % xCurve.values.size()),
+                yCurve.values.isEmpty() ? defaultValues.y : yCurve.values.at(i % yCurve.values.size()),
+                zCurve.values.isEmpty() ? defaultValues.z : zCurve.values.at(i % zCurve.values.size()))));
+        }
     }
     // for each joint we allocate a JointShapeInfo in which we'll store collision shape info
     QVector<JointShapeInfo> jointShapeInfos;

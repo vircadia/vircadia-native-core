@@ -139,6 +139,13 @@ public:
     QVector<FBXBlendshape> blendshapes;
 };
 
+/// A single animation frame extracted from an FBX document.
+class FBXAnimationFrame {
+public:
+    
+    QVector<glm::quat> rotations;
+};
+
 /// An attachment to an FBX document.
 class FBXAttachment {
 public:
@@ -182,6 +189,8 @@ public:
     
     Extents bindExtents;
     Extents meshExtents;
+    
+    QVector<FBXAnimationFrame> animationFrames;
     
     QVector<FBXAttachment> attachments;
     
