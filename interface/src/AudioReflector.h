@@ -19,7 +19,7 @@
 class AudioPath {
 public:
     AudioPath(const glm::vec3& origin = glm::vec3(0), const glm::vec3& direction = glm::vec3(0), float attenuation = 1.0f, 
-            float delay = 0.0f, int bounceCount = 0);
+            float delay = 0.0f, float distance = 0.0f, int bounceCount = 0);
     glm::vec3 startPoint;
     glm::vec3 startDirection;
     float startDelay;
@@ -39,8 +39,9 @@ public:
 class AudioPoint {
 public:
     glm::vec3 location;
-    float delay;
-    float attenuation;
+    float delay; // includes total delay including pre delay to the point of the audible location, not to the listener's ears
+    float attenuation; // only the reflective & diffusive portion of attenuation, doesn't include distance attenuation
+    float distance; // includes total distance to the point of the audible location, not to the listener's ears
 };
 
 class SurfaceCharacteristics {
@@ -171,7 +172,8 @@ private:
     
     // adds a sound source to begin an audio path trace, these can be the initial sound sources with their directional properties,
     // as well as diffusion sound sources
-    void addSoundSource(const glm::vec3& origin, const glm::vec3& initialDirection, float initialAttenuation, float initialDelay);
+    void addSoundSource(const glm::vec3& origin, const glm::vec3& initialDirection, 
+                                float initialAttenuation, float initialDelay, float initialDistance = 0.0f);
     
     // helper that handles audioPath analysis
     int analyzePathsSingleStep();

@@ -108,7 +108,7 @@ float AudioReflector::getBounceAttenuationCoefficient(int bounceCount) {
     // now we know the current attenuation for the "perfect" reflection case, but we now incorporate
     // our surface materials to determine how much of this ray is absorbed, reflected, and diffused
     SurfaceCharacteristics material = getSurfaceCharacteristics();
-    return material.reflectiveRatio * bounceCount;
+    return powf(material.reflectiveRatio, bounceCount);
 }
 
 glm::vec3 AudioReflector::getFaceNormal(BoxFace face) {
@@ -183,6 +183,21 @@ void AudioReflector::calculateAllReflections() {
     if (shouldRecalc) {
 
 qDebug() << "RECALC...... !!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+if (_reflections == 0) {
+    qDebug() << "RECALC...... No reflections!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+}
+if (!isSimilarPosition(origin, _origin)) {
+    qDebug() << "RECALC...... origin changed...!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+}
+if (!isSimilarOrientation(orientation, _orientation)) {
+    qDebug() << "RECALC...... orientation changed...!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+}
+if (!isSimilarPosition(listenerPosition, _listenerPosition)) {
+    qDebug() << "RECALC...... listenerPosition changed...!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+}
+if (withDiffusion != _withDiffusion) {
+    qDebug() << "RECALC...... withDiffusion changed...!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+}
 
         QMutexLocker locker(&_mutex);
 
@@ -208,6 +223,7 @@ qDebug() << "RECALC...... !!!!!!!!!!!!!!!!!!!!!!!!!!!!";
         glm::vec3 backRightDown = glm::normalize(back + right + down);
         glm::vec3 backLeftDown = glm::normalize(back + left + down);
 
+        _rightReflections = calculateReflections(listenerPosition, _origin, right);
         _frontRightUpReflections = calculateReflections(listenerPosition, _origin, frontRightUp);
         _frontLeftUpReflections = calculateReflections(listenerPosition, _origin, frontLeftUp);
         _backRightUpReflections = calculateReflections(listenerPosition, _origin, backRightUp);
@@ -219,7 +235,6 @@ qDebug() << "RECALC...... !!!!!!!!!!!!!!!!!!!!!!!!!!!!";
         _frontReflections = calculateReflections(listenerPosition, _origin, front);
         _backReflections = calculateReflections(listenerPosition, _origin, back);
         _leftReflections = calculateReflections(listenerPosition, _origin, left);
-        _rightReflections = calculateReflections(listenerPosition, _origin, right);
         _upReflections = calculateReflections(listenerPosition, _origin, up);
         _downReflections = calculateReflections(listenerPosition, _origin, down);
 
@@ -352,6 +367,14 @@ void AudioReflector::echoReflections(const glm::vec3& origin, const QVector<glm:
         float rightEarAttenuation = getDistanceAttenuationCoefficient(rightTotalDistance) * bounceAttenuation;
         float leftEarAttenuation = getDistanceAttenuationCoefficient(leftTotalDistance) * bounceAttenuation;
 
+        /*
+        qDebug() << "audible point...";
+        qDebug() << "  bounceCount=" << bounceCount;
+        qDebug() << "  bounceAttenuation=" << bounceAttenuation;
+        qDebug() << "  rightEarAttenuation=" << rightEarAttenuation;
+        qDebug() << "  leftEarAttenuation=" << leftEarAttenuation;
+        */
+        
         _totalAttenuation += rightEarAttenuation + leftEarAttenuation;
         _attenuationCount += 2;
         _maxAttenuation = std::max(_maxAttenuation,rightEarAttenuation);
@@ -438,8 +461,15 @@ qDebug() << "    leftEarDelayMsecs=" << leftEarDelayMsecs;
     int rightEarDelay = rightEarDelayMsecs * sampleRate / MSECS_PER_SECOND;
     int leftEarDelay = leftEarDelayMsecs * sampleRate / MSECS_PER_SECOND;
 
-    float rightEarAttenuation = getDistanceAttenuationCoefficient(rightEarDistance) * audiblePoint.attenuation;
-    float leftEarAttenuation = getDistanceAttenuationCoefficient(leftEarDistance) * audiblePoint.attenuation;
+    float rightEarAttenuation = audiblePoint.attenuation * getDistanceAttenuationCoefficient(rightEarDistance + audiblePoint.distance);
+    float leftEarAttenuation = audiblePoint.attenuation * getDistanceAttenuationCoefficient(leftEarDistance + audiblePoint.distance);
+
+    /*
+    qDebug() << "audible point...";
+    qDebug() << "  audiblePoint.attenuation=" << audiblePoint.attenuation;
+    qDebug() << "  rightEarAttenuation=" << rightEarAttenuation;
+    qDebug() << "  leftEarAttenuation=" << leftEarAttenuation;
+    */
 
     _totalAttenuation += rightEarAttenuation + leftEarAttenuation;
     _attenuationCount += 2;
@@ -607,7 +637,9 @@ void AudioReflector::drawVector(const glm::vec3& start, const glm::vec3& end, co
 
 
 
-AudioPath::AudioPath(const glm::vec3& origin, const glm::vec3& direction, float attenuation, float delay, int bounceCount) :
+AudioPath::AudioPath(const glm::vec3& origin, const glm::vec3& direction, 
+                        float attenuation, float delay, float distance, int bounceCount) :
+                        
     startPoint(origin),
     startDirection(direction),
     startDelay(delay),
@@ -615,7 +647,7 @@ AudioPath::AudioPath(const glm::vec3& origin, const glm::vec3& direction, float 
 
     lastPoint(origin),
     lastDirection(direction),
-    lastDistance(0.0f),
+    lastDistance(distance),
     lastDelay(delay),
     lastAttenuation(attenuation),
     bounceCount(bounceCount),
@@ -627,9 +659,9 @@ AudioPath::AudioPath(const glm::vec3& origin, const glm::vec3& direction, float 
 
 
 void AudioReflector::addSoundSource(const glm::vec3& origin, const glm::vec3& initialDirection, 
-                                        float initialAttenuation, float initialDelay) {
+                                        float initialAttenuation, float initialDelay, float initialDistance) {
                                         
-    AudioPath* path = new AudioPath(origin, initialDirection, initialAttenuation, initialDelay, 0);
+    AudioPath* path = new AudioPath(origin, initialDirection, initialAttenuation, initialDelay, initialDistance, 0);
     _audioPaths.push_back(path);
 }
 
@@ -735,7 +767,6 @@ void AudioReflector::analyzePaths() {
     addSoundSource(_origin, down, initialAttenuation, preDelay);
     addSoundSource(_origin, back, initialAttenuation, preDelay);
     addSoundSource(_origin, left, initialAttenuation, preDelay);
-
     addSoundSource(_origin, frontRightUp, initialAttenuation, preDelay);
     addSoundSource(_origin, frontLeftUp, initialAttenuation, preDelay);
     addSoundSource(_origin, backRightUp, initialAttenuation, preDelay);
@@ -783,7 +814,7 @@ int AudioReflector::analyzePathsSingleStep() {
         float distance; // output from findRayIntersection
         BoxFace face; // output from findRayIntersection
 
-        float currentAttenuation = path->lastAttenuation;
+        float currentReflectiveAttenuation = path->lastAttenuation; // only the reflective components
         float currentDelay = path->lastDelay; // start with our delay so far
         float pathDistance = path->lastDistance;
 
@@ -816,19 +847,19 @@ int AudioReflector::analyzePathsSingleStep() {
                 currentDelay += getDelayFromDistance(distance);
 
                 // adjust our previous attenuation based on the distance traveled in last ray
-                currentAttenuation *= getDistanceAttenuationCoefficient(distance); 
+                //float distanceAttenuation = getDistanceAttenuationCoefficient(pathDistance);
 
                 // now we know the current attenuation for the "perfect" reflection case, but we now incorporate
                 // our surface materials to determine how much of this ray is absorbed, reflected, and diffused
                 SurfaceCharacteristics material = getSurfaceCharacteristics(elementHit);
             
-                float reflectiveAttenuation = currentAttenuation * material.reflectiveRatio;
-                float totalDiffusionAttenuation = currentAttenuation * material.diffusionRatio;
+                float reflectiveAttenuation = currentReflectiveAttenuation * material.reflectiveRatio;
+                float totalDiffusionAttenuation = currentReflectiveAttenuation * material.diffusionRatio;
                 float partialDiffusionAttenuation = _diffusionFanout < 1 ? 0.0f : totalDiffusionAttenuation / _diffusionFanout;
 
                 // total delay includes the bounce back to listener
                 float totalDelay = currentDelay + getDelayFromDistance(toListenerDistance);
-                float toListenerAttenuation = getDistanceAttenuationCoefficient(toListenerDistance);
+                float toListenerAttenuation = getDistanceAttenuationCoefficient(toListenerDistance + pathDistance);
             
                 // if our resulting partial diffusion attenuation, is still above our minimum attenuation
                 // then we add new paths for each diffusion point
@@ -870,7 +901,7 @@ int AudioReflector::analyzePathsSingleStep() {
                         }
 
                         // add sound sources for these diffusions
-                        addSoundSource(end, diffusion, partialDiffusionAttenuation, currentDelay);
+                        addSoundSource(end, diffusion, partialDiffusionAttenuation, currentDelay, pathDistance);
                     }
                 }
             
@@ -883,15 +914,28 @@ int AudioReflector::analyzePathsSingleStep() {
                     qDebug() << "toListenerAttenuation=" << toListenerAttenuation;
                     qDebug() << "(reflectiveAttenuation + totalDiffusionAttenuation) * toListenerAttenuation=" << ((reflectiveAttenuation + totalDiffusionAttenuation) * toListenerAttenuation);
                 }
+
+                // we used to use... ((reflectiveAttenuation + totalDiffusionAttenuation) * toListenerAttenuation) > MINIMUM_ATTENUATION_TO_REFLECT
                 
-                if (((reflectiveAttenuation + totalDiffusionAttenuation) * toListenerAttenuation) > MINIMUM_ATTENUATION_TO_REFLECT
+                if ((reflectiveAttenuation * toListenerAttenuation) > MINIMUM_ATTENUATION_TO_REFLECT
                         && totalDelay < MAXIMUM_DELAY_MS) {
             
                     // add this location, as the reflective attenuation as well as the total diffusion attenuation
                     // NOTE: we add the delay to the audible point, not back to the listener. The additional delay
                     // and attenuation to the listener is recalculated at the point where we actually inject the
                     // audio so that it can be adjusted to ear position
-                    AudioPoint point = { end, currentDelay, reflectiveAttenuation + totalDiffusionAttenuation };
+                    AudioPoint point = { end, currentDelay, 
+                                        reflectiveAttenuation,
+                                        pathDistance};
+
+                    /*
+                    qDebug() << "audible point...";
+                    qDebug() << "  reflectiveAttenuation=" << reflectiveAttenuation;
+                    qDebug() << "  toListenerAttenuation=" << toListenerAttenuation;
+                    qDebug() << "  likely attenuation=" << (reflectiveAttenuation * toListenerAttenuation);
+                    qDebug() << "  totalDiffusionAttenuation=" << totalDiffusionAttenuation;
+                    */
+                    
                     _audiblePoints.push_back(point);
                 
                     // add this location to the path points, so we can visualize it
