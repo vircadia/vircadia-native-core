@@ -917,7 +917,7 @@ int AudioReflector::analyzePathsSingleStep() {
 
                 // we used to use... ((reflectiveAttenuation + totalDiffusionAttenuation) * toListenerAttenuation) > MINIMUM_ATTENUATION_TO_REFLECT
                 
-                if ((reflectiveAttenuation * toListenerAttenuation) > MINIMUM_ATTENUATION_TO_REFLECT
+                if (((reflectiveAttenuation + totalDiffusionAttenuation) * toListenerAttenuation) > MINIMUM_ATTENUATION_TO_REFLECT
                         && totalDelay < MAXIMUM_DELAY_MS) {
             
                     // add this location, as the reflective attenuation as well as the total diffusion attenuation
@@ -925,7 +925,7 @@ int AudioReflector::analyzePathsSingleStep() {
                     // and attenuation to the listener is recalculated at the point where we actually inject the
                     // audio so that it can be adjusted to ear position
                     AudioPoint point = { end, currentDelay, 
-                                        reflectiveAttenuation,
+                                        (reflectiveAttenuation + totalDiffusionAttenuation),
                                         pathDistance};
 
                     /*
@@ -955,23 +955,9 @@ int AudioReflector::analyzePathsSingleStep() {
                     }
                 } else {
                     path->finalized = true; // if we're too quiet, then we're done
-                    if (wantExtraDebuggging && isDiffusion) {
-                        qDebug() << "diffusion too quiet!";
-                    }
-                    
-                    if (((reflectiveAttenuation + totalDiffusionAttenuation) * toListenerAttenuation) <= MINIMUM_ATTENUATION_TO_REFLECT) {
-                        qDebug() << "too quiet!";
-                    }
-                    if (totalDelay >= MAXIMUM_DELAY_MS) {
-                        qDebug() << "too much delay!";
-                    }
                 }
             } else {
                 path->finalized = true; // if it doesn't intersect, then it is finished
-                if (wantExtraDebuggging && isDiffusion) {
-                    qDebug() << "diffusion doesn't intersect!";
-                }
-                qDebug() << "doesn't intersect!";
             }
         }
     }
