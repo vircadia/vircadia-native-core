@@ -5,6 +5,8 @@ Dependencies
 * [zLib](http://www.zlib.net/) ~> 1.2.8
 * [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.2
 * [qxmpp](https://code.google.com/p/qxmpp/) ~> 0.7.6
+* [GnuTLS](http://gnutls.org/download.html) ~> 3.2.12
+  * IMPORTANT: GnuTLS 3.2.12 is crtiical to avoid a security vulnerability.
 
 #####Linux only
 * [freeglut](http://freeglut.sourceforge.net/) ~> 2.8.0
@@ -50,12 +52,18 @@ Should you choose not to install Qt5 via a package manager that handles dependen
 
     libasound2 libxmu-dev libxi-dev freeglut3-dev libasound2-dev libjack-dev
 
+#####GnuTLS
+
+If `libgnutls28-dev` 3.2.12 or higher is available via your package manager, it would be easiest to grab it from there. At the time of this writing that is not the case for any version of Ubuntu, so it will need to be built from source.
+
+gmplib is a dependency for GnuTLS. On Ubuntu, we were unable to build hogweed (part of libnettle) with gmp 6.x.x. If nettle is not built with hogweed, GnuTLS will fail to build. If you run into this problem, try version 4.2.1 of gmplib. 
+
 ####OS X
 #####Package Managers
 [Homebrew](http://brew.sh/) is an excellent package manager for OS X. It makes install of all hifi dependencies very simple.
 
     brew tap highfidelity/homebrew-formulas
-    brew install cmake glm zlib
+    brew install cmake glm zlib gnutls
     brew install highfidelity/formulas/qt5
     brew link qt5 --force
     brew install highfidelity/formulas/qxmpp
@@ -127,6 +135,15 @@ The recommended route for CMake to find external dependencies is to place all of
 For many of the external libraries where precompiled binaries are readily available you should be able to simply copy the extracted folder that you get from the download links provided at the top of the guide. Otherwise you may need to build from source and install the built product to this directory. The `root_lib_dir` in the above example can be wherever you choose on your system - as long as the environment variable HIFI_LIB_DIR is set to it.
 
 *NOTE: Qt does not support 64-bit builds on Windows 7, so you must use the 32-bit version of libraries for interface.exe to run. The 32-bit version of the static library is the one linked by our CMake find modules*
+
+#####GnuTLS
+You can get a precompiled version of GnuTLS for Windows [here](ftp://ftp.gnutls.org/gcrypt/gnutls/w32/).
+
+To use GnuTLS with Visual Studio, you will need to create `libgnutls-28.lib`, the import library for Visual Studio projects. this is done using the `lib` command in the `bin` folder of your GnuTLS download.
+
+    $GNUTLS_DIR\bin> lib /def:libgnutls-28.def 
+
+This will create `libgnutls-28.lib`. Copy that file to the `lib` folder of you GnuTLS folder, and the Cmake FindGnuTLS module in this repo will find it during the Cmake run. As will other external dependencies for this project, the associated GnuTLS DLL will need to be in your path. 
 
 #### DLLs
 As with the Qt libraries, you will need to make sure the directory containing dynamically-linked libraries is in your path. For example, for a dynamically linked build of freeglut, the directory to add to your path in which the DLL is found is `FREEGLUT_DIR/bin`. Where possible, you can use static builds of the external dependencies to avoid this requirement.
