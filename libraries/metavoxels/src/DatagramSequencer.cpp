@@ -13,7 +13,7 @@
 
 #include <QtDebug>
 
-#include <SharedUtil.h>
+#include <LimitedNodeList.h>
 
 #include "DatagramSequencer.h"
 #include "MetavoxelMessages.h"

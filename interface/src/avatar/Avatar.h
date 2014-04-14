@@ -195,6 +195,7 @@ protected:
 
     void renderDisplayName();
     virtual void renderBody(RenderMode renderMode);
+    virtual bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
 
     virtual void updateJointMappings();
 

@@ -170,6 +170,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _previousScriptLocation(),
         _logger(new FileLogger(this))
 {
+    // init GnuTLS for DTLS with domain-servers
+    DTLSClientSession::globalInit();
+    
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 
@@ -227,8 +230,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     audioThread->start();
 
-    connect(&nodeList->getDomainInfo(), SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
-    connect(&nodeList->getDomainInfo(), SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
+    connect(&nodeList->getDomainHandler(), SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
+    connect(&nodeList->getDomainHandler(), SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
 
     connect(nodeList, &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList, &NodeList::nodeKilled, this, &Application::nodeKilled);
@@ -275,7 +278,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     QTimer* silentNodeTimer = new QTimer();
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeTimer->moveToThread(_nodeThread);
-    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
+    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
 
     // send the identity packet for our avatar each second to our avatar mixer
     QTimer* identityPacketTimer = new QTimer();
@@ -398,6 +401,8 @@ Application::~Application() {
     delete _glWidget;
 
     AccountManager::getInstance().destroy();
+    
+    DTLSClientSession::globalDeinit();
 }
 
 void Application::saveSettings() {
@@ -3046,8 +3051,7 @@ void Application::updateWindowTitle(){
 
     QString username = AccountManager::getInstance().getUsername();
     QString title = QString() + (!username.isEmpty() ? username + " " : QString()) + nodeList->getSessionUUID().toString()
-        + " @ " + nodeList->getDomainInfo().getHostname() + buildVersion;
-
+        + " @ " + nodeList->getDomainHandler().getHostname() + buildVersion;
     qDebug("Application title set to: %s", title.toStdString().c_str());
     _window->setWindowTitle(title);
 }
