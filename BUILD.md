@@ -129,6 +129,10 @@ The recommended route for CMake to find external dependencies is to place all of
         -> qxmpp
             -> include
             -> lib
+        -> gnutls
+            -> bin
+            -> include
+            -> lib
 
 *NOTE: Be careful with glm. For the folder other libraries would normally call 'include', the folder containing the headers, glm opts to use 'glm'. You will have a glm folder nested inside the top-level glm folder.*
 
