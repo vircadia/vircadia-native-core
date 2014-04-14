@@ -10,7 +10,7 @@
 //
 
 
-var delayScale = 100.0;
+var delayScale = 500.0;
 var fanoutScale = 10.0;
 var speedScale = 20;
 var factorScale = 5.0;

@@ -407,7 +407,14 @@ void AudioReflector::injectAudiblePoint(const AudioPoint& audiblePoint,
 
     float rightEarDelayMsecs = getDelayFromDistance(rightEarDistance) + audiblePoint.delay;
     float leftEarDelayMsecs = getDelayFromDistance(leftEarDistance) + audiblePoint.delay;
-        
+
+/*    
+qDebug() << "injectAudiblePoint()... ";
+qDebug() << "    audiblePoint.delay=" << audiblePoint.delay;
+qDebug() << "    rightEarDelayMsecs=" << rightEarDelayMsecs;
+qDebug() << "    leftEarDelayMsecs=" << leftEarDelayMsecs;
+*/
+      
     _totalDelay += rightEarDelayMsecs + leftEarDelayMsecs;
     _delayCount += 2;
     _maxDelay = std::max(_maxDelay,rightEarDelayMsecs);
@@ -700,7 +707,7 @@ void AudioReflector::analyzePaths() {
     float initialAttenuation = 1.0f;    
 
     float preDelay = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingPreDelay) ? _preDelay : 0.0f;
-        
+    
     addSoundSource(_origin, right, initialAttenuation, preDelay);
     addSoundSource(_origin, front, initialAttenuation, preDelay);
     addSoundSource(_origin, up, initialAttenuation, preDelay);
@@ -758,7 +765,6 @@ int AudioReflector::analyzePathsSingleStep() {
         float currentAttenuation = path->lastAttenuation;
         float currentDelay = path->lastDelay; // start with our delay so far
         float pathDistance = path->lastDistance;
-        float totalDelay = path->lastDelay; // start with our delay so far
 
         if (!path->finalized) {
             activePaths++;
@@ -784,7 +790,6 @@ int AudioReflector::analyzePathsSingleStep() {
             
                 // We aren't using this... should we be????
                 float toListenerDistance = glm::distance(end, _listenerPosition);
-                float totalDistance = toListenerDistance + pathDistance;
             
                 // adjust our current delay by just the delay from the most recent ray
                 currentDelay += getDelayFromDistance(distance);
@@ -801,7 +806,7 @@ int AudioReflector::analyzePathsSingleStep() {
                 float partialDiffusionAttenuation = _diffusionFanout < 1 ? 0.0f : totalDiffusionAttenuation / _diffusionFanout;
 
                 // total delay includes the bounce back to listener
-                totalDelay = getDelayFromDistance(totalDistance);
+                float totalDelay = currentDelay + getDelayFromDistance(toListenerDistance);
                 float toListenerAttenuation = getDistanceAttenuationCoefficient(toListenerDistance);
             
                 // if our resulting partial diffusion attenuation, is still above our minimum attenuation
@@ -862,7 +867,10 @@ int AudioReflector::analyzePathsSingleStep() {
                         && totalDelay < MAXIMUM_DELAY_MS) {
             
                     // add this location, as the reflective attenuation as well as the total diffusion attenuation
-                    AudioPoint point = { end, totalDelay, reflectiveAttenuation + totalDiffusionAttenuation };
+                    // NOTE: we add the delay to the audible point, not back to the listener. The additional delay
+                    // and attenuation to the listener is recalculated at the point where we actually inject the
+                    // audio so that it can be adjusted to ear position
+                    AudioPoint point = { end, currentDelay, reflectiveAttenuation + totalDiffusionAttenuation };
                     _audiblePoints.push_back(point);
                 
                     // add this location to the path points, so we can visualize it
