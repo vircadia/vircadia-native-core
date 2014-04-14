@@ -10,17 +10,33 @@
 //
 
 
-var delayScale = 500.0;
+var delayScale = 100.0;
 var fanoutScale = 10.0;
 var speedScale = 20;
 var factorScale = 5.0;
 
+var topY = 250;
+var sliderHeight = 35;
+
 // This will create a couple of image overlays that make a "slider", we will demonstrate how to trap mouse messages to
 // move the slider
-var delayY = 250;
+var delayY = topY;
+topY += sliderHeight;
+var delayLabel = Overlays.addOverlay("text", {
+                    x: 40,
+                    y: delayY,
+                    width: 60,
+                    height: sliderHeight,
+                    color: { red: 0, green: 0, blue: 0},
+                    textColor: { red: 255, green: 0, blue: 0},
+                    topMargin: 12,
+                    leftMargin: 5,
+                    text: "Delay:"
+                });
+
 var delaySlider = Overlays.addOverlay("image", {
                     // alternate form of expressing bounds
-                    bounds: { x: 100, y: delayY, width: 150, height: 35},
+                    bounds: { x: 100, y: delayY, width: 150, height: sliderHeight},
                     subImage: { x: 46, y: 0, width: 200, height: 71  },
                     imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/slider.png",
                     color: { red: 255, green: 255, blue: 255},
@@ -30,7 +46,7 @@ var delaySlider = Overlays.addOverlay("image", {
 // This is the thumb of our slider
 var delayMinThumbX = 110;
 var delayMaxThumbX = delayMinThumbX + 110;
-var delayThumbX = (delayMinThumbX + delayMaxThumbX) / 2;
+var delayThumbX = delayMinThumbX + ((delayMaxThumbX - delayMinThumbX) * (AudioReflector.getPreDelay() / delayScale));
 var delayThumb = Overlays.addOverlay("image", {
                     x: delayThumbX,
                     y: delayY + 9,
@@ -43,10 +59,24 @@ var delayThumb = Overlays.addOverlay("image", {
 
 // This will create a couple of image overlays that make a "slider", we will demonstrate how to trap mouse messages to
 // move the slider
-var fanoutY = 300;
+var fanoutY = topY;
+topY += sliderHeight;
+
+var fanoutLabel = Overlays.addOverlay("text", {
+                    x: 40,
+                    y: fanoutY,
+                    width: 60,
+                    height: sliderHeight,
+                    color: { red: 0, green: 0, blue: 0},
+                    textColor: { red: 255, green: 0, blue: 0},
+                    topMargin: 12,
+                    leftMargin: 5,
+                    text: "Fanout:"
+                });
+
 var fanoutSlider = Overlays.addOverlay("image", {
                     // alternate form of expressing bounds
-                    bounds: { x: 100, y: fanoutY, width: 150, height: 35},
+                    bounds: { x: 100, y: fanoutY, width: 150, height: sliderHeight},
                     subImage: { x: 46, y: 0, width: 200, height: 71  },
                     imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/slider.png",
                     color: { red: 255, green: 255, blue: 255},
@@ -56,7 +86,7 @@ var fanoutSlider = Overlays.addOverlay("image", {
 // This is the thumb of our slider
 var fanoutMinThumbX = 110;
 var fanoutMaxThumbX = fanoutMinThumbX + 110;
-var fanoutThumbX = (fanoutMinThumbX + fanoutMaxThumbX) / 2;
+var fanoutThumbX = fanoutMinThumbX + ((fanoutMaxThumbX - fanoutMinThumbX) * (AudioReflector.getDiffusionFanout() / fanoutScale));
 var fanoutThumb = Overlays.addOverlay("image", {
                     x: fanoutThumbX,
                     y: fanoutY + 9,
@@ -70,10 +100,24 @@ var fanoutThumb = Overlays.addOverlay("image", {
 
 // This will create a couple of image overlays that make a "slider", we will demonstrate how to trap mouse messages to
 // move the slider
-var speedY = 350;
+var speedY = topY;
+topY += sliderHeight;
+
+var speedLabel = Overlays.addOverlay("text", {
+                    x: 40,
+                    y: speedY,
+                    width: 60,
+                    height: sliderHeight,
+                    color: { red: 0, green: 0, blue: 0},
+                    textColor: { red: 255, green: 0, blue: 0},
+                    topMargin: 6,
+                    leftMargin: 5,
+                    text: "Speed\nin ms/m:"
+                });
+
 var speedSlider = Overlays.addOverlay("image", {
                     // alternate form of expressing bounds
-                    bounds: { x: 100, y: speedY, width: 150, height: 35},
+                    bounds: { x: 100, y: speedY, width: 150, height: sliderHeight},
                     subImage: { x: 46, y: 0, width: 200, height: 71  },
                     imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/slider.png",
                     color: { red: 255, green: 255, blue: 255},
@@ -83,7 +127,7 @@ var speedSlider = Overlays.addOverlay("image", {
 // This is the thumb of our slider
 var speedMinThumbX = 110;
 var speedMaxThumbX = speedMinThumbX + 110;
-var speedThumbX = (speedMinThumbX + speedMaxThumbX) / 2;
+var speedThumbX = speedMinThumbX + ((speedMaxThumbX - speedMinThumbX) * (AudioReflector.getSoundMsPerMeter() / speedScale));
 var speedThumb = Overlays.addOverlay("image", {
                     x: speedThumbX,
                     y: speedY+9,
@@ -96,10 +140,25 @@ var speedThumb = Overlays.addOverlay("image", {
 
 // This will create a couple of image overlays that make a "slider", we will demonstrate how to trap mouse messages to
 // move the slider
-var factorY = 400;
+var factorY = topY;
+topY += sliderHeight;
+
+var factorLabel = Overlays.addOverlay("text", {
+                    x: 40,
+                    y: factorY,
+                    width: 60,
+                    height: sliderHeight,
+                    color: { red: 0, green: 0, blue: 0},
+                    textColor: { red: 255, green: 0, blue: 0},
+                    topMargin: 6,
+                    leftMargin: 5,
+                    text: "Attenuation\nFactor:"
+                });
+
+
 var factorSlider = Overlays.addOverlay("image", {
                     // alternate form of expressing bounds
-                    bounds: { x: 100, y: factorY, width: 150, height: 35},
+                    bounds: { x: 100, y: factorY, width: 150, height: sliderHeight},
                     subImage: { x: 46, y: 0, width: 200, height: 71  },
                     imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/slider.png",
                     color: { red: 255, green: 255, blue: 255},
@@ -109,7 +168,7 @@ var factorSlider = Overlays.addOverlay("image", {
 // This is the thumb of our slider
 var factorMinThumbX = 110;
 var factorMaxThumbX = factorMinThumbX + 110;
-var factorThumbX = (factorMinThumbX + factorMaxThumbX) / 2;
+var factorThumbX = factorMinThumbX + ((factorMaxThumbX - factorMinThumbX) * (AudioReflector.getDistanceAttenuationScalingFactor() / factorScale));
 var factorThumb = Overlays.addOverlay("image", {
                     x: factorThumbX,
                     y: factorY+9,
@@ -123,12 +182,19 @@ var factorThumb = Overlays.addOverlay("image", {
 
 // When our script shuts down, we should clean up all of our overlays
 function scriptEnding() {
+    Overlays.deleteOverlay(factorLabel);
     Overlays.deleteOverlay(factorThumb);
     Overlays.deleteOverlay(factorSlider);
+
+    Overlays.deleteOverlay(speedLabel);
     Overlays.deleteOverlay(speedThumb);
     Overlays.deleteOverlay(speedSlider);
+    
+    Overlays.deleteOverlay(delayLabel);
     Overlays.deleteOverlay(delayThumb);
     Overlays.deleteOverlay(delaySlider);
+
+    Overlays.deleteOverlay(fanoutLabel);
     Overlays.deleteOverlay(fanoutThumb);
     Overlays.deleteOverlay(fanoutSlider);
 }
