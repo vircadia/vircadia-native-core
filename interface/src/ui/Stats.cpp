@@ -513,10 +513,8 @@ void Stats::display(
         // add some reflection stats
         char reflectionsStatus[128];
 
-        sprintf(reflectionsStatus, "Reflections: %d, Diffusion: %s, Original: %s, Ears: %s, Source: %s", 
+        sprintf(reflectionsStatus, "Reflections: %d, Original: %s, Ears: %s, Source: %s", 
                 audioReflector->getReflections(),
-                (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingWithDiffusions)
-                    ? "yes" : "no"),
                 (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncudeOriginal)
                     ? "included" : "silent"),
                 (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingSeparateEars)
@@ -552,7 +550,9 @@ void Stats::display(
 
         bool diffusionEnabled = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingWithDiffusions);
         int fanout = diffusionEnabled ? audioReflector->getDiffusionFanout() : 0;
-        sprintf(reflectionsStatus, "Diffusion: %s, Fanout: %d",  (diffusionEnabled ? "yes" : "no"), fanout);
+        int diffusionPaths = diffusionEnabled ? audioReflector->getDiffusionPathCount() : 0;
+        sprintf(reflectionsStatus, "Diffusion: %s, Fanout: %d, Paths: %d", 
+                    (diffusionEnabled ? "yes" : "no"), fanout, diffusionPaths);
                 
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);

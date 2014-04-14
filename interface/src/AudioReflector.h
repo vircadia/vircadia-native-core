@@ -70,6 +70,7 @@ public:
     float getMinDelayMsecs() const { return _minDelay; }
     float getMinAttenuation() const { return _minAttenuation; }
     float getDelayFromDistance(float distance);
+    int getDiffusionPathCount() const { return _diffusionPathCount; }
 
     void processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
     void processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
@@ -119,9 +120,13 @@ private:
     
     // helper for generically calculating attenuation based on distance
     float getDistanceAttenuationCoefficient(float distance);
+
+    // helper for generically calculating attenuation based on bounce count, used in old/non-diffusion mode
+    float getBounceAttenuationCoefficient(int bounceCount);
     
     // statistics
     int _reflections;
+    int _diffusionPathCount;
     int _delayCount;
     float _totalDelay;
     float _averageDelay;
@@ -174,13 +179,14 @@ private:
     void newDrawRays();
     void drawPath(AudioPath* path, const glm::vec3& originalColor);
     void newCalculateAllReflections();
+    int countDiffusionPaths();
 
     void injectAudiblePoint(const AudioPoint& audiblePoint, const QByteArray& samples, unsigned int sampleTime, int sampleRate);
     void oldEchoAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
     void newEchoAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
     
     // return the surface characteristics of the element we hit
-    SurfaceCharacteristics getSurfaceCharacteristics(OctreeElement* elementHit);
+    SurfaceCharacteristics getSurfaceCharacteristics(OctreeElement* elementHit = NULL);
     
     
     QMutex _mutex;

@@ -39,20 +39,30 @@ AudioReflector::AudioReflector(QObject* parent) :
 
 
 void AudioReflector::render() {
-    if (!_myAvatar) {
-        return; // exit early if not set up correctly
+
+    // if we're not set up yet, or we're not processing spatial audio, then exit early
+    if (!_myAvatar || !_audio->getProcessSpatialAudio()) {
+        return;
+    }
+    
+    bool withDiffusions = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingWithDiffusions);
+    
+    // Even if we're not rendering, use this as a chance to recalculate our reflections
+    if (withDiffusions) {
+        newCalculateAllReflections();
+    } else {
+        calculateAllReflections();
     }
 
-    if (_audio->getProcessSpatialAudio()) {
-        if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingWithDiffusions)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingRenderPaths)) {
+        // here's where we actually render
+        if (withDiffusions) {
             newDrawRays();
         } else {
             drawRays();
         }
     }
 }
-
-
 
 // delay = 1ms per foot
 //       = 3ms per meter
@@ -62,6 +72,9 @@ void AudioReflector::render() {
 float AudioReflector::getDelayFromDistance(float distance) {
     float delay = (_soundMsPerMeter * distance);
 
+    // NOTE: kind of hacky, the old code (which didn't handle diffusions, assumes that this function
+    // will add in any and all pre delay. But the new method (which includes diffusions) handles pre delay
+    // on it's own. So we only add in pre delay if the pre delay is enabled, and we're not in diffusion mode
     if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingPreDelay) &&
         !Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingWithDiffusions)) {
 
@@ -70,17 +83,6 @@ float AudioReflector::getDelayFromDistance(float distance) {
     
     return delay;
 }
-
-// **option 1**: this is what we're using
-const float PER_BOUNCE_ATTENUATION_FACTOR = 0.5f; 
-
-// **option 2**: we're not using these
-//const float BOUNCE_ATTENUATION_FACTOR = 0.125f;
-// each bounce we adjust our attenuation by this factor, the result is an asymptotically decreasing attenuation...
-// 0.125, 0.25, 0.5, ...
-//const float PER_BOUNCE_ATTENUATION_ADJUSTMENT = 2.0f;
-// we don't grow larger than this, which means by the 4th bounce we don't get that much less quiet
-//const float MAX_BOUNCE_ATTENUATION = 0.99f;
 
 float AudioReflector::getDistanceAttenuationCoefficient(float distance) {
     const float DISTANCE_SCALE = 2.5f;
@@ -100,8 +102,12 @@ float AudioReflector::getDistanceAttenuationCoefficient(float distance) {
     return distanceCoefficient;
 }
 
-float getBounceAttenuationCoefficient(int bounceCount) {
-    return PER_BOUNCE_ATTENUATION_FACTOR * bounceCount;
+// This is used in the "old" model with diffusions... it's essentially the amount of energy that is reflected on each bounce
+float AudioReflector::getBounceAttenuationCoefficient(int bounceCount) {
+    // now we know the current attenuation for the "perfect" reflection case, but we now incorporate
+    // our surface materials to determine how much of this ray is absorbed, reflected, and diffused
+    SurfaceCharacteristics material = getSurfaceCharacteristics();
+    return material.reflectiveRatio * bounceCount;
 }
 
 glm::vec3 getFaceNormal(BoxFace face) {
@@ -130,6 +136,7 @@ glm::vec3 getFaceNormal(BoxFace face) {
 
 void AudioReflector::reset() {
     _reflections = 0;
+    _diffusionPathCount = 0;
     _averageAttenuation = 0.0f;
     _maxAttenuation = 0.0f;
     _minAttenuation = 0.0f;
@@ -151,7 +158,6 @@ void AudioReflector::reset() {
         _rightReflections.size() +
         _upReflections.size() +
         _downReflections.size();
-
 }
 
 void AudioReflector::calculateAllReflections() {
@@ -161,7 +167,9 @@ void AudioReflector::calculateAllReflections() {
     bool wantHeadOrientation = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingHeadOriented);
     glm::quat orientation = wantHeadOrientation ? _myAvatar->getHead()->getFinalOrientation() : _myAvatar->getOrientation();
     
-    bool shouldRecalc = _reflections == 0 || _myAvatar->getHead()->getPosition() != _origin || (orientation != _orientation);
+    bool shouldRecalc = _reflections == 0 
+                            || !isSimilarPosition(_myAvatar->getHead()->getPosition(), _origin) 
+                            || !isSimilarOrientation(orientation, _orientation);
 
     if (shouldRecalc) {
         QMutexLocker locker(&_mutex);
@@ -236,7 +244,8 @@ QVector<glm::vec3> AudioReflector::calculateReflections(const glm::vec3& earPosi
             float earDistance = glm::distance(end, earPosition);
             float totalDistance = earDistance + distance;
             totalDelay = getDelayFromDistance(totalDistance);
-            currentAttenuation = getDistanceAttenuationCoefficient(totalDistance) * getBounceAttenuationCoefficient(bounceCount);
+            currentAttenuation = getDistanceAttenuationCoefficient(totalDistance) * 
+                                        getBounceAttenuationCoefficient(bounceCount);
             
             if (currentAttenuation > MINIMUM_ATTENUATION_TO_REFLECT && totalDelay < MAXIMUM_DELAY_MS) {
                 reflectionPoints.push_back(end);
@@ -409,9 +418,6 @@ void AudioReflector::injectAudiblePoint(const AudioPoint& audiblePoint,
     int rightEarDelay = rightEarDelayMsecs * sampleRate / MSECS_PER_SECOND;
     int leftEarDelay = leftEarDelayMsecs * sampleRate / MSECS_PER_SECOND;
 
-        //qDebug() << "leftTotalDistance=" << leftTotalDistance << "rightTotalDistance=" << rightTotalDistance;
-        //qDebug() << "leftEarDelay=" << leftEarDelay << "rightEarDelay=" << rightEarDelay;
-
     float rightEarAttenuation = getDistanceAttenuationCoefficient(rightEarDistance) * audiblePoint.attenuation;
     float leftEarAttenuation = getDistanceAttenuationCoefficient(leftEarDistance) * audiblePoint.attenuation;
 
@@ -463,8 +469,6 @@ void AudioReflector::processInboundAudio(unsigned int sampleTime, const QByteArr
 }
 
 void AudioReflector::newEchoAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
-    //quint64 start = usecTimestampNow();
-
     _maxDelay = 0;
     _maxAttenuation = 0.0f;
     _minDelay = std::numeric_limits<int>::max();
@@ -483,9 +487,12 @@ void AudioReflector::newEchoAudio(unsigned int sampleTime, const QByteArray& sam
     _averageDelay = _delayCount == 0 ? 0 : _totalDelay / _delayCount;
     _averageAttenuation = _attenuationCount == 0 ? 0 : _totalAttenuation / _attenuationCount;
     _reflections = _audiblePoints.size();
-
-    //quint64 end = usecTimestampNow();
-    //qDebug() << "AudioReflector::addSamples()... elapsed=" << (end - start);
+    _diffusionPathCount = countDiffusionPaths();
+    
+    if (_reflections == 0) {
+        _minDelay = 0.0f;
+        _minAttenuation = 0.0f;
+    }
 }
 
 void AudioReflector::oldEchoAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
@@ -521,14 +528,29 @@ void AudioReflector::oldEchoAudio(unsigned int sampleTime, const QByteArray& sam
 
     _averageDelay = _delayCount == 0 ? 0 : _totalDelay / _delayCount;
     _averageAttenuation = _attenuationCount == 0 ? 0 : _totalAttenuation / _attenuationCount;
+    _reflections = _frontRightUpReflections.size() +
+        _frontLeftUpReflections.size() +
+        _backRightUpReflections.size() +
+        _backLeftUpReflections.size() +
+        _frontRightDownReflections.size() +
+        _frontLeftDownReflections.size() +
+        _backRightDownReflections.size() +
+        _backLeftDownReflections.size() +
+        _frontReflections.size() +
+        _backReflections.size() +
+        _leftReflections.size() +
+        _rightReflections.size() +
+        _upReflections.size() +
+        _downReflections.size();
+    _diffusionPathCount = 0;
 
-    //quint64 end = usecTimestampNow();
-    //qDebug() << "AudioReflector::addSamples()... elapsed=" << (end - start);
+    if (_reflections == 0) {
+        _minDelay = 0.0f;
+        _minAttenuation = 0.0f;
+    }
 }
 
 void AudioReflector::drawRays() {
-    calculateAllReflections();
-
     const glm::vec3 RED(1,0,0);
     
     QMutexLocker locker(&_mutex);
@@ -620,8 +642,6 @@ void AudioReflector::newCalculateAllReflections() {
 }    
 
 void AudioReflector::newDrawRays() {
-    newCalculateAllReflections();
-
     const glm::vec3 RED(1,0,0);
     const glm::vec3 GREEN(0,1,0);
     
@@ -705,6 +725,19 @@ void AudioReflector::analyzePaths() {
         steps++;
     }
     _reflections = _audiblePoints.size();
+    _diffusionPathCount = countDiffusionPaths();
+}
+
+int AudioReflector::countDiffusionPaths() {
+    int diffusionCount = 0;
+    
+    foreach(AudioPath* const& path, _audioPaths) {
+        // if this is NOT an original reflection then it's a diffusion path
+        if (path->startPoint != _origin) {
+            diffusionCount++;
+        }
+    }
+    return diffusionCount;
 }
 
 int AudioReflector::analyzePathsSingleStep() {

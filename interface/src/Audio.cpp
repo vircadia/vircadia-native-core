@@ -822,8 +822,6 @@ void Audio::processReceivedAudio(AudioRingBuffer& ringBuffer) {
 
             // add the next numNetworkOutputSamples from each QByteArray
             // in our _localInjectionByteArrays QVector to the localInjectedSamples
-
-
             if (Menu::getInstance()->isOptionChecked(MenuOption::LowPassFilter)) {
                 int channels = _desiredOutputFormat.channelCount();
                 int filterSamples = numNetworkOutputSamples / channels;
