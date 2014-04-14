@@ -141,9 +141,9 @@ For many of the external libraries where precompiled binaries are readily availa
 *NOTE: Qt does not support 64-bit builds on Windows 7, so you must use the 32-bit version of libraries for interface.exe to run. The 32-bit version of the static library is the one linked by our CMake find modules*
 
 #####GnuTLS
-You can get a precompiled version of GnuTLS for Windows [here](ftp://ftp.gnutls.org/gcrypt/gnutls/w32/).
+You can get a precompiled version of GnuTLS for Windows [here](http://gnutls.org/download.html).
 
-To use GnuTLS with Visual Studio, you will need to create `libgnutls-28.lib`, the import library for Visual Studio projects. this is done using the `lib` command in the `bin` folder of your GnuTLS download.
+To use GnuTLS with Visual Studio, you will need to create `libgnutls-28.lib`, the import library for Visual Studio projects. this is done using the `lib` command in the `bin` folder of your GnuTLS download. Run the following in a Visual Studio Command Prompt (found in the tools menu of Visual Studio).
 
     $GNUTLS_DIR\bin> lib /def:libgnutls-28.def 
 
