@@ -1,9 +1,12 @@
 //
 //  MetavoxelUtil.cpp
-//  metavoxels
+//  libraries/metavoxels/src
 //
 //  Created by Andrzej Kapolka on 12/30/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <QByteArray>
@@ -52,6 +55,7 @@ public:
 DoubleEditor::DoubleEditor(QWidget* parent) : QDoubleSpinBox(parent) {
     setMinimum(-FLT_MAX);
     setMaximum(FLT_MAX);
+    setSingleStep(0.01);
 }
 
 DelegatingItemEditorFactory::DelegatingItemEditorFactory() :
@@ -127,6 +131,12 @@ static QItemEditorCreatorBase* createVec3EditorCreator() {
     return creator;
 }
 
+static QItemEditorCreatorBase* createQuatEditorCreator() {
+    QItemEditorCreatorBase* creator = new LazyItemEditorCreator<QuatEditor>();
+    getItemEditorFactory()->registerEditor(qMetaTypeId<glm::quat>(), creator);
+    return creator;
+}
+
 static QItemEditorCreatorBase* createParameterizedURLEditorCreator() {
     QItemEditorCreatorBase* creator = new LazyItemEditorCreator<ParameterizedURLEditor>();
     getItemEditorFactory()->registerEditor(qMetaTypeId<ParameterizedURL>(), creator);
@@ -138,6 +148,7 @@ static QItemEditorCreatorBase* qMetaObjectEditorCreator = createQMetaObjectEdito
 static QItemEditorCreatorBase* qColorEditorCreator = createQColorEditorCreator();
 static QItemEditorCreatorBase* qUrlEditorCreator = createQUrlEditorCreator();
 static QItemEditorCreatorBase* vec3EditorCreator = createVec3EditorCreator();
+static QItemEditorCreatorBase* quatEditorCreator = createQuatEditorCreator();
 static QItemEditorCreatorBase* parameterizedURLEditorCreator = createParameterizedURLEditorCreator();
 
 QByteArray signal(const char* signature) {
@@ -380,7 +391,7 @@ void QUrlEditor::updateSettings() {
     QSettings().setValue("editorURLs", urls);
 }
 
-Vec3Editor::Vec3Editor(QWidget* parent) : QWidget(parent) {
+BaseVec3Editor::BaseVec3Editor(QWidget* parent) : QWidget(parent) {
     QHBoxLayout* layout = new QHBoxLayout();
     layout->setContentsMargins(QMargins());
     setLayout(layout);
@@ -390,24 +401,62 @@ Vec3Editor::Vec3Editor(QWidget* parent) : QWidget(parent) {
     layout->addWidget(_z = createComponentBox());
 }
 
-void Vec3Editor::setVector(const glm::vec3& vector) {
-    _vector = vector;
-    _x->setValue(vector.x);
-    _y->setValue(vector.y);
-    _z->setValue(vector.z);
-}
-
-void Vec3Editor::updateVector() {
-    emit vectorChanged(_vector = glm::vec3(_x->value(), _y->value(), _z->value()));
-}
-
-QDoubleSpinBox* Vec3Editor::createComponentBox() {
+QDoubleSpinBox* BaseVec3Editor::createComponentBox() {
     QDoubleSpinBox* box = new QDoubleSpinBox();
     box->setMinimum(-FLT_MAX);
     box->setMaximum(FLT_MAX);
     box->setMinimumWidth(50);
-    connect(box, SIGNAL(valueChanged(double)), SLOT(updateVector()));
+    connect(box, SIGNAL(valueChanged(double)), SLOT(updateValue()));
     return box;
+}
+
+Vec3Editor::Vec3Editor(QWidget* parent) : BaseVec3Editor(parent) {
+    _x->setSingleStep(0.01);
+    _y->setSingleStep(0.01);
+    _z->setSingleStep(0.01);
+}
+
+static void setComponentValue(QDoubleSpinBox* box, double value) {
+    box->blockSignals(true);
+    box->setValue(value);
+    box->blockSignals(false);
+}
+
+void Vec3Editor::setValue(const glm::vec3& value) {
+    _value = value;
+    setComponentValue(_x, value.x);
+    setComponentValue(_y, value.y);
+    setComponentValue(_z, value.z);
+}
+
+void Vec3Editor::updateValue() {
+    emit valueChanged(_value = glm::vec3(_x->value(), _y->value(), _z->value()));
+}
+
+QuatEditor::QuatEditor(QWidget* parent) : BaseVec3Editor(parent) {
+    _x->setRange(-179.0, 180.0);
+    _y->setRange(-179.0, 180.0);
+    _z->setRange(-179.0, 180.0);
+    
+    _x->setWrapping(true);
+    _y->setWrapping(true);
+    _z->setWrapping(true);
+}
+
+void QuatEditor::setValue(const glm::quat& value) {
+    if (_value != value) {
+        glm::vec3 eulers = glm::degrees(safeEulerAngles(_value = value));
+        setComponentValue(_x, eulers.x);
+        setComponentValue(_y, eulers.y);
+        setComponentValue(_z, eulers.z);
+    }
+}
+
+void QuatEditor::updateValue() {
+    glm::quat value(glm::radians(glm::vec3(_x->value(), _y->value(), _z->value())));
+    if (_value != value) {
+        emit valueChanged(_value = value);
+    }
 }
 
 ParameterizedURL::ParameterizedURL(const QUrl& url, const ScriptHash& parameters) :

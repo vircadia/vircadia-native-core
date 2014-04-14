@@ -1,13 +1,16 @@
 //
 //  VoxelFade.h
-//  interface
+//  interface/src/voxels
 //
 //  Created by Brad Hefta-Gaub on 8/6/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__VoxelFade__
-#define __interface__VoxelFade__
+#ifndef hifi_VoxelFade_h
+#define hifi_VoxelFade_h
 
 #include <OctalCode.h> // for VoxelPositionSize
 
@@ -40,4 +43,4 @@ public:
     bool isDone() const;
 };
 
-#endif // __interface__VoxelFade__
+#endif // hifi_VoxelFade_h

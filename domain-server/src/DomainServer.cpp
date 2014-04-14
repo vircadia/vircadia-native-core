@@ -1,9 +1,12 @@
 //
 //  DomainServer.cpp
-//  hifi
+//  domain-server/src
 //
 //  Created by Stephen Birarda on 9/26/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <signal.h>
@@ -622,10 +625,12 @@ QJsonObject DomainServer::jsonForSocket(const HifiSockAddr& socket) {
     return socketJSON;
 }
 
+const char JSON_KEY_UUID[] = "uuid";
 const char JSON_KEY_TYPE[] = "type";
 const char JSON_KEY_PUBLIC_SOCKET[] = "public";
 const char JSON_KEY_LOCAL_SOCKET[] = "local";
 const char JSON_KEY_POOL[] = "pool";
+const char JSON_KEY_WAKE_TIMESTAMP[] = "wake_timestamp";
 
 QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
     QJsonObject nodeJson;
@@ -635,12 +640,18 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
     nodeTypeName = nodeTypeName.toLower();
     nodeTypeName.replace(' ', '-');
 
+    // add the node UUID
+    nodeJson[JSON_KEY_UUID] = uuidStringWithoutCurlyBraces(node->getUUID());
+    
     // add the node type
     nodeJson[JSON_KEY_TYPE] = nodeTypeName;
 
     // add the node socket information
     nodeJson[JSON_KEY_PUBLIC_SOCKET] = jsonForSocket(node->getPublicSocket());
     nodeJson[JSON_KEY_LOCAL_SOCKET] = jsonForSocket(node->getLocalSocket());
+    
+    // add the node uptime in our list
+    nodeJson[JSON_KEY_WAKE_TIMESTAMP] = QString::number(node->getWakeTimestamp());
     
     // if the node has pool information, add it
     SharedAssignmentPointer matchingAssignment = _staticAssignmentHash.value(node->getUUID());
@@ -707,18 +718,17 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         } else if (url.path() == QString("%1.json").arg(URI_NODES)) {
             // setup the JSON
             QJsonObject rootJSON;
-            QJsonObject nodesJSON;
+            QJsonArray nodesJSONArray;
             
             // enumerate the NodeList to find the assigned nodes
             NodeList* nodeList = NodeList::getInstance();
             
             foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
                 // add the node using the UUID as the key
-                QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
-                nodesJSON[uuidString] = jsonObjectForNode(node);
+                nodesJSONArray.append(jsonObjectForNode(node));
             }
             
-            rootJSON["nodes"] = nodesJSON;
+            rootJSON["nodes"] = nodesJSONArray;
             
             // print out the created JSON
             QJsonDocument nodesDocument(rootJSON);

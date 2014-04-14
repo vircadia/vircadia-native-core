@@ -1,12 +1,13 @@
 //
 //  RegisteredMetaTypes.cpp
-//  hifi
+//  libraries/shared/src
 //
 //  Created by Stephen Birarda on 10/3/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
-//  Used to register meta-types with Qt so that they can be used as properties for objects exposed to our
-//  Agent scripting.
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 #include "RegisteredMetaTypes.h"
 
@@ -16,6 +17,7 @@ static int vec2MetaTypeId = qRegisterMetaType<glm::vec2>();
 static int quatMetaTypeId = qRegisterMetaType<glm::quat>();
 static int xColorMetaTypeId = qRegisterMetaType<xColor>();
 static int pickRayMetaTypeId = qRegisterMetaType<PickRay>();
+static int collisionMetaTypeId = qRegisterMetaType<CollisionInfo>();
 
 void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, vec4toScriptValue, vec4FromScriptValue);
@@ -24,6 +26,7 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, quatToScriptValue, quatFromScriptValue);
     qScriptRegisterMetaType(engine, xColorToScriptValue, xColorFromScriptValue);
     qScriptRegisterMetaType(engine, pickRayToScriptValue, pickRayFromScriptValue);
+    qScriptRegisterMetaType(engine, collisionToScriptValue, collisionFromScriptValue);
 }
 
 QScriptValue vec4toScriptValue(QScriptEngine* engine, const glm::vec4& vec4) {
@@ -120,5 +123,16 @@ void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay) {
         pickRay.direction.y = directionValue.property("y").toVariant().toFloat();
         pickRay.direction.z = directionValue.property("z").toVariant().toFloat();
     }
+}
+
+QScriptValue collisionToScriptValue(QScriptEngine* engine, const CollisionInfo& collision) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("penetration", vec3toScriptValue(engine, collision._penetration));
+    obj.setProperty("contactPoint", vec3toScriptValue(engine, collision._contactPoint));
+    return obj;
+}
+
+void collisionFromScriptValue(const QScriptValue &object, CollisionInfo& collision) {
+    // TODO: implement this when we know what it means to accept collision events from JS
 }
 

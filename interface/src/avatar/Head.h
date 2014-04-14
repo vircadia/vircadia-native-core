@@ -1,8 +1,11 @@
 //
 //  Head.h
-//  interface
+//  interface/src/avatar
 //
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #ifndef hifi_Head_h
@@ -39,7 +42,7 @@ public:
     void init();
     void reset();
     void simulate(float deltaTime, bool isMine, bool billboard = false);
-    void render(float alpha, bool forShadowMap);
+    void render(float alpha, Model::RenderMode mode);
     void setScale(float scale);
     void setPosition(glm::vec3 position) { _position = position; }
     void setGravity(glm::vec3 gravity) { _gravity = gravity; }
@@ -144,4 +147,4 @@ private:
     friend class FaceModel;
 };
 
-#endif
+#endif // hifi_Head_h

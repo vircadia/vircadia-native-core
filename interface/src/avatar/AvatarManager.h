@@ -1,13 +1,16 @@
 //
 //  AvatarManager.h
-//  hifi
+//  interface/src/avatar
 //
 //  Created by Stephen Birarda on 1/23/2014.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AvatarManager__
-#define __hifi__AvatarManager__
+#ifndef hifi_AvatarManager_h
+#define hifi_AvatarManager_h
 
 #include <QtCore/QHash>
 #include <QtCore/QObject>
@@ -56,4 +59,4 @@ private:
     QSharedPointer<MyAvatar> _myAvatar;
 };
 
-#endif /* defined(__hifi__AvatarManager__) */
+#endif // hifi_AvatarManager_h

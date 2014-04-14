@@ -1,9 +1,9 @@
 //
 //  editVoxels.js
-//  hifi
+//  examples
 //
 //  Created by Philip Rosedale on February 8, 2014
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  Captures mouse clicks and edits voxels accordingly.
 //
@@ -14,6 +14,9 @@
 //  9 = create a new voxel in front of the camera 
 //
 //  Click and drag to create more new voxels in the same direction
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 var windowDimensions = Controller.getViewportDimensions();
@@ -32,6 +35,7 @@ var MIN_PASTE_VOXEL_SCALE = .256;
 var zFightingSizeAdjust = 0.002; // used to adjust preview voxels to prevent z fighting
 var previewLineWidth = 1.5;
 
+var inspectJsIsRunning = false;
 var isAdding = false; 
 var isExtruding = false;
 var extrudeDirection = { x: 0, y: 0, z: 0 };
@@ -62,9 +66,9 @@ var whichColor = -1;            //  Starting color is 'Copy' mode
 
 //  Create sounds for adding, deleting, recoloring voxels 
 var addSound1 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+create+2.raw");
-var addSound2 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+create+3.raw");
-var addSound3 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+create+4.raw");
+var addSound2 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+create+4.raw");
 
+var addSound3 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+create+3.raw");
 var deleteSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+delete+2.raw");
 var changeColorSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+edit+2.raw");
 var clickSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Switches+and+sliders/toggle+switch+-+medium.raw");
@@ -727,6 +731,9 @@ function trackKeyPressEvent(event) {
         trackAsEyedropper = true;
         moveTools();
     }
+    if (event.text == "ALT") {
+        inspectJsIsRunning = true;
+    }
     showPreviewGuides();
 }
 
@@ -738,6 +745,10 @@ function trackKeyReleaseEvent(event) {
         setAudioPosition(); // make sure we set the audio position before playing sounds
         showPreviewGuides();
         Audio.playSound(clickSound, audioOptions);
+    }
+                          
+    if (event.text == "ALT") {
+        inspectJsIsRunning = false;
     }
 
     if (editToolsOn) {
@@ -777,10 +788,12 @@ function trackKeyReleaseEvent(event) {
 }
 
 function mousePressEvent(event) {
-
     // if our tools are off, then don't do anything
     if (!editToolsOn) {
         return; 
+    }
+    if (inspectJsIsRunning) {
+        return;
     }
     
     var clickedOnSomething = false;
@@ -911,7 +924,6 @@ function mousePressEvent(event) {
             }
                     
             voxelDetails = calculateVoxelFromIntersection(intersection,"add");
-            Voxels.eraseVoxel(voxelDetails.x, voxelDetails.y, voxelDetails.z, voxelDetails.s);
             Voxels.setVoxel(voxelDetails.x, voxelDetails.y, voxelDetails.z, voxelDetails.s,
                 newColor.red, newColor.green, newColor.blue);
             lastVoxelPosition = { x: voxelDetails.x, y: voxelDetails.y, z: voxelDetails.z };
@@ -1061,7 +1073,9 @@ function mouseMoveEvent(event) {
     if (!editToolsOn) {
         return;
     }
-
+    if (inspectJsIsRunning) {
+        return;
+    }
     
     if (isMovingSlider) {
         thumbX = (event.x - thumbClickOffsetX) - sliderX;
@@ -1121,7 +1135,10 @@ function mouseReleaseEvent(event) {
     if (!editToolsOn) {
         return; 
     }
-
+    if (inspectJsIsRunning) {
+        return;
+    }
+                          
     if (isMovingSlider) {
         isMovingSlider = false;
     }
@@ -1212,24 +1229,6 @@ function moveTools() {
     // This is the thumb of our slider
     Overlays.editOverlay(thumb, { x: sliderX + thumbX, y: thumbY, visible: editToolsOn });
 
-}
-
-function touchBeginEvent(event) {
-    if (!editToolsOn) {
-        return;
-    }
-}
-
-function touchUpdateEvent(event) {
-    if (!editToolsOn) {
-        return;
-    }
-}
-
-function touchEndEvent(event) {
-    if (!editToolsOn) {
-        return;
-    }
 }
 
 var lastFingerAddVoxel = { x: -1, y: -1, z: -1}; // off of the build-able area
@@ -1332,9 +1331,6 @@ Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 Controller.mouseMoveEvent.connect(mouseMoveEvent);
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
-Controller.touchBeginEvent.connect(touchBeginEvent);
-Controller.touchUpdateEvent.connect(touchUpdateEvent);
-Controller.touchEndEvent.connect(touchEndEvent);
 Controller.captureKeyEvents({ text: "+" });
 Controller.captureKeyEvents({ text: "-" });
 

@@ -1,14 +1,16 @@
 //
 //  ParticleTreeElement.h
-//  hifi
+//  libraries/particles/src
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__ParticleTreeElement__
-#define __hifi__ParticleTreeElement__
+#ifndef hifi_ParticleTreeElement_h
+#define hifi_ParticleTreeElement_h
 
 //#include <vector>
 
@@ -127,4 +129,4 @@ protected:
     QList<Particle>* _particles;
 };
 
-#endif /* defined(__hifi__ParticleTreeElement__) */
+#endif // hifi_ParticleTreeElement_h

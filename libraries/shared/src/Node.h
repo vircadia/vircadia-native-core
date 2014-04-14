@@ -1,13 +1,16 @@
 //
 //  Node.h
-//  hifi
+//  libraries/shared/src
 //
 //  Created by Stephen Birarda on 2/15/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__Node__
-#define __hifi__Node__
+#ifndef hifi_Node_h
+#define hifi_Node_h
 
 #include <ostream>
 #include <stdint.h>
@@ -60,8 +63,8 @@ public:
     const QUuid& getUUID() const { return _uuid; }
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
 
-    quint64 getWakeMicrostamp() const { return _wakeMicrostamp; }
-    void setWakeMicrostamp(quint64 wakeMicrostamp) { _wakeMicrostamp = wakeMicrostamp; }
+    quint64 getWakeTimestamp() const { return _wakeTimestamp; }
+    void setWakeTimestamp(quint64 wakeTimestamp) { _wakeTimestamp = wakeTimestamp; }
 
     quint64 getLastHeardMicrostamp() const { return _lastHeardMicrostamp; }
     void setLastHeardMicrostamp(quint64 lastHeardMicrostamp) { _lastHeardMicrostamp = lastHeardMicrostamp; }
@@ -109,7 +112,7 @@ private:
 
     NodeType_t _type;
     QUuid _uuid;
-    quint64 _wakeMicrostamp;
+    quint64 _wakeTimestamp;
     quint64 _lastHeardMicrostamp;
     HifiSockAddr _publicSocket;
     HifiSockAddr _localSocket;
@@ -126,4 +129,4 @@ private:
 
 QDebug operator<<(QDebug debug, const Node &message);
 
-#endif /* defined(__hifi__Node__) */
+#endif // hifi_Node_h

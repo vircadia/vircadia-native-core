@@ -1,13 +1,16 @@
 //
 //  DomainInfo.h
-//  hifi
+//  libraries/shared/src
 //
 //  Created by Stephen Birarda on 2/18/2014.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__DomainInfo__
-#define __hifi__DomainInfo__
+#ifndef hifi_DomainInfo_h
+#define hifi_DomainInfo_h
 
 #include <QtCore/QObject>
 #include <QtCore/QUuid>
@@ -77,4 +80,4 @@ private:
     bool _isConnected;
 };
 
-#endif /* defined(__hifi__DomainInfo__) */
+#endif // hifi_DomainInfo_h

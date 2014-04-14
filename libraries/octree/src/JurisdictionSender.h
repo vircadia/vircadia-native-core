@@ -1,15 +1,16 @@
 //
 //  JurisdictionSender.h
-//  shared
+//  libraries/octree/src
 //
 //  Created by Brad Hefta-Gaub on 8/12/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
-//  Jurisdiction Sender
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __shared__JurisdictionSender__
-#define __shared__JurisdictionSender__
+#ifndef hifi_JurisdictionSender_h
+#define hifi_JurisdictionSender_h
 
 #include <queue>
 #include <QMutex>
@@ -54,4 +55,4 @@ private:
     
     PacketSender _packetSender;
 };
-#endif // __shared__JurisdictionSender__
+#endif // hifi_JurisdictionSender_h

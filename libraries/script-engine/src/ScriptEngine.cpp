@@ -1,9 +1,12 @@
 //
 //  ScriptEngine.cpp
-//  hifi
+//  libraries/script-engine/src
 //
 //  Created by Brad Hefta-Gaub on 12/14/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <QtCore/QCoreApplication>
@@ -29,7 +32,6 @@
 #include "LocalVoxels.h"
 #include "ScriptEngine.h"
 
-int ScriptEngine::_scriptNumber = 1;
 VoxelsScriptingInterface ScriptEngine::_voxelsScriptingInterface;
 ParticlesScriptingInterface ScriptEngine::_particlesScriptingInterface;
 
@@ -41,7 +43,7 @@ static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* eng
 }
 
 
-ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, const QString& fileNameString,
+ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString,
                            AbstractControllerScriptingInterface* controllerScriptingInterface) :
 
     _scriptContents(scriptContents),
@@ -58,26 +60,16 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, co
     _numAvatarSoundSentBytes(0),
     _controllerScriptingInterface(controllerScriptingInterface),
     _avatarData(NULL),
-    _wantMenuItems(wantMenuItems),
-    _scriptMenuName(),
+    _scriptName(),
     _fileNameString(fileNameString),
     _quatLibrary(),
-    _vec3Library()
+    _vec3Library(),
+    _uuidLibrary()
 {
-    // some clients will use these menu features
-    if (!fileNameString.isEmpty()) {
-        _scriptMenuName = "Stop ";
-        _scriptMenuName.append(qPrintable(fileNameString));
-        _scriptMenuName.append(QString(" [%1]").arg(_scriptNumber));
-    } else {
-        _scriptMenuName = "Stop Script ";
-        _scriptMenuName.append(_scriptNumber);
-    }
-    _scriptNumber++;
 }
 
-ScriptEngine::ScriptEngine(const QUrl& scriptURL, bool wantMenuItems, 
-                AbstractControllerScriptingInterface* controllerScriptingInterface)  :
+ScriptEngine::ScriptEngine(const QUrl& scriptURL,
+                           AbstractControllerScriptingInterface* controllerScriptingInterface)  :
     _scriptContents(),
     _isFinished(false),
     _isRunning(false),
@@ -92,32 +84,23 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL, bool wantMenuItems,
     _numAvatarSoundSentBytes(0),
     _controllerScriptingInterface(controllerScriptingInterface),
     _avatarData(NULL),
-    _wantMenuItems(wantMenuItems),
-    _scriptMenuName(),
+    _scriptName(),
     _fileNameString(),
     _quatLibrary(),
-    _vec3Library()
+    _vec3Library(),
+    _uuidLibrary()
 {
     QString scriptURLString = scriptURL.toString();
     _fileNameString = scriptURLString;
-    // some clients will use these menu features
-    if (!scriptURLString.isEmpty()) {
-        _scriptMenuName = "Stop ";
-        _scriptMenuName.append(qPrintable(scriptURLString));
-        _scriptMenuName.append(QString(" [%1]").arg(_scriptNumber));
-    } else {
-        _scriptMenuName = "Stop Script ";
-        _scriptMenuName.append(_scriptNumber);
-    }
-    _scriptNumber++;
-    
+
     QUrl url(scriptURL);
-    
-    // if the scheme is empty, maybe they typed in a file, let's try
-    if (url.scheme().isEmpty()) {
+
+    // if the scheme length is one or lower, maybe they typed in a file, let's try
+    const int WINDOWS_DRIVE_LETTER_SIZE = 1;
+    if (url.scheme().size() <= WINDOWS_DRIVE_LETTER_SIZE) {
         url = QUrl::fromLocalFile(scriptURLString);
     }
-    
+
     // ok, let's see if it's valid... and if so, load it
     if (url.isValid()) {
         if (url.scheme() == "file") {
@@ -144,16 +127,16 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL, bool wantMenuItems,
 
 void ScriptEngine::setIsAvatar(bool isAvatar) {
     _isAvatar = isAvatar;
-    
+
     if (_isAvatar && !_avatarIdentityTimer) {
         // set up the avatar timers
         _avatarIdentityTimer = new QTimer(this);
         _avatarBillboardTimer = new QTimer(this);
-        
+
         // connect our slot
         connect(_avatarIdentityTimer, &QTimer::timeout, this, &ScriptEngine::sendAvatarIdentityPacket);
         connect(_avatarBillboardTimer, &QTimer::timeout, this, &ScriptEngine::sendAvatarBillboardPacket);
-        
+
         // start the timers
         _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
         _avatarBillboardTimer->start(AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS);
@@ -162,18 +145,12 @@ void ScriptEngine::setIsAvatar(bool isAvatar) {
 
 void ScriptEngine::setAvatarData(AvatarData* avatarData, const QString& objectName) {
     _avatarData = avatarData;
-    
+
     // remove the old Avatar property, if it exists
     _engine.globalObject().setProperty(objectName, QScriptValue());
-    
+
     // give the script engine the new Avatar script property
     registerGlobalObject(objectName, _avatarData);
-}
-
-void ScriptEngine::cleanupMenuItems() {
-    if (_wantMenuItems) {
-        emit cleanupMenuItem(_scriptMenuName);
-    }
 }
 
 bool ScriptEngine::setScriptContents(const QString& scriptContents, const QString& fileNameString) {
@@ -203,7 +180,7 @@ void ScriptEngine::init() {
     registerVoxelMetaTypes(&_engine);
     registerEventTypes(&_engine);
     registerMenuItemProperties(&_engine);
-    
+
     qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<ParticleID> >(&_engine);
@@ -216,7 +193,7 @@ void ScriptEngine::init() {
 
     QScriptValue injectionOptionValue = _engine.scriptValueFromQMetaObject<AudioInjectorOptions>();
     _engine.globalObject().setProperty("AudioInjectionOptions", injectionOptionValue);
-    
+
     QScriptValue localVoxelsValue = _engine.scriptValueFromQMetaObject<LocalVoxels>();
     _engine.globalObject().setProperty("LocalVoxels", localVoxelsValue);
 
@@ -226,6 +203,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Particles", &_particlesScriptingInterface);
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);
+    registerGlobalObject("Uuid", &_uuidLibrary);
 
     registerGlobalObject("Voxels", &_voxelsScriptingInterface);
 
@@ -285,9 +263,9 @@ void ScriptEngine::run() {
     gettimeofday(&startTime, NULL);
 
     int thisFrame = 0;
-    
+
     NodeList* nodeList = NodeList::getInstance();
-    
+
     qint64 lastUpdate = usecTimestampNow();
 
     while (!_isFinished) {
@@ -325,36 +303,36 @@ void ScriptEngine::run() {
                 _particlesScriptingInterface.getParticlePacketSender()->process();
             }
         }
-        
+
         if (_isAvatar && _avatarData) {
-            
+
             const int SCRIPT_AUDIO_BUFFER_SAMPLES = floor(((SCRIPT_DATA_CALLBACK_USECS * SAMPLE_RATE) / (1000 * 1000)) + 0.5);
             const int SCRIPT_AUDIO_BUFFER_BYTES = SCRIPT_AUDIO_BUFFER_SAMPLES * sizeof(int16_t);
-            
+
             QByteArray avatarPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
             avatarPacket.append(_avatarData->toByteArray());
-            
+
             nodeList->broadcastToNodes(avatarPacket, NodeSet() << NodeType::AvatarMixer);
-            
+
             if (_isListeningToAudioStream || _avatarSound) {
                 // if we have an avatar audio stream then send it out to our audio-mixer
                 bool silentFrame = true;
-                
+
                 int16_t numAvailableSamples = SCRIPT_AUDIO_BUFFER_SAMPLES;
                 const int16_t* nextSoundOutput = NULL;
-                
+
                 if (_avatarSound) {
-                    
+
                     const QByteArray& soundByteArray = _avatarSound->getByteArray();
                     nextSoundOutput = reinterpret_cast<const int16_t*>(soundByteArray.data()
                                                                        + _numAvatarSoundSentBytes);
-                    
+
                     int numAvailableBytes = (soundByteArray.size() - _numAvatarSoundSentBytes) > SCRIPT_AUDIO_BUFFER_BYTES
                         ? SCRIPT_AUDIO_BUFFER_BYTES
                         : soundByteArray.size() - _numAvatarSoundSentBytes;
                     numAvailableSamples = numAvailableBytes / sizeof(int16_t);
-                    
-                    
+
+
                     // check if the all of the _numAvatarAudioBufferSamples to be sent are silence
                     for (int i = 0; i < numAvailableSamples; ++i) {
                         if (nextSoundOutput[i] != 0) {
@@ -362,7 +340,7 @@ void ScriptEngine::run() {
                             break;
                         }
                     }
-                    
+
                     _numAvatarSoundSentBytes += numAvailableBytes;
                     if (_numAvatarSoundSentBytes == soundByteArray.size()) {
                         // we're done with this sound object - so set our pointer back to NULL
@@ -371,24 +349,24 @@ void ScriptEngine::run() {
                         _numAvatarSoundSentBytes = 0;
                     }
                 }
-                
+
                 QByteArray audioPacket = byteArrayWithPopulatedHeader(silentFrame
                                                                       ? PacketTypeSilentAudioFrame
                                                                       : PacketTypeMicrophoneAudioNoEcho);
-                
+
                 QDataStream packetStream(&audioPacket, QIODevice::Append);
-                
+
                 // use the orientation and position of this avatar for the source of this audio
                 packetStream.writeRawData(reinterpret_cast<const char*>(&_avatarData->getPosition()), sizeof(glm::vec3));
                 glm::quat headOrientation = _avatarData->getHeadOrientation();
                 packetStream.writeRawData(reinterpret_cast<const char*>(&headOrientation), sizeof(glm::quat));
-                
+
                 if (silentFrame) {
                     if (!_isListeningToAudioStream) {
                         // if we have a silent frame and we're not listening then just send nothing and break out of here
                         break;
                     }
-                    
+
                     // write the number of silent samples so the audio-mixer can uphold timing
                     packetStream.writeRawData(reinterpret_cast<const char*>(&SCRIPT_AUDIO_BUFFER_SAMPLES), sizeof(int16_t));
                 } else if (nextSoundOutput) {
@@ -396,7 +374,7 @@ void ScriptEngine::run() {
                     packetStream.writeRawData(reinterpret_cast<const char*>(nextSoundOutput),
                                               numAvailableSamples * sizeof(int16_t));
                 }
-                
+
                 nodeList->broadcastToNodes(audioPacket, NodeSet() << NodeType::AudioMixer);
             }
         }
@@ -412,10 +390,10 @@ void ScriptEngine::run() {
         }
     }
     emit scriptEnding();
-    
+
     // kill the avatar identity timer
     delete _avatarIdentityTimer;
-    
+
     if (_voxelsScriptingInterface.getVoxelPacketSender()->serversExist()) {
         // release the queue of edit voxel messages.
         _voxelsScriptingInterface.getVoxelPacketSender()->releaseQueuedMessages();
@@ -435,8 +413,6 @@ void ScriptEngine::run() {
             _particlesScriptingInterface.getParticlePacketSender()->process();
         }
     }
-    
-    cleanupMenuItems();
 
     // If we were on a thread, then wait till it's done
     if (thread()) {
@@ -444,7 +420,7 @@ void ScriptEngine::run() {
     }
 
     emit finished(_fileNameString);
-    
+
     _isRunning = false;
 }
 
@@ -454,13 +430,13 @@ void ScriptEngine::stop() {
 
 void ScriptEngine::timerFired() {
     QTimer* callingTimer = reinterpret_cast<QTimer*>(sender());
-    
+
     // call the associated JS function, if it exists
     QScriptValue timerFunction = _timerFunctionMap.value(callingTimer);
     if (timerFunction.isValid()) {
         timerFunction.call();
     }
-    
+
     if (!callingTimer->isActive()) {
         // this timer is done, we can kill it
         delete callingTimer;
@@ -471,14 +447,14 @@ QObject* ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int 
     // create the timer, add it to the map, and start it
     QTimer* newTimer = new QTimer(this);
     newTimer->setSingleShot(isSingleShot);
-    
+
     connect(newTimer, &QTimer::timeout, this, &ScriptEngine::timerFired);
-    
+
     // make sure the timer stops when the script does
     connect(this, &ScriptEngine::scriptEnding, newTimer, &QTimer::stop);
-    
+
     _timerFunctionMap.insert(newTimer, function);
-    
+
     newTimer->start(intervalMS);
     return newTimer;
 }
@@ -505,17 +481,17 @@ QUrl ScriptEngine::resolveInclude(const QString& include) const {
     if (!url.scheme().isEmpty()) {
         return url;
     }
-    
-    // we apparently weren't a fully qualified url, so, let's assume we're relative 
+
+    // we apparently weren't a fully qualified url, so, let's assume we're relative
     // to the original URL of our script
     QUrl parentURL(_fileNameString);
-    
+
     // if the parent URL's scheme is empty, then this is probably a local file...
     if (parentURL.scheme().isEmpty()) {
         parentURL = QUrl::fromLocalFile(_fileNameString);
     }
-    
-    // at this point we should have a legitimate fully qualified URL for our parent 
+
+    // at this point we should have a legitimate fully qualified URL for our parent
     url = parentURL.resolved(url);
     return url;
 }
@@ -543,7 +519,7 @@ void ScriptEngine::include(const QString& includeFile) {
         loop.exec();
         includeContents = reply->readAll();
     }
-    
+
     QScriptValue result = _engine.evaluate(includeContents);
     if (_engine.hasUncaughtException()) {
         int line = _engine.uncaughtExceptionLineNumber();

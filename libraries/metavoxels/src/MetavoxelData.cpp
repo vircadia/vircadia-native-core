@@ -1,9 +1,12 @@
 //
 //  MetavoxelData.cpp
-//  metavoxels
+//  libraries/metavoxels/src
 //
 //  Created by Andrzej Kapolka on 12/6/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <QDateTime>
@@ -23,6 +26,8 @@ REGISTER_META_OBJECT(ThrobbingMetavoxelGuide)
 REGISTER_META_OBJECT(Spanner)
 REGISTER_META_OBJECT(Sphere)
 REGISTER_META_OBJECT(StaticModel)
+
+static int metavoxelDataTypeId = registerSimpleMetaType<MetavoxelData>();
 
 MetavoxelLOD::MetavoxelLOD(const glm::vec3& position, float threshold) :
     position(position),
@@ -327,6 +332,100 @@ const int Y_MAXIMUM_FLAG = 2;
 const int Z_MAXIMUM_FLAG = 4;
 const int MAXIMUM_FLAG_MASK = X_MAXIMUM_FLAG | Y_MAXIMUM_FLAG | Z_MAXIMUM_FLAG;
 
+static glm::vec3 getNextMinimum(const glm::vec3& minimum, float nextSize, int index) {
+    return minimum + glm::vec3(
+        (index & X_MAXIMUM_FLAG) ? nextSize : 0.0f,
+        (index & Y_MAXIMUM_FLAG) ? nextSize : 0.0f,
+        (index & Z_MAXIMUM_FLAG) ? nextSize : 0.0f);
+}
+
+static void setNode(const AttributeValue& value, MetavoxelNode*& node, MetavoxelNode* other, bool blend) {
+    if (!blend) {
+        // if we're not blending, we can just make a shallow copy
+        if (node) {
+            node->decrementReferenceCount(value.getAttribute());
+        }
+        (node = other)->incrementReferenceCount();
+        return;
+    }
+    if (node) {
+        MetavoxelNode* oldNode = node;
+        node = new MetavoxelNode(value.getAttribute(), oldNode);
+        oldNode->decrementReferenceCount(value.getAttribute());
+        
+    } else {
+        node = new MetavoxelNode(value);
+    }
+    OwnedAttributeValue oldValue = node->getAttributeValue(value.getAttribute());
+    node->blendAttributeValues(other->getAttributeValue(value.getAttribute()), oldValue);
+    if (!other->isLeaf()) {
+        for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
+            MetavoxelNode* child = node->getChild(i);
+            setNode(oldValue, child, other->getChild(i), true);
+            node->setChild(i, child);
+        }
+    }
+    node->mergeChildren(value.getAttribute());
+}
+
+static void setNode(const AttributeValue& value, MetavoxelNode*& node, const glm::vec3& minimum, float size,
+        MetavoxelNode* other, const glm::vec3& otherMinimum, float otherSize, bool blend) {
+    if (otherSize >= size) {
+        setNode(value, node, other, blend);
+        return;
+    }
+    if (node) {
+        MetavoxelNode* oldNode = node;
+        node = new MetavoxelNode(value.getAttribute(), oldNode);
+        oldNode->decrementReferenceCount(value.getAttribute());
+        
+    } else {
+        node = new MetavoxelNode(value);
+    }
+    int index = 0;
+    float otherHalfSize = otherSize * 0.5f;
+    float nextSize = size * 0.5f;
+    if (otherMinimum.x + otherHalfSize >= minimum.x + nextSize) {
+        index |= X_MAXIMUM_FLAG;
+    }
+    if (otherMinimum.y + otherHalfSize >= minimum.y + nextSize) {
+        index |= Y_MAXIMUM_FLAG;
+    }
+    if (otherMinimum.z + otherHalfSize >= minimum.z + nextSize) {
+        index |= Z_MAXIMUM_FLAG;
+    }
+    if (node->isLeaf()) {
+        for (int i = 1; i < MetavoxelNode::CHILD_COUNT; i++) {
+            node->setChild((index + i) % MetavoxelNode::CHILD_COUNT, new MetavoxelNode(
+                node->getAttributeValue(value.getAttribute())));
+        }
+    }
+    MetavoxelNode* nextNode = node->getChild(index);
+    setNode(node->getAttributeValue(value.getAttribute()), nextNode, getNextMinimum(minimum, nextSize, index),
+        nextSize, other, otherMinimum, otherSize, blend);
+    node->setChild(index, nextNode);
+    node->mergeChildren(value.getAttribute());
+}
+
+void MetavoxelData::set(const glm::vec3& minimum, const MetavoxelData& data, bool blend) {
+    // expand to fit the entire data
+    Box bounds(minimum, minimum + glm::vec3(data.getSize(), data.getSize(), data.getSize()));
+    while (!getBounds().contains(bounds)) {
+        expand();
+    }
+    
+    // set/mix each attribute separately
+    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = data._roots.constBegin();
+            it != data._roots.constEnd(); it++) {
+        MetavoxelNode*& root = _roots[it.key()];
+        setNode(it.key(), root, getMinimum(), getSize(), it.value(), minimum, data.getSize(), blend);
+        if (root->isLeaf() && root->getAttributeValue(it.key()).isDefault()) {
+            _roots.remove(it.key());
+            root->decrementReferenceCount(it.key());
+        }
+    }
+}
+
 static int getOppositeIndex(int index) {
     return index ^ MAXIMUM_FLAG_MASK;
 }
@@ -511,6 +610,14 @@ MetavoxelNode* MetavoxelData::createRoot(const AttributePointer& attribute) {
     return root = new MetavoxelNode(attribute);
 }
 
+bool MetavoxelData::operator==(const MetavoxelData& other) const {
+    return _size == other._size && _roots == other._roots;
+}
+
+bool MetavoxelData::operator!=(const MetavoxelData& other) const {
+    return _size != other._size || _roots != other._roots;
+}
+
 void MetavoxelData::incrementRootReferenceCounts() {
     for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
         it.value()->incrementReferenceCount();
@@ -523,11 +630,22 @@ void MetavoxelData::decrementRootReferenceCounts() {
     }
 }
 
-static glm::vec3 getNextMinimum(const glm::vec3& minimum, float nextSize, int index) {
-    return minimum + glm::vec3(
-        (index & X_MAXIMUM_FLAG) ? nextSize : 0.0f,
-        (index & Y_MAXIMUM_FLAG) ? nextSize : 0.0f,
-        (index & Z_MAXIMUM_FLAG) ? nextSize : 0.0f);
+Bitstream& operator<<(Bitstream& out, const MetavoxelData& data) {
+    data.write(out);
+    return out;
+}
+
+Bitstream& operator>>(Bitstream& in, MetavoxelData& data) {
+    data.read(in);
+    return in;
+}
+
+template<> void Bitstream::writeDelta(const MetavoxelData& value, const MetavoxelData& reference) {
+    value.writeDelta(reference, MetavoxelLOD(), *this, MetavoxelLOD());
+}
+
+template<> void Bitstream::readDelta(MetavoxelData& value, const MetavoxelData& reference) {
+    value.readDelta(reference, MetavoxelLOD(), *this, MetavoxelLOD());
 }
 
 bool MetavoxelStreamState::shouldSubdivide() const {
@@ -577,7 +695,11 @@ MetavoxelNode::MetavoxelNode(const AttributePointer& attribute, const MetavoxelN
 void MetavoxelNode::setAttributeValue(const AttributeValue& attributeValue) {
     attributeValue.getAttribute()->destroy(_attributeValue);
     _attributeValue = attributeValue.copy();
-    clearChildren(attributeValue.getAttribute());
+}
+
+void MetavoxelNode::blendAttributeValues(const AttributeValue& source, const AttributeValue& dest) {
+    source.getAttribute()->destroy(_attributeValue);
+    _attributeValue = source.getAttribute()->blend(source.getValue(), dest.getValue());
 }
 
 AttributeValue MetavoxelNode::getAttributeValue(const AttributePointer& attribute) const {
@@ -1408,7 +1530,7 @@ void SpannerRenderer::simulate(float deltaTime) {
     // nothing by default
 }
 
-void SpannerRenderer::render(float alpha, const glm::vec3& clipMinimum, float clipSize) {
+void SpannerRenderer::render(float alpha, Mode mode, const glm::vec3& clipMinimum, float clipSize) {
     // nothing by default
 }
 
@@ -1426,7 +1548,7 @@ void Transformable::setTranslation(const glm::vec3& translation) {
     }
 }
 
-void Transformable::setRotation(const glm::vec3& rotation) {
+void Transformable::setRotation(const glm::quat& rotation) {
     if (_rotation != rotation) {
         emit rotationChanged(_rotation = rotation);
     }

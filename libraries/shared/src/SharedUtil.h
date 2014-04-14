@@ -1,13 +1,16 @@
 //
 //  SharedUtil.h
-//  hifi
+//  libraries/shared/src
 //
 //  Created by Stephen Birarda on 2/22/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__SharedUtil__
-#define __hifi__SharedUtil__
+#ifndef hifi_SharedUtil_h
+#define hifi_SharedUtil_h
 
 #include <math.h>
 #include <stdint.h>
@@ -174,7 +177,8 @@ bool isSimilarOrientation(const glm::quat& orientionA, const glm::quat& orientio
                         float similarEnough = ORIENTATION_SIMILAR_ENOUGH);
 const float POSITION_SIMILAR_ENOUGH = 0.1f; // 0.1 meter
 bool isSimilarPosition(const glm::vec3& positionA, const glm::vec3& positionB, float similarEnough = POSITION_SIMILAR_ENOUGH);
-                        
-bool isNaN(float f);
 
-#endif /* defined(__hifi__SharedUtil__) */
+/// \return bool is the float NaN                        
+bool isNaN(float value);
+
+#endif // hifi_SharedUtil_h

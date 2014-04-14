@@ -1,9 +1,12 @@
 //
 //  MetavoxelMessages.cpp
-//  metavoxels
+//  libraries/metavoxels/src
 //
 //  Created by Andrzej Kapolka on 1/24/14.
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include "MetavoxelMessages.h"
@@ -304,4 +307,14 @@ void SetSpannerEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& obje
     data.guide(visitor);
     
     setIntersectingMasked(spanner->getBounds(), data);
+}
+
+SetDataEdit::SetDataEdit(const glm::vec3& minimum, const MetavoxelData& data, bool blend) :
+    minimum(minimum),
+    data(data),
+    blend(blend) {
+}
+
+void SetDataEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
+    data.set(minimum, this->data, blend);
 }

@@ -1,13 +1,16 @@
 //
 //  OctreeStatsDialog.h
-//  interface
+//  interface/src/ui
 //
 //  Created by Brad Hefta-Gaub on 7/19/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__OctreeStatsDialog__
-#define __hifi__OctreeStatsDialog__
+#ifndef hifi_OctreeStatsDialog_h
+#define hifi_OctreeStatsDialog_h
 
 #include <QDialog>
 #include <QFormLayout>
@@ -66,5 +69,4 @@ private:
     details _extraServerDetails[MAX_VOXEL_SERVERS];
 };
 
-#endif /* defined(__interface__OctreeStatsDialog__) */
-
+#endif // hifi_OctreeStatsDialog_h

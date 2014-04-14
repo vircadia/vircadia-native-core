@@ -1,10 +1,12 @@
 //
 //  Sound.cpp
-//  hifi
+//  libraries/audio/src
 //
 //  Created by Stephen Birarda on 1/2/2014.
-//  Modified by Athanasios Gaitatzes to add WAVE file support.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <stdint.h>
@@ -152,20 +154,17 @@ void Sound::downSample(const QByteArray& rawAudioByteArray) {
 // Sample values are given above for a 16-bit stereo source.
 //
 
-struct chunk
-{
+struct chunk {
     char        id[4];
     quint32     size;
 };
 
-struct RIFFHeader
-{
+struct RIFFHeader {
     chunk       descriptor;     // "RIFF"
     char        type[4];        // "WAVE"
 };
 
-struct WAVEHeader
-{
+struct WAVEHeader {
     chunk       descriptor;
     quint16     audioFormat;    // Format type: 1=PCM, 257=Mu-Law, 258=A-Law, 259=ADPCM
     quint16     numChannels;    // Number of channels: 1=mono, 2=stereo
@@ -175,13 +174,11 @@ struct WAVEHeader
     quint16     bitsPerSample;
 };
 
-struct DATAHeader
-{
+struct DATAHeader {
     chunk       descriptor;
 };
 
-struct CombinedHeader
-{
+struct CombinedHeader {
     RIFFHeader  riff;
     WAVEHeader  wave;
 };

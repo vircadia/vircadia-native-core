@@ -1,9 +1,12 @@
 //
 //  AccountManager.cpp
-//  hifi
+//  libraries/shared/src
 //
 //  Created by Stephen Birarda on 2/18/2014.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <QtCore/QDataStream>
@@ -33,6 +36,16 @@ Q_DECLARE_METATYPE(QNetworkAccessManager::Operation)
 Q_DECLARE_METATYPE(JSONCallbackParameters)
 
 const QString ACCOUNTS_GROUP = "accounts";
+
+JSONCallbackParameters::JSONCallbackParameters() :
+    jsonCallbackReceiver(NULL),
+    jsonCallbackMethod(),
+    errorCallbackReceiver(NULL),
+    errorCallbackMethod(),
+    updateReciever(NULL),
+    updateSlot()
+{
+}
 
 AccountManager::AccountManager() :
     _authURL(),
@@ -170,18 +183,31 @@ void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::
             if (!callbackParams.isEmpty()) {
                 // if we have information for a callback, insert the callbackParams into our local map
                 _pendingCallbackMap.insert(networkReply, callbackParams);
+                
+                if (callbackParams.updateReciever && !callbackParams.updateSlot.isEmpty()) {
+                    callbackParams.updateReciever->connect(networkReply, SIGNAL(uploadProgress(qint64, qint64)),
+                                                            callbackParams.updateSlot.toStdString().c_str());
+                }
             }
             
             // if we ended up firing of a request, hook up to it now
-            connect(networkReply, SIGNAL(finished()), this, SLOT(passSuccessToCallback()));
-            connect(networkReply, SIGNAL(error(QNetworkReply::NetworkError)),
-                    this, SLOT(passErrorToCallback(QNetworkReply::NetworkError)));
+            connect(networkReply, SIGNAL(finished()), SLOT(processReply()));
         }
     }
 }
 
-void AccountManager::passSuccessToCallback() {
+void AccountManager::processReply() {
     QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
+    
+    if (requestReply->error() == QNetworkReply::NoError) {
+        passSuccessToCallback(requestReply);
+    } else {
+        passErrorToCallback(requestReply);
+    }
+    delete requestReply;
+}
+
+void AccountManager::passSuccessToCallback(QNetworkReply* requestReply) {
     QJsonDocument jsonResponse = QJsonDocument::fromJson(requestReply->readAll());
     
     JSONCallbackParameters callbackParams = _pendingCallbackMap.value(requestReply);
@@ -200,17 +226,15 @@ void AccountManager::passSuccessToCallback() {
             qDebug() << jsonResponse;
         }
     }
-    delete requestReply;
 }
 
-void AccountManager::passErrorToCallback(QNetworkReply::NetworkError errorCode) {
-    QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
+void AccountManager::passErrorToCallback(QNetworkReply* requestReply) {
     JSONCallbackParameters callbackParams = _pendingCallbackMap.value(requestReply);
     
     if (callbackParams.errorCallbackReceiver) {
         // invoke the right method on the callback receiver
         QMetaObject::invokeMethod(callbackParams.errorCallbackReceiver, qPrintable(callbackParams.errorCallbackMethod),
-                                  Q_ARG(QNetworkReply::NetworkError, errorCode),
+                                  Q_ARG(QNetworkReply::NetworkError, requestReply->error()),
                                   Q_ARG(const QString&, requestReply->errorString()));
         
         // remove the related reply-callback group from the map
@@ -218,10 +242,9 @@ void AccountManager::passErrorToCallback(QNetworkReply::NetworkError errorCode) 
     } else {
         if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
             qDebug() << "Received error response from data-server that has no matching callback.";
-            qDebug() << "Error" << errorCode << "-" << requestReply->errorString();
+            qDebug() << "Error" << requestReply->error() << "-" << requestReply->errorString();
         }
     }
-    delete requestReply;
 }
 
 bool AccountManager::hasValidAccessToken() {

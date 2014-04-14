@@ -1,9 +1,12 @@
 //
-//  util.cpp
-//  interface
+//  Util.cpp
+//  interface/src
 //
 //  Created by Philip Rosedale on 8/24/12.
-//  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
+//  Copyright 2012 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <iostream>
@@ -348,10 +351,10 @@ void drawvec3(int x, int y, float scale, float radians, float thick, int mono, g
     glPopMatrix();
 }
 
-void renderCollisionOverlay(int width, int height, float magnitude) {
+void renderCollisionOverlay(int width, int height, float magnitude, float red, float blue, float green) {
     const float MIN_VISIBLE_COLLISION = 0.01f;
     if (magnitude > MIN_VISIBLE_COLLISION) {
-        glColor4f(0, 0, 0, magnitude);
+        glColor4f(red, blue, green, magnitude);
         glBegin(GL_QUADS);
         glVertex2f(0, 0);
         glVertex2d(width, 0);

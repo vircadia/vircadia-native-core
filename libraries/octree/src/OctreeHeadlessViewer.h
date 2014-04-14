@@ -1,14 +1,16 @@
 //
 //  OctreeHeadlessViewer.h
-//  hifi
+//  libraries/octree/src
 //
-//  Created by Brad Hefta-Gaub on 2/26/14
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Created by Brad Hefta-Gaub on 2/26/14.
+//  Copyright 2014 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__OctreeHeadlessViewer__
-#define __hifi__OctreeHeadlessViewer__
+#ifndef hifi_OctreeHeadlessViewer_h
+#define hifi_OctreeHeadlessViewer_h
 
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -70,4 +72,4 @@ private:
     int _maxPacketsPerSecond;
 };
 
-#endif /* defined(__hifi__OctreeHeadlessViewer__) */
+#endif // hifi_OctreeHeadlessViewer_h
