@@ -24,6 +24,7 @@
 #include "location/LocationManager.h"
 #include "ui/PreferencesDialog.h"
 #include "ui/ChatWindow.h"
+#include "ui/ScriptEditorWindow.h"
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
@@ -161,6 +162,7 @@ private slots:
     void cycleFrustumRenderMode();
     void runTests();
     void showMetavoxelEditor();
+    void showScriptEditor();
     void showChat();
     void toggleChat();
     void audioMuteToggled();
@@ -212,6 +214,7 @@ private:
     FrustumDrawMode _frustumDrawMode;
     ViewFrustumOffset _viewFrustumOffset;
     QPointer<MetavoxelEditor> _MetavoxelEditor;
+    QPointer<ScriptEditorWindow> _ScriptEditor;
     QPointer<ChatWindow> _chatWindow;
     OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
@@ -308,6 +311,7 @@ namespace MenuOption {
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString RunningScripts = "Running Scripts";
     const QString RunTimingTests = "Run Timing Tests";
+    const QString ScriptEditor = "Script Editor...";
     const QString SettingsExport = "Export Settings";
     const QString SettingsImport = "Import Settings";
     const QString Shadows = "Shadows";

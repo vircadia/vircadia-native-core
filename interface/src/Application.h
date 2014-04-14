@@ -244,6 +244,7 @@ public:
     void skipVersion(QString latestVersion);
 
     QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
+    ScriptEngine* getScriptEngine(QString scriptHash) { return _scriptEnginesHash.contains(scriptHash) ? _scriptEnginesHash[scriptHash] : NULL; }
 
 signals:
 
