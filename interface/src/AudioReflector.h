@@ -174,6 +174,10 @@ private:
     void newDrawRays();
     void drawPath(AudioPath* path, const glm::vec3& originalColor);
     void newCalculateAllReflections();
+
+    void injectAudiblePoint(const AudioPoint& audiblePoint, const QByteArray& samples, unsigned int sampleTime, int sampleRate);
+    void oldEchoAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
+    void newEchoAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
     
     // return the surface characteristics of the element we hit
     SurfaceCharacteristics getSurfaceCharacteristics(OctreeElement* elementHit);

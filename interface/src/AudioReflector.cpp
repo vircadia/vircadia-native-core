@@ -44,7 +44,8 @@ void AudioReflector::render() {
     }
 
     if (_audio->getProcessSpatialAudio()) {
-        newDrawRays();
+        //newDrawRays();
+        drawRays();
     }
 }
 
@@ -474,15 +475,121 @@ void AudioReflector::echoReflections(const glm::vec3& origin, const QVector<glm:
     }
 }
 
+void AudioReflector::injectAudiblePoint(const AudioPoint& audiblePoint,
+                        const QByteArray& samples, unsigned int sampleTime, int sampleRate) {
+
+    bool wantEarSeparation = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingSeparateEars);
+    bool wantStereo = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingStereoSource);
+    glm::vec3 rightEarPosition = wantEarSeparation ? _myAvatar->getHead()->getRightEarPosition() : 
+                                    _myAvatar->getHead()->getPosition();
+    glm::vec3 leftEarPosition = wantEarSeparation ? _myAvatar->getHead()->getLeftEarPosition() :
+                                    _myAvatar->getHead()->getPosition();
+
+    int totalNumberOfSamples = samples.size() / sizeof(int16_t);
+    int totalNumberOfStereoSamples = samples.size() / (sizeof(int16_t) * NUMBER_OF_CHANNELS);
+
+    const int16_t* originalSamplesData = (const int16_t*)samples.constData();
+    QByteArray attenuatedLeftSamples;
+    QByteArray attenuatedRightSamples;
+    attenuatedLeftSamples.resize(samples.size());
+    attenuatedRightSamples.resize(samples.size());
+
+    int16_t* attenuatedLeftSamplesData = (int16_t*)attenuatedLeftSamples.data();
+    int16_t* attenuatedRightSamplesData = (int16_t*)attenuatedRightSamples.data();
+    
+    // calculate the distance to the ears
+    float rightEarDistance = glm::distance(audiblePoint.location, rightEarPosition);
+    float leftEarDistance = glm::distance(audiblePoint.location, leftEarPosition);
+
+    float rightEarDelayMsecs = getDelayFromDistance(rightEarDistance) + audiblePoint.delay;
+    float leftEarDelayMsecs = getDelayFromDistance(leftEarDistance) + audiblePoint.delay;
+        
+    _totalDelay += rightEarDelayMsecs + leftEarDelayMsecs;
+    _delayCount += 2;
+    _maxDelay = std::max(_maxDelay,rightEarDelayMsecs);
+    _maxDelay = std::max(_maxDelay,leftEarDelayMsecs);
+    _minDelay = std::min(_minDelay,rightEarDelayMsecs);
+    _minDelay = std::min(_minDelay,leftEarDelayMsecs);
+        
+    int rightEarDelay = rightEarDelayMsecs * sampleRate / MSECS_PER_SECOND;
+    int leftEarDelay = leftEarDelayMsecs * sampleRate / MSECS_PER_SECOND;
+
+        //qDebug() << "leftTotalDistance=" << leftTotalDistance << "rightTotalDistance=" << rightTotalDistance;
+        //qDebug() << "leftEarDelay=" << leftEarDelay << "rightEarDelay=" << rightEarDelay;
+
+    float rightEarAttenuation = getDistanceAttenuationCoefficient(rightEarDistance) * audiblePoint.attenuation;
+    float leftEarAttenuation = getDistanceAttenuationCoefficient(leftEarDistance) * audiblePoint.attenuation;
+
+    _totalAttenuation += rightEarAttenuation + leftEarAttenuation;
+    _attenuationCount += 2;
+    _maxAttenuation = std::max(_maxAttenuation,rightEarAttenuation);
+    _maxAttenuation = std::max(_maxAttenuation,leftEarAttenuation);
+    _minAttenuation = std::min(_minAttenuation,rightEarAttenuation);
+    _minAttenuation = std::min(_minAttenuation,leftEarAttenuation);
+
+    // run through the samples, and attenuate them                                                            
+    for (int sample = 0; sample < totalNumberOfStereoSamples; sample++) {
+        int16_t leftSample = originalSamplesData[sample * NUMBER_OF_CHANNELS];
+        int16_t rightSample = leftSample;
+        if (wantStereo) {
+            rightSample = originalSamplesData[(sample * NUMBER_OF_CHANNELS) + 1];
+        }
+
+        //qDebug() << "leftSample=" << leftSample << "rightSample=" << rightSample;
+        attenuatedLeftSamplesData[sample * NUMBER_OF_CHANNELS] = leftSample * leftEarAttenuation;
+        attenuatedLeftSamplesData[sample * NUMBER_OF_CHANNELS + 1] = 0;
+
+        attenuatedRightSamplesData[sample * NUMBER_OF_CHANNELS] = 0;
+        attenuatedRightSamplesData[sample * NUMBER_OF_CHANNELS + 1] = rightSample * rightEarAttenuation;
+
+        //qDebug() << "attenuated... leftSample=" << (leftSample * leftEarAttenuation) << "rightSample=" << (rightSample * rightEarAttenuation);
+    }
+        
+    // now inject the attenuated array with the appropriate delay
+    
+    unsigned int sampleTimeLeft = sampleTime + leftEarDelay;
+    unsigned int sampleTimeRight = sampleTime + rightEarDelay;
+    
+    //qDebug() << "sampleTimeLeft=" << sampleTimeLeft << "sampleTimeRight=" << sampleTimeRight;
+
+    _audio->addSpatialAudioToBuffer(sampleTimeLeft, attenuatedLeftSamples, totalNumberOfSamples);
+    _audio->addSpatialAudioToBuffer(sampleTimeRight, attenuatedRightSamples, totalNumberOfSamples);
+}
 void AudioReflector::processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
     // nothing yet, but will do local reflections too...
 }
 
 void AudioReflector::processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
-    return; //
-    
-// DO NOTHING....
-    
+    //newEchoAudio(sampleTime, samples, format);
+    oldEchoAudio(sampleTime, samples, format);
+}
+
+void AudioReflector::newEchoAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
+    //quint64 start = usecTimestampNow();
+
+    _maxDelay = 0;
+    _maxAttenuation = 0.0f;
+    _minDelay = std::numeric_limits<int>::max();
+    _minAttenuation = std::numeric_limits<float>::max();
+    _totalDelay = 0.0f;
+    _delayCount = 0;
+    _totalAttenuation = 0.0f;
+    _attenuationCount = 0;
+
+    QMutexLocker locker(&_mutex);
+
+    foreach(const AudioPoint& audiblePoint, _audiblePoints) {
+        injectAudiblePoint(audiblePoint, samples, sampleTime, format.sampleRate());
+    }
+
+    _averageDelay = _delayCount == 0 ? 0 : _totalDelay / _delayCount;
+    _averageAttenuation = _attenuationCount == 0 ? 0 : _totalAttenuation / _attenuationCount;
+
+    //quint64 end = usecTimestampNow();
+    //qDebug() << "AudioReflector::addSamples()... elapsed=" << (end - start);
+}
+
+void AudioReflector::oldEchoAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
     //quint64 start = usecTimestampNow();
 
     _maxDelay = 0;
