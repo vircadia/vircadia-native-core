@@ -139,14 +139,14 @@
          <string notr="true">QPushButton {
     background-color: rgba( 0, 0, 0, 0% );
 	border: none;
-    image: url(:images/close.svg)
+    image: url(../resources/images/close.svg)
 }
 
 
 QPushButton:pressed {
     background-color: rgba( 0, 0, 0, 0% );
 	border: none;
-    image: url(:images/close_down.svg)
+    image: url(../resources/images/close_down.svg)
 }</string>
         </property>
         <property name="text">
