@@ -62,7 +62,7 @@ float extractUniformScale(const glm::vec3& scale);
 
 double diffclock(timeval *clock1,timeval *clock2);
 
-void renderCollisionOverlay(int width, int height, float magnitude);
+void renderCollisionOverlay(int width, int height, float magnitude, float red = 0, float blue = 0, float green = 0);
 
 void renderOrientationDirections( glm::vec3 position, const glm::quat& orientation, float size );
 

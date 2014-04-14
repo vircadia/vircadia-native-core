@@ -41,6 +41,7 @@ public:
 
     void render(const glm::vec3& cameraPosition, RenderMode renderMode = NORMAL_RENDER_MODE);
     void renderBody(RenderMode renderMode);
+    bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
     void renderDebugBodyPoints();
     void renderHeadMouse() const;
 
@@ -57,7 +58,6 @@ public:
     float getLeanScale() const { return _leanScale; }
     float getElapsedTimeStopped() const { return _elapsedTimeStopped; }
     float getElapsedTimeMoving() const { return _elapsedTimeMoving; }
-    float getAbsoluteHeadYaw() const;   // degrees
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     glm::vec3 getGravity() const { return _gravity; }
@@ -107,6 +107,9 @@ public slots:
     glm::vec3 getThrust() { return _thrust; };
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
+signals:
+    void transformChanged();
+
 private:
     bool _mousePressed;
     float _bodyPitchDelta;  // degrees
@@ -128,8 +131,8 @@ private:
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
     bool _shouldRender;
-
     bool _billboardValid;
+    float _oculusYawOffset;
 
 	// private methods
     void updateThrust(float deltaTime);

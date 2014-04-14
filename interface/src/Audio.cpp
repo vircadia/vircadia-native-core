@@ -50,7 +50,7 @@ static const int NUMBER_OF_NOISE_SAMPLE_FRAMES = 300;
 // Mute icon configration
 static const int MUTE_ICON_SIZE = 24;
 
-Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* parent) :
+Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     AbstractAudioInterface(parent),
     _audioInput(NULL),
     _desiredInputFormat(),
@@ -67,7 +67,6 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
     _proceduralOutputDevice(NULL),
     _inputRingBuffer(0),
     _ringBuffer(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL),
-    _scope(scope),
     _averagedLatency(0.0),
     _measuredJitter(0),
     _jitterBufferSamples(initialJitterBufferSamples),
@@ -555,12 +554,6 @@ void Audio::handleAudioInput() {
                     _lastInputLoudness = 0;
                 }
             }
-
-            // add input data just written to the scope
-            QMetaObject::invokeMethod(_scope, "addSamples", Qt::QueuedConnection,
-                                      Q_ARG(QByteArray, QByteArray((char*) monoAudioSamples,
-                                                                   NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL)),
-                                      Q_ARG(bool, false), Q_ARG(bool, true));
         } else {
             // our input loudness is 0, since we're muted
             _lastInputLoudness = 0;
@@ -724,11 +717,6 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
 
             if (_outputDevice) {
                 _outputDevice->write(outputBuffer);
-
-                // add output (@speakers) data just written to the scope
-                QMetaObject::invokeMethod(_scope, "addSamples", Qt::QueuedConnection,
-                                          Q_ARG(QByteArray, QByteArray((char*) ringBufferSamples, numNetworkOutputSamples)),
-                                          Q_ARG(bool, true), Q_ARG(bool, false));
             }
             delete[] ringBufferSamples;
         }

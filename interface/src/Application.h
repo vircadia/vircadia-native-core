@@ -52,6 +52,7 @@
 #include "avatar/Avatar.h"
 #include "avatar/AvatarManager.h"
 #include "avatar/MyAvatar.h"
+#include "devices/Faceplus.h"
 #include "devices/Faceshift.h"
 #include "devices/SixenseManager.h"
 #include "devices/Visage.h"
@@ -176,8 +177,10 @@ public:
     bool isMouseHidden() const { return _mouseHidden; }
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
+    Faceplus* getFaceplus() { return &_faceplus; }
     Faceshift* getFaceshift() { return &_faceshift; }
     Visage* getVisage() { return &_visage; }
+    FaceTracker* getActiveFaceTracker();
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QUndoStack* getUndoStack() { return &_undoStack; }
@@ -185,6 +188,8 @@ public:
     /// if you need to access the application settings, use lockSettings()/unlockSettings()
     QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }
     void unlockSettings() { _settingsMutex.unlock(); }
+    
+    void saveSettings();
 
     QMainWindow* getWindow() { return _window; }
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
@@ -281,6 +286,8 @@ public slots:
     void uploadHead();
     void uploadSkeleton();
 
+    void bumpSettings() { ++_numChangedSettings; }
+
 private slots:
     void timer();
     void idle();
@@ -316,6 +323,7 @@ private:
     // Various helper functions called during update()
     void updateLOD();
     void updateMouseRay();
+    void updateFaceplus();
     void updateFaceshift();
     void updateVisage();
     void updateMyAvatarLookAtPosition();
@@ -370,6 +378,7 @@ private:
     QNetworkAccessManager* _networkAccessManager;
     QMutex _settingsMutex;
     QSettings* _settings;
+    int _numChangedSettings;
 
     QUndoStack _undoStack;
     
@@ -407,7 +416,6 @@ private:
     ViewFrustum _shadowViewFrustum;
     quint64 _lastQueriedTime;
 
-    Oscilloscope _audioScope;
     float _trailingAudioLoudness;
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying voxels from voxel server
@@ -415,9 +423,10 @@ private:
     AvatarManager _avatarManager;
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
 
+    Faceplus _faceplus;
     Faceshift _faceshift;
     Visage _visage;
-
+    
     SixenseManager _sixenseManager;
 
     Camera _myCamera;                  // My view onto the world
@@ -426,6 +435,7 @@ private:
     QRect _mirrorViewRect;
     RearMirrorTools* _rearMirrorTools;
 
+    float _cameraPushback;
     glm::mat4 _untranslatedViewMatrix;
     glm::vec3 _viewMatrixTranslation;
     glm::mat4 _projectionMatrix;

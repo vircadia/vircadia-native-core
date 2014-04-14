@@ -351,10 +351,10 @@ void drawvec3(int x, int y, float scale, float radians, float thick, int mono, g
     glPopMatrix();
 }
 
-void renderCollisionOverlay(int width, int height, float magnitude) {
+void renderCollisionOverlay(int width, int height, float magnitude, float red, float blue, float green) {
     const float MIN_VISIBLE_COLLISION = 0.01f;
     if (magnitude > MIN_VISIBLE_COLLISION) {
-        glColor4f(0, 0, 0, magnitude);
+        glColor4f(red, blue, green, magnitude);
         glBegin(GL_QUADS);
         glVertex2f(0, 0);
         glVertex2d(width, 0);

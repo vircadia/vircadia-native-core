@@ -17,9 +17,9 @@
 
 
 // default axis of CapsuleShape is Y-axis
-const glm::vec3 localAxis(0.f, 1.f, 0.f);
+const glm::vec3 localAxis(0.0f, 1.0f, 0.0f);
 
-CapsuleShape::CapsuleShape() : Shape(Shape::CAPSULE_SHAPE) {}
+CapsuleShape::CapsuleShape() : Shape(Shape::CAPSULE_SHAPE), _radius(0.0f), _halfHeight(0.0f) {}
 
 CapsuleShape::CapsuleShape(float radius, float halfHeight) : Shape(Shape::CAPSULE_SHAPE),
     _radius(radius), _halfHeight(halfHeight) {
@@ -32,13 +32,13 @@ CapsuleShape::CapsuleShape(float radius, float halfHeight, const glm::vec3& posi
 }
 
 CapsuleShape::CapsuleShape(float radius, const glm::vec3& startPoint, const glm::vec3& endPoint) :
-    Shape(Shape::CAPSULE_SHAPE), _radius(radius), _halfHeight(0.f) {
+    Shape(Shape::CAPSULE_SHAPE), _radius(radius), _halfHeight(0.0f) {
     glm::vec3 axis = endPoint - startPoint;
     float height = glm::length(axis);
     if (height > EPSILON) {
         _halfHeight = 0.5f * height;
         axis /= height;
-        glm::vec3 yAxis(0.f, 1.f, 0.f);
+        glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
         float angle = glm::angle(axis, yAxis);
         if (angle > EPSILON) {
             axis = glm::normalize(glm::cross(yAxis, axis));
@@ -50,17 +50,17 @@ CapsuleShape::CapsuleShape(float radius, const glm::vec3& startPoint, const glm:
 
 /// \param[out] startPoint is the center of start cap
 void CapsuleShape::getStartPoint(glm::vec3& startPoint) const {
-    startPoint = getPosition() - _rotation * glm::vec3(0.f, _halfHeight, 0.f);
+    startPoint = getPosition() - _rotation * glm::vec3(0.0f, _halfHeight, 0.0f);
 }
 
 /// \param[out] endPoint is the center of the end cap
 void CapsuleShape::getEndPoint(glm::vec3& endPoint) const {
-    endPoint = getPosition() + _rotation * glm::vec3(0.f, _halfHeight, 0.f);
+    endPoint = getPosition() + _rotation * glm::vec3(0.0f, _halfHeight, 0.0f);
 }
 
 void CapsuleShape::computeNormalizedAxis(glm::vec3& axis) const {
     // default axis of a capsule is along the yAxis
-    axis = _rotation * glm::vec3(0.f, 1.f, 0.f);
+    axis = _rotation * glm::vec3(0.0f, 1.0f, 0.0f);
 }
 
 void CapsuleShape::setRadius(float radius) {
