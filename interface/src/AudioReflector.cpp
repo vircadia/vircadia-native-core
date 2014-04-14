@@ -163,44 +163,14 @@ void AudioReflector::calculateAllReflections() {
     
     bool shouldRecalc = _reflections == 0 || _myAvatar->getHead()->getPosition() != _origin || (orientation != _orientation);
 
-    /*
-    qDebug() << "wantHeadOrientation=" << wantHeadOrientation;
-    
-    qDebug("   _myAvatar->getHead()->getPosition()=%f,%f,%f",
-                    _myAvatar->getHead()->getPosition().x,
-                    _myAvatar->getHead()->getPosition().y,
-                    _myAvatar->getHead()->getPosition().z);
-
-    qDebug("   _origin=%f,%f,%f",
-                    _origin.x,
-                    _origin.y,
-                    _origin.z);
-
-    qDebug("   orientation=%f,%f,%f,%f",
-                    orientation.x,
-                    orientation.y,
-                    orientation.z,
-                    orientation.w);
-
-    qDebug("   _orientation=%f,%f,%f,%f",
-                    _orientation.x,
-                    _orientation.y,
-                    _orientation.z,
-                    _orientation.w);
-    */
     if (shouldRecalc) {
-        //qDebug() << "origin or orientation has changed...";
-
         QMutexLocker locker(&_mutex);
 
-
-
-        quint64 start = usecTimestampNow();        
+        quint64 start = usecTimestampNow();
 
         _origin = _myAvatar->getHead()->getPosition();
         glm::vec3 averageEarPosition = _myAvatar->getHead()->getPosition();
         _listenerPosition = averageEarPosition;
-qDebug() << "_listenerPosition:" << _listenerPosition.x << "," << _listenerPosition.y << "," << _listenerPosition.z;
         _orientation = orientation;
         glm::vec3 right = glm::normalize(_orientation * IDENTITY_RIGHT);
         glm::vec3 up = glm::normalize(_orientation * IDENTITY_UP);
@@ -235,9 +205,11 @@ qDebug() << "_listenerPosition:" << _listenerPosition.x << "," << _listenerPosit
         quint64 end = usecTimestampNow();
 
         reset();
-        
-        //qDebug() << "Reflections recalculated in " << (end - start) << "usecs";
-        
+
+        const bool wantDebugging = false;
+        if (wantDebugging) {
+            qDebug() << "calculateAllReflections() elapsed=" << (end - start);
+        }
     }
 }
 
@@ -633,30 +605,17 @@ void AudioReflector::newCalculateAllReflections() {
                             || !isSimilarPosition(listenerPosition, _listenerPosition);
 
     if (shouldRecalc) {
-    
-        /*
-        qDebug() << "_audiblePoints.size()=" << _audiblePoints.size();
-        qDebug() << "isSimilarPosition(origin, _origin)=" << isSimilarPosition(origin, _origin);
-        qDebug() << "isSimilarPosition(listenerPosition, _listenerPosition)=" << isSimilarPosition(listenerPosition, _listenerPosition);
-        qDebug() << "isSimilarOrientation(orientation, _orientation)=" << isSimilarOrientation(orientation, _orientation);
-        if (!isSimilarOrientation(orientation, _orientation)) {
-            qDebug() << "    orientation=" << orientation.x << "," << orientation.y << ","
-                        << orientation.y << "," << orientation.w;
-
-            qDebug() << "    _orientation=" << _orientation.x << "," << _orientation.y << ","
-                        << _orientation.y << "," << _orientation.w;
-        }
-        */
-
         QMutexLocker locker(&_mutex);
         quint64 start = usecTimestampNow();        
         _origin = origin;
         _orientation = orientation;
         _listenerPosition = listenerPosition;
-        
-        anylizePaths(); // actually does the work
-        
+        analyzePaths(); // actually does the work
         quint64 end = usecTimestampNow();
+        const bool wantDebugging = false;
+        if (wantDebugging) {
+            qDebug() << "newCalculateAllReflections() elapsed=" << (end - start);
+        }
     }
 }    
 
@@ -694,7 +653,7 @@ void AudioReflector::drawPath(AudioPath* path, const glm::vec3& originalColor) {
 }
 
 
-void AudioReflector::anylizePaths() {
+void AudioReflector::analyzePaths() {
     // clear our _audioPaths
     foreach(AudioPath* const& path, _audioPaths) {
         delete path;
@@ -703,7 +662,6 @@ void AudioReflector::anylizePaths() {
     _audiblePoints.clear(); // clear our audible points
     
     // add our initial paths
-    glm::vec3 averageEarPosition = _myAvatar->getHead()->getPosition();
     glm::vec3 right = glm::normalize(_orientation * IDENTITY_RIGHT);
     glm::vec3 up = glm::normalize(_orientation * IDENTITY_UP);
     glm::vec3 front = glm::normalize(_orientation * IDENTITY_FRONT);
@@ -739,22 +697,23 @@ void AudioReflector::anylizePaths() {
     addSoundSource(_origin, backRightDown, initialAttenuation, preDelay);
     addSoundSource(_origin, backLeftDown, initialAttenuation, preDelay);
 
-    // loop through all our 
+    // loop through all our audio paths and keep analyzing them until they complete
     int steps = 0;
     int acitvePaths = _audioPaths.size(); // when we start, all paths are active
     while(acitvePaths > 0) {
-        acitvePaths = anylizePathsSingleStep();
+        acitvePaths = analyzePathsSingleStep();
         steps++;
     }
     _reflections = _audiblePoints.size();
 }
 
-int AudioReflector::anylizePathsSingleStep() {
+int AudioReflector::analyzePathsSingleStep() {
     // iterate all the active sound paths, calculate one step per active path
     
     int activePaths = 0;
     foreach(AudioPath* const& path, _audioPaths) {
     
+        bool wantExtraDebuggging = false;
         bool isDiffusion = (path->startPoint != _origin);
         
         glm::vec3 start = path->lastPoint;
@@ -767,37 +726,28 @@ int AudioReflector::anylizePathsSingleStep() {
         float currentDelay = path->lastDelay; // start with our delay so far
         float pathDistance = path->lastDistance;
         float totalDelay = path->lastDelay; // start with our delay so far
-        unsigned int bounceCount = path->bounceCount;
 
         if (!path->finalized) {
             activePaths++;
             
-            // quick hack to stop early reflections right away...
-            //if (!isDiffusion && path->bounceCount > 1) {
-            //    path->finalized = true;
-            //    qDebug() << "stopping reflections on first bounce!";
-            //} else 
             if (path->bounceCount > ABSOLUTE_MAXIMUM_BOUNCE_COUNT) {
                 path->finalized = true;
-                /*
-                if (isDiffusion) {
+                if (wantExtraDebuggging && isDiffusion) {
                     qDebug() << "diffusion bounceCount too high!";
                 }
-                */
             } else if (_voxels->findRayIntersection(start, direction, elementHit, distance, face)) {
                 glm::vec3 end = start + (direction * (distance * SLIGHTLY_SHORT));
 
                 pathDistance += glm::distance(start, end);
                 
 
-                /*                    
-                qDebug() << "ray intersection... "
-                    << " startPoint=[" << path->startPoint.x << "," << path->startPoint.y << "," << path->startPoint.z << "]"
-                    << " bouceCount= " << path->bounceCount
-                    << " end=[" << end.x << "," << end.y << "," << end.z << "]" 
-                    << " pathDistance=" << pathDistance;
-                */
-
+                if (wantExtraDebuggging) {
+                    qDebug() << "ray intersection... "
+                        << " startPoint=[" << path->startPoint.x << "," << path->startPoint.y << "," << path->startPoint.z << "]"
+                        << " bouceCount= " << path->bounceCount
+                        << " end=[" << end.x << "," << end.y << "," << end.z << "]" 
+                        << " pathDistance=" << pathDistance;
+                }
             
                 // We aren't using this... should we be????
                 float toListenerDistance = glm::distance(end, _listenerPosition);
@@ -820,67 +770,60 @@ int AudioReflector::anylizePathsSingleStep() {
                 // total delay includes the bounce back to listener
                 totalDelay = getDelayFromDistance(totalDistance);
                 float toListenerAttenuation = getDistanceAttenuationCoefficient(toListenerDistance);
-                //qDebug() << "toListenerDistance=" << toListenerDistance;
-                //qDebug() << "toListenerAttenuation=" << toListenerAttenuation;
             
                 // if our resulting partial diffusion attenuation, is still above our minimum attenuation
                 // then we add new paths for each diffusion point
                 if ((partialDiffusionAttenuation * toListenerAttenuation) > MINIMUM_ATTENUATION_TO_REFLECT
                         && totalDelay < MAXIMUM_DELAY_MS) {
                         
-                    // add sound sources for the normal
-                    //glm::vec3 faceNormal = getFaceNormal(face);
-                    //addSoundSource(end, faceNormal, partialDiffusionAttenuation, currentDelay);
-                    
                     // diffusions fan out from random places on the semisphere of the collision point
                     for(int i = 0; i < _diffusionFanout; i++) {
-                        glm::vec3 randomDirection;
+                        glm::vec3 diffusion;
 
-                        float surfaceRandomness = randFloatInRange(0.5f,1.0f);
-                        float surfaceRemainder = (1.0f - surfaceRandomness)/2.0f;
-                        float altRemainderSignA = (randFloatInRange(-1.0f,1.0f) < 0.0f) ? -1.0 : 1.0;
-                        float altRemainderSignB = (randFloatInRange(-1.0f,1.0f) < 0.0f) ? -1.0 : 1.0;
+                        float randomness = randFloatInRange(0.5f,1.0f);
+                        float remainder = (1.0f - randomness)/2.0f;
+                        float remainderSignA = (randFloatInRange(-1.0f,1.0f) < 0.0f) ? -1.0 : 1.0;
+                        float remainderSignB = (randFloatInRange(-1.0f,1.0f) < 0.0f) ? -1.0 : 1.0;
 
                         if (face == MIN_X_FACE) {
-                            randomDirection = glm::vec3(-surfaceRandomness, surfaceRemainder * altRemainderSignA, surfaceRemainder * altRemainderSignB);
+                            diffusion = glm::vec3(-randomness, remainder * remainderSignA, remainder * remainderSignB);
                         } else if (face == MAX_X_FACE) {
-                            randomDirection = glm::vec3(surfaceRandomness, surfaceRemainder * altRemainderSignA, surfaceRemainder * altRemainderSignB);
+                            diffusion = glm::vec3(randomness, remainder * remainderSignA, remainder * remainderSignB);
                         } else if (face == MIN_Y_FACE) {
-                            randomDirection = glm::vec3(surfaceRemainder * altRemainderSignA, -surfaceRandomness, surfaceRemainder * altRemainderSignB);
+                            diffusion = glm::vec3(remainder * remainderSignA, -randomness, remainder * remainderSignB);
                         } else if (face == MAX_Y_FACE) {
-                            randomDirection = glm::vec3(surfaceRemainder * altRemainderSignA, surfaceRandomness, surfaceRemainder * altRemainderSignB);
+                            diffusion = glm::vec3(remainder * remainderSignA, randomness, remainder * remainderSignB);
                         } else if (face == MIN_Z_FACE) {
-                            randomDirection = glm::vec3(surfaceRemainder * altRemainderSignA, surfaceRemainder * altRemainderSignB, -surfaceRandomness);
+                            diffusion = glm::vec3(remainder * remainderSignA, remainder * remainderSignB, -randomness);
                         } else if (face == MAX_Z_FACE) {
-                            randomDirection = glm::vec3(surfaceRemainder * altRemainderSignA, surfaceRemainder * altRemainderSignB, surfaceRandomness);
+                            diffusion = glm::vec3(remainder * remainderSignA, remainder * remainderSignB, randomness);
                         }
                         
-                        randomDirection = glm::normalize(randomDirection);
+                        diffusion = glm::normalize(diffusion);
 
-                        /*
-                        qDebug() << "DIFFUSION... addSoundSource()... partialDiffusionAttenuation=" << partialDiffusionAttenuation << "\n" << 
-                                        "    MINIMUM_ATTENUATION_TO_REFLECT=" << MINIMUM_ATTENUATION_TO_REFLECT << "\n" << 
-                                        "    previous direction=[" << direction.x << "," << direction.y << "," << direction.z << "]" << "\n" << 
-                                        "    randomDirection=[" << randomDirection.x << "," << randomDirection.y << "," << randomDirection.z << "]" << "\n" << 
-                                        "    end=[" << end.x << "," << end.y << "," << end.z << "]";
-                        */
+                        if (wantExtraDebuggging) {
+                            qDebug() << "DIFFUSION... addSoundSource()... " <<
+                                    "    partialDiffusionAttenuation=" << partialDiffusionAttenuation << "\n" << 
+                                    "    MINIMUM_ATTENUATION_TO_REFLECT=" << MINIMUM_ATTENUATION_TO_REFLECT << "\n" << 
+                                    "    direction=[" << direction.x << "," << direction.y << "," << direction.z << "]\n" << 
+                                    "    diffusion=[" << diffusion.x << "," << diffusion.y << "," << diffusion.z << "]\n" << 
+                                    "    end=[" << end.x << "," << end.y << "," << end.z << "]";
+                        }
 
                         // add sound sources for these diffusions
-                        addSoundSource(end, randomDirection, partialDiffusionAttenuation, currentDelay);
+                        addSoundSource(end, diffusion, partialDiffusionAttenuation, currentDelay);
                     }
                 }
             
                 // if our reflective attenuation is above our minimum, then add our reflection point and
                 // allow our path to continue
-                /*
-                if (isDiffusion) {
+                if (wantExtraDebuggging && isDiffusion) {
                     qDebug() << "checking diffusion";
                     qDebug() << "reflectiveAttenuation=" << reflectiveAttenuation;
                     qDebug() << "totalDiffusionAttenuation=" << totalDiffusionAttenuation;
                     qDebug() << "toListenerAttenuation=" << toListenerAttenuation;
                     qDebug() << "(reflectiveAttenuation + totalDiffusionAttenuation) * toListenerAttenuation=" << ((reflectiveAttenuation + totalDiffusionAttenuation) * toListenerAttenuation);
                 }
-                */
                 
                 if (((reflectiveAttenuation + totalDiffusionAttenuation) * toListenerAttenuation) > MINIMUM_ATTENUATION_TO_REFLECT
                         && totalDelay < MAXIMUM_DELAY_MS) {
@@ -906,21 +849,15 @@ int AudioReflector::anylizePathsSingleStep() {
                     }
                 } else {
                     path->finalized = true; // if we're too quiet, then we're done
-                    /*
-                    if (isDiffusion) {
+                    if (wantExtraDebuggging && isDiffusion) {
                         qDebug() << "diffusion too quiet!";
                     }
-                    */
                 }
             } else {
-                //qDebug() << "whichPath=" << activePaths << "path->bounceCount=" << path->bounceCount << "ray missed...";
                 path->finalized = true; // if it doesn't intersect, then it is finished
-                
-                /*
-                if (isDiffusion) {
+                if (wantExtraDebuggging && isDiffusion) {
                     qDebug() << "diffusion doesn't intersect!";
                 }
-                */
             }
         }
     }

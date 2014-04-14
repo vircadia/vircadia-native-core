@@ -169,8 +169,8 @@ private:
     void addSoundSource(const glm::vec3& origin, const glm::vec3& initialDirection, float initialAttenuation, float initialDelay);
     
     // helper that handles audioPath analysis
-    int anylizePathsSingleStep();
-    void anylizePaths();
+    int analyzePathsSingleStep();
+    void analyzePaths();
     void newDrawRays();
     void drawPath(AudioPath* path, const glm::vec3& originalColor);
     void newCalculateAllReflections();
