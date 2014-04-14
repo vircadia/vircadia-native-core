@@ -661,3 +661,22 @@ glm::vec3 safeEulerAngles(const glm::quat& q) {
     }
 }
 
+bool isNaN(float f) { 
+    return f != f; 
+}
+
+
+bool isSimilarOrientation(const glm::quat& orientionA, const glm::quat& orientionB, float similarEnough) {
+    // Compute the angular distance between the two orientations
+    float angleOrientation = orientionA == orientionB ? 0.0f : glm::degrees(glm::angle(orientionA * glm::inverse(orientionB)));
+    if (isNaN(angleOrientation)) {
+        angleOrientation = 0.0f;
+    }
+    return (angleOrientation <= similarEnough);
+}
+
+bool isSimilarPosition(const glm::vec3& positionA, const glm::vec3& positionB, float similarEnough) {
+    // Compute the distance between the two points
+    float positionDistance = glm::distance(positionA, positionB);
+    return (positionDistance <= similarEnough);
+}

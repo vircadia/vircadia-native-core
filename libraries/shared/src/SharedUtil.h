@@ -168,4 +168,13 @@ int unpackFloatVec3FromSignedTwoByteFixed(const unsigned char* sourceBuffer, glm
 /// \return vec3 with euler angles in radians
 glm::vec3 safeEulerAngles(const glm::quat& q);
 
+/// \return bool are two orientations similar to each other
+const float ORIENTATION_SIMILAR_ENOUGH = 5.0f; // 10 degrees in any direction
+bool isSimilarOrientation(const glm::quat& orientionA, const glm::quat& orientionB, 
+                        float similarEnough = ORIENTATION_SIMILAR_ENOUGH);
+const float POSITION_SIMILAR_ENOUGH = 0.1f; // 0.1 meter
+bool isSimilarPosition(const glm::vec3& positionA, const glm::vec3& positionB, float similarEnough = POSITION_SIMILAR_ENOUGH);
+                        
+bool isNaN(float f);
+
 #endif /* defined(__hifi__SharedUtil__) */

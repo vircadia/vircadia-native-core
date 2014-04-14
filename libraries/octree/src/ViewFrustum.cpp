@@ -424,10 +424,6 @@ bool ViewFrustum::matches(const ViewFrustum& compareTo, bool debug) const {
     return result;
 }
 
-bool isNaN(float f) {
-    return f != f;
-}
-
 bool ViewFrustum::isVerySimilar(const ViewFrustum& compareTo, bool debug) const {
 
     //  Compute distance between the two positions
@@ -449,7 +445,7 @@ bool ViewFrustum::isVerySimilar(const ViewFrustum& compareTo, bool debug) const 
     float angleEyeOffsetOrientation = compareTo._eyeOffsetOrientation == _eyeOffsetOrientation
                                             ? 0.0f : glm::degrees(glm::angle(dQEyeOffsetOrientation));
     if (isNaN(angleEyeOffsetOrientation)) {
-        angleOrientation = 0.0f;
+        angleEyeOffsetOrientation = 0.0f;
     }
 
     bool result =
