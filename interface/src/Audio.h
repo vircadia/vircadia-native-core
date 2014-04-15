@@ -187,7 +187,7 @@ private:
     void addProceduralSounds(int16_t* monoInput, int numSamples);
     
     // Process received audio
-    void processReceivedAudio(AudioRingBuffer& ringBuffer);
+    void processReceivedAudio(const QByteArray& audioByteArray);
 
     bool switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo);
     bool switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo);

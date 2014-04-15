@@ -652,8 +652,7 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
 
     if (_audioOutput) {
         // Audio output must exist and be correctly set up if we're going to process received audio
-        _ringBuffer.parseData(audioByteArray);
-        processReceivedAudio(_ringBuffer);
+        processReceivedAudio(audioByteArray);
     }
 
     Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(audioByteArray.size());
@@ -753,23 +752,24 @@ void Audio::toggleAudioNoiseReduction() {
     _noiseGateEnabled = !_noiseGateEnabled;
 }
 
-void Audio::processReceivedAudio(AudioRingBuffer& ringBuffer) {
-
+void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
+    _ringBuffer.parseData(audioByteArray);
+    
     float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())
         * (_desiredOutputFormat.channelCount() / (float) _outputFormat.channelCount());
     
-    if (!ringBuffer.isStarved() && _audioOutput && _audioOutput->bytesFree() == _audioOutput->bufferSize()) {
+    if (!_ringBuffer.isStarved() && _audioOutput && _audioOutput->bytesFree() == _audioOutput->bufferSize()) {
         // we don't have any audio data left in the output buffer
         // we just starved
         //qDebug() << "Audio output just starved.";
-        ringBuffer.setIsStarved(true);
+        _ringBuffer.setIsStarved(true);
         _numFramesDisplayStarve = 10;
     }
     
     // if there is anything in the ring buffer, decide what to do
-    if (ringBuffer.samplesAvailable() > 0) {
+    if (_ringBuffer.samplesAvailable() > 0) {
         
-        int numNetworkOutputSamples = ringBuffer.samplesAvailable();
+        int numNetworkOutputSamples = _ringBuffer.samplesAvailable();
         int numDeviceOutputSamples = numNetworkOutputSamples / networkOutputToOutputRatio;
         
         QByteArray outputBuffer;
@@ -777,13 +777,13 @@ void Audio::processReceivedAudio(AudioRingBuffer& ringBuffer) {
         
         int numSamplesNeededToStartPlayback = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (_jitterBufferSamples * 2);
         
-        if (!ringBuffer.isNotStarvedOrHasMinimumSamples(numSamplesNeededToStartPlayback)) {
+        if (!_ringBuffer.isNotStarvedOrHasMinimumSamples(numSamplesNeededToStartPlayback)) {
             //  We are still waiting for enough samples to begin playback
             // qDebug() << numNetworkOutputSamples << " samples so far, waiting for " << numSamplesNeededToStartPlayback;
         } else {
             //  We are either already playing back, or we have enough audio to start playing back.
             //qDebug() << "pushing " << numNetworkOutputSamples;
-            ringBuffer.setIsStarved(false);
+            _ringBuffer.setIsStarved(false);
 
             int16_t* ringBufferSamples = new int16_t[numNetworkOutputSamples];
             if (_processSpatialAudio) {
@@ -791,7 +791,7 @@ void Audio::processReceivedAudio(AudioRingBuffer& ringBuffer) {
                 QByteArray buffer;
                 buffer.resize(numNetworkOutputSamples * sizeof(int16_t));
 
-                ringBuffer.readSamples((int16_t*)buffer.data(), numNetworkOutputSamples);
+                _ringBuffer.readSamples((int16_t*)buffer.data(), numNetworkOutputSamples);
                 // Accumulate direct transmission of audio from sender to receiver
                 if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncudeOriginal)) {
                     addSpatialAudioToBuffer(sampleTime, buffer, numNetworkOutputSamples);
@@ -814,7 +814,7 @@ void Audio::processReceivedAudio(AudioRingBuffer& ringBuffer) {
 
                 // copy the samples we'll resample from the ring buffer - this also
                 // pushes the read pointer of the ring buffer forwards
-                ringBuffer.readSamples(ringBufferSamples, numNetworkOutputSamples);
+                _ringBuffer.readSamples(ringBufferSamples, numNetworkOutputSamples);
 
 
             }
