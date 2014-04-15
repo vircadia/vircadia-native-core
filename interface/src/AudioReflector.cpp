@@ -249,8 +249,6 @@ void AudioReflector::echoAudio(unsigned int sampleTime, const QByteArray& sample
 
     _averageDelay = _delayCount == 0 ? 0 : _totalDelay / _delayCount;
     _averageAttenuation = _attenuationCount == 0 ? 0 : _totalAttenuation / _attenuationCount;
-    _reflections = _audiblePoints.size();
-    _diffusionPathCount = countDiffusionPaths();
     
     if (_reflections == 0) {
         _minDelay = 0.0f;
@@ -364,6 +362,13 @@ void AudioReflector::drawPath(AudioPath* path, const glm::vec3& originalColor) {
 }
 
 
+// Here's how this works: we have an array of AudioPaths, we loop on all of our currently calculating audio 
+// paths, and calculate one ray per path. If that ray doesn't reflect, or reaches a max distance/attenuation, then it
+// is considered finalized.
+// If the ray hits a surface, then, based on the characteristics of that surface, it will calculate the new 
+// attenuation, path length, and delay for the primary path. For surfaces that have diffusion, it will also create
+// fanout number of new paths, those new paths will have an origin of the reflection point, and an initial attenuation
+// of their diffusion ratio. Those new paths will be added to the active audio paths, and be analyzed for the next loop.
 void AudioReflector::analyzePaths() {
     // clear our _audioPaths
     foreach(AudioPath* const& path, _audioPaths) {
@@ -391,7 +396,10 @@ void AudioReflector::analyzePaths() {
     float initialAttenuation = 1.0f;    
 
     float preDelay = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingPreDelay) ? _preDelay : 0.0f;
-    
+
+    // NOTE: we're still calculating our initial paths based on the listeners position. But the analysis code has been
+    // updated to support individual sound sources (which is how we support diffusion), we can use this new paradigm to
+    // add support for individual sound sources, and more directional sound sources    
     addSoundSource(_origin, right, initialAttenuation, preDelay);
     addSoundSource(_origin, front, initialAttenuation, preDelay);
     addSoundSource(_origin, up, initialAttenuation, preDelay);
@@ -422,8 +430,7 @@ int AudioReflector::countDiffusionPaths() {
     int diffusionCount = 0;
     
     foreach(AudioPath* const& path, _audioPaths) {
-        // if this is NOT an original reflection then it's a diffusion path
-        if (path->startPoint != _origin) {
+        if (path->isDiffusion) {
             diffusionCount++;
         }
     }
@@ -432,13 +439,9 @@ int AudioReflector::countDiffusionPaths() {
 
 int AudioReflector::analyzePathsSingleStep() {
     // iterate all the active sound paths, calculate one step per active path
-    
     int activePaths = 0;
     foreach(AudioPath* const& path, _audioPaths) {
     
-        //bool wantExtraDebuggging = false;
-        //bool isDiffusion = (path->startPoint != _origin);
-        
         glm::vec3 start = path->lastPoint;
         glm::vec3 direction = path->lastDirection;
         OctreeElement* elementHit; // output from findRayIntersection

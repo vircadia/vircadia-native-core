@@ -141,15 +141,8 @@ private:
     glm::vec3 _origin;
     glm::quat _orientation;
     
-    // NOTE: Here's the new way, we will have an array of AudioPaths, we will loop on all of our currently calculating audio 
-    // paths, and calculate one ray per path. If that ray doesn't reflect, or reaches a max distance/attenuation, then it
-    // is considered finalized.
-    // If the ray hits a surface, then, based on the characteristics of that surface, it will create calculate the new 
-    // attenuation, path length, and delay for the primary path. For surfaces that have diffusion, it will also create
-    // fanout number of new paths, those new paths will have an origin of the reflection point, and an initial attenuation
-    // of their diffusion ratio. Those new paths will be added to the active audio paths, and be analyzed for the next loop.
-    QVector<AudioPath*> _audioPaths;
-    QVector<AudiblePoint> _audiblePoints;
+    QVector<AudioPath*> _audioPaths; /// the various audio paths we're processing
+    QVector<AudiblePoint> _audiblePoints; /// the audible points that have been calculated from the paths
     
     // adds a sound source to begin an audio path trace, these can be the initial sound sources with their directional properties,
     // as well as diffusion sound sources
