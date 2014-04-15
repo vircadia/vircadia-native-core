@@ -91,13 +91,14 @@ float AudioReflector::getDistanceAttenuationCoefficient(float distance) {
 
 glm::vec3 AudioReflector::getFaceNormal(BoxFace face) {
     bool wantSlightRandomness = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingSlightlyRandomSurfaces);
-
     glm::vec3 faceNormal;
-
-    float normalLength = wantSlightRandomness ? randFloatInRange(0.99f,1.0f) : 1.0f;
+    const float MIN_RANDOM_LENGTH = 0.99f;
+    const float MAX_RANDOM_LENGTH = 1.0f;
+    const float NON_RANDOM_LENGTH = 1.0f;
+    float normalLength = wantSlightRandomness ? randFloatInRange(MIN_RANDOM_LENGTH, MAX_RANDOM_LENGTH) : NON_RANDOM_LENGTH;
     float remainder = (1.0f - normalLength)/2.0f;
-    float remainderSignA = (randFloatInRange(-1.0f,1.0f) < 0.0f) ? -1.0 : 1.0;
-    float remainderSignB = (randFloatInRange(-1.0f,1.0f) < 0.0f) ? -1.0 : 1.0;
+    float remainderSignA = randomSign();
+    float remainderSignB = randomSign();
 
     if (face == MIN_X_FACE) {
         faceNormal = glm::vec3(-normalLength, remainder * remainderSignA, remainder * remainderSignB);
@@ -244,8 +245,9 @@ void AudioReflector::drawVector(const glm::vec3& start, const glm::vec3& end, co
 
 
 AudioPath::AudioPath(const glm::vec3& origin, const glm::vec3& direction, 
-                        float attenuation, float delay, float distance, int bounceCount) :
+                        float attenuation, float delay, float distance,bool isDiffusion, int bounceCount) :
                         
+    isDiffusion(isDiffusion),
     startPoint(origin),
     startDirection(direction),
     startDelay(delay),
@@ -264,9 +266,10 @@ AudioPath::AudioPath(const glm::vec3& origin, const glm::vec3& direction,
 }
 
 void AudioReflector::addSoundSource(const glm::vec3& origin, const glm::vec3& initialDirection, 
-                                        float initialAttenuation, float initialDelay, float initialDistance) {
+                                        float initialAttenuation, float initialDelay, float initialDistance, bool isDiffusion) {
                                         
-    AudioPath* path = new AudioPath(origin, initialDirection, initialAttenuation, initialDelay, initialDistance, 0);
+    AudioPath* path = new AudioPath(origin, initialDirection, initialAttenuation, initialDelay, 
+                                        initialDistance, isDiffusion, 0);
     _audioPaths.push_back(path);
 }
 
@@ -312,11 +315,11 @@ void AudioReflector::drawRays() {
     foreach(AudioPath* const& path, _audioPaths) {
     
         // if this is an original reflection, draw it in RED
-        if (path->startPoint == _origin) {
-            drawPath(path, RED);
-        } else {
+        if (path->isDiffusion) {
             diffusionNumber++;
             drawPath(path, GREEN);
+        } else {
+            drawPath(path, RED);
         }
     }
 }
@@ -415,10 +418,6 @@ int AudioReflector::analyzePathsSingleStep() {
         float distance; // output from findRayIntersection
         BoxFace face; // output from findRayIntersection
 
-        float currentReflectiveAttenuation = path->lastAttenuation; // only the reflective components
-        float currentDelay = path->lastDelay; // start with our delay so far
-        float pathDistance = path->lastDistance;
-
         if (!path->finalized) {
             activePaths++;
             
@@ -429,107 +428,169 @@ int AudioReflector::analyzePathsSingleStep() {
                 // we get an accurate picture, but it could prevent rendering of the voxels. If we trylock (default), 
                 // we might not get ray intersections where they may exist, but we can't really detect that case...
                 // add last parameter of Octree::Lock to force locking
-                
-                glm::vec3 end = start + (direction * (distance * SLIGHTLY_SHORT));
+                handlePathPoint(path, distance, elementHit, face);
 
-                pathDistance += glm::distance(start, end);
-            
-                // We aren't using this... should we be????
-                float toListenerDistance = glm::distance(end, _listenerPosition);
-            
-                // adjust our current delay by just the delay from the most recent ray
-                currentDelay += getDelayFromDistance(distance);
-
-                // now we know the current attenuation for the "perfect" reflection case, but we now incorporate
-                // our surface materials to determine how much of this ray is absorbed, reflected, and diffused
-                SurfaceCharacteristics material = getSurfaceCharacteristics(elementHit);
-            
-                float reflectiveAttenuation = currentReflectiveAttenuation * material.reflectiveRatio;
-                float totalDiffusionAttenuation = currentReflectiveAttenuation * material.diffusionRatio;
-                
-                bool wantDiffusions = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingWithDiffusions);
-                int fanout = wantDiffusions ? _diffusionFanout : 0;
-
-                float partialDiffusionAttenuation = fanout < 1 ? 0.0f : totalDiffusionAttenuation / fanout;
-
-                // total delay includes the bounce back to listener
-                float totalDelay = currentDelay + getDelayFromDistance(toListenerDistance);
-                float toListenerAttenuation = getDistanceAttenuationCoefficient(toListenerDistance + pathDistance);
-            
-                // if our resulting partial diffusion attenuation, is still above our minimum attenuation
-                // then we add new paths for each diffusion point
-                if ((partialDiffusionAttenuation * toListenerAttenuation) > MINIMUM_ATTENUATION_TO_REFLECT
-                        && totalDelay < MAXIMUM_DELAY_MS) {
-                        
-                    // diffusions fan out from random places on the semisphere of the collision point
-                    for(int i = 0; i < fanout; i++) {
-                        glm::vec3 diffusion;
-
-                        float randomness = randFloatInRange(0.5f,1.0f);
-                        float remainder = (1.0f - randomness)/2.0f;
-                        float remainderSignA = (randFloatInRange(-1.0f,1.0f) < 0.0f) ? -1.0 : 1.0;
-                        float remainderSignB = (randFloatInRange(-1.0f,1.0f) < 0.0f) ? -1.0 : 1.0;
-
-                        if (face == MIN_X_FACE) {
-                            diffusion = glm::vec3(-randomness, remainder * remainderSignA, remainder * remainderSignB);
-                        } else if (face == MAX_X_FACE) {
-                            diffusion = glm::vec3(randomness, remainder * remainderSignA, remainder * remainderSignB);
-                        } else if (face == MIN_Y_FACE) {
-                            diffusion = glm::vec3(remainder * remainderSignA, -randomness, remainder * remainderSignB);
-                        } else if (face == MAX_Y_FACE) {
-                            diffusion = glm::vec3(remainder * remainderSignA, randomness, remainder * remainderSignB);
-                        } else if (face == MIN_Z_FACE) {
-                            diffusion = glm::vec3(remainder * remainderSignA, remainder * remainderSignB, -randomness);
-                        } else if (face == MAX_Z_FACE) {
-                            diffusion = glm::vec3(remainder * remainderSignA, remainder * remainderSignB, randomness);
-                        }
-                        
-                        diffusion = glm::normalize(diffusion);
-
-                        // add sound sources for these diffusions
-                        addSoundSource(end, diffusion, partialDiffusionAttenuation, currentDelay, pathDistance);
-                    }
-                }
-            
-                // if our reflective attenuation is above our minimum, then add our reflection point and
-                // allow our path to continue
-                if (((reflectiveAttenuation + totalDiffusionAttenuation) * toListenerAttenuation) > MINIMUM_ATTENUATION_TO_REFLECT
-                        && totalDelay < MAXIMUM_DELAY_MS) {
-            
-                    // add this location, as the reflective attenuation as well as the total diffusion attenuation
-                    // NOTE: we add the delay to the audible point, not back to the listener. The additional delay
-                    // and attenuation to the listener is recalculated at the point where we actually inject the
-                    // audio so that it can be adjusted to ear position
-                    AudiblePoint point = {end, currentDelay, (reflectiveAttenuation + totalDiffusionAttenuation), pathDistance};
-
-                    _audiblePoints.push_back(point);
-                
-                    // add this location to the path points, so we can visualize it
-                    path->reflections.push_back(end);
-                
-                    // now, if our reflective attenuation is over our minimum then keep going...
-                    if (reflectiveAttenuation * toListenerAttenuation > MINIMUM_ATTENUATION_TO_REFLECT) {
-                        glm::vec3 faceNormal = getFaceNormal(face);
-                        path->lastDirection = glm::normalize(glm::reflect(direction,faceNormal));
-                        path->lastPoint = end;
-                        path->lastAttenuation = reflectiveAttenuation;
-                        path->lastDelay = currentDelay;
-                        path->lastDistance = pathDistance;
-                        path->bounceCount++;
-                    } else {
-                        path->finalized = true; // if we're too quiet, then we're done
-                    }
-                } else {
-                    path->finalized = true; // if we're too quiet, then we're done
-                }
             } else {
-                path->finalized = true; // if it doesn't intersect, then it is finished
+                // If we didn't intersect, but this was a diffusion ray, then we will go ahead and cast a short ray out
+                // from our last known point, in the last known direction, and leave that sound source hanging there
+                if (path->isDiffusion) {
+                    const float MINIMUM_RANDOM_DISTANCE = 0.25f;
+                    const float MAXIMUM_RANDOM_DISTANCE = 0.5f;
+                    float distance = randFloatInRange(MINIMUM_RANDOM_DISTANCE, MAXIMUM_RANDOM_DISTANCE);
+                    handlePathPoint(path, distance, NULL, UNKNOWN_FACE);
+                } else {
+                    path->finalized = true; // if it doesn't intersect, then it is finished
+                }
             }
         }
     }
     return activePaths;
 }
 
+void AudioReflector::handlePathPoint(AudioPath* path, float distance, OctreeElement* elementHit, BoxFace face) {
+    glm::vec3 start = path->lastPoint;
+    glm::vec3 direction = path->lastDirection;
+    glm::vec3 end = start + (direction * (distance * SLIGHTLY_SHORT));
+
+    float currentReflectiveAttenuation = path->lastAttenuation; // only the reflective components
+    float currentDelay = path->lastDelay; // start with our delay so far
+    float pathDistance = path->lastDistance;
+
+    pathDistance += glm::distance(start, end);
+
+    // We aren't using this... should we be????
+    float toListenerDistance = glm::distance(end, _listenerPosition);
+
+    // adjust our current delay by just the delay from the most recent ray
+    currentDelay += getDelayFromDistance(distance);
+
+    // now we know the current attenuation for the "perfect" reflection case, but we now incorporate
+    // our surface materials to determine how much of this ray is absorbed, reflected, and diffused
+    SurfaceCharacteristics material = getSurfaceCharacteristics(elementHit);
+
+    float reflectiveAttenuation = currentReflectiveAttenuation * material.reflectiveRatio;
+    float totalDiffusionAttenuation = currentReflectiveAttenuation * material.diffusionRatio;
+    
+    bool wantDiffusions = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingWithDiffusions);
+    int fanout = wantDiffusions ? _diffusionFanout : 0;
+
+    float partialDiffusionAttenuation = fanout < 1 ? 0.0f : totalDiffusionAttenuation / fanout;
+
+    // total delay includes the bounce back to listener
+    float totalDelay = currentDelay + getDelayFromDistance(toListenerDistance);
+    float toListenerAttenuation = getDistanceAttenuationCoefficient(toListenerDistance + pathDistance);
+
+    // if our resulting partial diffusion attenuation, is still above our minimum attenuation
+    // then we add new paths for each diffusion point
+    if ((partialDiffusionAttenuation * toListenerAttenuation) > MINIMUM_ATTENUATION_TO_REFLECT
+            && totalDelay < MAXIMUM_DELAY_MS) {
+            
+        // diffusions fan out from random places on the semisphere of the collision point
+        for(int i = 0; i < fanout; i++) {
+            glm::vec3 diffusion;
+            
+            // We're creating a random normal here. But we want it to be relatively dramatic compared to how we handle
+            // our slightly random surface normals.
+            const float MINIMUM_RANDOM_LENGTH = 0.5f;
+            const float MAXIMUM_RANDOM_LENGTH = 1.0f;
+            float randomness = randFloatInRange(MINIMUM_RANDOM_LENGTH, MAXIMUM_RANDOM_LENGTH);
+            float remainder = (1.0f - randomness)/2.0f;
+            float remainderSignA = randomSign();
+            float remainderSignB = randomSign();
+
+            if (face == MIN_X_FACE) {
+                diffusion = glm::vec3(-randomness, remainder * remainderSignA, remainder * remainderSignB);
+            } else if (face == MAX_X_FACE) {
+                diffusion = glm::vec3(randomness, remainder * remainderSignA, remainder * remainderSignB);
+            } else if (face == MIN_Y_FACE) {
+                diffusion = glm::vec3(remainder * remainderSignA, -randomness, remainder * remainderSignB);
+            } else if (face == MAX_Y_FACE) {
+                diffusion = glm::vec3(remainder * remainderSignA, randomness, remainder * remainderSignB);
+            } else if (face == MIN_Z_FACE) {
+                diffusion = glm::vec3(remainder * remainderSignA, remainder * remainderSignB, -randomness);
+            } else if (face == MAX_Z_FACE) {
+                diffusion = glm::vec3(remainder * remainderSignA, remainder * remainderSignB, randomness);
+            } else if (face == UNKNOWN_FACE) {
+                float randomnessX = randFloatInRange(MINIMUM_RANDOM_LENGTH, MAXIMUM_RANDOM_LENGTH);
+                float randomnessY = randFloatInRange(MINIMUM_RANDOM_LENGTH, MAXIMUM_RANDOM_LENGTH);
+                float randomnessZ = randFloatInRange(MINIMUM_RANDOM_LENGTH, MAXIMUM_RANDOM_LENGTH);
+                diffusion = glm::vec3(direction.x * randomnessX, direction.y * randomnessY, direction.z * randomnessZ);
+            }
+            
+            diffusion = glm::normalize(diffusion);
+
+            // add sound sources for these diffusions
+            addSoundSource(end, diffusion, partialDiffusionAttenuation, currentDelay, pathDistance, true);
+        }
+    } else {
+        const bool wantDebugging = false;
+        if (wantDebugging) {
+            if ((partialDiffusionAttenuation * toListenerAttenuation) <= MINIMUM_ATTENUATION_TO_REFLECT) {
+                qDebug() << "too quiet to diffuse";
+                qDebug() << "   partialDiffusionAttenuation=" << partialDiffusionAttenuation;
+                qDebug() << "   toListenerAttenuation=" << toListenerAttenuation;
+                qDebug() << "   result=" << (partialDiffusionAttenuation * toListenerAttenuation);
+                qDebug() << "   MINIMUM_ATTENUATION_TO_REFLECT=" << MINIMUM_ATTENUATION_TO_REFLECT;
+            }
+            if (totalDelay > MAXIMUM_DELAY_MS) {
+                qDebug() << "too delayed to diffuse";
+                qDebug() << "   totalDelay=" << totalDelay;
+                qDebug() << "   MAXIMUM_DELAY_MS=" << MAXIMUM_DELAY_MS;
+            }
+        }
+    }
+
+    // if our reflective attenuation is above our minimum, then add our reflection point and
+    // allow our path to continue
+    if (((reflectiveAttenuation + totalDiffusionAttenuation) * toListenerAttenuation) > MINIMUM_ATTENUATION_TO_REFLECT
+            && totalDelay < MAXIMUM_DELAY_MS) {
+
+        // add this location, as the reflective attenuation as well as the total diffusion attenuation
+        // NOTE: we add the delay to the audible point, not back to the listener. The additional delay
+        // and attenuation to the listener is recalculated at the point where we actually inject the
+        // audio so that it can be adjusted to ear position
+        AudiblePoint point = {end, currentDelay, (reflectiveAttenuation + totalDiffusionAttenuation), pathDistance};
+
+        _audiblePoints.push_back(point);
+    
+        // add this location to the path points, so we can visualize it
+        path->reflections.push_back(end);
+    
+        // now, if our reflective attenuation is over our minimum then keep going...
+        if (reflectiveAttenuation * toListenerAttenuation > MINIMUM_ATTENUATION_TO_REFLECT) {
+            glm::vec3 faceNormal = getFaceNormal(face);
+            path->lastDirection = glm::normalize(glm::reflect(direction,faceNormal));
+            path->lastPoint = end;
+            path->lastAttenuation = reflectiveAttenuation;
+            path->lastDelay = currentDelay;
+            path->lastDistance = pathDistance;
+            path->bounceCount++;
+        } else {
+            path->finalized = true; // if we're too quiet, then we're done
+        }
+    } else {
+        const bool wantDebugging = false;
+        if (wantDebugging) {
+            if (((reflectiveAttenuation + totalDiffusionAttenuation) * toListenerAttenuation) <= MINIMUM_ATTENUATION_TO_REFLECT) {
+                qDebug() << "too quiet to add audible point";
+                qDebug() << "   reflectiveAttenuation + totalDiffusionAttenuation=" << (reflectiveAttenuation + totalDiffusionAttenuation);
+                qDebug() << "   toListenerAttenuation=" << toListenerAttenuation;
+                qDebug() << "   result=" << ((reflectiveAttenuation + totalDiffusionAttenuation) * toListenerAttenuation);
+                qDebug() << "   MINIMUM_ATTENUATION_TO_REFLECT=" << MINIMUM_ATTENUATION_TO_REFLECT;
+            }
+            if (totalDelay > MAXIMUM_DELAY_MS) {
+                qDebug() << "too delayed to add audible point";
+                qDebug() << "   totalDelay=" << totalDelay;
+                qDebug() << "   MAXIMUM_DELAY_MS=" << MAXIMUM_DELAY_MS;
+            }
+        }
+        path->finalized = true; // if we're too quiet, then we're done
+    }
+}
+
+// TODO: eventually we will add support for different surface characteristics based on the element
+// that is hit, which is why we pass in the elementHit to this helper function. But for now, all
+// surfaces have the same characteristics
 SurfaceCharacteristics AudioReflector::getSurfaceCharacteristics(OctreeElement* elementHit) {
     SurfaceCharacteristics result = { getReflectiveRatio(), _absorptionRatio, _diffusionRatio };
     return result;

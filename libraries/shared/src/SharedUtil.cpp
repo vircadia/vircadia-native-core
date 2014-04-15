@@ -56,6 +56,10 @@ float randFloatInRange (float min,float max) {
     return min + ((rand() % 10000)/10000.f * (max-min));
 }
 
+float randomSign() {
+    return randomBoolean() ? -1.0 : 1.0;
+}
+
 unsigned char randomColorValue(int miniumum) {
     return miniumum + (rand() % (256 - miniumum));
 }

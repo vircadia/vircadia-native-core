@@ -19,7 +19,9 @@
 class AudioPath {
 public:
     AudioPath(const glm::vec3& origin = glm::vec3(0), const glm::vec3& direction = glm::vec3(0), float attenuation = 1.0f, 
-            float delay = 0.0f, float distance = 0.0f, int bounceCount = 0);
+            float delay = 0.0f, float distance = 0.0f, bool isDiffusion = false, int bounceCount = 0);
+            
+    bool isDiffusion;
     glm::vec3 startPoint;
     glm::vec3 startDirection;
     float startDelay;
@@ -137,11 +139,12 @@ private:
     
     // adds a sound source to begin an audio path trace, these can be the initial sound sources with their directional properties,
     // as well as diffusion sound sources
-    void addSoundSource(const glm::vec3& origin, const glm::vec3& initialDirection, 
-                                float initialAttenuation, float initialDelay, float initialDistance = 0.0f);
+    void addSoundSource(const glm::vec3& origin, const glm::vec3& initialDirection, float initialAttenuation, 
+                            float initialDelay, float initialDistance = 0.0f, bool isDiffusion = false);
     
     // helper that handles audioPath analysis
     int analyzePathsSingleStep();
+    void handlePathPoint(AudioPath* path, float distance, OctreeElement* elementHit, BoxFace face);
     void analyzePaths();
     void drawRays();
     void drawPath(AudioPath* path, const glm::vec3& originalColor);

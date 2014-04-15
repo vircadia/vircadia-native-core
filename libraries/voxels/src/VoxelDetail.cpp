@@ -75,6 +75,9 @@ QScriptValue rayToVoxelIntersectionResultToScriptValue(QScriptEngine* engine, co
         case MAX_Z_FACE:
             faceName = "MAX_Z_FACE";
             break;
+        case UNKNOWN_FACE:
+            faceName = "UNKNOWN_FACE";
+            break;
     }
     obj.setProperty("face", faceName);
 

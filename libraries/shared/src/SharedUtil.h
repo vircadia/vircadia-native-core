@@ -78,6 +78,7 @@ void usecTimestampNowForceClockSkew(int clockSkew);
 float randFloat();
 int randIntInRange (int min, int max);
 float randFloatInRange (float min,float max);
+float randomSign(); /// \return -1.0 or 1.0
 unsigned char randomColorValue(int minimum);
 bool randomBoolean();
 
