@@ -32,7 +32,13 @@ AudioReflector::AudioReflector(QObject* parent) :
     _diffusionFanout(DEFAULT_DIFFUSION_FANOUT),
     _absorptionRatio(DEFAULT_ABSORPTION_RATIO),
     _diffusionRatio(DEFAULT_DIFFUSION_RATIO),
-    _withDiffusion(false)
+    _withDiffusion(false),
+    _lastPreDelay(DEFAULT_PRE_DELAY),
+    _lastSoundMsPerMeter(DEFAULT_MS_DELAY_PER_METER),
+    _lastDistanceAttenuationScalingFactor(DEFAULT_DISTANCE_SCALING_FACTOR),
+    _lastDiffusionFanout(DEFAULT_DIFFUSION_FANOUT),
+    _lastAbsorptionRatio(DEFAULT_ABSORPTION_RATIO),
+    _lastDiffusionRatio(DEFAULT_DIFFUSION_RATIO)
 {
     _reflections = 0;
     _diffusionPathCount = 0;
@@ -42,6 +48,30 @@ AudioReflector::AudioReflector(QObject* parent) :
     _averageDelay = 0;
     _maxDelay = 0;
     _minDelay = 0;
+}
+
+bool AudioReflector::haveAttributesChanged() {
+    bool withDiffusion = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingWithDiffusions);
+    
+    bool attributesChange = (_withDiffusion != withDiffusion
+        || _lastPreDelay != _preDelay
+        || _lastSoundMsPerMeter != _soundMsPerMeter
+        || _lastDistanceAttenuationScalingFactor != _distanceAttenuationScalingFactor
+        || _lastDiffusionFanout != _diffusionFanout
+        || _lastAbsorptionRatio != _absorptionRatio
+        || _lastDiffusionRatio != _diffusionRatio);
+
+    if (attributesChange) {
+        _withDiffusion = withDiffusion;
+        _lastPreDelay = _preDelay;
+        _lastSoundMsPerMeter = _soundMsPerMeter;
+        _lastDistanceAttenuationScalingFactor = _distanceAttenuationScalingFactor;
+        _lastDiffusionFanout = _diffusionFanout;
+        _lastAbsorptionRatio = _absorptionRatio;
+        _lastDiffusionRatio = _diffusionRatio;
+    }
+    
+    return attributesChange;
 }
 
 void AudioReflector::render() {
@@ -274,20 +304,18 @@ void AudioReflector::addSoundSource(const glm::vec3& origin, const glm::vec3& in
 }
 
 void AudioReflector::calculateAllReflections() {
-    // only recalculate when we've moved...
+    // only recalculate when we've moved, or if the attributes have changed
     // TODO: what about case where new voxels are added in front of us???
     bool wantHeadOrientation = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingHeadOriented);
     glm::quat orientation = wantHeadOrientation ? _myAvatar->getHead()->getFinalOrientation() : _myAvatar->getOrientation();
     glm::vec3 origin = _myAvatar->getHead()->getPosition();
     glm::vec3 listenerPosition = _myAvatar->getHead()->getPosition();
 
-    bool withDiffusion = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingWithDiffusions);
-    
     bool shouldRecalc = _reflections == 0
                             || !isSimilarPosition(origin, _origin) 
                             || !isSimilarOrientation(orientation, _orientation) 
                             || !isSimilarPosition(listenerPosition, _listenerPosition)
-                            || (withDiffusion != _withDiffusion);
+                            || haveAttributesChanged();
 
     if (shouldRecalc) {
         QMutexLocker locker(&_mutex);
@@ -295,7 +323,6 @@ void AudioReflector::calculateAllReflections() {
         _origin = origin;
         _orientation = orientation;
         _listenerPosition = listenerPosition;
-        _withDiffusion = withDiffusion;
         analyzePaths(); // actually does the work
         quint64 end = usecTimestampNow();
         const bool wantDebugging = false;

@@ -171,8 +171,17 @@ private:
     float _absorptionRatio;
     float _diffusionRatio;
     float _reflectiveRatio;
-    
+
+    // remember the last known values at calculation    
+    bool haveAttributesChanged();
+
     bool _withDiffusion;
+    float _lastPreDelay;
+    float _lastSoundMsPerMeter;
+    float _lastDistanceAttenuationScalingFactor;
+    int _lastDiffusionFanout;
+    float _lastAbsorptionRatio;
+    float _lastDiffusionRatio;
 };
 
 
