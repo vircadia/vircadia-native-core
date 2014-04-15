@@ -293,7 +293,6 @@ namespace MenuOption {
     const QString Login = "Login";
     const QString Logout = "Logout";
     const QString LookAtVectors = "Look-at Vectors";
-    const QString LowPassFilter = "Low Pass Filter";
     const QString MetavoxelEditor = "Metavoxel Editor...";
     const QString Metavoxels = "Metavoxels";
     const QString Mirror = "Mirror";

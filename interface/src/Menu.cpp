@@ -383,10 +383,6 @@ Menu::Menu() :
                                            appInstance->getAudio(),
                                            SLOT(toggleToneInjection()));
 
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::LowPassFilter,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_F,
-                                           false);
-
     QMenu* spatialAudioMenu = audioDebugMenu->addMenu("Spatial Audio");
 
     addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessing,
