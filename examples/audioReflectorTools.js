@@ -1,11 +1,11 @@
 //
-//  overlaysExample.js
+//  audioReflectorTools.js
 //  hifi
 //
 //  Created by Brad Hefta-Gaub on 2/14/14.
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
-//  This is an example script that demonstrates use of the Overlays class
+//  Tools for manipulating the attributes of the AudioReflector behavior
 //
 //
 
