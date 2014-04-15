@@ -404,38 +404,18 @@ void Audio::handleAudioInput() {
 
     QByteArray inputByteArray = _inputDevice->readAll();
     
-    // we may need to check for resampling our input audio in a couple cases:
-    //  1) the local loopback is enabled
-    //  2) spatial audio is enabled
-    bool spatialAudioEnabled = (_processSpatialAudio && !_muted && _audioOutput);
-    bool localLoopbackEnabled = (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio) && !_muted && _audioOutput);
-    bool possiblyResampleInputAudio = spatialAudioEnabled || localLoopbackEnabled;
-    bool resampleNeeded = (_inputFormat != _outputFormat);
-    QByteArray resampledInputByteArray;
-    
-    if (possiblyResampleInputAudio && resampleNeeded) {
-        float loopbackOutputToInputRatio = (_outputFormat.sampleRate() / (float) _inputFormat.sampleRate())
-            * (_outputFormat.channelCount() / _inputFormat.channelCount());
-
-        resampledInputByteArray.fill(0, inputByteArray.size() * loopbackOutputToInputRatio);
-
-        linearResampling((int16_t*) inputByteArray.data(), (int16_t*) resampledInputByteArray.data(),
-                         inputByteArray.size() / sizeof(int16_t),
-                         resampledInputByteArray.size() / sizeof(int16_t), _inputFormat, _outputFormat);
-    }
-
     // send our local loopback to any interested parties
-    if (spatialAudioEnabled) {
-        if (resampleNeeded) {
+    if (_processSpatialAudio && !_muted && _audioOutput) {
+        if (false) {
             // local audio is sent already resampled to match the output format, so processors
             // can easily handle the audio in a format ready to post back to the audio device
-            emit processLocalAudio(_spatialAudioStart, resampledInputByteArray, _outputFormat);
+            //emit processLocalAudio(_spatialAudioStart, resampledInputByteArray, _outputFormat);
         } else {
             emit processLocalAudio(_spatialAudioStart, inputByteArray, _outputFormat);
         }
     }
 
-    if (localLoopbackEnabled) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio) && !_muted && _audioOutput) {
         // if this person wants local loopback add that to the locally injected audio
 
         if (!_loopbackOutputDevice && _loopbackAudioOutput) {
@@ -444,7 +424,16 @@ void Audio::handleAudioInput() {
         }
         
         if (_loopbackOutputDevice) {
-            if (resampleNeeded) {
+            if (_inputFormat != _outputFormat) {
+                float loopbackOutputToInputRatio = (_outputFormat.sampleRate() / (float) _inputFormat.sampleRate())
+                    * (_outputFormat.channelCount() / _inputFormat.channelCount());
+
+                QByteArray resampledInputByteArray(inputByteArray.size() * loopbackOutputToInputRatio, 0);
+
+                linearResampling((int16_t*) inputByteArray.data(), (int16_t*) resampledInputByteArray.data(),
+                                 inputByteArray.size() / sizeof(int16_t),
+                                 resampledInputByteArray.size() / sizeof(int16_t), _inputFormat, _outputFormat);
+
                 _loopbackOutputDevice->write(resampledInputByteArray);
             } else {
                 _loopbackOutputDevice->write(inputByteArray);
