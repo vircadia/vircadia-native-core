@@ -518,7 +518,6 @@ void Audio::handleAudioInput() {
             
             //  Add tone injection if enabled
             const float TONE_FREQ = 220.f / SAMPLE_RATE * TWO_PI;
-            //const float TONE_FREQ = 5000.f / SAMPLE_RATE * TWO_PI;
             const float QUARTER_VOLUME = 8192.f;
             if (_toneInjectionEnabled) {
                 loudness = 0.f;

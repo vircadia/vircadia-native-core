@@ -6,8 +6,8 @@
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
 //
 
-#ifndef __interface__AudioReflector__
-#define __interface__AudioReflector__
+#ifndef interface_AudioReflector_h
+#define interface_AudioReflector_h
 
 #include <QMutex>
 
@@ -185,4 +185,4 @@ private:
 };
 
 
-#endif /* defined(__interface__AudioReflector__) */
+#endif // interface_AudioReflector_h
