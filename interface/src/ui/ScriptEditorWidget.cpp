@@ -20,6 +20,7 @@
 #include <QWidget>
 
 #include "Application.h"
+#include "ScriptHighlighting.h"
 #include "ui_scriptEditorWidget.h"
 
 #include "ScriptEditorWidget.h"
@@ -31,7 +32,9 @@ ScriptEditorWidget::ScriptEditorWidget() :
 
     // remove the title bar (see the Qt docs on setTitleBarWidget)
     setTitleBarWidget(new QWidget());
-    //QSyntaxHighlighter* highlighter = new QSyntaxHighlighter();
+    QFontMetrics fm(this->ui->scriptEdit->font());
+    this->ui->scriptEdit->setTabStopWidth(fm.width('0') * 4);
+    ScriptHighlighting* highlighting = new ScriptHighlighting(this->ui->scriptEdit->document());
 }
 
 ScriptEditorWidget::~ScriptEditorWidget() {

@@ -18,8 +18,26 @@ class ScriptHighlighting : public QSyntaxHighlighter {
     Q_OBJECT
 
 public:
-    ScriptHighlighting(QObject* parent = 0);
+    ScriptHighlighting(QTextDocument* parent = 0);
 
+    enum BlockState {
+        BlockStateClean,
+        BlockStateInMultiComment
+    };
+
+protected:
+    void highlightBlock(const QString &text);
+    void highlightKeywords(const QString &text);
+    void formatComments(const QString &text);
+    void formatQoutedText(const QString &text);
+    void formatNumbers(const QString &text);
+
+private:
+    QRegExp keywordRegex;
+    QRegExp qoutedTextRegex;
+    QRegExp multiLineCommentBegin;
+    QRegExp multiLineCommentEnd;
+    QRegExp numberRegex;
 };
 
 #endif // hifi_ScriptHighlighting_h
