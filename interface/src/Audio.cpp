@@ -666,7 +666,6 @@ unsigned int Audio::timeValToSampleTick(const quint64 time, int sampleRate) {
 }
 
 void Audio::addSpatialAudioToBuffer(unsigned int sampleTime, const QByteArray& spatialAudio, unsigned int numSamples) {
-
     // Calculate the number of remaining samples available. The source spatial audio buffer will get
     // clipped if there are insufficient samples available in the accumulation buffer.
     unsigned int remaining = _spatialAudioRingBuffer.getSampleCapacity() - _spatialAudioRingBuffer.samplesAvailable();

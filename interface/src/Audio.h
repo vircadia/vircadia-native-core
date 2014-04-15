@@ -172,9 +172,9 @@ private:
     
     // Process received audio by spatial attenuation geometric response
     bool _processSpatialAudio;
-    unsigned int _spatialAudioStart;            ///< Start of spatial audio interval (in sample rate time base)
-    unsigned int _spatialAudioFinish;           ///< End of spatial audio interval (in sample rate time base)
-    AudioRingBuffer _spatialAudioRingBuffer;    ///< Spatially processed audio
+    unsigned int _spatialAudioStart;            /// Start of spatial audio interval (in sample rate time base)
+    unsigned int _spatialAudioFinish;           /// End of spatial audio interval (in sample rate time base)
+    AudioRingBuffer _spatialAudioRingBuffer;    /// Spatially processed audio
 
     unsigned int timeValToSampleTick(const quint64 time, int sampleRate);
 
