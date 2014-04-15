@@ -382,47 +382,50 @@ Menu::Menu() :
                                            false,
                                            appInstance->getAudio(),
                                            SLOT(toggleToneInjection()));
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSpatialProcessing,
+
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::LowPassFilter,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_F,
+                                           false);
+
+    QMenu* spatialAudioMenu = audioDebugMenu->addMenu("Spatial Audio");
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessing,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_M,
                                            false,
                                            appInstance->getAudio(),
                                            SLOT(toggleAudioSpatialProcessing()));
 
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSpatialProcessingIncudeOriginal,
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingIncudeOriginal,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_O,
                                            true);
 
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSpatialProcessingSeparateEars,
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingSeparateEars,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_E,
                                            true);
 
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSpatialProcessingPreDelay,
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingPreDelay,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_D,
                                            true);
 
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSpatialProcessingStereoSource,
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingStereoSource,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_S,
                                            true);
 
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSpatialProcessingHeadOriented,
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingHeadOriented,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_H,
                                            true);
 
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSpatialProcessingWithDiffusions,
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingWithDiffusions,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_W,
                                            true);
 
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSpatialProcessingRenderPaths,
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingRenderPaths,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_R,
                                            true);
 
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSpatialProcessingSlightlyRandomSurfaces,
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingSlightlyRandomSurfaces,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_X,
                                            true);
-
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::LowPassFilter,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_F,
-                                           false);
 
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
                 Qt::CTRL | Qt::SHIFT | Qt::Key_V,
