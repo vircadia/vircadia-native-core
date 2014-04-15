@@ -708,13 +708,12 @@ void Audio::addSpatialAudioToBuffer(unsigned int sampleTime, const QByteArray& s
         mixedSamplesCount = (mixedSamplesCount < numSamples) ? mixedSamplesCount : numSamples;
 
         const int16_t* spatial = reinterpret_cast<const int16_t*>(spatialAudio.data());
-        int j = 0;
-        for (int i = mixedSamplesCount; --i >= 0; j++) {
-            int t1 = _spatialAudioRingBuffer[j + offset];
-            int t2 = spatial[j];
-            int tmp = t1 + t2;
-            _spatialAudioRingBuffer[j + offset] = 
-                static_cast<int16_t>(glm::clamp<int>(tmp, std::numeric_limits<short>::min(), std::numeric_limits<short>::max()));
+        for (int i = 0; i < mixedSamplesCount; i++) {
+            int existingSample = _spatialAudioRingBuffer[i + offset];
+            int newSample = spatial[i];
+            int sumOfSamples = existingSample + newSample;
+            _spatialAudioRingBuffer[i + offset] = static_cast<int16_t>(glm::clamp<int>(sumOfSamples, 
+                                                    std::numeric_limits<short>::min(), std::numeric_limits<short>::max()));
         }
 
         // Copy the remaining unoverlapped spatial audio to the spatial audio buffer, if any
