@@ -533,7 +533,7 @@ color: #0e7077</string>
         <string notr="true">color: #0e7077</string>
        </property>
        <property name="text">
-        <string>Snapshots location</string>
+        <string>Place my Snapshots here:</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
