@@ -40,10 +40,10 @@ public:
 
 class AudiblePoint {
 public:
-    glm::vec3 location;
-    float delay; // includes total delay including pre delay to the point of the audible location, not to the listener's ears
-    float attenuation; // only the reflective & diffusive portion of attenuation, doesn't include distance attenuation
-    float distance; // includes total distance to the point of the audible location, not to the listener's ears
+    glm::vec3 location; /// location of the audible point
+    float delay; /// includes total delay including pre delay to the point of the audible location, not to the listener's ears
+    float attenuation; /// only the reflective & diffusive portion of attenuation, doesn't include distance attenuation
+    float distance; /// includes total distance to the point of the audible location, not to the listener's ears
 };
 
 class SurfaceCharacteristics {
@@ -59,12 +59,18 @@ class AudioReflector : public QObject {
 public:
     AudioReflector(QObject* parent = NULL);
 
+    // setup functions to configure the resources used by the AudioReflector
     void setVoxels(VoxelTree* voxels) { _voxels = voxels; }
     void setMyAvatar(MyAvatar* myAvatar) { _myAvatar = myAvatar; }
     void setAudio(Audio* audio) { _audio = audio; }
 
-    void render();
+    void render(); /// must be called in the application render loop
     
+    void processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
+    void processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
+
+public slots:
+    // statistics
     int getReflections() const { return _reflections; }
     float getAverageDelayMsecs() const { return _averageDelay; }
     float getAverageAttenuation() const { return _averageAttenuation; }
@@ -75,24 +81,32 @@ public:
     float getDelayFromDistance(float distance);
     int getDiffusionPathCount() const { return _diffusionPathCount; }
 
-    void processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
-    void processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
-
-public slots:
-
+    /// ms of delay added to all echos
     float getPreDelay() const { return _preDelay; }
     void setPreDelay(float preDelay) { _preDelay = preDelay; }
-    float getSoundMsPerMeter() const { return _soundMsPerMeter; } /// ms per meter, larger means slower
-    void setSoundMsPerMeter(float soundMsPerMeter) { _soundMsPerMeter = soundMsPerMeter; }
-    float getDistanceAttenuationScalingFactor() const { return _distanceAttenuationScalingFactor; } /// ms per meter, larger means slower
-    void setDistanceAttenuationScalingFactor(float factor) { _distanceAttenuationScalingFactor = factor; }
-    int getDiffusionFanout() const { return _diffusionFanout; } /// number of points of diffusion from each reflection point
-    void setDiffusionFanout(int fanout) { _diffusionFanout = fanout; } /// number of points of diffusion from each reflection point
 
+    /// ms per meter that sound travels, larger means slower, which sounds bigger
+    float getSoundMsPerMeter() const { return _soundMsPerMeter; }
+    void setSoundMsPerMeter(float soundMsPerMeter) { _soundMsPerMeter = soundMsPerMeter; }
+    
+    /// scales attenuation to be louder or softer than the default distance attenuation
+    float getDistanceAttenuationScalingFactor() const { return _distanceAttenuationScalingFactor; }
+    void setDistanceAttenuationScalingFactor(float factor) { _distanceAttenuationScalingFactor = factor; }
+
+    /// number of points of diffusion from each reflection point, as fanout increases there are more chances for secondary
+    /// echoes, but each diffusion ray is quieter and therefore more likely to be below the sound floor
+    int getDiffusionFanout() const { return _diffusionFanout; }
+    void setDiffusionFanout(int fanout) { _diffusionFanout = fanout; }
+    
+    /// ratio 0.0 - 1.0 of amount of each ray that is absorbed upon hitting a surface    
     float getAbsorptionRatio() const { return _absorptionRatio; }
-    void setAbsorptionRatio(float ratio) { _absorptionRatio = ratio; }
+    void setAbsorptionRatio(float ratio);
+
+    // ratio 0.0 - 1.0 of amount of each ray that is diffused upon hitting a surface    
     float getDiffusionRatio() const { return _diffusionRatio; }
-    void setDiffusionRatio(float ratio) { _diffusionRatio = ratio; }
+    void setDiffusionRatio(float ratio);
+    
+    // remaining ratio 0.0 - 1.0 of amount of each ray that is cleanly reflected upon hitting a surface    
     float getReflectiveRatio() const { return (1.0f - (_absorptionRatio + _diffusionRatio)); }
     void setReflectiveRatio(float ratio);
 

@@ -624,10 +624,30 @@ SurfaceCharacteristics AudioReflector::getSurfaceCharacteristics(OctreeElement* 
 }
 
 void AudioReflector::setReflectiveRatio(float ratio) { 
+    float safeRatio = std::max(0.0f, std::min(ratio, 1.0f));
     float currentReflectiveRatio = (1.0f - (_absorptionRatio + _diffusionRatio));
-    float halfDifference = (ratio - currentReflectiveRatio) / 2.0f;
+    float halfDifference = (safeRatio - currentReflectiveRatio) / 2.0f;
+
     // evenly distribute the difference between the two other ratios
     _absorptionRatio -= halfDifference;
     _diffusionRatio -= halfDifference;
+}
+
+void AudioReflector::setAbsorptionRatio(float ratio) { 
+    float safeRatio = std::max(0.0f, std::min(ratio, 1.0f));
+    _absorptionRatio = safeRatio;
+    const float MAX_COMBINED_RATIO = 1.0f;
+    if (_absorptionRatio + _diffusionRatio > MAX_COMBINED_RATIO) {
+        _diffusionRatio = MAX_COMBINED_RATIO - _absorptionRatio;
+    }
+}
+
+void AudioReflector::setDiffusionRatio(float ratio) { 
+    float safeRatio = std::max(0.0f, std::min(ratio, 1.0f));
+    _diffusionRatio = safeRatio;
+    const float MAX_COMBINED_RATIO = 1.0f;
+    if (_absorptionRatio + _diffusionRatio > MAX_COMBINED_RATIO) {
+        _absorptionRatio = MAX_COMBINED_RATIO - _diffusionRatio;
+    }
 }
 
