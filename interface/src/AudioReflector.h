@@ -36,7 +36,7 @@ public:
     QVector<glm::vec3> reflections;
 };
 
-class AudioPoint {
+class AudiblePoint {
 public:
     glm::vec3 location;
     float delay; // includes total delay including pre delay to the point of the audible location, not to the listener's ears
@@ -96,35 +96,11 @@ private:
     Audio* _audio; // access to audio API
 
     // Helpers for drawing
-    void drawRays();
     void drawVector(const glm::vec3& start, const glm::vec3& end, const glm::vec3& color);
 
-    // OLD helper for playing audio
-    void echoReflections(const glm::vec3& origin, const QVector<glm::vec3>& reflections, const QByteArray& samples, 
-                                        unsigned int sampleTime, int sampleRate);
-
-    // OLD helper for calculating reflections
-    QVector<glm::vec3> calculateReflections(const glm::vec3& earPosition, const glm::vec3& origin, const glm::vec3& originalDirection);
-    void calculateDiffusions(const glm::vec3& earPosition, const glm::vec3& origin, 
-                const glm::vec3& thisReflection, float thisDistance, float thisAttenuation, int thisBounceCount, 
-                BoxFace thisReflectionFace, QVector<glm::vec3> reflectionPoints);
-
-
-    // OLD helper for drawing refections
-    void drawReflections(const glm::vec3& origin, const glm::vec3& originalColor, const QVector<glm::vec3>& reflections);
-
-    // OLD helper for calculating reflections
-    void calculateAllReflections();
-    
-    // resets statistics
-    void reset();
-    
     // helper for generically calculating attenuation based on distance
     float getDistanceAttenuationCoefficient(float distance);
 
-    // helper for generically calculating attenuation based on bounce count, used in old/non-diffusion mode
-    float getBounceAttenuationCoefficient(int bounceCount);
-    
     // statistics
     int _reflections;
     int _diffusionPathCount;
@@ -143,23 +119,6 @@ private:
     glm::vec3 _origin;
     glm::quat _orientation;
     
-    // old way of doing this...
-    QVector<glm::vec3> _frontRightUpReflections;
-    QVector<glm::vec3> _frontLeftUpReflections;
-    QVector<glm::vec3> _backRightUpReflections;
-    QVector<glm::vec3> _backLeftUpReflections;
-    QVector<glm::vec3> _frontRightDownReflections;
-    QVector<glm::vec3> _frontLeftDownReflections;
-    QVector<glm::vec3> _backRightDownReflections;
-    QVector<glm::vec3> _backLeftDownReflections;
-    QVector<glm::vec3> _frontReflections;
-    QVector<glm::vec3> _backReflections;
-    QVector<glm::vec3> _leftReflections;
-    QVector<glm::vec3> _rightReflections;
-    QVector<glm::vec3> _upReflections;
-    QVector<glm::vec3> _downReflections;
-    
-    
     // NOTE: Here's the new way, we will have an array of AudioPaths, we will loop on all of our currently calculating audio 
     // paths, and calculate one ray per path. If that ray doesn't reflect, or reaches a max distance/attenuation, then it
     // is considered finalized.
@@ -168,7 +127,7 @@ private:
     // fanout number of new paths, those new paths will have an origin of the reflection point, and an initial attenuation
     // of their diffusion ratio. Those new paths will be added to the active audio paths, and be analyzed for the next loop.
     QVector<AudioPath*> _audioPaths;
-    QVector<AudioPoint> _audiblePoints;
+    QVector<AudiblePoint> _audiblePoints;
     
     // adds a sound source to begin an audio path trace, these can be the initial sound sources with their directional properties,
     // as well as diffusion sound sources
@@ -178,15 +137,14 @@ private:
     // helper that handles audioPath analysis
     int analyzePathsSingleStep();
     void analyzePaths();
-    void newDrawRays();
+    void drawRays();
     void drawPath(AudioPath* path, const glm::vec3& originalColor);
-    void newCalculateAllReflections();
+    void calculateAllReflections();
     int countDiffusionPaths();
     glm::vec3 getFaceNormal(BoxFace face);
 
-    void injectAudiblePoint(const AudioPoint& audiblePoint, const QByteArray& samples, unsigned int sampleTime, int sampleRate);
-    void oldEchoAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
-    void newEchoAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
+    void injectAudiblePoint(const AudiblePoint& audiblePoint, const QByteArray& samples, unsigned int sampleTime, int sampleRate);
+    void echoAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
     
     // return the surface characteristics of the element we hit
     SurfaceCharacteristics getSurfaceCharacteristics(OctreeElement* elementHit = NULL);

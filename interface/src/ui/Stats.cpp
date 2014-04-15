@@ -513,14 +513,16 @@ void Stats::display(
         // add some reflection stats
         char reflectionsStatus[128];
 
-        sprintf(reflectionsStatus, "Reflections: %d, Original: %s, Ears: %s, Source: %s", 
+        sprintf(reflectionsStatus, "Reflections: %d, Original: %s, Ears: %s, Source: %s, Normals: %s", 
                 audioReflector->getReflections(),
                 (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncudeOriginal)
                     ? "included" : "silent"),
                 (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingSeparateEars)
                     ? "two" : "one"),
                 (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingStereoSource)
-                    ? "stereo" : "mono")
+                    ? "stereo" : "mono"),
+                (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingSlightlyRandomSurfaces)
+                    ? "random" : "regular")
                 );
                 
         verticalOffset += STATS_PELS_PER_LINE;
