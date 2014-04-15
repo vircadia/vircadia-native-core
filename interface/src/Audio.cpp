@@ -92,7 +92,7 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _processSpatialAudio(false),
     _spatialAudioStart(0),
     _spatialAudioFinish(0),
-    _spatialAudioRingBuffer(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL)
+    _spatialAudioRingBuffer(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL, true) // random access mode
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);

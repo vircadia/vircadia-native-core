@@ -39,7 +39,7 @@ const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 class AudioRingBuffer : public NodeData {
     Q_OBJECT
 public:
-    AudioRingBuffer(int numFrameSamples);
+    AudioRingBuffer(int numFrameSamples, bool randomAccessMode = false);
     ~AudioRingBuffer();
 
     void reset();
@@ -88,6 +88,7 @@ protected:
     int16_t* _buffer;
     bool _isStarved;
     bool _hasStarted;
+    bool _randomAccessMode; /// will this ringbuffer be used for random access? if so, do some special processing
 };
 
 #endif // hifi_AudioRingBuffer_h
