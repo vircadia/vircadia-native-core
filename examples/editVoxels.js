@@ -882,7 +882,7 @@ function mousePressEvent(event) {
         
     } else if (clickedOverlay == voxelTool) {
         modeSwitchSound.play(0);
-        voxelToolSelected = !voxelToolSelected;
+        voxelToolSelected = true;
         recolorToolSelected = false;
         eyedropperToolSelected = false;
         moveTools();
@@ -890,7 +890,7 @@ function mousePressEvent(event) {
     } else if (clickedOverlay == recolorTool) {
         modeSwitchSound.play(1);
         voxelToolSelected = false;
-        recolorToolSelected = !recolorToolSelected;
+        recolorToolSelected = true;
         eyedropperToolSelected = false;
         moveTools();
         clickedOnSomething = true;
@@ -898,7 +898,7 @@ function mousePressEvent(event) {
         modeSwitchSound.play(2);
         voxelToolSelected = false;
         recolorToolSelected = false;
-        eyedropperToolSelected = !eyedropperToolSelected;
+        eyedropperToolSelected = true;
         moveTools();
         clickedOnSomething = true;
     } else if (clickedOverlay == slider) {
