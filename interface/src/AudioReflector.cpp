@@ -11,7 +11,6 @@
 #include "AudioReflector.h"
 #include "Menu.h"
 
-
 const float DEFAULT_PRE_DELAY = 20.0f; // this delay in msecs will always be added to all reflections
 const float DEFAULT_MS_DELAY_PER_METER = 3.0f;
 const float MINIMUM_ATTENUATION_TO_REFLECT = 1.0f / 256.0f;
@@ -44,7 +43,6 @@ AudioReflector::AudioReflector(QObject* parent) :
     _maxDelay = 0;
     _minDelay = 0;
 }
-
 
 void AudioReflector::render() {
 
@@ -159,8 +157,11 @@ void AudioReflector::injectAudiblePoint(const AudiblePoint& audiblePoint,
     int rightEarDelay = rightEarDelayMsecs * sampleRate / MSECS_PER_SECOND;
     int leftEarDelay = leftEarDelayMsecs * sampleRate / MSECS_PER_SECOND;
 
-    float rightEarAttenuation = audiblePoint.attenuation * getDistanceAttenuationCoefficient(rightEarDistance + audiblePoint.distance);
-    float leftEarAttenuation = audiblePoint.attenuation * getDistanceAttenuationCoefficient(leftEarDistance + audiblePoint.distance);
+    float rightEarAttenuation = audiblePoint.attenuation * 
+                                    getDistanceAttenuationCoefficient(rightEarDistance + audiblePoint.distance);
+
+    float leftEarAttenuation = audiblePoint.attenuation * 
+                                    getDistanceAttenuationCoefficient(leftEarDistance + audiblePoint.distance);
 
     _totalAttenuation += rightEarAttenuation + leftEarAttenuation;
     _attenuationCount += 2;
@@ -423,7 +424,12 @@ int AudioReflector::analyzePathsSingleStep() {
             
             if (path->bounceCount > ABSOLUTE_MAXIMUM_BOUNCE_COUNT) {
                 path->finalized = true;
-            } else if (_voxels->findRayIntersection(start, direction, elementHit, distance, face, Octree::Lock)) {
+            } else if (_voxels->findRayIntersection(start, direction, elementHit, distance, face)) {
+                // TODO: we need to decide how we want to handle locking on the ray intersection, if we force lock,
+                // we get an accurate picture, but it could prevent rendering of the voxels. If we trylock (default), 
+                // we might not get ray intersections where they may exist, but we can't really detect that case...
+                // add last parameter of Octree::Lock to force locking
+                
                 glm::vec3 end = start + (direction * (distance * SLIGHTLY_SHORT));
 
                 pathDistance += glm::distance(start, end);
@@ -525,9 +531,15 @@ int AudioReflector::analyzePathsSingleStep() {
 }
 
 SurfaceCharacteristics AudioReflector::getSurfaceCharacteristics(OctreeElement* elementHit) {
-    float reflectiveRatio = (1.0f - (_absorptionRatio + _diffusionRatio));
-    SurfaceCharacteristics result = { reflectiveRatio, _absorptionRatio, _diffusionRatio };
+    SurfaceCharacteristics result = { getReflectiveRatio(), _absorptionRatio, _diffusionRatio };
     return result;
 }
 
+void AudioReflector::setReflectiveRatio(float ratio) { 
+    float currentReflectiveRatio = (1.0f - (_absorptionRatio + _diffusionRatio));
+    float halfDifference = (ratio - currentReflectiveRatio) / 2.0f;
+    // evenly distribute the difference between the two other ratios
+    _absorptionRatio -= halfDifference;
+    _diffusionRatio -= halfDifference;
+}
 

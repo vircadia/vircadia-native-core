@@ -84,10 +84,16 @@ public slots:
     void setSoundMsPerMeter(float soundMsPerMeter) { _soundMsPerMeter = soundMsPerMeter; }
     float getDistanceAttenuationScalingFactor() const { return _distanceAttenuationScalingFactor; } /// ms per meter, larger means slower
     void setDistanceAttenuationScalingFactor(float factor) { _distanceAttenuationScalingFactor = factor; }
-
     int getDiffusionFanout() const { return _diffusionFanout; } /// number of points of diffusion from each reflection point
     void setDiffusionFanout(int fanout) { _diffusionFanout = fanout; } /// number of points of diffusion from each reflection point
-    
+
+    float getAbsorptionRatio() const { return _absorptionRatio; }
+    void setAbsorptionRatio(float ratio) { _absorptionRatio = ratio; }
+    float getDiffusionRatio() const { return _diffusionRatio; }
+    void setDiffusionRatio(float ratio) { _diffusionRatio = ratio; }
+    float getReflectiveRatio() const { return (1.0f - (_absorptionRatio + _diffusionRatio)); }
+    void setReflectiveRatio(float ratio);
+
 signals:
     
 private:

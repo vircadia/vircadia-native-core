@@ -343,7 +343,7 @@ void Stats::display(
 
     lines = _expanded ? 12 : 3;
     if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessing)) {
-        lines += 5; // spatial audio processing adds 1 spacing line and 4 extra lines of info
+        lines += 6; // spatial audio processing adds 1 spacing line and 5 extra lines of info
     }
 
     drawBackground(backgroundColor, horizontalOffset, 0, glWidget->width() - horizontalOffset, lines * STATS_PELS_PER_LINE + 10);
@@ -541,7 +541,7 @@ void Stats::display(
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);
 
-        sprintf(reflectionsStatus, "Attenuation: average %5.3f, max %5.3f, min %5.3f, distance scale: %5.3f", 
+        sprintf(reflectionsStatus, "Attenuation: average %5.3f, max %5.3f, min %5.3f, Factor: %5.3f", 
                 audioReflector->getAverageAttenuation(),
                 audioReflector->getMaxAttenuation(),
                 audioReflector->getMinAttenuation(),
@@ -555,6 +555,16 @@ void Stats::display(
         int diffusionPaths = diffusionEnabled ? audioReflector->getDiffusionPathCount() : 0;
         sprintf(reflectionsStatus, "Diffusion: %s, Fanout: %d, Paths: %d", 
                     (diffusionEnabled ? "yes" : "no"), fanout, diffusionPaths);
+                
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);
+
+        const float AS_PERCENT = 100.0f;
+        float reflectiveRatio = audioReflector->getReflectiveRatio() * AS_PERCENT;
+        float diffusionRatio = audioReflector->getDiffusionRatio() * AS_PERCENT;
+        float absorptionRatio = audioReflector->getAbsorptionRatio() * AS_PERCENT;
+        sprintf(reflectionsStatus, "Ratios: Reflective: %5.3f, Diffusion: %5.3f, Absorption: %5.3f", 
+                    reflectiveRatio, diffusionRatio, absorptionRatio);
                 
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);
