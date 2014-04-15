@@ -674,49 +674,42 @@ void Audio::addSpatialAudioToBuffer(unsigned int sampleTime, const QByteArray& s
     // Locate where in the accumulation buffer the new samples need to go
     if (sampleTime >= _spatialAudioFinish) {
         if (_spatialAudioStart == _spatialAudioFinish) {
-
-            // Nothing in the spatial audio ring buffer yet
-            // Just do a straight copy, clipping if necessary
-            unsigned int sampleCt = (remaining < numSamples) ? remaining : numSamples;
-            if (sampleCt) {
-                _spatialAudioRingBuffer.writeSamples((int16_t*)spatialAudio.data(), sampleCt);
+            // Nothing in the spatial audio ring buffer yet, Just do a straight copy, clipping if necessary
+            unsigned int sampleCount = (remaining < numSamples) ? remaining : numSamples;
+            if (sampleCount) {
+                _spatialAudioRingBuffer.writeSamples((int16_t*)spatialAudio.data(), sampleCount);
             }
-            _spatialAudioFinish = _spatialAudioStart + sampleCt / _desiredOutputFormat.channelCount();
-
+            _spatialAudioFinish = _spatialAudioStart + sampleCount / _desiredOutputFormat.channelCount();
         } else {
-
             // Spatial audio ring buffer already has data, but there is no overlap with the new sample.
             // Compute the appropriate time delay and pad with silence until the new start time.
             unsigned int delay = sampleTime - _spatialAudioFinish;
-            unsigned int ct = delay * _desiredOutputFormat.channelCount();
-            unsigned int silentCt = (remaining < ct) ? remaining : ct;
-            if (silentCt) {
-               _spatialAudioRingBuffer.addSilentFrame(silentCt);
+            unsigned int delayCount = delay * _desiredOutputFormat.channelCount();
+            unsigned int silentCount = (remaining < delayCount) ? remaining : delayCount;
+            if (silentCount) {
+               _spatialAudioRingBuffer.addSilentFrame(silentCount);
             }
 
             // Recalculate the number of remaining samples
-            remaining -= silentCt;
-            unsigned int sampleCt = (remaining < numSamples) ? remaining : numSamples;
+            remaining -= silentCount;
+            unsigned int sampleCount = (remaining < numSamples) ? remaining : numSamples;
 
             // Copy the new spatial audio to the accumulation ring buffer
-            if (sampleCt) {
-                _spatialAudioRingBuffer.writeSamples((int16_t*)spatialAudio.data(), sampleCt);
+            if (sampleCount) {
+                _spatialAudioRingBuffer.writeSamples((int16_t*)spatialAudio.data(), sampleCount);
             }
-            _spatialAudioFinish += (sampleCt + silentCt) / _desiredOutputFormat.channelCount();
+            _spatialAudioFinish += (sampleCount + silentCount) / _desiredOutputFormat.channelCount();
         }
     } else {
-
-        // There is overlap between the spatial audio buffer and the new sample,
-        // acumulate the overlap
-
+        // There is overlap between the spatial audio buffer and the new sample, mix the overlap
         // Calculate the offset from the buffer's current read position, which should be located at _spatialAudioStart
         unsigned int offset = (sampleTime - _spatialAudioStart) * _desiredOutputFormat.channelCount();
-        unsigned int accumulationCt = (_spatialAudioFinish - sampleTime) * _desiredOutputFormat.channelCount();
-        accumulationCt = (accumulationCt < numSamples) ? accumulationCt : numSamples;
+        unsigned int mixedSamplesCount = (_spatialAudioFinish - sampleTime) * _desiredOutputFormat.channelCount();
+        mixedSamplesCount = (mixedSamplesCount < numSamples) ? mixedSamplesCount : numSamples;
 
         const int16_t* spatial = reinterpret_cast<const int16_t*>(spatialAudio.data());
         int j = 0;
-        for (int i = accumulationCt; --i >= 0; j++) {
+        for (int i = mixedSamplesCount; --i >= 0; j++) {
             int t1 = _spatialAudioRingBuffer[j + offset];
             int t2 = spatial[j];
             int tmp = t1 + t2;
@@ -724,13 +717,13 @@ void Audio::addSpatialAudioToBuffer(unsigned int sampleTime, const QByteArray& s
                 static_cast<int16_t>(glm::clamp<int>(tmp, std::numeric_limits<short>::min(), std::numeric_limits<short>::max()));
         }
 
-        // Copy the remaining unoverlapped spatial audio to the accumulation buffer, if any
-        unsigned int sampleCt = numSamples - accumulationCt;
-        sampleCt = (remaining < sampleCt) ? remaining : sampleCt;
-        if (sampleCt) {
-            _spatialAudioRingBuffer.writeSamples((int16_t*)spatialAudio.data() + accumulationCt, sampleCt);
+        // Copy the remaining unoverlapped spatial audio to the spatial audio buffer, if any
+        unsigned int nonMixedSampleCount = numSamples - mixedSamplesCount;
+        nonMixedSampleCount = (remaining < nonMixedSampleCount) ? remaining : nonMixedSampleCount;
+        if (nonMixedSampleCount) {
+            _spatialAudioRingBuffer.writeSamples((int16_t*)spatialAudio.data() + mixedSamplesCount, nonMixedSampleCount);
             // Extend the finish time by the amount of unoverlapped samples
-            _spatialAudioFinish += sampleCt / _desiredOutputFormat.channelCount();
+            _spatialAudioFinish += nonMixedSampleCount / _desiredOutputFormat.channelCount();
         }
     }
 }
