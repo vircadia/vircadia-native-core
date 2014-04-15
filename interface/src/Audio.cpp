@@ -806,17 +806,10 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
 
                 // Advance the start point for the next packet of audio to arrive
                 _spatialAudioStart += numNetworkOutputSamples / _desiredOutputFormat.channelCount();
-                
-                // Advance the read position by the same amount
-                //ringBuffer.shiftReadPosition(numNetworkOutputSamples);
-
             } else {
-
                 // copy the samples we'll resample from the ring buffer - this also
                 // pushes the read pointer of the ring buffer forwards
                 _ringBuffer.readSamples(ringBufferSamples, numNetworkOutputSamples);
-
-
             }
 
             // copy the packet from the RB to the output
