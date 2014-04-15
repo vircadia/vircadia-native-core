@@ -166,4 +166,20 @@ int unpackFloatVec3FromSignedTwoByteFixed(const unsigned char* sourceBuffer, glm
 /// \return vec3 with euler angles in radians
 glm::vec3 safeEulerAngles(const glm::quat& q);
 
+float angleBetween(const glm::vec3& v1, const glm::vec3& v2); 
+
+glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2);
+
+glm::vec3 extractTranslation(const glm::mat4& matrix);
+
+void setTranslation(glm::mat4& matrix, const glm::vec3& translation);
+
+glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal = false);
+
+glm::vec3 extractScale(const glm::mat4& matrix);
+
+float extractUniformScale(const glm::mat4& matrix);
+
+float extractUniformScale(const glm::vec3& scale);
+
 #endif // hifi_SharedUtil_h

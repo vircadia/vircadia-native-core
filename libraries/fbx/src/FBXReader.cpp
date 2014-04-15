@@ -22,14 +22,14 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 
-#include <OctalCode.h>
-
 #include <GeometryUtil.h>
+#include <OctalCode.h>
 #include <Shape.h>
+#include <SharedUtil.h>
+
 #include <VoxelTree.h>
 
 #include "FBXReader.h"
-#include "Util.h"
 
 using namespace std;
 

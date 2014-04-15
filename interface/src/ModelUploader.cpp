@@ -22,9 +22,9 @@
 
 #include <AccountManager.h>
 
-#include "Application.h"
-#include "renderer/FBXReader.h"
+#include <FBXReader.h>
 
+#include "Application.h"
 #include "ModelUploader.h"
 
 
