@@ -423,20 +423,22 @@ void Audio::handleAudioInput() {
             _loopbackOutputDevice = _loopbackAudioOutput->start();
         }
         
-        if (_loopbackOutputDevice) {
-            if (_inputFormat != _outputFormat) {
-                float loopbackOutputToInputRatio = (_outputFormat.sampleRate() / (float) _inputFormat.sampleRate())
-                    * (_outputFormat.channelCount() / _inputFormat.channelCount());
-
-                QByteArray resampledInputByteArray(inputByteArray.size() * loopbackOutputToInputRatio, 0);
-
-                linearResampling((int16_t*) inputByteArray.data(), (int16_t*) resampledInputByteArray.data(),
-                                 inputByteArray.size() / sizeof(int16_t),
-                                 resampledInputByteArray.size() / sizeof(int16_t), _inputFormat, _outputFormat);
-
-                _loopbackOutputDevice->write(resampledInputByteArray);
-            } else {
+        if (_inputFormat == _outputFormat) {
+            if (_loopbackOutputDevice) {
                 _loopbackOutputDevice->write(inputByteArray);
+            }
+        } else {
+            float loopbackOutputToInputRatio = (_outputFormat.sampleRate() / (float) _inputFormat.sampleRate())
+                * (_outputFormat.channelCount() / _inputFormat.channelCount());
+
+            QByteArray loopBackByteArray(inputByteArray.size() * loopbackOutputToInputRatio, 0);
+
+            linearResampling((int16_t*) inputByteArray.data(), (int16_t*) loopBackByteArray.data(),
+                             inputByteArray.size() / sizeof(int16_t),
+                             loopBackByteArray.size() / sizeof(int16_t), _inputFormat, _outputFormat);
+
+            if (_loopbackOutputDevice) {
+                _loopbackOutputDevice->write(loopBackByteArray);
             }
         }
     }
