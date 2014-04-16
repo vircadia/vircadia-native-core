@@ -665,11 +665,6 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     _lastReceiveTime = currentReceiveTime;
 }
 
-unsigned int Audio::timeValToSampleTick(const quint64 time, int sampleRate) {
-    unsigned int sample =  (unsigned int)(time / 1000000 * sampleRate);
-    return sample;
-}
-
 void Audio::addSpatialAudioToBuffer(unsigned int sampleTime, const QByteArray& spatialAudio, unsigned int numSamples) {
     // Calculate the number of remaining samples available. The source spatial audio buffer will get
     // clipped if there are insufficient samples available in the accumulation buffer.
