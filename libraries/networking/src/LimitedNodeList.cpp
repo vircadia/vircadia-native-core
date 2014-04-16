@@ -112,10 +112,10 @@ QUdpSocket& LimitedNodeList::getDTLSSocket() {
         int socketHandle = _dtlsSocket->socketDescriptor();
 #if defined(IP_DONTFRAG)
         int optValue = 1;
-        setsockopt(socketHandle, IPPROTO_IP, IP_DONTFRAG, (const void*) optValue, sizeof(optValue));
+        setsockopt(socketHandle, IPPROTO_IP, IP_DONTFRAG, reinterpret_cast<const void*>(&optValue), sizeof(optValue));
 #elif defined(IP_MTU_DISCOVER)
         int optValue = 1;
-        setsockopt(socketHandle, IPPROTO_IP, IP_MTU_DISCOVER, (const void*) optValue, sizeof(optValue));
+        setsockopt(socketHandle, IPPROTO_IP, IP_MTU_DISCOVER, reinterpret_cast<const void*>(&optValue), sizeof(optValue));
 #endif
 #endif
         
