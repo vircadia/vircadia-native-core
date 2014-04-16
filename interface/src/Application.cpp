@@ -1674,7 +1674,7 @@ void Application::init() {
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
-    connect(_myAvatar, SIGNAL(transformChanged()), this, SLOT(bumpSettings()));
+    connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);
 }
 
 void Application::closeMirrorView() {
@@ -3280,6 +3280,7 @@ void Application::stopAllScripts() {
     }
     _scriptEnginesHash.clear();
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
+    bumpSettings();
 }
 
 void Application::stopScript(const QString &scriptName)
@@ -3288,6 +3289,7 @@ void Application::stopScript(const QString &scriptName)
     qDebug() << "stopping script..." << scriptName;
     _scriptEnginesHash.remove(scriptName);
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
+    bumpSettings();
 }
 
 void Application::reloadAllScripts() {
@@ -3403,6 +3405,7 @@ void Application::loadScript(const QString& scriptName) {
 
     // restore the main window's active state
     _window->activateWindow();
+    bumpSettings();
 }
 
 void Application::loadDialog() {
