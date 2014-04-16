@@ -12,10 +12,12 @@
 #ifndef hifi_Menu_h
 #define hifi_Menu_h
 
+#include <QDir>
 #include <QMenuBar>
 #include <QHash>
 #include <QKeySequence>
 #include <QPointer>
+#include <QStandardPaths>
 
 #include <EventTypes.h>
 #include <MenuItemProperties.h>
@@ -79,6 +81,9 @@ public:
     void setFieldOfView(float fieldOfView) { _fieldOfView = fieldOfView; }
     float getFaceshiftEyeDeflection() const { return _faceshiftEyeDeflection; }
     void setFaceshiftEyeDeflection(float faceshiftEyeDeflection) { _faceshiftEyeDeflection = faceshiftEyeDeflection; }
+    QString getSnapshotsLocation() const;
+    void setSnapshotsLocation(QString snapshotsLocation) { _snapshotsLocation = snapshotsLocation; }
+
     BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
     FrustumDrawMode getFrustumDrawMode() const { return _frustumDrawMode; }
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
@@ -229,6 +234,7 @@ private:
     QAction* _loginAction;
     QPointer<PreferencesDialog> _preferencesDialog;
     QAction* _chatAction;
+    QString _snapshotsLocation;
 };
 
 namespace MenuOption {
