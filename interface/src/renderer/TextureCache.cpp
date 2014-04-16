@@ -244,7 +244,6 @@ NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap) :
     
     if (!url.isValid()) {
         _loaded = true;
-        return;
     }
     
     // default to white/blue
