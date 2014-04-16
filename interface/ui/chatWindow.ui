@@ -252,22 +252,6 @@ QPushButton:pressed {
  <resources/>
  <connections>
   <connection>
-   <sender>togglePinnedButton</sender>
-   <signal>clicked()</signal>
-   <receiver>ChatWindow</receiver>
-   <slot>togglePinned()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>390</x>
-     <y>42</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>550</x>
-     <y>42</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>closeButton</sender>
    <signal>clicked()</signal>
    <receiver>ChatWindow</receiver>

@@ -65,7 +65,6 @@ private:
 private slots:
     void connected();
     void timeout();
-    void togglePinned();
 #ifdef HAVE_QXMPP
     void error(QXmppClient::Error error);
     void participantsChanged();

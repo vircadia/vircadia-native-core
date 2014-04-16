@@ -323,16 +323,3 @@ void ChatWindow::scrollToBottom() {
     QScrollBar* verticalScrollBar = ui->messagesScrollArea->verticalScrollBar();
     verticalScrollBar->setSliderPosition(verticalScrollBar->maximum());
 }
-
-void ChatWindow::togglePinned() {
-    QMainWindow* mainWindow = Application::getInstance()->getWindow();
-    mainWindow->removeDockWidget(this);
-    if (ui->togglePinnedButton->isChecked()) {
-        mainWindow->addDockWidget(ui->togglePinnedButton->isChecked() ? Qt::RightDockWidgetArea : Qt::NoDockWidgetArea, this);
-    }
-    if (!this->toggleViewAction()->isChecked()) {
-        this->toggleViewAction()->trigger();
-    }
-    this->setFloating(!ui->togglePinnedButton->isChecked());
-    setTitleBarWidget(ui->togglePinnedButton->isChecked()?new QWidget():titleBar);
-}
