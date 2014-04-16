@@ -515,7 +515,7 @@ void Stats::display(
 
         sprintf(reflectionsStatus, "Reflections: %d, Original: %s, Ears: %s, Source: %s, Normals: %s", 
                 audioReflector->getReflections(),
-                (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncudeOriginal)
+                (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncludeOriginal)
                     ? "included" : "silent"),
                 (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingSeparateEars)
                     ? "two" : "one"),

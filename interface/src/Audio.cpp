@@ -783,7 +783,7 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
 
                 _ringBuffer.readSamples((int16_t*)buffer.data(), numNetworkOutputSamples);
                 // Accumulate direct transmission of audio from sender to receiver
-                if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncudeOriginal)) {
+                if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncludeOriginal)) {
                     addSpatialAudioToBuffer(sampleTime, buffer, numNetworkOutputSamples);
                 }
 

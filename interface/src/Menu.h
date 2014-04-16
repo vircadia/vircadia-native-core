@@ -260,7 +260,7 @@ namespace MenuOption {
 
     const QString AudioSpatialProcessing = "Audio Spatial Processing";
     const QString AudioSpatialProcessingHeadOriented = "Head Oriented";
-    const QString AudioSpatialProcessingIncudeOriginal = "Includes Network Original";
+    const QString AudioSpatialProcessingIncludeOriginal = "Includes Network Original";
     const QString AudioSpatialProcessingPreDelay = "Add Pre-Delay";
     const QString AudioSpatialProcessingProcessLocalAudio = "Process Local Audio";
     const QString AudioSpatialProcessingRenderPaths = "Render Paths";

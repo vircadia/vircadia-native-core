@@ -393,7 +393,7 @@ Menu::Menu() :
                                            appInstance->getAudio(),
                                            SLOT(toggleAudioSpatialProcessing()));
 
-    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingIncudeOriginal,
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingIncludeOriginal,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_O,
                                            true);
 
