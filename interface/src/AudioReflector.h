@@ -86,6 +86,8 @@ public slots:
     float getMinAttenuation() const { return _minAttenuation; }
     float getDelayFromDistance(float distance);
     int getDiffusionPathCount() const { return _diffusionPathCount; }
+    int getEchoesInjected() const { return _inboundAudioDelays.size() + _localAudioDelays.size(); }
+    int getEchoesSuppressed() const { return _inboundEchoesSuppressed.size() + _localEchoesSuppressed.size(); }
 
     /// ms of delay added to all echos
     float getPreDelay() const { return _preDelay; }
@@ -102,6 +104,10 @@ public slots:
     /// scales attenuation of local audio to be louder or softer than the default attenuation
     float getLocalAudioAttenuationFactor() const { return _localAudioAttenuationFactor; }
     void setLocalAudioAttenuationFactor(float factor) { _localAudioAttenuationFactor = factor; }
+
+    /// ms window in which we will suppress echoes to reduce comb filter effects
+    float getCombFilterWindow() const { return _combFilterWindow; }
+    void setCombFilterWindow(float value) { _combFilterWindow = value; }
 
     /// number of points of diffusion from each reflection point, as fanout increases there are more chances for secondary
     /// echoes, but each diffusion ray is quieter and therefore more likely to be below the sound floor
@@ -153,10 +159,14 @@ private:
     
     QVector<AudioPath*> _inboundAudioPaths; /// audio paths we're processing for inbound audio
     QVector<AudiblePoint> _inboundAudiblePoints; /// the audible points that have been calculated from the inbound audio paths
+    QMap<float, float> _inboundAudioDelays; /// delay times for currently injected audio points
+    QVector<float> _inboundEchoesSuppressed; /// delay times for currently injected audio points
 
     QVector<AudioPath*> _localAudioPaths; /// audio paths we're processing for local audio
     QVector<AudiblePoint> _localAudiblePoints; /// the audible points that have been calculated from the local audio paths
-    
+    QMap<float, float> _localAudioDelays; /// delay times for currently injected audio points
+    QVector<float> _localEchoesSuppressed; /// delay times for currently injected audio points
+
     // adds a sound source to begin an audio path trace, these can be the initial sound sources with their directional properties,
     // as well as diffusion sound sources
     void addAudioPath(AudioSource source, const glm::vec3& origin, const glm::vec3& initialDirection, float initialAttenuation, 
@@ -173,7 +183,7 @@ private:
     int countDiffusionPaths();
     glm::vec3 getFaceNormal(BoxFace face);
 
-    void injectAudiblePoint(const AudiblePoint& audiblePoint, const QByteArray& samples, unsigned int sampleTime, int sampleRate);
+    void injectAudiblePoint(AudioSource source, const AudiblePoint& audiblePoint, const QByteArray& samples, unsigned int sampleTime, int sampleRate);
     void echoAudio(AudioSource source, unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
     
     // return the surface characteristics of the element we hit
@@ -186,6 +196,7 @@ private:
     float _soundMsPerMeter;
     float _distanceAttenuationScalingFactor;
     float _localAudioAttenuationFactor;
+    float _combFilterWindow;
 
     int _diffusionFanout; // number of points of diffusion from each reflection point
 

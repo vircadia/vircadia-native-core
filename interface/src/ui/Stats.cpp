@@ -343,7 +343,7 @@ void Stats::display(
 
     lines = _expanded ? 12 : 3;
     if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessing)) {
-        lines += 7; // spatial audio processing adds 1 spacing line and 6 extra lines of info
+        lines += 8; // spatial audio processing adds 1 spacing line and 7 extra lines of info
     }
 
     drawBackground(backgroundColor, horizontalOffset, 0, glWidget->width() - horizontalOffset, lines * STATS_PELS_PER_LINE + 10);
@@ -573,6 +573,14 @@ void Stats::display(
         float absorptionRatio = audioReflector->getAbsorptionRatio() * AS_PERCENT;
         sprintf(reflectionsStatus, "Ratios: Reflective: %5.3f, Diffusion: %5.3f, Absorption: %5.3f", 
                     reflectiveRatio, diffusionRatio, absorptionRatio);
+                
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);
+
+        sprintf(reflectionsStatus, "Comb Filter Window: %5.3f ms, Allowed: %d, Suppressed: %d", 
+                    audioReflector->getCombFilterWindow(), 
+                    audioReflector->getEchoesInjected(),
+                    audioReflector->getEchoesSuppressed());
                 
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);

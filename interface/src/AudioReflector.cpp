@@ -19,6 +19,7 @@ const float MAXIMUM_DELAY_MS = 1000.0 * 20.0f; // stop reflecting after path is 
 const int DEFAULT_DIFFUSION_FANOUT = 5;
 const int ABSOLUTE_MAXIMUM_BOUNCE_COUNT = 10;
 const float DEFAULT_LOCAL_ATTENUATION_FACTOR = 0.125;
+const float DEFAULT_COMB_FILTER_WINDOW = 0.05f; //ms delay differential to avoid
 
 const float SLIGHTLY_SHORT = 0.999f; // slightly inside the distance so we're on the inside of the reflection point
 
@@ -31,6 +32,7 @@ AudioReflector::AudioReflector(QObject* parent) :
     _soundMsPerMeter(DEFAULT_MS_DELAY_PER_METER),
     _distanceAttenuationScalingFactor(DEFAULT_DISTANCE_SCALING_FACTOR),
     _localAudioAttenuationFactor(DEFAULT_LOCAL_ATTENUATION_FACTOR),
+    _combFilterWindow(DEFAULT_COMB_FILTER_WINDOW),
     _diffusionFanout(DEFAULT_DIFFUSION_FANOUT),
     _absorptionRatio(DEFAULT_ABSORPTION_RATIO),
     _diffusionRatio(DEFAULT_DIFFUSION_RATIO),
@@ -152,7 +154,7 @@ glm::vec3 AudioReflector::getFaceNormal(BoxFace face) {
 // set up our buffers for our attenuated and delayed samples
 const int NUMBER_OF_CHANNELS = 2;
 
-void AudioReflector::injectAudiblePoint(const AudiblePoint& audiblePoint,
+void AudioReflector::injectAudiblePoint(AudioSource source, const AudiblePoint& audiblePoint,
                         const QByteArray& samples, unsigned int sampleTime, int sampleRate) {
 
     bool wantEarSeparation = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingSeparateEars);
@@ -180,51 +182,77 @@ void AudioReflector::injectAudiblePoint(const AudiblePoint& audiblePoint,
 
     float rightEarDelayMsecs = getDelayFromDistance(rightEarDistance) + audiblePoint.delay;
     float leftEarDelayMsecs = getDelayFromDistance(leftEarDistance) + audiblePoint.delay;
-
-    _totalDelay += rightEarDelayMsecs + leftEarDelayMsecs;
-    _delayCount += 2;
-    _maxDelay = std::max(_maxDelay,rightEarDelayMsecs);
-    _maxDelay = std::max(_maxDelay,leftEarDelayMsecs);
-    _minDelay = std::min(_minDelay,rightEarDelayMsecs);
-    _minDelay = std::min(_minDelay,leftEarDelayMsecs);
-        
-    int rightEarDelay = rightEarDelayMsecs * sampleRate / MSECS_PER_SECOND;
-    int leftEarDelay = leftEarDelayMsecs * sampleRate / MSECS_PER_SECOND;
-
-    float rightEarAttenuation = audiblePoint.attenuation * 
-                                    getDistanceAttenuationCoefficient(rightEarDistance + audiblePoint.distance);
-
-    float leftEarAttenuation = audiblePoint.attenuation * 
-                                    getDistanceAttenuationCoefficient(leftEarDistance + audiblePoint.distance);
-
-    _totalAttenuation += rightEarAttenuation + leftEarAttenuation;
-    _attenuationCount += 2;
-    _maxAttenuation = std::max(_maxAttenuation,rightEarAttenuation);
-    _maxAttenuation = std::max(_maxAttenuation,leftEarAttenuation);
-    _minAttenuation = std::min(_minAttenuation,rightEarAttenuation);
-    _minAttenuation = std::min(_minAttenuation,leftEarAttenuation);
+    float averageEarDelayMsecs = (leftEarDelayMsecs + rightEarDelayMsecs) / 2.0f;
     
-    // run through the samples, and attenuate them                                                            
-    for (int sample = 0; sample < totalNumberOfStereoSamples; sample++) {
-        int16_t leftSample = originalSamplesData[sample * NUMBER_OF_CHANNELS];
-        int16_t rightSample = leftSample;
-        if (wantStereo) {
-            rightSample = originalSamplesData[(sample * NUMBER_OF_CHANNELS) + 1];
+    bool safeToInject = true; // assume the best
+    
+    QMap<float, float>& knownDelays = (source == INBOUND_AUDIO) ? _inboundAudioDelays : _localAudioDelays;
+
+    // check to see if the known delays is too close
+    QMap<float, float>::const_iterator lowerBound = knownDelays.lowerBound(averageEarDelayMsecs - _combFilterWindow);
+    if (lowerBound != knownDelays.end()) {
+        float closestFound = lowerBound.value();
+        float deltaToClosest = (averageEarDelayMsecs - closestFound);
+        //qDebug() << "knownDelays=" << knownDelays;
+        //qDebug() << "averageEarDelayMsecs=" << averageEarDelayMsecs << " closestFound=" << closestFound;
+        //qDebug() << "deltaToClosest=" << deltaToClosest;
+        if (deltaToClosest > -_combFilterWindow && deltaToClosest < _combFilterWindow) {
+            //qDebug() << "**** WE THINK WE'RE TOO CLOSE!! ****";
+            safeToInject = false;
         }
-
-        attenuatedLeftSamplesData[sample * NUMBER_OF_CHANNELS] = leftSample * leftEarAttenuation;
-        attenuatedLeftSamplesData[sample * NUMBER_OF_CHANNELS + 1] = 0;
-
-        attenuatedRightSamplesData[sample * NUMBER_OF_CHANNELS] = 0;
-        attenuatedRightSamplesData[sample * NUMBER_OF_CHANNELS + 1] = rightSample * rightEarAttenuation;
     }
-        
-    // now inject the attenuated array with the appropriate delay
-    unsigned int sampleTimeLeft = sampleTime + leftEarDelay;
-    unsigned int sampleTimeRight = sampleTime + rightEarDelay;
     
-    _audio->addSpatialAudioToBuffer(sampleTimeLeft, attenuatedLeftSamples, totalNumberOfSamples);
-    _audio->addSpatialAudioToBuffer(sampleTimeRight, attenuatedRightSamples, totalNumberOfSamples);
+    if (!safeToInject) {
+        QVector<float>& suppressedEchoes = (source == INBOUND_AUDIO) ? _inboundEchoesSuppressed : _localEchoesSuppressed;
+        suppressedEchoes << averageEarDelayMsecs;
+    } else {
+        knownDelays[averageEarDelayMsecs] = averageEarDelayMsecs;
+
+        _totalDelay += rightEarDelayMsecs + leftEarDelayMsecs;
+        _delayCount += 2;
+        _maxDelay = std::max(_maxDelay,rightEarDelayMsecs);
+        _maxDelay = std::max(_maxDelay,leftEarDelayMsecs);
+        _minDelay = std::min(_minDelay,rightEarDelayMsecs);
+        _minDelay = std::min(_minDelay,leftEarDelayMsecs);
+        
+        int rightEarDelay = rightEarDelayMsecs * sampleRate / MSECS_PER_SECOND;
+        int leftEarDelay = leftEarDelayMsecs * sampleRate / MSECS_PER_SECOND;
+
+        float rightEarAttenuation = audiblePoint.attenuation * 
+                                        getDistanceAttenuationCoefficient(rightEarDistance + audiblePoint.distance);
+
+        float leftEarAttenuation = audiblePoint.attenuation * 
+                                        getDistanceAttenuationCoefficient(leftEarDistance + audiblePoint.distance);
+
+        _totalAttenuation += rightEarAttenuation + leftEarAttenuation;
+        _attenuationCount += 2;
+        _maxAttenuation = std::max(_maxAttenuation,rightEarAttenuation);
+        _maxAttenuation = std::max(_maxAttenuation,leftEarAttenuation);
+        _minAttenuation = std::min(_minAttenuation,rightEarAttenuation);
+        _minAttenuation = std::min(_minAttenuation,leftEarAttenuation);
+    
+        // run through the samples, and attenuate them                                                            
+        for (int sample = 0; sample < totalNumberOfStereoSamples; sample++) {
+            int16_t leftSample = originalSamplesData[sample * NUMBER_OF_CHANNELS];
+            int16_t rightSample = leftSample;
+            if (wantStereo) {
+                rightSample = originalSamplesData[(sample * NUMBER_OF_CHANNELS) + 1];
+            }
+
+            attenuatedLeftSamplesData[sample * NUMBER_OF_CHANNELS] = leftSample * leftEarAttenuation;
+            attenuatedLeftSamplesData[sample * NUMBER_OF_CHANNELS + 1] = 0;
+
+            attenuatedRightSamplesData[sample * NUMBER_OF_CHANNELS] = 0;
+            attenuatedRightSamplesData[sample * NUMBER_OF_CHANNELS + 1] = rightSample * rightEarAttenuation;
+        }
+        
+        // now inject the attenuated array with the appropriate delay
+        unsigned int sampleTimeLeft = sampleTime + leftEarDelay;
+        unsigned int sampleTimeRight = sampleTime + rightEarDelay;
+    
+        _audio->addSpatialAudioToBuffer(sampleTimeLeft, attenuatedLeftSamples, totalNumberOfSamples);
+        _audio->addSpatialAudioToBuffer(sampleTimeRight, attenuatedRightSamples, totalNumberOfSamples);
+    }
 }
 
 void AudioReflector::processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
@@ -244,13 +272,19 @@ void AudioReflector::processLocalAudio(unsigned int sampleTime, const QByteArray
                 stereoSamples[i* NUM_CHANNELS_OUTPUT] = monoSamples[i] * _localAudioAttenuationFactor;
                 stereoSamples[(i * NUM_CHANNELS_OUTPUT) + 1] = monoSamples[i] * _localAudioAttenuationFactor;
             }
+            _localAudioDelays.clear();
+            _localEchoesSuppressed.clear();
             echoAudio(LOCAL_AUDIO, sampleTime, stereoInputData, outputFormat);
+            //qDebug() << _localAudioDelays;
         }
     }
 }
 
 void AudioReflector::processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
+    _inboundAudioDelays.clear();
+    _inboundEchoesSuppressed.clear();
     echoAudio(INBOUND_AUDIO, sampleTime, samples, format);
+    //qDebug() << _inboundAudioDelays;
 }
 
 void AudioReflector::echoAudio(AudioSource source, unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
@@ -269,7 +303,7 @@ void AudioReflector::echoAudio(AudioSource source, unsigned int sampleTime, cons
     QVector<AudiblePoint>& audiblePoints = source == INBOUND_AUDIO ? _inboundAudiblePoints : _localAudiblePoints;
 
     foreach(const AudiblePoint& audiblePoint, audiblePoints) {
-        injectAudiblePoint(audiblePoint, samples, sampleTime, format.sampleRate());
+        injectAudiblePoint(source, audiblePoint, samples, sampleTime, format.sampleRate());
     }
 
     _averageDelay = _delayCount == 0 ? 0 : _totalDelay / _delayCount;

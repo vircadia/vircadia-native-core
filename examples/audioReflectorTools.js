@@ -18,6 +18,7 @@ var localFactorScale = 1.0;
 var reflectiveScale = 100.0;
 var diffusionScale = 100.0;
 var absorptionScale = 100.0;
+var combFilterScale = 50.0;
 
 // these three properties are bound together, if you change one, the others will also change
 var reflectiveRatio = AudioReflector.getReflectiveRatio();
@@ -263,6 +264,46 @@ var localFactorThumb = Overlays.addOverlay("image", {
                     alpha: 1
                 });
 
+var combFilterY = topY;
+topY += sliderHeight;
+
+var combFilterLabel = Overlays.addOverlay("text", {
+                    x: 40,
+                    y: combFilterY,
+                    width: 60,
+                    height: sliderHeight,
+                    color: { red: 0, green: 0, blue: 0},
+                    textColor: { red: 255, green: 255, blue: 255},
+                    topMargin: 6,
+                    leftMargin: 5,
+                    text: "Comb Filter\nWindow:"
+                });
+
+
+var combFilterSlider = Overlays.addOverlay("image", {
+                    // alternate form of expressing bounds
+                    bounds: { x: 100, y: combFilterY, width: 150, height: sliderHeight},
+                    subImage: { x: 46, y: 0, width: 200, height: 71  },
+                    imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/slider.png",
+                    color: { red: 255, green: 255, blue: 255},
+                    alpha: 1
+                });
+
+
+var combFilterMinThumbX = 110;
+var combFilterMaxThumbX = combFilterMinThumbX + 110;
+var combFilterThumbX = combFilterMinThumbX + ((combFilterMaxThumbX - combFilterMinThumbX) * (AudioReflector.getCombFilterWindow() / combFilterScale));
+var combFilterThumb = Overlays.addOverlay("image", {
+                    x: combFilterThumbX,
+                    y: combFilterY+9,
+                    width: 18,
+                    height: 17,
+                    imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/thumb.png",
+                    color: { red: 128, green: 128, blue: 0},
+                    alpha: 1
+                });
+
+
 var reflectiveY = topY;
 topY += sliderHeight;
 
@@ -387,6 +428,10 @@ function scriptEnding() {
     Overlays.deleteOverlay(factorThumb);
     Overlays.deleteOverlay(factorSlider);
 
+    Overlays.deleteOverlay(combFilterLabel);
+    Overlays.deleteOverlay(combFilterThumb);
+    Overlays.deleteOverlay(combFilterSlider);
+
     Overlays.deleteOverlay(localFactorLabel);
     Overlays.deleteOverlay(localFactorThumb);
     Overlays.deleteOverlay(localFactorSlider);
@@ -433,6 +478,7 @@ var movingSliderDelay = false;
 var movingSliderFanout = false;
 var movingSliderSpeed = false;
 var movingSliderFactor = false;
+var movingSliderCombFilter = false;
 var movingSliderLocalFactor = false;
 var movingSliderReflective = false;
 var movingSliderDiffusion = false;
@@ -487,6 +533,18 @@ function mouseMoveEvent(event) {
         Overlays.editOverlay(factorThumb, { x: newThumbX } );
         var factor = ((newThumbX - factorMinThumbX) / (factorMaxThumbX - factorMinThumbX)) * factorScale;
         AudioReflector.setDistanceAttenuationScalingFactor(factor);
+    }
+    if (movingSliderCombFilter) {
+        newThumbX = event.x - thumbClickOffsetX;
+        if (newThumbX < combFilterMinThumbX) {
+            newThumbX = combFilterMminThumbX;
+        }
+        if (newThumbX > combFilterMaxThumbX) {
+            newThumbX = combFilterMaxThumbX;
+        }
+        Overlays.editOverlay(combFilterThumb, { x: newThumbX } );
+        var combFilter = ((newThumbX - combFilterMinThumbX) / (combFilterMaxThumbX - combFilterMinThumbX)) * combFilterScale;
+        AudioReflector.setCombFilterWindow(combFilter);
     }
 
     if (movingSliderLocalFactor) {
@@ -566,6 +624,10 @@ function mousePressEvent(event) {
         movingSliderLocalFactor = true;
         thumbClickOffsetX = event.x - localFactorThumbX;
     }
+    if (clickedOverlay == combFilterThumb) {
+        movingSliderCombFilter = true;
+        thumbClickOffsetX = event.x - combFilterThumbX;
+    }
     if (clickedOverlay == diffusionThumb) {
         movingSliderDiffusion = true;
         thumbClickOffsetX = event.x - diffusionThumbX;
@@ -603,6 +665,12 @@ function mouseReleaseEvent(event) {
         var factor = ((newThumbX - factorMinThumbX) / (factorMaxThumbX - factorMinThumbX)) * factorScale;
         AudioReflector.setDistanceAttenuationScalingFactor(factor);
         factorThumbX = newThumbX;
+    }
+    if (movingSliderCombFilter) {
+        movingSliderCombFilter = false;
+        var combFilter = ((newThumbX - combFilterMinThumbX) / (combFilterMaxThumbX - combFilterMinThumbX)) * combFilterScale;
+        AudioReflector.setCombFilterWindow(combFilter);
+        combFilterThumbX = newThumbX;
     }
 
     if (movingSliderLocalFactor) {
