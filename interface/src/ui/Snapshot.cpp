@@ -16,6 +16,7 @@
 #include <FileUtils.h>
 
 #include "Snapshot.h"
+#include "Menu.h"
 
 // filename format: hifi-snap-by-%username%-on-%date%_%time%_@-%location%.jpg
 // %1 <= username, %2 <= date and time, %3 <= current location
@@ -90,8 +91,12 @@ void Snapshot::saveSnapshot(QGLWidget* widget, Avatar* avatar) {
     username.replace(QRegExp("[^A-Za-z0-9_]"), "-");
     
     QDateTime now = QDateTime::currentDateTime();
-    
-    QString fileName = FileUtils::standardPath(SNAPSHOTS_DIRECTORY);
+    QString fileName = Menu::getInstance()->getSnapshotsLocation();
+
+    if (!fileName.endsWith(QDir::separator())) {
+        fileName.append(QDir::separator());
+    }
+
     fileName.append(QString(FILENAME_PATH_FORMAT.arg(username, now.toString(DATETIME_FORMAT), formattedLocation)));
     shot.save(fileName, 0, 100);
 }
