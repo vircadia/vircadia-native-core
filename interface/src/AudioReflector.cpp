@@ -186,22 +186,19 @@ void AudioReflector::injectAudiblePoint(AudioSource source, const AudiblePoint& 
     
     bool safeToInject = true; // assume the best
     
+    // check to see if this new injection point would be within the comb filter 
+    // suppression window for any of the existing known delays
     QMap<float, float>& knownDelays = (source == INBOUND_AUDIO) ? _inboundAudioDelays : _localAudioDelays;
-
-    // check to see if the known delays is too close
     QMap<float, float>::const_iterator lowerBound = knownDelays.lowerBound(averageEarDelayMsecs - _combFilterWindow);
     if (lowerBound != knownDelays.end()) {
         float closestFound = lowerBound.value();
         float deltaToClosest = (averageEarDelayMsecs - closestFound);
-        //qDebug() << "knownDelays=" << knownDelays;
-        //qDebug() << "averageEarDelayMsecs=" << averageEarDelayMsecs << " closestFound=" << closestFound;
-        //qDebug() << "deltaToClosest=" << deltaToClosest;
         if (deltaToClosest > -_combFilterWindow && deltaToClosest < _combFilterWindow) {
-            //qDebug() << "**** WE THINK WE'RE TOO CLOSE!! ****";
             safeToInject = false;
         }
     }
     
+    // keep track of any of our suppressed echoes so we can report them in our statistics
     if (!safeToInject) {
         QVector<float>& suppressedEchoes = (source == INBOUND_AUDIO) ? _inboundEchoesSuppressed : _localEchoesSuppressed;
         suppressedEchoes << averageEarDelayMsecs;
@@ -275,7 +272,6 @@ void AudioReflector::processLocalAudio(unsigned int sampleTime, const QByteArray
             _localAudioDelays.clear();
             _localEchoesSuppressed.clear();
             echoAudio(LOCAL_AUDIO, sampleTime, stereoInputData, outputFormat);
-            //qDebug() << _localAudioDelays;
         }
     }
 }
@@ -284,7 +280,6 @@ void AudioReflector::processInboundAudio(unsigned int sampleTime, const QByteArr
     _inboundAudioDelays.clear();
     _inboundEchoesSuppressed.clear();
     echoAudio(INBOUND_AUDIO, sampleTime, samples, format);
-    //qDebug() << _inboundAudioDelays;
 }
 
 void AudioReflector::echoAudio(AudioSource source, unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {

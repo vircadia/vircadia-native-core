@@ -564,12 +564,9 @@ void Audio::handleAudioInput() {
             _lastInputLoudness = 0;
         }
         
-        // at this point we have clean monoAudioSamples, which match our target output... this is what we should send
-        // to our interested listeners
-        // send our local loopback to any interested parties
+        // at this point we have clean monoAudioSamples, which match our target output... 
+        // this is what we should send to our interested listeners
         if (_processSpatialAudio && !_muted && _audioOutput) {
-            // local audio is sent already resampled to match the network input format, so processors
-            // can easily handle the audio in a format ready to post back to the audio device
             QByteArray monoInputData((char*)monoAudioSamples, NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int16_t));
             emit processLocalAudio(_spatialAudioStart, monoInputData, _desiredInputFormat);
         }
