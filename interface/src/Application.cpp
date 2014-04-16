@@ -1659,16 +1659,12 @@ void Application::init() {
 
     _particleCollisionSystem.init(&_particleEditSender, _particles.getTree(), _voxels.getTree(), &_audio, &_avatarManager);
 
-    // connect the _particleCollisionSystem to our script engine's ParticleScriptingInterface
-    connect(&_particleCollisionSystem,
-            SIGNAL(particleCollisionWithVoxel(const ParticleID&, const VoxelDetail&, const CollisionInfo&)),
-            ScriptEngine::getParticlesScriptingInterface(),
-            SIGNAL(particleCollisionWithVoxel(const ParticleID&, const VoxelDetail&, const CollisionInfo&)));
+    // connect the _particleCollisionSystem to our script engine's ParticlesScriptingInterface
+    connect(&_particleCollisionSystem, &ParticleCollisionSystem::particleCollisionWithVoxel,
+            ScriptEngine::getParticlesScriptingInterface(), &ParticlesScriptingInterface::particleCollisionWithVoxel);
 
-    connect(&_particleCollisionSystem,
-            SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&, const CollisionInfo&)),
-            ScriptEngine::getParticlesScriptingInterface(),
-            SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&, const CollisionInfo&)));
+    connect(&_particleCollisionSystem, &ParticleCollisionSystem::particleCollisionWithParticle,
+            ScriptEngine::getParticlesScriptingInterface(), &ParticlesScriptingInterface::particleCollisionWithParticle);
 
     _audio.init(_glWidget);
 
