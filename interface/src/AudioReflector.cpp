@@ -18,6 +18,7 @@ const float DEFAULT_DISTANCE_SCALING_FACTOR = 2.0f;
 const float MAXIMUM_DELAY_MS = 1000.0 * 20.0f; // stop reflecting after path is this long
 const int DEFAULT_DIFFUSION_FANOUT = 5;
 const int ABSOLUTE_MAXIMUM_BOUNCE_COUNT = 10;
+const float DEFAULT_LOCAL_ATTENUATION_FACTOR = 0.125;
 
 const float SLIGHTLY_SHORT = 0.999f; // slightly inside the distance so we're on the inside of the reflection point
 
@@ -29,6 +30,7 @@ AudioReflector::AudioReflector(QObject* parent) :
     _preDelay(DEFAULT_PRE_DELAY),
     _soundMsPerMeter(DEFAULT_MS_DELAY_PER_METER),
     _distanceAttenuationScalingFactor(DEFAULT_DISTANCE_SCALING_FACTOR),
+    _localAudioAttenuationFactor(DEFAULT_LOCAL_ATTENUATION_FACTOR),
     _diffusionFanout(DEFAULT_DIFFUSION_FANOUT),
     _absorptionRatio(DEFAULT_ABSORPTION_RATIO),
     _diffusionRatio(DEFAULT_DIFFUSION_RATIO),
@@ -36,6 +38,7 @@ AudioReflector::AudioReflector(QObject* parent) :
     _lastPreDelay(DEFAULT_PRE_DELAY),
     _lastSoundMsPerMeter(DEFAULT_MS_DELAY_PER_METER),
     _lastDistanceAttenuationScalingFactor(DEFAULT_DISTANCE_SCALING_FACTOR),
+    _lastLocalAudioAttenuationFactor(DEFAULT_LOCAL_ATTENUATION_FACTOR),
     _lastDiffusionFanout(DEFAULT_DIFFUSION_FANOUT),
     _lastAbsorptionRatio(DEFAULT_ABSORPTION_RATIO),
     _lastDiffusionRatio(DEFAULT_DIFFUSION_RATIO)
@@ -237,10 +240,9 @@ void AudioReflector::processLocalAudio(unsigned int sampleTime, const QByteArray
             int numberOfSamples = samples.size() / sizeof(int16_t);
             int16_t* monoSamples = (int16_t*)samples.data();
             int16_t* stereoSamples = (int16_t*)stereoInputData.data();
-            const float LOCAL_SIGNAL_ATTENUATION = 0.125f;
             for (int i = 0; i < numberOfSamples; i++) {
-                stereoSamples[i* NUM_CHANNELS_OUTPUT] = monoSamples[i] * LOCAL_SIGNAL_ATTENUATION;
-                stereoSamples[(i * NUM_CHANNELS_OUTPUT) + 1] = monoSamples[i] * LOCAL_SIGNAL_ATTENUATION;
+                stereoSamples[i* NUM_CHANNELS_OUTPUT] = monoSamples[i] * _localAudioAttenuationFactor;
+                stereoSamples[(i * NUM_CHANNELS_OUTPUT) + 1] = monoSamples[i] * _localAudioAttenuationFactor;
             }
             echoAudio(sampleTime, stereoInputData, outputFormat);
         }

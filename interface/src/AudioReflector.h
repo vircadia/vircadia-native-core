@@ -93,6 +93,10 @@ public slots:
     float getDistanceAttenuationScalingFactor() const { return _distanceAttenuationScalingFactor; }
     void setDistanceAttenuationScalingFactor(float factor) { _distanceAttenuationScalingFactor = factor; }
 
+    /// scales attenuation of local audio to be louder or softer than the default attenuation
+    float getLocalAudioAttenuationFactor() const { return _localAudioAttenuationFactor; }
+    void setLocalAudioAttenuationFactor(float factor) { _localAudioAttenuationFactor = factor; }
+
     /// number of points of diffusion from each reflection point, as fanout increases there are more chances for secondary
     /// echoes, but each diffusion ray is quieter and therefore more likely to be below the sound floor
     int getDiffusionFanout() const { return _diffusionFanout; }
@@ -171,6 +175,7 @@ private:
     float _preDelay;
     float _soundMsPerMeter;
     float _distanceAttenuationScalingFactor;
+    float _localAudioAttenuationFactor;
 
     int _diffusionFanout; // number of points of diffusion from each reflection point
 
@@ -186,6 +191,7 @@ private:
     float _lastPreDelay;
     float _lastSoundMsPerMeter;
     float _lastDistanceAttenuationScalingFactor;
+    float _lastLocalAudioAttenuationFactor;
     int _lastDiffusionFanout;
     float _lastAbsorptionRatio;
     float _lastDiffusionRatio;

@@ -14,6 +14,7 @@ var delayScale = 100.0;
 var fanoutScale = 10.0;
 var speedScale = 20;
 var factorScale = 5.0;
+var localFactorScale = 1.0;
 var reflectiveScale = 100.0;
 var diffusionScale = 100.0;
 var absorptionScale = 100.0;
@@ -223,6 +224,45 @@ var factorThumb = Overlays.addOverlay("image", {
                     alpha: 1
                 });
 
+var localFactorY = topY;
+topY += sliderHeight;
+
+var localFactorLabel = Overlays.addOverlay("text", {
+                    x: 40,
+                    y: localFactorY,
+                    width: 60,
+                    height: sliderHeight,
+                    color: { red: 0, green: 0, blue: 0},
+                    textColor: { red: 255, green: 255, blue: 255},
+                    topMargin: 6,
+                    leftMargin: 5,
+                    text: "Local\nFactor:"
+                });
+
+
+var localFactorSlider = Overlays.addOverlay("image", {
+                    // alternate form of expressing bounds
+                    bounds: { x: 100, y: localFactorY, width: 150, height: sliderHeight},
+                    subImage: { x: 46, y: 0, width: 200, height: 71  },
+                    imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/slider.png",
+                    color: { red: 255, green: 255, blue: 255},
+                    alpha: 1
+                });
+
+
+var localFactorMinThumbX = 110;
+var localFactorMaxThumbX = localFactorMinThumbX + 110;
+var localFactorThumbX = localFactorMinThumbX + ((localFactorMaxThumbX - localFactorMinThumbX) * (AudioReflector.getLocalAudioAttenuationFactor() / localFactorScale));
+var localFactorThumb = Overlays.addOverlay("image", {
+                    x: localFactorThumbX,
+                    y: localFactorY+9,
+                    width: 18,
+                    height: 17,
+                    imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/thumb.png",
+                    color: { red: 0, green: 128, blue: 128},
+                    alpha: 1
+                });
+
 var reflectiveY = topY;
 topY += sliderHeight;
 
@@ -347,6 +387,10 @@ function scriptEnding() {
     Overlays.deleteOverlay(factorThumb);
     Overlays.deleteOverlay(factorSlider);
 
+    Overlays.deleteOverlay(localFactorLabel);
+    Overlays.deleteOverlay(localFactorThumb);
+    Overlays.deleteOverlay(localFactorSlider);
+
     Overlays.deleteOverlay(speedLabel);
     Overlays.deleteOverlay(speedThumb);
     Overlays.deleteOverlay(speedSlider);
@@ -389,6 +433,7 @@ var movingSliderDelay = false;
 var movingSliderFanout = false;
 var movingSliderSpeed = false;
 var movingSliderFactor = false;
+var movingSliderLocalFactor = false;
 var movingSliderReflective = false;
 var movingSliderDiffusion = false;
 var movingSliderAbsorption = false;
@@ -442,6 +487,19 @@ function mouseMoveEvent(event) {
         Overlays.editOverlay(factorThumb, { x: newThumbX } );
         var factor = ((newThumbX - factorMinThumbX) / (factorMaxThumbX - factorMinThumbX)) * factorScale;
         AudioReflector.setDistanceAttenuationScalingFactor(factor);
+    }
+
+    if (movingSliderLocalFactor) {
+        newThumbX = event.x - thumbClickOffsetX;
+        if (newThumbX < localFactorMinThumbX) {
+            newThumbX = localFactorMminThumbX;
+        }
+        if (newThumbX > localFactorMaxThumbX) {
+            newThumbX = localFactorMaxThumbX;
+        }
+        Overlays.editOverlay(localFactorThumb, { x: newThumbX } );
+        var localFactor = ((newThumbX - localFactorMinThumbX) / (localFactorMaxThumbX - localFactorMinThumbX)) * localFactorScale;
+        AudioReflector.setLocalAudioAttenuationFactor(localFactor);
     }
 
     if (movingSliderAbsorption) {
@@ -504,6 +562,10 @@ function mousePressEvent(event) {
         movingSliderFactor = true;
         thumbClickOffsetX = event.x - factorThumbX;
     }
+    if (clickedOverlay == localFactorThumb) {
+        movingSliderLocalFactor = true;
+        thumbClickOffsetX = event.x - localFactorThumbX;
+    }
     if (clickedOverlay == diffusionThumb) {
         movingSliderDiffusion = true;
         thumbClickOffsetX = event.x - diffusionThumbX;
@@ -541,6 +603,13 @@ function mouseReleaseEvent(event) {
         var factor = ((newThumbX - factorMinThumbX) / (factorMaxThumbX - factorMinThumbX)) * factorScale;
         AudioReflector.setDistanceAttenuationScalingFactor(factor);
         factorThumbX = newThumbX;
+    }
+
+    if (movingSliderLocalFactor) {
+        movingSliderLocalFactor = false;
+        var localFactor = ((newThumbX - localFactorMinThumbX) / (localFactorMaxThumbX - localFactorMinThumbX)) * localFactorScale;
+        AudioReflector.setLocalAudioAttenuationFactor(localFactor);
+        localFactorThumbX = newThumbX;
     }
 
     if (movingSliderReflective) {
