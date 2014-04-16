@@ -66,18 +66,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
             
             LimitedNodeList* nodeList = LimitedNodeList::getInstance();
             
-#if defined(IP_DONTFRAG) || defined(IP_MTU_DISCOVER)
-            qDebug() << "Making required DTLS changes to NodeList DTLS socket.";
-            
-            int socketHandle = LimitedNodeList::getInstance()->getDTLSSocket().socketDescriptor();
-#if defined(IP_DONTFRAG)
-            int optValue = 1;
-            setsockopt(socketHandle, IPPROTO_IP, IP_DONTFRAG, (const void*) optValue, sizeof(optValue));
-#elif defined(IP_MTU_DISCOVER)
-            int optValue = 1;
-            setsockopt(socketHandle, IPPROTO_IP, IP_MTU_DISCOVER, (const void*) optValue, sizeof(optValue));
-#endif
-#endif
             // connect our socket to read datagrams received on the DTLS socket
             connect(&nodeList->getDTLSSocket(), &QUdpSocket::readyRead, this, &DomainServer::readAvailableDTLSDatagrams);
         }

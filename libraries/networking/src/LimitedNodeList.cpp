@@ -105,6 +105,20 @@ QUdpSocket& LimitedNodeList::getDTLSSocket() {
         _dtlsSocket = new QUdpSocket(this);
         
         _dtlsSocket->bind(QHostAddress::AnyIPv4, 0, QAbstractSocket::DontShareAddress);
+        
+#if defined(IP_DONTFRAG) || defined(IP_MTU_DISCOVER)
+        qDebug() << "Making required DTLS changes to LimitedNodeList DTLS socket.";
+        
+        int socketHandle = _dtlsSocket->socketDescriptor();
+#if defined(IP_DONTFRAG)
+        int optValue = 1;
+        setsockopt(socketHandle, IPPROTO_IP, IP_DONTFRAG, (const void*) optValue, sizeof(optValue));
+#elif defined(IP_MTU_DISCOVER)
+        int optValue = 1;
+        setsockopt(socketHandle, IPPROTO_IP, IP_MTU_DISCOVER, (const void*) optValue, sizeof(optValue));
+#endif
+#endif
+        
         qDebug() << "NodeList DTLS socket is listening on" << _dtlsSocket->localPort();
     }
     
