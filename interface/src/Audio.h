@@ -23,6 +23,7 @@
 
 #include <QAudio>
 #include <QAudioInput>
+#include <QElapsedTimer>
 #include <QGLWidget>
 #include <QtCore/QObject>
 #include <QtCore/QVector>
@@ -123,7 +124,7 @@ private:
     QString _outputAudioDeviceName;
     
     StDev _stdev;
-    timeval _lastReceiveTime;
+    QElapsedTimer _timeSinceLastRecieved;
     float _averagedLatency;
     float _measuredJitter;
     int16_t _jitterBufferSamples;
