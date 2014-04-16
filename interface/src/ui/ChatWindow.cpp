@@ -48,11 +48,23 @@ ChatWindow::ChatWindow(QWidget* parent) :
     ui->messagesGridLayout->setColumnStretch(1, 3);
 
     ui->messagePlainTextEdit->installEventFilter(this);
+    ui->messagePlainTextEdit->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+
+    QTextCursor cursor(ui->messagePlainTextEdit->textCursor());
+
+    cursor.movePosition(QTextCursor::Start);
+
+    QTextBlockFormat format = cursor.blockFormat();
+    format.setLineHeight(130, QTextBlockFormat::ProportionalHeight);
+
+    cursor.setBlockFormat(format);
+
+    ui->messagePlainTextEdit->setTextCursor(cursor);
 
     if (!AccountManager::getInstance().isLoggedIn()) {
         ui->connectingToXMPPLabel->setText(tr("You must be logged in to chat with others."));
     }
-    
+
 #ifdef HAVE_QXMPP
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
     if (xmppClient.isConnected()) {
