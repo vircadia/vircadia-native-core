@@ -1663,7 +1663,7 @@ void Application::init() {
     connect(&_particleCollisionSystem,
             SIGNAL(particleCollisionWithVoxel(const ParticleID&, const VoxelDetail&, const CollisionInfo&)),
             ScriptEngine::getParticlesScriptingInterface(),
-            SIGNAL(particleCollisionWithVoxels(const ParticleID&, const VoxelDetail&, const CollisionInfo&)));
+            SIGNAL(particleCollisionWithVoxel(const ParticleID&, const VoxelDetail&, const CollisionInfo&)));
 
     connect(&_particleCollisionSystem,
             SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&, const CollisionInfo&)),
