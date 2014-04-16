@@ -389,9 +389,8 @@ void AudioMixer::run() {
     nodeList->linkedDataCreateCallback = attachNewBufferToNode;
 
     int nextFrame = 0;
-    timeval startTime;
-
-    gettimeofday(&startTime, NULL);
+    QElapsedTimer timer;
+    timer.start();
     
     char* clientMixBuffer = new char[NETWORK_BUFFER_LENGTH_BYTES_STEREO
                                      + numBytesForPacketHeaderGivenPacketType(PacketTypeMixedAudio)];
@@ -490,7 +489,7 @@ void AudioMixer::run() {
             break;
         }
 
-        usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
+        usecToSleep = (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - timer.nsecsElapsed() / 1000; // ns to us
 
         if (usecToSleep > 0) {
             usleep(usecToSleep);
