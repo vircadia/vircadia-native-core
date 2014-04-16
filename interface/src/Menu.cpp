@@ -1505,3 +1505,10 @@ void Menu::removeMenuItem(const QString& menu, const QString& menuitem) {
     QMenuBar::repaint();
 };
 
+QString Menu::getSnapshotsLocation() const {
+    if (_snapshotsLocation.isNull() || _snapshotsLocation.isEmpty() || QDir(_snapshotsLocation).exists() == false) {
+        return QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    }
+    return _snapshotsLocation;
+}
+

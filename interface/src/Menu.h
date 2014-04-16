@@ -81,12 +81,7 @@ public:
     void setFieldOfView(float fieldOfView) { _fieldOfView = fieldOfView; }
     float getFaceshiftEyeDeflection() const { return _faceshiftEyeDeflection; }
     void setFaceshiftEyeDeflection(float faceshiftEyeDeflection) { _faceshiftEyeDeflection = faceshiftEyeDeflection; }
-    QString getSnapshotsLocation() const {
-        if (_snapshotsLocation.isNull() || _snapshotsLocation.isEmpty() || QDir(_snapshotsLocation).exists() == false) {
-            return QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-        }
-        return _snapshotsLocation;
-    }
+    QString getSnapshotsLocation() const;
     void setSnapshotsLocation(QString snapshotsLocation) { _snapshotsLocation = snapshotsLocation; }
 
     BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
