@@ -16,6 +16,9 @@
 #include <QLabel>
 #include <QSlider>
 
+class QCheckBox;
+class QDoubleSpinBox;
+
 class LodToolsDialog : public QDialog {
     Q_OBJECT
 public:
@@ -32,6 +35,8 @@ public slots:
     void boundaryLevelValueChanged(int value);
     void resetClicked(bool checked);
     void reloadSliders();
+    void updateAvatarLODControls();
+    void updateAvatarLODValues();
 
 protected:
 
@@ -41,6 +46,10 @@ protected:
 private:
     QSlider* _lodSize;
     QSlider* _boundaryLevelAdjust;
+    QCheckBox* _automaticAvatarLOD;
+    QDoubleSpinBox* _avatarLODDecreaseFPS;
+    QDoubleSpinBox* _avatarLODIncreaseFPS;
+    QDoubleSpinBox* _avatarLOD;
     QLabel* _feedback;
 };
 
