@@ -300,6 +300,7 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
         messageArea->setStyleSheet(messageArea->styleSheet() + "background-color: #e1e8ea");
     }
 
+    messageArea->document()->setDefaultStyleSheet("a { text-decoration: none; font-weight: bold; color: #267077;}");
     messageArea->setHtml(message.body().replace(regexLinks, "<a href=\"\\1\">\\1</a>"));
 
     bool atBottom = isAtBottom();
