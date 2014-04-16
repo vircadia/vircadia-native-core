@@ -78,6 +78,9 @@ Menu::Menu() :
     _lodToolsDialog(NULL),
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
     _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
+    _automaticAvatarLOD(true),
+    _avatarLODDecreaseFPS(DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS),
+    _avatarLODIncreaseFPS(ADJUST_LOD_UP_FPS),
     _avatarLODDistanceMultiplier(DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER),
     _boundaryLevelAdjust(0),
     _maxVoxelPacketsPerSecond(DEFAULT_MAX_VOXEL_PPS),
@@ -273,7 +276,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::BuckyBalls, 0, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Particles, 0, true);
-
+    addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
 
     QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxel Options");
 
@@ -286,7 +289,6 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
-    addActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontFadeOnVoxelServerChanges);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DisableAutoAdjustLOD);
 
@@ -415,6 +417,11 @@ void Menu::loadSettings(QSettings* settings) {
     _maxVoxels = loadSetting(settings, "maxVoxels", DEFAULT_MAX_VOXELS_PER_SYSTEM);
     _maxVoxelPacketsPerSecond = loadSetting(settings, "maxVoxelsPPS", DEFAULT_MAX_VOXEL_PPS);
     _voxelSizeScale = loadSetting(settings, "voxelSizeScale", DEFAULT_OCTREE_SIZE_SCALE);
+    _automaticAvatarLOD = settings->value("automaticAvatarLOD", true).toBool();
+    _avatarLODDecreaseFPS = loadSetting(settings, "avatarLODDecreaseFPS", DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS);
+    _avatarLODIncreaseFPS = loadSetting(settings, "avatarLODIncreaseFPS", ADJUST_LOD_UP_FPS);
+    _avatarLODDistanceMultiplier = loadSetting(settings, "avatarLODDistanceMultiplier",
+        DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER);
     _boundaryLevelAdjust = loadSetting(settings, "boundaryLevelAdjust", 0);
     _snapshotsLocation = settings->value("snapshotsLocation",
                                          QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)).toString();
@@ -456,6 +463,10 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("maxVoxels", _maxVoxels);
     settings->setValue("maxVoxelsPPS", _maxVoxelPacketsPerSecond);
     settings->setValue("voxelSizeScale", _voxelSizeScale);
+    settings->setValue("automaticAvatarLOD", _automaticAvatarLOD);
+    settings->setValue("avatarLODDecreaseFPS", _avatarLODDecreaseFPS);
+    settings->setValue("avatarLODIncreaseFPS", _avatarLODIncreaseFPS);
+    settings->setValue("avatarLODDistanceMultiplier", _avatarLODDistanceMultiplier);
     settings->setValue("boundaryLevelAdjust", _boundaryLevelAdjust);
     settings->setValue("snapshotsLocation", _snapshotsLocation);
     settings->beginGroup("View Frustum Offset Camera");
@@ -1161,27 +1172,27 @@ void Menu::autoAdjustLOD(float currentFPS) {
 
     quint64 now = usecTimestampNow();
 
-    const float ADJUST_AVATAR_LOD_DOWN_FPS = 30.0f; 
     const quint64 ADJUST_AVATAR_LOD_DOWN_DELAY = 1000 * 1000;
-    if (_fastFPSAverage.getAverage() < ADJUST_AVATAR_LOD_DOWN_FPS) {
-        if (now - _lastAvatarDetailDrop > ADJUST_AVATAR_LOD_DOWN_DELAY) {
-            // attempt to lower the detail in proportion to the fps difference
-            float targetFps = (ADJUST_AVATAR_LOD_DOWN_FPS + ADJUST_LOD_UP_FPS) * 0.5f;
-            float averageFps = _fastFPSAverage.getAverage();
-            const float MAXIMUM_MULTIPLIER_SCALE = 2.0f;
-            const float MAXIMUM_DISTANCE_MULTIPLIER = 15.0f;
-            _avatarLODDistanceMultiplier = qMin(MAXIMUM_DISTANCE_MULTIPLIER, _avatarLODDistanceMultiplier *
-                (averageFps < EPSILON ? MAXIMUM_MULTIPLIER_SCALE : qMin(MAXIMUM_MULTIPLIER_SCALE, targetFps / averageFps)));
-            _lastAvatarDetailDrop = now;
+    if (_automaticAvatarLOD) {
+        if (_fastFPSAverage.getAverage() < _avatarLODDecreaseFPS) {
+            if (now - _lastAvatarDetailDrop > ADJUST_AVATAR_LOD_DOWN_DELAY) {
+                // attempt to lower the detail in proportion to the fps difference
+                float targetFps = (_avatarLODDecreaseFPS + _avatarLODIncreaseFPS) * 0.5f;
+                float averageFps = _fastFPSAverage.getAverage();
+                const float MAXIMUM_MULTIPLIER_SCALE = 2.0f;
+                _avatarLODDistanceMultiplier = qMin(MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER, _avatarLODDistanceMultiplier *
+                    (averageFps < EPSILON ? MAXIMUM_MULTIPLIER_SCALE :
+                        qMin(MAXIMUM_MULTIPLIER_SCALE, targetFps / averageFps)));
+                _lastAvatarDetailDrop = now;
+            }
+        } else if (_fastFPSAverage.getAverage() > _avatarLODIncreaseFPS) {
+            // let the detail level creep slowly upwards
+            const float DISTANCE_DECREASE_RATE = 0.05f;
+            _avatarLODDistanceMultiplier = qMax(MINIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER,
+                _avatarLODDistanceMultiplier - DISTANCE_DECREASE_RATE);
         }
-    } else if (_fastFPSAverage.getAverage() > ADJUST_LOD_UP_FPS) {
-        // let the detail level creep slowly upwards
-        const float DISTANCE_DECREASE_RATE = 0.05f;
-        const float MINIMUM_DISTANCE_MULTIPLIER = 0.1f;
-        _avatarLODDistanceMultiplier = qMax(MINIMUM_DISTANCE_MULTIPLIER,
-            _avatarLODDistanceMultiplier - DISTANCE_DECREASE_RATE);
     }
-
+    
     bool changed = false;
     quint64 elapsed = now - _lastAdjust;
 

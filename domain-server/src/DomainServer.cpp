@@ -66,18 +66,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
             
             LimitedNodeList* nodeList = LimitedNodeList::getInstance();
             
-#if defined(IP_DONTFRAG) || defined(IP_MTU_DISCOVER)
-            qDebug() << "Making required DTLS changes to NodeList DTLS socket.";
-            
-            int socketHandle = LimitedNodeList::getInstance()->getDTLSSocket().socketDescriptor();
-#if defined(IP_DONTFRAG)
-            int optValue = 1;yea
-            setsockopt(socketHandle, IPPROTO_IP, IP_DONTFRAG, (const void*) optValue, sizeof(optValue));
-#elif defined(IP_MTU_DISCOVER)
-            int optValue = 1;
-            setsockopt(socketHandle, IPPROTO_IP, IP_MTU_DISCOVER, (const void*) optValue, sizeof(optValue));
-#endif
-#endif
             // connect our socket to read datagrams received on the DTLS socket
             connect(&nodeList->getDTLSSocket(), &QUdpSocket::readyRead, this, &DomainServer::readAvailableDTLSDatagrams);
         }
@@ -311,8 +299,7 @@ const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
     << NodeType::MetavoxelServer;
 
 
-void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packet, const HifiSockAddr& senderSockAddr,
-                                                         const QJsonObject& authJsonObject) {
+void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packet, const HifiSockAddr& senderSockAddr) {
 
     NodeType_t nodeType;
     HifiSockAddr publicSockAddr, localSockAddr;
@@ -336,7 +323,8 @@ void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packe
     // create a new session UUID for this node
     QUuid nodeUUID = QUuid::createUuid();
     
-    SharedNodePointer newNode = LimitedNodeList::getInstance()->addOrUpdateNode(nodeUUID, nodeType, publicSockAddr, localSockAddr);
+    SharedNodePointer newNode = LimitedNodeList::getInstance()->addOrUpdateNode(nodeUUID, nodeType,
+                                                                                publicSockAddr, localSockAddr);
     
     // when the newNode is created the linked data is also created
     // if this was a static assignment set the UUID, set the sendingSockAddr
@@ -344,12 +332,6 @@ void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packe
     
     nodeData->setStaticAssignmentUUID(assignmentUUID);
     nodeData->setSendingSockAddr(senderSockAddr);
-    
-    if (!authJsonObject.isEmpty()) {
-        // pull the connection secret from the authJsonObject and set it as the connection secret for this node
-        QUuid connectionSecret(authJsonObject["data"].toObject()["connection_secret"].toString());
-        newNode->setConnectionSecret(connectionSecret);
-    }
     
     // reply back to the user with a PacketTypeDomainList
     sendDomainListToNode(newNode, senderSockAddr, nodeInterestListFromPacket(packet, numPreInterestBytes));
@@ -360,18 +342,6 @@ int DomainServer::parseNodeDataFromByteArray(NodeType_t& nodeType, HifiSockAddr&
                                               const HifiSockAddr& senderSockAddr) {
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));
-    
-    if (packetTypeForPacket(packet) == PacketTypeDomainConnectRequest) {
-        // we need to skip a quint8 that indicates if there is a registration token
-        // and potentially the registration token itself
-        quint8 hasRegistrationToken;
-        packetStream >> hasRegistrationToken;
-        
-        if (hasRegistrationToken) {
-            QByteArray registrationToken;
-            packetStream >> registrationToken;
-        }
-    }
     
     packetStream >> nodeType;
     packetStream >> publicSockAddr >> localSockAddr;
@@ -648,7 +618,11 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
     if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
         PacketType requestType = packetTypeForPacket(receivedPacket);
         
-        if (requestType == PacketTypeDomainListRequest) {
+        if (requestType == PacketTypeDomainConnectRequest) {
+            // add this node to our NodeList
+            // and send back session UUID right away
+            addNodeToNodeListAndConfirmConnection(receivedPacket, senderSockAddr);
+        } else if (requestType == PacketTypeDomainListRequest) {
             QUuid nodeUUID = uuidFromPacketHeader(receivedPacket);
             
             if (!nodeUUID.isNull() && nodeList->nodeWithUUID(nodeUUID)) {
@@ -665,12 +639,7 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
                 checkInNode->setLastHeardMicrostamp(timeNow);
             
                 sendDomainListToNode(checkInNode, senderSockAddr, nodeInterestListFromPacket(receivedPacket, numNodeInfoBytes));
-            } else {
-                // new node - add this node to our NodeList
-                // and send back session UUID right away
-                addNodeToNodeListAndConfirmConnection(receivedPacket, senderSockAddr);
             }
-            
         } else if (requestType == PacketTypeNodeJsonStats) {
             SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
             if (matchingNode) {
