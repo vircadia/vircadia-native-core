@@ -113,7 +113,6 @@ void ChatWindow::showEvent(QShowEvent* event) {
 }
 
 bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
-    FramelessDialog::eventFilter(sender, event);
     if (sender == ui->messagePlainTextEdit) {
         if (event->type() != QEvent::KeyPress) {
             return false;
@@ -135,14 +134,14 @@ bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
             }
             return true;
         }
-    } else {
-        if (event->type() != QEvent::MouseButtonRelease) {
-            return false;
+    } else if (event->type() == QEvent::MouseButtonRelease) {
+        QVariant userVar = sender->property("user");
+        if (userVar.isValid()) {
+            Menu::getInstance()->goToUser("@" + userVar.toString());
+            return true;
         }
-        QString user = sender->property("user").toString();
-        Menu::getInstance()->goToUser(user);
     }
-    return false;
+    return FramelessDialog::eventFilter(sender, event);
 }
 
 #ifdef HAVE_QXMPP
