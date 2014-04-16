@@ -223,8 +223,28 @@ void AudioReflector::injectAudiblePoint(const AudiblePoint& audiblePoint,
     _audio->addSpatialAudioToBuffer(sampleTimeLeft, attenuatedLeftSamples, totalNumberOfSamples);
     _audio->addSpatialAudioToBuffer(sampleTimeRight, attenuatedRightSamples, totalNumberOfSamples);
 }
+
 void AudioReflector::processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
-    echoAudio(sampleTime, samples, format);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingProcessLocalAudio)) {
+        const int NUM_CHANNELS_INPUT = 1;
+        const int NUM_CHANNELS_OUTPUT = 2;
+        const int EXPECTED_SAMPLE_RATE = 24000;
+        if (format.channelCount() == NUM_CHANNELS_INPUT && format.sampleRate() == EXPECTED_SAMPLE_RATE) {
+            QAudioFormat outputFormat = format;
+            outputFormat.setChannelCount(NUM_CHANNELS_OUTPUT);
+            QByteArray stereoInputData;
+            stereoInputData.resize(samples.size() * NUM_CHANNELS_OUTPUT);
+            int numberOfSamples = samples.size() / sizeof(int16_t);
+            int16_t* monoSamples = (int16_t*)samples.data();
+            int16_t* stereoSamples = (int16_t*)stereoInputData.data();
+            const float LOCAL_SIGNAL_ATTENUATION = 0.125f;
+            for (int i = 0; i < numberOfSamples; i++) {
+                stereoSamples[i* NUM_CHANNELS_OUTPUT] = monoSamples[i] * LOCAL_SIGNAL_ATTENUATION;
+                stereoSamples[(i * NUM_CHANNELS_OUTPUT) + 1] = monoSamples[i] * LOCAL_SIGNAL_ATTENUATION;
+            }
+            echoAudio(sampleTime, stereoInputData, outputFormat);
+        }
+    }
 }
 
 void AudioReflector::processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {

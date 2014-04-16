@@ -567,21 +567,11 @@ void Audio::handleAudioInput() {
         // at this point we have clean monoAudioSamples, which match our target output... this is what we should send
         // to our interested listeners
         // send our local loopback to any interested parties
-        if (_processSpatialAudio && !_muted && _audioOutput && 
-            (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingProcessLocalAudio))) {
+        if (_processSpatialAudio && !_muted && _audioOutput) {
             // local audio is sent already resampled to match the network input format, so processors
             // can easily handle the audio in a format ready to post back to the audio device
-            const int NUM_CHANNELS = 2;
-            QByteArray stereoInputData;
-            stereoInputData.resize(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * NUM_CHANNELS * sizeof(int16_t));
-            int16_t* stereoSamples = (int16_t*)stereoInputData.data();
-            const float LOCAL_SIGNAL_ATTENUATION = 0.125f;
-            for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
-                stereoSamples[i* NUM_CHANNELS] = monoAudioSamples[i] * LOCAL_SIGNAL_ATTENUATION;
-                stereoSamples[(i * NUM_CHANNELS) + 1] = monoAudioSamples[i] * LOCAL_SIGNAL_ATTENUATION;
-            }
-
-            emit processLocalAudio(_spatialAudioStart, stereoInputData, _desiredOutputFormat);
+            QByteArray monoInputData((char*)monoAudioSamples, NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int16_t));
+            emit processLocalAudio(_spatialAudioStart, monoInputData, _desiredInputFormat);
         }
         
         if (_proceduralAudioOutput) {
