@@ -509,6 +509,7 @@ private:
     void displayUpdateDialog();
     bool shouldSkipVersion(QString latestVersion);
     void takeSnapshot();
+	void urlGoTo(int argc, const char * constArgv[]);
 
     TouchEvent _lastTouchEvent;
 
