@@ -343,7 +343,7 @@ void Stats::display(
 
     lines = _expanded ? 12 : 3;
     if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessing)) {
-        lines += 6; // spatial audio processing adds 1 spacing line and 5 extra lines of info
+        lines += 7; // spatial audio processing adds 1 spacing line and 6 extra lines of info
     }
 
     drawBackground(backgroundColor, horizontalOffset, 0, glWidget->width() - horizontalOffset, lines * STATS_PELS_PER_LINE + 10);
@@ -546,6 +546,14 @@ void Stats::display(
                 audioReflector->getMaxAttenuation(),
                 audioReflector->getMinAttenuation(),
                 audioReflector->getDistanceAttenuationScalingFactor());
+                
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);
+
+        sprintf(reflectionsStatus, "Local Audio: %s Attenuation: %5.3f", 
+                (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingProcessLocalAudio)
+                    ? "yes" : "no"),
+                audioReflector->getLocalAudioAttenuationFactor());
                 
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);
