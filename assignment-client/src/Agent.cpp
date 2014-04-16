@@ -1,9 +1,12 @@
 //
 //  Agent.cpp
-//  hifi
+//  assignment-client/src
 //
 //  Created by Stephen Birarda on 7/1/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <QtCore/QCoreApplication>
@@ -138,11 +141,15 @@ void Agent::run() {
     ThreadedAssignment::commonInit(AGENT_LOGGING_NAME, NodeType::Agent);
     
     NodeList* nodeList = NodeList::getInstance();
-    nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer);
+    nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet()
+                                                 << NodeType::AudioMixer
+                                                 << NodeType::AvatarMixer
+                                                 << NodeType::VoxelServer
+                                                 << NodeType::ParticleServer);
     
     // figure out the URL for the script for this agent assignment
     QString scriptURLString("http://%1:8080/assignment/%2");
-    scriptURLString = scriptURLString.arg(NodeList::getInstance()->getDomainInfo().getIP().toString(),
+    scriptURLString = scriptURLString.arg(NodeList::getInstance()->getDomainHandler().getIP().toString(),
                                           uuidStringWithoutCurlyBraces(_uuid));
     
     QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);

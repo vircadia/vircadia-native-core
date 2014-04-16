@@ -5,12 +5,16 @@
 //  fragment shader
 //
 //  Created by Andrzej Kapolka on 11/21/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 uniform sampler2DShadow shadowMap;
 
+varying vec4 shadowColor;
+
 void main(void) {
-    gl_FragColor = gl_Color * mix(vec4(0.8, 0.8, 0.8, 1.0), vec4(1.0, 1.0, 1.0, 1.0),
-        shadow2D(shadowMap, gl_TexCoord[0].stp));
+    gl_FragColor = mix(shadowColor, gl_Color, shadow2D(shadowMap, gl_TexCoord[0].stp));
 }

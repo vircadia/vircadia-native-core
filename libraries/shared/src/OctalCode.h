@@ -1,13 +1,16 @@
 //
 //  OctalCode.h
-//  hifi
+//  libraries/shared/src
 //
 //  Created by Stephen Birarda on 3/15/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__OctalCode__
-#define __hifi__OctalCode__
+#ifndef hifi_OctalCode_h
+#define hifi_OctalCode_h
 
 #include <string.h>
 #include <QString>
@@ -62,4 +65,4 @@ OctalCodeComparison compareOctalCodes(const unsigned char* code1, const unsigned
 QString octalCodeToHexString(const unsigned char* octalCode);
 unsigned char* hexStringToOctalCode(const QString& input);
 
-#endif /* defined(__hifi__OctalCode__) */
+#endif // hifi_OctalCode_h

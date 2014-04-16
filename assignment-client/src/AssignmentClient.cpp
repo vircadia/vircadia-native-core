@@ -1,14 +1,19 @@
 //
 //  AssignmentClient.cpp
-//  hifi
+//  assignment-client/src
 //
 //  Created by Stephen Birarda on 11/25/2013.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <QtCore/QProcess>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
+
+#include <gnutls/gnutls.h>
 
 #include <AccountManager.h>
 #include <Assignment.h>
@@ -18,6 +23,7 @@
 #include <SharedUtil.h>
 
 #include "AssignmentFactory.h"
+#include "AssignmentThread.h"
 
 #include "AssignmentClient.h"
 
@@ -28,64 +34,58 @@ int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
 
 AssignmentClient::AssignmentClient(int &argc, char **argv) :
     QCoreApplication(argc, argv),
-    _currentAssignment(NULL)
+    _currentAssignment(),
+    _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME)
 {
+    DTLSClientSession::globalInit();
+    
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
     setApplicationName("assignment-client");
     QSettings::setDefaultFormat(QSettings::IniFormat);
+    
+    QStringList argumentList = arguments();
     
     // register meta type is required for queued invoke method on Assignment subclasses
     
     // set the logging target to the the CHILD_TARGET_NAME
     Logging::setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
     
-    const char ASSIGNMENT_TYPE_OVVERIDE_OPTION[] = "-t";
-    const char* assignmentTypeString = getCmdOption(argc, (const char**)argv, ASSIGNMENT_TYPE_OVVERIDE_OPTION);
+    const QString ASSIGNMENT_TYPE_OVVERIDE_OPTION = "-t";
+    int argumentIndex = argumentList.indexOf(ASSIGNMENT_TYPE_OVVERIDE_OPTION);
     
     Assignment::Type requestAssignmentType = Assignment::AllTypes;
     
-    if (assignmentTypeString) {
-        // the user is asking to only be assigned to a particular type of assignment
-        // so set that as the ::overridenAssignmentType to be used in requests
-        requestAssignmentType = (Assignment::Type) atoi(assignmentTypeString);
+    if (argumentIndex != -1) {
+        requestAssignmentType = (Assignment::Type) argumentList[argumentIndex + 1].toInt();
     }
     
-    const char ASSIGNMENT_POOL_OPTION[] = "--pool";
-    const char* requestAssignmentPool = getCmdOption(argc, (const char**) argv, ASSIGNMENT_POOL_OPTION);
+    const QString ASSIGNMENT_POOL_OPTION = "--pool";
     
+    argumentIndex = argumentList.indexOf(ASSIGNMENT_POOL_OPTION);
     
+    QString assignmentPool;
+    
+    if (argumentIndex != -1) {
+        assignmentPool = argumentList[argumentIndex + 1];
+    }
     // setup our _requestAssignment member variable from the passed arguments
-    _requestAssignment = Assignment(Assignment::RequestCommand, requestAssignmentType, requestAssignmentPool);
+    _requestAssignment = Assignment(Assignment::RequestCommand, requestAssignmentType, assignmentPool);
     
     // create a NodeList as an unassigned client
     NodeList* nodeList = NodeList::createInstance(NodeType::Unassigned);
     
-    const char CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION[] = "-a";
-    const char CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION[] = "-p";
+    // check for an overriden assignment server hostname
+    const QString CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION = "-a";
     
-    // grab the overriden assignment-server hostname from argv, if it exists
-    const char* customAssignmentServerHostname = getCmdOption(argc, (const char**)argv, CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION);
-    const char* customAssignmentServerPortString = getCmdOption(argc,(const char**)argv, CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION);
+    argumentIndex = argumentList.indexOf(CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION);
     
-    HifiSockAddr customAssignmentSocket;
-    
-    if (customAssignmentServerHostname || customAssignmentServerPortString) {
+    if (argumentIndex != -1) {
+        _assignmentServerHostname = argumentList[argumentIndex + 1];
         
-        // set the custom port or default if it wasn't passed
-        unsigned short assignmentServerPort = customAssignmentServerPortString
-        ? atoi(customAssignmentServerPortString) : DEFAULT_DOMAIN_SERVER_PORT;
+        // set the custom assignment socket on our NodeList
+        HifiSockAddr customAssignmentSocket = HifiSockAddr(_assignmentServerHostname, DEFAULT_DOMAIN_SERVER_PORT);
         
-        // set the custom hostname or default if it wasn't passed
-        if (!customAssignmentServerHostname) {
-            customAssignmentServerHostname = DEFAULT_ASSIGNMENT_SERVER_HOSTNAME;
-        }
-        
-        customAssignmentSocket = HifiSockAddr(customAssignmentServerHostname, assignmentServerPort);
-    }
-    
-    // set the custom assignment socket if we have it
-    if (!customAssignmentSocket.isNull()) {
         nodeList->setAssignmentServerSocket(customAssignmentSocket);
     }
     
@@ -102,6 +102,10 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     // connections to AccountManager for authentication
     connect(&AccountManager::getInstance(), &AccountManager::authRequired,
             this, &AssignmentClient::handleAuthenticationRequest);
+}
+
+AssignmentClient::~AssignmentClient() {
+    DTLSClientSession::globalDeinit();
 }
 
 void AssignmentClient::sendAssignmentRequest() {
@@ -124,27 +128,26 @@ void AssignmentClient::readPendingDatagrams() {
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
             if (packetTypeForPacket(receivedPacket) == PacketTypeCreateAssignment) {
                 // construct the deployed assignment from the packet data
-                _currentAssignment = AssignmentFactory::unpackAssignment(receivedPacket);
+                _currentAssignment = SharedAssignmentPointer(AssignmentFactory::unpackAssignment(receivedPacket));
                 
                 if (_currentAssignment) {
                     qDebug() << "Received an assignment -" << *_currentAssignment;
                     
-                    // switch our nodelist domain IP and port to whoever sent us the assignment
+                    // switch our DomainHandler hostname and port to whoever sent us the assignment
                     
-                    nodeList->getDomainInfo().setSockAddr(senderSockAddr);
-                    nodeList->getDomainInfo().setAssignmentUUID(_currentAssignment->getUUID());
+                    nodeList->getDomainHandler().setSockAddr(senderSockAddr, _assignmentServerHostname);
+                    nodeList->getDomainHandler().setAssignmentUUID(_currentAssignment->getUUID());
                     
-                    qDebug() << "Destination IP for assignment is" << nodeList->getDomainInfo().getIP().toString();
+                    qDebug() << "Destination IP for assignment is" << nodeList->getDomainHandler().getIP().toString();
                     
                     // start the deployed assignment
-                    QThread* workerThread = new QThread(this);
+                    AssignmentThread* workerThread = new AssignmentThread(_currentAssignment, this);
                     
-                    connect(workerThread, SIGNAL(started()), _currentAssignment, SLOT(run()));
-                    
-                    connect(_currentAssignment, SIGNAL(finished()), this, SLOT(assignmentCompleted()));
-                    connect(_currentAssignment, SIGNAL(finished()), workerThread, SLOT(quit()));
-                    connect(_currentAssignment, SIGNAL(finished()), _currentAssignment, SLOT(deleteLater()));
-                    connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
+                    connect(workerThread, &QThread::started, _currentAssignment.data(), &ThreadedAssignment::run);
+                    connect(_currentAssignment.data(), &ThreadedAssignment::finished, workerThread, &QThread::quit);
+                    connect(_currentAssignment.data(), &ThreadedAssignment::finished,
+                            this, &AssignmentClient::assignmentCompleted);
+                    connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
                     
                     _currentAssignment->moveToThread(workerThread);
                     
@@ -153,7 +156,7 @@ void AssignmentClient::readPendingDatagrams() {
                     
                     // let the assignment handle the incoming datagrams for its duration
                     disconnect(&nodeList->getNodeSocket(), 0, this, 0);
-                    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, _currentAssignment,
+                    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, _currentAssignment.data(),
                             &ThreadedAssignment::readPendingDatagrams);
                     
                     // Starts an event loop, and emits workerThread->started()
@@ -202,10 +205,12 @@ void AssignmentClient::assignmentCompleted() {
     NodeList* nodeList = NodeList::getInstance();
 
     // have us handle incoming NodeList datagrams again
-    disconnect(&nodeList->getNodeSocket(), 0, _currentAssignment, 0);
+    disconnect(&nodeList->getNodeSocket(), 0, _currentAssignment.data(), 0);
     connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClient::readPendingDatagrams);
     
-    _currentAssignment = NULL;
+    // clear our current assignment shared pointer now that we're done with it
+    // if the assignment thread is still around it has its own shared pointer to the assignment
+    _currentAssignment.clear();
 
     // reset our NodeList by switching back to unassigned and clearing the list
     nodeList->setOwnerType(NodeType::Unassigned);

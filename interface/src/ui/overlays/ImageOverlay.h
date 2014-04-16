@@ -1,12 +1,15 @@
 //
 //  ImageOverlay.h
-//  interface
+//  interface/src/ui/overlays
 //
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__ImageOverlay__
-#define __interface__ImageOverlay__
+#ifndef hifi_ImageOverlay_h
+#define hifi_ImageOverlay_h
 
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
@@ -49,6 +52,8 @@ private:
 
     QUrl _imageURL;
     QImage _textureImage;
+    QNetworkAccessManager* _manager;
+
     GLuint _textureID;
     QRect _fromImage; // where from in the image to sample
     bool _renderImage; // is there an image associated with this overlay, or is it just a colored rectangle
@@ -57,4 +62,4 @@ private:
 };
 
  
-#endif /* defined(__interface__ImageOverlay__) */
+#endif // hifi_ImageOverlay_h

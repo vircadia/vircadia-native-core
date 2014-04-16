@@ -1,9 +1,12 @@
 //
 //  MetavoxelSystem.cpp
-//  interface
+//  interface/src
 //
 //  Created by Andrzej Kapolka on 12/10/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <QMutexLocker>
@@ -69,13 +72,13 @@ SharedObjectPointer MetavoxelSystem::findFirstRaySpannerIntersection(
     return closestSpanner;
 }
 
-void MetavoxelSystem::applyEdit(const MetavoxelEditMessage& edit) {
+void MetavoxelSystem::applyEdit(const MetavoxelEditMessage& edit, bool reliable) {
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
             if (client) {
-                client->applyEdit(edit);
+                client->applyEdit(edit, reliable);
             }
         }
     }
@@ -167,12 +170,14 @@ void MetavoxelSystem::maybeAttachClient(const SharedNodePointer& node) {
 
 MetavoxelSystem::SimulateVisitor::SimulateVisitor(QVector<Point>& points) :
     SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
-        QVector<AttributePointer>() << AttributeRegistry::getInstance()->getColorAttribute() <<
-            AttributeRegistry::getInstance()->getNormalAttribute()),
+        QVector<AttributePointer>(), QVector<AttributePointer>() << AttributeRegistry::getInstance()->getColorAttribute() <<
+            AttributeRegistry::getInstance()->getNormalAttribute() <<
+            AttributeRegistry::getInstance()->getSpannerColorAttribute() <<
+            AttributeRegistry::getInstance()->getSpannerNormalAttribute()),
     _points(points) {
 }
 
-bool MetavoxelSystem::SimulateVisitor::visit(Spanner* spanner) {
+bool MetavoxelSystem::SimulateVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) {
     spanner->getRenderer()->simulate(_deltaTime);
     return true;
 }
@@ -186,21 +191,47 @@ int MetavoxelSystem::SimulateVisitor::visit(MetavoxelInfo& info) {
     QRgb color = info.inputValues.at(0).getInlineValue<QRgb>();
     QRgb normal = info.inputValues.at(1).getInlineValue<QRgb>();
     quint8 alpha = qAlpha(color);
-    if (alpha > 0) {
-        Point point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),
-            { quint8(qRed(color)), quint8(qGreen(color)), quint8(qBlue(color)), alpha }, 
-            { quint8(qRed(normal)), quint8(qGreen(normal)), quint8(qBlue(normal)) } };
-        _points.append(point);
+    if (!info.isLODLeaf) {
+        if (alpha > 0) {
+            Point point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),
+                { quint8(qRed(color)), quint8(qGreen(color)), quint8(qBlue(color)), alpha }, 
+                { quint8(qRed(normal)), quint8(qGreen(normal)), quint8(qBlue(normal)) } };
+            _points.append(point);
+        }
+    } else {
+        QRgb spannerColor = info.inputValues.at(2).getInlineValue<QRgb>();
+        QRgb spannerNormal = info.inputValues.at(3).getInlineValue<QRgb>();
+        quint8 spannerAlpha = qAlpha(spannerColor);
+        if (spannerAlpha > 0) {
+            if (alpha > 0) {
+                Point point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),
+                    { quint8(qRed(spannerColor)), quint8(qGreen(spannerColor)), quint8(qBlue(spannerColor)), spannerAlpha }, 
+                    { quint8(qRed(spannerNormal)), quint8(qGreen(spannerNormal)), quint8(qBlue(spannerNormal)) } };
+                _points.append(point);
+                
+            } else {
+                Point point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),
+                    { quint8(qRed(spannerColor)), quint8(qGreen(spannerColor)), quint8(qBlue(spannerColor)), spannerAlpha }, 
+                    { quint8(qRed(spannerNormal)), quint8(qGreen(spannerNormal)), quint8(qBlue(spannerNormal)) } };
+                _points.append(point);
+            }
+        } else if (alpha > 0) {
+            Point point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),
+                { quint8(qRed(color)), quint8(qGreen(color)), quint8(qBlue(color)), alpha }, 
+                { quint8(qRed(normal)), quint8(qGreen(normal)), quint8(qBlue(normal)) } };
+            _points.append(point);
+        }
     }
     return STOP_RECURSION;
 }
 
 MetavoxelSystem::RenderVisitor::RenderVisitor() :
-    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute()) {
+    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
+        QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannerMaskAttribute()) {
 }
 
-bool MetavoxelSystem::RenderVisitor::visit(Spanner* spanner) {
-    spanner->getRenderer()->render(1.0f);
+bool MetavoxelSystem::RenderVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) {
+    spanner->getRenderer()->render(1.0f, SpannerRenderer::DEFAULT_MODE, clipMinimum, clipSize);
     return true;
 }
 
@@ -239,12 +270,17 @@ void MetavoxelClient::guide(MetavoxelVisitor& visitor) {
     _data.guide(visitor);
 }
 
-void MetavoxelClient::applyEdit(const MetavoxelEditMessage& edit) {
-    // apply immediately to local tree
-    edit.apply(_data, _sequencer.getWeakSharedObjectHash());
+void MetavoxelClient::applyEdit(const MetavoxelEditMessage& edit, bool reliable) {
+    if (reliable) {
+        _sequencer.getReliableOutputChannel()->sendMessage(QVariant::fromValue(edit));
+    
+    } else {
+        // apply immediately to local tree
+        edit.apply(_data, _sequencer.getWeakSharedObjectHash());
 
-    // start sending it out
-    _sequencer.sendHighPriorityMessage(QVariant::fromValue(edit));
+        // start sending it out
+        _sequencer.sendHighPriorityMessage(QVariant::fromValue(edit));
+    }
 }
 
 void MetavoxelClient::simulate(float deltaTime) {
@@ -262,11 +298,13 @@ void MetavoxelClient::simulate(float deltaTime) {
 int MetavoxelClient::parseData(const QByteArray& packet) {
     // process through sequencer
     QMetaObject::invokeMethod(&_sequencer, "receivedDatagram", Q_ARG(const QByteArray&, packet));
+    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::METAVOXELS).updateValue(packet.size());
     return packet.size();
 }
 
 void MetavoxelClient::sendData(const QByteArray& data) {
     NodeList::getInstance()->writeDatagram(data, _node);
+    Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::METAVOXELS).updateValue(data.size());
 }
 
 void MetavoxelClient::readPacket(Bitstream& in) {
@@ -306,10 +344,55 @@ void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
     }
 }
 
+static void enableClipPlane(GLenum plane, float x, float y, float z, float w) {
+    GLdouble coefficients[] = { x, y, z, w };
+    glClipPlane(plane, coefficients);
+    glEnable(plane);
+}
+
+void ClippedRenderer::render(float alpha, Mode mode, const glm::vec3& clipMinimum, float clipSize) {
+    if (clipSize == 0.0f) {
+        renderUnclipped(alpha, mode);
+        return;
+    }
+    enableClipPlane(GL_CLIP_PLANE0, -1.0f, 0.0f, 0.0f, clipMinimum.x + clipSize);
+    enableClipPlane(GL_CLIP_PLANE1, 1.0f, 0.0f, 0.0f, -clipMinimum.x);
+    enableClipPlane(GL_CLIP_PLANE2, 0.0f, -1.0f, 0.0f, clipMinimum.y + clipSize);
+    enableClipPlane(GL_CLIP_PLANE3, 0.0f, 1.0f, 0.0f, -clipMinimum.y);
+    enableClipPlane(GL_CLIP_PLANE4, 0.0f, 0.0f, -1.0f, clipMinimum.z + clipSize);
+    enableClipPlane(GL_CLIP_PLANE5, 0.0f, 0.0f, 1.0f, -clipMinimum.z);
+    
+    renderUnclipped(alpha, mode);
+    
+    glDisable(GL_CLIP_PLANE0);
+    glDisable(GL_CLIP_PLANE1);
+    glDisable(GL_CLIP_PLANE2);
+    glDisable(GL_CLIP_PLANE3);
+    glDisable(GL_CLIP_PLANE4);
+    glDisable(GL_CLIP_PLANE5);
+}
+
 SphereRenderer::SphereRenderer() {
 }
 
-void SphereRenderer::render(float alpha) {
+void SphereRenderer::render(float alpha, Mode mode, const glm::vec3& clipMinimum, float clipSize) {
+    if (clipSize == 0.0f) {
+        renderUnclipped(alpha, mode);
+        return;
+    }
+    // slight performance optimization: don't render if clip bounds are entirely within sphere
+    Sphere* sphere = static_cast<Sphere*>(parent());
+    Box clipBox(clipMinimum, clipMinimum + glm::vec3(clipSize, clipSize, clipSize));
+    for (int i = 0; i < Box::VERTEX_COUNT; i++) {
+        const float CLIP_PROPORTION = 0.95f;
+        if (glm::distance(sphere->getTranslation(), clipBox.getVertex(i)) >= sphere->getScale() * CLIP_PROPORTION) {
+            ClippedRenderer::render(alpha, mode, clipMinimum, clipSize);
+            return;
+        }
+    }
+}
+
+void SphereRenderer::renderUnclipped(float alpha, Mode mode) {
     Sphere* sphere = static_cast<Sphere*>(parent());
     const QColor& color = sphere->getColor();
     glColor4f(color.redF(), color.greenF(), color.blueF(), color.alphaF() * alpha);
@@ -317,7 +400,7 @@ void SphereRenderer::render(float alpha) {
     glPushMatrix();
     const glm::vec3& translation = sphere->getTranslation();
     glTranslatef(translation.x, translation.y, translation.z);
-    glm::quat rotation = glm::quat(glm::radians(sphere->getRotation()));
+    glm::quat rotation = sphere->getRotation();
     glm::vec3 axis = glm::axis(rotation);
     glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
     
@@ -340,7 +423,7 @@ void StaticModelRenderer::init(Spanner* spanner) {
     applyURL(staticModel->getURL());
     
     connect(spanner, SIGNAL(translationChanged(const glm::vec3&)), SLOT(applyTranslation(const glm::vec3&)));
-    connect(spanner, SIGNAL(rotationChanged(const glm::vec3&)), SLOT(applyRotation(const glm::vec3&)));
+    connect(spanner, SIGNAL(rotationChanged(const glm::quat&)), SLOT(applyRotation(const glm::quat&)));
     connect(spanner, SIGNAL(scaleChanged(float)), SLOT(applyScale(float)));
     connect(spanner, SIGNAL(urlChanged(const QUrl&)), SLOT(applyURL(const QUrl&)));
 }
@@ -357,11 +440,25 @@ void StaticModelRenderer::simulate(float deltaTime) {
     _model->simulate(deltaTime);
 }
 
-void StaticModelRenderer::render(float alpha) {
+void StaticModelRenderer::renderUnclipped(float alpha, Mode mode) {
+    switch (mode) {
+        case DIFFUSE_MODE:
+            _model->render(alpha, Model::DIFFUSE_RENDER_MODE);
+            break;
+            
+        case NORMAL_MODE:
+            _model->render(alpha, Model::NORMAL_RENDER_MODE);
+            break;
+            
+        default:
+            _model->render(alpha);
+            break;
+    }
     _model->render(alpha);
 }
 
-bool StaticModelRenderer::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+bool StaticModelRenderer::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const glm::vec3& clipMinimum, float clipSize, float& distance) const {
     return _model->findRayIntersection(origin, direction, distance);
 }
 
@@ -369,8 +466,8 @@ void StaticModelRenderer::applyTranslation(const glm::vec3& translation) {
     _model->setTranslation(translation);
 }
 
-void StaticModelRenderer::applyRotation(const glm::vec3& rotation) {
-    _model->setRotation(glm::quat(glm::radians(rotation)));
+void StaticModelRenderer::applyRotation(const glm::quat& rotation) {
+    _model->setRotation(rotation);
 }
 
 void StaticModelRenderer::applyScale(float scale) {

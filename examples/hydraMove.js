@@ -1,13 +1,15 @@
 //
 //  hydraMove.js
-//  hifi
+//  examples
 //
 //  Created by Brad Hefta-Gaub on 2/10/14.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  This is an example script that demonstrates use of the Controller and MyAvatar classes to implement
 //  avatar flying through the hydra/controller joysticks
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 var damping = 0.9;
@@ -162,11 +164,11 @@ function flyWithHydra(deltaTime) {
         if (thrustMultiplier < MAX_THRUST_MULTIPLIER) {
             thrustMultiplier *= 1 + (deltaTime * THRUST_INCREASE_RATE);
         }
-        var currentOrientation = MyAvatar.orientation;
+        var headOrientation = MyAvatar.headOrientation;
 
-        var front = Quat.getFront(currentOrientation);
-        var right = Quat.getRight(currentOrientation);
-        var up = Quat.getUp(currentOrientation);
+        var front = Quat.getFront(headOrientation);
+        var right = Quat.getRight(headOrientation);
+        var up = Quat.getUp(headOrientation);
     
         var thrustFront = Vec3.multiply(front, MyAvatar.scale * THRUST_MAG_HAND_JETS * 
                                         thrustJoystickPosition.y * thrustMultiplier * deltaTime);

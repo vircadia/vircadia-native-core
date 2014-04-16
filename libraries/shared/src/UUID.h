@@ -1,13 +1,16 @@
 //
 //  UUID.h
-//  hifi
+//  libraries/shared/src
 //
 //  Created by Stephen Birarda on 10/7/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__UUID__
-#define __hifi__UUID__
+#ifndef hifi_UUID_h
+#define hifi_UUID_h
 
 #include <QtCore/QUuid>
 
@@ -15,4 +18,4 @@ const int NUM_BYTES_RFC4122_UUID = 16;
 
 QString uuidStringWithoutCurlyBraces(const QUuid& uuid);
 
-#endif /* defined(__hifi__UUID__) */
+#endif // hifi_UUID_h

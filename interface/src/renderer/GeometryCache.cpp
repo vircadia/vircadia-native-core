@@ -1,9 +1,13 @@
 //
 //  GeometryCache.cpp
-//  interface
+//  interface/src/renderer
 //
 //  Created by Andrzej Kapolka on 6/21/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 #include <cmath>
 
@@ -31,11 +35,11 @@ void GeometryCache::renderHemisphere(int slices, int stacks) {
         GLfloat* vertexData = new GLfloat[vertices * 3];
         GLfloat* vertex = vertexData;
         for (int i = 0; i < stacks - 1; i++) {
-            float phi = PI_OVER_TWO * float(i) / float(stacks - 1);
+            float phi = PI_OVER_TWO * (float)i / (float)(stacks - 1);
             float z = sinf(phi), radius = cosf(phi);
             
             for (int j = 0; j < slices; j++) {
-                float theta = TWO_PI * float(j) / float(slices);
+                float theta = TWO_PI * (float)j / (float)slices;
 
                 *(vertex++) = sinf(theta) * radius;
                 *(vertex++) = cosf(theta) * radius;
@@ -181,7 +185,7 @@ void GeometryCache::renderHalfCylinder(int slices, int stacks) {
             float y = (float)i / (stacks - 1);
             
             for (int j = 0; j <= slices; j++) {
-                float theta = 3.f * PI_OVER_TWO + PI * float(j) / float(slices);
+                float theta = 3.f * PI_OVER_TWO + PI * (float)j / (float)slices;
 
                 //normals
                 *(vertex++) = sinf(theta);

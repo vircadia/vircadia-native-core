@@ -1,8 +1,12 @@
 //
 //  OctreeSendThread.cpp
+//  assignment-client/src/octree
 //
-//  Created by Brad Hefta-Gaub on 8/21/13
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Created by Brad Hefta-Gaub on 8/21/13.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <QMutexLocker>
@@ -21,8 +25,9 @@ quint64 endSceneSleepTime = 0;
 
 OctreeSendThread::OctreeSendThread(OctreeServer* myServer, SharedNodePointer node) :
     _myServer(myServer),
-    _node(node),
+    _nodeUUID(node->getUUID()),
     _packetData(),
+    _nodeMissingCount(0),
     _processLock(),
     _isShuttingDown(false)
 {
@@ -43,44 +48,66 @@ OctreeSendThread::~OctreeSendThread() {
     }
     qDebug() << qPrintable(safeServerName)  << "server [" << _myServer << "]: client disconnected "
                                             "- ending sending thread [" << this << "]";
-    _node.clear();
     OctreeServer::clientDisconnected();
 }
 
 void OctreeSendThread::setIsShuttingDown() {
-    QMutexLocker locker(&_processLock); // this will cause us to wait till the process loop is complete
     _isShuttingDown = true;
     OctreeServer::stopTrackingThread(this);
+    
+    // this will cause us to wait till the process loop is complete, we do this after we change _isShuttingDown
+    QMutexLocker locker(&_processLock); 
 }
 
 
 bool OctreeSendThread::process() {
+    if (_isShuttingDown) {
+        return false; // exit early if we're shutting down
+    }
+
     OctreeServer::didProcess(this);
 
     float lockWaitElapsedUsec = OctreeServer::SKIP_TIME;
     quint64 lockWaitStart = usecTimestampNow();
-    QMutexLocker locker(&_processLock);
+    _processLock.lock();
     quint64 lockWaitEnd = usecTimestampNow();
     lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
     OctreeServer::trackProcessWaitTime(lockWaitElapsedUsec);
-    
-    if (_isShuttingDown) {
-        return false; // exit early if we're shutting down
-    }
     
     quint64  start = usecTimestampNow();
 
     // don't do any send processing until the initial load of the octree is complete...
     if (_myServer->isInitialLoadComplete()) {
-        if (!_node.isNull()) {
-            OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(_node->getLinkedData());
+        SharedNodePointer node = NodeList::getInstance()->nodeWithUUID(_nodeUUID, false);
+        if (node) {
+            _nodeMissingCount = 0;
+            OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(node->getLinkedData());
 
             // Sometimes the node data has not yet been linked, in which case we can't really do anything
             if (nodeData && !nodeData->isShuttingDown()) {
                 bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
-                packetDistributor(_node, nodeData, viewFrustumChanged);
+                packetDistributor(node, nodeData, viewFrustumChanged);
+            }
+        } else {
+            _nodeMissingCount++;
+            const int MANY_FAILED_LOCKS = 1;
+            if (_nodeMissingCount >= MANY_FAILED_LOCKS) {
+
+                QString safeServerName("Octree");
+                if (_myServer) {
+                    safeServerName = _myServer->getMyServerName();
+                }
+                
+                qDebug() << qPrintable(safeServerName)  << "server: sending thread [" << this << "]"
+                        << "failed to get nodeWithUUID() " << _nodeUUID <<". Failed:" << _nodeMissingCount << "times";
             }
         }
+    }
+
+    _processLock.unlock();
+    
+    if (_isShuttingDown) {
+        return false; // exit early if we're shutting down
     }
 
     // Only sleep if we're still running and we got the lock last time we tried, otherwise try to get the lock asap

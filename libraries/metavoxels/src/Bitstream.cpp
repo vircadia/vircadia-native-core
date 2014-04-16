@@ -1,15 +1,18 @@
 //
 //  Bitstream.cpp
-//  metavoxels
+//  libraries/metavoxels/src
 //
 //  Created by Andrzej Kapolka on 12/2/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <cstring>
 
+#include <QCryptographicHash>
 #include <QDataStream>
-#include <QMetaProperty>
 #include <QMetaType>
 #include <QUrl>
 #include <QtDebug>
@@ -31,9 +34,11 @@ REGISTER_SIMPLE_TYPE_STREAMER(QString)
 REGISTER_SIMPLE_TYPE_STREAMER(QUrl)
 REGISTER_SIMPLE_TYPE_STREAMER(QVariantList)
 REGISTER_SIMPLE_TYPE_STREAMER(QVariantHash)
+REGISTER_SIMPLE_TYPE_STREAMER(SharedObjectPointer)
 
 // some types don't quite work with our macro
 static int vec3Streamer = Bitstream::registerTypeStreamer(qMetaTypeId<glm::vec3>(), new SimpleTypeStreamer<glm::vec3>());
+static int quatStreamer = Bitstream::registerTypeStreamer(qMetaTypeId<glm::quat>(), new SimpleTypeStreamer<glm::quat>());
 static int metaObjectStreamer = Bitstream::registerTypeStreamer(qMetaTypeId<const QMetaObject*>(),
     new SimpleTypeStreamer<const QMetaObject*>());
 
@@ -82,6 +87,10 @@ int Bitstream::registerTypeStreamer(int type, TypeStreamer* streamer) {
     return 0;
 }
 
+const TypeStreamer* Bitstream::getTypeStreamer(int type) {
+    return getTypeStreamers().value(type);
+}
+
 const QMetaObject* Bitstream::getMetaObject(const QByteArray& className) {
     return getMetaObjects().value(className);
 }
@@ -90,16 +99,25 @@ QList<const QMetaObject*> Bitstream::getMetaObjectSubClasses(const QMetaObject* 
     return getMetaObjectSubClasses().values(metaObject);
 }
 
-Bitstream::Bitstream(QDataStream& underlying, QObject* parent) :
+Bitstream::Bitstream(QDataStream& underlying, MetadataType metadataType, QObject* parent) :
     QObject(parent),
     _underlying(underlying),
     _byte(0),
     _position(0),
+    _metadataType(metadataType),
     _metaObjectStreamer(*this),
     _typeStreamerStreamer(*this),
     _attributeStreamer(*this),
     _scriptStringStreamer(*this),
     _sharedObjectStreamer(*this) {
+}
+
+void Bitstream::addMetaObjectSubstitution(const QByteArray& className, const QMetaObject* metaObject) {
+    _metaObjectSubstitutions.insert(className, metaObject);
+}
+
+void Bitstream::addTypeSubstitution(const QByteArray& typeName, int type) {
+    _typeStreamerSubstitutions.insert(typeName, getTypeStreamers().value(type));
 }
 
 const int LAST_BIT_POSITION = BITS_IN_BYTE - 1;
@@ -171,9 +189,16 @@ void Bitstream::persistWriteMappings(const WriteMappings& mappings) {
     // find out when shared objects are deleted in order to clear their mappings
     for (QHash<SharedObjectPointer, int>::const_iterator it = mappings.sharedObjectOffsets.constBegin();
             it != mappings.sharedObjectOffsets.constEnd(); it++) {
-        if (it.key()) {
-            connect(it.key().data(), SIGNAL(destroyed(QObject*)), SLOT(clearSharedObject(QObject*)));
+        if (!it.key()) {
+            continue;
         }
+        connect(it.key().data(), SIGNAL(destroyed(QObject*)), SLOT(clearSharedObject(QObject*)));
+        QPointer<SharedObject>& reference = _sharedObjectReferences[it.key()->getID()];
+        if (reference) {
+            _sharedObjectStreamer.removePersistentID(reference);
+            reference->disconnect(this);
+        }
+        reference = it.key();
     }
 }
 
@@ -196,6 +221,19 @@ void Bitstream::persistReadMappings(const ReadMappings& mappings) {
     _attributeStreamer.persistTransientValues(mappings.attributeValues);
     _scriptStringStreamer.persistTransientValues(mappings.scriptStringValues);
     _sharedObjectStreamer.persistTransientValues(mappings.sharedObjectValues);
+    
+    for (QHash<int, SharedObjectPointer>::const_iterator it = mappings.sharedObjectValues.constBegin();
+            it != mappings.sharedObjectValues.constEnd(); it++) {
+        if (!it.value()) {
+            continue;
+        }
+        QPointer<SharedObject>& reference = _sharedObjectReferences[it.value()->getRemoteID()];
+        if (reference) {
+            _sharedObjectStreamer.removePersistentValue(reference.data());
+        }
+        reference = it.value();
+        _weakSharedObjectHash.remove(it.value()->getRemoteID());
+    }
 }
 
 void Bitstream::persistAndResetReadMappings() {
@@ -207,6 +245,58 @@ void Bitstream::clearSharedObject(int id) {
     if (object) {
         _weakSharedObjectHash.remove(object->getRemoteID());
     }
+}
+
+void Bitstream::writeDelta(bool value, bool reference) {
+    *this << value;
+}
+
+void Bitstream::readDelta(bool& value, bool reference) {
+    *this >> value;
+}
+
+void Bitstream::writeDelta(const QVariant& value, const QVariant& reference) {
+    // QVariant only handles == for built-in types; we need to use our custom operators
+    const TypeStreamer* streamer = getTypeStreamers().value(value.userType());
+    if (value.userType() == reference.userType() && (!streamer || streamer->equal(value, reference))) {
+        *this << false;
+         return;
+    }
+    *this << true;
+    _typeStreamerStreamer << streamer;
+    streamer->writeRawDelta(*this, value, reference);
+}
+
+void Bitstream::readRawDelta(QVariant& value, const QVariant& reference) {
+    TypeReader typeReader;
+    _typeStreamerStreamer >> typeReader;
+    typeReader.readRawDelta(*this, value, reference);
+}
+
+void Bitstream::writeRawDelta(const QObject* value, const QObject* reference) {
+    if (!value) {
+        _metaObjectStreamer << NULL;
+        return;
+    }
+    const QMetaObject* metaObject = value->metaObject();
+    _metaObjectStreamer << metaObject;
+    for (int i = 0; i < metaObject->propertyCount(); i++) {
+        QMetaProperty property = metaObject->property(i);
+        if (!property.isStored(value)) {
+            continue;
+        }
+        const TypeStreamer* streamer = getTypeStreamers().value(property.userType());
+        if (streamer) {
+            streamer->writeDelta(*this, property.read(value), reference && metaObject == reference->metaObject() ?
+                property.read(reference) : QVariant());
+        }
+    }
+}
+
+void Bitstream::readRawDelta(QObject*& value, const QObject* reference) {
+    ObjectReader objectReader;
+    _metaObjectStreamer >> objectReader;
+    value = objectReader.readDelta(*this, reference);
 }
 
 Bitstream& Bitstream::operator<<(bool value) {
@@ -264,6 +354,14 @@ Bitstream& Bitstream::operator<<(const glm::vec3& value) {
 
 Bitstream& Bitstream::operator>>(glm::vec3& value) {
     return *this >> value.x >> value.y >> value.z;
+}
+
+Bitstream& Bitstream::operator<<(const glm::quat& value) {
+    return *this << value.w << value.x << value.y << value.z;
+}
+
+Bitstream& Bitstream::operator>>(glm::quat& value) {
+    return *this >> value.w >> value.x >> value.y >> value.z;
 }
 
 Bitstream& Bitstream::operator<<(const QByteArray& string) {
@@ -324,11 +422,9 @@ Bitstream& Bitstream::operator<<(const QVariant& value) {
 }
 
 Bitstream& Bitstream::operator>>(QVariant& value) {
-    const TypeStreamer* streamer;
-    _typeStreamerStreamer >> streamer;
-    if (streamer) {
-        value = streamer->read(*this);
-    }
+    TypeReader reader;
+    _typeStreamerStreamer >> reader;
+    value = reader.read(*this);
     return *this;
 }
 
@@ -376,13 +472,9 @@ Bitstream& Bitstream::operator<<(const QObject* object) {
 }
 
 Bitstream& Bitstream::operator>>(QObject*& object) {
-    const QMetaObject* metaObject;
-    _metaObjectStreamer >> metaObject;
-    if (!metaObject) {
-        object = NULL;
-        return *this;
-    }
-    readProperties(object = metaObject->newInstance());
+    ObjectReader objectReader;
+    _metaObjectStreamer >> objectReader;
+    object = objectReader.read(*this);
     return *this;
 }
 
@@ -392,7 +484,14 @@ Bitstream& Bitstream::operator<<(const QMetaObject* metaObject) {
 }
 
 Bitstream& Bitstream::operator>>(const QMetaObject*& metaObject) {
-    _metaObjectStreamer >> metaObject;
+    ObjectReader objectReader;
+    _metaObjectStreamer >> objectReader;
+    metaObject = objectReader.getMetaObject();
+    return *this;
+}
+
+Bitstream& Bitstream::operator>>(ObjectReader& objectReader) {
+    _metaObjectStreamer >> objectReader;
     return *this;
 }
 
@@ -402,7 +501,14 @@ Bitstream& Bitstream::operator<<(const TypeStreamer* streamer) {
 }
 
 Bitstream& Bitstream::operator>>(const TypeStreamer*& streamer) {
-    _typeStreamerStreamer >> streamer;
+    TypeReader typeReader;
+    _typeStreamerStreamer >> typeReader;
+    streamer = typeReader.getStreamer();
+    return *this;
+}
+
+Bitstream& Bitstream::operator>>(TypeReader& reader) {
+    _typeStreamerStreamer >> reader;
     return *this;
 }
 
@@ -437,36 +543,280 @@ Bitstream& Bitstream::operator>>(SharedObjectPointer& object) {
 }
 
 Bitstream& Bitstream::operator<(const QMetaObject* metaObject) {
-    return *this << (metaObject ? QByteArray::fromRawData(metaObject->className(),
-        strlen(metaObject->className())) : QByteArray());
+    if (!metaObject) {
+        return *this << QByteArray();
+    }
+    *this << QByteArray::fromRawData(metaObject->className(), strlen(metaObject->className()));
+    if (_metadataType == NO_METADATA) {
+        return *this;
+    }
+    int storedPropertyCount = 0;
+    for (int i = 0; i < metaObject->propertyCount(); i++) {
+        QMetaProperty property = metaObject->property(i);
+        if (property.isStored() && getTypeStreamers().contains(property.userType())) {
+            storedPropertyCount++;
+        }    
+    }
+    *this << storedPropertyCount;
+    QCryptographicHash hash(QCryptographicHash::Md5);
+    for (int i = 0; i < metaObject->propertyCount(); i++) {
+        QMetaProperty property = metaObject->property(i);
+        if (!property.isStored()) {
+            continue;
+        }
+        const TypeStreamer* typeStreamer = getTypeStreamers().value(property.userType());
+        if (!typeStreamer) {
+            continue;
+        }
+        _typeStreamerStreamer << typeStreamer;
+        if (_metadataType == FULL_METADATA) {
+            *this << QByteArray::fromRawData(property.name(), strlen(property.name()));
+        } else {
+            hash.addData(property.name(), strlen(property.name()) + 1);
+        }
+    }
+    if (_metadataType == HASH_METADATA) {
+        QByteArray hashResult = hash.result();
+        write(hashResult.constData(), hashResult.size() * BITS_IN_BYTE);
+    }
+    return *this;
 }
 
-Bitstream& Bitstream::operator>(const QMetaObject*& metaObject) {
+Bitstream& Bitstream::operator>(ObjectReader& objectReader) {
     QByteArray className;
     *this >> className;
     if (className.isEmpty()) {
-        metaObject = NULL;
+        objectReader = ObjectReader();
         return *this;
     }
-    metaObject = getMetaObjects().value(className);
+    const QMetaObject* metaObject = _metaObjectSubstitutions.value(className);
+    if (!metaObject) {
+        metaObject = getMetaObjects().value(className);
+    }
     if (!metaObject) {
         qWarning() << "Unknown class name: " << className << "\n";
     }
+    if (_metadataType == NO_METADATA) {
+        objectReader = ObjectReader(className, metaObject, getPropertyReaders(metaObject));
+        return *this;
+    }
+    int storedPropertyCount;
+    *this >> storedPropertyCount;
+    QVector<PropertyReader> properties(storedPropertyCount);
+    for (int i = 0; i < storedPropertyCount; i++) {
+        TypeReader typeReader;
+        *this >> typeReader;
+        QMetaProperty property = QMetaProperty();
+        if (_metadataType == FULL_METADATA) {
+            QByteArray propertyName;
+            *this >> propertyName;
+            if (metaObject) {
+                property = metaObject->property(metaObject->indexOfProperty(propertyName));
+            }
+        }
+        properties[i] = PropertyReader(typeReader, property);
+    }
+    // for hash metadata, check the names/types of the properties as well as the name hash against our own class
+    if (_metadataType == HASH_METADATA) {
+        QCryptographicHash hash(QCryptographicHash::Md5);
+        bool matches = true;
+        if (metaObject) {
+            int propertyIndex = 0;
+            for (int i = 0; i < metaObject->propertyCount(); i++) {
+                QMetaProperty property = metaObject->property(i);
+                if (!property.isStored()) {
+                    continue;
+                }
+                const TypeStreamer* typeStreamer = getTypeStreamers().value(property.userType());
+                if (!typeStreamer) {
+                    continue;
+                }
+                if (propertyIndex >= properties.size() ||
+                        !properties.at(propertyIndex).getReader().matchesExactly(typeStreamer)) {
+                    matches = false;
+                    break;
+                }
+                hash.addData(property.name(), strlen(property.name()) + 1); 
+                propertyIndex++;
+            }
+            if (propertyIndex != properties.size()) {
+                matches = false;
+            }
+        }
+        QByteArray localHashResult = hash.result();
+        QByteArray remoteHashResult(localHashResult.size(), 0);
+        read(remoteHashResult.data(), remoteHashResult.size() * BITS_IN_BYTE);
+        if (metaObject && matches && localHashResult == remoteHashResult) {
+            objectReader = ObjectReader(className, metaObject, getPropertyReaders(metaObject));
+            return *this;
+        }
+    }
+    objectReader = ObjectReader(className, metaObject, properties);
     return *this;
 }
 
 Bitstream& Bitstream::operator<(const TypeStreamer* streamer) {
     const char* typeName = QMetaType::typeName(streamer->getType());
-    return *this << QByteArray::fromRawData(typeName, strlen(typeName));
+    *this << QByteArray::fromRawData(typeName, strlen(typeName));
+    if (_metadataType == NO_METADATA) {
+        return *this;
+    }
+    TypeReader::Type type = streamer->getReaderType();
+    *this << (int)type;
+    switch (type) {
+        case TypeReader::SIMPLE_TYPE:
+            return *this;
+        
+        case TypeReader::LIST_TYPE:
+        case TypeReader::SET_TYPE:
+            return *this << streamer->getValueStreamer();
+    
+        case TypeReader::MAP_TYPE:
+            return *this << streamer->getKeyStreamer() << streamer->getValueStreamer();
+        
+        default:
+            break; // fall through
+    }
+    // streamable type
+    const QVector<MetaField>& metaFields = streamer->getMetaFields();
+    *this << metaFields.size();
+    if (metaFields.isEmpty()) {
+        return *this;
+    }
+    QCryptographicHash hash(QCryptographicHash::Md5);
+    foreach (const MetaField& metaField, metaFields) {
+        _typeStreamerStreamer << metaField.getStreamer();
+        if (_metadataType == FULL_METADATA) {
+            *this << metaField.getName();
+        } else {
+            hash.addData(metaField.getName().constData(), metaField.getName().size() + 1);
+        }
+    }
+    if (_metadataType == HASH_METADATA) {
+        QByteArray hashResult = hash.result();
+        write(hashResult.constData(), hashResult.size() * BITS_IN_BYTE);
+    }
+    return *this;
 }
 
-Bitstream& Bitstream::operator>(const TypeStreamer*& streamer) {
+Bitstream& Bitstream::operator>(TypeReader& reader) {
     QByteArray typeName;
     *this >> typeName;
-    streamer = getTypeStreamers().value(QMetaType::type(typeName.constData()));
+    const TypeStreamer* streamer = _typeStreamerSubstitutions.value(typeName);
+    if (!streamer) {
+        streamer = getTypeStreamers().value(QMetaType::type(typeName.constData()));
+    }
     if (!streamer) {
         qWarning() << "Unknown type name: " << typeName << "\n";
     }
+    if (_metadataType == NO_METADATA) {
+        reader = TypeReader(typeName, streamer);
+        return *this;
+    }
+    int type;
+    *this >> type;
+    switch (type) {
+        case TypeReader::SIMPLE_TYPE:
+            reader = TypeReader(typeName, streamer);
+            return *this;
+            
+        case TypeReader::LIST_TYPE:
+        case TypeReader::SET_TYPE: {
+            TypeReader valueReader;
+            *this >> valueReader;
+            if (streamer && streamer->getReaderType() == type &&
+                    valueReader.matchesExactly(streamer->getValueStreamer())) {
+                reader = TypeReader(typeName, streamer);
+            } else {
+                reader = TypeReader(typeName, streamer, false, (TypeReader::Type)type, TypeReaderPointer(),
+                    TypeReaderPointer(new TypeReader(valueReader)));
+            }
+            return *this;
+        }
+        case TypeReader::MAP_TYPE: {
+            TypeReader keyReader, valueReader;
+            *this >> keyReader >> valueReader;
+            if (streamer && streamer->getReaderType() == TypeReader::MAP_TYPE &&
+                    keyReader.matchesExactly(streamer->getKeyStreamer()) &&
+                    valueReader.matchesExactly(streamer->getValueStreamer())) {
+                reader = TypeReader(typeName, streamer);
+            } else {
+                reader = TypeReader(typeName, streamer, false, TypeReader::MAP_TYPE,
+                    TypeReaderPointer(new TypeReader(keyReader)), TypeReaderPointer(new TypeReader(valueReader)));
+            }
+            return *this;
+        }
+    }
+    // streamable type
+    int fieldCount;
+    *this >> fieldCount;
+    QVector<FieldReader> fields(fieldCount);
+    for (int i = 0; i < fieldCount; i++) {
+        TypeReader typeReader;
+        *this >> typeReader;
+        int index = -1;
+        if (_metadataType == FULL_METADATA) {
+            QByteArray fieldName;
+            *this >> fieldName;
+            if (streamer) {
+                index = streamer->getFieldIndex(fieldName);
+            }
+        }
+        fields[i] = FieldReader(typeReader, index);
+    }
+    // for hash metadata, check the names/types of the fields as well as the name hash against our own class
+    if (_metadataType == HASH_METADATA) {
+        QCryptographicHash hash(QCryptographicHash::Md5);
+        bool matches = true;
+        if (streamer) {
+            const QVector<MetaField>& localFields = streamer->getMetaFields();
+            if (fieldCount != localFields.size()) {
+                matches = false;
+                
+            } else {
+                if (fieldCount == 0) {
+                    reader = TypeReader(typeName, streamer);
+                    return *this;
+                }
+                for (int i = 0; i < fieldCount; i++) {
+                    const MetaField& localField = localFields.at(i);
+                    if (!fields.at(i).getReader().matchesExactly(localField.getStreamer())) {
+                        matches = false;
+                        break;
+                    }
+                    hash.addData(localField.getName().constData(), localField.getName().size() + 1);
+                }   
+            }
+        }
+        QByteArray localHashResult = hash.result();
+        QByteArray remoteHashResult(localHashResult.size(), 0);
+        read(remoteHashResult.data(), remoteHashResult.size() * BITS_IN_BYTE);
+        if (streamer && matches && localHashResult == remoteHashResult) {
+            // since everything is the same, we can use the default streamer
+            reader = TypeReader(typeName, streamer);
+            return *this;
+        }
+    } else if (streamer) {
+        // if all fields are the same type and in the right order, we can use the (more efficient) default streamer
+        const QVector<MetaField>& localFields = streamer->getMetaFields();
+        if (fieldCount != localFields.size()) {
+            reader = TypeReader(typeName, streamer, false, TypeReader::STREAMABLE_TYPE,
+                TypeReaderPointer(), TypeReaderPointer(), fields);
+            return *this;
+        }
+        for (int i = 0; i < fieldCount; i++) {
+            const FieldReader& fieldReader = fields.at(i);
+            if (!fieldReader.getReader().matchesExactly(localFields.at(i).getStreamer()) || fieldReader.getIndex() != i) {
+                reader = TypeReader(typeName, streamer, false, TypeReader::STREAMABLE_TYPE,
+                    TypeReaderPointer(), TypeReaderPointer(), fields);
+                return *this;
+            }
+        }
+        reader = TypeReader(typeName, streamer);
+        return *this;
+    }
+    reader = TypeReader(typeName, streamer, false, TypeReader::STREAMABLE_TYPE,
+        TypeReaderPointer(), TypeReaderPointer(), fields);
     return *this;
 }
 
@@ -496,7 +846,14 @@ Bitstream& Bitstream::operator<(const SharedObjectPointer& object) {
     if (!object) {
         return *this << (int)0;
     }
-    return *this << object->getID() << (QObject*)object.data();
+    *this << object->getID();
+    QPointer<SharedObject> reference = _sharedObjectReferences.value(object->getID());
+    if (reference) {
+        writeRawDelta((QObject*)object.data(), (QObject*)reference.data());
+    } else {
+        *this << (QObject*)object.data();
+    }
+    return *this;
 }
 
 Bitstream& Bitstream::operator>(SharedObjectPointer& object) {
@@ -506,43 +863,40 @@ Bitstream& Bitstream::operator>(SharedObjectPointer& object) {
         object = SharedObjectPointer();
         return *this;
     }
+    QPointer<SharedObject> reference = _sharedObjectReferences.value(id);
     QPointer<SharedObject>& pointer = _weakSharedObjectHash[id];
     if (pointer) {
-        const QMetaObject* metaObject;
-        _metaObjectStreamer >> metaObject;
-        if (metaObject != pointer->metaObject()) {
-            qWarning() << "Class mismatch: " << pointer->metaObject()->className() << metaObject->className();
+        ObjectReader objectReader;
+        _metaObjectStreamer >> objectReader;
+        if (reference) {
+            objectReader.readDelta(*this, reference.data(), pointer.data());
+        } else {
+            objectReader.read(*this, pointer.data());
         }
-        readProperties(pointer.data());
-    
     } else {
-        QObject* rawObject;
-        *this >> rawObject;
+        QObject* rawObject; 
+        if (reference) {
+            readRawDelta(rawObject, (QObject*)reference.data());
+        } else {
+            *this >> rawObject;
+        }
         pointer = static_cast<SharedObject*>(rawObject);
-        pointer->setRemoteID(id);
+        if (pointer) {
+            pointer->setRemoteID(id);
+        } else {
+            qDebug() << "Null object" << pointer << reference;
+        }
     }
     object = static_cast<SharedObject*>(pointer.data());
     return *this;
 }
 
 void Bitstream::clearSharedObject(QObject* object) {
-    int id = _sharedObjectStreamer.takePersistentID(static_cast<SharedObject*>(object));
+    SharedObject* sharedObject = static_cast<SharedObject*>(object);
+    _sharedObjectReferences.remove(sharedObject->getID());
+    int id = _sharedObjectStreamer.takePersistentID(sharedObject);
     if (id != 0) {
         emit sharedObjectCleared(id);
-    }
-}
-
-void Bitstream::readProperties(QObject* object) {
-    const QMetaObject* metaObject = object->metaObject();
-    for (int i = 0; i < metaObject->propertyCount(); i++) {
-        QMetaProperty property = metaObject->property(i);
-        if (!property.isStored(object)) {
-            continue;
-        }
-        const TypeStreamer* streamer = getTypeStreamers().value(property.userType());
-        if (streamer) {
-            property.write(object, streamer->read(*this));    
-        }
     }
 }
 
@@ -561,3 +915,324 @@ QHash<int, const TypeStreamer*>& Bitstream::getTypeStreamers() {
     return typeStreamers;
 }
 
+QVector<PropertyReader> Bitstream::getPropertyReaders(const QMetaObject* metaObject) {
+    QVector<PropertyReader> propertyReaders;
+    if (!metaObject) {
+        return propertyReaders;
+    }
+    for (int i = 0; i < metaObject->propertyCount(); i++) {
+        QMetaProperty property = metaObject->property(i);
+        if (!property.isStored()) {
+            continue;
+        }
+        const TypeStreamer* typeStreamer = getTypeStreamers().value(property.userType());
+        if (typeStreamer) {
+            propertyReaders.append(PropertyReader(TypeReader(QByteArray(), typeStreamer), property));
+        }
+    }
+    return propertyReaders;
+}
+
+TypeReader::TypeReader(const QByteArray& typeName, const TypeStreamer* streamer, bool exactMatch, Type type,
+        const TypeReaderPointer& keyReader, const TypeReaderPointer& valueReader, const QVector<FieldReader>& fields) :
+    _typeName(typeName),
+    _streamer(streamer),
+    _exactMatch(exactMatch),
+    _type(type),
+    _keyReader(keyReader),
+    _valueReader(valueReader),
+    _fields(fields) {
+}
+
+QVariant TypeReader::read(Bitstream& in) const {
+    if (_exactMatch) {
+        return _streamer->read(in);
+    }
+    QVariant object = _streamer ? QVariant(_streamer->getType(), 0) : QVariant();
+    switch (_type) {
+        case STREAMABLE_TYPE: {
+            foreach (const FieldReader& field, _fields) {
+                field.read(in, _streamer, object);
+            }
+            break;
+        }
+        case LIST_TYPE:
+        case SET_TYPE: {
+            int size;
+            in >> size;
+            for (int i = 0; i < size; i++) {
+                QVariant value = _valueReader->read(in);
+                if (_streamer) {
+                    _streamer->insert(object, value);
+                }
+            }
+            break;
+        }
+        case MAP_TYPE: {
+            int size;
+            in >> size;
+            for (int i = 0; i < size; i++) {
+                QVariant key = _keyReader->read(in);
+                QVariant value = _valueReader->read(in);
+                if (_streamer) {
+                    _streamer->insert(object, key, value);
+                }
+            }
+            break;
+        }
+        default:
+            break;
+    }
+    return object;
+}
+
+void TypeReader::readDelta(Bitstream& in, QVariant& object, const QVariant& reference) const {
+    if (_exactMatch) {
+        _streamer->readDelta(in, object, reference);
+        return;
+    }
+    bool changed;
+    in >> changed;
+    if (changed) {
+        readRawDelta(in, object, reference);
+    } else {
+        object = reference;
+    }
+}
+
+void TypeReader::readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const {
+    if (_exactMatch) {
+        _streamer->readRawDelta(in, object, reference);
+        return;
+    }
+    switch (_type) {
+        case STREAMABLE_TYPE: {
+            foreach (const FieldReader& field, _fields) {
+                field.readDelta(in, _streamer, object, reference);
+            }
+            break;
+        }
+        case LIST_TYPE: {
+            object = reference;
+            int size, referenceSize;
+            in >> size >> referenceSize;
+            if (_streamer) {
+                if (size < referenceSize) {
+                    _streamer->prune(object, size);
+                }
+                for (int i = 0; i < size; i++) {
+                    if (i < referenceSize) {
+                        QVariant value;
+                        _valueReader->readDelta(in, value, _streamer->getValue(reference, i));
+                        _streamer->setValue(object, i, value);
+                    } else {
+                        _streamer->insert(object, _valueReader->read(in));
+                    }
+                }
+            } else {
+                for (int i = 0; i < size; i++) {
+                    if (i < referenceSize) {
+                        QVariant value;
+                        _valueReader->readDelta(in, value, QVariant());
+                    } else {
+                        _valueReader->read(in);
+                    }
+                }
+            }
+            break;
+        }
+        case SET_TYPE: {
+            object = reference;
+            int addedOrRemoved;
+            in >> addedOrRemoved;
+            for (int i = 0; i < addedOrRemoved; i++) {
+                QVariant value = _valueReader->read(in);
+                if (_streamer && !_streamer->remove(object, value)) {
+                    _streamer->insert(object, value);
+                }
+            }
+            break;
+        }
+        case MAP_TYPE: {
+            object = reference;
+            int added;
+            in >> added;
+            for (int i = 0; i < added; i++) {
+                QVariant key = _keyReader->read(in);
+                QVariant value = _valueReader->read(in);
+                if (_streamer) {
+                    _streamer->insert(object, key, value);
+                }
+            }
+            int modified;
+            in >> modified;
+            for (int i = 0; i < modified; i++) {
+                QVariant key = _keyReader->read(in);
+                QVariant value;
+                if (_streamer) {
+                    _valueReader->readDelta(in, value, _streamer->getValue(reference, key));
+                    _streamer->insert(object, key, value);
+                } else {
+                    _valueReader->readDelta(in, value, QVariant());
+                }
+            }
+            int removed;
+            in >> removed;
+            for (int i = 0; i < removed; i++) {
+                QVariant key = _keyReader->read(in);
+                if (_streamer) {
+                    _streamer->remove(object, key);
+                }
+            }
+            break;
+        }
+        default:
+            break;
+    }
+}
+
+bool TypeReader::matchesExactly(const TypeStreamer* streamer) const {
+    return _exactMatch && _streamer == streamer;
+}
+
+uint qHash(const TypeReader& typeReader, uint seed) {
+    return qHash(typeReader.getTypeName(), seed);
+}
+
+FieldReader::FieldReader(const TypeReader& reader, int index) :
+    _reader(reader),
+    _index(index) {
+}
+
+void FieldReader::read(Bitstream& in, const TypeStreamer* streamer, QVariant& object) const {
+    QVariant value = _reader.read(in);
+    if (_index != -1 && streamer) {
+        streamer->setField(object, _index, value);
+    }    
+}
+
+void FieldReader::readDelta(Bitstream& in, const TypeStreamer* streamer, QVariant& object, const QVariant& reference) const {
+    QVariant value;
+    if (_index != -1 && streamer) {
+        _reader.readDelta(in, value, streamer->getField(reference, _index));
+        streamer->setField(object, _index, value);
+    } else {
+        _reader.readDelta(in, value, QVariant());
+    }
+}
+
+ObjectReader::ObjectReader(const QByteArray& className, const QMetaObject* metaObject,
+        const QVector<PropertyReader>& properties) :
+    _className(className),
+    _metaObject(metaObject),
+    _properties(properties) {
+}
+
+QObject* ObjectReader::read(Bitstream& in, QObject* object) const {
+    if (!object && _metaObject) {
+        object = _metaObject->newInstance();
+    }
+    foreach (const PropertyReader& property, _properties) {
+        property.read(in, object);
+    }
+    return object;
+}
+
+QObject* ObjectReader::readDelta(Bitstream& in, const QObject* reference, QObject* object) const {
+    if (!object && _metaObject) {
+        object = _metaObject->newInstance();
+    }
+    foreach (const PropertyReader& property, _properties) {
+        property.readDelta(in, object, reference);
+    }
+    return object;
+}
+
+uint qHash(const ObjectReader& objectReader, uint seed) {
+    return qHash(objectReader.getClassName(), seed);
+}
+
+PropertyReader::PropertyReader(const TypeReader& reader, const QMetaProperty& property) :
+    _reader(reader),
+    _property(property) {
+}
+
+void PropertyReader::read(Bitstream& in, QObject* object) const {
+    QVariant value = _reader.read(in);
+    if (_property.isValid() && object) {
+        _property.write(object, value);
+    }
+}
+
+void PropertyReader::readDelta(Bitstream& in, QObject* object, const QObject* reference) const {
+    QVariant value;
+    _reader.readDelta(in, value, (_property.isValid() && reference) ? _property.read(reference) : QVariant());
+    if (_property.isValid() && object) {
+        _property.write(object, value);
+    }
+}
+
+MetaField::MetaField(const QByteArray& name, const TypeStreamer* streamer) :
+    _name(name),
+    _streamer(streamer) {
+}
+
+TypeStreamer::~TypeStreamer() {
+}
+
+const QVector<MetaField>& TypeStreamer::getMetaFields() const {
+    static QVector<MetaField> emptyMetaFields;
+    return emptyMetaFields;
+}
+
+int TypeStreamer::getFieldIndex(const QByteArray& name) const {
+    return -1;
+}
+
+void TypeStreamer::setField(QVariant& object, int index, const QVariant& value) const {
+    // nothing by default
+}
+
+QVariant TypeStreamer::getField(const QVariant& object, int index) const {
+    return QVariant();
+}
+
+TypeReader::Type TypeStreamer::getReaderType() const {
+    return TypeReader::SIMPLE_TYPE;
+}
+
+const TypeStreamer* TypeStreamer::getKeyStreamer() const {
+    return NULL;
+}
+
+const TypeStreamer* TypeStreamer::getValueStreamer() const {
+    return NULL;
+}
+
+void TypeStreamer::insert(QVariant& object, const QVariant& element) const {
+    // nothing by default
+}
+
+void TypeStreamer::insert(QVariant& object, const QVariant& key, const QVariant& value) const {
+    // nothing by default
+}
+
+bool TypeStreamer::remove(QVariant& object, const QVariant& key) const {
+    return false;
+}
+
+QVariant TypeStreamer::getValue(const QVariant& object, const QVariant& key) const {
+    return QVariant();
+}
+
+void TypeStreamer::prune(QVariant& object, int size) const {
+    // nothing by default
+}
+
+QVariant TypeStreamer::getValue(const QVariant& object, int index) const {
+    return QVariant();
+}
+
+void TypeStreamer::setValue(QVariant& object, int index, const QVariant& value) const {
+    // nothing by default
+}

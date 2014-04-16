@@ -1,9 +1,12 @@
 //
 //  AvatarData.cpp
-//  hifi
+//  libraries/avatars/src
 //
 //  Created by Stephen Birarda on 4/9/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <cstdio>
@@ -32,6 +35,7 @@ using namespace std;
 QNetworkAccessManager* AvatarData::networkAccessManager = NULL;
 
 AvatarData::AvatarData() :
+    _sessionUUID(),
     _handPosition(0,0,0),
     _bodyYaw(-90.f),
     _bodyPitch(0.0f),
@@ -40,6 +44,7 @@ AvatarData::AvatarData() :
     _handState(0),
     _keyState(NO_KEY_DOWN),
     _isChatCirclingEnabled(false),
+    _hasNewJointRotations(true),
     _headData(NULL),
     _handData(NULL), 
     _displayNameBoundingRect(), 
@@ -93,9 +98,9 @@ QByteArray AvatarData::toByteArray() {
     destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _targetScale);
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedYaw());
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedPitch());
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedRoll());
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getFinalYaw());
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getFinalPitch());
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getFinalRoll());
     
     // Head lean X,Z (head lateral and fwd/back motion relative to torso)
     memcpy(destinationBuffer, &_headData->_leanSideways, sizeof(_headData->_leanSideways));
@@ -288,9 +293,9 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
             }
             return maxAvailableSize;
         }
-        _headData->setYaw(headYaw);
-        _headData->setPitch(headPitch);
-        _headData->setRoll(headRoll);
+        _headData->setBaseYaw(headYaw);
+        _headData->setBasePitch(headPitch);
+        _headData->setBaseRoll(headRoll);
     } // 6 bytes
         
     // Head lean (relative to pelvis)
@@ -483,6 +488,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
             }
         }
     } // numJoints * 8 bytes
+    _hasNewJointRotations = true;
     
     return sourceBuffer - startPosition;
 }
@@ -637,6 +643,8 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _skeletonModelURL = skeletonModelURL.isEmpty() ? DEFAULT_BODY_MODEL_URL : skeletonModelURL;
     
     qDebug() << "Changing skeleton model for avatar to" << _skeletonModelURL.toString();
+    
+    updateJointMappings();
 }
 
 void AvatarData::setDisplayName(const QString& displayName) {
@@ -671,6 +679,40 @@ void AvatarData::setBillboardFromURL(const QString &billboardURL) {
 void AvatarData::setBillboardFromNetworkReply() {
     QNetworkReply* networkReply = reinterpret_cast<QNetworkReply*>(sender());
     setBillboard(networkReply->readAll());
+    networkReply->deleteLater();
+}
+
+void AvatarData::setJointMappingsFromNetworkReply() {
+    QNetworkReply* networkReply = static_cast<QNetworkReply*>(sender());
+    
+    QByteArray line;
+    while (!(line = networkReply->readLine()).isEmpty()) {
+        if (!(line = line.trimmed()).startsWith("jointIndex")) {
+            continue;
+        }
+        int jointNameIndex = line.indexOf('=') + 1;
+        if (jointNameIndex == 0) {
+            continue;
+        }
+        int secondSeparatorIndex = line.indexOf('=', jointNameIndex);
+        if (secondSeparatorIndex == -1) {
+            continue;
+        }
+        QString jointName = line.mid(jointNameIndex, secondSeparatorIndex - jointNameIndex).trimmed();
+        bool ok;
+        int jointIndex = line.mid(secondSeparatorIndex + 1).trimmed().toInt(&ok);
+        if (ok) {
+            while (_jointNames.size() < jointIndex + 1) {
+                _jointNames.append(QString());
+            }
+            _jointNames[jointIndex] = jointName;
+        }
+    }
+    for (int i = 0; i < _jointNames.size(); i++) {
+        _jointIndices.insert(_jointNames.at(i), i + 1);
+    }
+    
+    networkReply->deleteLater();
 }
 
 void AvatarData::setClampedTargetScale(float targetScale) {
@@ -701,5 +743,15 @@ void AvatarData::sendBillboardPacket() {
         billboardPacket.append(_billboard);
         
         NodeList::getInstance()->broadcastToNodes(billboardPacket, NodeSet() << NodeType::AvatarMixer);
+    }
+}
+
+void AvatarData::updateJointMappings() {
+    _jointIndices.clear();
+    _jointNames.clear();
+    
+    if (networkAccessManager && _skeletonModelURL.fileName().toLower().endsWith(".fst")) {
+        QNetworkReply* networkReply = networkAccessManager->get(QNetworkRequest(_skeletonModelURL));
+        connect(networkReply, SIGNAL(finished()), this, SLOT(setJointMappingsFromNetworkReply()));
     }
 }

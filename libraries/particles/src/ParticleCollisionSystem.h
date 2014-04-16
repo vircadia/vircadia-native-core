@@ -1,14 +1,16 @@
 //
 //  ParticleCollisionSystem.h
-//  hifi
+//  libraries/particles/src
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__ParticleCollisionSystem__
-#define __hifi__ParticleCollisionSystem__
+#ifndef hifi_ParticleCollisionSystem_h
+#define hifi_ParticleCollisionSystem_h
 
 #include <glm/glm.hpp>
 #include <stdint.h>
@@ -53,13 +55,13 @@ public:
     void updateCollisionSound(Particle* particle, const glm::vec3 &penetration, float frequency);
 
 signals:
-    void particleCollisionWithVoxel(const ParticleID& particleID, const VoxelDetail& voxel, const glm::vec3& penetration);
-    void particleCollisionWithParticle(const ParticleID& idA, const ParticleID& idB, const glm::vec3& penetration);
+    void particleCollisionWithVoxel(const ParticleID& particleID, const VoxelDetail& voxel, const CollisionInfo& penetration);
+    void particleCollisionWithParticle(const ParticleID& idA, const ParticleID& idB, const CollisionInfo& penetration);
 
 private:
     static bool updateOperation(OctreeElement* element, void* extraData);
-    void emitGlobalParticleCollisionWithVoxel(Particle* particle, VoxelDetail* voxelDetails, const glm::vec3& penetration);
-    void emitGlobalParticleCollisionWithParticle(Particle* particleA, Particle* particleB, const glm::vec3& penetration);
+    void emitGlobalParticleCollisionWithVoxel(Particle* particle, VoxelDetail* voxelDetails, const CollisionInfo& penetration);
+    void emitGlobalParticleCollisionWithParticle(Particle* particleA, Particle* particleB, const CollisionInfo& penetration);
 
     ParticleEditPacketSender* _packetSender;
     ParticleTree* _particles;
@@ -69,4 +71,4 @@ private:
     CollisionList _collisions;
 };
 
-#endif /* defined(__hifi__ParticleCollisionSystem__) */
+#endif // hifi_ParticleCollisionSystem_h

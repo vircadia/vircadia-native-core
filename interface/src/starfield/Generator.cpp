@@ -1,13 +1,15 @@
 //
-// starfield/Generator.cpp
-// interface
+//  Generator.cpp
+//  interface/src/starfield
 //
-// Created by Chris Barnard on 10/13/13.
-// Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Created by Chris Barnard on 10/13/13.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #ifdef _WIN32
-#define WANT_TIMEVAL
 #include <Systime.h>
 #endif
 

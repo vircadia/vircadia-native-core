@@ -1,9 +1,12 @@
 //
 //  paintGun.js
-//  hifi
+//  examples
 //
 //  Created by Brad Hefta-Gaub on 12/31/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 // initialize our triggers
@@ -62,9 +65,10 @@ function checkController(deltaTime) {
 
                 // This is the script for the particles that this gun shoots.
                 var script = 
-                         " function collisionWithVoxel(voxel, penetration) { " +
+                         " function collisionWithVoxel(voxel, collision) { " +
                          "   print('collisionWithVoxel(voxel)... '); " +
-                         "   Vec3.print('penetration=', penetration); " +
+                         "   Vec3.print('penetration=', collision.penetration); " +
+                         "   Vec3.print('contactPoint=', collision.contactPoint); " +
                          "   print('myID=' + Particle.getID() + '\\n'); " +
                          "   var voxelColor = { red: voxel.red, green: voxel.green, blue: voxel.blue };" +
                          "   var voxelAt = { x: voxel.x, y: voxel.y, z: voxel.z };" +

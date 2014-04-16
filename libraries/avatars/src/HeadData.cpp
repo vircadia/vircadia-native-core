@@ -1,9 +1,12 @@
 //
 //  HeadData.cpp
-//  hifi
+//  libraries/avatars/src
 //
 //  Created by Stephen Birarda on 5/20/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <glm/gtx/quaternion.hpp>
@@ -14,9 +17,9 @@
 #include "HeadData.h"
 
 HeadData::HeadData(AvatarData* owningAvatar) :
-    _yaw(0.0f),
-    _pitch(0.0f),
-    _roll(0.0f),
+    _baseYaw(0.0f),
+    _basePitch(0.0f),
+    _baseRoll(0.0f),
     _leanSideways(0.0f),
     _leanForward(0.0f),
     _lookAtPosition(0.0f, 0.0f, 0.0f),
@@ -32,7 +35,7 @@ HeadData::HeadData(AvatarData* owningAvatar) :
 }
 
 glm::quat HeadData::getOrientation() const {
-    return _owningAvatar->getOrientation() * glm::quat(glm::radians(glm::vec3(_pitch, _yaw, _roll)));
+    return _owningAvatar->getOrientation() * glm::quat(glm::radians(glm::vec3(_basePitch, _baseYaw, _baseRoll)));
 }
 
 void HeadData::setOrientation(const glm::quat& orientation) {
@@ -44,27 +47,20 @@ void HeadData::setOrientation(const glm::quat& orientation) {
     
     // the rest goes to the head
     glm::vec3 eulers = glm::degrees(safeEulerAngles(glm::inverse(bodyOrientation) * orientation));
-    _pitch = eulers.x;
-    _yaw = eulers.y;
-    _roll = eulers.z;
+    _basePitch = eulers.x;
+    _baseYaw = eulers.y;
+    _baseRoll = eulers.z;
 }
 
 void HeadData::addYaw(float yaw) {
-    setYaw(_yaw + yaw);
+    setBaseYaw(_baseYaw + yaw);
 }
 
 void HeadData::addPitch(float pitch) {
-    setPitch(_pitch + pitch);
+    setBasePitch(_basePitch + pitch);
 }
 
 void HeadData::addRoll(float roll) {
-    setRoll(_roll + roll);
-}
-
-
-void HeadData::addLean(float sideways, float forwards) {
-    // Add lean as impulse
-    _leanSideways += sideways;
-    _leanForward  += forwards;
+    setBaseRoll(_baseRoll + roll);
 }
 

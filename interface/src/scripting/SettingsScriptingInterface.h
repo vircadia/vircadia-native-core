@@ -1,13 +1,16 @@
 //
 //  SettingsScriptingInterface.h
-//  hifi
+//  interface/src/scripting
 //
-//  Created by Brad Hefta-Gaub on 3/22/14
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Created by Brad Hefta-Gaub on 3/22/14.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__SettingsScriptingInterface__
-#define __hifi__SettingsScriptingInterface__
+#ifndef hifi_SettingsScriptingInterface_h
+#define hifi_SettingsScriptingInterface_h
 
 #include <QDebug>
 #include <QObject>
@@ -27,4 +30,4 @@ public slots:
     void setValue(const QString& setting, const QVariant& value);
 };
 
-#endif /* defined(__hifi__SettingsScriptingInterface__) */
+#endif // hifi_SettingsScriptingInterface_h

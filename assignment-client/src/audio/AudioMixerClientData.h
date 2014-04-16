@@ -1,13 +1,16 @@
 //
 //  AudioMixerClientData.h
-//  hifi
+//  assignment-client/src/audio
 //
 //  Created by Stephen Birarda on 10/18/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AudioMixerClientData__
-#define __hifi__AudioMixerClientData__
+#ifndef hifi_AudioMixerClientData_h
+#define hifi_AudioMixerClientData_h
 
 #include <vector>
 
@@ -31,4 +34,4 @@ private:
     std::vector<PositionalAudioRingBuffer*> _ringBuffers;
 };
 
-#endif /* defined(__hifi__AudioMixerClientData__) */
+#endif // hifi_AudioMixerClientData_h

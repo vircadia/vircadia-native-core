@@ -1,10 +1,12 @@
 //
 //  ParticleCollisionSystem.cpp
-//  hifi
+//  libraries/particles/src
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <algorithm>
@@ -72,17 +74,17 @@ void ParticleCollisionSystem::checkParticle(Particle* particle) {
 }
 
 void ParticleCollisionSystem::emitGlobalParticleCollisionWithVoxel(Particle* particle, 
-                                            VoxelDetail* voxelDetails, const glm::vec3& penetration) {
+                                            VoxelDetail* voxelDetails, const CollisionInfo& collision) {
     ParticleID particleID = particle->getParticleID();
-    emit particleCollisionWithVoxel(particleID, *voxelDetails, penetration);
+    emit particleCollisionWithVoxel(particleID, *voxelDetails, collision);
 }
 
 void ParticleCollisionSystem::emitGlobalParticleCollisionWithParticle(Particle* particleA, 
-                                            Particle* particleB, const glm::vec3& penetration) {
+                                            Particle* particleB, const CollisionInfo& collision) {
                                             
     ParticleID idA = particleA->getParticleID();
     ParticleID idB = particleB->getParticleID();
-    emit particleCollisionWithParticle(idA, idB, penetration);
+    emit particleCollisionWithParticle(idA, idB, collision);
 }
 
 void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
@@ -100,11 +102,17 @@ void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
         // let the particles run their collision scripts if they have them
         particle->collisionWithVoxel(voxelDetails, collisionInfo._penetration);
 
-        // let the global script run their collision scripts for particles if they have them
-        emitGlobalParticleCollisionWithVoxel(particle, voxelDetails, collisionInfo._penetration);
-
+        // findSpherePenetration() only computes the penetration but we also want some other collision info
+        // so we compute it ourselves here.  Note that we must multiply scale by TREE_SCALE when feeding 
+        // the results to systems outside of this octree reference frame.
         updateCollisionSound(particle, collisionInfo._penetration, COLLISION_FREQUENCY);
+        collisionInfo._contactPoint = (float)TREE_SCALE * (particle->getPosition() + particle->getRadius() * glm::normalize(collisionInfo._penetration));
+        // let the global script run their collision scripts for particles if they have them
+        emitGlobalParticleCollisionWithVoxel(particle, voxelDetails, collisionInfo);
+
+        // we must scale back down to the octree reference frame before updating the particle properties
         collisionInfo._penetration /= (float)(TREE_SCALE);
+        collisionInfo._contactPoint /= (float)(TREE_SCALE);
         particle->applyHardCollision(collisionInfo);
         queueParticlePropertiesUpdate(particle);
 
@@ -121,8 +129,7 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
     glm::vec3 penetration;
     Particle* particleB;
     if (_particles->findSpherePenetration(center, radius, penetration, (void**)&particleB, Octree::NoLock)) {
-        // NOTE: 'penetration' is the depth that 'particleA' overlaps 'particleB'.
-        // That is, it points from A into B.
+        // NOTE: 'penetration' is the depth that 'particleA' overlaps 'particleB'.  It points from A into B.
 
         // Even if the particles overlap... when the particles are already moving appart
         // we don't want to count this as a collision.
@@ -130,7 +137,12 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
         if (glm::dot(relativeVelocity, penetration) > 0.0f) {
             particleA->collisionWithParticle(particleB, penetration);
             particleB->collisionWithParticle(particleA, penetration * -1.0f); // the penetration is reversed
-            emitGlobalParticleCollisionWithParticle(particleA, particleB, penetration);
+
+            CollisionInfo collision;
+            collision._penetration = penetration;
+            // for now the contactPoint is the average between the the two paricle centers
+            collision._contactPoint = (0.5f * (float)TREE_SCALE) * (particleA->getPosition() + particleB->getPosition());
+            emitGlobalParticleCollisionWithParticle(particleA, particleB, collision);
 
             glm::vec3 axis = glm::normalize(penetration);
             glm::vec3 axialVelocity = glm::dot(relativeVelocity, axis) * axis;
@@ -142,25 +154,25 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
             float massB = (particleB->getInHand()) ? MAX_MASS : particleB->getMass();
             float totalMass = massA + massB;
 
-            // handle A particle
+            // handle particle A
             particleA->setVelocity(particleA->getVelocity() - axialVelocity * (2.0f * massB / totalMass));
             particleA->setPosition(particleA->getPosition() - 0.5f * penetration);
             ParticleProperties propertiesA;
-            ParticleID particleAid(particleA->getID());
+            ParticleID idA(particleA->getID());
             propertiesA.copyFromParticle(*particleA);
             propertiesA.setVelocity(particleA->getVelocity() * (float)TREE_SCALE);
             propertiesA.setPosition(particleA->getPosition() * (float)TREE_SCALE);
-            _packetSender->queueParticleEditMessage(PacketTypeParticleAddOrEdit, particleAid, propertiesA);
+            _packetSender->queueParticleEditMessage(PacketTypeParticleAddOrEdit, idA, propertiesA);
 
-            // handle B particle
+            // handle particle B
             particleB->setVelocity(particleB->getVelocity() + axialVelocity * (2.0f * massA / totalMass));
             particleA->setPosition(particleB->getPosition() + 0.5f * penetration);
             ParticleProperties propertiesB;
-            ParticleID particleBid(particleB->getID());
+            ParticleID idB(particleB->getID());
             propertiesB.copyFromParticle(*particleB);
             propertiesB.setVelocity(particleB->getVelocity() * (float)TREE_SCALE);
             propertiesB.setPosition(particleB->getPosition() * (float)TREE_SCALE);
-            _packetSender->queueParticleEditMessage(PacketTypeParticleAddOrEdit, particleBid, propertiesB);
+            _packetSender->queueParticleEditMessage(PacketTypeParticleAddOrEdit, idB, propertiesB);
 
             _packetSender->releaseQueuedMessages();
 

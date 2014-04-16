@@ -1,13 +1,16 @@
 //
 //  MyAvatar.h
-//  interface
+//  interface/src/avatar
 //
 //  Created by Mark Peng on 8/16/13.
-//  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
+//  Copyright 2012 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__myavatar__
-#define __interface__myavatar__
+#ifndef hifi_MyAvatar_h
+#define hifi_MyAvatar_h
 
 #include <QSettings>
 
@@ -34,9 +37,11 @@ public:
     void update(float deltaTime);
     void simulate(float deltaTime);
     void updateFromGyros(float deltaTime);
+    void moveWithLean();
 
     void render(const glm::vec3& cameraPosition, RenderMode renderMode = NORMAL_RENDER_MODE);
     void renderBody(RenderMode renderMode);
+    bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
     void renderDebugBodyPoints();
     void renderHeadMouse() const;
 
@@ -49,12 +54,10 @@ public:
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; }
 
     // getters
-    float getSpeed() const { return _speed; }
     AvatarMode getMode() const { return _mode; }
     float getLeanScale() const { return _leanScale; }
     float getElapsedTimeStopped() const { return _elapsedTimeStopped; }
     float getElapsedTimeMoving() const { return _elapsedTimeMoving; }
-    float getAbsoluteHeadYaw() const;   // degrees
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     glm::vec3 getGravity() const { return _gravity; }
@@ -87,6 +90,9 @@ public:
     virtual void clearJointData(int index);
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+
+    void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration);
+
 public slots:
     void goHome();
     void increaseSize();
@@ -100,6 +106,9 @@ public slots:
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
     glm::vec3 getThrust() { return _thrust; };
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
+
+signals:
+    void transformChanged();
 
 private:
     bool _mousePressed;
@@ -117,12 +126,13 @@ private:
     bool _isThrustOn;
     float _thrustMultiplier;
     glm::vec3 _moveTarget;
+    glm::vec3 _lastBodyPenetration;
     int _moveTargetStepCounter;
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
     bool _shouldRender;
-
     bool _billboardValid;
+    float _oculusYawOffset;
 
 	// private methods
     void updateThrust(float deltaTime);
@@ -136,4 +146,4 @@ private:
     void maybeUpdateBillboard();
 };
 
-#endif
+#endif // hifi_MyAvatar_h

@@ -1,13 +1,16 @@
 //
 //  LocalVoxels.h
-//  hifi
+//  libraries/script-engine/src
 //
 //  Created by Clément Brisset on 2/24/14.
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__LocalVoxels__
-#define __hifi__LocalVoxels__
+#ifndef hifi_LocalVoxels_h
+#define hifi_LocalVoxels_h
 
 #include <QObject>
 
@@ -87,4 +90,4 @@ private:
 
 
 
-#endif /* defined(__hifi__LocalVoxels__) */
+#endif // hifi_LocalVoxels_h

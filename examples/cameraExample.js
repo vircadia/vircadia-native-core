@@ -1,12 +1,14 @@
 //
 //  cameraExample.js
-//  hifi
+//  examples
 //
 //  Created by Brad Hefta-Gaub on 2/6/14.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  This is an example script that demonstrates use of the Camera class
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 var damping = 0.9;

@@ -1,9 +1,12 @@
 //
 //  AnimationServer.cpp
-//  hifi
+//  animation-server/src
 //
 //  Created by Stephen Birarda on 12/5/2013.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <algorithm>
@@ -723,12 +726,12 @@ AnimationServer::AnimationServer(int &argc, char **argv) :
     ::wantLocalDomain = cmdOptionExists(argc, (const char**) argv,local);
     if (::wantLocalDomain) {
         printf("Local Domain MODE!\n");
-        nodeList->getDomainInfo().setIPToLocalhost();
+        nodeList->getDomainHandler().setIPToLocalhost();
     }
     
     const char* domainHostname = getCmdOption(argc, (const char**) argv, "--domain");
     if (domainHostname) {
-        NodeList::getInstance()->getDomainInfo().setHostname(domainHostname);
+        NodeList::getInstance()->getDomainHandler().setHostname(domainHostname);
     }
     
     const char* packetsPerSecondCommand = getCmdOption(argc, (const char**) argv, "--pps");
@@ -797,11 +800,11 @@ AnimationServer::AnimationServer(int &argc, char **argv) :
     
     QTimer* domainServerTimer = new QTimer(this);
     connect(domainServerTimer, SIGNAL(timeout()), nodeList, SLOT(sendDomainServerCheckIn()));
-    domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_USECS / 1000);
+    domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
     
     QTimer* silentNodeTimer = new QTimer(this);
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
-    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
+    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
     
     connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
 }

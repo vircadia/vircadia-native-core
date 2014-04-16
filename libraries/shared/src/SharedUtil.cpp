@@ -1,9 +1,12 @@
 //
 //  SharedUtil.cpp
-//  hifi
+//  libraries/shared/src
 //
 //  Created by Stephen Birarda on 2/22/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <cstdlib>
@@ -12,10 +15,6 @@
 #include <cctype>
 #include <time.h>
 
-#ifdef _WIN32
-#include "Syssocket.h"
-#endif
-
 #ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
 #endif
@@ -23,7 +22,6 @@
 #include <QtCore/QDebug>
 
 #include "OctalCode.h"
-#include "PacketHeaders.h"
 #include "SharedUtil.h"
 
 quint64 usecTimestamp(const timeval *time) {
@@ -41,7 +39,7 @@ quint64 usecTimestampNow() {
     return (now.tv_sec * 1000000 + now.tv_usec) + ::usecTimestampNowAdjust;
 }
 
-float randFloat () {
+float randFloat() {
     return (rand() % 10000)/10000.f;
 }
 

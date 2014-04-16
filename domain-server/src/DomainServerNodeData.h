@@ -1,17 +1,21 @@
 //
 //  DomainServerNodeData.h
-//  hifi
+//  domain-server/src
 //
 //  Created by Stephen Birarda on 2/6/2014.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__DomainServerNodeData__
-#define __hifi__DomainServerNodeData__
+#ifndef hifi_DomainServerNodeData_h
+#define hifi_DomainServerNodeData_h
 
 #include <QtCore/QHash>
 #include <QtCore/QUuid>
 
+#include <HifiSockAddr.h>
 #include <NodeData.h>
 
 class DomainServerNodeData : public NodeData {
@@ -26,6 +30,9 @@ public:
     void setStaticAssignmentUUID(const QUuid& staticAssignmentUUID) { _staticAssignmentUUID = staticAssignmentUUID; }
     const QUuid& getStaticAssignmentUUID() const { return _staticAssignmentUUID; }
     
+    void setSendingSockAddr(const HifiSockAddr& sendingSockAddr) { _sendingSockAddr = sendingSockAddr; }
+    const HifiSockAddr& getSendingSockAddr() { return _sendingSockAddr; }
+    
     QHash<QUuid, QUuid>& getSessionSecretHash() { return _sessionSecretHash; }
 private:
     QJsonObject mergeJSONStatsFromNewObject(const QJsonObject& newObject, QJsonObject destinationObject);
@@ -33,6 +40,7 @@ private:
     QHash<QUuid, QUuid> _sessionSecretHash;
     QUuid _staticAssignmentUUID;
     QJsonObject _statsJSONObject;
+    HifiSockAddr _sendingSockAddr;
 };
 
-#endif /* defined(__hifi__DomainServerNodeData__) */
+#endif // hifi_DomainServerNodeData_h

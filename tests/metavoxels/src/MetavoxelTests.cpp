@@ -1,9 +1,12 @@
 //
 //  MetavoxelTests.cpp
-//  metavoxel-tests
+//  tests/metavoxels/src
 //
 //  Created by Andrzej Kapolka on 2/7/14.
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <stdlib.h>
@@ -34,9 +37,103 @@ static int streamedBytesReceived = 0;
 static int sharedObjectsCreated = 0;
 static int sharedObjectsDestroyed = 0;
 
+static QByteArray createRandomBytes(int minimumSize, int maximumSize) {
+    QByteArray bytes(randIntInRange(minimumSize, maximumSize), 0);
+    for (int i = 0; i < bytes.size(); i++) {
+        bytes[i] = rand();
+    }
+    return bytes;
+}
+
+static QByteArray createRandomBytes() {
+    const int MIN_BYTES = 4;
+    const int MAX_BYTES = 16;
+    return createRandomBytes(MIN_BYTES, MAX_BYTES);
+}
+
+static TestMessageC createRandomMessageC() {
+    TestMessageC message;
+    message.foo = randomBoolean();
+    message.bar = rand();
+    message.baz = randFloat();
+    message.bong.foo = createRandomBytes();
+    return message;
+}
+
+static bool testSerialization(Bitstream::MetadataType metadataType) {
+    QByteArray array;
+    QDataStream outStream(&array, QIODevice::WriteOnly);
+    Bitstream out(outStream, metadataType);
+    SharedObjectPointer testObjectWrittenA = new TestSharedObjectA(randFloat());
+    out << testObjectWrittenA;
+    SharedObjectPointer testObjectWrittenB = new TestSharedObjectB(randFloat(), createRandomBytes());
+    out << testObjectWrittenB;
+    TestMessageC messageWritten = createRandomMessageC();
+    out << QVariant::fromValue(messageWritten);
+    QByteArray endWritten = "end";
+    out << endWritten;
+    out.flush();
+    
+    QDataStream inStream(array);
+    Bitstream in(inStream, metadataType);
+    in.addMetaObjectSubstitution("TestSharedObjectA", &TestSharedObjectB::staticMetaObject);
+    in.addMetaObjectSubstitution("TestSharedObjectB", &TestSharedObjectA::staticMetaObject);
+    in.addTypeSubstitution("TestMessageC", TestMessageA::Type);
+    SharedObjectPointer testObjectReadA;
+    in >> testObjectReadA;
+    
+    if (!testObjectReadA || testObjectReadA->metaObject() != &TestSharedObjectB::staticMetaObject) {
+        qDebug() << "Wrong class for A" << testObjectReadA << metadataType;
+        return true;
+    }
+    if (metadataType == Bitstream::FULL_METADATA && static_cast<TestSharedObjectA*>(testObjectWrittenA.data())->getFoo() !=
+            static_cast<TestSharedObjectB*>(testObjectReadA.data())->getFoo()) {
+        QDebug debug = qDebug() << "Failed to transfer shared field from A to B";
+        testObjectWrittenA->dump(debug);
+        testObjectReadA->dump(debug); 
+        return true;
+    }
+    
+    SharedObjectPointer testObjectReadB;
+    in >> testObjectReadB;
+    if (!testObjectReadB || testObjectReadB->metaObject() != &TestSharedObjectA::staticMetaObject) {
+        qDebug() << "Wrong class for B" << testObjectReadB << metadataType;
+        return true;
+    }
+    if (metadataType == Bitstream::FULL_METADATA && static_cast<TestSharedObjectB*>(testObjectWrittenB.data())->getFoo() !=
+            static_cast<TestSharedObjectA*>(testObjectReadB.data())->getFoo()) {
+        QDebug debug = qDebug() << "Failed to transfer shared field from B to A";
+        testObjectWrittenB->dump(debug);
+        testObjectReadB->dump(debug); 
+        return true;
+    }
+    
+    QVariant messageRead;
+    in >> messageRead;
+    if (!messageRead.isValid() || messageRead.userType() != TestMessageA::Type) {
+        qDebug() << "Wrong type for message" << messageRead;
+        return true;
+    }
+    if (metadataType == Bitstream::FULL_METADATA && messageWritten.foo != messageRead.value<TestMessageA>().foo) {
+        QDebug debug = qDebug() << "Failed to transfer shared field between messages" <<
+            messageWritten.foo << messageRead.value<TestMessageA>().foo;
+        return true;
+    }
+    
+    QByteArray endRead;
+    in >> endRead;
+    if (endWritten != endRead) {
+        qDebug() << "End tag mismatch." << endRead;
+        return true;
+    }
+    
+    return false;
+}
+
 bool MetavoxelTests::run() {
     
-    qDebug() << "Running metavoxel tests...";
+    qDebug() << "Running transmission tests...";
+    qDebug();
     
     // seed the random number generator so that our tests are reproducible
     srand(0xBAAAAABE);
@@ -62,24 +159,18 @@ bool MetavoxelTests::run() {
     qDebug() << "Sent" << streamedBytesSent << "streamed bytes, received" << streamedBytesReceived;
     qDebug() << "Sent" << datagramsSent << "datagrams, received" << datagramsReceived;
     qDebug() << "Created" << sharedObjectsCreated << "shared objects, destroyed" << sharedObjectsDestroyed;
+    qDebug();
+    
+    qDebug() << "Running serialization tests...";
+    qDebug();
+    
+    if (testSerialization(Bitstream::HASH_METADATA) || testSerialization(Bitstream::FULL_METADATA)) {
+        return true;
+    }
     
     qDebug() << "All tests passed!";
     
     return false;
-}
-
-static QByteArray createRandomBytes(int minimumSize, int maximumSize) {
-    QByteArray bytes(randIntInRange(minimumSize, maximumSize), 0);
-    for (int i = 0; i < bytes.size(); i++) {
-        bytes[i] = rand();
-    }
-    return bytes;
-}
-
-static QByteArray createRandomBytes() {
-    const int MIN_BYTES = 4;
-    const int MAX_BYTES = 16;
-    return createRandomBytes(MIN_BYTES, MAX_BYTES);
 }
 
 static SharedObjectPointer createRandomSharedObject() {
@@ -132,12 +223,7 @@ static QVariant createRandomMessage() {
         }
         case 2:
         default: {
-            TestMessageC message;
-            message.foo = randomBoolean();
-            message.bar = rand();
-            message.baz = randFloat();
-            message.bong.foo = createRandomBytes();
-            return QVariant::fromValue(message);
+            return QVariant::fromValue(createRandomMessageC());
         }
     }
 }
@@ -322,7 +408,9 @@ void TestSharedObjectA::setFoo(float foo) {
     }
 }
 
-TestSharedObjectB::TestSharedObjectB() {
+TestSharedObjectB::TestSharedObjectB(float foo, const QByteArray& bar) :
+        _foo(foo),
+        _bar(bar) {
     sharedObjectsCreated++;
 }
 

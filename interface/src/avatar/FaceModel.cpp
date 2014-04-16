@@ -1,9 +1,12 @@
 //
 //  FaceModel.cpp
-//  interface
+//  interface/src/avatar
 //
 //  Created by Andrzej Kapolka on 9/16/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <glm/gtx/transform.hpp>
@@ -18,11 +21,8 @@ FaceModel::FaceModel(Head* owningHead) :
 {
 }
 
-void FaceModel::simulate(float deltaTime) {
-    QVector<JointState> newJointStates = updateGeometry();
-    if (!isActive()) {
-        return;
-    }
+void FaceModel::simulate(float deltaTime, bool fullUpdate) {
+    updateGeometry();
     Avatar* owningAvatar = static_cast<Avatar*>(_owningHead->_owningAvatar);
     glm::vec3 neckPosition;
     if (!owningAvatar->getSkeletonModel().getNeckPosition(neckPosition)) {
@@ -37,12 +37,13 @@ void FaceModel::simulate(float deltaTime) {
     const float MODEL_SCALE = 0.0006f;
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningHead->getScale() * MODEL_SCALE);
     
-    setOffset(-_geometry->getFBXGeometry().neckPivot);
-    
     setPupilDilation(_owningHead->getPupilDilation());
     setBlendshapeCoefficients(_owningHead->getBlendshapeCoefficients());
     
-    Model::simulate(deltaTime, true, newJointStates);
+    if (isActive()) {
+        setOffset(-_geometry->getFBXGeometry().neckPivot);
+        Model::simulateInternal(deltaTime);
+    }
 }
 
 void FaceModel::maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
@@ -50,9 +51,9 @@ void FaceModel::maybeUpdateNeckRotation(const JointState& parentState, const FBX
     glm::mat3 axes = glm::mat3_cast(_rotation);
     glm::mat3 inverse = glm::mat3(glm::inverse(parentState.transform * glm::translate(state.translation) *
         joint.preTransform * glm::mat4_cast(joint.preRotation)));
-    state.rotation = glm::angleAxis(- RADIANS_PER_DEGREE * _owningHead->getTweakedRoll(), glm::normalize(inverse * axes[2])) 
-        * glm::angleAxis(RADIANS_PER_DEGREE * _owningHead->getTweakedYaw(), glm::normalize(inverse * axes[1])) 
-        * glm::angleAxis(- RADIANS_PER_DEGREE * _owningHead->getTweakedPitch(), glm::normalize(inverse * axes[0])) 
+    state.rotation = glm::angleAxis(- RADIANS_PER_DEGREE * _owningHead->getFinalRoll(), glm::normalize(inverse * axes[2])) 
+        * glm::angleAxis(RADIANS_PER_DEGREE * _owningHead->getFinalYaw(), glm::normalize(inverse * axes[1])) 
+        * glm::angleAxis(- RADIANS_PER_DEGREE * _owningHead->getFinalPitch(), glm::normalize(inverse * axes[0])) 
         * joint.rotation;
 }
 
@@ -60,7 +61,7 @@ void FaceModel::maybeUpdateEyeRotation(const JointState& parentState, const FBXJ
     // likewise with the eye joints
     glm::mat4 inverse = glm::inverse(parentState.transform * glm::translate(state.translation) *
         joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation));
-    glm::vec3 front = glm::vec3(inverse * glm::vec4(_owningHead->getTweakedOrientation() * IDENTITY_FRONT, 0.0f));
+    glm::vec3 front = glm::vec3(inverse * glm::vec4(_owningHead->getFinalOrientation() * IDENTITY_FRONT, 0.0f));
     glm::vec3 lookAt = glm::vec3(inverse * glm::vec4(_owningHead->getLookAtPosition() +
         _owningHead->getSaccade() - _translation, 1.0f));
     glm::quat between = rotationBetween(front, lookAt);

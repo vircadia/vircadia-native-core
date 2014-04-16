@@ -1,13 +1,16 @@
 //
 //  MetavoxelEditor.h
-//  interface
+//  interface/src/ui
 //
 //  Created by Andrzej Kapolka on 1/21/14.
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__MetavoxelEditor__
-#define __interface__MetavoxelEditor__
+#ifndef hifi_MetavoxelEditor_h
+#define hifi_MetavoxelEditor_h
 
 #include <QList>
 #include <QWidget>
@@ -157,7 +160,7 @@ public:
 
 protected:
 
-    virtual QVariant createEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) = 0;
+    virtual void applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) = 0;
 
 private slots:
     
@@ -174,7 +177,7 @@ public:
 
 protected:
 
-    virtual QVariant createEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner);
+    virtual void applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner);
 };
 
 /// Allows removing a spanner from the scene.
@@ -217,7 +220,7 @@ public:
 
 protected:
 
-    virtual QVariant createEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner);
+    virtual void applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner);
 };
 
-#endif /* defined(__interface__MetavoxelEditor__) */
+#endif // hifi_MetavoxelEditor_h

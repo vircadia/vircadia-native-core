@@ -1,15 +1,20 @@
 //
 //  ParticlesScriptingInterface.h
-//  hifi
+//  libraries/particles/src
 //
-//  Created by Brad Hefta-Gaub on 12/6/13
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Created by Brad Hefta-Gaub on 12/6/13.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__ParticlesScriptingInterface__
-#define __hifi__ParticlesScriptingInterface__
+#ifndef hifi_ParticlesScriptingInterface_h
+#define hifi_ParticlesScriptingInterface_h
 
 #include <QtCore/QObject>
+
+#include <CollisionInfo.h>
 
 #include <OctreeScriptingInterface.h>
 #include "ParticleEditPacketSender.h"
@@ -26,17 +31,6 @@ public:
 
     void setParticleTree(ParticleTree* particleTree) { _particleTree = particleTree; }
     ParticleTree* getParticleTree(ParticleTree*) { return _particleTree; }
-    
-private slots:
-    /// inbound slots for external collision systems
-    void forwardParticleCollisionWithVoxel(const ParticleID& particleID, 
-                            const VoxelDetail& voxel, const glm::vec3& penetration) {
-        emit particleCollisionWithVoxel(particleID, voxel, penetration);
-    }
-
-    void forwardParticleCollisionWithParticle(const ParticleID& idA, const ParticleID& idB, const glm::vec3& penetration) {
-        emit particleCollisionWithParticle(idA, idB, penetration);
-    }
     
 public slots:
     /// adds a particle with the specific properties
@@ -66,8 +60,8 @@ public slots:
     QVector<ParticleID> findParticles(const glm::vec3& center, float radius) const;
 
 signals:
-    void particleCollisionWithVoxel(const ParticleID& particleID, const VoxelDetail& voxel, const glm::vec3& penetration);
-    void particleCollisionWithParticle(const ParticleID& idA, const ParticleID& idB, const glm::vec3& penetration);
+    void particleCollisionWithVoxel(const ParticleID& particleID, const VoxelDetail& voxel, const CollisionInfo& collision);
+    void particleCollisionWithParticle(const ParticleID& idA, const ParticleID& idB, const CollisionInfo& collision);
 
 private:
     void queueParticleMessage(PacketType packetType, ParticleID particleID, const ParticleProperties& properties);
@@ -76,4 +70,4 @@ private:
     ParticleTree* _particleTree;
 };
 
-#endif /* defined(__hifi__ParticlesScriptingInterface__) */
+#endif // hifi_ParticlesScriptingInterface_h

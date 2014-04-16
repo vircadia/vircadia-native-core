@@ -1,10 +1,12 @@
 Dependencies
 ===
-* [cmake](http://www.cmake.org/cmake/resources/software.html) ~> 2.8.11
+* [cmake](http://www.cmake.org/cmake/resources/software.html) ~> 2.8.12.2
 * [Qt](http://qt-project.org/downloads) ~> 5.2.0
 * [zLib](http://www.zlib.net/) ~> 1.2.8
-* [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.0
+* [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.2
 * [qxmpp](https://code.google.com/p/qxmpp/) ~> 0.7.6
+* [GnuTLS](http://gnutls.org/download.html) ~> 3.2.12
+  * IMPORTANT: GnuTLS 3.2.12 is critical to avoid a security vulnerability.
 
 #####Linux only
 * [freeglut](http://freeglut.sourceforge.net/) ~> 2.8.0
@@ -50,12 +52,18 @@ Should you choose not to install Qt5 via a package manager that handles dependen
 
     libasound2 libxmu-dev libxi-dev freeglut3-dev libasound2-dev libjack-dev
 
+#####GnuTLS
+
+If `libgnutls28-dev` 3.2.12 or higher is available via your package manager, it would be easiest to grab it from there. At the time of this writing that is not the case for any version of Ubuntu, so it will need to be built from source.
+
+`gmplib` is a dependency for GnuTLS. On Ubuntu, we were unable to build `hogweed` (part of `libnettle`) with `gmpib` 6.x.x. If nettle is not built with `hogweed`, GnuTLS will fail to build. If you run into this problem, try version 4.2.1 of `gmplib`. 
+
 ####OS X
 #####Package Managers
 [Homebrew](http://brew.sh/) is an excellent package manager for OS X. It makes install of all hifi dependencies very simple.
 
     brew tap highfidelity/homebrew-formulas
-    brew install cmake glm zlib
+    brew install cmake glm zlib gnutls
     brew install highfidelity/formulas/qt5
     brew link qt5 --force
     brew install highfidelity/formulas/qxmpp
@@ -71,7 +79,7 @@ If Xcode is your editor of choice, you can ask CMake to generate Xcode project f
 
 After running cmake, you will have the make files or Xcode project file necessary to build all of the components. Open the hifi.xcodeproj file, choose ALL_BUILD from the Product > Scheme menu (or target drop down), and click Run.
 
-If the build completes successfully, you will have built targets for all components located in the `build/${target_name}/Debug directories`.
+If the build completes successfully, you will have built targets for all components located in the `build/${target_name}/Debug` directories.
 
 Windows
 ===
@@ -100,11 +108,12 @@ Once Qt is installed, you need to manually configure the following:
 NOTE: zLib should configure itself correctly on install. However, sometimes zLib doesn't properly detect system components and fails to configure itself correctly. When it fails, it will not correctly set the #if HAVE_UNISTD_H at line 287 of zconf.h to #if 0... if it fails, you're build will have errors in the voxels target. You can correct this by setting the #if to 0 instead of 1, since Windows does not have unistd.h.
 
 ####External Libraries
-We don't currently have a Windows installer, so before running Interface, you will need to ensure that all required resources are loadable. 
 
-CMake will need to know where the headers and libraries for required external dependencies are. If you installed ZLIB using the installer, the FindZLIB cmake module will be able to find it. This isn't the case for the others.
+CMake will need to know where the headers and libraries for required external dependencies are. 
 
-The recommended route for CMake to find external dependencies is to place all of the dependencies in one folder and set one ENV variable - HIFI_LIB_DIR. That ENV variable should point to a directory with the following structure:
+If you installed zLib using the installer, the Cmake find module for zLib should locate it on your system.
+
+The recommended route for CMake to find the other external dependencies is to place all of the dependencies in one folder and set one ENV variable - HIFI_LIB_DIR. That ENV variable should point to a directory with the following structure:
 
     root_lib_dir
         -> glm
@@ -121,15 +130,30 @@ The recommended route for CMake to find external dependencies is to place all of
         -> qxmpp
             -> include
             -> lib
-
-*NOTE: Be careful with glm. For the folder other libraries would normally call 'include', the folder containing the headers, glm opts to use 'glm'. You will have a glm folder nested inside the top-level glm folder.*
+        -> gnutls
+            -> bin
+            -> include
+            -> lib
 
 For many of the external libraries where precompiled binaries are readily available you should be able to simply copy the extracted folder that you get from the download links provided at the top of the guide. Otherwise you may need to build from source and install the built product to this directory. The `root_lib_dir` in the above example can be wherever you choose on your system - as long as the environment variable HIFI_LIB_DIR is set to it.
 
+*NOTE: Be careful with glm. For the folder other libraries would normally call 'include', the folder containing the headers, glm opts to use 'glm'. You will have a glm folder nested inside the top-level glm folder.*
+
 *NOTE: Qt does not support 64-bit builds on Windows 7, so you must use the 32-bit version of libraries for interface.exe to run. The 32-bit version of the static library is the one linked by our CMake find modules*
 
-#### DLLs
-As with the Qt libraries, you will need to make sure the directory containing dynamically-linked libraries is in your path. For example, for a dynamically linked build of freeglut, the directory to add to your path in which the DLL is found is `FREEGLUT_DIR/bin`. Where possible, you can use static builds of the external dependencies to avoid this requirement.
+##### DLLs
+As with the Qt libraries, you will need to make sure the directories containing dynamically-linked libraries is in your path. 
+
+For example, for a dynamically linked build of freeglut, the directory to add to your path in which the DLL is found is `FREEGLUT_DIR/bin`. Where possible, you can use static builds of the external dependencies to avoid this requirement.
+
+#####GnuTLS
+You can get a precompiled version of GnuTLS for Windows [here](http://gnutls.org/download.html).
+
+To use GnuTLS with Visual Studio, you will need to create `libgnutls-28.lib`, the import library for Visual Studio projects. this is done using the `lib` command in the `bin` folder of your GnuTLS download. Run the following in a Visual Studio Command Prompt (found in the tools menu of Visual Studio).
+
+    $GNUTLS_DIR\bin> lib /def:libgnutls-28.def 
+
+This will create `libgnutls-28.lib` in the `bin` folder. Copy that file to the `lib` sub-folder of your GnuTLS folder, and the Cmake FindGnuTLS module in this repo will find it during the Cmake run.
 
 ####Building in Visual Studio
 Follow the same build steps from the CMake section, but pass a different generator to CMake.

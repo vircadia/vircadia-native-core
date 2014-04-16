@@ -1,13 +1,16 @@
 //
 //  MetavoxelTests.h
-//  metavoxel-tests
+//  tests/metavoxels/src
 //
 //  Created by Andrzej Kapolka on 2/7/14.
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__MetavoxelTests__
-#define __interface__MetavoxelTests__
+#ifndef hifi_MetavoxelTests_h
+#define hifi_MetavoxelTests_h
 
 #include <QCoreApplication>
 #include <QVariantList>
@@ -89,11 +92,24 @@ private:
 /// Another simple shared object.
 class TestSharedObjectB : public SharedObject {
     Q_OBJECT
+    Q_PROPERTY(float foo READ getFoo WRITE setFoo)
+    Q_PROPERTY(QByteArray bar READ getBar WRITE setBar)
 
 public:
     
-    Q_INVOKABLE TestSharedObjectB();
+    Q_INVOKABLE TestSharedObjectB(float foo = 0.0f, const QByteArray& bar = QByteArray());
     virtual ~TestSharedObjectB();
+
+    void setFoo(float foo) { _foo = foo; }
+    float getFoo() const { return _foo; }
+    
+    void setBar(const QByteArray& bar) { _bar = bar; }
+    const QByteArray& getBar() const { return _bar; }
+
+private:
+    
+    float _foo;
+    QByteArray _bar;
 };
 
 /// A simple test message.
@@ -144,4 +160,4 @@ public:
 
 DECLARE_STREAMABLE_METATYPE(SequencedTestMessage)
 
-#endif /* defined(__interface__MetavoxelTests__) */
+#endif // hifi_MetavoxelTests_h

@@ -12,6 +12,7 @@ project(${TARGET_NAME})
 
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
+set(FACEPLUS_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/faceplus")
 set(FACESHIFT_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/faceshift")
 set(LIBOVR_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/oculus")
 set(SIXENSE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/Sixense")
@@ -32,8 +33,8 @@ elseif (UNIX)
   # include the right GL headers for UNIX
   set(GL_HEADERS "#include <GL/gl.h>\n#include <GL/glut.h>\n#include <GL/glext.h>")
 elseif (WIN32)
-    add_definitions( -D_USE_MATH_DEFINES ) # apparently needed to get M_PI and other defines from cmath/math.h
-    add_definitions( -DWINDOWS_LEAN_AND_MEAN ) # needed to make sure windows doesn't go to crazy with its defines
+    add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h
+    add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines
 
     set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/glut.h>")
 endif ()
@@ -67,23 +68,20 @@ foreach(EXTERNAL_SOURCE_SUBDIR ${EXTERNAL_SOURCE_SUBDIRS})
 endforeach(EXTERNAL_SOURCE_SUBDIR)
 
 find_package(Qt5 COMPONENTS Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets Xml UiTools)
+find_package(GnuTLS REQUIRED)
 
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
 # have qt5 wrap them and generate the appropriate header files
 qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 
-# grab the resource files in resources
-file (GLOB_RECURSE QT_RESOURCE_FILES resources/*.qrc)
-# have qt5 wrap them and generate the appropriate source files
-qt5_add_resources(QT_RESOURCES "${QT_RESOURCE_FILES}")
-
 # add them to the interface source files
 set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 
-set(QM ${TARGET_NAME}_en.qm)
-set(TS ${TARGET_NAME}_en.ts)
-qt5_create_translation_custom(${QM} ${INTERFACE_SRCS} ${QT_UI_FILES} ${TS})
+# translation disabled until we strip out the line numbers
+# set(QM ${TARGET_NAME}_en.qm)
+# set(TS ${TARGET_NAME}_en.ts)
+# qt5_create_translation_custom(${QM} ${INTERFACE_SRCS} ${QT_UI_FILES} ${TS})
 
 if (APPLE)
   # configure CMake to use a custom Info.plist
@@ -123,12 +121,14 @@ link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(octree ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(voxels ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(metavoxels ${TARGET_NAME} "${ROOT_DIR}")
+link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(particles ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(avatars ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(audio ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(script-engine ${TARGET_NAME} "${ROOT_DIR}")
 
 # find any optional libraries
+find_package(Faceplus)
 find_package(Faceshift)
 find_package(LibOVR)
 find_package(Sixense)
@@ -162,6 +162,13 @@ if (VISAGE_FOUND AND NOT DISABLE_VISAGE)
     target_link_libraries(${TARGET_NAME} "${VISAGE_LIBRARIES}")
 endif (VISAGE_FOUND AND NOT DISABLE_VISAGE)
 
+# and with Faceplus library, also for webcam feature tracking
+if (FACEPLUS_FOUND AND NOT DISABLE_FACEPLUS)
+    add_definitions(-DHAVE_FACEPLUS)
+    include_directories(SYSTEM "${FACEPLUS_INCLUDE_DIRS}")
+    target_link_libraries(${TARGET_NAME} "${FACEPLUS_LIBRARIES}")
+endif (FACEPLUS_FOUND AND NOT DISABLE_FACEPLUS)
+
 # and with LibOVR for Oculus Rift
 if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
     add_definitions(-DHAVE_LIBOVR)
@@ -185,9 +192,14 @@ endif (QXMPP_FOUND AND NOT DISABLE_QXMPP)
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")
 
+# add a definition for ssize_t so that windows doesn't bail on gnutls.h
+if (WIN32)
+  add_definitions(-Dssize_t=long)
+endif ()
+
 # include external library headers
 # use system flag so warnings are supressed
-include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}")
+include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}" "${GNUTLS_INCLUDE_DIR}")
 
 target_link_libraries(
   ${TARGET_NAME}
@@ -195,6 +207,7 @@ target_link_libraries(
   "${ZLIB_LIBRARIES}"
   Qt5::Core Qt5::Gui Qt5::Multimedia Qt5::Network Qt5::OpenGL 
   Qt5::Script Qt5::Svg Qt5::WebKit Qt5::WebKitWidgets Qt5::Xml Qt5::UiTools
+  "${GNUTLS_LIBRARY}"
 )
 
 if (APPLE)

@@ -1,9 +1,12 @@
 //
 //  Snapshot.cpp
-//  hifi
+//  interface/src/ui
 //
 //  Created by Stojce Slavkovski on 1/26/14.
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <QDateTime>
@@ -76,7 +79,7 @@ void Snapshot::saveSnapshot(QGLWidget* widget, Avatar* avatar) {
     shot.setText(ORIENTATION_Z, QString::number(orientation.z));
     shot.setText(ORIENTATION_W, QString::number(orientation.w));
     
-    shot.setText(DOMAIN_KEY, NodeList::getInstance()->getDomainInfo().getHostname());
+    shot.setText(DOMAIN_KEY, NodeList::getInstance()->getDomainHandler().getHostname());
 
     QString formattedLocation = QString("%1_%2_%3").arg(location.x).arg(location.y).arg(location.z);
     // replace decimal . with '-'

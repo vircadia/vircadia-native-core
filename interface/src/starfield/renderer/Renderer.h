@@ -1,14 +1,17 @@
 //
-// starfield/renderer/Renderer.h
-// interface
+//  Renderer.h
+//  interface/src/starfield/renderer
 //
-// Created by Tobias Schwinger on 3/22/13.
-// Modified 10/17/13 Chris Barnard.
-// Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Created by Tobias Schwinger on 3/22/13.
+//  Modified by Chris Barnard on 10/17/13.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__starfield__renderer__Renderer__
-#define __interface__starfield__renderer__Renderer__
+#ifndef hifi_Renderer_h
+#define hifi_Renderer_h
 
 #include "starfield/Config.h"
 #include "starfield/data/InputVertex.h"
@@ -136,5 +139,4 @@ namespace starfield {
 
 }
 
-#endif
-
+#endif // hifi_Renderer_h

@@ -1,13 +1,16 @@
 //
 //  FBXReader.h
-//  interface
+//  interface/src/renderer
 //
 //  Created by Andrzej Kapolka on 9/18/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__FBXReader__
-#define __interface__FBXReader__
+#ifndef hifi_FBXReader_h
+#define hifi_FBXReader_h
 
 #include <QMetaType>
 #include <QUrl>
@@ -29,6 +32,10 @@ class Extents {
 public:
     /// set minimum and maximum to FLT_MAX and -FLT_MAX respectively
     void reset();
+
+    /// \param extents another intance of extents
+    /// expand current limits to contain other extents
+    void addExtents(const Extents& extents);
 
     /// \param point new point to compare against existing limits
     /// compare point to current limits and expand them if necessary to contain point
@@ -174,7 +181,6 @@ public:
     glm::vec3 neckPivot;
     
     Extents bindExtents;
-    Extents staticExtents;
     Extents meshExtents;
     
     QVector<FBXAttachment> attachments;
@@ -197,4 +203,4 @@ FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping);
 /// Reads SVO geometry from the supplied model data.
 FBXGeometry readSVO(const QByteArray& model);
 
-#endif /* defined(__interface__FBXReader__) */
+#endif // hifi_FBXReader_h

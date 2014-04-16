@@ -1,13 +1,16 @@
 //
 //  HeadData.h
-//  hifi
+//  libraries/avatars/src
 //
 //  Created by Stephen Birarda on 5/20/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__HeadData__
-#define __hifi__HeadData__
+#ifndef hifi_HeadData_h
+#define hifi_HeadData_h
 
 #include <iostream>
 
@@ -32,19 +35,15 @@ public:
     virtual ~HeadData() { };
     
     // degrees
-    float getLeanSideways() const { return _leanSideways; }
-    void setLeanSideways(float leanSideways) { _leanSideways = leanSideways; }
-    float getLeanForward() const { return _leanForward; }
-    void setLeanForward(float leanForward) { _leanForward = leanForward; }
-    float getYaw() const { return _yaw; }
-    void setYaw(float yaw) { _yaw = glm::clamp(yaw, MIN_HEAD_YAW, MAX_HEAD_YAW); }
-    float getPitch() const { return _pitch; }
-    void setPitch(float pitch) { _pitch = glm::clamp(pitch, MIN_HEAD_PITCH, MAX_HEAD_PITCH); }
-    float getRoll() const { return _roll; }
-    void setRoll(float roll) { _roll = glm::clamp(roll, MIN_HEAD_ROLL, MAX_HEAD_ROLL); }
-    virtual float getTweakedYaw() const { return _yaw; }
-    virtual float getTweakedPitch() const { return _pitch; }
-    virtual float getTweakedRoll() const { return _roll; }
+    float getBaseYaw() const { return _baseYaw; }
+    void setBaseYaw(float yaw) { _baseYaw = glm::clamp(yaw, MIN_HEAD_YAW, MAX_HEAD_YAW); }
+    float getBasePitch() const { return _basePitch; }
+    void setBasePitch(float pitch) { _basePitch = glm::clamp(pitch, MIN_HEAD_PITCH, MAX_HEAD_PITCH); }
+    float getBaseRoll() const { return _baseRoll; }
+    void setBaseRoll(float roll) { _baseRoll = glm::clamp(roll, MIN_HEAD_ROLL, MAX_HEAD_ROLL); }
+    virtual float getFinalYaw() const { return _baseYaw; }
+    virtual float getFinalPitch() const { return _basePitch; }
+    virtual float getFinalRoll() const { return _baseRoll; }
 
     glm::quat getOrientation() const;
     void setOrientation(const glm::quat& orientation);
@@ -64,7 +63,6 @@ public:
     void addYaw(float yaw);
     void addPitch(float pitch);
     void addRoll(float roll);
-    void addLean(float sideways, float forwards);
     
     const glm::vec3& getLookAtPosition() const { return _lookAtPosition; }
     void setLookAtPosition(const glm::vec3& lookAtPosition) { _lookAtPosition = lookAtPosition; }
@@ -73,9 +71,9 @@ public:
     
 protected:
     // degrees
-    float _yaw;
-    float _pitch;
-    float _roll;
+    float _baseYaw;
+    float _basePitch;
+    float _baseRoll;
     float _leanSideways;
     float _leanForward;
 
@@ -97,4 +95,4 @@ private:
     HeadData& operator= (const HeadData&);
 };
 
-#endif /* defined(__hifi__HeadData__) */
+#endif // hifi_HeadData_h
