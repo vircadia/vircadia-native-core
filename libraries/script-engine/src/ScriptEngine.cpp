@@ -180,11 +180,13 @@ void ScriptEngine::init() {
     registerVoxelMetaTypes(&_engine);
     registerEventTypes(&_engine);
     registerMenuItemProperties(&_engine);
+    registerAnimationTypes(&_engine);
 
     qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<ParticleID> >(&_engine);
     qScriptRegisterSequenceMetaType<QVector<glm::vec2> >(&_engine);
+    qScriptRegisterSequenceMetaType<QVector<glm::quat> >(&_engine);
     qScriptRegisterSequenceMetaType<QVector<QString> >(&_engine);
 
     QScriptValue soundConstructorValue = _engine.newFunction(soundConstructor);

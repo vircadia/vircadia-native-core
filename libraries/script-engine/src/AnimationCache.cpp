@@ -10,11 +10,20 @@
 //
 
 #include <QRunnable>
+#include <QScriptEngine>
 #include <QThreadPool>
 
 #include "AnimationCache.h"
 
-QSharedPointer<Animation> AnimationCache::getAnimation(const QUrl& url) {
+static int animationPointerMetaTypeId = qRegisterMetaType<AnimationPointer>();
+
+AnimationPointer AnimationCache::getAnimation(const QUrl& url) {
+    if (QThread::currentThread() != thread()) {
+        AnimationPointer result;
+        QMetaObject::invokeMethod(this, "getAnimation", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(AnimationPointer, result), Q_ARG(const QUrl&, url));
+        return result;
+    }
     return getResource(url).staticCast<Animation>();
 }
 
@@ -54,6 +63,30 @@ void AnimationReader::run() {
     _reply->deleteLater();
 }
 
+QStringList Animation::getJointNames() const {
+    if (QThread::currentThread() != thread()) {
+        QStringList result;
+        QMetaObject::invokeMethod(const_cast<Animation*>(this), "getJointNames", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(QStringList, result));
+        return result;
+    }
+    QStringList names;
+    foreach (const FBXJoint& joint, _geometry.joints) {
+        names.append(joint.name);
+    }
+    return names;
+}
+
+QVector<FBXAnimationFrame> Animation::getFrames() const {
+    if (QThread::currentThread() != thread()) {
+        QVector<FBXAnimationFrame> result;
+        QMetaObject::invokeMethod(const_cast<Animation*>(this), "getFrames", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(QVector<FBXAnimationFrame>, result));
+        return result;
+    }
+    return _geometry.animationFrames;
+}
+
 void Animation::setGeometry(const FBXGeometry& geometry) {
     _geometry = geometry;
     finishedLoading(true);
@@ -62,4 +95,24 @@ void Animation::setGeometry(const FBXGeometry& geometry) {
 void Animation::downloadFinished(QNetworkReply* reply) {
     // send the reader off to the thread pool
     QThreadPool::globalInstance()->start(new AnimationReader(_self, reply));
+}
+
+QStringList AnimationObject::getJointNames() const {
+    return qscriptvalue_cast<AnimationPointer>(thisObject())->getJointNames();
+}
+
+QVector<FBXAnimationFrame> AnimationObject::getFrames() const {
+    return qscriptvalue_cast<AnimationPointer>(thisObject())->getFrames();
+}
+
+QVector<glm::quat> AnimationFrameObject::getRotations() const {
+    return qscriptvalue_cast<FBXAnimationFrame>(thisObject()).rotations;
+}
+
+void registerAnimationTypes(QScriptEngine* engine) {
+    qScriptRegisterSequenceMetaType<QVector<FBXAnimationFrame> >(engine);
+    engine->setDefaultPrototype(qMetaTypeId<FBXAnimationFrame>(), engine->newQObject(
+        new AnimationFrameObject(), QScriptEngine::ScriptOwnership));
+    engine->setDefaultPrototype(qMetaTypeId<AnimationPointer>(), engine->newQObject(
+        new AnimationObject(), QScriptEngine::ScriptOwnership));
 }

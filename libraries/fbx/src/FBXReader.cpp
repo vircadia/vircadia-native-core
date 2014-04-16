@@ -72,6 +72,8 @@ bool FBXGeometry::hasBlendedMeshes() const {
 }
 
 static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
+static int fbxAnimationFrameMetaTypeId = qRegisterMetaType<FBXAnimationFrame>();
+static int fbxAnimationFrameVectorMetaTypeId = qRegisterMetaType<QVector<FBXAnimationFrame> >();
 
 template<class T> QVariant readBinaryArray(QDataStream& in) {
     quint32 arrayLength;

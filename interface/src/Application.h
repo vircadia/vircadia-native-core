@@ -468,6 +468,7 @@ private:
     QSet<int> _keysPressed;
 
     GeometryCache _geometryCache;
+    AnimationCache _animationCache;
     TextureCache _textureCache;
 
     GlowEffect _glowEffect;

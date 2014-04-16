@@ -146,6 +146,9 @@ public:
     QVector<glm::quat> rotations;
 };
 
+Q_DECLARE_METATYPE(FBXAnimationFrame)
+Q_DECLARE_METATYPE(QVector<FBXAnimationFrame>)
+
 /// An attachment to an FBX document.
 class FBXAttachment {
 public:

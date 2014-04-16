@@ -12,11 +12,17 @@
 #ifndef hifi_AnimationCache_h
 #define hifi_AnimationCache_h
 
+#include <QScriptable>
+
 #include <ResourceCache.h>
 
 #include <FBXReader.h>
 
+class QScriptEngine;
+
 class Animation;
+
+typedef QSharedPointer<Animation> AnimationPointer;
 
 /// Scriptable interface for FBX animation loading.
 class AnimationCache : public ResourceCache {
@@ -24,13 +30,17 @@ class AnimationCache : public ResourceCache {
 
 public:
 
-    QSharedPointer<Animation> getAnimation(const QUrl& url);
+    Q_INVOKABLE AnimationPointer getAnimation(const QString& url) { return getAnimation(QUrl(url)); }
+    
+    Q_INVOKABLE AnimationPointer getAnimation(const QUrl& url);
 
 protected:
     
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra);
 };
+
+Q_DECLARE_METATYPE(AnimationPointer)
 
 /// An animation loaded from the network.
 class Animation : public Resource {
@@ -42,6 +52,10 @@ public:
 
     const FBXGeometry& getGeometry() const { return _geometry; }
     
+    Q_INVOKABLE QStringList getJointNames() const;
+    
+    Q_INVOKABLE QVector<FBXAnimationFrame> getFrames() const;
+    
 protected:
 
     Q_INVOKABLE void setGeometry(const FBXGeometry& geometry);
@@ -52,5 +66,30 @@ private:
     
     FBXGeometry _geometry;
 };
+
+/// Scriptable wrapper for animation pointers.
+class AnimationObject : public QObject, protected QScriptable {
+    Q_OBJECT
+    Q_PROPERTY(QStringList jointNames READ getJointNames)
+    Q_PROPERTY(QVector<FBXAnimationFrame> frames READ getFrames)
+
+public:
+    
+    Q_INVOKABLE QStringList getJointNames() const;
+    
+    Q_INVOKABLE QVector<FBXAnimationFrame> getFrames() const;
+};
+
+/// Scriptable wrapper for animation frames.
+class AnimationFrameObject : public QObject, protected QScriptable {
+    Q_OBJECT
+    Q_PROPERTY(QVector<glm::quat> rotations READ getRotations)
+
+public:
+    
+    Q_INVOKABLE QVector<glm::quat> getRotations() const;
+};
+
+void registerAnimationTypes(QScriptEngine* engine);
 
 #endif // hifi_AnimationCache_h
