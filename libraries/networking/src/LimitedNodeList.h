@@ -78,7 +78,7 @@ public:
     SharedNodePointer nodeWithUUID(const QUuid& nodeUUID, bool blockingLock = true);
     SharedNodePointer sendingNodeForPacket(const QByteArray& packet);
     
-    SharedNodePointer addOrUpdateNode(const QUuid& uuid, char nodeType,
+    SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                       const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
     SharedNodePointer updateSocketsForNode(const QUuid& uuid,
                                            const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);

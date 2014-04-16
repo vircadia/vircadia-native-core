@@ -42,7 +42,7 @@ const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
     return matchedTypeName != TypeNameHash.end() ? matchedTypeName.value() : UNKNOWN_NodeType_t_NAME;
 }
 
-Node::Node(const QUuid& uuid, char type, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) :
+Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) :
     _type(type),
     _uuid(uuid),
     _wakeTimestamp(QDateTime::currentMSecsSinceEpoch()),
@@ -58,6 +58,7 @@ Node::Node(const QUuid& uuid, char type, const HifiSockAddr& publicSocket, const
     _clockSkewUsec(0),
     _mutex()
 {
+    
 }
 
 Node::~Node() {

@@ -12,10 +12,12 @@
 #ifndef hifi_Menu_h
 #define hifi_Menu_h
 
+#include <QDir>
 #include <QMenuBar>
 #include <QHash>
 #include <QKeySequence>
 #include <QPointer>
+#include <QStandardPaths>
 
 #include <EventTypes.h>
 #include <MenuItemProperties.h>
@@ -27,6 +29,7 @@
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
+const float DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS = 30.0f; 
 
 const quint64 ADJUST_LOD_DOWN_DELAY = 1000 * 1000 * 5;
 const quint64 ADJUST_LOD_UP_DELAY = ADJUST_LOD_DOWN_DELAY * 2;
@@ -36,6 +39,9 @@ const float ADJUST_LOD_UP_BY = 1.1f;
 
 const float ADJUST_LOD_MIN_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE * 0.25f;
 const float ADJUST_LOD_MAX_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE;
+
+const float MINIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 0.1f;
+const float MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 15.0f;
 
 enum FrustumDrawMode {
     FRUSTUM_DRAW_MODE_ALL,
@@ -79,6 +85,9 @@ public:
     void setFieldOfView(float fieldOfView) { _fieldOfView = fieldOfView; }
     float getFaceshiftEyeDeflection() const { return _faceshiftEyeDeflection; }
     void setFaceshiftEyeDeflection(float faceshiftEyeDeflection) { _faceshiftEyeDeflection = faceshiftEyeDeflection; }
+    QString getSnapshotsLocation() const;
+    void setSnapshotsLocation(QString snapshotsLocation) { _snapshotsLocation = snapshotsLocation; }
+
     BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
     FrustumDrawMode getFrustumDrawMode() const { return _frustumDrawMode; }
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
@@ -95,6 +104,13 @@ public:
     void resetLODAdjust();
     void setVoxelSizeScale(float sizeScale);
     float getVoxelSizeScale() const { return _voxelSizeScale; }
+    void setAutomaticAvatarLOD(bool automaticAvatarLOD) { _automaticAvatarLOD = automaticAvatarLOD; }
+    bool getAutomaticAvatarLOD() const { return _automaticAvatarLOD; }
+    void setAvatarLODDecreaseFPS(float avatarLODDecreaseFPS) { _avatarLODDecreaseFPS = avatarLODDecreaseFPS; }
+    float getAvatarLODDecreaseFPS() const { return _avatarLODDecreaseFPS; }
+    void setAvatarLODIncreaseFPS(float avatarLODIncreaseFPS) { _avatarLODIncreaseFPS = avatarLODIncreaseFPS; }
+    float getAvatarLODIncreaseFPS() const { return _avatarLODIncreaseFPS; }
+    void setAvatarLODDistanceMultiplier(float multiplier) { _avatarLODDistanceMultiplier = multiplier; }
     float getAvatarLODDistanceMultiplier() const { return _avatarLODDistanceMultiplier; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust);
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
@@ -217,6 +233,9 @@ private:
     LodToolsDialog* _lodToolsDialog;
     int _maxVoxels;
     float _voxelSizeScale;
+    bool _automaticAvatarLOD;
+    float _avatarLODDecreaseFPS;
+    float _avatarLODIncreaseFPS;
     float _avatarLODDistanceMultiplier;
     int _boundaryLevelAdjust;
     QAction* _useVoxelShader;
@@ -229,6 +248,7 @@ private:
     QAction* _loginAction;
     QPointer<PreferencesDialog> _preferencesDialog;
     QAction* _chatAction;
+    QString _snapshotsLocation;
 };
 
 namespace MenuOption {
