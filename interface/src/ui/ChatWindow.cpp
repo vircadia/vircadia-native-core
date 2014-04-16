@@ -240,13 +240,32 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
         return;
     }
 
-    QLabel* userLabel = new QLabel(getParticipantName(message.from()));
-    userLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    userLabel->setStyleSheet("padding: 2px; font-weight: bold");
-    userLabel->setAlignment(Qt::AlignTop | Qt::AlignRight);
+    // Create username label
+    ChatMessageArea* userLabel = new ChatMessageArea(false);
+    userLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Maximum);
+    userLabel->setWordWrapMode(QTextOption::NoWrap);
+    userLabel->setLineWrapMode(QTextEdit::NoWrap);
+    userLabel->setTextInteractionFlags(Qt::NoTextInteraction);
+    userLabel->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    userLabel->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    userLabel->setReadOnly(true);
+    userLabel->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
 
-    ChatMessageArea* messageArea = new ChatMessageArea();
+    userLabel->setStyleSheet("padding: 2px;"
+                             "font-weight: bold;"
+                             "background-color: rgba(0, 0, 0, 0%);"
+                             "border: 0;");
 
+    QTextBlockFormat format;
+    format.setLineHeight(130, QTextBlockFormat::ProportionalHeight);
+    QTextCursor cursor = userLabel->textCursor();
+    cursor.setBlockFormat(format);
+    cursor.insertText(getParticipantName(message.from()));
+
+    userLabel->setAlignment(Qt::AlignRight);
+
+    // Create message area
+    ChatMessageArea* messageArea = new ChatMessageArea(true);
     messageArea->setOpenLinks(true);
     messageArea->setOpenExternalLinks(true);
     messageArea->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
@@ -262,10 +281,11 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
                                "background-color: rgba(0, 0, 0, 0%);"
                                "border: 0;");
 
+    // Update background if this is a message from the current user
     bool fromSelf = getParticipantName(message.from()) == AccountManager::getInstance().getUsername();
     if (fromSelf) {
-        userLabel->setStyleSheet(userLabel->styleSheet() + "; background-color: #e1e8ea");
-        messageArea->setStyleSheet(messageArea->styleSheet() + "; background-color: #e1e8ea");
+        userLabel->setStyleSheet(userLabel->styleSheet() + "background-color: #e1e8ea");
+        messageArea->setStyleSheet(messageArea->styleSheet() + "background-color: #e1e8ea");
     }
 
     messageArea->setHtml(message.body().replace(regexLinks, "<a href=\"\\1\">\\1</a>"));
@@ -273,6 +293,12 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     bool atBottom = isAtBottom();
     ui->messagesGridLayout->addWidget(userLabel, ui->messagesGridLayout->rowCount(), 0);
     ui->messagesGridLayout->addWidget(messageArea, ui->messagesGridLayout->rowCount() - 1, 1);
+
+    // Force the height of the username area to match the height of the message area
+    connect(messageArea, &ChatMessageArea::sizeChanged, userLabel, &ChatMessageArea::setSize);
+
+    // Force initial height to match message area
+    userLabel->setFixedHeight(messageArea->size().height());
 
     ui->messagesGridLayout->parentWidget()->updateGeometry();
     Application::processEvents();

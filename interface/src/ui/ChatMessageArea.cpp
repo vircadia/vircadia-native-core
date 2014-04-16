@@ -9,11 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Application.h"
 #include "ChatMessageArea.h"
 #include <QAbstractTextDocumentLayout>
 #include <QWheelEvent>
 
-ChatMessageArea::ChatMessageArea() : QTextBrowser() {
+ChatMessageArea::ChatMessageArea(bool useFixedHeight) : QTextBrowser(), _useFixedHeight(useFixedHeight) {
     connect(document()->documentLayout(), &QAbstractTextDocumentLayout::documentSizeChanged,
             this, &ChatMessageArea::updateLayout);
 }
@@ -34,7 +35,15 @@ void ChatMessageArea::setHtml(const QString& html) {
 }
 
 void ChatMessageArea::updateLayout() {
-    setFixedHeight(document()->size().height());
+    if (_useFixedHeight) {
+        setFixedHeight(document()->size().height());
+        updateGeometry();
+        emit sizeChanged(size());
+    }
+}
+
+void ChatMessageArea::setSize(const QSize& size) {
+    setFixedHeight(size.height());
     updateGeometry();
 }
 
