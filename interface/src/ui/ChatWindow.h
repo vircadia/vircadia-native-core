@@ -17,6 +17,7 @@
 #include <QTimer>
 
 #include <Application.h>
+#include "FramelessDialog.h"
 
 #ifdef HAVE_QXMPP
 
@@ -29,22 +30,18 @@ namespace Ui {
 class ChatWindow;
 }
 
-class ChatWindow : public QDockWidget {
+class ChatWindow : public FramelessDialog {
     Q_OBJECT
 
 public:
-    ChatWindow();
+    ChatWindow(QWidget* parent);
     ~ChatWindow();
-
-    virtual void keyPressEvent(QKeyEvent *event);
-    virtual void showEvent(QShowEvent* event);
-
-    virtual void mousePressEvent(QMouseEvent *e);
-    virtual void mouseMoveEvent(QMouseEvent *e);
-    virtual void mouseReleaseEvent(QMouseEvent *e);
 
 protected:
     bool eventFilter(QObject* sender, QEvent* event);
+
+    virtual void keyPressEvent(QKeyEvent *event);
+    virtual void showEvent(QShowEvent* event);
 
 private:
 #ifdef HAVE_QXMPP
@@ -56,7 +53,6 @@ private:
     void scrollToBottom();
 
     Ui::ChatWindow* ui;
-    QWidget* titleBar;
     int numMessagesAfterLastTimeStamp;
     QDateTime lastMessageStamp;
     bool _mousePressed;

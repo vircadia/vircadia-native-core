@@ -19,7 +19,7 @@ const int SCROLL_PANEL_BOTTOM_MARGIN = 30;
 const int OK_BUTTON_RIGHT_MARGIN = 30;
 const int BUTTONS_TOP_MARGIN = 24;
 
-PreferencesDialog::PreferencesDialog(QWidget* parent, Qt::WindowFlags flags) : FramelessDialog(parent, flags) {
+PreferencesDialog::PreferencesDialog(QWidget* parent, Qt::WindowFlags flags) : FramelessDialog(parent, flags, POSITION_LEFT) {
 
     ui.setupUi(this);
     setStyleSheetFile("styles/preferences.qss");

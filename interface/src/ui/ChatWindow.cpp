@@ -12,12 +12,10 @@
 #include <QGridLayout>
 #include <QFrame>
 #include <QLayoutItem>
-#include <QMainWindow>
 #include <QPalette>
 #include <QScrollBar>
 #include <QSizePolicy>
 #include <QTimer>
-#include <QWidget>
 
 #include "Application.h"
 #include "FlowLayout.h"
@@ -32,18 +30,16 @@ const int NUM_MESSAGES_TO_TIME_STAMP = 20;
 
 const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?))://\\S+)");
 
-ChatWindow::ChatWindow() :
+ChatWindow::ChatWindow(QWidget* parent) :
+    FramelessDialog(parent, 0, POSITION_RIGHT),
     ui(new Ui::ChatWindow),
     numMessagesAfterLastTimeStamp(0),
     _mousePressed(false),
     _mouseStartPosition()
 {
-    ui->setupUi(this);
+    setAttribute(Qt::WA_DeleteOnClose, false);
 
-    // remove the title bar (see the Qt docs on setTitleBarWidget), but we keep it for undocking
-    //
-    titleBar = titleBarWidget();
-    setTitleBarWidget(new QWidget());
+    ui->setupUi(this);
 
     FlowLayout* flowLayout = new FlowLayout(0, 4, 4);
     ui->usersWidget->setLayout(flowLayout);
@@ -89,41 +85,23 @@ ChatWindow::~ChatWindow() {
     delete ui;
 }
 
-void ChatWindow::mousePressEvent(QMouseEvent *e) {
-    if (e->button() == Qt::LeftButton && isFloating()) {
-        _mousePressed = true;
-        _mouseStartPosition = e->pos();
-    }
-}
-
-void ChatWindow::mouseMoveEvent(QMouseEvent *e) {
-    if (_mousePressed) {
-        move(mapToParent(e->pos() - _mouseStartPosition));
-    }
-}
-
-void ChatWindow::mouseReleaseEvent( QMouseEvent *e ) {
-    if ( e->button() == Qt::LeftButton ) {
-        _mousePressed = false;
-    }
-}
-
 void ChatWindow::keyPressEvent(QKeyEvent* event) {
-    QDockWidget::keyPressEvent(event);
     if (event->key() == Qt::Key_Escape) {
         hide();
+    } else {
+        FramelessDialog::keyPressEvent(event);
     }
 }
 
 void ChatWindow::showEvent(QShowEvent* event) {
-    QDockWidget::showEvent(event);
+    FramelessDialog::showEvent(event);
     if (!event->spontaneous()) {
-        activateWindow();
         ui->messagePlainTextEdit->setFocus();
     }
 }
 
 bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
+    FramelessDialog::eventFilter(sender, event);
     if (sender == ui->messagePlainTextEdit) {
         if (event->type() != QEvent::KeyPress) {
             return false;
