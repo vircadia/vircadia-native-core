@@ -16,11 +16,18 @@
 #include "Audio.h"
 #include "avatar/MyAvatar.h"
 
+enum AudioSource {
+    LOCAL_AUDIO,
+    INBOUND_AUDIO
+};
+
 class AudioPath {
 public:
-    AudioPath(const glm::vec3& origin = glm::vec3(0), const glm::vec3& direction = glm::vec3(0), float attenuation = 1.0f, 
+    AudioPath(AudioSource source = INBOUND_AUDIO, const glm::vec3& origin = glm::vec3(0), 
+            const glm::vec3& direction = glm::vec3(0), float attenuation = 1.0f, 
             float delay = 0.0f, float distance = 0.0f, bool isDiffusion = false, int bounceCount = 0);
             
+    AudioSource source;
     bool isDiffusion;
     glm::vec3 startPoint;
     glm::vec3 startDirection;
@@ -52,7 +59,6 @@ public:
     float absorptionRatio;
     float diffusionRatio;
 };
-
 
 class AudioReflector : public QObject {
     Q_OBJECT
@@ -145,17 +151,21 @@ private:
     glm::vec3 _origin;
     glm::quat _orientation;
     
-    QVector<AudioPath*> _audioPaths; /// the various audio paths we're processing
-    QVector<AudiblePoint> _audiblePoints; /// the audible points that have been calculated from the paths
+    QVector<AudioPath*> _inboundAudioPaths; /// audio paths we're processing for inbound audio
+    QVector<AudiblePoint> _inboundAudiblePoints; /// the audible points that have been calculated from the inbound audio paths
+
+    QVector<AudioPath*> _localAudioPaths; /// audio paths we're processing for local audio
+    QVector<AudiblePoint> _localAudiblePoints; /// the audible points that have been calculated from the local audio paths
     
     // adds a sound source to begin an audio path trace, these can be the initial sound sources with their directional properties,
     // as well as diffusion sound sources
-    void addSoundSource(const glm::vec3& origin, const glm::vec3& initialDirection, float initialAttenuation, 
+    void addAudioPath(AudioSource source, const glm::vec3& origin, const glm::vec3& initialDirection, float initialAttenuation, 
                             float initialDelay, float initialDistance = 0.0f, bool isDiffusion = false);
     
     // helper that handles audioPath analysis
     int analyzePathsSingleStep();
     void handlePathPoint(AudioPath* path, float distance, OctreeElement* elementHit, BoxFace face);
+    void clearPaths();
     void analyzePaths();
     void drawRays();
     void drawPath(AudioPath* path, const glm::vec3& originalColor);
@@ -164,7 +174,7 @@ private:
     glm::vec3 getFaceNormal(BoxFace face);
 
     void injectAudiblePoint(const AudiblePoint& audiblePoint, const QByteArray& samples, unsigned int sampleTime, int sampleRate);
-    void echoAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
+    void echoAudio(AudioSource source, unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
     
     // return the surface characteristics of the element we hit
     SurfaceCharacteristics getSurfaceCharacteristics(OctreeElement* elementHit = NULL);

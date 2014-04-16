@@ -203,7 +203,7 @@ void AudioReflector::injectAudiblePoint(const AudiblePoint& audiblePoint,
     _maxAttenuation = std::max(_maxAttenuation,leftEarAttenuation);
     _minAttenuation = std::min(_minAttenuation,rightEarAttenuation);
     _minAttenuation = std::min(_minAttenuation,leftEarAttenuation);
-
+    
     // run through the samples, and attenuate them                                                            
     for (int sample = 0; sample < totalNumberOfStereoSamples; sample++) {
         int16_t leftSample = originalSamplesData[sample * NUMBER_OF_CHANNELS];
@@ -235,25 +235,25 @@ void AudioReflector::processLocalAudio(unsigned int sampleTime, const QByteArray
         if (format.channelCount() == NUM_CHANNELS_INPUT && format.sampleRate() == EXPECTED_SAMPLE_RATE) {
             QAudioFormat outputFormat = format;
             outputFormat.setChannelCount(NUM_CHANNELS_OUTPUT);
-            QByteArray stereoInputData;
-            stereoInputData.resize(samples.size() * NUM_CHANNELS_OUTPUT);
-            int numberOfSamples = samples.size() / sizeof(int16_t);
+            QByteArray stereoInputData(samples.size() * NUM_CHANNELS_OUTPUT, 0);
+            int numberOfSamples = (samples.size() / sizeof(int16_t));
             int16_t* monoSamples = (int16_t*)samples.data();
             int16_t* stereoSamples = (int16_t*)stereoInputData.data();
+            
             for (int i = 0; i < numberOfSamples; i++) {
                 stereoSamples[i* NUM_CHANNELS_OUTPUT] = monoSamples[i] * _localAudioAttenuationFactor;
                 stereoSamples[(i * NUM_CHANNELS_OUTPUT) + 1] = monoSamples[i] * _localAudioAttenuationFactor;
             }
-            echoAudio(sampleTime, stereoInputData, outputFormat);
+            echoAudio(LOCAL_AUDIO, sampleTime, stereoInputData, outputFormat);
         }
     }
 }
 
 void AudioReflector::processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
-    echoAudio(sampleTime, samples, format);
+    echoAudio(INBOUND_AUDIO, sampleTime, samples, format);
 }
 
-void AudioReflector::echoAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
+void AudioReflector::echoAudio(AudioSource source, unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
     _maxDelay = 0;
     _maxAttenuation = 0.0f;
     _minDelay = std::numeric_limits<int>::max();
@@ -265,7 +265,10 @@ void AudioReflector::echoAudio(unsigned int sampleTime, const QByteArray& sample
 
     QMutexLocker locker(&_mutex);
 
-    foreach(const AudiblePoint& audiblePoint, _audiblePoints) {
+    // depending on if we're processing local or external audio, pick the correct points vector
+    QVector<AudiblePoint>& audiblePoints = source == INBOUND_AUDIO ? _inboundAudiblePoints : _localAudiblePoints;
+
+    foreach(const AudiblePoint& audiblePoint, audiblePoints) {
         injectAudiblePoint(audiblePoint, samples, sampleTime, format.sampleRate());
     }
 
@@ -294,9 +297,10 @@ void AudioReflector::drawVector(const glm::vec3& start, const glm::vec3& end, co
 
 
 
-AudioPath::AudioPath(const glm::vec3& origin, const glm::vec3& direction, 
+AudioPath::AudioPath(AudioSource source, const glm::vec3& origin, const glm::vec3& direction, 
                         float attenuation, float delay, float distance,bool isDiffusion, int bounceCount) :
                         
+    source(source),
     isDiffusion(isDiffusion),
     startPoint(origin),
     startDirection(direction),
@@ -315,12 +319,15 @@ AudioPath::AudioPath(const glm::vec3& origin, const glm::vec3& direction,
 {
 }
 
-void AudioReflector::addSoundSource(const glm::vec3& origin, const glm::vec3& initialDirection, 
+void AudioReflector::addAudioPath(AudioSource source, const glm::vec3& origin, const glm::vec3& initialDirection, 
                                         float initialAttenuation, float initialDelay, float initialDistance, bool isDiffusion) {
                                         
-    AudioPath* path = new AudioPath(origin, initialDirection, initialAttenuation, initialDelay, 
+    AudioPath* path = new AudioPath(source, origin, initialDirection, initialAttenuation, initialDelay,
                                         initialDistance, isDiffusion, 0);
-    _audioPaths.push_back(path);
+
+    QVector<AudioPath*>& audioPaths = source == INBOUND_AUDIO ? _inboundAudioPaths : _localAudioPaths;
+
+    audioPaths.push_back(path);
 }
 
 void AudioReflector::calculateAllReflections() {
@@ -355,18 +362,34 @@ void AudioReflector::calculateAllReflections() {
 void AudioReflector::drawRays() {
     const glm::vec3 RED(1,0,0);
     const glm::vec3 GREEN(0,1,0);
+    const glm::vec3 BLUE(0,0,1);
+    const glm::vec3 CYAN(0,1,1);
     
     int diffusionNumber = 0;
     
     QMutexLocker locker(&_mutex);
-    foreach(AudioPath* const& path, _audioPaths) {
-    
+
+    // draw the paths for inbound audio
+    foreach(AudioPath* const& path, _inboundAudioPaths) {
         // if this is an original reflection, draw it in RED
         if (path->isDiffusion) {
             diffusionNumber++;
             drawPath(path, GREEN);
         } else {
             drawPath(path, RED);
+        }
+    }
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingProcessLocalAudio)) {
+        // draw the paths for local audio
+        foreach(AudioPath* const& path, _localAudioPaths) {
+            // if this is an original reflection, draw it in RED
+            if (path->isDiffusion) {
+                diffusionNumber++;
+                drawPath(path, CYAN);
+            } else {
+                drawPath(path, BLUE);
+            }
         }
     }
 }
@@ -383,6 +406,21 @@ void AudioReflector::drawPath(AudioPath* path, const glm::vec3& originalColor) {
     }
 }
 
+void AudioReflector::clearPaths() {
+    // clear our inbound audio paths
+    foreach(AudioPath* const& path, _inboundAudioPaths) {
+        delete path;
+    }
+    _inboundAudioPaths.clear();
+    _inboundAudiblePoints.clear(); // clear our inbound audible points
+
+    // clear our local audio paths
+    foreach(AudioPath* const& path, _localAudioPaths) {
+        delete path;
+    }
+    _localAudioPaths.clear();
+    _localAudiblePoints.clear(); // clear our local audible points
+}
 
 // Here's how this works: we have an array of AudioPaths, we loop on all of our currently calculating audio 
 // paths, and calculate one ray per path. If that ray doesn't reflect, or reaches a max distance/attenuation, then it
@@ -392,12 +430,7 @@ void AudioReflector::drawPath(AudioPath* path, const glm::vec3& originalColor) {
 // fanout number of new paths, those new paths will have an origin of the reflection point, and an initial attenuation
 // of their diffusion ratio. Those new paths will be added to the active audio paths, and be analyzed for the next loop.
 void AudioReflector::analyzePaths() {
-    // clear our _audioPaths
-    foreach(AudioPath* const& path, _audioPaths) {
-        delete path;
-    }
-    _audioPaths.clear();
-    _audiblePoints.clear(); // clear our audible points
+    clearPaths();
     
     // add our initial paths
     glm::vec3 right = glm::normalize(_orientation * IDENTITY_RIGHT);
@@ -422,36 +455,49 @@ void AudioReflector::analyzePaths() {
     // NOTE: we're still calculating our initial paths based on the listeners position. But the analysis code has been
     // updated to support individual sound sources (which is how we support diffusion), we can use this new paradigm to
     // add support for individual sound sources, and more directional sound sources    
-    addSoundSource(_origin, right, initialAttenuation, preDelay);
-    addSoundSource(_origin, front, initialAttenuation, preDelay);
-    addSoundSource(_origin, up, initialAttenuation, preDelay);
-    addSoundSource(_origin, down, initialAttenuation, preDelay);
-    addSoundSource(_origin, back, initialAttenuation, preDelay);
-    addSoundSource(_origin, left, initialAttenuation, preDelay);
-    addSoundSource(_origin, frontRightUp, initialAttenuation, preDelay);
-    addSoundSource(_origin, frontLeftUp, initialAttenuation, preDelay);
-    addSoundSource(_origin, backRightUp, initialAttenuation, preDelay);
-    addSoundSource(_origin, backLeftUp, initialAttenuation, preDelay);
-    addSoundSource(_origin, frontRightDown, initialAttenuation, preDelay);
-    addSoundSource(_origin, frontLeftDown, initialAttenuation, preDelay);
-    addSoundSource(_origin, backRightDown, initialAttenuation, preDelay);
-    addSoundSource(_origin, backLeftDown, initialAttenuation, preDelay);
+
+    addAudioPath(INBOUND_AUDIO, _origin, front, initialAttenuation, preDelay);
+    addAudioPath(INBOUND_AUDIO, _origin, right, initialAttenuation, preDelay);
+    addAudioPath(INBOUND_AUDIO, _origin, up, initialAttenuation, preDelay);
+    addAudioPath(INBOUND_AUDIO, _origin, down, initialAttenuation, preDelay);
+    addAudioPath(INBOUND_AUDIO, _origin, back, initialAttenuation, preDelay);
+    addAudioPath(INBOUND_AUDIO, _origin, left, initialAttenuation, preDelay);
+    addAudioPath(INBOUND_AUDIO, _origin, frontRightUp, initialAttenuation, preDelay);
+    addAudioPath(INBOUND_AUDIO, _origin, frontLeftUp, initialAttenuation, preDelay);
+    addAudioPath(INBOUND_AUDIO, _origin, backRightUp, initialAttenuation, preDelay);
+    addAudioPath(INBOUND_AUDIO, _origin, backLeftUp, initialAttenuation, preDelay);
+    addAudioPath(INBOUND_AUDIO, _origin, frontRightDown, initialAttenuation, preDelay);
+    addAudioPath(INBOUND_AUDIO, _origin, frontLeftDown, initialAttenuation, preDelay);
+    addAudioPath(INBOUND_AUDIO, _origin, backRightDown, initialAttenuation, preDelay);
+    addAudioPath(INBOUND_AUDIO, _origin, backLeftDown, initialAttenuation, preDelay);
+    
+    // the original paths for the local audio are directional to the front of the origin
+    addAudioPath(LOCAL_AUDIO, _origin, front, initialAttenuation, preDelay);
+    addAudioPath(LOCAL_AUDIO, _origin, frontRightUp, initialAttenuation, preDelay);
+    addAudioPath(LOCAL_AUDIO, _origin, frontLeftUp, initialAttenuation, preDelay);
+    addAudioPath(LOCAL_AUDIO, _origin, frontRightDown, initialAttenuation, preDelay);
+    addAudioPath(LOCAL_AUDIO, _origin, frontLeftDown, initialAttenuation, preDelay);
 
     // loop through all our audio paths and keep analyzing them until they complete
     int steps = 0;
-    int acitvePaths = _audioPaths.size(); // when we start, all paths are active
+    int acitvePaths = _inboundAudioPaths.size() + _localAudioPaths.size(); // when we start, all paths are active
     while(acitvePaths > 0) {
         acitvePaths = analyzePathsSingleStep();
         steps++;
     }
-    _reflections = _audiblePoints.size();
+    _reflections = _inboundAudiblePoints.size() + _localAudiblePoints.size();
     _diffusionPathCount = countDiffusionPaths();
 }
 
 int AudioReflector::countDiffusionPaths() {
     int diffusionCount = 0;
     
-    foreach(AudioPath* const& path, _audioPaths) {
+    foreach(AudioPath* const& path, _inboundAudioPaths) {
+        if (path->isDiffusion) {
+            diffusionCount++;
+        }
+    }
+    foreach(AudioPath* const& path, _localAudioPaths) {
         if (path->isDiffusion) {
             diffusionCount++;
         }
@@ -462,36 +508,44 @@ int AudioReflector::countDiffusionPaths() {
 int AudioReflector::analyzePathsSingleStep() {
     // iterate all the active sound paths, calculate one step per active path
     int activePaths = 0;
-    foreach(AudioPath* const& path, _audioPaths) {
+
+    QVector<AudioPath*>* pathsLists[] = { &_inboundAudioPaths, &_localAudioPaths };
+
+    for(int i = 0; i < sizeof(pathsLists) / sizeof(pathsLists[0]); i ++) {
+
+        QVector<AudioPath*>& pathList = *pathsLists[i];
+
+        foreach(AudioPath* const& path, pathList) {
     
-        glm::vec3 start = path->lastPoint;
-        glm::vec3 direction = path->lastDirection;
-        OctreeElement* elementHit; // output from findRayIntersection
-        float distance; // output from findRayIntersection
-        BoxFace face; // output from findRayIntersection
+            glm::vec3 start = path->lastPoint;
+            glm::vec3 direction = path->lastDirection;
+            OctreeElement* elementHit; // output from findRayIntersection
+            float distance; // output from findRayIntersection
+            BoxFace face; // output from findRayIntersection
 
-        if (!path->finalized) {
-            activePaths++;
+            if (!path->finalized) {
+                activePaths++;
             
-            if (path->bounceCount > ABSOLUTE_MAXIMUM_BOUNCE_COUNT) {
-                path->finalized = true;
-            } else if (_voxels->findRayIntersection(start, direction, elementHit, distance, face)) {
-                // TODO: we need to decide how we want to handle locking on the ray intersection, if we force lock,
-                // we get an accurate picture, but it could prevent rendering of the voxels. If we trylock (default), 
-                // we might not get ray intersections where they may exist, but we can't really detect that case...
-                // add last parameter of Octree::Lock to force locking
-                handlePathPoint(path, distance, elementHit, face);
+                if (path->bounceCount > ABSOLUTE_MAXIMUM_BOUNCE_COUNT) {
+                    path->finalized = true;
+                } else if (_voxels->findRayIntersection(start, direction, elementHit, distance, face)) {
+                    // TODO: we need to decide how we want to handle locking on the ray intersection, if we force lock,
+                    // we get an accurate picture, but it could prevent rendering of the voxels. If we trylock (default), 
+                    // we might not get ray intersections where they may exist, but we can't really detect that case...
+                    // add last parameter of Octree::Lock to force locking
+                    handlePathPoint(path, distance, elementHit, face);
 
-            } else {
-                // If we didn't intersect, but this was a diffusion ray, then we will go ahead and cast a short ray out
-                // from our last known point, in the last known direction, and leave that sound source hanging there
-                if (path->isDiffusion) {
-                    const float MINIMUM_RANDOM_DISTANCE = 0.25f;
-                    const float MAXIMUM_RANDOM_DISTANCE = 0.5f;
-                    float distance = randFloatInRange(MINIMUM_RANDOM_DISTANCE, MAXIMUM_RANDOM_DISTANCE);
-                    handlePathPoint(path, distance, NULL, UNKNOWN_FACE);
                 } else {
-                    path->finalized = true; // if it doesn't intersect, then it is finished
+                    // If we didn't intersect, but this was a diffusion ray, then we will go ahead and cast a short ray out
+                    // from our last known point, in the last known direction, and leave that sound source hanging there
+                    if (path->isDiffusion) {
+                        const float MINIMUM_RANDOM_DISTANCE = 0.25f;
+                        const float MAXIMUM_RANDOM_DISTANCE = 0.5f;
+                        float distance = randFloatInRange(MINIMUM_RANDOM_DISTANCE, MAXIMUM_RANDOM_DISTANCE);
+                        handlePathPoint(path, distance, NULL, UNKNOWN_FACE);
+                    } else {
+                        path->finalized = true; // if it doesn't intersect, then it is finished
+                    }
                 }
             }
         }
@@ -571,8 +625,8 @@ void AudioReflector::handlePathPoint(AudioPath* path, float distance, OctreeElem
             
             diffusion = glm::normalize(diffusion);
 
-            // add sound sources for these diffusions
-            addSoundSource(end, diffusion, partialDiffusionAttenuation, currentDelay, pathDistance, true);
+            // add new audio path for these diffusions, the new path's source is the same as the original source
+            addAudioPath(path->source, end, diffusion, partialDiffusionAttenuation, currentDelay, pathDistance, true);
         }
     } else {
         const bool wantDebugging = false;
@@ -603,7 +657,9 @@ void AudioReflector::handlePathPoint(AudioPath* path, float distance, OctreeElem
         // audio so that it can be adjusted to ear position
         AudiblePoint point = {end, currentDelay, (reflectiveAttenuation + totalDiffusionAttenuation), pathDistance};
 
-        _audiblePoints.push_back(point);
+        QVector<AudiblePoint>& audiblePoints = path->source == INBOUND_AUDIO ? _inboundAudiblePoints : _localAudiblePoints;
+
+        audiblePoints.push_back(point);
     
         // add this location to the path points, so we can visualize it
         path->reflections.push_back(end);

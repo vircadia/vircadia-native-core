@@ -665,6 +665,8 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     _lastReceiveTime = currentReceiveTime;
 }
 
+// NOTE: numSamples is the total number of single channel samples, since callers will always call this with stereo
+// data we know that we will have 2x samples for each stereo time sample at the format's sample rate
 void Audio::addSpatialAudioToBuffer(unsigned int sampleTime, const QByteArray& spatialAudio, unsigned int numSamples) {
     // Calculate the number of remaining samples available. The source spatial audio buffer will get
     // clipped if there are insufficient samples available in the accumulation buffer.
