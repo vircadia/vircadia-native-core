@@ -404,17 +404,6 @@ void Audio::handleAudioInput() {
 
     QByteArray inputByteArray = _inputDevice->readAll();
     
-    // send our local loopback to any interested parties
-    if (_processSpatialAudio && !_muted && _audioOutput) {
-        if (false) {
-            // local audio is sent already resampled to match the output format, so processors
-            // can easily handle the audio in a format ready to post back to the audio device
-            //emit processLocalAudio(_spatialAudioStart, resampledInputByteArray, _outputFormat);
-        } else {
-            emit processLocalAudio(_spatialAudioStart, inputByteArray, _outputFormat);
-        }
-    }
-
     if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio) && !_muted && _audioOutput) {
         // if this person wants local loopback add that to the locally injected audio
 
@@ -573,6 +562,26 @@ void Audio::handleAudioInput() {
         } else {
             // our input loudness is 0, since we're muted
             _lastInputLoudness = 0;
+        }
+        
+        // at this point we have clean monoAudioSamples, which match our target output... this is what we should send
+        // to our interested listeners
+        // send our local loopback to any interested parties
+        if (_processSpatialAudio && !_muted && _audioOutput && 
+            (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingProcessLocalAudio))) {
+            // local audio is sent already resampled to match the network input format, so processors
+            // can easily handle the audio in a format ready to post back to the audio device
+            const int NUM_CHANNELS = 2;
+            QByteArray stereoInputData;
+            stereoInputData.resize(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * NUM_CHANNELS * sizeof(int16_t));
+            int16_t* stereoSamples = (int16_t*)stereoInputData.data();
+            const float LOCAL_SIGNAL_ATTENUATION = 0.125f;
+            for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
+                stereoSamples[i* NUM_CHANNELS] = monoAudioSamples[i] * LOCAL_SIGNAL_ATTENUATION;
+                stereoSamples[(i * NUM_CHANNELS) + 1] = monoAudioSamples[i] * LOCAL_SIGNAL_ATTENUATION;
+            }
+
+            emit processLocalAudio(_spatialAudioStart, stereoInputData, _desiredOutputFormat);
         }
         
         if (_proceduralAudioOutput) {

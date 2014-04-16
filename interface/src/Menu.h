@@ -237,15 +237,18 @@ namespace MenuOption {
     const QString Atmosphere = "Atmosphere";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
     const QString AudioToneInjection = "Inject Test Tone";
+
     const QString AudioSpatialProcessing = "Audio Spatial Processing";
-    const QString AudioSpatialProcessingIncudeOriginal = "Audio Spatial Processing includes Original";
-    const QString AudioSpatialProcessingSeparateEars = "Audio Spatial Processing separates ears";
-    const QString AudioSpatialProcessingPreDelay = "Audio Spatial Processing add Pre-Delay";
-    const QString AudioSpatialProcessingStereoSource = "Audio Spatial Processing Stereo Source";
-    const QString AudioSpatialProcessingHeadOriented = "Audio Spatial Processing Head Oriented";
-    const QString AudioSpatialProcessingWithDiffusions = "Audio Spatial Processing With Diffusions";
-    const QString AudioSpatialProcessingRenderPaths = "Audio Spatial Processing Render Paths";
-    const QString AudioSpatialProcessingSlightlyRandomSurfaces = "Audio Spatial Processing Slightly Random Surfaces";
+    const QString AudioSpatialProcessingHeadOriented = "Head Oriented";
+    const QString AudioSpatialProcessingIncudeOriginal = "Includes Network Original";
+    const QString AudioSpatialProcessingPreDelay = "Add Pre-Delay";
+    const QString AudioSpatialProcessingProcessLocalAudio = "Process Local Audio";
+    const QString AudioSpatialProcessingRenderPaths = "Render Paths";
+    const QString AudioSpatialProcessingSeparateEars = "Separate Ears";
+    const QString AudioSpatialProcessingSlightlyRandomSurfaces = "Slightly Random Surfaces";
+    const QString AudioSpatialProcessingStereoSource = "Stereo Source";
+    const QString AudioSpatialProcessingWithDiffusions = "With Diffusions";
+
     const QString Avatars = "Avatars";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";

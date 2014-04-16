@@ -423,6 +423,10 @@ Menu::Menu() :
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_X,
                                            true);
 
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingProcessLocalAudio,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_A,
+                                           true);
+
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
                 Qt::CTRL | Qt::SHIFT | Qt::Key_V,
                 this,

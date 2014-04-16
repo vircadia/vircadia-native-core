@@ -224,7 +224,7 @@ void AudioReflector::injectAudiblePoint(const AudiblePoint& audiblePoint,
     _audio->addSpatialAudioToBuffer(sampleTimeRight, attenuatedRightSamples, totalNumberOfSamples);
 }
 void AudioReflector::processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
-    // nothing yet, but will do local reflections too...
+    echoAudio(sampleTime, samples, format);
 }
 
 void AudioReflector::processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
