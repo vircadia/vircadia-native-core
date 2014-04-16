@@ -71,7 +71,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
             
             int socketHandle = LimitedNodeList::getInstance()->getDTLSSocket().socketDescriptor();
 #if defined(IP_DONTFRAG)
-            int optValue = 1;yea
+            int optValue = 1;
             setsockopt(socketHandle, IPPROTO_IP, IP_DONTFRAG, (const void*) optValue, sizeof(optValue));
 #elif defined(IP_MTU_DISCOVER)
             int optValue = 1;
