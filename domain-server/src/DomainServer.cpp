@@ -311,8 +311,7 @@ const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
     << NodeType::MetavoxelServer;
 
 
-void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packet, const HifiSockAddr& senderSockAddr,
-                                                         const QJsonObject& authJsonObject) {
+void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packet, const HifiSockAddr& senderSockAddr) {
 
     NodeType_t nodeType;
     HifiSockAddr publicSockAddr, localSockAddr;
@@ -336,7 +335,8 @@ void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packe
     // create a new session UUID for this node
     QUuid nodeUUID = QUuid::createUuid();
     
-    SharedNodePointer newNode = LimitedNodeList::getInstance()->addOrUpdateNode(nodeUUID, nodeType, publicSockAddr, localSockAddr);
+    SharedNodePointer newNode = LimitedNodeList::getInstance()->addOrUpdateNode(nodeUUID, nodeType,
+                                                                                publicSockAddr, localSockAddr);
     
     // when the newNode is created the linked data is also created
     // if this was a static assignment set the UUID, set the sendingSockAddr
@@ -344,12 +344,6 @@ void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packe
     
     nodeData->setStaticAssignmentUUID(assignmentUUID);
     nodeData->setSendingSockAddr(senderSockAddr);
-    
-    if (!authJsonObject.isEmpty()) {
-        // pull the connection secret from the authJsonObject and set it as the connection secret for this node
-        QUuid connectionSecret(authJsonObject["data"].toObject()["connection_secret"].toString());
-        newNode->setConnectionSecret(connectionSecret);
-    }
     
     // reply back to the user with a PacketTypeDomainList
     sendDomainListToNode(newNode, senderSockAddr, nodeInterestListFromPacket(packet, numPreInterestBytes));
@@ -360,18 +354,6 @@ int DomainServer::parseNodeDataFromByteArray(NodeType_t& nodeType, HifiSockAddr&
                                               const HifiSockAddr& senderSockAddr) {
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));
-    
-    if (packetTypeForPacket(packet) == PacketTypeDomainConnectRequest) {
-        // we need to skip a quint8 that indicates if there is a registration token
-        // and potentially the registration token itself
-        quint8 hasRegistrationToken;
-        packetStream >> hasRegistrationToken;
-        
-        if (hasRegistrationToken) {
-            QByteArray registrationToken;
-            packetStream >> registrationToken;
-        }
-    }
     
     packetStream >> nodeType;
     packetStream >> publicSockAddr >> localSockAddr;
@@ -648,7 +630,11 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
     if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
         PacketType requestType = packetTypeForPacket(receivedPacket);
         
-        if (requestType == PacketTypeDomainListRequest) {
+        if (requestType == PacketTypeDomainConnectRequest) {
+            // add this node to our NodeList
+            // and send back session UUID right away
+            addNodeToNodeListAndConfirmConnection(receivedPacket, senderSockAddr);
+        } else if (requestType == PacketTypeDomainListRequest) {
             QUuid nodeUUID = uuidFromPacketHeader(receivedPacket);
             
             if (!nodeUUID.isNull() && nodeList->nodeWithUUID(nodeUUID)) {
@@ -665,12 +651,7 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
                 checkInNode->setLastHeardMicrostamp(timeNow);
             
                 sendDomainListToNode(checkInNode, senderSockAddr, nodeInterestListFromPacket(receivedPacket, numNodeInfoBytes));
-            } else {
-                // new node - add this node to our NodeList
-                // and send back session UUID right away
-                addNodeToNodeListAndConfirmConnection(receivedPacket, senderSockAddr);
             }
-            
         } else if (requestType == PacketTypeNodeJsonStats) {
             SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
             if (matchingNode) {

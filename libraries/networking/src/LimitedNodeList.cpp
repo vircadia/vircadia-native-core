@@ -331,7 +331,7 @@ void LimitedNodeList::processKillNode(const QByteArray& dataByteArray) {
     killNodeWithUUID(nodeUUID);
 }
 
-SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
+SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                             const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
     _nodeHashMutex.lock();
     

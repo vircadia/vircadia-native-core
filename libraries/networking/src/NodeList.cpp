@@ -376,10 +376,14 @@ void NodeList::sendDomainServerCheckIn() {
             }
         }
         
-        // construct the DS check in packet
-        QUuid packetUUID = (!_sessionUUID.isNull() ? _sessionUUID : _domainHandler.getAssignmentUUID());
+        PacketType domainPacketType = _sessionUUID.isNull()
+            ? PacketTypeDomainConnectRequest : PacketTypeDomainListRequest;
         
-        QByteArray domainServerPacket = byteArrayWithPopulatedHeader(PacketTypeDomainListRequest, packetUUID);
+        // construct the DS check in packet
+        QUuid packetUUID = (domainPacketType == PacketTypeDomainListRequest
+                            ? _sessionUUID : _domainHandler.getAssignmentUUID());
+        
+        QByteArray domainServerPacket = byteArrayWithPopulatedHeader(domainPacketType, packetUUID);
         QDataStream packetStream(&domainServerPacket, QIODevice::Append);
         
         // pack our data to send to the domain-server
