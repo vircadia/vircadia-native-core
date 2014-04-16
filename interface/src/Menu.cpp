@@ -826,23 +826,22 @@ void Menu::editPreferences() {
 }
 
 void Menu::goToDomain(const QString newDomain) {
-    if (NodeList::getInstance()->getDomainInfo().getHostname() != newDomain) {
-
+    if (NodeList::getInstance()->getDomainHandler().getHostname() != newDomain) {
         // send a node kill request, indicating to other clients that they should play the "disappeared" effect
         Application::getInstance()->getAvatar()->sendKillAvatar();
 
         // give our nodeList the new domain-server hostname
-        NodeList::getInstance()->getDomainInfo().setHostname(newDomain);
+        NodeList::getInstance()->getDomainHandler().setHostname(newDomain);
     }
 }
 
 void Menu::goToDomainDialog() {
 
-    QString currentDomainHostname = NodeList::getInstance()->getDomainInfo().getHostname();
+    QString currentDomainHostname = NodeList::getInstance()->getDomainHandler().getHostname();
 
-    if (NodeList::getInstance()->getDomainInfo().getPort() != DEFAULT_DOMAIN_SERVER_PORT) {
+    if (NodeList::getInstance()->getDomainHandler().getPort() != DEFAULT_DOMAIN_SERVER_PORT) {
         // add the port to the currentDomainHostname string if it is custom
-        currentDomainHostname.append(QString(":%1").arg(NodeList::getInstance()->getDomainInfo().getPort()));
+        currentDomainHostname.append(QString(":%1").arg(NodeList::getInstance()->getDomainHandler().getPort()));
     }
 
     QInputDialog domainDialog(Application::getInstance()->getWindow());
@@ -1035,7 +1034,7 @@ void Menu::nameLocation() {
         connect(manager, &LocationManager::creationCompleted, this, &Menu::namedLocationCreated);
         NamedLocation* location = new NamedLocation(locationName,
                                                     myAvatar->getPosition(), myAvatar->getOrientation(),
-                                                    NodeList::getInstance()->getDomainInfo().getHostname());
+                                                    NodeList::getInstance()->getDomainHandler().getHostname());
         manager->createNamedLocation(location);
     }
 }
@@ -1108,18 +1107,12 @@ void Menu::showChat() {
         mainWindow->addDockWidget(Qt::RightDockWidgetArea, _chatWindow = new ChatWindow());
     }
     if (!_chatWindow->toggleViewAction()->isChecked()) {
-        int width = _chatWindow->width();
-        int y = qMax((mainWindow->height() - _chatWindow->height()) / 2, 0);
-        _chatWindow->move(mainWindow->width(), y);
+        const QRect& windowGeometry = mainWindow->geometry();
+        _chatWindow->move(windowGeometry.topRight().x() - _chatWindow->width(),
+                          windowGeometry.topRight().y() + (windowGeometry.height() / 2) - (_chatWindow->height() / 2));
+
         _chatWindow->resize(0, _chatWindow->height());
         _chatWindow->toggleViewAction()->trigger();
-
-        QPropertyAnimation* slideAnimation = new QPropertyAnimation(_chatWindow, "geometry", _chatWindow);
-        slideAnimation->setStartValue(_chatWindow->geometry());
-        slideAnimation->setEndValue(QRect(mainWindow->width() - width, _chatWindow->y(),
-                                          width, _chatWindow->height()));
-        slideAnimation->setDuration(250);
-        slideAnimation->start(QAbstractAnimation::DeleteWhenStopped);
     }
 }
 

@@ -21,7 +21,6 @@
 #include <string.h>
 
 #ifdef _WIN32
-#include "Syssocket.h"
 #include "Systime.h"
 #include <math.h>
 #else
@@ -372,7 +371,7 @@ void AudioMixer::sendStatsPacket() {
         statsObject["average_mixes_per_listener"] = 0.0;
     }
     
-    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
+//    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
     
     _sumListeners = 0;
     _sumMixes = 0;
