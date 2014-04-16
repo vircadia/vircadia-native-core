@@ -25,7 +25,6 @@
 #include <QMessageBox>
 #include <QShortcut>
 #include <QSlider>
-#include <QStandardPaths>
 #include <QUuid>
 #include <QHBoxLayout>
 
@@ -87,7 +86,8 @@ Menu::Menu() :
     _fpsAverage(FIVE_SECONDS_OF_FRAMES),
     _fastFPSAverage(ONE_SECOND_OF_FRAMES),
     _loginAction(NULL),
-    _preferencesDialog(NULL)
+    _preferencesDialog(NULL),
+    _snapshotsLocation()
 {
     Application *appInstance = Application::getInstance();
 
@@ -417,6 +417,8 @@ void Menu::loadSettings(QSettings* settings) {
     _maxVoxelPacketsPerSecond = loadSetting(settings, "maxVoxelsPPS", DEFAULT_MAX_VOXEL_PPS);
     _voxelSizeScale = loadSetting(settings, "voxelSizeScale", DEFAULT_OCTREE_SIZE_SCALE);
     _boundaryLevelAdjust = loadSetting(settings, "boundaryLevelAdjust", 0);
+    _snapshotsLocation = settings->value("snapshotsLocation",
+                                         QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)).toString();
 
     settings->beginGroup("View Frustum Offset Camera");
     // in case settings is corrupt or missing loadSetting() will check for NaN
@@ -456,6 +458,7 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("maxVoxelsPPS", _maxVoxelPacketsPerSecond);
     settings->setValue("voxelSizeScale", _voxelSizeScale);
     settings->setValue("boundaryLevelAdjust", _boundaryLevelAdjust);
+    settings->setValue("snapshotsLocation", _snapshotsLocation);
     settings->beginGroup("View Frustum Offset Camera");
     settings->setValue("viewFrustumOffsetYaw", _viewFrustumOffset.yaw);
     settings->setValue("viewFrustumOffsetPitch", _viewFrustumOffset.pitch);
@@ -1509,4 +1512,11 @@ void Menu::removeMenuItem(const QString& menu, const QString& menuitem) {
     }
     QMenuBar::repaint();
 };
+
+QString Menu::getSnapshotsLocation() const {
+    if (_snapshotsLocation.isNull() || _snapshotsLocation.isEmpty() || QDir(_snapshotsLocation).exists() == false) {
+        return QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    }
+    return _snapshotsLocation;
+}
 
