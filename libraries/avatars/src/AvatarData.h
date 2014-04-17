@@ -32,6 +32,7 @@ typedef unsigned long long quint64;
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <QtCore/QElapsedTimer>
 #include <QtCore/QByteArray>
 #include <QtCore/QHash>
 #include <QtCore/QObject>
@@ -224,6 +225,8 @@ public:
     Node* getOwningAvatarMixer() { return _owningAvatarMixer.data(); }
     void setOwningAvatarMixer(const QWeakPointer<Node>& owningAvatarMixer) { _owningAvatarMixer = owningAvatarMixer; }
     
+    QElapsedTimer& getLastUpdateTimer() { return _lastUpdateTimer; }
+     
     virtual float getBoundingRadius() const { return 1.f; }
     
     static void setNetworkAccessManager(QNetworkAccessManager* sharedAccessManager) { networkAccessManager = sharedAccessManager; }
@@ -284,7 +287,8 @@ protected:
     quint64 _errorLogExpiry; ///< time in future when to log an error
     
     QWeakPointer<Node> _owningAvatarMixer;
-
+    QElapsedTimer _lastUpdateTimer;
+    
     /// Loads the joint indices, names from the FST file (if any)
     virtual void updateJointMappings();
 
