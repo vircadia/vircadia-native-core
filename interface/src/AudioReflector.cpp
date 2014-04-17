@@ -593,7 +593,6 @@ void AudioReflector::handlePathPoint(AudioPath* path, float distance, OctreeElem
 
     pathDistance += glm::distance(start, end);
 
-    // We aren't using this... should we be????
     float toListenerDistance = glm::distance(end, _listenerPosition);
 
     // adjust our current delay by just the delay from the most recent ray
@@ -609,7 +608,7 @@ void AudioReflector::handlePathPoint(AudioPath* path, float distance, OctreeElem
     bool wantDiffusions = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingWithDiffusions);
     int fanout = wantDiffusions ? _diffusionFanout : 0;
 
-    float partialDiffusionAttenuation = fanout < 1 ? 0.0f : totalDiffusionAttenuation / fanout;
+    float partialDiffusionAttenuation = fanout < 1 ? 0.0f : totalDiffusionAttenuation / (float)fanout;
 
     // total delay includes the bounce back to listener
     float totalDelay = currentDelay + getDelayFromDistance(toListenerDistance);
