@@ -29,7 +29,7 @@
 const int NUM_MESSAGES_TO_TIME_STAMP = 20;
 
 const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?))://\\S+)");
-const QRegularExpression regexHifiLinks("\\s([#@]\\S+)");
+const QRegularExpression regexHifiLinks("([#@]\\S+)");
 
 ChatWindow::ChatWindow(QWidget* parent) :
     FramelessDialog(parent, 0, POSITION_RIGHT),
