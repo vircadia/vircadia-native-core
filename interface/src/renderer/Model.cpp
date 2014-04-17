@@ -500,7 +500,12 @@ void Model::rebuildShapes() {
 
         float radius = uniformScale * joint.boneRadius;
         float halfHeight = 0.5f * uniformScale * joint.distanceToParent;
-        if (joint.shapeType == Shape::CAPSULE_SHAPE && halfHeight > EPSILON) {
+        Shape::Type type = joint.shapeType;
+        if (type == Shape::CAPSULE_SHAPE && halfHeight < EPSILON) {
+            // this capsule is effectively a sphere
+            type = Shape::SPHERE_SHAPE;
+        }
+        if (type == Shape::CAPSULE_SHAPE) {
             CapsuleShape* capsule = new CapsuleShape(radius, halfHeight);
             capsule->setPosition(worldPosition);
             capsule->setRotation(_jointStates[i].combinedRotation * joint.shapeRotation);
@@ -523,18 +528,23 @@ void Model::rebuildShapes() {
 
 
             totalExtents.addExtents(shapeExtents);
-        } else {
+        } else if (type == Shape::SPHERE_SHAPE) {
             SphereShape* sphere = new SphereShape(radius, worldPosition);
             _jointShapes.push_back(sphere);
 
-            if (radius > 0.0f) {
-                // only include sphere shapes with non-zero radius
-                glm::vec3 axis = glm::vec3(radius);
-                shapeExtents.addPoint(worldPosition + axis);
-                shapeExtents.addPoint(worldPosition - axis);
-                totalExtents.addExtents(shapeExtents);
-            }
+            glm::vec3 axis = glm::vec3(radius);
+            shapeExtents.addPoint(worldPosition + axis);
+            shapeExtents.addPoint(worldPosition - axis);
+            totalExtents.addExtents(shapeExtents);
+        } else {
+            // this shape type is not handled and the joint shouldn't collide, 
+            // however we must have a shape for each joint, 
+            // so we make a bogus sphere and put it at the center of the model
+            // TODO: implement collision groups for more control over what collides with what
+            SphereShape* sphere = new SphereShape(0.f, _offset);
+            _jointShapes.push_back(sphere);
         }
+
     }
 
     // bounding shape

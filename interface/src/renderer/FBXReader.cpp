@@ -1651,8 +1651,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             if (distanceFromEnd > joint.distanceToParent && distanceFromBegin > joint.distanceToParent) {
                 // The shape is further from both joint endpoints than the endpoints are from each other
                 // which probably means the model has a bad transform somewhere.  We disable this shape
-                // by setting its radius to zero.
-                joint.boneRadius = 0.0f;
+                // by setting its type to UNKNOWN_SHAPE.
+                joint.shapeType = Shape::UNKNOWN_SHAPE;
             }
         }
     }

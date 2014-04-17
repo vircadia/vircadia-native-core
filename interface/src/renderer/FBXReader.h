@@ -18,6 +18,8 @@
 #include <QVariant>
 #include <QVector>
 
+#include <Shape.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
@@ -91,7 +93,7 @@ public:
     QString name;
     glm::vec3 shapePosition;  // in joint frame
     glm::quat shapeRotation;  // in joint frame
-    int shapeType;
+    Shape::Type shapeType;
 };
 
 
