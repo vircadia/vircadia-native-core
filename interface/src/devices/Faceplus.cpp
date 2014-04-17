@@ -15,9 +15,10 @@
 #include <faceplus.h>
 #endif
 
+#include <FBXReader.h>
+
 #include "Application.h"
 #include "Faceplus.h"
-#include "renderer/FBXReader.h"
 
 static int floatVectorMetaTypeId = qRegisterMetaType<QVector<float> >();
 

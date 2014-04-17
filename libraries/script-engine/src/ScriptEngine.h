@@ -23,6 +23,7 @@
 
 #include <AvatarData.h>
 
+#include "AnimationCache.h"
 #include "AbstractControllerScriptingInterface.h"
 #include "Quat.h"
 #include "ScriptUUID.h"
@@ -125,6 +126,7 @@ private:
     Quat _quatLibrary;
     Vec3 _vec3Library;
     ScriptUUID _uuidLibrary;
+    AnimationCache _animationCache;
 };
 
 #endif // hifi_ScriptEngine_h

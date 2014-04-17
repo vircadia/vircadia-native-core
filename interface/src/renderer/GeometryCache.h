@@ -20,7 +20,7 @@
 
 #include <ResourceCache.h>
 
-#include "FBXReader.h"
+#include <FBXReader.h>
 
 class Model;
 class NetworkGeometry;
