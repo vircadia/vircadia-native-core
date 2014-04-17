@@ -510,24 +510,38 @@ void Model::rebuildShapes() {
             capsule->getEndPoint(endPoint);
             glm::vec3 startPoint;
             capsule->getStartPoint(startPoint);
-            glm::vec3 axis = (halfHeight + radius) * glm::normalize(endPoint - startPoint);
+
+            // add some points that bound a sphere at the center of the capsule
+            glm::vec3 axis = glm::vec3(radius);
             shapeExtents.addPoint(worldPosition + axis);
             shapeExtents.addPoint(worldPosition - axis);
+            
+            // add the two furthest surface points of the capsule
+            axis = (halfHeight + radius) * glm::normalize(endPoint - startPoint);
+            shapeExtents.addPoint(worldPosition + axis);
+            shapeExtents.addPoint(worldPosition - axis);
+
+
+            totalExtents.addExtents(shapeExtents);
         } else {
             SphereShape* sphere = new SphereShape(radius, worldPosition);
             _jointShapes.push_back(sphere);
 
-            glm::vec3 axis = glm::vec3(radius);
-            shapeExtents.addPoint(worldPosition + axis);
-            shapeExtents.addPoint(worldPosition - axis);
+            if (radius > 0.0f) {
+                // only include sphere shapes with non-zero radius
+                glm::vec3 axis = glm::vec3(radius);
+                shapeExtents.addPoint(worldPosition + axis);
+                shapeExtents.addPoint(worldPosition - axis);
+                totalExtents.addExtents(shapeExtents);
+            }
         }
-        totalExtents.addExtents(shapeExtents);
     }
 
     // bounding shape
     // NOTE: we assume that the longest side of totalExtents is the yAxis
     glm::vec3 diagonal = totalExtents.maximum - totalExtents.minimum;
-    float capsuleRadius = 0.25f * (diagonal.x + diagonal.z);    // half the average of x and z
+    // the radius is half the RMS of the X and Z sides:
+    float capsuleRadius = 0.5f * sqrtf(0.5f * (diagonal.x * diagonal.x + diagonal.z * diagonal.z));
     _boundingShape.setRadius(capsuleRadius);
     _boundingShape.setHalfHeight(0.5f * diagonal.y - capsuleRadius);
     _boundingShapeLocalOffset = inverseRotation * (0.5f * (totalExtents.maximum + totalExtents.minimum) - rootPosition);
