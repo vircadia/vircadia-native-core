@@ -44,9 +44,6 @@ ChatWindow::ChatWindow(QWidget* parent) :
     FlowLayout* flowLayout = new FlowLayout(0, 4, 4);
     ui->usersWidget->setLayout(flowLayout);
 
-    ui->messagesGridLayout->setColumnStretch(0, 1);
-    ui->messagesGridLayout->setColumnStretch(1, 3);
-
     ui->messagePlainTextEdit->installEventFilter(this);
     ui->messagePlainTextEdit->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
 
@@ -172,8 +169,8 @@ void ChatWindow::addTimeStamp() {
 
         bool atBottom = isAtBottom();
 
-        ui->messagesGridLayout->addWidget(timeLabel, ui->messagesGridLayout->rowCount(), 0, 1, 2);
-        ui->messagesGridLayout->parentWidget()->updateGeometry();
+        ui->messagesVBoxLayout->addWidget(timeLabel);
+        ui->messagesVBoxLayout->parentWidget()->updateGeometry();
 
         Application::processEvents();
         numMessagesAfterLastTimeStamp = 0;
@@ -251,29 +248,8 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
         return;
     }
 
-    // Create username label
-    ChatMessageArea* userLabel = new ChatMessageArea(false);
-    userLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Maximum);
-    userLabel->setWordWrapMode(QTextOption::NoWrap);
-    userLabel->setLineWrapMode(QTextEdit::NoWrap);
-    userLabel->setTextInteractionFlags(Qt::NoTextInteraction);
-    userLabel->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    userLabel->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    userLabel->setReadOnly(true);
-    userLabel->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
-
-    userLabel->setStyleSheet("padding: 2px;"
-                             "font-weight: bold;"
-                             "background-color: rgba(0, 0, 0, 0%);"
-                             "border: 0;");
-
-    QTextBlockFormat format;
-    format.setLineHeight(130, QTextBlockFormat::ProportionalHeight);
-    QTextCursor cursor = userLabel->textCursor();
-    cursor.setBlockFormat(format);
-    cursor.insertText(getParticipantName(message.from()));
-
-    userLabel->setAlignment(Qt::AlignRight);
+    // Update background if this is a message from the current user
+    bool fromSelf = getParticipantName(message.from()) == AccountManager::getInstance().getUsername();
 
     // Create message area
     ChatMessageArea* messageArea = new ChatMessageArea(true);
@@ -289,30 +265,27 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
                                "padding-left: 2px;"
                                "padding-top: 2px;"
                                "padding-right: 20px;"
+                               "margin: 0px;"
+                               "color: #333333;"
+                               "font-size: 14pt;"
                                "background-color: rgba(0, 0, 0, 0%);"
                                "border: 0;");
 
-    // Update background if this is a message from the current user
-    bool fromSelf = getParticipantName(message.from()) == AccountManager::getInstance().getUsername();
+    QString userLabel = getParticipantName(message.from());
     if (fromSelf) {
-        userLabel->setStyleSheet(userLabel->styleSheet() + "background-color: #e1e8ea");
+        userLabel = "<b style=\"color: #4a6f91\">" + userLabel + ": </b>";
         messageArea->setStyleSheet(messageArea->styleSheet() + "background-color: #e1e8ea");
+    } else {
+        userLabel = "<b>" + userLabel + ": </b>";
     }
 
     messageArea->document()->setDefaultStyleSheet("a { text-decoration: none; font-weight: bold; color: #267077;}");
-    messageArea->setHtml(message.body().replace(regexLinks, "<a href=\"\\1\">\\1</a>"));
+    messageArea->setHtml(userLabel + message.body().replace(regexLinks, "<a href=\"\\1\">\\1</a>"));
 
     bool atBottom = isAtBottom();
-    ui->messagesGridLayout->addWidget(userLabel, ui->messagesGridLayout->rowCount(), 0);
-    ui->messagesGridLayout->addWidget(messageArea, ui->messagesGridLayout->rowCount() - 1, 1);
 
-    // Force the height of the username area to match the height of the message area
-    connect(messageArea, &ChatMessageArea::sizeChanged, userLabel, &ChatMessageArea::setSize);
-
-    // Force initial height to match message area
-    userLabel->setFixedHeight(messageArea->size().height());
-
-    ui->messagesGridLayout->parentWidget()->updateGeometry();
+    ui->messagesVBoxLayout->addWidget(messageArea);
+    ui->messagesVBoxLayout->parentWidget()->updateGeometry();
     Application::processEvents();
 
     if (atBottom || fromSelf) {

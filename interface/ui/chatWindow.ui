@@ -159,7 +159,10 @@ QPushButton:pressed {
         <property name="styleSheet">
          <string notr="true">margin-top: 0px;</string>
         </property>
-        <layout class="QGridLayout" name="messagesGridLayout">
+        <layout class="QVBoxLayout" name="messagesVBoxLayout">
+         <property name="spacing">
+          <number>0</number>
+         </property>
          <property name="leftMargin">
           <number>0</number>
          </property>
@@ -170,9 +173,6 @@ QPushButton:pressed {
           <number>0</number>
          </property>
          <property name="bottomMargin">
-          <number>0</number>
-         </property>
-         <property name="spacing">
           <number>0</number>
          </property>
         </layout>
@@ -213,8 +213,6 @@ QPushButton:pressed {
     </layout>
    </item>
   </layout>
-  <zorder>messagePlainTextEdit</zorder>
-  <zorder>dockWidgetContents</zorder>
  </widget>
  <tabstops>
   <tabstop>messagePlainTextEdit</tabstop>
