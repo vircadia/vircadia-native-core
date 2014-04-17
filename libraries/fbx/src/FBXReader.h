@@ -103,6 +103,14 @@ public:
     glm::mat4 inverseBindMatrix;
 };
 
+/// A texture map in an FBX document.
+class FBXTexture {
+public:
+    
+    QByteArray filename;
+    QByteArray content;
+};
+
 /// A single part of a mesh (with the same material).
 class FBXMeshPart {
 public:
@@ -114,8 +122,8 @@ public:
     glm::vec3 specularColor;
     float shininess;
     
-    QByteArray diffuseFilename;
-    QByteArray normalFilename;
+    FBXTexture diffuseTexture;
+    FBXTexture normalTexture;
 };
 
 /// A single mesh (with optional blendshapes) extracted from an FBX document.

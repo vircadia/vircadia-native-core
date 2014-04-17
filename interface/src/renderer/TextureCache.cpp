@@ -105,13 +105,22 @@ GLuint TextureCache::getBlueTextureID() {
     return _blueTextureID;
 }
 
-QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url, bool normalMap, bool dilatable) {
+/// Extra data for creating textures.
+class TextureExtra {
+public:
+    bool normalMap;
+    const QByteArray& content;
+};
+
+QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url, bool normalMap,
+        bool dilatable, const QByteArray& content) {
     if (!dilatable) {
-        return ResourceCache::getResource(url, QUrl(), false, &normalMap).staticCast<NetworkTexture>();
+        TextureExtra extra = { normalMap, content };
+        return ResourceCache::getResource(url, QUrl(), false, &extra).staticCast<NetworkTexture>();
     }
     QSharedPointer<NetworkTexture> texture = _dilatableNetworkTextures.value(url);
     if (texture.isNull()) {
-        texture = QSharedPointer<NetworkTexture>(new DilatableNetworkTexture(url), &Resource::allReferencesCleared);
+        texture = QSharedPointer<NetworkTexture>(new DilatableNetworkTexture(url, content), &Resource::allReferencesCleared);
         texture->setSelf(texture);
         texture->setCache(this);
         _dilatableNetworkTextures.insert(url, texture);
@@ -215,7 +224,9 @@ bool TextureCache::eventFilter(QObject* watched, QEvent* event) {
 
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
-    return QSharedPointer<Resource>(new NetworkTexture(url, *(const bool*)extra), &Resource::allReferencesCleared);
+    const TextureExtra* textureExtra = static_cast<const TextureExtra*>(extra);
+    return QSharedPointer<Resource>(new NetworkTexture(url, textureExtra->normalMap, textureExtra->content),
+        &Resource::allReferencesCleared);
 }
 
 QOpenGLFramebufferObject* TextureCache::createFramebufferObject() {
@@ -238,8 +249,8 @@ Texture::~Texture() {
     glDeleteTextures(1, &_id);
 }
 
-NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap) :
-    Resource(url),
+NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap, const QByteArray& content) :
+    Resource(url, !content.isEmpty()),
     _translucent(false) {
     
     if (!url.isValid()) {
@@ -250,12 +261,19 @@ NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap) :
     glBindTexture(GL_TEXTURE_2D, getID());
     loadSingleColorTexture(normalMap ? OPAQUE_BLUE : OPAQUE_WHITE);
     glBindTexture(GL_TEXTURE_2D, 0);
+    
+    // if we have content, load it after we have our self pointer
+    if (!content.isEmpty()) {
+        _startedLoading = true;
+        QMetaObject::invokeMethod(this, "loadContent", Qt::QueuedConnection, Q_ARG(const QByteArray&, content));
+    }
 }
 
 class ImageReader : public QRunnable {
 public:
 
-    ImageReader(const QWeakPointer<Resource>& texture, QNetworkReply* reply);
+    ImageReader(const QWeakPointer<Resource>& texture, QNetworkReply* reply, const QUrl& url = QUrl(),
+        const QByteArray& content = QByteArray());
     
     virtual void run();
 
@@ -263,27 +281,37 @@ private:
     
     QWeakPointer<Resource> _texture;
     QNetworkReply* _reply;
+    QUrl _url;
+    QByteArray _content;
 };
 
-ImageReader::ImageReader(const QWeakPointer<Resource>& texture, QNetworkReply* reply) :
+ImageReader::ImageReader(const QWeakPointer<Resource>& texture, QNetworkReply* reply,
+        const QUrl& url, const QByteArray& content) :
     _texture(texture),
-    _reply(reply) {
+    _reply(reply),
+    _url(url),
+    _content(content) {
 }
 
 void ImageReader::run() {
     QSharedPointer<Resource> texture = _texture.toStrongRef();
     if (texture.isNull()) {
-        _reply->deleteLater();
+        if (_reply) {
+            _reply->deleteLater();
+        }
         return;
     }
-    QUrl url = _reply->url();
-    QImage image = QImage::fromData(_reply->readAll());
-    _reply->deleteLater();
+    if (_reply) {
+        _url = _reply->url();
+        _content = _reply->readAll();
+        _reply->deleteLater();
+    }
+    QImage image = QImage::fromData(_content);
     
     // enforce a fixed maximum
     const int MAXIMUM_SIZE = 1024;
     if (image.width() > MAXIMUM_SIZE || image.height() > MAXIMUM_SIZE) {
-        qDebug() << "Image greater than maximum size:" << url << image.width() << image.height();
+        qDebug() << "Image greater than maximum size:" << _url << image.width() << image.height();
         image = image.scaled(MAXIMUM_SIZE, MAXIMUM_SIZE, Qt::KeepAspectRatio);
     }
     
@@ -315,7 +343,7 @@ void ImageReader::run() {
     }
     int imageArea = image.width() * image.height();
     if (opaquePixels == imageArea) {
-        qDebug() << "Image with alpha channel is completely opaque:" << url;
+        qDebug() << "Image with alpha channel is completely opaque:" << _url;
         image = image.convertToFormat(QImage::Format_RGB888);
     }
     QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image),
@@ -325,6 +353,10 @@ void ImageReader::run() {
 void NetworkTexture::downloadFinished(QNetworkReply* reply) {
     // send the reader off to the thread pool
     QThreadPool::globalInstance()->start(new ImageReader(_self, reply));
+}
+
+void NetworkTexture::loadContent(const QByteArray& content) {
+    QThreadPool::globalInstance()->start(new ImageReader(_self, NULL, _url, content));
 }
 
 void NetworkTexture::setImage(const QImage& image, bool translucent) {
@@ -348,8 +380,8 @@ void NetworkTexture::imageLoaded(const QImage& image) {
     // nothing by default
 }
 
-DilatableNetworkTexture::DilatableNetworkTexture(const QUrl& url) :
-    NetworkTexture(url, false),
+DilatableNetworkTexture::DilatableNetworkTexture(const QUrl& url, const QByteArray& content) :
+    NetworkTexture(url, false, content),
     _innerRadius(0),
     _outerRadius(0)
 {
