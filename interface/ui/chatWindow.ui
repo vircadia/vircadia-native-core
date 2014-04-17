@@ -128,7 +128,13 @@ QPushButton:pressed {
       </layout>
      </item>
      <item>
-      <widget class="QWidget" name="usersWidget" native="true"/>
+      <widget class="QWidget" name="usersWidget" native="true">
+       <property name="styleSheet">
+        <string notr="true">#usersWidget {
+	margin-right: 20px;
+}</string>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QScrollArea" name="messagesScrollArea">
