@@ -540,7 +540,7 @@ int AudioReflector::analyzePathsSingleStep() {
 
     QVector<AudioPath*>* pathsLists[] = { &_inboundAudioPaths, &_localAudioPaths };
 
-    for(int i = 0; i < sizeof(pathsLists) / sizeof(pathsLists[0]); i ++) {
+    for(unsigned int i = 0; i < sizeof(pathsLists) / sizeof(pathsLists[0]); i++) {
 
         QVector<AudioPath*>& pathList = *pathsLists[i];
 
