@@ -23,7 +23,8 @@ enum BoxFace {
     MIN_Y_FACE,
     MAX_Y_FACE,
     MIN_Z_FACE,
-    MAX_Z_FACE
+    MAX_Z_FACE,
+    UNKNOWN_FACE
 };
 
 enum BoxVertex {
