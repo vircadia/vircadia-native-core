@@ -38,26 +38,34 @@ void PreferencesDialog::accept() {
 
 void PreferencesDialog::setHeadUrl(QString modelUrl) {
     ui.faceURLEdit->setText(modelUrl);
-    setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
 }
 
 void PreferencesDialog::setSkeletonUrl(QString modelUrl) {
     ui.skeletonURLEdit->setText(modelUrl);
-    setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
 }
 
 void PreferencesDialog::openHeadModelBrowser() {
     setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
+    show();
+
     ModelsBrowser modelBrowser(Head);
     connect(&modelBrowser, &ModelsBrowser::selected, this, &PreferencesDialog::setHeadUrl);
     modelBrowser.browse();
+
+    setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
+    show();
 }
 
 void PreferencesDialog::openBodyModelBrowser() {
     setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
+    show();
+
     ModelsBrowser modelBrowser(Skeleton);
     connect(&modelBrowser, &ModelsBrowser::selected, this, &PreferencesDialog::setSkeletonUrl);
     modelBrowser.browse();
+
+    setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
+    show();
 }
 
 void PreferencesDialog::openSnapshotLocationBrowser() {
