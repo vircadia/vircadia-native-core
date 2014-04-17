@@ -23,8 +23,6 @@ AnimationCache::AnimationCache(QObject* parent) :
 
 AnimationPointer AnimationCache::getAnimation(const QUrl& url) {
     if (QThread::currentThread() != thread()) {
-        qDebug() << "blocking call!";
-        
         AnimationPointer result;
         QMetaObject::invokeMethod(this, "getAnimation", Qt::BlockingQueuedConnection,
             Q_RETURN_ARG(AnimationPointer, result), Q_ARG(const QUrl&, url));
