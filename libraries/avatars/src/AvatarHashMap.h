@@ -16,6 +16,8 @@
 #include <QtCore/QSharedPointer>
 #include <QtCore/QUuid>
 
+#include <Node.h>
+
 #include "AvatarData.h"
 
 typedef QSharedPointer<AvatarData> AvatarSharedPointer;
@@ -32,6 +34,16 @@ public:
 
 protected:
     virtual AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
+    
+    virtual AvatarSharedPointer newSharedAvatar();
+    virtual void sharedAvatarAddedToHash(const AvatarSharedPointer& sharedAvatar,
+                                         const QWeakPointer<Node>& mixerWeakPointer) = 0;
+    AvatarSharedPointer matchingOrNewAvatar(const QUuid& nodeUUID, const QWeakPointer<Node>& mixerWeakPointer);
+    
+    void processAvatarDataPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
+    void processAvatarIdentityPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
+    void processAvatarBillboardPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
+    void processKillAvatar(const QByteArray& datagram);
 
     AvatarHash _avatarHash;
 };

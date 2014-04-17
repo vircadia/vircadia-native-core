@@ -42,12 +42,7 @@ public slots:
 private:
     AvatarManager(const AvatarManager& other);
     
-    AvatarSharedPointer matchingOrNewAvatar(const QUuid& nodeUUID, const QWeakPointer<Node>& mixerWeakPointer);
-    
-    void processAvatarDataPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
-    void processAvatarIdentityPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
-    void processAvatarBillboardPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
-    void processKillAvatar(const QByteArray& datagram);
+    void sharedAvatarAddedToHash(const AvatarSharedPointer& sharedAvatar, const QWeakPointer<Node>& mixerWeakPointer);
 
     void simulateAvatarFades(float deltaTime);
     void renderAvatarFades(const glm::vec3& cameraPosition, Avatar::RenderMode renderMode);

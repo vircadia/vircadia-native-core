@@ -685,6 +685,11 @@ void Avatar::setBillboard(const QByteArray& billboard) {
 }
 
 int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
+    if (!_initialized) {
+        // now that we have data for this Avatar we are go for init
+        init();
+    }
+    
     // change in position implies movement
     glm::vec3 oldPosition = _position;
     
