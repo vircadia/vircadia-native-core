@@ -51,14 +51,16 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     // simulate avatars
     AvatarHash::iterator avatarIterator = _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
-        Avatar* avatar = static_cast<Avatar*>(avatarIterator.value().data());
-        if (avatar == static_cast<Avatar*>(_myAvatar.data()) || !avatar->isInitialized()) {
+        AvatarSharedPointer sharedAvatar = avatarIterator.value();
+        Avatar* avatar = reinterpret_cast<Avatar*>(sharedAvatar.data());
+        
+        if (sharedAvatar == _myAvatar || !avatar->isInitialized()) {
             // DO NOT update _myAvatar!  Its update has already been done earlier in the main loop.
             // DO NOT update uninitialized Avatars
             ++avatarIterator;
             continue;
         }
-        if (avatar->getOwningAvatarMixer()) {
+        if (!shouldKillAvatar(sharedAvatar)) {
             // this avatar's mixer is still around, go ahead and simulate it
             avatar->simulate(deltaTime);
             avatar->setMouseRay(mouseOrigin, mouseDirection);
@@ -125,11 +127,6 @@ void AvatarManager::renderAvatarFades(const glm::vec3& cameraPosition, Avatar::R
             avatar->render(cameraPosition, renderMode);
         }
     }
-}
-
-void AvatarManager::sharedAvatarAddedToHash(const AvatarSharedPointer& sharedAvatar,
-                                            const QWeakPointer<Node>& mixerWeakPointer) {
-    reinterpret_cast<Avatar*>(sharedAvatar.data())->setOwningAvatarMixer(mixerWeakPointer);
 }
 
 void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer) {

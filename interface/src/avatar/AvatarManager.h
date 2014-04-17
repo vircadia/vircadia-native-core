@@ -41,8 +41,6 @@ public slots:
     
 private:
     AvatarManager(const AvatarManager& other);
-    
-    void sharedAvatarAddedToHash(const AvatarSharedPointer& sharedAvatar, const QWeakPointer<Node>& mixerWeakPointer);
 
     void simulateAvatarFades(float deltaTime);
     void renderAvatarFades(const glm::vec3& cameraPosition, Avatar::RenderMode renderMode);

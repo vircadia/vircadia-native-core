@@ -44,6 +44,7 @@ typedef unsigned long long quint64;
 
 #include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
+#include <Node.h>
 
 #include "HeadData.h"
 #include "HandData.h"
@@ -220,6 +221,9 @@ public:
     QString getSkeletonModelURLFromScript() const { return _skeletonModelURL.toString(); }
     void setSkeletonModelURLFromScript(const QString& skeletonModelString) { setSkeletonModelURL(QUrl(skeletonModelString)); }
     
+    Node* getOwningAvatarMixer() { return _owningAvatarMixer.data(); }
+    void setOwningAvatarMixer(const QWeakPointer<Node>& owningAvatarMixer) { _owningAvatarMixer = owningAvatarMixer; }
+    
     virtual float getBoundingRadius() const { return 1.f; }
     
     static void setNetworkAccessManager(QNetworkAccessManager* sharedAccessManager) { networkAccessManager = sharedAccessManager; }
@@ -278,6 +282,8 @@ protected:
     static QNetworkAccessManager* networkAccessManager;
 
     quint64 _errorLogExpiry; ///< time in future when to log an error
+    
+    QWeakPointer<Node> _owningAvatarMixer;
 
     /// Loads the joint indices, names from the FST file (if any)
     virtual void updateJointMappings();

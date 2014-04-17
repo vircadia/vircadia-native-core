@@ -35,9 +35,9 @@ public:
 protected:
     virtual AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
     
+    bool shouldKillAvatar(const AvatarSharedPointer& sharedAvatar);
+    
     virtual AvatarSharedPointer newSharedAvatar();
-    virtual void sharedAvatarAddedToHash(const AvatarSharedPointer& sharedAvatar,
-                                         const QWeakPointer<Node>& mixerWeakPointer) = 0;
     AvatarSharedPointer matchingOrNewAvatar(const QUuid& nodeUUID, const QWeakPointer<Node>& mixerWeakPointer);
     
     void processAvatarDataPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);

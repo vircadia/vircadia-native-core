@@ -56,7 +56,6 @@ Avatar::Avatar() :
     _mouseRayOrigin(0.0f, 0.0f, 0.0f),
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _moving(false),
-    _owningAvatarMixer(),
     _collisionFlags(0),
     _initialized(false),
     _shouldRenderBillboard(true)

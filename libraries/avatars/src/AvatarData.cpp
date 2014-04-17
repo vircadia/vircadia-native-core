@@ -51,7 +51,8 @@ AvatarData::AvatarData() :
     _displayNameTargetAlpha(0.0f), 
     _displayNameAlpha(0.0f),
     _billboard(),
-    _errorLogExpiry(0)
+    _errorLogExpiry(0),
+    _owningAvatarMixer()
 {
     
 }

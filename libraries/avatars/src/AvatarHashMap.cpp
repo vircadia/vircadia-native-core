@@ -27,6 +27,10 @@ AvatarHash::iterator AvatarHashMap::erase(const AvatarHash::iterator& iterator) 
     return _avatarHash.erase(iterator);
 }
 
+bool AvatarHashMap::shouldKillAvatar(const AvatarSharedPointer& sharedAvatar) {
+    return (sharedAvatar->getOwningAvatarMixer() == NULL);
+}
+
 AvatarSharedPointer AvatarHashMap::newSharedAvatar() {
     AvatarData* avatarData = new AvatarData();
     return AvatarSharedPointer(avatarData);
@@ -42,7 +46,7 @@ AvatarSharedPointer AvatarHashMap::matchingOrNewAvatar(const QUuid& sessionUUID,
         qDebug() << "Adding avatar with sessionUUID " << sessionUUID << "to AvatarManager hash.";
         _avatarHash.insert(sessionUUID, matchingAvatar);
         
-        sharedAvatarAddedToHash(matchingAvatar, mixerWeakPointer);
+        matchingAvatar->setOwningAvatarMixer(mixerWeakPointer);
     }
     
     return matchingAvatar;
