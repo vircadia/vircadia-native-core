@@ -151,19 +151,22 @@ void Agent::run() {
                                                  << NodeType::ParticleServer);
     
     // figure out the URL for the script for this agent assignment
-    QString scriptURLString("http://%1:8080/assignment/%2");
-    scriptURLString = scriptURLString.arg(NodeList::getInstance()->getDomainHandler().getIP().toString(),
-                                          uuidStringWithoutCurlyBraces(_uuid));
-    
-    QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-    
+    QUrl scriptURL;
+    if (_payload.isEmpty())  {
+        scriptURL = QUrl(QString("http://%1:8080/assignment/%2")
+            .arg(NodeList::getInstance()->getDomainHandler().getIP().toString(),
+                 uuidStringWithoutCurlyBraces(_uuid)));
+    } else {
+        scriptURL = QUrl(_payload);
+    }
+   
     QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
-    QNetworkReply *reply = networkManager->get(QNetworkRequest(QUrl(scriptURLString)));
+    QNetworkReply *reply = networkManager->get(QNetworkRequest(scriptURL));
     QNetworkDiskCache* cache = new QNetworkDiskCache(networkManager);
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "agentCache");
     networkManager->setCache(cache);
     
-    qDebug() << "Downloading script at" << scriptURLString;
+    qDebug() << "Downloading script at" << scriptURL.toString();
     
     QEventLoop loop;
     QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));

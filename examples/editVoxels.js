@@ -64,18 +64,91 @@ colors[8] = { red: 31,  green: 64,  blue: 64 };
 var numColors = 9;
 var whichColor = -1;            //  Starting color is 'Copy' mode
 
-//  Create sounds for adding, deleting, recoloring voxels 
-var addSound1 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+create+2.raw");
-var addSound2 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+create+4.raw");
-
-var addSound3 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+create+3.raw");
-var deleteSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+delete+2.raw");
-var changeColorSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+edit+2.raw");
-var clickSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Switches+and+sliders/toggle+switch+-+medium.raw");
+//  Create sounds for for every script actions that require one
 var audioOptions = new AudioInjectionOptions();
-
-audioOptions.volume = 0.5;
+audioOptions.volume = 1.0;
 audioOptions.position = Vec3.sum(MyAvatar.position, { x: 0, y: 1, z: 0 }  ); // start with audio slightly above the avatar
+
+function SoundArray() {
+    this.audioOptions = audioOptions
+    this.sounds = new Array();
+    this.addSound = function (soundURL) {
+        this.sounds[this.sounds.length] = new Sound(soundURL);
+    }
+    this.play = function (index) {
+        if (0 <= index && index < this.sounds.length) {
+            Audio.playSound(this.sounds[index], this.audioOptions);
+        } else {
+            print("[ERROR] editVoxels.js:randSound.play() : Index " + index + " out of range.");
+        }
+    }
+    this.playRandom = function () {
+        if (this.sounds.length > 0) {
+            rand = Math.floor(Math.random() * this.sounds.length);
+            Audio.playSound(this.sounds[rand], this.audioOptions);
+        } else {
+            print("[ERROR] editVoxels.js:randSound.playRandom() : Array is empty.");
+        }
+    }
+}
+
+var addVoxelSound = new SoundArray();
+addVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Add/VA+1.raw");
+addVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Add/VA+2.raw");
+addVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Add/VA+3.raw");
+addVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Add/VA+4.raw");
+addVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Add/VA+5.raw");
+addVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Add/VA+6.raw");
+
+var delVoxelSound = new SoundArray();
+delVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Del/VD+A1.raw");
+delVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Del/VD+A2.raw");
+delVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Del/VD+A3.raw");
+delVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Del/VD+B1.raw");
+delVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Del/VD+B2.raw");
+delVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Del/VD+B3.raw");
+
+var resizeVoxelSound = new SoundArray();
+resizeVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Size/V+Size+Minus.raw");
+resizeVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Size/V+Size+Plus.raw");
+var voxelSizeMinus = 0;
+var voxelSizePlus = 1;
+
+var swatchesSound = new SoundArray();
+swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+1.raw");
+swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+2.raw");
+swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+3.raw");
+swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+4.raw");
+swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+5.raw");
+swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+6.raw");
+swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+7.raw");
+swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+8.raw");
+swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+9.raw");
+
+var undoSound = new SoundArray();
+undoSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Undo/Undo+1.raw");
+undoSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Undo/Undo+2.raw");
+undoSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Undo/Undo+3.raw");
+
+var scriptInitSound = new SoundArray();
+scriptInitSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Script+Init/Script+Init+A.raw");
+scriptInitSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Script+Init/Script+Init+B.raw");
+scriptInitSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Script+Init/Script+Init+C.raw");
+scriptInitSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Script+Init/Script+Init+D.raw");
+
+var modeSwitchSound = new SoundArray();
+modeSwitchSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Mode+Switch/Mode+1.raw");
+modeSwitchSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Mode+Switch/Mode+2.raw");
+modeSwitchSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Mode+Switch/Mode+3.raw");
+
+var initialVoxelSound = new SoundArray();
+initialVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Initial+Voxel/Initial+V.raw");
+
+var colorInheritSound = new SoundArray();
+colorInheritSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Color+Inherit/Inherit+A.raw");
+colorInheritSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Color+Inherit/Inherit+B.raw");
+colorInheritSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Color+Inherit/Inherit+C.raw");
+
 
 var editToolsOn = true; // starts out off
 
@@ -379,8 +452,17 @@ function calcThumbFromScale(scale) {
     if (thumbStep > pointerVoxelScaleSteps) {
         thumbStep = pointerVoxelScaleSteps;
     }
+    var oldThumbX = thumbX;
     thumbX = (thumbDeltaPerStep * (thumbStep - 1)) + minThumbX;
     Overlays.editOverlay(thumb, { x: thumbX + sliderX } );
+    
+    if (thumbX > oldThumbX) {
+        resizeVoxelSound.play(voxelSizePlus);
+        print("Plus");
+    } else if (thumbX < oldThumbX) {
+        resizeVoxelSound.play(voxelSizeMinus);
+        print("Minus");
+    }
 }
 
 function calcScaleFromThumb(newThumbX) {
@@ -443,15 +525,6 @@ var recolorToolSelected = false;
 var eyedropperToolSelected = false;
 var pasteMode = false;
 
-function playRandomAddSound(audioOptions) {
-    if (Math.random() < 0.33) {
-        Audio.playSound(addSound1, audioOptions);
-    } else if (Math.random() < 0.5) {
-        Audio.playSound(addSound2, audioOptions);
-    } else {
-        Audio.playSound(addSound3, audioOptions);
-    }
-}
 
 function calculateVoxelFromIntersection(intersection, operation) {
     //print("calculateVoxelFromIntersection() operation="+operation);
@@ -744,7 +817,7 @@ function trackKeyReleaseEvent(event) {
         moveTools();
         setAudioPosition(); // make sure we set the audio position before playing sounds
         showPreviewGuides();
-        Audio.playSound(clickSound, audioOptions);
+        scriptInitSound.playRandom();
     }
                           
     if (event.text == "ALT") {
@@ -808,18 +881,21 @@ function mousePressEvent(event) {
         Overlays.editOverlay(thumb, { imageURL: toolIconUrl + "voxel-size-slider-handle.svg", });
         
     } else if (clickedOverlay == voxelTool) {
+        modeSwitchSound.play(0);
         voxelToolSelected = true;
         recolorToolSelected = false;
         eyedropperToolSelected = false;
         moveTools();
         clickedOnSomething = true;
     } else if (clickedOverlay == recolorTool) {
+        modeSwitchSound.play(1);
         voxelToolSelected = false;
         recolorToolSelected = true;
         eyedropperToolSelected = false;
         moveTools();
         clickedOnSomething = true;
     } else if (clickedOverlay == eyedropperTool) {
+        modeSwitchSound.play(2);
         voxelToolSelected = false;
         recolorToolSelected = false;
         eyedropperToolSelected = true;
@@ -846,6 +922,7 @@ function mousePressEvent(event) {
                 whichColor = s;
                 moveTools();
                 clickedOnSomething = true;
+                swatchesSound.play(whichColor);
                 break;
             }
         }
@@ -888,7 +965,7 @@ function mousePressEvent(event) {
             //  Delete voxel
             voxelDetails = calculateVoxelFromIntersection(intersection,"delete");
             Voxels.eraseVoxel(voxelDetails.x, voxelDetails.y, voxelDetails.z, voxelDetails.s);
-            Audio.playSound(deleteSound, audioOptions);
+            delVoxelSound.playRandom();
             Overlays.editOverlay(voxelPreview, { visible: false });
         } else if (eyedropperToolSelected || trackAsEyedropper) {
             if (whichColor != -1) {
@@ -896,6 +973,7 @@ function mousePressEvent(event) {
                 colors[whichColor].green = intersection.voxel.green;
                 colors[whichColor].blue = intersection.voxel.blue;
                 moveTools();
+                swatchesSound.play(whichColor);
             }
             
         } else if (recolorToolSelected || trackAsRecolor) {
@@ -903,10 +981,9 @@ function mousePressEvent(event) {
             voxelDetails = calculateVoxelFromIntersection(intersection,"recolor");
 
             // doing this erase then set will make sure we only recolor just the target voxel
-            Voxels.eraseVoxel(voxelDetails.x, voxelDetails.y, voxelDetails.z, voxelDetails.s);
             Voxels.setVoxel(voxelDetails.x, voxelDetails.y, voxelDetails.z, voxelDetails.s, 
                             colors[whichColor].red, colors[whichColor].green, colors[whichColor].blue);
-            Audio.playSound(changeColorSound, audioOptions);
+            swatchesSound.play(whichColor);
             Overlays.editOverlay(voxelPreview, { visible: false });
         } else if (voxelToolSelected) {
             //  Add voxel on face
@@ -930,7 +1007,7 @@ function mousePressEvent(event) {
             lastVoxelColor = { red: newColor.red, green: newColor.green, blue: newColor.blue };
             lastVoxelScale = voxelDetails.s;
 
-            playRandomAddSound(audioOptions);
+            addVoxelSound.playRandom();
             
             Overlays.editOverlay(voxelPreview, { visible: false });
             dragStart = { x: event.x, y: event.y };
@@ -946,12 +1023,12 @@ function keyPressEvent(event) {
         if (event.text == "`") {
             print("Color = Copy");
             whichColor = -1;
-            Audio.playSound(clickSound, audioOptions);
+            colorInheritSound.playRandom();
             moveTools();
         } else if ((nVal > 0) && (nVal <= numColors)) {
             whichColor = nVal - 1;
             print("Color = " + (whichColor + 1));
-            Audio.playSound(clickSound, audioOptions);
+            swatchesSound.play(whichColor);
             moveTools();
         } else if (event.text == "0") {
             // Create a brand new 1 meter voxel in front of your avatar 
@@ -969,8 +1046,12 @@ function keyPressEvent(event) {
             Voxels.eraseVoxel(newVoxel.x, newVoxel.y, newVoxel.z, newVoxel.s);
             Voxels.setVoxel(newVoxel.x, newVoxel.y, newVoxel.z, newVoxel.s, newVoxel.red, newVoxel.green, newVoxel.blue);
             setAudioPosition();
-            playRandomAddSound(audioOptions);
+            initialVoxelSound.playRandom();
+        } else if (event.text == "z") {
+            undoSound.playRandom();
         }
+        
+        
     }
     
     trackKeyPressEvent(event); // used by preview support
