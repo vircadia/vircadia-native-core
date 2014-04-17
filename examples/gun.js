@@ -152,11 +152,10 @@ function particleCollisionWithVoxel(particle, voxel, collision) {
     var position = particleProperties.position; 
     Particles.deleteParticle(particle);
     //  Make a hole in this voxel 
-    Vec3.print("penetration", collision.penetration);
-    Vec3.print("contactPoint", collision.contactPoint);
-    Voxels.eraseVoxel(contactPoint.x, contactPoint.y, contactPoint.z, HOLE_SIZE);
-    Voxels.eraseVoxel(position.x, position.y, position.z, HOLE_SIZE);
-    audioOptions.position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));
+    //Vec3.print("voxel penetration", collision.penetration);
+    //Vec3.print("voxel contactPoint", collision.contactPoint);
+    Voxels.eraseVoxel(collision.contactPoint.x, collision.contactPoint.y, collision.contactPoint.z, HOLE_SIZE);
+    audioOptions.position = collision.contactPoint;
     Audio.playSound(impactSound, audioOptions); 
 }
 
@@ -171,9 +170,9 @@ function particleCollisionWithParticle(particle1, particle2, collision) {
     //  Record shot time 
     var endTime = new Date(); 
     var msecs = endTime.valueOf() - shotTime.valueOf();
-    print("hit, msecs = " + msecs);
-    Vec3.print("penetration = ", collision.penetration);
-    Vec3.print("contactPoint = ", collision.contactPoint);
+    //print("hit, msecs = " + msecs);
+    //Vec3.print("penetration = ", collision.penetration);
+    //Vec3.print("contactPoint = ", collision.contactPoint);
     Particles.deleteParticle(particle1);
     Particles.deleteParticle(particle2);
     // play the sound near the camera so the shooter can hear it

@@ -54,8 +54,6 @@ public:
     void setJitterBufferSamples(int samples) { _jitterBufferSamples = samples; }
     int getJitterBufferSamples() { return _jitterBufferSamples; }
     
-    void lowPassFilter(int16_t* inputBuffer);
-    
     virtual void startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen);
     virtual void startDrumSound(float volume, float frequency, float duration, float decay);
     
@@ -73,15 +71,19 @@ public:
     int getNetworkSampleRate() { return SAMPLE_RATE; }
     int getNetworkBufferLengthSamplesPerChannel() { return NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; }
 
+    bool getProcessSpatialAudio() const { return _processSpatialAudio; }
+
 public slots:
     void start();
     void stop();
     void addReceivedAudioToBuffer(const QByteArray& audioByteArray);
+    void addSpatialAudioToBuffer(unsigned int sampleTime, const QByteArray& spatialAudio, unsigned int numSamples);
     void handleAudioInput();
     void reset();
     void toggleMute();
     void toggleAudioNoiseReduction();
     void toggleToneInjection();
+    void toggleAudioSpatialProcessing();
     
     virtual void handleAudioByteArray(const QByteArray& audioByteArray);
 
@@ -97,6 +99,8 @@ public slots:
 
 signals:
     bool muteToggled();
+    void processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
+    void processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
     
 private:
 
@@ -162,9 +166,15 @@ private:
     GLuint _boxTextureId;
     QRect _iconBounds;
     
-    // Audio callback in class context.
+    /// Audio callback in class context.
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
     
+    
+    bool _processSpatialAudio; /// Process received audio by spatial audio hooks
+    unsigned int _spatialAudioStart; /// Start of spatial audio interval (in sample rate time base)
+    unsigned int _spatialAudioFinish; /// End of spatial audio interval (in sample rate time base)
+    AudioRingBuffer _spatialAudioRingBuffer; /// Spatially processed audio
+
     // Process procedural audio by
     //  1. Echo to the local procedural output device
     //  2. Mix with the audio input

@@ -25,7 +25,6 @@
 #include <QMessageBox>
 #include <QShortcut>
 #include <QSlider>
-#include <QStandardPaths>
 #include <QUuid>
 #include <QHBoxLayout>
 
@@ -90,7 +89,8 @@ Menu::Menu() :
     _fpsAverage(FIVE_SECONDS_OF_FRAMES),
     _fastFPSAverage(ONE_SECOND_OF_FRAMES),
     _loginAction(NULL),
-    _preferencesDialog(NULL)
+    _preferencesDialog(NULL),
+    _snapshotsLocation()
 {
     Application *appInstance = Application::getInstance();
 
@@ -349,8 +349,8 @@ Menu::Menu() :
 
 
     QMenu* renderDebugMenu = developerMenu->addMenu("Render Debugging Tools");
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::PipelineWarnings, Qt::CTRL | Qt::SHIFT | Qt::Key_P);
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::SuppressShortTimings, Qt::CTRL | Qt::SHIFT | Qt::Key_S);
+    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::PipelineWarnings);
+    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::SuppressShortTimings);
 
     addCheckableActionToQMenuAndActionHash(renderDebugMenu,
                                   MenuOption::CullSharedFaces,
@@ -361,7 +361,7 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(renderDebugMenu,
                                   MenuOption::ShowCulledSharedFaces,
-                                  Qt::CTRL | Qt::SHIFT | Qt::Key_X,
+                                  0,
                                   false,
                                   appInstance->getVoxels(),
                                   SLOT(showCulledSharedFaces()));
@@ -384,6 +384,50 @@ Menu::Menu() :
                                            false,
                                            appInstance->getAudio(),
                                            SLOT(toggleToneInjection()));
+
+    QMenu* spatialAudioMenu = audioDebugMenu->addMenu("Spatial Audio");
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessing,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_M,
+                                           false,
+                                           appInstance->getAudio(),
+                                           SLOT(toggleAudioSpatialProcessing()));
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingIncludeOriginal,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_O,
+                                           true);
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingSeparateEars,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_E,
+                                           true);
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingPreDelay,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_D,
+                                           true);
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingStereoSource,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_S,
+                                           true);
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingHeadOriented,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_H,
+                                           true);
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingWithDiffusions,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_W,
+                                           true);
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingRenderPaths,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_R,
+                                           true);
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingSlightlyRandomSurfaces,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_X,
+                                           true);
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingProcessLocalAudio,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_A,
+                                           true);
 
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
                 Qt::CTRL | Qt::SHIFT | Qt::Key_V,
@@ -423,6 +467,8 @@ void Menu::loadSettings(QSettings* settings) {
     _avatarLODDistanceMultiplier = loadSetting(settings, "avatarLODDistanceMultiplier",
         DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER);
     _boundaryLevelAdjust = loadSetting(settings, "boundaryLevelAdjust", 0);
+    _snapshotsLocation = settings->value("snapshotsLocation",
+                                         QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)).toString();
 
     settings->beginGroup("View Frustum Offset Camera");
     // in case settings is corrupt or missing loadSetting() will check for NaN
@@ -466,6 +512,7 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("avatarLODIncreaseFPS", _avatarLODIncreaseFPS);
     settings->setValue("avatarLODDistanceMultiplier", _avatarLODDistanceMultiplier);
     settings->setValue("boundaryLevelAdjust", _boundaryLevelAdjust);
+    settings->setValue("snapshotsLocation", _snapshotsLocation);
     settings->beginGroup("View Frustum Offset Camera");
     settings->setValue("viewFrustumOffsetYaw", _viewFrustumOffset.yaw);
     settings->setValue("viewFrustumOffsetPitch", _viewFrustumOffset.pitch);
@@ -1074,18 +1121,12 @@ void Menu::showChat() {
         mainWindow->addDockWidget(Qt::RightDockWidgetArea, _chatWindow = new ChatWindow());
     }
     if (!_chatWindow->toggleViewAction()->isChecked()) {
-        int width = _chatWindow->width();
-        int y = qMax((mainWindow->height() - _chatWindow->height()) / 2, 0);
-        _chatWindow->move(mainWindow->width(), y);
+        const QRect& windowGeometry = mainWindow->geometry();
+        _chatWindow->move(windowGeometry.topRight().x() - _chatWindow->width(),
+                          windowGeometry.topRight().y() + (windowGeometry.height() / 2) - (_chatWindow->height() / 2));
+
         _chatWindow->resize(0, _chatWindow->height());
         _chatWindow->toggleViewAction()->trigger();
-
-        QPropertyAnimation* slideAnimation = new QPropertyAnimation(_chatWindow, "geometry", _chatWindow);
-        slideAnimation->setStartValue(_chatWindow->geometry());
-        slideAnimation->setEndValue(QRect(mainWindow->width() - width, _chatWindow->y(),
-                                          width, _chatWindow->height()));
-        slideAnimation->setDuration(250);
-        slideAnimation->start(QAbstractAnimation::DeleteWhenStopped);
     }
 }
 
@@ -1518,4 +1559,11 @@ void Menu::removeMenuItem(const QString& menu, const QString& menuitem) {
     }
     QMenuBar::repaint();
 };
+
+QString Menu::getSnapshotsLocation() const {
+    if (_snapshotsLocation.isNull() || _snapshotsLocation.isEmpty() || QDir(_snapshotsLocation).exists() == false) {
+        return QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    }
+    return _snapshotsLocation;
+}
 

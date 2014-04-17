@@ -12,10 +12,12 @@
 #ifndef hifi_Menu_h
 #define hifi_Menu_h
 
+#include <QDir>
 #include <QMenuBar>
 #include <QHash>
 #include <QKeySequence>
 #include <QPointer>
+#include <QStandardPaths>
 
 #include <EventTypes.h>
 #include <MenuItemProperties.h>
@@ -83,6 +85,9 @@ public:
     void setFieldOfView(float fieldOfView) { _fieldOfView = fieldOfView; }
     float getFaceshiftEyeDeflection() const { return _faceshiftEyeDeflection; }
     void setFaceshiftEyeDeflection(float faceshiftEyeDeflection) { _faceshiftEyeDeflection = faceshiftEyeDeflection; }
+    QString getSnapshotsLocation() const;
+    void setSnapshotsLocation(QString snapshotsLocation) { _snapshotsLocation = snapshotsLocation; }
+
     BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
     FrustumDrawMode getFrustumDrawMode() const { return _frustumDrawMode; }
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
@@ -243,6 +248,7 @@ private:
     QAction* _loginAction;
     QPointer<PreferencesDialog> _preferencesDialog;
     QAction* _chatAction;
+    QString _snapshotsLocation;
 };
 
 namespace MenuOption {
@@ -251,6 +257,18 @@ namespace MenuOption {
     const QString Atmosphere = "Atmosphere";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
     const QString AudioToneInjection = "Inject Test Tone";
+
+    const QString AudioSpatialProcessing = "Audio Spatial Processing";
+    const QString AudioSpatialProcessingHeadOriented = "Head Oriented";
+    const QString AudioSpatialProcessingIncludeOriginal = "Includes Network Original";
+    const QString AudioSpatialProcessingPreDelay = "Add Pre-Delay";
+    const QString AudioSpatialProcessingProcessLocalAudio = "Process Local Audio";
+    const QString AudioSpatialProcessingRenderPaths = "Render Paths";
+    const QString AudioSpatialProcessingSeparateEars = "Separate Ears";
+    const QString AudioSpatialProcessingSlightlyRandomSurfaces = "Slightly Random Surfaces";
+    const QString AudioSpatialProcessingStereoSource = "Stereo Source";
+    const QString AudioSpatialProcessingWithDiffusions = "With Diffusions";
+
     const QString Avatars = "Avatars";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
