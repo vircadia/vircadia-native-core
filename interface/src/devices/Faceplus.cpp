@@ -41,15 +41,15 @@ void Faceplus::init() {
 }
 
 void Faceplus::reset() {
-	if (_enabled) {
-		QMetaObject::invokeMethod(_reader, "reset");
-	}
+    if (_enabled) {
+        QMetaObject::invokeMethod(_reader, "reset");
+    }
 }
 
 void Faceplus::setState(const glm::vec3& headTranslation, const glm::quat& headRotation,
-		float estimatedEyePitch, float estimatedEyeYaw, const QVector<float>& blendshapeCoefficients) {
+        float estimatedEyePitch, float estimatedEyeYaw, const QVector<float>& blendshapeCoefficients) {
     _headTranslation = headTranslation;
-	_headRotation = headRotation;
+    _headRotation = headRotation;
     _estimatedEyePitch = estimatedEyePitch;
     _estimatedEyeYaw = estimatedEyeYaw;
     _blendshapeCoefficients = blendshapeCoefficients;
@@ -211,23 +211,23 @@ void FaceplusReader::shutdown() {
 void FaceplusReader::update() {
 #ifdef HAVE_FACEPLUS
     float x, y, rotation, scale;
-	if (!(faceplus_synchronous_track() && faceplus_current_face_location(&x, &y, &rotation, &scale) && !glm::isnan(x) &&
-			faceplus_current_output_vector(_outputVector.data()))) {
+    if (!(faceplus_synchronous_track() && faceplus_current_face_location(&x, &y, &rotation, &scale) && !glm::isnan(x) &&
+            faceplus_current_output_vector(_outputVector.data()))) {
         QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
         return;
     }
-	if (!_referenceInitialized) {
-		_referenceX = x;
-		_referenceY = y;
-		_referenceScale = scale;
-		_referenceInitialized = true;
-	}
-	const float TRANSLATION_SCALE = 10.0f;
-	const float REFERENCE_DISTANCE = 10.0f;
-	float depthScale = _referenceScale / scale;
-	float z = REFERENCE_DISTANCE * (depthScale - 1.0f);
-	glm::vec3 headTranslation((x - _referenceX) * depthScale * TRANSLATION_SCALE,
-		(y - _referenceY) * depthScale * TRANSLATION_SCALE, z);
+    if (!_referenceInitialized) {
+        _referenceX = x;
+        _referenceY = y;
+        _referenceScale = scale;
+        _referenceInitialized = true;
+    }
+    const float TRANSLATION_SCALE = 10.0f;
+    const float REFERENCE_DISTANCE = 10.0f;
+    float depthScale = _referenceScale / scale;
+    float z = REFERENCE_DISTANCE * (depthScale - 1.0f);
+    glm::vec3 headTranslation((x - _referenceX) * depthScale * TRANSLATION_SCALE,
+        (y - _referenceY) * depthScale * TRANSLATION_SCALE, z);
     glm::quat headRotation(glm::radians(glm::vec3(-_outputVector.at(_headRotationIndices[0]),
         _outputVector.at(_headRotationIndices[1]), -_outputVector.at(_headRotationIndices[2]))));
     float estimatedEyePitch = (_outputVector.at(_leftEyeRotationIndices[0]) +
@@ -244,8 +244,8 @@ void FaceplusReader::update() {
     }
 
     QMetaObject::invokeMethod(Application::getInstance()->getFaceplus(), "setState", Q_ARG(const glm::vec3&, headTranslation),
-		Q_ARG(const glm::quat&, headRotation), Q_ARG(float, estimatedEyePitch), Q_ARG(float, estimatedEyeYaw),
-		Q_ARG(const QVector<float>&, _blendshapeCoefficients));
+        Q_ARG(const glm::quat&, headRotation), Q_ARG(float, estimatedEyePitch), Q_ARG(float, estimatedEyeYaw),
+        Q_ARG(const QVector<float>&, _blendshapeCoefficients));
 
     QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
 #endif
@@ -253,6 +253,6 @@ void FaceplusReader::update() {
 
 void FaceplusReader::reset() {
 #ifdef HAVE_FACEPLUS
-	_referenceInitialized = false;
+    _referenceInitialized = false;
 #endif
 }

@@ -3020,7 +3020,7 @@ void Application::resetSensors() {
     _mouseX = _glWidget->width() / 2;
     _mouseY = _glWidget->height() / 2;
 
-	_faceplus.reset();
+    _faceplus.reset();
     _faceshift.reset();
     _visage.reset();
 
