@@ -508,8 +508,7 @@ glm::vec3 parseVec3(const QString& string) {
 
 QString processID(const QString& id) {
     // Blender (at least) prepends a type to the ID, so strip it out
-    int index = id.indexOf("::");
-    return (index == -1) ? id : id.mid(index + 2);
+    return id.mid(id.lastIndexOf(':') + 1);
 }
 
 QString getID(const QVariantList& properties, int index = 0) {
@@ -1014,7 +1013,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     QString name;
                     if (object.properties.size() == 3) {
                         name = object.properties.at(1).toString();
-                        name = name.left(name.indexOf(QChar('\0')));
+                        name = processID(name.left(name.indexOf(QChar('\0'))));
 
                     } else {
                         name = getID(object.properties);

@@ -64,7 +64,8 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _fileNameString(fileNameString),
     _quatLibrary(),
     _vec3Library(),
-    _uuidLibrary()
+    _uuidLibrary(),
+    _animationCache(this)
 {
 }
 
@@ -88,7 +89,8 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
     _fileNameString(),
     _quatLibrary(),
     _vec3Library(),
-    _uuidLibrary()
+    _uuidLibrary(),
+    _animationCache(this)
 {
     QString scriptURLString = scriptURL.toString();
     _fileNameString = scriptURLString;

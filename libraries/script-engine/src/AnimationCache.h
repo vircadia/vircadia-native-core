@@ -30,6 +30,8 @@ class AnimationCache : public ResourceCache {
 
 public:
 
+    AnimationCache(QObject* parent = NULL);
+
     Q_INVOKABLE AnimationPointer getAnimation(const QString& url) { return getAnimation(QUrl(url)); }
     
     Q_INVOKABLE AnimationPointer getAnimation(const QUrl& url);
