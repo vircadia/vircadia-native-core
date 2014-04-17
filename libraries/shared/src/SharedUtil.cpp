@@ -15,10 +15,6 @@
 #include <cctype>
 #include <time.h>
 
-#ifdef _WIN32
-#include "Syssocket.h"
-#endif
-
 #ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
 #endif
@@ -26,7 +22,6 @@
 #include <QtCore/QDebug>
 
 #include "OctalCode.h"
-#include "PacketHeaders.h"
 #include "SharedUtil.h"
 
 quint64 usecTimestamp(const timeval *time) {
@@ -44,7 +39,7 @@ quint64 usecTimestampNow() {
     return (now.tv_sec * 1000000 + now.tv_usec) + ::usecTimestampNowAdjust;
 }
 
-float randFloat () {
+float randFloat() {
     return (rand() % 10000)/10000.f;
 }
 
@@ -54,6 +49,10 @@ int randIntInRange (int min, int max) {
 
 float randFloatInRange (float min,float max) {
     return min + ((rand() % 10000)/10000.f * (max-min));
+}
+
+float randomSign() {
+    return randomBoolean() ? -1.0 : 1.0;
 }
 
 unsigned char randomColorValue(int miniumum) {
@@ -664,3 +663,21 @@ glm::vec3 safeEulerAngles(const glm::quat& q) {
     }
 }
 
+bool isNaN(float value) { 
+    return value != value; 
+}
+
+bool isSimilarOrientation(const glm::quat& orientionA, const glm::quat& orientionB, float similarEnough) {
+    // Compute the angular distance between the two orientations
+    float angleOrientation = orientionA == orientionB ? 0.0f : glm::degrees(glm::angle(orientionA * glm::inverse(orientionB)));
+    if (isNaN(angleOrientation)) {
+        angleOrientation = 0.0f;
+    }
+    return (angleOrientation <= similarEnough);
+}
+
+bool isSimilarPosition(const glm::vec3& positionA, const glm::vec3& positionB, float similarEnough) {
+    // Compute the distance between the two points
+    float positionDistance = glm::distance(positionA, positionB);
+    return (positionDistance <= similarEnough);
+}

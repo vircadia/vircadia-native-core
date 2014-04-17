@@ -170,6 +170,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _previousScriptLocation(),
         _logger(new FileLogger(this))
 {
+    // init GnuTLS for DTLS with domain-servers
+    DTLSClientSession::globalInit();
+    
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 
@@ -227,8 +230,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     audioThread->start();
 
-    connect(&nodeList->getDomainInfo(), SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
-    connect(&nodeList->getDomainInfo(), SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
+    connect(&nodeList->getDomainHandler(), SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
+    connect(&nodeList->getDomainHandler(), SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
 
     connect(nodeList, &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList, &NodeList::nodeKilled, this, &Application::nodeKilled);
@@ -275,7 +278,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     QTimer* silentNodeTimer = new QTimer();
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeTimer->moveToThread(_nodeThread);
-    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
+    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
 
     // send the identity packet for our avatar each second to our avatar mixer
     QTimer* identityPacketTimer = new QTimer();
@@ -398,6 +401,8 @@ Application::~Application() {
     delete _glWidget;
 
     AccountManager::getInstance().destroy();
+    
+    DTLSClientSession::globalDeinit();
 }
 
 void Application::saveSettings() {
@@ -1654,16 +1659,12 @@ void Application::init() {
 
     _particleCollisionSystem.init(&_particleEditSender, _particles.getTree(), _voxels.getTree(), &_audio, &_avatarManager);
 
-    // connect the _particleCollisionSystem to our script engine's ParticleScriptingInterface
-    connect(&_particleCollisionSystem,
-            SIGNAL(particleCollisionWithVoxel(const ParticleID&, const VoxelDetail&, const CollisionInfo&)),
-            ScriptEngine::getParticlesScriptingInterface(),
-            SIGNAL(particleCollisionWithVoxels(const ParticleID&, const VoxelDetail&, const CollisionInfo&)));
+    // connect the _particleCollisionSystem to our script engine's ParticlesScriptingInterface
+    connect(&_particleCollisionSystem, &ParticleCollisionSystem::particleCollisionWithVoxel,
+            ScriptEngine::getParticlesScriptingInterface(), &ParticlesScriptingInterface::particleCollisionWithVoxel);
 
-    connect(&_particleCollisionSystem,
-            SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&, const CollisionInfo&)),
-            ScriptEngine::getParticlesScriptingInterface(),
-            SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&, const CollisionInfo&)));
+    connect(&_particleCollisionSystem, &ParticleCollisionSystem::particleCollisionWithParticle,
+            ScriptEngine::getParticlesScriptingInterface(), &ParticlesScriptingInterface::particleCollisionWithParticle);
 
     _audio.init(_glWidget);
 
@@ -1673,7 +1674,16 @@ void Application::init() {
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
-    connect(_myAvatar, SIGNAL(transformChanged()), this, SLOT(bumpSettings()));
+    
+    // set up our audio reflector
+    _audioReflector.setMyAvatar(getAvatar());
+    _audioReflector.setVoxels(_voxels.getTree());
+    _audioReflector.setAudio(getAudio());
+    connect(getAudio(), &Audio::processInboundAudio, &_audioReflector, &AudioReflector::processInboundAudio,Qt::DirectConnection);
+    connect(getAudio(), &Audio::processLocalAudio, &_audioReflector, &AudioReflector::processLocalAudio,Qt::DirectConnection);
+
+    // save settings when avatar changes
+    connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);
 }
 
 void Application::closeMirrorView() {
@@ -2445,6 +2455,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // disable specular lighting for ground and voxels
         glMaterialfv(GL_FRONT, GL_SPECULAR, NO_SPECULAR_COLOR);
+        
+        // draw the audio reflector overlay
+        _audioReflector.render();
 
         //  Draw voxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
@@ -3046,8 +3059,7 @@ void Application::updateWindowTitle(){
 
     QString username = AccountManager::getInstance().getUsername();
     QString title = QString() + (!username.isEmpty() ? username + " " : QString()) + nodeList->getSessionUUID().toString()
-        + " @ " + nodeList->getDomainInfo().getHostname() + buildVersion;
-
+        + " @ " + nodeList->getDomainHandler().getHostname() + buildVersion;
     qDebug("Application title set to: %s", title.toStdString().c_str());
     _window->setWindowTitle(title);
 }
@@ -3280,6 +3292,7 @@ void Application::stopAllScripts() {
     }
     _scriptEnginesHash.clear();
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
+    bumpSettings();
 }
 
 void Application::stopScript(const QString &scriptName)
@@ -3288,6 +3301,7 @@ void Application::stopScript(const QString &scriptName)
     qDebug() << "stopping script..." << scriptName;
     _scriptEnginesHash.remove(scriptName);
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
+    bumpSettings();
 }
 
 void Application::reloadAllScripts() {
@@ -3383,6 +3397,7 @@ void Application::loadScript(const QString& scriptName) {
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
 
     QThread* workerThread = new QThread(this);
 
@@ -3403,6 +3418,7 @@ void Application::loadScript(const QString& scriptName) {
 
     // restore the main window's active state
     _window->activateWindow();
+    bumpSettings();
 }
 
 void Application::loadDialog() {

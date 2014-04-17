@@ -30,6 +30,8 @@ enum eyeContactTargets {
     MOUTH
 };
 
+const float EYE_EAR_GAP = 0.08f;
+
 class Avatar;
 class ProgramObject;
 
@@ -73,12 +75,17 @@ public:
     
     glm::quat getEyeRotation(const glm::vec3& eyePosition) const;
     
+    const glm::vec3& getRightEyePosition() const { return _rightEyePosition; }
+    const glm::vec3& getLeftEyePosition() const { return _leftEyePosition; }
+    glm::vec3 getRightEarPosition() const { return _rightEyePosition + (getRightDirection() * EYE_EAR_GAP) + (getFrontDirection() * -EYE_EAR_GAP); }
+    glm::vec3 getLeftEarPosition() const { return _leftEyePosition + (getRightDirection() * -EYE_EAR_GAP) + (getFrontDirection() * -EYE_EAR_GAP); }
+
     FaceModel& getFaceModel() { return _faceModel; }
     const FaceModel& getFaceModel() const { return _faceModel; }
     
     const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() const { return _averageLoudness; }
-    glm::vec3 calculateAverageEyePosition() { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
+    glm::vec3 calculateAverageEyePosition() const { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
     
     /// \return the point about which scaling occurs.
     glm::vec3 getScalePivot() const;

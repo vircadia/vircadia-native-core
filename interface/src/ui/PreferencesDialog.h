@@ -41,6 +41,7 @@ private slots:
     void accept();
     void setHeadUrl(QString modelUrl);
     void setSkeletonUrl(QString modelUrl);
+    void openSnapshotLocationBrowser();
     
 };
 

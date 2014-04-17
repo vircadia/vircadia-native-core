@@ -22,9 +22,14 @@ $(document).ready(function(){
       + '--' + boundary + '--\r\n';
       
     var headers = {};
+    
     if ($('#instance-field input').val()) {
       headers['ASSIGNMENT-INSTANCES'] = $('#instance-field input').val();
     }
+    
+    if ($('#pool-field input').val()) {
+      headers['ASSIGNMENT-POOL'] = $('#pool-field input').val();
+    }    
             
     // post form to assignment in order to create an assignment
     $.ajax({
