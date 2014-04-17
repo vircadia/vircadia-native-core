@@ -162,10 +162,10 @@ void ChatWindow::addTimeStamp() {
     if (!timeString.isEmpty()) {
         QLabel* timeLabel = new QLabel(timeString);
         timeLabel->setStyleSheet("color: palette(shadow);"
-                                 "background-color: palette(highlight);"
+                                 "background-color: white;"
                                  "padding: 4px;");
         timeLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-        timeLabel->setAlignment(Qt::AlignHCenter);
+        timeLabel->setAlignment(Qt::AlignLeft);
 
         bool atBottom = isAtBottom();
 
@@ -235,6 +235,7 @@ void ChatWindow::participantsChanged() {
                                  "padding-bottom: 2px;"
                                  "padding-left: 2px;"
                                  "border: 1px solid palette(shadow);"
+                                 "font-size: 14pt;"
                                  "font-weight: bold");
         userLabel->setProperty("user", participantName);
         userLabel->setCursor(Qt::PointingHandCursor);
