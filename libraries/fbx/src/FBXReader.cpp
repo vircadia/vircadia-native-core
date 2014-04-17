@@ -952,6 +952,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QHash<QString, QString> yComponents;
     QHash<QString, QString> zComponents;
 
+    printNode(node, 0);
+
     QVariantHash joints = mapping.value("joint").toHash();
     QString jointEyeLeftName = processID(getString(joints.value("jointEyeLeft", "jointEyeLeft")));
     QString jointEyeRightName = processID(getString(joints.value("jointEyeRight", "jointEyeRight")));
