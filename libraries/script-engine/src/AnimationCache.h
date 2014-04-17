@@ -12,13 +12,9 @@
 #ifndef hifi_AnimationCache_h
 #define hifi_AnimationCache_h
 
-#include <QScriptable>
-
 #include <ResourceCache.h>
 
 #include <FBXReader.h>
-
-class QScriptEngine;
 
 class Animation;
 
@@ -68,30 +64,5 @@ private:
     
     FBXGeometry _geometry;
 };
-
-/// Scriptable wrapper for animation pointers.
-class AnimationObject : public QObject, protected QScriptable {
-    Q_OBJECT
-    Q_PROPERTY(QStringList jointNames READ getJointNames)
-    Q_PROPERTY(QVector<FBXAnimationFrame> frames READ getFrames)
-
-public:
-    
-    Q_INVOKABLE QStringList getJointNames() const;
-    
-    Q_INVOKABLE QVector<FBXAnimationFrame> getFrames() const;
-};
-
-/// Scriptable wrapper for animation frames.
-class AnimationFrameObject : public QObject, protected QScriptable {
-    Q_OBJECT
-    Q_PROPERTY(QVector<glm::quat> rotations READ getRotations)
-
-public:
-    
-    Q_INVOKABLE QVector<glm::quat> getRotations() const;
-};
-
-void registerAnimationTypes(QScriptEngine* engine);
 
 #endif // hifi_AnimationCache_h

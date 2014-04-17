@@ -10,7 +10,6 @@
 //
 
 #include <QRunnable>
-#include <QScriptEngine>
 #include <QThreadPool>
 
 #include "AnimationCache.h"
@@ -101,22 +100,3 @@ void Animation::downloadFinished(QNetworkReply* reply) {
     QThreadPool::globalInstance()->start(new AnimationReader(_self, reply));
 }
 
-QStringList AnimationObject::getJointNames() const {
-    return qscriptvalue_cast<AnimationPointer>(thisObject())->getJointNames();
-}
-
-QVector<FBXAnimationFrame> AnimationObject::getFrames() const {
-    return qscriptvalue_cast<AnimationPointer>(thisObject())->getFrames();
-}
-
-QVector<glm::quat> AnimationFrameObject::getRotations() const {
-    return qscriptvalue_cast<FBXAnimationFrame>(thisObject()).rotations;
-}
-
-void registerAnimationTypes(QScriptEngine* engine) {
-    qScriptRegisterSequenceMetaType<QVector<FBXAnimationFrame> >(engine);
-    engine->setDefaultPrototype(qMetaTypeId<FBXAnimationFrame>(), engine->newQObject(
-        new AnimationFrameObject(), QScriptEngine::ScriptOwnership));
-    engine->setDefaultPrototype(qMetaTypeId<AnimationPointer>(), engine->newQObject(
-        new AnimationObject(), QScriptEngine::ScriptOwnership));
-}

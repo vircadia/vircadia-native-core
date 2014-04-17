@@ -28,6 +28,7 @@
 
 #include <Sound.h>
 
+#include "AnimationObject.h"
 #include "MenuItemProperties.h"
 #include "LocalVoxels.h"
 #include "ScriptEngine.h"
