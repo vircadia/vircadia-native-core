@@ -255,8 +255,6 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
 
     // Create message area
     ChatMessageArea* messageArea = new ChatMessageArea(true);
-    messageArea->setOpenLinks(true);
-    messageArea->setOpenExternalLinks(true);
     messageArea->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
     messageArea->setTextInteractionFlags(Qt::TextBrowserInteraction);
     messageArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);

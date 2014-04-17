@@ -15,8 +15,12 @@
 #include <QWheelEvent>
 
 ChatMessageArea::ChatMessageArea(bool useFixedHeight) : QTextBrowser(), _useFixedHeight(useFixedHeight) {
+    setOpenLinks(false);
+
     connect(document()->documentLayout(), &QAbstractTextDocumentLayout::documentSizeChanged,
             this, &ChatMessageArea::updateLayout);
+    connect(this, &QTextBrowser::anchorClicked,
+            Menu::getInstance(), &Menu::openUrl);
 }
 
 void ChatMessageArea::setHtml(const QString& html) {
