@@ -13,7 +13,7 @@
 
 var animation = AnimationCache.getAnimation("http://www.fungibleinsight.com/faces/hip_hop_dancing_2.fbx");
 
-Avatar.skeletonModelURL = "http://www.fungibleinsight.com/faces/vincent.fst";
+Avatar.skeletonModelURL = "http://www.fungibleinsight.com/faces/beta.fst";
 
 Agent.isAvatar = true;
 
