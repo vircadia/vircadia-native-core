@@ -161,8 +161,9 @@ void ChatWindow::addTimeStamp() {
     timeString.chop(1);
     if (!timeString.isEmpty()) {
         QLabel* timeLabel = new QLabel(timeString);
-        timeLabel->setStyleSheet("color: palette(shadow);"
+        timeLabel->setStyleSheet("color: #333333;"
                                  "background-color: white;"
+                                 "font-size: 14pt;"
                                  "padding: 4px;");
         timeLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
         timeLabel->setAlignment(Qt::AlignLeft);
