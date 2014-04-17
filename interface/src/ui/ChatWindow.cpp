@@ -29,6 +29,7 @@
 const int NUM_MESSAGES_TO_TIME_STAMP = 20;
 
 const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?))://\\S+)");
+const QRegularExpression regexHifiLinks("\\s([#@]\\S+)");
 
 ChatWindow::ChatWindow(QWidget* parent) :
     FramelessDialog(parent, 0, POSITION_RIGHT),
@@ -280,7 +281,10 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     }
 
     messageArea->document()->setDefaultStyleSheet("a { text-decoration: none; font-weight: bold; color: #267077;}");
-    messageArea->setHtml(userLabel + message.body().toHtmlEscaped().replace(regexLinks, "<a href=\"\\1\">\\1</a>"));
+    QString messageText = message.body().toHtmlEscaped();
+    messageText = messageText.replace(regexLinks, "<a href=\"\\1\">\\1</a>");
+    messageText = messageText.replace(regexHifiLinks, "<a href=\"hifi://\\1\">\\1</a>");
+    messageArea->setHtml(userLabel + messageText);
 
     bool atBottom = isAtBottom();
 
