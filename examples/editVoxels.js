@@ -8,10 +8,10 @@
 //  Captures mouse clicks and edits voxels accordingly.
 //
 //  click = create a new voxel on this face, same color as old (default color picker state)
-//  right click or control + click = delete this voxel 
+//  right click or control + click = delete this voxel
 //  shift + click = recolor this voxel
 //  1 - 8 = pick new color from palette
-//  9 = create a new voxel in front of the camera 
+//  9 = create a new voxel in front of the camera
 //
 //  Click and drag to create more new voxels in the same direction
 //
@@ -36,7 +36,7 @@ var zFightingSizeAdjust = 0.002; // used to adjust preview voxels to prevent z f
 var previewLineWidth = 1.5;
 
 var inspectJsIsRunning = false;
-var isAdding = false; 
+var isAdding = false;
 var isExtruding = false;
 var extrudeDirection = { x: 0, y: 0, z: 0 };
 var extrudeScale = 0.0;
@@ -48,7 +48,7 @@ var wheelPixelsMoved = 0;
 
 
 var mouseX = 0;
-var mouseY = 0; 
+var mouseY = 0;
 
 //  Create a table of the different colors you can choose
 var colors = new Array();
@@ -154,53 +154,53 @@ var editToolsOn = true; // starts out off
 
 // previewAsVoxel - by default, we will preview adds/deletes/recolors as just 4 lines on the intersecting face. But if you
 //                  the preview to show a full voxel then set this to true and the voxel will be displayed for voxel editing
-var previewAsVoxel = false; 
+var previewAsVoxel = false;
 
 var voxelPreview = Overlays.addOverlay("cube", {
-                    position: { x: 0, y: 0, z: 0},
-                    size: 1,
-                    color: { red: 255, green: 0, blue: 0},
-                    alpha: 1,
-                    solid: false,
-                    visible: false,
-                    lineWidth: 4
-                });
-                
+                                       position: { x: 0, y: 0, z: 0},
+                                       size: 1,
+                                       color: { red: 255, green: 0, blue: 0},
+                                       alpha: 1,
+                                       solid: false,
+                                       visible: false,
+                                       lineWidth: 4
+                                       });
+
 var linePreviewTop = Overlays.addOverlay("line3d", {
-                    position: { x: 0, y: 0, z: 0},
-                    end: { x: 0, y: 0, z: 0},
-                    color: { red: 255, green: 255, blue: 255},
-                    alpha: 1,
-                    visible: false,
-                    lineWidth: previewLineWidth
-                });
+                                         position: { x: 0, y: 0, z: 0},
+                                         end: { x: 0, y: 0, z: 0},
+                                         color: { red: 255, green: 255, blue: 255},
+                                         alpha: 1,
+                                         visible: false,
+                                         lineWidth: previewLineWidth
+                                         });
 
 var linePreviewBottom = Overlays.addOverlay("line3d", {
-                    position: { x: 0, y: 0, z: 0},
-                    end: { x: 0, y: 0, z: 0},
-                    color: { red: 255, green: 255, blue: 255},
-                    alpha: 1,
-                    visible: false,
-                    lineWidth: previewLineWidth
-                });
+                                            position: { x: 0, y: 0, z: 0},
+                                            end: { x: 0, y: 0, z: 0},
+                                            color: { red: 255, green: 255, blue: 255},
+                                            alpha: 1,
+                                            visible: false,
+                                            lineWidth: previewLineWidth
+                                            });
 
 var linePreviewLeft = Overlays.addOverlay("line3d", {
-                    position: { x: 0, y: 0, z: 0},
-                    end: { x: 0, y: 0, z: 0},
-                    color: { red: 255, green: 255, blue: 255},
-                    alpha: 1,
-                    visible: false,
-                    lineWidth: previewLineWidth
-                });
+                                          position: { x: 0, y: 0, z: 0},
+                                          end: { x: 0, y: 0, z: 0},
+                                          color: { red: 255, green: 255, blue: 255},
+                                          alpha: 1,
+                                          visible: false,
+                                          lineWidth: previewLineWidth
+                                          });
 
 var linePreviewRight = Overlays.addOverlay("line3d", {
-                    position: { x: 0, y: 0, z: 0},
-                    end: { x: 0, y: 0, z: 0},
-                    color: { red: 255, green: 255, blue: 255},
-                    alpha: 1,
-                    visible: false,
-                    lineWidth: previewLineWidth
-                });
+                                           position: { x: 0, y: 0, z: 0},
+                                           end: { x: 0, y: 0, z: 0},
+                                           color: { red: 255, green: 255, blue: 255},
+                                           alpha: 1,
+                                           visible: false,
+                                           lineWidth: previewLineWidth
+                                           });
 
 
 // these will be used below
@@ -221,33 +221,33 @@ var toolIconUrl = "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/
 // create the overlays, position them in a row, set their colors, and for the selected one, use a different source image
 // location so that it displays the "selected" marker
 for (s = 0; s < numColors; s++) {
-
+    
     var extraWidth = 0;
-
+    
     if (s == 0) {
         extraWidth = swatchExtraPadding;
     }
-
+    
     var imageFromX = swatchExtraPadding - extraWidth + s * swatchWidth;
     var imageFromY = swatchHeight + 1;
-
+    
     var swatchX = swatchExtraPadding - extraWidth + swatchesX + ((swatchWidth - 1) * s);
-
+    
     if (s == (numColors - 1)) {
         extraWidth = swatchExtraPadding;
     }
-
+    
     swatches[s] = Overlays.addOverlay("image", {
-                    x: swatchX,
-                    y: swatchesY,
-                    width: swatchWidth + extraWidth,
-                    height: swatchHeight,
-                    subImage: { x: imageFromX, y: imageFromY, width: swatchWidth + extraWidth, height: swatchHeight },
-                    imageURL: toolIconUrl + "swatches.svg",
-                    color: colors[s],
-                    alpha: 1,
-                    visible: editToolsOn
-                });
+                                      x: swatchX,
+                                      y: swatchesY,
+                                      width: swatchWidth + extraWidth,
+                                      height: swatchHeight,
+                                      subImage: { x: imageFromX, y: imageFromY, width: swatchWidth + extraWidth, height: swatchHeight },
+                                      imageURL: toolIconUrl + "swatches.svg",
+                                      color: colors[s],
+                                      alpha: 1,
+                                      visible: editToolsOn
+                                      });
 }
 
 
@@ -267,29 +267,29 @@ var eyedropperToolAt = 2;
 var pasteModeColor = { red: 132,  green: 61,  blue: 255 };
 
 var voxelTool = Overlays.addOverlay("image", {
-                    x: 0, y: 0, width: toolWidth, height: toolHeight,
-                    subImage: { x: 0, y: toolHeight, width: toolWidth, height: toolHeight },
-                    imageURL: toolIconUrl + "voxel-tool.svg",
-                    visible: false,
-                    alpha: 0.9
-                });
+                                    x: 0, y: 0, width: toolWidth, height: toolHeight,
+                                    subImage: { x: 0, y: toolHeight, width: toolWidth, height: toolHeight },
+                                    imageURL: toolIconUrl + "voxel-tool.svg",
+                                    visible: false,
+                                    alpha: 0.9
+                                    });
 
 var recolorTool = Overlays.addOverlay("image", {
-                    x: 0, y: 0, width: toolWidth, height: toolHeight,
-                    subImage: { x: 0, y: toolHeight, width: toolWidth, height: toolHeight },
-                    imageURL: toolIconUrl + "paint-tool.svg",
-                    visible: false,
-                    alpha: 0.9
-                });
+                                      x: 0, y: 0, width: toolWidth, height: toolHeight,
+                                      subImage: { x: 0, y: toolHeight, width: toolWidth, height: toolHeight },
+                                      imageURL: toolIconUrl + "paint-tool.svg",
+                                      visible: false,
+                                      alpha: 0.9
+                                      });
 
 var eyedropperTool = Overlays.addOverlay("image", {
-                    x: 0, y: 0, width: toolWidth, height: toolHeight,
-                    subImage: { x: 0, y: toolHeight, width: toolWidth, height: toolHeight },
-                    imageURL: toolIconUrl + "eyedropper-tool.svg",
-                    visible: false,
-                    alpha: 0.9
-                });
-                
+                                         x: 0, y: 0, width: toolWidth, height: toolHeight,
+                                         subImage: { x: 0, y: toolHeight, width: toolWidth, height: toolHeight },
+                                         imageURL: toolIconUrl + "eyedropper-tool.svg",
+                                         visible: false,
+                                         alpha: 0.9
+                                         });
+
 // This will create a couple of image overlays that make a "slider", we will demonstrate how to trap mouse messages to
 // move the slider
 
@@ -301,12 +301,12 @@ var sliderOffsetX = 17;
 var sliderX = swatchesX - swatchWidth - sliderOffsetX;
 var sliderY = windowDimensions.y - sliderHeight + 1;
 var slider = Overlays.addOverlay("image", {
-                    // alternate form of expressing bounds
-                    bounds: { x: sliderX, y: sliderY, width: sliderWidth, height: sliderHeight},
-                    imageURL: toolIconUrl + "voxel-size-slider-bg.svg",
-                    alpha: 1,
-                    visible: false
-                });
+                                 // alternate form of expressing bounds
+                                 bounds: { x: sliderX, y: sliderY, width: sliderWidth, height: sliderHeight},
+                                 imageURL: toolIconUrl + "voxel-size-slider-bg.svg",
+                                 alpha: 1,
+                                 visible: false
+                                 });
 
 // The slider is handled in the mouse event callbacks.
 var isMovingSlider = false;
@@ -320,14 +320,14 @@ var thumbX = (minThumbX + maxThumbX) / 2;
 var thumbOffsetY = 11;
 var thumbY = sliderY + thumbOffsetY;
 var thumb = Overlays.addOverlay("image", {
-                    x: sliderX + thumbX,
-                    y: thumbY,
-                    width: 17,
-                    height: 17,
-                    imageURL: toolIconUrl + "voxel-size-slider-handle.svg",
-                    alpha: 1,
-                    visible: false
-                });
+                                x: sliderX + thumbX,
+                                y: thumbY,
+                                width: 17,
+                                height: 17,
+                                imageURL: toolIconUrl + "voxel-size-slider-handle.svg",
+                                alpha: 1,
+                                visible: false
+                                });
 
 var pointerVoxelScale = Math.floor(MAX_VOXEL_SCALE + MIN_VOXEL_SCALE) / 2; // this is the voxel scale used for click to add or delete
 var pointerVoxelScaleSet = false; // if voxel scale has not yet been set, we use the intersection size
@@ -377,7 +377,7 @@ function importVoxels() {
     } else {
         isImporting = false;
     }
-
+    
     return isImporting;
 }
 
@@ -471,13 +471,13 @@ function calcScaleFromThumb(newThumbX) {
     thumbAt = newThumbX - minThumbX;
     thumbStep = Math.floor((thumbAt/ thumbExtents) * (pointerVoxelScaleSteps-1)) + 1;
     pointerVoxelScale = Math.pow(2, (thumbStep-pointerVoxelScaleOriginStep));
-
+    
     // if importing, rescale import ...
     if (isImporting) {
         var importScale = (pointerVoxelScale / MAX_VOXEL_SCALE) * MAX_PASTE_VOXEL_SCALE;
         rescaleImport(importScale);
     }
-
+    
     // now reset the display accordingly...
     calcThumbFromScale(pointerVoxelScale);
     
@@ -492,18 +492,18 @@ function setAudioPosition() {
 }
 
 function getNewPasteVoxel(pickRay) {
-
+    
     var voxelSize = MIN_PASTE_VOXEL_SCALE + (MAX_PASTE_VOXEL_SCALE - MIN_PASTE_VOXEL_SCALE) * pointerVoxelScale - 1;
     var origin = { x: pickRay.direction.x, y: pickRay.direction.y, z: pickRay.direction.z };
-
+    
     origin.x += pickRay.origin.x;
     origin.y += pickRay.origin.y;
     origin.z += pickRay.origin.z;
-
+    
     origin.x -= voxelSize / 2;
     origin.y -= voxelSize / 2;
     origin.z += voxelSize / 2;
-
+    
     return {origin: origin, voxelSize: voxelSize};
 }
 
@@ -529,26 +529,26 @@ var pasteMode = false;
 function calculateVoxelFromIntersection(intersection, operation) {
     //print("calculateVoxelFromIntersection() operation="+operation);
     var resultVoxel;
-
+    
     var wantDebug = false;
     if (wantDebug) {
-        print(">>>>> calculateVoxelFromIntersection().... intersection voxel.red/green/blue=" + intersection.voxel.red + ", " 
-                                + intersection.voxel.green + ", " + intersection.voxel.blue);
-        print("   intersection voxel.x/y/z/s=" + intersection.voxel.x + ", " 
-                                + intersection.voxel.y + ", " + intersection.voxel.z+ ": " + intersection.voxel.s);
+        print(">>>>> calculateVoxelFromIntersection().... intersection voxel.red/green/blue=" + intersection.voxel.red + ", "
+              + intersection.voxel.green + ", " + intersection.voxel.blue);
+        print("   intersection voxel.x/y/z/s=" + intersection.voxel.x + ", "
+              + intersection.voxel.y + ", " + intersection.voxel.z+ ": " + intersection.voxel.s);
         print("   intersection face=" + intersection.face);
         print("   intersection distance=" + intersection.distance);
-        print("   intersection intersection.x/y/z=" + intersection.intersection.x + ", " 
-                                + intersection.intersection.y + ", " + intersection.intersection.z);
+        print("   intersection intersection.x/y/z=" + intersection.intersection.x + ", "
+              + intersection.intersection.y + ", " + intersection.intersection.z);
     }
     
     var voxelSize;
     if (pointerVoxelScaleSet) {
-        voxelSize = pointerVoxelScale; 
+        voxelSize = pointerVoxelScale;
     } else {
-        voxelSize = intersection.voxel.s; 
+        voxelSize = intersection.voxel.s;
     }
-
+    
     var x;
     var y;
     var z;
@@ -578,17 +578,17 @@ function calculateVoxelFromIntersection(intersection, operation) {
     }
     resultVoxel = { x: x, y: y, z: z, s: voxelSize };
     highlightAt = { x: x, y: y, z: z, s: voxelSize };
-
+    
     // we only do the "add to the face we're pointing at" adjustment, if the operation is an add
     // operation, and the target voxel size is equal to or smaller than the intersecting voxel.
     var wantAddAdjust = (operation == "add" && (voxelSize <= intersection.voxel.s));
     if (wantDebug) {
         print("wantAddAdjust="+wantAddAdjust);
     }
-
+    
     // now we also want to calculate the "edge square" for the face for this voxel
     if (intersection.face == "MIN_X_FACE") {
-
+        
         highlightAt.x = x - zFightingSizeAdjust;
         if (wantAddAdjust) {
             resultVoxel.x -= voxelSize;
@@ -598,21 +598,21 @@ function calculateVoxelFromIntersection(intersection, operation) {
         resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
         resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z + zFightingSizeAdjust };
         resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
-
+        
     } else if (intersection.face == "MAX_X_FACE") {
-
+        
         highlightAt.x = x + voxelSize + zFightingSizeAdjust;
         if (wantAddAdjust) {
             resultVoxel.x += resultVoxel.s;
         }
-
+        
         resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z + zFightingSizeAdjust };
         resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
         resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z + zFightingSizeAdjust };
         resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
-
+        
     } else if (intersection.face == "MIN_Y_FACE") {
-
+        
         highlightAt.y = y - zFightingSizeAdjust;
         if (wantAddAdjust) {
             resultVoxel.y -= voxelSize;
@@ -622,9 +622,9 @@ function calculateVoxelFromIntersection(intersection, operation) {
         resultVoxel.topLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z + zFightingSizeAdjust };
         resultVoxel.bottomRight = {x: highlightAt.x + zFightingSizeAdjust , y: highlightAt.y, z: highlightAt.z  + voxelSize - zFightingSizeAdjust };
         resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust , y: highlightAt.y, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
-
+        
     } else if (intersection.face == "MAX_Y_FACE") {
-
+        
         highlightAt.y = y + voxelSize + zFightingSizeAdjust;
         if (wantAddAdjust) {
             resultVoxel.y += voxelSize;
@@ -634,9 +634,9 @@ function calculateVoxelFromIntersection(intersection, operation) {
         resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z + zFightingSizeAdjust};
         resultVoxel.topRight = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z  + voxelSize - zFightingSizeAdjust};
         resultVoxel.topLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z + voxelSize - zFightingSizeAdjust};
-
+        
     } else if (intersection.face == "MIN_Z_FACE") {
-
+        
         highlightAt.z = z - zFightingSizeAdjust;
         if (wantAddAdjust) {
             resultVoxel.z -= voxelSize;
@@ -646,19 +646,19 @@ function calculateVoxelFromIntersection(intersection, operation) {
         resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z};
         resultVoxel.topRight = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z };
         resultVoxel.topLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z};
-
+        
     } else if (intersection.face == "MAX_Z_FACE") {
-
+        
         highlightAt.z = z + voxelSize + zFightingSizeAdjust;
         if (wantAddAdjust) {
             resultVoxel.z += voxelSize;
         }
-
+        
         resultVoxel.bottomLeft = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z };
         resultVoxel.bottomRight = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z};
         resultVoxel.topLeft = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z };
         resultVoxel.topRight = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z};
-
+        
     }
     
     return resultVoxel;
@@ -666,26 +666,26 @@ function calculateVoxelFromIntersection(intersection, operation) {
 
 function showPreviewVoxel() {
     var voxelColor;
-
+    
     var pickRay = Camera.computePickRay(trackLastMouseX, trackLastMouseY);
     var intersection = Voxels.findRayIntersection(pickRay);
-
-    // if the user hasn't updated the 
+    
+    // if the user hasn't updated the
     if (!pointerVoxelScaleSet) {
         calcThumbFromScale(intersection.voxel.s);
     }
-
+    
     if (whichColor == -1) {
         //  Copy mode - use clicked voxel color
         voxelColor = { red: intersection.voxel.red,
-                  green: intersection.voxel.green,
-                  blue: intersection.voxel.blue };
+        green: intersection.voxel.green,
+            blue: intersection.voxel.blue };
     } else {
         voxelColor = { red: colors[whichColor].red,
-                  green: colors[whichColor].green,
-                  blue: colors[whichColor].blue };
+        green: colors[whichColor].green,
+            blue: colors[whichColor].blue };
     }
-
+    
     var guidePosition;
     if (trackAsRecolor || recolorToolSelected || trackAsEyedropper || eyedropperToolSelected) {
         Overlays.editOverlay(voxelPreview, { visible: true });
@@ -697,49 +697,49 @@ function showPreviewVoxel() {
 }
 
 function showPreviewLines() {
-
+    
     var pickRay = Camera.computePickRay(trackLastMouseX, trackLastMouseY);
-
+    
     if (pasteMode) { // free voxel pasting
-
+        
         Overlays.editOverlay(voxelPreview, { visible: false });
         Overlays.editOverlay(linePreviewLeft, { visible: false });
-
+        
         var pasteVoxel = getNewPasteVoxel(pickRay);
-
+        
         // X axis
         Overlays.editOverlay(linePreviewBottom, {
-            position: pasteVoxel.origin,
-            end: {x: pasteVoxel.origin.x + pasteVoxel.voxelSize, y: pasteVoxel.origin.y, z: pasteVoxel.origin.z },
-            visible: true
-        });
-
+                             position: pasteVoxel.origin,
+                             end: {x: pasteVoxel.origin.x + pasteVoxel.voxelSize, y: pasteVoxel.origin.y, z: pasteVoxel.origin.z },
+                             visible: true
+                             });
+        
         // Y axis
         Overlays.editOverlay(linePreviewRight, {
-            position: pasteVoxel.origin,
-            end: {x: pasteVoxel.origin.x, y: pasteVoxel.origin.y + pasteVoxel.voxelSize, z: pasteVoxel.origin.z },
-            visible: true
-        });
-
+                             position: pasteVoxel.origin,
+                             end: {x: pasteVoxel.origin.x, y: pasteVoxel.origin.y + pasteVoxel.voxelSize, z: pasteVoxel.origin.z },
+                             visible: true
+                             });
+        
         // Z axis
         Overlays.editOverlay(linePreviewTop, {
-            position: pasteVoxel.origin,
-            end: {x: pasteVoxel.origin.x, y: pasteVoxel.origin.y, z: pasteVoxel.origin.z - pasteVoxel.voxelSize },
-            visible: true
-        });
-
+                             position: pasteVoxel.origin,
+                             end: {x: pasteVoxel.origin.x, y: pasteVoxel.origin.y, z: pasteVoxel.origin.z - pasteVoxel.voxelSize },
+                             visible: true
+                             });
+        
         return;
     }
-
+    
     var intersection = Voxels.findRayIntersection(pickRay);
     
     if (intersection.intersects) {
-
-        // if the user hasn't updated the 
+        
+        // if the user hasn't updated the
         if (!pointerVoxelScaleSet) {
             calcThumbFromScale(intersection.voxel.s);
         }
-
+        
         resultVoxel = calculateVoxelFromIntersection(intersection,"");
         Overlays.editOverlay(voxelPreview, { visible: false });
         Overlays.editOverlay(linePreviewTop, { position: resultVoxel.topLeft, end: resultVoxel.topRight, visible: true });
@@ -759,7 +759,7 @@ function showPreviewGuides() {
     if (editToolsOn) {
         if (previewAsVoxel) {
             showPreviewVoxel();
-
+            
             // make sure alternative is hidden
             Overlays.editOverlay(linePreviewTop, { visible: false });
             Overlays.editOverlay(linePreviewBottom, { visible: false });
@@ -791,7 +791,7 @@ function trackKeyPressEvent(event) {
     if (!editToolsOn) {
         return;
     }
-
+    
     if (event.text == "CONTROL") {
         trackAsDelete = true;
         moveTools();
@@ -819,11 +819,11 @@ function trackKeyReleaseEvent(event) {
         showPreviewGuides();
         scriptInitSound.playRandom();
     }
-                          
+    
     if (event.text == "ALT") {
         inspectJsIsRunning = false;
     }
-
+    
     if (editToolsOn) {
         if (event.text == "ESC") {
             pointerVoxelScaleSet = false;
@@ -855,15 +855,15 @@ function trackKeyReleaseEvent(event) {
         if (event.text == "F1") {
             previewAsVoxel = !previewAsVoxel;
         }
-
+        
         showPreviewGuides();
-    }    
+    }
 }
 
 function mousePressEvent(event) {
     // if our tools are off, then don't do anything
     if (!editToolsOn) {
-        return; 
+        return;
     }
     if (inspectJsIsRunning) {
         return;
@@ -878,7 +878,7 @@ function mousePressEvent(event) {
         thumbClickOffsetX = event.x - (sliderX + thumbX); // this should be the position of the mouse relative to the thumb
         clickedOnSomething = true;
         
-        Overlays.editOverlay(thumb, { imageURL: toolIconUrl + "voxel-size-slider-handle.svg", });
+        //Overlays.editOverlay(thumb, { imageURL: toolIconUrl + "voxel-size-slider-handle.svg", });
         
     } else if (clickedOverlay == voxelTool) {
         modeSwitchSound.play(0);
@@ -930,7 +930,7 @@ function mousePressEvent(event) {
     if (clickedOnSomething) {
         return; // no further processing
     }
-
+    
     // TODO: does any of this stuff need to execute if we're panning or orbiting?
     trackMouseEvent(event); // used by preview support
     mouseX = event.x;
@@ -938,7 +938,7 @@ function mousePressEvent(event) {
     var pickRay = Camera.computePickRay(event.x, event.y);
     var intersection = Voxels.findRayIntersection(pickRay);
     audioOptions.position = Vec3.sum(pickRay.origin, pickRay.direction);
-
+    
     if (isImporting) {
         print("placing import...");
         placeImport();
@@ -946,7 +946,7 @@ function mousePressEvent(event) {
         moveTools();
         return;
     }
-
+    
     if (pasteMode) {
         var pasteVoxel = getNewPasteVoxel(pickRay);
         Clipboard.pasteVoxel(pasteVoxel.origin.x, pasteVoxel.origin.y, pasteVoxel.origin.z, pasteVoxel.voxelSize);
@@ -954,9 +954,9 @@ function mousePressEvent(event) {
         moveTools();
         return;
     }
-
+    
     if (intersection.intersects) {
-        // if the user hasn't updated the 
+        // if the user hasn't updated the
         if (!pointerVoxelScaleSet) {
             calcThumbFromScale(intersection.voxel.s);
         }
@@ -979,9 +979,9 @@ function mousePressEvent(event) {
         } else if (recolorToolSelected || trackAsRecolor) {
             //  Recolor Voxel
             voxelDetails = calculateVoxelFromIntersection(intersection,"recolor");
-
+            
             // doing this erase then set will make sure we only recolor just the target voxel
-            Voxels.setVoxel(voxelDetails.x, voxelDetails.y, voxelDetails.z, voxelDetails.s, 
+            Voxels.setVoxel(voxelDetails.x, voxelDetails.y, voxelDetails.z, voxelDetails.s,
                             colors[whichColor].red, colors[whichColor].green, colors[whichColor].blue);
             swatchesSound.play(whichColor);
             Overlays.editOverlay(voxelPreview, { visible: false });
@@ -989,30 +989,30 @@ function mousePressEvent(event) {
             //  Add voxel on face
             if (whichColor == -1) {
                 //  Copy mode - use clicked voxel color
-                newColor = {    
-                    red: intersection.voxel.red,
-                    green: intersection.voxel.green,
+                newColor = {
+                red: intersection.voxel.red,
+                green: intersection.voxel.green,
                     blue: intersection.voxel.blue };
             } else {
-                newColor = {    
-                    red: colors[whichColor].red,
-                    green: colors[whichColor].green,
+                newColor = {
+                red: colors[whichColor].red,
+                green: colors[whichColor].green,
                     blue: colors[whichColor].blue };
             }
-                    
+            
             voxelDetails = calculateVoxelFromIntersection(intersection,"add");
             Voxels.setVoxel(voxelDetails.x, voxelDetails.y, voxelDetails.z, voxelDetails.s,
-                newColor.red, newColor.green, newColor.blue);
+                            newColor.red, newColor.green, newColor.blue);
             lastVoxelPosition = { x: voxelDetails.x, y: voxelDetails.y, z: voxelDetails.z };
             lastVoxelColor = { red: newColor.red, green: newColor.green, blue: newColor.blue };
             lastVoxelScale = voxelDetails.s;
-
+            
             addVoxelSound.playRandom();
             
             Overlays.editOverlay(voxelPreview, { visible: false });
             dragStart = { x: event.x, y: event.y };
             isAdding = true;
-        } 
+        }
     }
 }
 
@@ -1031,18 +1031,18 @@ function keyPressEvent(event) {
             swatchesSound.play(whichColor);
             moveTools();
         } else if (event.text == "0") {
-            // Create a brand new 1 meter voxel in front of your avatar 
-            var color = whichColor; 
+            // Create a brand new 1 meter voxel in front of your avatar
+            var color = whichColor;
             if (color == -1) color = 0;
             var newPosition = getNewVoxelPosition();
-            var newVoxel = {    
-                        x: newPosition.x,
-                        y: newPosition.y ,
-                        z: newPosition.z,    
-                        s: NEW_VOXEL_SIZE,
-                        red: colors[color].red,
-                        green: colors[color].green,
-                        blue: colors[color].blue };
+            var newVoxel = {
+            x: newPosition.x,
+            y: newPosition.y ,
+            z: newPosition.z,
+            s: NEW_VOXEL_SIZE,
+            red: colors[color].red,
+            green: colors[color].green,
+                blue: colors[color].blue };
             Voxels.eraseVoxel(newVoxel.x, newVoxel.y, newVoxel.z, newVoxel.s);
             Voxels.setVoxel(newVoxel.x, newVoxel.y, newVoxel.z, newVoxel.s, newVoxel.red, newVoxel.green, newVoxel.blue);
             setAudioPosition();
@@ -1064,7 +1064,7 @@ function keyReleaseEvent(event) {
 function setupMenus() {
     // hook up menus
     Menu.menuItemEvent.connect(menuItemEvent);
-
+    
     // add our menuitems
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Voxels", isSeparator: true, beforeItem: "Physics" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Cut", shortcutKey: "CTRL+X", afterItem: "Voxels" });
@@ -1072,7 +1072,7 @@ function setupMenus() {
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste", shortcutKey: "CTRL+V", afterItem: "Copy" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Nudge", shortcutKey: "CTRL+N", afterItem: "Paste" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete", shortcutKeyEvent: { text: "backspace" }, afterItem: "Nudge" });
-
+    
     Menu.addMenuItem({ menuName: "File", menuItemName: "Voxels", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Voxels", shortcutKey: "CTRL+E", afterItem: "Voxels" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Voxels", shortcutKey: "CTRL+I", afterItem: "Export Voxels" });
@@ -1092,10 +1092,10 @@ function cleanupMenus() {
 }
 
 function menuItemEvent(menuItem) {
-
+    
     // handle clipboard items
     if (editToolsOn) {
-
+        
         var pickRay = Camera.computePickRay(trackLastMouseX, trackLastMouseY);
         var intersection = Voxels.findRayIntersection(pickRay);
         selectedVoxel = calculateVoxelFromIntersection(intersection,"select");
@@ -1131,7 +1131,7 @@ function menuItemEvent(menuItem) {
                 Clipboard.deleteVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
             }
         }
-    
+        
         if (menuItem == "Export Voxels") {
             print("export");
             Clipboard.exportVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
@@ -1172,9 +1172,9 @@ function mouseMoveEvent(event) {
         //  Watch the drag direction to tell which way to 'extrude' this voxel
         if (!isExtruding) {
             var pickRay = Camera.computePickRay(event.x, event.y);
-            var lastVoxelDistance = { x: pickRay.origin.x - lastVoxelPosition.x, 
-                                    y: pickRay.origin.y - lastVoxelPosition.y, 
-                                    z: pickRay.origin.z - lastVoxelPosition.z };
+            var lastVoxelDistance = { x: pickRay.origin.x - lastVoxelPosition.x,
+            y: pickRay.origin.y - lastVoxelPosition.y,
+                z: pickRay.origin.z - lastVoxelPosition.z };
             var distance = Vec3.length(lastVoxelDistance);
             var mouseSpot = { x: pickRay.direction.x * distance, y: pickRay.direction.y * distance, z: pickRay.direction.z * distance };
             mouseSpot.x += pickRay.origin.x;
@@ -1192,15 +1192,15 @@ function mouseMoveEvent(event) {
             else if (dy < -lastVoxelScale) extrudeDirection.y = -extrudeScale;
             else if (dz > lastVoxelScale) extrudeDirection.z = extrudeScale;
             else if (dz < -lastVoxelScale) extrudeDirection.z = -extrudeScale;
-            else isExtruding = false; 
+            else isExtruding = false;
         } else {
             //  We have got an extrusion direction, now look for mouse move beyond threshold to add new voxel
-            var dx = event.x - mouseX; 
+            var dx = event.x - mouseX;
             var dy = event.y - mouseY;
             if (Math.sqrt(dx*dx + dy*dy) > PIXELS_PER_EXTRUDE_VOXEL)  {
                 lastVoxelPosition = Vec3.sum(lastVoxelPosition, extrudeDirection);
-                Voxels.setVoxel(lastVoxelPosition.x, lastVoxelPosition.y, lastVoxelPosition.z, 
-                            extrudeScale, lastVoxelColor.red, lastVoxelColor.green, lastVoxelColor.blue);
+                Voxels.setVoxel(lastVoxelPosition.x, lastVoxelPosition.y, lastVoxelPosition.z,
+                                extrudeScale, lastVoxelColor.red, lastVoxelColor.green, lastVoxelColor.blue);
                 mouseX = event.x;
                 mouseY = event.y;
             }
@@ -1214,64 +1214,64 @@ function mouseMoveEvent(event) {
 function mouseReleaseEvent(event) {
     // if our tools are off, then don't do anything
     if (!editToolsOn) {
-        return; 
+        return;
     }
     if (inspectJsIsRunning) {
         return;
     }
-                          
+    
     if (isMovingSlider) {
         isMovingSlider = false;
     }
     isAdding = false;
-    isExtruding = false; 
+    isExtruding = false;
 }
 
 function moveTools() {
     // move the swatches
     swatchesX = (windowDimensions.x - (swatchesWidth + sliderWidth)) / 2;
     swatchesY = windowDimensions.y - swatchHeight + 1;
-
+    
     // create the overlays, position them in a row, set their colors, and for the selected one, use a different source image
     // location so that it displays the "selected" marker
     for (s = 0; s < numColors; s++) {
 	    var extraWidth = 0;
-
+        
 	    if (s == 0) {
 	        extraWidth = swatchExtraPadding;
 	    }
-
+        
 	    var imageFromX = swatchExtraPadding - extraWidth + s * swatchWidth;
 	    var imageFromY = swatchHeight + 1;
 	    if (s == whichColor) {
 	        imageFromY = 0;
 	    }
-
+        
 	    var swatchX = swatchExtraPadding - extraWidth + swatchesX + ((swatchWidth - 1) * s);
-
+        
 	    if (s == (numColors - 1)) {
 	        extraWidth = swatchExtraPadding;
 	    }
 		
         Overlays.editOverlay(swatches[s], {
-                        x: swatchX,
-                        y: swatchesY,
-                        subImage: { x: imageFromX, y: imageFromY, width: swatchWidth + extraWidth, height: swatchHeight },
-                        color: colors[s],
-                        alpha: 1,
-                        visible: editToolsOn
-                    });
+                             x: swatchX,
+                             y: swatchesY,
+                             subImage: { x: imageFromX, y: imageFromY, width: swatchWidth + extraWidth, height: swatchHeight },
+                             color: colors[s],
+                             alpha: 1,
+                             visible: editToolsOn
+                             });
     }
-
+    
     // move the tools
     toolsY = (windowDimensions.y - toolsHeight) / 2;
-
+    
     var voxelToolOffset = 1,
-        recolorToolOffset = 1,
-        eyedropperToolOffset = 1;
-
+    recolorToolOffset = 1,
+    eyedropperToolOffset = 1;
+    
     var voxelToolColor = WHITE_COLOR;
-
+    
     if (recolorToolSelected) {
         recolorToolOffset = 2;
     } else if (eyedropperToolSelected) {
@@ -1282,34 +1282,34 @@ function moveTools() {
         }
         voxelToolOffset = 2;
     }
-
+    
     Overlays.editOverlay(voxelTool, {
-                    subImage: { x: 0, y: toolHeight * voxelToolOffset, width: toolWidth, height: toolHeight },
-                    x: toolsX, y: toolsY + ((toolHeight + toolVerticalSpacing) * voxelToolAt), width: toolWidth, height: toolHeight,
-                    color: voxelToolColor,
-                    visible: editToolsOn
-                });
-
+                         subImage: { x: 0, y: toolHeight * voxelToolOffset, width: toolWidth, height: toolHeight },
+                         x: toolsX, y: toolsY + ((toolHeight + toolVerticalSpacing) * voxelToolAt), width: toolWidth, height: toolHeight,
+                         color: voxelToolColor,
+                         visible: editToolsOn
+                         });
+    
     Overlays.editOverlay(recolorTool, {
-                    subImage: { x: 0, y: toolHeight * recolorToolOffset, width: toolWidth, height: toolHeight },
-                    x: toolsX, y: toolsY + ((toolHeight + toolVerticalSpacing) * recolorToolAt), width: toolWidth, height: toolHeight,
-                    visible: editToolsOn
-                });
-
+                         subImage: { x: 0, y: toolHeight * recolorToolOffset, width: toolWidth, height: toolHeight },
+                         x: toolsX, y: toolsY + ((toolHeight + toolVerticalSpacing) * recolorToolAt), width: toolWidth, height: toolHeight,
+                         visible: editToolsOn
+                         });
+    
     Overlays.editOverlay(eyedropperTool, {
-                    subImage: { x: 0, y: toolHeight * eyedropperToolOffset, width: toolWidth, height: toolHeight },
-                    x: toolsX, y: toolsY + ((toolHeight + toolVerticalSpacing) * eyedropperToolAt), width: toolWidth, height: toolHeight,
-                    visible: editToolsOn
-                });
-
+                         subImage: { x: 0, y: toolHeight * eyedropperToolOffset, width: toolWidth, height: toolHeight },
+                         x: toolsX, y: toolsY + ((toolHeight + toolVerticalSpacing) * eyedropperToolAt), width: toolWidth, height: toolHeight,
+                         visible: editToolsOn
+                         });
+    
     sliderX = swatchesX + swatchesWidth - sliderOffsetX;
     sliderY = windowDimensions.y - sliderHeight + 1;
     thumbY = sliderY + thumbOffsetY;
     Overlays.editOverlay(slider, { x: sliderX, y: sliderY, visible: editToolsOn });
-
+    
     // This is the thumb of our slider
     Overlays.editOverlay(thumb, { x: sliderX + thumbX, y: thumbY, visible: editToolsOn });
-
+    
 }
 
 var lastFingerAddVoxel = { x: -1, y: -1, z: -1}; // off of the build-able area
@@ -1318,8 +1318,8 @@ var lastFingerDeleteVoxel = { x: -1, y: -1, z: -1}; // off of the build-able are
 function checkControllers() {
     var controllersPerPalm = 2; // palm and finger
     for (var palm = 0; palm < 2; palm++) {
-        var palmController = palm * controllersPerPalm; 
-        var fingerTipController = palmController + 1; 
+        var palmController = palm * controllersPerPalm;
+        var fingerTipController = palmController + 1;
         var fingerTipPosition = Controller.getSpatialControlPosition(fingerTipController);
         
         var BUTTON_COUNT = 6;
@@ -1327,7 +1327,7 @@ function checkControllers() {
         var BUTTON_1 = BUTTON_BASE + 1;
         var BUTTON_2 = BUTTON_BASE + 2;
         var FINGERTIP_VOXEL_SIZE = 0.05;
-
+        
         if (Controller.isButtonPressed(BUTTON_1)) {
             if (Vec3.length(Vec3.subtract(fingerTipPosition,lastFingerAddVoxel)) > (FINGERTIP_VOXEL_SIZE / 2)) {
                 if (whichColor == -1) {
@@ -1335,10 +1335,10 @@ function checkControllers() {
                 } else {
                     newColor = { red: colors[whichColor].red, green: colors[whichColor].green, blue: colors[whichColor].blue };
                 }
-
+                
                 Voxels.eraseVoxel(fingerTipPosition.x, fingerTipPosition.y, fingerTipPosition.z, FINGERTIP_VOXEL_SIZE);
                 Voxels.setVoxel(fingerTipPosition.x, fingerTipPosition.y, fingerTipPosition.z, FINGERTIP_VOXEL_SIZE,
-                    newColor.red, newColor.green, newColor.blue);
+                                newColor.red, newColor.green, newColor.blue);
                 
                 lastFingerAddVoxel = fingerTipPosition;
             }
@@ -1358,18 +1358,18 @@ function update(deltaTime) {
             windowDimensions = newWindowDimensions;
             moveTools();
         }
-
+        
         checkControllers();
-
+        
         // Move Import Preview
         if (isImporting) {
             var position = MyAvatar.position;
             var forwardVector = Quat.getFront(MyAvatar.orientation);
             var targetPosition = Vec3.sum(position, Vec3.multiply(forwardVector, importScale));
             var newPosition = {
-                x: Math.floor(targetPosition.x / importScale) * importScale,
-                y: Math.floor(targetPosition.y / importScale) * importScale,
-                z: Math.floor(targetPosition.z / importScale) * importScale
+            x: Math.floor(targetPosition.x / importScale) * importScale,
+            y: Math.floor(targetPosition.y / importScale) * importScale,
+            z: Math.floor(targetPosition.z / importScale) * importScale
             }
             moveImport(newPosition);
         }
@@ -1398,7 +1398,7 @@ function wheelEvent(event) {
         calcThumbFromScale(pointerVoxelScale);
         trackMouseEvent(event);
         wheelPixelsMoved = 0;
-
+        
         if (isImporting) {
             var importScale = (pointerVoxelScale / MAX_VOXEL_SCALE) * MAX_PASTE_VOXEL_SCALE;
             rescaleImport(importScale);
