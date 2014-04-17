@@ -23,8 +23,8 @@ enum AudioSource {
 
 class AudioPath {
 public:
-    AudioPath(AudioSource source = INBOUND_AUDIO, const glm::vec3& origin = glm::vec3(0), 
-            const glm::vec3& direction = glm::vec3(0), float attenuation = 1.0f, 
+    AudioPath(AudioSource source = INBOUND_AUDIO, const glm::vec3& origin = glm::vec3(0.0f), 
+            const glm::vec3& direction = glm::vec3(0.0f), float attenuation = 1.0f, 
             float delay = 0.0f, float distance = 0.0f, bool isDiffusion = false, int bounceCount = 0);
             
     AudioSource source;
