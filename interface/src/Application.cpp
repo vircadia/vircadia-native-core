@@ -1678,6 +1678,15 @@ void Application::init() {
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
+    
+    // set up our audio reflector
+    _audioReflector.setMyAvatar(getAvatar());
+    _audioReflector.setVoxels(_voxels.getTree());
+    _audioReflector.setAudio(getAudio());
+    connect(getAudio(), &Audio::processInboundAudio, &_audioReflector, &AudioReflector::processInboundAudio,Qt::DirectConnection);
+    connect(getAudio(), &Audio::processLocalAudio, &_audioReflector, &AudioReflector::processLocalAudio,Qt::DirectConnection);
+
+    // save settings when avatar changes
     connect(_myAvatar, SIGNAL(transformChanged()), this, SLOT(bumpSettings()));
 }
 
@@ -2450,6 +2459,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // disable specular lighting for ground and voxels
         glMaterialfv(GL_FRONT, GL_SPECULAR, NO_SPECULAR_COLOR);
+        
+        // draw the audio reflector overlay
+        _audioReflector.render();
 
         //  Draw voxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
@@ -3387,6 +3399,7 @@ void Application::loadScript(const QString& scriptName) {
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
 
     QThread* workerThread = new QThread(this);
 
