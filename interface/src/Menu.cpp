@@ -906,6 +906,17 @@ void Menu::goToUser(const QString& user) {
     connect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
 }
 
+/// Open a url, shortcutting any "hifi" scheme URLs to the local application.
+void Menu::openUrl(const QUrl& url) {
+    if (url.scheme() == "hifi") {
+        QString path = url.toString(QUrl::RemoveScheme);
+        path = path.remove(QRegExp("^:?/*"));
+        goTo(path);
+    } else {
+        QDesktopServices::openUrl(url);
+    }
+}
+
 void Menu::multipleDestinationsDecision(const QJsonObject& userData, const QJsonObject& placeData) {
     QMessageBox msgBox;
     msgBox.setText("Both user and location exists with same name");
