@@ -93,61 +93,61 @@ function SoundArray() {
 }
 
 var addVoxelSound = new SoundArray();
-addVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Add/VA+1.wav");
-addVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Add/VA+2.wav");
-addVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Add/VA+3.wav");
-addVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Add/VA+4.wav");
-addVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Add/VA+5.wav");
-addVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Add/VA+6.wav");
+addVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Add/VA+1.raw");
+addVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Add/VA+2.raw");
+addVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Add/VA+3.raw");
+addVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Add/VA+4.raw");
+addVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Add/VA+5.raw");
+addVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Add/VA+6.raw");
 
 var delVoxelSound = new SoundArray();
-delVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Del/VD+A1.wav");
-delVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Del/VD+A2.wav");
-delVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Del/VD+A3.wav");
-delVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Del/VD+B1.wav");
-delVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Del/VD+B2.wav");
-delVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Del/VD+B3.wav");
+delVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Del/VD+A1.raw");
+delVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Del/VD+A2.raw");
+delVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Del/VD+A3.raw");
+delVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Del/VD+B1.raw");
+delVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Del/VD+B2.raw");
+delVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Del/VD+B3.raw");
 
 var resizeVoxelSound = new SoundArray();
-resizeVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Size/V+Size+Minus.wav");
-resizeVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Size/V+Size+Plus.wav");
+resizeVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Size/V+Size+Minus.raw");
+resizeVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Voxel+Size/V+Size+Plus.raw");
 var voxelSizeMinus = 0;
 var voxelSizePlus = 1;
 
 var swatchesSound = new SoundArray();
-swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+1.wav");
-swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+2.wav");
-swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+3.wav");
-swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+4.wav");
-swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+5.wav");
-swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+6.wav");
-swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+7.wav");
-swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+8.wav");
-swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+9.wav");
+swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+1.raw");
+swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+2.raw");
+swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+3.raw");
+swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+4.raw");
+swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+5.raw");
+swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+6.raw");
+swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+7.raw");
+swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+8.raw");
+swatchesSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Swatches/Swatch+9.raw");
 
 var undoSound = new SoundArray();
-undoSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Undo/Undo+1.wav");
-undoSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Undo/Undo+2.wav");
-undoSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Undo/Undo+3.wav");
+undoSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Undo/Undo+1.raw");
+undoSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Undo/Undo+2.raw");
+undoSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Undo/Undo+3.raw");
 
 var scriptInitSound = new SoundArray();
-scriptInitSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Script+Init/Script+Init+A.wav");
-scriptInitSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Script+Init/Script+Init+B.wav");
-scriptInitSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Script+Init/Script+Init+C.wav");
-scriptInitSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Script+Init/Script+Init+D.wav");
+scriptInitSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Script+Init/Script+Init+A.raw");
+scriptInitSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Script+Init/Script+Init+B.raw");
+scriptInitSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Script+Init/Script+Init+C.raw");
+scriptInitSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Script+Init/Script+Init+D.raw");
 
 var modeSwitchSound = new SoundArray();
-modeSwitchSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Mode+Switch/Mode+1.wav");
-modeSwitchSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Mode+Switch/Mode+2.wav");
-modeSwitchSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Mode+Switch/Mode+3.wav");
+modeSwitchSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Mode+Switch/Mode+1.raw");
+modeSwitchSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Mode+Switch/Mode+2.raw");
+modeSwitchSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Mode+Switch/Mode+3.raw");
 
 var initialVoxelSound = new SoundArray();
-initialVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Initial+Voxel/Initial+V.wav");
+initialVoxelSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Initial+Voxel/Initial+V.raw");
 
 var colorInheritSound = new SoundArray();
-colorInheritSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Color+Inherit/Inherit+A.wav");
-colorInheritSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Color+Inherit/Inherit+B.wav");
-colorInheritSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Color+Inherit/Inherit+C.wav");
+colorInheritSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Color+Inherit/Inherit+A.raw");
+colorInheritSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Color+Inherit/Inherit+B.raw");
+colorInheritSound.addSound("https://highfidelity-public.s3.amazonaws.com/sounds/Voxel+Editing/Color+Inherit/Inherit+C.raw");
 
 
 var editToolsOn = true; // starts out off
