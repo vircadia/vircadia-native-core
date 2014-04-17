@@ -11,7 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var animation = AnimationCache.getAnimation("http://www.fungibleinsight.com/faces/hip_hop_dancing_2.fbx");
+var animation = AnimationCache.getAnimation("http://www.fungibleinsight.com/faces/gangnam_style_2.fbx");
 
 Avatar.skeletonModelURL = "http://www.fungibleinsight.com/faces/beta.fst";
 
