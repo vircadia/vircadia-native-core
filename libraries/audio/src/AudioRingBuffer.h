@@ -39,7 +39,7 @@ const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 class AudioRingBuffer : public NodeData {
     Q_OBJECT
 public:
-    AudioRingBuffer(int numFrameSamples);
+    AudioRingBuffer(int numFrameSamples, bool randomAccessMode = false);
     ~AudioRingBuffer();
 
     void reset();
@@ -50,8 +50,8 @@ public:
     int parseData(const QByteArray& packet);
     
     // assume callers using this will never wrap around the end
-    const int16_t* getNextOutput() { return _nextOutput; }
-    const int16_t* getBuffer() { return _buffer; }
+    const int16_t* getNextOutput() const { return _nextOutput; }
+    const int16_t* getBuffer() const { return _buffer; }
 
     qint64 readSamples(int16_t* destination, qint64 maxSamples);
     qint64 writeSamples(const int16_t* source, qint64 maxSamples);
@@ -60,6 +60,7 @@ public:
     qint64 writeData(const char* data, qint64 maxSize);
     
     int16_t& operator[](const int index);
+    const int16_t& operator[] (const int index) const;
     
     void shiftReadPosition(unsigned int numSamples);
     
@@ -87,6 +88,7 @@ protected:
     int16_t* _buffer;
     bool _isStarved;
     bool _hasStarted;
+    bool _randomAccessMode; /// will this ringbuffer be used for random access? if so, do some special processing
 };
 
 #endif // hifi_AudioRingBuffer_h

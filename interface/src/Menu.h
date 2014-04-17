@@ -260,6 +260,18 @@ namespace MenuOption {
     const QString Atmosphere = "Atmosphere";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
     const QString AudioToneInjection = "Inject Test Tone";
+
+    const QString AudioSpatialProcessing = "Audio Spatial Processing";
+    const QString AudioSpatialProcessingHeadOriented = "Head Oriented";
+    const QString AudioSpatialProcessingIncludeOriginal = "Includes Network Original";
+    const QString AudioSpatialProcessingPreDelay = "Add Pre-Delay";
+    const QString AudioSpatialProcessingProcessLocalAudio = "Process Local Audio";
+    const QString AudioSpatialProcessingRenderPaths = "Render Paths";
+    const QString AudioSpatialProcessingSeparateEars = "Separate Ears";
+    const QString AudioSpatialProcessingSlightlyRandomSurfaces = "Slightly Random Surfaces";
+    const QString AudioSpatialProcessingStereoSource = "Stereo Source";
+    const QString AudioSpatialProcessingWithDiffusions = "With Diffusions";
+
     const QString Avatars = "Avatars";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";

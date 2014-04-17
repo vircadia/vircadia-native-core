@@ -350,8 +350,8 @@ Menu::Menu() :
 
 
     QMenu* renderDebugMenu = developerMenu->addMenu("Render Debugging Tools");
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::PipelineWarnings, Qt::CTRL | Qt::SHIFT | Qt::Key_P);
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::SuppressShortTimings, Qt::CTRL | Qt::SHIFT | Qt::Key_S);
+    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::PipelineWarnings);
+    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::SuppressShortTimings);
 
     addCheckableActionToQMenuAndActionHash(renderDebugMenu,
                                   MenuOption::CullSharedFaces,
@@ -362,7 +362,7 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(renderDebugMenu,
                                   MenuOption::ShowCulledSharedFaces,
-                                  Qt::CTRL | Qt::SHIFT | Qt::Key_X,
+                                  0,
                                   false,
                                   appInstance->getVoxels(),
                                   SLOT(showCulledSharedFaces()));
@@ -385,6 +385,50 @@ Menu::Menu() :
                                            false,
                                            appInstance->getAudio(),
                                            SLOT(toggleToneInjection()));
+
+    QMenu* spatialAudioMenu = audioDebugMenu->addMenu("Spatial Audio");
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessing,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_M,
+                                           false,
+                                           appInstance->getAudio(),
+                                           SLOT(toggleAudioSpatialProcessing()));
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingIncludeOriginal,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_O,
+                                           true);
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingSeparateEars,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_E,
+                                           true);
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingPreDelay,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_D,
+                                           true);
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingStereoSource,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_S,
+                                           true);
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingHeadOriented,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_H,
+                                           true);
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingWithDiffusions,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_W,
+                                           true);
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingRenderPaths,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_R,
+                                           true);
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingSlightlyRandomSurfaces,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_X,
+                                           true);
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingProcessLocalAudio,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_A,
+                                           true);
 
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
                 Qt::CTRL | Qt::SHIFT | Qt::Key_V,
