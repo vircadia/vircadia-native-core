@@ -11,8 +11,10 @@
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QEventLoop>
+#include <QtCore/QStandardPaths>
 #include <QtCore/QTimer>
 #include <QtNetwork/QNetworkAccessManager>
+#include <QtNetwork/QNetworkDiskCache>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
@@ -20,6 +22,7 @@
 #include <AvatarData.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
+#include <ResourceCache.h>
 #include <UUID.h>
 #include <VoxelConstants.h>
 #include <ParticlesScriptingInterface.h>
@@ -159,6 +162,10 @@ void Agent::run() {
    
     QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
     QNetworkReply *reply = networkManager->get(QNetworkRequest(scriptURL));
+    QNetworkDiskCache* cache = new QNetworkDiskCache(networkManager);
+    QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+    cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "agentCache");
+    networkManager->setCache(cache);
     
     qDebug() << "Downloading script at" << scriptURL.toString();
     
@@ -167,8 +174,9 @@ void Agent::run() {
     
     loop.exec();
     
-    // let the AvatarData class use our QNetworkAcessManager
+    // let the AvatarData and ResourceCache classes use our QNetworkAccessManager
     AvatarData::setNetworkAccessManager(networkManager);
+    ResourceCache::setNetworkAccessManager(networkManager);
     
     QString scriptContents(reply->readAll());
     

@@ -99,6 +99,8 @@ class AvatarData : public QObject {
     Q_PROPERTY(QString skeletonModelURL READ getSkeletonModelURLFromScript WRITE setSkeletonModelURLFromScript)
     Q_PROPERTY(QString billboardURL READ getBillboardURL WRITE setBillboardFromURL)
 
+    Q_PROPERTY(QStringList jointNames READ getJointNames)
+
     Q_PROPERTY(QUuid sessionUUID READ getSessionUUID);
 public:
     AvatarData();

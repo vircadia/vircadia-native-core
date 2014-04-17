@@ -15,12 +15,12 @@ var AMPLITUDE = 45.0;
 
 var cumulativeTime = 0.0;
 
-print("# Joint list start");
 var jointList = MyAvatar.getJointNames(); 
+var jointMappings = "\n# Joint list start";
 for (var i = 0; i < jointList.length; i++) {
-    print("jointIndex = " + jointList[i] + " = " + i);
+    jointMappings = jointMappings + "\njointIndex = " + jointList[i] + " = " + i;
 }
-print("# Joint list end"); 
+print(jointMappings + "\n# Joint list end"); 
 
 Script.update.connect(function(deltaTime) {
     cumulativeTime += deltaTime;
