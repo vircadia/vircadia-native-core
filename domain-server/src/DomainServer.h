@@ -66,6 +66,7 @@ private:
     
     void parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes);
     void addStaticAssignmentToAssignmentHash(Assignment* newAssignment);
+    void createScriptedAssignmentsFromArray(const QJsonArray& configArray);
     void createStaticAssignmentsForType(Assignment::Type type, const QJsonArray& configArray);
     void populateDefaultStaticAssignmentsExcludingTypes(const QSet<Assignment::Type>& excludedTypes);
     

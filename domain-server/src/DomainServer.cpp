@@ -187,7 +187,7 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
         }
     }
     
-    QSet<Assignment::Type> parsedTypes(QSet<Assignment::Type>() << Assignment::AgentType);
+    QSet<Assignment::Type> parsedTypes;
     parseAssignmentConfigs(parsedTypes);
     
     populateDefaultStaticAssignmentsExcludingTypes(parsedTypes);
@@ -222,12 +222,19 @@ void DomainServer::parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes)
         
         if (assignmentType < Assignment::AllTypes && !excludedTypes.contains(assignmentType)) {
             QVariant mapValue = _argumentVariantMap[variantMapKeys[configIndex]];
+            QJsonArray assignmentArray;
             
             if (mapValue.type() == QVariant::String) {
                 QJsonDocument deserializedDocument = QJsonDocument::fromJson(mapValue.toString().toUtf8());
-                createStaticAssignmentsForType(assignmentType, deserializedDocument.array());
+                assignmentArray = deserializedDocument.array();
             } else {
-                createStaticAssignmentsForType(assignmentType, mapValue.toJsonValue().toArray());
+                assignmentArray = mapValue.toJsonValue().toArray();
+            }
+            
+            if (assignmentType != Assignment::AgentType) {
+                createStaticAssignmentsForType(assignmentType, assignmentArray);
+            } else {
+                createScriptedAssignmentsFromArray(assignmentArray);
             }
             
             excludedTypes.insert(assignmentType);
@@ -240,6 +247,42 @@ void DomainServer::parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes)
 void DomainServer::addStaticAssignmentToAssignmentHash(Assignment* newAssignment) {
     qDebug() << "Inserting assignment" << *newAssignment << "to static assignment hash.";
     _staticAssignmentHash.insert(newAssignment->getUUID(), SharedAssignmentPointer(newAssignment));
+}
+
+void DomainServer::createScriptedAssignmentsFromArray(const QJsonArray &configArray) {    
+    foreach(const QJsonValue& jsonValue, configArray) {
+        if (jsonValue.isObject()) {
+            QJsonObject jsonObject = jsonValue.toObject();
+            
+            // make sure we were passed a URL, otherwise this is an invalid scripted assignment
+            const QString  ASSIGNMENT_URL_KEY = "url";
+            QString assignmentURL = jsonObject[ASSIGNMENT_URL_KEY].toString();
+            
+            if (!assignmentURL.isEmpty()) {
+                // check the json for a pool
+                const QString ASSIGNMENT_POOL_KEY = "pool";
+                QString assignmentPool = jsonObject[ASSIGNMENT_POOL_KEY].toString();
+                
+                // check for a number of instances, if not passed then default is 1
+                const QString ASSIGNMENT_INSTANCES_KEY = "instances";
+                int numInstances = jsonObject[ASSIGNMENT_INSTANCES_KEY].toInt();
+                numInstances = (numInstances == 0 ? 1 : numInstances);
+                
+                for (int i = 0; i < numInstances; i++) {
+                    // add a scripted assignment to the queue for this instance
+                    Assignment* scriptAssignment = new Assignment(Assignment::CreateCommand,
+                                                                  Assignment::AgentType,
+                                                                  assignmentPool);
+                    scriptAssignment->setPayload(assignmentURL.toUtf8());
+                    
+                    qDebug() << "Adding scripted assignment to queue -" << *scriptAssignment;
+                    qDebug() << "URL for script is" << assignmentURL;
+                    
+                    _assignmentQueue.enqueue(SharedAssignmentPointer(scriptAssignment));
+                }
+            }
+        }
+    }
 }
 
 void DomainServer::createStaticAssignmentsForType(Assignment::Type type, const QJsonArray& configArray) {
@@ -284,8 +327,10 @@ void DomainServer::createStaticAssignmentsForType(Assignment::Type type, const Q
 
 void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Assignment::Type>& excludedTypes) {
     // enumerate over all assignment types and see if we've already excluded it
-    for (int defaultedType = Assignment::AudioMixerType; defaultedType != Assignment::AllTypes; defaultedType++) {
-        if (!excludedTypes.contains((Assignment::Type) defaultedType)) {
+    for (Assignment::Type defaultedType = Assignment::AudioMixerType;
+         defaultedType != Assignment::AllTypes;
+         defaultedType =  static_cast<Assignment::Type>(static_cast<int>(defaultedType) + 1)) {
+        if (!excludedTypes.contains(defaultedType) && defaultedType != Assignment::AgentType) {
             // type has not been set from a command line or config file config, use the default
             // by clearing whatever exists and writing a single default assignment with no payload
             Assignment* newAssignment = new Assignment(Assignment::CreateCommand, (Assignment::Type) defaultedType);
