@@ -19,6 +19,10 @@ Agent.isAvatar = true;
 
 var jointMapping;
 
+var frameIndex = 0.0;
+
+var FRAME_RATE = 30.0; // frames per second
+
 Script.update.connect(function(deltaTime) {
     if (!jointMapping) {
         var avatarJointNames = Avatar.jointNames;
@@ -26,9 +30,19 @@ Script.update.connect(function(deltaTime) {
         if (avatarJointNames === 0 || animationJointNames.length === 0) {
             return;
         }
-        print(avatarJointNames);
-        print(animationJointNames);
-        jointMapping = { };
+        jointMapping = new Array(avatarJointNames.length);
+        for (var i = 0; i < avatarJointNames.length; i++) {
+            jointMapping[i] = animationJointNames.indexOf(avatarJointNames[i]);
+        }
+    }
+    frameIndex += deltaTime * FRAME_RATE;
+    var frames = animation.frames;
+    var rotations = frames[Math.floor(frameIndex) % frames.length].rotations;
+    for (var j = 0; j < jointMapping.length; j++) {
+        var rotationIndex = jointMapping[j];
+        if (rotationIndex != -1) {
+            Avatar.setJointData(j, rotations[rotationIndex]);
+        }
     }
 });
 
