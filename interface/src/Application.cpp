@@ -356,6 +356,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         QMutexLocker locker(&_settingsMutex);
         _previousScriptLocation = _settings->value("LastScriptLocation", QVariant("")).toString();
     }
+	//When -url in command line, teleport to location
+	urlGoTo(argc, constArgv);
 }
 
 Application::~Application() {
@@ -1679,8 +1681,12 @@ void Application::init() {
     _audioReflector.setMyAvatar(getAvatar());
     _audioReflector.setVoxels(_voxels.getTree());
     _audioReflector.setAudio(getAudio());
+    _audioReflector.setAvatarManager(&_avatarManager);
+
     connect(getAudio(), &Audio::processInboundAudio, &_audioReflector, &AudioReflector::processInboundAudio,Qt::DirectConnection);
     connect(getAudio(), &Audio::processLocalAudio, &_audioReflector, &AudioReflector::processLocalAudio,Qt::DirectConnection);
+    connect(getAudio(), &Audio::preProcessOriginalInboundAudio, &_audioReflector, 
+                        &AudioReflector::preProcessOriginalInboundAudio,Qt::DirectConnection);
 
     // save settings when avatar changes
     connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);
@@ -3020,6 +3026,7 @@ void Application::resetSensors() {
     _mouseX = _glWidget->width() / 2;
     _mouseY = _glWidget->height() / 2;
 
+    _faceplus.reset();
     _faceshift.reset();
     _visage.reset();
 
@@ -3397,6 +3404,7 @@ void Application::loadScript(const QString& scriptName) {
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
     scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
 
     QThread* workerThread = new QThread(this);
@@ -3559,4 +3567,39 @@ void Application::takeSnapshot() {
     player->play();
 
     Snapshot::saveSnapshot(_glWidget, _myAvatar);
+}
+
+void Application::urlGoTo(int argc, const char * constArgv[]) {
+    //Gets the url (hifi://domain/destination/orientation)
+    QString customUrl = getCmdOption(argc, constArgv, "-url");
+
+    if (customUrl.startsWith("hifi://")) {
+        QStringList urlParts = customUrl.remove(0, CUSTOM_URL_SCHEME.length() + 2).split('/', QString::SkipEmptyParts);
+        if (urlParts.count() > 1) {
+            // if url has 2 or more parts, the first one is domain name
+            QString domain = urlParts[0];
+
+            // second part is either a destination coordinate or
+            // a place name
+            QString destination = urlParts[1];
+
+            // any third part is an avatar orientation.
+            QString orientation = urlParts.count() > 2 ? urlParts[2] : QString();
+
+            Menu::goToDomain(domain);
+                
+            // goto either @user, #place, or x-xx,y-yy,z-zz
+            // style co-ordinate.
+            Menu::goTo(destination);
+
+            if (!orientation.isEmpty()) {
+                // location orientation
+                Menu::goToOrientation(orientation);
+            }
+        } else if (urlParts.count() == 1) {
+            // location coordinates or place name
+            QString destination = urlParts[0];
+            Menu::goTo(destination);
+        }
+    }
 }

@@ -45,7 +45,7 @@ Camera::Camera() :
     _idealPosition(0.0f, 0.0f, 0.0f),
     _targetPosition(0.0f, 0.0f, 0.0f),
     _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
-    _aspectRatio(16.f/9.f),
+    _aspectRatio(16.0f/9.0f),
     _nearClip(0.08f), // default
     _farClip(50.0f * TREE_SCALE), // default
     _upShift(0.0f),
@@ -94,8 +94,8 @@ void Camera::updateFollowMode(float deltaTime) {
 
     // derive t from tightness
     float t = _tightness * _modeShift * deltaTime;	
-    if (t > 1.0) {
-        t = 1.0;
+    if (t > 1.0f) {
+        t = 1.0f;
     }
     
     // handle keepLookingAt

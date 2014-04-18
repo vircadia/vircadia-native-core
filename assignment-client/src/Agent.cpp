@@ -11,8 +11,10 @@
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QEventLoop>
+#include <QtCore/QStandardPaths>
 #include <QtCore/QTimer>
 #include <QtNetwork/QNetworkAccessManager>
+#include <QtNetwork/QNetworkDiskCache>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
@@ -20,6 +22,7 @@
 #include <AvatarData.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
+#include <ResourceCache.h>
 #include <UUID.h>
 #include <VoxelConstants.h>
 #include <ParticlesScriptingInterface.h>
@@ -30,7 +33,8 @@ Agent::Agent(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _voxelEditSender(),
     _particleEditSender(),
-    _receivedAudioBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO)
+    _receivedAudioBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO),
+    _avatarHashMap()
 {
     // be the parent of the script engine so it gets moved when we do
     _scriptEngine.setParent(this);
@@ -128,6 +132,16 @@ void Agent::readPendingDatagrams() {
                 // let this continue through to the NodeList so it updates last heard timestamp
                 // for the sending audio mixer
                 NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
+            } else if (datagramPacketType == PacketTypeBulkAvatarData
+                       || datagramPacketType == PacketTypeAvatarIdentity
+                       || datagramPacketType == PacketTypeAvatarBillboard
+                       || datagramPacketType == PacketTypeKillAvatar) {
+                // let the avatar hash map process it
+                _avatarHashMap.processAvatarMixerDatagram(receivedPacket, nodeList->sendingNodeForPacket(receivedPacket));
+                
+                // let this continue through to the NodeList so it updates last heard timestamp
+                // for the sending avatar-mixer
+                NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
             } else {
                 NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
             }
@@ -159,6 +173,10 @@ void Agent::run() {
    
     QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
     QNetworkReply *reply = networkManager->get(QNetworkRequest(scriptURL));
+    QNetworkDiskCache* cache = new QNetworkDiskCache(networkManager);
+    QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+    cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "agentCache");
+    networkManager->setCache(cache);
     
     qDebug() << "Downloading script at" << scriptURL.toString();
     
@@ -167,8 +185,9 @@ void Agent::run() {
     
     loop.exec();
     
-    // let the AvatarData class use our QNetworkAcessManager
+    // let the AvatarData and ResourceCache classes use our QNetworkAccessManager
     AvatarData::setNetworkAccessManager(networkManager);
+    ResourceCache::setNetworkAccessManager(networkManager);
     
     QString scriptContents(reply->readAll());
     
@@ -183,6 +202,7 @@ void Agent::run() {
     
     // give this AvatarData object to the script engine
     _scriptEngine.setAvatarData(&scriptedAvatar, "Avatar");
+    _scriptEngine.setAvatarHashMap(&_avatarHashMap, "AvatarList");
     
     // register ourselves to the script engine
     _scriptEngine.registerGlobalObject("Agent", this);

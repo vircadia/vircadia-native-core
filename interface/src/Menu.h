@@ -135,10 +135,10 @@ public:
     
     void removeAction(QMenu* menu, const QString& actionName);
 
-    bool goToDestination(QString destination);
-    void goToOrientation(QString orientation);
-    void goToDomain(const QString newDomain);
-    void goTo(QString destination);
+    bool static goToDestination(QString destination);
+    void static goToOrientation(QString orientation);
+    void static goToDomain(const QString newDomain);
+    void static goTo(QString destination);
 
 public slots:
 
@@ -268,6 +268,10 @@ namespace MenuOption {
     const QString AudioSpatialProcessingSlightlyRandomSurfaces = "Slightly Random Surfaces";
     const QString AudioSpatialProcessingStereoSource = "Stereo Source";
     const QString AudioSpatialProcessingWithDiffusions = "With Diffusions";
+    const QString AudioSpatialProcessingDontDistanceAttenuate = "Don't calculate distance attenuation";
+    const QString AudioSpatialProcessingAlternateDistanceAttenuate = "Alternate distance attenuation";
+    
+    
 
     const QString Avatars = "Avatars";
     const QString Bandwidth = "Bandwidth Display";
