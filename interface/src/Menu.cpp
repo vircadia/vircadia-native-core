@@ -27,6 +27,7 @@
 #include <QSlider>
 #include <QUuid>
 #include <QHBoxLayout>
+#include <QDesktopServices>
 
 #include <AccountManager.h>
 #include <XmppClient.h>
