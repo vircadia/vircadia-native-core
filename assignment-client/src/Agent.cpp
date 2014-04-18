@@ -202,7 +202,7 @@ void Agent::run() {
     
     // give this AvatarData object to the script engine
     _scriptEngine.setAvatarData(&scriptedAvatar, "Avatar");
-    _scriptEngine.setAvatarHashMap(&_avatarHashMap, "AvatarHash");
+    _scriptEngine.setAvatarHashMap(&_avatarHashMap, "AvatarList");
     
     // register ourselves to the script engine
     _scriptEngine.registerGlobalObject("Agent", this);
