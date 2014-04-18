@@ -17,9 +17,13 @@
 
 class Sound : public QObject {
     Q_OBJECT
+    
+    Q_PROPERTY(bool empty READ isEmpty)
 public:
     Sound(const QUrl& sampleURL, QObject* parent = NULL);
     Sound(float volume, float frequency, float duration, float decay, QObject* parent = NULL);
+    
+    bool isEmpty() const { return _byteArray.isEmpty(); }
     
     const QByteArray& getByteArray() { return _byteArray; }
 
