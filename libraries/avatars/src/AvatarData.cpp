@@ -51,7 +51,9 @@ AvatarData::AvatarData() :
     _displayNameTargetAlpha(0.0f), 
     _displayNameAlpha(0.0f),
     _billboard(),
-    _errorLogExpiry(0)
+    _errorLogExpiry(0),
+    _owningAvatarMixer(),
+    _lastUpdateTimer()
 {
     
 }
@@ -193,6 +195,10 @@ bool AvatarData::shouldLogError(const quint64& now) {
 
 // read data in packet starting at byte offset and return number of bytes parsed
 int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
+    
+    // reset the last heard timer since we have new data for this AvatarData
+    _lastUpdateTimer.restart();
+    
     // lazily allocate memory for HeadData in case we're not an Avatar instance
     if (!_headData) {
         _headData = new HeadData(this);

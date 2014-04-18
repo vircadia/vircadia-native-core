@@ -56,7 +56,6 @@ Avatar::Avatar() :
     _mouseRayOrigin(0.0f, 0.0f, 0.0f),
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _moving(false),
-    _owningAvatarMixer(),
     _collisionFlags(0),
     _initialized(false),
     _shouldRenderBillboard(true)
@@ -685,6 +684,11 @@ void Avatar::setBillboard(const QByteArray& billboard) {
 }
 
 int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
+    if (!_initialized) {
+        // now that we have data for this Avatar we are go for init
+        init();
+    }
+    
     // change in position implies movement
     glm::vec3 oldPosition = _position;
     

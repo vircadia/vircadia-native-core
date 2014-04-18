@@ -529,7 +529,7 @@ void Audio::handleAudioInput() {
                 _noiseSampleFrames[_noiseGateSampleCounter++] = _lastInputLoudness;
                 if (_noiseGateSampleCounter == NUMBER_OF_NOISE_SAMPLE_FRAMES) {
                     float smallestSample = FLT_MAX;
-                    for (int i = 0; i <= NUMBER_OF_NOISE_SAMPLE_FRAMES - NOISE_GATE_FRAMES_TO_AVERAGE; i+= NOISE_GATE_FRAMES_TO_AVERAGE) {
+                    for (int i = 0; i <= NUMBER_OF_NOISE_SAMPLE_FRAMES - NOISE_GATE_FRAMES_TO_AVERAGE; i += NOISE_GATE_FRAMES_TO_AVERAGE) {
                         float thisAverage = 0.0f;
                         for (int j = i; j < i + NOISE_GATE_FRAMES_TO_AVERAGE; j++) {
                             thisAverage += _noiseSampleFrames[j];
@@ -706,7 +706,7 @@ void Audio::addSpatialAudioToBuffer(unsigned int sampleTime, const QByteArray& s
         mixedSamplesCount = (mixedSamplesCount < numSamples) ? mixedSamplesCount : numSamples;
 
         const int16_t* spatial = reinterpret_cast<const int16_t*>(spatialAudio.data());
-        for (int i = 0; i < mixedSamplesCount; i++) {
+        for (unsigned int i = 0; i < mixedSamplesCount; i++) {
             int existingSample = _spatialAudioRingBuffer[i + offset];
             int newSample = spatial[i];
             int sumOfSamples = existingSample + newSample;
@@ -784,6 +784,7 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
                 _ringBuffer.readSamples((int16_t*)buffer.data(), numNetworkOutputSamples);
                 // Accumulate direct transmission of audio from sender to receiver
                 if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncludeOriginal)) {
+                    emit preProcessOriginalInboundAudio(sampleTime, buffer, _desiredOutputFormat);
                     addSpatialAudioToBuffer(sampleTime, buffer, numNetworkOutputSamples);
                 }
 

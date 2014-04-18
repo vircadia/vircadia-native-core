@@ -271,6 +271,10 @@ namespace MenuOption {
     const QString AudioSpatialProcessingSlightlyRandomSurfaces = "Slightly Random Surfaces";
     const QString AudioSpatialProcessingStereoSource = "Stereo Source";
     const QString AudioSpatialProcessingWithDiffusions = "With Diffusions";
+    const QString AudioSpatialProcessingDontDistanceAttenuate = "Don't calculate distance attenuation";
+    const QString AudioSpatialProcessingAlternateDistanceAttenuate = "Alternate distance attenuation";
+    
+    
 
     const QString Avatars = "Avatars";
     const QString Bandwidth = "Bandwidth Display";

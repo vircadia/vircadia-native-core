@@ -430,6 +430,14 @@ Menu::Menu() :
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_A,
                                            true);
 
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingDontDistanceAttenuate,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_Y,
+                                           false);
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingAlternateDistanceAttenuate,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_U,
+                                           false);
+
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
                 Qt::CTRL | Qt::SHIFT | Qt::Key_V,
                 this,
