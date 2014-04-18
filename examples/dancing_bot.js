@@ -11,7 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var animation = AnimationCache.getAnimation("FBX_URL");
+var animation = AnimationCache.getAnimation("http://www.fungibleinsight.com/faces/gangnam_style_2.fbx");
 
 Avatar.skeletonModelURL = "http://www.fungibleinsight.com/faces/beta.fst";
 
@@ -27,7 +27,7 @@ Script.update.connect(function(deltaTime) {
     if (!jointMapping) {
         var avatarJointNames = Avatar.jointNames;
         var animationJointNames = animation.jointNames;
-        if (avatarJointNames === 0 || animationJointNames.length === 0) {
+        if (avatarJointNames.length === 0 || animationJointNames.length === 0) {
             return;
         }
         jointMapping = new Array(avatarJointNames.length);
