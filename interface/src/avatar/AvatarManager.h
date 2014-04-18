@@ -45,6 +45,8 @@ private:
     void simulateAvatarFades(float deltaTime);
     void renderAvatarFades(const glm::vec3& cameraPosition, Avatar::RenderMode renderMode);
     
+    AvatarSharedPointer newSharedAvatar();
+    
     // virtual override
     AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
     

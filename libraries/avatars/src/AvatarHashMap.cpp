@@ -32,12 +32,11 @@ const qint64 AVATAR_SILENCE_THRESHOLD_MSECS = 5 * 1000;
 
 bool AvatarHashMap::shouldKillAvatar(const AvatarSharedPointer& sharedAvatar) {
     return (sharedAvatar->getOwningAvatarMixer() == NULL
-            && sharedAvatar->getLastUpdateTimer().elapsed() > AVATAR_SILENCE_THRESHOLD_MSECS);
+            || sharedAvatar->getLastUpdateTimer().elapsed() > AVATAR_SILENCE_THRESHOLD_MSECS);
 }
 
 AvatarSharedPointer AvatarHashMap::newSharedAvatar() {
-    AvatarData* avatarData = new AvatarData();
-    return AvatarSharedPointer(avatarData);
+    return AvatarSharedPointer(new AvatarData());
 }
 
 AvatarSharedPointer AvatarHashMap::matchingOrNewAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
