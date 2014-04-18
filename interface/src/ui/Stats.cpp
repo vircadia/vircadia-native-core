@@ -343,7 +343,7 @@ void Stats::display(
 
     lines = _expanded ? 12 : 3;
     if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessing)) {
-        lines += 8; // spatial audio processing adds 1 spacing line and 7 extra lines of info
+        lines += 9; // spatial audio processing adds 1 spacing line and 8 extra lines of info
     }
 
     drawBackground(backgroundColor, horizontalOffset, 0, glWidget->width() - horizontalOffset, lines * STATS_PELS_PER_LINE + 10);
@@ -540,11 +540,19 @@ void Stats::display(
                 
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);
+        
+        bool distanceAttenuationDisabled = Menu::getInstance()->isOptionChecked(
+                                                        MenuOption::AudioSpatialProcessingDontDistanceAttenuate);
 
-        sprintf(reflectionsStatus, "Attenuation: average %5.3f, max %5.3f, min %5.3f, Factor: %5.3f", 
+        bool alternateDistanceAttenuationEnabled = Menu::getInstance()->isOptionChecked(
+                                                        MenuOption::AudioSpatialProcessingAlternateDistanceAttenuate);
+
+        sprintf(reflectionsStatus, "Attenuation: average %5.3f, max %5.3f, min %5.3f, %s: %5.3f", 
                 audioReflector->getAverageAttenuation(),
                 audioReflector->getMaxAttenuation(),
                 audioReflector->getMinAttenuation(),
+                (distanceAttenuationDisabled ? "Distance Factor [DISABLED]" : 
+                    alternateDistanceAttenuationEnabled ? "Distance Factor [ALTERNATE]" : "Distance Factor [STANARD]"),
                 audioReflector->getDistanceAttenuationScalingFactor());
                 
         verticalOffset += STATS_PELS_PER_LINE;
@@ -581,6 +589,13 @@ void Stats::display(
                     audioReflector->getCombFilterWindow(), 
                     audioReflector->getEchoesInjected(),
                     audioReflector->getEchoesSuppressed());
+                
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);
+
+        sprintf(reflectionsStatus, "Wet/Dry Mix: Original: %5.3f Echoes: %5.3f", 
+                    audioReflector->getOriginalSourceAttenuation(), 
+                    audioReflector->getEchoesAttenuation());
                 
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);
