@@ -1017,6 +1017,7 @@ void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool cons
     if (propagate && targetRotation != state.combinedRotation &&
             joint.parentIndex != -1 && geometry.joints[joint.parentIndex].isFree) {
         applyRotationDelta(joint.parentIndex, targetRotation * glm::inverse(state.combinedRotation), true, true);
+        state.combinedRotation = _jointStates.at(joint.parentIndex).combinedRotation * state.rotation;
     }
 }
 
