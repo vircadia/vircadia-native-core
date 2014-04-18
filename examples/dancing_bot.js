@@ -27,7 +27,7 @@ Script.update.connect(function(deltaTime) {
     if (!jointMapping) {
         var avatarJointNames = Avatar.jointNames;
         var animationJointNames = animation.jointNames;
-        if (avatarJointNames === 0 || animationJointNames.length === 0) {
+        if (avatarJointNames.length === 0 || animationJointNames.length === 0) {
             return;
         }
         jointMapping = new Array(avatarJointNames.length);
