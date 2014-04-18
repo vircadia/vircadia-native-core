@@ -460,6 +460,9 @@ void MyAvatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         return; // exit early
     }
     Avatar::render(cameraPosition, renderMode);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints)) {
+        _skeletonModel.renderIKConstraints();
+    }
 }
 
 void MyAvatar::renderHeadMouse() const {

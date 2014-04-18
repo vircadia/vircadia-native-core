@@ -103,6 +103,11 @@ void SkeletonModel::getBodyShapes(QVector<const Shape*>& shapes) const {
     shapes.push_back(&_boundingShape);
 }
 
+void SkeletonModel::renderIKConstraints() {
+    renderJointConstraints(getRightHandJointIndex());
+    renderJointConstraints(getLeftHandJointIndex());
+}
+
 class IndexValue {
 public:
     int index;
@@ -208,5 +213,61 @@ void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, const
     state.rotation = glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanSideways(), 
         glm::normalize(inverse * axes[2])) * glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanForward(), 
         glm::normalize(inverse * axes[0])) * joint.rotation;
+}
+
+void SkeletonModel::renderJointConstraints(int jointIndex) {
+    if (jointIndex == -1) {
+        return;
+    }
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const float BASE_DIRECTION_SIZE = 300.0f;
+    float directionSize = BASE_DIRECTION_SIZE * extractUniformScale(_scale);
+    glLineWidth(3.0f);
+    do {
+        const FBXJoint& joint = geometry.joints.at(jointIndex);
+        const JointState& jointState = _jointStates.at(jointIndex);
+        glm::vec3 position = extractTranslation(jointState.transform) + _translation;
+        
+        glPushMatrix();
+        glTranslatef(position.x, position.y, position.z);
+        glm::quat parentRotation = (joint.parentIndex == -1) ? _rotation : _jointStates.at(joint.parentIndex).combinedRotation;
+        glm::vec3 rotationAxis = glm::axis(parentRotation);
+        glRotatef(glm::degrees(glm::angle(parentRotation)), rotationAxis.x, rotationAxis.y, rotationAxis.z);
+        float fanScale = directionSize * 0.75f;
+        glScalef(fanScale, fanScale, fanScale);
+        const int AXIS_COUNT = 3;
+        for (int i = 0; i < AXIS_COUNT; i++) {
+            if (joint.rotationMin[i] <= -PI + EPSILON && joint.rotationMax[i] >= PI - EPSILON) {
+                continue; // unconstrained
+            }
+            glm::vec3 axis;
+            axis[i] = 1.0f;
+            
+            glm::vec3 otherAxis;
+            if (i == 0) {
+                otherAxis.y = 1.0f;
+            } else {
+                otherAxis.x = 1.0f;
+            }
+            glColor4f(otherAxis.r, otherAxis.g, otherAxis.b, 0.75f);
+        
+            glBegin(GL_TRIANGLE_FAN);
+            glVertex3f(0.0f, 0.0f, 0.0f);
+            const int FAN_SEGMENTS = 16;
+            for (int j = 0; j < FAN_SEGMENTS; j++) {
+                glm::vec3 rotated = glm::angleAxis(glm::mix(joint.rotationMin[i], joint.rotationMax[i],
+                    (float)j / (FAN_SEGMENTS - 1)), axis) * otherAxis;
+                glVertex3f(rotated.x, rotated.y, rotated.z);
+            }
+            glEnd();
+        }
+        glPopMatrix();
+        
+        renderOrientationDirections(position, jointState.combinedRotation, directionSize);
+        jointIndex = joint.parentIndex;
+        
+    } while (jointIndex != -1 && geometry.joints.at(jointIndex).isFree);
+    
+    glLineWidth(1.0f);
 }
 
