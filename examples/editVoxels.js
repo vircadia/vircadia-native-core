@@ -290,6 +290,8 @@ var eyedropperTool = Overlays.addOverlay("image", {
                                          alpha: 0.9
                                          });
 
+
+var copyScale = true;
 function ScaleSelector() {
     this.x = swatchesX + swatchesWidth;
     this.y = swatchesY;
@@ -327,6 +329,11 @@ function ScaleSelector() {
                                             alpha: 0.0,
                                             visible: false
                                             });
+    this.setScale = function(scale) {
+        this.scale = scale;
+        this.power = Math.floor(Math.log(scale));
+    }
+    
     this.show = function(doShow) {
         Overlays.editOverlay(this.buttonsOverlay, {visible: doShow});
         Overlays.editOverlay(this.textOverlay, {visible: doShow});
@@ -381,6 +388,7 @@ function ScaleSelector() {
     }
     
     this.incrementScale = function() {
+        copyScale = false;
         if (this.power < 13) {
             ++this.power;
             this.scale *= 2.0;
@@ -390,6 +398,7 @@ function ScaleSelector() {
     }
     
     this.decrementScale = function() {
+        copyScale = false;
         if (-4 < this.power) {
             --this.power;
             this.scale /= 2.0;
@@ -820,6 +829,11 @@ function showPreviewLines() {
         Overlays.editOverlay(linePreviewLeft, { position: resultVoxel.topLeft, end: resultVoxel.bottomLeft, visible: true });
         Overlays.editOverlay(linePreviewRight, { position: resultVoxel.topRight, end: resultVoxel.bottomRight, visible: true });
         colors[0] = {red: intersection.voxel.red, green: intersection.voxel.green , blue: intersection.voxel.blue };
+        
+        if (copyScale) {
+            scaleSelector.setScale(intersection.voxel.s);
+            scaleSelector.update();
+        }
         moveTools();
     } else {
         Overlays.editOverlay(voxelPreview, { visible: false });
@@ -1053,7 +1067,9 @@ function keyPressEvent(event) {
     // if our tools are off, then don't do anything
     if (editToolsOn) {
         var nVal = parseInt(event.text);
-        if ((nVal > 0) && (nVal <= numColors)) {
+        if (event.text == "`") {
+            copyScale = true;
+        } else if ((nVal > 0) && (nVal <= numColors)) {
             whichColor = nVal - 1;
             print("Color = " + (whichColor + 1));
             swatchesSound.play(whichColor);
