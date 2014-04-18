@@ -22,7 +22,7 @@
 
 class MyAvatar;
 
-class AvatarManager : public QObject, public AvatarHashMap {
+class AvatarManager : public AvatarHashMap {
     Q_OBJECT
 public:
     AvatarManager(QObject* parent = 0);
@@ -35,22 +35,14 @@ public:
     void renderAvatars(Avatar::RenderMode renderMode, bool selfAvatarOnly = false);
     
     void clearOtherAvatars();
-
-public slots:
-    void processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer);
     
 private:
     AvatarManager(const AvatarManager& other);
-    
-    AvatarSharedPointer matchingOrNewAvatar(const QUuid& nodeUUID, const QWeakPointer<Node>& mixerWeakPointer);
-    
-    void processAvatarDataPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
-    void processAvatarIdentityPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
-    void processAvatarBillboardPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
-    void processKillAvatar(const QByteArray& datagram);
 
     void simulateAvatarFades(float deltaTime);
     void renderAvatarFades(const glm::vec3& cameraPosition, Avatar::RenderMode renderMode);
+    
+    AvatarSharedPointer newSharedAvatar();
     
     // virtual override
     AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
