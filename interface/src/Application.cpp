@@ -1659,16 +1659,12 @@ void Application::init() {
 
     _particleCollisionSystem.init(&_particleEditSender, _particles.getTree(), _voxels.getTree(), &_audio, &_avatarManager);
 
-    // connect the _particleCollisionSystem to our script engine's ParticleScriptingInterface
-    connect(&_particleCollisionSystem,
-            SIGNAL(particleCollisionWithVoxel(const ParticleID&, const VoxelDetail&, const CollisionInfo&)),
-            ScriptEngine::getParticlesScriptingInterface(),
-            SIGNAL(particleCollisionWithVoxels(const ParticleID&, const VoxelDetail&, const CollisionInfo&)));
+    // connect the _particleCollisionSystem to our script engine's ParticlesScriptingInterface
+    connect(&_particleCollisionSystem, &ParticleCollisionSystem::particleCollisionWithVoxel,
+            ScriptEngine::getParticlesScriptingInterface(), &ParticlesScriptingInterface::particleCollisionWithVoxel);
 
-    connect(&_particleCollisionSystem,
-            SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&, const CollisionInfo&)),
-            ScriptEngine::getParticlesScriptingInterface(),
-            SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&, const CollisionInfo&)));
+    connect(&_particleCollisionSystem, &ParticleCollisionSystem::particleCollisionWithParticle,
+            ScriptEngine::getParticlesScriptingInterface(), &ParticlesScriptingInterface::particleCollisionWithParticle);
 
     _audio.init(_glWidget);
 
@@ -1678,7 +1674,16 @@ void Application::init() {
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
-    connect(_myAvatar, SIGNAL(transformChanged()), this, SLOT(bumpSettings()));
+    
+    // set up our audio reflector
+    _audioReflector.setMyAvatar(getAvatar());
+    _audioReflector.setVoxels(_voxels.getTree());
+    _audioReflector.setAudio(getAudio());
+    connect(getAudio(), &Audio::processInboundAudio, &_audioReflector, &AudioReflector::processInboundAudio,Qt::DirectConnection);
+    connect(getAudio(), &Audio::processLocalAudio, &_audioReflector, &AudioReflector::processLocalAudio,Qt::DirectConnection);
+
+    // save settings when avatar changes
+    connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);
 }
 
 void Application::closeMirrorView() {
@@ -2450,6 +2455,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // disable specular lighting for ground and voxels
         glMaterialfv(GL_FRONT, GL_SPECULAR, NO_SPECULAR_COLOR);
+        
+        // draw the audio reflector overlay
+        _audioReflector.render();
 
         //  Draw voxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
@@ -3284,6 +3292,7 @@ void Application::stopAllScripts() {
     }
     _scriptEnginesHash.clear();
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
+    bumpSettings();
 }
 
 void Application::stopScript(const QString &scriptName)
@@ -3292,6 +3301,7 @@ void Application::stopScript(const QString &scriptName)
     qDebug() << "stopping script..." << scriptName;
     _scriptEnginesHash.remove(scriptName);
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
+    bumpSettings();
 }
 
 void Application::reloadAllScripts() {
@@ -3387,6 +3397,8 @@ void Application::loadScript(const QString& scriptName) {
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
+    scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
 
     QThread* workerThread = new QThread(this);
 
@@ -3407,6 +3419,7 @@ void Application::loadScript(const QString& scriptName) {
 
     // restore the main window's active state
     _window->activateWindow();
+    bumpSettings();
 }
 
 void Application::loadDialog() {

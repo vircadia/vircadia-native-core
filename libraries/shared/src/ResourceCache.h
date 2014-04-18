@@ -123,7 +123,7 @@ public:
 
     void setCache(ResourceCache* cache) { _cache = cache; }
 
-    void allReferencesCleared();
+    Q_INVOKABLE void allReferencesCleared();
 
 protected slots:
 
