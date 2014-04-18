@@ -13,8 +13,7 @@
 #define hifi_Sound_h
 
 #include <QtCore/QObject>
-
-class QNetworkReply;
+#include <QtNetwork/QNetworkReply>
 
 class Sound : public QObject {
     Q_OBJECT
@@ -31,7 +30,8 @@ private:
     void interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);
 
 private slots:
-    void replyFinished(QNetworkReply* reply);
+    void replyFinished();
+    void replyError(QNetworkReply::NetworkError code);
 };
 
 #endif // hifi_Sound_h
