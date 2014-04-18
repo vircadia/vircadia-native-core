@@ -18,7 +18,7 @@
 class Sound : public QObject {
     Q_OBJECT
     
-    Q_PROPERTY(bool empty READ isEmpty)
+    Q_PROPERTY(bool downloaded READ hasDownloaded)
 public:
     Sound(const QUrl& sampleURL, QObject* parent = NULL);
     Sound(float volume, float frequency, float duration, float decay, QObject* parent = NULL);
