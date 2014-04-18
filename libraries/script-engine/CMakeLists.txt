@@ -24,6 +24,7 @@ include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(octree ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(voxels ${TARGET_NAME} "${ROOT_DIR}")
+link_hifi_library(fbx ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(particles ${TARGET_NAME} "${ROOT_DIR}")
 
 # link ZLIB

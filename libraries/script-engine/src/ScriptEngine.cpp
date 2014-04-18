@@ -28,6 +28,7 @@
 
 #include <Sound.h>
 
+#include "AnimationObject.h"
 #include "MenuItemProperties.h"
 #include "LocalVoxels.h"
 #include "ScriptEngine.h"
@@ -64,7 +65,8 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _fileNameString(fileNameString),
     _quatLibrary(),
     _vec3Library(),
-    _uuidLibrary()
+    _uuidLibrary(),
+    _animationCache(this)
 {
 }
 
@@ -88,7 +90,8 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
     _fileNameString(),
     _quatLibrary(),
     _vec3Library(),
-    _uuidLibrary()
+    _uuidLibrary(),
+    _animationCache(this)
 {
     QString scriptURLString = scriptURL.toString();
     _fileNameString = scriptURLString;
@@ -153,6 +156,14 @@ void ScriptEngine::setAvatarData(AvatarData* avatarData, const QString& objectNa
     registerGlobalObject(objectName, _avatarData);
 }
 
+void ScriptEngine::setAvatarHashMap(AvatarHashMap* avatarHashMap, const QString& objectName) {
+    // remove the old Avatar property, if it exists
+    _engine.globalObject().setProperty(objectName, QScriptValue());
+    
+    // give the script engine the new avatar hash map
+    registerGlobalObject(objectName, avatarHashMap);
+}
+
 bool ScriptEngine::setScriptContents(const QString& scriptContents, const QString& fileNameString) {
     if (_isRunning) {
         return false;
@@ -180,11 +191,13 @@ void ScriptEngine::init() {
     registerVoxelMetaTypes(&_engine);
     registerEventTypes(&_engine);
     registerMenuItemProperties(&_engine);
+    registerAnimationTypes(&_engine);
 
     qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<ParticleID> >(&_engine);
     qScriptRegisterSequenceMetaType<QVector<glm::vec2> >(&_engine);
+    qScriptRegisterSequenceMetaType<QVector<glm::quat> >(&_engine);
     qScriptRegisterSequenceMetaType<QVector<QString> >(&_engine);
 
     QScriptValue soundConstructorValue = _engine.newFunction(soundConstructor);
@@ -204,7 +217,8 @@ void ScriptEngine::init() {
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
-
+    registerGlobalObject("AnimationCache", &_animationCache);
+    
     registerGlobalObject("Voxels", &_voxelsScriptingInterface);
 
     QScriptValue treeScaleValue = _engine.newVariant(QVariant(TREE_SCALE));

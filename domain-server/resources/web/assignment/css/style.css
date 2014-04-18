@@ -42,13 +42,13 @@ body {
   background-color: #28FF57;
 }
 
-#instance-field {
+#extra-fields {
   position: absolute;
   right: 20px;
-  top: 40px;
+  top: 30px;
 }
 
-#instance-field input {
+#extra-fields input {
   width: 80px;
 }
 

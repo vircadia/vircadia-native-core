@@ -1679,8 +1679,12 @@ void Application::init() {
     _audioReflector.setMyAvatar(getAvatar());
     _audioReflector.setVoxels(_voxels.getTree());
     _audioReflector.setAudio(getAudio());
+    _audioReflector.setAvatarManager(&_avatarManager);
+
     connect(getAudio(), &Audio::processInboundAudio, &_audioReflector, &AudioReflector::processInboundAudio,Qt::DirectConnection);
     connect(getAudio(), &Audio::processLocalAudio, &_audioReflector, &AudioReflector::processLocalAudio,Qt::DirectConnection);
+    connect(getAudio(), &Audio::preProcessOriginalInboundAudio, &_audioReflector, 
+                        &AudioReflector::preProcessOriginalInboundAudio,Qt::DirectConnection);
 
     // save settings when avatar changes
     connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);
@@ -3397,6 +3401,7 @@ void Application::loadScript(const QString& scriptName) {
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
     scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
 
     QThread* workerThread = new QThread(this);
