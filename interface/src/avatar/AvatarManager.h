@@ -22,7 +22,7 @@
 
 class MyAvatar;
 
-class AvatarManager : public QObject, public AvatarHashMap {
+class AvatarManager : public AvatarHashMap {
     Q_OBJECT
 public:
     AvatarManager(QObject* parent = 0);

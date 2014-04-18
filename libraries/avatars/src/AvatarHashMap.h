@@ -23,7 +23,8 @@
 typedef QSharedPointer<AvatarData> AvatarSharedPointer;
 typedef QHash<QUuid, AvatarSharedPointer> AvatarHash;
 
-class AvatarHashMap {
+class AvatarHashMap : public QObject {
+    Q_OBJECT
 public:
     AvatarHashMap();
     
@@ -31,6 +32,9 @@ public:
     int size() const { return _avatarHash.size(); }
 
     virtual void insert(const QUuid& id, AvatarSharedPointer avatar);
+    
+public slots:
+    bool containsAvatarWithDisplayName(const QString& displayName);
 
 protected:
     virtual AvatarHash::iterator erase(const AvatarHash::iterator& iterator);

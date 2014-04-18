@@ -35,6 +35,30 @@ bool AvatarHashMap::shouldKillAvatar(const AvatarSharedPointer& sharedAvatar) {
             || sharedAvatar->getLastUpdateTimer().elapsed() > AVATAR_SILENCE_THRESHOLD_MSECS);
 }
 
+bool AvatarHashMap::containsAvatarWithDisplayName(const QString& displayName) {
+    
+    AvatarHash::iterator avatarIterator = _avatarHash.begin();
+    while (avatarIterator != _avatarHash.end()) {
+        AvatarSharedPointer sharedAvatar = avatarIterator.value();
+        if (avatarIterator.value()->getDisplayName() == displayName) {
+            // this is a match
+            // check if this avatar should still be around
+            if (!shouldKillAvatar(sharedAvatar)) {
+                // we have a match, return true
+                return true;
+            } else {
+                // we should remove this avatar, do that now
+                erase(avatarIterator);
+            }
+            
+            break;
+        }
+    }
+    
+    // return false, no match
+    return false;
+}
+
 AvatarSharedPointer AvatarHashMap::newSharedAvatar() {
     return AvatarSharedPointer(new AvatarData());
 }
