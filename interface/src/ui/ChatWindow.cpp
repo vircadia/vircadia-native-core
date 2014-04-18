@@ -31,12 +31,14 @@ const int NUM_MESSAGES_TO_TIME_STAMP = 20;
 const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?))://\\S+)");
 const QRegularExpression regexHifiLinks("([#@]\\S+)");
 
+
 ChatWindow::ChatWindow(QWidget* parent) :
     FramelessDialog(parent, 0, POSITION_RIGHT),
     ui(new Ui::ChatWindow),
     numMessagesAfterLastTimeStamp(0),
     _mousePressed(false),
-    _mouseStartPosition()
+    _mouseStartPosition(),
+    _emoticonMap()
 {
     setAttribute(Qt::WA_DeleteOnClose, false);
 
@@ -62,6 +64,14 @@ ChatWindow::ChatWindow(QWidget* parent) :
     if (!AccountManager::getInstance().isLoggedIn()) {
         ui->connectingToXMPPLabel->setText(tr("You must be logged in to chat with others."));
     }
+
+    _emoticonMap.insert(new QRegularExpression(QRegExp::escape(":)")), new QString("../resources/images/smiley.svg"));
+    _emoticonMap.insert(new QRegularExpression(QRegExp::escape(":D")), new QString("../resources/images/happy.svg"));
+    _emoticonMap.insert(new QRegularExpression(QRegExp::escape("B)")), new QString("../resources/images/cool.svg"));
+    _emoticonMap.insert(new QRegularExpression(QRegExp::escape(":O")), new QString("../resources/images/grin.svg"));
+    _emoticonMap.insert(new QRegularExpression(QRegExp::escape(":(")), new QString("../resources/images/sad.svg"));
+    _emoticonMap.insert(new QRegularExpression(QRegExp::escape(":P")), new QString("../resources/images/tongue.svg"));
+    _emoticonMap.insert(new QRegularExpression(QRegExp::escape(";)")), new QString("../resources/images/wink.svg"));
 
 #ifdef HAVE_QXMPP
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
@@ -284,6 +294,13 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     QString messageText = message.body().toHtmlEscaped();
     messageText = messageText.replace(regexLinks, "<a href=\"\\1\">\\1</a>");
     messageText = messageText.replace(regexHifiLinks, "<a href=\"hifi://\\1\">\\1</a>");
+    
+    QMapIterator<QRegularExpression*, QString*> it(_emoticonMap);
+    while (it.hasNext()) {
+        it.next();
+        messageText.replace(*it.key(), "<img width=16 height=16 src=\"" + *it.value() + "\"></img>");
+    }
+
     messageArea->setHtml(userLabel + messageText);
 
     bool atBottom = isAtBottom();
