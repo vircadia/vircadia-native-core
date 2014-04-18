@@ -997,9 +997,10 @@ float Model::getLimbLength(int jointIndex) const {
     return length;
 }
 
-void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain) {
+void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain, bool propagate) {
     JointState& state = _jointStates[jointIndex];
-    const FBXJoint& joint = _geometry->getFBXGeometry().joints[jointIndex];
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const FBXJoint& joint = geometry.joints[jointIndex];
     if (!constrain || (joint.rotationMin == glm::vec3(-PI, -PI, -PI) &&
             joint.rotationMax == glm::vec3(PI, PI, PI))) {
         // no constraints
@@ -1007,10 +1008,16 @@ void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool cons
         state.combinedRotation = delta * state.combinedRotation;
         return;
     }
+    glm::quat targetRotation = delta * state.combinedRotation;
     glm::quat newRotation = glm::quat(glm::clamp(safeEulerAngles(state.rotation *
-        glm::inverse(state.combinedRotation) * delta * state.combinedRotation), joint.rotationMin, joint.rotationMax));
+        glm::inverse(state.combinedRotation) * targetRotation), joint.rotationMin, joint.rotationMax));
     state.combinedRotation = state.combinedRotation * glm::inverse(state.rotation) * newRotation;
     state.rotation = newRotation;
+    
+    if (propagate && targetRotation != state.combinedRotation &&
+            joint.parentIndex != -1 && geometry.joints[joint.parentIndex].isFree) {
+        applyRotationDelta(joint.parentIndex, targetRotation * glm::inverse(state.combinedRotation), true, true);
+    }
 }
 
 const int BALL_SUBDIVISIONS = 10;

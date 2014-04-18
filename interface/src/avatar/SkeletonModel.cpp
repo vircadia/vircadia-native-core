@@ -138,7 +138,7 @@ void SkeletonModel::applyHandPosition(int jointIndex, const glm::vec3& position)
 
     // align hand with forearm
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
-    applyRotationDelta(jointIndex, rotationBetween(handRotation * glm::vec3(-sign, 0.0f, 0.0f), forearmVector), false);
+    applyRotationDelta(jointIndex, rotationBetween(handRotation * glm::vec3(-sign, 0.0f, 0.0f), forearmVector));
 }
 
 void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJointIndices,
@@ -156,7 +156,7 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
     // rotate forearm to align with palm direction
     glm::quat palmRotation;
     getJointRotation(parentJointIndex, palmRotation, true);
-    applyRotationDelta(parentJointIndex, rotationBetween(palmRotation * geometry.palmDirection, palm.getNormal()), false);
+    applyRotationDelta(parentJointIndex, rotationBetween(palmRotation * geometry.palmDirection, palm.getNormal()), true, true);
     getJointRotation(parentJointIndex, palmRotation, true);
 
     // sort the finger indices by raw x, get the average direction
@@ -178,7 +178,8 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
     float directionLength = glm::length(direction);
     const unsigned int MIN_ROTATION_FINGERS = 3;
     if (directionLength > EPSILON && palm.getNumFingers() >= MIN_ROTATION_FINGERS) {
-        applyRotationDelta(parentJointIndex, rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), direction), false);
+        applyRotationDelta(parentJointIndex, rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), direction),
+            true, true);
         getJointRotation(parentJointIndex, palmRotation, true);
     }
 

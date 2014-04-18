@@ -256,7 +256,7 @@ protected:
     /// first free ancestor.
     float getLimbLength(int jointIndex) const;
 
-    void applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain = true);
+    void applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain = true, bool propagate = false);
     
 private:
     
