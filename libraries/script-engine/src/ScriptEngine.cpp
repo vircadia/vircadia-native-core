@@ -156,6 +156,14 @@ void ScriptEngine::setAvatarData(AvatarData* avatarData, const QString& objectNa
     registerGlobalObject(objectName, _avatarData);
 }
 
+void ScriptEngine::setAvatarHashMap(AvatarHashMap* avatarHashMap, const QString& objectName) {
+    // remove the old Avatar property, if it exists
+    _engine.globalObject().setProperty(objectName, QScriptValue());
+    
+    // give the script engine the new avatar hash map
+    registerGlobalObject(objectName, avatarHashMap);
+}
+
 bool ScriptEngine::setScriptContents(const QString& scriptContents, const QString& fileNameString) {
     if (_isRunning) {
         return false;

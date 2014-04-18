@@ -22,6 +22,7 @@
 #include <VoxelsScriptingInterface.h>
 
 #include <AvatarData.h>
+#include <AvatarHashMap.h>
 
 #include "AnimationCache.h"
 #include "AbstractControllerScriptingInterface.h"
@@ -63,6 +64,7 @@ public:
     bool isAvatar() const { return _isAvatar; }
 
     void setAvatarData(AvatarData* avatarData, const QString& objectName);
+    void setAvatarHashMap(AvatarHashMap* avatarHashMap, const QString& objectName);
 
     bool isListeningToAudioStream() const { return _isListeningToAudioStream; }
     void setIsListeningToAudioStream(bool isListeningToAudioStream) { _isListeningToAudioStream = isListeningToAudioStream; }
