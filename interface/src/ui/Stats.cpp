@@ -171,6 +171,9 @@ void Stats::display(
 
     unsigned int backgroundColor = 0x33333399;
     int verticalOffset = 0, lines = 0;
+    float scale = 0.10f;
+    float rotation = 0.0f;
+    int font = 2;
 
     QLocale locale(QLocale::English);
     std::stringstream voxelStats;
@@ -198,11 +201,11 @@ void Stats::display(
     sprintf(framesPerSecond, "Framerate: %3.0f FPS", fps);
  
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, serverNodes, color);
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, serverNodes, color);
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, avatarNodes, color);
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarNodes, color);
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, framesPerSecond, color);
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, framesPerSecond, color);
 
     if (_expanded) {
         char packetsPerSecondString[30];
@@ -211,9 +214,9 @@ void Stats::display(
         sprintf(averageMegabitsPerSecond, "Mbps: %3.2f", (float)bytesPerSecond * 8.f / 1000000.f);
 
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, packetsPerSecondString, color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, packetsPerSecondString, color);
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, averageMegabitsPerSecond, color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, averageMegabitsPerSecond, color);
     }
 
     verticalOffset = 0;
@@ -258,7 +261,7 @@ void Stats::display(
                 "Buffer msecs %.1f",
                 (float) (audio->getNetworkBufferLengthSamplesPerChannel() + (float) audio->getJitterBufferSamples()) /
                 (float) audio->getNetworkSampleRate() * 1000.f);
-        drawText(30, glWidget->height() - 22, 0.10f, 0.f, 2.f, audioJitter, color);
+        drawText(30, glWidget->height() - 22, scale, rotation, font, audioJitter, color);
         
                  
         char audioPing[30];
@@ -271,18 +274,18 @@ void Stats::display(
         sprintf(voxelAvgPing, "Voxel avg ping: %d", pingVoxel);
 
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, audioPing, color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, audioPing, color);
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, avatarPing, color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarPing, color);
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, voxelAvgPing, color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, voxelAvgPing, color);
 
         if (_expanded) {
             char voxelMaxPing[30];
             sprintf(voxelMaxPing, "Voxel max ping: %d", pingVoxelMax);
 
             verticalOffset += STATS_PELS_PER_LINE;
-            drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, voxelMaxPing, color);
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, voxelMaxPing, color);
         }
 
         verticalOffset = 0;
@@ -306,11 +309,11 @@ void Stats::display(
     char avatarMixerStats[200];
 
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, avatarPosition, color);
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarPosition, color);
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, avatarVelocity, color);
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarVelocity, color);
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, avatarBodyYaw, color);
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarBodyYaw, color);
 
     if (_expanded) {
         SharedNodePointer avatarMixer = NodeList::getInstance()->soloNodeOfType(NodeType::AvatarMixer);
@@ -323,7 +326,7 @@ void Stats::display(
         }
 
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, avatarMixerStats, color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarMixerStats, color);
         
         stringstream downloads;
         downloads << "Downloads: ";
@@ -333,7 +336,7 @@ void Stats::display(
         downloads << "(" << ResourceCache::getPendingRequestCount() << " pending)";
         
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, downloads.str().c_str(), color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, downloads.str().c_str(), color);
     }
 
     verticalOffset = 0;
@@ -354,7 +357,7 @@ void Stats::display(
         voxelStats.str("");
         voxelStats << "Voxels Memory Nodes: " << VoxelTreeElement::getTotalMemoryUsage() / 1000000.f << "MB";
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
 
         voxelStats.str("");
         voxelStats << 
@@ -364,14 +367,14 @@ void Stats::display(
             voxelStats << " / GPU: " << voxels->getVoxelMemoryUsageGPU() / 1000000.f << "MB";
         }
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
 
         // Voxel Rendering
         voxelStats.str("");
         voxelStats.precision(4);
         voxelStats << "Voxel Rendering Slots Max: " << voxels->getMaxVoxels() / 1000.f << "K";
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
     }
 
     voxelStats.str("");
@@ -379,7 +382,7 @@ void Stats::display(
     voxelStats << "Drawn: " << voxels->getVoxelsWritten() / 1000.f << "K " <<
         "Abandoned: " << voxels->getAbandonedVoxels() / 1000.f << "K ";
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), color);
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
 
     // iterate all the current voxel stats, and list their sending modes, and total voxel counts
     std::stringstream sendingMode("");
@@ -424,7 +427,7 @@ void Stats::display(
             sendingMode << " <SCENE STABLE>";
         }
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)sendingMode.str().c_str(), color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)sendingMode.str().c_str(), color);
     }
 
     // Incoming packets
@@ -435,7 +438,7 @@ void Stats::display(
         voxelStats << "Voxel Packets to Process: " << qPrintable(packetsString)
                     << " [Recent Max: " << qPrintable(maxString) << "]";        
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
     }
 
     if (_resetRecentMaxPacketsSoon && voxelPacketsToProcess > 0) {
@@ -458,7 +461,7 @@ void Stats::display(
     voxelStats.str("");
     voxelStats << "Server voxels: " << qPrintable(serversTotalString);
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), color);
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
 
     if (_expanded) {
         QString serversInternalString = locale.toString((uint)totalInternal);
@@ -469,7 +472,7 @@ void Stats::display(
             "Internal: " << qPrintable(serversInternalString) << "  " <<
             "Leaves: " << qPrintable(serversLeavesString) << "";
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
     }
 
     unsigned long localTotal = VoxelTreeElement::getNodeCount();
@@ -479,7 +482,7 @@ void Stats::display(
     voxelStats.str("");
     voxelStats << "Local voxels: " << qPrintable(localTotalString);
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), color);
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
 
     if (_expanded) {
         unsigned long localInternal = VoxelTreeElement::getInternalNodeCount();
@@ -492,7 +495,7 @@ void Stats::display(
             "Internal: " << qPrintable(localInternalString) << "  " <<
             "Leaves: " << qPrintable(localLeavesString) << "";
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0, 2, (char*)voxelStats.str().c_str(), color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
     }
 
     // LOD Details
@@ -501,7 +504,7 @@ void Stats::display(
         QString displayLODDetails = Menu::getInstance()->getLODFeedbackText();
         voxelStats << "LOD: You can see " << qPrintable(displayLODDetails.trimmed());
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, (char*)voxelStats.str().c_str(), color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
     }
 
 
@@ -526,7 +529,7 @@ void Stats::display(
                 );
                 
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, reflectionsStatus, color);
 
         float preDelay = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingPreDelay) ? 
                                         audioReflector->getPreDelay() : 0.0f;
@@ -539,7 +542,7 @@ void Stats::display(
                 audioReflector->getSoundMsPerMeter());
                 
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, reflectionsStatus, color);
 
         sprintf(reflectionsStatus, "Attenuation: average %5.3f, max %5.3f, min %5.3f, Factor: %5.3f", 
                 audioReflector->getAverageAttenuation(),
@@ -548,7 +551,7 @@ void Stats::display(
                 audioReflector->getDistanceAttenuationScalingFactor());
                 
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, reflectionsStatus, color);
 
         sprintf(reflectionsStatus, "Local Audio: %s Attenuation: %5.3f", 
                 (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingProcessLocalAudio)
@@ -556,7 +559,7 @@ void Stats::display(
                 audioReflector->getLocalAudioAttenuationFactor());
                 
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, reflectionsStatus, color);
 
         bool diffusionEnabled = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingWithDiffusions);
         int fanout = diffusionEnabled ? audioReflector->getDiffusionFanout() : 0;
@@ -565,7 +568,7 @@ void Stats::display(
                     (diffusionEnabled ? "yes" : "no"), fanout, diffusionPaths);
                 
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, reflectionsStatus, color);
 
         const float AS_PERCENT = 100.0f;
         float reflectiveRatio = audioReflector->getReflectiveRatio() * AS_PERCENT;
@@ -575,7 +578,7 @@ void Stats::display(
                     reflectiveRatio, diffusionRatio, absorptionRatio);
                 
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, reflectionsStatus, color);
 
         sprintf(reflectionsStatus, "Comb Filter Window: %5.3f ms, Allowed: %d, Suppressed: %d", 
                     audioReflector->getCombFilterWindow(), 
@@ -583,7 +586,7 @@ void Stats::display(
                     audioReflector->getEchoesSuppressed());
                 
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, reflectionsStatus, color);
 
     }
 
