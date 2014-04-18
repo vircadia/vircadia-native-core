@@ -132,7 +132,7 @@ void Agent::readPendingDatagrams() {
                 // let this continue through to the NodeList so it updates last heard timestamp
                 // for the sending audio mixer
                 NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
-            } else if (datagramPacketType == PacketTypeAvatarData
+            } else if (datagramPacketType == PacketTypeBulkAvatarData
                        || datagramPacketType == PacketTypeAvatarIdentity
                        || datagramPacketType == PacketTypeAvatarBillboard
                        || datagramPacketType == PacketTypeKillAvatar) {

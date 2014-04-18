@@ -25,6 +25,7 @@ void AvatarHashMap::insert(const QUuid& id, AvatarSharedPointer avatar) {
 }
 
 AvatarHash::iterator AvatarHashMap::erase(const AvatarHash::iterator& iterator) {
+    qDebug() << "Removing Avatar with UUID" << iterator.key() << "from AvatarHashMap.";
     return _avatarHash.erase(iterator);
 }
 
@@ -71,6 +72,8 @@ bool AvatarHashMap::containsAvatarWithDisplayName(const QString& displayName) {
             }
             
             break;
+        } else {
+            ++avatarIterator;
         }
     }
     
