@@ -23,13 +23,14 @@ public:
     Sound(const QUrl& sampleURL, QObject* parent = NULL);
     Sound(float volume, float frequency, float duration, float decay, QObject* parent = NULL);
     
-    bool isEmpty() const { return _byteArray.isEmpty(); }
+    bool hasDownloaded() const { return _hasDownloaded; }
     
     const QByteArray& getByteArray() { return _byteArray; }
 
 private:
     QByteArray _byteArray;
-
+    bool _hasDownloaded;
+    
     void downSample(const QByteArray& rawAudioByteArray);
     void interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);
 
