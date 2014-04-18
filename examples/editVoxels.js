@@ -332,6 +332,7 @@ function ScaleSelector() {
     this.setScale = function(scale) {
         this.scale = scale;
         this.power = Math.floor(Math.log(scale));
+        rescaleImport();
     }
     
     this.show = function(doShow) {
@@ -393,6 +394,7 @@ function ScaleSelector() {
             ++this.power;
             this.scale *= 2.0;
             this.update();
+            rescaleImport();
             resizeVoxelSound.play(voxelSizePlus);
         }
     }
@@ -403,6 +405,7 @@ function ScaleSelector() {
             --this.power;
             this.scale /= 2.0;
             this.update();
+            rescaleImport();
             resizeVoxelSound.play(voxelSizePlus);
         }
     }
