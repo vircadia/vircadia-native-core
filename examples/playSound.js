@@ -1,6 +1,12 @@
 //
+//  playSound.js
+//  examples
+//
+//  Copyright 2014 High Fidelity, Inc.
 //  This sample script loads a sound file and plays it at the 'fingertip' of the 
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 //  First, load the clap sound from a URL 
 var clap = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Animals/bushtit_1.raw");	

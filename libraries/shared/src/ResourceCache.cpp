@@ -1,14 +1,18 @@
 //
 //  ResourceCache.cpp
-//  shared
+//  libraries/shared/src
 //
 //  Created by Andrzej Kapolka on 2/27/14.
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <cfloat>
 #include <cmath>
 
+#include <QThread>
 #include <QTimer>
 #include <QtDebug>
 
@@ -171,6 +175,10 @@ float Resource::getLoadPriority() {
 }
 
 void Resource::allReferencesCleared() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "allReferencesCleared");
+        return;
+    }
     if (_cache) {
         // create and reinsert new shared pointer 
         QSharedPointer<Resource> self(this, &Resource::allReferencesCleared);

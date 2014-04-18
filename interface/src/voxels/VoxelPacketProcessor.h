@@ -1,15 +1,16 @@
 //
 //  VoxelPacketProcessor.h
-//  interface
+//  interface/src/voxels
 //
 //  Created by Brad Hefta-Gaub on 8/12/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
-//  Voxel Packet Receiver
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __shared__VoxelPacketProcessor__
-#define __shared__VoxelPacketProcessor__
+#ifndef hifi_VoxelPacketProcessor_h
+#define hifi_VoxelPacketProcessor_h
 
 #include <ReceivedPacketProcessor.h>
 
@@ -20,4 +21,4 @@ class VoxelPacketProcessor : public ReceivedPacketProcessor {
 protected:
     virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
 };
-#endif // __shared__VoxelPacketProcessor__
+#endif // hifi_VoxelPacketProcessor_h

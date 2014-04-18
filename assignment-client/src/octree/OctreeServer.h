@@ -1,14 +1,16 @@
 //
 //  OctreeServer.h
-//  voxel-server
+//  assignment-client/src/octree
 //
-//  Created by Brad Hefta-Gaub on 8/21/13
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Created by Brad Hefta-Gaub on 8/21/13.
+//  Copyright 2013 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __octree_server__OctreeServer__
-#define __octree_server__OctreeServer__
+#ifndef hifi_OctreeServer_h
+#define hifi_OctreeServer_h
 
 #include <QStringList>
 #include <QDateTime>
@@ -218,4 +220,4 @@ protected:
     static QMutex _threadsDidCallWriteDatagramMutex;
 };
 
-#endif // __octree_server__OctreeServer__
+#endif // hifi_OctreeServer_h

@@ -29,4 +29,18 @@ link_hifi_library(octree ${TARGET_NAME} "${ROOT_DIR}")
 # link in the hifi voxels library
 link_hifi_library(voxels ${TARGET_NAME} "${ROOT_DIR}")
 
+# link the hifi networking library
+link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
 
+find_package(GnuTLS REQUIRED)
+
+# include the GnuTLS dir
+include_directories(SYSTEM "${GNUTLS_INCLUDE_DIR}")
+
+# add a definition for ssize_t so that windows doesn't bail on gnutls.h
+if (WIN32)
+  add_definitions(-Dssize_t=long)
+endif ()
+
+# link GnuTLS
+target_link_libraries(${TARGET_NAME} "${GNUTLS_LIBRARY}")

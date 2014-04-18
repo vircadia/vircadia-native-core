@@ -1,11 +1,12 @@
 //
 //  ViewFrustum.cpp
-//  hifi
+//  libraries/octree/src
 //
 //  Created by Brad Hefta-Gaub on 04/11/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
-//  Simple view frustum class.
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <algorithm>
@@ -426,10 +427,6 @@ bool ViewFrustum::matches(const ViewFrustum& compareTo, bool debug) const {
     return result;
 }
 
-bool isNaN(float f) {
-    return f != f;
-}
-
 bool ViewFrustum::isVerySimilar(const ViewFrustum& compareTo, bool debug) const {
 
     //  Compute distance between the two positions
@@ -451,7 +448,7 @@ bool ViewFrustum::isVerySimilar(const ViewFrustum& compareTo, bool debug) const 
     float angleEyeOffsetOrientation = compareTo._eyeOffsetOrientation == _eyeOffsetOrientation
                                             ? 0.0f : glm::degrees(glm::angle(dQEyeOffsetOrientation));
     if (isNaN(angleEyeOffsetOrientation)) {
-        angleOrientation = 0.0f;
+        angleEyeOffsetOrientation = 0.0f;
     }
 
     bool result =

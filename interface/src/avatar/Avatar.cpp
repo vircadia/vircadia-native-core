@@ -1,9 +1,13 @@
 //
 //  Avatar.cpp
-//  interface
+//  interface/src/avatar
 //
 //  Created by Philip Rosedale on 9/11/12.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 #include <vector>
 
@@ -46,18 +50,15 @@ Avatar::Avatar() :
     _mode(AVATAR_MODE_STANDING),
     _velocity(0.0f, 0.0f, 0.0f),
     _thrust(0.0f, 0.0f, 0.0f),
-    _speed(0.0f),
     _leanScale(0.5f),
     _scale(1.0f),
     _worldUpDirection(DEFAULT_UP_DIRECTION),
     _mouseRayOrigin(0.0f, 0.0f, 0.0f),
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _moving(false),
-    _owningAvatarMixer(),
     _collisionFlags(0),
     _initialized(false),
-    _shouldRenderBillboard(true),
-    _modelsDirty(true)
+    _shouldRenderBillboard(true)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -118,24 +119,28 @@ void Avatar::simulate(float deltaTime) {
     getHand()->simulate(deltaTime, false);
     _skeletonModel.setLODDistance(getLODDistance());
     
-    // copy joint data to skeleton
-    for (int i = 0; i < _jointData.size(); i++) {
-        const JointData& data = _jointData.at(i);
-        _skeletonModel.setJointState(i, data.valid, data.rotation);
-    }
-    glm::vec3 headPosition = _position;
     if (!_shouldRenderBillboard && inViewFrustum) {
-        _skeletonModel.simulate(deltaTime, _modelsDirty);
-        _modelsDirty = false;
+        if (_hasNewJointRotations) {
+            for (int i = 0; i < _jointData.size(); i++) {
+                const JointData& data = _jointData.at(i);
+                _skeletonModel.setJointState(i, data.valid, data.rotation);
+            }
+            _skeletonModel.simulate(deltaTime);
+        }
+        _skeletonModel.simulate(deltaTime, _hasNewJointRotations);
+        _hasNewJointRotations = false;
+
+        glm::vec3 headPosition = _position;
         _skeletonModel.getHeadPosition(headPosition);
+        Head* head = getHead();
+        head->setPosition(headPosition);
+        head->setScale(_scale);
+        head->simulate(deltaTime, false, _shouldRenderBillboard);
     }
-    Head* head = getHead();
-    head->setPosition(headPosition);
-    head->setScale(_scale);
-    head->simulate(deltaTime, false, _shouldRenderBillboard);
     
     // use speed and angular velocity to determine walking vs. standing
-    if (_speed + fabs(_bodyYawDelta) > 0.2) {
+    float speed = glm::length(_velocity);
+    if (speed + fabs(_bodyYawDelta) > 0.2) {
         _mode = AVATAR_MODE_WALKING;
     } else {
         _mode = AVATAR_MODE_INTERACTING;
@@ -204,37 +209,56 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
     {
         // glow when moving far away
         const float GLOW_DISTANCE = 20.0f;
-        Glower glower(_moving && distanceToTarget > GLOW_DISTANCE && renderMode == NORMAL_RENDER_MODE ? 1.0f : 0.0f);
+        const float GLOW_MAX_LOUDNESS = 2500.0f;
+        const float MAX_GLOW = 0.5f;
+        const float GLOW_FROM_AVERAGE_LOUDNESS = ((this == Application::getInstance()->getAvatar())
+                                                  ? 0.0f
+                                                  : MAX_GLOW * getHeadData()->getAudioLoudness() / GLOW_MAX_LOUDNESS);
+        Glower glower(_moving && distanceToTarget > GLOW_DISTANCE && renderMode == NORMAL_RENDER_MODE
+                      ? 1.0f
+                      : GLOW_FROM_AVERAGE_LOUDNESS);
 
         // render body
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
             renderBody(renderMode);
         }
-        if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
-            _skeletonModel.renderCollisionProxies(0.7f);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes)) {
+            _skeletonModel.updateShapePositions();
+            _skeletonModel.renderJointCollisionShapes(0.7f);
         }
-        if (Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionProxies)) {
-            getHead()->getFaceModel().renderCollisionProxies(0.7f);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes)) {
+            if (shouldRenderHead(cameraPosition, renderMode)) {
+                getHead()->getFaceModel().updateShapePositions();
+                getHead()->getFaceModel().renderJointCollisionShapes(0.7f);
+            }
+        }
+        if (Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes)) {
+            if (shouldRenderHead(cameraPosition, renderMode)) {
+                getHead()->getFaceModel().updateShapePositions();
+                getHead()->getFaceModel().renderBoundingCollisionShapes(0.7f);
+                _skeletonModel.updateShapePositions();
+                _skeletonModel.renderBoundingCollisionShapes(0.7f);
+            }
         }
 
         // quick check before falling into the code below:
         // (a 10 degree breadth of an almost 2 meter avatar kicks in at about 12m)
-        const float MIN_VOICE_SPHERE_DISTANCE = 12.f;
+        const float MIN_VOICE_SPHERE_DISTANCE = 12.0f;
         if (distanceToTarget > MIN_VOICE_SPHERE_DISTANCE) {
             // render voice intensity sphere for avatars that are farther away
-            const float MAX_SPHERE_ANGLE = 10.f * RADIANS_PER_DEGREE;
-            const float MIN_SPHERE_ANGLE = 1.f * RADIANS_PER_DEGREE;
+            const float MAX_SPHERE_ANGLE = 10.0f * RADIANS_PER_DEGREE;
+            const float MIN_SPHERE_ANGLE = 1.0f * RADIANS_PER_DEGREE;
             const float MIN_SPHERE_SIZE = 0.01f;
             const float SPHERE_LOUDNESS_SCALING = 0.0005f;
             const float SPHERE_COLOR[] = { 0.5f, 0.8f, 0.8f };
             float height = getSkeletonHeight();
-            glm::vec3 delta = height * (getHead()->getCameraOrientation() * IDENTITY_UP) / 2.f;
+            glm::vec3 delta = height * (getHead()->getCameraOrientation() * IDENTITY_UP) / 2.0f;
             float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
             float sphereRadius = getHead()->getAverageLoudness() * SPHERE_LOUDNESS_SCALING;
             
             if (renderMode == NORMAL_RENDER_MODE && (sphereRadius > MIN_SPHERE_SIZE) &&
                     (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
-                glColor4f(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.f - angle / MAX_SPHERE_ANGLE);
+                glColor4f(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.0f - angle / MAX_SPHERE_ANGLE);
                 glPushMatrix();
                 glTranslatef(_position.x, _position.y, _position.z);
                 glScalef(height, height, height);
@@ -266,9 +290,9 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         glm::vec3 chatAxis = glm::axis(chatRotation);
         glRotatef(glm::degrees(glm::angle(chatRotation)), chatAxis.x, chatAxis.y, chatAxis.z);
         
-        glColor3f(0.f, 0.8f, 0.f);
-        glRotatef(180.f, 0.f, 1.f, 0.f);
-        glRotatef(180.f, 0.f, 0.f, 1.f);
+        glColor3f(0.0f, 0.8f, 0.0f);
+        glRotatef(180.0f, 0.0f, 1.0f, 0.0f);
+        glRotatef(180.0f, 0.0f, 0.0f, 1.0f);
         glScalef(_scale * CHAT_MESSAGE_SCALE, _scale * CHAT_MESSAGE_SCALE, 1.0f);
         
         glDisable(GL_LIGHTING);
@@ -284,7 +308,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
             _chatMessage[lastIndex] = '\0';
             textRenderer(CHAT)->draw(-width / 2.0f, 0, _chatMessage.c_str());
             _chatMessage[lastIndex] = lastChar;
-            glColor3f(0.f, 1.f, 0.f);
+            glColor3f(0.0f, 1.0f, 0.0f);
             textRenderer(CHAT)->draw(width / 2.0f - lastWidth, 0, _chatMessage.c_str() + lastIndex);
         }
         glEnable(GL_LIGHTING);
@@ -316,9 +340,19 @@ void Avatar::renderBody(RenderMode renderMode) {
         renderBillboard();
         return;
     }
-    _skeletonModel.render(1.0f, renderMode == SHADOW_RENDER_MODE);
-    getHead()->render(1.0f, renderMode == SHADOW_RENDER_MODE);
+    Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
+        Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+    _skeletonModel.render(1.0f, modelRenderMode);
+    getHead()->render(1.0f, modelRenderMode);
     getHand()->render(false);
+}
+
+bool Avatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const {
+    return true;
+}
+
+void Avatar::updateJointMappings() {
+    // no-op; joint mappings come from skeleton model
 }
 
 void Avatar::renderBillboard() {
@@ -502,6 +536,11 @@ bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penet
     //return getHead()->getFaceModel().findSphereCollisions(penetratorCenter, penetratorRadius, collisions);
 }
 
+bool Avatar::findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions) {
+    return _skeletonModel.findPlaneCollisions(plane, collisions) ||
+        getHead()->getFaceModel().findPlaneCollisions(plane, collisions);
+}
+
 void Avatar::updateShapePositions() {
     _skeletonModel.updateShapePositions();
     Model& headModel = getHead()->getFaceModel();
@@ -530,7 +569,7 @@ bool Avatar::findParticleCollisions(const glm::vec3& particleCenter, float parti
             const PalmData* palm = handData->getPalm(i);
             if (palm && palm->hasPaddle()) {
                 // create a disk collision proxy where the hand is
-                glm::vec3 fingerAxis(0.f);
+                glm::vec3 fingerAxis(0.0f);
                 for (size_t f = 0; f < palm->getNumFingers(); ++f) {
                     const FingerData& finger = (palm->getFingers())[f];
                     if (finger.isActive()) {
@@ -645,6 +684,11 @@ void Avatar::setBillboard(const QByteArray& billboard) {
 }
 
 int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
+    if (!_initialized) {
+        // now that we have data for this Avatar we are go for init
+        init();
+    }
+    
     // change in position implies movement
     glm::vec3 oldPosition = _position;
     
@@ -652,9 +696,6 @@ int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
     
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, _position) > MOVE_DISTANCE_THRESHOLD;
-    
-    // note that we need to update our models
-    _modelsDirty = true;
     
     return bytesRead;
 }
@@ -675,8 +716,8 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
         glm::vec3 perpCos = glm::normalize(glm::cross(axis, perpSin));
         perpSin = glm::cross(perpCos, axis);
         
-        float anglea = 0.f;
-        float angleb = 0.f;
+        float anglea = 0.0f;
+        float angleb = 0.0f;
         
         for (int i = 0; i < NUM_BODY_CONE_SIDES; i ++) {
             
@@ -726,8 +767,8 @@ void Avatar::updateCollisionFlags() {
 void Avatar::setScale(float scale) {
     _scale = scale;
 
-    if (_targetScale * (1.f - RESCALING_TOLERANCE) < _scale &&
-            _scale < _targetScale * (1.f + RESCALING_TOLERANCE)) {
+    if (_targetScale * (1.0f - RESCALING_TOLERANCE) < _scale &&
+            _scale < _targetScale * (1.0f + RESCALING_TOLERANCE)) {
         _scale = _targetScale;
     }
 }

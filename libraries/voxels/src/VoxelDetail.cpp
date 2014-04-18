@@ -1,9 +1,12 @@
 //
 //  VoxelDetail.cpp
-//  hifi
+//  libraries/voxels/src
 //
-//  Created by Brad Hefta-Gaub on 1/29/2014
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Created by Brad Hefta-Gaub on 1/29/2014.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <RegisteredMetaTypes.h>
@@ -71,6 +74,9 @@ QScriptValue rayToVoxelIntersectionResultToScriptValue(QScriptEngine* engine, co
             break;
         case MAX_Z_FACE:
             faceName = "MAX_Z_FACE";
+            break;
+        case UNKNOWN_FACE:
+            faceName = "UNKNOWN_FACE";
             break;
     }
     obj.setProperty("face", faceName);

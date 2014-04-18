@@ -1,8 +1,12 @@
 //
 //  VoxelSystem.cpp
+//  interface/src/voxels
 //
 //  Created by Philip on 12/31/12.
-//  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
+//  Copyright 2012 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 
@@ -1508,7 +1512,9 @@ void VoxelSystem::killLocalVoxels() {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
                             "VoxelSystem::killLocalVoxels()");
     _tree->lockForWrite();
+    VoxelSystem* voxelSystem = _tree->getRoot()->getVoxelSystem();
     _tree->eraseAllOctreeElements();
+    _tree->getRoot()->setVoxelSystem(voxelSystem);
     _tree->unlock();
     clearFreeBufferIndexes();
     if (_usePrimitiveRenderer) {

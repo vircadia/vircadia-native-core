@@ -1,10 +1,14 @@
 //
 //  AvatarManager.cpp
-//  hifi
+//  interface/src/avatar
 //
 //  Created by Stephen Birarda on 1/23/2014.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 #include <string>
 
 #include <glm/gtx/string_cast.hpp>
@@ -47,14 +51,16 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     // simulate avatars
     AvatarHash::iterator avatarIterator = _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
-        Avatar* avatar = static_cast<Avatar*>(avatarIterator.value().data());
-        if (avatar == static_cast<Avatar*>(_myAvatar.data()) || !avatar->isInitialized()) {
+        AvatarSharedPointer sharedAvatar = avatarIterator.value();
+        Avatar* avatar = reinterpret_cast<Avatar*>(sharedAvatar.data());
+        
+        if (sharedAvatar == _myAvatar || !avatar->isInitialized()) {
             // DO NOT update _myAvatar!  Its update has already been done earlier in the main loop.
             // DO NOT update uninitialized Avatars
             ++avatarIterator;
             continue;
         }
-        if (avatar->getOwningAvatarMixer()) {
+        if (!shouldKillAvatar(sharedAvatar)) {
             // this avatar's mixer is still around, go ahead and simulate it
             avatar->simulate(deltaTime);
             avatar->setMouseRay(mouseOrigin, mouseDirection);
@@ -123,127 +129,12 @@ void AvatarManager::renderAvatarFades(const glm::vec3& cameraPosition, Avatar::R
     }
 }
 
-AvatarSharedPointer AvatarManager::matchingOrNewAvatar(const QUuid& nodeUUID, const QWeakPointer<Node>& mixerWeakPointer) {
-    AvatarSharedPointer matchingAvatar = _avatarHash.value(nodeUUID);
-    
-    if (!matchingAvatar) {
-        // construct a new Avatar for this node
-        Avatar* avatar =  new Avatar();
-        avatar->setOwningAvatarMixer(mixerWeakPointer);
-        
-        // insert the new avatar into our hash
-        matchingAvatar = AvatarSharedPointer(avatar);
-        _avatarHash.insert(nodeUUID, matchingAvatar);
-        
-        qDebug() << "Adding avatar with UUID" << nodeUUID << "to AvatarManager hash.";
-    }
-    
-    return matchingAvatar;
-}
-
-void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer) {
-    switch (packetTypeForPacket(datagram)) {
-        case PacketTypeBulkAvatarData:
-            processAvatarDataPacket(datagram, mixerWeakPointer);
-            break;
-        case PacketTypeAvatarIdentity:
-            processAvatarIdentityPacket(datagram, mixerWeakPointer);
-            break;
-        case PacketTypeAvatarBillboard:
-            processAvatarBillboardPacket(datagram, mixerWeakPointer);
-            break;
-        case PacketTypeKillAvatar:
-            processKillAvatar(datagram);
-            break;
-        default:
-            break;
-    }
-}
-
-void AvatarManager::processAvatarDataPacket(const QByteArray &datagram, const QWeakPointer<Node> &mixerWeakPointer) {
-    int bytesRead = numBytesForPacketHeader(datagram);
-    
-    // enumerate over all of the avatars in this packet
-    // only add them if mixerWeakPointer points to something (meaning that mixer is still around)
-    while (bytesRead < datagram.size() && mixerWeakPointer.data()) {
-        QUuid nodeUUID = QUuid::fromRfc4122(datagram.mid(bytesRead, NUM_BYTES_RFC4122_UUID));
-        bytesRead += NUM_BYTES_RFC4122_UUID;
-        
-        AvatarSharedPointer matchingAvatarData = matchingOrNewAvatar(nodeUUID, mixerWeakPointer);
-        
-        // have the matching (or new) avatar parse the data from the packet
-        bytesRead += matchingAvatarData->parseDataAtOffset(datagram, bytesRead);
-        
-        Avatar* matchingAvatar = reinterpret_cast<Avatar*>(matchingAvatarData.data());
-        
-        if (!matchingAvatar->isInitialized()) {
-            // now that we have AvatarData for this Avatar we are go for init
-            matchingAvatar->init();
-        }
-    }
-}
-
-void AvatarManager::processAvatarIdentityPacket(const QByteArray &packet, const QWeakPointer<Node>& mixerWeakPointer) {
-    // setup a data stream to parse the packet
-    QDataStream identityStream(packet);
-    identityStream.skipRawData(numBytesForPacketHeader(packet));
-    
-    QUuid nodeUUID;
-    
-    while (!identityStream.atEnd()) {
-        
-        QUrl faceMeshURL, skeletonURL;
-        QString displayName;
-        identityStream >> nodeUUID >> faceMeshURL >> skeletonURL >> displayName;
-
-        // mesh URL for a UUID, find avatar in our list
-        AvatarSharedPointer matchingAvatar = matchingOrNewAvatar(nodeUUID, mixerWeakPointer);
-        if (matchingAvatar) {
-            Avatar* avatar = static_cast<Avatar*>(matchingAvatar.data());
-            
-            if (avatar->getFaceModelURL() != faceMeshURL) {
-                avatar->setFaceModelURL(faceMeshURL);
-            }
-            
-            if (avatar->getSkeletonModelURL() != skeletonURL) {
-                avatar->setSkeletonModelURL(skeletonURL);
-            }
-
-            if (avatar->getDisplayName() != displayName) {
-                avatar->setDisplayName(displayName);
-            }
-        }
-    }
-}
-
-void AvatarManager::processAvatarBillboardPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer) {
-    int headerSize = numBytesForPacketHeader(packet);
-    QUuid nodeUUID = QUuid::fromRfc4122(QByteArray::fromRawData(packet.constData() + headerSize, NUM_BYTES_RFC4122_UUID));
-    
-    AvatarSharedPointer matchingAvatar = matchingOrNewAvatar(nodeUUID, mixerWeakPointer);
-    if (matchingAvatar) {
-        Avatar* avatar = static_cast<Avatar*>(matchingAvatar.data());
-        QByteArray billboard = packet.mid(headerSize + NUM_BYTES_RFC4122_UUID);
-        if (avatar->getBillboard() != billboard) {
-            avatar->setBillboard(billboard);
-        }
-    }
-}
-
-void AvatarManager::processKillAvatar(const QByteArray& datagram) {
-    // read the node id
-    QUuid nodeUUID = QUuid::fromRfc4122(datagram.mid(numBytesForPacketHeader(datagram), NUM_BYTES_RFC4122_UUID));
-    
-    // remove the avatar with that UUID from our hash, if it exists
-    AvatarHash::iterator matchedAvatar = _avatarHash.find(nodeUUID);
-    if (matchedAvatar != _avatarHash.end()) {
-        erase(matchedAvatar);
-    }
+AvatarSharedPointer AvatarManager::newSharedAvatar() {
+    return AvatarSharedPointer(new Avatar());
 }
 
 AvatarHash::iterator AvatarManager::erase(const AvatarHash::iterator& iterator) {
     if (iterator.key() != MY_AVATAR_KEY) {
-        qDebug() << "Removing Avatar with UUID" << iterator.key() << "from AvatarManager hash.";
         if (reinterpret_cast<Avatar*>(iterator.value().data())->isInitialized()) {
             _avatarFades.push_back(iterator.value());
         }

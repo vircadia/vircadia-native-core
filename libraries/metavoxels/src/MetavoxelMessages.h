@@ -1,13 +1,16 @@
 //
 //  MetavoxelMessages.h
-//  metavoxels
+//  libraries/metavoxels/src
 //
 //  Created by Andrzej Kapolka on 12/31/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__MetavoxelMessages__
-#define __interface__MetavoxelMessages__
+#ifndef hifi_MetavoxelMessages_h
+#define hifi_MetavoxelMessages_h
 
 #include "MetavoxelData.h"
 
@@ -176,4 +179,21 @@ public:
 
 DECLARE_STREAMABLE_METATYPE(SetSpannerEdit)
 
-#endif /* defined(__interface__MetavoxelMessages__) */
+/// An edit that directly sets part of the metavoxel data.
+class SetDataEdit : public MetavoxelEdit {
+    STREAMABLE
+    
+public:
+    
+    STREAM glm::vec3 minimum;
+    STREAM MetavoxelData data;
+    STREAM bool blend;
+    
+    SetDataEdit(const glm::vec3& minimum = glm::vec3(), const MetavoxelData& data = MetavoxelData(), bool blend = false);
+    
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
+};
+
+DECLARE_STREAMABLE_METATYPE(SetDataEdit)
+
+#endif // hifi_MetavoxelMessages_h

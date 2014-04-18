@@ -1,13 +1,16 @@
 //
 //  AvatarManager.h
-//  hifi
+//  interface/src/avatar
 //
 //  Created by Stephen Birarda on 1/23/2014.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AvatarManager__
-#define __hifi__AvatarManager__
+#ifndef hifi_AvatarManager_h
+#define hifi_AvatarManager_h
 
 #include <QtCore/QHash>
 #include <QtCore/QObject>
@@ -19,7 +22,7 @@
 
 class MyAvatar;
 
-class AvatarManager : public QObject, public AvatarHashMap {
+class AvatarManager : public AvatarHashMap {
     Q_OBJECT
 public:
     AvatarManager(QObject* parent = 0);
@@ -32,22 +35,14 @@ public:
     void renderAvatars(Avatar::RenderMode renderMode, bool selfAvatarOnly = false);
     
     void clearOtherAvatars();
-
-public slots:
-    void processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer);
     
 private:
     AvatarManager(const AvatarManager& other);
-    
-    AvatarSharedPointer matchingOrNewAvatar(const QUuid& nodeUUID, const QWeakPointer<Node>& mixerWeakPointer);
-    
-    void processAvatarDataPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
-    void processAvatarIdentityPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
-    void processAvatarBillboardPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
-    void processKillAvatar(const QByteArray& datagram);
 
     void simulateAvatarFades(float deltaTime);
     void renderAvatarFades(const glm::vec3& cameraPosition, Avatar::RenderMode renderMode);
+    
+    AvatarSharedPointer newSharedAvatar();
     
     // virtual override
     AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
@@ -56,4 +51,4 @@ private:
     QSharedPointer<MyAvatar> _myAvatar;
 };
 
-#endif /* defined(__hifi__AvatarManager__) */
+#endif // hifi_AvatarManager_h

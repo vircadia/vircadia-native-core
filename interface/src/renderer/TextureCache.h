@@ -1,13 +1,16 @@
 //
 //  TextureCache.h
-//  interface
+//  interface/src/renderer
 //
 //  Created by Andrzej Kapolka on 8/6/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__TextureCache__
-#define __interface__TextureCache__
+#ifndef hifi_TextureCache_h
+#define hifi_TextureCache_h
 
 #include <QImage>
 #include <QMap>
@@ -41,7 +44,8 @@ public:
     GLuint getBlueTextureID();
 
     /// Loads a texture from the specified URL.
-    QSharedPointer<NetworkTexture> getTexture(const QUrl& url, bool normalMap = false, bool dilatable = false);
+    QSharedPointer<NetworkTexture> getTexture(const QUrl& url, bool normalMap = false, bool dilatable = false,
+        const QByteArray& content = QByteArray());
 
     /// Returns a pointer to the primary framebuffer object.  This render target includes a depth component, and is
     /// used for scene rendering.
@@ -112,7 +116,7 @@ class NetworkTexture : public Resource, public Texture {
 
 public:
     
-    NetworkTexture(const QUrl& url, bool normalMap);
+    NetworkTexture(const QUrl& url, bool normalMap, const QByteArray& content);
 
     /// Checks whether it "looks like" this texture is translucent
     /// (majority of pixels neither fully opaque or fully transparent).
@@ -121,9 +125,11 @@ public:
 protected:
 
     virtual void downloadFinished(QNetworkReply* reply);
-    virtual void imageLoaded(const QImage& image);      
-
+          
+    Q_INVOKABLE void loadContent(const QByteArray& content);
     Q_INVOKABLE void setImage(const QImage& image, bool translucent);
+
+    virtual void imageLoaded(const QImage& image);
 
 private:
 
@@ -136,7 +142,7 @@ class DilatableNetworkTexture : public NetworkTexture {
     
 public:
     
-    DilatableNetworkTexture(const QUrl& url);
+    DilatableNetworkTexture(const QUrl& url, const QByteArray& content);
     
     /// Returns a pointer to a texture with the requested amount of dilation.
     QSharedPointer<Texture> getDilatedTexture(float dilation);
@@ -155,4 +161,4 @@ private:
     QMap<float, QWeakPointer<Texture> > _dilatedTextures;    
 };
 
-#endif /* defined(__interface__TextureCache__) */
+#endif // hifi_TextureCache_h

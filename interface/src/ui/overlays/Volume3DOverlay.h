@@ -1,12 +1,15 @@
 //
 //  Volume3DOverlay.h
-//  interface
+//  interface/src/ui/overlays
 //
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Volume3DOverlay__
-#define __interface__Volume3DOverlay__
+#ifndef hifi_Volume3DOverlay_h
+#define hifi_Volume3DOverlay_h
 
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
@@ -39,4 +42,4 @@ protected:
 };
 
  
-#endif /* defined(__interface__Volume3DOverlay__) */
+#endif // hifi_Volume3DOverlay_h

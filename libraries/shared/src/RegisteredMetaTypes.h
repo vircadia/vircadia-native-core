@@ -1,12 +1,13 @@
 //
 //  RegisteredMetaTypes.h
-//  hifi
+//  libraries/shared/src
 //
 //  Created by Stephen Birarda on 10/3/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
-//  Used to register meta-types with Qt so that they can be used as properties for objects exposed to our
-//  Agent scripting.
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 #ifndef hifi_RegisteredMetaTypes_h
 #define hifi_RegisteredMetaTypes_h
@@ -15,6 +16,7 @@
 
 #include <QtScript/QScriptEngine>
 
+#include "CollisionInfo.h"
 #include "SharedUtil.h"
 
 Q_DECLARE_METATYPE(glm::vec4)
@@ -50,4 +52,8 @@ Q_DECLARE_METATYPE(PickRay)
 QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay);
 void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
 
-#endif
+Q_DECLARE_METATYPE(CollisionInfo)
+QScriptValue collisionToScriptValue(QScriptEngine* engine, const CollisionInfo& collision);
+void collisionFromScriptValue(const QScriptValue &object, CollisionInfo& collision);
+
+#endif // hifi_RegisteredMetaTypes_h

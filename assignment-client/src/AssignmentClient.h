@@ -1,13 +1,16 @@
 //
 //  AssignmentClient.h
-//  hifi
+//  assignment-client/src
 //
 //  Created by Stephen Birarda on 11/25/2013.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AssignmentClient__
-#define __hifi__AssignmentClient__
+#ifndef hifi_AssignmentClient_h
+#define hifi_AssignmentClient_h
 
 #include <QtCore/QCoreApplication>
 
@@ -17,9 +20,8 @@ class AssignmentClient : public QCoreApplication {
     Q_OBJECT
 public:
     AssignmentClient(int &argc, char **argv);
-
     static const SharedAssignmentPointer& getCurrentAssignment() { return _currentAssignment; }
-
+    ~AssignmentClient();
 private slots:
     void sendAssignmentRequest();
     void readPendingDatagrams();
@@ -29,6 +31,7 @@ private slots:
 private:
     Assignment _requestAssignment;
     static SharedAssignmentPointer _currentAssignment;
+    QString _assignmentServerHostname;
 };
 
-#endif /* defined(__hifi__AssignmentClient__) */
+#endif // hifi_AssignmentClient_h

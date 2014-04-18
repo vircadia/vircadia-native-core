@@ -1,9 +1,12 @@
 //
 //  SharedUtil.cpp
-//  hifi
+//  libraries/shared/src
 //
 //  Created by Stephen Birarda on 2/22/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <cstdlib>
@@ -12,10 +15,6 @@
 #include <cctype>
 #include <time.h>
 
-#ifdef _WIN32
-#include "Syssocket.h"
-#endif
-
 #ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
 #endif
@@ -23,7 +22,6 @@
 #include <QtCore/QDebug>
 
 #include "OctalCode.h"
-#include "PacketHeaders.h"
 #include "SharedUtil.h"
 
 quint64 usecTimestamp(const timeval *time) {
@@ -41,7 +39,7 @@ quint64 usecTimestampNow() {
     return (now.tv_sec * 1000000 + now.tv_usec) + ::usecTimestampNowAdjust;
 }
 
-float randFloat () {
+float randFloat() {
     return (rand() % 10000)/10000.f;
 }
 
@@ -51,6 +49,10 @@ int randIntInRange (int min, int max) {
 
 float randFloatInRange (float min,float max) {
     return min + ((rand() % 10000)/10000.f * (max-min));
+}
+
+float randomSign() {
+    return randomBoolean() ? -1.0 : 1.0;
 }
 
 unsigned char randomColorValue(int miniumum) {
@@ -661,3 +663,125 @@ glm::vec3 safeEulerAngles(const glm::quat& q) {
     }
 }
 
+//  Helper function returns the positive angle (in radians) between two 3D vectors
+float angleBetween(const glm::vec3& v1, const glm::vec3& v2) {
+    return acosf((glm::dot(v1, v2)) / (glm::length(v1) * glm::length(v2)));
+}
+
+//  Helper function return the rotation from the first vector onto the second
+glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
+    float angle = angleBetween(v1, v2);
+    if (glm::isnan(angle) || angle < EPSILON) {
+        return glm::quat();
+    }
+    glm::vec3 axis;
+    if (angle > 179.99f * RADIANS_PER_DEGREE) { // 180 degree rotation; must use another axis
+        axis = glm::cross(v1, glm::vec3(1.0f, 0.0f, 0.0f));
+        float axisLength = glm::length(axis);
+        if (axisLength < EPSILON) { // parallel to x; y will work
+            axis = glm::normalize(glm::cross(v1, glm::vec3(0.0f, 1.0f, 0.0f)));
+        } else {
+            axis /= axisLength;
+        }
+    } else {
+        axis = glm::normalize(glm::cross(v1, v2));
+    }
+    return glm::angleAxis(angle, axis);
+}
+
+glm::vec3 extractTranslation(const glm::mat4& matrix) {
+    return glm::vec3(matrix[3][0], matrix[3][1], matrix[3][2]);
+}
+
+void setTranslation(glm::mat4& matrix, const glm::vec3& translation) {
+    matrix[3][0] = translation.x;
+    matrix[3][1] = translation.y;
+    matrix[3][2] = translation.z;
+}
+
+glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal) {
+    // uses the iterative polar decomposition algorithm described by Ken Shoemake at
+    // http://www.cs.wisc.edu/graphics/Courses/838-s2002/Papers/polar-decomp.pdf
+    // code adapted from Clyde, https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Matrix4f.java
+
+    // start with the contents of the upper 3x3 portion of the matrix
+    glm::mat3 upper = glm::mat3(matrix);
+    if (!assumeOrthogonal) {
+        for (int i = 0; i < 10; i++) {
+            // store the results of the previous iteration
+            glm::mat3 previous = upper;
+
+            // compute average of the matrix with its inverse transpose
+            float sd00 = previous[1][1] * previous[2][2] - previous[2][1] * previous[1][2];
+            float sd10 = previous[0][1] * previous[2][2] - previous[2][1] * previous[0][2];
+            float sd20 = previous[0][1] * previous[1][2] - previous[1][1] * previous[0][2];
+            float det = previous[0][0] * sd00 + previous[2][0] * sd20 - previous[1][0] * sd10;
+            if (fabs(det) == 0.0f) {
+                // determinant is zero; matrix is not invertible
+                break;
+            }
+            float hrdet = 0.5f / det;
+            upper[0][0] = +sd00 * hrdet + previous[0][0] * 0.5f;
+            upper[1][0] = -sd10 * hrdet + previous[1][0] * 0.5f;
+            upper[2][0] = +sd20 * hrdet + previous[2][0] * 0.5f;
+
+            upper[0][1] = -(previous[1][0] * previous[2][2] - previous[2][0] * previous[1][2]) * hrdet + previous[0][1] * 0.5f;
+            upper[1][1] = +(previous[0][0] * previous[2][2] - previous[2][0] * previous[0][2]) * hrdet + previous[1][1] * 0.5f;
+            upper[2][1] = -(previous[0][0] * previous[1][2] - previous[1][0] * previous[0][2]) * hrdet + previous[2][1] * 0.5f;
+
+            upper[0][2] = +(previous[1][0] * previous[2][1] - previous[2][0] * previous[1][1]) * hrdet + previous[0][2] * 0.5f;
+            upper[1][2] = -(previous[0][0] * previous[2][1] - previous[2][0] * previous[0][1]) * hrdet + previous[1][2] * 0.5f;
+            upper[2][2] = +(previous[0][0] * previous[1][1] - previous[1][0] * previous[0][1]) * hrdet + previous[2][2] * 0.5f;
+
+            // compute the difference; if it's small enough, we're done
+            glm::mat3 diff = upper - previous;
+            if (diff[0][0] * diff[0][0] + diff[1][0] * diff[1][0] + diff[2][0] * diff[2][0] + diff[0][1] * diff[0][1] +
+                    diff[1][1] * diff[1][1] + diff[2][1] * diff[2][1] + diff[0][2] * diff[0][2] + diff[1][2] * diff[1][2] +
+                    diff[2][2] * diff[2][2] < EPSILON) {
+                break;
+            }
+        }
+    }
+
+    // now that we have a nice orthogonal matrix, we can extract the rotation quaternion
+    // using the method described in http://en.wikipedia.org/wiki/Rotation_matrix#Conversions
+    float x2 = fabs(1.0f + upper[0][0] - upper[1][1] - upper[2][2]);
+    float y2 = fabs(1.0f - upper[0][0] + upper[1][1] - upper[2][2]);
+    float z2 = fabs(1.0f - upper[0][0] - upper[1][1] + upper[2][2]);
+    float w2 = fabs(1.0f + upper[0][0] + upper[1][1] + upper[2][2]);
+    return glm::normalize(glm::quat(0.5f * sqrtf(w2),
+        0.5f * sqrtf(x2) * (upper[1][2] >= upper[2][1] ? 1.0f : -1.0f),
+        0.5f * sqrtf(y2) * (upper[2][0] >= upper[0][2] ? 1.0f : -1.0f),
+        0.5f * sqrtf(z2) * (upper[0][1] >= upper[1][0] ? 1.0f : -1.0f)));
+}
+
+glm::vec3 extractScale(const glm::mat4& matrix) {
+    return glm::vec3(glm::length(matrix[0]), glm::length(matrix[1]), glm::length(matrix[2]));
+}
+
+float extractUniformScale(const glm::mat4& matrix) {
+    return extractUniformScale(extractScale(matrix));
+}
+
+float extractUniformScale(const glm::vec3& scale) {
+    return (scale.x + scale.y + scale.z) / 3.0f;
+}
+
+bool isNaN(float value) { 
+    return value != value; 
+}
+
+bool isSimilarOrientation(const glm::quat& orientionA, const glm::quat& orientionB, float similarEnough) {
+    // Compute the angular distance between the two orientations
+    float angleOrientation = orientionA == orientionB ? 0.0f : glm::degrees(glm::angle(orientionA * glm::inverse(orientionB)));
+    if (isNaN(angleOrientation)) {
+        angleOrientation = 0.0f;
+    }
+    return (angleOrientation <= similarEnough);
+}
+
+bool isSimilarPosition(const glm::vec3& positionA, const glm::vec3& positionB, float similarEnough) {
+    // Compute the distance between the two points
+    float positionDistance = glm::distance(positionA, positionB);
+    return (positionDistance <= similarEnough);
+}

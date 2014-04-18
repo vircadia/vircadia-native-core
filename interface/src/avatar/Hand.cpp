@@ -1,8 +1,12 @@
 //
 //  Hand.cpp
-//  interface
+//  interface/src/avatar
 //
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 #include <QImage>
 
@@ -159,6 +163,11 @@ void Hand::collideAgainstAvatar(Avatar* avatar, bool isMyHand) {
                 // TODO: submit collision info to MyAvatar which should lean accordingly
                 averageContactPoint /= (float)handCollisions.size();
                 avatar->applyCollision(averageContactPoint, totalPenetration);
+
+                CollisionInfo collision;
+                collision._penetration = totalPenetration;
+                collision._contactPoint = averageContactPoint;
+                emit avatar->collisionWithAvatar(avatar->getSessionUUID(), _owningAvatar->getSessionUUID(), collision);
             }
         }
     }
@@ -254,7 +263,7 @@ void Hand::render(bool isMine) {
     
     _renderAlpha = 1.0;
     
-    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes)) {
         // draw a green sphere at hand joint location, which is actually near the wrist)
         for (size_t i = 0; i < getNumPalms(); i++) {
             PalmData& palm = getPalms()[i];

@@ -1,14 +1,18 @@
 //
 //  SharedObject.h
-//  metavoxels
+//  libraries/metavoxels/src
 //
 //  Created by Andrzej Kapolka on 2/5/14.
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__SharedObject__
-#define __interface__SharedObject__
+#ifndef hifi_SharedObject_h
+#define hifi_SharedObject_h
 
+#include <QAtomicInt>
 #include <QHash>
 #include <QMetaType>
 #include <QObject>
@@ -42,12 +46,13 @@ public:
     
     void setRemoteID(int remoteID) { _remoteID = remoteID; }
 
-    int getReferenceCount() const { return _referenceCount; }
+    int getReferenceCount() const { return _referenceCount.load(); }
     void incrementReferenceCount();
     void decrementReferenceCount();
 
     /// Creates a new clone of this object.
-    virtual SharedObject* clone() const;
+    /// \param withID if true, give the clone the same ID as this object
+    virtual SharedObject* clone(bool withID = false) const;
 
     /// Tests this object for equality with another.    
     virtual bool equals(const SharedObject* other) const;
@@ -57,9 +62,11 @@ public:
 
 private:
     
+    void setID(int id);
+    
     int _id;
     int _remoteID;
-    int _referenceCount;
+    QAtomicInt _referenceCount;
     
     static int _lastID;
     static WeakSharedObjectHash _weakHash;
@@ -211,4 +218,4 @@ private:
     SharedObjectPointer _object;
 };
 
-#endif /* defined(__interface__SharedObject__) */
+#endif // hifi_SharedObject_h

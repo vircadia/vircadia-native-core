@@ -1,9 +1,11 @@
 //
 //  UpdateDialog.cpp
-//  interface
+//  interface/src/ui
 //
-//  Created by Leonardo Murillo <leo@highfidelity.io> on 1/8/14.
-//  Copyright (c) 2013, 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include "Application.h"  // HACK ATTACK WARNING: for windows build to work, we need this ahead of QtGui

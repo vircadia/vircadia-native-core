@@ -1,9 +1,12 @@
 //
 //  Model.cpp
-//  interface
+//  interface/src/renderer
 //
 //  Created by Andrzej Kapolka on 10/18/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <QMetaType>
@@ -32,9 +35,11 @@ Model::Model(QObject* parent) :
     QObject(parent),
     _scale(1.0f, 1.0f, 1.0f),
     _shapesAreDirty(true),
+    _boundingRadius(0.f),
+    _boundingShape(), 
+    _boundingShapeLocalOffset(0.f),
     _lodDistance(0.0f),
-    _pupilDilation(0.0f),
-    _boundingRadius(0.f) {
+    _pupilDilation(0.0f) {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
 }
@@ -53,6 +58,17 @@ int Model::_normalMapTangentLocation;
 Model::SkinLocations Model::_skinLocations;
 Model::SkinLocations Model::_skinNormalMapLocations;
 Model::SkinLocations Model::_skinShadowLocations;
+
+void Model::setScale(const glm::vec3& scale) {
+    float scaleLength = glm::length(_scale);
+    float relativeDeltaScale = glm::length(_scale - scale) / scaleLength;
+    
+    const float ONE_PERCENT = 0.01f;
+    if (relativeDeltaScale > ONE_PERCENT || scaleLength < EPSILON) {
+        _scale = scale;
+        rebuildShapes();
+    }
+}
 
 void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locations) {
     program.bind();
@@ -73,6 +89,44 @@ QVector<Model::JointState> Model::createJointStates(const FBXGeometry& geometry)
         state.rotation = joint.rotation;
         jointStates.append(state);
     }
+
+    // compute transforms
+    // Unfortunately, the joints are not neccessarily in order from parents to children, 
+    // so we must iterate over the list multiple times until all are set correctly.
+    QVector<bool> jointIsSet;
+    int numJoints = jointStates.size();
+    jointIsSet.fill(false, numJoints);
+    int numJointsSet = 0;
+    int lastNumJointsSet = -1;
+    while (numJointsSet < numJoints && numJointsSet != lastNumJointsSet) {
+        lastNumJointsSet = numJointsSet;
+        for (int i = 0; i < numJoints; ++i) {
+            if (jointIsSet[i]) {
+                continue;
+            }
+            JointState& state = jointStates[i];
+            const FBXJoint& joint = geometry.joints[i];
+            int parentIndex = joint.parentIndex;
+            if (parentIndex == -1) {
+                glm::mat4 baseTransform = glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset);
+                glm::quat combinedRotation = joint.preRotation * state.rotation * joint.postRotation;    
+                state.transform = baseTransform * geometry.offset * glm::translate(state.translation) * joint.preTransform *
+                    glm::mat4_cast(combinedRotation) * joint.postTransform;
+                state.combinedRotation = _rotation * combinedRotation;
+                ++numJointsSet;
+                jointIsSet[i] = true;
+            } else if (jointIsSet[parentIndex]) {
+                const JointState& parentState = jointStates.at(parentIndex);
+                glm::quat combinedRotation = joint.preRotation * state.rotation * joint.postRotation;    
+                state.transform = parentState.transform * glm::translate(state.translation) * joint.preTransform *
+                    glm::mat4_cast(combinedRotation) * joint.postTransform;
+                state.combinedRotation = parentState.combinedRotation * combinedRotation;
+                ++numJointsSet;
+                jointIsSet[i] = true;
+            }
+        }
+    }
+
     return jointStates;
 }
 
@@ -142,66 +196,101 @@ void Model::reset() {
     }
 }
 
-void Model::clearShapes() {
-    for (int i = 0; i < _shapes.size(); ++i) {
-        delete _shapes[i];
-    }
-    _shapes.clear();
-}
-
-void Model::createCollisionShapes() {
-    clearShapes();
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    float uniformScale = extractUniformScale(_scale);
-    for (int i = 0; i < _jointStates.size(); i++) {
-        const FBXJoint& joint = geometry.joints[i];
-        glm::vec3 meshCenter = _jointStates[i].combinedRotation * joint.shapePosition;
-        glm::vec3 position = _rotation * (extractTranslation(_jointStates[i].transform) + uniformScale * meshCenter) + _translation;
-
-        float radius = uniformScale * joint.boneRadius;
-        if (joint.shapeType == Shape::CAPSULE_SHAPE) {
-            float halfHeight = 0.5f * uniformScale * joint.distanceToParent;
-            CapsuleShape* shape = new CapsuleShape(radius, halfHeight);
-            shape->setPosition(position);
-            _shapes.push_back(shape);
-        } else {
-            SphereShape* shape = new SphereShape(radius, position);
-            _shapes.push_back(shape);
+bool Model::updateGeometry() {
+    // NOTE: this is a recursive call that walks all attachments, and their attachments
+    bool needFullUpdate = false;
+    for (int i = 0; i < _attachments.size(); i++) {
+        Model* model = _attachments.at(i);
+        if (model->updateGeometry()) {
+            needFullUpdate = true;
         }
     }
-}
 
-void Model::updateShapePositions() {
-    if (_shapesAreDirty && _shapes.size() == _jointStates.size()) {
-        _boundingRadius = 0.f;
-        float uniformScale = extractUniformScale(_scale);
-        const FBXGeometry& geometry = _geometry->getFBXGeometry();
-        for (int i = 0; i < _jointStates.size(); i++) {
-            const FBXJoint& joint = geometry.joints[i];
-            // shape position and rotation need to be in world-frame
-            glm::vec3 jointToShapeOffset = uniformScale * (_jointStates[i].combinedRotation * joint.shapePosition);
-            glm::vec3 worldPosition = extractTranslation(_jointStates[i].transform) + jointToShapeOffset + _translation;
-            _shapes[i]->setPosition(worldPosition);
-            _shapes[i]->setRotation(_jointStates[i].combinedRotation * joint.shapeRotation);
-            float distance2 = glm::distance2(worldPosition, _translation);
-            if (distance2 > _boundingRadius) {
-                _boundingRadius = distance2;
+    bool needToRebuild = false;
+    if (_nextGeometry) {
+        _nextGeometry = _nextGeometry->getLODOrFallback(_lodDistance, _nextLODHysteresis);
+        _nextGeometry->setLoadPriority(this, -_lodDistance);
+        _nextGeometry->ensureLoading();
+        if (_nextGeometry->isLoaded()) {
+            applyNextGeometry();
+            needToRebuild = true;
+        }
+    }
+    if (!_geometry) {
+        // geometry is not ready
+        return false;
+    }
+
+    QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(_lodDistance, _lodHysteresis);
+    if (_geometry != geometry) {
+        // NOTE: it is theoretically impossible to reach here after passing through the applyNextGeometry() call above.
+        // Which means we don't need to worry about calling deleteGeometry() below immediately after creating new geometry.
+
+        const FBXGeometry& newGeometry = geometry->getFBXGeometry();
+        QVector<JointState> newJointStates = createJointStates(newGeometry);
+        if (! _jointStates.isEmpty()) {
+            // copy the existing joint states
+            const FBXGeometry& oldGeometry = _geometry->getFBXGeometry();
+            for (QHash<QString, int>::const_iterator it = oldGeometry.jointIndices.constBegin();
+                    it != oldGeometry.jointIndices.constEnd(); it++) {
+                int oldIndex = it.value() - 1;
+                int newIndex = newGeometry.getJointIndex(it.key());
+                if (newIndex != -1) {
+                    newJointStates[newIndex] = _jointStates.at(oldIndex);
+                }
             }
+        } 
+        deleteGeometry();
+        _dilatedTextures.clear();
+        _geometry = geometry;
+        _jointStates = newJointStates;
+        needToRebuild = true;
+    } else if (_jointStates.isEmpty()) {
+        const FBXGeometry& fbxGeometry = geometry->getFBXGeometry();
+        if (fbxGeometry.joints.size() > 0) {
+            _jointStates = createJointStates(fbxGeometry);
+            needToRebuild = true;
         }
-        _boundingRadius = sqrtf(_boundingRadius);
-        _shapesAreDirty = false;
     }
+    _geometry->setLoadPriority(this, -_lodDistance);
+    _geometry->ensureLoading();
+   
+    if (needToRebuild) {
+        const FBXGeometry& fbxGeometry = geometry->getFBXGeometry();
+        foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
+            MeshState state;
+            state.clusterMatrices.resize(mesh.clusters.size());
+            _meshStates.append(state);    
+            
+            QOpenGLBuffer buffer;
+            if (!mesh.blendshapes.isEmpty()) {
+                buffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
+                buffer.create();
+                buffer.bind();
+                buffer.allocate((mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3));
+                buffer.write(0, mesh.vertices.constData(), mesh.vertices.size() * sizeof(glm::vec3));
+                buffer.write(mesh.vertices.size() * sizeof(glm::vec3), mesh.normals.constData(),
+                    mesh.normals.size() * sizeof(glm::vec3));
+                buffer.release();
+            }
+            _blendedVertexBuffers.append(buffer);
+        }
+        foreach (const FBXAttachment& attachment, fbxGeometry.attachments) {
+            Model* model = new Model(this);
+            model->init();
+            model->setURL(attachment.url);
+            _attachments.append(model);
+        }
+        rebuildShapes();
+        needFullUpdate = true;
+    }
+    return needFullUpdate;
 }
 
-void Model::simulate(float deltaTime, bool fullUpdate) {
-    // update our LOD, then simulate
-    simulate(deltaTime, fullUpdate, updateGeometry());
-}
-
-bool Model::render(float alpha, bool forShadowMap) {
+bool Model::render(float alpha, RenderMode mode) {
     // render the attachments
     foreach (Model* attachment, _attachments) {
-        attachment->render(alpha);
+        attachment->render(alpha, mode);
     }
     if (_meshStates.isEmpty()) {
         return false;
@@ -222,20 +311,24 @@ bool Model::render(float alpha, bool forShadowMap) {
     
     glDisable(GL_COLOR_MATERIAL);
     
-    glEnable(GL_CULL_FACE);
+    if (mode == DIFFUSE_RENDER_MODE || mode == NORMAL_RENDER_MODE) {
+        glDisable(GL_CULL_FACE);
+    } else {
+        glEnable(GL_CULL_FACE);
+    }
     
     // render opaque meshes with alpha testing
     
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GREATER, 0.5f * alpha);
     
-    renderMeshes(alpha, forShadowMap, false);
+    renderMeshes(alpha, mode, false);
     
     glDisable(GL_ALPHA_TEST);
     
-    // render translucent meshes afterwards, with back face culling
+    // render translucent meshes afterwards
     
-    renderMeshes(alpha, forShadowMap, true);
+    renderMeshes(alpha, mode, true);
     
     glDisable(GL_CULL_FACE);
     
@@ -261,15 +354,6 @@ Extents Model::getBindExtents() const {
     }
     const Extents& bindExtents = _geometry->getFBXGeometry().bindExtents;
     Extents scaledExtents = { bindExtents.minimum * _scale, bindExtents.maximum * _scale };
-    return scaledExtents;
-}
-
-Extents Model::getStaticExtents() const {
-    if (!isActive()) {
-        return Extents();
-    }
-    const Extents& staticExtents = _geometry->getFBXGeometry().staticExtents;
-    Extents scaledExtents = { staticExtents.minimum * _scale, staticExtents.maximum * _scale };
     return scaledExtents;
 }
 
@@ -375,6 +459,161 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     }
 }
 
+void Model::clearShapes() {
+    for (int i = 0; i < _jointShapes.size(); ++i) {
+        delete _jointShapes[i];
+    }
+    _jointShapes.clear();
+}
+
+void Model::rebuildShapes() {
+    clearShapes();
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+
+    if (geometry.joints.isEmpty()) {
+        return;
+    }
+
+    int numJoints = geometry.joints.size();
+    QVector<glm::mat4> transforms;
+    transforms.fill(glm::mat4(), numJoints);
+    QVector<glm::quat> combinedRotations;
+    combinedRotations.fill(glm::quat(), numJoints);
+    QVector<bool> shapeIsSet;
+    shapeIsSet.fill(false, numJoints);
+    int rootIndex = 0;
+
+    float uniformScale = extractUniformScale(_scale);
+    int numShapesSet = 0;
+    int lastNumShapesSet = -1;
+    while (numShapesSet < numJoints && numShapesSet != lastNumShapesSet) {
+        lastNumShapesSet = numShapesSet;
+        for (int i = 0; i < numJoints; ++i) {
+            if (shapeIsSet[i]) {
+                continue;
+            }
+            const FBXJoint& joint = geometry.joints[i];
+            int parentIndex = joint.parentIndex;
+            if (parentIndex == -1) {
+                rootIndex = i;
+                glm::mat4 baseTransform = glm::mat4_cast(_rotation) * uniformScale * glm::translate(_offset);
+                glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;    
+                transforms[i] = baseTransform * geometry.offset * glm::translate(joint.translation) * joint.preTransform *
+                    glm::mat4_cast(combinedRotation) * joint.postTransform;
+                combinedRotations[i] = _rotation * combinedRotation;
+                ++numShapesSet;
+                shapeIsSet[i] = true;
+            } else if (shapeIsSet[parentIndex]) {
+                glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;    
+                transforms[i] = transforms[parentIndex] * glm::translate(joint.translation) * joint.preTransform *
+                    glm::mat4_cast(combinedRotation) * joint.postTransform;
+                combinedRotations[i] = combinedRotations[parentIndex] * combinedRotation;
+                ++numShapesSet;
+                shapeIsSet[i] = true;
+            }
+        }
+    }
+
+    // joint shapes
+    Extents totalExtents;
+    totalExtents.reset();
+    for (int i = 0; i < _jointStates.size(); i++) {
+        const FBXJoint& joint = geometry.joints[i];
+
+        glm::vec3 worldPosition = extractTranslation(transforms[i]);
+        Extents shapeExtents;
+        shapeExtents.reset();
+
+        float radius = uniformScale * joint.boneRadius;
+        float halfHeight = 0.5f * uniformScale * joint.distanceToParent;
+        Shape::Type type = joint.shapeType;
+        if (type == Shape::CAPSULE_SHAPE && halfHeight < EPSILON) {
+            // this capsule is effectively a sphere
+            type = Shape::SPHERE_SHAPE;
+        }
+        if (type == Shape::CAPSULE_SHAPE) {
+            CapsuleShape* capsule = new CapsuleShape(radius, halfHeight);
+            capsule->setPosition(worldPosition);
+            capsule->setRotation(combinedRotations[i] * joint.shapeRotation);
+            _jointShapes.push_back(capsule);
+
+            glm::vec3 endPoint; 
+            capsule->getEndPoint(endPoint);
+            glm::vec3 startPoint;
+            capsule->getStartPoint(startPoint);
+
+            // add some points that bound a sphere at the center of the capsule
+            glm::vec3 axis = glm::vec3(radius);
+            shapeExtents.addPoint(worldPosition + axis);
+            shapeExtents.addPoint(worldPosition - axis);
+            
+            // add the two furthest surface points of the capsule
+            axis = (halfHeight + radius) * glm::normalize(endPoint - startPoint);
+            shapeExtents.addPoint(worldPosition + axis);
+            shapeExtents.addPoint(worldPosition - axis);
+
+            totalExtents.addExtents(shapeExtents);
+        } else if (type == Shape::SPHERE_SHAPE) {
+            SphereShape* sphere = new SphereShape(radius, worldPosition);
+            _jointShapes.push_back(sphere);
+
+            glm::vec3 axis = glm::vec3(radius);
+            shapeExtents.addPoint(worldPosition + axis);
+            shapeExtents.addPoint(worldPosition - axis);
+            totalExtents.addExtents(shapeExtents);
+        } else {
+            // this shape type is not handled and the joint shouldn't collide, 
+            // however we must have a shape for each joint, 
+            // so we make a bogus sphere with zero radius.
+            // TODO: implement collision groups for more control over what collides with what
+            SphereShape* sphere = new SphereShape(0.f, worldPosition); 
+            _jointShapes.push_back(sphere);
+        }
+    }
+
+    // bounding shape
+    // NOTE: we assume that the longest side of totalExtents is the yAxis
+    glm::vec3 diagonal = totalExtents.maximum - totalExtents.minimum;
+    // the radius is half the RMS of the X and Z sides:
+    float capsuleRadius = 0.5f * sqrtf(0.5f * (diagonal.x * diagonal.x + diagonal.z * diagonal.z));
+    _boundingShape.setRadius(capsuleRadius);
+    _boundingShape.setHalfHeight(0.5f * diagonal.y - capsuleRadius);
+
+    glm::quat inverseRotation = glm::inverse(_rotation);
+    glm::vec3 rootPosition = extractTranslation(transforms[rootIndex]);
+    _boundingShapeLocalOffset = inverseRotation * (0.5f * (totalExtents.maximum + totalExtents.minimum) - rootPosition);
+    _boundingShape.setPosition(_translation - _rotation * _boundingShapeLocalOffset);
+    _boundingShape.setRotation(_rotation);
+}
+
+void Model::updateShapePositions() {
+    if (_shapesAreDirty && _jointShapes.size() == _jointStates.size()) {
+        glm::vec3 rootPosition(0.f);
+        _boundingRadius = 0.f;
+        float uniformScale = extractUniformScale(_scale);
+        const FBXGeometry& geometry = _geometry->getFBXGeometry();
+        for (int i = 0; i < _jointStates.size(); i++) {
+            const FBXJoint& joint = geometry.joints[i];
+            // shape position and rotation need to be in world-frame
+            glm::vec3 jointToShapeOffset = uniformScale * (_jointStates[i].combinedRotation * joint.shapePosition);
+            glm::vec3 worldPosition = extractTranslation(_jointStates[i].transform) + jointToShapeOffset + _translation;
+            _jointShapes[i]->setPosition(worldPosition);
+            _jointShapes[i]->setRotation(_jointStates[i].combinedRotation * joint.shapeRotation);
+            float distance2 = glm::distance2(worldPosition, _translation);
+            if (distance2 > _boundingRadius) {
+                _boundingRadius = distance2;
+            }
+            if (joint.parentIndex == -1) {
+                rootPosition = worldPosition;
+            }
+        }
+        _boundingRadius = sqrtf(_boundingRadius);
+        _shapesAreDirty = false;
+        _boundingShape.setPosition(rootPosition + _rotation * _boundingShapeLocalOffset);
+        _boundingShape.setRotation(_rotation);
+    }
+}
+
 bool Model::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
     const glm::vec3 relativeOrigin = origin - _translation;
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -408,9 +647,9 @@ bool Model::findCollisions(const QVector<const Shape*> shapes, CollisionList& co
     bool collided = false;
     for (int i = 0; i < shapes.size(); ++i) {
         const Shape* theirShape = shapes[i];
-        for (int j = 0; j < _shapes.size(); ++j) {
-            const Shape* ourShape = _shapes[j];
-            if (ShapeCollider::shapeShape(theirShape, ourShape, collisions)) {
+        for (int j = 0; j < _jointShapes.size(); ++j) {
+            const Shape* ourShape = _jointShapes[j];
+            if (ShapeCollider::collideShapes(theirShape, ourShape, collisions)) {
                 collided = true;
             }
         }
@@ -421,10 +660,9 @@ bool Model::findCollisions(const QVector<const Shape*> shapes, CollisionList& co
 bool Model::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadius,
     CollisionList& collisions, int skipIndex) {
     bool collided = false;
-    updateShapePositions();
     SphereShape sphere(sphereRadius, sphereCenter);
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    for (int i = 0; i < _shapes.size(); i++) {
+    for (int i = 0; i < _jointShapes.size(); i++) {
         const FBXJoint& joint = geometry.joints[i];
         if (joint.parentIndex != -1) {
             if (skipIndex != -1) {
@@ -438,7 +676,7 @@ bool Model::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadi
                 } while (ancestorIndex != -1);
             }
         }
-        if (ShapeCollider::shapeShape(&sphere, _shapes[i], collisions)) {
+        if (ShapeCollider::collideShapes(&sphere, _jointShapes[i], collisions)) {
             CollisionInfo* collision = collisions.getLastCollision();
             collision->_type = MODEL_COLLISION;
             collision->_data = (void*)(this);
@@ -450,43 +688,19 @@ bool Model::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadi
     return collided;
 }
 
-QVector<Model::JointState> Model::updateGeometry() {
-    QVector<JointState> newJointStates;
-    if (_nextGeometry) {
-        _nextGeometry = _nextGeometry->getLODOrFallback(_lodDistance, _nextLODHysteresis);
-        _nextGeometry->setLoadPriority(this, -_lodDistance);
-        _nextGeometry->ensureLoading();
-        if (_nextGeometry->isLoaded()) {
-            applyNextGeometry();
-            return newJointStates;
+bool Model::findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions) {
+    bool collided = false;
+    PlaneShape planeShape(plane);
+    for (int i = 0; i < _jointShapes.size(); i++) {
+        if (ShapeCollider::collideShapes(&planeShape, _jointShapes[i], collisions)) {
+            CollisionInfo* collision = collisions.getLastCollision();
+            collision->_type = MODEL_COLLISION;
+            collision->_data = (void*)(this);
+            collision->_flags = i;
+            collided = true;
         }
     }
-    if (!_geometry) {
-        return newJointStates;
-    }
-    QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(_lodDistance, _lodHysteresis);
-    if (_geometry != geometry) {
-        if (!_jointStates.isEmpty()) {
-            // copy the existing joint states
-            const FBXGeometry& oldGeometry = _geometry->getFBXGeometry();
-            const FBXGeometry& newGeometry = geometry->getFBXGeometry();
-            newJointStates = createJointStates(newGeometry);
-            for (QHash<QString, int>::const_iterator it = oldGeometry.jointIndices.constBegin();
-                    it != oldGeometry.jointIndices.constEnd(); it++) {
-                int oldIndex = it.value() - 1;
-                int newIndex = newGeometry.getJointIndex(it.key());
-                if (newIndex != -1) {
-                    newJointStates[newIndex] = _jointStates.at(oldIndex);
-                }
-            }
-        }
-        deleteGeometry();
-        _dilatedTextures.clear();
-        _geometry = geometry;
-    }
-    _geometry->setLoadPriority(this, -_lodDistance);
-    _geometry->ensureLoading();
-    return newJointStates;
+    return collided;
 }
 
 class Blender : public QRunnable {
@@ -551,53 +765,23 @@ void Blender::run() {
         Q_ARG(const QVector<glm::vec3>&, vertices), Q_ARG(const QVector<glm::vec3>&, normals));
 }
 
-void Model::simulate(float deltaTime, bool fullUpdate, const QVector<JointState>& newJointStates) {
-    if (!isActive()) {
-        return;
+void Model::simulate(float deltaTime, bool fullUpdate) {
+    fullUpdate = updateGeometry() || fullUpdate;
+    if (isActive() && fullUpdate) {
+        simulateInternal(deltaTime);
     }
-    
-    // set up world vertices on first simulate after load
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    if (_jointStates.isEmpty()) {
-        _jointStates = newJointStates.isEmpty() ? createJointStates(geometry) : newJointStates;
-        foreach (const FBXMesh& mesh, geometry.meshes) {
-            MeshState state;
-            state.clusterMatrices.resize(mesh.clusters.size());
-            _meshStates.append(state);    
-            
-            QOpenGLBuffer buffer;
-            if (!mesh.blendshapes.isEmpty()) {
-                buffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
-                buffer.create();
-                buffer.bind();
-                buffer.allocate((mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3));
-                buffer.write(0, mesh.vertices.constData(), mesh.vertices.size() * sizeof(glm::vec3));
-                buffer.write(mesh.vertices.size() * sizeof(glm::vec3), mesh.normals.constData(),
-                    mesh.normals.size() * sizeof(glm::vec3));
-                buffer.release();
-            }
-            _blendedVertexBuffers.append(buffer);
-        }
-        foreach (const FBXAttachment& attachment, geometry.attachments) {
-            Model* model = new Model(this);
-            model->init();
-            model->setURL(attachment.url);
-            _attachments.append(model);
-        }
-        fullUpdate = true;
-        createCollisionShapes();
-    }
-    
-    // exit early if we don't have to perform a full update
-    if (!fullUpdate) {
-        return;
-    }
-    
+}
+
+void Model::simulateInternal(float deltaTime) {
+    // NOTE: this is a recursive call that walks all attachments, and their attachments
     // update the world space transforms for all joints
     for (int i = 0; i < _jointStates.size(); i++) {
         updateJointState(i);
     }
+    _shapesAreDirty = true;
     
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+
     // update the attachment transforms and simulate them
     for (int i = 0; i < _attachments.size(); i++) {
         const FBXAttachment& attachment = geometry.attachments.at(i);
@@ -612,7 +796,9 @@ void Model::simulate(float deltaTime, bool fullUpdate, const QVector<JointState>
         model->setRotation(jointRotation * attachment.rotation);
         model->setScale(_scale * attachment.scale);
         
-        model->simulate(deltaTime);
+        if (model->isActive()) {
+            model->simulateInternal(deltaTime);
+        }
     }
     
     for (int i = 0; i < _meshStates.size(); i++) {
@@ -631,7 +817,6 @@ void Model::simulate(float deltaTime, bool fullUpdate, const QVector<JointState>
 }
 
 void Model::updateJointState(int index) {
-    _shapesAreDirty = true;
     JointState& state = _jointStates[index];
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const FBXJoint& joint = geometry.joints.at(index);
@@ -643,7 +828,7 @@ void Model::updateJointState(int index) {
         state.transform = baseTransform * geometry.offset * glm::translate(state.translation) * joint.preTransform *
             glm::mat4_cast(combinedRotation) * joint.postTransform;
         state.combinedRotation = _rotation * combinedRotation;
-    
+        
     } else {
         const JointState& parentState = _jointStates.at(joint.parentIndex);
         if (index == geometry.leanJointIndex) {
@@ -749,6 +934,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position, int last
     for (int j = freeLineage.size() - 1; j >= 0; j--) {
         updateJointState(freeLineage.at(j));
     }
+    _shapesAreDirty = true;
         
     return true;
 }
@@ -827,15 +1013,15 @@ void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool cons
     state.rotation = newRotation;
 }
 
-void Model::renderCollisionProxies(float alpha) {
+const int BALL_SUBDIVISIONS = 10;
+
+void Model::renderJointCollisionShapes(float alpha) {
     glPushMatrix();
     Application::getInstance()->loadTranslatedViewMatrix(_translation);
-    updateShapePositions();
-    const int BALL_SUBDIVISIONS = 10;
-    for (int i = 0; i < _shapes.size(); i++) {
+    for (int i = 0; i < _jointShapes.size(); i++) {
         glPushMatrix();
 
-        Shape* shape = _shapes[i];
+        Shape* shape = _jointShapes[i];
         
         if (shape->getType() == Shape::SPHERE_SHAPE) {
             // shapes are stored in world-frame, so we have to transform into model frame
@@ -875,6 +1061,36 @@ void Model::renderCollisionProxies(float alpha) {
         }
         glPopMatrix();
     }
+    glPopMatrix();
+}
+
+void Model::renderBoundingCollisionShapes(float alpha) {
+    glPushMatrix();
+
+    Application::getInstance()->loadTranslatedViewMatrix(_translation);
+
+    // draw a blue sphere at the capsule endpoint
+    glm::vec3 endPoint;
+    _boundingShape.getEndPoint(endPoint);
+    endPoint = endPoint - _translation;
+    glTranslatef(endPoint.x, endPoint.y, endPoint.z);
+    glColor4f(0.6f, 0.6f, 0.8f, alpha);
+    glutSolidSphere(_boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
+
+    // draw a yellow sphere at the capsule startpoint
+    glm::vec3 startPoint;
+    _boundingShape.getStartPoint(startPoint);
+    startPoint = startPoint - _translation;
+    glm::vec3 axis = endPoint - startPoint;
+    glTranslatef(-axis.x, -axis.y, -axis.z);
+    glColor4f(0.8f, 0.8f, 0.6f, alpha);
+    glutSolidSphere(_boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
+
+    // draw a green cylinder between the two points
+    glm::vec3 origin(0.f);
+    glColor4f(0.6f, 0.8f, 0.6f, alpha);
+    Avatar::renderJointConnectingCone( origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius());
+
     glPopMatrix();
 }
 
@@ -975,7 +1191,7 @@ void Model::deleteGeometry() {
     }
 }
 
-void Model::renderMeshes(float alpha, bool forShadowMap, bool translucent) {
+void Model::renderMeshes(float alpha, RenderMode mode, bool translucent) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
     
@@ -1000,7 +1216,7 @@ void Model::renderMeshes(float alpha, bool forShadowMap, bool translucent) {
         ProgramObject* program = &_program;
         ProgramObject* skinProgram = &_skinProgram;
         SkinLocations* skinLocations = &_skinLocations;
-        if (forShadowMap) {
+        if (mode == SHADOW_RENDER_MODE) {
             program = &_shadowProgram;
             skinProgram = &_skinShadowProgram;
             skinLocations = &_skinShadowLocations;
@@ -1038,7 +1254,7 @@ void Model::renderMeshes(float alpha, bool forShadowMap, bool translucent) {
         }
 
         if (mesh.blendshapes.isEmpty()) {
-            if (!(mesh.tangents.isEmpty() || forShadowMap)) {
+            if (!(mesh.tangents.isEmpty() || mode == SHADOW_RENDER_MODE)) {
                 activeProgram->setAttributeBuffer(tangentLocation, GL_FLOAT, vertexCount * 2 * sizeof(glm::vec3), 3);
                 activeProgram->enableAttributeArray(tangentLocation);
             }
@@ -1048,7 +1264,7 @@ void Model::renderMeshes(float alpha, bool forShadowMap, bool translucent) {
                 (mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3)));    
         
         } else {
-            if (!(mesh.tangents.isEmpty() || forShadowMap)) {
+            if (!(mesh.tangents.isEmpty() || mode == SHADOW_RENDER_MODE)) {
                 activeProgram->setAttributeBuffer(tangentLocation, GL_FLOAT, 0, 3);
                 activeProgram->enableAttributeArray(tangentLocation);
             }
@@ -1077,7 +1293,7 @@ void Model::renderMeshes(float alpha, bool forShadowMap, bool translucent) {
                 continue;
             }
             // apply material properties
-            if (forShadowMap) {
+            if (mode == SHADOW_RENDER_MODE) {
                 glBindTexture(GL_TEXTURE_2D, 0);
                 
             } else {
@@ -1118,7 +1334,7 @@ void Model::renderMeshes(float alpha, bool forShadowMap, bool translucent) {
             glDisableClientState(GL_TEXTURE_COORD_ARRAY);
         }
         
-        if (!(mesh.tangents.isEmpty() || forShadowMap)) {
+        if (!(mesh.tangents.isEmpty() || mode == SHADOW_RENDER_MODE)) {
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, 0);
             glActiveTexture(GL_TEXTURE0);

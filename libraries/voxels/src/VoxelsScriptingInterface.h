@@ -1,13 +1,16 @@
 //
 //  VoxelsScriptingInterface.h
-//  hifi
+//  libraries/voxels/src
 //
 //  Created by Stephen Birarda on 9/17/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__VoxelsScriptingInterface__
-#define __hifi__VoxelsScriptingInterface__
+#ifndef hifi_VoxelsScriptingInterface_h
+#define hifi_VoxelsScriptingInterface_h
 
 #include <QtCore/QObject>
 
@@ -18,16 +21,19 @@
 #include "VoxelEditPacketSender.h"
 #include "VoxelTree.h"
 
+class QUndoStack;
+
 /// handles scripting of voxel commands from JS passed to assigned clients
 class VoxelsScriptingInterface : public OctreeScriptingInterface {
     Q_OBJECT
 public:
-    VoxelsScriptingInterface() : _tree(NULL) {};
+    VoxelsScriptingInterface() : _tree(NULL), _undoStack(NULL) {};
     VoxelEditPacketSender* getVoxelPacketSender() { return (VoxelEditPacketSender*)getPacketSender(); }
 
     virtual NodeType_t getServerNodeType() const { return NodeType::VoxelServer; }
     virtual OctreeEditPacketSender* createPacketSender() { return new VoxelEditPacketSender(); }
     void setVoxelTree(VoxelTree* tree) { _tree = tree; }
+    void setUndoStack(QUndoStack* undoStack) { _undoStack = undoStack; }
 
 public slots:
 
@@ -79,6 +85,7 @@ public slots:
 private:
     void queueVoxelAdd(PacketType addPacketType, VoxelDetail& addVoxelDetails);
     VoxelTree* _tree;
+    QUndoStack* _undoStack;
 };
 
-#endif /* defined(__hifi__VoxelsScriptingInterface__) */
+#endif // hifi_VoxelsScriptingInterface_h

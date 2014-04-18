@@ -1,9 +1,12 @@
 //
 //  MetavoxelServer.cpp
-//  hifi
+//  assignment-client/src/metavoxels
 //
 //  Created by Andrzej Kapolka on 12/18/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <QDateTime>
@@ -95,6 +98,8 @@ MetavoxelSession::MetavoxelSession(MetavoxelServer* server, const SharedNodePoin
     connect(&_sequencer, SIGNAL(readyToRead(Bitstream&)), SLOT(readPacket(Bitstream&)));
     connect(&_sequencer, SIGNAL(sendAcknowledged(int)), SLOT(clearSendRecordsBefore(int)));
     connect(&_sequencer, SIGNAL(receivedHighPriorityMessage(const QVariant&)), SLOT(handleMessage(const QVariant&)));
+    connect(_sequencer.getReliableInputChannel(), SIGNAL(receivedMessage(const QVariant&)),
+        SLOT(handleMessage(const QVariant&)));
     
     // insert the baseline send record
     SendRecord record = { 0 };

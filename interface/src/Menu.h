@@ -1,28 +1,35 @@
 //
 //  Menu.h
-//  hifi
+//  interface/src
 //
 //  Created by Stephen Birarda on 8/12/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__Menu__
-#define __hifi__Menu__
+#ifndef hifi_Menu_h
+#define hifi_Menu_h
 
+#include <QDir>
 #include <QMenuBar>
 #include <QHash>
 #include <QKeySequence>
 #include <QPointer>
+#include <QStandardPaths>
 
 #include <EventTypes.h>
 #include <MenuItemProperties.h>
 #include <OctreeConstants.h>
 
 #include "location/LocationManager.h"
+#include "ui/PreferencesDialog.h"
 #include "ui/ChatWindow.h"
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
+const float DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS = 30.0f; 
 
 const quint64 ADJUST_LOD_DOWN_DELAY = 1000 * 1000 * 5;
 const quint64 ADJUST_LOD_UP_DELAY = ADJUST_LOD_DOWN_DELAY * 2;
@@ -32,6 +39,9 @@ const float ADJUST_LOD_UP_BY = 1.1f;
 
 const float ADJUST_LOD_MIN_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE * 0.25f;
 const float ADJUST_LOD_MAX_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE;
+
+const float MINIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 0.1f;
+const float MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 15.0f;
 
 enum FrustumDrawMode {
     FRUSTUM_DRAW_MODE_ALL,
@@ -68,10 +78,16 @@ public:
 
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
-
+    
     float getAudioJitterBufferSamples() const { return _audioJitterBufferSamples; }
+    void setAudioJitterBufferSamples(float audioJitterBufferSamples) { _audioJitterBufferSamples = audioJitterBufferSamples; }
     float getFieldOfView() const { return _fieldOfView; }
+    void setFieldOfView(float fieldOfView) { _fieldOfView = fieldOfView; }
     float getFaceshiftEyeDeflection() const { return _faceshiftEyeDeflection; }
+    void setFaceshiftEyeDeflection(float faceshiftEyeDeflection) { _faceshiftEyeDeflection = faceshiftEyeDeflection; }
+    QString getSnapshotsLocation() const;
+    void setSnapshotsLocation(QString snapshotsLocation) { _snapshotsLocation = snapshotsLocation; }
+
     BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
     FrustumDrawMode getFrustumDrawMode() const { return _frustumDrawMode; }
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
@@ -88,14 +104,20 @@ public:
     void resetLODAdjust();
     void setVoxelSizeScale(float sizeScale);
     float getVoxelSizeScale() const { return _voxelSizeScale; }
+    void setAutomaticAvatarLOD(bool automaticAvatarLOD) { _automaticAvatarLOD = automaticAvatarLOD; }
+    bool getAutomaticAvatarLOD() const { return _automaticAvatarLOD; }
+    void setAvatarLODDecreaseFPS(float avatarLODDecreaseFPS) { _avatarLODDecreaseFPS = avatarLODDecreaseFPS; }
+    float getAvatarLODDecreaseFPS() const { return _avatarLODDecreaseFPS; }
+    void setAvatarLODIncreaseFPS(float avatarLODIncreaseFPS) { _avatarLODIncreaseFPS = avatarLODIncreaseFPS; }
+    float getAvatarLODIncreaseFPS() const { return _avatarLODIncreaseFPS; }
+    void setAvatarLODDistanceMultiplier(float multiplier) { _avatarLODDistanceMultiplier = multiplier; }
     float getAvatarLODDistanceMultiplier() const { return _avatarLODDistanceMultiplier; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust);
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
 
     // User Tweakable PPS from Voxel Server
     int getMaxVoxelPacketsPerSecond() const { return _maxVoxelPacketsPerSecond; }
-
-    QMenu* getActiveScriptsMenu() { return _activeScriptsMenu;}
+    void setMaxVoxelPacketsPerSecond(int maxVoxelPacketsPerSecond) { _maxVoxelPacketsPerSecond = maxVoxelPacketsPerSecond; }
 
     QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
                                            const QString& actionName,
@@ -104,12 +126,19 @@ public:
                                            const char* member = NULL,
                                            QAction::MenuRole role = QAction::NoRole,
                                            int menuItemLocation = UNSPECIFIED_POSITION);
-
+    QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
+                                           QAction* action,
+                                           const QString& actionName = QString(),
+                                           const QKeySequence& shortcut = 0,
+                                           QAction::MenuRole role = QAction::NoRole,
+                                           int menuItemLocation = UNSPECIFIED_POSITION);
+    
     void removeAction(QMenu* menu, const QString& actionName);
 
     bool goToDestination(QString destination);
     void goToOrientation(QString orientation);
     void goToDomain(const QString newDomain);
+    void goTo(QString destination);
 
 public slots:
 
@@ -124,7 +153,7 @@ public slots:
     void goTo();
     void goToUser(const QString& user);
     void pasteToVoxel();
-    
+
     void toggleLoginMenuItem();
 
     QMenu* addMenu(const QString& menuName);
@@ -166,7 +195,7 @@ private:
     void scanMenu(QMenu* menu, settingsAction modifySetting, QSettings* set);
 
     /// helper method to have separators with labels that are also compatible with OS X
-    void addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName, 
+    void addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName,
                                                 int menuItemLocation = UNSPECIFIED_POSITION);
 
     QAction* addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
@@ -189,7 +218,7 @@ private:
     int findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem);
     int positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition);
     QMenu* getMenu(const QString& menuName);
-    
+
 
     QHash<QString, QAction*> _actionHash;
     int _audioJitterBufferSamples; /// number of extra samples to wait before starting audio playback
@@ -204,112 +233,136 @@ private:
     LodToolsDialog* _lodToolsDialog;
     int _maxVoxels;
     float _voxelSizeScale;
+    bool _automaticAvatarLOD;
+    float _avatarLODDecreaseFPS;
+    float _avatarLODIncreaseFPS;
     float _avatarLODDistanceMultiplier;
     int _boundaryLevelAdjust;
     QAction* _useVoxelShader;
     int _maxVoxelPacketsPerSecond;
-    QMenu* _activeScriptsMenu;
     QString replaceLastOccurrence(QChar search, QChar replace, QString string);
     quint64 _lastAdjust;
     quint64 _lastAvatarDetailDrop;
     SimpleMovingAverage _fpsAverage;
     SimpleMovingAverage _fastFPSAverage;
     QAction* _loginAction;
+    QPointer<PreferencesDialog> _preferencesDialog;
     QAction* _chatAction;
+    QString _snapshotsLocation;
 };
 
 namespace MenuOption {
     const QString AboutApp = "About Interface";
     const QString AmbientOcclusion = "Ambient Occlusion";
-    const QString Avatars = "Avatars";
     const QString Atmosphere = "Atmosphere";
-    const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
+    const QString AudioNoiseReduction = "Audio Noise Reduction";
+    const QString AudioToneInjection = "Inject Test Tone";
+
+    const QString AudioSpatialProcessing = "Audio Spatial Processing";
+    const QString AudioSpatialProcessingHeadOriented = "Head Oriented";
+    const QString AudioSpatialProcessingIncludeOriginal = "Includes Network Original";
+    const QString AudioSpatialProcessingPreDelay = "Add Pre-Delay";
+    const QString AudioSpatialProcessingProcessLocalAudio = "Process Local Audio";
+    const QString AudioSpatialProcessingRenderPaths = "Render Paths";
+    const QString AudioSpatialProcessingSeparateEars = "Separate Ears";
+    const QString AudioSpatialProcessingSlightlyRandomSurfaces = "Slightly Random Surfaces";
+    const QString AudioSpatialProcessingStereoSource = "Stereo Source";
+    const QString AudioSpatialProcessingWithDiffusions = "With Diffusions";
+    const QString AudioSpatialProcessingDontDistanceAttenuate = "Don't calculate distance attenuation";
+    const QString AudioSpatialProcessingAlternateDistanceAttenuate = "Alternate distance attenuation";
+    
+    
+
+    const QString Avatars = "Avatars";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BuckyBalls = "Bucky Balls";
+    const QString Chat = "Chat...";
     const QString ChatCircling = "Chat Circling";
-    const QString Collisions = "Collisions";
     const QString CollideWithAvatars = "Collide With Avatars";
+    const QString CollideWithEnvironment = "Collide With World Boundaries";
     const QString CollideWithParticles = "Collide With Particles";
     const QString CollideWithVoxels = "Collide With Voxels";
-    const QString CollideWithEnvironment = "Collide With World Boundaries";
+    const QString Collisions = "Collisions";
     const QString CullSharedFaces = "Cull Shared Voxel Faces";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
+    const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
     const QString DisplayFrustum = "Display Frustum";
     const QString DisplayHands = "Display Hands";
     const QString DisplayHandTargets = "Display Hand Targets";
-    const QString FilterSixense = "Smooth Sixense Movement";
-    const QString Enable3DTVMode = "Enable 3DTV Mode";
-    const QString AudioNoiseReduction = "Audio Noise Reduction";
-    const QString EchoServerAudio = "Echo Server Audio";
-    const QString EchoLocalAudio = "Echo Local Audio";
-    const QString MuteAudio = "Mute Microphone";
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
-    const QString HeadMouse = "Head Mouse";
-    const QString HandsCollideWithSelf = "Collide With Self";
+    const QString EchoLocalAudio = "Echo Local Audio";
+    const QString EchoServerAudio = "Echo Server Audio";
+    const QString Enable3DTVMode = "Enable 3DTV Mode";
+    const QString Faceplus = "Faceplus";
     const QString Faceshift = "Faceshift";
+    const QString FilterSixense = "Smooth Sixense Movement";
     const QString FirstPerson = "First Person";
     const QString FrameTimer = "Show Timer";
     const QString FrustumRenderMode = "Render Mode";
     const QString Fullscreen = "Fullscreen";
     const QString FullscreenMirror = "Fullscreen Mirror";
     const QString GlowMode = "Cycle Glow Mode";
+    const QString GoHome = "Go Home";
+    const QString GoTo = "Go To...";
     const QString GoToDomain = "Go To Domain...";
     const QString GoToLocation = "Go To Location...";
-    const QString NameLocation = "Name this location";
-    const QString GoTo = "Go To...";
+    const QString Gravity = "Use Gravity";
+    const QString HandsCollideWithSelf = "Collide With Self";
+    const QString HeadMouse = "Head Mouse";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IncreaseVoxelSize = "Increase Voxel Size";
-    const QString GoHome = "Go Home";
-    const QString Gravity = "Use Gravity";
+    const QString LoadScript = "Open and Run Script File...";
+    const QString LoadScriptURL = "Open and Run Script from URL...";
     const QString LodTools = "LOD Tools";
     const QString Log = "Log";
     const QString Login = "Login";
     const QString Logout = "Logout";
     const QString LookAtVectors = "Look-at Vectors";
     const QString MetavoxelEditor = "Metavoxel Editor...";
-    const QString Chat = "Chat...";
     const QString Metavoxels = "Metavoxels";
     const QString Mirror = "Mirror";
     const QString MoveWithLean = "Move with Lean";
+    const QString MuteAudio = "Mute Microphone";
+    const QString NameLocation = "Name this location";
     const QString NewVoxelCullingMode = "New Voxel Culling Mode";
+    const QString OctreeStats = "Voxel and Particle Statistics";
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
-    const QString TurnWithHead = "Turn using Head";
-    const QString LoadScript = "Open and Run Script File...";
-    const QString LoadScriptURL = "Open and Run Script from URL...";
-    const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
     const QString Particles = "Particles";
     const QString PasteToVoxel = "Paste to Voxel...";
     const QString PipelineWarnings = "Show Render Pipeline Warnings";
     const QString PlaySlaps = "Play Slaps";
     const QString Preferences = "Preferences...";
+    const QString Quit =  "Quit";
     const QString ReloadAllScripts = "Reload All Scripts";
-    const QString RenderSkeletonCollisionProxies = "Skeleton Collision Proxies";
-    const QString RenderHeadCollisionProxies = "Head Collision Proxies";
+    const QString RenderBoundingCollisionShapes = "Bounding Collision Shapes";
+    const QString RenderHeadCollisionShapes = "Head Collision Shapes";
+    const QString RenderSkeletonCollisionShapes = "Skeleton Collision Shapes";
     const QString ResetAvatarSize = "Reset Avatar Size";
+    const QString RunningScripts = "Running Scripts";
     const QString RunTimingTests = "Run Timing Tests";
+    const QString SettingsExport = "Export Settings";
     const QString SettingsImport = "Import Settings";
     const QString Shadows = "Shadows";
-    const QString SettingsExport = "Export Settings";
     const QString ShowCulledSharedFaces = "Show Culled Shared Voxel Faces";
-    const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString StopAllScripts = "Stop All Scripts";
+    const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString TestPing = "Test Ping";
     const QString TransmitterDrive = "Transmitter Drive";
-    const QString UploadFST = "Upload FST file";
+    const QString TurnWithHead = "Turn using Head";
+    const QString UploadHead = "Upload Head Model";
+    const QString UploadSkeleton = "Upload Skeleton Model";
     const QString Visage = "Visage";
-    const QString Quit =  "Quit";
-    const QString Voxels = "Voxels";
     const QString VoxelMode = "Cycle Voxel Mode";
-    const QString OctreeStats = "Voxel and Particle Statistics";
+    const QString Voxels = "Voxels";
     const QString VoxelTextures = "Voxel Textures";
 }
 
 void sendFakeEnterEvent();
 
-#endif /* defined(__hifi__Menu__) */
+#endif // hifi_Menu_h

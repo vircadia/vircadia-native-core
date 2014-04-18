@@ -1,13 +1,15 @@
 //
 //  bot.js
-//  hifi
+//  examples
 //
 //  Created by Stephen Birarda on 2/20/14.
 //  Modified by Philip on 3/3/14
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  This is an example script that demonstrates an NPC avatar.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 function getRandomFloat(min, max) {
@@ -23,10 +25,10 @@ function printVector(string, vector) {
 }
 
 var CHANCE_OF_MOVING = 0.005; 
-var CHANCE_OF_SOUND = 0.005;
+var CHANCE_OF_SOUND = 0.000;
 var CHANCE_OF_HEAD_TURNING = 0.05;
 var CHANCE_OF_BIG_MOVE = 0.1;
-var CHANCE_OF_WAVING = 0.005;     //  Currently this isn't working
+var CHANCE_OF_WAVING = 0.009;     
 
 var shouldReceiveVoxels = true; 
 var VOXEL_FPS = 60.0;
@@ -39,12 +41,16 @@ var isWaving = false;
 var waveFrequency = 0.0;
 var waveAmplitude = 0.0; 
 
-var X_MIN = 0.0;
-var X_MAX = 5.0;
-var Z_MIN = 0.0;
-var Z_MAX = 5.0;
+var X_MIN = 20.0;
+var X_MAX = 25.0;
+var Z_MIN = 20.0;
+var Z_MAX = 25.0;
 var Y_PELVIS = 2.5;
-var SHOULDER_JOINT_NUMBER = 15; 
+var SPINE_JOINT_NUMBER = 13; 
+var SHOULDER_JOINT_NUMBER = 17; 
+var ELBOW_JOINT_NUMBER = 18;
+var JOINT_R_HIP = 1;
+var JOINT_R_KNEE = 2;
 
 var MOVE_RANGE_SMALL = 0.5;
 var MOVE_RANGE_BIG = Math.max(X_MAX - X_MIN, Z_MAX - Z_MIN) / 2.0;
@@ -60,6 +66,9 @@ var targetPosition =  { x: 0, y: 0, z: 0 };
 var targetDirection = { x: 0, y: 0, z: 0, w: 0 };
 var currentDirection = { x: 0, y: 0, z: 0, w: 0 };
 var targetHeadPitch = 0.0;
+
+var walkFrequency = 5.0;
+var walkAmplitude = 45.0;
 
 var cumulativeTime = 0.0;
 
@@ -115,11 +124,29 @@ printVector("New bot, position = ", Avatar.position);
 function stopWaving() {
   isWaving = false; 
   Avatar.clearJointData(SHOULDER_JOINT_NUMBER);
+  Avatar.clearJointData(ELBOW_JOINT_NUMBER);
+  Avatar.clearJointData(SPINE_JOINT_NUMBER);
+}
+
+function keepWalking() {
+      Avatar.setJointData(JOINT_R_HIP, Quat.fromPitchYawRollDegrees(walkAmplitude * Math.sin(cumulativeTime * walkFrequency), 0.0, 0.0));
+      Avatar.setJointData(JOINT_R_KNEE, Quat.fromPitchYawRollDegrees(walkAmplitude * Math.sin(cumulativeTime * walkFrequency), 0.0, 0.0));
+}
+
+function stopWalking() {
+  Avatar.clearJointData(JOINT_R_HIP);
+  Avatar.clearJointData(JOINT_R_KNEE);
 }
 
 function updateBehavior(deltaTime) {
   
   cumulativeTime += deltaTime;
+
+  //  Hack - right now you need to set the avatar position a bit after the avatar is made to make sure it's there. 
+
+  if (CHANCE_OF_MOVING == 0.000) {
+      Avatar.position = firstPosition;
+  }
 
   if (shouldReceiveVoxels && ((cumulativeTime - lastVoxelQueryTime) > (1.0 / VOXEL_FPS))) {
     VoxelViewer.setPosition(Avatar.position);
@@ -134,12 +161,17 @@ function updateBehavior(deltaTime) {
 
   if (!isWaving && (Math.random() < CHANCE_OF_WAVING)) {
     isWaving = true;
-    waveFrequency = 1.0 + Math.random() * 5.0;
+    waveFrequency = 3.0 + Math.random() * 5.0;
     waveAmplitude = 5.0 + Math.random() * 60.0;
     Script.setTimeout(stopWaving, 1000 + Math.random() * 2000);
+    Avatar.setJointData(ELBOW_JOINT_NUMBER, Quat.fromPitchYawRollDegrees(0.0, 45, 0.0));    //  Initially turn the palm outward
   } else if (isWaving) {
-    Avatar.setJointData(SHOULDER_JOINT_NUMBER, Quat.fromPitchYawRollDegrees(0.0, 0.0,  waveAmplitude * Math.sin(cumulativeTime * waveFrequency)));
+    Avatar.setJointData(SHOULDER_JOINT_NUMBER, Quat.fromPitchYawRollDegrees(0.0, 0.0,  60 + waveAmplitude * Math.sin((cumulativeTime - 0.25) * waveFrequency)));
+    Avatar.setJointData(ELBOW_JOINT_NUMBER, Quat.fromPitchYawRollDegrees(0.0, 0.0,  25 + waveAmplitude/2.0 * Math.sin(cumulativeTime * 1.2 * waveFrequency)));
+    Avatar.setJointData(SPINE_JOINT_NUMBER, Quat.fromPitchYawRollDegrees(0.0, 0.0,  60 + waveAmplitude/4.0 * Math.sin(cumulativeTime * waveFrequency)));
+
   }
+
 
   if (Math.random() < CHANCE_OF_SOUND) {
     playRandomSound();
@@ -168,11 +200,13 @@ function updateBehavior(deltaTime) {
     targetPosition.y = Y_PELVIS;
     
     isMoving = true;
-  } else { 
+  } else if (isMoving) { 
+    keepWalking();
     Avatar.position = Vec3.sum(Avatar.position, Vec3.multiply(Vec3.subtract(targetPosition, Avatar.position), MOVE_RATE));
     Avatar.orientation = Quat.mix(Avatar.orientation, targetDirection, TURN_RATE);
     if (Vec3.length(Vec3.subtract(Avatar.position, targetPosition)) < STOP_TOLERANCE) {
-       isMoving = false;  
+       isMoving = false; 
+       stopWalking(); 
     }
   }
 }

@@ -1,9 +1,12 @@
 //
 //  Snapshot.cpp
-//  hifi
+//  interface/src/ui
 //
 //  Created by Stojce Slavkovski on 1/26/14.
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <QDateTime>
@@ -13,6 +16,7 @@
 #include <FileUtils.h>
 
 #include "Snapshot.h"
+#include "Menu.h"
 
 // filename format: hifi-snap-by-%username%-on-%date%_%time%_@-%location%.jpg
 // %1 <= username, %2 <= date and time, %3 <= current location
@@ -76,7 +80,7 @@ void Snapshot::saveSnapshot(QGLWidget* widget, Avatar* avatar) {
     shot.setText(ORIENTATION_Z, QString::number(orientation.z));
     shot.setText(ORIENTATION_W, QString::number(orientation.w));
     
-    shot.setText(DOMAIN_KEY, NodeList::getInstance()->getDomainInfo().getHostname());
+    shot.setText(DOMAIN_KEY, NodeList::getInstance()->getDomainHandler().getHostname());
 
     QString formattedLocation = QString("%1_%2_%3").arg(location.x).arg(location.y).arg(location.z);
     // replace decimal . with '-'
@@ -87,8 +91,12 @@ void Snapshot::saveSnapshot(QGLWidget* widget, Avatar* avatar) {
     username.replace(QRegExp("[^A-Za-z0-9_]"), "-");
     
     QDateTime now = QDateTime::currentDateTime();
-    
-    QString fileName = FileUtils::standardPath(SNAPSHOTS_DIRECTORY);
+    QString fileName = Menu::getInstance()->getSnapshotsLocation();
+
+    if (!fileName.endsWith(QDir::separator())) {
+        fileName.append(QDir::separator());
+    }
+
     fileName.append(QString(FILENAME_PATH_FORMAT.arg(username, now.toString(DATETIME_FORMAT), formattedLocation)));
     shot.save(fileName, 0, 100);
 }

@@ -1,13 +1,16 @@
 //
 //  SharedUtil.h
-//  hifi
+//  libraries/shared/src
 //
 //  Created by Stephen Birarda on 2/22/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__SharedUtil__
-#define __hifi__SharedUtil__
+#ifndef hifi_SharedUtil_h
+#define hifi_SharedUtil_h
 
 #include <math.h>
 #include <stdint.h>
@@ -27,8 +30,6 @@
 #include <sys/time.h>
 #endif
 
-#include "PacketHeaders.h"
-
 const int BYTES_PER_COLOR = 3;
 const int BYTES_PER_FLAGS = 1;
 typedef unsigned char rgbColor[BYTES_PER_COLOR];
@@ -41,7 +42,6 @@ struct xColor {
     unsigned char green;
     unsigned char blue;
 };
-
 
 static const float ZERO             = 0.0f;
 static const float ONE              = 1.0f;
@@ -66,8 +66,6 @@ static const quint64 USECS_PER_SECOND = USECS_PER_MSEC * MSECS_PER_SECOND;
 
 const int BITS_IN_BYTE  = 8;
 
-const int MAX_PACKET_SIZE = 1500;
-
 quint64 usecTimestamp(const timeval *time);
 quint64 usecTimestampNow();
 void usecTimestampNowForceClockSkew(int clockSkew);
@@ -75,6 +73,7 @@ void usecTimestampNowForceClockSkew(int clockSkew);
 float randFloat();
 int randIntInRange (int min, int max);
 float randFloatInRange (float min,float max);
+float randomSign(); /// \return -1.0 or 1.0
 unsigned char randomColorValue(int minimum);
 bool randomBoolean();
 
@@ -168,4 +167,30 @@ int unpackFloatVec3FromSignedTwoByteFixed(const unsigned char* sourceBuffer, glm
 /// \return vec3 with euler angles in radians
 glm::vec3 safeEulerAngles(const glm::quat& q);
 
-#endif /* defined(__hifi__SharedUtil__) */
+float angleBetween(const glm::vec3& v1, const glm::vec3& v2); 
+
+glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2);
+
+glm::vec3 extractTranslation(const glm::mat4& matrix);
+
+void setTranslation(glm::mat4& matrix, const glm::vec3& translation);
+
+glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal = false);
+
+glm::vec3 extractScale(const glm::mat4& matrix);
+
+float extractUniformScale(const glm::mat4& matrix);
+
+float extractUniformScale(const glm::vec3& scale);
+
+/// \return bool are two orientations similar to each other
+const float ORIENTATION_SIMILAR_ENOUGH = 5.0f; // 10 degrees in any direction
+bool isSimilarOrientation(const glm::quat& orientionA, const glm::quat& orientionB, 
+                        float similarEnough = ORIENTATION_SIMILAR_ENOUGH);
+const float POSITION_SIMILAR_ENOUGH = 0.1f; // 0.1 meter
+bool isSimilarPosition(const glm::vec3& positionA, const glm::vec3& positionB, float similarEnough = POSITION_SIMILAR_ENOUGH);
+
+/// \return bool is the float NaN                        
+bool isNaN(float value);
+
+#endif // hifi_SharedUtil_h

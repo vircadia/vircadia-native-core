@@ -1,9 +1,12 @@
 //
 //  AudioMixer.cpp
-//  hifi
+//  assignment-client/src/audio
 //
 //  Created by Stephen Birarda on 8/22/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <mmintrin.h>
@@ -18,7 +21,6 @@
 #include <string.h>
 
 #ifdef _WIN32
-#include "Syssocket.h"
 #include "Systime.h"
 #include <math.h>
 #else
@@ -369,7 +371,7 @@ void AudioMixer::sendStatsPacket() {
         statsObject["average_mixes_per_listener"] = 0.0;
     }
     
-    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
+//    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
     
     _sumListeners = 0;
     _sumMixes = 0;
