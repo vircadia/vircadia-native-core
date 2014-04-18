@@ -30,11 +30,12 @@ public:
     virtual ~Faceplus();
     
     void init();
-    
+    void reset();
+
     bool isActive() const { return _active; }
     
-    Q_INVOKABLE void setState(const glm::quat& headRotation, float estimatedEyePitch, float estimatedEyeYaw,
-        const QVector<float>& blendshapeCoefficients);
+    Q_INVOKABLE void setState(const glm::vec3& headTranslation, const glm::quat& headRotation,
+        float estimatedEyePitch, float estimatedEyeYaw, const QVector<float>& blendshapeCoefficients);
     
 public slots:
 
@@ -63,6 +64,7 @@ public:
     Q_INVOKABLE void init();
     Q_INVOKABLE void shutdown();
     Q_INVOKABLE void update();
+    Q_INVOKABLE void reset();
 
 private:
     
@@ -72,6 +74,10 @@ private:
     int _headRotationIndices[3];
     int _leftEyeRotationIndices[2];
     int _rightEyeRotationIndices[2];
+    float _referenceX;
+    float _referenceY;
+    float _referenceScale;
+    bool _referenceInitialized;
     QVector<float> _blendshapeCoefficients;
 #endif
 };
