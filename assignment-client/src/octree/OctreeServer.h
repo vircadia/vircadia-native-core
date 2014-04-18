@@ -126,6 +126,7 @@ public slots:
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void sendStatsPacket();
+    void doNothing();
 
 protected:
     void parsePayload();

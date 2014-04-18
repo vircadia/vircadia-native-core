@@ -253,9 +253,11 @@ OctreeServer::OctreeServer(const QByteArray& packet) :
     qDebug() << "Octree server starting... [" << this << "]";
 
 
+    /*
     QTimer* timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), SLOT(doNothing()));
     timer->start(0);
+    */
 
 }
 
@@ -842,7 +844,7 @@ quint64 lastProcessNodeData = usecTimestampNow();
 void OctreeServer::readPendingDatagrams() {
     quint64 now = usecTimestampNow();
     if ((now - lastReadPendingDatagrams) > 100000) {
-        qDebug() << "OctreeServer::readPendingDatagrams(): since lastReadPendingDatagrams=" << (now - lastReadPendingDatagrams) << "usecs";
+        //qDebug() << "OctreeServer::readPendingDatagrams(): since lastReadPendingDatagrams=" << (now - lastReadPendingDatagrams) << "usecs";
     }
     lastReadPendingDatagrams = now;
 
@@ -884,10 +886,13 @@ void OctreeServer::readPendingDatagrams() {
             matchingElapsed += (endNodeLookup - startNodeLookup);
 
             if ((endNodeLookup - startNodeLookup) > 100000) {
-                qDebug() << "OctreeServer::readPendingDatagrams(): sendingNodeForPacket() took" << (endNodeLookup - startNodeLookup) << "usecs";
+                //qDebug() << "OctreeServer::readPendingDatagrams(): sendingNodeForPacket() took" << (endNodeLookup - startNodeLookup) << "usecs";
             }
             
             if (packetType == getMyQueryMessageType()) {
+            
+qDebug() << "got a query...";
+
                 quint64 queryStart = usecTimestampNow();
                 queryPackets++;
             
@@ -898,7 +903,7 @@ void OctreeServer::readPendingDatagrams() {
                     nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
                     quint64 endUpdateNode = usecTimestampNow();
                     if ((endUpdateNode - startUpdateNode) > 100000) {
-                        qDebug() << "OctreeServer::readPendingDatagrams(): updateNodeWithDataFromPacket() took" << (endUpdateNode - startUpdateNode) << "usecs";
+                        //qDebug() << "OctreeServer::readPendingDatagrams(): updateNodeWithDataFromPacket() took" << (endUpdateNode - startUpdateNode) << "usecs";
                     }
                     
                     OctreeQueryNode* nodeData = (OctreeQueryNode*) matchingNode->getLinkedData();
@@ -927,7 +932,7 @@ void OctreeServer::readPendingDatagrams() {
                 nodeListPackets++;
                 quint64 now = usecTimestampNow();
                 if ((now - lastProcessNodeData) > 500000) {
-                    qDebug() << "OctreeServer::readPendingDatagrams(): since lastProcessNodeData=" << (now - lastProcessNodeData) << "usecs";
+                    //qDebug() << "OctreeServer::readPendingDatagrams(): since lastProcessNodeData=" << (now - lastProcessNodeData) << "usecs";
                 }
                 lastProcessNodeData = now;
 
@@ -936,7 +941,7 @@ void OctreeServer::readPendingDatagrams() {
                 NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
                 quint64 endProcessNodeData = usecTimestampNow();
                 if ((endProcessNodeData - startProcessNodeData) > 100000) {
-                    qDebug() << "OctreeServer::readPendingDatagrams(): processNodeData() took" << (endProcessNodeData - startProcessNodeData) << "usecs";
+                    //qDebug() << "OctreeServer::readPendingDatagrams(): processNodeData() took" << (endProcessNodeData - startProcessNodeData) << "usecs";
                 }
 
                 quint64 nodeListEnd = usecTimestampNow();

@@ -81,7 +81,7 @@ quint64 lastCheckIn = usecTimestampNow();
 void ThreadedAssignment::checkInWithDomainServerOrExit() {
     quint64 now = usecTimestampNow();
     if ((now - lastCheckIn) > 100000) {
-        qDebug() << "ThreadedAssignment::checkInWithDomainServerOrExit(): since lastCheckIn=" << (now - lastCheckIn) << "usecs";
+        //qDebug() << "ThreadedAssignment::checkInWithDomainServerOrExit(): since lastCheckIn=" << (now - lastCheckIn) << "usecs";
     }
     lastCheckIn = now;
 
