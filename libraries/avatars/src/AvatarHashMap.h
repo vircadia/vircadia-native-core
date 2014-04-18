@@ -34,6 +34,7 @@ public:
     virtual void insert(const QUuid& id, AvatarSharedPointer avatar);
     
 public slots:
+    void processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer);
     bool containsAvatarWithDisplayName(const QString& displayName);
 
 protected:

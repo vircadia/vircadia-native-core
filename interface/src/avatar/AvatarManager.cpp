@@ -129,25 +129,6 @@ void AvatarManager::renderAvatarFades(const glm::vec3& cameraPosition, Avatar::R
     }
 }
 
-void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer) {
-    switch (packetTypeForPacket(datagram)) {
-        case PacketTypeBulkAvatarData:
-            processAvatarDataPacket(datagram, mixerWeakPointer);
-            break;
-        case PacketTypeAvatarIdentity:
-            processAvatarIdentityPacket(datagram, mixerWeakPointer);
-            break;
-        case PacketTypeAvatarBillboard:
-            processAvatarBillboardPacket(datagram, mixerWeakPointer);
-            break;
-        case PacketTypeKillAvatar:
-            processKillAvatar(datagram);
-            break;
-        default:
-            break;
-    }
-}
-
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
     return AvatarSharedPointer(new Avatar());
 }

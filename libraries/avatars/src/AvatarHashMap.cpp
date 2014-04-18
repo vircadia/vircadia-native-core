@@ -35,6 +35,25 @@ bool AvatarHashMap::shouldKillAvatar(const AvatarSharedPointer& sharedAvatar) {
             || sharedAvatar->getLastUpdateTimer().elapsed() > AVATAR_SILENCE_THRESHOLD_MSECS);
 }
 
+void AvatarHashMap::processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer) {
+    switch (packetTypeForPacket(datagram)) {
+        case PacketTypeBulkAvatarData:
+            processAvatarDataPacket(datagram, mixerWeakPointer);
+            break;
+        case PacketTypeAvatarIdentity:
+            processAvatarIdentityPacket(datagram, mixerWeakPointer);
+            break;
+        case PacketTypeAvatarBillboard:
+            processAvatarBillboardPacket(datagram, mixerWeakPointer);
+            break;
+        case PacketTypeKillAvatar:
+            processKillAvatar(datagram);
+            break;
+        default:
+            break;
+    }
+}
+
 bool AvatarHashMap::containsAvatarWithDisplayName(const QString& displayName) {
     
     AvatarHash::iterator avatarIterator = _avatarHash.begin();
@@ -70,7 +89,7 @@ AvatarSharedPointer AvatarHashMap::matchingOrNewAvatar(const QUuid& sessionUUID,
         // insert the new avatar into our hash
         matchingAvatar = newSharedAvatar();
     
-        qDebug() << "Adding avatar with sessionUUID " << sessionUUID << "to AvatarManager hash.";
+        qDebug() << "Adding avatar with sessionUUID " << sessionUUID << "to AvatarHashMap.";
         _avatarHash.insert(sessionUUID, matchingAvatar);
         
         matchingAvatar->setOwningAvatarMixer(mixerWeakPointer);

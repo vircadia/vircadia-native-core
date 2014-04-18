@@ -35,9 +35,6 @@ public:
     void renderAvatars(Avatar::RenderMode renderMode, bool selfAvatarOnly = false);
     
     void clearOtherAvatars();
-
-public slots:
-    void processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer);
     
 private:
     AvatarManager(const AvatarManager& other);
