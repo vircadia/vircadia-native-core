@@ -14,8 +14,13 @@
         Run
       </a>
     </div>
-    <div class='big-field' id='instance-field'>
-      <input type='text' name='instances' placeholder='# of instances'>
+    <div id="extra-fields">
+      <div class='big-field' id='instance-field'>
+        <input type='text' name='instances' placeholder='# of instances'>
+      </div>
+      <div class='big-field' id='pool-field'>
+        <input type='text' name='pool' placeholder='pool'>
+      </div>
     </div>
     <!-- %div#stop-button.big-button -->
   </body>

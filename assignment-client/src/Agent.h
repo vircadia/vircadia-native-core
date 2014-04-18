@@ -18,6 +18,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 
+#include <AvatarHashMap.h>
 #include <MixedAudioRingBuffer.h>
 #include <ParticleEditPacketSender.h>
 #include <ParticleTree.h>
@@ -65,6 +66,7 @@ private:
     VoxelTreeHeadlessViewer _voxelViewer;
     
     MixedAudioRingBuffer _receivedAudioBuffer;
+    AvatarHashMap _avatarHashMap;
 };
 
 #endif // hifi_Agent_h

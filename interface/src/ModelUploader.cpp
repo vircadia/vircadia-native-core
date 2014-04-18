@@ -22,9 +22,9 @@
 
 #include <AccountManager.h>
 
-#include "Application.h"
-#include "renderer/FBXReader.h"
+#include <FBXReader.h>
 
+#include "Application.h"
 #include "ModelUploader.h"
 
 
@@ -306,14 +306,14 @@ bool ModelUploader::addTextures(const QString& texdir, const QString fbxFile) {
     
     foreach (FBXMesh mesh, geometry.meshes) {
         foreach (FBXMeshPart part, mesh.parts) {
-            if (!part.diffuseFilename.isEmpty()) {
-                if (!addPart(texdir + "/" + part.diffuseFilename,
+            if (!part.diffuseTexture.filename.isEmpty()) {
+                if (!addPart(texdir + "/" + part.diffuseTexture.filename,
                              QString("texture%1").arg(++_texturesCount))) {
                     return false;
                 }
             }
-            if (!part.normalFilename.isEmpty()) {
-                if (!addPart(texdir + "/" + part.normalFilename,
+            if (!part.normalTexture.filename.isEmpty()) {
+                if (!addPart(texdir + "/" + part.normalTexture.filename,
                              QString("texture%1").arg(++_texturesCount))) {
                     return false;
                 }
