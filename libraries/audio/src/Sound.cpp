@@ -78,7 +78,7 @@ Sound::Sound(const QUrl& sampleURL, QObject* parent) :
     
     QNetworkReply* soundDownload = manager->get(QNetworkRequest(sampleURL));
     connect(soundDownload, &QNetworkReply::finished, this, &Sound::replyFinished);
-    connect(soundDownload, SLOT(error(QNetworkReply::NetworkError)), this, SIGNAL(error(QNetworkReply::NetworkError)));
+    connect(soundDownload, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(error(QNetworkReply::NetworkError)));
 }
 
 void Sound::replyFinished() {
