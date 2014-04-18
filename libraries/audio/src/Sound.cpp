@@ -73,15 +73,18 @@ Sound::Sound(const QUrl& sampleURL, QObject* parent) :
     // QNetworkAccess manager to grab the raw audio file at the given URL
 
     QNetworkAccessManager *manager = new QNetworkAccessManager(this);
-    connect(manager, SIGNAL(finished(QNetworkReply*)),
-            this, SLOT(replyFinished(QNetworkReply*)));
 
     qDebug() << "Requesting audio file" << sampleURL.toDisplayString();
-    manager->get(QNetworkRequest(sampleURL));
+    
+    QNetworkReply* soundDownload = manager->get(QNetworkRequest(sampleURL));
+    connect(soundDownload, &QNetworkReply::finished, this, &Sound::replyFinished);
+    connect(soundDownload, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(replyError(QNetworkReply::NetworkError)));
 }
 
-void Sound::replyFinished(QNetworkReply* reply) {
+void Sound::replyFinished() {
 
+    QNetworkReply* reply = reinterpret_cast<QNetworkReply*>(sender());
+    
     // replace our byte array with the downloaded data
     QByteArray rawAudioByteArray = reply->readAll();
 
@@ -108,6 +111,11 @@ void Sound::replyFinished(QNetworkReply* reply) {
     } else {
         qDebug() << "Network reply without 'Content-Type'.";
     }
+}
+
+void Sound::replyError(QNetworkReply::NetworkError code) {
+    QNetworkReply* reply = reinterpret_cast<QNetworkReply*>(sender());
+    qDebug() << "Error downloading sound file at" << reply->url().toString() << "-" << reply->errorString();
 }
 
 void Sound::downSample(const QByteArray& rawAudioByteArray) {
