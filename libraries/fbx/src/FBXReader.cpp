@@ -1624,7 +1624,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 }
                 float radiusScale = extractUniformScale(joint.transform * fbxCluster.inverseBindMatrix);
                 JointShapeInfo& jointShapeInfo = jointShapeInfos[jointIndex];
-                jointShapeInfo.boneBegin = rotateMeshToJoint * (radiusScale * (boneBegin - boneEnd));
 
                 float totalWeight = 0.0f;
                 for (int j = 0; j < cluster.indices.size(); j++) {
@@ -1686,7 +1685,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 }
             }
             float radiusScale = extractUniformScale(joint.transform * firstFBXCluster.inverseBindMatrix);
-            jointShapeInfo.boneBegin = rotateMeshToJoint * (radiusScale * (boneBegin - boneEnd));
 
             glm::vec3 averageVertex(0.f);
             foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
@@ -1722,6 +1720,14 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         FBXJoint& joint = geometry.joints[i];
         JointShapeInfo& jointShapeInfo = jointShapeInfos[i];
 
+        if (joint.parentIndex == -1) {
+            jointShapeInfo.boneBegin = glm::vec3(0.0f);
+        } else {
+            const FBXJoint& parentJoint = geometry.joints[joint.parentIndex];
+            glm::quat inverseRotation = glm::inverse(extractRotation(joint.transform));
+            jointShapeInfo.boneBegin = inverseRotation * (extractTranslation(parentJoint.transform) - extractTranslation(joint.transform));
+        }
+
         // we use a capsule if the joint ANY mesh vertices successfully projected onto the bone
         // AND its boneRadius is not too close to zero
         bool collideLikeCapsule = jointShapeInfo.numProjectedVertices > 0
@@ -1733,12 +1739,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             joint.shapeType = Shape::CAPSULE_SHAPE;
         } else {
             // collide the joint like a sphere
+            joint.shapeType = Shape::SPHERE_SHAPE;
             if (jointShapeInfo.numVertices > 0) {
                 jointShapeInfo.averageVertex /= (float)jointShapeInfo.numVertices;
                 joint.shapePosition = jointShapeInfo.averageVertex;
             } else {
                 joint.shapePosition = glm::vec3(0.f);
-                joint.shapeType = Shape::SPHERE_SHAPE;
             }
             if (jointShapeInfo.numProjectedVertices == 0
                    && jointShapeInfo.numVertices > 0) {
@@ -1746,6 +1752,15 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 // so we use an alternative measure
                 jointShapeInfo.averageRadius /= (float)jointShapeInfo.numVertices;
                 joint.boneRadius = jointShapeInfo.averageRadius;
+            }
+
+            float distanceFromEnd = glm::length(joint.shapePosition);
+            float distanceFromBegin = glm::distance(joint.shapePosition, jointShapeInfo.boneBegin);
+            if (distanceFromEnd > joint.distanceToParent && distanceFromBegin > joint.distanceToParent) {
+                // The shape is further from both joint endpoints than the endpoints are from each other
+                // which probably means the model has a bad transform somewhere.  We disable this shape
+                // by setting its type to UNKNOWN_SHAPE.
+                joint.shapeType = Shape::UNKNOWN_SHAPE;
             }
         }
     }
