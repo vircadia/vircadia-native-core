@@ -3552,11 +3552,11 @@ void Application::takeSnapshot() {
 }
 
 void Application::urlGoTo(int argc, const char * constArgv[]) {
-	//Gets the url (hifi://domain/destination/orientation)
-	QString customUrl = getCmdOption(argc, constArgv, "-url");
+    //Gets the url (hifi://domain/destination/orientation)
+    QString customUrl = getCmdOption(argc, constArgv, "-url");
 
-	if (customUrl.startsWith("hifi://")) {
-		QStringList urlParts = customUrl.remove(0, CUSTOM_URL_SCHEME.length() + 2).split('/', QString::SkipEmptyParts);
+    if (customUrl.startsWith("hifi://")) {
+        QStringList urlParts = customUrl.remove(0, CUSTOM_URL_SCHEME.length() + 2).split('/', QString::SkipEmptyParts);
         if (urlParts.count() > 1) {
             // if url has 2 or more parts, the first one is domain name
             QString domain = urlParts[0];
@@ -3583,6 +3583,5 @@ void Application::urlGoTo(int argc, const char * constArgv[]) {
             QString destination = urlParts[0];
             Menu::goTo(destination);
         }
-
     }
 }
