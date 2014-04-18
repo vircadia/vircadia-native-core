@@ -36,6 +36,9 @@ public:
     void setUndoStack(QUndoStack* undoStack) { _undoStack = undoStack; }
 
 public slots:
+    
+    /// provide the world scale
+    const int getTreeScale() const { return TREE_SCALE; }
 
     /// checks the local voxel tree for a voxel at the specified location and scale
     /// \param x the x-coordinate of the voxel (in meter units)
