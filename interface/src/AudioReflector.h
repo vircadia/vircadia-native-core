@@ -81,12 +81,12 @@ public:
 public slots:
     // statistics
     int getReflections() const { return _reflections; }
-    float getAverageDelayMsecs() const { return _averageDelayOfficial; }
-    float getAverageAttenuation() const { return _averageAttenuationOfficial; }
-    float getMaxDelayMsecs() const { return _maxDelayOfficial; }
-    float getMaxAttenuation() const { return _maxAttenuationOfficial; }
-    float getMinDelayMsecs() const { return _minDelayOfficial; }
-    float getMinAttenuation() const { return _minAttenuationOfficial; }
+    float getAverageDelayMsecs() const { return _officialAverageDelay; }
+    float getAverageAttenuation() const { return _officialAverageAttenuation; }
+    float getMaxDelayMsecs() const { return _officialMaxDelay; }
+    float getMaxAttenuation() const { return _officialMaxAttenuation; }
+    float getMinDelayMsecs() const { return _officialMinDelay; }
+    float getMinAttenuation() const { return _officialMinAttenuation; }
     float getDelayFromDistance(float distance);
     int getDiffusionPathCount() const { return _diffusionPathCount; }
     int getEchoesInjected() const { return _inboundEchoesCount + _localEchoesCount; }
@@ -157,17 +157,17 @@ private:
     float _averageDelay;
     float _maxDelay;
     float _minDelay;
-    float _averageDelayOfficial;
-    float _maxDelayOfficial;
-    float _minDelayOfficial;
+    float _officialAverageDelay;
+    float _officialMaxDelay;
+    float _officialMinDelay;
     int _attenuationCount;
     float _totalAttenuation;
     float _averageAttenuation;
     float _maxAttenuation;
     float _minAttenuation;
-    float _averageAttenuationOfficial;
-    float _maxAttenuationOfficial;
-    float _minAttenuationOfficial;
+    float _officialAverageAttenuation;
+    float _officialMaxAttenuation;
+    float _officialMinAttenuation;
 
 
     glm::vec3 _listenerPosition;

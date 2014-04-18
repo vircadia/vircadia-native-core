@@ -53,12 +53,12 @@ AudioReflector::AudioReflector(QObject* parent) :
 {
     _reflections = 0;
     _diffusionPathCount = 0;
-    _averageAttenuationOfficial = _averageAttenuation = 0.0f;
-    _maxAttenuationOfficial = _maxAttenuation = 0.0f;
-    _minAttenuationOfficial = _minAttenuation = 0.0f;
-    _averageDelayOfficial = _averageDelay = 0;
-    _maxDelayOfficial = _maxDelay = 0;
-    _minDelayOfficial = _minDelay = 0;
+    _officialAverageAttenuation = _averageAttenuation = 0.0f;
+    _officialMaxAttenuation = _maxAttenuation = 0.0f;
+    _officialMinAttenuation = _minAttenuation = 0.0f;
+    _officialAverageDelay = _averageDelay = 0;
+    _officialMaxDelay = _maxDelay = 0;
+    _officialMinDelay = _minDelay = 0;
     _inboundEchoesCount = 0;
     _inboundEchoesSuppressedCount = 0;
     _localEchoesCount = 0;
@@ -384,12 +384,12 @@ void AudioReflector::echoAudio(AudioSource source, unsigned int sampleTime, cons
         _minAttenuation = 0.0f;
     }
     
-    _maxDelayOfficial = _maxDelay;
-    _minDelayOfficial = _minDelay;
-    _maxAttenuationOfficial = _maxAttenuation;
-    _minAttenuationOfficial = _minAttenuation;
-    _averageDelayOfficial = _averageDelay;
-    _averageAttenuationOfficial = _averageAttenuation;
+    _officialMaxDelay = _maxDelay;
+    _officialMinDelay = _minDelay;
+    _officialMaxAttenuation = _maxAttenuation;
+    _officialMinAttenuation = _minAttenuation;
+    _officialAverageDelay = _averageDelay;
+    _officialAverageAttenuation = _averageAttenuation;
 
 }
 
