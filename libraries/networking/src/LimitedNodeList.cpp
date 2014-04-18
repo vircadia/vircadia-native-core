@@ -234,6 +234,30 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const SharedNo
     return 0;
 }
 
+qint64 LimitedNodeList::writeUnverifiedDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
+                               const HifiSockAddr& overridenSockAddr) {
+    if (destinationNode) {
+        // if we don't have an ovveriden address, assume they want to send to the node's active socket
+        const HifiSockAddr* destinationSockAddr = &overridenSockAddr;
+        if (overridenSockAddr.isNull()) {
+            if (destinationNode->getActiveSocket()) {
+                // use the node's active socket as the destination socket
+                destinationSockAddr = destinationNode->getActiveSocket();
+            } else {
+                // we don't have a socket to send to, return 0
+                return 0;
+            }
+        }
+        
+        
+        // don't use the node secret!
+        writeDatagram(datagram, *destinationSockAddr, QUuid());
+    }
+    
+    // didn't have a destinationNode to send to, return 0
+    return 0;
+}
+
 qint64 LimitedNodeList::writeUnverifiedDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr) {
     return writeDatagram(datagram, destinationSockAddr, QUuid());
 }
@@ -241,6 +265,11 @@ qint64 LimitedNodeList::writeUnverifiedDatagram(const QByteArray& datagram, cons
 qint64 LimitedNodeList::writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
                                const HifiSockAddr& overridenSockAddr) {
     return writeDatagram(QByteArray(data, size), destinationNode, overridenSockAddr);
+}
+
+qint64 LimitedNodeList::writeUnverifiedDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
+                               const HifiSockAddr& overridenSockAddr) {
+    return writeUnverifiedDatagram(QByteArray(data, size), destinationNode, overridenSockAddr);
 }
 
 void LimitedNodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
