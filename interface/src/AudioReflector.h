@@ -15,6 +15,7 @@
 
 #include "Audio.h"
 #include "avatar/MyAvatar.h"
+#include "avatar/AvatarManager.h"
 
 enum AudioSource {
     LOCAL_AUDIO,
@@ -69,25 +70,27 @@ public:
     void setVoxels(VoxelTree* voxels) { _voxels = voxels; }
     void setMyAvatar(MyAvatar* myAvatar) { _myAvatar = myAvatar; }
     void setAudio(Audio* audio) { _audio = audio; }
+    void setAvatarManager(AvatarManager* avatarManager) { _avatarManager = avatarManager; }
 
     void render(); /// must be called in the application render loop
     
+    void preProcessOriginalInboundAudio(unsigned int sampleTime, QByteArray& samples, const QAudioFormat& format);
     void processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
     void processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
 
 public slots:
     // statistics
     int getReflections() const { return _reflections; }
-    float getAverageDelayMsecs() const { return _averageDelay; }
-    float getAverageAttenuation() const { return _averageAttenuation; }
-    float getMaxDelayMsecs() const { return _maxDelay; }
-    float getMaxAttenuation() const { return _maxAttenuation; }
-    float getMinDelayMsecs() const { return _minDelay; }
-    float getMinAttenuation() const { return _minAttenuation; }
+    float getAverageDelayMsecs() const { return _averageDelayOfficial; }
+    float getAverageAttenuation() const { return _averageAttenuationOfficial; }
+    float getMaxDelayMsecs() const { return _maxDelayOfficial; }
+    float getMaxAttenuation() const { return _maxAttenuationOfficial; }
+    float getMinDelayMsecs() const { return _minDelayOfficial; }
+    float getMinAttenuation() const { return _minAttenuationOfficial; }
     float getDelayFromDistance(float distance);
     int getDiffusionPathCount() const { return _diffusionPathCount; }
-    int getEchoesInjected() const { return _inboundAudioDelays.size() + _localAudioDelays.size(); }
-    int getEchoesSuppressed() const { return _inboundEchoesSuppressed.size() + _localEchoesSuppressed.size(); }
+    int getEchoesInjected() const { return _inboundEchoesCount + _localEchoesCount; }
+    int getEchoesSuppressed() const { return _inboundEchoesSuppressedCount + _localEchoesSuppressedCount; }
 
     /// ms of delay added to all echos
     float getPreDelay() const { return _preDelay; }
@@ -126,12 +129,19 @@ public slots:
     float getReflectiveRatio() const { return (1.0f - (_absorptionRatio + _diffusionRatio)); }
     void setReflectiveRatio(float ratio);
 
+    // wet/dry mix - these don't affect any reflection calculations, only the final mix volumes
+    float getOriginalSourceAttenuation() const { return _originalSourceAttenuation; }
+    void setOriginalSourceAttenuation(float value) { _originalSourceAttenuation = value; }
+    float getEchoesAttenuation() const { return _allEchoesAttenuation; }
+    void setEchoesAttenuation(float value) { _allEchoesAttenuation = value; }
+
 signals:
     
 private:
     VoxelTree* _voxels; // used to access voxel scene
     MyAvatar* _myAvatar; // access to listener
     Audio* _audio; // access to audio API
+    AvatarManager* _avatarManager; // access to avatar manager API
 
     // Helpers for drawing
     void drawVector(const glm::vec3& start, const glm::vec3& end, const glm::vec3& color);
@@ -147,11 +157,18 @@ private:
     float _averageDelay;
     float _maxDelay;
     float _minDelay;
+    float _averageDelayOfficial;
+    float _maxDelayOfficial;
+    float _minDelayOfficial;
     int _attenuationCount;
     float _totalAttenuation;
     float _averageAttenuation;
     float _maxAttenuation;
     float _minAttenuation;
+    float _averageAttenuationOfficial;
+    float _maxAttenuationOfficial;
+    float _minAttenuationOfficial;
+
 
     glm::vec3 _listenerPosition;
     glm::vec3 _origin;
@@ -161,11 +178,15 @@ private:
     QVector<AudiblePoint> _inboundAudiblePoints; /// the audible points that have been calculated from the inbound audio paths
     QMap<float, float> _inboundAudioDelays; /// delay times for currently injected audio points
     QVector<float> _inboundEchoesSuppressed; /// delay times for currently injected audio points
+    int _inboundEchoesCount;
+    int _inboundEchoesSuppressedCount;
 
     QVector<AudioPath*> _localAudioPaths; /// audio paths we're processing for local audio
     QVector<AudiblePoint> _localAudiblePoints; /// the audible points that have been calculated from the local audio paths
     QMap<float, float> _localAudioDelays; /// delay times for currently injected audio points
     QVector<float> _localEchoesSuppressed; /// delay times for currently injected audio points
+    int _localEchoesCount;
+    int _localEchoesSuppressedCount;
 
     // adds a sound source to begin an audio path trace, these can be the initial sound sources with their directional properties,
     // as well as diffusion sound sources
@@ -182,6 +203,7 @@ private:
     void calculateAllReflections();
     int countDiffusionPaths();
     glm::vec3 getFaceNormal(BoxFace face);
+    void identifyAudioSources();
 
     void injectAudiblePoint(AudioSource source, const AudiblePoint& audiblePoint, const QByteArray& samples, unsigned int sampleTime, int sampleRate);
     void echoAudio(AudioSource source, unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
@@ -197,13 +219,16 @@ private:
     float _distanceAttenuationScalingFactor;
     float _localAudioAttenuationFactor;
     float _combFilterWindow;
-
     int _diffusionFanout; // number of points of diffusion from each reflection point
 
     // all elements have the same material for now...
     float _absorptionRatio;
     float _diffusionRatio;
     float _reflectiveRatio;
+    
+    // wet/dry mix - these don't affect any reflection calculations, only the final mix volumes
+    float _originalSourceAttenuation; /// each sample of original signal will be multiplied by this
+    float _allEchoesAttenuation; /// each sample of all echo signals will be multiplied by this
 
     // remember the last known values at calculation    
     bool haveAttributesChanged();
@@ -216,6 +241,10 @@ private:
     int _lastDiffusionFanout;
     float _lastAbsorptionRatio;
     float _lastDiffusionRatio;
+    bool _lastDontDistanceAttenuate;
+    bool _lastAlternateDistanceAttenuate;
+    
+    int _injectedEchoes;
 };
 
 
