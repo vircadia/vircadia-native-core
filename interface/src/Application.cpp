@@ -821,7 +821,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
-            case Qt::Key_E: case Qt::Key_PageUp:
+            case Qt::Key_E:
+            case Qt::Key_PageUp:
                if (!_myAvatar->getDriveKeys(UP)) {
                     _myAvatar->jump();
                 }
@@ -832,7 +833,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 Menu::getInstance()->triggerOption(MenuOption::Stars);
                 break;
 
-            case Qt::Key_C: case Qt::Key_PageDown:
+            case Qt::Key_C:
+            case Qt::Key_PageDown:
                 _myAvatar->setDriveKeys(DOWN, 1.f);
                 break;
 
@@ -1018,11 +1020,13 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
     }
 
     switch (event->key()) {
-        case Qt::Key_E: case Qt::Key_PageUp:
+        case Qt::Key_E:
+        case Qt::Key_PageUp:
             _myAvatar->setDriveKeys(UP, 0.f);
             break;
 
-        case Qt::Key_C: case Qt::Key_PageDown:
+        case Qt::Key_C:
+        case Qt::Key_PageDown:
             _myAvatar->setDriveKeys(DOWN, 0.f);
             break;
 
