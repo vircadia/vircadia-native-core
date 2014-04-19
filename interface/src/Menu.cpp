@@ -315,7 +315,8 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Visage, 0, true,
         appInstance->getVisage(), SLOT(updateEnabled()));
 #endif
-
+    
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::GlowWhenSpeaking, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, false);
 
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
@@ -428,6 +429,14 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingProcessLocalAudio,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_A,
                                            true);
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingDontDistanceAttenuate,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_Y,
+                                           false);
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingAlternateDistanceAttenuate,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_U,
+                                           false);
 
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
                 Qt::CTRL | Qt::SHIFT | Qt::Key_V,

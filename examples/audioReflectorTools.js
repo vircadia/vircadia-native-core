@@ -19,6 +19,8 @@ var reflectiveScale = 100.0;
 var diffusionScale = 100.0;
 var absorptionScale = 100.0;
 var combFilterScale = 50.0;
+var originalScale = 2.0;
+var echoesScale = 2.0;
 
 // these three properties are bound together, if you change one, the others will also change
 var reflectiveRatio = AudioReflector.getReflectiveRatio();
@@ -421,6 +423,84 @@ var absorptionThumb = Overlays.addOverlay("image", {
                     alpha: 1
                 });
 
+var originalY = topY;
+topY += sliderHeight;
+
+var originalLabel = Overlays.addOverlay("text", {
+                    x: 40,
+                    y: originalY,
+                    width: 60,
+                    height: sliderHeight,
+                    color: { red: 0, green: 0, blue: 0},
+                    textColor: { red: 255, green: 255, blue: 255},
+                    topMargin: 6,
+                    leftMargin: 5,
+                    text: "Original\nMix:"
+                });
+
+
+var originalSlider = Overlays.addOverlay("image", {
+                    // alternate form of expressing bounds
+                    bounds: { x: 100, y: originalY, width: 150, height: sliderHeight},
+                    subImage: { x: 46, y: 0, width: 200, height: 71  },
+                    imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/slider.png",
+                    color: { red: 255, green: 255, blue: 255},
+                    alpha: 1
+                });
+
+
+var originalMinThumbX = 110;
+var originalMaxThumbX = originalMinThumbX + 110;
+var originalThumbX = originalMinThumbX + ((originalMaxThumbX - originalMinThumbX) * (AudioReflector.getOriginalSourceAttenuation() / originalScale));
+var originalThumb = Overlays.addOverlay("image", {
+                    x: originalThumbX,
+                    y: originalY+9,
+                    width: 18,
+                    height: 17,
+                    imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/thumb.png",
+                    color: { red: 128, green: 128, blue: 0},
+                    alpha: 1
+                });
+
+var echoesY = topY;
+topY += sliderHeight;
+
+var echoesLabel = Overlays.addOverlay("text", {
+                    x: 40,
+                    y: echoesY,
+                    width: 60,
+                    height: sliderHeight,
+                    color: { red: 0, green: 0, blue: 0},
+                    textColor: { red: 255, green: 255, blue: 255},
+                    topMargin: 6,
+                    leftMargin: 5,
+                    text: "Echoes\nMix:"
+                });
+
+
+var echoesSlider = Overlays.addOverlay("image", {
+                    // alternate form of expressing bounds
+                    bounds: { x: 100, y: echoesY, width: 150, height: sliderHeight},
+                    subImage: { x: 46, y: 0, width: 200, height: 71  },
+                    imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/slider.png",
+                    color: { red: 255, green: 255, blue: 255},
+                    alpha: 1
+                });
+
+
+var echoesMinThumbX = 110;
+var echoesMaxThumbX = echoesMinThumbX + 110;
+var echoesThumbX = echoesMinThumbX + ((echoesMaxThumbX - echoesMinThumbX) * (AudioReflector.getEchoesAttenuation() / echoesScale));
+var echoesThumb = Overlays.addOverlay("image", {
+                    x: echoesThumbX,
+                    y: echoesY+9,
+                    width: 18,
+                    height: 17,
+                    imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/thumb.png",
+                    color: { red: 128, green: 128, blue: 0},
+                    alpha: 1
+                });
+
 
 // When our script shuts down, we should clean up all of our overlays
 function scriptEnding() {
@@ -460,6 +540,14 @@ function scriptEnding() {
     Overlays.deleteOverlay(absorptionThumb);
     Overlays.deleteOverlay(absorptionSlider);
 
+    Overlays.deleteOverlay(echoesLabel);
+    Overlays.deleteOverlay(echoesThumb);
+    Overlays.deleteOverlay(echoesSlider);
+
+    Overlays.deleteOverlay(originalLabel);
+    Overlays.deleteOverlay(originalThumb);
+    Overlays.deleteOverlay(originalSlider);
+
 }
 Script.scriptEnding.connect(scriptEnding);
 
@@ -483,6 +571,8 @@ var movingSliderLocalFactor = false;
 var movingSliderReflective = false;
 var movingSliderDiffusion = false;
 var movingSliderAbsorption = false;
+var movingSliderOriginal = false;
+var movingSliderEchoes = false;
 
 var thumbClickOffsetX = 0;
 function mouseMoveEvent(event) {
@@ -546,7 +636,6 @@ function mouseMoveEvent(event) {
         var combFilter = ((newThumbX - combFilterMinThumbX) / (combFilterMaxThumbX - combFilterMinThumbX)) * combFilterScale;
         AudioReflector.setCombFilterWindow(combFilter);
     }
-
     if (movingSliderLocalFactor) {
         newThumbX = event.x - thumbClickOffsetX;
         if (newThumbX < localFactorMinThumbX) {
@@ -598,6 +687,30 @@ function mouseMoveEvent(event) {
         var diffusion = ((newThumbX - diffusionMinThumbX) / (diffusionMaxThumbX - diffusionMinThumbX)) * diffusionScale;
         setDiffusionRatio(diffusion);
     }
+    if (movingSliderEchoes) {
+        newThumbX = event.x - thumbClickOffsetX;
+        if (newThumbX < echoesMinThumbX) {
+            newThumbX = echoesMminThumbX;
+        }
+        if (newThumbX > echoesMaxThumbX) {
+            newThumbX = echoesMaxThumbX;
+        }
+        Overlays.editOverlay(echoesThumb, { x: newThumbX } );
+        var echoes = ((newThumbX - echoesMinThumbX) / (echoesMaxThumbX - echoesMinThumbX)) * echoesScale;
+        AudioReflector.setEchoesAttenuation(echoes);
+    }
+    if (movingSliderOriginal) {
+        newThumbX = event.x - thumbClickOffsetX;
+        if (newThumbX < originalMinThumbX) {
+            newThumbX = originalMminThumbX;
+        }
+        if (newThumbX > originalMaxThumbX) {
+            newThumbX = originalMaxThumbX;
+        }
+        Overlays.editOverlay(originalThumb, { x: newThumbX } );
+        var original = ((newThumbX - originalMinThumbX) / (originalMaxThumbX - originalMinThumbX)) * originalScale;
+        AudioReflector.setOriginalSourceAttenuation(original);
+    }
 
 }
 
@@ -640,7 +753,16 @@ function mousePressEvent(event) {
         movingSliderReflective = true;
         thumbClickOffsetX = event.x - reflectiveThumbX;
     }
+    if (clickedOverlay == originalThumb) {
+        movingSliderOriginal = true;
+        thumbClickOffsetX = event.x - originalThumbX;
+    }
+    if (clickedOverlay == echoesThumb) {
+        movingSliderEchoes = true;
+        thumbClickOffsetX = event.x - echoesThumbX;
+    }
 }
+
 function mouseReleaseEvent(event) {
     if (movingSliderDelay) {
         movingSliderDelay = false;
@@ -672,14 +794,12 @@ function mouseReleaseEvent(event) {
         AudioReflector.setCombFilterWindow(combFilter);
         combFilterThumbX = newThumbX;
     }
-
     if (movingSliderLocalFactor) {
         movingSliderLocalFactor = false;
         var localFactor = ((newThumbX - localFactorMinThumbX) / (localFactorMaxThumbX - localFactorMinThumbX)) * localFactorScale;
         AudioReflector.setLocalAudioAttenuationFactor(localFactor);
         localFactorThumbX = newThumbX;
     }
-
     if (movingSliderReflective) {
         movingSliderReflective = false;
         var reflective = ((newThumbX - reflectiveMinThumbX) / (reflectiveMaxThumbX - reflectiveMinThumbX)) * reflectiveScale;
@@ -687,7 +807,6 @@ function mouseReleaseEvent(event) {
         reflectiveThumbX = newThumbX;
         updateRatioSliders();
     }
-
     if (movingSliderDiffusion) {
         movingSliderDiffusion = false;
         var diffusion = ((newThumbX - diffusionMinThumbX) / (diffusionMaxThumbX - diffusionMinThumbX)) * diffusionScale;
@@ -695,13 +814,24 @@ function mouseReleaseEvent(event) {
         diffusionThumbX = newThumbX;
         updateRatioSliders();
     }
-
     if (movingSliderAbsorption) {
         movingSliderAbsorption = false;
         var absorption = ((newThumbX - absorptionMinThumbX) / (absorptionMaxThumbX - absorptionMinThumbX)) * absorptionScale;
         setAbsorptionRatio(absorption);
         absorptionThumbX = newThumbX;
         updateRatioSliders();
+    }
+    if (movingSliderEchoes) {
+        movingSliderEchoes = false;
+        var echoes = ((newThumbX - echoesMinThumbX) / (echoesMaxThumbX - echoesMinThumbX)) * echoesScale;
+        AudioReflector.setEchoesAttenuation(echoes);
+        echoesThumbX = newThumbX;
+    }
+    if (movingSliderOriginal) {
+        movingSliderOriginal = false;
+        var original = ((newThumbX - originalMinThumbX) / (originalMaxThumbX - originalMinThumbX)) * originalScale;
+        AudioReflector.setOriginalSourceAttenuation(original);
+        originalThumbX = newThumbX;
     }
 }
 

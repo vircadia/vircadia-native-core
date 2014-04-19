@@ -12,6 +12,7 @@
 #include <cfloat>
 #include <cmath>
 
+#include <QThread>
 #include <QTimer>
 #include <QtDebug>
 
@@ -174,6 +175,10 @@ float Resource::getLoadPriority() {
 }
 
 void Resource::allReferencesCleared() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "allReferencesCleared");
+        return;
+    }
     if (_cache) {
         // create and reinsert new shared pointer 
         QSharedPointer<Resource> self(this, &Resource::allReferencesCleared);

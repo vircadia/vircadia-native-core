@@ -25,6 +25,8 @@ const float SLIGHTLY_SHORT = 0.999f; // slightly inside the distance so we're on
 
 const float DEFAULT_ABSORPTION_RATIO = 0.125; // 12.5% is absorbed
 const float DEFAULT_DIFFUSION_RATIO = 0.125; // 12.5% is diffused
+const float DEFAULT_ORIGINAL_ATTENUATION = 1.0f;
+const float DEFAULT_ECHO_ATTENUATION = 1.0f;
 
 AudioReflector::AudioReflector(QObject* parent) : 
     QObject(parent),
@@ -36,6 +38,8 @@ AudioReflector::AudioReflector(QObject* parent) :
     _diffusionFanout(DEFAULT_DIFFUSION_FANOUT),
     _absorptionRatio(DEFAULT_ABSORPTION_RATIO),
     _diffusionRatio(DEFAULT_DIFFUSION_RATIO),
+    _originalSourceAttenuation(DEFAULT_ORIGINAL_ATTENUATION),
+    _allEchoesAttenuation(DEFAULT_ECHO_ATTENUATION),
     _withDiffusion(false),
     _lastPreDelay(DEFAULT_PRE_DELAY),
     _lastSoundMsPerMeter(DEFAULT_MS_DELAY_PER_METER),
@@ -43,20 +47,29 @@ AudioReflector::AudioReflector(QObject* parent) :
     _lastLocalAudioAttenuationFactor(DEFAULT_LOCAL_ATTENUATION_FACTOR),
     _lastDiffusionFanout(DEFAULT_DIFFUSION_FANOUT),
     _lastAbsorptionRatio(DEFAULT_ABSORPTION_RATIO),
-    _lastDiffusionRatio(DEFAULT_DIFFUSION_RATIO)
+    _lastDiffusionRatio(DEFAULT_DIFFUSION_RATIO),
+    _lastDontDistanceAttenuate(false),
+    _lastAlternateDistanceAttenuate(false)
 {
     _reflections = 0;
     _diffusionPathCount = 0;
-    _averageAttenuation = 0.0f;
-    _maxAttenuation = 0.0f;
-    _minAttenuation = 0.0f;
-    _averageDelay = 0;
-    _maxDelay = 0;
-    _minDelay = 0;
+    _officialAverageAttenuation = _averageAttenuation = 0.0f;
+    _officialMaxAttenuation = _maxAttenuation = 0.0f;
+    _officialMinAttenuation = _minAttenuation = 0.0f;
+    _officialAverageDelay = _averageDelay = 0;
+    _officialMaxDelay = _maxDelay = 0;
+    _officialMinDelay = _minDelay = 0;
+    _inboundEchoesCount = 0;
+    _inboundEchoesSuppressedCount = 0;
+    _localEchoesCount = 0;
+    _localEchoesSuppressedCount = 0;
 }
 
 bool AudioReflector::haveAttributesChanged() {
     bool withDiffusion = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingWithDiffusions);
+    bool dontDistanceAttenuate = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingDontDistanceAttenuate);
+    bool alternateDistanceAttenuate = Menu::getInstance()->isOptionChecked(
+                                                MenuOption::AudioSpatialProcessingAlternateDistanceAttenuate);
     
     bool attributesChange = (_withDiffusion != withDiffusion
         || _lastPreDelay != _preDelay
@@ -64,7 +77,9 @@ bool AudioReflector::haveAttributesChanged() {
         || _lastDistanceAttenuationScalingFactor != _distanceAttenuationScalingFactor
         || _lastDiffusionFanout != _diffusionFanout
         || _lastAbsorptionRatio != _absorptionRatio
-        || _lastDiffusionRatio != _diffusionRatio);
+        || _lastDiffusionRatio != _diffusionRatio
+        || _lastDontDistanceAttenuate != dontDistanceAttenuate
+        || _lastAlternateDistanceAttenuate != alternateDistanceAttenuate);
 
     if (attributesChange) {
         _withDiffusion = withDiffusion;
@@ -74,6 +89,8 @@ bool AudioReflector::haveAttributesChanged() {
         _lastDiffusionFanout = _diffusionFanout;
         _lastAbsorptionRatio = _absorptionRatio;
         _lastDiffusionRatio = _diffusionRatio;
+        _lastDontDistanceAttenuate = dontDistanceAttenuate;
+        _lastAlternateDistanceAttenuate = alternateDistanceAttenuate;
     }
     
     return attributesChange;
@@ -107,19 +124,47 @@ float AudioReflector::getDelayFromDistance(float distance) {
 
 // attenuation = from the Audio Mixer
 float AudioReflector::getDistanceAttenuationCoefficient(float distance) {
-    const float DISTANCE_SCALE = 2.5f;
-    const float GEOMETRIC_AMPLITUDE_SCALAR = 0.3f;
-    const float DISTANCE_LOG_BASE = 2.5f;
-    const float DISTANCE_SCALE_LOG = logf(DISTANCE_SCALE) / logf(DISTANCE_LOG_BASE);
+
+
+    bool doDistanceAttenuation = !Menu::getInstance()->isOptionChecked(
+                                            MenuOption::AudioSpatialProcessingDontDistanceAttenuate);
+
+    bool originalFormula = !Menu::getInstance()->isOptionChecked(
+                                            MenuOption::AudioSpatialProcessingAlternateDistanceAttenuate);
     
-    float distanceSquareToSource = distance * distance;
+    
+    float distanceCoefficient = 1.0f;
+    
+    if (doDistanceAttenuation) {
+    
+        if (originalFormula) {
+            const float DISTANCE_SCALE = 2.5f;
+            const float GEOMETRIC_AMPLITUDE_SCALAR = 0.3f;
+            const float DISTANCE_LOG_BASE = 2.5f;
+            const float DISTANCE_SCALE_LOG = logf(DISTANCE_SCALE) / logf(DISTANCE_LOG_BASE);
+    
+            float distanceSquareToSource = distance * distance;
 
-    // calculate the distance coefficient using the distance to this node
-    float distanceCoefficient = powf(GEOMETRIC_AMPLITUDE_SCALAR,
-                                     DISTANCE_SCALE_LOG +
-                                     (0.5f * logf(distanceSquareToSource) / logf(DISTANCE_LOG_BASE)) - 1);
-
-    distanceCoefficient = std::min(1.0f, distanceCoefficient * getDistanceAttenuationScalingFactor());
+            // calculate the distance coefficient using the distance to this node
+            distanceCoefficient = powf(GEOMETRIC_AMPLITUDE_SCALAR,
+                                             DISTANCE_SCALE_LOG +
+                                             (0.5f * logf(distanceSquareToSource) / logf(DISTANCE_LOG_BASE)) - 1);
+            distanceCoefficient = std::min(1.0f, distanceCoefficient * getDistanceAttenuationScalingFactor());
+        } else {
+        
+            // From Fred: If we wanted something that would produce a tail that could go up to 5 seconds in a 
+            // really big room, that would suggest the sound still has to be in the audible after traveling about 
+            // 1500 meters.  If it’s a sound of average volume, we probably have about 30 db, or 5 base2 orders 
+            // of magnitude we can drop down before the sound becomes inaudible. (That’s approximate headroom 
+            // based on a few sloppy assumptions.) So we could try a factor like 1 / (2^(D/300)) for starters.
+            // 1 / (2^(D/300))
+            const float DISTANCE_BASE = 2.0f;
+            const float DISTANCE_DENOMINATOR = 300.0f;
+            const float DISTANCE_NUMERATOR = 300.0f;
+            distanceCoefficient = DISTANCE_NUMERATOR / powf(DISTANCE_BASE, (distance / DISTANCE_DENOMINATOR ));
+            distanceCoefficient = std::min(1.0f, distanceCoefficient * getDistanceAttenuationScalingFactor());
+        }
+    }
     
     return distanceCoefficient;
 }
@@ -236,11 +281,13 @@ void AudioReflector::injectAudiblePoint(AudioSource source, const AudiblePoint& 
                 rightSample = originalSamplesData[(sample * NUMBER_OF_CHANNELS) + 1];
             }
 
-            attenuatedLeftSamplesData[sample * NUMBER_OF_CHANNELS] = leftSample * leftEarAttenuation;
+            attenuatedLeftSamplesData[sample * NUMBER_OF_CHANNELS] = 
+                        leftSample * leftEarAttenuation * _allEchoesAttenuation;
             attenuatedLeftSamplesData[sample * NUMBER_OF_CHANNELS + 1] = 0;
 
             attenuatedRightSamplesData[sample * NUMBER_OF_CHANNELS] = 0;
-            attenuatedRightSamplesData[sample * NUMBER_OF_CHANNELS + 1] = rightSample * rightEarAttenuation;
+            attenuatedRightSamplesData[sample * NUMBER_OF_CHANNELS + 1] = 
+                        rightSample * rightEarAttenuation * _allEchoesAttenuation;
         }
         
         // now inject the attenuated array with the appropriate delay
@@ -249,7 +296,23 @@ void AudioReflector::injectAudiblePoint(AudioSource source, const AudiblePoint& 
     
         _audio->addSpatialAudioToBuffer(sampleTimeLeft, attenuatedLeftSamples, totalNumberOfSamples);
         _audio->addSpatialAudioToBuffer(sampleTimeRight, attenuatedRightSamples, totalNumberOfSamples);
+        
+        _injectedEchoes++;
     }
+}
+
+
+void AudioReflector::preProcessOriginalInboundAudio(unsigned int sampleTime, 
+                                QByteArray& samples, const QAudioFormat& format) {
+                                
+    if (_originalSourceAttenuation != 1.0f) {
+        int numberOfSamples = (samples.size() / sizeof(int16_t));
+        int16_t* sampleData = (int16_t*)samples.data();
+        for (int i = 0; i < numberOfSamples; i++) {
+            sampleData[i] = sampleData[i] * _originalSourceAttenuation;
+        }
+    }
+
 }
 
 void AudioReflector::processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
@@ -272,6 +335,8 @@ void AudioReflector::processLocalAudio(unsigned int sampleTime, const QByteArray
             _localAudioDelays.clear();
             _localEchoesSuppressed.clear();
             echoAudio(LOCAL_AUDIO, sampleTime, stereoInputData, outputFormat);
+            _localEchoesCount = _localAudioDelays.size();
+            _localEchoesSuppressedCount = _localEchoesSuppressed.size();
         }
     }
 }
@@ -280,9 +345,13 @@ void AudioReflector::processInboundAudio(unsigned int sampleTime, const QByteArr
     _inboundAudioDelays.clear();
     _inboundEchoesSuppressed.clear();
     echoAudio(INBOUND_AUDIO, sampleTime, samples, format);
+    _inboundEchoesCount = _inboundAudioDelays.size();
+    _inboundEchoesSuppressedCount = _inboundEchoesSuppressed.size();
 }
 
 void AudioReflector::echoAudio(AudioSource source, unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
+    QMutexLocker locker(&_mutex);
+
     _maxDelay = 0;
     _maxAttenuation = 0.0f;
     _minDelay = std::numeric_limits<int>::max();
@@ -292,14 +361,20 @@ void AudioReflector::echoAudio(AudioSource source, unsigned int sampleTime, cons
     _totalAttenuation = 0.0f;
     _attenuationCount = 0;
 
-    QMutexLocker locker(&_mutex);
-
     // depending on if we're processing local or external audio, pick the correct points vector
     QVector<AudiblePoint>& audiblePoints = source == INBOUND_AUDIO ? _inboundAudiblePoints : _localAudiblePoints;
 
+    int injectCalls = 0;
+    _injectedEchoes = 0;
     foreach(const AudiblePoint& audiblePoint, audiblePoints) {
+        injectCalls++;
         injectAudiblePoint(source, audiblePoint, samples, sampleTime, format.sampleRate());
     }
+    
+    /*
+    qDebug() << "injectCalls=" << injectCalls;
+    qDebug() << "_injectedEchoes=" << _injectedEchoes;
+    */
 
     _averageDelay = _delayCount == 0 ? 0 : _totalDelay / _delayCount;
     _averageAttenuation = _attenuationCount == 0 ? 0 : _totalAttenuation / _attenuationCount;
@@ -308,6 +383,14 @@ void AudioReflector::echoAudio(AudioSource source, unsigned int sampleTime, cons
         _minDelay = 0.0f;
         _minAttenuation = 0.0f;
     }
+    
+    _officialMaxDelay = _maxDelay;
+    _officialMinDelay = _minDelay;
+    _officialMaxAttenuation = _maxAttenuation;
+    _officialMinAttenuation = _minAttenuation;
+    _officialAverageDelay = _averageDelay;
+    _officialAverageAttenuation = _averageAttenuation;
+
 }
 
 void AudioReflector::drawVector(const glm::vec3& start, const glm::vec3& end, const glm::vec3& color) {
@@ -357,6 +440,19 @@ void AudioReflector::addAudioPath(AudioSource source, const glm::vec3& origin, c
     QVector<AudioPath*>& audioPaths = source == INBOUND_AUDIO ? _inboundAudioPaths : _localAudioPaths;
 
     audioPaths.push_back(path);
+}
+
+// NOTE: This is a prototype of an eventual utility that will identify the speaking sources for the inbound audio
+// stream. It's not currently called but will be added soon.
+void AudioReflector::identifyAudioSources() {
+    // looking for audio sources....
+    foreach (const AvatarSharedPointer& avatarPointer, _avatarManager->getAvatarHash()) {
+        Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
+        if (!avatar->isInitialized()) {
+            continue;
+        }
+        qDebug() << "avatar["<< avatar <<"] loudness:" <<  avatar->getAudioLoudness();
+    }
 }
 
 void AudioReflector::calculateAllReflections() {
