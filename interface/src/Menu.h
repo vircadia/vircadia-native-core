@@ -304,6 +304,7 @@ namespace MenuOption {
     const QString Fullscreen = "Fullscreen";
     const QString FullscreenMirror = "Fullscreen Mirror";
     const QString GlowMode = "Cycle Glow Mode";
+    const QString GlowWhenSpeaking = "Glow When Speaking";
     const QString GoHome = "Go Home";
     const QString GoTo = "Go To...";
     const QString GoToDomain = "Go To Domain...";
