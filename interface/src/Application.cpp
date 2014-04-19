@@ -2734,7 +2734,7 @@ void Application::displayOverlay() {
             (Menu::getInstance()->isOptionChecked(MenuOption::Stats) &&
             Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth))
                 ? 80 : 20;
-        drawText(_glWidget->width() - 100, _glWidget->height() - timerBottom, 0.30f, 1.0f, 0.f, frameTimer, WHITE_TEXT);
+        drawText(_glWidget->width() - 100, _glWidget->height() - timerBottom, 0.30f, 0.0f, 0, frameTimer, WHITE_TEXT);
     }
 
     _overlays.render2D();
