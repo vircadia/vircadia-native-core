@@ -892,6 +892,11 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position, int last
         lastFreeIndex = freeLineage.last();
     }
 
+    // now update the joint states from the top
+    for (int j = freeLineage.size() - 1; j >= 0; j--) {
+        updateJointState(freeLineage.at(j));
+    }
+    
     // this is a cyclic coordinate descent algorithm: see
     // http://www.ryanjuckett.com/programming/animation/21-cyclic-coordinate-descent-in-2d
     const int ITERATION_COUNT = 1;
@@ -1009,13 +1014,13 @@ void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool cons
         return;
     }
     glm::quat targetRotation = delta * state.combinedRotation;
-    glm::quat newRotation = glm::quat(glm::clamp(safeEulerAngles(state.rotation *
-        glm::inverse(state.combinedRotation) * targetRotation), joint.rotationMin, joint.rotationMax));
+    glm::vec3 eulers = safeEulerAngles(state.rotation * glm::inverse(state.combinedRotation) * targetRotation);
+    glm::quat newRotation = glm::quat(glm::clamp(eulers, joint.rotationMin, joint.rotationMax));
     state.combinedRotation = state.combinedRotation * glm::inverse(state.rotation) * newRotation;
     state.rotation = newRotation;
     
     if (propagate && targetRotation != state.combinedRotation &&
-            joint.parentIndex != -1 && geometry.joints[joint.parentIndex].isFree) {
+            joint.parentIndex != -1 && geometry.joints.at(joint.parentIndex).isFree) {
         applyRotationDelta(joint.parentIndex, targetRotation * glm::inverse(state.combinedRotation), true, true);
         state.combinedRotation = _jointStates.at(joint.parentIndex).combinedRotation * state.rotation;
     }
