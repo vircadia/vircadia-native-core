@@ -238,9 +238,9 @@ void ModelUploader::checkJSON(const QJsonObject& jsonResponse) {
         callbackParams.updateReciever = this;
         callbackParams.updateSlot = SLOT(uploadUpdate(qint64, qint64));
         
-        if (jsonResponse.contains("exists") && jsonResponse.value("exists").toString() == "true") {
+        if (jsonResponse.contains("exists") && jsonResponse.value("exists").toBool()) {
             qDebug() << "exists : true";
-            if (jsonResponse.contains("can_update") && jsonResponse.value("can_update").toString() == "true") {
+            if (jsonResponse.contains("can_update") && jsonResponse.value("can_update").toBool()) {
                 qDebug() << "can_update : true";
                 
                 AccountManager::getInstance().authenticatedRequest(MODEL_URL + "/" + QFileInfo(_url).baseName(),
