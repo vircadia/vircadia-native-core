@@ -279,7 +279,7 @@ void DomainServer::createScriptedAssignmentsFromArray(const QJsonArray &configAr
                     qDebug() << "URL for script is" << assignmentURL;
                     
                     // scripts passed on CL or via JSON are static - so they are added back to the queue if the node dies
-                    addStaticAssignmentToAssignmentHash(scriptAssignment);
+                    _assignmentQueue.enqueue(SharedAssignmentPointer(scriptAssignment));
                 }
             }
         }
@@ -990,6 +990,8 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
                 refreshStaticAssignmentAndAddToQueue(matchedAssignment);
             }
         }
+        
+        if (node->getType() == NodeType::Agent && n
         
         // cleanup the connection secrets that we set up for this node (on the other nodes)
         foreach (const QUuid& otherNodeSessionUUID, nodeData->getSessionSecretHash().keys()) {
