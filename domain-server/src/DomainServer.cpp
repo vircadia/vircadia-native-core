@@ -344,7 +344,6 @@ const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
     << NodeType::AvatarMixer << NodeType::VoxelServer << NodeType::ParticleServer
     << NodeType::MetavoxelServer;
 
-
 void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packet, const HifiSockAddr& senderSockAddr) {
 
     NodeType_t nodeType;
@@ -353,34 +352,40 @@ void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packe
     int numPreInterestBytes = parseNodeDataFromByteArray(nodeType, publicSockAddr, localSockAddr, packet, senderSockAddr);
     
     QUuid assignmentUUID = uuidFromPacketHeader(packet);
-    SharedAssignmentPointer matchingAssignment;
+    bool isStaticAssignment = _staticAssignmentHash.contains(assignmentUUID);
+    SharedAssignmentPointer matchingAssignment = SharedAssignmentPointer();
     
-    if (!assignmentUUID.isNull() && (matchingAssignment = matchingStaticAssignmentForCheckIn(assignmentUUID, nodeType))
-        && matchingAssignment) {
-        // this is an assigned node, make sure the UUID sent is for an assignment we're actually trying to give out
+    if (isStaticAssignment) {
+        // this is a static assignment, make sure the UUID sent is for an assignment we're actually trying to give out
+         matchingAssignment = matchingStaticAssignmentForCheckIn(assignmentUUID, nodeType);
         
-        // remove the matching assignment from the assignment queue so we don't take the next check in
-        // (if it exists)
-        removeMatchingAssignmentFromQueue(matchingAssignment);
+        if (matchingAssignment) {
+            // remove the matching assignment from the assignment queue so we don't take the next check in
+            // (if it exists)
+            removeMatchingAssignmentFromQueue(matchingAssignment);
+        }
     } else {
         assignmentUUID = QUuid();
     }
     
-    // create a new session UUID for this node
-    QUuid nodeUUID = QUuid::createUuid();
-    
-    SharedNodePointer newNode = LimitedNodeList::getInstance()->addOrUpdateNode(nodeUUID, nodeType,
-                                                                                publicSockAddr, localSockAddr);
-    
-    // when the newNode is created the linked data is also created
-    // if this was a static assignment set the UUID, set the sendingSockAddr
-    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
-    
-    nodeData->setStaticAssignmentUUID(assignmentUUID);
-    nodeData->setSendingSockAddr(senderSockAddr);
-    
-    // reply back to the user with a PacketTypeDomainList
-    sendDomainListToNode(newNode, senderSockAddr, nodeInterestListFromPacket(packet, numPreInterestBytes));
+    // make sure this was either not a static assignment or it was and we had a matching one in teh queue
+    if ((!isStaticAssignment && !STATICALLY_ASSIGNED_NODES.contains(nodeType)) || (isStaticAssignment && matchingAssignment)) {
+        // create a new session UUID for this node
+        QUuid nodeUUID = QUuid::createUuid();
+        
+        SharedNodePointer newNode = LimitedNodeList::getInstance()->addOrUpdateNode(nodeUUID, nodeType,
+                                                                                    publicSockAddr, localSockAddr);
+        
+        // when the newNode is created the linked data is also created
+        // if this was a static assignment set the UUID, set the sendingSockAddr
+        DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
+        
+        nodeData->setStaticAssignmentUUID(assignmentUUID);
+        nodeData->setSendingSockAddr(senderSockAddr);
+        
+        // reply back to the user with a PacketTypeDomainList
+        sendDomainListToNode(newNode, senderSockAddr, nodeInterestListFromPacket(packet, numPreInterestBytes));
+    }
 }
 
 int DomainServer::parseNodeDataFromByteArray(NodeType_t& nodeType, HifiSockAddr& publicSockAddr,
