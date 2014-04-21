@@ -3377,8 +3377,8 @@ void Application::uploadSkeleton() {
     uploadFST(false);
 }
 
-ScriptEngine* Application::loadScript(const QString& scriptName, bool focusMainWindow) {
-    if(_scriptEnginesHash.contains(scriptName) && !_scriptEnginesHash[scriptName]->isFinished()){
+ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScriptFromEditor) {
+    if(loadScriptFromEditor && _scriptEnginesHash.contains(scriptName) && !_scriptEnginesHash[scriptName]->isFinished()){
         return _scriptEnginesHash[scriptName];
     }
 
@@ -3436,7 +3436,7 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool focusMainW
     workerThread->start();
 
     // restore the main window's active state
-    if (focusMainWindow) {
+    if (!loadScriptFromEditor) {
         _window->activateWindow();
     }
     bumpSettings();

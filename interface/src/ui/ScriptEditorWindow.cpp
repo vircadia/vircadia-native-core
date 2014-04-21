@@ -180,11 +180,11 @@ void ScriptEditorWindow::closeEvent(QCloseEvent *event) {
 
 void ScriptEditorWindow::updateScriptNameOrStatus() {
     ScriptEditorWidget* source = (ScriptEditorWidget*)QObject::sender();
-    QString modifiedStar = (source->isModified()?"*":"");
+    QString modifiedStar = (source->isModified()? "*" : "");
     if (source->getScriptName().length() > 0) {
         for (int i = 0; i < _ScriptEditorWindowUI->tabWidget->count(); i++){
             if (_ScriptEditorWindowUI->tabWidget->widget(i) == source) {
-                _ScriptEditorWindowUI->tabWidget->setTabText(i,modifiedStar + QFileInfo(source->getScriptName()).fileName());
+                _ScriptEditorWindowUI->tabWidget->setTabText(i, modifiedStar + QFileInfo(source->getScriptName()).fileName());
                 _ScriptEditorWindowUI->tabWidget->setTabToolTip(i, source->getScriptName());
             }
         }

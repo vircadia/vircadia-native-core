@@ -71,7 +71,7 @@ bool ScriptEditorWidget::setRunning(bool run) {
     disconnect(this, SLOT(onScriptPrint(const QString&)));
 
     if (run) {
-        _scriptEngine = Application::getInstance()->loadScript(_currentScript, false);
+        _scriptEngine = Application::getInstance()->loadScript(_currentScript, true);
         connect(_scriptEngine, SIGNAL(runningStateChanged()), this, SIGNAL(runningStateChanged()));
 
         // Make new connections.
