@@ -1,5 +1,5 @@
 //
-//  seeingVoxelsExample.js
+//  testingVoxelSeeingRestart.js
 //  hifi
 //
 //  Created by Brad Hefta-Gaub on 2/26/14
