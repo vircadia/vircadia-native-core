@@ -17,9 +17,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include <AABox.h>
+#include "AABox.h"
 #include "Plane.h"
-
 #include "OctreeConstants.h"
 #include "OctreeProjectedPolygon.h"
 

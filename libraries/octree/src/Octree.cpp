@@ -710,16 +710,16 @@ bool findShapeCollisionsOp(OctreeElement* node, void* extraData) {
     const ShapeArgs* args = static_cast<ShapeArgs*>(extraData);
 
     // coarse check against bounds
-    AABox box = node->getAABox();
-    box.scale(TREE_SCALE);
-    if (!box.expandedContains(args->shape->getPosition(), args->shape->getBoundingRadius())) {
+    AABox cube = node->getAABox();
+    cube.scale(TREE_SCALE);
+    if (!cube.expandedContains(args->shape->getPosition(), args->shape->getBoundingRadius())) {
         return false;
     }
     if (!node->isLeaf()) {
         return true; // recurse on children
     }
     if (node->hasContent()) {
-        return ShapeCollider::collideShapeWithBox(args->shape, box, args->collisions);
+        return ShapeCollider::collideShapeWithAACube(args->shape, cube.calcCenter(), cube.getScale(), args->collisions);
     }
     return false;
 }

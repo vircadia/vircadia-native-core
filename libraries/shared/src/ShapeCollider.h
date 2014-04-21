@@ -12,7 +12,6 @@
 #ifndef hifi_ShapeCollider_h
 #define hifi_ShapeCollider_h
 
-#include "AABox.h"
 #include "CapsuleShape.h"
 #include "CollisionInfo.h"
 #include "ListShape.h"
@@ -35,10 +34,11 @@ namespace ShapeCollider {
     bool collideShapesCoarse(const QVector<const Shape*>& shapesA, const QVector<const Shape*>& shapesB, CollisionInfo& collision);
 
     /// \param shapeA a pointer to a shape
-    /// \param boxB an axis aligned box
+    /// \param cubeCenter center of cube
+    /// \param cubeSide lenght of side of cube
     /// \param collisions[out] average collision details
-    /// \return true if shapeA collides with boxB
-    bool collideShapeWithBox(const Shape* shapeA, const AABox& boxB, CollisionList& collisions);
+    /// \return true if shapeA collides with axis aligned cube
+    bool collideShapeWithAACube(const Shape* shapeA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions);
 
     /// \param sphereA pointer to first shape
     /// \param sphereB pointer to second shape
@@ -135,6 +135,20 @@ namespace ShapeCollider {
     /// \param[out] collisions where to append collision details
     /// \return true if shapes collide
     bool listList(const ListShape* listA, const ListShape* listB, CollisionList& collisions);
+
+    /// \param sphereA pointer to sphere
+    /// \param cubeCenter center of cube
+    /// \param cubeSide lenght of side of cube
+    /// \param[out] collisions where to append collision details
+    /// \return true if sphereA collides with axis aligned cube
+    bool sphereAACube(const SphereShape* sphereA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions);
+
+    /// \param capsuleA pointer to capsule
+    /// \param cubeCenter center of cube
+    /// \param cubeSide lenght of side of cube
+    /// \param[out] collisions where to append collision details
+    /// \return true if capsuleA collides with axis aligned cube
+    bool capsuleAACube(const CapsuleShape* capsuleA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions);
 
 }   // namespace ShapeCollider
 

@@ -15,16 +15,16 @@
 
 #include <QtCore/QDebug>
 
-#include <AABox.h>
 #include <NodeList.h>
 #include <PerfStat.h>
 #include <assert.h>
 
+#include "AABox.h"
 #include "OctalCode.h"
-#include "SharedUtil.h"
 #include "OctreeConstants.h"
 #include "OctreeElement.h"
 #include "Octree.h"
+#include "SharedUtil.h"
 
 quint64 OctreeElement::_voxelMemoryUsage = 0;
 quint64 OctreeElement::_octcodeMemoryUsage = 0;

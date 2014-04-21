@@ -92,8 +92,26 @@ bool collideShapesCoarse(const QVector<const Shape*>& shapesA, const QVector<con
     return false;
 }
 
-bool collideShapeWithBox(const Shape* shapeA, const AABox& boxB, CollisionList& collisions) {
-    // TODO: Andrew to implement this
+bool collideShapeWithAACube(const Shape* shapeA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions) {
+    int typeA = shapeA->getType();
+    if (typeA == Shape::SPHERE_SHAPE) {
+        return sphereAACube(static_cast<const SphereShape*>(shapeA), cubeCenter, cubeSide, collisions);
+    } else if (typeA == Shape::CAPSULE_SHAPE) {
+        return capsuleAACube(static_cast<const CapsuleShape*>(shapeA), cubeCenter, cubeSide, collisions);
+    } else if (typeA == Shape::LIST_SHAPE) {
+        const ListShape* listA = static_cast<const ListShape*>(shapeA);
+        bool touching = false;
+        for (int i = 0; i < listA->size() && !collisions.isFull(); ++i) {
+            const Shape* subShape = listA->getSubShape(i);
+            int subType = subShape->getType();
+            if (subType == Shape::SPHERE_SHAPE) {
+                touching = sphereAACube(static_cast<const SphereShape*>(subShape), cubeCenter, cubeSide, collisions) || touching;
+            } else if (subType == Shape::CAPSULE_SHAPE) {
+                touching = capsuleAACube(static_cast<const CapsuleShape*>(subShape), cubeCenter, cubeSide, collisions) || touching;
+            }
+        }
+        return touching;
+    }
     return false;
 }
 
@@ -571,5 +589,63 @@ bool listList(const ListShape* listA, const ListShape* listB, CollisionList& col
     }
     return touching;
 }
+
+// helper function
+bool sphereAACube(const glm::vec3& sphereCenter, float sphereRadius, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions) {
+    glm::vec3 BA = cubeCenter - sphereCenter;
+    float distance = glm::length(BA);
+    if (distance > EPSILON) {
+        BA /= distance; // BA is now normalized
+        // compute the nearest point on sphere
+        glm::vec3 surfaceA = sphereCenter + sphereRadius * BA;
+        // compute the nearest point on cube
+        float maxBA = glm::max(glm::max(fabs(BA.x), fabs(BA.y)), fabs(BA.z));
+        glm::vec3 surfaceB = cubeCenter - (0.5f * cubeSide / maxBA) * BA;
+        // collision happens when "vector to surfaceB from surfaceA" dots with BA to produce a positive value
+        glm::vec3 surfaceBA = surfaceB - surfaceA;
+        if (glm::dot(surfaceBA, BA) > 0.f) {
+            CollisionInfo* collision = collisions.getNewCollision();
+            if (collision) {
+                collision->_penetration = surfaceBA;
+                // contactPoint is on surface of A
+                collision->_contactPoint = surfaceA;
+                return true;
+            }
+        }
+    } else if (sphereRadius + 0.5f * cubeSide > distance) {
+        // NOTE: for cocentric approximation we collide sphere and cube as two spheres which means 
+        // this algorithm will probably be wrong when both sphere and cube are very small (both ~EPSILON)
+        CollisionInfo* collision = collisions.getNewCollision();
+        if (collision) {
+            // the penetration and contactPoint are undefined, so we pick a penetration direction (-yAxis)
+            collision->_penetration = (sphereRadius + 0.5f * cubeSide) * glm::vec3(0.0f, -1.0f, 0.0f);
+            // contactPoint is on surface of A
+            collision->_contactPoint = sphereCenter + collision->_penetration;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool sphereAACube(const SphereShape* sphereA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions) {
+    return sphereAACube(sphereA->getPosition(), sphereA->getRadius(), cubeCenter, cubeSide, collisions);
+}
+
+bool capsuleAACube(const CapsuleShape* capsuleA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions) {
+    // find nerest approach of capsule line segment to cube
+    glm::vec3 capsuleAxis;
+    capsuleA->computeNormalizedAxis(capsuleAxis);
+    float offset = glm::dot(cubeCenter - capsuleA->getPosition(), capsuleAxis);
+    float halfHeight = capsuleA->getHalfHeight();
+    if (offset > halfHeight) {
+        offset = halfHeight;
+    } else if (offset < -halfHeight) {
+        offset = -halfHeight;
+    }
+    glm::vec3 nearestApproach = capsuleA->getPosition() + offset * capsuleAxis;
+    // collide nearest approach like a sphere at that point
+    return sphereAACube(nearestApproach, capsuleA->getRadius(), cubeCenter, cubeSide, collisions);
+}
+
 
 }   // namespace ShapeCollider
