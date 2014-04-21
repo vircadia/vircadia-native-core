@@ -17,7 +17,6 @@
 
 #include <AccountManager.h>
 #include <Assignment.h>
-#include <DebuggingEventDispatcher.h>
 #include <Logging.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
@@ -146,11 +145,6 @@ void AssignmentClient::readPendingDatagrams() {
                     // start the deployed assignment
                     AssignmentThread* workerThread = new AssignmentThread(_currentAssignment, this);
                     
-                    qDebug() << "workerThread->eventDispatcher()=" << workerThread->eventDispatcher();
-                    qDebug() << "thread()->eventDispatcher()=" << thread()->eventDispatcher();
-                    
-                    //DebuggingEventDispatcher* debugDispatcher = new DebuggingEventDispatcher(workerThread);
-                    
                     connect(workerThread, &QThread::started, _currentAssignment.data(), &ThreadedAssignment::run);
                     connect(_currentAssignment.data(), &ThreadedAssignment::finished, workerThread, &QThread::quit);
                     connect(_currentAssignment.data(), &ThreadedAssignment::finished,
@@ -169,10 +163,6 @@ void AssignmentClient::readPendingDatagrams() {
                     
                     // Starts an event loop, and emits workerThread->started()
                     workerThread->start();
-
-                    qDebug() << "workerThread->eventDispatcher()=" << workerThread->eventDispatcher();
-                    qDebug() << "thread()->eventDispatcher()=" << thread()->eventDispatcher();
-
                 } else {
                     qDebug() << "Received an assignment that could not be unpacked. Re-requesting.";
                 }
