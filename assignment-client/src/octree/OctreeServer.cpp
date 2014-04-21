@@ -9,7 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QAbstractEventDispatcher>
 #include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QTimer>
@@ -209,15 +208,10 @@ void OctreeServer::trackProcessWaitTime(float time) {
 }
 
 void OctreeServer::attachQueryNodeToNode(Node* newNode) {
-    quint64 start = usecTimestampNow();
     if (!newNode->getLinkedData() && _instance) {
         OctreeQueryNode* newQueryNodeData = _instance->createOctreeQueryNode();
         newQueryNodeData->init();
         newNode->setLinkedData(newQueryNodeData);
-    }
-    quint64 end = usecTimestampNow();
-    if (end - start > 1000) {
-        qDebug() << "OctreeServer::attachQueryNodeToNode() took:" << (end - start);
     }
 }
 
@@ -242,7 +236,6 @@ OctreeServer::OctreeServer(const QByteArray& packet) :
     _started(time(0)),
     _startedUSecs(usecTimestampNow())
 {
-    //assert(!_instance); // you should only ever have one instance at a time!
     if (_instance) {
         qDebug() << "Octree Server starting... while old instance still running _instance=["<<_instance<<"] this=[" << this << "]";
     }
@@ -252,23 +245,6 @@ OctreeServer::OctreeServer(const QByteArray& packet) :
 
     _averageLoopTime.updateAverage(0);
     qDebug() << "Octree server starting... [" << this << "]";
-
-
-    /*
-    QTimer* timer = new QTimer(this);
-    connect(timer, SIGNAL(timeout()), SLOT(doNothing()));
-    timer->start(0);
-    */
-
-}
-
-quint64 lastNothing = usecTimestampNow();
-void OctreeServer::doNothing() {
-    quint64 now = usecTimestampNow();
-    if (now - lastNothing > 100) {
-        qDebug() << "since last doNothing:" << (now - lastNothing);
-    }
-    lastNothing = now;
 }
 
 OctreeServer::~OctreeServer() {
@@ -299,7 +275,7 @@ OctreeServer::~OctreeServer() {
     _jurisdiction = NULL;
     
     // cleanup our tree here...
-    qDebug() << qPrintable(_safeServerName) << "server cleaning up octree... [" << this << "]";
+    qDebug() << qPrintable(_safeServerName) << "server START cleaning up octree... [" << this << "]";
     delete _tree;
     _tree = NULL;
     qDebug() << qPrintable(_safeServerName) << "server DONE cleaning up octree... [" << this << "]";
@@ -845,164 +821,41 @@ void OctreeServer::parsePayload() {
     }
 }
 
-quint64 lastReadPendingDatagrams = usecTimestampNow();
-quint64 lastProcessNodeData = usecTimestampNow();
-
 void OctreeServer::readPendingDatagrams() {
-    //qDebug() << "OctreeServer::readPendingDatagrams()... thread()->eventDispatcher()=" << thread()->eventDispatcher();
-
-
-    quint64 now = usecTimestampNow();
-    
-    // more than 1.1 second is probably a problem
-    if ((now - lastReadPendingDatagrams) > 1100000) {
-        qDebug() << "OctreeServer::readPendingDatagrams(): since lastReadPendingDatagrams=" << (now - lastReadPendingDatagrams) << "usecs";
-    }
-    lastReadPendingDatagrams = now;
-
     QByteArray receivedPacket;
     HifiSockAddr senderSockAddr;
     
     NodeList* nodeList = NodeList::getInstance();
     
-    quint64 startReadAvailable = usecTimestampNow();
-    int readDataGrams = 0;
-
-    int queryPackets = 0;
-    int jurisdictionRequests = 0;
-    int editPackets = 0;
-    int nodeListPackets = 0;
-
-    quint64 queryElapsed = 0;
-    quint64 jurisdictionElapsed = 0;
-    quint64 editElapsed = 0;
-    quint64 nodeListElapsed = 0;
-    quint64 versionMatchElapsed = 0;
-    quint64 matchingElapsed = 0;
-    
-    
     while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
-        readDataGrams++;
-        
-        quint64 versionMatchStart = usecTimestampNow();
-        bool matches = nodeList->packetVersionAndHashMatch(receivedPacket);
-        quint64 versionMatchEnd = usecTimestampNow();
-        versionMatchElapsed += (versionMatchEnd - versionMatchStart);
-        
-        if (matches) {
+        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
             PacketType packetType = packetTypeForPacket(receivedPacket);
-            
-            quint64 startNodeLookup = usecTimestampNow();
             SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
-            quint64 endNodeLookup = usecTimestampNow();
-            matchingElapsed += (endNodeLookup - startNodeLookup);
-
-            if ((endNodeLookup - startNodeLookup) > 100000) {
-                qDebug() << "OctreeServer::readPendingDatagrams(): sendingNodeForPacket() took" << (endNodeLookup - startNodeLookup) << "usecs";
-            }
-            
             if (packetType == getMyQueryMessageType()) {
-            
-                quint64 queryStart = usecTimestampNow();
-                queryPackets++;
             
                 // If we got a PacketType_VOXEL_QUERY, then we're talking to an NodeType_t_AVATAR, and we
                 // need to make sure we have it in our nodeList.
                 if (matchingNode) {
-                    quint64 startUpdateNode = usecTimestampNow();
                     nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
-                    quint64 endUpdateNode = usecTimestampNow();
-                    if ((endUpdateNode - startUpdateNode) > 100000) {
-                        qDebug() << "OctreeServer::readPendingDatagrams(): updateNodeWithDataFromPacket() took" << (endUpdateNode - startUpdateNode) << "usecs";
-                    }
-                    
                     OctreeQueryNode* nodeData = (OctreeQueryNode*) matchingNode->getLinkedData();
                     if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
                         SharedAssignmentPointer sharedAssignment = AssignmentClient::getCurrentAssignment();
                         nodeData->initializeOctreeSendThread(sharedAssignment, matchingNode);
                     }
                 }
-                quint64 queryEnd = usecTimestampNow();
-                queryElapsed += (queryEnd - queryStart);
             } else if (packetType == PacketTypeJurisdictionRequest) {
-                quint64 jurisdictionStart = usecTimestampNow();
-                jurisdictionRequests++;
                 _jurisdictionSender->queueReceivedPacket(matchingNode, receivedPacket);
-                quint64 jurisdictionEnd = usecTimestampNow();
-                jurisdictionElapsed += (jurisdictionEnd - jurisdictionStart);
             } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
-                quint64 editStart = usecTimestampNow();
-                editPackets++;
                 _octreeInboundPacketProcessor->queueReceivedPacket(matchingNode, receivedPacket);
-                quint64 editEnd = usecTimestampNow();
-                editElapsed += (editEnd - editStart);
             } else {
-                quint64 nodeListStart = usecTimestampNow();
-
-                nodeListPackets++;
-                quint64 now = usecTimestampNow();
-
-                // more than 1.1 second is probably a problem
-                if ((now - lastProcessNodeData) > 1100000) {
-                    qDebug() << "OctreeServer::readPendingDatagrams(): since lastProcessNodeData=" << (now - lastProcessNodeData) << "usecs";
-                }
-                lastProcessNodeData = now;
-
                 // let processNodeData handle it.
-                quint64 startProcessNodeData = usecTimestampNow();
                 NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
-                quint64 endProcessNodeData = usecTimestampNow();
-                if ((endProcessNodeData - startProcessNodeData) > 100000) {
-                    qDebug() << "OctreeServer::readPendingDatagrams(): processNodeData() took" << (endProcessNodeData - startProcessNodeData) << "usecs";
-                }
-
-                quint64 nodeListEnd = usecTimestampNow();
-                nodeListElapsed += (nodeListEnd - nodeListStart);
             }
         }
-    }
-    quint64 endReadAvailable = usecTimestampNow();
-    if (endReadAvailable - startReadAvailable > 500000) {
-        qDebug() << "OctreeServer::readPendingDatagrams(): while(readAvailable) took" << (endReadAvailable - startReadAvailable) << "usecs"
-            << " readDataGrams=" << readDataGrams
-            << " nodeListPackets=" << nodeListPackets
-            << " editPackets=" << editPackets
-            << " jurisdictionRequests=" << jurisdictionRequests
-            << " queryPackets=" << queryPackets;
-
-        qDebug() << "OctreeServer::readPendingDatagrams(): while(readAvailable) took" << (endReadAvailable - startReadAvailable) << "usecs"
-            << " nodeListElapsed=" << nodeListElapsed
-            << " editElapsed=" << editElapsed
-            << " jurisdictionElapsed=" << jurisdictionElapsed
-            << " queryElapsed=" << queryElapsed
-            << " versionMatchElapsed=" << versionMatchElapsed
-            << " matchingElapsed=" << matchingElapsed;
-    }
-
-}
-
-void OctreeServer::aboutToBlock() {
-    const bool wantDebug = false;
-    if (wantDebug) {
-        qDebug() << "OctreeServer::aboutToBlock()...";
-    }
-}
-
-void OctreeServer::awake() {
-    const bool wantDebug = false;
-    if (wantDebug) {
-        qDebug() << "OctreeServer::awake()...";
     }
 }
 
 void OctreeServer::run() {
-
-    QAbstractEventDispatcher* eventDispatcher = thread()->eventDispatcher();
-    qDebug() << "OctreeServer::run()... thread()->eventDispatcher()=" << eventDispatcher;
-
-    connect(eventDispatcher, &QAbstractEventDispatcher::aboutToBlock, this, &OctreeServer::aboutToBlock);
-    connect(eventDispatcher, &QAbstractEventDispatcher::awake, this, &OctreeServer::awake);
-
     _safeServerName = getMyServerName();
     
     // Before we do anything else, create our tree...
