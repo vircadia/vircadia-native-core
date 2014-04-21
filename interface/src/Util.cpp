@@ -405,26 +405,26 @@ void runTimingTests() {
     float fResults[numTests];
     QElapsedTimer startTime;
     startTime.start();
-    float elapsedMsecs;
+    float elapsedUsecs;
     
-    elapsedMsecs = (float)startTime.nsecsElapsed() / 1000.0;
-    qDebug("QElapsedTimer::nsecElapsed() usecs: %f", 1000.0f * elapsedMsecs / (float) numTests);
+    elapsedUsecs = (float)startTime.nsecsElapsed() / 1000.0;
+    qDebug("QElapsedTimer::nsecElapsed() usecs: %f", 1000.0f * elapsedUsecs / (float) numTests);
     
     // Random number generation
     startTime.start();
     for (int i = 1; i < numTests; i++) {
         iResults[i] = rand();
     }
-    elapsedMsecs = (float)startTime.nsecsElapsed() / 1000.0;
-    qDebug("rand() stored in array usecs: %f, first result:%d", 1000.0f * elapsedMsecs / (float) numTests, iResults[0]);
+    elapsedUsecs = (float)startTime.nsecsElapsed() / 1000.0;
+    qDebug("rand() stored in array usecs: %f, first result:%d", 1000.0f * elapsedUsecs / (float) numTests, iResults[0]);
 
     // Random number generation using randFloat()
     startTime.start();
     for (int i = 1; i < numTests; i++) {
         fResults[i] = randFloat();
     }
-    elapsedMsecs = (float)startTime.nsecsElapsed() / 1000.0;
-    qDebug("randFloat() stored in array usecs: %f, first result: %f", 1000.0f * elapsedMsecs / (float) numTests, fResults[0]);
+    elapsedUsecs = (float)startTime.nsecsElapsed() / 1000.0;
+    qDebug("randFloat() stored in array usecs: %f, first result: %f", 1000.0f * elapsedUsecs / (float) numTests, fResults[0]);
 
     //  PowF function
     fTest = 1145323.2342f;
@@ -432,8 +432,8 @@ void runTimingTests() {
     for (int i = 1; i < numTests; i++) {
         fTest = powf(fTest, 0.5f);
     }
-    elapsedMsecs = (float)startTime.nsecsElapsed() / 1000.0;
-    qDebug("powf(f, 0.5) usecs: %f", 1000.0f * elapsedMsecs / (float) numTests);
+    elapsedUsecs = (float)startTime.nsecsElapsed() / 1000.0;
+    qDebug("powf(f, 0.5) usecs: %f", 1000.0f * elapsedUsecs / (float) numTests);
 
     //  Vector Math
     float distance;
@@ -444,9 +444,9 @@ void runTimingTests() {
         //float distanceSquared = glm::dot(temp, temp);
         distance = glm::distance(pointA, pointB);
     }
-    elapsedMsecs = (float)startTime.nsecsElapsed() / 1000.0;
-    qDebug("vector math usecs: %f [%f msecs total for %d tests], last result:%f",
-             1000.0f * elapsedMsecs / (float) numTests, elapsedMsecs, numTests, distance);
+    elapsedUsecs = (float)startTime.nsecsElapsed() / 1000.0;
+    qDebug("vector math usecs: %f [%f usecs total for %d tests], last result:%f",
+             1000.0f * elapsedUsecs / (float) numTests, elapsedUsecs, numTests, distance);
 
     //  Vec3 test
     glm::vec3 vecA(randVector()), vecB(randVector());
@@ -457,8 +457,8 @@ void runTimingTests() {
         glm::vec3 temp = vecA-vecB;
         result = glm::dot(temp,temp);
     }
-    elapsedMsecs = (float)startTime.nsecsElapsed() / 1000.0;
-    qDebug("vec3 assign and dot() usecs: %f, last result:%f", 1000.0f * elapsedMsecs / (float) numTests, result);
+    elapsedUsecs = (float)startTime.nsecsElapsed() / 1000.0;
+    qDebug("vec3 assign and dot() usecs: %f, last result:%f", 1000.0f * elapsedUsecs / (float) numTests, result);
 }
 
 float loadSetting(QSettings* settings, const char* name, float defaultValue) {
