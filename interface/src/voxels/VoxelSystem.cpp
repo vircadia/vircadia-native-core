@@ -117,7 +117,7 @@ void VoxelSystem::elementDeleted(OctreeElement* element) {
             forceRemoveNodeFromArrays(voxel);
         } else {
             if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
-                printf("VoxelSystem::elementDeleted() while _voxelsInWriteArrays==0, is that expected? \n");
+                qDebug("VoxelSystem::elementDeleted() while _voxelsInWriteArrays==0, is that expected? ");
             }
         }
     }

@@ -3122,7 +3122,7 @@ void Application::nodeKilled(SharedNodePointer node) {
             VoxelPositionSize rootDetails;
             voxelDetailsForCode(rootCode, rootDetails);
 
-            printf("voxel server going away...... v[%f, %f, %f, %f]\n",
+            qDebug("voxel server going away...... v[%f, %f, %f, %f]",
                 rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
 
             // Add the jurisditionDetails object to the list of "fade outs"
@@ -3153,7 +3153,7 @@ void Application::nodeKilled(SharedNodePointer node) {
             VoxelPositionSize rootDetails;
             voxelDetailsForCode(rootCode, rootDetails);
 
-            printf("particle server going away...... v[%f, %f, %f, %f]\n",
+            qDebug("particle server going away...... v[%f, %f, %f, %f]",
                 rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
 
             // Add the jurisditionDetails object to the list of "fade outs"
@@ -3234,7 +3234,7 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
 
 
         if (jurisdiction->find(nodeUUID) == jurisdiction->end()) {
-            printf("stats from new server... v[%f, %f, %f, %f]\n",
+            qDebug("stats from new server... v[%f, %f, %f, %f]",
                 rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
 
             // Add the jurisditionDetails object to the list of "fade outs"

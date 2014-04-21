@@ -142,7 +142,7 @@ bool ParticleTreeElement::updateParticle(const Particle& particle) {
             bool localOlder = thisParticle.getLastUpdated() < particle.getLastUpdated();
             if (changedOnServer || localOlder) {
                 if (wantDebug) {
-                    printf("local particle [id:%d] %s and %s than server particle by %d, particle.isNewlyCreated()=%s\n",
+                    qDebug("local particle [id:%d] %s and %s than server particle by %d, particle.isNewlyCreated()=%s",
                             particle.getID(), (changedOnServer ? "CHANGED" : "same"),
                             (localOlder ? "OLDER" : "NEWER"),
                             difference, debug::valueOf(particle.isNewlyCreated()) );
@@ -150,8 +150,8 @@ bool ParticleTreeElement::updateParticle(const Particle& particle) {
                 thisParticle.copyChangedProperties(particle);
             } else {
                 if (wantDebug) {
-                    printf(">>> IGNORING SERVER!!! Would've caused jutter! <<<  "
-                            "local particle [id:%d] %s and %s than server particle by %d, particle.isNewlyCreated()=%s\n",
+                    qDebug(">>> IGNORING SERVER!!! Would've caused jutter! <<<  "
+                            "local particle [id:%d] %s and %s than server particle by %d, particle.isNewlyCreated()=%s",
                             particle.getID(), (changedOnServer ? "CHANGED" : "same"),
                             (localOlder ? "OLDER" : "NEWER"),
                             difference, debug::valueOf(particle.isNewlyCreated()) );

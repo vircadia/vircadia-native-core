@@ -486,7 +486,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
         // encode
         float averageEncodeTime = getAverageEncodeTime();
-        statsString += QString().sprintf("                 Average encode time:    %9.2f usecs\r\n", averageEncodeTime);
+        statsString += QString().sqDebug("                 Average encode time:    %9.2f usecs\r", averageEncodeTime);
         
         int allEncodeTimes = _noEncode + _shortEncode + _longEncode + _extraLongEncode;
 
@@ -554,9 +554,9 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                                          noVsTotalSend * AS_PERCENT, _noSend);
                                         
         float averageNodeWaitTime = getAverageNodeWaitTime();
-        statsString += QString().sprintf("         Average node lock wait time:    %9.2f usecs\r\n", averageNodeWaitTime);
+        statsString += QString().sqDebug("         Average node lock wait time:    %9.2f usecs\r", averageNodeWaitTime);
 
-        statsString += QString().sprintf("--------------------------------------------------------------\r\n");
+        statsString += QString().sqDebug("--------------------------------------------------------------\r");
 
         float encodeToInsidePercent = averageInsideTime == 0.0f ? 0.0f : (averageEncodeTime / averageInsideTime) * AS_PERCENT;
         statsString += QString().sprintf("                          encode ratio:      %5.2f%%\r\n", 
@@ -564,7 +564,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
         float waitToInsidePercent = averageInsideTime == 0.0f ? 0.0f 
                     : ((averageTreeWaitTime + averageNodeWaitTime) / averageInsideTime) * AS_PERCENT;
-        statsString += QString().sprintf("                         waiting ratio:      %5.2f%%\r\n", waitToInsidePercent);
+        statsString += QString().sqDebug("                         waiting ratio:      %5.2f%%\r", waitToInsidePercent);
 
         float compressAndWriteToInsidePercent = averageInsideTime == 0.0f ? 0.0f 
                     : (averageCompressAndWriteTime / averageInsideTime) * AS_PERCENT;
@@ -573,7 +573,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
         float sendingToInsidePercent = averageInsideTime == 0.0f ? 0.0f 
                     : (averagePacketSendingTime / averageInsideTime) * AS_PERCENT;
-        statsString += QString().sprintf("                         sending ratio:      %5.2f%%\r\n", sendingToInsidePercent);
+        statsString += QString().sqDebug("                         sending ratio:      %5.2f%%\r", sendingToInsidePercent);
         
 
 
@@ -615,7 +615,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             .arg(locale.toString((uint)totalPacketsProcessed).rightJustified(COLUMN_WIDTH, ' '));
         statsString += QString("          Total Inbound Elements: %1 elements\r\n")
             .arg(locale.toString((uint)totalElementsProcessed).rightJustified(COLUMN_WIDTH, ' '));
-        statsString += QString().sprintf(" Average Inbound Elements/Packet: %f elements/packet\r\n", averageElementsPerPacket);
+        statsString += QString().sqDebug(" Average Inbound Elements/Packet: %f elements/packet\r", averageElementsPerPacket);
         statsString += QString("     Average Transit Time/Packet: %1 usecs\r\n")
             .arg(locale.toString((uint)averageTransitTimePerPacket).rightJustified(COLUMN_WIDTH, ' '));
         statsString += QString("     Average Process Time/Packet: %1 usecs\r\n")
@@ -671,7 +671,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
         // display memory usage stats
         statsString += "<b>Current Memory Usage Statistics</b>\r\n";
-        statsString += QString().sprintf("\r\nOctreeElement size... %ld bytes\r\n", sizeof(OctreeElement));
+        statsString += QString().sqDebug("\r\nOctreeElement size... %ld bytes\r", sizeof(OctreeElement));
         statsString += "\r\n";
 
         const char* memoryScaleLabel;
@@ -738,8 +738,8 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         OctreeElement::getExternalChildrenCount();
 
         statsString += "                                ----------------\r\n";
-        statsString += QString().sprintf("                         Total: %10.llu nodes\r\n", checkSum);
-        statsString += QString().sprintf("                      Expected: %10.lu nodes\r\n", nodeCount);
+        statsString += QString().sqDebug("                         Total: %10.llu nodes\r", checkSum);
+        statsString += QString().sqDebug("                      Expected: %10.lu nodes\r", nodeCount);
 
         statsString += "\r\n";
         statsString += "In other news....\r\n";
