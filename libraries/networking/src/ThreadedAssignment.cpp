@@ -59,7 +59,7 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
         statsTimer->start(1000);
     }
 
-    qDebug() << "ThreadedAssignment::commonInit()... thread()->eventDispatcher()=" << thread()->eventDispatcher();
+    //qDebug() << "ThreadedAssignment::commonInit()... thread()->eventDispatcher()=" << thread()->eventDispatcher();
 
 }
 
@@ -84,12 +84,12 @@ void ThreadedAssignment::sendStatsPacket() {
 quint64 lastCheckIn = usecTimestampNow();
 void ThreadedAssignment::checkInWithDomainServerOrExit() {
 
-    qDebug() << "ThreadedAssignment::checkInWithDomainServerOrExit()... thread()->eventDispatcher()=" << thread()->eventDispatcher();
+    //qDebug() << "ThreadedAssignment::checkInWithDomainServerOrExit()... thread()->eventDispatcher()=" << thread()->eventDispatcher();
 
 
     quint64 now = usecTimestampNow();
-    if ((now - lastCheckIn) > 100000) {
-        //qDebug() << "ThreadedAssignment::checkInWithDomainServerOrExit(): since lastCheckIn=" << (now - lastCheckIn) << "usecs";
+    if ((now - lastCheckIn) > 1100000) {
+        qDebug() << "ThreadedAssignment::checkInWithDomainServerOrExit(): since lastCheckIn=" << (now - lastCheckIn) << "usecs";
     }
     lastCheckIn = now;
 

@@ -843,12 +843,14 @@ quint64 lastReadPendingDatagrams = usecTimestampNow();
 quint64 lastProcessNodeData = usecTimestampNow();
 
 void OctreeServer::readPendingDatagrams() {
-    qDebug() << "OctreeServer::readPendingDatagrams()... thread()->eventDispatcher()=" << thread()->eventDispatcher();
+    //qDebug() << "OctreeServer::readPendingDatagrams()... thread()->eventDispatcher()=" << thread()->eventDispatcher();
 
 
     quint64 now = usecTimestampNow();
-    if ((now - lastReadPendingDatagrams) > 100000) {
-        //qDebug() << "OctreeServer::readPendingDatagrams(): since lastReadPendingDatagrams=" << (now - lastReadPendingDatagrams) << "usecs";
+    
+    // more than 1.1 second is probably a problem
+    if ((now - lastReadPendingDatagrams) > 1100000) {
+        qDebug() << "OctreeServer::readPendingDatagrams(): since lastReadPendingDatagrams=" << (now - lastReadPendingDatagrams) << "usecs";
     }
     lastReadPendingDatagrams = now;
 
@@ -890,13 +892,11 @@ void OctreeServer::readPendingDatagrams() {
             matchingElapsed += (endNodeLookup - startNodeLookup);
 
             if ((endNodeLookup - startNodeLookup) > 100000) {
-                //qDebug() << "OctreeServer::readPendingDatagrams(): sendingNodeForPacket() took" << (endNodeLookup - startNodeLookup) << "usecs";
+                qDebug() << "OctreeServer::readPendingDatagrams(): sendingNodeForPacket() took" << (endNodeLookup - startNodeLookup) << "usecs";
             }
             
             if (packetType == getMyQueryMessageType()) {
             
-qDebug() << "got a query...";
-
                 quint64 queryStart = usecTimestampNow();
                 queryPackets++;
             
@@ -907,7 +907,7 @@ qDebug() << "got a query...";
                     nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
                     quint64 endUpdateNode = usecTimestampNow();
                     if ((endUpdateNode - startUpdateNode) > 100000) {
-                        //qDebug() << "OctreeServer::readPendingDatagrams(): updateNodeWithDataFromPacket() took" << (endUpdateNode - startUpdateNode) << "usecs";
+                        qDebug() << "OctreeServer::readPendingDatagrams(): updateNodeWithDataFromPacket() took" << (endUpdateNode - startUpdateNode) << "usecs";
                     }
                     
                     OctreeQueryNode* nodeData = (OctreeQueryNode*) matchingNode->getLinkedData();
@@ -935,8 +935,10 @@ qDebug() << "got a query...";
 
                 nodeListPackets++;
                 quint64 now = usecTimestampNow();
-                if ((now - lastProcessNodeData) > 500000) {
-                    //qDebug() << "OctreeServer::readPendingDatagrams(): since lastProcessNodeData=" << (now - lastProcessNodeData) << "usecs";
+
+                // more than 1.1 second is probably a problem
+                if ((now - lastProcessNodeData) > 1100000) {
+                    qDebug() << "OctreeServer::readPendingDatagrams(): since lastProcessNodeData=" << (now - lastProcessNodeData) << "usecs";
                 }
                 lastProcessNodeData = now;
 
@@ -945,7 +947,7 @@ qDebug() << "got a query...";
                 NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
                 quint64 endProcessNodeData = usecTimestampNow();
                 if ((endProcessNodeData - startProcessNodeData) > 100000) {
-                    //qDebug() << "OctreeServer::readPendingDatagrams(): processNodeData() took" << (endProcessNodeData - startProcessNodeData) << "usecs";
+                    qDebug() << "OctreeServer::readPendingDatagrams(): processNodeData() took" << (endProcessNodeData - startProcessNodeData) << "usecs";
                 }
 
                 quint64 nodeListEnd = usecTimestampNow();
@@ -974,11 +976,17 @@ qDebug() << "got a query...";
 }
 
 void OctreeServer::aboutToBlock() {
-    qDebug() << "OctreeServer::aboutToBlock()...";
+    const bool wantDebug = false;
+    if (wantDebug) {
+        qDebug() << "OctreeServer::aboutToBlock()...";
+    }
 }
 
 void OctreeServer::awake() {
-    qDebug() << "OctreeServer::awake()...";
+    const bool wantDebug = false;
+    if (wantDebug) {
+        qDebug() << "OctreeServer::awake()...";
+    }
 }
 
 void OctreeServer::run() {
@@ -1322,6 +1330,8 @@ QString OctreeServer::getStatusLink() {
 }
 
 void OctreeServer::sendStatsPacket() {
+
+    /*
     quint64 start = usecTimestampNow();
     static QJsonObject statsObject1;
     ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject1);
@@ -1329,8 +1339,8 @@ void OctreeServer::sendStatsPacket() {
     if (end - start > 1000) {
         qDebug() << "OctreeServer::sendStatsPacket() took:" << (end - start);
     }
+    */
 
-    /**
     // TODO: we have too many stats to fit in a single MTU... so for now, we break it into multiple JSON objects and
     // send them separately. What we really should do is change the NodeList::sendStatsToDomainServer() to handle the
     // the following features:
@@ -1404,8 +1414,6 @@ void OctreeServer::sendStatsPacket() {
         (double)_octreeInboundPacketProcessor->getAverageLockWaitTimePerElement();
 
     NodeList::getInstance()->sendStatsToDomainServer(statsObject3);
-    
-    **/
 }
 
 QMap<OctreeSendThread*, quint64> OctreeServer::_threadsDidProcess;
