@@ -13,6 +13,7 @@
 #define hifi_ScriptEditorWindow_h
 
 #include <Application.h>
+#include "ScriptEditorWidget.h"
 
 namespace Ui {
 class ScriptEditorWindow;
@@ -25,15 +26,29 @@ public:
     ScriptEditorWindow();
     ~ScriptEditorWindow();
 
+protected:
+    void closeEvent(QCloseEvent *event);
+
 private:
     Ui::ScriptEditorWindow* ui;
-    void addScriptEditorWidget(QString title);
+    QMenu* loadMenu;
+    QMenu* saveMenu;
+    ScriptEditorWidget* addScriptEditorWidget(QString title);
+    void setRunningState(bool run);
+    void setScriptName(const QString& scriptName);
 
 private slots:
+    void loadScriptMenu(const QString& scriptName);
     void loadScriptClicked();
     void newScriptClicked();
     void toggleRunScriptClicked();
     void saveScriptClicked();
+    void saveScriptAsClicked();
+    void loadMenuAboutToShow();
+    void tabSwitched(int tabIndex);
+    void tabCloseRequested(int tabIndex);
+    void updateScriptNameOrStatus();
+    void updateButtons();
 };
 
 #endif // hifi_ScriptEditorWindow_h

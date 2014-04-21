@@ -195,7 +195,7 @@ Menu::Menu() :
 
     QMenu* toolsMenu = addMenu("Tools");
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
-    addActionToQMenuAndActionHash(toolsMenu, MenuOption::ScriptEditor,  Qt::CTRL | Qt::SHIFT | Qt::Key_S, this, SLOT(showScriptEditor()));
+    addActionToQMenuAndActionHash(toolsMenu, MenuOption::ScriptEditor,  Qt::ALT | Qt::Key_S, this, SLOT(showScriptEditor()));
 
 #ifdef HAVE_QXMPP
     _chatAction = addActionToQMenuAndActionHash(toolsMenu,
@@ -1125,7 +1125,7 @@ void Menu::showMetavoxelEditor() {
 }
 
 void Menu::showScriptEditor() {
-    if(!_ScriptEditor) {
+    if(!_ScriptEditor || !_ScriptEditor->isVisible()) {
         _ScriptEditor = new ScriptEditorWindow();
     }
     _ScriptEditor->raise();

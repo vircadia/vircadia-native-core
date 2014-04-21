@@ -27,8 +27,30 @@ public:
     ScriptEditorWidget();
     ~ScriptEditorWidget();
 
+    bool isModified();
+    bool isRunning();
+    bool setRunning(bool run);
+    bool saveFile(const QString& scriptPath);
+    void loadFile(const QString& scriptPath);
+    void setScriptFile(const QString& scriptPath);
+    bool save();
+    bool saveAs();
+    bool questionSave();
+    const QString getScriptName() const { return currentScript; };
+signals:
+    void runningStateChanged();
+    void scriptnameChanged();
+    void scriptModified();
+
+private slots:
+    void onScriptError(const QString& message);
+    void onScriptPrint(const QString& message);
+    void onScriptModified();
+
 private:
     Ui::ScriptEditorWidget* ui;
+    ScriptEngine* scriptEngine;
+    QString currentScript;
 };
 
 #endif // hifi_ScriptEditorWidget_h

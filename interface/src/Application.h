@@ -121,7 +121,7 @@ public:
     ~Application();
 
     void restoreSizeAndPosition();
-    void loadScript(const QString& fileNameString);
+    ScriptEngine* loadScript(const QString& fileNameString, bool focusMainWindow = true);
     void loadScripts();
     void storeSizeAndPosition();
     void clearScriptsBeforeRunning();

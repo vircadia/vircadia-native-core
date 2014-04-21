@@ -26,11 +26,12 @@ public:
     };
 
 protected:
-    void highlightBlock(const QString &text);
-    void highlightKeywords(const QString &text);
-    void formatComments(const QString &text);
-    void formatQoutedText(const QString &text);
-    void formatNumbers(const QString &text);
+    void highlightBlock(const QString& text);
+    void highlightKeywords(const QString& text);
+    void formatComments(const QString& text);
+    void formatQoutedText(const QString& text);
+    void formatNumbers(const QString& text);
+    void formatTrueFalse(const QString text);
 
 private:
     QRegExp keywordRegex;
@@ -38,6 +39,8 @@ private:
     QRegExp multiLineCommentBegin;
     QRegExp multiLineCommentEnd;
     QRegExp numberRegex;
+    QRegExp singleLineComment;
+    QRegExp truefalseRegex;
 };
 
 #endif // hifi_ScriptHighlighting_h

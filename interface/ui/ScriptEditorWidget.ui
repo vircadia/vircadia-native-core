@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>702</width>
-    <height>543</height>
+    <width>691</width>
+    <height>549</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -18,7 +18,7 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>400</width>
+    <width>541</width>
     <height>238</height>
    </size>
   </property>
@@ -88,6 +88,13 @@
         </property>
         <property name="text">
          <string>Debug Log:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="onTheFlyCheckBox">
+        <property name="text">
+         <string>Run on the fly (Careful: Any valid change made to the code will run immediately)</string>
         </property>
        </widget>
       </item>

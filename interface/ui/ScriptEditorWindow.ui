@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>474</width>
-    <height>638</height>
+    <width>706</width>
+    <height>682</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -20,7 +20,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>Script editor []</string>
+   <string>Script Editor</string>
   </property>
   <property name="styleSheet">
    <string notr="true">font-family: Helvetica, Arial, sans-serif;</string>
@@ -58,7 +58,7 @@
      <item>
       <widget class="QToolButton" name="newButton">
        <property name="toolTip">
-        <string>New Script</string>
+        <string>New Script (Ctrl+N)</string>
        </property>
        <property name="text">
         <string>New</string>
@@ -66,7 +66,7 @@
        <property name="icon">
         <iconset>
          <normaloff>../resources/icons/new-script.svg</normaloff>
-         <normalon>../resources/images/pinned.svg</normalon>../resources/icons/new-script.svg</iconset>
+         <normalon>../resources/icons/new-script.svg</normalon>../resources/icons/new-script.svg</iconset>
        </property>
        <property name="iconSize">
         <size>
@@ -91,7 +91,7 @@
         </size>
        </property>
        <property name="toolTip">
-        <string>Load Script</string>
+        <string>Load Script (Ctrl+O)</string>
        </property>
        <property name="text">
         <string>Load</string>
@@ -119,11 +119,17 @@
      </item>
      <item>
       <widget class="QToolButton" name="saveButton">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>2</verstretch>
-        </sizepolicy>
+       <property name="minimumSize">
+        <size>
+         <width>30</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="baseSize">
+        <size>
+         <width>32</width>
+         <height>0</height>
+        </size>
        </property>
        <property name="focusPolicy">
         <enum>Qt::NoFocus</enum>
@@ -132,7 +138,7 @@
         <enum>Qt::NoContextMenu</enum>
        </property>
        <property name="toolTip">
-        <string>Save Script</string>
+        <string>Save Script (Ctrl+S)</string>
        </property>
        <property name="text">
         <string>Save</string>
@@ -150,19 +156,22 @@
        <property name="autoRepeatDelay">
         <number>316</number>
        </property>
+       <property name="popupMode">
+        <enum>QToolButton::MenuButtonPopup</enum>
+       </property>
       </widget>
      </item>
      <item>
       <widget class="QToolButton" name="toggleRunButton">
        <property name="toolTip">
-        <string>Toggle Run Script</string>
+        <string>Toggle Run Script (F5)</string>
        </property>
        <property name="text">
         <string>Run/Stop</string>
        </property>
        <property name="icon">
         <iconset>
-         <normaloff>../resources/images/plus.svg</normaloff>../resources/images/plus.svg</iconset>
+         <normaloff>../resources/icons/start-script.svg</normaloff>../resources/icons/start-script.svg</iconset>
        </property>
        <property name="iconSize">
         <size>
@@ -283,6 +292,38 @@
     <hint type="destinationlabel">
      <x>199</x>
      <y>264</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>tabWidget</sender>
+   <signal>currentChanged(int)</signal>
+   <receiver>ScriptEditorWindow</receiver>
+   <slot>tabSwitched(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>352</x>
+     <y>360</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>352</x>
+     <y>340</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>tabWidget</sender>
+   <signal>tabCloseRequested(int)</signal>
+   <receiver>ScriptEditorWindow</receiver>
+   <slot>tabCloseRequested(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>352</x>
+     <y>360</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>352</x>
+     <y>340</y>
     </hint>
    </hints>
   </connection>

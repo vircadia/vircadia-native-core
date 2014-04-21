@@ -10,6 +10,7 @@
 //
 
 #include "ScriptHighlighting.h"
+#include <QTextDocument>
 
 ScriptHighlighting::ScriptHighlighting(QTextDocument* parent) :
     QSyntaxHighlighter(parent)
@@ -19,13 +20,16 @@ ScriptHighlighting::ScriptHighlighting(QTextDocument* parent) :
     multiLineCommentBegin = QRegExp("/\\*");
     multiLineCommentEnd = QRegExp("\\*/");
     numberRegex = QRegExp("[0-9]+(\\.[0-9]+){0,1}");
+    singleLineComment = QRegExp("//[^\n]*");
+    truefalseRegex = QRegExp("\\b(true|false)\\b");
 }
 
 void ScriptHighlighting::highlightBlock(const QString &text) {
     this->highlightKeywords(text);
-    this->formatComments(text);	
-    this->formatQoutedText(text);
     this->formatNumbers(text);
+    this->formatTrueFalse(text);
+    this->formatQoutedText(text);
+    this->formatComments(text);	
 }
 
 void ScriptHighlighting::highlightKeywords(const QString &text) {
@@ -50,6 +54,13 @@ void ScriptHighlighting::formatComments(const QString &text) {
         start = text.indexOf(multiLineCommentBegin, start + length);
         if (end == -1) setCurrentBlockState(BlockStateInMultiComment);
     }
+
+    int index = singleLineComment.indexIn(text);
+    while (index >= 0) {
+        int length = singleLineComment.matchedLength();
+        setFormat(index, length, Qt::lightGray);
+        index = singleLineComment.indexIn(text, index + length);
+    }
 }
 
 void ScriptHighlighting::formatQoutedText(const QString &text){
@@ -67,5 +78,16 @@ void ScriptHighlighting::formatNumbers(const QString &text){
         int length = numberRegex.matchedLength();
         setFormat(index, length, Qt::green);
         index = numberRegex.indexIn(text, index + length);
+    }
+}
+
+void ScriptHighlighting::formatTrueFalse(const QString text){
+    int index = truefalseRegex.indexIn(text);
+    while (index >= 0) {
+        int length = truefalseRegex.matchedLength();
+        QFont* font = new QFont(this->document()->defaultFont());
+        font->setBold(true);
+        setFormat(index, length, *font);
+        index = truefalseRegex.indexIn(text, index + length);
     }
 }
