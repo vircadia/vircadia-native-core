@@ -847,8 +847,9 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             // this is a script upload - ask the HTTPConnection to parse the form data
             QList<FormData> formData = connection->parseFormData();
             
-            // check how many instances of this assignment the user wants by checking the ASSIGNMENT-INSTANCES header
+            // check optional headers for # of instances and pool
             const QString ASSIGNMENT_INSTANCES_HEADER = "ASSIGNMENT-INSTANCES";
+            const QString ASSIGNMENT_POOL_HEADER = "ASSIGNMENT-POOL";
             
             QByteArray assignmentInstancesValue = connection->requestHeaders().value(ASSIGNMENT_INSTANCES_HEADER.toLocal8Bit());
             
@@ -860,25 +861,34 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                 
                 numInstances = assignmentInstancesValue.toInt();
             }
-
+            
+            QString assignmentPool = emptyPool;
+            QByteArray assignmentPoolValue = connection->requestHeaders().value(ASSIGNMENT_POOL_HEADER.toLocal8Bit());
+            
+            if (!assignmentPoolValue.isEmpty()) {
+                // specific pool requested, set that on the created assignment
+                assignmentPool = QString(assignmentPoolValue);
+            }
+            
             const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
             
             for (int i = 0; i < numInstances; i++) {
                 
                 // create an assignment for this saved script
-                Assignment* scriptAssignment = new Assignment(Assignment::CreateCommand, Assignment::AgentType);
+                Assignment* scriptAssignment = new Assignment(Assignment::CreateCommand, Assignment::AgentType, assignmentPool);
                 
                 QString newPath(ASSIGNMENT_SCRIPT_HOST_LOCATION);
                 newPath += "/";
                 // append the UUID for this script as the new filename, remove the curly braces
                 newPath += uuidStringWithoutCurlyBraces(scriptAssignment->getUUID());
                 
-                // create a file with the GUID of the assignment in the script host locaiton
+                // create a file with the GUID of the assignment in the script host location
                 QFile scriptFile(newPath);
                 scriptFile.open(QIODevice::WriteOnly);
                 scriptFile.write(formData[0].second);
                 
-                qDebug("Saved a script for assignment at %s", qPrintable(newPath));
+                qDebug() << qPrintable(QString("Saved a script for assignment at %1%2")
+                                       .arg(newPath).arg(assignmentPool == emptyPool ? "" : " - pool is " + assignmentPool));
                 
                 // add the script assigment to the assignment queue
                 _assignmentQueue.enqueue(SharedAssignmentPointer(scriptAssignment));

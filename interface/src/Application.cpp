@@ -356,6 +356,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         QMutexLocker locker(&_settingsMutex);
         _previousScriptLocation = _settings->value("LastScriptLocation", QVariant("")).toString();
     }
+	//When -url in command line, teleport to location
+	urlGoTo(argc, constArgv);
 }
 
 Application::~Application() {
@@ -821,6 +823,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_E:
+            case Qt::Key_PageUp:
                if (!_myAvatar->getDriveKeys(UP)) {
                     _myAvatar->jump();
                 }
@@ -832,6 +835,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_C:
+            case Qt::Key_PageDown:
                 _myAvatar->setDriveKeys(DOWN, 1.f);
                 break;
 
@@ -1020,10 +1024,12 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 
     switch (event->key()) {
         case Qt::Key_E:
+        case Qt::Key_PageUp:
             _myAvatar->setDriveKeys(UP, 0.f);
             break;
 
         case Qt::Key_C:
+        case Qt::Key_PageDown:
             _myAvatar->setDriveKeys(DOWN, 0.f);
             break;
 
@@ -2735,7 +2741,7 @@ void Application::displayOverlay() {
             (Menu::getInstance()->isOptionChecked(MenuOption::Stats) &&
             Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth))
                 ? 80 : 20;
-        drawText(_glWidget->width() - 100, _glWidget->height() - timerBottom, 0.30f, 1.0f, 0.f, frameTimer, WHITE_TEXT);
+        drawText(_glWidget->width() - 100, _glWidget->height() - timerBottom, 0.30f, 0.0f, 0, frameTimer, WHITE_TEXT);
     }
 
     _overlays.render2D();
@@ -3027,6 +3033,7 @@ void Application::resetSensors() {
     _mouseX = _glWidget->width() / 2;
     _mouseY = _glWidget->height() / 2;
 
+    _faceplus.reset();
     _faceshift.reset();
     _visage.reset();
 
@@ -3575,4 +3582,39 @@ void Application::takeSnapshot() {
     player->play();
 
     Snapshot::saveSnapshot(_glWidget, _myAvatar);
+}
+
+void Application::urlGoTo(int argc, const char * constArgv[]) {
+    //Gets the url (hifi://domain/destination/orientation)
+    QString customUrl = getCmdOption(argc, constArgv, "-url");
+
+    if (customUrl.startsWith("hifi://")) {
+        QStringList urlParts = customUrl.remove(0, CUSTOM_URL_SCHEME.length() + 2).split('/', QString::SkipEmptyParts);
+        if (urlParts.count() > 1) {
+            // if url has 2 or more parts, the first one is domain name
+            QString domain = urlParts[0];
+
+            // second part is either a destination coordinate or
+            // a place name
+            QString destination = urlParts[1];
+
+            // any third part is an avatar orientation.
+            QString orientation = urlParts.count() > 2 ? urlParts[2] : QString();
+
+            Menu::goToDomain(domain);
+                
+            // goto either @user, #place, or x-xx,y-yy,z-zz
+            // style co-ordinate.
+            Menu::goTo(destination);
+
+            if (!orientation.isEmpty()) {
+                // location orientation
+                Menu::goToOrientation(orientation);
+            }
+        } else if (urlParts.count() == 1) {
+            // location coordinates or place name
+            QString destination = urlParts[0];
+            Menu::goTo(destination);
+        }
+    }
 }

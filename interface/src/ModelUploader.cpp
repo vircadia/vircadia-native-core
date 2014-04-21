@@ -34,6 +34,7 @@ static const QString TEXDIR_FIELD = "texdir";
 static const QString LOD_FIELD = "lod";
 
 static const QString S3_URL = "http://highfidelity-public.s3-us-west-1.amazonaws.com";
+static const QString DATA_SERVER_URL = "https://data-web.highfidelity.io";
 static const QString MODEL_URL = "/api/v1/models";
 
 static const QString SETTING_NAME = "LastModelUploadLocation";
@@ -201,14 +202,14 @@ void ModelUploader::send() {
     
     JSONCallbackParameters callbackParams;
     callbackParams.jsonCallbackReceiver = this;
-    callbackParams.jsonCallbackMethod = "uploadSuccess";
+    callbackParams.jsonCallbackMethod = "checkJSON";
     callbackParams.errorCallbackReceiver = this;
     callbackParams.errorCallbackMethod = "uploadFailed";
-    callbackParams.updateReciever = this;
-    callbackParams.updateSlot = SLOT(uploadUpdate(qint64, qint64));
     
-    AccountManager::getInstance().authenticatedRequest(MODEL_URL, QNetworkAccessManager::PostOperation, callbackParams, QByteArray(), _dataMultiPart);
-    _dataMultiPart = NULL;
+    AccountManager::getInstance().authenticatedRequest(MODEL_URL + "/" + QFileInfo(_url).baseName(),
+                                                       QNetworkAccessManager::GetOperation,
+                                                       callbackParams);
+    
     qDebug() << "Sending model...";
     _progressDialog = new QDialog();
     _progressBar = new QProgressBar(_progressDialog);
@@ -224,6 +225,61 @@ void ModelUploader::send() {
     delete _progressDialog;
     _progressDialog = NULL;
     _progressBar = NULL;
+}
+
+void ModelUploader::checkJSON(const QJsonObject& jsonResponse) {
+    if (jsonResponse.contains("status") && jsonResponse.value("status").toString() == "success") {
+        qDebug() << "status : success";
+        JSONCallbackParameters callbackParams;
+        callbackParams.jsonCallbackReceiver = this;
+        callbackParams.jsonCallbackMethod = "uploadSuccess";
+        callbackParams.errorCallbackReceiver = this;
+        callbackParams.errorCallbackMethod = "uploadFailed";
+        callbackParams.updateReciever = this;
+        callbackParams.updateSlot = SLOT(uploadUpdate(qint64, qint64));
+        
+        if (jsonResponse.contains("exists") && jsonResponse.value("exists").toBool()) {
+            qDebug() << "exists : true";
+            if (jsonResponse.contains("can_update") && jsonResponse.value("can_update").toBool()) {
+                qDebug() << "can_update : true";
+                
+                AccountManager::getInstance().authenticatedRequest(MODEL_URL + "/" + QFileInfo(_url).baseName(),
+                                                                   QNetworkAccessManager::PutOperation,
+                                                                   callbackParams,
+                                                                   QByteArray(),
+                                                                   _dataMultiPart);
+                _dataMultiPart = NULL;
+            } else {
+                qDebug() << "can_update : false";
+                if (_progressDialog) {
+                    _progressDialog->reject();
+                }
+                QMessageBox::warning(NULL,
+                                     QString("ModelUploader::checkJSON()"),
+                                     QString("This model already exist and is own by someone else."),
+                                     QMessageBox::Ok);
+                deleteLater();
+            }
+        } else {
+            qDebug() << "exists : false";
+            AccountManager::getInstance().authenticatedRequest(MODEL_URL,
+                                                               QNetworkAccessManager::PostOperation,
+                                                               callbackParams,
+                                                               QByteArray(),
+                                                               _dataMultiPart);
+            _dataMultiPart = NULL;
+        }
+    } else {
+        qDebug() << "status : failed";
+        if (_progressDialog) {
+            _progressDialog->reject();
+        }
+        QMessageBox::warning(NULL,
+                             QString("ModelUploader::checkJSON()"),
+                             QString("Something went wrong with the data-server."),
+                             QMessageBox::Ok);
+        deleteLater();
+    }
 }
 
 void ModelUploader::uploadUpdate(qint64 bytesSent, qint64 bytesTotal) {
@@ -249,11 +305,11 @@ void ModelUploader::uploadFailed(QNetworkReply::NetworkError errorCode, const QS
     if (_progressDialog) {
         _progressDialog->reject();
     }
+    qDebug() << "Model upload failed (" << errorCode << "): " << errorString;
     QMessageBox::warning(NULL,
                          QString("ModelUploader::uploadFailed()"),
                          QString("There was a problem with your upload, please try again later."),
                          QMessageBox::Ok);
-    qDebug() << "Model upload failed (" << errorCode << "): " << errorString;
     deleteLater();
 }
 

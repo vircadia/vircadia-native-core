@@ -60,11 +60,11 @@ Model::SkinLocations Model::_skinNormalMapLocations;
 Model::SkinLocations Model::_skinShadowLocations;
 
 void Model::setScale(const glm::vec3& scale) {
-    glm::vec3 deltaScale = _scale - scale;
+    float scaleLength = glm::length(_scale);
+    float relativeDeltaScale = glm::length(_scale - scale) / scaleLength;
     
-    // decreased epsilon because this wasn't handling scale changes of 0.01
-    const float SMALLER_EPSILON = EPSILON * 0.0001f;
-    if (glm::length2(deltaScale) > SMALLER_EPSILON) {
+    const float ONE_PERCENT = 0.01f;
+    if (relativeDeltaScale > ONE_PERCENT || scaleLength < EPSILON) {
         _scale = scale;
         rebuildShapes();
     }
@@ -468,20 +468,56 @@ void Model::clearShapes() {
 
 void Model::rebuildShapes() {
     clearShapes();
-
-    if (_jointStates.isEmpty()) {
+    
+    if (!_geometry) {
         return;
-    }
-
-    // make sure all the joints are updated correctly before we try to create their shapes
-    for (int i = 0; i < _jointStates.size(); i++) {
-        updateJointState(i);
     }
     
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    
+    if (geometry.joints.isEmpty()) {
+        return;
+    }
+
+    int numJoints = geometry.joints.size();
+    QVector<glm::mat4> transforms;
+    transforms.fill(glm::mat4(), numJoints);
+    QVector<glm::quat> combinedRotations;
+    combinedRotations.fill(glm::quat(), numJoints);
+    QVector<bool> shapeIsSet;
+    shapeIsSet.fill(false, numJoints);
+    int rootIndex = 0;
+
     float uniformScale = extractUniformScale(_scale);
-    glm::quat inverseRotation = glm::inverse(_rotation);
-    glm::vec3 rootPosition(0.f);
+    int numShapesSet = 0;
+    int lastNumShapesSet = -1;
+    while (numShapesSet < numJoints && numShapesSet != lastNumShapesSet) {
+        lastNumShapesSet = numShapesSet;
+        for (int i = 0; i < numJoints; ++i) {
+            if (shapeIsSet[i]) {
+                continue;
+            }
+            const FBXJoint& joint = geometry.joints[i];
+            int parentIndex = joint.parentIndex;
+            if (parentIndex == -1) {
+                rootIndex = i;
+                glm::mat4 baseTransform = glm::mat4_cast(_rotation) * uniformScale * glm::translate(_offset);
+                glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;    
+                transforms[i] = baseTransform * geometry.offset * glm::translate(joint.translation) * joint.preTransform *
+                    glm::mat4_cast(combinedRotation) * joint.postTransform;
+                combinedRotations[i] = _rotation * combinedRotation;
+                ++numShapesSet;
+                shapeIsSet[i] = true;
+            } else if (shapeIsSet[parentIndex]) {
+                glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;    
+                transforms[i] = transforms[parentIndex] * glm::translate(joint.translation) * joint.preTransform *
+                    glm::mat4_cast(combinedRotation) * joint.postTransform;
+                combinedRotations[i] = combinedRotations[parentIndex] * combinedRotation;
+                ++numShapesSet;
+                shapeIsSet[i] = true;
+            }
+        }
+    }
 
     // joint shapes
     Extents totalExtents;
@@ -489,48 +525,70 @@ void Model::rebuildShapes() {
     for (int i = 0; i < _jointStates.size(); i++) {
         const FBXJoint& joint = geometry.joints[i];
 
-        glm::vec3 jointToShapeOffset = uniformScale * (_jointStates[i].combinedRotation * joint.shapePosition);
-        glm::vec3 worldPosition = extractTranslation(_jointStates[i].transform) + jointToShapeOffset + _translation;
+        glm::vec3 worldPosition = extractTranslation(transforms[i]);
         Extents shapeExtents;
         shapeExtents.reset();
 
-        if (joint.parentIndex == -1) {
-            rootPosition = worldPosition;
-        }
-
         float radius = uniformScale * joint.boneRadius;
         float halfHeight = 0.5f * uniformScale * joint.distanceToParent;
-        if (joint.shapeType == Shape::CAPSULE_SHAPE && halfHeight > EPSILON) {
+        Shape::Type type = joint.shapeType;
+        if (type == Shape::CAPSULE_SHAPE && halfHeight < EPSILON) {
+            // this capsule is effectively a sphere
+            type = Shape::SPHERE_SHAPE;
+        }
+        if (type == Shape::CAPSULE_SHAPE) {
             CapsuleShape* capsule = new CapsuleShape(radius, halfHeight);
             capsule->setPosition(worldPosition);
-            capsule->setRotation(_jointStates[i].combinedRotation * joint.shapeRotation);
+            capsule->setRotation(combinedRotations[i] * joint.shapeRotation);
             _jointShapes.push_back(capsule);
 
             glm::vec3 endPoint; 
             capsule->getEndPoint(endPoint);
             glm::vec3 startPoint;
             capsule->getStartPoint(startPoint);
-            glm::vec3 axis = (halfHeight + radius) * glm::normalize(endPoint - startPoint);
+
+            // add some points that bound a sphere at the center of the capsule
+            glm::vec3 axis = glm::vec3(radius);
             shapeExtents.addPoint(worldPosition + axis);
             shapeExtents.addPoint(worldPosition - axis);
-        } else {
+            
+            // add the two furthest surface points of the capsule
+            axis = (halfHeight + radius) * glm::normalize(endPoint - startPoint);
+            shapeExtents.addPoint(worldPosition + axis);
+            shapeExtents.addPoint(worldPosition - axis);
+
+            totalExtents.addExtents(shapeExtents);
+        } else if (type == Shape::SPHERE_SHAPE) {
             SphereShape* sphere = new SphereShape(radius, worldPosition);
             _jointShapes.push_back(sphere);
 
             glm::vec3 axis = glm::vec3(radius);
             shapeExtents.addPoint(worldPosition + axis);
             shapeExtents.addPoint(worldPosition - axis);
+            totalExtents.addExtents(shapeExtents);
+        } else {
+            // this shape type is not handled and the joint shouldn't collide, 
+            // however we must have a shape for each joint, 
+            // so we make a bogus sphere with zero radius.
+            // TODO: implement collision groups for more control over what collides with what
+            SphereShape* sphere = new SphereShape(0.f, worldPosition); 
+            _jointShapes.push_back(sphere);
         }
-        totalExtents.addExtents(shapeExtents);
     }
 
     // bounding shape
     // NOTE: we assume that the longest side of totalExtents is the yAxis
     glm::vec3 diagonal = totalExtents.maximum - totalExtents.minimum;
-    float capsuleRadius = 0.25f * (diagonal.x + diagonal.z);    // half the average of x and z
+    // the radius is half the RMS of the X and Z sides:
+    float capsuleRadius = 0.5f * sqrtf(0.5f * (diagonal.x * diagonal.x + diagonal.z * diagonal.z));
     _boundingShape.setRadius(capsuleRadius);
     _boundingShape.setHalfHeight(0.5f * diagonal.y - capsuleRadius);
+
+    glm::quat inverseRotation = glm::inverse(_rotation);
+    glm::vec3 rootPosition = extractTranslation(transforms[rootIndex]);
     _boundingShapeLocalOffset = inverseRotation * (0.5f * (totalExtents.maximum + totalExtents.minimum) - rootPosition);
+    _boundingShape.setPosition(_translation - _rotation * _boundingShapeLocalOffset);
+    _boundingShape.setRotation(_rotation);
 }
 
 void Model::updateShapePositions() {
@@ -557,6 +615,7 @@ void Model::updateShapePositions() {
         _boundingRadius = sqrtf(_boundingRadius);
         _shapesAreDirty = false;
         _boundingShape.setPosition(rootPosition + _rotation * _boundingShapeLocalOffset);
+        _boundingShape.setRotation(_rotation);
     }
 }
 

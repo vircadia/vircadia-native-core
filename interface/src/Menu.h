@@ -136,10 +136,10 @@ public:
     
     void removeAction(QMenu* menu, const QString& actionName);
 
-    bool goToDestination(QString destination);
-    void goToOrientation(QString orientation);
-    void goToDomain(const QString newDomain);
-    void goTo(QString destination);
+    bool static goToDestination(QString destination);
+    void static goToOrientation(QString orientation);
+    void static goToDomain(const QString newDomain);
+    void static goTo(QString destination);
 
 public slots:
 
@@ -307,6 +307,7 @@ namespace MenuOption {
     const QString Fullscreen = "Fullscreen";
     const QString FullscreenMirror = "Fullscreen Mirror";
     const QString GlowMode = "Cycle Glow Mode";
+    const QString GlowWhenSpeaking = "Glow When Speaking";
     const QString GoHome = "Go Home";
     const QString GoTo = "Go To...";
     const QString GoToDomain = "Go To Domain...";

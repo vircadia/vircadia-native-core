@@ -129,6 +129,7 @@ public:
     void initializeGL();
     void paintGL();
     void resizeGL(int width, int height);
+    void urlGoTo(int argc, const char * constArgv[]);
 
     void keyPressEvent(QKeyEvent* event);
     void keyReleaseEvent(QKeyEvent* event);
