@@ -357,7 +357,7 @@ void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packe
     
     if (isStaticAssignment) {
         // this is a static assignment, make sure the UUID sent is for an assignment we're actually trying to give out
-         matchingAssignment = matchingStaticAssignmentForCheckIn(assignmentUUID, nodeType);
+         matchingAssignment = matchingQueuedAssignmentForCheckIn(assignmentUUID, nodeType);
         
         if (matchingAssignment) {
             // remove the matching assignment from the assignment queue so we don't take the next check in
@@ -1009,7 +1009,7 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
     }
 }
 
-SharedAssignmentPointer DomainServer::matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType) {
+SharedAssignmentPointer DomainServer::matchingQueuedAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType) {
     QQueue<SharedAssignmentPointer>::iterator i = _assignmentQueue.begin();
     
     while (i != _assignmentQueue.end()) {
