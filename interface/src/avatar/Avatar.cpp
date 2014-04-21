@@ -56,7 +56,6 @@ Avatar::Avatar() :
     _mouseRayOrigin(0.0f, 0.0f, 0.0f),
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _moving(false),
-    _owningAvatarMixer(),
     _collisionFlags(0),
     _initialized(false),
     _shouldRenderBillboard(true)
@@ -212,9 +211,14 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         const float GLOW_DISTANCE = 20.0f;
         const float GLOW_MAX_LOUDNESS = 2500.0f;
         const float MAX_GLOW = 0.5f;
-        const float GLOW_FROM_AVERAGE_LOUDNESS = ((this == Application::getInstance()->getAvatar())
-                                                  ? 0.0f
-                                                  : MAX_GLOW * getHeadData()->getAudioLoudness() / GLOW_MAX_LOUDNESS);
+        
+        float GLOW_FROM_AVERAGE_LOUDNESS = ((this == Application::getInstance()->getAvatar())
+                                            ? 0.0f
+                                            : MAX_GLOW * getHeadData()->getAudioLoudness() / GLOW_MAX_LOUDNESS);
+        if (!Menu::getInstance()->isOptionChecked(MenuOption::GlowWhenSpeaking)) {
+            GLOW_FROM_AVERAGE_LOUDNESS = 0.0f;
+        }
+            
         Glower glower(_moving && distanceToTarget > GLOW_DISTANCE && renderMode == NORMAL_RENDER_MODE
                       ? 1.0f
                       : GLOW_FROM_AVERAGE_LOUDNESS);
@@ -685,6 +689,11 @@ void Avatar::setBillboard(const QByteArray& billboard) {
 }
 
 int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
+    if (!_initialized) {
+        // now that we have data for this Avatar we are go for init
+        init();
+    }
+    
     // change in position implies movement
     glm::vec3 oldPosition = _position;
     

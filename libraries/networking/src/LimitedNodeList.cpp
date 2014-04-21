@@ -105,7 +105,21 @@ QUdpSocket& LimitedNodeList::getDTLSSocket() {
         _dtlsSocket = new QUdpSocket(this);
         
         _dtlsSocket->bind(QHostAddress::AnyIPv4, 0, QAbstractSocket::DontShareAddress);
-        qDebug() << "NodeList DTLS socket is listening on" << _dtlsSocket->localPort();
+        
+#if defined(IP_DONTFRAG) || defined(IP_MTU_DISCOVER)
+        qDebug() << "Making required DTLS changes to LimitedNodeList DTLS socket.";
+        
+        int socketHandle = _dtlsSocket->socketDescriptor();
+#if defined(IP_DONTFRAG)
+        int optValue = 1;
+        setsockopt(socketHandle, IPPROTO_IP, IP_DONTFRAG, reinterpret_cast<const void*>(&optValue), sizeof(optValue));
+#elif defined(IP_MTU_DISCOVER)
+        int optValue = 1;
+        setsockopt(socketHandle, IPPROTO_IP, IP_MTU_DISCOVER, reinterpret_cast<const void*>(&optValue), sizeof(optValue));
+#endif
+#endif
+        
+        qDebug() << "LimitedNodeList DTLS socket is listening on" << _dtlsSocket->localPort();
     }
     
     return *_dtlsSocket;
@@ -331,7 +345,7 @@ void LimitedNodeList::processKillNode(const QByteArray& dataByteArray) {
     killNodeWithUUID(nodeUUID);
 }
 
-SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
+SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                             const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
     _nodeHashMutex.lock();
     

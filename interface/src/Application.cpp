@@ -356,6 +356,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         QMutexLocker locker(&_settingsMutex);
         _previousScriptLocation = _settings->value("LastScriptLocation", QVariant("")).toString();
     }
+	//When -url in command line, teleport to location
+	urlGoTo(argc, constArgv);
 }
 
 Application::~Application() {
@@ -820,6 +822,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_E:
+            case Qt::Key_PageUp:
                if (!_myAvatar->getDriveKeys(UP)) {
                     _myAvatar->jump();
                 }
@@ -831,6 +834,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_C:
+            case Qt::Key_PageDown:
                 _myAvatar->setDriveKeys(DOWN, 1.f);
                 break;
 
@@ -1017,10 +1021,12 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 
     switch (event->key()) {
         case Qt::Key_E:
+        case Qt::Key_PageUp:
             _myAvatar->setDriveKeys(UP, 0.f);
             break;
 
         case Qt::Key_C:
+        case Qt::Key_PageDown:
             _myAvatar->setDriveKeys(DOWN, 0.f);
             break;
 
@@ -1659,16 +1665,12 @@ void Application::init() {
 
     _particleCollisionSystem.init(&_particleEditSender, _particles.getTree(), _voxels.getTree(), &_audio, &_avatarManager);
 
-    // connect the _particleCollisionSystem to our script engine's ParticleScriptingInterface
-    connect(&_particleCollisionSystem,
-            SIGNAL(particleCollisionWithVoxel(const ParticleID&, const VoxelDetail&, const CollisionInfo&)),
-            ScriptEngine::getParticlesScriptingInterface(),
-            SIGNAL(particleCollisionWithVoxels(const ParticleID&, const VoxelDetail&, const CollisionInfo&)));
+    // connect the _particleCollisionSystem to our script engine's ParticlesScriptingInterface
+    connect(&_particleCollisionSystem, &ParticleCollisionSystem::particleCollisionWithVoxel,
+            ScriptEngine::getParticlesScriptingInterface(), &ParticlesScriptingInterface::particleCollisionWithVoxel);
 
-    connect(&_particleCollisionSystem,
-            SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&, const CollisionInfo&)),
-            ScriptEngine::getParticlesScriptingInterface(),
-            SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&, const CollisionInfo&)));
+    connect(&_particleCollisionSystem, &ParticleCollisionSystem::particleCollisionWithParticle,
+            ScriptEngine::getParticlesScriptingInterface(), &ParticlesScriptingInterface::particleCollisionWithParticle);
 
     _audio.init(_glWidget);
 
@@ -1678,7 +1680,20 @@ void Application::init() {
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
-    connect(_myAvatar, SIGNAL(transformChanged()), this, SLOT(bumpSettings()));
+    
+    // set up our audio reflector
+    _audioReflector.setMyAvatar(getAvatar());
+    _audioReflector.setVoxels(_voxels.getTree());
+    _audioReflector.setAudio(getAudio());
+    _audioReflector.setAvatarManager(&_avatarManager);
+
+    connect(getAudio(), &Audio::processInboundAudio, &_audioReflector, &AudioReflector::processInboundAudio,Qt::DirectConnection);
+    connect(getAudio(), &Audio::processLocalAudio, &_audioReflector, &AudioReflector::processLocalAudio,Qt::DirectConnection);
+    connect(getAudio(), &Audio::preProcessOriginalInboundAudio, &_audioReflector, 
+                        &AudioReflector::preProcessOriginalInboundAudio,Qt::DirectConnection);
+
+    // save settings when avatar changes
+    connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);
 }
 
 void Application::closeMirrorView() {
@@ -2450,6 +2465,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // disable specular lighting for ground and voxels
         glMaterialfv(GL_FRONT, GL_SPECULAR, NO_SPECULAR_COLOR);
+        
+        // draw the audio reflector overlay
+        _audioReflector.render();
 
         //  Draw voxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
@@ -2720,7 +2738,7 @@ void Application::displayOverlay() {
             (Menu::getInstance()->isOptionChecked(MenuOption::Stats) &&
             Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth))
                 ? 80 : 20;
-        drawText(_glWidget->width() - 100, _glWidget->height() - timerBottom, 0.30f, 1.0f, 0.f, frameTimer, WHITE_TEXT);
+        drawText(_glWidget->width() - 100, _glWidget->height() - timerBottom, 0.30f, 0.0f, 0, frameTimer, WHITE_TEXT);
     }
 
     _overlays.render2D();
@@ -3012,6 +3030,7 @@ void Application::resetSensors() {
     _mouseX = _glWidget->width() / 2;
     _mouseY = _glWidget->height() / 2;
 
+    _faceplus.reset();
     _faceshift.reset();
     _visage.reset();
 
@@ -3284,6 +3303,7 @@ void Application::stopAllScripts() {
     }
     _scriptEnginesHash.clear();
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
+    bumpSettings();
 }
 
 void Application::stopScript(const QString &scriptName)
@@ -3292,6 +3312,7 @@ void Application::stopScript(const QString &scriptName)
     qDebug() << "stopping script..." << scriptName;
     _scriptEnginesHash.remove(scriptName);
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
+    bumpSettings();
 }
 
 void Application::reloadAllScripts() {
@@ -3387,6 +3408,8 @@ void Application::loadScript(const QString& scriptName) {
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
+    scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
 
     QThread* workerThread = new QThread(this);
 
@@ -3407,6 +3430,7 @@ void Application::loadScript(const QString& scriptName) {
 
     // restore the main window's active state
     _window->activateWindow();
+    bumpSettings();
 }
 
 void Application::loadDialog() {
@@ -3547,4 +3571,39 @@ void Application::takeSnapshot() {
     player->play();
 
     Snapshot::saveSnapshot(_glWidget, _myAvatar);
+}
+
+void Application::urlGoTo(int argc, const char * constArgv[]) {
+    //Gets the url (hifi://domain/destination/orientation)
+    QString customUrl = getCmdOption(argc, constArgv, "-url");
+
+    if (customUrl.startsWith("hifi://")) {
+        QStringList urlParts = customUrl.remove(0, CUSTOM_URL_SCHEME.length() + 2).split('/', QString::SkipEmptyParts);
+        if (urlParts.count() > 1) {
+            // if url has 2 or more parts, the first one is domain name
+            QString domain = urlParts[0];
+
+            // second part is either a destination coordinate or
+            // a place name
+            QString destination = urlParts[1];
+
+            // any third part is an avatar orientation.
+            QString orientation = urlParts.count() > 2 ? urlParts[2] : QString();
+
+            Menu::goToDomain(domain);
+                
+            // goto either @user, #place, or x-xx,y-yy,z-zz
+            // style co-ordinate.
+            Menu::goTo(destination);
+
+            if (!orientation.isEmpty()) {
+                // location orientation
+                Menu::goToOrientation(orientation);
+            }
+        } else if (urlParts.count() == 1) {
+            // location coordinates or place name
+            QString destination = urlParts[0];
+            Menu::goTo(destination);
+        }
+    }
 }

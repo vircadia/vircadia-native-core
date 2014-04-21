@@ -22,14 +22,14 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 
-#include <OctalCode.h>
-
 #include <GeometryUtil.h>
+#include <OctalCode.h>
 #include <Shape.h>
+#include <SharedUtil.h>
+
 #include <VoxelTree.h>
 
 #include "FBXReader.h"
-#include "Util.h"
 
 using namespace std;
 
@@ -72,6 +72,8 @@ bool FBXGeometry::hasBlendedMeshes() const {
 }
 
 static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
+static int fbxAnimationFrameMetaTypeId = qRegisterMetaType<FBXAnimationFrame>();
+static int fbxAnimationFrameVectorMetaTypeId = qRegisterMetaType<QVector<FBXAnimationFrame> >();
 
 template<class T> QVariant readBinaryArray(QDataStream& in) {
     quint32 arrayLength;
@@ -444,6 +446,34 @@ QVector<int> getIntVector(const QVariantList& properties, int index) {
     return vector;
 }
 
+QVector<qlonglong> getLongVector(const QVariantList& properties, int index) {
+    if (index >= properties.size()) {
+        return QVector<qlonglong>();
+    }
+    QVector<qlonglong> vector = properties.at(index).value<QVector<qlonglong> >();
+    if (!vector.isEmpty()) {
+        return vector;
+    }
+    for (; index < properties.size(); index++) {
+        vector.append(properties.at(index).toLongLong());
+    }
+    return vector;
+}
+
+QVector<float> getFloatVector(const QVariantList& properties, int index) {
+    if (index >= properties.size()) {
+        return QVector<float>();
+    }
+    QVector<float> vector = properties.at(index).value<QVector<float> >();
+    if (!vector.isEmpty()) {
+        return vector;
+    }
+    for (; index < properties.size(); index++) {
+        vector.append(properties.at(index).toFloat());
+    }
+    return vector;
+}
+
 QVector<double> getDoubleVector(const QVariantList& properties, int index) {
     if (index >= properties.size()) {
         return QVector<double>();
@@ -478,8 +508,7 @@ glm::vec3 parseVec3(const QString& string) {
 
 QString processID(const QString& id) {
     // Blender (at least) prepends a type to the ID, so strip it out
-    int index = id.indexOf("::");
-    return (index == -1) ? id : id.mid(index + 2);
+    return id.mid(id.lastIndexOf(':') + 1);
 }
 
 QString getID(const QVariantList& properties, int index = 0) {
@@ -901,6 +930,19 @@ public:
     float averageRadius;        // average distance from mesh points to averageVertex
 };
 
+class AnimationCurve {
+public:
+    QVector<float> values;
+};
+
+FBXTexture getTexture(const QString& textureID, const QHash<QString, QByteArray>& textureFilenames,
+        const QHash<QByteArray, QByteArray>& textureContent) {
+    FBXTexture texture;
+    texture.filename = textureFilenames.value(textureID);
+    texture.content = textureContent.value(texture.filename);
+    return texture;
+}
+
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
     QHash<QString, ExtractedMesh> meshes;
     QVector<ExtractedBlendshape> blendshapes;
@@ -908,10 +950,16 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QMultiHash<QString, QString> childMap;
     QHash<QString, FBXModel> models;
     QHash<QString, Cluster> clusters;
+    QHash<QString, AnimationCurve> animationCurves;
     QHash<QString, QByteArray> textureFilenames;
+    QHash<QByteArray, QByteArray> textureContent;
     QHash<QString, Material> materials;
     QHash<QString, QString> diffuseTextures;
     QHash<QString, QString> bumpTextures;
+    QHash<QString, QString> localRotations;
+    QHash<QString, QString> xComponents;
+    QHash<QString, QString> yComponents;
+    QHash<QString, QString> zComponents;
 
     QVariantHash joints = mapping.value("joint").toHash();
     QString jointEyeLeftName = processID(getString(joints.value("jointEyeLeft", "jointEyeLeft")));
@@ -974,7 +1022,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     QString name;
                     if (object.properties.size() == 3) {
                         name = object.properties.at(1).toString();
-                        name = name.left(name.indexOf(QChar('\0')));
+                        name = processID(name.left(name.indexOf(QChar('\0'))));
 
                     } else {
                         name = getID(object.properties);
@@ -1124,7 +1172,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     model.postRotation = glm::quat(glm::radians(postRotation));
                     model.postTransform = glm::translate(-rotationPivot) * glm::translate(scalePivot) *
                         glm::scale(scale) * glm::translate(-scalePivot);
-                    // NOTE: anbgles from the FBX file are in degrees
+                    // NOTE: angles from the FBX file are in degrees
                     // so we convert them to radians for the FBXModel class
                     model.rotationMin = glm::radians(glm::vec3(rotationMinX ? rotationMin.x : -180.0f,
                         rotationMinY ? rotationMin.y : -180.0f, rotationMinZ ? rotationMin.z : -180.0f));
@@ -1140,6 +1188,21 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                             filename = filename.mid(qMax(filename.lastIndexOf('\\'), filename.lastIndexOf('/')) + 1);
                             textureFilenames.insert(getID(object.properties), filename);
                         }
+                    }
+                } else if (object.name == "Video") {
+                    QByteArray filename;
+                    QByteArray content;
+                    foreach (const FBXNode& subobject, object.children) {
+                        if (subobject.name == "RelativeFilename") {
+                            filename = subobject.properties.at(0).toByteArray();
+                            filename = filename.mid(qMax(filename.lastIndexOf('\\'), filename.lastIndexOf('/')) + 1);
+                            
+                        } else if (subobject.name == "Content" && !subobject.properties.isEmpty()) {
+                            content = subobject.properties.at(0).toByteArray();
+                        }
+                    }
+                    if (!content.isEmpty()) {
+                        textureContent.insert(filename, content);
                     }
                 } else if (object.name == "Material") {
                     Material material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 96.0f };
@@ -1204,6 +1267,14 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                             blendshapeChannelIndices.insert(id, index);
                         }
                     }
+                } else if (object.name == "AnimationCurve") {
+                    AnimationCurve curve;
+                    foreach (const FBXNode& subobject, object.children) {
+                        if (subobject.name == "KeyValueFloat") {
+                            curve.values = getFloatVector(subobject.properties, 0);
+                        }
+                    }
+                    animationCurves.insert(getID(object.properties), curve);
                 }
             }
         } else if (child.name == "Connections") {
@@ -1214,8 +1285,20 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         if (type.contains("diffuse")) {
                             diffuseTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
 
-                        } else if (type.contains("bump")) {
+                        } else if (type.contains("bump") || type.contains("normal")) {
                             bumpTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                        
+                        } else if (type == "lcl rotation") {
+                            localRotations.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                            
+                        } else if (type == "d|x") {
+                            xComponents.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                        
+                        } else if (type == "d|y") {
+                            yComponents.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                            
+                        } else if (type == "d|z") {
+                            zComponents.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         }
                     }
                     parentMap.insert(getID(connection.properties, 1), getID(connection.properties, 2));
@@ -1239,7 +1322,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     glm::quat offsetRotation = glm::quat(glm::radians(glm::vec3(mapping.value("rx").toFloat(),
             mapping.value("ry").toFloat(), mapping.value("rz").toFloat())));
     geometry.offset = glm::translate(glm::vec3(mapping.value("tx").toFloat(), mapping.value("ty").toFloat(),
-                                               mapping.value("tz").toFloat())) * glm::mat4_cast(offsetRotation) * glm::scale(glm::vec3(offsetScale, offsetScale, offsetScale));
+        mapping.value("tz").toFloat())) * glm::mat4_cast(offsetRotation) *
+            glm::scale(glm::vec3(offsetScale, offsetScale, offsetScale));
 
     // get the list of models in depth-first traversal order
     QVector<QString> modelIDs;
@@ -1277,6 +1361,17 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         appendModelIDs(parentMap.value(topID), childMap, models, remainingModels, modelIDs);
     }
 
+    // figure the number of animation frames from the curves
+    int frameCount = 0;
+    foreach (const AnimationCurve& curve, animationCurves) {
+        frameCount = qMax(frameCount, curve.values.size());
+    }
+    for (int i = 0; i < frameCount; i++) {
+        FBXAnimationFrame frame;
+        frame.rotations.resize(modelIDs.size());
+        geometry.animationFrames.append(frame);
+    }
+    
     // convert the models to joints
     QVariantList freeJoints = mapping.values("freeJoint");
     foreach (const QString& modelID, modelIDs) {
@@ -1286,7 +1381,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         joint.parentIndex = model.parentIndex;
 
         // get the indices of all ancestors starting with the first free one (if any)
-        joint.freeLineage.append(geometry.joints.size());
+        int jointIndex = geometry.joints.size();
+        joint.freeLineage.append(jointIndex);
         int lastFreeIndex = joint.isFree ? 0 : -1;
         for (int index = joint.parentIndex; index != -1; index = geometry.joints.at(index).parentIndex) {
             if (geometry.joints.at(index).isFree) {
@@ -1325,6 +1421,18 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         joint.shapeType = Shape::UNKNOWN_SHAPE;
         geometry.joints.append(joint);
         geometry.jointIndices.insert(model.name, geometry.joints.size());
+        
+        QString rotationID = localRotations.value(modelID);
+        AnimationCurve xCurve = animationCurves.value(xComponents.value(rotationID));
+        AnimationCurve yCurve = animationCurves.value(yComponents.value(rotationID));
+        AnimationCurve zCurve = animationCurves.value(zComponents.value(rotationID));
+        glm::vec3 defaultValues = glm::degrees(safeEulerAngles(joint.rotation));
+        for (int i = 0; i < frameCount; i++) {
+            geometry.animationFrames[i].rotations[jointIndex] = glm::quat(glm::radians(glm::vec3(
+                xCurve.values.isEmpty() ? defaultValues.x : xCurve.values.at(i % xCurve.values.size()),
+                yCurve.values.isEmpty() ? defaultValues.y : yCurve.values.at(i % yCurve.values.size()),
+                zCurve.values.isEmpty() ? defaultValues.z : zCurve.values.at(i % zCurve.values.size()))));
+        }
     }
     // for each joint we allocate a JointShapeInfo in which we'll store collision shape info
     QVector<JointShapeInfo> jointShapeInfos;
@@ -1377,23 +1485,23 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             if (materials.contains(childID)) {
                 Material material = materials.value(childID);
                 
-                QByteArray diffuseFilename;
+                FBXTexture diffuseTexture;
                 QString diffuseTextureID = diffuseTextures.value(childID);
                 if (!diffuseTextureID.isNull()) {
-                    diffuseFilename = textureFilenames.value(diffuseTextureID);
-
+                    diffuseTexture = getTexture(diffuseTextureID, textureFilenames, textureContent);
+                    
                     // FBX files generated by 3DSMax have an intermediate texture parent, apparently
                     foreach (const QString& childTextureID, childMap.values(diffuseTextureID)) {
                         if (textureFilenames.contains(childTextureID)) {
-                            diffuseFilename = textureFilenames.value(childTextureID);
+                            diffuseTexture = getTexture(diffuseTextureID, textureFilenames, textureContent);
                         }
                     }
                 }
                 
-                QByteArray normalFilename;
+                FBXTexture normalTexture;
                 QString bumpTextureID = bumpTextures.value(childID);
                 if (!bumpTextureID.isNull()) {
-                    normalFilename = textureFilenames.value(bumpTextureID);
+                    normalTexture = getTexture(bumpTextureID, textureFilenames, textureContent);
                     generateTangents = true;
                 }
                 
@@ -1403,21 +1511,21 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         part.diffuseColor = material.diffuse;
                         part.specularColor = material.specular;
                         part.shininess = material.shininess;
-                        if (!diffuseFilename.isNull()) {
-                            part.diffuseFilename = diffuseFilename;
+                        if (!diffuseTexture.filename.isNull()) {
+                            part.diffuseTexture = diffuseTexture;
                         }
-                        if (!normalFilename.isNull()) {
-                            part.normalFilename = normalFilename;
+                        if (!normalTexture.filename.isNull()) {
+                            part.normalTexture = normalTexture;
                         }
                     }
                 }
                 materialIndex++;
                 
             } else if (textureFilenames.contains(childID)) {
-                QByteArray filename = textureFilenames.value(childID);
+                FBXTexture texture = getTexture(childID, textureFilenames, textureContent);
                 for (int j = 0; j < extracted.partMaterialTextures.size(); j++) {
                     if (extracted.partMaterialTextures.at(j).second == textureIndex) {
-                        extracted.mesh.parts[j].diffuseFilename = filename;
+                        extracted.mesh.parts[j].diffuseTexture = texture;
                     }
                 }
                 textureIndex++;
@@ -1516,7 +1624,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 }
                 float radiusScale = extractUniformScale(joint.transform * fbxCluster.inverseBindMatrix);
                 JointShapeInfo& jointShapeInfo = jointShapeInfos[jointIndex];
-                jointShapeInfo.boneBegin = rotateMeshToJoint * (radiusScale * (boneBegin - boneEnd));
 
                 float totalWeight = 0.0f;
                 for (int j = 0; j < cluster.indices.size(); j++) {
@@ -1578,7 +1685,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 }
             }
             float radiusScale = extractUniformScale(joint.transform * firstFBXCluster.inverseBindMatrix);
-            jointShapeInfo.boneBegin = rotateMeshToJoint * (radiusScale * (boneBegin - boneEnd));
 
             glm::vec3 averageVertex(0.f);
             foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
@@ -1614,6 +1720,14 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         FBXJoint& joint = geometry.joints[i];
         JointShapeInfo& jointShapeInfo = jointShapeInfos[i];
 
+        if (joint.parentIndex == -1) {
+            jointShapeInfo.boneBegin = glm::vec3(0.0f);
+        } else {
+            const FBXJoint& parentJoint = geometry.joints[joint.parentIndex];
+            glm::quat inverseRotation = glm::inverse(extractRotation(joint.transform));
+            jointShapeInfo.boneBegin = inverseRotation * (extractTranslation(parentJoint.transform) - extractTranslation(joint.transform));
+        }
+
         // we use a capsule if the joint ANY mesh vertices successfully projected onto the bone
         // AND its boneRadius is not too close to zero
         bool collideLikeCapsule = jointShapeInfo.numProjectedVertices > 0
@@ -1625,12 +1739,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             joint.shapeType = Shape::CAPSULE_SHAPE;
         } else {
             // collide the joint like a sphere
+            joint.shapeType = Shape::SPHERE_SHAPE;
             if (jointShapeInfo.numVertices > 0) {
                 jointShapeInfo.averageVertex /= (float)jointShapeInfo.numVertices;
                 joint.shapePosition = jointShapeInfo.averageVertex;
             } else {
                 joint.shapePosition = glm::vec3(0.f);
-                joint.shapeType = Shape::SPHERE_SHAPE;
             }
             if (jointShapeInfo.numProjectedVertices == 0
                    && jointShapeInfo.numVertices > 0) {
@@ -1638,6 +1752,15 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 // so we use an alternative measure
                 jointShapeInfo.averageRadius /= (float)jointShapeInfo.numVertices;
                 joint.boneRadius = jointShapeInfo.averageRadius;
+            }
+
+            float distanceFromEnd = glm::length(joint.shapePosition);
+            float distanceFromBegin = glm::distance(joint.shapePosition, jointShapeInfo.boneBegin);
+            if (distanceFromEnd > joint.distanceToParent && distanceFromBegin > joint.distanceToParent) {
+                // The shape is further from both joint endpoints than the endpoints are from each other
+                // which probably means the model has a bad transform somewhere.  We disable this shape
+                // by setting its type to UNKNOWN_SHAPE.
+                joint.shapeType = Shape::UNKNOWN_SHAPE;
             }
         }
     }

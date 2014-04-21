@@ -29,6 +29,7 @@
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
+const float DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS = 30.0f; 
 
 const quint64 ADJUST_LOD_DOWN_DELAY = 1000 * 1000 * 5;
 const quint64 ADJUST_LOD_UP_DELAY = ADJUST_LOD_DOWN_DELAY * 2;
@@ -38,6 +39,9 @@ const float ADJUST_LOD_UP_BY = 1.1f;
 
 const float ADJUST_LOD_MIN_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE * 0.25f;
 const float ADJUST_LOD_MAX_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE;
+
+const float MINIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 0.1f;
+const float MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 15.0f;
 
 enum FrustumDrawMode {
     FRUSTUM_DRAW_MODE_ALL,
@@ -100,6 +104,13 @@ public:
     void resetLODAdjust();
     void setVoxelSizeScale(float sizeScale);
     float getVoxelSizeScale() const { return _voxelSizeScale; }
+    void setAutomaticAvatarLOD(bool automaticAvatarLOD) { _automaticAvatarLOD = automaticAvatarLOD; }
+    bool getAutomaticAvatarLOD() const { return _automaticAvatarLOD; }
+    void setAvatarLODDecreaseFPS(float avatarLODDecreaseFPS) { _avatarLODDecreaseFPS = avatarLODDecreaseFPS; }
+    float getAvatarLODDecreaseFPS() const { return _avatarLODDecreaseFPS; }
+    void setAvatarLODIncreaseFPS(float avatarLODIncreaseFPS) { _avatarLODIncreaseFPS = avatarLODIncreaseFPS; }
+    float getAvatarLODIncreaseFPS() const { return _avatarLODIncreaseFPS; }
+    void setAvatarLODDistanceMultiplier(float multiplier) { _avatarLODDistanceMultiplier = multiplier; }
     float getAvatarLODDistanceMultiplier() const { return _avatarLODDistanceMultiplier; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust);
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
@@ -124,10 +135,10 @@ public:
     
     void removeAction(QMenu* menu, const QString& actionName);
 
-    bool goToDestination(QString destination);
-    void goToOrientation(QString orientation);
-    void goToDomain(const QString newDomain);
-    void goTo(QString destination);
+    bool static goToDestination(QString destination);
+    void static goToOrientation(QString orientation);
+    void static goToDomain(const QString newDomain);
+    void static goTo(QString destination);
 
 public slots:
 
@@ -222,6 +233,9 @@ private:
     LodToolsDialog* _lodToolsDialog;
     int _maxVoxels;
     float _voxelSizeScale;
+    bool _automaticAvatarLOD;
+    float _avatarLODDecreaseFPS;
+    float _avatarLODIncreaseFPS;
     float _avatarLODDistanceMultiplier;
     int _boundaryLevelAdjust;
     QAction* _useVoxelShader;
@@ -243,6 +257,22 @@ namespace MenuOption {
     const QString Atmosphere = "Atmosphere";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
     const QString AudioToneInjection = "Inject Test Tone";
+
+    const QString AudioSpatialProcessing = "Audio Spatial Processing";
+    const QString AudioSpatialProcessingHeadOriented = "Head Oriented";
+    const QString AudioSpatialProcessingIncludeOriginal = "Includes Network Original";
+    const QString AudioSpatialProcessingPreDelay = "Add Pre-Delay";
+    const QString AudioSpatialProcessingProcessLocalAudio = "Process Local Audio";
+    const QString AudioSpatialProcessingRenderPaths = "Render Paths";
+    const QString AudioSpatialProcessingSeparateEars = "Separate Ears";
+    const QString AudioSpatialProcessingSlightlyRandomSurfaces = "Slightly Random Surfaces";
+    const QString AudioSpatialProcessingStereoSource = "Stereo Source";
+    const QString AudioSpatialProcessingWithDiffusions = "With Diffusions";
+    const QString AudioSpatialProcessingDontDistanceAttenuate = "Don't calculate distance attenuation";
+    const QString AudioSpatialProcessingAlternateDistanceAttenuate = "Alternate distance attenuation";
+    
+    
+
     const QString Avatars = "Avatars";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
@@ -274,6 +304,7 @@ namespace MenuOption {
     const QString Fullscreen = "Fullscreen";
     const QString FullscreenMirror = "Fullscreen Mirror";
     const QString GlowMode = "Cycle Glow Mode";
+    const QString GlowWhenSpeaking = "Glow When Speaking";
     const QString GoHome = "Go Home";
     const QString GoTo = "Go To...";
     const QString GoToDomain = "Go To Domain...";
