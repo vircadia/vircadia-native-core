@@ -1040,25 +1040,24 @@ void OctreeServer::run() {
 
 void OctreeServer::nodeAdded(SharedNodePointer node) {
     // we might choose to use this notifier to track clients in a pending state
-    //qDebug() << qPrintable(_safeServerName) << "server added node:" << *node;
+    qDebug() << qPrintable(_safeServerName) << "server added node:" << *node;
 }
 
 void OctreeServer::nodeKilled(SharedNodePointer node) {
     quint64 start  = usecTimestampNow();
 
-    //qDebug() << qPrintable(_safeServerName) << "server killed node:" << *node;
+    qDebug() << qPrintable(_safeServerName) << "server killed node:" << *node;
     OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(node->getLinkedData());
     if (nodeData) {
         nodeData->nodeKilled(); // tell our node data and sending threads that we'd like to shut down
     } else {
-        //qDebug() << qPrintable(_safeServerName) << "server node missing linked data node:" << *node;
+        qDebug() << qPrintable(_safeServerName) << "server node missing linked data node:" << *node;
     }
 
     quint64 end  = usecTimestampNow();
     quint64 usecsElapsed = (end - start);
     if (usecsElapsed > 1000) {
-        qDebug() << qPrintable(_safeServerName) << "server nodeKilled() took: " << usecsElapsed << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
-        // << " usecs for node:" << *node;
+        qDebug() << qPrintable(_safeServerName) << "server nodeKilled() took: " << usecsElapsed << " usecs for node:" << *node;
     }
 }
 
@@ -1075,8 +1074,8 @@ void OctreeServer::forceNodeShutdown(SharedNodePointer node) {
 
     quint64 end  = usecTimestampNow();
     quint64 usecsElapsed = (end - start);
-    qDebug() << qPrintable(_safeServerName) << "server forceNodeShutdown() took: " 
-                        << usecsElapsed << " usecs for node:" << *node;
+    qDebug() << qPrintable(_safeServerName) << "server forceNodeShutdown() took: "  
+                << usecsElapsed << " usecs for node:" << *node;
 }
 
 
@@ -1189,17 +1188,6 @@ QString OctreeServer::getStatusLink() {
 }
 
 void OctreeServer::sendStatsPacket() {
-
-    /*
-    quint64 start = usecTimestampNow();
-    static QJsonObject statsObject1;
-    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject1);
-    quint64 end = usecTimestampNow();
-    if (end - start > 1000) {
-        qDebug() << "OctreeServer::sendStatsPacket() took:" << (end - start);
-    }
-    */
-
     // TODO: we have too many stats to fit in a single MTU... so for now, we break it into multiple JSON objects and
     // send them separately. What we really should do is change the NodeList::sendStatsToDomainServer() to handle the
     // the following features:

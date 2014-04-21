@@ -12,10 +12,8 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QJsonObject>
 #include <QtCore/QTimer>
-#include <QThread>
 
 #include "Logging.h"
-#include "SharedUtil.h"
 #include "ThreadedAssignment.h"
 
 ThreadedAssignment::ThreadedAssignment(const QByteArray& packet) :
@@ -58,9 +56,6 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
         connect(statsTimer, &QTimer::timeout, this, &ThreadedAssignment::sendStatsPacket);
         statsTimer->start(1000);
     }
-
-    //qDebug() << "ThreadedAssignment::commonInit()... thread()->eventDispatcher()=" << thread()->eventDispatcher();
-
 }
 
 void ThreadedAssignment::addPacketStatsAndSendStatsPacket(QJsonObject &statsObject) {
@@ -81,18 +76,7 @@ void ThreadedAssignment::sendStatsPacket() {
     addPacketStatsAndSendStatsPacket(statsObject);
 }
 
-quint64 lastCheckIn = usecTimestampNow();
 void ThreadedAssignment::checkInWithDomainServerOrExit() {
-
-    //qDebug() << "ThreadedAssignment::checkInWithDomainServerOrExit()... thread()->eventDispatcher()=" << thread()->eventDispatcher();
-
-
-    quint64 now = usecTimestampNow();
-    if ((now - lastCheckIn) > 1100000) {
-        qDebug() << "ThreadedAssignment::checkInWithDomainServerOrExit(): since lastCheckIn=" << (now - lastCheckIn) << "usecs";
-    }
-    lastCheckIn = now;
-
     if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
         setFinished(true);
     } else {
