@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QAbstractEventDispatcher>
 #include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QTimer>
@@ -842,6 +843,9 @@ quint64 lastReadPendingDatagrams = usecTimestampNow();
 quint64 lastProcessNodeData = usecTimestampNow();
 
 void OctreeServer::readPendingDatagrams() {
+    qDebug() << "OctreeServer::readPendingDatagrams()... thread()->eventDispatcher()=" << thread()->eventDispatcher();
+
+
     quint64 now = usecTimestampNow();
     if ((now - lastReadPendingDatagrams) > 100000) {
         //qDebug() << "OctreeServer::readPendingDatagrams(): since lastReadPendingDatagrams=" << (now - lastReadPendingDatagrams) << "usecs";
@@ -969,7 +973,22 @@ qDebug() << "got a query...";
 
 }
 
+void OctreeServer::aboutToBlock() {
+    qDebug() << "OctreeServer::aboutToBlock()...";
+}
+
+void OctreeServer::awake() {
+    qDebug() << "OctreeServer::awake()...";
+}
+
 void OctreeServer::run() {
+
+    QAbstractEventDispatcher* eventDispatcher = thread()->eventDispatcher();
+    qDebug() << "OctreeServer::run()... thread()->eventDispatcher()=" << eventDispatcher;
+
+    connect(eventDispatcher, &QAbstractEventDispatcher::aboutToBlock, this, &OctreeServer::aboutToBlock);
+    connect(eventDispatcher, &QAbstractEventDispatcher::awake, this, &OctreeServer::awake);
+
     _safeServerName = getMyServerName();
     
     // Before we do anything else, create our tree...

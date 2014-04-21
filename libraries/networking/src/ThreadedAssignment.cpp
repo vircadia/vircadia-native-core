@@ -12,6 +12,7 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QJsonObject>
 #include <QtCore/QTimer>
+#include <QThread>
 
 #include "Logging.h"
 #include "SharedUtil.h"
@@ -57,6 +58,9 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
         connect(statsTimer, &QTimer::timeout, this, &ThreadedAssignment::sendStatsPacket);
         statsTimer->start(1000);
     }
+
+    qDebug() << "ThreadedAssignment::commonInit()... thread()->eventDispatcher()=" << thread()->eventDispatcher();
+
 }
 
 void ThreadedAssignment::addPacketStatsAndSendStatsPacket(QJsonObject &statsObject) {
@@ -79,6 +83,10 @@ void ThreadedAssignment::sendStatsPacket() {
 
 quint64 lastCheckIn = usecTimestampNow();
 void ThreadedAssignment::checkInWithDomainServerOrExit() {
+
+    qDebug() << "ThreadedAssignment::checkInWithDomainServerOrExit()... thread()->eventDispatcher()=" << thread()->eventDispatcher();
+
+
     quint64 now = usecTimestampNow();
     if ((now - lastCheckIn) > 100000) {
         //qDebug() << "ThreadedAssignment::checkInWithDomainServerOrExit(): since lastCheckIn=" << (now - lastCheckIn) << "usecs";
