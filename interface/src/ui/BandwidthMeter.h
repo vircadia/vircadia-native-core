@@ -16,6 +16,8 @@
 #include <Systime.h>
 #endif
 
+#include <QElapsedTimer>
+
 #include <glm/glm.hpp>
 
 #include "ui/TextRenderer.h"
@@ -59,7 +61,7 @@ public:
     private:
         double  _value;                 // Current value.
         double  _msToAverage;           // Milliseconds to average.
-        timeval _prevTime;              // Time of last feed.
+        QElapsedTimer _prevTime;              // Time of last feed.
     };
 
     // Data model accessors

@@ -13,20 +13,22 @@
 #include <Systime.h>
 #endif
 
+#include <QElapsedTimer>
+
 #include "starfield/Controller.h"
 
 using namespace starfield;
 
 bool Controller::computeStars(unsigned numStars, unsigned seed) {
-    timeval startTime;
-    gettimeofday(&startTime, NULL);
+    QElapsedTimer startTime;
+    startTime.start();
     
     Generator::computeStarPositions(_inputSequence, numStars, seed);
     
     this->retile(numStars, _tileResolution);
     
-    qDebug() << "Total time to retile and generate stars: "
-        << ((usecTimestampNow() - usecTimestamp(&startTime)) / 1000) << "msec";
+    double timeDiff = (double)startTime.nsecsElapsed() / 1000000.0; // ns to ms
+    qDebug() << "Total time to retile and generate stars: " << timeDiff << "msec";
     
     return true;
 }

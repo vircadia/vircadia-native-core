@@ -172,14 +172,6 @@ void renderWorldBox() {
 
 }
 
-double diffclock(timeval *clock1,timeval *clock2)
-{
-	double diffms = (clock2->tv_sec - clock1->tv_sec) * 1000.0;
-    diffms += (clock2->tv_usec - clock1->tv_usec) / 1000.0;   // us to ms
-
-	return diffms;
-}
-
 //  Return a random vector of average length 1
 const glm::vec3 randVector() {
     return glm::vec3(randFloat() - 0.5f, randFloat() - 0.5f, randFloat() - 0.5f) * 2.f;
@@ -411,68 +403,61 @@ void runTimingTests() {
     int iResults[numTests];
     float fTest = 1.0;
     float fResults[numTests];
-    timeval startTime, endTime;
+    QElapsedTimer startTime;
+    startTime.start();
     float elapsedMsecs;
-    gettimeofday(&startTime, NULL);
-    for (int i = 1; i < numTests; i++) {
-        gettimeofday(&endTime, NULL);
-    }
-    elapsedMsecs = diffclock(&startTime, &endTime);
-    qDebug("gettimeofday() usecs: %f", 1000.0f * elapsedMsecs / (float) numTests);
+    
+    elapsedMsecs = (float)startTime.nsecsElapsed() / 1000.0;
+    qDebug("QElapsedTimer::nsecElapsed() usecs: %f", 1000.0f * elapsedMsecs / (float) numTests);
     
     // Random number generation
-    gettimeofday(&startTime, NULL);
+    startTime.start();
     for (int i = 1; i < numTests; i++) {
         iResults[i] = rand();
     }
-    gettimeofday(&endTime, NULL);
-    elapsedMsecs = diffclock(&startTime, &endTime);
+    elapsedMsecs = (float)startTime.nsecsElapsed() / 1000.0;
     qDebug("rand() stored in array usecs: %f, first result:%d", 1000.0f * elapsedMsecs / (float) numTests, iResults[0]);
 
     // Random number generation using randFloat()
-    gettimeofday(&startTime, NULL);
+    startTime.start();
     for (int i = 1; i < numTests; i++) {
         fResults[i] = randFloat();
     }
-    gettimeofday(&endTime, NULL);
-    elapsedMsecs = diffclock(&startTime, &endTime);
+    elapsedMsecs = (float)startTime.nsecsElapsed() / 1000.0;
     qDebug("randFloat() stored in array usecs: %f, first result: %f", 1000.0f * elapsedMsecs / (float) numTests, fResults[0]);
 
     //  PowF function
     fTest = 1145323.2342f;
-    gettimeofday(&startTime, NULL);
+    startTime.start();
     for (int i = 1; i < numTests; i++) {
         fTest = powf(fTest, 0.5f);
     }
-    gettimeofday(&endTime, NULL);
-    elapsedMsecs = diffclock(&startTime, &endTime);
+    elapsedMsecs = (float)startTime.nsecsElapsed() / 1000.0;
     qDebug("powf(f, 0.5) usecs: %f", 1000.0f * elapsedMsecs / (float) numTests);
 
     //  Vector Math
     float distance;
     glm::vec3 pointA(randVector()), pointB(randVector());
-    gettimeofday(&startTime, NULL);
+    startTime.start();
     for (int i = 1; i < numTests; i++) {
         //glm::vec3 temp = pointA - pointB;
         //float distanceSquared = glm::dot(temp, temp);
         distance = glm::distance(pointA, pointB);
     }
-    gettimeofday(&endTime, NULL);
-    elapsedMsecs = diffclock(&startTime, &endTime);
+    elapsedMsecs = (float)startTime.nsecsElapsed() / 1000.0;
     qDebug("vector math usecs: %f [%f msecs total for %d tests], last result:%f",
              1000.0f * elapsedMsecs / (float) numTests, elapsedMsecs, numTests, distance);
 
     //  Vec3 test
     glm::vec3 vecA(randVector()), vecB(randVector());
     float result;
-
-    gettimeofday(&startTime, NULL);
+    
+    startTime.start();
     for (int i = 1; i < numTests; i++) {
         glm::vec3 temp = vecA-vecB;
         result = glm::dot(temp,temp);
     }
-    gettimeofday(&endTime, NULL);
-    elapsedMsecs = diffclock(&startTime, &endTime);
+    elapsedMsecs = (float)startTime.nsecsElapsed() / 1000.0;
     qDebug("vec3 assign and dot() usecs: %f, last result:%f", 1000.0f * elapsedMsecs / (float) numTests, result);
 }
 

@@ -117,7 +117,7 @@ public:
     static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
     static QString& resourcesPath();
 
-    Application(int& argc, char** argv, timeval &startup_time);
+    Application(int& argc, char** argv, QElapsedTimer &startup_time);
     ~Application();
 
     void restoreSizeAndPosition();
@@ -391,9 +391,9 @@ private:
 
     int _frameCount;
     float _fps;
-    timeval _applicationStartupTime;
-    timeval _timerStart, _timerEnd;
-    timeval _lastTimeUpdated;
+    QElapsedTimer _applicationStartupTime;
+    QElapsedTimer _timerStart;
+    QElapsedTimer _lastTimeUpdated;
     bool _justStarted;
     Stars _stars;
 

@@ -24,10 +24,6 @@
 #include "OctalCode.h"
 #include "SharedUtil.h"
 
-quint64 usecTimestamp(const timeval *time) {
-    return (time->tv_sec * 1000000 + time->tv_usec);
-}
-
 int usecTimestampNowAdjust = 0;
 void usecTimestampNowForceClockSkew(int clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;

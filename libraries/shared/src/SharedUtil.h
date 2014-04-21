@@ -66,7 +66,6 @@ static const quint64 USECS_PER_SECOND = USECS_PER_MSEC * MSECS_PER_SECOND;
 
 const int BITS_IN_BYTE  = 8;
 
-quint64 usecTimestamp(const timeval *time);
 quint64 usecTimestampNow();
 void usecTimestampNowForceClockSkew(int clockSkew);
 

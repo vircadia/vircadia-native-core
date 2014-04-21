@@ -134,7 +134,7 @@ QString& Application::resourcesPath() {
     return staticResourcePath;
 }
 
-Application::Application(int& argc, char** argv, timeval &startup_time) :
+Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QApplication(argc, argv),
         _window(new QMainWindow(desktop())),
         _glWidget(new GLCanvas()),
@@ -507,7 +507,7 @@ void Application::initializeGL() {
     _idleLoopStdev.reset();
 
     if (_justStarted) {
-        float startupTime = (usecTimestampNow() - usecTimestamp(&_applicationStartupTime)) / 1000000.0;
+        float startupTime = _applicationStartupTime.elapsed() / 1000.0;
         _justStarted = false;
         qDebug("Startup time: %4.2f seconds.", startupTime);
         const char LOGSTASH_INTERFACE_START_TIME_KEY[] = "interface-start-time";
@@ -1273,21 +1273,21 @@ void Application::sendPingPackets() {
 
 //  Every second, check the frame rates and other stuff
 void Application::timer() {
-    gettimeofday(&_timerEnd, NULL);
-
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
         sendPingPackets();
     }
+    
+    float diffTime = (float)_timerStart.nsecsElapsed() / 1000000000.0;
 
-    _fps = (float)_frameCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
+    _fps = (float)_frameCount / diffTime;
 
-    _packetsPerSecond = (float) _datagramProcessor.getPacketCount() / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
-    _bytesPerSecond = (float) _datagramProcessor.getByteCount() / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
+    _packetsPerSecond = (float) _datagramProcessor.getPacketCount() / diffTime;
+    _bytesPerSecond = (float) _datagramProcessor.getByteCount() / diffTime;
     _frameCount = 0;
 
     _datagramProcessor.resetCounters();
 
-    gettimeofday(&_timerStart, NULL);
+    _timerStart.start();
 
     // ask the node list to check in with the domain server
     NodeList::getInstance()->sendDomainServerCheckIn();
@@ -1300,13 +1300,11 @@ void Application::idle() {
     bool showWarnings = getLogger()->extraDebugging();
     PerformanceWarning warn(showWarnings, "Application::idle()");
 
-    timeval check;
-    gettimeofday(&check, NULL);
-
     //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time we ran
 
-    double timeSinceLastUpdate = diffclock(&_lastTimeUpdated, &check);
+    double timeSinceLastUpdate = (double)_lastTimeUpdated.nsecsElapsed() / 1000000.0;
     if (timeSinceLastUpdate > IDLE_SIMULATE_MSECS) {
+        _lastTimeUpdated.start();
         {
             PerformanceWarning warn(showWarnings, "Application::idle()... update()");
             const float BIGGEST_DELTA_TIME_SECS = 0.25f;
@@ -1318,7 +1316,6 @@ void Application::idle() {
         }
         {
             PerformanceWarning warn(showWarnings, "Application::idle()... rest of it");
-            _lastTimeUpdated = check;
             _idleLoopStdev.addValue(timeSinceLastUpdate);
 
             //  Record standard deviation and reset counter if needed
@@ -1634,8 +1631,8 @@ void Application::init() {
                                   Qt::QueuedConnection);
     }
 
-    gettimeofday(&_timerStart, NULL);
-    gettimeofday(&_lastTimeUpdated, NULL);
+    _timerStart.start();
+    _lastTimeUpdated.start();
 
     Menu::getInstance()->loadSettings();
     if (Menu::getInstance()->getAudioJitterBufferSamples() != 0) {
