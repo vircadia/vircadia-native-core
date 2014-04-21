@@ -956,7 +956,7 @@ void OctreeServer::readPendingDatagrams() {
         }
     }
     quint64 endReadAvailable = usecTimestampNow();
-    if (endReadAvailable - startReadAvailable > 1000) {
+    if (endReadAvailable - startReadAvailable > 500000) {
         qDebug() << "OctreeServer::readPendingDatagrams(): while(readAvailable) took" << (endReadAvailable - startReadAvailable) << "usecs"
             << " readDataGrams=" << readDataGrams
             << " nodeListPackets=" << nodeListPackets
