@@ -16,11 +16,18 @@ OctreeElementBag::OctreeElementBag() :
     _bagElements()
 {
     OctreeElement::addDeleteHook(this);
+    _hooked = true;
 };
 
 OctreeElementBag::~OctreeElementBag() {
-    OctreeElement::removeDeleteHook(this);
+    unhookNotifications();
     deleteAll();
+}
+
+void OctreeElementBag::unhookNotifications() {
+    if (_hooked) {
+        OctreeElement::removeDeleteHook(this);
+    }
 }
 
 void OctreeElementBag::elementDeleted(OctreeElement* element) {

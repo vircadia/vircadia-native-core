@@ -62,6 +62,7 @@ void OctreeQueryNode::nodeKilled() {
         // while the thread actually shuts down
         _octreeSendThread->setIsShuttingDown();
     }
+    nodeBag.unhookNotifications(); // if our node is shutting down, then we no longer need octree element notifications
 }
 
 void OctreeQueryNode::forceNodeShutdown() {
