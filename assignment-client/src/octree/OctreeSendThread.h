@@ -17,7 +17,6 @@
 #include <GenericThread.h>
 #include <NetworkPacket.h>
 #include <OctreeElementBag.h>
-#include <ThreadedAssignment.h>
 
 #include "OctreeQueryNode.h"
 
