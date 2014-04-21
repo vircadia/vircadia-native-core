@@ -13,7 +13,7 @@
 #include <QFrame>
 #include <QLayoutItem>
 #include <QMainWindow>
-#include <QMessageBox.h>
+#include <QMessageBox>
 #include <QPalette>
 #include <QScrollBar>
 #include <QShortcut>
