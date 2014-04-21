@@ -38,6 +38,7 @@
 #include <VoxelEditPacketSender.h>
 
 #include "Audio.h"
+#include "AudioReflector.h"
 #include "BuckyBalls.h"
 #include "Camera.h"
 #include "DatagramProcessor.h"
@@ -128,6 +129,7 @@ public:
     void initializeGL();
     void paintGL();
     void resizeGL(int width, int height);
+    void urlGoTo(int argc, const char * constArgv[]);
 
     void keyPressEvent(QKeyEvent* event);
     void keyReleaseEvent(QKeyEvent* event);
@@ -162,6 +164,7 @@ public:
     bool isThrottleRendering() const { return _glWidget->isThrottleRendering(); }
     MyAvatar* getAvatar() { return _myAvatar; }
     Audio* getAudio() { return &_audio; }
+    const AudioReflector* getAudioReflector() const { return &_audioReflector; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
@@ -468,6 +471,7 @@ private:
     QSet<int> _keysPressed;
 
     GeometryCache _geometryCache;
+    AnimationCache _animationCache;
     TextureCache _textureCache;
 
     GlowEffect _glowEffect;
@@ -513,7 +517,7 @@ private:
     TouchEvent _lastTouchEvent;
 
     Overlays _overlays;
-
+    AudioReflector _audioReflector;
     RunningScriptsWidget* _runningScriptsWidget;
     QHash<QString, ScriptEngine*> _scriptEnginesHash;
 };

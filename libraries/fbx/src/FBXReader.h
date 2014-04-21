@@ -18,6 +18,8 @@
 #include <QVariant>
 #include <QVector>
 
+#include <Shape.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
@@ -91,7 +93,7 @@ public:
     QString name;
     glm::vec3 shapePosition;  // in joint frame
     glm::quat shapeRotation;  // in joint frame
-    int shapeType;
+    Shape::Type shapeType;
 };
 
 
@@ -101,6 +103,14 @@ public:
     
     int jointIndex;
     glm::mat4 inverseBindMatrix;
+};
+
+/// A texture map in an FBX document.
+class FBXTexture {
+public:
+    
+    QByteArray filename;
+    QByteArray content;
 };
 
 /// A single part of a mesh (with the same material).
@@ -114,8 +124,8 @@ public:
     glm::vec3 specularColor;
     float shininess;
     
-    QByteArray diffuseFilename;
-    QByteArray normalFilename;
+    FBXTexture diffuseTexture;
+    FBXTexture normalTexture;
 };
 
 /// A single mesh (with optional blendshapes) extracted from an FBX document.
@@ -138,6 +148,16 @@ public:
     
     QVector<FBXBlendshape> blendshapes;
 };
+
+/// A single animation frame extracted from an FBX document.
+class FBXAnimationFrame {
+public:
+    
+    QVector<glm::quat> rotations;
+};
+
+Q_DECLARE_METATYPE(FBXAnimationFrame)
+Q_DECLARE_METATYPE(QVector<FBXAnimationFrame>)
 
 /// An attachment to an FBX document.
 class FBXAttachment {
@@ -182,6 +202,8 @@ public:
     
     Extents bindExtents;
     Extents meshExtents;
+    
+    QVector<FBXAnimationFrame> animationFrames;
     
     QVector<FBXAttachment> attachments;
     

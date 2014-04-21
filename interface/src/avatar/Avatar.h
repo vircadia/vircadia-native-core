@@ -99,9 +99,6 @@ public:
 
     /// Returns the distance to use as a LOD parameter.
     float getLODDistance() const;
-    
-    Node* getOwningAvatarMixer() { return _owningAvatarMixer.data(); }
-    void setOwningAvatarMixer(const QWeakPointer<Node>& owningAvatarMixer) { _owningAvatarMixer = owningAvatarMixer; }
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
@@ -177,7 +174,6 @@ protected:
     glm::vec3 _mouseRayDirection;
     float _stringLength;
     bool _moving; ///< set when position is changing
-    QWeakPointer<Node> _owningAvatarMixer;
 
     uint32_t _collisionFlags;
 
