@@ -20,6 +20,7 @@
 #endif
 
 #include <QtCore/QDebug>
+#include <QDateTime>
 
 #include "OctalCode.h"
 #include "SharedUtil.h"
@@ -30,9 +31,8 @@ void usecTimestampNowForceClockSkew(int clockSkew) {
 }
 
 quint64 usecTimestampNow() {
-    timeval now;
-    gettimeofday(&now, NULL);
-    return (now.tv_sec * 1000000 + now.tv_usec) + ::usecTimestampNowAdjust;
+    qint64 msecSinceEpoch = QDateTime::currentMSecsSinceEpoch();
+    return msecSinceEpoch * 1000 + ::usecTimestampNowAdjust;
 }
 
 float randFloat() {
