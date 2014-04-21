@@ -67,7 +67,8 @@ Sound::Sound(float volume, float frequency, float duration, float decay, QObject
 }
 
 Sound::Sound(const QUrl& sampleURL, QObject* parent) :
-    QObject(parent)
+    QObject(parent),
+    _hasDownloaded(false)
 {
     // assume we have a QApplication or QCoreApplication instance and use the
     // QNetworkAccess manager to grab the raw audio file at the given URL
@@ -111,6 +112,8 @@ void Sound::replyFinished() {
     } else {
         qDebug() << "Network reply without 'Content-Type'.";
     }
+    
+    _hasDownloaded = true;
 }
 
 void Sound::replyError(QNetworkReply::NetworkError code) {
