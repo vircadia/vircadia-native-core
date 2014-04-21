@@ -991,8 +991,6 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
             }
         }
         
-        if (node->getType() == NodeType::Agent && n
-        
         // cleanup the connection secrets that we set up for this node (on the other nodes)
         foreach (const QUuid& otherNodeSessionUUID, nodeData->getSessionSecretHash().keys()) {
             SharedNodePointer otherNode = LimitedNodeList::getInstance()->nodeWithUUID(otherNodeSessionUUID);
