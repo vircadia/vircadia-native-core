@@ -15,11 +15,11 @@
 
 #include <QtCore/QDebug>
 
+#include <AABox.h>
 #include <NodeList.h>
 #include <PerfStat.h>
 #include <assert.h>
 
-#include "AABox.h"
 #include "OctalCode.h"
 #include "SharedUtil.h"
 #include "OctreeConstants.h"

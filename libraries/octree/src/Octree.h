@@ -21,6 +21,7 @@ class Octree;
 class OctreeElement;
 class OctreeElementBag;
 class OctreePacketData;
+class Shape;
 
 
 #include "JurisdictionMap.h"
@@ -29,6 +30,8 @@ class OctreePacketData;
 #include "OctreeElementBag.h"
 #include "OctreePacketData.h"
 #include "OctreeSceneStats.h"
+
+#include <CollisionInfo.h>
 
 #include <QObject>
 #include <QReadWriteLock>
@@ -245,6 +248,8 @@ public:
 
     bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, 
                                     glm::vec3& penetration, Octree::lockType lockType = Octree::TryLock);
+
+    bool findShapeCollisions(const Shape* shape, CollisionList& collisions, Octree::lockType = Octree::TryLock);
 
     OctreeElement* getElementEnclosingPoint(const glm::vec3& point, Octree::lockType lockType = Octree::TryLock);
 

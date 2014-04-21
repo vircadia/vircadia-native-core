@@ -18,8 +18,9 @@
 
 #include <QReadWriteLock>
 
+#include <AABox.h>
 #include <SharedUtil.h>
-#include "AABox.h"
+
 #include "ViewFrustum.h"
 #include "OctreeConstants.h"
 //#include "Octree.h"

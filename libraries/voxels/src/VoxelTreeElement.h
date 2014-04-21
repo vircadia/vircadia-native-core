@@ -18,10 +18,10 @@
 
 #include <QReadWriteLock>
 
+#include <AABox.h>
 #include <OctreeElement.h>
 #include <SharedUtil.h>
 
-#include "AABox.h"
 #include "ViewFrustum.h"
 #include "VoxelConstants.h"
 

@@ -92,6 +92,11 @@ bool collideShapesCoarse(const QVector<const Shape*>& shapesA, const QVector<con
     return false;
 }
 
+bool collideShapeWithBox(const Shape* shapeA, const AABox& boxB, CollisionList& collisions) {
+    // TODO: Andrew to implement this
+    return false;
+}
+
 bool sphereSphere(const SphereShape* sphereA, const SphereShape* sphereB, CollisionList& collisions) {
     glm::vec3 BA = sphereB->getPosition() - sphereA->getPosition();
     float distanceSquared = glm::dot(BA, BA);

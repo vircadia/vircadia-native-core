@@ -12,6 +12,7 @@
 #ifndef hifi_ShapeCollider_h
 #define hifi_ShapeCollider_h
 
+#include "AABox.h"
 #include "CapsuleShape.h"
 #include "CollisionInfo.h"
 #include "ListShape.h"
@@ -32,6 +33,12 @@ namespace ShapeCollider {
     /// \param collisions[out] average collision details
     /// \return true if any shapes collide
     bool collideShapesCoarse(const QVector<const Shape*>& shapesA, const QVector<const Shape*>& shapesB, CollisionInfo& collision);
+
+    /// \param shapeA a pointer to a shape
+    /// \param boxB an axis aligned box
+    /// \param collisions[out] average collision details
+    /// \return true if shapeA collides with boxB
+    bool collideShapeWithBox(const Shape* shapeA, const AABox& boxB, CollisionList& collisions);
 
     /// \param sphereA pointer to first shape
     /// \param sphereB pointer to second shape
