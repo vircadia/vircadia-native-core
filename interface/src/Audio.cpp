@@ -1068,7 +1068,6 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
         
         delete _audioOutput;
         _audioOutput = NULL;
-        _numInputCallbackBytes = 0;
 
         _loopbackOutputDevice = NULL;
         delete _loopbackAudioOutput;
