@@ -179,7 +179,7 @@ void ScriptEditorWindow::closeEvent(QCloseEvent *event) {
 }
 
 void ScriptEditorWindow::updateScriptNameOrStatus() {
-    ScriptEditorWidget* source = (ScriptEditorWidget*)QObject::sender();
+    ScriptEditorWidget* source = static_cast<ScriptEditorWidget*>(QObject::sender());
     QString modifiedStar = (source->isModified()? "*" : "");
     if (source->getScriptName().length() > 0) {
         for (int i = 0; i < _ScriptEditorWindowUI->tabWidget->count(); i++){
