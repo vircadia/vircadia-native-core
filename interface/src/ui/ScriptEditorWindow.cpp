@@ -9,6 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ui_scriptEditorWindow.h"
+#include "ScriptEditorWindow.h"
+#include "ScriptEditorWidget.h"
+
 #include <QGridLayout>
 #include <QFrame>
 #include <QLayoutItem>
@@ -23,10 +27,6 @@
 
 #include "Application.h"
 #include "FlowLayout.h"
-#include "ui_scriptEditorWindow.h"
-#include "ScriptEditorWidget.h"
-
-#include "ScriptEditorWindow.h"
 
 ScriptEditorWindow::ScriptEditorWindow() :
     ui(new Ui::ScriptEditorWindow)

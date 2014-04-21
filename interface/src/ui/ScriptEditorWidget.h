@@ -13,8 +13,8 @@
 #define hifi_ScriptEditorWidget_h
 
 #include <QDockWidget>
-
-#include <Application.h>
+#include "ScriptEditorWidget.h"
+#include "ScriptEngine.h"
 
 namespace Ui {
 class ScriptEditorWidget;

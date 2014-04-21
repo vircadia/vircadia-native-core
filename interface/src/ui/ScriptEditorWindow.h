@@ -12,7 +12,6 @@
 #ifndef hifi_ScriptEditorWindow_h
 #define hifi_ScriptEditorWindow_h
 
-#include <Application.h>
 #include "ScriptEditorWidget.h"
 
 namespace Ui {
