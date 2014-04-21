@@ -953,7 +953,6 @@ void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer&
         << uuidStringWithoutCurlyBraces(oldUUID);
     
     if (assignment->getType() == Assignment::AgentType && assignment->getPayload().isEmpty()) {
-\
         // if this was an Agent without a script URL, we need to rename the old file so it can be retrieved at the new UUID
         QFile::rename(pathForAssignmentScript(oldUUID), pathForAssignmentScript(assignment->getUUID()));
     }
