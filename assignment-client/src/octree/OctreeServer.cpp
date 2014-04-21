@@ -298,6 +298,12 @@ OctreeServer::~OctreeServer() {
     delete _jurisdiction;
     _jurisdiction = NULL;
     
+    // cleanup our tree here...
+    qDebug() << qPrintable(_safeServerName) << "server cleaning up octree... [" << this << "]";
+    delete _tree;
+    _tree = NULL;
+    qDebug() << qPrintable(_safeServerName) << "server DONE cleaning up octree... [" << this << "]";
+    
     if (_instance == this) {
         _instance = NULL; // we are gone
     }
