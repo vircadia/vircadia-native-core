@@ -27,40 +27,39 @@
 #include "ScriptHighlighting.h"
 
 ScriptEditorWidget::ScriptEditorWidget() :
-    ui(new Ui::ScriptEditorWidget)
+    _scriptEditorWidgetUI(new Ui::ScriptEditorWidget),
+    _scriptEngine(NULL)
 {
-    ui->setupUi(this);
+    _scriptEditorWidgetUI->setupUi(this);
 
-    scriptEngine = NULL;
-
-    connect(ui->scriptEdit->document(), SIGNAL(modificationChanged(bool)), this, SIGNAL(scriptModified()));
-    connect(ui->scriptEdit->document(), SIGNAL(contentsChanged()), this, SLOT(onScriptModified()));
+    connect(_scriptEditorWidgetUI->scriptEdit->document(), SIGNAL(modificationChanged(bool)), this, SIGNAL(scriptModified()));
+    connect(_scriptEditorWidgetUI->scriptEdit->document(), SIGNAL(contentsChanged()), this, SLOT(onScriptModified()));
 
     // remove the title bar (see the Qt docs on setTitleBarWidget)
     setTitleBarWidget(new QWidget());
-    QFontMetrics fm(this->ui->scriptEdit->font());
-    this->ui->scriptEdit->setTabStopWidth(fm.width('0') * 4);
-    ScriptHighlighting* highlighting = new ScriptHighlighting(this->ui->scriptEdit->document());
-    QTimer::singleShot(0, this->ui->scriptEdit, SLOT(setFocus()));
+    QFontMetrics fm(_scriptEditorWidgetUI->scriptEdit->font());
+    _scriptEditorWidgetUI->scriptEdit->setTabStopWidth(fm.width('0') * 4);
+    ScriptHighlighting* highlighting = new ScriptHighlighting(_scriptEditorWidgetUI->scriptEdit->document());
+    QTimer::singleShot(0, _scriptEditorWidgetUI->scriptEdit, SLOT(setFocus()));
 }
 
 ScriptEditorWidget::~ScriptEditorWidget() {
-    delete ui;
+    delete _scriptEditorWidgetUI;
 }
 
 void ScriptEditorWidget::onScriptModified() {
-    if(ui->onTheFlyCheckBox->isChecked() && isRunning()) {
+    if(_scriptEditorWidgetUI->onTheFlyCheckBox->isChecked() && isRunning()) {
         setRunning(false);
         setRunning(true);
     }
 }
 
 bool ScriptEditorWidget::isModified() {
-    return ui->scriptEdit->document()->isModified();
+    return _scriptEditorWidgetUI->scriptEdit->document()->isModified();
 }
 
 bool ScriptEditorWidget::isRunning() {
-    return (scriptEngine != NULL) ? scriptEngine->isRunning() : false;
+    return (_scriptEngine != NULL) ? _scriptEngine->isRunning() : false;
 }
 
 bool ScriptEditorWidget::setRunning(bool run) {
@@ -72,15 +71,15 @@ bool ScriptEditorWidget::setRunning(bool run) {
     disconnect(this, SLOT(onScriptPrint(const QString&)));
 
     if (run) {
-        scriptEngine = Application::getInstance()->loadScript(this->currentScript, false);
-        connect(scriptEngine, SIGNAL(runningStateChanged()), this, SIGNAL(runningStateChanged()));
+        _scriptEngine = Application::getInstance()->loadScript(_currentScript, false);
+        connect(_scriptEngine, SIGNAL(runningStateChanged()), this, SIGNAL(runningStateChanged()));
 
         // Make new connections.
-        connect(scriptEngine, SIGNAL(errorMessage(const QString&)), this, SLOT(onScriptError(const QString&)));
-        connect(scriptEngine, SIGNAL(printedMessage(const QString&)), this, SLOT(onScriptPrint(const QString&)));
+        connect(_scriptEngine, SIGNAL(errorMessage(const QString&)), this, SLOT(onScriptError(const QString&)));
+        connect(_scriptEngine, SIGNAL(printedMessage(const QString&)), this, SLOT(onScriptPrint(const QString&)));
     } else {
-        Application::getInstance()->stopScript(this->currentScript);
-        scriptEngine = NULL;
+        Application::getInstance()->stopScript(_currentScript);
+        _scriptEngine = NULL;
     }
     return true;
 }
@@ -88,18 +87,19 @@ bool ScriptEditorWidget::setRunning(bool run) {
 bool ScriptEditorWidget::saveFile(const QString &scriptPath) {
      QFile file(scriptPath);
      if (!file.open(QFile::WriteOnly | QFile::Text)) {
-         QMessageBox::warning(this, tr("Interface"), tr("Cannot write script %1:\n%2.").arg(scriptPath).arg(file.errorString()));
+         QMessageBox::warning(this, tr("Interface"), tr("Cannot write script %1:\n%2.").arg(scriptPath)
+             .arg(file.errorString()));
          return false;
      }
 
      QTextStream out(&file);
-     out << ui->scriptEdit->toPlainText();
+     out << _scriptEditorWidgetUI->scriptEdit->toPlainText();
 
      setScriptFile(scriptPath);
      return true;
 }
 
-void ScriptEditorWidget::loadFile(const QString &scriptPath) {
+void ScriptEditorWidget::loadFile(const QString& scriptPath) {
     QFile file(scriptPath);
     if (!file.open(QFile::ReadOnly | QFile::Text)) {
         QMessageBox::warning(this, tr("Interface"), tr("Cannot read script %1:\n%2.").arg(scriptPath).arg(file.errorString()));
@@ -107,23 +107,23 @@ void ScriptEditorWidget::loadFile(const QString &scriptPath) {
     }
 
     QTextStream in(&file);
-    ui->scriptEdit->setPlainText(in.readAll());
+    _scriptEditorWidgetUI->scriptEdit->setPlainText(in.readAll());
 
     setScriptFile(scriptPath);
 
     disconnect(this, SLOT(onScriptError(const QString&)));
     disconnect(this, SLOT(onScriptPrint(const QString&)));
 
-    scriptEngine = Application::getInstance()->getScriptEngine(scriptPath);
-    if (scriptEngine != NULL) {
-        connect(scriptEngine, SIGNAL(runningStateChanged()), this, SIGNAL(runningStateChanged()));
-        connect(scriptEngine, SIGNAL(errorMessage(const QString&)), this, SLOT(onScriptError(const QString&)));
-        connect(scriptEngine, SIGNAL(printedMessage(const QString&)), this, SLOT(onScriptPrint(const QString&)));
+    _scriptEngine = Application::getInstance()->getScriptEngine(scriptPath);
+    if (_scriptEngine != NULL) {
+        connect(_scriptEngine, SIGNAL(runningStateChanged()), this, SIGNAL(runningStateChanged()));
+        connect(_scriptEngine, SIGNAL(errorMessage(const QString&)), this, SLOT(onScriptError(const QString&)));
+        connect(_scriptEngine, SIGNAL(printedMessage(const QString&)), this, SLOT(onScriptPrint(const QString&)));
     }
 }
 
 bool ScriptEditorWidget::save() {
-    return currentScript.isEmpty() ? saveAs() : saveFile(currentScript);
+    return _currentScript.isEmpty() ? saveAs() : saveFile(_currentScript);
 }
 
 bool ScriptEditorWidget::saveAs() {
@@ -132,25 +132,27 @@ bool ScriptEditorWidget::saveAs() {
 }
 
 void ScriptEditorWidget::setScriptFile(const QString& scriptPath) {
-    currentScript = scriptPath;
-    ui->scriptEdit->document()->setModified(false);
+    _currentScript = scriptPath;
+    _scriptEditorWidgetUI->scriptEdit->document()->setModified(false);
     setWindowModified(false);
 
     emit scriptnameChanged();
 }
 
 bool ScriptEditorWidget::questionSave() {
-    if (ui->scriptEdit->document()->isModified()) {
-        QMessageBox::StandardButton button = QMessageBox::warning(this, tr("Interface"), tr("The script has been modified.\nDo you want to save your changes?"),  QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
+    if (_scriptEditorWidgetUI->scriptEdit->document()->isModified()) {
+        QMessageBox::StandardButton button = QMessageBox::warning(this, tr("Interface"),
+            tr("The script has been modified.\nDo you want to save your changes?"), QMessageBox::Save | QMessageBox::Discard |
+            QMessageBox::Cancel, QMessageBox::Save);
         return button == QMessageBox::Save ? save() : (button == QMessageBox::Cancel ? false : true);
     }
     return true;
 }
 
 void ScriptEditorWidget::onScriptError(const QString& message) {
-    ui->debugText->appendPlainText("ERROR: "+ message);
+    _scriptEditorWidgetUI->debugText->appendPlainText("ERROR: " + message);
 }
 
 void ScriptEditorWidget::onScriptPrint(const QString& message) {
-    ui->debugText->appendPlainText("> "+message);
+    _scriptEditorWidgetUI->debugText->appendPlainText("> " + message);
 }

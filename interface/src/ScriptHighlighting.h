@@ -18,7 +18,7 @@ class ScriptHighlighting : public QSyntaxHighlighter {
     Q_OBJECT
 
 public:
-    ScriptHighlighting(QTextDocument* parent = 0);
+    ScriptHighlighting(QTextDocument* parent = NULL);
 
     enum BlockState {
         BlockStateClean,
@@ -31,16 +31,16 @@ protected:
     void formatComments(const QString& text);
     void formatQoutedText(const QString& text);
     void formatNumbers(const QString& text);
-    void formatTrueFalse(const QString text);
+    void formatTrueFalse(const QString& text);
 
 private:
-    QRegExp keywordRegex;
-    QRegExp qoutedTextRegex;
-    QRegExp multiLineCommentBegin;
-    QRegExp multiLineCommentEnd;
-    QRegExp numberRegex;
-    QRegExp singleLineComment;
-    QRegExp truefalseRegex;
+    QRegExp _keywordRegex;
+    QRegExp _qoutedTextRegex;
+    QRegExp _multiLineCommentBegin;
+    QRegExp _multiLineCommentEnd;
+    QRegExp _numberRegex;
+    QRegExp _singleLineComment;
+    QRegExp _truefalseRegex;
 };
 
 #endif // hifi_ScriptHighlighting_h

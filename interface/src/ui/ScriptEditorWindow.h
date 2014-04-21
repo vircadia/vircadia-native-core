@@ -15,7 +15,7 @@
 #include "ScriptEditorWidget.h"
 
 namespace Ui {
-class ScriptEditorWindow;
+    class ScriptEditorWindow;
 }
 
 class ScriptEditorWindow : public QWidget {
@@ -26,12 +26,13 @@ public:
     ~ScriptEditorWindow();
 
 protected:
-    void closeEvent(QCloseEvent *event);
+    void closeEvent(QCloseEvent* event);
 
 private:
-    Ui::ScriptEditorWindow* ui;
-    QMenu* loadMenu;
-    QMenu* saveMenu;
+    Ui::ScriptEditorWindow* _ScriptEditorWindowUI;
+    QMenu* _loadMenu;
+    QMenu* _saveMenu;
+
     ScriptEditorWidget* addScriptEditorWidget(QString title);
     void setRunningState(bool run);
     void setScriptName(const QString& scriptName);

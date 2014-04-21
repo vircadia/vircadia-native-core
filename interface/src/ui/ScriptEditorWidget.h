@@ -17,7 +17,7 @@
 #include "ScriptEngine.h"
 
 namespace Ui {
-class ScriptEditorWidget;
+    class ScriptEditorWidget;
 }
 
 class ScriptEditorWidget : public QDockWidget {
@@ -36,7 +36,8 @@ public:
     bool save();
     bool saveAs();
     bool questionSave();
-    const QString getScriptName() const { return currentScript; };
+    const QString getScriptName() const { return _currentScript; };
+
 signals:
     void runningStateChanged();
     void scriptnameChanged();
@@ -48,9 +49,9 @@ private slots:
     void onScriptModified();
 
 private:
-    Ui::ScriptEditorWidget* ui;
-    ScriptEngine* scriptEngine;
-    QString currentScript;
+    Ui::ScriptEditorWidget* _scriptEditorWidgetUI;
+    ScriptEngine* _scriptEngine;
+    QString _currentScript;
 };
 
 #endif // hifi_ScriptEditorWidget_h
