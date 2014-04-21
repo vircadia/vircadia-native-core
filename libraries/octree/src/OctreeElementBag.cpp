@@ -27,11 +27,11 @@ OctreeElementBag::~OctreeElementBag() {
 void OctreeElementBag::unhookNotifications() {
     if (_hooked) {
         OctreeElement::removeDeleteHook(this);
+        _hooked = false;
     }
 }
 
 void OctreeElementBag::elementDeleted(OctreeElement* element) {
-qDebug() << "OctreeElementBag::elementDeleted()...";
     remove(element); // note: remove can safely handle nodes that aren't in it, so we don't need to check contains()
 }
 

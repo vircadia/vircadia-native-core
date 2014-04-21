@@ -57,16 +57,17 @@ OctreeQueryNode::~OctreeQueryNode() {
 
 void OctreeQueryNode::nodeKilled() {
     _isShuttingDown = true;
+    nodeBag.unhookNotifications(); // if our node is shutting down, then we no longer need octree element notifications
     if (_octreeSendThread) {
         // just tell our thread we want to shutdown, this is asynchronous, and fast, we don't need or want it to block
         // while the thread actually shuts down
         _octreeSendThread->setIsShuttingDown();
     }
-    nodeBag.unhookNotifications(); // if our node is shutting down, then we no longer need octree element notifications
 }
 
 void OctreeQueryNode::forceNodeShutdown() {
     _isShuttingDown = true;
+    nodeBag.unhookNotifications(); // if our node is shutting down, then we no longer need octree element notifications
     if (_octreeSendThread) {
         // we really need to force our thread to shutdown, this is synchronous, we will block while the thread actually 
         // shuts down because we really need it to shutdown, and it's ok if we wait for it to complete
