@@ -46,7 +46,7 @@ const HifiSockAddr& Logging::socket() {
             // use the first IP address
             _logstashSocket.setAddress(hostInfo.addresses().first());
         } else {
-            printf("Failed to lookup logstash IP - will try again on next log attempt.\n");
+            qDebug("Failed to lookup logstash IP - will try again on next log attempt.");
         }
     }
 

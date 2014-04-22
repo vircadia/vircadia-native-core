@@ -105,7 +105,21 @@ QUdpSocket& LimitedNodeList::getDTLSSocket() {
         _dtlsSocket = new QUdpSocket(this);
         
         _dtlsSocket->bind(QHostAddress::AnyIPv4, 0, QAbstractSocket::DontShareAddress);
-        qDebug() << "NodeList DTLS socket is listening on" << _dtlsSocket->localPort();
+        
+#if defined(IP_DONTFRAG) || defined(IP_MTU_DISCOVER)
+        qDebug() << "Making required DTLS changes to LimitedNodeList DTLS socket.";
+        
+        int socketHandle = _dtlsSocket->socketDescriptor();
+#if defined(IP_DONTFRAG)
+        int optValue = 1;
+        setsockopt(socketHandle, IPPROTO_IP, IP_DONTFRAG, reinterpret_cast<const void*>(&optValue), sizeof(optValue));
+#elif defined(IP_MTU_DISCOVER)
+        int optValue = 1;
+        setsockopt(socketHandle, IPPROTO_IP, IP_MTU_DISCOVER, reinterpret_cast<const void*>(&optValue), sizeof(optValue));
+#endif
+#endif
+        
+        qDebug() << "LimitedNodeList DTLS socket is listening on" << _dtlsSocket->localPort();
     }
     
     return *_dtlsSocket;
@@ -213,7 +227,30 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const SharedNo
             }
         }
         
-        writeDatagram(datagram, *destinationSockAddr, destinationNode->getConnectionSecret());
+        return writeDatagram(datagram, *destinationSockAddr, destinationNode->getConnectionSecret());
+    }
+    
+    // didn't have a destinationNode to send to, return 0
+    return 0;
+}
+
+qint64 LimitedNodeList::writeUnverifiedDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
+                               const HifiSockAddr& overridenSockAddr) {
+    if (destinationNode) {
+        // if we don't have an ovveriden address, assume they want to send to the node's active socket
+        const HifiSockAddr* destinationSockAddr = &overridenSockAddr;
+        if (overridenSockAddr.isNull()) {
+            if (destinationNode->getActiveSocket()) {
+                // use the node's active socket as the destination socket
+                destinationSockAddr = destinationNode->getActiveSocket();
+            } else {
+                // we don't have a socket to send to, return 0
+                return 0;
+            }
+        }
+        
+        // don't use the node secret!
+        return writeDatagram(datagram, *destinationSockAddr, QUuid());
     }
     
     // didn't have a destinationNode to send to, return 0
@@ -227,6 +264,11 @@ qint64 LimitedNodeList::writeUnverifiedDatagram(const QByteArray& datagram, cons
 qint64 LimitedNodeList::writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
                                const HifiSockAddr& overridenSockAddr) {
     return writeDatagram(QByteArray(data, size), destinationNode, overridenSockAddr);
+}
+
+qint64 LimitedNodeList::writeUnverifiedDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
+                               const HifiSockAddr& overridenSockAddr) {
+    return writeUnverifiedDatagram(QByteArray(data, size), destinationNode, overridenSockAddr);
 }
 
 void LimitedNodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
@@ -331,7 +373,7 @@ void LimitedNodeList::processKillNode(const QByteArray& dataByteArray) {
     killNodeWithUUID(nodeUUID);
 }
 
-SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
+SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                             const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
     _nodeHashMutex.lock();
     

@@ -24,7 +24,7 @@
 
 #include <Assignment.h>
 #include <HTTPManager.h>
-#include <NodeList.h>
+#include <LimitedNodeList.h>
 
 #include "DTLSServerSession.h"
 
@@ -57,8 +57,7 @@ private:
     
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
     
-    void addNodeToNodeListAndConfirmConnection(const QByteArray& packet, const HifiSockAddr& senderSockAddr,
-                                               const QJsonObject& authJsonObject = QJsonObject());
+    void addNodeToNodeListAndConfirmConnection(const QByteArray& packet, const HifiSockAddr& senderSockAddr);
     int parseNodeDataFromByteArray(NodeType_t& nodeType, HifiSockAddr& publicSockAddr,
                                     HifiSockAddr& localSockAddr, const QByteArray& packet, const HifiSockAddr& senderSockAddr);
     NodeSet nodeInterestListFromPacket(const QByteArray& packet, int numPreceedingBytes);
@@ -67,10 +66,11 @@ private:
     
     void parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes);
     void addStaticAssignmentToAssignmentHash(Assignment* newAssignment);
+    void createScriptedAssignmentsFromArray(const QJsonArray& configArray);
     void createStaticAssignmentsForType(Assignment::Type type, const QJsonArray& configArray);
     void populateDefaultStaticAssignmentsExcludingTypes(const QSet<Assignment::Type>& excludedTypes);
     
-    SharedAssignmentPointer matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType);
+    SharedAssignmentPointer matchingQueuedAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType);
     SharedAssignmentPointer deployableAssignmentForRequest(const Assignment& requestAssignment);
     void removeMatchingAssignmentFromQueue(const SharedAssignmentPointer& removableAssignment);
     void refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment);

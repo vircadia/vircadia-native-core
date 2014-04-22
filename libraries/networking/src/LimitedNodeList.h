@@ -66,8 +66,15 @@ public:
     
     qint64 writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
                          const HifiSockAddr& overridenSockAddr = HifiSockAddr());
+
+    qint64 writeUnverifiedDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
+                               const HifiSockAddr& overridenSockAddr = HifiSockAddr());
+
     qint64 writeUnverifiedDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr);
     qint64 writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
+                         const HifiSockAddr& overridenSockAddr = HifiSockAddr());
+
+    qint64 writeUnverifiedDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
                          const HifiSockAddr& overridenSockAddr = HifiSockAddr());
 
     void(*linkedDataCreateCallback)(Node *);
@@ -78,7 +85,7 @@ public:
     SharedNodePointer nodeWithUUID(const QUuid& nodeUUID, bool blockingLock = true);
     SharedNodePointer sendingNodeForPacket(const QByteArray& packet);
     
-    SharedNodePointer addOrUpdateNode(const QUuid& uuid, char nodeType,
+    SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                       const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
     SharedNodePointer updateSocketsForNode(const QUuid& uuid,
                                            const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);

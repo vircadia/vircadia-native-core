@@ -13,25 +13,25 @@
 #define hifi_OctreeQueryNode_h
 
 #include <iostream>
-#include <NodeData.h>
-#include <OctreePacketData.h>
-#include <OctreeQuery.h>
+
 
 #include <CoverageMap.h>
+#include <NodeData.h>
 #include <OctreeConstants.h>
 #include <OctreeElementBag.h>
+#include <OctreePacketData.h>
+#include <OctreeQuery.h>
 #include <OctreeSceneStats.h>
+#include <ThreadedAssignment.h> // for SharedAssignmentPointer
 
 class OctreeSendThread;
-class OctreeServer;
 
 class OctreeQueryNode : public OctreeQuery {
     Q_OBJECT
 public:
     OctreeQueryNode();
     virtual ~OctreeQueryNode();
-    virtual void deleteLater();
-    
+
     void init(); // called after creation to set up some virtual items
     virtual PacketType getMyPacketType() const = 0;
 
@@ -86,7 +86,7 @@ public:
     
     OctreeSceneStats stats;
     
-    void initializeOctreeSendThread(OctreeServer* octreeServer, SharedNodePointer node);
+    void initializeOctreeSendThread(const SharedAssignmentPointer& myAssignment, const SharedNodePointer& node);
     bool isOctreeSendThreadInitalized() { return _octreeSendThread; }
     
     void dumpOutOfView();
@@ -96,7 +96,12 @@ public:
     unsigned int getlastOctreePacketLength() const { return _lastOctreePacketLength; }
     int getDuplicatePacketCount() const { return _duplicatePacketCount; }
     
+    void nodeKilled();
+    void forceNodeShutdown();
     bool isShuttingDown() const { return _isShuttingDown; }
+    
+private slots:
+    void sendThreadFinished();
     
 private:
     OctreeQueryNode(const OctreeQueryNode &);

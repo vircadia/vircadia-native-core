@@ -23,6 +23,7 @@ include_glm(${TARGET_NAME} "${ROOT_DIR}")
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(octree ${TARGET_NAME} "${ROOT_DIR}")
+link_hifi_library(fbx ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
 
 # link ZLIB and GnuTLS

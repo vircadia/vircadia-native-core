@@ -263,12 +263,12 @@ bool OctreeProjectedPolygon::pointInside(const glm::vec2& point, bool* matchesVe
 }
  
 void OctreeProjectedPolygon::printDebugDetails() const {
-    printf("OctreeProjectedPolygon...");
-    printf("    minX=%f maxX=%f minY=%f maxY=%f\n", getMinX(), getMaxX(), getMinY(), getMaxY());
-    printf("    vertex count=%d distance=%f\n", getVertexCount(), getDistance());
+    qDebug("OctreeProjectedPolygon..."
+           "    minX=%f maxX=%f minY=%f maxY=%f", getMinX(), getMaxX(), getMinY(), getMaxY());
+    qDebug("    vertex count=%d distance=%f", getVertexCount(), getDistance());
     for (int i = 0; i < getVertexCount(); i++) {
         glm::vec2 point = getVertex(i);
-        printf("    vertex[%d] = %f, %f \n", i, point.x, point.y);
+        qDebug("    vertex[%d] = %f, %f ", i, point.x, point.y);
     }
 }
 

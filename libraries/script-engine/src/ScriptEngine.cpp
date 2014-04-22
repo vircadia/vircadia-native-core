@@ -28,6 +28,7 @@
 
 #include <Sound.h>
 
+#include "AnimationObject.h"
 #include "MenuItemProperties.h"
 #include "LocalVoxels.h"
 #include "ScriptEngine.h"
@@ -42,6 +43,11 @@ static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* eng
     return soundScriptValue;
 }
 
+static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
+    qDebug() << "script:print()<<" << context->argument(0).toString();
+    engine->evaluate("Script.print('" + context->argument(0).toString() + "')");
+    return QScriptValue();
+}
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString,
                            AbstractControllerScriptingInterface* controllerScriptingInterface) :
@@ -64,7 +70,8 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _fileNameString(fileNameString),
     _quatLibrary(),
     _vec3Library(),
-    _uuidLibrary()
+    _uuidLibrary(),
+    _animationCache(this)
 {
 }
 
@@ -88,7 +95,8 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
     _fileNameString(),
     _quatLibrary(),
     _vec3Library(),
-    _uuidLibrary()
+    _uuidLibrary(),
+    _animationCache(this)
 {
     QString scriptURLString = scriptURL.toString();
     _fileNameString = scriptURLString;
@@ -112,6 +120,7 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
                 _scriptContents = in.readAll();
             } else {
                 qDebug() << "ERROR Loading file:" << fileName;
+                emit errorMessage("ERROR Loading file:" + fileName);
             }
         } else {
             QNetworkAccessManager* networkManager = new QNetworkAccessManager(this);
@@ -153,6 +162,14 @@ void ScriptEngine::setAvatarData(AvatarData* avatarData, const QString& objectNa
     registerGlobalObject(objectName, _avatarData);
 }
 
+void ScriptEngine::setAvatarHashMap(AvatarHashMap* avatarHashMap, const QString& objectName) {
+    // remove the old Avatar property, if it exists
+    _engine.globalObject().setProperty(objectName, QScriptValue());
+    
+    // give the script engine the new avatar hash map
+    registerGlobalObject(objectName, avatarHashMap);
+}
+
 bool ScriptEngine::setScriptContents(const QString& scriptContents, const QString& fileNameString) {
     if (_isRunning) {
         return false;
@@ -180,12 +197,17 @@ void ScriptEngine::init() {
     registerVoxelMetaTypes(&_engine);
     registerEventTypes(&_engine);
     registerMenuItemProperties(&_engine);
+    registerAnimationTypes(&_engine);
 
     qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<ParticleID> >(&_engine);
     qScriptRegisterSequenceMetaType<QVector<glm::vec2> >(&_engine);
+    qScriptRegisterSequenceMetaType<QVector<glm::quat> >(&_engine);
     qScriptRegisterSequenceMetaType<QVector<QString> >(&_engine);
+
+    QScriptValue printConstructorValue = _engine.newFunction(debugPrint);
+    _engine.globalObject().setProperty("print", printConstructorValue);
 
     QScriptValue soundConstructorValue = _engine.newFunction(soundConstructor);
     QScriptValue soundMetaObject = _engine.newQMetaObject(&Sound::staticMetaObject, soundConstructorValue);
@@ -204,7 +226,8 @@ void ScriptEngine::init() {
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
-
+    registerGlobalObject("AnimationCache", &_animationCache);
+    
     registerGlobalObject("Voxels", &_voxelsScriptingInterface);
 
     QScriptValue treeScaleValue = _engine.newVariant(QVariant(TREE_SCALE));
@@ -232,6 +255,7 @@ void ScriptEngine::evaluate() {
     if (_engine.hasUncaughtException()) {
         int line = _engine.uncaughtExceptionLineNumber();
         qDebug() << "Uncaught exception at line" << line << ":" << result.toString();
+        emit errorMessage("Uncaught exception at line" + QString::number(line) + ":" + result.toString());
     }
 }
 
@@ -252,11 +276,14 @@ void ScriptEngine::run() {
         init();
     }
     _isRunning = true;
+    emit runningStateChanged();
 
     QScriptValue result = _engine.evaluate(_scriptContents);
     if (_engine.hasUncaughtException()) {
         int line = _engine.uncaughtExceptionLineNumber();
+
         qDebug() << "Uncaught exception at line" << line << ":" << result.toString();
+        emit errorMessage("Uncaught exception at line" + QString::number(line) + ":" + result.toString());
     }
 
     timeval startTime;
@@ -387,6 +414,7 @@ void ScriptEngine::run() {
         if (_engine.hasUncaughtException()) {
             int line = _engine.uncaughtExceptionLineNumber();
             qDebug() << "Uncaught exception at line" << line << ":" << _engine.uncaughtException().toString();
+            emit errorMessage("Uncaught exception at line" + QString::number(line) + ":" + _engine.uncaughtException().toString());
         }
     }
     emit scriptEnding();
@@ -422,10 +450,12 @@ void ScriptEngine::run() {
     emit finished(_fileNameString);
 
     _isRunning = false;
+    emit runningStateChanged();
 }
 
 void ScriptEngine::stop() {
     _isFinished = true;
+    emit runningStateChanged();
 }
 
 void ScriptEngine::timerFired() {
@@ -496,6 +526,10 @@ QUrl ScriptEngine::resolveInclude(const QString& include) const {
     return url;
 }
 
+void ScriptEngine::print(const QString& message) {
+    emit printedMessage(message);
+}
+
 void ScriptEngine::include(const QString& includeFile) {
     QUrl url = resolveInclude(includeFile);
     QString includeContents;
@@ -509,6 +543,7 @@ void ScriptEngine::include(const QString& includeFile) {
             includeContents = in.readAll();
         } else {
             qDebug() << "ERROR Loading file:" << fileName;
+            emit errorMessage("ERROR Loading file:" + fileName);
         }
     } else {
         QNetworkAccessManager* networkManager = new QNetworkAccessManager(this);
@@ -524,5 +559,6 @@ void ScriptEngine::include(const QString& includeFile) {
     if (_engine.hasUncaughtException()) {
         int line = _engine.uncaughtExceptionLineNumber();
         qDebug() << "Uncaught exception at (" << includeFile << ") line" << line << ":" << result.toString();
+        emit errorMessage("Uncaught exception at (" + includeFile + ") line" + QString::number(line) + ":" + result.toString());
     }
 }

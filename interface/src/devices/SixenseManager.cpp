@@ -96,7 +96,7 @@ void SixenseManager::update(float deltaTime) {
             hand->getPalms().push_back(newPalm);
             palm = &(hand->getPalms()[hand->getNumPalms() - 1]);
             palm->setSixenseID(data->controller_index);
-            printf("Found new Sixense controller, ID %i\n", data->controller_index);
+            qDebug("Found new Sixense controller, ID %i", data->controller_index);
         }
         
         palm->setActive(true);
