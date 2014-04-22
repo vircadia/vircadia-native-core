@@ -211,9 +211,9 @@ private:
     // Audio scope data
     static const unsigned int NETWORK_SAMPLES_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
     static const unsigned int FRAMES_PER_SCOPE = 5;
-    static const unsigned int SAMPLES_PER_SCOPE_H = FRAMES_PER_SCOPE * NETWORK_SAMPLES_PER_FRAME;
-    static const unsigned int MULTIPLIER_SCOPE_V = 20;
-    static const unsigned int SAMPLES_PER_SCOPE_V = 2 * 15 * MULTIPLIER_SCOPE_V;
+    static const unsigned int SAMPLES_PER_SCOPE_WIDTH = FRAMES_PER_SCOPE * NETWORK_SAMPLES_PER_FRAME;
+    static const unsigned int MULTIPLIER_SCOPE_HEIGHT = 20;
+    static const unsigned int SAMPLES_PER_SCOPE_HEIGHT = 2 * 15 * MULTIPLIER_SCOPE_HEIGHT;
     bool _scopeEnabled;
     bool _scopeEnabledPause;
     int _scopeInputOffset;
