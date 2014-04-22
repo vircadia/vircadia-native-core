@@ -204,7 +204,7 @@ void OctreeElement::calculateAABox() {
 void OctreeElement::deleteChildAtIndex(int childIndex) {
     OctreeElement* childAt = getChildAtIndex(childIndex);
     if (childAt) {
-        //printf("deleteChildAtIndex()... about to call delete childAt=%p\n",childAt);
+        //qDebug("deleteChildAtIndex()... about to call delete childAt=%p",childAt);
         delete childAt;
         setChildAtIndex(childIndex, NULL);
         _isDirty = true;
@@ -1315,7 +1315,7 @@ OctreeElement* OctreeElement::getOrCreateChildElementAt(float x, float y, float 
     float halfOurScale = ourScale / 2.0f;
 
     if(s > ourScale) {
-        printf("UNEXPECTED -- OctreeElement::getOrCreateChildElementAt() s=[%f] > ourScale=[%f] \n", s, ourScale);
+        qDebug("UNEXPECTED -- OctreeElement::getOrCreateChildElementAt() s=[%f] > ourScale=[%f] ", s, ourScale);
     }
 
     if (s > halfOurScale) {
