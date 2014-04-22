@@ -2214,7 +2214,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             int packetLength = endOfQueryPacket - queryPacket;
 
             // make sure we still have an active socket
-            nodeList->writeDatagram(reinterpret_cast<const char*>(queryPacket), packetLength, node);
+            nodeList->writeUnverifiedDatagram(reinterpret_cast<const char*>(queryPacket), packetLength, node);
 
             // Feed number of bytes to corresponding channel of the bandwidth meter
             _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(packetLength);
