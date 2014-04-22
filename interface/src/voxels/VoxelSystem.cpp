@@ -938,6 +938,8 @@ void VoxelSystem::copyWrittenDataSegmentToReadArrays(glBufferIndex segmentStart,
 }
 
 void VoxelSystem::copyWrittenDataToReadArrays(bool fullVBOs) {
+    static unsigned int lockForReadAttempt = 0;
+    static unsigned int lockForWriteAttempt = 0;
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "copyWrittenDataToReadArrays()");
 
@@ -946,7 +948,9 @@ void VoxelSystem::copyWrittenDataToReadArrays(bool fullVBOs) {
     // time around, the only side effect is the VBOs won't be updated this frame
     const int WAIT_FOR_LOCK_IN_MS = 5;
     if (_readArraysLock.tryLockForWrite(WAIT_FOR_LOCK_IN_MS)) {
+        lockForWriteAttempt = 0;
         if (_writeArraysLock.tryLockForRead(WAIT_FOR_LOCK_IN_MS)) {
+            lockForReadAttempt = 0;
             if (_voxelsDirty && _voxelsUpdated) {
                 if (fullVBOs) {
                     copyWrittenDataToReadArraysFullVBOs();
@@ -956,11 +960,19 @@ void VoxelSystem::copyWrittenDataToReadArrays(bool fullVBOs) {
             }
             _writeArraysLock.unlock();
         } else {
-            qDebug() << "couldn't get _writeArraysLock.LockForRead()...";
+            lockForReadAttempt++;
+            // only report error of first failure
+            if (lockForReadAttempt == 1) {
+                qDebug() << "couldn't get _writeArraysLock.LockForRead()...";
+            }
         }
         _readArraysLock.unlock();
     } else {
-        qDebug() << "couldn't get _readArraysLock.LockForWrite()...";
+        lockForWriteAttempt++;
+        // only report error of first failure
+        if (lockForWriteAttempt == 1) {
+            qDebug() << "couldn't get _readArraysLock.LockForWrite()...";
+        }
     }
 }
 
