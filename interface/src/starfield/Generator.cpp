@@ -9,10 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifdef _WIN32
-#include <Systime.h>
-#endif
-
 #include <QElapsedTimer>
 
 #include "starfield/Generator.h"

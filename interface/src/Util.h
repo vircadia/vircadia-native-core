@@ -12,12 +12,6 @@
 #ifndef hifi_Util_h
 #define hifi_Util_h
 
-#ifdef _WIN32
-#include "Systime.h"
-#else
-#include <sys/time.h>
-#endif
-
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <QSettings>

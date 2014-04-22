@@ -24,12 +24,6 @@
 
 #include <QtCore/QDebug>
 
-#ifdef _WIN32
-#include "Systime.h"
-#else
-#include <sys/time.h>
-#endif
-
 const int BYTES_PER_COLOR = 3;
 const int BYTES_PER_FLAGS = 1;
 typedef unsigned char rgbColor[BYTES_PER_COLOR];

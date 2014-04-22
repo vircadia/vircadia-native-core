@@ -12,10 +12,6 @@
 #ifndef hifi_Audio_h
 #define hifi_Audio_h
 
-#ifdef _WIN32
-#include <Systime.h>
-#endif
-
 #include <fstream>
 #include <vector>
 

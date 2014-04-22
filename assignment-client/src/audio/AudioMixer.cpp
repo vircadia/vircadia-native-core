@@ -21,12 +21,10 @@
 #include <string.h>
 
 #ifdef _WIN32
-#include "Systime.h"
 #include <math.h>
 #else
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <sys/time.h>
 #include <sys/socket.h>
 #endif //_WIN32
 

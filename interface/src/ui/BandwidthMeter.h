@@ -12,10 +12,6 @@
 #ifndef hifi_BandwidthMeter_h
 #define hifi_BandwidthMeter_h
 
-#ifdef _WIN32
-#include <Systime.h>
-#endif
-
 #include <QElapsedTimer>
 
 #include <glm/glm.hpp>

@@ -9,10 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifdef WIN32
-#include <Systime.h>
-#endif
-
 #include <sstream>
 
 #include <stdlib.h>
