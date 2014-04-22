@@ -699,6 +699,116 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
     }
 }
 
+void ShapeColliderTests::sphereTouchesAACube() {
+    CollisionList collisions(16);
+    
+    glm::vec3 cubeCenter(1.23f, 4.56f, 7.89f);
+    float cubeSide = 2.0f;
+
+    float sphereRadius = 1.0f;
+    glm::vec3 sphereCenter(0.f);
+    SphereShape sphere(sphereRadius, sphereCenter);
+
+    float sphereOffset = (0.5f * cubeSide + sphereRadius - 0.25f);
+
+    // top
+    sphereCenter = cubeCenter + sphereOffset * yAxis;
+    sphere.setPosition(sphereCenter);
+    if (!ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube" << std::endl;
+    }
+    
+    // bottom
+    sphereCenter = cubeCenter - sphereOffset * yAxis;
+    sphere.setPosition(sphereCenter);
+    if (!ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube" << std::endl;
+    }
+
+    // left
+    sphereCenter = cubeCenter + sphereOffset * xAxis;
+    sphere.setPosition(sphereCenter);
+    if (!ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube" << std::endl;
+    }
+
+    // right
+    sphereCenter = cubeCenter - sphereOffset * xAxis;
+    sphere.setPosition(sphereCenter);
+    if (!ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube" << std::endl;
+    }
+
+    // forward
+    sphereCenter = cubeCenter + sphereOffset * zAxis;
+    sphere.setPosition(sphereCenter);
+    if (!ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube" << std::endl;
+    }
+
+    // back
+    sphereCenter = cubeCenter - sphereOffset * zAxis;
+    sphere.setPosition(sphereCenter);
+    if (!ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube" << std::endl;
+    }
+}
+
+void ShapeColliderTests::sphereMissesAACube() {
+    CollisionList collisions(16);
+    
+    glm::vec3 cubeCenter(1.23f, 4.56f, 7.89f);
+    float cubeSide = 2.0f;
+
+    float sphereRadius = 1.0f;
+    glm::vec3 sphereCenter(0.0f);
+    SphereShape sphere(sphereRadius, sphereCenter);
+
+    float sphereOffset = (0.5f * cubeSide + sphereRadius + 0.25f);
+
+    // top
+    sphereCenter = cubeCenter + sphereOffset * yAxis;
+    sphere.setPosition(sphereCenter);
+    if (ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
+    }
+    
+    // bottom
+    sphereCenter = cubeCenter - sphereOffset * yAxis;
+    sphere.setPosition(sphereCenter);
+    if (ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
+    }
+
+    // left
+    sphereCenter = cubeCenter + sphereOffset * xAxis;
+    sphere.setPosition(sphereCenter);
+    if (ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
+    }
+
+    // right
+    sphereCenter = cubeCenter - sphereOffset * xAxis;
+    sphere.setPosition(sphereCenter);
+    if (ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
+    }
+
+    // forward
+    sphereCenter = cubeCenter + sphereOffset * zAxis;
+    sphere.setPosition(sphereCenter);
+    if (ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
+    }
+
+    // back
+    sphereCenter = cubeCenter - sphereOffset * zAxis;
+    sphere.setPosition(sphereCenter);
+    if (ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
+    }
+}
+
 
 void ShapeColliderTests::runAllTests() {
     sphereMissesSphere();
@@ -709,4 +819,7 @@ void ShapeColliderTests::runAllTests() {
 
     capsuleMissesCapsule();
     capsuleTouchesCapsule();
+
+    sphereTouchesAACube();
+    sphereMissesAACube();
 }
