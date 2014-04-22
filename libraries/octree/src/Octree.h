@@ -129,17 +129,17 @@ public:
         printf("StopReason: ");
         switch (stopReason) {
             default:
-            case UNKNOWN: printf("UNKNOWN\n"); break;
+            case UNKNOWN: qDebug("UNKNOWN"); break;
 
-            case DIDNT_FIT: printf("DIDNT_FIT\n"); break;
-            case NULL_NODE: printf("NULL_NODE\n"); break;
-            case TOO_DEEP: printf("TOO_DEEP\n"); break;
-            case OUT_OF_JURISDICTION: printf("OUT_OF_JURISDICTION\n"); break;
-            case LOD_SKIP: printf("LOD_SKIP\n"); break;
-            case OUT_OF_VIEW: printf("OUT_OF_VIEW\n"); break;
-            case WAS_IN_VIEW: printf("WAS_IN_VIEW\n"); break;
-            case NO_CHANGE: printf("NO_CHANGE\n"); break;
-            case OCCLUDED: printf("OCCLUDED\n"); break;
+            case DIDNT_FIT: qDebug("DIDNT_FIT"); break;
+            case NULL_NODE: qDebug("NULL_NODE"); break;
+            case TOO_DEEP: qDebug("TOO_DEEP"); break;
+            case OUT_OF_JURISDICTION: qDebug("OUT_OF_JURISDICTION"); break;
+            case LOD_SKIP: qDebug("LOD_SKIP"); break;
+            case OUT_OF_VIEW: qDebug("OUT_OF_VIEW"); break;
+            case WAS_IN_VIEW: qDebug("WAS_IN_VIEW"); break;
+            case NO_CHANGE: qDebug("NO_CHANGE"); break;
+            case OCCLUDED: qDebug("OCCLUDED"); break;
         }
     }
 };
