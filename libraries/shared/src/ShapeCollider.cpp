@@ -15,6 +15,7 @@
 
 #include "GeometryUtil.h"
 #include "ShapeCollider.h"
+#include "StreamUtils.h"
 
 // NOTE:
 //
@@ -601,14 +602,17 @@ bool sphereAACube(const glm::vec3& sphereCenter, float sphereRadius, const glm::
         // compute the nearest point on cube
         float maxBA = glm::max(glm::max(fabs(BA.x), fabs(BA.y)), fabs(BA.z));
         glm::vec3 surfaceB = cubeCenter - (0.5f * cubeSide / maxBA) * BA;
-        // collision happens when "vector to surfaceB from surfaceA" dots with BA to produce a negative value
-        glm::vec3 surfaceBA = surfaceB - surfaceA;
-        if (glm::dot(surfaceBA, BA) < 0.f) {
+        // collision happens when "vector to surfaceA from surfaceB" dots with BA to produce a positive value
+        glm::vec3 surfaceAB = surfaceA - surfaceB;
+        if (glm::dot(surfaceAB, BA) > 0.f) {
             CollisionInfo* collision = collisions.getNewCollision();
             if (collision) {
-                collision->_penetration = surfaceBA;
+                glm::vec3 normal(floorf(BA.x/maxBA), floorf(BA.y/maxBA), floorf(BA.z/maxBA));
+                std::cout << "adebug normal = " << normal << std::endl;  // adebug
+                normal = glm::normalize(normal);
+                collision->_penetration = glm::dot(surfaceAB, normal) * normal;
                 // contactPoint is on surface of A
-                collision->_contactPoint = surfaceA;
+                collision->_contactPoint = sphereCenter - sphereRadius * normal;
                 return true;
             }
         }
