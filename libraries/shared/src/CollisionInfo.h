@@ -95,7 +95,7 @@ public:
     /// Clear valid collisions.
     void clear();
 
-    const CollisionInfo* operator[](int index) const;
+    CollisionInfo* operator[](int index);
 
 private:
     int _maxSize;   // the container cannot get larger than this

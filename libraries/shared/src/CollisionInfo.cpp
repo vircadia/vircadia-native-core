@@ -48,6 +48,6 @@ void CollisionList::clear() {
     _size = 0;
 }
 
-const CollisionInfo* CollisionList::operator[](int index) const {
+CollisionInfo* CollisionList::operator[](int index) {
     return (index > -1 && index < _size) ? &(_collisions[index]) : NULL;
 }

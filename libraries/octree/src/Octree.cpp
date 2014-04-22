@@ -707,7 +707,7 @@ bool findCapsulePenetrationOp(OctreeElement* node, void* extraData) {
 }
 
 bool findShapeCollisionsOp(OctreeElement* node, void* extraData) {
-    const ShapeArgs* args = static_cast<ShapeArgs*>(extraData);
+    ShapeArgs* args = static_cast<ShapeArgs*>(extraData);
 
     // coarse check against bounds
     AABox cube = node->getAABox();
@@ -719,7 +719,10 @@ bool findShapeCollisionsOp(OctreeElement* node, void* extraData) {
         return true; // recurse on children
     }
     if (node->hasContent()) {
-        return ShapeCollider::collideShapeWithAACube(args->shape, cube.calcCenter(), cube.getScale(), args->collisions);
+        if (ShapeCollider::collideShapeWithAACube(args->shape, cube.calcCenter(), cube.getScale(), args->collisions)) {
+            args->found = true;
+            return true;
+        }
     }
     return false;
 }
