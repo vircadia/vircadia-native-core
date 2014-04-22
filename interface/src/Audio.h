@@ -28,6 +28,7 @@
 #include <QtCore/QVector>
 #include <QtMultimedia/QAudioFormat>
 #include <QVector>
+#include <QByteArray>
 
 #include <AbstractAudioInterface.h>
 #include <AudioRingBuffer.h>
@@ -67,6 +68,7 @@ public:
     bool mousePressEvent(int x, int y);
     
     void renderToolBox(int x, int y, bool boxed);
+    void renderScope(int width, int height);
     
     int getNetworkSampleRate() { return SAMPLE_RATE; }
     int getNetworkBufferLengthSamplesPerChannel() { return NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; }
@@ -83,6 +85,8 @@ public slots:
     void toggleMute();
     void toggleAudioNoiseReduction();
     void toggleToneInjection();
+    void toggleScope();
+    void toggleScopePause();
     void toggleAudioSpatialProcessing();
     
     virtual void handleAudioByteArray(const QByteArray& audioByteArray);
@@ -195,6 +199,28 @@ private:
     int calculateNumberOfInputCallbackBytes(const QAudioFormat& format);
     int calculateNumberOfFrameSamples(int numBytes);
     float calculateDeviceToNetworkInputRatio(int numBytes);
+
+    // Audio scope methods for data acquisition
+    void addBufferToScope(QByteArray& byteArray, unsigned int frameOffset, const int16_t* src, unsigned int srcChannel, unsigned int srcNumChannels);
+
+    // Audio scope methods for rendering
+    void renderBackground(unsigned int rgba, int x, int y, int width, int height);
+    void renderGrid(unsigned int rgba, int x, int y, int width, int height, int rows, int cols);
+    void renderLineStrip(unsigned int rgba, int x, int y, int n, int offset, const QByteArray& byteArray);
+
+    // Audio scope data
+    static const unsigned int NETWORK_SAMPLES_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+    static const unsigned int FRAMES_PER_SCOPE = 5;
+    static const unsigned int SAMPLES_PER_SCOPE_H = FRAMES_PER_SCOPE * NETWORK_SAMPLES_PER_FRAME;
+    static const unsigned int MULTIPLIER_SCOPE_V = 20;
+    static const unsigned int SAMPLES_PER_SCOPE_V = 2 * 15 * MULTIPLIER_SCOPE_V;
+    bool _scopeEnabled;
+    bool _scopeEnabledPause;
+    int _scopeInputOffset;
+    int _scopeOutputOffset;
+    QByteArray _scopeInput;
+    QByteArray _scopeOutputLeft;
+    QByteArray _scopeOutputRight;
 
 };
 

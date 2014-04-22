@@ -256,8 +256,9 @@ namespace MenuOption {
     const QString AmbientOcclusion = "Ambient Occlusion";
     const QString Atmosphere = "Atmosphere";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
+    const QString AudioScope = "Audio Scope";
+    const QString AudioScopePause = "Pause Audio Scope";
     const QString AudioToneInjection = "Inject Test Tone";
-
     const QString AudioSpatialProcessing = "Audio Spatial Processing";
     const QString AudioSpatialProcessingHeadOriented = "Head Oriented";
     const QString AudioSpatialProcessingIncludeOriginal = "Includes Network Original";

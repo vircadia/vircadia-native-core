@@ -92,7 +92,14 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _processSpatialAudio(false),
     _spatialAudioStart(0),
     _spatialAudioFinish(0),
-    _spatialAudioRingBuffer(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL, true) // random access mode
+    _spatialAudioRingBuffer(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL, true), // random access mode
+    _scopeEnabled(false),
+    _scopeEnabledPause(false),
+    _scopeInputOffset(0),
+    _scopeOutputOffset(0),
+    _scopeInput(SAMPLES_PER_SCOPE_H * sizeof(int16_t), 0),
+    _scopeOutputLeft(SAMPLES_PER_SCOPE_H * sizeof(int16_t), 0),
+    _scopeOutputRight(SAMPLES_PER_SCOPE_H * sizeof(int16_t), 0)
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
@@ -575,6 +582,14 @@ void Audio::handleAudioInput() {
             processProceduralAudio(monoAudioSamples, NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
         }
 
+        if (_scopeEnabled && !_scopeEnabledPause) {
+            unsigned int numMonoAudioChannels = 1;
+            unsigned int monoAudioChannel = 0;
+            addBufferToScope(_scopeInput, _scopeInputOffset, monoAudioSamples, monoAudioChannel, numMonoAudioChannels); 
+            _scopeInputOffset += NETWORK_SAMPLES_PER_FRAME;
+            _scopeInputOffset %= SAMPLES_PER_SCOPE_H;
+        }
+
         NodeList* nodeList = NodeList::getInstance();
         SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
         
@@ -813,6 +828,30 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
             if (_outputDevice) {
                 _outputDevice->write(outputBuffer);
             }
+
+            if (_scopeEnabled && !_scopeEnabledPause) {
+                unsigned int numAudioChannels = _desiredOutputFormat.channelCount();
+                int16_t* samples = ringBufferSamples;
+                for (int numSamples = numNetworkOutputSamples / numAudioChannels; numSamples > 0; numSamples -= NETWORK_SAMPLES_PER_FRAME) {
+
+                    unsigned int audioChannel = 0;
+                    addBufferToScope(
+                        _scopeOutputLeft, 
+                        _scopeOutputOffset, 
+                        samples, audioChannel, numAudioChannels); 
+
+                    audioChannel = 1;
+                    addBufferToScope(
+                        _scopeOutputRight, 
+                        _scopeOutputOffset, 
+                        samples, audioChannel, numAudioChannels); 
+                
+                    _scopeOutputOffset += NETWORK_SAMPLES_PER_FRAME;
+                    _scopeOutputOffset %= SAMPLES_PER_SCOPE_H;
+                    samples += NETWORK_SAMPLES_PER_FRAME * numAudioChannels;
+                }
+            }
+
             delete[] ringBufferSamples;
         }
     }
@@ -1018,6 +1057,139 @@ void Audio::renderToolBox(int x, int y, bool boxed) {
 
     glDisable(GL_TEXTURE_2D);
 }
+
+void Audio::toggleScopePause() {
+    _scopeEnabledPause = !_scopeEnabledPause;
+}
+
+void Audio::toggleScope() {
+    _scopeEnabled = !_scopeEnabled;
+    if (_scopeEnabled) {
+        static const int width = SAMPLES_PER_SCOPE_H;
+        _scopeInputOffset = 0;
+        _scopeOutputOffset = 0;
+        memset(_scopeInput.data(), 0, width * sizeof(int16_t));
+        memset(_scopeOutputLeft.data(), 0, width * sizeof(int16_t));
+        memset(_scopeOutputRight.data(), 0, width * sizeof(int16_t));
+    }
+}
+
+void Audio::addBufferToScope(
+    QByteArray& byteArray, unsigned int frameOffset, const int16_t* src, unsigned int srcChannel, unsigned int srcNumChannels) {
+
+    int16_t* tgt = (int16_t*)byteArray.data() + frameOffset;
+    src += srcChannel;
+
+    for (int i = NETWORK_SAMPLES_PER_FRAME; --i >= 0; src += srcNumChannels) {
+        float sample = (float)*src;
+        float multiplier = (float)MULTIPLIER_SCOPE_V / logf(2.0f);
+        int16_t value;
+		
+        if (sample > 0) {
+            value = (int16_t)(multiplier * logf(sample));
+        } else if (sample < 0) {
+            value = (int16_t)(-multiplier * logf(-sample));
+        } else {
+            value = 0;
+        }
+
+        *tgt++ = value;
+        //*tgt++ = sample / 0x7fff * (SAMPLES_PER_SCOPE_V / 2);
+    }
+}
+
+void Audio::renderScope(int width, int height) {
+
+    if (!_scopeEnabled)
+        return;
+
+    static const unsigned int backgroundColor = 0x33333399;
+    static const unsigned int gridColor = 0x44444499;
+    static const unsigned int inputColor = 0x44aa4499;
+    static const unsigned int outputLeftColor = 0xaa444499;
+    static const unsigned int outputRightColor = 0x4444aa99;
+    static const int gridRows = 2;
+    static const int gridCols = 5;
+
+    int x = (width - SAMPLES_PER_SCOPE_H) / 2;
+    int y = (height - SAMPLES_PER_SCOPE_V) / 2;
+    int w = SAMPLES_PER_SCOPE_H;
+    int h = SAMPLES_PER_SCOPE_V;
+
+    renderBackground(backgroundColor, x, y, w, h);
+    renderGrid(gridColor, x, y, w, h, gridRows, gridCols);
+    renderLineStrip(inputColor, x, y, w, _scopeInputOffset, _scopeInput);
+    renderLineStrip(outputLeftColor, x, y, w, _scopeOutputOffset, _scopeOutputLeft);
+    renderLineStrip(outputRightColor, x, y, w, _scopeOutputOffset, _scopeOutputRight);
+}
+
+void Audio::renderBackground(unsigned int rgba, int x, int y, int width, int height) {
+    glBegin(GL_QUADS);
+    glColor4f(((rgba >> 24) & 0xff) / 255.0f,
+              ((rgba >> 16) & 0xff) / 255.0f, 
+              ((rgba >> 8) & 0xff)  / 255.0f,
+              (rgba & 0xff) / 255.0f);
+    glVertex2i(x, y);
+    glVertex2i(x + width, y);
+    glVertex2i(x + width, y + height);
+    glVertex2i(x , y + height);
+    glEnd();
+    glColor4f(1, 1, 1, 1); 
+}
+
+void Audio::renderGrid(unsigned int rgba, int x, int y, int width, int height, int rows, int cols) {
+    glBegin(GL_LINES);
+    glColor4f(((rgba >> 24) & 0xff) / 255.0f,
+              ((rgba >> 16) & 0xff) / 255.0f, 
+              ((rgba >> 8) & 0xff)  / 255.0f,
+              (rgba & 0xff) / 255.0f);
+
+    int dx = width / cols;
+    int dy = height / rows;
+    int tx = x;
+    int ty = y;
+
+    // Draw horizontal grid lines
+    for (int i = rows + 1; --i >= 0; ) {
+        glVertex2i(x, ty);
+        glVertex2i(x + width, ty);
+        ty += dy;
+    }
+    // Draw vertical grid lines
+    for (int i = cols + 1; --i >= 0; ) {
+        glVertex2i(tx, y);
+        glVertex2i(tx, y + height);
+        tx += dx;
+    }
+    glEnd();
+    glColor4f(1, 1, 1, 1); 
+}
+
+void Audio::renderLineStrip(unsigned int rgba, int x, int y, int n, int offset, const QByteArray& byteArray) {
+
+    glColor4f(((rgba >> 24) & 0xff) / 255.0f,
+              ((rgba >> 16) & 0xff) / 255.0f, 
+              ((rgba >> 8) & 0xff)  / 255.0f,
+              (rgba & 0xff) / 255.0f);
+
+    glBegin(GL_LINE_STRIP);
+
+    int16_t sample;
+    int16_t* samples = ((int16_t*) byteArray.data()) + offset;
+    y += SAMPLES_PER_SCOPE_V / 2;
+    for (int i = n - offset; --i >= 0; ) {
+        sample = *samples++;
+        glVertex2i(x++, y - sample);
+    }
+    samples = (int16_t*) byteArray.data();
+    for (int i = offset; --i >= 0; ) {
+        sample = *samples++;
+        glVertex2i(x++, y - sample);
+    }
+    glEnd();
+    glColor4f(1, 1, 1, 1); 
+}
+
 
 bool Audio::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {
     bool supportedFormat = false;

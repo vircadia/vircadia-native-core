@@ -28,8 +28,8 @@ InfoView::InfoView(bool forced) :
     QString absPath = QFileInfo(Application::resourcesPath() + "html/interface-welcome-allsvg.html").absoluteFilePath();
     QUrl url = QUrl::fromLocalFile(absPath);
     
-    load(url);
-    connect(this, SIGNAL(loadFinished(bool)), this, SLOT(loaded(bool)));
+//    load(url);
+//    connect(this, SIGNAL(loadFinished(bool)), this, SLOT(loaded(bool)));
 }
 
 void InfoView::showFirstTime() {
