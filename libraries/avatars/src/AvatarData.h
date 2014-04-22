@@ -97,13 +97,14 @@ class AvatarData : public QObject {
     Q_PROPERTY(float audioLoudness READ getAudioLoudness WRITE setAudioLoudness)
     Q_PROPERTY(float audioAverageLoudness READ getAudioAverageLoudness WRITE setAudioAverageLoudness)
 
+    Q_PROPERTY(QString displayName READ getDisplayName WRITE setDisplayName)
     Q_PROPERTY(QString faceModelURL READ getFaceModelURLFromScript WRITE setFaceModelURLFromScript)
     Q_PROPERTY(QString skeletonModelURL READ getSkeletonModelURLFromScript WRITE setSkeletonModelURLFromScript)
     Q_PROPERTY(QString billboardURL READ getBillboardURL WRITE setBillboardFromURL)
 
     Q_PROPERTY(QStringList jointNames READ getJointNames)
 
-    Q_PROPERTY(QUuid sessionUUID READ getSessionUUID);
+    Q_PROPERTY(QUuid sessionUUID READ getSessionUUID)
 public:
     AvatarData();
     virtual ~AvatarData();

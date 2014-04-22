@@ -473,8 +473,8 @@ void Octree::processRemoveOctreeElementsBitstream(const unsigned char* bitstream
         int codeLength = numberOfThreeBitSectionsInCode(voxelCode, maxSize);
 
         if (codeLength == OVERFLOWED_OCTCODE_BUFFER) {
-            printf("WARNING! Got remove voxel bitstream that would overflow buffer in numberOfThreeBitSectionsInCode(), ");
-            printf("bailing processing of packet!\n");
+            qDebug("WARNING! Got remove voxel bitstream that would overflow buffer in numberOfThreeBitSectionsInCode(),"
+                   " bailing processing of packet!");
             break;
         }
         int voxelDataSize = bytesRequiredForCodeLength(codeLength) + SIZE_OF_COLOR_DATA;
@@ -484,7 +484,7 @@ void Octree::processRemoveOctreeElementsBitstream(const unsigned char* bitstream
             voxelCode += voxelDataSize;
             atByte += voxelDataSize;
         } else {
-            printf("WARNING! Got remove voxel bitstream that would overflow buffer, bailing processing!\n");
+            qDebug("WARNING! Got remove voxel bitstream that would overflow buffer, bailing processing!");
             break;
         }
     }
@@ -1459,7 +1459,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
     outputBits(childrenExistInPacketBits, false, true);
     printf(" childrenColored:");
     outputBits(childrenColoredBits, false, true);
-    printf("\n");
+    qDebug("");
     **/
 
     // if we were unable to fit this level in our packet, then rewind and add it to the node bag for
@@ -1675,7 +1675,7 @@ void Octree::copyFromTreeIntoSubTree(Octree* sourceTree, OctreeElement* destinat
 }
 
 void dumpSetContents(const char* name, std::set<unsigned char*> set) {
-    printf("set %s has %ld elements\n", name, set.size());
+    qDebug("set %s has %ld elements", name, set.size());
     /*
     for (std::set<unsigned char*>::iterator i = set.begin(); i != set.end(); ++i) {
         printOctalCode(*i);

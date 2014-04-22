@@ -433,7 +433,7 @@ void MyAvatar::renderDebugBodyPoints() {
     glm::vec3 headPosition(getHead()->getEyePosition());
     float torsoToHead = glm::length(headPosition - torsoPosition);
     glm::vec3 position;
-    printf("head-above-torso %.2f, scale = %0.2f\n", torsoToHead, getScale());
+    qDebug("head-above-torso %.2f, scale = %0.2f", torsoToHead, getScale());
 
     //  Torso Sphere
     position = torsoPosition;

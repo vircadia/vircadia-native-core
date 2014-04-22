@@ -22,6 +22,7 @@
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
+
 #include "AssignmentFactory.h"
 #include "AssignmentThread.h"
 
@@ -30,11 +31,12 @@
 const QString ASSIGNMENT_CLIENT_TARGET_NAME = "assignment-client";
 const long long ASSIGNMENT_REQUEST_INTERVAL_MSECS = 1 * 1000;
 
+SharedAssignmentPointer AssignmentClient::_currentAssignment;
+
 int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
 
 AssignmentClient::AssignmentClient(int &argc, char **argv) :
     QCoreApplication(argc, argv),
-    _currentAssignment(),
     _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME)
 {
     DTLSClientSession::globalInit();

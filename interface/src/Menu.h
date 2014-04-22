@@ -26,6 +26,7 @@
 #include "location/LocationManager.h"
 #include "ui/PreferencesDialog.h"
 #include "ui/ChatWindow.h"
+#include "ui/ScriptEditorWindow.h"
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
@@ -135,10 +136,10 @@ public:
     
     void removeAction(QMenu* menu, const QString& actionName);
 
-    bool goToDestination(QString destination);
-    void goToOrientation(QString orientation);
-    void goToDomain(const QString newDomain);
-    void goTo(QString destination);
+    bool static goToDestination(QString destination);
+    void static goToOrientation(QString orientation);
+    void static goToDomain(const QString newDomain);
+    void static goTo(QString destination);
 
 public slots:
 
@@ -177,6 +178,7 @@ private slots:
     void cycleFrustumRenderMode();
     void runTests();
     void showMetavoxelEditor();
+    void showScriptEditor();
     void showChat();
     void toggleChat();
     void audioMuteToggled();
@@ -228,6 +230,7 @@ private:
     FrustumDrawMode _frustumDrawMode;
     ViewFrustumOffset _viewFrustumOffset;
     QPointer<MetavoxelEditor> _MetavoxelEditor;
+    QPointer<ScriptEditorWindow> _ScriptEditor;
     QPointer<ChatWindow> _chatWindow;
     OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
@@ -304,6 +307,7 @@ namespace MenuOption {
     const QString Fullscreen = "Fullscreen";
     const QString FullscreenMirror = "Fullscreen Mirror";
     const QString GlowMode = "Cycle Glow Mode";
+    const QString GlowWhenSpeaking = "Glow When Speaking";
     const QString GoHome = "Go Home";
     const QString GoTo = "Go To...";
     const QString GoToDomain = "Go To Domain...";
@@ -344,6 +348,7 @@ namespace MenuOption {
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString RunningScripts = "Running Scripts";
     const QString RunTimingTests = "Run Timing Tests";
+    const QString ScriptEditor = "Script Editor...";
     const QString SettingsExport = "Export Settings";
     const QString SettingsImport = "Import Settings";
     const QString Shadows = "Shadows";

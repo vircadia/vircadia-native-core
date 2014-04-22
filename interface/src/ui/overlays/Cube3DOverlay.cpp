@@ -40,6 +40,7 @@ void Cube3DOverlay::render() {
     if (_isSolid) {
         glutSolidCube(_size);
     } else {
+        glLineWidth(_lineWidth);
         glutWireCube(_size);
     }
     glPopMatrix();
