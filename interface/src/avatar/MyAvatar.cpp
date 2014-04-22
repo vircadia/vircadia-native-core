@@ -799,43 +799,18 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
 static CollisionList myCollisions(64);
 
 void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
-    static int foo = 0;
-    ++foo;
-
-//    const float VOXEL_ELASTICITY = 0.4f;
-//    const float VOXEL_DAMPING = 0.0f;
-    const float VOXEL_COLLISION_FREQUENCY = 0.5f;
-
     myCollisions.clear();
     const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
     if (Application::getInstance()->getVoxelTree()->findShapeCollisions(&boundingShape, myCollisions)) {
+        const float VOXEL_ELASTICITY = 0.4f;
+        const float VOXEL_DAMPING = 0.0f;
         for (int i = 0; i < myCollisions.size(); ++i) {
             CollisionInfo* collision = myCollisions[i];
-            //if (0 == (foo % 100)) {
-                std::cout << "adebug " << myCollisions.size() << " collisions  p = " << collision->_penetration << std::endl;  // adebug
-            //}
-            //applyHardCollision(collision->_penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+            applyHardCollision(collision->_penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
         }
+        const float VOXEL_COLLISION_FREQUENCY = 0.5f;
         updateCollisionSound(myCollisions[0]->_penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
-    } else if (myCollisions.size() == 0) {
-        if (0 == (foo % 100)) {
-            std::cout << "adebug 0 collisions capC = " << boundingShape.getPosition() << "  capR = " << boundingShape.getRadius() << std::endl;  // adebug
-        }
-    }
-    /*
-    const float VOXEL_ELASTICITY = 0.4f;
-    const float VOXEL_DAMPING = 0.0f;
-    const float VOXEL_COLLISION_FREQUENCY = 0.5f;
-    glm::vec3 penetration;
-    float pelvisFloatingHeight = getPelvisFloatingHeight();
-    if (Application::getInstance()->getVoxelTree()->findCapsulePenetration(
-            _position - glm::vec3(0.0f, pelvisFloatingHeight - radius, 0.0f),
-            _position + glm::vec3(0.0f, getSkeletonHeight() - pelvisFloatingHeight + radius, 0.0f), radius, penetration)) {
-        _lastCollisionPosition = _position;
-        updateCollisionSound(penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
-        applyHardCollision(penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
-    }
-    */
+    } 
 }
 
 void MyAvatar::applyHardCollision(const glm::vec3& penetration, float elasticity, float damping) {
