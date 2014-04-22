@@ -607,12 +607,15 @@ bool sphereAACube(const glm::vec3& sphereCenter, float sphereRadius, const glm::
         if (glm::dot(surfaceAB, BA) > 0.f) {
             CollisionInfo* collision = collisions.getNewCollision();
             if (collision) {
-                glm::vec3 normal(floorf(BA.x/maxBA), floorf(BA.y/maxBA), floorf(BA.z/maxBA));
-                std::cout << "adebug normal = " << normal << std::endl;  // adebug
-                normal = glm::normalize(normal);
-                collision->_penetration = glm::dot(surfaceAB, normal) * normal;
+                // penetration is parallel to box side direction
+                glm::vec3 direction;
+                modff(BA.x/maxBA, &(direction.x));
+                modff(BA.y/maxBA, &(direction.y));
+                modff(BA.z/maxBA, &(direction.z));
+                direction = glm::normalize(direction);
+                collision->_penetration = glm::dot(surfaceAB, direction) * direction;
                 // contactPoint is on surface of A
-                collision->_contactPoint = sphereCenter - sphereRadius * normal;
+                collision->_contactPoint = sphereCenter - sphereRadius * direction;
                 return true;
             }
         }
