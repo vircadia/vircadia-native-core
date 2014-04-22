@@ -795,6 +795,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
     if (activeWindow() == _window) {
         bool isShifted = event->modifiers().testFlag(Qt::ShiftModifier);
         bool isMeta = event->modifiers().testFlag(Qt::ControlModifier);
+        bool isOption = event->modifiers().testFlag(Qt::AltModifier);
         switch (event->key()) {
                 break;
             case Qt::Key_BracketLeft:
@@ -839,9 +840,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_S:
-                if (isShifted && isMeta)  {
+                if (isShifted && isMeta && !isOption) {
                     Menu::getInstance()->triggerOption(MenuOption::SuppressShortTimings);
-                } else if (!isShifted && isMeta)  {
+                } else if (isOption && !isShifted && !isMeta) {
+                    Menu::getInstance()->triggerOption(MenuOption::ScriptEditor);
+                } else if (!isOption && !isShifted && isMeta) {
                     takeSnapshot();
                 } else {
                     _myAvatar->setDriveKeys(BACK, 1.f);
@@ -3115,7 +3118,7 @@ void Application::nodeKilled(SharedNodePointer node) {
             VoxelPositionSize rootDetails;
             voxelDetailsForCode(rootCode, rootDetails);
 
-            printf("voxel server going away...... v[%f, %f, %f, %f]\n",
+            qDebug("voxel server going away...... v[%f, %f, %f, %f]",
                 rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
 
             // Add the jurisditionDetails object to the list of "fade outs"
@@ -3146,7 +3149,7 @@ void Application::nodeKilled(SharedNodePointer node) {
             VoxelPositionSize rootDetails;
             voxelDetailsForCode(rootCode, rootDetails);
 
-            printf("particle server going away...... v[%f, %f, %f, %f]\n",
+            qDebug("particle server going away...... v[%f, %f, %f, %f]",
                 rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
 
             // Add the jurisditionDetails object to the list of "fade outs"
@@ -3227,7 +3230,7 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
 
 
         if (jurisdiction->find(nodeUUID) == jurisdiction->end()) {
-            printf("stats from new server... v[%f, %f, %f, %f]\n",
+            qDebug("stats from new server... v[%f, %f, %f, %f]",
                 rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
 
             // Add the jurisditionDetails object to the list of "fade outs"
@@ -3299,13 +3302,14 @@ void Application::stopAllScripts() {
     bumpSettings();
 }
 
-void Application::stopScript(const QString &scriptName)
-{
-    _scriptEnginesHash.value(scriptName)->stop();
-    qDebug() << "stopping script..." << scriptName;
-    _scriptEnginesHash.remove(scriptName);
-    _runningScriptsWidget->setRunningScripts(getRunningScripts());
-    bumpSettings();
+void Application::stopScript(const QString &scriptName) {
+    if (_scriptEnginesHash.contains(scriptName)) {
+        _scriptEnginesHash.value(scriptName)->stop();
+        qDebug() << "stopping script..." << scriptName;
+        _scriptEnginesHash.remove(scriptName);
+        _runningScriptsWidget->setRunningScripts(getRunningScripts());
+        bumpSettings();
+    }
 }
 
 void Application::reloadAllScripts() {
@@ -3366,7 +3370,10 @@ void Application::uploadSkeleton() {
     uploadFST(false);
 }
 
-void Application::loadScript(const QString& scriptName) {
+ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScriptFromEditor) {
+    if(loadScriptFromEditor && _scriptEnginesHash.contains(scriptName) && !_scriptEnginesHash[scriptName]->isFinished()){
+        return _scriptEnginesHash[scriptName];
+    }
 
     // start the script on a new thread...
     ScriptEngine* scriptEngine = new ScriptEngine(QUrl(scriptName), &_controllerScriptingInterface);
@@ -3374,7 +3381,7 @@ void Application::loadScript(const QString& scriptName) {
 
     if (!scriptEngine->hasScript()) {
         qDebug() << "Application::loadScript(), script failed to load...";
-        return;
+        return NULL;
     }
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
 
@@ -3422,8 +3429,12 @@ void Application::loadScript(const QString& scriptName) {
     workerThread->start();
 
     // restore the main window's active state
-    _window->activateWindow();
+    if (!loadScriptFromEditor) {
+        _window->activateWindow();
+    }
     bumpSettings();
+
+    return scriptEngine;
 }
 
 void Application::loadDialog() {

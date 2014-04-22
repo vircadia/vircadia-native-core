@@ -63,7 +63,7 @@ void eulerToOrthonormals(glm::vec3 * angles, glm::vec3 * front, glm::vec3 * righ
 }
 
 void printVector(glm::vec3 vec) {
-    printf("%4.2f, %4.2f, %4.2f\n", vec.x, vec.y, vec.z);
+    qDebug("%4.2f, %4.2f, %4.2f", vec.x, vec.y, vec.z);
 }
 
 //  Return the azimuth angle (in radians) between two points.

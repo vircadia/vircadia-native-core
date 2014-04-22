@@ -125,7 +125,7 @@ const unsigned char* OctreePacketData::getFinalizedData() {
 
     if (_dirty) {
         if (_debug) {
-            printf("getFinalizedData() _compressedBytes=%d _bytesInUse=%d\n",_compressedBytes, _bytesInUse);
+            qDebug("getFinalizedData() _compressedBytes=%d _bytesInUse=%d",_compressedBytes, _bytesInUse);
         }
         compressContent();
     }
@@ -139,7 +139,7 @@ int OctreePacketData::getFinalizedSize() {
 
     if (_dirty) {
         if (_debug) {
-            printf("getFinalizedSize() _compressedBytes=%d _bytesInUse=%d\n",_compressedBytes, _bytesInUse);
+            qDebug("getFinalizedSize() _compressedBytes=%d _bytesInUse=%d",_compressedBytes, _bytesInUse);
         }
         compressContent(); 
     }
@@ -187,7 +187,7 @@ void OctreePacketData::discardLevel(LevelDetails key) {
     _totalBytesOfColor -= reduceBytesOfColor;
 
     if (_debug) {
-        printf("discardLevel() BEFORE _dirty=%s bytesInLevel=%d _compressedBytes=%d _bytesInUse=%d\n",
+        qDebug("discardLevel() BEFORE _dirty=%s bytesInLevel=%d _compressedBytes=%d _bytesInUse=%d",
             debug::valueOf(_dirty), bytesInLevel, _compressedBytes, _bytesInUse);
     }
             
@@ -196,7 +196,7 @@ void OctreePacketData::discardLevel(LevelDetails key) {
     _dirty = true;
 
     if (_debug) {
-        printf("discardLevel() AFTER _dirty=%s bytesInLevel=%d _compressedBytes=%d _bytesInUse=%d\n",
+        qDebug("discardLevel() AFTER _dirty=%s bytesInLevel=%d _compressedBytes=%d _bytesInUse=%d",
             debug::valueOf(_dirty), bytesInLevel, _compressedBytes, _bytesInUse);
     }
 }
@@ -413,13 +413,13 @@ void OctreePacketData::loadFinalizedContent(const unsigned char* data, int lengt
         }
     } else {
         if (_debug) {
-            printf("OctreePacketData::loadCompressedContent()... length = 0, nothing to do...\n");
+            qDebug("OctreePacketData::loadCompressedContent()... length = 0, nothing to do...");
         }
     }
 }
 
 void OctreePacketData::debugContent() {
-    printf("OctreePacketData::debugContent()... COMPRESSED DATA.... size=%d\n",_compressedBytes);
+    qDebug("OctreePacketData::debugContent()... COMPRESSED DATA.... size=%d",_compressedBytes);
     int perline=0;
     for (int i = 0; i < _compressedBytes; i++) {
         printf("%.2x ",_compressed[i]);
@@ -431,7 +431,7 @@ void OctreePacketData::debugContent() {
     }
     printf("\n");
     
-    printf("OctreePacketData::debugContent()... UNCOMPRESSED DATA.... size=%d\n",_bytesInUse);
+    qDebug("OctreePacketData::debugContent()... UNCOMPRESSED DATA.... size=%d",_bytesInUse);
     perline=0;
     for (int i = 0; i < _bytesInUse; i++) {
         printf("%.2x ",_uncompressed[i]);
