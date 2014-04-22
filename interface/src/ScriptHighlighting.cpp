@@ -29,7 +29,7 @@ void ScriptHighlighting::highlightBlock(const QString& text) {
     this->formatNumbers(text);
     this->formatTrueFalse(text);
     this->formatQoutedText(text);
-    this->formatComments(text);	
+    this->formatComments(text);
 }
 
 void ScriptHighlighting::highlightKeywords(const QString& text) {
@@ -54,7 +54,7 @@ void ScriptHighlighting::formatComments(const QString& text) {
         start = text.indexOf(_multiLineCommentBegin, start + length);
         if (end == -1) {
             setCurrentBlockState(BlockStateInMultiComment);
-		}
+        }
     }
 
     int index = _singleLineComment.indexIn(text);
