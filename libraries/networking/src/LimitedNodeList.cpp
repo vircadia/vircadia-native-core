@@ -227,7 +227,7 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const SharedNo
             }
         }
         
-        writeDatagram(datagram, *destinationSockAddr, destinationNode->getConnectionSecret());
+        return writeDatagram(datagram, *destinationSockAddr, destinationNode->getConnectionSecret());
     }
     
     // didn't have a destinationNode to send to, return 0
@@ -249,9 +249,8 @@ qint64 LimitedNodeList::writeUnverifiedDatagram(const QByteArray& datagram, cons
             }
         }
         
-        
         // don't use the node secret!
-        writeDatagram(datagram, *destinationSockAddr, QUuid());
+        return writeDatagram(datagram, *destinationSockAddr, QUuid());
     }
     
     // didn't have a destinationNode to send to, return 0
