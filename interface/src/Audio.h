@@ -204,9 +204,9 @@ private:
     void addBufferToScope(QByteArray& byteArray, unsigned int frameOffset, const int16_t* src, unsigned int srcChannel, unsigned int srcNumChannels);
 
     // Audio scope methods for rendering
-    void renderBackground(unsigned int rgba, int x, int y, int width, int height);
-    void renderGrid(unsigned int rgba, int x, int y, int width, int height, int rows, int cols);
-    void renderLineStrip(unsigned int rgba, int x, int y, int n, int offset, const QByteArray& byteArray);
+    void renderBackground(const float* color, int x, int y, int width, int height);
+    void renderGrid(const float* color, int x, int y, int width, int height, int rows, int cols);
+    void renderLineStrip(const float* color, int x, int y, int n, int offset, const QByteArray& byteArray);
 
     // Audio scope data
     static const unsigned int NETWORK_SAMPLES_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;

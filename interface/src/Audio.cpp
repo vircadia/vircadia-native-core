@@ -1110,11 +1110,11 @@ void Audio::renderScope(int width, int height) {
     if (!_scopeEnabled)
         return;
 
-    static const unsigned int backgroundColor = 0x33333399;
-    static const unsigned int gridColor = 0x44444499;
-    static const unsigned int inputColor = 0x44aa4499;
-    static const unsigned int outputLeftColor = 0xaa444499;
-    static const unsigned int outputRightColor = 0x4444aa99;
+    static const float backgroundColor[4] = { 0.2f, 0.2f, 0.2f, 0.6f };
+    static const float gridColor[4] = { 0.3f, 0.3f, 0.3f, 0.6f };
+    static const float inputColor[4] = { 0.3f, .7f, 0.3f, 0.6f };
+    static const float outputLeftColor[4] = { 0.7f, .3f, 0.3f, 0.6f };
+    static const float outputRightColor[4] = { 0.3f, .3f, 0.7f, 0.6f };
     static const int gridRows = 2;
     static const int gridCols = 5;
 
@@ -1130,26 +1130,24 @@ void Audio::renderScope(int width, int height) {
     renderLineStrip(outputRightColor, x, y, w, _scopeOutputOffset, _scopeOutputRight);
 }
 
-void Audio::renderBackground(unsigned int rgba, int x, int y, int width, int height) {
+void Audio::renderBackground(const float* color, int x, int y, int width, int height) {
+
+    glColor4fv(color);
     glBegin(GL_QUADS);
-    glColor4f(((rgba >> 24) & 0xff) / 255.0f,
-              ((rgba >> 16) & 0xff) / 255.0f, 
-              ((rgba >> 8) & 0xff)  / 255.0f,
-              (rgba & 0xff) / 255.0f);
+
     glVertex2i(x, y);
     glVertex2i(x + width, y);
     glVertex2i(x + width, y + height);
     glVertex2i(x , y + height);
+
     glEnd();
     glColor4f(1, 1, 1, 1); 
 }
 
-void Audio::renderGrid(unsigned int rgba, int x, int y, int width, int height, int rows, int cols) {
+void Audio::renderGrid(const float* color, int x, int y, int width, int height, int rows, int cols) {
+
+    glColor4fv(color);
     glBegin(GL_LINES);
-    glColor4f(((rgba >> 24) & 0xff) / 255.0f,
-              ((rgba >> 16) & 0xff) / 255.0f, 
-              ((rgba >> 8) & 0xff)  / 255.0f,
-              (rgba & 0xff) / 255.0f);
 
     int dx = width / cols;
     int dy = height / rows;
@@ -1172,13 +1170,9 @@ void Audio::renderGrid(unsigned int rgba, int x, int y, int width, int height, i
     glColor4f(1, 1, 1, 1); 
 }
 
-void Audio::renderLineStrip(unsigned int rgba, int x, int y, int n, int offset, const QByteArray& byteArray) {
+void Audio::renderLineStrip(const float* color, int x, int y, int n, int offset, const QByteArray& byteArray) {
 
-    glColor4f(((rgba >> 24) & 0xff) / 255.0f,
-              ((rgba >> 16) & 0xff) / 255.0f, 
-              ((rgba >> 8) & 0xff)  / 255.0f,
-              (rgba & 0xff) / 255.0f);
-
+    glColor4fv(color);
     glBegin(GL_LINE_STRIP);
 
     int16_t sample;
