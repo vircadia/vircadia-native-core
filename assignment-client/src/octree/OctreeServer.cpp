@@ -839,6 +839,11 @@ void OctreeServer::readPendingDatagrams() {
                     nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
                     OctreeQueryNode* nodeData = (OctreeQueryNode*) matchingNode->getLinkedData();
                     if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
+                    
+                        // NOTE: this is an important aspect of the proper ref counting. The send threads/node data need to 
+                        // know that the OctreeServer/Assignment will not get deleted on it while it's still active. The 
+                        // solution is to get the shared pointer for the current assignment. We need to make sure this is the 
+                        // same SharedAssignmentPointer that was ref counted by the assignment client.                    
                         SharedAssignmentPointer sharedAssignment = AssignmentClient::getCurrentAssignment();
                         nodeData->initializeOctreeSendThread(sharedAssignment, matchingNode);
                     }
