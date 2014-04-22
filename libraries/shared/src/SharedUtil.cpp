@@ -21,18 +21,34 @@
 
 #include <QtCore/QDebug>
 #include <QDateTime>
+#include <QElapsedTimer>
 
 #include "OctalCode.h"
 #include "SharedUtil.h"
 
-int usecTimestampNowAdjust = 0;
+
+static qint64 TIME_REFERENCE = 0; // in usec
+static QElapsedTimer timestampTimer;
+static int usecTimestampNowAdjust = 0; // in usec
+
+void initialiseUsecTimestampNow() {
+    static bool initialised = false;
+    if (initialised) {
+        qDebug() << "[WARNING] Double initialisation of usecTimestampNow().";
+        return;
+    }
+    
+    TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * 1000; // ms to usec
+    initialised = true;
+}
+
 void usecTimestampNowForceClockSkew(int clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;
 }
 
 quint64 usecTimestampNow() {
-    qint64 msecSinceEpoch = QDateTime::currentMSecsSinceEpoch();
-    return msecSinceEpoch * 1000 + ::usecTimestampNowAdjust;
+    //          usec                       nsec to usec                   usec
+    return TIME_REFERENCE + timestampTimer.nsecsElapsed() / 1000 + ::usecTimestampNowAdjust;
 }
 
 float randFloat() {

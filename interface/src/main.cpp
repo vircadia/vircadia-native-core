@@ -16,6 +16,7 @@
 #include <SharedUtil.h>
 
 int main(int argc, const char * argv[]) {
+    initialiseUsecTimestampNow();
     QElapsedTimer startupTime;
     startupTime.start();
     
