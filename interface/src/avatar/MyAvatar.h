@@ -122,6 +122,7 @@ private:
     float _elapsedTimeSinceCollision;
     glm::vec3 _lastCollisionPosition;
     bool _speedBrakes;
+    glm::vec3 _thrust;
     bool _isThrustOn;
     float _thrustMultiplier;
     glm::vec3 _moveTarget;

@@ -158,7 +158,6 @@ protected:
     SkeletonModel _skeletonModel;
     float _bodyYawDelta;
     glm::vec3 _velocity;
-    glm::vec3 _thrust;
     float _leanScale;
     float _scale;
     glm::vec3 _worldUpDirection;

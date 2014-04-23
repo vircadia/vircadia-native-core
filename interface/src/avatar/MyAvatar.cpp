@@ -59,6 +59,7 @@ MyAvatar::MyAvatar() :
     _elapsedTimeSinceCollision(0.0f),
     _lastCollisionPosition(0, 0, 0),
     _speedBrakes(false),
+    _thrust(0.0f),
     _isThrustOn(false),
     _thrustMultiplier(1.0f),
     _moveTarget(0,0,0),
@@ -316,7 +317,7 @@ void MyAvatar::simulate(float deltaTime) {
     head->simulate(deltaTime, true);
 
     // Zero thrust out now that we've added it to velocity in this frame
-    _thrust = glm::vec3(0.0f);
+    _thrust *= glm::vec3(0.0f);
 
     // now that we're done stepping the avatar forward in time, compute new collisions
     if (_collisionFlags != 0) {

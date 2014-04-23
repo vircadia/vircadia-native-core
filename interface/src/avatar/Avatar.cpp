@@ -48,7 +48,6 @@ Avatar::Avatar() :
     _skeletonModel(this),
     _bodyYawDelta(0.0f),
     _velocity(0.0f, 0.0f, 0.0f),
-    _thrust(0.0f, 0.0f, 0.0f),
     _leanScale(0.5f),
     _scale(1.0f),
     _worldUpDirection(DEFAULT_UP_DIRECTION),
@@ -140,9 +139,6 @@ void Avatar::simulate(float deltaTime) {
     // update position by velocity, and subtract the change added earlier for gravity
     _position += _velocity * deltaTime;
     
-    // Zero thrust out now that we've added it to velocity in this frame
-    _thrust = glm::vec3(0.0f);
-
     // update animation for display name fade in/out
     if ( _displayNameTargetAlpha != _displayNameAlpha) {
         // the alpha function is 
