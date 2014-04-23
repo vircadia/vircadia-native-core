@@ -39,7 +39,8 @@ ScriptEditorWidget::ScriptEditorWidget() :
     setTitleBarWidget(new QWidget());
     QFontMetrics fm(_scriptEditorWidgetUI->scriptEdit->font());
     _scriptEditorWidgetUI->scriptEdit->setTabStopWidth(fm.width('0') * 4);
-    ScriptHighlighting* highlighting = new ScriptHighlighting(_scriptEditorWidgetUI->scriptEdit->document());
+    // We create a new ScriptHighligting QObject and provide it with a parent so this is NOT a memory leak.
+    new ScriptHighlighting(_scriptEditorWidgetUI->scriptEdit->document());
     QTimer::singleShot(0, _scriptEditorWidgetUI->scriptEdit, SLOT(setFocus()));
 }
 

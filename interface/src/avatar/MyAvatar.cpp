@@ -335,15 +335,17 @@ void MyAvatar::simulate(float deltaTime) {
             radius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.0f));
             radius *= COLLISION_RADIUS_SCALAR;
         }
-
-        if (_collisionFlags & COLLISION_GROUP_ENVIRONMENT) {
-            updateCollisionWithEnvironment(deltaTime, radius);
-        }
-        if (_collisionFlags & COLLISION_GROUP_VOXELS) {
-            updateCollisionWithVoxels(deltaTime, radius);
-        }
-        if (_collisionFlags & COLLISION_GROUP_AVATARS) {
-            updateCollisionWithAvatars(deltaTime);
+        if (_collisionFlags) {
+            updateShapePositions();
+            if (_collisionFlags & COLLISION_GROUP_ENVIRONMENT) {
+                updateCollisionWithEnvironment(deltaTime, radius);
+            }
+            if (_collisionFlags & COLLISION_GROUP_VOXELS) {
+                updateCollisionWithVoxels(deltaTime, radius);
+            }
+            if (_collisionFlags & COLLISION_GROUP_AVATARS) {
+                updateCollisionWithAvatars(deltaTime);
+            }
         }
     }
 
@@ -795,19 +797,21 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
     }
 }
 
+static CollisionList myCollisions(64);
+
 void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
-    const float VOXEL_ELASTICITY = 0.4f;
-    const float VOXEL_DAMPING = 0.0f;
-    const float VOXEL_COLLISION_FREQUENCY = 0.5f;
-    glm::vec3 penetration;
-    float pelvisFloatingHeight = getPelvisFloatingHeight();
-    if (Application::getInstance()->getVoxelTree()->findCapsulePenetration(
-            _position - glm::vec3(0.0f, pelvisFloatingHeight - radius, 0.0f),
-            _position + glm::vec3(0.0f, getSkeletonHeight() - pelvisFloatingHeight + radius, 0.0f), radius, penetration)) {
-        _lastCollisionPosition = _position;
-        updateCollisionSound(penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
-        applyHardCollision(penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
-    }
+    myCollisions.clear();
+    const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
+    if (Application::getInstance()->getVoxelTree()->findShapeCollisions(&boundingShape, myCollisions)) {
+        const float VOXEL_ELASTICITY = 0.4f;
+        const float VOXEL_DAMPING = 0.0f;
+        for (int i = 0; i < myCollisions.size(); ++i) {
+            CollisionInfo* collision = myCollisions[i];
+            applyHardCollision(collision->_penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+        }
+        const float VOXEL_COLLISION_FREQUENCY = 0.5f;
+        updateCollisionSound(myCollisions[0]->_penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
+    } 
 }
 
 void MyAvatar::applyHardCollision(const glm::vec3& penetration, float elasticity, float damping) {
@@ -912,7 +916,6 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
         // no need to compute a bunch of stuff if we have one or fewer avatars
         return;
     }
-    updateShapePositions();
     float myBoundingRadius = getBoundingRadius();
 
     const float BODY_COLLISION_RESOLUTION_FACTOR = glm::max(1.0f, deltaTime / BODY_COLLISION_RESOLUTION_TIMESCALE);
