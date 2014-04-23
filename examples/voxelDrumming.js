@@ -64,7 +64,7 @@ collisionBubble[1] = Overlays.addOverlay("sphere",
                                 visible: false
                             });
 
-var audioOptions = new AudioInjectionOptions(); 
+var audioOptions = new AudioInjectionOptions();
 audioOptions.position = { x: MyAvatar.position.x, y: MyAvatar.position.y + 1, z: MyAvatar.position.z }; 
 audioOptions.volume = 1;
 
