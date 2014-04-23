@@ -17,15 +17,16 @@
 #include <GenericThread.h>
 #include <NetworkPacket.h>
 #include <OctreeElementBag.h>
-#include "OctreeQueryNode.h"
-#include "OctreeServer.h"
 
+#include "OctreeQueryNode.h"
+
+class OctreeServer;
 
 /// Threaded processor for sending voxel packets to a single client
 class OctreeSendThread : public GenericThread {
     Q_OBJECT
 public:
-    OctreeSendThread(OctreeServer* myServer, SharedNodePointer node);
+    OctreeSendThread(const SharedAssignmentPointer& myAssignment, const SharedNodePointer& node);
     virtual ~OctreeSendThread();
     
     void setIsShuttingDown();
@@ -42,16 +43,17 @@ protected:
     virtual bool process();
 
 private:
+    SharedAssignmentPointer _myAssignment;
     OctreeServer* _myServer;
+    SharedNodePointer _node;
     QUuid _nodeUUID;
 
-    int handlePacketSend(const SharedNodePointer& node, OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent);
-    int packetDistributor(const SharedNodePointer& node, OctreeQueryNode* nodeData, bool viewFrustumChanged);
+    int handlePacketSend(OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent);
+    int packetDistributor(OctreeQueryNode* nodeData, bool viewFrustumChanged);
 
     OctreePacketData _packetData;
     
     int _nodeMissingCount;
-    QMutex _processLock; // don't allow us to have our nodeData, or our thread to be deleted while we're processing
     bool _isShuttingDown;
 };
 

@@ -122,7 +122,7 @@ public:
     ~Application();
 
     void restoreSizeAndPosition();
-    void loadScript(const QString& fileNameString);
+    ScriptEngine* loadScript(const QString& fileNameString, bool loadScriptFromEditor = false);
     void loadScripts();
     void storeSizeAndPosition();
     void clearScriptsBeforeRunning();
@@ -248,6 +248,7 @@ public:
     void skipVersion(QString latestVersion);
 
     QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
+    ScriptEngine* getScriptEngine(QString scriptHash) { return _scriptEnginesHash.contains(scriptHash) ? _scriptEnginesHash[scriptHash] : NULL; }
 
 signals:
 

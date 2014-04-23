@@ -80,6 +80,9 @@ public:
 
     bool hasScript() const { return !_scriptContents.isEmpty(); }
 
+    bool isFinished() const { return _isFinished; }
+    bool isRunning() const { return _isRunning; }
+
 public slots:
     void stop();
 
@@ -88,12 +91,16 @@ public slots:
     void clearInterval(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
     void clearTimeout(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
     void include(const QString& includeFile);
+    void print(const QString& message);
 
 signals:
     void update(float deltaTime);
     void scriptEnding();
     void finished(const QString& fileNameString);
     void cleanupMenuItem(const QString& menuItemString);
+    void printedMessage(const QString& message);
+    void errorMessage(const QString& message);
+    void runningStateChanged();
 
 protected:
     QString _scriptContents;

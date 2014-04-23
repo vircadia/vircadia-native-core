@@ -217,7 +217,7 @@ function update(deltaTime) {
 
         if (invaderStepOfCycle % stepsPerSound == 0) {
             // play the move sound
-            var options = new AudioInjectionOptions(); 
+            var options = new AudioInjectionOptions();
             if (soundInMyHead) {
                 options.position = { x: MyAvatar.position.x + 0.0, 
                                      y: MyAvatar.position.y + 0.1, 
@@ -329,7 +329,7 @@ function fireMissile() {
                             lifetime: 5
                         });
 
-        var options = new AudioInjectionOptions(); 
+        var options = new AudioInjectionOptions();
         if (soundInMyHead) {
             options.position = { x: MyAvatar.position.x + 0.0, 
                                  y: MyAvatar.position.y + 0.1, 
@@ -379,7 +379,7 @@ function deleteIfInvader(possibleInvaderParticle) {
                     Particles.deleteParticle(myMissile);
 
                     // play the hit sound
-                    var options = new AudioInjectionOptions(); 
+                    var options = new AudioInjectionOptions();
                     if (soundInMyHead) {
                         options.position = { x: MyAvatar.position.x + 0.0, 
                                              y: MyAvatar.position.y + 0.1, 
@@ -417,4 +417,3 @@ initializeInvaders();
 
 // shut down the game after 1 minute
 var gameTimer = Script.setTimeout(endGame, itemLifetimes * 1000);
-

@@ -45,7 +45,7 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
     bool debugProcessPacket = _myServer->wantsVerboseDebug();
 
     if (debugProcessPacket) {
-        printf("OctreeInboundPacketProcessor::processPacket() packetData=%p packetLength=%d\n", &packet, packet.size());
+        qDebug("OctreeInboundPacketProcessor::processPacket() packetData=%p packetLength=%d", &packet, packet.size());
     }
 
     int numBytesPacketHeader = numBytesForPacketHeader(packet);
@@ -78,8 +78,8 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
             int maxSize = packet.size() - atByte;
 
             if (debugProcessPacket) {
-                printf("OctreeInboundPacketProcessor::processPacket() %c "
-                       "packetData=%p packetLength=%d voxelData=%p atByte=%d maxSize=%d\n",
+                qDebug("OctreeInboundPacketProcessor::processPacket() %c "
+                       "packetData=%p packetLength=%d voxelData=%p atByte=%d maxSize=%d",
                         packetType, packetData, packet.size(), editData, atByte, maxSize);
             }
 
@@ -105,8 +105,8 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
         }
 
         if (debugProcessPacket) {
-            printf("OctreeInboundPacketProcessor::processPacket() DONE LOOPING FOR %c "
-                   "packetData=%p packetLength=%d voxelData=%p atByte=%d\n",
+            qDebug("OctreeInboundPacketProcessor::processPacket() DONE LOOPING FOR %c "
+                   "packetData=%p packetLength=%d voxelData=%p atByte=%d",
                     packetType, packetData, packet.size(), editData, atByte);
         }
 

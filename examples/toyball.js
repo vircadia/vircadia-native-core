@@ -111,7 +111,7 @@ function checkControllerSide(whichSide) {
                                 velocity : { x: 0, y: 0, z: 0}, inHand: true };
             Particles.editParticle(closestParticle, properties);
             
-    		var options = new AudioInjectionOptions(); 
+    		var options = new AudioInjectionOptions();
 			options.position = ballPosition;
 			options.volume = 1.0;
 			Audio.playSound(catchSound, options);
@@ -152,7 +152,7 @@ function checkControllerSide(whichSide) {
         }
 
         // Play a new ball sound
-        var options = new AudioInjectionOptions(); 
+        var options = new AudioInjectionOptions();
         options.position = ballPosition;
         options.volume = 1.0;
         Audio.playSound(catchSound, options);
@@ -201,7 +201,7 @@ function checkControllerSide(whichSide) {
                 rightHandParticle = false;
             }
 
-    		var options = new AudioInjectionOptions(); 
+    		var options = new AudioInjectionOptions();
 			options.position = ballPosition;
 			options.volume = 1.0;
 			Audio.playSound(throwSound, options);
