@@ -106,7 +106,7 @@ private:
     /// Copy constructor prohibited.
     ///
     Primitive(
-        const Primitive& prim
+        const Primitive& copy
         );
 
     // SPI methods are defined here
@@ -153,14 +153,14 @@ public:
     /// Configuration dependency injection constructor.
     ///
     Cube(
-        float x,
-        float y,
-        float z,
-        float s,
-        unsigned char r,
-        unsigned char g,
-        unsigned char b,
-        unsigned char faces
+        float x,                                ///< Cube location on X-axis
+        float y,                                ///< Cube location on Y-axis
+        float z,                                ///< Cube location on Z-axis
+        float s,                                ///< Cube size
+        unsigned char r,                        ///< Cube red color component
+        unsigned char g,                        ///< Cube green color component
+        unsigned char b,                        ///< Cube blue color component
+        unsigned char faces                     ///< Bitmask of faces of cube excluded from construction
         );
 
     ~Cube();
@@ -172,36 +172,48 @@ private:
         const Cube& cube
         );
 
+    /// Cube initialization
+    ///
     void init(
-        float x,
-        float y,
-        float z,
-        float s,
-        unsigned char r,
-        unsigned char g,
-        unsigned char b,
-        unsigned char faceExclusions
+        float x,                                ///< Cube location on X-axis
+        float y,                                ///< Cube location on Y-axis
+        float z,                                ///< Cube location on Z-axis
+        float s,                                ///< Cube size
+        unsigned char r,                        ///< Cube red color component
+        unsigned char g,                        ///< Cube green color component
+        unsigned char b,                        ///< Cube blue color component
+        unsigned char faceExclusions            ///< Bitmask of faces of cube excluded from construction
         );
 
+    /// Cube termination
+    ///
     void terminate();
 
+    /// Initialize cube's vertex list 
+    ///
     void initializeVertices(
-        float x,
-        float y,
-        float z,
-        float s,
-        unsigned char r,
-        unsigned char g,
-        unsigned char b,
-        unsigned char faceExclusions
+        float x,                                ///< Cube location on X-axis
+        float y,                                ///< Cube location on Y-axis
+        float z,                                ///< Cube location on Z-axis
+        float s,                                ///< Cube size
+        unsigned char r,                        ///< Cube red color component
+        unsigned char g,                        ///< Cube green color component
+        unsigned char b,                        ///< Cube blue color component
+        unsigned char faceExclusions            ///< Bitmask of faces of cube excluded from construction
         );
 
+    /// Terminate cube's vertex list
+    ///
     void terminateVertices();
 
+    /// Initialize cube's triangle list
+    ///
     void initializeTris(
         unsigned char faceExclusions
         );
 
+    /// Terminate cube's triangle list
+    ///
     void terminateTris();
 
     // SPI virtual override methods go here
@@ -219,11 +231,11 @@ private:
 
     unsigned long _cpuMemoryUsage;              ///< Memory allocation of object
 
-    static const int _sNumFacesPerCube = 6;
-    static const int _sNumVerticesPerCube = 24;
-    static unsigned char _sFaceIndexToHalfSpaceMask[6];
-    static float _sVertexIndexToConstructionVector[24][3];
-    static float _sVertexIndexToNormalVector[6][3];
+    static const int _sNumFacesPerCube = 6;     ///< Number of faces per cube
+    static const int _sNumVerticesPerCube = 24; ///< Number of vertices per cube
+    static unsigned char _sFaceIndexToHalfSpaceMask[6];     ///< index to bitmask map
+    static float _sVertexIndexToConstructionVector[24][3];  ///< Vertex index to construction vector map
+    static float _sVertexIndexToNormalVector[6][3];         ///< Vertex index to normal vector map
 
 };
 
@@ -242,13 +254,13 @@ public:
     /// Add primitive to renderer database.
     ///
     int add(
-        Primitive* primitive                    ///< Pointer to primitive
+        Primitive* primitive                    ///< Primitive instance to be added
         );
 
     /// Remove primitive from renderer database.
     ///
     void remove(
-        int id                                    ///< Primitive id
+        int id                                  ///< Primitive id to be removed
         );
 
     /// Clear all primitives from renderer database
@@ -278,7 +290,7 @@ private:
     /// Copy constructor prohibited.
     ///
     Renderer(
-        const Renderer& primitive
+        const Renderer& copy
         );
 
     // SPI methods are defined here
@@ -286,10 +298,10 @@ private:
     /// Add primitive to renderer database.
     ///    Service implementer to provide private override for this method
     ///    in derived class
-    ///    @return primitive id
+    ///    @return Primitive id
     ///
     virtual int vAdd(
-        Primitive* primitive                    ///< Pointer to primitive
+        Primitive* primitive                    ///< Primitive instance to be added
         ) = 0;
 
     /// Remove primitive from renderer database.
@@ -297,7 +309,7 @@ private:
     ///    in derived class
     ///
     virtual void vRemove(
-        int id                                    ///< Primitive id
+        int id                                  ///< Primitive id
         ) = 0;
 
     /// Clear all primitives from renderer database
@@ -332,7 +344,7 @@ public:
     /// Configuration dependency injection constructor.
     ///
     PrimitiveRenderer(
-        int maxCount
+        int maxCount                            ///< Max count 
         );
 
     ~PrimitiveRenderer();
@@ -365,39 +377,39 @@ private:
     /// Construct the elements of the faces of the primitive.
     ///
     void constructElements(
-        Primitive* primitive
+        Primitive* primitive                    ///< Primitive instance
         );
 
     /// Deconstruct the elements of the faces of the primitive.
     ///
     void deconstructElements(
-        Primitive* primitive
+        Primitive* primitive                    ///< Primitive instance
         );
 
     /// Deconstruct the triangle element from the GL buffer.
     ///
     void deconstructTriElement(
-        int idx
+        int idx                                 ///< Triangle element index
         );
 
     /// Deconstruct the vertex element from the GL buffer.
     ///
     void deconstructVertexElement(
-        int idx
+        int idx                                 ///< Vertex element index
         );
 
     /// Transfer the vertex element to the GL buffer.
     ///
     void transferVertexElement(
-        int idx,
-        VertexElement *vertex
+        int idx,                                ///< Vertex element index 
+        VertexElement *vertex                   ///< Vertex element instance
         );
 
     /// Transfer the triangle element to the GL buffer.
     ///
     void transferTriElement(
-        int idx,
-        int tri[3]
+        int idx,                                ///< Triangle element index
+        int tri[3]                              ///< Triangle element data
         );
 
     /// Get available primitive index.
@@ -424,13 +436,13 @@ private:
     /// Add primitive to renderer database.
     ///
     int vAdd(
-        Primitive* primitive
+        Primitive* primitive                    ///< Primitive instance to be added
         );
 
     /// Remove primitive from renderer database.
     ///
     void vRemove(
-        int id
+        int id                                  ///< Primitive id to be removed
         );
 
     /// Clear all primitives from renderer database
@@ -451,7 +463,7 @@ private:
 
 private:
 
-    int _maxCount;
+    int _maxCount;                              ///< Maximum count of tris
 
     // GL related parameters
 
@@ -479,8 +491,8 @@ private:
 
     // Statistics parameters, not necessary for proper operation
 
-    unsigned long _gpuMemoryUsage;
-    unsigned long _cpuMemoryUsage;
+    unsigned long _gpuMemoryUsage;              ///< GPU memory used by this instance
+    unsigned long _cpuMemoryUsage;              ///< CPU memory used by this instance
 
 
     static const int _sIndicesPerTri = 3;

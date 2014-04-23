@@ -37,7 +37,7 @@ OctreeEditPacketSender::OctreeEditPacketSender() :
     _serverJurisdictions(NULL),
     _sequenceNumber(0),
     _maxPacketSize(MAX_PACKET_SIZE) {
-    //printf("OctreeEditPacketSender::OctreeEditPacketSender() [%p] created... \n", this);
+    //qDebug("OctreeEditPacketSender::OctreeEditPacketSender() [%p] created... ", this);
 }
 
 OctreeEditPacketSender::~OctreeEditPacketSender() {
@@ -53,7 +53,7 @@ OctreeEditPacketSender::~OctreeEditPacketSender() {
         _preServerPackets.erase(_preServerPackets.begin());
     }
     _pendingPacketsLock.unlock();
-    //printf("OctreeEditPacketSender::~OctreeEditPacketSender() [%p] destroyed... \n", this);
+    //qDebug("OctreeEditPacketSender::~OctreeEditPacketSender() [%p] destroyed... ", this);
 }
 
 

@@ -468,8 +468,13 @@ void Model::clearShapes() {
 
 void Model::rebuildShapes() {
     clearShapes();
+    
+    if (!_geometry) {
+        return;
+    }
+    
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-
+    
     if (geometry.joints.isEmpty()) {
         return;
     }
