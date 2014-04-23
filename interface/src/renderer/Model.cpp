@@ -896,6 +896,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
     if (lastFreeIndex == -1) {
         lastFreeIndex = freeLineage.last();
     }
+    float baseWeight = 1.0f / (freeLineage.indexOf(lastFreeIndex) + (useRotation ? 1 : 0));
 
     // this is a cyclic coordinate descent algorithm: see
     // http://www.ryanjuckett.com/programming/animation/21-cyclic-coordinate-descent-in-2d
@@ -906,7 +907,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
         glm::quat endRotation;
         if (useRotation) {
             getJointRotation(jointIndex, endRotation, true);
-            applyRotationDelta(jointIndex, rotation * glm::inverse(endRotation));
+            applyRotationDelta(jointIndex, safeMix(glm::quat(), rotation * glm::inverse(endRotation), baseWeight));
             getJointRotation(jointIndex, endRotation, true);
         }    
         
@@ -922,17 +923,13 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
             glm::vec3 jointPosition = extractTranslation(state.transform);
             glm::vec3 jointVector = endPosition - jointPosition;
             glm::quat oldCombinedRotation = state.combinedRotation;
+            glm::quat combinedDelta;
+            float combinedWeight = 0.0f;
             if (useRotation) {
-                applyRotationDelta(index, safeMix(rotationBetween(jointVector, relativePosition - jointPosition),
-                    rotation * glm::inverse(endRotation), 0.5f));
-                glm::quat actualDelta = state.combinedRotation * glm::inverse(oldCombinedRotation);   
-                endRotation = actualDelta * endRotation;
-                endPosition = actualDelta * jointVector + jointPosition;
-                
-            } else {
-                applyRotationDelta(index, rotationBetween(jointVector, relativePosition - jointPosition));
-                endPosition = state.combinedRotation * glm::inverse(oldCombinedRotation) * jointVector + jointPosition;
+                combinedDelta = safeMix(combinedDelta, rotation * glm::inverse(endRotation), baseWeight / (combinedWeight += 1.0f));
             }
+            combinedDelta = safeMix(combinedDelta, rotationBetween(jointVector, relativePosition - jointPosition),
+                baseWeight / (combinedWeight += 1.0f));
             if (alignment != glm::vec3() && j > 1) {
                 jointVector = endPosition - jointPosition;
                 glm::vec3 positionSum;
@@ -946,8 +943,15 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
                 glm::vec3 projectedAlignment = glm::cross(jointVector, glm::cross(worldAlignment, jointVector));
                 const float LENGTH_EPSILON = 0.001f;
                 if (glm::length(projectedCenterOfMass) > LENGTH_EPSILON && glm::length(projectedAlignment) > LENGTH_EPSILON) {
-                    applyRotationDelta(index, rotationBetween(projectedCenterOfMass, projectedAlignment));
+                    combinedDelta = safeMix(combinedDelta, rotationBetween(projectedCenterOfMass, projectedAlignment),
+                        baseWeight / (combinedWeight += 1.0f));
                 }
+            }
+            applyRotationDelta(index, combinedDelta);
+            glm::quat actualDelta = state.combinedRotation * glm::inverse(oldCombinedRotation);
+            endPosition = actualDelta * jointVector + jointPosition;
+            if (useRotation) {
+                endRotation = actualDelta * endRotation;
             }
         }       
     }

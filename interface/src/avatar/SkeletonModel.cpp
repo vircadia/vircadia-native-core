@@ -177,8 +177,7 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
     }
 
     // set hand position, rotation
-    glm::vec3 forearmVector = palmRotation * glm::vec3(sign, 0.0f, 0.0f);
-    setJointPosition(jointIndex, palm.getPosition(), palmRotation);
+    setJointPosition(jointIndex, palm.getPosition(), palmRotation, true);
 }
 
 void SkeletonModel::updateJointState(int index) {
