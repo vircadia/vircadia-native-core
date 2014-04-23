@@ -2651,6 +2651,8 @@ void Application::displayOverlay() {
                          audioMeterY,
                          Menu::getInstance()->isOptionChecked(MenuOption::Mirror));
 
+    _audio.renderScope(_glWidget->width(), _glWidget->height());
+
     glBegin(GL_QUADS);
     if (isClipping) {
         glColor3f(1, 0, 0);
