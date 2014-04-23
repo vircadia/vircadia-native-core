@@ -1028,8 +1028,7 @@ float Model::getLimbLength(int jointIndex) const {
 
 void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain) {
     JointState& state = _jointStates[jointIndex];
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    const FBXJoint& joint = geometry.joints[jointIndex];
+    const FBXJoint& joint = _geometry->getFBXGeometry().joints[jointIndex];
     if (!constrain || (joint.rotationMin == glm::vec3(-PI, -PI, -PI) &&
             joint.rotationMax == glm::vec3(PI, PI, PI))) {
         // no constraints
