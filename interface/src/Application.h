@@ -121,7 +121,7 @@ public:
     ~Application();
 
     void restoreSizeAndPosition();
-    void loadScript(const QString& fileNameString);
+    ScriptEngine* loadScript(const QString& fileNameString, bool loadScriptFromEditor = false);
     void loadScripts();
     void storeSizeAndPosition();
     void clearScriptsBeforeRunning();
@@ -129,6 +129,7 @@ public:
     void initializeGL();
     void paintGL();
     void resizeGL(int width, int height);
+    void urlGoTo(int argc, const char * constArgv[]);
 
     void keyPressEvent(QKeyEvent* event);
     void keyReleaseEvent(QKeyEvent* event);
@@ -246,6 +247,7 @@ public:
     void skipVersion(QString latestVersion);
 
     QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
+    ScriptEngine* getScriptEngine(QString scriptHash) { return _scriptEnginesHash.contains(scriptHash) ? _scriptEnginesHash[scriptHash] : NULL; }
 
 signals:
 

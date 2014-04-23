@@ -278,6 +278,7 @@ void DomainServer::createScriptedAssignmentsFromArray(const QJsonArray &configAr
                     qDebug() << "Adding scripted assignment to queue -" << *scriptAssignment;
                     qDebug() << "URL for script is" << assignmentURL;
                     
+                    // scripts passed on CL or via JSON are static - so they are added back to the queue if the node dies
                     _assignmentQueue.enqueue(SharedAssignmentPointer(scriptAssignment));
                 }
             }
@@ -343,7 +344,6 @@ const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
     << NodeType::AvatarMixer << NodeType::VoxelServer << NodeType::ParticleServer
     << NodeType::MetavoxelServer;
 
-
 void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packet, const HifiSockAddr& senderSockAddr) {
 
     NodeType_t nodeType;
@@ -352,34 +352,40 @@ void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packe
     int numPreInterestBytes = parseNodeDataFromByteArray(nodeType, publicSockAddr, localSockAddr, packet, senderSockAddr);
     
     QUuid assignmentUUID = uuidFromPacketHeader(packet);
-    SharedAssignmentPointer matchingAssignment;
+    bool isStaticAssignment = _staticAssignmentHash.contains(assignmentUUID);
+    SharedAssignmentPointer matchingAssignment = SharedAssignmentPointer();
     
-    if (!assignmentUUID.isNull() && (matchingAssignment = matchingStaticAssignmentForCheckIn(assignmentUUID, nodeType))
-        && matchingAssignment) {
-        // this is an assigned node, make sure the UUID sent is for an assignment we're actually trying to give out
+    if (isStaticAssignment) {
+        // this is a static assignment, make sure the UUID sent is for an assignment we're actually trying to give out
+         matchingAssignment = matchingQueuedAssignmentForCheckIn(assignmentUUID, nodeType);
         
-        // remove the matching assignment from the assignment queue so we don't take the next check in
-        // (if it exists)
-        removeMatchingAssignmentFromQueue(matchingAssignment);
+        if (matchingAssignment) {
+            // remove the matching assignment from the assignment queue so we don't take the next check in
+            // (if it exists)
+            removeMatchingAssignmentFromQueue(matchingAssignment);
+        }
     } else {
         assignmentUUID = QUuid();
     }
     
-    // create a new session UUID for this node
-    QUuid nodeUUID = QUuid::createUuid();
-    
-    SharedNodePointer newNode = LimitedNodeList::getInstance()->addOrUpdateNode(nodeUUID, nodeType,
-                                                                                publicSockAddr, localSockAddr);
-    
-    // when the newNode is created the linked data is also created
-    // if this was a static assignment set the UUID, set the sendingSockAddr
-    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
-    
-    nodeData->setStaticAssignmentUUID(assignmentUUID);
-    nodeData->setSendingSockAddr(senderSockAddr);
-    
-    // reply back to the user with a PacketTypeDomainList
-    sendDomainListToNode(newNode, senderSockAddr, nodeInterestListFromPacket(packet, numPreInterestBytes));
+    // make sure this was either not a static assignment or it was and we had a matching one in teh queue
+    if ((!isStaticAssignment && !STATICALLY_ASSIGNED_NODES.contains(nodeType)) || (isStaticAssignment && matchingAssignment)) {
+        // create a new session UUID for this node
+        QUuid nodeUUID = QUuid::createUuid();
+        
+        SharedNodePointer newNode = LimitedNodeList::getInstance()->addOrUpdateNode(nodeUUID, nodeType,
+                                                                                    publicSockAddr, localSockAddr);
+        
+        // when the newNode is created the linked data is also created
+        // if this was a static assignment set the UUID, set the sendingSockAddr
+        DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
+        
+        nodeData->setStaticAssignmentUUID(assignmentUUID);
+        nodeData->setSendingSockAddr(senderSockAddr);
+        
+        // reply back to the user with a PacketTypeDomainList
+        sendDomainListToNode(newNode, senderSockAddr, nodeInterestListFromPacket(packet, numPreInterestBytes));
+    }
 }
 
 int DomainServer::parseNodeDataFromByteArray(NodeType_t& nodeType, HifiSockAddr& publicSockAddr,
@@ -740,6 +746,16 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
     return nodeJson;
 }
 
+const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
+
+QString pathForAssignmentScript(const QUuid& assignmentUUID) {
+    QString newPath(ASSIGNMENT_SCRIPT_HOST_LOCATION);
+    newPath += "/";
+    // append the UUID for this script as the new filename, remove the curly braces
+    newPath += uuidStringWithoutCurlyBraces(assignmentUUID);
+    return newPath;
+}
+
 bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url) {
     const QString JSON_MIME_TYPE = "application/json";
     
@@ -847,8 +863,9 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             // this is a script upload - ask the HTTPConnection to parse the form data
             QList<FormData> formData = connection->parseFormData();
             
-            // check how many instances of this assignment the user wants by checking the ASSIGNMENT-INSTANCES header
+            // check optional headers for # of instances and pool
             const QString ASSIGNMENT_INSTANCES_HEADER = "ASSIGNMENT-INSTANCES";
+            const QString ASSIGNMENT_POOL_HEADER = "ASSIGNMENT-POOL";
             
             QByteArray assignmentInstancesValue = connection->requestHeaders().value(ASSIGNMENT_INSTANCES_HEADER.toLocal8Bit());
             
@@ -860,25 +877,30 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                 
                 numInstances = assignmentInstancesValue.toInt();
             }
-
-            const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
+            
+            QString assignmentPool = emptyPool;
+            QByteArray assignmentPoolValue = connection->requestHeaders().value(ASSIGNMENT_POOL_HEADER.toLocal8Bit());
+            
+            if (!assignmentPoolValue.isEmpty()) {
+                // specific pool requested, set that on the created assignment
+                assignmentPool = QString(assignmentPoolValue);
+            }
+            
             
             for (int i = 0; i < numInstances; i++) {
                 
                 // create an assignment for this saved script
-                Assignment* scriptAssignment = new Assignment(Assignment::CreateCommand, Assignment::AgentType);
+                Assignment* scriptAssignment = new Assignment(Assignment::CreateCommand, Assignment::AgentType, assignmentPool);
                 
-                QString newPath(ASSIGNMENT_SCRIPT_HOST_LOCATION);
-                newPath += "/";
-                // append the UUID for this script as the new filename, remove the curly braces
-                newPath += uuidStringWithoutCurlyBraces(scriptAssignment->getUUID());
+                QString newPath = pathForAssignmentScript(scriptAssignment->getUUID());
                 
-                // create a file with the GUID of the assignment in the script host locaiton
+                // create a file with the GUID of the assignment in the script host location
                 QFile scriptFile(newPath);
                 scriptFile.open(QIODevice::WriteOnly);
                 scriptFile.write(formData[0].second);
                 
-                qDebug("Saved a script for assignment at %s", qPrintable(newPath));
+                qDebug() << qPrintable(QString("Saved a script for assignment at %1%2")
+                                       .arg(newPath).arg(assignmentPool == emptyPool ? "" : " - pool is " + assignmentPool));
                 
                 // add the script assigment to the assignment queue
                 _assignmentQueue.enqueue(SharedAssignmentPointer(scriptAssignment));
@@ -935,6 +957,11 @@ void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer&
     qDebug() << "Reset UUID for assignment -" << *assignment.data() << "- and added to queue. Old UUID was"
         << uuidStringWithoutCurlyBraces(oldUUID);
     
+    if (assignment->getType() == Assignment::AgentType && assignment->getPayload().isEmpty()) {
+        // if this was an Agent without a script URL, we need to rename the old file so it can be retrieved at the new UUID
+        QFile::rename(pathForAssignmentScript(oldUUID), pathForAssignmentScript(assignment->getUUID()));
+    }
+    
     // add the static assignment back under the right UUID, and to the queue
     _staticAssignmentHash.insert(assignment->getUUID(), assignment);
     
@@ -982,7 +1009,7 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
     }
 }
 
-SharedAssignmentPointer DomainServer::matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType) {
+SharedAssignmentPointer DomainServer::matchingQueuedAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType) {
     QQueue<SharedAssignmentPointer>::iterator i = _assignmentQueue.begin();
     
     while (i != _assignmentQueue.end()) {
@@ -1009,22 +1036,21 @@ SharedAssignmentPointer DomainServer::deployableAssignmentForRequest(const Assig
         bool assignmentPoolsMatch = assignment->getPool() == requestAssignment.getPool();
         
         if ((requestIsAllTypes || assignmentTypesMatch) && (nietherHasPool || assignmentPoolsMatch)) {
-
-            if (assignment->getType() == Assignment::AgentType) {
-                // if there is more than one instance to send out, simply decrease the number of instances
-                return _assignmentQueue.takeAt(sharedAssignment - _assignmentQueue.begin());
-            } else {
-                // remove the assignment from the queue
-                SharedAssignmentPointer deployableAssignment = _assignmentQueue.takeAt(sharedAssignment
-                                                                                       - _assignmentQueue.begin());
-
+            
+            // remove the assignment from the queue
+            SharedAssignmentPointer deployableAssignment = _assignmentQueue.takeAt(sharedAssignment
+                                                                                   - _assignmentQueue.begin());
+            
+            if (deployableAssignment->getType() != Assignment::AgentType
+                || _staticAssignmentHash.contains(deployableAssignment->getUUID())) {
+                // this is a static assignment
                 // until we get a check-in from that GUID
                 // put assignment back in queue but stick it at the back so the others have a chance to go out
                 _assignmentQueue.enqueue(deployableAssignment);
-                
-                // stop looping, we've handed out an assignment
-                return deployableAssignment;
             }
+            
+            // stop looping, we've handed out an assignment
+            return deployableAssignment;
         } else {
             // push forward the iterator to check the next assignment
             ++sharedAssignment;

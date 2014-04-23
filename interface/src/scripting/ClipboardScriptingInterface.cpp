@@ -78,7 +78,7 @@ void ClipboardScriptingInterface::exportVoxel(float x, float y, float z, float s
 }
 
 bool ClipboardScriptingInterface::importVoxels() {
-    qDebug() << "[DEBUG] Importing ... ";
+    qDebug() << "Importing ... ";
     QEventLoop loop;
     connect(Application::getInstance(), SIGNAL(importDone()), &loop, SLOT(quit()));
     emit readyToImport();

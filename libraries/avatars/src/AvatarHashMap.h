@@ -16,12 +16,15 @@
 #include <QtCore/QSharedPointer>
 #include <QtCore/QUuid>
 
+#include <Node.h>
+
 #include "AvatarData.h"
 
 typedef QSharedPointer<AvatarData> AvatarSharedPointer;
 typedef QHash<QUuid, AvatarSharedPointer> AvatarHash;
 
-class AvatarHashMap {
+class AvatarHashMap : public QObject {
+    Q_OBJECT
 public:
     AvatarHashMap();
     
@@ -29,9 +32,23 @@ public:
     int size() const { return _avatarHash.size(); }
 
     virtual void insert(const QUuid& id, AvatarSharedPointer avatar);
+    
+public slots:
+    void processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer);
+    bool containsAvatarWithDisplayName(const QString& displayName);
 
 protected:
     virtual AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
+    
+    bool shouldKillAvatar(const AvatarSharedPointer& sharedAvatar);
+    
+    virtual AvatarSharedPointer newSharedAvatar();
+    AvatarSharedPointer matchingOrNewAvatar(const QUuid& nodeUUID, const QWeakPointer<Node>& mixerWeakPointer);
+    
+    void processAvatarDataPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
+    void processAvatarIdentityPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
+    void processAvatarBillboardPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
+    void processKillAvatar(const QByteArray& datagram);
 
     AvatarHash _avatarHash;
 };

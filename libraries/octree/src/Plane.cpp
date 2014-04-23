@@ -14,6 +14,8 @@
 
 #include "Plane.h"
 
+#include <QtCore/QDebug>
+
 #include <stdio.h>
 
 void Plane::set3Points(const glm::vec3 &v1, const glm::vec3 &v2, const glm::vec3 &v3) {
@@ -61,6 +63,6 @@ float Plane::distance(const glm::vec3 &point) const {
 }
 
 void Plane::print() const {
-    printf("Plane - point (x=%f y=%f z=%f) normal (x=%f y=%f z=%f) d=%f\n",
+    qDebug("Plane - point (x=%f y=%f z=%f) normal (x=%f y=%f z=%f) d=%f",
         _point.x, _point.y, _point.z, _normal.x, _normal.y, _normal.z, _dCoefficient);
 }

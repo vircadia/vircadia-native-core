@@ -78,7 +78,7 @@ void DatagramProcessor::processDatagrams() {
                         OCTREE_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
                         int flightTime = arrivedAt - sentAt;
                         
-                        printf("got PacketType_VOXEL_DATA, sequence:%d flightTime:%d\n", sequence, flightTime);
+                        qDebug("got PacketType_VOXEL_DATA, sequence:%d flightTime:%d", sequence, flightTime);
                     }
                     
                     SharedNodePointer matchedNode = NodeList::getInstance()->sendingNodeForPacket(incomingPacket);

@@ -196,6 +196,7 @@ Menu::Menu() :
 
     QMenu* toolsMenu = addMenu("Tools");
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
+    addActionToQMenuAndActionHash(toolsMenu, MenuOption::ScriptEditor,  Qt::ALT | Qt::Key_S, this, SLOT(showScriptEditor()));
 
 #ifdef HAVE_QXMPP
     _chatAction = addActionToQMenuAndActionHash(toolsMenu,
@@ -260,6 +261,9 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Bandwidth, 0, true);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0, this, SLOT(bandwidthDetails()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0, this, SLOT(octreeStatsDetails()));
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::AudioScope, 0, false,
+                                           appInstance->getAudio(),
+                                           SLOT(toggleScope()));
 
     QMenu* developerMenu = addMenu("Developer");
 
@@ -316,7 +320,8 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Visage, 0, true,
         appInstance->getVisage(), SLOT(updateEnabled()));
 #endif
-
+    
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::GlowWhenSpeaking, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, false);
 
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
@@ -385,6 +390,11 @@ Menu::Menu() :
                                            false,
                                            appInstance->getAudio(),
                                            SLOT(toggleToneInjection()));
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioScopePause,
+                                           Qt::CTRL | Qt::Key_P,
+                                           false,
+                                           appInstance->getAudio(),
+                                           SLOT(toggleScopePause()));
 
     QMenu* spatialAudioMenu = audioDebugMenu->addMenu("Spatial Audio");
 
@@ -429,6 +439,14 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingProcessLocalAudio,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_A,
                                            true);
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingDontDistanceAttenuate,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_Y,
+                                           false);
+
+    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingAlternateDistanceAttenuate,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_U,
+                                           false);
 
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
                 Qt::CTRL | Qt::SHIFT | Qt::Key_V,
@@ -1125,6 +1143,13 @@ void Menu::showMetavoxelEditor() {
         _MetavoxelEditor = new MetavoxelEditor();
     }
     _MetavoxelEditor->raise();
+}
+
+void Menu::showScriptEditor() {
+    if(!_ScriptEditor || !_ScriptEditor->isVisible()) {
+        _ScriptEditor = new ScriptEditorWindow();
+    }
+    _ScriptEditor->raise();
 }
 
 void Menu::showChat() {
