@@ -606,6 +606,16 @@ bool sphereAACube(const glm::vec3& sphereCenter, float sphereRadius, const glm::
         if (glm::dot(surfaceAB, BA) > 0.f) {
             CollisionInfo* collision = collisions.getNewCollision();
             if (collision) {
+                /* KEEP THIS CODE -- this is how to collide the cube with stark face normals (no rounding).
+                 * We might want to use this code later for sealing boundaries between adjacent voxels.
+                // penetration is parallel to box side direction
+                BA /= maxBA;
+                glm::vec3 direction;
+                glm::modf(BA, direction);
+                direction = glm::normalize(direction); 
+                */
+
+                // For rounded normals at edges and corners:
                 // At this point imagine that sphereCenter touches a "normalized" cube with rounded edges.
                 // This cube has a sidelength of 2 and its smoothing radius is sphereRadius/maxBA.
                 // We're going to try to compute the "negative normal" (and hence direction of penetration) 
