@@ -201,7 +201,8 @@ private:
     float calculateDeviceToNetworkInputRatio(int numBytes);
 
     // Audio scope methods for data acquisition
-    void addBufferToScope(QByteArray& byteArray, unsigned int frameOffset, const int16_t* src, unsigned int srcChannel, unsigned int srcNumChannels);
+    void addBufferToScope(
+        QByteArray& byteArray, unsigned int frameOffset, const int16_t* source, unsigned int sourceChannel, unsigned int sourceNumberOfChannels);
 
     // Audio scope methods for rendering
     void renderBackground(const float* color, int x, int y, int width, int height);

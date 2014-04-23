@@ -1075,7 +1075,7 @@ void Audio::toggleScope() {
 }
 
 void Audio::addBufferToScope(
-    QByteArray& byteArray, unsigned int frameOffset, const int16_t* src, unsigned int srcChannel, unsigned int srcNumChannels) {
+    QByteArray& byteArray, unsigned int frameOffset, const int16_t* source, unsigned int sourceChannel, unsigned int sourceNumberOfChannels) {
 
     // Constant multiplier to map sample value to vertical size of scope
     float multiplier = (float)MULTIPLIER_SCOPE_HEIGHT / logf(2.0f);
@@ -1087,11 +1087,11 @@ void Audio::addBufferToScope(
     int16_t value;
 
     // Short int pointer to mapped samples in byte array
-    int16_t* tgt = (int16_t*) byteArray.data();
+    int16_t* destination = (int16_t*) byteArray.data();
 
     for (int i = 0; i < NETWORK_SAMPLES_PER_FRAME; i++) {
 
-        sample = (float)src[i * srcNumChannels + srcChannel];
+        sample = (float)source[i * sourceNumberOfChannels + sourceChannel];
 		
         if (sample > 0) {
             value = (int16_t)(multiplier * logf(sample));
@@ -1101,7 +1101,7 @@ void Audio::addBufferToScope(
             value = 0;
         }
 
-        tgt[i + frameOffset] = value;
+        destination[i + frameOffset] = value;
     }
 }
 
