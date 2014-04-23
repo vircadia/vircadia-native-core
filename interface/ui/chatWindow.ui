@@ -186,7 +186,7 @@ QPushButton:pressed {
       </widget>
      </item>
      <item>
-      <widget class="QTextEdit" name="messagePlainTextEdit">
+      <widget class="ChatInputArea" name="messagePlainTextEdit">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
          <horstretch>0</horstretch>
@@ -223,6 +223,13 @@ QPushButton:pressed {
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ChatInputArea</class>
+   <extends>QTextEdit</extends>
+   <header>ui/ChatInputArea.h</header>
+  </customwidget>
+ </customwidgets>
  <tabstops>
   <tabstop>messagePlainTextEdit</tabstop>
   <tabstop>messagesScrollArea</tabstop>

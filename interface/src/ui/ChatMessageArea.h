@@ -33,6 +33,10 @@ protected:
     virtual void wheelEvent(QWheelEvent* event);
     bool _useFixedHeight;
 
+    void insertFromMimeData(const QMimeData* source) {
+        insertPlainText(source->text());
+    };
+
 };
 
 #endif // hifi_ChatMessageArea_h
