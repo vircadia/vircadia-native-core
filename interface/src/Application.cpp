@@ -1218,8 +1218,7 @@ void Application::touchEndEvent(QTouchEvent* event) {
     if (_controllerScriptingInterface.isTouchCaptured()) {
         return;
     }
-
-    // put any application specific touch behavior below here..
+s    // put any application specific touch behavior below here..
     _touchDragStartedAvgX = _touchAvgX;
     _touchDragStartedAvgY = _touchAvgY;
     _isTouchPressed = false;
@@ -1276,7 +1275,7 @@ void Application::timer() {
         sendPingPackets();
     }
     
-    float diffTime = (float)_timerStart.nsecsElapsed() / 1000000000.0;
+    float diffTime = (float)_timerStart.nsecsElapsed() / 1000000000.0f;
 
     _fps = (float)_frameCount / diffTime;
 

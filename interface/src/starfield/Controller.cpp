@@ -23,7 +23,8 @@ bool Controller::computeStars(unsigned numStars, unsigned seed) {
     
     this->retile(numStars, _tileResolution);
     
-    double timeDiff = (double)startTime.nsecsElapsed() / 1000000.0; // ns to ms
+    double NSEC_TO_MSEC = 1.0 / 1000000.0;
+    double timeDiff = (double)startTime.nsecsElapsed() * NSEC_TO_MSEC;
     qDebug() << "Total time to retile and generate stars: " << timeDiff << "msec";
     
     return true;
