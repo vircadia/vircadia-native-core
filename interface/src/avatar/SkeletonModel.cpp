@@ -188,7 +188,8 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
     if (Menu::getInstance()->isOptionChecked(MenuOption::AlignForearmsWithWrists)) {
         glm::vec3 forearmVector = palmRotation * glm::vec3(sign, 0.0f, 0.0f);
         setJointPosition(parentJointIndex, palm.getPosition() + forearmVector *
-            geometry.joints.at(jointIndex).distanceToParent * extractUniformScale(_scale), palmRotation, true);
+            geometry.joints.at(jointIndex).distanceToParent * extractUniformScale(_scale));
+        setJointRotation(parentJointIndex, palmRotation, true);
         _jointStates[jointIndex].rotation = glm::quat();
         
     } else {
