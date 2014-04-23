@@ -269,17 +269,9 @@ void MyAvatar::simulate(float deltaTime) {
     // update the euler angles
     setOrientation(orientation);
 
-    const float WALKING_SPEED_THRESHOLD = 0.2f;
-    // use speed and angular velocity to determine walking vs. standing
-    float speed = glm::length(_velocity);
-    if (speed + fabs(_bodyYawDelta) > WALKING_SPEED_THRESHOLD) {
-        _mode = AVATAR_MODE_WALKING;
-    } else {
-        _mode = AVATAR_MODE_INTERACTING;
-    }
-
     // update moving flag based on speed
     const float MOVING_SPEED_THRESHOLD = 0.01f;
+    float speed = glm::length(_velocity);
     _moving = speed > MOVING_SPEED_THRESHOLD;
 
     // If a move target is set, update position explicitly

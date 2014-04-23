@@ -47,7 +47,6 @@ Avatar::Avatar() :
     AvatarData(),
     _skeletonModel(this),
     _bodyYawDelta(0.0f),
-    _mode(AVATAR_MODE_STANDING),
     _velocity(0.0f, 0.0f, 0.0f),
     _thrust(0.0f, 0.0f, 0.0f),
     _leanScale(0.5f),
@@ -138,19 +137,11 @@ void Avatar::simulate(float deltaTime) {
         head->simulate(deltaTime, false, _shouldRenderBillboard);
     }
     
-    // use speed and angular velocity to determine walking vs. standing
-    float speed = glm::length(_velocity);
-    if (speed + fabs(_bodyYawDelta) > 0.2) {
-        _mode = AVATAR_MODE_WALKING;
-    } else {
-        _mode = AVATAR_MODE_INTERACTING;
-    }
-    
     // update position by velocity, and subtract the change added earlier for gravity
     _position += _velocity * deltaTime;
     
     // Zero thrust out now that we've added it to velocity in this frame
-    _thrust = glm::vec3(0, 0, 0);
+    _thrust = glm::vec3(0.0f);
 
     // update animation for display name fade in/out
     if ( _displayNameTargetAlpha != _displayNameAlpha) {
@@ -166,7 +157,7 @@ void Avatar::simulate(float deltaTime) {
             // Fading in
             _displayNameAlpha = 1 - (1 - _displayNameAlpha) * coef;
         }
-        _displayNameAlpha = abs(_displayNameAlpha - _displayNameTargetAlpha) < 0.01? _displayNameTargetAlpha : _displayNameAlpha;
+        _displayNameAlpha = abs(_displayNameAlpha - _displayNameTargetAlpha) < 0.01f ? _displayNameTargetAlpha : _displayNameAlpha;
     }
 }
 

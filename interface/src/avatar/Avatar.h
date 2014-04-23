@@ -46,13 +46,6 @@ enum DriveKeys {
     MAX_DRIVE_KEYS
 };
 
-enum AvatarMode {
-    AVATAR_MODE_STANDING = 0,
-    AVATAR_MODE_WALKING,
-    AVATAR_MODE_INTERACTING,
-    NUM_AVATAR_MODES
-};
-
 enum ScreenTintLayer {
     SCREEN_TINT_BEFORE_LANDSCAPE = 0,
     SCREEN_TINT_BEFORE_AVATARS,
@@ -164,7 +157,6 @@ signals:
 protected:
     SkeletonModel _skeletonModel;
     float _bodyYawDelta;
-    AvatarMode _mode;
     glm::vec3 _velocity;
     glm::vec3 _thrust;
     float _leanScale;

@@ -54,7 +54,6 @@ public:
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; }
 
     // getters
-    AvatarMode getMode() const { return _mode; }
     float getLeanScale() const { return _leanScale; }
     float getElapsedTimeStopped() const { return _elapsedTimeStopped; }
     float getElapsedTimeMoving() const { return _elapsedTimeMoving; }
