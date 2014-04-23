@@ -57,7 +57,6 @@ private:
     QDateTime lastMessageStamp;
     bool _mousePressed;
     QPoint _mouseStartPosition;
-    QMap<QRegularExpression*, QString*> _emoticonMap;
 
 private slots:
     void connected();
