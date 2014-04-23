@@ -606,11 +606,37 @@ bool sphereAACube(const glm::vec3& sphereCenter, float sphereRadius, const glm::
         if (glm::dot(surfaceAB, BA) > 0.f) {
             CollisionInfo* collision = collisions.getNewCollision();
             if (collision) {
-                // penetration is parallel to box side direction
-                BA /= maxBA;
-                glm::vec3 direction;
-                glm::modf(BA, direction);
-                direction = glm::normalize(direction);
+                // At this point imagine that sphereCenter touches a "normalized" cube with rounded edges.
+                // This cube has a sidelength of 2 and its smoothing radius is sphereRadius/maxBA.
+                // We're going to try to compute the "negative normal" (and hence direction of penetration) 
+                // of this surface.
+
+                float radius = sphereRadius / (distance * maxBA);   // normalized radius
+                float shortLength = maxBA - radius;
+                glm::vec3 direction = BA;
+                if (shortLength > 0.0f) {
+                    direction = glm::abs(BA) - glm::vec3(shortLength);
+                    // Set any negative components to zero, and adopt the sign of the original BA component.  
+                    // Unfortunately there isn't an easy way to make this fast.
+                    if (direction.x < 0.0f) {
+                        direction.x = 0.f;
+                    } else if (BA.x < 0.f) {
+                        direction.x = -direction.x;
+                    }
+                    if (direction.y < 0.0f) {
+                        direction.y = 0.f;
+                    } else if (BA.y < 0.f) {
+                        direction.y = -direction.y;
+                    }
+                    if (direction.z < 0.0f) {
+                        direction.z = 0.f;
+                    } else if (BA.z < 0.f) {
+                        direction.z = -direction.z;
+                    }
+                }
+                direction = glm::normalize(direction); 
+
+                // penetration is the projection of surfaceAB on direction
                 collision->_penetration = glm::dot(surfaceAB, direction) * direction;
                 // contactPoint is on surface of A
                 collision->_contactPoint = sphereCenter - sphereRadius * direction;
