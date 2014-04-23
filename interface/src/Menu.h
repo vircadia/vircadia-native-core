@@ -256,6 +256,7 @@ private:
 
 namespace MenuOption {
     const QString AboutApp = "About Interface";
+    const QString AlignForearmsWithWrists = "Align Forearms with Wrists";
     const QString AmbientOcclusion = "Ambient Occlusion";
     const QString Atmosphere = "Atmosphere";
     const QString AudioNoiseReduction = "Audio Noise Reduction";

@@ -148,10 +148,18 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
+    int parentJointIndex = geometry.joints.at(jointIndex).parentIndex;
+    if (parentJointIndex == -1) {
+        return;
+    }
     
     // rotate palm to align with palm direction
     glm::quat palmRotation;
-    getJointRotation(jointIndex, palmRotation, true);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AlignForearmsWithWrists)) {
+        getJointRotation(parentJointIndex, palmRotation, true);
+    } else {
+        getJointRotation(jointIndex, palmRotation, true);
+    }
     palmRotation = rotationBetween(palmRotation * geometry.palmDirection, palm.getNormal()) * palmRotation;
     
     // sort the finger indices by raw x, get the average direction
@@ -177,7 +185,15 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
     }
 
     // set hand position, rotation
-    setJointPosition(jointIndex, palm.getPosition(), palmRotation, true);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AlignForearmsWithWrists)) {
+        glm::vec3 forearmVector = palmRotation * glm::vec3(sign, 0.0f, 0.0f);
+        setJointPosition(parentJointIndex, palm.getPosition() + forearmVector *
+            geometry.joints.at(jointIndex).distanceToParent * extractUniformScale(_scale), palmRotation, true);
+        _jointStates[jointIndex].rotation = glm::quat();
+        
+    } else {
+        setJointPosition(jointIndex, palm.getPosition(), palmRotation, true);
+    }
 }
 
 void SkeletonModel::updateJointState(int index) {
