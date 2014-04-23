@@ -896,8 +896,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
     if (lastFreeIndex == -1) {
         lastFreeIndex = freeLineage.last();
     }
-    float baseWeight = 1.0f / (freeLineage.indexOf(lastFreeIndex) + (useRotation ? 1 : 0));
-
+    
     // this is a cyclic coordinate descent algorithm: see
     // http://www.ryanjuckett.com/programming/animation/21-cyclic-coordinate-descent-in-2d
     const int ITERATION_COUNT = 1;
@@ -907,7 +906,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
         glm::quat endRotation;
         if (useRotation) {
             getJointRotation(jointIndex, endRotation, true);
-            applyRotationDelta(jointIndex, safeMix(glm::quat(), rotation * glm::inverse(endRotation), baseWeight));
+            applyRotationDelta(jointIndex, rotation * glm::inverse(endRotation));
             getJointRotation(jointIndex, endRotation, true);
         }    
         
@@ -924,12 +923,15 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
             glm::vec3 jointVector = endPosition - jointPosition;
             glm::quat oldCombinedRotation = state.combinedRotation;
             glm::quat combinedDelta;
-            float combinedWeight = 0.0f;
+            float combinedWeight;
             if (useRotation) {
-                combinedDelta = safeMix(combinedDelta, rotation * glm::inverse(endRotation), baseWeight / (combinedWeight += 1.0f));
+                combinedDelta = rotation * glm::inverse(endRotation);
+                combinedWeight = 1.0f;
+            } else {
+                combinedDelta = safeMix(rotation * glm::inverse(endRotation),
+                    rotationBetween(jointVector, relativePosition - jointPosition), 0.5f);
+                combinedWeight = 2.0f;
             }
-            combinedDelta = safeMix(combinedDelta, rotationBetween(jointVector, relativePosition - jointPosition),
-                baseWeight / (combinedWeight += 1.0f));
             if (alignment != glm::vec3() && j > 1) {
                 jointVector = endPosition - jointPosition;
                 glm::vec3 positionSum;
@@ -944,7 +946,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
                 const float LENGTH_EPSILON = 0.001f;
                 if (glm::length(projectedCenterOfMass) > LENGTH_EPSILON && glm::length(projectedAlignment) > LENGTH_EPSILON) {
                     combinedDelta = safeMix(combinedDelta, rotationBetween(projectedCenterOfMass, projectedAlignment),
-                        baseWeight / (combinedWeight += 1.0f));
+                        1.0f / (combinedWeight + 1.0f));
                 }
             }
             applyRotationDelta(index, combinedDelta);
