@@ -1218,7 +1218,7 @@ void Application::touchEndEvent(QTouchEvent* event) {
     if (_controllerScriptingInterface.isTouchCaptured()) {
         return;
     }
-s    // put any application specific touch behavior below here..
+    // put any application specific touch behavior below here..
     _touchDragStartedAvgX = _touchAvgX;
     _touchDragStartedAvgY = _touchAvgY;
     _isTouchPressed = false;
