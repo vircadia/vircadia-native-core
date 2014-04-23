@@ -820,7 +820,7 @@ void MyAvatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTim
             std::min(COLLISION_LOUDNESS * velocityTowardCollision, 1.0f),
             frequency * (1.0f + velocityTangentToCollision / velocityTowardCollision),
             std::min(velocityTangentToCollision / velocityTowardCollision * NOISE_SCALING, 1.0f),
-            1.0f - DURATION_SCALING * powf(frequency, 0.5f) / velocityTowardCollision, true);
+            1.0f - DURATION_SCALING * powf(frequency, 0.5f) / velocityTowardCollision, false);
     }
 }
 
