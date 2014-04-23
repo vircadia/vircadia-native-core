@@ -643,13 +643,12 @@ void Audio::handleAudioInput() {
 void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     const int NUM_INITIAL_PACKETS_DISCARD = 3;
     const int STANDARD_DEVIATION_SAMPLE_COUNT = 500;
-
-    timeval currentReceiveTime;
-    gettimeofday(&currentReceiveTime, NULL);
+    
+    _timeSinceLastRecieved.start();
     _totalPacketsReceived++;
-
-    double timeDiff = diffclock(&_lastReceiveTime, &currentReceiveTime);
-
+    
+    double timeDiff = (double)_timeSinceLastRecieved.nsecsElapsed() / 1000000.0; // ns to ms
+    
     //  Discard first few received packets for computing jitter (often they pile up on start)
     if (_totalPacketsReceived > NUM_INITIAL_PACKETS_DISCARD) {
         _stdev.addValue(timeDiff);
@@ -673,8 +672,6 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     }
 
     Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(audioByteArray.size());
-
-    _lastReceiveTime = currentReceiveTime;
 }
 
 // NOTE: numSamples is the total number of single channel samples, since callers will always call this with stereo
@@ -1271,13 +1268,13 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
             // setup a procedural audio output device
             _proceduralAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
 
-            gettimeofday(&_lastReceiveTime, NULL);
+            _timeSinceLastRecieved.start();
 
             // setup spatial audio ringbuffer
             int numFrameSamples = _outputFormat.sampleRate() * _desiredOutputFormat.channelCount();
             _spatialAudioRingBuffer.resizeForFrameSize(numFrameSamples);
             _spatialAudioStart = _spatialAudioFinish = 0;
-
+            
             supportedFormat = true;
         }
     }

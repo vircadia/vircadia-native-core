@@ -12,12 +12,6 @@
 #ifndef hifi_Assignment_h
 #define hifi_Assignment_h
 
-#ifdef _WIN32
-#include "Systime.h"
-#else
-#include <sys/time.h>
-#endif
-
 #include <QtCore/QUuid>
 
 #include "NodeList.h"
