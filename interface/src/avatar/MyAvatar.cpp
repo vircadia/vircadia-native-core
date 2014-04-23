@@ -54,9 +54,6 @@ MyAvatar::MyAvatar() :
     _shouldJump(false),
     _gravity(0.0f, -1.0f, 0.0f),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
-    _elapsedTimeMoving(0.0f),
-	_elapsedTimeStopped(0.0f),
-    _elapsedTimeSinceCollision(0.0f),
     _lastCollisionPosition(0, 0, 0),
     _speedBrakes(false),
     _thrust(0.0f),
@@ -138,17 +135,6 @@ void MyAvatar::update(float deltaTime) {
 void MyAvatar::simulate(float deltaTime) {
 
     glm::quat orientation = getOrientation();
-
-    // Update movement timers
-    _elapsedTimeSinceCollision += deltaTime;
-    const float VELOCITY_MOVEMENT_TIMER_THRESHOLD = 0.2f;
-    if (glm::length(_velocity) < VELOCITY_MOVEMENT_TIMER_THRESHOLD) {
-        _elapsedTimeMoving = 0.0f;
-        _elapsedTimeStopped += deltaTime;
-    } else {
-        _elapsedTimeStopped = 0.0f;
-        _elapsedTimeMoving += deltaTime;
-    }
 
     if (_scale != _targetScale) {
         float scale = (1.0f - SMOOTHING_RATIO) * _scale + SMOOTHING_RATIO * _targetScale;
@@ -798,7 +784,6 @@ void MyAvatar::applyHardCollision(const glm::vec3& penetration, float elasticity
     // cancel out the velocity component in the direction of penetration
     float penetrationLength = glm::length(penetration);
     if (penetrationLength > EPSILON) {
-        _elapsedTimeSinceCollision = 0.0f;
         glm::vec3 direction = penetration / penetrationLength;
         _velocity -= glm::dot(_velocity, direction) * direction * (1.0f + elasticity);
         _velocity *= glm::clamp(1.0f - damping, 0.0f, 1.0f);

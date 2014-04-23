@@ -117,9 +117,6 @@ private:
     float _distanceToNearestAvatar; // How close is the nearest avatar?
 
     // motion stuff
-    float _elapsedTimeMoving; // Timers to drive camera transitions when moving
-    float _elapsedTimeStopped;
-    float _elapsedTimeSinceCollision;
     glm::vec3 _lastCollisionPosition;
     bool _speedBrakes;
     glm::vec3 _thrust;  // final acceleration for the current frame
