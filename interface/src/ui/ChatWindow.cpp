@@ -128,7 +128,9 @@ bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
                 message.setBody(messageText);
                 XmppClient::getInstance().getXMPPClient().sendPacket(message);
     #endif
-                ui->messagePlainTextEdit->document()->clear();
+                QTextCursor cursor = ui->messagePlainTextEdit->textCursor();
+                cursor.select(QTextCursor::Document);
+                cursor.removeSelectedText();
             }
             return true;
         }
