@@ -925,12 +925,13 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
             glm::quat combinedDelta;
             float combinedWeight;
             if (useRotation) {
-                combinedDelta = rotation * glm::inverse(endRotation);
-                combinedWeight = 1.0f;
-            } else {
                 combinedDelta = safeMix(rotation * glm::inverse(endRotation),
                     rotationBetween(jointVector, relativePosition - jointPosition), 0.5f);
                 combinedWeight = 2.0f;
+                
+            } else {
+                combinedDelta = rotationBetween(jointVector, relativePosition - jointPosition);
+                combinedWeight = 1.0f;
             }
             if (alignment != glm::vec3() && j > 1) {
                 jointVector = endPosition - jointPosition;
