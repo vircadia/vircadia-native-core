@@ -240,8 +240,9 @@ protected:
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
     bool getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind = false) const;
     
-    bool setJointPosition(int jointIndex, const glm::vec3& position, int lastFreeIndex = -1,
-        bool allIntermediatesFree = false, const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f));
+    bool setJointPosition(int jointIndex, const glm::vec3& translation, const glm::quat& rotation = glm::quat(),
+        bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
+        const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f));
     bool setJointRotation(int jointIndex, const glm::quat& rotation, bool fromBind = false);
     
     void setJointTranslation(int jointIndex, const glm::vec3& translation);

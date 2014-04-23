@@ -148,17 +148,12 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
-    int parentJointIndex = geometry.joints.at(jointIndex).parentIndex;
-    if (parentJointIndex == -1) {
-        return;
-    }
     
-    // rotate forearm to align with palm direction
+    // rotate palm to align with palm direction
     glm::quat palmRotation;
-    getJointRotation(parentJointIndex, palmRotation, true);
-    applyRotationDelta(parentJointIndex, rotationBetween(palmRotation * geometry.palmDirection, palm.getNormal()), true, true);
-    getJointRotation(parentJointIndex, palmRotation, true);
-
+    getJointRotation(jointIndex, palmRotation, true);
+    palmRotation = rotationBetween(palmRotation * geometry.palmDirection, palm.getNormal()) * palmRotation;
+    
     // sort the finger indices by raw x, get the average direction
     QVector<IndexValue> fingerIndices;
     glm::vec3 direction;
@@ -178,18 +173,12 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
     float directionLength = glm::length(direction);
     const unsigned int MIN_ROTATION_FINGERS = 3;
     if (directionLength > EPSILON && palm.getNumFingers() >= MIN_ROTATION_FINGERS) {
-        applyRotationDelta(parentJointIndex, rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), direction),
-            true, true);
-        getJointRotation(parentJointIndex, palmRotation, true);
+        palmRotation = rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), direction) * palmRotation;
     }
 
-    // let wrist inherit forearm rotation
-    _jointStates[jointIndex].rotation = glm::quat();
-
-    // set elbow position from wrist position
+    // set hand position, rotation
     glm::vec3 forearmVector = palmRotation * glm::vec3(sign, 0.0f, 0.0f);
-    setJointPosition(parentJointIndex, palm.getPosition() + forearmVector *
-        geometry.joints.at(jointIndex).distanceToParent * extractUniformScale(_scale));
+    setJointPosition(jointIndex, palm.getPosition(), palmRotation);
 }
 
 void SkeletonModel::updateJointState(int index) {
