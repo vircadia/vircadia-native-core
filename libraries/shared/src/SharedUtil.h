@@ -24,12 +24,6 @@
 
 #include <QtCore/QDebug>
 
-#ifdef _WIN32
-#include "Systime.h"
-#else
-#include <sys/time.h>
-#endif
-
 const int BYTES_PER_COLOR = 3;
 const int BYTES_PER_FLAGS = 1;
 typedef unsigned char rgbColor[BYTES_PER_COLOR];
@@ -66,7 +60,7 @@ static const quint64 USECS_PER_SECOND = USECS_PER_MSEC * MSECS_PER_SECOND;
 
 const int BITS_IN_BYTE  = 8;
 
-quint64 usecTimestamp(const timeval *time);
+void initialiseUsecTimestampNow();
 quint64 usecTimestampNow();
 void usecTimestampNowForceClockSkew(int clockSkew);
 

@@ -15,28 +15,44 @@
 #include <cctype>
 #include <time.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
 #endif
 
 #include <QtCore/QDebug>
+#include <QDateTime>
+#include <QElapsedTimer>
 
 #include "OctalCode.h"
 #include "SharedUtil.h"
 
-quint64 usecTimestamp(const timeval *time) {
-    return (time->tv_sec * 1000000 + time->tv_usec);
+
+static qint64 TIME_REFERENCE = 0; // in usec
+static QElapsedTimer timestampTimer;
+static int usecTimestampNowAdjust = 0; // in usec
+
+void initialiseUsecTimestampNow() {
+    static bool initialised = false;
+    if (initialised) {
+        qDebug() << "[WARNING] Double initialisation of usecTimestampNow().";
+        return;
+    }
+    
+    TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * 1000; // ms to usec
+    initialised = true;
 }
 
-int usecTimestampNowAdjust = 0;
 void usecTimestampNowForceClockSkew(int clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;
 }
 
 quint64 usecTimestampNow() {
-    timeval now;
-    gettimeofday(&now, NULL);
-    return (now.tv_sec * 1000000 + now.tv_usec) + ::usecTimestampNowAdjust;
+    //          usec                       nsec to usec                   usec
+    return TIME_REFERENCE + timestampTimer.nsecsElapsed() / 1000 + ::usecTimestampNowAdjust;
 }
 
 float randFloat() {

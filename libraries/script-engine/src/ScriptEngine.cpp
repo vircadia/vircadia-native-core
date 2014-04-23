@@ -286,8 +286,8 @@ void ScriptEngine::run() {
         emit errorMessage("Uncaught exception at line" + QString::number(line) + ":" + result.toString());
     }
 
-    timeval startTime;
-    gettimeofday(&startTime, NULL);
+    QElapsedTimer startTime;
+    startTime.start();
 
     int thisFrame = 0;
 
@@ -296,7 +296,7 @@ void ScriptEngine::run() {
     qint64 lastUpdate = usecTimestampNow();
 
     while (!_isFinished) {
-        int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * SCRIPT_DATA_CALLBACK_USECS) - usecTimestampNow();
+        int usecToSleep = (thisFrame++ * SCRIPT_DATA_CALLBACK_USECS) - startTime.nsecsElapsed() / 1000; // nsec to usec
         if (usecToSleep > 0) {
             usleep(usecToSleep);
         }

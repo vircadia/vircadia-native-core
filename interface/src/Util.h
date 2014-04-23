@@ -12,12 +12,6 @@
 #ifndef hifi_Util_h
 #define hifi_Util_h
 
-#ifdef _WIN32
-#include "Systime.h"
-#else
-#include <sys/time.h>
-#endif
-
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <QSettings>
@@ -43,8 +37,6 @@ void drawvec3(int x, int y, float scale, float radians, float thick, int mono, g
 void drawVector(glm::vec3* vector);
 
 void printVector(glm::vec3 vec);
-
-double diffclock(timeval *clock1,timeval *clock2);
 
 void renderCollisionOverlay(int width, int height, float magnitude, float red = 0, float blue = 0, float green = 0);
 
