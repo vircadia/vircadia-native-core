@@ -36,8 +36,11 @@ public:
     void deleteAll();
     virtual void elementDeleted(OctreeElement* element);
 
+    void unhookNotifications();
+
 private:
     QSet<OctreeElement*> _bagElements;
+    bool _hooked;
 };
 
 #endif // hifi_OctreeElementBag_h

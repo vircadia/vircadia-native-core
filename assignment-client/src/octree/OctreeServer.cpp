@@ -19,6 +19,8 @@
 #include <Logging.h>
 #include <UUID.h>
 
+#include "../AssignmentClient.h"
+
 #include "OctreeServer.h"
 #include "OctreeServerConsts.h"
 
@@ -206,7 +208,7 @@ void OctreeServer::trackProcessWaitTime(float time) {
 }
 
 void OctreeServer::attachQueryNodeToNode(Node* newNode) {
-    if (!newNode->getLinkedData()) {
+    if (!newNode->getLinkedData() && _instance) {
         OctreeQueryNode* newQueryNodeData = _instance->createOctreeQueryNode();
         newQueryNodeData->init();
         newNode->setLinkedData(newQueryNodeData);
@@ -234,7 +236,13 @@ OctreeServer::OctreeServer(const QByteArray& packet) :
     _started(time(0)),
     _startedUSecs(usecTimestampNow())
 {
+    if (_instance) {
+        qDebug() << "Octree Server starting... while old instance still running _instance=["<<_instance<<"] this=[" << this << "]";
+    }
+
+    qDebug() << "Octree Server starting... setting _instance to=[" << this << "]";
     _instance = this;
+
     _averageLoopTime.updateAverage(0);
     qDebug() << "Octree server starting... [" << this << "]";
 }
@@ -265,6 +273,16 @@ OctreeServer::~OctreeServer() {
 
     delete _jurisdiction;
     _jurisdiction = NULL;
+    
+    // cleanup our tree here...
+    qDebug() << qPrintable(_safeServerName) << "server START cleaning up octree... [" << this << "]";
+    delete _tree;
+    _tree = NULL;
+    qDebug() << qPrintable(_safeServerName) << "server DONE cleaning up octree... [" << this << "]";
+    
+    if (_instance == this) {
+        _instance = NULL; // we are gone
+    }
     qDebug() << qPrintable(_safeServerName) << "server DONE shutting down... [" << this << "]";
 }
 
@@ -812,33 +830,22 @@ void OctreeServer::readPendingDatagrams() {
     while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
             PacketType packetType = packetTypeForPacket(receivedPacket);
-            
             SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
-            
             if (packetType == getMyQueryMessageType()) {
-                bool debug = false;
-                if (debug) {
-                    if (matchingNode) {
-                        qDebug() << "Got PacketTypeVoxelQuery at" << usecTimestampNow() << "node:" << *matchingNode;
-                    } else {
-                        qDebug() << "Got PacketTypeVoxelQuery at" << usecTimestampNow() << "node: ??????";
-                    }
-                }
-                
+            
                 // If we got a PacketType_VOXEL_QUERY, then we're talking to an NodeType_t_AVATAR, and we
                 // need to make sure we have it in our nodeList.
                 if (matchingNode) {
-                    if (debug) {
-                        qDebug() << "calling updateNodeWithDataFromPacket()... node:" << *matchingNode;
-                    }
                     nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
-                    
                     OctreeQueryNode* nodeData = (OctreeQueryNode*) matchingNode->getLinkedData();
                     if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
-                        if (debug) {
-                            qDebug() << "calling initializeOctreeSendThread()... node:" << *matchingNode;
-                        }
-                        nodeData->initializeOctreeSendThread(this, matchingNode);
+                    
+                        // NOTE: this is an important aspect of the proper ref counting. The send threads/node data need to 
+                        // know that the OctreeServer/Assignment will not get deleted on it while it's still active. The 
+                        // solution is to get the shared pointer for the current assignment. We need to make sure this is the 
+                        // same SharedAssignmentPointer that was ref counted by the assignment client.                    
+                        SharedAssignmentPointer sharedAssignment = AssignmentClient::getCurrentAssignment();
+                        nodeData->initializeOctreeSendThread(sharedAssignment, matchingNode);
                     }
                 }
             } else if (packetType == PacketTypeJurisdictionRequest) {
@@ -1042,23 +1049,46 @@ void OctreeServer::nodeAdded(SharedNodePointer node) {
 }
 
 void OctreeServer::nodeKilled(SharedNodePointer node) {
+    quint64 start  = usecTimestampNow();
+
     qDebug() << qPrintable(_safeServerName) << "server killed node:" << *node;
     OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(node->getLinkedData());
     if (nodeData) {
-        qDebug() << qPrintable(_safeServerName) << "server resetting Linked Data for node:" << *node;
-        node->setLinkedData(NULL); // set this first in case another thread comes through and tryes to acces this
-        qDebug() << qPrintable(_safeServerName) << "server deleting Linked Data for node:" << *node;
-        nodeData->deleteLater();
+        nodeData->nodeKilled(); // tell our node data and sending threads that we'd like to shut down
     } else {
         qDebug() << qPrintable(_safeServerName) << "server node missing linked data node:" << *node;
     }
+
+    quint64 end  = usecTimestampNow();
+    quint64 usecsElapsed = (end - start);
+    if (usecsElapsed > 1000) {
+        qDebug() << qPrintable(_safeServerName) << "server nodeKilled() took: " << usecsElapsed << " usecs for node:" << *node;
+    }
 }
+
+void OctreeServer::forceNodeShutdown(SharedNodePointer node) {
+    quint64 start  = usecTimestampNow();
+
+    qDebug() << qPrintable(_safeServerName) << "server killed node:" << *node;
+    OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(node->getLinkedData());
+    if (nodeData) {
+        nodeData->forceNodeShutdown(); // tell our node data and sending threads that we'd like to shut down
+    } else {
+        qDebug() << qPrintable(_safeServerName) << "server node missing linked data node:" << *node;
+    }
+
+    quint64 end  = usecTimestampNow();
+    quint64 usecsElapsed = (end - start);
+    qDebug() << qPrintable(_safeServerName) << "server forceNodeShutdown() took: "  
+                << usecsElapsed << " usecs for node:" << *node;
+}
+
 
 void OctreeServer::aboutToFinish() {
     qDebug() << qPrintable(_safeServerName) << "server STARTING about to finish...";
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         qDebug() << qPrintable(_safeServerName) << "server about to finish while node still connected node:" << *node;
-        nodeKilled(node);
+        forceNodeShutdown(node);
     }
     qDebug() << qPrintable(_safeServerName) << "server ENDING about to finish...";
 }
