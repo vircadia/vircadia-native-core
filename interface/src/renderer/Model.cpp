@@ -1026,7 +1026,7 @@ float Model::getLimbLength(int jointIndex) const {
     return length;
 }
 
-void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain, bool propagate) {
+void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain) {
     JointState& state = _jointStates[jointIndex];
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const FBXJoint& joint = geometry.joints[jointIndex];
@@ -1042,12 +1042,6 @@ void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool cons
     glm::quat newRotation = glm::quat(glm::clamp(eulers, joint.rotationMin, joint.rotationMax));
     state.combinedRotation = state.combinedRotation * glm::inverse(state.rotation) * newRotation;
     state.rotation = newRotation;
-    
-    if (propagate && targetRotation != state.combinedRotation &&
-            joint.parentIndex != -1 && geometry.joints.at(joint.parentIndex).isFree) {
-        applyRotationDelta(joint.parentIndex, targetRotation * glm::inverse(state.combinedRotation), true, true);
-        state.combinedRotation = _jointStates.at(joint.parentIndex).combinedRotation * state.rotation;
-    }
 }
 
 const int BALL_SUBDIVISIONS = 10;
