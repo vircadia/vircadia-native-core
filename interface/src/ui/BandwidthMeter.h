@@ -12,9 +12,7 @@
 #ifndef hifi_BandwidthMeter_h
 #define hifi_BandwidthMeter_h
 
-#ifdef _WIN32
-#include <Systime.h>
-#endif
+#include <QElapsedTimer>
 
 #include <glm/glm.hpp>
 
@@ -59,7 +57,7 @@ public:
     private:
         double  _value;                 // Current value.
         double  _msToAverage;           // Milliseconds to average.
-        timeval _prevTime;              // Time of last feed.
+        QElapsedTimer _prevTime;              // Time of last feed.
     };
 
     // Data model accessors

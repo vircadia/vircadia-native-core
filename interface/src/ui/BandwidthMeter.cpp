@@ -62,26 +62,21 @@ BandwidthMeter::~BandwidthMeter() {
     free(_channels);
 }
 
-BandwidthMeter::Stream::Stream(float msToAverage) :
-    _value(0.0f),
-    _msToAverage(msToAverage) {
-
-    gettimeofday(& _prevTime, NULL);
+BandwidthMeter::Stream::Stream(float msToAverage) : _value(0.0f), _msToAverage(msToAverage) {
+    _prevTime.start();
 }
 
 void BandwidthMeter::Stream::updateValue(double amount) {
 
     // Determine elapsed time
-    timeval now;
-    gettimeofday(& now, NULL);
-    double dt = diffclock(& _prevTime, & now);
+    double dt = (double)_prevTime.nsecsElapsed() / 1000000.0; // ns to ms
 
     // Ignore this value when timer imprecision yields dt = 0
     if (dt == 0.0) {
         return;
     }
 
-    memcpy(& _prevTime, & now, sizeof(timeval));
+    _prevTime.start();
 
     // Compute approximate average
     _value = glm::mix(_value, amount / dt,
