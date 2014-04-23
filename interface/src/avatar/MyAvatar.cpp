@@ -62,9 +62,7 @@ MyAvatar::MyAvatar() :
     _thrust(0.0f),
     _isThrustOn(false),
     _thrustMultiplier(1.0f),
-    _moveTarget(0,0,0),
     _lastBodyPenetration(0.0f),
-    _moveTargetStepCounter(0),
     _lookAtTargetAvatar(),
     _shouldRender(true),
     _billboardValid(false),
@@ -96,11 +94,6 @@ void MyAvatar::reset() {
     setVelocity(glm::vec3(0.0f));
     setThrust(glm::vec3(0.0f));
     setOrientation(glm::quat(glm::vec3(0.0f)));
-}
-
-void MyAvatar::setMoveTarget(const glm::vec3 moveTarget) {
-    _moveTarget = moveTarget;
-    _moveTargetStepCounter = 0;
 }
 
 void MyAvatar::update(float deltaTime) {
@@ -274,21 +267,6 @@ void MyAvatar::simulate(float deltaTime) {
     const float MOVING_SPEED_THRESHOLD = 0.01f;
     float speed = glm::length(_velocity);
     _moving = speed > MOVING_SPEED_THRESHOLD;
-
-    // If a move target is set, update position explicitly
-    const float MOVE_FINISHED_TOLERANCE = 0.1f;
-    const float MOVE_SPEED_FACTOR = 2.0f;
-    const int MOVE_TARGET_MAX_STEPS = 250;
-    if ((glm::length(_moveTarget) > EPSILON) && (_moveTargetStepCounter < MOVE_TARGET_MAX_STEPS))  {
-        if (glm::length(_position - _moveTarget) > MOVE_FINISHED_TOLERANCE) {
-            _position += (_moveTarget - _position) * (deltaTime * MOVE_SPEED_FACTOR);
-            _moveTargetStepCounter++;
-        } else {
-            //  Move completed
-            _moveTarget = glm::vec3(0,0,0);
-            _moveTargetStepCounter = 0;
-        }
-    }
 
     updateChatCircle(deltaTime);
 
