@@ -16,10 +16,10 @@ const int RESIZE_HANDLE_WIDTH = 7;
 
 FramelessDialog::FramelessDialog(QWidget *parent, Qt::WindowFlags flags, Position position) :
         QDialog(parent, flags | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint),
-        _position(position),
-        _selfHidden(false),
         _isResizing(false),
-        _resizeInitialWidth(0) {
+        _resizeInitialWidth(0),
+        _selfHidden(false),
+        _position(position) {
 
     setAttribute(Qt::WA_DeleteOnClose);
 

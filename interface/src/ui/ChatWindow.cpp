@@ -171,7 +171,7 @@ void ChatWindow::addTimeStamp() {
         timeLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
         timeLabel->setAlignment(Qt::AlignLeft);
 
-        bool atBottom = isAtBottom();
+        bool atBottom = isNearBottom();
 
         ui->messagesVBoxLayout->addWidget(timeLabel);
         ui->messagesVBoxLayout->parentWidget()->updateGeometry();
@@ -288,7 +288,7 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     messageText = messageText.replace(regexHifiLinks, "<a href=\"hifi://\\1\">\\1</a>");
     messageArea->setHtml(userLabel + messageText);
 
-    bool atBottom = isAtBottom();
+    bool atBottom = isNearBottom();
 
     ui->messagesVBoxLayout->addWidget(messageArea);
     ui->messagesVBoxLayout->parentWidget()->updateGeometry();
@@ -308,13 +308,13 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
 
 #endif
 
-bool ChatWindow::isAtBottom() {
+bool ChatWindow::isNearBottom() {
     QScrollBar* verticalScrollBar = ui->messagesScrollArea->verticalScrollBar();
-    return verticalScrollBar->sliderPosition() == verticalScrollBar->maximum();
+    return verticalScrollBar->value() >= verticalScrollBar->maximum() - Ui::AUTO_SCROLL_THRESHOLD;
 }
 
 // Scroll chat message area to bottom.
 void ChatWindow::scrollToBottom() {
     QScrollBar* verticalScrollBar = ui->messagesScrollArea->verticalScrollBar();
-    verticalScrollBar->setSliderPosition(verticalScrollBar->maximum());
+    verticalScrollBar->setValue(verticalScrollBar->maximum());
 }

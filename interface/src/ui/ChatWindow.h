@@ -27,6 +27,12 @@
 #endif
 
 namespace Ui {
+
+
+// Maximum amount the chat can be scrolled up in order to auto scroll.
+const int AUTO_SCROLL_THRESHOLD = 20;
+
+
 class ChatWindow;
 }
 
@@ -49,7 +55,7 @@ private:
 #endif
     void startTimerForTimeStamps();
     void addTimeStamp();
-    bool isAtBottom();
+    bool isNearBottom();
     void scrollToBottom();
 
     Ui::ChatWindow* ui;
