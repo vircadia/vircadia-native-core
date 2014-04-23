@@ -55,8 +55,6 @@ public:
 
     // getters
     float getLeanScale() const { return _leanScale; }
-    float getElapsedTimeStopped() const { return _elapsedTimeStopped; }
-    float getElapsedTimeMoving() const { return _elapsedTimeMoving; }
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     glm::vec3 getGravity() const { return _gravity; }
@@ -117,14 +115,17 @@ private:
     float _driveKeys[MAX_DRIVE_KEYS];
     glm::vec3 _gravity;
     float _distanceToNearestAvatar; // How close is the nearest avatar?
+
+    // motion stuff
     float _elapsedTimeMoving; // Timers to drive camera transitions when moving
     float _elapsedTimeStopped;
     float _elapsedTimeSinceCollision;
     glm::vec3 _lastCollisionPosition;
     bool _speedBrakes;
-    glm::vec3 _thrust;
+    glm::vec3 _thrust;  // final acceleration for the current frame
     bool _isThrustOn;
     float _thrustMultiplier;
+
     glm::vec3 _moveTarget;
     glm::vec3 _lastBodyPenetration;
     int _moveTargetStepCounter;
