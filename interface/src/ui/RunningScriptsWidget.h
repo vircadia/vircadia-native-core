@@ -20,7 +20,7 @@ class RunningScriptsWidget : public QDockWidget
 {
     Q_OBJECT
 public:
-    explicit RunningScriptsWidget(QDockWidget *parent = 0);
+    explicit RunningScriptsWidget(QWidget *parent = 0);
     ~RunningScriptsWidget();
 
     void setRunningScripts(const QStringList& list);

@@ -22,11 +22,13 @@ MainWindow::MainWindow(QWidget *parent) :
 void MainWindow::moveEvent(QMoveEvent *e)
 {
     emit windowGeometryChanged(QRect(e->pos(), size()));
+    QMainWindow::moveEvent(e);
 }
 
 void MainWindow::resizeEvent(QResizeEvent *e)
 {
     emit windowGeometryChanged(QRect(QPoint(x(), y()), e->size()));
+    QMainWindow::resizeEvent(e);
 }
 
 void MainWindow::showEvent(QShowEvent *e)
@@ -34,6 +36,7 @@ void MainWindow::showEvent(QShowEvent *e)
     if (e->spontaneous()) {
         emit windowShown(true);
     }
+    QMainWindow::showEvent(e);
 }
 
 void MainWindow::hideEvent(QHideEvent *e)
@@ -41,6 +44,7 @@ void MainWindow::hideEvent(QHideEvent *e)
     if (e->spontaneous()) {
         emit windowShown(false);
     }
+    QMainWindow::hideEvent(e);
 }
 
 void MainWindow::changeEvent(QEvent *e)
@@ -61,4 +65,5 @@ void MainWindow::changeEvent(QEvent *e)
             emit windowShown(false);
         }
     }
+    QMainWindow::changeEvent(e);
 }

@@ -16,7 +16,7 @@
 
 #include "Application.h"
 
-RunningScriptsWidget::RunningScriptsWidget(QDockWidget *parent) :
+RunningScriptsWidget::RunningScriptsWidget(QWidget *parent) :
     QDockWidget(parent),
     ui(new Ui::RunningScriptsWidget),
     _mousePressed(false),
@@ -105,6 +105,7 @@ void RunningScriptsWidget::mousePressEvent(QMouseEvent *e)
         _mousePressed = false;
         _mousePosition = QPoint();
     }
+    QWidget::mousePressEvent(e);
 }
 
 void RunningScriptsWidget::mouseMoveEvent(QMouseEvent *e)
@@ -116,6 +117,7 @@ void RunningScriptsWidget::mouseMoveEvent(QMouseEvent *e)
             move(newPosition.x(), _boundary.y());
         }
     }
+    QWidget::mouseMoveEvent(e);
 }
 
 void RunningScriptsWidget::mouseReleaseEvent(QMouseEvent *e)
@@ -124,6 +126,7 @@ void RunningScriptsWidget::mouseReleaseEvent(QMouseEvent *e)
         _mousePressed = false;
         _mousePosition = QPoint();
     }
+    QWidget::mouseReleaseEvent(e);
 }
 
 void RunningScriptsWidget::keyPressEvent(QKeyEvent *e)
@@ -188,6 +191,7 @@ void RunningScriptsWidget::keyPressEvent(QKeyEvent *e)
     default:
         break;
     }
+    QWidget::keyPressEvent(e);
 }
 
 void RunningScriptsWidget::paintEvent(QPaintEvent *)

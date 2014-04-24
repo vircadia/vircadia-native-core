@@ -625,7 +625,7 @@ void Application::resizeGL(int width, int height) {
     updateProjectionMatrix();
     glLoadIdentity();
 
-    if (_runningScriptsWidget->toggleViewAction()->isChecked()) {
+    if (_runningScriptsWidgetWasVisible) {
         _runningScriptsWidget->setGeometry(_window->geometry().topLeft().x(),
                                            _window->geometry().topLeft().y(),
                                            _runningScriptsWidget->width(), _window->height());
@@ -3636,19 +3636,15 @@ void Application::reloadAllScripts() {
 void Application::manageRunningScriptsWidgetVisibility(bool shown)
 {
     if (_runningScriptsWidgetWasVisible && shown) {
-        _runningScriptsWidget->setWindowFlags(Qt::SubWindow | Qt::FramelessWindowHint |
-                                              Qt::WindowStaysOnTopHint);
         _runningScriptsWidget->show();
-    } else {
-        _runningScriptsWidget->setWindowFlags(Qt::SubWindow | Qt::FramelessWindowHint);
+    } else if (_runningScriptsWidgetWasVisible && !shown) {
         _runningScriptsWidget->hide();
     }
 }
 
 void Application::toggleRunningScriptsWidget()
 {
-    if (_runningScriptsWidget->toggleViewAction()->isChecked()) {
-        _runningScriptsWidget->toggleViewAction()->setChecked(false);
+    if (_runningScriptsWidgetWasVisible) {
         _runningScriptsWidget->hide();
         _runningScriptsWidgetWasVisible = false;
     } else {
@@ -3657,7 +3653,6 @@ void Application::toggleRunningScriptsWidget()
         _runningScriptsWidget->setGeometry(_window->geometry().topLeft().x(),
                                            _window->geometry().topLeft().y(),
                                            _runningScriptsWidget->width(), _window->height());
-        _runningScriptsWidget->toggleViewAction()->setChecked(true);
         _runningScriptsWidget->show();
         _runningScriptsWidgetWasVisible = true;
     }
