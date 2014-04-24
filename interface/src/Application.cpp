@@ -3526,22 +3526,24 @@ void Application::parseVersionXml() {
     QObject* sender = QObject::sender();
 
     QXmlStreamReader xml(qobject_cast<QNetworkReply*>(sender));
-    while (!xml.atEnd() && !xml.hasError()) {
-        QXmlStreamReader::TokenType token = xml.readNext();
-
-        if (token == QXmlStreamReader::StartElement) {
-            xml.readNext();
-            if (xml.name() == operatingSystem) {
-                xml.readNext();
-                if (xml.name() == "version") {
+    
+    while(!xml.atEnd() && !xml.hasError()) {
+        if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == operatingSystem) {
+            while(!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == operatingSystem)) {
+                if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name().toString() == "version") {
+                    xml.readNext();
                     latestVersion = xml.text().toString();
                 }
-                if (xml.name() == "url") {
+                if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name().toString() == "url") {
+                    xml.readNext();
                     downloadUrl = QUrl(xml.text().toString());
                 }
+                xml.readNext();
             }
         }
+        xml.readNext();
     }
+    
     if (!shouldSkipVersion(latestVersion) && applicationVersion() != latestVersion) {
         new UpdateDialog(_glWidget, releaseNotes, latestVersion, downloadUrl);
     }
