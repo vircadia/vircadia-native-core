@@ -21,6 +21,8 @@ class HTTPSManager : public HTTPManager {
     Q_OBJECT
 public:
     HTTPSManager(quint16 port,
+                 const QSslCertificate& certificate,
+                 const QSslKey& privateKey,
                  const QString& documentRoot,
                  HTTPRequestHandler* requestHandler = NULL, QObject* parent = 0);
     

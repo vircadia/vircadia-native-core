@@ -55,7 +55,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     
     _argumentVariantMap = HifiConfigVariantMap::mergeCLParametersWithJSONConfig(arguments());
     
-    if (optionallySetupDTLS()) {
+    if (optionallySetupTLS()) {
         // we either read a certificate and private key or were not passed one, good to load assignments
         // and set up the node list
         qDebug() << "Setting up LimitedNodeList and assignments.";
@@ -88,7 +88,7 @@ DomainServer::~DomainServer() {
     gnutls_global_deinit();
 }
 
-bool DomainServer::optionallySetupDTLS() {
+bool DomainServer::optionallySetupTLS() {
     if (readX509KeyAndCertificate()) {
         if (_x509Credentials) {
             qDebug() << "Generating Diffie-Hellman parameters.";
@@ -158,6 +158,22 @@ bool DomainServer::readX509KeyAndCertificate() {
         }
         
         qDebug() << "Successfully read certificate and private key.";
+        
+        // we need to also pass this certificate and private key to the HTTPS manager
+        // this is used for Oauth callbacks when authorizing users against a data server
+        
+        QFile certFile(certPath);
+        certFile.open(QIODevice::ReadOnly);
+        
+        QFile keyFile(keyPath);
+        keyFile.open(QIODevice::ReadOnly);
+        
+        QSslCertificate sslCertificate(&certFile);
+        QSslKey privateKey(&keyFile, QSsl::Rsa, QSsl::Pem, QSsl::PrivateKey, keyPassphraseString.toUtf8());
+        
+        _httpsManager = new HTTPSManager(DOMAIN_SERVER_HTTPS_PORT, sslCertificate, privateKey, QString(), this, this);
+        
+        qDebug() << "TCP server listening for HTTPS connections on" << DOMAIN_SERVER_HTTPS_PORT;
         
     } else if (!certPath.isEmpty() || !keyPath.isEmpty()) {
         qDebug() << "Missing certificate or private key. domain-server will now quit.";

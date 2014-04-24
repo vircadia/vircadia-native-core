@@ -53,7 +53,7 @@ private slots:
     void readAvailableDTLSDatagrams();
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
-    bool optionallySetupDTLS();
+    bool optionallySetupTLS();
     bool readX509KeyAndCertificate();
     
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);

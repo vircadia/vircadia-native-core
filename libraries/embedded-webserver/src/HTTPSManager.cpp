@@ -15,10 +15,11 @@
 
 #include "HTTPSManager.h"
 
-HTTPSManager::HTTPSManager(quint16 port, const QString& documentRoot, HTTPRequestHandler* requestHandler, QObject* parent) :
+HTTPSManager::HTTPSManager(quint16 port, const QSslCertificate& certificate, const QSslKey& privateKey,
+                           const QString& documentRoot, HTTPRequestHandler* requestHandler, QObject* parent) :
     HTTPManager(port, documentRoot, requestHandler, parent),
-    _certificate(),
-    _privateKey()
+    _certificate(certificate),
+    _privateKey(privateKey)
 {
     
 }
