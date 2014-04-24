@@ -3537,7 +3537,7 @@ void Application::parseVersionXml() {
                     latestVersion = xml.text().toString();
                 }
                 if (xml.name() == "url") {
-                    downloadUrl = xml.text().toString();
+                    downloadUrl = QUrl(xml.text().toString());
                 }
             }
         }
