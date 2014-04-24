@@ -3520,10 +3520,9 @@ void Application::parseVersionXml() {
     QString operatingSystem("ubuntu");
     #endif
 
-    QString releaseDate;
-    QString releaseNotes;
     QString latestVersion;
     QUrl downloadUrl;
+    QString releaseNotes("Unavailable");
     QObject* sender = QObject::sender();
 
     QXmlStreamReader xml(qobject_cast<QNetworkReply*>(sender));
@@ -3531,21 +3530,15 @@ void Application::parseVersionXml() {
         QXmlStreamReader::TokenType token = xml.readNext();
 
         if (token == QXmlStreamReader::StartElement) {
-            if (xml.name() == "ReleaseDate") {
-                xml.readNext();
-                releaseDate = xml.text().toString();
-            }
-            if (xml.name() == "ReleaseNotes") {
-                xml.readNext();
-                releaseNotes = xml.text().toString();
-            }
-            if (xml.name() == "Version") {
-                xml.readNext();
-                latestVersion = xml.text().toString();
-            }
+            xml.readNext();
             if (xml.name() == operatingSystem) {
                 xml.readNext();
-                downloadUrl = QUrl(xml.text().toString());
+                if (xml.name() == "version") {
+                    latestVersion = xml.text().toString();
+                }
+                if (xml.name() == "url") {
+                    downloadUrl = xml.text().toString();
+                }
             }
         }
     }
