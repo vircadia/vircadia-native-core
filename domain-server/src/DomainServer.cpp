@@ -16,6 +16,7 @@
 #include <QtCore/QProcess>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QTimer>
+#include <QtCore/QUrlQuery>
 
 #include <gnutls/dtls.h>
 
@@ -969,9 +970,24 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 }
 
 bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &url) {
-    qDebug() << "HTTPS request received at" << url;
-    qDebug() << "not handling";
-    return false;
+    const QString URI_OAUTH = "/oauth";
+    if (url.path() == URI_OAUTH) {
+        qDebug() << "Handling an OAuth authorization.";
+        
+        const QString CODE_QUERY_KEY = "code";
+        QString authorizationCode = QUrlQuery(url).queryItemValue(CODE_QUERY_KEY);
+        
+        if (!authorizationCode.isEmpty()) {
+            
+        }
+        
+        // respond with a 200 code indicating that login is complete
+        connection->respond(HTTPConnection::StatusCode200);
+        
+        return true;
+    } else {
+        return false;
+    }
 }
 
 void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment) {
