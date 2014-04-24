@@ -51,6 +51,8 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget *parent) :
             Application::getInstance(), &Application::reloadAllScripts);
     connect(ui->stopAllButton, &QPushButton::clicked,
             this, &RunningScriptsWidget::allScriptsStopped);
+    connect(ui->loadScriptButton, &QPushButton::clicked,
+            Application::getInstance(), &Application::loadDialog);
 }
 
 RunningScriptsWidget::~RunningScriptsWidget()

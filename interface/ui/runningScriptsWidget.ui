@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>323</width>
-    <height>651</height>
+    <height>894</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -49,7 +49,7 @@ background: transparent;</string>
    <property name="geometry">
     <rect>
      <x>36</x>
-     <y>70</y>
+     <y>110</y>
      <width>270</width>
      <height>20</height>
     </rect>
@@ -67,7 +67,7 @@ background: transparent;</string>
    <property name="geometry">
     <rect>
      <x>36</x>
-     <y>230</y>
+     <y>270</y>
      <width>111</width>
      <height>35</height>
     </rect>
@@ -88,12 +88,16 @@ padding-top: 3px;</string>
    <property name="text">
     <string>Reload all</string>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>../resources/images/reload.svg</normaloff>../resources/images/reload.svg</iconset>
+   </property>
   </widget>
   <widget class="QPushButton" name="stopAllButton">
    <property name="geometry">
     <rect>
      <x>160</x>
-     <y>230</y>
+     <y>270</y>
      <width>93</width>
      <height>35</height>
     </rect>
@@ -111,12 +115,16 @@ padding-top: 3px;</string>
    <property name="text">
     <string>Stop all</string>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>../resources/images/stop.svg</normaloff>../resources/images/stop.svg</iconset>
+   </property>
   </widget>
   <widget class="QLabel" name="recentlyLoadedLabel">
    <property name="geometry">
     <rect>
      <x>36</x>
-     <y>280</y>
+     <y>320</y>
      <width>265</width>
      <height>20</height>
     </rect>
@@ -133,7 +141,7 @@ font: bold 14pt;</string>
    <property name="geometry">
     <rect>
      <x>36</x>
-     <y>590</y>
+     <y>630</y>
      <width>211</width>
      <height>41</height>
     </rect>
@@ -178,7 +186,7 @@ font-size: 14pt;</string>
    <property name="geometry">
     <rect>
      <x>36</x>
-     <y>70</y>
+     <y>110</y>
      <width>271</width>
      <height>51</height>
     </rect>
@@ -197,7 +205,7 @@ font-size: 14pt;</string>
    <property name="geometry">
     <rect>
      <x>30</x>
-     <y>300</y>
+     <y>340</y>
      <width>272</width>
      <height>280</height>
     </rect>
@@ -211,7 +219,7 @@ font-size: 14pt;</string>
    <property name="geometry">
     <rect>
      <x>30</x>
-     <y>88</y>
+     <y>128</y>
      <width>272</width>
      <height>161</height>
     </rect>
@@ -219,6 +227,33 @@ font-size: 14pt;</string>
    <property name="styleSheet">
     <string notr="true">background: transparent;
 font-size: 14pt;</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="loadScriptButton">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>70</y>
+     <width>111</width>
+     <height>35</height>
+    </rect>
+   </property>
+   <property name="cursor">
+    <cursorShape>PointingHandCursor</cursorShape>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">background: #0e7077;
+color: #fff;
+border-radius: 4px;
+font: bold 14pt;
+padding-top: 3px;</string>
+   </property>
+   <property name="text">
+    <string>Load script</string>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>../resources/images/plus.svg</normaloff>../resources/images/plus.svg</iconset>
    </property>
   </widget>
   <zorder>widgetTitle</zorder>
@@ -231,6 +266,7 @@ font-size: 14pt;</string>
   <zorder>noRunningScriptsLabel</zorder>
   <zorder>reloadAllButton</zorder>
   <zorder>stopAllButton</zorder>
+  <zorder>loadScriptButton</zorder>
  </widget>
  <resources/>
  <connections/>
