@@ -63,6 +63,7 @@ class Texture;
 
 class Avatar : public AvatarData {
     Q_OBJECT
+    Q_PROPERTY(quint32 collisionGroups READ getCollisionGroups WRITE setCollisionGroups)
 
 public:
     Avatar();
@@ -148,6 +149,9 @@ public:
     virtual float getBoundingRadius() const;
     void updateShapePositions();
 
+    quint32 getCollisionGroups() const { return _collisionGroups; }
+    void setCollisionGroups(quint32 collisionGroups) { _collisionGroups = (collisionGroups & VALID_COLLISION_GROUPS); }
+
 public slots:
     void updateCollisionGroups();
 
@@ -166,7 +170,7 @@ protected:
     float _stringLength;
     bool _moving; ///< set when position is changing
 
-    uint32_t _collisionGroups;
+    quint32 _collisionGroups;
 
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
