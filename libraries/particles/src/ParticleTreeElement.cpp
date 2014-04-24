@@ -1,9 +1,12 @@
 //
 //  ParticleTreeElement.cpp
-//  hifi
+//  libraries/particles/src
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <GeometryUtil.h>
@@ -139,7 +142,7 @@ bool ParticleTreeElement::updateParticle(const Particle& particle) {
             bool localOlder = thisParticle.getLastUpdated() < particle.getLastUpdated();
             if (changedOnServer || localOlder) {
                 if (wantDebug) {
-                    printf("local particle [id:%d] %s and %s than server particle by %d, particle.isNewlyCreated()=%s\n",
+                    qDebug("local particle [id:%d] %s and %s than server particle by %d, particle.isNewlyCreated()=%s",
                             particle.getID(), (changedOnServer ? "CHANGED" : "same"),
                             (localOlder ? "OLDER" : "NEWER"),
                             difference, debug::valueOf(particle.isNewlyCreated()) );
@@ -147,8 +150,8 @@ bool ParticleTreeElement::updateParticle(const Particle& particle) {
                 thisParticle.copyChangedProperties(particle);
             } else {
                 if (wantDebug) {
-                    printf(">>> IGNORING SERVER!!! Would've caused jutter! <<<  "
-                            "local particle [id:%d] %s and %s than server particle by %d, particle.isNewlyCreated()=%s\n",
+                    qDebug(">>> IGNORING SERVER!!! Would've caused jutter! <<<  "
+                            "local particle [id:%d] %s and %s than server particle by %d, particle.isNewlyCreated()=%s",
                             particle.getID(), (changedOnServer ? "CHANGED" : "same"),
                             (localOlder ? "OLDER" : "NEWER"),
                             difference, debug::valueOf(particle.isNewlyCreated()) );

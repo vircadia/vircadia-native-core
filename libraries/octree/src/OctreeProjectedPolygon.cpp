@@ -1,8 +1,12 @@
 //
-//  OctreeProjectedPolygon.cpp - The projected shadow (on the 2D view plane) for a voxel
-//  hifi
+//  OctreeProjectedPolygon.cpp
+//  libraries/octree/src
 //
-//  Added by Brad Hefta-Gaub on 06/11/13.
+//  Created by Brad Hefta-Gaub on 06/11/13.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <algorithm>
@@ -259,12 +263,12 @@ bool OctreeProjectedPolygon::pointInside(const glm::vec2& point, bool* matchesVe
 }
  
 void OctreeProjectedPolygon::printDebugDetails() const {
-    printf("OctreeProjectedPolygon...");
-    printf("    minX=%f maxX=%f minY=%f maxY=%f\n", getMinX(), getMaxX(), getMinY(), getMaxY());
-    printf("    vertex count=%d distance=%f\n", getVertexCount(), getDistance());
+    qDebug("OctreeProjectedPolygon..."
+           "    minX=%f maxX=%f minY=%f maxY=%f", getMinX(), getMaxX(), getMinY(), getMaxY());
+    qDebug("    vertex count=%d distance=%f", getVertexCount(), getDistance());
     for (int i = 0; i < getVertexCount(); i++) {
         glm::vec2 point = getVertex(i);
-        printf("    vertex[%d] = %f, %f \n", i, point.x, point.y);
+        qDebug("    vertex[%d] = %f, %f ", i, point.x, point.y);
     }
 }
 

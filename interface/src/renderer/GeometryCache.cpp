@@ -1,9 +1,13 @@
 //
 //  GeometryCache.cpp
-//  interface
+//  interface/src/renderer
 //
 //  Created by Andrzej Kapolka on 6/21/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 #include <cmath>
 
@@ -539,14 +543,14 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
         int totalIndices = 0;
         foreach (const FBXMeshPart& part, mesh.parts) {
             NetworkMeshPart networkPart;
-            if (!part.diffuseFilename.isEmpty()) {
+            if (!part.diffuseTexture.filename.isEmpty()) {
                 networkPart.diffuseTexture = Application::getInstance()->getTextureCache()->getTexture(
-                    _textureBase.resolved(QUrl(part.diffuseFilename)), false, mesh.isEye);
+                    _textureBase.resolved(QUrl(part.diffuseTexture.filename)), false, mesh.isEye, part.diffuseTexture.content);
                 networkPart.diffuseTexture->setLoadPriorities(_loadPriorities);
             }
-            if (!part.normalFilename.isEmpty()) {
+            if (!part.normalTexture.filename.isEmpty()) {
                 networkPart.normalTexture = Application::getInstance()->getTextureCache()->getTexture(
-                    _textureBase.resolved(QUrl(part.normalFilename)), true);
+                    _textureBase.resolved(QUrl(part.normalTexture.filename)), true, false, part.normalTexture.content);
                 networkPart.normalTexture->setLoadPriorities(_loadPriorities);
             }
             networkMesh.parts.append(networkPart);

@@ -1,13 +1,16 @@
 //
 //  AvatarData.h
-//  hifi
+//  libraries/avatars/src
 //
 //  Created by Stephen Birarda on 4/9/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AvatarData__
-#define __hifi__AvatarData__
+#ifndef hifi_AvatarData_h
+#define hifi_AvatarData_h
 
 #include <string>
 /* VS2010 defines stdint.h, but not inttypes.h */
@@ -29,16 +32,20 @@ typedef unsigned long long quint64;
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <QtCore/QElapsedTimer>
 #include <QtCore/QByteArray>
+#include <QtCore/QHash>
 #include <QtCore/QObject>
 #include <QtCore/QStringList>
 #include <QtCore/QUrl>
 #include <QtCore/QVector>
 #include <QtCore/QVariantMap>
 #include <QRect>
+#include <QUuid>
 
 #include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
+#include <Node.h>
 
 #include "HeadData.h"
 #include "HandData.h"
@@ -90,12 +97,19 @@ class AvatarData : public QObject {
     Q_PROPERTY(float audioLoudness READ getAudioLoudness WRITE setAudioLoudness)
     Q_PROPERTY(float audioAverageLoudness READ getAudioAverageLoudness WRITE setAudioAverageLoudness)
 
+    Q_PROPERTY(QString displayName READ getDisplayName WRITE setDisplayName)
     Q_PROPERTY(QString faceModelURL READ getFaceModelURLFromScript WRITE setFaceModelURLFromScript)
     Q_PROPERTY(QString skeletonModelURL READ getSkeletonModelURLFromScript WRITE setSkeletonModelURLFromScript)
     Q_PROPERTY(QString billboardURL READ getBillboardURL WRITE setBillboardFromURL)
+
+    Q_PROPERTY(QStringList jointNames READ getJointNames)
+
+    Q_PROPERTY(QUuid sessionUUID READ getSessionUUID)
 public:
     AvatarData();
     virtual ~AvatarData();
+
+    const QUuid& getSessionUUID() { return _sessionUUID; }
 
     const glm::vec3& getPosition() const { return _position; }
     void setPosition(const glm::vec3 position) { _position = position; }
@@ -160,9 +174,9 @@ public:
     Q_INVOKABLE glm::quat getJointRotation(const QString& name) const;
 
     /// Returns the index of the joint with the specified name, or -1 if not found/unknown.
-    Q_INVOKABLE virtual int getJointIndex(const QString& name) const { return -1; } 
+    Q_INVOKABLE virtual int getJointIndex(const QString& name) const { return _jointIndices.value(name) - 1; } 
 
-    Q_INVOKABLE virtual QStringList getJointNames() const { return QStringList(); }
+    Q_INVOKABLE virtual QStringList getJointNames() const { return _jointNames; }
 
     // key state
     void setKeyState(KeyState s) { _keyState = s; }
@@ -209,6 +223,11 @@ public:
     QString getSkeletonModelURLFromScript() const { return _skeletonModelURL.toString(); }
     void setSkeletonModelURLFromScript(const QString& skeletonModelString) { setSkeletonModelURL(QUrl(skeletonModelString)); }
     
+    Node* getOwningAvatarMixer() { return _owningAvatarMixer.data(); }
+    void setOwningAvatarMixer(const QWeakPointer<Node>& owningAvatarMixer) { _owningAvatarMixer = owningAvatarMixer; }
+    
+    QElapsedTimer& getLastUpdateTimer() { return _lastUpdateTimer; }
+     
     virtual float getBoundingRadius() const { return 1.f; }
     
     static void setNetworkAccessManager(QNetworkAccessManager* sharedAccessManager) { networkAccessManager = sharedAccessManager; }
@@ -217,7 +236,10 @@ public slots:
     void sendIdentityPacket();
     void sendBillboardPacket();
     void setBillboardFromNetworkReply();
+    void setJointMappingsFromNetworkReply();
+    void setSessionUUID(const QUuid& id) { _sessionUUID = id; }
 protected:
+    QUuid _sessionUUID;
     glm::vec3 _position;
     glm::vec3 _handPosition;
 
@@ -242,6 +264,8 @@ protected:
 
     bool _isChatCirclingEnabled;
 
+    bool _hasNewJointRotations; // set in AvatarData, cleared in Avatar
+
     HeadData* _headData;
     HandData* _handData;
 
@@ -256,9 +280,18 @@ protected:
     QByteArray _billboard;
     QString _billboardURL;
     
+    QHash<QString, int> _jointIndices; ///< 1-based, since zero is returned for missing keys
+    QStringList _jointNames; ///< in order of depth-first traversal
+    
     static QNetworkAccessManager* networkAccessManager;
 
     quint64 _errorLogExpiry; ///< time in future when to log an error
+    
+    QWeakPointer<Node> _owningAvatarMixer;
+    QElapsedTimer _lastUpdateTimer;
+    
+    /// Loads the joint indices, names from the FST file (if any)
+    virtual void updateJointMappings();
 
 private:
     // privatize the copy constructor and assignment operator so they cannot be called
@@ -272,4 +305,4 @@ public:
     glm::quat rotation;
 };
 
-#endif /* defined(__hifi__AvatarData__) */
+#endif // hifi_AvatarData_h

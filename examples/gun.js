@@ -1,17 +1,18 @@
 //
 //  gun.js
-//  hifi
+//  examples
 //
 //  Created by Brad Hefta-Gaub on 12/31/13.
 //  Modified by Philip on 3/3/14
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
 //  This is an example script that turns the hydra controllers and mouse into a particle gun.
 //  It reads the controller, watches for trigger pulls, and launches particles.
 //  When particles collide with voxels they blow little holes out of the voxels. 
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
 
 function getRandomFloat(min, max) {
     return Math.random() * (max - min) + min;
@@ -145,24 +146,20 @@ function shootTarget() {
 
 
 
-function particleCollisionWithVoxel(particle, voxel, penetration) {
+function particleCollisionWithVoxel(particle, voxel, collision) {
     var HOLE_SIZE = 0.125;
     var particleProperties = Particles.getParticleProperties(particle);
     var position = particleProperties.position; 
     Particles.deleteParticle(particle);
     //  Make a hole in this voxel 
-    Vec3.print("penetration", penetration);
-    Vec3.print("position", position);
-    var pointOfEntry = Vec3.subtract(position, penetration);
-    Vec3.print("pointOfEntry", pointOfEntry);
-    Voxels.eraseVoxel(pointOfEntry.x, pointOfEntry.y, pointOfEntry.z, HOLE_SIZE);
-    Voxels.eraseVoxel(position.x, position.y, position.z, HOLE_SIZE);
-    //audioOptions.position = position; 
-    audioOptions.position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));
+    //Vec3.print("voxel penetration", collision.penetration);
+    //Vec3.print("voxel contactPoint", collision.contactPoint);
+    Voxels.eraseVoxel(collision.contactPoint.x, collision.contactPoint.y, collision.contactPoint.z, HOLE_SIZE);
+    audioOptions.position = collision.contactPoint;
     Audio.playSound(impactSound, audioOptions); 
 }
 
-function particleCollisionWithParticle(particle1, particle2) {
+function particleCollisionWithParticle(particle1, particle2, collision) {
     score++;
     if (showScore) {
         Overlays.editOverlay(text, { text: "Score: " + score } );
@@ -173,10 +170,12 @@ function particleCollisionWithParticle(particle1, particle2) {
     //  Record shot time 
     var endTime = new Date(); 
     var msecs = endTime.valueOf() - shotTime.valueOf();
-    print("hit, msecs = " + msecs);
+    //print("hit, msecs = " + msecs);
+    //Vec3.print("penetration = ", collision.penetration);
+    //Vec3.print("contactPoint = ", collision.contactPoint);
     Particles.deleteParticle(particle1);
     Particles.deleteParticle(particle2);
-    audioOptions.position = newPosition;
+    // play the sound near the camera so the shooter can hear it
     audioOptions.position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));   
     Audio.playSound(targetHitSound, audioOptions);
 }

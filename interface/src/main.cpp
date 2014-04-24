@@ -1,18 +1,11 @@
-//  
-//  Interface
 //
-//  Allows you to connect to and see/hear the shared 3D space.
-//  Optionally uses serialUSB connection to get gyro data for head movement.
-//  Optionally gets UDP stream from transmitter to animate controller/hand.
-//  
-//  Usage:  The interface client first attempts to contact a domain server to
-//          discover the appropriate audio, voxel, and avatar servers to contact.
-//          Right now, the default domain server is "highfidelity.below92.com"
-//          You can change the domain server to use your own by editing the
-//          DOMAIN_HOSTNAME or DOMAIN_IP strings in the file NodeList.cpp
+//  main.cpp
+//  interface/src
 //
+//  Copyright 2013 High Fidelity, Inc.
 //
-//  Welcome Aboard!
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include "Application.h"
@@ -23,8 +16,9 @@
 #include <SharedUtil.h>
 
 int main(int argc, const char * argv[]) {
-    timeval startup_time;
-    gettimeofday(&startup_time, NULL);
+    initialiseUsecTimestampNow();
+    QElapsedTimer startupTime;
+    startupTime.start();
     
     // Debug option to demonstrate that the client's local time does not 
     // need to be in sync with any other network node. This forces clock 
@@ -40,7 +34,7 @@ int main(int argc, const char * argv[]) {
     int exitCode;
     {
         QSettings::setDefaultFormat(QSettings::IniFormat);
-        Application app(argc, const_cast<char**>(argv), startup_time);
+        Application app(argc, const_cast<char**>(argv), startupTime);
 
         QTranslator translator;
         translator.load("interface_en");

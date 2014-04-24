@@ -1,9 +1,12 @@
 //
 //  AnimationServer.cpp
-//  hifi
+//  animation-server/src
 //
 //  Created by Stephen Birarda on 12/5/2013.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <algorithm>
@@ -168,7 +171,7 @@ static void renderMovingBug() {
         }
     } else {
         
-        //printf("bugPathCenter=(%f,%f,%f)\n", bugPathCenter.x, bugPathCenter.y, bugPathCenter.z);
+        //qDebug("bugPathCenter=(%f,%f,%f)", bugPathCenter.x, bugPathCenter.y, bugPathCenter.z);
         
         bugPathTheta += bugAngleDelta; // move slightly
         bugRotation  -= bugAngleDelta; // rotate slightly
@@ -184,12 +187,12 @@ static void renderMovingBug() {
         float y = bugPathCenter.y;
         
         bugPosition = glm::vec3(x, y, z);
-        //printf("bugPathTheta=%f\n", bugPathTheta);
-        //printf("bugRotation=%f\n", bugRotation);
+        //qDebug("bugPathTheta=%f", bugPathTheta);
+        //qDebug("bugRotation=%f", bugRotation);
     }
     
-    //printf("bugPosition=(%f,%f,%f)\n", bugPosition.x, bugPosition.y, bugPosition.z);
-    //printf("bugDirection=(%f,%f,%f)\n", bugDirection.x, bugDirection.y, bugDirection.z);
+    //qDebug("bugPosition=(%f,%f,%f)", bugPosition.x, bugPosition.y, bugPosition.z);
+    //qDebug("bugDirection=(%f,%f,%f)", bugDirection.x, bugDirection.y, bugDirection.z);
     // would be nice to add some randomness here...
     
     // Generate voxels for where bug is going to
@@ -687,32 +690,32 @@ AnimationServer::AnimationServer(int &argc, char **argv) :
     // Handle Local Domain testing with the --local command line
     const char* NON_THREADED_PACKETSENDER = "--NonThreadedPacketSender";
     ::nonThreadedPacketSender = cmdOptionExists(argc, (const char**) argv, NON_THREADED_PACKETSENDER);
-    printf("nonThreadedPacketSender=%s\n", debug::valueOf(::nonThreadedPacketSender));
+    qDebug("nonThreadedPacketSender=%s", debug::valueOf(::nonThreadedPacketSender));
     
     // Handle Local Domain testing with the --local command line
     const char* NO_BILLBOARD = "--NoBillboard";
     ::includeBillboard = !cmdOptionExists(argc, (const char**) argv, NO_BILLBOARD);
-    printf("includeBillboard=%s\n", debug::valueOf(::includeBillboard));
+    qDebug("includeBillboard=%s", debug::valueOf(::includeBillboard));
     
     const char* NO_BORDER_TRACER = "--NoBorderTracer";
     ::includeBorderTracer = !cmdOptionExists(argc, (const char**) argv, NO_BORDER_TRACER);
-    printf("includeBorderTracer=%s\n", debug::valueOf(::includeBorderTracer));
+    qDebug("includeBorderTracer=%s", debug::valueOf(::includeBorderTracer));
     
     const char* NO_MOVING_BUG = "--NoMovingBug";
     ::includeMovingBug = !cmdOptionExists(argc, (const char**) argv, NO_MOVING_BUG);
-    printf("includeMovingBug=%s\n", debug::valueOf(::includeMovingBug));
+    qDebug("includeMovingBug=%s", debug::valueOf(::includeMovingBug));
     
     const char* INCLUDE_BLINKING_VOXEL = "--includeBlinkingVoxel";
     ::includeBlinkingVoxel = cmdOptionExists(argc, (const char**) argv, INCLUDE_BLINKING_VOXEL);
-    printf("includeBlinkingVoxel=%s\n", debug::valueOf(::includeBlinkingVoxel));
+    qDebug("includeBlinkingVoxel=%s", debug::valueOf(::includeBlinkingVoxel));
     
     const char* NO_DANCE_FLOOR = "--NoDanceFloor";
     ::includeDanceFloor = !cmdOptionExists(argc, (const char**) argv, NO_DANCE_FLOOR);
-    printf("includeDanceFloor=%s\n", debug::valueOf(::includeDanceFloor));
+    qDebug("includeDanceFloor=%s", debug::valueOf(::includeDanceFloor));
     
     const char* BUILD_STREET = "--BuildStreet";
     ::buildStreet = cmdOptionExists(argc, (const char**) argv, BUILD_STREET);
-    printf("buildStreet=%s\n", debug::valueOf(::buildStreet));
+    qDebug("buildStreet=%s", debug::valueOf(::buildStreet));
     
     // Handle Local Domain testing with the --local command line
     const char* showPPS = "--showPPS";
@@ -722,20 +725,20 @@ AnimationServer::AnimationServer(int &argc, char **argv) :
     const char* local = "--local";
     ::wantLocalDomain = cmdOptionExists(argc, (const char**) argv,local);
     if (::wantLocalDomain) {
-        printf("Local Domain MODE!\n");
-        nodeList->getDomainInfo().setIPToLocalhost();
+        qDebug("Local Domain MODE!");
+        nodeList->getDomainHandler().setIPToLocalhost();
     }
     
     const char* domainHostname = getCmdOption(argc, (const char**) argv, "--domain");
     if (domainHostname) {
-        NodeList::getInstance()->getDomainInfo().setHostname(domainHostname);
+        NodeList::getInstance()->getDomainHandler().setHostname(domainHostname);
     }
     
     const char* packetsPerSecondCommand = getCmdOption(argc, (const char**) argv, "--pps");
     if (packetsPerSecondCommand) {
         ::packetsPerSecond = atoi(packetsPerSecondCommand);
     }
-    printf("packetsPerSecond=%d\n",packetsPerSecond);
+    qDebug("packetsPerSecond=%d",packetsPerSecond);
     
     const char* animateFPSCommand = getCmdOption(argc, (const char**) argv, "--AnimateFPS");
     const char* animateIntervalCommand = getCmdOption(argc, (const char**) argv, "--AnimateInterval");
@@ -750,8 +753,8 @@ AnimationServer::AnimationServer(int &argc, char **argv) :
             ::ANIMATE_VOXELS_INTERVAL_USECS = (ANIMATE_FPS_IN_MILLISECONDS * 1000.0); // converts from milliseconds to usecs
         }
     }
-    printf("ANIMATE_FPS=%d\n",ANIMATE_FPS);
-    printf("ANIMATE_VOXELS_INTERVAL_USECS=%llu\n",ANIMATE_VOXELS_INTERVAL_USECS);
+    qDebug("ANIMATE_FPS=%d",ANIMATE_FPS);
+    qDebug("ANIMATE_VOXELS_INTERVAL_USECS=%llu",ANIMATE_VOXELS_INTERVAL_USECS);
     
     const char* processingFPSCommand = getCmdOption(argc, (const char**) argv, "--ProcessingFPS");
     const char* processingIntervalCommand = getCmdOption(argc, (const char**) argv, "--ProcessingInterval");
@@ -766,8 +769,8 @@ AnimationServer::AnimationServer(int &argc, char **argv) :
             ::PROCESSING_INTERVAL_USECS = (PROCESSING_FPS_IN_MILLISECONDS * 1000.0) - FUDGE_USECS; // converts from milliseconds to usecs
         }
     }
-    printf("PROCESSING_FPS=%d\n",PROCESSING_FPS);
-    printf("PROCESSING_INTERVAL_USECS=%llu\n",PROCESSING_INTERVAL_USECS);
+    qDebug("PROCESSING_FPS=%d",PROCESSING_FPS);
+    qDebug("PROCESSING_INTERVAL_USECS=%llu",PROCESSING_INTERVAL_USECS);
     
     nodeList->linkedDataCreateCallback = NULL; // do we need a callback?
     
@@ -797,11 +800,11 @@ AnimationServer::AnimationServer(int &argc, char **argv) :
     
     QTimer* domainServerTimer = new QTimer(this);
     connect(domainServerTimer, SIGNAL(timeout()), nodeList, SLOT(sendDomainServerCheckIn()));
-    domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_USECS / 1000);
+    domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
     
     QTimer* silentNodeTimer = new QTimer(this);
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
-    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
+    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
     
     connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
 }

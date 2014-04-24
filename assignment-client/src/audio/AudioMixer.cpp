@@ -1,9 +1,12 @@
 //
 //  AudioMixer.cpp
-//  hifi
+//  assignment-client/src/audio
 //
 //  Created by Stephen Birarda on 8/22/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <mmintrin.h>
@@ -18,13 +21,10 @@
 #include <string.h>
 
 #ifdef _WIN32
-#include "Syssocket.h"
-#include "Systime.h"
 #include <math.h>
 #else
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <sys/time.h>
 #include <sys/socket.h>
 #endif //_WIN32
 
@@ -369,7 +369,7 @@ void AudioMixer::sendStatsPacket() {
         statsObject["average_mixes_per_listener"] = 0.0;
     }
     
-    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
+//    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
     
     _sumListeners = 0;
     _sumMixes = 0;
@@ -387,9 +387,8 @@ void AudioMixer::run() {
     nodeList->linkedDataCreateCallback = attachNewBufferToNode;
 
     int nextFrame = 0;
-    timeval startTime;
-
-    gettimeofday(&startTime, NULL);
+    QElapsedTimer timer;
+    timer.start();
     
     char* clientMixBuffer = new char[NETWORK_BUFFER_LENGTH_BYTES_STEREO
                                      + numBytesForPacketHeaderGivenPacketType(PacketTypeMixedAudio)];
@@ -488,7 +487,7 @@ void AudioMixer::run() {
             break;
         }
 
-        usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
+        usecToSleep = (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - timer.nsecsElapsed() / 1000; // ns to us
 
         if (usecToSleep > 0) {
             usleep(usecToSleep);

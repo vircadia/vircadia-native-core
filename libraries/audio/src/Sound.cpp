@@ -1,10 +1,12 @@
 //
 //  Sound.cpp
-//  hifi
+//  libraries/audio/src
 //
 //  Created by Stephen Birarda on 1/2/2014.
-//  Modified by Athanasios Gaitatzes to add WAVE file support.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <stdint.h>
@@ -18,6 +20,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <qendian.h>
 
+#include <LimitedNodeList.h>
 #include <SharedUtil.h>
 
 #include "AudioRingBuffer.h"
@@ -64,21 +67,25 @@ Sound::Sound(float volume, float frequency, float duration, float decay, QObject
 }
 
 Sound::Sound(const QUrl& sampleURL, QObject* parent) :
-    QObject(parent)
+    QObject(parent),
+    _hasDownloaded(false)
 {
     // assume we have a QApplication or QCoreApplication instance and use the
     // QNetworkAccess manager to grab the raw audio file at the given URL
 
     QNetworkAccessManager *manager = new QNetworkAccessManager(this);
-    connect(manager, SIGNAL(finished(QNetworkReply*)),
-            this, SLOT(replyFinished(QNetworkReply*)));
 
     qDebug() << "Requesting audio file" << sampleURL.toDisplayString();
-    manager->get(QNetworkRequest(sampleURL));
+    
+    QNetworkReply* soundDownload = manager->get(QNetworkRequest(sampleURL));
+    connect(soundDownload, &QNetworkReply::finished, this, &Sound::replyFinished);
+    connect(soundDownload, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(replyError(QNetworkReply::NetworkError)));
 }
 
-void Sound::replyFinished(QNetworkReply* reply) {
+void Sound::replyFinished() {
 
+    QNetworkReply* reply = reinterpret_cast<QNetworkReply*>(sender());
+    
     // replace our byte array with the downloaded data
     QByteArray rawAudioByteArray = reply->readAll();
 
@@ -105,6 +112,13 @@ void Sound::replyFinished(QNetworkReply* reply) {
     } else {
         qDebug() << "Network reply without 'Content-Type'.";
     }
+    
+    _hasDownloaded = true;
+}
+
+void Sound::replyError(QNetworkReply::NetworkError code) {
+    QNetworkReply* reply = reinterpret_cast<QNetworkReply*>(sender());
+    qDebug() << "Error downloading sound file at" << reply->url().toString() << "-" << reply->errorString();
 }
 
 void Sound::downSample(const QByteArray& rawAudioByteArray) {
@@ -152,20 +166,17 @@ void Sound::downSample(const QByteArray& rawAudioByteArray) {
 // Sample values are given above for a 16-bit stereo source.
 //
 
-struct chunk
-{
+struct chunk {
     char        id[4];
     quint32     size;
 };
 
-struct RIFFHeader
-{
+struct RIFFHeader {
     chunk       descriptor;     // "RIFF"
     char        type[4];        // "WAVE"
 };
 
-struct WAVEHeader
-{
+struct WAVEHeader {
     chunk       descriptor;
     quint16     audioFormat;    // Format type: 1=PCM, 257=Mu-Law, 258=A-Law, 259=ADPCM
     quint16     numChannels;    // Number of channels: 1=mono, 2=stereo
@@ -175,13 +186,11 @@ struct WAVEHeader
     quint16     bitsPerSample;
 };
 
-struct DATAHeader
-{
+struct DATAHeader {
     chunk       descriptor;
 };
 
-struct CombinedHeader
-{
+struct CombinedHeader {
     RIFFHeader  riff;
     WAVEHeader  wave;
 };

@@ -1,15 +1,16 @@
 //
 //  OctreeEditPacketSender.h
-//  shared
+//  libraries/octree/src
 //
 //  Created by Brad Hefta-Gaub on 8/12/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
-//  Octree Edit Packet Sender
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __shared__OctreeEditPacketSender__
-#define __shared__OctreeEditPacketSender__
+#ifndef hifi_OctreeEditPacketSender_h
+#define hifi_OctreeEditPacketSender_h
 
 #include <PacketSender.h>
 #include <PacketHeaders.h>
@@ -114,4 +115,4 @@ protected:
     unsigned short int _sequenceNumber;
     int _maxPacketSize;
 };
-#endif // __shared__OctreeEditPacketSender__
+#endif // hifi_OctreeEditPacketSender_h

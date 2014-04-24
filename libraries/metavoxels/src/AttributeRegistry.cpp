@@ -1,9 +1,12 @@
 //
 //  AttributeRegistry.cpp
-//  metavoxels
+//  libraries/metavoxels/src
 //
 //  Created by Andrzej Kapolka on 12/6/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <QScriptEngine>
@@ -144,6 +147,14 @@ void OwnedAttributeValue::mix(const AttributeValue& first, const AttributeValue&
     _value = _attribute->mix(first.getValue(), second.getValue(), alpha);
 }
 
+void OwnedAttributeValue::blend(const AttributeValue& source, const AttributeValue& dest) {
+    if (_attribute) {
+        _attribute->destroy(_value);
+    }
+    _attribute = source.getAttribute();
+    _value = _attribute->blend(source.getValue(), dest.getValue());
+}
+
 OwnedAttributeValue& OwnedAttributeValue::operator=(const AttributeValue& other) {
     if (_attribute) {
         _attribute->destroy(_value);
@@ -243,6 +254,19 @@ void* QRgbAttribute::mix(void* first, void* second, float alpha) const {
         glm::mix((float)qAlpha(firstValue), (float)qAlpha(secondValue), alpha)));
 }
 
+const float EIGHT_BIT_MAXIMUM = 255.0f;
+
+void* QRgbAttribute::blend(void* source, void* dest) const {
+    QRgb sourceValue = decodeInline<QRgb>(source);
+    QRgb destValue = decodeInline<QRgb>(dest);    
+    float alpha = qAlpha(sourceValue) / EIGHT_BIT_MAXIMUM;
+    return encodeInline(qRgba(
+        glm::mix((float)qRed(destValue), (float)qRed(sourceValue), alpha),
+        glm::mix((float)qGreen(destValue), (float)qGreen(sourceValue), alpha),
+        glm::mix((float)qBlue(destValue), (float)qBlue(sourceValue), alpha),
+        glm::mix((float)qAlpha(destValue), (float)qAlpha(sourceValue), alpha)));
+}
+
 void* QRgbAttribute::createFromScript(const QScriptValue& value, QScriptEngine* engine) const {
     return encodeInline((QRgb)value.toUInt32());
 }
@@ -285,6 +309,13 @@ void* PackedNormalAttribute::mix(void* first, void* second, float alpha) const {
     glm::vec3 firstNormal = unpackNormal(decodeInline<QRgb>(first));
     glm::vec3 secondNormal = unpackNormal(decodeInline<QRgb>(second));
     return encodeInline(packNormal(glm::normalize(glm::mix(firstNormal, secondNormal, alpha))));
+}
+
+void* PackedNormalAttribute::blend(void* source, void* dest) const {
+    QRgb sourceValue = decodeInline<QRgb>(source);
+    QRgb destValue = decodeInline<QRgb>(dest);    
+    float alpha = qAlpha(sourceValue) / EIGHT_BIT_MAXIMUM;
+    return encodeInline(packNormal(glm::normalize(glm::mix(unpackNormal(destValue), unpackNormal(sourceValue), alpha))));
 }
 
 const float CHAR_SCALE = 127.0f;

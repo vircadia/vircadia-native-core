@@ -24,10 +24,17 @@ include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(octree ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(voxels ${TARGET_NAME} "${ROOT_DIR}")
+link_hifi_library(fbx ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(particles ${TARGET_NAME} "${ROOT_DIR}")
 
 # link ZLIB
 find_package(ZLIB)
-include_directories("${ZLIB_INCLUDE_DIRS}")
+find_package(GnuTLS REQUIRED)
 
-target_link_libraries(${TARGET_NAME} "${ZLIB_LIBRARIES}" Qt5::Widgets)
+# add a definition for ssize_t so that windows doesn't bail on gnutls.h
+if (WIN32)
+  add_definitions(-Dssize_t=long)
+endif ()
+
+include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}" "${GNUTLS_INCLUDE_DIR}")
+target_link_libraries(${TARGET_NAME} "${ZLIB_LIBRARIES}" "${GNUTLS_LIBRARY}" Qt5::Widgets)

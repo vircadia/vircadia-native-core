@@ -1,9 +1,12 @@
 //
 //  SkeletonModel.cpp
-//  interface
+//  interface/src/avatar
 //
 //  Created by Andrzej Kapolka on 10/17/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <glm/gtx/transform.hpp>
@@ -14,7 +17,7 @@
 #include "Menu.h"
 #include "SkeletonModel.h"
 
-SkeletonModel::SkeletonModel(Avatar* owningAvatar) :
+SkeletonModel::SkeletonModel(Avatar* owningAvatar) : 
     _owningAvatar(owningAvatar) {
 }
 
@@ -63,7 +66,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
 }
 
 void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes) const {
-    if (jointIndex < 0 || jointIndex >= int(_shapes.size())) {
+    if (jointIndex < 0 || jointIndex >= int(_jointShapes.size())) {
         return;
     }
     if (jointIndex == getLeftHandJointIndex()
@@ -75,16 +78,16 @@ void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes)
             int parentIndex = joint.parentIndex;
             if (i == jointIndex) {
                 // this shape is the hand
-                shapes.push_back(_shapes[i]);
+                shapes.push_back(_jointShapes[i]);
                 if (parentIndex != -1) {
                     // also add the forearm
-                    shapes.push_back(_shapes[parentIndex]);
+                    shapes.push_back(_jointShapes[parentIndex]);
                 }
             } else {
                 while (parentIndex != -1) {
                     if (parentIndex == jointIndex) {
                         // this shape is a child of the hand
-                        shapes.push_back(_shapes[i]);
+                        shapes.push_back(_jointShapes[i]);
                         break;
                     }
                     parentIndex = geometry.joints[parentIndex].parentIndex;
@@ -92,6 +95,12 @@ void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes)
             }
         }
     }
+}
+
+void SkeletonModel::getBodyShapes(QVector<const Shape*>& shapes) const {
+    // for now we push a single bounding shape, 
+    // but later we could push a subset of joint shapes
+    shapes.push_back(&_boundingShape);
 }
 
 class IndexValue {

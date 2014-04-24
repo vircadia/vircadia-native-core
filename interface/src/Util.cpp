@@ -1,9 +1,12 @@
 //
-//  util.cpp
-//  interface
+//  Util.cpp
+//  interface/src
 //
 //  Created by Philip Rosedale on 8/24/12.
-//  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
+//  Copyright 2012 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <iostream>
@@ -60,7 +63,7 @@ void eulerToOrthonormals(glm::vec3 * angles, glm::vec3 * front, glm::vec3 * righ
 }
 
 void printVector(glm::vec3 vec) {
-    printf("%4.2f, %4.2f, %4.2f\n", vec.x, vec.y, vec.z);
+    qDebug("%4.2f, %4.2f, %4.2f", vec.x, vec.y, vec.z);
 }
 
 //  Return the azimuth angle (in radians) between two points.
@@ -73,112 +76,6 @@ float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos) {
 // The angle is negative if the object is to your right.
 float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float head_yaw) {
     return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z) + render_yaw + head_yaw;
-}
-
-//  Helper function returns the positive angle (in radians) between two 3D vectors
-float angleBetween(const glm::vec3& v1, const glm::vec3& v2) {
-    return acosf((glm::dot(v1, v2)) / (glm::length(v1) * glm::length(v2)));
-}
-
-//  Helper function return the rotation from the first vector onto the second
-glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
-    float angle = angleBetween(v1, v2);
-    if (glm::isnan(angle) || angle < EPSILON) {
-        return glm::quat();
-    }
-    glm::vec3 axis;
-    if (angle > 179.99f * RADIANS_PER_DEGREE) { // 180 degree rotation; must use another axis
-        axis = glm::cross(v1, glm::vec3(1.0f, 0.0f, 0.0f));
-        float axisLength = glm::length(axis);
-        if (axisLength < EPSILON) { // parallel to x; y will work
-            axis = glm::normalize(glm::cross(v1, glm::vec3(0.0f, 1.0f, 0.0f)));
-        } else {
-            axis /= axisLength;
-        }
-    } else {
-        axis = glm::normalize(glm::cross(v1, v2));
-    }
-    return glm::angleAxis(angle, axis);
-}
-
-
-
-glm::vec3 extractTranslation(const glm::mat4& matrix) {
-    return glm::vec3(matrix[3][0], matrix[3][1], matrix[3][2]);
-}
-
-void setTranslation(glm::mat4& matrix, const glm::vec3& translation) {
-    matrix[3][0] = translation.x;
-    matrix[3][1] = translation.y;
-    matrix[3][2] = translation.z;
-}
-
-glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal) {
-    // uses the iterative polar decomposition algorithm described by Ken Shoemake at
-    // http://www.cs.wisc.edu/graphics/Courses/838-s2002/Papers/polar-decomp.pdf
-    // code adapted from Clyde, https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Matrix4f.java
-
-    // start with the contents of the upper 3x3 portion of the matrix
-    glm::mat3 upper = glm::mat3(matrix);
-    if (!assumeOrthogonal) {
-        for (int i = 0; i < 10; i++) {
-            // store the results of the previous iteration
-            glm::mat3 previous = upper;
-
-            // compute average of the matrix with its inverse transpose
-            float sd00 = previous[1][1] * previous[2][2] - previous[2][1] * previous[1][2];
-            float sd10 = previous[0][1] * previous[2][2] - previous[2][1] * previous[0][2];
-            float sd20 = previous[0][1] * previous[1][2] - previous[1][1] * previous[0][2];
-            float det = previous[0][0] * sd00 + previous[2][0] * sd20 - previous[1][0] * sd10;
-            if (fabs(det) == 0.0f) {
-                // determinant is zero; matrix is not invertible
-                break;
-            }
-            float hrdet = 0.5f / det;
-            upper[0][0] = +sd00 * hrdet + previous[0][0] * 0.5f;
-            upper[1][0] = -sd10 * hrdet + previous[1][0] * 0.5f;
-            upper[2][0] = +sd20 * hrdet + previous[2][0] * 0.5f;
-
-            upper[0][1] = -(previous[1][0] * previous[2][2] - previous[2][0] * previous[1][2]) * hrdet + previous[0][1] * 0.5f;
-            upper[1][1] = +(previous[0][0] * previous[2][2] - previous[2][0] * previous[0][2]) * hrdet + previous[1][1] * 0.5f;
-            upper[2][1] = -(previous[0][0] * previous[1][2] - previous[1][0] * previous[0][2]) * hrdet + previous[2][1] * 0.5f;
-
-            upper[0][2] = +(previous[1][0] * previous[2][1] - previous[2][0] * previous[1][1]) * hrdet + previous[0][2] * 0.5f;
-            upper[1][2] = -(previous[0][0] * previous[2][1] - previous[2][0] * previous[0][1]) * hrdet + previous[1][2] * 0.5f;
-            upper[2][2] = +(previous[0][0] * previous[1][1] - previous[1][0] * previous[0][1]) * hrdet + previous[2][2] * 0.5f;
-
-            // compute the difference; if it's small enough, we're done
-            glm::mat3 diff = upper - previous;
-            if (diff[0][0] * diff[0][0] + diff[1][0] * diff[1][0] + diff[2][0] * diff[2][0] + diff[0][1] * diff[0][1] +
-                    diff[1][1] * diff[1][1] + diff[2][1] * diff[2][1] + diff[0][2] * diff[0][2] + diff[1][2] * diff[1][2] +
-                    diff[2][2] * diff[2][2] < EPSILON) {
-                break;
-            }
-        }
-    }
-
-    // now that we have a nice orthogonal matrix, we can extract the rotation quaternion
-    // using the method described in http://en.wikipedia.org/wiki/Rotation_matrix#Conversions
-    float x2 = fabs(1.0f + upper[0][0] - upper[1][1] - upper[2][2]);
-    float y2 = fabs(1.0f - upper[0][0] + upper[1][1] - upper[2][2]);
-    float z2 = fabs(1.0f - upper[0][0] - upper[1][1] + upper[2][2]);
-    float w2 = fabs(1.0f + upper[0][0] + upper[1][1] + upper[2][2]);
-    return glm::normalize(glm::quat(0.5f * sqrtf(w2),
-        0.5f * sqrtf(x2) * (upper[1][2] >= upper[2][1] ? 1.0f : -1.0f),
-        0.5f * sqrtf(y2) * (upper[2][0] >= upper[0][2] ? 1.0f : -1.0f),
-        0.5f * sqrtf(z2) * (upper[0][1] >= upper[1][0] ? 1.0f : -1.0f)));
-}
-
-glm::vec3 extractScale(const glm::mat4& matrix) {
-    return glm::vec3(glm::length(matrix[0]), glm::length(matrix[1]), glm::length(matrix[2]));
-}
-
-float extractUniformScale(const glm::mat4& matrix) {
-    return extractUniformScale(extractScale(matrix));
-}
-
-float extractUniformScale(const glm::vec3& scale) {
-    return (scale.x + scale.y + scale.z) / 3.0f;
 }
 
 //  Draw a 3D vector floating in space
@@ -275,14 +172,6 @@ void renderWorldBox() {
 
 }
 
-double diffclock(timeval *clock1,timeval *clock2)
-{
-	double diffms = (clock2->tv_sec - clock1->tv_sec) * 1000.0;
-    diffms += (clock2->tv_usec - clock1->tv_usec) / 1000.0;   // us to ms
-
-	return diffms;
-}
-
 //  Return a random vector of average length 1
 const glm::vec3 randVector() {
     return glm::vec3(randFloat() - 0.5f, randFloat() - 0.5f, randFloat() - 0.5f) * 2.f;
@@ -348,10 +237,10 @@ void drawvec3(int x, int y, float scale, float radians, float thick, int mono, g
     glPopMatrix();
 }
 
-void renderCollisionOverlay(int width, int height, float magnitude) {
+void renderCollisionOverlay(int width, int height, float magnitude, float red, float blue, float green) {
     const float MIN_VISIBLE_COLLISION = 0.01f;
     if (magnitude > MIN_VISIBLE_COLLISION) {
-        glColor4f(0, 0, 0, magnitude);
+        glColor4f(red, blue, green, magnitude);
         glBegin(GL_QUADS);
         glVertex2f(0, 0);
         glVertex2d(width, 0);
@@ -514,69 +403,63 @@ void runTimingTests() {
     int iResults[numTests];
     float fTest = 1.0;
     float fResults[numTests];
-    timeval startTime, endTime;
-    float elapsedMsecs;
-    gettimeofday(&startTime, NULL);
-    for (int i = 1; i < numTests; i++) {
-        gettimeofday(&endTime, NULL);
-    }
-    elapsedMsecs = diffclock(&startTime, &endTime);
-    qDebug("gettimeofday() usecs: %f", 1000.0f * elapsedMsecs / (float) numTests);
+    QElapsedTimer startTime;
+    startTime.start();
+    float elapsedUsecs;
+    
+    float NSEC_TO_USEC = 1.0f / 1000.0f;
+    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    qDebug("QElapsedTimer::nsecElapsed() usecs: %f", elapsedUsecs / (float) numTests);
     
     // Random number generation
-    gettimeofday(&startTime, NULL);
+    startTime.start();
     for (int i = 1; i < numTests; i++) {
         iResults[i] = rand();
     }
-    gettimeofday(&endTime, NULL);
-    elapsedMsecs = diffclock(&startTime, &endTime);
-    qDebug("rand() stored in array usecs: %f, first result:%d", 1000.0f * elapsedMsecs / (float) numTests, iResults[0]);
+    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    qDebug("rand() stored in array usecs: %f, first result:%d", elapsedUsecs / (float) numTests, iResults[0]);
 
     // Random number generation using randFloat()
-    gettimeofday(&startTime, NULL);
+    startTime.start();
     for (int i = 1; i < numTests; i++) {
         fResults[i] = randFloat();
     }
-    gettimeofday(&endTime, NULL);
-    elapsedMsecs = diffclock(&startTime, &endTime);
-    qDebug("randFloat() stored in array usecs: %f, first result: %f", 1000.0f * elapsedMsecs / (float) numTests, fResults[0]);
+    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    qDebug("randFloat() stored in array usecs: %f, first result: %f", elapsedUsecs / (float) numTests, fResults[0]);
 
     //  PowF function
     fTest = 1145323.2342f;
-    gettimeofday(&startTime, NULL);
+    startTime.start();
     for (int i = 1; i < numTests; i++) {
         fTest = powf(fTest, 0.5f);
     }
-    gettimeofday(&endTime, NULL);
-    elapsedMsecs = diffclock(&startTime, &endTime);
-    qDebug("powf(f, 0.5) usecs: %f", 1000.0f * elapsedMsecs / (float) numTests);
+    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    qDebug("powf(f, 0.5) usecs: %f", elapsedUsecs / (float) numTests);
 
     //  Vector Math
     float distance;
     glm::vec3 pointA(randVector()), pointB(randVector());
-    gettimeofday(&startTime, NULL);
+    startTime.start();
     for (int i = 1; i < numTests; i++) {
         //glm::vec3 temp = pointA - pointB;
         //float distanceSquared = glm::dot(temp, temp);
         distance = glm::distance(pointA, pointB);
     }
-    gettimeofday(&endTime, NULL);
-    elapsedMsecs = diffclock(&startTime, &endTime);
-    qDebug("vector math usecs: %f [%f msecs total for %d tests], last result:%f",
-             1000.0f * elapsedMsecs / (float) numTests, elapsedMsecs, numTests, distance);
+    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    qDebug("vector math usecs: %f [%f usecs total for %d tests], last result:%f",
+           elapsedUsecs / (float) numTests, elapsedUsecs, numTests, distance);
 
     //  Vec3 test
     glm::vec3 vecA(randVector()), vecB(randVector());
     float result;
-
-    gettimeofday(&startTime, NULL);
+    
+    startTime.start();
     for (int i = 1; i < numTests; i++) {
         glm::vec3 temp = vecA-vecB;
         result = glm::dot(temp,temp);
     }
-    gettimeofday(&endTime, NULL);
-    elapsedMsecs = diffclock(&startTime, &endTime);
-    qDebug("vec3 assign and dot() usecs: %f, last result:%f", 1000.0f * elapsedMsecs / (float) numTests, result);
+    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    qDebug("vec3 assign and dot() usecs: %f, last result:%f", elapsedUsecs / (float) numTests, result);
 }
 
 float loadSetting(QSettings* settings, const char* name, float defaultValue) {

@@ -1,13 +1,16 @@
 //
 //  audioBall.js
-//  hifi
+//  examples
 //
 //  Created by Athanasios Gaitatzes on 2/10/14.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  This script creates a particle in front of the user that stays in front of
 //  the user's avatar as they move, and animates it's radius and color
 //  in response to the audio intensity.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 var sound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Animals/mexicanWhipoorwill.raw");

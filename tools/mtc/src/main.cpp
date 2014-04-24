@@ -1,10 +1,12 @@
 //
 //  main.cpp
-//  mtc
+//  tools/mtc/src
 //
 //  Created by Andrzej Kapolka on 12/31/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 #include <iostream>
 
@@ -143,13 +145,15 @@ void generateOutput (QTextStream& out, const QList<Streamable>& streamables) {
             out << "    }\n";
             out << "    index = nextIndex;\n";        
         }
-        out << "    switch (index) {\n";
-        for (int i = 0; i < str.fields.size(); i++) {
-            out << "        case " << i << ":\n";
-            out << "            this->" << str.fields.at(i).name << " = value.value<" << str.fields.at(i).type << ">();\n";
-            out << "            break;\n";
+        if (!str.fields.isEmpty()) {
+            out << "    switch (index) {\n";
+            for (int i = 0; i < str.fields.size(); i++) {
+                out << "        case " << i << ":\n";
+                out << "            this->" << str.fields.at(i).name << " = value.value<" << str.fields.at(i).type << ">();\n";
+                out << "            break;\n";
+            }
+            out << "    }\n";
         }
-        out << "    }\n";
         out << "}\n";
 
         out << "QVariant " << name << "::getField(int index) const {\n";
@@ -162,12 +166,14 @@ void generateOutput (QTextStream& out, const QList<Streamable>& streamables) {
             out << "    }\n";
             out << "    index = nextIndex;\n";        
         }
-        out << "    switch (index) {\n";
-        for (int i = 0; i < str.fields.size(); i++) {
-            out << "        case " << i << ":\n";
-            out << "            return QVariant::fromValue(this->" << str.fields.at(i).name << ");\n";
+        if (!str.fields.isEmpty()) {
+            out << "    switch (index) {\n";
+            for (int i = 0; i < str.fields.size(); i++) {
+                out << "        case " << i << ":\n";
+                out << "            return QVariant::fromValue(this->" << str.fields.at(i).name << ");\n";
+            }
+            out << "    }\n";
         }
-        out << "    }\n";
         out << "    return QVariant();\n";
         out << "}\n";
         

@@ -1,13 +1,16 @@
 //
 //  Bitstream.h
-//  metavoxels
+//  libraries/metavoxels/src
 //
 //  Created by Andrzej Kapolka on 12/2/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Bitstream__
-#define __interface__Bitstream__
+#ifndef hifi_Bitstream_h
+#define hifi_Bitstream_h
 
 #include <QHash>
 #include <QMetaProperty>
@@ -311,6 +314,9 @@ public:
     
     Bitstream& operator<<(const glm::vec3& value);
     Bitstream& operator>>(glm::vec3& value);
+    
+    Bitstream& operator<<(const glm::quat& value);
+    Bitstream& operator>>(glm::quat& value);
     
     Bitstream& operator<<(const QByteArray& string);
     Bitstream& operator>>(QByteArray& string);
@@ -920,6 +926,13 @@ public:
     _Pragma(STRINGIFY(unused(_TypePtr##X)))
 #endif
 
+/// Registers a simple type and its streamer.
+template<class T> int registerSimpleMetaType() {
+    int type = qRegisterMetaType<T>();
+    Bitstream::registerTypeStreamer(type, new SimpleTypeStreamer<T>());
+    return type;
+}
+
 /// Registers a streamable type and its streamer.
 template<class T> int registerStreamableMetaType() {
     int type = qRegisterMetaType<T>();
@@ -940,4 +953,4 @@ template<class T> int registerStreamableMetaType() {
 /// Flags a field or base class as streaming.
 #define STREAM
 
-#endif /* defined(__interface__Bitstream__) */
+#endif // hifi_Bitstream_h

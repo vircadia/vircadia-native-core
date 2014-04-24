@@ -1,14 +1,16 @@
 //
 //  OctreeSceneStats.h
-//  hifi
+//  libraries/octree/src
 //
 //  Created by Brad Hefta-Gaub on 7/18/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__OctreeSceneStats__
-#define __hifi__OctreeSceneStats__
+#ifndef hifi_OctreeSceneStats_h
+#define hifi_OctreeSceneStats_h
 
 #include <stdint.h>
 #include <NodeList.h>
@@ -290,4 +292,4 @@ private:
 typedef std::map<QUuid, OctreeSceneStats> NodeToOctreeSceneStats;
 typedef std::map<QUuid, OctreeSceneStats>::iterator NodeToOctreeSceneStatsIterator;
 
-#endif /* defined(__hifi__OctreeSceneStats__) */
+#endif // hifi_OctreeSceneStats_h

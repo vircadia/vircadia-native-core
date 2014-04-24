@@ -1,20 +1,23 @@
 //
 //  Plane.h
-//  hifi
+//  libraries/octree/src/
 //
 //  Created by Brad Hefta-Gaub on 04/11/13.
-//  Originally from lighthouse3d. Modified to utilize glm::vec3 and clean up to our coding standards
+//  Copyright 2013 High Fidelity, Inc.
 //
+//  Originally from lighthouse3d. Modified to utilize glm::vec3 and clean up to our coding standards
 //  Simple plane class.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
-#ifndef _PLANE_
-#define _PLANE_
+#ifndef hifi_Plane_h
+#define hifi_Plane_h
 
 #include <glm/glm.hpp>
 
-class Plane  
-{
+class Plane {
 public:
 	Plane(const glm::vec3 &v1, const glm::vec3 &v2, const glm::vec3 &v3) { set3Points(v1,v2,v3); }
 	Plane() : _normal(0,0,0), _point(0,0,0), _dCoefficient(0) {};
@@ -41,4 +44,4 @@ private:
 };
 
 
-#endif
+#endif // hifi_Plane_h

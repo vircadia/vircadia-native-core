@@ -1,11 +1,14 @@
 //
 //  spaceInvadersExample.js
-//  hifi
+//  examples
 //
 //  Created by Brad Hefta-Gaub on 1/30/14.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  This is an example script that demonstrates a simple space invaders style of game
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 var iteration = 0;
@@ -214,7 +217,7 @@ function update(deltaTime) {
 
         if (invaderStepOfCycle % stepsPerSound == 0) {
             // play the move sound
-            var options = new AudioInjectionOptions(); 
+            var options = new AudioInjectionOptions();
             if (soundInMyHead) {
                 options.position = { x: MyAvatar.position.x + 0.0, 
                                      y: MyAvatar.position.y + 0.1, 
@@ -326,7 +329,7 @@ function fireMissile() {
                             lifetime: 5
                         });
 
-        var options = new AudioInjectionOptions(); 
+        var options = new AudioInjectionOptions();
         if (soundInMyHead) {
             options.position = { x: MyAvatar.position.x + 0.0, 
                                  y: MyAvatar.position.y + 0.1, 
@@ -376,7 +379,7 @@ function deleteIfInvader(possibleInvaderParticle) {
                     Particles.deleteParticle(myMissile);
 
                     // play the hit sound
-                    var options = new AudioInjectionOptions(); 
+                    var options = new AudioInjectionOptions();
                     if (soundInMyHead) {
                         options.position = { x: MyAvatar.position.x + 0.0, 
                                              y: MyAvatar.position.y + 0.1, 
@@ -392,9 +395,10 @@ function deleteIfInvader(possibleInvaderParticle) {
     }
 }
 
-function particleCollisionWithParticle(particleA, particleB, penetration) {
+function particleCollisionWithParticle(particleA, particleB, collision) {
     print("particleCollisionWithParticle() a.id="+particleA.id + " b.id=" + particleB.id);
-    Vec3.print('particleCollisionWithParticle() penetration=', penetration);
+    Vec3.print('particleCollisionWithParticle() penetration=', collision.penetration);
+    Vec3.print('particleCollisionWithParticle() contactPoint=', collision.contactPoint);
     if (missileFired) {
         myMissile = Particles.identifyParticle(myMissile);
         if (myMissile.id == particleA.id) {
@@ -413,4 +417,3 @@ initializeInvaders();
 
 // shut down the game after 1 minute
 var gameTimer = Script.setTimeout(endGame, itemLifetimes * 1000);
-

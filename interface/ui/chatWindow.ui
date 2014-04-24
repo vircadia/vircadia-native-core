@@ -20,7 +20,7 @@
    <string notr="true">font-family: Helvetica, Arial, sans-serif;</string>
   </property>
   <property name="features">
-   <set>QDockWidget::NoDockWidgetFeatures</set>
+   <set>QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable</set>
   </property>
   <property name="allowedAreas">
    <set>Qt::NoDockWidgetArea</set>
@@ -80,7 +80,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="closeButton">
+       <widget class="QPushButton" name="togglePinnedButton">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
           <horstretch>0</horstretch>
@@ -100,8 +100,57 @@
          <string/>
         </property>
         <property name="icon">
-         <iconset resource="../resources/resources.qrc">
-          <normaloff>:/images/close.svg</normaloff>:/images/close.svg</iconset>
+         <iconset>
+          <normaloff>../resources/images/pin.svg</normaloff>
+          <normalon>../resources/images/pinned.svg</normalon>../resources/images/pin.svg</iconset>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+        <property name="default">
+         <bool>false</bool>
+        </property>
+        <property name="flat">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="closeButton">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>16</width>
+          <height>16</height>
+         </size>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: rgba( 0, 0, 0, 0% );
+	border: none;
+    image: url(../resources/images/close.svg)
+}
+
+
+QPushButton:pressed {
+    background-color: rgba( 0, 0, 0, 0% );
+	border: none;
+    image: url(../resources/images/close_down.svg)
+}</string>
+        </property>
+        <property name="text">
+         <string/>
         </property>
         <property name="flat">
          <bool>true</bool>
@@ -200,10 +249,24 @@
   <tabstop>messagePlainTextEdit</tabstop>
   <tabstop>messagesScrollArea</tabstop>
  </tabstops>
- <resources>
-  <include location="../resources/resources.qrc"/>
- </resources>
+ <resources/>
  <connections>
+  <connection>
+   <sender>togglePinnedButton</sender>
+   <signal>clicked()</signal>
+   <receiver>ChatWindow</receiver>
+   <slot>togglePinned()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>390</x>
+     <y>42</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>550</x>
+     <y>42</y>
+    </hint>
+   </hints>
+  </connection>
   <connection>
    <sender>closeButton</sender>
    <signal>clicked()</signal>

@@ -1,10 +1,12 @@
 //
 //  Particle.cpp
-//  hifi
+//  libraries/particles/src
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <QtCore/QObject>
@@ -144,7 +146,7 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
 
     bool success = packetData->appendValue(getID());
 
-    //printf("Particle::appendParticleData()... getID()=%d\n", getID());
+    //qDebug("Particle::appendParticleData()... getID()=%d", getID());
 
     if (success) {
         success = packetData->appendValue(getAge());
@@ -539,15 +541,15 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 }
 
 void Particle::debugDump() const {
-    printf("Particle id  :%u\n", _id);
-    printf(" age:%f\n", getAge());
-    printf(" edited ago:%f\n", getEditedAgo());
-    printf(" should die:%s\n", debug::valueOf(getShouldDie()));
-    printf(" position:%f,%f,%f\n", _position.x, _position.y, _position.z);
-    printf(" radius:%f\n", getRadius());
-    printf(" velocity:%f,%f,%f\n", _velocity.x, _velocity.y, _velocity.z);
-    printf(" gravity:%f,%f,%f\n", _gravity.x, _gravity.y, _gravity.z);
-    printf(" color:%d,%d,%d\n", _color[0], _color[1], _color[2]);
+    qDebug("Particle id  :%u", _id);
+    qDebug(" age:%f", getAge());
+    qDebug(" edited ago:%f", getEditedAgo());
+    qDebug(" should die:%s", debug::valueOf(getShouldDie()));
+    qDebug(" position:%f,%f,%f", _position.x, _position.y, _position.z);
+    qDebug(" radius:%f", getRadius());
+    qDebug(" velocity:%f,%f,%f", _velocity.x, _velocity.y, _velocity.z);
+    qDebug(" gravity:%f,%f,%f", _gravity.x, _gravity.y, _gravity.z);
+    qDebug(" color:%d,%d,%d", _color[0], _color[1], _color[2]);
 }
 
 bool Particle::encodeParticleEditMessageDetails(PacketType command, ParticleID id, const ParticleProperties& properties,
@@ -730,9 +732,9 @@ bool Particle::encodeParticleEditMessageDetails(PacketType command, ParticleID i
 
     bool wantDebugging = false;
     if (wantDebugging) {
-        printf("encodeParticleEditMessageDetails()....\n");
-        printf("Particle id  :%u\n", id.id);
-        printf(" nextID:%u\n", _nextID);
+        qDebug("encodeParticleEditMessageDetails()....");
+        qDebug("Particle id  :%u", id.id);
+        qDebug(" nextID:%u", _nextID);
     }
 
     // cleanup
@@ -842,7 +844,7 @@ void Particle::update(const quint64& now) {
         // handle damping
         glm::vec3 dampingResistance = _velocity * _damping;
         _velocity -= dampingResistance * timeElapsed;
-        //printf("applying damping to Particle timeElapsed=%f\n",timeElapsed);
+        //qDebug("applying damping to Particle timeElapsed=%f",timeElapsed);
     }
 }
 

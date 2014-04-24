@@ -1,9 +1,12 @@
 //
 //  Octree.cpp
-//  hifi
+//  libraries/octree/src
 //
 //  Created by Stephen Birarda on 3/13/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #ifdef _WIN32
@@ -17,18 +20,20 @@
 
 #include <QDebug>
 
-#include "CoverageMap.h"
 #include <GeometryUtil.h>
-#include "OctalCode.h"
+#include <OctalCode.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
+#include <Shape.h>
+#include <ShapeCollider.h>
 
 //#include "Tags.h"
 
-#include "ViewFrustum.h"
+#include "CoverageMap.h"
 #include "OctreeConstants.h"
 #include "OctreeElementBag.h"
 #include "Octree.h"
+#include "ViewFrustum.h"
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale) {
     return voxelSizeScale / powf(2, renderLevel);
@@ -468,8 +473,8 @@ void Octree::processRemoveOctreeElementsBitstream(const unsigned char* bitstream
         int codeLength = numberOfThreeBitSectionsInCode(voxelCode, maxSize);
 
         if (codeLength == OVERFLOWED_OCTCODE_BUFFER) {
-            printf("WARNING! Got remove voxel bitstream that would overflow buffer in numberOfThreeBitSectionsInCode(), ");
-            printf("bailing processing of packet!\n");
+            qDebug("WARNING! Got remove voxel bitstream that would overflow buffer in numberOfThreeBitSectionsInCode(),"
+                   " bailing processing of packet!");
             break;
         }
         int voxelDataSize = bytesRequiredForCodeLength(codeLength) + SIZE_OF_COLOR_DATA;
@@ -479,7 +484,7 @@ void Octree::processRemoveOctreeElementsBitstream(const unsigned char* bitstream
             voxelCode += voxelDataSize;
             atByte += voxelDataSize;
         } else {
-            printf("WARNING! Got remove voxel bitstream that would overflow buffer, bailing processing!\n");
+            qDebug("WARNING! Got remove voxel bitstream that would overflow buffer, bailing processing!");
             break;
         }
     }
@@ -673,6 +678,13 @@ public:
     bool found;
 };
 
+class ShapeArgs {
+public:
+    const Shape* shape;
+    CollisionList& collisions;
+    bool found;
+};
+
 bool findCapsulePenetrationOp(OctreeElement* node, void* extraData) {
     CapsuleArgs* args = static_cast<CapsuleArgs*>(extraData);
 
@@ -689,6 +701,27 @@ bool findCapsulePenetrationOp(OctreeElement* node, void* extraData) {
         if (box.findCapsulePenetration(args->start, args->end, args->radius, nodePenetration)) {
             args->penetration = addPenetrations(args->penetration, nodePenetration * (float)(TREE_SCALE));
             args->found = true;
+        }
+    }
+    return false;
+}
+
+bool findShapeCollisionsOp(OctreeElement* node, void* extraData) {
+    ShapeArgs* args = static_cast<ShapeArgs*>(extraData);
+
+    // coarse check against bounds
+    AABox cube = node->getAABox();
+    cube.scale(TREE_SCALE);
+    if (!cube.expandedContains(args->shape->getPosition(), args->shape->getBoundingRadius())) {
+        return false;
+    }
+    if (!node->isLeaf()) {
+        return true; // recurse on children
+    }
+    if (node->hasContent()) {
+        if (ShapeCollider::collideShapeWithAACube(args->shape, cube.calcCenter(), cube.getScale(), args->collisions)) {
+            args->found = true;
+            return true;
         }
     }
     return false;
@@ -717,6 +750,29 @@ bool Octree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end
     }
 
     recurseTreeWithOperation(findCapsulePenetrationOp, &args);
+    
+    if (gotLock) {
+        unlock();
+    }
+    return args.found;
+}
+
+bool Octree::findShapeCollisions(const Shape* shape, CollisionList& collisions, Octree::lockType lockType) {
+
+    ShapeArgs args = { shape, collisions, false };
+
+    bool gotLock = false;
+    if (lockType == Octree::Lock) {
+        lockForRead();
+        gotLock = true;
+    } else if (lockType == Octree::TryLock) {
+        gotLock = tryLockForRead();
+        if (!gotLock) {
+            return args.found; // if we wanted to tryLock, and we couldn't then just bail...
+        }
+    }
+
+    recurseTreeWithOperation(findShapeCollisionsOp, &args);
     
     if (gotLock) {
         unlock();
@@ -1401,7 +1457,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
     outputBits(childrenExistInPacketBits, false, true);
     printf(" childrenColored:");
     outputBits(childrenColoredBits, false, true);
-    printf("\n");
+    qDebug("");
     **/
 
     // if we were unable to fit this level in our packet, then rewind and add it to the node bag for
@@ -1617,7 +1673,7 @@ void Octree::copyFromTreeIntoSubTree(Octree* sourceTree, OctreeElement* destinat
 }
 
 void dumpSetContents(const char* name, std::set<unsigned char*> set) {
-    printf("set %s has %ld elements\n", name, set.size());
+    qDebug("set %s has %ld elements", name, set.size());
     /*
     for (std::set<unsigned char*>::iterator i = set.begin(); i != set.end(); ++i) {
         printOctalCode(*i);

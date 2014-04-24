@@ -1,13 +1,16 @@
 //
 //  VoxelTreeElement.h
-//  hifi
+//  libraries/voxels/src
 //
 //  Created by Stephen Birarda on 3/13/13.
+//  Copyright 2013 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__VoxelTreeElement__
-#define __hifi__VoxelTreeElement__
+#ifndef hifi_VoxelTreeElement_h
+#define hifi_VoxelTreeElement_h
 
 //#define HAS_AUDIT_CHILDREN
 //#define SIMPLE_CHILD_ARRAY
@@ -15,10 +18,10 @@
 
 #include <QReadWriteLock>
 
+#include <AABox.h>
 #include <OctreeElement.h>
 #include <SharedUtil.h>
 
-#include "AABox.h"
 #include "ViewFrustum.h"
 #include "VoxelConstants.h"
 
@@ -117,5 +120,4 @@ inline unsigned char VoxelTreeElement::getExteriorOcclusions() const {
     return _exteriorOcclusions; 
 }
 
-#endif /* defined(__hifi__VoxelTreeElement__) */
-
+#endif // hifi_VoxelTreeElement_h

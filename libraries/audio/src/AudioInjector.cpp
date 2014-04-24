@@ -1,9 +1,12 @@
 //
 //  AudioInjector.cpp
-//  hifi
+//  libraries/audio/src
 //
 //  Created by Stephen Birarda on 1/2/2014.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <QtCore/QDataStream>
@@ -68,8 +71,8 @@ void AudioInjector::injectAudio() {
         quint8 volume = MAX_INJECTOR_VOLUME * _options.getVolume();
         packetStream << volume;
         
-        timeval startTime = {};
-        gettimeofday(&startTime, NULL);
+        QElapsedTimer timer;
+        timer.start();
         int nextFrame = 0;
         
         int currentSendPosition = 0;
@@ -101,7 +104,7 @@ void AudioInjector::injectAudio() {
             if (currentSendPosition != bytesToCopy && currentSendPosition < soundByteArray.size()) {
                 // not the first packet and not done
                 // sleep for the appropriate time
-                int usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
+                int usecToSleep = (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - timer.nsecsElapsed() / 1000;
                 
                 if (usecToSleep > 0) {
                     usleep(usecToSleep);

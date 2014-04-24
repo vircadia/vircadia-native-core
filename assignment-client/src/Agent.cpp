@@ -1,15 +1,20 @@
 //
 //  Agent.cpp
-//  hifi
+//  assignment-client/src
 //
 //  Created by Stephen Birarda on 7/1/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QEventLoop>
+#include <QtCore/QStandardPaths>
 #include <QtCore/QTimer>
 #include <QtNetwork/QNetworkAccessManager>
+#include <QtNetwork/QNetworkDiskCache>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
@@ -17,6 +22,7 @@
 #include <AvatarData.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
+#include <ResourceCache.h>
 #include <UUID.h>
 #include <VoxelConstants.h>
 #include <ParticlesScriptingInterface.h>
@@ -27,7 +33,8 @@ Agent::Agent(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _voxelEditSender(),
     _particleEditSender(),
-    _receivedAudioBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO)
+    _receivedAudioBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO),
+    _avatarHashMap()
 {
     // be the parent of the script engine so it gets moved when we do
     _scriptEngine.setParent(this);
@@ -125,6 +132,16 @@ void Agent::readPendingDatagrams() {
                 // let this continue through to the NodeList so it updates last heard timestamp
                 // for the sending audio mixer
                 NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
+            } else if (datagramPacketType == PacketTypeBulkAvatarData
+                       || datagramPacketType == PacketTypeAvatarIdentity
+                       || datagramPacketType == PacketTypeAvatarBillboard
+                       || datagramPacketType == PacketTypeKillAvatar) {
+                // let the avatar hash map process it
+                _avatarHashMap.processAvatarMixerDatagram(receivedPacket, nodeList->sendingNodeForPacket(receivedPacket));
+                
+                // let this continue through to the NodeList so it updates last heard timestamp
+                // for the sending avatar-mixer
+                NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
             } else {
                 NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
             }
@@ -145,22 +162,32 @@ void Agent::run() {
                                                  << NodeType::ParticleServer);
     
     // figure out the URL for the script for this agent assignment
-    QString scriptURLString("http://%1:8080/assignment/%2");
-    scriptURLString = scriptURLString.arg(NodeList::getInstance()->getDomainInfo().getIP().toString(),
-                                          uuidStringWithoutCurlyBraces(_uuid));
-    
+    QUrl scriptURL;
+    if (_payload.isEmpty())  {
+        scriptURL = QUrl(QString("http://%1:8080/assignment/%2")
+            .arg(NodeList::getInstance()->getDomainHandler().getIP().toString(),
+                 uuidStringWithoutCurlyBraces(_uuid)));
+    } else {
+        scriptURL = QUrl(_payload);
+    }
+   
     QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
-    QNetworkReply *reply = networkManager->get(QNetworkRequest(QUrl(scriptURLString)));
+    QNetworkReply *reply = networkManager->get(QNetworkRequest(scriptURL));
+    QNetworkDiskCache* cache = new QNetworkDiskCache(networkManager);
+    QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+    cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "agentCache");
+    networkManager->setCache(cache);
     
-    qDebug() << "Downloading script at" << scriptURLString;
+    qDebug() << "Downloading script at" << scriptURL.toString();
     
     QEventLoop loop;
     QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
     
     loop.exec();
     
-    // let the AvatarData class use our QNetworkAcessManager
+    // let the AvatarData and ResourceCache classes use our QNetworkAccessManager
     AvatarData::setNetworkAccessManager(networkManager);
+    ResourceCache::setNetworkAccessManager(networkManager);
     
     QString scriptContents(reply->readAll());
     
@@ -175,6 +202,7 @@ void Agent::run() {
     
     // give this AvatarData object to the script engine
     _scriptEngine.setAvatarData(&scriptedAvatar, "Avatar");
+    _scriptEngine.setAvatarHashMap(&_avatarHashMap, "AvatarList");
     
     // register ourselves to the script engine
     _scriptEngine.registerGlobalObject("Agent", this);

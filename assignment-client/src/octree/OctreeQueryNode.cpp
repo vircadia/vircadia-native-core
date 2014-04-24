@@ -1,9 +1,12 @@
 //
 //  OctreeQueryNode.cpp
-//  hifi
+//  assignment-client/src/octree
 //
 //  Created by Stephen Birarda on 3/21/13.
+//  Copyright 2013 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include "PacketHeaders.h"
@@ -44,41 +47,54 @@ OctreeQueryNode::OctreeQueryNode() :
 
 OctreeQueryNode::~OctreeQueryNode() {
     _isShuttingDown = true;
-    const bool extraDebugging = false;
-    if (extraDebugging) {
-        qDebug() << "OctreeQueryNode::~OctreeQueryNode()";
-    }
     if (_octreeSendThread) {
-        if (extraDebugging) {
-            qDebug() << "OctreeQueryNode::~OctreeQueryNode()... calling _octreeSendThread->terminate()";
-        }
-        _octreeSendThread->terminate();
-        if (extraDebugging) {
-            qDebug() << "OctreeQueryNode::~OctreeQueryNode()... calling delete _octreeSendThread";
-        }
-        delete _octreeSendThread;
+        forceNodeShutdown();
     }
-
+    
     delete[] _octreePacket;
     delete[] _lastOctreePacket;
-    if (extraDebugging) {
-        qDebug() << "OctreeQueryNode::~OctreeQueryNode()... DONE...";
-    }
 }
 
-
-void OctreeQueryNode::deleteLater() {
+void OctreeQueryNode::nodeKilled() {
     _isShuttingDown = true;
+    nodeBag.unhookNotifications(); // if our node is shutting down, then we no longer need octree element notifications
     if (_octreeSendThread) {
+        // just tell our thread we want to shutdown, this is asynchronous, and fast, we don't need or want it to block
+        // while the thread actually shuts down
         _octreeSendThread->setIsShuttingDown();
     }
-    OctreeQuery::deleteLater();
 }
 
+void OctreeQueryNode::forceNodeShutdown() {
+    _isShuttingDown = true;
+    nodeBag.unhookNotifications(); // if our node is shutting down, then we no longer need octree element notifications
+    if (_octreeSendThread) {
+        // we really need to force our thread to shutdown, this is synchronous, we will block while the thread actually 
+        // shuts down because we really need it to shutdown, and it's ok if we wait for it to complete
+        OctreeSendThread* sendThread = _octreeSendThread;
+        _octreeSendThread = NULL;
+        sendThread->setIsShuttingDown();
+        sendThread->terminate();
+        delete sendThread;
+    }
+}
 
-void OctreeQueryNode::initializeOctreeSendThread(OctreeServer* octreeServer, SharedNodePointer node) {
-    // Create octree sending thread...
-    _octreeSendThread = new OctreeSendThread(octreeServer, node);
+void OctreeQueryNode::sendThreadFinished() {
+    // We've been notified by our thread that it is shutting down. So we can clean up our reference to it, and
+    // delete the actual thread object. Cleaning up our thread will correctly unroll all refereces to shared
+    // pointers to our node as well as the octree server assignment
+    if (_octreeSendThread) {
+        OctreeSendThread* sendThread = _octreeSendThread;
+        _octreeSendThread = NULL;
+        delete sendThread;
+    }
+}
+
+void OctreeQueryNode::initializeOctreeSendThread(const SharedAssignmentPointer& myAssignment, const SharedNodePointer& node) {
+    _octreeSendThread = new OctreeSendThread(myAssignment, node);
+    
+    // we want to be notified when the thread finishes
+    connect(_octreeSendThread, &GenericThread::finished, this, &OctreeQueryNode::sendThreadFinished);
     _octreeSendThread->initialize(true);
 }
 

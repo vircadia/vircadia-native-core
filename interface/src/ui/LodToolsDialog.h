@@ -1,17 +1,23 @@
 //
 //  LodToolsDialog.h
-//  interface
+//  interface/src/ui
 //
 //  Created by Brad Hefta-Gaub on 7/19/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__LodToolsDialog__
-#define __hifi__LodToolsDialog__
+#ifndef hifi_LodToolsDialog_h
+#define hifi_LodToolsDialog_h
 
 #include <QDialog>
 #include <QLabel>
 #include <QSlider>
+
+class QCheckBox;
+class QDoubleSpinBox;
 
 class LodToolsDialog : public QDialog {
     Q_OBJECT
@@ -29,6 +35,8 @@ public slots:
     void boundaryLevelValueChanged(int value);
     void resetClicked(bool checked);
     void reloadSliders();
+    void updateAvatarLODControls();
+    void updateAvatarLODValues();
 
 protected:
 
@@ -38,8 +46,11 @@ protected:
 private:
     QSlider* _lodSize;
     QSlider* _boundaryLevelAdjust;
+    QCheckBox* _automaticAvatarLOD;
+    QDoubleSpinBox* _avatarLODDecreaseFPS;
+    QDoubleSpinBox* _avatarLODIncreaseFPS;
+    QDoubleSpinBox* _avatarLOD;
     QLabel* _feedback;
 };
 
-#endif /* defined(__interface__LodToolsDialog__) */
-
+#endif // hifi_LodToolsDialog_h

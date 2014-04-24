@@ -1,18 +1,18 @@
 //
 //  BandwidthMeter.h
-//  interface
+//  interface/src/ui
 //
 //  Created by Tobias Schwinger on 6/20/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__BandwidthMeter__
-#define __interface__BandwidthMeter__
+#ifndef hifi_BandwidthMeter_h
+#define hifi_BandwidthMeter_h
 
-#ifdef _WIN32
-#define WANT_TIMEVAL
-#include <Systime.h>
-#endif
+#include <QElapsedTimer>
 
 #include <glm/glm.hpp>
 
@@ -30,11 +30,11 @@ public:
     bool isWithinArea(int x, int y, int screenWidth, int screenHeight);
 
     // Number of channels / streams.
-    static size_t const N_CHANNELS = 3;
+    static size_t const N_CHANNELS = 4;
     static size_t const N_STREAMS = N_CHANNELS * 2;
 
     // Channel usage.
-    enum ChannelIndex { AUDIO, AVATARS, VOXELS };
+    enum ChannelIndex { AUDIO, AVATARS, VOXELS, METAVOXELS };
 
     // Meta information held for a communication channel (bidirectional).
     struct ChannelInfo {
@@ -57,7 +57,7 @@ public:
     private:
         double  _value;                 // Current value.
         double  _msToAverage;           // Milliseconds to average.
-        timeval _prevTime;              // Time of last feed.
+        QElapsedTimer _prevTime;              // Time of last feed.
     };
 
     // Data model accessors
@@ -84,5 +84,4 @@ private:
     int _scaleMaxIndex;
 };
 
-#endif /* defined(__interface__BandwidthMeter__) */
-
+#endif // hifi_BandwidthMeter_h

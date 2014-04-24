@@ -1,9 +1,12 @@
 //
-//  Sixense.cpp
-//  interface
+//  SixenseManager.cpp
+//  interface/src/devices
 //
 //  Created by Andrzej Kapolka on 11/15/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <vector>
@@ -93,7 +96,7 @@ void SixenseManager::update(float deltaTime) {
             hand->getPalms().push_back(newPalm);
             palm = &(hand->getPalms()[hand->getNumPalms() - 1]);
             palm->setSixenseID(data->controller_index);
-            printf("Found new Sixense controller, ID %i\n", data->controller_index);
+            qDebug("Found new Sixense controller, ID %i", data->controller_index);
         }
         
         palm->setActive(true);

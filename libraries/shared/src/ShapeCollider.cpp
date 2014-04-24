@@ -1,15 +1,19 @@
 //
 //  ShapeCollider.cpp
-//  hifi
+//  libraries/shared/src
 //
-//  Created by Andrew Meadows on 2014.02.20
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Created by Andrew Meadows on 02/20/2014.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <iostream>
 
 #include <glm/gtx/norm.hpp>
 
+#include "GeometryUtil.h"
 #include "ShapeCollider.h"
 
 // NOTE:
@@ -19,7 +23,7 @@
 
 namespace ShapeCollider {
 
-bool shapeShape(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
+bool collideShapes(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
     // ATM we only have two shape types so we just check every case.
     // TODO: make a fast lookup for correct method
     int typeA = shapeA->getType();
@@ -30,6 +34,8 @@ bool shapeShape(const Shape* shapeA, const Shape* shapeB, CollisionList& collisi
             return sphereSphere(sphereA, static_cast<const SphereShape*>(shapeB), collisions);
         } else if (typeB == Shape::CAPSULE_SHAPE) {
             return sphereCapsule(sphereA, static_cast<const CapsuleShape*>(shapeB), collisions);
+        } else if (typeB == Shape::PLANE_SHAPE) {
+            return spherePlane(sphereA, static_cast<const PlaneShape*>(shapeB), collisions);
         }
     } else if (typeA == Shape::CAPSULE_SHAPE) {
         const CapsuleShape* capsuleA = static_cast<const CapsuleShape*>(shapeA);
@@ -37,6 +43,17 @@ bool shapeShape(const Shape* shapeA, const Shape* shapeB, CollisionList& collisi
             return capsuleSphere(capsuleA, static_cast<const SphereShape*>(shapeB), collisions);
         } else if (typeB == Shape::CAPSULE_SHAPE) {
             return capsuleCapsule(capsuleA, static_cast<const CapsuleShape*>(shapeB), collisions);
+        } else if (typeB == Shape::PLANE_SHAPE) {
+            return capsulePlane(capsuleA, static_cast<const PlaneShape*>(shapeB), collisions);
+        }
+    } else if (typeA == Shape::PLANE_SHAPE) {
+        const PlaneShape* planeA = static_cast<const PlaneShape*>(shapeA);
+        if (typeB == Shape::SPHERE_SHAPE) {
+            return planeSphere(planeA, static_cast<const SphereShape*>(shapeB), collisions);
+        } else if (typeB == Shape::CAPSULE_SHAPE) {
+            return planeCapsule(planeA, static_cast<const CapsuleShape*>(shapeB), collisions);
+        } else if (typeB == Shape::PLANE_SHAPE) {
+            return planePlane(planeA, static_cast<const PlaneShape*>(shapeB), collisions);
         }
     } else if (typeA == Shape::LIST_SHAPE) {
         const ListShape* listA = static_cast<const ListShape*>(shapeA);
@@ -44,7 +61,56 @@ bool shapeShape(const Shape* shapeA, const Shape* shapeB, CollisionList& collisi
             return listSphere(listA, static_cast<const SphereShape*>(shapeB), collisions);
         } else if (typeB == Shape::CAPSULE_SHAPE) {
             return listCapsule(listA, static_cast<const CapsuleShape*>(shapeB), collisions);
+        } else if (typeB == Shape::PLANE_SHAPE) {
+            return listPlane(listA, static_cast<const PlaneShape*>(shapeB), collisions);
         }
+    }
+    return false;
+}
+
+static CollisionList tempCollisions(32);
+
+bool collideShapesCoarse(const QVector<const Shape*>& shapesA, const QVector<const Shape*>& shapesB, CollisionInfo& collision) {
+    tempCollisions.clear();
+    foreach (const Shape* shapeA, shapesA) {
+        foreach (const Shape* shapeB, shapesB) {
+            ShapeCollider::collideShapes(shapeA, shapeB, tempCollisions);
+        }
+    }
+    if (tempCollisions.size() > 0) {
+        glm::vec3 totalPenetration(0.0f);
+        glm::vec3 averageContactPoint(0.0f);
+        for (int j = 0; j < tempCollisions.size(); ++j) {
+            CollisionInfo* c = tempCollisions.getCollision(j);
+            totalPenetration = addPenetrations(totalPenetration, c->_penetration);
+            averageContactPoint += c->_contactPoint;
+        }
+        collision._penetration = totalPenetration;
+        collision._contactPoint = averageContactPoint / (float)(tempCollisions.size());
+        return true;
+    }
+    return false;
+}
+
+bool collideShapeWithAACube(const Shape* shapeA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions) {
+    int typeA = shapeA->getType();
+    if (typeA == Shape::SPHERE_SHAPE) {
+        return sphereAACube(static_cast<const SphereShape*>(shapeA), cubeCenter, cubeSide, collisions);
+    } else if (typeA == Shape::CAPSULE_SHAPE) {
+        return capsuleAACube(static_cast<const CapsuleShape*>(shapeA), cubeCenter, cubeSide, collisions);
+    } else if (typeA == Shape::LIST_SHAPE) {
+        const ListShape* listA = static_cast<const ListShape*>(shapeA);
+        bool touching = false;
+        for (int i = 0; i < listA->size() && !collisions.isFull(); ++i) {
+            const Shape* subShape = listA->getSubShape(i);
+            int subType = subShape->getType();
+            if (subType == Shape::SPHERE_SHAPE) {
+                touching = sphereAACube(static_cast<const SphereShape*>(subShape), cubeCenter, cubeSide, collisions) || touching;
+            } else if (subType == Shape::CAPSULE_SHAPE) {
+                touching = capsuleAACube(static_cast<const CapsuleShape*>(subShape), cubeCenter, cubeSide, collisions) || touching;
+            }
+        }
+        return touching;
     }
     return false;
 }
@@ -58,7 +124,7 @@ bool sphereSphere(const SphereShape* sphereA, const SphereShape* sphereB, Collis
         float distance = sqrtf(distanceSquared);
         if (distance < EPSILON) {
             // the spheres are on top of each other, so we pick an arbitrary penetration direction
-            BA = glm::vec3(0.f, 1.f, 0.f);
+            BA = glm::vec3(0.0f, 1.0f, 0.0f);
             distance = totalRadius;
         } else {
             BA /= distance;
@@ -93,7 +159,7 @@ bool sphereCapsule(const SphereShape* sphereA, const CapsuleShape* capsuleB, Col
         }
         if (absAxialDistance > capsuleB->getHalfHeight()) {
             // sphere hits capsule on a cap --> recompute radialAxis to point from spherA to cap center
-            float sign = (axialDistance > 0.f) ? 1.f : -1.f;
+            float sign = (axialDistance > 0.0f) ? 1.0f : -1.0f;
             radialAxis = BA + (sign * capsuleB->getHalfHeight()) * capsuleAxis;
             radialDistance2 = glm::length2(radialAxis);
             if (radialDistance2 > totalRadius2) {
@@ -125,16 +191,30 @@ bool sphereCapsule(const SphereShape* sphereA, const CapsuleShape* capsuleB, Col
                 return false;
             }
             // ... but still defined for the cap case
-            if (axialDistance < 0.f) {
+            if (axialDistance < 0.0f) {
                 // we're hitting the start cap, so we negate the capsuleAxis
                 capsuleAxis *= -1;
             }
             // penetration points from A into B
-            float sign = (axialDistance > 0.f) ? -1.f : 1.f;
+            float sign = (axialDistance > 0.0f) ? -1.0f : 1.0f;
             collision->_penetration = (sign * (totalRadius + capsuleB->getHalfHeight() - absAxialDistance)) * capsuleAxis;
             // contactPoint is on surface of sphereA
             collision->_contactPoint = sphereA->getPosition() + (sign * sphereA->getRadius()) * capsuleAxis;
         }
+        return true;
+    }
+    return false;
+}
+
+bool spherePlane(const SphereShape* sphereA, const PlaneShape* planeB, CollisionList& collisions) {
+    glm::vec3 penetration;
+    if (findSpherePlanePenetration(sphereA->getPosition(), sphereA->getRadius(), planeB->getCoefficients(), penetration)) {
+        CollisionInfo* collision = collisions.getNewCollision();
+        if (!collision) {
+            return false; // collision list is full
+        }
+        collision->_penetration = penetration;
+        collision->_contactPoint = sphereA->getPosition() + sphereA->getRadius() * glm::normalize(penetration);
         return true;
     }
     return false;
@@ -163,7 +243,7 @@ bool capsuleSphere(const CapsuleShape* capsuleA, const SphereShape* sphereB, Col
         if (absAxialDistance > capsuleA->getHalfHeight()) {
             // sphere hits capsule on a cap 
             // --> recompute radialAxis and closestApproach
-            float sign = (axialDistance > 0.f) ? 1.f : -1.f;
+            float sign = (axialDistance > 0.0f) ? 1.0f : -1.0f;
             closestApproach = capsuleA->getPosition() + (sign * capsuleA->getHalfHeight()) * capsuleAxis;
             radialAxis = closestApproach - sphereB->getPosition();
             radialDistance2 = glm::length2(radialAxis);
@@ -196,11 +276,11 @@ bool capsuleSphere(const CapsuleShape* capsuleA, const SphereShape* sphereB, Col
                     return false;
                 }
                 // ... but still defined for the cap case
-                if (axialDistance < 0.f) {
+                if (axialDistance < 0.0f) {
                     // we're hitting the start cap, so we negate the capsuleAxis
                     capsuleAxis *= -1;
                 }
-                float sign = (axialDistance > 0.f) ? 1.f : -1.f;
+                float sign = (axialDistance > 0.0f) ? 1.0f : -1.0f;
                 collision->_penetration = (sign * (totalRadius + capsuleA->getHalfHeight() - absAxialDistance)) * capsuleAxis;
                 // contactPoint is on surface of sphereA
                 collision->_contactPoint = closestApproach + (sign * capsuleA->getRadius()) * capsuleAxis;
@@ -223,7 +303,7 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
     // d = [(B - A) . (a - (a.b)b)] / (1 - (a.b)^2)
 
     float aDotB = glm::dot(axisA, axisB);
-    float denominator = 1.f - aDotB * aDotB;
+    float denominator = 1.0f - aDotB * aDotB;
     float totalRadius = capsuleA->getRadius() + capsuleB->getRadius();
     if (denominator > EPSILON) {
         // distances to points of closest approach
@@ -233,12 +313,12 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
         // clamp the distances to the ends of the capsule line segments
         float absDistanceA = fabs(distanceA);
         if (absDistanceA > capsuleA->getHalfHeight() + capsuleA->getRadius()) {
-            float signA = distanceA < 0.f ? -1.f : 1.f;
+            float signA = distanceA < 0.0f ? -1.0f : 1.0f;
             distanceA = signA * capsuleA->getHalfHeight();
         }
         float absDistanceB = fabs(distanceB);
         if (absDistanceB > capsuleB->getHalfHeight() + capsuleB->getRadius()) {
-            float signB = distanceB < 0.f ? -1.f : 1.f;
+            float signB = distanceB < 0.0f ? -1.0f : 1.0f;
             distanceB = signB * capsuleB->getHalfHeight();
         }
 
@@ -265,7 +345,7 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
                 {
                     // the capsule centers are on top of each other!
                     // give up on a valid penetration direction and just use the yAxis
-                    BA = glm::vec3(0.f, 1.f, 0.f);
+                    BA = glm::vec3(0.0f, 1.0f, 0.0f);
                     distance = glm::max(capsuleB->getRadius(), capsuleA->getRadius());
                 }
             } else {
@@ -297,7 +377,7 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
             float distance = sqrtf(distanceSquared);
             if (distance < EPSILON) {
                 // the spheres are on top of each other, so we pick an arbitrary penetration direction
-                BA = glm::vec3(0.f, 1.f, 0.f);
+                BA = glm::vec3(0.0f, 1.0f, 0.0f);
             } else {
                 BA /= distance;
             }
@@ -346,6 +426,63 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
     return false;
 }
 
+bool capsulePlane(const CapsuleShape* capsuleA, const PlaneShape* planeB, CollisionList& collisions) {
+    glm::vec3 start, end, penetration;
+    capsuleA->getStartPoint(start);
+    capsuleA->getEndPoint(end);
+    glm::vec4 plane = planeB->getCoefficients();
+    if (findCapsulePlanePenetration(start, end, capsuleA->getRadius(), plane, penetration)) {
+        CollisionInfo* collision = collisions.getNewCollision();
+        if (!collision) {
+            return false; // collision list is full
+        }
+        collision->_penetration = penetration;
+        glm::vec3 deepestEnd = (glm::dot(start, glm::vec3(plane)) < glm::dot(end, glm::vec3(plane))) ? start : end;
+        collision->_contactPoint = deepestEnd + capsuleA->getRadius() * glm::normalize(penetration);
+        return true;
+    }
+    return false;
+}
+
+bool planeSphere(const PlaneShape* planeA, const SphereShape* sphereB, CollisionList& collisions) {
+    glm::vec3 penetration;
+    if (findSpherePlanePenetration(sphereB->getPosition(), sphereB->getRadius(), planeA->getCoefficients(), penetration)) {
+        CollisionInfo* collision = collisions.getNewCollision();
+        if (!collision) {
+            return false; // collision list is full
+        }
+        collision->_penetration = -penetration;
+        collision->_contactPoint = sphereB->getPosition() +
+            (sphereB->getRadius() / glm::length(penetration) - 1.0f) * penetration;
+        return true;
+    }
+    return false;
+}
+
+bool planeCapsule(const PlaneShape* planeA, const CapsuleShape* capsuleB, CollisionList& collisions) {
+    glm::vec3 start, end, penetration;
+    capsuleB->getStartPoint(start);
+    capsuleB->getEndPoint(end);
+    glm::vec4 plane = planeA->getCoefficients();
+    if (findCapsulePlanePenetration(start, end, capsuleB->getRadius(), plane, penetration)) {
+        CollisionInfo* collision = collisions.getNewCollision();
+        if (!collision) {
+            return false; // collision list is full
+        }
+        collision->_penetration = -penetration;
+        glm::vec3 deepestEnd = (glm::dot(start, glm::vec3(plane)) < glm::dot(end, glm::vec3(plane))) ? start : end;
+        collision->_contactPoint = deepestEnd + (capsuleB->getRadius() / glm::length(penetration) - 1.0f) * penetration;
+        return true;
+    }
+    return false;
+}
+
+bool planePlane(const PlaneShape* planeA, const PlaneShape* planeB, CollisionList& collisions) {
+    // technically, planes always collide unless they're parallel and not coincident; however, that's
+    // not going to give us any useful information
+    return false;
+}
+
 bool sphereList(const SphereShape* sphereA, const ListShape* listB, CollisionList& collisions) {
     bool touching = false;
     for (int i = 0; i < listB->size() && !collisions.isFull(); ++i) {
@@ -355,6 +492,8 @@ bool sphereList(const SphereShape* sphereA, const ListShape* listB, CollisionLis
             touching = sphereSphere(sphereA, static_cast<const SphereShape*>(subShape), collisions) || touching;
         } else if (subType == Shape::CAPSULE_SHAPE) {
             touching = sphereCapsule(sphereA, static_cast<const CapsuleShape*>(subShape), collisions) || touching;
+        } else if (subType == Shape::PLANE_SHAPE) {
+            touching = spherePlane(sphereA, static_cast<const PlaneShape*>(subShape), collisions) || touching;
         }
     }
     return touching;
@@ -369,6 +508,24 @@ bool capsuleList(const CapsuleShape* capsuleA, const ListShape* listB, Collision
             touching = capsuleSphere(capsuleA, static_cast<const SphereShape*>(subShape), collisions) || touching;
         } else if (subType == Shape::CAPSULE_SHAPE) {
             touching = capsuleCapsule(capsuleA, static_cast<const CapsuleShape*>(subShape), collisions) || touching;
+        } else if (subType == Shape::PLANE_SHAPE) {
+            touching = capsulePlane(capsuleA, static_cast<const PlaneShape*>(subShape), collisions) || touching;
+        }
+    }
+    return touching;
+}
+
+bool planeList(const PlaneShape* planeA, const ListShape* listB, CollisionList& collisions) {
+    bool touching = false;
+    for (int i = 0; i < listB->size() && !collisions.isFull(); ++i) {
+        const Shape* subShape = listB->getSubShape(i);
+        int subType = subShape->getType();
+        if (subType == Shape::SPHERE_SHAPE) {
+            touching = planeSphere(planeA, static_cast<const SphereShape*>(subShape), collisions) || touching;
+        } else if (subType == Shape::CAPSULE_SHAPE) {
+            touching = planeCapsule(planeA, static_cast<const CapsuleShape*>(subShape), collisions) || touching;
+        } else if (subType == Shape::PLANE_SHAPE) {
+            touching = planePlane(planeA, static_cast<const PlaneShape*>(subShape), collisions) || touching;
         }
     }
     return touching;
@@ -383,6 +540,8 @@ bool listSphere(const ListShape* listA, const SphereShape* sphereB, CollisionLis
             touching = sphereSphere(static_cast<const SphereShape*>(subShape), sphereB, collisions) || touching;
         } else if (subType == Shape::CAPSULE_SHAPE) {
             touching = capsuleSphere(static_cast<const CapsuleShape*>(subShape), sphereB, collisions) || touching;
+        } else if (subType == Shape::PLANE_SHAPE) {
+            touching = planeSphere(static_cast<const PlaneShape*>(subShape), sphereB, collisions) || touching;
         }
     }
     return touching;
@@ -397,6 +556,24 @@ bool listCapsule(const ListShape* listA, const CapsuleShape* capsuleB, Collision
             touching = sphereCapsule(static_cast<const SphereShape*>(subShape), capsuleB, collisions) || touching;
         } else if (subType == Shape::CAPSULE_SHAPE) {
             touching = capsuleCapsule(static_cast<const CapsuleShape*>(subShape), capsuleB, collisions) || touching;
+        } else if (subType == Shape::PLANE_SHAPE) {
+            touching = planeCapsule(static_cast<const PlaneShape*>(subShape), capsuleB, collisions) || touching;
+        }
+    }
+    return touching;
+}
+
+bool listPlane(const ListShape* listA, const PlaneShape* planeB, CollisionList& collisions) {
+    bool touching = false;
+    for (int i = 0; i < listA->size() && !collisions.isFull(); ++i) {
+        const Shape* subShape = listA->getSubShape(i);
+        int subType = subShape->getType();
+        if (subType == Shape::SPHERE_SHAPE) {
+            touching = spherePlane(static_cast<const SphereShape*>(subShape), planeB, collisions) || touching;
+        } else if (subType == Shape::CAPSULE_SHAPE) {
+            touching = capsulePlane(static_cast<const CapsuleShape*>(subShape), planeB, collisions) || touching;
+        } else if (subType == Shape::PLANE_SHAPE) {
+            touching = planePlane(static_cast<const PlaneShape*>(subShape), planeB, collisions) || touching;
         }
     }
     return touching;
@@ -407,10 +584,109 @@ bool listList(const ListShape* listA, const ListShape* listB, CollisionList& col
     for (int i = 0; i < listA->size() && !collisions.isFull(); ++i) {
         const Shape* subShape = listA->getSubShape(i);
         for (int j = 0; j < listB->size() && !collisions.isFull(); ++j) {
-            touching = shapeShape(subShape, listB->getSubShape(j), collisions) || touching;
+            touching = collideShapes(subShape, listB->getSubShape(j), collisions) || touching;
         }
     }
     return touching;
 }
+
+// helper function
+bool sphereAACube(const glm::vec3& sphereCenter, float sphereRadius, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions) {
+    glm::vec3 BA = cubeCenter - sphereCenter;
+    float distance = glm::length(BA);
+    if (distance > EPSILON) {
+        BA /= distance; // BA is now normalized
+        // compute the nearest point on sphere
+        glm::vec3 surfaceA = sphereCenter + sphereRadius * BA;
+        // compute the nearest point on cube
+        float maxBA = glm::max(glm::max(fabs(BA.x), fabs(BA.y)), fabs(BA.z));
+        glm::vec3 surfaceB = cubeCenter - (0.5f * cubeSide / maxBA) * BA;
+        // collision happens when "vector to surfaceA from surfaceB" dots with BA to produce a positive value
+        glm::vec3 surfaceAB = surfaceA - surfaceB;
+        if (glm::dot(surfaceAB, BA) > 0.f) {
+            CollisionInfo* collision = collisions.getNewCollision();
+            if (collision) {
+                /* KEEP THIS CODE -- this is how to collide the cube with stark face normals (no rounding).
+                 * We might want to use this code later for sealing boundaries between adjacent voxels.
+                // penetration is parallel to box side direction
+                BA /= maxBA;
+                glm::vec3 direction;
+                glm::modf(BA, direction);
+                direction = glm::normalize(direction); 
+                */
+
+                // For rounded normals at edges and corners:
+                // At this point imagine that sphereCenter touches a "normalized" cube with rounded edges.
+                // This cube has a sidelength of 2 and its smoothing radius is sphereRadius/maxBA.
+                // We're going to try to compute the "negative normal" (and hence direction of penetration) 
+                // of this surface.
+
+                float radius = sphereRadius / (distance * maxBA);   // normalized radius
+                float shortLength = maxBA - radius;
+                glm::vec3 direction = BA;
+                if (shortLength > 0.0f) {
+                    direction = glm::abs(BA) - glm::vec3(shortLength);
+                    // Set any negative components to zero, and adopt the sign of the original BA component.  
+                    // Unfortunately there isn't an easy way to make this fast.
+                    if (direction.x < 0.0f) {
+                        direction.x = 0.f;
+                    } else if (BA.x < 0.f) {
+                        direction.x = -direction.x;
+                    }
+                    if (direction.y < 0.0f) {
+                        direction.y = 0.f;
+                    } else if (BA.y < 0.f) {
+                        direction.y = -direction.y;
+                    }
+                    if (direction.z < 0.0f) {
+                        direction.z = 0.f;
+                    } else if (BA.z < 0.f) {
+                        direction.z = -direction.z;
+                    }
+                }
+                direction = glm::normalize(direction); 
+
+                // penetration is the projection of surfaceAB on direction
+                collision->_penetration = glm::dot(surfaceAB, direction) * direction;
+                // contactPoint is on surface of A
+                collision->_contactPoint = sphereCenter - sphereRadius * direction;
+                return true;
+            }
+        }
+    } else if (sphereRadius + 0.5f * cubeSide > distance) {
+        // NOTE: for cocentric approximation we collide sphere and cube as two spheres which means 
+        // this algorithm will probably be wrong when both sphere and cube are very small (both ~EPSILON)
+        CollisionInfo* collision = collisions.getNewCollision();
+        if (collision) {
+            // the penetration and contactPoint are undefined, so we pick a penetration direction (-yAxis)
+            collision->_penetration = (sphereRadius + 0.5f * cubeSide) * glm::vec3(0.0f, -1.0f, 0.0f);
+            // contactPoint is on surface of A
+            collision->_contactPoint = sphereCenter + collision->_penetration;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool sphereAACube(const SphereShape* sphereA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions) {
+    return sphereAACube(sphereA->getPosition(), sphereA->getRadius(), cubeCenter, cubeSide, collisions);
+}
+
+bool capsuleAACube(const CapsuleShape* capsuleA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions) {
+    // find nerest approach of capsule line segment to cube
+    glm::vec3 capsuleAxis;
+    capsuleA->computeNormalizedAxis(capsuleAxis);
+    float offset = glm::dot(cubeCenter - capsuleA->getPosition(), capsuleAxis);
+    float halfHeight = capsuleA->getHalfHeight();
+    if (offset > halfHeight) {
+        offset = halfHeight;
+    } else if (offset < -halfHeight) {
+        offset = -halfHeight;
+    }
+    glm::vec3 nearestApproach = capsuleA->getPosition() + offset * capsuleAxis;
+    // collide nearest approach like a sphere at that point
+    return sphereAACube(nearestApproach, capsuleA->getRadius(), cubeCenter, cubeSide, collisions);
+}
+
 
 }   // namespace ShapeCollider

@@ -1,34 +1,37 @@
 //
 //  OctreeQueryNode.h
-//  hifi
+//  assignment-client/src/octree
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
+//  Copyright 2013 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__OctreeQueryNode__
-#define __hifi__OctreeQueryNode__
+#ifndef hifi_OctreeQueryNode_h
+#define hifi_OctreeQueryNode_h
 
 #include <iostream>
-#include <NodeData.h>
-#include <OctreePacketData.h>
-#include <OctreeQuery.h>
+
 
 #include <CoverageMap.h>
+#include <NodeData.h>
 #include <OctreeConstants.h>
 #include <OctreeElementBag.h>
+#include <OctreePacketData.h>
+#include <OctreeQuery.h>
 #include <OctreeSceneStats.h>
+#include <ThreadedAssignment.h> // for SharedAssignmentPointer
 
 class OctreeSendThread;
-class OctreeServer;
 
 class OctreeQueryNode : public OctreeQuery {
     Q_OBJECT
 public:
     OctreeQueryNode();
     virtual ~OctreeQueryNode();
-    virtual void deleteLater();
-    
+
     void init(); // called after creation to set up some virtual items
     virtual PacketType getMyPacketType() const = 0;
 
@@ -83,7 +86,7 @@ public:
     
     OctreeSceneStats stats;
     
-    void initializeOctreeSendThread(OctreeServer* octreeServer, SharedNodePointer node);
+    void initializeOctreeSendThread(const SharedAssignmentPointer& myAssignment, const SharedNodePointer& node);
     bool isOctreeSendThreadInitalized() { return _octreeSendThread; }
     
     void dumpOutOfView();
@@ -93,7 +96,12 @@ public:
     unsigned int getlastOctreePacketLength() const { return _lastOctreePacketLength; }
     int getDuplicatePacketCount() const { return _duplicatePacketCount; }
     
+    void nodeKilled();
+    void forceNodeShutdown();
     bool isShuttingDown() const { return _isShuttingDown; }
+    
+private slots:
+    void sendThreadFinished();
     
 private:
     OctreeQueryNode(const OctreeQueryNode &);
@@ -135,4 +143,4 @@ private:
     bool _isShuttingDown;
 };
 
-#endif /* defined(__hifi__OctreeQueryNode__) */
+#endif // hifi_OctreeQueryNode_h

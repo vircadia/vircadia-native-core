@@ -1,9 +1,12 @@
 //
 //  CollisionInfo.cpp
-//  hifi
+//  libraries/shared/src
 //
-//  Created by Andrew Meadows on 2014.02.14
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Created by Andrew Meadows on 02/14/2014.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include "CollisionInfo.h"
@@ -45,3 +48,6 @@ void CollisionList::clear() {
     _size = 0;
 }
 
+CollisionInfo* CollisionList::operator[](int index) {
+    return (index > -1 && index < _size) ? &(_collisions[index]) : NULL;
+}

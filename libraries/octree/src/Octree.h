@@ -1,13 +1,16 @@
 //
 //  Octree.h
-//  hifi
+//  libraries/octree/src
 //
 //  Created by Stephen Birarda on 3/13/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__Octree__
-#define __hifi__Octree__
+#ifndef hifi_Octree_h
+#define hifi_Octree_h
 
 #include <set>
 #include <SimpleMovingAverage.h>
@@ -18,6 +21,7 @@ class Octree;
 class OctreeElement;
 class OctreeElementBag;
 class OctreePacketData;
+class Shape;
 
 
 #include "JurisdictionMap.h"
@@ -26,6 +30,8 @@ class OctreePacketData;
 #include "OctreeElementBag.h"
 #include "OctreePacketData.h"
 #include "OctreeSceneStats.h"
+
+#include <CollisionInfo.h>
 
 #include <QObject>
 #include <QReadWriteLock>
@@ -126,17 +132,17 @@ public:
         printf("StopReason: ");
         switch (stopReason) {
             default:
-            case UNKNOWN: printf("UNKNOWN\n"); break;
+            case UNKNOWN: qDebug("UNKNOWN"); break;
 
-            case DIDNT_FIT: printf("DIDNT_FIT\n"); break;
-            case NULL_NODE: printf("NULL_NODE\n"); break;
-            case TOO_DEEP: printf("TOO_DEEP\n"); break;
-            case OUT_OF_JURISDICTION: printf("OUT_OF_JURISDICTION\n"); break;
-            case LOD_SKIP: printf("LOD_SKIP\n"); break;
-            case OUT_OF_VIEW: printf("OUT_OF_VIEW\n"); break;
-            case WAS_IN_VIEW: printf("WAS_IN_VIEW\n"); break;
-            case NO_CHANGE: printf("NO_CHANGE\n"); break;
-            case OCCLUDED: printf("OCCLUDED\n"); break;
+            case DIDNT_FIT: qDebug("DIDNT_FIT"); break;
+            case NULL_NODE: qDebug("NULL_NODE"); break;
+            case TOO_DEEP: qDebug("TOO_DEEP"); break;
+            case OUT_OF_JURISDICTION: qDebug("OUT_OF_JURISDICTION"); break;
+            case LOD_SKIP: qDebug("LOD_SKIP"); break;
+            case OUT_OF_VIEW: qDebug("OUT_OF_VIEW"); break;
+            case WAS_IN_VIEW: qDebug("WAS_IN_VIEW"); break;
+            case NO_CHANGE: qDebug("NO_CHANGE"); break;
+            case OCCLUDED: qDebug("OCCLUDED"); break;
         }
     }
 };
@@ -243,6 +249,8 @@ public:
     bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, 
                                     glm::vec3& penetration, Octree::lockType lockType = Octree::TryLock);
 
+    bool findShapeCollisions(const Shape* shape, CollisionList& collisions, Octree::lockType = Octree::TryLock);
+
     OctreeElement* getElementEnclosingPoint(const glm::vec3& point, Octree::lockType lockType = Octree::TryLock);
 
     // Note: this assumes the fileFormat is the HIO individual voxels code files
@@ -311,4 +319,4 @@ protected:
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale);
 
-#endif /* defined(__hifi__Octree__) */
+#endif // hifi_Octree_h

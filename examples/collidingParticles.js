@@ -1,14 +1,16 @@
 //
 //  collidingParticles.js
-//  hifi
+//  examples
 //
 //  Created by Brad Hefta-Gaub on 12/31/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
 //  This is an example script that creates a couple particles, and sends them on a collision course.
 //  One of the particles has a script that when it collides with another particle, it swaps colors with that particle.
 //  The other particle has a script that when it collides with another particle it set's it's script to a suicide script.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 var currentIteration = 0;
@@ -30,9 +32,10 @@ var gravity = {
 var damping = 0.1;
 
 var scriptA = " " +
-             " function collisionWithParticle(other, penetration) { " +
+             " function collisionWithParticle(other, collision) { " +
              "   print('collisionWithParticle(other.getID()=' + other.getID() + ')...'); " +
-             "   Vec3.print('penetration=', penetration); " +
+             "   Vec3.print('penetration=', collision.penetration); " +
+             "   Vec3.print('contactPoint=', collision.contactPoint); " +
              "   print('myID=' + Particle.getID() + '\\n'); " +
              "   var colorBlack = { red: 0, green: 0, blue: 0 };" +
              "   var otherColor = other.getColor();" +
@@ -46,9 +49,10 @@ var scriptA = " " +
              " ";
 
 var scriptB = " " +
-             " function collisionWithParticle(other, penetration) { " +
+             " function collisionWithParticle(other, collision) { " +
              "   print('collisionWithParticle(other.getID()=' + other.getID() + ')...'); " +
-             "   Vec3.print('penetration=', penetration); " +
+             "   Vec3.print('penetration=', collision.penetration); " +
+             "   Vec3.print('contactPoint=', collision.contactPoint); " +
              "   print('myID=' + Particle.getID() + '\\n'); " +
              "   Particle.setScript('Particle.setShouldDie(true);'); " +
              " } " +

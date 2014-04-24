@@ -1,9 +1,12 @@
 //
 //  SceneUtils.cpp
-//  hifi
+//  voxel-edit/src
 //
 //  Created by Brad Hefta-Gaub on 5/7/2013.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <algorithm>
@@ -17,7 +20,7 @@ void addCornersAndAxisLines(VoxelTree* tree) {
     float voxelSize = 0.5f / TREE_SCALE;
     
     // Now some more examples... a little more complex
-    printf("creating corner points...\n");
+    qDebug("creating corner points...");
     tree->createVoxel(0              , 0              , 0              , voxelSize, 255, 255 ,255);
     tree->createVoxel(1.0 - voxelSize, 0              , 0              , voxelSize, 255, 0   ,0  );
     tree->createVoxel(0              , 1.0 - voxelSize, 0              , voxelSize, 0  , 255 ,0  );
@@ -26,11 +29,11 @@ void addCornersAndAxisLines(VoxelTree* tree) {
     tree->createVoxel(0              , 1.0 - voxelSize, 1.0 - voxelSize, voxelSize, 0  , 255 ,255);
     tree->createVoxel(1.0 - voxelSize, 1.0 - voxelSize, 0              , voxelSize, 255, 255 ,0  );
     tree->createVoxel(1.0 - voxelSize, 1.0 - voxelSize, 1.0 - voxelSize, voxelSize, 255, 255 ,255);
-    printf("DONE creating corner points...\n");
+    qDebug("DONE creating corner points...");
 }
 
 void addSurfaceScene(VoxelTree * tree) {
-    printf("adding surface scene...\n");
+    qDebug("adding surface scene...");
     float voxelSize = 1.f / (8 * TREE_SCALE);
    
     // color 1= blue, color 2=green
@@ -54,5 +57,5 @@ void addSurfaceScene(VoxelTree * tree) {
             }
         }
     }
-    printf("DONE adding surface scene...\n");
+    qDebug("DONE adding surface scene...");
 }

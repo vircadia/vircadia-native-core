@@ -1,18 +1,16 @@
 //
 //  Audio.h
-//  interface
+//  interface/src
 //
 //  Created by Stephen Birarda on 1/22/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Audio__
-#define __interface__Audio__
-
-#ifdef _WIN32
-#define WANT_TIMEVAL
-#include <Systime.h>
-#endif
+#ifndef hifi_Audio_h
+#define hifi_Audio_h
 
 #include <fstream>
 #include <vector>
@@ -21,18 +19,17 @@
 
 #include <QAudio>
 #include <QAudioInput>
+#include <QElapsedTimer>
 #include <QGLWidget>
 #include <QtCore/QObject>
 #include <QtCore/QVector>
 #include <QtMultimedia/QAudioFormat>
 #include <QVector>
+#include <QByteArray>
 
 #include <AbstractAudioInterface.h>
 #include <AudioRingBuffer.h>
 #include <StdDev.h>
-
-#include "ui/Oscilloscope.h"
-
 
 static const int NUM_AUDIO_CHANNELS = 2;
 
@@ -44,7 +41,7 @@ class Audio : public AbstractAudioInterface {
     Q_OBJECT
 public:
     // setup for audio I/O
-    Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* parent = 0);
+    Audio(int16_t initialJitterBufferSamples, QObject* parent = 0);
 
     float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _noiseGateMeasuredFloor, 0.f); }
     float getTimeSinceLastClip() const { return _timeSinceLastClip; }
@@ -54,8 +51,6 @@ public:
         
     void setJitterBufferSamples(int samples) { _jitterBufferSamples = samples; }
     int getJitterBufferSamples() { return _jitterBufferSamples; }
-    
-    void lowPassFilter(int16_t* inputBuffer);
     
     virtual void startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen);
     virtual void startDrumSound(float volume, float frequency, float duration, float decay);
@@ -69,20 +64,27 @@ public:
     void init(QGLWidget *parent = 0);
     bool mousePressEvent(int x, int y);
     
-    void renderMuteIcon(int x, int y);
+    void renderToolBox(int x, int y, bool boxed);
+    void renderScope(int width, int height);
     
     int getNetworkSampleRate() { return SAMPLE_RATE; }
     int getNetworkBufferLengthSamplesPerChannel() { return NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; }
+
+    bool getProcessSpatialAudio() const { return _processSpatialAudio; }
 
 public slots:
     void start();
     void stop();
     void addReceivedAudioToBuffer(const QByteArray& audioByteArray);
+    void addSpatialAudioToBuffer(unsigned int sampleTime, const QByteArray& spatialAudio, unsigned int numSamples);
     void handleAudioInput();
     void reset();
     void toggleMute();
     void toggleAudioNoiseReduction();
     void toggleToneInjection();
+    void toggleScope();
+    void toggleScopePause();
+    void toggleAudioSpatialProcessing();
     
     virtual void handleAudioByteArray(const QByteArray& audioByteArray);
 
@@ -98,6 +100,9 @@ public slots:
 
 signals:
     bool muteToggled();
+    void preProcessOriginalInboundAudio(unsigned int sampleTime, QByteArray& samples, const QAudioFormat& format);
+    void processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
+    void processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
     
 private:
 
@@ -123,9 +128,8 @@ private:
     QString _inputAudioDeviceName;
     QString _outputAudioDeviceName;
     
-    Oscilloscope* _scope;
     StDev _stdev;
-    timeval _lastReceiveTime;
+    QElapsedTimer _timeSinceLastRecieved;
     float _averagedLatency;
     float _measuredJitter;
     int16_t _jitterBufferSamples;
@@ -161,11 +165,18 @@ private:
     bool _localEcho;
     GLuint _micTextureId;
     GLuint _muteTextureId;
+    GLuint _boxTextureId;
     QRect _iconBounds;
     
-    // Audio callback in class context.
+    /// Audio callback in class context.
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
     
+    
+    bool _processSpatialAudio; /// Process received audio by spatial audio hooks
+    unsigned int _spatialAudioStart; /// Start of spatial audio interval (in sample rate time base)
+    unsigned int _spatialAudioFinish; /// End of spatial audio interval (in sample rate time base)
+    AudioRingBuffer _spatialAudioRingBuffer; /// Spatially processed audio
+
     // Process procedural audio by
     //  1. Echo to the local procedural output device
     //  2. Mix with the audio input
@@ -186,7 +197,30 @@ private:
     int calculateNumberOfFrameSamples(int numBytes);
     float calculateDeviceToNetworkInputRatio(int numBytes);
 
+    // Audio scope methods for data acquisition
+    void addBufferToScope(
+        QByteArray& byteArray, unsigned int frameOffset, const int16_t* source, unsigned int sourceChannel, unsigned int sourceNumberOfChannels);
+
+    // Audio scope methods for rendering
+    void renderBackground(const float* color, int x, int y, int width, int height);
+    void renderGrid(const float* color, int x, int y, int width, int height, int rows, int cols);
+    void renderLineStrip(const float* color, int x, int y, int n, int offset, const QByteArray& byteArray);
+
+    // Audio scope data
+    static const unsigned int NETWORK_SAMPLES_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+    static const unsigned int FRAMES_PER_SCOPE = 5;
+    static const unsigned int SAMPLES_PER_SCOPE_WIDTH = FRAMES_PER_SCOPE * NETWORK_SAMPLES_PER_FRAME;
+    static const unsigned int MULTIPLIER_SCOPE_HEIGHT = 20;
+    static const unsigned int SAMPLES_PER_SCOPE_HEIGHT = 2 * 15 * MULTIPLIER_SCOPE_HEIGHT;
+    bool _scopeEnabled;
+    bool _scopeEnabledPause;
+    int _scopeInputOffset;
+    int _scopeOutputOffset;
+    QByteArray _scopeInput;
+    QByteArray _scopeOutputLeft;
+    QByteArray _scopeOutputRight;
+
 };
 
 
-#endif /* defined(__interface__audio__) */
+#endif // hifi_Audio_h

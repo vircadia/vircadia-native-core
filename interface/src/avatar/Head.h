@@ -1,8 +1,11 @@
 //
 //  Head.h
-//  interface
+//  interface/src/avatar
 //
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #ifndef hifi_Head_h
@@ -27,6 +30,8 @@ enum eyeContactTargets {
     MOUTH
 };
 
+const float EYE_EAR_GAP = 0.08f;
+
 class Avatar;
 class ProgramObject;
 
@@ -37,7 +42,7 @@ public:
     void init();
     void reset();
     void simulate(float deltaTime, bool isMine, bool billboard = false);
-    void render(float alpha, bool forShadowMap);
+    void render(float alpha, Model::RenderMode mode);
     void setScale(float scale);
     void setPosition(glm::vec3 position) { _position = position; }
     void setGravity(glm::vec3 gravity) { _gravity = gravity; }
@@ -70,12 +75,17 @@ public:
     
     glm::quat getEyeRotation(const glm::vec3& eyePosition) const;
     
+    const glm::vec3& getRightEyePosition() const { return _rightEyePosition; }
+    const glm::vec3& getLeftEyePosition() const { return _leftEyePosition; }
+    glm::vec3 getRightEarPosition() const { return _rightEyePosition + (getRightDirection() * EYE_EAR_GAP) + (getFrontDirection() * -EYE_EAR_GAP); }
+    glm::vec3 getLeftEarPosition() const { return _leftEyePosition + (getRightDirection() * -EYE_EAR_GAP) + (getFrontDirection() * -EYE_EAR_GAP); }
+
     FaceModel& getFaceModel() { return _faceModel; }
     const FaceModel& getFaceModel() const { return _faceModel; }
     
     const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() const { return _averageLoudness; }
-    glm::vec3 calculateAverageEyePosition() { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
+    glm::vec3 calculateAverageEyePosition() const { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
     
     /// \return the point about which scaling occurs.
     glm::vec3 getScalePivot() const;
@@ -137,4 +147,4 @@ private:
     friend class FaceModel;
 };
 
-#endif
+#endif // hifi_Head_h

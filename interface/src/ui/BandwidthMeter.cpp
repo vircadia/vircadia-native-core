@@ -1,9 +1,12 @@
 //
-//  BandwidthMeter.h
-//  interface
+//  BandwidthMeter.cpp
+//  interface/src/ui
 //
 //  Created by Tobias Schwinger on 6/20/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <cstdio>
@@ -42,7 +45,8 @@ namespace { // .cpp-local
 BandwidthMeter::ChannelInfo BandwidthMeter::_CHANNELS[] = {
     { "Audio"   , "Kbps", 8000.0 / 1024.0, 0x33cc99ff },
     { "Avatars" , "Kbps", 8000.0 / 1024.0, 0xffef40c0 },
-    { "Voxels"  , "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0 }
+    { "Voxels"  , "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0 },
+    { "Metavoxels", "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0 }
 };
 
 BandwidthMeter::BandwidthMeter() :
@@ -58,26 +62,21 @@ BandwidthMeter::~BandwidthMeter() {
     free(_channels);
 }
 
-BandwidthMeter::Stream::Stream(float msToAverage) :
-    _value(0.0f),
-    _msToAverage(msToAverage) {
-
-    gettimeofday(& _prevTime, NULL);
+BandwidthMeter::Stream::Stream(float msToAverage) : _value(0.0f), _msToAverage(msToAverage) {
+    _prevTime.start();
 }
 
 void BandwidthMeter::Stream::updateValue(double amount) {
 
     // Determine elapsed time
-    timeval now;
-    gettimeofday(& now, NULL);
-    double dt = diffclock(& _prevTime, & now);
+    double dt = (double)_prevTime.nsecsElapsed() / 1000000.0; // ns to ms
 
     // Ignore this value when timer imprecision yields dt = 0
     if (dt == 0.0) {
         return;
     }
 
-    memcpy(& _prevTime, & now, sizeof(timeval));
+    _prevTime.start();
 
     // Compute approximate average
     _value = glm::mix(_value, amount / dt,

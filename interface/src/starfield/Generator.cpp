@@ -1,15 +1,15 @@
 //
-// starfield/Generator.cpp
-// interface
+//  Generator.cpp
+//  interface/src/starfield
 //
-// Created by Chris Barnard on 10/13/13.
-// Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Created by Chris Barnard on 10/13/13.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifdef _WIN32
-#define WANT_TIMEVAL
-#include <Systime.h>
-#endif
+#include <QElapsedTimer>
 
 #include "starfield/Generator.h"
 
@@ -22,8 +22,8 @@ void Generator::computeStarPositions(InputVertices& destination, unsigned limit,
     InputVertices* vertices = & destination;
     //_limit = limit;
     
-    timeval startTime;
-    gettimeofday(&startTime, NULL);
+    QElapsedTimer startTime;
+    startTime.start();
     
     srand(seed);
     
@@ -68,7 +68,8 @@ void Generator::computeStarPositions(InputVertices& destination, unsigned limit,
         vertices->push_back(InputVertex(azimuth, altitude, computeStarColor(STAR_COLORIZATION)));
     }
     
-    qDebug() << "Total time to generate stars: " << ((usecTimestampNow() - usecTimestamp(&startTime)) / 1000) << " msec";
+    double timeDiff = (double)startTime.nsecsElapsed() / 1000000.0; // ns to ms
+    qDebug() << "Total time to generate stars: " << timeDiff << " msec";
 }
 
 // computeStarColor

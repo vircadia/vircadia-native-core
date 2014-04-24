@@ -1,16 +1,19 @@
 //
 //  RunningScriptsWidget.cpp
-//  interface
+//  interface/src/ui
 //
 //  Created by Mohammed Nafees on 03/28/2014.
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 #include "ui_runningScriptsWidget.h"
 #include "RunningScriptsWidget.h"
 
 #include <QKeyEvent>
 #include <QFileInfo>
-#include <QScrollArea>
 #include <QPainter>
 #include <QTableWidgetItem>
 
@@ -25,6 +28,10 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget *parent) :
     ui->setupUi(this);
 
     setWindowFlags(Qt::SubWindow | Qt::FramelessWindowHint);
+
+    ui->hideWidgetButton->setIcon(QIcon(Application::resourcesPath() + "images/close.svg"));
+    ui->reloadAllButton->setIcon(QIcon(Application::resourcesPath() + "images/reload.svg"));
+    ui->stopAllButton->setIcon(QIcon(Application::resourcesPath() + "images/stop.svg"));
 
     _runningScriptsTable = new ScriptsTableWidget(ui->runningScriptsTableWidget);
     _runningScriptsTable->setColumnCount(2);
@@ -72,7 +79,7 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list)
         scriptName->setToolTip(list.at(i));
         scriptName->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
         QTableWidgetItem *closeIcon = new QTableWidgetItem;
-        closeIcon->setIcon(QIcon(QPixmap(":/images/kill-script.svg").scaledToHeight(12)));
+        closeIcon->setIcon(QIcon(QPixmap(Application::resourcesPath() + "images/kill-script.svg").scaledToHeight(12)));
 
         _runningScriptsTable->setItem(i, 0, scriptName);
         _runningScriptsTable->setItem(i, 1, closeIcon);
@@ -191,6 +198,7 @@ void RunningScriptsWidget::keyPressEvent(QKeyEvent *e)
     default:
         break;
     }
+
     QWidget::keyPressEvent(e);
 }
 

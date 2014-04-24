@@ -88,10 +88,6 @@ padding-top: 3px;</string>
    <property name="text">
     <string>Reload all</string>
    </property>
-   <property name="icon">
-    <iconset resource="../resources/resources.qrc">
-     <normaloff>:/images/reload.svg</normaloff>:/images/reload.svg</iconset>
-   </property>
   </widget>
   <widget class="QPushButton" name="stopAllButton">
    <property name="geometry">
@@ -114,10 +110,6 @@ padding-top: 3px;</string>
    </property>
    <property name="text">
     <string>Stop all</string>
-   </property>
-   <property name="icon">
-    <iconset resource="../resources/resources.qrc">
-     <normaloff>:/images/stop.svg</normaloff>:/images/stop.svg</iconset>
    </property>
   </widget>
   <widget class="QLabel" name="recentlyLoadedLabel">
@@ -171,10 +163,6 @@ font-size: 14pt;</string>
    </property>
    <property name="text">
     <string/>
-   </property>
-   <property name="icon">
-    <iconset resource="../resources/resources.qrc">
-     <normaloff>:/images/close.svg</normaloff>:/images/close.svg</iconset>
    </property>
    <property name="iconSize">
     <size>
@@ -244,8 +232,6 @@ font-size: 14pt;</string>
   <zorder>reloadAllButton</zorder>
   <zorder>stopAllButton</zorder>
  </widget>
- <resources>
-  <include location="../resources/resources.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

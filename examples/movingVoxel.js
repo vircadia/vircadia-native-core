@@ -1,5 +1,13 @@
 //
+//  movingVoxel.js
+//  examples
+//
+//  Copyright 2014 High Fidelity, Inc.
+//
 //  This sample script creates a voxel moving back and forth in a line
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 var position  = { x: 0, y: 0, z: 0 };

@@ -1,11 +1,12 @@
 //
 //  OctreeInboundPacketProcessor.cpp
-//  voxel-server
+//  assignment-client/src/octree
 //
-//  Created by Brad Hefta-Gaub on 8/21/13
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Created by Brad Hefta-Gaub on 8/21/13.
+//  Copyright 2013 High Fidelity, Inc.
 //
-//  Threaded or non-threaded network packet processor for the voxel-server
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <PacketHeaders.h>
@@ -44,7 +45,7 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
     bool debugProcessPacket = _myServer->wantsVerboseDebug();
 
     if (debugProcessPacket) {
-        printf("OctreeInboundPacketProcessor::processPacket() packetData=%p packetLength=%d\n", &packet, packet.size());
+        qDebug("OctreeInboundPacketProcessor::processPacket() packetData=%p packetLength=%d", &packet, packet.size());
     }
 
     int numBytesPacketHeader = numBytesForPacketHeader(packet);
@@ -77,8 +78,8 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
             int maxSize = packet.size() - atByte;
 
             if (debugProcessPacket) {
-                printf("OctreeInboundPacketProcessor::processPacket() %c "
-                       "packetData=%p packetLength=%d voxelData=%p atByte=%d maxSize=%d\n",
+                qDebug("OctreeInboundPacketProcessor::processPacket() %c "
+                       "packetData=%p packetLength=%d voxelData=%p atByte=%d maxSize=%d",
                         packetType, packetData, packet.size(), editData, atByte, maxSize);
             }
 
@@ -104,8 +105,8 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
         }
 
         if (debugProcessPacket) {
-            printf("OctreeInboundPacketProcessor::processPacket() DONE LOOPING FOR %c "
-                   "packetData=%p packetLength=%d voxelData=%p atByte=%d\n",
+            qDebug("OctreeInboundPacketProcessor::processPacket() DONE LOOPING FOR %c "
+                   "packetData=%p packetLength=%d voxelData=%p atByte=%d",
                     packetType, packetData, packet.size(), editData, atByte);
         }
 

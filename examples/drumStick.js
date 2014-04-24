@@ -1,5 +1,13 @@
 //
+//  drumStick.js
+//  examples
+//
+//  Copyright 2014 High Fidelity, Inc.
+//
 //  This example musical instrument script plays 'air drums' when you move your hands downward
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 function length(v) {
@@ -53,7 +61,7 @@ function checkSticks(deltaTime) {
 			//   Waiting for change in velocity direction or slowing to trigger drum sound
 			if ((palmVelocity.y > 0.0) || (speed < STOP_SPEED)) {
 				state[palm] = 0;
-				var options = new AudioInjectionOptions(); 
+				var options = new AudioInjectionOptions();
 				options.position = Controller.getSpatialControlPosition(palm * 2 + 1);
 				if (strokeSpeed[palm] > 1.0) { strokeSpeed[palm] = 1.0; }
 				options.volume = strokeSpeed[palm];

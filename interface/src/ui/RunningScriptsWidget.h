@@ -1,13 +1,18 @@
 //
 //  RunningScriptsWidget.h
-//  interface
+//  interface/src/ui
 //
 //  Created by Mohammed Nafees on 03/28/2014.
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
-#ifndef __hifi__RunningScriptsWidget__
-#define __hifi__RunningScriptsWidget__
+#ifndef hifi_RunningScriptsWidget_h
+#define hifi_RunningScriptsWidget_h
 
+// Qt
 #include <QDockWidget>
 
 #include "ScriptsTableWidget.h"
@@ -56,4 +61,4 @@ private:
     void createRecentlyLoadedScriptsTable();
 };
 
-#endif /* defined(__hifi__RunningScriptsWidget__) */
+#endif // hifi_RunningScriptsWidget_h

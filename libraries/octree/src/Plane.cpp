@@ -1,14 +1,20 @@
 //
-//  Plane.h
-//  hifi
+//  Plane.cpp
+//  libraries/octree/src/
 //
 //  Created by Brad Hefta-Gaub on 04/11/13.
-//  Originally from lighthouse3d. Modified to utilize glm::vec3 and clean up to our coding standards
+//  Copyright 2013 High Fidelity, Inc.
 //
+//  Originally from lighthouse3d. Modified to utilize glm::vec3 and clean up to our coding standards
 //  Simple plane class.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include "Plane.h"
+
+#include <QtCore/QDebug>
 
 #include <stdio.h>
 
@@ -57,6 +63,6 @@ float Plane::distance(const glm::vec3 &point) const {
 }
 
 void Plane::print() const {
-    printf("Plane - point (x=%f y=%f z=%f) normal (x=%f y=%f z=%f) d=%f\n",
+    qDebug("Plane - point (x=%f y=%f z=%f) normal (x=%f y=%f z=%f) d=%f",
         _point.x, _point.y, _point.z, _normal.x, _normal.y, _normal.z, _dCoefficient);
 }

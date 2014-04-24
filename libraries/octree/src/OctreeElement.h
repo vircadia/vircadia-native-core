@@ -1,13 +1,16 @@
 //
 //  OctreeElement.h
-//  hifi
+//  libraries/octree/src
 //
 //  Created by Stephen Birarda on 3/13/13.
+//  Copyright 2013 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__OctreeElement__
-#define __hifi__OctreeElement__
+#ifndef hifi_OctreeElement_h
+#define hifi_OctreeElement_h
 
 //#define HAS_AUDIT_CHILDREN
 //#define SIMPLE_CHILD_ARRAY
@@ -16,6 +19,7 @@
 #include <QReadWriteLock>
 
 #include <SharedUtil.h>
+
 #include "AABox.h"
 #include "ViewFrustum.h"
 #include "OctreeConstants.h"
@@ -316,4 +320,4 @@ protected:
     static quint64 _childrenCount[NUMBER_OF_CHILDREN + 1];
 };
 
-#endif /* defined(__hifi__OctreeElement__) */
+#endif // hifi_OctreeElement_h

@@ -1,13 +1,16 @@
 //
 //  AssignmentThread.h
-//  hifi
+//  assignment-client/src
 //
-//  Created by Stephen Birarda on 2014-03-28.
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Created by Stephen Birarda on 2014.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AssignmentThread__
-#define __hifi__AssignmentThread__
+#ifndef hifi_AssignmentThread_h
+#define hifi_AssignmentThread_h
 
 #include <QtCore/QThread>
 
@@ -20,4 +23,4 @@ private:
     SharedAssignmentPointer _assignment;
 };
 
-#endif /* defined(__hifi__AssignmentThread__) */
+#endif // hifi_AssignmentThread_h

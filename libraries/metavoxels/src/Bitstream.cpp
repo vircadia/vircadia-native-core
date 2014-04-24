@@ -1,9 +1,12 @@
 //
 //  Bitstream.cpp
-//  metavoxels
+//  libraries/metavoxels/src
 //
 //  Created by Andrzej Kapolka on 12/2/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <cstring>
@@ -35,6 +38,7 @@ REGISTER_SIMPLE_TYPE_STREAMER(SharedObjectPointer)
 
 // some types don't quite work with our macro
 static int vec3Streamer = Bitstream::registerTypeStreamer(qMetaTypeId<glm::vec3>(), new SimpleTypeStreamer<glm::vec3>());
+static int quatStreamer = Bitstream::registerTypeStreamer(qMetaTypeId<glm::quat>(), new SimpleTypeStreamer<glm::quat>());
 static int metaObjectStreamer = Bitstream::registerTypeStreamer(qMetaTypeId<const QMetaObject*>(),
     new SimpleTypeStreamer<const QMetaObject*>());
 
@@ -350,6 +354,14 @@ Bitstream& Bitstream::operator<<(const glm::vec3& value) {
 
 Bitstream& Bitstream::operator>>(glm::vec3& value) {
     return *this >> value.x >> value.y >> value.z;
+}
+
+Bitstream& Bitstream::operator<<(const glm::quat& value) {
+    return *this << value.w << value.x << value.y << value.z;
+}
+
+Bitstream& Bitstream::operator>>(glm::quat& value) {
+    return *this >> value.w >> value.x >> value.y >> value.z;
 }
 
 Bitstream& Bitstream::operator<<(const QByteArray& string) {
@@ -869,7 +881,11 @@ Bitstream& Bitstream::operator>(SharedObjectPointer& object) {
             *this >> rawObject;
         }
         pointer = static_cast<SharedObject*>(rawObject);
-        pointer->setRemoteID(id);
+        if (pointer) {
+            pointer->setRemoteID(id);
+        } else {
+            qDebug() << "Null object" << pointer << reference;
+        }
     }
     object = static_cast<SharedObject*>(pointer.data());
     return *this;

@@ -1,13 +1,16 @@
 //
 //  MetavoxelData.h
-//  metavoxels
+//  libraries/metavoxels/src
 //
 //  Created by Andrzej Kapolka on 12/6/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__MetavoxelData__
-#define __interface__MetavoxelData__
+#ifndef hifi_MetavoxelData_h
+#define hifi_MetavoxelData_h
 
 #include <QBitArray>
 #include <QHash>
@@ -61,6 +64,7 @@ public:
 
     MetavoxelData& operator=(const MetavoxelData& other);
 
+    void setSize(float size) { _size = size; }
     float getSize() const { return _size; }
 
     glm::vec3 getMinimum() const { return glm::vec3(_size, _size, _size) * -0.5f; }
@@ -90,6 +94,9 @@ public:
     SharedObjectPointer findFirstRaySpannerIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const AttributePointer& attribute, float& distance, const MetavoxelLOD& lod = MetavoxelLOD());
 
+    /// Sets part of the data.
+    void set(const glm::vec3& minimum, const MetavoxelData& data, bool blend = false);
+
     /// Expands the tree, increasing its capacity in all dimensions.
     void expand();
 
@@ -103,6 +110,9 @@ public:
     MetavoxelNode* getRoot(const AttributePointer& attribute) const { return _roots.value(attribute); }
     MetavoxelNode* createRoot(const AttributePointer& attribute);
 
+    bool operator==(const MetavoxelData& other) const;
+    bool operator!=(const MetavoxelData& other) const;
+
 private:
 
     friend class MetavoxelVisitation;
@@ -113,6 +123,16 @@ private:
     float _size;
     QHash<AttributePointer, MetavoxelNode*> _roots;
 };
+
+Bitstream& operator<<(Bitstream& out, const MetavoxelData& data);
+
+Bitstream& operator>>(Bitstream& in, MetavoxelData& data);
+
+template<> void Bitstream::writeDelta(const MetavoxelData& value, const MetavoxelData& reference);
+
+template<> void Bitstream::readDelta(MetavoxelData& value, const MetavoxelData& reference);
+
+Q_DECLARE_METATYPE(MetavoxelData)
 
 /// Holds the state used in streaming metavoxel data.
 class MetavoxelStreamState {
@@ -141,6 +161,8 @@ public:
     MetavoxelNode(const AttributePointer& attribute, const MetavoxelNode* copy);
     
     void setAttributeValue(const AttributeValue& attributeValue);
+
+    void blendAttributeValues(const AttributeValue& source, const AttributeValue& dest);
 
     AttributeValue getAttributeValue(const AttributePointer& attribute) const;
     void* getAttributeValue() const { return _attributeValue; }
@@ -174,12 +196,12 @@ public:
 
     void destroy(const AttributePointer& attribute);
 
+    void clearChildren(const AttributePointer& attribute);
+    
 private:
     Q_DISABLE_COPY(MetavoxelNode)
     
     friend class MetavoxelVisitation;
-    
-    void clearChildren(const AttributePointer& attribute);
     
     int _referenceCount;
     void* _attributeValue;
@@ -499,11 +521,13 @@ class SpannerRenderer : public QObject {
     
 public:
     
+    enum Mode { DEFAULT_MODE, DIFFUSE_MODE, NORMAL_MODE };
+    
     Q_INVOKABLE SpannerRenderer();
     
     virtual void init(Spanner* spanner);
     virtual void simulate(float deltaTime);
-    virtual void render(float alpha, const glm::vec3& clipMinimum, float clipSize);
+    virtual void render(float alpha, Mode mode, const glm::vec3& clipMinimum, float clipSize);
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const glm::vec3& clipMinimum, float clipSize, float& distance) const;
 };
@@ -512,7 +536,7 @@ public:
 class Transformable : public Spanner {
     Q_OBJECT
     Q_PROPERTY(glm::vec3 translation MEMBER _translation WRITE setTranslation NOTIFY translationChanged)
-    Q_PROPERTY(glm::vec3 rotation MEMBER _rotation WRITE setRotation NOTIFY rotationChanged)
+    Q_PROPERTY(glm::quat rotation MEMBER _rotation WRITE setRotation NOTIFY rotationChanged)
     Q_PROPERTY(float scale MEMBER _scale WRITE setScale NOTIFY scaleChanged)
 
 public:
@@ -522,8 +546,8 @@ public:
     void setTranslation(const glm::vec3& translation);
     const glm::vec3& getTranslation() const { return _translation; }
     
-    void setRotation(const glm::vec3& rotation);
-    const glm::vec3& getRotation() const { return _rotation; }
+    void setRotation(const glm::quat& rotation);
+    const glm::quat& getRotation() const { return _rotation; }
     
     void setScale(float scale);
     float getScale() const { return _scale; }
@@ -531,13 +555,13 @@ public:
 signals:
 
     void translationChanged(const glm::vec3& translation);
-    void rotationChanged(const glm::vec3& rotation);
+    void rotationChanged(const glm::quat& rotation);
     void scaleChanged(float scale);
 
 private:
     
     glm::vec3 _translation;
-    glm::vec3 _rotation; // Euler Angles in degrees
+    glm::quat _rotation;
     float _scale;
 };
 
@@ -592,7 +616,7 @@ public:
     const QUrl& getURL() const { return _url; }
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        const glm::vec3& clipMinimum, float clipSize,float& distance) const;
+        const glm::vec3& clipMinimum, float clipSize, float& distance) const;
     
 signals:
 
@@ -607,4 +631,4 @@ private:
     QUrl _url;
 };
 
-#endif /* defined(__interface__MetavoxelData__) */
+#endif // hifi_MetavoxelData_h

@@ -1,9 +1,12 @@
 //
 //  OctreeElement.cpp
-//  hifi
+//  libraries/octree/src
 //
 //  Created by Stephen Birarda on 3/13/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <cmath>
@@ -18,10 +21,10 @@
 
 #include "AABox.h"
 #include "OctalCode.h"
-#include "SharedUtil.h"
 #include "OctreeConstants.h"
 #include "OctreeElement.h"
 #include "Octree.h"
+#include "SharedUtil.h"
 
 quint64 OctreeElement::_voxelMemoryUsage = 0;
 quint64 OctreeElement::_octcodeMemoryUsage = 0;
@@ -201,7 +204,7 @@ void OctreeElement::calculateAABox() {
 void OctreeElement::deleteChildAtIndex(int childIndex) {
     OctreeElement* childAt = getChildAtIndex(childIndex);
     if (childAt) {
-        //printf("deleteChildAtIndex()... about to call delete childAt=%p\n",childAt);
+        //qDebug("deleteChildAtIndex()... about to call delete childAt=%p",childAt);
         delete childAt;
         setChildAtIndex(childIndex, NULL);
         _isDirty = true;
@@ -1312,7 +1315,7 @@ OctreeElement* OctreeElement::getOrCreateChildElementAt(float x, float y, float 
     float halfOurScale = ourScale / 2.0f;
 
     if(s > ourScale) {
-        printf("UNEXPECTED -- OctreeElement::getOrCreateChildElementAt() s=[%f] > ourScale=[%f] \n", s, ourScale);
+        qDebug("UNEXPECTED -- OctreeElement::getOrCreateChildElementAt() s=[%f] > ourScale=[%f] ", s, ourScale);
     }
 
     if (s > halfOurScale) {

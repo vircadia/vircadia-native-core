@@ -1,11 +1,12 @@
 //
 //  OctreeEditPacketSender.cpp
-//  interface
+//  libraries/octree/src
 //
 //  Created by Brad Hefta-Gaub on 8/12/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
 //
-//  Threaded or non-threaded packet Sender for the Application
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <assert.h>
@@ -36,7 +37,7 @@ OctreeEditPacketSender::OctreeEditPacketSender() :
     _serverJurisdictions(NULL),
     _sequenceNumber(0),
     _maxPacketSize(MAX_PACKET_SIZE) {
-    //printf("OctreeEditPacketSender::OctreeEditPacketSender() [%p] created... \n", this);
+    //qDebug("OctreeEditPacketSender::OctreeEditPacketSender() [%p] created... ", this);
 }
 
 OctreeEditPacketSender::~OctreeEditPacketSender() {
@@ -52,7 +53,7 @@ OctreeEditPacketSender::~OctreeEditPacketSender() {
         _preServerPackets.erase(_preServerPackets.begin());
     }
     _pendingPacketsLock.unlock();
-    //printf("OctreeEditPacketSender::~OctreeEditPacketSender() [%p] destroyed... \n", this);
+    //qDebug("OctreeEditPacketSender::~OctreeEditPacketSender() [%p] destroyed... ", this);
 }
 
 

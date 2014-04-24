@@ -1,13 +1,16 @@
 //
 //  DomainServer.h
-//  hifi
+//  domain-server/src
 //
 //  Created by Stephen Birarda on 9/26/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__DomainServer__
-#define __hifi__DomainServer__
+#ifndef hifi_DomainServer_h
+#define hifi_DomainServer_h
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QHash>
@@ -17,9 +20,13 @@
 #include <QtCore/QStringList>
 #include <QtCore/QUrl>
 
+#include <gnutls/gnutls.h>
+
 #include <Assignment.h>
 #include <HTTPManager.h>
-#include <NodeList.h>
+#include <LimitedNodeList.h>
+
+#include "DTLSServerSession.h"
 
 typedef QSharedPointer<Assignment> SharedAssignmentPointer;
 
@@ -27,8 +34,7 @@ class DomainServer : public QCoreApplication, public HTTPRequestHandler {
     Q_OBJECT
 public:
     DomainServer(int argc, char* argv[]);
-    
-    bool requiresAuthentication() const { return !_nodeAuthenticationURL.isEmpty(); }
+    ~DomainServer();
     
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
     
@@ -40,26 +46,31 @@ public slots:
     /// Called by NodeList to inform us a node has been killed
     void nodeKilled(SharedNodePointer node);
     
+private slots:
+    
+    void readAvailableDatagrams();
+    void readAvailableDTLSDatagrams();
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
+    bool optionallySetupDTLS();
+    bool readX509KeyAndCertificate();
     
-    void requestAuthenticationFromPotentialNode(const HifiSockAddr& senderSockAddr);
-    void addNodeToNodeListAndConfirmConnection(const QByteArray& packet, const HifiSockAddr& senderSockAddr,
-                                               const QJsonObject& authJsonObject = QJsonObject());
+    void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
+    
+    void addNodeToNodeListAndConfirmConnection(const QByteArray& packet, const HifiSockAddr& senderSockAddr);
     int parseNodeDataFromByteArray(NodeType_t& nodeType, HifiSockAddr& publicSockAddr,
                                     HifiSockAddr& localSockAddr, const QByteArray& packet, const HifiSockAddr& senderSockAddr);
     NodeSet nodeInterestListFromPacket(const QByteArray& packet, int numPreceedingBytes);
     void sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr& senderSockAddr,
                               const NodeSet& nodeInterestList);
     
-    void parseCommandLineTypeConfigs(const QStringList& argumentList, QSet<Assignment::Type>& excludedTypes);
-    void readConfigFile(const QString& path, QSet<Assignment::Type>& excludedTypes);
-    QString readServerAssignmentConfig(const QJsonObject& jsonObject, const QString& nodeName);
+    void parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes);
     void addStaticAssignmentToAssignmentHash(Assignment* newAssignment);
-    void createStaticAssignmentsForTypeGivenConfigString(Assignment::Type type, const QString& configString);
+    void createScriptedAssignmentsFromArray(const QJsonArray& configArray);
+    void createStaticAssignmentsForType(Assignment::Type type, const QJsonArray& configArray);
     void populateDefaultStaticAssignmentsExcludingTypes(const QSet<Assignment::Type>& excludedTypes);
     
-    SharedAssignmentPointer matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType);
+    SharedAssignmentPointer matchingQueuedAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType);
     SharedAssignmentPointer deployableAssignmentForRequest(const Assignment& requestAssignment);
     void removeMatchingAssignmentFromQueue(const SharedAssignmentPointer& removableAssignment);
     void refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment);
@@ -73,17 +84,15 @@ private:
     QHash<QUuid, SharedAssignmentPointer> _staticAssignmentHash;
     QQueue<SharedAssignmentPointer> _assignmentQueue;
     
-    QUrl _nodeAuthenticationURL;
+    QVariantMap _argumentVariantMap;
     
-    QStringList _argumentList;
+    bool _isUsingDTLS;
+    gnutls_certificate_credentials_t* _x509Credentials;
+    gnutls_dh_params_t* _dhParams;
+    gnutls_datum_t* _cookieKey;
+    gnutls_priority_t* _priorityCache;
     
-    QHash<QString, QJsonObject> _redeemedTokenResponses;
-private slots:
-    void requestCreationFromDataServer();
-    void processCreateResponseFromDataServer(const QJsonObject& jsonObject);
-    void processTokenRedeemResponse(const QJsonObject& jsonObject);
-    
-    void readAvailableDatagrams();
+    QHash<HifiSockAddr, DTLSServerSession*> _dtlsSessions;
 };
 
-#endif /* defined(__hifi__DomainServer__) */
+#endif // hifi_DomainServer_h

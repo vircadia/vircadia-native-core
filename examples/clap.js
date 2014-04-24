@@ -1,5 +1,13 @@
 //
+//  cameraExample.js
+//  examples
+//
+//  Copyright 2014 High Fidelity, Inc.
+//
 //  This sample script watches your hydra hands and makes clapping sound when they come close together fast 
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 function length(v) {
@@ -42,7 +50,7 @@ function maybePlaySound(deltaTime) {
 		const CLAP_DISTANCE = 0.2; 
 
     	if (!clapping[palm] && (distanceBetween < CLAP_DISTANCE) && (speed > CLAP_SPEED)) {
-    		var options = new AudioInjectionOptions(); 
+    		var options = new AudioInjectionOptions();
 			options.position = palm1Position;
 			options.volume = speed / 2.0;
 			if (options.volume > 1.0) options.volume = 1.0;

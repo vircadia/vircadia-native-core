@@ -1,13 +1,16 @@
 //
 //  MetavoxelUtil.h
-//  metavoxels
+//  libraries/metavoxels/src
 //
 //  Created by Andrzej Kapolka on 12/30/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__MetavoxelUtil__
-#define __interface__MetavoxelUtil__
+#ifndef hifi_MetavoxelUtil_h
+#define hifi_MetavoxelUtil_h
 
 #include <QColor>
 #include <QComboBox>
@@ -142,10 +145,31 @@ private:
     QUrl _url;
 };
 
-/// Editor for vector values.
-class Vec3Editor : public QWidget {
+/// Base class for Vec3Editor and QuatEditor.
+class BaseVec3Editor : public QWidget {
     Q_OBJECT
-    Q_PROPERTY(glm::vec3 vector MEMBER _vector WRITE setVector NOTIFY vectorChanged USER true)
+
+public:
+    
+    BaseVec3Editor(QWidget* parent);
+
+protected slots:
+    
+    virtual void updateValue() = 0;
+    
+protected:
+    
+    QDoubleSpinBox* createComponentBox();
+    
+    QDoubleSpinBox* _x;
+    QDoubleSpinBox* _y;
+    QDoubleSpinBox* _z;
+};
+
+/// Editor for vector values.
+class Vec3Editor : public BaseVec3Editor {
+    Q_OBJECT
+    Q_PROPERTY(glm::vec3 value MEMBER _value WRITE setValue NOTIFY valueChanged USER true)
     
 public:
     
@@ -153,24 +177,45 @@ public:
 
 signals:
 
-    void vectorChanged(const glm::vec3& vector);
+    void valueChanged(const glm::vec3& vector);
 
 public slots:
 
-    void setVector(const glm::vec3& vector);    
+    void setValue(const glm::vec3& vector);    
 
-private slots:
+protected:
     
-    void updateVector();
+    virtual void updateValue();
 
 private:
     
-    QDoubleSpinBox* createComponentBox();
+    glm::vec3 _value;
+};
+
+/// Editor for quaternion values.
+class QuatEditor : public BaseVec3Editor {
+    Q_OBJECT
+    Q_PROPERTY(glm::quat value MEMBER _value WRITE setValue NOTIFY valueChanged USER true)
+
+public:
     
-    QDoubleSpinBox* _x;
-    QDoubleSpinBox* _y;
-    QDoubleSpinBox* _z;
-    glm::vec3 _vector;
+    QuatEditor(QWidget* parent);
+
+signals:
+    
+    void valueChanged(const glm::quat& value);
+    
+public slots:
+    
+    void setValue(const glm::quat& value);
+
+protected:
+    
+    virtual void updateValue();
+
+private:
+    
+    glm::quat _value;
 };
 
 typedef QHash<QScriptString, QVariant> ScriptHash;
@@ -238,4 +283,4 @@ private:
     QUrlEditor _urlEditor;
 };
 
-#endif /* defined(__interface__MetavoxelUtil__) */
+#endif // hifi_MetavoxelUtil_h

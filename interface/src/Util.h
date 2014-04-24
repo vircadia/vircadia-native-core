@@ -1,19 +1,16 @@
 //
 //  Util.h
-//  interface
+//  interface/src
 //
 //  Created by Philip Rosedale on 8/24/12.
-//  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
+//  Copyright 2012 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__Util__
-#define __interface__Util__
-
-#ifdef _WIN32
-#include "Systime.h"
-#else
-#include <sys/time.h>
-#endif
+#ifndef hifi_Util_h
+#define hifi_Util_h
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -41,25 +38,7 @@ void drawVector(glm::vec3* vector);
 
 void printVector(glm::vec3 vec);
 
-float angleBetween(const glm::vec3& v1, const glm::vec3& v2); 
-
-glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2);
-
-glm::vec3 extractTranslation(const glm::mat4& matrix);
-
-void setTranslation(glm::mat4& matrix, const glm::vec3& translation);
-
-glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal = false);
-
-glm::vec3 extractScale(const glm::mat4& matrix);
-
-float extractUniformScale(const glm::mat4& matrix);
-
-float extractUniformScale(const glm::vec3& scale);
-
-double diffclock(timeval *clock1,timeval *clock2);
-
-void renderCollisionOverlay(int width, int height, float magnitude);
+void renderCollisionOverlay(int width, int height, float magnitude, float red = 0, float blue = 0, float green = 0);
 
 void renderOrientationDirections( glm::vec3 position, const glm::quat& orientation, float size );
 
@@ -77,4 +56,4 @@ bool rayIntersectsSphere(const glm::vec3& rayStarting, const glm::vec3& rayNorma
 
 bool pointInSphere(glm::vec3& point, glm::vec3& sphereCenter, double sphereRadius);
 
-#endif
+#endif // hifi_Util_h

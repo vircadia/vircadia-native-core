@@ -1,13 +1,16 @@
 //
 //  ScriptEngine.h
-//  hifi
+//  libraries/script-engine/src
 //
 //  Created by Brad Hefta-Gaub on 12/14/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__ScriptEngine__
-#define __hifi__ScriptEngine__
+#ifndef hifi_ScriptEngine_h
+#define hifi_ScriptEngine_h
 
 #include <vector>
 
@@ -19,9 +22,12 @@
 #include <VoxelsScriptingInterface.h>
 
 #include <AvatarData.h>
+#include <AvatarHashMap.h>
 
+#include "AnimationCache.h"
 #include "AbstractControllerScriptingInterface.h"
 #include "Quat.h"
+#include "ScriptUUID.h"
 #include "Vec3.h"
 
 class ParticlesScriptingInterface;
@@ -58,6 +64,7 @@ public:
     bool isAvatar() const { return _isAvatar; }
 
     void setAvatarData(AvatarData* avatarData, const QString& objectName);
+    void setAvatarHashMap(AvatarHashMap* avatarHashMap, const QString& objectName);
 
     bool isListeningToAudioStream() const { return _isListeningToAudioStream; }
     void setIsListeningToAudioStream(bool isListeningToAudioStream) { _isListeningToAudioStream = isListeningToAudioStream; }
@@ -73,6 +80,9 @@ public:
 
     bool hasScript() const { return !_scriptContents.isEmpty(); }
 
+    bool isFinished() const { return _isFinished; }
+    bool isRunning() const { return _isRunning; }
+
 public slots:
     void stop();
 
@@ -81,12 +91,16 @@ public slots:
     void clearInterval(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
     void clearTimeout(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
     void include(const QString& includeFile);
+    void print(const QString& message);
 
 signals:
     void update(float deltaTime);
     void scriptEnding();
     void finished(const QString& fileNameString);
     void cleanupMenuItem(const QString& menuItemString);
+    void printedMessage(const QString& message);
+    void errorMessage(const QString& message);
+    void runningStateChanged();
 
 protected:
     QString _scriptContents;
@@ -112,7 +126,6 @@ private:
 
     static VoxelsScriptingInterface _voxelsScriptingInterface;
     static ParticlesScriptingInterface _particlesScriptingInterface;
-    static int _scriptNumber;
 
     AbstractControllerScriptingInterface* _controllerScriptingInterface;
     AudioScriptingInterface _audioScriptingInterface;
@@ -121,6 +134,8 @@ private:
     QString _fileNameString;
     Quat _quatLibrary;
     Vec3 _vec3Library;
+    ScriptUUID _uuidLibrary;
+    AnimationCache _animationCache;
 };
 
-#endif /* defined(__hifi__ScriptEngine__) */
+#endif // hifi_ScriptEngine_h

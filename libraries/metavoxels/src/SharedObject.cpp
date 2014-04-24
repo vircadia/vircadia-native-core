@@ -1,9 +1,12 @@
 //
 //  SharedObject.cpp
-//  metavoxels
+//  libraries/metavoxels/src
 //
 //  Created by Andrzej Kapolka on 2/5/14.
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <QComboBox>
@@ -20,18 +23,17 @@ REGISTER_META_OBJECT(SharedObject)
 
 SharedObject::SharedObject() :
     _id(++_lastID),
-    _remoteID(0),
-    _referenceCount(0) {
+    _remoteID(0) {
     
     _weakHash.insert(_id, this);
 }
 
 void SharedObject::incrementReferenceCount() {
-    _referenceCount++;
+    _referenceCount.ref();
 }
 
 void SharedObject::decrementReferenceCount() {
-    if (--_referenceCount == 0) {
+    if (!_referenceCount.deref()) {
         _weakHash.remove(_id);
         delete this;
     }

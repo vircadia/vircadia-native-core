@@ -1,8 +1,11 @@
 //
 //  Cube3DOverlay.cpp
-//  interface
+//  interface/src/ui/overlays
 //
-//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 // include this before QGLWidget, which includes an earlier version of OpenGL
@@ -37,6 +40,7 @@ void Cube3DOverlay::render() {
     if (_isSolid) {
         glutSolidCube(_size);
     } else {
+        glLineWidth(_lineWidth);
         glutWireCube(_size);
     }
     glPopMatrix();

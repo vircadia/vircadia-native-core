@@ -1,9 +1,12 @@
 //
 //  FaceModel.cpp
-//  interface
+//  interface/src/avatar
 //
 //  Created by Andrzej Kapolka on 9/16/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include <glm/gtx/transform.hpp>
@@ -18,11 +21,8 @@ FaceModel::FaceModel(Head* owningHead) :
 {
 }
 
-void FaceModel::simulate(float deltaTime) {
-    QVector<JointState> newJointStates = updateGeometry();
-    if (!isActive()) {
-        return;
-    }
+void FaceModel::simulate(float deltaTime, bool fullUpdate) {
+    updateGeometry();
     Avatar* owningAvatar = static_cast<Avatar*>(_owningHead->_owningAvatar);
     glm::vec3 neckPosition;
     if (!owningAvatar->getSkeletonModel().getNeckPosition(neckPosition)) {
@@ -37,12 +37,13 @@ void FaceModel::simulate(float deltaTime) {
     const float MODEL_SCALE = 0.0006f;
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningHead->getScale() * MODEL_SCALE);
     
-    setOffset(-_geometry->getFBXGeometry().neckPivot);
-    
     setPupilDilation(_owningHead->getPupilDilation());
     setBlendshapeCoefficients(_owningHead->getBlendshapeCoefficients());
     
-    Model::simulate(deltaTime, true, newJointStates);
+    if (isActive()) {
+        setOffset(-_geometry->getFBXGeometry().neckPivot);
+        Model::simulateInternal(deltaTime);
+    }
 }
 
 void FaceModel::maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {

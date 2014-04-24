@@ -1,35 +1,42 @@
 //
 //  Sound.h
-//  hifi
+//  libraries/audio/src
 //
 //  Created by Stephen Birarda on 1/2/2014.
-//  Modified by Athanasios Gaitatzes to add WAVE file support.
-//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__Sound__
-#define __hifi__Sound__
+#ifndef hifi_Sound_h
+#define hifi_Sound_h
 
 #include <QtCore/QObject>
-
-class QNetworkReply;
+#include <QtNetwork/QNetworkReply>
 
 class Sound : public QObject {
     Q_OBJECT
+    
+    Q_PROPERTY(bool downloaded READ hasDownloaded)
 public:
     Sound(const QUrl& sampleURL, QObject* parent = NULL);
     Sound(float volume, float frequency, float duration, float decay, QObject* parent = NULL);
+    
+    bool hasDownloaded() const { return _hasDownloaded; }
     
     const QByteArray& getByteArray() { return _byteArray; }
 
 private:
     QByteArray _byteArray;
-
+    bool _hasDownloaded;
+    
     void downSample(const QByteArray& rawAudioByteArray);
     void interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);
 
 private slots:
-    void replyFinished(QNetworkReply* reply);
+    void replyFinished();
+    void replyError(QNetworkReply::NetworkError code);
 };
 
-#endif /* defined(__hifi__Sound__) */
+#endif // hifi_Sound_h

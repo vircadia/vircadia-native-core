@@ -1,31 +1,31 @@
 //
-// starfield/Controller.cpp
-// interface
+//  Controller.cpp
+//  interface/src/starfield
 //
-// Created by Chris Barnard on 10/16/13
-// Portions of code based on earlier work by Tobias Schwinger.
-// Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Created by Chris Barnard on 10/16/13.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifdef _WIN32
-#define WANT_TIMEVAL
-#include <Systime.h>
-#endif
+#include <QElapsedTimer>
 
 #include "starfield/Controller.h"
 
 using namespace starfield;
 
 bool Controller::computeStars(unsigned numStars, unsigned seed) {
-    timeval startTime;
-    gettimeofday(&startTime, NULL);
+    QElapsedTimer startTime;
+    startTime.start();
     
     Generator::computeStarPositions(_inputSequence, numStars, seed);
     
     this->retile(numStars, _tileResolution);
     
-    qDebug() << "Total time to retile and generate stars: "
-        << ((usecTimestampNow() - usecTimestamp(&startTime)) / 1000) << "msec";
+    double NSEC_TO_MSEC = 1.0 / 1000000.0;
+    double timeDiff = (double)startTime.nsecsElapsed() * NSEC_TO_MSEC;
+    qDebug() << "Total time to retile and generate stars: " << timeDiff << "msec";
     
     return true;
 }

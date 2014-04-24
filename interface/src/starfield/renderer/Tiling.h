@@ -1,13 +1,16 @@
 //
-// starfield/renderer/Tiling.h 
-// interface
+//  Tiling.h
+//  interface/src/starfield/renderer
 //
-// Created by Tobias Schwinger on 3/22/13.
-// Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//  Created by Tobias Schwinger on 3/22/13.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __interface__starfield__renderer__Tiling__
-#define __interface__starfield__renderer__Tiling__
+#ifndef hifi_Tiling_h
+#define hifi_Tiling_h
 
 #include "starfield/Config.h"
 
@@ -42,5 +45,4 @@ namespace starfield {
     };
 }
 
-#endif
-
+#endif // hifi_Tiling_h
