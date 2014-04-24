@@ -21,8 +21,7 @@ class FramelessDialog : public QDialog {
 public:
     enum Position { POSITION_LEFT, POSITION_RIGHT };
 
-    FramelessDialog(QWidget* parent = 0, Qt::WindowFlags flags = 0,
-                    Position position = POSITION_LEFT);
+    FramelessDialog(QWidget* parent = 0, Qt::WindowFlags flags = 0, Position position = POSITION_LEFT);
     void setStyleSheetFile(const QString& fileName);
 
 protected:
