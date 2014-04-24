@@ -16,6 +16,7 @@
 #include <time.h>
 
 #include <QApplication>
+#include <QMainWindow>
 #include <QAction>
 #include <QHash>
 #include <QImage>

@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QMessageBox>
+
 #include "Application.h"
 #include "LocationManager.h"
 
@@ -118,6 +120,8 @@ void LocationManager::checkForMultipleDestinations() {
             Application::getInstance()->getAvatar()->goToLocationFromResponse(_placeData);
             return;
         }
+
+        QMessageBox::warning(Application::getInstance()->getWindow(), "", "That user or location could not be found.");
     }
 }
 
