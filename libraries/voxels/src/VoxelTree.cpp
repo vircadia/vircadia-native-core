@@ -45,6 +45,13 @@ VoxelTreeElement* VoxelTree::getVoxelAt(float x, float y, float z, float s) cons
     return static_cast<VoxelTreeElement*>(getOctreeElementAt(x, y, z, s));
 }
 
+VoxelTreeElement* VoxelTree::getEnclosingVoxelAt(float x, float y, float z, float s) const {
+    unsigned char* octalCode = pointToOctalCode(x,y,z,s);
+    OctreeElement* node = nodeForOctalCode(_rootNode, octalCode, NULL);
+    
+    return static_cast<VoxelTreeElement*>(node);
+}
+
 void VoxelTree::createVoxel(float x, float y, float z, float s,
                             unsigned char red, unsigned char green, unsigned char blue, bool destructive) {
 

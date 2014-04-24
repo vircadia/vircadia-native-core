@@ -23,7 +23,6 @@ class VoxelTree;
 class AddVoxelCommand : public QUndoCommand {
 public:
     AddVoxelCommand(VoxelTree* tree, VoxelDetail& voxel, VoxelEditPacketSender* packetSender = NULL, QUndoCommand* parent = NULL);
-    ~AddVoxelCommand();
     
     virtual void redo();
     virtual void undo();
@@ -32,7 +31,6 @@ private:
     VoxelTree* _tree;
     VoxelEditPacketSender* _packetSender;
     VoxelDetail _voxel;
-    VoxelTree* _oldTree;
 };
 
 class DeleteVoxelCommand : public QUndoCommand {

@@ -30,6 +30,7 @@ public:
 
     void deleteVoxelAt(float x, float y, float z, float s);
     VoxelTreeElement* getVoxelAt(float x, float y, float z, float s) const;
+    VoxelTreeElement* getEnclosingVoxelAt(float x, float y, float z, float s) const;
     void createVoxel(float x, float y, float z, float s,
                      unsigned char red, unsigned char green, unsigned char blue, bool destructive = false);
 
