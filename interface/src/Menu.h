@@ -154,6 +154,7 @@ public slots:
     void goTo();
     void goToUser(const QString& user);
     void pasteToVoxel();
+    void openUrl(const QUrl& url);
 
     void toggleLoginMenuItem();
 

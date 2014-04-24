@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <vector>
 
+#include <QMessageBox>
 #include <QBuffer>
 
 #include <glm/gtx/norm.hpp>
@@ -1184,6 +1185,8 @@ void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
                                           coordinateItems[2].toFloat()) - newOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
         setPosition(newPosition);
         emit transformChanged();
+    } else {
+        QMessageBox::warning(Application::getInstance()->getWindow(), "", "That user or location could not be found.");
     }
     
 }
