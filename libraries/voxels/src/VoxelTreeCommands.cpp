@@ -21,7 +21,7 @@ struct SendVoxelsOperationArgs {
 };
 
 bool sendVoxelsOperation(OctreeElement* element, void* extraData) {
-    VoxelTreeElement* voxel = (VoxelTreeElement*)element;
+    VoxelTreeElement* voxel = static_cast<VoxelTreeElement*>(element);
     SendVoxelsOperationArgs* args = (SendVoxelsOperationArgs*)extraData;
     if (voxel->isColored()) {
         const unsigned char* nodeOctalCode = voxel->getOctalCode();
@@ -117,19 +117,20 @@ DeleteVoxelCommand::~DeleteVoxelCommand() {
 }
 
 void DeleteVoxelCommand::redo() {
-    if (_voxel.s == 0) {
+    if (_voxel.s == 0.0f) {
         return;
     }
     
     if (_tree) {
-        _tree->deleteVoxelAt(_voxel.x, _voxel.y, _voxel.z, _voxel.s);    }
+        _tree->deleteVoxelAt(_voxel.x, _voxel.y, _voxel.z, _voxel.s);
+    }
     if (_packetSender) {
         _packetSender->queueVoxelEditMessages(PacketTypeVoxelErase, 1, &_voxel);
     }
 }
 
 void DeleteVoxelCommand::undo() {
-    if (_voxel.s == 0) {
+    if (_voxel.s == 0.0f) {
         return;
     }
     
