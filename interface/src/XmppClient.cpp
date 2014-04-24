@@ -20,11 +20,15 @@ const QString DEFAULT_CHAT_ROOM = "public@public-chat.highfidelity.io";
 
 XmppClient::XmppClient() :
     _xmppClient(),
-    _xmppMUCManager()
-{
+    _xmppMUCManager(),
+    _archiveManager()
+{		
     AccountManager& accountManager = AccountManager::getInstance();
     connect(&accountManager, SIGNAL(accessTokenChanged()), this, SLOT(connectToServer()));
     connect(&accountManager, SIGNAL(logoutComplete()), this, SLOT(disconnectFromServer()));
+
+    _archiveManager = new QXmppArchiveManager;
+    _xmppClient.addExtension(_archiveManager);
 }
 
 XmppClient& XmppClient::getInstance() {

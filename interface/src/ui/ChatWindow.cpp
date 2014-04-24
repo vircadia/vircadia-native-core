@@ -74,6 +74,7 @@ ChatWindow::ChatWindow() :
         connect(&xmppClient, SIGNAL(connected()), this, SLOT(connected()));
     }
     connect(&xmppClient, SIGNAL(messageReceived(QXmppMessage)), this, SLOT(messageReceived(QXmppMessage)));
+
 #endif
 }
 
@@ -213,6 +214,7 @@ void ChatWindow::connected() {
 #ifdef HAVE_QXMPP
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
     connect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
+
 #endif
     startTimerForTimeStamps();
 }

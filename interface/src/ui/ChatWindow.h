@@ -23,6 +23,10 @@
 #include <QXmppClient.h>
 #include <QXmppMessage.h>
 
+class QXmppArchiveChat;
+class QXmppArchiveManager;
+class QXmppResultSetReply;
+
 #endif
 
 namespace Ui {
@@ -70,6 +74,7 @@ private slots:
     void error(QXmppClient::Error error);
     void participantsChanged();
     void messageReceived(const QXmppMessage& message);
+
 #endif
 };
 
