@@ -9,24 +9,23 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifdef _WIN32
-#include <Systime.h>
-#endif
+#include <QElapsedTimer>
 
 #include "starfield/Controller.h"
 
 using namespace starfield;
 
 bool Controller::computeStars(unsigned numStars, unsigned seed) {
-    timeval startTime;
-    gettimeofday(&startTime, NULL);
+    QElapsedTimer startTime;
+    startTime.start();
     
     Generator::computeStarPositions(_inputSequence, numStars, seed);
     
     this->retile(numStars, _tileResolution);
     
-    qDebug() << "Total time to retile and generate stars: "
-        << ((usecTimestampNow() - usecTimestamp(&startTime)) / 1000) << "msec";
+    double NSEC_TO_MSEC = 1.0 / 1000000.0;
+    double timeDiff = (double)startTime.nsecsElapsed() * NSEC_TO_MSEC;
+    qDebug() << "Total time to retile and generate stars: " << timeDiff << "msec";
     
     return true;
 }

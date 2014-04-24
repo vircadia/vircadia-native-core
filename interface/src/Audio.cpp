@@ -480,7 +480,7 @@ void Audio::handleAudioInput() {
             float thisSample = 0;
             int samplesOverNoiseGate = 0;
             
-            const float NOISE_GATE_HEIGHT = 7.f;
+            const float NOISE_GATE_HEIGHT = 7.0f;
             const int NOISE_GATE_WIDTH = 5;
             const int NOISE_GATE_CLOSE_FRAME_DELAY = 5;
             const int NOISE_GATE_FRAMES_TO_AVERAGE = 5;
@@ -490,7 +490,7 @@ void Audio::handleAudioInput() {
             //
             //  Check clipping, adjust DC offset, and check if should open noise gate
             //
-            float measuredDcOffset = 0.f;
+            float measuredDcOffset = 0.0f;
             //  Increment the time since the last clip
             if (_timeSinceLastClip >= 0.0f) {
                 _timeSinceLastClip += (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float) SAMPLE_RATE;
@@ -500,7 +500,7 @@ void Audio::handleAudioInput() {
                 measuredDcOffset += monoAudioSamples[i];
                 monoAudioSamples[i] -= (int16_t) _dcOffset;
                 thisSample = fabsf(monoAudioSamples[i]);
-                if (thisSample >= (32767.f * CLIPPING_THRESHOLD)) {
+                if (thisSample >= (32767.0f * CLIPPING_THRESHOLD)) {
                     _timeSinceLastClip = 0.0f;
                 }
                 loudness += thisSample;
@@ -511,18 +511,18 @@ void Audio::handleAudioInput() {
             }
             
             measuredDcOffset /= NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
-            if (_dcOffset == 0.f) {
+            if (_dcOffset == 0.0f) {
                 // On first frame, copy over measured offset
                 _dcOffset = measuredDcOffset;
             } else {
-                _dcOffset = DC_OFFSET_AVERAGING * _dcOffset + (1.f - DC_OFFSET_AVERAGING) * measuredDcOffset;
+                _dcOffset = DC_OFFSET_AVERAGING * _dcOffset + (1.0f - DC_OFFSET_AVERAGING) * measuredDcOffset;
             }
             
             //  Add tone injection if enabled
-            const float TONE_FREQ = 220.f / SAMPLE_RATE * TWO_PI;
-            const float QUARTER_VOLUME = 8192.f;
+            const float TONE_FREQ = 220.0f / SAMPLE_RATE * TWO_PI;
+            const float QUARTER_VOLUME = 8192.0f;
             if (_toneInjectionEnabled) {
-                loudness = 0.f;
+                loudness = 0.0f;
                 for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
                     monoAudioSamples[i] = QUARTER_VOLUME * sinf(TONE_FREQ * (float)(i + _proceduralEffectSample));
                     loudness += fabsf(monoAudioSamples[i]);
@@ -532,7 +532,7 @@ void Audio::handleAudioInput() {
 
             //  If Noise Gate is enabled, check and turn the gate on and off
             if (!_toneInjectionEnabled && _noiseGateEnabled) {
-                float averageOfAllSampleFrames = 0.f;
+                float averageOfAllSampleFrames = 0.0f;
                 _noiseSampleFrames[_noiseGateSampleCounter++] = _lastInputLoudness;
                 if (_noiseGateSampleCounter == NUMBER_OF_NOISE_SAMPLE_FRAMES) {
                     float smallestSample = FLT_MAX;
@@ -643,13 +643,12 @@ void Audio::handleAudioInput() {
 void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     const int NUM_INITIAL_PACKETS_DISCARD = 3;
     const int STANDARD_DEVIATION_SAMPLE_COUNT = 500;
-
-    timeval currentReceiveTime;
-    gettimeofday(&currentReceiveTime, NULL);
+    
+    _timeSinceLastRecieved.start();
     _totalPacketsReceived++;
-
-    double timeDiff = diffclock(&_lastReceiveTime, &currentReceiveTime);
-
+    
+    double timeDiff = (double)_timeSinceLastRecieved.nsecsElapsed() / 1000000.0; // ns to ms
+    
     //  Discard first few received packets for computing jitter (often they pile up on start)
     if (_totalPacketsReceived > NUM_INITIAL_PACKETS_DISCARD) {
         _stdev.addValue(timeDiff);
@@ -660,9 +659,9 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
         _stdev.reset();
         //  Set jitter buffer to be a multiple of the measured standard deviation
         const int MAX_JITTER_BUFFER_SAMPLES = _ringBuffer.getSampleCapacity() / 2;
-        const float NUM_STANDARD_DEVIATIONS = 3.f;
+        const float NUM_STANDARD_DEVIATIONS = 3.0f;
         if (Menu::getInstance()->getAudioJitterBufferSamples() == 0) {
-            float newJitterBufferSamples = (NUM_STANDARD_DEVIATIONS * _measuredJitter) / 1000.f * SAMPLE_RATE;
+            float newJitterBufferSamples = (NUM_STANDARD_DEVIATIONS * _measuredJitter) / 1000.0f * SAMPLE_RATE;
             setJitterBufferSamples(glm::clamp((int)newJitterBufferSamples, 0, MAX_JITTER_BUFFER_SAMPLES));
         }
     }
@@ -673,8 +672,6 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     }
 
     Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(audioByteArray.size());
-
-    _lastReceiveTime = currentReceiveTime;
 }
 
 // NOTE: numSamples is the total number of single channel samples, since callers will always call this with stereo
@@ -903,10 +900,10 @@ void Audio::toggleAudioSpatialProcessing() {
 void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
     float sample;
     const float COLLISION_SOUND_CUTOFF_LEVEL = 0.01f;
-    const float COLLISION_SOUND_MAX_VOLUME = 1000.f;
+    const float COLLISION_SOUND_MAX_VOLUME = 1000.0f;
     const float UP_MAJOR_FIFTH = powf(1.5f, 4.0f);
-    const float DOWN_TWO_OCTAVES = 4.f;
-    const float DOWN_FOUR_OCTAVES = 16.f;
+    const float DOWN_TWO_OCTAVES = 4.0f;
+    const float DOWN_FOUR_OCTAVES = 16.0f;
     float t;
     if (_collisionSoundMagnitude > COLLISION_SOUND_CUTOFF_LEVEL) {
         for (int i = 0; i < numSamples; i++) {
@@ -936,12 +933,12 @@ void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
     _proceduralEffectSample += numSamples;
 
     //  Add a drum sound
-    const float MAX_VOLUME = 32000.f;
-    const float MAX_DURATION = 2.f;
+    const float MAX_VOLUME = 32000.0f;
+    const float MAX_DURATION = 2.0f;
     const float MIN_AUDIBLE_VOLUME = 0.001f;
     const float NOISE_MAGNITUDE = 0.02f;
     float frequency = (_drumSoundFrequency / SAMPLE_RATE) * TWO_PI;
-    if (_drumSoundVolume > 0.f) {
+    if (_drumSoundVolume > 0.0f) {
         for (int i = 0; i < numSamples; i++) {
             t = (float) _drumSoundSample + (float) i;
             sample = sinf(t * frequency);
@@ -961,12 +958,12 @@ void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
             _localProceduralSamples[i] = glm::clamp(_localProceduralSamples[i] + collisionSample,
                                                   MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
 
-            _drumSoundVolume *= (1.f - _drumSoundDecay);
+            _drumSoundVolume *= (1.0f - _drumSoundDecay);
         }
         _drumSoundSample += numSamples;
-        _drumSoundDuration = glm::clamp(_drumSoundDuration - (AUDIO_CALLBACK_MSECS / 1000.f), 0.f, MAX_DURATION);
-        if (_drumSoundDuration == 0.f || (_drumSoundVolume < MIN_AUDIBLE_VOLUME)) {
-            _drumSoundVolume = 0.f;
+        _drumSoundDuration = glm::clamp(_drumSoundDuration - (AUDIO_CALLBACK_MSECS / 1000.0f), 0.0f, MAX_DURATION);
+        if (_drumSoundDuration == 0.0f || (_drumSoundVolume < MIN_AUDIBLE_VOLUME)) {
+            _drumSoundVolume = 0.0f;
         }
     }
 }
@@ -999,7 +996,7 @@ void Audio::renderToolBox(int x, int y, bool boxed) {
 
     if (boxed) {
 
-        bool isClipping = ((getTimeSinceLastClip() > 0.f) && (getTimeSinceLastClip() < 1.f));
+        bool isClipping = ((getTimeSinceLastClip() > 0.0f) && (getTimeSinceLastClip() < 1.0f));
         const int BOX_LEFT_PADDING = 5;
         const int BOX_TOP_PADDING = 10;
         const int BOX_WIDTH = 266;
@@ -1010,9 +1007,9 @@ void Audio::renderToolBox(int x, int y, bool boxed) {
         glBindTexture(GL_TEXTURE_2D, _boxTextureId);
 
         if (isClipping) {
-            glColor3f(1.f,0.f,0.f);
+            glColor3f(1.0f, 0.0f, 0.0f);
         } else {
-            glColor3f(.41f,.41f,.41f);
+            glColor3f(0.41f, 0.41f, 0.41f);
         }
         glBegin(GL_QUADS);
 
@@ -1089,10 +1086,8 @@ void Audio::addBufferToScope(
     // Short int pointer to mapped samples in byte array
     int16_t* destination = (int16_t*) byteArray.data();
 
-    for (int i = 0; i < NETWORK_SAMPLES_PER_FRAME; i++) {
-
+    for (unsigned int i = 0; i < NETWORK_SAMPLES_PER_FRAME; i++) {
         sample = (float)source[i * sourceNumberOfChannels + sourceChannel];
-		
         if (sample > 0) {
             value = (int16_t)(multiplier * logf(sample));
         } else if (sample < 0) {
@@ -1100,7 +1095,6 @@ void Audio::addBufferToScope(
         } else {
             value = 0;
         }
-
         destination[i + frameOffset] = value;
     }
 }
@@ -1271,13 +1265,13 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
             // setup a procedural audio output device
             _proceduralAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
 
-            gettimeofday(&_lastReceiveTime, NULL);
+            _timeSinceLastRecieved.start();
 
             // setup spatial audio ringbuffer
             int numFrameSamples = _outputFormat.sampleRate() * _desiredOutputFormat.channelCount();
             _spatialAudioRingBuffer.resizeForFrameSize(numFrameSamples);
             _spatialAudioStart = _spatialAudioFinish = 0;
-
+            
             supportedFormat = true;
         }
     }
