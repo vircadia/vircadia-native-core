@@ -149,7 +149,7 @@ public:
     void updateShapePositions();
 
 public slots:
-    void updateCollisionFlags();
+    void updateCollisionGroups();
 
 signals:
     void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);
@@ -166,7 +166,7 @@ protected:
     float _stringLength;
     bool _moving; ///< set when position is changing
 
-    uint32_t _collisionFlags;
+    uint32_t _collisionGroups;
 
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }

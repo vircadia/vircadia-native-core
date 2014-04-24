@@ -54,7 +54,7 @@ Avatar::Avatar() :
     _mouseRayOrigin(0.0f, 0.0f, 0.0f),
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _moving(false),
-    _collisionFlags(0),
+    _collisionGroups(0),
     _initialized(false),
     _shouldRenderBillboard(true)
 {
@@ -550,7 +550,7 @@ bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& 
 }
 
 bool Avatar::findParticleCollisions(const glm::vec3& particleCenter, float particleRadius, CollisionList& collisions) {
-    if (_collisionFlags & COLLISION_GROUP_PARTICLES) {
+    if (_collisionGroups & COLLISION_GROUP_PARTICLES) {
         return false;
     }
     bool collided = false;
@@ -740,19 +740,19 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
     glEnd();
 }
 
-void Avatar::updateCollisionFlags() {
-    _collisionFlags = 0;
+void Avatar::updateCollisionGroups() {
+    _collisionGroups = 0;
     if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithEnvironment)) {
-        _collisionFlags |= COLLISION_GROUP_ENVIRONMENT;
+        _collisionGroups |= COLLISION_GROUP_ENVIRONMENT;
     }
     if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithAvatars)) {
-        _collisionFlags |= COLLISION_GROUP_AVATARS;
+        _collisionGroups |= COLLISION_GROUP_AVATARS;
     }
     if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithVoxels)) {
-        _collisionFlags |= COLLISION_GROUP_VOXELS;
+        _collisionGroups |= COLLISION_GROUP_VOXELS;
     }
     if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithParticles)) {
-        _collisionFlags |= COLLISION_GROUP_PARTICLES;
+        _collisionGroups |= COLLISION_GROUP_PARTICLES;
     }
 }
 

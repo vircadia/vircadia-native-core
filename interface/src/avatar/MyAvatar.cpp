@@ -284,7 +284,7 @@ void MyAvatar::simulate(float deltaTime) {
     _thrust *= glm::vec3(0.0f);
 
     // now that we're done stepping the avatar forward in time, compute new collisions
-    if (_collisionFlags != 0) {
+    if (_collisionGroups != 0) {
         Camera* myCamera = Application::getInstance()->getCamera();
 
         float radius = getSkeletonHeight() * COLLISION_RADIUS_SCALE;
@@ -292,15 +292,15 @@ void MyAvatar::simulate(float deltaTime) {
             radius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.0f));
             radius *= COLLISION_RADIUS_SCALAR;
         }
-        if (_collisionFlags) {
+        if (_collisionGroups) {
             updateShapePositions();
-            if (_collisionFlags & COLLISION_GROUP_ENVIRONMENT) {
+            if (_collisionGroups & COLLISION_GROUP_ENVIRONMENT) {
                 updateCollisionWithEnvironment(deltaTime, radius);
             }
-            if (_collisionFlags & COLLISION_GROUP_VOXELS) {
+            if (_collisionGroups & COLLISION_GROUP_VOXELS) {
                 updateCollisionWithVoxels(deltaTime, radius);
             }
-            if (_collisionFlags & COLLISION_GROUP_AVATARS) {
+            if (_collisionGroups & COLLISION_GROUP_AVATARS) {
                 updateCollisionWithAvatars(deltaTime);
             }
         }
@@ -408,17 +408,13 @@ void MyAvatar::renderDebugBodyPoints() {
     glTranslatef(position.x, position.y, position.z);
     glutSolidSphere(0.15, 10, 10);
     glPopMatrix();
-
-
 }
 
 // virtual
 void MyAvatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
-    // don't render if we've been asked to disable local rendering
-    if (!_shouldRender) {
-        return; // exit early
+    if (_shouldRender) {
+        Avatar::render(cameraPosition, renderMode);
     }
-    Avatar::render(cameraPosition, renderMode);
 }
 
 void MyAvatar::renderHeadMouse() const {
