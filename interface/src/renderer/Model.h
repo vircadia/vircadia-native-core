@@ -193,6 +193,8 @@ public:
     /// Sets blended vertices computed in a separate thread.
     void setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
 
+    const CapsuleShape& getBoundingShape() const { return _boundingShape; }
+
 protected:
 
     QSharedPointer<NetworkGeometry> _geometry;

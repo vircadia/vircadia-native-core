@@ -19,7 +19,6 @@
 
 #include "AABox.h"
 #include "Plane.h"
-
 #include "OctreeConstants.h"
 #include "OctreeProjectedPolygon.h"
 

@@ -449,7 +449,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     if (nodeInterestList.size() > 0) {
         
         DTLSServerSession* dtlsSession = _isUsingDTLS ? _dtlsSessions[senderSockAddr] : NULL;
-        unsigned int dataMTU = dtlsSession ? gnutls_dtls_get_data_mtu(*dtlsSession->getGnuTLSSession()) : MAX_PACKET_SIZE;
+        int dataMTU = dtlsSession ? (int)gnutls_dtls_get_data_mtu(*dtlsSession->getGnuTLSSession()) : MAX_PACKET_SIZE;
         
         // if the node has any interest types, send back those nodes as well
         foreach (const SharedNodePointer& otherNode, nodeList->getNodeHash()) {
