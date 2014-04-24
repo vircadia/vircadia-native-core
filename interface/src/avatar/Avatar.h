@@ -150,7 +150,7 @@ public:
     void updateShapePositions();
 
     quint32 getCollisionGroups() const { return _collisionGroups; }
-    void setCollisionGroups(quint32 collisionGroups) { _collisionGroups = (collisionGroups & VALID_COLLISION_GROUPS); }
+    virtual void setCollisionGroups(quint32 collisionGroups) { _collisionGroups = (collisionGroups & VALID_COLLISION_GROUPS); }
 
 public slots:
     void updateCollisionGroups();

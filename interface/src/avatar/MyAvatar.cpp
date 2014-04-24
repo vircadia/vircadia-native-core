@@ -59,6 +59,7 @@ MyAvatar::MyAvatar() :
     _thrust(0.0f),
     _isThrustOn(false),
     _thrustMultiplier(1.0f),
+    _motionBehaviors(0),
     _lastBodyPenetration(0.0f),
     _lookAtTargetAvatar(),
     _shouldRender(true),
@@ -123,7 +124,7 @@ void MyAvatar::update(float deltaTime) {
     head->setAudioLoudness(audio->getLastInputLoudness());
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Gravity)) {
+    if (_motionBehaviors & AVATAR_MOTION_OBEY_GRAVITY) {
         setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()));
     } else {
         setGravity(glm::vec3(0.0f, 0.0f, 0.0f));
@@ -1134,7 +1135,28 @@ void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
         setPosition(newPosition);
         emit transformChanged();
     }
-    
+}
+
+void MyAvatar::updateMotionBehaviors() {
+    _motionBehaviors = 0;
+    if (Menu::getInstance()->isOptionChecked(MenuOption::ObeyGravity)) {
+        _motionBehaviors |= AVATAR_MOTION_OBEY_GRAVITY;
+    }
+}
+
+void MyAvatar::setCollisionGroups(quint32 collisionGroups) {
+    Avatar::setCollisionGroups(collisionGroups & VALID_COLLISION_GROUPS);
+    Menu* menu = Menu::getInstance();
+    menu->setIsOptionChecked(MenuOption::CollideWithEnvironment, (bool)(_collisionGroups & COLLISION_GROUP_ENVIRONMENT));
+    menu->setIsOptionChecked(MenuOption::CollideWithAvatars, (bool)(_collisionGroups & COLLISION_GROUP_AVATARS));
+    menu->setIsOptionChecked(MenuOption::CollideWithVoxels, (bool)(_collisionGroups & COLLISION_GROUP_VOXELS));
+    menu->setIsOptionChecked(MenuOption::CollideWithParticles, (bool)(_collisionGroups & COLLISION_GROUP_PARTICLES));
+}
+
+void MyAvatar::setMotionBehaviors(quint32 flags) {
+    _motionBehaviors = flags;
+    Menu* menu = Menu::getInstance();
+    menu->setIsOptionChecked(MenuOption::ObeyGravity, (bool)(_motionBehaviors & AVATAR_MOTION_OBEY_GRAVITY));
 }
 
 void MyAvatar::applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) {

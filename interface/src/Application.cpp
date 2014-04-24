@@ -861,7 +861,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_G:
                 if (isShifted) {
-                    Menu::getInstance()->triggerOption(MenuOption::Gravity);
+                    Menu::getInstance()->triggerOption(MenuOption::ObeyGravity);
                 }
                 break;
 

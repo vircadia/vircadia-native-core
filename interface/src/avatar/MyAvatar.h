@@ -25,9 +25,12 @@ enum AvatarHandState
     NUM_HAND_STATES
 };
 
+const quint32 AVATAR_MOTION_OBEY_GRAVITY = 1U << 0;
+
 class MyAvatar : public Avatar {
     Q_OBJECT
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
+    Q_PROPERTY(quint32 motionBehaviors READ getMotionBehaviors WRITE setMotionBehaviors)
 
 public:
 	MyAvatar();
@@ -88,6 +91,10 @@ public:
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
+    virtual void setCollisionGroups(quint32 collisionGroups);
+    void setMotionBehaviors(quint32 flags);
+    quint32 getMotionBehaviors() const { return _motionBehaviors; }
+
     void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration);
 
 public slots:
@@ -103,6 +110,8 @@ public slots:
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
     glm::vec3 getThrust() { return _thrust; };
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
+
+    void updateMotionBehaviors();
 
 signals:
     void transformChanged();
@@ -122,6 +131,8 @@ private:
     glm::vec3 _thrust;  // final acceleration for the current frame
     bool _isThrustOn;
     float _thrustMultiplier;
+
+    quint32 _motionBehaviors;
 
     glm::vec3 _lastBodyPenetration;
     QWeakPointer<AvatarData> _lookAtTargetAvatar;

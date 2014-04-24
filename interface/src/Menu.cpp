@@ -186,9 +186,9 @@ Menu::Menu() :
                                   QAction::PreferencesRole);
 
     addDisabledActionAndSeparator(editMenu, "Physics");
-    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::Gravity, Qt::SHIFT | Qt::Key_G, false);
-
-
+    QObject* avatar = appInstance->getAvatar();
+    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ObeyGravity, Qt::SHIFT | Qt::Key_G, true, 
+            avatar, SLOT(updateMotionBehaviorFlags()));
 
 
     addAvatarCollisionSubMenu(editMenu);
