@@ -14,7 +14,7 @@
 HTTPSConnection::HTTPSConnection(QSslSocket* sslSocket, HTTPSManager* parentManager) :
     HTTPConnection(sslSocket, parentManager)
 {
-    connect(sslSocket, SIGNAL(sslErrors(const QList<QSslError>&)), this, SLOT(sslErrors(const QList<QSslError>&)));
+    connect(sslSocket, SIGNAL(sslErrors(const QList<QSslError>&)), this, SLOT(handleSSLErrors(const QList<QSslError>&)));
     sslSocket->startServerEncryption();
 }
 

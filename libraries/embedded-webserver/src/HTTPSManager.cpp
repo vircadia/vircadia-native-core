@@ -27,6 +27,9 @@ HTTPSManager::HTTPSManager(quint16 port, const QSslCertificate& certificate, con
 void HTTPSManager::incomingConnection(qintptr socketDescriptor) {
     QSslSocket* sslSocket = new QSslSocket(this);
     
+    sslSocket->setLocalCertificate(_certificate);
+    sslSocket->setPrivateKey(_privateKey);
+    
     if (sslSocket->setSocketDescriptor(socketDescriptor)) {
         new HTTPSConnection(sslSocket, this);
     } else {

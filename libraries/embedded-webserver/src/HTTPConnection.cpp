@@ -42,7 +42,7 @@ HTTPConnection::HTTPConnection (QTcpSocket* socket, HTTPManager* parentManager) 
 HTTPConnection::~HTTPConnection() {
     // log the destruction
     if (_socket->error() != QAbstractSocket::UnknownSocketError) {
-        qDebug() << _socket->errorString();
+        qDebug() << _socket->errorString() << "-" << _socket->error();
     }
 }
 
