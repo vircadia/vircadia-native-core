@@ -968,6 +968,12 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     return false;
 }
 
+bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &url) {
+    qDebug() << "HTTPS request received at" << url;
+    qDebug() << "not handling";
+    return false;
+}
+
 void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment) {
     QUuid oldUUID = assignment->getUUID();
     assignment->resetUUID();

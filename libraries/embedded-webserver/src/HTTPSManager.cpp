@@ -16,10 +16,11 @@
 #include "HTTPSManager.h"
 
 HTTPSManager::HTTPSManager(quint16 port, const QSslCertificate& certificate, const QSslKey& privateKey,
-                           const QString& documentRoot, HTTPRequestHandler* requestHandler, QObject* parent) :
+                           const QString& documentRoot, HTTPSRequestHandler* requestHandler, QObject* parent) :
     HTTPManager(port, documentRoot, requestHandler, parent),
     _certificate(certificate),
-    _privateKey(privateKey)
+    _privateKey(privateKey),
+    _sslRequestHandler(requestHandler)
 {
     
 }
@@ -35,4 +36,16 @@ void HTTPSManager::incomingConnection(qintptr socketDescriptor) {
     } else {
         delete sslSocket;
     }
+}
+
+bool HTTPSManager::handleHTTPRequest(HTTPConnection* connection, const QUrl &url) {
+    return handleHTTPSRequest(reinterpret_cast<HTTPSConnection*>(connection), url);
+}
+
+bool HTTPSManager::handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url) {
+    return HTTPManager::handleHTTPRequest(connection, url);
+}
+
+bool HTTPSManager::requestHandledByRequestHandler(HTTPConnection* connection, const QUrl& url) {
+    return _sslRequestHandler && _sslRequestHandler->handleHTTPSRequest(reinterpret_cast<HTTPSConnection*>(connection), url);
 }

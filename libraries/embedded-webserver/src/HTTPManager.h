@@ -19,6 +19,7 @@
 #include <QtNetwork/QTcpServer>
 
 class HTTPConnection;
+class HTTPSConnection;
 
 class HTTPRequestHandler {
 public:
@@ -38,6 +39,7 @@ public:
 protected:
     /// Accepts all pending connections
     virtual void incomingConnection(qintptr socketDescriptor);
+    virtual bool requestHandledByRequestHandler(HTTPConnection* connection, const QUrl& url);
 protected:
     QString _documentRoot;
     HTTPRequestHandler* _requestHandler;

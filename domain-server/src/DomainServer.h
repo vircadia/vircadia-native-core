@@ -23,21 +23,21 @@
 #include <gnutls/gnutls.h>
 
 #include <Assignment.h>
-#include <HTTPManager.h>
-#include <HTTPSManager.h>
+#include <HTTPSConnection.h>
 #include <LimitedNodeList.h>
 
 #include "DTLSServerSession.h"
 
 typedef QSharedPointer<Assignment> SharedAssignmentPointer;
 
-class DomainServer : public QCoreApplication, public HTTPRequestHandler {
+class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
     Q_OBJECT
 public:
     DomainServer(int argc, char* argv[]);
     ~DomainServer();
     
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
+    bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url);
     
     void exit(int retCode = 0);
     
