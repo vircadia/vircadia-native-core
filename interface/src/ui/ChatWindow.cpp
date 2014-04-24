@@ -216,6 +216,16 @@ void ChatWindow::connected() {
     connect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
 
 
+    // set limits
+    QDateTime m_startDate = QDateTime::currentDateTime().addDays(-2);
+    QDateTime m_endDate = QDateTime::currentDateTime();
+
+    QXmppResultSetQuery rsmQuery;
+    rsmQuery.setMax(100);
+
+    QXmppArchiveManager* archiveManager = XmppClient::getInstance().getArchiveManager();
+    archiveManager->listCollections("", m_startDate, m_endDate, rsmQuery);
+
 #endif
     startTimerForTimeStamps();
 }
