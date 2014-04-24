@@ -13,16 +13,15 @@
 #define hifi_ChatInputArea_h
 
 #include <QTextBrowser>
+#include <QMimeData>
 
 class ChatInputArea : public QTextEdit {
     Q_OBJECT
 public:
-    ChatInputArea(QWidget* parent) : QTextEdit(parent) { };
+    ChatInputArea(QWidget* parent);
 
 protected:
-    void insertFromMimeData(const QMimeData* source) {
-        insertPlainText(source->text());
-    };
+    void insertFromMimeData(const QMimeData* source);
 };
 
 #endif // hifi_ChatInputArea_h
