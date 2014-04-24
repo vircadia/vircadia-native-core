@@ -3527,9 +3527,9 @@ void Application::parseVersionXml() {
 
     QXmlStreamReader xml(qobject_cast<QNetworkReply*>(sender));
     
-    while(!xml.atEnd() && !xml.hasError()) {
+    while (!xml.atEnd() && !xml.hasError()) {
         if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == operatingSystem) {
-            while(!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == operatingSystem)) {
+            while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == operatingSystem)) {
                 if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name().toString() == "version") {
                     xml.readNext();
                     latestVersion = xml.text().toString();
