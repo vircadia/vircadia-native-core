@@ -138,14 +138,14 @@ HTTPManager::HTTPManager(quint16 port, const QString& documentRoot, HTTPRequestH
         qDebug() << "Failed to open HTTP server socket:" << errorString();
         return;
     }
-    
-    // connect the connection signal
-    connect(this, SIGNAL(newConnection()), SLOT(acceptConnections()));
 }
 
-void HTTPManager::acceptConnections() {
-    QTcpSocket* socket;
-    while ((socket = nextPendingConnection()) != 0) {
+void HTTPManager::incomingConnection(qintptr socketDescriptor) {
+    QTcpSocket* socket = new QTcpSocket(this);
+    
+    if (socket->setSocketDescriptor(socketDescriptor)) {
         new HTTPConnection(socket, this);
+    } else {
+        delete socket;
     }
 }

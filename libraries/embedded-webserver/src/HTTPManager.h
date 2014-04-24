@@ -35,9 +35,9 @@ public:
     
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
     
-protected slots:
+protected:
     /// Accepts all pending connections
-    void acceptConnections();
+    virtual void incomingConnection(qintptr socketDescriptor);
 protected:
     QString _documentRoot;
     HTTPRequestHandler* _requestHandler;

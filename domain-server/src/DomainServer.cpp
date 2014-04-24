@@ -31,11 +31,13 @@
 
 #include "DomainServer.h"
 
-const quint16 DOMAIN_SERVER_HTTP_PORT = 8080;
+const quint16 DOMAIN_SERVER_HTTP_PORT = 40100;
+const quint16 DOMAIN_SERVER_HTTPS_PORT = 40101;
 
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
-    _HTTPManager(DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
+    _httpManager(DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
+    _httpsManager(NULL),
     _staticAssignmentHash(),
     _assignmentQueue(),
     _isUsingDTLS(false),

@@ -28,8 +28,8 @@ HTTPConnection::HTTPConnection (QTcpSocket* socket, HTTPManager* parentManager) 
     _parentManager(parentManager),
     _socket(socket),
     _stream(socket),
-    _address(socket->peerAddress()) {
-        
+    _address(socket->peerAddress())
+{
     // take over ownership of the socket
     _socket->setParent(this);
 

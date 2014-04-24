@@ -24,6 +24,7 @@
 
 #include <Assignment.h>
 #include <HTTPManager.h>
+#include <HTTPSManager.h>
 #include <LimitedNodeList.h>
 
 #include "DTLSServerSession.h"
@@ -79,7 +80,8 @@ private:
     QJsonObject jsonForSocket(const HifiSockAddr& socket);
     QJsonObject jsonObjectForNode(const SharedNodePointer& node);
     
-    HTTPManager _HTTPManager;
+    HTTPManager _httpManager;
+    HTTPSManager* _httpsManager;
     
     QHash<QUuid, SharedAssignmentPointer> _staticAssignmentHash;
     QQueue<SharedAssignmentPointer> _assignmentQueue;
