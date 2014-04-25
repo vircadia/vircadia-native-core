@@ -759,9 +759,7 @@ bool Octree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end
 
 bool Octree::findShapeCollisions(const Shape* shape, CollisionList& collisions, Octree::lockType lockType) {
 
-    ShapeArgs args = { shape,
-        collisions,
-        false };
+    ShapeArgs args = { shape, collisions, false };
 
     bool gotLock = false;
     if (lockType == Octree::Lock) {
