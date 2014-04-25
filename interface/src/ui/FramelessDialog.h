@@ -23,6 +23,8 @@ public:
 
     FramelessDialog(QWidget* parent = 0, Qt::WindowFlags flags = 0, Position position = POSITION_LEFT);
     void setStyleSheetFile(const QString& fileName);
+    void setAllowResize(bool allowResize) { _allowResize = allowResize; };
+    bool getAllowResize() { return _allowResize; };
 
 protected:
     virtual void mouseMoveEvent(QMouseEvent* mouseEvent);
@@ -35,6 +37,7 @@ protected:
 private:
     void resizeAndPosition(bool resizeParent = true);
 
+    bool _allowResize;
     bool _isResizing;
     int _resizeInitialWidth;
     bool _selfHidden; ///< true when the dialog itself because of a window event (deactivation or minimization)

@@ -16,6 +16,7 @@ const int RESIZE_HANDLE_WIDTH = 7;
 
 FramelessDialog::FramelessDialog(QWidget *parent, Qt::WindowFlags flags, Position position) :
         QDialog(parent, flags | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint),
+        _allowResize(true),
         _isResizing(false),
         _resizeInitialWidth(0),
         _selfHidden(false),
@@ -107,7 +108,7 @@ void FramelessDialog::resizeAndPosition(bool resizeParent) {
 }
 
 void FramelessDialog::mousePressEvent(QMouseEvent* mouseEvent) {
-    if (mouseEvent->button() == Qt::LeftButton) {
+    if (_allowResize && mouseEvent->button() == Qt::LeftButton) {
         bool hitLeft = _position == POSITION_LEFT && abs(mouseEvent->pos().x() - size().width()) < RESIZE_HANDLE_WIDTH;
         bool hitRight = _position == POSITION_RIGHT && mouseEvent->pos().x() < RESIZE_HANDLE_WIDTH;
         if (hitLeft || hitRight) {
