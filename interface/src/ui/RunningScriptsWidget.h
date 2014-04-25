@@ -32,9 +32,6 @@ signals:
     void stopScriptName(const QString& name);
 
 protected:
-    virtual void mousePressEvent(QMouseEvent *e);
-    virtual void mouseMoveEvent(QMouseEvent *e);
-    virtual void mouseReleaseEvent(QMouseEvent *e);
     virtual void keyPressEvent(QKeyEvent *e);
     virtual void paintEvent(QPaintEvent *);
 
@@ -53,8 +50,6 @@ private:
     QStringList _recentlyLoadedScripts;
     QString _lastStoppedScript;
     QRect _boundary;
-    bool _mousePressed;
-    QPoint _mousePosition;
 
     void createRecentlyLoadedScriptsTable();
 };

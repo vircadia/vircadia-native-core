@@ -21,9 +21,7 @@
 
 RunningScriptsWidget::RunningScriptsWidget(QWidget *parent) :
     FramelessDialog(parent, 0, POSITION_LEFT),
-    ui(new Ui::RunningScriptsWidget),
-    _mousePressed(false),
-    _mousePosition(QPoint())
+    ui(new Ui::RunningScriptsWidget)
 {
     ui->setupUi(this);
 
@@ -104,39 +102,6 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list)
 
 
     createRecentlyLoadedScriptsTable();
-}
-
-void RunningScriptsWidget::mousePressEvent(QMouseEvent *e)
-{
-    if (e->button() == Qt::LeftButton) {
-        _mousePressed = true;
-        _mousePosition = e->pos();
-    } else {
-        _mousePressed = false;
-        _mousePosition = QPoint();
-    }
-    FramelessDialog::mousePressEvent(e);
-}
-
-void RunningScriptsWidget::mouseMoveEvent(QMouseEvent *e)
-{
-    if (_mousePressed) {
-        QPoint newPosition = mapToParent(e->pos() - _mousePosition);
-        if (newPosition.x() >= _boundary.x() &&
-            newPosition.x() <= (_boundary.width() - width())) {
-            move(newPosition.x(), _boundary.y());
-        }
-    }
-    FramelessDialog::mouseMoveEvent(e);
-}
-
-void RunningScriptsWidget::mouseReleaseEvent(QMouseEvent *e)
-{
-    if (e->button() == Qt::LeftButton) {
-        _mousePressed = false;
-        _mousePosition = QPoint();
-    }
-    FramelessDialog::mouseReleaseEvent(e);
 }
 
 void RunningScriptsWidget::keyPressEvent(QKeyEvent *e)
