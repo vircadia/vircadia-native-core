@@ -820,11 +820,7 @@ const char* OctreeSceneStats::getItemValue(Item item) {
 
 void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
                                     bool wasStatsPacket, int nodeClockSkewUsec) {
-    _incomingPacket++;
-    _incomingBytes += packet.size();
-    if (!wasStatsPacket) {
-        _incomingWastedBytes += (MAX_PACKET_SIZE - packet.size());
-    }
+    const bool wantExtraDebugging = false;
 
     int numBytesPacketHeader = numBytesForPacketHeader(packet);
     const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;
@@ -842,12 +838,43 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
     
     OCTREE_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
     int flightTime = arrivedAt - sentAt + nodeClockSkewUsec;
+
+    if (wantExtraDebugging) {
+        qDebug() << "sentAt:" << sentAt << " usecs";
+        qDebug() << "arrivedAt:" << arrivedAt << " usecs";
+        qDebug() << "nodeClockSkewUsec:" << nodeClockSkewUsec << " usecs";
+        qDebug() << "flightTime:" << flightTime << " usecs";
+    }
+    
+    // Guard against possible corrupted packets... with bad timestamps
+    const int MAX_RESONABLE_FLIGHT_TIME = 200 * USECS_PER_SECOND; // 200 seconds is more than enough time for a packet to arrive
+    const int MIN_RESONABLE_FLIGHT_TIME = 0;
+    if (flightTime > MAX_RESONABLE_FLIGHT_TIME || flightTime < MIN_RESONABLE_FLIGHT_TIME) {
+        qDebug() << "ignoring unreasonable packet... flightTime:" << flightTime;
+        return; // ignore any packets that are unreasonable
+    }
+
+    // Guard against possible corrupted packets... with bad sequence numbers
+    const int MAX_RESONABLE_SEQUENCE_OFFSET = 2000;
+    const int MIN_RESONABLE_SEQUENCE_OFFSET = -2000;
+    int sequenceOffset = (sequence - _incomingLastSequence);
+    if (sequenceOffset > MAX_RESONABLE_SEQUENCE_OFFSET || sequenceOffset < MIN_RESONABLE_SEQUENCE_OFFSET) {
+        qDebug() << "ignoring unreasonable packet... sequence:" << sequence << "_incomingLastSequence:" << _incomingLastSequence;
+        return; // ignore any packets that are unreasonable
+    }
+
+    // track packets here...
+    _incomingPacket++;
+    _incomingBytes += packet.size();
+    if (!wasStatsPacket) {
+        _incomingWastedBytes += (MAX_PACKET_SIZE - packet.size());
+    }
+
     const int USECS_PER_MSEC = 1000;
     float flightTimeMsecs = flightTime / USECS_PER_MSEC;
     _incomingFlightTimeAverage.updateAverage(flightTimeMsecs);
     
     // track out of order and possibly lost packets...
-    const bool wantExtraDebugging = false;
     if (sequence == _incomingLastSequence) {
         if (wantExtraDebugging) {
             qDebug() << "last packet duplicate got:" << sequence << "_incomingLastSequence:" << _incomingLastSequence;

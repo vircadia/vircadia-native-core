@@ -25,9 +25,12 @@ enum AvatarHandState
     NUM_HAND_STATES
 };
 
+const quint32 AVATAR_MOTION_OBEY_GRAVITY = 1U << 0;
+
 class MyAvatar : public Avatar {
     Q_OBJECT
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
+    Q_PROPERTY(quint32 motionBehaviors READ getMotionBehaviors WRITE setMotionBehaviors)
 
 public:
 	MyAvatar();
@@ -54,10 +57,7 @@ public:
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; }
 
     // getters
-    AvatarMode getMode() const { return _mode; }
     float getLeanScale() const { return _leanScale; }
-    float getElapsedTimeStopped() const { return _elapsedTimeStopped; }
-    float getElapsedTimeMoving() const { return _elapsedTimeMoving; }
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     glm::vec3 getGravity() const { return _gravity; }
@@ -91,6 +91,10 @@ public:
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
+    virtual void setCollisionGroups(quint32 collisionGroups);
+    void setMotionBehaviors(quint32 flags);
+    quint32 getMotionBehaviors() const { return _motionBehaviors; }
+
     void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration);
 
 public slots:
@@ -107,6 +111,8 @@ public slots:
     glm::vec3 getThrust() { return _thrust; };
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
+    void updateMotionBehaviors();
+
 signals:
     void transformChanged();
 
@@ -118,16 +124,17 @@ private:
     float _driveKeys[MAX_DRIVE_KEYS];
     glm::vec3 _gravity;
     float _distanceToNearestAvatar; // How close is the nearest avatar?
-    float _elapsedTimeMoving; // Timers to drive camera transitions when moving
-    float _elapsedTimeStopped;
-    float _elapsedTimeSinceCollision;
+
+    // motion stuff
     glm::vec3 _lastCollisionPosition;
     bool _speedBrakes;
+    glm::vec3 _thrust;  // final acceleration for the current frame
     bool _isThrustOn;
     float _thrustMultiplier;
-    glm::vec3 _moveTarget;
+
+    quint32 _motionBehaviors;
+
     glm::vec3 _lastBodyPenetration;
-    int _moveTargetStepCounter;
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
     bool _shouldRender;

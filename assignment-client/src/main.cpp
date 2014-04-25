@@ -17,8 +17,6 @@
 #include "AssignmentClientMonitor.h"
 
 int main(int argc, char* argv[]) {
-    initialiseUsecTimestampNow();
-    
 #ifndef WIN32
     setvbuf(stdout, NULL, _IOLBF, 0);
 #endif
