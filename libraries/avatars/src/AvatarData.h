@@ -50,6 +50,9 @@ typedef unsigned long long quint64;
 #include "HeadData.h"
 #include "HandData.h"
 
+// avatar motion behaviors
+const quint32 AVATAR_MOTION_OBEY_GRAVITY = 1U << 0;
+
 // First bitset
 const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
 const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits

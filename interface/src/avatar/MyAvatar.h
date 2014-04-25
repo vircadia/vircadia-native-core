@@ -25,8 +25,6 @@ enum AvatarHandState
     NUM_HAND_STATES
 };
 
-const quint32 AVATAR_MOTION_OBEY_GRAVITY = 1U << 0;
-
 class MyAvatar : public Avatar {
     Q_OBJECT
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
