@@ -8,6 +8,7 @@
 #ifndef __hifi__ScriptsTableWidget__
 #define __hifi__ScriptsTableWidget__
 
+#include <QDebug>
 #include <QTableWidget>
 
 class ScriptsTableWidget : public QTableWidget
@@ -18,6 +19,7 @@ public:
 
 protected:
     virtual void paintEvent(QPaintEvent *event);
+    virtual void keyPressEvent(QKeyEvent *event);
 };
 
 #endif /* defined(__hifi__ScriptsTableWidget__) */

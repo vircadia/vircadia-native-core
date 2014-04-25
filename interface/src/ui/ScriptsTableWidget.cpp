@@ -10,6 +10,7 @@
 #include <QHeaderView>
 #include <QPainter>
 #include <QDebug>
+#include <QKeyEvent>
 
 ScriptsTableWidget::ScriptsTableWidget(QWidget *parent) :
     QTableWidget(parent)
@@ -38,4 +39,9 @@ void ScriptsTableWidget::paintEvent(QPaintEvent *event)
     painter.end();
 
     QTableWidget::paintEvent(event);
+}
+
+void ScriptsTableWidget::keyPressEvent(QKeyEvent *event) {
+    // Ignore keys so they will propagate correctly
+    event->ignore();
 }
