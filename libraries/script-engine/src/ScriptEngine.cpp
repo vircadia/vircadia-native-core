@@ -239,6 +239,8 @@ void ScriptEngine::init() {
     globalObject.setProperty("COLLISION_GROUP_VOXELS", _engine.newVariant(QVariant(COLLISION_GROUP_VOXELS)));
     globalObject.setProperty("COLLISION_GROUP_PARTICLES", _engine.newVariant(QVariant(COLLISION_GROUP_PARTICLES)));
 
+    globalObject.setProperty("AVATAR_MOTION_OBEY_GRAVITY", _engine.newVariant(QVariant(AVATAR_MOTION_OBEY_GRAVITY)));
+
     // let the VoxelPacketSender know how frequently we plan to call it
     _voxelsScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(SCRIPT_DATA_CALLBACK_USECS);
     _particlesScriptingInterface.getParticlePacketSender()->setProcessCallIntervalHint(SCRIPT_DATA_CALLBACK_USECS);
