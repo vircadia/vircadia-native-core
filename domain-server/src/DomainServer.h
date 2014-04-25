@@ -53,8 +53,9 @@ private slots:
     void readAvailableDTLSDatagrams();
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
-    bool optionallySetupTLS();
-    bool readX509KeyAndCertificate();
+    bool optionallySetupOAuth();
+    bool optionallySetupDTLS();
+    bool optionallyReadX509KeyAndCertificate();
     
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
     
@@ -95,6 +96,9 @@ private:
     gnutls_priority_t* _priorityCache;
     
     QHash<HifiSockAddr, DTLSServerSession*> _dtlsSessions;
+    
+    QUrl _oauthProviderURL;
+    QString _oauthClientID;
 };
 
 #endif // hifi_DomainServer_h

@@ -45,7 +45,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _x509Credentials(NULL),
     _dhParams(NULL),
     _priorityCache(NULL),
-    _dtlsSessions()
+    _dtlsSessions(),
+    _oauthProviderURL(),
+    _oauthClientID()
 {
     gnutls_global_init();
     
@@ -56,7 +58,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     
     _argumentVariantMap = HifiConfigVariantMap::mergeCLParametersWithJSONConfig(arguments());
     
-    if (optionallySetupTLS()) {
+    if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth() && optionallySetupDTLS()) {
         // we either read a certificate and private key or were not passed one, good to load assignments
         // and set up the node list
         qDebug() << "Setting up LimitedNodeList and assignments.";
@@ -89,44 +91,7 @@ DomainServer::~DomainServer() {
     gnutls_global_deinit();
 }
 
-bool DomainServer::optionallySetupTLS() {
-    if (readX509KeyAndCertificate()) {
-        if (_x509Credentials) {
-            qDebug() << "Generating Diffie-Hellman parameters.";
-            
-            // generate Diffie-Hellman parameters
-            // When short bit length is used, it might be wise to regenerate parameters often.
-            int dhBits = gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, GNUTLS_SEC_PARAM_LEGACY);
-            
-            _dhParams =  new gnutls_dh_params_t;
-            gnutls_dh_params_init(_dhParams);
-            gnutls_dh_params_generate2(*_dhParams, dhBits);
-            
-            qDebug() << "Successfully generated Diffie-Hellman parameters.";
-            
-            // set the D-H paramters on the X509 credentials
-            gnutls_certificate_set_dh_params(*_x509Credentials, *_dhParams);
-            
-            // setup the key used for cookie verification
-            _cookieKey = new gnutls_datum_t;
-            gnutls_key_generate(_cookieKey, GNUTLS_COOKIE_KEY_SIZE);
-            
-            _priorityCache = new gnutls_priority_t;
-            const char DTLS_PRIORITY_STRING[] = "PERFORMANCE:-VERS-TLS-ALL:+VERS-DTLS1.2:%SERVER_PRECEDENCE";
-            gnutls_priority_init(_priorityCache, DTLS_PRIORITY_STRING, NULL);
-            
-            _isUsingDTLS = true;
-            
-            qDebug() << "Initial DTLS setup complete.";
-        }
-    
-        return true;
-    } else {
-        return false;
-    }
-}
-
-bool DomainServer::readX509KeyAndCertificate() {
+bool DomainServer::optionallyReadX509KeyAndCertificate() {
     const QString X509_CERTIFICATE_OPTION = "cert";
     const QString X509_PRIVATE_KEY_OPTION = "key";
     const QString X509_KEY_PASSPHRASE_ENV = "DOMAIN_SERVER_KEY_PASSPHRASE";
@@ -180,6 +145,62 @@ bool DomainServer::readX509KeyAndCertificate() {
         qDebug() << "Missing certificate or private key. domain-server will now quit.";
         QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
         return false;
+    }
+    
+    return true;
+}
+
+bool DomainServer::optionallySetupOAuth() {
+    const QString OAUTH_PROVIDER_URL_OPTION = "oauth-provider";
+    const QString OAUTH_CLIENT_ID_OPTION = "oauth-client-id";
+    const QString REDIRECT_HOSTNAME_OPTION = "hostname";
+    
+    _oauthProviderURL = QUrl(_argumentVariantMap.value(OAUTH_PROVIDER_URL_OPTION).toString());
+    _oauthClientID = _argumentVariantMap.value(OAUTH_CLIENT_ID_OPTION).toString();
+    QString oauthRedirectHostname = _argumentVariantMap.value(REDIRECT_HOSTNAME_OPTION).toString();
+    
+    if (!_oauthProviderURL.isEmpty() || !oauthRedirectHostname.isEmpty() || !_oauthClientID.isEmpty()) {
+        if (_oauthProviderURL.isEmpty() || oauthRedirectHostname.isEmpty() || _oauthClientID.isEmpty()) {
+            qDebug() << "Missing OAuth provider URL or hostname. domain-server will now quit.";
+            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+            return false;
+        } else {
+            qDebug() << "OAuth will be used to identify clients using provider at" << _oauthProviderURL.toString();
+            qDebug() << "OAuth Client ID is" << _oauthClientID;
+        }
+    }
+    
+    return true;
+}
+
+bool DomainServer::optionallySetupDTLS() {
+    if (_x509Credentials) {
+        qDebug() << "Generating Diffie-Hellman parameters.";
+        
+        // generate Diffie-Hellman parameters
+        // When short bit length is used, it might be wise to regenerate parameters often.
+        int dhBits = gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, GNUTLS_SEC_PARAM_LEGACY);
+        
+        _dhParams =  new gnutls_dh_params_t;
+        gnutls_dh_params_init(_dhParams);
+        gnutls_dh_params_generate2(*_dhParams, dhBits);
+        
+        qDebug() << "Successfully generated Diffie-Hellman parameters.";
+        
+        // set the D-H paramters on the X509 credentials
+        gnutls_certificate_set_dh_params(*_x509Credentials, *_dhParams);
+        
+        // setup the key used for cookie verification
+        _cookieKey = new gnutls_datum_t;
+        gnutls_key_generate(_cookieKey, GNUTLS_COOKIE_KEY_SIZE);
+        
+        _priorityCache = new gnutls_priority_t;
+        const char DTLS_PRIORITY_STRING[] = "PERFORMANCE:-VERS-TLS-ALL:+VERS-DTLS1.2:%SERVER_PRECEDENCE";
+        gnutls_priority_init(_priorityCache, DTLS_PRIORITY_STRING, NULL);
+        
+        _isUsingDTLS = true;
+        
+        qDebug() << "Initial DTLS setup complete.";
     }
     
     return true;
