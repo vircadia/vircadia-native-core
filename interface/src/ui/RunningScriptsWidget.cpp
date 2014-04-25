@@ -141,65 +141,54 @@ void RunningScriptsWidget::mouseReleaseEvent(QMouseEvent *e)
 
 void RunningScriptsWidget::keyPressEvent(QKeyEvent *e)
 {
+    int loadScriptNumber = -1;
     switch(e->key()) {
     case Qt::Key_Escape:
         Application::getInstance()->toggleRunningScriptsWidget();
         break;
 
     case Qt::Key_1:
-        if (_recentlyLoadedScripts.size() > 0) {
-            Application::getInstance()->loadScript(_recentlyLoadedScripts.at(0));
-        }
+        loadScriptNumber = 1;
         break;
 
     case Qt::Key_2:
-        if (_recentlyLoadedScripts.size() > 0 && _recentlyLoadedScripts.size() >= 2) {
-            Application::getInstance()->loadScript(_recentlyLoadedScripts.at(1));
-        }
+        loadScriptNumber = 2;
         break;
 
     case Qt::Key_3:
-        if (_recentlyLoadedScripts.size() > 0 && _recentlyLoadedScripts.size() >= 3) {
-            Application::getInstance()->loadScript(_recentlyLoadedScripts.at(2));
-        }
+        loadScriptNumber = 3;
         break;
 
     case Qt::Key_4:
-        if (_recentlyLoadedScripts.size() > 0 && _recentlyLoadedScripts.size() >= 4) {
-            Application::getInstance()->loadScript(_recentlyLoadedScripts.at(3));
-        }
+        loadScriptNumber = 4;
         break;
+
     case Qt::Key_5:
-        if (_recentlyLoadedScripts.size() > 0 && _recentlyLoadedScripts.size() >= 5) {
-            Application::getInstance()->loadScript(_recentlyLoadedScripts.at(4));
-        }
+        loadScriptNumber = 5;
         break;
 
     case Qt::Key_6:
-        if (_recentlyLoadedScripts.size() > 0 && _recentlyLoadedScripts.size() >= 6) {
-            Application::getInstance()->loadScript(_recentlyLoadedScripts.at(5));
-        }
+        loadScriptNumber = 6;
         break;
 
     case Qt::Key_7:
-        if (_recentlyLoadedScripts.size() > 0 && _recentlyLoadedScripts.size() >= 7) {
-            Application::getInstance()->loadScript(_recentlyLoadedScripts.at(6));
-        }
+        loadScriptNumber = 7;
         break;
     case Qt::Key_8:
-        if (_recentlyLoadedScripts.size() > 0 && _recentlyLoadedScripts.size() >= 8) {
-            Application::getInstance()->loadScript(_recentlyLoadedScripts.at(7));
-        }
+        loadScriptNumber = 8;
         break;
 
     case Qt::Key_9:
-        if (_recentlyLoadedScripts.size() > 0 && _recentlyLoadedScripts.size() >= 9) {
-            Application::getInstance()->loadScript(_recentlyLoadedScripts.at(8));
-        }
+        loadScriptNumber = 9;
         break;
 
     default:
         break;
+    }
+    if (loadScriptNumber > 0) {
+        if (_recentlyLoadedScripts.size() >= loadScriptNumber) {
+            Application::getInstance()->loadScript(_recentlyLoadedScripts.at(loadScriptNumber - 1));
+        }
     }
 
     FramelessDialog::keyPressEvent(e);
