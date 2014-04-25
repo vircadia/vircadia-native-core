@@ -31,6 +31,7 @@ public slots:
     glm::vec3 sum(const glm::vec3& v1, const glm::vec3& v2);
     glm::vec3 subtract(const glm::vec3& v1, const glm::vec3& v2);
     float length(const glm::vec3& v);
+    float distance(const glm::vec3& v1, const glm::vec3& v2);
     glm::vec3 normalize(const glm::vec3& v);
     void print(const QString& lable, const glm::vec3& v);
 };
