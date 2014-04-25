@@ -164,7 +164,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _bytesPerSecond(0),
         _previousScriptLocation(),
         _logger(new FileLogger(this)),
-        _runningScriptsWidget(new RunningScriptsWidget),
+        _runningScriptsWidget(new RunningScriptsWidget(_window)),
         _runningScriptsWidgetWasVisible(false)
 {
     // init GnuTLS for DTLS with domain-servers
@@ -332,7 +332,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     LocalVoxelsList::getInstance()->addPersistantTree(DOMAIN_TREE_NAME, _voxels.getTree());
     LocalVoxelsList::getInstance()->addPersistantTree(CLIPBOARD_TREE_NAME, &_clipboard);
 
-    _window->addDockWidget(Qt::NoDockWidgetArea, _runningScriptsWidget);
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
     connect(_runningScriptsWidget, &RunningScriptsWidget::stopScriptName, this, &Application::stopScript);
 
@@ -356,7 +355,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     connect(_window, &MainWindow::windowGeometryChanged,
             _runningScriptsWidget, &RunningScriptsWidget::setBoundary);
-    connect(_window, &MainWindow::windowShown, this, &Application::manageRunningScriptsWidgetVisibility);
 
     //When -url in command line, teleport to location
     urlGoTo(argc, constArgv);
@@ -705,11 +703,6 @@ void Application::resizeGL(int width, int height) {
     updateProjectionMatrix();
     glLoadIdentity();
 
-    if (_runningScriptsWidgetWasVisible) {
-        _runningScriptsWidget->setGeometry(_window->geometry().topLeft().x(),
-                                           _window->geometry().topLeft().y(),
-                                           _runningScriptsWidget->width(), _window->height());
-    }
     // update Stats width
     int horizontalOffset = 0;
     if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
@@ -3350,15 +3343,13 @@ void Application::manageRunningScriptsWidgetVisibility(bool shown)
 
 void Application::toggleRunningScriptsWidget()
 {
+    qDebug() << "RS";
     if (_runningScriptsWidgetWasVisible) {
         _runningScriptsWidget->hide();
         _runningScriptsWidgetWasVisible = false;
     } else {
         _runningScriptsWidget->setBoundary(QRect(_window->geometry().topLeft(),
                                                  _window->size()));
-        _runningScriptsWidget->setGeometry(_window->geometry().topLeft().x(),
-                                           _window->geometry().topLeft().y(),
-                                           _runningScriptsWidget->width(), _window->height());
         _runningScriptsWidget->show();
         _runningScriptsWidgetWasVisible = true;
     }

@@ -20,14 +20,13 @@
 #include "Application.h"
 
 RunningScriptsWidget::RunningScriptsWidget(QWidget *parent) :
-    QDockWidget(parent),
+    FramelessDialog(parent, 0, POSITION_LEFT),
     ui(new Ui::RunningScriptsWidget),
     _mousePressed(false),
     _mousePosition(QPoint())
 {
     ui->setupUi(this);
 
-    setWindowFlags(Qt::SubWindow | Qt::FramelessWindowHint);
 
     ui->hideWidgetButton->setIcon(QIcon(Application::resourcesPath() + "images/close.svg"));
     ui->reloadAllButton->setIcon(QIcon(Application::resourcesPath() + "images/reload.svg"));
@@ -114,7 +113,7 @@ void RunningScriptsWidget::mousePressEvent(QMouseEvent *e)
         _mousePressed = false;
         _mousePosition = QPoint();
     }
-    QWidget::mousePressEvent(e);
+    FramelessDialog::mousePressEvent(e);
 }
 
 void RunningScriptsWidget::mouseMoveEvent(QMouseEvent *e)
@@ -126,7 +125,7 @@ void RunningScriptsWidget::mouseMoveEvent(QMouseEvent *e)
             move(newPosition.x(), _boundary.y());
         }
     }
-    QWidget::mouseMoveEvent(e);
+    FramelessDialog::mouseMoveEvent(e);
 }
 
 void RunningScriptsWidget::mouseReleaseEvent(QMouseEvent *e)
@@ -201,7 +200,7 @@ void RunningScriptsWidget::keyPressEvent(QKeyEvent *e)
         break;
     }
 
-    QWidget::keyPressEvent(e);
+    FramelessDialog::keyPressEvent(e);
 }
 
 void RunningScriptsWidget::paintEvent(QPaintEvent *)

@@ -12,16 +12,14 @@
 #ifndef hifi_RunningScriptsWidget_h
 #define hifi_RunningScriptsWidget_h
 
-// Qt
-#include <QDockWidget>
-
+#include "FramelessDialog.h"
 #include "ScriptsTableWidget.h"
 
 namespace Ui {
     class RunningScriptsWidget;
 }
 
-class RunningScriptsWidget : public QDockWidget
+class RunningScriptsWidget : public FramelessDialog
 {
     Q_OBJECT
 public:
