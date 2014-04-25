@@ -184,6 +184,7 @@ void PreferencesDialog::savePreferences() {
     Menu::getInstance()->setMaxVoxelPacketsPerSecond(ui.maxVoxelsPPSSpin->value());
 
     Menu::getInstance()->setAudioJitterBufferSamples(ui.audioJitterSpin->value());
+    Application::getInstance()->getAudio()->setJitterBufferSamples(ui.audioJitterSpin->value());
 
     Application::getInstance()->resizeGL(Application::getInstance()->getGLWidget()->width(),
                                          Application::getInstance()->getGLWidget()->height());
