@@ -542,6 +542,19 @@ OctreeElement* Octree::getOctreeElementAt(float x, float y, float z, float s) co
     return node;
 }
 
+OctreeElement* Octree::getOctreeEnclosingElementAt(float x, float y, float z, float s) const {
+    unsigned char* octalCode = pointToOctalCode(x,y,z,s);
+    OctreeElement* node = nodeForOctalCode(_rootNode, octalCode, NULL);
+    
+    delete[] octalCode; // cleanup memory
+#ifdef HAS_AUDIT_CHILDREN
+    if (node) {
+        node->auditChildren("Octree::getOctreeElementAt()");
+    }
+#endif // def HAS_AUDIT_CHILDREN
+    return node;
+}
+
 
 OctreeElement* Octree::getOrCreateChildElementAt(float x, float y, float z, float s) {
     return getRoot()->getOrCreateChildElementAt(x, y, z, s);
