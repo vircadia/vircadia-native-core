@@ -40,10 +40,12 @@ void initialiseUsecTimestampNow() {
     if (initialised) {
         qDebug() << "[WARNING] Double initialisation of usecTimestampNow().";
         return;
-    }
+    }    
     
     TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * 1000; // ms to usec
+    timestampTimer.start();
     initialised = true;
+    qDebug() << "[INFO] usecTimestampNow() initialized.";
 }
 
 void usecTimestampNowForceClockSkew(int clockSkew) {
