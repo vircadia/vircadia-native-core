@@ -32,7 +32,7 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget *parent) :
     ui->hideWidgetButton->setIcon(QIcon(Application::resourcesPath() + "images/close.svg"));
     ui->reloadAllButton->setIcon(QIcon(Application::resourcesPath() + "images/reload.svg"));
     ui->stopAllButton->setIcon(QIcon(Application::resourcesPath() + "images/stop.svg"));
-    ui->loadScriptButton->setIcon(QIcon(Application::resourcesPath() + "images/plus.svg"));
+    ui->loadScriptButton->setIcon(QIcon(Application::resourcesPath() + "images/plus-white.svg"));
 
     _runningScriptsTable = new ScriptsTableWidget(ui->runningScriptsTableWidget);
     _runningScriptsTable->setColumnCount(2);
