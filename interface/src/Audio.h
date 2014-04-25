@@ -12,10 +12,6 @@
 #ifndef hifi_Audio_h
 #define hifi_Audio_h
 
-#ifdef _WIN32
-#include <Systime.h>
-#endif
-
 #include <fstream>
 #include <vector>
 
@@ -23,6 +19,7 @@
 
 #include <QAudio>
 #include <QAudioInput>
+#include <QElapsedTimer>
 #include <QGLWidget>
 #include <QtCore/QObject>
 #include <QtCore/QVector>
@@ -132,7 +129,7 @@ private:
     QString _outputAudioDeviceName;
     
     StDev _stdev;
-    timeval _lastReceiveTime;
+    QElapsedTimer _timeSinceLastReceived;
     float _averagedLatency;
     float _measuredJitter;
     int16_t _jitterBufferSamples;

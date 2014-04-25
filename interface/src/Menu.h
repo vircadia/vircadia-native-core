@@ -154,6 +154,7 @@ public slots:
     void goTo();
     void goToUser(const QString& user);
     void pasteToVoxel();
+    void openUrl(const QUrl& url);
 
     void toggleLoginMenuItem();
 
@@ -256,6 +257,7 @@ private:
 
 namespace MenuOption {
     const QString AboutApp = "About Interface";
+    const QString AlignForearmsWithWrists = "Align Forearms with Wrists";
     const QString AmbientOcclusion = "Ambient Occlusion";
     const QString Atmosphere = "Atmosphere";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
@@ -354,6 +356,7 @@ namespace MenuOption {
     const QString SettingsImport = "Import Settings";
     const QString Shadows = "Shadows";
     const QString ShowCulledSharedFaces = "Show Culled Shared Voxel Faces";
+    const QString ShowIKConstraints = "Show IK Constraints";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString StopAllScripts = "Stop All Scripts";

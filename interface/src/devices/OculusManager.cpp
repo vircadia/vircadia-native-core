@@ -11,10 +11,6 @@
 
 #include "InterfaceConfig.h"
 
-#ifdef WIN32
-#include <Systime.h>
-#endif
-
 #include <QOpenGLFramebufferObject>
 
 #include <glm/glm.hpp>

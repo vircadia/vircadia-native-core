@@ -18,11 +18,11 @@
 #include <QtCore/QCoreApplication>
 
 #include <Logging.h>
+#include <SharedUtil.h>
 
 #include "DomainServer.h"
 
 int main(int argc, char* argv[]) {
-    
 #ifndef WIN32
     setvbuf(stdout, NULL, _IOLBF, 0);
 #endif

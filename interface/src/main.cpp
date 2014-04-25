@@ -16,8 +16,8 @@
 #include <SharedUtil.h>
 
 int main(int argc, const char * argv[]) {
-    timeval startup_time;
-    gettimeofday(&startup_time, NULL);
+    QElapsedTimer startupTime;
+    startupTime.start();
     
     // Debug option to demonstrate that the client's local time does not 
     // need to be in sync with any other network node. This forces clock 
@@ -33,7 +33,7 @@ int main(int argc, const char * argv[]) {
     int exitCode;
     {
         QSettings::setDefaultFormat(QSettings::IniFormat);
-        Application app(argc, const_cast<char**>(argv), startup_time);
+        Application app(argc, const_cast<char**>(argv), startupTime);
 
         QTranslator translator;
         translator.load("interface_en");

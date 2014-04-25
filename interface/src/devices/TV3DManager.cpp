@@ -15,11 +15,6 @@
 
 #include <glm/glm.hpp>
 
-
-#ifdef WIN32
-#include <Systime.h>
-#endif
-
 #include "Application.h"
 
 #include "TV3DManager.h"
