@@ -27,6 +27,7 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    setAllowResize(false);
 
     ui->hideWidgetButton->setIcon(QIcon(Application::resourcesPath() + "images/close.svg"));
     ui->reloadAllButton->setIcon(QIcon(Application::resourcesPath() + "images/reload.svg"));
