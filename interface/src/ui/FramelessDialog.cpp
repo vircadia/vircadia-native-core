@@ -14,8 +14,13 @@
 
 const int RESIZE_HANDLE_WIDTH = 7;
 
-FramelessDialog::FramelessDialog(QWidget *parent, Qt::WindowFlags flags) :
-QDialog(parent, flags | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint) {
+FramelessDialog::FramelessDialog(QWidget *parent, Qt::WindowFlags flags, Position position) :
+        QDialog(parent, flags | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint),
+        _isResizing(false),
+        _resizeInitialWidth(0),
+        _selfHidden(false),
+        _position(position) {
+
     setAttribute(Qt::WA_DeleteOnClose);
 
     // handle rezize and move events
@@ -29,29 +34,37 @@ bool FramelessDialog::eventFilter(QObject* sender, QEvent* event) {
     switch (event->type()) {
         case QEvent::Move:
             if (sender == parentWidget()) {
-                // move to upper left corner on app move
-                move(parentWidget()->geometry().topLeft());
+                resizeAndPosition(false);
             }
             break;
         case QEvent::Resize:
             if (sender == parentWidget()) {
-                // keep full app height on resizing the app
-                setFixedHeight(parentWidget()->size().height());
+                resizeAndPosition(false);
             }
             break;
         case QEvent::WindowStateChange:
             if (parentWidget()->isMinimized()) {
-                setHidden(true);
-            } else {
+                if (isVisible()) {
+                    _selfHidden = true;
+                    setHidden(true);
+                }
+            } else if (_selfHidden) {
+                _selfHidden = false;
                 setHidden(false);
             }
             break;
         case QEvent::ApplicationDeactivate:
             // hide on minimize and focus lost
-            setHidden(true);
+            if (isVisible()) {
+                _selfHidden = true;
+                setHidden(true);
+            }
             break;
         case QEvent::ApplicationActivate:
-            setHidden(false);
+            if (_selfHidden) {
+                _selfHidden = false;
+                setHidden(false);
+            }
             break;
         default:
             break;
@@ -70,21 +83,38 @@ void FramelessDialog::setStyleSheetFile(const QString& fileName) {
 }
 
 void FramelessDialog::showEvent(QShowEvent* event) {
-    // move to upper left corner
-    move(parentWidget()->geometry().topLeft());
+    resizeAndPosition();
+}
 
+void FramelessDialog::resizeAndPosition(bool resizeParent) {
     // keep full app height
     setFixedHeight(parentWidget()->size().height());
 
     // resize parrent if width is smaller than this dialog
-    if (parentWidget()->size().width() < size().width()) {
+    if (resizeParent && parentWidget()->size().width() < size().width()) {
         parentWidget()->resize(size().width(), parentWidget()->size().height());
     }
+
+    if (_position == POSITION_LEFT) {
+        // move to upper left corner
+        move(parentWidget()->geometry().topLeft());
+    } else if (_position == POSITION_RIGHT) {
+        // move to upper right corner
+        QPoint pos = parentWidget()->geometry().topRight();
+        pos.setX(pos.x() - size().width());
+        move(pos);
+    }
 }
+
 void FramelessDialog::mousePressEvent(QMouseEvent* mouseEvent) {
-    if (abs(mouseEvent->pos().x() - size().width()) < RESIZE_HANDLE_WIDTH && mouseEvent->button() == Qt::LeftButton) {
-        _isResizing = true;
-        QApplication::setOverrideCursor(Qt::SizeHorCursor);
+    if (mouseEvent->button() == Qt::LeftButton) {
+        bool hitLeft = _position == POSITION_LEFT && abs(mouseEvent->pos().x() - size().width()) < RESIZE_HANDLE_WIDTH;
+        bool hitRight = _position == POSITION_RIGHT && mouseEvent->pos().x() < RESIZE_HANDLE_WIDTH;
+        if (hitLeft || hitRight) {
+            _isResizing = true;
+            _resizeInitialWidth = size().width();
+            QApplication::setOverrideCursor(Qt::SizeHorCursor);
+        }
     }
 }
 
@@ -95,6 +125,14 @@ void FramelessDialog::mouseReleaseEvent(QMouseEvent* mouseEvent) {
 
 void FramelessDialog::mouseMoveEvent(QMouseEvent* mouseEvent) {
     if (_isResizing) {
-        resize(mouseEvent->pos().x(), size().height());
+        if (_position == POSITION_LEFT) {
+            resize(mouseEvent->pos().x(), size().height());
+        } else if (_position == POSITION_RIGHT) {
+            setUpdatesEnabled(false);
+            resize(_resizeInitialWidth - mouseEvent->pos().x(), size().height());
+            resizeAndPosition();
+            _resizeInitialWidth = size().width();
+            setUpdatesEnabled(true);
+        }
     }
 }

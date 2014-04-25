@@ -3531,35 +3531,30 @@ void Application::parseVersionXml() {
     QString operatingSystem("ubuntu");
     #endif
 
-    QString releaseDate;
-    QString releaseNotes;
     QString latestVersion;
     QUrl downloadUrl;
+    QString releaseNotes("Unavailable");
     QObject* sender = QObject::sender();
 
     QXmlStreamReader xml(qobject_cast<QNetworkReply*>(sender));
+    
     while (!xml.atEnd() && !xml.hasError()) {
-        QXmlStreamReader::TokenType token = xml.readNext();
-
-        if (token == QXmlStreamReader::StartElement) {
-            if (xml.name() == "ReleaseDate") {
+        if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == operatingSystem) {
+            while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == operatingSystem)) {
+                if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name().toString() == "version") {
+                    xml.readNext();
+                    latestVersion = xml.text().toString();
+                }
+                if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name().toString() == "url") {
+                    xml.readNext();
+                    downloadUrl = QUrl(xml.text().toString());
+                }
                 xml.readNext();
-                releaseDate = xml.text().toString();
-            }
-            if (xml.name() == "ReleaseNotes") {
-                xml.readNext();
-                releaseNotes = xml.text().toString();
-            }
-            if (xml.name() == "Version") {
-                xml.readNext();
-                latestVersion = xml.text().toString();
-            }
-            if (xml.name() == operatingSystem) {
-                xml.readNext();
-                downloadUrl = QUrl(xml.text().toString());
             }
         }
+        xml.readNext();
     }
+    
     if (!shouldSkipVersion(latestVersion) && applicationVersion() != latestVersion) {
         new UpdateDialog(_glWidget, releaseNotes, latestVersion, downloadUrl);
     }

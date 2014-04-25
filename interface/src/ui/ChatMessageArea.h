@@ -19,15 +19,19 @@ const int CHAT_MESSAGE_LINE_HEIGHT = 130;
 class ChatMessageArea : public QTextBrowser {
     Q_OBJECT
 public:
-    ChatMessageArea();
+    ChatMessageArea(bool useFixedHeight = true);
     virtual void setHtml(const QString& html);
 
 public slots:
     void updateLayout();
+    void setSize(const QSize& size);
+
+signals:
+    void sizeChanged(QSize newSize);
 
 protected:
     virtual void wheelEvent(QWheelEvent* event);
-
+    bool _useFixedHeight;
 };
 
 #endif // hifi_ChatMessageArea_h
