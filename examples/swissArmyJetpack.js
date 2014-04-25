@@ -13,6 +13,9 @@
 //
 
 var numberOfButtons = 3;
+var DOWN = { x: 0.0, y: -1.0, z: 0.0 };
+var MAX_VOXEL_SCAN_DISTANCE = 20.0;
+var MIN_FLYING_SPEED = 1.0;
 
 var enabledColors = new Array();
 enabledColors[0] = { red: 255, green: 0, blue: 0};
@@ -35,26 +38,42 @@ var groupBits = 0;
 
 var buttonStates = new Array();
 
-var disabledOffsetT = 0;
-var enabledOffsetT = 55;
+var disabledOffsetT = 12;
+var enabledOffsetT = 55 + 12;
 
-var buttonX = 50;
-var buttonY = 200;
-var buttonWidth = 30;
-var buttonHeight = 54;
-var textX = buttonX + buttonWidth + 10;
+var UI_BUFFER = 1;
+var OFFSET_X = UI_BUFFER;
+var OFFSET_Y = 200;
+var BUTTON_WIDTH = 30;
+var BUTTON_HEIGHT = 30;
+var textX = OFFSET_X + BUTTON_WIDTH + UI_BUFFER;
+var TEXT_HEIGHT = BUTTON_HEIGHT;
+var TEXT_WIDTH = 210;
+
+var speedometer = Overlays.addOverlay("text", {
+        x: OFFSET_X,
+        y: OFFSET_Y - BUTTON_HEIGHT,
+        width: BUTTON_WIDTH + UI_BUFFER + TEXT_WIDTH,
+        height: TEXT_HEIGHT,
+        color: { red: 0, green: 0, blue: 0 },
+        textColor: { red: 255, green: 0, blue: 0},
+        topMargin: 4,
+        leftMargin: 4,
+        text: "Speed: 0.0"
+    });
+var speed = 0.0;
+var lastPosition = MyAvatar.position;
 
 for (i = 0; i < numberOfButtons; i++) {
     var offsetS = 12
     var offsetT = disabledOffsetT;
 
     buttons[i] = Overlays.addOverlay("image", {
-                    //x: buttonX + (buttonWidth * i),
-                    x: buttonX,
-                    y: buttonY + (buttonHeight * i),
-                    width: buttonWidth,
-                    height: buttonHeight,
-                    subImage: { x: offsetS, y: offsetT, width: buttonWidth, height: buttonHeight },
+                    x: OFFSET_X,
+                    y: OFFSET_Y + (BUTTON_HEIGHT * i),
+                    width: BUTTON_WIDTH,
+                    height: BUTTON_HEIGHT,
+                    subImage: { x: offsetS, y: offsetT, width: BUTTON_WIDTH, height: BUTTON_HEIGHT },
                     imageURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/testing-swatches.svg",
                     color: disabledColors[i],
                     alpha: 1,
@@ -62,9 +81,9 @@ for (i = 0; i < numberOfButtons; i++) {
 
     labels[i] = Overlays.addOverlay("text", {
                     x: textX,
-                    y: buttonY + (buttonHeight * i) + 12,
-                    width: 150,
-                    height: 50,
+                    y: OFFSET_Y + (BUTTON_HEIGHT * i),
+                    width: TEXT_WIDTH,
+                    height: TEXT_HEIGHT,
                     color: { red: 0, green: 0, blue: 0},
                     textColor: { red: 255, green: 0, blue: 0},
                     topMargin: 4,
@@ -74,6 +93,10 @@ for (i = 0; i < numberOfButtons; i++) {
 
     buttonStates[i] = false;
 }
+
+// avatar state
+var velocity = { x: 0.0, y: 0.0, z: 0.0 };
+var standing = false;
 
 function updateButton(i, enabled) {
     var offsetY = disabledOffsetT;
@@ -108,13 +131,18 @@ function updateButton(i, enabled) {
 // When our script shuts down, we should clean up all of our overlays
 function scriptEnding() {
     for (i = 0; i < numberOfButtons; i++) {
-        print("adebug deleting overlay " + i);
         Overlays.deleteOverlay(buttons[i]);
         Overlays.deleteOverlay(labels[i]);
     }
+    Overlays.deleteOverlay(speedometer);
 }
 Script.scriptEnding.connect(scriptEnding);
 
+function updateSpeedometerDisplay() {
+    Overlays.editOverlay(speedometer, { text: "Speed: " + speed.toFixed(2) });
+}
+
+var multiple_timer = Script.setInterval(updateSpeedometerDisplay, 100);
 
 // Our update() function is called at approximately 60fps, and we will use it to animate our various overlays
 function update(deltaTime) {
@@ -123,6 +151,26 @@ function update(deltaTime) {
         updateButton(0, groupBits & COLLISION_GROUP_AVATARS);
         updateButton(1, groupBits & COLLISION_GROUP_VOXELS);
         updateButton(2, groupBits & COLLISION_GROUP_PARTICLES);
+    }
+
+    // measure speed
+    var distance = Vec3.distance(MyAvatar.position, lastPosition);
+    speed = 0.9 * speed + 0.1 * distance / deltaTime;
+    lastPosition = MyAvatar.position;
+
+    // scan for landing platform
+    if (speed < MIN_FLYING_SPEED && !(MyAvatar.motionBehaviors & AVATAR_MOTION_OBEY_GRAVITY)) {
+        ray = { origin: MyAvatar.position, direction: DOWN };
+        var intersection = Voxels.findRayIntersection(ray);
+        if (intersection.intersects) {
+            var v = intersection.voxel;
+            var maxCorner = Vec3.sum({ x: v.x, y: v.y, z: v.z }, {x: v.s, y: v.s, z: v.s });
+            var distance = lastPosition.y - maxCorner.y;
+            if (distance < MAX_VOXEL_SCAN_DISTANCE) {
+                MyAvatar.motionBehaviors = AVATAR_MOTION_OBEY_GRAVITY;
+            }
+            //print("voxel corner = <" + v.x + ", " + v.y + ", " + v.z + "> " + "  scale = " + v.s + "  dt = " + deltaTime);
+        }
     }
 }
 Script.update.connect(update);
