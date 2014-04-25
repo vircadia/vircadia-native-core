@@ -129,7 +129,7 @@ private:
     QString _outputAudioDeviceName;
     
     StDev _stdev;
-    QElapsedTimer _timeSinceLastRecieved;
+    QElapsedTimer _timeSinceLastReceived;
     float _averagedLatency;
     float _measuredJitter;
     int16_t _jitterBufferSamples;

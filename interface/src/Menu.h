@@ -315,7 +315,7 @@ namespace MenuOption {
     const QString GoTo = "Go To...";
     const QString GoToDomain = "Go To Domain...";
     const QString GoToLocation = "Go To Location...";
-    const QString Gravity = "Use Gravity";
+    const QString ObeyGravity = "Obey Gravity";
     const QString HandsCollideWithSelf = "Collide With Self";
     const QString HeadMouse = "Head Mouse";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
