@@ -22,7 +22,7 @@ struct SendVoxelsOperationArgs {
 
 bool sendVoxelsOperation(OctreeElement* element, void* extraData) {
     VoxelTreeElement* voxel = static_cast<VoxelTreeElement*>(element);
-    SendVoxelsOperationArgs* args = (SendVoxelsOperationArgs*)extraData;
+    SendVoxelsOperationArgs* args = static_cast<SendVoxelsOperationArgs*>(extraData);
     if (voxel->isColored()) {
         const unsigned char* nodeOctalCode = voxel->getOctalCode();
         unsigned char* codeColorBuffer = NULL;
