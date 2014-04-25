@@ -232,7 +232,7 @@ font-size: 14pt;</string>
   <widget class="QPushButton" name="loadScriptButton">
    <property name="geometry">
     <rect>
-     <x>30</x>
+     <x>36</x>
      <y>70</y>
      <width>111</width>
      <height>35</height>
