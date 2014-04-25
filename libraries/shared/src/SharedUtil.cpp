@@ -30,29 +30,22 @@
 #include "OctalCode.h"
 #include "SharedUtil.h"
 
-
-static qint64 TIME_REFERENCE = 0; // in usec
-static QElapsedTimer timestampTimer;
 static int usecTimestampNowAdjust = 0; // in usec
-
-void initialiseUsecTimestampNow() {
-    static bool initialised = false;
-    if (initialised) {
-        qDebug() << "[WARNING] Double initialisation of usecTimestampNow().";
-        return;
-    }    
-    
-    TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * 1000; // ms to usec
-    timestampTimer.start();
-    initialised = true;
-    qDebug() << "[INFO] usecTimestampNow() initialized.";
-}
-
 void usecTimestampNowForceClockSkew(int clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;
 }
 
 quint64 usecTimestampNow() {
+    static bool usecTimestampNowIsInitialized = false;
+    static qint64 TIME_REFERENCE = 0; // in usec
+    static QElapsedTimer timestampTimer;
+    
+    if (!usecTimestampNowIsInitialized) {
+        TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * 1000; // ms to usec
+        timestampTimer.start();
+        usecTimestampNowIsInitialized = true;
+    }
+    
     //          usec                       nsec to usec                   usec
     return TIME_REFERENCE + timestampTimer.nsecsElapsed() / 1000 + ::usecTimestampNowAdjust;
 }
