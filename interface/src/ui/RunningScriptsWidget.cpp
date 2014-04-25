@@ -135,7 +135,7 @@ void RunningScriptsWidget::mouseReleaseEvent(QMouseEvent *e)
         _mousePressed = false;
         _mousePosition = QPoint();
     }
-    QWidget::mouseReleaseEvent(e);
+    FramelessDialog::mouseReleaseEvent(e);
 }
 
 void RunningScriptsWidget::keyPressEvent(QKeyEvent *e)
