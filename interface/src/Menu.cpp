@@ -931,7 +931,15 @@ void Menu::goTo() {
         if (desiredDestination.startsWith(CUSTOM_URL_SCHEME + "//")) {
             QStringList urlParts = desiredDestination.remove(0, CUSTOM_URL_SCHEME.length() + 2).split('/', QString::SkipEmptyParts);
 
-            if (urlParts.count() > 1) {
+            if (urlParts.count() == 1) {
+                // location coordinates or place name
+                QString domain = urlParts[0];
+                goToDomain(domain);
+                // as there are no coordinates, go to 0,0,0
+                QString destination = "0,0,0";
+                goTo(destination);
+            }
+            else if (urlParts.count() > 1) {
                 // if url has 2 or more parts, the first one is domain name
                 QString domain = urlParts[0];
 
@@ -952,12 +960,7 @@ void Menu::goTo() {
                     // location orientation
                     goToOrientation(orientation);
                 }
-            } else if (urlParts.count() == 1) {
-                // location coordinates or place name
-                QString destination = urlParts[0];
-                goTo(destination);
             }
-
         } else {
             goToUser(gotoDialog.textValue());
         }
