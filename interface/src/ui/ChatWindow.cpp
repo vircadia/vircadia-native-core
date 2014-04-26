@@ -26,6 +26,8 @@
 
 #include "ChatWindow.h"
 
+#include <QMessageBox>
+
 const int NUM_MESSAGES_TO_TIME_STAMP = 20;
 
 const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?))://\\S+)");
@@ -36,7 +38,9 @@ ChatWindow::ChatWindow(QWidget* parent) :
     ui(new Ui::ChatWindow),
     numMessagesAfterLastTimeStamp(0),
     _mousePressed(false),
-    _mouseStartPosition()
+    _mouseStartPosition(),
+    _trayIcon(parent),
+    _effectPlayer()
 {
     setAttribute(Qt::WA_DeleteOnClose, false);
 
@@ -80,8 +84,21 @@ ChatWindow::ChatWindow(QWidget* parent) :
         connect(&xmppClient, SIGNAL(connected()), this, SLOT(connected()));
     }
     connect(&xmppClient, SIGNAL(messageReceived(QXmppMessage)), this, SLOT(messageReceived(QXmppMessage)));
-
+    connect(&_trayIcon, SIGNAL(messageClicked()), this, SLOT(notificationClicked()));
 #endif
+
+    QDir mentionSoundsDir(Application::resourcesPath() + "/sounds/mention/");
+    _mentionSounds = mentionSoundsDir.entryList(QDir::Files);
+}
+
+void ChatWindow::notificationClicked() {
+    if (parentWidget()->isMinimized()) {
+        parentWidget()->showNormal();
+    }
+    if (isHidden()) {
+        show();
+    }
+    scrollToBottom();
 }
 
 ChatWindow::~ChatWindow() {
@@ -205,17 +222,6 @@ void ChatWindow::connected() {
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
     connect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
 
-
-    // set limits
-    QDateTime m_startDate = QDateTime::currentDateTime().addDays(-2);
-    QDateTime m_endDate = QDateTime::currentDateTime();
-
-    QXmppResultSetQuery rsmQuery;
-    rsmQuery.setMax(100);
-
-    QXmppArchiveManager* archiveManager = XmppClient::getInstance().getArchiveManager();
-    archiveManager->listCollections("", m_startDate, m_endDate, rsmQuery);
-
 #endif
     startTimerForTimeStamps();
 }
@@ -316,6 +322,21 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
         lastMessageStamp = message.stamp().toLocalTime();
     } else {
         lastMessageStamp = QDateTime::currentDateTime();
+    }
+
+    QRegularExpression usernameMention("@(\\b" + AccountManager::getInstance().getUsername() + "\\b)");
+    qDebug() << "message: " << message.body();
+
+    if (isHidden() && message.body().contains(usernameMention)) {
+        if (_effectPlayer.state() != QMediaPlayer::PlayingState) {
+            // get random sound
+            QFileInfo inf = QFileInfo(Application::resourcesPath()  + "/sounds/mention/" + _mentionSounds.at(rand() % _mentionSounds.size()));
+            _effectPlayer.setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
+            _effectPlayer.play();
+        }
+
+        _trayIcon.show();
+        _trayIcon.showMessage(windowTitle(), message.body());
     }
 }
 

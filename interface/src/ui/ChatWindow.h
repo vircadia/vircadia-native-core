@@ -14,6 +14,8 @@
 
 #include <QDateTime>
 #include <QDockWidget>
+#include <QMediaPlayer>
+#include <QSystemTrayIcon.h>
 #include <QTimer>
 
 #include <Application.h>
@@ -23,10 +25,6 @@
 
 #include <QXmppClient.h>
 #include <QXmppMessage.h>
-
-class QXmppArchiveChat;
-class QXmppArchiveManager;
-class QXmppResultSetReply;
 
 #endif
 
@@ -67,6 +65,9 @@ private:
     QDateTime lastMessageStamp;
     bool _mousePressed;
     QPoint _mouseStartPosition;
+    QSystemTrayIcon _trayIcon;
+    QStringList _mentionSounds;
+    QMediaPlayer _effectPlayer;
 
 private slots:
     void connected();
@@ -75,7 +76,7 @@ private slots:
     void error(QXmppClient::Error error);
     void participantsChanged();
     void messageReceived(const QXmppMessage& message);
-
+    void notificationClicked();
 #endif
 };
 

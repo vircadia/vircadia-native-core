@@ -209,6 +209,9 @@ Menu::Menu() :
     toggleChat();
     connect(&xmppClient, SIGNAL(connected()), this, SLOT(toggleChat()));
     connect(&xmppClient, SIGNAL(disconnected()), this, SLOT(toggleChat()));
+
+    // init chat window to listen chat
+    _chatWindow = new ChatWindow(Application::getInstance()->getWindow());
 #endif
 
     QMenu* viewMenu = addMenu("View");

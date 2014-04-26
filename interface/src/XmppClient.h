@@ -17,7 +17,6 @@
 #include <QObject>
 #include <QXmppClient.h>
 #include <QXmppMucManager.h>
-#include "QXmppArchiveManager.h"
 
 /// Generalized threaded processor for handling received inbound packets. 
 class XmppClient : public QObject {
@@ -28,7 +27,6 @@ public:
 
     QXmppClient& getXMPPClient() { return _xmppClient; }
     const QXmppMucRoom* getPublicChatRoom() const { return _publicChatRoom; }
-    QXmppArchiveManager* getArchiveManager() const { return _archiveManager; }
 
 private slots:
     void xmppConnected();
@@ -45,7 +43,6 @@ private:
     QXmppClient _xmppClient;
     QXmppMucManager _xmppMUCManager;
     QXmppMucRoom* _publicChatRoom;
-    QXmppArchiveManager* _archiveManager;
 };
 
 #endif // __interface__XmppClient__
