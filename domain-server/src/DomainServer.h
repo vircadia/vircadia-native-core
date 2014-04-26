@@ -99,6 +99,7 @@ private:
     
     QUrl _oauthProviderURL;
     QString _oauthClientID;
+    QString _oauthClientSecret;
 };
 
 #endif // hifi_DomainServer_h

@@ -153,15 +153,20 @@ bool DomainServer::optionallyReadX509KeyAndCertificate() {
 bool DomainServer::optionallySetupOAuth() {
     const QString OAUTH_PROVIDER_URL_OPTION = "oauth-provider";
     const QString OAUTH_CLIENT_ID_OPTION = "oauth-client-id";
+    const QString OAUTH_CLIENT_SECRET_ENV = "DOMAIN_SERVER_CLIENT_SECRET";
     const QString REDIRECT_HOSTNAME_OPTION = "hostname";
     
     _oauthProviderURL = QUrl(_argumentVariantMap.value(OAUTH_PROVIDER_URL_OPTION).toString());
     _oauthClientID = _argumentVariantMap.value(OAUTH_CLIENT_ID_OPTION).toString();
+    _oauthClientSecret = QProcessEnvironment::systemEnvironment().value(OAUTH_CLIENT_SECRET_ENV);
     QString oauthRedirectHostname = _argumentVariantMap.value(REDIRECT_HOSTNAME_OPTION).toString();
     
     if (!_oauthProviderURL.isEmpty() || !oauthRedirectHostname.isEmpty() || !_oauthClientID.isEmpty()) {
-        if (_oauthProviderURL.isEmpty() || oauthRedirectHostname.isEmpty() || _oauthClientID.isEmpty()) {
-            qDebug() << "Missing OAuth provider URL or hostname. domain-server will now quit.";
+        if (_oauthProviderURL.isEmpty()
+            || oauthRedirectHostname.isEmpty()
+            || _oauthClientID.isEmpty()
+            || _oauthClientSecret.isEmpty()) {
+            qDebug() << "Missing OAuth provider URL, hostname, client ID, or client secret. domain-server will now quit.";
             QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
             return false;
         } else {
