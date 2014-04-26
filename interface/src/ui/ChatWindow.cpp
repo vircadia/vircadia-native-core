@@ -12,12 +12,10 @@
 #include <QGridLayout>
 #include <QFrame>
 #include <QLayoutItem>
-#include <QMainWindow>
 #include <QPalette>
 #include <QScrollBar>
 #include <QSizePolicy>
 #include <QTimer>
-#include <QWidget>
 
 #include "Application.h"
 #include "FlowLayout.h"
@@ -31,32 +29,40 @@
 const int NUM_MESSAGES_TO_TIME_STAMP = 20;
 
 const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?))://\\S+)");
+const QRegularExpression regexHifiLinks("([#@]\\S+)");
 
-ChatWindow::ChatWindow() :
+ChatWindow::ChatWindow(QWidget* parent) :
+    FramelessDialog(parent, 0, POSITION_RIGHT),
     ui(new Ui::ChatWindow),
     numMessagesAfterLastTimeStamp(0),
     _mousePressed(false),
     _mouseStartPosition()
 {
-    ui->setupUi(this);
+    setAttribute(Qt::WA_DeleteOnClose, false);
 
-    // remove the title bar (see the Qt docs on setTitleBarWidget), but we keep it for undocking
-    //
-    titleBar = titleBarWidget();
-    setTitleBarWidget(new QWidget());
+    ui->setupUi(this);
 
     FlowLayout* flowLayout = new FlowLayout(0, 4, 4);
     ui->usersWidget->setLayout(flowLayout);
 
-    ui->messagesGridLayout->setColumnStretch(0, 1);
-    ui->messagesGridLayout->setColumnStretch(1, 3);
-
     ui->messagePlainTextEdit->installEventFilter(this);
+    ui->messagePlainTextEdit->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+
+    QTextCursor cursor(ui->messagePlainTextEdit->textCursor());
+
+    cursor.movePosition(QTextCursor::Start);
+
+    QTextBlockFormat format = cursor.blockFormat();
+    format.setLineHeight(130, QTextBlockFormat::ProportionalHeight);
+
+    cursor.setBlockFormat(format);
+
+    ui->messagePlainTextEdit->setTextCursor(cursor);
 
     if (!AccountManager::getInstance().isLoggedIn()) {
         ui->connectingToXMPPLabel->setText(tr("You must be logged in to chat with others."));
     }
-    
+
 #ifdef HAVE_QXMPP
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
     if (xmppClient.isConnected()) {
@@ -90,36 +96,17 @@ ChatWindow::~ChatWindow() {
     delete ui;
 }
 
-void ChatWindow::mousePressEvent(QMouseEvent *e) {
-    if (e->button() == Qt::LeftButton && isFloating()) {
-        _mousePressed = true;
-        _mouseStartPosition = e->pos();
-    }
-}
-
-void ChatWindow::mouseMoveEvent(QMouseEvent *e) {
-    if (_mousePressed) {
-        move(mapToParent(e->pos() - _mouseStartPosition));
-    }
-}
-
-void ChatWindow::mouseReleaseEvent( QMouseEvent *e ) {
-    if ( e->button() == Qt::LeftButton ) {
-        _mousePressed = false;
-    }
-}
-
 void ChatWindow::keyPressEvent(QKeyEvent* event) {
-    QDockWidget::keyPressEvent(event);
     if (event->key() == Qt::Key_Escape) {
         hide();
+    } else {
+        FramelessDialog::keyPressEvent(event);
     }
 }
 
 void ChatWindow::showEvent(QShowEvent* event) {
-    QDockWidget::showEvent(event);
+    FramelessDialog::showEvent(event);
     if (!event->spontaneous()) {
-        activateWindow();
         ui->messagePlainTextEdit->setFocus();
     }
 }
@@ -142,18 +129,20 @@ bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
                 message.setBody(messageText);
                 XmppClient::getInstance().getXMPPClient().sendPacket(message);
     #endif
-                ui->messagePlainTextEdit->document()->clear();
+                QTextCursor cursor = ui->messagePlainTextEdit->textCursor();
+                cursor.select(QTextCursor::Document);
+                cursor.removeSelectedText();
             }
             return true;
         }
-    } else {
-        if (event->type() != QEvent::MouseButtonRelease) {
-            return false;
+    } else if (event->type() == QEvent::MouseButtonRelease) {
+        QVariant userVar = sender->property("user");
+        if (userVar.isValid()) {
+            Menu::getInstance()->goToUser("@" + userVar.toString());
+            return true;
         }
-        QString user = sender->property("user").toString();
-        Menu::getInstance()->goToUser(user);
     }
-    return false;
+    return FramelessDialog::eventFilter(sender, event);
 }
 
 #ifdef HAVE_QXMPP
@@ -176,16 +165,17 @@ void ChatWindow::addTimeStamp() {
     timeString.chop(1);
     if (!timeString.isEmpty()) {
         QLabel* timeLabel = new QLabel(timeString);
-        timeLabel->setStyleSheet("color: palette(shadow);"
-                                 "background-color: palette(highlight);"
+        timeLabel->setStyleSheet("color: #333333;"
+                                 "background-color: white;"
+                                 "font-size: 14pt;"
                                  "padding: 4px;");
         timeLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-        timeLabel->setAlignment(Qt::AlignHCenter);
+        timeLabel->setAlignment(Qt::AlignLeft);
 
-        bool atBottom = isAtBottom();
+        bool atBottom = isNearBottom();
 
-        ui->messagesGridLayout->addWidget(timeLabel, ui->messagesGridLayout->rowCount(), 0, 1, 2);
-        ui->messagesGridLayout->parentWidget()->updateGeometry();
+        ui->messagesVBoxLayout->addWidget(timeLabel);
+        ui->messagesVBoxLayout->parentWidget()->updateGeometry();
 
         Application::processEvents();
         numMessagesAfterLastTimeStamp = 0;
@@ -262,6 +252,7 @@ void ChatWindow::participantsChanged() {
                                  "padding-bottom: 2px;"
                                  "padding-left: 2px;"
                                  "border: 1px solid palette(shadow);"
+                                 "font-size: 14pt;"
                                  "font-weight: bold");
         userLabel->setProperty("user", participantName);
         userLabel->setCursor(Qt::PointingHandCursor);
@@ -275,15 +266,11 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
         return;
     }
 
-    QLabel* userLabel = new QLabel(getParticipantName(message.from()));
-    userLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    userLabel->setStyleSheet("padding: 2px; font-weight: bold");
-    userLabel->setAlignment(Qt::AlignTop | Qt::AlignRight);
+    // Update background if this is a message from the current user
+    bool fromSelf = getParticipantName(message.from()) == AccountManager::getInstance().getUsername();
 
-    ChatMessageArea* messageArea = new ChatMessageArea();
-
-    messageArea->setOpenLinks(true);
-    messageArea->setOpenExternalLinks(true);
+    // Create message area
+    ChatMessageArea* messageArea = new ChatMessageArea(true);
     messageArea->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
     messageArea->setTextInteractionFlags(Qt::TextBrowserInteraction);
     messageArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -294,22 +281,30 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
                                "padding-left: 2px;"
                                "padding-top: 2px;"
                                "padding-right: 20px;"
+                               "margin: 0px;"
+                               "color: #333333;"
+                               "font-size: 14pt;"
                                "background-color: rgba(0, 0, 0, 0%);"
                                "border: 0;");
 
-    bool fromSelf = getParticipantName(message.from()) == AccountManager::getInstance().getUsername();
+    QString userLabel = getParticipantName(message.from());
     if (fromSelf) {
-        userLabel->setStyleSheet(userLabel->styleSheet() + "; background-color: #e1e8ea");
-        messageArea->setStyleSheet(messageArea->styleSheet() + "; background-color: #e1e8ea");
+        userLabel = "<b style=\"color: #4a6f91\">" + userLabel + ": </b>";
+        messageArea->setStyleSheet(messageArea->styleSheet() + "background-color: #e1e8ea");
+    } else {
+        userLabel = "<b>" + userLabel + ": </b>";
     }
 
-    messageArea->setHtml(message.body().replace(regexLinks, "<a href=\"\\1\">\\1</a>"));
+    messageArea->document()->setDefaultStyleSheet("a { text-decoration: none; font-weight: bold; color: #267077;}");
+    QString messageText = message.body().toHtmlEscaped();
+    messageText = messageText.replace(regexLinks, "<a href=\"\\1\">\\1</a>");
+    messageText = messageText.replace(regexHifiLinks, "<a href=\"hifi://\\1\">\\1</a>");
+    messageArea->setHtml(userLabel + messageText);
 
-    bool atBottom = isAtBottom();
-    ui->messagesGridLayout->addWidget(userLabel, ui->messagesGridLayout->rowCount(), 0);
-    ui->messagesGridLayout->addWidget(messageArea, ui->messagesGridLayout->rowCount() - 1, 1);
+    bool atBottom = isNearBottom();
 
-    ui->messagesGridLayout->parentWidget()->updateGeometry();
+    ui->messagesVBoxLayout->addWidget(messageArea);
+    ui->messagesVBoxLayout->parentWidget()->updateGeometry();
     Application::processEvents();
 
     if (atBottom || fromSelf) {
@@ -326,26 +321,13 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
 
 #endif
 
-bool ChatWindow::isAtBottom() {
+bool ChatWindow::isNearBottom() {
     QScrollBar* verticalScrollBar = ui->messagesScrollArea->verticalScrollBar();
-    return verticalScrollBar->sliderPosition() == verticalScrollBar->maximum();
+    return verticalScrollBar->value() >= verticalScrollBar->maximum() - Ui::AUTO_SCROLL_THRESHOLD;
 }
 
 // Scroll chat message area to bottom.
 void ChatWindow::scrollToBottom() {
     QScrollBar* verticalScrollBar = ui->messagesScrollArea->verticalScrollBar();
-    verticalScrollBar->setSliderPosition(verticalScrollBar->maximum());
-}
-
-void ChatWindow::togglePinned() {
-    QMainWindow* mainWindow = Application::getInstance()->getWindow();
-    mainWindow->removeDockWidget(this);
-    if (ui->togglePinnedButton->isChecked()) {
-        mainWindow->addDockWidget(ui->togglePinnedButton->isChecked() ? Qt::RightDockWidgetArea : Qt::NoDockWidgetArea, this);
-    }
-    if (!this->toggleViewAction()->isChecked()) {
-        this->toggleViewAction()->trigger();
-    }
-    this->setFloating(!ui->togglePinnedButton->isChecked());
-    setTitleBarWidget(ui->togglePinnedButton->isChecked()?new QWidget():titleBar);
+    verticalScrollBar->setValue(verticalScrollBar->maximum());
 }

@@ -17,6 +17,7 @@
 #include <QTimer>
 
 #include <Application.h>
+#include "FramelessDialog.h"
 
 #ifdef HAVE_QXMPP
 
@@ -30,25 +31,27 @@ class QXmppResultSetReply;
 #endif
 
 namespace Ui {
+
+
+// Maximum amount the chat can be scrolled up in order to auto scroll.
+const int AUTO_SCROLL_THRESHOLD = 20;
+
+
 class ChatWindow;
 }
 
-class ChatWindow : public QDockWidget {
+class ChatWindow : public FramelessDialog {
     Q_OBJECT
 
 public:
-    ChatWindow();
+    ChatWindow(QWidget* parent);
     ~ChatWindow();
-
-    virtual void keyPressEvent(QKeyEvent *event);
-    virtual void showEvent(QShowEvent* event);
-
-    virtual void mousePressEvent(QMouseEvent *e);
-    virtual void mouseMoveEvent(QMouseEvent *e);
-    virtual void mouseReleaseEvent(QMouseEvent *e);
 
 protected:
     bool eventFilter(QObject* sender, QEvent* event);
+
+    virtual void keyPressEvent(QKeyEvent *event);
+    virtual void showEvent(QShowEvent* event);
 
 private:
 #ifdef HAVE_QXMPP
@@ -56,11 +59,10 @@ private:
 #endif
     void startTimerForTimeStamps();
     void addTimeStamp();
-    bool isAtBottom();
+    bool isNearBottom();
     void scrollToBottom();
 
     Ui::ChatWindow* ui;
-    QWidget* titleBar;
     int numMessagesAfterLastTimeStamp;
     QDateTime lastMessageStamp;
     bool _mousePressed;
@@ -69,7 +71,6 @@ private:
 private slots:
     void connected();
     void timeout();
-    void togglePinned();
 #ifdef HAVE_QXMPP
     void error(QXmppClient::Error error);
     void participantsChanged();

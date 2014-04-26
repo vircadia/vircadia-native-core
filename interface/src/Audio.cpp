@@ -644,10 +644,10 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     const int NUM_INITIAL_PACKETS_DISCARD = 3;
     const int STANDARD_DEVIATION_SAMPLE_COUNT = 500;
     
-    _timeSinceLastRecieved.start();
     _totalPacketsReceived++;
     
-    double timeDiff = (double)_timeSinceLastRecieved.nsecsElapsed() / 1000000.0; // ns to ms
+    double timeDiff = (double)_timeSinceLastReceived.nsecsElapsed() / 1000000.0; // ns to ms
+    _timeSinceLastReceived.start();
     
     //  Discard first few received packets for computing jitter (often they pile up on start)
     if (_totalPacketsReceived > NUM_INITIAL_PACKETS_DISCARD) {
@@ -1265,7 +1265,7 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
             // setup a procedural audio output device
             _proceduralAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
 
-            _timeSinceLastRecieved.start();
+            _timeSinceLastReceived.start();
 
             // setup spatial audio ringbuffer
             int numFrameSamples = _outputFormat.sampleRate() * _desiredOutputFormat.channelCount();

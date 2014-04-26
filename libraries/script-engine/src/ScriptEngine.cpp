@@ -19,6 +19,7 @@
 
 #include <AudioRingBuffer.h>
 #include <AvatarData.h>
+#include <CollisionInfo.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <UUID.h>
@@ -230,8 +231,13 @@ void ScriptEngine::init() {
     
     registerGlobalObject("Voxels", &_voxelsScriptingInterface);
 
-    QScriptValue treeScaleValue = _engine.newVariant(QVariant(TREE_SCALE));
-    _engine.globalObject().setProperty("TREE_SCALE", treeScaleValue);
+    // constants
+    QScriptValue globalObject = _engine.globalObject();
+    globalObject.setProperty("TREE_SCALE", _engine.newVariant(QVariant(TREE_SCALE)));
+    globalObject.setProperty("COLLISION_GROUP_ENVIRONMENT", _engine.newVariant(QVariant(COLLISION_GROUP_ENVIRONMENT)));
+    globalObject.setProperty("COLLISION_GROUP_AVATARS", _engine.newVariant(QVariant(COLLISION_GROUP_AVATARS)));
+    globalObject.setProperty("COLLISION_GROUP_VOXELS", _engine.newVariant(QVariant(COLLISION_GROUP_VOXELS)));
+    globalObject.setProperty("COLLISION_GROUP_PARTICLES", _engine.newVariant(QVariant(COLLISION_GROUP_PARTICLES)));
 
     // let the VoxelPacketSender know how frequently we plan to call it
     _voxelsScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(SCRIPT_DATA_CALLBACK_USECS);

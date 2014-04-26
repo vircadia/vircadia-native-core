@@ -27,6 +27,7 @@
 #include <QSlider>
 #include <QUuid>
 #include <QHBoxLayout>
+#include <QDesktopServices>
 
 #include <AccountManager.h>
 #include <XmppClient.h>
@@ -186,9 +187,9 @@ Menu::Menu() :
                                   QAction::PreferencesRole);
 
     addDisabledActionAndSeparator(editMenu, "Physics");
-    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::Gravity, Qt::SHIFT | Qt::Key_G, false);
-
-
+    QObject* avatar = appInstance->getAvatar();
+    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ObeyGravity, Qt::SHIFT | Qt::Key_G, true, 
+            avatar, SLOT(updateMotionBehaviorFlags()));
 
 
     addAvatarCollisionSubMenu(editMenu);
@@ -507,7 +508,7 @@ void Menu::loadSettings(QSettings* settings) {
     // MyAvatar caches some menu options, so we have to update them whenever we load settings.
     // TODO: cache more settings in MyAvatar that are checked with very high frequency.
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
-    myAvatar->updateCollisionFlags();
+    myAvatar->updateCollisionGroups();
 
     if (lockedSettings) {
         Application::getInstance()->unlockSettings();
@@ -970,6 +971,17 @@ void Menu::goToUser(const QString& user) {
     connect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
 }
 
+/// Open a url, shortcutting any "hifi" scheme URLs to the local application.
+void Menu::openUrl(const QUrl& url) {
+    if (url.scheme() == "hifi") {
+        QString path = url.toString(QUrl::RemoveScheme);
+        path = path.remove(QRegExp("^:?/*"));
+        goTo(path);
+    } else {
+        QDesktopServices::openUrl(url);
+    }
+}
+
 void Menu::multipleDestinationsDecision(const QJsonObject& userData, const QJsonObject& placeData) {
     QMessageBox msgBox;
     msgBox.setText("Both user and location exists with same name");
@@ -1145,23 +1157,22 @@ void Menu::showScriptEditor() {
 void Menu::showChat() {
     QMainWindow* mainWindow = Application::getInstance()->getWindow();
     if (!_chatWindow) {
-        mainWindow->addDockWidget(Qt::RightDockWidgetArea, _chatWindow = new ChatWindow());
+        _chatWindow = new ChatWindow(mainWindow);
     }
-    if (!_chatWindow->toggleViewAction()->isChecked()) {
-        const QRect& windowGeometry = mainWindow->geometry();
-        _chatWindow->move(windowGeometry.topRight().x() - _chatWindow->width(),
-                          windowGeometry.topRight().y() + (windowGeometry.height() / 2) - (_chatWindow->height() / 2));
-
-        _chatWindow->resize(0, _chatWindow->height());
-        _chatWindow->toggleViewAction()->trigger();
+    if (_chatWindow->isHidden()) {
+        _chatWindow->show();
     }
 }
 
 void Menu::toggleChat() {
 #ifdef HAVE_QXMPP
     _chatAction->setEnabled(XmppClient::getInstance().getXMPPClient().isConnected());
-    if (!_chatAction->isEnabled() && _chatWindow && _chatWindow->toggleViewAction()->isChecked()) {
-        _chatWindow->toggleViewAction()->trigger();
+    if (!_chatAction->isEnabled() && _chatWindow) {
+        if (_chatWindow->isHidden()) {
+            _chatWindow->show();
+        } else {
+            _chatWindow->hide();
+        }
     }
 #endif
 }
@@ -1370,13 +1381,13 @@ void Menu::addAvatarCollisionSubMenu(QMenu* overMenu) {
     Application* appInstance = Application::getInstance();
     QObject* avatar = appInstance->getAvatar();
     addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithEnvironment,
-            0, false, avatar, SLOT(updateCollisionFlags()));
+            0, false, avatar, SLOT(updateCollisionGroups()));
     addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithAvatars,
-            0, true, avatar, SLOT(updateCollisionFlags()));
+            0, true, avatar, SLOT(updateCollisionGroups()));
     addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithVoxels,
-            0, false, avatar, SLOT(updateCollisionFlags()));
+            0, false, avatar, SLOT(updateCollisionGroups()));
     addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithParticles,
-            0, true, avatar, SLOT(updateCollisionFlags()));
+            0, true, avatar, SLOT(updateCollisionGroups()));
 }
 
 QAction* Menu::getActionFromName(const QString& menuName, QMenu* menu) {
