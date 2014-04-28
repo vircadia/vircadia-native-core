@@ -126,7 +126,7 @@ void MyAvatar::update(float deltaTime) {
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
     if (_motionBehaviors & AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY) {
-        _gravity = Application::getInstance()->getEnvironment()->getGravity(getPosition());
+        setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()));
     }
 
     simulate(deltaTime);
@@ -1159,7 +1159,7 @@ void MyAvatar::updateMotionBehaviors() {
         _motionBehaviors &= ~AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
     }
     if (! (_motionBehaviors & (AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY | AVATAR_MOTION_OBEY_LOCAL_GRAVITY))) {
-        _gravity = glm::vec3(0.0f);
+        setGravity(glm::vec3(0.0f));
     }
 }
 
@@ -1181,7 +1181,7 @@ void MyAvatar::setMotionBehaviors(quint32 flags) {
         _motionBehaviors &= ~AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
         setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()));
     } else if (! (_motionBehaviors & (AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY | AVATAR_MOTION_OBEY_LOCAL_GRAVITY))) {
-        _gravity = glm::vec3(0.0f);
+        setGravity(glm::vec3(0.0f));
     }
 }
 
