@@ -88,10 +88,10 @@ public:
     void childBitsRemoved(bool includesExistsBits, bool includesColors);
 
     /// Pack the details of the statistics into a buffer for sending as a network packet
-    int packIntoMessage(unsigned char* destinationBuffer, int availableBytes);
+    int packIntoMessage(quint8* destinationBuffer, int availableBytes);
 
     /// Unpack the details of the statistics from a buffer typically received as a network packet
-    int unpackFromMessage(const unsigned char* sourceBuffer, int availableBytes);
+    int unpackFromMessage(const quint8* sourceBuffer, int availableBytes);
 
     /// Indicates that a scene has been completed and the statistics are ready to be sent
     bool isReadyToSend() const { return _isReadyToSend; }
@@ -99,8 +99,8 @@ public:
     /// Mark that the scene statistics have been sent
     void markAsSent() { _isReadyToSend = false; }
 
-    unsigned char* getStatsMessage() { return &_statsMessage[0]; }
-    int getStatsMessageLength() const { return _statsMessageLength; }
+    quint8* getStatsMessage() { return &_statsMessage[0]; }
+    qint32 getStatsMessageLength() const { return _statsMessageLength; }
 
     /// List of various items tracked by OctreeSceneStats which can be accessed via getItemInfo() and getItemValue()
     enum Item {
@@ -140,36 +140,36 @@ public:
     const char* getItemValue(Item item);
 
     /// Returns OctCode for root element of the jurisdiction of this particular octree server
-    unsigned char* getJurisdictionRoot() const { return _jurisdictionRoot; }
+    quint8* getJurisdictionRoot() const { return _jurisdictionRoot; }
 
     /// Returns list of OctCodes for end elements of the jurisdiction of this particular octree server
-    const std::vector<unsigned char*>& getJurisdictionEndNodes() const { return _jurisdictionEndNodes; }
+    const std::vector<quint8*>& getJurisdictionEndNodes() const { return _jurisdictionEndNodes; }
     
     bool isMoving() const { return _isMoving; };
-    unsigned long getTotalElements() const { return _totalElements; }
-    unsigned long getTotalInternal() const { return _totalInternal; }
-    unsigned long getTotalLeaves() const { return _totalLeaves; }
-    unsigned long getTotalEncodeTime() const { return _totalEncodeTime; }
-    unsigned long getElapsedTime() const { return _elapsed; }
+    quint64 getTotalElements() const { return _totalElements; }
+    quint64 getTotalInternal() const { return _totalInternal; }
+    quint64 getTotalLeaves() const { return _totalLeaves; }
+    quint64 getTotalEncodeTime() const { return _totalEncodeTime; }
+    quint64 getElapsedTime() const { return _elapsed; }
 
-    unsigned long getLastFullElapsedTime() const { return _lastFullElapsed; }
-    unsigned long getLastFullTotalEncodeTime() const { return _lastFullTotalEncodeTime; }
-    unsigned int getLastFullTotalPackets() const { return _lastFullTotalPackets; }
-    unsigned long getLastFullTotalBytes() const { return _lastFullTotalBytes; }
+    quint64 getLastFullElapsedTime() const { return _lastFullElapsed; }
+    quint64 getLastFullTotalEncodeTime() const { return _lastFullTotalEncodeTime; }
+    quint32 getLastFullTotalPackets() const { return _lastFullTotalPackets; }
+    quint64 getLastFullTotalBytes() const { return _lastFullTotalBytes; }
 
     // Used in client implementations to track individual octree packets
     void trackIncomingOctreePacket(const QByteArray& packet, bool wasStatsPacket, int nodeClockSkewUsec);
 
-    unsigned int getIncomingPackets() const { return _incomingPacket; }
-    unsigned long getIncomingBytes() const { return _incomingBytes; } 
-    unsigned long getIncomingWastedBytes() const { return _incomingWastedBytes; }
-    unsigned int getIncomingOutOfOrder() const { return _incomingLate + _incomingEarly; }
-    unsigned int getIncomingLikelyLost() const { return _incomingLikelyLost; }
-    unsigned int getIncomingRecovered() const { return _incomingRecovered; }
-    unsigned int getIncomingEarly() const { return _incomingEarly; }
-    unsigned int getIncomingLate() const { return _incomingLate; }
-    unsigned int getIncomingReallyLate() const { return _incomingReallyLate; }
-    unsigned int getIncomingPossibleDuplicate() const { return _incomingPossibleDuplicate; }
+    quint32 getIncomingPackets() const { return _incomingPacket; }
+    quint64 getIncomingBytes() const { return _incomingBytes; } 
+    quint64 getIncomingWastedBytes() const { return _incomingWastedBytes; }
+    quint32 getIncomingOutOfOrder() const { return _incomingLate + _incomingEarly; }
+    quint32 getIncomingLikelyLost() const { return _incomingLikelyLost; }
+    quint32 getIncomingRecovered() const { return _incomingRecovered; }
+    quint32 getIncomingEarly() const { return _incomingEarly; }
+    quint32 getIncomingLate() const { return _incomingLate; }
+    quint32 getIncomingReallyLate() const { return _incomingReallyLate; }
+    quint32 getIncomingPossibleDuplicate() const { return _incomingPossibleDuplicate; }
     float getIncomingFlightTimeAverage() { return _incomingFlightTimeAverage.getAverage(); }
 
 private:
@@ -177,8 +177,9 @@ private:
     void copyFromOther(const OctreeSceneStats& other);
 
     bool _isReadyToSend;
-    unsigned char _statsMessage[MAX_PACKET_SIZE];
-    int _statsMessageLength;
+    quint8 _statsMessage[MAX_PACKET_SIZE];
+    
+    qint32 _statsMessageLength;
 
     // scene timing data in usecs
     bool _isStarted;
@@ -188,8 +189,8 @@ private:
 
     quint64 _lastFullElapsed;
     quint64 _lastFullTotalEncodeTime;
-    unsigned int  _lastFullTotalPackets;
-    unsigned long _lastFullTotalBytes;
+    quint32  _lastFullTotalPackets;
+    quint64 _lastFullTotalBytes;
     
     SimpleMovingAverage _elapsedAverage;
     SimpleMovingAverage _bitsPerOctreeAverage;
@@ -198,46 +199,46 @@ private:
     quint64 _encodeStart;
     
     // scene octree related data
-    unsigned long _totalElements;
-    unsigned long _totalInternal;
-    unsigned long _totalLeaves;
+    quint64 _totalElements;
+    quint64 _totalInternal;
+    quint64 _totalLeaves;
 
-    unsigned long _traversed;
-    unsigned long _internal;
-    unsigned long _leaves;
+    quint64 _traversed;
+    quint64 _internal;
+    quint64 _leaves;
     
-    unsigned long _skippedDistance;
-    unsigned long _internalSkippedDistance;
-    unsigned long _leavesSkippedDistance;
+    quint64 _skippedDistance;
+    quint64 _internalSkippedDistance;
+    quint64 _leavesSkippedDistance;
 
-    unsigned long _skippedOutOfView;
-    unsigned long _internalSkippedOutOfView;
-    unsigned long _leavesSkippedOutOfView;
+    quint64 _skippedOutOfView;
+    quint64 _internalSkippedOutOfView;
+    quint64 _leavesSkippedOutOfView;
 
-    unsigned long _skippedWasInView;
-    unsigned long _internalSkippedWasInView;
-    unsigned long _leavesSkippedWasInView;
+    quint64 _skippedWasInView;
+    quint64 _internalSkippedWasInView;
+    quint64 _leavesSkippedWasInView;
 
-    unsigned long _skippedNoChange;
-    unsigned long _internalSkippedNoChange;
-    unsigned long _leavesSkippedNoChange;
+    quint64 _skippedNoChange;
+    quint64 _internalSkippedNoChange;
+    quint64 _leavesSkippedNoChange;
 
-    unsigned long _skippedOccluded;
-    unsigned long _internalSkippedOccluded;
-    unsigned long _leavesSkippedOccluded;
+    quint64 _skippedOccluded;
+    quint64 _internalSkippedOccluded;
+    quint64 _leavesSkippedOccluded;
 
-    unsigned long _colorSent;
-    unsigned long _internalColorSent;
-    unsigned long _leavesColorSent;
+    quint64 _colorSent;
+    quint64 _internalColorSent;
+    quint64 _leavesColorSent;
 
-    unsigned long _didntFit;
-    unsigned long _internalDidntFit;
-    unsigned long _leavesDidntFit;
+    quint64 _didntFit;
+    quint64 _internalDidntFit;
+    quint64 _leavesDidntFit;
 
-    unsigned long _colorBitsWritten;
-    unsigned long _existsBitsWritten;
-    unsigned long _existsInPacketBitsWritten;
-    unsigned long _treesRemoved;
+    quint64 _colorBitsWritten;
+    quint64 _existsBitsWritten;
+    quint64 _existsInPacketBitsWritten;
+    quint64 _treesRemoved;
 
     // Accounting Notes:
     //
@@ -255,22 +256,22 @@ private:
     //
     
     // scene network related data
-    unsigned int  _packets;
-    unsigned long _bytes;
-    unsigned int  _passes;
+    quint32  _packets;
+    quint64 _bytes;
+    quint32  _passes;
     
     // incoming packets stats
-    unsigned int _incomingPacket;
-    unsigned long _incomingBytes;
-    unsigned long _incomingWastedBytes;
+    quint32 _incomingPacket;
+    quint64 _incomingBytes;
+    quint64 _incomingWastedBytes;
 
-    uint16_t _incomingLastSequence; /// last incoming sequence number
-    unsigned int _incomingLikelyLost; /// count of packets likely lost, may be off by _incomingReallyLate count
-    unsigned int _incomingRecovered; /// packets that were late, and we had in our missing list, we consider recovered
-    unsigned int _incomingEarly; /// out of order earlier than expected
-    unsigned int _incomingLate; /// out of order later than expected
-    unsigned int _incomingReallyLate; /// out of order and later than MAX_MISSING_SEQUENCE_OLD_AGE late
-    unsigned int _incomingPossibleDuplicate; /// out of order possibly a duplicate
+    quint16 _incomingLastSequence; /// last incoming sequence number
+    quint32 _incomingLikelyLost; /// count of packets likely lost, may be off by _incomingReallyLate count
+    quint32 _incomingRecovered; /// packets that were late, and we had in our missing list, we consider recovered
+    quint32 _incomingEarly; /// out of order earlier than expected
+    quint32 _incomingLate; /// out of order later than expected
+    quint32 _incomingReallyLate; /// out of order and later than MAX_MISSING_SEQUENCE_OLD_AGE late
+    quint32 _incomingPossibleDuplicate; /// out of order possibly a duplicate
     QSet<uint16_t> _missingSequenceNumbers;
     SimpleMovingAverage _incomingFlightTimeAverage;
     
@@ -280,11 +281,11 @@ private:
 
 
     static ItemInfo _ITEMS[];
-    static int const MAX_ITEM_VALUE_LENGTH = 128;
+    static const int MAX_ITEM_VALUE_LENGTH = 128;
     char _itemValueBuffer[MAX_ITEM_VALUE_LENGTH];
     
-    unsigned char* _jurisdictionRoot;
-    std::vector<unsigned char*> _jurisdictionEndNodes;
+    quint8* _jurisdictionRoot;
+    std::vector<quint8*> _jurisdictionEndNodes;
 };
 
 /// Map between element IDs and their reported OctreeSceneStats. Typically used by classes that need to know which elements sent

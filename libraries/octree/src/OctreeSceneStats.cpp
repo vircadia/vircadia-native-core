@@ -657,40 +657,40 @@ void OctreeSceneStats::printDebugDetails() {
     qDebug("    moving: %s", debug::valueOf(_isMoving));
     qDebug();
     qDebug("    packets: %d", _packets);
-    qDebug("    bytes  : %ld", _bytes);
+    qDebug("    bytes  : %ld", (long int)_bytes);
     qDebug();
-    qDebug("    total elements      : %lu", _totalElements              );
-    qDebug("        internal        : %lu", _totalInternal            );
-    qDebug("        leaves          : %lu", _totalLeaves              );
-    qDebug("    traversed           : %lu", _traversed                );
-    qDebug("        internal        : %lu", _internal                 );
-    qDebug("        leaves          : %lu", _leaves                   );
-    qDebug("    skipped distance    : %lu", _skippedDistance          );
-    qDebug("        internal        : %lu", _internalSkippedDistance  );
-    qDebug("        leaves          : %lu", _leavesSkippedDistance    );
-    qDebug("    skipped out of view : %lu", _skippedOutOfView         );
-    qDebug("        internal        : %lu", _internalSkippedOutOfView );
-    qDebug("        leaves          : %lu", _leavesSkippedOutOfView   );
-    qDebug("    skipped was in view : %lu", _skippedWasInView         );
-    qDebug("        internal        : %lu", _internalSkippedWasInView );
-    qDebug("        leaves          : %lu", _leavesSkippedWasInView   );
-    qDebug("    skipped no change   : %lu", _skippedNoChange          );
-    qDebug("        internal        : %lu", _internalSkippedNoChange  );
-    qDebug("        leaves          : %lu", _leavesSkippedNoChange    );
-    qDebug("    skipped occluded    : %lu", _skippedOccluded          );
-    qDebug("        internal        : %lu", _internalSkippedOccluded  );
-    qDebug("        leaves          : %lu", _leavesSkippedOccluded    );
+    qDebug("    total elements      : %lu", (long unsigned int)_totalElements              );
+    qDebug("        internal        : %lu", (long unsigned int)_totalInternal            );
+    qDebug("        leaves          : %lu", (long unsigned int)_totalLeaves              );
+    qDebug("    traversed           : %lu", (long unsigned int)_traversed                );
+    qDebug("        internal        : %lu", (long unsigned int)_internal                 );
+    qDebug("        leaves          : %lu", (long unsigned int)_leaves                   );
+    qDebug("    skipped distance    : %lu", (long unsigned int)_skippedDistance          );
+    qDebug("        internal        : %lu", (long unsigned int)_internalSkippedDistance  );
+    qDebug("        leaves          : %lu", (long unsigned int)_leavesSkippedDistance    );
+    qDebug("    skipped out of view : %lu", (long unsigned int)_skippedOutOfView         );
+    qDebug("        internal        : %lu", (long unsigned int)_internalSkippedOutOfView );
+    qDebug("        leaves          : %lu", (long unsigned int)_leavesSkippedOutOfView   );
+    qDebug("    skipped was in view : %lu", (long unsigned int)_skippedWasInView         );
+    qDebug("        internal        : %lu", (long unsigned int)_internalSkippedWasInView );
+    qDebug("        leaves          : %lu", (long unsigned int)_leavesSkippedWasInView   );
+    qDebug("    skipped no change   : %lu", (long unsigned int)_skippedNoChange          );
+    qDebug("        internal        : %lu", (long unsigned int)_internalSkippedNoChange  );
+    qDebug("        leaves          : %lu", (long unsigned int)_leavesSkippedNoChange    );
+    qDebug("    skipped occluded    : %lu", (long unsigned int)_skippedOccluded          );
+    qDebug("        internal        : %lu", (long unsigned int)_internalSkippedOccluded  );
+    qDebug("        leaves          : %lu", (long unsigned int)_leavesSkippedOccluded    );
     qDebug();
-    qDebug("    color sent          : %lu", _colorSent                );
-    qDebug("        internal        : %lu", _internalColorSent        );
-    qDebug("        leaves          : %lu", _leavesColorSent          );
-    qDebug("    Didn't Fit          : %lu", _didntFit                 );
-    qDebug("        internal        : %lu", _internalDidntFit         );
-    qDebug("        leaves          : %lu", _leavesDidntFit           );
-    qDebug("    color bits          : %lu", _colorBitsWritten         );
-    qDebug("    exists bits         : %lu", _existsBitsWritten        );
-    qDebug("    in packet bit       : %lu", _existsInPacketBitsWritten);
-    qDebug("    trees removed       : %lu", _treesRemoved             );
+    qDebug("    color sent          : %lu", (long unsigned int)_colorSent                );
+    qDebug("        internal        : %lu", (long unsigned int)_internalColorSent        );
+    qDebug("        leaves          : %lu", (long unsigned int)_leavesColorSent          );
+    qDebug("    Didn't Fit          : %lu", (long unsigned int)_didntFit                 );
+    qDebug("        internal        : %lu", (long unsigned int)_internalDidntFit         );
+    qDebug("        leaves          : %lu", (long unsigned int)_leavesDidntFit           );
+    qDebug("    color bits          : %lu", (long unsigned int)_colorBitsWritten         );
+    qDebug("    exists bits         : %lu", (long unsigned int)_existsBitsWritten        );
+    qDebug("    in packet bit       : %lu", (long unsigned int)_existsInPacketBitsWritten);
+    qDebug("    trees removed       : %lu", (long unsigned int)_treesRemoved             );
 }
 
 OctreeSceneStats::ItemInfo OctreeSceneStats::_ITEMS[] = {
@@ -732,12 +732,14 @@ const char* OctreeSceneStats::getItemValue(Item item) {
         case ITEM_PACKETS: {
             float elapsedSecs = ((float)_elapsed / (float)USECS_PER_SECOND);
             calculatedKBPS = elapsedSecs == 0 ? 0 : ((_bytes * 8) / elapsedSecs) / 1000;
-            sprintf(_itemValueBuffer, "%d packets %lu bytes (%d kbps)", _packets, _bytes, calculatedKBPS);
+            sprintf(_itemValueBuffer, "%d packets %lu bytes (%d kbps)", _packets, (long unsigned int)_bytes, calculatedKBPS);
             break;
         }
         case ITEM_VOXELS_SERVER: {
-            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
-                    _totalElements, _totalInternal, _totalLeaves);
+            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves",
+                    (long unsigned int)_totalElements,
+                    (long unsigned int)_totalInternal,
+                    (long unsigned int)_totalLeaves);
             break;
         }
         case ITEM_VOXELS: {
@@ -745,12 +747,14 @@ const char* OctreeSceneStats::getItemValue(Item item) {
             float calculatedBPV = total == 0 ? 0 : (_bytes * 8) / total;
             float averageBPV = _bitsPerOctreeAverage.getAverage();
             sprintf(_itemValueBuffer, "%lu (%.2f bits/octree Average: %.2f bits/octree) %lu internal %lu leaves", 
-                    total, calculatedBPV, averageBPV, _existsInPacketBitsWritten, _colorSent);
+                    total, calculatedBPV, averageBPV,
+                    (long unsigned int)_existsInPacketBitsWritten,
+                    (long unsigned int)_colorSent);
             break;
         }
         case ITEM_TRAVERSED: {
             sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
-                    _traversed, _internal, _leaves);
+                    (long unsigned int)_traversed, (long unsigned int)_internal, (long unsigned int)_leaves);
             break;
         }
         case ITEM_SKIPPED: {
@@ -769,42 +773,59 @@ const char* OctreeSceneStats::getItemValue(Item item) {
         }
         case ITEM_SKIPPED_DISTANCE: {
             sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
-                    _skippedDistance, _internalSkippedDistance, _leavesSkippedDistance);
+                    (long unsigned int)_skippedDistance,
+                    (long unsigned int)_internalSkippedDistance,
+                    (long unsigned int)_leavesSkippedDistance);
             break;
         }
         case ITEM_SKIPPED_OUT_OF_VIEW: {
             sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
-                    _skippedOutOfView, _internalSkippedOutOfView, _leavesSkippedOutOfView);
+                    (long unsigned int)_skippedOutOfView,
+                    (long unsigned int)_internalSkippedOutOfView,
+                    (long unsigned int)_leavesSkippedOutOfView);
             break;
         }
         case ITEM_SKIPPED_WAS_IN_VIEW: {
             sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
-                    _skippedWasInView, _internalSkippedWasInView, _leavesSkippedWasInView);
+                    (long unsigned int)_skippedWasInView,
+                    (long unsigned int)_internalSkippedWasInView,
+                    (long unsigned int)_leavesSkippedWasInView);
             break;
         }
         case ITEM_SKIPPED_NO_CHANGE: {
             sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
-                    _skippedNoChange, _internalSkippedNoChange, _leavesSkippedNoChange);
+                    (long unsigned int)_skippedNoChange,
+                    (long unsigned int)_internalSkippedNoChange,
+                    (long unsigned int)_leavesSkippedNoChange);
             break;
         }
         case ITEM_SKIPPED_OCCLUDED: {
             sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
-                    _skippedOccluded, _internalSkippedOccluded, _leavesSkippedOccluded);
+                    (long unsigned int)_skippedOccluded,
+                    (long unsigned int)_internalSkippedOccluded,
+                    (long unsigned int)_leavesSkippedOccluded);
             break;
         }
         case ITEM_COLORS: {
             sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
-                    _colorSent, _internalColorSent, _leavesColorSent);
+                    (long unsigned int)_colorSent,
+                    (long unsigned int)_internalColorSent,
+                    (long unsigned int)_leavesColorSent);
             break;
         }
         case ITEM_DIDNT_FIT: {
             sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves (removed: %lu)", 
-                    _didntFit, _internalDidntFit, _leavesDidntFit, _treesRemoved);
+                    (long unsigned int)_didntFit,
+                    (long unsigned int)_internalDidntFit,
+                    (long unsigned int)_leavesDidntFit,
+                    (long unsigned int)_treesRemoved);
             break;
         }
         case ITEM_BITS: {
             sprintf(_itemValueBuffer, "colors: %lu, exists: %lu, in packets: %lu", 
-                    _colorBitsWritten, _existsBitsWritten, _existsInPacketBitsWritten);
+                    (long unsigned int)_colorBitsWritten,
+                    (long unsigned int)_existsBitsWritten,
+                    (long unsigned int)_existsInPacketBitsWritten);
             break;
         }
         case ITEM_MODE: {
