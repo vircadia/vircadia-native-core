@@ -20,18 +20,20 @@
 
 #include <QDebug>
 
-#include "CoverageMap.h"
 #include <GeometryUtil.h>
-#include "OctalCode.h"
+#include <OctalCode.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
+#include <Shape.h>
+#include <ShapeCollider.h>
 
 //#include "Tags.h"
 
-#include "ViewFrustum.h"
+#include "CoverageMap.h"
 #include "OctreeConstants.h"
 #include "OctreeElementBag.h"
 #include "Octree.h"
+#include "ViewFrustum.h"
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale) {
     return voxelSizeScale / powf(2, renderLevel);
@@ -540,6 +542,19 @@ OctreeElement* Octree::getOctreeElementAt(float x, float y, float z, float s) co
     return node;
 }
 
+OctreeElement* Octree::getOctreeEnclosingElementAt(float x, float y, float z, float s) const {
+    unsigned char* octalCode = pointToOctalCode(x,y,z,s);
+    OctreeElement* node = nodeForOctalCode(_rootNode, octalCode, NULL);
+    
+    delete[] octalCode; // cleanup memory
+#ifdef HAS_AUDIT_CHILDREN
+    if (node) {
+        node->auditChildren("Octree::getOctreeElementAt()");
+    }
+#endif // def HAS_AUDIT_CHILDREN
+    return node;
+}
+
 
 OctreeElement* Octree::getOrCreateChildElementAt(float x, float y, float z, float s) {
     return getRoot()->getOrCreateChildElementAt(x, y, z, s);
@@ -676,6 +691,13 @@ public:
     bool found;
 };
 
+class ShapeArgs {
+public:
+    const Shape* shape;
+    CollisionList& collisions;
+    bool found;
+};
+
 bool findCapsulePenetrationOp(OctreeElement* node, void* extraData) {
     CapsuleArgs* args = static_cast<CapsuleArgs*>(extraData);
 
@@ -692,6 +714,27 @@ bool findCapsulePenetrationOp(OctreeElement* node, void* extraData) {
         if (box.findCapsulePenetration(args->start, args->end, args->radius, nodePenetration)) {
             args->penetration = addPenetrations(args->penetration, nodePenetration * (float)(TREE_SCALE));
             args->found = true;
+        }
+    }
+    return false;
+}
+
+bool findShapeCollisionsOp(OctreeElement* node, void* extraData) {
+    ShapeArgs* args = static_cast<ShapeArgs*>(extraData);
+
+    // coarse check against bounds
+    AABox cube = node->getAABox();
+    cube.scale(TREE_SCALE);
+    if (!cube.expandedContains(args->shape->getPosition(), args->shape->getBoundingRadius())) {
+        return false;
+    }
+    if (!node->isLeaf()) {
+        return true; // recurse on children
+    }
+    if (node->hasContent()) {
+        if (ShapeCollider::collideShapeWithAACube(args->shape, cube.calcCenter(), cube.getScale(), args->collisions)) {
+            args->found = true;
+            return true;
         }
     }
     return false;
@@ -720,6 +763,29 @@ bool Octree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end
     }
 
     recurseTreeWithOperation(findCapsulePenetrationOp, &args);
+    
+    if (gotLock) {
+        unlock();
+    }
+    return args.found;
+}
+
+bool Octree::findShapeCollisions(const Shape* shape, CollisionList& collisions, Octree::lockType lockType) {
+
+    ShapeArgs args = { shape, collisions, false };
+
+    bool gotLock = false;
+    if (lockType == Octree::Lock) {
+        lockForRead();
+        gotLock = true;
+    } else if (lockType == Octree::TryLock) {
+        gotLock = tryLockForRead();
+        if (!gotLock) {
+            return args.found; // if we wanted to tryLock, and we couldn't then just bail...
+        }
+    }
+
+    recurseTreeWithOperation(findShapeCollisionsOp, &args);
     
     if (gotLock) {
         unlock();

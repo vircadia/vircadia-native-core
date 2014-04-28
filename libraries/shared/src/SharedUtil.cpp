@@ -15,28 +15,39 @@
 #include <cctype>
 #include <time.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
 #endif
 
 #include <QtCore/QDebug>
+#include <QDateTime>
+#include <QElapsedTimer>
 
 #include "OctalCode.h"
 #include "SharedUtil.h"
 
-quint64 usecTimestamp(const timeval *time) {
-    return (time->tv_sec * 1000000 + time->tv_usec);
-}
-
-int usecTimestampNowAdjust = 0;
+static int usecTimestampNowAdjust = 0; // in usec
 void usecTimestampNowForceClockSkew(int clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;
 }
 
 quint64 usecTimestampNow() {
-    timeval now;
-    gettimeofday(&now, NULL);
-    return (now.tv_sec * 1000000 + now.tv_usec) + ::usecTimestampNowAdjust;
+    static bool usecTimestampNowIsInitialized = false;
+    static qint64 TIME_REFERENCE = 0; // in usec
+    static QElapsedTimer timestampTimer;
+    
+    if (!usecTimestampNowIsInitialized) {
+        TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * 1000; // ms to usec
+        timestampTimer.start();
+        usecTimestampNowIsInitialized = true;
+    }
+    
+    //          usec                       nsec to usec                   usec
+    return TIME_REFERENCE + timestampTimer.nsecsElapsed() / 1000 + ::usecTimestampNowAdjust;
 }
 
 float randFloat() {
@@ -640,27 +651,59 @@ void debug::checkDeadBeef(void* memoryVoid, int size) {
 // https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)
 glm::vec3 safeEulerAngles(const glm::quat& q) {
     float sy = 2.0f * (q.y * q.w - q.x * q.z);
+    glm::vec3 eulers;
     if (sy < 1.0f - EPSILON) {
         if (sy > -1.0f + EPSILON) {
-            return glm::vec3(
+            eulers = glm::vec3(
                 atan2f(q.y * q.z + q.x * q.w, 0.5f - (q.x * q.x + q.y * q.y)),
                 asinf(sy),
                 atan2f(q.x * q.y + q.z * q.w, 0.5f - (q.y * q.y + q.z * q.z)));
 
         } else {
             // not a unique solution; x + z = atan2(-m21, m11)
-            return glm::vec3(
+            eulers = glm::vec3(
                 0.0f,
                 - PI_OVER_TWO,
                 atan2f(q.x * q.w - q.y * q.z, 0.5f - (q.x * q.x + q.z * q.z)));
         }
     } else {
         // not a unique solution; x - z = atan2(-m21, m11)
-        return glm::vec3(
+        eulers = glm::vec3(
             0.0f,
             PI_OVER_TWO,
             -atan2f(q.x * q.w - q.y * q.z, 0.5f - (q.x * q.x + q.z * q.z)));
     }
+    
+    // adjust so that z, rather than y, is in [-pi/2, pi/2]
+    if (eulers.z < -PI_OVER_TWO) {
+        if (eulers.x < 0.0f) {
+            eulers.x += PI;
+        } else {
+            eulers.x -= PI;
+        }
+        eulers.y = -eulers.y;
+        if (eulers.y < 0.0f) {
+            eulers.y += PI;
+        } else {
+            eulers.y -= PI;
+        }
+        eulers.z += PI;
+        
+    } else if (eulers.z > PI_OVER_TWO) {
+        if (eulers.x < 0.0f) {
+            eulers.x += PI;
+        } else {
+            eulers.x -= PI;
+        }
+        eulers.y = -eulers.y;
+        if (eulers.y < 0.0f) {
+            eulers.y += PI;
+        } else {
+            eulers.y -= PI;
+        }
+        eulers.z -= PI;
+    }
+    return eulers;
 }
 
 //  Helper function returns the positive angle (in radians) between two 3D vectors

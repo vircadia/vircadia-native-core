@@ -46,13 +46,6 @@ enum DriveKeys {
     MAX_DRIVE_KEYS
 };
 
-enum AvatarMode {
-    AVATAR_MODE_STANDING = 0,
-    AVATAR_MODE_WALKING,
-    AVATAR_MODE_INTERACTING,
-    NUM_AVATAR_MODES
-};
-
 enum ScreenTintLayer {
     SCREEN_TINT_BEFORE_LANDSCAPE = 0,
     SCREEN_TINT_BEFORE_AVATARS,
@@ -70,6 +63,7 @@ class Texture;
 
 class Avatar : public AvatarData {
     Q_OBJECT
+    Q_PROPERTY(quint32 collisionGroups READ getCollisionGroups WRITE setCollisionGroups)
 
 public:
     Avatar();
@@ -155,8 +149,11 @@ public:
     virtual float getBoundingRadius() const;
     void updateShapePositions();
 
+    quint32 getCollisionGroups() const { return _collisionGroups; }
+    virtual void setCollisionGroups(quint32 collisionGroups) { _collisionGroups = (collisionGroups & VALID_COLLISION_GROUPS); }
+
 public slots:
-    void updateCollisionFlags();
+    void updateCollisionGroups();
 
 signals:
     void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);
@@ -164,9 +161,7 @@ signals:
 protected:
     SkeletonModel _skeletonModel;
     float _bodyYawDelta;
-    AvatarMode _mode;
     glm::vec3 _velocity;
-    glm::vec3 _thrust;
     float _leanScale;
     float _scale;
     glm::vec3 _worldUpDirection;
@@ -175,7 +170,7 @@ protected:
     float _stringLength;
     bool _moving; ///< set when position is changing
 
-    uint32_t _collisionFlags;
+    quint32 _collisionGroups;
 
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }

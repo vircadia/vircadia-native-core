@@ -188,9 +188,9 @@ Menu::Menu() :
                                   QAction::PreferencesRole);
 
     addDisabledActionAndSeparator(editMenu, "Physics");
-    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::Gravity, Qt::SHIFT | Qt::Key_G, false);
-
-
+    QObject* avatar = appInstance->getAvatar();
+    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ObeyGravity, Qt::SHIFT | Qt::Key_G, true, 
+            avatar, SLOT(updateMotionBehaviorFlags()));
 
 
     addAvatarCollisionSubMenu(editMenu);
@@ -337,6 +337,8 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::PlaySlaps, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::HandsCollideWithSelf, 0, false);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::ShowIKConstraints, 0, false);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlignForearmsWithWrists, 0, true);
 
     addDisabledActionAndSeparator(developerMenu, "Testing");
 
@@ -507,7 +509,7 @@ void Menu::loadSettings(QSettings* settings) {
     // MyAvatar caches some menu options, so we have to update them whenever we load settings.
     // TODO: cache more settings in MyAvatar that are checked with very high frequency.
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
-    myAvatar->updateCollisionFlags();
+    myAvatar->updateCollisionGroups();
 
     if (lockedSettings) {
         Application::getInstance()->unlockSettings();
@@ -1351,13 +1353,13 @@ void Menu::addAvatarCollisionSubMenu(QMenu* overMenu) {
     Application* appInstance = Application::getInstance();
     QObject* avatar = appInstance->getAvatar();
     addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithEnvironment,
-            0, false, avatar, SLOT(updateCollisionFlags()));
+            0, false, avatar, SLOT(updateCollisionGroups()));
     addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithAvatars,
-            0, true, avatar, SLOT(updateCollisionFlags()));
+            0, true, avatar, SLOT(updateCollisionGroups()));
     addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithVoxels,
-            0, false, avatar, SLOT(updateCollisionFlags()));
+            0, false, avatar, SLOT(updateCollisionGroups()));
     addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithParticles,
-            0, true, avatar, SLOT(updateCollisionFlags()));
+            0, true, avatar, SLOT(updateCollisionGroups()));
 }
 
 QAction* Menu::getActionFromName(const QString& menuName, QMenu* menu) {

@@ -1088,7 +1088,6 @@ function keyPressEvent(event) {
             red: colors[whichColor].red,
             green: colors[whichColor].green,
                 blue: colors[whichColor].blue };
-            Voxels.eraseVoxel(newVoxel.x, newVoxel.y, newVoxel.z, newVoxel.s);
             Voxels.setVoxel(newVoxel.x, newVoxel.y, newVoxel.z, newVoxel.s, newVoxel.red, newVoxel.green, newVoxel.blue);
             setAudioPosition();
             initialVoxelSound.playRandom();
@@ -1394,7 +1393,6 @@ function checkControllers() {
             if (Vec3.length(Vec3.subtract(fingerTipPosition,lastFingerAddVoxel)) > (FINGERTIP_VOXEL_SIZE / 2)) {
                 newColor = { red: colors[whichColor].red, green: colors[whichColor].green, blue: colors[whichColor].blue };
                 
-                Voxels.eraseVoxel(fingerTipPosition.x, fingerTipPosition.y, fingerTipPosition.z, FINGERTIP_VOXEL_SIZE);
                 Voxels.setVoxel(fingerTipPosition.x, fingerTipPosition.y, fingerTipPosition.z, FINGERTIP_VOXEL_SIZE,
                                 newColor.red, newColor.green, newColor.blue);
                 

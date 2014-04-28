@@ -257,6 +257,7 @@ private:
 
 namespace MenuOption {
     const QString AboutApp = "About Interface";
+    const QString AlignForearmsWithWrists = "Align Forearms with Wrists";
     const QString AmbientOcclusion = "Ambient Occlusion";
     const QString Atmosphere = "Atmosphere";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
@@ -314,7 +315,7 @@ namespace MenuOption {
     const QString GoTo = "Go To...";
     const QString GoToDomain = "Go To Domain...";
     const QString GoToLocation = "Go To Location...";
-    const QString Gravity = "Use Gravity";
+    const QString ObeyGravity = "Obey Gravity";
     const QString HandsCollideWithSelf = "Collide With Self";
     const QString HeadMouse = "Head Mouse";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
@@ -355,6 +356,7 @@ namespace MenuOption {
     const QString SettingsImport = "Import Settings";
     const QString Shadows = "Shadows";
     const QString ShowCulledSharedFaces = "Show Culled Shared Voxel Faces";
+    const QString ShowIKConstraints = "Show IK Constraints";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString StopAllScripts = "Stop All Scripts";
