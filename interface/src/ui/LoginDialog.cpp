@@ -67,7 +67,7 @@ void LoginDialog::handleLoginFailed() {
     _ui->errorLabel->setVisible(true);
 
     _ui->errorLabel->show();
-    _ui->loginAreaContainer->setDisabled(false);
+    _ui->loginArea->setDisabled(false);
     _ui->emailLineEdit->setFocus();
     _ui->emailLineEdit->setSelection(0, _ui->emailLineEdit->maxLength());
 };
@@ -83,7 +83,7 @@ void LoginDialog::handleLoginClicked() {
         _ui->infoLabel->setVisible(true);
         _ui->errorLabel->setVisible(false);
 
-        _ui->loginAreaContainer->setDisabled(true);
+        _ui->loginArea->setDisabled(true);
         AccountManager::getInstance().requestAccessToken(_ui->emailLineEdit->text(), _ui->passwordLineEdit->text());
     }
 };
