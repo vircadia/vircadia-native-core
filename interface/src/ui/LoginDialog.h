@@ -28,7 +28,6 @@ public:
 
 public slots:
     void handleLoginClicked();
-    void handleForgotPasswordClicked();
     void handleLoginCompleted(const QUrl& authURL);
     void handleLoginFailed();
 

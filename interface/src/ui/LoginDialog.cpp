@@ -30,7 +30,7 @@ LoginDialog::LoginDialog(QWidget* parent) :
     _ui->setupUi(this);
     _ui->errorLabel->hide();
     _ui->emailLineEdit->setFocus();
-    _ui->logoLabel->setPixmap(QPixmap(Application::resourcesPath() + "images/hifi-logo.png"));
+    _ui->logoLabel->setPixmap(QPixmap(Application::resourcesPath() + "images/hifi-logo.svg"));
     _ui->loginButton->setIcon(QIcon(Application::resourcesPath() + "images/login.svg"));
     _ui->infoLabel->setVisible(false);
     _ui->errorLabel->setVisible(false);
@@ -46,8 +46,6 @@ LoginDialog::LoginDialog(QWidget* parent) :
             this, &LoginDialog::handleLoginClicked);
     connect(_ui->closeButton, &QPushButton::clicked,
             this, &LoginDialog::close);
-    connect(_ui->forgotPasswordButton, &QPushButton::clicked,
-            this, &LoginDialog::handleForgotPasswordClicked);
 };
 
 LoginDialog::~LoginDialog() {
@@ -61,8 +59,6 @@ void LoginDialog::handleLoginCompleted(const QUrl& authURL) {
 };
 
 void LoginDialog::handleLoginFailed() {
-    _ui->errorLabel->setText("Login Failure: Invalid username or password");
-
     _ui->infoLabel->setVisible(false);
     _ui->errorLabel->setVisible(true);
 
@@ -81,17 +77,12 @@ void LoginDialog::handleLoginClicked() {
     } else if (_ui->passwordLineEdit->text().isEmpty()) {
         _ui->passwordLineEdit->setFocus();
     } else {
-        _ui->infoLabel->setText("Authenticating...");
         _ui->infoLabel->setVisible(true);
         _ui->errorLabel->setVisible(false);
 
         _ui->loginArea->setDisabled(true);
         AccountManager::getInstance().requestAccessToken(_ui->emailLineEdit->text(), _ui->passwordLineEdit->text());
     }
-};
-
-void LoginDialog::handleForgotPasswordClicked() {
-    Menu::getInstance()->openUrl(FORGOT_PASSWORD_URL);
 };
 
 void LoginDialog::moveEvent(QMoveEvent* event) {
