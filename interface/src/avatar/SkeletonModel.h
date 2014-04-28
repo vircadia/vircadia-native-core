@@ -33,6 +33,8 @@ public:
     ///  \param shapes[out] list of shapes for body collisions
     void getBodyShapes(QVector<const Shape*>& shapes) const;
 
+    void renderIKConstraints();
+
 protected:
 
     void applyHandPosition(int jointIndex, const glm::vec3& position);
@@ -46,6 +48,8 @@ protected:
     virtual void maybeUpdateLeanRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
     
 private:
+
+    void renderJointConstraints(int jointIndex);
     
     Avatar* _owningAvatar;
 };

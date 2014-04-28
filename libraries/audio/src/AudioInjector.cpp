@@ -71,8 +71,8 @@ void AudioInjector::injectAudio() {
         quint8 volume = MAX_INJECTOR_VOLUME * _options.getVolume();
         packetStream << volume;
         
-        timeval startTime = {};
-        gettimeofday(&startTime, NULL);
+        QElapsedTimer timer;
+        timer.start();
         int nextFrame = 0;
         
         int currentSendPosition = 0;
@@ -104,7 +104,7 @@ void AudioInjector::injectAudio() {
             if (currentSendPosition != bytesToCopy && currentSendPosition < soundByteArray.size()) {
                 // not the first packet and not done
                 // sleep for the appropriate time
-                int usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
+                int usecToSleep = (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - timer.nsecsElapsed() / 1000;
                 
                 if (usecToSleep > 0) {
                     usleep(usecToSleep);

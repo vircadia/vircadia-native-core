@@ -42,7 +42,11 @@ void VoxelTree::deleteVoxelAt(float x, float y, float z, float s) {
 }
 
 VoxelTreeElement* VoxelTree::getVoxelAt(float x, float y, float z, float s) const {
-    return (VoxelTreeElement*)getOctreeElementAt(x, y, z, s);
+    return static_cast<VoxelTreeElement*>(getOctreeElementAt(x, y, z, s));
+}
+
+VoxelTreeElement* VoxelTree::getEnclosingVoxelAt(float x, float y, float z, float s) const {
+    return static_cast<VoxelTreeElement*>(getOctreeEnclosingElementAt(x, y, z, s));
 }
 
 void VoxelTree::createVoxel(float x, float y, float z, float s,

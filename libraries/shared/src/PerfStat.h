@@ -18,12 +18,6 @@
 #include <stdint.h>
 #include "SharedUtil.h"
 
-#ifdef _WIN32
-#include "Systime.h"
-#else
-#include <sys/time.h>
-#endif
-
 #include <cstring>
 #include <string>
 #include <map>
