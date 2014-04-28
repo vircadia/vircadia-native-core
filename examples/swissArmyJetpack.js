@@ -188,17 +188,18 @@ function update(deltaTime) {
         ray = { origin: MyAvatar.position, direction: DOWN };
         var intersection = Voxels.findRayIntersection(ray);
         if (intersection.intersects) {
-            if (!(MyAvatar.motionBehaviors & AVATAR_MOTION_OBEY_GRAVITY)) {
+            if (!(MyAvatar.motionBehaviors & AVATAR_MOTION_OBEY_LOCAL_GRAVITY)) {
                 var v = intersection.voxel;
                 var maxCorner = Vec3.sum({ x: v.x, y: v.y, z: v.z }, {x: v.s, y: v.s, z: v.s });
                 var distance = lastPosition.y - maxCorner.y;
                 if ((gravityOnExpiry < now) && (distance < MAX_VOXEL_SCAN_DISTANCE)) {
-                    MyAvatar.motionBehaviors = MyAvatar.motionBehaviors | AVATAR_MOTION_OBEY_GRAVITY;
+                    // NOTE: setting the gravity automatically sets the AVATAR_MOTION_OBEY_LOCAL_GRAVITY behavior bit.
+                    MyAvatar.gravity = DOWN;
                 }
             }
         } else {
-            if (MyAvatar.motionBehaviors & AVATAR_MOTION_OBEY_GRAVITY) {
-                MyAvatar.motionBehaviors = MyAvatar.motionBehaviors & ~AVATAR_MOTION_OBEY_GRAVITY;
+            if (MyAvatar.motionBehaviors & AVATAR_MOTION_OBEY_LOCAL_GRAVITY) {
+                MyAvatar.motionBehaviors = MyAvatar.motionBehaviors & ~AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
             }
             gravityOnExpiry = now + EXPIRY_PERIOD;
         }
@@ -216,9 +217,9 @@ function update(deltaTime) {
         collisionOnExpiry = now + EXPIRY_PERIOD;
     }
     if (speed > MAX_WALKING_SPEED) {
-        if (MyAvatar.motionBehaviors & AVATAR_MOTION_OBEY_GRAVITY) {
+        if (MyAvatar.motionBehaviors & AVATAR_MOTION_OBEY_LOCAL_GRAVITY) {
             // turn off gravity
-            MyAvatar.motionBehaviors = MyAvatar.motionBehaviors & ~AVATAR_MOTION_OBEY_GRAVITY;
+            MyAvatar.motionBehaviors = MyAvatar.motionBehaviors & ~AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
         }
     }
     if (speed > MAX_COLLIDABLE_SPEED) {

@@ -29,6 +29,7 @@ class MyAvatar : public Avatar {
     Q_OBJECT
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
     Q_PROPERTY(quint32 motionBehaviors READ getMotionBehaviors WRITE setMotionBehaviors)
+    Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setLocalGravity)
 
 public:
 	MyAvatar();
@@ -50,8 +51,7 @@ public:
     void setMousePressed(bool mousePressed) { _mousePressed = mousePressed; }
     void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
     void setLeanScale(float scale) { _leanScale = scale; }
-    void setGravity(glm::vec3 gravity);
-    void setMoveTarget(const glm::vec3 moveTarget);
+    void setLocalGravity(glm::vec3 gravity);
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; }
 
     // getters
@@ -121,6 +121,7 @@ private:
     bool _shouldJump;
     float _driveKeys[MAX_DRIVE_KEYS];
     glm::vec3 _gravity;
+    glm::vec3 _environmentGravity;
     float _distanceToNearestAvatar; // How close is the nearest avatar?
 
     // motion stuff
@@ -149,6 +150,7 @@ private:
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void updateChatCircle(float deltaTime);
     void maybeUpdateBillboard();
+    void setGravity(const glm::vec3& gravity);
 };
 
 #endif // hifi_MyAvatar_h
