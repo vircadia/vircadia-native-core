@@ -68,8 +68,10 @@ void LoginDialog::handleLoginFailed() {
 
     _ui->errorLabel->show();
     _ui->loginArea->setDisabled(false);
-    _ui->emailLineEdit->setFocus();
-    _ui->emailLineEdit->setSelection(0, _ui->emailLineEdit->maxLength());
+
+    // Move focus to password and select the entire line
+    _ui->passwordLineEdit->setFocus();
+    _ui->passwordLineEdit->setSelection(0, _ui->emailLineEdit->maxLength());
 };
 
 void LoginDialog::handleLoginClicked() {
