@@ -32,6 +32,7 @@ const int NUM_MESSAGES_TO_TIME_STAMP = 20;
 
 const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?))://\\S+)");
 const QRegularExpression regexHifiLinks("([#@]\\S+)");
+const QString mentionSoundsPath("/sounds/mention/");
 
 ChatWindow::ChatWindow(QWidget* parent) :
     FramelessDialog(parent, 0, POSITION_RIGHT),
@@ -81,13 +82,13 @@ ChatWindow::ChatWindow(QWidget* parent) :
         ui->usersWidget->hide();
         ui->messagesScrollArea->hide();
         ui->messagePlainTextEdit->hide();
-        connect(&xmppClient, SIGNAL(connected()), this, SLOT(connected()));
+        connect(&XmppClient::getInstance(), SIGNAL(joinedPublicChatRoom()), this, SLOT(connected()));
     }
     connect(&xmppClient, SIGNAL(messageReceived(QXmppMessage)), this, SLOT(messageReceived(QXmppMessage)));
     connect(&_trayIcon, SIGNAL(messageClicked()), this, SLOT(notificationClicked()));
 #endif
 
-    QDir mentionSoundsDir(Application::resourcesPath() + "/sounds/mention/");
+    QDir mentionSoundsDir(Application::resourcesPath() + mentionSoundsPath);
     _mentionSounds = mentionSoundsDir.entryList(QDir::Files);
 }
 
@@ -104,7 +105,7 @@ void ChatWindow::notificationClicked() {
 ChatWindow::~ChatWindow() {
 #ifdef HAVE_QXMPP
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
-    disconnect(&xmppClient, SIGNAL(connected()), this, SLOT(connected()));
+    disconnect(&xmppClient, SIGNAL(joinedPublicChatRoom()), this, SLOT(connected()));
     disconnect(&xmppClient, SIGNAL(messageReceived(QXmppMessage)), this, SLOT(messageReceived(QXmppMessage)));
 
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
@@ -125,6 +126,11 @@ void ChatWindow::showEvent(QShowEvent* event) {
     FramelessDialog::showEvent(event);
     if (!event->spontaneous()) {
         ui->messagePlainTextEdit->setFocus();
+    }
+
+    const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
+    if (xmppClient.isConnected()) {
+        participantsChanged();
     }
 }
 
@@ -221,7 +227,6 @@ void ChatWindow::connected() {
 #ifdef HAVE_QXMPP
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
     connect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
-
 #endif
     startTimerForTimeStamps();
 }
@@ -325,12 +330,12 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     }
 
     QRegularExpression usernameMention("@(\\b" + AccountManager::getInstance().getUsername() + "\\b)");
-    qDebug() << "message: " << message.body();
-
     if (isHidden() && message.body().contains(usernameMention)) {
         if (_effectPlayer.state() != QMediaPlayer::PlayingState) {
             // get random sound
-            QFileInfo inf = QFileInfo(Application::resourcesPath()  + "/sounds/mention/" + _mentionSounds.at(rand() % _mentionSounds.size()));
+            QFileInfo inf = QFileInfo(Application::resourcesPath()  +
+                                      mentionSoundsPath +
+                                      _mentionSounds.at(rand() % _mentionSounds.size()));
             _effectPlayer.setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
             _effectPlayer.play();
         }
