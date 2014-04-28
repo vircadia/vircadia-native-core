@@ -42,7 +42,7 @@ var leftLaser = Overlays.addOverlay("line3d", {
                                     });
 var rightLaser = Overlays.addOverlay("line3d", {
                                      position: { x: 0, y: 0, z: 0},
-                                     end: { x: 0, y: 0, z: 0},
+                                     end: { x: 0, y: 0, z:  0},
                                      color: { red: 255, green: 0, blue: 0},
                                      alpha: 1,
                                      visible: false,
@@ -112,20 +112,24 @@ function checkControllerSide(whichSide) {
     
     var createButtonPressed = (Controller.isButtonPressed(BUTTON_3));
     if (createButtonPressed) {
+        var position = MyAvatar.position;
+        var forwardVector = Quat.getFront(MyAvatar.orientation);
+        position = Vec3.sum(position, Vec3.multiply(forwardVector, 2));
         Particles.editParticle(particle, {
-                               position: { x: 0, y: 0, z:0 },
+                               position: position,
                                velocity: { x: 0, y: 0, z: 0},
                                gravity: { x: 0, y: 0, z: 0},
                                radius: 0.05,
                                damping: 0.999,
                                color: { red: 255, green: 0, blue: 0 },
+                               lifetime: 1000,
                                modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/models/heads/defaultAvatar_head.fst",
                                });
     }
     
     
     var vector = Vec3.subtract(tipPosition, palmPosition);
-    var endPosition = Vec3.sum(palmPosition, Vec3.multiply(vector, 100));
+    var endPosition = Vec3.sum(palmPosition, Vec3.multiply(vector, 4));
     
     Overlays.editOverlay(overlay, {
                          position: palmPosition,
@@ -135,6 +139,7 @@ function checkControllerSide(whichSide) {
     
     
     if (triggerValue > 0.9) {
+        
         
     }
     
