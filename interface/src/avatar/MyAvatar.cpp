@@ -125,10 +125,8 @@ void MyAvatar::update(float deltaTime) {
     head->setAudioLoudness(audio->getLastInputLoudness());
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
-    if (_motionBehaviors & AVATAR_MOTION_OBEY_GRAVITY) {
+    if (_motionBehaviors & AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY) {
         setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()));
-    } else {
-        setGravity(glm::vec3(0.0f, 0.0f, 0.0f));
     }
 
     simulate(deltaTime);
@@ -461,6 +459,27 @@ void MyAvatar::renderHeadMouse() const {
 
     }
     */
+}
+
+void MyAvatar::setLocalGravity(glm::vec3 gravity) {
+    _motionBehaviors |= AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
+    // Environmental and Local gravities are incompatible.  Since Local is being set here
+    // the environmental setting must be removed.
+    _motionBehaviors &= ~AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY;
+    setGravity(gravity);
+}
+
+void MyAvatar::setGravity(const glm::vec3& gravity) {
+    _gravity = gravity;
+    getHead()->setGravity(_gravity);
+
+    // use the gravity to determine the new world up direction, if possible
+    float gravityLength = glm::length(gravity);
+    if (gravityLength > EPSILON) {
+        _worldUpDirection = _gravity / -gravityLength;
+    } else {
+        _worldUpDirection = DEFAULT_UP_DIRECTION;
+    }
 }
 
 void MyAvatar::saveData(QSettings* settings) {
@@ -1046,19 +1065,6 @@ void MyAvatar::maybeUpdateBillboard() {
     sendBillboardPacket();
 }
 
-void MyAvatar::setGravity(glm::vec3 gravity) {
-    _gravity = gravity;
-    getHead()->setGravity(_gravity);
-
-    // use the gravity to determine the new world up direction, if possible
-    float gravityLength = glm::length(gravity);
-    if (gravityLength > EPSILON) {
-        _worldUpDirection = _gravity / -gravityLength;
-    } else {
-        _worldUpDirection = DEFAULT_UP_DIRECTION;
-    }
-}
-
 void MyAvatar::goHome() {
     qDebug("Going Home!");
     setPosition(START_LOCATION);
@@ -1147,8 +1153,13 @@ void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
 
 void MyAvatar::updateMotionBehaviors() {
     _motionBehaviors = 0;
-    if (Menu::getInstance()->isOptionChecked(MenuOption::ObeyGravity)) {
-        _motionBehaviors |= AVATAR_MOTION_OBEY_GRAVITY;
+    if (Menu::getInstance()->isOptionChecked(MenuOption::ObeyEnvironmentalGravity)) {
+        _motionBehaviors |= AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY;
+        // Environmental and Local gravities are incompatible.  Environmental setting trumps local.
+        _motionBehaviors &= ~AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
+    }
+    if (! (_motionBehaviors & (AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY | AVATAR_MOTION_OBEY_LOCAL_GRAVITY))) {
+        setGravity(glm::vec3(0.0f));
     }
 }
 
@@ -1164,7 +1175,14 @@ void MyAvatar::setCollisionGroups(quint32 collisionGroups) {
 void MyAvatar::setMotionBehaviors(quint32 flags) {
     _motionBehaviors = flags;
     Menu* menu = Menu::getInstance();
-    menu->setIsOptionChecked(MenuOption::ObeyGravity, (bool)(_motionBehaviors & AVATAR_MOTION_OBEY_GRAVITY));
+    menu->setIsOptionChecked(MenuOption::ObeyEnvironmentalGravity, (bool)(_motionBehaviors & AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY));
+    // Environmental and Local gravities are incompatible.  Environmental setting trumps local.
+    if (_motionBehaviors & AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY) {
+        _motionBehaviors &= ~AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
+        setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()));
+    } else if (! (_motionBehaviors & (AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY | AVATAR_MOTION_OBEY_LOCAL_GRAVITY))) {
+        setGravity(glm::vec3(0.0f));
+    }
 }
 
 void MyAvatar::applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) {
