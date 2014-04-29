@@ -29,6 +29,8 @@
 #include <QMessageBox>
 
 const int NUM_MESSAGES_TO_TIME_STAMP = 20;
+const int MAX_HISTORY_CHAT_MESSAGES = 100;
+const int MAX_HISTORY_DAYS = 7;
 
 const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?))://\\S+)");
 const QRegularExpression regexHifiLinks("([#@]\\S+)");
@@ -227,8 +229,36 @@ void ChatWindow::connected() {
 #ifdef HAVE_QXMPP
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
     connect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
+
+    // add archive manager
+    _archiveManager = new QXmppArchiveManager;
+    XmppClient::getInstance().getXMPPClient().addExtension(_archiveManager);
+
+    connect(_archiveManager, SIGNAL(archiveChatReceived(QXmppArchiveChat, QXmppResultSetReply)),
+                    SLOT(archiveChatReceived(QXmppArchiveChat, QXmppResultSetReply)));
+
+    connect(_archiveManager, SIGNAL(archiveListReceived(QList<QXmppArchiveChat>, QXmppResultSetReply)),
+                    SLOT(archiveListReceived(QList<QXmppArchiveChat>, QXmppResultSetReply)));
+
+    QXmppResultSetQuery rsmQuery;
+    rsmQuery.setMax(MAX_HISTORY_CHAT_MESSAGES);
+    _archiveManager->listCollections(publicChatRoom->jid(),
+                                     QDateTime::currentDateTime().addDays(-MAX_HISTORY_DAYS),
+                                     QDateTime::currentDateTime(),
+                                     rsmQuery);
+
 #endif
     startTimerForTimeStamps();
+}
+
+void ChatWindow::archiveChatReceived(const QXmppArchiveChat &chat, const QXmppResultSetReply &rsmReply) {
+    foreach (const QXmppArchiveMessage &msg, chat.messages()) {
+        qDebug() << "message:" << qPrintable(msg.body());
+    }
+}
+
+void ChatWindow::archiveListReceived(const QList<QXmppArchiveChat> &chats, const QXmppResultSetReply &rsmReply) {
+
 }
 
 void ChatWindow::timeout() {

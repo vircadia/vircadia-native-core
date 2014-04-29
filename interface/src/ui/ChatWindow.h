@@ -26,6 +26,9 @@
 #include <QXmppClient.h>
 #include <QXmppMessage.h>
 
+#include "QXmppArchiveIq.h"
+#include "QXmppArchiveManager.h"
+
 #endif
 
 namespace Ui {
@@ -68,6 +71,7 @@ private:
     QSystemTrayIcon _trayIcon;
     QStringList _mentionSounds;
     QMediaPlayer _effectPlayer;
+    QXmppArchiveManager* _archiveManager;
 
 private slots:
     void connected();
@@ -77,6 +81,10 @@ private slots:
     void participantsChanged();
     void messageReceived(const QXmppMessage& message);
     void notificationClicked();
+
+
+    void archiveListReceived(const QList<QXmppArchiveChat> &chats, const QXmppResultSetReply &rsmReply);
+    void archiveChatReceived(const QXmppArchiveChat &chat, const QXmppResultSetReply &rsmReply);
 #endif
 };
 
