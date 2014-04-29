@@ -126,7 +126,6 @@ public:
     void loadScripts();
     QString getPreviousScriptLocation();
     void setPreviousScriptLocation(QString previousScriptLocation);
-
     void storeSizeAndPosition();
     void clearScriptsBeforeRunning();
     void saveScripts();
