@@ -646,70 +646,70 @@ int OctreeSceneStats::unpackFromMessage(const unsigned char* sourceBuffer, int a
 
 
 void OctreeSceneStats::printDebugDetails() {
-    qDebug("\n------------------------------");
-    qDebug("OctreeSceneStats:");
-    qDebug("    start    : %llu", (long long unsigned int)_start);
-    qDebug("    end      : %llu", (long long unsigned int)_end);
-    qDebug("    elapsed  : %llu", (long long unsigned int)_elapsed);
-    qDebug("    encoding : %llu", (long long unsigned int)_totalEncodeTime);
+    qDebug() << "\n------------------------------";
+    qDebug() << "OctreeSceneStats:";
+    qDebug() << "start: " << _start;
+    qDebug() << "end: " << _end;
+    qDebug() << "elapsed: " << _elapsed;
+    qDebug() << "encoding: " << _totalEncodeTime;
     qDebug();
-    qDebug("    full scene: %s", debug::valueOf(_isFullScene));
-    qDebug("    moving: %s", debug::valueOf(_isMoving));
+    qDebug() << "full scene: " << debug::valueOf(_isFullScene);
+    qDebug() << "moving: " << debug::valueOf(_isMoving);
     qDebug();
-    qDebug("    packets: %d", _packets);
-    qDebug("    bytes  : %ld", (long int)_bytes);
+    qDebug() << "packets: " << _packets;
+    qDebug() << "bytes: " << _bytes;
     qDebug();
-    qDebug("    total elements      : %lu", (long unsigned int)_totalElements              );
-    qDebug("        internal        : %lu", (long unsigned int)_totalInternal            );
-    qDebug("        leaves          : %lu", (long unsigned int)_totalLeaves              );
-    qDebug("    traversed           : %lu", (long unsigned int)_traversed                );
-    qDebug("        internal        : %lu", (long unsigned int)_internal                 );
-    qDebug("        leaves          : %lu", (long unsigned int)_leaves                   );
-    qDebug("    skipped distance    : %lu", (long unsigned int)_skippedDistance          );
-    qDebug("        internal        : %lu", (long unsigned int)_internalSkippedDistance  );
-    qDebug("        leaves          : %lu", (long unsigned int)_leavesSkippedDistance    );
-    qDebug("    skipped out of view : %lu", (long unsigned int)_skippedOutOfView         );
-    qDebug("        internal        : %lu", (long unsigned int)_internalSkippedOutOfView );
-    qDebug("        leaves          : %lu", (long unsigned int)_leavesSkippedOutOfView   );
-    qDebug("    skipped was in view : %lu", (long unsigned int)_skippedWasInView         );
-    qDebug("        internal        : %lu", (long unsigned int)_internalSkippedWasInView );
-    qDebug("        leaves          : %lu", (long unsigned int)_leavesSkippedWasInView   );
-    qDebug("    skipped no change   : %lu", (long unsigned int)_skippedNoChange          );
-    qDebug("        internal        : %lu", (long unsigned int)_internalSkippedNoChange  );
-    qDebug("        leaves          : %lu", (long unsigned int)_leavesSkippedNoChange    );
-    qDebug("    skipped occluded    : %lu", (long unsigned int)_skippedOccluded          );
-    qDebug("        internal        : %lu", (long unsigned int)_internalSkippedOccluded  );
-    qDebug("        leaves          : %lu", (long unsigned int)_leavesSkippedOccluded    );
+    qDebug() << "total elements: " << _totalElements;
+    qDebug() << "internal: " << _totalInternal;
+    qDebug() << "leaves: " << _totalLeaves;
+    qDebug() << "traversed: " << _traversed;
+    qDebug() << "internal: " << _internal;
+    qDebug() << "leaves: " << _leaves;
+    qDebug() << "skipped distance: " << _skippedDistance;
+    qDebug() << "internal: " << _internalSkippedDistance;
+    qDebug() << "leaves: " << _leavesSkippedDistance;
+    qDebug() << "skipped out of view: " << _skippedOutOfView;
+    qDebug() << "internal: " << _internalSkippedOutOfView;
+    qDebug() << "leaves: " << _leavesSkippedOutOfView;
+    qDebug() << "skipped was in view: " << _skippedWasInView;
+    qDebug() << "internal: " << _internalSkippedWasInView;
+    qDebug() << "leaves: " << _leavesSkippedWasInView;
+    qDebug() << "skipped no change: " << _skippedNoChange;
+    qDebug() << "internal: " << _internalSkippedNoChange;
+    qDebug() << "leaves: " << _leavesSkippedNoChange;
+    qDebug() << "skipped occluded: " << _skippedOccluded;
+    qDebug() << "internal: " << _internalSkippedOccluded;
+    qDebug() << "leaves: " << _leavesSkippedOccluded;
     qDebug();
-    qDebug("    color sent          : %lu", (long unsigned int)_colorSent                );
-    qDebug("        internal        : %lu", (long unsigned int)_internalColorSent        );
-    qDebug("        leaves          : %lu", (long unsigned int)_leavesColorSent          );
-    qDebug("    Didn't Fit          : %lu", (long unsigned int)_didntFit                 );
-    qDebug("        internal        : %lu", (long unsigned int)_internalDidntFit         );
-    qDebug("        leaves          : %lu", (long unsigned int)_leavesDidntFit           );
-    qDebug("    color bits          : %lu", (long unsigned int)_colorBitsWritten         );
-    qDebug("    exists bits         : %lu", (long unsigned int)_existsBitsWritten        );
-    qDebug("    in packet bit       : %lu", (long unsigned int)_existsInPacketBitsWritten);
-    qDebug("    trees removed       : %lu", (long unsigned int)_treesRemoved             );
+    qDebug() << "color sent: " << _colorSent;
+    qDebug() << "internal: " << _internalColorSent;
+    qDebug() << "leaves: " << _leavesColorSent;
+    qDebug() << "Didn't Fit: " << _didntFit;
+    qDebug() << "internal: " << _internalDidntFit;
+    qDebug() << "leaves: " << _leavesDidntFit;
+    qDebug() << "color bits: " << _colorBitsWritten;
+    qDebug() << "exists bits: " << _existsBitsWritten;
+    qDebug() << "in packet bit: " << _existsInPacketBitsWritten;
+    qDebug() << "trees removed: " << _treesRemoved;
 }
 
 OctreeSceneStats::ItemInfo OctreeSceneStats::_ITEMS[] = {
-    { "Elapsed"              , GREENISH  , 2 , "Elapsed,fps" },
-    { "Encode"               , YELLOWISH , 2 , "Time,fps" },
-    { "Network"              , GREYISH   , 3 , "Packets,Bytes,KBPS" },
-    { "Octrees on Server"     , GREENISH  , 3 , "Total,Internal,Leaves" },
-    { "Octrees Sent"          , YELLOWISH , 5 , "Total,Bits/Octree,Avg Bits/Octree,Internal,Leaves" },
-    { "Colors Sent"          , GREYISH   , 3 , "Total,Internal,Leaves" },
-    { "Bitmasks Sent"        , GREENISH  , 3 , "Colors,Exists,In Packets" },
-    { "Traversed"            , YELLOWISH , 3 , "Total,Internal,Leaves" },
-    { "Skipped - Total"      , GREYISH   , 3 , "Total,Internal,Leaves" },
-    { "Skipped - Distance"   , GREENISH  , 3 , "Total,Internal,Leaves" },
-    { "Skipped - Out of View", YELLOWISH , 3 , "Total,Internal,Leaves" },
-    { "Skipped - Was in View", GREYISH   , 3 , "Total,Internal,Leaves" },
-    { "Skipped - No Change"  , GREENISH  , 3 , "Total,Internal,Leaves" },
-    { "Skipped - Occluded"   , YELLOWISH , 3 , "Total,Internal,Leaves" },
-    { "Didn't fit in packet" , GREYISH   , 4 , "Total,Internal,Leaves,Removed" },
-    { "Mode"                 , GREENISH  , 4 , "Moving,Stationary,Partial,Full" },
+    { "Elapsed", GREENISH, 2, "Elapsed,fps" },
+    { "Encode", YELLOWISH, 2, "Time,fps" },
+    { "Network", GREYISH, 3, "Packets,Bytes,KBPS" },
+    { "Octrees on Server", GREENISH, 3, "Total,Internal,Leaves" },
+    { "Octrees Sent", YELLOWISH, 5, "Total,Bits/Octree,Avg Bits/Octree,Internal,Leaves" },
+    { "Colors Sent", GREYISH, 3, "Total,Internal,Leaves" },
+    { "Bitmasks Sent", GREENISH, 3, "Colors,Exists,In Packets" },
+    { "Traversed", YELLOWISH, 3, "Total,Internal,Leaves" },
+    { "Skipped - Total", GREYISH, 3, "Total,Internal,Leaves" },
+    { "Skipped - Distance", GREENISH, 3, "Total,Internal,Leaves" },
+    { "Skipped - Out of View", YELLOWISH, 3, "Total,Internal,Leaves" },
+    { "Skipped - Was in View", GREYISH, 3, "Total,Internal,Leaves" },
+    { "Skipped - No Change", GREENISH, 3, "Total,Internal,Leaves" },
+    { "Skipped - Occluded", YELLOWISH, 3, "Total,Internal,Leaves" },
+    { "Didn't fit in packet", GREYISH, 4, "Total,Internal,Leaves,Removed" },
+    { "Mode", GREENISH, 4, "Moving,Stationary,Partial,Full" },
 };
 
 const char* OctreeSceneStats::getItemValue(Item item) {

@@ -88,10 +88,10 @@ public:
     void childBitsRemoved(bool includesExistsBits, bool includesColors);
 
     /// Pack the details of the statistics into a buffer for sending as a network packet
-    int packIntoMessage(quint8* destinationBuffer, int availableBytes);
+    int packIntoMessage(unsigned char* destinationBuffer, int availableBytes);
 
     /// Unpack the details of the statistics from a buffer typically received as a network packet
-    int unpackFromMessage(const quint8* sourceBuffer, int availableBytes);
+    int unpackFromMessage(const unsigned char* sourceBuffer, int availableBytes);
 
     /// Indicates that a scene has been completed and the statistics are ready to be sent
     bool isReadyToSend() const { return _isReadyToSend; }
@@ -99,8 +99,8 @@ public:
     /// Mark that the scene statistics have been sent
     void markAsSent() { _isReadyToSend = false; }
 
-    quint8* getStatsMessage() { return &_statsMessage[0]; }
-    qint32 getStatsMessageLength() const { return _statsMessageLength; }
+    unsigned char* getStatsMessage() { return &_statsMessage[0]; }
+    int getStatsMessageLength() const { return _statsMessageLength; }
 
     /// List of various items tracked by OctreeSceneStats which can be accessed via getItemInfo() and getItemValue()
     enum Item {
@@ -140,10 +140,10 @@ public:
     const char* getItemValue(Item item);
 
     /// Returns OctCode for root element of the jurisdiction of this particular octree server
-    quint8* getJurisdictionRoot() const { return _jurisdictionRoot; }
+    unsigned char* getJurisdictionRoot() const { return _jurisdictionRoot; }
 
     /// Returns list of OctCodes for end elements of the jurisdiction of this particular octree server
-    const std::vector<quint8*>& getJurisdictionEndNodes() const { return _jurisdictionEndNodes; }
+    const std::vector<unsigned char*>& getJurisdictionEndNodes() const { return _jurisdictionEndNodes; }
     
     bool isMoving() const { return _isMoving; };
     quint64 getTotalElements() const { return _totalElements; }
@@ -177,7 +177,7 @@ private:
     void copyFromOther(const OctreeSceneStats& other);
 
     bool _isReadyToSend;
-    quint8 _statsMessage[MAX_PACKET_SIZE];
+    unsigned char _statsMessage[MAX_PACKET_SIZE];
     
     qint32 _statsMessageLength;
 
@@ -284,8 +284,8 @@ private:
     static const int MAX_ITEM_VALUE_LENGTH = 128;
     char _itemValueBuffer[MAX_ITEM_VALUE_LENGTH];
     
-    quint8* _jurisdictionRoot;
-    std::vector<quint8*> _jurisdictionEndNodes;
+    unsigned char* _jurisdictionRoot;
+    std::vector<unsigned char*> _jurisdictionEndNodes;
 };
 
 /// Map between element IDs and their reported OctreeSceneStats. Typically used by classes that need to know which elements sent
