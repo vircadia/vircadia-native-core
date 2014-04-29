@@ -37,6 +37,9 @@ private:
     void setRunningState(bool run);
     void setScriptName(const QString& scriptName);
 
+public slots:
+    void terminateCurrentTab();
+
 private slots:
     void loadScriptMenu(const QString& scriptName);
     void loadScriptClicked();

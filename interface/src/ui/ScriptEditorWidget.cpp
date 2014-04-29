@@ -101,21 +101,36 @@ bool ScriptEditorWidget::saveFile(const QString &scriptPath) {
 }
 
 void ScriptEditorWidget::loadFile(const QString& scriptPath) {
-    QFile file(scriptPath);
-    if (!file.open(QFile::ReadOnly | QFile::Text)) {
-        QMessageBox::warning(this, tr("Interface"), tr("Cannot read script %1:\n%2.").arg(scriptPath).arg(file.errorString()));
-        return;
+     QUrl url(scriptPath);
+
+    // if the scheme length is one or lower, maybe they typed in a file, let's try
+    const int WINDOWS_DRIVE_LETTER_SIZE = 1;
+    if (url.scheme().size() <= WINDOWS_DRIVE_LETTER_SIZE) {
+        QFile file(scriptPath);
+        if (!file.open(QFile::ReadOnly | QFile::Text)) {
+            QMessageBox::warning(this, tr("Interface"), tr("Cannot read script %1:\n%2.").arg(scriptPath).arg(file.errorString()));
+            return;
+        }
+        QTextStream in(&file);
+        _scriptEditorWidgetUI->scriptEdit->setPlainText(in.readAll());
+        setScriptFile(scriptPath);
+
+        disconnect(this, SLOT(onScriptError(const QString&)));
+        disconnect(this, SLOT(onScriptPrint(const QString&)));
+    } else {
+        QNetworkAccessManager* networkManager = new QNetworkAccessManager(this);
+        QNetworkReply* reply = networkManager->get(QNetworkRequest(url));
+        qDebug() << "Downloading included script at" << scriptPath;
+        QEventLoop loop;
+        QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
+        loop.exec();
+        _scriptEditorWidgetUI->scriptEdit->setPlainText(reply->readAll());
+        if (!saveAs()) {
+            emit static_cast<ScriptEditorWindow*>(this->parent()->parent()->parent())->terminateCurrentTab();
+        }
     }
 
-    QTextStream in(&file);
-    _scriptEditorWidgetUI->scriptEdit->setPlainText(in.readAll());
-
-    setScriptFile(scriptPath);
-
-    disconnect(this, SLOT(onScriptError(const QString&)));
-    disconnect(this, SLOT(onScriptPrint(const QString&)));
-
-    _scriptEngine = Application::getInstance()->getScriptEngine(scriptPath);
+    _scriptEngine = Application::getInstance()->getScriptEngine(_currentScript);
     if (_scriptEngine != NULL) {
         connect(_scriptEngine, SIGNAL(runningStateChanged()), this, SIGNAL(runningStateChanged()));
         connect(_scriptEngine, SIGNAL(errorMessage(const QString&)), this, SLOT(onScriptError(const QString&)));

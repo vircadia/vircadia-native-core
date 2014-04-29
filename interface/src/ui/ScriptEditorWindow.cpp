@@ -202,3 +202,9 @@ void ScriptEditorWindow::updateScriptNameOrStatus() {
         }
     }
 }
+
+void ScriptEditorWindow::terminateCurrentTab() {
+    if (_ScriptEditorWindowUI->tabWidget->currentIndex() != -1) {
+        _ScriptEditorWindowUI->tabWidget->removeTab(_ScriptEditorWindowUI->tabWidget->currentIndex());
+    }
+}
