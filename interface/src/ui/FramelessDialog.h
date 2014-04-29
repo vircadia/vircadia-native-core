@@ -23,10 +23,10 @@ public:
 
     FramelessDialog(QWidget* parent, Qt::WindowFlags flags = 0, Position position = POSITION_LEFT);
     void setStyleSheetFile(const QString& fileName);
-    void setAllowResize(bool allowResize) { _allowResize = allowResize; };
-    bool getAllowResize() { return _allowResize; };
-    void setHideOnBlur(bool hideOnBlur) { _hideOnBlur = hideOnBlur; };
-    bool getHideOnBlur() { return _hideOnBlur; };
+    void setAllowResize(bool allowResize) { _allowResize = allowResize; }
+    bool getAllowResize() { return _allowResize; }
+    void setHideOnBlur(bool hideOnBlur) { _hideOnBlur = hideOnBlur; }
+    bool getHideOnBlur() { return _hideOnBlur; }
     void resizeAndPosition(bool resizeParent = true);
 
 protected:

@@ -3335,8 +3335,7 @@ void Application::reloadAllScripts() {
     }
 }
 
-void Application::manageRunningScriptsWidgetVisibility(bool shown)
-{
+void Application::manageRunningScriptsWidgetVisibility(bool shown) {
     if (_runningScriptsWidgetWasVisible && shown) {
         _runningScriptsWidget->show();
     } else if (_runningScriptsWidgetWasVisible && !shown) {
@@ -3344,8 +3343,7 @@ void Application::manageRunningScriptsWidgetVisibility(bool shown)
     }
 }
 
-void Application::toggleRunningScriptsWidget()
-{
+void Application::toggleRunningScriptsWidget() {
     qDebug() << "RS";
     if (_runningScriptsWidgetWasVisible) {
         _runningScriptsWidget->hide();

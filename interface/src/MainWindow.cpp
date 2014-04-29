@@ -4,6 +4,10 @@
 //
 //  Created by Mohammed Nafees on 04/06/2014.
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 #include "MainWindow.h"
 
@@ -14,56 +18,50 @@
 #include <QHideEvent>
 #include <QWindowStateChangeEvent>
 
-MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent)
-{
+MainWindow::MainWindow(QWidget* parent) :
+    QMainWindow(parent) {
 }
 
-void MainWindow::moveEvent(QMoveEvent *e)
-{
-    emit windowGeometryChanged(QRect(e->pos(), size()));
-    QMainWindow::moveEvent(e);
+void MainWindow::moveEvent(QMoveEvent* event) {
+    emit windowGeometryChanged(QRect(event->pos(), size()));
+    QMainWindow::moveEvent(event);
 }
 
-void MainWindow::resizeEvent(QResizeEvent *e)
-{
-    emit windowGeometryChanged(QRect(QPoint(x(), y()), e->size()));
-    QMainWindow::resizeEvent(e);
+void MainWindow::resizeEvent(QResizeEvent* event) {
+    emit windowGeometryChanged(QRect(QPoint(x(), y()), event->size()));
+    QMainWindow::resizeEvent(event);
 }
 
-void MainWindow::showEvent(QShowEvent *e)
-{
-    if (e->spontaneous()) {
+void MainWindow::showEvent(QShowEvent* event) {
+    if (event->spontaneous()) {
         emit windowShown(true);
     }
-    QMainWindow::showEvent(e);
+    QMainWindow::showEvent(event);
 }
 
-void MainWindow::hideEvent(QHideEvent *e)
-{
-    if (e->spontaneous()) {
+void MainWindow::hideEvent(QHideEvent* event) {
+    if (event->spontaneous()) {
         emit windowShown(false);
     }
-    QMainWindow::hideEvent(e);
+    QMainWindow::hideEvent(event);
 }
 
-void MainWindow::changeEvent(QEvent *e)
-{
-    if (e->type() == QEvent::WindowStateChange) {
-        QWindowStateChangeEvent *event = static_cast<QWindowStateChangeEvent*>(e);
-        if ((event->oldState() == Qt::WindowNoState ||
-             event->oldState() == Qt::WindowMaximized) &&
+void MainWindow::changeEvent(QEvent* event) {
+    if (event->type() == QEvent::WindowStateChange) {
+        QWindowStateChangeEvent* stateChangeEvent = static_cast<QWindowStateChangeEvent*>(event);
+        if ((stateChangeEvent->oldState() == Qt::WindowNoState ||
+             stateChangeEvent->oldState() == Qt::WindowMaximized) &&
              windowState() == Qt::WindowMinimized) {
             emit windowShown(false);
         } else {
             emit windowShown(true);
         }
-    } else if (e->type() == QEvent::ActivationChange) {
+    } else if (event->type() == QEvent::ActivationChange) {
         if (isActiveWindow()) {
             emit windowShown(true);
         } else {
             emit windowShown(false);
         }
     }
-    QMainWindow::changeEvent(e);
+    QMainWindow::changeEvent(event);
 }

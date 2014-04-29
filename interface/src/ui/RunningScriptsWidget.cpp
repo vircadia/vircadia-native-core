@@ -12,17 +12,16 @@
 #include "ui_runningScriptsWidget.h"
 #include "RunningScriptsWidget.h"
 
-#include <QKeyEvent>
 #include <QFileInfo>
+#include <QKeyEvent>
 #include <QPainter>
 #include <QTableWidgetItem>
 
 #include "Application.h"
 
-RunningScriptsWidget::RunningScriptsWidget(QWidget *parent) :
+RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
     FramelessDialog(parent, 0, POSITION_LEFT),
-    ui(new Ui::RunningScriptsWidget)
-{
+    ui(new Ui::RunningScriptsWidget) {
     ui->setupUi(this);
 
     setAllowResize(false);
@@ -54,18 +53,15 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget *parent) :
             Application::getInstance(), &Application::loadDialog);
 }
 
-RunningScriptsWidget::~RunningScriptsWidget()
-{
+RunningScriptsWidget::~RunningScriptsWidget() {
     delete ui;
 }
 
-void RunningScriptsWidget::setBoundary(const QRect &rect)
-{
+void RunningScriptsWidget::setBoundary(const QRect& rect) {
     _boundary = rect;
 }
 
-void RunningScriptsWidget::setRunningScripts(const QStringList& list)
-{
+void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
     _runningScriptsTable->setRowCount(list.size());
 
     ui->noRunningScriptsLabel->setVisible(list.isEmpty());
@@ -104,10 +100,10 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list)
     createRecentlyLoadedScriptsTable();
 }
 
-void RunningScriptsWidget::keyPressEvent(QKeyEvent *e)
+void RunningScriptsWidget::keyPressEvent(QKeyEvent* event)
 {
     int loadScriptNumber = -1;
-    switch(e->key()) {
+    switch(event->key()) {
     case Qt::Key_Escape:
         Application::getInstance()->toggleRunningScriptsWidget();
         break;
@@ -156,11 +152,10 @@ void RunningScriptsWidget::keyPressEvent(QKeyEvent *e)
         }
     }
 
-    FramelessDialog::keyPressEvent(e);
+    FramelessDialog::keyPressEvent(event);
 }
 
-void RunningScriptsWidget::paintEvent(QPaintEvent *)
-{
+void RunningScriptsWidget::paintEvent(QPaintEvent* event) {
     QPainter painter(this);
     painter.setPen(QColor::fromRgb(225, 225, 225)); // #e1e1e1
 
@@ -179,21 +174,18 @@ void RunningScriptsWidget::paintEvent(QPaintEvent *)
     painter.end();
 }
 
-void RunningScriptsWidget::stopScript(int row, int column)
-{
+void RunningScriptsWidget::stopScript(int row, int column) {
     if (column == 1) { // make sure the user has clicked on the close icon
         _lastStoppedScript = _runningScriptsTable->item(row, 0)->toolTip();
         emit stopScriptName(_runningScriptsTable->item(row, 0)->toolTip());
     }
 }
 
-void RunningScriptsWidget::loadScript(int row, int column)
-{
+void RunningScriptsWidget::loadScript(int row, int column) {
     Application::getInstance()->loadScript(_recentlyLoadedScriptsTable->item(row, column)->toolTip());
 }
 
-void RunningScriptsWidget::allScriptsStopped()
-{
+void RunningScriptsWidget::allScriptsStopped() {
     QStringList list = Application::getInstance()->getRunningScripts();
     for (int i = 0; i < list.size(); ++i) {
         _recentlyLoadedScripts.prepend(list.at(i));
@@ -202,8 +194,7 @@ void RunningScriptsWidget::allScriptsStopped()
     Application::getInstance()->stopAllScripts();
 }
 
-void RunningScriptsWidget::createRecentlyLoadedScriptsTable()
-{
+void RunningScriptsWidget::createRecentlyLoadedScriptsTable() {
     if (!_recentlyLoadedScripts.contains(_lastStoppedScript) && !_lastStoppedScript.isEmpty()) {
         _recentlyLoadedScripts.prepend(_lastStoppedScript);
         _lastStoppedScript = "";
@@ -221,9 +212,9 @@ void RunningScriptsWidget::createRecentlyLoadedScriptsTable()
 
     int limit = _recentlyLoadedScripts.size() > 9 ? 9 : _recentlyLoadedScripts.size();
     _recentlyLoadedScriptsTable->setRowCount(limit);
-    for (int i = 0; i < limit; ++i) {
+    for (int i = 0; i < limit; i++) {
         QTableWidgetItem *scriptName = new QTableWidgetItem;
-        scriptName->setText(QString::number(i+1) + ". " +QFileInfo(_recentlyLoadedScripts.at(i)).fileName());
+        scriptName->setText(QString::number(i + 1) + ". " + QFileInfo(_recentlyLoadedScripts.at(i)).fileName());
         scriptName->setToolTip(_recentlyLoadedScripts.at(i));
         scriptName->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 

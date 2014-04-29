@@ -4,22 +4,25 @@
 //
 //  Created by Mohammed Nafees on 04/03/2014.
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
-#ifndef __hifi__ScriptsTableWidget__
-#define __hifi__ScriptsTableWidget__
+#ifndef hifi__ScriptsTableWidget_h
+#define hifi__ScriptsTableWidget_h
 
 #include <QDebug>
 #include <QTableWidget>
 
-class ScriptsTableWidget : public QTableWidget
-{
+class ScriptsTableWidget : public QTableWidget {
     Q_OBJECT
 public:
-    explicit ScriptsTableWidget(QWidget *parent);
+    explicit ScriptsTableWidget(QWidget* parent);
 
 protected:
-    virtual void paintEvent(QPaintEvent *event);
-    virtual void keyPressEvent(QKeyEvent *event);
+    virtual void paintEvent(QPaintEvent* event);
+    virtual void keyPressEvent(QKeyEvent* event);
 };
 
-#endif /* defined(__hifi__ScriptsTableWidget__) */
+#endif // hifi__ScriptsTableWidget_h
