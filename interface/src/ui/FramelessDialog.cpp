@@ -116,15 +116,15 @@ void FramelessDialog::resizeAndPosition(bool resizeParent) {
 void FramelessDialog::mousePressEvent(QMouseEvent* mouseEvent) {
     if (mouseEvent->button() == Qt::LeftButton) {
         if (_position == POSITION_LEFT || _position == POSITION_RIGHT) {
-            bool hitLeft = _position == POSITION_LEFT && abs(mouseEvent->pos().x() - size().width()) < RESIZE_HANDLE_WIDTH;
-            bool hitRight = _position == POSITION_RIGHT && mouseEvent->pos().x() < RESIZE_HANDLE_WIDTH;
+            bool hitLeft = (_position == POSITION_LEFT) && (abs(mouseEvent->pos().x() - size().width()) < RESIZE_HANDLE_WIDTH);
+            bool hitRight = (_position == POSITION_RIGHT) && (mouseEvent->pos().x() < RESIZE_HANDLE_WIDTH);
             if (hitLeft || hitRight) {
                 _isResizing = true;
                 _resizeInitialWidth = size().width();
                 QApplication::setOverrideCursor(Qt::SizeHorCursor);
             }
         } else {
-            bool hitTop = _position == POSITION_TOP && abs(mouseEvent->pos().y() - size().height()) < RESIZE_HANDLE_WIDTH;
+            bool hitTop = (_position == POSITION_TOP) && (abs(mouseEvent->pos().y() - size().height()) < RESIZE_HANDLE_WIDTH);
             if (hitTop) {
                 _isResizing = true;
                 _resizeInitialWidth = size().height();
