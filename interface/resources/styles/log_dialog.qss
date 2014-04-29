@@ -33,6 +33,7 @@ QPushButton#searchButton {
 }
 
 QPushButton#revealLogButton {
+    font-family: Helvetica, Arial, sans-serif;
     background: url(styles/txt-file.svg);
     background-repeat: none;
     background-position: left center;
@@ -50,9 +51,9 @@ QCheckBox {
 }
 
 QCheckBox::indicator:unchecked {
-    image: url(:/styles/unchecked.svg);
+    image: url(styles/unchecked.svg);
 }
 
 QCheckBox::indicator:checked {
-    image: url(:/styles/checked.svg);
+    image: url(styles/checked.svg);
 }

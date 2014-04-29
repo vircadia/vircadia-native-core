@@ -615,7 +615,7 @@ int unpackClipValueFromTwoByte(const unsigned char* buffer, float& clipValue) {
 }
 
 int packFloatToByte(unsigned char* buffer, float value, float scaleBy) {
-    unsigned char holder;
+    quint8 holder;
     const float CONVERSION_RATIO = (255 / scaleBy);
     holder = floorf(value * CONVERSION_RATIO);
     memcpy(buffer, &holder, sizeof(holder));
@@ -623,7 +623,7 @@ int packFloatToByte(unsigned char* buffer, float value, float scaleBy) {
 }
 
 int unpackFloatFromByte(const unsigned char* buffer, float& value, float scaleBy) {
-    unsigned char holder;
+    quint8 holder;
     memcpy(&holder, buffer, sizeof(holder));
     value = ((float)holder / (float) 255) * scaleBy;
     return sizeof(holder);
