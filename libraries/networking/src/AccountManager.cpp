@@ -337,6 +337,7 @@ void AccountManager::requestFinished() {
     } else {
         // TODO: error handling
         qDebug() <<  "Error in response for password grant -" << rootObject["error_description"].toString();
+        emit loginFailed();
     }
 }
 

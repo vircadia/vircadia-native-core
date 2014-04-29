@@ -71,6 +71,7 @@ signals:
     void usernameChanged(const QString& username);
     void accessTokenChanged();
     void loginComplete(const QUrl& authURL);
+    void loginFailed();
     void logoutComplete();
 private slots:
     void processReply();

@@ -19,7 +19,8 @@ FramelessDialog::FramelessDialog(QWidget *parent, Qt::WindowFlags flags, Positio
         _isResizing(false),
         _resizeInitialWidth(0),
         _selfHidden(false),
-        _position(position) {
+        _position(position),
+        _hideOnBlur(true) {
 
     setAttribute(Qt::WA_DeleteOnClose);
 
@@ -43,7 +44,7 @@ bool FramelessDialog::eventFilter(QObject* sender, QEvent* event) {
             }
             break;
         case QEvent::WindowStateChange:
-            if (parentWidget()->isMinimized()) {
+            if (_hideOnBlur && parentWidget()->isMinimized()) {
                 if (isVisible()) {
                     _selfHidden = true;
                     setHidden(true);
@@ -55,7 +56,7 @@ bool FramelessDialog::eventFilter(QObject* sender, QEvent* event) {
             break;
         case QEvent::ApplicationDeactivate:
             // hide on minimize and focus lost
-            if (isVisible()) {
+            if (_hideOnBlur && isVisible()) {
                 _selfHidden = true;
                 setHidden(true);
             }
@@ -84,18 +85,23 @@ void FramelessDialog::setStyleSheetFile(const QString& fileName) {
 
 void FramelessDialog::showEvent(QShowEvent* event) {
     resizeAndPosition();
+    QDialog::showEvent(event);
 }
 
 void FramelessDialog::resizeAndPosition(bool resizeParent) {
-    // keep full app height
-    setFixedHeight(parentWidget()->size().height());
+    // keep full app height or width depending on position
+    if (_position == POSITION_LEFT || _position == POSITION_RIGHT) {
+        setFixedHeight(parentWidget()->size().height());
+    } else {
+        setFixedWidth(parentWidget()->size().width());
+    }
 
     // resize parrent if width is smaller than this dialog
     if (resizeParent && parentWidget()->size().width() < size().width()) {
         parentWidget()->resize(size().width(), parentWidget()->size().height());
     }
 
-    if (_position == POSITION_LEFT) {
+    if (_position == POSITION_LEFT || _position == POSITION_TOP) {
         // move to upper left corner
         move(parentWidget()->geometry().topLeft());
     } else if (_position == POSITION_RIGHT) {
@@ -104,16 +110,26 @@ void FramelessDialog::resizeAndPosition(bool resizeParent) {
         pos.setX(pos.x() - size().width());
         move(pos);
     }
+    repaint();
 }
 
 void FramelessDialog::mousePressEvent(QMouseEvent* mouseEvent) {
     if (mouseEvent->button() == Qt::LeftButton) {
-        bool hitLeft = _position == POSITION_LEFT && abs(mouseEvent->pos().x() - size().width()) < RESIZE_HANDLE_WIDTH;
-        bool hitRight = _position == POSITION_RIGHT && mouseEvent->pos().x() < RESIZE_HANDLE_WIDTH;
-        if (hitLeft || hitRight) {
-            _isResizing = true;
-            _resizeInitialWidth = size().width();
-            QApplication::setOverrideCursor(Qt::SizeHorCursor);
+        if (_position == POSITION_LEFT || _position == POSITION_RIGHT) {
+            bool hitLeft = (_position == POSITION_LEFT) && (abs(mouseEvent->pos().x() - size().width()) < RESIZE_HANDLE_WIDTH);
+            bool hitRight = (_position == POSITION_RIGHT) && (mouseEvent->pos().x() < RESIZE_HANDLE_WIDTH);
+            if (hitLeft || hitRight) {
+                _isResizing = true;
+                _resizeInitialWidth = size().width();
+                QApplication::setOverrideCursor(Qt::SizeHorCursor);
+            }
+        } else {
+            bool hitTop = (_position == POSITION_TOP) && (abs(mouseEvent->pos().y() - size().height()) < RESIZE_HANDLE_WIDTH);
+            if (hitTop) {
+                _isResizing = true;
+                _resizeInitialWidth = size().height();
+                QApplication::setOverrideCursor(Qt::SizeHorCursor);
+            }
         }
     }
 }
@@ -133,6 +149,8 @@ void FramelessDialog::mouseMoveEvent(QMouseEvent* mouseEvent) {
             resizeAndPosition();
             _resizeInitialWidth = size().width();
             setUpdatesEnabled(true);
+        } else if (_position == POSITION_TOP) {
+            resize(size().width(), mouseEvent->pos().y());
         }
     }
 }
