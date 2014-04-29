@@ -34,6 +34,7 @@ ScriptEditorWindow::ScriptEditorWindow() :
     _saveMenu(new QMenu)
 {
     _ScriptEditorWindowUI->setupUi(this);
+    this->setWindowFlags(Qt::Tool | Qt::WindowStaysOnTopHint);
     show();
     addScriptEditorWidget("New script");
     connect(_loadMenu, SIGNAL(aboutToShow()), this, SLOT(loadMenuAboutToShow()));
