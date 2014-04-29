@@ -316,6 +316,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     Particle::setVoxelEditPacketSender(&_voxelEditSender);
     Particle::setParticleEditPacketSender(&_particleEditSender);
 
+    // when -url in command line, teleport to location
+    urlGoTo(argc, constArgv);
+    
     // For now we're going to set the PPS for outbound packets to be super high, this is
     // probably not the right long term solution. But for now, we're going to do this to
     // allow you to move a particle around in your hand
@@ -352,8 +355,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QMutexLocker locker(&_settingsMutex);
         _previousScriptLocation = _settings->value("LastScriptLocation", QVariant("")).toString();
     }
-	//When -url in command line, teleport to location
-	urlGoTo(argc, constArgv);
 }
 
 Application::~Application() {
@@ -3576,34 +3577,33 @@ void Application::takeSnapshot() {
 void Application::urlGoTo(int argc, const char * constArgv[]) {
     //Gets the url (hifi://domain/destination/orientation)
     QString customUrl = getCmdOption(argc, constArgv, "-url");
-
-    if (customUrl.startsWith("hifi://")) {
+    if(customUrl.startsWith(CUSTOM_URL_SCHEME + "//")) {
         QStringList urlParts = customUrl.remove(0, CUSTOM_URL_SCHEME.length() + 2).split('/', QString::SkipEmptyParts);
-        if (urlParts.count() > 1) {
+        if (urlParts.count() == 1) {
+            // location coordinates or place name
+             QString domain = urlParts[0];
+             Menu::goToDomain(domain);
+        } else if (urlParts.count() > 1) {
             // if url has 2 or more parts, the first one is domain name
             QString domain = urlParts[0];
-
+    
             // second part is either a destination coordinate or
             // a place name
             QString destination = urlParts[1];
-
+    
             // any third part is an avatar orientation.
             QString orientation = urlParts.count() > 2 ? urlParts[2] : QString();
-
+    
             Menu::goToDomain(domain);
-                
+                    
             // goto either @user, #place, or x-xx,y-yy,z-zz
             // style co-ordinate.
             Menu::goTo(destination);
-
+    
             if (!orientation.isEmpty()) {
                 // location orientation
                 Menu::goToOrientation(orientation);
             }
-        } else if (urlParts.count() == 1) {
-            // location coordinates or place name
-            QString destination = urlParts[0];
-            Menu::goTo(destination);
-        }
+        } 
     }
 }
