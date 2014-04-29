@@ -935,9 +935,6 @@ void Menu::goTo() {
                 // location coordinates or place name
                 QString domain = urlParts[0];
                 goToDomain(domain);
-                // as there are no coordinates, go to 0,0,0
-                QString destination = "0,0,0";
-                goTo(destination);
             }
             else if (urlParts.count() > 1) {
                 // if url has 2 or more parts, the first one is domain name
