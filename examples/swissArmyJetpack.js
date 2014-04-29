@@ -19,7 +19,7 @@ var DOWN = { x: 0.0, y: -1.0, z: 0.0 };
 var MAX_VOXEL_SCAN_DISTANCE = 30.0;
 
 // behavior transition thresholds
-var MIN_FLYING_SPEED = 1.0;
+var MIN_FLYING_SPEED = 3.0;
 var MIN_COLLISIONLESS_SPEED = 5.0;
 var MAX_WALKING_SPEED = 30.0;
 var MAX_COLLIDABLE_SPEED = 35.0;
@@ -38,11 +38,16 @@ var TEXT_HEIGHT = BUTTON_HEIGHT;
 var TEXT_WIDTH = 210;
 
 var MSEC_PER_SECOND = 1000;
-var EXPIRY_PERIOD = 2 * MSEC_PER_SECOND;
+var RAYCAST_EXPIRY_PERIOD = MSEC_PER_SECOND / 16;
+var COLLISION_EXPIRY_PERIOD = 2 * MSEC_PER_SECOND;
+var GRAVITY_ON_EXPIRY_PERIOD = MSEC_PER_SECOND / 2;
+var GRAVITY_OFF_EXPIRY_PERIOD = MSEC_PER_SECOND / 8;
 
 var dater = new Date();
-var collisionOnExpiry = dater.getTime() + EXPIRY_PERIOD;
-var gravityOnExpiry = dater.getTime() + EXPIRY_PERIOD;
+var raycastExpiry = dater.getTime() + RAYCAST_EXPIRY_PERIOD;
+var gravityOnExpiry = dater.getTime() + GRAVITY_ON_EXPIRY_PERIOD;
+var gravityOffExpiry = dater.getTime() + GRAVITY_OFF_EXPIRY_PERIOD;
+var collisionOnExpiry = dater.getTime() + COLLISION_EXPIRY_PERIOD;
 
 // avatar state
 var velocity = { x: 0.0, y: 0.0, z: 0.0 };
@@ -169,6 +174,19 @@ function updateSpeedometerDisplay() {
 }
 Script.setInterval(updateSpeedometerDisplay, 100);
 
+function disableArtificialGravity() {
+    MyAvatar.motionBehaviors = MyAvatar.motionBehaviors & ~AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
+    updateButton(3, false);
+}
+
+function enableArtificialGravity() {
+    // NOTE: setting the gravity automatically sets the AVATAR_MOTION_OBEY_LOCAL_GRAVITY behavior bit.
+    MyAvatar.gravity = DOWN;
+    updateButton(3, true);
+    // also enable collisions with voxels
+    groupBits |= COLLISION_GROUP_VOXELS;
+    updateButton(1, groupBits & COLLISION_GROUP_VOXELS);
+}
 
 // Our update() function is called at approximately 60fps, and we will use it to animate our various overlays
 function update(deltaTime) {
@@ -187,31 +205,57 @@ function update(deltaTime) {
     dater = new Date();
     var now = dater.getTime();
 
-    if (speed < MIN_FLYING_SPEED) {
+    // transition gravity
+    if (raycastExpiry < now) {
         // scan for landing platform
         ray = { origin: MyAvatar.position, direction: DOWN };
         var intersection = Voxels.findRayIntersection(ray);
+        // NOTE: it is possible for intersection.intersects to be false when it should be true
+        // (perhaps the raycast failed to lock the octree thread?).  To workaround this problem
+        // we only transition on repeated failures.
+
         if (intersection.intersects) {
-            if (!(MyAvatar.motionBehaviors & AVATAR_MOTION_OBEY_LOCAL_GRAVITY)) {
-                var v = intersection.voxel;
-                var maxCorner = Vec3.sum({ x: v.x, y: v.y, z: v.z }, {x: v.s, y: v.s, z: v.s });
-                var distance = lastPosition.y - maxCorner.y;
-                if ((gravityOnExpiry < now) && (distance < MAX_VOXEL_SCAN_DISTANCE)) {
-                    // NOTE: setting the gravity automatically sets the AVATAR_MOTION_OBEY_LOCAL_GRAVITY behavior bit.
-                    MyAvatar.gravity = DOWN;
-                    updateButton(3, true);
+            // compute distance to voxel
+            var v = intersection.voxel;
+            var maxCorner = Vec3.sum({ x: v.x, y: v.y, z: v.z }, {x: v.s, y: v.s, z: v.s });
+            var distance = lastPosition.y - maxCorner.y;
+
+            if (distance < MAX_VOXEL_SCAN_DISTANCE) {
+                if (speed < MIN_FLYING_SPEED && 
+                    gravityOnExpiry < now &&
+                    !(MyAvatar.motionBehaviors & AVATAR_MOTION_OBEY_LOCAL_GRAVITY)) {
+                        enableArtificialGravity();
                 }
+                if (speed < MAX_WALKING_SPEED) {
+                    gravityOffExpiry = now + GRAVITY_OFF_EXPIRY_PERIOD;
+                } else if (gravityOffExpiry < now && MyAvatar.motionBehaviors & AVATAR_MOTION_OBEY_LOCAL_GRAVITY) {
+                    disableArtificialGravity();
+                }
+            } else {
+                // distance too far
+                if (gravityOffExpiry < now && MyAvatar.motionBehaviors & AVATAR_MOTION_OBEY_LOCAL_GRAVITY) {
+                    disableArtificialGravity();
+                }
+                gravityOnExpiry = now + GRAVITY_ON_EXPIRY_PERIOD;
             }
         } else {
-            if (MyAvatar.motionBehaviors & AVATAR_MOTION_OBEY_LOCAL_GRAVITY) {
-                MyAvatar.motionBehaviors = MyAvatar.motionBehaviors & ~AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
-                updateButton(3, false);
+            // no intersection
+            if (gravityOffExpiry < now && MyAvatar.motionBehaviors & AVATAR_MOTION_OBEY_LOCAL_GRAVITY) {
+                disableArtificialGravity();
             }
-            gravityOnExpiry = now + EXPIRY_PERIOD;
+            gravityOnExpiry = now + GRAVITY_ON_EXPIRY_PERIOD;
         }
-    } else {
-        gravityOnExpiry = now + EXPIRY_PERIOD;
     }
+    if (speed > MAX_WALKING_SPEED && gravityOffExpiry < now) {
+        if (MyAvatar.motionBehaviors & AVATAR_MOTION_OBEY_LOCAL_GRAVITY) {
+            // turn off gravity
+            MyAvatar.motionBehaviors = MyAvatar.motionBehaviors & ~AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
+            updateButton(3, false);
+        }
+        gravityOnExpiry = now + GRAVITY_ON_EXPIRY_PERIOD;
+    }
+
+    // transition collidability with voxels
     if (speed < MIN_COLLISIONLESS_SPEED) {
         if (collisionOnExpiry < now && !(MyAvatar.collisionGroups & COLLISION_GROUP_VOXELS)) {
             // TODO: check to make sure not already colliding
@@ -220,14 +264,7 @@ function update(deltaTime) {
             updateButton(1, groupBits & COLLISION_GROUP_VOXELS);
         }
     } else {
-        collisionOnExpiry = now + EXPIRY_PERIOD;
-    }
-    if (speed > MAX_WALKING_SPEED) {
-        if (MyAvatar.motionBehaviors & AVATAR_MOTION_OBEY_LOCAL_GRAVITY) {
-            // turn off gravity
-            MyAvatar.motionBehaviors = MyAvatar.motionBehaviors & ~AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
-            updateButton(3, false);
-        }
+        collisionOnExpiry = now + COLLISION_EXPIRY_PERIOD;
     }
     if (speed > MAX_COLLIDABLE_SPEED) {
         if (MyAvatar.collisionGroups & COLLISION_GROUP_VOXELS) {
