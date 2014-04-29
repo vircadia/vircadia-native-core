@@ -76,13 +76,22 @@ public:
     /// \param source LocalVoxels' source tree
     Q_INVOKABLE void pasteFrom(float x, float y, float z, float scale, const QString source);
     
-    /// If the scripting context has visible voxels, this will determine a ray intersection
+    /// If the scripting context has visible voxels, this will determine a ray intersection, the results
+    /// may be inaccurate if the engine is unable to access the visible voxels, in which case result.accurate
+    /// will be false.
     Q_INVOKABLE RayToVoxelIntersectionResult findRayIntersection(const PickRay& ray);
+
+    /// If the scripting context has visible voxels, this will determine a ray intersection, and will block in
+    /// order to return an accurate result
+    Q_INVOKABLE RayToVoxelIntersectionResult findRayIntersectionBlocking(const PickRay& ray);
     
     /// returns a voxel space axis aligned vector for the face, useful in doing voxel math
     Q_INVOKABLE glm::vec3 getFaceVector(const QString& face);
     
 private:
+    /// actually does the work of finding the ray intersection, can be called in locking mode or tryLock mode
+    RayToVoxelIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType);
+
     QString _name;
     StrongVoxelTreePointer _tree;
 };
