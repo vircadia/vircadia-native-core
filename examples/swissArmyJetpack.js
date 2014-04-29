@@ -13,15 +13,16 @@
 //
 
 // misc global constants
-var NUMBER_OF_BUTTONS = 3;
+var NUMBER_OF_COLLISION_BUTTONS = 3;
+var NUMBER_OF_BUTTONS = 4;
 var DOWN = { x: 0.0, y: -1.0, z: 0.0 };
-var MAX_VOXEL_SCAN_DISTANCE = 20.0;
+var MAX_VOXEL_SCAN_DISTANCE = 30.0;
 
 // behavior transition thresholds
 var MIN_FLYING_SPEED = 1.0;
 var MIN_COLLISIONLESS_SPEED = 5.0;
-var MAX_WALKING_SPEED = 10.0;
-var MAX_COLLIDABLE_SPEED = 25.0;
+var MAX_WALKING_SPEED = 30.0;
+var MAX_COLLIDABLE_SPEED = 35.0;
 
 // button URL and geometry/UI tuning
 var BUTTON_IMAGE_URL = "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/testing-swatches.svg";
@@ -70,17 +71,20 @@ var labelContents = new Array();
 labelContents[0] = "Collide with Avatars";
 labelContents[1] = "Collide with Voxels";
 labelContents[2] = "Collide with Particles";
+labelContents[3] = "Use local gravity";
 var groupBits = 0;
 
 var enabledColors = new Array();
 enabledColors[0] = { red: 255, green: 0, blue: 0};
 enabledColors[1] = { red: 0, green: 255, blue: 0};
 enabledColors[2] = { red: 0, green: 0, blue: 255};
+enabledColors[3] = { red: 255, green: 255, blue: 0};
 
 var disabledColors = new Array();
 disabledColors[0] = { red: 90, green: 75, blue: 75};
 disabledColors[1] = { red: 75, green: 90, blue: 75};
-disabledColors[2] = { red: 75, green: 90, blue: 90};
+disabledColors[2] = { red: 75, green: 75, blue: 90};
+disabledColors[3] = { red: 90, green: 90, blue: 75};
 
 var buttonStates = new Array();
 
@@ -195,11 +199,13 @@ function update(deltaTime) {
                 if ((gravityOnExpiry < now) && (distance < MAX_VOXEL_SCAN_DISTANCE)) {
                     // NOTE: setting the gravity automatically sets the AVATAR_MOTION_OBEY_LOCAL_GRAVITY behavior bit.
                     MyAvatar.gravity = DOWN;
+                    updateButton(3, true);
                 }
             }
         } else {
             if (MyAvatar.motionBehaviors & AVATAR_MOTION_OBEY_LOCAL_GRAVITY) {
                 MyAvatar.motionBehaviors = MyAvatar.motionBehaviors & ~AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
+                updateButton(3, false);
             }
             gravityOnExpiry = now + EXPIRY_PERIOD;
         }
@@ -220,6 +226,7 @@ function update(deltaTime) {
         if (MyAvatar.motionBehaviors & AVATAR_MOTION_OBEY_LOCAL_GRAVITY) {
             // turn off gravity
             MyAvatar.motionBehaviors = MyAvatar.motionBehaviors & ~AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
+            updateButton(3, false);
         }
     }
     if (speed > MAX_COLLIDABLE_SPEED) {
@@ -236,7 +243,7 @@ Script.update.connect(update);
 // we also handle click detection in our mousePressEvent()
 function mousePressEvent(event) {
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
-    for (i = 0; i < NUMBER_OF_BUTTONS; i++) {
+    for (i = 0; i < NUMBER_OF_COLLISION_BUTTONS; i++) {
         if (clickedOverlay == buttons[i]) {
             var enabled = !(buttonStates[i]);
             updateButton(i, enabled);
