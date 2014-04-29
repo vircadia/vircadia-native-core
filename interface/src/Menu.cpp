@@ -40,6 +40,7 @@
 #include "ui/InfoView.h"
 #include "ui/MetavoxelEditor.h"
 #include "ui/ModelsBrowser.h"
+#include "ui/LoginDialog.h"
 
 
 Menu* Menu::_instance = NULL;
@@ -188,8 +189,8 @@ Menu::Menu() :
 
     addDisabledActionAndSeparator(editMenu, "Physics");
     QObject* avatar = appInstance->getAvatar();
-    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ObeyGravity, Qt::SHIFT | Qt::Key_G, true, 
-            avatar, SLOT(updateMotionBehaviorFlags()));
+    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ObeyEnvironmentalGravity, Qt::SHIFT | Qt::Key_G, true, 
+            avatar, SLOT(updateMotionBehaviors()));
 
 
     addAvatarCollisionSubMenu(editMenu);
@@ -821,38 +822,9 @@ const int QLINE_MINIMUM_WIDTH = 400;
 const float DIALOG_RATIO_OF_WINDOW = 0.30f;
 
 void Menu::loginForCurrentDomain() {
-    QDialog loginDialog(Application::getInstance()->getWindow());
-    loginDialog.setWindowTitle("Login");
-
-    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
-    loginDialog.setLayout(layout);
-    loginDialog.setWindowFlags(Qt::Sheet);
-
-    QFormLayout* form = new QFormLayout();
-    layout->addLayout(form, 1);
-
-    QLineEdit* loginLineEdit = new QLineEdit();
-    loginLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    form->addRow("Login:", loginLineEdit);
-
-    QLineEdit* passwordLineEdit = new QLineEdit();
-    passwordLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    passwordLineEdit->setEchoMode(QLineEdit::Password);
-    form->addRow("Password:", passwordLineEdit);
-
-    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
-    loginDialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
-    loginDialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
-    layout->addWidget(buttons);
-
-    int dialogReturn = loginDialog.exec();
-
-    if (dialogReturn == QDialog::Accepted && !loginLineEdit->text().isEmpty() && !passwordLineEdit->text().isEmpty()) {
-        // attempt to get an access token given this username and password
-        AccountManager::getInstance().requestAccessToken(loginLineEdit->text(), passwordLineEdit->text());
-    }
-
-    sendFakeEnterEvent();
+    LoginDialog* loginDialog = new LoginDialog(Application::getInstance()->getWindow());
+    loginDialog->show();
+    loginDialog->resizeAndPosition(false);
 }
 
 void Menu::editPreferences() {
