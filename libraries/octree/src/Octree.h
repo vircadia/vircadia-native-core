@@ -210,7 +210,15 @@ public:
     void reaverageOctreeElements(OctreeElement* startNode = NULL);
 
     void deleteOctreeElementAt(float x, float y, float z, float s);
+    
+    /// Find the voxel at position x,y,z,s
+    /// \return pointer to the OctreeElement or NULL if none at x,y,z,s.
     OctreeElement* getOctreeElementAt(float x, float y, float z, float s) const;
+    
+    /// Find the voxel at position x,y,z,s
+    /// \return pointer to the OctreeElement or to the smallest enclosing parent if none at x,y,z,s.
+    OctreeElement* getOctreeEnclosingElementAt(float x, float y, float z, float s) const;
+    
     OctreeElement* getOrCreateChildElementAt(float x, float y, float z, float s);
 
     void recurseTreeWithOperation(RecurseOctreeOperation operation, void* extraData = NULL);
@@ -241,17 +249,20 @@ public:
     } lockType;
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                             OctreeElement*& node, float& distance, BoxFace& face, Octree::lockType lockType = Octree::TryLock);
+                             OctreeElement*& node, float& distance, BoxFace& face, 
+                             Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
-    bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration,
-                                    void** penetratedObject = NULL, Octree::lockType lockType = Octree::TryLock);
+    bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration, void** penetratedObject = NULL, 
+                                    Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
-    bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, 
-                                    glm::vec3& penetration, Octree::lockType lockType = Octree::TryLock);
+    bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration, 
+                                    Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
-    bool findShapeCollisions(const Shape* shape, CollisionList& collisions, Octree::lockType = Octree::TryLock);
+    bool findShapeCollisions(const Shape* shape, CollisionList& collisions, 
+                                    Octree::lockType = Octree::TryLock, bool* accurateResult = NULL);
 
-    OctreeElement* getElementEnclosingPoint(const glm::vec3& point, Octree::lockType lockType = Octree::TryLock);
+    OctreeElement* getElementEnclosingPoint(const glm::vec3& point, 
+                                    Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
     // Note: this assumes the fileFormat is the HIO individual voxels code files
     void loadOctreeFile(const char* fileName, bool wantColorRandomizer);

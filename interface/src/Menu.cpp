@@ -40,6 +40,7 @@
 #include "ui/InfoView.h"
 #include "ui/MetavoxelEditor.h"
 #include "ui/ModelsBrowser.h"
+#include "ui/LoginDialog.h"
 
 
 Menu* Menu::_instance = NULL;
@@ -187,9 +188,9 @@ Menu::Menu() :
                                   QAction::PreferencesRole);
 
     addDisabledActionAndSeparator(editMenu, "Physics");
-    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::Gravity, Qt::SHIFT | Qt::Key_G, false);
-
-
+    QObject* avatar = appInstance->getAvatar();
+    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ObeyEnvironmentalGravity, Qt::SHIFT | Qt::Key_G, true, 
+            avatar, SLOT(updateMotionBehaviors()));
 
 
     addAvatarCollisionSubMenu(editMenu);
@@ -508,7 +509,7 @@ void Menu::loadSettings(QSettings* settings) {
     // MyAvatar caches some menu options, so we have to update them whenever we load settings.
     // TODO: cache more settings in MyAvatar that are checked with very high frequency.
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
-    myAvatar->updateCollisionFlags();
+    myAvatar->updateCollisionGroups();
 
     if (lockedSettings) {
         Application::getInstance()->unlockSettings();
@@ -817,38 +818,9 @@ const int QLINE_MINIMUM_WIDTH = 400;
 const float DIALOG_RATIO_OF_WINDOW = 0.30f;
 
 void Menu::loginForCurrentDomain() {
-    QDialog loginDialog(Application::getInstance()->getWindow());
-    loginDialog.setWindowTitle("Login");
-
-    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
-    loginDialog.setLayout(layout);
-    loginDialog.setWindowFlags(Qt::Sheet);
-
-    QFormLayout* form = new QFormLayout();
-    layout->addLayout(form, 1);
-
-    QLineEdit* loginLineEdit = new QLineEdit();
-    loginLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    form->addRow("Login:", loginLineEdit);
-
-    QLineEdit* passwordLineEdit = new QLineEdit();
-    passwordLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    passwordLineEdit->setEchoMode(QLineEdit::Password);
-    form->addRow("Password:", passwordLineEdit);
-
-    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
-    loginDialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
-    loginDialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
-    layout->addWidget(buttons);
-
-    int dialogReturn = loginDialog.exec();
-
-    if (dialogReturn == QDialog::Accepted && !loginLineEdit->text().isEmpty() && !passwordLineEdit->text().isEmpty()) {
-        // attempt to get an access token given this username and password
-        AccountManager::getInstance().requestAccessToken(loginLineEdit->text(), passwordLineEdit->text());
-    }
-
-    sendFakeEnterEvent();
+    LoginDialog* loginDialog = new LoginDialog(Application::getInstance()->getWindow());
+    loginDialog->show();
+    loginDialog->resizeAndPosition(false);
 }
 
 void Menu::editPreferences() {
@@ -931,7 +903,12 @@ void Menu::goTo() {
         if (desiredDestination.startsWith(CUSTOM_URL_SCHEME + "//")) {
             QStringList urlParts = desiredDestination.remove(0, CUSTOM_URL_SCHEME.length() + 2).split('/', QString::SkipEmptyParts);
 
-            if (urlParts.count() > 1) {
+            if (urlParts.count() == 1) {
+                // location coordinates or place name
+                QString domain = urlParts[0];
+                goToDomain(domain);
+            }
+            else if (urlParts.count() > 1) {
                 // if url has 2 or more parts, the first one is domain name
                 QString domain = urlParts[0];
 
@@ -952,12 +929,7 @@ void Menu::goTo() {
                     // location orientation
                     goToOrientation(orientation);
                 }
-            } else if (urlParts.count() == 1) {
-                // location coordinates or place name
-                QString destination = urlParts[0];
-                goTo(destination);
             }
-
         } else {
             goToUser(gotoDialog.textValue());
         }
@@ -1381,13 +1353,13 @@ void Menu::addAvatarCollisionSubMenu(QMenu* overMenu) {
     Application* appInstance = Application::getInstance();
     QObject* avatar = appInstance->getAvatar();
     addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithEnvironment,
-            0, false, avatar, SLOT(updateCollisionFlags()));
+            0, false, avatar, SLOT(updateCollisionGroups()));
     addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithAvatars,
-            0, true, avatar, SLOT(updateCollisionFlags()));
+            0, true, avatar, SLOT(updateCollisionGroups()));
     addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithVoxels,
-            0, false, avatar, SLOT(updateCollisionFlags()));
+            0, false, avatar, SLOT(updateCollisionGroups()));
     addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithParticles,
-            0, true, avatar, SLOT(updateCollisionFlags()));
+            0, true, avatar, SLOT(updateCollisionGroups()));
 }
 
 QAction* Menu::getActionFromName(const QString& menuName, QMenu* menu) {

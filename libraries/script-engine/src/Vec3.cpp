@@ -36,6 +36,10 @@ float Vec3::length(const glm::vec3& v) {
     return glm::length(v);
 }
 
+float Vec3::distance(const glm::vec3& v1, const glm::vec3& v2) {
+    return glm::distance(v1, v2);
+}
+
 glm::vec3 Vec3::normalize(const glm::vec3& v) {
     return glm::normalize(v);
 }

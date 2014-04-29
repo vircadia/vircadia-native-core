@@ -28,6 +28,8 @@ enum AvatarHandState
 class MyAvatar : public Avatar {
     Q_OBJECT
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
+    Q_PROPERTY(quint32 motionBehaviors READ getMotionBehaviors WRITE setMotionBehaviors)
+    Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setLocalGravity)
 
 public:
 	MyAvatar();
@@ -49,15 +51,11 @@ public:
     void setMousePressed(bool mousePressed) { _mousePressed = mousePressed; }
     void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
     void setLeanScale(float scale) { _leanScale = scale; }
-    void setGravity(glm::vec3 gravity);
-    void setMoveTarget(const glm::vec3 moveTarget);
+    void setLocalGravity(glm::vec3 gravity);
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; }
 
     // getters
-    AvatarMode getMode() const { return _mode; }
     float getLeanScale() const { return _leanScale; }
-    float getElapsedTimeStopped() const { return _elapsedTimeStopped; }
-    float getElapsedTimeMoving() const { return _elapsedTimeMoving; }
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     glm::vec3 getGravity() const { return _gravity; }
@@ -91,6 +89,10 @@ public:
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
+    virtual void setCollisionGroups(quint32 collisionGroups);
+    void setMotionBehaviors(quint32 flags);
+    quint32 getMotionBehaviors() const { return _motionBehaviors; }
+
     void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration);
 
 public slots:
@@ -107,6 +109,8 @@ public slots:
     glm::vec3 getThrust() { return _thrust; };
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
+    void updateMotionBehaviors();
+
 signals:
     void transformChanged();
 
@@ -117,17 +121,19 @@ private:
     bool _shouldJump;
     float _driveKeys[MAX_DRIVE_KEYS];
     glm::vec3 _gravity;
+    glm::vec3 _environmentGravity;
     float _distanceToNearestAvatar; // How close is the nearest avatar?
-    float _elapsedTimeMoving; // Timers to drive camera transitions when moving
-    float _elapsedTimeStopped;
-    float _elapsedTimeSinceCollision;
+
+    // motion stuff
     glm::vec3 _lastCollisionPosition;
     bool _speedBrakes;
+    glm::vec3 _thrust;  // final acceleration for the current frame
     bool _isThrustOn;
     float _thrustMultiplier;
-    glm::vec3 _moveTarget;
+
+    quint32 _motionBehaviors;
+
     glm::vec3 _lastBodyPenetration;
-    int _moveTargetStepCounter;
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
     bool _shouldRender;
@@ -144,6 +150,7 @@ private:
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void updateChatCircle(float deltaTime);
     void maybeUpdateBillboard();
+    void setGravity(const glm::vec3& gravity);
 };
 
 #endif // hifi_MyAvatar_h

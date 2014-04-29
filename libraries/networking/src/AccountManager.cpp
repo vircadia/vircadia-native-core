@@ -282,10 +282,13 @@ void AccountManager::requestAccessToken(const QString& login, const QString& pas
     QUrl grantURL = _authURL;
     grantURL.setPath("/oauth/token");
     
+    const QString ACCOUNT_MANAGER_REQUESTED_SCOPE = "owner";
+    
     QByteArray postData;
     postData.append("grant_type=password&");
     postData.append("username=" + login + "&");
-    postData.append("password=" + password);
+    postData.append("password=" + password + "&");
+    postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE);
     
     request.setUrl(grantURL);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
@@ -334,6 +337,7 @@ void AccountManager::requestFinished() {
     } else {
         // TODO: error handling
         qDebug() <<  "Error in response for password grant -" << rootObject["error_description"].toString();
+        emit loginFailed();
     }
 }
 

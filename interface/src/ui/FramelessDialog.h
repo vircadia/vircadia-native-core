@@ -17,14 +17,17 @@
 
 class FramelessDialog : public QDialog {
     Q_OBJECT
-    
-public:
-    enum Position { POSITION_LEFT, POSITION_RIGHT };
 
-    FramelessDialog(QWidget* parent = 0, Qt::WindowFlags flags = 0, Position position = POSITION_LEFT);
+public:
+    enum Position { POSITION_LEFT, POSITION_RIGHT, POSITION_TOP };
+
+    FramelessDialog(QWidget* parent, Qt::WindowFlags flags = 0, Position position = POSITION_LEFT);
     void setStyleSheetFile(const QString& fileName);
     void setAllowResize(bool allowResize) { _allowResize = allowResize; };
     bool getAllowResize() { return _allowResize; };
+    void setHideOnBlur(bool hideOnBlur) { _hideOnBlur = hideOnBlur; };
+    bool getHideOnBlur() { return _hideOnBlur; };
+    void resizeAndPosition(bool resizeParent = true);
 
 protected:
     virtual void mouseMoveEvent(QMouseEvent* mouseEvent);
@@ -42,6 +45,7 @@ private:
     int _resizeInitialWidth;
     bool _selfHidden; ///< true when the dialog itself because of a window event (deactivation or minimization)
     Position _position;
+    bool _hideOnBlur;
 
 };
 
