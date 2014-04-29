@@ -73,8 +73,11 @@ void ScriptEditorWindow::loadScriptMenu(const QString& scriptName) {
 }
 
 void ScriptEditorWindow::loadScriptClicked() {
-    QString scriptName = QFileDialog::getOpenFileName(this, tr("Interface"), QString(), tr("Javascript (*.js)"));
+    QString scriptName = QFileDialog::getOpenFileName(this, tr("Interface"),
+                                                      Application::getInstance()->getPreviousScriptLocation(),
+                                                      tr("JavaScript Files (*.js)"));
     if (!scriptName.isEmpty()) {
+        Application::getInstance()->setPreviousScriptLocation(scriptName);
         addScriptEditorWidget("loading...")->loadFile(scriptName);
         updateButtons();
     }
