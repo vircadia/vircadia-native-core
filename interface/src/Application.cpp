@@ -3438,9 +3438,8 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     return scriptEngine;
 }
 
-void Application::loadDialog() {
+QString Application::getPreviousScriptLocation() {
     QString suggestedName;
-
     if (_previousScriptLocation.isEmpty()) {
         QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 // Temporary fix to Qt bug: http://stackoverflow.com/questions/16194475
@@ -3450,14 +3449,22 @@ void Application::loadDialog() {
     } else {
         suggestedName = _previousScriptLocation;
     }
+    return suggestedName;
+}
 
-    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Open Script"), suggestedName,
+void Application::setPreviousScriptLocation(QString previousScriptLocation) {
+    _previousScriptLocation = previousScriptLocation;
+    QMutexLocker locker(&_settingsMutex);
+    _settings->setValue("LastScriptLocation", _previousScriptLocation);
+}
+
+void Application::loadDialog() {
+
+    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Open Script"),
+                                                          getPreviousScriptLocation(),
                                                           tr("JavaScript Files (*.js)"));
     if (!fileNameString.isEmpty()) {
-        _previousScriptLocation = fileNameString;
-        QMutexLocker locker(&_settingsMutex);
-        _settings->setValue("LastScriptLocation", _previousScriptLocation);
-        
+        setPreviousScriptLocation(fileNameString);
         loadScript(fileNameString);
     }
 }

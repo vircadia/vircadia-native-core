@@ -128,8 +128,15 @@ bool ScriptEditorWidget::save() {
 }
 
 bool ScriptEditorWidget::saveAs() {
-    QString fileName = QFileDialog::getSaveFileName(this, tr("Save script"), QString(), tr("Javascript (*.js)"));
-    return !fileName.isEmpty() ? saveFile(fileName) : false;
+    QString fileName = QFileDialog::getSaveFileName(this, tr("Save script"),
+                                                    Application::getInstance()->getPreviousScriptLocation(),
+                                                    tr("JavaScript Files (*.js)"));
+    if (!fileName.isEmpty()) {
+        Application::getInstance()->setPreviousScriptLocation(fileName);
+        return saveFile(fileName);
+    } else {
+        return false;
+    }
 }
 
 void ScriptEditorWidget::setScriptFile(const QString& scriptPath) {
