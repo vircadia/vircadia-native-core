@@ -18,8 +18,8 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>541</width>
-    <height>238</height>
+    <width>690</width>
+    <height>328</height>
    </size>
   </property>
   <property name="styleSheet">
@@ -35,20 +35,11 @@
    <string>Edit Script</string>
   </property>
   <widget class="QWidget" name="dockWidgetContents">
-   <layout class="QVBoxLayout" name="verticalLayout" stretch="5,0,1">
+   <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,1">
     <property name="spacing">
      <number>0</number>
     </property>
-    <property name="leftMargin">
-     <number>0</number>
-    </property>
-    <property name="topMargin">
-     <number>0</number>
-    </property>
-    <property name="rightMargin">
-     <number>0</number>
-    </property>
-    <property name="bottomMargin">
+    <property name="margin">
      <number>0</number>
     </property>
     <item>
@@ -56,14 +47,17 @@
       <property name="font">
        <font>
         <family>Courier</family>
-        <pointsize>9</pointsize>
+        <pointsize>-1</pointsize>
         <weight>50</weight>
         <italic>false</italic>
         <bold>false</bold>
        </font>
       </property>
       <property name="styleSheet">
-       <string notr="true">font: 9pt &quot;Courier&quot;;</string>
+       <string notr="true">font: 16px &quot;Courier&quot;;</string>
+      </property>
+      <property name="acceptRichText">
+       <bool>false</bool>
       </property>
      </widget>
     </item>
@@ -86,6 +80,9 @@
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
+        <property name="styleSheet">
+         <string notr="true">font: 13px &quot;Helvetica&quot;,&quot;Arial&quot;,&quot;sans-serif&quot;;</string>
+        </property>
         <property name="text">
          <string>Debug Log:</string>
         </property>
@@ -93,8 +90,20 @@
       </item>
       <item>
        <widget class="QCheckBox" name="onTheFlyCheckBox">
+        <property name="font">
+         <font>
+          <family>Helvetica,Arial,sans-serif</family>
+          <pointsize>-1</pointsize>
+          <weight>50</weight>
+          <italic>false</italic>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">font: 13px &quot;Helvetica&quot;,&quot;Arial&quot;,&quot;sans-serif&quot;;</string>
+        </property>
         <property name="text">
-         <string>Run on the fly (Careful: Any valid change made to the code will run immediately)</string>
+         <string>Run on the fly (Careful: Any valid change made to the code will run immediately)  </string>
         </property>
        </widget>
       </item>
@@ -115,11 +124,20 @@
     </item>
     <item>
      <widget class="QPlainTextEdit" name="debugText">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="styleSheet">
-       <string notr="true">font: 8pt &quot;Courier&quot;;</string>
+       <string notr="true">font: 15px &quot;Courier&quot;;</string>
       </property>
       <property name="readOnly">
        <bool>true</bool>
+      </property>
+      <property name="plainText">
+       <string/>
       </property>
      </widget>
     </item>
