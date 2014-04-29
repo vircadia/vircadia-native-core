@@ -119,10 +119,19 @@ void LocalVoxels::pasteFrom(float x, float y, float z, float scale, const QStrin
 }
 
 RayToVoxelIntersectionResult LocalVoxels::findRayIntersection(const PickRay& ray) {
+    return findRayIntersectionWorker(ray, Octree::TryLock);
+}
+
+RayToVoxelIntersectionResult LocalVoxels::findRayIntersectionBlocking(const PickRay& ray) {
+    return findRayIntersectionWorker(ray, Octree::Lock);
+}
+
+RayToVoxelIntersectionResult LocalVoxels::findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType) {
     RayToVoxelIntersectionResult result;
     if (_tree) {
         OctreeElement* element;
-        result.intersects = _tree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face);
+        result.intersects = _tree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face,
+                                                                lockType, &result.accurate);
         if (result.intersects) {
             VoxelTreeElement* voxel = (VoxelTreeElement*)element;
             result.voxel.x = voxel->getCorner().x;
