@@ -82,19 +82,23 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
         _runningScriptsTable->setItem(i, 1, closeIcon);
     }
 
-    int y = ui->runningScriptsTableWidget->y() + 12;
+    const int RUNNING_SCRIPTS_TABLE_LEFT_MARGIN = 12;
+    const int RECENTLY_LOADED_TOP_MARGIN = 61;
+    const int RECENTLY_LOADED_LABEL_TOP_MARGIN = 19;
+
+    int y = ui->runningScriptsTableWidget->y() + RUNNING_SCRIPTS_TABLE_LEFT_MARGIN;
     for (int i = 0; i < _runningScriptsTable->rowCount(); ++i) {
         y += _runningScriptsTable->rowHeight(i);
     }
 
-    ui->runningScriptsTableWidget->resize(ui->runningScriptsTableWidget->width(), y - 12);
-    _runningScriptsTable->resize(_runningScriptsTable->width(), y - 12);
+    ui->runningScriptsTableWidget->resize(ui->runningScriptsTableWidget->width(), y - RUNNING_SCRIPTS_TABLE_LEFT_MARGIN);
+    _runningScriptsTable->resize(_runningScriptsTable->width(), y - RUNNING_SCRIPTS_TABLE_LEFT_MARGIN);
     ui->reloadAllButton->move(ui->reloadAllButton->x(), y);
     ui->stopAllButton->move(ui->stopAllButton->x(), y);
     ui->recentlyLoadedLabel->move(ui->recentlyLoadedLabel->x(),
-                                  ui->stopAllButton->y() + ui->stopAllButton->height() + 61);
+                                  ui->stopAllButton->y() + ui->stopAllButton->height() + RECENTLY_LOADED_TOP_MARGIN);
     ui->recentlyLoadedScriptsTableWidget->move(ui->recentlyLoadedScriptsTableWidget->x(),
-                                               ui->recentlyLoadedLabel->y() + 19);
+                                               ui->recentlyLoadedLabel->y() + RECENTLY_LOADED_LABEL_TOP_MARGIN);
 
 
     createRecentlyLoadedScriptsTable();
