@@ -357,6 +357,4 @@ protected:
     static std::map<uint32_t,uint32_t> _tokenIDsToIDs;
 };
 
-
-
 #endif // hifi_ModelItem_h

@@ -14,8 +14,11 @@ set(TARGET_NAME models)
 
 find_package(Qt5Widgets REQUIRED)
 
+include(${MACRO_DIR}/AutoMTC.cmake)
+auto_mtc(${TARGET_NAME} "${ROOT_DIR}")
+
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
-setup_hifi_library(${TARGET_NAME})
+setup_hifi_library(${TARGET_NAME} "${AUTOMTC_SRC}")
 
 include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} "${ROOT_DIR}")
@@ -25,6 +28,9 @@ link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(octree ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(fbx ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
+
+# for streamable
+link_hifi_library(metavoxels ${TARGET_NAME} "${ROOT_DIR}")
 
 # link ZLIB and GnuTLS
 find_package(ZLIB)
