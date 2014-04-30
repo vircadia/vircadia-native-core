@@ -248,10 +248,26 @@ void ScriptEngine::init() {
     _particlesScriptingInterface.getParticlePacketSender()->setProcessCallIntervalHint(SCRIPT_DATA_CALLBACK_USECS);
 }
 
-void ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
+QScriptValue ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
     if (object) {
         QScriptValue value = _engine.newQObject(object);
         _engine.globalObject().setProperty(name, value);
+        return value;
+    }
+    return QScriptValue::NullValue;
+}
+
+void ScriptEngine::registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
+                                        QScriptEngine::FunctionSignature setter, QScriptValue object) {
+    QScriptValue setterFunction = _engine.newFunction(setter, 1);
+    QScriptValue getterFunction = _engine.newFunction(getter);
+
+    if (object.isNull()) {
+        object.setProperty(name, setterFunction, QScriptValue::PropertySetter);
+        object.setProperty(name, getterFunction, QScriptValue::PropertyGetter);
+    } else {
+        _engine.globalObject().setProperty(name, setterFunction, QScriptValue::PropertySetter);
+        _engine.globalObject().setProperty(name, getterFunction, QScriptValue::PropertyGetter);
     }
 }
 

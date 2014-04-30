@@ -58,7 +58,9 @@ public:
     const QString& getScriptName() const { return _scriptName; }
     void cleanupMenuItems();
 
-    void registerGlobalObject(const QString& name, QObject* object); /// registers a global object by name
+    QScriptValue registerGlobalObject(const QString& name, QObject* object); /// registers a global object by name
+    void registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
+                              QScriptEngine::FunctionSignature setter, QScriptValue object = QScriptValue::NullValue);
 
     Q_INVOKABLE void setIsAvatar(bool isAvatar);
     bool isAvatar() const { return _isAvatar; }
@@ -68,8 +70,6 @@ public:
 
     bool isListeningToAudioStream() const { return _isListeningToAudioStream; }
     void setIsListeningToAudioStream(bool isListeningToAudioStream) { _isListeningToAudioStream = isListeningToAudioStream; }
-
-    QScriptEngine& getEngine() { return _engine; }
 
     void setAvatarSound(Sound* avatarSound) { _avatarSound = avatarSound; }
     bool isPlayingAvatarSound() const { return _avatarSound != NULL; }
