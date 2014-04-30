@@ -16,6 +16,7 @@
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
+#include <QScriptEngine>
 
 #include <AudioRingBuffer.h>
 #include <AvatarData.h>

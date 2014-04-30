@@ -69,6 +69,8 @@ public:
     bool isListeningToAudioStream() const { return _isListeningToAudioStream; }
     void setIsListeningToAudioStream(bool isListeningToAudioStream) { _isListeningToAudioStream = isListeningToAudioStream; }
 
+    QScriptEngine& getEngine() { return _engine; }
+
     void setAvatarSound(Sound* avatarSound) { _avatarSound = avatarSound; }
     bool isPlayingAvatarSound() const { return _avatarSound != NULL; }
 
@@ -136,6 +138,7 @@ private:
     Vec3 _vec3Library;
     ScriptUUID _uuidLibrary;
     AnimationCache _animationCache;
+
 };
 
 #endif // hifi_ScriptEngine_h
