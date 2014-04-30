@@ -39,6 +39,7 @@ class RayToVoxelIntersectionResult {
 public:
     RayToVoxelIntersectionResult();
     bool intersects;
+    bool accurate;
     VoxelDetail voxel;
     float distance;
     BoxFace face;
