@@ -166,7 +166,7 @@ void ScriptEngine::setAvatarData(AvatarData* avatarData, const QString& objectNa
 void ScriptEngine::setAvatarHashMap(AvatarHashMap* avatarHashMap, const QString& objectName) {
     // remove the old Avatar property, if it exists
     _engine.globalObject().setProperty(objectName, QScriptValue());
-    
+
     // give the script engine the new avatar hash map
     registerGlobalObject(objectName, avatarHashMap);
 }
@@ -228,7 +228,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
     registerGlobalObject("AnimationCache", &_animationCache);
-    
+
     registerGlobalObject("Voxels", &_voxelsScriptingInterface);
 
     // constants

@@ -30,7 +30,6 @@
 #include <QImage>
 #include <QInputDialog>
 #include <QKeyEvent>
-#include <QMainWindow>
 #include <QMenuBar>
 #include <QMouseEvent>
 #include <QNetworkAccessManager>
@@ -132,7 +131,7 @@ QString& Application::resourcesPath() {
 
 Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QApplication(argc, argv),
-        _window(new QMainWindow(desktop())),
+        _window(new MainWindow(desktop())),
         _glWidget(new GLCanvas()),
         _nodeThread(new QThread(this)),
         _datagramProcessor(),
@@ -164,7 +163,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _packetsPerSecond(0),
         _bytesPerSecond(0),
         _previousScriptLocation(),
-        _logger(new FileLogger(this))
+        _logger(new FileLogger(this)),
+        _runningScriptsWidget(new RunningScriptsWidget(_window)),
+        _runningScriptsWidgetWasVisible(false)
 {
     // init GnuTLS for DTLS with domain-servers
     DTLSClientSession::globalInit();
@@ -334,7 +335,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     LocalVoxelsList::getInstance()->addPersistantTree(DOMAIN_TREE_NAME, _voxels.getTree());
     LocalVoxelsList::getInstance()->addPersistantTree(CLIPBOARD_TREE_NAME, &_clipboard);
 
-    _window->addDockWidget(Qt::NoDockWidgetArea, _runningScriptsWidget = new RunningScriptsWidget());
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
     connect(_runningScriptsWidget, &RunningScriptsWidget::stopScriptName, this, &Application::stopScript);
 
@@ -355,6 +355,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QMutexLocker locker(&_settingsMutex);
         _previousScriptLocation = _settings->value("LastScriptLocation", QVariant("")).toString();
     }
+
+    connect(_window, &MainWindow::windowGeometryChanged,
+            _runningScriptsWidget, &RunningScriptsWidget::setBoundary);
+
+    //When -url in command line, teleport to location
+    urlGoTo(argc, constArgv);
 }
 
 Application::~Application() {
@@ -2631,7 +2637,6 @@ void Application::displayOverlay() {
     if (audioLevel > AUDIO_METER_SCALE_WIDTH) {
         audioLevel = AUDIO_METER_SCALE_WIDTH;
     }
-    
     bool isClipping = ((_audio.getTimeSinceLastClip() > 0.f) && (_audio.getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME));
     
     if ((_audio.getTimeSinceLastClip() > 0.f) && (_audio.getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME)) {
@@ -3326,31 +3331,23 @@ void Application::reloadAllScripts() {
     }
 }
 
-void Application::toggleRunningScriptsWidget()
-{
-    if (!_runningScriptsWidget->toggleViewAction()->isChecked()) {
-        _runningScriptsWidget->move(_window->geometry().topLeft().x(), _window->geometry().topLeft().y());
-        _runningScriptsWidget->resize(0, _window->height());
-        _runningScriptsWidget->toggleViewAction()->trigger();
-        _runningScriptsWidget->grabKeyboard();
+void Application::manageRunningScriptsWidgetVisibility(bool shown) {
+    if (_runningScriptsWidgetWasVisible && shown) {
+        _runningScriptsWidget->show();
+    } else if (_runningScriptsWidgetWasVisible && !shown) {
+        _runningScriptsWidget->hide();
+    }
+}
 
-        QPropertyAnimation* slideAnimation = new QPropertyAnimation(_runningScriptsWidget, "geometry", _runningScriptsWidget);
-        slideAnimation->setStartValue(_runningScriptsWidget->geometry());
-        slideAnimation->setEndValue(QRect(_window->geometry().topLeft().x(), _window->geometry().topLeft().y(),
-                                          310, _runningScriptsWidget->height()));
-        slideAnimation->setDuration(250);
-        slideAnimation->start(QAbstractAnimation::DeleteWhenStopped);
+void Application::toggleRunningScriptsWidget() {
+    if (_runningScriptsWidgetWasVisible) {
+        _runningScriptsWidget->hide();
+        _runningScriptsWidgetWasVisible = false;
     } else {
-        _runningScriptsWidget->releaseKeyboard();
-
-        QPropertyAnimation* slideAnimation = new QPropertyAnimation(_runningScriptsWidget, "geometry", _runningScriptsWidget);
-        slideAnimation->setStartValue(_runningScriptsWidget->geometry());
-        slideAnimation->setEndValue(QRect(_window->geometry().topLeft().x(), _window->geometry().topLeft().y(),
-                                          0, _runningScriptsWidget->height()));
-        slideAnimation->setDuration(250);
-        slideAnimation->start(QAbstractAnimation::DeleteWhenStopped);
-
-        QTimer::singleShot(260, _runningScriptsWidget->toggleViewAction(), SLOT(trigger()));
+        _runningScriptsWidget->setBoundary(QRect(_window->geometry().topLeft(),
+                                                 _window->size()));
+        _runningScriptsWidget->show();
+        _runningScriptsWidgetWasVisible = true;
     }
 }
 

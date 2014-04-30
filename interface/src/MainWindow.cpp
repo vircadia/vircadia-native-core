@@ -1,0 +1,67 @@
+//
+//  MainWindow.cpp
+//  interface
+//
+//  Created by Mohammed Nafees on 04/06/2014.
+//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+#include "MainWindow.h"
+
+#include <QEvent>
+#include <QMoveEvent>
+#include <QResizeEvent>
+#include <QShowEvent>
+#include <QHideEvent>
+#include <QWindowStateChangeEvent>
+
+MainWindow::MainWindow(QWidget* parent) :
+    QMainWindow(parent) {
+}
+
+void MainWindow::moveEvent(QMoveEvent* event) {
+    emit windowGeometryChanged(QRect(event->pos(), size()));
+    QMainWindow::moveEvent(event);
+}
+
+void MainWindow::resizeEvent(QResizeEvent* event) {
+    emit windowGeometryChanged(QRect(QPoint(x(), y()), event->size()));
+    QMainWindow::resizeEvent(event);
+}
+
+void MainWindow::showEvent(QShowEvent* event) {
+    if (event->spontaneous()) {
+        emit windowShown(true);
+    }
+    QMainWindow::showEvent(event);
+}
+
+void MainWindow::hideEvent(QHideEvent* event) {
+    if (event->spontaneous()) {
+        emit windowShown(false);
+    }
+    QMainWindow::hideEvent(event);
+}
+
+void MainWindow::changeEvent(QEvent* event) {
+    if (event->type() == QEvent::WindowStateChange) {
+        QWindowStateChangeEvent* stateChangeEvent = static_cast<QWindowStateChangeEvent*>(event);
+        if ((stateChangeEvent->oldState() == Qt::WindowNoState ||
+             stateChangeEvent->oldState() == Qt::WindowMaximized) &&
+             windowState() == Qt::WindowMinimized) {
+            emit windowShown(false);
+        } else {
+            emit windowShown(true);
+        }
+    } else if (event->type() == QEvent::ActivationChange) {
+        if (isActiveWindow()) {
+            emit windowShown(true);
+        } else {
+            emit windowShown(false);
+        }
+    }
+    QMainWindow::changeEvent(event);
+}

@@ -25,6 +25,7 @@
 #include <QSet>
 #include <QSettings>
 #include <QStringList>
+#include <QHash>
 #include <QTouchEvent>
 #include <QUndoStack>
 
@@ -38,6 +39,7 @@
 #include <ViewFrustum.h>
 #include <VoxelEditPacketSender.h>
 
+#include "MainWindow.h"
 #include "Audio.h"
 #include "AudioReflector.h"
 #include "BuckyBalls.h"
@@ -85,7 +87,6 @@ class QAction;
 class QActionGroup;
 class QGLWidget;
 class QKeyEvent;
-class QMainWindow;
 class QMouseEvent;
 class QNetworkAccessManager;
 class QSettings;
@@ -138,6 +139,7 @@ public:
     void keyReleaseEvent(QKeyEvent* event);
 
     void focusOutEvent(QFocusEvent* event);
+    void focusInEvent(QFocusEvent* event);
 
     void mouseMoveEvent(QMouseEvent* event);
     void mousePressEvent(QMouseEvent* event);
@@ -194,10 +196,10 @@ public:
     /// if you need to access the application settings, use lockSettings()/unlockSettings()
     QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }
     void unlockSettings() { _settingsMutex.unlock(); }
-    
+
     void saveSettings();
 
-    QMainWindow* getWindow() { return _window; }
+    MainWindow* getWindow() { return _window; }
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
     void unlockOctreeSceneStats() { _octreeSceneStatsLock.unlock(); }
@@ -314,6 +316,8 @@ private slots:
 
     void parseVersionXml();
 
+    void manageRunningScriptsWidgetVisibility(bool shown);
+
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
     void updateProjectionMatrix();
@@ -374,7 +378,7 @@ private:
 
     void displayRearMirrorTools();
 
-    QMainWindow* _window;
+    MainWindow* _window;
     GLCanvas* _glWidget; // our GLCanvas has a couple extra features
 
     BandwidthMeter _bandwidthMeter;
@@ -388,7 +392,7 @@ private:
     int _numChangedSettings;
 
     QUndoStack _undoStack;
-    
+
     glm::vec3 _gravity;
 
     // Frame Rate Measurement
@@ -433,7 +437,7 @@ private:
     Faceplus _faceplus;
     Faceshift _faceshift;
     Visage _visage;
-    
+
     SixenseManager _sixenseManager;
 
     Camera _myCamera;                  // My view onto the world
@@ -521,9 +525,11 @@ private:
     TouchEvent _lastTouchEvent;
 
     Overlays _overlays;
+
     AudioReflector _audioReflector;
     RunningScriptsWidget* _runningScriptsWidget;
     QHash<QString, ScriptEngine*> _scriptEnginesHash;
+    bool _runningScriptsWidgetWasVisible;
 };
 
 #endif // hifi_Application_h
