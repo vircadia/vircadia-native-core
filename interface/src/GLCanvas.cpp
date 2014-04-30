@@ -24,8 +24,8 @@ GLCanvas::GLCanvas() : QGLWidget(QGLFormat(QGL::NoDepthBuffer)),
 {
 }
 
-bool GLCanvas::isThrottleRendering() const { 
-    return _throttleRendering || Application::getInstance()->getWindow()->isMinimized(); 
+bool GLCanvas::isThrottleRendering() const {
+    return _throttleRendering || Application::getInstance()->getWindow()->isMinimized();
 }
 
 void GLCanvas::initializeGL() {
@@ -34,7 +34,7 @@ void GLCanvas::initializeGL() {
     setAcceptDrops(true);
     connect(Application::getInstance(), SIGNAL(applicationStateChanged(Qt::ApplicationState)), this, SLOT(activeChanged(Qt::ApplicationState)));
     connect(&_frameTimer, SIGNAL(timeout()), this, SLOT(throttleRender()));
-    
+
     // Note, we *DO NOT* want Qt to automatically swap buffers for us.  This results in the "ringing" bug mentioned in WL#19514 when we're throttling the framerate.
     setAutoBufferSwap(false);
 }
@@ -81,14 +81,14 @@ void GLCanvas::activeChanged(Qt::ApplicationState state) {
             _frameTimer.stop();
             _throttleRendering = false;
             break;
-            
+
         case Qt::ApplicationSuspended:
         case Qt::ApplicationHidden:
             // If we're hidden or are about to suspend, don't render anything.
             _throttleRendering = false;
             _frameTimer.stop();
             break;
-            
+
         default:
             // Otherwise, throttle.
             if (!_throttleRendering) {

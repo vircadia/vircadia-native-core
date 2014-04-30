@@ -12,18 +12,18 @@
 #ifndef hifi_RunningScriptsWidget_h
 #define hifi_RunningScriptsWidget_h
 
-// Qt
-#include <QDockWidget>
+#include "FramelessDialog.h"
+#include "ScriptsTableWidget.h"
 
 namespace Ui {
     class RunningScriptsWidget;
 }
 
-class RunningScriptsWidget : public QDockWidget
+class RunningScriptsWidget : public FramelessDialog
 {
     Q_OBJECT
 public:
-    explicit RunningScriptsWidget(QDockWidget *parent = 0);
+    explicit RunningScriptsWidget(QWidget* parent = NULL);
     ~RunningScriptsWidget();
 
     void setRunningScripts(const QStringList& list);
@@ -32,7 +32,11 @@ signals:
     void stopScriptName(const QString& name);
 
 protected:
-    void keyPressEvent(QKeyEvent *e);
+    virtual void keyPressEvent(QKeyEvent* event);
+    virtual void paintEvent(QPaintEvent* event);
+
+public slots:
+    void setBoundary(const QRect& rect);
 
 private slots:
     void stopScript(int row, int column);
@@ -40,9 +44,12 @@ private slots:
     void allScriptsStopped();
 
 private:
-    Ui::RunningScriptsWidget *ui;
+    Ui::RunningScriptsWidget* ui;
+    ScriptsTableWidget* _runningScriptsTable;
+    ScriptsTableWidget* _recentlyLoadedScriptsTable;
     QStringList _recentlyLoadedScripts;
     QString _lastStoppedScript;
+    QRect _boundary;
 
     void createRecentlyLoadedScriptsTable();
 };
