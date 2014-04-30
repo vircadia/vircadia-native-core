@@ -126,7 +126,7 @@ void ScriptEditorWidget::loadFile(const QString& scriptPath) {
         loop.exec();
         _scriptEditorWidgetUI->scriptEdit->setPlainText(reply->readAll());
         if (!saveAs()) {
-            emit static_cast<ScriptEditorWindow*>(this->parent()->parent()->parent())->terminateCurrentTab();
+            static_cast<ScriptEditorWindow*>(this->parent()->parent()->parent())->terminateCurrentTab();
         }
     }
 

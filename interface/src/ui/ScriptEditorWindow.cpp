@@ -34,7 +34,7 @@ ScriptEditorWindow::ScriptEditorWindow() :
     _saveMenu(new QMenu)
 {
     _ScriptEditorWindowUI->setupUi(this);
-    this->setWindowFlags(Qt::Tool | Qt::WindowStaysOnTopHint);
+    this->setWindowFlags(Qt::Tool);
     show();
     addScriptEditorWidget("New script");
     connect(_loadMenu, SIGNAL(aboutToShow()), this, SLOT(loadMenuAboutToShow()));
@@ -206,5 +206,6 @@ void ScriptEditorWindow::updateScriptNameOrStatus() {
 void ScriptEditorWindow::terminateCurrentTab() {
     if (_ScriptEditorWindowUI->tabWidget->currentIndex() != -1) {
         _ScriptEditorWindowUI->tabWidget->removeTab(_ScriptEditorWindowUI->tabWidget->currentIndex());
+        this->raise();
     }
 }

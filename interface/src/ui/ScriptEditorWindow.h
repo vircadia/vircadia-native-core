@@ -25,6 +25,8 @@ public:
     ScriptEditorWindow();
     ~ScriptEditorWindow();
 
+    void terminateCurrentTab();
+
 protected:
     void closeEvent(QCloseEvent* event);
 
@@ -36,9 +38,6 @@ private:
     ScriptEditorWidget* addScriptEditorWidget(QString title);
     void setRunningState(bool run);
     void setScriptName(const QString& scriptName);
-
-public slots:
-    void terminateCurrentTab();
 
 private slots:
     void loadScriptMenu(const QString& scriptName);
