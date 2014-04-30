@@ -30,7 +30,6 @@
 #include <QImage>
 #include <QInputDialog>
 #include <QKeyEvent>
-#include <QMainWindow>
 #include <QMenuBar>
 #include <QMouseEvent>
 #include <QNetworkAccessManager>
@@ -134,7 +133,7 @@ QString& Application::resourcesPath() {
 
 Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QApplication(argc, argv),
-        _window(new QMainWindow(desktop())),
+        _window(new MainWindow(desktop())),
         _glWidget(new GLCanvas()),
         _nodeThread(new QThread(this)),
         _datagramProcessor(),
@@ -166,11 +165,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _packetsPerSecond(0),
         _bytesPerSecond(0),
         _previousScriptLocation(),
-        _logger(new FileLogger(this))
+        _logger(new FileLogger(this)),
+        _runningScriptsWidget(new RunningScriptsWidget(_window)),
+        _runningScriptsWidgetWasVisible(false)
 {
     // init GnuTLS for DTLS with domain-servers
     DTLSClientSession::globalInit();
-    
+
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 
@@ -318,6 +319,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     Particle::setVoxelEditPacketSender(&_voxelEditSender);
     Particle::setParticleEditPacketSender(&_particleEditSender);
 
+    // when -url in command line, teleport to location
+    urlGoTo(argc, constArgv);
+    
     // For now we're going to set the PPS for outbound packets to be super high, this is
     // probably not the right long term solution. But for now, we're going to do this to
     // allow you to move a particle around in your hand
@@ -333,7 +337,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     LocalVoxelsList::getInstance()->addPersistantTree(DOMAIN_TREE_NAME, _voxels.getTree());
     LocalVoxelsList::getInstance()->addPersistantTree(CLIPBOARD_TREE_NAME, &_clipboard);
 
-    _window->addDockWidget(Qt::NoDockWidgetArea, _runningScriptsWidget = new RunningScriptsWidget());
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
     connect(_runningScriptsWidget, &RunningScriptsWidget::stopScriptName, this, &Application::stopScript);
 
@@ -344,18 +347,22 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         // clear the scripts, and set out script to our default scripts
         clearScriptsBeforeRunning();
         loadScript("http://public.highfidelity.io/scripts/defaultScripts.js");
-        
+
         QMutexLocker locker(&_settingsMutex);
         _settings->setValue("firstRun",QVariant(false));
     } else {
         // do this as late as possible so that all required subsystems are inialized
         loadScripts();
-        
+
         QMutexLocker locker(&_settingsMutex);
         _previousScriptLocation = _settings->value("LastScriptLocation", QVariant("")).toString();
     }
-	//When -url in command line, teleport to location
-	urlGoTo(argc, constArgv);
+
+    connect(_window, &MainWindow::windowGeometryChanged,
+            _runningScriptsWidget, &RunningScriptsWidget::setBoundary);
+
+    //When -url in command line, teleport to location
+    urlGoTo(argc, constArgv);
 }
 
 Application::~Application() {
@@ -364,11 +371,11 @@ Application::~Application() {
 
     // make sure we don't call the idle timer any more
     delete idleTimer;
-    
+
     _sharedVoxelSystem.changeTree(new VoxelTree);
-    
+
     saveSettings();
-    
+
     delete _voxelImporter;
 
     // let the avatar mixer know we're out
@@ -401,14 +408,14 @@ Application::~Application() {
     delete _glWidget;
 
     AccountManager::getInstance().destroy();
-    
+
     DTLSClientSession::globalDeinit();
 }
 
 void Application::saveSettings() {
     Menu::getInstance()->saveSettings();
     _rearMirrorTools->saveSettings(_settings);
-    
+
     if (_voxelImporter) {
         _voxelImporter->saveSettings(_settings);
     }
@@ -575,7 +582,7 @@ void Application::paintGL() {
         pushback = qMin(pushback, MAX_PUSHBACK * _myAvatar->getScale());
         const float BASE_PUSHBACK_FOCAL_LENGTH = 0.5f;
         pushbackFocalLength = BASE_PUSHBACK_FOCAL_LENGTH * _myAvatar->getScale();
-        
+
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
         _myCamera.setTargetPosition(_myAvatar->getUprightHeadPosition());
@@ -588,7 +595,7 @@ void Application::paintGL() {
         _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _myAvatar->getScale());
         _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight, 0));
         _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
-        
+
         // if the head would intersect the near clip plane, we must push the camera out
         glm::vec3 relativePosition = glm::inverse(_myCamera.getTargetRotation()) *
             (eyePosition - _myCamera.getTargetPosition());
@@ -597,7 +604,7 @@ void Application::paintGL() {
         pushback = relativePosition.z + pushbackRadius - _myCamera.getDistance();
         pushbackFocalLength = _myCamera.getDistance();
     }
-    
+
     // handle pushback, if any
     if (pushbackFocalLength > 0.0f) {
         const float PUSHBACK_DECAY = 0.5f;
@@ -859,7 +866,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_G:
                 if (isShifted) {
-                    Menu::getInstance()->triggerOption(MenuOption::ObeyGravity);
+                    Menu::getInstance()->triggerOption(MenuOption::ObeyEnvironmentalGravity);
                 }
                 break;
 
@@ -1276,7 +1283,7 @@ void Application::timer() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
         sendPingPackets();
     }
-    
+
     float diffTime = (float)_timerStart.nsecsElapsed() / 1000000000.0f;
 
     _fps = (float)_frameCount / diffTime;
@@ -1677,7 +1684,7 @@ void Application::init() {
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
-    
+
     // set up our audio reflector
     _audioReflector.setMyAvatar(getAvatar());
     _audioReflector.setVoxels(_voxels.getTree());
@@ -1686,7 +1693,7 @@ void Application::init() {
 
     connect(getAudio(), &Audio::processInboundAudio, &_audioReflector, &AudioReflector::processInboundAudio,Qt::DirectConnection);
     connect(getAudio(), &Audio::processLocalAudio, &_audioReflector, &AudioReflector::processLocalAudio,Qt::DirectConnection);
-    connect(getAudio(), &Audio::preProcessOriginalInboundAudio, &_audioReflector, 
+    connect(getAudio(), &Audio::preProcessOriginalInboundAudio, &_audioReflector,
                         &AudioReflector::preProcessOriginalInboundAudio,Qt::DirectConnection);
 
     // save settings when avatar changes
@@ -1820,7 +1827,7 @@ void Application::updateMyAvatarLookAtPosition() {
     if (tracker) {
         float eyePitch = tracker->getEstimatedEyePitch();
         float eyeYaw = tracker->getEstimatedEyeYaw();
-        
+
         // deflect using Faceshift gaze data
         glm::vec3 origin = _myAvatar->getHead()->calculateAverageEyePosition();
         float pitchSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? -1.0f : 1.0f;
@@ -1907,7 +1914,7 @@ void Application::updateCamera(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateCamera()");
 
     if (!OculusManager::isConnected() && !TV3DManager::isConnected() &&
-            Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {   
+            Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {
         FaceTracker* tracker = getActiveFaceTracker();
         if (tracker) {
             const float EYE_OFFSET_SCALE = 0.025f;
@@ -2462,7 +2469,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // disable specular lighting for ground and voxels
         glMaterialfv(GL_FRONT, GL_SPECULAR, NO_SPECULAR_COLOR);
-        
+
         // draw the audio reflector overlay
         _audioReflector.render();
 
@@ -2620,7 +2627,7 @@ void Application::displayOverlay() {
     const float LOG2_LOUDNESS_FLOOR = 11.f;
     float audioLevel = 0.f;
     float loudness = _audio.getLastInputLoudness() + 1.f;
-    
+
     _trailingAudioLoudness = AUDIO_METER_AVERAGING * _trailingAudioLoudness + (1.f - AUDIO_METER_AVERAGING) * loudness;
     float log2loudness = log(_trailingAudioLoudness) / LOG2;
 
@@ -2632,9 +2639,8 @@ void Application::displayOverlay() {
     if (audioLevel > AUDIO_METER_SCALE_WIDTH) {
         audioLevel = AUDIO_METER_SCALE_WIDTH;
     }
-    
     bool isClipping = ((_audio.getTimeSinceLastClip() > 0.f) && (_audio.getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME));
-    
+
     if ((_audio.getTimeSinceLastClip() > 0.f) && (_audio.getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME)) {
         const float MAX_MAGNITUDE = 0.7f;
         float magnitude = MAX_MAGNITUDE * (1 - _audio.getTimeSinceLastClip() / CLIPPING_INDICATOR_TIME);
@@ -3272,7 +3278,7 @@ void Application::loadScripts() {
             loadScript(string);
         }
     }
-    
+
     QMutexLocker locker(&_settingsMutex);
     _settings->endArray();
 }
@@ -3327,31 +3333,23 @@ void Application::reloadAllScripts() {
     }
 }
 
-void Application::toggleRunningScriptsWidget()
-{
-    if (!_runningScriptsWidget->toggleViewAction()->isChecked()) {
-        _runningScriptsWidget->move(_window->geometry().topLeft().x(), _window->geometry().topLeft().y());
-        _runningScriptsWidget->resize(0, _window->height());
-        _runningScriptsWidget->toggleViewAction()->trigger();
-        _runningScriptsWidget->grabKeyboard();
+void Application::manageRunningScriptsWidgetVisibility(bool shown) {
+    if (_runningScriptsWidgetWasVisible && shown) {
+        _runningScriptsWidget->show();
+    } else if (_runningScriptsWidgetWasVisible && !shown) {
+        _runningScriptsWidget->hide();
+    }
+}
 
-        QPropertyAnimation* slideAnimation = new QPropertyAnimation(_runningScriptsWidget, "geometry", _runningScriptsWidget);
-        slideAnimation->setStartValue(_runningScriptsWidget->geometry());
-        slideAnimation->setEndValue(QRect(_window->geometry().topLeft().x(), _window->geometry().topLeft().y(),
-                                          310, _runningScriptsWidget->height()));
-        slideAnimation->setDuration(250);
-        slideAnimation->start(QAbstractAnimation::DeleteWhenStopped);
+void Application::toggleRunningScriptsWidget() {
+    if (_runningScriptsWidgetWasVisible) {
+        _runningScriptsWidget->hide();
+        _runningScriptsWidgetWasVisible = false;
     } else {
-        _runningScriptsWidget->releaseKeyboard();
-
-        QPropertyAnimation* slideAnimation = new QPropertyAnimation(_runningScriptsWidget, "geometry", _runningScriptsWidget);
-        slideAnimation->setStartValue(_runningScriptsWidget->geometry());
-        slideAnimation->setEndValue(QRect(_window->geometry().topLeft().x(), _window->geometry().topLeft().y(),
-                                          0, _runningScriptsWidget->height()));
-        slideAnimation->setDuration(250);
-        slideAnimation->start(QAbstractAnimation::DeleteWhenStopped);
-
-        QTimer::singleShot(260, _runningScriptsWidget->toggleViewAction(), SLOT(trigger()));
+        _runningScriptsWidget->setBoundary(QRect(_window->geometry().topLeft(),
+                                                 _window->size()));
+        _runningScriptsWidget->show();
+        _runningScriptsWidgetWasVisible = true;
     }
 }
 
@@ -3361,7 +3359,7 @@ void Application::uploadFST(bool isHead) {
     thread->connect(uploader, SIGNAL(destroyed()), SLOT(quit()));
     thread->connect(thread, SIGNAL(finished()), SLOT(deleteLater()));
     uploader->connect(thread, SIGNAL(started()), SLOT(send()));
-    
+
     thread->start();
 }
 
@@ -3471,7 +3469,7 @@ void Application::loadDialog() {
         _previousScriptLocation = fileNameString;
         QMutexLocker locker(&_settingsMutex);
         _settings->setValue("LastScriptLocation", _previousScriptLocation);
-        
+
         loadScript(fileNameString);
     }
 }
@@ -3590,34 +3588,33 @@ void Application::takeSnapshot() {
 void Application::urlGoTo(int argc, const char * constArgv[]) {
     //Gets the url (hifi://domain/destination/orientation)
     QString customUrl = getCmdOption(argc, constArgv, "-url");
-
-    if (customUrl.startsWith("hifi://")) {
+    if(customUrl.startsWith(CUSTOM_URL_SCHEME + "//")) {
         QStringList urlParts = customUrl.remove(0, CUSTOM_URL_SCHEME.length() + 2).split('/', QString::SkipEmptyParts);
-        if (urlParts.count() > 1) {
+        if (urlParts.count() == 1) {
+            // location coordinates or place name
+             QString domain = urlParts[0];
+             Menu::goToDomain(domain);
+        } else if (urlParts.count() > 1) {
             // if url has 2 or more parts, the first one is domain name
             QString domain = urlParts[0];
-
+    
             // second part is either a destination coordinate or
             // a place name
             QString destination = urlParts[1];
-
+    
             // any third part is an avatar orientation.
             QString orientation = urlParts.count() > 2 ? urlParts[2] : QString();
-
+    
             Menu::goToDomain(domain);
-                
+
             // goto either @user, #place, or x-xx,y-yy,z-zz
             // style co-ordinate.
             Menu::goTo(destination);
-
+    
             if (!orientation.isEmpty()) {
                 // location orientation
                 Menu::goToOrientation(orientation);
             }
-        } else if (urlParts.count() == 1) {
-            // location coordinates or place name
-            QString destination = urlParts[0];
-            Menu::goTo(destination);
-        }
+        } 
     }
 }

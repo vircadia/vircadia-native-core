@@ -30,7 +30,7 @@
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
-const float DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS = 30.0f; 
+const float DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS = 30.0f;
 
 const quint64 ADJUST_LOD_DOWN_DELAY = 1000 * 1000 * 5;
 const quint64 ADJUST_LOD_UP_DELAY = ADJUST_LOD_DOWN_DELAY * 2;
@@ -79,7 +79,7 @@ public:
 
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
-    
+
     float getAudioJitterBufferSamples() const { return _audioJitterBufferSamples; }
     void setAudioJitterBufferSamples(float audioJitterBufferSamples) { _audioJitterBufferSamples = audioJitterBufferSamples; }
     float getFieldOfView() const { return _fieldOfView; }
@@ -133,7 +133,7 @@ public:
                                            const QKeySequence& shortcut = 0,
                                            QAction::MenuRole role = QAction::NoRole,
                                            int menuItemLocation = UNSPECIFIED_POSITION);
-    
+
     void removeAction(QMenu* menu, const QString& actionName);
 
     bool static goToDestination(QString destination);
@@ -277,8 +277,8 @@ namespace MenuOption {
     const QString AudioSpatialProcessingWithDiffusions = "With Diffusions";
     const QString AudioSpatialProcessingDontDistanceAttenuate = "Don't calculate distance attenuation";
     const QString AudioSpatialProcessingAlternateDistanceAttenuate = "Alternate distance attenuation";
-    
-    
+
+
 
     const QString Avatars = "Avatars";
     const QString Bandwidth = "Bandwidth Display";
@@ -316,7 +316,7 @@ namespace MenuOption {
     const QString GoTo = "Go To...";
     const QString GoToDomain = "Go To Domain...";
     const QString GoToLocation = "Go To Location...";
-    const QString ObeyGravity = "Obey Gravity";
+    const QString ObeyEnvironmentalGravity = "Obey Environmental Gravity";
     const QString HandsCollideWithSelf = "Collide With Self";
     const QString HeadMouse = "Head Mouse";
     const QString IncreaseAvatarSize = "Increase Avatar Size";

@@ -185,7 +185,7 @@ protected:
     float getPelvisToHeadLength() const;
 
     void renderDisplayName();
-    virtual void renderBody(RenderMode renderMode);
+    virtual void renderBody(RenderMode renderMode, float glowLevel);
     virtual bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
 
     virtual void updateJointMappings();
