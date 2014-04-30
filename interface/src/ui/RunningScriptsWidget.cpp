@@ -109,46 +109,23 @@ void RunningScriptsWidget::keyPressEvent(QKeyEvent* event)
         break;
 
     case Qt::Key_1:
-        loadScriptNumber = 1;
-        break;
-
     case Qt::Key_2:
-        loadScriptNumber = 2;
-        break;
-
     case Qt::Key_3:
-        loadScriptNumber = 3;
-        break;
-
     case Qt::Key_4:
-        loadScriptNumber = 4;
-        break;
-
     case Qt::Key_5:
-        loadScriptNumber = 5;
-        break;
-
     case Qt::Key_6:
-        loadScriptNumber = 6;
-        break;
-
     case Qt::Key_7:
-        loadScriptNumber = 7;
-        break;
     case Qt::Key_8:
-        loadScriptNumber = 8;
-        break;
-
     case Qt::Key_9:
-        loadScriptNumber = 9;
+        loadScriptNumber = event->key() - Qt::Key_1;
         break;
 
     default:
         break;
     }
-    if (loadScriptNumber > 0) {
-        if (_recentlyLoadedScripts.size() >= loadScriptNumber) {
-            Application::getInstance()->loadScript(_recentlyLoadedScripts.at(loadScriptNumber - 1));
+    if (loadScriptNumber >= 0) {
+        if (_recentlyLoadedScripts.size() > loadScriptNumber) {
+            Application::getInstance()->loadScript(_recentlyLoadedScripts.at(loadScriptNumber));
         }
     }
 
