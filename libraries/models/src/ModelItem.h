@@ -238,8 +238,6 @@ public:
 
     static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
     
-    void applyHardCollision(const CollisionInfo& collisionInfo);
-
     void update(const quint64& now);
 
     void debugDump() const;
