@@ -38,8 +38,6 @@ protected:
     bool eventFilter(QObject* sender, QEvent* event);
 
 private:
-    void resizeAndPosition(bool resizeParent = true);
-
     bool _allowResize;
     bool _isResizing;
     int _resizeInitialWidth;
