@@ -107,17 +107,6 @@ bool ModelTreeElement::findSpherePenetration(const glm::vec3& center, float radi
             return false;
         }
 
-        // We've considered making "inHand" models not collide, if we want to do that,
-        // we should change this setting... but now, we do allow inHand models to collide
-        const bool IN_HAND_PARTICLES_DONT_COLLIDE = false;
-        if (IN_HAND_PARTICLES_DONT_COLLIDE) {
-            // don't penetrate if the model is "inHand" -- they don't collide
-            if (model.getInHand()) {
-                ++modelItr;
-                continue;
-            }
-        }
-
         if (findSphereSpherePenetration(center, radius, modelCenter, modelRadius, penetration)) {
             // return true on first valid model penetration
             *penetratedObject = (void*)(&model);

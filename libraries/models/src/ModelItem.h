@@ -39,12 +39,6 @@ const uint32_t UNKNOWN_MODEL_ID = 0xFFFFFFFF;
 const uint16_t MODEL_PACKET_CONTAINS_RADIUS = 1;
 const uint16_t MODEL_PACKET_CONTAINS_POSITION = 2;
 const uint16_t MODEL_PACKET_CONTAINS_COLOR = 4;
-const uint16_t MODEL_PACKET_CONTAINS_VELOCITY = 8;
-const uint16_t MODEL_PACKET_CONTAINS_GRAVITY = 16;
-const uint16_t MODEL_PACKET_CONTAINS_DAMPING = 32;
-const uint16_t MODEL_PACKET_CONTAINS_LIFETIME = 64;
-const uint16_t MODEL_PACKET_CONTAINS_INHAND = 128;
-const uint16_t MODEL_PACKET_CONTAINS_SCRIPT = 256;
 const uint16_t MODEL_PACKET_CONTAINS_SHOULDDIE = 512;
 const uint16_t MODEL_PACKET_CONTAINS_MODEL_URL = 1024;
 const uint16_t MODEL_PACKET_CONTAINS_MODEL_TRANSLATION = 1024;
@@ -67,7 +61,7 @@ const bool MODEL_NOT_IN_HAND = !MODEL_IN_HAND; // it's not in a hand
 /// A collection of properties of a particle used in the scripting API. Translates between the actual properties of a particle
 /// and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete set of
 /// particle properties via JavaScript hashes/QScriptValues
-/// all units for position, velocity, gravity, radius, etc are in meter units
+/// all units for position, radius, etc are in meter units
 class ModelItemProperties {
 public:
     ModelItemProperties();
@@ -81,13 +75,8 @@ public:
     const glm::vec3& getPosition() const { return _position; }
     xColor getColor() const { return _color; }
     float getRadius() const { return _radius; }
-    const glm::vec3& getVelocity() const { return _velocity; }
-    const glm::vec3& getGravity() const { return _gravity; }
-    float getDamping() const { return _damping; }
-    float getLifetime() const { return _lifetime; }
-    const QString& getScript() const { return _script; }
-    bool getInHand() const { return _inHand; }
     bool getShouldDie() const { return _shouldDie; }
+    
     const QString& getModelURL() const { return _modelURL; }
     float getModelScale() const { return _modelScale; }
     const glm::vec3& getModelTranslation() const { return _modelTranslation; }
@@ -98,19 +87,9 @@ public:
 
     /// set position in meter units
     void setPosition(const glm::vec3& value) { _position = value; _positionChanged = true; }
-
-    /// set velocity in meter units
-    void setVelocity(const glm::vec3& value) { _velocity = value; _velocityChanged = true;  }
     void setColor(const xColor& value) { _color = value; _colorChanged = true; }
     void setRadius(float value) { _radius = value; _radiusChanged = true; }
-
-    /// set gravity in meter units
-    void setGravity(const glm::vec3& value) { _gravity = value; _gravityChanged = true;  }
-    void setInHand(bool inHand) { _inHand = inHand; _inHandChanged = true; }
-    void setDamping(float value) { _damping = value; _dampingChanged = true;  }
     void setShouldDie(bool shouldDie) { _shouldDie = shouldDie; _shouldDieChanged = true;  }
-    void setLifetime(float value) { _lifetime = value; _lifetimeChanged = true;  }
-    void setScript(const QString& updateScript) { _script = updateScript; _scriptChanged = true;  }
 
     // model related properties
     void setModelURL(const QString& url) { _modelURL = url; _modelURLChanged = true; }
@@ -126,13 +105,8 @@ private:
     glm::vec3 _position;
     xColor _color;
     float _radius;
-    glm::vec3 _velocity;
-    glm::vec3 _gravity;
-    float _damping;
-    float _lifetime;
-    QString _script;
-    bool _inHand;
-    bool _shouldDie;
+    bool _shouldDie; /// to delete it
+    
     QString _modelURL;
     float _modelScale;
     glm::vec3 _modelTranslation;
@@ -145,13 +119,8 @@ private:
     bool _positionChanged;
     bool _colorChanged;
     bool _radiusChanged;
-    bool _velocityChanged;
-    bool _gravityChanged;
-    bool _dampingChanged;
-    bool _lifetimeChanged;
-    bool _scriptChanged;
-    bool _inHandChanged;
     bool _shouldDieChanged;
+
     bool _modelURLChanged;
     bool _modelScaleChanged;
     bool _modelTranslationChanged;
@@ -201,9 +170,7 @@ public:
     static ModelItem fromEditPacket(const unsigned char* data, int length, int& processedBytes, ModelTree* tree, bool& valid);
 
     virtual ~ModelItem();
-    virtual void init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity,
-            glm::vec3 gravity = MODEL_DEFAULT_GRAVITY, float damping = MODEL_DEFAULT_DAMPING, float lifetime = MODEL_DEFAULT_LIFETIME,
-            bool inHand = MODEL_NOT_IN_HAND, QString updateScript = MODEL_DEFAULT_SCRIPT, uint32_t id = NEW_MODEL);
+    virtual void init(glm::vec3 position, float radius, rgbColor color, uint32_t id = NEW_MODEL);
 
     /// get position in domain scale units (0.0 - 1.0)
     const glm::vec3& getPosition() const { return _position; }
@@ -213,17 +180,6 @@ public:
 
     /// get radius in domain scale units (0.0 - 1.0)
     float getRadius() const { return _radius; }
-    float getMass() const { return _mass; }
-
-    /// get velocity in domain scale units (0.0 - 1.0)
-    const glm::vec3& getVelocity() const { return _velocity; }
-
-    /// get gravity in domain scale units (0.0 - 1.0)
-    const glm::vec3& getGravity() const { return _gravity; }
-
-    bool getInHand() const { return _inHand; }
-    float getDamping() const { return _damping; }
-    float getLifetime() const { return _lifetime; }
     
     // model related properties
     bool hasModel() const { return !_modelURL.isEmpty(); }
@@ -243,20 +199,16 @@ public:
     void setLastEdited(quint64 lastEdited) { _lastEdited = lastEdited; }
 
     /// lifetime of the particle in seconds
-    float getAge() const { return static_cast<float>(usecTimestampNow() - _created) / static_cast<float>(USECS_PER_SECOND); }
     float getEditedAgo() const { return static_cast<float>(usecTimestampNow() - _lastEdited) / static_cast<float>(USECS_PER_SECOND); }
     uint32_t getID() const { return _id; }
     void setID(uint32_t id) { _id = id; }
     bool getShouldDie() const { return _shouldDie; }
-    QString getScript() const { return _script; }
     uint32_t getCreatorTokenID() const { return _creatorTokenID; }
     bool isNewlyCreated() const { return _newlyCreated; }
 
     /// set position in domain scale units (0.0 - 1.0)
     void setPosition(const glm::vec3& value) { _position = value; }
 
-    /// set velocity in domain scale units (0.0 - 1.0)
-    void setVelocity(const glm::vec3& value) { _velocity = value; }
     void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
     void setColor(const xColor& value) {
             _color[RED_INDEX] = value.red;
@@ -265,15 +217,8 @@ public:
     }
     /// set radius in domain scale units (0.0 - 1.0)
     void setRadius(float value) { _radius = value; }
-    void setMass(float value);
 
-    /// set gravity in domain scale units (0.0 - 1.0)
-    void setGravity(const glm::vec3& value) { _gravity = value; }
-    void setInHand(bool inHand) { _inHand = inHand; }
-    void setDamping(float value) { _damping = value; }
     void setShouldDie(bool shouldDie) { _shouldDie = shouldDie; }
-    void setLifetime(float value) { _lifetime = value; }
-    void setScript(QString updateScript) { _script = updateScript; }
     void setCreatorTokenID(uint32_t creatorTokenID) { _creatorTokenID = creatorTokenID; }
     
     // model related properties
@@ -302,40 +247,18 @@ public:
     // similar to assignment/copy, but it handles keeping lifetime accurate
     void copyChangedProperties(const ModelItem& other);
 
-    static VoxelEditPacketSender* getVoxelEditPacketSender() { return _voxelEditSender; }
-    static ModelEditPacketSender* getModelEditPacketSender() { return _particleEditSender; }
-
-    static void setVoxelEditPacketSender(VoxelEditPacketSender* senderInterface)
-                    { _voxelEditSender = senderInterface; }
-
-    static void setModelEditPacketSender(ModelEditPacketSender* senderInterface)
-                    { _particleEditSender = senderInterface; }
-
-
     // these methods allow you to create particles, and later edit them.
     static uint32_t getIDfromCreatorTokenID(uint32_t creatorTokenID);
     static uint32_t getNextCreatorTokenID();
     static void handleAddModelResponse(const QByteArray& packet);
 
 protected:
-    static VoxelEditPacketSender* _voxelEditSender;
-    static ModelEditPacketSender* _particleEditSender;
-
-    void setAge(float age);
-
     glm::vec3 _position;
     rgbColor _color;
     float _radius;
-    float _mass;
-    glm::vec3 _velocity;
     uint32_t _id;
     static uint32_t _nextID;
     bool _shouldDie;
-    glm::vec3 _gravity;
-    float _damping;
-    float _lifetime;
-    QString _script;
-    bool _inHand;
 
     // model related items
     QString _modelURL;
@@ -348,9 +271,6 @@ protected:
 
     quint64 _lastUpdated;
     quint64 _lastEdited;
-
-    // this doesn't go on the wire, we send it as lifetime
-    quint64 _created;
 
     // used by the static interfaces for creator token ids
     static uint32_t _nextCreatorTokenID;

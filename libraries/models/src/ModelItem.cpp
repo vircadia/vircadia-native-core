@@ -1,6 +1,6 @@
 //
 //  ModelItem.cpp
-//  libraries/particles/src
+//  libraries/models/src
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -29,10 +29,8 @@
 #include "ModelTree.h"
 
 uint32_t ModelItem::_nextID = 0;
-//VoxelEditPacketSender* ModelItem::_voxelEditSender = NULL;
-//ModelItemEditPacketSender* ModelItem::_particleEditSender = NULL;
 
-// for locally created particles
+// for locally created models
 std::map<uint32_t,uint32_t> ModelItem::_tokenIDsToIDs;
 uint32_t ModelItem::_nextCreatorTokenID = 0;
 
@@ -58,41 +56,32 @@ void ModelItem::handleAddModelResponse(const QByteArray& packet) {
     memcpy(&creatorTokenID, dataAt, sizeof(creatorTokenID));
     dataAt += sizeof(creatorTokenID);
 
-    uint32_t particleID;
-    memcpy(&particleID, dataAt, sizeof(particleID));
-    dataAt += sizeof(particleID);
+    uint32_t modelItemID;
+    memcpy(&modelItemID, dataAt, sizeof(modelItemID));
+    dataAt += sizeof(modelItemID);
 
     // add our token to id mapping
-    _tokenIDsToIDs[creatorTokenID] = particleID;
+    _tokenIDsToIDs[creatorTokenID] = modelItemID;
 }
 
 ModelItem::ModelItem() {
     rgbColor noColor = { 0, 0, 0 };
-    init(glm::vec3(0,0,0), 0, noColor, glm::vec3(0,0,0),
-            MODEL_DEFAULT_GRAVITY, MODEL_DEFAULT_DAMPING, MODEL_DEFAULT_LIFETIME, MODEL_NOT_IN_HAND, MODEL_DEFAULT_SCRIPT, NEW_MODEL);
+    init(glm::vec3(0,0,0), 0, noColor, NEW_MODEL);
 }
 
-ModelItem::ModelItem(const ModelItemID& particleID, const ModelItemProperties& properties) {
-    _id = particleID.id;
-    _creatorTokenID = particleID.creatorTokenID;
+ModelItem::ModelItem(const ModelItemID& modelItemID, const ModelItemProperties& properties) {
+    _id = modelItemID.id;
+    _creatorTokenID = modelItemID.creatorTokenID;
 
     // init values with defaults before calling setProperties
     uint64_t now = usecTimestampNow();
     _lastEdited = now;
     _lastUpdated = now;
-    _created = now; // will get updated as appropriate in setAge()
 
     _position = glm::vec3(0,0,0);
     _radius = 0;
-    _mass = 1.0f;
     rgbColor noColor = { 0, 0, 0 };
     memcpy(_color, noColor, sizeof(_color));
-    _velocity = glm::vec3(0,0,0);
-    _damping = MODEL_DEFAULT_DAMPING;
-    _lifetime = MODEL_DEFAULT_LIFETIME;
-    _gravity = MODEL_DEFAULT_GRAVITY;
-    _script = MODEL_DEFAULT_SCRIPT;
-    _inHand = MODEL_NOT_IN_HAND;
     _shouldDie = false;
     _modelURL = MODEL_DEFAULT_MODEL_URL;
     _modelTranslation = MODEL_DEFAULT_MODEL_TRANSLATION;
@@ -106,8 +95,7 @@ ModelItem::ModelItem(const ModelItemID& particleID, const ModelItemProperties& p
 ModelItem::~ModelItem() {
 }
 
-void ModelItem::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, glm::vec3 gravity,
-                    float damping, float lifetime, bool inHand, QString updateScript, uint32_t id) {
+void ModelItem::init(glm::vec3 position, float radius, rgbColor color, uint32_t id) {
     if (id == NEW_MODEL) {
         _id = _nextID;
         _nextID++;
@@ -117,29 +105,15 @@ void ModelItem::init(glm::vec3 position, float radius, rgbColor color, glm::vec3
     quint64 now = usecTimestampNow();
     _lastEdited = now;
     _lastUpdated = now;
-    _created = now; // will get updated as appropriate in setAge()
 
     _position = position;
     _radius = radius;
-    _mass = 1.0f;
     memcpy(_color, color, sizeof(_color));
-    _velocity = velocity;
-    _damping = damping;
-    _lifetime = lifetime;
-    _gravity = gravity;
-    _script = updateScript;
-    _inHand = inHand;
     _shouldDie = false;
     _modelURL = MODEL_DEFAULT_MODEL_URL;
     _modelTranslation = MODEL_DEFAULT_MODEL_TRANSLATION;
     _modelRotation = MODEL_DEFAULT_MODEL_ROTATION;
     _modelScale = MODEL_DEFAULT_MODEL_SCALE;
-}
-
-void ModelItem::setMass(float value) {
-    if (value > 0.0f) {
-        _mass = value;
-    }
 }
 
 bool ModelItem::appendModelData(OctreePacketData* packetData) const {
@@ -148,9 +122,6 @@ bool ModelItem::appendModelData(OctreePacketData* packetData) const {
 
     //qDebug("ModelItem::appendModelData()... getID()=%d", getID());
 
-    if (success) {
-        success = packetData->appendValue(getAge());
-    }
     if (success) {
         success = packetData->appendValue(getLastUpdated());
     }
@@ -167,29 +138,7 @@ bool ModelItem::appendModelData(OctreePacketData* packetData) const {
         success = packetData->appendColor(getColor());
     }
     if (success) {
-        success = packetData->appendValue(getVelocity());
-    }
-    if (success) {
-        success = packetData->appendValue(getGravity());
-    }
-    if (success) {
-        success = packetData->appendValue(getDamping());
-    }
-    if (success) {
-        success = packetData->appendValue(getLifetime());
-    }
-    if (success) {
-        success = packetData->appendValue(getInHand());
-    }
-    if (success) {
         success = packetData->appendValue(getShouldDie());
-    }
-    if (success) {
-        uint16_t scriptLength = _script.size() + 1; // include NULL
-        success = packetData->appendValue(scriptLength);
-        if (success) {
-            success = packetData->appendRawData((const unsigned char*)qPrintable(_script), scriptLength);
-        }
     }
 
     // modelURL
@@ -224,12 +173,7 @@ int ModelItem::expectedBytes() {
                 + sizeof(quint64) // lasted edited
                 + sizeof(float) // radius
                 + sizeof(glm::vec3) // position
-                + sizeof(rgbColor) // color
-                + sizeof(glm::vec3) // velocity
-                + sizeof(glm::vec3) // gravity
-                + sizeof(float) // damping
-                + sizeof(float) // lifetime
-                + sizeof(bool); // inhand
+                + sizeof(rgbColor); // color
                 // potentially more...
     return expectedBytes;
 }
@@ -245,13 +189,6 @@ int ModelItem::readModelDataFromBuffer(const unsigned char* data, int bytesLeftT
         memcpy(&_id, dataAt, sizeof(_id));
         dataAt += sizeof(_id);
         bytesRead += sizeof(_id);
-
-        // age
-        float age;
-        memcpy(&age, dataAt, sizeof(age));
-        dataAt += sizeof(age);
-        bytesRead += sizeof(age);
-        setAge(age);
 
         // _lastUpdated
         memcpy(&_lastUpdated, dataAt, sizeof(_lastUpdated));
@@ -280,45 +217,10 @@ int ModelItem::readModelDataFromBuffer(const unsigned char* data, int bytesLeftT
         dataAt += sizeof(_color);
         bytesRead += sizeof(_color);
 
-        // velocity
-        memcpy(&_velocity, dataAt, sizeof(_velocity));
-        dataAt += sizeof(_velocity);
-        bytesRead += sizeof(_velocity);
-
-        // gravity
-        memcpy(&_gravity, dataAt, sizeof(_gravity));
-        dataAt += sizeof(_gravity);
-        bytesRead += sizeof(_gravity);
-
-        // damping
-        memcpy(&_damping, dataAt, sizeof(_damping));
-        dataAt += sizeof(_damping);
-        bytesRead += sizeof(_damping);
-
-        // lifetime
-        memcpy(&_lifetime, dataAt, sizeof(_lifetime));
-        dataAt += sizeof(_lifetime);
-        bytesRead += sizeof(_lifetime);
-
-        // inHand
-        memcpy(&_inHand, dataAt, sizeof(_inHand));
-        dataAt += sizeof(_inHand);
-        bytesRead += sizeof(_inHand);
-
         // shouldDie
         memcpy(&_shouldDie, dataAt, sizeof(_shouldDie));
         dataAt += sizeof(_shouldDie);
         bytesRead += sizeof(_shouldDie);
-
-        // script
-        uint16_t scriptLength;
-        memcpy(&scriptLength, dataAt, sizeof(scriptLength));
-        dataAt += sizeof(scriptLength);
-        bytesRead += sizeof(scriptLength);
-        QString tempString((const char*)dataAt);
-        _script = tempString;
-        dataAt += scriptLength;
-        bytesRead += scriptLength;
 
         // modelURL
         uint16_t modelURLLength;
@@ -372,7 +274,7 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
 
     bool isNewModelItem = (editID == NEW_MODEL);
 
-    // special case for handling "new" particles
+    // special case for handling "new" modelItems
     if (isNewModelItem) {
         // If this is a NEW_MODEL, then we assume that there's an additional uint32_t creatorToken, that
         // we want to send back to the creator as an map to the actual id
@@ -383,18 +285,17 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
 
         newModelItem.setCreatorTokenID(creatorTokenID);
         newModelItem._newlyCreated = true;
-        newModelItem.setAge(0); // this guy is new!
 
     } else {
-        // look up the existing particle
+        // look up the existing modelItem
         const ModelItem* existingModelItem = tree->findModelByID(editID, true);
 
         // copy existing properties before over-writing with new properties
         if (existingModelItem) {
             newModelItem = *existingModelItem;
         } else {
-            // the user attempted to edit a particle that doesn't exist
-            qDebug() << "user attempted to edit a particle that doesn't exist...";
+            // the user attempted to edit a modelItem that doesn't exist
+            qDebug() << "user attempted to edit a modelItem that doesn't exist...";
             valid = false;
             return newModelItem;
         }
@@ -442,59 +343,11 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
         processedBytes += sizeof(newModelItem._color);
     }
 
-    // velocity
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_VELOCITY) == MODEL_PACKET_CONTAINS_VELOCITY)) {
-        memcpy(&newModelItem._velocity, dataAt, sizeof(newModelItem._velocity));
-        dataAt += sizeof(newModelItem._velocity);
-        processedBytes += sizeof(newModelItem._velocity);
-    }
-
-    // gravity
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_GRAVITY) == MODEL_PACKET_CONTAINS_GRAVITY)) {
-        memcpy(&newModelItem._gravity, dataAt, sizeof(newModelItem._gravity));
-        dataAt += sizeof(newModelItem._gravity);
-        processedBytes += sizeof(newModelItem._gravity);
-    }
-
-    // damping
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_DAMPING) == MODEL_PACKET_CONTAINS_DAMPING)) {
-        memcpy(&newModelItem._damping, dataAt, sizeof(newModelItem._damping));
-        dataAt += sizeof(newModelItem._damping);
-        processedBytes += sizeof(newModelItem._damping);
-    }
-
-    // lifetime
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_LIFETIME) == MODEL_PACKET_CONTAINS_LIFETIME)) {
-        memcpy(&newModelItem._lifetime, dataAt, sizeof(newModelItem._lifetime));
-        dataAt += sizeof(newModelItem._lifetime);
-        processedBytes += sizeof(newModelItem._lifetime);
-    }
-
-    // TODO: make inHand and shouldDie into single bits
-    // inHand
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_INHAND) == MODEL_PACKET_CONTAINS_INHAND)) {
-        memcpy(&newModelItem._inHand, dataAt, sizeof(newModelItem._inHand));
-        dataAt += sizeof(newModelItem._inHand);
-        processedBytes += sizeof(newModelItem._inHand);
-    }
-
     // shouldDie
     if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_SHOULDDIE) == MODEL_PACKET_CONTAINS_SHOULDDIE)) {
         memcpy(&newModelItem._shouldDie, dataAt, sizeof(newModelItem._shouldDie));
         dataAt += sizeof(newModelItem._shouldDie);
         processedBytes += sizeof(newModelItem._shouldDie);
-    }
-
-    // script
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_SCRIPT) == MODEL_PACKET_CONTAINS_SCRIPT)) {
-        uint16_t scriptLength;
-        memcpy(&scriptLength, dataAt, sizeof(scriptLength));
-        dataAt += sizeof(scriptLength);
-        processedBytes += sizeof(scriptLength);
-        QString tempString((const char*)dataAt);
-        newModelItem._script = tempString;
-        dataAt += scriptLength;
-        processedBytes += scriptLength;
     }
 
     // modelURL
@@ -542,13 +395,10 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
 
 void ModelItem::debugDump() const {
     qDebug("ModelItem id  :%u", _id);
-    qDebug(" age:%f", getAge());
     qDebug(" edited ago:%f", getEditedAgo());
     qDebug(" should die:%s", debug::valueOf(getShouldDie()));
     qDebug(" position:%f,%f,%f", _position.x, _position.y, _position.z);
     qDebug(" radius:%f", getRadius());
-    qDebug(" velocity:%f,%f,%f", _velocity.x, _velocity.y, _velocity.z);
-    qDebug(" gravity:%f,%f,%f", _gravity.x, _gravity.y, _gravity.z);
     qDebug(" color:%d,%d,%d", _color[0], _color[1], _color[2]);
 }
 
@@ -559,15 +409,15 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
     unsigned char* copyAt = bufferOut;
     sizeOut = 0;
 
-    // get the octal code for the particle
+    // get the octal code for the modelItem
 
     // this could be a problem if the caller doesn't include position....
     glm::vec3 rootPosition(0);
     float rootScale = 0.5f;
     unsigned char* octcode = pointToOctalCode(rootPosition.x, rootPosition.y, rootPosition.z, rootScale);
 
-    // TODO: Consider this old code... including the correct octree for where the particle will go matters for 
-    // particle servers with different jurisdictions, but for now, we'll send everything to the root, since the 
+    // TODO: Consider this old code... including the correct octree for where the modelItem will go matters for 
+    // modelItem servers with different jurisdictions, but for now, we'll send everything to the root, since the 
     // tree does the right thing...
     //
     //unsigned char* octcode = pointToOctalCode(details[i].position.x, details[i].position.y,
@@ -589,7 +439,7 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
     copyAt += sizeof(id.id);
     sizeOut += sizeof(id.id);
 
-    // special case for handling "new" particles
+    // special case for handling "new" modelItems
     if (isNewModelItem) {
         // If this is a NEW_MODEL, then we assume that there's an additional uint32_t creatorToken, that
         // we want to send back to the creator as an map to the actual id
@@ -604,7 +454,7 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
     copyAt += sizeof(lastEdited);
     sizeOut += sizeof(lastEdited);
     
-    // For new particles, all remaining items are mandatory, for an edited particle, All of the remaining items are
+    // For new modelItems, all remaining items are mandatory, for an edited modelItem, All of the remaining items are
     // optional, and may or may not be included based on their included values in the properties included bits
     uint16_t packetContainsBits = properties.getChangedBits();
     if (!isNewModelItem) {
@@ -637,63 +487,12 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
         sizeOut += sizeof(color);
     }
 
-    // velocity
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_VELOCITY) == MODEL_PACKET_CONTAINS_VELOCITY)) {
-        glm::vec3 velocity = properties.getVelocity() / (float)TREE_SCALE;
-        memcpy(copyAt, &velocity, sizeof(velocity));
-        copyAt += sizeof(velocity);
-        sizeOut += sizeof(velocity);
-    }
-
-    // gravity
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_GRAVITY) == MODEL_PACKET_CONTAINS_GRAVITY)) {
-        glm::vec3 gravity = properties.getGravity() / (float)TREE_SCALE;
-        memcpy(copyAt, &gravity, sizeof(gravity));
-        copyAt += sizeof(gravity);
-        sizeOut += sizeof(gravity);
-    }
-
-    // damping
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_DAMPING) == MODEL_PACKET_CONTAINS_DAMPING)) {
-        float damping = properties.getDamping();
-        memcpy(copyAt, &damping, sizeof(damping));
-        copyAt += sizeof(damping);
-        sizeOut += sizeof(damping);
-    }
-
-    // lifetime
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_LIFETIME) == MODEL_PACKET_CONTAINS_LIFETIME)) {
-        float lifetime = properties.getLifetime();
-        memcpy(copyAt, &lifetime, sizeof(lifetime));
-        copyAt += sizeof(lifetime);
-        sizeOut += sizeof(lifetime);
-    }
-
-    // inHand
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_INHAND) == MODEL_PACKET_CONTAINS_INHAND)) {
-        bool inHand = properties.getInHand();
-        memcpy(copyAt, &inHand, sizeof(inHand));
-        copyAt += sizeof(inHand);
-        sizeOut += sizeof(inHand);
-    }
-
     // shoulDie
     if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_SHOULDDIE) == MODEL_PACKET_CONTAINS_SHOULDDIE)) {
         bool shouldDie = properties.getShouldDie();
         memcpy(copyAt, &shouldDie, sizeof(shouldDie));
         copyAt += sizeof(shouldDie);
         sizeOut += sizeof(shouldDie);
-    }
-
-    // script
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_SCRIPT) == MODEL_PACKET_CONTAINS_SCRIPT)) {
-        uint16_t scriptLength = properties.getScript().size() + 1;
-        memcpy(copyAt, &scriptLength, sizeof(scriptLength));
-        copyAt += sizeof(scriptLength);
-        sizeOut += sizeof(scriptLength);
-        memcpy(copyAt, qPrintable(properties.getScript()), scriptLength);
-        copyAt += scriptLength;
-        sizeOut += scriptLength;
     }
 
     // modelURL
@@ -754,7 +553,7 @@ void ModelItem::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssi
     uint32_t id;
     memcpy(&id, dataAt, sizeof(id));
     dataAt += sizeof(id);
-    // special case for handling "new" particles
+    // special case for handling "new" modelItems
     if (id == NEW_MODEL) {
         // If this is a NEW_MODEL, then we assume that there's an additional uint32_t creatorToken, that
         // we want to send back to the creator as an map to the actual id
@@ -775,88 +574,13 @@ void ModelItem::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssi
     }
 }
 
-// HALTING_* params are determined using expected acceleration of gravity over some timescale.  
-// This is a HACK for particles that bounce in a 1.0 gravitational field and should eventually be made more universal.
-const float HALTING_MODEL_PERIOD = 0.0167f;  // ~1/60th of a second
-const float HALTING_MODEL_SPEED = 9.8 * HALTING_MODEL_PERIOD / (float)(TREE_SCALE);
-
-void ModelItem::applyHardCollision(const CollisionInfo& collisionInfo) {
-    //
-    //  Update the particle in response to a hard collision.  Position will be reset exactly
-    //  to outside the colliding surface.  Velocity will be modified according to elasticity.
-    //
-    //  if elasticity = 0.0, collision is inelastic (vel normal to collision is lost)
-    //  if elasticity = 1.0, collision is 100% elastic.
-    //
-    glm::vec3 position = getPosition();
-    glm::vec3 velocity = getVelocity();
-
-    const float EPSILON = 0.0f;
-    glm::vec3 relativeVelocity = collisionInfo._addedVelocity - velocity;
-    float velocityDotPenetration = glm::dot(relativeVelocity, collisionInfo._penetration);
-    if (velocityDotPenetration < EPSILON) {
-        // particle is moving into collision surface
-        //
-        // TODO: do something smarter here by comparing the mass of the particle vs that of the other thing 
-        // (other's mass could be stored in the Collision Info).  The smaller mass should surrender more 
-        // position offset and should slave more to the other's velocity in the static-friction case.
-        position -= collisionInfo._penetration;
-
-        if (glm::length(relativeVelocity) < HALTING_MODEL_SPEED) {
-            // static friction kicks in and particle moves with colliding object
-            velocity = collisionInfo._addedVelocity;
-        } else {
-            glm::vec3 direction = glm::normalize(collisionInfo._penetration);
-            velocity += glm::dot(relativeVelocity, direction) * (1.0f + collisionInfo._elasticity) * direction;    // dynamic reflection
-            velocity += glm::clamp(collisionInfo._damping, 0.0f, 1.0f) * (relativeVelocity - glm::dot(relativeVelocity, direction) * direction);   // dynamic friction
-        }
-    }
-
-    // change the local particle too...
-    setPosition(position);
-    setVelocity(velocity);
-}
-
 void ModelItem::update(const quint64& now) {
-    float timeElapsed = (float)(now - _lastUpdated) / (float)(USECS_PER_SECOND);
     _lastUpdated = now;
-
-    // calculate our default shouldDie state... then allow script to change it if it wants...
-    bool isInHand = getInHand();
-    bool shouldDie = (getAge() > getLifetime()) || getShouldDie();
-    setShouldDie(shouldDie);
-
-    //executeUpdateScripts(); // allow the javascript to alter our state
-
-    // If the ball is in hand, it doesn't move or have gravity effect it
-    if (!isInHand) {
-        _position += _velocity * timeElapsed;
-
-        // handle bounces off the ground...
-        if (_position.y <= 0) {
-            _velocity = _velocity * glm::vec3(1,-1,1);
-            _position.y = 0;
-        }
-
-        // handle gravity....
-        _velocity += _gravity * timeElapsed;
-
-        // handle damping
-        glm::vec3 dampingResistance = _velocity * _damping;
-        _velocity -= dampingResistance * timeElapsed;
-        //qDebug("applying damping to ModelItem timeElapsed=%f",timeElapsed);
-    }
-}
-
-void ModelItem::setAge(float age) {
-    quint64 ageInUsecs = age * USECS_PER_SECOND;
-    _created = usecTimestampNow() - ageInUsecs;
+    setShouldDie(getShouldDie());
 }
 
 void ModelItem::copyChangedProperties(const ModelItem& other) {
-    float age = getAge();
     *this = other;
-    setAge(age);
 }
 
 ModelItemProperties ModelItem::getProperties() const {
@@ -873,12 +597,6 @@ ModelItemProperties::ModelItemProperties() :
     _position(0),
     _color(),
     _radius(MODEL_DEFAULT_RADIUS),
-    _velocity(0),
-    _gravity(MODEL_DEFAULT_GRAVITY),
-    _damping(MODEL_DEFAULT_DAMPING),
-    _lifetime(MODEL_DEFAULT_LIFETIME),
-    _script(""),
-    _inHand(false),
     _shouldDie(false),
     _modelURL(""),
     _modelScale(MODEL_DEFAULT_MODEL_SCALE),
@@ -892,12 +610,6 @@ ModelItemProperties::ModelItemProperties() :
     _positionChanged(false),
     _colorChanged(false),
     _radiusChanged(false),
-    _velocityChanged(false),
-    _gravityChanged(false),
-    _dampingChanged(false),
-    _lifetimeChanged(false),
-    _scriptChanged(false),
-    _inHandChanged(false),
     _shouldDieChanged(false),
     _modelURLChanged(false),
     _modelScaleChanged(false),
@@ -920,30 +632,6 @@ uint16_t ModelItemProperties::getChangedBits() const {
 
     if (_colorChanged) {
         changedBits += MODEL_PACKET_CONTAINS_COLOR;
-    }
-
-    if (_velocityChanged) {
-        changedBits += MODEL_PACKET_CONTAINS_VELOCITY;
-    }
-
-    if (_gravityChanged) {
-        changedBits += MODEL_PACKET_CONTAINS_GRAVITY;
-    }
-
-    if (_dampingChanged) {
-        changedBits += MODEL_PACKET_CONTAINS_DAMPING;
-    }
-
-    if (_lifetimeChanged) {
-        changedBits += MODEL_PACKET_CONTAINS_LIFETIME;
-    }
-
-    if (_inHandChanged) {
-        changedBits += MODEL_PACKET_CONTAINS_INHAND;
-    }
-
-    if (_scriptChanged) {
-        changedBits += MODEL_PACKET_CONTAINS_SCRIPT;
     }
 
     if (_shouldDieChanged) {
@@ -981,16 +669,6 @@ QScriptValue ModelItemProperties::copyToScriptValue(QScriptEngine* engine) const
 
     properties.setProperty("radius", _radius);
 
-    QScriptValue velocity = vec3toScriptValue(engine, _velocity);
-    properties.setProperty("velocity", velocity);
-
-    QScriptValue gravity = vec3toScriptValue(engine, _gravity);
-    properties.setProperty("gravity", gravity);
-
-    properties.setProperty("damping", _damping);
-    properties.setProperty("lifetime", _lifetime);
-    properties.setProperty("script", _script);
-    properties.setProperty("inHand", _inHand);
     properties.setProperty("shouldDie", _shouldDie);
 
     properties.setProperty("modelURL", _modelURL);
@@ -1057,80 +735,6 @@ void ModelItemProperties::copyFromScriptValue(const QScriptValue &object) {
         if (_defaultSettings || newRadius != _radius) {
             _radius = newRadius;
             _radiusChanged = true;
-        }
-    }
-
-    QScriptValue velocity = object.property("velocity");
-    if (velocity.isValid()) {
-        QScriptValue x = velocity.property("x");
-        QScriptValue y = velocity.property("y");
-        QScriptValue z = velocity.property("z");
-        if (x.isValid() && y.isValid() && z.isValid()) {
-            glm::vec3 newVelocity;
-            newVelocity.x = x.toVariant().toFloat();
-            newVelocity.y = y.toVariant().toFloat();
-            newVelocity.z = z.toVariant().toFloat();
-            if (_defaultSettings || newVelocity != _velocity) {
-                _velocity = newVelocity;
-                _velocityChanged = true;
-            }
-        }
-    }
-
-    QScriptValue gravity = object.property("gravity");
-    if (gravity.isValid()) {
-        QScriptValue x = gravity.property("x");
-        QScriptValue y = gravity.property("y");
-        QScriptValue z = gravity.property("z");
-        if (x.isValid() && y.isValid() && z.isValid()) {
-            glm::vec3 newGravity;
-            newGravity.x = x.toVariant().toFloat();
-            newGravity.y = y.toVariant().toFloat();
-            newGravity.z = z.toVariant().toFloat();
-            if (_defaultSettings || newGravity != _gravity) {
-                _gravity = newGravity;
-                _gravityChanged = true;
-            }
-        }
-    }
-
-    QScriptValue damping = object.property("damping");
-    if (damping.isValid()) {
-        float newDamping;
-        newDamping = damping.toVariant().toFloat();
-        if (_defaultSettings || newDamping != _damping) {
-            _damping = newDamping;
-            _dampingChanged = true;
-        }
-    }
-
-    QScriptValue lifetime = object.property("lifetime");
-    if (lifetime.isValid()) {
-        float newLifetime;
-        newLifetime = lifetime.toVariant().toFloat();
-        if (_defaultSettings || newLifetime != _lifetime) {
-            _lifetime = newLifetime;
-            _lifetimeChanged = true;
-        }
-    }
-
-    QScriptValue script = object.property("script");
-    if (script.isValid()) {
-        QString newScript;
-        newScript = script.toVariant().toString();
-        if (_defaultSettings || newScript != _script) {
-            _script = newScript;
-            _scriptChanged = true;
-        }
-    }
-
-    QScriptValue inHand = object.property("inHand");
-    if (inHand.isValid()) {
-        bool newInHand;
-        newInHand = inHand.toVariant().toBool();
-        if (_defaultSettings || newInHand != _inHand) {
-            _inHand = newInHand;
-            _inHandChanged = true;
         }
     }
 
@@ -1204,75 +808,45 @@ void ModelItemProperties::copyFromScriptValue(const QScriptValue &object) {
     _lastEdited = usecTimestampNow();
 }
 
-void ModelItemProperties::copyToModelItem(ModelItem& particle) const {
+void ModelItemProperties::copyToModelItem(ModelItem& modelItem) const {
     bool somethingChanged = false;
     if (_positionChanged) {
-        particle.setPosition(_position / (float) TREE_SCALE);
+        modelItem.setPosition(_position / (float) TREE_SCALE);
         somethingChanged = true;
     }
 
     if (_colorChanged) {
-        particle.setColor(_color);
+        modelItem.setColor(_color);
         somethingChanged = true;
     }
 
     if (_radiusChanged) {
-        particle.setRadius(_radius / (float) TREE_SCALE);
-        somethingChanged = true;
-    }
-
-    if (_velocityChanged) {
-        particle.setVelocity(_velocity / (float) TREE_SCALE);
-        somethingChanged = true;
-    }
-
-    if (_gravityChanged) {
-        particle.setGravity(_gravity / (float) TREE_SCALE);
-        somethingChanged = true;
-    }
-
-    if (_dampingChanged) {
-        particle.setDamping(_damping);
-        somethingChanged = true;
-    }
-
-    if (_lifetimeChanged) {
-        particle.setLifetime(_lifetime);
-        somethingChanged = true;
-    }
-
-    if (_scriptChanged) {
-        particle.setScript(_script);
-        somethingChanged = true;
-    }
-
-    if (_inHandChanged) {
-        particle.setInHand(_inHand);
+        modelItem.setRadius(_radius / (float) TREE_SCALE);
         somethingChanged = true;
     }
 
     if (_shouldDieChanged) {
-        particle.setShouldDie(_shouldDie);
+        modelItem.setShouldDie(_shouldDie);
         somethingChanged = true;
     }
 
     if (_modelURLChanged) {
-        particle.setModelURL(_modelURL);
+        modelItem.setModelURL(_modelURL);
         somethingChanged = true;
     }
 
     if (_modelScaleChanged) {
-        particle.setModelScale(_modelScale);
+        modelItem.setModelScale(_modelScale);
         somethingChanged = true;
     }
     
     if (_modelTranslationChanged) {
-        particle.setModelTranslation(_modelTranslation);
+        modelItem.setModelTranslation(_modelTranslation);
         somethingChanged = true;
     }
     
     if (_modelRotationChanged) {
-        particle.setModelRotation(_modelRotation);
+        modelItem.setModelRotation(_modelRotation);
         somethingChanged = true;
     }
     
@@ -1284,38 +858,27 @@ void ModelItemProperties::copyToModelItem(ModelItem& particle) const {
             qDebug() << "ModelItemProperties::copyToModelItem() AFTER update... edited AGO=" << elapsed <<
                     "now=" << now << " _lastEdited=" << _lastEdited;
         }
-        particle.setLastEdited(_lastEdited);
+        modelItem.setLastEdited(_lastEdited);
     }
 }
 
-void ModelItemProperties::copyFromModelItem(const ModelItem& particle) {
-    _position = particle.getPosition() * (float) TREE_SCALE;
-    _color = particle.getXColor();
-    _radius = particle.getRadius() * (float) TREE_SCALE;
-    _velocity = particle.getVelocity() * (float) TREE_SCALE;
-    _gravity = particle.getGravity() * (float) TREE_SCALE;
-    _damping = particle.getDamping();
-    _lifetime = particle.getLifetime();
-    _script = particle.getScript();
-    _inHand = particle.getInHand();
-    _shouldDie = particle.getShouldDie();
-    _modelURL = particle.getModelURL();
-    _modelScale = particle.getModelScale();
-    _modelTranslation = particle.getModelTranslation();
-    _modelRotation = particle.getModelRotation();
+void ModelItemProperties::copyFromModelItem(const ModelItem& modelItem) {
+    _position = modelItem.getPosition() * (float) TREE_SCALE;
+    _color = modelItem.getXColor();
+    _radius = modelItem.getRadius() * (float) TREE_SCALE;
+    _shouldDie = modelItem.getShouldDie();
+    _modelURL = modelItem.getModelURL();
+    _modelScale = modelItem.getModelScale();
+    _modelTranslation = modelItem.getModelTranslation();
+    _modelRotation = modelItem.getModelRotation();
 
-    _id = particle.getID();
+    _id = modelItem.getID();
     _idSet = true;
 
     _positionChanged = false;
     _colorChanged = false;
     _radiusChanged = false;
-    _velocityChanged = false;
-    _gravityChanged = false;
-    _dampingChanged = false;
-    _lifetimeChanged = false;
-    _scriptChanged = false;
-    _inHandChanged = false;
+    
     _shouldDieChanged = false;
     _modelURLChanged = false;
     _modelScaleChanged = false;
