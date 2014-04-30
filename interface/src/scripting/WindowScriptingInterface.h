@@ -17,8 +17,6 @@
 #include <QObject>
 #include <QString>
 
-#include "LocationScriptingInterface.h"
-
 class WindowScriptingInterface : public QObject {
     Q_OBJECT
     Q_PROPERTY(int innerWidth READ getInnerWidth)
