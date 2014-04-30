@@ -370,15 +370,11 @@ Application::~Application() {
     // make sure we don't call the idle timer any more
     delete idleTimer;
 
-    Menu::getInstance()->saveSettings();
-    _rearMirrorTools->saveSettings(_settings);
-
     _sharedVoxelSystem.changeTree(new VoxelTree);
-    if (_voxelImporter) {
-        _voxelImporter->saveSettings(_settings);
-        delete _voxelImporter;
-    }
-    _settings->sync();
+
+    saveSettings();
+
+    delete _voxelImporter;
 
     // let the avatar mixer know we're out
     MyAvatar::sendKillAvatar();
