@@ -77,6 +77,8 @@
 #include "scripting/ClipboardScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
+#include "scripting/WindowScriptingInterface.h"
+#include "scripting/LocationScriptingInterface.h"
 
 #include "ui/InfoView.h"
 #include "ui/Snapshot.h"
@@ -3406,6 +3408,18 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     connect(scriptEngine, SIGNAL(finished(const QString&)), clipboardScriptable, SLOT(deleteLater()));
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
+
+    QScriptEngine &qScriptEngine = scriptEngine->getEngine();
+    QScriptValue getLocationFunction = qScriptEngine.newFunction(LocationScriptingInterface::locationGetter);
+    QScriptValue setLocationFunction = qScriptEngine.newFunction(LocationScriptingInterface::locationSetter, 1);
+    qScriptEngine.globalObject().setProperty("location", getLocationFunction, QScriptValue::PropertyGetter);
+    qScriptEngine.globalObject().setProperty("location", setLocationFunction, QScriptValue::PropertySetter);
+
+    QScriptValue windowValue = qScriptEngine.newQObject(WindowScriptingInterface::getInstance());
+    qScriptEngine.globalObject().setProperty("Window", windowValue);
+    windowValue.setProperty("location", getLocationFunction, QScriptValue::PropertyGetter);
+    windowValue.setProperty("location", setLocationFunction, QScriptValue::PropertySetter);
+
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
