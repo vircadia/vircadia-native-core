@@ -22,6 +22,7 @@ ScriptHighlighting::ScriptHighlighting(QTextDocument* parent) :
     _numberRegex = QRegExp("[0-9]+(\\.[0-9]+){0,1}");
     _singleLineComment = QRegExp("//[^\n]*");
     _truefalseRegex = QRegExp("\\b(true|false)\\b");
+    _alphacharRegex = QRegExp("[A-Za-z]");
 }
 
 void ScriptHighlighting::highlightBlock(const QString& text) {
@@ -60,7 +61,19 @@ void ScriptHighlighting::formatComments(const QString& text) {
     int index = _singleLineComment.indexIn(text);
     while (index >= 0) {
         int length = _singleLineComment.matchedLength();
-        setFormat(index, length, Qt::lightGray);
+        int quoted_index = _qoutedTextRegex.indexIn(text);
+        bool valid = true;
+        while (quoted_index >= 0 && valid) {
+            int quoted_length = _qoutedTextRegex.matchedLength();
+            if (quoted_index <= index && index <= (quoted_index + quoted_length)) {
+                valid = false;
+            }
+            quoted_index = _qoutedTextRegex.indexIn(text, quoted_index + quoted_length);
+        }
+
+        if (valid) {
+            setFormat(index, length, Qt::lightGray);
+        }
         index = _singleLineComment.indexIn(text, index + length);
     }
 }
@@ -78,7 +91,9 @@ void ScriptHighlighting::formatNumbers(const QString& text){
     int index = _numberRegex.indexIn(text);
     while (index >= 0) {
         int length = _numberRegex.matchedLength();
-        setFormat(index, length, Qt::green);
+        if (index == 0 || _alphacharRegex.indexIn(text, index - 1) != (index - 1)) {
+            setFormat(index, length, Qt::green);
+        }
         index = _numberRegex.indexIn(text, index + length);
     }
 }

@@ -39,11 +39,20 @@
     <property name="spacing">
      <number>0</number>
     </property>
-    <property name="margin">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
      <number>0</number>
     </property>
     <item>
-     <widget class="QTextEdit" name="scriptEdit">
+     <widget class="ScriptEditBox" name="scriptEdit">
       <property name="font">
        <font>
         <family>Courier</family>
@@ -55,9 +64,6 @@
       </property>
       <property name="styleSheet">
        <string notr="true">font: 16px &quot;Courier&quot;;</string>
-      </property>
-      <property name="acceptRichText">
-       <bool>false</bool>
       </property>
      </widget>
     </item>
@@ -144,6 +150,13 @@
    </layout>
   </widget>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ScriptEditBox</class>
+   <extends>QTextEdit</extends>
+   <header>ui/ScriptEditBox.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections>
   <connection>
