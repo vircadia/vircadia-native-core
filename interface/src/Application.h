@@ -29,6 +29,7 @@
 #include <QTouchEvent>
 #include <QUndoStack>
 
+#include <ModelEditPacketSender.h>
 #include <NetworkPacket.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
@@ -51,7 +52,6 @@
 #include "Menu.h"
 #include "MetavoxelSystem.h"
 #include "PacketHeaders.h"
-#include "ParticleTreeRenderer.h"
 #include "Stars.h"
 #include "avatar/Avatar.h"
 #include "avatar/AvatarManager.h"
@@ -60,6 +60,8 @@
 #include "devices/Faceshift.h"
 #include "devices/SixenseManager.h"
 #include "devices/Visage.h"
+#include "models/ModelTreeRenderer.h"
+#include "particles/ParticleTreeRenderer.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
@@ -416,6 +418,8 @@ private:
     ParticleTreeRenderer _particles;
     ParticleCollisionSystem _particleCollisionSystem;
 
+    ModelTreeRenderer _models;
+
     QByteArray _voxelsFilename;
     bool _wantToKillLocalVoxels;
 
@@ -493,6 +497,7 @@ private:
     VoxelHideShowThread _voxelHideShowThread;
     VoxelEditPacketSender _voxelEditSender;
     ParticleEditPacketSender _particleEditSender;
+    ModelEditPacketSender _modelEditSender;
 
     int _packetsPerSecond;
     int _bytesPerSecond;

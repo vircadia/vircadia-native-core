@@ -276,9 +276,6 @@ namespace MenuOption {
     const QString AudioSpatialProcessingWithDiffusions = "With Diffusions";
     const QString AudioSpatialProcessingDontDistanceAttenuate = "Don't calculate distance attenuation";
     const QString AudioSpatialProcessingAlternateDistanceAttenuate = "Alternate distance attenuation";
-
-
-
     const QString Avatars = "Avatars";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
@@ -330,6 +327,7 @@ namespace MenuOption {
     const QString MetavoxelEditor = "Metavoxel Editor...";
     const QString Metavoxels = "Metavoxels";
     const QString Mirror = "Mirror";
+    const QString Models = "Models";
     const QString MoveWithLean = "Move with Lean";
     const QString MuteAudio = "Mute Microphone";
     const QString NameLocation = "Name this location";

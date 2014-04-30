@@ -20,15 +20,14 @@
 #include <AudioRingBuffer.h>
 #include <AvatarData.h>
 #include <CollisionInfo.h>
+#include <ModelsScriptingInterface.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
+#include <ParticlesScriptingInterface.h>
+#include <Sound.h>
 #include <UUID.h>
 #include <VoxelConstants.h>
 #include <VoxelDetail.h>
-#include <ParticlesScriptingInterface.h>
-#include <ModelsScriptingInterface.h>
-
-#include <Sound.h>
 
 #include "AnimationObject.h"
 #include "MenuItemProperties.h"
@@ -205,6 +204,11 @@ void ScriptEngine::init() {
     qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<ParticleID> >(&_engine);
+
+    qScriptRegisterMetaType(&_engine, ModelItemPropertiesToScriptValue, ModelItemPropertiesFromScriptValue);
+    qScriptRegisterMetaType(&_engine, ModelItemIDtoScriptValue, ModelItemIDfromScriptValue);
+    qScriptRegisterSequenceMetaType<QVector<ModelItemID> >(&_engine);
+
     qScriptRegisterSequenceMetaType<QVector<glm::vec2> >(&_engine);
     qScriptRegisterSequenceMetaType<QVector<glm::quat> >(&_engine);
     qScriptRegisterSequenceMetaType<QVector<QString> >(&_engine);
@@ -225,6 +229,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &_audioScriptingInterface);
     registerGlobalObject("Controller", _controllerScriptingInterface);
+    registerGlobalObject("Models", &_modelsScriptingInterface);
     registerGlobalObject("Particles", &_particlesScriptingInterface);
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);

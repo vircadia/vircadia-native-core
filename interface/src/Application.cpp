@@ -54,6 +54,7 @@
 #include <AccountManager.h>
 #include <AudioInjector.h>
 #include <Logging.h>
+#include <ModelsScriptingInterface.h>
 #include <OctalCode.h>
 #include <PacketHeaders.h>
 #include <ParticlesScriptingInterface.h>
@@ -1665,6 +1666,9 @@ void Application::init() {
     _particles.init();
     _particles.setViewFrustum(getViewFrustum());
 
+    _models.init();
+    _models.setViewFrustum(getViewFrustum());
+
     _metavoxels.init();
 
     _particleCollisionSystem.init(&_particleEditSender, _particles.getTree(), _voxels.getTree(), &_audio, &_avatarManager);
@@ -1994,6 +1998,8 @@ void Application::update(float deltaTime) {
 
     _particles.update(); // update the particles...
     _particleCollisionSystem.update(); // collide the particles...
+
+    _models.update(); // update the models...
 
     _overlays.update(deltaTime);
 
@@ -2335,6 +2341,7 @@ void Application::updateShadowMap() {
 
     _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
     _particles.render();
+    _models.render();
 
     glPopMatrix();
 
@@ -2499,6 +2506,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... particles...");
             _particles.render();
+        }
+
+        // render models...
+        if (Menu::getInstance()->isOptionChecked(MenuOption::Models)) {
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                "Application::displaySide() ... models...");
+            _models.render();
         }
 
         // render the ambient occlusion effect if enabled
@@ -3095,6 +3109,9 @@ void Application::domainChanged(const QString& domainHostname) {
     // reset the particle renderer
     _particles.clear();
 
+    // reset the model renderer
+    _models.clear();
+
     // reset the voxels renderer
     _voxels.killLocalVoxels();
 }
@@ -3427,6 +3444,9 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     scriptEngine->getVoxelsScriptingInterface()->setUndoStack(&_undoStack);
     scriptEngine->getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
     scriptEngine->getParticlesScriptingInterface()->setParticleTree(_particles.getTree());
+
+    scriptEngine->getModelsScriptingInterface()->setPacketSender(&_modelEditSender);
+    scriptEngine->getModelsScriptingInterface()->setModelTree(_models.getTree());
 
     // hook our avatar object into this script engine
     scriptEngine->setAvatarData(_myAvatar, "MyAvatar"); // leave it as a MyAvatar class to expose thrust features
