@@ -263,7 +263,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // tell the NodeList instance who to tell the domain server we care about
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
-                                                 << NodeType::VoxelServer << NodeType::ParticleServer
+                                                 << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::ModelServer
                                                  << NodeType::MetavoxelServer);
 
     // connect to the packet sent signal of the _voxelEditSender and the _particleEditSender
@@ -758,6 +758,8 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
                 channel = BandwidthMeter::AVATARS;
                 break;
             case NodeType::VoxelServer:
+            case NodeType::ParticleServer:
+            case NodeType::ModelServer:
                 channel = BandwidthMeter::VOXELS;
                 break;
             default:
@@ -1264,8 +1266,8 @@ void Application::dropEvent(QDropEvent *event) {
 
 void Application::sendPingPackets() {
     QByteArray pingPacket = NodeList::getInstance()->constructPingPacket();
-    controlledBroadcastToNodes(pingPacket, NodeSet() << NodeType::VoxelServer
-                               << NodeType::ParticleServer
+    controlledBroadcastToNodes(pingPacket, NodeSet() 
+                               << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::ModelServer
                                << NodeType::AudioMixer << NodeType::AvatarMixer
                                << NodeType::MetavoxelServer);
 }
@@ -2025,6 +2027,7 @@ void Application::updateMyAvatar(float deltaTime) {
         _lastQueriedTime = now;
         queryOctree(NodeType::VoxelServer, PacketTypeVoxelQuery, _voxelServerJurisdictions);
         queryOctree(NodeType::ParticleServer, PacketTypeParticleQuery, _particleServerJurisdictions);
+        queryOctree(NodeType::ModelServer, PacketTypeModelQuery, _modelServerJurisdictions);
         _lastQueriedViewFrustum = _viewFrustum;
     }
 }
@@ -3163,8 +3166,39 @@ void Application::nodeKilled(SharedNodePointer node) {
                 _voxelFades.push_back(fade);
             }
 
-            // If the voxel server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
+            // If the particle server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
             _particleServerJurisdictions.erase(_particleServerJurisdictions.find(nodeUUID));
+        }
+
+        // also clean up scene stats for that server
+        _octreeSceneStatsLock.lockForWrite();
+        if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
+            _octreeServerSceneStats.erase(nodeUUID);
+        }
+        _octreeSceneStatsLock.unlock();
+
+    } else if (node->getType() == NodeType::ModelServer) {
+        QUuid nodeUUID = node->getUUID();
+        // see if this is the first we've heard of this node...
+        if (_modelServerJurisdictions.find(nodeUUID) != _modelServerJurisdictions.end()) {
+            unsigned char* rootCode = _modelServerJurisdictions[nodeUUID].getRootOctalCode();
+            VoxelPositionSize rootDetails;
+            voxelDetailsForCode(rootCode, rootDetails);
+
+            qDebug("model server going away...... v[%f, %f, %f, %f]",
+                rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
+
+            // Add the jurisditionDetails object to the list of "fade outs"
+            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnVoxelServerChanges)) {
+                VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
+                fade.voxelDetails = rootDetails;
+                const float slightly_smaller = 0.99f;
+                fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
+                _voxelFades.push_back(fade);
+            }
+
+            // If the model server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
+            _modelServerJurisdictions.erase(_modelServerJurisdictions.find(nodeUUID));
         }
 
         // also clean up scene stats for that server
@@ -3226,8 +3260,10 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
         NodeToJurisdictionMap* jurisdiction = NULL;
         if (sendingNode->getType() == NodeType::VoxelServer) {
             jurisdiction = &_voxelServerJurisdictions;
-        } else {
+        } else if (sendingNode->getType() == NodeType::ParticleServer) {
             jurisdiction = &_particleServerJurisdictions;
+        } else {
+            jurisdiction = &_modelServerJurisdictions;
         }
 
 

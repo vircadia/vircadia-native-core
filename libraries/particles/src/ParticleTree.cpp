@@ -320,7 +320,7 @@ public:
     QVector<Particle*> _foundParticles;
 };
 
-bool findInBoxForUpdateOperation(OctreeElement* element, void* extraData) {
+bool ParticleTree::findInBoxForUpdateOperation(OctreeElement* element, void* extraData) {
     FindParticlesInBoxArgs* args = static_cast< FindParticlesInBoxArgs*>(extraData);
     const AABox& elementBox = element->getAABox();
     if (elementBox.touches(args->_box)) {

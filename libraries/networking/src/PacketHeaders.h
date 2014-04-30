@@ -61,6 +61,11 @@ enum PacketType {
     PacketTypeDomainConnectRequest,
     PacketTypeDomainServerRequireDTLS,
     PacketTypeNodeJsonStats,
+    PacketTypeModelQuery,
+    PacketTypeModelData,
+    PacketTypeModelAddOrEdit,
+    PacketTypeModelErase,
+    PacketTypeModelAddResponse,
 };
 
 typedef char PacketVersion;

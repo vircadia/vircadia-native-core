@@ -25,7 +25,9 @@
 #include <ResourceCache.h>
 #include <UUID.h>
 #include <VoxelConstants.h>
-#include <ParticlesScriptingInterface.h>
+
+#include <ParticlesScriptingInterface.h> // TODO: consider moving to scriptengine.h
+#include <ModelsScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
 #include "Agent.h"
 
@@ -68,6 +70,10 @@ void Agent::readPendingDatagrams() {
                             _scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener()->
                                                                 queueReceivedPacket(matchedNode, receivedPacket);
                             break;
+                        case NodeType::ModelServer:
+                            _scriptEngine.getModelsScriptingInterface()->getJurisdictionListener()->
+                                                                queueReceivedPacket(matchedNode, receivedPacket);
+                            break;
                     }
                 }
                 
@@ -86,6 +92,8 @@ void Agent::readPendingDatagrams() {
                         || datagramPacketType == PacketTypeParticleErase
                         || datagramPacketType == PacketTypeOctreeStats
                         || datagramPacketType == PacketTypeVoxelData
+                        || datagramPacketType == PacketTypeModelData
+                        || datagramPacketType == PacketTypeModelErase
             ) {
                 // Make sure our Node and NodeList knows we've heard from this node.
                 SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
@@ -117,6 +125,10 @@ void Agent::readPendingDatagrams() {
                     _particleViewer.processDatagram(mutablePacket, sourceNode);
                 }
 
+                if (datagramPacketType == PacketTypeModelData || datagramPacketType == PacketTypeModelErase) {
+                    _modelViewer.processDatagram(mutablePacket, sourceNode);
+                }
+                
                 if (datagramPacketType == PacketTypeVoxelData) {
                     _voxelViewer.processDatagram(mutablePacket, sourceNode);
                 }
@@ -159,7 +171,9 @@ void Agent::run() {
                                                  << NodeType::AudioMixer
                                                  << NodeType::AvatarMixer
                                                  << NodeType::VoxelServer
-                                                 << NodeType::ParticleServer);
+                                                 << NodeType::ParticleServer
+                                                 << NodeType::ModelServer
+                                                );
     
     // figure out the URL for the script for this agent assignment
     QUrl scriptURL;

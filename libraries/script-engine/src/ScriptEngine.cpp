@@ -26,6 +26,7 @@
 #include <VoxelConstants.h>
 #include <VoxelDetail.h>
 #include <ParticlesScriptingInterface.h>
+#include <ModelsScriptingInterface.h>
 
 #include <Sound.h>
 
@@ -36,6 +37,7 @@
 
 VoxelsScriptingInterface ScriptEngine::_voxelsScriptingInterface;
 ParticlesScriptingInterface ScriptEngine::_particlesScriptingInterface;
+ModelsScriptingInterface ScriptEngine::_modelsScriptingInterface;
 
 static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* engine) {
     QUrl soundURL = QUrl(context->argument(0).toString());
