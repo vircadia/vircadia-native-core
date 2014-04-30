@@ -262,7 +262,7 @@ void ScriptEngine::registerGetterSetter(const QString& name, QScriptEngine::Func
     QScriptValue setterFunction = _engine.newFunction(setter, 1);
     QScriptValue getterFunction = _engine.newFunction(getter);
 
-    if (object.isNull()) {
+    if (!object.isNull()) {
         object.setProperty(name, setterFunction, QScriptValue::PropertySetter);
         object.setProperty(name, getterFunction, QScriptValue::PropertyGetter);
     } else {
