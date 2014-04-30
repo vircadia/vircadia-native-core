@@ -19,6 +19,12 @@ function mouseMoveEvent(event) {
     print("computePickRay direction=" + pickRay.direction.x + ", " + pickRay.direction.y + ", " + pickRay.direction.z);
     var pickRay = Camera.computePickRay(event.x, event.y);
     var intersection = Voxels.findRayIntersection(pickRay);
+    if (!intersection.accurate) {
+        print(">>> NOTE: intersection not accurate. will try calling Voxels.findRayIntersectionBlocking()");
+        intersection = Voxels.findRayIntersectionBlocking(pickRay);
+        print(">>> AFTER BLOCKING CALL intersection.accurate=" + intersection.accurate);
+    }
+    
     if (intersection.intersects) {
         print("intersection voxel.red/green/blue=" + intersection.voxel.red + ", " 
                     + intersection.voxel.green + ", " + intersection.voxel.blue);

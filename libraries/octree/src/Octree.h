@@ -249,17 +249,20 @@ public:
     } lockType;
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                             OctreeElement*& node, float& distance, BoxFace& face, Octree::lockType lockType = Octree::TryLock);
+                             OctreeElement*& node, float& distance, BoxFace& face, 
+                             Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
-    bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration,
-                                    void** penetratedObject = NULL, Octree::lockType lockType = Octree::TryLock);
+    bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration, void** penetratedObject = NULL, 
+                                    Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
-    bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, 
-                                    glm::vec3& penetration, Octree::lockType lockType = Octree::TryLock);
+    bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration, 
+                                    Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
-    bool findShapeCollisions(const Shape* shape, CollisionList& collisions, Octree::lockType = Octree::TryLock);
+    bool findShapeCollisions(const Shape* shape, CollisionList& collisions, 
+                                    Octree::lockType = Octree::TryLock, bool* accurateResult = NULL);
 
-    OctreeElement* getElementEnclosingPoint(const glm::vec3& point, Octree::lockType lockType = Octree::TryLock);
+    OctreeElement* getElementEnclosingPoint(const glm::vec3& point, 
+                                    Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
     // Note: this assumes the fileFormat is the HIO individual voxels code files
     void loadOctreeFile(const char* fileName, bool wantColorRandomizer);

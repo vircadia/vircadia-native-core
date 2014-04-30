@@ -170,12 +170,12 @@ Menu::Menu() :
 
 
     QMenu* editMenu = addMenu("Edit");
-    
+
     QUndoStack* undoStack = Application::getInstance()->getUndoStack();
     QAction* undoAction = undoStack->createUndoAction(editMenu);
     undoAction->setShortcut(Qt::CTRL | Qt::Key_Z);
     addActionToQMenuAndActionHash(editMenu, undoAction);
-    
+
     QAction* redoAction = undoStack->createRedoAction(editMenu);
     redoAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Z);
     addActionToQMenuAndActionHash(editMenu, redoAction);
@@ -325,7 +325,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Visage, 0, true,
         appInstance->getVisage(), SLOT(updateEnabled()));
 #endif
-    
+
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::GlowWhenSpeaking, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, false);
 
@@ -728,31 +728,31 @@ QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
                                              QAction::MenuRole role,
                                              int menuItemLocation) {
     QAction* actionBefore = NULL;
-    
+
     if (menuItemLocation >= 0 && destinationMenu->actions().size() > menuItemLocation) {
         actionBefore = destinationMenu->actions()[menuItemLocation];
     }
-    
+
     if (!actionName.isEmpty()) {
         action->setText(actionName);
     }
-    
+
     if (shortcut != 0) {
         action->setShortcut(shortcut);
     }
-    
+
     if (role != QAction::NoRole) {
         action->setMenuRole(role);
     }
-    
+
     if (!actionBefore) {
         destinationMenu->addAction(action);
     } else {
         destinationMenu->insertAction(actionBefore, action);
     }
-    
+
     _actionHash.insert(action->text(), action);
-    
+
     return action;
 }
 
@@ -818,7 +818,6 @@ void sendFakeEnterEvent() {
     QCoreApplication::sendEvent(glWidget, &enterEvent);
 }
 
-const int QLINE_MINIMUM_WIDTH = 400;
 const float DIALOG_RATIO_OF_WINDOW = 0.30f;
 
 void Menu::loginForCurrentDomain() {
@@ -924,7 +923,7 @@ void Menu::goTo() {
                 QString orientation = urlParts.count() > 2 ? urlParts[2] : QString();
 
                 goToDomain(domain);
-                
+
                 // goto either @user, #place, or x-xx,y-yy,z-zz
                 // style co-ordinate.
                 goTo(destination);
@@ -1250,7 +1249,7 @@ void Menu::autoAdjustLOD(float currentFPS) {
                 _avatarLODDistanceMultiplier - DISTANCE_DECREASE_RATE);
         }
     }
-    
+
     bool changed = false;
     quint64 elapsed = now - _lastAdjust;
 

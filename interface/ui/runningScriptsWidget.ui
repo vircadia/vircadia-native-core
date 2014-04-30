@@ -6,44 +6,58 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>310</width>
-    <height>651</height>
+    <width>323</width>
+    <height>894</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">background: #f7f7f7;
-font-family: Helvetica, Arial, &quot;DejaVu Sans&quot;; </string>
+   <string notr="true">* {
+	font-family: Helvetica, Arial, sans-serif;
+}
+QWidget {
+	background: #f7f7f7; 
+}</string>
   </property>
   <widget class="QLabel" name="widgetTitle">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>10</y>
-     <width>221</width>
-     <height>31</height>
+     <x>37</x>
+     <y>29</y>
+     <width>251</width>
+     <height>20</height>
     </rect>
    </property>
    <property name="styleSheet">
-    <string notr="true">color: #0e7077;</string>
+    <string notr="true">color: #0e7077;
+font-size: 20pt;
+background: transparent;</string>
    </property>
    <property name="text">
     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;Running Scripts&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="margin">
+    <number>0</number>
+   </property>
+   <property name="indent">
+    <number>-1</number>
    </property>
   </widget>
   <widget class="QLabel" name="currentlyRunningLabel">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>40</y>
-     <width>301</width>
+     <x>36</x>
+     <y>110</y>
+     <width>270</width>
      <height>20</height>
     </rect>
    </property>
    <property name="styleSheet">
-    <string notr="true">color: #0e7077;</string>
+    <string notr="true">color: #0e7077;
+font: bold 14pt;
+background: transparent;</string>
    </property>
    <property name="text">
     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Currently running&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -52,22 +66,27 @@ font-family: Helvetica, Arial, &quot;DejaVu Sans&quot;; </string>
   <widget class="QPushButton" name="reloadAllButton">
    <property name="geometry">
     <rect>
-     <x>40</x>
-     <y>230</y>
+     <x>36</x>
+     <y>270</y>
      <width>111</width>
-     <height>31</height>
+     <height>35</height>
     </rect>
    </property>
    <property name="cursor">
     <cursorShape>PointingHandCursor</cursorShape>
    </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
    <property name="styleSheet">
     <string notr="true">background: #0e7077;
 color: #fff;
-border-radius: 6px;</string>
+border-radius: 4px;
+font: bold 14pt;
+padding-top: 3px;</string>
    </property>
    <property name="text">
-    <string>Reload All</string>
+    <string>Reload all</string>
    </property>
    <property name="icon">
     <iconset>
@@ -78,9 +97,9 @@ border-radius: 6px;</string>
    <property name="geometry">
     <rect>
      <x>160</x>
-     <y>230</y>
-     <width>101</width>
-     <height>31</height>
+     <y>270</y>
+     <width>93</width>
+     <height>35</height>
     </rect>
    </property>
    <property name="cursor">
@@ -89,10 +108,12 @@ border-radius: 6px;</string>
    <property name="styleSheet">
     <string notr="true">background: #0e7077;
 color: #fff;
-border-radius: 6px;</string>
+border-radius: 4px;
+font: bold 14pt;
+padding-top: 3px;</string>
    </property>
    <property name="text">
-    <string>Stop All</string>
+    <string>Stop all</string>
    </property>
    <property name="icon">
     <iconset>
@@ -102,46 +123,32 @@ border-radius: 6px;</string>
   <widget class="QLabel" name="recentlyLoadedLabel">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>280</y>
-     <width>301</width>
+     <x>36</x>
+     <y>320</y>
+     <width>265</width>
      <height>20</height>
     </rect>
    </property>
    <property name="styleSheet">
-    <string notr="true">color: #0e7077;</string>
+    <string notr="true">color: #0e7077;
+font: bold 14pt;</string>
    </property>
    <property name="text">
     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Recently loaded&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
   </widget>
-  <widget class="Line" name="line2">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>300</y>
-     <width>271</width>
-     <height>8</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true"/>
-   </property>
-   <property name="orientation">
-    <enum>Qt::Horizontal</enum>
-   </property>
-  </widget>
   <widget class="QLabel" name="recentlyLoadedInstruction">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>590</y>
-     <width>271</width>
+     <x>36</x>
+     <y>630</y>
+     <width>211</width>
      <height>41</height>
     </rect>
    </property>
    <property name="styleSheet">
-    <string notr="true">color: #95a5a6;</string>
+    <string notr="true">color: #95a5a6;
+font-size: 14pt;</string>
    </property>
    <property name="text">
     <string>(click a script or use the 1-9 keys to load and run it)</string>
@@ -153,10 +160,10 @@ border-radius: 6px;</string>
   <widget class="QPushButton" name="hideWidgetButton">
    <property name="geometry">
     <rect>
-     <x>270</x>
-     <y>10</y>
-     <width>31</width>
-     <height>31</height>
+     <x>285</x>
+     <y>29</y>
+     <width>16</width>
+     <height>16</height>
     </rect>
    </property>
    <property name="cursor">
@@ -165,81 +172,101 @@ border-radius: 6px;</string>
    <property name="text">
     <string/>
    </property>
-   <property name="icon">
-    <iconset>
-     <normaloff>../resources/images/close.svg</normaloff>../resources/images/close.svg</iconset>
-   </property>
    <property name="iconSize">
     <size>
-     <width>20</width>
-     <height>20</height>
+     <width>16</width>
+     <height>16</height>
     </size>
    </property>
    <property name="flat">
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="QTableWidget" name="runningScriptsTableWidget">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>70</y>
-     <width>271</width>
-     <height>141</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">background: transparent;</string>
-   </property>
-  </widget>
-  <widget class="Line" name="line1">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>60</y>
-     <width>271</width>
-     <height>8</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true"/>
-   </property>
-   <property name="orientation">
-    <enum>Qt::Horizontal</enum>
-   </property>
-  </widget>
-  <widget class="QTableWidget" name="recentlyLoadedScriptsTableWidget">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>310</y>
-     <width>271</width>
-     <height>281</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">background: transparent;</string>
-   </property>
-  </widget>
   <widget class="QLabel" name="noRunningScriptsLabel">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>40</y>
+     <x>36</x>
+     <y>110</y>
      <width>271</width>
      <height>51</height>
     </rect>
    </property>
    <property name="styleSheet">
-    <string notr="true">font: 14px;</string>
+    <string notr="true">font: 14pt;</string>
    </property>
    <property name="text">
     <string>There are no scripts currently running.</string>
    </property>
    <property name="alignment">
-    <set>Qt::AlignCenter</set>
+    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
    </property>
   </widget>
+  <widget class="QWidget" name="recentlyLoadedScriptsTableWidget" native="true">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>340</y>
+     <width>272</width>
+     <height>280</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">background: transparent;
+font-size: 14pt;</string>
+   </property>
+  </widget>
+  <widget class="QWidget" name="runningScriptsTableWidget" native="true">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>128</y>
+     <width>272</width>
+     <height>161</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">background: transparent;
+font-size: 14pt;</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="loadScriptButton">
+   <property name="geometry">
+    <rect>
+     <x>36</x>
+     <y>70</y>
+     <width>111</width>
+     <height>35</height>
+    </rect>
+   </property>
+   <property name="cursor">
+    <cursorShape>PointingHandCursor</cursorShape>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">background: #0e7077;
+color: #fff;
+border-radius: 4px;
+font: bold 14pt;
+padding-top: 3px;</string>
+   </property>
+   <property name="text">
+    <string>Load script</string>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>../resources/images/plus.svg</normaloff>../resources/images/plus.svg</iconset>
+   </property>
+  </widget>
+  <zorder>widgetTitle</zorder>
+  <zorder>currentlyRunningLabel</zorder>
+  <zorder>recentlyLoadedLabel</zorder>
+  <zorder>recentlyLoadedInstruction</zorder>
+  <zorder>hideWidgetButton</zorder>
+  <zorder>recentlyLoadedScriptsTableWidget</zorder>
+  <zorder>runningScriptsTableWidget</zorder>
+  <zorder>noRunningScriptsLabel</zorder>
+  <zorder>reloadAllButton</zorder>
+  <zorder>stopAllButton</zorder>
+  <zorder>loadScriptButton</zorder>
  </widget>
  <resources/>
  <connections/>
