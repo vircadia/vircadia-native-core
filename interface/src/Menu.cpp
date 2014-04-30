@@ -814,7 +814,6 @@ void sendFakeEnterEvent() {
     QCoreApplication::sendEvent(glWidget, &enterEvent);
 }
 
-const int QLINE_MINIMUM_WIDTH = 400;
 const float DIALOG_RATIO_OF_WINDOW = 0.30f;
 
 void Menu::loginForCurrentDomain() {
