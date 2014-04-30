@@ -70,13 +70,15 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
     ui->reloadAllButton->setVisible(!list.isEmpty());
     ui->stopAllButton->setVisible(!list.isEmpty());
 
+    const int CLOSE_ICON_HEIGHT = 12;
+
     for (int i = 0; i < list.size(); ++i) {
         QTableWidgetItem *scriptName = new QTableWidgetItem;
         scriptName->setText(QFileInfo(list.at(i)).fileName());
         scriptName->setToolTip(list.at(i));
         scriptName->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
         QTableWidgetItem *closeIcon = new QTableWidgetItem;
-        closeIcon->setIcon(QIcon(QPixmap(Application::resourcesPath() + "images/kill-script.svg").scaledToHeight(12)));
+        closeIcon->setIcon(QIcon(QPixmap(Application::resourcesPath() + "images/kill-script.svg").scaledToHeight(CLOSE_ICON_HEIGHT)));
 
         _runningScriptsTable->setItem(i, 0, scriptName);
         _runningScriptsTable->setItem(i, 1, closeIcon);
