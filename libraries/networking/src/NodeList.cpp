@@ -385,7 +385,8 @@ void NodeList::sendDomainServerCheckIn() {
         QUuid packetUUID = _sessionUUID;
         
         if (!_domainHandler.getAssignmentUUID().isNull() && domainPacketType == PacketTypeDomainConnectRequest) {
-            // for assigned nodes who have not yet connected, send the assignment UUID as this packet UUID
+            // this is a connect request and we're an assigned node
+            // so set our packetUUID as the assignment UUID
             packetUUID = _domainHandler.getAssignmentUUID();
         }
         
@@ -416,16 +417,14 @@ void NodeList::sendDomainServerCheckIn() {
             sendSTUNRequest();
         }
         
-        if (_domainHandler.isConnected()) {
-            if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
-                // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
-                // so emit our signal that indicates that
-                emit limitOfSilentDomainCheckInsReached();
-            }
-            
-            // increment the count of un-replied check-ins
-            _numNoReplyDomainCheckIns++;
+        if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+            // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
+            // so emit our signal that indicates that
+            emit limitOfSilentDomainCheckInsReached();
         }
+        
+        // increment the count of un-replied check-ins
+        _numNoReplyDomainCheckIns++;
     }
 }
 

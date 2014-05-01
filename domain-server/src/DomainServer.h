@@ -59,7 +59,7 @@ private:
     
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
     
-    void addNodeToNodeListAndConfirmConnection(const QByteArray& packet, const HifiSockAddr& senderSockAddr);
+    void handleConnectRequest(const QByteArray& packet, const HifiSockAddr& senderSockAddr);
     int parseNodeDataFromByteArray(NodeType_t& nodeType, HifiSockAddr& publicSockAddr,
                                     HifiSockAddr& localSockAddr, const QByteArray& packet, const HifiSockAddr& senderSockAddr);
     NodeSet nodeInterestListFromPacket(const QByteArray& packet, int numPreceedingBytes);
@@ -86,8 +86,8 @@ private:
     HTTPManager _httpManager;
     HTTPSManager* _httpsManager;
     
-    QHash<QUuid, SharedAssignmentPointer> _staticAssignmentHash;
-    QQueue<SharedAssignmentPointer> _assignmentQueue;
+    QHash<QUuid, SharedAssignmentPointer> _allAssignments;
+    QQueue<SharedAssignmentPointer> _unfulfilledAssignments;
     
     QVariantMap _argumentVariantMap;
     

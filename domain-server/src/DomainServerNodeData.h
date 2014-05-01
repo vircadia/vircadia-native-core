@@ -27,8 +27,8 @@ public:
     
     void parseJSONStatsPacket(const QByteArray& statsPacket);
     
-    void setStaticAssignmentUUID(const QUuid& staticAssignmentUUID) { _staticAssignmentUUID = staticAssignmentUUID; }
-    const QUuid& getStaticAssignmentUUID() const { return _staticAssignmentUUID; }
+    void setAssignmentUUID(const QUuid& assignmentUUID) { _assignmentUUID = assignmentUUID; }
+    const QUuid& getAssignmentUUID() const { return _assignmentUUID; }
     
     void setSendingSockAddr(const HifiSockAddr& sendingSockAddr) { _sendingSockAddr = sendingSockAddr; }
     const HifiSockAddr& getSendingSockAddr() { return _sendingSockAddr; }
@@ -41,7 +41,7 @@ private:
     QJsonObject mergeJSONStatsFromNewObject(const QJsonObject& newObject, QJsonObject destinationObject);
     
     QHash<QUuid, QUuid> _sessionSecretHash;
-    QUuid _staticAssignmentUUID;
+    QUuid _assignmentUUID;
     QJsonObject _statsJSONObject;
     HifiSockAddr _sendingSockAddr;
     bool _isAuthenticated;
