@@ -2704,7 +2704,7 @@ void Application::displayOverlay() {
 
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::HeadMouse)) {
-        _myAvatar->renderHeadMouse();
+        _myAvatar->renderHeadMouse(_glWidget->width(), _glWidget->height());
     }
 
     //  Display stats and log text onscreen
