@@ -127,14 +127,13 @@ private:
 
     // old motion stuff
     glm::vec3 _lastCollisionPosition;
-    bool _speedBrakes;
+    bool _wasPushing;
+    bool _isPushing;
     glm::vec3 _thrust;  // final acceleration from outside sources for the current frame
-    bool _isThrustOn;
-    float _thrustMultiplier;
 
     // new motion stuff
     glm::vec3 _motorVelocity;   // intended velocity of avatar motion
-    float _motorTimescale;      // timescale for avatar motion to kick in
+    float _motorTimescale;      // timescale for avatar motor to achieve its desired velocity
     float _maxMotorSpeed;
     quint32 _motionBehaviors;
 
@@ -148,7 +147,9 @@ private:
 	// private methods
     void updateOrientation(float deltaTime);
     void rampMotor(float deltaTime);
+    float computeMotorTimescale();
     void applyMotor(float deltaTime);
+    void applyThrust(float deltaTime);
     void updateHandMovementAndTouching(float deltaTime);
     void updateCollisionWithAvatars(float deltaTime);
     void updateCollisionWithEnvironment(float deltaTime, float radius);

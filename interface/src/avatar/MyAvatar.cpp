@@ -47,8 +47,11 @@ const float COLLISION_RADIUS_SCALE = 0.125f;
 
 const float DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5.0f * 1000.0f;
 
+// TODO: normalize avatar speed for standard avatar size, then scale all motion logic 
+// to properly follow avatar size.
 float DEFAULT_MOTOR_TIMESCALE = 0.25f;
-float DEFAULT_MAX_MOTOR_SPEED = 300.0f; // TODO: normalize this based on avatar height
+float MAX_AVATAR_SPEED = 300.0f;
+float MAX_MOTOR_SPEED = MAX_AVATAR_SPEED; 
 
 MyAvatar::MyAvatar() :
 	Avatar(),
@@ -59,13 +62,12 @@ MyAvatar::MyAvatar() :
     _gravity(0.0f, -1.0f, 0.0f),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
     _lastCollisionPosition(0, 0, 0),
-    _speedBrakes(false),
+    _wasPushing(false),
+    _isPushing(false),
     _thrust(0.0f),
-    _isThrustOn(false),
-    _thrustMultiplier(1.0f),
     _motorVelocity(0.0f),
     _motorTimescale(DEFAULT_MOTOR_TIMESCALE),
-    _maxMotorSpeed(DEFAULT_MAX_MOTOR_SPEED),
+    _maxMotorSpeed(MAX_MOTOR_SPEED),
     _motionBehaviors(AVATAR_MOTION_DEFAULTS),
     _lastBodyPenetration(0.0f),
     _lookAtTargetAvatar(),
@@ -162,8 +164,7 @@ void MyAvatar::simulate(float deltaTime) {
     rampMotor(deltaTime);
     applyMotor(deltaTime);
 
-    // zero thrust so we don't pile up thrust from other sources
-    _thrust = glm::vec3(0.0f);
+    applyThrust(deltaTime);
 
     updateChatCircle(deltaTime);
 
@@ -669,12 +670,45 @@ void MyAvatar::rampMotor(float deltaTime) {
             }
             _motorVelocity = motorLength * direction;
         }
-        _speedBrakes = false;
+        _isPushing = true;
     } else {
-        // apply brakes
-        _speedBrakes = true;
+        // motor opposes motion (wants to be at rest)
         _motorVelocity = - localVelocity;
     }
+}
+
+float MyAvatar::computeMotorTimescale() {
+    // The timescale of the motor is the approximate time it takes for the motor to 
+    // accomplish its intended velocity.  A short timescale makes the motor strong, 
+    // and a long timescale makes it weak.  The value of timescale to use depends 
+    // on what the motor is doing:
+    //
+    // (1) braking --> short timescale (aggressive motor assertion)
+    // (2) pushing --> medium timescale (mild motor assertion)
+    // (3) inactive --> long timescale (gentle friction for low speeds)
+    //
+    // TODO: recover extra braking behavior when flying close to nearest avatar
+
+    float MIN_MOTOR_TIMESCALE = 0.125f;
+    float MAX_MOTOR_TIMESCALE = 0.5f;
+    float MIN_BRAKE_SPEED = 0.4f;
+
+    float timescale = MAX_MOTOR_TIMESCALE;
+    float speed = glm::length(_velocity);
+    bool areThrusting = (glm::length2(_thrust) > EPSILON);
+
+    if (_wasPushing && !(_isPushing || areThrusting) && speed > MIN_BRAKE_SPEED) {
+        // we don't change _wasPushing for this case --> 
+        // keeps the brakes on until we go below MIN_BRAKE_SPEED
+        timescale = MIN_MOTOR_TIMESCALE;
+    } else {
+        if (_isPushing) {
+            timescale = _motorTimescale;
+        } 
+        _wasPushing = _isPushing || areThrusting;
+    }
+    _isPushing = false;
+    return timescale;
 }
 
 void MyAvatar::applyMotor(float deltaTime) {
@@ -706,16 +740,26 @@ void MyAvatar::applyMotor(float deltaTime) {
         }
     }
 
-    float MIN_MOTOR_TIMESCALE = 0.25f;
-    float timescale = _speedBrakes ? MIN_MOTOR_TIMESCALE : _motorTimescale;
+    float timescale = computeMotorTimescale();
 
     // simple critical damping
     float tau = glm::clamp(deltaTime / timescale, 0.0f, 1.0f);
     _velocity += tau * deltaVelocity;
 }
 
-/* Keep this code for the short term as reference in case we need to further tune 
- *the new velocity model to achieve similar movement response.
+void MyAvatar::applyThrust(float deltaTime) {
+    _velocity += _thrust * deltaTime;
+    float speed = glm::length(_velocity);
+    // cap the speed that thrust can achieve
+    if (speed > MAX_AVATAR_SPEED) {
+        _velocity *= MAX_AVATAR_SPEED / speed;
+    }
+    // zero thrust so we don't pile up thrust from other sources
+    _thrust = glm::vec3(0.0f);
+}
+
+/* Keep this code for the short term as reference in case we need to further tune the new model 
+ * to achieve legacy movement response.
 void MyAvatar::updateThrust(float deltaTime) {
     //
     //  Gather thrust information from keyboard and sensors to apply to avatar motion
