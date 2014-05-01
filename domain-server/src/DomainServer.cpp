@@ -816,7 +816,8 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
     nodeJson[JSON_KEY_WAKE_TIMESTAMP] = QString::number(node->getWakeTimestamp());
     
     // if the node has pool information, add it
-    SharedAssignmentPointer matchingAssignment = _allAssignments.value(node->getUUID());
+    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+    SharedAssignmentPointer matchingAssignment = _allAssignments.value(nodeData->getAssignmentUUID());
     if (matchingAssignment) {
         nodeJson[JSON_KEY_POOL] = matchingAssignment->getPool();
     }
@@ -852,9 +853,11 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             
             // enumerate the NodeList to find the assigned nodes
             foreach (const SharedNodePointer& node, LimitedNodeList::getInstance()->getNodeHash()) {
-                if (_allAssignments.value(node->getUUID())) {
+                DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+                
+                if (!nodeData->getAssignmentUUID().isNull()) {
                     // add the node using the UUID as the key
-                    QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
+                    QString uuidString = uuidStringWithoutCurlyBraces(nodeData->getAssignmentUUID());
                     assignedNodesJSON[uuidString] = jsonObjectForNode(node);
                 }
             }
