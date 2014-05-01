@@ -263,9 +263,6 @@ bool ModelUploader::zip() {
     }
     _dataMultiPart->append(textPart);
     
-    qDebug() << writeMapping(mapping);
-    return false;
-    
     _readyToSend = true;
     return true;
 }
