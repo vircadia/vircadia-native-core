@@ -125,6 +125,8 @@ public:
     void restoreSizeAndPosition();
     ScriptEngine* loadScript(const QString& fileNameString, bool loadScriptFromEditor = false);
     void loadScripts();
+    QString getPreviousScriptLocation();
+    void setPreviousScriptLocation(const QString& previousScriptLocation);
     void storeSizeAndPosition();
     void clearScriptsBeforeRunning();
     void saveScripts();
