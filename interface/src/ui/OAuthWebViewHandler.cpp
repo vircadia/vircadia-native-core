@@ -40,8 +40,11 @@ void OAuthWebViewHandler::addHighFidelityRootCAToSSLConfig() {
 
 void OAuthWebViewHandler::displayWebviewForAuthorizationURL(const QUrl& authorizationURL) {
     if (!_activeWebView) {
-        _activeWebView = new QWebView();
+        _activeWebView = new QWebView;
+        
+        // keep the window on top and delete it when it closes
         _activeWebView->setWindowFlags(Qt::WindowStaysOnTopHint);
+        _activeWebView->setAttribute(Qt::WA_DeleteOnClose);
         
         qDebug() << "Displaying QWebView for OAuth authorization at" << authorizationURL.toString();
         _activeWebView->load(authorizationURL);

@@ -404,7 +404,6 @@ void NodeList::sendDomainServerCheckIn() {
             dtlsSession->writeDatagram(domainServerPacket);
         }
         
-        
         const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
         static unsigned int numDomainCheckins = 0;
         
@@ -413,14 +412,16 @@ void NodeList::sendDomainServerCheckIn() {
             sendSTUNRequest();
         }
         
-        if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
-            // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
-            // so emit our signal that indicates that
-            emit limitOfSilentDomainCheckInsReached();
+        if (_domainHandler.isConnected()) {
+            if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+                // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
+                // so emit our signal that indicates that
+                emit limitOfSilentDomainCheckInsReached();
+            }
+            
+            // increment the count of un-replied check-ins
+            _numNoReplyDomainCheckIns++;
         }
-        
-        // increment the count of un-replied check-ins
-        _numNoReplyDomainCheckIns++;
     }
 }
 

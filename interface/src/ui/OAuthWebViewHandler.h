@@ -29,7 +29,7 @@ public slots:
 private slots:
     void handleSSLErrors(QNetworkReply* networkReply, const QList<QSslError>& errorList);
 private:
-    QWebView* _activeWebView;
+    QPointer<QWebView> _activeWebView;
 };
 
 #endif // hifi_OAuthWebviewHandler_h
