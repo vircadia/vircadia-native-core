@@ -15,6 +15,7 @@
 
 #include "Application.h"
 #include "Menu.h"
+#include "ui/OAuthWebviewHandler.h"
 
 #include "DatagramProcessor.h"
 
@@ -118,7 +119,8 @@ void DatagramProcessor::processDatagrams() {
                     QUrl authorizationURL;
                     readStream >> authorizationURL;
                     
-                    qDebug() << "the authorization URL sent from the server is" << authorizationURL;
+                    QMetaObject::invokeMethod(&OAuthWebViewHandler::getInstance(), "displayWebviewForAuthorizationURL",
+                                              Q_ARG(const QUrl&, authorizationURL));
                     
                     break;
                 }

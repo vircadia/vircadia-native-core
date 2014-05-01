@@ -79,9 +79,10 @@
 #include "scripting/SettingsScriptingInterface.h"
 
 #include "ui/InfoView.h"
+#include "ui/OAuthWebviewHandler.h"
 #include "ui/Snapshot.h"
-#include "ui/TextRenderer.h"
 #include "ui/Stats.h"
+#include "ui/TextRenderer.h"
 
 using namespace std;
 
@@ -354,6 +355,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     }
 	//When -url in command line, teleport to location
 	urlGoTo(argc, constArgv);
+    
+    // call the OAuthWebviewHandler static getter so that its instance lives in our thread
+    OAuthWebViewHandler::getInstance();
 }
 
 Application::~Application() {

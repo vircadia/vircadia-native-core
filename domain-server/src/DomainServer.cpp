@@ -454,7 +454,6 @@ QUrl DomainServer::oauthAuthorizationURL() {
     authorizationQuery.addQueryItem(OAUTH_RESPONSE_TYPE_QUERY_KEY, OAUTH_REPSONSE_TYPE_QUERY_VALUE);
     
     QString redirectURL = QString("https://%1:%2/oauth").arg(_hostname).arg(_httpsManager->serverPort());
-    qDebug() << "redirect URL is" << redirectURL;
     
     const QString OAUTH_REDIRECT_URI_QUERY_KEY = "redirect_uri";
     authorizationQuery.addQueryItem(OAUTH_REDIRECT_URI_QUERY_KEY, redirectURL);
