@@ -369,6 +369,14 @@ Extents Model::getMeshExtents() const {
     return scaledExtents;
 }
 
+Extents Model::getUnscaledMeshExtents() const {
+    if (!isActive()) {
+        return Extents();
+    }
+    const Extents& extents = _geometry->getFBXGeometry().meshExtents;
+    return extents;
+}
+
 bool Model::getJointState(int index, glm::quat& rotation) const {
     if (index == -1 || index >= _jointStates.size()) {
         return false;

@@ -33,9 +33,10 @@ var originalProperties = {
 
     //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
     //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/birarda/birarda_head.fbx",
-    modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/pug.fbx",
+    //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/pug.fbx",
     //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/newInvader16x16-large-purple.svo",
     //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/mino_full.fst",
+    modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/minotaur/mino_full.fbx",
     
     //modelRotation: rotation
 };

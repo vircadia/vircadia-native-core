@@ -84,6 +84,9 @@ public:
     /// Returns the extents of the model's mesh
     Extents getMeshExtents() const;
 
+    /// Returns the unscaled extents of the model's mesh
+    Extents getUnscaledMeshExtents() const;
+
     /// Returns a reference to the shared geometry.
     const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }
     
