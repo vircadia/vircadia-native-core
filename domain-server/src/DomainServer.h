@@ -81,7 +81,8 @@ private:
     QUrl oauthRedirectURL();
     QUrl oauthAuthorizationURL();
     
-    void handleAuthCodeRequestFinished(QNetworkReply* networkReply);
+    void handleAuthCodeRequestFinished();
+    void handleProfileRequestFinished();
     
     QJsonObject jsonForSocket(const HifiSockAddr& socket);
     QJsonObject jsonObjectForNode(const SharedNodePointer& node);
@@ -102,10 +103,13 @@ private:
     
     QHash<HifiSockAddr, DTLSServerSession*> _dtlsSessions;
     
+    QNetworkAccessManager* _networkAccessManager;
+    
     QUrl _oauthProviderURL;
     QString _oauthClientID;
     QString _oauthClientSecret;
     QString _hostname;
+    QMap<QNetworkReply*, QUuid> _networkReplyUUIDMap;
 };
 
 #endif // hifi_DomainServer_h

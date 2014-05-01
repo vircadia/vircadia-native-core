@@ -45,7 +45,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _dtlsSessions(),
     _oauthProviderURL(),
     _oauthClientID(),
-    _hostname()
+    _hostname(),
+    _networkReplyUUIDMap()
 {
     gnutls_global_init();
     
@@ -68,6 +69,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
             // connect our socket to read datagrams received on the DTLS socket
             connect(&nodeList->getDTLSSocket(), &QUdpSocket::readyRead, this, &DomainServer::readAvailableDTLSDatagrams);
         }
+        
+        _networkAccessManager = new QNetworkAccessManager(this);
     }
 }
 
@@ -1040,12 +1043,16 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
     const QString URI_OAUTH = "/oauth";
     if (url.path() == URI_OAUTH) {
         
-        const QString CODE_QUERY_KEY = "code";
-        QString authorizationCode = QUrlQuery(url).queryItemValue(CODE_QUERY_KEY);
+        QUrlQuery codeURLQuery(url);
         
-        if (!authorizationCode.isEmpty()) {
+        const QString CODE_QUERY_KEY = "code";
+        QString authorizationCode = codeURLQuery.queryItemValue(CODE_QUERY_KEY);
+        
+        const QString STATE_QUERY_KEY = "state";
+        QUuid stateUUID = QUuid(codeURLQuery.queryItemValue(STATE_QUERY_KEY));
+        
+        if (!authorizationCode.isEmpty() && !stateUUID.isNull()) {
             // fire off a request with this code and state to get an access token for the user
-            static QNetworkAccessManager* networkAccessManager = new QNetworkAccessManager(this);
             
             const QString OAUTH_TOKEN_REQUEST_PATH = "/oauth/token";
             QUrl tokenRequestUrl = _oauthProviderURL;
@@ -1055,15 +1062,16 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
             QString tokenPostBody = OAUTH_GRANT_TYPE_POST_STRING;
             tokenPostBody += QString("&code=%1&redirect_uri=%2&client_id=%3&client_secret=%4")
                 .arg(authorizationCode, oauthRedirectURL().toString(), _oauthClientID, _oauthClientSecret);
-            tokenPostBody += "&state=MOTHERFUKCINGSTATE";
             
             QNetworkRequest tokenRequest(tokenRequestUrl);
             tokenRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
             
-            networkAccessManager->post(QNetworkRequest(tokenRequestUrl), tokenPostBody.toLocal8Bit());
+            QNetworkReply* tokenReply = _networkAccessManager->post(tokenRequest, tokenPostBody.toLocal8Bit());
             
-            connect(networkAccessManager, &QNetworkAccessManager::finished,
-                    this, &DomainServer::handleAuthCodeRequestFinished);
+            // insert this to our pending token replies so we can associate the returned access token with the right UUID
+            _networkReplyUUIDMap.insert(tokenReply, stateUUID);
+            
+            connect(tokenReply, &QNetworkReply::finished, this, &DomainServer::handleAuthCodeRequestFinished);
         }
         
         // respond with a 200 code indicating that login is complete
@@ -1075,8 +1083,48 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
     }
 }
 
-void DomainServer::handleAuthCodeRequestFinished(QNetworkReply* networkReply) {
-    qDebug() << "response for auth code request" << networkReply->readAll();
+const QString OAUTH_JSON_ACCESS_TOKEN_KEY = "access_token";
+
+void DomainServer::handleAuthCodeRequestFinished() {
+    QNetworkReply* networkReply = reinterpret_cast<QNetworkReply*>(sender());
+    QUuid matchingSessionUUID = _networkReplyUUIDMap.take(networkReply);
+    
+    if (!matchingSessionUUID.isNull() && networkReply->error() == QNetworkReply::NoError) {
+        // pull the access token from the returned JSON and store it with the matching session UUID
+        QJsonDocument returnedJSON = QJsonDocument::fromJson(networkReply->readAll());
+        QString accessToken = returnedJSON.object()[OAUTH_JSON_ACCESS_TOKEN_KEY].toString();
+        
+        qDebug() << "Received access token for user with UUID" << uuidStringWithoutCurlyBraces(matchingSessionUUID);
+        
+        // fire off a request to get this user's identity so we can see if we will let them in
+        QUrl profileURL = _oauthProviderURL;
+        profileURL.setPath("/api/v1/users/profile");
+        profileURL.setQuery(QString("%1=%2").arg(OAUTH_JSON_ACCESS_TOKEN_KEY, accessToken));
+        
+        QNetworkReply* profileReply = _networkAccessManager->get(QNetworkRequest(profileURL));
+        
+        connect(profileReply, &QNetworkReply::finished, this, &DomainServer::handleProfileRequestFinished);
+        
+        _networkReplyUUIDMap.insert(profileReply, matchingSessionUUID);
+    }
+}
+
+void DomainServer::handleProfileRequestFinished() {
+    QNetworkReply* networkReply = reinterpret_cast<QNetworkReply*>(sender());
+    QUuid matchingSessionUUID = _networkReplyUUIDMap.take(networkReply);
+    
+    if (!matchingSessionUUID.isNull() && networkReply->error() == QNetworkReply::NoError) {
+        QJsonDocument profileJSON = QJsonDocument::fromJson(networkReply->readAll());
+        
+        if (profileJSON.object()["status"].toString() == "success") {
+            // pull the user roles from the response
+            QJsonArray rolesArray = profileJSON.object()["data"].toObject()["user"].toObject()["roles"].toArray();
+            
+            foreach(const QJsonValue& roleValue, rolesArray) {
+                
+            }
+        }
+    }
 }
 
 void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment) {
