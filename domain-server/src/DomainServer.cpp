@@ -32,9 +32,6 @@
 
 #include "DomainServer.h"
 
-const quint16 DOMAIN_SERVER_HTTP_PORT = 40100;
-const quint16 DOMAIN_SERVER_HTTPS_PORT = 40101;
-
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _httpManager(DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
@@ -47,7 +44,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _priorityCache(NULL),
     _dtlsSessions(),
     _oauthProviderURL(),
-    _oauthClientID()
+    _oauthClientID(),
+    _hostname()
 {
     gnutls_global_init();
     
@@ -58,17 +56,13 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     
     _argumentVariantMap = HifiConfigVariantMap::mergeCLParametersWithJSONConfig(arguments());
     
-    if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth() && optionallySetupDTLS()) {
+    if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth()) {
         // we either read a certificate and private key or were not passed one, good to load assignments
         // and set up the node list
         qDebug() << "Setting up LimitedNodeList and assignments.";
         setupNodeListAndAssignments();
         
         if (_isUsingDTLS) {
-            // we're using DTLS and our NodeList socket is good to go, so make the required DTLS changes
-            // DTLS requires that IP_DONTFRAG be set
-            // This is not accessible on some platforms (OS X) so we need to make sure DTLS still works without it
-            
             LimitedNodeList* nodeList = LimitedNodeList::getInstance();
             
             // connect our socket to read datagrams received on the DTLS socket
@@ -159,11 +153,11 @@ bool DomainServer::optionallySetupOAuth() {
     _oauthProviderURL = QUrl(_argumentVariantMap.value(OAUTH_PROVIDER_URL_OPTION).toString());
     _oauthClientID = _argumentVariantMap.value(OAUTH_CLIENT_ID_OPTION).toString();
     _oauthClientSecret = QProcessEnvironment::systemEnvironment().value(OAUTH_CLIENT_SECRET_ENV);
-    QString oauthRedirectHostname = _argumentVariantMap.value(REDIRECT_HOSTNAME_OPTION).toString();
+    _hostname = _argumentVariantMap.value(REDIRECT_HOSTNAME_OPTION).toString();
     
-    if (!_oauthProviderURL.isEmpty() || !oauthRedirectHostname.isEmpty() || !_oauthClientID.isEmpty()) {
+    if (!_oauthProviderURL.isEmpty() || !_hostname.isEmpty() || !_oauthClientID.isEmpty()) {
         if (_oauthProviderURL.isEmpty()
-            || oauthRedirectHostname.isEmpty()
+            || _hostname.isEmpty()
             || _oauthClientID.isEmpty()
             || _oauthClientSecret.isEmpty()) {
             qDebug() << "Missing OAuth provider URL, hostname, client ID, or client secret. domain-server will now quit.";
@@ -400,37 +394,74 @@ void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packe
     bool isStaticAssignment = _staticAssignmentHash.contains(assignmentUUID);
     SharedAssignmentPointer matchingAssignment = SharedAssignmentPointer();
     
-    if (isStaticAssignment) {
-        // this is a static assignment, make sure the UUID sent is for an assignment we're actually trying to give out
-         matchingAssignment = matchingQueuedAssignmentForCheckIn(assignmentUUID, nodeType);
+    if (assignmentUUID.isNull() && !_oauthProviderURL.isEmpty()) {
+        // we have an OAuth provider, ask this interface client to auth against it
         
-        if (matchingAssignment) {
-            // remove the matching assignment from the assignment queue so we don't take the next check in
-            // (if it exists)
-            removeMatchingAssignmentFromQueue(matchingAssignment);
-        }
+        QByteArray oauthRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeDomainOAuthRequest);
+        QDataStream oauthRequestStream(&oauthRequestByteArray, QIODevice::Append);
+        oauthRequestStream << oauthAuthorizationURL();
+        
+        // send this oauth request datagram back to the client
+        LimitedNodeList::getInstance()->writeUnverifiedDatagram(oauthRequestByteArray, senderSockAddr);
     } else {
-        assignmentUUID = QUuid();
+        if (isStaticAssignment) {
+            // this is a static assignment, make sure the UUID sent is for an assignment we're actually trying to give out
+            matchingAssignment = matchingQueuedAssignmentForCheckIn(assignmentUUID, nodeType);
+            
+            if (matchingAssignment) {
+                // remove the matching assignment from the assignment queue so we don't take the next check in
+                // (if it exists)
+                removeMatchingAssignmentFromQueue(matchingAssignment);
+            }
+        }
+        
+        // make sure this was either not a static assignment or it was and we had a matching one in teh queue
+        if ((!isStaticAssignment && !STATICALLY_ASSIGNED_NODES.contains(nodeType)) || (isStaticAssignment && matchingAssignment)) {
+            // create a new session UUID for this node
+            QUuid nodeUUID = QUuid::createUuid();
+            
+            SharedNodePointer newNode = LimitedNodeList::getInstance()->addOrUpdateNode(nodeUUID, nodeType,
+                                                                                        publicSockAddr, localSockAddr);
+            
+            // when the newNode is created the linked data is also created
+            // if this was a static assignment set the UUID, set the sendingSockAddr
+            DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
+            
+            nodeData->setStaticAssignmentUUID(assignmentUUID);
+            nodeData->setSendingSockAddr(senderSockAddr);
+            
+            // reply back to the user with a PacketTypeDomainList
+            sendDomainListToNode(newNode, senderSockAddr, nodeInterestListFromPacket(packet, numPreInterestBytes));
+        }
     }
+}
+
+QUrl DomainServer::oauthAuthorizationURL() {
+    // for now these are all interface clients that have a GUI
+    // so just send them back the full authorization URL
+    QUrl authorizationURL = _oauthProviderURL;
     
-    // make sure this was either not a static assignment or it was and we had a matching one in teh queue
-    if ((!isStaticAssignment && !STATICALLY_ASSIGNED_NODES.contains(nodeType)) || (isStaticAssignment && matchingAssignment)) {
-        // create a new session UUID for this node
-        QUuid nodeUUID = QUuid::createUuid();
-        
-        SharedNodePointer newNode = LimitedNodeList::getInstance()->addOrUpdateNode(nodeUUID, nodeType,
-                                                                                    publicSockAddr, localSockAddr);
-        
-        // when the newNode is created the linked data is also created
-        // if this was a static assignment set the UUID, set the sendingSockAddr
-        DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
-        
-        nodeData->setStaticAssignmentUUID(assignmentUUID);
-        nodeData->setSendingSockAddr(senderSockAddr);
-        
-        // reply back to the user with a PacketTypeDomainList
-        sendDomainListToNode(newNode, senderSockAddr, nodeInterestListFromPacket(packet, numPreInterestBytes));
-    }
+    const QString OAUTH_AUTHORIZATION_PATH = "/oauth/authorize";
+    authorizationURL.setPath(OAUTH_AUTHORIZATION_PATH);
+    
+    QUrlQuery authorizationQuery;
+    
+    const QString OAUTH_CLIENT_ID_QUERY_KEY = "client_id";
+    authorizationQuery.addQueryItem(OAUTH_CLIENT_ID_QUERY_KEY, _oauthClientID);
+    
+    const QString OAUTH_RESPONSE_TYPE_QUERY_KEY = "response_type";
+    const QString OAUTH_REPSONSE_TYPE_QUERY_VALUE = "code";
+    authorizationQuery.addQueryItem(OAUTH_RESPONSE_TYPE_QUERY_KEY, OAUTH_REPSONSE_TYPE_QUERY_VALUE);
+    
+    QString redirectURL = QString("https://%1:%2/oauth").arg(_hostname).arg(_httpsManager->serverPort());
+    qDebug() << "redirect URL is" << redirectURL;
+    
+    const QString OAUTH_REDIRECT_URI_QUERY_KEY = "redirect_uri";
+    authorizationQuery.addQueryItem(OAUTH_REDIRECT_URI_QUERY_KEY, redirectURL);
+    
+    authorizationURL.setQuery(authorizationQuery);
+    
+    return authorizationURL;
 }
 
 int DomainServer::parseNodeDataFromByteArray(NodeType_t& nodeType, HifiSockAddr& publicSockAddr,
@@ -496,52 +527,54 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
         DTLSServerSession* dtlsSession = _isUsingDTLS ? _dtlsSessions[senderSockAddr] : NULL;
         int dataMTU = dtlsSession ? (int)gnutls_dtls_get_data_mtu(*dtlsSession->getGnuTLSSession()) : MAX_PACKET_SIZE;
         
-        // if the node has any interest types, send back those nodes as well
-        foreach (const SharedNodePointer& otherNode, nodeList->getNodeHash()) {
-            
-            // reset our nodeByteArray and nodeDataStream
-            QByteArray nodeByteArray;
-            QDataStream nodeDataStream(&nodeByteArray, QIODevice::Append);
-            
-            if (otherNode->getUUID() != node->getUUID() && nodeInterestList.contains(otherNode->getType())) {
+        if (nodeData->isAuthenticated()) {
+            // if this authenticated node has any interest types, send back those nodes as well
+            foreach (const SharedNodePointer& otherNode, nodeList->getNodeHash()) {
                 
-                // don't send avatar nodes to other avatars, that will come from avatar mixer
-                nodeDataStream << *otherNode.data();
+                // reset our nodeByteArray and nodeDataStream
+                QByteArray nodeByteArray;
+                QDataStream nodeDataStream(&nodeByteArray, QIODevice::Append);
                 
-                // pack the secret that these two nodes will use to communicate with each other
-                QUuid secretUUID = nodeData->getSessionSecretHash().value(otherNode->getUUID());
-                if (secretUUID.isNull()) {
-                    // generate a new secret UUID these two nodes can use
-                    secretUUID = QUuid::createUuid();
+                if (otherNode->getUUID() != node->getUUID() && nodeInterestList.contains(otherNode->getType())) {
                     
-                    // set that on the current Node's sessionSecretHash
-                    nodeData->getSessionSecretHash().insert(otherNode->getUUID(), secretUUID);
+                    // don't send avatar nodes to other avatars, that will come from avatar mixer
+                    nodeDataStream << *otherNode.data();
                     
-                    // set it on the other Node's sessionSecretHash
-                    reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())
+                    // pack the secret that these two nodes will use to communicate with each other
+                    QUuid secretUUID = nodeData->getSessionSecretHash().value(otherNode->getUUID());
+                    if (secretUUID.isNull()) {
+                        // generate a new secret UUID these two nodes can use
+                        secretUUID = QUuid::createUuid();
+                        
+                        // set that on the current Node's sessionSecretHash
+                        nodeData->getSessionSecretHash().insert(otherNode->getUUID(), secretUUID);
+                        
+                        // set it on the other Node's sessionSecretHash
+                        reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())
                         ->getSessionSecretHash().insert(node->getUUID(), secretUUID);
-                    
-                }
-                
-                nodeDataStream << secretUUID;
-                
-                if (broadcastPacket.size() +  nodeByteArray.size() > dataMTU) {
-                    // we need to break here and start a new packet
-                    // so send the current one
-                    
-                    if (!dtlsSession) {
-                        nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
-                    } else {
-                        dtlsSession->writeDatagram(broadcastPacket);
+                        
                     }
                     
-                    // reset the broadcastPacket structure
-                    broadcastPacket.resize(numBroadcastPacketLeadBytes);
-                    broadcastDataStream.device()->seek(numBroadcastPacketLeadBytes);
+                    nodeDataStream << secretUUID;
+                    
+                    if (broadcastPacket.size() +  nodeByteArray.size() > dataMTU) {
+                        // we need to break here and start a new packet
+                        // so send the current one
+                        
+                        if (!dtlsSession) {
+                            nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
+                        } else {
+                            dtlsSession->writeDatagram(broadcastPacket);
+                        }
+                        
+                        // reset the broadcastPacket structure
+                        broadcastPacket.resize(numBroadcastPacketLeadBytes);
+                        broadcastDataStream.device()->seek(numBroadcastPacketLeadBytes);
+                    }
+                    
+                    // append the nodeByteArray to the current state of broadcastDataStream
+                    broadcastPacket.append(nodeByteArray);
                 }
-                
-                // append the nodeByteArray to the current state of broadcastDataStream
-                broadcastPacket.append(nodeByteArray);
             }
         }
         

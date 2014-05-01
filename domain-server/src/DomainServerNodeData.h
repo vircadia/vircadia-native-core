@@ -33,6 +33,9 @@ public:
     void setSendingSockAddr(const HifiSockAddr& sendingSockAddr) { _sendingSockAddr = sendingSockAddr; }
     const HifiSockAddr& getSendingSockAddr() { return _sendingSockAddr; }
     
+    void setIsAuthenticated(bool isAuthenticated) { _isAuthenticated = isAuthenticated; }
+    bool isAuthenticated() const { return _isAuthenticated; }
+    
     QHash<QUuid, QUuid>& getSessionSecretHash() { return _sessionSecretHash; }
 private:
     QJsonObject mergeJSONStatsFromNewObject(const QJsonObject& newObject, QJsonObject destinationObject);
@@ -41,6 +44,7 @@ private:
     QUuid _staticAssignmentUUID;
     QJsonObject _statsJSONObject;
     HifiSockAddr _sendingSockAddr;
+    bool _isAuthenticated;
 };
 
 #endif // hifi_DomainServerNodeData_h

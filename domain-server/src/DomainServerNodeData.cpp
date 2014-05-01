@@ -21,7 +21,8 @@ DomainServerNodeData::DomainServerNodeData() :
     _sessionSecretHash(),
     _staticAssignmentUUID(),
     _statsJSONObject(),
-    _sendingSockAddr()
+    _sendingSockAddr(),
+    _isAuthenticated(true)
 {
     
 }

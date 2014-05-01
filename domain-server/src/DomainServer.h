@@ -78,6 +78,8 @@ private:
     void refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment);
     void addStaticAssignmentsToQueue();
     
+    QUrl oauthAuthorizationURL();
+    
     QJsonObject jsonForSocket(const HifiSockAddr& socket);
     QJsonObject jsonObjectForNode(const SharedNodePointer& node);
     
@@ -100,6 +102,7 @@ private:
     QUrl _oauthProviderURL;
     QString _oauthClientID;
     QString _oauthClientSecret;
+    QString _hostname;
 };
 
 #endif // hifi_DomainServer_h

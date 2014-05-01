@@ -56,7 +56,6 @@ void DatagramProcessor::processDatagrams() {
                     Particle::handleAddParticleResponse(incomingPacket);
                     application->getParticles()->getTree()->handleAddParticleResponse(incomingPacket);
                     break;
-                    
                 case PacketTypeParticleData:
                 case PacketTypeParticleErase:
                 case PacketTypeVoxelData:
@@ -110,6 +109,17 @@ void DatagramProcessor::processDatagrams() {
                     }
                     
                     application->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(incomingPacket.size());
+                    break;
+                }
+                case PacketTypeDomainOAuthRequest: {
+                    QDataStream readStream(incomingPacket);
+                    readStream.skipRawData(numBytesForPacketHeader(incomingPacket));
+                    
+                    QUrl authorizationURL;
+                    readStream >> authorizationURL;
+                    
+                    qDebug() << "the authorization URL sent from the server is" << authorizationURL;
+                    
                     break;
                 }
                 default:

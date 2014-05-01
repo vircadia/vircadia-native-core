@@ -38,7 +38,7 @@ enum PacketType {
     PacketTypeDomainListRequest,
     PacketTypeRequestAssignment,
     PacketTypeCreateAssignment,
-    PacketTypeDataServerPut, // reusable
+    PacketTypeDomainOAuthRequest,
     PacketTypeDataServerGet, // reusable
     PacketTypeDataServerSend, // reusable
     PacketTypeDataServerConfirm,
@@ -67,7 +67,7 @@ typedef char PacketVersion;
 
 const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketTypeDomainServerRequireDTLS << PacketTypeDomainConnectRequest
-    << PacketTypeDomainList << PacketTypeDomainListRequest
+    << PacketTypeDomainList << PacketTypeDomainListRequest << PacketTypeDomainOAuthRequest
     << PacketTypeCreateAssignment << PacketTypeRequestAssignment << PacketTypeStunResponse
     << PacketTypeNodeJsonStats << PacketTypeVoxelQuery << PacketTypeParticleQuery;
 
