@@ -38,8 +38,10 @@ void OAuthWebViewHandler::addHighFidelityRootCAToSSLConfig() {
     QSslConfiguration::setDefaultConfiguration(sslConfig);
 }
 
+const int WEB_VIEW_REDISPLAY_ELAPSED_MSECS = 5 * 1000;
+
 void OAuthWebViewHandler::displayWebviewForAuthorizationURL(const QUrl& authorizationURL) {
-    if (!_activeWebView) {
+    if (!_activeWebView && _webViewRedisplayTimer.elapsed() >= WEB_VIEW_REDISPLAY_ELAPSED_MSECS) {
         _activeWebView = new QWebView;
         
         // keep the window on top and delete it when it closes
@@ -52,9 +54,24 @@ void OAuthWebViewHandler::displayWebviewForAuthorizationURL(const QUrl& authoriz
         
         connect(_activeWebView->page()->networkAccessManager(), &QNetworkAccessManager::sslErrors,
                 this, &OAuthWebViewHandler::handleSSLErrors);
+        connect(_activeWebView, &QWebView::loadFinished, this, &OAuthWebViewHandler::handleLoadFinished);
+        
+        // connect to the destroyed signal so after the web view closes we can start a timer
+        connect(_activeWebView, &QWebView::destroyed, this, &OAuthWebViewHandler::handleWebViewDestroyed);
     }
 }
 
 void OAuthWebViewHandler::handleSSLErrors(QNetworkReply* networkReply, const QList<QSslError>& errorList) {
     qDebug() << "SSL Errors:" << errorList;
+}
+
+void OAuthWebViewHandler::handleLoadFinished(bool success) {
+    if (success && _activeWebView->url().host() == NodeList::getInstance()->getDomainHandler().getHostname()) {
+        qDebug() << "OAuth authorization code passed successfully to domain-server.";
+        _activeWebView->close();
+    }
+}
+
+void OAuthWebViewHandler::handleWebViewDestroyed(QObject* destroyedObject) {
+    _webViewRedisplayTimer.restart();
 }

@@ -28,8 +28,11 @@ public slots:
     
 private slots:
     void handleSSLErrors(QNetworkReply* networkReply, const QList<QSslError>& errorList);
+    void handleLoadFinished(bool success);
+    void handleWebViewDestroyed(QObject* destroyedObject);
 private:
     QPointer<QWebView> _activeWebView;
+    QElapsedTimer _webViewRedisplayTimer;
 };
 
 #endif // hifi_OAuthWebviewHandler_h
