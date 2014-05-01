@@ -65,9 +65,9 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
 
     const QList<ModelItem>& modelItems = modelTreeElement->getModels();
 
-    uint16_t numberOfParticles = modelItems.size();
+    uint16_t numberOfModels = modelItems.size();
 
-    for (uint16_t i = 0; i < numberOfParticles; i++) {
+    for (uint16_t i = 0; i < numberOfModels; i++) {
         const ModelItem& modelItem = modelItems[i];
         // render modelItem aspoints
         glm::vec3 position = modelItem.getPosition() * (float)TREE_SCALE;
