@@ -3094,6 +3094,9 @@ void Application::domainChanged(const QString& domainHostname) {
 
     // reset the voxels renderer
     _voxels.killLocalVoxels();
+    
+    // reset the auth URL for OAuth web view handler
+    OAuthWebViewHandler::getInstance().clearLastAuthorizationURL();
 }
 
 void Application::connectedToDomain(const QString& hostname) {

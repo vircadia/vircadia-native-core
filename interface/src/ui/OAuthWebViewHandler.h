@@ -23,6 +23,8 @@ public:
     static OAuthWebViewHandler& getInstance();
     static void addHighFidelityRootCAToSSLConfig();
     
+    void clearLastAuthorizationURL() { _lastAuthorizationURL = QUrl(); }
+    
 public slots:
     void displayWebviewForAuthorizationURL(const QUrl& authorizationURL);
     
@@ -33,6 +35,7 @@ private slots:
 private:
     QPointer<QWebView> _activeWebView;
     QElapsedTimer _webViewRedisplayTimer;
+    QUrl _lastAuthorizationURL;
 };
 
 #endif // hifi_OAuthWebviewHandler_h

@@ -21,7 +21,9 @@ OAuthWebViewHandler& OAuthWebViewHandler::getInstance() {
 }
 
 OAuthWebViewHandler::OAuthWebViewHandler() :
-    _activeWebView(NULL)
+    _activeWebView(NULL),
+    _webViewRedisplayTimer(),
+    _lastAuthorizationURL()
 {
     
 }
@@ -41,7 +43,19 @@ void OAuthWebViewHandler::addHighFidelityRootCAToSSLConfig() {
 const int WEB_VIEW_REDISPLAY_ELAPSED_MSECS = 5 * 1000;
 
 void OAuthWebViewHandler::displayWebviewForAuthorizationURL(const QUrl& authorizationURL) {
-    if (!_activeWebView && _webViewRedisplayTimer.elapsed() >= WEB_VIEW_REDISPLAY_ELAPSED_MSECS) {
+    if (!_activeWebView) {
+
+        if (!_lastAuthorizationURL.isEmpty()) {
+            if (_lastAuthorizationURL.host() == authorizationURL.host()
+                && _webViewRedisplayTimer.elapsed() < WEB_VIEW_REDISPLAY_ELAPSED_MSECS) {
+                // this would be re-displaying an OAuth dialog for the same auth URL inside of the redisplay ms
+                // so return instead
+                return;
+            }
+        }
+        
+        _lastAuthorizationURL = authorizationURL;
+        
         _activeWebView = new QWebView;
         
         // keep the window on top and delete it when it closes
