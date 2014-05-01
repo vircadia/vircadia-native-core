@@ -25,6 +25,8 @@ public:
 public slots:
     void displayWebviewForAuthorizationURL(const QUrl& authorizationURL);
     
+private slots:
+    void handleSSLErrors(QNetworkReply* networkReply, const QList<QSslError>& errorList);
 private:
     QWebView* _activeWebView;
 };

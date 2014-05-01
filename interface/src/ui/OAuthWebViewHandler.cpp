@@ -32,5 +32,12 @@ void OAuthWebViewHandler::displayWebviewForAuthorizationURL(const QUrl& authoriz
         _activeWebView->setWindowFlags(Qt::WindowStaysOnTopHint);
         _activeWebView->load(authorizationURL);
         _activeWebView->show();
+        
+        connect(_activeWebView->page()->networkAccessManager(), &QNetworkAccessManager::sslErrors,
+                this, &OAuthWebViewHandler::handleSSLErrors);
     }
+}
+
+void OAuthWebViewHandler::handleSSLErrors(QNetworkReply* networkReply, const QList<QSslError>& errorList) {
+    qDebug() << "SSL Errors:" << errorList;
 }
