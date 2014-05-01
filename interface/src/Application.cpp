@@ -76,6 +76,8 @@
 #include "scripting/ClipboardScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
+#include "scripting/WindowScriptingInterface.h"
+#include "scripting/LocationScriptingInterface.h"
 
 #include "ui/InfoView.h"
 #include "ui/Snapshot.h"
@@ -2709,7 +2711,7 @@ void Application::displayOverlay() {
 
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::HeadMouse)) {
-        _myAvatar->renderHeadMouse();
+        _myAvatar->renderHeadMouse(_glWidget->width(), _glWidget->height());
     }
 
     //  Display stats and log text onscreen
@@ -3404,6 +3406,15 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     connect(scriptEngine, SIGNAL(finished(const QString&)), clipboardScriptable, SLOT(deleteLater()));
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
+
+    QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", WindowScriptingInterface::getInstance());
+    scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
+                                      LocationScriptingInterface::locationSetter, windowValue);
+
+    // register `location` on the global object.
+    scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
+                                      LocationScriptingInterface::locationSetter);
+
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
