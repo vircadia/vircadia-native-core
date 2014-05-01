@@ -10,13 +10,18 @@
 //
 
 #include <QDebug>
+#include <QDialogButtonBox>
 #include <QFile>
 #include <QFileDialog>
+#include <QFormLayout>
 #include <QGridLayout>
 #include <QHttpMultiPart>
+#include <QLineEdit>
 #include <QMessageBox>
 #include <QProgressBar>
+#include <QPushButton>
 #include <QStandardPaths>
+#include <QTemporaryFile>
 #include <QTextStream>
 #include <QVariant>
 
@@ -32,6 +37,7 @@ static const QString NAME_FIELD = "name";
 static const QString FILENAME_FIELD = "filename";
 static const QString TEXDIR_FIELD = "texdir";
 static const QString LOD_FIELD = "lod";
+static const QString JOINT_INDEX_FIELD = "jointIndex";
 
 static const QString S3_URL = "http://highfidelity-public.s3-us-west-1.amazonaws.com";
 static const QString DATA_SERVER_URL = "https://data-web.highfidelity.io";
@@ -76,7 +82,8 @@ bool ModelUploader::zip() {
     }
     
         
-    QString filename = QFileDialog::getOpenFileName(NULL, "Select your .fst file ...", lastLocation, "*.fst");
+    QString filename = QFileDialog::getOpenFileName(NULL, "Select your model file ...",
+        lastLocation, "Model files (*.fst *.fbx)");
     if (filename == "") {
         // If the user canceled we return.
         Application::getInstance()->unlockSettings();
@@ -85,89 +92,112 @@ bool ModelUploader::zip() {
     settings->setValue(SETTING_NAME, filename);
     Application::getInstance()->unlockSettings();
     
-    bool _nameIsPresent = false;
-    QString texDir;
+    // First we check the FST file (if any)
+    QFile* fst;
+    QVariantHash mapping;
+    QString basePath;
     QString fbxFile;
+    if (filename.toLower().endsWith(".fst")) {
+        fst = new QFile(filename, this);
+        if (!fst->open(QFile::ReadOnly | QFile::Text)) {
+            QMessageBox::warning(NULL,
+                                 QString("ModelUploader::zip()"),
+                                 QString("Could not open FST file."),
+                                 QMessageBox::Ok);
+            qDebug() << "[Warning] " << QString("Could not open FST file.");
+            return false;
+        }
+        qDebug() << "Reading FST file : " << QFileInfo(*fst).filePath();
+        mapping = readMapping(fst->readAll());
+        basePath = QFileInfo(*fst).path();
+        fbxFile = basePath + "/" + mapping.value(FILENAME_FIELD).toString();
+        QFileInfo fbxInfo(fbxFile);
+        if (!fbxInfo.exists() || !fbxInfo.isFile()) { // Check existence
+            QMessageBox::warning(NULL,
+                                 QString("ModelUploader::zip()"),
+                                 QString("FBX file %1 could not be found.").arg(fbxInfo.fileName()),
+                                 QMessageBox::Ok);
+            qDebug() << "[Warning] " << QString("FBX file %1 could not be found.").arg(fbxInfo.fileName());
+            return false;
+        }
+    } else {
+        fst = new QTemporaryFile(this);
+        fbxFile = filename;
+        basePath = QFileInfo(filename).path();
+    }
     
+    // open the fbx file
+    QFile fbx(fbxFile);
+    if (!fbx.open(QIODevice::ReadOnly)) {
+        return false;
+    }
+    QByteArray fbxContents = fbx.readAll();
+    FBXGeometry geometry = readFBX(fbxContents, QVariantHash());
     
-    // First we check the FST file
-    QFile fst(filename);
-    if (!fst.open(QFile::ReadOnly | QFile::Text)) {
+    ModelPropertiesDialog properties(_isHead, mapping);
+    if (properties.exec() == QDialog::Rejected) {
+        return false;
+    }
+    mapping = properties.getMapping();
+    
+    QByteArray nameField = mapping.value(NAME_FIELD).toByteArray();
+    if (!nameField.isEmpty()) {
+        QHttpPart textPart;
+        textPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"model_name\"");
+        textPart.setBody(nameField);
+        _dataMultiPart->append(textPart);
+        _url = S3_URL + ((_isHead)? "/models/heads/" : "/models/skeletons/") + nameField + ".fst";
+    } else {
         QMessageBox::warning(NULL,
                              QString("ModelUploader::zip()"),
-                             QString("Could not open FST file."),
+                             QString("Model name is missing in the .fst file."),
                              QMessageBox::Ok);
-        qDebug() << "[Warning] " << QString("Could not open FST file.");
-        return false;
-    }
-    qDebug() << "Reading FST file : " << QFileInfo(fst).filePath();
-    
-    // Compress and copy the fst
-    if (!addPart(QFileInfo(fst).filePath(), QString("fst"))) {
+        qDebug() << "[Warning] " << QString("Model name is missing in the .fst file.");
         return false;
     }
     
-    // Let's read through the FST file
-    QTextStream stream(&fst);
-    QList<QString> line;
-    while (!stream.atEnd()) {
-        line = stream.readLine().split(QRegExp("[ =]"), QString::SkipEmptyParts);
-        if (line.isEmpty()) {
-            continue;
-        }
-        
-        // according to what is read, we modify the command
-        if (line[0] == NAME_FIELD) {
-            QHttpPart textPart;
-            textPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data;"
-                               " name=\"model_name\"");
-            textPart.setBody(line[1].toUtf8());
-            _dataMultiPart->append(textPart);
-            _url = S3_URL + ((_isHead)? "/models/heads/" : "/models/skeletons/") + line[1].toUtf8() + ".fst";
-            _nameIsPresent = true;
-        } else if (line[0] == FILENAME_FIELD) {
-            fbxFile = QFileInfo(fst).path() + "/" + line[1];
-            QFileInfo fbxInfo(fbxFile);
-            if (!fbxInfo.exists() || !fbxInfo.isFile()) { // Check existence
-                QMessageBox::warning(NULL,
-                                     QString("ModelUploader::zip()"),
-                                     QString("FBX file %1 could not be found.").arg(fbxInfo.fileName()),
-                                     QMessageBox::Ok);
-                qDebug() << "[Warning] " << QString("FBX file %1 could not be found.").arg(fbxInfo.fileName());
-                return false;
-            }
-            // Compress and copy
-            if (!addPart(fbxInfo.filePath(), "fbx")) {
-                return false;
-            }
-        } else if (line[0] == TEXDIR_FIELD) { // Check existence
-            texDir = QFileInfo(fst).path() + "/" + line[1];
-            QFileInfo texInfo(texDir);
-            if (!texInfo.exists() || !texInfo.isDir()) {
-                QMessageBox::warning(NULL,
-                                     QString("ModelUploader::zip()"),
-                                     QString("Texture directory could not be found."),
-                                     QMessageBox::Ok);
-                qDebug() << "[Warning] " << QString("Texture directory could not be found.");
-                return false;
-            }
-        } else if (line[0] == LOD_FIELD) {
-            QFileInfo lod(QFileInfo(fst).path() + "/" + line[1]);
-            if (!lod.exists() || !lod.isFile()) { // Check existence
-                QMessageBox::warning(NULL,
-                                     QString("ModelUploader::zip()"),
-                                     QString("LOD file %1 could not be found.").arg(lod.fileName()),
-                                     QMessageBox::Ok);
-                qDebug() << "[Warning] " << QString("FBX file %1 could not be found.").arg(lod.fileName());
-            }
-            // Compress and copy
-            if (!addPart(lod.filePath(), QString("lod%1").arg(++_lodCount))) {
-                return false;
-            }
+    QByteArray texdirField = mapping.value(TEXDIR_FIELD).toByteArray();
+    QString texDir;
+    if (!texdirField.isEmpty()) {
+        texDir = basePath + "/" + texdirField;
+        QFileInfo texInfo(texDir);
+        if (!texInfo.exists() || !texInfo.isDir()) {
+            QMessageBox::warning(NULL,
+                                 QString("ModelUploader::zip()"),
+                                 QString("Texture directory could not be found."),
+                                 QMessageBox::Ok);
+            qDebug() << "[Warning] " << QString("Texture directory could not be found.");
+            return false;
         }
     }
     
-    if (!addTextures(texDir, fbxFile)) {
+    QVariantHash lodField = mapping.value(LOD_FIELD).toHash();
+    for (QVariantHash::const_iterator it = lodField.constBegin(); it != lodField.constEnd(); it++) {
+        QFileInfo lod(basePath + "/" + it.key());
+        if (!lod.exists() || !lod.isFile()) { // Check existence
+            QMessageBox::warning(NULL,
+                                 QString("ModelUploader::zip()"),
+                                 QString("LOD file %1 could not be found.").arg(lod.fileName()),
+                                 QMessageBox::Ok);
+            qDebug() << "[Warning] " << QString("FBX file %1 could not be found.").arg(lod.fileName());
+        }
+        // Compress and copy
+        if (!addPart(lod.filePath(), QString("lod%1").arg(++_lodCount))) {
+            return false;
+        }
+    }
+    
+    // Write out, compress and copy the fst
+    if (!addPart(*fst, writeMapping(mapping), QString("fst"))) {
+        return false;
+    }
+    
+    // Compress and copy the fbx
+    if (!addPart(fbx, fbxContents, "fbx")) {
+        return false;
+    }
+                
+    if (!addTextures(texDir, geometry)) {
         return false;
     }
     
@@ -180,15 +210,6 @@ bool ModelUploader::zip() {
         textPart.setBody("skeletons");
     }
     _dataMultiPart->append(textPart);
-    
-    if (!_nameIsPresent) {
-        QMessageBox::warning(NULL,
-                             QString("ModelUploader::zip()"),
-                             QString("Model name is missing in the .fst file."),
-                             QMessageBox::Ok);
-        qDebug() << "[Warning] " << QString("Model name is missing in the .fst file.");
-        return false;
-    }
     
     _readyToSend = true;
     return true;
@@ -350,25 +371,16 @@ void ModelUploader::processCheck() {
     delete reply;
 }
 
-bool ModelUploader::addTextures(const QString& texdir, const QString fbxFile) {
-    QFile fbx(fbxFile);
-    if (!fbx.open(QIODevice::ReadOnly)) {
-        return false;
-    }
-    
-    QByteArray buffer = fbx.readAll();
-    QVariantHash variantHash = readMapping(buffer);
-    FBXGeometry geometry = readFBX(buffer, variantHash);
-    
+bool ModelUploader::addTextures(const QString& texdir, const FBXGeometry& geometry) {
     foreach (FBXMesh mesh, geometry.meshes) {
         foreach (FBXMeshPart part, mesh.parts) {
-            if (!part.diffuseTexture.filename.isEmpty()) {
+            if (!part.diffuseTexture.filename.isEmpty() && part.diffuseTexture.content.isEmpty()) {
                 if (!addPart(texdir + "/" + part.diffuseTexture.filename,
                              QString("texture%1").arg(++_texturesCount))) {
                     return false;
                 }
             }
-            if (!part.normalTexture.filename.isEmpty()) {
+            if (!part.normalTexture.filename.isEmpty() && part.normalTexture.content.isEmpty()) {
                 if (!addPart(texdir + "/" + part.normalTexture.filename,
                              QString("texture%1").arg(++_texturesCount))) {
                     return false;
@@ -390,7 +402,11 @@ bool ModelUploader::addPart(const QString &path, const QString& name) {
         qDebug() << "[Warning] " << QString("Could not open %1").arg(path);
         return false;
     }
-    QByteArray buffer = qCompress(file.readAll());
+    return addPart(file, file.readAll(), name);
+}
+
+bool ModelUploader::addPart(const QFile& file, const QByteArray& contents, const QString& name) {
+    QByteArray buffer = qCompress(contents);
     
     // Qt's qCompress() default compression level (-1) is the standard zLib compression.
     // Here remove Qt's custom header that prevent the data server from uncompressing the files with zLib.
@@ -420,8 +436,45 @@ bool ModelUploader::addPart(const QString &path, const QString& name) {
     return true;
 }
 
+ModelPropertiesDialog::ModelPropertiesDialog(bool isHead, const QVariantHash& originalMapping) :
+    _originalMapping(originalMapping) {
+    
+    setWindowTitle("Set Model Properties");
+    
+    QFormLayout* form = new QFormLayout();
+    setLayout(form);
+    
+    form->addRow("Name:", _name = new QLineEdit());
+    form->addRow("Texture Directory:", _textureDirectory = new QPushButton());
+    connect(_textureDirectory, SIGNAL(clicked(bool)), SLOT(chooseTextureDirectory()));
+    
+    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok |
+        QDialogButtonBox::Cancel | QDialogButtonBox::Reset);
+    connect(buttons, SIGNAL(accepted()), SLOT(accept()));
+    connect(buttons, SIGNAL(rejected()), SLOT(reject()));
+    connect(buttons->button(QDialogButtonBox::Reset), SIGNAL(clicked(bool)), SLOT(reset()));
+    
+    form->addRow(buttons);
+    
+    // reset to initialize the fields
+    reset();
+}
 
+QVariantHash ModelPropertiesDialog::getMapping() const {
+    QVariantHash mapping = _originalMapping;
+    mapping.insert(NAME_FIELD, _name->text());
+    mapping.insert(TEXDIR_FIELD, _textureDirectory->text());
+    return mapping;
+}
 
+void ModelPropertiesDialog::reset() {
+    _name->setText(_originalMapping.value(NAME_FIELD).toString());
+    _textureDirectory->setText(_originalMapping.value(TEXDIR_FIELD).toString());
+}
 
-
-
+void ModelPropertiesDialog::chooseTextureDirectory() {
+    QString directory = QFileDialog::getExistingDirectory(this, "Choose Texture Directory", _textureDirectory->text());
+    if (!directory.isEmpty()) {
+        _textureDirectory->setText(directory);
+    }
+}

@@ -1803,6 +1803,33 @@ QVariantHash readMapping(const QByteArray& data) {
     return parseMapping(&buffer);
 }
 
+QByteArray writeMapping(const QVariantHash& mapping) {
+    QBuffer buffer;
+    buffer.open(QIODevice::WriteOnly);
+    for (QVariantHash::const_iterator first = mapping.constBegin(); first != mapping.constEnd(); first++) {
+        QByteArray key = first.key().toUtf8() + " = ";
+        QVariantHash hashValue = first.value().toHash();
+        if (hashValue.isEmpty()) {
+            buffer.write(key + first.value().toByteArray() + "\n");
+            continue;
+        }
+        for (QVariantHash::const_iterator second = hashValue.constBegin(); second != hashValue.constEnd(); second++) {
+            QByteArray extendedKey = key + second.key().toUtf8();
+            QVariantList listValue = second.value().toList();
+            if (listValue.isEmpty()) {
+                buffer.write(extendedKey + " = " + second.value().toByteArray() + "\n");
+                continue;
+            }
+            buffer.write(extendedKey);
+            for (QVariantList::const_iterator third = listValue.constBegin(); third != listValue.constEnd(); third++) {
+                buffer.write(" = " + third->toByteArray());
+            }
+            buffer.write("\n");
+        }
+    }
+    return buffer.data();
+}
+
 FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping) {
     QBuffer buffer(const_cast<QByteArray*>(&model));
     buffer.open(QIODevice::ReadOnly);
