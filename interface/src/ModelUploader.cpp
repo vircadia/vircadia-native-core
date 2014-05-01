@@ -9,12 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QComboBox>
 #include <QDebug>
 #include <QDialogButtonBox>
+#include <QDoubleSpinBox>
 #include <QFile>
 #include <QFileDialog>
 #include <QFormLayout>
 #include <QGridLayout>
+#include <QHBoxLayout>
 #include <QHttpMultiPart>
 #include <QLineEdit>
 #include <QMessageBox>
@@ -23,11 +26,10 @@
 #include <QStandardPaths>
 #include <QTemporaryFile>
 #include <QTextStream>
+#include <QVBoxLayout>
 #include <QVariant>
 
 #include <AccountManager.h>
-
-#include <FBXReader.h>
 
 #include "Application.h"
 #include "ModelUploader.h"
@@ -38,6 +40,9 @@ static const QString FILENAME_FIELD = "filename";
 static const QString TEXDIR_FIELD = "texdir";
 static const QString LOD_FIELD = "lod";
 static const QString JOINT_INDEX_FIELD = "jointIndex";
+static const QString SCALE_FIELD = "scale";
+static const QString JOINT_FIELD = "joint";
+static const QString FREE_JOINT_FIELD = "freeJoint";
 
 static const QString S3_URL = "http://highfidelity-public.s3-us-west-1.amazonaws.com";
 static const QString DATA_SERVER_URL = "https://data-web.highfidelity.io";
@@ -124,6 +129,7 @@ bool ModelUploader::zip() {
         fst = new QTemporaryFile(this);
         fbxFile = filename;
         basePath = QFileInfo(filename).path();
+        mapping.insert(FILENAME_FIELD, QFileInfo(filename).fileName());
     }
     
     // open the fbx file
@@ -134,7 +140,16 @@ bool ModelUploader::zip() {
     QByteArray fbxContents = fbx.readAll();
     FBXGeometry geometry = readFBX(fbxContents, QVariantHash());
     
-    ModelPropertiesDialog properties(_isHead, mapping);
+    // make sure we have some basic mappings
+    if (!mapping.contains(NAME_FIELD)) {
+        mapping.insert(NAME_FIELD, QFileInfo(filename).baseName());
+    }
+    if (!mapping.contains(TEXDIR_FIELD)) {
+        mapping.insert(TEXDIR_FIELD, ".");
+    }
+    
+    // open the dialog to configure the rest
+    ModelPropertiesDialog properties(_isHead, mapping, basePath, geometry);
     if (properties.exec() == QDialog::Rejected) {
         return false;
     }
@@ -210,6 +225,9 @@ bool ModelUploader::zip() {
         textPart.setBody("skeletons");
     }
     _dataMultiPart->append(textPart);
+    
+    qDebug() << writeMapping(mapping);
+    return false;
     
     _readyToSend = true;
     return true;
@@ -436,8 +454,12 @@ bool ModelUploader::addPart(const QFile& file, const QByteArray& contents, const
     return true;
 }
 
-ModelPropertiesDialog::ModelPropertiesDialog(bool isHead, const QVariantHash& originalMapping) :
-    _originalMapping(originalMapping) {
+ModelPropertiesDialog::ModelPropertiesDialog(bool isHead, const QVariantHash& originalMapping,
+        const QString& basePath, const FBXGeometry& geometry) :
+    _isHead(isHead),
+    _originalMapping(originalMapping),
+    _basePath(basePath),
+    _geometry(geometry) {
     
     setWindowTitle("Set Model Properties");
     
@@ -445,8 +467,31 @@ ModelPropertiesDialog::ModelPropertiesDialog(bool isHead, const QVariantHash& or
     setLayout(form);
     
     form->addRow("Name:", _name = new QLineEdit());
+    
     form->addRow("Texture Directory:", _textureDirectory = new QPushButton());
     connect(_textureDirectory, SIGNAL(clicked(bool)), SLOT(chooseTextureDirectory()));
+    
+    form->addRow("Scale:", _scale = new QDoubleSpinBox());
+    _scale->setMaximum(FLT_MAX);
+    _scale->setSingleStep(0.01);
+    
+    if (isHead) {
+        form->addRow("Left Eye Joint:", _leftEyeJoint = createJointBox());
+        form->addRow("Right Eye Joint:", _rightEyeJoint = createJointBox());
+    }
+    form->addRow("Neck Joint:", _neckJoint = createJointBox());
+    if (!isHead) {
+        form->addRow("Root Joint:", _rootJoint = createJointBox());
+        form->addRow("Lean Joint:", _leanJoint = createJointBox());
+        form->addRow("Head Joint:", _headJoint = createJointBox());
+        form->addRow("Left Hand Joint:", _leftHandJoint = createJointBox());
+        form->addRow("Right Hand Joint:", _rightHandJoint = createJointBox());
+        
+        form->addRow("Free Joints:", _freeJoints = new QVBoxLayout());
+        QPushButton* newFreeJoint = new QPushButton("New Free Joint");
+        _freeJoints->addWidget(newFreeJoint);
+        connect(newFreeJoint, SIGNAL(clicked(bool)), SLOT(createNewFreeJoint()));
+    }
     
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok |
         QDialogButtonBox::Cancel | QDialogButtonBox::Reset);
@@ -464,17 +509,97 @@ QVariantHash ModelPropertiesDialog::getMapping() const {
     QVariantHash mapping = _originalMapping;
     mapping.insert(NAME_FIELD, _name->text());
     mapping.insert(TEXDIR_FIELD, _textureDirectory->text());
+    mapping.insert(SCALE_FIELD, QString::number(_scale->value()));
+    
+    // update the joint indices
+    QVariantHash jointIndices;
+    for (int i = 0; i < _geometry.joints.size(); i++) {
+        jointIndices.insert(_geometry.joints.at(i).name, QString::number(i));
+    }
+    mapping.insert(JOINT_INDEX_FIELD, jointIndices);
+    
+    QVariantHash joints = mapping.value(JOINT_FIELD).toHash();
+    if (_isHead) {
+        joints.insert("jointEyeLeft", _leftEyeJoint->currentText());
+        joints.insert("jointEyeRight", _rightEyeJoint->currentText());
+    }
+    joints.insert("jointNeck", _neckJoint->currentText());
+    if (!_isHead) {
+        joints.insert("jointRoot", _rootJoint->currentText());
+        joints.insert("jointLean", _leanJoint->currentText());
+        joints.insert("jointHead", _headJoint->currentText());
+        joints.insert("jointLeftHand", _leftHandJoint->currentText());
+        joints.insert("jointRightHand", _rightHandJoint->currentText());
+        
+        mapping.remove(FREE_JOINT_FIELD);
+        for (int i = 0; i < _freeJoints->count() - 1; i++) {
+            QComboBox* box = static_cast<QComboBox*>(_freeJoints->itemAt(i)->widget()->layout()->itemAt(0)->widget());
+            mapping.insertMulti(FREE_JOINT_FIELD, box->currentText());
+        }
+    }
+    mapping.insert(JOINT_FIELD, joints);
+    
     return mapping;
 }
 
 void ModelPropertiesDialog::reset() {
     _name->setText(_originalMapping.value(NAME_FIELD).toString());
     _textureDirectory->setText(_originalMapping.value(TEXDIR_FIELD).toString());
+    _scale->setValue(_originalMapping.value(SCALE_FIELD, 1.0).toDouble());
+    
+    QVariantHash jointHash = _originalMapping.value(JOINT_FIELD).toHash();
+    if (_isHead) {
+        _leftEyeJoint->setCurrentText(jointHash.value("jointEyeLeft").toString());
+        _rightEyeJoint->setCurrentText(jointHash.value("jointEyeRight").toString());
+    }
+    _neckJoint->setCurrentText(jointHash.value("jointNeck").toString());
+    if (!_isHead) {
+        _rootJoint->setCurrentText(jointHash.value("jointRoot").toString());
+        _leanJoint->setCurrentText(jointHash.value("jointLean").toString());
+        _headJoint->setCurrentText(jointHash.value("jointHead").toString());
+        _leftHandJoint->setCurrentText(jointHash.value("jointLeftHand").toString());
+        _rightHandJoint->setCurrentText(jointHash.value("jointRightHand").toString());
+        
+        while (_freeJoints->count() > 1) {
+            delete _freeJoints->itemAt(0)->widget();
+        }
+        foreach (const QVariant& joint, _originalMapping.values(FREE_JOINT_FIELD)) {
+            createNewFreeJoint(joint.toString());
+        }
+    }
 }
 
 void ModelPropertiesDialog::chooseTextureDirectory() {
-    QString directory = QFileDialog::getExistingDirectory(this, "Choose Texture Directory", _textureDirectory->text());
-    if (!directory.isEmpty()) {
-        _textureDirectory->setText(directory);
+    QString directory = QFileDialog::getExistingDirectory(this, "Choose Texture Directory",
+        _basePath + "/" + _textureDirectory->text());
+    if (directory.isEmpty()) {
+        return;
     }
+    if (!directory.startsWith(_basePath)) {
+        QMessageBox::warning(NULL, "Invalid texture directory", "Texture directory must be child of base path.");
+        return;
+    }
+    _textureDirectory->setText(directory.length() == _basePath.length() ? "." : directory.mid(_basePath.length() + 1));
+}
+
+void ModelPropertiesDialog::createNewFreeJoint(const QString& joint) {
+    QWidget* freeJoint = new QWidget();
+    QHBoxLayout* freeJointLayout = new QHBoxLayout();
+    freeJointLayout->setContentsMargins(QMargins());
+    freeJoint->setLayout(freeJointLayout);
+    QComboBox* jointBox = createJointBox();
+    jointBox->setCurrentText(joint);
+    freeJointLayout->addWidget(jointBox, 1);
+    QPushButton* deleteJoint = new QPushButton("Delete");
+    freeJointLayout->addWidget(deleteJoint);
+    freeJoint->connect(deleteJoint, SIGNAL(clicked(bool)), SLOT(deleteLater()));
+    _freeJoints->insertWidget(_freeJoints->count() - 1, freeJoint);
+}
+
+QComboBox* ModelPropertiesDialog::createJointBox() const {
+    QComboBox* box = new QComboBox();
+    foreach (const FBXJoint& joint, _geometry.joints) {
+        box->addItem(joint.name);
+    }
+    return box;
 }

@@ -15,13 +15,16 @@
 #include <QDialog>
 #include <QTimer>
 
+#include <FBXReader.h>
+
+class QComboBox;
+class QDoubleSpinBox;
 class QFileInfo;
 class QHttpMultiPart;
 class QLineEdit;
 class QProgressBar;
 class QPushButton;
-
-class FBXGeometry;
+class QVBoxLayout;
 
 class ModelUploader : public QObject {
     Q_OBJECT
@@ -70,18 +73,35 @@ class ModelPropertiesDialog : public QDialog {
     Q_OBJECT
 
 public:
-    ModelPropertiesDialog(bool isHead, const QVariantHash& originalMapping);
+    ModelPropertiesDialog(bool isHead, const QVariantHash& originalMapping,
+        const QString& basePath, const FBXGeometry& geometry);
 
     QVariantHash getMapping() const;
 
 private slots:
     void reset();
     void chooseTextureDirectory();
+    void createNewFreeJoint(const QString& joint = QString());
 
 private:
+    QComboBox* createJointBox() const;
+
+    bool _isHead;
     QVariantHash _originalMapping;
+    QString _basePath;
+    FBXGeometry _geometry;
     QLineEdit* _name;
     QPushButton* _textureDirectory;
+    QDoubleSpinBox* _scale;
+    QComboBox* _leftEyeJoint;
+    QComboBox* _rightEyeJoint;
+    QComboBox* _neckJoint;
+    QComboBox* _rootJoint;
+    QComboBox* _leanJoint;
+    QComboBox* _headJoint;
+    QComboBox* _leftHandJoint;
+    QComboBox* _rightHandJoint;
+    QVBoxLayout* _freeJoints;
 };
 
 #endif // hifi_ModelUploader_h
