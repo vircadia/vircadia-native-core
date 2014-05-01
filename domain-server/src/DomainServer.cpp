@@ -435,6 +435,13 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     }
 }
 
+QUrl DomainServer::oauthRedirectURL() {
+    return QString("https://%1:%2/oauth").arg(_hostname).arg(_httpsManager->serverPort());
+}
+
+const QString OAUTH_CLIENT_ID_QUERY_KEY = "client_id";
+const QString OAUTH_REDIRECT_URI_QUERY_KEY = "redirect_uri";
+
 QUrl DomainServer::oauthAuthorizationURL() {
     // for now these are all interface clients that have a GUI
     // so just send them back the full authorization URL
@@ -445,7 +452,6 @@ QUrl DomainServer::oauthAuthorizationURL() {
     
     QUrlQuery authorizationQuery;
     
-    const QString OAUTH_CLIENT_ID_QUERY_KEY = "client_id";
     authorizationQuery.addQueryItem(OAUTH_CLIENT_ID_QUERY_KEY, _oauthClientID);
     
     const QString OAUTH_RESPONSE_TYPE_QUERY_KEY = "response_type";
@@ -456,10 +462,7 @@ QUrl DomainServer::oauthAuthorizationURL() {
     // create a new UUID that will be the state parameter for oauth authorization AND the new session UUID for that node
     authorizationQuery.addQueryItem(OAUTH_STATE_QUERY_KEY, uuidStringWithoutCurlyBraces(QUuid::createUuid()));
     
-    QString redirectURL = QString("https://%1:%2/oauth").arg(_hostname).arg(_httpsManager->serverPort());
-    
-    const QString OAUTH_REDIRECT_URI_QUERY_KEY = "redirect_uri";
-    authorizationQuery.addQueryItem(OAUTH_REDIRECT_URI_QUERY_KEY, redirectURL);
+    authorizationQuery.addQueryItem(OAUTH_REDIRECT_URI_QUERY_KEY, oauthRedirectURL().toString());
     
     authorizationURL.setQuery(authorizationQuery);
     
@@ -1036,13 +1039,31 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &url) {
     const QString URI_OAUTH = "/oauth";
     if (url.path() == URI_OAUTH) {
-        qDebug() << "Handling an OAuth authorization.";
         
         const QString CODE_QUERY_KEY = "code";
         QString authorizationCode = QUrlQuery(url).queryItemValue(CODE_QUERY_KEY);
         
         if (!authorizationCode.isEmpty()) {
+            // fire off a request with this code and state to get an access token for the user
+            static QNetworkAccessManager* networkAccessManager = new QNetworkAccessManager(this);
             
+            const QString OAUTH_TOKEN_REQUEST_PATH = "/oauth/token";
+            QUrl tokenRequestUrl = _oauthProviderURL;
+            tokenRequestUrl.setPath(OAUTH_TOKEN_REQUEST_PATH);
+            
+            const QString OAUTH_GRANT_TYPE_POST_STRING = "grant_type=authorization_code";
+            QString tokenPostBody = OAUTH_GRANT_TYPE_POST_STRING;
+            tokenPostBody += QString("&code=%1&redirect_uri=%2&client_id=%3&client_secret=%4")
+                .arg(authorizationCode, oauthRedirectURL().toString(), _oauthClientID, _oauthClientSecret);
+            tokenPostBody += "&state=MOTHERFUKCINGSTATE";
+            
+            QNetworkRequest tokenRequest(tokenRequestUrl);
+            tokenRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+            
+            networkAccessManager->post(QNetworkRequest(tokenRequestUrl), tokenPostBody.toLocal8Bit());
+            
+            connect(networkAccessManager, &QNetworkAccessManager::finished,
+                    this, &DomainServer::handleAuthCodeRequestFinished);
         }
         
         // respond with a 200 code indicating that login is complete
@@ -1052,6 +1073,10 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
     } else {
         return false;
     }
+}
+
+void DomainServer::handleAuthCodeRequestFinished(QNetworkReply* networkReply) {
+    qDebug() << "response for auth code request" << networkReply->readAll();
 }
 
 void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment) {

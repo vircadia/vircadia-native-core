@@ -78,7 +78,10 @@ private:
     void refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment);
     void addStaticAssignmentsToQueue();
     
+    QUrl oauthRedirectURL();
     QUrl oauthAuthorizationURL();
+    
+    void handleAuthCodeRequestFinished(QNetworkReply* networkReply);
     
     QJsonObject jsonForSocket(const HifiSockAddr& socket);
     QJsonObject jsonObjectForNode(const SharedNodePointer& node);
