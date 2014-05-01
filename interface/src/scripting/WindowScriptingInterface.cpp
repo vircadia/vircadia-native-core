@@ -29,10 +29,10 @@ QScriptValue WindowScriptingInterface::alert(const QString& message) {
 }
 
 QScriptValue WindowScriptingInterface::confirm(const QString& message) {
-    bool retVal;
+    QScriptValue retVal;
     QMetaObject::invokeMethod(this, "showConfirm", Qt::BlockingQueuedConnection,
-                              Q_RETURN_ARG(bool, retVal), Q_ARG(const QString&, message));
-    return QScriptValue(retVal);
+                              Q_RETURN_ARG(QScriptValue, retVal), Q_ARG(const QString&, message));
+    return retVal;
 }
 
 QScriptValue WindowScriptingInterface::prompt(const QString& message, const QString& defaultText) {
