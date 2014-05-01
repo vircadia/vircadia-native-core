@@ -15,6 +15,11 @@ var count = 0;
 var moveUntil = 2000;
 var stopAfter = moveUntil + 100;
 
+var pitch = 90.0;
+var yaw = 0.0;
+var roll = 180.0;
+var rotation = Quat.fromPitchYawRollDegrees(pitch, yaw, roll)
+
 var originalProperties = {
     position: { x: 10,
                 y: 0,
@@ -25,9 +30,17 @@ var originalProperties = {
     color: { red: 0,
              green: 255,
              blue: 0 },
+
+    //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
+    //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/birarda/birarda_head.fbx",
+    modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/pug.fbx",
+    //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/newInvader16x16-large-purple.svo",
+    //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/mino_full.fst",
+    
+    //modelRotation: rotation
 };
 
-var positionDelta = { x: 0.05, y: 0, z: 0 };
+var positionDelta = { x: 0, y: 0, z: 0 };
 
 
 var modelID = Models.addModel(originalProperties);

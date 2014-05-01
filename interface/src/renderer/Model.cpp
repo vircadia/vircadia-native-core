@@ -34,6 +34,9 @@ static int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
 Model::Model(QObject* parent) :
     QObject(parent),
     _scale(1.0f, 1.0f, 1.0f),
+    _scaleToFit(false),
+    _scaleToFitLargestDimension(0.0f),
+    _scaledToFit(false),
     _shapesAreDirty(true),
     _boundingRadius(0.f),
     _boundingShape(), 
@@ -354,6 +357,15 @@ Extents Model::getBindExtents() const {
     }
     const Extents& bindExtents = _geometry->getFBXGeometry().bindExtents;
     Extents scaledExtents = { bindExtents.minimum * _scale, bindExtents.maximum * _scale };
+    return scaledExtents;
+}
+
+Extents Model::getMeshExtents() const {
+    if (!isActive()) {
+        return Extents();
+    }
+    const Extents& extents = _geometry->getFBXGeometry().meshExtents;
+    Extents scaledExtents = { extents.minimum * _scale, extents.maximum * _scale };
     return scaledExtents;
 }
 
@@ -770,9 +782,34 @@ void Blender::run() {
         Q_ARG(const QVector<glm::vec3>&, vertices), Q_ARG(const QVector<glm::vec3>&, normals));
 }
 
+void Model::setScaleToFit(bool scaleToFit, float largestDimension) {
+    if (_scaleToFit != scaleToFit || _scaleToFitLargestDimension != largestDimension) {
+        _scaleToFit = scaleToFit;
+        _scaleToFitLargestDimension = largestDimension;
+        _scaledToFit = false; // force rescaling
+    }
+}
+
+void Model::checkScaleToFit() {
+    Extents modelMeshExtents = getMeshExtents();
+
+    // size is our "target size in world space"
+    // we need to set our model scale so that the extents of the mesh, fit in a cube that size...
+    glm::vec3 dimensions = modelMeshExtents.maximum - modelMeshExtents.minimum;
+    float maxDimension = glm::max(glm::max(dimensions.x, dimensions.y), dimensions.z);
+    float maxScale = _scaleToFitLargestDimension / maxDimension;
+    glm::vec3 scale(maxScale, maxScale, maxScale);
+    setScale(scale);
+    _scaledToFit = true;
+}
+
 void Model::simulate(float deltaTime, bool fullUpdate) {
-    fullUpdate = updateGeometry() || fullUpdate;
+    fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit);
     if (isActive() && fullUpdate) {
+        // check for scale to fit
+        if (_scaleToFit && !_scaledToFit) {
+            checkScaleToFit();
+        }
         simulateInternal(deltaTime);
     }
 }

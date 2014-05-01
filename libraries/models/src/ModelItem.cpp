@@ -86,7 +86,6 @@ ModelItem::ModelItem(const ModelItemID& modelItemID, const ModelItemProperties& 
     _modelURL = MODEL_DEFAULT_MODEL_URL;
     _modelTranslation = MODEL_DEFAULT_MODEL_TRANSLATION;
     _modelRotation = MODEL_DEFAULT_MODEL_ROTATION;
-    _modelScale = MODEL_DEFAULT_MODEL_SCALE;
     
     setProperties(properties);
 }
@@ -113,7 +112,6 @@ void ModelItem::init(glm::vec3 position, float radius, rgbColor color, uint32_t 
     _modelURL = MODEL_DEFAULT_MODEL_URL;
     _modelTranslation = MODEL_DEFAULT_MODEL_TRANSLATION;
     _modelRotation = MODEL_DEFAULT_MODEL_ROTATION;
-    _modelScale = MODEL_DEFAULT_MODEL_SCALE;
 }
 
 bool ModelItem::appendModelData(OctreePacketData* packetData) const {
@@ -148,11 +146,6 @@ bool ModelItem::appendModelData(OctreePacketData* packetData) const {
         if (success) {
             success = packetData->appendRawData((const unsigned char*)qPrintable(_modelURL), modelURLLength);
         }
-    }
-
-    // modelScale
-    if (success) {
-        success = packetData->appendValue(getModelScale());
     }
 
     // modelTranslation
@@ -231,11 +224,6 @@ int ModelItem::readModelDataFromBuffer(const unsigned char* data, int bytesLeftT
         _modelURL = modelURLString;
         dataAt += modelURLLength;
         bytesRead += modelURLLength;
-
-        // modelScale
-        memcpy(&_modelScale, dataAt, sizeof(_modelScale));
-        dataAt += sizeof(_modelScale);
-        bytesRead += sizeof(_modelScale);
 
         // modelTranslation
         memcpy(&_modelTranslation, dataAt, sizeof(_modelTranslation));
@@ -360,13 +348,6 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
         newModelItem._modelURL = tempString;
         dataAt += modelURLLength;
         processedBytes += modelURLLength;
-    }
-
-    // modelScale
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_MODEL_SCALE) == MODEL_PACKET_CONTAINS_MODEL_SCALE)) {
-        memcpy(&newModelItem._modelScale, dataAt, sizeof(newModelItem._modelScale));
-        dataAt += sizeof(newModelItem._modelScale);
-        processedBytes += sizeof(newModelItem._modelScale);
     }
 
     // modelTranslation
@@ -506,14 +487,6 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
         sizeOut += urlLength;
     }
 
-    // modelScale
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_MODEL_SCALE) == MODEL_PACKET_CONTAINS_MODEL_SCALE)) {
-        float modelScale = properties.getModelScale();
-        memcpy(copyAt, &modelScale, sizeof(modelScale));
-        copyAt += sizeof(modelScale);
-        sizeOut += sizeof(modelScale);
-    }
-
     // modelTranslation
     if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_MODEL_TRANSLATION) == MODEL_PACKET_CONTAINS_MODEL_TRANSLATION)) {
         glm::vec3 modelTranslation = properties.getModelTranslation(); // should this be relative to TREE_SCALE??
@@ -599,7 +572,6 @@ ModelItemProperties::ModelItemProperties() :
     _radius(MODEL_DEFAULT_RADIUS),
     _shouldDie(false),
     _modelURL(""),
-    _modelScale(MODEL_DEFAULT_MODEL_SCALE),
     _modelTranslation(MODEL_DEFAULT_MODEL_TRANSLATION),
     _modelRotation(MODEL_DEFAULT_MODEL_ROTATION),
 
@@ -612,7 +584,6 @@ ModelItemProperties::ModelItemProperties() :
     _radiusChanged(false),
     _shouldDieChanged(false),
     _modelURLChanged(false),
-    _modelScaleChanged(false),
     _modelTranslationChanged(false),
     _modelRotationChanged(false),
     _defaultSettings(true)
@@ -642,10 +613,6 @@ uint16_t ModelItemProperties::getChangedBits() const {
         changedBits += MODEL_PACKET_CONTAINS_MODEL_URL;
     }
 
-    if (_modelScaleChanged) {
-        changedBits += MODEL_PACKET_CONTAINS_MODEL_SCALE;
-    }
-
     if (_modelTranslationChanged) {
         changedBits += MODEL_PACKET_CONTAINS_MODEL_TRANSLATION;
     }
@@ -672,8 +639,6 @@ QScriptValue ModelItemProperties::copyToScriptValue(QScriptEngine* engine) const
     properties.setProperty("shouldDie", _shouldDie);
 
     properties.setProperty("modelURL", _modelURL);
-
-    properties.setProperty("modelScale", _modelScale);
 
     QScriptValue modelTranslation = vec3toScriptValue(engine, _modelTranslation);
     properties.setProperty("modelTranslation", modelTranslation);
@@ -758,16 +723,6 @@ void ModelItemProperties::copyFromScriptValue(const QScriptValue &object) {
         }
     }
 
-    QScriptValue modelScale = object.property("modelScale");
-    if (modelScale.isValid()) {
-        float newModelScale;
-        newModelScale = modelScale.toVariant().toFloat();
-        if (_defaultSettings || newModelScale != _modelScale) {
-            _modelScale = newModelScale;
-            _modelScaleChanged = true;
-        }
-    }
-
     QScriptValue modelTranslation = object.property("modelTranslation");
     if (modelTranslation.isValid()) {
         QScriptValue x = modelTranslation.property("x");
@@ -835,11 +790,6 @@ void ModelItemProperties::copyToModelItem(ModelItem& modelItem) const {
         somethingChanged = true;
     }
 
-    if (_modelScaleChanged) {
-        modelItem.setModelScale(_modelScale);
-        somethingChanged = true;
-    }
-    
     if (_modelTranslationChanged) {
         modelItem.setModelTranslation(_modelTranslation);
         somethingChanged = true;
@@ -868,7 +818,6 @@ void ModelItemProperties::copyFromModelItem(const ModelItem& modelItem) {
     _radius = modelItem.getRadius() * (float) TREE_SCALE;
     _shouldDie = modelItem.getShouldDie();
     _modelURL = modelItem.getModelURL();
-    _modelScale = modelItem.getModelScale();
     _modelTranslation = modelItem.getModelTranslation();
     _modelRotation = modelItem.getModelRotation();
 
@@ -881,7 +830,6 @@ void ModelItemProperties::copyFromModelItem(const ModelItem& modelItem) {
     
     _shouldDieChanged = false;
     _modelURLChanged = false;
-    _modelScaleChanged = false;
     _modelTranslationChanged = false;
     _modelRotationChanged = false;
     _defaultSettings = false;

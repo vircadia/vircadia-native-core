@@ -39,6 +39,7 @@ public:
     void setRotation(const glm::quat& rotation) { _rotation = rotation; }
     const glm::quat& getRotation() const { return _rotation; }
     
+    void setScaleToFit(bool scaleToFit, float largestDimension = 0.0f);
     void setScale(const glm::vec3& scale);
     const glm::vec3& getScale() const { return _scale; }
     
@@ -79,6 +80,9 @@ public:
     
     /// Returns the extents of the model in its bind pose.
     Extents getBindExtents() const;
+
+    /// Returns the extents of the model's mesh
+    Extents getMeshExtents() const;
 
     /// Returns a reference to the shared geometry.
     const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }
@@ -203,6 +207,10 @@ protected:
     glm::quat _rotation;
     glm::vec3 _scale;
     glm::vec3 _offset;
+
+    bool _scaleToFit; /// If you set scaleToFit, we will calculate scale based on MeshExtents
+    float _scaleToFitLargestDimension; /// this is the dimension that scale to fit will use
+    bool _scaledToFit; /// have we scaled to fit
     
     class JointState {
     public:
@@ -229,6 +237,8 @@ protected:
     
     // returns 'true' if needs fullUpdate after geometry change
     bool updateGeometry();
+    
+    void checkScaleToFit();
 
     void simulateInternal(float deltaTime);
 

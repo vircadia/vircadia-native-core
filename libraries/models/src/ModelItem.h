@@ -43,20 +43,12 @@ const uint16_t MODEL_PACKET_CONTAINS_SHOULDDIE = 512;
 const uint16_t MODEL_PACKET_CONTAINS_MODEL_URL = 1024;
 const uint16_t MODEL_PACKET_CONTAINS_MODEL_TRANSLATION = 1024;
 const uint16_t MODEL_PACKET_CONTAINS_MODEL_ROTATION = 2048;
-const uint16_t MODEL_PACKET_CONTAINS_MODEL_SCALE = 4096;
 
-const float MODEL_DEFAULT_LIFETIME = 10.0f; // particles live for 10 seconds by default
-const float MODEL_DEFAULT_DAMPING = 0.99f;
 const float MODEL_DEFAULT_RADIUS = 0.1f / TREE_SCALE;
 const float MODEL_MINIMUM_PARTICLE_ELEMENT_SIZE = (1.0f / 100000.0f) / TREE_SCALE; // smallest size container
-const glm::vec3 MODEL_DEFAULT_GRAVITY(0, (-9.8f / TREE_SCALE), 0);
-const QString MODEL_DEFAULT_SCRIPT("");
 const QString MODEL_DEFAULT_MODEL_URL("");
 const glm::vec3 MODEL_DEFAULT_MODEL_TRANSLATION(0, 0, 0);
 const glm::quat MODEL_DEFAULT_MODEL_ROTATION(0, 0, 0, 0);
-const float MODEL_DEFAULT_MODEL_SCALE = 1.0f;
-const bool MODEL_IN_HAND = true; // it's in a hand
-const bool MODEL_NOT_IN_HAND = !MODEL_IN_HAND; // it's not in a hand
 
 /// A collection of properties of a particle used in the scripting API. Translates between the actual properties of a particle
 /// and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete set of
@@ -78,7 +70,6 @@ public:
     bool getShouldDie() const { return _shouldDie; }
     
     const QString& getModelURL() const { return _modelURL; }
-    float getModelScale() const { return _modelScale; }
     const glm::vec3& getModelTranslation() const { return _modelTranslation; }
     const glm::quat& getModelRotation() const { return _modelRotation; }
 
@@ -93,7 +84,6 @@ public:
 
     // model related properties
     void setModelURL(const QString& url) { _modelURL = url; _modelURLChanged = true; }
-    void setModelScale(float scale) { _modelScale = scale; _modelScaleChanged = true; }
     void setModelTranslation(const glm::vec3&  translation) { _modelTranslation = translation; 
                                                               _modelTranslationChanged = true; }
     void setModelRotation(const glm::quat& rotation) { _modelRotation = rotation; _modelRotationChanged = true; }
@@ -108,7 +98,6 @@ private:
     bool _shouldDie; /// to delete it
     
     QString _modelURL;
-    float _modelScale;
     glm::vec3 _modelTranslation;
     glm::quat _modelRotation;
 
@@ -122,7 +111,6 @@ private:
     bool _shouldDieChanged;
 
     bool _modelURLChanged;
-    bool _modelScaleChanged;
     bool _modelTranslationChanged;
     bool _modelRotationChanged;
     bool _defaultSettings;
@@ -184,7 +172,6 @@ public:
     // model related properties
     bool hasModel() const { return !_modelURL.isEmpty(); }
     const QString& getModelURL() const { return _modelURL; }
-    float getModelScale() const { return _modelScale; }
     const glm::vec3& getModelTranslation() const { return _modelTranslation; }
     const glm::quat& getModelRotation() const { return _modelRotation; }
 
@@ -223,7 +210,6 @@ public:
     
     // model related properties
     void setModelURL(const QString& url) { _modelURL = url; }
-    void setModelScale(float scale) { _modelScale = scale; }
     void setModelTranslation(const glm::vec3&  translation) { _modelTranslation = translation; }
     void setModelRotation(const glm::quat& rotation) { _modelRotation = rotation; }
     
@@ -260,7 +246,6 @@ protected:
 
     // model related items
     QString _modelURL;
-    float _modelScale;
     glm::vec3 _modelTranslation;
     glm::quat _modelRotation;
 
