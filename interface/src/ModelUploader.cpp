@@ -127,6 +127,7 @@ bool ModelUploader::zip() {
         }
     } else {
         fst = new QTemporaryFile(this);
+        fst->open(QFile::WriteOnly);
         fbxFile = filename;
         basePath = QFileInfo(filename).path();
         mapping.insert(FILENAME_FIELD, QFileInfo(filename).fileName());
