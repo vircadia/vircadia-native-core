@@ -931,9 +931,14 @@ bool Menu::goToURL(QString location) {
                 goToOrientation(orientation);
             }
         } else if (urlParts.count() == 1) {
-            // location coordinates or place name
             QString destination = urlParts[0];
-            goTo(destination);
+
+            // If this starts with # or @, treat it as a user/location, otherwise treat it as a domain
+            if (destination[0] == '#' || destination[0] == '@') {
+                goTo(destination);
+            } else {
+                goToDomain(destination);
+            }
         }
         return true;
     }
