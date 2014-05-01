@@ -16,7 +16,7 @@ ScriptHighlighting::ScriptHighlighting(QTextDocument* parent) :
     QSyntaxHighlighter(parent)
 {
     _keywordRegex = QRegExp("\\b(break|case|catch|continue|debugger|default|delete|do|else|finally|for|function|if|in|instanceof|new|return|switch|this|throw|try|typeof|var|void|while|with)\\b");
-    _qoutedTextRegex = QRegExp("\".*\"");
+    _qoutedTextRegex = QRegExp("\"[^\"]*(\"){0,1}");
     _multiLineCommentBegin = QRegExp("/\\*");
     _multiLineCommentEnd = QRegExp("\\*/");
     _numberRegex = QRegExp("[0-9]+(\\.[0-9]+){0,1}");

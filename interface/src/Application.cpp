@@ -3461,7 +3461,7 @@ QString Application::getPreviousScriptLocation() {
     return suggestedName;
 }
 
-void Application::setPreviousScriptLocation(QString previousScriptLocation) {
+void Application::setPreviousScriptLocation(const QString& previousScriptLocation) {
     _previousScriptLocation = previousScriptLocation;
     QMutexLocker locker(&_settingsMutex);
     _settings->setValue("LastScriptLocation", _previousScriptLocation);

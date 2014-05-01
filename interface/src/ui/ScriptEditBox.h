@@ -27,9 +27,9 @@ protected:
     void resizeEvent(QResizeEvent* event);
 
 private slots:
-    void updateLineNumberAreaWidth(int);
+    void updateLineNumberAreaWidth(int blockCount);
     void highlightCurrentLine();
-    void updateLineNumberArea(const QRect&, int);
+    void updateLineNumberArea(const QRect& rect, int deltaY);
 
 private:
     QWidget* _scriptLineNumberArea;

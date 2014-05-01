@@ -18,9 +18,9 @@ ScriptEditBox::ScriptEditBox(QWidget* parent) :
 {
     _scriptLineNumberArea = new ScriptLineNumberArea(this);
 
-    connect(this, SIGNAL(blockCountChanged(int)), this, SLOT(updateLineNumberAreaWidth(int)));
-    connect(this, SIGNAL(updateRequest(QRect, int)), this, SLOT(updateLineNumberArea(QRect, int)));
-    connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(highlightCurrentLine()));
+    connect(this, &ScriptEditBox::blockCountChanged, this, &ScriptEditBox::updateLineNumberAreaWidth);
+    connect(this, &ScriptEditBox::updateRequest, this, &ScriptEditBox::updateLineNumberArea);
+    connect(this, &ScriptEditBox::cursorPositionChanged, this, &ScriptEditBox::highlightCurrentLine);
 
     updateLineNumberAreaWidth(0);
     highlightCurrentLine();
@@ -33,18 +33,18 @@ int ScriptEditBox::lineNumberAreaWidth() {
     int max = qMax(1, blockCount());
     while (max >= BASE_TEN) {
         max /= BASE_TEN;
-        ++digits;
+        digits++;
     }
     return SPACER_PIXELS + fontMetrics().width(QLatin1Char('H')) * digits;
 }
 
-void ScriptEditBox::updateLineNumberAreaWidth(int) {
+void ScriptEditBox::updateLineNumberAreaWidth(int blockCount) {
     setViewportMargins(lineNumberAreaWidth(), 0, 0, 0);
 }
 
-void ScriptEditBox::updateLineNumberArea(const QRect& rect, int dy) {
-    if (dy) {
-        _scriptLineNumberArea->scroll(0, dy);
+void ScriptEditBox::updateLineNumberArea(const QRect& rect, int deltaY) {
+    if (deltaY) {
+        _scriptLineNumberArea->scroll(0, deltaY);
     } else {
         _scriptLineNumberArea->update(0, rect.y(), _scriptLineNumberArea->width(), rect.height());
     }
@@ -54,11 +54,12 @@ void ScriptEditBox::updateLineNumberArea(const QRect& rect, int dy) {
     }
 }
 
-void ScriptEditBox::resizeEvent(QResizeEvent* e) {
-    QPlainTextEdit::resizeEvent(e);
+void ScriptEditBox::resizeEvent(QResizeEvent* event) {
+    QPlainTextEdit::resizeEvent(event);
 
-    QRect cr = contentsRect();
-    _scriptLineNumberArea->setGeometry(QRect(cr.left(), cr.top(), lineNumberAreaWidth(), cr.height()));
+    QRect localContentsRect = contentsRect();
+    _scriptLineNumberArea->setGeometry(QRect(localContentsRect.left(), localContentsRect.top(), lineNumberAreaWidth(),
+                                             localContentsRect.height()));
 }
 
 void ScriptEditBox::highlightCurrentLine() {
@@ -102,6 +103,6 @@ void ScriptEditBox::lineNumberAreaPaintEvent(QPaintEvent* event)
         block = block.next();
         top = bottom;
         bottom = top + (int) blockBoundingRect(block).height();
-        ++blockNumber;
+        blockNumber++;
     }
 }
