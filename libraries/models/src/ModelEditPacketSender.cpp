@@ -1,6 +1,6 @@
 //
 //  ModelEditPacketSender.cpp
-//  libraries/particles/src
+//  libraries/models/src
 //
 //  Created by Brad Hefta-Gaub on 8/12/13.
 //  Copyright 2013 High Fidelity, Inc.

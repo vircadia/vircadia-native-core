@@ -100,7 +100,7 @@ void ModelTree::storeModel(const ModelItem& model, const SharedNodePointer& send
     // if we didn't find it in the tree, then store it...
     if (!args.found) {
         glm::vec3 position = model.getPosition();
-        float size = std::max(MODEL_MINIMUM_PARTICLE_ELEMENT_SIZE, model.getRadius());
+        float size = std::max(MINIMUM_MODEL_ELEMENT_SIZE, model.getRadius());
 
         ModelTreeElement* element = (ModelTreeElement*)getOrCreateChildElementAt(position.x, position.y, position.z, size);
         element->storeModel(model);
@@ -150,7 +150,7 @@ void ModelTree::addModel(const ModelItemID& modelID, const ModelItemProperties& 
     }
     ModelItem model(modelID, properties);
     glm::vec3 position = model.getPosition();
-    float size = std::max(MODEL_MINIMUM_PARTICLE_ELEMENT_SIZE, model.getRadius());
+    float size = std::max(MINIMUM_MODEL_ELEMENT_SIZE, model.getRadius());
     
     ModelTreeElement* element = (ModelTreeElement*)getOrCreateChildElementAt(position.x, position.y, position.z, size);
     element->storeModel(model);
@@ -403,8 +403,8 @@ int ModelTree::processEditPacketData(PacketType packetType, const unsigned char*
             }
         } break;
 
-        // TODO: wire in support here for server to get PACKET_TYPE_PARTICLE_ERASE messages
-        // instead of using PACKET_TYPE_PARTICLE_ADD_OR_EDIT messages to delete models
+        // TODO: wire in support here for server to get PacketTypeModelErase messages
+        // instead of using PacketTypeModelAddOrEdit messages to delete models
         case PacketTypeModelErase:
             processedBytes = 0;
             break;

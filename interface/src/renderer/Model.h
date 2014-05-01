@@ -51,7 +51,7 @@ public:
     void setScale(const glm::vec3& scale);
     const glm::vec3& getScale() const { return _scale; }
     
-    void setOffset(const glm::vec3& offset) { _offset = offset; _snapModelToCenter = false; _snappedToCenter = false; }
+    void setOffset(const glm::vec3& offset);
     const glm::vec3& getOffset() const { return _offset; }
     
     void setPupilDilation(float dilation) { _pupilDilation = dilation; }
@@ -224,7 +224,7 @@ protected:
     bool _scaledToFit; /// have we scaled to fit
     
     bool _snapModelToCenter; /// is the model's offset automatically adjusted to center around 0,0,0 in model space
-    bool _snappedToCenter;
+    bool _snappedToCenter; /// are we currently snapped to center
     
     class JointState {
     public:

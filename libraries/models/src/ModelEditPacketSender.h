@@ -1,6 +1,6 @@
 //
 //  ModelEditPacketSender.h
-//  libraries/particles/src
+//  libraries/models/src
 //
 //  Created by Brad Hefta-Gaub on 8/12/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -20,7 +20,7 @@
 class ModelEditPacketSender :  public OctreeEditPacketSender {
     Q_OBJECT
 public:
-    /// Send particle add message immediately
+    /// Send model add message immediately
     /// NOTE: ModelItemProperties assumes that all distances are in meter units
     void sendEditModelMessage(PacketType type, ModelItemID modelID, const ModelItemProperties& properties);
 
@@ -30,7 +30,7 @@ public:
     /// NOTE: ModelItemProperties assumes that all distances are in meter units
     void queueModelEditMessage(PacketType type, ModelItemID modelID, const ModelItemProperties& properties);
 
-    // My server type is the particle server
+    // My server type is the model server
     virtual unsigned char getMyNodeType() const { return NodeType::ModelServer; }
     virtual void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
 };

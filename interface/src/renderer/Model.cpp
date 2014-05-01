@@ -82,6 +82,15 @@ void Model::setScaleInternal(const glm::vec3& scale) {
     }
 }
 
+void Model::setOffset(const glm::vec3& offset) { 
+    _offset = offset; 
+    
+    // if someone manually sets our offset, then we are no longer snapped to center
+    _snapModelToCenter = false; 
+    _snappedToCenter = false; 
+}
+
+
 void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locations) {
     program.bind();
     locations.clusterMatrices = program.uniformLocation("clusterMatrices");
@@ -836,7 +845,7 @@ void Model::snapToCenter() {
 }
 
 void Model::simulate(float deltaTime, bool fullUpdate) {
-    fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit);
+    fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit) || (_snapModelToCenter && !_snappedToCenter);
     if (isActive() && fullUpdate) {
         // check for scale to fit
         if (_scaleToFit && !_scaledToFit) {

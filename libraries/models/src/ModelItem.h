@@ -1,6 +1,6 @@
 //
 //  ModelItem.h
-//  libraries/particles/src
+//  libraries/models/src
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -41,18 +41,16 @@ const uint16_t MODEL_PACKET_CONTAINS_POSITION = 2;
 const uint16_t MODEL_PACKET_CONTAINS_COLOR = 4;
 const uint16_t MODEL_PACKET_CONTAINS_SHOULDDIE = 512;
 const uint16_t MODEL_PACKET_CONTAINS_MODEL_URL = 1024;
-const uint16_t MODEL_PACKET_CONTAINS_MODEL_TRANSLATION = 1024;
 const uint16_t MODEL_PACKET_CONTAINS_MODEL_ROTATION = 2048;
 
 const float MODEL_DEFAULT_RADIUS = 0.1f / TREE_SCALE;
-const float MODEL_MINIMUM_PARTICLE_ELEMENT_SIZE = (1.0f / 100000.0f) / TREE_SCALE; // smallest size container
+const float MINIMUM_MODEL_ELEMENT_SIZE = (1.0f / 100000.0f) / TREE_SCALE; // smallest size container
 const QString MODEL_DEFAULT_MODEL_URL("");
-const glm::vec3 MODEL_DEFAULT_MODEL_TRANSLATION(0, 0, 0);
 const glm::quat MODEL_DEFAULT_MODEL_ROTATION(0, 0, 0, 0);
 
-/// A collection of properties of a particle used in the scripting API. Translates between the actual properties of a particle
+/// A collection of properties of a model item used in the scripting API. Translates between the actual properties of a model
 /// and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete set of
-/// particle properties via JavaScript hashes/QScriptValues
+/// model item properties via JavaScript hashes/QScriptValues
 /// all units for position, radius, etc are in meter units
 class ModelItemProperties {
 public:
@@ -61,8 +59,8 @@ public:
     QScriptValue copyToScriptValue(QScriptEngine* engine) const;
     void copyFromScriptValue(const QScriptValue& object);
 
-    void copyToModelItem(ModelItem& particle) const;
-    void copyFromModelItem(const ModelItem& particle);
+    void copyToModelItem(ModelItem& modelItem) const;
+    void copyFromModelItem(const ModelItem& modelItem);
 
     const glm::vec3& getPosition() const { return _position; }
     xColor getColor() const { return _color; }
@@ -70,7 +68,6 @@ public:
     bool getShouldDie() const { return _shouldDie; }
     
     const QString& getModelURL() const { return _modelURL; }
-    const glm::vec3& getModelTranslation() const { return _modelTranslation; }
     const glm::quat& getModelRotation() const { return _modelRotation; }
 
     quint64 getLastEdited() const { return _lastEdited; }
@@ -84,11 +81,9 @@ public:
 
     // model related properties
     void setModelURL(const QString& url) { _modelURL = url; _modelURLChanged = true; }
-    void setModelTranslation(const glm::vec3&  translation) { _modelTranslation = translation; 
-                                                              _modelTranslationChanged = true; }
     void setModelRotation(const glm::quat& rotation) { _modelRotation = rotation; _modelRotationChanged = true; }
     
-    /// used by ModelScriptingInterface to return ModelItemProperties for unknown particles
+    /// used by ModelScriptingInterface to return ModelItemProperties for unknown models
     void setIsUnknownID() { _id = UNKNOWN_MODEL_ID; _idSet = true; }
 
 private:
@@ -98,7 +93,6 @@ private:
     bool _shouldDie; /// to delete it
     
     QString _modelURL;
-    glm::vec3 _modelTranslation;
     glm::quat _modelRotation;
 
     uint32_t _id;
@@ -111,7 +105,6 @@ private:
     bool _shouldDieChanged;
 
     bool _modelURLChanged;
-    bool _modelTranslationChanged;
     bool _modelRotationChanged;
     bool _defaultSettings;
 };
@@ -120,9 +113,9 @@ QScriptValue ModelItemPropertiesToScriptValue(QScriptEngine* engine, const Model
 void ModelItemPropertiesFromScriptValue(const QScriptValue &object, ModelItemProperties& properties);
 
 
-/// Abstract ID for editing particles. Used in ModelItem JS API - When particles are created in the JS api, they are given a
-/// local creatorTokenID, the actual id for the particle is not known until the server responds to the creator with the
-/// correct mapping. This class works with the scripting API an allows the developer to edit particles they created.
+/// Abstract ID for editing model items. Used in ModelItem JS API - When models are created in the JS api, they are given a
+/// local creatorTokenID, the actual id for the model is not known until the server responds to the creator with the
+/// correct mapping. This class works with the scripting API an allows the developer to edit models they created.
 class ModelItemID {
 public:
     ModelItemID() :
@@ -146,15 +139,15 @@ void ModelItemIDfromScriptValue(const QScriptValue &object, ModelItemID& propert
 
 
 
-/// ModelItem class - this is the actual particle class.
+/// ModelItem class - this is the actual model item class.
 class ModelItem  {
 
 public:
     ModelItem();
 
-    ModelItem(const ModelItemID& particleID, const ModelItemProperties& properties);
+    ModelItem(const ModelItemID& modelItemID, const ModelItemProperties& properties);
     
-    /// creates an NEW particle from an PACKET_TYPE_PARTICLE_ADD_OR_EDIT edit data buffer
+    /// creates an NEW model from an model add or edit message data buffer
     static ModelItem fromEditPacket(const unsigned char* data, int length, int& processedBytes, ModelTree* tree, bool& valid);
 
     virtual ~ModelItem();
@@ -172,20 +165,19 @@ public:
     // model related properties
     bool hasModel() const { return !_modelURL.isEmpty(); }
     const QString& getModelURL() const { return _modelURL; }
-    const glm::vec3& getModelTranslation() const { return _modelTranslation; }
     const glm::quat& getModelRotation() const { return _modelRotation; }
 
     ModelItemID getModelItemID() const { return ModelItemID(getID(), getCreatorTokenID(), getID() != UNKNOWN_MODEL_ID); }
     ModelItemProperties getProperties() const;
 
-    /// The last updated/simulated time of this particle from the time perspective of the authoritative server/source
+    /// The last updated/simulated time of this model from the time perspective of the authoritative server/source
     quint64 getLastUpdated() const { return _lastUpdated; }
 
-    /// The last edited time of this particle from the time perspective of the authoritative server/source
+    /// The last edited time of this model from the time perspective of the authoritative server/source
     quint64 getLastEdited() const { return _lastEdited; }
     void setLastEdited(quint64 lastEdited) { _lastEdited = lastEdited; }
 
-    /// lifetime of the particle in seconds
+    /// how long ago was this model edited in seconds
     float getEditedAgo() const { return static_cast<float>(usecTimestampNow() - _lastEdited) / static_cast<float>(USECS_PER_SECOND); }
     uint32_t getID() const { return _id; }
     void setID(uint32_t id) { _id = id; }
@@ -210,7 +202,6 @@ public:
     
     // model related properties
     void setModelURL(const QString& url) { _modelURL = url; }
-    void setModelTranslation(const glm::vec3&  translation) { _modelTranslation = translation; }
     void setModelRotation(const glm::quat& rotation) { _modelRotation = rotation; }
     
     void setProperties(const ModelItemProperties& properties);
@@ -231,7 +222,7 @@ public:
     // similar to assignment/copy, but it handles keeping lifetime accurate
     void copyChangedProperties(const ModelItem& other);
 
-    // these methods allow you to create particles, and later edit them.
+    // these methods allow you to create models, and later edit them.
     static uint32_t getIDfromCreatorTokenID(uint32_t creatorTokenID);
     static uint32_t getNextCreatorTokenID();
     static void handleAddModelResponse(const QByteArray& packet);
@@ -246,7 +237,6 @@ protected:
 
     // model related items
     QString _modelURL;
-    glm::vec3 _modelTranslation;
     glm::quat _modelRotation;
 
     uint32_t _creatorTokenID;

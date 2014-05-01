@@ -84,7 +84,6 @@ ModelItem::ModelItem(const ModelItemID& modelItemID, const ModelItemProperties& 
     memcpy(_color, noColor, sizeof(_color));
     _shouldDie = false;
     _modelURL = MODEL_DEFAULT_MODEL_URL;
-    _modelTranslation = MODEL_DEFAULT_MODEL_TRANSLATION;
     _modelRotation = MODEL_DEFAULT_MODEL_ROTATION;
     
     setProperties(properties);
@@ -110,7 +109,6 @@ void ModelItem::init(glm::vec3 position, float radius, rgbColor color, uint32_t 
     memcpy(_color, color, sizeof(_color));
     _shouldDie = false;
     _modelURL = MODEL_DEFAULT_MODEL_URL;
-    _modelTranslation = MODEL_DEFAULT_MODEL_TRANSLATION;
     _modelRotation = MODEL_DEFAULT_MODEL_ROTATION;
 }
 
@@ -148,10 +146,6 @@ bool ModelItem::appendModelData(OctreePacketData* packetData) const {
         }
     }
 
-    // modelTranslation
-    if (success) {
-        success = packetData->appendValue(getModelTranslation());
-    }
     // modelRotation
     if (success) {
         success = packetData->appendValue(getModelRotation());
@@ -224,11 +218,6 @@ int ModelItem::readModelDataFromBuffer(const unsigned char* data, int bytesLeftT
         _modelURL = modelURLString;
         dataAt += modelURLLength;
         bytesRead += modelURLLength;
-
-        // modelTranslation
-        memcpy(&_modelTranslation, dataAt, sizeof(_modelTranslation));
-        dataAt += sizeof(_modelTranslation);
-        bytesRead += sizeof(_modelTranslation);
 
         // modelRotation
         int bytes = unpackOrientationQuatFromBytes(dataAt, _modelRotation);
@@ -348,13 +337,6 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
         newModelItem._modelURL = tempString;
         dataAt += modelURLLength;
         processedBytes += modelURLLength;
-    }
-
-    // modelTranslation
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_MODEL_TRANSLATION) == MODEL_PACKET_CONTAINS_MODEL_TRANSLATION)) {
-        memcpy(&newModelItem._modelTranslation, dataAt, sizeof(newModelItem._modelTranslation));
-        dataAt += sizeof(newModelItem._modelTranslation);
-        processedBytes += sizeof(newModelItem._modelTranslation);
     }
 
     // modelRotation
@@ -487,14 +469,6 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
         sizeOut += urlLength;
     }
 
-    // modelTranslation
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_MODEL_TRANSLATION) == MODEL_PACKET_CONTAINS_MODEL_TRANSLATION)) {
-        glm::vec3 modelTranslation = properties.getModelTranslation(); // should this be relative to TREE_SCALE??
-        memcpy(copyAt, &modelTranslation, sizeof(modelTranslation));
-        copyAt += sizeof(modelTranslation);
-        sizeOut += sizeof(modelTranslation);
-    }
-
     // modelRotation
     if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_MODEL_ROTATION) == MODEL_PACKET_CONTAINS_MODEL_ROTATION)) {
         int bytes = packOrientationQuatToBytes(copyAt, properties.getModelRotation());
@@ -572,7 +546,6 @@ ModelItemProperties::ModelItemProperties() :
     _radius(MODEL_DEFAULT_RADIUS),
     _shouldDie(false),
     _modelURL(""),
-    _modelTranslation(MODEL_DEFAULT_MODEL_TRANSLATION),
     _modelRotation(MODEL_DEFAULT_MODEL_ROTATION),
 
     _id(UNKNOWN_MODEL_ID),
@@ -584,7 +557,6 @@ ModelItemProperties::ModelItemProperties() :
     _radiusChanged(false),
     _shouldDieChanged(false),
     _modelURLChanged(false),
-    _modelTranslationChanged(false),
     _modelRotationChanged(false),
     _defaultSettings(true)
 {
@@ -613,10 +585,6 @@ uint16_t ModelItemProperties::getChangedBits() const {
         changedBits += MODEL_PACKET_CONTAINS_MODEL_URL;
     }
 
-    if (_modelTranslationChanged) {
-        changedBits += MODEL_PACKET_CONTAINS_MODEL_TRANSLATION;
-    }
-
     if (_modelRotationChanged) {
         changedBits += MODEL_PACKET_CONTAINS_MODEL_ROTATION;
     }
@@ -639,9 +607,6 @@ QScriptValue ModelItemProperties::copyToScriptValue(QScriptEngine* engine) const
     properties.setProperty("shouldDie", _shouldDie);
 
     properties.setProperty("modelURL", _modelURL);
-
-    QScriptValue modelTranslation = vec3toScriptValue(engine, _modelTranslation);
-    properties.setProperty("modelTranslation", modelTranslation);
 
     QScriptValue modelRotation = quatToScriptValue(engine, _modelRotation);
     properties.setProperty("modelRotation", modelRotation);
@@ -723,24 +688,6 @@ void ModelItemProperties::copyFromScriptValue(const QScriptValue &object) {
         }
     }
 
-    QScriptValue modelTranslation = object.property("modelTranslation");
-    if (modelTranslation.isValid()) {
-        QScriptValue x = modelTranslation.property("x");
-        QScriptValue y = modelTranslation.property("y");
-        QScriptValue z = modelTranslation.property("z");
-        if (x.isValid() && y.isValid() && z.isValid()) {
-            glm::vec3 newModelTranslation;
-            newModelTranslation.x = x.toVariant().toFloat();
-            newModelTranslation.y = y.toVariant().toFloat();
-            newModelTranslation.z = z.toVariant().toFloat();
-            if (_defaultSettings || newModelTranslation != _modelTranslation) {
-                _modelTranslation = newModelTranslation;
-                _modelTranslationChanged = true;
-            }
-        }
-    }
-
-    
     QScriptValue modelRotation = object.property("modelRotation");
     if (modelRotation.isValid()) {
         QScriptValue x = modelRotation.property("x");
@@ -790,11 +737,6 @@ void ModelItemProperties::copyToModelItem(ModelItem& modelItem) const {
         somethingChanged = true;
     }
 
-    if (_modelTranslationChanged) {
-        modelItem.setModelTranslation(_modelTranslation);
-        somethingChanged = true;
-    }
-    
     if (_modelRotationChanged) {
         modelItem.setModelRotation(_modelRotation);
         somethingChanged = true;
@@ -818,7 +760,6 @@ void ModelItemProperties::copyFromModelItem(const ModelItem& modelItem) {
     _radius = modelItem.getRadius() * (float) TREE_SCALE;
     _shouldDie = modelItem.getShouldDie();
     _modelURL = modelItem.getModelURL();
-    _modelTranslation = modelItem.getModelTranslation();
     _modelRotation = modelItem.getModelRotation();
 
     _id = modelItem.getID();
@@ -830,7 +771,6 @@ void ModelItemProperties::copyFromModelItem(const ModelItem& modelItem) {
     
     _shouldDieChanged = false;
     _modelURLChanged = false;
-    _modelTranslationChanged = false;
     _modelRotationChanged = false;
     _defaultSettings = false;
 }
