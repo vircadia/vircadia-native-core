@@ -152,6 +152,7 @@ public slots:
     void importSettings();
     void exportSettings();
     void goTo();
+    bool goToURL(QString location);
     void goToUser(const QString& user);
     void pasteToVoxel();
     void openUrl(const QUrl& url);
