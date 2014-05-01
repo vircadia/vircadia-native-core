@@ -12,9 +12,8 @@
 #ifndef hifi_WindowScriptingInterface_h
 #define hifi_WindowScriptingInterface_h
 
-#include <QDebug>
-#include <QMutex>
 #include <QObject>
+#include <QScriptValue>
 #include <QString>
 
 class WindowScriptingInterface : public QObject {
@@ -28,9 +27,9 @@ public:
     int getInnerHeight();
 
 public slots:
-    QScriptValue alert(const QString& message);
-    QScriptValue confirm(const QString& message);
-    QScriptValue prompt(const QString& message, const QString& defaultText="");
+    QScriptValue alert(const QString& message = "");
+    QScriptValue confirm(const QString& message = "");
+    QScriptValue prompt(const QString& message = "", const QString& defaultText = "");
 
 private slots:
     QScriptValue showAlert(const QString& message);
