@@ -82,6 +82,14 @@ void OAuthWebViewHandler::handleSSLErrors(QNetworkReply* networkReply, const QLi
 void OAuthWebViewHandler::handleLoadFinished(bool success) {
     if (success && _activeWebView->url().host() == NodeList::getInstance()->getDomainHandler().getHostname()) {
         qDebug() << "OAuth authorization code passed successfully to domain-server.";
+        
+        // grab the UUID that is set as the state parameter in the auth URL
+        // since that is our new session UUID
+        QUrlQuery authQuery(_activeWebView->url());
+        
+        const QString AUTH_STATE_QUERY_KEY = "state";
+        NodeList::getInstance()->setSessionUUID(QUuid(authQuery.queryItemValue(AUTH_STATE_QUERY_KEY)));
+        
         _activeWebView->close();
     }
 }
