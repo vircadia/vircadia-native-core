@@ -902,42 +902,51 @@ void Menu::goTo() {
     int dialogReturn = gotoDialog.exec();
     if (dialogReturn == QDialog::Accepted && !gotoDialog.textValue().isEmpty()) {
         QString desiredDestination = gotoDialog.textValue();
-
-        if (desiredDestination.startsWith(CUSTOM_URL_SCHEME + "//")) {
-            QStringList urlParts = desiredDestination.remove(0, CUSTOM_URL_SCHEME.length() + 2).split('/', QString::SkipEmptyParts);
-
-            if (urlParts.count() == 1) {
-                // location coordinates or place name
-                QString domain = urlParts[0];
-                goToDomain(domain);
-            }
-            else if (urlParts.count() > 1) {
-                // if url has 2 or more parts, the first one is domain name
-                QString domain = urlParts[0];
-
-                // second part is either a destination coordinate or
-                // a place name
-                QString destination = urlParts[1];
-
-                // any third part is an avatar orientation.
-                QString orientation = urlParts.count() > 2 ? urlParts[2] : QString();
-
-                goToDomain(domain);
-
-                // goto either @user, #place, or x-xx,y-yy,z-zz
-                // style co-ordinate.
-                goTo(destination);
-
-                if (!orientation.isEmpty()) {
-                    // location orientation
-                    goToOrientation(orientation);
-                }
-            }
-        } else {
-            goToUser(gotoDialog.textValue());
+        if (!goToURL(desiredDestination)) {;
+            goTo(desiredDestination);
         }
     }
     sendFakeEnterEvent();
+}
+
+bool Menu::goToURL(QString location) {
+    if (location.startsWith(CUSTOM_URL_SCHEME + "//")) {
+        QStringList urlParts = location.remove(0, CUSTOM_URL_SCHEME.length() + 2).split('/', QString::SkipEmptyParts);
+
+        if (urlParts.count() > 1) {
+            // if url has 2 or more parts, the first one is domain name
+            QString domain = urlParts[0];
+
+            // second part is either a destination coordinate or
+            // a place name
+            QString destination = urlParts[1];
+
+            // any third part is an avatar orientation.
+            QString orientation = urlParts.count() > 2 ? urlParts[2] : QString();
+
+            goToDomain(domain);
+
+            // goto either @user, #place, or x-xx,y-yy,z-zz
+            // style co-ordinate.
+            goTo(destination);
+
+            if (!orientation.isEmpty()) {
+                // location orientation
+                goToOrientation(orientation);
+            }
+        } else if (urlParts.count() == 1) {
+            QString destination = urlParts[0];
+
+            // If this starts with # or @, treat it as a user/location, otherwise treat it as a domain
+            if (destination[0] == '#' || destination[0] == '@') {
+                goTo(destination);
+            } else {
+                goToDomain(destination);
+            }
+        }
+        return true;
+    }
+    return false;
 }
 
 void Menu::goToUser(const QString& user) {
