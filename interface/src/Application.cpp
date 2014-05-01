@@ -358,6 +358,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     
     // call the OAuthWebviewHandler static getter so that its instance lives in our thread
     OAuthWebViewHandler::getInstance();
+    // make sure the High Fidelity root CA is in our list of trusted certs
+    OAuthWebViewHandler::addHighFidelityRootCAToSSLConfig();
 }
 
 Application::~Application() {

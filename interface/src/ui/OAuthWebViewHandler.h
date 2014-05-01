@@ -21,6 +21,7 @@ class OAuthWebViewHandler : public QObject {
 public:
     OAuthWebViewHandler();
     static OAuthWebViewHandler& getInstance();
+    static void addHighFidelityRootCAToSSLConfig();
     
 public slots:
     void displayWebviewForAuthorizationURL(const QUrl& authorizationURL);

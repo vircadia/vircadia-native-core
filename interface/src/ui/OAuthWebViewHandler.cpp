@@ -26,10 +26,24 @@ OAuthWebViewHandler::OAuthWebViewHandler() :
     
 }
 
+void OAuthWebViewHandler::addHighFidelityRootCAToSSLConfig() {
+    QSslConfiguration sslConfig = QSslConfiguration::defaultConfiguration();
+    
+    // add the High Fidelity root CA to the list of trusted CA certificates
+    QByteArray highFidelityCACertificate(reinterpret_cast<char*>(DTLSSession::highFidelityCADatum()->data),
+                                         DTLSSession::highFidelityCADatum()->size);
+    sslConfig.setCaCertificates(sslConfig.caCertificates() + QSslCertificate::fromData(highFidelityCACertificate));
+    
+    // set the modified configuration
+    QSslConfiguration::setDefaultConfiguration(sslConfig);
+}
+
 void OAuthWebViewHandler::displayWebviewForAuthorizationURL(const QUrl& authorizationURL) {
     if (!_activeWebView) {
         _activeWebView = new QWebView();
         _activeWebView->setWindowFlags(Qt::WindowStaysOnTopHint);
+        
+        qDebug() << "Displaying QWebView for OAuth authorization at" << authorizationURL.toString();
         _activeWebView->load(authorizationURL);
         _activeWebView->show();
         
