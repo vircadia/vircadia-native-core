@@ -174,6 +174,8 @@ public:
 class FBXGeometry {
 public:
 
+    QString applicationName; ///< the name of the application that generated the model
+
     QVector<FBXJoint> joints;
     QHash<QString, int> jointIndices; ///< 1-based, so as to more easily detect missing indices
     

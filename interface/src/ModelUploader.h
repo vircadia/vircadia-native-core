@@ -84,7 +84,8 @@ private slots:
     void createNewFreeJoint(const QString& joint = QString());
 
 private:
-    QComboBox* createJointBox() const;
+    QComboBox* createJointBox(bool withNone = true) const;
+    void insertJointMapping(QVariantHash& joints, const QString& joint, const QString& name) const;
 
     bool _isHead;
     QVariantHash _originalMapping;

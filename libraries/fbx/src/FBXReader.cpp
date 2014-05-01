@@ -1006,9 +1006,25 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         }
     }
     QMultiHash<QString, WeightedIndex> blendshapeChannelIndices;
-
+    
+    FBXGeometry geometry;
     foreach (const FBXNode& child, node.children) {
-        if (child.name == "Objects") {
+        if (child.name == "FBXHeaderExtension") {
+            foreach (const FBXNode& object, child.children) {
+                if (object.name == "SceneInfo") {
+                    foreach (const FBXNode& subobject, object.children) {
+                        if (subobject.name == "Properties70") {
+                            foreach (const FBXNode& subsubobject, subobject.children) {
+                                if (subsubobject.name == "P" && subsubobject.properties.size() >= 5 &&
+                                        subsubobject.properties.at(0) == "Original|ApplicationName") {
+                                    geometry.applicationName = subsubobject.properties.at(4).toString();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (child.name == "Objects") {
             foreach (const FBXNode& object, child.children) {
                 if (object.name == "Geometry") {
                     if (object.properties.at(2) == "Mesh") {
@@ -1317,7 +1333,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     }
 
     // get offset transform from mapping
-    FBXGeometry geometry;
     float offsetScale = mapping.value("scale", 1.0f).toFloat();
     glm::quat offsetRotation = glm::quat(glm::radians(glm::vec3(mapping.value("rx").toFloat(),
             mapping.value("ry").toFloat(), mapping.value("rz").toFloat())));

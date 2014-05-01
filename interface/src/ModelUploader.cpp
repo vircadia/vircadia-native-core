@@ -148,6 +148,43 @@ bool ModelUploader::zip() {
         mapping.insert(TEXDIR_FIELD, ".");
     }
     
+    // mixamo/autodesk defaults
+    if (!mapping.contains(SCALE_FIELD)) {
+        mapping.insert(SCALE_FIELD, 10.0);
+    }
+    QVariantHash joints = mapping.value(JOINT_FIELD).toHash();
+    if (!joints.contains("jointEyeLeft")) {
+        joints.insert("jointEyeLeft", "LeftEye");
+    }
+    if (!joints.contains("jointEyeRight")) {
+        joints.insert("jointEyeRight", "RightEye");
+    }
+    if (!joints.contains("jointNeck")) {
+        joints.insert("jointNeck", "Neck");
+    }
+    if (!joints.contains("jointRoot")) {
+        joints.insert("jointRoot", "Hips");
+    }
+    if (!joints.contains("jointLean")) {
+        joints.insert("jointLean", "Spine");
+    }
+    if (!joints.contains("jointHead")) {
+        joints.insert("jointHead", geometry.applicationName == "mixamo.com" ? "HeadTop_End" : "HeadEnd");
+    }
+    if (!joints.contains("jointLeftHand")) {
+        joints.insert("jointLeftHand", "LeftHand");
+    }
+    if (!joints.contains("jointRightHand")) {
+        joints.insert("jointRightHand", "RightHand");
+    }
+    mapping.insert(JOINT_FIELD, joints);
+    if (!mapping.contains(FREE_JOINT_FIELD)) {
+        mapping.insertMulti(FREE_JOINT_FIELD, "LeftArm");
+        mapping.insertMulti(FREE_JOINT_FIELD, "LeftForeArm");
+        mapping.insertMulti(FREE_JOINT_FIELD, "RightArm");
+        mapping.insertMulti(FREE_JOINT_FIELD, "RightForeArm");
+    }
+    
     // open the dialog to configure the rest
     ModelPropertiesDialog properties(_isHead, mapping, basePath, geometry);
     if (properties.exec() == QDialog::Rejected) {
@@ -475,10 +512,8 @@ ModelPropertiesDialog::ModelPropertiesDialog(bool isHead, const QVariantHash& or
     _scale->setMaximum(FLT_MAX);
     _scale->setSingleStep(0.01);
     
-    if (isHead) {
-        form->addRow("Left Eye Joint:", _leftEyeJoint = createJointBox());
-        form->addRow("Right Eye Joint:", _rightEyeJoint = createJointBox());
-    }
+    form->addRow("Left Eye Joint:", _leftEyeJoint = createJointBox());
+    form->addRow("Right Eye Joint:", _rightEyeJoint = createJointBox());
     form->addRow("Neck Joint:", _neckJoint = createJointBox());
     if (!isHead) {
         form->addRow("Root Joint:", _rootJoint = createJointBox());
@@ -519,17 +554,15 @@ QVariantHash ModelPropertiesDialog::getMapping() const {
     mapping.insert(JOINT_INDEX_FIELD, jointIndices);
     
     QVariantHash joints = mapping.value(JOINT_FIELD).toHash();
-    if (_isHead) {
-        joints.insert("jointEyeLeft", _leftEyeJoint->currentText());
-        joints.insert("jointEyeRight", _rightEyeJoint->currentText());
-    }
-    joints.insert("jointNeck", _neckJoint->currentText());
+    insertJointMapping(joints, "jointEyeLeft", _leftEyeJoint->currentText());
+    insertJointMapping(joints, "jointEyeRight", _rightEyeJoint->currentText());
+    insertJointMapping(joints, "jointNeck", _neckJoint->currentText());
     if (!_isHead) {
-        joints.insert("jointRoot", _rootJoint->currentText());
-        joints.insert("jointLean", _leanJoint->currentText());
-        joints.insert("jointHead", _headJoint->currentText());
-        joints.insert("jointLeftHand", _leftHandJoint->currentText());
-        joints.insert("jointRightHand", _rightHandJoint->currentText());
+        insertJointMapping(joints, "jointRoot", _rootJoint->currentText());
+        insertJointMapping(joints, "jointLean", _leanJoint->currentText());
+        insertJointMapping(joints, "jointHead", _headJoint->currentText());
+        insertJointMapping(joints, "jointLeftHand", _leftHandJoint->currentText());
+        insertJointMapping(joints, "jointRightHand", _rightHandJoint->currentText());
         
         mapping.remove(FREE_JOINT_FIELD);
         for (int i = 0; i < _freeJoints->count() - 1; i++) {
@@ -542,23 +575,25 @@ QVariantHash ModelPropertiesDialog::getMapping() const {
     return mapping;
 }
 
+static void setJointText(QComboBox* box, const QString& text) {
+    box->setCurrentIndex(qMax(box->findText(text), 0));
+}
+
 void ModelPropertiesDialog::reset() {
     _name->setText(_originalMapping.value(NAME_FIELD).toString());
     _textureDirectory->setText(_originalMapping.value(TEXDIR_FIELD).toString());
     _scale->setValue(_originalMapping.value(SCALE_FIELD, 1.0).toDouble());
     
     QVariantHash jointHash = _originalMapping.value(JOINT_FIELD).toHash();
-    if (_isHead) {
-        _leftEyeJoint->setCurrentText(jointHash.value("jointEyeLeft").toString());
-        _rightEyeJoint->setCurrentText(jointHash.value("jointEyeRight").toString());
-    }
-    _neckJoint->setCurrentText(jointHash.value("jointNeck").toString());
+    setJointText(_leftEyeJoint, jointHash.value("jointEyeLeft").toString());
+    setJointText(_rightEyeJoint, jointHash.value("jointEyeRight").toString());
+    setJointText(_neckJoint, jointHash.value("jointNeck").toString());
     if (!_isHead) {
-        _rootJoint->setCurrentText(jointHash.value("jointRoot").toString());
-        _leanJoint->setCurrentText(jointHash.value("jointLean").toString());
-        _headJoint->setCurrentText(jointHash.value("jointHead").toString());
-        _leftHandJoint->setCurrentText(jointHash.value("jointLeftHand").toString());
-        _rightHandJoint->setCurrentText(jointHash.value("jointRightHand").toString());
+        setJointText(_rootJoint, jointHash.value("jointRoot").toString());
+        setJointText(_leanJoint, jointHash.value("jointLean").toString());
+        setJointText(_headJoint, jointHash.value("jointHead").toString());
+        setJointText(_leftHandJoint, jointHash.value("jointLeftHand").toString());
+        setJointText(_rightHandJoint, jointHash.value("jointRightHand").toString());
         
         while (_freeJoints->count() > 1) {
             delete _freeJoints->itemAt(0)->widget();
@@ -587,7 +622,7 @@ void ModelPropertiesDialog::createNewFreeJoint(const QString& joint) {
     QHBoxLayout* freeJointLayout = new QHBoxLayout();
     freeJointLayout->setContentsMargins(QMargins());
     freeJoint->setLayout(freeJointLayout);
-    QComboBox* jointBox = createJointBox();
+    QComboBox* jointBox = createJointBox(false);
     jointBox->setCurrentText(joint);
     freeJointLayout->addWidget(jointBox, 1);
     QPushButton* deleteJoint = new QPushButton("Delete");
@@ -596,10 +631,22 @@ void ModelPropertiesDialog::createNewFreeJoint(const QString& joint) {
     _freeJoints->insertWidget(_freeJoints->count() - 1, freeJoint);
 }
 
-QComboBox* ModelPropertiesDialog::createJointBox() const {
+QComboBox* ModelPropertiesDialog::createJointBox(bool withNone) const {
     QComboBox* box = new QComboBox();
+    if (withNone) {
+        box->addItem("(none)");
+    }
     foreach (const FBXJoint& joint, _geometry.joints) {
         box->addItem(joint.name);
     }
     return box;
 }
+
+void ModelPropertiesDialog::insertJointMapping(QVariantHash& joints, const QString& joint, const QString& name) const {
+    if (_geometry.jointIndices.contains(name)) {
+        joints.insert(joint, name);
+    } else {
+        joints.remove(joint);
+    }
+}
+
