@@ -46,7 +46,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _oauthProviderURL(),
     _oauthClientID(),
     _hostname(),
-    _networkReplyUUIDMap()
+    _networkReplyUUIDMap(),
+    _sessionAuthenticationHash()
 {
     gnutls_global_init();
     
@@ -406,21 +407,38 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     }
     
     if (!matchingQueuedAssignment && !_oauthProviderURL.isEmpty()) {
-        // we have an OAuth provider, ask this interface client to auth against it
+        // this is an Agent, and we require authentication
+        if (_sessionAuthenticationHash.contains(packetUUID)) {
+            if (!_sessionAuthenticationHash.value(packetUUID)) {
+                // we've decided this is a user that isn't allowed in, return out
+                // TODO: provide information to the user so they know why they can't connect
+                return;
+            } else {
+                // we're letting this user in, don't return and remove their UUID from the hash
+                _sessionAuthenticationHash.remove(packetUUID);
+            }
+        } else {
+            // we don't know anything about this client
+            // we have an OAuth provider, ask this interface client to auth against it
+            QByteArray oauthRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeDomainOAuthRequest);
+            QDataStream oauthRequestStream(&oauthRequestByteArray, QIODevice::Append);
+            QUrl authorizationURL = packetUUID.isNull() ? oauthAuthorizationURL() : oauthAuthorizationURL(packetUUID);
+            oauthRequestStream << authorizationURL;
+            
+            // send this oauth request datagram back to the client
+            LimitedNodeList::getInstance()->writeUnverifiedDatagram(oauthRequestByteArray, senderSockAddr);
+            
+            return;
+        }
+    }
         
-        QByteArray oauthRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeDomainOAuthRequest);
-        QDataStream oauthRequestStream(&oauthRequestByteArray, QIODevice::Append);
-        oauthRequestStream << oauthAuthorizationURL();
-        
-        // send this oauth request datagram back to the client
-        LimitedNodeList::getInstance()->writeUnverifiedDatagram(oauthRequestByteArray, senderSockAddr);
-    } else if ((!isFulfilledOrUnfulfilledAssignment && !STATICALLY_ASSIGNED_NODES.contains(nodeType))
-               || (isFulfilledOrUnfulfilledAssignment && matchingQueuedAssignment)) {
+    if ((!isFulfilledOrUnfulfilledAssignment && !STATICALLY_ASSIGNED_NODES.contains(nodeType))
+        || (isFulfilledOrUnfulfilledAssignment && matchingQueuedAssignment)) {
         // this was either not a static assignment or it was and we had a matching one in the queue
         
         // create a new session UUID for this node
         QUuid nodeUUID = QUuid::createUuid();
-            
+        
         SharedNodePointer newNode = LimitedNodeList::getInstance()->addOrUpdateNode(nodeUUID, nodeType,
                                                                                     publicSockAddr, localSockAddr);
         // when the newNode is created the linked data is also created
@@ -445,7 +463,7 @@ QUrl DomainServer::oauthRedirectURL() {
 const QString OAUTH_CLIENT_ID_QUERY_KEY = "client_id";
 const QString OAUTH_REDIRECT_URI_QUERY_KEY = "redirect_uri";
 
-QUrl DomainServer::oauthAuthorizationURL() {
+QUrl DomainServer::oauthAuthorizationURL(const QUuid& stateUUID) {
     // for now these are all interface clients that have a GUI
     // so just send them back the full authorization URL
     QUrl authorizationURL = _oauthProviderURL;
@@ -463,7 +481,7 @@ QUrl DomainServer::oauthAuthorizationURL() {
     
     const QString OAUTH_STATE_QUERY_KEY = "state";
     // create a new UUID that will be the state parameter for oauth authorization AND the new session UUID for that node
-    authorizationQuery.addQueryItem(OAUTH_STATE_QUERY_KEY, uuidStringWithoutCurlyBraces(QUuid::createUuid()));
+    authorizationQuery.addQueryItem(OAUTH_STATE_QUERY_KEY, uuidStringWithoutCurlyBraces(stateUUID));
     
     authorizationQuery.addQueryItem(OAUTH_REDIRECT_URI_QUERY_KEY, oauthRedirectURL().toString());
     
@@ -1051,6 +1069,7 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
         const QString STATE_QUERY_KEY = "state";
         QUuid stateUUID = QUuid(codeURLQuery.queryItemValue(STATE_QUERY_KEY));
         
+        
         if (!authorizationCode.isEmpty() && !stateUUID.isNull()) {
             // fire off a request with this code and state to get an access token for the user
             
@@ -1068,10 +1087,12 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
             
             QNetworkReply* tokenReply = _networkAccessManager->post(tokenRequest, tokenPostBody.toLocal8Bit());
             
+            qDebug() << "Requesting a token for user with session UUID" << uuidStringWithoutCurlyBraces(stateUUID);
+            
             // insert this to our pending token replies so we can associate the returned access token with the right UUID
             _networkReplyUUIDMap.insert(tokenReply, stateUUID);
             
-            connect(tokenReply, &QNetworkReply::finished, this, &DomainServer::handleAuthCodeRequestFinished);
+            connect(tokenReply, &QNetworkReply::finished, this, &DomainServer::handleTokenRequestFinished);
         }
         
         // respond with a 200 code indicating that login is complete
@@ -1085,7 +1106,7 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
 
 const QString OAUTH_JSON_ACCESS_TOKEN_KEY = "access_token";
 
-void DomainServer::handleAuthCodeRequestFinished() {
+void DomainServer::handleTokenRequestFinished() {
     QNetworkReply* networkReply = reinterpret_cast<QNetworkReply*>(sender());
     QUuid matchingSessionUUID = _networkReplyUUIDMap.take(networkReply);
     
@@ -1103,6 +1124,8 @@ void DomainServer::handleAuthCodeRequestFinished() {
         
         QNetworkReply* profileReply = _networkAccessManager->get(QNetworkRequest(profileURL));
         
+        qDebug() << "Requesting access token for user with session UUID" << uuidStringWithoutCurlyBraces(matchingSessionUUID);
+        
         connect(profileReply, &QNetworkReply::finished, this, &DomainServer::handleProfileRequestFinished);
         
         _networkReplyUUIDMap.insert(profileReply, matchingSessionUUID);
@@ -1118,11 +1141,27 @@ void DomainServer::handleProfileRequestFinished() {
         
         if (profileJSON.object()["status"].toString() == "success") {
             // pull the user roles from the response
-            QJsonArray rolesArray = profileJSON.object()["data"].toObject()["user"].toObject()["roles"].toArray();
+            QJsonArray userRolesArray = profileJSON.object()["data"].toObject()["user"].toObject()["roles"].toArray();
             
-            foreach(const QJsonValue& roleValue, rolesArray) {
-                
+            const QString ALLOWED_ROLES_CONFIG_KEY = "allowed-roles";
+            QJsonArray allowedRolesArray = _argumentVariantMap.value(ALLOWED_ROLES_CONFIG_KEY).toJsonValue().toArray();
+            
+            bool shouldAllowUserToConnect = false;
+            
+            foreach(const QJsonValue& roleValue, userRolesArray) {
+                if (allowedRolesArray.contains(roleValue)) {
+                    // the user has a role that lets them in
+                    // set the bool to true and break
+                    shouldAllowUserToConnect = true;
+                    break;
+                }
             }
+            
+            qDebug() << "Confirmed authentication state for user" << uuidStringWithoutCurlyBraces(matchingSessionUUID)
+                << "-" << shouldAllowUserToConnect;
+            
+            // insert this UUID and a flag that indicates if they are allowed to connect
+            _sessionAuthenticationHash.insert(matchingSessionUUID, shouldAllowUserToConnect);
         }
     }
 }

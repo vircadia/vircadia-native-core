@@ -79,9 +79,9 @@ private:
     void addStaticAssignmentsToQueue();
     
     QUrl oauthRedirectURL();
-    QUrl oauthAuthorizationURL();
+    QUrl oauthAuthorizationURL(const QUuid& stateUUID = QUuid::createUuid());
     
-    void handleAuthCodeRequestFinished();
+    void handleTokenRequestFinished();
     void handleProfileRequestFinished();
     
     QJsonObject jsonForSocket(const HifiSockAddr& socket);
@@ -110,6 +110,7 @@ private:
     QString _oauthClientSecret;
     QString _hostname;
     QMap<QNetworkReply*, QUuid> _networkReplyUUIDMap;
+    QHash<QUuid, bool> _sessionAuthenticationHash;
 };
 
 #endif // hifi_DomainServer_h
