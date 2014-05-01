@@ -37,6 +37,8 @@ Model::Model(QObject* parent) :
     _scaleToFit(false),
     _scaleToFitLargestDimension(0.0f),
     _scaledToFit(false),
+    _snapModelToCenter(false),
+    _snappedToCenter(false),
     _shapesAreDirty(true),
     _boundingRadius(0.f),
     _boundingShape(), 
@@ -63,6 +65,13 @@ Model::SkinLocations Model::_skinNormalMapLocations;
 Model::SkinLocations Model::_skinShadowLocations;
 
 void Model::setScale(const glm::vec3& scale) {
+    setScaleInternal(scale);
+    // if anyone sets scale manually, then we are no longer scaled to fit
+    _scaleToFit = false;
+    _scaledToFit = false;
+}
+
+void Model::setScaleInternal(const glm::vec3& scale) {
     float scaleLength = glm::length(_scale);
     float relativeDeltaScale = glm::length(_scale - scale) / scaleLength;
     
@@ -798,7 +807,7 @@ void Model::setScaleToFit(bool scaleToFit, float largestDimension) {
     }
 }
 
-void Model::checkScaleToFit() {
+void Model::scaleToFit() {
     Extents modelMeshExtents = getMeshExtents();
 
     // size is our "target size in world space"
@@ -807,8 +816,23 @@ void Model::checkScaleToFit() {
     float maxDimension = glm::max(glm::max(dimensions.x, dimensions.y), dimensions.z);
     float maxScale = _scaleToFitLargestDimension / maxDimension;
     glm::vec3 scale(maxScale, maxScale, maxScale);
-    setScale(scale);
+    setScaleInternal(scale);
     _scaledToFit = true;
+}
+
+void Model::setSnapModelToCenter(bool snapModelToCenter) {
+    if (_snapModelToCenter != snapModelToCenter) {
+        _snapModelToCenter = snapModelToCenter;
+        _snappedToCenter = false; // force re-centering
+    }
+}
+
+void Model::snapToCenter() {
+    Extents modelMeshExtents = getUnscaledMeshExtents();
+    glm::vec3 halfDimensions = (modelMeshExtents.maximum - modelMeshExtents.minimum) * 0.5f;
+    glm::vec3 offset = -modelMeshExtents.minimum - halfDimensions;
+    _offset = offset;
+    _snappedToCenter = true;
 }
 
 void Model::simulate(float deltaTime, bool fullUpdate) {
@@ -816,7 +840,10 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
     if (isActive() && fullUpdate) {
         // check for scale to fit
         if (_scaleToFit && !_scaledToFit) {
-            checkScaleToFit();
+            scaleToFit();
+        }
+        if (_snapModelToCenter && !_snappedToCenter) {
+            snapToCenter();
         }
         simulateInternal(deltaTime);
     }

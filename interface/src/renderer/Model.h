@@ -39,11 +39,19 @@ public:
     void setRotation(const glm::quat& rotation) { _rotation = rotation; }
     const glm::quat& getRotation() const { return _rotation; }
     
+    /// enables/disables scale to fit behavior, the model will be automatically scaled to the specified largest dimension
     void setScaleToFit(bool scaleToFit, float largestDimension = 0.0f);
+    bool getScaleToFit() const { return _scaleToFit; } /// is scale to fit enabled
+    bool getIsScaledToFit() const { return _scaledToFit; } /// is model scaled to fit
+    bool getScaleToFitDimension() const { return _scaleToFitLargestDimension; } /// the dimension model is scaled to
+
+    void setSnapModelToCenter(bool snapModelToCenter);
+    bool getSnapModelToCenter() { return _snapModelToCenter; }
+    
     void setScale(const glm::vec3& scale);
     const glm::vec3& getScale() const { return _scale; }
     
-    void setOffset(const glm::vec3& offset) { _offset = offset; }
+    void setOffset(const glm::vec3& offset) { _offset = offset; _snapModelToCenter = false; _snappedToCenter = false; }
     const glm::vec3& getOffset() const { return _offset; }
     
     void setPupilDilation(float dilation) { _pupilDilation = dilation; }
@@ -215,6 +223,9 @@ protected:
     float _scaleToFitLargestDimension; /// this is the dimension that scale to fit will use
     bool _scaledToFit; /// have we scaled to fit
     
+    bool _snapModelToCenter; /// is the model's offset automatically adjusted to center around 0,0,0 in model space
+    bool _snappedToCenter;
+    
     class JointState {
     public:
         glm::vec3 translation;  // translation relative to parent
@@ -241,7 +252,9 @@ protected:
     // returns 'true' if needs fullUpdate after geometry change
     bool updateGeometry();
     
-    void checkScaleToFit();
+    void setScaleInternal(const glm::vec3& scale);
+    void scaleToFit();
+    void snapToCenter();
 
     void simulateInternal(float deltaTime);
 
