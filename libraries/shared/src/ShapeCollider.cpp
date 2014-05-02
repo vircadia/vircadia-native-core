@@ -15,6 +15,7 @@
 
 #include "GeometryUtil.h"
 #include "ShapeCollider.h"
+#include "StreamUtils.h"    // adebug
 
 // NOTE:
 //
@@ -591,7 +592,8 @@ bool listList(const ListShape* listA, const ListShape* listB, CollisionList& col
 }
 
 // helper function
-bool sphereAACube(const glm::vec3& sphereCenter, float sphereRadius, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions) {
+bool sphereAACube(const glm::vec3& sphereCenter, float sphereRadius, const glm::vec3& cubeCenter, 
+        float cubeSide, CollisionList& collisions) {
     glm::vec3 BA = cubeCenter - sphereCenter;
     float distance = glm::length(BA);
     if (distance > EPSILON) {
@@ -649,7 +651,7 @@ bool sphereAACube(const glm::vec3& sphereCenter, float sphereRadius, const glm::
                 // penetration is the projection of surfaceAB on direction
                 collision->_penetration = glm::dot(surfaceAB, direction) * direction;
                 // contactPoint is on surface of A
-                collision->_contactPoint = sphereCenter - sphereRadius * direction;
+                collision->_contactPoint = sphereCenter + sphereRadius * direction;
                 return true;
             }
         }
