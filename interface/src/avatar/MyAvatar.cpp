@@ -940,6 +940,7 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
         for (int i = 0; i < myCollisions.size(); ++i) {
             CollisionInfo* collision = myCollisions[i];
             applyHardCollision(collision->_penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+            _lastFloorContactPoint = collision->_contactPoint - collision->_penetration;
         }
         const float VOXEL_COLLISION_FREQUENCY = 0.5f;
         updateCollisionSound(myCollisions[0]->_penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
