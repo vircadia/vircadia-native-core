@@ -221,6 +221,14 @@ void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, const
         glm::normalize(inverse * axes[0])) * joint.rotation;
 }
 
+void SkeletonModel::maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
+    _owningAvatar->getHead()->getFaceModel().maybeUpdateNeckRotation(parentState, joint, state);
+}
+
+void SkeletonModel::maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
+    _owningAvatar->getHead()->getFaceModel().maybeUpdateEyeRotation(parentState, joint, state);
+}
+
 void SkeletonModel::renderJointConstraints(int jointIndex) {
     if (jointIndex == -1) {
         return;
