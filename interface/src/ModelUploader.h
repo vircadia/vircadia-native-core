@@ -64,8 +64,8 @@ private:
     
     bool zip();
     bool addTextures(const QString& texdir, const FBXGeometry& geometry);
-    bool addPart(const QString& path, const QString& name);
-    bool addPart(const QFile& file, const QByteArray& contents, const QString& name);
+    bool addPart(const QString& path, const QString& name, bool isTexture = false);
+    bool addPart(const QFile& file, const QByteArray& contents, const QString& name, bool isTexture = false);
 };
 
 /// A dialog that allows customization of various model properties.

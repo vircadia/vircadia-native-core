@@ -19,6 +19,7 @@
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QHttpMultiPart>
+#include <QImage>
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QProgressBar>
@@ -51,6 +52,7 @@ static const QString MODEL_URL = "/api/v1/models";
 static const QString SETTING_NAME = "LastModelUploadLocation";
 
 static const int MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+static const int MAX_TEXTURE_SIZE = 1024;
 static const int TIMEOUT = 1000;
 static const int MAX_CHECK = 30;
 
@@ -429,13 +431,13 @@ bool ModelUploader::addTextures(const QString& texdir, const FBXGeometry& geomet
         foreach (FBXMeshPart part, mesh.parts) {
             if (!part.diffuseTexture.filename.isEmpty() && part.diffuseTexture.content.isEmpty()) {
                 if (!addPart(texdir + "/" + part.diffuseTexture.filename,
-                             QString("texture%1").arg(++_texturesCount))) {
+                             QString("texture%1").arg(++_texturesCount), true)) {
                     return false;
                 }
             }
             if (!part.normalTexture.filename.isEmpty() && part.normalTexture.content.isEmpty()) {
                 if (!addPart(texdir + "/" + part.normalTexture.filename,
-                             QString("texture%1").arg(++_texturesCount))) {
+                             QString("texture%1").arg(++_texturesCount), true)) {
                     return false;
                 }
             }
@@ -445,7 +447,7 @@ bool ModelUploader::addTextures(const QString& texdir, const FBXGeometry& geomet
     return true;
 }
 
-bool ModelUploader::addPart(const QString &path, const QString& name) {
+bool ModelUploader::addPart(const QString &path, const QString& name, bool isTexture) {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
         QMessageBox::warning(NULL,
@@ -455,11 +457,29 @@ bool ModelUploader::addPart(const QString &path, const QString& name) {
         qDebug() << "[Warning] " << QString("Could not open %1").arg(path);
         return false;
     }
-    return addPart(file, file.readAll(), name);
+    return addPart(file, file.readAll(), name, isTexture);
 }
 
-bool ModelUploader::addPart(const QFile& file, const QByteArray& contents, const QString& name) {
-    QByteArray buffer = qCompress(contents);
+bool ModelUploader::addPart(const QFile& file, const QByteArray& contents, const QString& name, bool isTexture) {
+    QFileInfo fileInfo(file);
+    QByteArray recodedContents = contents;
+    if (isTexture) {
+        QString extension = fileInfo.suffix().toLower();
+        bool isJpeg = (extension == "jpg");
+        bool mustRecode = !(isJpeg || extension == "png");
+        QImage image = QImage::fromData(contents);
+        if (image.width() > MAX_TEXTURE_SIZE || image.height() > MAX_TEXTURE_SIZE) {
+            image = image.scaled(MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE, Qt::KeepAspectRatio);
+            mustRecode = true;
+        }
+        if (mustRecode) {
+            QBuffer buffer;
+            buffer.open(QIODevice::WriteOnly); 
+            image.save(&buffer, isJpeg ? "JPG" : "PNG");
+            recodedContents = buffer.data();
+        }
+    }
+    QByteArray buffer = qCompress(recodedContents);
     
     // Qt's qCompress() default compression level (-1) is the standard zLib compression.
     // Here remove Qt's custom header that prevent the data server from uncompressing the files with zLib.
@@ -475,7 +495,7 @@ bool ModelUploader::addPart(const QFile& file, const QByteArray& contents, const
     
     
     qDebug() << "File " << QFileInfo(file).fileName() << " added to model.";
-    _totalSize += file.size();
+    _totalSize += recodedContents.size();
     if (_totalSize > MAX_SIZE) {
         QMessageBox::warning(NULL,
                              QString("ModelUploader::zip()"),
@@ -597,7 +617,10 @@ void ModelPropertiesDialog::reset() {
             delete _freeJoints->itemAt(0)->widget();
         }
         foreach (const QVariant& joint, _originalMapping.values(FREE_JOINT_FIELD)) {
-            createNewFreeJoint(joint.toString());
+            QString jointName = joint.toString();
+            if (_geometry.jointIndices.contains(jointName)) {
+                createNewFreeJoint(jointName);
+            }
         }
     }
 }
