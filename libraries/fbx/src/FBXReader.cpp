@@ -584,13 +584,16 @@ public:
 };
 
 glm::mat4 getGlobalTransform(const QMultiHash<QString, QString>& parentMap,
-        const QHash<QString, FBXModel>& models, QString nodeID) {
+        const QHash<QString, FBXModel>& models, QString nodeID, bool mixamoHack) {
     glm::mat4 globalTransform;
     while (!nodeID.isNull()) {
         const FBXModel& model = models.value(nodeID);
         globalTransform = glm::translate(model.translation) * model.preTransform * glm::mat4_cast(model.preRotation *
             model.rotation * model.postRotation) * model.postTransform * globalTransform;
-
+        if (mixamoHack) {
+            // there's something weird about the models from Mixamo Fuse; they don't skin right with the full transform
+            return globalTransform;
+        }
         QList<QString> parentIDs = parentMap.values(nodeID);
         nodeID = QString();
         foreach (const QString& parentID, parentIDs) {
@@ -1481,7 +1484,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
 
         // accumulate local transforms
         QString modelID = models.contains(it.key()) ? it.key() : parentMap.value(it.key());
-        glm::mat4 modelTransform = getGlobalTransform(parentMap, models, modelID);
+        glm::mat4 modelTransform = getGlobalTransform(parentMap, models, modelID, geometry.applicationName == "mixamo.com");
 
         // compute the mesh extents from the transformed vertices
         foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
