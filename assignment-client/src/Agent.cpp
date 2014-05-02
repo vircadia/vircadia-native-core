@@ -35,6 +35,7 @@ Agent::Agent(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _voxelEditSender(),
     _particleEditSender(),
+    _modelEditSender(),
     _receivedAudioBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO),
     _avatarHashMap()
 {
@@ -43,6 +44,7 @@ Agent::Agent(const QByteArray& packet) :
     
     _scriptEngine.getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
     _scriptEngine.getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
+    _scriptEngine.getModelsScriptingInterface()->setPacketSender(&_modelEditSender);
 }
 
 void Agent::readPendingDatagrams() {
@@ -83,6 +85,17 @@ void Agent::readPendingDatagrams() {
                 
                 // also give our local particle tree a chance to remap any internal locally created particles
                 _particleViewer.getTree()->handleAddParticleResponse(receivedPacket);
+
+                // Make sure our Node and NodeList knows we've heard from this node.
+                SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
+                sourceNode->setLastHeardMicrostamp(usecTimestampNow());
+
+            } else if (datagramPacketType == PacketTypeModelAddResponse) {
+                // this will keep creatorTokenIDs to IDs mapped correctly
+                ModelItem::handleAddModelResponse(receivedPacket);
+                
+                // also give our local particle tree a chance to remap any internal locally created particles
+                _modelViewer.getTree()->handleAddModelResponse(receivedPacket);
 
                 // Make sure our Node and NodeList knows we've heard from this node.
                 SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);

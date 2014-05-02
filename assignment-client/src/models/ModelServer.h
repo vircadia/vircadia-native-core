@@ -28,7 +28,7 @@ public:
     // Subclasses must implement these methods
     virtual OctreeQueryNode* createOctreeQueryNode();
     virtual Octree* createTree();
-    virtual unsigned char getMyNodeType() const { return NodeType::ModelServer; }
+    virtual char getMyNodeType() const { return NodeType::ModelServer; }
     virtual PacketType getMyQueryMessageType() const { return PacketTypeModelQuery; }
     virtual const char* getMyServerName() const { return MODEL_SERVER_NAME; }
     virtual const char* getMyLoggingServerTargetName() const { return MODEL_SERVER_LOGGING_TARGET_NAME; }

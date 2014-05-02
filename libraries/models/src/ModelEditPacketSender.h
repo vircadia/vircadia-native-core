@@ -31,7 +31,7 @@ public:
     void queueModelEditMessage(PacketType type, ModelItemID modelID, const ModelItemProperties& properties);
 
     // My server type is the model server
-    virtual unsigned char getMyNodeType() const { return NodeType::ModelServer; }
+    virtual char getMyNodeType() const { return NodeType::ModelServer; }
     virtual void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
 };
 #endif // hifi_ModelEditPacketSender_h
