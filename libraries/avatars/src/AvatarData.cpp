@@ -640,7 +640,7 @@ bool AvatarData::hasBillboardChangedAfterParsing(const QByteArray& packet) {
 }
 
 void AvatarData::setFaceModelURL(const QUrl& faceModelURL) {
-    _faceModelURL = faceModelURL.isEmpty() ? DEFAULT_HEAD_MODEL_URL : faceModelURL;
+    _faceModelURL = faceModelURL;
     
     qDebug() << "Changing face model for avatar to" << _faceModelURL.toString();
 }

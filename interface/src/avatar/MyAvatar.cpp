@@ -528,7 +528,7 @@ void MyAvatar::loadData(QSettings* settings) {
     setScale(_scale);
     Application::getInstance()->getCamera()->setScale(_scale);
     
-    setFaceModelURL(settings->value("faceModelURL").toUrl());
+    setFaceModelURL(settings->value("faceModelURL", DEFAULT_HEAD_MODEL_URL).toUrl());
     setSkeletonModelURL(settings->value("skeletonModelURL").toUrl());
     setDisplayName(settings->value("displayName").toString());
 
@@ -618,7 +618,7 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _billboardValid = false;
 }
 
-void MyAvatar::renderBody(RenderMode renderMode) {
+void MyAvatar::renderBody(RenderMode renderMode, float glowLevel) {
     if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         return; // wait until both models are loaded
     }

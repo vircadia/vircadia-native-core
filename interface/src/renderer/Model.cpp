@@ -39,7 +39,8 @@ Model::Model(QObject* parent) :
     _boundingShape(), 
     _boundingShapeLocalOffset(0.f),
     _lodDistance(0.0f),
-    _pupilDilation(0.0f) {
+    _pupilDilation(0.0f),
+    _url("http://invalid.com") {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
 }

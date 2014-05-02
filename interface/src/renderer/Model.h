@@ -53,7 +53,7 @@ public:
     
     bool isActive() const { return _geometry && _geometry->isLoaded(); }
     
-    bool isRenderable() const { return !_meshStates.isEmpty(); }
+    bool isRenderable() const { return !_meshStates.isEmpty() || (isActive() && _geometry->getMeshes().isEmpty()); }
     
     bool isLoadedWithTextures() const { return _geometry && _geometry->isLoadedWithTextures(); }
     

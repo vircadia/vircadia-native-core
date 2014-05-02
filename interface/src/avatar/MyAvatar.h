@@ -42,7 +42,7 @@ public:
     void moveWithLean();
 
     void render(const glm::vec3& cameraPosition, RenderMode renderMode = NORMAL_RENDER_MODE);
-    void renderBody(RenderMode renderMode);
+    void renderBody(RenderMode renderMode, float glowLevel);
     bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
     void renderDebugBodyPoints();
     void renderHeadMouse() const;
