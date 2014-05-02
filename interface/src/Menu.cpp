@@ -1119,7 +1119,7 @@ void Menu::toggleLoginMenuItem() {
 
     if (accountManager.isLoggedIn()) {
         // change the menu item to logout
-        _loginAction->setText("Logout " + accountManager.getUsername());
+        _loginAction->setText("Logout " + accountManager.getAccountInfo().getUsername());
         connect(_loginAction, &QAction::triggered, &accountManager, &AccountManager::logout);
     } else {
         // change the menu item to login

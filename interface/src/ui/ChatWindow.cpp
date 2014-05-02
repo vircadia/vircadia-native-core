@@ -254,7 +254,7 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     }
 
     // Update background if this is a message from the current user
-    bool fromSelf = getParticipantName(message.from()) == AccountManager::getInstance().getUsername();
+    bool fromSelf = getParticipantName(message.from()) == AccountManager::getInstance().getAccountInfo().getUsername();
 
     // Create message area
     ChatMessageArea* messageArea = new ChatMessageArea(true);

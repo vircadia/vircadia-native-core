@@ -63,7 +63,24 @@ void OAuthWebViewHandler::displayWebviewForAuthorizationURL(const QUrl& authoriz
         _activeWebView->setAttribute(Qt::WA_DeleteOnClose);
         
         qDebug() << "Displaying QWebView for OAuth authorization at" << authorizationURL.toString();
-        _activeWebView->load(authorizationURL);
+        
+        AccountManager& accountManager = AccountManager::getInstance();
+        
+        QUrl codedAuthorizationURL = authorizationURL;
+        
+        // check if we have an access token for this host - if so we can bypass login by adding it to the URL
+        if (accountManager.getAuthURL().host() == authorizationURL.host()
+            && accountManager.hasValidAccessToken()) {
+            
+            const QString ACCESS_TOKEN_QUERY_STRING_KEY = "access_token";
+            
+            QUrlQuery authQuery(codedAuthorizationURL);
+            authQuery.addQueryItem(ACCESS_TOKEN_QUERY_STRING_KEY, accountManager.getAccountInfo().getAccessToken().token);
+            
+            codedAuthorizationURL.setQuery(authQuery);
+        }
+        
+        _activeWebView->load(codedAuthorizationURL);
         _activeWebView->show();
         
         connect(_activeWebView->page()->networkAccessManager(), &QNetworkAccessManager::sslErrors,
