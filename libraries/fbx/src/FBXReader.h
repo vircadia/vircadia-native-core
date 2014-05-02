@@ -174,6 +174,8 @@ public:
 class FBXGeometry {
 public:
 
+    QString applicationName; ///< the name of the application that generated the model
+
     QVector<FBXJoint> joints;
     QHash<QString, int> jointIndices; ///< 1-based, so as to more easily detect missing indices
     
@@ -217,6 +219,9 @@ Q_DECLARE_METATYPE(FBXGeometry)
 
 /// Reads an FST mapping from the supplied data.
 QVariantHash readMapping(const QByteArray& data);
+
+/// Writes an FST mapping to a byte array.
+QByteArray writeMapping(const QVariantHash& mapping);
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
