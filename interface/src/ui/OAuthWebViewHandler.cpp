@@ -85,10 +85,10 @@ void OAuthWebViewHandler::displayWebviewForAuthorizationURL(const QUrl& authoriz
         
         connect(_activeWebView->page()->networkAccessManager(), &QNetworkAccessManager::sslErrors,
                 this, &OAuthWebViewHandler::handleSSLErrors);
-        connect(_activeWebView, &QWebView::loadFinished, this, &OAuthWebViewHandler::handleLoadFinished);
+        connect(_activeWebView.data(), &QWebView::loadFinished, this, &OAuthWebViewHandler::handleLoadFinished);
         
         // connect to the destroyed signal so after the web view closes we can start a timer
-        connect(_activeWebView, SIGNAL(destroyed(QObject*)), this, SLOT(handleWebViewDestroyed(QObject*)));
+        connect(_activeWebView.data(), &QWebView::destroyed, this, &OAuthWebViewHandler::handleWebViewDestroyed);
     }
 }
 
