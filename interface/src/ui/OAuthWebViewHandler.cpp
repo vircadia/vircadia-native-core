@@ -13,7 +13,7 @@
 
 #include "Application.h"
 
-#include "OAuthWebviewHandler.h"
+#include "OAuthWebViewHandler.h"
 
 OAuthWebViewHandler& OAuthWebViewHandler::getInstance() {
     static OAuthWebViewHandler sharedInstance;
