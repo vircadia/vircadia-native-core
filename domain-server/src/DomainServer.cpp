@@ -386,6 +386,8 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
     }
 }
 
+const QString ALLOWED_ROLES_CONFIG_KEY = "allowed-roles";
+
 const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
     << NodeType::AvatarMixer << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::ModelServer
     << NodeType::MetavoxelServer;
@@ -406,8 +408,8 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         matchingQueuedAssignment = matchingQueuedAssignmentForCheckIn(packetUUID, nodeType);
     }
     
-    if (!matchingQueuedAssignment && !_oauthProviderURL.isEmpty()) {
-        // this is an Agent, and we require authentication
+    if (!matchingQueuedAssignment && !_oauthProviderURL.isEmpty() && _argumentVariantMap.contains(ALLOWED_ROLES_CONFIG_KEY)) {
+        // this is an Agent, and we require authentication so we can compare the user's roles to our list of allowed ones
         if (_sessionAuthenticationHash.contains(packetUUID)) {
             if (!_sessionAuthenticationHash.value(packetUUID)) {
                 // we've decided this is a user that isn't allowed in, return out
@@ -1143,7 +1145,6 @@ void DomainServer::handleProfileRequestFinished() {
             // pull the user roles from the response
             QJsonArray userRolesArray = profileJSON.object()["data"].toObject()["user"].toObject()["roles"].toArray();
             
-            const QString ALLOWED_ROLES_CONFIG_KEY = "allowed-roles";
             QJsonArray allowedRolesArray = _argumentVariantMap.value(ALLOWED_ROLES_CONFIG_KEY).toJsonValue().toArray();
             
             bool shouldAllowUserToConnect = false;
