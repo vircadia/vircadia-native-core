@@ -555,24 +555,26 @@ void MyAvatar::orbit(const glm::vec3& position, int deltaX, int deltaY) {
 }
 
 void MyAvatar::updateLookAtTargetAvatar() {
-    Application* applicationInstance = Application::getInstance();
-    
-    if (!applicationInstance->isMousePressed()) {
-        glm::vec3 mouseOrigin = applicationInstance->getMouseRayOrigin();
-        glm::vec3 mouseDirection = applicationInstance->getMouseRayDirection();
-
-        foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
-            Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
-            float distance;
-            if (avatar->findRayIntersection(mouseOrigin, mouseDirection, distance)) {
+    //
+    //  Look at the avatar whose eyes are closest to the ray in direction of my avatar's head
+    //
+    const float MIN_LOOKAT_ANGLE = PI / 4.0f;        //  Smallest angle between face and person where we will look at someone
+    float smallestAngleTo = MIN_LOOKAT_ANGLE;
+    foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
+        Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
+        if (!avatar->isMyAvatar()) {
+            float angleTo = glm::angle(getHead()->getFinalOrientation() * glm::vec3(0.0f, 0.0f, -1.0f),
+                                       glm::normalize(avatar->getHead()->getEyePosition() - getHead()->getEyePosition()));
+            if (angleTo < smallestAngleTo) {
                 _lookAtTargetAvatar = avatarPointer;
                 _targetAvatarPosition = avatarPointer->getPosition();
+                smallestAngleTo = angleTo;
                 return;
             }
         }
-        _lookAtTargetAvatar.clear();
-        _targetAvatarPosition = glm::vec3(0, 0, 0);
     }
+    _lookAtTargetAvatar.clear();
+    _targetAvatarPosition = glm::vec3(0, 0, 0);
 }
 
 void MyAvatar::clearLookAtTargetAvatar() {
