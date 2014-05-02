@@ -818,7 +818,7 @@ void Model::setScaleToFit(bool scaleToFit, float largestDimension) {
 }
 
 void Model::scaleToFit() {
-    Extents modelMeshExtents = getMeshExtents();
+    Extents modelMeshExtents = getUnscaledMeshExtents();
 
     // size is our "target size in world space"
     // we need to set our model scale so that the extents of the mesh, fit in a cube that size...

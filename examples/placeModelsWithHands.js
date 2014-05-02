@@ -22,13 +22,19 @@ var RIGHT_BUTTON_3 = 9;
 
 var leftModelAlreadyInHand = false;
 var rightModelAlreadyInHand = false;
+var leftRecentlyDeleted = false;
+var rightRecentlyDeleted = false;
 var leftHandModel;
 var rightHandModel;
 
 //var throwSound = new Sound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/throw.raw");
 //var catchSound = new Sound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/catch.raw");
-var targetRadius = 0.25;
+var targetRadius = 0.5;
 
+var radiusDefault = 0.25;
+var modelRadius = radiusDefault;
+var radiusMinimum = 0.05;
+var radiusMaximum = 0.5;
 
 var modelURLs = [
     "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
@@ -37,9 +43,49 @@ var modelURLs = [
     "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/newInvader16x16-large-purple.svo",
     "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/minotaur/mino_full.fbx",
     "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Combat_tank_V01.FBX",
+    "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/orc.fbx",
+    "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/slimer.fbx",
 ];
 
-var currentModelURL = 0;
+var currentModelURL = 1;
+var numModels = modelURLs.length;
+
+
+
+function keyPressEvent(event) {
+    //print("event.text=" + event.text);
+    if (event.text == "ESC") {
+        if (leftRecentlyDeleted) {
+            leftRecentlyDeleted = false;
+            leftModelAlreadyInHand = false;
+        }
+        if (rightRecentlyDeleted) {
+            rightRecentlyDeleted = false;
+            rightModelAlreadyInHand = false;
+        }
+    } else if (event.text == "DELETE") {
+        if (leftModelAlreadyInHand) {
+            print("want to delete leftHandModel=" + leftHandModel);
+            Models.deleteModel(leftHandModel);
+            leftHandModel = "";
+            //leftModelAlreadyInHand = false;
+            leftRecentlyDeleted = true;
+        }
+        if (rightModelAlreadyInHand) {
+            print("want to delete rightHandModel=" + rightHandModel);
+            Models.deleteModel(rightHandModel);
+            rightHandModel = "";
+            //rightModelAlreadyInHand = false;
+            rightRecentlyDeleted = true;
+        }
+    } else {
+        var nVal = parseInt(event.text);
+        if ((nVal >= 0) && (nVal < numModels)) {
+            currentModelURL = nVal;
+            print("Model = " + currentModelURL);
+        }
+    }
+}
 
 var wantDebugging = false;
 function debugPrint(message) {
@@ -103,7 +149,8 @@ function checkControllerSide(whichSide) {
 
         if (closestModel.isKnownID) {
 
-            debugPrint(handMessage + " HAND- CAUGHT SOMETHING!!");
+            //debugPrint
+            print(handMessage + " HAND- CAUGHT SOMETHING!!");
 
             if (whichSide == LEFT_PALM) {
                 leftModelAlreadyInHand = true;
@@ -113,10 +160,15 @@ function checkControllerSide(whichSide) {
                 rightHandModel = closestModel;
             }
             var modelPosition = getModelHoldPosition(whichSide);
+
             var properties = { position: { x: modelPosition.x, 
                                            y: modelPosition.y, 
                                            z: modelPosition.z }, 
+                                radius: modelRadius,
                               };
+
+            print(">>>>>>>>>>>> EDIT MODEL.... modelRadius=" +modelRadius);
+
             Models.editModel(closestModel, properties);
 
             /*            
@@ -136,9 +188,11 @@ function checkControllerSide(whichSide) {
         var properties = { position: { x: modelPosition.x, 
                                        y: modelPosition.y, 
                                        z: modelPosition.z }, 
-                radius: 0.25,
+                radius: modelRadius,
                 modelURL: modelURLs[currentModelURL]
             };
+
+        print("modelRadius=" +modelRadius);
 
         newModel = Models.addModel(properties);
         if (whichSide == LEFT_PALM) {
@@ -171,12 +225,17 @@ function checkControllerSide(whichSide) {
 
         //  If holding the model keep it in the palm
         if (grabButtonPressed) {
-            debugPrint(">>>>> " + handMessage + "-MODEL IN HAND, grabbing, hold and move");
+            //debugPrint
+            print(">>>>> " + handMessage + "-MODEL IN HAND, grabbing, hold and move");
             var modelPosition = getModelHoldPosition(whichSide);
             var properties = { position: { x: modelPosition.x, 
                                            y: modelPosition.y, 
                                            z: modelPosition.z }, 
-                };
+                               radius: modelRadius,
+                             };
+
+            print(">>>>>>>>>>>> EDIT MODEL.... modelRadius=" +modelRadius);
+
             Models.editModel(handModel, properties);
         } else {
             debugPrint(">>>>> " + handMessage + "-MODEL IN HAND, not grabbing, RELEASE!!!");
@@ -213,8 +272,30 @@ function checkController(deltaTime) {
 
     checkControllerSide(LEFT_PALM);
     checkControllerSide(RIGHT_PALM);
+        
+    if (rightModelAlreadyInHand) {
+        var rightTriggerValue = Controller.getTriggerValue(1);
+        if (rightTriggerValue > 0.0) {
+            var possibleRadius = ((1.0 - rightTriggerValue) * (radiusMaximum - radiusMinimum)) + radiusMinimum;
+            modelRadius = possibleRadius;
+        } else {
+            modelRadius = radiusDefault;
+        }
+    }
+
+    if (leftModelAlreadyInHand) {
+        var leftTriggerValue = Controller.getTriggerValue(0);
+        if (leftTriggerValue > 0.0) {
+            var possibleRadius = ((1.0 - leftTriggerValue) * (radiusMaximum - radiusMinimum)) + radiusMinimum;
+            modelRadius = possibleRadius;
+        } else {
+            modelRadius = radiusDefault;
+        }
+    }
 }
 
 
 // register the call back so it fires before each data send
 Script.update.connect(checkController);
+Controller.keyPressEvent.connect(keyPressEvent);
+
