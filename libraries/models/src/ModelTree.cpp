@@ -211,7 +211,7 @@ void ModelTree::handleAddModelResponse(const QByteArray& packet) {
         getIsViewing() 
     };
     
-    const bool wantDebug = true;
+    const bool wantDebug = false;
     if (wantDebug) {
         qDebug() << "looking for creatorTokenID=" << creatorTokenID << " modelID=" << modelID 
                 << " getIsViewing()=" << getIsViewing();
