@@ -37,7 +37,6 @@ OctreeEditPacketSender::OctreeEditPacketSender() :
     _serverJurisdictions(NULL),
     _sequenceNumber(0),
     _maxPacketSize(MAX_PACKET_SIZE) {
-    qDebug() << "OctreeEditPacketSender::OctreeEditPacketSender() this=" << this;
 }
 
 OctreeEditPacketSender::~OctreeEditPacketSender() {
@@ -89,29 +88,17 @@ bool OctreeEditPacketSender::serversExist() const {
 // This method is called when the edit packet layer has determined that it has a fully formed packet destined for
 // a known nodeID.
 void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned char* buffer, ssize_t length) {
-qDebug() << "OctreeEditPacketSender::queuePacketToNode() this=" << this;
-
     NodeList* nodeList = NodeList::getInstance();
 
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-
-qDebug() << "OctreeEditPacketSender::queuePacketToNode() this=" << this << "node->getType()=" << node->getType();
-qDebug() << "OctreeEditPacketSender::queuePacketToNode() this=" << this << "getMyNodeType()=" << getMyNodeType();
-qDebug() << "OctreeEditPacketSender::queuePacketToNode() this=" << this << "node->getUUID()=" << node->getUUID();
-qDebug() << "OctreeEditPacketSender::queuePacketToNode() this=" << this << "       nodeUUID=" << nodeUUID;
-qDebug() << "OctreeEditPacketSender::queuePacketToNode() this=" << this << "nodeUUID.isNull=" << nodeUUID.isNull();
-qDebug() << "OctreeEditPacketSender::queuePacketToNode() this=" << this << "node->getActiveSocket()=" << node->getActiveSocket();
-
         // only send to the NodeTypes that are getMyNodeType()
         if (node->getType() == getMyNodeType() &&
             ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))) {
             if (node->getActiveSocket()) {
-
-qDebug() << "OctreeEditPacketSender::queuePacketToNode() this=" << this << "calling queuePacketForSending()...";
                 queuePacketForSending(node, QByteArray(reinterpret_cast<char*>(buffer), length));
 
                 // debugging output...
-                bool wantDebugging = true;
+                bool wantDebugging = false;
                 if (wantDebugging) {
                     int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<char*>(buffer));
                     unsigned short int sequence = (*((unsigned short int*)(buffer + numBytesPacketHeader)));
@@ -178,7 +165,6 @@ void OctreeEditPacketSender::queuePendingPacketToNodes(PacketType type, unsigned
 
 void OctreeEditPacketSender::queuePacketToNodes(unsigned char* buffer, ssize_t length) {
     if (!_shouldSend) {
-qDebug() << "OctreeEditPacketSender::queuePacketToNodes()... this=" << this << "bail early!";
         return; // bail early
     }
 
@@ -212,17 +198,13 @@ qDebug() << "OctreeEditPacketSender::queuePacketToNodes()... this=" << this << "
 // NOTE: codeColorBuffer - is JUST the octcode/color and does not contain the packet header!
 void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned char* codeColorBuffer, ssize_t length) {
 
-//qDebug() << "OctreeEditPacketSender::queueOctreeEditMessage()... this=" << this;
-
     if (!_shouldSend) {
-//qDebug() << "OctreeEditPacketSender::queueOctreeEditMessage()... this=" << this << "bail early! _shouldSend=" << _shouldSend;
         return; // bail early
     }
 
     // If we don't have jurisdictions, then we will simply queue up all of these packets and wait till we have
     // jurisdictions for processing
     if (!serversExist()) {
-//qDebug() << "OctreeEditPacketSender::queueOctreeEditMessage()...   !serversExist()";
         if (_maxPendingMessages > 0) {
             EditPacketBuffer* packet = new EditPacketBuffer(type, codeColorBuffer, length);
             _pendingPacketsLock.lock();
@@ -237,7 +219,6 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
             }
             _pendingPacketsLock.unlock();
         }
-//qDebug() << "OctreeEditPacketSender::queueOctreeEditMessage()... this=" << this << "bail early!... !serversExist()";
         return; // bail early
     }
 
@@ -294,7 +275,6 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
 }
 
 void OctreeEditPacketSender::releaseQueuedMessages() {
-qDebug() << "OctreeEditPacketSender::releaseQueuedMessages() this=" << this;
     // if we don't yet have jurisdictions then we can't actually release messages yet because we don't
     // know where to send them to. Instead, just remember this request and when we eventually get jurisdictions
     // call release again at that time.
@@ -302,7 +282,6 @@ qDebug() << "OctreeEditPacketSender::releaseQueuedMessages() this=" << this;
         _releaseQueuedMessagesPending = true;
     } else {
         for (std::map<QUuid, EditPacketBuffer>::iterator i = _pendingEditPackets.begin(); i != _pendingEditPackets.end(); i++) {
-qDebug() << "OctreeEditPacketSender::releaseQueuedMessages()... releaseQueuedPacket()... this=" << this;
             releaseQueuedPacket(i->second);
         }
     }
@@ -335,15 +314,12 @@ void OctreeEditPacketSender::initializePacket(EditPacketBuffer& packetBuffer, Pa
 }
 
 bool OctreeEditPacketSender::process() {
-    qDebug() << "OctreeEditPacketSender::process() this=" << this;
     // if we have server jurisdiction details, and we have pending pre-jurisdiction packets, then process those
     // before doing our normal process step. This processPreJurisdictionPackets()
     if (serversExist() && (!_preServerPackets.empty() || !_preServerSingleMessagePackets.empty() )) {
-        qDebug() << "OctreeEditPacketSender::process() this=" << this << "calling processPreServerExistsPackets()";
         processPreServerExistsPackets();
     }
 
     // base class does most of the work.
-    qDebug() << "OctreeEditPacketSender::process() this=" << this << "calling PacketSender::process()";
     return PacketSender::process();
 }
