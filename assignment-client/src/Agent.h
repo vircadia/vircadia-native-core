@@ -64,6 +64,7 @@ private:
     ScriptEngine _scriptEngine;
     VoxelEditPacketSender _voxelEditSender;
     ParticleEditPacketSender _particleEditSender;
+    ModelEditPacketSender _modelEditSender;
 
     ParticleTreeHeadlessViewer _particleViewer;
     VoxelTreeHeadlessViewer _voxelViewer;
