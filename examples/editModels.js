@@ -11,7 +11,7 @@
 
 var LASER_WIDTH = 4;
 var LASER_COLOR = { red: 255, green: 0, blue: 0 };
-var LASER_LENGTH_FACTOR = 4;
+var LASER_LENGTH_FACTOR = 1;
 
 var LEFT = 0;
 var RIGHT = 1;
@@ -29,6 +29,18 @@ function controller(wichSide) {
     this.oldTipPosition = Controller.getSpatialControlPosition(this.tip);
     this.tipPosition = Controller.getSpatialControlPosition(this.tip);
     
+    this.oldUp = Controller.getSpatialControlNormal(this.palm);
+    this.up = this.oldUp;
+    
+    this.oldFront = Vec3.normalize(Vec3.subtract(this.tipPosition, this.palmPosition));
+    this.front = this.oldFront;
+    
+    this.oldRight = Vec3.cross(this.front, this.up);
+    this.right = this.oldRight;
+    
+    this.oldRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(this.palm));
+    this.rotation = this.oldRotation;
+    
     this.triggerValue = Controller.getTriggerValue(this.trigger);
     
     this.pressed = false; // is trigger pressed
@@ -36,7 +48,7 @@ function controller(wichSide) {
     
     this.grabbing = false;
     this.particleID = 0;
-    this.oldParticlePosition = { x: 0, y: 0, z: 0 };
+    this.oldParticleProperties;
     
     this.laser = Overlays.addOverlay("line3d", {
                                      position: this.palmPosition,
@@ -47,6 +59,34 @@ function controller(wichSide) {
                                      lineWidth: LASER_WIDTH
                                      });
     
+    this.guideScale = 0.02;
+    this.ball = Overlays.addOverlay("sphere", {
+                                    position: this.palmPosition,
+                                    size: this.guideScale,
+                                    solid: true,
+                                    color: { red: 0, green: 255, blue: 0 },
+                                    alpha: 1,
+                                    visible: false,
+                                    });
+    this.leftRight = Overlays.addOverlay("line3d", {
+                                         position: this.palmPosition,
+                                         end: this.tipPosition,
+                                         color: { red: 0, green: 0, blue: 255 },
+                                         alpha: 1,
+                                         visible: false,
+                                         lineWidth: LASER_WIDTH
+                                         });
+    this.topDown = Overlays.addOverlay("line3d", {
+                                       position: this.palmPosition,
+                                       end: this.tipPosition,
+                                       color: { red: 0, green: 0, blue: 255 },
+                                       alpha: 1,
+                                       visible: false,
+                                       lineWidth: LASER_WIDTH
+                                       });
+    
+
+    
     this.grab = function (particle) {
         if (!particle.isKnownID) {
             var identify = Particles.identifyParticle(particle);
@@ -54,20 +94,17 @@ function controller(wichSide) {
                 return;
             }
         }
+        print("Grabbing");
         this.grabbing = true;
-        this.particle = identify;
+        this.particleID = identify;
         
-        var properties = Particles.getParticleProperties(this.particle);
-        
-        this.oldParticlePosition = properties.position;
-        
-        print("Grabbed: " + this.oldParticlePosition);
+        this.oldParticleProperties = Particles.getParticleProperties(this.particleID);
     }
     
     this.release = function () {
         this.grabbing = false;
         this.particleID = -1;
-        this.oldParticlePosition = { x: 0, y: 0, z: 0 };
+        this.oldParticleProperties = { };
     }
     
     this.checkTrigger = function () {
@@ -85,22 +122,68 @@ function controller(wichSide) {
     }
     
     this.moveLaser = function () {
-        var vector = Vec3.subtract(this.tipPosition, this.palmPosition);
-        var endPosition = Vec3.sum(this.palmPosition, Vec3.multiply(vector, LASER_LENGTH_FACTOR));
+        var endPosition = Vec3.sum(this.palmPosition, Vec3.multiply(this.front, LASER_LENGTH_FACTOR));
         
         Overlays.editOverlay(this.laser, {
                              position: this.palmPosition,
                              end: endPosition,
                              visible: true
                              });
+        
+        
+        Overlays.editOverlay(this.ball, {
+                             position: endPosition,
+                             visible: true
+                             });
+        Overlays.editOverlay(this.leftRight, {
+                             position: Vec3.sum(endPosition, Vec3.multiply(this.right, 2 * this.guideScale)),
+                             end: Vec3.sum(endPosition, Vec3.multiply(this.right, -2 * this.guideScale)),
+                             visible: true
+                             });
+        Overlays.editOverlay(this.topDown, {position: Vec3.sum(endPosition, Vec3.multiply(this.up, 2 * this.guideScale)),
+                             end: Vec3.sum(endPosition, Vec3.multiply(this.up, -2 * this.guideScale)),
+                             visible: true
+                             });
     }
     
-    this.moveParticle = function () {
-        if (this.grabbing) {
-            
-            
-            
+    this.checkParticle = function (particle) {
+        if (!particle.isKnownID) {
+            var identify = Particles.identifyParticle(particle);
+            if (!identify.isKnownID) {
+                print("Unknown ID (checkParticle)");
+                return;
+            }
         }
+        //                P         P - Particle
+        //               /|         A - Palm
+        //              / | d       B - unit vector toward tip
+        //             /  |         X - base of the perpendicular line
+        //            A---X----->B  d - distance fom axis
+        //              x           x - distance from A
+        //
+        //            |X-A| = (P-A).B
+        //            X == A + ((P-A).B)B
+        //            d = |P-X|
+        
+        var A = this.palmPosition;
+        var B = this.front;
+        var P = Particles.getParticleProperties(particle).position;
+        
+        this.x = Vec3.dot(Vec3.subtract(P, A), B);
+        this.y = Vec3.dot(Vec3.subtract(P, A), this.up);
+        this.z = Vec3.dot(Vec3.subtract(P, A), this.right);
+        var X = Vec3.sum(A, Vec3.multiply(B, this.x));
+        var d = Vec3.length(Vec3.subtract(P, X));
+        
+//        Vec3.print("A: ", A);
+//        Vec3.print("B: ", B);
+//        Vec3.print("Particle pos: ", P);
+//        print("d: " + d + ", x: " + this.x);
+        if (d < 0.5 && 0 < this.x && this.x < LASER_LENGTH_FACTOR) {
+            return true;
+        }
+        
+        return false;
     }
     
     this.update = function () {
@@ -108,55 +191,45 @@ function controller(wichSide) {
         this.oldTipPosition = this.tipPosition;
         this.palmPosition = Controller.getSpatialControlPosition(this.palm);
         this.tipPosition = Controller.getSpatialControlPosition(this.tip);
+        
+        this.oldUp = this.up;
+        this.up = Vec3.normalize(Controller.getSpatialControlNormal(this.palm));
+        
+        this.oldFront = this.front;
+        this.front = Vec3.normalize(Vec3.subtract(this.tipPosition, this.palmPosition));
+        
+        this.oldRight = this.right;
+        this.right = Vec3.normalize(Vec3.cross(this.front, this.up));
+        
+        this.oldRotation = this.rotation;
+        this.rotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(this.palm));
+        
         this.triggerValue = Controller.getTriggerValue(this.trigger);
         
         this.checkTrigger();
         
         if (this.pressing) {
-            var particle = -1;
-            
-//                P         P - Particle
-//               /|         A - Palm
-//              / | d       B - unit vector toward tip
-//             /  |         X - base of the perpendicular line
-//            A---X----->B  d - distance fom axis
-//              x           x - distance from A
-//
-//            |X-A| = (P-A).B, in B unit
-//            X == A + ((P-A).B)B
-//            d = |P-X| in standard unit
-            
-            var A = this.palmPosition;
-            var B = Vec3.subtract(this.tipPosition, A);
-            var P = particlePosition;
-            
-            var x = Vec3.dot(Vec3.subtract(P, A), B);
-            var X = Vec3.sum(A, Vec3.multiply(B, x));
-            var d = Vec3.length(Vec3.subtract(P, X));
-            
-            
-            if (d < 0.5 && 0 < x && x < LASER_LENGTH_FACTOR) {
-                particle = particleTest;
+            if (this.checkParticle(particleTest1)) {
+                this.grab(particleTest1);
             }
-            Vec3.print("A = ", A);
-            Vec3.print("B = ", B);
-            Vec3.print("P = ", P);
-            Vec3.print("X = ", X);
-            print("d = " + d + ", x = " + x);
-            this.grab(particle);
         }
         
         if (!this.pressed && this.grabbing) {
             this.release();
         }
-    
         
+        if(this.grabbing) {
+            this.oldParticleProperties = Particles.getParticleProperties(this.particleID);
+        }
+    
         this.moveLaser();
-        this.moveParticle();
     }
     
     this.cleanup = function () {
         Overlays.deleteOverlay(this.laser);
+        Overlays.deleteOverlay(this.ball);
+        Overlays.deleteOverlay(this.leftRight);
+        Overlays.deleteOverlay(this.topDown);
     }
 }
 
@@ -164,19 +237,131 @@ var leftController = new controller(LEFT);
 var rightController = new controller(RIGHT);
 
 
-
-var particlePosition = MyAvatar.position;
 var particleRadius = 0.05;
-var particleTest = Particles.addParticle({ position: particlePosition,
-                                     velocity: { x: 0, y: 0, z: 0},
-                                     gravity: { x: 0, y: 0, z: 0},
-                                     radius: particleRadius,
-                                     damping: 0.999,
-                                     color: { red: 255, green: 0, blue: 0 },
-                                     lifetime: 100,
-                                     modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/models/heads/defaultAvatar_head.fst"
-                                     })
+var particleTest1 = Particles.addParticle({ position: { x: 0, y: 0, z:0 },
+                                          velocity: { x: 0, y: 0, z: 0},
+                                          gravity: { x: 0, y: 0, z: 0},
+                                          radius: particleRadius,
+                                          color: { red: 0, green: 0, blue: 255 },
+                                          modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/models/heads/defaultAvatar_head.fst",
+                                          lifetime: 600,
+                                          })
+var particleTest2 = Particles.addParticle({ position: { x: 0, y: 0, z:0 },
+                                          velocity: { x: 0, y: 0, z: 0},
+                                          gravity: { x: 0, y: 0, z: 0},
+                                          radius: particleRadius,
+                                          color: { red: 0, green: 0, blue: 255 },
+                                          alpha: 0.2,
+                                          lifetime: 600,
+                                          })
 
+
+var diff = { x: 0, y: 0, z: 0 };
+function moveParticles() {
+    if (leftController.grabbing) {
+        if (rightController.grabbing) {
+            
+            var newPosition = Vec3.sum(leftController.palmPosition,
+                                       Vec3.multiply(leftController.front, leftController.x));
+            newPosition = Vec3.sum(newPosition,
+                                   Vec3.multiply(leftController.up, leftController.y));
+            newPosition = Vec3.sum(newPosition,
+                                   Vec3.multiply(leftController.right, leftController.z));
+            
+            var rotation = Quat.multiply(leftController.rotation,
+                                         Quat.inverse(leftController.oldRotation));
+            rotation = Quat.multiply(rotation, Particles.getParticleProperties(leftController.particleID).modelRotation);
+            
+            Particles.editParticle(leftController.particleID, {
+                                   position: newPosition,
+                                   modelRotation: rotation,
+                                   lifetime: 600
+                                   });
+            Particles.editParticle(particleTest2, {
+                                   position: newPosition,
+                                   lifetime: 600
+                                   });
+            
+            return;
+            var leftVector = Vec3.sum(Vec3.multiply(leftController.front, leftController.x),
+                                      Vec3.multiply(leftController.up, leftController.y));
+            leftVector = Vec3.sum(leftVector,
+                                  Vec3.multiply(leftController.right, leftController.z));
+            
+            var rightVector = Vec3.sum(Vec3.multiply(rightController.front, rightController.x),
+                                       Vec3.multiply(rightController.up, rightController.y));
+            rightVector = Vec3.sum(rightVector,
+                                   Vec3.multiply(rightController.right, rightController.z));
+            
+            var newPosition = Vec3.sum(Vec3.sum(leftController.palmPosition, leftVector),
+                                       Vec3.sum(rightController.palmPosition, rightVector));
+            newPosition = Vec3.multiply(newPosition, 0.5);
+            
+            
+            var rotantion = Quat.multiply(MyAvatar.orientation,
+                                          Quat.inverse(leftController.oldRotation));
+            rotation = Quat.multiply(rotation, Particles.getParticleProperties(leftController.particleID).modelRotation);
+            
+            Particles.editParticle(leftController.particleID, {
+                                   position: newPosition,
+                                   //modelRotation: rotation,
+                                   lifetime: 600
+                                   });
+            Particles.editParticle(particleTest2, {
+                                   position: newPosition,
+                                   lifetime: 600
+                                   });
+            leftController.checkParticle(leftController.particleID);
+            rightController.checkParticle(rightController.particleID);
+            return;
+        } else {
+            var newPosition = Vec3.sum(leftController.palmPosition,
+                                       Vec3.multiply(leftController.front, leftController.x));
+            newPosition = Vec3.sum(newPosition,
+                                   Vec3.multiply(leftController.up, leftController.y));
+            newPosition = Vec3.sum(newPosition,
+                                   Vec3.multiply(leftController.right, leftController.z));
+            
+            var rotation = Quat.multiply(leftController.rotation,
+                                         Quat.inverse(leftController.oldRotation));
+            rotation = Quat.multiply(rotation, Particles.getParticleProperties(leftController.particleID).modelRotation);
+            
+            Particles.editParticle(leftController.particleID, {
+                                   position: newPosition,
+                                   modelRotation: rotation,
+                                   lifetime: 600
+                                   });
+            Particles.editParticle(particleTest2, {
+                                   position: newPosition,
+                                   lifetime: 600
+                                   });
+        }
+    }
+    
+    
+    if (rightController.grabbing) {
+        var newPosition = Vec3.sum(rightController.palmPosition,
+                                   Vec3.multiply(rightController.front, rightController.x));
+        newPosition = Vec3.sum(newPosition,
+                               Vec3.multiply(rightController.up, rightController.y));
+        newPosition = Vec3.sum(newPosition,
+                               Vec3.multiply(rightController.right, rightController.z));
+        
+        var rotation = Quat.multiply(rightController.rotation,
+                                     Quat.inverse(rightController.oldRotation));
+        rotation = Quat.multiply(rotation, Particles.getParticleProperties(rightController.particleID).modelRotation);
+        
+        Particles.editParticle(rightController.particleID, {
+                               position: newPosition,
+                               modelRotation: rotation,
+                               lifetime: 600
+                               });
+        Particles.editParticle(particleTest2, {
+                               position: newPosition,
+                               lifetime: 600
+                               });
+    }
+}
 
 function checkController(deltaTime) {
     var numberOfButtons = Controller.getNumberOfButtons();
@@ -186,24 +371,52 @@ function checkController(deltaTime) {
 
     // this is expected for hydras
     if (!(numberOfButtons==12 && numberOfTriggers == 2 && controllersPerTrigger == 2)) {
-        print("no hydra connected?");
+        //print("no hydra connected?");
         return; // bail if no hydra
     }
     
     leftController.update();
     rightController.update();
+    moveParticles();
 
     
     
     ///// TEMP ///////
-    var createButtonPressed = Controller.isButtonPressed(3) || Controller.isButtonPressed(9);
+    if (!particleTest1.isKnownID) {
+        var identify = Particles.identifyParticle(particleTest1);
+        if (!identify.isKnownID) {
+            print("Unknown ID (temp)");
+            return;
+        }
+    }
+    var createButtonPressed = Controller.isButtonPressed(3);
     if (createButtonPressed) {
-        particlePosition = MyAvatar.position;
+        var position = MyAvatar.position;
         var forwardVector = Quat.getFront(MyAvatar.orientation);
-        particlePosition = Vec3.sum(particlePosition, Vec3.multiply(forwardVector, 2));
-        Particles.editParticle(particleTest, {
-                               position: particlePosition,
-                               lifetime: 100000
+        position = Vec3.sum(position, Vec3.multiply(forwardVector, 2));
+        Particles.editParticle(particleTest1, {
+                               position: position,
+                               modelRotation: Quat.fromVec3Radians({ x: 0, y: 0 , z: 0 }),
+                               lifetime: 600
+                               });
+        Particles.editParticle(particleTest2, {
+                               position: position,
+                               lifetime: 600
+                               });
+    }
+    createButtonPressed = Controller.isButtonPressed(9);
+    if (createButtonPressed) {
+        var position = MyAvatar.position;
+        var forwardVector = Quat.getFront(MyAvatar.orientation);
+        position = Vec3.sum(position, Vec3.multiply(forwardVector, 2));
+        Particles.editParticle(particleTest1, {
+                               position: position,
+                               modelRotation: Quat.fromVec3Radians({ x: 0, y: 0 , z: 0 }),
+                               lifetime: 600
+                               });
+        Particles.editParticle(particleTest2, {
+                               position: position,
+                               lifetime: 600
                                });
     }
     //////////////////////////////////
@@ -212,7 +425,8 @@ function checkController(deltaTime) {
 function scriptEnding() {
     leftController.cleanup();
     rightController.cleanup();
-    Particles.deleteParticle(particleTest);
+    Particles.deleteParticle(particleTest1);
+    Particles.deleteParticle(particleTest2);
 }
 Script.scriptEnding.connect(scriptEnding);
 
