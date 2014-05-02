@@ -15,7 +15,7 @@
 
 #include "Application.h"
 #include "Menu.h"
-#include "ui/OAuthWebviewHandler.h"
+#include "ui/OAuthWebViewHandler.h"
 
 #include "DatagramProcessor.h"
 

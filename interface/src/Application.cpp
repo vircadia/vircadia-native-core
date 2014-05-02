@@ -81,7 +81,7 @@
 #include "scripting/LocationScriptingInterface.h"
 
 #include "ui/InfoView.h"
-#include "ui/OAuthWebviewHandler.h"
+#include "ui/OAuthWebViewHandler.h"
 #include "ui/Snapshot.h"
 #include "ui/Stats.h"
 #include "ui/TextRenderer.h"
