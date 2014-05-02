@@ -126,7 +126,6 @@ private:
     float _distanceToNearestAvatar; // How close is the nearest avatar?
 
     // old motion stuff
-    glm::vec3 _lastCollisionPosition;
     bool _wasPushing;
     bool _isPushing;
     glm::vec3 _thrust;  // final acceleration from outside sources for the current frame
@@ -138,6 +137,7 @@ private:
     quint32 _motionBehaviors;
 
     glm::vec3 _lastBodyPenetration;
+    glm::vec3 _lastFloorContactPoint;
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
     bool _shouldRender;
@@ -146,7 +146,7 @@ private:
 
 	// private methods
     void updateOrientation(float deltaTime);
-    void rampMotor(float deltaTime);
+    void updateMotorFromKeyboard(float deltaTime);
     float computeMotorTimescale();
     void applyMotor(float deltaTime);
     void applyThrust(float deltaTime);

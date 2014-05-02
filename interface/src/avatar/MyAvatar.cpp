@@ -61,7 +61,6 @@ MyAvatar::MyAvatar() :
     _shouldJump(false),
     _gravity(0.0f, -1.0f, 0.0f),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
-    _lastCollisionPosition(0, 0, 0),
     _wasPushing(false),
     _isPushing(false),
     _thrust(0.0f),
@@ -70,6 +69,7 @@ MyAvatar::MyAvatar() :
     _maxMotorSpeed(MAX_MOTOR_SPEED),
     _motionBehaviors(AVATAR_MOTION_DEFAULTS),
     _lastBodyPenetration(0.0f),
+    _lastFloorContactPoint(0.0f),
     _lookAtTargetAvatar(),
     _shouldRender(true),
     _billboardValid(false),
@@ -151,28 +151,44 @@ void MyAvatar::simulate(float deltaTime) {
     // update the movement of the hand and process handshaking with other avatars...
     updateHandMovementAndTouching(deltaTime);
 
-    // apply gravity
-    // For gravity, always move the avatar by the amount driven by gravity, so that the collision
-    // routines will detect it and collide every frame when pulled by gravity to a surface
-    const float MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY = 0.02f;
-    if (glm::length(_position - _lastCollisionPosition) > MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY) {
-        _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
-    }
-
     updateOrientation(deltaTime);
 
-    rampMotor(deltaTime);
-    applyMotor(deltaTime);
+    float keyboardInput = fabsf(_driveKeys[FWD] - _driveKeys[BACK]) + 
+        fabsf(_driveKeys[RIGHT] - _driveKeys[LEFT]) + 
+        fabsf(_driveKeys[UP] - _driveKeys[DOWN]);
 
-    applyThrust(deltaTime);
+    bool standingOnFloor = false;
+    float gravityLength = glm::length(_gravity);
+    if (gravityLength > EPSILON) {
+        const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
+        glm::vec3 startCap;
+        boundingShape.getStartPoint(startCap);
+        glm::vec3 bottomOfBoundingCapsule = startCap + (boundingShape.getRadius() / gravityLength) * _gravity;
 
-    updateChatCircle(deltaTime);
+        float fallThreshold = 2.f * deltaTime * gravityLength;
+        standingOnFloor = (glm::distance(bottomOfBoundingCapsule, _lastFloorContactPoint) < fallThreshold);
+    }
+
+    if (keyboardInput > 0.0f || glm::length2(_velocity) > 0.0f || glm::length2(_thrust) > 0.0f || 
+            ! standingOnFloor) {
+
+        _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
+    
+        updateMotorFromKeyboard(deltaTime);
+        applyMotor(deltaTime);
+        applyThrust(deltaTime);
+
+        if (glm::length2(_velocity) < EPSILON) {
+            _velocity = glm::vec3(0.0f);
+        } else {
+            _position += _velocity * deltaTime;
+        }
+    }
 
     // update moving flag based on speed
     const float MOVING_SPEED_THRESHOLD = 0.01f;
     _moving = glm::length(_velocity) > MOVING_SPEED_THRESHOLD;
-
-    _position += _velocity * deltaTime;
+    updateChatCircle(deltaTime);
 
     // update avatar skeleton and simulate hand and head
     getHand()->collideAgainstOurself(); 
@@ -631,9 +647,9 @@ void MyAvatar::updateOrientation(float deltaTime) {
     setOrientation(orientation);
 }
 
-void MyAvatar::rampMotor(float deltaTime) {
+void MyAvatar::updateMotorFromKeyboard(float deltaTime) {
     // Increase motor velocity until its length is equal to _maxMotorSpeed.
-    if (!(_motionBehaviors & AVATAR_MOTION_MOTOR_RAMP_AND_BRAKES_ENABLED)) {
+    if (!(_motionBehaviors & AVATAR_MOTION_MOTOR_KEYBOARD_ENABLED)) {
         // nothing to do
         return;
     }
@@ -740,9 +756,8 @@ void MyAvatar::applyMotor(float deltaTime) {
         }
     }
 
-    float timescale = computeMotorTimescale();
-
     // simple critical damping
+    float timescale = computeMotorTimescale();
     float tau = glm::clamp(deltaTime / timescale, 0.0f, 1.0f);
     _velocity += tau * deltaVelocity;
 }
@@ -909,7 +924,6 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
     if (Application::getInstance()->getEnvironment()->findCapsulePenetration(
             _position - up * (pelvisFloatingHeight - radius),
             _position + up * (getSkeletonHeight() - pelvisFloatingHeight + radius), radius, penetration)) {
-        _lastCollisionPosition = _position;
         updateCollisionSound(penetration, deltaTime, ENVIRONMENT_COLLISION_FREQUENCY);
         applyHardCollision(penetration, ENVIRONMENT_SURFACE_ELASTICITY, ENVIRONMENT_SURFACE_DAMPING);
     }
@@ -921,7 +935,7 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
     myCollisions.clear();
     const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
     if (Application::getInstance()->getVoxelTree()->findShapeCollisions(&boundingShape, myCollisions)) {
-        const float VOXEL_ELASTICITY = 0.4f;
+        const float VOXEL_ELASTICITY = 0.0f;
         const float VOXEL_DAMPING = 0.0f;
         for (int i = 0; i < myCollisions.size(); ++i) {
             CollisionInfo* collision = myCollisions[i];

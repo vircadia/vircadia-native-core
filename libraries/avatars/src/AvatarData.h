@@ -52,7 +52,7 @@ typedef unsigned long long quint64;
 
 // avatar motion behaviors
 const quint32 AVATAR_MOTION_MOTOR_ENABLED                 = 1U << 0;
-const quint32 AVATAR_MOTION_MOTOR_RAMP_AND_BRAKES_ENABLED = 1U << 1;
+const quint32 AVATAR_MOTION_MOTOR_KEYBOARD_ENABLED        = 1U << 1;
 const quint32 AVATAR_MOTION_MOTOR_USE_LOCAL_FRAME         = 1U << 2;
 const quint32 AVATAR_MOTION_MOTOR_COLLISION_SURFACE_ONLY  = 1U << 3;
 
@@ -61,7 +61,7 @@ const quint32 AVATAR_MOTION_OBEY_LOCAL_GRAVITY            = 1U << 5;
 
 const quint32 AVATAR_MOTION_DEFAULTS = 
         AVATAR_MOTION_MOTOR_ENABLED |
-        AVATAR_MOTION_MOTOR_RAMP_AND_BRAKES_ENABLED |
+        AVATAR_MOTION_MOTOR_KEYBOARD_ENABLED |
         AVATAR_MOTION_MOTOR_USE_LOCAL_FRAME;
 
 // these bits will be expanded as features are exposed
