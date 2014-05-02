@@ -1813,35 +1813,63 @@ void Application::updateMyAvatarLookAtPosition() {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMyAvatarLookAtPosition()");
 
+    FaceTracker* tracker = getActiveFaceTracker();
+    
+    bool isLookingAtSomeone = false;
     glm::vec3 lookAtSpot;
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+        //  When I am in mirror mode, just look right at the camera (myself)
         lookAtSpot = _myCamera.getPosition();
 
     } else {
-        // look in direction of the mouse ray, but use distance from intersection, if any
-        float distance = TREE_SCALE;
         if (_myAvatar->getLookAtTargetAvatar() && _myAvatar != _myAvatar->getLookAtTargetAvatar()) {
-            distance = glm::distance(_mouseRayOrigin,
-                static_cast<Avatar*>(_myAvatar->getLookAtTargetAvatar())->getHead()->calculateAverageEyePosition());
+            isLookingAtSomeone = true;
+            //  If I am looking at someone else, look directly at one of their eyes
+            if (tracker) {
+                //  If tracker active, look at the eye for the side my gaze is biased toward
+                if (tracker->getEstimatedEyeYaw() > _myAvatar->getHead()->getFinalYaw()) {
+                    // Look at their right eye
+                    lookAtSpot = static_cast<Avatar*>(_myAvatar->getLookAtTargetAvatar())->getHead()->getRightEyePosition();
+                } else {
+                    // Look at their left eye
+                    lookAtSpot = static_cast<Avatar*>(_myAvatar->getLookAtTargetAvatar())->getHead()->getLeftEyePosition();
+                }
+            } else {
+                //  Need to add randomly looking back and forth between left and right eye for case with no tracker
+                lookAtSpot = static_cast<Avatar*>(_myAvatar->getLookAtTargetAvatar())->getHead()->getEyePosition();
+            }
+        } else {
+            //  I am not looking at anyone else, so just look forward
+            lookAtSpot = _myAvatar->getHead()->calculateAverageEyePosition() + (_myAvatar->getHead()->getFinalOrientation() * glm::vec3(0.f, 0.f, -TREE_SCALE));
         }
+        // TODO:  Add saccade to mouse pointer when stable, IF not looking at someone (since we know we are looking at it)
+        /*
         const float FIXED_MIN_EYE_DISTANCE = 0.3f;
         float minEyeDistance = FIXED_MIN_EYE_DISTANCE + (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON ? 0.0f :
             glm::distance(_mouseRayOrigin, _myAvatar->getHead()->calculateAverageEyePosition()));
         lookAtSpot = _mouseRayOrigin + _mouseRayDirection * qMax(minEyeDistance, distance);
+         */
+         
     }
-    FaceTracker* tracker = getActiveFaceTracker();
+    //
+    //  Deflect the eyes a bit to match the detected Gaze from 3D camera if active
+    //
     if (tracker) {
         float eyePitch = tracker->getEstimatedEyePitch();
         float eyeYaw = tracker->getEstimatedEyeYaw();
-        
+        const float GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT = 0.1f;
         // deflect using Faceshift gaze data
         glm::vec3 origin = _myAvatar->getHead()->calculateAverageEyePosition();
         float pitchSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? -1.0f : 1.0f;
         float deflection = Menu::getInstance()->getFaceshiftEyeDeflection();
+        if (isLookingAtSomeone) {
+            deflection *= GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT;
+        }
         lookAtSpot = origin + _myCamera.getRotation() * glm::quat(glm::radians(glm::vec3(
             eyePitch * pitchSign * deflection, eyeYaw * deflection, 0.0f))) *
                 glm::inverse(_myCamera.getRotation()) * (lookAtSpot - origin);
     }
+    
     _myAvatar->getHead()->setLookAtPosition(lookAtSpot);
 }
 
@@ -2465,7 +2493,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             "Application::displaySide() ... atmosphere...");
         _environment.renderAtmospheres(whichCamera);
     }
-
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
 
