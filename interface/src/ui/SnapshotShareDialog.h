@@ -20,6 +20,9 @@ public:
 private:
     QString _fileName;
     Ui_SnapshotShareDialog ui;
+
+private slots:
+    void accept();
 };
 
 #endif /* defined(__hifi__snapshotShareDialog__) */

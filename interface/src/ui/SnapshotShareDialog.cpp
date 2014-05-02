@@ -44,3 +44,9 @@ SnapshotShareDialog::SnapshotShareDialog(QString fileName, QWidget* parent) : QD
     ui.snapshotWidget->setPixmap(snaphsotPixmap);
     ui.snapshotWidget->adjustSize();
 }
+
+void SnapshotShareDialog::accept() {
+    // post to Discourse forum
+    
+    close();
+}

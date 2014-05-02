@@ -311,5 +311,22 @@ p, li { white-space: pre-wrap; }
   </layout>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>shareButton</sender>
+   <signal>clicked()</signal>
+   <receiver>SnapshotShareDialog</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>420</x>
+     <y>565</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>250</x>
+     <y>307</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

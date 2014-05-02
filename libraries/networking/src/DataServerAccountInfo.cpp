@@ -16,7 +16,8 @@
 DataServerAccountInfo::DataServerAccountInfo() :
     _accessToken(),
     _username(),
-    _xmppPassword()
+    _xmppPassword(),
+    _discourseApiKey()
 {
     
 }
@@ -29,6 +30,7 @@ DataServerAccountInfo::DataServerAccountInfo(const QJsonObject& jsonObject) :
     QJsonObject userJSONObject = jsonObject["user"].toObject();
     setUsername(userJSONObject["username"].toString());
     setXMPPPassword(userJSONObject["xmpp_password"].toString());
+    setDiscourseApiKey(userJSONObject["discourse_api_key"].toString());
 }
 
 DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherInfo) {
@@ -63,6 +65,12 @@ void DataServerAccountInfo::setXMPPPassword(const QString& xmppPassword) {
      if (_xmppPassword != xmppPassword) {
          _xmppPassword = xmppPassword;
      }
+}
+
+void DataServerAccountInfo::setDiscourseApiKey(const QString& discourseApiKey) {
+    if (_discourseApiKey != discourseApiKey) {
+        _discourseApiKey = discourseApiKey;
+    }
 }
 
 QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info) {
