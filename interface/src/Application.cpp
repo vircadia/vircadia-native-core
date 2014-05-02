@@ -3210,8 +3210,6 @@ void Application::nodeKilled(SharedNodePointer node) {
 
     } else if (node->getType() == NodeType::ModelServer) {
 
-qDebug()<< "nodeKilled... NodeType::ModelServer";
-
         QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...
         if (_modelServerJurisdictions.find(nodeUUID) != _modelServerJurisdictions.end()) {

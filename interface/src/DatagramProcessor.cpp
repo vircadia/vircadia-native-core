@@ -58,7 +58,6 @@ void DatagramProcessor::processDatagrams() {
                     break;
 
                 case PacketTypeModelAddResponse:
-qDebug() << ">>>>>>>>> got PacketTypeModelAddResponse...";
                     // this will keep creatorTokenIDs to IDs mapped correctly
                     ModelItem::handleAddModelResponse(incomingPacket);
                     application->getModels()->getTree()->handleAddModelResponse(incomingPacket);
