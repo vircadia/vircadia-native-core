@@ -11,11 +11,10 @@
 
 var LASER_WIDTH = 4;
 var LASER_COLOR = { red: 255, green: 0, blue: 0 };
-var LASER_LENGTH_FACTOR = 1;
+var LASER_LENGTH_FACTOR = 1.5;
 
 var LEFT = 0;
 var RIGHT = 1;
-
 
 function controller(wichSide) {
     this.side = wichSide;
@@ -47,8 +46,7 @@ function controller(wichSide) {
     this.pressing = false; // is trigger being pressed (is pressed now but wasn't previously)
     
     this.grabbing = false;
-    this.particleID = 0;
-    this.oldParticleProperties;
+    this.modelID;
     
     this.laser = Overlays.addOverlay("line3d", {
                                      position: this.palmPosition,
@@ -87,24 +85,23 @@ function controller(wichSide) {
     
 
     
-    this.grab = function (particle) {
-        if (!particle.isKnownID) {
-            var identify = Particles.identifyParticle(particle);
+    this.grab = function (modelID) {
+        if (!modelID.isKnownID) {
+            var identify = Models.identifyModel(modelID);
             if (!identify.isKnownID) {
+                print("Unknown ID " + identify.id + "(grab)");
                 return;
             }
+            modelID = identify;
         }
-        print("Grabbing");
+        print("Grabbing " + modelID.id);
         this.grabbing = true;
-        this.particleID = identify;
-        
-        this.oldParticleProperties = Particles.getParticleProperties(this.particleID);
+        this.modelID = modelID;
     }
     
     this.release = function () {
         this.grabbing = false;
-        this.particleID = -1;
-        this.oldParticleProperties = { };
+        this.modelID = 0;
     }
     
     this.checkTrigger = function () {
@@ -146,15 +143,16 @@ function controller(wichSide) {
                              });
     }
     
-    this.checkParticle = function (particle) {
-        if (!particle.isKnownID) {
-            var identify = Particles.identifyParticle(particle);
+    this.checkModel = function (modelID) {
+        if (!modelID.isKnownID) {
+            var identify = Models.identifyModel(modelID);
             if (!identify.isKnownID) {
-                print("Unknown ID (checkParticle)");
+                print("Unknown ID " + identify.id + "(checkModel)");
                 return;
             }
+            modelID = identify;
         }
-        //                P         P - Particle
+        //                P         P - Model
         //               /|         A - Palm
         //              / | d       B - unit vector toward tip
         //             /  |         X - base of the perpendicular line
@@ -167,7 +165,7 @@ function controller(wichSide) {
         
         var A = this.palmPosition;
         var B = this.front;
-        var P = Particles.getParticleProperties(particle).position;
+        var P = Models.getModelProperties(modelID).position;
         
         this.x = Vec3.dot(Vec3.subtract(P, A), B);
         this.y = Vec3.dot(Vec3.subtract(P, A), this.up);
@@ -179,10 +177,9 @@ function controller(wichSide) {
 //        Vec3.print("B: ", B);
 //        Vec3.print("Particle pos: ", P);
 //        print("d: " + d + ", x: " + this.x);
-        if (d < 0.5 && 0 < this.x && this.x < LASER_LENGTH_FACTOR) {
+        if (d < Models.getModelProperties(modelID).radius && 0 < this.x && this.x < LASER_LENGTH_FACTOR) {
             return true;
         }
-        
         return false;
     }
     
@@ -209,17 +206,21 @@ function controller(wichSide) {
         this.checkTrigger();
         
         if (this.pressing) {
-            if (this.checkParticle(particleTest1)) {
-                this.grab(particleTest1);
+            Vec3.print("Looking at: ", this.palmPosition);
+            var foundModels = Models.findModels(this.palmPosition, LASER_LENGTH_FACTOR);
+            for (var i = 0; i < foundModels.length; i++) {
+                print("Model found ID (" + foundModels[i].id + ")");
+                if (this.checkModel(foundModels[i])) {
+                    if (this.grab(foundModels[i])) {
+                        return;
+                    }
+                }
             }
         }
         
         if (!this.pressed && this.grabbing) {
+            // release if trigger not pressed anymore.
             this.release();
-        }
-        
-        if(this.grabbing) {
-            this.oldParticleProperties = Particles.getParticleProperties(this.particleID);
         }
     
         this.moveLaser();
@@ -236,83 +237,39 @@ function controller(wichSide) {
 var leftController = new controller(LEFT);
 var rightController = new controller(RIGHT);
 
-
-var particleRadius = 0.05;
-var particleTest1 = Particles.addParticle({ position: { x: 0, y: 0, z:0 },
-                                          velocity: { x: 0, y: 0, z: 0},
-                                          gravity: { x: 0, y: 0, z: 0},
-                                          radius: particleRadius,
-                                          color: { red: 0, green: 0, blue: 255 },
-                                          modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/models/heads/defaultAvatar_head.fst",
-                                          lifetime: 600,
-                                          })
-var particleTest2 = Particles.addParticle({ position: { x: 0, y: 0, z:0 },
-                                          velocity: { x: 0, y: 0, z: 0},
-                                          gravity: { x: 0, y: 0, z: 0},
-                                          radius: particleRadius,
-                                          color: { red: 0, green: 0, blue: 255 },
-                                          alpha: 0.2,
-                                          lifetime: 600,
-                                          })
-
-
-var diff = { x: 0, y: 0, z: 0 };
-function moveParticles() {
+function moveModels() {
     if (leftController.grabbing) {
         if (rightController.grabbing) {
+            var properties = Models.getModelProperties(leftController.modelID);
             
-            var newPosition = Vec3.sum(leftController.palmPosition,
-                                       Vec3.multiply(leftController.front, leftController.x));
-            newPosition = Vec3.sum(newPosition,
-                                   Vec3.multiply(leftController.up, leftController.y));
-            newPosition = Vec3.sum(newPosition,
-                                   Vec3.multiply(leftController.right, leftController.z));
+            var oldLeftPoint = Vec3.sum(leftController.oldPalmPosition, Vec3.multiply(leftController.oldFront, leftController.x));
+            var oldRightPoint = Vec3.sum(rightController.oldPalmPosition, Vec3.multiply(rightController.oldFront, rightController.x));
             
+            var oldMiddle = Vec3.multiply(Vec3.sum(oldLeftPoint, oldRightPoint), 0.5);
+            var oldLength = Vec3.length(Vec3.subtract(oldLeftPoint, oldRightPoint));
+            
+            
+            var leftPoint = Vec3.sum(leftController.palmPosition, Vec3.multiply(leftController.front, leftController.x));
+            var rightPoint = Vec3.sum(rightController.palmPosition, Vec3.multiply(rightController.front, rightController.x));
+            
+            var middle = Vec3.multiply(Vec3.sum(leftPoint, rightPoint), 0.5);
+            var length = Vec3.length(Vec3.subtract(leftPoint, rightPoint));
+            
+            var ratio = length / oldLength;
+            
+            var newPosition = Vec3.sum(middle,
+                                       Vec3.multiply(Vec3.subtract(properties.position, oldMiddle), ratio));
+            Vec3.print("Ratio : " + ratio + " New position: ", newPosition);
             var rotation = Quat.multiply(leftController.rotation,
                                          Quat.inverse(leftController.oldRotation));
-            rotation = Quat.multiply(rotation, Particles.getParticleProperties(leftController.particleID).modelRotation);
+            rotation = Quat.multiply(rotation, properties.modelRotation);
             
-            Particles.editParticle(leftController.particleID, {
-                                   position: newPosition,
-                                   modelRotation: rotation,
-                                   lifetime: 600
-                                   });
-            Particles.editParticle(particleTest2, {
-                                   position: newPosition,
-                                   lifetime: 600
-                                   });
-            
-            return;
-            var leftVector = Vec3.sum(Vec3.multiply(leftController.front, leftController.x),
-                                      Vec3.multiply(leftController.up, leftController.y));
-            leftVector = Vec3.sum(leftVector,
-                                  Vec3.multiply(leftController.right, leftController.z));
-            
-            var rightVector = Vec3.sum(Vec3.multiply(rightController.front, rightController.x),
-                                       Vec3.multiply(rightController.up, rightController.y));
-            rightVector = Vec3.sum(rightVector,
-                                   Vec3.multiply(rightController.right, rightController.z));
-            
-            var newPosition = Vec3.sum(Vec3.sum(leftController.palmPosition, leftVector),
-                                       Vec3.sum(rightController.palmPosition, rightVector));
-            newPosition = Vec3.multiply(newPosition, 0.5);
-            
-            
-            var rotantion = Quat.multiply(MyAvatar.orientation,
-                                          Quat.inverse(leftController.oldRotation));
-            rotation = Quat.multiply(rotation, Particles.getParticleProperties(leftController.particleID).modelRotation);
-            
-            Particles.editParticle(leftController.particleID, {
+            Models.editModel(leftController.modelID, {
                                    position: newPosition,
                                    //modelRotation: rotation,
-                                   lifetime: 600
+                                   radius: properties.radius * ratio
                                    });
-            Particles.editParticle(particleTest2, {
-                                   position: newPosition,
-                                   lifetime: 600
-                                   });
-            leftController.checkParticle(leftController.particleID);
-            rightController.checkParticle(rightController.particleID);
+            
             return;
         } else {
             var newPosition = Vec3.sum(leftController.palmPosition,
@@ -324,17 +281,13 @@ function moveParticles() {
             
             var rotation = Quat.multiply(leftController.rotation,
                                          Quat.inverse(leftController.oldRotation));
-            rotation = Quat.multiply(rotation, Particles.getParticleProperties(leftController.particleID).modelRotation);
+            rotation = Quat.multiply(rotation,
+                                     Models.getModelProperties(leftController.modelID).modelRotation);
             
-            Particles.editParticle(leftController.particleID, {
-                                   position: newPosition,
-                                   modelRotation: rotation,
-                                   lifetime: 600
-                                   });
-            Particles.editParticle(particleTest2, {
-                                   position: newPosition,
-                                   lifetime: 600
-                                   });
+            Models.editModel(leftController.modelID, {
+                             position: newPosition,
+                             modelRotation: rotation
+                             });
         }
     }
     
@@ -349,17 +302,13 @@ function moveParticles() {
         
         var rotation = Quat.multiply(rightController.rotation,
                                      Quat.inverse(rightController.oldRotation));
-        rotation = Quat.multiply(rotation, Particles.getParticleProperties(rightController.particleID).modelRotation);
+        rotation = Quat.multiply(rotation,
+                                 Models.getModelProperties(rightController.modelID).modelRotation);
         
-        Particles.editParticle(rightController.particleID, {
-                               position: newPosition,
-                               modelRotation: rotation,
-                               lifetime: 600
-                               });
-        Particles.editParticle(particleTest2, {
-                               position: newPosition,
-                               lifetime: 600
-                               });
+        Models.editModel(rightController.modelID, {
+                         position: newPosition,
+                         modelRotation: rotation
+                         });
     }
 }
 
@@ -377,56 +326,12 @@ function checkController(deltaTime) {
     
     leftController.update();
     rightController.update();
-    moveParticles();
-
-    
-    
-    ///// TEMP ///////
-    if (!particleTest1.isKnownID) {
-        var identify = Particles.identifyParticle(particleTest1);
-        if (!identify.isKnownID) {
-            print("Unknown ID (temp)");
-            return;
-        }
-    }
-    var createButtonPressed = Controller.isButtonPressed(3);
-    if (createButtonPressed) {
-        var position = MyAvatar.position;
-        var forwardVector = Quat.getFront(MyAvatar.orientation);
-        position = Vec3.sum(position, Vec3.multiply(forwardVector, 2));
-        Particles.editParticle(particleTest1, {
-                               position: position,
-                               modelRotation: Quat.fromVec3Radians({ x: 0, y: 0 , z: 0 }),
-                               lifetime: 600
-                               });
-        Particles.editParticle(particleTest2, {
-                               position: position,
-                               lifetime: 600
-                               });
-    }
-    createButtonPressed = Controller.isButtonPressed(9);
-    if (createButtonPressed) {
-        var position = MyAvatar.position;
-        var forwardVector = Quat.getFront(MyAvatar.orientation);
-        position = Vec3.sum(position, Vec3.multiply(forwardVector, 2));
-        Particles.editParticle(particleTest1, {
-                               position: position,
-                               modelRotation: Quat.fromVec3Radians({ x: 0, y: 0 , z: 0 }),
-                               lifetime: 600
-                               });
-        Particles.editParticle(particleTest2, {
-                               position: position,
-                               lifetime: 600
-                               });
-    }
-    //////////////////////////////////
+    moveModels();
 }
 
 function scriptEnding() {
     leftController.cleanup();
     rightController.cleanup();
-    Particles.deleteParticle(particleTest1);
-    Particles.deleteParticle(particleTest2);
 }
 Script.scriptEnding.connect(scriptEnding);
 
