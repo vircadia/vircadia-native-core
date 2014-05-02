@@ -16,6 +16,7 @@
 #include "audio/AudioMixer.h"
 #include "avatars/AvatarMixer.h"
 #include "metavoxels/MetavoxelServer.h"
+#include "models/ModelServer.h"
 #include "particles/ParticleServer.h"
 #include "voxels/VoxelServer.h"
 
@@ -41,6 +42,8 @@ ThreadedAssignment* AssignmentFactory::unpackAssignment(const QByteArray& packet
             return new ParticleServer(packet);
         case Assignment::MetavoxelServerType:
             return new MetavoxelServer(packet);
+        case Assignment::ModelServerType:
+            return new ModelServer(packet);
         default:
             return NULL;
     }

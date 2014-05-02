@@ -34,6 +34,7 @@ protected:
     void formatTrueFalse(const QString& text);
 
 private:
+    QRegExp _alphacharRegex;
     QRegExp _keywordRegex;
     QRegExp _qoutedTextRegex;
     QRegExp _multiLineCommentBegin;

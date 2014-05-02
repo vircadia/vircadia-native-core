@@ -20,6 +20,9 @@
 
 #include <AvatarHashMap.h>
 #include <MixedAudioRingBuffer.h>
+#include <ModelEditPacketSender.h>
+#include <ModelTree.h>
+#include <ModelTreeHeadlessViewer.h>
 #include <ParticleEditPacketSender.h>
 #include <ParticleTree.h>
 #include <ParticleTreeHeadlessViewer.h>
@@ -64,6 +67,7 @@ private:
 
     ParticleTreeHeadlessViewer _particleViewer;
     VoxelTreeHeadlessViewer _voxelViewer;
+    ModelTreeHeadlessViewer _modelViewer;
     
     MixedAudioRingBuffer _receivedAudioBuffer;
     AvatarHashMap _avatarHashMap;

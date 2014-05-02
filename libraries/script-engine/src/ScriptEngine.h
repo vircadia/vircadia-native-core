@@ -30,7 +30,9 @@
 #include "ScriptUUID.h"
 #include "Vec3.h"
 
+class ModelsScriptingInterface;
 class ParticlesScriptingInterface;
+class VoxelsScriptingInterface;
 
 const QString NO_SCRIPT("");
 
@@ -51,6 +53,9 @@ public:
 
     /// Access the ParticlesScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
     static ParticlesScriptingInterface* getParticlesScriptingInterface() { return &_particlesScriptingInterface; }
+
+    /// Access the ModelsScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
+    static ModelsScriptingInterface* getModelsScriptingInterface() { return &_modelsScriptingInterface; }
 
     /// sets the script contents, will return false if failed, will fail if script is already running
     bool setScriptContents(const QString& scriptContents, const QString& fileNameString = QString(""));
@@ -128,6 +133,7 @@ private:
 
     static VoxelsScriptingInterface _voxelsScriptingInterface;
     static ParticlesScriptingInterface _particlesScriptingInterface;
+    static ModelsScriptingInterface _modelsScriptingInterface;
 
     AbstractControllerScriptingInterface* _controllerScriptingInterface;
     AudioScriptingInterface _audioScriptingInterface;
