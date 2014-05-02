@@ -89,7 +89,6 @@ ParticleID ParticlesScriptingInterface::editParticle(ParticleID particleID, cons
     // if the particle is unknown, attempt to look it up
     if (!particleID.isKnownID) {
         actualID = Particle::getIDfromCreatorTokenID(particleID.creatorTokenID);
-qDebug() << "ParticlesScriptingInterface::editModel()... actualID=" << actualID;
     }
 
     // if at this point, we know the id, send the update to the particle server

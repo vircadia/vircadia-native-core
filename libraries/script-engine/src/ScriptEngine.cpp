@@ -485,13 +485,7 @@ void ScriptEngine::run() {
         }
     }
 
-qDebug() << "ScriptEngine::run()... checking for model server... _modelsScriptingInterface.getModelPacketSender()=" << _modelsScriptingInterface.getModelPacketSender();
-qDebug() << "ScriptEngine::run()... checking for model server... _modelsScriptingInterface.getModelPacketSender()->serversExist()=" << _modelsScriptingInterface.getModelPacketSender()->serversExist();
-
     if (_modelsScriptingInterface.getModelPacketSender()->serversExist()) {
-
-qDebug() << "ScriptEngine::run()... calling _modelsScriptingInterface.getModelPacketSender()->releaseQueuedMessages();";
-
         // release the queue of edit voxel messages.
         _modelsScriptingInterface.getModelPacketSender()->releaseQueuedMessages();
 
