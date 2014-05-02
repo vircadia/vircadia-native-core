@@ -91,6 +91,7 @@ ChatWindow::ChatWindow(QWidget* parent) :
 
     QDir mentionSoundsDir(Application::resourcesPath() + mentionSoundsPath);
     _mentionSounds = mentionSoundsDir.entryList(QDir::Files);
+    _trayIcon.setIcon(QIcon( Application::resourcesPath() + "/images/hifi-logo.svg"));
 }
 
 void ChatWindow::notificationClicked() {
