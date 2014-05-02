@@ -42,10 +42,10 @@ public:
     void moveWithLean();
 
     void render(const glm::vec3& cameraPosition, RenderMode renderMode = NORMAL_RENDER_MODE);
-    void renderBody(RenderMode renderMode, float glowLevel);
+    void renderBody(RenderMode renderMode, float glowLevel = 0.0f);
     bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
     void renderDebugBodyPoints();
-    void renderHeadMouse() const;
+    void renderHeadMouse(int screenWidth, int screenHeight) const;
 
     // setters
     void setMousePressed(bool mousePressed) { _mousePressed = mousePressed; }
@@ -123,7 +123,7 @@ private:
     glm::vec3 _gravity;
     glm::vec3 _environmentGravity;
     float _distanceToNearestAvatar; // How close is the nearest avatar?
-
+    
     // motion stuff
     glm::vec3 _lastCollisionPosition;
     bool _speedBrakes;

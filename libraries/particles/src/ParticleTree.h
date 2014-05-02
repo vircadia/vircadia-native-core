@@ -84,6 +84,7 @@ private:
     static bool findByIDOperation(OctreeElement* element, void* extraData);
     static bool findAndDeleteOperation(OctreeElement* element, void* extraData);
     static bool findAndUpdateParticleIDOperation(OctreeElement* element, void* extraData);
+    static bool findInBoxForUpdateOperation(OctreeElement* element, void* extraData);
 
     void notifyNewlyCreatedParticle(const Particle& newParticle, const SharedNodePointer& senderNode);
 
