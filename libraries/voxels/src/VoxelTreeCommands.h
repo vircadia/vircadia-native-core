@@ -36,6 +36,7 @@ private:
 class DeleteVoxelCommand : public QUndoCommand {
 public:
     DeleteVoxelCommand(VoxelTree* tree, VoxelDetail& voxel, VoxelEditPacketSender* packetSender = NULL, QUndoCommand* parent = NULL);
+    ~DeleteVoxelCommand();
     
     virtual void redo();
     virtual void undo();
@@ -44,6 +45,7 @@ private:
     VoxelTree* _tree;
     VoxelEditPacketSender* _packetSender;
     VoxelDetail _voxel;
+    VoxelTree* _oldTree;
 };
 
 #endif // hifi_VoxelTreeCommands_h

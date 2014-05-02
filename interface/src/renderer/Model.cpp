@@ -34,12 +34,18 @@ static int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
 Model::Model(QObject* parent) :
     QObject(parent),
     _scale(1.0f, 1.0f, 1.0f),
+    _scaleToFit(false),
+    _scaleToFitLargestDimension(0.0f),
+    _scaledToFit(false),
+    _snapModelToCenter(false),
+    _snappedToCenter(false),
     _shapesAreDirty(true),
     _boundingRadius(0.f),
     _boundingShape(), 
     _boundingShapeLocalOffset(0.f),
     _lodDistance(0.0f),
-    _pupilDilation(0.0f) {
+    _pupilDilation(0.0f),
+    _url("http://invalid.com") {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
 }
@@ -60,6 +66,13 @@ Model::SkinLocations Model::_skinNormalMapLocations;
 Model::SkinLocations Model::_skinShadowLocations;
 
 void Model::setScale(const glm::vec3& scale) {
+    setScaleInternal(scale);
+    // if anyone sets scale manually, then we are no longer scaled to fit
+    _scaleToFit = false;
+    _scaledToFit = false;
+}
+
+void Model::setScaleInternal(const glm::vec3& scale) {
     float scaleLength = glm::length(_scale);
     float relativeDeltaScale = glm::length(_scale - scale) / scaleLength;
     
@@ -69,6 +82,15 @@ void Model::setScale(const glm::vec3& scale) {
         rebuildShapes();
     }
 }
+
+void Model::setOffset(const glm::vec3& offset) { 
+    _offset = offset; 
+    
+    // if someone manually sets our offset, then we are no longer snapped to center
+    _snapModelToCenter = false; 
+    _snappedToCenter = false; 
+}
+
 
 void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locations) {
     program.bind();
@@ -355,6 +377,23 @@ Extents Model::getBindExtents() const {
     const Extents& bindExtents = _geometry->getFBXGeometry().bindExtents;
     Extents scaledExtents = { bindExtents.minimum * _scale, bindExtents.maximum * _scale };
     return scaledExtents;
+}
+
+Extents Model::getMeshExtents() const {
+    if (!isActive()) {
+        return Extents();
+    }
+    const Extents& extents = _geometry->getFBXGeometry().meshExtents;
+    Extents scaledExtents = { extents.minimum * _scale, extents.maximum * _scale };
+    return scaledExtents;
+}
+
+Extents Model::getUnscaledMeshExtents() const {
+    if (!isActive()) {
+        return Extents();
+    }
+    const Extents& extents = _geometry->getFBXGeometry().meshExtents;
+    return extents;
 }
 
 bool Model::getJointState(int index, glm::quat& rotation) const {
@@ -770,9 +809,52 @@ void Blender::run() {
         Q_ARG(const QVector<glm::vec3>&, vertices), Q_ARG(const QVector<glm::vec3>&, normals));
 }
 
+void Model::setScaleToFit(bool scaleToFit, float largestDimension) {
+    if (_scaleToFit != scaleToFit || _scaleToFitLargestDimension != largestDimension) {
+        _scaleToFit = scaleToFit;
+        _scaleToFitLargestDimension = largestDimension;
+        _scaledToFit = false; // force rescaling
+    }
+}
+
+void Model::scaleToFit() {
+    Extents modelMeshExtents = getMeshExtents();
+
+    // size is our "target size in world space"
+    // we need to set our model scale so that the extents of the mesh, fit in a cube that size...
+    glm::vec3 dimensions = modelMeshExtents.maximum - modelMeshExtents.minimum;
+    float maxDimension = glm::max(glm::max(dimensions.x, dimensions.y), dimensions.z);
+    float maxScale = _scaleToFitLargestDimension / maxDimension;
+    glm::vec3 scale(maxScale, maxScale, maxScale);
+    setScaleInternal(scale);
+    _scaledToFit = true;
+}
+
+void Model::setSnapModelToCenter(bool snapModelToCenter) {
+    if (_snapModelToCenter != snapModelToCenter) {
+        _snapModelToCenter = snapModelToCenter;
+        _snappedToCenter = false; // force re-centering
+    }
+}
+
+void Model::snapToCenter() {
+    Extents modelMeshExtents = getUnscaledMeshExtents();
+    glm::vec3 halfDimensions = (modelMeshExtents.maximum - modelMeshExtents.minimum) * 0.5f;
+    glm::vec3 offset = -modelMeshExtents.minimum - halfDimensions;
+    _offset = offset;
+    _snappedToCenter = true;
+}
+
 void Model::simulate(float deltaTime, bool fullUpdate) {
-    fullUpdate = updateGeometry() || fullUpdate;
+    fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit) || (_snapModelToCenter && !_snappedToCenter);
     if (isActive() && fullUpdate) {
+        // check for scale to fit
+        if (_scaleToFit && !_scaledToFit) {
+            scaleToFit();
+        }
+        if (_snapModelToCenter && !_snappedToCenter) {
+            snapToCenter();
+        }
         simulateInternal(deltaTime);
     }
 }

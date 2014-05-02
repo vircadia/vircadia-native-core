@@ -16,6 +16,7 @@
 #include <time.h>
 
 #include <QApplication>
+#include <QMainWindow>
 #include <QAction>
 #include <QHash>
 #include <QImage>
@@ -24,9 +25,11 @@
 #include <QSet>
 #include <QSettings>
 #include <QStringList>
+#include <QHash>
 #include <QTouchEvent>
 #include <QUndoStack>
 
+#include <ModelEditPacketSender.h>
 #include <NetworkPacket.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
@@ -37,6 +40,7 @@
 #include <ViewFrustum.h>
 #include <VoxelEditPacketSender.h>
 
+#include "MainWindow.h"
 #include "Audio.h"
 #include "AudioReflector.h"
 #include "BuckyBalls.h"
@@ -48,7 +52,6 @@
 #include "Menu.h"
 #include "MetavoxelSystem.h"
 #include "PacketHeaders.h"
-#include "ParticleTreeRenderer.h"
 #include "Stars.h"
 #include "avatar/Avatar.h"
 #include "avatar/AvatarManager.h"
@@ -57,6 +60,8 @@
 #include "devices/Faceshift.h"
 #include "devices/SixenseManager.h"
 #include "devices/Visage.h"
+#include "models/ModelTreeRenderer.h"
+#include "particles/ParticleTreeRenderer.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
@@ -85,7 +90,6 @@ class QAction;
 class QActionGroup;
 class QGLWidget;
 class QKeyEvent;
-class QMainWindow;
 class QMouseEvent;
 class QNetworkAccessManager;
 class QSettings;
@@ -124,6 +128,8 @@ public:
     void restoreSizeAndPosition();
     ScriptEngine* loadScript(const QString& fileNameString, bool loadScriptFromEditor = false);
     void loadScripts();
+    QString getPreviousScriptLocation();
+    void setPreviousScriptLocation(const QString& previousScriptLocation);
     void storeSizeAndPosition();
     void clearScriptsBeforeRunning();
     void saveScripts();
@@ -136,6 +142,7 @@ public:
     void keyReleaseEvent(QKeyEvent* event);
 
     void focusOutEvent(QFocusEvent* event);
+    void focusInEvent(QFocusEvent* event);
 
     void mouseMoveEvent(QMouseEvent* event);
     void mousePressEvent(QMouseEvent* event);
@@ -173,6 +180,7 @@ public:
     VoxelTree* getVoxelTree() { return _voxels.getTree(); }
     ParticleTreeRenderer* getParticles() { return &_particles; }
     MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
+    ModelTreeRenderer* getModels() { return &_models; }
     bool getImportSucceded() { return _importSucceded; }
     VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
     VoxelTree* getClipboard() { return &_clipboard; }
@@ -192,10 +200,10 @@ public:
     /// if you need to access the application settings, use lockSettings()/unlockSettings()
     QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }
     void unlockSettings() { _settingsMutex.unlock(); }
-    
+
     void saveSettings();
 
-    QMainWindow* getWindow() { return _window; }
+    MainWindow* getWindow() { return _window; }
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
     void unlockOctreeSceneStats() { _octreeSceneStatsLock.unlock(); }
@@ -243,6 +251,7 @@ public:
     glm::vec2 getViewportDimensions() const{ return glm::vec2(_glWidget->width(),_glWidget->height()); }
     NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
     NodeToJurisdictionMap& getParticleServerJurisdictions() { return _particleServerJurisdictions; }
+    NodeToJurisdictionMap& getModelServerJurisdictions() { return _modelServerJurisdictions; }
     void pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination);
 
     void skipVersion(QString latestVersion);
@@ -312,6 +321,8 @@ private slots:
 
     void parseVersionXml();
 
+    void manageRunningScriptsWidgetVisibility(bool shown);
+
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
     void updateProjectionMatrix();
@@ -372,7 +383,7 @@ private:
 
     void displayRearMirrorTools();
 
-    QMainWindow* _window;
+    MainWindow* _window;
     GLCanvas* _glWidget; // our GLCanvas has a couple extra features
 
     BandwidthMeter _bandwidthMeter;
@@ -386,7 +397,7 @@ private:
     int _numChangedSettings;
 
     QUndoStack _undoStack;
-    
+
     glm::vec3 _gravity;
 
     // Frame Rate Measurement
@@ -411,6 +422,8 @@ private:
     ParticleTreeRenderer _particles;
     ParticleCollisionSystem _particleCollisionSystem;
 
+    ModelTreeRenderer _models;
+
     QByteArray _voxelsFilename;
     bool _wantToKillLocalVoxels;
 
@@ -431,7 +444,7 @@ private:
     Faceplus _faceplus;
     Faceshift _faceshift;
     Visage _visage;
-    
+
     SixenseManager _sixenseManager;
 
     Camera _myCamera;                  // My view onto the world
@@ -488,6 +501,7 @@ private:
     VoxelHideShowThread _voxelHideShowThread;
     VoxelEditPacketSender _voxelEditSender;
     ParticleEditPacketSender _particleEditSender;
+    ModelEditPacketSender _modelEditSender;
 
     int _packetsPerSecond;
     int _bytesPerSecond;
@@ -500,6 +514,7 @@ private:
 
     NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToJurisdictionMap _particleServerJurisdictions;
+    NodeToJurisdictionMap _modelServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
     QReadWriteLock _octreeSceneStatsLock;
 
@@ -520,9 +535,11 @@ private:
     TouchEvent _lastTouchEvent;
 
     Overlays _overlays;
+
     AudioReflector _audioReflector;
     RunningScriptsWidget* _runningScriptsWidget;
     QHash<QString, ScriptEngine*> _scriptEnginesHash;
+    bool _runningScriptsWidgetWasVisible;
 };
 
 #endif // hifi_Application_h

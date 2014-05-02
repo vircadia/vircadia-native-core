@@ -34,7 +34,7 @@ void OctreeHeadlessViewer::init() {
 }
 
 void OctreeHeadlessViewer::queryOctree() {
-    NodeType_t serverType = getMyNodeType();
+    char serverType = getMyNodeType();
     PacketType packetType = getMyQueryMessageType();
     NodeToJurisdictionMap& jurisdictions = *_jurisdictionListener->getJurisdictions();
 

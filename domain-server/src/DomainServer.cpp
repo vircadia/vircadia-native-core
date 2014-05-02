@@ -341,7 +341,7 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
 }
 
 const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
-    << NodeType::AvatarMixer << NodeType::VoxelServer << NodeType::ParticleServer
+    << NodeType::AvatarMixer << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::ModelServer
     << NodeType::MetavoxelServer;
 
 void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packet, const HifiSockAddr& senderSockAddr) {

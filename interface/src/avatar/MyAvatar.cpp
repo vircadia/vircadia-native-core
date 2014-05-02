@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <vector>
 
+#include <QMessageBox>
 #include <QBuffer>
 
 #include <glm/gtx/norm.hpp>
@@ -54,16 +55,13 @@ MyAvatar::MyAvatar() :
     _shouldJump(false),
     _gravity(0.0f, -1.0f, 0.0f),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
-    _elapsedTimeMoving(0.0f),
-	_elapsedTimeStopped(0.0f),
-    _elapsedTimeSinceCollision(0.0f),
     _lastCollisionPosition(0, 0, 0),
     _speedBrakes(false),
+    _thrust(0.0f),
     _isThrustOn(false),
     _thrustMultiplier(1.0f),
-    _moveTarget(0,0,0),
+    _motionBehaviors(0),
     _lastBodyPenetration(0.0f),
-    _moveTargetStepCounter(0),
     _lookAtTargetAvatar(),
     _shouldRender(true),
     _billboardValid(false),
@@ -84,22 +82,14 @@ MyAvatar::~MyAvatar() {
 }
 
 void MyAvatar::reset() {
-    // TODO? resurrect headMouse stuff?
-    //_headMouseX = _glWidget->width() / 2;
-    //_headMouseY = _glWidget->height() / 2;
     _skeletonModel.reset();
-    getHead()->reset();
+    getHead()->reset(); 
     getHand()->reset();
     _oculusYawOffset = 0.0f;
 
     setVelocity(glm::vec3(0.0f));
     setThrust(glm::vec3(0.0f));
     setOrientation(glm::quat(glm::vec3(0.0f)));
-}
-
-void MyAvatar::setMoveTarget(const glm::vec3 moveTarget) {
-    _moveTarget = moveTarget;
-    _moveTargetStepCounter = 0;
 }
 
 void MyAvatar::update(float deltaTime) {
@@ -110,32 +100,14 @@ void MyAvatar::update(float deltaTime) {
         // Faceshift drive is enabled, set the avatar drive based on the head position
         moveWithLean();
     }
-
-    // Update head mouse from faceshift if active
-    Faceshift* faceshift = Application::getInstance()->getFaceshift();
-    if (faceshift->isActive()) {
-        // TODO? resurrect headMouse stuff?
-        //glm::vec3 headVelocity = faceshift->getHeadAngularVelocity();
-        //// sets how quickly head angular rotation moves the head mouse
-        //const float HEADMOUSE_FACESHIFT_YAW_SCALE = 40.0f;
-        //const float HEADMOUSE_FACESHIFT_PITCH_SCALE = 30.0f;
-        //_headMouseX -= headVelocity.y * HEADMOUSE_FACESHIFT_YAW_SCALE;
-        //_headMouseY -= headVelocity.x * HEADMOUSE_FACESHIFT_PITCH_SCALE;
-        //
-        ////  Constrain head-driven mouse to edges of screen
-        //_headMouseX = glm::clamp(_headMouseX, 0, _glWidget->width());
-        //_headMouseY = glm::clamp(_headMouseY, 0, _glWidget->height());
-    }
-
+    
     //  Get audio loudness data from audio input device
     Audio* audio = Application::getInstance()->getAudio();
     head->setAudioLoudness(audio->getLastInputLoudness());
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Gravity)) {
+    if (_motionBehaviors & AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY) {
         setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()));
-    } else {
-        setGravity(glm::vec3(0.0f, 0.0f, 0.0f));
     }
 
     simulate(deltaTime);
@@ -144,17 +116,6 @@ void MyAvatar::update(float deltaTime) {
 void MyAvatar::simulate(float deltaTime) {
 
     glm::quat orientation = getOrientation();
-
-    // Update movement timers
-    _elapsedTimeSinceCollision += deltaTime;
-    const float VELOCITY_MOVEMENT_TIMER_THRESHOLD = 0.2f;
-    if (glm::length(_velocity) < VELOCITY_MOVEMENT_TIMER_THRESHOLD) {
-        _elapsedTimeMoving = 0.0f;
-        _elapsedTimeStopped += deltaTime;
-    } else {
-        _elapsedTimeStopped = 0.0f;
-        _elapsedTimeMoving += deltaTime;
-    }
 
     if (_scale != _targetScale) {
         float scale = (1.0f - SMOOTHING_RATIO) * _scale + SMOOTHING_RATIO * _targetScale;
@@ -269,33 +230,10 @@ void MyAvatar::simulate(float deltaTime) {
     // update the euler angles
     setOrientation(orientation);
 
-    const float WALKING_SPEED_THRESHOLD = 0.2f;
-    // use speed and angular velocity to determine walking vs. standing
-    float speed = glm::length(_velocity);
-    if (speed + fabs(_bodyYawDelta) > WALKING_SPEED_THRESHOLD) {
-        _mode = AVATAR_MODE_WALKING;
-    } else {
-        _mode = AVATAR_MODE_INTERACTING;
-    }
-
     // update moving flag based on speed
     const float MOVING_SPEED_THRESHOLD = 0.01f;
+    float speed = glm::length(_velocity);
     _moving = speed > MOVING_SPEED_THRESHOLD;
-
-    // If a move target is set, update position explicitly
-    const float MOVE_FINISHED_TOLERANCE = 0.1f;
-    const float MOVE_SPEED_FACTOR = 2.0f;
-    const int MOVE_TARGET_MAX_STEPS = 250;
-    if ((glm::length(_moveTarget) > EPSILON) && (_moveTargetStepCounter < MOVE_TARGET_MAX_STEPS))  {
-        if (glm::length(_position - _moveTarget) > MOVE_FINISHED_TOLERANCE) {
-            _position += (_moveTarget - _position) * (deltaTime * MOVE_SPEED_FACTOR);
-            _moveTargetStepCounter++;
-        } else {
-            //  Move completed
-            _moveTarget = glm::vec3(0,0,0);
-            _moveTargetStepCounter = 0;
-        }
-    }
 
     updateChatCircle(deltaTime);
 
@@ -324,10 +262,10 @@ void MyAvatar::simulate(float deltaTime) {
     head->simulate(deltaTime, true);
 
     // Zero thrust out now that we've added it to velocity in this frame
-    _thrust = glm::vec3(0.0f);
+    _thrust *= glm::vec3(0.0f);
 
     // now that we're done stepping the avatar forward in time, compute new collisions
-    if (_collisionFlags != 0) {
+    if (_collisionGroups != 0) {
         Camera* myCamera = Application::getInstance()->getCamera();
 
         float radius = getSkeletonHeight() * COLLISION_RADIUS_SCALE;
@@ -335,15 +273,15 @@ void MyAvatar::simulate(float deltaTime) {
             radius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.0f));
             radius *= COLLISION_RADIUS_SCALAR;
         }
-        if (_collisionFlags) {
+        if (_collisionGroups) {
             updateShapePositions();
-            if (_collisionFlags & COLLISION_GROUP_ENVIRONMENT) {
+            if (_collisionGroups & COLLISION_GROUP_ENVIRONMENT) {
                 updateCollisionWithEnvironment(deltaTime, radius);
             }
-            if (_collisionFlags & COLLISION_GROUP_VOXELS) {
+            if (_collisionGroups & COLLISION_GROUP_VOXELS) {
                 updateCollisionWithVoxels(deltaTime, radius);
             }
-            if (_collisionFlags & COLLISION_GROUP_AVATARS) {
+            if (_collisionGroups & COLLISION_GROUP_AVATARS) {
                 updateCollisionWithAvatars(deltaTime);
             }
         }
@@ -451,8 +389,6 @@ void MyAvatar::renderDebugBodyPoints() {
     glTranslatef(position.x, position.y, position.z);
     glutSolidSphere(0.15, 10, 10);
     glPopMatrix();
-
-
 }
 
 // virtual
@@ -467,32 +403,41 @@ void MyAvatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
     }
 }
 
-void MyAvatar::renderHeadMouse() const {
-    // TODO? resurrect headMouse stuff?
-    /*
+void MyAvatar::renderHeadMouse(int screenWidth, int screenHeight) const {
+    
+    Faceshift* faceshift = Application::getInstance()->getFaceshift();
+    
     //  Display small target box at center or head mouse target that can also be used to measure LOD
+    float headPitch = getHead()->getFinalPitch();
+    float headYaw = getHead()->getFinalYaw();
+    //
+    //  It should be noted that the following constant is a function
+    //  how far the viewer's head is away from both the screen and the size of the screen,
+    //  which are both things we cannot know without adding a calibration phase.
+    //
+    const float PIXELS_PER_VERTICAL_DEGREE = 20.0f;
+    float aspectRatio = (float) screenWidth / (float) screenHeight;
+    int headMouseX = screenWidth / 2.f - headYaw * aspectRatio * PIXELS_PER_VERTICAL_DEGREE;
+    int headMouseY = screenHeight / 2.f - headPitch * PIXELS_PER_VERTICAL_DEGREE;
+    
     glColor3f(1.0f, 1.0f, 1.0f);
     glDisable(GL_LINE_SMOOTH);
     const int PIXEL_BOX = 16;
     glBegin(GL_LINES);
-    glVertex2f(_headMouseX - PIXEL_BOX/2, _headMouseY);
-    glVertex2f(_headMouseX + PIXEL_BOX/2, _headMouseY);
-    glVertex2f(_headMouseX, _headMouseY - PIXEL_BOX/2);
-    glVertex2f(_headMouseX, _headMouseY + PIXEL_BOX/2);
+    glVertex2f(headMouseX - PIXEL_BOX/2, headMouseY);
+    glVertex2f(headMouseX + PIXEL_BOX/2, headMouseY);
+    glVertex2f(headMouseX, headMouseY - PIXEL_BOX/2);
+    glVertex2f(headMouseX, headMouseY + PIXEL_BOX/2);
     glEnd();
     glEnable(GL_LINE_SMOOTH);
-    glColor3f(1.0f, 0.0f, 0.0f);
-    glPointSize(3.0f);
-    glDisable(GL_POINT_SMOOTH);
-    glBegin(GL_POINTS);
-    glVertex2f(_headMouseX - 1, _headMouseY + 1);
-    glEnd();
     //  If Faceshift is active, show eye pitch and yaw as separate pointer
-    if (_faceshift.isActive()) {
-        const float EYE_TARGET_PIXELS_PER_DEGREE = 40.0;
-        int eyeTargetX = (_glWidget->width() / 2) -  _faceshift.getEstimatedEyeYaw() * EYE_TARGET_PIXELS_PER_DEGREE;
-        int eyeTargetY = (_glWidget->height() / 2) -  _faceshift.getEstimatedEyePitch() * EYE_TARGET_PIXELS_PER_DEGREE;
+    if (faceshift->isActive()) {
 
+        float avgEyePitch = faceshift->getEstimatedEyePitch();
+        float avgEyeYaw = faceshift->getEstimatedEyeYaw();
+        int eyeTargetX = (screenWidth / 2) - avgEyeYaw * aspectRatio * PIXELS_PER_VERTICAL_DEGREE;
+        int eyeTargetY = (screenHeight / 2) - avgEyePitch * PIXELS_PER_VERTICAL_DEGREE;
+        
         glColor3f(0.0f, 1.0f, 1.0f);
         glDisable(GL_LINE_SMOOTH);
         glBegin(GL_LINES);
@@ -503,7 +448,27 @@ void MyAvatar::renderHeadMouse() const {
         glEnd();
 
     }
-    */
+}
+
+void MyAvatar::setLocalGravity(glm::vec3 gravity) {
+    _motionBehaviors |= AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
+    // Environmental and Local gravities are incompatible.  Since Local is being set here
+    // the environmental setting must be removed.
+    _motionBehaviors &= ~AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY;
+    setGravity(gravity);
+}
+
+void MyAvatar::setGravity(const glm::vec3& gravity) {
+    _gravity = gravity;
+    getHead()->setGravity(_gravity);
+
+    // use the gravity to determine the new world up direction, if possible
+    float gravityLength = glm::length(gravity);
+    if (gravityLength > EPSILON) {
+        _worldUpDirection = _gravity / -gravityLength;
+    } else {
+        _worldUpDirection = DEFAULT_UP_DIRECTION;
+    }
 }
 
 void MyAvatar::saveData(QSettings* settings) {
@@ -552,7 +517,7 @@ void MyAvatar::loadData(QSettings* settings) {
     setScale(_scale);
     Application::getInstance()->getCamera()->setScale(_scale);
     
-    setFaceModelURL(settings->value("faceModelURL").toUrl());
+    setFaceModelURL(settings->value("faceModelURL", DEFAULT_HEAD_MODEL_URL).toUrl());
     setSkeletonModelURL(settings->value("skeletonModelURL").toUrl());
     setDisplayName(settings->value("displayName").toString());
 
@@ -590,23 +555,24 @@ void MyAvatar::orbit(const glm::vec3& position, int deltaX, int deltaY) {
 }
 
 void MyAvatar::updateLookAtTargetAvatar() {
-    Application* applicationInstance = Application::getInstance();
-    
-    if (!applicationInstance->isMousePressed()) {
-        glm::vec3 mouseOrigin = applicationInstance->getMouseRayOrigin();
-        glm::vec3 mouseDirection = applicationInstance->getMouseRayDirection();
-
-        foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
-            Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
-            float distance;
-            if (avatar->findRayIntersection(mouseOrigin, mouseDirection, distance)) {
+    //
+    //  Look at the avatar whose eyes are closest to the ray in direction of my avatar's head
+    //
+    _lookAtTargetAvatar.clear();
+    _targetAvatarPosition = glm::vec3(0, 0, 0);
+    const float MIN_LOOKAT_ANGLE = PI / 4.0f;        //  Smallest angle between face and person where we will look at someone
+    float smallestAngleTo = MIN_LOOKAT_ANGLE;
+    foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
+        Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
+        if (!avatar->isMyAvatar()) {
+            float angleTo = glm::angle(getHead()->getFinalOrientation() * glm::vec3(0.0f, 0.0f, -1.0f),
+                                       glm::normalize(avatar->getHead()->getEyePosition() - getHead()->getEyePosition()));
+            if (angleTo < smallestAngleTo) {
                 _lookAtTargetAvatar = avatarPointer;
                 _targetAvatarPosition = avatarPointer->getPosition();
-                return;
+                smallestAngleTo = angleTo;
             }
         }
-        _lookAtTargetAvatar.clear();
-        _targetAvatarPosition = glm::vec3(0, 0, 0);
     }
 }
 
@@ -642,7 +608,7 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _billboardValid = false;
 }
 
-void MyAvatar::renderBody(RenderMode renderMode) {
+void MyAvatar::renderBody(RenderMode renderMode, float glowLevel) {
     if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         return; // wait until both models are loaded
     }
@@ -830,7 +796,6 @@ void MyAvatar::applyHardCollision(const glm::vec3& penetration, float elasticity
     // cancel out the velocity component in the direction of penetration
     float penetrationLength = glm::length(penetration);
     if (penetrationLength > EPSILON) {
-        _elapsedTimeSinceCollision = 0.0f;
         glm::vec3 direction = penetration / penetrationLength;
         _velocity -= glm::dot(_velocity, direction) * direction * (1.0f + elasticity);
         _velocity *= glm::clamp(1.0f - damping, 0.0f, 1.0f);
@@ -867,7 +832,7 @@ void MyAvatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTim
             std::min(COLLISION_LOUDNESS * velocityTowardCollision, 1.0f),
             frequency * (1.0f + velocityTangentToCollision / velocityTowardCollision),
             std::min(velocityTangentToCollision / velocityTowardCollision * NOISE_SCALING, 1.0f),
-            1.0f - DURATION_SCALING * powf(frequency, 0.5f) / velocityTowardCollision, true);
+            1.0f - DURATION_SCALING * powf(frequency, 0.5f) / velocityTowardCollision, false);
     }
 }
 
@@ -1090,19 +1055,6 @@ void MyAvatar::maybeUpdateBillboard() {
     sendBillboardPacket();
 }
 
-void MyAvatar::setGravity(glm::vec3 gravity) {
-    _gravity = gravity;
-    getHead()->setGravity(_gravity);
-
-    // use the gravity to determine the new world up direction, if possible
-    float gravityLength = glm::length(gravity);
-    if (gravityLength > EPSILON) {
-        _worldUpDirection = _gravity / -gravityLength;
-    } else {
-        _worldUpDirection = DEFAULT_UP_DIRECTION;
-    }
-}
-
 void MyAvatar::goHome() {
     qDebug("Going Home!");
     setPosition(START_LOCATION);
@@ -1184,8 +1136,43 @@ void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
                                           coordinateItems[2].toFloat()) - newOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
         setPosition(newPosition);
         emit transformChanged();
+    } else {
+        QMessageBox::warning(Application::getInstance()->getWindow(), "", "That user or location could not be found.");
     }
-    
+}
+
+void MyAvatar::updateMotionBehaviors() {
+    _motionBehaviors = 0;
+    if (Menu::getInstance()->isOptionChecked(MenuOption::ObeyEnvironmentalGravity)) {
+        _motionBehaviors |= AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY;
+        // Environmental and Local gravities are incompatible.  Environmental setting trumps local.
+        _motionBehaviors &= ~AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
+    }
+    if (! (_motionBehaviors & (AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY | AVATAR_MOTION_OBEY_LOCAL_GRAVITY))) {
+        setGravity(glm::vec3(0.0f));
+    }
+}
+
+void MyAvatar::setCollisionGroups(quint32 collisionGroups) {
+    Avatar::setCollisionGroups(collisionGroups & VALID_COLLISION_GROUPS);
+    Menu* menu = Menu::getInstance();
+    menu->setIsOptionChecked(MenuOption::CollideWithEnvironment, (bool)(_collisionGroups & COLLISION_GROUP_ENVIRONMENT));
+    menu->setIsOptionChecked(MenuOption::CollideWithAvatars, (bool)(_collisionGroups & COLLISION_GROUP_AVATARS));
+    menu->setIsOptionChecked(MenuOption::CollideWithVoxels, (bool)(_collisionGroups & COLLISION_GROUP_VOXELS));
+    menu->setIsOptionChecked(MenuOption::CollideWithParticles, (bool)(_collisionGroups & COLLISION_GROUP_PARTICLES));
+}
+
+void MyAvatar::setMotionBehaviors(quint32 flags) {
+    _motionBehaviors = flags;
+    Menu* menu = Menu::getInstance();
+    menu->setIsOptionChecked(MenuOption::ObeyEnvironmentalGravity, (bool)(_motionBehaviors & AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY));
+    // Environmental and Local gravities are incompatible.  Environmental setting trumps local.
+    if (_motionBehaviors & AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY) {
+        _motionBehaviors &= ~AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
+        setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()));
+    } else if (! (_motionBehaviors & (AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY | AVATAR_MOTION_OBEY_LOCAL_GRAVITY))) {
+        setGravity(glm::vec3(0.0f));
+    }
 }
 
 void MyAvatar::applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) {

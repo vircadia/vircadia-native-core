@@ -30,27 +30,22 @@
 #include "OctalCode.h"
 #include "SharedUtil.h"
 
-
-static qint64 TIME_REFERENCE = 0; // in usec
-static QElapsedTimer timestampTimer;
 static int usecTimestampNowAdjust = 0; // in usec
-
-void initialiseUsecTimestampNow() {
-    static bool initialised = false;
-    if (initialised) {
-        qDebug() << "[WARNING] Double initialisation of usecTimestampNow().";
-        return;
-    }
-    
-    TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * 1000; // ms to usec
-    initialised = true;
-}
-
 void usecTimestampNowForceClockSkew(int clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;
 }
 
 quint64 usecTimestampNow() {
+    static bool usecTimestampNowIsInitialized = false;
+    static qint64 TIME_REFERENCE = 0; // in usec
+    static QElapsedTimer timestampTimer;
+    
+    if (!usecTimestampNowIsInitialized) {
+        TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * 1000; // ms to usec
+        timestampTimer.start();
+        usecTimestampNowIsInitialized = true;
+    }
+    
     //          usec                       nsec to usec                   usec
     return TIME_REFERENCE + timestampTimer.nsecsElapsed() / 1000 + ::usecTimestampNowAdjust;
 }
@@ -620,7 +615,7 @@ int unpackClipValueFromTwoByte(const unsigned char* buffer, float& clipValue) {
 }
 
 int packFloatToByte(unsigned char* buffer, float value, float scaleBy) {
-    unsigned char holder;
+    quint8 holder;
     const float CONVERSION_RATIO = (255 / scaleBy);
     holder = floorf(value * CONVERSION_RATIO);
     memcpy(buffer, &holder, sizeof(holder));
@@ -628,7 +623,7 @@ int packFloatToByte(unsigned char* buffer, float value, float scaleBy) {
 }
 
 int unpackFloatFromByte(const unsigned char* buffer, float& value, float scaleBy) {
-    unsigned char holder;
+    quint8 holder;
     memcpy(&holder, buffer, sizeof(holder));
     value = ((float)holder / (float) 255) * scaleBy;
     return sizeof(holder);

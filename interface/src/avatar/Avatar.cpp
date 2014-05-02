@@ -47,16 +47,14 @@ Avatar::Avatar() :
     AvatarData(),
     _skeletonModel(this),
     _bodyYawDelta(0.0f),
-    _mode(AVATAR_MODE_STANDING),
     _velocity(0.0f, 0.0f, 0.0f),
-    _thrust(0.0f, 0.0f, 0.0f),
     _leanScale(0.5f),
     _scale(1.0f),
     _worldUpDirection(DEFAULT_UP_DIRECTION),
     _mouseRayOrigin(0.0f, 0.0f, 0.0f),
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _moving(false),
-    _collisionFlags(0),
+    _collisionGroups(0),
     _initialized(false),
     _shouldRenderBillboard(true)
 {
@@ -138,20 +136,9 @@ void Avatar::simulate(float deltaTime) {
         head->simulate(deltaTime, false, _shouldRenderBillboard);
     }
     
-    // use speed and angular velocity to determine walking vs. standing
-    float speed = glm::length(_velocity);
-    if (speed + fabs(_bodyYawDelta) > 0.2) {
-        _mode = AVATAR_MODE_WALKING;
-    } else {
-        _mode = AVATAR_MODE_INTERACTING;
-    }
-    
     // update position by velocity, and subtract the change added earlier for gravity
     _position += _velocity * deltaTime;
     
-    // Zero thrust out now that we've added it to velocity in this frame
-    _thrust = glm::vec3(0, 0, 0);
-
     // update animation for display name fade in/out
     if ( _displayNameTargetAlpha != _displayNameAlpha) {
         // the alpha function is 
@@ -166,7 +153,7 @@ void Avatar::simulate(float deltaTime) {
             // Fading in
             _displayNameAlpha = 1 - (1 - _displayNameAlpha) * coef;
         }
-        _displayNameAlpha = abs(_displayNameAlpha - _displayNameTargetAlpha) < 0.01? _displayNameTargetAlpha : _displayNameAlpha;
+        _displayNameAlpha = abs(_displayNameAlpha - _displayNameTargetAlpha) < 0.01f ? _displayNameTargetAlpha : _displayNameAlpha;
     }
 }
 
@@ -219,13 +206,13 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
             GLOW_FROM_AVERAGE_LOUDNESS = 0.0f;
         }
             
-        Glower glower(_moving && distanceToTarget > GLOW_DISTANCE && renderMode == NORMAL_RENDER_MODE
+        float glowLevel = _moving && distanceToTarget > GLOW_DISTANCE && renderMode == NORMAL_RENDER_MODE
                       ? 1.0f
-                      : GLOW_FROM_AVERAGE_LOUDNESS);
+                      : GLOW_FROM_AVERAGE_LOUDNESS;
 
         // render body
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
-            renderBody(renderMode);
+            renderBody(renderMode, glowLevel);
         }
         if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes)) {
             _skeletonModel.updateShapePositions();
@@ -339,17 +326,21 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::renderBody(RenderMode renderMode) {    
-    if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
-        // render the billboard until both models are loaded
-        renderBillboard();
-        return;
-    }
+void Avatar::renderBody(RenderMode renderMode, float glowLevel) {
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
-        Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
-    _skeletonModel.render(1.0f, modelRenderMode);
+    Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+    {
+        Glower glower(glowLevel);
+        
+        if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
+            // render the billboard until both models are loaded
+            renderBillboard();
+            return;
+        }
+        _skeletonModel.render(1.0f, modelRenderMode);
+        getHand()->render(false);
+    }
     getHead()->render(1.0f, modelRenderMode);
-    getHand()->render(false);
 }
 
 bool Avatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const {
@@ -464,7 +455,7 @@ void Avatar::renderDisplayName() {
     // The up vector must be relative to the rotation current rotation matrix:
     // we set the identity
     glm::dvec3 testPoint0 = glm::dvec3(textPosition);
-    glm::dvec3 testPoint1 = glm::dvec3(textPosition) + glm::dvec3(IDENTITY_UP);
+    glm::dvec3 testPoint1 = glm::dvec3(textPosition) + glm::dvec3(Application::getInstance()->getCamera()->getRotation() * IDENTITY_UP);
     
     bool success;
     success = gluProject(testPoint0.x, testPoint0.y, testPoint0.z,
@@ -479,7 +470,7 @@ void Avatar::renderDisplayName() {
         double textWindowHeight = abs(result1[1] - result0[1]);
         float scaleFactor = (textWindowHeight > EPSILON) ? 1.0f / textWindowHeight : 1.0f;
         glScalef(scaleFactor, scaleFactor, 1.0);  
-
+        
         glScalef(1.0f, -1.0f, 1.0f);  // TextRenderer::draw paints the text upside down in y axis
 
         int text_x = -_displayNameBoundingRect.width() / 2;
@@ -563,7 +554,7 @@ bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& 
 }
 
 bool Avatar::findParticleCollisions(const glm::vec3& particleCenter, float particleRadius, CollisionList& collisions) {
-    if (_collisionFlags & COLLISION_GROUP_PARTICLES) {
+    if (_collisionGroups & COLLISION_GROUP_PARTICLES) {
         return false;
     }
     bool collided = false;
@@ -753,19 +744,19 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
     glEnd();
 }
 
-void Avatar::updateCollisionFlags() {
-    _collisionFlags = 0;
+void Avatar::updateCollisionGroups() {
+    _collisionGroups = 0;
     if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithEnvironment)) {
-        _collisionFlags |= COLLISION_GROUP_ENVIRONMENT;
+        _collisionGroups |= COLLISION_GROUP_ENVIRONMENT;
     }
     if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithAvatars)) {
-        _collisionFlags |= COLLISION_GROUP_AVATARS;
+        _collisionGroups |= COLLISION_GROUP_AVATARS;
     }
     if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithVoxels)) {
-        _collisionFlags |= COLLISION_GROUP_VOXELS;
+        _collisionGroups |= COLLISION_GROUP_VOXELS;
     }
     if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithParticles)) {
-        _collisionFlags |= COLLISION_GROUP_PARTICLES;
+        _collisionGroups |= COLLISION_GROUP_PARTICLES;
     }
 }
 

@@ -16,17 +16,19 @@
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
+#include <QScriptEngine>
 
 #include <AudioRingBuffer.h>
 #include <AvatarData.h>
+#include <CollisionInfo.h>
+#include <ModelsScriptingInterface.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
+#include <ParticlesScriptingInterface.h>
+#include <Sound.h>
 #include <UUID.h>
 #include <VoxelConstants.h>
 #include <VoxelDetail.h>
-#include <ParticlesScriptingInterface.h>
-
-#include <Sound.h>
 
 #include "AnimationObject.h"
 #include "MenuItemProperties.h"
@@ -35,6 +37,7 @@
 
 VoxelsScriptingInterface ScriptEngine::_voxelsScriptingInterface;
 ParticlesScriptingInterface ScriptEngine::_particlesScriptingInterface;
+ModelsScriptingInterface ScriptEngine::_modelsScriptingInterface;
 
 static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* engine) {
     QUrl soundURL = QUrl(context->argument(0).toString());
@@ -165,7 +168,7 @@ void ScriptEngine::setAvatarData(AvatarData* avatarData, const QString& objectNa
 void ScriptEngine::setAvatarHashMap(AvatarHashMap* avatarHashMap, const QString& objectName) {
     // remove the old Avatar property, if it exists
     _engine.globalObject().setProperty(objectName, QScriptValue());
-    
+
     // give the script engine the new avatar hash map
     registerGlobalObject(objectName, avatarHashMap);
 }
@@ -202,6 +205,11 @@ void ScriptEngine::init() {
     qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<ParticleID> >(&_engine);
+
+    qScriptRegisterMetaType(&_engine, ModelItemPropertiesToScriptValue, ModelItemPropertiesFromScriptValue);
+    qScriptRegisterMetaType(&_engine, ModelItemIDtoScriptValue, ModelItemIDfromScriptValue);
+    qScriptRegisterSequenceMetaType<QVector<ModelItemID> >(&_engine);
+
     qScriptRegisterSequenceMetaType<QVector<glm::vec2> >(&_engine);
     qScriptRegisterSequenceMetaType<QVector<glm::quat> >(&_engine);
     qScriptRegisterSequenceMetaType<QVector<QString> >(&_engine);
@@ -222,26 +230,51 @@ void ScriptEngine::init() {
     registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &_audioScriptingInterface);
     registerGlobalObject("Controller", _controllerScriptingInterface);
+    registerGlobalObject("Models", &_modelsScriptingInterface);
     registerGlobalObject("Particles", &_particlesScriptingInterface);
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
     registerGlobalObject("AnimationCache", &_animationCache);
-    
+
     registerGlobalObject("Voxels", &_voxelsScriptingInterface);
 
-    QScriptValue treeScaleValue = _engine.newVariant(QVariant(TREE_SCALE));
-    _engine.globalObject().setProperty("TREE_SCALE", treeScaleValue);
+    // constants
+    QScriptValue globalObject = _engine.globalObject();
+    globalObject.setProperty("TREE_SCALE", _engine.newVariant(QVariant(TREE_SCALE)));
+    globalObject.setProperty("COLLISION_GROUP_ENVIRONMENT", _engine.newVariant(QVariant(COLLISION_GROUP_ENVIRONMENT)));
+    globalObject.setProperty("COLLISION_GROUP_AVATARS", _engine.newVariant(QVariant(COLLISION_GROUP_AVATARS)));
+    globalObject.setProperty("COLLISION_GROUP_VOXELS", _engine.newVariant(QVariant(COLLISION_GROUP_VOXELS)));
+    globalObject.setProperty("COLLISION_GROUP_PARTICLES", _engine.newVariant(QVariant(COLLISION_GROUP_PARTICLES)));
+
+    globalObject.setProperty("AVATAR_MOTION_OBEY_LOCAL_GRAVITY", _engine.newVariant(QVariant(AVATAR_MOTION_OBEY_LOCAL_GRAVITY)));
+    globalObject.setProperty("AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY", _engine.newVariant(QVariant(AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY)));
 
     // let the VoxelPacketSender know how frequently we plan to call it
     _voxelsScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(SCRIPT_DATA_CALLBACK_USECS);
     _particlesScriptingInterface.getParticlePacketSender()->setProcessCallIntervalHint(SCRIPT_DATA_CALLBACK_USECS);
 }
 
-void ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
+QScriptValue ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
     if (object) {
         QScriptValue value = _engine.newQObject(object);
         _engine.globalObject().setProperty(name, value);
+        return value;
+    }
+    return QScriptValue::NullValue;
+}
+
+void ScriptEngine::registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
+                                        QScriptEngine::FunctionSignature setter, QScriptValue object) {
+    QScriptValue setterFunction = _engine.newFunction(setter, 1);
+    QScriptValue getterFunction = _engine.newFunction(getter);
+
+    if (!object.isNull()) {
+        object.setProperty(name, setterFunction, QScriptValue::PropertySetter);
+        object.setProperty(name, getterFunction, QScriptValue::PropertyGetter);
+    } else {
+        _engine.globalObject().setProperty(name, setterFunction, QScriptValue::PropertySetter);
+        _engine.globalObject().setProperty(name, getterFunction, QScriptValue::PropertyGetter);
     }
 }
 
@@ -328,6 +361,16 @@ void ScriptEngine::run() {
             // since we're in non-threaded mode, call process so that the packets are sent
             if (!_particlesScriptingInterface.getParticlePacketSender()->isThreaded()) {
                 _particlesScriptingInterface.getParticlePacketSender()->process();
+            }
+        }
+
+        if (_modelsScriptingInterface.getModelPacketSender()->serversExist()) {
+            // release the queue of edit voxel messages.
+            _modelsScriptingInterface.getModelPacketSender()->releaseQueuedMessages();
+
+            // since we're in non-threaded mode, call process so that the packets are sent
+            if (!_modelsScriptingInterface.getModelPacketSender()->isThreaded()) {
+                _modelsScriptingInterface.getModelPacketSender()->process();
             }
         }
 
@@ -439,6 +482,16 @@ void ScriptEngine::run() {
         // since we're in non-threaded mode, call process so that the packets are sent
         if (!_particlesScriptingInterface.getParticlePacketSender()->isThreaded()) {
             _particlesScriptingInterface.getParticlePacketSender()->process();
+        }
+    }
+
+    if (_modelsScriptingInterface.getModelPacketSender()->serversExist()) {
+        // release the queue of edit voxel messages.
+        _modelsScriptingInterface.getModelPacketSender()->releaseQueuedMessages();
+
+        // since we're in non-threaded mode, call process so that the packets are sent
+        if (!_modelsScriptingInterface.getModelPacketSender()->isThreaded()) {
+            _modelsScriptingInterface.getModelPacketSender()->process();
         }
     }
 

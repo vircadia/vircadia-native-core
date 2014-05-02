@@ -76,32 +76,16 @@ void VoxelsScriptingInterface::setVoxel(float x, float y, float z, float scale,
     if (_tree) {
         if (_undoStack) {
             AddVoxelCommand* addCommand = new AddVoxelCommand(_tree,
-                                                           addVoxelDetail,
-                                                           getVoxelPacketSender());
-            
-            VoxelTreeElement* deleteVoxelElement = _tree->getVoxelAt(addVoxelDetail.x, addVoxelDetail.y, addVoxelDetail.z, addVoxelDetail.s);
-            if (deleteVoxelElement) {
-                nodeColor color;
-                memcpy(&color, &deleteVoxelElement->getColor(), sizeof(nodeColor));
-                VoxelDetail deleteVoxelDetail = {addVoxelDetail.x,
-                                                 addVoxelDetail.y,
-                                                 addVoxelDetail.z,
-                                                 addVoxelDetail.s,
-                                                 color[0],
-                                                 color[1],
-                                                 color[2]};
-                DeleteVoxelCommand* delCommand = new DeleteVoxelCommand(_tree,
-                                                                     deleteVoxelDetail,
-                                                                     getVoxelPacketSender());
-                _undoStack->beginMacro(addCommand->text());
-                // As QUndoStack automatically executes redo() on push, we don't need to execute the command ourselves.
-                _undoStack->push(delCommand);
-                _undoStack->push(addCommand);
-                _undoStack->endMacro();
-            } else {
-                // As QUndoStack automatically executes redo() on push, we don't need to execute the command ourselves.
-                _undoStack->push(addCommand);
-            }
+                                                              addVoxelDetail,
+                                                              getVoxelPacketSender());
+            DeleteVoxelCommand* deleteCommand = new DeleteVoxelCommand(_tree,
+                                                                       addVoxelDetail,
+                                                                       getVoxelPacketSender());
+            _undoStack->beginMacro(addCommand->text());
+            // As QUndoStack automatically executes redo() on push, we don't need to execute the command ourselves.
+            _undoStack->push(deleteCommand);
+            _undoStack->push(addCommand);
+            _undoStack->endMacro();
         } else {
             // queue the destructive add
             queueVoxelAdd(PacketTypeVoxelSetDestructive, addVoxelDetail);
@@ -138,12 +122,21 @@ void VoxelsScriptingInterface::eraseVoxel(float x, float y, float z, float scale
     }
 }
 
-
 RayToVoxelIntersectionResult VoxelsScriptingInterface::findRayIntersection(const PickRay& ray) {
+    return findRayIntersectionWorker(ray, Octree::TryLock);
+}
+
+RayToVoxelIntersectionResult VoxelsScriptingInterface::findRayIntersectionBlocking(const PickRay& ray) {
+    return findRayIntersectionWorker(ray, Octree::Lock);
+}
+
+RayToVoxelIntersectionResult VoxelsScriptingInterface::findRayIntersectionWorker(const PickRay& ray, 
+                                                                                    Octree::lockType lockType) {
     RayToVoxelIntersectionResult result;
     if (_tree) {
         OctreeElement* element;
-        result.intersects = _tree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face);
+        result.intersects = _tree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face,
+                                                                lockType, &result.accurate);
         if (result.intersects) {
             VoxelTreeElement* voxel = (VoxelTreeElement*)element;
             result.voxel.x = voxel->getCorner().x;

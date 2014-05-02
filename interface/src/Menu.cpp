@@ -27,6 +27,7 @@
 #include <QSlider>
 #include <QUuid>
 #include <QHBoxLayout>
+#include <QDesktopServices>
 
 #include <AccountManager.h>
 #include <XmppClient.h>
@@ -39,6 +40,7 @@
 #include "ui/InfoView.h"
 #include "ui/MetavoxelEditor.h"
 #include "ui/ModelsBrowser.h"
+#include "ui/LoginDialog.h"
 
 
 Menu* Menu::_instance = NULL;
@@ -168,12 +170,12 @@ Menu::Menu() :
 
 
     QMenu* editMenu = addMenu("Edit");
-    
+
     QUndoStack* undoStack = Application::getInstance()->getUndoStack();
     QAction* undoAction = undoStack->createUndoAction(editMenu);
     undoAction->setShortcut(Qt::CTRL | Qt::Key_Z);
     addActionToQMenuAndActionHash(editMenu, undoAction);
-    
+
     QAction* redoAction = undoStack->createRedoAction(editMenu);
     redoAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Z);
     addActionToQMenuAndActionHash(editMenu, redoAction);
@@ -186,9 +188,9 @@ Menu::Menu() :
                                   QAction::PreferencesRole);
 
     addDisabledActionAndSeparator(editMenu, "Physics");
-    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::Gravity, Qt::SHIFT | Qt::Key_G, false);
-
-
+    QObject* avatar = appInstance->getAvatar();
+    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ObeyEnvironmentalGravity, Qt::SHIFT | Qt::Key_G, true, 
+            avatar, SLOT(updateMotionBehaviors()));
 
 
     addAvatarCollisionSubMenu(editMenu);
@@ -278,8 +280,9 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Shadows, 0, false);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, true);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::BuckyBalls, 0, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::BuckyBalls, 0, false);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Particles, 0, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Models, 0, true);
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
 
     QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxel Options");
@@ -319,7 +322,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Visage, 0, true,
         appInstance->getVisage(), SLOT(updateEnabled()));
 #endif
-    
+
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::GlowWhenSpeaking, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, false);
 
@@ -507,7 +510,7 @@ void Menu::loadSettings(QSettings* settings) {
     // MyAvatar caches some menu options, so we have to update them whenever we load settings.
     // TODO: cache more settings in MyAvatar that are checked with very high frequency.
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
-    myAvatar->updateCollisionFlags();
+    myAvatar->updateCollisionGroups();
 
     if (lockedSettings) {
         Application::getInstance()->unlockSettings();
@@ -722,31 +725,31 @@ QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
                                              QAction::MenuRole role,
                                              int menuItemLocation) {
     QAction* actionBefore = NULL;
-    
+
     if (menuItemLocation >= 0 && destinationMenu->actions().size() > menuItemLocation) {
         actionBefore = destinationMenu->actions()[menuItemLocation];
     }
-    
+
     if (!actionName.isEmpty()) {
         action->setText(actionName);
     }
-    
+
     if (shortcut != 0) {
         action->setShortcut(shortcut);
     }
-    
+
     if (role != QAction::NoRole) {
         action->setMenuRole(role);
     }
-    
+
     if (!actionBefore) {
         destinationMenu->addAction(action);
     } else {
         destinationMenu->insertAction(actionBefore, action);
     }
-    
+
     _actionHash.insert(action->text(), action);
-    
+
     return action;
 }
 
@@ -812,42 +815,12 @@ void sendFakeEnterEvent() {
     QCoreApplication::sendEvent(glWidget, &enterEvent);
 }
 
-const int QLINE_MINIMUM_WIDTH = 400;
 const float DIALOG_RATIO_OF_WINDOW = 0.30f;
 
 void Menu::loginForCurrentDomain() {
-    QDialog loginDialog(Application::getInstance()->getWindow());
-    loginDialog.setWindowTitle("Login");
-
-    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
-    loginDialog.setLayout(layout);
-    loginDialog.setWindowFlags(Qt::Sheet);
-
-    QFormLayout* form = new QFormLayout();
-    layout->addLayout(form, 1);
-
-    QLineEdit* loginLineEdit = new QLineEdit();
-    loginLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    form->addRow("Login:", loginLineEdit);
-
-    QLineEdit* passwordLineEdit = new QLineEdit();
-    passwordLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    passwordLineEdit->setEchoMode(QLineEdit::Password);
-    form->addRow("Password:", passwordLineEdit);
-
-    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
-    loginDialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
-    loginDialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
-    layout->addWidget(buttons);
-
-    int dialogReturn = loginDialog.exec();
-
-    if (dialogReturn == QDialog::Accepted && !loginLineEdit->text().isEmpty() && !passwordLineEdit->text().isEmpty()) {
-        // attempt to get an access token given this username and password
-        AccountManager::getInstance().requestAccessToken(loginLineEdit->text(), passwordLineEdit->text());
-    }
-
-    sendFakeEnterEvent();
+    LoginDialog* loginDialog = new LoginDialog(Application::getInstance()->getWindow());
+    loginDialog->show();
+    loginDialog->resizeAndPosition(false);
 }
 
 void Menu::editPreferences() {
@@ -926,48 +899,68 @@ void Menu::goTo() {
     int dialogReturn = gotoDialog.exec();
     if (dialogReturn == QDialog::Accepted && !gotoDialog.textValue().isEmpty()) {
         QString desiredDestination = gotoDialog.textValue();
-
-        if (desiredDestination.startsWith(CUSTOM_URL_SCHEME + "//")) {
-            QStringList urlParts = desiredDestination.remove(0, CUSTOM_URL_SCHEME.length() + 2).split('/', QString::SkipEmptyParts);
-
-            if (urlParts.count() > 1) {
-                // if url has 2 or more parts, the first one is domain name
-                QString domain = urlParts[0];
-
-                // second part is either a destination coordinate or
-                // a place name
-                QString destination = urlParts[1];
-
-                // any third part is an avatar orientation.
-                QString orientation = urlParts.count() > 2 ? urlParts[2] : QString();
-
-                goToDomain(domain);
-                
-                // goto either @user, #place, or x-xx,y-yy,z-zz
-                // style co-ordinate.
-                goTo(destination);
-
-                if (!orientation.isEmpty()) {
-                    // location orientation
-                    goToOrientation(orientation);
-                }
-            } else if (urlParts.count() == 1) {
-                // location coordinates or place name
-                QString destination = urlParts[0];
-                goTo(destination);
-            }
-
-        } else {
-            goToUser(gotoDialog.textValue());
+        if (!goToURL(desiredDestination)) {;
+            goTo(desiredDestination);
         }
     }
     sendFakeEnterEvent();
+}
+
+bool Menu::goToURL(QString location) {
+    if (location.startsWith(CUSTOM_URL_SCHEME + "//")) {
+        QStringList urlParts = location.remove(0, CUSTOM_URL_SCHEME.length() + 2).split('/', QString::SkipEmptyParts);
+
+        if (urlParts.count() > 1) {
+            // if url has 2 or more parts, the first one is domain name
+            QString domain = urlParts[0];
+
+            // second part is either a destination coordinate or
+            // a place name
+            QString destination = urlParts[1];
+
+            // any third part is an avatar orientation.
+            QString orientation = urlParts.count() > 2 ? urlParts[2] : QString();
+
+            goToDomain(domain);
+
+            // goto either @user, #place, or x-xx,y-yy,z-zz
+            // style co-ordinate.
+            goTo(destination);
+
+            if (!orientation.isEmpty()) {
+                // location orientation
+                goToOrientation(orientation);
+            }
+        } else if (urlParts.count() == 1) {
+            QString destination = urlParts[0];
+
+            // If this starts with # or @, treat it as a user/location, otherwise treat it as a domain
+            if (destination[0] == '#' || destination[0] == '@') {
+                goTo(destination);
+            } else {
+                goToDomain(destination);
+            }
+        }
+        return true;
+    }
+    return false;
 }
 
 void Menu::goToUser(const QString& user) {
     LocationManager* manager = &LocationManager::getInstance();
     manager->goTo(user);
     connect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
+}
+
+/// Open a url, shortcutting any "hifi" scheme URLs to the local application.
+void Menu::openUrl(const QUrl& url) {
+    if (url.scheme() == "hifi") {
+        QString path = url.toString(QUrl::RemoveScheme);
+        path = path.remove(QRegExp("^:?/*"));
+        goTo(path);
+    } else {
+        QDesktopServices::openUrl(url);
+    }
 }
 
 void Menu::multipleDestinationsDecision(const QJsonObject& userData, const QJsonObject& placeData) {
@@ -1145,23 +1138,22 @@ void Menu::showScriptEditor() {
 void Menu::showChat() {
     QMainWindow* mainWindow = Application::getInstance()->getWindow();
     if (!_chatWindow) {
-        mainWindow->addDockWidget(Qt::RightDockWidgetArea, _chatWindow = new ChatWindow());
+        _chatWindow = new ChatWindow(mainWindow);
     }
-    if (!_chatWindow->toggleViewAction()->isChecked()) {
-        const QRect& windowGeometry = mainWindow->geometry();
-        _chatWindow->move(windowGeometry.topRight().x() - _chatWindow->width(),
-                          windowGeometry.topRight().y() + (windowGeometry.height() / 2) - (_chatWindow->height() / 2));
-
-        _chatWindow->resize(0, _chatWindow->height());
-        _chatWindow->toggleViewAction()->trigger();
+    if (_chatWindow->isHidden()) {
+        _chatWindow->show();
     }
 }
 
 void Menu::toggleChat() {
 #ifdef HAVE_QXMPP
     _chatAction->setEnabled(XmppClient::getInstance().getXMPPClient().isConnected());
-    if (!_chatAction->isEnabled() && _chatWindow && _chatWindow->toggleViewAction()->isChecked()) {
-        _chatWindow->toggleViewAction()->trigger();
+    if (!_chatAction->isEnabled() && _chatWindow) {
+        if (_chatWindow->isHidden()) {
+            _chatWindow->show();
+        } else {
+            _chatWindow->hide();
+        }
     }
 #endif
 }
@@ -1263,7 +1255,7 @@ void Menu::autoAdjustLOD(float currentFPS) {
                 _avatarLODDistanceMultiplier - DISTANCE_DECREASE_RATE);
         }
     }
-    
+
     bool changed = false;
     quint64 elapsed = now - _lastAdjust;
 
@@ -1370,13 +1362,13 @@ void Menu::addAvatarCollisionSubMenu(QMenu* overMenu) {
     Application* appInstance = Application::getInstance();
     QObject* avatar = appInstance->getAvatar();
     addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithEnvironment,
-            0, false, avatar, SLOT(updateCollisionFlags()));
+            0, false, avatar, SLOT(updateCollisionGroups()));
     addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithAvatars,
-            0, true, avatar, SLOT(updateCollisionFlags()));
+            0, true, avatar, SLOT(updateCollisionGroups()));
     addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithVoxels,
-            0, false, avatar, SLOT(updateCollisionFlags()));
+            0, false, avatar, SLOT(updateCollisionGroups()));
     addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithParticles,
-            0, true, avatar, SLOT(updateCollisionFlags()));
+            0, true, avatar, SLOT(updateCollisionGroups()));
 }
 
 QAction* Menu::getActionFromName(const QString& menuName, QMenu* menu) {

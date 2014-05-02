@@ -46,7 +46,8 @@ AvatarData::AvatarData() :
     _isChatCirclingEnabled(false),
     _hasNewJointRotations(true),
     _headData(NULL),
-    _handData(NULL), 
+    _handData(NULL),
+    _faceModelURL("http://invalid.com"),
     _displayNameBoundingRect(), 
     _displayNameTargetAlpha(0.0f), 
     _displayNameAlpha(0.0f),
@@ -640,7 +641,7 @@ bool AvatarData::hasBillboardChangedAfterParsing(const QByteArray& packet) {
 }
 
 void AvatarData::setFaceModelURL(const QUrl& faceModelURL) {
-    _faceModelURL = faceModelURL.isEmpty() ? DEFAULT_HEAD_MODEL_URL : faceModelURL;
+    _faceModelURL = faceModelURL;
     
     qDebug() << "Changing face model for avatar to" << _faceModelURL.toString();
 }
