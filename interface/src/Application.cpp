@@ -273,6 +273,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // connect to the packet sent signal of the _voxelEditSender and the _particleEditSender
     connect(&_voxelEditSender, &VoxelEditPacketSender::packetSent, this, &Application::packetSent);
     connect(&_particleEditSender, &ParticleEditPacketSender::packetSent, this, &Application::packetSent);
+    connect(&_modelEditSender, &ModelEditPacketSender::packetSent, this, &Application::packetSent);
 
     // move the silentNodeTimer to the _nodeThread
     QTimer* silentNodeTimer = new QTimer();
@@ -316,6 +317,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // Tell our voxel edit sender about our known jurisdictions
     _voxelEditSender.setVoxelServerJurisdictions(&_voxelServerJurisdictions);
     _particleEditSender.setServerJurisdictions(&_particleServerJurisdictions);
+    _modelEditSender.setServerJurisdictions(&_modelServerJurisdictions);
 
     Particle::setVoxelEditPacketSender(&_voxelEditSender);
     Particle::setParticleEditPacketSender(&_particleEditSender);
@@ -327,6 +329,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // probably not the right long term solution. But for now, we're going to do this to
     // allow you to move a particle around in your hand
     _particleEditSender.setPacketsPerSecond(3000); // super high!!
+    _modelEditSender.setPacketsPerSecond(3000); // super high!!
 
     // Set the sixense filtering
     _sixenseManager.setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
@@ -397,6 +400,7 @@ Application::~Application() {
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
     _particleEditSender.terminate();
+    _modelEditSender.terminate();
 
     storeSizeAndPosition();
     saveScripts();
@@ -497,6 +501,8 @@ void Application::initializeGL() {
     _voxelEditSender.initialize(_enableProcessVoxelsThread);
     _voxelHideShowThread.initialize(_enableProcessVoxelsThread);
     _particleEditSender.initialize(_enableProcessVoxelsThread);
+    _modelEditSender.initialize(_enableProcessVoxelsThread);
+    
     if (_enableProcessVoxelsThread) {
         qDebug("Voxel parsing thread created.");
     }
@@ -1883,6 +1889,7 @@ void Application::updateThreads(float deltaTime) {
         _voxelHideShowThread.threadRoutine();
         _voxelEditSender.threadRoutine();
         _particleEditSender.threadRoutine();
+        _modelEditSender.threadRoutine();
     }
 }
 
@@ -3202,6 +3209,9 @@ void Application::nodeKilled(SharedNodePointer node) {
         _octreeSceneStatsLock.unlock();
 
     } else if (node->getType() == NodeType::ModelServer) {
+
+qDebug()<< "nodeKilled... NodeType::ModelServer";
+
         QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...
         if (_modelServerJurisdictions.find(nodeUUID) != _modelServerJurisdictions.end()) {
@@ -3255,7 +3265,6 @@ void Application::trackIncomingVoxelPacket(const QByteArray& packet, const Share
 }
 
 int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sendingNode) {
-
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
 
     // parse the incoming stats datas stick it in a temporary object for now, while we
@@ -3282,18 +3291,21 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
 
         // see if this is the first we've heard of this node...
         NodeToJurisdictionMap* jurisdiction = NULL;
+        QString serverType;
         if (sendingNode->getType() == NodeType::VoxelServer) {
             jurisdiction = &_voxelServerJurisdictions;
+            serverType = "Voxel";
         } else if (sendingNode->getType() == NodeType::ParticleServer) {
             jurisdiction = &_particleServerJurisdictions;
+            serverType = "Particle";
         } else {
             jurisdiction = &_modelServerJurisdictions;
+            serverType = "Model";
         }
 
-
         if (jurisdiction->find(nodeUUID) == jurisdiction->end()) {
-            qDebug("stats from new server... v[%f, %f, %f, %f]",
-                rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
+            qDebug("stats from new %s server... [%f, %f, %f, %f]",
+                qPrintable(serverType), rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
 
             // Add the jurisditionDetails object to the list of "fade outs"
             if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnVoxelServerChanges)) {

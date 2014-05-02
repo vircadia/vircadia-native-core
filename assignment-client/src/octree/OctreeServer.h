@@ -63,7 +63,7 @@ public:
     // Subclasses must implement these methods
     virtual OctreeQueryNode* createOctreeQueryNode() = 0;
     virtual Octree* createTree() = 0;
-    virtual unsigned char getMyNodeType() const = 0;
+    virtual char getMyNodeType() const = 0;
     virtual PacketType getMyQueryMessageType() const = 0;
     virtual const char* getMyServerName() const = 0;
     virtual const char* getMyLoggingServerTargetName() const = 0;

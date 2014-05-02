@@ -158,6 +158,7 @@ void OctreeRenderer::render() {
         _tree->recurseTreeWithOperation(renderOperation, &args);
         _tree->unlock();
     }
+    //qDebug() << "rendered items:" << args._renderedItems;
 }
 
 void OctreeRenderer::clear() { 

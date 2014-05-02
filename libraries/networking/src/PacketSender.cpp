@@ -42,6 +42,7 @@ PacketSender::PacketSender(int packetsPerSecond) :
     _totalPacketsQueued(0),
     _totalBytesQueued(0)
 {
+    qDebug() << "PacketSender::PacketSender() this=" << this;
 }
 
 PacketSender::~PacketSender() {
@@ -49,6 +50,7 @@ PacketSender::~PacketSender() {
 
 
 void PacketSender::queuePacketForSending(const SharedNodePointer& destinationNode, const QByteArray& packet) {
+    qDebug() << "PacketSender::queuePacketForSending() this=" << this << "packet.size()=" << packet.size();
     NetworkPacket networkPacket(destinationNode, packet);
     lock();
     _packets.push_back(networkPacket);
@@ -77,6 +79,8 @@ void PacketSender::terminating() {
 }
 
 bool PacketSender::threadedProcess() {
+    qDebug() << "PacketSender::threadedProcess() this=" << this;
+
     bool hasSlept = false;
 
     if (_lastSendTime == 0) {
@@ -104,6 +108,7 @@ bool PacketSender::threadedProcess() {
             if (usecToSleep > MAX_SLEEP_INTERVAL) {
                 usecToSleep = MAX_SLEEP_INTERVAL;
             }
+            qDebug() << "PacketSender::threadedProcess() this=" << this << "calling usleep() usecToSleep=" << usecToSleep;
             usleep(usecToSleep);
             hasSlept = true;
         }
@@ -140,6 +145,7 @@ bool PacketSender::threadedProcess() {
 // We also keep a running total of packets sent over multiple calls to process() so that we can adjust up or down for
 // possible rounding error that would occur if we only considered whole integer packet counts per call to process
 bool PacketSender::nonThreadedProcess() {
+    qDebug() << "PacketSender::nonThreadedProcess() this=" << this;
     quint64 now = usecTimestampNow();
 
     if (_lastProcessCallTime == 0) {
@@ -246,6 +252,8 @@ bool PacketSender::nonThreadedProcess() {
             packetsToSendThisCall -= adjust;
         }
 
+        qDebug() << "PacketSender::nonThreadedProcess() this=" << this << "packetsToSendThisCall=" << packetsToSendThisCall;
+
         // now, do we want to reset the check interval? don't want to completely reset, because we would still have
         // a rounding error. instead, we check to see that we've passed the reset interval (which is much larger than
         // the check interval), and on those reset intervals we take the second half average and keep that for the next
@@ -261,6 +269,8 @@ bool PacketSender::nonThreadedProcess() {
 
     int packetsLeft = _packets.size();
 
+    qDebug() << "PacketSender::nonThreadedProcess() this=" << this << "packetsLeft=" << packetsLeft;
+
     // Now that we know how many packets to send this call to process, just send them.
     while ((packetsSentThisCall < packetsToSendThisCall) && (packetsLeft > 0)) {
         lock();
@@ -271,6 +281,7 @@ bool PacketSender::nonThreadedProcess() {
         unlock();
 
         // send the packet through the NodeList...
+        qDebug() << "PacketSender::nonThreadedProcess() this=" << this << "calling writeDatagram()...";
         NodeList::getInstance()->writeDatagram(temporary.getByteArray(), temporary.getDestinationNode());
         packetsSentThisCall++;
         _packetsOverCheckInterval++;

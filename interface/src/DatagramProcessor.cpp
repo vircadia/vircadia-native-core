@@ -56,9 +56,18 @@ void DatagramProcessor::processDatagrams() {
                     Particle::handleAddParticleResponse(incomingPacket);
                     application->getParticles()->getTree()->handleAddParticleResponse(incomingPacket);
                     break;
+
+                case PacketTypeModelAddResponse:
+qDebug() << ">>>>>>>>> got PacketTypeModelAddResponse...";
+                    // this will keep creatorTokenIDs to IDs mapped correctly
+                    ModelItem::handleAddModelResponse(incomingPacket);
+                    application->getModels()->getTree()->handleAddModelResponse(incomingPacket);
+                    break;
                     
                 case PacketTypeParticleData:
                 case PacketTypeParticleErase:
+                case PacketTypeModelData:
+                case PacketTypeModelErase:
                 case PacketTypeVoxelData:
                 case PacketTypeVoxelErase:
                 case PacketTypeOctreeStats:

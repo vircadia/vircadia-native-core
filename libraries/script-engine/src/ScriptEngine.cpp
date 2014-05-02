@@ -364,6 +364,16 @@ void ScriptEngine::run() {
             }
         }
 
+        if (_modelsScriptingInterface.getModelPacketSender()->serversExist()) {
+            // release the queue of edit voxel messages.
+            _modelsScriptingInterface.getModelPacketSender()->releaseQueuedMessages();
+
+            // since we're in non-threaded mode, call process so that the packets are sent
+            if (!_modelsScriptingInterface.getModelPacketSender()->isThreaded()) {
+                _modelsScriptingInterface.getModelPacketSender()->process();
+            }
+        }
+
         if (_isAvatar && _avatarData) {
 
             const int SCRIPT_AUDIO_BUFFER_SAMPLES = floor(((SCRIPT_DATA_CALLBACK_USECS * SAMPLE_RATE) / (1000 * 1000)) + 0.5);
@@ -472,6 +482,22 @@ void ScriptEngine::run() {
         // since we're in non-threaded mode, call process so that the packets are sent
         if (!_particlesScriptingInterface.getParticlePacketSender()->isThreaded()) {
             _particlesScriptingInterface.getParticlePacketSender()->process();
+        }
+    }
+
+qDebug() << "ScriptEngine::run()... checking for model server... _modelsScriptingInterface.getModelPacketSender()=" << _modelsScriptingInterface.getModelPacketSender();
+qDebug() << "ScriptEngine::run()... checking for model server... _modelsScriptingInterface.getModelPacketSender()->serversExist()=" << _modelsScriptingInterface.getModelPacketSender()->serversExist();
+
+    if (_modelsScriptingInterface.getModelPacketSender()->serversExist()) {
+
+qDebug() << "ScriptEngine::run()... calling _modelsScriptingInterface.getModelPacketSender()->releaseQueuedMessages();";
+
+        // release the queue of edit voxel messages.
+        _modelsScriptingInterface.getModelPacketSender()->releaseQueuedMessages();
+
+        // since we're in non-threaded mode, call process so that the packets are sent
+        if (!_modelsScriptingInterface.getModelPacketSender()->isThreaded()) {
+            _modelsScriptingInterface.getModelPacketSender()->process();
         }
     }
 
