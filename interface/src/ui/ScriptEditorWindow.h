@@ -25,6 +25,8 @@ public:
     ScriptEditorWindow();
     ~ScriptEditorWindow();
 
+    void terminateCurrentTab();
+
 protected:
     void closeEvent(QCloseEvent* event);
 

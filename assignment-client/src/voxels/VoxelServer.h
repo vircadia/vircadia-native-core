@@ -37,7 +37,7 @@ public:
     // Subclasses must implement these methods
     virtual OctreeQueryNode* createOctreeQueryNode();
     virtual Octree* createTree();
-    virtual unsigned char getMyNodeType() const { return NodeType::VoxelServer; }
+    virtual char getMyNodeType() const { return NodeType::VoxelServer; }
     virtual PacketType getMyQueryMessageType() const { return PacketTypeVoxelQuery; }
     virtual const char* getMyServerName() const { return VOXEL_SERVER_NAME; }
     virtual const char* getMyLoggingServerTargetName() const { return VOXEL_SERVER_LOGGING_TARGET_NAME; }

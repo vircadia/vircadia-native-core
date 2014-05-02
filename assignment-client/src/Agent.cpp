@@ -25,7 +25,9 @@
 #include <ResourceCache.h>
 #include <UUID.h>
 #include <VoxelConstants.h>
-#include <ParticlesScriptingInterface.h>
+
+#include <ParticlesScriptingInterface.h> // TODO: consider moving to scriptengine.h
+#include <ModelsScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
 #include "Agent.h"
 
@@ -33,6 +35,7 @@ Agent::Agent(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _voxelEditSender(),
     _particleEditSender(),
+    _modelEditSender(),
     _receivedAudioBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO),
     _avatarHashMap()
 {
@@ -41,6 +44,7 @@ Agent::Agent(const QByteArray& packet) :
     
     _scriptEngine.getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
     _scriptEngine.getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
+    _scriptEngine.getModelsScriptingInterface()->setPacketSender(&_modelEditSender);
 }
 
 void Agent::readPendingDatagrams() {
@@ -68,6 +72,10 @@ void Agent::readPendingDatagrams() {
                             _scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener()->
                                                                 queueReceivedPacket(matchedNode, receivedPacket);
                             break;
+                        case NodeType::ModelServer:
+                            _scriptEngine.getModelsScriptingInterface()->getJurisdictionListener()->
+                                                                queueReceivedPacket(matchedNode, receivedPacket);
+                            break;
                     }
                 }
                 
@@ -82,10 +90,23 @@ void Agent::readPendingDatagrams() {
                 SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
                 sourceNode->setLastHeardMicrostamp(usecTimestampNow());
 
+            } else if (datagramPacketType == PacketTypeModelAddResponse) {
+                // this will keep creatorTokenIDs to IDs mapped correctly
+                ModelItem::handleAddModelResponse(receivedPacket);
+                
+                // also give our local particle tree a chance to remap any internal locally created particles
+                _modelViewer.getTree()->handleAddModelResponse(receivedPacket);
+
+                // Make sure our Node and NodeList knows we've heard from this node.
+                SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
+                sourceNode->setLastHeardMicrostamp(usecTimestampNow());
+
             } else if (datagramPacketType == PacketTypeParticleData
                         || datagramPacketType == PacketTypeParticleErase
                         || datagramPacketType == PacketTypeOctreeStats
                         || datagramPacketType == PacketTypeVoxelData
+                        || datagramPacketType == PacketTypeModelData
+                        || datagramPacketType == PacketTypeModelErase
             ) {
                 // Make sure our Node and NodeList knows we've heard from this node.
                 SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
@@ -117,6 +138,10 @@ void Agent::readPendingDatagrams() {
                     _particleViewer.processDatagram(mutablePacket, sourceNode);
                 }
 
+                if (datagramPacketType == PacketTypeModelData || datagramPacketType == PacketTypeModelErase) {
+                    _modelViewer.processDatagram(mutablePacket, sourceNode);
+                }
+                
                 if (datagramPacketType == PacketTypeVoxelData) {
                     _voxelViewer.processDatagram(mutablePacket, sourceNode);
                 }
@@ -159,7 +184,9 @@ void Agent::run() {
                                                  << NodeType::AudioMixer
                                                  << NodeType::AvatarMixer
                                                  << NodeType::VoxelServer
-                                                 << NodeType::ParticleServer);
+                                                 << NodeType::ParticleServer
+                                                 << NodeType::ModelServer
+                                                );
     
     // figure out the URL for the script for this agent assignment
     QUrl scriptURL;

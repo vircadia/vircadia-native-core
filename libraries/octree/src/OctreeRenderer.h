@@ -42,7 +42,7 @@ public:
     virtual ~OctreeRenderer();
 
     virtual Octree* createTree() = 0;
-    virtual NodeType_t getMyNodeType() const = 0;
+    virtual char getMyNodeType() const = 0;
     virtual PacketType getMyQueryMessageType() const = 0;
     virtual PacketType getExpectedPacketType() const = 0;
     virtual void renderElement(OctreeElement* element, RenderArgs* args) = 0;

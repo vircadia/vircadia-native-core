@@ -44,7 +44,6 @@ void VoxelPacketProcessor::processPacket(const SharedNodePointer& sendingNode, c
     // immediately following them inside the same packet. So, we process the PacketType_OCTREE_STATS first
     // then process any remaining bytes as if it was another packet
     if (voxelPacketType == PacketTypeOctreeStats) {
-
         int statsMessageLength = app->parseOctreeStats(mutablePacket, sendingNode);
         wasStatsPacket = true;
         if (messageLength > statsMessageLength) {
@@ -75,6 +74,14 @@ void VoxelPacketProcessor::processPacket(const SharedNodePointer& sendingNode, c
 
                 case PacketTypeParticleData: {
                     app->_particles.processDatagram(mutablePacket, sendingNode);
+                } break;
+
+                case PacketTypeModelErase: {
+                    app->_models.processEraseMessage(mutablePacket, sendingNode);
+                } break;
+
+                case PacketTypeModelData: {
+                    app->_models.processDatagram(mutablePacket, sendingNode);
                 } break;
 
                 case PacketTypeEnvironmentData: {
