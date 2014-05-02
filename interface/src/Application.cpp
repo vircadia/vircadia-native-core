@@ -54,6 +54,7 @@
 #include <AccountManager.h>
 #include <AudioInjector.h>
 #include <Logging.h>
+#include <ModelsScriptingInterface.h>
 #include <OctalCode.h>
 #include <PacketHeaders.h>
 #include <ParticlesScriptingInterface.h>
@@ -171,7 +172,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 {
     // init GnuTLS for DTLS with domain-servers
     DTLSClientSession::globalInit();
-
+    
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 
@@ -266,7 +267,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // tell the NodeList instance who to tell the domain server we care about
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
-                                                 << NodeType::VoxelServer << NodeType::ParticleServer
+                                                 << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::ModelServer
                                                  << NodeType::MetavoxelServer);
 
     // connect to the packet sent signal of the _voxelEditSender and the _particleEditSender
@@ -347,13 +348,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         // clear the scripts, and set out script to our default scripts
         clearScriptsBeforeRunning();
         loadScript("http://public.highfidelity.io/scripts/defaultScripts.js");
-
+        
         QMutexLocker locker(&_settingsMutex);
         _settings->setValue("firstRun",QVariant(false));
     } else {
         // do this as late as possible so that all required subsystems are inialized
         loadScripts();
-
+        
         QMutexLocker locker(&_settingsMutex);
         _previousScriptLocation = _settings->value("LastScriptLocation", QVariant("")).toString();
     }
@@ -371,11 +372,11 @@ Application::~Application() {
 
     // make sure we don't call the idle timer any more
     delete idleTimer;
-
+    
     _sharedVoxelSystem.changeTree(new VoxelTree);
-
+    
     saveSettings();
-
+    
     delete _voxelImporter;
 
     // let the avatar mixer know we're out
@@ -408,14 +409,14 @@ Application::~Application() {
     delete _glWidget;
 
     AccountManager::getInstance().destroy();
-
+    
     DTLSClientSession::globalDeinit();
 }
 
 void Application::saveSettings() {
     Menu::getInstance()->saveSettings();
     _rearMirrorTools->saveSettings(_settings);
-
+    
     if (_voxelImporter) {
         _voxelImporter->saveSettings(_settings);
     }
@@ -582,7 +583,7 @@ void Application::paintGL() {
         pushback = qMin(pushback, MAX_PUSHBACK * _myAvatar->getScale());
         const float BASE_PUSHBACK_FOCAL_LENGTH = 0.5f;
         pushbackFocalLength = BASE_PUSHBACK_FOCAL_LENGTH * _myAvatar->getScale();
-
+        
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
         _myCamera.setTargetPosition(_myAvatar->getUprightHeadPosition());
@@ -595,7 +596,7 @@ void Application::paintGL() {
         _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _myAvatar->getScale());
         _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight, 0));
         _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
-
+        
         // if the head would intersect the near clip plane, we must push the camera out
         glm::vec3 relativePosition = glm::inverse(_myCamera.getTargetRotation()) *
             (eyePosition - _myCamera.getTargetPosition());
@@ -604,7 +605,7 @@ void Application::paintGL() {
         pushback = relativePosition.z + pushbackRadius - _myCamera.getDistance();
         pushbackFocalLength = _myCamera.getDistance();
     }
-
+    
     // handle pushback, if any
     if (pushbackFocalLength > 0.0f) {
         const float PUSHBACK_DECAY = 0.5f;
@@ -766,6 +767,8 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
                 channel = BandwidthMeter::AVATARS;
                 break;
             case NodeType::VoxelServer:
+            case NodeType::ParticleServer:
+            case NodeType::ModelServer:
                 channel = BandwidthMeter::VOXELS;
                 break;
             default:
@@ -1272,8 +1275,8 @@ void Application::dropEvent(QDropEvent *event) {
 
 void Application::sendPingPackets() {
     QByteArray pingPacket = NodeList::getInstance()->constructPingPacket();
-    controlledBroadcastToNodes(pingPacket, NodeSet() << NodeType::VoxelServer
-                               << NodeType::ParticleServer
+    controlledBroadcastToNodes(pingPacket, NodeSet() 
+                               << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::ModelServer
                                << NodeType::AudioMixer << NodeType::AvatarMixer
                                << NodeType::MetavoxelServer);
 }
@@ -1283,7 +1286,7 @@ void Application::timer() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
         sendPingPackets();
     }
-
+    
     float diffTime = (float)_timerStart.nsecsElapsed() / 1000000000.0f;
 
     _fps = (float)_frameCount / diffTime;
@@ -1665,6 +1668,9 @@ void Application::init() {
     _particles.init();
     _particles.setViewFrustum(getViewFrustum());
 
+    _models.init();
+    _models.setViewFrustum(getViewFrustum());
+
     _metavoxels.init();
 
     _particleCollisionSystem.init(&_particleEditSender, _particles.getTree(), _voxels.getTree(), &_audio, &_avatarManager);
@@ -1684,7 +1690,7 @@ void Application::init() {
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
-
+    
     // set up our audio reflector
     _audioReflector.setMyAvatar(getAvatar());
     _audioReflector.setVoxels(_voxels.getTree());
@@ -1693,7 +1699,7 @@ void Application::init() {
 
     connect(getAudio(), &Audio::processInboundAudio, &_audioReflector, &AudioReflector::processInboundAudio,Qt::DirectConnection);
     connect(getAudio(), &Audio::processLocalAudio, &_audioReflector, &AudioReflector::processLocalAudio,Qt::DirectConnection);
-    connect(getAudio(), &Audio::preProcessOriginalInboundAudio, &_audioReflector,
+    connect(getAudio(), &Audio::preProcessOriginalInboundAudio, &_audioReflector, 
                         &AudioReflector::preProcessOriginalInboundAudio,Qt::DirectConnection);
 
     // save settings when avatar changes
@@ -1852,7 +1858,6 @@ void Application::updateMyAvatarLookAtPosition() {
         float eyePitch = tracker->getEstimatedEyePitch();
         float eyeYaw = tracker->getEstimatedEyeYaw();
         const float GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT = 0.1f;
-
         // deflect using Faceshift gaze data
         glm::vec3 origin = _myAvatar->getHead()->calculateAverageEyePosition();
         float pitchSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? -1.0f : 1.0f;
@@ -1943,7 +1948,7 @@ void Application::updateCamera(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateCamera()");
 
     if (!OculusManager::isConnected() && !TV3DManager::isConnected() &&
-            Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {
+            Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {   
         FaceTracker* tracker = getActiveFaceTracker();
         if (tracker) {
             const float EYE_OFFSET_SCALE = 0.025f;
@@ -2024,6 +2029,8 @@ void Application::update(float deltaTime) {
     _particles.update(); // update the particles...
     _particleCollisionSystem.update(); // collide the particles...
 
+    _models.update(); // update the models...
+
     _overlays.update(deltaTime);
 
     // let external parties know we're updating
@@ -2062,6 +2069,7 @@ void Application::updateMyAvatar(float deltaTime) {
         _lastQueriedTime = now;
         queryOctree(NodeType::VoxelServer, PacketTypeVoxelQuery, _voxelServerJurisdictions);
         queryOctree(NodeType::ParticleServer, PacketTypeParticleQuery, _particleServerJurisdictions);
+        queryOctree(NodeType::ModelServer, PacketTypeModelQuery, _modelServerJurisdictions);
         _lastQueriedViewFrustum = _viewFrustum;
     }
 }
@@ -2363,6 +2371,7 @@ void Application::updateShadowMap() {
 
     _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
     _particles.render();
+    _models.render();
 
     glPopMatrix();
 
@@ -2497,7 +2506,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // disable specular lighting for ground and voxels
         glMaterialfv(GL_FRONT, GL_SPECULAR, NO_SPECULAR_COLOR);
-
+        
         // draw the audio reflector overlay
         _audioReflector.render();
 
@@ -2526,6 +2535,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... particles...");
             _particles.render();
+        }
+
+        // render models...
+        if (Menu::getInstance()->isOptionChecked(MenuOption::Models)) {
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                "Application::displaySide() ... models...");
+            _models.render();
         }
 
         // render the ambient occlusion effect if enabled
@@ -2655,7 +2671,7 @@ void Application::displayOverlay() {
     const float LOG2_LOUDNESS_FLOOR = 11.f;
     float audioLevel = 0.f;
     float loudness = _audio.getLastInputLoudness() + 1.f;
-
+    
     _trailingAudioLoudness = AUDIO_METER_AVERAGING * _trailingAudioLoudness + (1.f - AUDIO_METER_AVERAGING) * loudness;
     float log2loudness = log(_trailingAudioLoudness) / LOG2;
 
@@ -2668,7 +2684,7 @@ void Application::displayOverlay() {
         audioLevel = AUDIO_METER_SCALE_WIDTH;
     }
     bool isClipping = ((_audio.getTimeSinceLastClip() > 0.f) && (_audio.getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME));
-
+    
     if ((_audio.getTimeSinceLastClip() > 0.f) && (_audio.getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME)) {
         const float MAX_MAGNITUDE = 0.7f;
         float magnitude = MAX_MAGNITUDE * (1 - _audio.getTimeSinceLastClip() / CLIPPING_INDICATOR_TIME);
@@ -3122,6 +3138,9 @@ void Application::domainChanged(const QString& domainHostname) {
     // reset the particle renderer
     _particles.clear();
 
+    // reset the model renderer
+    _models.clear();
+
     // reset the voxels renderer
     _voxels.killLocalVoxels();
 }
@@ -3198,8 +3217,39 @@ void Application::nodeKilled(SharedNodePointer node) {
                 _voxelFades.push_back(fade);
             }
 
-            // If the voxel server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
+            // If the particle server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
             _particleServerJurisdictions.erase(_particleServerJurisdictions.find(nodeUUID));
+        }
+
+        // also clean up scene stats for that server
+        _octreeSceneStatsLock.lockForWrite();
+        if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
+            _octreeServerSceneStats.erase(nodeUUID);
+        }
+        _octreeSceneStatsLock.unlock();
+
+    } else if (node->getType() == NodeType::ModelServer) {
+        QUuid nodeUUID = node->getUUID();
+        // see if this is the first we've heard of this node...
+        if (_modelServerJurisdictions.find(nodeUUID) != _modelServerJurisdictions.end()) {
+            unsigned char* rootCode = _modelServerJurisdictions[nodeUUID].getRootOctalCode();
+            VoxelPositionSize rootDetails;
+            voxelDetailsForCode(rootCode, rootDetails);
+
+            qDebug("model server going away...... v[%f, %f, %f, %f]",
+                rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
+
+            // Add the jurisditionDetails object to the list of "fade outs"
+            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnVoxelServerChanges)) {
+                VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
+                fade.voxelDetails = rootDetails;
+                const float slightly_smaller = 0.99f;
+                fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
+                _voxelFades.push_back(fade);
+            }
+
+            // If the model server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
+            _modelServerJurisdictions.erase(_modelServerJurisdictions.find(nodeUUID));
         }
 
         // also clean up scene stats for that server
@@ -3261,8 +3311,10 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
         NodeToJurisdictionMap* jurisdiction = NULL;
         if (sendingNode->getType() == NodeType::VoxelServer) {
             jurisdiction = &_voxelServerJurisdictions;
-        } else {
+        } else if (sendingNode->getType() == NodeType::ParticleServer) {
             jurisdiction = &_particleServerJurisdictions;
+        } else {
+            jurisdiction = &_modelServerJurisdictions;
         }
 
 
@@ -3306,7 +3358,7 @@ void Application::loadScripts() {
             loadScript(string);
         }
     }
-
+    
     QMutexLocker locker(&_settingsMutex);
     _settings->endArray();
 }
@@ -3387,7 +3439,7 @@ void Application::uploadFST(bool isHead) {
     thread->connect(uploader, SIGNAL(destroyed()), SLOT(quit()));
     thread->connect(thread, SIGNAL(finished()), SLOT(deleteLater()));
     uploader->connect(thread, SIGNAL(started()), SLOT(send()));
-
+    
     thread->start();
 }
 
@@ -3421,6 +3473,9 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     scriptEngine->getVoxelsScriptingInterface()->setUndoStack(&_undoStack);
     scriptEngine->getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
     scriptEngine->getParticlesScriptingInterface()->setParticleTree(_particles.getTree());
+
+    scriptEngine->getModelsScriptingInterface()->setPacketSender(&_modelEditSender);
+    scriptEngine->getModelsScriptingInterface()->setModelTree(_models.getTree());
 
     // hook our avatar object into this script engine
     scriptEngine->setAvatarData(_myAvatar, "MyAvatar"); // leave it as a MyAvatar class to expose thrust features
@@ -3475,9 +3530,8 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     return scriptEngine;
 }
 
-void Application::loadDialog() {
+QString Application::getPreviousScriptLocation() {
     QString suggestedName;
-
     if (_previousScriptLocation.isEmpty()) {
         QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 // Temporary fix to Qt bug: http://stackoverflow.com/questions/16194475
@@ -3487,14 +3541,22 @@ void Application::loadDialog() {
     } else {
         suggestedName = _previousScriptLocation;
     }
+    return suggestedName;
+}
 
-    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Open Script"), suggestedName,
+void Application::setPreviousScriptLocation(const QString& previousScriptLocation) {
+    _previousScriptLocation = previousScriptLocation;
+    QMutexLocker locker(&_settingsMutex);
+    _settings->setValue("LastScriptLocation", _previousScriptLocation);
+}
+
+void Application::loadDialog() {
+
+    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Open Script"),
+                                                          getPreviousScriptLocation(),
                                                           tr("JavaScript Files (*.js)"));
     if (!fileNameString.isEmpty()) {
-        _previousScriptLocation = fileNameString;
-        QMutexLocker locker(&_settingsMutex);
-        _settings->setValue("LastScriptLocation", _previousScriptLocation);
-
+        setPreviousScriptLocation(fileNameString);
         loadScript(fileNameString);
     }
 }
@@ -3631,7 +3693,7 @@ void Application::urlGoTo(int argc, const char * constArgv[]) {
             QString orientation = urlParts.count() > 2 ? urlParts[2] : QString();
     
             Menu::goToDomain(domain);
-
+                    
             // goto either @user, #place, or x-xx,y-yy,z-zz
             // style co-ordinate.
             Menu::goTo(destination);

@@ -9,8 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QMessageBox>
+#include <QDir>
+#include <QFileDialog>
 #include <QInputDialog>
+#include <QMessageBox>
 
 #include "Application.h"
 #include "Menu.h"
@@ -40,6 +42,14 @@ QScriptValue WindowScriptingInterface::prompt(const QString& message, const QStr
     QMetaObject::invokeMethod(this, "showPrompt", Qt::BlockingQueuedConnection,
                               Q_RETURN_ARG(QScriptValue, retVal),
                               Q_ARG(const QString&, message), Q_ARG(const QString&, defaultText));
+    return retVal;
+}
+
+QScriptValue WindowScriptingInterface::browse(const QString& title, const QString& directory,  const QString& nameFilter) {
+    QScriptValue retVal;
+    QMetaObject::invokeMethod(this, "showBrowse", Qt::BlockingQueuedConnection,
+                              Q_RETURN_ARG(QScriptValue, retVal),
+                              Q_ARG(const QString&, title), Q_ARG(const QString&, directory), Q_ARG(const QString&, nameFilter));
     return retVal;
 }
 
@@ -73,6 +83,30 @@ QScriptValue WindowScriptingInterface::showPrompt(const QString& message, const 
         return QScriptValue(promptDialog.textValue());
     }
 
+    return QScriptValue::NullValue;
+}
+
+/// Display a file dialog.  If `directory` is an invalid file or directory the browser will start at the current
+/// working directory.
+/// \param const QString& title title of the window
+/// \param const QString& directory directory to start the file browser at
+/// \param const QString& nameFilter filter to filter filenames by - see `QFileDialog`
+/// \return QScriptValue file path as a string if one was selected, otherwise `QScriptValue::NullValue`
+QScriptValue WindowScriptingInterface::showBrowse(const QString& title, const QString& directory, const QString& nameFilter) {
+    // On OS X `directory` does not work as expected unless a file is included in the path, so we append a bogus
+    // filename if the directory is valid.
+    QString path = "";
+    QFileInfo fileInfo = QFileInfo(directory);
+    if (fileInfo.isDir()) {
+        fileInfo.setFile(directory, "__HIFI_INVALID_FILE__");
+        path = fileInfo.filePath();
+    }
+
+    QFileDialog fileDialog(Application::getInstance()->getWindow(), title, path, nameFilter);
+    fileDialog.setFileMode(QFileDialog::ExistingFile);
+    if (fileDialog.exec()) {
+        return QScriptValue(fileDialog.selectedFiles().first());
+    }
     return QScriptValue::NullValue;
 }
 
