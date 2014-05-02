@@ -34,19 +34,20 @@ ScriptEditorWindow::ScriptEditorWindow() :
     _saveMenu(new QMenu)
 {
     _ScriptEditorWindowUI->setupUi(this);
+    this->setWindowFlags(Qt::Tool);
     show();
     addScriptEditorWidget("New script");
-    connect(_loadMenu, SIGNAL(aboutToShow()), this, SLOT(loadMenuAboutToShow()));
+    connect(_loadMenu, &QMenu::aboutToShow, this, &ScriptEditorWindow::loadMenuAboutToShow);
     _ScriptEditorWindowUI->loadButton->setMenu(_loadMenu);
 
     _saveMenu->addAction("Save as..", this, SLOT(saveScriptAsClicked()), Qt::CTRL | Qt::SHIFT | Qt::Key_S);
 
     _ScriptEditorWindowUI->saveButton->setMenu(_saveMenu);
 
-    connect(new QShortcut(QKeySequence("Ctrl+N"), this), SIGNAL(activated()), this, SLOT(newScriptClicked()));
-    connect(new QShortcut(QKeySequence("Ctrl+S"), this), SIGNAL(activated()), this, SLOT(saveScriptClicked()));
-    connect(new QShortcut(QKeySequence("Ctrl+O"), this), SIGNAL(activated()), this, SLOT(loadScriptClicked()));
-    connect(new QShortcut(QKeySequence("F5"), this), SIGNAL(activated()), this, SLOT(toggleRunScriptClicked()));
+    connect(new QShortcut(QKeySequence("Ctrl+N"), this), &QShortcut::activated, this, &ScriptEditorWindow::newScriptClicked);
+    connect(new QShortcut(QKeySequence("Ctrl+S"), this), &QShortcut::activated, this,&ScriptEditorWindow::saveScriptClicked);
+    connect(new QShortcut(QKeySequence("Ctrl+O"), this), &QShortcut::activated, this, &ScriptEditorWindow::loadScriptClicked);
+    connect(new QShortcut(QKeySequence("F5"), this), &QShortcut::activated, this, &ScriptEditorWindow::toggleRunScriptClicked);
 }
 
 ScriptEditorWindow::~ScriptEditorWindow() {
@@ -73,8 +74,11 @@ void ScriptEditorWindow::loadScriptMenu(const QString& scriptName) {
 }
 
 void ScriptEditorWindow::loadScriptClicked() {
-    QString scriptName = QFileDialog::getOpenFileName(this, tr("Interface"), QString(), tr("Javascript (*.js)"));
+    QString scriptName = QFileDialog::getOpenFileName(this, tr("Interface"),
+                                                      Application::getInstance()->getPreviousScriptLocation(),
+                                                      tr("JavaScript Files (*.js)"));
     if (!scriptName.isEmpty()) {
+        Application::getInstance()->setPreviousScriptLocation(scriptName);
         addScriptEditorWidget("loading...")->loadFile(scriptName);
         updateButtons();
     }
@@ -126,9 +130,9 @@ void ScriptEditorWindow::saveScriptAsClicked() {
 
 ScriptEditorWidget* ScriptEditorWindow::addScriptEditorWidget(QString title) {
     ScriptEditorWidget* newScriptEditorWidget = new ScriptEditorWidget();
-    connect(newScriptEditorWidget, SIGNAL(scriptnameChanged()), this, SLOT(updateScriptNameOrStatus()));
-    connect(newScriptEditorWidget, SIGNAL(scriptModified()), this, SLOT(updateScriptNameOrStatus()));
-    connect(newScriptEditorWidget, SIGNAL(runningStateChanged()), this, SLOT(updateButtons()));
+    connect(newScriptEditorWidget, &ScriptEditorWidget::scriptnameChanged, this, &ScriptEditorWindow::updateScriptNameOrStatus);
+    connect(newScriptEditorWidget, &ScriptEditorWidget::scriptModified, this, &ScriptEditorWindow::updateScriptNameOrStatus);
+    connect(newScriptEditorWidget, &ScriptEditorWidget::runningStateChanged, this, &ScriptEditorWindow::updateButtons);
     _ScriptEditorWindowUI->tabWidget->addTab(newScriptEditorWidget, title);
     _ScriptEditorWindowUI->tabWidget->setCurrentWidget(newScriptEditorWidget);
     newScriptEditorWidget->setUpdatesEnabled(true);
@@ -196,5 +200,12 @@ void ScriptEditorWindow::updateScriptNameOrStatus() {
         } else {
             this->setWindowTitle("Script Editor [New script" + modifiedStar + "]");
         }
+    }
+}
+
+void ScriptEditorWindow::terminateCurrentTab() {
+    if (_ScriptEditorWindowUI->tabWidget->currentIndex() != -1) {
+        _ScriptEditorWindowUI->tabWidget->removeTab(_ScriptEditorWindowUI->tabWidget->currentIndex());
+        this->raise();
     }
 }

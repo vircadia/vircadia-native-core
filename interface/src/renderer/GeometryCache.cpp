@@ -305,7 +305,6 @@ void GeometryCache::setBlendedVertices(const QPointer<Model>& model, const QWeak
 
 QSharedPointer<Resource> GeometryCache::createResource(const QUrl& url,
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
-    
     QSharedPointer<NetworkGeometry> geometry(new NetworkGeometry(url, fallback.staticCast<NetworkGeometry>(), delayLoad),
         &Resource::allReferencesCleared);
     geometry->setLODParent(geometry);
@@ -320,6 +319,20 @@ NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGe
     _mapping(mapping),
     _textureBase(textureBase.isValid() ? textureBase : url),
     _fallback(fallback) {
+    
+    if (url.isEmpty()) {
+        // make the minimal amount of dummy geometry to satisfy Model
+        FBXJoint joint = { false, QVector<int>(), -1 };
+        _geometry.joints.append(joint);
+        _geometry.leftEyeJointIndex = -1;
+        _geometry.rightEyeJointIndex = -1;
+        _geometry.neckJointIndex = -1;
+        _geometry.rootJointIndex = -1;
+        _geometry.leanJointIndex = -1;
+        _geometry.headJointIndex = -1;
+        _geometry.leftHandJointIndex = -1;
+        _geometry.rightHandJointIndex = -1;
+    }
 }
 
 bool NetworkGeometry::isLoadedWithTextures() const {

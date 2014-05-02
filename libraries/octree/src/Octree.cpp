@@ -594,8 +594,9 @@ bool findRayIntersectionOp(OctreeElement* node, void* extraData) {
 }
 
 bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                    OctreeElement*& node, float& distance, BoxFace& face, Octree::lockType lockType) {
-    RayArgs args = { origin / (float)(TREE_SCALE), direction, node, distance, face };
+                                    OctreeElement*& node, float& distance, BoxFace& face, 
+                                    Octree::lockType lockType, bool* accurateResult) {
+    RayArgs args = { origin / (float)(TREE_SCALE), direction, node, distance, face, false};
 
     bool gotLock = false;
     if (lockType == Octree::Lock) {
@@ -604,6 +605,9 @@ bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
     } else if (lockType == Octree::TryLock) {
         gotLock = tryLockForRead();
         if (!gotLock) {
+            if (accurateResult) {
+                *accurateResult = false; // if user asked to accuracy or result, let them know this is inaccurate
+            }
             return args.found; // if we wanted to tryLock, and we couldn't then just bail...
         }
     }
@@ -614,6 +618,9 @@ bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
         unlock();
     }
 
+    if (accurateResult) {
+        *accurateResult = true; // if user asked to accuracy or result, let them know this is accurate
+    }
     return args.found;
 }
 
@@ -640,7 +647,8 @@ bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
     if (element->hasContent()) {
         glm::vec3 elementPenetration;
         if (element->findSpherePenetration(args->center, args->radius, elementPenetration, &args->penetratedObject)) {
-            // NOTE: it is possible for this penetration accumulation algorithm to produce a final penetration vector with zero length.
+            // NOTE: it is possible for this penetration accumulation algorithm to produce a 
+            // final penetration vector with zero length.
             args->penetration = addPenetrations(args->penetration, elementPenetration * (float)(TREE_SCALE));
             args->found = true;
         }
@@ -649,7 +657,7 @@ bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
 }
 
 bool Octree::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration,
-                    void** penetratedObject, Octree::lockType lockType) {
+                    void** penetratedObject, Octree::lockType lockType, bool* accurateResult) {
 
     SphereArgs args = {
         center / (float)(TREE_SCALE),
@@ -666,6 +674,9 @@ bool Octree::findSpherePenetration(const glm::vec3& center, float radius, glm::v
     } else if (lockType == Octree::TryLock) {
         gotLock = tryLockForRead();
         if (!gotLock) {
+            if (accurateResult) {
+                *accurateResult = false; // if user asked to accuracy or result, let them know this is inaccurate
+            }
             return args.found; // if we wanted to tryLock, and we couldn't then just bail...
         }
     }
@@ -679,6 +690,9 @@ bool Octree::findSpherePenetration(const glm::vec3& center, float radius, glm::v
         unlock();
     }
     
+    if (accurateResult) {
+        *accurateResult = true; // if user asked to accuracy or result, let them know this is accurate
+    }
     return args.found;
 }
 
@@ -741,7 +755,7 @@ bool findShapeCollisionsOp(OctreeElement* node, void* extraData) {
 }
 
 bool Octree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, 
-                    glm::vec3& penetration, Octree::lockType lockType) {
+                    glm::vec3& penetration, Octree::lockType lockType, bool* accurateResult) {
                     
     CapsuleArgs args = {
         start / (float)(TREE_SCALE),
@@ -758,6 +772,9 @@ bool Octree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end
     } else if (lockType == Octree::TryLock) {
         gotLock = tryLockForRead();
         if (!gotLock) {
+            if (accurateResult) {
+                *accurateResult = false; // if user asked to accuracy or result, let them know this is inaccurate
+            }
             return args.found; // if we wanted to tryLock, and we couldn't then just bail...
         }
     }
@@ -767,10 +784,15 @@ bool Octree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end
     if (gotLock) {
         unlock();
     }
+
+    if (accurateResult) {
+        *accurateResult = true; // if user asked to accuracy or result, let them know this is accurate
+    }
     return args.found;
 }
 
-bool Octree::findShapeCollisions(const Shape* shape, CollisionList& collisions, Octree::lockType lockType) {
+bool Octree::findShapeCollisions(const Shape* shape, CollisionList& collisions, 
+                    Octree::lockType lockType, bool* accurateResult) {
 
     ShapeArgs args = { shape, collisions, false };
 
@@ -781,6 +803,9 @@ bool Octree::findShapeCollisions(const Shape* shape, CollisionList& collisions, 
     } else if (lockType == Octree::TryLock) {
         gotLock = tryLockForRead();
         if (!gotLock) {
+            if (accurateResult) {
+                *accurateResult = false; // if user asked to accuracy or result, let them know this is inaccurate
+            }
             return args.found; // if we wanted to tryLock, and we couldn't then just bail...
         }
     }
@@ -789,6 +814,10 @@ bool Octree::findShapeCollisions(const Shape* shape, CollisionList& collisions, 
     
     if (gotLock) {
         unlock();
+    }
+
+    if (accurateResult) {
+        *accurateResult = true; // if user asked to accuracy or result, let them know this is accurate
     }
     return args.found;
 }
@@ -816,7 +845,7 @@ bool getElementEnclosingOperation(OctreeElement* element, void* extraData) {
     return true; // keep looking
 }
 
-OctreeElement* Octree::getElementEnclosingPoint(const glm::vec3& point, Octree::lockType lockType) {
+OctreeElement* Octree::getElementEnclosingPoint(const glm::vec3& point, Octree::lockType lockType, bool* accurateResult) {
     GetElementEnclosingArgs args;
     args.point = point;
     args.element = NULL;
@@ -828,6 +857,9 @@ OctreeElement* Octree::getElementEnclosingPoint(const glm::vec3& point, Octree::
     } else if (lockType == Octree::TryLock) {
         gotLock = tryLockForRead();
         if (!gotLock) {
+            if (accurateResult) {
+                *accurateResult = false; // if user asked to accuracy or result, let them know this is inaccurate
+            }
             return args.element; // if we wanted to tryLock, and we couldn't then just bail...
         }
     }
@@ -838,6 +870,9 @@ OctreeElement* Octree::getElementEnclosingPoint(const glm::vec3& point, Octree::
         unlock();
     }
 
+    if (accurateResult) {
+        *accurateResult = false; // if user asked to accuracy or result, let them know this is inaccurate
+    }
     return args.element;
 }
 

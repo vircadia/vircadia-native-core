@@ -32,8 +32,10 @@ ScriptEditorWidget::ScriptEditorWidget() :
 {
     _scriptEditorWidgetUI->setupUi(this);
 
-    connect(_scriptEditorWidgetUI->scriptEdit->document(), SIGNAL(modificationChanged(bool)), this, SIGNAL(scriptModified()));
-    connect(_scriptEditorWidgetUI->scriptEdit->document(), SIGNAL(contentsChanged()), this, SLOT(onScriptModified()));
+    connect(_scriptEditorWidgetUI->scriptEdit->document(), &QTextDocument::modificationChanged, this,
+            &ScriptEditorWidget::scriptModified);
+    connect(_scriptEditorWidgetUI->scriptEdit->document(), &QTextDocument::contentsChanged, this,
+            &ScriptEditorWidget::onScriptModified);
 
     // remove the title bar (see the Qt docs on setTitleBarWidget)
     setTitleBarWidget(new QWidget());
@@ -68,16 +70,19 @@ bool ScriptEditorWidget::setRunning(bool run) {
         return false;
     }
     // Clean-up old connections.
-    disconnect(this, SLOT(onScriptError(const QString&)));
-    disconnect(this, SLOT(onScriptPrint(const QString&)));
+    if (_scriptEngine != NULL) {
+        disconnect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
+        disconnect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
+        disconnect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
+    }
 
     if (run) {
         _scriptEngine = Application::getInstance()->loadScript(_currentScript, true);
-        connect(_scriptEngine, SIGNAL(runningStateChanged()), this, SIGNAL(runningStateChanged()));
+        connect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
 
         // Make new connections.
-        connect(_scriptEngine, SIGNAL(errorMessage(const QString&)), this, SLOT(onScriptError(const QString&)));
-        connect(_scriptEngine, SIGNAL(printedMessage(const QString&)), this, SLOT(onScriptPrint(const QString&)));
+        connect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
+        connect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
     } else {
         Application::getInstance()->stopScript(_currentScript);
         _scriptEngine = NULL;
@@ -101,25 +106,44 @@ bool ScriptEditorWidget::saveFile(const QString &scriptPath) {
 }
 
 void ScriptEditorWidget::loadFile(const QString& scriptPath) {
-    QFile file(scriptPath);
-    if (!file.open(QFile::ReadOnly | QFile::Text)) {
-        QMessageBox::warning(this, tr("Interface"), tr("Cannot read script %1:\n%2.").arg(scriptPath).arg(file.errorString()));
-        return;
+     QUrl url(scriptPath);
+
+    // if the scheme length is one or lower, maybe they typed in a file, let's try
+    const int WINDOWS_DRIVE_LETTER_SIZE = 1;
+    if (url.scheme().size() <= WINDOWS_DRIVE_LETTER_SIZE) {
+        QFile file(scriptPath);
+        if (!file.open(QFile::ReadOnly | QFile::Text)) {
+            QMessageBox::warning(this, tr("Interface"), tr("Cannot read script %1:\n%2.").arg(scriptPath)
+                                                                                         .arg(file.errorString()));
+            return;
+        }
+        QTextStream in(&file);
+        _scriptEditorWidgetUI->scriptEdit->setPlainText(in.readAll());
+        setScriptFile(scriptPath);
+
+        if (_scriptEngine != NULL) {
+            disconnect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
+            disconnect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
+            disconnect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
+        }
+    } else {
+        QNetworkAccessManager* networkManager = new QNetworkAccessManager(this);
+        QNetworkReply* reply = networkManager->get(QNetworkRequest(url));
+        qDebug() << "Downloading included script at" << scriptPath;
+        QEventLoop loop;
+        QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+        loop.exec();
+        _scriptEditorWidgetUI->scriptEdit->setPlainText(reply->readAll());
+        if (!saveAs()) {
+            static_cast<ScriptEditorWindow*>(this->parent()->parent()->parent())->terminateCurrentTab();
+        }
     }
 
-    QTextStream in(&file);
-    _scriptEditorWidgetUI->scriptEdit->setPlainText(in.readAll());
-
-    setScriptFile(scriptPath);
-
-    disconnect(this, SLOT(onScriptError(const QString&)));
-    disconnect(this, SLOT(onScriptPrint(const QString&)));
-
-    _scriptEngine = Application::getInstance()->getScriptEngine(scriptPath);
+    _scriptEngine = Application::getInstance()->getScriptEngine(_currentScript);
     if (_scriptEngine != NULL) {
-        connect(_scriptEngine, SIGNAL(runningStateChanged()), this, SIGNAL(runningStateChanged()));
-        connect(_scriptEngine, SIGNAL(errorMessage(const QString&)), this, SLOT(onScriptError(const QString&)));
-        connect(_scriptEngine, SIGNAL(printedMessage(const QString&)), this, SLOT(onScriptPrint(const QString&)));
+        connect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
+        connect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
+        connect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
     }
 }
 
@@ -128,8 +152,15 @@ bool ScriptEditorWidget::save() {
 }
 
 bool ScriptEditorWidget::saveAs() {
-    QString fileName = QFileDialog::getSaveFileName(this, tr("Save script"), QString(), tr("Javascript (*.js)"));
-    return !fileName.isEmpty() ? saveFile(fileName) : false;
+    QString fileName = QFileDialog::getSaveFileName(this, tr("Save script"),
+                                                    Application::getInstance()->getPreviousScriptLocation(),
+                                                    tr("JavaScript Files (*.js)"));
+    if (!fileName.isEmpty()) {
+        Application::getInstance()->setPreviousScriptLocation(fileName);
+        return saveFile(fileName);
+    } else {
+        return false;
+    }
 }
 
 void ScriptEditorWidget::setScriptFile(const QString& scriptPath) {

@@ -9,20 +9,28 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QComboBox>
 #include <QDebug>
+#include <QDialogButtonBox>
+#include <QDoubleSpinBox>
 #include <QFile>
 #include <QFileDialog>
+#include <QFormLayout>
 #include <QGridLayout>
+#include <QHBoxLayout>
 #include <QHttpMultiPart>
+#include <QImage>
+#include <QLineEdit>
 #include <QMessageBox>
 #include <QProgressBar>
+#include <QPushButton>
 #include <QStandardPaths>
+#include <QTemporaryFile>
 #include <QTextStream>
+#include <QVBoxLayout>
 #include <QVariant>
 
 #include <AccountManager.h>
-
-#include <FBXReader.h>
 
 #include "Application.h"
 #include "ModelUploader.h"
@@ -32,6 +40,10 @@ static const QString NAME_FIELD = "name";
 static const QString FILENAME_FIELD = "filename";
 static const QString TEXDIR_FIELD = "texdir";
 static const QString LOD_FIELD = "lod";
+static const QString JOINT_INDEX_FIELD = "jointIndex";
+static const QString SCALE_FIELD = "scale";
+static const QString JOINT_FIELD = "joint";
+static const QString FREE_JOINT_FIELD = "freeJoint";
 
 static const QString S3_URL = "http://highfidelity-public.s3-us-west-1.amazonaws.com";
 static const QString DATA_SERVER_URL = "https://data-web.highfidelity.io";
@@ -40,6 +52,7 @@ static const QString MODEL_URL = "/api/v1/models";
 static const QString SETTING_NAME = "LastModelUploadLocation";
 
 static const int MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+static const int MAX_TEXTURE_SIZE = 1024;
 static const int TIMEOUT = 1000;
 static const int MAX_CHECK = 30;
 
@@ -76,7 +89,8 @@ bool ModelUploader::zip() {
     }
     
         
-    QString filename = QFileDialog::getOpenFileName(NULL, "Select your .fst file ...", lastLocation, "*.fst");
+    QString filename = QFileDialog::getOpenFileName(NULL, "Select your model file ...",
+        lastLocation, "Model files (*.fst *.fbx)");
     if (filename == "") {
         // If the user canceled we return.
         Application::getInstance()->unlockSettings();
@@ -85,89 +99,160 @@ bool ModelUploader::zip() {
     settings->setValue(SETTING_NAME, filename);
     Application::getInstance()->unlockSettings();
     
-    bool _nameIsPresent = false;
-    QString texDir;
+    // First we check the FST file (if any)
+    QFile* fst;
+    QVariantHash mapping;
+    QString basePath;
     QString fbxFile;
+    if (filename.toLower().endsWith(".fst")) {
+        fst = new QFile(filename, this);
+        if (!fst->open(QFile::ReadOnly | QFile::Text)) {
+            QMessageBox::warning(NULL,
+                                 QString("ModelUploader::zip()"),
+                                 QString("Could not open FST file."),
+                                 QMessageBox::Ok);
+            qDebug() << "[Warning] " << QString("Could not open FST file.");
+            return false;
+        }
+        qDebug() << "Reading FST file : " << QFileInfo(*fst).filePath();
+        mapping = readMapping(fst->readAll());
+        basePath = QFileInfo(*fst).path();
+        fbxFile = basePath + "/" + mapping.value(FILENAME_FIELD).toString();
+        QFileInfo fbxInfo(fbxFile);
+        if (!fbxInfo.exists() || !fbxInfo.isFile()) { // Check existence
+            QMessageBox::warning(NULL,
+                                 QString("ModelUploader::zip()"),
+                                 QString("FBX file %1 could not be found.").arg(fbxInfo.fileName()),
+                                 QMessageBox::Ok);
+            qDebug() << "[Warning] " << QString("FBX file %1 could not be found.").arg(fbxInfo.fileName());
+            return false;
+        }
+    } else {
+        fst = new QTemporaryFile(this);
+        fst->open(QFile::WriteOnly);
+        fbxFile = filename;
+        basePath = QFileInfo(filename).path();
+        mapping.insert(FILENAME_FIELD, QFileInfo(filename).fileName());
+    }
     
+    // open the fbx file
+    QFile fbx(fbxFile);
+    if (!fbx.open(QIODevice::ReadOnly)) {
+        return false;
+    }
+    QByteArray fbxContents = fbx.readAll();
+    FBXGeometry geometry = readFBX(fbxContents, QVariantHash());
     
-    // First we check the FST file
-    QFile fst(filename);
-    if (!fst.open(QFile::ReadOnly | QFile::Text)) {
+    // make sure we have some basic mappings
+    if (!mapping.contains(NAME_FIELD)) {
+        mapping.insert(NAME_FIELD, QFileInfo(filename).baseName());
+    }
+    if (!mapping.contains(TEXDIR_FIELD)) {
+        mapping.insert(TEXDIR_FIELD, ".");
+    }
+    
+    // mixamo/autodesk defaults
+    if (!mapping.contains(SCALE_FIELD)) {
+        mapping.insert(SCALE_FIELD, 10.0);
+    }
+    QVariantHash joints = mapping.value(JOINT_FIELD).toHash();
+    if (!joints.contains("jointEyeLeft")) {
+        joints.insert("jointEyeLeft", "LeftEye");
+    }
+    if (!joints.contains("jointEyeRight")) {
+        joints.insert("jointEyeRight", "RightEye");
+    }
+    if (!joints.contains("jointNeck")) {
+        joints.insert("jointNeck", "Neck");
+    }
+    if (!joints.contains("jointRoot")) {
+        joints.insert("jointRoot", "Hips");
+    }
+    if (!joints.contains("jointLean")) {
+        joints.insert("jointLean", "Spine");
+    }
+    if (!joints.contains("jointHead")) {
+        joints.insert("jointHead", geometry.applicationName == "mixamo.com" ? "HeadTop_End" : "HeadEnd");
+    }
+    if (!joints.contains("jointLeftHand")) {
+        joints.insert("jointLeftHand", "LeftHand");
+    }
+    if (!joints.contains("jointRightHand")) {
+        joints.insert("jointRightHand", "RightHand");
+    }
+    mapping.insert(JOINT_FIELD, joints);
+    if (!mapping.contains(FREE_JOINT_FIELD)) {
+        mapping.insertMulti(FREE_JOINT_FIELD, "LeftArm");
+        mapping.insertMulti(FREE_JOINT_FIELD, "LeftForeArm");
+        mapping.insertMulti(FREE_JOINT_FIELD, "RightArm");
+        mapping.insertMulti(FREE_JOINT_FIELD, "RightForeArm");
+    }
+    
+    // open the dialog to configure the rest
+    ModelPropertiesDialog properties(_isHead, mapping, basePath, geometry);
+    if (properties.exec() == QDialog::Rejected) {
+        return false;
+    }
+    mapping = properties.getMapping();
+    
+    QByteArray nameField = mapping.value(NAME_FIELD).toByteArray();
+    if (!nameField.isEmpty()) {
+        QHttpPart textPart;
+        textPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"model_name\"");
+        textPart.setBody(nameField);
+        _dataMultiPart->append(textPart);
+        _url = S3_URL + ((_isHead)? "/models/heads/" : "/models/skeletons/") + nameField + ".fst";
+    } else {
         QMessageBox::warning(NULL,
                              QString("ModelUploader::zip()"),
-                             QString("Could not open FST file."),
+                             QString("Model name is missing in the .fst file."),
                              QMessageBox::Ok);
-        qDebug() << "[Warning] " << QString("Could not open FST file.");
-        return false;
-    }
-    qDebug() << "Reading FST file : " << QFileInfo(fst).filePath();
-    
-    // Compress and copy the fst
-    if (!addPart(QFileInfo(fst).filePath(), QString("fst"))) {
+        qDebug() << "[Warning] " << QString("Model name is missing in the .fst file.");
         return false;
     }
     
-    // Let's read through the FST file
-    QTextStream stream(&fst);
-    QList<QString> line;
-    while (!stream.atEnd()) {
-        line = stream.readLine().split(QRegExp("[ =]"), QString::SkipEmptyParts);
-        if (line.isEmpty()) {
-            continue;
-        }
-        
-        // according to what is read, we modify the command
-        if (line[0] == NAME_FIELD) {
-            QHttpPart textPart;
-            textPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data;"
-                               " name=\"model_name\"");
-            textPart.setBody(line[1].toUtf8());
-            _dataMultiPart->append(textPart);
-            _url = S3_URL + ((_isHead)? "/models/heads/" : "/models/skeletons/") + line[1].toUtf8() + ".fst";
-            _nameIsPresent = true;
-        } else if (line[0] == FILENAME_FIELD) {
-            fbxFile = QFileInfo(fst).path() + "/" + line[1];
-            QFileInfo fbxInfo(fbxFile);
-            if (!fbxInfo.exists() || !fbxInfo.isFile()) { // Check existence
-                QMessageBox::warning(NULL,
-                                     QString("ModelUploader::zip()"),
-                                     QString("FBX file %1 could not be found.").arg(fbxInfo.fileName()),
-                                     QMessageBox::Ok);
-                qDebug() << "[Warning] " << QString("FBX file %1 could not be found.").arg(fbxInfo.fileName());
-                return false;
-            }
-            // Compress and copy
-            if (!addPart(fbxInfo.filePath(), "fbx")) {
-                return false;
-            }
-        } else if (line[0] == TEXDIR_FIELD) { // Check existence
-            texDir = QFileInfo(fst).path() + "/" + line[1];
-            QFileInfo texInfo(texDir);
-            if (!texInfo.exists() || !texInfo.isDir()) {
-                QMessageBox::warning(NULL,
-                                     QString("ModelUploader::zip()"),
-                                     QString("Texture directory could not be found."),
-                                     QMessageBox::Ok);
-                qDebug() << "[Warning] " << QString("Texture directory could not be found.");
-                return false;
-            }
-        } else if (line[0] == LOD_FIELD) {
-            QFileInfo lod(QFileInfo(fst).path() + "/" + line[1]);
-            if (!lod.exists() || !lod.isFile()) { // Check existence
-                QMessageBox::warning(NULL,
-                                     QString("ModelUploader::zip()"),
-                                     QString("LOD file %1 could not be found.").arg(lod.fileName()),
-                                     QMessageBox::Ok);
-                qDebug() << "[Warning] " << QString("FBX file %1 could not be found.").arg(lod.fileName());
-            }
-            // Compress and copy
-            if (!addPart(lod.filePath(), QString("lod%1").arg(++_lodCount))) {
-                return false;
-            }
+    QByteArray texdirField = mapping.value(TEXDIR_FIELD).toByteArray();
+    QString texDir;
+    if (!texdirField.isEmpty()) {
+        texDir = basePath + "/" + texdirField;
+        QFileInfo texInfo(texDir);
+        if (!texInfo.exists() || !texInfo.isDir()) {
+            QMessageBox::warning(NULL,
+                                 QString("ModelUploader::zip()"),
+                                 QString("Texture directory could not be found."),
+                                 QMessageBox::Ok);
+            qDebug() << "[Warning] " << QString("Texture directory could not be found.");
+            return false;
         }
     }
     
-    if (!addTextures(texDir, fbxFile)) {
+    QVariantHash lodField = mapping.value(LOD_FIELD).toHash();
+    for (QVariantHash::const_iterator it = lodField.constBegin(); it != lodField.constEnd(); it++) {
+        QFileInfo lod(basePath + "/" + it.key());
+        if (!lod.exists() || !lod.isFile()) { // Check existence
+            QMessageBox::warning(NULL,
+                                 QString("ModelUploader::zip()"),
+                                 QString("LOD file %1 could not be found.").arg(lod.fileName()),
+                                 QMessageBox::Ok);
+            qDebug() << "[Warning] " << QString("FBX file %1 could not be found.").arg(lod.fileName());
+        }
+        // Compress and copy
+        if (!addPart(lod.filePath(), QString("lod%1").arg(++_lodCount))) {
+            return false;
+        }
+    }
+    
+    // Write out, compress and copy the fst
+    if (!addPart(*fst, writeMapping(mapping), QString("fst"))) {
+        return false;
+    }
+    
+    // Compress and copy the fbx
+    if (!addPart(fbx, fbxContents, "fbx")) {
+        return false;
+    }
+                
+    if (!addTextures(texDir, geometry)) {
         return false;
     }
     
@@ -180,15 +265,6 @@ bool ModelUploader::zip() {
         textPart.setBody("skeletons");
     }
     _dataMultiPart->append(textPart);
-    
-    if (!_nameIsPresent) {
-        QMessageBox::warning(NULL,
-                             QString("ModelUploader::zip()"),
-                             QString("Model name is missing in the .fst file."),
-                             QMessageBox::Ok);
-        qDebug() << "[Warning] " << QString("Model name is missing in the .fst file.");
-        return false;
-    }
     
     _readyToSend = true;
     return true;
@@ -350,27 +426,18 @@ void ModelUploader::processCheck() {
     delete reply;
 }
 
-bool ModelUploader::addTextures(const QString& texdir, const QString fbxFile) {
-    QFile fbx(fbxFile);
-    if (!fbx.open(QIODevice::ReadOnly)) {
-        return false;
-    }
-    
-    QByteArray buffer = fbx.readAll();
-    QVariantHash variantHash = readMapping(buffer);
-    FBXGeometry geometry = readFBX(buffer, variantHash);
-    
+bool ModelUploader::addTextures(const QString& texdir, const FBXGeometry& geometry) {
     foreach (FBXMesh mesh, geometry.meshes) {
         foreach (FBXMeshPart part, mesh.parts) {
-            if (!part.diffuseTexture.filename.isEmpty()) {
+            if (!part.diffuseTexture.filename.isEmpty() && part.diffuseTexture.content.isEmpty()) {
                 if (!addPart(texdir + "/" + part.diffuseTexture.filename,
-                             QString("texture%1").arg(++_texturesCount))) {
+                             QString("texture%1").arg(++_texturesCount), true)) {
                     return false;
                 }
             }
-            if (!part.normalTexture.filename.isEmpty()) {
+            if (!part.normalTexture.filename.isEmpty() && part.normalTexture.content.isEmpty()) {
                 if (!addPart(texdir + "/" + part.normalTexture.filename,
-                             QString("texture%1").arg(++_texturesCount))) {
+                             QString("texture%1").arg(++_texturesCount), true)) {
                     return false;
                 }
             }
@@ -380,7 +447,7 @@ bool ModelUploader::addTextures(const QString& texdir, const QString fbxFile) {
     return true;
 }
 
-bool ModelUploader::addPart(const QString &path, const QString& name) {
+bool ModelUploader::addPart(const QString &path, const QString& name, bool isTexture) {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
         QMessageBox::warning(NULL,
@@ -390,7 +457,29 @@ bool ModelUploader::addPart(const QString &path, const QString& name) {
         qDebug() << "[Warning] " << QString("Could not open %1").arg(path);
         return false;
     }
-    QByteArray buffer = qCompress(file.readAll());
+    return addPart(file, file.readAll(), name, isTexture);
+}
+
+bool ModelUploader::addPart(const QFile& file, const QByteArray& contents, const QString& name, bool isTexture) {
+    QFileInfo fileInfo(file);
+    QByteArray recodedContents = contents;
+    if (isTexture) {
+        QString extension = fileInfo.suffix().toLower();
+        bool isJpeg = (extension == "jpg");
+        bool mustRecode = !(isJpeg || extension == "png");
+        QImage image = QImage::fromData(contents);
+        if (image.width() > MAX_TEXTURE_SIZE || image.height() > MAX_TEXTURE_SIZE) {
+            image = image.scaled(MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE, Qt::KeepAspectRatio);
+            mustRecode = true;
+        }
+        if (mustRecode) {
+            QBuffer buffer;
+            buffer.open(QIODevice::WriteOnly); 
+            image.save(&buffer, isJpeg ? "JPG" : "PNG");
+            recodedContents = buffer.data();
+        }
+    }
+    QByteArray buffer = qCompress(recodedContents);
     
     // Qt's qCompress() default compression level (-1) is the standard zLib compression.
     // Here remove Qt's custom header that prevent the data server from uncompressing the files with zLib.
@@ -406,7 +495,7 @@ bool ModelUploader::addPart(const QString &path, const QString& name) {
     
     
     qDebug() << "File " << QFileInfo(file).fileName() << " added to model.";
-    _totalSize += file.size();
+    _totalSize += recodedContents.size();
     if (_totalSize > MAX_SIZE) {
         QMessageBox::warning(NULL,
                              QString("ModelUploader::zip()"),
@@ -420,8 +509,165 @@ bool ModelUploader::addPart(const QString &path, const QString& name) {
     return true;
 }
 
+ModelPropertiesDialog::ModelPropertiesDialog(bool isHead, const QVariantHash& originalMapping,
+        const QString& basePath, const FBXGeometry& geometry) :
+    _isHead(isHead),
+    _originalMapping(originalMapping),
+    _basePath(basePath),
+    _geometry(geometry) {
+    
+    setWindowTitle("Set Model Properties");
+    
+    QFormLayout* form = new QFormLayout();
+    setLayout(form);
+    
+    form->addRow("Name:", _name = new QLineEdit());
+    
+    form->addRow("Texture Directory:", _textureDirectory = new QPushButton());
+    connect(_textureDirectory, SIGNAL(clicked(bool)), SLOT(chooseTextureDirectory()));
+    
+    form->addRow("Scale:", _scale = new QDoubleSpinBox());
+    _scale->setMaximum(FLT_MAX);
+    _scale->setSingleStep(0.01);
+    
+    form->addRow("Left Eye Joint:", _leftEyeJoint = createJointBox());
+    form->addRow("Right Eye Joint:", _rightEyeJoint = createJointBox());
+    form->addRow("Neck Joint:", _neckJoint = createJointBox());
+    if (!isHead) {
+        form->addRow("Root Joint:", _rootJoint = createJointBox());
+        form->addRow("Lean Joint:", _leanJoint = createJointBox());
+        form->addRow("Head Joint:", _headJoint = createJointBox());
+        form->addRow("Left Hand Joint:", _leftHandJoint = createJointBox());
+        form->addRow("Right Hand Joint:", _rightHandJoint = createJointBox());
+        
+        form->addRow("Free Joints:", _freeJoints = new QVBoxLayout());
+        QPushButton* newFreeJoint = new QPushButton("New Free Joint");
+        _freeJoints->addWidget(newFreeJoint);
+        connect(newFreeJoint, SIGNAL(clicked(bool)), SLOT(createNewFreeJoint()));
+    }
+    
+    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok |
+        QDialogButtonBox::Cancel | QDialogButtonBox::Reset);
+    connect(buttons, SIGNAL(accepted()), SLOT(accept()));
+    connect(buttons, SIGNAL(rejected()), SLOT(reject()));
+    connect(buttons->button(QDialogButtonBox::Reset), SIGNAL(clicked(bool)), SLOT(reset()));
+    
+    form->addRow(buttons);
+    
+    // reset to initialize the fields
+    reset();
+}
 
+QVariantHash ModelPropertiesDialog::getMapping() const {
+    QVariantHash mapping = _originalMapping;
+    mapping.insert(NAME_FIELD, _name->text());
+    mapping.insert(TEXDIR_FIELD, _textureDirectory->text());
+    mapping.insert(SCALE_FIELD, QString::number(_scale->value()));
+    
+    // update the joint indices
+    QVariantHash jointIndices;
+    for (int i = 0; i < _geometry.joints.size(); i++) {
+        jointIndices.insert(_geometry.joints.at(i).name, QString::number(i));
+    }
+    mapping.insert(JOINT_INDEX_FIELD, jointIndices);
+    
+    QVariantHash joints = mapping.value(JOINT_FIELD).toHash();
+    insertJointMapping(joints, "jointEyeLeft", _leftEyeJoint->currentText());
+    insertJointMapping(joints, "jointEyeRight", _rightEyeJoint->currentText());
+    insertJointMapping(joints, "jointNeck", _neckJoint->currentText());
+    if (!_isHead) {
+        insertJointMapping(joints, "jointRoot", _rootJoint->currentText());
+        insertJointMapping(joints, "jointLean", _leanJoint->currentText());
+        insertJointMapping(joints, "jointHead", _headJoint->currentText());
+        insertJointMapping(joints, "jointLeftHand", _leftHandJoint->currentText());
+        insertJointMapping(joints, "jointRightHand", _rightHandJoint->currentText());
+        
+        mapping.remove(FREE_JOINT_FIELD);
+        for (int i = 0; i < _freeJoints->count() - 1; i++) {
+            QComboBox* box = static_cast<QComboBox*>(_freeJoints->itemAt(i)->widget()->layout()->itemAt(0)->widget());
+            mapping.insertMulti(FREE_JOINT_FIELD, box->currentText());
+        }
+    }
+    mapping.insert(JOINT_FIELD, joints);
+    
+    return mapping;
+}
 
+static void setJointText(QComboBox* box, const QString& text) {
+    box->setCurrentIndex(qMax(box->findText(text), 0));
+}
 
+void ModelPropertiesDialog::reset() {
+    _name->setText(_originalMapping.value(NAME_FIELD).toString());
+    _textureDirectory->setText(_originalMapping.value(TEXDIR_FIELD).toString());
+    _scale->setValue(_originalMapping.value(SCALE_FIELD, 1.0).toDouble());
+    
+    QVariantHash jointHash = _originalMapping.value(JOINT_FIELD).toHash();
+    setJointText(_leftEyeJoint, jointHash.value("jointEyeLeft").toString());
+    setJointText(_rightEyeJoint, jointHash.value("jointEyeRight").toString());
+    setJointText(_neckJoint, jointHash.value("jointNeck").toString());
+    if (!_isHead) {
+        setJointText(_rootJoint, jointHash.value("jointRoot").toString());
+        setJointText(_leanJoint, jointHash.value("jointLean").toString());
+        setJointText(_headJoint, jointHash.value("jointHead").toString());
+        setJointText(_leftHandJoint, jointHash.value("jointLeftHand").toString());
+        setJointText(_rightHandJoint, jointHash.value("jointRightHand").toString());
+        
+        while (_freeJoints->count() > 1) {
+            delete _freeJoints->itemAt(0)->widget();
+        }
+        foreach (const QVariant& joint, _originalMapping.values(FREE_JOINT_FIELD)) {
+            QString jointName = joint.toString();
+            if (_geometry.jointIndices.contains(jointName)) {
+                createNewFreeJoint(jointName);
+            }
+        }
+    }
+}
 
+void ModelPropertiesDialog::chooseTextureDirectory() {
+    QString directory = QFileDialog::getExistingDirectory(this, "Choose Texture Directory",
+        _basePath + "/" + _textureDirectory->text());
+    if (directory.isEmpty()) {
+        return;
+    }
+    if (!directory.startsWith(_basePath)) {
+        QMessageBox::warning(NULL, "Invalid texture directory", "Texture directory must be child of base path.");
+        return;
+    }
+    _textureDirectory->setText(directory.length() == _basePath.length() ? "." : directory.mid(_basePath.length() + 1));
+}
+
+void ModelPropertiesDialog::createNewFreeJoint(const QString& joint) {
+    QWidget* freeJoint = new QWidget();
+    QHBoxLayout* freeJointLayout = new QHBoxLayout();
+    freeJointLayout->setContentsMargins(QMargins());
+    freeJoint->setLayout(freeJointLayout);
+    QComboBox* jointBox = createJointBox(false);
+    jointBox->setCurrentText(joint);
+    freeJointLayout->addWidget(jointBox, 1);
+    QPushButton* deleteJoint = new QPushButton("Delete");
+    freeJointLayout->addWidget(deleteJoint);
+    freeJoint->connect(deleteJoint, SIGNAL(clicked(bool)), SLOT(deleteLater()));
+    _freeJoints->insertWidget(_freeJoints->count() - 1, freeJoint);
+}
+
+QComboBox* ModelPropertiesDialog::createJointBox(bool withNone) const {
+    QComboBox* box = new QComboBox();
+    if (withNone) {
+        box->addItem("(none)");
+    }
+    foreach (const FBXJoint& joint, _geometry.joints) {
+        box->addItem(joint.name);
+    }
+    return box;
+}
+
+void ModelPropertiesDialog::insertJointMapping(QVariantHash& joints, const QString& joint, const QString& name) const {
+    if (_geometry.jointIndices.contains(name)) {
+        joints.insert(joint, name);
+    } else {
+        joints.remove(joint);
+    }
+}
 

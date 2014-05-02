@@ -3,14 +3,14 @@
  <class>ScriptEditorWindow</class>
  <widget class="QWidget" name="ScriptEditorWindow">
   <property name="windowModality">
-   <enum>Qt::WindowModal</enum>
+   <enum>Qt::NonModal</enum>
   </property>
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>706</width>
-    <height>682</height>
+    <width>780</width>
+    <height>717</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -29,16 +29,7 @@
    <property name="spacing">
     <number>0</number>
    </property>
-   <property name="leftMargin">
-    <number>0</number>
-   </property>
-   <property name="topMargin">
-    <number>0</number>
-   </property>
-   <property name="rightMargin">
-    <number>0</number>
-   </property>
-   <property name="bottomMargin">
+   <property name="margin">
     <number>0</number>
    </property>
    <item>

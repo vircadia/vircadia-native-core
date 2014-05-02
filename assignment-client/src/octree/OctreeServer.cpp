@@ -833,7 +833,7 @@ void OctreeServer::readPendingDatagrams() {
             SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
             if (packetType == getMyQueryMessageType()) {
             
-                // If we got a PacketType_VOXEL_QUERY, then we're talking to an NodeType_t_AVATAR, and we
+                // If we got a query packet, then we're talking to an agent, and we
                 // need to make sure we have it in our nodeList.
                 if (matchingNode) {
                     nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);

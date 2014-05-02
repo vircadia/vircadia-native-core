@@ -584,13 +584,16 @@ public:
 };
 
 glm::mat4 getGlobalTransform(const QMultiHash<QString, QString>& parentMap,
-        const QHash<QString, FBXModel>& models, QString nodeID) {
+        const QHash<QString, FBXModel>& models, QString nodeID, bool mixamoHack) {
     glm::mat4 globalTransform;
     while (!nodeID.isNull()) {
         const FBXModel& model = models.value(nodeID);
         globalTransform = glm::translate(model.translation) * model.preTransform * glm::mat4_cast(model.preRotation *
             model.rotation * model.postRotation) * model.postTransform * globalTransform;
-
+        if (mixamoHack) {
+            // there's something weird about the models from Mixamo Fuse; they don't skin right with the full transform
+            return globalTransform;
+        }
         QList<QString> parentIDs = parentMap.values(nodeID);
         nodeID = QString();
         foreach (const QString& parentID, parentIDs) {
@@ -1006,9 +1009,25 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         }
     }
     QMultiHash<QString, WeightedIndex> blendshapeChannelIndices;
-
+    
+    FBXGeometry geometry;
     foreach (const FBXNode& child, node.children) {
-        if (child.name == "Objects") {
+        if (child.name == "FBXHeaderExtension") {
+            foreach (const FBXNode& object, child.children) {
+                if (object.name == "SceneInfo") {
+                    foreach (const FBXNode& subobject, object.children) {
+                        if (subobject.name == "Properties70") {
+                            foreach (const FBXNode& subsubobject, subobject.children) {
+                                if (subsubobject.name == "P" && subsubobject.properties.size() >= 5 &&
+                                        subsubobject.properties.at(0) == "Original|ApplicationName") {
+                                    geometry.applicationName = subsubobject.properties.at(4).toString();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (child.name == "Objects") {
             foreach (const FBXNode& object, child.children) {
                 if (object.name == "Geometry") {
                     if (object.properties.at(2) == "Mesh") {
@@ -1317,7 +1336,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     }
 
     // get offset transform from mapping
-    FBXGeometry geometry;
     float offsetScale = mapping.value("scale", 1.0f).toFloat();
     glm::quat offsetRotation = glm::quat(glm::radians(glm::vec3(mapping.value("rx").toFloat(),
             mapping.value("ry").toFloat(), mapping.value("rz").toFloat())));
@@ -1466,7 +1484,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
 
         // accumulate local transforms
         QString modelID = models.contains(it.key()) ? it.key() : parentMap.value(it.key());
-        glm::mat4 modelTransform = getGlobalTransform(parentMap, models, modelID);
+        glm::mat4 modelTransform = getGlobalTransform(parentMap, models, modelID, geometry.applicationName == "mixamo.com");
 
         // compute the mesh extents from the transformed vertices
         foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
@@ -1801,6 +1819,33 @@ QVariantHash readMapping(const QByteArray& data) {
     QBuffer buffer(const_cast<QByteArray*>(&data));
     buffer.open(QIODevice::ReadOnly);
     return parseMapping(&buffer);
+}
+
+QByteArray writeMapping(const QVariantHash& mapping) {
+    QBuffer buffer;
+    buffer.open(QIODevice::WriteOnly);
+    for (QVariantHash::const_iterator first = mapping.constBegin(); first != mapping.constEnd(); first++) {
+        QByteArray key = first.key().toUtf8() + " = ";
+        QVariantHash hashValue = first.value().toHash();
+        if (hashValue.isEmpty()) {
+            buffer.write(key + first.value().toByteArray() + "\n");
+            continue;
+        }
+        for (QVariantHash::const_iterator second = hashValue.constBegin(); second != hashValue.constEnd(); second++) {
+            QByteArray extendedKey = key + second.key().toUtf8();
+            QVariantList listValue = second.value().toList();
+            if (listValue.isEmpty()) {
+                buffer.write(extendedKey + " = " + second.value().toByteArray() + "\n");
+                continue;
+            }
+            buffer.write(extendedKey);
+            for (QVariantList::const_iterator third = listValue.constBegin(); third != listValue.constEnd(); third++) {
+                buffer.write(" = " + third->toByteArray());
+            }
+            buffer.write("\n");
+        }
+    }
+    return buffer.data();
 }
 
 FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping) {
