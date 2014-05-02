@@ -41,6 +41,7 @@ void voxelDetailFromScriptValue(const QScriptValue &object, VoxelDetail& voxelDe
 
 RayToVoxelIntersectionResult::RayToVoxelIntersectionResult() : 
     intersects(false), 
+    accurate(true), // assume it's accurate
     voxel(),
     distance(0),
     face()
@@ -50,6 +51,7 @@ RayToVoxelIntersectionResult::RayToVoxelIntersectionResult() :
 QScriptValue rayToVoxelIntersectionResultToScriptValue(QScriptEngine* engine, const RayToVoxelIntersectionResult& value) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("intersects", value.intersects);
+    obj.setProperty("accurate", value.accurate);
     QScriptValue voxelValue = voxelDetailToScriptValue(engine, value.voxel);
     obj.setProperty("voxel", voxelValue);
     obj.setProperty("distance", value.distance);
@@ -88,6 +90,7 @@ QScriptValue rayToVoxelIntersectionResultToScriptValue(QScriptEngine* engine, co
 
 void rayToVoxelIntersectionResultFromScriptValue(const QScriptValue& object, RayToVoxelIntersectionResult& value) {
     value.intersects = object.property("intersects").toVariant().toBool();
+    value.accurate = object.property("accurate").toVariant().toBool();
     QScriptValue voxelValue = object.property("voxel");
     if (voxelValue.isValid()) {
         voxelDetailFromScriptValue(voxelValue, value.voxel);

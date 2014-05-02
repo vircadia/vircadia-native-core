@@ -37,7 +37,6 @@ OctreeEditPacketSender::OctreeEditPacketSender() :
     _serverJurisdictions(NULL),
     _sequenceNumber(0),
     _maxPacketSize(MAX_PACKET_SIZE) {
-    //qDebug("OctreeEditPacketSender::OctreeEditPacketSender() [%p] created... ", this);
 }
 
 OctreeEditPacketSender::~OctreeEditPacketSender() {
@@ -59,29 +58,31 @@ OctreeEditPacketSender::~OctreeEditPacketSender() {
 
 bool OctreeEditPacketSender::serversExist() const {
     bool hasServers = false;
-    bool atLeastOnJurisdictionMissing = false; // assume the best
+    bool atLeastOneJurisdictionMissing = false; // assume the best
     NodeList* nodeList = NodeList::getInstance();
 
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+
         // only send to the NodeTypes that are getMyNodeType()
-        if (node->getType() == getMyNodeType() &&  node->getActiveSocket()) {
+        if (node->getType() == getMyNodeType() && node->getActiveSocket()) {
+
             QUuid nodeUUID = node->getUUID();
             // If we've got Jurisdictions set, then check to see if we know the jurisdiction for this server
             if (_serverJurisdictions) {
                 // lookup our nodeUUID in the jurisdiction map, if it's missing then we're
                 // missing at least one jurisdiction
                 if ((*_serverJurisdictions).find(nodeUUID) == (*_serverJurisdictions).end()) {
-                    atLeastOnJurisdictionMissing = true;
+                    atLeastOneJurisdictionMissing = true;
                 }
             }
             hasServers = true;
         }
-        if (atLeastOnJurisdictionMissing) {
+        if (atLeastOneJurisdictionMissing) {
             break; // no point in looking further...
         }
     }
 
-    return (hasServers && !atLeastOnJurisdictionMissing);
+    return (hasServers && !atLeastOneJurisdictionMissing);
 }
 
 // This method is called when the edit packet layer has determined that it has a fully formed packet destined for
@@ -217,7 +218,7 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
                 _preServerPackets.erase(_preServerPackets.begin());
             }
             _pendingPacketsLock.unlock();
-    }
+        }
         return; // bail early
     }
 

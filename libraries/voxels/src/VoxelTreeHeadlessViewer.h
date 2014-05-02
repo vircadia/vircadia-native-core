@@ -28,7 +28,7 @@ public:
     virtual ~VoxelTreeHeadlessViewer();
 
     virtual Octree* createTree() { return new VoxelTree(true); }
-    virtual NodeType_t getMyNodeType() const { return NodeType::VoxelServer; }
+    virtual char getMyNodeType() const { return NodeType::VoxelServer; }
     virtual PacketType getMyQueryMessageType() const { return PacketTypeVoxelQuery; }
     virtual PacketType getExpectedPacketType() const { return PacketTypeVoxelData; }
 

@@ -232,6 +232,9 @@ void OctreeStatsDialog::showAllOctreeServers() {
     showOctreeServersOfType(serverCount, NodeType::ParticleServer, "Particle",
             Application::getInstance()->getParticleServerJurisdictions());
 
+    showOctreeServersOfType(serverCount, NodeType::ModelServer, "Model",
+            Application::getInstance()->getModelServerJurisdictions());
+
     if (_voxelServerLabelsCount > serverCount) {
         for (int i = serverCount; i < _voxelServerLabelsCount; i++) {
             int serverLabel = _voxelServerLables[i];
