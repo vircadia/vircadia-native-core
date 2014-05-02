@@ -558,6 +558,8 @@ void MyAvatar::updateLookAtTargetAvatar() {
     //
     //  Look at the avatar whose eyes are closest to the ray in direction of my avatar's head
     //
+    _lookAtTargetAvatar.clear();
+    _targetAvatarPosition = glm::vec3(0, 0, 0);
     const float MIN_LOOKAT_ANGLE = PI / 4.0f;        //  Smallest angle between face and person where we will look at someone
     float smallestAngleTo = MIN_LOOKAT_ANGLE;
     foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
@@ -569,12 +571,9 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 _lookAtTargetAvatar = avatarPointer;
                 _targetAvatarPosition = avatarPointer->getPosition();
                 smallestAngleTo = angleTo;
-                return;
             }
         }
     }
-    _lookAtTargetAvatar.clear();
-    _targetAvatarPosition = glm::vec3(0, 0, 0);
 }
 
 void MyAvatar::clearLookAtTargetAvatar() {

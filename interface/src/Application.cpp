@@ -1828,11 +1828,11 @@ void Application::updateMyAvatarLookAtPosition() {
             if (tracker) {
                 //  If tracker active, look at the eye for the side my gaze is biased toward
                 if (tracker->getEstimatedEyeYaw() > _myAvatar->getHead()->getFinalYaw()) {
-                    // Look at their left eye
-                    lookAtSpot = static_cast<Avatar*>(_myAvatar->getLookAtTargetAvatar())->getHead()->getLeftEyePosition();
-                } else {
                     // Look at their right eye
                     lookAtSpot = static_cast<Avatar*>(_myAvatar->getLookAtTargetAvatar())->getHead()->getRightEyePosition();
+                } else {
+                    // Look at their left eye
+                    lookAtSpot = static_cast<Avatar*>(_myAvatar->getLookAtTargetAvatar())->getHead()->getLeftEyePosition();
                 }
             } else {
                 //  Need to add randomly looking back and forth between left and right eye for case with no tracker
