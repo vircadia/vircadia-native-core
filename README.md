@@ -57,7 +57,7 @@ Any target can be terminated with Ctrl-C (SIGINT) in the associated Terminal win
 
 This assignment-client will grab one assignment from the domain-server. You can tell the assignment-client what type you want it to be with the `-t` option. You can also run an assignment-client that forks off *n* assignment-clients with the `-n` option.
 
-    ./assignment-client -n 5
+    ./assignment-client -n 6
 
 To test things out you'll want to run the Interface client.
 
