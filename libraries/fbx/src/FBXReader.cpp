@@ -705,6 +705,7 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
     if (vertexIndex < 0) {
         vertexIndex = -vertexIndex - 1;
     }
+    vertexIndex = qMin(vertexIndex, data.vertices.size() - 1);
 
     Vertex vertex;
     vertex.originalIndex = vertexIndex;
