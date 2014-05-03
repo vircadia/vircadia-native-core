@@ -776,7 +776,16 @@ float Avatar::getSkeletonHeight() const {
 
 float Avatar::getHeadHeight() const {
     Extents extents = getHead()->getFaceModel().getBindExtents();
-    return extents.maximum.y - extents.minimum.y;
+    if (!extents.isEmpty()) {
+        return extents.maximum.y - extents.minimum.y;
+    }
+    glm::vec3 neckPosition;
+    glm::vec3 headPosition;
+    if (_skeletonModel.getNeckPosition(neckPosition) && _skeletonModel.getHeadPosition(headPosition)) {
+        return glm::distance(neckPosition, headPosition);
+    }
+    const float DEFAULT_HEAD_HEIGHT = 0.1f;
+    return DEFAULT_HEAD_HEIGHT;
 }
 
 bool Avatar::collisionWouldMoveAvatar(CollisionInfo& collision) const {

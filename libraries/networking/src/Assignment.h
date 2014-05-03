@@ -78,6 +78,9 @@ public:
     void setPool(const QString& pool) { _pool = pool; };
     const QString& getPool() const { return _pool; }
     
+    void setIsStatic(bool isStatic) { _isStatic = isStatic; }
+    bool isStatic() const  { return _isStatic; }
+    
     const char* getTypeName() const;
 
     // implement parseData to return 0 so we can be a subclass of NodeData
@@ -94,6 +97,7 @@ protected:
     QString _pool; /// the destination pool for this assignment
     Assignment::Location _location; /// the location of the assignment, allows a domain to preferentially use local ACs
     QByteArray _payload; /// an optional payload attached to this assignment, a maximum for 1024 bytes will be packed
+    bool _isStatic; /// defines if this assignment needs to be re-queued in the domain-server if it stops being fulfilled
 };
 
 #endif // hifi_Assignment_h

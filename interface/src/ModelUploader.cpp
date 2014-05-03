@@ -153,7 +153,7 @@ bool ModelUploader::zip() {
     
     // mixamo/autodesk defaults
     if (!mapping.contains(SCALE_FIELD)) {
-        mapping.insert(SCALE_FIELD, 10.0);
+        mapping.insert(SCALE_FIELD, 15.0);
     }
     QVariantHash joints = mapping.value(JOINT_FIELD).toHash();
     if (!joints.contains("jointEyeLeft")) {
@@ -600,7 +600,7 @@ static void setJointText(QComboBox* box, const QString& text) {
 void ModelPropertiesDialog::reset() {
     _name->setText(_originalMapping.value(NAME_FIELD).toString());
     _textureDirectory->setText(_originalMapping.value(TEXDIR_FIELD).toString());
-    _scale->setValue(_originalMapping.value(SCALE_FIELD, 1.0).toDouble());
+    _scale->setValue(_originalMapping.value(SCALE_FIELD).toDouble());
     
     QVariantHash jointHash = _originalMapping.value(JOINT_FIELD).toHash();
     setJointText(_leftEyeJoint, jointHash.value("jointEyeLeft").toString());
