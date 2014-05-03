@@ -707,6 +707,11 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
     }
     Vertex vertex;
     vertex.originalIndex = vertexIndex;
+    
+    glm::vec3 position;
+    if (vertexIndex < data.vertices.size()) {
+        position = data.vertices.at(vertexIndex);
+    }
 
     glm::vec3 normal;
     int normalIndex = data.normalsByVertex ? vertexIndex : index;
@@ -738,7 +743,7 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
         indices.append(newIndex);
         data.indices.insert(vertex, newIndex);
         data.extracted.newIndices.insert(vertexIndex, newIndex);
-        data.extracted.mesh.vertices.append(data.vertices.at(qMin(vertexIndex, data.vertices.size() - 1)));
+        data.extracted.mesh.vertices.append(position);
         data.extracted.mesh.normals.append(normal);
         data.extracted.mesh.texCoords.append(vertex.texCoord);
 
