@@ -760,6 +760,7 @@ ExtractedMesh extractMesh(const FBXNode& object) {
 
         } else if (child.name == "LayerElementNormal") {
             data.normalsByVertex = false;
+            bool indexToDirect = false;
             foreach (const FBXNode& subdata, child.children) {
                 if (subdata.name == "Normals") {
                     data.normals = createVec3Vector(getDoubleVector(subdata));
@@ -767,10 +768,16 @@ ExtractedMesh extractMesh(const FBXNode& object) {
                 } else if (subdata.name == "NormalsIndex") {
                     data.normalIndices = getIntVector(subdata);
 
-                } else if (subdata.name == "MappingInformationType" &&
-                        subdata.properties.at(0) == "ByVertice") {
+                } else if (subdata.name == "MappingInformationType" && subdata.properties.at(0) == "ByVertice") {
                     data.normalsByVertex = true;
+                    
+                } else if (subdata.name == "ReferenceInformationType" && subdata.properties.at(0) == "IndexToDirect") {
+                    indexToDirect = true;
                 }
+            }
+            if (indexToDirect && data.normalIndices.isEmpty()) {
+                // hack to work around wacky Makehuman exports
+                data.normalsByVertex = true;
             }
         } else if (child.name == "LayerElementUV" && child.properties.at(0).toInt() == 0) {
             foreach (const FBXNode& subdata, child.children) {
