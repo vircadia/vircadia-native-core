@@ -464,7 +464,7 @@ QVector<float> getFloatVector(const FBXNode& node) {
     if (!vector.isEmpty()) {
         return vector;
     }
-    for (int i; i < node.properties.size(); i++) {
+    for (int i = 0; i < node.properties.size(); i++) {
         vector.append(node.properties.at(i).toFloat());
     }
     return vector;
@@ -483,7 +483,7 @@ QVector<double> getDoubleVector(const FBXNode& node) {
     if (!vector.isEmpty()) {
         return vector;
     }
-    for (int i; i < node.properties.size(); i++) {
+    for (int i = 0; i < node.properties.size(); i++) {
         vector.append(node.properties.at(i).toDouble());
     }
     return vector;
