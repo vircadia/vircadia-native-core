@@ -715,7 +715,7 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
 
     } else {
         int normalIndex = data.normalIndices.at(data.normalsByVertex ? vertexIndex : index);
-        if (normalIndex >= 0) {
+        if (normalIndex >= 0 && normalIndex < data.normals.size()) {
             normal = data.normals.at(normalIndex);
         }
     }
@@ -726,7 +726,7 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
         }
     } else {
         int texCoordIndex = data.texCoordIndices.at(index);
-        if (texCoordIndex >= 0) {
+        if (texCoordIndex >= 0 && texCoordIndex < data.texCoords.size()) {
             vertex.texCoord = data.texCoords.at(texCoordIndex);
         }
     }
