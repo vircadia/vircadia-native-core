@@ -39,7 +39,7 @@ you to run the full stack of the virtual world.
 In order to set up your own virtual world, you need to set up and run your own 
 local "domain". 
 
-The domain-server gives a number different types of assignments to the assignment-client for different features: audio, avatars, voxels, particles, and meta-voxels.
+The domain-server gives a number different types of assignments to the assignment-client for different features: audio, avatars, voxels, particles, meta-voxels and models.
 
 Follow the instructions in the [build guide](BUILD.md) to build the various components.
 
