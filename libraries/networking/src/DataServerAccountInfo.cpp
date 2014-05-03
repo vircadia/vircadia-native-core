@@ -37,6 +37,7 @@ DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherI
     _accessToken = otherInfo._accessToken;
     _username = otherInfo._username;
     _xmppPassword = otherInfo._xmppPassword;
+    _discourseApiKey = otherInfo._discourseApiKey;
 }
 
 DataServerAccountInfo& DataServerAccountInfo::operator=(const DataServerAccountInfo& otherInfo) {
@@ -51,6 +52,7 @@ void DataServerAccountInfo::swap(DataServerAccountInfo& otherInfo) {
     swap(_accessToken, otherInfo._accessToken);
     swap(_username, otherInfo._username);
     swap(_xmppPassword, otherInfo._xmppPassword);
+    swap(_discourseApiKey, otherInfo._discourseApiKey);
 }
 
 void DataServerAccountInfo::setUsername(const QString& username) {
