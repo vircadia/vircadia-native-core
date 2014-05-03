@@ -58,7 +58,6 @@ public:
     const glm::vec3& getLeapFingerTipBallPosition (int ball) const { return _leapFingerTipBalls [ball].position;}
     const glm::vec3& getLeapFingerRootBallPosition(int ball) const { return _leapFingerRootBalls[ball].position;}
     
-    void collideAgainstAvatarOld(Avatar* avatar, bool isMyHand);
     void collideAgainstAvatar(Avatar* avatar, bool isMyHand);
     void collideAgainstOurself();
 
@@ -80,8 +79,6 @@ private:
     void renderLeapFingerTrails();
     
     void calculateGeometry();
-    
-    void playSlaps(PalmData& palm, Avatar* avatar);
 };
 
 #endif // hifi_Hand_h
