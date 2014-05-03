@@ -15,6 +15,7 @@
 
 #include "Application.h"
 #include "Menu.h"
+#include "ui/OAuthWebViewHandler.h"
 
 #include "DatagramProcessor.h"
 
@@ -56,13 +57,11 @@ void DatagramProcessor::processDatagrams() {
                     Particle::handleAddParticleResponse(incomingPacket);
                     application->getParticles()->getTree()->handleAddParticleResponse(incomingPacket);
                     break;
-
                 case PacketTypeModelAddResponse:
                     // this will keep creatorTokenIDs to IDs mapped correctly
                     ModelItem::handleAddModelResponse(incomingPacket);
                     application->getModels()->getTree()->handleAddModelResponse(incomingPacket);
                     break;
-                    
                 case PacketTypeParticleData:
                 case PacketTypeParticleErase:
                 case PacketTypeModelData:
@@ -118,6 +117,18 @@ void DatagramProcessor::processDatagrams() {
                     }
                     
                     application->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(incomingPacket.size());
+                    break;
+                }
+                case PacketTypeDomainOAuthRequest: {
+                    QDataStream readStream(incomingPacket);
+                    readStream.skipRawData(numBytesForPacketHeader(incomingPacket));
+                    
+                    QUrl authorizationURL;
+                    readStream >> authorizationURL;
+                    
+                    QMetaObject::invokeMethod(&OAuthWebViewHandler::getInstance(), "displayWebviewForAuthorizationURL",
+                                              Q_ARG(const QUrl&, authorizationURL));
+                    
                     break;
                 }
                 default:
