@@ -681,58 +681,164 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
     }
 }
 
-void ShapeColliderTests::sphereTouchesAACube() {
+void ShapeColliderTests::sphereTouchesAACubeFaces() {
     CollisionList collisions(16);
     
     glm::vec3 cubeCenter(1.23f, 4.56f, 7.89f);
+    float cubeSide = 2.34f;
+
+    float sphereRadius = 1.13f;
+    glm::vec3 sphereCenter(0.0f);
+    SphereShape sphere(sphereRadius, sphereCenter);
+
+    QVector<glm::vec3> axes;
+    axes.push_back(xAxis);
+    axes.push_back(-xAxis);
+    axes.push_back(yAxis);
+    axes.push_back(-yAxis);
+    axes.push_back(zAxis);
+    axes.push_back(-zAxis);
+
+    for (int i = 0; i < axes.size(); ++i) {
+        glm::vec3 axis = axes[i];
+        // outside
+        {
+            collisions.clear();
+            float overlap = 0.25f;
+            float sphereOffset = 0.5f * cubeSide + sphereRadius - overlap;
+            sphereCenter = cubeCenter + sphereOffset * axis;
+            sphere.setPosition(sphereCenter);
+    
+            if (!ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube.  axis = " << axis << std::endl;
+            }
+            CollisionInfo* collision = collisions[0];
+            if (!collision) {
+                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: no CollisionInfo. axis = " << axis << std::endl;
+            }
+    
+            glm::vec3 expectedPenetration  = - overlap * axis;
+            if (glm::distance(expectedPenetration, collision->_penetration) > EPSILON) {
+                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: penetration = " << collision->_penetration 
+                    << "  expected " << expectedPenetration 
+                    << "  axis = " << axis
+                    << std::endl;
+            }
+    
+            glm::vec3 expectedContact = sphereCenter - sphereRadius * axis;
+            if (glm::distance(expectedContact, collision->_contactPoint) > EPSILON) {
+                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: contactaPoint = " << collision->_contactPoint 
+                    << "  expected " << expectedContact 
+                    << "  axis = " << axis
+                    << std::endl;
+            }
+        }
+
+        // inside
+        {
+            collisions.clear();
+            float overlap = 1.25f * sphereRadius;
+            float sphereOffset = 0.5f * cubeSide + sphereRadius - overlap;
+            sphereCenter = cubeCenter + sphereOffset * axis;
+            sphere.setPosition(sphereCenter);
+    
+            if (!ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube." 
+                    << "  axis = " << axis
+                    << std::endl;
+            }
+            CollisionInfo* collision = collisions[0];
+            if (!collision) {
+                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: no CollisionInfo on y-axis."
+                    << "  axis = " << axis 
+                    << std::endl;
+            }
+    
+            glm::vec3 expectedPenetration  = - overlap * axis;
+            if (glm::distance(expectedPenetration, collision->_penetration) > EPSILON) {
+                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: penetration = " << collision->_penetration 
+                    << "  expected " << expectedPenetration
+                    << "  axis = " << axis 
+                    << std::endl;
+            }
+    
+            glm::vec3 expectedContact = sphereCenter - sphereRadius * axis;
+            if (glm::distance(expectedContact, collision->_contactPoint) > EPSILON) {
+                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: contactaPoint = " << collision->_contactPoint 
+                    << "  expected " << expectedContact
+                    << "  axis = " << axis 
+                    << std::endl;
+            }
+        }
+    }
+}
+
+void ShapeColliderTests::sphereTouchesAACubeEdges() {
+    CollisionList collisions(20);
+    
+    glm::vec3 cubeCenter(0.0f, 0.0f, 0.0f);
     float cubeSide = 2.0f;
 
     float sphereRadius = 1.0f;
     glm::vec3 sphereCenter(0.0f);
     SphereShape sphere(sphereRadius, sphereCenter);
 
-    float sphereOffset = (0.5f * cubeSide + sphereRadius - 0.25f);
+    QVector<glm::vec3> axes;
+    // edges
+    axes.push_back(glm::vec3(0.0f, 1.0f, 1.0f));
+    axes.push_back(glm::vec3(0.0f, 1.0f, -1.0f));
+    axes.push_back(glm::vec3(0.0f, -1.0f, 1.0f));
+    axes.push_back(glm::vec3(0.0f, -1.0f, -1.0f));
+    axes.push_back(glm::vec3(1.0f, 1.0f, 0.0f));
+    axes.push_back(glm::vec3(1.0f, -1.0f, 0.0f));
+    axes.push_back(glm::vec3(-1.0f, 1.0f, 0.0f));
+    axes.push_back(glm::vec3(-1.0f, -1.0f, 0.0f));
+    axes.push_back(glm::vec3(1.0f, 0.0f, 1.0f));
+    axes.push_back(glm::vec3(1.0f, 0.0f, -1.0f));
+    axes.push_back(glm::vec3(-1.0f, 0.0f, 1.0f));
+    axes.push_back(glm::vec3(-1.0f, 0.0f, -1.0f));
+    // and corners
+    axes.push_back(glm::vec3(1.0f, 1.0f, 1.0f));
+    axes.push_back(glm::vec3(1.0f, 1.0f, -1.0f));
+    axes.push_back(glm::vec3(1.0f, -1.0f, 1.0f));
+    axes.push_back(glm::vec3(1.0f, -1.0f, -1.0f));
+    axes.push_back(glm::vec3(-1.0f, 1.0f, 1.0f));
+    axes.push_back(glm::vec3(-1.0f, 1.0f, -1.0f));
+    axes.push_back(glm::vec3(-1.0f, -1.0f, 1.0f));
+    axes.push_back(glm::vec3(-1.0f, -1.0f, -1.0f));
 
-    // top
-    sphereCenter = cubeCenter + sphereOffset * yAxis;
-    sphere.setPosition(sphereCenter);
-    if (!ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube" << std::endl;
-    }
+    for (int i =0; i < axes.size(); ++i) {
+        glm::vec3 axis = axes[i];
+        float lengthAxis = glm::length(axis);
+        axis /= lengthAxis;
+        float overlap = 0.25f;
     
-    // bottom
-    sphereCenter = cubeCenter - sphereOffset * yAxis;
-    sphere.setPosition(sphereCenter);
-    if (!ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube" << std::endl;
-    }
-
-    // left
-    sphereCenter = cubeCenter + sphereOffset * xAxis;
-    sphere.setPosition(sphereCenter);
-    if (!ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube" << std::endl;
-    }
-
-    // right
-    sphereCenter = cubeCenter - sphereOffset * xAxis;
-    sphere.setPosition(sphereCenter);
-    if (!ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube" << std::endl;
-    }
-
-    // forward
-    sphereCenter = cubeCenter + sphereOffset * zAxis;
-    sphere.setPosition(sphereCenter);
-    if (!ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube" << std::endl;
-    }
-
-    // back
-    sphereCenter = cubeCenter - sphereOffset * zAxis;
-    sphere.setPosition(sphereCenter);
-    if (!ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube" << std::endl;
+        sphereCenter = cubeCenter + (lengthAxis * 0.5f * cubeSide + sphereRadius - overlap) * axis;
+        sphere.setPosition(sphereCenter);
+    
+        if (!ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube.  axis = " << axis << std::endl;
+        }
+        CollisionInfo* collision = collisions[i];
+        if (!collision) {
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: no CollisionInfo. axis = " << axis << std::endl;
+        }
+    
+        glm::vec3 expectedPenetration  = - overlap * axis;
+        if (glm::distance(expectedPenetration, collision->_penetration) > EPSILON) {
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: penetration = " << collision->_penetration 
+                << "  expected " << expectedPenetration 
+                << "  axis = " << axis
+                << std::endl;
+        }
+    
+        glm::vec3 expectedContact = sphereCenter - sphereRadius * axis;
+        if (glm::distance(expectedContact, collision->_contactPoint) > EPSILON) {
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: contactaPoint = " << collision->_contactPoint 
+                << "  expected " << expectedContact 
+                << "  axis = " << axis
+                << std::endl;
+        }
     }
 }
 
@@ -802,6 +908,7 @@ void ShapeColliderTests::runAllTests() {
     capsuleMissesCapsule();
     capsuleTouchesCapsule();
 
-    sphereTouchesAACube();
+    sphereTouchesAACubeFaces();
+    sphereTouchesAACubeEdges();
     sphereMissesAACube();
 }
