@@ -652,7 +652,7 @@ bool sphereAACube(const glm::vec3& sphereCenter, float sphereRadius, const glm::
             // sphere center is inside cube
             // --> push out nearest face
             glm::vec3 direction;
-            BA /= distance;
+            BA /= maxBA;
             glm::modf(BA, direction);
             direction = glm::normalize(direction); 
 
