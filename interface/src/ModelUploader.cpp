@@ -157,10 +157,10 @@ bool ModelUploader::zip() {
     }
     QVariantHash joints = mapping.value(JOINT_FIELD).toHash();
     if (!joints.contains("jointEyeLeft")) {
-        joints.insert("jointEyeLeft", "LeftEye");
+        joints.insert("jointEyeLeft", geometry.jointIndices.contains("EyeLeft") ? "EyeLeft" : "LeftEye");
     }
     if (!joints.contains("jointEyeRight")) {
-        joints.insert("jointEyeRight", "RightEye");
+        joints.insert("jointEyeRight", geometry.jointIndices.contains("EyeRight") ? "EyeRight" : "RightEye");
     }
     if (!joints.contains("jointNeck")) {
         joints.insert("jointNeck", "Neck");
@@ -172,7 +172,8 @@ bool ModelUploader::zip() {
         joints.insert("jointLean", "Spine");
     }
     if (!joints.contains("jointHead")) {
-        joints.insert("jointHead", geometry.applicationName == "mixamo.com" ? "HeadTop_End" : "HeadEnd");
+        const char* topName = (geometry.applicationName == "mixamo.com") ? "HeadTop_End" : "HeadEnd";
+        joints.insert("jointHead", geometry.jointIndices.contains(topName) ? topName : "Head");
     }
     if (!joints.contains("jointLeftHand")) {
         joints.insert("jointLeftHand", "LeftHand");
