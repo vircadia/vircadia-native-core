@@ -434,6 +434,17 @@ bool Model::getNeckRotation(glm::quat& neckRotation) const {
     return isActive() && getJointRotation(_geometry->getFBXGeometry().neckJointIndex, neckRotation);
 }
 
+bool Model::getNeckParentRotation(glm::quat& neckParentRotation) const {
+    if (!isActive()) {
+        return false;
+    }
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    if (geometry.neckJointIndex == -1) {
+        return false;
+    }
+    return getJointRotation(geometry.joints.at(geometry.neckJointIndex).parentIndex, neckParentRotation);
+}
+
 bool Model::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
     if (!isActive()) {
         return false;
