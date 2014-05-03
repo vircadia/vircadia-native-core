@@ -177,6 +177,7 @@ public:
 class FBXGeometry {
 public:
 
+    QString author;
     QString applicationName; ///< the name of the application that generated the model
 
     QVector<FBXJoint> joints;

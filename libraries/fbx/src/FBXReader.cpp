@@ -1020,7 +1020,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             foreach (const FBXNode& object, child.children) {
                 if (object.name == "SceneInfo") {
                     foreach (const FBXNode& subobject, object.children) {
-                        if (subobject.name == "Properties70") {
+                        if (subobject.name == "MetaData") {
+                            foreach (const FBXNode& subsubobject, subobject.children) {
+                                if (subsubobject.name == "Author") {
+                                    geometry.author = subsubobject.properties.at(0).toString();
+                                }
+                            } 
+                        } else if (subobject.name == "Properties70") {
                             foreach (const FBXNode& subsubobject, subobject.children) {
                                 if (subsubobject.name == "P" && subsubobject.properties.size() >= 5 &&
                                         subsubobject.properties.at(0) == "Original|ApplicationName") {
