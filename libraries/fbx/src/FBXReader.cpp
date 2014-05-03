@@ -705,17 +705,17 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
     if (vertexIndex < 0) {
         vertexIndex = -vertexIndex - 1;
     }
-    vertexIndex = qMin(vertexIndex, data.vertices.size() - 1);
-
     Vertex vertex;
     vertex.originalIndex = vertexIndex;
 
     glm::vec3 normal;
-    if (data.normalIndices.isEmpty()) {
-        normal = data.normals.at(data.normalsByVertex ? vertexIndex : index);
-
-    } else {
-        int normalIndex = data.normalIndices.at(data.normalsByVertex ? vertexIndex : index);
+    int normalIndex = data.normalsByVertex ? vertexIndex : index;
+    if (data.normalIndices.isEmpty()) {    
+        if (normalIndex < data.normals.size()) {
+            normal = data.normals.at(normalIndex);
+        }
+    } else if (normalIndex < data.normalIndices.size()) {
+        normalIndex = data.normalIndices.at(normalIndex);
         if (normalIndex >= 0 && normalIndex < data.normals.size()) {
             normal = data.normals.at(normalIndex);
         }
@@ -725,7 +725,7 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
         if (index < data.texCoords.size()) {
             vertex.texCoord = data.texCoords.at(index);
         }
-    } else {
+    } else if (index < data.texCoordIndices.size()) {
         int texCoordIndex = data.texCoordIndices.at(index);
         if (texCoordIndex >= 0 && texCoordIndex < data.texCoords.size()) {
             vertex.texCoord = data.texCoords.at(texCoordIndex);
