@@ -132,6 +132,10 @@ public:
     /// \return whether or not the neck was found
     bool getNeckRotation(glm::quat& neckRotation) const;
     
+    /// Returns the rotation of the neck joint's parent.
+    /// \return whether or not the neck was found
+    bool getNeckParentRotation(glm::quat& neckRotation) const;
+    
     /// Retrieve the positions of up to two eye meshes.
     /// \return whether or not both eye meshes were found
     bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;

@@ -406,7 +406,7 @@ QVariantHash parseMapping(QIODevice* device) {
 
 QVector<glm::vec3> createVec3Vector(const QVector<double>& doubleVector) {
     QVector<glm::vec3> values;
-    for (const double* it = doubleVector.constData(), *end = it + doubleVector.size(); it != end; ) {
+    for (const double* it = doubleVector.constData(), *end = it + (doubleVector.size() / 3 * 3); it != end; ) {
         float x = *it++;
         float y = *it++;
         float z = *it++;
@@ -417,7 +417,7 @@ QVector<glm::vec3> createVec3Vector(const QVector<double>& doubleVector) {
 
 QVector<glm::vec2> createVec2Vector(const QVector<double>& doubleVector) {
     QVector<glm::vec2> values;
-    for (const double* it = doubleVector.constData(), *end = it + doubleVector.size(); it != end; ) {
+    for (const double* it = doubleVector.constData(), *end = it + (doubleVector.size() / 2 * 2); it != end; ) {
         float s = *it++;
         float t = *it++;
         values.append(glm::vec2(s, -t));
@@ -432,58 +432,59 @@ glm::mat4 createMat4(const QVector<double>& doubleVector) {
         doubleVector.at(12), doubleVector.at(13), doubleVector.at(14), doubleVector.at(15));
 }
 
-QVector<int> getIntVector(const QVariantList& properties, int index) {
-    if (index >= properties.size()) {
+QVector<int> getIntVector(const FBXNode& node) {
+    foreach (const FBXNode& child, node.children) {
+        if (child.name == "a") {
+            return getIntVector(child);
+        }
+    }
+    if (node.properties.isEmpty()) {
         return QVector<int>();
     }
-    QVector<int> vector = properties.at(index).value<QVector<int> >();
+    QVector<int> vector = node.properties.at(0).value<QVector<int> >();
     if (!vector.isEmpty()) {
         return vector;
     }
-    for (; index < properties.size(); index++) {
-        vector.append(properties.at(index).toInt());
+    for (int i = 0; i < node.properties.size(); i++) {
+        vector.append(node.properties.at(i).toInt());
     }
     return vector;
 }
 
-QVector<qlonglong> getLongVector(const QVariantList& properties, int index) {
-    if (index >= properties.size()) {
-        return QVector<qlonglong>();
+QVector<float> getFloatVector(const FBXNode& node) {
+    foreach (const FBXNode& child, node.children) {
+        if (child.name == "a") {
+            return getFloatVector(child);
+        }
     }
-    QVector<qlonglong> vector = properties.at(index).value<QVector<qlonglong> >();
-    if (!vector.isEmpty()) {
-        return vector;
-    }
-    for (; index < properties.size(); index++) {
-        vector.append(properties.at(index).toLongLong());
-    }
-    return vector;
-}
-
-QVector<float> getFloatVector(const QVariantList& properties, int index) {
-    if (index >= properties.size()) {
+    if (node.properties.isEmpty()) {
         return QVector<float>();
     }
-    QVector<float> vector = properties.at(index).value<QVector<float> >();
+    QVector<float> vector = node.properties.at(0).value<QVector<float> >();
     if (!vector.isEmpty()) {
         return vector;
     }
-    for (; index < properties.size(); index++) {
-        vector.append(properties.at(index).toFloat());
+    for (int i = 0; i < node.properties.size(); i++) {
+        vector.append(node.properties.at(i).toFloat());
     }
     return vector;
 }
 
-QVector<double> getDoubleVector(const QVariantList& properties, int index) {
-    if (index >= properties.size()) {
+QVector<double> getDoubleVector(const FBXNode& node) {
+    foreach (const FBXNode& child, node.children) {
+        if (child.name == "a") {
+            return getDoubleVector(child);
+        }
+    }
+    if (node.properties.isEmpty()) {
         return QVector<double>();
     }
-    QVector<double> vector = properties.at(index).value<QVector<double> >();
+    QVector<double> vector = node.properties.at(0).value<QVector<double> >();
     if (!vector.isEmpty()) {
         return vector;
     }
-    for (; index < properties.size(); index++) {
-        vector.append(properties.at(index).toDouble());
+    for (int i = 0; i < node.properties.size(); i++) {
+        vector.append(node.properties.at(i).toDouble());
     }
     return vector;
 }
@@ -697,21 +698,30 @@ public:
 };
 
 void appendIndex(MeshData& data, QVector<int>& indices, int index) {
+    if (index >= data.polygonIndices.size()) {
+        return;
+    }
     int vertexIndex = data.polygonIndices.at(index);
     if (vertexIndex < 0) {
         vertexIndex = -vertexIndex - 1;
     }
-
     Vertex vertex;
     vertex.originalIndex = vertexIndex;
+    
+    glm::vec3 position;
+    if (vertexIndex < data.vertices.size()) {
+        position = data.vertices.at(vertexIndex);
+    }
 
     glm::vec3 normal;
-    if (data.normalIndices.isEmpty()) {
-        normal = data.normals.at(data.normalsByVertex ? vertexIndex : index);
-
-    } else {
-        int normalIndex = data.normalIndices.at(data.normalsByVertex ? vertexIndex : index);
-        if (normalIndex >= 0) {
+    int normalIndex = data.normalsByVertex ? vertexIndex : index;
+    if (data.normalIndices.isEmpty()) {    
+        if (normalIndex < data.normals.size()) {
+            normal = data.normals.at(normalIndex);
+        }
+    } else if (normalIndex < data.normalIndices.size()) {
+        normalIndex = data.normalIndices.at(normalIndex);
+        if (normalIndex >= 0 && normalIndex < data.normals.size()) {
             normal = data.normals.at(normalIndex);
         }
     }
@@ -720,9 +730,9 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
         if (index < data.texCoords.size()) {
             vertex.texCoord = data.texCoords.at(index);
         }
-    } else {
+    } else if (index < data.texCoordIndices.size()) {
         int texCoordIndex = data.texCoordIndices.at(index);
-        if (texCoordIndex >= 0) {
+        if (texCoordIndex >= 0 && texCoordIndex < data.texCoords.size()) {
             vertex.texCoord = data.texCoords.at(texCoordIndex);
         }
     }
@@ -733,7 +743,7 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
         indices.append(newIndex);
         data.indices.insert(vertex, newIndex);
         data.extracted.newIndices.insert(vertexIndex, newIndex);
-        data.extracted.mesh.vertices.append(data.vertices.at(vertexIndex));
+        data.extracted.mesh.vertices.append(position);
         data.extracted.mesh.normals.append(normal);
         data.extracted.mesh.texCoords.append(vertex.texCoord);
 
@@ -749,44 +759,51 @@ ExtractedMesh extractMesh(const FBXNode& object) {
     QVector<int> textures;
     foreach (const FBXNode& child, object.children) {
         if (child.name == "Vertices") {
-            data.vertices = createVec3Vector(getDoubleVector(child.properties, 0));
+            data.vertices = createVec3Vector(getDoubleVector(child));
 
         } else if (child.name == "PolygonVertexIndex") {
-            data.polygonIndices = getIntVector(child.properties, 0);
+            data.polygonIndices = getIntVector(child);
 
         } else if (child.name == "LayerElementNormal") {
             data.normalsByVertex = false;
+            bool indexToDirect = false;
             foreach (const FBXNode& subdata, child.children) {
                 if (subdata.name == "Normals") {
-                    data.normals = createVec3Vector(getDoubleVector(subdata.properties, 0));
+                    data.normals = createVec3Vector(getDoubleVector(subdata));
 
                 } else if (subdata.name == "NormalsIndex") {
-                    data.normalIndices = getIntVector(subdata.properties, 0);
+                    data.normalIndices = getIntVector(subdata);
 
-                } else if (subdata.name == "MappingInformationType" &&
-                        subdata.properties.at(0) == "ByVertice") {
+                } else if (subdata.name == "MappingInformationType" && subdata.properties.at(0) == "ByVertice") {
                     data.normalsByVertex = true;
+                    
+                } else if (subdata.name == "ReferenceInformationType" && subdata.properties.at(0) == "IndexToDirect") {
+                    indexToDirect = true;
                 }
+            }
+            if (indexToDirect && data.normalIndices.isEmpty()) {
+                // hack to work around wacky Makehuman exports
+                data.normalsByVertex = true;
             }
         } else if (child.name == "LayerElementUV" && child.properties.at(0).toInt() == 0) {
             foreach (const FBXNode& subdata, child.children) {
                 if (subdata.name == "UV") {
-                    data.texCoords = createVec2Vector(getDoubleVector(subdata.properties, 0));
+                    data.texCoords = createVec2Vector(getDoubleVector(subdata));
 
                 } else if (subdata.name == "UVIndex") {
-                    data.texCoordIndices = getIntVector(subdata.properties, 0);
+                    data.texCoordIndices = getIntVector(subdata);
                 }
             }
         } else if (child.name == "LayerElementMaterial") {
             foreach (const FBXNode& subdata, child.children) {
                 if (subdata.name == "Materials") {
-                    materials = getIntVector(subdata.properties, 0);
+                    materials = getIntVector(subdata);
                 }
             }
         } else if (child.name == "LayerElementTexture") {
             foreach (const FBXNode& subdata, child.children) {
                 if (subdata.name == "TextureId") {
-                    textures = getIntVector(subdata.properties, 0);
+                    textures = getIntVector(subdata);
                 }
             }
         }
@@ -797,7 +814,7 @@ ExtractedMesh extractMesh(const FBXNode& object) {
     QHash<QPair<int, int>, int> materialTextureParts;
     for (int beginIndex = 0; beginIndex < data.polygonIndices.size(); polygonIndex++) {
         int endIndex = beginIndex;
-        while (data.polygonIndices.at(endIndex++) >= 0);
+        while (endIndex < data.polygonIndices.size() && data.polygonIndices.at(endIndex++) >= 0);
 
         QPair<int, int> materialTexture((polygonIndex < materials.size()) ? materials.at(polygonIndex) : 0,
             (polygonIndex < textures.size()) ? textures.at(polygonIndex) : 0);
@@ -820,7 +837,7 @@ ExtractedMesh extractMesh(const FBXNode& object) {
                 appendIndex(data, part.triangleIndices, beginIndex);
                 appendIndex(data, part.triangleIndices, nextIndex++);
                 appendIndex(data, part.triangleIndices, nextIndex);
-                if (data.polygonIndices.at(nextIndex) < 0) {
+                if (nextIndex >= data.polygonIndices.size() || data.polygonIndices.at(nextIndex) < 0) {
                     break;
                 }
             }
@@ -835,13 +852,13 @@ FBXBlendshape extractBlendshape(const FBXNode& object) {
     FBXBlendshape blendshape;
     foreach (const FBXNode& data, object.children) {
         if (data.name == "Indexes") {
-            blendshape.indices = getIntVector(data.properties, 0);
+            blendshape.indices = getIntVector(data);
 
         } else if (data.name == "Vertices") {
-            blendshape.vertices = createVec3Vector(getDoubleVector(data.properties, 0));
+            blendshape.vertices = createVec3Vector(getDoubleVector(data));
 
         } else if (data.name == "Normals") {
-            blendshape.normals = createVec3Vector(getDoubleVector(data.properties, 0));
+            blendshape.normals = createVec3Vector(getDoubleVector(data));
         }
     }
     return blendshape;
@@ -1016,7 +1033,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             foreach (const FBXNode& object, child.children) {
                 if (object.name == "SceneInfo") {
                     foreach (const FBXNode& subobject, object.children) {
-                        if (subobject.name == "Properties70") {
+                        if (subobject.name == "MetaData") {
+                            foreach (const FBXNode& subsubobject, subobject.children) {
+                                if (subsubobject.name == "Author") {
+                                    geometry.author = subsubobject.properties.at(0).toString();
+                                }
+                            } 
+                        } else if (subobject.name == "Properties70") {
                             foreach (const FBXNode& subsubobject, subobject.children) {
                                 if (subsubobject.name == "P" && subsubobject.properties.size() >= 5 &&
                                         subsubobject.properties.at(0) == "Original|ApplicationName") {
@@ -1262,13 +1285,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         Cluster cluster;
                         foreach (const FBXNode& subobject, object.children) {
                             if (subobject.name == "Indexes") {
-                                cluster.indices = getIntVector(subobject.properties, 0);
+                                cluster.indices = getIntVector(subobject);
 
                             } else if (subobject.name == "Weights") {
-                                cluster.weights = getDoubleVector(subobject.properties, 0);
+                                cluster.weights = getDoubleVector(subobject);
 
                             } else if (subobject.name == "TransformLink") {
-                                QVector<double> values = getDoubleVector(subobject.properties, 0);
+                                QVector<double> values = getDoubleVector(subobject);
                                 cluster.transformLink = createMat4(values);
                             }
                         }
@@ -1290,7 +1313,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     AnimationCurve curve;
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "KeyValueFloat") {
-                            curve.values = getFloatVector(subobject.properties, 0);
+                            curve.values = getFloatVector(subobject);
                         }
                     }
                     animationCurves.insert(getID(object.properties), curve);
