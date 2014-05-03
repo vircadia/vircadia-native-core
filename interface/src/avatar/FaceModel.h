@@ -26,8 +26,6 @@ public:
 
     virtual void simulate(float deltaTime, bool fullUpdate = true);
     
-protected:
-
     virtual void maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
     virtual void maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
     

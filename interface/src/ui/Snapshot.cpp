@@ -86,7 +86,7 @@ QString Snapshot::saveSnapshot(QGLWidget* widget, Avatar* avatar) {
     // replace decimal . with '-'
     formattedLocation.replace('.', '-');
     
-    QString username = AccountManager::getInstance().getUsername();
+    QString username = AccountManager::getInstance().getAccountInfo().getUsername();
     // normalize username, replace all non alphanumeric with '-'
     username.replace(QRegExp("[^A-Za-z0-9_]"), "-");
     
