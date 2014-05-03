@@ -78,7 +78,7 @@ gnutls_datum_t* DTLSSession::highFidelityCADatum() {
     static bool datumInitialized = false;
     
     static unsigned char HIGHFIDELITY_ROOT_CA_CERT[] =
-        "-----BEGIN CERTIFICATE-----"
+        "-----BEGIN CERTIFICATE-----\n"
         "MIID6TCCA1KgAwIBAgIJANlfRkRD9A8bMA0GCSqGSIb3DQEBBQUAMIGqMQswCQYD\n"
         "VQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNU2FuIEZyYW5j\n"
         "aXNjbzEbMBkGA1UEChMSSGlnaCBGaWRlbGl0eSwgSW5jMRMwEQYDVQQLEwpPcGVy\n"
@@ -100,7 +100,7 @@ gnutls_datum_t* DTLSSession::highFidelityCADatum() {
         "SIb3DQEBBQUAA4GBAEkQl3p+lH5vuoCNgyfa67nL0MsBEt+5RSBOgjwCjjASjzou\n"
         "FTv5w0he2OypgMQb8i/BYtS1lJSFqjPJcSM1Salzrm3xDOK5pOXJ7h6SQLPDVEyf\n"
         "Hy2/9d/to+99+SOUlvfzfgycgjOc+s/AV7Y+GBd7uzGxUdrN4egCZW1F6/mH\n"
-        "-----END CERTIFICATE-----";
+        "-----END CERTIFICATE-----\n";
     
     if (!datumInitialized) {
         hifiCADatum.data = HIGHFIDELITY_ROOT_CA_CERT;

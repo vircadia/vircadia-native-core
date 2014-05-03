@@ -23,20 +23,21 @@
 #include <gnutls/gnutls.h>
 
 #include <Assignment.h>
-#include <HTTPManager.h>
+#include <HTTPSConnection.h>
 #include <LimitedNodeList.h>
 
 #include "DTLSServerSession.h"
 
 typedef QSharedPointer<Assignment> SharedAssignmentPointer;
 
-class DomainServer : public QCoreApplication, public HTTPRequestHandler {
+class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
     Q_OBJECT
 public:
     DomainServer(int argc, char* argv[]);
     ~DomainServer();
     
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
+    bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url);
     
     void exit(int retCode = 0);
     
@@ -52,12 +53,13 @@ private slots:
     void readAvailableDTLSDatagrams();
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
+    bool optionallySetupOAuth();
     bool optionallySetupDTLS();
-    bool readX509KeyAndCertificate();
+    bool optionallyReadX509KeyAndCertificate();
     
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
     
-    void addNodeToNodeListAndConfirmConnection(const QByteArray& packet, const HifiSockAddr& senderSockAddr);
+    void handleConnectRequest(const QByteArray& packet, const HifiSockAddr& senderSockAddr);
     int parseNodeDataFromByteArray(NodeType_t& nodeType, HifiSockAddr& publicSockAddr,
                                     HifiSockAddr& localSockAddr, const QByteArray& packet, const HifiSockAddr& senderSockAddr);
     NodeSet nodeInterestListFromPacket(const QByteArray& packet, int numPreceedingBytes);
@@ -76,13 +78,20 @@ private:
     void refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment);
     void addStaticAssignmentsToQueue();
     
+    QUrl oauthRedirectURL();
+    QUrl oauthAuthorizationURL(const QUuid& stateUUID = QUuid::createUuid());
+    
+    void handleTokenRequestFinished();
+    void handleProfileRequestFinished();
+    
     QJsonObject jsonForSocket(const HifiSockAddr& socket);
     QJsonObject jsonObjectForNode(const SharedNodePointer& node);
     
-    HTTPManager _HTTPManager;
+    HTTPManager _httpManager;
+    HTTPSManager* _httpsManager;
     
-    QHash<QUuid, SharedAssignmentPointer> _staticAssignmentHash;
-    QQueue<SharedAssignmentPointer> _assignmentQueue;
+    QHash<QUuid, SharedAssignmentPointer> _allAssignments;
+    QQueue<SharedAssignmentPointer> _unfulfilledAssignments;
     
     QVariantMap _argumentVariantMap;
     
@@ -93,6 +102,15 @@ private:
     gnutls_priority_t* _priorityCache;
     
     QHash<HifiSockAddr, DTLSServerSession*> _dtlsSessions;
+    
+    QNetworkAccessManager* _networkAccessManager;
+    
+    QUrl _oauthProviderURL;
+    QString _oauthClientID;
+    QString _oauthClientSecret;
+    QString _hostname;
+    QMap<QNetworkReply*, QUuid> _networkReplyUUIDMap;
+    QHash<QUuid, bool> _sessionAuthenticationHash;
 };
 
 #endif // hifi_DomainServer_h

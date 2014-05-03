@@ -81,9 +81,10 @@
 #include "scripting/LocationScriptingInterface.h"
 
 #include "ui/InfoView.h"
+#include "ui/OAuthWebViewHandler.h"
 #include "ui/Snapshot.h"
-#include "ui/TextRenderer.h"
 #include "ui/Stats.h"
+#include "ui/TextRenderer.h"
 
 using namespace std;
 
@@ -361,12 +362,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QMutexLocker locker(&_settingsMutex);
         _previousScriptLocation = _settings->value("LastScriptLocation", QVariant("")).toString();
     }
-
+    
     connect(_window, &MainWindow::windowGeometryChanged,
             _runningScriptsWidget, &RunningScriptsWidget::setBoundary);
-
-    //When -url in command line, teleport to location
-    urlGoTo(argc, constArgv);
+    
+	//When -url in command line, teleport to location
+	urlGoTo(argc, constArgv);
+    
+    // call the OAuthWebviewHandler static getter so that its instance lives in our thread
+    OAuthWebViewHandler::getInstance();
+    // make sure the High Fidelity root CA is in our list of trusted certs
+    OAuthWebViewHandler::addHighFidelityRootCAToSSLConfig();
 }
 
 Application::~Application() {
@@ -3089,7 +3095,7 @@ void Application::updateWindowTitle(){
     QString buildVersion = " (build " + applicationVersion() + ")";
     NodeList* nodeList = NodeList::getInstance();
 
-    QString username = AccountManager::getInstance().getUsername();
+    QString username = AccountManager::getInstance().getAccountInfo().getUsername();
     QString title = QString() + (!username.isEmpty() ? username + " " : QString()) + nodeList->getSessionUUID().toString()
         + " @ " + nodeList->getDomainHandler().getHostname() + buildVersion;
     qDebug("Application title set to: %s", title.toStdString().c_str());
@@ -3115,6 +3121,9 @@ void Application::domainChanged(const QString& domainHostname) {
 
     // reset the voxels renderer
     _voxels.killLocalVoxels();
+    
+    // reset the auth URL for OAuth web view handler
+    OAuthWebViewHandler::getInstance().clearLastAuthorizationURL();
 }
 
 void Application::connectedToDomain(const QString& hostname) {
