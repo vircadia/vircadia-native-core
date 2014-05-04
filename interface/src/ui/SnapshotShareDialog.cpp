@@ -13,17 +13,24 @@
 #include "AccountManager.h"
 
 #include <QFile>
+#include <QJsonDocument>
+#include <QJsonArray>
 #include <QUrlQuery>
+#include <QMessageBox>
 #include <QHttpMultiPart>
+
 
 const int NARROW_SNAPSHOT_DIALOG_SIZE = 500;
 const int WIDE_SNAPSHOT_DIALOG_WIDTH = 650;
+const int SUCCESS_LABEL_HEIGHT = 140;
 
-const QString FORUM_URL = "http://localhost:4000";
+const QString FORUM_URL = "https://alphas.highfidelity.io";
 const QString FORUM_UPLOADS_URL = FORUM_URL + "/uploads";
 const QString FORUM_POST_URL = FORUM_URL + "/posts";
-const QString FORUM_REPLY_TO_TOPIC = "64";
+const QString FORUM_REPLY_TO_TOPIC = "244";
 const QString FORUM_POST_TEMPLATE = "<img src='%1'/><p>%2</p>";
+const QString SHARE_DEFAULT_ERROR = "The server isn't responding. Please try again in a few minutes.";
+const QString SUCCESS_LABEL_TEMPLATE = "Success!!! Go check out your image ...<br/><a style='color:#333;text-decoration:none' href='%1'>%1</a>";
 
 Q_DECLARE_METATYPE(QNetworkAccessManager::Operation)
 
@@ -67,11 +74,14 @@ SnapshotShareDialog::SnapshotShareDialog(QString fileName, QWidget* parent) :
 
 void SnapshotShareDialog::accept() {
     uploadSnapshot();
-    sendForumPost("/uploads/default/25/b607c8faea6de9c3.jpg");
-    close();
 }
 
 void SnapshotShareDialog::uploadSnapshot() {
+
+    if (AccountManager::getInstance().getAccountInfo().getDiscourseApiKey().isEmpty()) {
+        QMessageBox::warning(this, "", "Your Discourse API key is missing, you cannot share snapshots.");
+        return;
+    }
 
     if (!_networkAccessManager) {
         _networkAccessManager = new QNetworkAccessManager(this);
@@ -81,8 +91,7 @@ void SnapshotShareDialog::uploadSnapshot() {
 
     QHttpPart apiKeyPart;
     apiKeyPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"api_key\""));
-    apiKeyPart.setBody("9168f53930b2fc69ec278414d6ff04fed723ef717867a25954143150d3e2dfe8");
-//    apiKeyPart.setBody(AccountManager::getInstance().getAccountInfo().getDiscourseApiKey().toLatin1());
+    apiKeyPart.setBody(AccountManager::getInstance().getAccountInfo().getDiscourseApiKey().toLatin1());
 
     QFile *file = new QFile(_fileName);
     file->open(QIODevice::ReadOnly);
@@ -101,11 +110,13 @@ void SnapshotShareDialog::uploadSnapshot() {
     QNetworkRequest request(url);
 
     QNetworkReply *reply = _networkAccessManager->post(request, multiPart);
-    bool check;
-    Q_UNUSED(check);
 
-    check = connect(reply, SIGNAL(finished()), this, SLOT(requestFinished()));
-    Q_ASSERT(check);
+
+    connect(reply, &QNetworkReply::finished, this, &SnapshotShareDialog::uploadRequestFinished);
+
+    QEventLoop loop;
+    connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    loop.exec();
 }
 
 void SnapshotShareDialog::sendForumPost(QString snapshotPath) {
@@ -119,33 +130,68 @@ void SnapshotShareDialog::sendForumPost(QString snapshotPath) {
     QUrl forumUrl(FORUM_POST_URL);
 
     QUrlQuery query;
-//    query.addQueryItem("api_key", accountManager.getAccountInfo().getDiscourseApiKey();
-    query.addQueryItem("api_key", "9168f53930b2fc69ec278414d6ff04fed723ef717867a25954143150d3e2dfe8");
+    query.addQueryItem("api_key", AccountManager::getInstance().getAccountInfo().getDiscourseApiKey());
     query.addQueryItem("topic_id", FORUM_REPLY_TO_TOPIC);
     query.addQueryItem("raw", FORUM_POST_TEMPLATE.arg(snapshotPath, _ui.textEdit->toPlainText()));
     forumUrl.setQuery(query);
 
     QByteArray postData = forumUrl.toEncoded(QUrl::RemoveFragment);
     request.setUrl(forumUrl);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+
     QNetworkReply* requestReply = _networkAccessManager->post(request, postData);
+    connect(requestReply, &QNetworkReply::finished, this, &SnapshotShareDialog::postRequestFinished);
 
-    bool check;
-    Q_UNUSED(check);
-
-    check = connect(requestReply, &QNetworkReply::finished, this, &SnapshotShareDialog::requestFinished);
-    Q_ASSERT(check);
-
-    check = connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestError(QNetworkReply::NetworkError)));
-    Q_ASSERT(check);
+    QEventLoop loop;
+    connect(requestReply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    loop.exec();
 }
 
-void SnapshotShareDialog::requestFinished() {
+void SnapshotShareDialog::postRequestFinished() {
+
     QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
-    qDebug() << requestReply->errorString();
-    delete requestReply;
+    QJsonDocument jsonResponse = QJsonDocument::fromJson(requestReply->readAll());
+    const QJsonObject& responseObject = jsonResponse.object();
+
+    if (responseObject.contains("id")) {
+        _ui.textEdit->setHtml("");
+        const QString urlTemplate = "%1/t/%2/%3/%4";
+        QString link = urlTemplate.arg(FORUM_URL,
+                                        responseObject["topic_slug"].toString(),
+                                        QString::number(responseObject["topic_id"].toDouble()),
+                                        QString::number(responseObject["post_number"].toDouble()));
+
+        _ui.successLabel->setText(SUCCESS_LABEL_TEMPLATE.arg(link));
+        _ui.successLabel->setFixedHeight(SUCCESS_LABEL_HEIGHT);
+
+        // hide input widgets
+        _ui.shareButton->hide();
+        _ui.textEdit->hide();
+        _ui.labelNotes->hide();
+
+    } else {
+        QString errorMessage(SHARE_DEFAULT_ERROR);
+        if (responseObject.contains("errors")) {
+            QJsonArray errorArray = responseObject["errors"].toArray();
+            if (!errorArray.first().toString().isEmpty()) {
+                errorMessage = errorArray.first().toString();
+            }
+        }
+        QMessageBox::warning(this, "", SHARE_DEFAULT_ERROR);
+    }
 }
 
-void SnapshotShareDialog::requestError(QNetworkReply::NetworkError error) {
-    // TODO: error handling
-    qDebug() << "AccountManager requestError - " << error;
+void SnapshotShareDialog::uploadRequestFinished() {
+
+    QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
+    QJsonDocument jsonResponse = QJsonDocument::fromJson(requestReply->readAll());
+    const QJsonObject& responseObject = jsonResponse.object();
+
+    if (responseObject.contains("url")) {
+        sendForumPost(responseObject["url"].toString());
+    } else {
+        QMessageBox::warning(this, "", SHARE_DEFAULT_ERROR);
+    }
+
+    delete requestReply;
 }

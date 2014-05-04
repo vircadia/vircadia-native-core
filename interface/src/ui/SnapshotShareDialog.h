@@ -32,9 +32,9 @@ private:
     void uploadSnapshot();
     void sendForumPost(QString snapshotPath);
 
-public slots:
-    void requestFinished();
-    void requestError(QNetworkReply::NetworkError error);
+private slots:
+    void uploadRequestFinished();
+    void postRequestFinished();
     void accept();
 };
 
