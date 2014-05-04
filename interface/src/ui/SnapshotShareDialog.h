@@ -1,16 +1,22 @@
 //
 //  SnapshotShareDialog.h
-//  hifi
+//  interface/src/ui
 //
 //  Created by Stojce Slavkovski on 2/16/14.
+//  Copyright 2014 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__snapshotShareDialog__
-#define __hifi__snapshotShareDialog__
+#ifndef hifi_snapshotShareDialog
+#define hifi_snapshotShareDialog
 
 #include "ui_shareSnapshot.h"
+
+#include <QUrl>
 #include <QNetworkReply>
+#include <QNetworkAccessManager>
 
 class SnapshotShareDialog : public QDialog {
     Q_OBJECT
@@ -20,15 +26,16 @@ public:
 
 private:
     QString _fileName;
-    Ui_SnapshotShareDialog ui;
+    QNetworkAccessManager* _networkAccessManager;
+    Ui_SnapshotShareDialog _ui;
+
+    void uploadSnapshot();
+    void sendForumPost(QString snapshotPath);
 
 public slots:
     void requestFinished();
     void requestError(QNetworkReply::NetworkError error);
-    void serviceRequestFinished(QNetworkReply* reply);
-
-private slots:
     void accept();
 };
 
-#endif /* defined(__hifi__snapshotShareDialog__) */
+#endif // hifi_snapshotShareDialog

@@ -3663,7 +3663,7 @@ void Application::takeSnapshot() {
     if (!_snapshotShareDialog) {
         _snapshotShareDialog = new SnapshotShareDialog(fileName, _glWidget);
     }
-    _snapshotShareDialog->exec();
+    _snapshotShareDialog->show();
 }
 
 void Application::urlGoTo(int argc, const char * constArgv[]) {
