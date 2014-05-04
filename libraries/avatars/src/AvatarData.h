@@ -81,6 +81,7 @@ const glm::vec3 vec3Zero(0.0f);
 
 class QNetworkAccessManager;
 
+class AttachmentData;
 class JointData;
 
 class AvatarData : public QObject {
@@ -275,6 +276,7 @@ protected:
 
     QUrl _faceModelURL;
     QUrl _skeletonModelURL;
+    QVector<AttachmentData> _attachmentData;
     QString _displayName;
 
     QRect _displayNameBoundingRect;
@@ -307,6 +309,15 @@ class JointData {
 public:
     bool valid;
     glm::quat rotation;
+};
+
+class AttachmentData {
+public:
+    QUrl modelURL;
+    int jointIndex;
+    glm::vec3 translation;
+    glm::quat rotation;
+    float scale;
 };
 
 #endif // hifi_AvatarData_h

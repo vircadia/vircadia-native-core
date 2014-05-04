@@ -63,11 +63,11 @@
 #include <UUID.h>
 #include <OctreeSceneStats.h>
 #include <LocalVoxelsList.h>
-#include <ModelUploader.h>
 
 #include "Application.h"
 #include "InterfaceVersion.h"
 #include "Menu.h"
+#include "ModelUploader.h"
 #include "Util.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
@@ -3090,6 +3090,16 @@ void Application::setMenuShortcutsEnabled(bool enabled) {
     setShortcutsEnabled(_window->menuBar(), enabled);
 }
 
+void Application::uploadModel(ModelType modelType) {
+    ModelUploader* uploader = new ModelUploader(modelType);
+    QThread* thread = new QThread();
+    thread->connect(uploader, SIGNAL(destroyed()), SLOT(quit()));
+    thread->connect(thread, SIGNAL(finished()), SLOT(deleteLater()));
+    uploader->connect(thread, SIGNAL(started()), SLOT(send()));
+    
+    thread->start();
+}
+
 void Application::updateWindowTitle(){
 
     QString buildVersion = " (build " + applicationVersion() + ")";
@@ -3417,22 +3427,16 @@ void Application::toggleRunningScriptsWidget() {
     }
 }
 
-void Application::uploadFST(bool isHead) {
-    ModelUploader* uploader = new ModelUploader(isHead);
-    QThread* thread = new QThread();
-    thread->connect(uploader, SIGNAL(destroyed()), SLOT(quit()));
-    thread->connect(thread, SIGNAL(finished()), SLOT(deleteLater()));
-    uploader->connect(thread, SIGNAL(started()), SLOT(send()));
-    
-    thread->start();
-}
-
 void Application::uploadHead() {
-    uploadFST(true);
+    uploadModel(HEAD_MODEL);
 }
 
 void Application::uploadSkeleton() {
-    uploadFST(false);
+    uploadModel(SKELETON_MODEL);
+}
+
+void Application::uploadAttachment() {
+    uploadModel(ATTACHMENT_MODEL);
 }
 
 ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScriptFromEditor) {
