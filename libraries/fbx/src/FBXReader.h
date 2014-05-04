@@ -47,6 +47,9 @@ public:
     /// \return true if point is within current limits
     bool containsPoint(const glm::vec3& point) const;
 
+    /// \return whether or not the extents are empty
+    bool isEmpty() { return minimum == maximum; }
+
     glm::vec3 minimum;
     glm::vec3 maximum;
 };
@@ -174,6 +177,7 @@ public:
 class FBXGeometry {
 public:
 
+    QString author;
     QString applicationName; ///< the name of the application that generated the model
 
     QVector<FBXJoint> joints;

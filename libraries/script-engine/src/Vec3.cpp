@@ -17,6 +17,10 @@ glm::vec3 Vec3::cross(const glm::vec3& v1, const glm::vec3& v2) {
     return glm::cross(v1,v2);
 }
 
+float Vec3::dot(const glm::vec3& v1, const glm::vec3& v2) {
+    return glm::dot(v1,v2);
+}
+
 glm::vec3 Vec3::multiply(const glm::vec3& v1, float f) {
     return v1 * f;
 }

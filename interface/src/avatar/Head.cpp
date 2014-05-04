@@ -161,7 +161,9 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     _leftEyePosition = _rightEyePosition = getPosition();
     if (!billboard) {
         _faceModel.simulate(deltaTime);
-        _faceModel.getEyePositions(_leftEyePosition, _rightEyePosition);
+        if (!_faceModel.getEyePositions(_leftEyePosition, _rightEyePosition)) {
+            static_cast<Avatar*>(_owningAvatar)->getSkeletonModel().getEyePositions(_leftEyePosition, _rightEyePosition);
+        }
     }
     _eyePosition = calculateAverageEyePosition();
 }

@@ -18,10 +18,10 @@
 
 #include <QDataStream>
 #include <QHash>
-#include <QHostAddress>
+#include <QtNetwork/QHostAddress>
 #include <QIODevice>
 #include <QList>
-#include <QNetworkAccessManager>
+#include <QtNetwork/QNetworkAccessManager>
 #include <QObject>
 #include <QPair>
 #include <QUrl>

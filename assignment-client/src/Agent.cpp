@@ -191,9 +191,10 @@ void Agent::run() {
     // figure out the URL for the script for this agent assignment
     QUrl scriptURL;
     if (_payload.isEmpty())  {
-        scriptURL = QUrl(QString("http://%1:8080/assignment/%2")
-            .arg(NodeList::getInstance()->getDomainHandler().getIP().toString(),
-                 uuidStringWithoutCurlyBraces(_uuid)));
+        scriptURL = QUrl(QString("http://%1:%2/assignment/%3")
+            .arg(NodeList::getInstance()->getDomainHandler().getIP().toString())
+            .arg(DOMAIN_SERVER_HTTP_PORT)
+            .arg(uuidStringWithoutCurlyBraces(_uuid)));
     } else {
         scriptURL = QUrl(_payload);
     }

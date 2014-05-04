@@ -106,6 +106,10 @@ QUdpSocket& LimitedNodeList::getDTLSSocket() {
         
         _dtlsSocket->bind(QHostAddress::AnyIPv4, 0, QAbstractSocket::DontShareAddress);
         
+        // we're using DTLS and our socket is good to go, so make the required DTLS changes
+        // DTLS requires that IP_DONTFRAG be set
+        // This is not accessible on some platforms (OS X) so we need to make sure DTLS still works without it
+        
 #if defined(IP_DONTFRAG) || defined(IP_MTU_DISCOVER)
         qDebug() << "Making required DTLS changes to LimitedNodeList DTLS socket.";
         

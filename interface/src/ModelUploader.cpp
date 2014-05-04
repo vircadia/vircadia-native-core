@@ -153,14 +153,14 @@ bool ModelUploader::zip() {
     
     // mixamo/autodesk defaults
     if (!mapping.contains(SCALE_FIELD)) {
-        mapping.insert(SCALE_FIELD, 10.0);
+        mapping.insert(SCALE_FIELD, geometry.author == "www.makehuman.org" ? 150.0 : 15.0);
     }
     QVariantHash joints = mapping.value(JOINT_FIELD).toHash();
     if (!joints.contains("jointEyeLeft")) {
-        joints.insert("jointEyeLeft", "LeftEye");
+        joints.insert("jointEyeLeft", geometry.jointIndices.contains("EyeLeft") ? "EyeLeft" : "LeftEye");
     }
     if (!joints.contains("jointEyeRight")) {
-        joints.insert("jointEyeRight", "RightEye");
+        joints.insert("jointEyeRight", geometry.jointIndices.contains("EyeRight") ? "EyeRight" : "RightEye");
     }
     if (!joints.contains("jointNeck")) {
         joints.insert("jointNeck", "Neck");
@@ -172,7 +172,8 @@ bool ModelUploader::zip() {
         joints.insert("jointLean", "Spine");
     }
     if (!joints.contains("jointHead")) {
-        joints.insert("jointHead", geometry.applicationName == "mixamo.com" ? "HeadTop_End" : "HeadEnd");
+        const char* topName = (geometry.applicationName == "mixamo.com") ? "HeadTop_End" : "HeadEnd";
+        joints.insert("jointHead", geometry.jointIndices.contains(topName) ? topName : "Head");
     }
     if (!joints.contains("jointLeftHand")) {
         joints.insert("jointLeftHand", "LeftHand");
@@ -600,7 +601,7 @@ static void setJointText(QComboBox* box, const QString& text) {
 void ModelPropertiesDialog::reset() {
     _name->setText(_originalMapping.value(NAME_FIELD).toString());
     _textureDirectory->setText(_originalMapping.value(TEXDIR_FIELD).toString());
-    _scale->setValue(_originalMapping.value(SCALE_FIELD, 1.0).toDouble());
+    _scale->setValue(_originalMapping.value(SCALE_FIELD).toDouble());
     
     QVariantHash jointHash = _originalMapping.value(JOINT_FIELD).toHash();
     setJointText(_leftEyeJoint, jointHash.value("jointEyeLeft").toString());

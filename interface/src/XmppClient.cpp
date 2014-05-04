@@ -34,13 +34,14 @@ XmppClient& XmppClient::getInstance() {
 
 void XmppClient::xmppConnected() {
     _publicChatRoom = _xmppMUCManager.addRoom(DEFAULT_CHAT_ROOM);
-    _publicChatRoom->setNickName(AccountManager::getInstance().getUsername());
+    _publicChatRoom->setNickName(AccountManager::getInstance().getAccountInfo().getUsername());
     _publicChatRoom->join();
     emit joinedPublicChatRoom();
 }
 
 void XmppClient::xmppError(QXmppClient::Error error) {
-    qDebug() << "Error connnecting to XMPP for user " << AccountManager::getInstance().getUsername() << ": " << error;
+    qDebug() << "Error connnecting to XMPP for user "
+        << AccountManager::getInstance().getAccountInfo().getUsername() << ": " << error;
 }
 
 void XmppClient::connectToServer() {
@@ -51,8 +52,8 @@ void XmppClient::connectToServer() {
         connect(&_xmppClient, SIGNAL(error(QXmppClient::Error)), this, SLOT(xmppError(QXmppClient::Error)));
     }
     AccountManager& accountManager = AccountManager::getInstance();
-    QString user = accountManager.getUsername();
-    const QString& password = accountManager.getXMPPPassword();
+    QString user = accountManager.getAccountInfo().getUsername();
+    const QString& password = accountManager.getAccountInfo().getXMPPPassword();
     _xmppClient.connectToServer(user + "@" + DEFAULT_XMPP_SERVER, password);
 }
 
