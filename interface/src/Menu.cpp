@@ -37,6 +37,7 @@
 #include "Menu.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "Util.h"
+#include "ui/AttachmentsDialog.h"
 #include "ui/InfoView.h"
 #include "ui/MetavoxelEditor.h"
 #include "ui/ModelsBrowser.h"
@@ -189,6 +190,8 @@ Menu::Menu() :
                                   SLOT(editPreferences()),
                                   QAction::PreferencesRole);
 
+    addActionToQMenuAndActionHash(editMenu, MenuOption::Attachments, 0, this, SLOT(editAttachments()));
+                                  
     addDisabledActionAndSeparator(editMenu, "Physics");
     QObject* avatar = appInstance->getAvatar();
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ObeyEnvironmentalGravity, Qt::SHIFT | Qt::Key_G, true, 
@@ -831,6 +834,15 @@ void Menu::editPreferences() {
         _preferencesDialog->show();
     } else {
         _preferencesDialog->close();
+    }
+}
+
+void Menu::editAttachments() {
+    if (!_attachmentsDialog) {
+        _attachmentsDialog = new AttachmentsDialog();
+        _attachmentsDialog->show();
+    } else {
+        _attachmentsDialog->close();
     }
 }
 
