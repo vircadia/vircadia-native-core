@@ -45,7 +45,13 @@ const float PITCH_SPEED = 100.0f; // degrees/sec
 const float COLLISION_RADIUS_SCALAR = 1.2f; // pertains to avatar-to-avatar collisions
 const float COLLISION_RADIUS_SCALE = 0.125f;
 
-const float DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
+const float DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5.0f * 1000.0f;
+
+// TODO: normalize avatar speed for standard avatar size, then scale all motion logic 
+// to properly follow avatar size.
+float DEFAULT_MOTOR_TIMESCALE = 0.25f;
+float MAX_AVATAR_SPEED = 300.0f;
+float MAX_MOTOR_SPEED = MAX_AVATAR_SPEED; 
 
 MyAvatar::MyAvatar() :
 	Avatar(),
@@ -55,13 +61,15 @@ MyAvatar::MyAvatar() :
     _shouldJump(false),
     _gravity(0.0f, -1.0f, 0.0f),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
-    _lastCollisionPosition(0, 0, 0),
-    _speedBrakes(false),
+    _wasPushing(false),
+    _isPushing(false),
     _thrust(0.0f),
-    _isThrustOn(false),
-    _thrustMultiplier(1.0f),
-    _motionBehaviors(0),
+    _motorVelocity(0.0f),
+    _motorTimescale(DEFAULT_MOTOR_TIMESCALE),
+    _maxMotorSpeed(MAX_MOTOR_SPEED),
+    _motionBehaviors(AVATAR_MOTION_DEFAULTS),
     _lastBodyPenetration(0.0f),
+    _lastFloorContactPoint(0.0f),
     _lookAtTargetAvatar(),
     _shouldRender(true),
     _billboardValid(false),
@@ -115,129 +123,55 @@ void MyAvatar::update(float deltaTime) {
 
 void MyAvatar::simulate(float deltaTime) {
 
-    glm::quat orientation = getOrientation();
-
     if (_scale != _targetScale) {
         float scale = (1.0f - SMOOTHING_RATIO) * _scale + SMOOTHING_RATIO * _targetScale;
         setScale(scale);
         Application::getInstance()->getCamera()->setScale(scale);
     }
 
-    //  Collect thrust forces from keyboard and devices
-    updateThrust(deltaTime);
-
     // update the movement of the hand and process handshaking with other avatars...
     updateHandMovementAndTouching(deltaTime);
 
-    // apply gravity
-    // For gravity, always move the avatar by the amount driven by gravity, so that the collision
-    // routines will detect it and collide every frame when pulled by gravity to a surface
-    const float MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY = 0.02f;
-    if (glm::length(_position - _lastCollisionPosition) > MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY) {
+    updateOrientation(deltaTime);
+
+    float keyboardInput = fabsf(_driveKeys[FWD] - _driveKeys[BACK]) + 
+        fabsf(_driveKeys[RIGHT] - _driveKeys[LEFT]) + 
+        fabsf(_driveKeys[UP] - _driveKeys[DOWN]);
+
+    bool walkingOnFloor = false;
+    float gravityLength = glm::length(_gravity);
+    if (gravityLength > EPSILON) {
+        const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
+        glm::vec3 startCap;
+        boundingShape.getStartPoint(startCap);
+        glm::vec3 bottomOfBoundingCapsule = startCap + (boundingShape.getRadius() / gravityLength) * _gravity;
+
+        float fallThreshold = 2.f * deltaTime * gravityLength;
+        walkingOnFloor = (glm::distance(bottomOfBoundingCapsule, _lastFloorContactPoint) < fallThreshold);
+    }
+
+    if (keyboardInput > 0.0f || glm::length2(_velocity) > 0.0f || glm::length2(_thrust) > 0.0f || 
+            ! walkingOnFloor) {
+        // apply gravity
         _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
-    }
+    
+        // update motor and thrust
+        updateMotorFromKeyboard(deltaTime, walkingOnFloor);
+        applyMotor(deltaTime);
+        applyThrust(deltaTime);
 
-    // add thrust to velocity
-    _velocity += _thrust * deltaTime;
-
-    // update body yaw by body yaw delta
-    orientation = orientation * glm::quat(glm::radians(
-                glm::vec3(_bodyPitchDelta, _bodyYawDelta, _bodyRollDelta) * deltaTime));
-    // decay body rotation momentum
-
-    const float BODY_SPIN_FRICTION = 7.5f;
-    float bodySpinMomentum = 1.0f - BODY_SPIN_FRICTION * deltaTime;
-    if (bodySpinMomentum < 0.0f) { bodySpinMomentum = 0.0f; }
-    _bodyPitchDelta *= bodySpinMomentum;
-    _bodyYawDelta *= bodySpinMomentum;
-    _bodyRollDelta *= bodySpinMomentum;
-
-    float MINIMUM_ROTATION_RATE = 2.0f;
-    if (fabs(_bodyYawDelta) < MINIMUM_ROTATION_RATE) { _bodyYawDelta = 0.0f; }
-    if (fabs(_bodyRollDelta) < MINIMUM_ROTATION_RATE) { _bodyRollDelta = 0.0f; }
-    if (fabs(_bodyPitchDelta) < MINIMUM_ROTATION_RATE) { _bodyPitchDelta = 0.0f; }
-
-    const float MAX_STATIC_FRICTION_SPEED = 0.5f;
-    const float STATIC_FRICTION_STRENGTH = _scale * 20.0f;
-    applyStaticFriction(deltaTime, _velocity, MAX_STATIC_FRICTION_SPEED, STATIC_FRICTION_STRENGTH);
-
-    // Damp avatar velocity
-    const float LINEAR_DAMPING_STRENGTH = 0.5f;
-    const float SPEED_BRAKE_POWER = _scale * 10.0f;
-    const float SQUARED_DAMPING_STRENGTH = 0.007f;
-
-    const float SLOW_NEAR_RADIUS = 5.0f;
-    float linearDamping = LINEAR_DAMPING_STRENGTH;
-    const float NEAR_AVATAR_DAMPING_FACTOR = 50.0f;
-    if (_distanceToNearestAvatar < _scale * SLOW_NEAR_RADIUS) {
-        linearDamping *= 1.0f + NEAR_AVATAR_DAMPING_FACTOR *
-                            ((SLOW_NEAR_RADIUS - _distanceToNearestAvatar) / SLOW_NEAR_RADIUS);
-    }
-    if (_speedBrakes) {
-        applyDamping(deltaTime, _velocity,  linearDamping * SPEED_BRAKE_POWER, SQUARED_DAMPING_STRENGTH * SPEED_BRAKE_POWER);
-    } else {
-        applyDamping(deltaTime, _velocity, linearDamping, SQUARED_DAMPING_STRENGTH);
-    }
-
-    if (OculusManager::isConnected()) {
-        // these angles will be in radians
-        float yaw, pitch, roll; 
-        OculusManager::getEulerAngles(yaw, pitch, roll);
-        // ... so they need to be converted to degrees before we do math...
-
-        // The neck is limited in how much it can yaw, so we check its relative
-        // yaw from the body and yaw the body if necessary.
-        yaw *= DEGREES_PER_RADIAN;
-        float bodyToHeadYaw = yaw - _oculusYawOffset;
-        const float MAX_NECK_YAW = 85.0f; // degrees
-        if ((fabs(bodyToHeadYaw) > 2.0f * MAX_NECK_YAW) && (yaw * _oculusYawOffset < 0.0f)) {
-            // We've wrapped around the range for yaw so adjust 
-            // the measured yaw to be relative to _oculusYawOffset.
-            if (yaw > 0.0f) {
-                yaw -= 360.0f;
-            } else {
-                yaw += 360.0f;
-            }
-            bodyToHeadYaw = yaw - _oculusYawOffset;
+        // update position
+        if (glm::length2(_velocity) < EPSILON) {
+            _velocity = glm::vec3(0.0f);
+        } else {
+            _position += _velocity * deltaTime;
         }
-
-        float delta = fabs(bodyToHeadYaw) - MAX_NECK_YAW;
-        if (delta > 0.0f) {
-            yaw = MAX_NECK_YAW;
-            if (bodyToHeadYaw < 0.0f) {
-                delta *= -1.0f;
-                bodyToHeadYaw = -MAX_NECK_YAW;
-            } else {
-                bodyToHeadYaw = MAX_NECK_YAW;
-            }
-            // constrain _oculusYawOffset to be within range [-180,180]
-            _oculusYawOffset = fmod((_oculusYawOffset + delta) + 180.0f, 360.0f) - 180.0f;
-
-            // We must adjust the body orientation using a delta rotation (rather than
-            // doing yaw math) because the body's yaw ranges are not the same
-            // as what the Oculus API provides.
-            glm::vec3 UP_AXIS = glm::vec3(0.0f, 1.0f, 0.0f);
-            glm::quat bodyCorrection = glm::angleAxis(glm::radians(delta), UP_AXIS);
-            orientation = orientation * bodyCorrection;
-        }
-        Head* head = getHead();
-        head->setBaseYaw(bodyToHeadYaw);
-
-        head->setBasePitch(pitch * DEGREES_PER_RADIAN);
-        head->setBaseRoll(roll * DEGREES_PER_RADIAN);
     }
-
-    // update the euler angles
-    setOrientation(orientation);
 
     // update moving flag based on speed
     const float MOVING_SPEED_THRESHOLD = 0.01f;
-    float speed = glm::length(_velocity);
-    _moving = speed > MOVING_SPEED_THRESHOLD;
-
+    _moving = glm::length(_velocity) > MOVING_SPEED_THRESHOLD;
     updateChatCircle(deltaTime);
-
-    _position += _velocity * deltaTime;
 
     // update avatar skeleton and simulate hand and head
     getHand()->collideAgainstOurself(); 
@@ -260,9 +194,6 @@ void MyAvatar::simulate(float deltaTime) {
     head->setPosition(headPosition);
     head->setScale(_scale);
     head->simulate(deltaTime, true);
-
-    // Zero thrust out now that we've added it to velocity in this frame
-    _thrust *= glm::vec3(0.0f);
 
     // now that we're done stepping the avatar forward in time, compute new collisions
     if (_collisionGroups != 0) {
@@ -633,6 +564,214 @@ bool MyAvatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode rend
         (glm::length(cameraPosition - head->calculateAverageEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE * _scale);
 }
 
+void MyAvatar::updateOrientation(float deltaTime) {
+    //  Gather rotation information from keyboard
+    _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_SPEED * deltaTime;
+    _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_SPEED * deltaTime;
+    getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
+
+    // update body yaw by body yaw delta
+    glm::quat orientation = getOrientation() * glm::quat(glm::radians(
+                glm::vec3(_bodyPitchDelta, _bodyYawDelta, _bodyRollDelta) * deltaTime));
+
+    // decay body rotation momentum
+    const float BODY_SPIN_FRICTION = 7.5f;
+    float bodySpinMomentum = 1.0f - BODY_SPIN_FRICTION * deltaTime;
+    if (bodySpinMomentum < 0.0f) { bodySpinMomentum = 0.0f; }
+    _bodyPitchDelta *= bodySpinMomentum;
+    _bodyYawDelta *= bodySpinMomentum;
+    _bodyRollDelta *= bodySpinMomentum;
+
+    float MINIMUM_ROTATION_RATE = 2.0f;
+    if (fabs(_bodyYawDelta) < MINIMUM_ROTATION_RATE) { _bodyYawDelta = 0.0f; }
+    if (fabs(_bodyRollDelta) < MINIMUM_ROTATION_RATE) { _bodyRollDelta = 0.0f; }
+    if (fabs(_bodyPitchDelta) < MINIMUM_ROTATION_RATE) { _bodyPitchDelta = 0.0f; }
+
+    if (OculusManager::isConnected()) {
+        // these angles will be in radians
+        float yaw, pitch, roll; 
+        OculusManager::getEulerAngles(yaw, pitch, roll);
+        // ... so they need to be converted to degrees before we do math...
+
+        // The neck is limited in how much it can yaw, so we check its relative
+        // yaw from the body and yaw the body if necessary.
+        yaw *= DEGREES_PER_RADIAN;
+        float bodyToHeadYaw = yaw - _oculusYawOffset;
+        const float MAX_NECK_YAW = 85.0f; // degrees
+        if ((fabs(bodyToHeadYaw) > 2.0f * MAX_NECK_YAW) && (yaw * _oculusYawOffset < 0.0f)) {
+            // We've wrapped around the range for yaw so adjust 
+            // the measured yaw to be relative to _oculusYawOffset.
+            if (yaw > 0.0f) {
+                yaw -= 360.0f;
+            } else {
+                yaw += 360.0f;
+            }
+            bodyToHeadYaw = yaw - _oculusYawOffset;
+        }
+
+        float delta = fabs(bodyToHeadYaw) - MAX_NECK_YAW;
+        if (delta > 0.0f) {
+            yaw = MAX_NECK_YAW;
+            if (bodyToHeadYaw < 0.0f) {
+                delta *= -1.0f;
+                bodyToHeadYaw = -MAX_NECK_YAW;
+            } else {
+                bodyToHeadYaw = MAX_NECK_YAW;
+            }
+            // constrain _oculusYawOffset to be within range [-180,180]
+            _oculusYawOffset = fmod((_oculusYawOffset + delta) + 180.0f, 360.0f) - 180.0f;
+
+            // We must adjust the body orientation using a delta rotation (rather than
+            // doing yaw math) because the body's yaw ranges are not the same
+            // as what the Oculus API provides.
+            glm::vec3 UP_AXIS = glm::vec3(0.0f, 1.0f, 0.0f);
+            glm::quat bodyCorrection = glm::angleAxis(glm::radians(delta), UP_AXIS);
+            orientation = orientation * bodyCorrection;
+        }
+        Head* head = getHead();
+        head->setBaseYaw(bodyToHeadYaw);
+
+        head->setBasePitch(pitch * DEGREES_PER_RADIAN);
+        head->setBaseRoll(roll * DEGREES_PER_RADIAN);
+    }
+
+    // update the euler angles
+    setOrientation(orientation);
+}
+
+void MyAvatar::updateMotorFromKeyboard(float deltaTime, bool walking) {
+    // Increase motor velocity until its length is equal to _maxMotorSpeed.
+    if (!(_motionBehaviors & AVATAR_MOTION_MOTOR_KEYBOARD_ENABLED)) {
+        // nothing to do
+        return;
+    }
+
+    glm::vec3 localVelocity = _velocity;
+    if (_motionBehaviors & AVATAR_MOTION_MOTOR_USE_LOCAL_FRAME) {
+        glm::quat orientation = getHead()->getCameraOrientation();
+        localVelocity = glm::inverse(orientation) * _velocity;
+    }
+
+    // Compute keyboard input
+    glm::vec3 front = (_driveKeys[FWD] - _driveKeys[BACK]) * IDENTITY_FRONT;
+    glm::vec3 right = (_driveKeys[RIGHT] - _driveKeys[LEFT]) * IDENTITY_RIGHT;
+    glm::vec3 up = (_driveKeys[UP] - _driveKeys[DOWN]) * IDENTITY_UP;
+
+    glm::vec3 direction = front + right + up;
+    float directionLength = glm::length(direction);
+
+    // Compute motor magnitude
+    if (directionLength > EPSILON) {
+        direction /= directionLength;
+        // the finalMotorSpeed depends on whether we are walking or not
+        const float MIN_KEYBOARD_CONTROL_SPEED = 2.0f;
+        const float MAX_WALKING_SPEED = 3.0f * MIN_KEYBOARD_CONTROL_SPEED;
+        float finalMaxMotorSpeed = walking ? MAX_WALKING_SPEED : _maxMotorSpeed;
+
+        float motorLength = glm::length(_motorVelocity);
+        if (motorLength < MIN_KEYBOARD_CONTROL_SPEED) {
+            // an active keyboard motor should never be slower than this
+            _motorVelocity = MIN_KEYBOARD_CONTROL_SPEED * direction;
+        } else {
+            float MOTOR_LENGTH_TIMESCALE = 1.5f;
+            float tau = glm::clamp(deltaTime / MOTOR_LENGTH_TIMESCALE, 0.0f, 1.0f);
+            float INCREASE_FACTOR = 2.0f;
+            //_motorVelocity *= 1.0f + tau * INCREASE_FACTOR;
+            motorLength *= 1.0f + tau * INCREASE_FACTOR;
+            if (motorLength > finalMaxMotorSpeed) {
+                motorLength = finalMaxMotorSpeed;
+            }
+            _motorVelocity = motorLength * direction;
+        }
+        _isPushing = true;
+    } else {
+        // motor opposes motion (wants to be at rest)
+        _motorVelocity = - localVelocity;
+    }
+}
+
+float MyAvatar::computeMotorTimescale() {
+    // The timescale of the motor is the approximate time it takes for the motor to 
+    // accomplish its intended velocity.  A short timescale makes the motor strong, 
+    // and a long timescale makes it weak.  The value of timescale to use depends 
+    // on what the motor is doing:
+    //
+    // (1) braking --> short timescale (aggressive motor assertion)
+    // (2) pushing --> medium timescale (mild motor assertion)
+    // (3) inactive --> long timescale (gentle friction for low speeds)
+    //
+    // TODO: recover extra braking behavior when flying close to nearest avatar
+
+    float MIN_MOTOR_TIMESCALE = 0.125f;
+    float MAX_MOTOR_TIMESCALE = 0.5f;
+    float MIN_BRAKE_SPEED = 0.4f;
+
+    float timescale = MAX_MOTOR_TIMESCALE;
+    float speed = glm::length(_velocity);
+    bool areThrusting = (glm::length2(_thrust) > EPSILON);
+
+    if (_wasPushing && !(_isPushing || areThrusting) && speed > MIN_BRAKE_SPEED) {
+        // we don't change _wasPushing for this case --> 
+        // keeps the brakes on until we go below MIN_BRAKE_SPEED
+        timescale = MIN_MOTOR_TIMESCALE;
+    } else {
+        if (_isPushing) {
+            timescale = _motorTimescale;
+        } 
+        _wasPushing = _isPushing || areThrusting;
+    }
+    _isPushing = false;
+    return timescale;
+}
+
+void MyAvatar::applyMotor(float deltaTime) {
+    if (!( _motionBehaviors & AVATAR_MOTION_MOTOR_ENABLED)) {
+        // nothing to do --> early exit
+        return;
+    }
+    glm::vec3 targetVelocity = _motorVelocity;
+    if (_motionBehaviors & AVATAR_MOTION_MOTOR_USE_LOCAL_FRAME) {
+        // rotate _motorVelocity into world frame
+        glm::quat rotation = getOrientation();
+        targetVelocity = rotation * _motorVelocity;
+    }
+
+    glm::vec3 targetDirection(0.f);
+    if (glm::length2(targetVelocity) > EPSILON) {
+        targetDirection = glm::normalize(targetVelocity);
+    }
+    glm::vec3 deltaVelocity = targetVelocity - _velocity;
+
+    if (_motionBehaviors & AVATAR_MOTION_MOTOR_COLLISION_SURFACE_ONLY && glm::length2(_gravity) > EPSILON) {
+        // For now we subtract the component parallel to gravity but what we need to do is: 
+        // TODO: subtract the component perp to the local surface normal (motor only pushes in surface plane).
+        glm::vec3 gravityDirection = glm::normalize(_gravity);
+        glm::vec3 parallelDelta = glm::dot(deltaVelocity, gravityDirection) * gravityDirection;
+        if (glm::dot(targetVelocity, _velocity) > 0.0f) {
+            // remove parallel part from deltaVelocity
+            deltaVelocity -= parallelDelta;
+        }
+    }
+
+    // simple critical damping
+    float timescale = computeMotorTimescale();
+    float tau = glm::clamp(deltaTime / timescale, 0.0f, 1.0f);
+    _velocity += tau * deltaVelocity;
+}
+
+void MyAvatar::applyThrust(float deltaTime) {
+    _velocity += _thrust * deltaTime;
+    float speed = glm::length(_velocity);
+    // cap the speed that thrust can achieve
+    if (speed > MAX_AVATAR_SPEED) {
+        _velocity *= MAX_AVATAR_SPEED / speed;
+    }
+    // zero thrust so we don't pile up thrust from other sources
+    _thrust = glm::vec3(0.0f);
+}
+
+/* Keep this code for the short term as reference in case we need to further tune the new model 
+ * to achieve legacy movement response.
 void MyAvatar::updateThrust(float deltaTime) {
     //
     //  Gather thrust information from keyboard and sensors to apply to avatar motion
@@ -678,10 +817,6 @@ void MyAvatar::updateThrust(float deltaTime) {
     }
     _lastBodyPenetration = glm::vec3(0.0f);
 
-    _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_SPEED * deltaTime;
-    _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_SPEED * deltaTime;
-    getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
-
     //  If thrust keys are being held down, slowly increase thrust to allow reaching great speeds
     if (_driveKeys[FWD] || _driveKeys[BACK] || _driveKeys[RIGHT] || _driveKeys[LEFT] || _driveKeys[UP] || _driveKeys[DOWN]) {
         const float THRUST_INCREASE_RATE = 1.05f;
@@ -712,8 +847,34 @@ void MyAvatar::updateThrust(float deltaTime) {
     if (_isThrustOn || (_speedBrakes && (glm::length(_velocity) < MIN_SPEED_BRAKE_VELOCITY))) {
         _speedBrakes = false;
     }
+    _velocity += _thrust * deltaTime;
 
+    // Zero thrust out now that we've added it to velocity in this frame
+    _thrust = glm::vec3(0.0f);
+
+    // apply linear damping
+    const float MAX_STATIC_FRICTION_SPEED = 0.5f;
+    const float STATIC_FRICTION_STRENGTH = _scale * 20.0f;
+    applyStaticFriction(deltaTime, _velocity, MAX_STATIC_FRICTION_SPEED, STATIC_FRICTION_STRENGTH);
+
+    const float LINEAR_DAMPING_STRENGTH = 0.5f;
+    const float SPEED_BRAKE_POWER = _scale * 10.0f;
+    const float SQUARED_DAMPING_STRENGTH = 0.007f;
+
+    const float SLOW_NEAR_RADIUS = 5.0f;
+    float linearDamping = LINEAR_DAMPING_STRENGTH;
+    const float NEAR_AVATAR_DAMPING_FACTOR = 50.0f;
+    if (_distanceToNearestAvatar < _scale * SLOW_NEAR_RADIUS) {
+        linearDamping *= 1.0f + NEAR_AVATAR_DAMPING_FACTOR *
+                            ((SLOW_NEAR_RADIUS - _distanceToNearestAvatar) / SLOW_NEAR_RADIUS);
+    }
+    if (_speedBrakes) {
+        applyDamping(deltaTime, _velocity,  linearDamping * SPEED_BRAKE_POWER, SQUARED_DAMPING_STRENGTH * SPEED_BRAKE_POWER);
+    } else {
+        applyDamping(deltaTime, _velocity, linearDamping, SQUARED_DAMPING_STRENGTH);
+    }
 }
+*/
 
 void MyAvatar::updateHandMovementAndTouching(float deltaTime) {
     glm::quat orientation = getOrientation();
@@ -760,7 +921,6 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
     if (Application::getInstance()->getEnvironment()->findCapsulePenetration(
             _position - up * (pelvisFloatingHeight - radius),
             _position + up * (getSkeletonHeight() - pelvisFloatingHeight + radius), radius, penetration)) {
-        _lastCollisionPosition = _position;
         updateCollisionSound(penetration, deltaTime, ENVIRONMENT_COLLISION_FREQUENCY);
         applyHardCollision(penetration, ENVIRONMENT_SURFACE_ELASTICITY, ENVIRONMENT_SURFACE_DAMPING);
     }
@@ -772,12 +932,59 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
     myCollisions.clear();
     const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
     if (Application::getInstance()->getVoxelTree()->findShapeCollisions(&boundingShape, myCollisions)) {
-        const float VOXEL_ELASTICITY = 0.4f;
+        const float VOXEL_ELASTICITY = 0.0f;
         const float VOXEL_DAMPING = 0.0f;
-        for (int i = 0; i < myCollisions.size(); ++i) {
-            CollisionInfo* collision = myCollisions[i];
-            applyHardCollision(collision->_penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+
+        if (glm::length2(_gravity) > EPSILON) {
+            if (myCollisions.size() == 1) {
+                // trivial case
+                CollisionInfo* collision = myCollisions[0];
+                applyHardCollision(collision->_penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+                _lastFloorContactPoint = collision->_contactPoint - collision->_penetration;
+            } else {
+                // This is special collision handling for when walking on a voxel field which
+                // prevents snagging at corners and seams.
+
+                // sift through the collisions looking for one against the "floor"
+                int floorIndex = 0;
+                float distanceToFloor = 0.0f;
+                float penetrationWithFloor = 0.0f;
+                for (int i = 0; i < myCollisions.size(); ++i) {
+                    CollisionInfo* collision = myCollisions[i];
+                    float distance = glm::dot(_gravity, collision->_contactPoint - _position);
+                    if (distance > distanceToFloor) {
+                        distanceToFloor = distance;
+                        penetrationWithFloor = glm::dot(_gravity, collision->_penetration);
+                        floorIndex = i;
+                    }
+                }
+        
+                // step through the collisions again and apply each that is not redundant
+                glm::vec3 oldPosition = _position;
+                for (int i = 0; i < myCollisions.size(); ++i) {
+                    CollisionInfo* collision = myCollisions[i];
+                    if (i == floorIndex) {
+                        applyHardCollision(collision->_penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+                        _lastFloorContactPoint = collision->_contactPoint - collision->_penetration;
+                    } else {
+                        float distance = glm::dot(_gravity, collision->_contactPoint - oldPosition);
+                        float penetration = glm::dot(_gravity, collision->_penetration);
+                        if (fabsf(distance - distanceToFloor) > penetrationWithFloor || penetration > penetrationWithFloor) {
+                            // resolution of the deepest penetration would not resolve this one
+                            // so we apply the collision
+                            applyHardCollision(collision->_penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+                        } 
+                    }
+                }
+            }
+        } else {
+            // no gravity -- apply all collisions
+            for (int i = 0; i < myCollisions.size(); ++i) {
+                CollisionInfo* collision = myCollisions[i];
+                applyHardCollision(collision->_penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+            }
         }
+
         const float VOXEL_COLLISION_FREQUENCY = 0.5f;
         updateCollisionSound(myCollisions[0]->_penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
     } 
@@ -1141,8 +1348,7 @@ void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
     }
 }
 
-void MyAvatar::updateMotionBehaviors() {
-    _motionBehaviors = 0;
+void MyAvatar::updateMotionBehaviorsFromMenu() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::ObeyEnvironmentalGravity)) {
         _motionBehaviors |= AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY;
         // Environmental and Local gravities are incompatible.  Environmental setting trumps local.
@@ -1162,8 +1368,14 @@ void MyAvatar::setCollisionGroups(quint32 collisionGroups) {
     menu->setIsOptionChecked(MenuOption::CollideWithParticles, (bool)(_collisionGroups & COLLISION_GROUP_PARTICLES));
 }
 
-void MyAvatar::setMotionBehaviors(quint32 flags) {
-    _motionBehaviors = flags;
+void MyAvatar::setMotionBehaviorsByScript(quint32 flags) {
+    // start with the defaults
+    _motionBehaviors = AVATAR_MOTION_DEFAULTS;
+
+    // add the set scriptable bits
+    _motionBehaviors += flags & AVATAR_MOTION_SCRIPTABLE_BITS;
+
+    // reconcile incompatible settings from menu (if any)
     Menu* menu = Menu::getInstance();
     menu->setIsOptionChecked(MenuOption::ObeyEnvironmentalGravity, (bool)(_motionBehaviors & AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY));
     // Environmental and Local gravities are incompatible.  Environmental setting trumps local.
