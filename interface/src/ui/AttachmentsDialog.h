@@ -14,6 +14,12 @@
 
 #include <QDialog>
 
+#include <AvatarData.h>
+
+class QComboBox;
+class QDoubleSpinner;
+class QLineEdit;
+
 /// Allows users to edit the avatar attachments.
 class AttachmentsDialog : public QDialog {
     Q_OBJECT
@@ -24,7 +30,33 @@ public:
 
 private slots:
     
-    void addAttachment();
+    void addAttachment(const AttachmentData& data = AttachmentData());
+};
+
+/// A panel controlling a single attachment.
+class AttachmentPanel : public QWidget {
+    Q_OBJECT
+
+public:
+    
+    AttachmentPanel(const AttachmentData& data = AttachmentData());
+
+private slots:
+
+    void chooseModelURL();
+    void setModelURL(const QString& url);
+
+private:
+    
+    QLineEdit* _modelURL;
+    QComboBox* _jointName;
+    QDoubleSpinBox* _translationX;
+    QDoubleSpinBox* _translationY;
+    QDoubleSpinBox* _translationZ;
+    QDoubleSpinBox* _rotationX;
+    QDoubleSpinBox* _rotationY;
+    QDoubleSpinBox* _rotationZ;
+    QDoubleSpinBox* _scale;
 };
 
 #endif // hifi_AttachmentsDialog_h
