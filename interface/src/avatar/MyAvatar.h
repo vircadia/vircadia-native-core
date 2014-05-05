@@ -125,12 +125,10 @@ private:
     glm::vec3 _environmentGravity;
     float _distanceToNearestAvatar; // How close is the nearest avatar?
 
-    // old motion stuff
     bool _wasPushing;
     bool _isPushing;
     glm::vec3 _thrust;  // final acceleration from outside sources for the current frame
 
-    // new motion stuff
     glm::vec3 _motorVelocity;   // intended velocity of avatar motion
     float _motorTimescale;      // timescale for avatar motor to achieve its desired velocity
     float _maxMotorSpeed;
