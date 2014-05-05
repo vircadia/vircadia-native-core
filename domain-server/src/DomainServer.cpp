@@ -796,6 +796,7 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
                 sendDomainListToNode(checkInNode, senderSockAddr, nodeInterestListFromPacket(receivedPacket, numNodeInfoBytes));
             }
         } else if (requestType == PacketTypeNodeJsonStats) {
+            qDebug() << "Trying to match a stats packet";
             SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
             if (matchingNode) {
                 reinterpret_cast<DomainServerNodeData*>(matchingNode->getLinkedData())->parseJSONStatsPacket(receivedPacket);
