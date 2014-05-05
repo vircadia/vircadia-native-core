@@ -331,7 +331,7 @@ function ScaleSelector() {
                                             });
     this.setScale = function(scale) {
         this.scale = scale;
-        this.power = Math.ceil(Math.log(scale) * Math.LOG2E);
+        this.power = Math.floor(Math.log(scale) / Math.log(2));
         rescaleImport();
         this.update();
     }
