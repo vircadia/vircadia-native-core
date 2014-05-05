@@ -378,12 +378,17 @@ void NodeList::sendDomainServerCheckIn() {
             }
         }
         
-        PacketType domainPacketType = _sessionUUID.isNull()
+        PacketType domainPacketType = !_domainHandler.isConnected()
             ? PacketTypeDomainConnectRequest : PacketTypeDomainListRequest;
         
         // construct the DS check in packet
-        QUuid packetUUID = (domainPacketType == PacketTypeDomainListRequest
-                            ? _sessionUUID : _domainHandler.getAssignmentUUID());
+        QUuid packetUUID = _sessionUUID;
+        
+        if (!_domainHandler.getAssignmentUUID().isNull() && domainPacketType == PacketTypeDomainConnectRequest) {
+            // this is a connect request and we're an assigned node
+            // so set our packetUUID as the assignment UUID
+            packetUUID = _domainHandler.getAssignmentUUID();
+        }
         
         QByteArray domainServerPacket = byteArrayWithPopulatedHeader(domainPacketType, packetUUID);
         QDataStream packetStream(&domainServerPacket, QIODevice::Append);
@@ -403,7 +408,6 @@ void NodeList::sendDomainServerCheckIn() {
         } else {
             dtlsSession->writeDatagram(domainServerPacket);
         }
-        
         
         const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
         static unsigned int numDomainCheckins = 0;

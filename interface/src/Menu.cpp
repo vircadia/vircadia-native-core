@@ -336,7 +336,6 @@ Menu::Menu() :
                                            SLOT(setFilter(bool)));
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHands, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::PlaySlaps, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::HandsCollideWithSelf, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::ShowIKConstraints, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlignForearmsWithWrists, 0, true);
@@ -1100,7 +1099,7 @@ void Menu::toggleLoginMenuItem() {
 
     if (accountManager.isLoggedIn()) {
         // change the menu item to logout
-        _loginAction->setText("Logout " + accountManager.getUsername());
+        _loginAction->setText("Logout " + accountManager.getAccountInfo().getUsername());
         connect(_loginAction, &QAction::triggered, &accountManager, &AccountManager::logout);
     } else {
         // change the menu item to login
