@@ -31,6 +31,8 @@ public:
     int _renderedItems;
     OctreeRenderer* _renderer;
     ViewFrustum* _viewFrustum;
+    float _sizeScale;
+    int _boundaryLevelAdjust;
 };
 
 
@@ -46,6 +48,8 @@ public:
     virtual PacketType getMyQueryMessageType() const = 0;
     virtual PacketType getExpectedPacketType() const = 0;
     virtual void renderElement(OctreeElement* element, RenderArgs* args) = 0;
+    virtual float getSizeScale() const { return DEFAULT_OCTREE_SIZE_SCALE; }
+    virtual int getBoundaryLevelAdjust() const { return 0; }
 
     virtual void setTree(Octree* newTree);
     
