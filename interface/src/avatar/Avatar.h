@@ -190,7 +190,7 @@ protected:
     virtual void renderBody(RenderMode renderMode, float glowLevel = 0.0f);
     virtual bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
 
-    void simulateAttachments(float deltaTime, bool fullUpdate = true);
+    void simulateAttachments(float deltaTime);
     void renderAttachments(Model::RenderMode renderMode);
 
     virtual void updateJointMappings();

@@ -126,7 +126,7 @@ void Avatar::simulate(float deltaTime) {
             _skeletonModel.simulate(deltaTime);
         }
         _skeletonModel.simulate(deltaTime, _hasNewJointRotations);
-        simulateAttachments(deltaTime, _hasNewJointRotations);
+        simulateAttachments(deltaTime);
         _hasNewJointRotations = false;
 
         glm::vec3 headPosition = _position;
@@ -349,10 +349,7 @@ bool Avatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode render
     return true;
 }
 
-void Avatar::simulateAttachments(float deltaTime, bool fullUpdate) {
-    if (!fullUpdate) {
-        return; // only simulate if we have new data
-    }
+void Avatar::simulateAttachments(float deltaTime) {
     for (int i = 0; i < _attachmentModels.size(); i++) {
         const AttachmentData& attachment = _attachmentData.at(i);
         Model* model = _attachmentModels.at(i);
