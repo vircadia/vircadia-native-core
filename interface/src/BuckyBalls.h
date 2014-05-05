@@ -23,7 +23,6 @@
 #include "InterfaceConfig.h"
 #include "Util.h"
 
-
 const int NUM_BBALLS = 200;
 
 class BuckyBalls {
@@ -42,9 +41,7 @@ private:
     float _bballRadius[NUM_BBALLS];
     float _bballColliding[NUM_BBALLS];
     int _bballElement[NUM_BBALLS];
-    int _bballIsGrabbed[2];
-
-    
+    int _bballIsGrabbed[2];  
 };
 
 #endif // hifi_BuckyBalls_h

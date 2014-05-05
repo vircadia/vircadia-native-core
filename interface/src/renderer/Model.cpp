@@ -434,6 +434,17 @@ bool Model::getNeckRotation(glm::quat& neckRotation) const {
     return isActive() && getJointRotation(_geometry->getFBXGeometry().neckJointIndex, neckRotation);
 }
 
+bool Model::getNeckParentRotation(glm::quat& neckParentRotation) const {
+    if (!isActive()) {
+        return false;
+    }
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    if (geometry.neckJointIndex == -1) {
+        return false;
+    }
+    return getJointRotation(geometry.joints.at(geometry.neckJointIndex).parentIndex, neckParentRotation);
+}
+
 bool Model::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
     if (!isActive()) {
         return false;
@@ -581,18 +592,10 @@ void Model::rebuildShapes() {
             capsule->setRotation(combinedRotations[i] * joint.shapeRotation);
             _jointShapes.push_back(capsule);
 
-            glm::vec3 endPoint; 
-            capsule->getEndPoint(endPoint);
-            glm::vec3 startPoint;
-            capsule->getStartPoint(startPoint);
-
-            // add some points that bound a sphere at the center of the capsule
-            glm::vec3 axis = glm::vec3(radius);
-            shapeExtents.addPoint(worldPosition + axis);
-            shapeExtents.addPoint(worldPosition - axis);
-            
             // add the two furthest surface points of the capsule
-            axis = (halfHeight + radius) * glm::normalize(endPoint - startPoint);
+            glm::vec3 axis;
+            capsule->computeNormalizedAxis(axis);
+            axis = halfHeight * axis + glm::vec3(radius);
             shapeExtents.addPoint(worldPosition + axis);
             shapeExtents.addPoint(worldPosition - axis);
 
@@ -626,7 +629,7 @@ void Model::rebuildShapes() {
     glm::quat inverseRotation = glm::inverse(_rotation);
     glm::vec3 rootPosition = extractTranslation(transforms[rootIndex]);
     _boundingShapeLocalOffset = inverseRotation * (0.5f * (totalExtents.maximum + totalExtents.minimum) - rootPosition);
-    _boundingShape.setPosition(_translation - _rotation * _boundingShapeLocalOffset);
+    _boundingShape.setPosition(_translation + _rotation * _boundingShapeLocalOffset);
     _boundingShape.setRotation(_rotation);
 }
 

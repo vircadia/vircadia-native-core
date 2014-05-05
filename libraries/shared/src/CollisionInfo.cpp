@@ -23,6 +23,12 @@ CollisionInfo* CollisionList::getNewCollision() {
     return (_size < _maxSize) ? &(_collisions[_size++]) : NULL;
 }
 
+void CollisionList::deleteLastCollision() {
+    if (_size > 0) {
+        --_size;
+    }
+}
+
 CollisionInfo* CollisionList::getCollision(int index) {
     return (index > -1 && index < _size) ? &(_collisions[index]) : NULL;
 }

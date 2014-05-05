@@ -14,7 +14,6 @@
 
 #include "Shape.h"
 
-// adebug bookmark TODO: convert to new world-frame approach
 // default axis of CapsuleShape is Y-axis
 
 class CapsuleShape : public Shape {

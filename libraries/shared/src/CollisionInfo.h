@@ -81,6 +81,9 @@ public:
     /// \return pointer to next collision. NULL if list is full.
     CollisionInfo* getNewCollision();
 
+    /// \forget about collision at the end
+    void deleteLastCollision();
+
     /// \return pointer to collision by index.  NULL if index out of bounds.
     CollisionInfo* getCollision(int index);
 

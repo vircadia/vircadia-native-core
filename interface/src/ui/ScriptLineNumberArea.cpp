@@ -19,7 +19,7 @@ ScriptLineNumberArea::ScriptLineNumberArea(ScriptEditBox* scriptEditBox) :
     _scriptEditBox = scriptEditBox;
 }
 
-QSize ScriptLineNumberArea::sizeHint() {
+QSize ScriptLineNumberArea::sizeHint() const {
     return QSize(_scriptEditBox->lineNumberAreaWidth(), 0);
 }
 
