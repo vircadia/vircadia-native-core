@@ -639,6 +639,7 @@ bool sphereAACube(const glm::vec3& sphereCenter, float sphereRadius, const glm::
                 glm::modf(BA, direction);
                 lengthDirection = glm::length(direction);
             } else if (lengthDirection > sphereRadius) {
+                collisions.deleteLastCollision();
                 return false;
             }
             direction /= lengthDirection;
