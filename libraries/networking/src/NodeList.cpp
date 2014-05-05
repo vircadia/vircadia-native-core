@@ -79,7 +79,7 @@ qint64 NodeList::sendStatsToDomainServer(const QJsonObject& statsObject) {
     
     statsPacketStream << statsObject.toVariantMap();
     
-    return writeDatagram(statsPacket, _domainHandler.getSockAddr(), QUuid());
+    return writeUnverifiedDatagram(statsPacket, _domainHandler.getSockAddr());
 }
 
 void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode) {
