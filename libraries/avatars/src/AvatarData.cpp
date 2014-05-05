@@ -662,8 +662,6 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
 void AvatarData::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     _attachmentData = attachmentData;
-    
-    qDebug() << "Changing attachment data for avatar.";
 }
 
 void AvatarData::setDisplayName(const QString& displayName) {
@@ -773,6 +771,10 @@ void AvatarData::updateJointMappings() {
         QNetworkReply* networkReply = networkAccessManager->get(QNetworkRequest(_skeletonModelURL));
         connect(networkReply, SIGNAL(finished()), this, SLOT(setJointMappingsFromNetworkReply()));
     }
+}
+
+AttachmentData::AttachmentData() :
+    scale(1.0f) {
 }
 
 bool AttachmentData::operator==(const AttachmentData& other) const {

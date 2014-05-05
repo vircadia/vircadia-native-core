@@ -19,6 +19,7 @@
 class QComboBox;
 class QDoubleSpinner;
 class QLineEdit;
+class QVBoxLayout;
 
 /// Allows users to edit the avatar attachments.
 class AttachmentsDialog : public QDialog {
@@ -28,9 +29,17 @@ public:
     
     AttachmentsDialog();
 
+public slots:
+
+    void updateAttachmentData();
+
 private slots:
     
     void addAttachment(const AttachmentData& data = AttachmentData());
+
+private:
+    
+    QVBoxLayout* _attachments;
 };
 
 /// A panel controlling a single attachment.
@@ -39,7 +48,9 @@ class AttachmentPanel : public QWidget {
 
 public:
     
-    AttachmentPanel(const AttachmentData& data = AttachmentData());
+    AttachmentPanel(AttachmentsDialog* dialog, const AttachmentData& data = AttachmentData());
+
+    AttachmentData getAttachmentData() const;
 
 private slots:
 

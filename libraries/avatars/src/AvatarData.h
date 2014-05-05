@@ -324,6 +324,8 @@ public:
     glm::quat rotation;
     float scale;
     
+    AttachmentData();
+    
     bool operator==(const AttachmentData& other) const;
 };
 
