@@ -13,7 +13,6 @@
 #include <NodeList.h>
 
 #include <GeometryUtil.h>
-#include <StreamUtils.h>
 
 #include "Application.h"
 #include "Avatar.h"
