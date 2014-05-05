@@ -106,7 +106,7 @@ void ChatWindow::notificationClicked() {
     int messageCount = ui->messagesVBoxLayout->count();
     for (unsigned int i = messageCount; i > 0; i--) {
         ChatMessageArea* area = (ChatMessageArea*)ui->messagesVBoxLayout->itemAt(i - 1)->widget();
-        QRegularExpression usernameMention(mentionRegex.arg(AccountManager::getInstance().getUsername()));
+        QRegularExpression usernameMention(mentionRegex.arg(AccountManager::getInstance().getAccountInfo().getUsername()));
         if (area->toPlainText().contains(usernameMention)) {
             int top = area->geometry().top();
             int height = area->geometry().height();
@@ -348,7 +348,7 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
         lastMessageStamp = QDateTime::currentDateTime();
     }
 
-    QRegularExpression usernameMention(mentionRegex.arg(AccountManager::getInstance().getUsername()));
+    QRegularExpression usernameMention(mentionRegex.arg(AccountManager::getInstance().getAccountInfo().getUsername()));
     if (isHidden() && message.body().contains(usernameMention)) {
         if (_effectPlayer.state() != QMediaPlayer::PlayingState) {
             // get random sound
