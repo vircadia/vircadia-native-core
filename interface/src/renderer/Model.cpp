@@ -509,6 +509,24 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     }
 }
 
+bool Model::getJointPosition(int jointIndex, glm::vec3& position) const {
+    if (jointIndex == -1 || _jointStates.isEmpty()) {
+        return false;
+    }
+    position = _translation + extractTranslation(_jointStates[jointIndex].transform);
+    return true;
+}
+
+bool Model::getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind) const {
+    if (jointIndex == -1 || _jointStates.isEmpty()) {
+        return false;
+    }
+    rotation = _jointStates[jointIndex].combinedRotation *
+        (fromBind ? _geometry->getFBXGeometry().joints[jointIndex].inverseBindRotation :
+            _geometry->getFBXGeometry().joints[jointIndex].inverseDefaultRotation);
+    return true;
+}
+
 void Model::clearShapes() {
     for (int i = 0; i < _jointShapes.size(); ++i) {
         delete _jointShapes[i];
@@ -955,24 +973,6 @@ void Model::maybeUpdateNeckRotation(const JointState& parentState, const FBXJoin
 
 void Model::maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
     // nothing by default
-}
-
-bool Model::getJointPosition(int jointIndex, glm::vec3& position) const {
-    if (jointIndex == -1 || _jointStates.isEmpty()) {
-        return false;
-    }
-    position = _translation + extractTranslation(_jointStates[jointIndex].transform);
-    return true;
-}
-
-bool Model::getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind) const {
-    if (jointIndex == -1 || _jointStates.isEmpty()) {
-        return false;
-    }
-    rotation = _jointStates[jointIndex].combinedRotation *
-        (fromBind ? _geometry->getFBXGeometry().joints[jointIndex].inverseBindRotation :
-            _geometry->getFBXGeometry().joints[jointIndex].inverseDefaultRotation);
-    return true;
 }
 
 bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const glm::quat& rotation, bool useRotation,

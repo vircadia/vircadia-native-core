@@ -244,6 +244,7 @@ void MyAvatar::simulate(float deltaTime) {
     getHand()->simulate(deltaTime, true);
 
     _skeletonModel.simulate(deltaTime);
+    simulateAttachments(deltaTime);
 
     // copy out the skeleton joints from the model
     _jointData.resize(_skeletonModel.getJointStateCount());
@@ -657,7 +658,8 @@ void MyAvatar::renderBody(RenderMode renderMode, float glowLevel) {
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
         Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
     _skeletonModel.render(1.0f, modelRenderMode);
-
+    renderAttachments(modelRenderMode);
+    
     //  Render head so long as the camera isn't inside it
     if (shouldRenderHead(Application::getInstance()->getCamera()->getPosition(), renderMode)) {
         getHead()->render(1.0f, modelRenderMode);
