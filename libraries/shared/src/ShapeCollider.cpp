@@ -628,7 +628,7 @@ bool sphereAACube(const glm::vec3& sphereCenter, float sphereRadius, const glm::
             cubeContact.y *= signs.y;
             cubeContact.z *= signs.z;
 
-            // compute collision details
+            // compute penetration direction
             glm::vec3 direction = BA - cubeContact;
             float lengthDirection = glm::length(direction);
             if (lengthDirection < EPSILON) {
@@ -638,8 +638,12 @@ bool sphereAACube(const glm::vec3& sphereCenter, float sphereRadius, const glm::
                 direction = cubeContact / halfCubeSide;
                 glm::modf(BA, direction);
                 lengthDirection = glm::length(direction);
+            } else if (lengthDirection > sphereRadius) {
+                return false;
             }
             direction /= lengthDirection;
+
+            // compute collision details
             collision->_contactPoint = sphereCenter + sphereRadius * direction;
             collision->_penetration = sphereRadius * direction - (BA - cubeContact);
         } else {
@@ -650,9 +654,8 @@ bool sphereAACube(const glm::vec3& sphereCenter, float sphereRadius, const glm::
             glm::modf(BA, direction);
             direction = glm::normalize(direction); 
 
-            // penetration is the projection of surfaceAB on direction
+            // compute collision details
             collision->_penetration = (halfCubeSide + sphereRadius - distance * glm::dot(BA, direction)) * direction;
-            // contactPoint is on surface of A
             collision->_contactPoint = sphereCenter + sphereRadius * direction;
         }
         return true;
