@@ -675,7 +675,7 @@ void MyAvatar::updateMotorFromKeyboard(float deltaTime, bool walking) {
         direction /= directionLength;
         // the finalMotorSpeed depends on whether we are walking or not
         const float MIN_KEYBOARD_CONTROL_SPEED = 2.0f;
-        const float MAX_WALKING_SPEED = 4.0f * MIN_KEYBOARD_CONTROL_SPEED;
+        const float MAX_WALKING_SPEED = 3.0f * MIN_KEYBOARD_CONTROL_SPEED;
         float finalMaxMotorSpeed = walking ? MAX_WALKING_SPEED : _maxMotorSpeed;
 
         float motorLength = glm::length(_motorVelocity);
@@ -979,11 +979,11 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
                     } else {
                         float distance = glm::dot(_gravity, collision->_contactPoint - oldPosition);
                         float penetration = glm::dot(_gravity, collision->_penetration);
-                        if (distance - distanceToFloor > penetrationWithFloor || penetration > penetrationWithFloor) {
+                        if (fabsf(distance - distanceToFloor) > penetrationWithFloor || penetration > penetrationWithFloor) {
                             // resolution of the deepest penetration would not resolve this one
                             // so we apply the collision
                             applyHardCollision(collision->_penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
-                        }
+                        } 
                     }
                 }
             }
