@@ -15,7 +15,7 @@
 #include <QDateTime>
 #include <QDockWidget>
 #include <QMediaPlayer>
-#include <QSystemTrayIcon.h>
+#include <QSystemTrayIcon>
 #include <QTimer>
 
 #include <Application.h>
