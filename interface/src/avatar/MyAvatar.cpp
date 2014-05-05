@@ -943,6 +943,7 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
                 // trivial case
                 CollisionInfo* collision = myCollisions[0];
                 applyHardCollision(collision->_penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+                _lastFloorContactPoint = collision->_contactPoint - collision->_penetration;
             } else {
                 // This is special collision handling for when walking on a voxel field which
                 // prevents snagging at corners and seams.
@@ -967,6 +968,7 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
                     CollisionInfo* collision = myCollisions[i];
                     if (i == floorIndex) {
                         applyHardCollision(collision->_penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+                        _lastFloorContactPoint = collision->_contactPoint - collision->_penetration;
                     } else {
                         float distance = glm::dot(_gravity, collision->_contactPoint - oldPosition);
                         float penetration = glm::dot(_gravity, collision->_penetration);
