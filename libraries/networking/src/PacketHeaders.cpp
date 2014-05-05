@@ -62,6 +62,8 @@ PacketVersion versionForPacketType(PacketType type) {
         case PacketTypeVoxelSet:
         case PacketTypeVoxelSetDestructive:
             return 1;
+        case PacketTypeOctreeStats:
+            return 1;
         default:
             return 0;
     }

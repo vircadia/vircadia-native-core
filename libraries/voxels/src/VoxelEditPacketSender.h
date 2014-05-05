@@ -48,6 +48,6 @@ public:
     bool voxelServersExist() const { return serversExist(); }
 
     // My server type is the voxel server
-    virtual unsigned char getMyNodeType() const { return NodeType::VoxelServer; }
+    virtual char getMyNodeType() const { return NodeType::VoxelServer; }
 };
 #endif // hifi_VoxelEditPacketSender_h

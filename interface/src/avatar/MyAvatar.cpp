@@ -90,11 +90,8 @@ MyAvatar::~MyAvatar() {
 }
 
 void MyAvatar::reset() {
-    // TODO? resurrect headMouse stuff?
-    //_headMouseX = _glWidget->width() / 2;
-    //_headMouseY = _glWidget->height() / 2;
     _skeletonModel.reset();
-    getHead()->reset();
+    getHead()->reset(); 
     getHand()->reset();
     _oculusYawOffset = 0.0f;
 
@@ -111,23 +108,7 @@ void MyAvatar::update(float deltaTime) {
         // Faceshift drive is enabled, set the avatar drive based on the head position
         moveWithLean();
     }
-
-    // Update head mouse from faceshift if active
-    Faceshift* faceshift = Application::getInstance()->getFaceshift();
-    if (faceshift->isActive()) {
-        // TODO? resurrect headMouse stuff?
-        //glm::vec3 headVelocity = faceshift->getHeadAngularVelocity();
-        //// sets how quickly head angular rotation moves the head mouse
-        //const float HEADMOUSE_FACESHIFT_YAW_SCALE = 40.0f;
-        //const float HEADMOUSE_FACESHIFT_PITCH_SCALE = 30.0f;
-        //_headMouseX -= headVelocity.y * HEADMOUSE_FACESHIFT_YAW_SCALE;
-        //_headMouseY -= headVelocity.x * HEADMOUSE_FACESHIFT_PITCH_SCALE;
-        //
-        ////  Constrain head-driven mouse to edges of screen
-        //_headMouseX = glm::clamp(_headMouseX, 0, _glWidget->width());
-        //_headMouseY = glm::clamp(_headMouseY, 0, _glWidget->height());
-    }
-
+    
     //  Get audio loudness data from audio input device
     Audio* audio = Application::getInstance()->getAudio();
     head->setAudioLoudness(audio->getLastInputLoudness());
@@ -353,32 +334,41 @@ void MyAvatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
     }
 }
 
-void MyAvatar::renderHeadMouse() const {
-    // TODO? resurrect headMouse stuff?
-    /*
+void MyAvatar::renderHeadMouse(int screenWidth, int screenHeight) const {
+    
+    Faceshift* faceshift = Application::getInstance()->getFaceshift();
+    
     //  Display small target box at center or head mouse target that can also be used to measure LOD
+    float headPitch = getHead()->getFinalPitch();
+    float headYaw = getHead()->getFinalYaw();
+    //
+    //  It should be noted that the following constant is a function
+    //  how far the viewer's head is away from both the screen and the size of the screen,
+    //  which are both things we cannot know without adding a calibration phase.
+    //
+    const float PIXELS_PER_VERTICAL_DEGREE = 20.0f;
+    float aspectRatio = (float) screenWidth / (float) screenHeight;
+    int headMouseX = screenWidth / 2.f - headYaw * aspectRatio * PIXELS_PER_VERTICAL_DEGREE;
+    int headMouseY = screenHeight / 2.f - headPitch * PIXELS_PER_VERTICAL_DEGREE;
+    
     glColor3f(1.0f, 1.0f, 1.0f);
     glDisable(GL_LINE_SMOOTH);
     const int PIXEL_BOX = 16;
     glBegin(GL_LINES);
-    glVertex2f(_headMouseX - PIXEL_BOX/2, _headMouseY);
-    glVertex2f(_headMouseX + PIXEL_BOX/2, _headMouseY);
-    glVertex2f(_headMouseX, _headMouseY - PIXEL_BOX/2);
-    glVertex2f(_headMouseX, _headMouseY + PIXEL_BOX/2);
+    glVertex2f(headMouseX - PIXEL_BOX/2, headMouseY);
+    glVertex2f(headMouseX + PIXEL_BOX/2, headMouseY);
+    glVertex2f(headMouseX, headMouseY - PIXEL_BOX/2);
+    glVertex2f(headMouseX, headMouseY + PIXEL_BOX/2);
     glEnd();
     glEnable(GL_LINE_SMOOTH);
-    glColor3f(1.0f, 0.0f, 0.0f);
-    glPointSize(3.0f);
-    glDisable(GL_POINT_SMOOTH);
-    glBegin(GL_POINTS);
-    glVertex2f(_headMouseX - 1, _headMouseY + 1);
-    glEnd();
     //  If Faceshift is active, show eye pitch and yaw as separate pointer
-    if (_faceshift.isActive()) {
-        const float EYE_TARGET_PIXELS_PER_DEGREE = 40.0;
-        int eyeTargetX = (_glWidget->width() / 2) -  _faceshift.getEstimatedEyeYaw() * EYE_TARGET_PIXELS_PER_DEGREE;
-        int eyeTargetY = (_glWidget->height() / 2) -  _faceshift.getEstimatedEyePitch() * EYE_TARGET_PIXELS_PER_DEGREE;
+    if (faceshift->isActive()) {
 
+        float avgEyePitch = faceshift->getEstimatedEyePitch();
+        float avgEyeYaw = faceshift->getEstimatedEyeYaw();
+        int eyeTargetX = (screenWidth / 2) - avgEyeYaw * aspectRatio * PIXELS_PER_VERTICAL_DEGREE;
+        int eyeTargetY = (screenHeight / 2) - avgEyePitch * PIXELS_PER_VERTICAL_DEGREE;
+        
         glColor3f(0.0f, 1.0f, 1.0f);
         glDisable(GL_LINE_SMOOTH);
         glBegin(GL_LINES);
@@ -389,7 +379,6 @@ void MyAvatar::renderHeadMouse() const {
         glEnd();
 
     }
-    */
 }
 
 void MyAvatar::setLocalGravity(glm::vec3 gravity) {
@@ -459,7 +448,7 @@ void MyAvatar::loadData(QSettings* settings) {
     setScale(_scale);
     Application::getInstance()->getCamera()->setScale(_scale);
     
-    setFaceModelURL(settings->value("faceModelURL").toUrl());
+    setFaceModelURL(settings->value("faceModelURL", DEFAULT_HEAD_MODEL_URL).toUrl());
     setSkeletonModelURL(settings->value("skeletonModelURL").toUrl());
     setDisplayName(settings->value("displayName").toString());
 
@@ -497,23 +486,24 @@ void MyAvatar::orbit(const glm::vec3& position, int deltaX, int deltaY) {
 }
 
 void MyAvatar::updateLookAtTargetAvatar() {
-    Application* applicationInstance = Application::getInstance();
-    
-    if (!applicationInstance->isMousePressed()) {
-        glm::vec3 mouseOrigin = applicationInstance->getMouseRayOrigin();
-        glm::vec3 mouseDirection = applicationInstance->getMouseRayDirection();
-
-        foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
-            Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
-            float distance;
-            if (avatar->findRayIntersection(mouseOrigin, mouseDirection, distance)) {
+    //
+    //  Look at the avatar whose eyes are closest to the ray in direction of my avatar's head
+    //
+    _lookAtTargetAvatar.clear();
+    _targetAvatarPosition = glm::vec3(0, 0, 0);
+    const float MIN_LOOKAT_ANGLE = PI / 4.0f;        //  Smallest angle between face and person where we will look at someone
+    float smallestAngleTo = MIN_LOOKAT_ANGLE;
+    foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
+        Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
+        if (!avatar->isMyAvatar()) {
+            float angleTo = glm::angle(getHead()->getFinalOrientation() * glm::vec3(0.0f, 0.0f, -1.0f),
+                                       glm::normalize(avatar->getHead()->getEyePosition() - getHead()->getEyePosition()));
+            if (angleTo < smallestAngleTo) {
                 _lookAtTargetAvatar = avatarPointer;
                 _targetAvatarPosition = avatarPointer->getPosition();
-                return;
+                smallestAngleTo = angleTo;
             }
         }
-        _lookAtTargetAvatar.clear();
-        _targetAvatarPosition = glm::vec3(0, 0, 0);
     }
 }
 
@@ -549,7 +539,7 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _billboardValid = false;
 }
 
-void MyAvatar::renderBody(RenderMode renderMode) {
+void MyAvatar::renderBody(RenderMode renderMode, float glowLevel) {
     if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         return; // wait until both models are loaded
     }

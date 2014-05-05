@@ -29,6 +29,8 @@ Assignment::Type Assignment::typeForNodeType(NodeType_t nodeType) {
             return Assignment::VoxelServerType;
         case NodeType::ParticleServer:
             return Assignment::ParticleServerType;
+        case NodeType::ModelServer:
+            return Assignment::ModelServerType;
         case NodeType::MetavoxelServer:
             return Assignment::MetavoxelServerType;
         default:
@@ -48,7 +50,8 @@ Assignment::Assignment() :
     _type(Assignment::AllTypes),
     _pool(),
     _location(Assignment::LocalLocation),
-    _payload()
+    _payload(),
+    _isStatic(false)
 {
     
 }
@@ -59,7 +62,8 @@ Assignment::Assignment(Assignment::Command command, Assignment::Type type, const
     _type(type),
     _pool(pool),
     _location(location),
-    _payload()
+    _payload(),
+    _isStatic(false)
 {
     if (_command == Assignment::CreateCommand) {
         // this is a newly created assignment, generate a random UUID

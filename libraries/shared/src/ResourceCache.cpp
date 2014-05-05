@@ -31,7 +31,7 @@ ResourceCache::~ResourceCache() {
 }
 
 QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl& fallback, bool delayLoad, void* extra) {
-    if (!url.isValid() && fallback.isValid()) {
+    if (!url.isValid() && !url.isEmpty() && fallback.isValid()) {
         return getResource(fallback, QUrl(), delayLoad);
     }
     QSharedPointer<Resource> resource = _resources.value(url);
@@ -114,7 +114,11 @@ Resource::Resource(const QUrl& url, bool delayLoad) :
     _reply(NULL),
     _attempts(0) {
     
-    if (!(url.isValid() && ResourceCache::getNetworkAccessManager())) {
+    if (url.isEmpty()) {
+        _startedLoading = _loaded = true;
+        return;
+        
+    } else if (!(url.isValid() && ResourceCache::getNetworkAccessManager())) {
         _startedLoading = _failedToLoad = true;
         return;
     }

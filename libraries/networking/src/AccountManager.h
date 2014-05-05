@@ -55,9 +55,7 @@ public:
     
     void requestAccessToken(const QString& login, const QString& password);
     
-    QString getUsername() const { return _accountInfo.getUsername(); }
-
-    const QString& getXMPPPassword() const { return _accountInfo.getXMPPPassword(); }
+    const DataServerAccountInfo& getAccountInfo() const { return _accountInfo; }
     
     void destroy() { delete _networkAccessManager; }
     
@@ -71,6 +69,7 @@ signals:
     void usernameChanged(const QString& username);
     void accessTokenChanged();
     void loginComplete(const QUrl& authURL);
+    void loginFailed();
     void logoutComplete();
 private slots:
     void processReply();

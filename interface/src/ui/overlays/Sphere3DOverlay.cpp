@@ -33,9 +33,9 @@ void Sphere3DOverlay::render() {
 
     glDisable(GL_LIGHTING);
     glPushMatrix();
-    glTranslatef(_position.x + _size * 0.5f,
-                 _position.y + _size * 0.5f,
-                 _position.z + _size * 0.5f);
+    glTranslatef(_position.x,
+                 _position.y,
+                 _position.z);
     glLineWidth(_lineWidth);
     const int slices = 15;
     if (_isSolid) {

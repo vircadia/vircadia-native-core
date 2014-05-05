@@ -38,7 +38,7 @@ enum PacketType {
     PacketTypeDomainListRequest,
     PacketTypeRequestAssignment,
     PacketTypeCreateAssignment,
-    PacketTypeDataServerPut, // reusable
+    PacketTypeDomainOAuthRequest,
     PacketTypeDataServerGet, // reusable
     PacketTypeDataServerSend, // reusable
     PacketTypeDataServerConfirm,
@@ -61,15 +61,20 @@ enum PacketType {
     PacketTypeDomainConnectRequest,
     PacketTypeDomainServerRequireDTLS,
     PacketTypeNodeJsonStats,
+    PacketTypeModelQuery,
+    PacketTypeModelData,
+    PacketTypeModelAddOrEdit,
+    PacketTypeModelErase,
+    PacketTypeModelAddResponse,
 };
 
 typedef char PacketVersion;
 
 const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketTypeDomainServerRequireDTLS << PacketTypeDomainConnectRequest
-    << PacketTypeDomainList << PacketTypeDomainListRequest
+    << PacketTypeDomainList << PacketTypeDomainListRequest << PacketTypeDomainOAuthRequest
     << PacketTypeCreateAssignment << PacketTypeRequestAssignment << PacketTypeStunResponse
-    << PacketTypeNodeJsonStats << PacketTypeVoxelQuery << PacketTypeParticleQuery;
+    << PacketTypeNodeJsonStats << PacketTypeVoxelQuery << PacketTypeParticleQuery << PacketTypeModelQuery;
 
 const int NUM_BYTES_MD5_HASH = 16;
 const int NUM_STATIC_HEADER_BYTES = sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;

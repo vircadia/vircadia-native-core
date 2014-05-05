@@ -206,13 +206,13 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
             GLOW_FROM_AVERAGE_LOUDNESS = 0.0f;
         }
             
-        Glower glower(_moving && distanceToTarget > GLOW_DISTANCE && renderMode == NORMAL_RENDER_MODE
+        float glowLevel = _moving && distanceToTarget > GLOW_DISTANCE && renderMode == NORMAL_RENDER_MODE
                       ? 1.0f
-                      : GLOW_FROM_AVERAGE_LOUDNESS);
+                      : GLOW_FROM_AVERAGE_LOUDNESS;
 
         // render body
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
-            renderBody(renderMode);
+            renderBody(renderMode, glowLevel);
         }
         if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes)) {
             _skeletonModel.updateShapePositions();
@@ -326,17 +326,21 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::renderBody(RenderMode renderMode) {    
-    if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
-        // render the billboard until both models are loaded
-        renderBillboard();
-        return;
-    }
+void Avatar::renderBody(RenderMode renderMode, float glowLevel) {
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
-        Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
-    _skeletonModel.render(1.0f, modelRenderMode);
+    Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+    {
+        Glower glower(glowLevel);
+        
+        if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
+            // render the billboard until both models are loaded
+            renderBillboard();
+            return;
+        }
+        _skeletonModel.render(1.0f, modelRenderMode);
+        getHand()->render(false);
+    }
     getHead()->render(1.0f, modelRenderMode);
-    getHand()->render(false);
 }
 
 bool Avatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const {
@@ -451,7 +455,7 @@ void Avatar::renderDisplayName() {
     // The up vector must be relative to the rotation current rotation matrix:
     // we set the identity
     glm::dvec3 testPoint0 = glm::dvec3(textPosition);
-    glm::dvec3 testPoint1 = glm::dvec3(textPosition) + glm::dvec3(IDENTITY_UP);
+    glm::dvec3 testPoint1 = glm::dvec3(textPosition) + glm::dvec3(Application::getInstance()->getCamera()->getRotation() * IDENTITY_UP);
     
     bool success;
     success = gluProject(testPoint0.x, testPoint0.y, testPoint0.z,
@@ -466,7 +470,7 @@ void Avatar::renderDisplayName() {
         double textWindowHeight = abs(result1[1] - result0[1]);
         float scaleFactor = (textWindowHeight > EPSILON) ? 1.0f / textWindowHeight : 1.0f;
         glScalef(scaleFactor, scaleFactor, 1.0);  
-
+        
         glScalef(1.0f, -1.0f, 1.0f);  // TextRenderer::draw paints the text upside down in y axis
 
         int text_x = -_displayNameBoundingRect.width() / 2;
@@ -772,7 +776,16 @@ float Avatar::getSkeletonHeight() const {
 
 float Avatar::getHeadHeight() const {
     Extents extents = getHead()->getFaceModel().getBindExtents();
-    return extents.maximum.y - extents.minimum.y;
+    if (!extents.isEmpty()) {
+        return extents.maximum.y - extents.minimum.y;
+    }
+    glm::vec3 neckPosition;
+    glm::vec3 headPosition;
+    if (_skeletonModel.getNeckPosition(neckPosition) && _skeletonModel.getHeadPosition(headPosition)) {
+        return glm::distance(neckPosition, headPosition);
+    }
+    const float DEFAULT_HEAD_HEIGHT = 0.1f;
+    return DEFAULT_HEAD_HEIGHT;
 }
 
 bool Avatar::collisionWouldMoveAvatar(CollisionInfo& collision) const {
