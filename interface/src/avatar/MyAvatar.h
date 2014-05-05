@@ -146,7 +146,7 @@ private:
 
 	// private methods
     void updateOrientation(float deltaTime);
-    void updateMotorFromKeyboard(float deltaTime);
+    void updateMotorFromKeyboard(float deltaTime, bool walking);
     float computeMotorTimescale();
     void applyMotor(float deltaTime);
     void applyThrust(float deltaTime);

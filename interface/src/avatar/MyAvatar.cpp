@@ -157,7 +157,7 @@ void MyAvatar::simulate(float deltaTime) {
         fabsf(_driveKeys[RIGHT] - _driveKeys[LEFT]) + 
         fabsf(_driveKeys[UP] - _driveKeys[DOWN]);
 
-    bool standingOnFloor = false;
+    bool walkingOnFloor = false;
     float gravityLength = glm::length(_gravity);
     if (gravityLength > EPSILON) {
         const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
@@ -166,18 +166,20 @@ void MyAvatar::simulate(float deltaTime) {
         glm::vec3 bottomOfBoundingCapsule = startCap + (boundingShape.getRadius() / gravityLength) * _gravity;
 
         float fallThreshold = 2.f * deltaTime * gravityLength;
-        standingOnFloor = (glm::distance(bottomOfBoundingCapsule, _lastFloorContactPoint) < fallThreshold);
+        walkingOnFloor = (glm::distance(bottomOfBoundingCapsule, _lastFloorContactPoint) < fallThreshold);
     }
 
     if (keyboardInput > 0.0f || glm::length2(_velocity) > 0.0f || glm::length2(_thrust) > 0.0f || 
-            ! standingOnFloor) {
-
+            ! walkingOnFloor) {
+        // apply gravity
         _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
     
-        updateMotorFromKeyboard(deltaTime);
+        // update motor and thrust
+        updateMotorFromKeyboard(deltaTime, walkingOnFloor);
         applyMotor(deltaTime);
         applyThrust(deltaTime);
 
+        // update position
         if (glm::length2(_velocity) < EPSILON) {
             _velocity = glm::vec3(0.0f);
         } else {
@@ -647,7 +649,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
     setOrientation(orientation);
 }
 
-void MyAvatar::updateMotorFromKeyboard(float deltaTime) {
+void MyAvatar::updateMotorFromKeyboard(float deltaTime, bool walking) {
     // Increase motor velocity until its length is equal to _maxMotorSpeed.
     if (!(_motionBehaviors & AVATAR_MOTION_MOTOR_KEYBOARD_ENABLED)) {
         // nothing to do
@@ -671,18 +673,23 @@ void MyAvatar::updateMotorFromKeyboard(float deltaTime) {
     // Compute motor magnitude
     if (directionLength > EPSILON) {
         direction /= directionLength;
-        const float MIN_WALKING_SPEED = 2.0f;
+        // the finalMotorSpeed depends on whether we are walking or not
+        const float MIN_KEYBOARD_CONTROL_SPEED = 2.0f;
+        const float MAX_WALKING_SPEED = 4.0f * MIN_KEYBOARD_CONTROL_SPEED;
+        float finalMaxMotorSpeed = walking ? MAX_WALKING_SPEED : _maxMotorSpeed;
+
         float motorLength = glm::length(_motorVelocity);
-        if (motorLength < MIN_WALKING_SPEED) {
-            _motorVelocity = MIN_WALKING_SPEED * direction;
+        if (motorLength < MIN_KEYBOARD_CONTROL_SPEED) {
+            // an active keyboard motor should never be slower than this
+            _motorVelocity = MIN_KEYBOARD_CONTROL_SPEED * direction;
         } else {
             float MOTOR_LENGTH_TIMESCALE = 1.5f;
             float tau = glm::clamp(deltaTime / MOTOR_LENGTH_TIMESCALE, 0.0f, 1.0f);
             float INCREASE_FACTOR = 2.0f;
             //_motorVelocity *= 1.0f + tau * INCREASE_FACTOR;
             motorLength *= 1.0f + tau * INCREASE_FACTOR;
-            if (motorLength > _maxMotorSpeed) {
-                motorLength = _maxMotorSpeed;
+            if (motorLength > finalMaxMotorSpeed) {
+                motorLength = finalMaxMotorSpeed;
             }
             _motorVelocity = motorLength * direction;
         }
