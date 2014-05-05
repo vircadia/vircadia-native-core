@@ -39,7 +39,7 @@ you to run the full stack of the virtual world.
 In order to set up your own virtual world, you need to set up and run your own 
 local "domain". 
 
-The domain-server gives a number different types of assignments to the assignment-client for different features: audio, avatars, voxels, particles, and meta-voxels.
+The domain-server gives a number different types of assignments to the assignment-client for different features: audio, avatars, voxels, particles, meta-voxels and models.
 
 Follow the instructions in the [build guide](BUILD.md) to build the various components.
 
@@ -57,7 +57,7 @@ Any target can be terminated with Ctrl-C (SIGINT) in the associated Terminal win
 
 This assignment-client will grab one assignment from the domain-server. You can tell the assignment-client what type you want it to be with the `-t` option. You can also run an assignment-client that forks off *n* assignment-clients with the `-n` option.
 
-    ./assignment-client -n 5
+    ./assignment-client -n 6
 
 To test things out you'll want to run the Interface client.
 
