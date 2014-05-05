@@ -331,8 +331,9 @@ function ScaleSelector() {
                                             });
     this.setScale = function(scale) {
         this.scale = scale;
-        this.power = Math.floor(Math.log(scale));
+        this.power = Math.ceil(Math.log(scale) * Math.LOG2E);
         rescaleImport();
+        this.update();
     }
     
     this.show = function(doShow) {
@@ -835,7 +836,6 @@ function showPreviewLines() {
         
         if (copyScale) {
             scaleSelector.setScale(intersection.voxel.s);
-            scaleSelector.update();
         }
         moveTools();
     } else {
