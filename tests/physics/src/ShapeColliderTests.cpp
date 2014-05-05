@@ -701,6 +701,7 @@ void ShapeColliderTests::sphereTouchesAACubeFaces() {
 
     for (int i = 0; i < axes.size(); ++i) {
         glm::vec3 axis = axes[i];
+        std::cout << "adebug j = " << i << "  axis = " << axis << std::endl;  // adebug
         // outside
         {
             collisions.clear();
@@ -809,6 +810,7 @@ void ShapeColliderTests::sphereTouchesAACubeEdges() {
 
     for (int i =0; i < axes.size(); ++i) {
         glm::vec3 axis = axes[i];
+        std::cout << "adebug i = " << i << "  axis = " << axis << std::endl;  // adebug
         float lengthAxis = glm::length(axis);
         axis /= lengthAxis;
         float overlap = 0.25f;
