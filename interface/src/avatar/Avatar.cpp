@@ -232,6 +232,16 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
                 _skeletonModel.renderBoundingCollisionShapes(0.7f);
             }
         }
+        // If this is the avatar being looked at, render a little ball above their head
+        if (_isLookAtTarget) {
+            const float LOOK_AT_INDICATOR_RADIUS = 0.25f;
+            const float LOOK_AT_INDICATOR_HEIGHT = 0.65f;
+            glPushMatrix();
+            glColor4f(0.0f, 1.0f, 1.0f, 0.5f);
+            glTranslatef(_position.x, _position.y + (getSkeletonHeight() * LOOK_AT_INDICATOR_HEIGHT), _position.z);
+            glutSolidSphere(LOOK_AT_INDICATOR_RADIUS, 15, 15);
+            glPopMatrix();
+        }
 
         // quick check before falling into the code below:
         // (a 10 degree breadth of an almost 2 meter avatar kicks in at about 12m)
