@@ -1208,6 +1208,7 @@ ViewFrustum::location OctreeElement::inFrustum(const ViewFrustum& viewFrustum) c
 //    By doing this, we don't need to test each child voxel's position vs the LOD boundary
 bool OctreeElement::calculateShouldRender(const ViewFrustum* viewFrustum, float voxelScaleSize, int boundaryLevelAdjust) const {
     bool shouldRender = false;
+    
     if (hasContent()) {
         float furthestDistance = furthestDistanceToCamera(*viewFrustum);
         float childBoundary = boundaryDistanceForRenderLevel(getLevel() + 1 + boundaryLevelAdjust, voxelScaleSize);
