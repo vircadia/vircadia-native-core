@@ -198,9 +198,6 @@ color: #0e7077</string>
        <property name="indent">
         <number>25</number>
        </property>
-       <property name="buddy">
-        <cstring></cstring>
-       </property>
       </widget>
      </item>
      <item>
@@ -510,7 +507,7 @@ color: #0e7077</string>
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="headLabel">
+      <widget class="QLabel" name="headLabel_3">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -547,7 +544,7 @@ color: #0e7077</string>
       </widget>
      </item>
      <item>
-      <layout class="QHBoxLayout" name="horizontalLayout">
+      <layout class="QHBoxLayout" name="horizontalLayout_1">
        <item>
         <widget class="QLineEdit" name="snapshotLocationEdit">
          <property name="sizePolicy">
@@ -564,7 +561,7 @@ color: #0e7077</string>
         </widget>
        </item>
        <item>
-        <spacer name="horizontalSpacer">
+        <spacer name="horizontalSpacer_1">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
          </property>
