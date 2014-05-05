@@ -937,11 +937,55 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
     if (Application::getInstance()->getVoxelTree()->findShapeCollisions(&boundingShape, myCollisions)) {
         const float VOXEL_ELASTICITY = 0.0f;
         const float VOXEL_DAMPING = 0.0f;
-        for (int i = 0; i < myCollisions.size(); ++i) {
-            CollisionInfo* collision = myCollisions[i];
-            applyHardCollision(collision->_penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
-            _lastFloorContactPoint = collision->_contactPoint - collision->_penetration;
+
+        if (glm::length2(_gravity) > EPSILON) {
+            if (myCollisions.size() == 1) {
+                // trivial case
+                CollisionInfo* collision = myCollisions[0];
+                applyHardCollision(collision->_penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+            } else {
+                // This is special collision handling for when walking on a voxel field which
+                // prevents snagging at corners and seams.
+
+                // sift through the collisions looking for one against the "floor"
+                int floorIndex = 0;
+                float distanceToFloor = 0.0f;
+                float penetrationWithFloor = 0.0f;
+                for (int i = 0; i < myCollisions.size(); ++i) {
+                    CollisionInfo* collision = myCollisions[i];
+                    float distance = glm::dot(_gravity, collision->_contactPoint - _position);
+                    if (distance > distanceToFloor) {
+                        distanceToFloor = distance;
+                        penetrationWithFloor = glm::dot(_gravity, collision->_penetration);
+                        floorIndex = i;
+                    }
+                }
+        
+                // step through the collisions again and apply each that is not redundant
+                glm::vec3 oldPosition = _position;
+                for (int i = 0; i < myCollisions.size(); ++i) {
+                    CollisionInfo* collision = myCollisions[i];
+                    if (i == floorIndex) {
+                        applyHardCollision(collision->_penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+                    } else {
+                        float distance = glm::dot(_gravity, collision->_contactPoint - oldPosition);
+                        float penetration = glm::dot(_gravity, collision->_penetration);
+                        if (distance - distanceToFloor > penetrationWithFloor || penetration > penetrationWithFloor) {
+                            // resolution of the deepest penetration would not resolve this one
+                            // so we apply the collision
+                            applyHardCollision(collision->_penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+                        }
+                    }
+                }
+            }
+        } else {
+            // no gravity -- apply all collisions
+            for (int i = 0; i < myCollisions.size(); ++i) {
+                CollisionInfo* collision = myCollisions[i];
+                applyHardCollision(collision->_penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+            }
         }
+
         const float VOXEL_COLLISION_FREQUENCY = 0.5f;
         updateCollisionSound(myCollisions[0]->_penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
     } 
