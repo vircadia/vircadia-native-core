@@ -612,42 +612,36 @@ bool sphereAACube(const glm::vec3& sphereCenter, float sphereRadius, const glm::
         if (maxBA > halfCubeSide) {
             // sphere hits cube but its center is outside cube
             
-            // contactPoint is on surface of sphere
+            // compute contact anti-pole on cube (in cube frame)
             glm::vec3 cubeContact = glm::abs(BA);
-            glm::vec3 direction = cubeContact - glm::vec3(halfCubeSide);
-
-            if (direction.x < 0.0f) {
-                direction.x = 0.0f;
-            }
-            if (direction.y < 0.0f) {
-                direction.y = 0.0f;
-            }
-            if (direction.z < 0.0f) {
-                direction.z = 0.0f;
-            }
-
-            glm::vec3 signs = glm::sign(BA);
-            direction.x *= signs.x;
-            direction.y *= signs.y;
-            direction.z *= signs.z;
-            direction = glm::normalize(direction);
-            collision->_contactPoint = sphereCenter + sphereRadius * direction;
-
-            // penetration points from contact point on cube to that on sphere
             if (cubeContact.x > halfCubeSide) {
                 cubeContact.x = halfCubeSide;
             }
-            cubeContact.x *= -signs.x;
             if (cubeContact.y > halfCubeSide) {
                 cubeContact.y = halfCubeSide;
             }
-            cubeContact.y *= -signs.y;
             if (cubeContact.z > halfCubeSide) {
                 cubeContact.z = halfCubeSide;
             }
-            cubeContact.z *= -signs.z;
-            //collision->_penetration = collision->_contactPoint - cubeCenter + cubeContact;
-            collision->_penetration = collision->_contactPoint - (cubeCenter + cubeContact);
+            glm::vec3 signs = glm::sign(BA);
+            cubeContact.x *= signs.x;
+            cubeContact.y *= signs.y;
+            cubeContact.z *= signs.z;
+
+            // compute collision details
+            glm::vec3 direction = BA - cubeContact;
+            float lengthDirection = glm::length(direction);
+            if (lengthDirection < EPSILON) {
+                // sphereCenter is touching cube surface, so we can't use the difference between those two 
+                // points to compute the penetration direction.  Instead we use the unitary components of 
+                // cubeContact.
+                direction = cubeContact / halfCubeSide;
+                glm::modf(BA, direction);
+                lengthDirection = glm::length(direction);
+            }
+            direction /= lengthDirection;
+            collision->_contactPoint = sphereCenter + sphereRadius * direction;
+            collision->_penetration = sphereRadius * direction - (BA - cubeContact);
         } else {
             // sphere center is inside cube
             // --> push out nearest face
