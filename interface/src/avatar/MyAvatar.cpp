@@ -253,13 +253,13 @@ void MyAvatar::updateFromGyros(float deltaTime) {
     // avatar head is at the edge of the in-world view frustum.  So while a real person may move
     // their head only 30 degrees or so, this may correspond to a 90 degree field of view.
     // Note that roll is magnified by a constant because it is not related to field of view.
-    const float AVATAR_HEAD_ROLL_MAGNIFY = 2.0f;
+
     float magnifyFieldOfView = Menu::getInstance()->getFieldOfView() / Menu::getInstance()->getRealWorldFieldOfView();
     
     Head* head = getHead();
     head->setDeltaPitch(estimatedRotation.x * magnifyFieldOfView);
     head->setDeltaYaw(estimatedRotation.y * magnifyFieldOfView);
-    head->setDeltaRoll(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
+    head->setDeltaRoll(estimatedRotation.z);
 
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;

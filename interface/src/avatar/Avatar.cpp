@@ -235,9 +235,9 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         }
         // If this is the avatar being looked at, render a little ball above their head
         if (_isLookAtTarget) {
-            const float LOOK_AT_INDICATOR_RADIUS = 0.05f;
-            const float LOOK_AT_INDICATOR_HEIGHT = 0.65f;
-            const float LOOK_AT_INDICATOR_COLOR[] = { 0.2f, 0.2f, 0.2f, 0.3f };
+            const float LOOK_AT_INDICATOR_RADIUS = 0.03f;
+            const float LOOK_AT_INDICATOR_HEIGHT = 0.60f;
+            const float LOOK_AT_INDICATOR_COLOR[] = { 0.8f, 0.0f, 0.0f, 0.5f };
             glPushMatrix();
             glColor4fv(LOOK_AT_INDICATOR_COLOR);
             glTranslatef(_position.x, _position.y + (getSkeletonHeight() * LOOK_AT_INDICATOR_HEIGHT), _position.z);
