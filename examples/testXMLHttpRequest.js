@@ -2,7 +2,7 @@
 //  testXMLHttpRequest.js
 //  examples
 //
-//  Created by Ryan Huffman on 5/4//14
+//  Created by Ryan Huffman on 5/4/14
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  XMLHttpRequest Tests
