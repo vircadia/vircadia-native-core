@@ -36,6 +36,8 @@ public:
     virtual PacketType getMyQueryMessageType() const { return PacketTypeModelQuery; }
     virtual PacketType getExpectedPacketType() const { return PacketTypeModelData; }
     virtual void renderElement(OctreeElement* element, RenderArgs* args);
+    virtual float getSizeScale() const;
+    virtual int getBoundaryLevelAdjust() const;
 
     void update();
 

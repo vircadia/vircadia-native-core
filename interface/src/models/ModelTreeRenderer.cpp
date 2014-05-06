@@ -12,7 +12,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include "InterfaceConfig.h"
-
+#include "Menu.h"
 #include "ModelTreeRenderer.h"
 
 ModelTreeRenderer::ModelTreeRenderer() :
@@ -117,6 +117,15 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
         }
     }
 }
+
+float ModelTreeRenderer::getSizeScale() const { 
+    return Menu::getInstance()->getVoxelSizeScale();
+}
+
+int ModelTreeRenderer::getBoundaryLevelAdjust() const { 
+    return Menu::getInstance()->getBoundaryLevelAdjust();
+}
+
 
 void ModelTreeRenderer::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
     static_cast<ModelTree*>(_tree)->processEraseMessage(dataByteArray, sourceNode);

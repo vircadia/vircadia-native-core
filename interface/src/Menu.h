@@ -344,7 +344,6 @@ namespace MenuOption {
     const QString Particles = "Particles";
     const QString PasteToVoxel = "Paste to Voxel...";
     const QString PipelineWarnings = "Show Render Pipeline Warnings";
-    const QString PlaySlaps = "Play Slaps";
     const QString Preferences = "Preferences...";
     const QString Quit =  "Quit";
     const QString ReloadAllScripts = "Reload All Scripts";

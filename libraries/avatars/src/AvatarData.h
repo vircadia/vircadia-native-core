@@ -53,8 +53,24 @@ typedef unsigned long long quint64;
 #include "HandData.h"
 
 // avatar motion behaviors
-const quint32 AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY = 1U << 0;
-const quint32 AVATAR_MOTION_OBEY_LOCAL_GRAVITY = 1U << 1;
+const quint32 AVATAR_MOTION_MOTOR_ENABLED                 = 1U << 0;
+const quint32 AVATAR_MOTION_MOTOR_KEYBOARD_ENABLED        = 1U << 1;
+const quint32 AVATAR_MOTION_MOTOR_USE_LOCAL_FRAME         = 1U << 2;
+const quint32 AVATAR_MOTION_MOTOR_COLLISION_SURFACE_ONLY  = 1U << 3;
+
+const quint32 AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY    = 1U << 4;
+const quint32 AVATAR_MOTION_OBEY_LOCAL_GRAVITY            = 1U << 5;
+
+const quint32 AVATAR_MOTION_DEFAULTS = 
+        AVATAR_MOTION_MOTOR_ENABLED |
+        AVATAR_MOTION_MOTOR_KEYBOARD_ENABLED |
+        AVATAR_MOTION_MOTOR_USE_LOCAL_FRAME;
+
+// these bits will be expanded as features are exposed
+const quint32 AVATAR_MOTION_SCRIPTABLE_BITS = 
+        AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY | 
+        AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
+
 
 // First bitset
 const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
