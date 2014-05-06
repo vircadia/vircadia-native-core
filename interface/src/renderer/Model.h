@@ -180,6 +180,9 @@ public:
     /// Returns the extended length from the right hand to its first free ancestor.
     float getRightArmLength() const;
     
+    bool getJointPosition(int jointIndex, glm::vec3& position) const;
+    bool getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind = false) const;
+    
     void clearShapes();
     void rebuildShapes();
     void updateShapePositions();
@@ -268,9 +271,6 @@ protected:
     virtual void maybeUpdateLeanRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
     virtual void maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
     virtual void maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
-    
-    bool getJointPosition(int jointIndex, glm::vec3& position) const;
-    bool getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind = false) const;
     
     bool setJointPosition(int jointIndex, const glm::vec3& translation, const glm::quat& rotation = glm::quat(),
         bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,

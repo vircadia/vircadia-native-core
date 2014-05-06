@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QDataStream>
+
 #include <glm/gtc/type_ptr.hpp>
 
 #include "StreamUtils.h"
@@ -45,6 +47,22 @@ std::ostream& operator<<(std::ostream& s, const glm::mat4& m) {
     }
     s << "  ]";
     return s;
+}
+
+QDataStream& operator<<(QDataStream& out, const glm::vec3& vector) {
+    return out << vector.x << vector.y << vector.z;
+}
+
+QDataStream& operator>>(QDataStream& in, glm::vec3& vector) {
+    return in >> vector.x >> vector.y >> vector.z;
+}
+
+QDataStream& operator<<(QDataStream& out, const glm::quat& quaternion) {
+    return out << quaternion.x << quaternion.y << quaternion.z << quaternion.w;
+}
+
+QDataStream& operator>>(QDataStream& in, glm::quat& quaternion) {
+    return in >> quaternion.x >> quaternion.y >> quaternion.z >> quaternion.w;
 }
 
 // less common utils can be enabled with DEBUG

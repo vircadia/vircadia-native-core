@@ -28,6 +28,9 @@ public:
     QXmppClient& getXMPPClient() { return _xmppClient; }
     const QXmppMucRoom* getPublicChatRoom() const { return _publicChatRoom; }
 
+signals:
+    void joinedPublicChatRoom();
+
 private slots:
     void xmppConnected();
     void xmppError(QXmppClient::Error error);

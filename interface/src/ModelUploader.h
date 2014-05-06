@@ -17,6 +17,8 @@
 
 #include <FBXReader.h>
 
+#include "ui/ModelsBrowser.h"
+
 class QComboBox;
 class QDoubleSpinBox;
 class QFileInfo;
@@ -30,7 +32,7 @@ class ModelUploader : public QObject {
     Q_OBJECT
     
 public:
-    ModelUploader(bool isHead);
+    ModelUploader(ModelType type);
     ~ModelUploader();
     
 public slots:
@@ -49,7 +51,7 @@ private:
     int _lodCount;
     int _texturesCount;
     int _totalSize;
-    bool _isHead;
+    ModelType _modelType;
     bool _readyToSend;
     
     QHttpMultiPart* _dataMultiPart;
@@ -73,7 +75,7 @@ class ModelPropertiesDialog : public QDialog {
     Q_OBJECT
 
 public:
-    ModelPropertiesDialog(bool isHead, const QVariantHash& originalMapping,
+    ModelPropertiesDialog(ModelType modelType, const QVariantHash& originalMapping,
         const QString& basePath, const FBXGeometry& geometry);
 
     QVariantHash getMapping() const;
@@ -87,7 +89,7 @@ private:
     QComboBox* createJointBox(bool withNone = true) const;
     void insertJointMapping(QVariantHash& joints, const QString& joint, const QString& name) const;
 
-    bool _isHead;
+    ModelType _modelType;
     QVariantHash _originalMapping;
     QString _basePath;
     FBXGeometry _geometry;

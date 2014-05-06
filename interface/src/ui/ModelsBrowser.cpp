@@ -22,10 +22,11 @@
 
 #include "ModelsBrowser.h"
 
+const char* MODEL_TYPE_NAMES[] = { "heads", "skeletons", "attachments" };
+
 static const QString S3_URL = "http://highfidelity-public.s3-us-west-1.amazonaws.com";
 static const QString PUBLIC_URL = "http://public.highfidelity.io";
-static const QString HEAD_MODELS_LOCATION = "models/heads";
-static const QString SKELETON_MODELS_LOCATION = "models/skeletons/";
+static const QString MODELS_LOCATION = "models/";
 
 static const QString PREFIX_PARAMETER_NAME = "prefix";
 static const QString MARKER_PARAMETER_NAME = "marker";
@@ -243,11 +244,7 @@ void ModelHandler::queryNewFiles(QString marker) {
     // Build query
     QUrl url(S3_URL);
     QUrlQuery query;
-    if (_type == Head) {
-        query.addQueryItem(PREFIX_PARAMETER_NAME, HEAD_MODELS_LOCATION);
-    } else if (_type == Skeleton) {
-        query.addQueryItem(PREFIX_PARAMETER_NAME, SKELETON_MODELS_LOCATION);
-    }
+    query.addQueryItem(PREFIX_PARAMETER_NAME, MODELS_LOCATION + MODEL_TYPE_NAMES[_type]);
     
     if (!marker.isEmpty()) {
         query.addQueryItem(MARKER_PARAMETER_NAME, marker);

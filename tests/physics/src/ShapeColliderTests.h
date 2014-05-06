@@ -23,7 +23,8 @@ namespace ShapeColliderTests {
     void capsuleMissesCapsule();
     void capsuleTouchesCapsule();
 
-    void sphereTouchesAACube();
+    void sphereTouchesAACubeFaces();
+    void sphereTouchesAACubeEdges();
     void sphereMissesAACube();
 
     void runAllTests(); 

@@ -178,6 +178,10 @@ function disableArtificialGravity() {
     MyAvatar.motionBehaviors = MyAvatar.motionBehaviors & ~AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
     updateButton(3, false);
 }
+// call this immediately so that avatar doesn't fall before voxel data arrives
+// Ideally we would only do this on LOGIN, not when starting the script
+// in the middle of a session.
+disableArtificialGravity();
 
 function enableArtificialGravity() {
     // NOTE: setting the gravity automatically sets the AVATAR_MOTION_OBEY_LOCAL_GRAVITY behavior bit.
@@ -275,7 +279,6 @@ function update(deltaTime) {
     }
 }
 Script.update.connect(update);
-
 
 // we also handle click detection in our mousePressEvent()
 function mousePressEvent(event) {

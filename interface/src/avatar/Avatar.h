@@ -79,7 +79,7 @@ public:
     //setters
     void setDisplayingLookatVectors(bool displayingLookatVectors) { getHead()->setRenderLookatVectors(displayingLookatVectors); }
     void setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction);
-
+    void setIsLookAtTarget(const bool isLookAtTarget) { _isLookAtTarget = isLookAtTarget; }
     //getters
     bool isInitialized() const { return _initialized; }
     SkeletonModel& getSkeletonModel() { return _skeletonModel; }
@@ -131,6 +131,7 @@ public:
     
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+    virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
     virtual void setDisplayName(const QString& displayName);
     virtual void setBillboard(const QByteArray& billboard);
 
@@ -160,6 +161,7 @@ signals:
 
 protected:
     SkeletonModel _skeletonModel;
+    QVector<Model*> _attachmentModels;
     float _bodyYawDelta;
     glm::vec3 _velocity;
     float _leanScale;
@@ -188,6 +190,9 @@ protected:
     virtual void renderBody(RenderMode renderMode, float glowLevel = 0.0f);
     virtual bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
 
+    void simulateAttachments(float deltaTime);
+    void renderAttachments(Model::RenderMode renderMode);
+
     virtual void updateJointMappings();
 
 private:
@@ -195,6 +200,7 @@ private:
     bool _initialized;
     QScopedPointer<Texture> _billboardTexture;
     bool _shouldRenderBillboard;
+    bool _isLookAtTarget;
 
     void renderBillboard();
     
