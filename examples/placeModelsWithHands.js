@@ -37,6 +37,7 @@ var radiusMinimum = 0.05;
 var radiusMaximum = 0.5;
 
 var modelURLs = [
+    "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/music/EVHFrankenstein.fbx",
     "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
     "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/birarda/birarda_head.fbx",
     "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/pug.fbx",
@@ -51,9 +52,15 @@ var currentModelURL = 1;
 var numModels = modelURLs.length;
 
 
+function getNewVoxelPosition() {
+    var camera = Camera.getPosition();
+    var forwardVector = Quat.getFront(MyAvatar.orientation);
+    var newPosition = Vec3.sum(camera, Vec3.multiply(forwardVector, 2.0));
+    return newPosition;
+}
 
 function keyPressEvent(event) {
-    //print("event.text=" + event.text);
+    debugPrint("event.text=" + event.text);
     if (event.text == "ESC") {
         if (leftRecentlyDeleted) {
             leftRecentlyDeleted = false;
@@ -63,7 +70,20 @@ function keyPressEvent(event) {
             rightRecentlyDeleted = false;
             rightModelAlreadyInHand = false;
         }
-    } else if (event.text == "DELETE") {
+    } else if (event.text == "m") {
+        var URL = Window.prompt("Model URL", "Enter URL, e.g. http://foo.com/model.fbx");
+        Window.alert("Your response was: " + prompt);
+        var modelPosition = getNewVoxelPosition();
+        var properties = { position: { x: modelPosition.x, 
+                                       y: modelPosition.y, 
+                                       z: modelPosition.z }, 
+                radius: modelRadius,
+                modelURL: URL
+            };
+        newModel = Models.addModel(properties);
+
+    } else if (event.text == "DELETE" || event.text == "BACKSPACE") {
+
         if (leftModelAlreadyInHand) {
             print("want to delete leftHandModel=" + leftHandModel);
             Models.deleteModel(leftHandModel);
@@ -122,6 +142,7 @@ function checkControllerSide(whichSide) {
     var BUTTON_FWD;
     var BUTTON_3;
     var palmPosition;
+    var palmRotation;
     var modelAlreadyInHand;
     var handMessage;
     
@@ -129,12 +150,14 @@ function checkControllerSide(whichSide) {
         BUTTON_FWD = LEFT_BUTTON_FWD;
         BUTTON_3 = LEFT_BUTTON_3;
         palmPosition = Controller.getSpatialControlPosition(LEFT_PALM);
+        palmRotation = Controller.getSpatialControlRawRotation(LEFT_PALM);
         modelAlreadyInHand = leftModelAlreadyInHand;
         handMessage = "LEFT";
     } else {
         BUTTON_FWD = RIGHT_BUTTON_FWD;
         BUTTON_3 = RIGHT_BUTTON_3;
         palmPosition = Controller.getSpatialControlPosition(RIGHT_PALM);
+        palmRotation = Controller.getSpatialControlRawRotation(RIGHT_PALM);
         modelAlreadyInHand = rightModelAlreadyInHand;
         handMessage = "RIGHT";
     }
@@ -149,8 +172,7 @@ function checkControllerSide(whichSide) {
 
         if (closestModel.isKnownID) {
 
-            //debugPrint
-            print(handMessage + " HAND- CAUGHT SOMETHING!!");
+            debugPrint(handMessage + " HAND- CAUGHT SOMETHING!!");
 
             if (whichSide == LEFT_PALM) {
                 leftModelAlreadyInHand = true;
@@ -165,9 +187,10 @@ function checkControllerSide(whichSide) {
                                            y: modelPosition.y, 
                                            z: modelPosition.z }, 
                                 radius: modelRadius,
+                                modelRotation: palmRotation,
                               };
 
-            print(">>>>>>>>>>>> EDIT MODEL.... modelRadius=" +modelRadius);
+            debugPrint(">>>>>>>>>>>> EDIT MODEL.... modelRadius=" +modelRadius);
 
             Models.editModel(closestModel, properties);
 
@@ -189,10 +212,11 @@ function checkControllerSide(whichSide) {
                                        y: modelPosition.y, 
                                        z: modelPosition.z }, 
                 radius: modelRadius,
+                modelRotation: palmRotation,
                 modelURL: modelURLs[currentModelURL]
             };
 
-        print("modelRadius=" +modelRadius);
+        debugPrint("modelRadius=" +modelRadius);
 
         newModel = Models.addModel(properties);
         if (whichSide == LEFT_PALM) {
@@ -225,16 +249,16 @@ function checkControllerSide(whichSide) {
 
         //  If holding the model keep it in the palm
         if (grabButtonPressed) {
-            //debugPrint
-            print(">>>>> " + handMessage + "-MODEL IN HAND, grabbing, hold and move");
+            debugPrint(">>>>> " + handMessage + "-MODEL IN HAND, grabbing, hold and move");
             var modelPosition = getModelHoldPosition(whichSide);
             var properties = { position: { x: modelPosition.x, 
                                            y: modelPosition.y, 
                                            z: modelPosition.z }, 
                                radius: modelRadius,
+                               modelRotation: palmRotation,
                              };
 
-            print(">>>>>>>>>>>> EDIT MODEL.... modelRadius=" +modelRadius);
+            debugPrint(">>>>>>>>>>>> EDIT MODEL.... modelRadius=" +modelRadius);
 
             Models.editModel(handModel, properties);
         } else {

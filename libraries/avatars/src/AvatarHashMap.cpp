@@ -127,8 +127,9 @@ void AvatarHashMap::processAvatarIdentityPacket(const QByteArray &packet, const 
     while (!identityStream.atEnd()) {
         
         QUrl faceMeshURL, skeletonURL;
+        QVector<AttachmentData> attachmentData;
         QString displayName;
-        identityStream >> sessionUUID >> faceMeshURL >> skeletonURL >> displayName;
+        identityStream >> sessionUUID >> faceMeshURL >> skeletonURL >> attachmentData >> displayName;
         
         // mesh URL for a UUID, find avatar in our list
         AvatarSharedPointer matchingAvatar = matchingOrNewAvatar(sessionUUID, mixerWeakPointer);
@@ -140,6 +141,10 @@ void AvatarHashMap::processAvatarIdentityPacket(const QByteArray &packet, const 
             
             if (matchingAvatar->getSkeletonModelURL() != skeletonURL) {
                 matchingAvatar->setSkeletonModelURL(skeletonURL);
+            }
+            
+            if (matchingAvatar->getAttachmentData() != attachmentData) {
+                matchingAvatar->setAttachmentData(attachmentData);
             }
             
             if (matchingAvatar->getDisplayName() != displayName) {

@@ -26,17 +26,23 @@
 
 #include "ChatWindow.h"
 
+
+
 const int NUM_MESSAGES_TO_TIME_STAMP = 20;
 
 const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?))://\\S+)");
 const QRegularExpression regexHifiLinks("([#@]\\S+)");
+const QString mentionSoundsPath("/sounds/mention/");
+const QString mentionRegex("@(\\b%1\\b)");
 
 ChatWindow::ChatWindow(QWidget* parent) :
     FramelessDialog(parent, 0, POSITION_RIGHT),
     ui(new Ui::ChatWindow),
     numMessagesAfterLastTimeStamp(0),
     _mousePressed(false),
-    _mouseStartPosition()
+    _mouseStartPosition(),
+    _trayIcon(parent),
+    _effectPlayer()
 {
     setAttribute(Qt::WA_DeleteOnClose, false);
 
@@ -77,16 +83,47 @@ ChatWindow::ChatWindow(QWidget* parent) :
         ui->usersWidget->hide();
         ui->messagesScrollArea->hide();
         ui->messagePlainTextEdit->hide();
-        connect(&xmppClient, SIGNAL(connected()), this, SLOT(connected()));
+        connect(&XmppClient::getInstance(), SIGNAL(joinedPublicChatRoom()), this, SLOT(connected()));
     }
     connect(&xmppClient, SIGNAL(messageReceived(QXmppMessage)), this, SLOT(messageReceived(QXmppMessage)));
+    connect(&_trayIcon, SIGNAL(messageClicked()), this, SLOT(notificationClicked()));
 #endif
+
+    QDir mentionSoundsDir(Application::resourcesPath() + mentionSoundsPath);
+    _mentionSounds = mentionSoundsDir.entryList(QDir::Files);
+    _trayIcon.setIcon(QIcon( Application::resourcesPath() + "/images/hifi-logo.svg"));
+}
+
+void ChatWindow::notificationClicked() {
+    if (parentWidget()->isMinimized()) {
+        parentWidget()->showNormal();
+    }
+    if (isHidden()) {
+        show();
+    }
+
+    // find last mention
+    int messageCount = ui->messagesVBoxLayout->count();
+    for (unsigned int i = messageCount; i > 0; i--) {
+        ChatMessageArea* area = (ChatMessageArea*)ui->messagesVBoxLayout->itemAt(i - 1)->widget();
+        QRegularExpression usernameMention(mentionRegex.arg(AccountManager::getInstance().getAccountInfo().getUsername()));
+        if (area->toPlainText().contains(usernameMention)) {
+            int top = area->geometry().top();
+            int height = area->geometry().height();
+
+            QScrollBar* verticalScrollBar = ui->messagesScrollArea->verticalScrollBar();
+            verticalScrollBar->setSliderPosition(top - verticalScrollBar->size().height() + height);
+            return;
+        }
+    }
+
+    scrollToBottom();
 }
 
 ChatWindow::~ChatWindow() {
 #ifdef HAVE_QXMPP
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
-    disconnect(&xmppClient, SIGNAL(connected()), this, SLOT(connected()));
+    disconnect(&xmppClient, SIGNAL(joinedPublicChatRoom()), this, SLOT(connected()));
     disconnect(&xmppClient, SIGNAL(messageReceived(QXmppMessage)), this, SLOT(messageReceived(QXmppMessage)));
 
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
@@ -105,8 +142,14 @@ void ChatWindow::keyPressEvent(QKeyEvent* event) {
 
 void ChatWindow::showEvent(QShowEvent* event) {
     FramelessDialog::showEvent(event);
+
     if (!event->spontaneous()) {
         ui->messagePlainTextEdit->setFocus();
+    }
+
+    const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
+    if (xmppClient.isConnected()) {
+        participantsChanged();
     }
 }
 
@@ -303,6 +346,21 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
         lastMessageStamp = message.stamp().toLocalTime();
     } else {
         lastMessageStamp = QDateTime::currentDateTime();
+    }
+
+    QRegularExpression usernameMention(mentionRegex.arg(AccountManager::getInstance().getAccountInfo().getUsername()));
+    if (isHidden() && message.body().contains(usernameMention)) {
+        if (_effectPlayer.state() != QMediaPlayer::PlayingState) {
+            // get random sound
+            QFileInfo inf = QFileInfo(Application::resourcesPath()  +
+                                      mentionSoundsPath +
+                                      _mentionSounds.at(rand() % _mentionSounds.size()));
+            _effectPlayer.setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
+            _effectPlayer.play();
+        }
+
+        _trayIcon.show();
+        _trayIcon.showMessage(windowTitle(), message.body());
     }
 }
 

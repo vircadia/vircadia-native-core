@@ -28,7 +28,7 @@ enum AvatarHandState
 class MyAvatar : public Avatar {
     Q_OBJECT
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
-    Q_PROPERTY(quint32 motionBehaviors READ getMotionBehaviors WRITE setMotionBehaviors)
+    Q_PROPERTY(quint32 motionBehaviors READ getMotionBehaviorsForScript WRITE setMotionBehaviorsByScript)
     Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setLocalGravity)
 
 public:
@@ -77,8 +77,6 @@ public:
     
     static void sendKillAvatar();
 
-    void orbit(const glm::vec3& position, int deltaX, int deltaY);
-
     Q_INVOKABLE glm::vec3 getTargetAvatarPosition() const { return _targetAvatarPosition; }
     AvatarData* getLookAtTargetAvatar() const { return _lookAtTargetAvatar.data(); }
     void updateLookAtTargetAvatar();
@@ -90,8 +88,9 @@ public:
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
     virtual void setCollisionGroups(quint32 collisionGroups);
-    void setMotionBehaviors(quint32 flags);
-    quint32 getMotionBehaviors() const { return _motionBehaviors; }
+
+    void setMotionBehaviorsByScript(quint32 flags);
+    quint32 getMotionBehaviorsForScript() const { return _motionBehaviors & AVATAR_MOTION_SCRIPTABLE_BITS; }
 
     void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration);
 
@@ -109,7 +108,7 @@ public slots:
     glm::vec3 getThrust() { return _thrust; };
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
-    void updateMotionBehaviors();
+    void updateMotionBehaviorsFromMenu();
 
 signals:
     void transformChanged();
@@ -123,17 +122,18 @@ private:
     glm::vec3 _gravity;
     glm::vec3 _environmentGravity;
     float _distanceToNearestAvatar; // How close is the nearest avatar?
-    
-    // motion stuff
-    glm::vec3 _lastCollisionPosition;
-    bool _speedBrakes;
-    glm::vec3 _thrust;  // final acceleration for the current frame
-    bool _isThrustOn;
-    float _thrustMultiplier;
 
+    bool _wasPushing;
+    bool _isPushing;
+    glm::vec3 _thrust;  // final acceleration from outside sources for the current frame
+
+    glm::vec3 _motorVelocity;   // intended velocity of avatar motion
+    float _motorTimescale;      // timescale for avatar motor to achieve its desired velocity
+    float _maxMotorSpeed;
     quint32 _motionBehaviors;
 
     glm::vec3 _lastBodyPenetration;
+    glm::vec3 _lastFloorContactPoint;
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
     bool _shouldRender;
@@ -141,7 +141,11 @@ private:
     float _oculusYawOffset;
 
 	// private methods
-    void updateThrust(float deltaTime);
+    void updateOrientation(float deltaTime);
+    void updateMotorFromKeyboard(float deltaTime, bool walking);
+    float computeMotorTimescale();
+    void applyMotor(float deltaTime);
+    void applyThrust(float deltaTime);
     void updateHandMovementAndTouching(float deltaTime);
     void updateCollisionWithAvatars(float deltaTime);
     void updateCollisionWithEnvironment(float deltaTime, float radius);

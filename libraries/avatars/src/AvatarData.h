@@ -45,14 +45,32 @@ typedef unsigned long long quint64;
 
 #include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
+#include <StreamUtils.h>
+
 #include <Node.h>
 
 #include "HeadData.h"
 #include "HandData.h"
 
 // avatar motion behaviors
-const quint32 AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY = 1U << 0;
-const quint32 AVATAR_MOTION_OBEY_LOCAL_GRAVITY = 1U << 1;
+const quint32 AVATAR_MOTION_MOTOR_ENABLED                 = 1U << 0;
+const quint32 AVATAR_MOTION_MOTOR_KEYBOARD_ENABLED        = 1U << 1;
+const quint32 AVATAR_MOTION_MOTOR_USE_LOCAL_FRAME         = 1U << 2;
+const quint32 AVATAR_MOTION_MOTOR_COLLISION_SURFACE_ONLY  = 1U << 3;
+
+const quint32 AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY    = 1U << 4;
+const quint32 AVATAR_MOTION_OBEY_LOCAL_GRAVITY            = 1U << 5;
+
+const quint32 AVATAR_MOTION_DEFAULTS = 
+        AVATAR_MOTION_MOTOR_ENABLED |
+        AVATAR_MOTION_MOTOR_KEYBOARD_ENABLED |
+        AVATAR_MOTION_MOTOR_USE_LOCAL_FRAME;
+
+// these bits will be expanded as features are exposed
+const quint32 AVATAR_MOTION_SCRIPTABLE_BITS = 
+        AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY | 
+        AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
+
 
 // First bitset
 const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
@@ -79,8 +97,10 @@ enum KeyState {
 
 const glm::vec3 vec3Zero(0.0f);
 
+class QDataStream;
 class QNetworkAccessManager;
 
+class AttachmentData;
 class JointData;
 
 class AvatarData : public QObject {
@@ -210,9 +230,11 @@ public:
     const QUrl& getFaceModelURL() const { return _faceModelURL; }
     QString getFaceModelURLString() const { return _faceModelURL.toString(); }
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
+    const QVector<AttachmentData>& getAttachmentData() const { return _attachmentData; }
     const QString& getDisplayName() const { return _displayName; }
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+    virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
     virtual void setDisplayName(const QString& displayName);
     
     virtual void setBillboard(const QByteArray& billboard);
@@ -275,6 +297,7 @@ protected:
 
     QUrl _faceModelURL;
     QUrl _skeletonModelURL;
+    QVector<AttachmentData> _attachmentData;
     QString _displayName;
 
     QRect _displayNameBoundingRect;
@@ -308,5 +331,21 @@ public:
     bool valid;
     glm::quat rotation;
 };
+
+class AttachmentData {
+public:
+    QUrl modelURL;
+    QString jointName;
+    glm::vec3 translation;
+    glm::quat rotation;
+    float scale;
+    
+    AttachmentData();
+    
+    bool operator==(const AttachmentData& other) const;
+};
+
+QDataStream& operator<<(QDataStream& out, const AttachmentData& attachment);
+QDataStream& operator>>(QDataStream& in, AttachmentData& attachment);
 
 #endif // hifi_AvatarData_h

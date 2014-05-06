@@ -509,6 +509,24 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     }
 }
 
+bool Model::getJointPosition(int jointIndex, glm::vec3& position) const {
+    if (jointIndex == -1 || _jointStates.isEmpty()) {
+        return false;
+    }
+    position = _translation + extractTranslation(_jointStates[jointIndex].transform);
+    return true;
+}
+
+bool Model::getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind) const {
+    if (jointIndex == -1 || _jointStates.isEmpty()) {
+        return false;
+    }
+    rotation = _jointStates[jointIndex].combinedRotation *
+        (fromBind ? _geometry->getFBXGeometry().joints[jointIndex].inverseBindRotation :
+            _geometry->getFBXGeometry().joints[jointIndex].inverseDefaultRotation);
+    return true;
+}
+
 void Model::clearShapes() {
     for (int i = 0; i < _jointShapes.size(); ++i) {
         delete _jointShapes[i];
@@ -592,18 +610,10 @@ void Model::rebuildShapes() {
             capsule->setRotation(combinedRotations[i] * joint.shapeRotation);
             _jointShapes.push_back(capsule);
 
-            glm::vec3 endPoint; 
-            capsule->getEndPoint(endPoint);
-            glm::vec3 startPoint;
-            capsule->getStartPoint(startPoint);
-
-            // add some points that bound a sphere at the center of the capsule
-            glm::vec3 axis = glm::vec3(radius);
-            shapeExtents.addPoint(worldPosition + axis);
-            shapeExtents.addPoint(worldPosition - axis);
-            
             // add the two furthest surface points of the capsule
-            axis = (halfHeight + radius) * glm::normalize(endPoint - startPoint);
+            glm::vec3 axis;
+            capsule->computeNormalizedAxis(axis);
+            axis = halfHeight * axis + glm::vec3(radius);
             shapeExtents.addPoint(worldPosition + axis);
             shapeExtents.addPoint(worldPosition - axis);
 
@@ -637,7 +647,7 @@ void Model::rebuildShapes() {
     glm::quat inverseRotation = glm::inverse(_rotation);
     glm::vec3 rootPosition = extractTranslation(transforms[rootIndex]);
     _boundingShapeLocalOffset = inverseRotation * (0.5f * (totalExtents.maximum + totalExtents.minimum) - rootPosition);
-    _boundingShape.setPosition(_translation - _rotation * _boundingShapeLocalOffset);
+    _boundingShape.setPosition(_translation + _rotation * _boundingShapeLocalOffset);
     _boundingShape.setRotation(_rotation);
 }
 
@@ -955,24 +965,6 @@ void Model::maybeUpdateNeckRotation(const JointState& parentState, const FBXJoin
 
 void Model::maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
     // nothing by default
-}
-
-bool Model::getJointPosition(int jointIndex, glm::vec3& position) const {
-    if (jointIndex == -1 || _jointStates.isEmpty()) {
-        return false;
-    }
-    position = _translation + extractTranslation(_jointStates[jointIndex].transform);
-    return true;
-}
-
-bool Model::getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind) const {
-    if (jointIndex == -1 || _jointStates.isEmpty()) {
-        return false;
-    }
-    rotation = _jointStates[jointIndex].combinedRotation *
-        (fromBind ? _geometry->getFBXGeometry().joints[jointIndex].inverseBindRotation :
-            _geometry->getFBXGeometry().joints[jointIndex].inverseDefaultRotation);
-    return true;
 }
 
 bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const glm::quat& rotation, bool useRotation,

@@ -64,6 +64,7 @@ struct ViewFrustumOffset {
 
 class QSettings;
 
+class AttachmentsDialog;
 class BandwidthDialog;
 class LodToolsDialog;
 class MetavoxelEditor;
@@ -84,6 +85,9 @@ public:
     void setAudioJitterBufferSamples(float audioJitterBufferSamples) { _audioJitterBufferSamples = audioJitterBufferSamples; }
     float getFieldOfView() const { return _fieldOfView; }
     void setFieldOfView(float fieldOfView) { _fieldOfView = fieldOfView; }
+    float getRealWorldFieldOfView() const { return _realWorldFieldOfView; }
+    void setRealWorldFieldOfView(float realWorldFieldOfView) { _realWorldFieldOfView = realWorldFieldOfView; }
+
     float getFaceshiftEyeDeflection() const { return _faceshiftEyeDeflection; }
     void setFaceshiftEyeDeflection(float faceshiftEyeDeflection) { _faceshiftEyeDeflection = faceshiftEyeDeflection; }
     QString getSnapshotsLocation() const;
@@ -171,6 +175,7 @@ public slots:
 private slots:
     void aboutApp();
     void editPreferences();
+    void editAttachments();
     void goToDomainDialog();
     void goToLocation();
     void nameLocation();
@@ -228,6 +233,7 @@ private:
     int _audioJitterBufferSamples; /// number of extra samples to wait before starting audio playback
     BandwidthDialog* _bandwidthDialog;
     float _fieldOfView; /// in Degrees, doesn't apply to HMD like Oculus
+    float _realWorldFieldOfView;   //  The actual FOV set by the user's monitor size and view distance
     float _faceshiftEyeDeflection;
     FrustumDrawMode _frustumDrawMode;
     ViewFrustumOffset _viewFrustumOffset;
@@ -252,6 +258,7 @@ private:
     SimpleMovingAverage _fastFPSAverage;
     QAction* _loginAction;
     QPointer<PreferencesDialog> _preferencesDialog;
+    QPointer<AttachmentsDialog> _attachmentsDialog;
     QAction* _chatAction;
     QString _snapshotsLocation;
 };
@@ -261,6 +268,7 @@ namespace MenuOption {
     const QString AlignForearmsWithWrists = "Align Forearms with Wrists";
     const QString AmbientOcclusion = "Ambient Occlusion";
     const QString Atmosphere = "Atmosphere";
+    const QString Attachments = "Attachments...";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
     const QString AudioScope = "Audio Scope";
     const QString AudioScopePause = "Pause Audio Scope";
@@ -362,6 +370,7 @@ namespace MenuOption {
     const QString TestPing = "Test Ping";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";
+    const QString UploadAttachment = "Upload Attachment Model";
     const QString UploadHead = "Upload Head Model";
     const QString UploadSkeleton = "Upload Skeleton Model";
     const QString Visage = "Visage";
