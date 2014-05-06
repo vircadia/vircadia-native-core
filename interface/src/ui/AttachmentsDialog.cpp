@@ -37,6 +37,7 @@ AttachmentsDialog::AttachmentsDialog() :
     container->setLayout(_attachments = new QVBoxLayout());
     container->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
     area->setWidget(container);
+    _attachments->addStretch(1);
     
     foreach (const AttachmentData& data, Application::getInstance()->getAvatar()->getAttachmentData()) {
         addAttachment(data);
@@ -49,20 +50,30 @@ AttachmentsDialog::AttachmentsDialog() :
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok);
     layout->addWidget(buttons);
     connect(buttons, SIGNAL(accepted()), SLOT(deleteLater()));
+    _ok = buttons->button(QDialogButtonBox::Ok);
     
     setMinimumSize(600, 600);
 }
 
+void AttachmentsDialog::setVisible(bool visible) {
+    QDialog::setVisible(visible);
+    
+    // un-default the OK button
+    if (visible) {
+        _ok->setDefault(false);
+    }
+}
+
 void AttachmentsDialog::updateAttachmentData() {
     QVector<AttachmentData> data;
-    for (int i = 0; i < _attachments->count(); i++) {
+    for (int i = 0; i < _attachments->count() - 1; i++) {
         data.append(static_cast<AttachmentPanel*>(_attachments->itemAt(i)->widget())->getAttachmentData());
     }
     Application::getInstance()->getAvatar()->setAttachmentData(data);
 }
 
 void AttachmentsDialog::addAttachment(const AttachmentData& data) {
-    _attachments->addWidget(new AttachmentPanel(this, data));
+    _attachments->insertWidget(_attachments->count() - 1, new AttachmentPanel(this, data));
 }
 
 static QDoubleSpinBox* createTranslationBox(AttachmentsDialog* dialog, float value) {
@@ -86,7 +97,10 @@ static QDoubleSpinBox* createRotationBox(AttachmentsDialog* dialog, float value)
 }
 
 AttachmentPanel::AttachmentPanel(AttachmentsDialog* dialog, const AttachmentData& data) {
+    setFrameStyle(QFrame::StyledPanel);
+ 
     QFormLayout* layout = new QFormLayout();
+    layout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
     setLayout(layout);
  
     QHBoxLayout* urlBox = new QHBoxLayout();
@@ -130,6 +144,7 @@ AttachmentPanel::AttachmentPanel(AttachmentsDialog* dialog, const AttachmentData
     QPushButton* remove = new QPushButton("Delete");
     layout->addRow(remove);
     connect(remove, SIGNAL(clicked(bool)), SLOT(deleteLater()));
+    dialog->connect(remove, SIGNAL(clicked(bool)), SLOT(updateAttachmentData()), Qt::QueuedConnection);
 }
 
 AttachmentData AttachmentPanel::getAttachmentData() const {

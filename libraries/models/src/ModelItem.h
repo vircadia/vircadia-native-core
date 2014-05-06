@@ -46,7 +46,7 @@ const uint16_t MODEL_PACKET_CONTAINS_MODEL_ROTATION = 2048;
 const float MODEL_DEFAULT_RADIUS = 0.1f / TREE_SCALE;
 const float MINIMUM_MODEL_ELEMENT_SIZE = (1.0f / 100000.0f) / TREE_SCALE; // smallest size container
 const QString MODEL_DEFAULT_MODEL_URL("");
-const glm::quat MODEL_DEFAULT_MODEL_ROTATION(0, 0, 0, 0);
+const glm::quat MODEL_DEFAULT_MODEL_ROTATION;
 
 /// A collection of properties of a model item used in the scripting API. Translates between the actual properties of a model
 /// and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete set of

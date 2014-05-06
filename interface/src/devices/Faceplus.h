@@ -76,7 +76,6 @@ private:
     int _rightEyeRotationIndices[2];
     float _referenceX;
     float _referenceY;
-    float _referenceScale;
     bool _referenceInitialized;
     QVector<float> _blendshapeCoefficients;
 #endif
