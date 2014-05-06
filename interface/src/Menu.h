@@ -64,6 +64,7 @@ struct ViewFrustumOffset {
 
 class QSettings;
 
+class AttachmentsDialog;
 class BandwidthDialog;
 class LodToolsDialog;
 class MetavoxelEditor;
@@ -171,6 +172,7 @@ public slots:
 private slots:
     void aboutApp();
     void editPreferences();
+    void editAttachments();
     void goToDomainDialog();
     void goToLocation();
     void nameLocation();
@@ -252,6 +254,7 @@ private:
     SimpleMovingAverage _fastFPSAverage;
     QAction* _loginAction;
     QPointer<PreferencesDialog> _preferencesDialog;
+    QPointer<AttachmentsDialog> _attachmentsDialog;
     QAction* _chatAction;
     QString _snapshotsLocation;
 };
@@ -261,6 +264,7 @@ namespace MenuOption {
     const QString AlignForearmsWithWrists = "Align Forearms with Wrists";
     const QString AmbientOcclusion = "Ambient Occlusion";
     const QString Atmosphere = "Atmosphere";
+    const QString Attachments = "Attachments...";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
     const QString AudioScope = "Audio Scope";
     const QString AudioScopePause = "Pause Audio Scope";
@@ -362,6 +366,7 @@ namespace MenuOption {
     const QString TestPing = "Test Ping";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";
+    const QString UploadAttachment = "Upload Attachment Model";
     const QString UploadHead = "Upload Head Model";
     const QString UploadSkeleton = "Upload Skeleton Model";
     const QString Visage = "Visage";

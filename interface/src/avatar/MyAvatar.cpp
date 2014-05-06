@@ -178,6 +178,7 @@ void MyAvatar::simulate(float deltaTime) {
     getHand()->simulate(deltaTime, true);
 
     _skeletonModel.simulate(deltaTime);
+    simulateAttachments(deltaTime);
 
     // copy out the skeleton joints from the model
     _jointData.resize(_skeletonModel.getJointStateCount());
@@ -422,6 +423,24 @@ void MyAvatar::saveData(QSettings* settings) {
     
     settings->setValue("faceModelURL", _faceModelURL);
     settings->setValue("skeletonModelURL", _skeletonModelURL);
+    
+    settings->beginWriteArray("attachmentData");
+    for (int i = 0; i < _attachmentData.size(); i++) {
+        settings->setArrayIndex(i);
+        const AttachmentData& attachment = _attachmentData.at(i);
+        settings->setValue("modelURL", attachment.modelURL);
+        settings->setValue("jointName", attachment.jointName);
+        settings->setValue("translation_x", attachment.translation.x);
+        settings->setValue("translation_y", attachment.translation.y);
+        settings->setValue("translation_z", attachment.translation.z);
+        glm::vec3 eulers = safeEulerAngles(attachment.rotation);
+        settings->setValue("rotation_x", eulers.x);
+        settings->setValue("rotation_y", eulers.y);
+        settings->setValue("rotation_z", eulers.z);
+        settings->setValue("scale", attachment.scale);
+    }
+    settings->endArray();
+    
     settings->setValue("displayName", _displayName);
 
     settings->endGroup();
@@ -450,6 +469,28 @@ void MyAvatar::loadData(QSettings* settings) {
     
     setFaceModelURL(settings->value("faceModelURL", DEFAULT_HEAD_MODEL_URL).toUrl());
     setSkeletonModelURL(settings->value("skeletonModelURL").toUrl());
+    
+    QVector<AttachmentData> attachmentData;
+    int attachmentCount = settings->beginReadArray("attachmentData");
+    for (int i = 0; i < attachmentCount; i++) {
+        settings->setArrayIndex(i);
+        AttachmentData attachment;
+        attachment.modelURL = settings->value("modelURL").toUrl();
+        attachment.jointName = settings->value("jointName").toString();
+        attachment.translation.x = loadSetting(settings, "translation_x", 0.0f);
+        attachment.translation.y = loadSetting(settings, "translation_y", 0.0f);
+        attachment.translation.z = loadSetting(settings, "translation_z", 0.0f);
+        glm::vec3 eulers;
+        eulers.x = loadSetting(settings, "rotation_x", 0.0f);
+        eulers.y = loadSetting(settings, "rotation_y", 0.0f);
+        eulers.z = loadSetting(settings, "rotation_z", 0.0f);
+        attachment.rotation = glm::quat(eulers);
+        attachment.scale = loadSetting(settings, "scale", 1.0f);
+        attachmentData.append(attachment);
+    }
+    settings->endArray();
+    setAttachmentData(attachmentData);
+    
     setDisplayName(settings->value("displayName").toString());
 
     settings->endGroup();
@@ -548,7 +589,8 @@ void MyAvatar::renderBody(RenderMode renderMode, float glowLevel) {
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
         Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
     _skeletonModel.render(1.0f, modelRenderMode);
-
+    renderAttachments(modelRenderMode);
+    
     //  Render head so long as the camera isn't inside it
     if (shouldRenderHead(Application::getInstance()->getCamera()->getPosition(), renderMode)) {
         getHead()->render(1.0f, modelRenderMode);

@@ -71,6 +71,7 @@
 #include "scripting/ControllerScriptingInterface.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/BandwidthMeter.h"
+#include "ui/ModelsBrowser.h"
 #include "ui/OctreeStatsDialog.h"
 #include "ui/RearMirrorTools.h"
 #include "ui/LodToolsDialog.h"
@@ -295,9 +296,9 @@ public slots:
     void reloadAllScripts();
     void toggleRunningScriptsWidget();
 
-    void uploadFST(bool isHead);
     void uploadHead();
     void uploadSkeleton();
+    void uploadAttachment();
 
     void bumpSettings() { ++_numChangedSettings; }
 
@@ -375,12 +376,10 @@ private:
 
     void setMenuShortcutsEnabled(bool enabled);
 
+    void uploadModel(ModelType modelType);
+
     static void attachNewHeadToNode(Node *newNode);
     static void* networkReceive(void* args); // network receive thread
-
-    void findAxisAlignment();
-
-    void displayRearMirrorTools();
 
     MainWindow* _window;
     GLCanvas* _glWidget; // our GLCanvas has a couple extra features
