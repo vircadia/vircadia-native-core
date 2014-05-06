@@ -369,7 +369,7 @@ void Avatar::simulateAttachments(float deltaTime) {
         glm::quat jointRotation;
         if (_skeletonModel.getJointPosition(jointIndex, jointPosition) &&
                 _skeletonModel.getJointRotation(jointIndex, jointRotation)) {
-            model->setTranslation(jointPosition + jointRotation * attachment.translation * _skeletonModel.getScale());
+            model->setTranslation(jointPosition + jointRotation * attachment.translation * _scale);
             model->setRotation(jointRotation * attachment.rotation);
             model->setScale(_skeletonModel.getScale() * attachment.scale);
             model->simulate(deltaTime);
