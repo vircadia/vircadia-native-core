@@ -130,8 +130,6 @@ void Octree::recurseElementWithOperationDistanceSorted(OctreeElement* element, R
             if (childElement) {
                 // chance to optimize, doesn't need to be actual distance!! Could be distance squared
                 float distanceSquared = childElement->distanceSquareToPoint(point);
-                //qDebug("recurseElementWithOperationDistanceSorted() CHECKING child[%d] point=%f,%f center=%f,%f distance=%f...\n", i, point.x, point.y, center.x, center.y, distance);
-                //childElement->printDebugDetails("");
                 currentCount = insertIntoSortedArrays((void*)childElement, distanceSquared, i,
                                                       (void**)&sortedChildren, (float*)&distancesToChildren,
                                                       (int*)&indexOfChildren, currentCount, NUMBER_OF_CHILDREN);
@@ -141,8 +139,6 @@ void Octree::recurseElementWithOperationDistanceSorted(OctreeElement* element, R
         for (int i = 0; i < currentCount; i++) {
             OctreeElement* childElement = sortedChildren[i];
             if (childElement) {
-                //qDebug("recurseElementWithOperationDistanceSorted() PROCESSING child[%d] distance=%f...\n", i, distancesToChildren[i]);
-                //childElement->printDebugDetails("");
                 recurseElementWithOperationDistanceSorted(childElement, operation, point, extraData);
             }
         }
@@ -1167,7 +1163,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         // even if they don't in our local tree
         bool notMyJurisdiction = false;
         if (params.jurisdictionMap) {
-            notMyJurisdiction = (JurisdictionMap::WITHIN != params.jurisdictionMap->isMyJurisdiction(element->getOctalCode(), i));
+            notMyJurisdiction = JurisdictionMap::WITHIN != params.jurisdictionMap->isMyJurisdiction(element->getOctalCode(), i);
         }
         if (params.includeExistsBits) {
             // If the child is known to exist, OR, it's not my jurisdiction, then we mark the bit as existing
@@ -1206,8 +1202,9 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
 
         bool childIsInView  = (childElement && 
                 ( !params.viewFrustum || // no view frustum was given, everything is assumed in view
-                  (nodeLocationThisView == ViewFrustum::INSIDE) || // the parent was fully in view, we can assume ALL children are
-                  (nodeLocationThisView == ViewFrustum::INTERSECT && childElement->isInView(*params.viewFrustum)) // the parent intersects and the child is in view
+                  (nodeLocationThisView == ViewFrustum::INSIDE) || // parent was fully in view, we can assume ALL children are
+                  (nodeLocationThisView == ViewFrustum::INTERSECT && 
+                        childElement->isInView(*params.viewFrustum)) // the parent intersects and the child is in view
                 ));
 
         if (!childIsInView) {
@@ -1217,7 +1214,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
             }
         } else {
             // Before we determine consider this further, let's see if it's in our LOD scope...
-            float distance = distancesToChildren[i]; // params.viewFrustum ? childElement->distanceToCamera(*params.viewFrustum) : 0;
+            float distance = distancesToChildren[i];
             float boundaryDistance = !params.viewFrustum ? 1 :
                                      boundaryDistanceForRenderLevel(childElement->getLevel() + params.boundaryLevelAdjust,
                                             params.octreeElementSizeScale);
@@ -1249,7 +1246,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                     OctreeProjectedPolygon* voxelPolygon = new OctreeProjectedPolygon(
                                 params.viewFrustum->getProjectedPolygon(voxelBox));
 
-                    // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we will ignore occlusion
+                    // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we ignore occlusion
                     // culling and proceed as normal
                     if (voxelPolygon->getAllInView()) {
                         CoverageMapStorageResult result = params.map->checkMap(voxelPolygon, true);
@@ -1649,7 +1646,7 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
             bytesWritten = encodeTreeBitstream(subTree, &packetData, nodeBag, params);
             unlock();
 
-            // if the subTree couldn't fit, and so we should reset the packet and reinsert the element in our bag and try again...
+            // if the subTree couldn't fit, and so we should reset the packet and reinsert the element in our bag and try again
             if (bytesWritten == 0 && (params.stopReason == EncodeBitstreamParams::DIDNT_FIT)) {
                 if (packetData.hasContent()) {
                     file.write((const char*)packetData.getFinalizedData(), packetData.getFinalizedSize());
@@ -1721,18 +1718,10 @@ void Octree::copyFromTreeIntoSubTree(Octree* sourceTree, OctreeElement* destinat
 
         // ask destination tree to read the bitstream
         bool wantImportProgress = true;
-        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, destinationElement, 0, SharedNodePointer(), wantImportProgress);
+        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, destinationElement, 
+                                            0, SharedNodePointer(), wantImportProgress);
         readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
     }
-}
-
-void dumpSetContents(const char* name, std::set<unsigned char*> set) {
-    qDebug("set %s has %ld elements", name, set.size());
-    /*
-    for (std::set<unsigned char*>::iterator i = set.begin(); i != set.end(); ++i) {
-        printOctalCode(*i);
-    }
-    */
 }
 
 void Octree::cancelImport() {
