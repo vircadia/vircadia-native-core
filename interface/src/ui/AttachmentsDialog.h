@@ -30,6 +30,8 @@ public:
     
     AttachmentsDialog();
 
+    virtual void setVisible(bool visible);
+
 public slots:
 
     void updateAttachmentData();
@@ -41,6 +43,7 @@ private slots:
 private:
     
     QVBoxLayout* _attachments;
+    QPushButton* _ok;
 };
 
 /// A panel controlling a single attachment.

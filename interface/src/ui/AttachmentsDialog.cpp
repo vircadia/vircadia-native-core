@@ -50,8 +50,18 @@ AttachmentsDialog::AttachmentsDialog() :
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok);
     layout->addWidget(buttons);
     connect(buttons, SIGNAL(accepted()), SLOT(deleteLater()));
+    _ok = buttons->button(QDialogButtonBox::Ok);
     
     setMinimumSize(600, 600);
+}
+
+void AttachmentsDialog::setVisible(bool visible) {
+    QDialog::setVisible(visible);
+    
+    // un-default the OK button
+    if (visible) {
+        _ok->setDefault(false);
+    }
 }
 
 void AttachmentsDialog::updateAttachmentData() {
