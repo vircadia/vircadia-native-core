@@ -1,8 +1,8 @@
 //
-//  MetavoxelEditor.cpp
+//  AttachmentsDialog.cpp
 //  interface/src/ui
 //
-//  Created by Andrzej Kapolka on 1/21/14.
+//  Created by Andrzej Kapolka on 5/4/14.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
