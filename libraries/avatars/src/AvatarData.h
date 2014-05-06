@@ -45,6 +45,8 @@ typedef unsigned long long quint64;
 
 #include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
+#include <StreamUtils.h>
+
 #include <Node.h>
 
 #include "HeadData.h"
@@ -95,8 +97,10 @@ enum KeyState {
 
 const glm::vec3 vec3Zero(0.0f);
 
+class QDataStream;
 class QNetworkAccessManager;
 
+class AttachmentData;
 class JointData;
 
 class AvatarData : public QObject {
@@ -226,9 +230,11 @@ public:
     const QUrl& getFaceModelURL() const { return _faceModelURL; }
     QString getFaceModelURLString() const { return _faceModelURL.toString(); }
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
+    const QVector<AttachmentData>& getAttachmentData() const { return _attachmentData; }
     const QString& getDisplayName() const { return _displayName; }
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+    virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
     virtual void setDisplayName(const QString& displayName);
     
     virtual void setBillboard(const QByteArray& billboard);
@@ -291,6 +297,7 @@ protected:
 
     QUrl _faceModelURL;
     QUrl _skeletonModelURL;
+    QVector<AttachmentData> _attachmentData;
     QString _displayName;
 
     QRect _displayNameBoundingRect;
@@ -324,5 +331,21 @@ public:
     bool valid;
     glm::quat rotation;
 };
+
+class AttachmentData {
+public:
+    QUrl modelURL;
+    QString jointName;
+    glm::vec3 translation;
+    glm::quat rotation;
+    float scale;
+    
+    AttachmentData();
+    
+    bool operator==(const AttachmentData& other) const;
+};
+
+QDataStream& operator<<(QDataStream& out, const AttachmentData& attachment);
+QDataStream& operator>>(QDataStream& in, AttachmentData& attachment);
 
 #endif // hifi_AvatarData_h

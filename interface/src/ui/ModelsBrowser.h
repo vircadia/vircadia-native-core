@@ -16,11 +16,13 @@
 #include <QStandardItemModel>
 #include <QTreeView>
 
-
 enum ModelType {
-    Head,
-    Skeleton
+    HEAD_MODEL,
+    SKELETON_MODEL,
+    ATTACHMENT_MODEL
 };
+
+extern const char* MODEL_TYPE_NAMES[];
 
 class ModelHandler : public QObject {
     Q_OBJECT

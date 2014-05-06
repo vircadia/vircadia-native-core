@@ -131,6 +131,7 @@ public:
     
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+    virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
     virtual void setDisplayName(const QString& displayName);
     virtual void setBillboard(const QByteArray& billboard);
 
@@ -160,6 +161,7 @@ signals:
 
 protected:
     SkeletonModel _skeletonModel;
+    QVector<Model*> _attachmentModels;
     float _bodyYawDelta;
     glm::vec3 _velocity;
     float _leanScale;
@@ -187,6 +189,9 @@ protected:
     void renderDisplayName();
     virtual void renderBody(RenderMode renderMode, float glowLevel = 0.0f);
     virtual bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
+
+    void simulateAttachments(float deltaTime);
+    void renderAttachments(Model::RenderMode renderMode);
 
     virtual void updateJointMappings();
 
