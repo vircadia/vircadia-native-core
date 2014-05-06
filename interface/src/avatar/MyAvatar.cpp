@@ -59,7 +59,7 @@ MyAvatar::MyAvatar() :
     _bodyPitchDelta(0.0f),
     _bodyRollDelta(0.0f),
     _shouldJump(false),
-    _gravity(0.0f, -1.0f, 0.0f),
+    _gravity(0.0f, 0.0f, 0.0f),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
     _wasPushing(false),
     _isPushing(false),
