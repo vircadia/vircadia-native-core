@@ -33,7 +33,6 @@ AttachmentsDialog::AttachmentsDialog() :
     QScrollArea* area = new QScrollArea();
     layout->addWidget(area);
     area->setWidgetResizable(true);
-    area->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     QWidget* container = new QWidget();
     container->setLayout(_attachments = new QVBoxLayout());
     container->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
