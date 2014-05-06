@@ -37,7 +37,7 @@ var radiusMinimum = 0.05;
 var radiusMaximum = 0.5;
 
 var modelURLs = [
-    "http://s3.amazonaws.com/converter.tipodean.com/hifi/gun/Raygun2.fbx",
+    "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/music/EVHFrankenstein.fbx",
     "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
     "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/birarda/birarda_head.fbx",
     "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/pug.fbx",
