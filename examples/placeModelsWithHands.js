@@ -37,6 +37,7 @@ var radiusMinimum = 0.05;
 var radiusMaximum = 0.5;
 
 var modelURLs = [
+    "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/music/EVHFrankenstein.fbx",
     "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
     "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/birarda/birarda_head.fbx",
     "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/pug.fbx",
@@ -51,6 +52,12 @@ var currentModelURL = 1;
 var numModels = modelURLs.length;
 
 
+function getNewVoxelPosition() {
+    var camera = Camera.getPosition();
+    var forwardVector = Quat.getFront(MyAvatar.orientation);
+    var newPosition = Vec3.sum(camera, Vec3.multiply(forwardVector, 2.0));
+    return newPosition;
+}
 
 function keyPressEvent(event) {
     debugPrint("event.text=" + event.text);
@@ -63,7 +70,20 @@ function keyPressEvent(event) {
             rightRecentlyDeleted = false;
             rightModelAlreadyInHand = false;
         }
+    } else if (event.text == "m") {
+        var URL = Window.prompt("Model URL", "Enter URL, e.g. http://foo.com/model.fbx");
+        Window.alert("Your response was: " + prompt);
+        var modelPosition = getNewVoxelPosition();
+        var properties = { position: { x: modelPosition.x, 
+                                       y: modelPosition.y, 
+                                       z: modelPosition.z }, 
+                radius: modelRadius,
+                modelURL: URL
+            };
+        newModel = Models.addModel(properties);
+
     } else if (event.text == "DELETE" || event.text == "BACKSPACE") {
+
         if (leftModelAlreadyInHand) {
             print("want to delete leftHandModel=" + leftHandModel);
             Models.deleteModel(leftHandModel);

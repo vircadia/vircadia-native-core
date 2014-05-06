@@ -249,14 +249,17 @@ void MyAvatar::updateFromGyros(float deltaTime) {
     }
 
     // Set the rotation of the avatar's head (as seen by others, not affecting view frustum)
-    // to be scaled.  Pitch is greater to emphasize nodding behavior / synchrony.
-    const float AVATAR_HEAD_PITCH_MAGNIFY = 1.0f;
-    const float AVATAR_HEAD_YAW_MAGNIFY = 1.0f;
-    const float AVATAR_HEAD_ROLL_MAGNIFY = 1.0f;
+    // to be scaled such that when the user's physical head is pointing at edge of screen, the
+    // avatar head is at the edge of the in-world view frustum.  So while a real person may move
+    // their head only 30 degrees or so, this may correspond to a 90 degree field of view.
+    // Note that roll is magnified by a constant because it is not related to field of view.
+
+    float magnifyFieldOfView = Menu::getInstance()->getFieldOfView() / Menu::getInstance()->getRealWorldFieldOfView();
+    
     Head* head = getHead();
-    head->setDeltaPitch(estimatedRotation.x * AVATAR_HEAD_PITCH_MAGNIFY);
-    head->setDeltaYaw(estimatedRotation.y * AVATAR_HEAD_YAW_MAGNIFY);
-    head->setDeltaRoll(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
+    head->setDeltaPitch(estimatedRotation.x * magnifyFieldOfView);
+    head->setDeltaYaw(estimatedRotation.y * magnifyFieldOfView);
+    head->setDeltaRoll(estimatedRotation.z);
 
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
@@ -339,18 +342,15 @@ void MyAvatar::renderHeadMouse(int screenWidth, int screenHeight) const {
     
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
     
+    float pixelsPerDegree = screenHeight / Menu::getInstance()->getFieldOfView();
+    
     //  Display small target box at center or head mouse target that can also be used to measure LOD
     float headPitch = getHead()->getFinalPitch();
     float headYaw = getHead()->getFinalYaw();
-    //
-    //  It should be noted that the following constant is a function
-    //  how far the viewer's head is away from both the screen and the size of the screen,
-    //  which are both things we cannot know without adding a calibration phase.
-    //
-    const float PIXELS_PER_VERTICAL_DEGREE = 20.0f;
+
     float aspectRatio = (float) screenWidth / (float) screenHeight;
-    int headMouseX = screenWidth / 2.f - headYaw * aspectRatio * PIXELS_PER_VERTICAL_DEGREE;
-    int headMouseY = screenHeight / 2.f - headPitch * PIXELS_PER_VERTICAL_DEGREE;
+    int headMouseX = screenWidth / 2.f - headYaw * aspectRatio * pixelsPerDegree;
+    int headMouseY = screenHeight / 2.f - headPitch * pixelsPerDegree;
     
     glColor3f(1.0f, 1.0f, 1.0f);
     glDisable(GL_LINE_SMOOTH);
@@ -367,8 +367,8 @@ void MyAvatar::renderHeadMouse(int screenWidth, int screenHeight) const {
 
         float avgEyePitch = faceshift->getEstimatedEyePitch();
         float avgEyeYaw = faceshift->getEstimatedEyeYaw();
-        int eyeTargetX = (screenWidth / 2) - avgEyeYaw * aspectRatio * PIXELS_PER_VERTICAL_DEGREE;
-        int eyeTargetY = (screenHeight / 2) - avgEyePitch * PIXELS_PER_VERTICAL_DEGREE;
+        int eyeTargetX = (screenWidth / 2) - avgEyeYaw * aspectRatio * pixelsPerDegree;
+        int eyeTargetY = (screenHeight / 2) - avgEyePitch * pixelsPerDegree;
         
         glColor3f(0.0f, 1.0f, 1.0f);
         glDisable(GL_LINE_SMOOTH);
@@ -509,23 +509,6 @@ void MyAvatar::sendKillAvatar() {
     NodeList::getInstance()->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);
 }
 
-void MyAvatar::orbit(const glm::vec3& position, int deltaX, int deltaY) {
-    // first orbit horizontally
-    glm::quat orientation = getOrientation();
-    const float ANGULAR_SCALE = 0.5f;
-    glm::quat rotation = glm::angleAxis(glm::radians(- deltaX * ANGULAR_SCALE), orientation * IDENTITY_UP);
-    setPosition(position + rotation * (getPosition() - position));
-    orientation = rotation * orientation;
-    setOrientation(orientation);
-    
-    // then vertically
-    float oldPitch = getHead()->getBasePitch();
-    getHead()->setBasePitch(oldPitch - deltaY * ANGULAR_SCALE);
-    rotation = glm::angleAxis(glm::radians((getHead()->getBasePitch() - oldPitch)), orientation * IDENTITY_RIGHT);
-
-    setPosition(position + rotation * (getPosition() - position));
-}
-
 void MyAvatar::updateLookAtTargetAvatar() {
     //
     //  Look at the avatar whose eyes are closest to the ray in direction of my avatar's head
@@ -536,6 +519,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     float smallestAngleTo = MIN_LOOKAT_ANGLE;
     foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
+        avatar->setIsLookAtTarget(false);
         if (!avatar->isMyAvatar()) {
             float angleTo = glm::angle(getHead()->getFinalOrientation() * glm::vec3(0.0f, 0.0f, -1.0f),
                                        glm::normalize(avatar->getHead()->getEyePosition() - getHead()->getEyePosition()));
@@ -545,6 +529,9 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 smallestAngleTo = angleTo;
             }
         }
+    }
+    if (_lookAtTargetAvatar) {
+        static_cast<Avatar*>(_lookAtTargetAvatar.data())->setIsLookAtTarget(true);
     }
 }
 

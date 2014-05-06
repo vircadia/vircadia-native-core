@@ -85,6 +85,9 @@ public:
     void setAudioJitterBufferSamples(float audioJitterBufferSamples) { _audioJitterBufferSamples = audioJitterBufferSamples; }
     float getFieldOfView() const { return _fieldOfView; }
     void setFieldOfView(float fieldOfView) { _fieldOfView = fieldOfView; }
+    float getRealWorldFieldOfView() const { return _realWorldFieldOfView; }
+    void setRealWorldFieldOfView(float realWorldFieldOfView) { _realWorldFieldOfView = realWorldFieldOfView; }
+
     float getFaceshiftEyeDeflection() const { return _faceshiftEyeDeflection; }
     void setFaceshiftEyeDeflection(float faceshiftEyeDeflection) { _faceshiftEyeDeflection = faceshiftEyeDeflection; }
     QString getSnapshotsLocation() const;
@@ -230,6 +233,7 @@ private:
     int _audioJitterBufferSamples; /// number of extra samples to wait before starting audio playback
     BandwidthDialog* _bandwidthDialog;
     float _fieldOfView; /// in Degrees, doesn't apply to HMD like Oculus
+    float _realWorldFieldOfView;   //  The actual FOV set by the user's monitor size and view distance
     float _faceshiftEyeDeflection;
     FrustumDrawMode _frustumDrawMode;
     ViewFrustumOffset _viewFrustumOffset;

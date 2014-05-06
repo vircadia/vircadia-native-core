@@ -79,7 +79,7 @@ public:
     //setters
     void setDisplayingLookatVectors(bool displayingLookatVectors) { getHead()->setRenderLookatVectors(displayingLookatVectors); }
     void setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction);
-
+    void setIsLookAtTarget(const bool isLookAtTarget) { _isLookAtTarget = isLookAtTarget; }
     //getters
     bool isInitialized() const { return _initialized; }
     SkeletonModel& getSkeletonModel() { return _skeletonModel; }
@@ -200,6 +200,7 @@ private:
     bool _initialized;
     QScopedPointer<Texture> _billboardTexture;
     bool _shouldRenderBillboard;
+    bool _isLookAtTarget;
 
     void renderBillboard();
     
