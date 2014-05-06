@@ -761,7 +761,7 @@ void MyAvatar::applyMotor(float deltaTime) {
     glm::vec3 targetVelocity = _motorVelocity;
     if (_motionBehaviors & AVATAR_MOTION_MOTOR_USE_LOCAL_FRAME) {
         // rotate _motorVelocity into world frame
-        glm::quat rotation = getOrientation();
+        glm::quat rotation = getHead()->getCameraOrientation();
         targetVelocity = rotation * _motorVelocity;
     }
 
