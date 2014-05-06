@@ -36,8 +36,15 @@ class Shape;
 #include <QObject>
 #include <QReadWriteLock>
 
+/// derive from this class to use the Octree::recurseTreeWithOperator() method
+class RecurseOctreeOperator {
+public:
+    virtual bool PreRecursion(OctreeElement* element) = 0;
+    virtual bool PostRecursion(OctreeElement* element) = 0;
+};
+
 // Callback function, for recuseTreeWithOperation
-typedef bool (*RecurseOctreeOperation)(OctreeElement* node, void* extraData);
+typedef bool (*RecurseOctreeOperation)(OctreeElement* element, void* extraData);
 typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 
 const bool NO_EXISTS_BITS         = false;
@@ -222,13 +229,14 @@ public:
     OctreeElement* getOrCreateChildElementAt(float x, float y, float z, float s);
 
     void recurseTreeWithOperation(RecurseOctreeOperation operation, void* extraData = NULL);
-
     void recurseTreeWithPostOperation(RecurseOctreeOperation operation, void* extraData = NULL);
 
     void recurseTreeWithOperationDistanceSorted(RecurseOctreeOperation operation,
                                                 const glm::vec3& point, void* extraData = NULL);
 
-    int encodeTreeBitstream(OctreeElement* node, OctreePacketData* packetData, OctreeElementBag& bag,
+    void recurseTreeWithOperator(RecurseOctreeOperator* operatorObject);
+
+    int encodeTreeBitstream(OctreeElement* element, OctreePacketData* packetData, OctreeElementBag& bag,
                             EncodeBitstreamParams& params) ;
 
     bool isDirty() const { return _isDirty; }
@@ -268,7 +276,7 @@ public:
     void loadOctreeFile(const char* fileName, bool wantColorRandomizer);
 
     // these will read/write files that match the wireformat, excluding the 'V' leading
-    void writeToSVOFile(const char* filename, OctreeElement* node = NULL);
+    void writeToSVOFile(const char* filename, OctreeElement* element = NULL);
     bool readFromSVOFile(const char* filename);
     
 
@@ -279,16 +287,18 @@ public:
 
     bool getShouldReaverage() const { return _shouldReaverage; }
 
-    void recurseNodeWithOperation(OctreeElement* node, RecurseOctreeOperation operation,
+    void recurseNodeWithOperation(OctreeElement* element, RecurseOctreeOperation operation,
                 void* extraData, int recursionCount = 0);
 
 	/// Traverse child nodes of node applying operation in post-fix order
 	///
-    void recurseNodeWithPostOperation(OctreeElement* node, RecurseOctreeOperation operation,
+    void recurseNodeWithPostOperation(OctreeElement* element, RecurseOctreeOperation operation,
                 void* extraData, int recursionCount = 0);
 
-    void recurseNodeWithOperationDistanceSorted(OctreeElement* node, RecurseOctreeOperation operation,
+    void recurseNodeWithOperationDistanceSorted(OctreeElement* element, RecurseOctreeOperation operation,
                 const glm::vec3& point, void* extraData, int recursionCount = 0);
+
+    bool recurseNodeWithOperator(OctreeElement* element, RecurseOctreeOperator* operatorObject, int recursionCount = 0);
 
     bool getIsViewing() const { return _isViewing; }
     void setIsViewing(bool isViewing) { _isViewing = isViewing; }
@@ -302,14 +312,14 @@ public slots:
 
 
 protected:
-    void deleteOctalCodeFromTreeRecursion(OctreeElement* node, void* extraData);
+    void deleteOctalCodeFromTreeRecursion(OctreeElement* element, void* extraData);
 
-    int encodeTreeBitstreamRecursion(OctreeElement* node,
+    int encodeTreeBitstreamRecursion(OctreeElement* element,
                                      OctreePacketData* packetData, OctreeElementBag& bag,
                                      EncodeBitstreamParams& params, int& currentEncodeLevel,
                                      const ViewFrustum::location& parentLocationThisView) const;
 
-    static bool countOctreeElementsOperation(OctreeElement* node, void* extraData);
+    static bool countOctreeElementsOperation(OctreeElement* element, void* extraData);
 
     OctreeElement* nodeForOctalCode(OctreeElement* ancestorNode, const unsigned char* needleCode, OctreeElement** parentOfFoundNode) const;
     OctreeElement* createMissingNode(OctreeElement* lastParentNode, const unsigned char* codeToReach);
