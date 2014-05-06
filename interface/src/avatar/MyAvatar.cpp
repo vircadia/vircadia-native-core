@@ -163,7 +163,7 @@ void MyAvatar::simulate(float deltaTime) {
         // update position
         if (glm::length2(_velocity) < EPSILON) {
             _velocity = glm::vec3(0.0f);
-        } else {
+        } else { 
             _position += _velocity * deltaTime;
         }
     }
@@ -456,9 +456,9 @@ void MyAvatar::loadData(QSettings* settings) {
 
     getHead()->setBasePitch(loadSetting(settings, "headPitch", 0.0f));
 
-    _position.x = loadSetting(settings, "position_x", 0.0f);
-    _position.y = loadSetting(settings, "position_y", 0.0f);
-    _position.z = loadSetting(settings, "position_z", 0.0f);
+    _position.x = loadSetting(settings, "position_x", START_LOCATION.x);
+    _position.y = loadSetting(settings, "position_y", START_LOCATION.x);
+    _position.z = loadSetting(settings, "position_z", START_LOCATION.z);
 
     getHead()->setPupilDilation(loadSetting(settings, "pupilDilation", 0.0f));
 
