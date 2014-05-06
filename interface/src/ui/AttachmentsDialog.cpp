@@ -130,6 +130,7 @@ AttachmentPanel::AttachmentPanel(AttachmentsDialog* dialog, const AttachmentData
     QPushButton* remove = new QPushButton("Delete");
     layout->addRow(remove);
     connect(remove, SIGNAL(clicked(bool)), SLOT(deleteLater()));
+    dialog->connect(remove, SIGNAL(clicked(bool)), SLOT(updateAttachmentData()), Qt::QueuedConnection);
 }
 
 AttachmentData AttachmentPanel::getAttachmentData() const {
