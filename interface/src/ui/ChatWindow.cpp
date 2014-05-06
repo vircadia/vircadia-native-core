@@ -12,6 +12,7 @@
 #include <QGridLayout>
 #include <QFrame>
 #include <QLayoutItem>
+#include <QMessageBox>
 #include <QPalette>
 #include <QScrollBar>
 #include <QSizePolicy>
@@ -26,7 +27,7 @@
 
 #include "ChatWindow.h"
 
-#include <QMessageBox>
+
 
 const int NUM_MESSAGES_TO_TIME_STAMP = 20;
 
