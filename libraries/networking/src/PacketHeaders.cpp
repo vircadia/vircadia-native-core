@@ -49,6 +49,8 @@ PacketVersion versionForPacketType(PacketType type) {
     switch (type) {
         case PacketTypeAvatarData:
             return 3;
+        case PacketTypeAvatarIdentity:
+            return 1;
         case PacketTypeEnvironmentData:
             return 1;
         case PacketTypeParticleData:
