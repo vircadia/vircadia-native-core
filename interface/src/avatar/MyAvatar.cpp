@@ -457,7 +457,7 @@ void MyAvatar::loadData(QSettings* settings) {
     getHead()->setBasePitch(loadSetting(settings, "headPitch", 0.0f));
 
     _position.x = loadSetting(settings, "position_x", START_LOCATION.x);
-    _position.y = loadSetting(settings, "position_y", START_LOCATION.x);
+    _position.y = loadSetting(settings, "position_y", START_LOCATION.y);
     _position.z = loadSetting(settings, "position_z", START_LOCATION.z);
 
     getHead()->setPupilDilation(loadSetting(settings, "pupilDilation", 0.0f));
