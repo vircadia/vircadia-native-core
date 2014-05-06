@@ -13,6 +13,7 @@
 #define hifi_AttachmentsDialog_h
 
 #include <QDialog>
+#include <QFrame>
 
 #include <AvatarData.h>
 
@@ -29,6 +30,8 @@ public:
     
     AttachmentsDialog();
 
+    virtual void setVisible(bool visible);
+
 public slots:
 
     void updateAttachmentData();
@@ -40,10 +43,11 @@ private slots:
 private:
     
     QVBoxLayout* _attachments;
+    QPushButton* _ok;
 };
 
 /// A panel controlling a single attachment.
-class AttachmentPanel : public QWidget {
+class AttachmentPanel : public QFrame {
     Q_OBJECT
 
 public:
