@@ -87,37 +87,11 @@ ChatWindow::ChatWindow(QWidget* parent) :
     }
     connect(&xmppClient, SIGNAL(messageReceived(QXmppMessage)), this, SLOT(messageReceived(QXmppMessage)));
     connect(&_trayIcon, SIGNAL(messageClicked()), this, SLOT(notificationClicked()));
-#endif
+#endif // HAVE_QXMPP
 
     QDir mentionSoundsDir(Application::resourcesPath() + mentionSoundsPath);
     _mentionSounds = mentionSoundsDir.entryList(QDir::Files);
     _trayIcon.setIcon(QIcon( Application::resourcesPath() + "/images/hifi-logo.svg"));
-}
-
-void ChatWindow::notificationClicked() {
-    if (parentWidget()->isMinimized()) {
-        parentWidget()->showNormal();
-    }
-    if (isHidden()) {
-        show();
-    }
-
-    // find last mention
-    int messageCount = ui->messagesVBoxLayout->count();
-    for (unsigned int i = messageCount; i > 0; i--) {
-        ChatMessageArea* area = (ChatMessageArea*)ui->messagesVBoxLayout->itemAt(i - 1)->widget();
-        QRegularExpression usernameMention(mentionRegex.arg(AccountManager::getInstance().getAccountInfo().getUsername()));
-        if (area->toPlainText().contains(usernameMention)) {
-            int top = area->geometry().top();
-            int height = area->geometry().height();
-
-            QScrollBar* verticalScrollBar = ui->messagesScrollArea->verticalScrollBar();
-            verticalScrollBar->setSliderPosition(top - verticalScrollBar->size().height() + height);
-            return;
-        }
-    }
-
-    scrollToBottom();
 }
 
 ChatWindow::~ChatWindow() {
@@ -128,7 +102,7 @@ ChatWindow::~ChatWindow() {
 
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
     disconnect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
-#endif
+#endif // HAVE_QXMPP
     delete ui;
 }
 
@@ -147,10 +121,12 @@ void ChatWindow::showEvent(QShowEvent* event) {
         ui->messagePlainTextEdit->setFocus();
     }
 
+#ifdef HAVE_QXMPP
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
     if (xmppClient.isConnected()) {
         participantsChanged();
     }
+#endif // HAVE_QXMPP
 }
 
 bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
@@ -163,14 +139,14 @@ bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
             (keyEvent->modifiers() & Qt::ShiftModifier) == 0) {
             QString messageText = ui->messagePlainTextEdit->document()->toPlainText().trimmed();
             if (!messageText.isEmpty()) {
-    #ifdef HAVE_QXMPP
+#ifdef HAVE_QXMPP
                 const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
                 QXmppMessage message;
                 message.setTo(publicChatRoom->jid());
                 message.setType(QXmppMessage::GroupChat);
                 message.setBody(messageText);
                 XmppClient::getInstance().getXMPPClient().sendPacket(message);
-    #endif
+#endif // HAVE_QXMPP
                 QTextCursor cursor = ui->messagePlainTextEdit->textCursor();
                 cursor.select(QTextCursor::Document);
                 cursor.removeSelectedText();
@@ -186,13 +162,6 @@ bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
     }
     return FramelessDialog::eventFilter(sender, event);
 }
-
-#ifdef HAVE_QXMPP
-QString ChatWindow::getParticipantName(const QString& participant) {
-    const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
-    return participant.right(participant.count() - 1 - publicChatRoom->jid().count());
-}
-#endif
 
 void ChatWindow::addTimeStamp() {
     QTimeSpan timePassed = QDateTime::currentDateTime() - lastMessageStamp;
@@ -246,7 +215,7 @@ void ChatWindow::connected() {
 #ifdef HAVE_QXMPP
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
     connect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
-#endif
+#endif // HAVE_QXMPP
     startTimerForTimeStamps();
 }
 
@@ -257,6 +226,36 @@ void ChatWindow::timeout() {
 }
 
 #ifdef HAVE_QXMPP
+void ChatWindow::notificationClicked() {
+    if (parentWidget()->isMinimized()) {
+        parentWidget()->showNormal();
+    }
+    if (isHidden()) {
+        show();
+    }
+
+    // find last mention
+    int messageCount = ui->messagesVBoxLayout->count();
+    for (unsigned int i = messageCount; i > 0; i--) {
+        ChatMessageArea* area = (ChatMessageArea*)ui->messagesVBoxLayout->itemAt(i - 1)->widget();
+        QRegularExpression usernameMention(mentionRegex.arg(AccountManager::getInstance().getAccountInfo().getUsername()));
+        if (area->toPlainText().contains(usernameMention)) {
+            int top = area->geometry().top();
+            int height = area->geometry().height();
+
+            QScrollBar* verticalScrollBar = ui->messagesScrollArea->verticalScrollBar();
+            verticalScrollBar->setSliderPosition(top - verticalScrollBar->size().height() + height);
+            return;
+        }
+    }
+
+    scrollToBottom();
+}
+
+QString ChatWindow::getParticipantName(const QString& participant) {
+    const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
+    return participant.right(participant.count() - 1 - publicChatRoom->jid().count());
+}
 
 void ChatWindow::error(QXmppClient::Error error) {
     ui->connectingToXMPPLabel->setText(QString::number(error));
@@ -363,8 +362,7 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
         _trayIcon.showMessage(windowTitle(), message.body());
     }
 }
-
-#endif
+#endif // HAVE_QXMPP
 
 bool ChatWindow::isNearBottom() {
     QScrollBar* verticalScrollBar = ui->messagesScrollArea->verticalScrollBar();
