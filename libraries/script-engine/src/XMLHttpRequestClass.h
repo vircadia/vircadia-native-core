@@ -62,7 +62,6 @@ public:
     int getDone() const { return DONE; };
 
     static QScriptValue constructor(QScriptContext* context, QScriptEngine* engine);
-    static QString escapeJavascriptString(const QString& jsString);
 
     int getTimeout() const { return _timeout; }
     void setTimeout(int timeout) { _timeout = timeout; }
