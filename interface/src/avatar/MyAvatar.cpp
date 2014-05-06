@@ -146,7 +146,7 @@ void MyAvatar::simulate(float deltaTime) {
         boundingShape.getStartPoint(startCap);
         glm::vec3 bottomOfBoundingCapsule = startCap + (boundingShape.getRadius() / gravityLength) * _gravity;
 
-        float fallThreshold = 2.f * deltaTime * gravityLength;
+        float fallThreshold = 2.0f * deltaTime * gravityLength;
         walkingOnFloor = (glm::distance(bottomOfBoundingCapsule, _lastFloorContactPoint) < fallThreshold);
     }
 
@@ -349,8 +349,8 @@ void MyAvatar::renderHeadMouse(int screenWidth, int screenHeight) const {
     float headYaw = getHead()->getFinalYaw();
 
     float aspectRatio = (float) screenWidth / (float) screenHeight;
-    int headMouseX = screenWidth / 2.f - headYaw * aspectRatio * pixelsPerDegree;
-    int headMouseY = screenHeight / 2.f - headPitch * pixelsPerDegree;
+    int headMouseX = (int)((float)screenWidth / 2.0f - headYaw * aspectRatio * pixelsPerDegree);
+    int headMouseY = (int)((float)screenHeight / 2.0f - headPitch * pixelsPerDegree);
     
     glColor3f(1.0f, 1.0f, 1.0f);
     glDisable(GL_LINE_SMOOTH);
@@ -367,8 +367,8 @@ void MyAvatar::renderHeadMouse(int screenWidth, int screenHeight) const {
 
         float avgEyePitch = faceshift->getEstimatedEyePitch();
         float avgEyeYaw = faceshift->getEstimatedEyeYaw();
-        int eyeTargetX = (screenWidth / 2) - avgEyeYaw * aspectRatio * pixelsPerDegree;
-        int eyeTargetY = (screenHeight / 2) - avgEyePitch * pixelsPerDegree;
+        int eyeTargetX = (int)((float)(screenWidth) / 2.0f - avgEyeYaw * aspectRatio * pixelsPerDegree);
+        int eyeTargetY = (int)((float)(screenHeight) / 2.0f - avgEyePitch * pixelsPerDegree);
         
         glColor3f(0.0f, 1.0f, 1.0f);
         glDisable(GL_LINE_SMOOTH);
@@ -514,7 +514,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     //  Look at the avatar whose eyes are closest to the ray in direction of my avatar's head
     //
     _lookAtTargetAvatar.clear();
-    _targetAvatarPosition = glm::vec3(0, 0, 0);
+    _targetAvatarPosition = glm::vec3(0.0f);
     const float MIN_LOOKAT_ANGLE = PI / 4.0f;        //  Smallest angle between face and person where we will look at someone
     float smallestAngleTo = MIN_LOOKAT_ANGLE;
     foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
@@ -765,7 +765,7 @@ void MyAvatar::applyMotor(float deltaTime) {
         targetVelocity = rotation * _motorVelocity;
     }
 
-    glm::vec3 targetDirection(0.f);
+    glm::vec3 targetDirection(0.0f);
     if (glm::length2(targetVelocity) > EPSILON) {
         targetDirection = glm::normalize(targetVelocity);
     }
