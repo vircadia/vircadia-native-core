@@ -37,6 +37,7 @@
 #include "Menu.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "Util.h"
+#include "ui/AttachmentsDialog.h"
 #include "ui/InfoView.h"
 #include "ui/MetavoxelEditor.h"
 #include "ui/ModelsBrowser.h"
@@ -157,6 +158,8 @@ Menu::Menu() :
     addDisabledActionAndSeparator(fileMenu, "Upload Avatar Model");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadHead, 0, Application::getInstance(), SLOT(uploadHead()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadSkeleton, 0, Application::getInstance(), SLOT(uploadSkeleton()));
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadAttachment, 0,
+        Application::getInstance(), SLOT(uploadAttachment()));
     addDisabledActionAndSeparator(fileMenu, "Settings");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::SettingsImport, 0, this, SLOT(importSettings()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::SettingsExport, 0, this, SLOT(exportSettings()));
@@ -187,6 +190,8 @@ Menu::Menu() :
                                   SLOT(editPreferences()),
                                   QAction::PreferencesRole);
 
+    addActionToQMenuAndActionHash(editMenu, MenuOption::Attachments, 0, this, SLOT(editAttachments()));
+                                  
     addDisabledActionAndSeparator(editMenu, "Physics");
     QObject* avatar = appInstance->getAvatar();
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ObeyEnvironmentalGravity, Qt::SHIFT | Qt::Key_G, true, 
@@ -210,6 +215,10 @@ Menu::Menu() :
     toggleChat();
     connect(&xmppClient, SIGNAL(connected()), this, SLOT(toggleChat()));
     connect(&xmppClient, SIGNAL(disconnected()), this, SLOT(toggleChat()));
+
+    QDir::setCurrent(Application::resourcesPath());
+    // init chat window to listen chat
+    _chatWindow = new ChatWindow(Application::getInstance()->getWindow());
 #endif
 
     QMenu* viewMenu = addMenu("View");
@@ -479,6 +488,7 @@ void Menu::loadSettings(QSettings* settings) {
 
     _audioJitterBufferSamples = loadSetting(settings, "audioJitterBufferSamples", 0);
     _fieldOfView = loadSetting(settings, "fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
+    _realWorldFieldOfView = loadSetting(settings, "realWorldFieldOfView", DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES);
     _faceshiftEyeDeflection = loadSetting(settings, "faceshiftEyeDeflection", DEFAULT_FACESHIFT_EYE_DEFLECTION);
     _maxVoxels = loadSetting(settings, "maxVoxels", DEFAULT_MAX_VOXELS_PER_SYSTEM);
     _maxVoxelPacketsPerSecond = loadSetting(settings, "maxVoxelsPPS", DEFAULT_MAX_VOXEL_PPS);
@@ -828,6 +838,15 @@ void Menu::editPreferences() {
         _preferencesDialog->show();
     } else {
         _preferencesDialog->close();
+    }
+}
+
+void Menu::editAttachments() {
+    if (!_attachmentsDialog) {
+        _attachmentsDialog = new AttachmentsDialog();
+        _attachmentsDialog->show();
+    } else {
+        _attachmentsDialog->close();
     }
 }
 

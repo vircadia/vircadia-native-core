@@ -126,6 +126,7 @@ void Avatar::simulate(float deltaTime) {
             _skeletonModel.simulate(deltaTime);
         }
         _skeletonModel.simulate(deltaTime, _hasNewJointRotations);
+        simulateAttachments(deltaTime);
         _hasNewJointRotations = false;
 
         glm::vec3 headPosition = _position;
@@ -231,6 +232,17 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
                 _skeletonModel.updateShapePositions();
                 _skeletonModel.renderBoundingCollisionShapes(0.7f);
             }
+        }
+        // If this is the avatar being looked at, render a little ball above their head
+        if (_isLookAtTarget) {
+            const float LOOK_AT_INDICATOR_RADIUS = 0.03f;
+            const float LOOK_AT_INDICATOR_HEIGHT = 0.60f;
+            const float LOOK_AT_INDICATOR_COLOR[] = { 0.8f, 0.0f, 0.0f, 0.5f };
+            glPushMatrix();
+            glColor4fv(LOOK_AT_INDICATOR_COLOR);
+            glTranslatef(_position.x, _position.y + (getSkeletonHeight() * LOOK_AT_INDICATOR_HEIGHT), _position.z);
+            glutSolidSphere(LOOK_AT_INDICATOR_RADIUS, 15, 15);
+            glPopMatrix();
         }
 
         // quick check before falling into the code below:
@@ -338,6 +350,7 @@ void Avatar::renderBody(RenderMode renderMode, float glowLevel) {
             return;
         }
         _skeletonModel.render(1.0f, modelRenderMode);
+        renderAttachments(modelRenderMode);
         getHand()->render(false);
     }
     getHead()->render(1.0f, modelRenderMode);
@@ -345,6 +358,29 @@ void Avatar::renderBody(RenderMode renderMode, float glowLevel) {
 
 bool Avatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const {
     return true;
+}
+
+void Avatar::simulateAttachments(float deltaTime) {
+    for (int i = 0; i < _attachmentModels.size(); i++) {
+        const AttachmentData& attachment = _attachmentData.at(i);
+        Model* model = _attachmentModels.at(i);
+        int jointIndex = getJointIndex(attachment.jointName);
+        glm::vec3 jointPosition;
+        glm::quat jointRotation;
+        if (_skeletonModel.getJointPosition(jointIndex, jointPosition) &&
+                _skeletonModel.getJointRotation(jointIndex, jointRotation)) {
+            model->setTranslation(jointPosition + jointRotation * attachment.translation * _scale);
+            model->setRotation(jointRotation * attachment.rotation);
+            model->setScale(_skeletonModel.getScale() * attachment.scale);
+            model->simulate(deltaTime);
+        }
+    }
+}
+
+void Avatar::renderAttachments(Model::RenderMode renderMode) {
+    foreach (Model* model, _attachmentModels) {
+        model->render(1.0f, renderMode);
+    }
 }
 
 void Avatar::updateJointMappings() {
@@ -665,6 +701,25 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
     const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile(Application::resourcesPath() + "meshes/defaultAvatar_body.fst");
     _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
+}
+
+void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
+    AvatarData::setAttachmentData(attachmentData);
+    
+    // make sure we have as many models as attachments
+    while (_attachmentModels.size() < attachmentData.size()) {
+        Model* model = new Model(this);
+        model->init();
+        _attachmentModels.append(model);
+    }
+    while (_attachmentModels.size() > attachmentData.size()) {
+        delete _attachmentModels.takeLast();
+    }
+    
+    // update the urls
+    for (int i = 0; i < attachmentData.size(); i++) {
+        _attachmentModels[i]->setURL(attachmentData.at(i).modelURL);
+    }
 }
 
 void Avatar::setDisplayName(const QString& displayName) {

@@ -59,11 +59,11 @@ static const int MAX_CHECK = 30;
 static const int QCOMPRESS_HEADER_POSITION = 0;
 static const int QCOMPRESS_HEADER_SIZE = 4;
 
-ModelUploader::ModelUploader(bool isHead) :
+ModelUploader::ModelUploader(ModelType modelType) :
     _lodCount(-1),
     _texturesCount(-1),
     _totalSize(0),
-    _isHead(isHead),
+    _modelType(modelType),
     _readyToSend(false),
     _dataMultiPart(new QHttpMultiPart(QHttpMultiPart::FormDataType)),
     _numberOfChecks(MAX_CHECK)
@@ -190,7 +190,7 @@ bool ModelUploader::zip() {
     }
     
     // open the dialog to configure the rest
-    ModelPropertiesDialog properties(_isHead, mapping, basePath, geometry);
+    ModelPropertiesDialog properties(_modelType, mapping, basePath, geometry);
     if (properties.exec() == QDialog::Rejected) {
         return false;
     }
@@ -202,7 +202,7 @@ bool ModelUploader::zip() {
         textPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"model_name\"");
         textPart.setBody(nameField);
         _dataMultiPart->append(textPart);
-        _url = S3_URL + ((_isHead)? "/models/heads/" : "/models/skeletons/") + nameField + ".fst";
+        _url = S3_URL + "/models/" + MODEL_TYPE_NAMES[_modelType] + "/" + nameField + ".fst";
     } else {
         QMessageBox::warning(NULL,
                              QString("ModelUploader::zip()"),
@@ -260,11 +260,7 @@ bool ModelUploader::zip() {
     QHttpPart textPart;
     textPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data;"
                        " name=\"model_category\"");
-    if (_isHead) {
-        textPart.setBody("heads");
-    } else {
-        textPart.setBody("skeletons");
-    }
+    textPart.setBody(MODEL_TYPE_NAMES[_modelType]);
     _dataMultiPart->append(textPart);
     
     _readyToSend = true;
@@ -428,19 +424,24 @@ void ModelUploader::processCheck() {
 }
 
 bool ModelUploader::addTextures(const QString& texdir, const FBXGeometry& geometry) {
+    QSet<QByteArray> added; 
     foreach (FBXMesh mesh, geometry.meshes) {
         foreach (FBXMeshPart part, mesh.parts) {
-            if (!part.diffuseTexture.filename.isEmpty() && part.diffuseTexture.content.isEmpty()) {
+            if (!part.diffuseTexture.filename.isEmpty() && part.diffuseTexture.content.isEmpty() &&
+                    !added.contains(part.diffuseTexture.filename)) {
                 if (!addPart(texdir + "/" + part.diffuseTexture.filename,
                              QString("texture%1").arg(++_texturesCount), true)) {
                     return false;
                 }
+                added.insert(part.diffuseTexture.filename);
             }
-            if (!part.normalTexture.filename.isEmpty() && part.normalTexture.content.isEmpty()) {
+            if (!part.normalTexture.filename.isEmpty() && part.normalTexture.content.isEmpty() &&
+                    !added.contains(part.normalTexture.filename)) {
                 if (!addPart(texdir + "/" + part.normalTexture.filename,
                              QString("texture%1").arg(++_texturesCount), true)) {
                     return false;
                 }
+                added.insert(part.normalTexture.filename);
             }
         }
     }
@@ -510,9 +511,9 @@ bool ModelUploader::addPart(const QFile& file, const QByteArray& contents, const
     return true;
 }
 
-ModelPropertiesDialog::ModelPropertiesDialog(bool isHead, const QVariantHash& originalMapping,
+ModelPropertiesDialog::ModelPropertiesDialog(ModelType modelType, const QVariantHash& originalMapping,
         const QString& basePath, const FBXGeometry& geometry) :
-    _isHead(isHead),
+    _modelType(modelType),
     _originalMapping(originalMapping),
     _basePath(basePath),
     _geometry(geometry) {
@@ -531,10 +532,12 @@ ModelPropertiesDialog::ModelPropertiesDialog(bool isHead, const QVariantHash& or
     _scale->setMaximum(FLT_MAX);
     _scale->setSingleStep(0.01);
     
-    form->addRow("Left Eye Joint:", _leftEyeJoint = createJointBox());
-    form->addRow("Right Eye Joint:", _rightEyeJoint = createJointBox());
-    form->addRow("Neck Joint:", _neckJoint = createJointBox());
-    if (!isHead) {
+    if (_modelType != ATTACHMENT_MODEL) {
+        form->addRow("Left Eye Joint:", _leftEyeJoint = createJointBox());
+        form->addRow("Right Eye Joint:", _rightEyeJoint = createJointBox());
+        form->addRow("Neck Joint:", _neckJoint = createJointBox());
+    }
+    if (_modelType == SKELETON_MODEL) {
         form->addRow("Root Joint:", _rootJoint = createJointBox());
         form->addRow("Lean Joint:", _leanJoint = createJointBox());
         form->addRow("Head Joint:", _headJoint = createJointBox());
@@ -573,10 +576,12 @@ QVariantHash ModelPropertiesDialog::getMapping() const {
     mapping.insert(JOINT_INDEX_FIELD, jointIndices);
     
     QVariantHash joints = mapping.value(JOINT_FIELD).toHash();
-    insertJointMapping(joints, "jointEyeLeft", _leftEyeJoint->currentText());
-    insertJointMapping(joints, "jointEyeRight", _rightEyeJoint->currentText());
-    insertJointMapping(joints, "jointNeck", _neckJoint->currentText());
-    if (!_isHead) {
+    if (_modelType != ATTACHMENT_MODEL) {
+        insertJointMapping(joints, "jointEyeLeft", _leftEyeJoint->currentText());
+        insertJointMapping(joints, "jointEyeRight", _rightEyeJoint->currentText());
+        insertJointMapping(joints, "jointNeck", _neckJoint->currentText());
+    }
+    if (_modelType == SKELETON_MODEL) {
         insertJointMapping(joints, "jointRoot", _rootJoint->currentText());
         insertJointMapping(joints, "jointLean", _leanJoint->currentText());
         insertJointMapping(joints, "jointHead", _headJoint->currentText());
@@ -604,10 +609,12 @@ void ModelPropertiesDialog::reset() {
     _scale->setValue(_originalMapping.value(SCALE_FIELD).toDouble());
     
     QVariantHash jointHash = _originalMapping.value(JOINT_FIELD).toHash();
-    setJointText(_leftEyeJoint, jointHash.value("jointEyeLeft").toString());
-    setJointText(_rightEyeJoint, jointHash.value("jointEyeRight").toString());
-    setJointText(_neckJoint, jointHash.value("jointNeck").toString());
-    if (!_isHead) {
+    if (_modelType != ATTACHMENT_MODEL) {
+        setJointText(_leftEyeJoint, jointHash.value("jointEyeLeft").toString());
+        setJointText(_rightEyeJoint, jointHash.value("jointEyeRight").toString());
+        setJointText(_neckJoint, jointHash.value("jointNeck").toString());
+    }
+    if (_modelType == SKELETON_MODEL) {
         setJointText(_rootJoint, jointHash.value("jointRoot").toString());
         setJointText(_leanJoint, jointHash.value("jointLean").toString());
         setJointText(_headJoint, jointHash.value("jointHead").toString());

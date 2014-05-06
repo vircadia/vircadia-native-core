@@ -19,6 +19,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+class QDataStream;
 
 namespace StreamUtil {
     // dump the buffer, 32 bytes per row, each byte in hex, separated by whitespace
@@ -28,6 +29,12 @@ namespace StreamUtil {
 std::ostream& operator<<(std::ostream& s, const glm::vec3& v);
 std::ostream& operator<<(std::ostream& s, const glm::quat& q);
 std::ostream& operator<<(std::ostream& s, const glm::mat4& m);
+
+QDataStream& operator<<(QDataStream& out, const glm::vec3& vector);
+QDataStream& operator>>(QDataStream& in, glm::vec3& vector);
+
+QDataStream& operator<<(QDataStream& out, const glm::quat& quaternion);
+QDataStream& operator>>(QDataStream& in, glm::quat& quaternion);
 
 // less common utils can be enabled with DEBUG
 #ifdef DEBUG

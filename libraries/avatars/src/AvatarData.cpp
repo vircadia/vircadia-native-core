@@ -599,8 +599,9 @@ bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray &packet) {
     
     QUuid avatarUUID;
     QUrl faceModelURL, skeletonModelURL;
+    QVector<AttachmentData> attachmentData;
     QString displayName;
-    packetStream >> avatarUUID >> faceModelURL >> skeletonModelURL >> displayName;
+    packetStream >> avatarUUID >> faceModelURL >> skeletonModelURL >> attachmentData >> displayName;
     
     bool hasIdentityChanged = false;
     
@@ -618,7 +619,12 @@ bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray &packet) {
         setDisplayName(displayName);
         hasIdentityChanged = true;
     }
-        
+    
+    if (attachmentData != _attachmentData) {
+        setAttachmentData(attachmentData);
+        hasIdentityChanged = true;
+    }
+    
     return hasIdentityChanged;
 }
 
@@ -626,7 +632,7 @@ QByteArray AvatarData::identityByteArray() {
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
 
-    identityStream << QUuid() << _faceModelURL << _skeletonModelURL << _displayName;
+    identityStream << QUuid() << _faceModelURL << _skeletonModelURL << _attachmentData << _displayName;
     
     return identityData;
 }
@@ -652,6 +658,10 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     qDebug() << "Changing skeleton model for avatar to" << _skeletonModelURL.toString();
     
     updateJointMappings();
+}
+
+void AvatarData::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
+    _attachmentData = attachmentData;
 }
 
 void AvatarData::setDisplayName(const QString& displayName) {
@@ -762,3 +772,23 @@ void AvatarData::updateJointMappings() {
         connect(networkReply, SIGNAL(finished()), this, SLOT(setJointMappingsFromNetworkReply()));
     }
 }
+
+AttachmentData::AttachmentData() :
+    scale(1.0f) {
+}
+
+bool AttachmentData::operator==(const AttachmentData& other) const {
+    return modelURL == other.modelURL && jointName == other.jointName && translation == other.translation &&
+        rotation == other.rotation && scale == other.scale;
+}
+
+QDataStream& operator<<(QDataStream& out, const AttachmentData& attachment) {
+    return out << attachment.modelURL << attachment.jointName <<
+        attachment.translation << attachment.rotation << attachment.scale;
+}
+
+QDataStream& operator>>(QDataStream& in, AttachmentData& attachment) {
+    return in >> attachment.modelURL >> attachment.jointName >>
+        attachment.translation >> attachment.rotation >> attachment.scale;
+}
+

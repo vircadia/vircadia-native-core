@@ -77,8 +77,6 @@ public:
     
     static void sendKillAvatar();
 
-    void orbit(const glm::vec3& position, int deltaX, int deltaY);
-
     Q_INVOKABLE glm::vec3 getTargetAvatarPosition() const { return _targetAvatarPosition; }
     AvatarData* getLookAtTargetAvatar() const { return _lookAtTargetAvatar.data(); }
     void updateLookAtTargetAvatar();
