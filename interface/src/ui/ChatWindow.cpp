@@ -12,7 +12,6 @@
 #include <QGridLayout>
 #include <QFrame>
 #include <QLayoutItem>
-#include <QMessageBox>
 #include <QPalette>
 #include <QScrollBar>
 #include <QSizePolicy>
