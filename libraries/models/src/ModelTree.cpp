@@ -12,7 +12,7 @@
 #include "ModelTree.h"
 
 ModelTree::ModelTree(bool shouldReaverage) : Octree(shouldReaverage) {
-    _rootNode = createNewElement();
+    _rootElement = createNewElement();
 }
 
 ModelTreeElement* ModelTree::createNewElement(unsigned char * octalCode) {
@@ -132,6 +132,7 @@ public:
     FindAndUpdateModelWithIDandPropertiesOperator(const ModelItemID& modelID, const ModelItemProperties& properties);
     virtual bool PreRecursion(OctreeElement* element);
     virtual bool PostRecursion(OctreeElement* element);
+    bool wasFound() const { return _found; }
 private:
     const ModelItemID& _modelID;
     const ModelItemProperties& _properties;
@@ -167,6 +168,9 @@ void ModelTree::updateModel(const ModelItemID& modelID, const ModelItemPropertie
     // Look for the existing model in the tree..
     FindAndUpdateModelWithIDandPropertiesOperator theOperator(modelID, properties);
     recurseTreeWithOperator(&theOperator);
+    if (theOperator.wasFound()) {
+        _isDirty = true;
+    }
 }
 
 void ModelTree::addModel(const ModelItemID& modelID, const ModelItemProperties& properties) {

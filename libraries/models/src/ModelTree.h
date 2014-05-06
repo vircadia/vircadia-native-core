@@ -29,7 +29,7 @@ public:
     virtual ModelTreeElement* createNewElement(unsigned char * octalCode = NULL);
 
     /// Type safe version of getRoot()
-    ModelTreeElement* getRoot() { return (ModelTreeElement*)_rootNode; }
+    ModelTreeElement* getRoot() { return static_cast<ModelTreeElement*>(_rootElement); }
 
 
     // These methods will allow the OctreeServer to send your tree inbound edit packets of your
