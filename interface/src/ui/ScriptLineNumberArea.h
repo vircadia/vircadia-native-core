@@ -19,7 +19,7 @@ class ScriptLineNumberArea : public QWidget {
 
 public:
     ScriptLineNumberArea(ScriptEditBox* scriptEditBox);
-    QSize sizeHint();
+    QSize sizeHint() const;
 
 protected:
     void paintEvent(QPaintEvent* event);

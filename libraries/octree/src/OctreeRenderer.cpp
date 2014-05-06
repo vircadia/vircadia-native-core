@@ -140,19 +140,22 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
 
 bool OctreeRenderer::renderOperation(OctreeElement* element, void* extraData) {
     RenderArgs* args = static_cast<RenderArgs*>(extraData);
-    //if (true || element->isInView(*args->_viewFrustum)) {
     if (element->isInView(*args->_viewFrustum)) {
         if (element->hasContent()) {
-            args->_renderer->renderElement(element, args);
+            if (element->calculateShouldRender(args->_viewFrustum, args->_sizeScale, args->_boundaryLevelAdjust)) {
+                args->_renderer->renderElement(element, args);
+            } else {
+                return false; // if we shouldn't render, then we also should stop recursing.
+            }
         }
-        return true;
+        return true; // continue recursing
     }
     // if not in view stop recursing
     return false;
 }
 
 void OctreeRenderer::render() {
-    RenderArgs args = { 0, this, _viewFrustum };
+    RenderArgs args = { 0, this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust() };
     if (_tree) {
         _tree->lockForRead();
         _tree->recurseTreeWithOperation(renderOperation, &args);

@@ -48,7 +48,7 @@ void PreferencesDialog::openHeadModelBrowser() {
     setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
     show();
 
-    ModelsBrowser modelBrowser(Head);
+    ModelsBrowser modelBrowser(HEAD_MODEL);
     connect(&modelBrowser, &ModelsBrowser::selected, this, &PreferencesDialog::setHeadUrl);
     modelBrowser.browse();
 
@@ -60,7 +60,7 @@ void PreferencesDialog::openBodyModelBrowser() {
     setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
     show();
 
-    ModelsBrowser modelBrowser(Skeleton);
+    ModelsBrowser modelBrowser(SKELETON_MODEL);
     connect(&modelBrowser, &ModelsBrowser::selected, this, &PreferencesDialog::setSkeletonUrl);
     modelBrowser.browse();
 
