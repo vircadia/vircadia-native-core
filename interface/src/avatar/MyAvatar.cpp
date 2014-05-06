@@ -1382,6 +1382,8 @@ void MyAvatar::updateMotionBehaviorsFromMenu() {
         _motionBehaviors |= AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY;
         // Environmental and Local gravities are incompatible.  Environmental setting trumps local.
         _motionBehaviors &= ~AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
+    } else {
+        _motionBehaviors &= ~AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY;
     }
     if (! (_motionBehaviors & (AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY | AVATAR_MOTION_OBEY_LOCAL_GRAVITY))) {
         setGravity(glm::vec3(0.0f));
