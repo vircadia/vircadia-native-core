@@ -13,6 +13,7 @@
 #define hifi_AttachmentsDialog_h
 
 #include <QDialog>
+#include <QFrame>
 
 #include <AvatarData.h>
 
@@ -43,7 +44,7 @@ private:
 };
 
 /// A panel controlling a single attachment.
-class AttachmentPanel : public QWidget {
+class AttachmentPanel : public QFrame {
     Q_OBJECT
 
 public:

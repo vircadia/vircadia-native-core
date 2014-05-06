@@ -37,6 +37,7 @@ AttachmentsDialog::AttachmentsDialog() :
     container->setLayout(_attachments = new QVBoxLayout());
     container->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
     area->setWidget(container);
+    _attachments->addStretch(1);
     
     foreach (const AttachmentData& data, Application::getInstance()->getAvatar()->getAttachmentData()) {
         addAttachment(data);
@@ -55,14 +56,14 @@ AttachmentsDialog::AttachmentsDialog() :
 
 void AttachmentsDialog::updateAttachmentData() {
     QVector<AttachmentData> data;
-    for (int i = 0; i < _attachments->count(); i++) {
+    for (int i = 0; i < _attachments->count() - 1; i++) {
         data.append(static_cast<AttachmentPanel*>(_attachments->itemAt(i)->widget())->getAttachmentData());
     }
     Application::getInstance()->getAvatar()->setAttachmentData(data);
 }
 
 void AttachmentsDialog::addAttachment(const AttachmentData& data) {
-    _attachments->addWidget(new AttachmentPanel(this, data));
+    _attachments->insertWidget(_attachments->count() - 1, new AttachmentPanel(this, data));
 }
 
 static QDoubleSpinBox* createTranslationBox(AttachmentsDialog* dialog, float value) {
@@ -86,7 +87,10 @@ static QDoubleSpinBox* createRotationBox(AttachmentsDialog* dialog, float value)
 }
 
 AttachmentPanel::AttachmentPanel(AttachmentsDialog* dialog, const AttachmentData& data) {
+    setFrameStyle(QFrame::StyledPanel);
+ 
     QFormLayout* layout = new QFormLayout();
+    layout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
     setLayout(layout);
  
     QHBoxLayout* urlBox = new QHBoxLayout();
