@@ -68,7 +68,6 @@ void AttachmentsDialog::addAttachment(const AttachmentData& data) {
 
 static QDoubleSpinBox* createTranslationBox(AttachmentsDialog* dialog, float value) {
     QDoubleSpinBox* box = new QDoubleSpinBox();
-    box->setSingleStep(0.01);
     box->setMinimum(-FLT_MAX);
     box->setMaximum(FLT_MAX);
     box->setValue(value);
