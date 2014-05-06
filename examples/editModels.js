@@ -9,12 +9,48 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+var windowDimensions = Controller.getViewportDimensions();
+
 var LASER_WIDTH = 4;
 var LASER_COLOR = { red: 255, green: 0, blue: 0 };
 var LASER_LENGTH_FACTOR = 1.5;
 
 var LEFT = 0;
 var RIGHT = 1;
+
+
+var SPAWN_DISTANCE = 1;
+var radiusDefault = 0.10;
+
+var modelURLs = [
+                 "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
+                 "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/birarda/birarda_head.fbx",
+                 "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/pug.fbx",
+                 "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/newInvader16x16-large-purple.svo",
+                 "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/minotaur/mino_full.fbx",
+                 "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Combat_tank_V01.FBX",
+                 "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/orc.fbx",
+                 "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/slimer.fbx",
+                 ];
+
+var toolIconUrl = "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/tools/";
+var numberOfTools = 1;
+var toolHeight = 50;
+var toolWidth = 50;
+var toolVerticalSpacing = 4;
+var toolsHeight = toolHeight * numberOfTools + toolVerticalSpacing * (numberOfTools - 1);
+var toolsX = windowDimensions.x - 8 - toolWidth;
+var toolsY = (windowDimensions.y - toolsHeight) / 2;
+
+
+var firstModel = Overlays.addOverlay("image", {
+                                     x: 0, y: 0, width: toolWidth, height: toolHeight,
+                                     subImage: { x: 0, y: toolHeight, width: toolWidth, height: toolHeight },
+                                     imageURL: toolIconUrl + "voxel-tool.svg",
+                                     x: toolsX, y: toolsY + ((toolHeight + toolVerticalSpacing) * 0), width: toolWidth, height: toolHeight,
+                                     visible: true,
+                                     alpha: 0.9
+                                     });
 
 function controller(wichSide) {
     this.side = wichSide;
@@ -46,7 +82,10 @@ function controller(wichSide) {
     this.pressing = false; // is trigger being pressed (is pressed now but wasn't previously)
     
     this.grabbing = false;
-    this.modelID;
+    this.modelID = { isKnownID: false };
+    this.oldModelRotation;
+    this.oldModelPosition;
+    this.oldModelRadius;
     
     this.laser = Overlays.addOverlay("line3d", {
                                      position: this.palmPosition,
@@ -85,23 +124,19 @@ function controller(wichSide) {
     
 
     
-    this.grab = function (modelID) {
-        if (!modelID.isKnownID) {
-            var identify = Models.identifyModel(modelID);
-            if (!identify.isKnownID) {
-                print("Unknown ID " + identify.id + "(grab)");
-                return;
-            }
-            modelID = identify;
-        }
+    this.grab = function (modelID, properties) {
         print("Grabbing " + modelID.id);
         this.grabbing = true;
         this.modelID = modelID;
+        
+        this.oldModelPosition = properties.position;
+        this.oldModelRotation = properties.modelRotation;
+        this.oldModelRadius = properties.radius;
     }
     
     this.release = function () {
         this.grabbing = false;
-        this.modelID = 0;
+        this.modelID.isKnownID = false;
     }
     
     this.checkTrigger = function () {
@@ -116,6 +151,34 @@ function controller(wichSide) {
             this.pressing = false;
             this.pressed = false;
         }
+    }
+    
+    this.checkModel = function (properties) {
+        //                P         P - Model
+        //               /|         A - Palm
+        //              / | d       B - unit vector toward tip
+        //             /  |         X - base of the perpendicular line
+        //            A---X----->B  d - distance fom axis
+        //              x           x - distance from A
+        //
+        //            |X-A| = (P-A).B
+        //            X == A + ((P-A).B)B
+        //            d = |P-X|
+        
+        var A = this.palmPosition;
+        var B = this.front;
+        var P = properties.position;
+        
+        var x = Vec3.dot(Vec3.subtract(P, A), B);
+        var y = Vec3.dot(Vec3.subtract(P, A), this.up);
+        var z = Vec3.dot(Vec3.subtract(P, A), this.right);
+        var X = Vec3.sum(A, Vec3.multiply(B, x));
+        var d = Vec3.length(Vec3.subtract(P, X));
+        
+        if (d < properties.radius && 0 < x && x < LASER_LENGTH_FACTOR) {
+            return { valid: true, x: x, y: y, z: z };
+        }
+        return { valid: false };
     }
     
     this.moveLaser = function () {
@@ -143,44 +206,33 @@ function controller(wichSide) {
                              });
     }
     
-    this.checkModel = function (modelID) {
-        if (!modelID.isKnownID) {
-            var identify = Models.identifyModel(modelID);
-            if (!identify.isKnownID) {
-                print("Unknown ID " + identify.id + "(checkModel)");
-                return;
-            }
-            modelID = identify;
+    this.moveModel = function () {
+        if (this.grabbing) {
+            var newPosition = Vec3.sum(this.palmPosition,
+                                       Vec3.multiply(this.front, this.x));
+            newPosition = Vec3.sum(newPosition,
+                                   Vec3.multiply(this.up, this.y));
+            newPosition = Vec3.sum(newPosition,
+                                   Vec3.multiply(this.right, this.z));
+            
+            var newRotation = Quat.multiply(this.rotation,
+                                            Quat.inverse(this.oldRotation));
+            newRotation = Quat.multiply(newRotation,
+                                        this.oldModelRotation);
+            
+            Models.editModel(this.modelID, {
+                             position: newPosition,
+                             modelRotation: newRotation
+                             });
+            print("Moving " + this.modelID.id);
+//            Vec3.print("Old Position: ", this.oldModelPosition);
+//            Vec3.print("Sav Position: ", newPosition);
+            Quat.print("Old Rotation: ", this.oldModelRotation);
+            Quat.print("New Rotation: ", newRotation);
+            
+            this.oldModelRotation = newRotation;
+            this.oldModelPosition = newPosition;
         }
-        //                P         P - Model
-        //               /|         A - Palm
-        //              / | d       B - unit vector toward tip
-        //             /  |         X - base of the perpendicular line
-        //            A---X----->B  d - distance fom axis
-        //              x           x - distance from A
-        //
-        //            |X-A| = (P-A).B
-        //            X == A + ((P-A).B)B
-        //            d = |P-X|
-        
-        var A = this.palmPosition;
-        var B = this.front;
-        var P = Models.getModelProperties(modelID).position;
-        
-        this.x = Vec3.dot(Vec3.subtract(P, A), B);
-        this.y = Vec3.dot(Vec3.subtract(P, A), this.up);
-        this.z = Vec3.dot(Vec3.subtract(P, A), this.right);
-        var X = Vec3.sum(A, Vec3.multiply(B, this.x));
-        var d = Vec3.length(Vec3.subtract(P, X));
-        
-//        Vec3.print("A: ", A);
-//        Vec3.print("B: ", B);
-//        Vec3.print("Particle pos: ", P);
-//        print("d: " + d + ", x: " + this.x);
-        if (d < Models.getModelProperties(modelID).radius && 0 < this.x && this.x < LASER_LENGTH_FACTOR) {
-            return true;
-        }
-        return false;
     }
     
     this.update = function () {
@@ -205,25 +257,40 @@ function controller(wichSide) {
         
         this.checkTrigger();
         
-        if (this.pressing) {
-            Vec3.print("Looking at: ", this.palmPosition);
-            var foundModels = Models.findModels(this.palmPosition, LASER_LENGTH_FACTOR);
-            for (var i = 0; i < foundModels.length; i++) {
-                print("Model found ID (" + foundModels[i].id + ")");
-                if (this.checkModel(foundModels[i])) {
-                    if (this.grab(foundModels[i])) {
-                        return;
-                    }
-                }
-            }
-        }
+        this.moveLaser();
         
         if (!this.pressed && this.grabbing) {
             // release if trigger not pressed anymore.
             this.release();
         }
-    
-        this.moveLaser();
+        
+        if (this.pressing) {
+            Vec3.print("Looking at: ", this.palmPosition);
+            var foundModels = Models.findModels(this.palmPosition, LASER_LENGTH_FACTOR);
+            for (var i = 0; i < foundModels.length; i++) {
+                
+                if (!foundModels[i].isKnownID) {
+                    var identify = Models.identifyModel(foundModels[i]);
+                    if (!identify.isKnownID) {
+                        print("Unknown ID " + identify.id + "(update loop)");
+                        return;
+                    }
+                    foundModels[i] = identify;
+                }
+                
+                var properties = Models.getModelProperties(foundModels[i]);
+                print("Checking properties: " + properties.id + " " + properties.isKnownID);
+                
+                var check = this.checkModel(properties);
+                if (check.valid) {
+                    this.grab(foundModels[i], properties);
+                    this.x = check.x;
+                    this.y = check.y;
+                    this.z = check.z;
+                    return;
+                }
+            }
+        }
     }
     
     this.cleanup = function () {
@@ -238,78 +305,44 @@ var leftController = new controller(LEFT);
 var rightController = new controller(RIGHT);
 
 function moveModels() {
-    if (leftController.grabbing) {
-        if (rightController.grabbing) {
-            var properties = Models.getModelProperties(leftController.modelID);
-            
-            var oldLeftPoint = Vec3.sum(leftController.oldPalmPosition, Vec3.multiply(leftController.oldFront, leftController.x));
-            var oldRightPoint = Vec3.sum(rightController.oldPalmPosition, Vec3.multiply(rightController.oldFront, rightController.x));
-            
-            var oldMiddle = Vec3.multiply(Vec3.sum(oldLeftPoint, oldRightPoint), 0.5);
-            var oldLength = Vec3.length(Vec3.subtract(oldLeftPoint, oldRightPoint));
-            
-            
-            var leftPoint = Vec3.sum(leftController.palmPosition, Vec3.multiply(leftController.front, leftController.x));
-            var rightPoint = Vec3.sum(rightController.palmPosition, Vec3.multiply(rightController.front, rightController.x));
-            
-            var middle = Vec3.multiply(Vec3.sum(leftPoint, rightPoint), 0.5);
-            var length = Vec3.length(Vec3.subtract(leftPoint, rightPoint));
-            
-            var ratio = length / oldLength;
-            
-            var newPosition = Vec3.sum(middle,
-                                       Vec3.multiply(Vec3.subtract(properties.position, oldMiddle), ratio));
-            Vec3.print("Ratio : " + ratio + " New position: ", newPosition);
-            var rotation = Quat.multiply(leftController.rotation,
-                                         Quat.inverse(leftController.oldRotation));
-            rotation = Quat.multiply(rotation, properties.modelRotation);
-            
-            Models.editModel(leftController.modelID, {
-                                   position: newPosition,
-                                   //modelRotation: rotation,
-                                   radius: properties.radius * ratio
-                                   });
-            
-            return;
-        } else {
-            var newPosition = Vec3.sum(leftController.palmPosition,
-                                       Vec3.multiply(leftController.front, leftController.x));
-            newPosition = Vec3.sum(newPosition,
-                                   Vec3.multiply(leftController.up, leftController.y));
-            newPosition = Vec3.sum(newPosition,
-                                   Vec3.multiply(leftController.right, leftController.z));
-            
-            var rotation = Quat.multiply(leftController.rotation,
-                                         Quat.inverse(leftController.oldRotation));
-            rotation = Quat.multiply(rotation,
-                                     Models.getModelProperties(leftController.modelID).modelRotation);
-            
-            Models.editModel(leftController.modelID, {
-                             position: newPosition,
-                             modelRotation: rotation
-                             });
-        }
-    }
-    
-    
-    if (rightController.grabbing) {
-        var newPosition = Vec3.sum(rightController.palmPosition,
-                                   Vec3.multiply(rightController.front, rightController.x));
-        newPosition = Vec3.sum(newPosition,
-                               Vec3.multiply(rightController.up, rightController.y));
-        newPosition = Vec3.sum(newPosition,
-                               Vec3.multiply(rightController.right, rightController.z));
+    if (leftController.grabbing && rightController.grabbing && rightController.modelID.id == leftController.modelID.id) {
+        print("Both controllers");
+        var oldLeftPoint = Vec3.sum(leftController.oldPalmPosition, Vec3.multiply(leftController.oldFront, leftController.x));
+        var oldRightPoint = Vec3.sum(rightController.oldPalmPosition, Vec3.multiply(rightController.oldFront, rightController.x));
         
-        var rotation = Quat.multiply(rightController.rotation,
-                                     Quat.inverse(rightController.oldRotation));
-        rotation = Quat.multiply(rotation,
-                                 Models.getModelProperties(rightController.modelID).modelRotation);
+        var oldMiddle = Vec3.multiply(Vec3.sum(oldLeftPoint, oldRightPoint), 0.5);
+        var oldLength = Vec3.length(Vec3.subtract(oldLeftPoint, oldRightPoint));
         
-        Models.editModel(rightController.modelID, {
+        
+        var leftPoint = Vec3.sum(leftController.palmPosition, Vec3.multiply(leftController.front, leftController.x));
+        var rightPoint = Vec3.sum(rightController.palmPosition, Vec3.multiply(rightController.front, rightController.x));
+        
+        var middle = Vec3.multiply(Vec3.sum(leftPoint, rightPoint), 0.5);
+        var length = Vec3.length(Vec3.subtract(leftPoint, rightPoint));
+        
+        var ratio = length / oldLength;
+        
+        var newPosition = Vec3.sum(middle,
+                                   Vec3.multiply(Vec3.subtract(leftController.oldModelPosition, oldMiddle), ratio));
+        Vec3.print("Ratio : " + ratio + " New position: ", newPosition);
+        var rotation = Quat.multiply(leftController.rotation,
+                                     Quat.inverse(leftController.oldRotation));
+        rotation = Quat.multiply(rotation, leftController.oldModelRotation);
+        
+        Models.editModel(leftController.modelID, {
                          position: newPosition,
-                         modelRotation: rotation
+                         //modelRotation: rotation,
+                         radius: leftController.oldModelRadius * ratio
                          });
+        
+        leftController.oldModelPosition = newPosition;
+        leftController.oldModelRotation = rotation;
+        leftController.oldModelRadius *= ratio;
+        return;
     }
+    
+    leftController.moveModel();
+    rightController.moveModel();
 }
 
 function checkController(deltaTime) {
@@ -318,6 +351,8 @@ function checkController(deltaTime) {
     var numberOfSpatialControls = Controller.getNumberOfSpatialControls();
     var controllersPerTrigger = numberOfSpatialControls / numberOfTriggers;
 
+    moveOverlays();
+    
     // this is expected for hydras
     if (!(numberOfButtons==12 && numberOfTriggers == 2 && controllersPerTrigger == 2)) {
         //print("no hydra connected?");
@@ -329,14 +364,48 @@ function checkController(deltaTime) {
     moveModels();
 }
 
+function moveOverlays() {
+    windowDimensions = Controller.getViewportDimensions();
+    
+    toolsX = windowDimensions.x - 8 - toolWidth;
+    toolsY = (windowDimensions.y - toolsHeight) / 2;
+    
+    Overlays.addOverlay(firstModel, {
+                        x: toolsX, y: toolsY + ((toolHeight + toolVerticalSpacing) * 0), width: toolWidth, height: toolHeight,
+                        });
+}
+
+function mousePressEvent(event) {
+    var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
+    var url;
+    
+    if (clickedOverlay == firstModel) {
+        url = Window.prompt("Model url", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
+        if (url == null) {
+            return;        }
+    } else {
+        print("Didn't click on anything");
+        return;
+    }
+    
+    var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
+    Models.addModel({ position: position,
+                    radius: radiusDefault,
+                    modelURL: url
+                    });
+}
+
 function scriptEnding() {
     leftController.cleanup();
     rightController.cleanup();
+    
+    Overlays.deleteOverlay(firstModel);
 }
 Script.scriptEnding.connect(scriptEnding);
 
 // register the call back so it fires before each data send
 Script.update.connect(checkController);
+Controller.mousePressEvent.connect(mousePressEvent);
 
 
 
