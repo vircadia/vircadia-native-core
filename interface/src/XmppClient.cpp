@@ -36,6 +36,7 @@ void XmppClient::xmppConnected() {
     _publicChatRoom = _xmppMUCManager.addRoom(DEFAULT_CHAT_ROOM);
     _publicChatRoom->setNickName(AccountManager::getInstance().getAccountInfo().getUsername());
     _publicChatRoom->join();
+    emit joinedPublicChatRoom();
 }
 
 void XmppClient::xmppError(QXmppClient::Error error) {
