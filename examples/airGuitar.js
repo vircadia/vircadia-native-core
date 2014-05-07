@@ -16,7 +16,7 @@ function length(v) {
 
 
 function printVector(v) {
-	print(v.x + ", " + v.y + ", " + v.z + "\n");
+	print(v.x + ", " + v.y + ", " + v.z);
 	return;
 }
 
@@ -42,15 +42,6 @@ if (leftHanded) {
 	var chordHand = 0;
 }
 
-//  State Machine:
-//  0 = not triggered 
-//  1 = triggered, waiting to stop to play sound
-var state = new Array();
-state[0] = 0; 
-state[1] = 0; 
-var strokeSpeed = new Array();
-strokeSpeed[0] = 0.0; 
-strokeSpeed[1] = 0.0; 
 var lastPosition = { x: 0.0,
                  y: 0.0, 
                  z: 0.0 }; 
