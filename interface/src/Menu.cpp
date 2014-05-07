@@ -68,6 +68,7 @@ const float DEFAULT_FACESHIFT_EYE_DEFLECTION = 0.25f;
 const float DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER = 1.0f;
 const int ONE_SECOND_OF_FRAMES = 60;
 const int FIVE_SECONDS_OF_FRAMES = 5 * ONE_SECOND_OF_FRAMES;
+const float MUTE_RADIUS = 50;
 
 Menu::Menu() :
     _actionHash(),
@@ -397,6 +398,11 @@ Menu::Menu() :
                                            false,
                                            appInstance->getAudio(),
                                            SLOT(toggleMute()));
+    addActionToQMenuAndActionHash(audioDebugMenu,
+                                  MenuOption::MuteEnvironment,
+                                  0,
+                                  this,
+                                  SLOT(muteEnvironment()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioToneInjection,
                                            0,
                                            false,
@@ -998,6 +1004,30 @@ void Menu::multipleDestinationsDecision(const QJsonObject& userData, const QJson
 
     LocationManager* manager = reinterpret_cast<LocationManager*>(sender());
     disconnect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
+}
+
+void Menu::muteEnvironment() {
+    int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeMuteEnvironment);
+    int packetSize = headerSize + sizeof(glm::vec3) + sizeof(float);
+    
+    glm::vec3 position = Application::getInstance()->getAvatar()->getPosition();
+    
+    char* packet = (char*)malloc(packetSize);
+    populatePacketHeader(packet, PacketTypeMuteEnvironment);
+    memcpy(packet + headerSize, &position, sizeof(glm::vec3));
+    memcpy(packet + headerSize + sizeof(glm::vec3), &MUTE_RADIUS, sizeof(float));
+    
+    QByteArray mutePacket(packet, packetSize);
+    
+    // grab our audio mixer from the NodeList, if it exists
+    SharedNodePointer audioMixer = NodeList::getInstance()->soloNodeOfType(NodeType::AudioMixer);
+    
+    if (audioMixer) {
+        // send off this mute packet
+        NodeList::getInstance()->writeDatagram(mutePacket, audioMixer);
+    }
+    
+    free(packet);
 }
 
 void Menu::goToLocation() {

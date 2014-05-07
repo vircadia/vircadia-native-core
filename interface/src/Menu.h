@@ -191,6 +191,7 @@ private slots:
     void audioMuteToggled();
     void namedLocationCreated(LocationManager::NamedLocationCreateResponse response);
     void multipleDestinationsDecision(const QJsonObject& userData, const QJsonObject& placeData);
+    void muteEnvironment();
 
 private:
     static Menu* _instance;
@@ -339,6 +340,7 @@ namespace MenuOption {
     const QString Models = "Models";
     const QString MoveWithLean = "Move with Lean";
     const QString MuteAudio = "Mute Microphone";
+    const QString MuteEnvironment = "Mute Environment";
     const QString NameLocation = "Name this location";
     const QString NewVoxelCullingMode = "New Voxel Culling Mode";
     const QString OctreeStats = "Voxel and Particle Statistics";

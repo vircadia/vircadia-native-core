@@ -370,7 +370,7 @@ function moveOverlays() {
     toolsX = windowDimensions.x - 8 - toolWidth;
     toolsY = (windowDimensions.y - toolsHeight) / 2;
     
-    Overlays.addOverlay(firstModel, {
+    Overlays.editOverlay(firstModel, {
                         x: toolsX, y: toolsY + ((toolHeight + toolVerticalSpacing) * 0), width: toolWidth, height: toolHeight,
                         });
 }
