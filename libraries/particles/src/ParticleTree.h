@@ -29,7 +29,7 @@ public:
     virtual ParticleTreeElement* createNewElement(unsigned char * octalCode = NULL);
 
     /// Type safe version of getRoot()
-    ParticleTreeElement* getRoot() { return (ParticleTreeElement*)_rootNode; }
+    ParticleTreeElement* getRoot() { return static_cast<ParticleTreeElement*>(_rootElement); }
 
 
     // These methods will allow the OctreeServer to send your tree inbound edit packets of your
