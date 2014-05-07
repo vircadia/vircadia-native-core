@@ -291,7 +291,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::BuckyBalls, 0, false);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Particles, 0, true);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Models, 0, true);
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
 
     QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxel Options");
@@ -307,6 +306,10 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontFadeOnVoxelServerChanges);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DisableAutoAdjustLOD);
+
+    QMenu* modelOptionsMenu = developerMenu->addMenu("Model Options");
+    addCheckableActionToQMenuAndActionHash(modelOptionsMenu, MenuOption::Models, 0, true);
+    addCheckableActionToQMenuAndActionHash(modelOptionsMenu, MenuOption::DisplayModelProxies, 0, false);
 
     QMenu* avatarOptionsMenu = developerMenu->addMenu("Avatar Options");
 

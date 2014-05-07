@@ -24,6 +24,7 @@
 #include <HandData.h>
 
 #include "InterfaceConfig.h"
+#include "renderer/model.h"
 #include "world.h"
 
 
@@ -52,7 +53,7 @@ public:
     void init();
     void reset();
     void simulate(float deltaTime, bool isMine);
-    void render(bool isMine);
+    void render(bool isMine, Model::RenderMode renderMode = Model::DEFAULT_RENDER_MODE);
 
     // getters
     const glm::vec3& getLeapFingerTipBallPosition (int ball) const { return _leapFingerTipBalls [ball].position;}

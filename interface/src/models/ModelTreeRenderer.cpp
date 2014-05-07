@@ -39,8 +39,8 @@ void ModelTreeRenderer::update() {
     }
 }
 
-void ModelTreeRenderer::render() {
-    OctreeRenderer::render();
+void ModelTreeRenderer::render(RenderMode renderMode) {
+    OctreeRenderer::render(renderMode);
 }
 
 Model* ModelTreeRenderer::getModel(const QString& url) {
@@ -94,11 +94,12 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
                 
                 // set the position
                 model->setTranslation(position);
-
                 model->simulate(0.0f);
 
-
-                model->render(alpha); // TODO: should we allow modelItems to have alpha on their models?
+                // TODO: should we allow modelItems to have alpha on their models?
+                Model::RenderMode modelRenderMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE 
+                                                        ? Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+                model->render(alpha, modelRenderMode);
 
                 const bool wantDebugSphere = false;
                 if (wantDebugSphere) {

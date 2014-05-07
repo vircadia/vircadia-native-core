@@ -303,6 +303,7 @@ namespace MenuOption {
     const QString DisplayFrustum = "Display Frustum";
     const QString DisplayHands = "Display Hands";
     const QString DisplayHandTargets = "Display Hand Targets";
+    const QString DisplayModelProxies = "Display Model Proxies";
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
@@ -337,6 +338,7 @@ namespace MenuOption {
     const QString Metavoxels = "Metavoxels";
     const QString Mirror = "Mirror";
     const QString Models = "Models";
+    const QString ModelOptions = "Model Options";
     const QString MoveWithLean = "Move with Lean";
     const QString MuteAudio = "Mute Microphone";
     const QString NameLocation = "Name this location";

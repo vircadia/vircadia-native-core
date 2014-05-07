@@ -192,11 +192,11 @@ void Hand::calculateGeometry() {
     }
 }
 
-void Hand::render(bool isMine) {
-    
+void Hand::render(bool isMine, Model::RenderMode renderMode) {
     _renderAlpha = 1.0;
     
-    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes)) {
+    if (renderMode != Model::SHADOW_RENDER_MODE && 
+                Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes)) {
         // draw a green sphere at hand joint location, which is actually near the wrist)
         for (size_t i = 0; i < getNumPalms(); i++) {
             PalmData& palm = getPalms()[i];
@@ -212,7 +212,7 @@ void Hand::render(bool isMine) {
         }
     }
     
-    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayHands)) {
+    if (renderMode != Model::SHADOW_RENDER_MODE && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHands)) {
         renderLeapHands(isMine);
     }
 
