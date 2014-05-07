@@ -318,12 +318,17 @@ private:
 
     static ProgramObject _program;
     static ProgramObject _normalMapProgram;
+    static ProgramObject _specularMapProgram;
+    static ProgramObject _normalSpecularMapProgram;
     static ProgramObject _shadowProgram;
     static ProgramObject _skinProgram;
     static ProgramObject _skinNormalMapProgram;
+    static ProgramObject _skinSpecularMapProgram;
+    static ProgramObject _skinNormalSpecularMapProgram;
     static ProgramObject _skinShadowProgram;
     
     static int _normalMapTangentLocation;
+    static int _normalSpecularMapTangentLocation;
     
     class SkinLocations {
     public:
@@ -335,9 +340,11 @@ private:
     
     static SkinLocations _skinLocations;
     static SkinLocations _skinNormalMapLocations;
+    static SkinLocations _skinSpecularMapLocations;
+    static SkinLocations _skinNormalSpecularMapLocations;
     static SkinLocations _skinShadowLocations;
     
-    static void initSkinProgram(ProgramObject& program, SkinLocations& locations);
+    static void initSkinProgram(ProgramObject& program, SkinLocations& locations, int specularTextureUnit = 1);
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)

@@ -124,6 +124,7 @@ public:
     
     QSharedPointer<NetworkTexture> diffuseTexture;
     QSharedPointer<NetworkTexture> normalTexture;
+    QSharedPointer<NetworkTexture> specularTexture;
     
     bool isTranslucent() const;
 };
