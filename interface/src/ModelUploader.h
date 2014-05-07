@@ -19,6 +19,7 @@
 
 #include "ui/ModelsBrowser.h"
 
+class QCheckBox;
 class QComboBox;
 class QDoubleSpinBox;
 class QFileInfo;
@@ -83,6 +84,7 @@ public:
 private slots:
     void reset();
     void chooseTextureDirectory();
+    void updatePivotJoint();
     void createNewFreeJoint(const QString& joint = QString());
 
 private:
@@ -96,6 +98,11 @@ private:
     QLineEdit* _name;
     QPushButton* _textureDirectory;
     QDoubleSpinBox* _scale;
+    QDoubleSpinBox* _translationX;
+    QDoubleSpinBox* _translationY;
+    QDoubleSpinBox* _translationZ;
+    QCheckBox* _pivotAboutCenter;
+    QComboBox* _pivotJoint;
     QComboBox* _leftEyeJoint;
     QComboBox* _rightEyeJoint;
     QComboBox* _neckJoint;
