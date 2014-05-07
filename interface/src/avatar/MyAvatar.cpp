@@ -21,6 +21,7 @@
 #include <QtCore/QTimer>
 
 #include <AccountManager.h>
+#include <GeometryUtil.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -63,6 +64,7 @@ MyAvatar::MyAvatar() :
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
     _wasPushing(false),
     _isPushing(false),
+    _wasStuck(false),
     _thrust(0.0f),
     _motorVelocity(0.0f),
     _motorTimescale(DEFAULT_MOTOR_TIMESCALE),
@@ -212,6 +214,8 @@ void MyAvatar::simulate(float deltaTime) {
             }
             if (_collisionGroups & COLLISION_GROUP_VOXELS) {
                 updateCollisionWithVoxels(deltaTime, radius);
+            } else {
+                _wasStuck = false;
             }
             if (_collisionGroups & COLLISION_GROUP_AVATARS) {
                 updateCollisionWithAvatars(deltaTime);
@@ -958,65 +962,48 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
 static CollisionList myCollisions(64);
 
 void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
+    const float MIN_STUCK_SPEED = 100.0f;
+    float speed = glm::length(_velocity);
+    if (speed > MIN_STUCK_SPEED) {
+        // don't even bother to try to collide against voxles when moving very fast
+        return;
+    }
     myCollisions.clear();
     const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
     if (Application::getInstance()->getVoxelTree()->findShapeCollisions(&boundingShape, myCollisions)) {
         const float VOXEL_ELASTICITY = 0.0f;
         const float VOXEL_DAMPING = 0.0f;
+        float capsuleRadius = boundingShape.getRadius();
 
-        if (glm::length2(_gravity) > EPSILON) {
-            if (myCollisions.size() == 1) {
-                // trivial case
-                CollisionInfo* collision = myCollisions[0];
-                applyHardCollision(collision->_penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
-                _lastFloorContactPoint = collision->_contactPoint - collision->_penetration;
-            } else {
-                // This is special collision handling for when walking on a voxel field which
-                // prevents snagging at corners and seams.
-
-                // sift through the collisions looking for one against the "floor"
-                int floorIndex = 0;
-                float distanceToFloor = 0.0f;
-                float penetrationWithFloor = 0.0f;
-                for (int i = 0; i < myCollisions.size(); ++i) {
-                    CollisionInfo* collision = myCollisions[i];
-                    float distance = glm::dot(_gravity, collision->_contactPoint - _position);
-                    if (distance > distanceToFloor) {
-                        distanceToFloor = distance;
-                        penetrationWithFloor = glm::dot(_gravity, collision->_penetration);
-                        floorIndex = i;
+        glm::vec3 totalPenetration(0.0f);
+        bool isStuck = false;
+        for (int i = 0; i < myCollisions.size(); ++i) {
+            CollisionInfo* collision = myCollisions[i];
+            float depth = glm::length(collision->_penetration);
+            if (depth > capsuleRadius) {
+                isStuck = true;
+                if (_wasStuck) {
+                    glm::vec3 cubeCenter = collision->_vecData;
+                    float cubeSide = collision->_floatData;
+                    float distance = glm::dot(boundingShape.getPosition() - cubeCenter, _worldUpDirection);
+                    if (distance < 0.0f) {
+                        distance = fabsf(distance) + 0.5f * cubeSide;
                     }
-                }
-        
-                // step through the collisions again and apply each that is not redundant
-                glm::vec3 oldPosition = _position;
-                for (int i = 0; i < myCollisions.size(); ++i) {
-                    CollisionInfo* collision = myCollisions[i];
-                    if (i == floorIndex) {
-                        applyHardCollision(collision->_penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
-                        _lastFloorContactPoint = collision->_contactPoint - collision->_penetration;
-                    } else {
-                        float distance = glm::dot(_gravity, collision->_contactPoint - oldPosition);
-                        float penetration = glm::dot(_gravity, collision->_penetration);
-                        if (fabsf(distance - distanceToFloor) > penetrationWithFloor || penetration > penetrationWithFloor) {
-                            // resolution of the deepest penetration would not resolve this one
-                            // so we apply the collision
-                            applyHardCollision(collision->_penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
-                        } 
-                    }
+                    distance += capsuleRadius + boundingShape.getHalfHeight();
+                    totalPenetration = addPenetrations(totalPenetration, - distance * _worldUpDirection);
+                    continue;
                 }
             }
-        } else {
-            // no gravity -- apply all collisions
-            for (int i = 0; i < myCollisions.size(); ++i) {
-                CollisionInfo* collision = myCollisions[i];
-                applyHardCollision(collision->_penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
-            }
+            totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
         }
+        applyHardCollision(totalPenetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+        _wasStuck = isStuck;
 
         const float VOXEL_COLLISION_FREQUENCY = 0.5f;
         updateCollisionSound(myCollisions[0]->_penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
-    } 
+    } else {
+        _wasStuck = false;
+    }
 }
 
 void MyAvatar::applyHardCollision(const glm::vec3& penetration, float elasticity, float damping) {
