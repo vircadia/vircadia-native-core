@@ -39,7 +39,7 @@ enum PacketType {
     PacketTypeRequestAssignment,
     PacketTypeCreateAssignment,
     PacketTypeDomainOAuthRequest,
-    PacketTypeDataServerGet, // reusable
+    PacketTypeMuteEnvironnement,
     PacketTypeDataServerSend, // reusable
     PacketTypeDataServerConfirm,
     PacketTypeVoxelQuery,

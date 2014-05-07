@@ -131,6 +131,20 @@ void DatagramProcessor::processDatagrams() {
                     
                     break;
                 }
+                case PacketTypeMuteEnvironnement: {
+                    glm::vec3 position;
+                    float radius;
+                    
+                    int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeMuteEnvironnement);
+                    memcpy(&position, incomingPacket.constData() + headerSize, sizeof(glm::vec3));
+                    memcpy(&radius, incomingPacket.constData() + headerSize + sizeof(glm::vec3), sizeof(float));
+                    
+                    if (glm::distance(Application::getInstance()->getAvatar()->getPosition(), position) < radius
+                        && !Application::getInstance()->getAudio()->getMuted()) {
+                        Application::getInstance()->getAudio()->toggleMute();
+                    }
+                    break;
+                }
                 default:
                     nodeList->processNodeData(senderSockAddr, incomingPacket);
                     break;

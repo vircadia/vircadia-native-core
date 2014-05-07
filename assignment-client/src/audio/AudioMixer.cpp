@@ -348,6 +348,16 @@ void AudioMixer::readPendingDatagrams() {
                 || mixerPacketType == PacketTypeSilentAudioFrame) {
                 
                 nodeList->findNodeAndUpdateWithDataFromPacket(receivedPacket);
+            } else if (mixerPacketType == PacketTypeMuteEnvironnement) {
+                QByteArray packet = receivedPacket;
+                populatePacketHeader(packet, PacketTypeMuteEnvironnement);
+                
+                foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+                    if (node->getType() == NodeType::Agent && node->getActiveSocket() && node->getLinkedData() && node != nodeList->sendingNodeForPacket(receivedPacket)) {
+                        nodeList->writeDatagram(packet, packet.size(), node);
+                    }
+                }
+
             } else {
                 // let processNodeData handle it.
                 nodeList->processNodeData(senderSockAddr, receivedPacket);
