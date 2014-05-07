@@ -1012,7 +1012,7 @@ void Menu::muteEnvironment() {
     
     glm::vec3 position = Application::getInstance()->getAvatar()->getPosition();
     
-    char packet[packetSize];
+    char* packet = (char*)malloc(packetSize);
     populatePacketHeader(packet, PacketTypeMuteEnvironnement);
     memcpy(packet + headerSize, &position, sizeof(glm::vec3));
     memcpy(packet + headerSize + sizeof(glm::vec3), &MUTE_RADIUS, sizeof(float));
@@ -1026,6 +1026,8 @@ void Menu::muteEnvironment() {
         // send off this mute packet
         NodeList::getInstance()->writeDatagram(mutePacket, audioMixer);
     }
+    
+    free(packet);
 }
 
 void Menu::goToLocation() {
