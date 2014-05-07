@@ -137,6 +137,7 @@ bool ModelTreeElement::updateModel(const ModelItem& model) {
                             difference, debug::valueOf(model.isNewlyCreated()) );
                 }
                 thisModel.copyChangedProperties(model);
+                markWithChangedTime();
             } else {
                 if (wantDebug) {
                     qDebug(">>> IGNORING SERVER!!! Would've caused jutter! <<<  "
@@ -167,7 +168,7 @@ bool ModelTreeElement::updateModel(const ModelItemID& modelID, const ModelItemPr
         }
         if (found) {
             thisModel.setProperties(properties);
-
+            markWithChangedTime(); // mark our element as changed..
             const bool wantDebug = false;
             if (wantDebug) {
                 uint64_t now = usecTimestampNow();

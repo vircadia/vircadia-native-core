@@ -2843,7 +2843,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
         // save absolute translations
         glm::vec3 absoluteSkeletonTranslation = _myAvatar->getSkeletonModel().getTranslation();
         glm::vec3 absoluteFaceTranslation = _myAvatar->getHead()->getFaceModel().getTranslation();
-
+        
         // get the eye positions relative to the neck and use them to set the face translation
         glm::vec3 leftEyePosition, rightEyePosition;
         _myAvatar->getHead()->getFaceModel().setTranslation(glm::vec3());
@@ -2857,11 +2857,22 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
         _myAvatar->getSkeletonModel().setTranslation(_myAvatar->getHead()->getFaceModel().getTranslation() -
             neckPosition);
 
+        // update the attachments to match
+        QVector<glm::vec3> absoluteAttachmentTranslations;
+        glm::vec3 delta = _myAvatar->getSkeletonModel().getTranslation() - absoluteSkeletonTranslation;
+        foreach (Model* attachment, _myAvatar->getAttachmentModels()) {
+            absoluteAttachmentTranslations.append(attachment->getTranslation());
+            attachment->setTranslation(attachment->getTranslation() + delta);
+        }
+
         displaySide(_mirrorCamera, true);
 
         // restore absolute translations
         _myAvatar->getSkeletonModel().setTranslation(absoluteSkeletonTranslation);
         _myAvatar->getHead()->getFaceModel().setTranslation(absoluteFaceTranslation);
+        for (int i = 0; i < absoluteAttachmentTranslations.size(); i++) {
+            _myAvatar->getAttachmentModels().at(i)->setTranslation(absoluteAttachmentTranslations.at(i));
+        }
     } else {
         displaySide(_mirrorCamera, true);
     }

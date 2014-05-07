@@ -817,7 +817,7 @@ ExtractedMesh extractMesh(const FBXNode& object) {
         while (endIndex < data.polygonIndices.size() && data.polygonIndices.at(endIndex++) >= 0);
 
         QPair<int, int> materialTexture((polygonIndex < materials.size()) ? materials.at(polygonIndex) : 0,
-            (polygonIndex < textures.size()) ? textures.at(polygonIndex) : 0);
+            (polygonIndex < textures.size()) ? textures.at(polygonIndex) : -1);
         int& partIndex = materialTextureParts[materialTexture];
         if (partIndex == 0) {
             data.extracted.partMaterialTextures.append(materialTexture);

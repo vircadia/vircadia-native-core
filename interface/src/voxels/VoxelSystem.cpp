@@ -2032,7 +2032,7 @@ bool VoxelSystem::hideOutOfViewOperation(OctreeElement* element, void* extraData
             // if this node is fully OUTSIDE the view, but previously intersected and/or was inside the last view, then
             // we need to hide it. Additionally we know that ALL of it's children are also fully OUTSIDE so we can recurse
             // the children and simply mark them as hidden
-            args->tree->recurseNodeWithOperation(voxel, hideAllSubTreeOperation, args );
+            args->tree->recurseElementWithOperation(voxel, hideAllSubTreeOperation, args );
             return false;
 
         } break;
@@ -2049,7 +2049,7 @@ bool VoxelSystem::hideOutOfViewOperation(OctreeElement* element, void* extraData
             // if this node is fully INSIDE the view, but previously INTERSECTED and/or was OUTSIDE the last view, then
             // we need to show it. Additionally we know that ALL of it's children are also fully INSIDE so we can recurse
             // the children and simply mark them as visible (as appropriate based on LOD)
-            args->tree->recurseNodeWithOperation(voxel, showAllSubTreeOperation, args);
+            args->tree->recurseElementWithOperation(voxel, showAllSubTreeOperation, args);
             return false;
         } break;
         case ViewFrustum::INTERSECT: {

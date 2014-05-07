@@ -424,19 +424,24 @@ void ModelUploader::processCheck() {
 }
 
 bool ModelUploader::addTextures(const QString& texdir, const FBXGeometry& geometry) {
+    QSet<QByteArray> added; 
     foreach (FBXMesh mesh, geometry.meshes) {
         foreach (FBXMeshPart part, mesh.parts) {
-            if (!part.diffuseTexture.filename.isEmpty() && part.diffuseTexture.content.isEmpty()) {
+            if (!part.diffuseTexture.filename.isEmpty() && part.diffuseTexture.content.isEmpty() &&
+                    !added.contains(part.diffuseTexture.filename)) {
                 if (!addPart(texdir + "/" + part.diffuseTexture.filename,
                              QString("texture%1").arg(++_texturesCount), true)) {
                     return false;
                 }
+                added.insert(part.diffuseTexture.filename);
             }
-            if (!part.normalTexture.filename.isEmpty() && part.normalTexture.content.isEmpty()) {
+            if (!part.normalTexture.filename.isEmpty() && part.normalTexture.content.isEmpty() &&
+                    !added.contains(part.normalTexture.filename)) {
                 if (!addPart(texdir + "/" + part.normalTexture.filename,
                              QString("texture%1").arg(++_texturesCount), true)) {
                     return false;
                 }
+                added.insert(part.normalTexture.filename);
             }
         }
     }
