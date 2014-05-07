@@ -68,7 +68,7 @@ const float DEFAULT_FACESHIFT_EYE_DEFLECTION = 0.25f;
 const float DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER = 1.0f;
 const int ONE_SECOND_OF_FRAMES = 60;
 const int FIVE_SECONDS_OF_FRAMES = 5 * ONE_SECOND_OF_FRAMES;
-const float MUTE_RADIUS = 10;
+const float MUTE_RADIUS = 50;
 
 Menu::Menu() :
     _actionHash(),
@@ -1007,13 +1007,13 @@ void Menu::multipleDestinationsDecision(const QJsonObject& userData, const QJson
 }
 
 void Menu::muteEnvironment() {
-    int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeMuteEnvironnement);
+    int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeMuteEnvironment);
     int packetSize = headerSize + sizeof(glm::vec3) + sizeof(float);
     
     glm::vec3 position = Application::getInstance()->getAvatar()->getPosition();
     
     char* packet = (char*)malloc(packetSize);
-    populatePacketHeader(packet, PacketTypeMuteEnvironnement);
+    populatePacketHeader(packet, PacketTypeMuteEnvironment);
     memcpy(packet + headerSize, &position, sizeof(glm::vec3));
     memcpy(packet + headerSize + sizeof(glm::vec3), &MUTE_RADIUS, sizeof(float));
     

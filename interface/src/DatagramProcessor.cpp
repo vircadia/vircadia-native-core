@@ -131,11 +131,11 @@ void DatagramProcessor::processDatagrams() {
                     
                     break;
                 }
-                case PacketTypeMuteEnvironnement: {
+                case PacketTypeMuteEnvironment: {
                     glm::vec3 position;
                     float radius;
                     
-                    int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeMuteEnvironnement);
+                    int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeMuteEnvironment);
                     memcpy(&position, incomingPacket.constData() + headerSize, sizeof(glm::vec3));
                     memcpy(&radius, incomingPacket.constData() + headerSize + sizeof(glm::vec3), sizeof(float));
                     
