@@ -27,9 +27,18 @@ function vMinus(a, b) {
 
 //  First, load two percussion sounds to be used on the sticks
 
-var chord1 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+A.raw");
-var chord2 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+B.raw");
-var chord3 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+E.raw");
+var guitarType = 2; 
+
+if (guitarType == 1) {
+	var chord1 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+A.raw");
+	var chord2 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+B.raw");
+	var chord3 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+E.raw");
+} else {
+	var chord1 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Metal+A+short.raw");
+	var chord2 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Metal+B+short.raw");
+	var chord3 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Metal+E+short.raw");
+}
+
 
 var whichChord = chord1; 
 
@@ -56,7 +65,7 @@ function checkHands(deltaTime) {
 
 		if (palm == strumHand) {
 
-			var STRUM_HEIGHT_ABOVE_PELVIS = 0.15;
+			var STRUM_HEIGHT_ABOVE_PELVIS = -0.30;
 			var strumTriggerHeight = myPelvis.y + STRUM_HEIGHT_ABOVE_PELVIS;
 			//printVector(position);
 			if ((position.y < strumTriggerHeight) && (lastPosition.y >= strumTriggerHeight)) {
@@ -72,9 +81,9 @@ function checkHands(deltaTime) {
 			//  This is the chord controller
 			var distanceFromPelvis = Vec3.length(Vec3.subtract(position, myPelvis));
 			//print(distanceFromPelvis);
-			if (distanceFromPelvis > 0.50) {
+			if (distanceFromPelvis > 0.63) {
 				whichChord = chord3;
-			} else if (distanceFromPelvis > 0.35) {
+			} else if (distanceFromPelvis > 0.55) {
 				whichChord = chord2;
 			} else {
 				whichChord = chord1;
