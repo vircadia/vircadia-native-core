@@ -664,13 +664,14 @@ bool sphereAACube(const glm::vec3& sphereCenter, float sphereRadius, const glm::
             glm::vec3 direction;
             BA /= maxBA;
             glm::modf(BA, direction);
-            direction = glm::normalize(direction); 
+            float lengthDirection = glm::length(direction);
+            direction /= lengthDirection;
 
             // compute collision details
             collision->_type = COLLISION_TYPE_AACUBE;
             collision->_floatData = cubeSide;
             collision->_vecData = cubeCenter;
-            collision->_penetration = (halfCubeSide + sphereRadius - distance * glm::dot(BA, direction)) * direction;
+            collision->_penetration = (halfCubeSide * lengthDirection + sphereRadius - maxBA * glm::dot(BA, direction)) * direction;
             collision->_contactPoint = sphereCenter + sphereRadius * direction;
         }
         collision->_type = COLLISION_TYPE_AACUBE;
