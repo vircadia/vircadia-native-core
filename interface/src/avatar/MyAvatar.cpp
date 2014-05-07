@@ -59,7 +59,7 @@ MyAvatar::MyAvatar() :
     _bodyPitchDelta(0.0f),
     _bodyRollDelta(0.0f),
     _shouldJump(false),
-    _gravity(0.0f, -1.0f, 0.0f),
+    _gravity(0.0f, 0.0f, 0.0f),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
     _wasPushing(false),
     _isPushing(false),
@@ -146,7 +146,7 @@ void MyAvatar::simulate(float deltaTime) {
         boundingShape.getStartPoint(startCap);
         glm::vec3 bottomOfBoundingCapsule = startCap + (boundingShape.getRadius() / gravityLength) * _gravity;
 
-        float fallThreshold = 2.f * deltaTime * gravityLength;
+        float fallThreshold = 2.0f * deltaTime * gravityLength;
         walkingOnFloor = (glm::distance(bottomOfBoundingCapsule, _lastFloorContactPoint) < fallThreshold);
     }
 
@@ -163,7 +163,7 @@ void MyAvatar::simulate(float deltaTime) {
         // update position
         if (glm::length2(_velocity) < EPSILON) {
             _velocity = glm::vec3(0.0f);
-        } else {
+        } else { 
             _position += _velocity * deltaTime;
         }
     }
@@ -349,8 +349,8 @@ void MyAvatar::renderHeadMouse(int screenWidth, int screenHeight) const {
     float headYaw = getHead()->getFinalYaw();
 
     float aspectRatio = (float) screenWidth / (float) screenHeight;
-    int headMouseX = screenWidth / 2.f - headYaw * aspectRatio * pixelsPerDegree;
-    int headMouseY = screenHeight / 2.f - headPitch * pixelsPerDegree;
+    int headMouseX = (int)((float)screenWidth / 2.0f - headYaw * aspectRatio * pixelsPerDegree);
+    int headMouseY = (int)((float)screenHeight / 2.0f - headPitch * pixelsPerDegree);
     
     glColor3f(1.0f, 1.0f, 1.0f);
     glDisable(GL_LINE_SMOOTH);
@@ -367,8 +367,8 @@ void MyAvatar::renderHeadMouse(int screenWidth, int screenHeight) const {
 
         float avgEyePitch = faceshift->getEstimatedEyePitch();
         float avgEyeYaw = faceshift->getEstimatedEyeYaw();
-        int eyeTargetX = (screenWidth / 2) - avgEyeYaw * aspectRatio * pixelsPerDegree;
-        int eyeTargetY = (screenHeight / 2) - avgEyePitch * pixelsPerDegree;
+        int eyeTargetX = (int)((float)(screenWidth) / 2.0f - avgEyeYaw * aspectRatio * pixelsPerDegree);
+        int eyeTargetY = (int)((float)(screenHeight) / 2.0f - avgEyePitch * pixelsPerDegree);
         
         glColor3f(0.0f, 1.0f, 1.0f);
         glDisable(GL_LINE_SMOOTH);
@@ -456,9 +456,9 @@ void MyAvatar::loadData(QSettings* settings) {
 
     getHead()->setBasePitch(loadSetting(settings, "headPitch", 0.0f));
 
-    _position.x = loadSetting(settings, "position_x", 0.0f);
-    _position.y = loadSetting(settings, "position_y", 0.0f);
-    _position.z = loadSetting(settings, "position_z", 0.0f);
+    _position.x = loadSetting(settings, "position_x", START_LOCATION.x);
+    _position.y = loadSetting(settings, "position_y", START_LOCATION.y);
+    _position.z = loadSetting(settings, "position_z", START_LOCATION.z);
 
     getHead()->setPupilDilation(loadSetting(settings, "pupilDilation", 0.0f));
 
@@ -514,7 +514,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     //  Look at the avatar whose eyes are closest to the ray in direction of my avatar's head
     //
     _lookAtTargetAvatar.clear();
-    _targetAvatarPosition = glm::vec3(0, 0, 0);
+    _targetAvatarPosition = glm::vec3(0.0f);
     const float MIN_LOOKAT_ANGLE = PI / 4.0f;        //  Smallest angle between face and person where we will look at someone
     float smallestAngleTo = MIN_LOOKAT_ANGLE;
     foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
@@ -765,7 +765,7 @@ void MyAvatar::applyMotor(float deltaTime) {
         targetVelocity = rotation * _motorVelocity;
     }
 
-    glm::vec3 targetDirection(0.f);
+    glm::vec3 targetDirection(0.0f);
     if (glm::length2(targetVelocity) > EPSILON) {
         targetDirection = glm::normalize(targetVelocity);
     }
@@ -1382,6 +1382,8 @@ void MyAvatar::updateMotionBehaviorsFromMenu() {
         _motionBehaviors |= AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY;
         // Environmental and Local gravities are incompatible.  Environmental setting trumps local.
         _motionBehaviors &= ~AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
+    } else {
+        _motionBehaviors &= ~AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY;
     }
     if (! (_motionBehaviors & (AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY | AVATAR_MOTION_OBEY_LOCAL_GRAVITY))) {
         setGravity(glm::vec3(0.0f));
