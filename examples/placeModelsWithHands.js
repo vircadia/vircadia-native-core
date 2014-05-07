@@ -37,7 +37,7 @@ var radiusMinimum = 0.05;
 var radiusMaximum = 0.5;
 
 var modelURLs = [
-    "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/music/EVHFrankenstein.fbx",
+    "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/attachments/topHat.fst",
     "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
     "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/birarda/birarda_head.fbx",
     "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/pug.fbx",
@@ -72,7 +72,6 @@ function keyPressEvent(event) {
         }
     } else if (event.text == "m") {
         var URL = Window.prompt("Model URL", "Enter URL, e.g. http://foo.com/model.fbx");
-        Window.alert("Your response was: " + prompt);
         var modelPosition = getNewVoxelPosition();
         var properties = { position: { x: modelPosition.x, 
                                        y: modelPosition.y, 
