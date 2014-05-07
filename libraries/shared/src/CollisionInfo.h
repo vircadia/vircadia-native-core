@@ -18,9 +18,14 @@
 #include <QVector>
 
 enum CollisionType {
-    BASE_COLLISION = 0,
-    PADDLE_HAND_COLLISION,
-    MODEL_COLLISION,
+    COLLISION_TYPE_UNKNOWN = 0,
+    COLLISION_TYPE_PADDLE_HAND,
+    COLLISION_TYPE_MODEL,
+        // _data = pointer to Model that owns joint
+        // _intData = joint index
+    COLLISION_TYPE_AACUBE,
+        // _floatData = cube side
+        // _vecData = cube center
 };
 
 const quint32 COLLISION_GROUP_ENVIRONMENT = 1U << 0;
@@ -39,7 +44,7 @@ public:
     CollisionInfo() 
         : _type(0),
         _data(NULL),
-        _flags(0),
+        _intData(0),
         _damping(0.f),
         _elasticity(1.f),
         _contactPoint(0.f), 
@@ -50,7 +55,7 @@ public:
     CollisionInfo(qint32 type)
         : _type(type),
         _data(NULL),
-        _flags(0),
+        _intData(0),
         _damping(0.f),
         _elasticity(1.f),
         _contactPoint(0.f), 
@@ -60,9 +65,13 @@ public:
 
     ~CollisionInfo() {}
 
-    qint32 _type;             // type of Collision (will determine what is supposed to be in _data and _flags)
-    void* _data;              // pointer to user supplied data
-    quint32 _flags;           // 32 bits for whatever
+    int _type;          // type of Collision
+
+    // the value of the *Data fields depend on the type 
+    void* _data;
+    int _intData;       
+    float _floatData;
+    glm::vec3 _vecData;
 
     float _damping;           // range [0,1] of friction coeficient
     float _elasticity;        // range [0,1] of energy conservation
