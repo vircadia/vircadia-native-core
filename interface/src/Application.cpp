@@ -151,6 +151,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastQueriedTime(usecTimestampNow()),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
         _cameraPushback(0.0f),
+        _scaleMirror(1.0f),
         _mouseX(0),
         _mouseY(0),
         _lastMouseMove(usecTimestampNow()),
@@ -570,7 +571,7 @@ void Application::paintGL() {
         _myCamera.setTightness(0.0f);
         glm::vec3 eyePosition = _myAvatar->getHead()->calculateAverageEyePosition();
         float headHeight = eyePosition.y - _myAvatar->getPosition().y;
-        _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _myAvatar->getScale());
+        _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _myAvatar->getScale() * _scaleMirror);
         _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight, 0));
         _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
         
@@ -868,11 +869,19 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_Up:
-                _myAvatar->setDriveKeys(isShifted ? UP : FWD, 1.f);
+                if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+                    _scaleMirror *= 0.95;
+                } else {
+                    _myAvatar->setDriveKeys(isShifted ? UP : FWD, 1.f);
+                }
                 break;
 
             case Qt::Key_Down:
-                _myAvatar->setDriveKeys(isShifted ? DOWN : BACK, 1.f);
+                if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+                    _scaleMirror *= 1.05;
+                } else {
+                    _myAvatar->setDriveKeys(isShifted ? DOWN : BACK, 1.f);
+                }
                 break;
 
             case Qt::Key_Left:
