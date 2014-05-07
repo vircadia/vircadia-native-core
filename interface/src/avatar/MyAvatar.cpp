@@ -991,12 +991,10 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
                     }
                     distance += capsuleRadius + boundingShape.getHalfHeight();
                     totalPenetration = addPenetrations(totalPenetration, - distance * _worldUpDirection);
-                } else {
-                    totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
+                    continue;
                 }
-            } else {
-                totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
             }
+            totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
         }
         applyHardCollision(totalPenetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
         _wasStuck = isStuck;
