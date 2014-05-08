@@ -584,6 +584,14 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _billboardValid = false;
 }
 
+void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
+    Avatar::setAttachmentData(attachmentData);
+    if (QThread::currentThread() != thread()) {    
+        return;
+    }
+    _billboardValid = false;
+}
+
 void MyAvatar::renderBody(RenderMode renderMode, float glowLevel) {
     if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         return; // wait until both models are loaded
@@ -1246,6 +1254,11 @@ void MyAvatar::updateChatCircle(float deltaTime) {
 void MyAvatar::maybeUpdateBillboard() {
     if (_billboardValid || !(_skeletonModel.isLoadedWithTextures() && getHead()->getFaceModel().isLoadedWithTextures())) {
         return;
+    }
+    foreach (Model* model, _attachmentModels) {
+        if (!model->isLoadedWithTextures()) {
+            return;
+        }
     }
     QImage image = Application::getInstance()->renderAvatarBillboard();
     _billboard.clear();
