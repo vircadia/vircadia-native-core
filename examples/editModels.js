@@ -33,6 +33,7 @@ var modelURLs = [
                  "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/slimer.fbx",
                  ];
 
+var tools = [];
 var toolIconUrl = "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/tools/";
 var numberOfTools = 1;
 var toolHeight = 50;
@@ -44,13 +45,44 @@ var toolsY = (windowDimensions.y - toolsHeight) / 2;
 
 
 var firstModel = Overlays.addOverlay("image", {
-                                     x: 0, y: 0, width: toolWidth, height: toolHeight,
                                      subImage: { x: 0, y: toolHeight, width: toolWidth, height: toolHeight },
                                      imageURL: toolIconUrl + "voxel-tool.svg",
                                      x: toolsX, y: toolsY + ((toolHeight + toolVerticalSpacing) * 0), width: toolWidth, height: toolHeight,
                                      visible: true,
                                      alpha: 0.9
                                      });
+function Tool(iconURL) {
+    this.overlay = Overlays.addOverlay("image", {
+                                       subImage: { x: 0, y: toolHeight, width: toolWidth, height: toolHeight },
+                                       imageURL: iconURL,
+                                       x: toolsX,
+                                       y: toolsY + ((toolHeight + toolVerticalSpacing) * tools.length),
+                                       width: toolWidth,
+                                       height: toolHeight,
+                                       visible: true,
+                                       alpha: 0.9
+                                       });
+    
+    
+    this.cleanup = function() {
+        Ovelays.deleteOverlay(this.overlay);
+    }
+    tools[tools.length] = this;
+    return tools.length - 1;
+}
+Tool.ICON_URL = "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/tools/";
+Tool.HEIGHT = 50;
+Tool.WIDTH = 50;
+
+function ToolBar(direction, x, y) {
+    this.tools = [];
+    
+    this.numberOfTools = function() {
+        return this.tools.length;
+    }
+}
+ToolBar.SPACING = 4;
+
 
 function controller(wichSide) {
     this.side = wichSide;
