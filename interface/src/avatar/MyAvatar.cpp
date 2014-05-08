@@ -136,7 +136,14 @@ void MyAvatar::simulate(float deltaTime) {
     }
 
     // update the movement of the hand and process handshaking with other avatars...
-    updateHandMovementAndTouching(deltaTime);
+    bool pointing = false;
+    if (_mousePressed) {
+        _handState = HAND_STATE_GRASPING;
+    } else if (pointing) {
+        _handState = HAND_STATE_POINTING;
+    } else {
+        _handState = HAND_STATE_NULL;
+    }
 
     updateOrientation(deltaTime);
 
@@ -915,40 +922,6 @@ void MyAvatar::updateThrust(float deltaTime) {
 }
 */
 
-void MyAvatar::updateHandMovementAndTouching(float deltaTime) {
-    glm::quat orientation = getOrientation();
-
-    // reset hand and arm positions according to hand movement
-    glm::vec3 up = orientation * IDENTITY_UP;
-
-    bool pointing = false;
-    if (glm::length(_mouseRayDirection) > EPSILON && !Application::getInstance()->isMouseHidden()) {
-        // confine to the approximate shoulder plane
-        glm::vec3 pointDirection = _mouseRayDirection;
-        if (glm::dot(_mouseRayDirection, up) > 0.0f) {
-            glm::vec3 projectedVector = glm::cross(up, glm::cross(_mouseRayDirection, up));
-            if (glm::length(projectedVector) > EPSILON) {
-                pointDirection = glm::normalize(projectedVector);
-            }
-        }
-        glm::vec3 shoulderPosition;
-        if (_skeletonModel.getRightShoulderPosition(shoulderPosition)) {
-            glm::vec3 farVector = _mouseRayOrigin + pointDirection * (float)TREE_SCALE - shoulderPosition;
-            const float ARM_RETRACTION = 0.75f;
-            float retractedLength = _skeletonModel.getRightArmLength() * ARM_RETRACTION;
-            setHandPosition(shoulderPosition + glm::normalize(farVector) * retractedLength);
-            pointing = true;
-        }
-    }
-
-    if (_mousePressed) {
-        _handState = HAND_STATE_GRASPING;
-    } else if (pointing) {
-        _handState = HAND_STATE_POINTING;
-    } else {
-        _handState = HAND_STATE_NULL;
-    }
-}
 
 void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
     glm::vec3 up = getBodyUpDirection();

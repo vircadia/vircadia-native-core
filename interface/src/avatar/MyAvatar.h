@@ -147,7 +147,6 @@ private:
     float computeMotorTimescale();
     void applyMotor(float deltaTime);
     void applyThrust(float deltaTime);
-    void updateHandMovementAndTouching(float deltaTime);
     void updateCollisionWithAvatars(float deltaTime);
     void updateCollisionWithEnvironment(float deltaTime, float radius);
     void updateCollisionWithVoxels(float deltaTime, float radius);
