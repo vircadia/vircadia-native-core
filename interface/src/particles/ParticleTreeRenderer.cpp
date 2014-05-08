@@ -39,8 +39,8 @@ void ParticleTreeRenderer::update() {
     }
 }
 
-void ParticleTreeRenderer::render() {
-    OctreeRenderer::render();
+void ParticleTreeRenderer::render(RenderMode renderMode) {
+    OctreeRenderer::render(renderMode);
 }
 
 Model* ParticleTreeRenderer::getModel(const QString& url) {
@@ -102,7 +102,11 @@ void ParticleTreeRenderer::renderElement(OctreeElement* element, RenderArgs* arg
                 model->setScale(scale * MODEL_SCALE * radius * modelScale);
 
                 model->simulate(0.0f);
-                model->render(alpha); // TODO: should we allow particles to have alpha on their models?
+
+                // TODO: should we allow particles to have alpha on their models?
+                Model::RenderMode modelRenderMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE 
+                                                        ? Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+                model->render(alpha, modelRenderMode);
 
                 const bool wantDebugSphere = false;
                 if (wantDebugSphere) {

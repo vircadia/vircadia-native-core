@@ -227,6 +227,7 @@ public:
     OctreeElement* getOctreeEnclosingElementAt(float x, float y, float z, float s) const;
     
     OctreeElement* getOrCreateChildElementAt(float x, float y, float z, float s);
+    OctreeElement* getOrCreateChildElementContaining(const AABox& box);
 
     void recurseTreeWithOperation(RecurseOctreeOperation operation, void* extraData = NULL);
     void recurseTreeWithPostOperation(RecurseOctreeOperation operation, void* extraData = NULL);

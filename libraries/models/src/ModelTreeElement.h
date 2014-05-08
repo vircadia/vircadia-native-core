@@ -74,7 +74,7 @@ public:
     virtual bool requiresSplit() const { return false; }
 
     /// Override to serialize the state of this element. This is used for persistance and for transmission across the network.
-    virtual bool appendElementData(OctreePacketData* packetData) const;
+    virtual bool appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const;
 
     /// Override to deserialize the state of this element. This is used for loading from a persisted file or from reading
     /// from the network.
@@ -117,6 +117,9 @@ public:
     const ModelItem* getModelWithID(uint32_t id) const;
 
     bool removeModelWithID(uint32_t id);
+
+    bool containsModelBounds(const ModelItem& model) const;
+    bool bestFitModelBounds(const ModelItem& model) const;
 
 protected:
     virtual void init(unsigned char * octalCode);

@@ -337,7 +337,9 @@ void MyAvatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         return; // exit early
     }
     Avatar::render(cameraPosition, renderMode);
-    if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints)) {
+    
+    // don't display IK constraints in shadow mode
+    if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints) && renderMode != SHADOW_RENDER_MODE) {
         _skeletonModel.renderIKConstraints();
     }
 }
@@ -586,7 +588,7 @@ void MyAvatar::renderBody(RenderMode renderMode, float glowLevel) {
     if (shouldRenderHead(Application::getInstance()->getCamera()->getPosition(), renderMode)) {
         getHead()->render(1.0f, modelRenderMode);
     }
-    getHand()->render(true);
+    getHand()->render(true, modelRenderMode);
 }
 
 const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
