@@ -38,19 +38,24 @@ CollisionInfo* CollisionList::getLastCollision() {
 }
 
 void CollisionList::clear() {
+    // we rely on the external context to properly set or clear the data members of a collision
+    // whenever it is used.
+    /*
     for (int i = 0; i < _size; ++i) {
         // we only clear the important stuff
         CollisionInfo& collision = _collisions[i];
-        collision._type = BASE_COLLISION;
-        collision._data = NULL; // CollisionInfo does not own whatever this points to.
-        collision._flags = 0;
-        // we rely on the consumer to properly overwrite these fields when the collision is "created"
+        collision._type = COLLISION_TYPE_UNKNOWN;
+        //collision._data = NULL;
+        //collision._intData = 0;
+        //collision._floatDAta = 0.0f;
+        //collision._vecData = glm::vec3(0.0f);
         //collision._damping;
         //collision._elasticity;
         //collision._contactPoint;
         //collision._penetration;
         //collision._addedVelocity;
     }
+    */
     _size = 0;
 }
 

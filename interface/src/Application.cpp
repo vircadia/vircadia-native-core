@@ -151,6 +151,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastQueriedTime(usecTimestampNow()),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
         _cameraPushback(0.0f),
+        _scaleMirror(1.0f),
         _mouseX(0),
         _mouseY(0),
         _lastMouseMove(usecTimestampNow()),
@@ -570,9 +571,9 @@ void Application::paintGL() {
         _myCamera.setTightness(0.0f);
         glm::vec3 eyePosition = _myAvatar->getHead()->calculateAverageEyePosition();
         float headHeight = eyePosition.y - _myAvatar->getPosition().y;
-        _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _myAvatar->getScale());
-        _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight, 0));
-        _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
+        _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _myAvatar->getScale() * _scaleMirror);
+        _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight + (_raiseMirror * _myAvatar->getScale()), 0));
+        _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
         
         // if the head would intersect the near clip plane, we must push the camera out
         glm::vec3 relativePosition = glm::inverse(_myCamera.getTargetRotation()) *
@@ -868,19 +869,43 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_Up:
-                _myAvatar->setDriveKeys(isShifted ? UP : FWD, 1.f);
+                if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+                    if (!isShifted) {
+                        _scaleMirror *= 0.95f;
+                    } else {
+                        _raiseMirror += 0.05f;
+                    }
+                } else {
+                    _myAvatar->setDriveKeys(isShifted ? UP : FWD, 1.f);
+                }
                 break;
 
             case Qt::Key_Down:
-                _myAvatar->setDriveKeys(isShifted ? DOWN : BACK, 1.f);
+                if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+                    if (!isShifted) {
+                        _scaleMirror *= 1.05f;
+                    } else {
+                        _raiseMirror -= 0.05f;
+                    }
+                } else {
+                    _myAvatar->setDriveKeys(isShifted ? DOWN : BACK, 1.f);
+                }
                 break;
 
             case Qt::Key_Left:
-                _myAvatar->setDriveKeys(isShifted ? LEFT : ROT_LEFT, 1.f);
+                if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+                    _rotateMirror += PI / 20.f;
+                } else {
+                    _myAvatar->setDriveKeys(isShifted ? LEFT : ROT_LEFT, 1.f);
+                }
                 break;
 
             case Qt::Key_Right:
-                _myAvatar->setDriveKeys(isShifted ? RIGHT : ROT_RIGHT, 1.f);
+                if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+                    _rotateMirror -= PI / 20.f;
+                } else {
+                    _myAvatar->setDriveKeys(isShifted ? RIGHT : ROT_RIGHT, 1.f);
+                }
                 break;
 
             case Qt::Key_I:
@@ -2348,8 +2373,8 @@ void Application::updateShadowMap() {
     updateUntranslatedViewMatrix();
 
     _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
-    _particles.render();
-    _models.render();
+    _particles.render(OctreeRenderer::SHADOW_RENDER_MODE);
+    _models.render(OctreeRenderer::SHADOW_RENDER_MODE);
 
     glPopMatrix();
 

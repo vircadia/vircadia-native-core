@@ -85,6 +85,9 @@ public:
     
     /// used by ModelScriptingInterface to return ModelItemProperties for unknown models
     void setIsUnknownID() { _id = UNKNOWN_MODEL_ID; _idSet = true; }
+    
+    glm::vec3 getMinimumPoint() const { return _position - glm::vec3(_radius, _radius, _radius); }
+    glm::vec3 getMaximumPoint() const { return _position + glm::vec3(_radius, _radius, _radius); }
 
 private:
     glm::vec3 _position;
@@ -156,11 +159,20 @@ public:
     /// get position in domain scale units (0.0 - 1.0)
     const glm::vec3& getPosition() const { return _position; }
 
+    glm::vec3 getMinimumPoint() const { return _position - glm::vec3(_radius, _radius, _radius); }
+    glm::vec3 getMaximumPoint() const { return _position + glm::vec3(_radius, _radius, _radius); }
+
     const rgbColor& getColor() const { return _color; }
     xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
 
     /// get radius in domain scale units (0.0 - 1.0)
     float getRadius() const { return _radius; }
+
+    /// get maximum dimension in domain scale units (0.0 - 1.0)
+    float getSize() const { return _radius * 2.0f; }
+
+    /// get maximum dimension in domain scale units (0.0 - 1.0)
+    AABox getAABox() const { return AABox(getMinimumPoint(), getSize()); }
     
     // model related properties
     bool hasModel() const { return !_modelURL.isEmpty(); }

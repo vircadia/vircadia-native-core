@@ -45,7 +45,6 @@ typedef unsigned long long quint64;
 
 #include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
-#include <StreamUtils.h>
 
 #include <Node.h>
 

@@ -11,7 +11,7 @@
 
 #include "AudioScriptingInterface.h"
 
-void AudioScriptingInterface::playSound(Sound* sound, const AudioInjectorOptions* injectorOptions) {
+AudioInjector* AudioScriptingInterface::playSound(Sound* sound, const AudioInjectorOptions* injectorOptions) {
     
     AudioInjector* injector = new AudioInjector(sound, *injectorOptions);
     
@@ -28,6 +28,18 @@ void AudioScriptingInterface::playSound(Sound* sound, const AudioInjectorOptions
     connect(injectorThread, SIGNAL(finished()), injectorThread, SLOT(deleteLater()));
     
     injectorThread->start();
+    
+    return injector;
+}
+
+void AudioScriptingInterface::stopInjector(AudioInjector* injector) {
+    if (injector) {
+        injector->stop();
+    }
+}
+
+bool AudioScriptingInterface::isInjectorPlaying(AudioInjector* injector) {
+    return (injector != NULL);
 }
 
 void AudioScriptingInterface::startDrumSound(float volume, float frequency, float duration, float decay, 

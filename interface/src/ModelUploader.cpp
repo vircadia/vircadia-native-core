@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDebug>
 #include <QDialogButtonBox>
@@ -42,6 +43,9 @@ static const QString TEXDIR_FIELD = "texdir";
 static const QString LOD_FIELD = "lod";
 static const QString JOINT_INDEX_FIELD = "jointIndex";
 static const QString SCALE_FIELD = "scale";
+static const QString TRANSLATION_X_FIELD = "tx";
+static const QString TRANSLATION_Y_FIELD = "ty";
+static const QString TRANSLATION_Z_FIELD = "tz";
 static const QString JOINT_FIELD = "joint";
 static const QString FREE_JOINT_FIELD = "freeJoint";
 
@@ -443,6 +447,14 @@ bool ModelUploader::addTextures(const QString& texdir, const FBXGeometry& geomet
                 }
                 added.insert(part.normalTexture.filename);
             }
+            if (!part.specularTexture.filename.isEmpty() && part.specularTexture.content.isEmpty() &&
+                    !added.contains(part.specularTexture.filename)) {
+                if (!addPart(texdir + "/" + part.specularTexture.filename,
+                             QString("texture%1").arg(++_texturesCount), true)) {
+                    return false;
+                }
+                added.insert(part.specularTexture.filename);
+            }
         }
     }
     
@@ -511,6 +523,14 @@ bool ModelUploader::addPart(const QFile& file, const QByteArray& contents, const
     return true;
 }
 
+static QDoubleSpinBox* createTranslationBox() {
+    QDoubleSpinBox* box = new QDoubleSpinBox();
+    const double MAX_TRANSLATION = 1000000.0;
+    box->setMinimum(-MAX_TRANSLATION);
+    box->setMaximum(MAX_TRANSLATION);
+    return box;
+}
+
 ModelPropertiesDialog::ModelPropertiesDialog(ModelType modelType, const QVariantHash& originalMapping,
         const QString& basePath, const FBXGeometry& geometry) :
     _modelType(modelType),
@@ -532,7 +552,18 @@ ModelPropertiesDialog::ModelPropertiesDialog(ModelType modelType, const QVariant
     _scale->setMaximum(FLT_MAX);
     _scale->setSingleStep(0.01);
     
-    if (_modelType != ATTACHMENT_MODEL) {
+    if (_modelType == ATTACHMENT_MODEL) {
+        QHBoxLayout* translation = new QHBoxLayout();
+        form->addRow("Translation:", translation);
+        translation->addWidget(_translationX = createTranslationBox());
+        translation->addWidget(_translationY = createTranslationBox());
+        translation->addWidget(_translationZ = createTranslationBox());
+        form->addRow("Pivot About Center:", _pivotAboutCenter = new QCheckBox());
+        form->addRow("Pivot Joint:", _pivotJoint = createJointBox());    
+        connect(_pivotAboutCenter, SIGNAL(toggled(bool)), SLOT(updatePivotJoint()));
+        _pivotAboutCenter->setChecked(true);
+        
+    } else {
         form->addRow("Left Eye Joint:", _leftEyeJoint = createJointBox());
         form->addRow("Right Eye Joint:", _rightEyeJoint = createJointBox());
         form->addRow("Neck Joint:", _neckJoint = createJointBox());
@@ -576,7 +607,19 @@ QVariantHash ModelPropertiesDialog::getMapping() const {
     mapping.insert(JOINT_INDEX_FIELD, jointIndices);
     
     QVariantHash joints = mapping.value(JOINT_FIELD).toHash();
-    if (_modelType != ATTACHMENT_MODEL) {
+    if (_modelType == ATTACHMENT_MODEL) {
+        glm::vec3 pivot;
+        if (_pivotAboutCenter->isChecked()) {
+            pivot = (_geometry.meshExtents.minimum + _geometry.meshExtents.maximum) * 0.5f;
+        
+        } else if (_pivotJoint->currentIndex() != 0) {
+            pivot = extractTranslation(_geometry.joints.at(_pivotJoint->currentIndex() - 1).transform);
+        }
+        mapping.insert(TRANSLATION_X_FIELD, -pivot.x * _scale->value() + _translationX->value());
+        mapping.insert(TRANSLATION_Y_FIELD, -pivot.y * _scale->value() + _translationY->value());
+        mapping.insert(TRANSLATION_Z_FIELD, -pivot.z * _scale->value() + _translationZ->value());
+        
+    } else {
         insertJointMapping(joints, "jointEyeLeft", _leftEyeJoint->currentText());
         insertJointMapping(joints, "jointEyeRight", _rightEyeJoint->currentText());
         insertJointMapping(joints, "jointNeck", _neckJoint->currentText());
@@ -609,7 +652,14 @@ void ModelPropertiesDialog::reset() {
     _scale->setValue(_originalMapping.value(SCALE_FIELD).toDouble());
     
     QVariantHash jointHash = _originalMapping.value(JOINT_FIELD).toHash();
-    if (_modelType != ATTACHMENT_MODEL) {
+    if (_modelType == ATTACHMENT_MODEL) {
+        _translationX->setValue(_originalMapping.value(TRANSLATION_X_FIELD).toDouble());
+        _translationY->setValue(_originalMapping.value(TRANSLATION_Y_FIELD).toDouble());
+        _translationZ->setValue(_originalMapping.value(TRANSLATION_Z_FIELD).toDouble());    
+        _pivotAboutCenter->setChecked(true);
+        _pivotJoint->setCurrentIndex(0);
+        
+    } else {
         setJointText(_leftEyeJoint, jointHash.value("jointEyeLeft").toString());
         setJointText(_rightEyeJoint, jointHash.value("jointEyeRight").toString());
         setJointText(_neckJoint, jointHash.value("jointNeck").toString());
@@ -644,6 +694,10 @@ void ModelPropertiesDialog::chooseTextureDirectory() {
         return;
     }
     _textureDirectory->setText(directory.length() == _basePath.length() ? "." : directory.mid(_basePath.length() + 1));
+}
+
+void ModelPropertiesDialog::updatePivotJoint() {
+    _pivotJoint->setEnabled(!_pivotAboutCenter->isChecked());
 }
 
 void ModelPropertiesDialog::createNewFreeJoint(const QString& joint) {

@@ -456,6 +456,10 @@ private:
     glm::mat4 _untranslatedViewMatrix;
     glm::vec3 _viewMatrixTranslation;
     glm::mat4 _projectionMatrix;
+    
+    float _scaleMirror;
+    float _rotateMirror;
+    float _raiseMirror;
 
     glm::mat4 _shadowMatrix;
 
