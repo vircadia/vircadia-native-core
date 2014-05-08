@@ -309,7 +309,9 @@ Menu::Menu() :
 
     QMenu* modelOptionsMenu = developerMenu->addMenu("Model Options");
     addCheckableActionToQMenuAndActionHash(modelOptionsMenu, MenuOption::Models, 0, true);
-    addCheckableActionToQMenuAndActionHash(modelOptionsMenu, MenuOption::DisplayModelProxies, 0, false);
+    addCheckableActionToQMenuAndActionHash(modelOptionsMenu, MenuOption::DisplayModelBounds, 0, false);
+    addCheckableActionToQMenuAndActionHash(modelOptionsMenu, MenuOption::DisplayModelElementProxy, 0, false);
+    addCheckableActionToQMenuAndActionHash(modelOptionsMenu, MenuOption::DisplayModelElementChildProxies, 0, false);
 
     QMenu* avatarOptionsMenu = developerMenu->addMenu("Avatar Options");
 

@@ -578,6 +578,10 @@ OctreeElement* Octree::getOrCreateChildElementAt(float x, float y, float z, floa
     return getRoot()->getOrCreateChildElementAt(x, y, z, s);
 }
 
+OctreeElement* Octree::getOrCreateChildElementContaining(const AABox& box) {
+    return getRoot()->getOrCreateChildElementContaining(box);
+}
+
 
 // combines the ray cast arguments into a single object
 class RayArgs {
@@ -1001,7 +1005,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
     // Keep track of how deep we've encoded.
     currentEncodeLevel++;
 
-    params.maxLevelReached = std::max(currentEncodeLevel,params.maxLevelReached);
+    params.maxLevelReached = std::max(currentEncodeLevel, params.maxLevelReached);
 
     // If we've reached our max Search Level, then stop searching.
     if (currentEncodeLevel >= params.maxEncodeLevel) {
@@ -1342,7 +1346,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 OctreeElement* childElement = element->getChildAtIndex(i);
                 if (childElement) {
                     int bytesBeforeChild = packetData->getUncompressedSize();
-                    continueThisLevel = childElement->appendElementData(packetData);
+                    continueThisLevel = childElement->appendElementData(packetData, params);
                     int bytesAfterChild = packetData->getUncompressedSize();
 
                     if (!continueThisLevel) {
