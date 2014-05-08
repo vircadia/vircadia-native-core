@@ -24,7 +24,7 @@
 #include <HandData.h>
 
 #include "InterfaceConfig.h"
-#include "renderer/model.h"
+#include "renderer/Model.h"
 #include "world.h"
 
 
