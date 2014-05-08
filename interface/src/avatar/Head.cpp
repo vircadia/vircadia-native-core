@@ -109,8 +109,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
             _browAudioLift += sqrtf(_audioAttack) * 0.01f;
         }
         _browAudioLift = glm::clamp(_browAudioLift *= 0.7f, 0.0f, 1.0f);
-        qDebug() << _browAudioLift;
-
+        
         const float BLINK_SPEED = 10.0f;
         const float FULLY_OPEN = 0.0f;
         const float FULLY_CLOSED = 1.0f;
