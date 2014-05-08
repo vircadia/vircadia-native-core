@@ -32,6 +32,16 @@ AudioInjector* AudioScriptingInterface::playSound(Sound* sound, const AudioInjec
     return injector;
 }
 
+void AudioScriptingInterface::stopInjector(AudioInjector* injector) {
+    if (injector) {
+        injector->stop();
+    }
+}
+
+bool AudioScriptingInterface::isInjectorPlaying(AudioInjector* injector) {
+    return (injector != NULL);
+}
+
 void AudioScriptingInterface::startDrumSound(float volume, float frequency, float duration, float decay, 
                                     const AudioInjectorOptions* injectorOptions) {
 
