@@ -241,7 +241,8 @@ public:
     Q_INVOKABLE virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
     
     Q_INVOKABLE virtual void attach(const QString& modelURL, const QString& jointName = QString(),
-        const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f);
+        const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
+        bool allowDuplicates = false);
     
     Q_INVOKABLE void detachOne(const QString& modelURL, const QString& jointName = QString());
     Q_INVOKABLE void detachAll(const QString& modelURL, const QString& jointName = QString());

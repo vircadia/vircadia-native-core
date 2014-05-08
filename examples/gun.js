@@ -39,6 +39,8 @@ var impactSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-pub
 var targetHitSound = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/hit.raw");
 var targetLaunchSound = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/shoot.raw");
 
+var gunModel = "http://highfidelity-public.s3-us-west-1.amazonaws.com/models/attachments/Raygun2.fst";
+
 var audioOptions = new AudioInjectionOptions();
 audioOptions.volume = 0.9;
 
@@ -190,6 +192,8 @@ function keyPressEvent(event) {
     }
 }
 
+MyAvatar.attach(gunModel, "RightHand", {x: -0.10, y: 0.0, z: 0.0}, Quat.fromPitchYawRollDegrees(-90, 180, 0), 0.14);
+
 function update(deltaTime) {
     //  Check for mouseLook movement, update rotation 
        // rotate body yaw for yaw received from mouse
@@ -303,7 +307,8 @@ function mouseMoveEvent(event) {
 
 function scriptEnding() {
     Overlays.deleteOverlay(reticle); 
-    Overlays.deleteOverlay(text); 
+    Overlays.deleteOverlay(text);
+    MyAvatar.detachOne(gunModel);
 }
 
 Particles.particleCollisionWithVoxel.connect(particleCollisionWithVoxel);

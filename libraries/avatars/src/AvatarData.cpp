@@ -685,9 +685,22 @@ void AvatarData::setAttachmentData(const QVector<AttachmentData>& attachmentData
     _attachmentData = attachmentData;
 }
 
-void AvatarData::attach(const QString& modelURL, const QString& jointName,
-        const glm::vec3& translation, const glm::quat& rotation, float scale) {
+void AvatarData::attach(const QString& modelURL, const QString& jointName, const glm::vec3& translation,
+        const glm::quat& rotation, float scale, bool allowDuplicates) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "attach", Q_ARG(const QString&, modelURL), Q_ARG(const QString&, jointName),
+            Q_ARG(const glm::vec3&, translation), Q_ARG(const glm::quat&, rotation),
+            Q_ARG(float, scale), Q_ARG(bool, allowDuplicates));
+        return;
+    }
     QVector<AttachmentData> attachmentData = getAttachmentData();
+    if (!allowDuplicates) {
+        foreach (const AttachmentData& data, attachmentData) {
+            if (data.modelURL == modelURL && (jointName.isEmpty() || data.jointName == jointName)) {
+                return;
+            }
+        }
+    }
     AttachmentData data;
     data.modelURL = modelURL;
     data.jointName = jointName;
@@ -699,17 +712,25 @@ void AvatarData::attach(const QString& modelURL, const QString& jointName,
 }
 
 void AvatarData::detachOne(const QString& modelURL, const QString& jointName) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "detachOne", Q_ARG(const QString&, modelURL), Q_ARG(const QString&, jointName));
+        return;
+    }
     QVector<AttachmentData> attachmentData = getAttachmentData();
     for (QVector<AttachmentData>::iterator it = attachmentData.begin(); it != attachmentData.end(); it++) {
         if (it->modelURL == modelURL && (jointName.isEmpty() || it->jointName == jointName)) {
             attachmentData.erase(it);
+            setAttachmentData(attachmentData);
             return;
         }
     }
-    setAttachmentData(attachmentData);
 }
 
 void AvatarData::detachAll(const QString& modelURL, const QString& jointName) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "detachAll", Q_ARG(const QString&, modelURL), Q_ARG(const QString&, jointName));
+        return;
+    }
     QVector<AttachmentData> attachmentData = getAttachmentData();
     for (QVector<AttachmentData>::iterator it = attachmentData.begin(); it != attachmentData.end(); ) {
         if (it->modelURL == modelURL && (jointName.isEmpty() || it->jointName == jointName)) {
