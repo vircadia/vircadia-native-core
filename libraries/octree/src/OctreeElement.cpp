@@ -1379,3 +1379,90 @@ OctreeElement* OctreeElement::getOrCreateChildElementAt(float x, float y, float 
     // Now that we have the child to recurse down, let it answer the original question...
     return child->getOrCreateChildElementAt(x, y, z, s);
 }
+
+
+OctreeElement* OctreeElement::getOrCreateChildElementContaining(const AABox& box) {
+    OctreeElement* child = NULL;
+    
+    float ourScale = getScale();
+    float boxScale = box.getScale();
+
+    if(boxScale > ourScale) {
+        qDebug("UNEXPECTED -- OctreeElement::getOrCreateChildElementContaining() "
+                    "boxScale=[%f] > ourScale=[%f] ", boxScale, ourScale);
+    }
+
+    // Determine which of our children the minimum and maximum corners of the box live in...
+    glm::vec3 boxCornerMinimum = box.getCorner();
+    glm::vec3 boxCornerMaximum = box.calcTopFarLeft();
+
+    int childIndexBoxMinimum = getMyChildContainingPoint(boxCornerMinimum);
+    int childIndexBoxMaximum = getMyChildContainingPoint(boxCornerMaximum);
+
+    // If the minimum and maximum corners of the box are in two different children's boxes, then we are the containing element
+    if (childIndexBoxMinimum != childIndexBoxMaximum) {
+        return this;
+    }
+
+    // otherwise, they are the same and that child should be considered as the correct element    
+    int childIndex = childIndexBoxMinimum; // both the same...
+    
+    // Now, check if we have a child at that location
+    child = getChildAtIndex(childIndex);
+    if (!child) {
+        child = addChildAtIndex(childIndex);
+    }
+
+    // Now that we have the child to recurse down, let it answer the original question...
+    return child->getOrCreateChildElementContaining(box);
+}
+
+int OctreeElement::getMyChildContainingPoint(const glm::vec3& point) const {
+    glm::vec3 ourCenter = _box.calcCenter();
+    int childIndex = CHILD_UNKNOWN;
+    // left half
+    if (point.x > ourCenter.x) {
+        if (point.y > ourCenter.y) {
+            // top left
+            if (point.z > ourCenter.z) {
+                // top left far
+                childIndex = CHILD_TOP_LEFT_FAR;
+            } else {
+                // top left near
+                childIndex = CHILD_TOP_LEFT_NEAR;
+            }
+        } else {
+            // bottom left
+            if (point.z > ourCenter.z) {
+                // bottom left far
+                childIndex = CHILD_BOTTOM_LEFT_FAR;
+            } else {
+                // bottom left near
+                childIndex = CHILD_BOTTOM_LEFT_NEAR;
+            }
+        }
+    } else {
+        // right half
+        if (point.y > ourCenter.y) {
+            // top right
+            if (point.z > ourCenter.z) {
+                // top right far
+                childIndex = CHILD_TOP_RIGHT_FAR;
+            } else {
+                // top right near
+                childIndex = CHILD_TOP_RIGHT_NEAR;
+            }
+        } else {
+            // bottom right
+            if (point.z > ourCenter.z) {
+                // bottom right far
+                childIndex = CHILD_BOTTOM_RIGHT_FAR;
+            } else {
+                // bottom right near
+                childIndex = CHILD_BOTTOM_RIGHT_NEAR;
+            }
+        }
+    }
+    return childIndex;
+}
+

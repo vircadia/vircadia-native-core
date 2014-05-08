@@ -2373,8 +2373,8 @@ void Application::updateShadowMap() {
     updateUntranslatedViewMatrix();
 
     _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
-    _particles.render();
-    _models.render();
+    _particles.render(OctreeRenderer::SHADOW_RENDER_MODE);
+    _models.render(OctreeRenderer::SHADOW_RENDER_MODE);
 
     glPopMatrix();
 
