@@ -297,7 +297,6 @@ namespace MenuOption {
     const QString CollideWithParticles = "Collide With Particles";
     const QString CollideWithVoxels = "Collide With Voxels";
     const QString Collisions = "Collisions";
-    const QString CullSharedFaces = "Cull Shared Voxel Faces";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
@@ -367,7 +366,6 @@ namespace MenuOption {
     const QString SettingsExport = "Export Settings";
     const QString SettingsImport = "Import Settings";
     const QString Shadows = "Shadows";
-    const QString ShowCulledSharedFaces = "Show Culled Shared Voxel Faces";
     const QString ShowIKConstraints = "Show IK Constraints";
     const QString Stars = "Stars";
     const QString Stats = "Stats";

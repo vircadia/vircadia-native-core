@@ -95,9 +95,7 @@ public slots:
     // Methods that recurse tree
     void forceRedrawEntireTree();
     void clearAllNodesBufferIndex();
-    void cullSharedFaces();
-    void showCulledSharedFaces();
-
+ 
     void setDisableFastVoxelPipeline(bool disableFastVoxelPipeline);
     void setUseVoxelShader(bool useVoxelShader);
     void setVoxelsAsPoints(bool voxelsAsPoints);
