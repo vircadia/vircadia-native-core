@@ -99,7 +99,11 @@ void MyAvatar::reset() {
 
     setVelocity(glm::vec3(0.0f));
     setThrust(glm::vec3(0.0f));
-    setOrientation(glm::quat(glm::vec3(0.0f)));
+    //  Reset the pitch and roll components of the avatar's orientation, preserve yaw direction
+    glm::vec3 eulers = safeEulerAngles(getOrientation());
+    eulers.x = 0.f;
+    eulers.z = 0.f;
+    setOrientation(glm::quat(eulers));
 }
 
 void MyAvatar::update(float deltaTime) {
