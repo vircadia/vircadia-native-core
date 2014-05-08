@@ -109,7 +109,7 @@ void MyAvatar::reset() {
 void MyAvatar::update(float deltaTime) {
     Head* head = getHead();
     head->relaxLean(deltaTime);
-    updateFromGyros(deltaTime);
+    updateFromFaceTracker(deltaTime);
     if (Menu::getInstance()->isOptionChecked(MenuOption::MoveWithLean)) {
         // Faceshift drive is enabled, set the avatar drive based on the head position
         moveWithLean();
@@ -239,7 +239,7 @@ void MyAvatar::simulate(float deltaTime) {
 }
 
 //  Update avatar head rotation with sensor data
-void MyAvatar::updateFromGyros(float deltaTime) {
+void MyAvatar::updateFromFaceTracker(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
 
     FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
