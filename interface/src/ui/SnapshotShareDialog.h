@@ -14,9 +14,9 @@
 
 #include "ui_shareSnapshot.h"
 
-#include <QUrl>
-#include <QNetworkReply>
 #include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QUrl>
 
 class SnapshotShareDialog : public QDialog {
     Q_OBJECT

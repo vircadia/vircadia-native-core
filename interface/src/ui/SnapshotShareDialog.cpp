@@ -13,11 +13,11 @@
 #include "AccountManager.h"
 
 #include <QFile>
-#include <QJsonDocument>
-#include <QJsonArray>
-#include <QUrlQuery>
-#include <QMessageBox>
 #include <QHttpMultiPart>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QMessageBox>
+#include <QUrlQuery>
 
 
 const int NARROW_SNAPSHOT_DIALOG_SIZE = 500;
@@ -177,7 +177,7 @@ void SnapshotShareDialog::postRequestFinished() {
                 errorMessage = errorArray.first().toString();
             }
         }
-        QMessageBox::warning(this, "", SHARE_DEFAULT_ERROR);
+        QMessageBox::warning(this, "", errorMessage);
     }
 }
 
