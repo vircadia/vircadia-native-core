@@ -76,7 +76,7 @@ private:
     std::vector<HandBall> _leapFingerTipBalls;
     std::vector<HandBall> _leapFingerRootBalls;
     
-    void renderLeapHands(bool isMine);
+    void renderHandTargets(bool isMine);
     void renderLeapFingerTrails();
     
     void calculateGeometry();

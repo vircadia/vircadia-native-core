@@ -344,10 +344,6 @@ private:
     void updateFaceshift();
     void updateVisage();
     void updateMyAvatarLookAtPosition();
-    void updateHandAndTouch(float deltaTime);
-    void updateLeap(float deltaTime);
-    void updateSixense(float deltaTime);
-    void updateSerialDevices(float deltaTime);
     void updateThreads(float deltaTime);
     void updateMetavoxels(float deltaTime);
     void updateCamera(float deltaTime);
@@ -478,8 +474,6 @@ private:
 
     float _touchAvgX;
     float _touchAvgY;
-    float _lastTouchAvgX;
-    float _lastTouchAvgY;
     float _touchDragStartedAvgX;
     float _touchDragStartedAvgY;
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)

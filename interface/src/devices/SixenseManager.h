@@ -64,6 +64,7 @@ private:
 
 #endif
     quint64 _lastMovement;
+    glm::vec3 _amountMoved;
 };
 
 #endif // hifi_SixenseManager_h

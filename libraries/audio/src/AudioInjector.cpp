@@ -22,14 +22,18 @@
 #include "AudioInjector.h"
 
 AudioInjector::AudioInjector(QObject* parent) :
-    QObject(parent)
+    QObject(parent),
+    _sound(NULL),
+    _options(),
+    _shouldStop(false)
 {
     
 }
 
 AudioInjector::AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions) :
     _sound(sound),
-    _options(injectorOptions)
+    _options(injectorOptions),
+    _shouldStop(false)
 {
     
 }

@@ -1217,10 +1217,6 @@ void Application::touchBeginEvent(QTouchEvent* event) {
         return;
     }
 
-    // put any application specific touch behavior below here..
-    _lastTouchAvgX = _touchAvgX;
-    _lastTouchAvgY = _touchAvgY;
-
 }
 
 void Application::touchEndEvent(QTouchEvent* event) {
@@ -1875,34 +1871,6 @@ void Application::updateMyAvatarLookAtPosition() {
     _myAvatar->getHead()->setLookAtPosition(lookAtSpot);
 }
 
-void Application::updateHandAndTouch(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateHandAndTouch()");
-
-    //  Update from Touch
-    if (_isTouchPressed) {
-        _lastTouchAvgX = _touchAvgX;
-        _lastTouchAvgY = _touchAvgY;
-    }
-}
-
-void Application::updateLeap(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateLeap()");
-}
-
-void Application::updateSixense(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateSixense()");
-
-    _sixenseManager.update(deltaTime);
-}
-
-void Application::updateSerialDevices(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateSerialDevices()");
-}
-
 void Application::updateThreads(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateThreads()");
@@ -2016,11 +1984,7 @@ void Application::update(float deltaTime) {
     updateVisage();
     _myAvatar->updateLookAtTargetAvatar();
     updateMyAvatarLookAtPosition();
-
-    updateHandAndTouch(deltaTime); // Update state for touch sensors
-    updateLeap(deltaTime); // Leap finger-sensing device
-    updateSixense(deltaTime); // Razer Hydra controllers
-    updateSerialDevices(deltaTime); // Read serial port interface devices
+    _sixenseManager.update(deltaTime);
     updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     _avatarManager.updateOtherAvatars(deltaTime); //loop through all the other avatars and simulate them...
