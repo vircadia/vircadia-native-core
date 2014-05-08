@@ -661,14 +661,64 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     updateJointMappings();
 }
 
-void AvatarData::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
-    _attachmentData = attachmentData;
-}
-
 void AvatarData::setDisplayName(const QString& displayName) {
     _displayName = displayName;
 
     qDebug() << "Changing display name for avatar to" << displayName;
+}
+
+QVector<AttachmentData> AvatarData::getAttachmentData() const {
+    if (QThread::currentThread() != thread()) {
+        QVector<AttachmentData> result;
+        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getAttachmentData", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(QVector<AttachmentData>, result));
+        return result;
+    }
+    return _attachmentData;
+}
+
+void AvatarData::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setAttachmentData", Q_ARG(const QVector<AttachmentData>&, attachmentData));
+        return;
+    }
+    _attachmentData = attachmentData;
+}
+
+void AvatarData::attach(const QString& modelURL, const QString& jointName,
+        const glm::vec3& translation, const glm::quat& rotation, float scale) {
+    QVector<AttachmentData> attachmentData = getAttachmentData();
+    AttachmentData data;
+    data.modelURL = modelURL;
+    data.jointName = jointName;
+    data.translation = translation;
+    data.rotation = rotation;
+    data.scale = scale;
+    attachmentData.append(data);
+    setAttachmentData(attachmentData);
+}
+
+void AvatarData::detachOne(const QString& modelURL, const QString& jointName) {
+    QVector<AttachmentData> attachmentData = getAttachmentData();
+    for (QVector<AttachmentData>::iterator it = attachmentData.begin(); it != attachmentData.end(); it++) {
+        if (it->modelURL == modelURL && (jointName.isEmpty() || it->jointName == jointName)) {
+            attachmentData.erase(it);
+            return;
+        }
+    }
+    setAttachmentData(attachmentData);
+}
+
+void AvatarData::detachAll(const QString& modelURL, const QString& jointName) {
+    QVector<AttachmentData> attachmentData = getAttachmentData();
+    for (QVector<AttachmentData>::iterator it = attachmentData.begin(); it != attachmentData.end(); ) {
+        if (it->modelURL == modelURL && (jointName.isEmpty() || it->jointName == jointName)) {
+            it = attachmentData.erase(it);
+        } else {
+            it++;
+        }
+    }
+    setAttachmentData(attachmentData);
 }
 
 void AvatarData::setBillboard(const QByteArray& billboard) {
@@ -791,5 +841,61 @@ QDataStream& operator<<(QDataStream& out, const AttachmentData& attachment) {
 QDataStream& operator>>(QDataStream& in, AttachmentData& attachment) {
     return in >> attachment.modelURL >> attachment.jointName >>
         attachment.translation >> attachment.rotation >> attachment.scale;
+}
+
+void AttachmentDataObject::setModelURL(const QString& modelURL) const {
+    AttachmentData data = qscriptvalue_cast<AttachmentData>(thisObject());
+    data.modelURL = modelURL;
+    thisObject() = engine()->toScriptValue(data);
+}
+
+QString AttachmentDataObject::getModelURL() const {
+    return qscriptvalue_cast<AttachmentData>(thisObject()).modelURL.toString();
+}
+
+void AttachmentDataObject::setJointName(const QString& jointName) const {
+    AttachmentData data = qscriptvalue_cast<AttachmentData>(thisObject());
+    data.jointName = jointName;
+    thisObject() = engine()->toScriptValue(data);
+}
+
+QString AttachmentDataObject::getJointName() const {
+    return qscriptvalue_cast<AttachmentData>(thisObject()).jointName;
+}
+
+void AttachmentDataObject::setTranslation(const glm::vec3& translation) const {
+    AttachmentData data = qscriptvalue_cast<AttachmentData>(thisObject());
+    data.translation = translation;
+    thisObject() = engine()->toScriptValue(data);
+}
+
+glm::vec3 AttachmentDataObject::getTranslation() const {
+    return qscriptvalue_cast<AttachmentData>(thisObject()).translation;
+}
+
+void AttachmentDataObject::setRotation(const glm::quat& rotation) const {
+    AttachmentData data = qscriptvalue_cast<AttachmentData>(thisObject());
+    data.rotation = rotation;
+    thisObject() = engine()->toScriptValue(data);
+}
+
+glm::quat AttachmentDataObject::getRotation() const {
+    return qscriptvalue_cast<AttachmentData>(thisObject()).rotation;
+}
+
+void AttachmentDataObject::setScale(float scale) const {
+    AttachmentData data = qscriptvalue_cast<AttachmentData>(thisObject());
+    data.scale = scale;
+    thisObject() = engine()->toScriptValue(data);
+}
+
+float AttachmentDataObject::getScale() const {
+    return qscriptvalue_cast<AttachmentData>(thisObject()).scale;
+}
+
+void registerAvatarTypes(QScriptEngine* engine) {
+    qScriptRegisterSequenceMetaType<QVector<AttachmentData> >(engine);
+    engine->setDefaultPrototype(qMetaTypeId<AttachmentData>(), engine->newQObject(
+        new AttachmentDataObject(), QScriptEngine::ScriptOwnership));
 }
 
