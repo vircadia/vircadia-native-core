@@ -23,6 +23,7 @@
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
+#include <StreamUtils.h>
 #include <UUID.h>
 #include <VoxelConstants.h>
 

@@ -224,7 +224,7 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
                     // (doing this prevents some "collision snagging" when particle penetrates the object)
     
                     // HACK BEGIN: to allow paddle hands to "hold" particles we attenuate soft collisions against them.
-                    if (collision->_type == PADDLE_HAND_COLLISION) {
+                    if (collision->_type == COLLISION_TYPE_PADDLE_HAND) {
                         // NOTE: the physics are wrong (particles cannot roll) but it IS possible to catch a slow moving particle.
                         // TODO: make this less hacky when we have more per-collision details
                         float elasticity = ELASTICITY;

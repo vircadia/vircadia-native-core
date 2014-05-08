@@ -125,6 +125,7 @@ private:
 
     bool _wasPushing;
     bool _isPushing;
+    bool _wasStuck;
     glm::vec3 _thrust;  // final acceleration from outside sources for the current frame
 
     glm::vec3 _motorVelocity;   // intended velocity of avatar motion

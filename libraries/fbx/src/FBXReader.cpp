@@ -826,7 +826,7 @@ ExtractedMesh extractMesh(const FBXNode& object) {
         while (endIndex < data.polygonIndices.size() && data.polygonIndices.at(endIndex++) >= 0);
 
         QPair<int, int> materialTexture((polygonIndex < materials.size()) ? materials.at(polygonIndex) : 0,
-            (polygonIndex < textures.size()) ? textures.at(polygonIndex) : -1);
+            (polygonIndex < textures.size()) ? textures.at(polygonIndex) : 0);
         int& partIndex = materialTextureParts[materialTexture];
         if (partIndex == 0) {
             data.extracted.partMaterialTextures.append(materialTexture);
@@ -970,6 +970,18 @@ FBXTexture getTexture(const QString& textureID, const QHash<QString, QByteArray>
     texture.filename = textureFilenames.value(textureID);
     texture.content = textureContent.value(texture.filename);
     return texture;
+}
+
+bool checkMaterialsHaveTextures(const QHash<QString, Material>& materials,
+        const QHash<QString, QByteArray>& textureFilenames, const QMultiHash<QString, QString>& childMap) {
+    foreach (const QString& materialID, materials.keys()) {
+        foreach (const QString& childID, childMap.values(materialID)) {
+            if (textureFilenames.contains(childID)) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
@@ -1515,6 +1527,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     geometry.bindExtents.reset();
     geometry.meshExtents.reset();
     
+    // see if any materials have texture children
+    bool materialsHaveTextures = checkMaterialsHaveTextures(materials, textureFilenames, childMap);
+    
     for (QHash<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
         ExtractedMesh& extracted = it.value();
 
@@ -1587,7 +1602,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             } else if (textureFilenames.contains(childID)) {
                 FBXTexture texture = getTexture(childID, textureFilenames, textureContent);
                 for (int j = 0; j < extracted.partMaterialTextures.size(); j++) {
-                    if (extracted.partMaterialTextures.at(j).second == textureIndex) {
+                    int partTexture = extracted.partMaterialTextures.at(j).second;
+                    if (partTexture == textureIndex && !(partTexture == 0 && materialsHaveTextures)) {
                         extracted.mesh.parts[j].diffuseTexture = texture;
                     }
                 }
