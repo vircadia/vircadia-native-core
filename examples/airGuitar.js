@@ -25,6 +25,9 @@ function vMinus(a, b) {
 	return rval;
 }
 
+//  The model file to be used for the guitar 
+var guitarModel = "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/attachments/guitar.fst";
+
 //  Load sounds that will be played
 
 var chords = new Array();
@@ -56,6 +59,8 @@ var lastPosition = { x: 0.0,
 
 var soundPlaying = false; 
 var selectorPressed = false;
+
+MyAvatar.attach(guitarModel, "Hips", {x: -0.0, y: -0.0, z: 0.0}, Quat.fromPitchYawRollDegrees(0, 0, 0), 1.0);
 
 function checkHands(deltaTime) {
 	for (var palm = 0; palm < 2; palm++) {
@@ -117,5 +122,9 @@ function checkHands(deltaTime) {
 	}
 }
 
+function scriptEnding() {
+    MyAvatar.detachOne(guitarModel);
+}
 // Connect a call back that happens every frame
 Script.update.connect(checkHands);
+Script.scriptEnding.connect(scriptEnding);
