@@ -86,7 +86,8 @@ public:
     virtual void clearJointData(int index);
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
-
+    virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
+    
     virtual void setCollisionGroups(quint32 collisionGroups);
 
     void setMotionBehaviorsByScript(quint32 flags);

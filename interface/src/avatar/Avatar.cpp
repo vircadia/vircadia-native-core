@@ -709,7 +709,9 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
 void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     AvatarData::setAttachmentData(attachmentData);
-    
+    if (QThread::currentThread() != thread()) {    
+        return;
+    }
     // make sure we have as many models as attachments
     while (_attachmentModels.size() < attachmentData.size()) {
         Model* model = new Model(this);
