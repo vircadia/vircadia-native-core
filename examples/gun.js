@@ -192,7 +192,7 @@ function keyPressEvent(event) {
     }
 }
 
-MyAvatar.attach(gunModel, "RightHand", {x: -0.10, y: 0.0, z: 0.0}, Quat.fromPitchYawRollDegrees(-90, 180, 0), 0.14);
+MyAvatar.attach(gunModel, "RightHand", {x: -0.02, y: -.14, z: 0.07}, Quat.fromPitchYawRollDegrees(-70, -151, 72), 0.20);
 
 function update(deltaTime) {
     //  Check for mouseLook movement, update rotation 
