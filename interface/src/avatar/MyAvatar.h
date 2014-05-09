@@ -121,6 +121,9 @@ public slots:
 signals:
     void transformChanged();
 
+protected:
+    virtual void renderAttachments(RenderMode renderMode);
+    
 private:
     bool _mousePressed;
     float _bodyPitchDelta;  // degrees
