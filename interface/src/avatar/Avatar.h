@@ -192,7 +192,7 @@ protected:
     virtual bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
 
     void simulateAttachments(float deltaTime);
-    void renderAttachments(Model::RenderMode renderMode);
+    virtual void renderAttachments(RenderMode renderMode);
 
     virtual void updateJointMappings();
 
