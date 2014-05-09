@@ -60,9 +60,12 @@ private slots:
 
     void chooseModelURL();
     void setModelURL(const QString& url);
+    void modelURLChanged();
+    void updateAttachmentData();
 
 private:
     
+    AttachmentsDialog* _dialog;
     QLineEdit* _modelURL;
     QComboBox* _jointName;
     QDoubleSpinBox* _translationX;

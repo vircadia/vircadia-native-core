@@ -513,6 +513,55 @@ void MyAvatar::loadData(QSettings* settings) {
     settings->endGroup();
 }
 
+void MyAvatar::saveAttachmentData(const AttachmentData& attachment) const {
+    QSettings* settings = Application::getInstance()->lockSettings();
+    settings->beginGroup("savedAttachmentData");
+    settings->beginGroup(_skeletonModel.getURL().toString());
+    settings->beginGroup(attachment.modelURL.toString());
+    
+    settings->setValue("jointName", attachment.jointName);
+    settings->setValue("translation_x", attachment.translation.x);
+    settings->setValue("translation_y", attachment.translation.y);
+    settings->setValue("translation_z", attachment.translation.z);
+    glm::vec3 eulers = safeEulerAngles(attachment.rotation);
+    settings->setValue("rotation_x", eulers.x);
+    settings->setValue("rotation_y", eulers.y);
+    settings->setValue("rotation_z", eulers.z);
+    settings->setValue("scale", attachment.scale);
+    
+    settings->endGroup();
+    settings->endGroup();
+    settings->endGroup();
+    Application::getInstance()->unlockSettings();
+}
+
+AttachmentData MyAvatar::loadAttachmentData(const QUrl& modelURL) const {
+    QSettings* settings = Application::getInstance()->lockSettings();
+    settings->beginGroup("savedAttachmentData");
+    settings->beginGroup(_skeletonModel.getURL().toString());
+    settings->beginGroup(modelURL.toString());
+    
+    AttachmentData attachment;
+    attachment.modelURL = modelURL;
+    attachment.jointName = settings->value("jointName").toString();
+    attachment.translation.x = loadSetting(settings, "translation_x", 0.0f);
+    attachment.translation.y = loadSetting(settings, "translation_y", 0.0f);
+    attachment.translation.z = loadSetting(settings, "translation_z", 0.0f);
+    glm::vec3 eulers;
+    eulers.x = loadSetting(settings, "rotation_x", 0.0f);
+    eulers.y = loadSetting(settings, "rotation_y", 0.0f);
+    eulers.z = loadSetting(settings, "rotation_z", 0.0f);
+    attachment.rotation = glm::quat(eulers);
+    attachment.scale = loadSetting(settings, "scale", 1.0f);
+    
+    settings->endGroup();
+    settings->endGroup();
+    settings->endGroup();
+    Application::getInstance()->unlockSettings();
+    
+    return attachment;
+}
+
 int MyAvatar::parseDataAtOffset(const QByteArray& packet, int offset) {
     qDebug() << "Error: ignoring update packet for MyAvatar"
         << " packetLength = " << packet.size() 
@@ -590,6 +639,23 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
         return;
     }
     _billboardValid = false;
+}
+
+void MyAvatar::attach(const QString& modelURL, const QString& jointName, const glm::vec3& translation,
+        const glm::quat& rotation, float scale, bool allowDuplicates, bool useSaved) {
+    if (QThread::currentThread() != thread()) {    
+        Avatar::attach(modelURL, jointName, translation, rotation, scale, allowDuplicates, useSaved);
+        return;
+    } 
+    if (useSaved) {
+        AttachmentData attachment = loadAttachmentData(modelURL);
+        if (!attachment.jointName.isEmpty()) {
+            Avatar::attach(modelURL, attachment.jointName, attachment.translation,
+                attachment.rotation, attachment.scale, allowDuplicates, useSaved);
+            return;
+        }
+    }
+    Avatar::attach(modelURL, jointName, translation, rotation, scale, allowDuplicates, useSaved);
 }
 
 void MyAvatar::renderBody(RenderMode renderMode, float glowLevel) {
