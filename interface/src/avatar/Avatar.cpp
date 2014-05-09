@@ -370,6 +370,9 @@ void Avatar::simulateAttachments(float deltaTime) {
         int jointIndex = getJointIndex(attachment.jointName);
         glm::vec3 jointPosition;
         glm::quat jointRotation;
+        if (!isMyAvatar()) {
+            model->setLODDistance(getLODDistance());
+        }
         if (_skeletonModel.getJointPosition(jointIndex, jointPosition) &&
                 _skeletonModel.getJointRotation(jointIndex, jointRotation)) {
             model->setTranslation(jointPosition + jointRotation * attachment.translation * _scale);
