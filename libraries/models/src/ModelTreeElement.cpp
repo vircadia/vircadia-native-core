@@ -47,15 +47,32 @@ ModelTreeElement* ModelTreeElement::addChildAtIndex(int index) {
 }
 
 
-bool ModelTreeElement::appendElementData(OctreePacketData* packetData) const {
+bool ModelTreeElement::appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const {
     bool success = true; // assume the best...
 
-    // write our models out...
-    uint16_t numberOfModels = _modelItems->size();
+    // write our models out... first determine which of the models are in view based on our params
+    uint16_t numberOfModels = 0;
+    QVector<uint16_t> indexesOfModelsToInclude;
+
+    for (uint16_t i = 0; i < _modelItems->size(); i++) {
+        if (params.viewFrustum) {
+            const ModelItem& model = (*_modelItems)[i];
+            AABox modelBox = model.getAABox();
+            modelBox.scale(TREE_SCALE);
+            if (params.viewFrustum->boxInFrustum(modelBox) != ViewFrustum::OUTSIDE) {
+                indexesOfModelsToInclude << i;
+                numberOfModels++;
+            }
+        } else {
+            indexesOfModelsToInclude << i;
+            numberOfModels++;
+        }
+    }
+
     success = packetData->appendValue(numberOfModels);
 
     if (success) {
-        for (uint16_t i = 0; i < numberOfModels; i++) {
+        foreach (uint16_t i, indexesOfModelsToInclude) {
             const ModelItem& model = (*_modelItems)[i];
             success = model.appendModelData(packetData);
             if (!success) {
@@ -66,10 +83,25 @@ bool ModelTreeElement::appendElementData(OctreePacketData* packetData) const {
     return success;
 }
 
-void ModelTreeElement::update(ModelTreeUpdateArgs& args) {
-    markWithChangedTime();
-    // TODO: early exit when _modelItems is empty
+bool ModelTreeElement::containsModelBounds(const ModelItem& model) const {
+    return _box.contains(model.getMinimumPoint()) && _box.contains(model.getMaximumPoint());
+}
 
+bool ModelTreeElement::bestFitModelBounds(const ModelItem& model) const {
+    if (_box.contains(model.getMinimumPoint()) && _box.contains(model.getMaximumPoint())) {
+        int childForMinimumPoint = getMyChildContainingPoint(model.getMinimumPoint());
+        int childForMaximumPoint = getMyChildContainingPoint(model.getMaximumPoint());
+        
+        // If I contain both the minimum and maximum point, but two different children of mine
+        // contain those points, then I am the best fit for that model
+        if (childForMinimumPoint != childForMaximumPoint) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void ModelTreeElement::update(ModelTreeUpdateArgs& args) {
     // update our contained models
     QList<ModelItem>::iterator modelItr = _modelItems->begin();
     while(modelItr != _modelItems->end()) {
@@ -78,19 +110,18 @@ void ModelTreeElement::update(ModelTreeUpdateArgs& args) {
 
         // If the model wants to die, or if it's left our bounding box, then move it
         // into the arguments moving models. These will be added back or deleted completely
-        if (model.getShouldDie() || !_box.contains(model.getPosition())) {
+        if (model.getShouldDie() || !bestFitModelBounds(model)) {
             args._movingModels.push_back(model);
 
             // erase this model
             modelItr = _modelItems->erase(modelItr);
+            
+            // this element has changed so mark it...
+            markWithChangedTime();
         } else {
             ++modelItr;
         }
     }
-    // TODO: if _modelItems is empty after while loop consider freeing memory in _modelItems if
-    // internal array is too big (QList internal array does not decrease size except in dtor and
-    // assignment operator).  Otherwise _modelItems could become a "resource leak" for large
-    // roaming piles of models.
 }
 
 bool ModelTreeElement::findSpherePenetration(const glm::vec3& center, float radius,
@@ -136,7 +167,9 @@ bool ModelTreeElement::updateModel(const ModelItem& model) {
                             (localOlder ? "OLDER" : "NEWER"),
                             difference, debug::valueOf(model.isNewlyCreated()) );
                 }
+                
                 thisModel.copyChangedProperties(model);
+                markWithChangedTime();
             } else {
                 if (wantDebug) {
                     qDebug(">>> IGNORING SERVER!!! Would've caused jutter! <<<  "
@@ -167,7 +200,7 @@ bool ModelTreeElement::updateModel(const ModelItemID& modelID, const ModelItemPr
         }
         if (found) {
             thisModel.setProperties(properties);
-
+            markWithChangedTime(); // mark our element as changed..
             const bool wantDebug = false;
             if (wantDebug) {
                 uint64_t now = usecTimestampNow();

@@ -24,6 +24,7 @@
 #include <HandData.h>
 
 #include "InterfaceConfig.h"
+#include "renderer/Model.h"
 #include "world.h"
 
 
@@ -52,7 +53,7 @@ public:
     void init();
     void reset();
     void simulate(float deltaTime, bool isMine);
-    void render(bool isMine);
+    void render(bool isMine, Model::RenderMode renderMode = Model::DEFAULT_RENDER_MODE);
 
     // getters
     const glm::vec3& getLeapFingerTipBallPosition (int ball) const { return _leapFingerTipBalls [ball].position;}
@@ -75,7 +76,7 @@ private:
     std::vector<HandBall> _leapFingerTipBalls;
     std::vector<HandBall> _leapFingerRootBalls;
     
-    void renderLeapHands(bool isMine);
+    void renderHandTargets(bool isMine);
     void renderLeapFingerTrails();
     
     void calculateGeometry();

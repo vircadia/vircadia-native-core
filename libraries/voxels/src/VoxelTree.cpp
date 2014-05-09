@@ -23,13 +23,13 @@
 
 VoxelTree::VoxelTree(bool shouldReaverage) : Octree(shouldReaverage) 
 {
-    _rootNode = createNewElement();
+    _rootElement = createNewElement();
 }
 
 VoxelTreeElement* VoxelTree::createNewElement(unsigned char * octalCode) {
     VoxelSystem* voxelSystem = NULL;
-    if (_rootNode) {
-        voxelSystem = ((VoxelTreeElement*)_rootNode)->getVoxelSystem();
+    if (_rootElement) {
+        voxelSystem = (static_cast<VoxelTreeElement*>(_rootElement))->getVoxelSystem();
     }
     VoxelTreeElement* newElement = new VoxelTreeElement(octalCode);
     newElement->setVoxelSystem(voxelSystem);

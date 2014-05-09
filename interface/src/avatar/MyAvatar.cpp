@@ -102,13 +102,17 @@ void MyAvatar::reset() {
 
     setVelocity(glm::vec3(0.0f));
     setThrust(glm::vec3(0.0f));
-    setOrientation(glm::quat(glm::vec3(0.0f)));
+    //  Reset the pitch and roll components of the avatar's orientation, preserve yaw direction
+    glm::vec3 eulers = safeEulerAngles(getOrientation());
+    eulers.x = 0.f;
+    eulers.z = 0.f;
+    setOrientation(glm::quat(eulers));
 }
 
 void MyAvatar::update(float deltaTime) {
     Head* head = getHead();
     head->relaxLean(deltaTime);
-    updateFromGyros(deltaTime);
+    updateFromFaceTracker(deltaTime);
     if (Menu::getInstance()->isOptionChecked(MenuOption::MoveWithLean)) {
         // Faceshift drive is enabled, set the avatar drive based on the head position
         moveWithLean();
@@ -135,7 +139,14 @@ void MyAvatar::simulate(float deltaTime) {
     }
 
     // update the movement of the hand and process handshaking with other avatars...
-    updateHandMovementAndTouching(deltaTime);
+    bool pointing = false;
+    if (_mousePressed) {
+        _handState = HAND_STATE_GRASPING;
+    } else if (pointing) {
+        _handState = HAND_STATE_POINTING;
+    } else {
+        _handState = HAND_STATE_NULL;
+    }
 
     updateOrientation(deltaTime);
 
@@ -231,7 +242,7 @@ void MyAvatar::simulate(float deltaTime) {
 }
 
 //  Update avatar head rotation with sensor data
-void MyAvatar::updateFromGyros(float deltaTime) {
+void MyAvatar::updateFromFaceTracker(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
 
     FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
@@ -340,7 +351,9 @@ void MyAvatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         return; // exit early
     }
     Avatar::render(cameraPosition, renderMode);
-    if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints)) {
+    
+    // don't display IK constraints in shadow mode
+    if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints) && renderMode != SHADOW_RENDER_MODE) {
         _skeletonModel.renderIKConstraints();
     }
 }
@@ -589,7 +602,7 @@ void MyAvatar::renderBody(RenderMode renderMode, float glowLevel) {
     if (shouldRenderHead(Application::getInstance()->getCamera()->getPosition(), renderMode)) {
         getHead()->render(1.0f, modelRenderMode);
     }
-    getHand()->render(true);
+    getHand()->render(true, modelRenderMode);
 }
 
 const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
@@ -910,40 +923,6 @@ void MyAvatar::updateThrust(float deltaTime) {
 }
 */
 
-void MyAvatar::updateHandMovementAndTouching(float deltaTime) {
-    glm::quat orientation = getOrientation();
-
-    // reset hand and arm positions according to hand movement
-    glm::vec3 up = orientation * IDENTITY_UP;
-
-    bool pointing = false;
-    if (glm::length(_mouseRayDirection) > EPSILON && !Application::getInstance()->isMouseHidden()) {
-        // confine to the approximate shoulder plane
-        glm::vec3 pointDirection = _mouseRayDirection;
-        if (glm::dot(_mouseRayDirection, up) > 0.0f) {
-            glm::vec3 projectedVector = glm::cross(up, glm::cross(_mouseRayDirection, up));
-            if (glm::length(projectedVector) > EPSILON) {
-                pointDirection = glm::normalize(projectedVector);
-            }
-        }
-        glm::vec3 shoulderPosition;
-        if (_skeletonModel.getRightShoulderPosition(shoulderPosition)) {
-            glm::vec3 farVector = _mouseRayOrigin + pointDirection * (float)TREE_SCALE - shoulderPosition;
-            const float ARM_RETRACTION = 0.75f;
-            float retractedLength = _skeletonModel.getRightArmLength() * ARM_RETRACTION;
-            setHandPosition(shoulderPosition + glm::normalize(farVector) * retractedLength);
-            pointing = true;
-        }
-    }
-
-    if (_mousePressed) {
-        _handState = HAND_STATE_GRASPING;
-    } else if (pointing) {
-        _handState = HAND_STATE_POINTING;
-    } else {
-        _handState = HAND_STATE_NULL;
-    }
-}
 
 void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
     glm::vec3 up = getBodyUpDirection();
@@ -1424,6 +1403,8 @@ void MyAvatar::updateMotionBehaviorsFromMenu() {
         _motionBehaviors |= AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY;
         // Environmental and Local gravities are incompatible.  Environmental setting trumps local.
         _motionBehaviors &= ~AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
+    } else {
+        _motionBehaviors &= ~AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY;
     }
     if (! (_motionBehaviors & (AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY | AVATAR_MOTION_OBEY_LOCAL_GRAVITY))) {
         setGravity(glm::vec3(0.0f));

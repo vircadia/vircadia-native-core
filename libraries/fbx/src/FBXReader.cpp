@@ -54,6 +54,15 @@ void Extents::addPoint(const glm::vec3& point) {
     maximum = glm::max(maximum, point);
 }
 
+bool FBXMesh::hasSpecularTexture() const {
+    foreach (const FBXMeshPart& part, parts) {
+        if (!part.specularTexture.filename.isEmpty()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 QStringList FBXGeometry::getJointNames() const {
     QStringList names;
     foreach (const FBXJoint& joint, joints) {
@@ -963,6 +972,18 @@ FBXTexture getTexture(const QString& textureID, const QHash<QString, QByteArray>
     return texture;
 }
 
+bool checkMaterialsHaveTextures(const QHash<QString, Material>& materials,
+        const QHash<QString, QByteArray>& textureFilenames, const QMultiHash<QString, QString>& childMap) {
+    foreach (const QString& materialID, materials.keys()) {
+        foreach (const QString& childID, childMap.values(materialID)) {
+            if (textureFilenames.contains(childID)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
     QHash<QString, ExtractedMesh> meshes;
     QVector<ExtractedBlendshape> blendshapes;
@@ -976,6 +997,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QHash<QString, Material> materials;
     QHash<QString, QString> diffuseTextures;
     QHash<QString, QString> bumpTextures;
+    QHash<QString, QString> specularTextures;
     QHash<QString, QString> localRotations;
     QHash<QString, QString> xComponents;
     QHash<QString, QString> yComponents;
@@ -1330,6 +1352,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         } else if (type.contains("bump") || type.contains("normal")) {
                             bumpTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         
+                        } else if (type.contains("specular")) {
+                            specularTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));    
+                            
                         } else if (type == "lcl rotation") {
                             localRotations.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                             
@@ -1502,6 +1527,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     geometry.bindExtents.reset();
     geometry.meshExtents.reset();
     
+    // see if any materials have texture children
+    bool materialsHaveTextures = checkMaterialsHaveTextures(materials, textureFilenames, childMap);
+    
     for (QHash<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
         ExtractedMesh& extracted = it.value();
 
@@ -1546,6 +1574,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     generateTangents = true;
                 }
                 
+                FBXTexture specularTexture;
+                QString specularTextureID = specularTextures.value(childID);
+                if (!specularTextureID.isNull()) {
+                    specularTexture = getTexture(specularTextureID, textureFilenames, textureContent);
+                }
+                
                 for (int j = 0; j < extracted.partMaterialTextures.size(); j++) {
                     if (extracted.partMaterialTextures.at(j).first == materialIndex) {
                         FBXMeshPart& part = extracted.mesh.parts[j];
@@ -1558,6 +1592,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         if (!normalTexture.filename.isNull()) {
                             part.normalTexture = normalTexture;
                         }
+                        if (!specularTexture.filename.isNull()) {
+                            part.specularTexture = specularTexture;
+                        }
                     }
                 }
                 materialIndex++;
@@ -1565,7 +1602,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             } else if (textureFilenames.contains(childID)) {
                 FBXTexture texture = getTexture(childID, textureFilenames, textureContent);
                 for (int j = 0; j < extracted.partMaterialTextures.size(); j++) {
-                    if (extracted.partMaterialTextures.at(j).second == textureIndex) {
+                    int partTexture = extracted.partMaterialTextures.at(j).second;
+                    if (partTexture == textureIndex && !(partTexture == 0 && materialsHaveTextures)) {
                         extracted.mesh.parts[j].diffuseTexture = texture;
                     }
                 }

@@ -30,6 +30,7 @@ const float NECK_Z = 300.f;   // millimeters
 SixenseManager::SixenseManager() {
 #ifdef HAVE_SIXENSE
     _lastMovement = 0;
+    _amountMoved = glm::vec3(0.0f);
 
     _calibrationState = CALIBRATION_STATE_IDLE;
     // By default we assume the _neckBase (in orb frame) is as high above the orb 
@@ -122,14 +123,21 @@ void SixenseManager::update(float deltaTime) {
         palm->setRawRotation(rotation);
         
         //  Compute current velocity from position change
-        glm::vec3 rawVelocity = (position - palm->getRawPosition()) / deltaTime / 1000.f;
+        glm::vec3 rawVelocity;
+        if (deltaTime > 0.f) {
+            rawVelocity = (position - palm->getRawPosition()) / deltaTime / 1000.f;
+        } else {
+            rawVelocity = glm::vec3(0.0f);
+        }
         palm->setRawVelocity(rawVelocity);   //  meters/sec
         palm->setRawPosition(position);
         
         // use the velocity to determine whether there's any movement (if the hand isn't new)
-        const float MOVEMENT_SPEED_THRESHOLD = 0.05f;
-        if (glm::length(rawVelocity) > MOVEMENT_SPEED_THRESHOLD && foundHand) {
+        const float MOVEMENT_DISTANCE_THRESHOLD = 0.003f;
+        _amountMoved += rawVelocity * deltaTime;
+        if (glm::length(_amountMoved) > MOVEMENT_DISTANCE_THRESHOLD && foundHand) {
             _lastMovement = usecTimestampNow();
+            _amountMoved = glm::vec3(0.0f);
         }
         
         // initialize the "finger" based on the direction
@@ -143,7 +151,11 @@ void SixenseManager::update(float deltaTime) {
         
         // Store the one fingertip in the palm structure so we can track velocity
         glm::vec3 oldTipPosition = palm->getTipRawPosition();
-        palm->setTipVelocity((newTipPosition - oldTipPosition) / deltaTime / 1000.f);
+        if (deltaTime > 0.f) {
+            palm->setTipVelocity((newTipPosition - oldTipPosition) / deltaTime / 1000.f);
+        } else {
+            palm->setTipVelocity(glm::vec3(0.f));
+        }
         palm->setTipPosition(newTipPosition);
         
         // three fingers indicates to the skeleton that we have enough data to determine direction
@@ -158,8 +170,8 @@ void SixenseManager::update(float deltaTime) {
     }
 
     // if the controllers haven't been moved in a while, disable
-    const unsigned int MOVEMENT_DISABLE_DURATION = 30 * 1000 * 1000;
-    if (usecTimestampNow() - _lastMovement > MOVEMENT_DISABLE_DURATION) {
+    const unsigned int MOVEMENT_DISABLE_SECONDS = 3;
+    if (usecTimestampNow() - _lastMovement > (MOVEMENT_DISABLE_SECONDS * 1000 * 1000)) {
         for (std::vector<PalmData>::iterator it = hand->getPalms().begin(); it != hand->getPalms().end(); it++) {
             it->setActive(false);
         }

@@ -54,7 +54,7 @@
 const short JITTER_BUFFER_MSECS = 12;
 const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_MSECS * (SAMPLE_RATE / 1000.0);
 
-const float LOUDNESS_TO_DISTANCE_RATIO = 0.00305f;
+const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
 
 const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
 
@@ -348,6 +348,16 @@ void AudioMixer::readPendingDatagrams() {
                 || mixerPacketType == PacketTypeSilentAudioFrame) {
                 
                 nodeList->findNodeAndUpdateWithDataFromPacket(receivedPacket);
+            } else if (mixerPacketType == PacketTypeMuteEnvironment) {
+                QByteArray packet = receivedPacket;
+                populatePacketHeader(packet, PacketTypeMuteEnvironment);
+                
+                foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+                    if (node->getType() == NodeType::Agent && node->getActiveSocket() && node->getLinkedData() && node != nodeList->sendingNodeForPacket(receivedPacket)) {
+                        nodeList->writeDatagram(packet, packet.size(), node);
+                    }
+                }
+
             } else {
                 // let processNodeData handle it.
                 nodeList->processNodeData(senderSockAddr, receivedPacket);

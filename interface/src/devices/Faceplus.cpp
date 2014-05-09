@@ -220,15 +220,10 @@ void FaceplusReader::update() {
     if (!_referenceInitialized) {
         _referenceX = x;
         _referenceY = y;
-        _referenceScale = scale;
         _referenceInitialized = true;
     }
     const float TRANSLATION_SCALE = 10.0f;
-    const float REFERENCE_DISTANCE = 10.0f;
-    float depthScale = _referenceScale / scale;
-    float z = REFERENCE_DISTANCE * (depthScale - 1.0f);
-    glm::vec3 headTranslation((x - _referenceX) * depthScale * TRANSLATION_SCALE,
-        (y - _referenceY) * depthScale * TRANSLATION_SCALE, z);
+    glm::vec3 headTranslation((x - _referenceX) * TRANSLATION_SCALE, (y - _referenceY) * TRANSLATION_SCALE, 0.0f);
     glm::quat headRotation(glm::radians(glm::vec3(-_outputVector.at(_headRotationIndices[0]),
         _outputVector.at(_headRotationIndices[1]), -_outputVector.at(_headRotationIndices[2]))));
     float estimatedEyePitch = (_outputVector.at(_leftEyeRotationIndices[0]) +

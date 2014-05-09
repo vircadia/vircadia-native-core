@@ -12,7 +12,7 @@
 #include "ModelTree.h"
 
 ModelTree::ModelTree(bool shouldReaverage) : Octree(shouldReaverage) {
-    _rootNode = createNewElement();
+    _rootElement = createNewElement();
 }
 
 ModelTreeElement* ModelTree::createNewElement(unsigned char * octalCode) {
@@ -74,71 +74,98 @@ bool ModelTree::findAndDeleteOperation(OctreeElement* element, void* extraData) 
     return true;
 }
 
-
-class FindAndUpdateModelArgs {
+class FindAndUpdateModelOperator : public RecurseOctreeOperator {
 public:
-    const ModelItem& searchModel;
-    bool found;
+    FindAndUpdateModelOperator(const ModelItem& searchModel);
+    virtual bool PreRecursion(OctreeElement* element);
+    virtual bool PostRecursion(OctreeElement* element);
+    bool wasFound() const { return _found; }
+private:
+    const ModelItem& _searchModel;
+    bool _found;
 };
 
-bool ModelTree::findAndUpdateOperation(OctreeElement* element, void* extraData) {
-    FindAndUpdateModelArgs* args = static_cast<FindAndUpdateModelArgs*>(extraData);
+FindAndUpdateModelOperator::FindAndUpdateModelOperator(const ModelItem& searchModel) :
+    _searchModel(searchModel),
+    _found(false) {
+};
+
+bool FindAndUpdateModelOperator::PreRecursion(OctreeElement* element) {
     ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
     // Note: updateModel() will only operate on correctly found models
-    if (modelTreeElement->updateModel(args->searchModel)) {
-        args->found = true;
+    if (modelTreeElement->updateModel(_searchModel)) {
+        _found = true;
         return false; // stop searching
     }
-    return true;
+
+    return !_found; // if we haven't yet found it, keep looking
+}
+
+bool FindAndUpdateModelOperator::PostRecursion(OctreeElement* element) {
+    if (_found) {
+        element->markWithChangedTime();
+    }
+    return !_found; // if we haven't yet found it, keep looking
 }
 
 void ModelTree::storeModel(const ModelItem& model, const SharedNodePointer& senderNode) {
     // First, look for the existing model in the tree..
-    FindAndUpdateModelArgs args = { model, false };
-    recurseTreeWithOperation(findAndUpdateOperation, &args);
-
+    FindAndUpdateModelOperator theOperator(model);
+    recurseTreeWithOperator(&theOperator);
+    
     // if we didn't find it in the tree, then store it...
-    if (!args.found) {
-        glm::vec3 position = model.getPosition();
-        float size = std::max(MINIMUM_MODEL_ELEMENT_SIZE, model.getRadius());
-
-        ModelTreeElement* element = (ModelTreeElement*)getOrCreateChildElementAt(position.x, position.y, position.z, size);
+    if (!theOperator.wasFound()) {
+        AABox modelBox = model.getAABox();
+        ModelTreeElement* element = (ModelTreeElement*)getOrCreateChildElementContaining(model.getAABox());
         element->storeModel(model);
     }
     // what else do we need to do here to get reaveraging to work
     _isDirty = true;
 }
 
-class FindAndUpdateModelWithIDandPropertiesArgs {
+
+class FindAndUpdateModelWithIDandPropertiesOperator : public RecurseOctreeOperator {
 public:
-    const ModelItemID& modelID;
-    const ModelItemProperties& properties;
-    bool found;
+    FindAndUpdateModelWithIDandPropertiesOperator(const ModelItemID& modelID, const ModelItemProperties& properties);
+    virtual bool PreRecursion(OctreeElement* element);
+    virtual bool PostRecursion(OctreeElement* element);
+    bool wasFound() const { return _found; }
+private:
+    const ModelItemID& _modelID;
+    const ModelItemProperties& _properties;
+    bool _found;
 };
 
-bool ModelTree::findAndUpdateWithIDandPropertiesOperation(OctreeElement* element, void* extraData) {
-    FindAndUpdateModelWithIDandPropertiesArgs* args = static_cast<FindAndUpdateModelWithIDandPropertiesArgs*>(extraData);
+FindAndUpdateModelWithIDandPropertiesOperator::FindAndUpdateModelWithIDandPropertiesOperator(const ModelItemID& modelID, 
+    const ModelItemProperties& properties) :
+    _modelID(modelID),
+    _properties(properties),
+    _found(false) {
+};
+
+bool FindAndUpdateModelWithIDandPropertiesOperator::PreRecursion(OctreeElement* element) {
     ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
+
     // Note: updateModel() will only operate on correctly found models
-    if (modelTreeElement->updateModel(args->modelID, args->properties)) {
-        args->found = true;
+    if (modelTreeElement->updateModel(_modelID, _properties)) {
+        _found = true;
         return false; // stop searching
     }
+    return !_found; // if we haven't yet found it, keep looking
+}
 
-    // if we've found our model stop searching
-    if (args->found) {
-        return false;
+bool FindAndUpdateModelWithIDandPropertiesOperator::PostRecursion(OctreeElement* element) {
+    if (_found) {
+        element->markWithChangedTime();
     }
-
-    return true;
+    return !_found; // if we haven't yet found it, keep looking
 }
 
 void ModelTree::updateModel(const ModelItemID& modelID, const ModelItemProperties& properties) {
-    // First, look for the existing model in the tree..
-    FindAndUpdateModelWithIDandPropertiesArgs args = { modelID, properties, false };
-    recurseTreeWithOperation(findAndUpdateWithIDandPropertiesOperation, &args);
-    // if we found it in the tree, then mark the tree as dirty
-    if (args.found) {
+    // Look for the existing model in the tree..
+    FindAndUpdateModelWithIDandPropertiesOperator theOperator(modelID, properties);
+    recurseTreeWithOperator(&theOperator);
+    if (theOperator.wasFound()) {
         _isDirty = true;
     }
 }
@@ -467,21 +494,21 @@ void ModelTree::update() {
     ModelTreeUpdateArgs args = { };
     recurseTreeWithOperation(updateOperation, &args);
 
-    // now add back any of the models that moved elements....
+    // now add back any of the particles that moved elements....
     int movingModels = args._movingModels.size();
     for (int i = 0; i < movingModels; i++) {
         bool shouldDie = args._movingModels[i].getShouldDie();
 
-        // if the model is still inside our total bounds, then re-add it
+        // if the particle is still inside our total bounds, then re-add it
         AABox treeBounds = getRoot()->getAABox();
 
         if (!shouldDie && treeBounds.contains(args._movingModels[i].getPosition())) {
             storeModel(args._movingModels[i]);
         } else {
-            uint32_t modelID = args._movingModels[i].getID();
+            uint32_t modelItemID = args._movingModels[i].getID();
             quint64 deletedAt = usecTimestampNow();
             _recentlyDeletedModelsLock.lockForWrite();
-            _recentlyDeletedModelItemIDs.insert(deletedAt, modelID);
+            _recentlyDeletedModelItemIDs.insert(deletedAt, modelItemID);
             _recentlyDeletedModelsLock.unlock();
         }
     }

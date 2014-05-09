@@ -129,6 +129,7 @@ public:
     
     FBXTexture diffuseTexture;
     FBXTexture normalTexture;
+    FBXTexture specularTexture;
 };
 
 /// A single mesh (with optional blendshapes) extracted from an FBX document.
@@ -150,6 +151,8 @@ public:
     bool isEye;
     
     QVector<FBXBlendshape> blendshapes;
+    
+    bool hasSpecularTexture() const;
 };
 
 /// A single animation frame extracted from an FBX document.
