@@ -25,22 +25,24 @@ function vMinus(a, b) {
 	return rval;
 }
 
-//  First, load two percussion sounds to be used on the sticks
+//  The model file to be used for the guitar 
+var guitarModel = "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/attachments/guitar.fst";
 
-var guitarType = 2; 
+//  Load sounds that will be played
 
-if (guitarType == 1) {
-	var chord1 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+A.raw");
-	var chord2 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+B.raw");
-	var chord3 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+E.raw");
-} else {
-	var chord1 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Metal+A+short.raw");
-	var chord2 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Metal+B+short.raw");
-	var chord3 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Metal+E+short.raw");
-}
+var chords = new Array();
+// Nylon string guitar
+chords[1] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+A.raw");
+chords[2] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+B.raw");
+chords[3] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+E.raw");
+// Electric guitar
+chords[4] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Metal+A+short.raw");
+chords[5] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Metal+B+short.raw");
+chords[6] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Metal+E+short.raw");
 
+var guitarSelector = 3;
 
-var whichChord = chord1; 
+var whichChord = chords[guitarSelector + 1]; 
 
 var leftHanded = false; 
 if (leftHanded) {
@@ -55,42 +57,74 @@ var lastPosition = { x: 0.0,
                  y: 0.0, 
                  z: 0.0 }; 
 
+var soundPlaying = false; 
+var selectorPressed = false;
+
+MyAvatar.attach(guitarModel, "Hips", {x: -0.0, y: -0.0, z: 0.0}, Quat.fromPitchYawRollDegrees(0, 0, 0), 1.0);
 
 function checkHands(deltaTime) {
 	for (var palm = 0; palm < 2; palm++) {
 		var palmVelocity = Controller.getSpatialControlVelocity(palm * 2 + 1);
-		var speed = length(palmVelocity);
+		var speed = length(palmVelocity) / 4.0;
 		var position = Controller.getSpatialControlPosition(palm * 2 + 1);
 		var myPelvis = MyAvatar.position;
+		var trigger = Controller.getTriggerValue(strumHand);
+		var chord = Controller.getTriggerValue(chordHand);
+
+		if ((chord > 0.1) && Audio.isInjectorPlaying(soundPlaying)) {
+			// If chord finger trigger pulled, stop current chord
+			Audio.stopInjector(soundPlaying);
+		}
+
+		var BUTTON_COUNT = 6;
+
+		//  Change guitars if button FWD (5) pressed
+		if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 5)) {
+			if (!selectorPressed) {
+				if (guitarSelector == 0) {
+					guitarSelector = 3;
+				} else {
+					guitarSelector = 0;
+				}
+				selectorPressed = true;
+			}
+		} else {
+			selectorPressed = false;
+		}
+
+		if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 1)) {
+			whichChord = chords[guitarSelector + 1];
+		} else if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 2)) {
+			whichChord = chords[guitarSelector + 2];
+		} else if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 3)) {
+			whichChord = chords[guitarSelector + 3];
+		}
 
 		if (palm == strumHand) {
 
-			var STRUM_HEIGHT_ABOVE_PELVIS = -0.30;
+			var STRUM_HEIGHT_ABOVE_PELVIS = 0.00;
 			var strumTriggerHeight = myPelvis.y + STRUM_HEIGHT_ABOVE_PELVIS;
 			//printVector(position);
-			if ((position.y < strumTriggerHeight) && (lastPosition.y >= strumTriggerHeight)) {
-				// If hand passes downward through guitar strings, play a chord!
+			if ( ( ((position.y < strumTriggerHeight) && (lastPosition.y >= strumTriggerHeight)) ||
+			       ((position.y > strumTriggerHeight) && (lastPosition.y <= strumTriggerHeight)) ) && (trigger > 0.1) ){
+				// If hand passes downward or upward through 'strings', and finger trigger pulled, play
 				var options = new AudioInjectionOptions();
 				options.position = position;
 				if (speed > 1.0) { speed = 1.0; }
 				options.volume = speed;
-				Audio.playSound(whichChord, options);
+				if (Audio.isInjectorPlaying(soundPlaying)) {
+					Audio.stopInjector(soundPlaying);
+				}
+				soundPlaying = Audio.playSound(whichChord, options);	
 			}
 			lastPosition = Controller.getSpatialControlPosition(palm * 2 + 1);
-		} else {
-			//  This is the chord controller
-			var distanceFromPelvis = Vec3.length(Vec3.subtract(position, myPelvis));
-			//print(distanceFromPelvis);
-			if (distanceFromPelvis > 0.63) {
-				whichChord = chord3;
-			} else if (distanceFromPelvis > 0.55) {
-				whichChord = chord2;
-			} else {
-				whichChord = chord1;
-			}
-		}
+		} 
 	}
 }
 
+function scriptEnding() {
+    MyAvatar.detachOne(guitarModel);
+}
 // Connect a call back that happens every frame
 Script.update.connect(checkHands);
+Script.scriptEnding.connect(scriptEnding);
