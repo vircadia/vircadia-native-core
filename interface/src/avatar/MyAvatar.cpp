@@ -97,7 +97,6 @@ MyAvatar::~MyAvatar() {
 void MyAvatar::reset() {
     _skeletonModel.reset();
     getHead()->reset(); 
-    getHand()->reset();
     _oculusYawOffset = 0.0f;
 
     setVelocity(glm::vec3(0.0f));
