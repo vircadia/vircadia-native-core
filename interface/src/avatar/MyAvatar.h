@@ -66,6 +66,9 @@ public:
     void saveData(QSettings* settings);
     void loadData(QSettings* settings);
 
+    void saveAttachmentData(const AttachmentData& attachment) const;
+    AttachmentData loadAttachmentData(const QUrl& modelURL) const;
+
     //  Set what driving keys are being pressed to control thrust levels
     void setDriveKeys(int key, float val) { _driveKeys[key] = val; };
     bool getDriveKeys(int key) { return _driveKeys[key] != 0.f; };
@@ -88,6 +91,10 @@ public:
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
     
+    virtual void attach(const QString& modelURL, const QString& jointName = QString(),
+        const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
+        bool allowDuplicates = false, bool useSaved = true);
+        
     virtual void setCollisionGroups(quint32 collisionGroups);
 
     void setMotionBehaviorsByScript(quint32 flags);

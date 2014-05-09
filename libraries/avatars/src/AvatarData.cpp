@@ -686,11 +686,11 @@ void AvatarData::setAttachmentData(const QVector<AttachmentData>& attachmentData
 }
 
 void AvatarData::attach(const QString& modelURL, const QString& jointName, const glm::vec3& translation,
-        const glm::quat& rotation, float scale, bool allowDuplicates) {
+        const glm::quat& rotation, float scale, bool allowDuplicates, bool useSaved) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "attach", Q_ARG(const QString&, modelURL), Q_ARG(const QString&, jointName),
             Q_ARG(const glm::vec3&, translation), Q_ARG(const glm::quat&, rotation),
-            Q_ARG(float, scale), Q_ARG(bool, allowDuplicates));
+            Q_ARG(float, scale), Q_ARG(bool, allowDuplicates), Q_ARG(bool, useSaved));
         return;
     }
     QVector<AttachmentData> attachmentData = getAttachmentData();
