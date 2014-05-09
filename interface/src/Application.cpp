@@ -3374,71 +3374,6 @@ void Application::saveScripts() {
     _settings->endArray();
 }
 
-void Application::stopAllScripts() {
-    // stops all current running scripts
-    for (int i = 0; i < _scriptEnginesHash.size(); ++i) {
-        _scriptEnginesHash.values().at(i)->stop();
-        qDebug() << "stopping script..." << getRunningScripts().at(i);
-    }
-    _scriptEnginesHash.clear();
-    _runningScriptsWidget->setRunningScripts(getRunningScripts());
-    bumpSettings();
-}
-
-void Application::stopScript(const QString &scriptName) {
-    if (_scriptEnginesHash.contains(scriptName)) {
-        _scriptEnginesHash.value(scriptName)->stop();
-        qDebug() << "stopping script..." << scriptName;
-        _scriptEnginesHash.remove(scriptName);
-        _runningScriptsWidget->setRunningScripts(getRunningScripts());
-        bumpSettings();
-    }
-}
-
-void Application::reloadAllScripts() {
-    // remember all the current scripts so we can reload them
-    QStringList reloadList = getRunningScripts();
-    // reloads all current running scripts
-    stopAllScripts();
-
-    foreach (QString scriptName, reloadList){
-        qDebug() << "reloading script..." << scriptName;
-        loadScript(scriptName);
-    }
-}
-
-void Application::manageRunningScriptsWidgetVisibility(bool shown) {
-    if (_runningScriptsWidgetWasVisible && shown) {
-        _runningScriptsWidget->show();
-    } else if (_runningScriptsWidgetWasVisible && !shown) {
-        _runningScriptsWidget->hide();
-    }
-}
-
-void Application::toggleRunningScriptsWidget() {
-    if (_runningScriptsWidgetWasVisible) {
-        _runningScriptsWidget->hide();
-        _runningScriptsWidgetWasVisible = false;
-    } else {
-        _runningScriptsWidget->setBoundary(QRect(_window->geometry().topLeft(),
-                                                 _window->size()));
-        _runningScriptsWidget->show();
-        _runningScriptsWidgetWasVisible = true;
-    }
-}
-
-void Application::uploadHead() {
-    uploadModel(HEAD_MODEL);
-}
-
-void Application::uploadSkeleton() {
-    uploadModel(SKELETON_MODEL);
-}
-
-void Application::uploadAttachment() {
-    uploadModel(ATTACHMENT_MODEL);
-}
-
 ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScriptFromEditor) {
     if(loadScriptFromEditor && _scriptEnginesHash.contains(scriptName) && !_scriptEnginesHash[scriptName]->isFinished()){
         return _scriptEnginesHash[scriptName];
@@ -3516,6 +3451,67 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     bumpSettings();
 
     return scriptEngine;
+}
+
+void Application::stopAllScripts(bool restart) {
+    // stops all current running scripts
+    for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
+            it != _scriptEnginesHash.constEnd(); it++) {
+        if (restart) {
+            connect(it.value(), SIGNAL(finished(const QString&)), SLOT(loadScript(const QString&)));
+        }
+        it.value()->stop();
+        qDebug() << "stopping script..." << it.key();
+    }
+    _scriptEnginesHash.clear();
+    _runningScriptsWidget->setRunningScripts(getRunningScripts());
+    bumpSettings();
+}
+
+void Application::stopScript(const QString &scriptName) {
+    if (_scriptEnginesHash.contains(scriptName)) {
+        _scriptEnginesHash.value(scriptName)->stop();
+        qDebug() << "stopping script..." << scriptName;
+        _scriptEnginesHash.remove(scriptName);
+        _runningScriptsWidget->setRunningScripts(getRunningScripts());
+        bumpSettings();
+    }
+}
+
+void Application::reloadAllScripts() {
+    stopAllScripts(true);
+}
+
+void Application::manageRunningScriptsWidgetVisibility(bool shown) {
+    if (_runningScriptsWidgetWasVisible && shown) {
+        _runningScriptsWidget->show();
+    } else if (_runningScriptsWidgetWasVisible && !shown) {
+        _runningScriptsWidget->hide();
+    }
+}
+
+void Application::toggleRunningScriptsWidget() {
+    if (_runningScriptsWidgetWasVisible) {
+        _runningScriptsWidget->hide();
+        _runningScriptsWidgetWasVisible = false;
+    } else {
+        _runningScriptsWidget->setBoundary(QRect(_window->geometry().topLeft(),
+                                                 _window->size()));
+        _runningScriptsWidget->show();
+        _runningScriptsWidgetWasVisible = true;
+    }
+}
+
+void Application::uploadHead() {
+    uploadModel(HEAD_MODEL);
+}
+
+void Application::uploadSkeleton() {
+    uploadModel(SKELETON_MODEL);
+}
+
+void Application::uploadAttachment() {
+    uploadModel(ATTACHMENT_MODEL);
 }
 
 QString Application::getPreviousScriptLocation() {
