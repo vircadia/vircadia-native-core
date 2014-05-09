@@ -85,6 +85,12 @@ ModelItem::ModelItem(const ModelItemID& modelItemID, const ModelItemProperties& 
     _shouldDie = false;
     _modelURL = MODEL_DEFAULT_MODEL_URL;
     _modelRotation = MODEL_DEFAULT_MODEL_ROTATION;
+
+    // animation related
+    _animationURL = MODEL_DEFAULT_ANIMATION_URL;
+    _frameIndex = 0.0f;
+    _jointMappingCompleted = false;
+    _lastAnimated = now;
     
     setProperties(properties);
 }
@@ -110,6 +116,12 @@ void ModelItem::init(glm::vec3 position, float radius, rgbColor color, uint32_t 
     _shouldDie = false;
     _modelURL = MODEL_DEFAULT_MODEL_URL;
     _modelRotation = MODEL_DEFAULT_MODEL_ROTATION;
+
+    // animation related
+    _animationURL = MODEL_DEFAULT_ANIMATION_URL;
+    _frameIndex = 0.0f;
+    _jointMappingCompleted = false;
+    _lastAnimated = now;
 }
 
 bool ModelItem::appendModelData(OctreePacketData* packetData) const {
@@ -150,6 +162,16 @@ bool ModelItem::appendModelData(OctreePacketData* packetData) const {
     if (success) {
         success = packetData->appendValue(getModelRotation());
     }
+
+    // animationURL
+    if (success) {
+        uint16_t animationURLLength = _animationURL.size() + 1; // include NULL
+        success = packetData->appendValue(animationURLLength);
+        if (success) {
+            success = packetData->appendRawData((const unsigned char*)qPrintable(_animationURL), animationURLLength);
+        }
+    }
+
     return success;
 }
 
@@ -215,7 +237,7 @@ int ModelItem::readModelDataFromBuffer(const unsigned char* data, int bytesLeftT
         dataAt += sizeof(modelURLLength);
         bytesRead += sizeof(modelURLLength);
         QString modelURLString((const char*)dataAt);
-        _modelURL = modelURLString;
+        setModelURL(modelURLString);
         dataAt += modelURLLength;
         bytesRead += modelURLLength;
 
@@ -223,6 +245,19 @@ int ModelItem::readModelDataFromBuffer(const unsigned char* data, int bytesLeftT
         int bytes = unpackOrientationQuatFromBytes(dataAt, _modelRotation);
         dataAt += bytes;
         bytesRead += bytes;
+
+        // animationURL
+        uint16_t animationURLLength;
+        memcpy(&animationURLLength, dataAt, sizeof(animationURLLength));
+        dataAt += sizeof(animationURLLength);
+        bytesRead += sizeof(animationURLLength);
+        QString animationURLString((const char*)dataAt);
+        setAnimationURL(animationURLString);
+        dataAt += animationURLLength;
+        bytesRead += animationURLLength;
+
+qDebug() << "readModelDataFromBuffer()... animationURL=" << qPrintable(animationURLString);
+
 
         //printf("ModelItem::readModelDataFromBuffer()... "); debugDump();
     }
@@ -344,6 +379,21 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
         int bytes = unpackOrientationQuatFromBytes(dataAt, newModelItem._modelRotation);
         dataAt += bytes;
         processedBytes += bytes;
+    }
+
+    // animationURL
+    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_ANIMATION_URL) == MODEL_PACKET_CONTAINS_ANIMATION_URL)) {
+        uint16_t animationURLLength;
+        memcpy(&animationURLLength, dataAt, sizeof(animationURLLength));
+        dataAt += sizeof(animationURLLength);
+        processedBytes += sizeof(animationURLLength);
+        QString tempString((const char*)dataAt);
+        newModelItem._animationURL = tempString;
+        dataAt += animationURLLength;
+        processedBytes += animationURLLength;
+
+qDebug() << "fromEditPacket()... animationURL=" << qPrintable(tempString);
+
     }
 
     const bool wantDebugging = false;
@@ -476,6 +526,21 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
         sizeOut += bytes;
     }
 
+    // animationURL
+    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_ANIMATION_URL) == MODEL_PACKET_CONTAINS_ANIMATION_URL)) {
+        uint16_t urlLength = properties.getAnimationURL().size() + 1;
+        memcpy(copyAt, &urlLength, sizeof(urlLength));
+        copyAt += sizeof(urlLength);
+        sizeOut += sizeof(urlLength);
+        memcpy(copyAt, qPrintable(properties.getAnimationURL()), urlLength);
+        copyAt += urlLength;
+        sizeOut += urlLength;
+
+qDebug() << "encodeModelItemEditMessageDetails()... animationURL=" << qPrintable(properties.getAnimationURL());
+
+    }
+
+
     bool wantDebugging = false;
     if (wantDebugging) {
         qDebug("encodeModelItemEditMessageDetails()....");
@@ -521,6 +586,66 @@ void ModelItem::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssi
     }
 }
 
+
+QMap<QString, AnimationPointer> ModelItem::_loadedAnimations; // TODO: cleanup??
+AnimationCache ModelItem::_animationCache;
+
+Animation* ModelItem::getAnimation(const QString& url) {
+    AnimationPointer animation;
+    
+    // if we don't already have this model then create it and initialize it
+    if (_loadedAnimations.find(url) == _loadedAnimations.end()) {
+        animation = _animationCache.getAnimation(url);
+        _loadedAnimations[url] = animation;
+    } else {
+        animation = _loadedAnimations[url];
+    }
+    return animation.data();
+}
+
+void ModelItem::mapJoints(const QStringList& modelJointNames) {
+    // if we don't have animation, or we're already joint mapped then bail early
+    if (!hasAnimation() || _jointMappingCompleted) {
+        return;
+    }
+
+    Animation* myAnimation = getAnimation(_animationURL);
+    
+    if (!_jointMappingCompleted) {
+        QStringList animationJointNames = myAnimation->getJointNames();
+        if (modelJointNames.size() > 0 && animationJointNames.size() > 0) {
+            _jointMapping.resize(modelJointNames.size());
+            for (int i = 0; i < modelJointNames.size(); i++) {
+                _jointMapping[i] = animationJointNames.indexOf(modelJointNames[i]);
+            }
+            _jointMappingCompleted = true;
+        }
+    }
+}
+
+QVector<glm::quat> ModelItem::getAnimationFrame() {
+    QVector<glm::quat> frameData;
+    if (hasAnimation() && _jointMappingCompleted) {
+        quint64 now = usecTimestampNow();
+        float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
+        _lastAnimated = now;
+        const float FRAME_RATE = 10.0f;
+        _frameIndex += deltaTime * FRAME_RATE;
+        Animation* myAnimation = getAnimation(_animationURL);
+        QVector<FBXAnimationFrame> frames = myAnimation->getFrames();
+        int frameIndex = (int)std::floor(_frameIndex) % frames.size();
+        QVector<glm::quat> rotations = frames[frameIndex].rotations;
+        frameData.resize(_jointMapping.size());
+        for (int j = 0; j < _jointMapping.size(); j++) {
+            int rotationIndex = _jointMapping[j];
+            if (rotationIndex != -1 && rotationIndex < rotations.size()) {
+                frameData[j] = rotations[rotationIndex];
+            }
+        }
+    }
+    return frameData;
+}
+
 void ModelItem::update(const quint64& now) {
     _lastUpdated = now;
     setShouldDie(getShouldDie());
@@ -547,6 +672,7 @@ ModelItemProperties::ModelItemProperties() :
     _shouldDie(false),
     _modelURL(""),
     _modelRotation(MODEL_DEFAULT_MODEL_ROTATION),
+    _animationURL(""),
 
     _id(UNKNOWN_MODEL_ID),
     _idSet(false),
@@ -558,6 +684,7 @@ ModelItemProperties::ModelItemProperties() :
     _shouldDieChanged(false),
     _modelURLChanged(false),
     _modelRotationChanged(false),
+    _animationURLChanged(false),
     _defaultSettings(true)
 {
 }
@@ -589,6 +716,11 @@ uint16_t ModelItemProperties::getChangedBits() const {
         changedBits += MODEL_PACKET_CONTAINS_MODEL_ROTATION;
     }
 
+    if (_animationURLChanged) {
+        changedBits += MODEL_PACKET_CONTAINS_ANIMATION_URL;
+    }
+
+
     return changedBits;
 }
 
@@ -611,6 +743,7 @@ QScriptValue ModelItemProperties::copyToScriptValue(QScriptEngine* engine) const
     QScriptValue modelRotation = quatToScriptValue(engine, _modelRotation);
     properties.setProperty("modelRotation", modelRotation);
 
+    properties.setProperty("animationURL", _animationURL);
 
     if (_idSet) {
         properties.setProperty("id", _id);
@@ -707,6 +840,16 @@ void ModelItemProperties::copyFromScriptValue(const QScriptValue &object) {
         }
     }
 
+    QScriptValue animationURL = object.property("animationURL");
+    if (animationURL.isValid()) {
+        QString newAnimationURL;
+        newAnimationURL = animationURL.toVariant().toString();
+        if (_defaultSettings || newAnimationURL != _animationURL) {
+            _animationURL = newAnimationURL;
+            _animationURLChanged = true;
+        }
+    }
+
     _lastEdited = usecTimestampNow();
 }
 
@@ -741,7 +884,14 @@ void ModelItemProperties::copyToModelItem(ModelItem& modelItem) const {
         modelItem.setModelRotation(_modelRotation);
         somethingChanged = true;
     }
-    
+
+    if (_animationURLChanged) {
+        modelItem.setAnimationURL(_animationURL);
+        somethingChanged = true;
+
+qDebug() << "ModelItemProperties::copyToModelItem()... modelItem.setAnimationURL(_animationURL)=" << _animationURL;
+    }
+
     if (somethingChanged) {
         bool wantDebug = false;
         if (wantDebug) {
@@ -761,6 +911,7 @@ void ModelItemProperties::copyFromModelItem(const ModelItem& modelItem) {
     _shouldDie = modelItem.getShouldDie();
     _modelURL = modelItem.getModelURL();
     _modelRotation = modelItem.getModelRotation();
+    _animationURL = modelItem.getAnimationURL();
 
     _id = modelItem.getID();
     _idSet = true;
@@ -772,6 +923,7 @@ void ModelItemProperties::copyFromModelItem(const ModelItem& modelItem) {
     _shouldDieChanged = false;
     _modelURLChanged = false;
     _modelRotationChanged = false;
+    _animationURLChanged = false;
     _defaultSettings = false;
 }
 

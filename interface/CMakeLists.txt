@@ -127,6 +127,7 @@ link_hifi_library(particles ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(models ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(avatars ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(audio ${TARGET_NAME} "${ROOT_DIR}")
+link_hifi_library(animation ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(script-engine ${TARGET_NAME} "${ROOT_DIR}")
 
 # find any optional libraries

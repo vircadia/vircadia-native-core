@@ -20,11 +20,16 @@ ModelTreeRenderer::ModelTreeRenderer() :
 }
 
 ModelTreeRenderer::~ModelTreeRenderer() {
-    // delete the models in _modelsItemModels
-    foreach(Model* model, _modelsItemModels) {
+    // delete the models in _knownModelsItemModels
+    foreach(Model* model, _knownModelsItemModels) {
         delete model;
     }
-    _modelsItemModels.clear();
+    _knownModelsItemModels.clear();
+
+    foreach(Model* model, _unknownModelsItemModels) {
+        delete model;
+    }
+    _unknownModelsItemModels.clear();
 }
 
 void ModelTreeRenderer::init() {
@@ -43,17 +48,27 @@ void ModelTreeRenderer::render(RenderMode renderMode) {
     OctreeRenderer::render(renderMode);
 }
 
-Model* ModelTreeRenderer::getModel(const QString& url) {
+Model* ModelTreeRenderer::getModel(const ModelItem& modelItem) {
     Model* model = NULL;
     
-    // if we don't already have this model then create it and initialize it
-    if (_modelsItemModels.find(url) == _modelsItemModels.end()) {
-        model = new Model();
-        model->init();
-        model->setURL(QUrl(url));
-        _modelsItemModels[url] = model;
+    if (modelItem.isKnownID()) {
+        if (_knownModelsItemModels.find(modelItem.getID()) != _knownModelsItemModels.end()) {
+            model = _knownModelsItemModels[modelItem.getID()];
+        } else {
+            model = new Model();
+            model->init();
+            model->setURL(QUrl(modelItem.getModelURL()));
+            _knownModelsItemModels[modelItem.getID()] = model;
+        }
     } else {
-        model = _modelsItemModels[url];
+        if (_unknownModelsItemModels.find(modelItem.getCreatorTokenID()) != _unknownModelsItemModels.end()) {
+            model = _unknownModelsItemModels[modelItem.getCreatorTokenID()];
+        } else {
+            model = new Model();
+            model->init();
+            model->setURL(QUrl(modelItem.getModelURL()));
+            _unknownModelsItemModels[modelItem.getCreatorTokenID()] = model;
+        }
     }
     return model;
 }
@@ -63,7 +78,7 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
     // we need to iterate the actual modelItems of the element
     ModelTreeElement* modelTreeElement = (ModelTreeElement*)element;
 
-    const QList<ModelItem>& modelItems = modelTreeElement->getModels();
+    QList<ModelItem>& modelItems = modelTreeElement->getModels();
 
     uint16_t numberOfModels = modelItems.size();
     
@@ -139,7 +154,7 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
     }
 
     for (uint16_t i = 0; i < numberOfModels; i++) {
-        const ModelItem& modelItem = modelItems[i];
+        ModelItem& modelItem = modelItems[i];
         // render modelItem aspoints
         AABox modelBox = modelItem.getAABox();
         modelBox.scale(TREE_SCALE);
@@ -156,7 +171,7 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
                 glPushMatrix();
                     const float alpha = 1.0f;
                 
-                    Model* model = getModel(modelItem.getModelURL());
+                    Model* model = getModel(modelItem);
 
                     model->setScaleToFit(true, radius * 2.0f);
                     model->setSnapModelToCenter(true);
@@ -167,6 +182,25 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
                 
                     // set the position
                     model->setTranslation(position);
+                    
+                    qDebug() << "modelItem.getModelURL()=" << modelItem.getModelURL();
+                    qDebug() << "modelItem.getAnimationURL()=" << modelItem.getAnimationURL();
+                    qDebug() << "modelItem.hasAnimation()=" << modelItem.hasAnimation();
+                    
+                    // handle animations..
+                    if (modelItem.hasAnimation()) {
+                        if (!modelItem.jointsMapped()) {
+                            QStringList modelJointNames = model->getJointNames();
+                            modelItem.mapJoints(modelJointNames);
+                        }
+
+                        QVector<glm::quat> frameData = modelItem.getAnimationFrame();
+                        for (int i = 0; i < frameData.size(); i++) {
+                            model->setJointState(i, true, frameData[i]);
+                        }
+                    }
+                    
+                    // make sure to simulate so everything gets set up correctly for rendering
                     model->simulate(0.0f);
 
                     // TODO: should we allow modelItems to have alpha on their models?

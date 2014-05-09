@@ -37,6 +37,7 @@ var radiusMinimum = 0.05;
 var radiusMaximum = 0.5;
 
 var modelURLs = [
+    "http://www.fungibleinsight.com/faces/beta.fst",
     "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/attachments/topHat.fst",
     "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
     "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/birarda/birarda_head.fbx",
@@ -46,6 +47,19 @@ var modelURLs = [
     "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Combat_tank_V01.FBX",
     "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/orc.fbx",
     "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/slimer.fbx",
+];
+
+var animationURLs = [
+    "http://www.fungibleinsight.com/faces/gangnam_style_2.fbx",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
 ];
 
 var currentModelURL = 1;
@@ -214,10 +228,18 @@ function checkControllerSide(whichSide) {
                 modelRotation: palmRotation,
                 modelURL: modelURLs[currentModelURL]
             };
+            
+        if (animationURLs[currentModelURL] !== "") {
+            properties.animationURL = animationURLs[currentModelURL];
+        }
 
         debugPrint("modelRadius=" +modelRadius);
 
         newModel = Models.addModel(properties);
+        
+        print("just added model... newModel=" + newModel.creatorTokenID);
+        print("properties.animationURL=" + properties.animationURL);
+        
         if (whichSide == LEFT_PALM) {
             leftModelAlreadyInHand = true;
             leftHandModel = newModel;

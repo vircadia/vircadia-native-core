@@ -18,6 +18,7 @@
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
 
+#include <AnimationCache.h>
 #include <CollisionInfo.h>
 #include <SharedUtil.h>
 #include <OctreePacketData.h>
@@ -39,14 +40,16 @@ const uint32_t UNKNOWN_MODEL_ID = 0xFFFFFFFF;
 const uint16_t MODEL_PACKET_CONTAINS_RADIUS = 1;
 const uint16_t MODEL_PACKET_CONTAINS_POSITION = 2;
 const uint16_t MODEL_PACKET_CONTAINS_COLOR = 4;
-const uint16_t MODEL_PACKET_CONTAINS_SHOULDDIE = 512;
-const uint16_t MODEL_PACKET_CONTAINS_MODEL_URL = 1024;
-const uint16_t MODEL_PACKET_CONTAINS_MODEL_ROTATION = 2048;
+const uint16_t MODEL_PACKET_CONTAINS_SHOULDDIE = 8;
+const uint16_t MODEL_PACKET_CONTAINS_MODEL_URL = 16;
+const uint16_t MODEL_PACKET_CONTAINS_MODEL_ROTATION = 32;
+const uint16_t MODEL_PACKET_CONTAINS_ANIMATION_URL = 64;
 
 const float MODEL_DEFAULT_RADIUS = 0.1f / TREE_SCALE;
 const float MINIMUM_MODEL_ELEMENT_SIZE = (1.0f / 100000.0f) / TREE_SCALE; // smallest size container
 const QString MODEL_DEFAULT_MODEL_URL("");
 const glm::quat MODEL_DEFAULT_MODEL_ROTATION;
+const QString MODEL_DEFAULT_ANIMATION_URL("");
 
 /// A collection of properties of a model item used in the scripting API. Translates between the actual properties of a model
 /// and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete set of
@@ -69,6 +72,7 @@ public:
     
     const QString& getModelURL() const { return _modelURL; }
     const glm::quat& getModelRotation() const { return _modelRotation; }
+    const QString& getAnimationURL() const { return _animationURL; }
 
     quint64 getLastEdited() const { return _lastEdited; }
     uint16_t getChangedBits() const;
@@ -82,6 +86,7 @@ public:
     // model related properties
     void setModelURL(const QString& url) { _modelURL = url; _modelURLChanged = true; }
     void setModelRotation(const glm::quat& rotation) { _modelRotation = rotation; _modelRotationChanged = true; }
+    void setAnimationURL(const QString& url) { _animationURL = url; _animationURLChanged = true; }
     
     /// used by ModelScriptingInterface to return ModelItemProperties for unknown models
     void setIsUnknownID() { _id = UNKNOWN_MODEL_ID; _idSet = true; }
@@ -97,6 +102,7 @@ private:
     
     QString _modelURL;
     glm::quat _modelRotation;
+    QString _animationURL;
 
     uint32_t _id;
     bool _idSet;
@@ -109,6 +115,7 @@ private:
 
     bool _modelURLChanged;
     bool _modelRotationChanged;
+    bool _animationURLChanged;
     bool _defaultSettings;
 };
 Q_DECLARE_METATYPE(ModelItemProperties);
@@ -178,6 +185,8 @@ public:
     bool hasModel() const { return !_modelURL.isEmpty(); }
     const QString& getModelURL() const { return _modelURL; }
     const glm::quat& getModelRotation() const { return _modelRotation; }
+    bool hasAnimation() const { return !_animationURL.isEmpty(); }
+    const QString& getAnimationURL() const { return _animationURL; }
 
     ModelItemID getModelItemID() const { return ModelItemID(getID(), getCreatorTokenID(), getID() != UNKNOWN_MODEL_ID); }
     ModelItemProperties getProperties() const;
@@ -196,6 +205,7 @@ public:
     bool getShouldDie() const { return _shouldDie; }
     uint32_t getCreatorTokenID() const { return _creatorTokenID; }
     bool isNewlyCreated() const { return _newlyCreated; }
+    bool isKnownID() const { return getID() != UNKNOWN_MODEL_ID; }
 
     /// set position in domain scale units (0.0 - 1.0)
     void setPosition(const glm::vec3& value) { _position = value; }
@@ -215,6 +225,7 @@ public:
     // model related properties
     void setModelURL(const QString& url) { _modelURL = url; }
     void setModelRotation(const glm::quat& rotation) { _modelRotation = rotation; }
+    void setAnimationURL(const QString& url) { _animationURL = url; }
     
     void setProperties(const ModelItemProperties& properties);
 
@@ -239,6 +250,10 @@ public:
     static uint32_t getNextCreatorTokenID();
     static void handleAddModelResponse(const QByteArray& packet);
 
+    void mapJoints(const QStringList& modelJointNames);
+    QVector<glm::quat> getAnimationFrame();
+    bool jointsMapped() const { return _jointMappingCompleted; };
+
 protected:
     glm::vec3 _position;
     rgbColor _color;
@@ -256,10 +271,23 @@ protected:
 
     quint64 _lastUpdated;
     quint64 _lastEdited;
+    quint64 _lastAnimated;
+
+    QString _animationURL;
+    float _frameIndex; // we keep this as a float and round to int only when we need the exact index
+    bool _jointMappingCompleted;
+    QVector<int> _jointMapping;
+    
 
     // used by the static interfaces for creator token ids
     static uint32_t _nextCreatorTokenID;
     static std::map<uint32_t,uint32_t> _tokenIDsToIDs;
+
+
+    static Animation* getAnimation(const QString& url);
+    static QMap<QString, AnimationPointer> _loadedAnimations;
+    static AnimationCache _animationCache;
+
 };
 
 #endif // hifi_ModelItem_h
