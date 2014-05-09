@@ -21,9 +21,19 @@
 
 #include "AudioInjector.h"
 
+AudioInjector::AudioInjector(QObject* parent) :
+    QObject(parent),
+    _sound(NULL),
+    _options(),
+    _shouldStop(false)
+{
+    
+}
+
 AudioInjector::AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions) :
     _sound(sound),
-    _options(injectorOptions)
+    _options(injectorOptions),
+    _shouldStop(false)
 {
     
 }
@@ -80,7 +90,7 @@ void AudioInjector::injectAudio() {
         int numPreAudioDataBytes = injectAudioPacket.size();
         
         // loop to send off our audio in NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL byte chunks
-        while (currentSendPosition < soundByteArray.size()) {
+        while (currentSendPosition < soundByteArray.size() && !_shouldStop) {
             
             int bytesToCopy = std::min(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL,
                                        soundByteArray.size() - currentSendPosition);

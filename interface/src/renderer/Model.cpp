@@ -789,9 +789,9 @@ bool Model::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadi
         }
         if (ShapeCollider::collideShapes(&sphere, _jointShapes[i], collisions)) {
             CollisionInfo* collision = collisions.getLastCollision();
-            collision->_type = MODEL_COLLISION;
+            collision->_type = COLLISION_TYPE_MODEL;
             collision->_data = (void*)(this);
-            collision->_flags = i;
+            collision->_intData = i;
             collided = true;
         }
         outerContinue: ;
@@ -805,9 +805,9 @@ bool Model::findPlaneCollisions(const glm::vec4& plane, CollisionList& collision
     for (int i = 0; i < _jointShapes.size(); i++) {
         if (ShapeCollider::collideShapes(&planeShape, _jointShapes[i], collisions)) {
             CollisionInfo* collision = collisions.getLastCollision();
-            collision->_type = MODEL_COLLISION;
+            collision->_type = COLLISION_TYPE_MODEL;
             collision->_data = (void*)(this);
-            collision->_flags = i;
+            collision->_intData = i;
             collided = true;
         }
     }
@@ -1256,15 +1256,15 @@ void Model::renderBoundingCollisionShapes(float alpha) {
 }
 
 bool Model::collisionHitsMoveableJoint(CollisionInfo& collision) const {
-    if (collision._type == MODEL_COLLISION) {
+    if (collision._type == COLLISION_TYPE_MODEL) {
         // the joint is pokable by a collision if it exists and is free to move
-        const FBXJoint& joint = _geometry->getFBXGeometry().joints[collision._flags];
+        const FBXJoint& joint = _geometry->getFBXGeometry().joints[collision._intData];
         if (joint.parentIndex == -1 || _jointStates.isEmpty()) {
             return false;
         }
         // an empty freeLineage means the joint can't move
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
-        int jointIndex = collision._flags;
+        int jointIndex = collision._intData;
         const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
         return !freeLineage.isEmpty();
     }
@@ -1272,12 +1272,12 @@ bool Model::collisionHitsMoveableJoint(CollisionInfo& collision) const {
 }
 
 void Model::applyCollision(CollisionInfo& collision) {
-    if (collision._type != MODEL_COLLISION) {
+    if (collision._type != COLLISION_TYPE_MODEL) {
         return;
     }
 
     glm::vec3 jointPosition(0.f);
-    int jointIndex = collision._flags;
+    int jointIndex = collision._intData;
     if (getJointPosition(jointIndex, jointPosition)) {
         const FBXJoint& joint = _geometry->getFBXGeometry().joints[jointIndex];
         if (joint.parentIndex != -1) {

@@ -43,7 +43,7 @@ public:
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
 
     virtual void init();
-    virtual void render();
+    virtual void render(RenderMode renderMode = DEFAULT_RENDER_MODE);
 
 protected:
     Model* getModel(const QString& url);

@@ -24,6 +24,7 @@
 #include <HandData.h>
 
 #include "InterfaceConfig.h"
+#include "renderer/Model.h"
 #include "world.h"
 
 
@@ -49,15 +50,9 @@ public:
         float            touchForce;     // a scalar determining the amount that the cursor (or hand) is penetrating the ball
     };
     
-    void init();
-    void reset();
     void simulate(float deltaTime, bool isMine);
-    void render(bool isMine);
+    void render(bool isMine, Model::RenderMode renderMode = Model::DEFAULT_RENDER_MODE);
 
-    // getters
-    const glm::vec3& getLeapFingerTipBallPosition (int ball) const { return _leapFingerTipBalls [ball].position;}
-    const glm::vec3& getLeapFingerRootBallPosition(int ball) const { return _leapFingerRootBalls[ball].position;}
-    
     void collideAgainstAvatar(Avatar* avatar, bool isMyHand);
     void collideAgainstOurself();
 
@@ -71,14 +66,8 @@ private:
     int _controllerButtons;             ///  Button states read from hand-held controllers
 
     Avatar*        _owningAvatar;
-    float          _renderAlpha;
-    std::vector<HandBall> _leapFingerTipBalls;
-    std::vector<HandBall> _leapFingerRootBalls;
     
-    void renderLeapHands(bool isMine);
-    void renderLeapFingerTrails();
-    
-    void calculateGeometry();
+    void renderHandTargets(bool isMine);
 };
 
 #endif // hifi_Hand_h

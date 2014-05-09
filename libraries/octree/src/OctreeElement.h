@@ -23,14 +23,14 @@
 #include "AABox.h"
 #include "ViewFrustum.h"
 #include "OctreeConstants.h"
-//#include "Octree.h"
 
+class EncodeBitstreamParams;
 class Octree;
 class OctreeElement;
 class OctreeElementDeleteHook;
 class OctreePacketData;
-class VoxelSystem;
 class ReadBitstreamToTreeParams;
+class VoxelSystem;
 
 // Callers who want delete hook callbacks should implement this class
 class OctreeElementDeleteHook {
@@ -81,7 +81,7 @@ public:
     virtual bool requiresSplit() const { return false; }
 
     /// Override to serialize the state of this element. This is used for persistance and for transmission across the network.
-    virtual bool appendElementData(OctreePacketData* packetData) const { return true; }
+    virtual bool appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const { return true; }
     
     /// Override to deserialize the state of this element. This is used for loading from a persisted file or from reading
     /// from the network.
@@ -217,6 +217,8 @@ public:
 
 
     OctreeElement* getOrCreateChildElementAt(float x, float y, float z, float s);
+    OctreeElement* getOrCreateChildElementContaining(const AABox& box);
+    int getMyChildContainingPoint(const glm::vec3& point) const;
 
 protected:
 

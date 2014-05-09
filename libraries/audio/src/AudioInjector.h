@@ -24,14 +24,19 @@
 class AudioInjector : public QObject {
     Q_OBJECT
 public:
+    AudioInjector(QObject* parent);
     AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions);
+public slots:
+    void injectAudio();
+    void stop() { _shouldStop = true; }
+signals:
+    void finished();
 private:
     Sound* _sound;
     AudioInjectorOptions _options;
-public slots:
-    void injectAudio();
-signals:
-    void finished();
+    bool _shouldStop;
 };
+
+Q_DECLARE_METATYPE(AudioInjector*)
 
 #endif // hifi_AudioInjector_h

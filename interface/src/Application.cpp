@@ -572,8 +572,8 @@ void Application::paintGL() {
         glm::vec3 eyePosition = _myAvatar->getHead()->calculateAverageEyePosition();
         float headHeight = eyePosition.y - _myAvatar->getPosition().y;
         _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _myAvatar->getScale() * _scaleMirror);
-        _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight, 0));
-        _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
+        _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight + (_raiseMirror * _myAvatar->getScale()), 0));
+        _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
         
         // if the head would intersect the near clip plane, we must push the camera out
         glm::vec3 relativePosition = glm::inverse(_myCamera.getTargetRotation()) *
@@ -870,7 +870,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_Up:
                 if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                    _scaleMirror *= 0.95;
+                    if (!isShifted) {
+                        _scaleMirror *= 0.95f;
+                    } else {
+                        _raiseMirror += 0.05f;
+                    }
                 } else {
                     _myAvatar->setDriveKeys(isShifted ? UP : FWD, 1.f);
                 }
@@ -878,18 +882,30 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_Down:
                 if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                    _scaleMirror *= 1.05;
+                    if (!isShifted) {
+                        _scaleMirror *= 1.05f;
+                    } else {
+                        _raiseMirror -= 0.05f;
+                    }
                 } else {
                     _myAvatar->setDriveKeys(isShifted ? DOWN : BACK, 1.f);
                 }
                 break;
 
             case Qt::Key_Left:
-                _myAvatar->setDriveKeys(isShifted ? LEFT : ROT_LEFT, 1.f);
+                if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+                    _rotateMirror += PI / 20.f;
+                } else {
+                    _myAvatar->setDriveKeys(isShifted ? LEFT : ROT_LEFT, 1.f);
+                }
                 break;
 
             case Qt::Key_Right:
-                _myAvatar->setDriveKeys(isShifted ? RIGHT : ROT_RIGHT, 1.f);
+                if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+                    _rotateMirror -= PI / 20.f;
+                } else {
+                    _myAvatar->setDriveKeys(isShifted ? RIGHT : ROT_RIGHT, 1.f);
+                }
                 break;
 
             case Qt::Key_I:
@@ -1200,10 +1216,6 @@ void Application::touchBeginEvent(QTouchEvent* event) {
     if (_controllerScriptingInterface.isTouchCaptured()) {
         return;
     }
-
-    // put any application specific touch behavior below here..
-    _lastTouchAvgX = _touchAvgX;
-    _lastTouchAvgY = _touchAvgY;
 
 }
 
@@ -1859,34 +1871,6 @@ void Application::updateMyAvatarLookAtPosition() {
     _myAvatar->getHead()->setLookAtPosition(lookAtSpot);
 }
 
-void Application::updateHandAndTouch(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateHandAndTouch()");
-
-    //  Update from Touch
-    if (_isTouchPressed) {
-        _lastTouchAvgX = _touchAvgX;
-        _lastTouchAvgY = _touchAvgY;
-    }
-}
-
-void Application::updateLeap(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateLeap()");
-}
-
-void Application::updateSixense(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateSixense()");
-
-    _sixenseManager.update(deltaTime);
-}
-
-void Application::updateSerialDevices(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateSerialDevices()");
-}
-
 void Application::updateThreads(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateThreads()");
@@ -2000,11 +1984,7 @@ void Application::update(float deltaTime) {
     updateVisage();
     _myAvatar->updateLookAtTargetAvatar();
     updateMyAvatarLookAtPosition();
-
-    updateHandAndTouch(deltaTime); // Update state for touch sensors
-    updateLeap(deltaTime); // Leap finger-sensing device
-    updateSixense(deltaTime); // Razer Hydra controllers
-    updateSerialDevices(deltaTime); // Read serial port interface devices
+    _sixenseManager.update(deltaTime);
     updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     _avatarManager.updateOtherAvatars(deltaTime); //loop through all the other avatars and simulate them...
@@ -2357,8 +2337,8 @@ void Application::updateShadowMap() {
     updateUntranslatedViewMatrix();
 
     _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
-    _particles.render();
-    _models.render();
+    _particles.render(OctreeRenderer::SHADOW_RENDER_MODE);
+    _models.render(OctreeRenderer::SHADOW_RENDER_MODE);
 
     glPopMatrix();
 

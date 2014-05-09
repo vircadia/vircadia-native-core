@@ -20,7 +20,9 @@ const AudioInjectorOptions DEFAULT_INJECTOR_OPTIONS;
 class AudioScriptingInterface : public QObject {
     Q_OBJECT
 public slots:
-    static void playSound(Sound* sound, const AudioInjectorOptions* injectorOptions = NULL);
+    static AudioInjector* playSound(Sound* sound, const AudioInjectorOptions* injectorOptions = NULL);
+    static void stopInjector(AudioInjector* injector);
+    static bool isInjectorPlaying(AudioInjector* injector);
     static void startDrumSound(float volume, float frequency, float duration, float decay, 
                     const AudioInjectorOptions* injectorOptions = NULL);
 

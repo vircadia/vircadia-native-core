@@ -73,7 +73,6 @@ const float BILLBOARD_LOD_DISTANCE = 40.0f;
 
 void Avatar::init() {
     getHead()->init();
-    getHand()->init();
     _skeletonModel.init();
     _initialized = true;
     _shouldRenderBillboard = (getLODDistance() >= BILLBOARD_LOD_DISTANCE);
@@ -215,17 +214,20 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
             renderBody(renderMode, glowLevel);
         }
-        if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes)) {
+        if (renderMode != SHADOW_RENDER_MODE && 
+                Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes)) {
             _skeletonModel.updateShapePositions();
             _skeletonModel.renderJointCollisionShapes(0.7f);
         }
-        if (Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes)) {
+        if (renderMode != SHADOW_RENDER_MODE && 
+                Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes)) {
             if (shouldRenderHead(cameraPosition, renderMode)) {
                 getHead()->getFaceModel().updateShapePositions();
                 getHead()->getFaceModel().renderJointCollisionShapes(0.7f);
             }
         }
-        if (Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes)) {
+        if (renderMode != SHADOW_RENDER_MODE && 
+                Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes)) {
             if (shouldRenderHead(cameraPosition, renderMode)) {
                 getHead()->getFaceModel().updateShapePositions();
                 getHead()->getFaceModel().renderBoundingCollisionShapes(0.7f);
@@ -234,7 +236,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
             }
         }
         // If this is the avatar being looked at, render a little ball above their head
-        if (_isLookAtTarget) {
+        if (renderMode != SHADOW_RENDER_MODE &&_isLookAtTarget) {
             const float LOOK_AT_INDICATOR_RADIUS = 0.03f;
             const float LOOK_AT_INDICATOR_HEIGHT = 0.60f;
             const float LOOK_AT_INDICATOR_COLOR[] = { 0.8f, 0.0f, 0.0f, 0.5f };
@@ -340,7 +342,8 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 
 void Avatar::renderBody(RenderMode renderMode, float glowLevel) {
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
-    Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+                            Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+
     {
         Glower glower(glowLevel);
         
@@ -351,7 +354,7 @@ void Avatar::renderBody(RenderMode renderMode, float glowLevel) {
         }
         _skeletonModel.render(1.0f, modelRenderMode);
         renderAttachments(modelRenderMode);
-        getHand()->render(false);
+        getHand()->render(false, modelRenderMode);
     }
     getHead()->render(1.0f, modelRenderMode);
 }
@@ -634,8 +637,8 @@ bool Avatar::findParticleCollisions(const glm::vec3& particleCenter, float parti
                             penetration)) {
                     CollisionInfo* collision = collisions.getNewCollision();
                     if (collision) {
-                        collision->_type = PADDLE_HAND_COLLISION;
-                        collision->_flags = jointIndex;
+                        collision->_type = COLLISION_TYPE_PADDLE_HAND;
+                        collision->_intData = jointIndex;
                         collision->_penetration = penetration;
                         collision->_addedVelocity = palm->getVelocity();
                         collided = true;
@@ -705,7 +708,9 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
 void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     AvatarData::setAttachmentData(attachmentData);
-    
+    if (QThread::currentThread() != thread()) {    
+        return;
+    }
     // make sure we have as many models as attachments
     while (_attachmentModels.size() < attachmentData.size()) {
         Model* model = new Model(this);
@@ -844,11 +849,11 @@ float Avatar::getHeadHeight() const {
 }
 
 bool Avatar::collisionWouldMoveAvatar(CollisionInfo& collision) const {
-    if (!collision._data || collision._type != MODEL_COLLISION) {
+    if (!collision._data || collision._type != COLLISION_TYPE_MODEL) {
         return false;
     }
     Model* model = static_cast<Model*>(collision._data);
-    int jointIndex = collision._flags;
+    int jointIndex = collision._intData;
 
     if (model == &(_skeletonModel) && jointIndex != -1) {
         // collision response of skeleton is temporarily disabled
@@ -856,7 +861,7 @@ bool Avatar::collisionWouldMoveAvatar(CollisionInfo& collision) const {
         //return _skeletonModel.collisionHitsMoveableJoint(collision);
     }
     if (model == &(getHead()->getFaceModel())) {
-        // ATM we always handle MODEL_COLLISIONS against the face.
+        // ATM we always handle COLLISION_TYPE_MODEL against the face.
         return true;
     }
     return false;

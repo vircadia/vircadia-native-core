@@ -47,7 +47,7 @@ ParticleTreeElement* ParticleTreeElement::addChildAtIndex(int index) {
 }
 
 
-bool ParticleTreeElement::appendElementData(OctreePacketData* packetData) const {
+bool ParticleTreeElement::appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const {
     bool success = true; // assume the best...
 
     // write our particles out...
