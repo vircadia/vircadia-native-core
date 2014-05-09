@@ -28,7 +28,7 @@ var BULLET_VELOCITY = 5.0;
 var MIN_THROWER_DELAY = 1000;
 var MAX_THROWER_DELAY = 1000;
 var LEFT_BUTTON_3 = 3;
-var RELOAD_INTERVAL = 9;
+var RELOAD_INTERVAL = 5;
 
 var showScore = false;
 
@@ -38,6 +38,8 @@ var loadSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-publi
 var impactSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guns/BulletImpact2.raw");
 var targetHitSound = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/hit.raw");
 var targetLaunchSound = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/shoot.raw");
+
+var gunModel = "http://highfidelity-public.s3-us-west-1.amazonaws.com/models/attachments/Raygun2.fst";
 
 var audioOptions = new AudioInjectionOptions();
 audioOptions.volume = 0.9;
@@ -90,12 +92,12 @@ function printVector(string, vector) {
 }
 
 function shootBullet(position, velocity) {
-    var BULLET_SIZE = 0.02;
+    var BULLET_SIZE = 0.01;
     var BULLET_GRAVITY = -0.02;
     Particles.addParticle(
         { position: position, 
           radius: BULLET_SIZE, 
-          color: {  red: 200, green: 0, blue: 0 },  
+          color: {  red: 10, green: 10, blue: 10 },  
           velocity: velocity, 
           gravity: {  x: 0, y: BULLET_GRAVITY, z: 0 }, 
           damping: 0 });
@@ -185,10 +187,23 @@ function keyPressEvent(event) {
     if (event.text == "t") {
         var time = MIN_THROWER_DELAY + Math.random() * MAX_THROWER_DELAY;
         Script.setTimeout(shootTarget, time); 
-    } if (event.text == ".") {
+    } else if (event.text == ".") {
         shootFromMouse();
+    } else if (event.text == "r") {
+        playLoadSound();
     }
 }
+
+function playLoadSound() {
+    audioOptions.position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation())); 
+    Audio.playSound(loadSound, audioOptions);
+}
+
+MyAvatar.attach(gunModel, "RightHand", {x: -0.02, y: -.14, z: 0.07}, Quat.fromPitchYawRollDegrees(-70, -151, 72), 0.20);
+MyAvatar.attach(gunModel, "LeftHand", {x: -0.02, y: -.14, z: 0.07}, Quat.fromPitchYawRollDegrees(-70, -151, 72), 0.20);
+
+//  Give a bit of time to load before playing sound
+Script.setTimeout(playLoadSound, 2000); 
 
 function update(deltaTime) {
     //  Check for mouseLook movement, update rotation 
@@ -303,7 +318,9 @@ function mouseMoveEvent(event) {
 
 function scriptEnding() {
     Overlays.deleteOverlay(reticle); 
-    Overlays.deleteOverlay(text); 
+    Overlays.deleteOverlay(text);
+    MyAvatar.detachOne(gunModel);
+    MyAvatar.detachOne(gunModel);
 }
 
 Particles.particleCollisionWithVoxel.connect(particleCollisionWithVoxel);

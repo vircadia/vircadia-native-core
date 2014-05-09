@@ -66,6 +66,9 @@ public:
     void saveData(QSettings* settings);
     void loadData(QSettings* settings);
 
+    void saveAttachmentData(const AttachmentData& attachment) const;
+    AttachmentData loadAttachmentData(const QUrl& modelURL) const;
+
     //  Set what driving keys are being pressed to control thrust levels
     void setDriveKeys(int key, float val) { _driveKeys[key] = val; };
     bool getDriveKeys(int key) { return _driveKeys[key] != 0.f; };
@@ -86,7 +89,12 @@ public:
     virtual void clearJointData(int index);
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
-
+    virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
+    
+    virtual void attach(const QString& modelURL, const QString& jointName = QString(),
+        const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
+        bool allowDuplicates = false, bool useSaved = true);
+        
     virtual void setCollisionGroups(quint32 collisionGroups);
 
     void setMotionBehaviorsByScript(quint32 flags);
@@ -125,7 +133,7 @@ private:
 
     bool _wasPushing;
     bool _isPushing;
-    bool _wasStuck;
+    float _trapDuration; // seconds that avatar has been trapped by collisions
     glm::vec3 _thrust;  // final acceleration from outside sources for the current frame
 
     glm::vec3 _motorVelocity;   // intended velocity of avatar motion
