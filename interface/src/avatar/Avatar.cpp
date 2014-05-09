@@ -73,7 +73,6 @@ const float BILLBOARD_LOD_DISTANCE = 40.0f;
 
 void Avatar::init() {
     getHead()->init();
-    getHand()->init();
     _skeletonModel.init();
     _initialized = true;
     _shouldRenderBillboard = (getLODDistance() >= BILLBOARD_LOD_DISTANCE);

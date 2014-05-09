@@ -29,22 +29,11 @@ const float PALM_COLLISION_RADIUS = 0.03f;
 
 Hand::Hand(Avatar* owningAvatar) :
     HandData((AvatarData*)owningAvatar),
-
-    _owningAvatar(owningAvatar),
-    _renderAlpha(1.0)
+    _owningAvatar(owningAvatar)
 {
 }
 
-void Hand::init() {
-}
-
-void Hand::reset() {
-}
-
 void Hand::simulate(float deltaTime, bool isMine) {
-    
-    calculateGeometry();
-    
     if (isMine) {
         //  Iterate hand controllers, take actions as needed
         for (size_t i = 0; i < getNumPalms(); ++i) {
@@ -146,55 +135,7 @@ void Hand::resolvePenetrations() {
     }
 }
 
-void Hand::calculateGeometry() {
-    // generate finger tip balls....
-    _leapFingerTipBalls.clear();
-    for (size_t i = 0; i < getNumPalms(); ++i) {
-        PalmData& palm = getPalms()[i];
-        if (palm.isActive()) {
-            for (size_t f = 0; f < palm.getNumFingers(); ++f) {
-                FingerData& finger = palm.getFingers()[f];
-                if (finger.isActive()) {
-                    const float standardBallRadius = FINGERTIP_COLLISION_RADIUS;
-                    HandBall ball;
-                    ball.rotation = getBaseOrientation();
-                    ball.position = finger.getTipPosition();
-                    ball.radius         = standardBallRadius;
-                    ball.touchForce     = 0.0;
-                    ball.isCollidable   = true;
-                    ball.isColliding    = false;
-                    _leapFingerTipBalls.push_back(ball);
-                }
-            }
-        }
-    }
-
-    // generate finger root balls....
-    _leapFingerRootBalls.clear();
-    for (size_t i = 0; i < getNumPalms(); ++i) {
-        PalmData& palm = getPalms()[i];
-        if (palm.isActive()) {
-            for (size_t f = 0; f < palm.getNumFingers(); ++f) {
-                FingerData& finger = palm.getFingers()[f];
-                if (finger.isActive()) {
-                    const float standardBallRadius = 0.005f;
-                    HandBall ball;
-                    ball.rotation = getBaseOrientation();
-                    ball.position = finger.getRootPosition();
-                    ball.radius         = standardBallRadius;
-                    ball.touchForce     = 0.0;
-                    ball.isCollidable   = true;
-                    ball.isColliding    = false;
-                    _leapFingerRootBalls.push_back(ball);
-                }
-            }
-        }
-    }
-}
-
 void Hand::render(bool isMine, Model::RenderMode renderMode) {
-    _renderAlpha = 1.0;
-    
     if (renderMode != Model::SHADOW_RENDER_MODE && 
                 Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes)) {
         // draw a green sphere at hand joint location, which is actually near the wrist)
@@ -218,7 +159,6 @@ void Hand::render(bool isMine, Model::RenderMode renderMode) {
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_RESCALE_NORMAL);
-    
 }
 
 void Hand::renderHandTargets(bool isMine) {
@@ -239,26 +179,11 @@ void Hand::renderHandTargets(bool isMine) {
             glm::vec3 targetPosition;
             palm.getBallHoldPosition(targetPosition);
             glPushMatrix();
+            glTranslatef(targetPosition.x, targetPosition.y, targetPosition.z);
         
             const float collisionRadius = 0.05f;
             glColor4f(0.5f,0.5f,0.5f, alpha);
             glutWireSphere(collisionRadius, 10.f, 10.f);
-            glPopMatrix();
-        }
-    }
-    
-    glPushMatrix();
-    // Draw the leap balls
-    for (size_t i = 0; i < _leapFingerTipBalls.size(); i++) {
-        if (alpha > 0.0f) {
-            if (_leapFingerTipBalls[i].isColliding) {
-                glColor4f(handColor.r, 0, 0, alpha);
-            } else {
-                glColor4f(handColor.r, handColor.g, handColor.b, alpha);
-            }
-            glPushMatrix();
-            glTranslatef(_leapFingerTipBalls[i].position.x, _leapFingerTipBalls[i].position.y, _leapFingerTipBalls[i].position.z);
-            glutSolidSphere(_leapFingerTipBalls[i].radius, 20.0f, 20.0f);
             glPopMatrix();
         }
     }
