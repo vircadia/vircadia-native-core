@@ -353,7 +353,7 @@ void Avatar::renderBody(RenderMode renderMode, float glowLevel) {
             return;
         }
         _skeletonModel.render(1.0f, modelRenderMode);
-        renderAttachments(modelRenderMode);
+        renderAttachments(renderMode);
         getHand()->render(false, modelRenderMode);
     }
     getHead()->render(1.0f, modelRenderMode);
@@ -380,9 +380,11 @@ void Avatar::simulateAttachments(float deltaTime) {
     }
 }
 
-void Avatar::renderAttachments(Model::RenderMode renderMode) {
+void Avatar::renderAttachments(RenderMode renderMode) {
+    Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
+        Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
     foreach (Model* model, _attachmentModels) {
-        model->render(1.0f, renderMode);
+        model->render(1.0f, modelRenderMode);
     }
 }
 
