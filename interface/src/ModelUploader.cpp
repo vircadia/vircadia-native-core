@@ -49,7 +49,7 @@ static const QString TRANSLATION_Z_FIELD = "tz";
 static const QString JOINT_FIELD = "joint";
 static const QString FREE_JOINT_FIELD = "freeJoint";
 
-static const QString S3_URL = "http://highfidelity-public.s3-us-west-1.amazonaws.com";
+static const QString S3_URL = "http://public.highfidelity.io";
 static const QString DATA_SERVER_URL = "https://data-web.highfidelity.io";
 static const QString MODEL_URL = "/api/v1/models";
 
@@ -201,12 +201,15 @@ bool ModelUploader::zip() {
     mapping = properties.getMapping();
     
     QByteArray nameField = mapping.value(NAME_FIELD).toByteArray();
+    QString urlBase;
     if (!nameField.isEmpty()) {
         QHttpPart textPart;
         textPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"model_name\"");
         textPart.setBody(nameField);
         _dataMultiPart->append(textPart);
-        _url = S3_URL + "/models/" + MODEL_TYPE_NAMES[_modelType] + "/" + nameField + ".fst";
+        urlBase = S3_URL + "/models/" + MODEL_TYPE_NAMES[_modelType] + "/" + nameField;
+        _url = urlBase + ".fst";
+       
     } else {
         QMessageBox::warning(NULL,
                              QString("ModelUploader::zip()"),
@@ -218,6 +221,7 @@ bool ModelUploader::zip() {
     
     QByteArray texdirField = mapping.value(TEXDIR_FIELD).toByteArray();
     QString texDir;
+    _textureBase = urlBase + "/textures/";
     if (!texdirField.isEmpty()) {
         texDir = basePath + "/" + texdirField;
         QFileInfo texInfo(texDir);
@@ -407,6 +411,10 @@ void ModelUploader::processCheck() {
                                      QString("ModelUploader::processCheck()"),
                                      QString("Your model is now available in the browser."),
                                      QMessageBox::Ok);
+            Application::getInstance()->getGeometryCache()->refresh(_url);
+            foreach (const QByteArray& filename, _textureFilenames) {
+                Application::getInstance()->getTextureCache()->refresh(_textureBase + filename);
+            }
             deleteLater();
             break;
         case QNetworkReply::ContentNotFoundError:
@@ -428,32 +436,31 @@ void ModelUploader::processCheck() {
 }
 
 bool ModelUploader::addTextures(const QString& texdir, const FBXGeometry& geometry) {
-    QSet<QByteArray> added; 
     foreach (FBXMesh mesh, geometry.meshes) {
         foreach (FBXMeshPart part, mesh.parts) {
             if (!part.diffuseTexture.filename.isEmpty() && part.diffuseTexture.content.isEmpty() &&
-                    !added.contains(part.diffuseTexture.filename)) {
+                    !_textureFilenames.contains(part.diffuseTexture.filename)) {
                 if (!addPart(texdir + "/" + part.diffuseTexture.filename,
                              QString("texture%1").arg(++_texturesCount), true)) {
                     return false;
                 }
-                added.insert(part.diffuseTexture.filename);
+                _textureFilenames.insert(part.diffuseTexture.filename);
             }
             if (!part.normalTexture.filename.isEmpty() && part.normalTexture.content.isEmpty() &&
-                    !added.contains(part.normalTexture.filename)) {
+                    !_textureFilenames.contains(part.normalTexture.filename)) {
                 if (!addPart(texdir + "/" + part.normalTexture.filename,
                              QString("texture%1").arg(++_texturesCount), true)) {
                     return false;
                 }
-                added.insert(part.normalTexture.filename);
+                _textureFilenames.insert(part.normalTexture.filename);
             }
             if (!part.specularTexture.filename.isEmpty() && part.specularTexture.content.isEmpty() &&
-                    !added.contains(part.specularTexture.filename)) {
+                    !_textureFilenames.contains(part.specularTexture.filename)) {
                 if (!addPart(texdir + "/" + part.specularTexture.filename,
                              QString("texture%1").arg(++_texturesCount), true)) {
                     return false;
                 }
-                added.insert(part.specularTexture.filename);
+                _textureFilenames.insert(part.specularTexture.filename);
             }
         }
     }

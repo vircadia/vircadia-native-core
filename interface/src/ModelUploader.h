@@ -49,6 +49,8 @@ private slots:
     
 private:
     QString _url;
+    QString _textureBase;
+    QSet<QByteArray> _textureFilenames;
     int _lodCount;
     int _texturesCount;
     int _totalSize;
