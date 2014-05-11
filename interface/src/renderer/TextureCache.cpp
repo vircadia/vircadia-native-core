@@ -366,10 +366,10 @@ void NetworkTexture::setImage(const QImage& image, bool translucent) {
     imageLoaded(image);
     glBindTexture(GL_TEXTURE_2D, getID());
     if (image.hasAlphaChannel()) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 0,
             GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
     } else {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.width(), image.height(), 1,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.width(), image.height(), 0,
             GL_RGB, GL_UNSIGNED_BYTE, image.constBits());
     }
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -404,10 +404,10 @@ QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilatio
             
             glBindTexture(GL_TEXTURE_2D, texture->getID());
             if (dilatedImage.hasAlphaChannel()) {
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dilatedImage.width(), dilatedImage.height(), 1,
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dilatedImage.width(), dilatedImage.height(), 0,
                     GL_BGRA, GL_UNSIGNED_BYTE, dilatedImage.constBits());
             } else {
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, dilatedImage.width(), dilatedImage.height(), 1,
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, dilatedImage.width(), dilatedImage.height(), 0,
                     GL_RGB, GL_UNSIGNED_BYTE, dilatedImage.constBits());
             }
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
