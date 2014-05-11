@@ -406,7 +406,7 @@ void Avatar::renderBillboard() {
         }
         _billboardTexture.reset(new Texture());
         glBindTexture(GL_TEXTURE_2D, _billboardTexture->getID());
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 0,
             GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     
