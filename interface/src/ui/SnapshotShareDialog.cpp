@@ -87,13 +87,13 @@ void SnapshotShareDialog::uploadSnapshot() {
         _networkAccessManager = new QNetworkAccessManager(this);
     }
 
-    QHttpMultiPart *multiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+    QHttpMultiPart* multiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
 
     QHttpPart apiKeyPart;
     apiKeyPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"api_key\""));
     apiKeyPart.setBody(AccountManager::getInstance().getAccountInfo().getDiscourseApiKey().toLatin1());
 
-    QFile *file = new QFile(_fileName);
+    QFile* file = new QFile(_fileName);
     file->open(QIODevice::ReadOnly);
 
     QHttpPart imagePart;
@@ -109,7 +109,7 @@ void SnapshotShareDialog::uploadSnapshot() {
     QUrl url(FORUM_UPLOADS_URL);
     QNetworkRequest request(url);
 
-    QNetworkReply *reply = _networkAccessManager->post(request, multiPart);
+    QNetworkReply* reply = _networkAccessManager->post(request, multiPart);
 
 
     connect(reply, &QNetworkReply::finished, this, &SnapshotShareDialog::uploadRequestFinished);
