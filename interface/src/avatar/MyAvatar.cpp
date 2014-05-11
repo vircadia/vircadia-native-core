@@ -669,7 +669,7 @@ void MyAvatar::renderBody(RenderMode renderMode, float glowLevel) {
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
         Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
     _skeletonModel.render(1.0f, modelRenderMode);
-    renderAttachments(modelRenderMode);
+    renderAttachments(renderMode);
     
     //  Render head so long as the camera isn't inside it
     if (shouldRenderHead(Application::getInstance()->getCamera()->getPosition(), renderMode)) {
@@ -1486,6 +1486,23 @@ void MyAvatar::updateMotionBehaviorsFromMenu() {
     }
     if (! (_motionBehaviors & (AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY | AVATAR_MOTION_OBEY_LOCAL_GRAVITY))) {
         setGravity(glm::vec3(0.0f));
+    }
+}
+
+void MyAvatar::renderAttachments(RenderMode renderMode) {
+    if (!Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON || renderMode == MIRROR_RENDER_MODE) {
+        Avatar::renderAttachments(renderMode);
+        return;
+    }
+    const FBXGeometry& geometry = _skeletonModel.getGeometry()->getFBXGeometry();
+    QString headJointName = (geometry.headJointIndex == -1) ? QString() : geometry.joints.at(geometry.headJointIndex).name;
+    Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
+        Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+    for (int i = 0; i < _attachmentData.size(); i++) {
+        const QString& jointName = _attachmentData.at(i).jointName;
+        if (jointName != headJointName && jointName != "Head") {
+            _attachmentModels.at(i)->render(1.0f, modelRenderMode);        
+        }
     }
 }
 

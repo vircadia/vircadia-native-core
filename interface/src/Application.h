@@ -127,7 +127,6 @@ public:
     ~Application();
 
     void restoreSizeAndPosition();
-    ScriptEngine* loadScript(const QString& fileNameString, bool loadScriptFromEditor = false);
     void loadScripts();
     QString getPreviousScriptLocation();
     void setPreviousScriptLocation(const QString& previousScriptLocation);
@@ -292,7 +291,8 @@ public slots:
     void loadScriptURLDialog();
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
-    void stopAllScripts();
+    ScriptEngine* loadScript(const QString& fileNameString, bool loadScriptFromEditor = false);
+    void stopAllScripts(bool restart = false);
     void stopScript(const QString& scriptName);
     void reloadAllScripts();
     void toggleRunningScriptsWidget();
