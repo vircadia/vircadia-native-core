@@ -110,7 +110,7 @@ glm::vec3 HandData::getBasePosition() const {
 }
 
 glm::vec3 PalmData::getFingerTipPosition() const {
-    glm::vec3 fingerOffset(0.0f, 0.0f, 0.03f);
+    glm::vec3 fingerOffset(0.0f, 0.0f, 0.3f);
     glm::vec3 palmOffset(0.0f, -0.08f, 0.0f);
     return getPosition() + _owningHandData->localToWorldDirection(_rawRotation * (fingerOffset + palmOffset));
 }
