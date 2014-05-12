@@ -79,7 +79,8 @@ void SnapshotShareDialog::accept() {
 void SnapshotShareDialog::uploadSnapshot() {
 
     if (AccountManager::getInstance().getAccountInfo().getDiscourseApiKey().isEmpty()) {
-        QMessageBox::warning(this, "", "Your Discourse API key is missing, you cannot share snapshots.");
+        QMessageBox::warning(this, "",
+                             "Your Discourse API key is missing, you cannot share snapshots. Please try to relog.");
         return;
     }
 
