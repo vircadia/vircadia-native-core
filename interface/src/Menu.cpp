@@ -970,9 +970,7 @@ void Menu::goToUser(const QString& user) {
 /// Open a url, shortcutting any "hifi" scheme URLs to the local application.
 void Menu::openUrl(const QUrl& url) {
     if (url.scheme() == "hifi") {
-        QString path = url.toString(QUrl::RemoveScheme);
-        path = path.remove(QRegExp("^:?/*"));
-        goTo(path);
+        goToURL(url.toString());
     } else {
         QDesktopServices::openUrl(url);
     }

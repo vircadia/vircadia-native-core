@@ -74,6 +74,7 @@
 #include "ui/ModelsBrowser.h"
 #include "ui/OctreeStatsDialog.h"
 #include "ui/RearMirrorTools.h"
+#include "ui/SnapshotShareDialog.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
 #include "ui/UpdateDialog.h"
@@ -126,7 +127,6 @@ public:
     ~Application();
 
     void restoreSizeAndPosition();
-    ScriptEngine* loadScript(const QString& fileNameString, bool loadScriptFromEditor = false);
     void loadScripts();
     QString getPreviousScriptLocation();
     void setPreviousScriptLocation(const QString& previousScriptLocation);
@@ -291,7 +291,8 @@ public slots:
     void loadScriptURLDialog();
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
-    void stopAllScripts();
+    ScriptEngine* loadScript(const QString& fileNameString, bool loadScriptFromEditor = false);
+    void stopAllScripts(bool restart = false);
     void stopScript(const QString& scriptName);
     void reloadAllScripts();
     void toggleRunningScriptsWidget();
@@ -517,6 +518,7 @@ private:
     std::vector<VoxelFade> _voxelFades;
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;
+    QPointer<SnapshotShareDialog> _snapshotShareDialog;
 
     QString _previousScriptLocation;
 

@@ -16,7 +16,7 @@
 #include "XmppClient.h"
 
 const QString DEFAULT_XMPP_SERVER = "chat.highfidelity.io";
-const QString DEFAULT_CHAT_ROOM = "public@public-chat.highfidelity.io";
+const QString DEFAULT_CHAT_ROOM = "test@public-chat.highfidelity.io";
 
 XmppClient::XmppClient() :
     _xmppClient(),
