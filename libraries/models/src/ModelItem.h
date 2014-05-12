@@ -44,6 +44,8 @@ const uint16_t MODEL_PACKET_CONTAINS_SHOULDDIE = 8;
 const uint16_t MODEL_PACKET_CONTAINS_MODEL_URL = 16;
 const uint16_t MODEL_PACKET_CONTAINS_MODEL_ROTATION = 32;
 const uint16_t MODEL_PACKET_CONTAINS_ANIMATION_URL = 64;
+const uint16_t MODEL_PACKET_CONTAINS_ANIMATION_PLAYING = 128;
+const uint16_t MODEL_PACKET_CONTAINS_ANIMATION_FRAME = 256;
 
 const float MODEL_DEFAULT_RADIUS = 0.1f / TREE_SCALE;
 const float MINIMUM_MODEL_ELEMENT_SIZE = (1.0f / 100000.0f) / TREE_SCALE; // smallest size container
@@ -75,6 +77,8 @@ public:
     const QString& getModelURL() const { return _modelURL; }
     const glm::quat& getModelRotation() const { return _modelRotation; }
     const QString& getAnimationURL() const { return _animationURL; }
+    float getFrameIndex() const { return _frameIndex; }
+    bool getIsAnimationPlaying() const { return _isAnimationPlaying;  }
 
     quint64 getLastEdited() const { return _lastEdited; }
     uint16_t getChangedBits() const;
@@ -89,6 +93,8 @@ public:
     void setModelURL(const QString& url) { _modelURL = url; _modelURLChanged = true; }
     void setModelRotation(const glm::quat& rotation) { _modelRotation = rotation; _modelRotationChanged = true; }
     void setAnimationURL(const QString& url) { _animationURL = url; _animationURLChanged = true; }
+    void setFrameIndex(float value) { _frameIndex = value; _frameIndexChanged = true; }
+    void setIsAnimationPlaying(bool value) { _isAnimationPlaying = value; _isAnimationPlayingChanged = true;  }
     
     /// used by ModelScriptingInterface to return ModelItemProperties for unknown models
     void setIsUnknownID() { _id = UNKNOWN_MODEL_ID; _idSet = true; }
@@ -105,6 +111,8 @@ private:
     QString _modelURL;
     glm::quat _modelRotation;
     QString _animationURL;
+    bool _isAnimationPlaying;
+    float _frameIndex;
 
     uint32_t _id;
     bool _idSet;
@@ -118,6 +126,8 @@ private:
     bool _modelURLChanged;
     bool _modelRotationChanged;
     bool _animationURLChanged;
+    bool _isAnimationPlayingChanged;
+    bool _frameIndexChanged;
     bool _defaultSettings;
 };
 Q_DECLARE_METATYPE(ModelItemProperties);
@@ -228,6 +238,8 @@ public:
     void setModelURL(const QString& url) { _modelURL = url; }
     void setModelRotation(const glm::quat& rotation) { _modelRotation = rotation; }
     void setAnimationURL(const QString& url) { _animationURL = url; }
+    void setFrameIndex(float value) { _frameIndex = value; }
+    void setIsAnimationPlaying(bool value) { _isAnimationPlaying = value; }
     
     void setProperties(const ModelItemProperties& properties);
 
@@ -254,7 +266,10 @@ public:
 
     void mapJoints(const QStringList& modelJointNames);
     QVector<glm::quat> getAnimationFrame();
-    bool jointsMapped() const { return _jointMappingCompleted; };
+    bool jointsMapped() const { return _jointMappingCompleted; }
+    
+    bool getIsAnimationPlaying() const { return _isAnimationPlaying; }
+    float getFrameIndex() const { return _frameIndex; }
 
 protected:
     glm::vec3 _position;
@@ -277,6 +292,8 @@ protected:
 
     QString _animationURL;
     float _frameIndex; // we keep this as a float and round to int only when we need the exact index
+    bool _isAnimationPlaying;
+    
     bool _jointMappingCompleted;
     QVector<int> _jointMapping;
     

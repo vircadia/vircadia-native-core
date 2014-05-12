@@ -88,7 +88,9 @@ ModelItem::ModelItem(const ModelItemID& modelItemID, const ModelItemProperties& 
 
     // animation related
     _animationURL = MODEL_DEFAULT_ANIMATION_URL;
+    _isAnimationPlaying = false;
     _frameIndex = 0.0f;
+
     _jointMappingCompleted = false;
     _lastAnimated = now;
     
@@ -119,6 +121,7 @@ void ModelItem::init(glm::vec3 position, float radius, rgbColor color, uint32_t 
 
     // animation related
     _animationURL = MODEL_DEFAULT_ANIMATION_URL;
+    _isAnimationPlaying = false;
     _frameIndex = 0.0f;
     _jointMappingCompleted = false;
     _lastAnimated = now;
@@ -170,6 +173,16 @@ bool ModelItem::appendModelData(OctreePacketData* packetData) const {
         if (success) {
             success = packetData->appendRawData((const unsigned char*)qPrintable(_animationURL), animationURLLength);
         }
+    }
+
+    // isAnimationPlaying
+    if (success) {
+        success = packetData->appendValue(getIsAnimationPlaying());
+    }
+
+    // frameIndex
+    if (success) {
+        success = packetData->appendValue(getFrameIndex());
     }
 
     return success;
@@ -259,6 +272,17 @@ int ModelItem::readModelDataFromBuffer(const unsigned char* data, int bytesLeftT
             bytesRead += animationURLLength;
 
             qDebug() << "readModelDataFromBuffer()... animationURL=" << qPrintable(animationURLString);
+
+            // isAnimationPlaying
+            memcpy(&_isAnimationPlaying, dataAt, sizeof(_isAnimationPlaying));
+            dataAt += sizeof(_isAnimationPlaying);
+            bytesRead += sizeof(_isAnimationPlaying);
+
+            // frameIndex
+            memcpy(&_frameIndex, dataAt, sizeof(_frameIndex));
+            dataAt += sizeof(_frameIndex);
+            bytesRead += sizeof(_frameIndex);
+
         } else {
             qDebug() << "readModelDataFromBuffer()... this model didn't have animation details";
         }
@@ -395,9 +419,25 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
         newModelItem._animationURL = tempString;
         dataAt += animationURLLength;
         processedBytes += animationURLLength;
-
 qDebug() << "fromEditPacket()... animationURL=" << qPrintable(tempString);
+    }
 
+    // isAnimationPlaying
+    if (isNewModelItem || ((packetContainsBits & 
+                    MODEL_PACKET_CONTAINS_ANIMATION_PLAYING) == MODEL_PACKET_CONTAINS_ANIMATION_PLAYING)) {
+                    
+        memcpy(&newModelItem._isAnimationPlaying, dataAt, sizeof(newModelItem._isAnimationPlaying));
+        dataAt += sizeof(newModelItem._isAnimationPlaying);
+        processedBytes += sizeof(newModelItem._isAnimationPlaying);
+    }
+
+    // frameIndex
+    if (isNewModelItem || ((packetContainsBits & 
+                    MODEL_PACKET_CONTAINS_ANIMATION_FRAME) == MODEL_PACKET_CONTAINS_ANIMATION_FRAME)) {
+                    
+        memcpy(&newModelItem._frameIndex, dataAt, sizeof(newModelItem._frameIndex));
+        dataAt += sizeof(newModelItem._frameIndex);
+        processedBytes += sizeof(newModelItem._frameIndex);
     }
 
     const bool wantDebugging = false;
@@ -545,6 +585,30 @@ qDebug() << "encodeModelItemEditMessageDetails()... animationURL=" << qPrintable
 
     }
 
+    // isAnimationPlaying
+    if (isNewModelItem || ((packetContainsBits & 
+                    MODEL_PACKET_CONTAINS_ANIMATION_PLAYING) == MODEL_PACKET_CONTAINS_ANIMATION_PLAYING)) {
+                    
+        bool isAnimationPlaying = properties.getIsAnimationPlaying();
+        memcpy(copyAt, &isAnimationPlaying, sizeof(isAnimationPlaying));
+        copyAt += sizeof(isAnimationPlaying);
+        sizeOut += sizeof(isAnimationPlaying);
+
+
+qDebug() << "encodeModelItemEditMessageDetails()... isAnimationPlaying=" << isAnimationPlaying;
+    }
+
+    // frameIndex
+    if (isNewModelItem || ((packetContainsBits & 
+                    MODEL_PACKET_CONTAINS_ANIMATION_FRAME) == MODEL_PACKET_CONTAINS_ANIMATION_FRAME)) {
+                    
+        float frameIndex = properties.getFrameIndex();
+        memcpy(copyAt, &frameIndex, sizeof(frameIndex));
+        copyAt += sizeof(frameIndex);
+        sizeOut += sizeof(frameIndex);
+
+qDebug() << "encodeModelItemEditMessageDetails()... frameIndex=" << frameIndex;
+    }
 
     bool wantDebugging = false;
     if (wantDebugging) {
@@ -631,11 +695,16 @@ void ModelItem::mapJoints(const QStringList& modelJointNames) {
 QVector<glm::quat> ModelItem::getAnimationFrame() {
     QVector<glm::quat> frameData;
     if (hasAnimation() && _jointMappingCompleted) {
-        quint64 now = usecTimestampNow();
-        float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
-        _lastAnimated = now;
-        const float FRAME_RATE = 10.0f;
-        _frameIndex += deltaTime * FRAME_RATE;
+    
+        // only advance the frame index if we're playing
+        if (getIsAnimationPlaying()) {
+            quint64 now = usecTimestampNow();
+            float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
+            _lastAnimated = now;
+            const float FRAME_RATE = 10.0f;
+            _frameIndex += deltaTime * FRAME_RATE;
+        }
+        
         Animation* myAnimation = getAnimation(_animationURL);
         QVector<FBXAnimationFrame> frames = myAnimation->getFrames();
         int frameIndex = (int)std::floor(_frameIndex) % frames.size();
@@ -678,6 +747,8 @@ ModelItemProperties::ModelItemProperties() :
     _modelURL(""),
     _modelRotation(MODEL_DEFAULT_MODEL_ROTATION),
     _animationURL(""),
+    _isAnimationPlaying(false),
+    _frameIndex(0.0),
 
     _id(UNKNOWN_MODEL_ID),
     _idSet(false),
@@ -690,6 +761,8 @@ ModelItemProperties::ModelItemProperties() :
     _modelURLChanged(false),
     _modelRotationChanged(false),
     _animationURLChanged(false),
+    _isAnimationPlayingChanged(false),
+    _frameIndexChanged(false),
     _defaultSettings(true)
 {
 }
@@ -725,6 +798,13 @@ uint16_t ModelItemProperties::getChangedBits() const {
         changedBits += MODEL_PACKET_CONTAINS_ANIMATION_URL;
     }
 
+    if (_isAnimationPlayingChanged) {
+        changedBits += MODEL_PACKET_CONTAINS_ANIMATION_PLAYING;
+    }
+
+    if (_frameIndexChanged) {
+        changedBits += MODEL_PACKET_CONTAINS_ANIMATION_FRAME;
+    }
 
     return changedBits;
 }
@@ -749,6 +829,8 @@ QScriptValue ModelItemProperties::copyToScriptValue(QScriptEngine* engine) const
     properties.setProperty("modelRotation", modelRotation);
 
     properties.setProperty("animationURL", _animationURL);
+    properties.setProperty("isAnimationPlaying", _isAnimationPlaying);
+    properties.setProperty("frameIndex", _frameIndex);
 
     if (_idSet) {
         properties.setProperty("id", _id);
@@ -855,6 +937,26 @@ void ModelItemProperties::copyFromScriptValue(const QScriptValue &object) {
         }
     }
 
+    QScriptValue isAnimationPlaying = object.property("isAnimationPlaying");
+    if (isAnimationPlaying.isValid()) {
+        bool newIsAnimationPlaying;
+        newIsAnimationPlaying = isAnimationPlaying.toVariant().toBool();
+        if (_defaultSettings || newIsAnimationPlaying != _isAnimationPlaying) {
+            _isAnimationPlaying = newIsAnimationPlaying;
+            _isAnimationPlayingChanged = true;
+        }
+    }
+    
+    QScriptValue frameIndex = object.property("frameIndex");
+    if (frameIndex.isValid()) {
+        float newFrameIndex;
+        newFrameIndex = frameIndex.toVariant().toFloat();
+        if (_defaultSettings || newFrameIndex != _frameIndex) {
+            _frameIndex = newFrameIndex;
+            _frameIndexChanged = true;
+        }
+    }
+
     _lastEdited = usecTimestampNow();
 }
 
@@ -897,6 +999,20 @@ void ModelItemProperties::copyToModelItem(ModelItem& modelItem) const {
 qDebug() << "ModelItemProperties::copyToModelItem()... modelItem.setAnimationURL(_animationURL)=" << _animationURL;
     }
 
+    if (_isAnimationPlayingChanged) {
+        modelItem.setIsAnimationPlaying(_isAnimationPlaying);
+        somethingChanged = true;
+
+qDebug() << "ModelItemProperties::copyToModelItem()... _isAnimationPlaying=" << _isAnimationPlaying;
+    }
+
+    if (_frameIndexChanged) {
+        modelItem.setFrameIndex(_frameIndex);
+        somethingChanged = true;
+
+qDebug() << "ModelItemProperties::copyToModelItem()... _frameIndex=" << _frameIndex;
+    }
+
     if (somethingChanged) {
         bool wantDebug = false;
         if (wantDebug) {
@@ -917,6 +1033,8 @@ void ModelItemProperties::copyFromModelItem(const ModelItem& modelItem) {
     _modelURL = modelItem.getModelURL();
     _modelRotation = modelItem.getModelRotation();
     _animationURL = modelItem.getAnimationURL();
+    _isAnimationPlaying = modelItem.getIsAnimationPlaying();
+    _frameIndex = modelItem.getFrameIndex();
 
     _id = modelItem.getID();
     _idSet = true;
@@ -929,6 +1047,8 @@ void ModelItemProperties::copyFromModelItem(const ModelItem& modelItem) {
     _modelURLChanged = false;
     _modelRotationChanged = false;
     _animationURLChanged = false;
+    _isAnimationPlayingChanged = false;
+    _frameIndexChanged = false;
     _defaultSettings = false;
 }
 

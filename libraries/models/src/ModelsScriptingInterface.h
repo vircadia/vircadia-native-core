@@ -59,6 +59,20 @@ public slots:
     /// this function will not find any models in script engine contexts which don't have access to models
     QVector<ModelItemID> findModels(const glm::vec3& center, float radius) const;
 
+    /*
+    /// pauses the model animation.
+    ModelItemID pauseModelAnimation(ModelItemID modelID);
+
+    /// plays the model animation.
+    ModelItemID playModelAnimation(ModelItemID modelID);
+
+    /// gets the current frame of the model animation.
+    float getModelAnimationFrame(ModelItemID modelID);
+
+    /// gets the current frame of the model animation.
+    void setModelAnimationFrame(ModelItemID modelID, float frame);
+    */
+
 signals:
     void modelCollisionWithVoxel(const ModelItemID& modelID, const VoxelDetail& voxel, const CollisionInfo& collision);
     void modelCollisionWithModel(const ModelItemID& idA, const ModelItemID& idB, const CollisionInfo& collision);
