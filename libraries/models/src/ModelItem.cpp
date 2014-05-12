@@ -263,7 +263,7 @@ int ModelItem::readModelDataFromBuffer(const unsigned char* data, int bytesLeftT
             qDebug() << "readModelDataFromBuffer()... this model didn't have animation details";
         }
 
-        //printf("ModelItem::readModelDataFromBuffer()... "); debugDump();
+        //qDebug() << "ModelItem::readModelDataFromBuffer()... "; debugDump();
     }
     return bytesRead;
 }
@@ -417,6 +417,7 @@ void ModelItem::debugDump() const {
     qDebug(" position:%f,%f,%f", _position.x, _position.y, _position.z);
     qDebug(" radius:%f", getRadius());
     qDebug(" color:%d,%d,%d", _color[0], _color[1], _color[2]);
+    qDebug() << " modelURL:" << qPrintable(getModelURL());
 }
 
 bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id, const ModelItemProperties& properties,

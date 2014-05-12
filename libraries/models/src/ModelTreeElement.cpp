@@ -324,7 +324,7 @@ int ModelTreeElement::readElementDataFromBuffer(const unsigned char* data, int b
         dataAt += sizeof(numberOfModels);
         bytesLeftToRead -= (int)sizeof(numberOfModels);
         bytesRead += sizeof(numberOfModels);
-
+        
         if (bytesLeftToRead >= (int)(numberOfModels * expectedBytesPerModel)) {
             for (uint16_t i = 0; i < numberOfModels; i++) {
                 ModelItem tempModel;

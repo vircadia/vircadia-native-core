@@ -335,10 +335,8 @@ void Octree::readBitstreamToTree(const unsigned char * bitstream, unsigned long 
         int octalCodeBytes = bytesRequiredForCodeLength(*bitstreamAt);
         int theseBytesRead = 0;
         theseBytesRead += octalCodeBytes;
-
         theseBytesRead += readElementData(bitstreamRootElement, bitstreamAt + octalCodeBytes,
                                        bufferSizeBytes - (bytesRead + octalCodeBytes), args);
-
         // skip bitstream to new startPoint
         bitstreamAt += theseBytesRead;
         bytesRead +=  theseBytesRead;
@@ -1619,7 +1617,6 @@ bool Octree::readFromSVOFile(const char* fileName) {
 }
 
 void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
-
     std::ofstream file(fileName, std::ios::out|std::ios::binary);
 
     if(file.is_open()) {
@@ -1642,13 +1639,12 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
             nodeBag.insert(_rootElement);
         }
 
-        static OctreePacketData packetData;
+        OctreePacketData packetData;
         int bytesWritten = 0;
         bool lastPacketWritten = false;
 
         while (!nodeBag.isEmpty()) {
             OctreeElement* subTree = nodeBag.extract();
-
             lockForRead(); // do tree locking down here so that we have shorter slices and less thread contention
             EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
             bytesWritten = encodeTreeBitstream(subTree, &packetData, nodeBag, params);
@@ -1670,7 +1666,6 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
         if (!lastPacketWritten) {
             file.write((const char*)packetData.getFinalizedData(), packetData.getFinalizedSize());
         }
-
     }
     file.close();
 }
