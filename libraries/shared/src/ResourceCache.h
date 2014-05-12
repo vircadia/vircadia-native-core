@@ -47,6 +47,8 @@ public:
     ResourceCache(QObject* parent = NULL);
     virtual ~ResourceCache();
 
+    void refresh(const QUrl& url);
+
 protected:
 
     QMap<int, QSharedPointer<Resource> > _unusedResources;
@@ -119,6 +121,9 @@ public:
     /// For loading resources, returns the load progress.
     float getProgress() const { return (_bytesTotal == 0) ? 0.0f : (float)_bytesReceived / _bytesTotal; }
 
+    /// Refreshes the resource.
+    void refresh();
+
     void setSelf(const QWeakPointer<Resource>& self) { _self = self; }
 
     void setCache(ResourceCache* cache) { _cache = cache; }
@@ -130,6 +135,8 @@ protected slots:
     void attemptRequest();
 
 protected:
+
+    virtual void init();
 
     /// Called when the download has finished.  The recipient should delete the reply when done with it.
     virtual void downloadFinished(QNetworkReply* reply) = 0;
