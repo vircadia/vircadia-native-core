@@ -33,7 +33,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         return; // only simulate for own avatar
     }
 
-    // find the left and rightmost active Leap palms
+    // find the left and rightmost active palms
     int leftPalmIndex, rightPalmIndex;
     Hand* hand = _owningAvatar->getHand();
     hand->getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
@@ -42,7 +42,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     if (leftPalmIndex == -1) {
-        // no Leap data; set hands from mouse
+        // palms are not yet set, use mouse
         if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
             restoreRightHandPosition(HAND_RESTORATION_RATE);
         } else {

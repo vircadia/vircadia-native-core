@@ -91,11 +91,9 @@ public:
 
     const glm::vec3& getRawPosition() const { return _rawPosition; }
     bool isActive() const { return _isActive; }
-    int getLeapID() const { return _leapID; }
     int getSixenseID() const { return _sixenseID; }
 
     void setActive(bool active) { _isActive = active; }
-    void setLeapID(int id) { _leapID = id; }
     void setSixenseID(int id) { _sixenseID = id; }
 
     void setRawRotation(const glm::quat rawRotation) { _rawRotation = rawRotation; };
@@ -166,7 +164,6 @@ private:
     float _joystickX, _joystickY;
     
     bool      _isActive;             // This has current valid data
-    int       _leapID;               // the Leap's serial id for this tracked object
     int       _sixenseID;            // Sixense controller ID for this palm
     int       _numFramesWithoutData; // after too many frames without data, this tracked object assumed lost.
     HandData* _owningHandData;
