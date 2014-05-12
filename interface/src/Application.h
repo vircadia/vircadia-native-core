@@ -126,7 +126,6 @@ public:
     ~Application();
 
     void restoreSizeAndPosition();
-    ScriptEngine* loadScript(const QString& fileNameString, bool loadScriptFromEditor = false);
     void loadScripts();
     QString getPreviousScriptLocation();
     void setPreviousScriptLocation(const QString& previousScriptLocation);
@@ -291,7 +290,8 @@ public slots:
     void loadScriptURLDialog();
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
-    void stopAllScripts();
+    ScriptEngine* loadScript(const QString& fileNameString, bool loadScriptFromEditor = false);
+    void stopAllScripts(bool restart = false);
     void stopScript(const QString& scriptName);
     void reloadAllScripts();
     void toggleRunningScriptsWidget();
@@ -343,10 +343,6 @@ private:
     void updateFaceshift();
     void updateVisage();
     void updateMyAvatarLookAtPosition();
-    void updateHandAndTouch(float deltaTime);
-    void updateLeap(float deltaTime);
-    void updateSixense(float deltaTime);
-    void updateSerialDevices(float deltaTime);
     void updateThreads(float deltaTime);
     void updateMetavoxels(float deltaTime);
     void updateCamera(float deltaTime);
@@ -477,8 +473,6 @@ private:
 
     float _touchAvgX;
     float _touchAvgY;
-    float _lastTouchAvgX;
-    float _lastTouchAvgY;
     float _touchDragStartedAvgX;
     float _touchDragStartedAvgY;
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)

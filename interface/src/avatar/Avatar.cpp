@@ -73,7 +73,6 @@ const float BILLBOARD_LOD_DISTANCE = 40.0f;
 
 void Avatar::init() {
     getHead()->init();
-    getHand()->init();
     _skeletonModel.init();
     _initialized = true;
     _shouldRenderBillboard = (getLODDistance() >= BILLBOARD_LOD_DISTANCE);
@@ -354,7 +353,7 @@ void Avatar::renderBody(RenderMode renderMode, float glowLevel) {
             return;
         }
         _skeletonModel.render(1.0f, modelRenderMode);
-        renderAttachments(modelRenderMode);
+        renderAttachments(renderMode);
         getHand()->render(false, modelRenderMode);
     }
     getHead()->render(1.0f, modelRenderMode);
@@ -371,6 +370,9 @@ void Avatar::simulateAttachments(float deltaTime) {
         int jointIndex = getJointIndex(attachment.jointName);
         glm::vec3 jointPosition;
         glm::quat jointRotation;
+        if (!isMyAvatar()) {
+            model->setLODDistance(getLODDistance());
+        }
         if (_skeletonModel.getJointPosition(jointIndex, jointPosition) &&
                 _skeletonModel.getJointRotation(jointIndex, jointRotation)) {
             model->setTranslation(jointPosition + jointRotation * attachment.translation * _scale);
@@ -381,9 +383,11 @@ void Avatar::simulateAttachments(float deltaTime) {
     }
 }
 
-void Avatar::renderAttachments(Model::RenderMode renderMode) {
+void Avatar::renderAttachments(RenderMode renderMode) {
+    Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
+        Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
     foreach (Model* model, _attachmentModels) {
-        model->render(1.0f, renderMode);
+        model->render(1.0f, modelRenderMode);
     }
 }
 
@@ -402,7 +406,7 @@ void Avatar::renderBillboard() {
         }
         _billboardTexture.reset(new Texture());
         glBindTexture(GL_TEXTURE_2D, _billboardTexture->getID());
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 0,
             GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     
@@ -709,7 +713,9 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
 void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     AvatarData::setAttachmentData(attachmentData);
-    
+    if (QThread::currentThread() != thread()) {    
+        return;
+    }
     // make sure we have as many models as attachments
     while (_attachmentModels.size() < attachmentData.size()) {
         Model* model = new Model(this);

@@ -1711,38 +1711,6 @@ bool VoxelSystem::inspectForExteriorOcclusionsOperation(OctreeElement* element, 
     return true;
 }
 
-
-void VoxelSystem::cullSharedFaces() {
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CullSharedFaces)) {
-        _useVoxelShader = false;
-        _usePrimitiveRenderer = true;
-        inspectForOcclusions();
-    } else {
-        _usePrimitiveRenderer = false;
-        clearAllNodesBufferIndex();
-    }
-    _writeRenderFullVBO = true;
-    _tree->setDirtyBit();
-    setupNewVoxelsForDrawing();
-}
-
-void VoxelSystem::showCulledSharedFaces() {
-
-    _tree->lockForRead();
-    if (Menu::getInstance()->isOptionChecked(MenuOption::ShowCulledSharedFaces)) {
-        _showCulledSharedFaces = true;
-    } else {
-        _showCulledSharedFaces = false;
-    }
-    _tree->unlock();
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CullSharedFaces)) {
-        _writeRenderFullVBO = true;
-        _tree->setDirtyBit();
-        setupNewVoxelsForDrawing();
-    }
-}
-
 void VoxelSystem::inspectForOcclusions() {
 
     if (_inOcclusions) {

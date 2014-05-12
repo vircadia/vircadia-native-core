@@ -30,7 +30,7 @@
 
 const int NUM_MESSAGES_TO_TIME_STAMP = 20;
 
-const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?))://\\S+)");
+const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?)|(?:hifi))://\\S+)");
 const QRegularExpression regexHifiLinks("([#@]\\S+)");
 const QString mentionSoundsPath("/sounds/mention/");
 const QString mentionRegex("@(\\b%1\\b)");

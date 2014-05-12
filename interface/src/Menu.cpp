@@ -272,9 +272,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Bandwidth, 0, true);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0, this, SLOT(bandwidthDetails()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0, this, SLOT(octreeStatsDetails()));
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::AudioScope, 0, false,
-                                           appInstance->getAudio(),
-                                           SLOT(toggleScope()));
 
     QMenu* developerMenu = addMenu("Developer");
 
@@ -376,20 +373,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::PipelineWarnings);
     addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::SuppressShortTimings);
 
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::CullSharedFaces,
-                                  Qt::CTRL | Qt::SHIFT | Qt::Key_C,
-                                  false,
-                                  appInstance->getVoxels(),
-                                  SLOT(cullSharedFaces()));
-
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::ShowCulledSharedFaces,
-                                  0,
-                                  false,
-                                  appInstance->getVoxels(),
-                                  SLOT(showCulledSharedFaces()));
-
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio Debugging Tools");
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction,
                                            0,
@@ -413,8 +396,11 @@ Menu::Menu() :
                                            false,
                                            appInstance->getAudio(),
                                            SLOT(toggleToneInjection()));
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioScope, Qt::CTRL | Qt::Key_P, false,
+                                           appInstance->getAudio(),
+                                           SLOT(toggleScope()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioScopePause,
-                                           Qt::CTRL | Qt::Key_P,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_P ,
                                            false,
                                            appInstance->getAudio(),
                                            SLOT(toggleScopePause()));
@@ -984,9 +970,7 @@ void Menu::goToUser(const QString& user) {
 /// Open a url, shortcutting any "hifi" scheme URLs to the local application.
 void Menu::openUrl(const QUrl& url) {
     if (url.scheme() == "hifi") {
-        QString path = url.toString(QUrl::RemoveScheme);
-        path = path.remove(QRegExp("^:?/*"));
-        goTo(path);
+        goToURL(url.toString());
     } else {
         QDesktopServices::openUrl(url);
     }

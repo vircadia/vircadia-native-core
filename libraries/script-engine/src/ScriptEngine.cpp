@@ -210,6 +210,7 @@ void ScriptEngine::init() {
     registerEventTypes(&_engine);
     registerMenuItemProperties(&_engine);
     registerAnimationTypes(&_engine);
+    registerAvatarTypes(&_engine);
 
     qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
