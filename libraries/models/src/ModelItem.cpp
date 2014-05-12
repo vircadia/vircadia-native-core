@@ -283,6 +283,8 @@ int ModelItem::readModelDataFromBuffer(const unsigned char* data, int bytesLeftT
             dataAt += sizeof(_frameIndex);
             bytesRead += sizeof(_frameIndex);
 
+            qDebug() << "readModelDataFromBuffer()... _frameIndex=" << _frameIndex;
+
         } else {
             qDebug() << "readModelDataFromBuffer()... this model didn't have animation details";
         }
@@ -695,16 +697,6 @@ void ModelItem::mapJoints(const QStringList& modelJointNames) {
 QVector<glm::quat> ModelItem::getAnimationFrame() {
     QVector<glm::quat> frameData;
     if (hasAnimation() && _jointMappingCompleted) {
-    
-        // only advance the frame index if we're playing
-        if (getIsAnimationPlaying()) {
-            quint64 now = usecTimestampNow();
-            float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
-            _lastAnimated = now;
-            const float FRAME_RATE = 10.0f;
-            _frameIndex += deltaTime * FRAME_RATE;
-        }
-        
         Animation* myAnimation = getAnimation(_animationURL);
         QVector<FBXAnimationFrame> frames = myAnimation->getFrames();
         int frameIndex = (int)std::floor(_frameIndex) % frames.size();
@@ -720,9 +712,28 @@ QVector<glm::quat> ModelItem::getAnimationFrame() {
     return frameData;
 }
 
-void ModelItem::update(const quint64& now) {
-    _lastUpdated = now;
+void ModelItem::update(const quint64& updateTime) {
+    _lastUpdated = updateTime;
     setShouldDie(getShouldDie());
+
+//qDebug() << "ModelItem::update() now=" << now;
+
+    // only advance the frame index if we're playing
+    if (getIsAnimationPlaying()) {
+
+        quint64 now = usecTimestampNow();
+        float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
+qDebug() << "ModelItem::update() now=" << now;
+qDebug() << "             updateTime=" << updateTime;
+qDebug() << "          _lastAnimated=" << _lastAnimated;
+qDebug() << "              deltaTime=" << deltaTime;
+
+        _lastAnimated = now;
+        const float FRAME_RATE = 10.0f;
+        _frameIndex += deltaTime * FRAME_RATE;
+qDebug() << "            _frameIndex=" << _frameIndex;
+
+    }
 }
 
 void ModelItem::copyChangedProperties(const ModelItem& other) {
