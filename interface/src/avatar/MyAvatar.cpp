@@ -1490,7 +1490,7 @@ void MyAvatar::updateMotionBehaviorsFromMenu() {
 }
 
 void MyAvatar::renderAttachments(RenderMode renderMode) {
-    if (!Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON || renderMode == MIRROR_RENDER_MODE) {
+    if (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON || renderMode == MIRROR_RENDER_MODE) {
         Avatar::renderAttachments(renderMode);
         return;
     }
