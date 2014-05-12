@@ -27,7 +27,7 @@ HandData::HandData(AvatarData* owningAvatar) :
 }
 
 glm::vec3 HandData::worldToLocalVector(const glm::vec3& worldVector) const {
-    return glm::inverse(getBaseOrientation()) * worldVector / LEAP_UNIT_SCALE;
+    return glm::inverse(getBaseOrientation()) * worldVector;
 }
 
 PalmData& HandData::addNewPalm()  {

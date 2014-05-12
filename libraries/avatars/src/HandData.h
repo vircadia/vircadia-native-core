@@ -30,8 +30,6 @@ const int NUM_FINGERS = NUM_HANDS * NUM_FINGERS_PER_HAND;
 const int LEAPID_INVALID = -1;
 const int SIXENSEID_INVALID = -1;
 
-const float LEAP_UNIT_SCALE = 0.001f; ///< convert mm to meters
-
 const int SIXENSE_CONTROLLER_ID_LEFT_HAND = 0;
 const int SIXENSE_CONTROLLER_ID_RIGHT_HAND = 1;
 
@@ -42,7 +40,7 @@ public:
     
     // position conversion
     glm::vec3 localToWorldPosition(const glm::vec3& localPosition) {
-        return getBasePosition() + getBaseOrientation() * localPosition * LEAP_UNIT_SCALE;
+        return getBasePosition() + getBaseOrientation() * localPosition;
     }
 
     glm::vec3 localToWorldDirection(const glm::vec3& localVector) {

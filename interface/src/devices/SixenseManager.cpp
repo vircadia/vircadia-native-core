@@ -22,9 +22,9 @@ const int CALIBRATION_STATE_Z = 3;
 const int CALIBRATION_STATE_COMPLETE = 4;
 
 // default (expected) location of neck in sixense space
-const float NECK_X = 250.f;   // millimeters
-const float NECK_Y = 300.f;   // millimeters
-const float NECK_Z = 300.f;   // millimeters
+const float NECK_X = 0.25f; // meters
+const float NECK_Y = 0.3f;  // meters
+const float NECK_Z = 0.3f;  // meters
 #endif
 
 SixenseManager::SixenseManager() {
@@ -107,7 +107,10 @@ void SixenseManager::update(float deltaTime) {
         palm->setTrigger(data->trigger);
         palm->setJoystick(data->joystick_x, data->joystick_y);
  
+        // NOTE: Sixense API returns pos data in millimeters but we IMMEDIATELY convert to meters.
         glm::vec3 position(data->pos[0], data->pos[1], data->pos[2]);
+        position *= METERS_PER_MILLIMETER;
+
         // Transform the measured position into body frame.  
         glm::vec3 neck = _neckBase;
         // Zeroing y component of the "neck" effectively raises the measured position a little bit.
@@ -122,7 +125,7 @@ void SixenseManager::update(float deltaTime) {
         //  Compute current velocity from position change
         glm::vec3 rawVelocity;
         if (deltaTime > 0.f) {
-            rawVelocity = (position - palm->getRawPosition()) * (METERS_PER_MILLIMETER / deltaTime); 
+            rawVelocity = (position - palm->getRawPosition()) / deltaTime; 
         } else {
             rawVelocity = glm::vec3(0.0f);
         }
@@ -138,12 +141,12 @@ void SixenseManager::update(float deltaTime) {
         }
         
         // Store the one fingertip in the palm structure so we can track velocity
-        const float FINGER_LENGTH = 300.0f;   //  meters
+        const float FINGER_LENGTH = 0.3f;   //  meters
         const glm::vec3 FINGER_VECTOR(0.0f, 0.0f, FINGER_LENGTH);
         const glm::vec3 newTipPosition = position + rotation * FINGER_VECTOR;
         glm::vec3 oldTipPosition = palm->getTipRawPosition();
         if (deltaTime > 0.f) {
-            palm->setTipVelocity((newTipPosition - oldTipPosition) * (METERS_PER_MILLIMETER / deltaTime));
+            palm->setTipVelocity((newTipPosition - oldTipPosition) / deltaTime);
         } else {
             palm->setTipVelocity(glm::vec3(0.f));
         }
@@ -173,8 +176,8 @@ void SixenseManager::update(float deltaTime) {
 // (4) move arms a bit forward (Z)
 // (5) release BUTTON_FWD on both hands
 
-const float MINIMUM_ARM_REACH = 300.f;   // millimeters
-const float MAXIMUM_NOISE_LEVEL = 50.f;  // millimeters
+const float MINIMUM_ARM_REACH = 0.3f; // meters
+const float MAXIMUM_NOISE_LEVEL = 0.05f; // meters
 const quint64 LOCK_DURATION = USECS_PER_SECOND / 4;     // time for lock to be acquired
 
 void SixenseManager::updateCalibration(const sixenseControllerData* controllers) {
@@ -214,10 +217,13 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
         return;
     }
 
+    // NOTE: Sixense API returns pos data in millimeters but we IMMEDIATELY convert to meters.
     const float* pos = dataLeft->pos;
     glm::vec3 positionLeft(pos[0], pos[1], pos[2]);
+    positionLeft *= METERS_PER_MILLIMETER;
     pos = dataRight->pos;
     glm::vec3 positionRight(pos[0], pos[1], pos[2]);
+    positionRight *= METERS_PER_MILLIMETER;
 
     if (_calibrationState == CALIBRATION_STATE_IDLE) {
         float reach = glm::distance(positionLeft, positionRight);
