@@ -246,18 +246,19 @@ int ModelItem::readModelDataFromBuffer(const unsigned char* data, int bytesLeftT
         dataAt += bytes;
         bytesRead += bytes;
 
-        // animationURL
-        uint16_t animationURLLength;
-        memcpy(&animationURLLength, dataAt, sizeof(animationURLLength));
-        dataAt += sizeof(animationURLLength);
-        bytesRead += sizeof(animationURLLength);
-        QString animationURLString((const char*)dataAt);
-        setAnimationURL(animationURLString);
-        dataAt += animationURLLength;
-        bytesRead += animationURLLength;
+        if (args.bitstreamVersion >= VERSION_MODELS_HAVE_ANIMATION) {
+            // animationURL
+            uint16_t animationURLLength;
+            memcpy(&animationURLLength, dataAt, sizeof(animationURLLength));
+            dataAt += sizeof(animationURLLength);
+            bytesRead += sizeof(animationURLLength);
+            QString animationURLString((const char*)dataAt);
+            setAnimationURL(animationURLString);
+            dataAt += animationURLLength;
+            bytesRead += animationURLLength;
 
-qDebug() << "readModelDataFromBuffer()... animationURL=" << qPrintable(animationURLString);
-
+            qDebug() << "readModelDataFromBuffer()... animationURL=" << qPrintable(animationURLString);
+        }
 
         //printf("ModelItem::readModelDataFromBuffer()... "); debugDump();
     }

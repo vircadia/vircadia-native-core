@@ -51,6 +51,8 @@ const QString MODEL_DEFAULT_MODEL_URL("");
 const glm::quat MODEL_DEFAULT_MODEL_ROTATION;
 const QString MODEL_DEFAULT_ANIMATION_URL("");
 
+const PacketVersion VERSION_MODELS_HAVE_ANIMATION = 1;
+
 /// A collection of properties of a model item used in the scripting API. Translates between the actual properties of a model
 /// and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete set of
 /// model item properties via JavaScript hashes/QScriptValues

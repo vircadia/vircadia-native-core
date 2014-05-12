@@ -1556,6 +1556,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
 
 bool Octree::readFromSVOFile(const char* fileName) {
     bool fileOk = false;
+    PacketVersion gotVersion = 0;
     std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
     if(file.is_open()) {
         emit importSize(1.0f, 1.0f, 1.0f);
@@ -1587,7 +1588,7 @@ bool Octree::readFromSVOFile(const char* fileName) {
                 dataAt += sizeof(expectedType);
                 dataLength -= sizeof(expectedType);
                 PacketVersion expectedVersion = versionForPacketType(expectedType);
-                PacketVersion gotVersion = *dataAt;
+                gotVersion = *dataAt;
                 if (gotVersion == expectedVersion) {
                     dataAt += sizeof(expectedVersion);
                     dataLength -= sizeof(expectedVersion);
@@ -1602,7 +1603,8 @@ bool Octree::readFromSVOFile(const char* fileName) {
             fileOk = true; // assume the file is ok
         }
         if (fileOk) {
-            ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0, SharedNodePointer(), wantImportProgress);
+            ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0, 
+                                                SharedNodePointer(), wantImportProgress, gotVersion);
             readBitstreamToTree(dataAt, dataLength, args);
         }
         delete[] entireFile;

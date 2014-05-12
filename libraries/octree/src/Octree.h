@@ -170,6 +170,7 @@ public:
     QUuid sourceUUID;
     SharedNodePointer sourceNode;
     bool wantImportProgress;
+    PacketVersion bitstreamVersion;
 
     ReadBitstreamToTreeParams(
         bool includeColor = WANT_COLOR,
@@ -177,13 +178,15 @@ public:
         OctreeElement* destinationElement = NULL,
         QUuid sourceUUID = QUuid(),
         SharedNodePointer sourceNode = SharedNodePointer(),
-        bool wantImportProgress = false) :
+        bool wantImportProgress = false,
+        PacketVersion bitstreamVersion = 0) :
             includeColor(includeColor),
             includeExistsBits(includeExistsBits),
             destinationElement(destinationElement),
             sourceUUID(sourceUUID),
             sourceNode(sourceNode),
-            wantImportProgress(wantImportProgress)
+            wantImportProgress(wantImportProgress),
+            bitstreamVersion(bitstreamVersion)
     {}
 };
 
