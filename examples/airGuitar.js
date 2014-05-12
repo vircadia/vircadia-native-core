@@ -35,16 +35,26 @@ var chords = new Array();
 chords[1] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+A.raw");
 chords[2] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+B.raw");
 chords[3] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+E.raw");
+chords[4] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+G.raw");
+
 // Electric guitar
-chords[4] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Metal+A+short.raw");
-chords[5] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Metal+B+short.raw");
-chords[6] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Metal+E+short.raw");
+chords[5] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Metal+A+short.raw");
+chords[6] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Metal+B+short.raw");
+chords[7] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Metal+E+short.raw");
+chords[8] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Metal+G+short.raw");
 
-var guitarSelector = 3;
+//  Steel Guitar 
+chords[9] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Steel+A.raw");
+chords[10] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Steel+B.raw");
+chords[11] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Steel+E.raw");
+chords[12] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Steel+G.raw");
 
-var whichChord = chords[guitarSelector + 1]; 
+var NUM_CHORDS = 4;
+var NUM_GUITARS = 3;
+var guitarSelector = NUM_CHORDS;
+var whichChord = 1;
 
-var leftHanded = false; 
+var leftHanded = true; 
 if (leftHanded) {
 	var strumHand = 0;
 	var chordHand = 1; 
@@ -59,20 +69,23 @@ var lastPosition = { x: 0.0,
 
 var soundPlaying = false; 
 var selectorPressed = false;
+var position;
 
 MyAvatar.attach(guitarModel, "Hips", {x: -0.0, y: -0.0, z: 0.0}, Quat.fromPitchYawRollDegrees(0, 0, 0), 1.0);
 
 function checkHands(deltaTime) {
 	for (var palm = 0; palm < 2; palm++) {
 		var palmVelocity = Controller.getSpatialControlVelocity(palm * 2 + 1);
-		var speed = length(palmVelocity) / 4.0;
+		var volume = length(palmVelocity) / 5.0;
 		var position = Controller.getSpatialControlPosition(palm * 2 + 1);
 		var myPelvis = MyAvatar.position;
 		var trigger = Controller.getTriggerValue(strumHand);
 		var chord = Controller.getTriggerValue(chordHand);
 
+		if (volume > 1.0) volume = 1.0;
 		if ((chord > 0.1) && Audio.isInjectorPlaying(soundPlaying)) {
 			// If chord finger trigger pulled, stop current chord
+			print("stopped sound");
 			Audio.stopInjector(soundPlaying);
 		}
 
@@ -81,11 +94,10 @@ function checkHands(deltaTime) {
 		//  Change guitars if button FWD (5) pressed
 		if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 5)) {
 			if (!selectorPressed) {
-				if (guitarSelector == 0) {
-					guitarSelector = 3;
-				} else {
+				guitarSelector += NUM_CHORDS;
+				if (guitarSelector >= NUM_CHORDS * NUM_GUITARS) {
 					guitarSelector = 0;
-				}
+				} 
 				selectorPressed = true;
 			}
 		} else {
@@ -93,33 +105,58 @@ function checkHands(deltaTime) {
 		}
 
 		if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 1)) {
-			whichChord = chords[guitarSelector + 1];
+			whichChord = 1;
 		} else if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 2)) {
-			whichChord = chords[guitarSelector + 2];
+			whichChord = 2;
 		} else if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 3)) {
-			whichChord = chords[guitarSelector + 3];
+			whichChord = 3;
+		} else if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 4)) {
+		  	whichChord = 4;
 		}
 
 		if (palm == strumHand) {
 
-			var STRUM_HEIGHT_ABOVE_PELVIS = 0.00;
+			var STRUM_HEIGHT_ABOVE_PELVIS = 0.10;
 			var strumTriggerHeight = myPelvis.y + STRUM_HEIGHT_ABOVE_PELVIS;
 			//printVector(position);
 			if ( ( ((position.y < strumTriggerHeight) && (lastPosition.y >= strumTriggerHeight)) ||
 			       ((position.y > strumTriggerHeight) && (lastPosition.y <= strumTriggerHeight)) ) && (trigger > 0.1) ){
 				// If hand passes downward or upward through 'strings', and finger trigger pulled, play
-				var options = new AudioInjectionOptions();
-				options.position = position;
-				if (speed > 1.0) { speed = 1.0; }
-				options.volume = speed;
-				if (Audio.isInjectorPlaying(soundPlaying)) {
-					Audio.stopInjector(soundPlaying);
-				}
-				soundPlaying = Audio.playSound(whichChord, options);	
+				playChord(position, volume);
 			}
 			lastPosition = Controller.getSpatialControlPosition(palm * 2 + 1);
 		} 
 	}
+}
+
+function playChord(position, volume) {
+	var options = new AudioInjectionOptions();
+	options.position = position;
+	options.volume = volume;
+	if (Audio.isInjectorPlaying(soundPlaying)) {
+		print("stopped sound");
+		Audio.stopInjector(soundPlaying);
+	}
+	print("Played sound: " + whichChord + " at volume " + options.volume);
+	soundPlaying = Audio.playSound(chords[guitarSelector + whichChord], options);	
+}
+
+function keyPressEvent(event) {
+    // check for keypresses and use those to trigger sounds if not hydra
+    keyVolume = 0.4;
+    if (event.text == "1") {
+        whichChord = 1;
+        playChord(MyAvatar.position, keyVolume);
+    } else if (event.text == "2") {
+    	whichChord = 2;
+    	playChord(MyAvatar.position, keyVolume);
+    } else if (event.text == "3") {
+    	whichChord = 3;
+    	playChord(MyAvatar.position, keyVolume);
+    } else if (event.text == "4") {
+        whichChord = 4;
+    	playChord(MyAvatar.position, keyVolume);
+    }
 }
 
 function scriptEnding() {
@@ -128,3 +165,5 @@ function scriptEnding() {
 // Connect a call back that happens every frame
 Script.update.connect(checkHands);
 Script.scriptEnding.connect(scriptEnding);
+Controller.keyPressEvent.connect(keyPressEvent);
+

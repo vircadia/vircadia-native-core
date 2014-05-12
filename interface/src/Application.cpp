@@ -152,6 +152,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
         _cameraPushback(0.0f),
         _scaleMirror(1.0f),
+        _rotateMirror(0.0f),
+        _raiseMirror(0.0f),
         _mouseX(0),
         _mouseY(0),
         _lastMouseMove(usecTimestampNow()),
