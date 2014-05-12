@@ -188,6 +188,7 @@ int ModelItem::expectedBytes() {
 }
 
 int ModelItem::readModelDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
+
     int bytesRead = 0;
     if (bytesLeftToRead >= expectedBytes()) {
         int clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
@@ -258,6 +259,8 @@ int ModelItem::readModelDataFromBuffer(const unsigned char* data, int bytesLeftT
             bytesRead += animationURLLength;
 
             qDebug() << "readModelDataFromBuffer()... animationURL=" << qPrintable(animationURLString);
+        } else {
+            qDebug() << "readModelDataFromBuffer()... this model didn't have animation details";
         }
 
         //printf("ModelItem::readModelDataFromBuffer()... "); debugDump();

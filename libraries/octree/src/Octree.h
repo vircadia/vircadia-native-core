@@ -203,6 +203,9 @@ public:
     // own definition. Implement these to allow your octree based server to support editing
     virtual bool getWantSVOfileVersions() const { return false; }
     virtual PacketType expectedDataPacketType() const { return PacketTypeUnknown; }
+    virtual bool canProcessVersion(PacketVersion thisVersion) const { 
+                    return thisVersion == versionForPacketType(expectedDataPacketType()); }
+    virtual PacketVersion expectedVersion() const { return versionForPacketType(expectedDataPacketType()); }
     virtual bool handlesEditPacketType(PacketType packetType) const { return false; }
     virtual int processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
                     const unsigned char* editData, int maxLength, const SharedNodePointer& sourceNode) { return 0; }
@@ -306,6 +309,7 @@ public:
 
     bool getIsViewing() const { return _isViewing; }
     void setIsViewing(bool isViewing) { _isViewing = isViewing; }
+    
 
 signals:
     void importSize(float x, float y, float z);

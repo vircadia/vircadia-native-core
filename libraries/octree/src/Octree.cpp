@@ -1587,14 +1587,16 @@ bool Octree::readFromSVOFile(const char* fileName) {
             if (gotType == expectedType) {
                 dataAt += sizeof(expectedType);
                 dataLength -= sizeof(expectedType);
-                PacketVersion expectedVersion = versionForPacketType(expectedType);
                 gotVersion = *dataAt;
-                if (gotVersion == expectedVersion) {
-                    dataAt += sizeof(expectedVersion);
-                    dataLength -= sizeof(expectedVersion);
+                if (canProcessVersion(gotVersion)) {
+                    dataAt += sizeof(gotVersion);
+                    dataLength -= sizeof(gotVersion);
                     fileOk = true;
+                    qDebug("SVO file version match. Expected: %d Got: %d", 
+                                versionForPacketType(expectedDataPacketType()), gotVersion);
                 } else {
-                    qDebug("SVO file version mismatch. Expected: %d Got: %d", expectedVersion, gotVersion);
+                    qDebug("SVO file version mismatch. Expected: %d Got: %d", 
+                                versionForPacketType(expectedDataPacketType()), gotVersion);
                 }
             } else {
                 qDebug("SVO file type mismatch. Expected: %c Got: %c", expectedType, gotType);
