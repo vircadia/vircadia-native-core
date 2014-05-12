@@ -183,9 +183,11 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
                     // set the position
                     model->setTranslation(position);
                     
+                    /*
                     qDebug() << "modelItem.getModelURL()=" << modelItem.getModelURL();
                     qDebug() << "modelItem.getAnimationURL()=" << modelItem.getAnimationURL();
                     qDebug() << "modelItem.hasAnimation()=" << modelItem.hasAnimation();
+                    */
                     
                     // handle animations..
                     if (modelItem.hasAnimation()) {
