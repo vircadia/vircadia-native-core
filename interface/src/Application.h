@@ -58,6 +58,7 @@
 #include "avatar/MyAvatar.h"
 #include "devices/Faceplus.h"
 #include "devices/Faceshift.h"
+#include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
 #include "devices/Visage.h"
 #include "models/ModelTreeRenderer.h"
@@ -441,6 +442,7 @@ private:
     Visage _visage;
 
     SixenseManager _sixenseManager;
+    PrioVR _prioVR;
 
     Camera _myCamera;                  // My view onto the world
     Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
