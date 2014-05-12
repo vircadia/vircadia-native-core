@@ -3655,7 +3655,17 @@ void Application::takeSnapshot() {
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
-    Snapshot::saveSnapshot(_glWidget, _myAvatar);
+    QString fileName = Snapshot::saveSnapshot(_glWidget, _myAvatar);
+
+    AccountManager& accountManager = AccountManager::getInstance();
+    if (!accountManager.isLoggedIn()) {
+        return;
+    }
+
+    if (!_snapshotShareDialog) {
+        _snapshotShareDialog = new SnapshotShareDialog(fileName, _glWidget);
+    }
+    _snapshotShareDialog->show();
 }
 
 void Application::urlGoTo(int argc, const char * constArgv[]) {

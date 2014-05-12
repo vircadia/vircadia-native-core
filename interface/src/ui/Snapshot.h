@@ -41,7 +41,7 @@ private:
 class Snapshot {
 
 public:
-    static void saveSnapshot(QGLWidget* widget, Avatar* avatar);
+    static QString saveSnapshot(QGLWidget* widget, Avatar* avatar);
     static SnapshotMetaData* parseSnapshotData(QString snapshotPath);
 };
 
