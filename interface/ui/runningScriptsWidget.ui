@@ -88,10 +88,6 @@ padding-top: 3px;</string>
    <property name="text">
     <string>Reload all</string>
    </property>
-   <property name="icon">
-    <iconset>
-     <normaloff>../resources/images/reload.svg</normaloff>../resources/images/reload.svg</iconset>
-   </property>
   </widget>
   <widget class="QPushButton" name="stopAllButton">
    <property name="geometry">
@@ -114,10 +110,6 @@ padding-top: 3px;</string>
    </property>
    <property name="text">
     <string>Stop all</string>
-   </property>
-   <property name="icon">
-    <iconset>
-     <normaloff>../resources/images/stop.svg</normaloff>../resources/images/stop.svg</iconset>
    </property>
   </widget>
   <widget class="QLabel" name="recentlyLoadedLabel">
@@ -250,10 +242,6 @@ padding-top: 3px;</string>
    </property>
    <property name="text">
     <string>Load script</string>
-   </property>
-   <property name="icon">
-    <iconset>
-     <normaloff>../resources/images/plus.svg</normaloff>../resources/images/plus.svg</iconset>
    </property>
   </widget>
   <zorder>widgetTitle</zorder>
