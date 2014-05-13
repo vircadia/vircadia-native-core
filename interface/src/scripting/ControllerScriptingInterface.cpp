@@ -198,9 +198,9 @@ glm::vec3 ControllerScriptingInterface::getSpatialControlNormal(int controlIndex
     if (palmData) {
         switch (controlOfPalm) {
             case PALM_SPATIALCONTROL:
-                return palmData->getPalmDirection();
+                return palmData->getNormal();
             case TIP_SPATIALCONTROL:
-                return palmData->getFingerDirection();
+                return palmData->getNormal(); // currently the tip doesn't have a unique normal, use the palm normal
         }
     }
     return glm::vec3(0); // bad index
