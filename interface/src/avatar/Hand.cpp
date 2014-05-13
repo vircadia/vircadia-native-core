@@ -176,8 +176,7 @@ void Hand::renderHandTargets(bool isMine) {
             if (!palm.isActive()) {
                 continue;
             }
-            glm::vec3 targetPosition;
-            palm.getBallHoldPosition(targetPosition);
+            glm::vec3 targetPosition = palm.getFingerTipPosition();
             glPushMatrix();
             glTranslatef(targetPosition.x, targetPosition.y, targetPosition.z);
         
@@ -197,58 +196,19 @@ void Hand::renderHandTargets(bool isMine) {
     for (size_t i = 0; i < getNumPalms(); ++i) {
         PalmData& palm = getPalms()[i];
         if (palm.isActive()) {
-            for (size_t f = 0; f < palm.getNumFingers(); ++f) {
-                FingerData& finger = palm.getFingers()[f];
-                if (finger.isActive()) {
-                    glColor4f(handColor.r, handColor.g, handColor.b, alpha);
-                    glm::vec3 tip = finger.getTipPosition();
-                    glm::vec3 root = finger.getRootPosition();
-                    Avatar::renderJointConnectingCone(root, tip, PALM_FINGER_ROD_RADIUS, PALM_FINGER_ROD_RADIUS);
-                    //  Render sphere at palm/finger root
-                    glm::vec3 palmNormal = root + palm.getNormal() * PALM_DISK_THICKNESS;
-                    Avatar::renderJointConnectingCone(root, palmNormal, PALM_DISK_RADIUS, 0.0f);
-                    glPushMatrix();
-                    glTranslatef(root.x, root.y, root.z);
-                    glutSolidSphere(PALM_BALL_RADIUS, 20.0f, 20.0f);
-                    glPopMatrix();
-
-                }
-            }
+            glColor4f(handColor.r, handColor.g, handColor.b, alpha);
+            glm::vec3 tip = palm.getFingerTipPosition();
+            glm::vec3 root = palm.getPosition();
+            Avatar::renderJointConnectingCone(root, tip, PALM_FINGER_ROD_RADIUS, PALM_FINGER_ROD_RADIUS);
+            //  Render sphere at palm/finger root
+            glm::vec3 offsetFromPalm = root + palm.getPalmDirection() * PALM_DISK_THICKNESS;
+            Avatar::renderJointConnectingCone(root, offsetFromPalm, PALM_DISK_RADIUS, 0.0f);
+            glPushMatrix();
+            glTranslatef(root.x, root.y, root.z);
+            glutSolidSphere(PALM_BALL_RADIUS, 20.0f, 20.0f);
+            glPopMatrix();
         }
     }
-
-    /*
-    // Draw the hand paddles
-    int MAX_NUM_PADDLES = 2; // one for left and one for right
-    glColor4f(handColor.r, handColor.g, handColor.b, 0.3f);
-    for (int i = 0; i < MAX_NUM_PADDLES; i++) {
-        const PalmData* palm = getPalm(i);
-        if (palm) {
-            // compute finger axis
-            glm::vec3 fingerAxis(0.f);
-            for (size_t f = 0; f < palm->getNumFingers(); ++f) {
-                const FingerData& finger = (palm->getFingers())[f];
-                if (finger.isActive()) {
-                    glm::vec3 fingerTip = finger.getTipPosition();
-                    glm::vec3 fingerRoot = finger.getRootPosition();
-                    fingerAxis = glm::normalize(fingerTip - fingerRoot);
-                    break;
-                }
-            }
-            // compute paddle position
-            glm::vec3 handPosition;
-            if (i == SIXENSE_CONTROLLER_ID_LEFT_HAND) {
-                _owningAvatar->getSkeletonModel().getLeftHandPosition(handPosition);
-            } else if (i == SIXENSE_CONTROLLER_ID_RIGHT_HAND) {
-                _owningAvatar->getSkeletonModel().getRightHandPosition(handPosition);
-            }
-            glm::vec3 tip = handPosition + HAND_PADDLE_OFFSET * fingerAxis;
-            glm::vec3 root = tip + palm->getNormal() * HAND_PADDLE_THICKNESS;
-            // render a very shallow cone as the paddle
-            Avatar::renderJointConnectingCone(root, tip, HAND_PADDLE_RADIUS, 0.f);
-        }
-    }
-     */
 
     glDepthMask(GL_TRUE);
     glEnable(GL_DEPTH_TEST);
