@@ -9,52 +9,48 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QtDebug>
+
 #include "PrioVR.h"
+
+const unsigned int SERIAL_LIST[] = { 0x00000001, 0x00000000, 0x00000008, 0x00000009, 0x0000000A, 0x0000000C, 0x0000000D,
+	0x0000000E, 0x00000004, 0x00000005, 0x00000010, 0x00000011 };
+const unsigned char AXIS_LIST[] = { 9, 43, 37, 37, 37, 13, 13, 13, 52, 52, 28, 28 };
+const int LIST_LENGTH = sizeof(SERIAL_LIST) / sizeof(SERIAL_LIST[0]);
 
 PrioVR::PrioVR() {
 #ifdef HAVE_PRIOVR
-    TSS_ComPort comPort;
-    if (!tss_getComPorts(&comPort, 1, 0, PVR_FIND_BS)) {
-        _baseStation = TSS_NO_DEVICE_ID;
-        return;
-    }
-    _baseStation = tss_createTSDeviceStr(comPort.com_port, TSS_TIMESTAMP_SYSTEM);
-    if (_baseStation == TSS_NO_DEVICE_ID) {
-        return;
-    }
-    for (int i = 0; i < MAX_SENSOR_NODES; i++) {
-        tss_getSensorFromDongle(_baseStation, i, &_sensorNodes[i]);
-        if (_sensorNodes[i] == TSS_NO_DEVICE_ID) {
-            continue;
-        }
-        int present;
-        tss_isPresent(_sensorNodes[i], &present);
-        if (!present) {
-            _sensorNodes[i] = TSS_NO_DEVICE_ID;
-        }
-    }
-    tss_startStreaming(_baseStation, NULL);
+	_jointsDiscovered.resize(LIST_LENGTH);
+    _skeletalDevice = yei_setUpPrioVRSensors(0x00000000, const_cast<unsigned int*>(SERIAL_LIST),
+		const_cast<unsigned char*>(AXIS_LIST), _jointsDiscovered.data(), LIST_LENGTH, YEI_TIMESTAMP_SYSTEM);
+	if (!_skeletalDevice) {
+		return;
+	}
+	_jointRotations.resize(LIST_LENGTH);
+	yei_tareSensors(_skeletalDevice);
 #endif
 }
 
 PrioVR::~PrioVR() {
 #ifdef HAVE_PRIOVR
-    if (_baseStation != TSS_NO_DEVICE_ID) {
-        tss_stopStreaming(_baseStation, NULL);
-    }
+    if (_skeletalDevice) {
+        yei_stopStreaming(_skeletalDevice);
+    } 
 #endif
 }
 
 void PrioVR::update() {
 #ifdef HAVE_PRIOVR
-    for (int i = 0; i < MAX_SENSOR_NODES; i++) {
-        if (_sensorNodes[i] == TSS_NO_DEVICE_ID) {
-            continue;
-        }
-        glm::quat rotation;
-        if (!tss_getLastStreamData(_sensorNodes[i], (char*)&rotation, sizeof(glm::quat), NULL)) {
-            qDebug() << i << rotation.x << rotation.y << rotation.z << rotation.w;
-        } 
-    }
+    if (!_skeletalDevice) {
+		return;
+	}
+	unsigned int timestamp;
+	yei_getLastStreamDataAll(_skeletalDevice, (char*)_jointRotations.data(),
+		_jointRotations.size() * sizeof(glm::quat), &timestamp);
+	for (int i = 0; i < _jointsDiscovered.size(); i++) {
+		if (_jointsDiscovered.at(i)) {
+			qDebug() << i << _jointRotations.at(i).x << _jointRotations.at(i).y << _jointRotations.at(i).z << _jointRotations.at(i).w;
+		}
+	}
 #endif
 }

@@ -13,9 +13,14 @@
 #define hifi_PrioVR_h
 
 #include <QObject>
+#include <QVector>
+
+#include <glm/gtc/quaternion.hpp>
 
 #ifdef HAVE_PRIOVR
-#include <yei_threespace_api.h>
+extern "C" {
+#include <yei_skeletal_api.h>
+}
 #endif
 
 /// Handles interaction with the PrioVR skeleton tracking suit.
@@ -31,11 +36,11 @@ public:
 
 private:
 #ifdef HAVE_PRIOVR
-    TSS_Device_Id _baseStation;
-    
-    const int MAX_SENSOR_NODES = 20;
-    TSS_Device_Id _sensorNodes[MAX_SENSOR_NODES];
+    YEI_Device_Id _skeletalDevice;
 #endif
+
+	QVector<char> _jointsDiscovered;
+	QVector<glm::quat> _jointRotations;
 };
 
 #endif // hifi_PrioVR_h

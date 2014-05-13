@@ -16,10 +16,10 @@ if (PRIOVR_LIBRARIES AND PRIOVR_INCLUDE_DIRS)
   # in cache already
   set(PRIOVR_FOUND TRUE)
 else (PRIOVR_LIBRARIES AND PRIOVR_INCLUDE_DIRS)
-  find_path(PRIOVR_INCLUDE_DIRS yei_threespace_api.h ${PRIOVR_ROOT_DIR}/include)
+  find_path(PRIOVR_INCLUDE_DIRS yei_skeletal_api.h ${PRIOVR_ROOT_DIR}/include)
 
   if (WIN32)
-    find_library(PRIOVR_LIBRARIES ThreeSpace_API.lib ${PRIOVR_ROOT_DIR})
+    find_library(PRIOVR_LIBRARIES Skeletal_API.lib ${PRIOVR_ROOT_DIR}/lib)
   endif (WIN32)
  
   if (PRIOVR_INCLUDE_DIRS AND PRIOVR_LIBRARIES)
