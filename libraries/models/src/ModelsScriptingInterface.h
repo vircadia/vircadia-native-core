@@ -65,7 +65,10 @@ public slots:
 
     /// plays the model animation.
     ModelItemID playModelAnimation(ModelItemID modelID);
-
+    */
+    
+    
+    /*
     /// gets the current frame of the model animation.
     float getModelAnimationFrame(ModelItemID modelID);
 

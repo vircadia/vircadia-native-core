@@ -46,12 +46,14 @@ const uint16_t MODEL_PACKET_CONTAINS_MODEL_ROTATION = 32;
 const uint16_t MODEL_PACKET_CONTAINS_ANIMATION_URL = 64;
 const uint16_t MODEL_PACKET_CONTAINS_ANIMATION_PLAYING = 128;
 const uint16_t MODEL_PACKET_CONTAINS_ANIMATION_FRAME = 256;
+const uint16_t MODEL_PACKET_CONTAINS_ANIMATION_FPS = 512;
 
 const float MODEL_DEFAULT_RADIUS = 0.1f / TREE_SCALE;
 const float MINIMUM_MODEL_ELEMENT_SIZE = (1.0f / 100000.0f) / TREE_SCALE; // smallest size container
 const QString MODEL_DEFAULT_MODEL_URL("");
 const glm::quat MODEL_DEFAULT_MODEL_ROTATION;
 const QString MODEL_DEFAULT_ANIMATION_URL("");
+const float MODEL_DEFAULT_ANIMATION_FPS = 30.0f;
 
 const PacketVersion VERSION_MODELS_HAVE_ANIMATION = 1;
 
@@ -77,8 +79,9 @@ public:
     const QString& getModelURL() const { return _modelURL; }
     const glm::quat& getModelRotation() const { return _modelRotation; }
     const QString& getAnimationURL() const { return _animationURL; }
-    float getFrameIndex() const { return _frameIndex; }
-    bool getIsAnimationPlaying() const { return _isAnimationPlaying;  }
+    float getAnimationFrameIndex() const { return _animationFrameIndex; }
+    bool getAnimationIsPlaying() const { return _animationIsPlaying;  }
+    float getAnimationFPS() const { return _animationFPS; }
 
     quint64 getLastEdited() const { return _lastEdited; }
     uint16_t getChangedBits() const;
@@ -93,8 +96,9 @@ public:
     void setModelURL(const QString& url) { _modelURL = url; _modelURLChanged = true; }
     void setModelRotation(const glm::quat& rotation) { _modelRotation = rotation; _modelRotationChanged = true; }
     void setAnimationURL(const QString& url) { _animationURL = url; _animationURLChanged = true; }
-    void setFrameIndex(float value) { _frameIndex = value; _frameIndexChanged = true; }
-    void setIsAnimationPlaying(bool value) { _isAnimationPlaying = value; _isAnimationPlayingChanged = true;  }
+    void setAnimationFrameIndex(float value) { _animationFrameIndex = value; _animationFrameIndexChanged = true; }
+    void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; _animationIsPlayingChanged = true;  }
+    void setAnimationFPS(float value) { _animationFPS = value; _animationFPSChanged = true; }
     
     /// used by ModelScriptingInterface to return ModelItemProperties for unknown models
     void setIsUnknownID() { _id = UNKNOWN_MODEL_ID; _idSet = true; }
@@ -111,8 +115,9 @@ private:
     QString _modelURL;
     glm::quat _modelRotation;
     QString _animationURL;
-    bool _isAnimationPlaying;
-    float _frameIndex;
+    bool _animationIsPlaying;
+    float _animationFrameIndex;
+    float _animationFPS;
 
     uint32_t _id;
     bool _idSet;
@@ -126,8 +131,9 @@ private:
     bool _modelURLChanged;
     bool _modelRotationChanged;
     bool _animationURLChanged;
-    bool _isAnimationPlayingChanged;
-    bool _frameIndexChanged;
+    bool _animationIsPlayingChanged;
+    bool _animationFrameIndexChanged;
+    bool _animationFPSChanged;
     bool _defaultSettings;
 };
 Q_DECLARE_METATYPE(ModelItemProperties);
@@ -238,8 +244,9 @@ public:
     void setModelURL(const QString& url) { _modelURL = url; }
     void setModelRotation(const glm::quat& rotation) { _modelRotation = rotation; }
     void setAnimationURL(const QString& url) { _animationURL = url; }
-    void setFrameIndex(float value) { _frameIndex = value; }
-    void setIsAnimationPlaying(bool value) { _isAnimationPlaying = value; }
+    void setAnimationFrameIndex(float value) { _animationFrameIndex = value; }
+    void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; }
+    void setAnimationFPS(float value) { _animationFPS = value; }
     
     void setProperties(const ModelItemProperties& properties);
 
@@ -268,8 +275,9 @@ public:
     QVector<glm::quat> getAnimationFrame();
     bool jointsMapped() const { return _jointMappingCompleted; }
     
-    bool getIsAnimationPlaying() const { return _isAnimationPlaying; }
-    float getFrameIndex() const { return _frameIndex; }
+    bool getAnimationIsPlaying() const { return _animationIsPlaying; }
+    float getAnimationFrameIndex() const { return _animationFrameIndex; }
+    float getAnimationFPS() const { return _animationFPS; }
 
 protected:
     glm::vec3 _position;
@@ -291,8 +299,9 @@ protected:
     quint64 _lastAnimated;
 
     QString _animationURL;
-    float _frameIndex; // we keep this as a float and round to int only when we need the exact index
-    bool _isAnimationPlaying;
+    float _animationFrameIndex; // we keep this as a float and round to int only when we need the exact index
+    bool _animationIsPlaying;
+    float _animationFPS;
     
     bool _jointMappingCompleted;
     QVector<int> _jointMapping;

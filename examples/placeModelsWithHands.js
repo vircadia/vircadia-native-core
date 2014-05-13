@@ -231,7 +231,7 @@ function checkControllerSide(whichSide) {
             
         if (animationURLs[currentModelURL] !== "") {
             properties.animationURL = animationURLs[currentModelURL];
-            properties.isAnimationPlaying = true;
+            properties.animationIsPlaying = true;
         }
 
         debugPrint("modelRadius=" +modelRadius);
