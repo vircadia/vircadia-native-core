@@ -406,7 +406,7 @@ var selectedModelID;
 var selectedModelProperties;
 
 function mousePressEvent(event) {
-    var modelSelected = false;
+    modelSelected = false;
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
     
     if (newModel == toolBar.clicked(clickedOverlay)) {
@@ -424,8 +424,7 @@ function mousePressEvent(event) {
     } else {
         var pickRay = Camera.computePickRay(event.x, event.y);
         Vec3.print("[Mouse] Looking at: ", pickRay.origin);
-        var foundModels = Models.findModels(pickray.origin, LASER_LENGTH_FACTOR);
-        print("Num: " + foundModels.length.toString());
+        var foundModels = Models.findModels(pickRay.origin, LASER_LENGTH_FACTOR);
         for (var i = 0; i < foundModels.length; i++) {
             if (!foundModels[i].isKnownID) {
                 var identify = Models.identifyModel(foundModels[i]);
@@ -451,7 +450,7 @@ function mousePressEvent(event) {
             //            d = |P-X|
             
             var A = pickRay.origin;
-            var B = Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, LASER_LENGTH_FACTOR));
+            var B = Vec3.normalize(pickRay.direction);
             var P = properties.position;
             
             var x = Vec3.dot(Vec3.subtract(P, A), B);
@@ -462,6 +461,7 @@ function mousePressEvent(event) {
                 modelSelected = true;
                 selectedModelID = foundModels[i];
                 selectedModelProperties = properties;
+                print("Clicked on " + selectedModelID.id + " " +  modelSelected);
                 return;
             }
         }
@@ -475,7 +475,7 @@ function mouseMoveEvent(event)  {
     print("Dragging");
     
     
-    Model.editModel(selectedModelID, selectedModelProperties);
+    //Model.editModel(selectedModelID, selectedModelProperties);
 }
 
 function scriptEnding() {
@@ -488,7 +488,7 @@ Script.scriptEnding.connect(scriptEnding);
 // register the call back so it fires before each data send
 Script.update.connect(checkController);
 Controller.mousePressEvent.connect(mousePressEvent);
-Controller.mousePressEvent.connect(mouseMoveEvent);
+Controller.mouseMoveEvent.connect(mouseMoveEvent);
 
 
 
