@@ -52,15 +52,12 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
 
     } else if (leftPalmIndex == rightPalmIndex) {
         // right hand only
-        applyPalmData(geometry.rightHandJointIndex, geometry.rightFingerJointIndices, geometry.rightFingertipJointIndices,
-            hand->getPalms()[leftPalmIndex]);
+        applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[leftPalmIndex]);
         restoreLeftHandPosition(HAND_RESTORATION_RATE);
 
     } else {
-        applyPalmData(geometry.leftHandJointIndex, geometry.leftFingerJointIndices, geometry.leftFingertipJointIndices,
-            hand->getPalms()[leftPalmIndex]);
-        applyPalmData(geometry.rightHandJointIndex, geometry.rightFingerJointIndices, geometry.rightFingertipJointIndices,
-            hand->getPalms()[rightPalmIndex]);
+        applyPalmData(geometry.leftHandJointIndex, hand->getPalms()[leftPalmIndex]);
+        applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[rightPalmIndex]);
     }
 }
 
@@ -140,8 +137,7 @@ void SkeletonModel::applyHandPosition(int jointIndex, const glm::vec3& position)
     applyRotationDelta(jointIndex, rotationBetween(handRotation * glm::vec3(-sign, 0.0f, 0.0f), forearmVector));
 }
 
-void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJointIndices,
-        const QVector<int>& fingertipJointIndices, PalmData& palm) {
+void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
     if (jointIndex == -1) {
         return;
     }

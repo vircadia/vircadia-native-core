@@ -577,6 +577,25 @@ const char* FACESHIFT_BLENDSHAPES[] = {
     ""
 };
 
+const char* HUMANIK_JOINTS[] = {
+    "RightHand",
+    "RightForeArm",
+    "RightArm",
+    "Head",
+    "LeftArm",
+    "LeftForeArm",
+    "LeftHand",
+    "Spine",
+    "Hips",
+    "RightUpLeg",
+    "LeftUpLeg",
+    "RightLeg",
+    "LeftLeg",
+    "RightFoot",
+    "LeftFoot",
+    ""
+};
+
 class FBXModel {
 public:
     QString name;
@@ -1012,10 +1031,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QString jointHeadName = processID(getString(joints.value("jointHead", "jointHead")));
     QString jointLeftHandName = processID(getString(joints.value("jointLeftHand", "jointLeftHand")));
     QString jointRightHandName = processID(getString(joints.value("jointRightHand", "jointRightHand")));
-    QVariantList jointLeftFingerNames = joints.values("jointLeftFinger");
-    QVariantList jointRightFingerNames = joints.values("jointRightFinger");
-    QVariantList jointLeftFingertipNames = joints.values("jointLeftFingertip");
-    QVariantList jointRightFingertipNames = joints.values("jointRightFingertip");
     QString jointEyeLeftID;
     QString jointEyeRightID;
     QString jointNeckID;
@@ -1024,10 +1039,16 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QString jointHeadID;
     QString jointLeftHandID;
     QString jointRightHandID;
-    QVector<QString> jointLeftFingerIDs(jointLeftFingerNames.size());
-    QVector<QString> jointRightFingerIDs(jointRightFingerNames.size());
-    QVector<QString> jointLeftFingertipIDs(jointLeftFingertipNames.size());
-    QVector<QString> jointRightFingertipIDs(jointRightFingertipNames.size());
+    
+    QVector<QString> humanIKJointNames;
+    for (int i = 0;; i++) {
+        QByteArray jointName = HUMANIK_JOINTS[i];
+        if (jointName.isEmpty()) {
+            break;
+        }
+        humanIKJointNames.append(processID(getString(joints.value(jointName, jointName))));
+    }
+    QVector<QString> humanIKJointIDs(humanIKJointNames.size());
 
     QVariantHash blendshapeMappings = mapping.value("bs").toHash();
     QMultiHash<QByteArray, WeightedIndex> blendshapeIndices;
@@ -1091,7 +1112,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     } else {
                         name = getID(object.properties);
                     }
-                    int index;
                     if (name == jointEyeLeftName || name == "EyeL" || name == "joint_Leye") {
                         jointEyeLeftID = getID(object.properties);
 
@@ -1115,19 +1135,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
 
                     } else if (name == jointRightHandName) {
                         jointRightHandID = getID(object.properties);
-
-                    } else if ((index = jointLeftFingerNames.indexOf(name)) != -1) {
-                        jointLeftFingerIDs[index] = getID(object.properties);
-
-                    } else if ((index = jointRightFingerNames.indexOf(name)) != -1) {
-                        jointRightFingerIDs[index] = getID(object.properties);
-
-                    } else if ((index = jointLeftFingertipNames.indexOf(name)) != -1) {
-                        jointLeftFingertipIDs[index] = getID(object.properties);
-
-                    } else if ((index = jointRightFingertipNames.indexOf(name)) != -1) {
-                        jointRightFingertipIDs[index] = getID(object.properties);
                     }
+                    int humanIKJointIndex = humanIKJointNames.indexOf(name);
+                    if (humanIKJointIndex != -1) {
+                        humanIKJointIDs[humanIKJointIndex] = getID(object.properties);
+                    }
+                    
                     glm::vec3 translation;
                     // NOTE: the euler angles as supplied by the FBX file are in degrees
                     glm::vec3 rotationOffset;
@@ -1513,11 +1526,11 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     geometry.headJointIndex = modelIDs.indexOf(jointHeadID);
     geometry.leftHandJointIndex = modelIDs.indexOf(jointLeftHandID);
     geometry.rightHandJointIndex = modelIDs.indexOf(jointRightHandID);
-    geometry.leftFingerJointIndices = getIndices(jointLeftFingerIDs, modelIDs);
-    geometry.rightFingerJointIndices = getIndices(jointRightFingerIDs, modelIDs);
-    geometry.leftFingertipJointIndices = getIndices(jointLeftFingertipIDs, modelIDs);
-    geometry.rightFingertipJointIndices = getIndices(jointRightFingertipIDs, modelIDs);
-
+    
+    foreach (const QString& id, humanIKJointIDs) {
+        geometry.humanIKJointIndices.append(modelIDs.indexOf(id));
+    }
+    
     // extract the translation component of the neck transform
     if (geometry.neckJointIndex != -1) {
         const glm::mat4& transform = geometry.joints.at(geometry.neckJointIndex).transform;

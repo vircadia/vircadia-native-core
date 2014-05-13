@@ -31,6 +31,9 @@ public:
     
     PrioVR();
     virtual ~PrioVR();
+
+    const QVector<int>& getHumanIKJointIndices() const { return _humanIKJointIndices; }
+    const QVector<glm::quat>& getJointRotations() const { return _jointRotations; }
     
     void update();
 
@@ -39,7 +42,7 @@ private:
     YEI_Device_Id _skeletalDevice;
 #endif
 
-    QVector<char> _jointsDiscovered;
+    QVector<int> _humanIKJointIndices;
     QVector<glm::quat> _jointRotations;
 };
 
