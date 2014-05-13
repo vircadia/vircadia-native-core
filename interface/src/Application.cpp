@@ -686,11 +686,8 @@ void Application::resizeGL(int width, int height) {
     glLoadIdentity();
 
     // update Stats width
-    int horizontalOffset = 0;
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        // mirror is enabled, let's set horizontal offset to give stats some margin
-        horizontalOffset += MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
-    }
+    // let's set horizontal offset to give stats some margin to mirror
+    int horizontalOffset = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
     Stats::getInstance()->resetWidth(width, horizontalOffset);
 }
 
@@ -1164,10 +1161,8 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
             _mousePressed = false;
             checkBandwidthMeterClick();
             if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
-                int horizontalOffset = 0;
-                if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-                    horizontalOffset = MIRROR_VIEW_WIDTH;
-                }
+                // let's set horizontal offset to give stats some margin to mirror
+                int horizontalOffset = MIRROR_VIEW_WIDTH;
                 Stats::getInstance()->checkClick(_mouseX, _mouseY, _mouseDragStartedX, _mouseDragStartedY, horizontalOffset);
             }
         }
@@ -2733,11 +2728,8 @@ void Application::displayOverlay() {
     glPointSize(1.0f);
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
-        int horizontalOffset = 0;
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            // mirror is enabled, let's set horizontal offset to give stats some margin
-            horizontalOffset += MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
-        }
+        // let's set horizontal offset to give stats some margin to mirror
+        int horizontalOffset = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
         int voxelPacketsToProcess = _voxelProcessor.packetsToProcessCount();
         //  Onscreen text about position, servers, etc
         Stats::getInstance()->display(WHITE_TEXT, horizontalOffset, _fps, _packetsPerSecond, _bytesPerSecond, voxelPacketsToProcess);
