@@ -9,7 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("toolBars.js");
+
 var windowDimensions = Controller.getViewportDimensions();
+var toolIconUrl = "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/tools/";
+var toolHeight = 50;
+var toolWidth = 50;
 
 var LASER_WIDTH = 4;
 var LASER_COLOR = { red: 255, green: 0, blue: 0 };
@@ -33,56 +38,7 @@ var modelURLs = [
                  "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/slimer.fbx",
                  ];
 
-var tools = [];
-var toolIconUrl = "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/tools/";
-var numberOfTools = 1;
-var toolHeight = 50;
-var toolWidth = 50;
-var toolVerticalSpacing = 4;
-var toolsHeight = toolHeight * numberOfTools + toolVerticalSpacing * (numberOfTools - 1);
-var toolsX = windowDimensions.x - 8 - toolWidth;
-var toolsY = (windowDimensions.y - toolsHeight) / 2;
-
-
-var firstModel = Overlays.addOverlay("image", {
-                                     subImage: { x: 0, y: toolHeight, width: toolWidth, height: toolHeight },
-                                     imageURL: toolIconUrl + "voxel-tool.svg",
-                                     x: toolsX, y: toolsY + ((toolHeight + toolVerticalSpacing) * 0), width: toolWidth, height: toolHeight,
-                                     visible: true,
-                                     alpha: 0.9
-                                     });
-function Tool(iconURL) {
-    this.overlay = Overlays.addOverlay("image", {
-                                       subImage: { x: 0, y: toolHeight, width: toolWidth, height: toolHeight },
-                                       imageURL: iconURL,
-                                       x: toolsX,
-                                       y: toolsY + ((toolHeight + toolVerticalSpacing) * tools.length),
-                                       width: toolWidth,
-                                       height: toolHeight,
-                                       visible: true,
-                                       alpha: 0.9
-                                       });
-    
-    
-    this.cleanup = function() {
-        Ovelays.deleteOverlay(this.overlay);
-    }
-    tools[tools.length] = this;
-    return tools.length - 1;
-}
-Tool.ICON_URL = "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/tools/";
-Tool.HEIGHT = 50;
-Tool.WIDTH = 50;
-
-function ToolBar(direction, x, y) {
-    this.tools = [];
-    
-    this.numberOfTools = function() {
-        return this.tools.length;
-    }
-}
-ToolBar.SPACING = 4;
-
+var toolBar;
 
 function controller(wichSide) {
     this.side = wichSide;
@@ -238,6 +194,13 @@ function controller(wichSide) {
                              });
     }
     
+    this.hideLaser = function() {
+        Overlays.editOverlay(this.laser, { visible: false });
+        Overlays.editOverlay(this.ball, { visible: false });
+        Overlays.editOverlay(this.leftRight, { visible: false });
+        Overlays.editOverlay(this.topDown, { visible: false });
+    }
+    
     this.moveModel = function () {
         if (this.grabbing) {
             var newPosition = Vec3.sum(this.palmPosition,
@@ -377,67 +340,117 @@ function moveModels() {
     rightController.moveModel();
 }
 
+var hydraConnected = false;
 function checkController(deltaTime) {
     var numberOfButtons = Controller.getNumberOfButtons();
     var numberOfTriggers = Controller.getNumberOfTriggers();
     var numberOfSpatialControls = Controller.getNumberOfSpatialControls();
     var controllersPerTrigger = numberOfSpatialControls / numberOfTriggers;
-
-    moveOverlays();
     
     // this is expected for hydras
-    if (!(numberOfButtons==12 && numberOfTriggers == 2 && controllersPerTrigger == 2)) {
-        //print("no hydra connected?");
-        return; // bail if no hydra
+    if (numberOfButtons==12 && numberOfTriggers == 2 && controllersPerTrigger == 2) {
+        if (!hydraConnected) {
+            hydraConnected = true;
+        }
+        
+        leftController.update();
+        rightController.update();
+        moveModels();
+    } else {
+        if (hydraConnected) {
+            hydraConnected = false;
+            
+            leftController.hideLaser();
+            rightController.hideLaser();
+        }
     }
     
-    leftController.update();
-    rightController.update();
-    moveModels();
+    moveOverlays();
 }
 
 function moveOverlays() {
-    windowDimensions = Controller.getViewportDimensions();
-    
-    toolsX = windowDimensions.x - 8 - toolWidth;
-    toolsY = (windowDimensions.y - toolsHeight) / 2;
-    
-    Overlays.editOverlay(firstModel, {
-                        x: toolsX, y: toolsY + ((toolHeight + toolVerticalSpacing) * 0), width: toolWidth, height: toolHeight,
+    if (typeof(toolBar) === 'undefined') {
+        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
+        // New Model
+        toolBar.addTool({
+                        imageURL: toolIconUrl + "voxel-tool.svg",
+                        subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+                        width: toolWidth, height: toolHeight,
+                        visible: true,
+                        alpha: 0.9
                         });
+        // Move YZ
+        toolBar.addTool({
+                        imageURL: toolIconUrl + "voxel-tool.svg",
+                        subImage: { x: 0, y: 0, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+                        width: toolWidth, height: toolHeight,
+                        visible: true,
+                        alpha: 0.9
+                        }, true);
+        // Move XZ
+        toolBar.addTool({
+                        imageURL: toolIconUrl + "voxel-tool.svg",
+                        subImage: { x: 0, y: 0, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+                        width: toolWidth, height: toolHeight,
+                        visible: true,
+                        alpha: 0.9
+                        }, true);
+        // Move XY
+        toolBar.addTool({
+                        imageURL: toolIconUrl + "voxel-tool.svg",
+                        subImage: { x: 0, y: 0, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+                        width: toolWidth, height: toolHeight,
+                        visible: true,
+                        alpha: 0.9
+                        }, true);
+    } else if (windowDimensions.x == Controller.getViewportDimensions().x &&
+               windowDimensions.y == Controller.getViewportDimensions().y) {
+        return;
+    }
+    
+    
+    windowDimensions = Controller.getViewportDimensions();
+    var toolsX = windowDimensions.x - 8 - toolBar.width;
+    var toolsY = (windowDimensions.y - toolBar.height) / 2;
+    
+    toolBar.move(toolsX, toolsY);
 }
 
 function mousePressEvent(event) {
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
     var url;
-    
-    if (clickedOverlay == firstModel) {
+    var index = toolBar.clicked(clickedOverlay);
+    if (index == 0) {
         url = Window.prompt("Model url", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
         if (url == null) {
-            return;        }
-    } else {
+            return;
+        }
+        
+        var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
+        Models.addModel({ position: position,
+                        radius: radiusDefault,
+                        modelURL: url
+                        });
+    } else if (index == -1) {
         print("Didn't click on anything");
-        return;
     }
+}
+
+function mouseMoveEvent(event)  {
     
-    var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
-    Models.addModel({ position: position,
-                    radius: radiusDefault,
-                    modelURL: url
-                    });
 }
 
 function scriptEnding() {
     leftController.cleanup();
     rightController.cleanup();
-    
-    Overlays.deleteOverlay(firstModel);
+    toolBar.cleanup();
 }
 Script.scriptEnding.connect(scriptEnding);
 
 // register the call back so it fires before each data send
 Script.update.connect(checkController);
 Controller.mousePressEvent.connect(mousePressEvent);
+Controller.mousePressEvent.connect(mouseMoveEvent);
 
 
 
