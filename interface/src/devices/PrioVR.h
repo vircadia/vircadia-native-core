@@ -39,8 +39,8 @@ private:
     YEI_Device_Id _skeletalDevice;
 #endif
 
-	QVector<char> _jointsDiscovered;
-	QVector<glm::quat> _jointRotations;
+    QVector<char> _jointsDiscovered;
+    QVector<glm::quat> _jointRotations;
 };
 
 #endif // hifi_PrioVR_h
