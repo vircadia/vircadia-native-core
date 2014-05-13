@@ -352,6 +352,8 @@ public:
     
     AttachmentData();
     
+    bool isValid() const { return modelURL.isValid(); }
+    
     bool operator==(const AttachmentData& other) const;
 };
 

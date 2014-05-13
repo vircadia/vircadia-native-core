@@ -21,7 +21,6 @@
 #include "SharedUtil.h"
 
 class AvatarData;
-class FingerData;
 class PalmData;
 
 const int NUM_HANDS = 2;
@@ -31,8 +30,6 @@ const int NUM_FINGERS = NUM_HANDS * NUM_FINGERS_PER_HAND;
 const int LEAPID_INVALID = -1;
 const int SIXENSEID_INVALID = -1;
 
-const float LEAP_UNIT_SCALE = 0.001f; ///< convert mm to meters
-
 const int SIXENSE_CONTROLLER_ID_LEFT_HAND = 0;
 const int SIXENSE_CONTROLLER_ID_RIGHT_HAND = 1;
 
@@ -41,17 +38,16 @@ public:
     HandData(AvatarData* owningAvatar);
     virtual ~HandData() {}
     
-    // These methods return the positions in Leap-relative space.
-    // To convert to world coordinates, use Hand::leapPositionToWorldPosition.
-
     // position conversion
-    glm::vec3 leapPositionToWorldPosition(const glm::vec3& leapPosition) {
-        return getBasePosition() + getBaseOrientation() * (leapPosition * LEAP_UNIT_SCALE);
+    glm::vec3 localToWorldPosition(const glm::vec3& localPosition) {
+        return getBasePosition() + getBaseOrientation() * localPosition;
     }
-    glm::vec3 leapDirectionToWorldDirection(const glm::vec3& leapDirection) {
-        return getBaseOrientation() * leapDirection;
-    }
-    glm::vec3 worldVectorToLeapVector(const glm::vec3& worldVector) const;
+
+    glm::vec3 localToWorldDirection(const glm::vec3& localVector) {
+        return getBaseOrientation() * localVector;
+    } 
+
+    glm::vec3 worldToLocalVector(const glm::vec3& worldVector) const;
 
     std::vector<PalmData>& getPalms() { return _palms; }
     const std::vector<PalmData>& getPalms() const { return _palms; }
@@ -62,9 +58,6 @@ public:
     /// Finds the indices of the left and right palms according to their locations, or -1 if either or
     /// both is not found.
     void getLeftRightPalmIndices(int& leftPalmIndex, int& rightPalmIndex) const;
-
-    void setFingerTrailLength(unsigned int length);
-    void updateFingerTrails();
 
     /// Checks for penetration between the described sphere and the hand.
     /// \param penetratorCenter the center of the penetration test sphere
@@ -89,71 +82,23 @@ private:
     HandData& operator= (const HandData&);
 };
 
-class FingerData {
-public:
-    FingerData(PalmData* owningPalmData, HandData* owningHandData);
-
-    glm::vec3        getTipPosition()     const { return _owningHandData->leapPositionToWorldPosition(_tipRawPosition); }
-    glm::vec3        getRootPosition()    const { return _owningHandData->leapPositionToWorldPosition(_rootRawPosition); }
-    const glm::vec3& getTipRawPosition()  const { return _tipRawPosition; }
-    const glm::vec3& getRootRawPosition() const { return _rootRawPosition; }
-    bool             isActive()           const { return _isActive; }
-    int              getLeapID()          const { return _leapID; }
-
-    void setActive(bool active)                   { _isActive = active; }
-    void setLeapID(int id)                        { _leapID = id; }
-    void setRawTipPosition(const glm::vec3& pos)  { _tipRawPosition = pos; }
-    void setRawRootPosition(const glm::vec3& pos) { _rootRawPosition = pos; }
-
-    void setTrailLength(unsigned int length);
-    void updateTrail();
-
-    int              getTrailNumPositions();
-    const glm::vec3& getTrailPosition(int index);
-
-    void incrementFramesWithoutData()          { _numFramesWithoutData++; }
-    void resetFramesWithoutData()              { _numFramesWithoutData = 0; }
-    int  getFramesWithoutData()          const { return _numFramesWithoutData; }
-    
-private:
-    glm::vec3 _tipRawPosition;
-    glm::vec3 _rootRawPosition;
-    bool      _isActive;            // This has current valid data
-    int       _leapID;              // the Leap's serial id for this tracked object
-    int       _numFramesWithoutData; // after too many frames without data, this tracked object assumed lost.
-    std::vector<glm::vec3> _tipTrailPositions;
-    int                    _tipTrailCurrentStartIndex;
-    int                    _tipTrailCurrentValidLength;
-    PalmData* _owningPalmData;
-    HandData* _owningHandData;
-};
 
 class PalmData {
 public:
     PalmData(HandData* owningHandData);
-    glm::vec3 getPosition() const { return _owningHandData->leapPositionToWorldPosition(_rawPosition); }
-    glm::vec3 getNormal() const { return _owningHandData->leapDirectionToWorldDirection(_rawNormal); }
-    glm::vec3 getVelocity() const { return _owningHandData->leapDirectionToWorldDirection(_rawVelocity); }
+    glm::vec3 getPosition() const { return _owningHandData->localToWorldPosition(_rawPosition); }
+    glm::vec3 getVelocity() const { return _owningHandData->localToWorldDirection(_rawVelocity); }
 
     const glm::vec3& getRawPosition() const { return _rawPosition; }
-    const glm::vec3& getRawNormal()   const { return _rawNormal; }
     bool isActive() const { return _isActive; }
-    int getLeapID() const { return _leapID; }
     int getSixenseID() const { return _sixenseID; }
 
-
-    std::vector<FingerData>& getFingers() { return _fingers; }
-    const std::vector<FingerData>& getFingers() const { return _fingers; }
-    size_t getNumFingers() const { return _fingers.size(); }
-
     void setActive(bool active) { _isActive = active; }
-    void setLeapID(int id) { _leapID = id; }
     void setSixenseID(int id) { _sixenseID = id; }
 
     void setRawRotation(const glm::quat rawRotation) { _rawRotation = rawRotation; };
     glm::quat getRawRotation() const { return _rawRotation; }
     void setRawPosition(const glm::vec3& pos)  { _rawPosition = pos; }
-    void setRawNormal(const glm::vec3& normal) { _rawNormal = normal; }
     void setRawVelocity(const glm::vec3& velocity) { _rawVelocity = velocity; }
     const glm::vec3& getRawVelocity()  const { return _rawVelocity; }
     void addToPosition(const glm::vec3& delta);
@@ -162,11 +107,11 @@ public:
     void resolvePenetrations() { addToPosition(-_totalPenetration); _totalPenetration = glm::vec3(0.f); }
     
     void setTipPosition(const glm::vec3& position) { _tipPosition = position; }
-    const glm::vec3 getTipPosition() const { return _owningHandData->leapPositionToWorldPosition(_tipPosition); }
+    const glm::vec3 getTipPosition() const { return _owningHandData->localToWorldPosition(_tipPosition); }
     const glm::vec3& getTipRawPosition() const { return _tipPosition; }
 
     void setTipVelocity(const glm::vec3& velocity) { _tipVelocity = velocity; }
-    const glm::vec3 getTipVelocity() const { return _owningHandData->leapDirectionToWorldDirection(_tipVelocity); }
+    const glm::vec3 getTipVelocity() const { return _owningHandData->localToWorldDirection(_tipVelocity); }
     const glm::vec3& getTipRawVelocity() const { return _tipVelocity; }
     
     void incrementFramesWithoutData() { _numFramesWithoutData++; }
@@ -198,11 +143,14 @@ public:
     /// Store position where the palm holds the ball.
     void getBallHoldPosition(glm::vec3& position) const;
 
+    // return world-frame:
+    glm::vec3 getFingerTipPosition() const;
+    glm::vec3 getFingerDirection() const;
+    glm::vec3 getPalmDirection() const;
+
 private:
-    std::vector<FingerData> _fingers;
     glm::quat _rawRotation;
     glm::vec3 _rawPosition;
-    glm::vec3 _rawNormal;
     glm::vec3 _rawVelocity;
     glm::vec3 _rotationalVelocity;
     glm::quat _lastRotation;
@@ -216,7 +164,6 @@ private:
     float _joystickX, _joystickY;
     
     bool      _isActive;             // This has current valid data
-    int       _leapID;               // the Leap's serial id for this tracked object
     int       _sixenseID;            // Sixense controller ID for this palm
     int       _numFramesWithoutData; // after too many frames without data, this tracked object assumed lost.
     HandData* _owningHandData;
