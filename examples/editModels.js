@@ -368,41 +368,100 @@ function checkController(deltaTime) {
     moveOverlays();
 }
 
+var clickEvent = false;
+var newModel;
+var modifierType = -1;
+var moveYZ;
+var moveXZ;
+var moveXY;
+var yaw;
+var pitch;
+var roll;
+var scale;
+
+var modelSelected = false;
+var selectedModelID;
+var selectedModelProperties;
+
+
+function initToolBar() {
+    toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
+    // New Model
+    newModel = toolBar.addTool({
+                               imageURL: toolIconUrl + "voxel-tool.svg",
+                               subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+                               width: toolWidth, height: toolHeight,
+                               visible: true,
+                               alpha: 0.9
+                               });
+    print("New Model: " + newModel)
+    
+    // Move YZ
+    moveYZ = toolBar.addTool({
+                             imageURL: toolIconUrl + "voxel-tool.svg",
+                             subImage: { x: 0, y: 0, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+                             width: toolWidth, height: toolHeight,
+                             visible: true,
+                             alpha: 0.9
+                             }, true);
+    // Move XZ
+    moveXZ = toolBar.addTool({
+                             imageURL: toolIconUrl + "voxel-tool.svg",
+                             subImage: { x: 0, y: 0, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+                             width: toolWidth, height: toolHeight,
+                             visible: true,
+                             alpha: 0.9
+                             }, true);
+    // Move XY
+    moveXY = toolBar.addTool({
+                             imageURL: toolIconUrl + "voxel-tool.svg",
+                             subImage: { x: 0, y: 0, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+                             width: toolWidth, height: toolHeight,
+                             visible: true,
+                             alpha: 0.9
+                             }, true);
+    
+    
+    // Yaw
+    yaw = toolBar.addTool({
+                          imageURL: toolIconUrl + "voxel-tool.svg",
+                          subImage: { x: 0, y: 0, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+                          width: toolWidth, height: toolHeight,
+                          visible: true,
+                          alpha: 0.9
+                          }, true);
+    // Pitch
+    pitch = toolBar.addTool({
+                            imageURL: toolIconUrl + "voxel-tool.svg",
+                            subImage: { x: 0, y: 0, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+                            width: toolWidth, height: toolHeight,
+                            visible: true,
+                            alpha: 0.9
+                            }, true);
+    // Roll
+    roll = toolBar.addTool({
+                           imageURL: toolIconUrl + "voxel-tool.svg",
+                           subImage: { x: 0, y: 0, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+                           width: toolWidth, height: toolHeight,
+                           visible: true,
+                           alpha: 0.9
+                           }, true);
+    
+    
+    // Scale
+    scale = toolBar.addTool({
+                            imageURL: toolIconUrl + "voxel-tool.svg",
+                            subImage: { x: 0, y: 0, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+                            width: toolWidth, height: toolHeight,
+                            visible: true,
+                            alpha: 0.9
+                            }, true);
+}
+
 function moveOverlays() {
     if (typeof(toolBar) === 'undefined') {
-        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
-        // New Model
-        toolBar.addTool({
-                        imageURL: toolIconUrl + "voxel-tool.svg",
-                        subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
-                        width: toolWidth, height: toolHeight,
-                        visible: true,
-                        alpha: 0.9
-                        });
-        // Move YZ
-        toolBar.addTool({
-                        imageURL: toolIconUrl + "voxel-tool.svg",
-                        subImage: { x: 0, y: 0, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
-                        width: toolWidth, height: toolHeight,
-                        visible: true,
-                        alpha: 0.9
-                        }, true);
-        // Move XZ
-        toolBar.addTool({
-                        imageURL: toolIconUrl + "voxel-tool.svg",
-                        subImage: { x: 0, y: 0, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
-                        width: toolWidth, height: toolHeight,
-                        visible: true,
-                        alpha: 0.9
-                        }, true);
-        // Move XY
-        toolBar.addTool({
-                        imageURL: toolIconUrl + "voxel-tool.svg",
-                        subImage: { x: 0, y: 0, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
-                        width: toolWidth, height: toolHeight,
-                        visible: true,
-                        alpha: 0.9
-                        }, true);
+        initToolBar();
+        
     } else if (windowDimensions.x == Controller.getViewportDimensions().x &&
                windowDimensions.y == Controller.getViewportDimensions().y) {
         return;
@@ -417,27 +476,147 @@ function moveOverlays() {
 }
 
 function mousePressEvent(event) {
+    modelSelected = false;
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
-    var url;
-    var index = toolBar.clicked(clickedOverlay);
-    if (index == 0) {
-        url = Window.prompt("Model url", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
-        if (url == null) {
-            return;
-        }
+    
+    if (clickedOverlay != 0) {
+        var index = toolBar.clicked(clickedOverlay);
         
-        var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
-        Models.addModel({ position: position,
-                        radius: radiusDefault,
-                        modelURL: url
-                        });
-    } else if (index == -1) {
-        print("Didn't click on anything");
+        switch(index) {
+            case newModel:
+                var url = Window.prompt("Model url", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
+                if (url == null) {
+                    return;
+                }
+                
+                var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
+                Models.addModel({ position: position,
+                                radius: radiusDefault,
+                                modelURL: url
+                                });
+                break;
+            case moveYZ:
+                print("Selected moveYZ");
+                
+                break;
+            case moveXZ:
+                print("Selected moveXZ");
+                
+                break;
+            case moveXY:
+                print("Selected moveXY");
+                
+                break;
+            case yaw:
+                print("Selected yaw");
+                
+                break;
+            case pitch:
+                print("Selected pitch");
+                
+                break;
+            case roll:
+                print("Selected roll");
+                
+                break;
+            case scale:
+                print("Selected scale");
+                
+                break;
+            default:
+                clickEvent = false;
+                return;
+        }
+        clickEvent = true;
+        
+        if (modifierType != -1) {
+            toolBar.tools[modifierType].select(false);
+        }
+        modifierType = index;
+    } else {
+        var pickRay = Camera.computePickRay(event.x, event.y);
+        Vec3.print("Looking at: ", pickRay.origin);
+        var foundModels = Models.findModels(pickray.origin, LASER_LENGTH_FACTOR);
+        for (var i = 0; i < foundModels.length; i++) {
+            if (!foundModels[i].isKnownID) {
+                var identify = Models.identifyModel(foundModels[i]);
+                if (!identify.isKnownID) {
+                    print("Unknown ID " + identify.id + "(update loop)");
+                    return;
+                }
+                foundModels[i] = identify;
+            }
+            
+            var properties = Models.getModelProperties(foundModels[i]);
+            print("Checking properties: " + properties.id + " " + properties.isKnownID);
+            
+            //                P         P - Model
+            //               /|         A - Palm
+            //              / | d       B - unit vector toward tip
+            //             /  |         X - base of the perpendicular line
+            //            A---X----->B  d - distance fom axis
+            //              x           x - distance from A
+            //
+            //            |X-A| = (P-A).B
+            //            X == A + ((P-A).B)B
+            //            d = |P-X|
+            
+            var A = pickRay.origin;
+            var B = Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, LASER_LENGTH_FACTOR));
+            var P = properties.position;
+            
+            var x = Vec3.dot(Vec3.subtract(P, A), B);
+            var X = Vec3.sum(A, Vec3.multiply(B, x));
+            var d = Vec3.length(Vec3.subtract(P, X));
+            
+            if (d < properties.radius && 0 < x && x < LASER_LENGTH_FACTOR) {
+                modelSelected = true;
+                selectedModelID = foundModels[i];
+                selectedModelProperties = properties;
+                return;
+            }
+        }
     }
 }
 
 function mouseMoveEvent(event)  {
+    if (clickEvent && !modelSelected) {
+        return;
+    }
     
+    print("Dragging");
+    
+    switch(modifierType) {
+        case moveYZ:
+            print("Move " + moveYZ);
+            break;
+        case moveXZ:
+            print("Move " + moveXZ);
+            
+            break;
+        case moveXY:
+            print("Move " + moveXY);
+            
+            break;
+        case yaw:
+            print("Move " + yaw);
+            
+            break;
+        case pitch:
+            print("Move " + pitch);
+            
+            break;
+        case roll:
+            print("Move " + roll);
+            
+            break;
+        case scale:
+            print("Move " + scale);
+            
+            break;
+    }
+    
+    Model.editModel(selectedModelID, selectedModelProperties);
 }
 
 function scriptEnding() {

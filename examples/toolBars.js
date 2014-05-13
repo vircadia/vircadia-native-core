@@ -13,7 +13,6 @@ Overlay2D = function(properties, overlay) { // overlay is an optionnal variable
     if (!(typeof(properties) === 'undefined')) {
         if(typeof(overlay) === 'undefined') {
             overlay = Overlays.addOverlay("image", properties);
-            print("New overlay: " + overlay);
         } else {
             Overlays.editOverlay(overlay, properties);
         }
@@ -87,25 +86,23 @@ Tool = function(properties, selectable, selected) { // selectable and selected a
         return selectable;
     }
     
-    if (this.selectable()) {
-        this.selected = function() {
-            return selected;
-        }
-        this.select = function(doSelect) {
-            selected = doSelect;
-            properties.subImage.y = (selected ? 2 : 1) * properties.subImage.height;
-            Overlays.editOverlay(this.overlay(), { subImage: properties.subImage });
-        }
-        this.toggle = function() {
-            selected = !selected;
-            properties.subImage.y = (selected ? 2 : 1) * properties.subImage.height;
-            Overlays.editOverlay(this.overlay(), { subImage: properties.subImage });
-            
-            return selected;
-        }
-        
-        this.select(selected);
+    this.selected = function() {
+        return selected;
     }
+    this.select = function(doSelect) {
+        selected = doSelect;
+        properties.subImage.y = (selected ? 2 : 1) * properties.subImage.height;
+        Overlays.editOverlay(this.overlay(), { subImage: properties.subImage });
+    }
+    this.toggle = function() {
+        selected = !selected;
+        properties.subImage.y = (selected ? 2 : 1) * properties.subImage.height;
+        Overlays.editOverlay(this.overlay(), { subImage: properties.subImage });
+        
+        return selected;
+    }
+    
+    this.select(selected);
     
     this.baseClicked = this.clicked;
     this.clicked = function(clickedOverlay) {
@@ -144,7 +141,7 @@ ToolBar = function(x, y, direction) {
         }
         
         this.tools[this.tools.length] = new Tool(properties, selectable, selected);
-        return this.tools.length - 1;
+        return ((this.tools.length) - 1);
     }
     
     this.move = function(x, y) {
@@ -172,7 +169,7 @@ ToolBar = function(x, y, direction) {
     this.clicked = function(clickedOverlay) {
         for(var tool in this.tools) {
             if (this.tools[tool].visible() && this.tools[tool].clicked(clickedOverlay)) {
-                return tool;
+                return parseInt(tool);
             }
         }
         return -1;
