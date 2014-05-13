@@ -13,7 +13,9 @@
 
 #include <FBXReader.h>
 
+#include "Application.h"
 #include "PrioVR.h"
+#include "ui/TextRenderer.h"
 
 const unsigned int SERIAL_LIST[] = { 0x00000001, 0x00000000, 0x00000008, 0x00000009, 0x0000000A,
     0x0000000C, 0x0000000D, 0x0000000E, 0x00000004, 0x00000005, 0x00000010, 0x00000011 };
@@ -49,7 +51,6 @@ PrioVR::PrioVR() {
     for (int i = 0; i < LIST_LENGTH; i++) {
         _humanIKJointIndices.append(jointsDiscovered[i] ? indexOfHumanIKJoint(JOINT_NAMES[i]) : -1);
     }
-    yei_tareSensors(_skeletalDevice);
 #endif
 }
 
@@ -61,6 +62,16 @@ PrioVR::~PrioVR() {
 #endif
 }
 
+glm::quat PrioVR::getHeadRotation() const {
+    const int HEAD_ROTATION_INDEX = 0;
+    return _jointRotations.size() > HEAD_ROTATION_INDEX ? _jointRotations.at(HEAD_ROTATION_INDEX) : glm::quat();
+}
+
+glm::quat PrioVR::getTorsoRotation() const {
+    const int TORSO_ROTATION_INDEX = 1;
+    return _jointRotations.size() > TORSO_ROTATION_INDEX ? _jointRotations.at(TORSO_ROTATION_INDEX) : glm::quat();
+}
+
 void PrioVR::update() {
 #ifdef HAVE_PRIOVR
     if (!_skeletalDevice) {
@@ -70,4 +81,31 @@ void PrioVR::update() {
     yei_getLastStreamDataAll(_skeletalDevice, (char*)_jointRotations.data(),
         _jointRotations.size() * sizeof(glm::quat), &timestamp);
 #endif
+}
+
+void PrioVR::reset() {
+#ifdef HAVE_PRIOVR
+    if (!_skeletalDevice) {
+        return;
+    }
+    connect(Application::getInstance(), SIGNAL(renderingOverlay()), SLOT(renderCalibrationCountdown()));
+    _calibrationCountdownStarted = QDateTime::currentDateTime();
+#endif
+}
+
+void PrioVR::renderCalibrationCountdown() {
+#ifdef HAVE_PRIOVR
+    const int COUNTDOWN_SECONDS = 3;
+    int secondsRemaining = COUNTDOWN_SECONDS - _calibrationCountdownStarted.secsTo(QDateTime::currentDateTime());
+    if (secondsRemaining == 0) {
+        yei_tareSensors(_skeletalDevice);
+        Application::getInstance()->disconnect(this);
+        return;
+    }
+    static TextRenderer textRenderer(MONO_FONT_FAMILY, 18, QFont::Bold, false, TextRenderer::OUTLINE_EFFECT, 2);
+    QByteArray text = "Assume T-Pose in " + QByteArray::number(secondsRemaining) + "...";
+    textRenderer.draw((Application::getInstance()->getGLWidget()->width() - textRenderer.computeWidth(text.constData())) / 2,
+        Application::getInstance()->getGLWidget()->height() / 2,
+        text);
+#endif  
 }

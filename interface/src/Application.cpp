@@ -2752,6 +2752,9 @@ void Application::displayOverlay() {
         drawText(_glWidget->width() - 100, _glWidget->height() - timerBottom, 0.30f, 0.0f, 0, frameTimer, WHITE_TEXT);
     }
 
+    // give external parties a change to hook in
+    emit renderingOverlay();
+        
     _overlays.render2D();
 
     glPopMatrix();
@@ -3059,6 +3062,8 @@ void Application::resetSensors() {
     if (OculusManager::isConnected()) {
         OculusManager::reset();
     }
+
+    _prioVR.reset();
 
     QCursor::setPos(_mouseX, _mouseY);
     _myAvatar->reset();

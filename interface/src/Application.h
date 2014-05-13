@@ -195,6 +195,7 @@ public:
     Visage* getVisage() { return &_visage; }
     FaceTracker* getActiveFaceTracker();
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
+    PrioVR* getPrioVR() { return &_prioVR; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QUndoStack* getUndoStack() { return &_undoStack; }
 
@@ -267,6 +268,9 @@ signals:
 
     /// Fired when we're rendering in-world interface elements; allows external parties to hook in.
     void renderingInWorldInterface();
+
+    /// Fired when we're rendering the overlay.
+    void renderingOverlay();
 
     /// Fired when the import window is closed
     void importDone();

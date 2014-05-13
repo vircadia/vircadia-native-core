@@ -12,6 +12,7 @@
 #ifndef hifi_PrioVR_h
 #define hifi_PrioVR_h
 
+#include <QDateTime>
 #include <QObject>
 #include <QVector>
 
@@ -32,10 +33,20 @@ public:
     PrioVR();
     virtual ~PrioVR();
 
+    bool isActive() const { return !_jointRotations.isEmpty(); }
+
+    glm::quat getHeadRotation() const;
+    glm::quat getTorsoRotation() const;
+
     const QVector<int>& getHumanIKJointIndices() const { return _humanIKJointIndices; }
     const QVector<glm::quat>& getJointRotations() const { return _jointRotations; }
     
     void update();
+    void reset();
+
+private slots:
+
+    void renderCalibrationCountdown();
 
 private:
 #ifdef HAVE_PRIOVR
@@ -44,6 +55,8 @@ private:
 
     QVector<int> _humanIKJointIndices;
     QVector<glm::quat> _jointRotations;
+    
+    QDateTime _calibrationCountdownStarted;
 };
 
 #endif // hifi_PrioVR_h
