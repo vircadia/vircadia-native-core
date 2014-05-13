@@ -162,9 +162,9 @@ void Hand::render(bool isMine, Model::RenderMode renderMode) {
 }
 
 void Hand::renderHandTargets(bool isMine) {
+    glPushMatrix();
 
     const float alpha = 1.0f;
-    
     const glm::vec3 handColor(1.0, 0.0, 0.0); //  Color the hand targets red to be different than skin
     
     glEnable(GL_DEPTH_TEST);

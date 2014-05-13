@@ -67,7 +67,7 @@ public:
     void loadData(QSettings* settings);
 
     void saveAttachmentData(const AttachmentData& attachment) const;
-    AttachmentData loadAttachmentData(const QUrl& modelURL) const;
+    AttachmentData loadAttachmentData(const QUrl& modelURL, const QString& jointName = QString()) const;
 
     //  Set what driving keys are being pressed to control thrust levels
     void setDriveKeys(int key, float val) { _driveKeys[key] = val; };
