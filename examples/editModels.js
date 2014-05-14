@@ -404,8 +404,24 @@ function moveOverlays() {
 var modelSelected = false;
 var selectedModelID;
 var selectedModelProperties;
+var mouseLastPosition;
+var orientation;
+var intersection;
+
+
+var SCALE_FACTOR = 200.0;
+var TRANSLATION_FACTOR = 100.0;
+var ROTATION_FACTOR = 100.0;
+
+function rayPlaneIntersection(pickRay, point, normal) {
+    var d = -Vec3.dot(point, normal);
+    var t = -(Vec3.dot(pickRay.origin, normal) + d) / Vec3.dot(pickRay.direction, normal);
+    
+    return Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, t));
+}
 
 function mousePressEvent(event) {
+    mouseLastPosition = { x: event.x, y: event.y };
     modelSelected = false;
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
     
@@ -461,21 +477,122 @@ function mousePressEvent(event) {
                 modelSelected = true;
                 selectedModelID = foundModels[i];
                 selectedModelProperties = properties;
+                
+                selectedModelProperties.oldRadius = selectedModelProperties.radius;
+                selectedModelProperties.oldPosition = {
+                x: selectedModelProperties.position.x,
+                y: selectedModelProperties.position.y,
+                z: selectedModelProperties.position.z,
+                };
+                selectedModelProperties.oldRotation = {
+                x: selectedModelProperties.modelRotation.x,
+                y: selectedModelProperties.modelRotation.y,
+                z: selectedModelProperties.modelRotation.z,
+                w: selectedModelProperties.modelRotation.w,
+                };
+                
+                
+                orientation = MyAvatar.orientation;
+                intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
                 print("Clicked on " + selectedModelID.id + " " +  modelSelected);
+                
                 return;
             }
         }
     }
 }
 
+var oldModifier = 0;
+var modifier = 0;
+var wasShifted = false;
 function mouseMoveEvent(event)  {
     if (!modelSelected) {
         return;
     }
-    print("Dragging");
+    
+    if (event.isLeftButton) {
+        if (event.isRightButton) {
+            modifier = 1; // Scale
+        } else {
+            modifier = 2; // Translate
+        }
+    } else if (event.isRightButton) {
+        modifier = 3; // rotate
+    } else {
+        modifier = 0;
+    }
+    
+    var pickRay = Camera.computePickRay(event.x, event.y);
+    if (wasShifted != event.isShifted || modifier != oldModifier) {
+        selectedModelProperties.oldRadius = selectedModelProperties.radius;
+        
+        selectedModelProperties.oldPosition = {
+        x: selectedModelProperties.position.x,
+        y: selectedModelProperties.position.y,
+        z: selectedModelProperties.position.z,
+        };
+        selectedModelProperties.oldRotation = {
+        x: selectedModelProperties.modelRotation.x,
+        y: selectedModelProperties.modelRotation.y,
+        z: selectedModelProperties.modelRotation.z,
+        w: selectedModelProperties.modelRotation.w,
+        };
+        orientation = MyAvatar.orientation;
+        intersection = rayPlaneIntersection(pickRay,
+                                            selectedModelProperties.oldPosition,
+                                            Quat.getFront(orientation));
+        
+        mouseLastPosition = { x: event.x, y: event.y };
+        wasShifted = event.isShifted;
+        oldModifier = modifier;
+        return;
+    }
     
     
-    //Model.editModel(selectedModelID, selectedModelProperties);
+    switch (modifier) {
+        case 0:
+            return;
+        case 1:
+            // Let's Scale
+            selectedModelProperties.radius = (selectedModelProperties.oldRadius *
+                                              (1.0 + (mouseLastPosition.y - event.y) / SCALE_FACTOR));
+            
+            if (selectedModelProperties.radius < 0.01) {
+                print("Scale too small ... bailling.");
+                return;
+            }
+            break;
+            
+        case 2:
+            // Let's translate
+            var newIntersection = rayPlaneIntersection(pickRay,
+                                                       selectedModelProperties.oldPosition,
+                                                       Quat.getFront(orientation));
+            var vector = Vec3.subtract(newIntersection, intersection)
+            if (event.isShifted) {
+                var i = Vec3.dot(vector, Quat.getRight(orientation));
+                var j = Vec3.dot(vector, Quat.getUp(orientation));
+                vector = Vec3.sum(Vec3.multiply(Quat.getRight(orientation), i),
+                                  Vec3.multiply(Quat.getFront(orientation), j));
+            }
+            
+            selectedModelProperties.position = Vec3.sum(selectedModelProperties.oldPosition, vector);
+            break;
+        case 3:
+            // Let's rotate
+            var rotation = Quat.fromVec3Degrees({ x: event.y - mouseLastPosition.y, y: event.x - mouseLastPosition.x, z: 0 });
+            if (event.isShifted) {
+                rotation = Quat.fromVec3Degrees({ x: event.y - mouseLastPosition.y, y: 0, z: mouseLastPosition.x - event.x });
+            }
+            
+            var newRotation = Quat.multiply(orientation, rotation);
+            newRotation = Quat.multiply(newRotation, Quat.inverse(orientation));
+            
+            selectedModelProperties.modelRotation = Quat.multiply(newRotation, selectedModelProperties.oldRotation);
+            break;
+    }
+    
+    Models.editModel(selectedModelID, selectedModelProperties);
 }
 
 function scriptEnding() {
