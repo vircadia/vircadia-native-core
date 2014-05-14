@@ -23,7 +23,6 @@
 
 using namespace std;
 
-const float FINGERTIP_COLLISION_RADIUS = 0.01f;
 const float PALM_COLLISION_RADIUS = 0.03f;
 
 
@@ -201,7 +200,7 @@ void Hand::renderHandTargets(bool isMine) {
             glm::vec3 root = palm.getPosition();
             Avatar::renderJointConnectingCone(root, tip, PALM_FINGER_ROD_RADIUS, PALM_FINGER_ROD_RADIUS);
             //  Render sphere at palm/finger root
-            glm::vec3 offsetFromPalm = root + palm.getPalmDirection() * PALM_DISK_THICKNESS;
+            glm::vec3 offsetFromPalm = root + palm.getNormal() * PALM_DISK_THICKNESS;
             Avatar::renderJointConnectingCone(root, offsetFromPalm, PALM_DISK_RADIUS, 0.0f);
             glPushMatrix();
             glTranslatef(root.x, root.y, root.z);

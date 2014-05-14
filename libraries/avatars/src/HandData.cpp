@@ -120,7 +120,7 @@ glm::vec3 PalmData::getFingerDirection() const {
     return _owningHandData->localToWorldDirection(_rawRotation * LOCAL_FINGER_DIRECTION);
 }
 
-glm::vec3 PalmData::getPalmDirection() const {
+glm::vec3 PalmData::getNormal() const {
     const glm::vec3 LOCAL_PALM_DIRECTION(0.0f, -1.0f, 0.0f);
     return _owningHandData->localToWorldDirection(_rawRotation * LOCAL_PALM_DIRECTION);
 }

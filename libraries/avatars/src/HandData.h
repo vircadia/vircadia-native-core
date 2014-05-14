@@ -146,7 +146,7 @@ public:
     // return world-frame:
     glm::vec3 getFingerTipPosition() const;
     glm::vec3 getFingerDirection() const;
-    glm::vec3 getPalmDirection() const;
+    glm::vec3 getNormal() const;
 
 private:
     glm::quat _rawRotation;
