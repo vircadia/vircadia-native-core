@@ -128,6 +128,7 @@ QVector<Model::JointState> Model::createJointStates(const FBXGeometry& geometry)
     jointIsSet.fill(false, numJoints);
     int numJointsSet = 0;
     int lastNumJointsSet = -1;
+    glm::mat4 baseTransform = glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset);
     while (numJointsSet < numJoints && numJointsSet != lastNumJointsSet) {
         lastNumJointsSet = numJointsSet;
         for (int i = 0; i < numJoints; ++i) {
@@ -138,7 +139,6 @@ QVector<Model::JointState> Model::createJointStates(const FBXGeometry& geometry)
             const FBXJoint& joint = geometry.joints[i];
             int parentIndex = joint.parentIndex;
             if (parentIndex == -1) {
-                glm::mat4 baseTransform = glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset);
                 glm::quat combinedRotation = joint.preRotation * state.rotation * joint.postRotation;    
                 state.transform = baseTransform * geometry.offset * glm::translate(state.translation) * joint.preTransform *
                     glm::mat4_cast(combinedRotation) * joint.postTransform;

@@ -622,7 +622,7 @@ bool Avatar::findParticleCollisions(const glm::vec3& particleCenter, float parti
 
                 glm::vec3 fingerAxis = palm->getFingerDirection();
                 glm::vec3 diskCenter = handPosition + HAND_PADDLE_OFFSET * fingerAxis;
-                glm::vec3 diskNormal = palm->getPalmDirection();
+                glm::vec3 diskNormal = palm->getNormal();
                 const float DISK_THICKNESS = 0.08f;
 
                 // collide against the disk

@@ -137,15 +137,8 @@ void MyAvatar::simulate(float deltaTime) {
         Application::getInstance()->getCamera()->setScale(scale);
     }
 
-    // update the movement of the hand and process handshaking with other avatars...
-    bool pointing = false;
-    if (_mousePressed) {
-        _handState = HAND_STATE_GRASPING;
-    } else if (pointing) {
-        _handState = HAND_STATE_POINTING;
-    } else {
-        _handState = HAND_STATE_NULL;
-    }
+    // no extra movement of the hand here any more ...
+    _handState = HAND_STATE_NULL;
 
     updateOrientation(deltaTime);
 

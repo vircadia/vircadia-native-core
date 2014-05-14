@@ -45,7 +45,7 @@ public:
 
     glm::vec3 localToWorldDirection(const glm::vec3& localVector) {
         return getBaseOrientation() * localVector;
-    } 
+    }
 
     glm::vec3 worldToLocalVector(const glm::vec3& worldVector) const;
 
@@ -146,7 +146,7 @@ public:
     // return world-frame:
     glm::vec3 getFingerTipPosition() const;
     glm::vec3 getFingerDirection() const;
-    glm::vec3 getPalmDirection() const;
+    glm::vec3 getNormal() const;
 
 private:
     glm::quat _rawRotation;

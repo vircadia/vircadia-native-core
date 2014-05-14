@@ -198,7 +198,7 @@ glm::vec3 ControllerScriptingInterface::getSpatialControlNormal(int controlIndex
     if (palmData) {
         switch (controlOfPalm) {
             case PALM_SPATIALCONTROL:
-                return palmData->getPalmDirection();
+                return palmData->getNormal();
             case TIP_SPATIALCONTROL:
                 return palmData->getFingerDirection();
         }

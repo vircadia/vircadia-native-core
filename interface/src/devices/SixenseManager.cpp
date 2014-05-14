@@ -106,7 +106,7 @@ void SixenseManager::update(float deltaTime) {
         palm->setControllerButtons(data->buttons);
         palm->setTrigger(data->trigger);
         palm->setJoystick(data->joystick_x, data->joystick_y);
- 
+
         // NOTE: Sixense API returns pos data in millimeters but we IMMEDIATELY convert to meters.
         glm::vec3 position(data->pos[0], data->pos[1], data->pos[2]);
         position *= METERS_PER_MILLIMETER;

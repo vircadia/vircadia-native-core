@@ -3405,6 +3405,8 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     scriptEngine->registerGlobalObject("Clipboard", clipboardScriptable);
     connect(scriptEngine, SIGNAL(finished(const QString&)), clipboardScriptable, SLOT(deleteLater()));
 
+    connect(scriptEngine, SIGNAL(finished(const QString&)), this, SLOT(scriptFinished(const QString&)));
+
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
 
     QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", WindowScriptingInterface::getInstance());
@@ -3447,6 +3449,14 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     return scriptEngine;
 }
 
+void Application::scriptFinished(const QString& scriptName) {
+    if (_scriptEnginesHash.remove(scriptName)) {
+        _runningScriptsWidget->scriptStopped(scriptName);
+        _runningScriptsWidget->setRunningScripts(getRunningScripts());
+        bumpSettings();
+    }
+}
+
 void Application::stopAllScripts(bool restart) {
     // stops all current running scripts
     for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
@@ -3457,18 +3467,12 @@ void Application::stopAllScripts(bool restart) {
         it.value()->stop();
         qDebug() << "stopping script..." << it.key();
     }
-    _scriptEnginesHash.clear();
-    _runningScriptsWidget->setRunningScripts(getRunningScripts());
-    bumpSettings();
 }
 
 void Application::stopScript(const QString &scriptName) {
     if (_scriptEnginesHash.contains(scriptName)) {
         _scriptEnginesHash.value(scriptName)->stop();
         qDebug() << "stopping script..." << scriptName;
-        _scriptEnginesHash.remove(scriptName);
-        _runningScriptsWidget->setRunningScripts(getRunningScripts());
-        bumpSettings();
     }
 }
 
