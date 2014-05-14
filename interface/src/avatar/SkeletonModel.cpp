@@ -176,7 +176,10 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
     palmRotation = rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), direction) * palmRotation;
 
     // set hand position, rotation
-    if (Menu::getInstance()->isOptionChecked(MenuOption::AlignForearmsWithWrists)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AlternateIK)) {
+        setHandPosition(jointIndex, palm.getPosition(), palmRotation);  
+        
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::AlignForearmsWithWrists)) {
         glm::vec3 forearmVector = palmRotation * glm::vec3(sign, 0.0f, 0.0f);
         setJointPosition(parentJointIndex, palm.getPosition() + forearmVector *
             geometry.joints.at(jointIndex).distanceToParent * extractUniformScale(_scale));
@@ -274,5 +277,9 @@ void SkeletonModel::renderJointConstraints(int jointIndex) {
     } while (jointIndex != -1 && geometry.joints.at(jointIndex).isFree);
     
     glLineWidth(1.0f);
+}
+
+void SkeletonModel::setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation) {
+    
 }
 
