@@ -96,7 +96,6 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
     _runningScriptsTable->setRowCount(list.size());
 
     ui->noRunningScriptsLabel->setVisible(list.isEmpty());
-    ui->currentlyRunningLabel->setVisible(!list.isEmpty());
     ui->runningScriptsTableWidget->setVisible(!list.isEmpty());
     ui->reloadAllButton->setVisible(!list.isEmpty());
     ui->stopAllButton->setVisible(!list.isEmpty());
@@ -220,7 +219,7 @@ void RunningScriptsWidget::createRecentlyLoadedScriptsTable() {
         }
     }
 
-    ui->recentlyLoadedLabel->setVisible(!_recentlyLoadedScripts.isEmpty());
+    ui->noRecentlyLoadedLabel->setVisible(_recentlyLoadedScripts.isEmpty());
     ui->recentlyLoadedScriptsTableWidget->setVisible(!_recentlyLoadedScripts.isEmpty());
     ui->recentlyLoadedInstruction->setVisible(!_recentlyLoadedScripts.isEmpty());
 
