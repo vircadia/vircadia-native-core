@@ -292,6 +292,7 @@ public slots:
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
     ScriptEngine* loadScript(const QString& fileNameString, bool loadScriptFromEditor = false);
+    void scriptFinished(const QString& scriptName);
     void stopAllScripts(bool restart = false);
     void stopScript(const QString& scriptName);
     void reloadAllScripts();
