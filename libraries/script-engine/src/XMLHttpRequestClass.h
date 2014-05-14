@@ -40,8 +40,8 @@ class XMLHttpRequestClass : public QObject {
     Q_PROPERTY(int DONE READ getDone)
 
     // Callbacks
-    Q_PROPERTY(QScriptValue ontimeout WRITE setOnTimeout)
-    Q_PROPERTY(QScriptValue onreadystatechange WRITE setOnReadyStateChange)
+    Q_PROPERTY(QScriptValue ontimeout READ getOnTimeout WRITE setOnTimeout)
+    Q_PROPERTY(QScriptValue onreadystatechange READ getOnReadyStateChange WRITE setOnReadyStateChange)
 public:
     XMLHttpRequestClass(QScriptEngine* engine);
     ~XMLHttpRequestClass();
@@ -74,7 +74,9 @@ public:
     QScriptValue getStatus() const;
     QString getStatusText() const;
 
+    QScriptValue getOnTimeout() const { return _onTimeout; }
     void setOnTimeout(QScriptValue function) { _onTimeout = function; }
+    QScriptValue getOnReadyStateChange() const { return _onReadyStateChange; }
     void setOnReadyStateChange(QScriptValue function) { _onReadyStateChange = function; }
 
 public slots:
