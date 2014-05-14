@@ -211,6 +211,8 @@ public:
     Extents bindExtents;
     Extents meshExtents;
     
+    float fstScaled;
+    
     QVector<FBXAnimationFrame> animationFrames;
     
     QVector<FBXAttachment> attachments;

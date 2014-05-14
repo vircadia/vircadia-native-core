@@ -66,6 +66,8 @@ PacketVersion versionForPacketType(PacketType type) {
             return 1;
         case PacketTypeOctreeStats:
             return 1;
+        case PacketTypeModelData:
+            return 1; 
         default:
             return 0;
     }
