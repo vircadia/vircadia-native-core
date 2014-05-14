@@ -9,11 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("toolBars.js");
+
 var windowDimensions = Controller.getViewportDimensions();
+var toolIconUrl = "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/tools/";
+var toolHeight = 50;
+var toolWidth = 50;
 
 var LASER_WIDTH = 4;
 var LASER_COLOR = { red: 255, green: 0, blue: 0 };
-var LASER_LENGTH_FACTOR = 1.5;
+var LASER_LENGTH_FACTOR = 5;
 
 var LEFT = 0;
 var RIGHT = 1;
@@ -33,24 +38,7 @@ var modelURLs = [
                  "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/slimer.fbx",
                  ];
 
-var toolIconUrl = "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/tools/";
-var numberOfTools = 1;
-var toolHeight = 50;
-var toolWidth = 50;
-var toolVerticalSpacing = 4;
-var toolsHeight = toolHeight * numberOfTools + toolVerticalSpacing * (numberOfTools - 1);
-var toolsX = windowDimensions.x - 8 - toolWidth;
-var toolsY = (windowDimensions.y - toolsHeight) / 2;
-
-
-var firstModel = Overlays.addOverlay("image", {
-                                     x: 0, y: 0, width: toolWidth, height: toolHeight,
-                                     subImage: { x: 0, y: toolHeight, width: toolWidth, height: toolHeight },
-                                     imageURL: toolIconUrl + "voxel-tool.svg",
-                                     x: toolsX, y: toolsY + ((toolHeight + toolVerticalSpacing) * 0), width: toolWidth, height: toolHeight,
-                                     visible: true,
-                                     alpha: 0.9
-                                     });
+var toolBar;
 
 function controller(wichSide) {
     this.side = wichSide;
@@ -206,6 +194,13 @@ function controller(wichSide) {
                              });
     }
     
+    this.hideLaser = function() {
+        Overlays.editOverlay(this.laser, { visible: false });
+        Overlays.editOverlay(this.ball, { visible: false });
+        Overlays.editOverlay(this.leftRight, { visible: false });
+        Overlays.editOverlay(this.topDown, { visible: false });
+    }
+    
     this.moveModel = function () {
         if (this.grabbing) {
             var newPosition = Vec3.sum(this.palmPosition,
@@ -345,67 +340,272 @@ function moveModels() {
     rightController.moveModel();
 }
 
+var hydraConnected = false;
 function checkController(deltaTime) {
     var numberOfButtons = Controller.getNumberOfButtons();
     var numberOfTriggers = Controller.getNumberOfTriggers();
     var numberOfSpatialControls = Controller.getNumberOfSpatialControls();
     var controllersPerTrigger = numberOfSpatialControls / numberOfTriggers;
-
-    moveOverlays();
     
     // this is expected for hydras
-    if (!(numberOfButtons==12 && numberOfTriggers == 2 && controllersPerTrigger == 2)) {
-        //print("no hydra connected?");
-        return; // bail if no hydra
+    if (numberOfButtons==12 && numberOfTriggers == 2 && controllersPerTrigger == 2) {
+        if (!hydraConnected) {
+            hydraConnected = true;
+        }
+        
+        leftController.update();
+        rightController.update();
+        moveModels();
+    } else {
+        if (hydraConnected) {
+            hydraConnected = false;
+            
+            leftController.hideLaser();
+            rightController.hideLaser();
+        }
     }
     
-    leftController.update();
-    rightController.update();
-    moveModels();
+    moveOverlays();
+}
+
+
+
+function initToolBar() {
+    toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
+    // New Model
+    newModel = toolBar.addTool({
+                               imageURL: toolIconUrl + "voxel-tool.svg",
+                               subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+                               width: toolWidth, height: toolHeight,
+                               visible: true,
+                               alpha: 0.9
+                               });
 }
 
 function moveOverlays() {
-    windowDimensions = Controller.getViewportDimensions();
-    
-    toolsX = windowDimensions.x - 8 - toolWidth;
-    toolsY = (windowDimensions.y - toolsHeight) / 2;
-    
-    Overlays.editOverlay(firstModel, {
-                        x: toolsX, y: toolsY + ((toolHeight + toolVerticalSpacing) * 0), width: toolWidth, height: toolHeight,
-                        });
-}
-
-function mousePressEvent(event) {
-    var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
-    var url;
-    
-    if (clickedOverlay == firstModel) {
-        url = Window.prompt("Model url", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
-        if (url == null) {
-            return;        }
-    } else {
-        print("Didn't click on anything");
+    if (typeof(toolBar) === 'undefined') {
+        initToolBar();
+        
+    } else if (windowDimensions.x == Controller.getViewportDimensions().x &&
+               windowDimensions.y == Controller.getViewportDimensions().y) {
         return;
     }
     
-    var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
-    Models.addModel({ position: position,
-                    radius: radiusDefault,
-                    modelURL: url
-                    });
+    
+    windowDimensions = Controller.getViewportDimensions();
+    var toolsX = windowDimensions.x - 8 - toolBar.width;
+    var toolsY = (windowDimensions.y - toolBar.height) / 2;
+    
+    toolBar.move(toolsX, toolsY);
+}
+
+
+
+var modelSelected = false;
+var selectedModelID;
+var selectedModelProperties;
+var mouseLastPosition;
+var orientation;
+var intersection;
+
+
+var SCALE_FACTOR = 200.0;
+var TRANSLATION_FACTOR = 100.0;
+var ROTATION_FACTOR = 100.0;
+
+function rayPlaneIntersection(pickRay, point, normal) {
+    var d = -Vec3.dot(point, normal);
+    var t = -(Vec3.dot(pickRay.origin, normal) + d) / Vec3.dot(pickRay.direction, normal);
+    
+    return Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, t));
+}
+
+function mousePressEvent(event) {
+    mouseLastPosition = { x: event.x, y: event.y };
+    modelSelected = false;
+    var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
+    
+    if (newModel == toolBar.clicked(clickedOverlay)) {
+        var url = Window.prompt("Model url", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
+        if (url == null) {
+            return;
+        }
+        
+        var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
+        Models.addModel({ position: position,
+                        radius: radiusDefault,
+                        modelURL: url
+                        });
+        
+    } else {
+        var pickRay = Camera.computePickRay(event.x, event.y);
+        Vec3.print("[Mouse] Looking at: ", pickRay.origin);
+        var foundModels = Models.findModels(pickRay.origin, LASER_LENGTH_FACTOR);
+        for (var i = 0; i < foundModels.length; i++) {
+            if (!foundModels[i].isKnownID) {
+                var identify = Models.identifyModel(foundModels[i]);
+                if (!identify.isKnownID) {
+                    print("Unknown ID " + identify.id + "(update loop)");
+                    continue;
+                }
+                foundModels[i] = identify;
+            }
+            
+            var properties = Models.getModelProperties(foundModels[i]);
+            print("Checking properties: " + properties.id + " " + properties.isKnownID);
+            
+            //                P         P - Model
+            //               /|         A - Palm
+            //              / | d       B - unit vector toward tip
+            //             /  |         X - base of the perpendicular line
+            //            A---X----->B  d - distance fom axis
+            //              x           x - distance from A
+            //
+            //            |X-A| = (P-A).B
+            //            X == A + ((P-A).B)B
+            //            d = |P-X|
+            
+            var A = pickRay.origin;
+            var B = Vec3.normalize(pickRay.direction);
+            var P = properties.position;
+            
+            var x = Vec3.dot(Vec3.subtract(P, A), B);
+            var X = Vec3.sum(A, Vec3.multiply(B, x));
+            var d = Vec3.length(Vec3.subtract(P, X));
+            
+            if (d < properties.radius && 0 < x && x < LASER_LENGTH_FACTOR) {
+                modelSelected = true;
+                selectedModelID = foundModels[i];
+                selectedModelProperties = properties;
+                
+                selectedModelProperties.oldRadius = selectedModelProperties.radius;
+                selectedModelProperties.oldPosition = {
+                x: selectedModelProperties.position.x,
+                y: selectedModelProperties.position.y,
+                z: selectedModelProperties.position.z,
+                };
+                selectedModelProperties.oldRotation = {
+                x: selectedModelProperties.modelRotation.x,
+                y: selectedModelProperties.modelRotation.y,
+                z: selectedModelProperties.modelRotation.z,
+                w: selectedModelProperties.modelRotation.w,
+                };
+                
+                
+                orientation = MyAvatar.orientation;
+                intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
+                print("Clicked on " + selectedModelID.id + " " +  modelSelected);
+                
+                return;
+            }
+        }
+    }
+}
+
+var oldModifier = 0;
+var modifier = 0;
+var wasShifted = false;
+function mouseMoveEvent(event)  {
+    if (!modelSelected) {
+        return;
+    }
+    
+    if (event.isLeftButton) {
+        if (event.isRightButton) {
+            modifier = 1; // Scale
+        } else {
+            modifier = 2; // Translate
+        }
+    } else if (event.isRightButton) {
+        modifier = 3; // rotate
+    } else {
+        modifier = 0;
+    }
+    
+    var pickRay = Camera.computePickRay(event.x, event.y);
+    if (wasShifted != event.isShifted || modifier != oldModifier) {
+        selectedModelProperties.oldRadius = selectedModelProperties.radius;
+        
+        selectedModelProperties.oldPosition = {
+        x: selectedModelProperties.position.x,
+        y: selectedModelProperties.position.y,
+        z: selectedModelProperties.position.z,
+        };
+        selectedModelProperties.oldRotation = {
+        x: selectedModelProperties.modelRotation.x,
+        y: selectedModelProperties.modelRotation.y,
+        z: selectedModelProperties.modelRotation.z,
+        w: selectedModelProperties.modelRotation.w,
+        };
+        orientation = MyAvatar.orientation;
+        intersection = rayPlaneIntersection(pickRay,
+                                            selectedModelProperties.oldPosition,
+                                            Quat.getFront(orientation));
+        
+        mouseLastPosition = { x: event.x, y: event.y };
+        wasShifted = event.isShifted;
+        oldModifier = modifier;
+        return;
+    }
+    
+    
+    switch (modifier) {
+        case 0:
+            return;
+        case 1:
+            // Let's Scale
+            selectedModelProperties.radius = (selectedModelProperties.oldRadius *
+                                              (1.0 + (mouseLastPosition.y - event.y) / SCALE_FACTOR));
+            
+            if (selectedModelProperties.radius < 0.01) {
+                print("Scale too small ... bailling.");
+                return;
+            }
+            break;
+            
+        case 2:
+            // Let's translate
+            var newIntersection = rayPlaneIntersection(pickRay,
+                                                       selectedModelProperties.oldPosition,
+                                                       Quat.getFront(orientation));
+            var vector = Vec3.subtract(newIntersection, intersection)
+            if (event.isShifted) {
+                var i = Vec3.dot(vector, Quat.getRight(orientation));
+                var j = Vec3.dot(vector, Quat.getUp(orientation));
+                vector = Vec3.sum(Vec3.multiply(Quat.getRight(orientation), i),
+                                  Vec3.multiply(Quat.getFront(orientation), j));
+            }
+            
+            selectedModelProperties.position = Vec3.sum(selectedModelProperties.oldPosition, vector);
+            break;
+        case 3:
+            // Let's rotate
+            var rotation = Quat.fromVec3Degrees({ x: event.y - mouseLastPosition.y, y: event.x - mouseLastPosition.x, z: 0 });
+            if (event.isShifted) {
+                rotation = Quat.fromVec3Degrees({ x: event.y - mouseLastPosition.y, y: 0, z: mouseLastPosition.x - event.x });
+            }
+            
+            var newRotation = Quat.multiply(orientation, rotation);
+            newRotation = Quat.multiply(newRotation, Quat.inverse(orientation));
+            
+            selectedModelProperties.modelRotation = Quat.multiply(newRotation, selectedModelProperties.oldRotation);
+            break;
+    }
+    
+    Models.editModel(selectedModelID, selectedModelProperties);
 }
 
 function scriptEnding() {
     leftController.cleanup();
     rightController.cleanup();
-    
-    Overlays.deleteOverlay(firstModel);
+    toolBar.cleanup();
 }
 Script.scriptEnding.connect(scriptEnding);
 
 // register the call back so it fires before each data send
 Script.update.connect(checkController);
 Controller.mousePressEvent.connect(mousePressEvent);
+Controller.mouseMoveEvent.connect(mouseMoveEvent);
 
 
 
