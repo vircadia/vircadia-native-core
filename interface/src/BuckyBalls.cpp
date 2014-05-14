@@ -60,15 +60,13 @@ BuckyBalls::BuckyBalls() {
 
 void BuckyBalls::grab(PalmData& palm, float deltaTime) {
     float penetration;
-    glm::vec3 diff;
-    FingerData& finger = palm.getFingers()[0];   //  Sixense has only one finger
-    glm::vec3 fingerTipPosition = finger.getTipPosition();
+    glm::vec3 fingerTipPosition = palm.getFingerTipPosition();
 
     if (palm.getControllerButtons() & BUTTON_FWD) {
         if (!_bballIsGrabbed[palm.getSixenseID()]) {
             // Look for a ball to grab
             for (int i = 0; i < NUM_BBALLS; i++) {
-                diff = _bballPosition[i] - fingerTipPosition;
+                glm::vec3 diff = _bballPosition[i] - fingerTipPosition;
                 penetration = glm::length(diff) - (_bballRadius[i] + COLLISION_RADIUS);
                 if (penetration < 0.f) {
                     _bballIsGrabbed[palm.getSixenseID()] = i;
@@ -77,7 +75,7 @@ void BuckyBalls::grab(PalmData& palm, float deltaTime) {
         }
         if (_bballIsGrabbed[palm.getSixenseID()]) {
             //  If ball being grabbed, move with finger
-            diff = _bballPosition[_bballIsGrabbed[palm.getSixenseID()]] - fingerTipPosition;
+            glm::vec3 diff = _bballPosition[_bballIsGrabbed[palm.getSixenseID()]] - fingerTipPosition;
             penetration = glm::length(diff) - (_bballRadius[_bballIsGrabbed[palm.getSixenseID()]] + COLLISION_RADIUS);
             _bballPosition[_bballIsGrabbed[palm.getSixenseID()]] -= glm::normalize(diff) * penetration;
             glm::vec3 fingerTipVelocity = palm.getTipVelocity();
