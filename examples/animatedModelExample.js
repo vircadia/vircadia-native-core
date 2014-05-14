@@ -37,9 +37,6 @@ var originalProperties = {
     animationIsPlaying: true,
 };
 
-var positionDelta = { x: 0, y: 0, z: 0 };
-
-
 var modelID = Models.addModel(originalProperties);
 print("Models.addModel()... modelID.creatorTokenID = " + modelID.creatorTokenID);
 
@@ -47,24 +44,17 @@ var isPlaying = true;
 var playPauseEveryWhile = 360;
 var animationFPS = 30;
 var adjustFPSEveryWhile = 120;
+var resetFrameEveryWhile = 600;
 
 function moveModel(deltaTime) {
-
-//print("count =" + count);
-
-print("(count % playPauseEveryWhile)=" + (count % playPauseEveryWhile));
-
+    var somethingChanged = false;
     if (count % playPauseEveryWhile == 0) {
         isPlaying = !isPlaying;
         print("isPlaying=" + isPlaying);
+        somethingChanged = true;
     }
 
-print("(count % adjustFPSEveryWhile)=" + (count % adjustFPSEveryWhile));
-
     if (count % adjustFPSEveryWhile == 0) {
-
-print("considering adjusting animationFPS=" + animationFPS);
-
         if (animationFPS == 30) {
             animationFPS = 10;
         } else if (animationFPS == 10) {
@@ -75,6 +65,12 @@ print("considering adjusting animationFPS=" + animationFPS);
         print("animationFPS=" + animationFPS);
         isPlaying = true;
         print("always start playing if we change the FPS -- isPlaying=" + isPlaying);
+        somethingChanged = true;
+    }
+
+    if (count % resetFrameEveryWhile == 0) {
+        resetFrame = true;
+        somethingChanged = true;
     }
 
     if (count >= moveUntil) {
@@ -99,20 +95,17 @@ print("considering adjusting animationFPS=" + animationFPS);
 
     //print("modelID.creatorTokenID = " + modelID.creatorTokenID);
 
-    if (true) {
+    if (somethingChanged) {
         var newProperties = {
-            //position: {
-            //        x: originalProperties.position.x + (count * positionDelta.x),
-            //        y: originalProperties.position.y + (count * positionDelta.y),
-            //        z: originalProperties.position.z + (count * positionDelta.z)
-            //},
             animationIsPlaying: isPlaying,
             animationFPS: animationFPS,
         };
-
-
-        //print("modelID = " + modelID);
-        //print("newProperties.position = " + newProperties.position.x + "," + newProperties.position.y+ "," + newProperties.position.z);
+        
+        if (resetFrame) {
+            print("resetting the frame!");
+            newProperties.animationFrameIndex = 0;
+            resetFrame = false;
+        }
 
         Models.editModel(modelID, newProperties);
     }
