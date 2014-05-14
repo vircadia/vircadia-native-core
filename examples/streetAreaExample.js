@@ -33,8 +33,8 @@ if (req.status == 200) {
         for (var i = 0; i < locations.length; i++) {
             var loc = locations[i];
             var x1 = loc[1],
-                y1 = loc[2],
-                x2 = loc[3],
+                x2 = loc[2],
+                y1 = loc[3],
                 y2 = loc[4];
             userAreas.push({
                 username: loc[0],
