@@ -168,7 +168,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _bytesPerSecond(0),
         _previousScriptLocation(),
         _logger(new FileLogger(this)),
-        _runningScriptsWidget(new RunningScriptsWidget(_window)),
+        _runningScriptsWidget(NULL),
         _runningScriptsWidgetWasVisible(false)
 {
     // init GnuTLS for DTLS with domain-servers
@@ -200,6 +200,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
+
+    _runningScriptsWidget = new RunningScriptsWidget(_window);
 
     unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
