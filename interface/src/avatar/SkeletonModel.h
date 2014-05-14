@@ -39,8 +39,7 @@ protected:
 
     void applyHandPosition(int jointIndex, const glm::vec3& position);
     
-    void applyPalmData(int jointIndex, const QVector<int>& fingerJointIndices,
-        const QVector<int>& fingertipJointIndices, PalmData& palm);
+    void applyPalmData(int jointIndex, PalmData& palm);
     
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);   
