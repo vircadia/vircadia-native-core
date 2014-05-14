@@ -80,12 +80,12 @@ void PrioVR::update() {
     unsigned int timestamp;
     yei_getLastStreamDataAll(_skeletalDevice, (char*)_jointRotations.data(),
         _jointRotations.size() * sizeof(glm::quat), &timestamp);
-	
-	// convert to our expected coordinate system
-	for (int i = 0; i < _jointRotations.size(); i++) {
-		_jointRotations[i].y *= -1.0f;
-		_jointRotations[i].z *= -1.0f;
-	}
+
+    // convert to our expected coordinate system
+    for (int i = 0; i < _jointRotations.size(); i++) {
+        _jointRotations[i].y *= -1.0f;
+        _jointRotations[i].z *= -1.0f;
+    }
 #endif
 }
 
