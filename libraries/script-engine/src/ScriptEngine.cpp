@@ -49,7 +49,12 @@ static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* eng
 
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
     qDebug() << "script:print()<<" << context->argument(0).toString();
-    engine->evaluate("Script.print('" + context->argument(0).toString() + "')");
+    QString message = context->argument(0).toString()
+        .replace("\\", "\\\\")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("'", "\\'");
+    engine->evaluate("Script.print('" + message + "')");
     return QScriptValue();
 }
 
