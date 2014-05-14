@@ -33,7 +33,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         return; // only simulate for own avatar
     }
 
-    // find the left and rightmost active Leap palms
+    // find the left and rightmost active palms
     int leftPalmIndex, rightPalmIndex;
     Hand* hand = _owningAvatar->getHand();
     hand->getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
@@ -42,7 +42,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     if (leftPalmIndex == -1) {
-        // no Leap data; set hands from mouse
+        // palms are not yet set, use mouse
         if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
             restoreRightHandPosition(HAND_RESTORATION_RATE);
         } else {
@@ -52,15 +52,12 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
 
     } else if (leftPalmIndex == rightPalmIndex) {
         // right hand only
-        applyPalmData(geometry.rightHandJointIndex, geometry.rightFingerJointIndices, geometry.rightFingertipJointIndices,
-            hand->getPalms()[leftPalmIndex]);
+        applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[leftPalmIndex]);
         restoreLeftHandPosition(HAND_RESTORATION_RATE);
 
     } else {
-        applyPalmData(geometry.leftHandJointIndex, geometry.leftFingerJointIndices, geometry.leftFingertipJointIndices,
-            hand->getPalms()[leftPalmIndex]);
-        applyPalmData(geometry.rightHandJointIndex, geometry.rightFingerJointIndices, geometry.rightFingertipJointIndices,
-            hand->getPalms()[rightPalmIndex]);
+        applyPalmData(geometry.leftHandJointIndex, hand->getPalms()[leftPalmIndex]);
+        applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[rightPalmIndex]);
     }
 }
 
@@ -140,8 +137,7 @@ void SkeletonModel::applyHandPosition(int jointIndex, const glm::vec3& position)
     applyRotationDelta(jointIndex, rotationBetween(handRotation * glm::vec3(-sign, 0.0f, 0.0f), forearmVector));
 }
 
-void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJointIndices,
-        const QVector<int>& fingertipJointIndices, PalmData& palm) {
+void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
     if (jointIndex == -1) {
         return;
     }
@@ -152,7 +148,7 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
         return;
     }
     
-    // rotate palm to align with palm direction
+    // rotate palm to align with its normal (normal points out of hand's palm)
     glm::quat palmRotation;
     if (Menu::getInstance()->isOptionChecked(MenuOption::AlignForearmsWithWrists)) {
         getJointRotation(parentJointIndex, palmRotation, true);
@@ -161,27 +157,9 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
     }
     palmRotation = rotationBetween(palmRotation * geometry.palmDirection, palm.getNormal()) * palmRotation;
     
-    // sort the finger indices by raw x, get the average direction
-    QVector<IndexValue> fingerIndices;
-    glm::vec3 direction;
-    for (size_t i = 0; i < palm.getNumFingers(); i++) {
-        glm::vec3 fingerVector = palm.getFingers()[i].getTipPosition() - palm.getPosition();
-        float length = glm::length(fingerVector);
-        if (length > EPSILON) {
-            direction += fingerVector / length;
-        }
-        fingerVector = glm::inverse(palmRotation) * fingerVector * -sign;
-        IndexValue indexValue = { (int)i, atan2f(fingerVector.z, fingerVector.x) };
-        fingerIndices.append(indexValue);
-    }
-    qSort(fingerIndices.begin(), fingerIndices.end());
-
-    // rotate forearm according to average finger direction
-    float directionLength = glm::length(direction);
-    const unsigned int MIN_ROTATION_FINGERS = 3;
-    if (directionLength > EPSILON && palm.getNumFingers() >= MIN_ROTATION_FINGERS) {
-        palmRotation = rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), direction) * palmRotation;
-    }
+    // rotate palm to align with finger direction
+    glm::vec3 direction = palm.getFingerDirection();
+    palmRotation = rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), direction) * palmRotation;
 
     // set hand position, rotation
     if (Menu::getInstance()->isOptionChecked(MenuOption::AlignForearmsWithWrists)) {
