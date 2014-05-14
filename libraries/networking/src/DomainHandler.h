@@ -21,7 +21,7 @@
 #include "DTLSClientSession.h"
 #include "HifiSockAddr.h"
 
-const QString DEFAULT_DOMAIN_HOSTNAME = "alpha.highfidelity.io";
+const QString DEFAULT_DOMAIN_HOSTNAME = "sandbox.highfidelity.io";
 
 const unsigned short DEFAULT_DOMAIN_SERVER_PORT = 40102;
 const unsigned short DEFAULT_DOMAIN_SERVER_DTLS_PORT = 40103;
