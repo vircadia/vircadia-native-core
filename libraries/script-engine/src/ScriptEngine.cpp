@@ -52,6 +52,7 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
     QString message = context->argument(0).toString()
         .replace("\\", "\\\\")
         .replace("\n", "\\n")
+        .replace("\r", "\\r")
         .replace("'", "\\'");
     engine->evaluate("Script.print('" + message + "')");
     return QScriptValue();
