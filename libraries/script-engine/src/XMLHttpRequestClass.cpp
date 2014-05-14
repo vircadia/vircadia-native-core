@@ -63,7 +63,7 @@ QString XMLHttpRequestClass::getStatusText() const {
 }
 
 void XMLHttpRequestClass::abort() {
-    _abortRequest();
+    abortRequest();
 }
 
 void XMLHttpRequestClass::setRequestHeader(const QString& name, const QString& value) {
@@ -76,18 +76,18 @@ void XMLHttpRequestClass::requestMetaDataChanged() {
     // If this is a redirect, abort the current request and start a new one
     if (redirect.isValid() && _numRedirects < MAXIMUM_REDIRECTS) {
         _numRedirects++;
-        _abortRequest();
+        abortRequest();
 
         QUrl newUrl = _url.resolved(redirect.toUrl().toString());
         _request.setUrl(newUrl);
-        _doSend();
+        doSend();
     }
 }
 
 void XMLHttpRequestClass::requestDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
     if (_readyState == OPENED && bytesReceived > 0) {
-        _setReadyState(HEADERS_RECEIVED);
-        _setReadyState(LOADING);
+        setReadyState(HEADERS_RECEIVED);
+        setReadyState(LOADING);
     }
 }
 
@@ -113,7 +113,7 @@ QScriptValue XMLHttpRequestClass::getResponseHeader(const QString& name) const {
     return QScriptValue::NullValue;
 }
 
-void XMLHttpRequestClass::_setReadyState(ReadyState readyState) {
+void XMLHttpRequestClass::setReadyState(ReadyState readyState) {
     if (readyState != _readyState) {
         _readyState = readyState;
         if (_onReadyStateChange.isFunction()) {
@@ -135,7 +135,7 @@ void XMLHttpRequestClass::open(const QString& method, const QString& url, bool a
         }
         _request.setUrl(_url);
         _method = method;
-        _setReadyState(OPENED);
+        setReadyState(OPENED);
     }
 }
 
@@ -150,7 +150,7 @@ void XMLHttpRequestClass::send(const QString& data) {
             _sendData->setData(data.toUtf8());
         }
 
-        _doSend();
+        doSend();
 
         if (!_async) {
             QEventLoop loop;
@@ -160,10 +160,10 @@ void XMLHttpRequestClass::send(const QString& data) {
     }
 }
 
-void XMLHttpRequestClass::_doSend() {
+void XMLHttpRequestClass::doSend() {
     _reply = _manager.sendCustomRequest(_request, _method.toLatin1(), _sendData);
 
-    _connectToReply(_reply);
+    connectToReply(_reply);
 
     if (_timeout > 0) {
         _timer.start(_timeout);
@@ -175,9 +175,9 @@ void XMLHttpRequestClass::requestTimeout() {
     if (_onTimeout.isFunction()) {
         _onTimeout.call(QScriptValue::NullValue);
     }
-    _abortRequest();
+    abortRequest();
     _errorCode = QNetworkReply::TimeoutError;
-    _setReadyState(DONE);
+    setReadyState(DONE);
     emit requestComplete();
 }
 
@@ -203,29 +203,29 @@ void XMLHttpRequestClass::requestFinished() {
             _responseData = QScriptValue(QString(_rawResponseData.data()));
         }
     }
-    _setReadyState(DONE);
+    setReadyState(DONE);
     emit requestComplete();
 }
 
-void XMLHttpRequestClass::_abortRequest() {
+void XMLHttpRequestClass::abortRequest() {
     // Disconnect from signals we don't want to receive any longer.
     disconnect(&_timer, SIGNAL(timeout()), this, SLOT(requestTimeout()));
     if (_reply) {
-        _disconnectFromReply(_reply);
+        disconnectFromReply(_reply);
         _reply->abort();
         delete _reply;
         _reply = NULL;
     }
 }
 
-void XMLHttpRequestClass::_connectToReply(QNetworkReply* reply) {
+void XMLHttpRequestClass::connectToReply(QNetworkReply* reply) {
     connect(reply, SIGNAL(finished()), this, SLOT(requestFinished()));
     connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestError(QNetworkReply::NetworkError)));
     connect(reply, SIGNAL(downloadProgress(qint64, qint64)), this, SLOT(requestDownloadProgress(qint64, qint64)));
     connect(reply, SIGNAL(metaDataChanged()), this, SLOT(requestMetaDataChanged()));
 }
 
-void XMLHttpRequestClass::_disconnectFromReply(QNetworkReply* reply) {
+void XMLHttpRequestClass::disconnectFromReply(QNetworkReply* reply) {
     disconnect(reply, SIGNAL(finished()), this, SLOT(requestFinished()));
     disconnect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestError(QNetworkReply::NetworkError)));
     disconnect(reply, SIGNAL(downloadProgress(qint64, qint64)), this, SLOT(requestDownloadProgress(qint64, qint64)));

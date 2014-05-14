@@ -93,11 +93,11 @@ signals:
     void requestComplete();
 
 private:
-    void _setReadyState(ReadyState readyState);
-    void _doSend();
-    void _connectToReply(QNetworkReply* reply);
-    void _disconnectFromReply(QNetworkReply* reply);
-    void _abortRequest();
+    void setReadyState(ReadyState readyState);
+    void doSend();
+    void connectToReply(QNetworkReply* reply);
+    void disconnectFromReply(QNetworkReply* reply);
+    void abortRequest();
 
     QScriptEngine* _engine;
     bool _async;
