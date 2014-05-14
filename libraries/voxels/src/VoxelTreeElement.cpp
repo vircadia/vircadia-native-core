@@ -65,7 +65,7 @@ void VoxelTreeElement::splitChildren() {
     }
 }
 
-bool VoxelTreeElement::appendElementData(OctreePacketData* packetData) const {
+bool VoxelTreeElement::appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const {
     return packetData->appendColor(getColor());
 }
 

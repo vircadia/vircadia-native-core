@@ -54,10 +54,9 @@ enum ScreenTintLayer {
     NUM_SCREEN_TINT_LAYERS
 };
 
-// Where one's own Avatar begins in the world (will be overwritten if avatar data file is found)
-// this is basically in the center of the ground plane. Slightly adjusted. This was asked for by
-// Grayson as he's building a street around here for demo dinner 2
-const glm::vec3 START_LOCATION(0.485f * TREE_SCALE, 0.0f, 0.5f * TREE_SCALE);
+// Where one's own Avatar begins in the world (will be overwritten if avatar data file is found).
+// This is the start location in the Sandbox (xyz: 6270, 211, 6000).
+const glm::vec3 START_LOCATION(0.38269043f * TREE_SCALE, 0.01287842f * TREE_SCALE, 0.36621094f * TREE_SCALE);
 
 class Texture;
 
@@ -83,6 +82,7 @@ public:
     //getters
     bool isInitialized() const { return _initialized; }
     SkeletonModel& getSkeletonModel() { return _skeletonModel; }
+    const QVector<Model*>& getAttachmentModels() const { return _attachmentModels; }
     glm::vec3 getChestPosition() const;
     float getScale() const { return _scale; }
     const glm::vec3& getVelocity() const { return _velocity; }
@@ -191,7 +191,7 @@ protected:
     virtual bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
 
     void simulateAttachments(float deltaTime);
-    void renderAttachments(Model::RenderMode renderMode);
+    virtual void renderAttachments(RenderMode renderMode);
 
     virtual void updateJointMappings();
 

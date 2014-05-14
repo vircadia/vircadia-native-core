@@ -96,6 +96,7 @@ public:
     
 protected:
 
+    virtual void init();
     virtual void downloadFinished(QNetworkReply* reply);
     virtual void reinsert();
     
@@ -124,6 +125,7 @@ public:
     
     QSharedPointer<NetworkTexture> diffuseTexture;
     QSharedPointer<NetworkTexture> normalTexture;
+    QSharedPointer<NetworkTexture> specularTexture;
     
     bool isTranslucent() const;
 };

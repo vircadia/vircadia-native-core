@@ -18,6 +18,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <QScriptEngine>
 
+#include <AudioInjector.h>
 #include <AudioRingBuffer.h>
 #include <AvatarData.h>
 #include <CollisionInfo.h>
@@ -51,6 +52,14 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
     qDebug() << "script:print()<<" << context->argument(0).toString();
     engine->evaluate("Script.print('" + context->argument(0).toString() + "')");
     return QScriptValue();
+}
+
+QScriptValue injectorToScriptValue(QScriptEngine *engine, AudioInjector* const &in) {
+    return engine->newQObject(in);
+}
+
+void injectorFromScriptValue(const QScriptValue &object, AudioInjector* &out) {
+    out = qobject_cast<AudioInjector*>(object.toQObject());
 }
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString,
@@ -202,6 +211,7 @@ void ScriptEngine::init() {
     registerEventTypes(&_engine);
     registerMenuItemProperties(&_engine);
     registerAnimationTypes(&_engine);
+    registerAvatarTypes(&_engine);
 
     qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
@@ -230,6 +240,8 @@ void ScriptEngine::init() {
 
     QScriptValue localVoxelsValue = _engine.scriptValueFromQMetaObject<LocalVoxels>();
     _engine.globalObject().setProperty("LocalVoxels", localVoxelsValue);
+    
+    qScriptRegisterMetaType(&_engine, injectorToScriptValue, injectorFromScriptValue);
 
     registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &_audioScriptingInterface);

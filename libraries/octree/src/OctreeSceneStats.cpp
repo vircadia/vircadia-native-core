@@ -875,10 +875,13 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
         return; // ignore any packets that are unreasonable
     }
 
+    // determine our expected sequence number... handle rollover appropriately
+    OCTREE_PACKET_SEQUENCE expected = _incomingPacket > 0 ? _incomingLastSequence + 1 : sequence;
+
     // Guard against possible corrupted packets... with bad sequence numbers
     const int MAX_RESONABLE_SEQUENCE_OFFSET = 2000;
     const int MIN_RESONABLE_SEQUENCE_OFFSET = -2000;
-    int sequenceOffset = (sequence - _incomingLastSequence);
+    int sequenceOffset = (sequence - expected);
     if (sequenceOffset > MAX_RESONABLE_SEQUENCE_OFFSET || sequenceOffset < MIN_RESONABLE_SEQUENCE_OFFSET) {
         qDebug() << "ignoring unreasonable packet... sequence:" << sequence << "_incomingLastSequence:" << _incomingLastSequence;
         return; // ignore any packets that are unreasonable
@@ -901,7 +904,6 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
             qDebug() << "last packet duplicate got:" << sequence << "_incomingLastSequence:" << _incomingLastSequence;
         }
     } else {
-        OCTREE_PACKET_SEQUENCE expected = _incomingLastSequence+1;
         if (sequence != expected) {
             if (wantExtraDebugging) {
                 qDebug() << "out of order... got:" << sequence << "expected:" << expected;
@@ -958,9 +960,9 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
         }
     }
 
-    // only bump the last sequence if it was greater than our previous last sequence, this will keep us from
+    // only bump the last sequence if it was greater than our expected sequence, this will keep us from
     // accidentally going backwards when an out of order (recovered) packet comes in
-    if (sequence > _incomingLastSequence) {
+    if (sequence >= expected) {
         _incomingLastSequence = sequence;
     }
     

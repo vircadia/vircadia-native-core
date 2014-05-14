@@ -26,7 +26,7 @@ public:
     VoxelTree(bool shouldReaverage = false);
 
     virtual VoxelTreeElement* createNewElement(unsigned char * octalCode = NULL);
-    VoxelTreeElement* getRoot() { return (VoxelTreeElement*)_rootNode; }
+    VoxelTreeElement* getRoot() { return static_cast<VoxelTreeElement*>(_rootElement); }
 
     void deleteVoxelAt(float x, float y, float z, float s);
     

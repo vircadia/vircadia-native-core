@@ -342,7 +342,8 @@ bool NetworkGeometry::isLoadedWithTextures() const {
     foreach (const NetworkMesh& mesh, _meshes) {
         foreach (const NetworkMeshPart& part, mesh.parts) {
             if ((part.diffuseTexture && !part.diffuseTexture->isLoaded()) ||
-                    (part.normalTexture && !part.normalTexture->isLoaded())) {
+                    (part.normalTexture && !part.normalTexture->isLoaded()) ||
+                    (part.specularTexture && !part.specularTexture->isLoaded())) {
                 return false;
             }
         }
@@ -416,6 +417,9 @@ void NetworkGeometry::setLoadPriority(const QPointer<QObject>& owner, float prio
             if (part.normalTexture) {
                 part.normalTexture->setLoadPriority(owner, priority);
             }
+            if (part.specularTexture) {
+                part.specularTexture->setLoadPriority(owner, priority);
+            }
         }
     }
 }
@@ -433,6 +437,9 @@ void NetworkGeometry::setLoadPriorities(const QHash<QPointer<QObject>, float>& p
             if (part.normalTexture) {
                 part.normalTexture->setLoadPriorities(priorities);
             }
+            if (part.specularTexture) {
+                part.specularTexture->setLoadPriorities(priorities);
+            }
         }
     }
 }
@@ -449,6 +456,9 @@ void NetworkGeometry::clearLoadPriority(const QPointer<QObject>& owner) {
             }
             if (part.normalTexture) {
                 part.normalTexture->clearLoadPriority(owner);
+            }
+            if (part.specularTexture) {
+                part.specularTexture->clearLoadPriority(owner);
             }
         }
     }
@@ -494,6 +504,15 @@ void GeometryReader::run() {
         QMetaObject::invokeMethod(geometry.data(), "finishedLoading", Q_ARG(bool, false));
     }
     _reply->deleteLater();
+}
+
+void NetworkGeometry::init() {
+    _mapping = QVariantHash();
+    _geometry = FBXGeometry();
+    _meshes.clear();
+    _lods.clear();
+    _request.setUrl(_url);
+    Resource::init();
 }
 
 void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
@@ -565,6 +584,11 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                 networkPart.normalTexture = Application::getInstance()->getTextureCache()->getTexture(
                     _textureBase.resolved(QUrl(part.normalTexture.filename)), true, false, part.normalTexture.content);
                 networkPart.normalTexture->setLoadPriorities(_loadPriorities);
+            }
+            if (!part.specularTexture.filename.isEmpty()) {
+                networkPart.specularTexture = Application::getInstance()->getTextureCache()->getTexture(
+                    _textureBase.resolved(QUrl(part.specularTexture.filename)), true, false, part.specularTexture.content);
+                networkPart.specularTexture->setLoadPriorities(_loadPriorities);
             }
             networkMesh.parts.append(networkPart);
                         

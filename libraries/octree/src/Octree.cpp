@@ -40,7 +40,7 @@ float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeSc
 }
 
 Octree::Octree(bool shouldReaverage) :
-    _rootNode(NULL),
+    _rootElement(NULL),
     _isDirty(true),
     _shouldReaverage(shouldReaverage),
     _stopImport(false),
@@ -50,75 +50,75 @@ Octree::Octree(bool shouldReaverage) :
 }
 
 Octree::~Octree() {
-    // delete the children of the root node
+    // delete the children of the root element
     // this recursively deletes the tree
-    delete _rootNode;
+    delete _rootElement;
 }
 
-// Recurses voxel tree calling the RecurseOctreeOperation function for each node.
+// Recurses voxel tree calling the RecurseOctreeOperation function for each element.
 // stops recursion if operation function returns false.
 void Octree::recurseTreeWithOperation(RecurseOctreeOperation operation, void* extraData) {
-    recurseNodeWithOperation(_rootNode, operation, extraData);
+    recurseElementWithOperation(_rootElement, operation, extraData);
 }
 
-// Recurses voxel tree calling the RecurseOctreePostFixOperation function for each node in post-fix order.
+// Recurses voxel tree calling the RecurseOctreePostFixOperation function for each element in post-fix order.
 void Octree::recurseTreeWithPostOperation(RecurseOctreeOperation operation, void* extraData) {
-    recurseNodeWithPostOperation(_rootNode, operation, extraData);
+    recurseElementWithPostOperation(_rootElement, operation, extraData);
 }
 
-// Recurses voxel node with an operation function
-void Octree::recurseNodeWithOperation(OctreeElement* node, RecurseOctreeOperation operation, void* extraData,
+// Recurses voxel element with an operation function
+void Octree::recurseElementWithOperation(OctreeElement* element, RecurseOctreeOperation operation, void* extraData,
                         int recursionCount) {
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
-        qDebug() << "Octree::recurseNodeWithOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
+        qDebug() << "Octree::recurseElementWithOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
         return;
     }
 
-    if (operation(node, extraData)) {
+    if (operation(element, extraData)) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-            OctreeElement* child = node->getChildAtIndex(i);
+            OctreeElement* child = element->getChildAtIndex(i);
             if (child) {
-                recurseNodeWithOperation(child, operation, extraData, recursionCount+1);
+                recurseElementWithOperation(child, operation, extraData, recursionCount+1);
             }
         }
     }
 }
 
-// Recurses voxel node with an operation function
-void Octree::recurseNodeWithPostOperation(OctreeElement* node, RecurseOctreeOperation operation, void* extraData,
+// Recurses voxel element with an operation function
+void Octree::recurseElementWithPostOperation(OctreeElement* element, RecurseOctreeOperation operation, void* extraData,
                         int recursionCount) {
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
-        qDebug() << "Octree::recurseNodeWithOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!\n";
+        qDebug() << "Octree::recurseElementWithOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!\n";
         return;
     }
 
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        OctreeElement* child = node->getChildAtIndex(i);
+        OctreeElement* child = element->getChildAtIndex(i);
         if (child) {
-            recurseNodeWithPostOperation(child, operation, extraData, recursionCount+1);
+            recurseElementWithPostOperation(child, operation, extraData, recursionCount+1);
         }
     }
-	operation(node, extraData);
+	operation(element, extraData);
 }
 
-// Recurses voxel tree calling the RecurseOctreeOperation function for each node.
+// Recurses voxel tree calling the RecurseOctreeOperation function for each element.
 // stops recursion if operation function returns false.
 void Octree::recurseTreeWithOperationDistanceSorted(RecurseOctreeOperation operation,
                                                        const glm::vec3& point, void* extraData) {
 
-    recurseNodeWithOperationDistanceSorted(_rootNode, operation, point, extraData);
+    recurseElementWithOperationDistanceSorted(_rootElement, operation, point, extraData);
 }
 
-// Recurses voxel node with an operation function
-void Octree::recurseNodeWithOperationDistanceSorted(OctreeElement* node, RecurseOctreeOperation operation,
+// Recurses voxel element with an operation function
+void Octree::recurseElementWithOperationDistanceSorted(OctreeElement* element, RecurseOctreeOperation operation,
                                                        const glm::vec3& point, void* extraData, int recursionCount) {
 
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
-        qDebug() << "Octree::recurseNodeWithOperationDistanceSorted() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
+        qDebug() << "Octree::recurseElementWithOperationDistanceSorted() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
         return;
     }
 
-    if (operation(node, extraData)) {
+    if (operation(element, extraData)) {
         // determine the distance sorted order of our children
         OctreeElement* sortedChildren[NUMBER_OF_CHILDREN] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
         float distancesToChildren[NUMBER_OF_CHILDREN] = { 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -126,88 +126,108 @@ void Octree::recurseNodeWithOperationDistanceSorted(OctreeElement* node, Recurse
         int currentCount = 0;
 
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-            OctreeElement* childNode = node->getChildAtIndex(i);
-            if (childNode) {
+            OctreeElement* childElement = element->getChildAtIndex(i);
+            if (childElement) {
                 // chance to optimize, doesn't need to be actual distance!! Could be distance squared
-                float distanceSquared = childNode->distanceSquareToPoint(point);
-                //qDebug("recurseNodeWithOperationDistanceSorted() CHECKING child[%d] point=%f,%f center=%f,%f distance=%f...\n", i, point.x, point.y, center.x, center.y, distance);
-                //childNode->printDebugDetails("");
-                currentCount = insertIntoSortedArrays((void*)childNode, distanceSquared, i,
+                float distanceSquared = childElement->distanceSquareToPoint(point);
+                currentCount = insertIntoSortedArrays((void*)childElement, distanceSquared, i,
                                                       (void**)&sortedChildren, (float*)&distancesToChildren,
                                                       (int*)&indexOfChildren, currentCount, NUMBER_OF_CHILDREN);
             }
         }
 
         for (int i = 0; i < currentCount; i++) {
-            OctreeElement* childNode = sortedChildren[i];
-            if (childNode) {
-                //qDebug("recurseNodeWithOperationDistanceSorted() PROCESSING child[%d] distance=%f...\n", i, distancesToChildren[i]);
-                //childNode->printDebugDetails("");
-                recurseNodeWithOperationDistanceSorted(childNode, operation, point, extraData);
+            OctreeElement* childElement = sortedChildren[i];
+            if (childElement) {
+                recurseElementWithOperationDistanceSorted(childElement, operation, point, extraData);
             }
         }
     }
 }
 
+void Octree::recurseTreeWithOperator(RecurseOctreeOperator* operatorObject) {
+    recurseElementWithOperator(_rootElement, operatorObject);
+}
 
-OctreeElement* Octree::nodeForOctalCode(OctreeElement* ancestorNode,
-                                       const unsigned char* needleCode, OctreeElement** parentOfFoundNode) const {
+bool Octree::recurseElementWithOperator(OctreeElement* element, RecurseOctreeOperator* operatorObject, int recursionCount) {
+    if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
+        qDebug() << "Octree::recurseElementWithOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
+        return false;
+    }
+
+    if (operatorObject->PreRecursion(element)) {
+        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+            OctreeElement* child = element->getChildAtIndex(i);
+            if (child) {
+                if (!recurseElementWithOperator(child, operatorObject, recursionCount + 1)) {
+                    break; // stop recursing if operator returns false...
+                }
+            }
+        }
+    }
+    
+    return operatorObject->PostRecursion(element);
+}
+
+
+OctreeElement* Octree::nodeForOctalCode(OctreeElement* ancestorElement,
+                                       const unsigned char* needleCode, OctreeElement** parentOfFoundElement) const {
     // special case for NULL octcode
     if (!needleCode) {
-        return _rootNode;
+        return _rootElement;
     }
 
-    // find the appropriate branch index based on this ancestorNode
+    // find the appropriate branch index based on this ancestorElement
     if (*needleCode > 0) {
-        int branchForNeedle = branchIndexWithDescendant(ancestorNode->getOctalCode(), needleCode);
-        OctreeElement* childNode = ancestorNode->getChildAtIndex(branchForNeedle);
+        int branchForNeedle = branchIndexWithDescendant(ancestorElement->getOctalCode(), needleCode);
+        OctreeElement* childElement = ancestorElement->getChildAtIndex(branchForNeedle);
 
-        if (childNode) {
-            if (*childNode->getOctalCode() == *needleCode) {
+        if (childElement) {
+            if (*childElement->getOctalCode() == *needleCode) {
 
                 // If the caller asked for the parent, then give them that too...
-                if (parentOfFoundNode) {
-                    *parentOfFoundNode = ancestorNode;
+                if (parentOfFoundElement) {
+                    *parentOfFoundElement = ancestorElement;
                 }
                 // the fact that the number of sections is equivalent does not always guarantee
-                // that this is the same node, however due to the recursive traversal
-                // we know that this is our node
-                return childNode;
+                // that this is the same element, however due to the recursive traversal
+                // we know that this is our element
+                return childElement;
             } else {
                 // we need to go deeper
-                return nodeForOctalCode(childNode, needleCode, parentOfFoundNode);
+                return nodeForOctalCode(childElement, needleCode, parentOfFoundElement);
             }
         }
     }
 
-    // we've been given a code we don't have a node for
-    // return this node as the last created parent
-    return ancestorNode;
+    // we've been given a code we don't have a element for
+    // return this element as the last created parent
+    return ancestorElement;
 }
 
-// returns the node created!
-OctreeElement* Octree::createMissingNode(OctreeElement* lastParentNode, const unsigned char* codeToReach) {
-    int indexOfNewChild = branchIndexWithDescendant(lastParentNode->getOctalCode(), codeToReach);
-    // If this parent node is a leaf, then you know the child path doesn't exist, so deal with
+// returns the element created!
+OctreeElement* Octree::createMissingElement(OctreeElement* lastParentElement, const unsigned char* codeToReach) {
+    int indexOfNewChild = branchIndexWithDescendant(lastParentElement->getOctalCode(), codeToReach);
+    // If this parent element is a leaf, then you know the child path doesn't exist, so deal with
     // breaking up the leaf first, which will also create a child path
-    if (lastParentNode->requiresSplit()) {
-        lastParentNode->splitChildren();
-    } else if (!lastParentNode->getChildAtIndex(indexOfNewChild)) {
+    if (lastParentElement->requiresSplit()) {
+        lastParentElement->splitChildren();
+    } else if (!lastParentElement->getChildAtIndex(indexOfNewChild)) {
         // we could be coming down a branch that was already created, so don't stomp on it.
-        lastParentNode->addChildAtIndex(indexOfNewChild);
+        lastParentElement->addChildAtIndex(indexOfNewChild);
     }
 
     // This works because we know we traversed down the same tree so if the length is the same, then the whole code is the same
-    if (*lastParentNode->getChildAtIndex(indexOfNewChild)->getOctalCode() == *codeToReach) {
-        return lastParentNode->getChildAtIndex(indexOfNewChild);
+    if (*lastParentElement->getChildAtIndex(indexOfNewChild)->getOctalCode() == *codeToReach) {
+        return lastParentElement->getChildAtIndex(indexOfNewChild);
     } else {
-        return createMissingNode(lastParentNode->getChildAtIndex(indexOfNewChild), codeToReach);
+        return createMissingElement(lastParentElement->getChildAtIndex(indexOfNewChild), codeToReach);
     }
 }
 
-int Octree::readNodeData(OctreeElement* destinationNode, const unsigned char* nodeData, int bytesLeftToRead,
+int Octree::readElementData(OctreeElement* destinationElement, const unsigned char* nodeData, int bytesLeftToRead,
                             ReadBitstreamToTreeParams& args) {
-    // give this destination node the child mask from the packet
+    // give this destination element the child mask from the packet
     const unsigned char ALL_CHILDREN_ASSUMED_TO_EXIST = 0xFF;
     unsigned char colorInPacketMask = *nodeData;
 
@@ -217,26 +237,26 @@ int Octree::readNodeData(OctreeElement* destinationNode, const unsigned char* no
         // check the colors mask to see if we have a child to color in
         if (oneAtBit(colorInPacketMask, i)) {
             // create the child if it doesn't exist
-            if (!destinationNode->getChildAtIndex(i)) {
-                destinationNode->addChildAtIndex(i);
-                if (destinationNode->isDirty()) {
+            if (!destinationElement->getChildAtIndex(i)) {
+                destinationElement->addChildAtIndex(i);
+                if (destinationElement->isDirty()) {
                     _isDirty = true;
                 }
             }
 
-            OctreeElement* childNodeAt = destinationNode->getChildAtIndex(i);
+            OctreeElement* childElementAt = destinationElement->getChildAtIndex(i);
             bool nodeIsDirty = false;
-            if (childNodeAt) {
-                bytesRead += childNodeAt->readElementDataFromBuffer(nodeData + bytesRead, bytesLeftToRead, args);
-                childNodeAt->setSourceUUID(args.sourceUUID);
+            if (childElementAt) {
+                bytesRead += childElementAt->readElementDataFromBuffer(nodeData + bytesRead, bytesLeftToRead, args);
+                childElementAt->setSourceUUID(args.sourceUUID);
 
-                // if we had a local version of the node already, it's possible that we have it already but
+                // if we had a local version of the element already, it's possible that we have it already but
                 // with the same color data, so this won't count as a change. To address this we check the following
-                if (!childNodeAt->isDirty() && childNodeAt->getShouldRender() && !childNodeAt->isRendered()) {
-                    childNodeAt->setDirtyBit(); // force dirty!
+                if (!childElementAt->isDirty() && childElementAt->getShouldRender() && !childElementAt->isRendered()) {
+                    childElementAt->setDirtyBit(); // force dirty!
                 }
 
-                nodeIsDirty = childNodeAt->isDirty();
+                nodeIsDirty = childElementAt->isDirty();
             }
             if (nodeIsDirty) {
                 _isDirty = true;
@@ -244,7 +264,7 @@ int Octree::readNodeData(OctreeElement* destinationNode, const unsigned char* no
         }
     }
 
-    // give this destination node the child mask from the packet
+    // give this destination element the child mask from the packet
     unsigned char childrenInTreeMask = args.includeExistsBits ? *(nodeData + bytesRead) : ALL_CHILDREN_ASSUMED_TO_EXIST;
     unsigned char childMask = *(nodeData + bytesRead + (args.includeExistsBits ? sizeof(childrenInTreeMask) : 0));
 
@@ -255,17 +275,17 @@ int Octree::readNodeData(OctreeElement* destinationNode, const unsigned char* no
         // check the exists mask to see if we have a child to traverse into
 
         if (oneAtBit(childMask, childIndex)) {
-            if (!destinationNode->getChildAtIndex(childIndex)) {
+            if (!destinationElement->getChildAtIndex(childIndex)) {
                 // add a child at that index, if it doesn't exist
-                destinationNode->addChildAtIndex(childIndex);
-                bool nodeIsDirty = destinationNode->isDirty();
+                destinationElement->addChildAtIndex(childIndex);
+                bool nodeIsDirty = destinationElement->isDirty();
                 if (nodeIsDirty) {
                     _isDirty = true;
                 }
             }
 
             // tell the child to read the subsequent data
-            bytesRead += readNodeData(destinationNode->getChildAtIndex(childIndex),
+            bytesRead += readElementData(destinationElement->getChildAtIndex(childIndex),
                                       nodeData + bytesRead, bytesLeftToRead - bytesRead, args);
         }
         childIndex++;
@@ -274,9 +294,9 @@ int Octree::readNodeData(OctreeElement* destinationNode, const unsigned char* no
     if (args.includeExistsBits) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             // now also check the childrenInTreeMask, if the mask is missing the bit, then it means we need to delete this child
-            // subtree/node, because it shouldn't actually exist in the tree.
-            if (!oneAtBit(childrenInTreeMask, i) && destinationNode->getChildAtIndex(i)) {
-                destinationNode->safeDeepDeleteChildAtIndex(i);
+            // subtree/element, because it shouldn't actually exist in the tree.
+            if (!oneAtBit(childrenInTreeMask, i) && destinationElement->getChildAtIndex(i)) {
+                destinationElement->safeDeepDeleteChildAtIndex(i);
                 _isDirty = true; // by definition!
             }
         }
@@ -289,25 +309,25 @@ void Octree::readBitstreamToTree(const unsigned char * bitstream, unsigned long 
     int bytesRead = 0;
     const unsigned char* bitstreamAt = bitstream;
 
-    // If destination node is not included, set it to root
-    if (!args.destinationNode) {
-        args.destinationNode = _rootNode;
+    // If destination element is not included, set it to root
+    if (!args.destinationElement) {
+        args.destinationElement = _rootElement;
     }
 
-    // Keep looping through the buffer calling readNodeData() this allows us to pack multiple root-relative Octal codes
-    // into a single network packet. readNodeData() basically goes down a tree from the root, and fills things in from there
+    // Keep looping through the buffer calling readElementData() this allows us to pack multiple root-relative Octal codes
+    // into a single network packet. readElementData() basically goes down a tree from the root, and fills things in from there
     // if there are more bytes after that, it's assumed to be another root relative tree
 
     while (bitstreamAt < bitstream + bufferSizeBytes) {
-        OctreeElement* bitstreamRootNode = nodeForOctalCode(args.destinationNode, (unsigned char *)bitstreamAt, NULL);
-        if (*bitstreamAt != *bitstreamRootNode->getOctalCode()) {
+        OctreeElement* bitstreamRootElement = nodeForOctalCode(args.destinationElement, (unsigned char *)bitstreamAt, NULL);
+        if (*bitstreamAt != *bitstreamRootElement->getOctalCode()) {
             // if the octal code returned is not on the same level as
             // the code being searched for, we have OctreeElements to create
 
-            // Note: we need to create this node relative to root, because we're assuming that the bitstream for the initial
+            // Note: we need to create this element relative to root, because we're assuming that the bitstream for the initial
             // octal code is always relative to root!
-            bitstreamRootNode = createMissingNode(args.destinationNode, (unsigned char*) bitstreamAt);
-            if (bitstreamRootNode->isDirty()) {
+            bitstreamRootElement = createMissingElement(args.destinationElement, (unsigned char*) bitstreamAt);
+            if (bitstreamRootElement->isDirty()) {
                 _isDirty = true;
             }
         }
@@ -316,7 +336,7 @@ void Octree::readBitstreamToTree(const unsigned char * bitstream, unsigned long 
         int theseBytesRead = 0;
         theseBytesRead += octalCodeBytes;
 
-        theseBytesRead += readNodeData(bitstreamRootNode, bitstreamAt + octalCodeBytes,
+        theseBytesRead += readElementData(bitstreamRootElement, bitstreamAt + octalCodeBytes,
                                        bufferSizeBytes - (bytesRead + octalCodeBytes), args);
 
         // skip bitstream to new startPoint
@@ -347,9 +367,9 @@ public:
 };
 
 // Note: uses the codeColorBuffer format, but the color's are ignored, because
-// this only finds and deletes the node from the tree.
+// this only finds and deletes the element from the tree.
 void Octree::deleteOctalCodeFromTree(const unsigned char* codeBuffer, bool collapseEmptyTrees) {
-    // recurse the tree while decoding the codeBuffer, once you find the node in question, recurse
+    // recurse the tree while decoding the codeBuffer, once you find the element in question, recurse
     // back and implement color reaveraging, and marking of lastChanged
     DeleteOctalCodeFromTreeArgs args;
     args.collapseEmptyTrees = collapseEmptyTrees;
@@ -358,19 +378,17 @@ void Octree::deleteOctalCodeFromTree(const unsigned char* codeBuffer, bool colla
     args.deleteLastChild    = false;
     args.pathChanged        = false;
 
-    OctreeElement* node = _rootNode;
-
-    deleteOctalCodeFromTreeRecursion(node, &args);
+    deleteOctalCodeFromTreeRecursion(_rootElement, &args);
 }
 
-void Octree::deleteOctalCodeFromTreeRecursion(OctreeElement* node, void* extraData) {
+void Octree::deleteOctalCodeFromTreeRecursion(OctreeElement* element, void* extraData) {
     DeleteOctalCodeFromTreeArgs* args = (DeleteOctalCodeFromTreeArgs*)extraData;
 
-    int lengthOfNodeCode = numberOfThreeBitSectionsInCode(node->getOctalCode());
+    int lengthOfElementCode = numberOfThreeBitSectionsInCode(element->getOctalCode());
 
     // Since we traverse the tree in code order, we know that if our code
-    // matches, then we've reached  our target node.
-    if (lengthOfNodeCode == args->lengthOfCode) {
+    // matches, then we've reached  our target element.
+    if (lengthOfElementCode == args->lengthOfCode) {
         // we've reached our target, depending on how we're called we may be able to operate on it
         // it here, we need to recurse up, and delete it there. So we handle these cases the same to keep
         // the logic consistent.
@@ -378,32 +396,32 @@ void Octree::deleteOctalCodeFromTreeRecursion(OctreeElement* node, void* extraDa
         return;
     }
 
-    // Ok, we know we haven't reached our target node yet, so keep looking
-    int childIndex = branchIndexWithDescendant(node->getOctalCode(), args->codeBuffer);
-    OctreeElement* childNode = node->getChildAtIndex(childIndex);
+    // Ok, we know we haven't reached our target element yet, so keep looking
+    int childIndex = branchIndexWithDescendant(element->getOctalCode(), args->codeBuffer);
+    OctreeElement* childElement = element->getChildAtIndex(childIndex);
 
-    // If there is no child at the target location, and the current parent node is a colored leaf,
+    // If there is no child at the target location, and the current parent element is a colored leaf,
     // then it means we were asked to delete a child out of a larger leaf voxel.
     // We support this by breaking up the parent voxel into smaller pieces.
-    if (!childNode && node->requiresSplit()) {
+    if (!childElement && element->requiresSplit()) {
         // we need to break up ancestors until we get to the right level
-        OctreeElement* ancestorNode = node;
+        OctreeElement* ancestorElement = element;
         while (true) {
-            int index = branchIndexWithDescendant(ancestorNode->getOctalCode(), args->codeBuffer);
+            int index = branchIndexWithDescendant(ancestorElement->getOctalCode(), args->codeBuffer);
 
             // we end up with all the children, even the one we want to delete
-            ancestorNode->splitChildren();
+            ancestorElement->splitChildren();
 
-            int lengthOfAncestorNode = numberOfThreeBitSectionsInCode(ancestorNode->getOctalCode());
+            int lengthOfAncestorElement = numberOfThreeBitSectionsInCode(ancestorElement->getOctalCode());
 
             // If we've reached the parent of the target, then stop breaking up children
-            if (lengthOfAncestorNode == (args->lengthOfCode - 1)) {
+            if (lengthOfAncestorElement == (args->lengthOfCode - 1)) {
 
                 // since we created all the children when we split, we need to delete this target one
-                ancestorNode->deleteChildAtIndex(index);
+                ancestorElement->deleteChildAtIndex(index);
                 break;
             }
-            ancestorNode = ancestorNode->getChildAtIndex(index);
+            ancestorElement = ancestorElement->getChildAtIndex(index);
         }
         _isDirty = true;
         args->pathChanged = true;
@@ -415,17 +433,17 @@ void Octree::deleteOctalCodeFromTreeRecursion(OctreeElement* node, void* extraDa
     // if we don't have a child and we reach this point, then we actually know that the parent
     // isn't a colored leaf, and the child branch doesn't exist, so there's nothing to do below and
     // we can safely return, ending the recursion and unwinding
-    if (!childNode) {
+    if (!childElement) {
         return;
     }
 
     // If we got this far then we have a child for the branch we're looking for, but we're not there yet
     // recurse till we get there
-    deleteOctalCodeFromTreeRecursion(childNode, args);
+    deleteOctalCodeFromTreeRecursion(childElement, args);
 
     // If the lower level determined it needs to be deleted, then we should delete now.
     if (args->deleteLastChild) {
-        node->deleteChildAtIndex(childIndex); // note: this will track dirtiness and lastChanged for this node
+        element->deleteChildAtIndex(childIndex); // note: this will track dirtiness and lastChanged for this element
 
         // track our tree dirtiness
         _isDirty = true;
@@ -433,11 +451,11 @@ void Octree::deleteOctalCodeFromTreeRecursion(OctreeElement* node, void* extraDa
         // track that path has changed
         args->pathChanged = true;
 
-        // If we're in collapseEmptyTrees mode, and this was the last child of this node, then we also want
-        // to delete this node.  This will collapse the empty tree above us.
-        if (args->collapseEmptyTrees && node->getChildCount() == 0) {
+        // If we're in collapseEmptyTrees mode, and this was the last child of this element, then we also want
+        // to delete this element.  This will collapse the empty tree above us.
+        if (args->collapseEmptyTrees && element->getChildCount() == 0) {
             // Can't delete the root this way.
-            if (node == _rootNode) {
+            if (element == _rootElement) {
                 args->deleteLastChild = false; // reset so that further up the unwinding chain we don't do anything
             }
         } else {
@@ -445,16 +463,16 @@ void Octree::deleteOctalCodeFromTreeRecursion(OctreeElement* node, void* extraDa
         }
     }
 
-    // If the lower level did some work, then we need to let this node know, so it can
+    // If the lower level did some work, then we need to let this element know, so it can
     // do any bookkeeping it wants to, like color re-averaging, time stamp marking, etc
     if (args->pathChanged) {
-        node->handleSubtreeChanged(this);
+        element->handleSubtreeChanged(this);
     }
 }
 
 void Octree::eraseAllOctreeElements() {
-    delete _rootNode; // this will recurse and delete all children
-    _rootNode = createNewElement();
+    delete _rootElement; // this will recurse and delete all children
+    _rootElement = createNewElement();
     _isDirty = true;
 }
 
@@ -490,15 +508,15 @@ void Octree::processRemoveOctreeElementsBitstream(const unsigned char* bitstream
     }
 }
 
-// Note: this is an expensive call. Don't call it unless you really need to reaverage the entire tree (from startNode)
-void Octree::reaverageOctreeElements(OctreeElement* startNode) {
-    if (!startNode) {
-        startNode = getRoot();
+// Note: this is an expensive call. Don't call it unless you really need to reaverage the entire tree (from startElement)
+void Octree::reaverageOctreeElements(OctreeElement* startElement) {
+    if (!startElement) {
+        startElement = getRoot();
     }
     // if our tree is a reaveraging tree, then we do this, otherwise we don't do anything
     if (_shouldReaverage) {
         static int recursionCount;
-        if (startNode == _rootNode) {
+        if (startElement == _rootElement) {
             recursionCount = 0;
         } else {
             recursionCount++;
@@ -512,16 +530,16 @@ void Octree::reaverageOctreeElements(OctreeElement* startNode) {
         bool hasChildren = false;
 
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-            if (startNode->getChildAtIndex(i)) {
-                reaverageOctreeElements(startNode->getChildAtIndex(i));
+            if (startElement->getChildAtIndex(i)) {
+                reaverageOctreeElements(startElement->getChildAtIndex(i));
                 hasChildren = true;
             }
         }
 
         // collapseIdenticalLeaves() returns true if it collapses the leaves
         // in which case we don't need to set the average color
-        if (hasChildren && !startNode->collapseChildren()) {
-            startNode->calculateAverageFromChildren();
+        if (hasChildren && !startElement->collapseChildren()) {
+            startElement->calculateAverageFromChildren();
         }
         recursionCount--;
     }
@@ -529,35 +547,39 @@ void Octree::reaverageOctreeElements(OctreeElement* startNode) {
 
 OctreeElement* Octree::getOctreeElementAt(float x, float y, float z, float s) const {
     unsigned char* octalCode = pointToOctalCode(x,y,z,s);
-    OctreeElement* node = nodeForOctalCode(_rootNode, octalCode, NULL);
-    if (*node->getOctalCode() != *octalCode) {
-        node = NULL;
+    OctreeElement* element = nodeForOctalCode(_rootElement, octalCode, NULL);
+    if (*element->getOctalCode() != *octalCode) {
+        element = NULL;
     }
     delete[] octalCode; // cleanup memory
 #ifdef HAS_AUDIT_CHILDREN
-    if (node) {
-        node->auditChildren("Octree::getOctreeElementAt()");
+    if (element) {
+        element->auditChildren("Octree::getOctreeElementAt()");
     }
 #endif // def HAS_AUDIT_CHILDREN
-    return node;
+    return element;
 }
 
 OctreeElement* Octree::getOctreeEnclosingElementAt(float x, float y, float z, float s) const {
     unsigned char* octalCode = pointToOctalCode(x,y,z,s);
-    OctreeElement* node = nodeForOctalCode(_rootNode, octalCode, NULL);
+    OctreeElement* element = nodeForOctalCode(_rootElement, octalCode, NULL);
     
     delete[] octalCode; // cleanup memory
 #ifdef HAS_AUDIT_CHILDREN
-    if (node) {
-        node->auditChildren("Octree::getOctreeElementAt()");
+    if (element) {
+        element->auditChildren("Octree::getOctreeElementAt()");
     }
 #endif // def HAS_AUDIT_CHILDREN
-    return node;
+    return element;
 }
 
 
 OctreeElement* Octree::getOrCreateChildElementAt(float x, float y, float z, float s) {
     return getRoot()->getOrCreateChildElementAt(x, y, z, s);
+}
+
+OctreeElement* Octree::getOrCreateChildElementContaining(const AABox& box) {
+    return getRoot()->getOrCreateChildElementContaining(box);
 }
 
 
@@ -566,26 +588,26 @@ class RayArgs {
 public:
     glm::vec3 origin;
     glm::vec3 direction;
-    OctreeElement*& node;
+    OctreeElement*& element;
     float& distance;
     BoxFace& face;
     bool found;
 };
 
-bool findRayIntersectionOp(OctreeElement* node, void* extraData) {
+bool findRayIntersectionOp(OctreeElement* element, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
-    AABox box = node->getAABox();
+    AABox box = element->getAABox();
     float distance;
     BoxFace face;
     if (!box.findRayIntersection(args->origin, args->direction, distance, face)) {
         return false;
     }
-    if (!node->isLeaf()) {
+    if (!element->isLeaf()) {
         return true; // recurse on children
     }
     distance *= TREE_SCALE;
-    if (node->hasContent() && (!args->found || distance < args->distance)) {
-        args->node = node;
+    if (element->hasContent() && (!args->found || distance < args->distance)) {
+        args->element = element;
         args->distance = distance;
         args->face = face;
         args->found = true;
@@ -594,9 +616,9 @@ bool findRayIntersectionOp(OctreeElement* node, void* extraData) {
 }
 
 bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                    OctreeElement*& node, float& distance, BoxFace& face, 
+                                    OctreeElement*& element, float& distance, BoxFace& face, 
                                     Octree::lockType lockType, bool* accurateResult) {
-    RayArgs args = { origin / (float)(TREE_SCALE), direction, node, distance, face, false};
+    RayArgs args = { origin / (float)(TREE_SCALE), direction, element, distance, face, false};
 
     bool gotLock = false;
     if (lockType == Octree::Lock) {
@@ -712,18 +734,18 @@ public:
     bool found;
 };
 
-bool findCapsulePenetrationOp(OctreeElement* node, void* extraData) {
+bool findCapsulePenetrationOp(OctreeElement* element, void* extraData) {
     CapsuleArgs* args = static_cast<CapsuleArgs*>(extraData);
 
     // coarse check against bounds
-    const AABox& box = node->getAABox();
+    const AABox& box = element->getAABox();
     if (!box.expandedIntersectsSegment(args->start, args->end, args->radius)) {
         return false;
     }
-    if (!node->isLeaf()) {
+    if (!element->isLeaf()) {
         return true; // recurse on children
     }
-    if (node->hasContent()) {
+    if (element->hasContent()) {
         glm::vec3 nodePenetration;
         if (box.findCapsulePenetration(args->start, args->end, args->radius, nodePenetration)) {
             args->penetration = addPenetrations(args->penetration, nodePenetration * (float)(TREE_SCALE));
@@ -733,19 +755,19 @@ bool findCapsulePenetrationOp(OctreeElement* node, void* extraData) {
     return false;
 }
 
-bool findShapeCollisionsOp(OctreeElement* node, void* extraData) {
+bool findShapeCollisionsOp(OctreeElement* element, void* extraData) {
     ShapeArgs* args = static_cast<ShapeArgs*>(extraData);
 
     // coarse check against bounds
-    AABox cube = node->getAABox();
+    AABox cube = element->getAABox();
     cube.scale(TREE_SCALE);
     if (!cube.expandedContains(args->shape->getPosition(), args->shape->getBoundingRadius())) {
         return false;
     }
-    if (!node->isLeaf()) {
+    if (!element->isLeaf()) {
         return true; // recurse on children
     }
-    if (node->hasContent()) {
+    if (element->hasContent()) {
         if (ShapeCollider::collideShapeWithAACube(args->shape, cube.calcCenter(), cube.getScale(), args->collisions)) {
             args->found = true;
             return true;
@@ -834,7 +856,7 @@ bool getElementEnclosingOperation(OctreeElement* element, void* extraData) {
     AABox elementBox = element->getAABox();
     if (elementBox.contains(args->point)) {
         if (element->hasContent() && element->isLeaf()) {
-            // we've reached a solid leaf containing the point, return the node.
+            // we've reached a solid leaf containing the point, return the element.
             args->element = element;
             return false;
         }
@@ -878,22 +900,22 @@ OctreeElement* Octree::getElementEnclosingPoint(const glm::vec3& point, Octree::
 
 
 
-int Octree::encodeTreeBitstream(OctreeElement* node,
+int Octree::encodeTreeBitstream(OctreeElement* element,
                         OctreePacketData* packetData, OctreeElementBag& bag,
                         EncodeBitstreamParams& params) {
 
     // How many bytes have we written so far at this level;
     int bytesWritten = 0;
 
-    // you can't call this without a valid node
-    if (!node) {
-        qDebug("WARNING! encodeTreeBitstream() called with node=NULL");
+    // you can't call this without a valid element
+    if (!element) {
+        qDebug("WARNING! encodeTreeBitstream() called with element=NULL");
         params.stopReason = EncodeBitstreamParams::NULL_NODE;
         return bytesWritten;
     }
 
-    // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
-    if (params.viewFrustum && !node->isInView(*params.viewFrustum)) {
+    // If we're at a element that is out of view, then we can return, because no nodes below us will be in view!
+    if (params.viewFrustum && !element->isInView(*params.viewFrustum)) {
         params.stopReason = EncodeBitstreamParams::OUT_OF_VIEW;
         return bytesWritten;
     }
@@ -902,7 +924,7 @@ int Octree::encodeTreeBitstream(OctreeElement* node,
     bool roomForOctalCode = false; // assume the worst
     int codeLength = 1; // assume root
     if (params.chopLevels) {
-        unsigned char* newCode = chopOctalCode(node->getOctalCode(), params.chopLevels);
+        unsigned char* newCode = chopOctalCode(element->getOctalCode(), params.chopLevels);
         roomForOctalCode = packetData->startSubTree(newCode);
 
         if (newCode) {
@@ -912,13 +934,13 @@ int Octree::encodeTreeBitstream(OctreeElement* node,
             codeLength = 1;
         }
     } else {
-        roomForOctalCode = packetData->startSubTree(node->getOctalCode());
-        codeLength = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(node->getOctalCode()));
+        roomForOctalCode = packetData->startSubTree(element->getOctalCode());
+        codeLength = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(element->getOctalCode()));
     }
 
     // If the octalcode couldn't fit, then we can return, because no nodes below us will fit...
     if (!roomForOctalCode) {
-        bag.insert(node); // add the node back to the bag so it will eventually get included
+        bag.insert(element); // add the element back to the bag so it will eventually get included
         params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
         return bytesWritten;
     }
@@ -927,15 +949,15 @@ int Octree::encodeTreeBitstream(OctreeElement* node,
 
     int currentEncodeLevel = 0;
 
-    // record some stats, this is the one node that we won't record below in the recursion function, so we need to
+    // record some stats, this is the one element that we won't record below in the recursion function, so we need to
     // track it here
     if (params.stats) {
-        params.stats->traversed(node);
+        params.stats->traversed(element);
     }
 
     ViewFrustum::location parentLocationThisView = ViewFrustum::INTERSECT; // assume parent is in view, but not fully
 
-    int childBytesWritten = encodeTreeBitstreamRecursion(node, packetData, bag, params,
+    int childBytesWritten = encodeTreeBitstreamRecursion(element, packetData, bag, params,
                                                             currentEncodeLevel, parentLocationThisView);
 
     // if childBytesWritten == 1 then something went wrong... that's not possible
@@ -966,16 +988,16 @@ int Octree::encodeTreeBitstream(OctreeElement* node,
     return bytesWritten;
 }
 
-int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
+int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                                             OctreePacketData* packetData, OctreeElementBag& bag,
                                             EncodeBitstreamParams& params, int& currentEncodeLevel,
                                             const ViewFrustum::location& parentLocationThisView) const {
     // How many bytes have we written so far at this level;
     int bytesAtThisLevel = 0;
 
-    // you can't call this without a valid node
-    if (!node) {
-        qDebug("WARNING! encodeTreeBitstreamRecursion() called with node=NULL");
+    // you can't call this without a valid element
+    if (!element) {
+        qDebug("WARNING! encodeTreeBitstreamRecursion() called with element=NULL");
         params.stopReason = EncodeBitstreamParams::NULL_NODE;
         return bytesAtThisLevel;
     }
@@ -983,7 +1005,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
     // Keep track of how deep we've encoded.
     currentEncodeLevel++;
 
-    params.maxLevelReached = std::max(currentEncodeLevel,params.maxLevelReached);
+    params.maxLevelReached = std::max(currentEncodeLevel, params.maxLevelReached);
 
     // If we've reached our max Search Level, then stop searching.
     if (currentEncodeLevel >= params.maxEncodeLevel) {
@@ -995,7 +1017,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
     if (params.jurisdictionMap) {
         // here's how it works... if we're currently above our root jurisdiction, then we proceed normally.
         // but once we're in our own jurisdiction, then we need to make sure we're not below it.
-        if (JurisdictionMap::BELOW == params.jurisdictionMap->isMyJurisdiction(node->getOctalCode(), CHECK_NODE_ONLY)) {
+        if (JurisdictionMap::BELOW == params.jurisdictionMap->isMyJurisdiction(element->getOctalCode(), CHECK_NODE_ONLY)) {
             params.stopReason = EncodeBitstreamParams::OUT_OF_JURISDICTION;
             return bytesAtThisLevel;
         }
@@ -1005,14 +1027,14 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
 
     // caller can pass NULL as viewFrustum if they want everything
     if (params.viewFrustum) {
-        float distance = node->distanceToCamera(*params.viewFrustum);
-        float boundaryDistance = boundaryDistanceForRenderLevel(node->getLevel() + params.boundaryLevelAdjust,
+        float distance = element->distanceToCamera(*params.viewFrustum);
+        float boundaryDistance = boundaryDistanceForRenderLevel(element->getLevel() + params.boundaryLevelAdjust,
                                         params.octreeElementSizeScale);
 
         // If we're too far away for our render level, then just return
         if (distance >= boundaryDistance) {
             if (params.stats) {
-                params.stats->skippedDistance(node);
+                params.stats->skippedDistance(element);
             }
             params.stopReason = EncodeBitstreamParams::LOD_SKIP;
             return bytesAtThisLevel;
@@ -1022,15 +1044,15 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
         // if we are INSIDE, INTERSECT, or OUTSIDE
         if (parentLocationThisView != ViewFrustum::INSIDE) {
             assert(parentLocationThisView != ViewFrustum::OUTSIDE); // we shouldn't be here if our parent was OUTSIDE!
-            nodeLocationThisView = node->inFrustum(*params.viewFrustum);
+            nodeLocationThisView = element->inFrustum(*params.viewFrustum);
         }
 
-        // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
+        // If we're at a element that is out of view, then we can return, because no nodes below us will be in view!
         // although technically, we really shouldn't ever be here, because our callers shouldn't be calling us if
         // we're out of view
         if (nodeLocationThisView == ViewFrustum::OUTSIDE) {
             if (params.stats) {
-                params.stats->skippedOutOfView(node);
+                params.stats->skippedOutOfView(element);
             }
             params.stopReason = EncodeBitstreamParams::OUT_OF_VIEW;
             return bytesAtThisLevel;
@@ -1041,10 +1063,10 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
         bool wasInView = false;
 
         if (params.deltaViewFrustum && params.lastViewFrustum) {
-            ViewFrustum::location location = node->inFrustum(*params.lastViewFrustum);
+            ViewFrustum::location location = element->inFrustum(*params.lastViewFrustum);
 
             // If we're a leaf, then either intersect or inside is considered "formerly in view"
-            if (node->isLeaf()) {
+            if (element->isLeaf()) {
                 wasInView = location != ViewFrustum::OUTSIDE;
             } else {
                 wasInView = location == ViewFrustum::INSIDE;
@@ -1055,8 +1077,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
             // to it, and so therefore it may now be visible from an LOD perspective, in which case we don't consider it
             // as "was in view"...
             if (wasInView) {
-                float distance = node->distanceToCamera(*params.lastViewFrustum);
-                float boundaryDistance = boundaryDistanceForRenderLevel(node->getLevel() + params.boundaryLevelAdjust,
+                float distance = element->distanceToCamera(*params.lastViewFrustum);
+                float boundaryDistance = boundaryDistanceForRenderLevel(element->getLevel() + params.boundaryLevelAdjust,
                                                                             params.octreeElementSizeScale);
                 if (distance >= boundaryDistance) {
                     // This would have been invisible... but now should be visible (we wouldn't be here otherwise)...
@@ -1066,11 +1088,11 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
         }
 
         // If we were previously in the view, then we normally will return out of here and stop recursing. But
-        // if we're in deltaViewFrustum mode, and this node has changed since it was last sent, then we do
+        // if we're in deltaViewFrustum mode, and this element has changed since it was last sent, then we do
         // need to send it.
-        if (wasInView && !(params.deltaViewFrustum && node->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE))) {
+        if (wasInView && !(params.deltaViewFrustum && element->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE))) {
             if (params.stats) {
-                params.stats->skippedWasInView(node);
+                params.stats->skippedWasInView(element);
             }
             params.stopReason = EncodeBitstreamParams::WAS_IN_VIEW;
             return bytesAtThisLevel;
@@ -1079,18 +1101,18 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
         // If we're not in delta sending mode, and we weren't asked to do a force send, and the voxel hasn't changed,
         // then we can also bail early and save bits
         if (!params.forceSendScene && !params.deltaViewFrustum &&
-            !node->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE)) {
+            !element->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE)) {
             if (params.stats) {
-                params.stats->skippedNoChange(node);
+                params.stats->skippedNoChange(element);
             }
             params.stopReason = EncodeBitstreamParams::NO_CHANGE;
             return bytesAtThisLevel;
         }
 
-        // If the user also asked for occlusion culling, check if this node is occluded, but only if it's not a leaf.
+        // If the user also asked for occlusion culling, check if this element is occluded, but only if it's not a leaf.
         // leaf occlusion is handled down below when we check child nodes
-        if (params.wantOcclusionCulling && !node->isLeaf()) {
-            AABox voxelBox = node->getAABox();
+        if (params.wantOcclusionCulling && !element->isLeaf()) {
+            AABox voxelBox = element->getAABox();
             voxelBox.scale(TREE_SCALE);
             OctreeProjectedPolygon* voxelPolygon = new OctreeProjectedPolygon(params.viewFrustum->getProjectedPolygon(voxelBox));
 
@@ -1101,7 +1123,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
                 delete voxelPolygon; // cleanup
                 if (result == OCCLUDED) {
                     if (params.stats) {
-                        params.stats->skippedOccluded(node);
+                        params.stats->skippedOccluded(element);
                     }
                     params.stopReason = EncodeBitstreamParams::OCCLUDED;
                     return bytesAtThisLevel;
@@ -1138,72 +1160,73 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
     int currentCount = 0;
 
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        OctreeElement* childNode = node->getChildAtIndex(i);
+        OctreeElement* childElement = element->getChildAtIndex(i);
 
         // if the caller wants to include childExistsBits, then include them even if not in view, if however,
         // we're in a portion of the tree that's not our responsibility, then we assume the child nodes exist
         // even if they don't in our local tree
         bool notMyJurisdiction = false;
         if (params.jurisdictionMap) {
-            notMyJurisdiction = (JurisdictionMap::WITHIN != params.jurisdictionMap->isMyJurisdiction(node->getOctalCode(), i));
+            notMyJurisdiction = JurisdictionMap::WITHIN != params.jurisdictionMap->isMyJurisdiction(element->getOctalCode(), i);
         }
         if (params.includeExistsBits) {
             // If the child is known to exist, OR, it's not my jurisdiction, then we mark the bit as existing
-            if (childNode || notMyJurisdiction) {
+            if (childElement || notMyJurisdiction) {
                 childrenExistInTreeBits += (1 << (7 - i));
             }
         }
 
         if (params.wantOcclusionCulling) {
-            if (childNode) {
-                float distance = params.viewFrustum ? childNode->distanceToCamera(*params.viewFrustum) : 0;
+            if (childElement) {
+                float distance = params.viewFrustum ? childElement->distanceToCamera(*params.viewFrustum) : 0;
 
-                currentCount = insertIntoSortedArrays((void*)childNode, distance, i,
+                currentCount = insertIntoSortedArrays((void*)childElement, distance, i,
                                                       (void**)&sortedChildren, (float*)&distancesToChildren,
                                                       (int*)&indexOfChildren, currentCount, NUMBER_OF_CHILDREN);
             }
         } else {
-            sortedChildren[i] = childNode;
+            sortedChildren[i] = childElement;
             indexOfChildren[i] = i;
             distancesToChildren[i] = 0.0f;
             currentCount++;
         }
 
         // track stats
-        // must check childNode here, because it could be we got here with no childNode
-        if (params.stats && childNode) {
-            params.stats->traversed(childNode);
+        // must check childElement here, because it could be we got here with no childElement
+        if (params.stats && childElement) {
+            params.stats->traversed(childElement);
         }
     }
 
-    // for each child node in Distance sorted order..., check to see if they exist, are colored, and in view, and if so
+    // for each child element in Distance sorted order..., check to see if they exist, are colored, and in view, and if so
     // add them to our distance ordered array of children
     for (int i = 0; i < currentCount; i++) {
-        OctreeElement* childNode = sortedChildren[i];
+        OctreeElement* childElement = sortedChildren[i];
         int originalIndex = indexOfChildren[i];
 
-        bool childIsInView  = (childNode && 
+        bool childIsInView  = (childElement && 
                 ( !params.viewFrustum || // no view frustum was given, everything is assumed in view
-                  (nodeLocationThisView == ViewFrustum::INSIDE) || // the parent was fully in view, we can assume ALL children are
-                  (nodeLocationThisView == ViewFrustum::INTERSECT && childNode->isInView(*params.viewFrustum)) // the parent intersects and the child is in view
+                  (nodeLocationThisView == ViewFrustum::INSIDE) || // parent was fully in view, we can assume ALL children are
+                  (nodeLocationThisView == ViewFrustum::INTERSECT && 
+                        childElement->isInView(*params.viewFrustum)) // the parent intersects and the child is in view
                 ));
 
         if (!childIsInView) {
-            // must check childNode here, because it could be we got here because there was no childNode
-            if (params.stats && childNode) {
-                params.stats->skippedOutOfView(childNode);
+            // must check childElement here, because it could be we got here because there was no childElement
+            if (params.stats && childElement) {
+                params.stats->skippedOutOfView(childElement);
             }
         } else {
             // Before we determine consider this further, let's see if it's in our LOD scope...
-            float distance = distancesToChildren[i]; // params.viewFrustum ? childNode->distanceToCamera(*params.viewFrustum) : 0;
+            float distance = distancesToChildren[i];
             float boundaryDistance = !params.viewFrustum ? 1 :
-                                     boundaryDistanceForRenderLevel(childNode->getLevel() + params.boundaryLevelAdjust,
+                                     boundaryDistanceForRenderLevel(childElement->getLevel() + params.boundaryLevelAdjust,
                                             params.octreeElementSizeScale);
 
             if (!(distance < boundaryDistance)) {
-                // don't need to check childNode here, because we can't get here with no childNode
+                // don't need to check childElement here, because we can't get here with no childElement
                 if (params.stats) {
-                    params.stats->skippedDistance(childNode);
+                    params.stats->skippedDistance(childElement);
                 }
             } else {
                 inViewCount++;
@@ -1211,23 +1234,23 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
                 // track children in view as existing and not a leaf, if they're a leaf,
                 // we don't care about recursing deeper on them, and we don't consider their
                 // subtree to exist
-                if (!(childNode && childNode->isLeaf())) {
+                if (!(childElement && childElement->isLeaf())) {
                     childrenExistInPacketBits += (1 << (7 - originalIndex));
                     inViewNotLeafCount++;
                 }
 
                 bool childIsOccluded = false; // assume it's not occluded
 
-                // If the user also asked for occlusion culling, check if this node is occluded
-                if (params.wantOcclusionCulling && childNode->isLeaf()) {
+                // If the user also asked for occlusion culling, check if this element is occluded
+                if (params.wantOcclusionCulling && childElement->isLeaf()) {
                     // Don't check occlusion here, just add them to our distance ordered array...
 
-                    AABox voxelBox = childNode->getAABox();
+                    AABox voxelBox = childElement->getAABox();
                     voxelBox.scale(TREE_SCALE);
                     OctreeProjectedPolygon* voxelPolygon = new OctreeProjectedPolygon(
                                 params.viewFrustum->getProjectedPolygon(voxelBox));
 
-                    // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we will ignore occlusion
+                    // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we ignore occlusion
                     // culling and proceed as normal
                     if (voxelPolygon->getAllInView()) {
                         CoverageMapStorageResult result = params.map->checkMap(voxelPolygon, true);
@@ -1251,18 +1274,18 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
 
                 bool shouldRender = !params.viewFrustum
                                     ? true
-                                    : childNode->calculateShouldRender(params.viewFrustum,
+                                    : childElement->calculateShouldRender(params.viewFrustum,
                                                     params.octreeElementSizeScale, params.boundaryLevelAdjust);
 
                 // track some stats
                 if (params.stats) {
-                    // don't need to check childNode here, because we can't get here with no childNode
-                    if (!shouldRender && childNode->isLeaf()) {
-                        params.stats->skippedDistance(childNode);
+                    // don't need to check childElement here, because we can't get here with no childElement
+                    if (!shouldRender && childElement->isLeaf()) {
+                        params.stats->skippedDistance(childElement);
                     }
-                    // don't need to check childNode here, because we can't get here with no childNode
+                    // don't need to check childElement here, because we can't get here with no childElement
                     if (childIsOccluded) {
-                        params.stats->skippedOccluded(childNode);
+                        params.stats->skippedOccluded(childElement);
                     }
                 }
 
@@ -1270,11 +1293,11 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
                 if (shouldRender && !childIsOccluded) {
                     bool childWasInView = false;
 
-                    if (childNode && params.deltaViewFrustum && params.lastViewFrustum) {
-                        ViewFrustum::location location = childNode->inFrustum(*params.lastViewFrustum);
+                    if (childElement && params.deltaViewFrustum && params.lastViewFrustum) {
+                        ViewFrustum::location location = childElement->inFrustum(*params.lastViewFrustum);
 
                         // If we're a leaf, then either intersect or inside is considered "formerly in view"
-                        if (childNode->isLeaf()) {
+                        if (childElement->isLeaf()) {
                             childWasInView = location != ViewFrustum::OUTSIDE;
                         } else {
                             childWasInView = location == ViewFrustum::INSIDE;
@@ -1282,22 +1305,22 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
                     }
 
                     // If our child wasn't in view (or we're ignoring wasInView) then we add it to our sending items.
-                    // Or if we were previously in the view, but this node has changed since it was last sent, then we do
+                    // Or if we were previously in the view, but this element has changed since it was last sent, then we do
                     // need to send it.
                     if (!childWasInView ||
                         (params.deltaViewFrustum &&
-                         childNode->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE))){
+                         childElement->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE))){
 
                         childrenColoredBits += (1 << (7 - originalIndex));
                         inViewWithColorCount++;
                     } else {
                         // otherwise just track stats of the items we discarded
-                        // don't need to check childNode here, because we can't get here with no childNode
+                        // don't need to check childElement here, because we can't get here with no childElement
                         if (params.stats) {
                             if (childWasInView) {
-                                params.stats->skippedWasInView(childNode);
+                                params.stats->skippedWasInView(childElement);
                             } else {
-                                params.stats->skippedNoChange(childNode);
+                                params.stats->skippedNoChange(childElement);
                             }
                         }
                     }
@@ -1320,10 +1343,10 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
     if (continueThisLevel && params.includeColor) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             if (oneAtBit(childrenColoredBits, i)) {
-                OctreeElement* childNode = node->getChildAtIndex(i);
-                if (childNode) {
+                OctreeElement* childElement = element->getChildAtIndex(i);
+                if (childElement) {
                     int bytesBeforeChild = packetData->getUncompressedSize();
-                    continueThisLevel = childNode->appendElementData(packetData);
+                    continueThisLevel = childElement->appendElementData(packetData, params);
                     int bytesAfterChild = packetData->getUncompressedSize();
 
                     if (!continueThisLevel) {
@@ -1332,9 +1355,9 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
 
                     bytesAtThisLevel += (bytesAfterChild - bytesBeforeChild); // keep track of byte count for this child
 
-                    // don't need to check childNode here, because we can't get here with no childNode
+                    // don't need to check childElement here, because we can't get here with no childElement
                     if (params.stats) {
-                        params.stats->colorSent(childNode);
+                        params.stats->colorSent(childElement);
                     }
                 }
             }
@@ -1389,10 +1412,10 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
         int firstRecursiveSliceOffset = packetData->getUncompressedByteOffset();
         int allSlicesSize = 0;
 
-        // for each child node in Distance sorted order..., check to see if they exist, are colored, and in view, and if so
+        // for each child element in Distance sorted order..., check to see if they exist, are colored, and in view, and if so
         // add them to our distance ordered array of children
         for (int indexByDistance = 0; indexByDistance < currentCount; indexByDistance++) {
-            OctreeElement* childNode = sortedChildren[indexByDistance];
+            OctreeElement* childElement = sortedChildren[indexByDistance];
             int originalIndex = indexOfChildren[indexByDistance];
 
             if (oneAtBit(childrenExistInPacketBits, originalIndex)) {
@@ -1413,7 +1436,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
                 // This only applies in the view frustum case, in other cases, like file save and copy/past where
                 // no viewFrustum was requested, we still want to recurse the child tree.
                 if (!params.viewFrustum || !oneAtBit(childrenColoredBits, originalIndex)) {
-                    childTreeBytesOut = encodeTreeBitstreamRecursion(childNode, packetData, bag, params, 
+                    childTreeBytesOut = encodeTreeBitstreamRecursion(childElement, packetData, bag, params, 
                                                                             thisLevel, nodeLocationThisView);
                 }
 
@@ -1431,7 +1454,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
 
                 // if the child tree wrote just 2 bytes, then it means: it had no colors and no child nodes, because...
                 //    if it had colors it would write 1 byte for the color mask,
-                //          and at least a color's worth of bytes for the node of colors.
+                //          and at least a color's worth of bytes for the element of colors.
                 //   if it had child trees (with something in them) then it would have the 1 byte for child mask
                 //         and some number of bytes of lower children...
                 // so, if the child returns 2 bytes out, we can actually consider that an empty tree also!!
@@ -1441,8 +1464,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
                     childTreeBytesOut = 0; // this is the degenerate case of a tree with no colors and no child trees
                 }
                 // We used to try to collapse trees that didn't contain any data, but this does appear to create a problem
-                // in detecting node deletion. So, I've commented this out but left it in here as a warning to anyone else
-                // about not attempting to add this optimization back in, without solving the node deletion case.
+                // in detecting element deletion. So, I've commented this out but left it in here as a warning to anyone else
+                // about not attempting to add this optimization back in, without solving the element deletion case.
                 // We need to send these bitMasks in case the exists in tree bitmask is indicating the deletion of a tree
                 //if (params.includeColor && params.includeExistsBits && childTreeBytesOut == 3) {
                 //    childTreeBytesOut = 0; // this is the degenerate case of a tree with no colors and no child trees
@@ -1508,7 +1531,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
     qDebug("");
     **/
 
-    // if we were unable to fit this level in our packet, then rewind and add it to the node bag for
+    // if we were unable to fit this level in our packet, then rewind and add it to the element bag for
     // sending later...
     if (continueThisLevel) {
         continueThisLevel = packetData->endLevel(thisLevelKey);
@@ -1517,11 +1540,11 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
     }
 
     if (!continueThisLevel) {
-        bag.insert(node);
+        bag.insert(element);
 
-        // don't need to check node here, because we can't get here with no node
+        // don't need to check element here, because we can't get here with no element
         if (params.stats) {
-            params.stats->didntFit(node);
+            params.stats->didntFit(element);
         }
 
         params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
@@ -1591,7 +1614,7 @@ bool Octree::readFromSVOFile(const char* fileName) {
     return fileOk;
 }
 
-void Octree::writeToSVOFile(const char* fileName, OctreeElement* node) {
+void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
 
     std::ofstream file(fileName, std::ios::out|std::ios::binary);
 
@@ -1608,11 +1631,11 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* node) {
         }
 
         OctreeElementBag nodeBag;
-        // If we were given a specific node, start from there, otherwise start from root
-        if (node) {
-            nodeBag.insert(node);
+        // If we were given a specific element, start from there, otherwise start from root
+        if (element) {
+            nodeBag.insert(element);
         } else {
-            nodeBag.insert(_rootNode);
+            nodeBag.insert(_rootElement);
         }
 
         static OctreePacketData packetData;
@@ -1627,7 +1650,7 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* node) {
             bytesWritten = encodeTreeBitstream(subTree, &packetData, nodeBag, params);
             unlock();
 
-            // if the subTree couldn't fit, and so we should reset the packet and reinsert the node in our bag and try again...
+            // if the subTree couldn't fit, and so we should reset the packet and reinsert the element in our bag and try again
             if (bytesWritten == 0 && (params.stopReason == EncodeBitstreamParams::DIDNT_FIT)) {
                 if (packetData.hasContent()) {
                     file.write((const char*)packetData.getFinalizedData(), packetData.getFinalizedSize());
@@ -1654,17 +1677,17 @@ unsigned long Octree::getOctreeElementsCount() {
     return nodeCount;
 }
 
-bool Octree::countOctreeElementsOperation(OctreeElement* node, void* extraData) {
+bool Octree::countOctreeElementsOperation(OctreeElement* element, void* extraData) {
     (*(unsigned long*)extraData)++;
     return true; // keep going
 }
 
-void Octree::copySubTreeIntoNewTree(OctreeElement* startNode, Octree* destinationTree, bool rebaseToRoot) {
+void Octree::copySubTreeIntoNewTree(OctreeElement* startElement, Octree* destinationTree, bool rebaseToRoot) {
     OctreeElementBag nodeBag;
-    nodeBag.insert(startNode);
+    nodeBag.insert(startElement);
     int chopLevels = 0;
     if (rebaseToRoot) {
-        chopLevels = numberOfThreeBitSectionsInCode(startNode->getOctalCode());
+        chopLevels = numberOfThreeBitSectionsInCode(startElement->getOctalCode());
     }
 
     static OctreePacketData packetData;
@@ -1679,28 +1702,12 @@ void Octree::copySubTreeIntoNewTree(OctreeElement* startNode, Octree* destinatio
         ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS);
         destinationTree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
     }
-
-    // XXXBHG - what is this trying to do?
-    //      This code appears to be trying to set the color of the destination root
-    //      of a copy operation. But that shouldn't be necessary. I think this code might
-    //      have been a hack that Mark added when he was trying to solve the copy of a single
-    //      voxel bug. But this won't solve that problem, and doesn't appear to be needed for
-    //      a normal copy operation. I'm leaving this in for a little bit until we see if anything
-    //      about copy/paste is broken.
-    //
-    //OctreeElement* destinationStartNode;
-    //if (rebaseToRoot) {
-    //    destinationStartNode = destinationTree->_rootNode;
-    //} else {
-    //    destinationStartNode = nodeForOctalCode(destinationTree->_rootNode, startNode->getOctalCode(), NULL);
-    //}
-    //destinationStartNode->setColor(startNode->getColor());
 }
 
-void Octree::copyFromTreeIntoSubTree(Octree* sourceTree, OctreeElement* destinationNode) {
+void Octree::copyFromTreeIntoSubTree(Octree* sourceTree, OctreeElement* destinationElement) {
     OctreeElementBag nodeBag;
-    // If we were given a specific node, start from there, otherwise start from root
-    nodeBag.insert(sourceTree->_rootNode);
+    // If we were given a specific element, start from there, otherwise start from root
+    nodeBag.insert(sourceTree->_rootElement);
 
     static OctreePacketData packetData;
 
@@ -1715,18 +1722,10 @@ void Octree::copyFromTreeIntoSubTree(Octree* sourceTree, OctreeElement* destinat
 
         // ask destination tree to read the bitstream
         bool wantImportProgress = true;
-        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, destinationNode, 0, SharedNodePointer(), wantImportProgress);
+        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, destinationElement, 
+                                            0, SharedNodePointer(), wantImportProgress);
         readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
     }
-}
-
-void dumpSetContents(const char* name, std::set<unsigned char*> set) {
-    qDebug("set %s has %ld elements", name, set.size());
-    /*
-    for (std::set<unsigned char*>::iterator i = set.begin(); i != set.end(); ++i) {
-        printOctalCode(*i);
-    }
-    */
 }
 
 void Octree::cancelImport() {

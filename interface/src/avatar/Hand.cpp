@@ -29,22 +29,11 @@ const float PALM_COLLISION_RADIUS = 0.03f;
 
 Hand::Hand(Avatar* owningAvatar) :
     HandData((AvatarData*)owningAvatar),
-
-    _owningAvatar(owningAvatar),
-    _renderAlpha(1.0)
+    _owningAvatar(owningAvatar)
 {
 }
 
-void Hand::init() {
-}
-
-void Hand::reset() {
-}
-
 void Hand::simulate(float deltaTime, bool isMine) {
-    
-    calculateGeometry();
-    
     if (isMine) {
         //  Iterate hand controllers, take actions as needed
         for (size_t i = 0; i < getNumPalms(); ++i) {
@@ -146,57 +135,9 @@ void Hand::resolvePenetrations() {
     }
 }
 
-void Hand::calculateGeometry() {
-    // generate finger tip balls....
-    _leapFingerTipBalls.clear();
-    for (size_t i = 0; i < getNumPalms(); ++i) {
-        PalmData& palm = getPalms()[i];
-        if (palm.isActive()) {
-            for (size_t f = 0; f < palm.getNumFingers(); ++f) {
-                FingerData& finger = palm.getFingers()[f];
-                if (finger.isActive()) {
-                    const float standardBallRadius = FINGERTIP_COLLISION_RADIUS;
-                    HandBall ball;
-                    ball.rotation = getBaseOrientation();
-                    ball.position = finger.getTipPosition();
-                    ball.radius         = standardBallRadius;
-                    ball.touchForce     = 0.0;
-                    ball.isCollidable   = true;
-                    ball.isColliding    = false;
-                    _leapFingerTipBalls.push_back(ball);
-                }
-            }
-        }
-    }
-
-    // generate finger root balls....
-    _leapFingerRootBalls.clear();
-    for (size_t i = 0; i < getNumPalms(); ++i) {
-        PalmData& palm = getPalms()[i];
-        if (palm.isActive()) {
-            for (size_t f = 0; f < palm.getNumFingers(); ++f) {
-                FingerData& finger = palm.getFingers()[f];
-                if (finger.isActive()) {
-                    const float standardBallRadius = 0.005f;
-                    HandBall ball;
-                    ball.rotation = getBaseOrientation();
-                    ball.position = finger.getRootPosition();
-                    ball.radius         = standardBallRadius;
-                    ball.touchForce     = 0.0;
-                    ball.isCollidable   = true;
-                    ball.isColliding    = false;
-                    _leapFingerRootBalls.push_back(ball);
-                }
-            }
-        }
-    }
-}
-
-void Hand::render(bool isMine) {
-    
-    _renderAlpha = 1.0;
-    
-    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes)) {
+void Hand::render(bool isMine, Model::RenderMode renderMode) {
+    if (renderMode != Model::SHADOW_RENDER_MODE && 
+                Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes)) {
         // draw a green sphere at hand joint location, which is actually near the wrist)
         for (size_t i = 0; i < getNumPalms(); i++) {
             PalmData& palm = getPalms()[i];
@@ -212,20 +153,19 @@ void Hand::render(bool isMine) {
         }
     }
     
-    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayHands)) {
-        renderLeapHands(isMine);
+    if (renderMode != Model::SHADOW_RENDER_MODE && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHands)) {
+        renderHandTargets(isMine);
     }
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_RESCALE_NORMAL);
-    
 }
 
-void Hand::renderLeapHands(bool isMine) {
+void Hand::renderHandTargets(bool isMine) {
+    glPushMatrix();
 
     const float alpha = 1.0f;
-    
-    const glm::vec3 handColor(1.0, 0.84, 0.66); // use the skin color
+    const glm::vec3 handColor(1.0, 0.0, 0.0); //  Color the hand targets red to be different than skin
     
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
@@ -239,6 +179,7 @@ void Hand::renderLeapHands(bool isMine) {
             glm::vec3 targetPosition;
             palm.getBallHoldPosition(targetPosition);
             glPushMatrix();
+            glTranslatef(targetPosition.x, targetPosition.y, targetPosition.z);
         
             const float collisionRadius = 0.05f;
             glColor4f(0.5f,0.5f,0.5f, alpha);
@@ -247,38 +188,36 @@ void Hand::renderLeapHands(bool isMine) {
         }
     }
     
-    glPushMatrix();
-    // Draw the leap balls
-    for (size_t i = 0; i < _leapFingerTipBalls.size(); i++) {
-        if (alpha > 0.0f) {
-            if (_leapFingerTipBalls[i].isColliding) {
-                glColor4f(handColor.r, 0, 0, alpha);
-            } else {
-                glColor4f(handColor.r, handColor.g, handColor.b, alpha);
-            }
-            glPushMatrix();
-            glTranslatef(_leapFingerTipBalls[i].position.x, _leapFingerTipBalls[i].position.y, _leapFingerTipBalls[i].position.z);
-            glutSolidSphere(_leapFingerTipBalls[i].radius, 20.0f, 20.0f);
-            glPopMatrix();
-        }
-    }
-        
-    // Draw the finger root cones
+    const float PALM_BALL_RADIUS = 0.03f;
+    const float PALM_DISK_RADIUS = 0.06f;
+    const float PALM_DISK_THICKNESS = 0.01f;
+    const float PALM_FINGER_ROD_RADIUS = 0.003f;
+    
+    // Draw the palm ball and disk
     for (size_t i = 0; i < getNumPalms(); ++i) {
         PalmData& palm = getPalms()[i];
         if (palm.isActive()) {
             for (size_t f = 0; f < palm.getNumFingers(); ++f) {
                 FingerData& finger = palm.getFingers()[f];
                 if (finger.isActive()) {
-                    glColor4f(handColor.r, handColor.g, handColor.b, 0.5);
+                    glColor4f(handColor.r, handColor.g, handColor.b, alpha);
                     glm::vec3 tip = finger.getTipPosition();
                     glm::vec3 root = finger.getRootPosition();
-                    Avatar::renderJointConnectingCone(root, tip, 0.001f, 0.003f);
+                    Avatar::renderJointConnectingCone(root, tip, PALM_FINGER_ROD_RADIUS, PALM_FINGER_ROD_RADIUS);
+                    //  Render sphere at palm/finger root
+                    glm::vec3 palmNormal = root + palm.getNormal() * PALM_DISK_THICKNESS;
+                    Avatar::renderJointConnectingCone(root, palmNormal, PALM_DISK_RADIUS, 0.0f);
+                    glPushMatrix();
+                    glTranslatef(root.x, root.y, root.z);
+                    glutSolidSphere(PALM_BALL_RADIUS, 20.0f, 20.0f);
+                    glPopMatrix();
+
                 }
             }
         }
     }
 
+    /*
     // Draw the hand paddles
     int MAX_NUM_PADDLES = 2; // one for left and one for right
     glColor4f(handColor.r, handColor.g, handColor.b, 0.3f);
@@ -309,6 +248,7 @@ void Hand::renderLeapHands(bool isMine) {
             Avatar::renderJointConnectingCone(root, tip, HAND_PADDLE_RADIUS, 0.f);
         }
     }
+     */
 
     glDepthMask(GL_TRUE);
     glEnable(GL_DEPTH_TEST);

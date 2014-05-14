@@ -68,6 +68,7 @@ const float DEFAULT_FACESHIFT_EYE_DEFLECTION = 0.25f;
 const float DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER = 1.0f;
 const int ONE_SECOND_OF_FRAMES = 60;
 const int FIVE_SECONDS_OF_FRAMES = 5 * ONE_SECOND_OF_FRAMES;
+const float MUTE_RADIUS = 50;
 
 Menu::Menu() :
     _actionHash(),
@@ -194,7 +195,7 @@ Menu::Menu() :
                                   
     addDisabledActionAndSeparator(editMenu, "Physics");
     QObject* avatar = appInstance->getAvatar();
-    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ObeyEnvironmentalGravity, Qt::SHIFT | Qt::Key_G, true, 
+    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ObeyEnvironmentalGravity, Qt::SHIFT | Qt::Key_G, false, 
             avatar, SLOT(updateMotionBehaviorsFromMenu()));
 
 
@@ -271,9 +272,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Bandwidth, 0, true);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0, this, SLOT(bandwidthDetails()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0, this, SLOT(octreeStatsDetails()));
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::AudioScope, 0, false,
-                                           appInstance->getAudio(),
-                                           SLOT(toggleScope()));
 
     QMenu* developerMenu = addMenu("Developer");
 
@@ -291,7 +289,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::BuckyBalls, 0, false);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Particles, 0, true);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Models, 0, true);
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
 
     QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxel Options");
@@ -307,6 +304,12 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontFadeOnVoxelServerChanges);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DisableAutoAdjustLOD);
+
+    QMenu* modelOptionsMenu = developerMenu->addMenu("Model Options");
+    addCheckableActionToQMenuAndActionHash(modelOptionsMenu, MenuOption::Models, 0, true);
+    addCheckableActionToQMenuAndActionHash(modelOptionsMenu, MenuOption::DisplayModelBounds, 0, false);
+    addCheckableActionToQMenuAndActionHash(modelOptionsMenu, MenuOption::DisplayModelElementProxy, 0, false);
+    addCheckableActionToQMenuAndActionHash(modelOptionsMenu, MenuOption::DisplayModelElementChildProxies, 0, false);
 
     QMenu* avatarOptionsMenu = developerMenu->addMenu("Avatar Options");
 
@@ -370,20 +373,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::PipelineWarnings);
     addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::SuppressShortTimings);
 
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::CullSharedFaces,
-                                  Qt::CTRL | Qt::SHIFT | Qt::Key_C,
-                                  false,
-                                  appInstance->getVoxels(),
-                                  SLOT(cullSharedFaces()));
-
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::ShowCulledSharedFaces,
-                                  0,
-                                  false,
-                                  appInstance->getVoxels(),
-                                  SLOT(showCulledSharedFaces()));
-
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio Debugging Tools");
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction,
                                            0,
@@ -397,13 +386,21 @@ Menu::Menu() :
                                            false,
                                            appInstance->getAudio(),
                                            SLOT(toggleMute()));
+    addActionToQMenuAndActionHash(audioDebugMenu,
+                                  MenuOption::MuteEnvironment,
+                                  0,
+                                  this,
+                                  SLOT(muteEnvironment()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioToneInjection,
                                            0,
                                            false,
                                            appInstance->getAudio(),
                                            SLOT(toggleToneInjection()));
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioScope, Qt::CTRL | Qt::Key_P, false,
+                                           appInstance->getAudio(),
+                                           SLOT(toggleScope()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioScopePause,
-                                           Qt::CTRL | Qt::Key_P,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_P ,
                                            false,
                                            appInstance->getAudio(),
                                            SLOT(toggleScopePause()));
@@ -892,7 +889,7 @@ void Menu::goToDomainDialog() {
 }
 
 void Menu::goToOrientation(QString orientation) {
-    LocationManager::getInstance().goToDestination(orientation);
+    LocationManager::getInstance().goToOrientation(orientation);
 }
 
 bool Menu::goToDestination(QString destination) {
@@ -973,9 +970,7 @@ void Menu::goToUser(const QString& user) {
 /// Open a url, shortcutting any "hifi" scheme URLs to the local application.
 void Menu::openUrl(const QUrl& url) {
     if (url.scheme() == "hifi") {
-        QString path = url.toString(QUrl::RemoveScheme);
-        path = path.remove(QRegExp("^:?/*"));
-        goTo(path);
+        goToURL(url.toString());
     } else {
         QDesktopServices::openUrl(url);
     }
@@ -998,6 +993,30 @@ void Menu::multipleDestinationsDecision(const QJsonObject& userData, const QJson
 
     LocationManager* manager = reinterpret_cast<LocationManager*>(sender());
     disconnect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
+}
+
+void Menu::muteEnvironment() {
+    int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeMuteEnvironment);
+    int packetSize = headerSize + sizeof(glm::vec3) + sizeof(float);
+    
+    glm::vec3 position = Application::getInstance()->getAvatar()->getPosition();
+    
+    char* packet = (char*)malloc(packetSize);
+    populatePacketHeader(packet, PacketTypeMuteEnvironment);
+    memcpy(packet + headerSize, &position, sizeof(glm::vec3));
+    memcpy(packet + headerSize + sizeof(glm::vec3), &MUTE_RADIUS, sizeof(float));
+    
+    QByteArray mutePacket(packet, packetSize);
+    
+    // grab our audio mixer from the NodeList, if it exists
+    SharedNodePointer audioMixer = NodeList::getInstance()->soloNodeOfType(NodeType::AudioMixer);
+    
+    if (audioMixer) {
+        // send off this mute packet
+        NodeList::getInstance()->writeDatagram(mutePacket, audioMixer);
+    }
+    
+    free(packet);
 }
 
 void Menu::goToLocation() {

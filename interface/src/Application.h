@@ -74,6 +74,7 @@
 #include "ui/ModelsBrowser.h"
 #include "ui/OctreeStatsDialog.h"
 #include "ui/RearMirrorTools.h"
+#include "ui/SnapshotShareDialog.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
 #include "ui/UpdateDialog.h"
@@ -126,7 +127,6 @@ public:
     ~Application();
 
     void restoreSizeAndPosition();
-    ScriptEngine* loadScript(const QString& fileNameString, bool loadScriptFromEditor = false);
     void loadScripts();
     QString getPreviousScriptLocation();
     void setPreviousScriptLocation(const QString& previousScriptLocation);
@@ -291,7 +291,8 @@ public slots:
     void loadScriptURLDialog();
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
-    void stopAllScripts();
+    ScriptEngine* loadScript(const QString& fileNameString, bool loadScriptFromEditor = false);
+    void stopAllScripts(bool restart = false);
     void stopScript(const QString& scriptName);
     void reloadAllScripts();
     void toggleRunningScriptsWidget();
@@ -343,10 +344,6 @@ private:
     void updateFaceshift();
     void updateVisage();
     void updateMyAvatarLookAtPosition();
-    void updateHandAndTouch(float deltaTime);
-    void updateLeap(float deltaTime);
-    void updateSixense(float deltaTime);
-    void updateSerialDevices(float deltaTime);
     void updateThreads(float deltaTime);
     void updateMetavoxels(float deltaTime);
     void updateCamera(float deltaTime);
@@ -455,6 +452,10 @@ private:
     glm::mat4 _untranslatedViewMatrix;
     glm::vec3 _viewMatrixTranslation;
     glm::mat4 _projectionMatrix;
+    
+    float _scaleMirror;
+    float _rotateMirror;
+    float _raiseMirror;
 
     glm::mat4 _shadowMatrix;
 
@@ -473,8 +474,6 @@ private:
 
     float _touchAvgX;
     float _touchAvgY;
-    float _lastTouchAvgX;
-    float _lastTouchAvgY;
     float _touchDragStartedAvgX;
     float _touchDragStartedAvgY;
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
@@ -519,6 +518,7 @@ private:
     std::vector<VoxelFade> _voxelFades;
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;
+    QPointer<SnapshotShareDialog> _snapshotShareDialog;
 
     QString _previousScriptLocation;
 
