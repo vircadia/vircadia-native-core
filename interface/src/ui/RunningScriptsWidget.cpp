@@ -43,8 +43,6 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
 
     ui->recentlyLoadedScriptsArea->hide();
 
-    QString scriptPath = "/Users/huffman/dev/hifi-19644/examples";//Application::getInstance()->getPreviousScriptLocation();
-
     _proxyModel.setSourceModel(&_scriptsModel);
     _proxyModel.sort(0, Qt::AscendingOrder);
     _proxyModel.setDynamicSortFilter(true);
@@ -52,12 +50,6 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
     ui->scriptListView->setAttribute(Qt::WA_MacShowFocusRect, false);
     connect(ui->filterLineEdit, &QLineEdit::textChanged, this, &RunningScriptsWidget::updateFileFilter);
     connect(ui->scriptListView, &QListView::doubleClicked, this, &RunningScriptsWidget::scriptFileSelected);
-
-    // QCompleter *completer = new QCompleter(this);
-    // completer->setModel(&_spm);
-    // completer->setCompletionMode(QCompleter::InlineCompletion);
-    // completer->setCaseSensitivity(Qt::CaseInsensitive);
-    // ui->filterLineEdit->setCompleter(completer);
 
     _runningScriptsTable = new ScriptsTableWidget(ui->runningScriptsTableWidget);
     _runningScriptsTable->setColumnCount(2);
