@@ -76,11 +76,11 @@ void DataServerAccountInfo::setDiscourseApiKey(const QString& discourseApiKey) {
 }
 
 QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info) {
-    out << info._accessToken << info._username << info._xmppPassword;
+    out << info._accessToken << info._username << info._xmppPassword << info._discourseApiKey;
     return out;
 }
 
 QDataStream& operator>>(QDataStream &in, DataServerAccountInfo& info) {
-    in >> info._accessToken >> info._username >> info._xmppPassword;
+    in >> info._accessToken >> info._username >> info._xmppPassword >> info._discourseApiKey;
     return in;
 }
