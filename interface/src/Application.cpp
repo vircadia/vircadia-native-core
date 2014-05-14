@@ -3449,7 +3449,7 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     return scriptEngine;
 }
 
-void Application::scriptFinished(const QString &scriptName) {
+void Application::scriptFinished(const QString& scriptName) {
     if (_scriptEnginesHash.remove(scriptName)) {
         _runningScriptsWidget->scriptStopped(scriptName);
         _runningScriptsWidget->setRunningScripts(getRunningScripts());
