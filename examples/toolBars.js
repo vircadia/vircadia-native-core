@@ -1,5 +1,5 @@
 //
-//  testScript.js
+//  toolBars.js
 //  examples
 //
 //  Created by Clément Brisset on 5/7/14.
