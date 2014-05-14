@@ -33,14 +33,28 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         return; // only simulate for own avatar
     }
 
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    PrioVR* prioVR = Application::getInstance()->getPrioVR();
+    if (prioVR->isActive()) {
+        for (int i = 0; i < prioVR->getJointRotations().size(); i++) {
+            int humanIKJointIndex = prioVR->getHumanIKJointIndices().at(i);
+            if (humanIKJointIndex == -1) {
+                continue;
+            }
+            int jointIndex = geometry.humanIKJointIndices.at(humanIKJointIndex);
+            if (jointIndex != -1) {
+                setJointRotation(jointIndex, _rotation * prioVR->getJointRotations().at(i), true);
+            }
+        }
+        return;
+    }
+
     // find the left and rightmost active palms
     int leftPalmIndex, rightPalmIndex;
     Hand* hand = _owningAvatar->getHand();
     hand->getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
 
-    const float HAND_RESTORATION_RATE = 0.25f;
-
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const float HAND_RESTORATION_RATE = 0.25f;    
     if (leftPalmIndex == -1) {
         // palms are not yet set, use mouse
         if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
@@ -186,7 +200,7 @@ void SkeletonModel::updateJointState(int index) {
 }
 
 void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
-    if (!_owningAvatar->isMyAvatar()) {
+    if (!_owningAvatar->isMyAvatar() || Application::getInstance()->getPrioVR()->isActive()) {
         return;
     }
     // get the rotation axes in joint space and use them to adjust the rotation
