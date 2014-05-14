@@ -50,6 +50,13 @@ var LEFT_BUTTON_4 = 4;
 var RIGHT_PALM = 2;
 var RIGHT_BUTTON_4 = 10;
 
+
+function printVector(text, v, decimals) {
+    print(text + " " + v.x.toFixed(decimals) + ", " + v.y.toFixed(decimals) + ", " + v.z.toFixed(decimals));
+}
+
+var debug = true;
+
 // Used by handleGrabBehavior() for managing the grab position changes
 function getAndResetGrabDelta() {
     var HAND_GRAB_SCALE_DISTANCE = 2.0;
@@ -60,24 +67,12 @@ function getAndResetGrabDelta() {
     return result;
 }
 
-// Used by handleGrabBehavior() for managing the grab velocity feature
-function getAndResetGrabDeltaVelocity() {
-    var HAND_GRAB_SCALE_VELOCITY = 50.0;
-    var delta = Vec3.multiply(grabDeltaVelocity, (MyAvatar.scale * HAND_GRAB_SCALE_VELOCITY));
-    grabDeltaVelocity = { x: 0, y: 0, z: 0};
-    var avatarRotation = MyAvatar.orientation;
-    var result = Quat.multiply(avatarRotation, Vec3.multiply(delta, -1));
-    return result;
-}
-
-// Used by handleGrabBehavior() for managing the grab rotation feature
-function getAndResetGrabRotation() {
+function getGrabRotation() {
     var quatDiff = Quat.multiply(grabCurrentRotation, Quat.inverse(grabStartRotation));
-    grabStartRotation = grabCurrentRotation;
     return quatDiff;
 }
 
-// handles all the grab related behavior: position (crawl), velocity (flick), and rotate (twist)
+// When move button is pressed, process results 
 function handleGrabBehavior(deltaTime) {
     // check for and handle grab behaviors
     grabbingWithRightHand = Controller.isButtonPressed(RIGHT_BUTTON_4);
@@ -88,9 +83,12 @@ function handleGrabBehavior(deltaTime) {
     if (grabbingWithRightHand && !wasGrabbingWithRightHand) {
         // Just starting grab, capture starting rotation
         grabStartRotation = Controller.getSpatialControlRawRotation(RIGHT_PALM);
+        grabStartPosition = Controller.getSpatialControlPosition(RIGHT_PALM);
+        if (debug) printVector("start position", grabStartPosition, 3);
     }
     if (grabbingWithRightHand) {
-        grabDelta = Vec3.sum(grabDelta, Vec3.multiply(Controller.getSpatialControlVelocity(RIGHT_PALM), deltaTime));
+        //grabDelta = Vec3.sum(grabDelta, Vec3.multiply(Controller.getSpatialControlVelocity(RIGHT_PALM), deltaTime));
+        grabDelta = Vec3.subtract(Controller.getSpatialControlPosition(RIGHT_PALM), grabStartPosition);
         grabCurrentRotation = Controller.getSpatialControlRawRotation(RIGHT_PALM);
     }
     if (!grabbingWithRightHand && wasGrabbingWithRightHand) {
@@ -102,10 +100,13 @@ function handleGrabBehavior(deltaTime) {
     if (grabbingWithLeftHand && !wasGrabbingWithLeftHand) {
         // Just starting grab, capture starting rotation
         grabStartRotation = Controller.getSpatialControlRawRotation(LEFT_PALM);
+        grabStartPosition = Controller.getSpatialControlPosition(LEFT_PALM);
+        if (debug) printVector("start position", grabStartPosition, 3);
     }
 
     if (grabbingWithLeftHand) {
-        grabDelta = Vec3.sum(grabDelta, Vec3.multiply(Controller.getSpatialControlVelocity(LEFT_PALM), deltaTime));
+        //grabDelta = Vec3.sum(grabDelta, Vec3.multiply(Controller.getSpatialControlVelocity(LEFT_PALM), deltaTime));
+        grabDelta = Vec3.subtract(Controller.getSpatialControlPosition(LEFT_PALM), grabStartPosition);
         grabCurrentRotation = Controller.getSpatialControlRawRotation(LEFT_PALM);
     }
     if (!grabbingWithLeftHand && wasGrabbingWithLeftHand) {
@@ -119,44 +120,53 @@ function handleGrabBehavior(deltaTime) {
 
     if (grabbing) {
     
-        // move position
-        var moveFromGrab = getAndResetGrabDelta();
-        if (Vec3.length(moveFromGrab) > EPSILON) {
-            MyAvatar.position = Vec3.sum(MyAvatar.position, moveFromGrab);
-            velocity = { x: 0, y: 0, z: 0};
-        }
-        
-        // add some rotation...
-        var deltaRotation = getAndResetGrabRotation();
-        var GRAB_CONTROLLER_TURN_SCALING = 0.5;
-        var euler = Vec3.multiply(Quat.safeEulerAngles(deltaRotation), GRAB_CONTROLLER_TURN_SCALING);
+        var headOrientation = MyAvatar.headOrientation;
+        var front = Quat.getFront(headOrientation);
+        var right = Quat.getRight(headOrientation);
+        var up = Quat.getUp(headOrientation);
     
-        //  Adjust body yaw by yaw from controller
-        var orientation = Quat.multiply(Quat.angleAxis(-euler.y, {x:0, y: 1, z:0}), MyAvatar.orientation);
+        //grabDelta = Quat.multiply(headOrientation, grabDelta);
+        //grabDelta = Quat.multiply(Camera.getOrientation(), grabDelta);
+        grabDelta = Vec3.multiplyQbyV(MyAvatar.orientation, Vec3.multiply(grabDelta, -1));
+
+        if (debug) {
+            printVector("grabDelta: ", grabDelta, 3);
+        }
+
+        var THRUST_GRAB_SCALING = 0.0;
+        
+        var thrustFront = Vec3.multiply(front, MyAvatar.scale * grabDelta.z * THRUST_GRAB_SCALING * deltaTime);
+        MyAvatar.addThrust(thrustFront);
+        var thrustRight = Vec3.multiply(right, MyAvatar.scale * grabDelta.x * THRUST_GRAB_SCALING * deltaTime);
+        MyAvatar.addThrust(thrustRight);
+        var thrustUp = Vec3.multiply(up, MyAvatar.scale * grabDelta.y * THRUST_GRAB_SCALING * deltaTime);
+        MyAvatar.addThrust(thrustUp);
+        
+
+        // add some rotation...
+        var deltaRotation = getGrabRotation();
+        var GRAB_CONTROLLER_PITCH_SCALING = 2.5;
+        var GRAB_CONTROLLER_YAW_SCALING = 2.5;
+        var GRAB_CONTROLLER_ROLL_SCALING = 2.5; 
+        var euler = Quat.safeEulerAngles(deltaRotation);
+    
+        //  Adjust body yaw by roll from controller
+        var orientation = Quat.multiply(Quat.angleAxis(((euler.y * GRAB_CONTROLLER_YAW_SCALING) + 
+                                                        (euler.z * GRAB_CONTROLLER_ROLL_SCALING)) * deltaTime, {x:0, y: 1, z:0}), MyAvatar.orientation);
         MyAvatar.orientation = orientation;
 
         //  Adjust head pitch from controller
-        MyAvatar.headPitch = MyAvatar.headPitch - euler.x;
+        MyAvatar.headPitch = MyAvatar.headPitch + (euler.x * GRAB_CONTROLLER_PITCH_SCALING * deltaTime);
+
+        //  Add some camera roll proportional to the rate of turn (so it feels like an airplane or roller coaster)
+
     }
 
-    // add some velocity...
-    if (stoppedGrabbing) {
-        velocity = Vec3.sum(velocity, getAndResetGrabDeltaVelocity());
-    }
-
-    // handle residual velocity
-    if(Vec3.length(velocity) > EPSILON) {
-        MyAvatar.position = Vec3.sum(MyAvatar.position, Vec3.multiply(velocity, deltaTime));
-        // damp velocity
-        velocity = Vec3.multiply(velocity, damping);
-    }
-    
-    
     wasGrabbingWithRightHand = grabbingWithRightHand;
     wasGrabbingWithLeftHand = grabbingWithLeftHand;
 }
 
-// Main update function that handles flying and grabbing behaviort
+// Update for joysticks and move button
 function flyWithHydra(deltaTime) {
     var thrustJoystickPosition = Controller.getJoystickPosition(THRUST_CONTROLLER);
     
