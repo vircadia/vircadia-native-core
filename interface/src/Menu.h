@@ -93,6 +93,9 @@ public:
     QString getSnapshotsLocation() const;
     void setSnapshotsLocation(QString snapshotsLocation) { _snapshotsLocation = snapshotsLocation; }
 
+    const QString& getScriptsLocation() const { return _scriptsLocation; }
+    void setScriptsLocation(const QString& scriptsLocation);
+
     BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
     FrustumDrawMode getFrustumDrawMode() const { return _frustumDrawMode; }
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
@@ -144,6 +147,9 @@ public:
     void static goToOrientation(QString orientation);
     void static goToDomain(const QString newDomain);
     void static goTo(QString destination);
+
+signals:
+    void scriptLocationChanged(const QString& newPath);
 
 public slots:
 
@@ -261,6 +267,7 @@ private:
     QPointer<AttachmentsDialog> _attachmentsDialog;
     QAction* _chatAction;
     QString _snapshotsLocation;
+    QString _scriptsLocation;
 };
 
 namespace MenuOption {

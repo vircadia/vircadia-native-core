@@ -12,17 +12,26 @@
 #include "ui_runningScriptsWidget.h"
 #include "RunningScriptsWidget.h"
 
+#include <QCompleter>
+#include <QAbstractProxyModel>
 #include <QFileInfo>
 #include <QKeyEvent>
 #include <QPainter>
 #include <QTableWidgetItem>
+#include <QFileSystemModel>
 
+#include "ScriptListModel.h"
 #include "Application.h"
+
 
 RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
     FramelessDialog(parent, 0, POSITION_LEFT),
-    ui(new Ui::RunningScriptsWidget) {
+    ui(new Ui::RunningScriptsWidget),
+    _fsm(this),
+    _spm(this) {
     ui->setupUi(this);
+
+    setAttribute(Qt::WA_DeleteOnClose, false);
 
     setAllowResize(false);
 
@@ -30,6 +39,28 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
     ui->reloadAllButton->setIcon(QIcon(Application::resourcesPath() + "images/reload.svg"));
     ui->stopAllButton->setIcon(QIcon(Application::resourcesPath() + "images/stop.svg"));
     ui->loadScriptButton->setIcon(QIcon(Application::resourcesPath() + "images/plus-white.svg"));
+
+    ui->recentlyLoadedScriptsArea->hide();
+
+    _fsm.setReadOnly(true);
+    _fsm.setRootPath(QDir("/Users/huffman/dev/hifi-19644/examples").absolutePath());
+    _fsm.setFilter(QDir::NoDotAndDotDot | QDir::Files);
+    _fsm.setNameFilterDisables(false);
+    _fsm.setNameFilters(QStringList("*.js"));
+    _spm.setSourceModel(&_fsm);
+    _spm.sort(0, Qt::AscendingOrder);
+    _spm.setDynamicSortFilter(true);
+    ui->scriptListView->setModel(&_spm);
+    ui->scriptListView->setAttribute(Qt::WA_MacShowFocusRect, false);
+    ui->scriptListView->setRootIndex(_spm.mapFromSource(_fsm.index("/Users/huffman/dev/hifi-19644/examples")));
+    connect(ui->filterLineEdit, &QLineEdit::textChanged, this, &RunningScriptsWidget::updateFileFilter);
+    connect(ui->scriptListView, &QListView::doubleClicked, this, &RunningScriptsWidget::scriptFileSelected);
+
+    // QCompleter *completer = new QCompleter(this);
+    // completer->setModel(&_spm);
+    // completer->setCompletionMode(QCompleter::InlineCompletion);
+    // completer->setCaseSensitivity(Qt::CaseInsensitive);
+    // ui->filterLineEdit->setCompleter(completer);
 
     _runningScriptsTable = new ScriptsTableWidget(ui->runningScriptsTableWidget);
     _runningScriptsTable->setColumnCount(2);
