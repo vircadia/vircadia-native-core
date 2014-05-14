@@ -35,6 +35,7 @@
 #include "MenuItemProperties.h"
 #include "LocalVoxels.h"
 #include "ScriptEngine.h"
+#include "XMLHttpRequestClass.h"
 
 VoxelsScriptingInterface ScriptEngine::_voxelsScriptingInterface;
 ParticlesScriptingInterface ScriptEngine::_particlesScriptingInterface;
@@ -228,6 +229,9 @@ void ScriptEngine::init() {
     qScriptRegisterSequenceMetaType<QVector<glm::vec2> >(&_engine);
     qScriptRegisterSequenceMetaType<QVector<glm::quat> >(&_engine);
     qScriptRegisterSequenceMetaType<QVector<QString> >(&_engine);
+
+    QScriptValue xmlHttpRequestConstructorValue = _engine.newFunction(XMLHttpRequestClass::constructor);
+    _engine.globalObject().setProperty("XMLHttpRequest", xmlHttpRequestConstructorValue);
 
     QScriptValue printConstructorValue = _engine.newFunction(debugPrint);
     _engine.globalObject().setProperty("print", printConstructorValue);
