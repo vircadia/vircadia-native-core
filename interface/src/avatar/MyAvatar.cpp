@@ -239,7 +239,9 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 
     if (Application::getInstance()->getPrioVR()->isActive()) {
         estimatedRotation = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getHeadRotation()));
-    
+		estimatedRotation.x *= -1.0f;
+		estimatedRotation.z *= -1.0f;
+
     } else {
         FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
         if (tracker) {

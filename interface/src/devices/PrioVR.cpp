@@ -22,8 +22,8 @@ const unsigned int SERIAL_LIST[] = { 0x00000001, 0x00000000, 0x00000008, 0x00000
 const unsigned char AXIS_LIST[] = { 9, 43, 37, 37, 37, 13, 13, 13, 52, 52, 28, 28 };
 const int LIST_LENGTH = sizeof(SERIAL_LIST) / sizeof(SERIAL_LIST[0]);
 
-const char* JOINT_NAMES[] = { "Head", "Spine", "LeftArm", "LeftForeArm", "LeftHand", "RightArm",
-    "RightForeArm", "RightHand", "LeftUpLeg", "LeftLeg", "RightUpLeft", "RightLeg" };  
+const char* JOINT_NAMES[] = { "Neck", "Spine", "LeftArm", "LeftForeArm", "LeftHand", "RightArm",
+    "RightForeArm", "RightHand", "LeftUpLeg", "LeftLeg", "RightUpLeg", "RightLeg" };  
 
 #ifdef HAVE_PRIOVR
 static int indexOfHumanIKJoint(const char* jointName) {
@@ -80,6 +80,12 @@ void PrioVR::update() {
     unsigned int timestamp;
     yei_getLastStreamDataAll(_skeletalDevice, (char*)_jointRotations.data(),
         _jointRotations.size() * sizeof(glm::quat), &timestamp);
+	
+	// convert to our expected coordinate system
+	for (int i = 0; i < _jointRotations.size(); i++) {
+		_jointRotations[i].y *= -1.0f;
+		_jointRotations[i].z *= -1.0f;
+	}
 #endif
 }
 

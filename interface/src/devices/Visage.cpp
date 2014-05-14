@@ -55,7 +55,8 @@ Visage::Visage() :
 Visage::~Visage() {
 #ifdef HAVE_VISAGE
     _tracker->stop();
-    delete _tracker;
+    // deleting the tracker crashes windows; disable for now
+	//delete _tracker;
     delete _data;
 #endif
 }
