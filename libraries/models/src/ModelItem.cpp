@@ -671,8 +671,25 @@ void ModelItem::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssi
 }
 
 
-QMap<QString, AnimationPointer> ModelItem::_loadedAnimations; // TODO: cleanup??
+QMap<QString, AnimationPointer> ModelItem::_loadedAnimations; // TODO: improve cleanup by leveraging the AnimationPointer(s)
 AnimationCache ModelItem::_animationCache;
+
+// This class/instance will cleanup the animations once unloaded.
+class ModelAnimationsBookkeeper {
+public:
+    ~ModelAnimationsBookkeeper() {
+        ModelItem::cleanupLoadedAnimations();
+    }
+};
+
+ModelAnimationsBookkeeper modelAnimationsBookkeeperInstance;
+
+void ModelItem::cleanupLoadedAnimations() {
+    foreach(AnimationPointer animation, _loadedAnimations) {
+        animation.clear();
+    }
+    _loadedAnimations.clear();
+}
 
 Animation* ModelItem::getAnimation(const QString& url) {
     AnimationPointer animation;

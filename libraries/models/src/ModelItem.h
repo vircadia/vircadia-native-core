@@ -278,6 +278,8 @@ public:
     bool getAnimationIsPlaying() const { return _animationIsPlaying; }
     float getAnimationFrameIndex() const { return _animationFrameIndex; }
     float getAnimationFPS() const { return _animationFPS; }
+    
+    static void cleanupLoadedAnimations();
 
 protected:
     glm::vec3 _position;
