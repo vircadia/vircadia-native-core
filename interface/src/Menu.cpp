@@ -889,7 +889,7 @@ void Menu::goToDomainDialog() {
 }
 
 void Menu::goToOrientation(QString orientation) {
-    LocationManager::getInstance().goToDestination(orientation);
+    LocationManager::getInstance().goToOrientation(orientation);
 }
 
 bool Menu::goToDestination(QString destination) {

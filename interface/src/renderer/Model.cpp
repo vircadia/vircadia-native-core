@@ -319,6 +319,9 @@ bool Model::updateGeometry() {
             _jointStates = createJointStates(fbxGeometry);
             needToRebuild = true;
         }
+    } else if (!geometry->isLoaded()) {
+        deleteGeometry();
+        _dilatedTextures.clear();
     }
     _geometry->setLoadPriority(this, -_lodDistance);
     _geometry->ensureLoading();

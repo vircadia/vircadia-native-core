@@ -97,7 +97,8 @@ static QDoubleSpinBox* createRotationBox(AttachmentPanel* panel, float value) {
 }
 
 AttachmentPanel::AttachmentPanel(AttachmentsDialog* dialog, const AttachmentData& data) :
-        _dialog(dialog) {
+        _dialog(dialog),
+        _applying(false) {
     setFrameStyle(QFrame::StyledPanel);
  
     QFormLayout* layout = new QFormLayout();
@@ -121,7 +122,7 @@ AttachmentPanel::AttachmentPanel(AttachmentsDialog* dialog, const AttachmentData
         }
     }
     _jointName->setCurrentText(data.jointName);
-    connect(_jointName, SIGNAL(currentIndexChanged(int)), SLOT(updateAttachmentData()));
+    connect(_jointName, SIGNAL(currentIndexChanged(int)), SLOT(jointNameChanged()));
     
     QHBoxLayout* translationBox = new QHBoxLayout();
     translationBox->addWidget(_translationX = createTranslationBox(this, data.translation.x));
@@ -171,25 +172,57 @@ void AttachmentPanel::setModelURL(const QString& url) {
 
 void AttachmentPanel::modelURLChanged() {
     // check for saved attachment data
+    if (_modelURL->text().isEmpty()) {
+        _dialog->updateAttachmentData();
+        return;
+    }
     AttachmentData attachment = Application::getInstance()->getAvatar()->loadAttachmentData(_modelURL->text());
-    if (!attachment.jointName.isEmpty()) {
+    if (attachment.isValid()) {
+        _applying = true;
         _jointName->setCurrentText(attachment.jointName);
-        _translationX->setValue(attachment.translation.x);
-        _translationY->setValue(attachment.translation.y);
-        _translationZ->setValue(attachment.translation.z);
-        glm::vec3 eulers = glm::degrees(safeEulerAngles(attachment.rotation));
-        _rotationX->setValue(eulers.x);
-        _rotationY->setValue(eulers.y);
-        _rotationZ->setValue(eulers.z);
-        _scale->setValue(attachment.scale);
+        applyAttachmentData(attachment);
     }
     _dialog->updateAttachmentData();
 }
 
+void AttachmentPanel::jointNameChanged() {
+    if (_applying) {
+        return;
+    }
+    // check for saved attachment data specific to this joint
+    if (_modelURL->text().isEmpty()) {
+        _dialog->updateAttachmentData();
+        return;
+    }
+    AttachmentData attachment = Application::getInstance()->getAvatar()->loadAttachmentData(
+        _modelURL->text(), _jointName->currentText());
+    if (attachment.isValid()) {
+        applyAttachmentData(attachment);
+    }
+    updateAttachmentData();
+}
+
 void AttachmentPanel::updateAttachmentData() {
+    if (_applying) {
+        return;
+    }
     // save the attachment data under the model URL (if any)
     if (!_modelURL->text().isEmpty()) {
         Application::getInstance()->getAvatar()->saveAttachmentData(getAttachmentData());
     }
+    _dialog->updateAttachmentData();
+}
+
+void AttachmentPanel::applyAttachmentData(const AttachmentData& attachment) {
+    _applying = true;
+    _translationX->setValue(attachment.translation.x);
+    _translationY->setValue(attachment.translation.y);
+    _translationZ->setValue(attachment.translation.z);
+    glm::vec3 eulers = glm::degrees(safeEulerAngles(attachment.rotation));
+    _rotationX->setValue(eulers.x);
+    _rotationY->setValue(eulers.y);
+    _rotationZ->setValue(eulers.z);
+    _scale->setValue(attachment.scale);
+    _applying = false;
     _dialog->updateAttachmentData();
 }

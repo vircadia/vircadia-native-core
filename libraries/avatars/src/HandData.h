@@ -45,7 +45,7 @@ public:
 
     glm::vec3 localToWorldDirection(const glm::vec3& localVector) {
         return getBaseOrientation() * localVector;
-    } 
+    }
 
     glm::vec3 worldToLocalVector(const glm::vec3& worldVector) const;
 
