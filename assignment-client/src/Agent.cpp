@@ -250,6 +250,12 @@ void Agent::run() {
     _particleViewer.init();
     _scriptEngine.getParticlesScriptingInterface()->setParticleTree(_particleViewer.getTree());
 
+    _scriptEngine.registerGlobalObject("ModelViewer", &_modelViewer);
+    JurisdictionListener* modelJL = _scriptEngine.getModelsScriptingInterface()->getJurisdictionListener();
+    _modelViewer.setJurisdictionListener(modelJL);
+    _modelViewer.init();
+    _scriptEngine.getModelsScriptingInterface()->setModelTree(_modelViewer.getTree());
+
     _scriptEngine.setScriptContents(scriptContents);
     _scriptEngine.run();
     setFinished(true);
