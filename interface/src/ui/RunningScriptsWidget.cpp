@@ -3,6 +3,7 @@
 //  interface/src/ui
 //
 //  Created by Mohammed Nafees on 03/28/2014.
+//  Updated by Ryan Huffman on 05/13/2014.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -18,17 +19,17 @@
 #include <QKeyEvent>
 #include <QPainter>
 #include <QTableWidgetItem>
-#include <QFileSystemModel>
 
-#include "ScriptListModel.h"
 #include "Application.h"
+#include "Menu.h"
+#include "ScriptsModel.h"
 
 
 RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
     FramelessDialog(parent, 0, POSITION_LEFT),
     ui(new Ui::RunningScriptsWidget),
-    _fsm(this),
-    _spm(this) {
+    _scriptsModel(this),
+    _proxyModel(this) {
     ui->setupUi(this);
 
     setAttribute(Qt::WA_DeleteOnClose, false);
@@ -42,17 +43,13 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
 
     ui->recentlyLoadedScriptsArea->hide();
 
-    _fsm.setReadOnly(true);
-    _fsm.setRootPath(QDir("/Users/huffman/dev/hifi-19644/examples").absolutePath());
-    _fsm.setFilter(QDir::NoDotAndDotDot | QDir::Files);
-    _fsm.setNameFilterDisables(false);
-    _fsm.setNameFilters(QStringList("*.js"));
-    _spm.setSourceModel(&_fsm);
-    _spm.sort(0, Qt::AscendingOrder);
-    _spm.setDynamicSortFilter(true);
-    ui->scriptListView->setModel(&_spm);
+    QString scriptPath = "/Users/huffman/dev/hifi-19644/examples";//Application::getInstance()->getPreviousScriptLocation();
+
+    _proxyModel.setSourceModel(&_scriptsModel);
+    _proxyModel.sort(0, Qt::AscendingOrder);
+    _proxyModel.setDynamicSortFilter(true);
+    ui->scriptListView->setModel(&_proxyModel);
     ui->scriptListView->setAttribute(Qt::WA_MacShowFocusRect, false);
-    ui->scriptListView->setRootIndex(_spm.mapFromSource(_fsm.index("/Users/huffman/dev/hifi-19644/examples")));
     connect(ui->filterLineEdit, &QLineEdit::textChanged, this, &RunningScriptsWidget::updateFileFilter);
     connect(ui->scriptListView, &QListView::doubleClicked, this, &RunningScriptsWidget::scriptFileSelected);
 
@@ -86,6 +83,17 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
 
 RunningScriptsWidget::~RunningScriptsWidget() {
     delete ui;
+}
+
+void RunningScriptsWidget::updateFileFilter(const QString& filter) {
+    QRegExp regex("^.*" + QRegExp::escape(filter) + ".*$", Qt::CaseInsensitive);
+    _proxyModel.setFilterRegExp(regex);
+}
+
+void RunningScriptsWidget::scriptFileSelected(const QModelIndex& index) {
+    QVariant scriptFile = _proxyModel.data(index, ScriptsModel::ScriptPath);
+    qDebug() << "Loading: " << scriptFile.toString();
+    Application::getInstance()->loadScript(scriptFile.toString());
 }
 
 void RunningScriptsWidget::setBoundary(const QRect& rect) {
@@ -126,8 +134,6 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
 
     ui->runningScriptsTableWidget->resize(ui->runningScriptsTableWidget->width(), y - RUNNING_SCRIPTS_TABLE_LEFT_MARGIN);
     _runningScriptsTable->resize(_runningScriptsTable->width(), y - RUNNING_SCRIPTS_TABLE_LEFT_MARGIN);
-    ui->reloadAllButton->move(ui->reloadAllButton->x(), y);
-    ui->stopAllButton->move(ui->stopAllButton->x(), y);
     ui->recentlyLoadedLabel->move(ui->recentlyLoadedLabel->x(),
                                   ui->stopAllButton->y() + ui->stopAllButton->height() + RECENTLY_LOADED_TOP_MARGIN);
     ui->recentlyLoadedScriptsTableWidget->move(ui->recentlyLoadedScriptsTableWidget->x(),
@@ -173,10 +179,12 @@ void RunningScriptsWidget::paintEvent(QPaintEvent* event) {
     QPainter painter(this);
     painter.setPen(QColor::fromRgb(225, 225, 225)); // #e1e1e1
 
+    const QPoint& labelPos = ui->runningScriptsArea->mapToParent(ui->currentlyRunningLabel->pos());
+
     if (ui->currentlyRunningLabel->isVisible()) {
         // line below the 'Currently Running' label
-        painter.drawLine(36, ui->currentlyRunningLabel->y() + ui->currentlyRunningLabel->height(),
-                         300, ui->currentlyRunningLabel->y() + ui->currentlyRunningLabel->height());
+        painter.drawLine(36, labelPos.y() + ui->currentlyRunningLabel->height(),
+                         300, labelPos.y() + ui->currentlyRunningLabel->height());
     }
 
     if (ui->recentlyLoadedLabel->isVisible()) {

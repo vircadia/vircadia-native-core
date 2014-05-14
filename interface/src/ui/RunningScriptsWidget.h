@@ -3,6 +3,7 @@
 //  interface/src/ui
 //
 //  Created by Mohammed Nafees on 03/28/2014.
+//  Updated by Ryan Huffman on 05/13/2014.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -12,6 +13,10 @@
 #ifndef hifi_RunningScriptsWidget_h
 #define hifi_RunningScriptsWidget_h
 
+#include <QFileSystemModel>
+#include <QSortFilterProxyModel>
+
+#include "ScriptsModel.h"
 #include "FramelessDialog.h"
 #include "ScriptsTableWidget.h"
 
@@ -42,9 +47,13 @@ private slots:
     void stopScript(int row, int column);
     void loadScript(int row, int column);
     void allScriptsStopped();
+    void updateFileFilter(const QString& filter);
+    void scriptFileSelected(const QModelIndex& index);
 
 private:
     Ui::RunningScriptsWidget* ui;
+    QSortFilterProxyModel _proxyModel;
+    ScriptsModel _scriptsModel;
     ScriptsTableWidget* _runningScriptsTable;
     ScriptsTableWidget* _recentlyLoadedScriptsTable;
     QStringList _recentlyLoadedScripts;
