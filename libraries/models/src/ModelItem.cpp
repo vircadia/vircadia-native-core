@@ -278,8 +278,6 @@ int ModelItem::readModelDataFromBuffer(const unsigned char* data, int bytesLeftT
             dataAt += animationURLLength;
             bytesRead += animationURLLength;
 
-            qDebug() << "readModelDataFromBuffer()... animationURL=" << qPrintable(animationURLString);
-
             // animationIsPlaying
             memcpy(&_animationIsPlaying, dataAt, sizeof(_animationIsPlaying));
             dataAt += sizeof(_animationIsPlaying);
@@ -290,26 +288,16 @@ int ModelItem::readModelDataFromBuffer(const unsigned char* data, int bytesLeftT
             dataAt += sizeof(_animationFrameIndex);
             bytesRead += sizeof(_animationFrameIndex);
 
-            qDebug() << "readModelDataFromBuffer()... _animationFrameIndex=" << _animationFrameIndex;
-
             // animationFPS
             memcpy(&_animationFPS, dataAt, sizeof(_animationFPS));
             dataAt += sizeof(_animationFPS);
             bytesRead += sizeof(_animationFPS);
-
-            qDebug() << "readModelDataFromBuffer()... _animationFPS=" << _animationFPS;
-
-        } else {
-            qDebug() << "readModelDataFromBuffer()... this model didn't have animation details";
         }
-
-        //qDebug() << "ModelItem::readModelDataFromBuffer()... "; debugDump();
     }
     return bytesRead;
 }
 
 ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& processedBytes, ModelTree* tree, bool& valid) {
-
     ModelItem newModelItem; // id and _lastUpdated will get set here...
     const unsigned char* dataAt = data;
     processedBytes = 0;
@@ -419,7 +407,8 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
     }
 
     // modelRotation
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_MODEL_ROTATION) == MODEL_PACKET_CONTAINS_MODEL_ROTATION)) {
+    if (isNewModelItem || ((packetContainsBits & 
+                    MODEL_PACKET_CONTAINS_MODEL_ROTATION) == MODEL_PACKET_CONTAINS_MODEL_ROTATION)) {
         int bytes = unpackOrientationQuatFromBytes(dataAt, newModelItem._modelRotation);
         dataAt += bytes;
         processedBytes += bytes;
@@ -435,7 +424,6 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
         newModelItem._animationURL = tempString;
         dataAt += animationURLLength;
         processedBytes += animationURLLength;
-qDebug() << "fromEditPacket()... animationURL=" << qPrintable(tempString);
     }
 
     // animationIsPlaying
@@ -605,9 +593,6 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
         memcpy(copyAt, qPrintable(properties.getAnimationURL()), urlLength);
         copyAt += urlLength;
         sizeOut += urlLength;
-
-qDebug() << "encodeModelItemEditMessageDetails()... animationURL=" << qPrintable(properties.getAnimationURL());
-
     }
 
     // animationIsPlaying
@@ -618,9 +603,6 @@ qDebug() << "encodeModelItemEditMessageDetails()... animationURL=" << qPrintable
         memcpy(copyAt, &animationIsPlaying, sizeof(animationIsPlaying));
         copyAt += sizeof(animationIsPlaying);
         sizeOut += sizeof(animationIsPlaying);
-
-
-qDebug() << "encodeModelItemEditMessageDetails()... animationIsPlaying=" << animationIsPlaying;
     }
 
     // animationFrameIndex
@@ -631,8 +613,6 @@ qDebug() << "encodeModelItemEditMessageDetails()... animationIsPlaying=" << anim
         memcpy(copyAt, &animationFrameIndex, sizeof(animationFrameIndex));
         copyAt += sizeof(animationFrameIndex);
         sizeOut += sizeof(animationFrameIndex);
-
-qDebug() << "encodeModelItemEditMessageDetails()... animationFrameIndex=" << animationFrameIndex;
     }
 
     // animationFPS
@@ -643,8 +623,6 @@ qDebug() << "encodeModelItemEditMessageDetails()... animationFrameIndex=" << ani
         memcpy(copyAt, &animationFPS, sizeof(animationFPS));
         copyAt += sizeof(animationFPS);
         sizeOut += sizeof(animationFPS);
-
-qDebug() << "encodeModelItemEditMessageDetails()... animationFPS=" << animationFPS;
     }
 
     bool wantDebugging = false;
@@ -1023,7 +1001,6 @@ void ModelItemProperties::copyFromScriptValue(const QScriptValue &object) {
         if (_defaultSettings || newFPS != _animationFPS) {
             _animationFPS = newFPS;
             _animationFPSChanged = true;
-qDebug() << "ModelItemProperties::copyFromScriptValue()... _animationFPS=" << _animationFPS;
         }
     }
 
@@ -1065,29 +1042,21 @@ void ModelItemProperties::copyToModelItem(ModelItem& modelItem) const {
     if (_animationURLChanged) {
         modelItem.setAnimationURL(_animationURL);
         somethingChanged = true;
-
-qDebug() << "ModelItemProperties::copyToModelItem()... modelItem.setAnimationURL(_animationURL)=" << _animationURL;
     }
 
     if (_animationIsPlayingChanged) {
         modelItem.setAnimationIsPlaying(_animationIsPlaying);
         somethingChanged = true;
-
-qDebug() << "ModelItemProperties::copyToModelItem()... _animationIsPlaying=" << _animationIsPlaying;
     }
 
     if (_animationFrameIndexChanged) {
         modelItem.setAnimationFrameIndex(_animationFrameIndex);
         somethingChanged = true;
-
-qDebug() << "ModelItemProperties::copyToModelItem()... _animationFrameIndex=" << _animationFrameIndex;
     }
 
     if (_animationFPSChanged) {
         modelItem.setAnimationFPS(_animationFPS);
         somethingChanged = true;
-
-qDebug() << "ModelItemProperties::copyToModelItem()... _animationFPS=" << _animationFPS;
     }
 
     if (somethingChanged) {

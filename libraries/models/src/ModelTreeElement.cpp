@@ -102,7 +102,6 @@ bool ModelTreeElement::bestFitModelBounds(const ModelItem& model) const {
 }
 
 void ModelTreeElement::update(ModelTreeUpdateArgs& args) {
-//qDebug() << "ModelTreeElement::update()...";
     // update our contained models
     QList<ModelItem>::iterator modelItr = _modelItems->begin();
     while(modelItr != _modelItems->end()) {
