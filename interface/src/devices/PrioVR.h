@@ -57,6 +57,7 @@ private:
 
     QVector<int> _humanIKJointIndices;
     QVector<glm::quat> _jointRotations;
+    QVector<glm::quat> _lastJointRotations;
     
     QDateTime _calibrationCountdownStarted;
 };

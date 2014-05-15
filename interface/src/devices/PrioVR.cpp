@@ -48,6 +48,7 @@ PrioVR::PrioVR() {
         return;
     }
     _jointRotations.resize(LIST_LENGTH);
+    _lastJointRotations.resize(LIST_LENGTH);
     for (int i = 0; i < LIST_LENGTH; i++) {
         _humanIKJointIndices.append(jointsDiscovered[i] ? indexOfHumanIKJoint(JOINT_NAMES[i]) : -1);
     }
@@ -86,10 +87,14 @@ void PrioVR::update() {
     yei_getLastStreamDataAll(_skeletalDevice, (char*)_jointRotations.data(),
         _jointRotations.size() * sizeof(glm::quat), &timestamp);
 
-    // convert to our expected coordinate system
+    // convert to our expected coordinate system, average with last rotations to smooth
     for (int i = 0; i < _jointRotations.size(); i++) {
         _jointRotations[i].y *= -1.0f;
         _jointRotations[i].z *= -1.0f;
+        
+        glm::quat lastRotation = _lastRotations.at(i);
+        _lastRotations[i] = _jointRotations.at(i);
+        _jointRotations[i] = safeMix(lastRotation, _jointRotations.at(i), 0.5f);
     }
 #endif
 }
