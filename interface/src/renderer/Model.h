@@ -185,6 +185,7 @@ public:
     
     void clearShapes();
     void rebuildShapes();
+    void resetShapePositions();
     void updateShapePositions();
     void renderJointCollisionShapes(float alpha);
     void renderBoundingCollisionShapes(float alpha);
@@ -232,6 +233,7 @@ protected:
     
     bool _snapModelToCenter; /// is the model's offset automatically adjusted to center around 0,0,0 in model space
     bool _snappedToCenter; /// are we currently snapped to center
+    int _rootIndex;
     
     class JointState {
     public:
@@ -291,6 +293,8 @@ protected:
 
     void applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain = true);
     
+    void computeBoundingShape(const FBXGeometry& geometry);
+
 private:
     
     void applyNextGeometry();

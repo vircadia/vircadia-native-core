@@ -214,37 +214,39 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
             renderBody(renderMode, glowLevel);
         }
-        if (renderMode != SHADOW_RENDER_MODE && 
-                Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes)) {
-            _skeletonModel.updateShapePositions();
-            _skeletonModel.renderJointCollisionShapes(0.7f);
-        }
-        if (renderMode != SHADOW_RENDER_MODE && 
-                Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes)) {
-            if (shouldRenderHead(cameraPosition, renderMode)) {
-                getHead()->getFaceModel().updateShapePositions();
+        if (renderMode != SHADOW_RENDER_MODE) {
+            bool renderSkeleton = Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes);
+            bool renderHead = Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes);
+            bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);
+            if (renderSkeleton || renderHead || renderBounding) {
+                updateShapePositions();
+            }
+
+            if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes)) {
+                _skeletonModel.renderJointCollisionShapes(0.7f);
+            }
+
+            if (Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes)
+                    && shouldRenderHead(cameraPosition, renderMode)) {
                 getHead()->getFaceModel().renderJointCollisionShapes(0.7f);
             }
-        }
-        if (renderMode != SHADOW_RENDER_MODE && 
-                Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes)) {
-            if (shouldRenderHead(cameraPosition, renderMode)) {
-                getHead()->getFaceModel().updateShapePositions();
+            if (Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes)
+                    && shouldRenderHead(cameraPosition, renderMode)) {
                 getHead()->getFaceModel().renderBoundingCollisionShapes(0.7f);
-                _skeletonModel.updateShapePositions();
                 _skeletonModel.renderBoundingCollisionShapes(0.7f);
             }
-        }
-        // If this is the avatar being looked at, render a little ball above their head
-        if (renderMode != SHADOW_RENDER_MODE &&_isLookAtTarget) {
-            const float LOOK_AT_INDICATOR_RADIUS = 0.03f;
-            const float LOOK_AT_INDICATOR_HEIGHT = 0.60f;
-            const float LOOK_AT_INDICATOR_COLOR[] = { 0.8f, 0.0f, 0.0f, 0.5f };
-            glPushMatrix();
-            glColor4fv(LOOK_AT_INDICATOR_COLOR);
-            glTranslatef(_position.x, _position.y + (getSkeletonHeight() * LOOK_AT_INDICATOR_HEIGHT), _position.z);
-            glutSolidSphere(LOOK_AT_INDICATOR_RADIUS, 15, 15);
-            glPopMatrix();
+
+            // If this is the avatar being looked at, render a little ball above their head
+            if (_isLookAtTarget) {
+                const float LOOK_AT_INDICATOR_RADIUS = 0.03f;
+                const float LOOK_AT_INDICATOR_HEIGHT = 0.60f;
+                const float LOOK_AT_INDICATOR_COLOR[] = { 0.8f, 0.0f, 0.0f, 0.5f };
+                glPushMatrix();
+                glColor4fv(LOOK_AT_INDICATOR_COLOR);
+                glTranslatef(_position.x, _position.y + (getSkeletonHeight() * LOOK_AT_INDICATOR_HEIGHT), _position.z);
+                glutSolidSphere(LOOK_AT_INDICATOR_RADIUS, 15, 15);
+                glPopMatrix();
+            }
         }
 
         // quick check before falling into the code below:
@@ -585,6 +587,12 @@ void Avatar::updateShapePositions() {
     _skeletonModel.updateShapePositions();
     Model& headModel = getHead()->getFaceModel();
     headModel.updateShapePositions();
+    /* KEEP FOR DEBUG: use this in rather than code above to see shapes 
+     * in their default positions where the bounding shape is computed.
+    _skeletonModel.resetShapePositions();
+    Model& headModel = getHead()->getFaceModel();
+    headModel.resetShapePositions();
+    */
 }
 
 bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& collisions) {
