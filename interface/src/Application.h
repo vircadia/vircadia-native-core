@@ -72,6 +72,7 @@
 #include "ui/BandwidthDialog.h"
 #include "ui/BandwidthMeter.h"
 #include "ui/ModelsBrowser.h"
+#include "ui/NodeBounds.h"
 #include "ui/OctreeStatsDialog.h"
 #include "ui/RearMirrorTools.h"
 #include "ui/LodToolsDialog.h"
@@ -189,6 +190,8 @@ public:
     bool isMouseHidden() const { return _mouseHidden; }
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
+    int getMouseX() const { return _mouseX; }
+    int getMouseY() const { return _mouseY; }
     Faceplus* getFaceplus() { return &_faceplus; }
     Faceshift* getFaceshift() { return &_faceshift; }
     Visage* getVisage() { return &_visage; }
@@ -242,7 +245,7 @@ public:
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
 
-
+    NodeBounds& getNodeBoundsDisplay()  { return _nodeBoundsDisplay; }
 
     VoxelShader& getVoxelShader() { return _voxelShader; }
     PointShader& getPointShader() { return _pointShader; }
@@ -519,6 +522,8 @@ private:
     NodeToJurisdictionMap _modelServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
     QReadWriteLock _octreeSceneStatsLock;
+
+    NodeBounds _nodeBoundsDisplay;
 
     std::vector<VoxelFade> _voxelFades;
     ControllerScriptingInterface _controllerScriptingInterface;

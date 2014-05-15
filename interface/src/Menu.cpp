@@ -42,6 +42,7 @@
 #include "ui/MetavoxelEditor.h"
 #include "ui/ModelsBrowser.h"
 #include "ui/LoginDialog.h"
+#include "ui/NodeBounds.h"
 
 
 Menu* Menu::_instance = NULL;
@@ -240,6 +241,18 @@ Menu::Menu() :
                                            false,
                                            appInstance,
                                            SLOT(setEnable3DTVMode(bool)));
+
+
+    NodeBounds& nodeBounds = appInstance->getNodeBoundsDisplay();
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::ShowBordersVoxelNodes,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_1, false,
+                                           &nodeBounds, SLOT(setShowVoxelNodes(bool)));
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::ShowBordersModelNodes,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_2, false,
+                                           &nodeBounds, SLOT(setShowModelNodes(bool)));
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::ShowBordersParticleNodes,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_3, false,
+                                           &nodeBounds, SLOT(setShowParticleNodes(bool)));
 
 
     QMenu* avatarSizeMenu = viewMenu->addMenu("Avatar Size");

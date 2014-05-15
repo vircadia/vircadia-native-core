@@ -367,6 +367,9 @@ namespace MenuOption {
     const QString SettingsExport = "Export Settings";
     const QString SettingsImport = "Import Settings";
     const QString Shadows = "Shadows";
+    const QString ShowBordersVoxelNodes = "Show Borders - Voxel Nodes";
+    const QString ShowBordersModelNodes = "Show Borders - Model Nodes";
+    const QString ShowBordersParticleNodes = "Show Borders - Particle Nodes";
     const QString ShowCulledSharedFaces = "Show Culled Shared Voxel Faces";
     const QString ShowIKConstraints = "Show IK Constraints";
     const QString Stars = "Stars";
