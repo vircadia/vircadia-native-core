@@ -106,16 +106,10 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         
         const float BROW_LIFT_THRESHOLD = 100.0f;
         if (_audioAttack > BROW_LIFT_THRESHOLD) {
-            _browAudioLift += sqrtf(_audioAttack) * 0.00005f;
+            _browAudioLift += sqrtf(_audioAttack) * 0.01f;
         }
+        _browAudioLift = glm::clamp(_browAudioLift *= 0.7f, 0.0f, 1.0f);
         
-        const float CLAMP = 0.01f;
-        if (_browAudioLift > CLAMP) {
-            _browAudioLift = CLAMP;
-        }
-        
-        _browAudioLift *= 0.7f;      
-
         const float BLINK_SPEED = 10.0f;
         const float FULLY_OPEN = 0.0f;
         const float FULLY_CLOSED = 1.0f;
@@ -147,12 +141,12 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         }
         
         // use data to update fake Faceshift blendshape coefficients
-        const float BROW_LIFT_SCALE = 500.0f;
-        const float JAW_OPEN_SCALE = 0.01f;
-        const float JAW_OPEN_DEAD_ZONE = 0.75f;
-        Application::getInstance()->getFaceshift()->updateFakeCoefficients(_leftEyeBlink, _rightEyeBlink,
-			min(1.0f, _browAudioLift * BROW_LIFT_SCALE), glm::clamp(sqrt(_averageLoudness * JAW_OPEN_SCALE) -
-				JAW_OPEN_DEAD_ZONE, 0.0f, 1.0f), _blendshapeCoefficients);
+        const float JAW_OPEN_SCALE = 10.f;
+        Application::getInstance()->getFaceshift()->updateFakeCoefficients(_leftEyeBlink,
+                                                                           _rightEyeBlink,
+            _browAudioLift,
+            glm::clamp(log(_averageLoudness) / JAW_OPEN_SCALE, 0.0f, 1.0f),
+            _blendshapeCoefficients);
     }
     
     if (!isMine) {
@@ -182,7 +176,7 @@ void Head::relaxLean(float deltaTime) {
 }
 
 void Head::render(float alpha, Model::RenderMode mode) {
-    if (_faceModel.render(alpha, mode) && _renderLookatVectors) {
+    if (_faceModel.render(alpha, mode) && _renderLookatVectors && mode != Model::SHADOW_RENDER_MODE) {
         renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
     }
 }

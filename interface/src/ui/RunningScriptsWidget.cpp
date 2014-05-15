@@ -187,6 +187,10 @@ void RunningScriptsWidget::paintEvent(QPaintEvent* event) {
     painter.end();
 }
 
+void RunningScriptsWidget::scriptStopped(const QString& scriptName) {
+    _recentlyLoadedScripts.prepend(scriptName);
+}
+
 void RunningScriptsWidget::stopScript(int row, int column) {
     if (column == 1) { // make sure the user has clicked on the close icon
         _lastStoppedScript = _runningScriptsTable->item(row, 0)->toolTip();
@@ -199,11 +203,6 @@ void RunningScriptsWidget::loadScript(int row, int column) {
 }
 
 void RunningScriptsWidget::allScriptsStopped() {
-    QStringList list = Application::getInstance()->getRunningScripts();
-    for (int i = 0; i < list.size(); ++i) {
-        _recentlyLoadedScripts.prepend(list.at(i));
-    }
-
     Application::getInstance()->stopAllScripts();
 }
 

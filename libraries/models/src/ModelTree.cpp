@@ -113,13 +113,10 @@ void ModelTree::storeModel(const ModelItem& model, const SharedNodePointer& send
     FindAndUpdateModelOperator theOperator(model);
     recurseTreeWithOperator(&theOperator);
     
-
     // if we didn't find it in the tree, then store it...
     if (!theOperator.wasFound()) {
-        glm::vec3 position = model.getPosition();
-        float size = std::max(MINIMUM_MODEL_ELEMENT_SIZE, model.getRadius());
-
-        ModelTreeElement* element = (ModelTreeElement*)getOrCreateChildElementAt(position.x, position.y, position.z, size);
+        AABox modelBox = model.getAABox();
+        ModelTreeElement* element = (ModelTreeElement*)getOrCreateChildElementContaining(model.getAABox());
         element->storeModel(model);
     }
     // what else do we need to do here to get reaveraging to work
@@ -494,12 +491,29 @@ void ModelTree::update() {
     lockForWrite();
     _isDirty = true;
 
-    // TODO: we don't need to update models yet, but when we do, for example 
-    // when we add animation support, we will revisit this code.
-    //ModelTreeUpdateArgs args = { };
-    //recurseTreeWithOperation(updateOperation, &args);
+    ModelTreeUpdateArgs args = { };
+    recurseTreeWithOperation(updateOperation, &args);
 
-    // Now is a reasonable time to prune the tree...
+    // now add back any of the particles that moved elements....
+    int movingModels = args._movingModels.size();
+    for (int i = 0; i < movingModels; i++) {
+        bool shouldDie = args._movingModels[i].getShouldDie();
+
+        // if the particle is still inside our total bounds, then re-add it
+        AABox treeBounds = getRoot()->getAABox();
+
+        if (!shouldDie && treeBounds.contains(args._movingModels[i].getPosition())) {
+            storeModel(args._movingModels[i]);
+        } else {
+            uint32_t modelItemID = args._movingModels[i].getID();
+            quint64 deletedAt = usecTimestampNow();
+            _recentlyDeletedModelsLock.lockForWrite();
+            _recentlyDeletedModelItemIDs.insert(deletedAt, modelItemID);
+            _recentlyDeletedModelsLock.unlock();
+        }
+    }
+
+    // prune the tree...
     recurseTreeWithOperation(pruneOperation, NULL);
     unlock();
 }

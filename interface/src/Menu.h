@@ -197,6 +197,7 @@ private slots:
     void audioMuteToggled();
     void namedLocationCreated(LocationManager::NamedLocationCreateResponse response);
     void multipleDestinationsDecision(const QJsonObject& userData, const QJsonObject& placeData);
+    void muteEnvironment();
 
 private:
     static Menu* _instance;
@@ -303,13 +304,15 @@ namespace MenuOption {
     const QString CollideWithParticles = "Collide With Particles";
     const QString CollideWithVoxels = "Collide With Voxels";
     const QString Collisions = "Collisions";
-    const QString CullSharedFaces = "Cull Shared Voxel Faces";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
     const QString DisplayFrustum = "Display Frustum";
     const QString DisplayHands = "Display Hands";
     const QString DisplayHandTargets = "Display Hand Targets";
+    const QString DisplayModelBounds = "Display Model Bounds";
+    const QString DisplayModelElementProxy = "Display Model Element Bounds";
+    const QString DisplayModelElementChildProxies = "Display Model Element Children";
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
@@ -344,8 +347,10 @@ namespace MenuOption {
     const QString Metavoxels = "Metavoxels";
     const QString Mirror = "Mirror";
     const QString Models = "Models";
+    const QString ModelOptions = "Model Options";
     const QString MoveWithLean = "Move with Lean";
     const QString MuteAudio = "Mute Microphone";
+    const QString MuteEnvironment = "Mute Environment";
     const QString NameLocation = "Name this location";
     const QString NewVoxelCullingMode = "New Voxel Culling Mode";
     const QString OctreeStats = "Voxel and Particle Statistics";
@@ -368,7 +373,6 @@ namespace MenuOption {
     const QString SettingsExport = "Export Settings";
     const QString SettingsImport = "Import Settings";
     const QString Shadows = "Shadows";
-    const QString ShowCulledSharedFaces = "Show Culled Shared Voxel Faces";
     const QString ShowIKConstraints = "Show IK Constraints";
     const QString Stars = "Stars";
     const QString Stats = "Stats";

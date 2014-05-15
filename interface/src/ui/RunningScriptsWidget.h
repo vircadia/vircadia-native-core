@@ -41,6 +41,7 @@ protected:
     virtual void paintEvent(QPaintEvent* event);
 
 public slots:
+    void scriptStopped(const QString& scriptName);
     void setBoundary(const QRect& rect);
 
 private slots:

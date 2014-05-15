@@ -41,11 +41,11 @@ typedef unsigned long long quint64;
 #include <QtCore/QVector>
 #include <QtCore/QVariantMap>
 #include <QRect>
+#include <QScriptable>
 #include <QUuid>
 
 #include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
-#include <StreamUtils.h>
 
 #include <Node.h>
 
@@ -124,6 +124,7 @@ class AvatarData : public QObject {
     Q_PROPERTY(QString displayName READ getDisplayName WRITE setDisplayName)
     Q_PROPERTY(QString faceModelURL READ getFaceModelURLFromScript WRITE setFaceModelURLFromScript)
     Q_PROPERTY(QString skeletonModelURL READ getSkeletonModelURLFromScript WRITE setSkeletonModelURLFromScript)
+    Q_PROPERTY(QVector<AttachmentData> attachmentData READ getAttachmentData WRITE setAttachmentData)
     Q_PROPERTY(QString billboardURL READ getBillboardURL WRITE setBillboardFromURL)
 
     Q_PROPERTY(QStringList jointNames READ getJointNames)
@@ -230,12 +231,21 @@ public:
     const QUrl& getFaceModelURL() const { return _faceModelURL; }
     QString getFaceModelURLString() const { return _faceModelURL.toString(); }
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
-    const QVector<AttachmentData>& getAttachmentData() const { return _attachmentData; }
     const QString& getDisplayName() const { return _displayName; }
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
-    virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
+    
     virtual void setDisplayName(const QString& displayName);
+    
+    Q_INVOKABLE QVector<AttachmentData> getAttachmentData() const;
+    Q_INVOKABLE virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
+    
+    Q_INVOKABLE virtual void attach(const QString& modelURL, const QString& jointName = QString(),
+        const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
+        bool allowDuplicates = false, bool useSaved = true);
+    
+    Q_INVOKABLE void detachOne(const QString& modelURL, const QString& jointName = QString());
+    Q_INVOKABLE void detachAll(const QString& modelURL, const QString& jointName = QString());
     
     virtual void setBillboard(const QByteArray& billboard);
     const QByteArray& getBillboard() const { return _billboard; }
@@ -342,10 +352,44 @@ public:
     
     AttachmentData();
     
+    bool isValid() const { return modelURL.isValid(); }
+    
     bool operator==(const AttachmentData& other) const;
 };
 
 QDataStream& operator<<(QDataStream& out, const AttachmentData& attachment);
 QDataStream& operator>>(QDataStream& in, AttachmentData& attachment);
+
+Q_DECLARE_METATYPE(AttachmentData)
+Q_DECLARE_METATYPE(QVector<AttachmentData>)
+
+/// Scriptable wrapper for attachments.
+class AttachmentDataObject : public QObject, protected QScriptable {
+    Q_OBJECT
+    Q_PROPERTY(QString modelURL READ getModelURL WRITE setModelURL)
+    Q_PROPERTY(QString jointName READ getJointName WRITE setJointName)
+    Q_PROPERTY(glm::vec3 translation READ getTranslation WRITE setTranslation)
+    Q_PROPERTY(glm::quat rotation READ getRotation WRITE setRotation)
+    Q_PROPERTY(float scale READ getScale WRITE setScale)
+
+public:
+    
+    Q_INVOKABLE void setModelURL(const QString& modelURL) const;
+    Q_INVOKABLE QString getModelURL() const;
+    
+    Q_INVOKABLE void setJointName(const QString& jointName) const;
+    Q_INVOKABLE QString getJointName() const;
+    
+    Q_INVOKABLE void setTranslation(const glm::vec3& translation) const;
+    Q_INVOKABLE glm::vec3 getTranslation() const;
+    
+    Q_INVOKABLE void setRotation(const glm::quat& rotation) const;
+    Q_INVOKABLE glm::quat getRotation() const;
+    
+    Q_INVOKABLE void setScale(float scale) const;
+    Q_INVOKABLE float getScale() const;
+};
+
+void registerAvatarTypes(QScriptEngine* engine);
 
 #endif // hifi_AvatarData_h

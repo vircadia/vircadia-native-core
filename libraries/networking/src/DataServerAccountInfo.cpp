@@ -16,7 +16,8 @@
 DataServerAccountInfo::DataServerAccountInfo() :
     _accessToken(),
     _username(),
-    _xmppPassword()
+    _xmppPassword(),
+    _discourseApiKey()
 {
     
 }
@@ -29,12 +30,14 @@ DataServerAccountInfo::DataServerAccountInfo(const QJsonObject& jsonObject) :
     QJsonObject userJSONObject = jsonObject["user"].toObject();
     setUsername(userJSONObject["username"].toString());
     setXMPPPassword(userJSONObject["xmpp_password"].toString());
+    setDiscourseApiKey(userJSONObject["discourse_api_key"].toString());
 }
 
 DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherInfo) {
     _accessToken = otherInfo._accessToken;
     _username = otherInfo._username;
     _xmppPassword = otherInfo._xmppPassword;
+    _discourseApiKey = otherInfo._discourseApiKey;
 }
 
 DataServerAccountInfo& DataServerAccountInfo::operator=(const DataServerAccountInfo& otherInfo) {
@@ -49,6 +52,7 @@ void DataServerAccountInfo::swap(DataServerAccountInfo& otherInfo) {
     swap(_accessToken, otherInfo._accessToken);
     swap(_username, otherInfo._username);
     swap(_xmppPassword, otherInfo._xmppPassword);
+    swap(_discourseApiKey, otherInfo._discourseApiKey);
 }
 
 void DataServerAccountInfo::setUsername(const QString& username) {
@@ -65,12 +69,18 @@ void DataServerAccountInfo::setXMPPPassword(const QString& xmppPassword) {
      }
 }
 
+void DataServerAccountInfo::setDiscourseApiKey(const QString& discourseApiKey) {
+    if (_discourseApiKey != discourseApiKey) {
+        _discourseApiKey = discourseApiKey;
+    }
+}
+
 QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info) {
-    out << info._accessToken << info._username << info._xmppPassword;
+    out << info._accessToken << info._username << info._xmppPassword << info._discourseApiKey;
     return out;
 }
 
 QDataStream& operator>>(QDataStream &in, DataServerAccountInfo& info) {
-    in >> info._accessToken >> info._username >> info._xmppPassword;
+    in >> info._accessToken >> info._username >> info._xmppPassword >> info._discourseApiKey;
     return in;
 }

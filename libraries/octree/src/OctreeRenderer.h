@@ -25,15 +25,7 @@
 #include "ViewFrustum.h"
 
 class OctreeRenderer;
-
-class RenderArgs {
-public:
-    int _renderedItems;
-    OctreeRenderer* _renderer;
-    ViewFrustum* _viewFrustum;
-    float _sizeScale;
-    int _boundaryLevelAdjust;
-};
+class RenderArgs;
 
 
 // Generic client side Octree renderer class.
@@ -59,8 +51,10 @@ public:
     /// initialize and GPU/rendering related resources
     virtual void init();
 
+    enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE };
+
     /// render the content of the octree
-    virtual void render();
+    virtual void render(RenderMode renderMode = DEFAULT_RENDER_MODE);
 
     ViewFrustum* getViewFrustum() const { return _viewFrustum; }
     void setViewFrustum(ViewFrustum* viewFrustum) { _viewFrustum = viewFrustum; }
@@ -74,5 +68,16 @@ protected:
     bool _managedTree;
     ViewFrustum* _viewFrustum;
 };
+
+class RenderArgs {
+public:
+    int _renderedItems;
+    OctreeRenderer* _renderer;
+    ViewFrustum* _viewFrustum;
+    float _sizeScale;
+    int _boundaryLevelAdjust;
+    OctreeRenderer::RenderMode _renderMode;
+};
+
 
 #endif // hifi_OctreeRenderer_h

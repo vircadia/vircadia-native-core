@@ -223,10 +223,6 @@ padding-top: 3px;</string>
            <property name="text">
             <string>Reload all</string>
            </property>
-           <property name="icon">
-            <iconset>
-             <normaloff>../../../../../../../../.designer/resources/images/reload.svg</normaloff>../../../../../../../../.designer/resources/images/reload.svg</iconset>
-           </property>
           </widget>
          </item>
          <item>
@@ -255,10 +251,6 @@ padding-top: 3px;</string>
            </property>
            <property name="text">
             <string>Stop all</string>
-           </property>
-           <property name="icon">
-            <iconset>
-             <normaloff>../../../../../../../../.designer/resources/images/stop.svg</normaloff>../../../../../../../../.designer/resources/images/stop.svg</iconset>
            </property>
           </widget>
          </item>
@@ -538,10 +530,6 @@ padding-top: 3px;</string>
            </property>
            <property name="text">
             <string>Load script</string>
-           </property>
-           <property name="icon">
-            <iconset>
-             <normaloff>../../../../../../../../.designer/resources/images/plus.svg</normaloff>../../../../../../../../.designer/resources/images/plus.svg</iconset>
            </property>
           </widget>
          </item>

@@ -96,6 +96,7 @@ public:
     
 protected:
 
+    virtual void init();
     virtual void downloadFinished(QNetworkReply* reply);
     virtual void reinsert();
     

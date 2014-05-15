@@ -128,6 +128,7 @@ QVector<Model::JointState> Model::createJointStates(const FBXGeometry& geometry)
     jointIsSet.fill(false, numJoints);
     int numJointsSet = 0;
     int lastNumJointsSet = -1;
+    glm::mat4 baseTransform = glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset);
     while (numJointsSet < numJoints && numJointsSet != lastNumJointsSet) {
         lastNumJointsSet = numJointsSet;
         for (int i = 0; i < numJoints; ++i) {
@@ -138,7 +139,6 @@ QVector<Model::JointState> Model::createJointStates(const FBXGeometry& geometry)
             const FBXJoint& joint = geometry.joints[i];
             int parentIndex = joint.parentIndex;
             if (parentIndex == -1) {
-                glm::mat4 baseTransform = glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset);
                 glm::quat combinedRotation = joint.preRotation * state.rotation * joint.postRotation;    
                 state.transform = baseTransform * geometry.offset * glm::translate(state.translation) * joint.preTransform *
                     glm::mat4_cast(combinedRotation) * joint.postTransform;
@@ -319,6 +319,9 @@ bool Model::updateGeometry() {
             _jointStates = createJointStates(fbxGeometry);
             needToRebuild = true;
         }
+    } else if (!geometry->isLoaded()) {
+        deleteGeometry();
+        _dilatedTextures.clear();
     }
     _geometry->setLoadPriority(this, -_lodDistance);
     _geometry->ensureLoading();
@@ -789,9 +792,9 @@ bool Model::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadi
         }
         if (ShapeCollider::collideShapes(&sphere, _jointShapes[i], collisions)) {
             CollisionInfo* collision = collisions.getLastCollision();
-            collision->_type = MODEL_COLLISION;
+            collision->_type = COLLISION_TYPE_MODEL;
             collision->_data = (void*)(this);
-            collision->_flags = i;
+            collision->_intData = i;
             collided = true;
         }
         outerContinue: ;
@@ -805,9 +808,9 @@ bool Model::findPlaneCollisions(const glm::vec4& plane, CollisionList& collision
     for (int i = 0; i < _jointShapes.size(); i++) {
         if (ShapeCollider::collideShapes(&planeShape, _jointShapes[i], collisions)) {
             CollisionInfo* collision = collisions.getLastCollision();
-            collision->_type = MODEL_COLLISION;
+            collision->_type = COLLISION_TYPE_MODEL;
             collision->_data = (void*)(this);
-            collision->_flags = i;
+            collision->_intData = i;
             collided = true;
         }
     }
@@ -1256,15 +1259,15 @@ void Model::renderBoundingCollisionShapes(float alpha) {
 }
 
 bool Model::collisionHitsMoveableJoint(CollisionInfo& collision) const {
-    if (collision._type == MODEL_COLLISION) {
+    if (collision._type == COLLISION_TYPE_MODEL) {
         // the joint is pokable by a collision if it exists and is free to move
-        const FBXJoint& joint = _geometry->getFBXGeometry().joints[collision._flags];
+        const FBXJoint& joint = _geometry->getFBXGeometry().joints[collision._intData];
         if (joint.parentIndex == -1 || _jointStates.isEmpty()) {
             return false;
         }
         // an empty freeLineage means the joint can't move
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
-        int jointIndex = collision._flags;
+        int jointIndex = collision._intData;
         const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
         return !freeLineage.isEmpty();
     }
@@ -1272,12 +1275,12 @@ bool Model::collisionHitsMoveableJoint(CollisionInfo& collision) const {
 }
 
 void Model::applyCollision(CollisionInfo& collision) {
-    if (collision._type != MODEL_COLLISION) {
+    if (collision._type != COLLISION_TYPE_MODEL) {
         return;
     }
 
     glm::vec3 jointPosition(0.f);
-    int jointIndex = collision._flags;
+    int jointIndex = collision._intData;
     if (getJointPosition(jointIndex, jointPosition)) {
         const FBXJoint& joint = _geometry->getFBXGeometry().joints[jointIndex];
         if (joint.parentIndex != -1) {
