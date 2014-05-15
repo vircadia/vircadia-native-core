@@ -62,8 +62,13 @@ PrioVR::~PrioVR() {
 #endif
 }
 
-glm::quat PrioVR::getHeadRotation() const {
-    const int HEAD_ROTATION_INDEX = 0;
+const int HEAD_ROTATION_INDEX = 0;
+
+bool PrioVR::hasHeadRotation() const {
+    return _humanIKJointIndices.size() > HEAD_ROTATION_INDEX && _humanIKJointIndices.at(HEAD_ROTATION_INDEX) != -1;
+}
+
+glm::quat PrioVR::getHeadRotation() const {    
     return _jointRotations.size() > HEAD_ROTATION_INDEX ? _jointRotations.at(HEAD_ROTATION_INDEX) : glm::quat();
 }
 

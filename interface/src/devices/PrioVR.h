@@ -35,6 +35,8 @@ public:
 
     bool isActive() const { return !_jointRotations.isEmpty(); }
 
+    bool hasHeadRotation() const;
+
     glm::quat getHeadRotation() const;
     glm::quat getTorsoRotation() const;
 
