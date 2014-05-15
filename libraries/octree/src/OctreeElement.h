@@ -71,6 +71,10 @@ public:
     /// Should this element be considered to have content in it. This will be used in collision and ray casting methods.
     /// By default we assume that only leaves are actual content, but some octrees may have different semantics.
     virtual bool hasContent() const { return isLeaf(); }
+
+    /// Should this element be considered to have detailed content in it. Specifically should it be rendered.
+    /// By default we assume that only leaves have detailed content, but some octrees may have different semantics.
+    virtual bool hasDetailedContent() const { return isLeaf(); }
     
     /// Override this to break up large octree elements when an edit operation is performed on a smaller octree element.
     /// For example, if the octrees represent solid cubes and a delete of a smaller octree element is done then the 
