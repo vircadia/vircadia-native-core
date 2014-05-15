@@ -38,7 +38,7 @@ public:
     void reset();
     void update(float deltaTime);
     void simulate(float deltaTime);
-    void updateFromFaceTracker(float deltaTime);
+    void updateFromTrackers(float deltaTime);
     void moveWithLean();
 
     void render(const glm::vec3& cameraPosition, RenderMode renderMode = NORMAL_RENDER_MODE);

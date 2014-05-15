@@ -335,10 +335,8 @@ void Octree::readBitstreamToTree(const unsigned char * bitstream, unsigned long 
         int octalCodeBytes = bytesRequiredForCodeLength(*bitstreamAt);
         int theseBytesRead = 0;
         theseBytesRead += octalCodeBytes;
-
         theseBytesRead += readElementData(bitstreamRootElement, bitstreamAt + octalCodeBytes,
                                        bufferSizeBytes - (bytesRead + octalCodeBytes), args);
-
         // skip bitstream to new startPoint
         bitstreamAt += theseBytesRead;
         bytesRead +=  theseBytesRead;
@@ -1556,6 +1554,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
 
 bool Octree::readFromSVOFile(const char* fileName) {
     bool fileOk = false;
+    PacketVersion gotVersion = 0;
     std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
     if(file.is_open()) {
         emit importSize(1.0f, 1.0f, 1.0f);
@@ -1586,14 +1585,16 @@ bool Octree::readFromSVOFile(const char* fileName) {
             if (gotType == expectedType) {
                 dataAt += sizeof(expectedType);
                 dataLength -= sizeof(expectedType);
-                PacketVersion expectedVersion = versionForPacketType(expectedType);
-                PacketVersion gotVersion = *dataAt;
-                if (gotVersion == expectedVersion) {
-                    dataAt += sizeof(expectedVersion);
-                    dataLength -= sizeof(expectedVersion);
+                gotVersion = *dataAt;
+                if (canProcessVersion(gotVersion)) {
+                    dataAt += sizeof(gotVersion);
+                    dataLength -= sizeof(gotVersion);
                     fileOk = true;
+                    qDebug("SVO file version match. Expected: %d Got: %d", 
+                                versionForPacketType(expectedDataPacketType()), gotVersion);
                 } else {
-                    qDebug("SVO file version mismatch. Expected: %d Got: %d", expectedVersion, gotVersion);
+                    qDebug("SVO file version mismatch. Expected: %d Got: %d", 
+                                versionForPacketType(expectedDataPacketType()), gotVersion);
                 }
             } else {
                 qDebug("SVO file type mismatch. Expected: %c Got: %c", expectedType, gotType);
@@ -1602,7 +1603,8 @@ bool Octree::readFromSVOFile(const char* fileName) {
             fileOk = true; // assume the file is ok
         }
         if (fileOk) {
-            ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0, SharedNodePointer(), wantImportProgress);
+            ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0, 
+                                                SharedNodePointer(), wantImportProgress, gotVersion);
             readBitstreamToTree(dataAt, dataLength, args);
         }
         delete[] entireFile;
@@ -1615,7 +1617,6 @@ bool Octree::readFromSVOFile(const char* fileName) {
 }
 
 void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
-
     std::ofstream file(fileName, std::ios::out|std::ios::binary);
 
     if(file.is_open()) {
@@ -1638,13 +1639,12 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
             nodeBag.insert(_rootElement);
         }
 
-        static OctreePacketData packetData;
+        OctreePacketData packetData;
         int bytesWritten = 0;
         bool lastPacketWritten = false;
 
         while (!nodeBag.isEmpty()) {
             OctreeElement* subTree = nodeBag.extract();
-
             lockForRead(); // do tree locking down here so that we have shorter slices and less thread contention
             EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
             bytesWritten = encodeTreeBitstream(subTree, &packetData, nodeBag, params);
@@ -1666,7 +1666,6 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
         if (!lastPacketWritten) {
             file.write((const char*)packetData.getFinalizedData(), packetData.getFinalizedSize());
         }
-
     }
     file.close();
 }
