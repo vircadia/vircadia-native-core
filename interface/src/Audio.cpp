@@ -1068,6 +1068,7 @@ void Audio::toggleScope() {
         memset(_scopeInput.data(), 0, width * sizeof(int16_t));
         memset(_scopeOutputLeft.data(), 0, width * sizeof(int16_t));
         memset(_scopeOutputRight.data(), 0, width * sizeof(int16_t));
+        _scopeEnabledPause = false;
     }
 }
 

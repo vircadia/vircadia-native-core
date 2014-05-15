@@ -46,5 +46,9 @@ interface/resources/visage/*
 interface/external/faceplus/*
 !interface/external/faceplus/readme.txt
 
+# Ignore PrioVR
+interface/external/priovr/*
+!interface/external/priovr/readme.txt
+
 # Ignore interfaceCache for Linux users
 interface/interfaceCache/

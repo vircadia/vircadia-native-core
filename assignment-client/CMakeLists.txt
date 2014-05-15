@@ -33,6 +33,7 @@ link_hifi_library(particles ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(models ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(metavoxels ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
+link_hifi_library(animation ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(script-engine ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(embedded-webserver ${TARGET_NAME} "${ROOT_DIR}")
 

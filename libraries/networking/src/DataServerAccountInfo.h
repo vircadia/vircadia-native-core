@@ -31,7 +31,10 @@ public:
 
     const QString& getXMPPPassword() const { return _xmppPassword; }
     void setXMPPPassword(const QString& xmppPassword);
-    
+
+    const QString& getDiscourseApiKey() const { return _discourseApiKey; }
+    void setDiscourseApiKey(const QString& discourseApiKey);
+
     friend QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info);
     friend QDataStream& operator>>(QDataStream &in, DataServerAccountInfo& info);
 private:
@@ -40,6 +43,7 @@ private:
     OAuthAccessToken _accessToken;
     QString _username;
     QString _xmppPassword;
+    QString _discourseApiKey;
 };
 
 #endif // hifi_DataServerAccountInfo_h

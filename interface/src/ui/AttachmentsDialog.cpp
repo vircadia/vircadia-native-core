@@ -76,27 +76,29 @@ void AttachmentsDialog::addAttachment(const AttachmentData& data) {
     _attachments->insertWidget(_attachments->count() - 1, new AttachmentPanel(this, data));
 }
 
-static QDoubleSpinBox* createTranslationBox(AttachmentsDialog* dialog, float value) {
+static QDoubleSpinBox* createTranslationBox(AttachmentPanel* panel, float value) {
     QDoubleSpinBox* box = new QDoubleSpinBox();
     box->setSingleStep(0.01);
     box->setMinimum(-FLT_MAX);
     box->setMaximum(FLT_MAX);
     box->setValue(value);
-    dialog->connect(box, SIGNAL(valueChanged(double)), SLOT(updateAttachmentData()));
+    panel->connect(box, SIGNAL(valueChanged(double)), SLOT(updateAttachmentData()));
     return box;
 }
 
-static QDoubleSpinBox* createRotationBox(AttachmentsDialog* dialog, float value) {
+static QDoubleSpinBox* createRotationBox(AttachmentPanel* panel, float value) {
     QDoubleSpinBox* box = new QDoubleSpinBox();
     box->setMinimum(-180.0);
     box->setMaximum(180.0);
     box->setWrapping(true);
     box->setValue(value);
-    dialog->connect(box, SIGNAL(valueChanged(double)), SLOT(updateAttachmentData()));
+    panel->connect(box, SIGNAL(valueChanged(double)), SLOT(updateAttachmentData()));
     return box;
 }
 
-AttachmentPanel::AttachmentPanel(AttachmentsDialog* dialog, const AttachmentData& data) {
+AttachmentPanel::AttachmentPanel(AttachmentsDialog* dialog, const AttachmentData& data) :
+        _dialog(dialog),
+        _applying(false) {
     setFrameStyle(QFrame::StyledPanel);
  
     QFormLayout* layout = new QFormLayout();
@@ -107,7 +109,7 @@ AttachmentPanel::AttachmentPanel(AttachmentsDialog* dialog, const AttachmentData
     layout->addRow("Model URL:", urlBox);
     urlBox->addWidget(_modelURL = new QLineEdit(data.modelURL.toString()), 1);
     _modelURL->setText(data.modelURL.toString());
-    dialog->connect(_modelURL, SIGNAL(returnPressed()), SLOT(updateAttachmentData()));
+    connect(_modelURL, SIGNAL(returnPressed()), SLOT(modelURLChanged()));
     QPushButton* chooseURL = new QPushButton("Choose");
     urlBox->addWidget(chooseURL);
     connect(chooseURL, SIGNAL(clicked(bool)), SLOT(chooseModelURL()));
@@ -120,26 +122,26 @@ AttachmentPanel::AttachmentPanel(AttachmentsDialog* dialog, const AttachmentData
         }
     }
     _jointName->setCurrentText(data.jointName);
-    dialog->connect(_jointName, SIGNAL(currentIndexChanged(int)), SLOT(updateAttachmentData()));
+    connect(_jointName, SIGNAL(currentIndexChanged(int)), SLOT(jointNameChanged()));
     
     QHBoxLayout* translationBox = new QHBoxLayout();
-    translationBox->addWidget(_translationX = createTranslationBox(dialog, data.translation.x));
-    translationBox->addWidget(_translationY = createTranslationBox(dialog, data.translation.y));
-    translationBox->addWidget(_translationZ = createTranslationBox(dialog, data.translation.z));
+    translationBox->addWidget(_translationX = createTranslationBox(this, data.translation.x));
+    translationBox->addWidget(_translationY = createTranslationBox(this, data.translation.y));
+    translationBox->addWidget(_translationZ = createTranslationBox(this, data.translation.z));
     layout->addRow("Translation:", translationBox);
     
     QHBoxLayout* rotationBox = new QHBoxLayout();
     glm::vec3 eulers = glm::degrees(safeEulerAngles(data.rotation));
-    rotationBox->addWidget(_rotationX = createRotationBox(dialog, eulers.x));
-    rotationBox->addWidget(_rotationY = createRotationBox(dialog, eulers.y));
-    rotationBox->addWidget(_rotationZ = createRotationBox(dialog, eulers.z));
+    rotationBox->addWidget(_rotationX = createRotationBox(this, eulers.x));
+    rotationBox->addWidget(_rotationY = createRotationBox(this, eulers.y));
+    rotationBox->addWidget(_rotationZ = createRotationBox(this, eulers.z));
     layout->addRow("Rotation:", rotationBox);
     
     layout->addRow("Scale:", _scale = new QDoubleSpinBox());
     _scale->setSingleStep(0.01);
     _scale->setMaximum(FLT_MAX);
     _scale->setValue(data.scale);
-    dialog->connect(_scale, SIGNAL(valueChanged(double)), SLOT(updateAttachmentData()));
+    connect(_scale, SIGNAL(valueChanged(double)), SLOT(updateAttachmentData()));
     
     QPushButton* remove = new QPushButton("Delete");
     layout->addRow(remove);
@@ -165,5 +167,62 @@ void AttachmentPanel::chooseModelURL() {
 
 void AttachmentPanel::setModelURL(const QString& url) {
     _modelURL->setText(url);
-    emit _modelURL->returnPressed();
+    modelURLChanged();
+}
+
+void AttachmentPanel::modelURLChanged() {
+    // check for saved attachment data
+    if (_modelURL->text().isEmpty()) {
+        _dialog->updateAttachmentData();
+        return;
+    }
+    AttachmentData attachment = Application::getInstance()->getAvatar()->loadAttachmentData(_modelURL->text());
+    if (attachment.isValid()) {
+        _applying = true;
+        _jointName->setCurrentText(attachment.jointName);
+        applyAttachmentData(attachment);
+    }
+    _dialog->updateAttachmentData();
+}
+
+void AttachmentPanel::jointNameChanged() {
+    if (_applying) {
+        return;
+    }
+    // check for saved attachment data specific to this joint
+    if (_modelURL->text().isEmpty()) {
+        _dialog->updateAttachmentData();
+        return;
+    }
+    AttachmentData attachment = Application::getInstance()->getAvatar()->loadAttachmentData(
+        _modelURL->text(), _jointName->currentText());
+    if (attachment.isValid()) {
+        applyAttachmentData(attachment);
+    }
+    updateAttachmentData();
+}
+
+void AttachmentPanel::updateAttachmentData() {
+    if (_applying) {
+        return;
+    }
+    // save the attachment data under the model URL (if any)
+    if (!_modelURL->text().isEmpty()) {
+        Application::getInstance()->getAvatar()->saveAttachmentData(getAttachmentData());
+    }
+    _dialog->updateAttachmentData();
+}
+
+void AttachmentPanel::applyAttachmentData(const AttachmentData& attachment) {
+    _applying = true;
+    _translationX->setValue(attachment.translation.x);
+    _translationY->setValue(attachment.translation.y);
+    _translationZ->setValue(attachment.translation.z);
+    glm::vec3 eulers = glm::degrees(safeEulerAngles(attachment.rotation));
+    _rotationX->setValue(eulers.x);
+    _rotationY->setValue(eulers.y);
+    _rotationZ->setValue(eulers.z);
+    _scale->setValue(attachment.scale);
+    _applying = false;
+    _dialog->updateAttachmentData();
 }

@@ -106,6 +106,10 @@ void ModelTreeElement::update(ModelTreeUpdateArgs& args) {
     QList<ModelItem>::iterator modelItr = _modelItems->begin();
     while(modelItr != _modelItems->end()) {
         ModelItem& model = (*modelItr);
+        
+        // TODO: this _lastChanged isn't actually changing because we're not marking this element as changed.
+        // how do we want to handle this??? We really only want to consider an element changed when it is
+        // edited... not just animated...
         model.update(_lastChanged);
 
         // If the model wants to die, or if it's left our bounding box, then move it
@@ -324,7 +328,7 @@ int ModelTreeElement::readElementDataFromBuffer(const unsigned char* data, int b
         dataAt += sizeof(numberOfModels);
         bytesLeftToRead -= (int)sizeof(numberOfModels);
         bytesRead += sizeof(numberOfModels);
-
+        
         if (bytesLeftToRead >= (int)(numberOfModels * expectedBytesPerModel)) {
             for (uint16_t i = 0; i < numberOfModels; i++) {
                 ModelItem tempModel;

@@ -46,6 +46,9 @@ const float PITCH_SPEED = 100.0f; // degrees/sec
 const float COLLISION_RADIUS_SCALAR = 1.2f; // pertains to avatar-to-avatar collisions
 const float COLLISION_RADIUS_SCALE = 0.125f;
 
+const float MIN_KEYBOARD_CONTROL_SPEED = 2.0f;
+const float MAX_WALKING_SPEED = 3.0f * MIN_KEYBOARD_CONTROL_SPEED;
+
 const float DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5.0f * 1000.0f;
 
 // TODO: normalize avatar speed for standard avatar size, then scale all motion logic 
@@ -64,7 +67,7 @@ MyAvatar::MyAvatar() :
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
     _wasPushing(false),
     _isPushing(false),
-    _wasStuck(false),
+    _trapDuration(0.0f),
     _thrust(0.0f),
     _motorVelocity(0.0f),
     _motorTimescale(DEFAULT_MOTOR_TIMESCALE),
@@ -94,18 +97,21 @@ MyAvatar::~MyAvatar() {
 void MyAvatar::reset() {
     _skeletonModel.reset();
     getHead()->reset(); 
-    getHand()->reset();
     _oculusYawOffset = 0.0f;
 
     setVelocity(glm::vec3(0.0f));
     setThrust(glm::vec3(0.0f));
-    setOrientation(glm::quat(glm::vec3(0.0f)));
+    //  Reset the pitch and roll components of the avatar's orientation, preserve yaw direction
+    glm::vec3 eulers = safeEulerAngles(getOrientation());
+    eulers.x = 0.f;
+    eulers.z = 0.f;
+    setOrientation(glm::quat(eulers));
 }
 
 void MyAvatar::update(float deltaTime) {
     Head* head = getHead();
     head->relaxLean(deltaTime);
-    updateFromGyros(deltaTime);
+    updateFromTrackers(deltaTime);
     if (Menu::getInstance()->isOptionChecked(MenuOption::MoveWithLean)) {
         // Faceshift drive is enabled, set the avatar drive based on the head position
         moveWithLean();
@@ -131,8 +137,8 @@ void MyAvatar::simulate(float deltaTime) {
         Application::getInstance()->getCamera()->setScale(scale);
     }
 
-    // update the movement of the hand and process handshaking with other avatars...
-    updateHandMovementAndTouching(deltaTime);
+    // no extra movement of the hand here any more ...
+    _handState = HAND_STATE_NULL;
 
     updateOrientation(deltaTime);
 
@@ -215,7 +221,7 @@ void MyAvatar::simulate(float deltaTime) {
             if (_collisionGroups & COLLISION_GROUP_VOXELS) {
                 updateCollisionWithVoxels(deltaTime, radius);
             } else {
-                _wasStuck = false;
+                _trapDuration = 0.0f;
             }
             if (_collisionGroups & COLLISION_GROUP_AVATARS) {
                 updateCollisionWithAvatars(deltaTime);
@@ -228,26 +234,33 @@ void MyAvatar::simulate(float deltaTime) {
 }
 
 //  Update avatar head rotation with sensor data
-void MyAvatar::updateFromGyros(float deltaTime) {
+void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
 
-    FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
-    if (tracker) {
-        estimatedPosition = tracker->getHeadTranslation();
-        estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
-        
-        //  Rotate the body if the head is turned beyond the screen
-        if (Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead)) {
-            const float TRACKER_YAW_TURN_SENSITIVITY = 0.5f;
-            const float TRACKER_MIN_YAW_TURN = 15.0f;
-            const float TRACKER_MAX_YAW_TURN = 50.0f;
-            if ( (fabs(estimatedRotation.y) > TRACKER_MIN_YAW_TURN) &&
-                 (fabs(estimatedRotation.y) < TRACKER_MAX_YAW_TURN) ) {
-                if (estimatedRotation.y > 0.0f) {
-                    _bodyYawDelta += (estimatedRotation.y - TRACKER_MIN_YAW_TURN) * TRACKER_YAW_TURN_SENSITIVITY;
-                } else {
-                    _bodyYawDelta += (estimatedRotation.y + TRACKER_MIN_YAW_TURN) * TRACKER_YAW_TURN_SENSITIVITY;
-                }
+    if (Application::getInstance()->getPrioVR()->isActive()) {
+        estimatedRotation = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getHeadRotation()));
+        estimatedRotation.x *= -1.0f;
+        estimatedRotation.z *= -1.0f;
+
+    } else {
+        FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
+        if (tracker) {
+            estimatedPosition = tracker->getHeadTranslation();
+            estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
+        }
+    }
+    
+    //  Rotate the body if the head is turned beyond the screen
+    if (Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead)) {
+        const float TRACKER_YAW_TURN_SENSITIVITY = 0.5f;
+        const float TRACKER_MIN_YAW_TURN = 15.0f;
+        const float TRACKER_MAX_YAW_TURN = 50.0f;
+        if ( (fabs(estimatedRotation.y) > TRACKER_MIN_YAW_TURN) &&
+             (fabs(estimatedRotation.y) < TRACKER_MAX_YAW_TURN) ) {
+            if (estimatedRotation.y > 0.0f) {
+                _bodyYawDelta += (estimatedRotation.y - TRACKER_MIN_YAW_TURN) * TRACKER_YAW_TURN_SENSITIVITY;
+            } else {
+                _bodyYawDelta += (estimatedRotation.y + TRACKER_MIN_YAW_TURN) * TRACKER_YAW_TURN_SENSITIVITY;
             }
         }
     }
@@ -264,6 +277,14 @@ void MyAvatar::updateFromGyros(float deltaTime) {
     head->setDeltaPitch(estimatedRotation.x * magnifyFieldOfView);
     head->setDeltaYaw(estimatedRotation.y * magnifyFieldOfView);
     head->setDeltaRoll(estimatedRotation.z);
+
+    // the priovr can give us exact lean
+    if (Application::getInstance()->getPrioVR()->isActive()) {
+        glm::vec3 eulers = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getTorsoRotation()));
+        head->setLeanSideways(eulers.z);
+        head->setLeanForward(eulers.x);
+        return;
+    }
 
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
@@ -502,6 +523,67 @@ void MyAvatar::loadData(QSettings* settings) {
     settings->endGroup();
 }
 
+void MyAvatar::saveAttachmentData(const AttachmentData& attachment) const {
+    QSettings* settings = Application::getInstance()->lockSettings();
+    settings->beginGroup("savedAttachmentData");
+    settings->beginGroup(_skeletonModel.getURL().toString());
+    settings->beginGroup(attachment.modelURL.toString());
+    settings->setValue("jointName", attachment.jointName);
+    
+    settings->beginGroup(attachment.jointName);
+    settings->setValue("translation_x", attachment.translation.x);
+    settings->setValue("translation_y", attachment.translation.y);
+    settings->setValue("translation_z", attachment.translation.z);
+    glm::vec3 eulers = safeEulerAngles(attachment.rotation);
+    settings->setValue("rotation_x", eulers.x);
+    settings->setValue("rotation_y", eulers.y);
+    settings->setValue("rotation_z", eulers.z);
+    settings->setValue("scale", attachment.scale);
+    
+    settings->endGroup();
+    settings->endGroup();
+    settings->endGroup();
+    settings->endGroup();
+    Application::getInstance()->unlockSettings();
+}
+
+AttachmentData MyAvatar::loadAttachmentData(const QUrl& modelURL, const QString& jointName) const {
+    QSettings* settings = Application::getInstance()->lockSettings();
+    settings->beginGroup("savedAttachmentData");
+    settings->beginGroup(_skeletonModel.getURL().toString());
+    settings->beginGroup(modelURL.toString());
+    
+    AttachmentData attachment;
+    attachment.modelURL = modelURL;
+    if (jointName.isEmpty()) {
+        attachment.jointName = settings->value("jointName").toString();
+    } else {
+        attachment.jointName = jointName;
+    }
+    settings->beginGroup(attachment.jointName);
+    if (settings->contains("translation_x")) {
+        attachment.translation.x = loadSetting(settings, "translation_x", 0.0f);
+        attachment.translation.y = loadSetting(settings, "translation_y", 0.0f);
+        attachment.translation.z = loadSetting(settings, "translation_z", 0.0f);
+        glm::vec3 eulers;
+        eulers.x = loadSetting(settings, "rotation_x", 0.0f);
+        eulers.y = loadSetting(settings, "rotation_y", 0.0f);
+        eulers.z = loadSetting(settings, "rotation_z", 0.0f);
+        attachment.rotation = glm::quat(eulers);
+        attachment.scale = loadSetting(settings, "scale", 1.0f);
+    } else {
+        attachment = AttachmentData();
+    }
+    
+    settings->endGroup();
+    settings->endGroup();
+    settings->endGroup();
+    settings->endGroup();
+    Application::getInstance()->unlockSettings();
+    
+    return attachment;
+}
+
 int MyAvatar::parseDataAtOffset(const QByteArray& packet, int offset) {
     qDebug() << "Error: ignoring update packet for MyAvatar"
         << " packetLength = " << packet.size() 
@@ -573,6 +655,31 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _billboardValid = false;
 }
 
+void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
+    Avatar::setAttachmentData(attachmentData);
+    if (QThread::currentThread() != thread()) {    
+        return;
+    }
+    _billboardValid = false;
+}
+
+void MyAvatar::attach(const QString& modelURL, const QString& jointName, const glm::vec3& translation,
+        const glm::quat& rotation, float scale, bool allowDuplicates, bool useSaved) {
+    if (QThread::currentThread() != thread()) {    
+        Avatar::attach(modelURL, jointName, translation, rotation, scale, allowDuplicates, useSaved);
+        return;
+    } 
+    if (useSaved) {
+        AttachmentData attachment = loadAttachmentData(modelURL, jointName);
+        if (attachment.isValid()) {
+            Avatar::attach(modelURL, attachment.jointName, attachment.translation,
+                attachment.rotation, attachment.scale, allowDuplicates, useSaved);
+            return;
+        }
+    }
+    Avatar::attach(modelURL, jointName, translation, rotation, scale, allowDuplicates, useSaved);
+}
+
 void MyAvatar::renderBody(RenderMode renderMode, float glowLevel) {
     if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         return; // wait until both models are loaded
@@ -582,7 +689,7 @@ void MyAvatar::renderBody(RenderMode renderMode, float glowLevel) {
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
         Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
     _skeletonModel.render(1.0f, modelRenderMode);
-    renderAttachments(modelRenderMode);
+    renderAttachments(renderMode);
     
     //  Render head so long as the camera isn't inside it
     if (shouldRenderHead(Application::getInstance()->getCamera()->getPosition(), renderMode)) {
@@ -699,8 +806,6 @@ void MyAvatar::updateMotorFromKeyboard(float deltaTime, bool walking) {
     if (directionLength > EPSILON) {
         direction /= directionLength;
         // the finalMotorSpeed depends on whether we are walking or not
-        const float MIN_KEYBOARD_CONTROL_SPEED = 2.0f;
-        const float MAX_WALKING_SPEED = 3.0f * MIN_KEYBOARD_CONTROL_SPEED;
         float finalMaxMotorSpeed = walking ? MAX_WALKING_SPEED : _maxMotorSpeed;
 
         float motorLength = glm::length(_motorVelocity);
@@ -911,40 +1016,6 @@ void MyAvatar::updateThrust(float deltaTime) {
 }
 */
 
-void MyAvatar::updateHandMovementAndTouching(float deltaTime) {
-    glm::quat orientation = getOrientation();
-
-    // reset hand and arm positions according to hand movement
-    glm::vec3 up = orientation * IDENTITY_UP;
-
-    bool pointing = false;
-    if (glm::length(_mouseRayDirection) > EPSILON && !Application::getInstance()->isMouseHidden()) {
-        // confine to the approximate shoulder plane
-        glm::vec3 pointDirection = _mouseRayDirection;
-        if (glm::dot(_mouseRayDirection, up) > 0.0f) {
-            glm::vec3 projectedVector = glm::cross(up, glm::cross(_mouseRayDirection, up));
-            if (glm::length(projectedVector) > EPSILON) {
-                pointDirection = glm::normalize(projectedVector);
-            }
-        }
-        glm::vec3 shoulderPosition;
-        if (_skeletonModel.getRightShoulderPosition(shoulderPosition)) {
-            glm::vec3 farVector = _mouseRayOrigin + pointDirection * (float)TREE_SCALE - shoulderPosition;
-            const float ARM_RETRACTION = 0.75f;
-            float retractedLength = _skeletonModel.getRightArmLength() * ARM_RETRACTION;
-            setHandPosition(shoulderPosition + glm::normalize(farVector) * retractedLength);
-            pointing = true;
-        }
-    }
-
-    if (_mousePressed) {
-        _handState = HAND_STATE_GRASPING;
-    } else if (pointing) {
-        _handState = HAND_STATE_POINTING;
-    } else {
-        _handState = HAND_STATE_NULL;
-    }
-}
 
 void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
     glm::vec3 up = getBodyUpDirection();
@@ -964,48 +1035,102 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
 static CollisionList myCollisions(64);
 
 void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
-    const float MIN_STUCK_SPEED = 100.0f;
+    const float MAX_VOXEL_COLLISION_SPEED = 100.0f;
     float speed = glm::length(_velocity);
-    if (speed > MIN_STUCK_SPEED) {
+    if (speed > MAX_VOXEL_COLLISION_SPEED) {
         // don't even bother to try to collide against voxles when moving very fast
+        _trapDuration = 0.0f;
         return;
     }
+    bool isTrapped = false;
     myCollisions.clear();
     const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
-    if (Application::getInstance()->getVoxelTree()->findShapeCollisions(&boundingShape, myCollisions)) {
+    if (Application::getInstance()->getVoxelTree()->findShapeCollisions(&boundingShape, myCollisions, Octree::TryLock)) {
         const float VOXEL_ELASTICITY = 0.0f;
         const float VOXEL_DAMPING = 0.0f;
         float capsuleRadius = boundingShape.getRadius();
-
+        float capsuleHalfHeight = boundingShape.getHalfHeight();
+        const float MAX_STEP_HEIGHT = capsuleRadius + capsuleHalfHeight;
+        const float MIN_STEP_HEIGHT = 0.0f;
+        glm::vec3 footBase = boundingShape.getPosition() - (capsuleRadius + capsuleHalfHeight) * _worldUpDirection;
+        float highestStep = 0.0f;
+        glm::vec3 stepPenetration(0.0f);
         glm::vec3 totalPenetration(0.0f);
-        bool isStuck = false;
+
         for (int i = 0; i < myCollisions.size(); ++i) {
             CollisionInfo* collision = myCollisions[i];
-            float depth = glm::length(collision->_penetration);
-            if (depth > capsuleRadius) {
-                isStuck = true;
-                if (_wasStuck) {
-                    glm::vec3 cubeCenter = collision->_vecData;
-                    float cubeSide = collision->_floatData;
+            glm::vec3 cubeCenter = collision->_vecData;
+            float cubeSide = collision->_floatData;
+            float verticalDepth = glm::dot(collision->_penetration, _worldUpDirection);
+            float horizontalDepth = glm::length(collision->_penetration - verticalDepth * _worldUpDirection);
+            const float MAX_TRAP_PERIOD = 0.125f;
+            if (horizontalDepth > capsuleRadius || fabsf(verticalDepth) > MAX_STEP_HEIGHT) {
+                isTrapped = true;
+                if (_trapDuration > MAX_TRAP_PERIOD) {
                     float distance = glm::dot(boundingShape.getPosition() - cubeCenter, _worldUpDirection);
                     if (distance < 0.0f) {
                         distance = fabsf(distance) + 0.5f * cubeSide;
                     }
-                    distance += capsuleRadius + boundingShape.getHalfHeight();
+                    distance += capsuleRadius + capsuleHalfHeight;
                     totalPenetration = addPenetrations(totalPenetration, - distance * _worldUpDirection);
                     continue;
                 }
+            } else if (_trapDuration > MAX_TRAP_PERIOD) {
+                // we're trapped, ignore this collision
+                continue;
             }
             totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
+            if (glm::dot(collision->_penetration, _velocity) >= 0.0f) {
+                glm::vec3 cubeTop = cubeCenter + (0.5f * cubeSide) * _worldUpDirection;
+                float stepHeight = glm::dot(_worldUpDirection, cubeTop - footBase);
+                if (stepHeight > highestStep) {
+                    highestStep = stepHeight;
+                    stepPenetration = collision->_penetration;
+                }
+            }
         }
-        applyHardCollision(totalPenetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
-        _wasStuck = isStuck;
+
+        float penetrationLength = glm::length(totalPenetration);
+        if (penetrationLength < EPSILON) {
+            _trapDuration = 0.0f;
+            return;
+        }
+        float verticalPenetration = glm::dot(totalPenetration, _worldUpDirection);
+        if (highestStep > MIN_STEP_HEIGHT && highestStep < MAX_STEP_HEIGHT && verticalPenetration <= 0.0f) {
+            // we're colliding against an edge
+            glm::vec3 targetVelocity = _motorVelocity;
+            if (_motionBehaviors & AVATAR_MOTION_MOTOR_USE_LOCAL_FRAME) {
+                // rotate _motorVelocity into world frame
+                glm::quat rotation = getHead()->getCameraOrientation();
+                targetVelocity = rotation * _motorVelocity;
+            }
+            if (_wasPushing && glm::dot(targetVelocity, totalPenetration) > EPSILON) {
+                // we're puhing into the edge, so we want to lift
+
+                // remove unhelpful horizontal component of the step's penetration
+                totalPenetration -= stepPenetration - (glm::dot(stepPenetration, _worldUpDirection) * _worldUpDirection);
+
+                // further adjust penetration to help lift
+                float liftSpeed = glm::max(MAX_WALKING_SPEED, speed);
+                float thisStep = glm::min(liftSpeed * deltaTime, highestStep);
+                float extraStep = glm::dot(totalPenetration, _worldUpDirection) + thisStep;
+                if (extraStep > 0.0f) {
+                    totalPenetration -= extraStep * _worldUpDirection;
+                }
+
+                _position -= totalPenetration;
+            } else {
+                // we're not pushing into the edge, so let the avatar fall
+                applyHardCollision(totalPenetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+            }
+        } else {
+            applyHardCollision(totalPenetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+        }
 
         const float VOXEL_COLLISION_FREQUENCY = 0.5f;
         updateCollisionSound(myCollisions[0]->_penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
-    } else {
-        _wasStuck = false;
-    }
+    } 
+    _trapDuration = isTrapped ? _trapDuration + deltaTime : 0.0f;
 }
 
 void MyAvatar::applyHardCollision(const glm::vec3& penetration, float elasticity, float damping) {
@@ -1270,6 +1395,11 @@ void MyAvatar::maybeUpdateBillboard() {
     if (_billboardValid || !(_skeletonModel.isLoadedWithTextures() && getHead()->getFaceModel().isLoadedWithTextures())) {
         return;
     }
+    foreach (Model* model, _attachmentModels) {
+        if (!model->isLoadedWithTextures()) {
+            return;
+        }
+    }
     QImage image = Application::getInstance()->renderAvatarBillboard();
     _billboard.clear();
     QBuffer buffer(&_billboard);
@@ -1376,6 +1506,23 @@ void MyAvatar::updateMotionBehaviorsFromMenu() {
     }
     if (! (_motionBehaviors & (AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY | AVATAR_MOTION_OBEY_LOCAL_GRAVITY))) {
         setGravity(glm::vec3(0.0f));
+    }
+}
+
+void MyAvatar::renderAttachments(RenderMode renderMode) {
+    if (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON || renderMode == MIRROR_RENDER_MODE) {
+        Avatar::renderAttachments(renderMode);
+        return;
+    }
+    const FBXGeometry& geometry = _skeletonModel.getGeometry()->getFBXGeometry();
+    QString headJointName = (geometry.headJointIndex == -1) ? QString() : geometry.joints.at(geometry.headJointIndex).name;
+    Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
+        Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+    for (int i = 0; i < _attachmentData.size(); i++) {
+        const QString& jointName = _attachmentData.at(i).jointName;
+        if (jointName != headJointName && jointName != "Head") {
+            _attachmentModels.at(i)->render(1.0f, modelRenderMode);        
+        }
     }
 }
 

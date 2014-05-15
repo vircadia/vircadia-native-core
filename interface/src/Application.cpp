@@ -152,6 +152,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
         _cameraPushback(0.0f),
         _scaleMirror(1.0f),
+        _rotateMirror(0.0f),
+        _raiseMirror(0.0f),
         _mouseX(0),
         _mouseY(0),
         _lastMouseMove(usecTimestampNow()),
@@ -685,11 +687,8 @@ void Application::resizeGL(int width, int height) {
     glLoadIdentity();
 
     // update Stats width
-    int horizontalOffset = 0;
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        // mirror is enabled, let's set horizontal offset to give stats some margin
-        horizontalOffset += MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
-    }
+    // let's set horizontal offset to give stats some margin to mirror
+    int horizontalOffset = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
     Stats::getInstance()->resetWidth(width, horizontalOffset);
 }
 
@@ -1163,10 +1162,8 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
             _mousePressed = false;
             checkBandwidthMeterClick();
             if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
-                int horizontalOffset = 0;
-                if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-                    horizontalOffset = MIRROR_VIEW_WIDTH;
-                }
+                // let's set horizontal offset to give stats some margin to mirror
+                int horizontalOffset = MIRROR_VIEW_WIDTH;
                 Stats::getInstance()->checkClick(_mouseX, _mouseY, _mouseDragStartedX, _mouseDragStartedY, horizontalOffset);
             }
         }
@@ -1217,10 +1214,6 @@ void Application::touchBeginEvent(QTouchEvent* event) {
     if (_controllerScriptingInterface.isTouchCaptured()) {
         return;
     }
-
-    // put any application specific touch behavior below here..
-    _lastTouchAvgX = _touchAvgX;
-    _lastTouchAvgY = _touchAvgY;
 
 }
 
@@ -1876,34 +1869,6 @@ void Application::updateMyAvatarLookAtPosition() {
     _myAvatar->getHead()->setLookAtPosition(lookAtSpot);
 }
 
-void Application::updateHandAndTouch(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateHandAndTouch()");
-
-    //  Update from Touch
-    if (_isTouchPressed) {
-        _lastTouchAvgX = _touchAvgX;
-        _lastTouchAvgY = _touchAvgY;
-    }
-}
-
-void Application::updateLeap(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateLeap()");
-}
-
-void Application::updateSixense(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateSixense()");
-
-    _sixenseManager.update(deltaTime);
-}
-
-void Application::updateSerialDevices(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateSerialDevices()");
-}
-
 void Application::updateThreads(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateThreads()");
@@ -2017,11 +1982,8 @@ void Application::update(float deltaTime) {
     updateVisage();
     _myAvatar->updateLookAtTargetAvatar();
     updateMyAvatarLookAtPosition();
-
-    updateHandAndTouch(deltaTime); // Update state for touch sensors
-    updateLeap(deltaTime); // Leap finger-sensing device
-    updateSixense(deltaTime); // Razer Hydra controllers
-    updateSerialDevices(deltaTime); // Read serial port interface devices
+    _sixenseManager.update(deltaTime);
+    _prioVR.update();
     updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     _avatarManager.updateOtherAvatars(deltaTime); //loop through all the other avatars and simulate them...
@@ -2770,11 +2732,8 @@ void Application::displayOverlay() {
     glPointSize(1.0f);
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
-        int horizontalOffset = 0;
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            // mirror is enabled, let's set horizontal offset to give stats some margin
-            horizontalOffset += MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
-        }
+        // let's set horizontal offset to give stats some margin to mirror
+        int horizontalOffset = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
         int voxelPacketsToProcess = _voxelProcessor.packetsToProcessCount();
         //  Onscreen text about position, servers, etc
         Stats::getInstance()->display(WHITE_TEXT, horizontalOffset, _fps, _packetsPerSecond, _bytesPerSecond, voxelPacketsToProcess);
@@ -2798,6 +2757,9 @@ void Application::displayOverlay() {
     }
     _nodeBoundsDisplay.drawOverlay();
 
+    // give external parties a change to hook in
+    emit renderingOverlay();
+        
     _overlays.render2D();
 
     glPopMatrix();
@@ -3105,6 +3067,8 @@ void Application::resetSensors() {
     if (OculusManager::isConnected()) {
         OculusManager::reset();
     }
+
+    _prioVR.reset();
 
     QCursor::setPos(_mouseX, _mouseY);
     _myAvatar->reset();
@@ -3415,71 +3379,6 @@ void Application::saveScripts() {
     _settings->endArray();
 }
 
-void Application::stopAllScripts() {
-    // stops all current running scripts
-    for (int i = 0; i < _scriptEnginesHash.size(); ++i) {
-        _scriptEnginesHash.values().at(i)->stop();
-        qDebug() << "stopping script..." << getRunningScripts().at(i);
-    }
-    _scriptEnginesHash.clear();
-    _runningScriptsWidget->setRunningScripts(getRunningScripts());
-    bumpSettings();
-}
-
-void Application::stopScript(const QString &scriptName) {
-    if (_scriptEnginesHash.contains(scriptName)) {
-        _scriptEnginesHash.value(scriptName)->stop();
-        qDebug() << "stopping script..." << scriptName;
-        _scriptEnginesHash.remove(scriptName);
-        _runningScriptsWidget->setRunningScripts(getRunningScripts());
-        bumpSettings();
-    }
-}
-
-void Application::reloadAllScripts() {
-    // remember all the current scripts so we can reload them
-    QStringList reloadList = getRunningScripts();
-    // reloads all current running scripts
-    stopAllScripts();
-
-    foreach (QString scriptName, reloadList){
-        qDebug() << "reloading script..." << scriptName;
-        loadScript(scriptName);
-    }
-}
-
-void Application::manageRunningScriptsWidgetVisibility(bool shown) {
-    if (_runningScriptsWidgetWasVisible && shown) {
-        _runningScriptsWidget->show();
-    } else if (_runningScriptsWidgetWasVisible && !shown) {
-        _runningScriptsWidget->hide();
-    }
-}
-
-void Application::toggleRunningScriptsWidget() {
-    if (_runningScriptsWidgetWasVisible) {
-        _runningScriptsWidget->hide();
-        _runningScriptsWidgetWasVisible = false;
-    } else {
-        _runningScriptsWidget->setBoundary(QRect(_window->geometry().topLeft(),
-                                                 _window->size()));
-        _runningScriptsWidget->show();
-        _runningScriptsWidgetWasVisible = true;
-    }
-}
-
-void Application::uploadHead() {
-    uploadModel(HEAD_MODEL);
-}
-
-void Application::uploadSkeleton() {
-    uploadModel(SKELETON_MODEL);
-}
-
-void Application::uploadAttachment() {
-    uploadModel(ATTACHMENT_MODEL);
-}
-
 ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScriptFromEditor) {
     if(loadScriptFromEditor && _scriptEnginesHash.contains(scriptName) && !_scriptEnginesHash[scriptName]->isFinished()){
         return _scriptEnginesHash[scriptName];
@@ -3516,6 +3415,8 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     ClipboardScriptingInterface* clipboardScriptable = new ClipboardScriptingInterface();
     scriptEngine->registerGlobalObject("Clipboard", clipboardScriptable);
     connect(scriptEngine, SIGNAL(finished(const QString&)), clipboardScriptable, SLOT(deleteLater()));
+
+    connect(scriptEngine, SIGNAL(finished(const QString&)), this, SLOT(scriptFinished(const QString&)));
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
 
@@ -3557,6 +3458,69 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     bumpSettings();
 
     return scriptEngine;
+}
+
+void Application::scriptFinished(const QString& scriptName) {
+    if (_scriptEnginesHash.remove(scriptName)) {
+        _runningScriptsWidget->scriptStopped(scriptName);
+        _runningScriptsWidget->setRunningScripts(getRunningScripts());
+        bumpSettings();
+    }
+}
+
+void Application::stopAllScripts(bool restart) {
+    // stops all current running scripts
+    for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
+            it != _scriptEnginesHash.constEnd(); it++) {
+        if (restart) {
+            connect(it.value(), SIGNAL(finished(const QString&)), SLOT(loadScript(const QString&)));
+        }
+        it.value()->stop();
+        qDebug() << "stopping script..." << it.key();
+    }
+}
+
+void Application::stopScript(const QString &scriptName) {
+    if (_scriptEnginesHash.contains(scriptName)) {
+        _scriptEnginesHash.value(scriptName)->stop();
+        qDebug() << "stopping script..." << scriptName;
+    }
+}
+
+void Application::reloadAllScripts() {
+    stopAllScripts(true);
+}
+
+void Application::manageRunningScriptsWidgetVisibility(bool shown) {
+    if (_runningScriptsWidgetWasVisible && shown) {
+        _runningScriptsWidget->show();
+    } else if (_runningScriptsWidgetWasVisible && !shown) {
+        _runningScriptsWidget->hide();
+    }
+}
+
+void Application::toggleRunningScriptsWidget() {
+    if (_runningScriptsWidgetWasVisible) {
+        _runningScriptsWidget->hide();
+        _runningScriptsWidgetWasVisible = false;
+    } else {
+        _runningScriptsWidget->setBoundary(QRect(_window->geometry().topLeft(),
+                                                 _window->size()));
+        _runningScriptsWidget->show();
+        _runningScriptsWidgetWasVisible = true;
+    }
+}
+
+void Application::uploadHead() {
+    uploadModel(HEAD_MODEL);
+}
+
+void Application::uploadSkeleton() {
+    uploadModel(SKELETON_MODEL);
+}
+
+void Application::uploadAttachment() {
+    uploadModel(ATTACHMENT_MODEL);
 }
 
 QString Application::getPreviousScriptLocation() {
@@ -3698,7 +3662,17 @@ void Application::takeSnapshot() {
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
-    Snapshot::saveSnapshot(_glWidget, _myAvatar);
+    QString fileName = Snapshot::saveSnapshot(_glWidget, _myAvatar);
+
+    AccountManager& accountManager = AccountManager::getInstance();
+    if (!accountManager.isLoggedIn()) {
+        return;
+    }
+
+    if (!_snapshotShareDialog) {
+        _snapshotShareDialog = new SnapshotShareDialog(fileName, _glWidget);
+    }
+    _snapshotShareDialog->show();
 }
 
 void Application::urlGoTo(int argc, const char * constArgv[]) {

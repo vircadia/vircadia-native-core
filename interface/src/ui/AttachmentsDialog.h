@@ -60,9 +60,15 @@ private slots:
 
     void chooseModelURL();
     void setModelURL(const QString& url);
+    void modelURLChanged();
+    void jointNameChanged();
+    void updateAttachmentData();
 
 private:
     
+    void applyAttachmentData(const AttachmentData& attachment);
+    
+    AttachmentsDialog* _dialog;
     QLineEdit* _modelURL;
     QComboBox* _jointName;
     QDoubleSpinBox* _translationX;
@@ -72,6 +78,7 @@ private:
     QDoubleSpinBox* _rotationY;
     QDoubleSpinBox* _rotationZ;
     QDoubleSpinBox* _scale;
+    bool _applying;
 };
 
 #endif // hifi_AttachmentsDialog_h

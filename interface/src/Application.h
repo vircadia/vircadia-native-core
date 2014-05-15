@@ -58,6 +58,7 @@
 #include "avatar/MyAvatar.h"
 #include "devices/Faceplus.h"
 #include "devices/Faceshift.h"
+#include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
 #include "devices/Visage.h"
 #include "models/ModelTreeRenderer.h"
@@ -75,6 +76,7 @@
 #include "ui/NodeBounds.h"
 #include "ui/OctreeStatsDialog.h"
 #include "ui/RearMirrorTools.h"
+#include "ui/SnapshotShareDialog.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
 #include "ui/UpdateDialog.h"
@@ -127,7 +129,6 @@ public:
     ~Application();
 
     void restoreSizeAndPosition();
-    ScriptEngine* loadScript(const QString& fileNameString, bool loadScriptFromEditor = false);
     void loadScripts();
     QString getPreviousScriptLocation();
     void setPreviousScriptLocation(const QString& previousScriptLocation);
@@ -197,6 +198,7 @@ public:
     Visage* getVisage() { return &_visage; }
     FaceTracker* getActiveFaceTracker();
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
+    PrioVR* getPrioVR() { return &_prioVR; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QUndoStack* getUndoStack() { return &_undoStack; }
 
@@ -270,6 +272,9 @@ signals:
     /// Fired when we're rendering in-world interface elements; allows external parties to hook in.
     void renderingInWorldInterface();
 
+    /// Fired when we're rendering the overlay.
+    void renderingOverlay();
+
     /// Fired when the import window is closed
     void importDone();
 
@@ -294,7 +299,9 @@ public slots:
     void loadScriptURLDialog();
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
-    void stopAllScripts();
+    ScriptEngine* loadScript(const QString& fileNameString, bool loadScriptFromEditor = false);
+    void scriptFinished(const QString& scriptName);
+    void stopAllScripts(bool restart = false);
     void stopScript(const QString& scriptName);
     void reloadAllScripts();
     void toggleRunningScriptsWidget();
@@ -346,10 +353,6 @@ private:
     void updateFaceshift();
     void updateVisage();
     void updateMyAvatarLookAtPosition();
-    void updateHandAndTouch(float deltaTime);
-    void updateLeap(float deltaTime);
-    void updateSixense(float deltaTime);
-    void updateSerialDevices(float deltaTime);
     void updateThreads(float deltaTime);
     void updateMetavoxels(float deltaTime);
     void updateCamera(float deltaTime);
@@ -447,6 +450,7 @@ private:
     Visage _visage;
 
     SixenseManager _sixenseManager;
+    PrioVR _prioVR;
 
     Camera _myCamera;                  // My view onto the world
     Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
@@ -480,8 +484,6 @@ private:
 
     float _touchAvgX;
     float _touchAvgY;
-    float _lastTouchAvgX;
-    float _lastTouchAvgY;
     float _touchDragStartedAvgX;
     float _touchDragStartedAvgY;
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
@@ -528,6 +530,7 @@ private:
     std::vector<VoxelFade> _voxelFades;
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;
+    QPointer<SnapshotShareDialog> _snapshotShareDialog;
 
     QString _previousScriptLocation;
 

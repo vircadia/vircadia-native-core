@@ -30,6 +30,9 @@ typedef QList<FBXNode> FBXNodeList;
 /// The names of the blendshapes expected by Faceshift, terminated with an empty string.
 extern const char* FACESHIFT_BLENDSHAPES[];
 
+/// The names of the joints in the Maya HumanIK rig, terminated with an empty string.
+extern const char* HUMANIK_JOINTS[];
+
 class Extents {
 public:
     /// set minimum and maximum to FLT_MAX and -FLT_MAX respectively
@@ -199,11 +202,7 @@ public:
     int leftHandJointIndex;
     int rightHandJointIndex;
     
-    QVector<int> leftFingerJointIndices;
-    QVector<int> rightFingerJointIndices;
-    
-    QVector<int> leftFingertipJointIndices;
-    QVector<int> rightFingertipJointIndices;    
+    QVector<int> humanIKJointIndices;
     
     glm::vec3 palmDirection;
     
@@ -211,6 +210,8 @@ public:
     
     Extents bindExtents;
     Extents meshExtents;
+    
+    float fstScaled;
     
     QVector<FBXAnimationFrame> animationFrames;
     

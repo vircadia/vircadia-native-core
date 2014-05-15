@@ -105,7 +105,6 @@ ModelItemID ModelsScriptingInterface::editModel(ModelItemID modelID, const Model
         _modelTree->updateModel(modelID, properties);
         _modelTree->unlock();
     }
-    
     return modelID;
 }
 

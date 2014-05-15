@@ -506,6 +506,15 @@ void GeometryReader::run() {
     _reply->deleteLater();
 }
 
+void NetworkGeometry::init() {
+    _mapping = QVariantHash();
+    _geometry = FBXGeometry();
+    _meshes.clear();
+    _lods.clear();
+    _request.setUrl(_url);
+    Resource::init();
+}
+
 void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
     QUrl url = reply->url();
     if (url.path().toLower().endsWith(".fst")) {
