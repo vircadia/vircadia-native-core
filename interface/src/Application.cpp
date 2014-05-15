@@ -170,7 +170,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _packetsPerSecond(0),
         _bytesPerSecond(0),
         _previousScriptLocation(),
-        _logger(new FileLogger(this)),
         _runningScriptsWidget(new RunningScriptsWidget(_window)),
         _runningScriptsWidgetWasVisible(false)
 {
@@ -189,6 +188,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     setApplicationVersion(BUILD_VERSION);
     setOrganizationName(applicationInfo.value("organizationName").toString());
     setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+
+    _logger = new FileLogger(this);  // After setting organization name in order to get correct directory
 
     QSettings::setDefaultFormat(QSettings::IniFormat);
 
