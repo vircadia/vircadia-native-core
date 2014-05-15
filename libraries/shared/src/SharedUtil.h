@@ -187,4 +187,6 @@ bool isSimilarPosition(const glm::vec3& positionA, const glm::vec3& positionB, f
 /// \return bool is the float NaN                        
 bool isNaN(float value);
 
+QByteArray createByteArray(const glm::vec3& vector);
+
 #endif // hifi_SharedUtil_h
