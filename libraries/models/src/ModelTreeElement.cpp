@@ -84,14 +84,17 @@ bool ModelTreeElement::appendElementData(OctreePacketData* packetData, EncodeBit
 }
 
 bool ModelTreeElement::containsModelBounds(const ModelItem& model) const {
-    return _box.contains(model.getMinimumPoint()) && _box.contains(model.getMaximumPoint());
+    glm::vec3 clampedMin = glm::clamp(model.getMinimumPoint(), 0.0f, 1.0f);
+    glm::vec3 clampedMax = glm::clamp(model.getMaximumPoint(), 0.0f, 1.0f);
+    return _box.contains(clampedMin) && _box.contains(clampedMax);
 }
 
 bool ModelTreeElement::bestFitModelBounds(const ModelItem& model) const {
-    if (_box.contains(model.getMinimumPoint()) && _box.contains(model.getMaximumPoint())) {
-        int childForMinimumPoint = getMyChildContainingPoint(model.getMinimumPoint());
-        int childForMaximumPoint = getMyChildContainingPoint(model.getMaximumPoint());
-        
+    glm::vec3 clampedMin = glm::clamp(model.getMinimumPoint(), 0.0f, 1.0f);
+    glm::vec3 clampedMax = glm::clamp(model.getMaximumPoint(), 0.0f, 1.0f);
+    if (_box.contains(clampedMin) && _box.contains(clampedMax)) {
+        int childForMinimumPoint = getMyChildContainingPoint(clampedMin);
+        int childForMaximumPoint = getMyChildContainingPoint(clampedMax);
         // If I contain both the minimum and maximum point, but two different children of mine
         // contain those points, then I am the best fit for that model
         if (childForMinimumPoint != childForMaximumPoint) {
@@ -102,10 +105,16 @@ bool ModelTreeElement::bestFitModelBounds(const ModelItem& model) const {
 }
 
 void ModelTreeElement::update(ModelTreeUpdateArgs& args) {
+    args._totalElements++;
     // update our contained models
     QList<ModelItem>::iterator modelItr = _modelItems->begin();
     while(modelItr != _modelItems->end()) {
         ModelItem& model = (*modelItr);
+        args._totalItems++;
+        
+        // TODO: this _lastChanged isn't actually changing because we're not marking this element as changed.
+        // how do we want to handle this??? We really only want to consider an element changed when it is
+        // edited... not just animated...
         model.update(_lastChanged);
 
         // If the model wants to die, or if it's left our bounding box, then move it
@@ -115,6 +124,8 @@ void ModelTreeElement::update(ModelTreeUpdateArgs& args) {
 
             // erase this model
             modelItr = _modelItems->erase(modelItr);
+
+            args._movingItems++;
             
             // this element has changed so mark it...
             markWithChangedTime();
@@ -324,7 +335,7 @@ int ModelTreeElement::readElementDataFromBuffer(const unsigned char* data, int b
         dataAt += sizeof(numberOfModels);
         bytesLeftToRead -= (int)sizeof(numberOfModels);
         bytesRead += sizeof(numberOfModels);
-
+        
         if (bytesLeftToRead >= (int)(numberOfModels * expectedBytesPerModel)) {
             for (uint16_t i = 0; i < numberOfModels; i++) {
                 ModelItem tempModel;

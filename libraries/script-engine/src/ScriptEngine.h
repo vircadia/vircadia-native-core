@@ -18,13 +18,12 @@
 #include <QtCore/QUrl>
 #include <QtScript/QScriptEngine>
 
+#include <AnimationCache.h>
 #include <AudioScriptingInterface.h>
-#include <VoxelsScriptingInterface.h>
-
 #include <AvatarData.h>
 #include <AvatarHashMap.h>
+#include <VoxelsScriptingInterface.h>
 
-#include "AnimationCache.h"
 #include "AbstractControllerScriptingInterface.h"
 #include "Quat.h"
 #include "ScriptUUID.h"

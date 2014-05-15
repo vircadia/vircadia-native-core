@@ -433,7 +433,8 @@ Extents Model::getMeshExtents() const {
         return Extents();
     }
     const Extents& extents = _geometry->getFBXGeometry().meshExtents;
-    Extents scaledExtents = { extents.minimum * _scale, extents.maximum * _scale };
+    glm::vec3 scale = _scale * _geometry->getFBXGeometry().fstScaled;
+    Extents scaledExtents = { extents.minimum * scale, extents.maximum * scale };
     return scaledExtents;
 }
 
@@ -441,8 +442,13 @@ Extents Model::getUnscaledMeshExtents() const {
     if (!isActive()) {
         return Extents();
     }
+    
     const Extents& extents = _geometry->getFBXGeometry().meshExtents;
-    return extents;
+
+    // even though our caller asked for "unscaled" we need to include any fst scaling
+    float scale = _geometry->getFBXGeometry().fstScaled;
+    Extents scaledExtents = { extents.minimum * scale, extents.maximum * scale };
+    return scaledExtents;
 }
 
 bool Model::getJointState(int index, glm::quat& rotation) const {
@@ -575,6 +581,17 @@ bool Model::getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind)
             _geometry->getFBXGeometry().joints[jointIndex].inverseDefaultRotation);
     return true;
 }
+
+QStringList Model::getJointNames() const {
+    if (QThread::currentThread() != thread()) {
+        QStringList result;
+        QMetaObject::invokeMethod(const_cast<Model*>(this), "getJointNames", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(QStringList, result));
+        return result;
+    }
+    return isActive() ? _geometry->getFBXGeometry().getJointNames() : QStringList();
+}
+
 
 void Model::clearShapes() {
     for (int i = 0; i < _jointShapes.size(); ++i) {
