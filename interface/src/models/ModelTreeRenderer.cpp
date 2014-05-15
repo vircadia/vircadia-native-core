@@ -74,6 +74,7 @@ Model* ModelTreeRenderer::getModel(const ModelItem& modelItem) {
 }
 
 void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) {
+    args->_elementsTouched++;
     // actually render it here...
     // we need to iterate the actual modelItems of the element
     ModelTreeElement* modelTreeElement = (ModelTreeElement*)element;
@@ -165,7 +166,7 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
 
             bool drawAsModel = modelItem.hasModel();
 
-            args->_renderedItems++;
+            args->_itemsRendered++;
 
             if (drawAsModel) {
                 glPushMatrix();
@@ -220,6 +221,8 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
                     glutSolidSphere(radius, 15, 15);
                 glPopMatrix();
             }
+        } else {
+            args->_itemsOutOfView++;
         }
     }
 }
