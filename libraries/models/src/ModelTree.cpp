@@ -491,11 +491,14 @@ void ModelTree::update() {
     lockForWrite();
     _isDirty = true;
 
-    ModelTreeUpdateArgs args = { };
+    ModelTreeUpdateArgs args;
     recurseTreeWithOperation(updateOperation, &args);
 
     // now add back any of the particles that moved elements....
     int movingModels = args._movingModels.size();
+    
+    qDebug() << "ModelTree::update()... movingModels=" << movingModels;
+
     for (int i = 0; i < movingModels; i++) {
         bool shouldDie = args._movingModels[i].getShouldDie();
 
@@ -553,7 +556,7 @@ bool ModelTree::encodeModelsDeletedSince(quint64& sinceTime, unsigned char* outp
     memcpy(copyAt, &numberOfIds, sizeof(numberOfIds));
     copyAt += sizeof(numberOfIds);
     outputLength += sizeof(numberOfIds);
-
+    
     // we keep a multi map of model IDs to timestamps, we only want to include the model IDs that have been
     // deleted since we last sent to this node
     _recentlyDeletedModelsLock.lockForRead();
@@ -595,7 +598,6 @@ bool ModelTree::encodeModelsDeletedSince(quint64& sinceTime, unsigned char* outp
 
     // replace the correct count for ids included
     memcpy(numberOfIDsAt, &numberOfIds, sizeof(numberOfIds));
-
     return hasMoreToSend;
 }
 
