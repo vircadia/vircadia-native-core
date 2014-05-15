@@ -828,3 +828,7 @@ bool isSimilarPosition(const glm::vec3& positionA, const glm::vec3& positionB, f
     float positionDistance = glm::distance(positionA, positionB);
     return (positionDistance <= similarEnough);
 }
+
+QByteArray createByteArray(const glm::vec3& vector) {
+    return QByteArray::number(vector.x) + ',' + QByteArray::number(vector.y) + ',' + QByteArray::number(vector.z);
+}

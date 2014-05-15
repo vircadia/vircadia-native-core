@@ -278,6 +278,7 @@ signals:
 public slots:
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
+    void updateLocationInServer();
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
