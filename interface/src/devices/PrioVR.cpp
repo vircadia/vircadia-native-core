@@ -92,8 +92,8 @@ void PrioVR::update() {
         _jointRotations[i].y *= -1.0f;
         _jointRotations[i].z *= -1.0f;
         
-        glm::quat lastRotation = _lastRotations.at(i);
-        _lastRotations[i] = _jointRotations.at(i);
+        glm::quat lastRotation = _lastJointRotations.at(i);
+        _lastJointRotations[i] = _jointRotations.at(i);
         _jointRotations[i] = safeMix(lastRotation, _jointRotations.at(i), 0.5f);
     }
 #endif
