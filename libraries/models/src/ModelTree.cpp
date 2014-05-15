@@ -497,8 +497,6 @@ void ModelTree::update() {
     // now add back any of the particles that moved elements....
     int movingModels = args._movingModels.size();
     
-    qDebug() << "ModelTree::update()... movingModels=" << movingModels;
-
     for (int i = 0; i < movingModels; i++) {
         bool shouldDie = args._movingModels[i].getShouldDie();
 
