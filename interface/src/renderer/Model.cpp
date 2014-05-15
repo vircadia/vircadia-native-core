@@ -674,14 +674,16 @@ void Model::computeBoundingShape(const FBXGeometry& geometry) {
             if (parentIndex == -1) {
                 glm::mat4 baseTransform = glm::scale(_scale) * glm::translate(_offset);
                 glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;    
-                transforms[i] = baseTransform * geometry.offset * glm::translate(joint.translation) * joint.preTransform * glm::mat4_cast(combinedRotation) * joint.postTransform;
+                transforms[i] = baseTransform * geometry.offset * glm::translate(joint.translation) 
+                    * joint.preTransform * glm::mat4_cast(combinedRotation) * joint.postTransform;
                 rootOffset = extractTranslation(transforms[i]);
                 finalRotations[i] = combinedRotation;
                 ++numShapesSet;
                 shapeIsSet[i] = true;
             } else if (shapeIsSet[parentIndex]) {
                 glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;    
-                transforms[i] = transforms[parentIndex] * glm::translate(joint.translation) * joint.preTransform * glm::mat4_cast(combinedRotation) * joint.postTransform;
+                transforms[i] = transforms[parentIndex] * glm::translate(joint.translation) 
+                    * joint.preTransform * glm::mat4_cast(combinedRotation) * joint.postTransform;
                 finalRotations[i] = finalRotations[parentIndex] * combinedRotation;
                 ++numShapesSet;
                 shapeIsSet[i] = true;
