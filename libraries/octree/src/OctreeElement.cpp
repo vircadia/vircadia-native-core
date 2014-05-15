@@ -1213,7 +1213,7 @@ bool OctreeElement::calculateShouldRender(const ViewFrustum* viewFrustum, float 
         float furthestDistance = furthestDistanceToCamera(*viewFrustum);
         float childBoundary = boundaryDistanceForRenderLevel(getLevel() + 1 + boundaryLevelAdjust, voxelScaleSize);
         bool inChildBoundary = (furthestDistance <= childBoundary);
-        if (isLeaf() && inChildBoundary) {
+        if (hasDetailedContent() && inChildBoundary) {
             shouldRender = true;
         } else {
             float boundary = childBoundary * 2.0f; // the boundary is always twice the distance of the child boundary

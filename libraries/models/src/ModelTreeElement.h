@@ -23,7 +23,16 @@ class ModelTreeElement;
 
 class ModelTreeUpdateArgs {
 public:
+    ModelTreeUpdateArgs() :
+            _totalElements(0),
+            _totalItems(0),
+            _movingItems(0)
+    { }
+    
     QList<ModelItem> _movingModels;
+    int _totalElements;
+    int _totalItems;
+    int _movingItems;
 };
 
 class FindAndUpdateModelItemIDArgs {
@@ -63,7 +72,11 @@ public:
 
     /// Should this element be considered to have content in it. This will be used in collision and ray casting methods.
     /// By default we assume that only leaves are actual content, but some octrees may have different semantics.
-    virtual bool hasContent() const { return isLeaf(); }
+    virtual bool hasContent() const { return hasModels(); }
+
+    /// Should this element be considered to have detailed content in it. Specifically should it be rendered.
+    /// By default we assume that only leaves have detailed content, but some octrees may have different semantics.
+    virtual bool hasDetailedContent() const { return hasModels(); }
 
     /// Override this to break up large octree elements when an edit operation is performed on a smaller octree element.
     /// For example, if the octrees represent solid cubes and a delete of a smaller octree element is done then the
@@ -92,7 +105,7 @@ public:
 
     const QList<ModelItem>& getModels() const { return *_modelItems; }
     QList<ModelItem>& getModels() { return *_modelItems; }
-    bool hasModels() const { return _modelItems->size() > 0; }
+    bool hasModels() const { return _modelItems ? _modelItems->size() > 0 : false; }
 
     void update(ModelTreeUpdateArgs& args);
     void setTree(ModelTree* tree) { _myTree = tree; }

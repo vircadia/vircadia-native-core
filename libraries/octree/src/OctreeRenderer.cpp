@@ -156,7 +156,7 @@ bool OctreeRenderer::renderOperation(OctreeElement* element, void* extraData) {
 }
 
 void OctreeRenderer::render(RenderMode renderMode) {
-    RenderArgs args = { 0, this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode };
+    RenderArgs args = { this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, 0, 0, 0 };
     if (_tree) {
         _tree->lockForRead();
         _tree->recurseTreeWithOperation(renderOperation, &args);
