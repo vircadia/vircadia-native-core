@@ -1982,6 +1982,7 @@ void Application::update(float deltaTime) {
     _myAvatar->updateLookAtTargetAvatar();
     updateMyAvatarLookAtPosition();
     _sixenseManager.update(deltaTime);
+    _prioVR.update();
     updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     _avatarManager.updateOtherAvatars(deltaTime); //loop through all the other avatars and simulate them...
@@ -2751,6 +2752,9 @@ void Application::displayOverlay() {
         drawText(_glWidget->width() - 100, _glWidget->height() - timerBottom, 0.30f, 0.0f, 0, frameTimer, WHITE_TEXT);
     }
 
+    // give external parties a change to hook in
+    emit renderingOverlay();
+        
     _overlays.render2D();
 
     glPopMatrix();
@@ -3058,6 +3062,8 @@ void Application::resetSensors() {
     if (OculusManager::isConnected()) {
         OculusManager::reset();
     }
+
+    _prioVR.reset();
 
     QCursor::setPos(_mouseX, _mouseY);
     _myAvatar->reset();

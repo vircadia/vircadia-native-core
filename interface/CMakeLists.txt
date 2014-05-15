@@ -15,6 +15,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake
 set(FACEPLUS_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/faceplus")
 set(FACESHIFT_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/faceshift")
 set(LIBOVR_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/oculus")
+set(PRIOVR_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/priovr")
 set(SIXENSE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/Sixense")
 set(VISAGE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/visage")
 
@@ -134,6 +135,7 @@ link_hifi_library(script-engine ${TARGET_NAME} "${ROOT_DIR}")
 find_package(Faceplus)
 find_package(Faceshift)
 find_package(LibOVR)
+find_package(PrioVR)
 find_package(Sixense)
 find_package(Visage)
 find_package(ZLIB)
@@ -183,6 +185,13 @@ if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
     
     target_link_libraries(${TARGET_NAME} "${LIBOVR_LIBRARIES}")
 endif (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
+
+# and with PrioVR library
+if (PRIOVR_FOUND AND NOT DISABLE_PRIOVR)
+    add_definitions(-DHAVE_PRIOVR)
+    include_directories(SYSTEM "${PRIOVR_INCLUDE_DIRS}")
+    target_link_libraries(${TARGET_NAME} "${PRIOVR_LIBRARIES}")
+endif (PRIOVR_FOUND AND NOT DISABLE_PRIOVR)
 
 # and with qxmpp for chat
 if (QXMPP_FOUND AND NOT DISABLE_QXMPP)
