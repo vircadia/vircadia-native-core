@@ -322,8 +322,8 @@ void SkeletonModel::setHandPosition(int jointIndex, const glm::vec3& position, c
     const float NORMAL_WEIGHT = 0.5f;
 	glm::vec3 finalNormal = glm::mix(relaxedNormal, handNormal, NORMAL_WEIGHT);
     
-    if((jointIndex == geometry.rightHandJointIndex && finalNormal.y > 0.0f) ||
-            (jointIndex == geometry.leftHandJointIndex && finalNormal.y < 0)) {
+    bool rightHand = (jointIndex == geometry.rightHandJointIndex);
+    if (rightHand ? (finalNormal.y > 0.0f) : (finalNormal.y < 0.0f)) {
         finalNormal.y = 0.0f; // dont allow elbows to point inward (y is vertical axis)
     }
     
@@ -331,5 +331,17 @@ void SkeletonModel::setHandPosition(int jointIndex, const glm::vec3& position, c
 	
 	// ik solution
     glm::vec3 elbowPosition = shoulderPosition + glm::normalize(shoulderToWrist) * mid - tangent * height;
+    
+    glm::vec3 forwardVector(rightHand ? -1.0f : 1.0f, 0.0f, 0.0f);
+    
+    glm::quat shoulderRotation;
+    getJointRotation(shoulderJointIndex, shoulderRotation, true);
+    applyRotationDelta(shoulderJointIndex, rotationBetween(shoulderRotation * forwardVector, elbowPosition - shoulderPosition), false);
+    
+    glm::quat elbowRotation;
+    getJointRotation(elbowJointIndex, elbowRotation, true);
+    applyRotationDelta(elbowJointIndex, rotationBetween(elbowRotation * forwardVector, wristPosition - elbowPosition), false);
+    
+    setJointRotation(jointIndex, rotation, true);
 }
 
