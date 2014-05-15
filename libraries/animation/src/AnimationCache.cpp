@@ -36,7 +36,8 @@ QSharedPointer<Resource> AnimationCache::createResource(const QUrl& url, const Q
 }
 
 Animation::Animation(const QUrl& url) :
-    Resource(url) {
+    Resource(url),
+    _isValid(false) {
 }
 
 class AnimationReader : public QRunnable {
@@ -93,6 +94,7 @@ QVector<FBXAnimationFrame> Animation::getFrames() const {
 void Animation::setGeometry(const FBXGeometry& geometry) {
     _geometry = geometry;
     finishedLoading(true);
+    _isValid = true;
 }
 
 void Animation::downloadFinished(QNetworkReply* reply) {

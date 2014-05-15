@@ -617,18 +617,6 @@ bool Avatar::findParticleCollisions(const glm::vec3& particleCenter, float parti
             const PalmData* palm = handData->getPalm(i);
             if (palm && palm->hasPaddle()) {
                 // create a disk collision proxy where the hand is
-                glm::vec3 fingerAxis(0.0f);
-                for (size_t f = 0; f < palm->getNumFingers(); ++f) {
-                    const FingerData& finger = (palm->getFingers())[f];
-                    if (finger.isActive()) {
-                        // compute finger axis
-                        glm::vec3 fingerTip = finger.getTipPosition();
-                        glm::vec3 fingerRoot = finger.getRootPosition();
-                        fingerAxis = glm::normalize(fingerTip - fingerRoot);
-                        break;
-                    }
-                }
-
                 int jointIndex = -1;
                 glm::vec3 handPosition;
                 if (i == 0) {
@@ -639,6 +627,8 @@ bool Avatar::findParticleCollisions(const glm::vec3& particleCenter, float parti
                     _skeletonModel.getRightHandPosition(handPosition);
                     jointIndex = _skeletonModel.getRightHandJointIndex();
                 }
+
+                glm::vec3 fingerAxis = palm->getFingerDirection();
                 glm::vec3 diskCenter = handPosition + HAND_PADDLE_OFFSET * fingerAxis;
                 glm::vec3 diskNormal = palm->getNormal();
                 const float DISK_THICKNESS = 0.08f;

@@ -78,6 +78,7 @@ QScriptValue WindowScriptingInterface::showPrompt(const QString& message, const 
     promptDialog.setWindowTitle("");
     promptDialog.setLabelText(message);
     promptDialog.setTextValue(defaultText);
+    promptDialog.setFixedSize(600, 200);
 
     if (promptDialog.exec() == QDialog::Accepted) {
         return QScriptValue(promptDialog.textValue());

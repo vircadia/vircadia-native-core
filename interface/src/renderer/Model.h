@@ -182,6 +182,8 @@ public:
     
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
     bool getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind = false) const;
+
+    QStringList getJointNames() const;
     
     void clearShapes();
     void rebuildShapes();

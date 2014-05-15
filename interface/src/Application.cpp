@@ -170,7 +170,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _packetsPerSecond(0),
         _bytesPerSecond(0),
         _previousScriptLocation(),
-        _logger(new FileLogger(this)),
         _runningScriptsWidget(new RunningScriptsWidget(_window)),
         _runningScriptsWidgetWasVisible(false)
 {
@@ -189,6 +188,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     setApplicationVersion(BUILD_VERSION);
     setOrganizationName(applicationInfo.value("organizationName").toString());
     setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+
+    _logger = new FileLogger(this);  // After setting organization name in order to get correct directory
 
     QSettings::setDefaultFormat(QSettings::IniFormat);
 
@@ -686,11 +687,8 @@ void Application::resizeGL(int width, int height) {
     glLoadIdentity();
 
     // update Stats width
-    int horizontalOffset = 0;
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        // mirror is enabled, let's set horizontal offset to give stats some margin
-        horizontalOffset += MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
-    }
+    // let's set horizontal offset to give stats some margin to mirror
+    int horizontalOffset = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
     Stats::getInstance()->resetWidth(width, horizontalOffset);
 }
 
@@ -1164,10 +1162,8 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
             _mousePressed = false;
             checkBandwidthMeterClick();
             if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
-                int horizontalOffset = 0;
-                if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-                    horizontalOffset = MIRROR_VIEW_WIDTH;
-                }
+                // let's set horizontal offset to give stats some margin to mirror
+                int horizontalOffset = MIRROR_VIEW_WIDTH;
                 Stats::getInstance()->checkClick(_mouseX, _mouseY, _mouseDragStartedX, _mouseDragStartedY, horizontalOffset);
             }
         }
@@ -1987,6 +1983,7 @@ void Application::update(float deltaTime) {
     _myAvatar->updateLookAtTargetAvatar();
     updateMyAvatarLookAtPosition();
     _sixenseManager.update(deltaTime);
+    _prioVR.update();
     updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     _avatarManager.updateOtherAvatars(deltaTime); //loop through all the other avatars and simulate them...
@@ -2732,11 +2729,8 @@ void Application::displayOverlay() {
     glPointSize(1.0f);
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
-        int horizontalOffset = 0;
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            // mirror is enabled, let's set horizontal offset to give stats some margin
-            horizontalOffset += MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
-        }
+        // let's set horizontal offset to give stats some margin to mirror
+        int horizontalOffset = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
         int voxelPacketsToProcess = _voxelProcessor.packetsToProcessCount();
         //  Onscreen text about position, servers, etc
         Stats::getInstance()->display(WHITE_TEXT, horizontalOffset, _fps, _packetsPerSecond, _bytesPerSecond, voxelPacketsToProcess);
@@ -2759,6 +2753,9 @@ void Application::displayOverlay() {
         drawText(_glWidget->width() - 100, _glWidget->height() - timerBottom, 0.30f, 0.0f, 0, frameTimer, WHITE_TEXT);
     }
 
+    // give external parties a change to hook in
+    emit renderingOverlay();
+        
     _overlays.render2D();
 
     glPopMatrix();
@@ -3066,6 +3063,8 @@ void Application::resetSensors() {
     if (OculusManager::isConnected()) {
         OculusManager::reset();
     }
+
+    _prioVR.reset();
 
     QCursor::setPos(_mouseX, _mouseY);
     _myAvatar->reset();
@@ -3413,6 +3412,8 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     scriptEngine->registerGlobalObject("Clipboard", clipboardScriptable);
     connect(scriptEngine, SIGNAL(finished(const QString&)), clipboardScriptable, SLOT(deleteLater()));
 
+    connect(scriptEngine, SIGNAL(finished(const QString&)), this, SLOT(scriptFinished(const QString&)));
+
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
 
     QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", WindowScriptingInterface::getInstance());
@@ -3455,6 +3456,14 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     return scriptEngine;
 }
 
+void Application::scriptFinished(const QString& scriptName) {
+    if (_scriptEnginesHash.remove(scriptName)) {
+        _runningScriptsWidget->scriptStopped(scriptName);
+        _runningScriptsWidget->setRunningScripts(getRunningScripts());
+        bumpSettings();
+    }
+}
+
 void Application::stopAllScripts(bool restart) {
     // stops all current running scripts
     for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
@@ -3465,18 +3474,12 @@ void Application::stopAllScripts(bool restart) {
         it.value()->stop();
         qDebug() << "stopping script..." << it.key();
     }
-    _scriptEnginesHash.clear();
-    _runningScriptsWidget->setRunningScripts(getRunningScripts());
-    bumpSettings();
 }
 
 void Application::stopScript(const QString &scriptName) {
     if (_scriptEnginesHash.contains(scriptName)) {
         _scriptEnginesHash.value(scriptName)->stop();
         qDebug() << "stopping script..." << scriptName;
-        _scriptEnginesHash.remove(scriptName);
-        _runningScriptsWidget->setRunningScripts(getRunningScripts());
-        bumpSettings();
     }
 }
 

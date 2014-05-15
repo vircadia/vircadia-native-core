@@ -111,7 +111,7 @@ void MyAvatar::reset() {
 void MyAvatar::update(float deltaTime) {
     Head* head = getHead();
     head->relaxLean(deltaTime);
-    updateFromFaceTracker(deltaTime);
+    updateFromTrackers(deltaTime);
     if (Menu::getInstance()->isOptionChecked(MenuOption::MoveWithLean)) {
         // Faceshift drive is enabled, set the avatar drive based on the head position
         moveWithLean();
@@ -137,15 +137,8 @@ void MyAvatar::simulate(float deltaTime) {
         Application::getInstance()->getCamera()->setScale(scale);
     }
 
-    // update the movement of the hand and process handshaking with other avatars...
-    bool pointing = false;
-    if (_mousePressed) {
-        _handState = HAND_STATE_GRASPING;
-    } else if (pointing) {
-        _handState = HAND_STATE_POINTING;
-    } else {
-        _handState = HAND_STATE_NULL;
-    }
+    // no extra movement of the hand here any more ...
+    _handState = HAND_STATE_NULL;
 
     updateOrientation(deltaTime);
 
@@ -241,26 +234,33 @@ void MyAvatar::simulate(float deltaTime) {
 }
 
 //  Update avatar head rotation with sensor data
-void MyAvatar::updateFromFaceTracker(float deltaTime) {
+void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
 
-    FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
-    if (tracker) {
-        estimatedPosition = tracker->getHeadTranslation();
-        estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
-        
-        //  Rotate the body if the head is turned beyond the screen
-        if (Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead)) {
-            const float TRACKER_YAW_TURN_SENSITIVITY = 0.5f;
-            const float TRACKER_MIN_YAW_TURN = 15.0f;
-            const float TRACKER_MAX_YAW_TURN = 50.0f;
-            if ( (fabs(estimatedRotation.y) > TRACKER_MIN_YAW_TURN) &&
-                 (fabs(estimatedRotation.y) < TRACKER_MAX_YAW_TURN) ) {
-                if (estimatedRotation.y > 0.0f) {
-                    _bodyYawDelta += (estimatedRotation.y - TRACKER_MIN_YAW_TURN) * TRACKER_YAW_TURN_SENSITIVITY;
-                } else {
-                    _bodyYawDelta += (estimatedRotation.y + TRACKER_MIN_YAW_TURN) * TRACKER_YAW_TURN_SENSITIVITY;
-                }
+    if (Application::getInstance()->getPrioVR()->isActive()) {
+        estimatedRotation = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getHeadRotation()));
+        estimatedRotation.x *= -1.0f;
+        estimatedRotation.z *= -1.0f;
+
+    } else {
+        FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
+        if (tracker) {
+            estimatedPosition = tracker->getHeadTranslation();
+            estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
+        }
+    }
+    
+    //  Rotate the body if the head is turned beyond the screen
+    if (Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead)) {
+        const float TRACKER_YAW_TURN_SENSITIVITY = 0.5f;
+        const float TRACKER_MIN_YAW_TURN = 15.0f;
+        const float TRACKER_MAX_YAW_TURN = 50.0f;
+        if ( (fabs(estimatedRotation.y) > TRACKER_MIN_YAW_TURN) &&
+             (fabs(estimatedRotation.y) < TRACKER_MAX_YAW_TURN) ) {
+            if (estimatedRotation.y > 0.0f) {
+                _bodyYawDelta += (estimatedRotation.y - TRACKER_MIN_YAW_TURN) * TRACKER_YAW_TURN_SENSITIVITY;
+            } else {
+                _bodyYawDelta += (estimatedRotation.y + TRACKER_MIN_YAW_TURN) * TRACKER_YAW_TURN_SENSITIVITY;
             }
         }
     }
@@ -277,6 +277,14 @@ void MyAvatar::updateFromFaceTracker(float deltaTime) {
     head->setDeltaPitch(estimatedRotation.x * magnifyFieldOfView);
     head->setDeltaYaw(estimatedRotation.y * magnifyFieldOfView);
     head->setDeltaRoll(estimatedRotation.z);
+
+    // the priovr can give us exact lean
+    if (Application::getInstance()->getPrioVR()->isActive()) {
+        glm::vec3 eulers = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getTorsoRotation()));
+        head->setLeanSideways(eulers.z);
+        head->setLeanForward(eulers.x);
+        return;
+    }
 
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
