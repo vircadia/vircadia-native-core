@@ -56,11 +56,11 @@ function moveModel(deltaTime) {
 
     if (count % adjustFPSEveryWhile == 0) {
         if (animationFPS == 30) {
-            animationFPS = 10;
+            animationFPS = 30;
         } else if (animationFPS == 10) {
             animationFPS = 10;
         } else if (animationFPS == 60) {
-            animationFPS = 10;
+            animationFPS = 60;
         }
         print("animationFPS=" + animationFPS);
         isPlaying = true;
