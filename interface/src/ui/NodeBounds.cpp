@@ -5,11 +5,13 @@
 //  Created by Ryan Huffman on 05/14/14.
 //  Copyright 2014 High Fidelity, Inc.
 //
+//  This class draws a border around the different Voxel, Model, and Particle nodes on the current domain,
+//  and a semi-transparent cube around the currently mouse-overed node.
+//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <NodeList.h>
 #include <QGLWidget>
 
 #include "Application.h"
@@ -26,31 +28,36 @@ NodeBounds::NodeBounds(QObject* parent) :
 }
 
 void NodeBounds::draw() {
+    if (!(_showVoxelNodes || _showModelNodes || _showParticleNodes)) {
+        return;
+    }
+
     NodeToJurisdictionMap& voxelServerJurisdictions = Application::getInstance()->getVoxelServerJurisdictions();
     NodeToJurisdictionMap& modelServerJurisdictions = Application::getInstance()->getModelServerJurisdictions();
     NodeToJurisdictionMap& particleServerJurisdictions = Application::getInstance()->getParticleServerJurisdictions();
     NodeToJurisdictionMap* serverJurisdictions;
 
+    // Compute ray to find selected nodes later on.  We can't use the pre-computed ray in Application because it centers
+    // itself after the cursor disappears.
     Application* application = Application::getInstance();
-    const glm::vec3& mouseRayOrigin = application->getMouseRayOrigin();
-    const glm::vec3& mouseRayDirection = application->getMouseRayDirection();
+    QGLWidget* glWidget = application->getGLWidget();
+    float mouseX = application->getMouseX() / (float)glWidget->width();
+    float mouseY = application->getMouseY() / (float)glWidget->height();
+    glm::vec3 mouseRayOrigin;
+    glm::vec3 mouseRayDirection;
+    application->getViewFrustum()->computePickRay(mouseX, mouseY, mouseRayOrigin, mouseRayDirection);
 
-    float closest = FLT_MAX;
-    glm::vec3 closestCenter;
-    float closestScale = 0;
-    bool closestIsInside = true;
-    Node* closestNode = NULL;
-    bool isSelecting = false;
+    // Variables to keep track of the selected node and properties to draw the cube later if needed
+    Node* selectedNode = NULL;
+    float selectedDistance = FLT_MAX;
+    bool selectedIsInside = true;
+    glm::vec3 selectedCenter;
+    float selectedScale = 0;
 
-    int num = 0;
     NodeList* nodeList = NodeList::getInstance();
 
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
         NodeType_t nodeType = node->getType();
-
-        float r = nodeType == NodeType::VoxelServer ? 1.0 : 0.0; 
-        float g = nodeType == NodeType::ParticleServer ? 1.0 : 0.0; 
-        float b = nodeType == NodeType::ModelServer ? 1.0 : 0.0; 
 
         if (nodeType == NodeType::VoxelServer && _showVoxelNodes) {
             serverJurisdictions = &voxelServerJurisdictions;
@@ -61,65 +68,85 @@ void NodeBounds::draw() {
         } else {
             continue;
         }
-        
+
         QUuid nodeUUID = node->getUUID();
         if (serverJurisdictions->find(nodeUUID) != serverJurisdictions->end()) {
             const JurisdictionMap& map = serverJurisdictions->value(nodeUUID);
-            
+
             unsigned char* rootCode = map.getRootOctalCode();
-            
+
             if (rootCode) {
                 VoxelPositionSize rootDetails;
                 voxelDetailsForCode(rootCode, rootDetails);
                 glm::vec3 location(rootDetails.x, rootDetails.y, rootDetails.z);
                 location *= (float)TREE_SCALE;
-                float len = rootDetails.s * TREE_SCALE;
+
                 AABox serverBounds(location, rootDetails.s * TREE_SCALE);
 
-                glm::vec3 center = serverBounds.getVertex(BOTTOM_RIGHT_NEAR) + (serverBounds.getVertex(TOP_LEFT_FAR) - serverBounds.getVertex(BOTTOM_RIGHT_NEAR)) / 2.0f;
+                glm::vec3 center = serverBounds.getVertex(BOTTOM_RIGHT_NEAR)
+                    + ((serverBounds.getVertex(TOP_LEFT_FAR) - serverBounds.getVertex(BOTTOM_RIGHT_NEAR)) / 2.0f);
+
+                const float VOXEL_NODE_SCALE = 1.00f;
+                const float MODEL_NODE_SCALE = 0.99f;
+                const float PARTICLE_NODE_SCALE = 0.98f;
 
                 float scaleFactor = rootDetails.s * TREE_SCALE;
-                scaleFactor *= rootDetails.s == 1 ? 1.05 : 0.95;
-                scaleFactor *= nodeType == NodeType::VoxelServer ? 1.0 : (nodeType == NodeType::ParticleServer ? 0.980 : 0.960); 
 
-                drawNodeBorder(center, scaleFactor, r, g, b);
+                // Scale by 0.98 - 1.02 depending on the scale of the node.  This allows smaller nodes to scale in
+                // a bit and not overlap larger nodes.
+                scaleFactor *= 0.92 + (rootDetails.s * 0.08);
+
+                // Scale different node types slightly differently because it's common for them to overlap.
+                if (nodeType == NodeType::VoxelServer) {
+                    scaleFactor *= VOXEL_NODE_SCALE;
+                } else if (nodeType == NodeType::ModelServer) {
+                    scaleFactor *= MODEL_NODE_SCALE;
+                } else {
+                    scaleFactor *= PARTICLE_NODE_SCALE;
+                }
+
+                float red, green, blue;
+                getColorForNodeType(nodeType, red, green, blue);
+                drawNodeBorder(center, scaleFactor, red, green, blue);
 
                 float distance;
                 BoxFace face;
                 bool inside = serverBounds.contains(mouseRayOrigin);
                 bool colliding = serverBounds.findRayIntersection(mouseRayOrigin, mouseRayDirection, distance, face);
 
-                if (colliding && (!isSelecting || (!inside && (distance < closest || closestIsInside)))) {
-                    closest = distance;
-                    closestCenter = center;
-                    closestScale = scaleFactor;
-                    closestIsInside = inside;
-                    closestNode = node.data();
-                    isSelecting = true;
+                // If the camera is inside a node it will be "selected" if you don't have your cursor over another node
+                // that you aren't inside.
+                if (colliding && (!selectedNode || (!inside && (distance < selectedDistance || selectedIsInside)))) {
+                    selectedNode = node.data();
+                    selectedDistance = distance;
+                    selectedIsInside = inside;
+                    selectedCenter = center;
+                    selectedScale = scaleFactor;
                 }
             }
         }
     }
 
-    if (isSelecting) {
+    if (selectedNode) {
         glPushMatrix();
 
-        glTranslatef(closestCenter.x, closestCenter.y, closestCenter.z);
-        glScalef(closestScale, closestScale, closestScale);
+        glTranslatef(selectedCenter.x, selectedCenter.y, selectedCenter.z);
+        glScalef(selectedScale, selectedScale, selectedScale);
 
-        NodeType_t selectedNodeType = closestNode->getType();
-        float r = selectedNodeType == NodeType::VoxelServer ? 1.0 : 0.0; 
-        float g = selectedNodeType == NodeType::ParticleServer ? 1.0 : 0.0; 
-        float b = selectedNodeType == NodeType::ModelServer ? 1.0 : 0.0; 
-        glColor4f(r, g, b, 0.2);
+        NodeType_t selectedNodeType = selectedNode->getType();
+        float red, green, blue;
+        getColorForNodeType(selectedNode->getType(), red, green, blue);
+
+        glColor4f(red, green, blue, 0.2);
         glutSolidCube(1.0);
 
         glPopMatrix();
 
-        HifiSockAddr addr = closestNode->getPublicSocket();
-        _overlayText = QString("%1:%2")
+        HifiSockAddr addr = selectedNode->getPublicSocket();
+        _overlayText = QString("%1:%2  %3ms")
             .arg(addr.getAddress().toString())
-            .arg(addr.getPort());
+            .arg(addr.getPort())
+            .arg(selectedNode->getPingMs());
     } else {
         _overlayText = QString();
     }
@@ -131,7 +158,7 @@ void NodeBounds::drawNodeBorder(glm::vec3 center, float scale, float red, float 
     glTranslatef(center.x, center.y, center.z);
     glScalef(scale, scale, scale);
 
-    glLineWidth(2.5); 
+    glLineWidth(2.5);
     glColor3f(red, green, blue);
     glBegin(GL_LINES);
 
@@ -150,8 +177,6 @@ void NodeBounds::drawNodeBorder(glm::vec3 center, float scale, float red, float 
     glVertex3f(-0.5,  0.5, -0.5);
     glVertex3f(-0.5,  0.5,  0.5);
 
-
-
     glVertex3f( 0.5,  0.5,  0.5);
     glVertex3f(-0.5,  0.5,  0.5);
 
@@ -166,7 +191,6 @@ void NodeBounds::drawNodeBorder(glm::vec3 center, float scale, float red, float 
 
     glVertex3f( 0.5, -0.5,  0.5);
     glVertex3f( 0.5, -0.5, -0.5);
-
 
     glVertex3f( 0.5,  0.5, -0.5);
     glVertex3f( 0.5, -0.5, -0.5);
@@ -179,12 +203,31 @@ void NodeBounds::drawNodeBorder(glm::vec3 center, float scale, float red, float 
     glPopMatrix();
 }
 
-const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
+void NodeBounds::getColorForNodeType(NodeType_t nodeType, float& red, float& green, float& blue) {
+    red = nodeType == NodeType::VoxelServer ? 1.0 : 0.0;
+    green = nodeType == NodeType::ParticleServer ? 1.0 : 0.0;
+    blue = nodeType == NodeType::ModelServer ? 1.0 : 0.0;
+}
+
 void NodeBounds::drawOverlay() {
     if (!_overlayText.isNull() && !_overlayText.isEmpty()) {
-        QGLWidget* glWidget = Application::getInstance()->getGLWidget();
         Application* application = Application::getInstance();
-        drawText(application->getMouseX(), application->getMouseY(), 0.1f, 0.0f, 0, _overlayText.toLocal8Bit().data(), WHITE_TEXT);
-        // drawText(application->getMouseX(), application->getMouseY(), 0.1f, 0.0f, 0, "durr", WHITE_TEXT);
+
+        const float TEXT_COLOR[] = { 0.90f, 0.90f, 0.90f };
+        const float TEXT_SCALE = 0.1f;
+        const int TEXT_HEIGHT = 10;
+        const int PADDING = 10;
+        const int MOUSE_OFFSET = 10;
+        const int BACKGROUND_OFFSET_Y = -20;
+        const int BACKGROUND_BEVEL = 3;
+
+        char* text = _overlayText.toLocal8Bit().data();
+        int mouseX = application->getMouseX(),
+            mouseY = application->getMouseY(),
+            textWidth = widthText(TEXT_SCALE, 0, text);
+        glColor4f(0.4, 0.4, 0.4, 0.6);
+        renderBevelCornersRect(mouseX + MOUSE_OFFSET, mouseY - TEXT_HEIGHT - PADDING,
+                               textWidth + (2 * PADDING), TEXT_HEIGHT + (2 * PADDING), BACKGROUND_BEVEL);
+        drawText(mouseX + MOUSE_OFFSET + PADDING, mouseY, TEXT_SCALE, 0.0f, 0, text, TEXT_COLOR);
     }
 }

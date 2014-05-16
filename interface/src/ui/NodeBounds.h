@@ -14,6 +14,8 @@
 
 #include <QObject>
 
+#include <NodeList.h>
+
 class NodeBounds : public QObject {
     Q_OBJECT
 public:
@@ -33,6 +35,7 @@ public slots:
 
 protected:
     void drawNodeBorder(glm::vec3 center, float scale, float red, float green, float blue);
+    void getColorForNodeType(NodeType_t nodeType, float& red, float& green, float& blue);
 
 private:
     bool _showVoxelNodes;
