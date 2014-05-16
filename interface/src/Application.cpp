@@ -170,6 +170,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _packetsPerSecond(0),
         _bytesPerSecond(0),
         _previousScriptLocation(),
+        _nodeBoundsDisplay(this),
         _runningScriptsWidget(new RunningScriptsWidget(_window)),
         _runningScriptsWidgetWasVisible(false)
 {
@@ -2527,6 +2528,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // restore default, white specular
         glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
+
+        _nodeBoundsDisplay.draw();
+
     }
 
     bool mirrorMode = (whichCamera.getInterpolatedMode() == CAMERA_MODE_MIRROR);
@@ -2760,6 +2764,7 @@ void Application::displayOverlay() {
                 ? 80 : 20;
         drawText(_glWidget->width() - 100, _glWidget->height() - timerBottom, 0.30f, 0.0f, 0, frameTimer, WHITE_TEXT);
     }
+    _nodeBoundsDisplay.drawOverlay();
 
     // give external parties a change to hook in
     emit renderingOverlay();
