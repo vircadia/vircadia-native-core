@@ -216,18 +216,22 @@ void NodeBounds::drawOverlay() {
         const float TEXT_COLOR[] = { 0.90f, 0.90f, 0.90f };
         const float TEXT_SCALE = 0.1f;
         const int TEXT_HEIGHT = 10;
+        const float ROTATION = 0.0f;
+        const int FONT = 2;
         const int PADDING = 10;
         const int MOUSE_OFFSET = 10;
         const int BACKGROUND_OFFSET_Y = -20;
         const int BACKGROUND_BEVEL = 3;
 
-        char* text = _overlayText.toLatin1().data();
+        char textData[_overlayText.length() + 1];
+        strcpy(textData, _overlayText.toLatin1().constData());
+
         int mouseX = application->getMouseX(),
             mouseY = application->getMouseY(),
-            textWidth = widthText(TEXT_SCALE, 0, text);
+            textWidth = widthText(TEXT_SCALE, 0, textData);
         glColor4f(0.4, 0.4, 0.4, 0.6);
         renderBevelCornersRect(mouseX + MOUSE_OFFSET, mouseY - TEXT_HEIGHT - PADDING,
                                textWidth + (2 * PADDING), TEXT_HEIGHT + (2 * PADDING), BACKGROUND_BEVEL);
-        drawText(mouseX + MOUSE_OFFSET + PADDING, mouseY, TEXT_SCALE, 0.0f, 0, text, TEXT_COLOR);
+        drawText(mouseX + MOUSE_OFFSET + PADDING, mouseY, TEXT_SCALE, ROTATION, FONT, textData, TEXT_COLOR);
     }
 }
