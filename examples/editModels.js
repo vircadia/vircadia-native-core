@@ -76,38 +76,42 @@ function controller(wichSide) {
     this.oldModelRadius;
     
     this.laser = Overlays.addOverlay("line3d", {
-                                     position: this.palmPosition,
-                                     end: this.tipPosition,
+                                     position: { x: 0, y: 0, z: 0 },
+                                     end: { x: 0, y: 0, z: 0 },
                                      color: LASER_COLOR,
                                      alpha: 1,
                                      visible: false,
-                                     lineWidth: LASER_WIDTH
+                                     lineWidth: LASER_WIDTH,
+                                     anchor: "MyAvatar"
                                      });
     
     this.guideScale = 0.02;
     this.ball = Overlays.addOverlay("sphere", {
-                                    position: this.palmPosition,
+                                    position: { x: 0, y: 0, z: 0 },
                                     size: this.guideScale,
                                     solid: true,
                                     color: { red: 0, green: 255, blue: 0 },
                                     alpha: 1,
                                     visible: false,
+                                    anchor: "MyAvatar"
                                     });
     this.leftRight = Overlays.addOverlay("line3d", {
-                                         position: this.palmPosition,
-                                         end: this.tipPosition,
+                                         position: { x: 0, y: 0, z: 0 },
+                                         end: { x: 0, y: 0, z: 0 },
                                          color: { red: 0, green: 0, blue: 255 },
                                          alpha: 1,
                                          visible: false,
-                                         lineWidth: LASER_WIDTH
+                                         lineWidth: LASER_WIDTH,
+                                         anchor: "MyAvatar"
                                          });
     this.topDown = Overlays.addOverlay("line3d", {
-                                       position: this.palmPosition,
-                                       end: this.tipPosition,
+                                       position: { x: 0, y: 0, z: 0 },
+                                       end: { x: 0, y: 0, z: 0 },
                                        color: { red: 0, green: 0, blue: 255 },
                                        alpha: 1,
                                        visible: false,
-                                       lineWidth: LASER_WIDTH
+                                       lineWidth: LASER_WIDTH,
+                                       anchor: "MyAvatar"
                                        });
     
 
@@ -170,10 +174,11 @@ function controller(wichSide) {
     }
     
     this.moveLaser = function () {
-        var endPosition = Vec3.sum(this.palmPosition, Vec3.multiply(this.front, LASER_LENGTH_FACTOR));
+        var startPosition = Vec3.subtract(this.palmPosition, MyAvatar.position);
+        var endPosition = Vec3.sum(startPosition, Vec3.multiply(this.front, LASER_LENGTH_FACTOR));
         
         Overlays.editOverlay(this.laser, {
-                             position: this.palmPosition,
+                             position: startPosition,
                              end: endPosition,
                              visible: true
                              });
@@ -219,11 +224,11 @@ function controller(wichSide) {
                              position: newPosition,
                              modelRotation: newRotation
                              });
-            print("Moving " + this.modelID.id);
+//            print("Moving " + this.modelID.id);
 //            Vec3.print("Old Position: ", this.oldModelPosition);
 //            Vec3.print("Sav Position: ", newPosition);
-            Quat.print("Old Rotation: ", this.oldModelRotation);
-            Quat.print("New Rotation: ", newRotation);
+//            Quat.print("Old Rotation: ", this.oldModelRotation);
+//            Quat.print("New Rotation: ", newRotation);
             
             this.oldModelRotation = newRotation;
             this.oldModelPosition = newPosition;
@@ -301,7 +306,7 @@ var rightController = new controller(RIGHT);
 
 function moveModels() {
     if (leftController.grabbing && rightController.grabbing && rightController.modelID.id == leftController.modelID.id) {
-        print("Both controllers");
+        //print("Both controllers");
         var oldLeftPoint = Vec3.sum(leftController.oldPalmPosition, Vec3.multiply(leftController.oldFront, leftController.x));
         var oldRightPoint = Vec3.sum(rightController.oldPalmPosition, Vec3.multiply(rightController.oldFront, rightController.x));
         
@@ -319,7 +324,7 @@ function moveModels() {
         
         var newPosition = Vec3.sum(middle,
                                    Vec3.multiply(Vec3.subtract(leftController.oldModelPosition, oldMiddle), ratio));
-        Vec3.print("Ratio : " + ratio + " New position: ", newPosition);
+        //Vec3.print("Ratio : " + ratio + " New position: ", newPosition);
         var rotation = Quat.multiply(leftController.rotation,
                                      Quat.inverse(leftController.oldRotation));
         rotation = Quat.multiply(rotation, leftController.oldModelRotation);
