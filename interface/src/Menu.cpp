@@ -243,14 +243,15 @@ Menu::Menu() :
                                            SLOT(setEnable3DTVMode(bool)));
 
 
+    QMenu* nodeBordersMenu = viewMenu->addMenu("Server Borders");
     NodeBounds& nodeBounds = appInstance->getNodeBoundsDisplay();
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::ShowBordersVoxelNodes,
+    addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersVoxelNodes,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_1, false,
                                            &nodeBounds, SLOT(setShowVoxelNodes(bool)));
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::ShowBordersModelNodes,
+    addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersModelNodes,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_2, false,
                                            &nodeBounds, SLOT(setShowModelNodes(bool)));
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::ShowBordersParticleNodes,
+    addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersParticleNodes,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_3, false,
                                            &nodeBounds, SLOT(setShowParticleNodes(bool)));
 
