@@ -13,8 +13,9 @@
 //
 
 #include "Application.h"
-#include "NodeBounds.h"
 #include "Util.h"
+
+#include "NodeBounds.h"
 
 NodeBounds::NodeBounds(QObject* parent) :
     QObject(parent),
