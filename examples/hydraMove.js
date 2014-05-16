@@ -145,20 +145,28 @@ function handleGrabBehavior(deltaTime) {
 
         // add some rotation...
         var deltaRotation = getGrabRotation();
-        var GRAB_CONTROLLER_PITCH_SCALING = 2.5;
-        var GRAB_CONTROLLER_YAW_SCALING = 2.5;
-        var GRAB_CONTROLLER_ROLL_SCALING = 2.5; 
+        var PITCH_SCALING = 2.0;
+        var PITCH_DEAD_ZONE = 2.0;
+        var YAW_SCALING = 2.0;
+        var ROLL_SCALING = 2.0;     
+
         var euler = Quat.safeEulerAngles(deltaRotation);
     
+        print("dx: " + euler.x);
+ 
         //  Adjust body yaw by roll from controller
-        var orientation = Quat.multiply(Quat.angleAxis(((euler.y * GRAB_CONTROLLER_YAW_SCALING) + 
-                                                        (euler.z * GRAB_CONTROLLER_ROLL_SCALING)) * deltaTime, {x:0, y: 1, z:0}), MyAvatar.orientation);
+        var orientation = Quat.multiply(Quat.angleAxis(((euler.y * YAW_SCALING) + 
+                                                        (euler.z * ROLL_SCALING)) * deltaTime, {x:0, y: 1, z:0}), MyAvatar.orientation);
         MyAvatar.orientation = orientation;
 
         //  Adjust head pitch from controller
-        MyAvatar.headPitch = MyAvatar.headPitch + (euler.x * GRAB_CONTROLLER_PITCH_SCALING * deltaTime);
-
-        //  Add some camera roll proportional to the rate of turn (so it feels like an airplane or roller coaster)
+        var pitch = 0.0; 
+        if (Math.abs(euler.x) > PITCH_DEAD_ZONE) {
+            pitch = (euler.x < 0.0) ? (euler.x + PITCH_DEAD_ZONE) : (euler.x - PITCH_DEAD_ZONE);
+        }
+        MyAvatar.headPitch = MyAvatar.headPitch + (pitch * PITCH_SCALING * deltaTime);
+  
+        //  TODO: Add some camera roll proportional to the rate of turn (so it feels like an airplane or roller coaster)
 
     }
 
