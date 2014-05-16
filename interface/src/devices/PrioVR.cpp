@@ -17,6 +17,7 @@
 #include "PrioVR.h"
 #include "ui/TextRenderer.h"
 
+#ifdef HAVE_PRIOVR
 const unsigned int SERIAL_LIST[] = { 0x00000001, 0x00000000, 0x00000008, 0x00000009, 0x0000000A,
     0x0000000C, 0x0000000D, 0x0000000E, 0x00000004, 0x00000005, 0x00000010, 0x00000011 };
 const unsigned char AXIS_LIST[] = { 9, 43, 37, 37, 37, 13, 13, 13, 52, 52, 28, 28 };
@@ -25,7 +26,6 @@ const int LIST_LENGTH = sizeof(SERIAL_LIST) / sizeof(SERIAL_LIST[0]);
 const char* JOINT_NAMES[] = { "Neck", "Spine", "LeftArm", "LeftForeArm", "LeftHand", "RightArm",
     "RightForeArm", "RightHand", "LeftUpLeg", "LeftLeg", "RightUpLeg", "RightLeg" };  
 
-#ifdef HAVE_PRIOVR
 static int indexOfHumanIKJoint(const char* jointName) {
     for (int i = 0;; i++) {
         QByteArray humanIKJoint = HUMANIK_JOINTS[i];
