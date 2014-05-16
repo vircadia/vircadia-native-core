@@ -63,7 +63,7 @@ static void setPalm(float deltaTime, int index) {
     if (!Application::getInstance()->getJoystickManager()->getJoystickStates().isEmpty()) {
         const JoystickState& state = Application::getInstance()->getJoystickManager()->getJoystickStates().at(0);
         if (state.axes.size() >= 4 && state.buttons.size() >= 4) {
-            if (index == 0) {
+            if (index == SIXENSE_CONTROLLER_ID_LEFT_HAND) {
                 palm->setControllerButtons(state.buttons.at(1) ? BUTTON_FWD : 0);
                 palm->setTrigger(state.buttons.at(0) ? 1.0f : 0.0f);
                 palm->setJoystick(state.axes.at(0), -state.axes.at(1));
@@ -71,7 +71,7 @@ static void setPalm(float deltaTime, int index) {
             } else {
                 palm->setControllerButtons(state.buttons.at(3) ? BUTTON_FWD : 0);
                 palm->setTrigger(state.buttons.at(2) ? 1.0f : 0.0f);
-                palm->setJoystick(state.axes.at(2), -state.axes.at(3));
+                palm->setJoystick(state.axes.at(2), -state.axes.at(3)); 
             }
         }
     }
@@ -81,16 +81,16 @@ static void setPalm(float deltaTime, int index) {
     
     Model* skeletonModel = &Application::getInstance()->getAvatar()->getSkeletonModel();
     int jointIndex;
-    glm::quat inverseRotation = glm::inverse(skeletonModel->getRotation());
-    if (index == 0) {
+    glm::quat inverseRotation = glm::inverse(Application::getInstance()->getAvatar()->getOrientation());
+    if (index == SIXENSE_CONTROLLER_ID_LEFT_HAND) {
         jointIndex = skeletonModel->getLeftHandJointIndex();
         skeletonModel->getJointRotation(jointIndex, rotation, true);      
-        rotation = inverseRotation * rotation * glm::quat(glm::vec3(0.0f, -PI_OVER_TWO, 0.0f));
+        rotation = inverseRotation * rotation * glm::quat(glm::vec3(0.0f, PI_OVER_TWO, 0.0f));
         
     } else {
         jointIndex = skeletonModel->getRightHandJointIndex();
         skeletonModel->getJointRotation(jointIndex, rotation, true);
-        rotation = inverseRotation * rotation * glm::quat(glm::vec3(0.0f, PI_OVER_TWO, 0.0f));
+        rotation = inverseRotation * rotation * glm::quat(glm::vec3(0.0f, -PI_OVER_TWO, 0.0f));
     }
     skeletonModel->getJointPosition(jointIndex, position);
     position = inverseRotation * (position - skeletonModel->getTranslation());
@@ -134,8 +134,6 @@ PrioVR::PrioVR() {
     for (int i = 0; i < LIST_LENGTH; i++) {
         _humanIKJointIndices.append(jointsDiscovered[i] ? indexOfHumanIKJoint(JOINT_NAMES[i]) : -1);
     }
-    const int INITIAL_RESET_DELAY = 5000;
-    QTimer::singleShot(INITIAL_RESET_DELAY, this, SLOT(reset()));
 #endif
 }
 
@@ -182,8 +180,8 @@ void PrioVR::update(float deltaTime) {
     }
     
     // convert the joysticks into palm data
-    setPalm(deltaTime, 0);
-    setPalm(deltaTime, 1);
+    setPalm(deltaTime, SIXENSE_CONTROLLER_ID_LEFT_HAND);
+    setPalm(deltaTime, SIXENSE_CONTROLLER_ID_RIGHT_HAND);
 #endif
 }
 
