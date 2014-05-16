@@ -12,6 +12,7 @@
 #ifndef hifi_JoystickManager_h
 #define hifi_JoystickManager_h
 
+#include <QMutex>
 #include <QObject>
 #include <QVector>
 
@@ -31,12 +32,13 @@ public:
     JoystickManager();
     virtual ~JoystickManager();
     
-    const QVector<JoystickState>& getJoystickStates() const { return _joystickStates; }
+    QVector<JoystickState> getJoystickStates();
     
     void update();
 
 private:
     QVector<JoystickState> _joystickStates;
+    QMutex _joystickMutex;
     
 #ifdef HAVE_SDL
     QVector<SDL_Joystick*> _joysticks;

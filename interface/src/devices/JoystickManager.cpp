@@ -44,10 +44,16 @@ JoystickManager::~JoystickManager() {
 #endif
 }
 
+QVector<JoystickState> JoystickManager::getJoystickStates() {
+    QMutexLocker locker(&_joystickMutex);
+    return _joystickStates;
+}
+
 void JoystickManager::update() {
 #ifdef HAVE_SDL
     SDL_JoystickUpdate();
     
+    QMutexLocker locker(&_joystickMutex);
     for (int i = 0; i < _joystickStates.size(); i++) {
         SDL_Joystick* joystick = _joysticks.at(i);
         JoystickState& state = _joystickStates[i];
