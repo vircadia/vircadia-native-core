@@ -331,7 +331,7 @@ Menu::Menu() :
 #endif
 
 #ifdef HAVE_VISAGE
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Visage, 0, true,
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Visage, 0, false,
         appInstance->getVisage(), SLOT(updateEnabled()));
 #endif
 
