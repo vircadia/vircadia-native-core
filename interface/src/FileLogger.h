@@ -22,11 +22,11 @@ public:
     FileLogger(QObject* parent = NULL);
 
     virtual void addMessage(QString);
-    virtual QStringList getLogData() { return _logData; };
+    virtual QString getLogData() { return _logData; }
     virtual void locateLog();
 
 private:
-    QStringList _logData;
+    QString _logData;
     QString _fileName;
     QMutex _mutex;
 

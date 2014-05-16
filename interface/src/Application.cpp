@@ -175,7 +175,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 {
     // init GnuTLS for DTLS with domain-servers
     DTLSClientSession::globalInit();
-    
+
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 
@@ -237,10 +237,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     connect(&nodeList->getDomainHandler(), SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
     connect(&nodeList->getDomainHandler(), SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
-    
+
     // update our location every 5 seconds in the data-server, assuming that we are authenticated with one
     const float DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5.0f * 1000.0f;
-    
+
     QTimer* locationUpdateTimer = new QTimer(this);
     connect(locationUpdateTimer, &QTimer::timeout, this, &Application::updateLocationInServer);
     locationUpdateTimer->start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
@@ -336,7 +336,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // when -url in command line, teleport to location
     urlGoTo(argc, constArgv);
-    
+
     // For now we're going to set the PPS for outbound packets to be super high, this is
     // probably not the right long term solution. But for now, we're going to do this to
     // allow you to move a particle around in your hand
@@ -363,23 +363,23 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         // clear the scripts, and set out script to our default scripts
         clearScriptsBeforeRunning();
         loadScript("http://public.highfidelity.io/scripts/defaultScripts.js");
-        
+
         QMutexLocker locker(&_settingsMutex);
         _settings->setValue("firstRun",QVariant(false));
     } else {
         // do this as late as possible so that all required subsystems are inialized
         loadScripts();
-        
+
         QMutexLocker locker(&_settingsMutex);
         _previousScriptLocation = _settings->value("LastScriptLocation", QVariant("")).toString();
     }
-    
+
     connect(_window, &MainWindow::windowGeometryChanged,
             _runningScriptsWidget, &RunningScriptsWidget::setBoundary);
-    
-	//When -url in command line, teleport to location
-	urlGoTo(argc, constArgv);
-    
+
+    //When -url in command line, teleport to location
+    urlGoTo(argc, constArgv);
+
     // call the OAuthWebviewHandler static getter so that its instance lives in our thread
     OAuthWebViewHandler::getInstance();
     // make sure the High Fidelity root CA is in our list of trusted certs
@@ -392,11 +392,11 @@ Application::~Application() {
 
     // make sure we don't call the idle timer any more
     delete idleTimer;
-    
+
     _sharedVoxelSystem.changeTree(new VoxelTree);
-    
+
     saveSettings();
-    
+
     delete _voxelImporter;
 
     // let the avatar mixer know we're out
@@ -430,14 +430,14 @@ Application::~Application() {
     delete _glWidget;
 
     AccountManager::getInstance().destroy();
-    
+
     DTLSClientSession::globalDeinit();
 }
 
 void Application::saveSettings() {
     Menu::getInstance()->saveSettings();
     _rearMirrorTools->saveSettings(_settings);
-    
+
     if (_voxelImporter) {
         _voxelImporter->saveSettings(_settings);
     }
@@ -519,7 +519,7 @@ void Application::initializeGL() {
     _voxelHideShowThread.initialize(_enableProcessVoxelsThread);
     _particleEditSender.initialize(_enableProcessVoxelsThread);
     _modelEditSender.initialize(_enableProcessVoxelsThread);
-    
+
     if (_enableProcessVoxelsThread) {
         qDebug("Voxel parsing thread created.");
     }
@@ -584,7 +584,7 @@ void Application::paintGL() {
         _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _myAvatar->getScale() * _scaleMirror);
         _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight + (_raiseMirror * _myAvatar->getScale()), 0));
         _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-        
+
         // if the head would intersect the near clip plane, we must push the camera out
         glm::vec3 relativePosition = glm::inverse(_myCamera.getTargetRotation()) *
             (eyePosition - _myCamera.getTargetPosition());
@@ -593,7 +593,7 @@ void Application::paintGL() {
         pushback = relativePosition.z + pushbackRadius - _myCamera.getDistance();
         pushbackFocalLength = _myCamera.getDistance();
     }
-    
+
     // handle pushback, if any
     if (pushbackFocalLength > 0.0f) {
         const float PUSHBACK_DECAY = 0.5f;
@@ -1278,7 +1278,7 @@ void Application::dropEvent(QDropEvent *event) {
 
 void Application::sendPingPackets() {
     QByteArray pingPacket = NodeList::getInstance()->constructPingPacket();
-    controlledBroadcastToNodes(pingPacket, NodeSet() 
+    controlledBroadcastToNodes(pingPacket, NodeSet()
                                << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::ModelServer
                                << NodeType::AudioMixer << NodeType::AvatarMixer
                                << NodeType::MetavoxelServer);
@@ -1289,7 +1289,7 @@ void Application::timer() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
         sendPingPackets();
     }
-    
+
     float diffTime = (float)_timerStart.nsecsElapsed() / 1000000000.0f;
 
     _fps = (float)_frameCount / diffTime;
@@ -1693,7 +1693,7 @@ void Application::init() {
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
-    
+
     // set up our audio reflector
     _audioReflector.setMyAvatar(getAvatar());
     _audioReflector.setVoxels(_voxels.getTree());
@@ -1702,7 +1702,7 @@ void Application::init() {
 
     connect(getAudio(), &Audio::processInboundAudio, &_audioReflector, &AudioReflector::processInboundAudio,Qt::DirectConnection);
     connect(getAudio(), &Audio::processLocalAudio, &_audioReflector, &AudioReflector::processLocalAudio,Qt::DirectConnection);
-    connect(getAudio(), &Audio::preProcessOriginalInboundAudio, &_audioReflector, 
+    connect(getAudio(), &Audio::preProcessOriginalInboundAudio, &_audioReflector,
                         &AudioReflector::preProcessOriginalInboundAudio,Qt::DirectConnection);
 
     // save settings when avatar changes
@@ -1817,7 +1817,7 @@ void Application::updateMyAvatarLookAtPosition() {
     PerformanceWarning warn(showWarnings, "Application::updateMyAvatarLookAtPosition()");
 
     FaceTracker* tracker = getActiveFaceTracker();
-    
+
     bool isLookingAtSomeone = false;
     glm::vec3 lookAtSpot;
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
@@ -1852,7 +1852,7 @@ void Application::updateMyAvatarLookAtPosition() {
             glm::distance(_mouseRayOrigin, _myAvatar->getHead()->calculateAverageEyePosition()));
         lookAtSpot = _mouseRayOrigin + _mouseRayDirection * qMax(minEyeDistance, distance);
          */
-         
+
     }
     //
     //  Deflect the eyes a bit to match the detected Gaze from 3D camera if active
@@ -1872,7 +1872,7 @@ void Application::updateMyAvatarLookAtPosition() {
             eyePitch * pitchSign * deflection, eyeYaw * deflection, 0.0f))) *
                 glm::inverse(_myCamera.getRotation()) * (lookAtSpot - origin);
     }
-    
+
     _myAvatar->getHead()->setLookAtPosition(lookAtSpot);
 }
 
@@ -1924,7 +1924,7 @@ void Application::updateCamera(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateCamera()");
 
     if (!OculusManager::isConnected() && !TV3DManager::isConnected() &&
-            Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {   
+            Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {
         FaceTracker* tracker = getActiveFaceTracker();
         if (tracker) {
             const float EYE_OFFSET_SCALE = 0.025f;
@@ -2479,7 +2479,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // disable specular lighting for ground and voxels
         glMaterialfv(GL_FRONT, GL_SPECULAR, NO_SPECULAR_COLOR);
-        
+
         // draw the audio reflector overlay
         _audioReflector.render();
 
@@ -2644,7 +2644,7 @@ void Application::displayOverlay() {
     const float LOG2_LOUDNESS_FLOOR = 11.f;
     float audioLevel = 0.f;
     float loudness = _audio.getLastInputLoudness() + 1.f;
-    
+
     _trailingAudioLoudness = AUDIO_METER_AVERAGING * _trailingAudioLoudness + (1.f - AUDIO_METER_AVERAGING) * loudness;
     float log2loudness = log(_trailingAudioLoudness) / LOG2;
 
@@ -2657,7 +2657,7 @@ void Application::displayOverlay() {
         audioLevel = AUDIO_METER_SCALE_WIDTH;
     }
     bool isClipping = ((_audio.getTimeSinceLastClip() > 0.f) && (_audio.getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME));
-    
+
     if ((_audio.getTimeSinceLastClip() > 0.f) && (_audio.getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME)) {
         const float MAX_MAGNITUDE = 0.7f;
         float magnitude = MAX_MAGNITUDE * (1 - _audio.getTimeSinceLastClip() / CLIPPING_INDICATOR_TIME);
@@ -2762,7 +2762,7 @@ void Application::displayOverlay() {
 
     // give external parties a change to hook in
     emit renderingOverlay();
-        
+
     _overlays.render2D();
 
     glPopMatrix();
@@ -2838,7 +2838,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
         // save absolute translations
         glm::vec3 absoluteSkeletonTranslation = _myAvatar->getSkeletonModel().getTranslation();
         glm::vec3 absoluteFaceTranslation = _myAvatar->getHead()->getFaceModel().getTranslation();
-        
+
         // get the eye positions relative to the neck and use them to set the face translation
         glm::vec3 leftEyePosition, rightEyePosition;
         _myAvatar->getHead()->getFaceModel().setTranslation(glm::vec3());
@@ -3104,7 +3104,7 @@ void Application::uploadModel(ModelType modelType) {
     thread->connect(uploader, SIGNAL(destroyed()), SLOT(quit()));
     thread->connect(thread, SIGNAL(finished()), SLOT(deleteLater()));
     uploader->connect(thread, SIGNAL(started()), SLOT(send()));
-    
+
     thread->start();
 }
 
@@ -3121,28 +3121,28 @@ void Application::updateWindowTitle(){
 }
 
 void Application::updateLocationInServer() {
-    
+
     AccountManager& accountManager = AccountManager::getInstance();
-    
+
     if (accountManager.isLoggedIn()) {
-        
+
         static QJsonObject lastLocationObject;
-        
+
         // construct a QJsonObject given the user's current address information
         QJsonObject updatedLocationObject;
-        
+
         QJsonObject addressObject;
         addressObject.insert("position", QString(createByteArray(_myAvatar->getPosition())));
         addressObject.insert("orientation", QString(createByteArray(glm::degrees(safeEulerAngles(_myAvatar->getOrientation())))));
         addressObject.insert("domain", NodeList::getInstance()->getDomainHandler().getHostname());
-        
+
         updatedLocationObject.insert("address", addressObject);
-        
+
         if (updatedLocationObject != lastLocationObject) {
-            
+
             accountManager.authenticatedRequest("/api/v1/users/address", QNetworkAccessManager::PutOperation,
                                                 JSONCallbackParameters(), QJsonDocument(updatedLocationObject).toJson());
-            
+
             lastLocationObject = updatedLocationObject;
         }
     }
@@ -3167,7 +3167,7 @@ void Application::domainChanged(const QString& domainHostname) {
 
     // reset the voxels renderer
     _voxels.killLocalVoxels();
-    
+
     // reset the auth URL for OAuth web view handler
     OAuthWebViewHandler::getInstance().clearLastAuthorizationURL();
 }
@@ -3388,7 +3388,7 @@ void Application::loadScripts() {
             loadScript(string);
         }
     }
-    
+
     QMutexLocker locker(&_settingsMutex);
     _settings->endArray();
 }
@@ -3613,9 +3613,12 @@ void Application::loadScriptURLDialog() {
 void Application::toggleLogDialog() {
     if (! _logDialog) {
         _logDialog = new LogDialog(_glWidget, getLogger());
-        _logDialog->show();
+    }
+
+    if (_logDialog->isVisible()) {
+        _logDialog->hide();
     } else {
-        _logDialog->close();
+        _logDialog->show();
     }
 }
 
@@ -3649,7 +3652,7 @@ void Application::parseVersionXml() {
     QObject* sender = QObject::sender();
 
     QXmlStreamReader xml(qobject_cast<QNetworkReply*>(sender));
-    
+
     while (!xml.atEnd() && !xml.hasError()) {
         if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == operatingSystem) {
             while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == operatingSystem)) {
@@ -3666,7 +3669,7 @@ void Application::parseVersionXml() {
         }
         xml.readNext();
     }
-    
+
     if (!shouldSkipVersion(latestVersion) && applicationVersion() != latestVersion) {
         new UpdateDialog(_glWidget, releaseNotes, latestVersion, downloadUrl);
     }
@@ -3718,24 +3721,24 @@ void Application::urlGoTo(int argc, const char * constArgv[]) {
         } else if (urlParts.count() > 1) {
             // if url has 2 or more parts, the first one is domain name
             QString domain = urlParts[0];
-    
+
             // second part is either a destination coordinate or
             // a place name
             QString destination = urlParts[1];
-    
+
             // any third part is an avatar orientation.
             QString orientation = urlParts.count() > 2 ? urlParts[2] : QString();
-    
+
             Menu::goToDomain(domain);
-                    
+
             // goto either @user, #place, or x-xx,y-yy,z-zz
             // style co-ordinate.
             Menu::goTo(destination);
-    
+
             if (!orientation.isEmpty()) {
                 // location orientation
                 Menu::goToOrientation(orientation);
             }
-        } 
+        }
     }
 }

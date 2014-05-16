@@ -23,7 +23,7 @@ const QString LOGS_DIRECTORY = "Logs";
 
 FileLogger::FileLogger(QObject* parent) :
     AbstractLoggerInterface(parent),
-    _logData(NULL)
+    _logData("")
 {
     setExtraDebugging(false);
 
@@ -36,7 +36,7 @@ FileLogger::FileLogger(QObject* parent) :
 void FileLogger::addMessage(QString message) {
     QMutexLocker locker(&_mutex);
     emit logReceived(message);
-    _logData.append(message);
+    _logData += message;
 
     QFile file(_fileName);
     if (file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
