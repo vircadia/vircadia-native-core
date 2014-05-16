@@ -108,7 +108,6 @@ public slots:
     void decreaseSize();
     void resetSize();
     
-    void updateLocationInDataServer();
     void goToLocationFromResponse(const QJsonObject& jsonObject);
 
     //  Set/Get update the thrust that will move the avatar around

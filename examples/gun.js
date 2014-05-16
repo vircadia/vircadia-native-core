@@ -39,7 +39,7 @@ var impactSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-pub
 var targetHitSound = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/hit.raw");
 var targetLaunchSound = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/shoot.raw");
 
-var gunModel = "http://highfidelity-public.s3-us-west-1.amazonaws.com/models/attachments/Raygun2.fst";
+var gunModel = "http://public.highfidelity.io/models/attachments/HaloGun.fst";
 
 var audioOptions = new AudioInjectionOptions();
 audioOptions.volume = 0.9;
@@ -199,7 +199,7 @@ function playLoadSound() {
     Audio.playSound(loadSound, audioOptions);
 }
 
-MyAvatar.attach(gunModel, "RightHand", {x: -0.02, y: -.14, z: 0.07}, Quat.fromPitchYawRollDegrees(-70, -151, 72), 0.20);
+//MyAvatar.attach(gunModel, "RightHand", {x: -0.02, y: -.14, z: 0.07}, Quat.fromPitchYawRollDegrees(-70, -151, 72), 0.20);
 MyAvatar.attach(gunModel, "LeftHand", {x: -0.02, y: -.14, z: 0.07}, Quat.fromPitchYawRollDegrees(-70, -151, 72), 0.20);
 
 //  Give a bit of time to load before playing sound
@@ -319,7 +319,6 @@ function mouseMoveEvent(event) {
 function scriptEnding() {
     Overlays.deleteOverlay(reticle); 
     Overlays.deleteOverlay(text);
-    MyAvatar.detachOne(gunModel);
     MyAvatar.detachOne(gunModel);
 }
 

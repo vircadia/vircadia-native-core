@@ -12,11 +12,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QGLWidget>
-
 #include "Application.h"
-#include "NodeBounds.h"
 #include "Util.h"
+
+#include "NodeBounds.h"
 
 NodeBounds::NodeBounds(QObject* parent) :
     QObject(parent),
@@ -92,7 +91,7 @@ void NodeBounds::draw() {
 
                 float scaleFactor = rootDetails.s * TREE_SCALE;
 
-                // Scale by 0.98 - 1.02 depending on the scale of the node.  This allows smaller nodes to scale in
+                // Scale by 0.92 - 1.00 depending on the scale of the node.  This allows smaller nodes to scale in
                 // a bit and not overlap larger nodes.
                 scaleFactor *= 0.92 + (rootDetails.s * 0.08);
 
