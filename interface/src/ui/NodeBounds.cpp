@@ -152,7 +152,7 @@ void NodeBounds::draw() {
     }
 }
 
-void NodeBounds::drawNodeBorder(glm::vec3 center, float scale, float red, float green, float blue) {
+void NodeBounds::drawNodeBorder(const glm::vec3& center, float scale, float red, float green, float blue) {
     glPushMatrix();
 
     glTranslatef(center.x, center.y, center.z);
@@ -221,7 +221,7 @@ void NodeBounds::drawOverlay() {
         const int BACKGROUND_OFFSET_Y = -20;
         const int BACKGROUND_BEVEL = 3;
 
-        char* text = _overlayText.toLocal8Bit().data();
+        char* text = _overlayText.toLatin1().data();
         int mouseX = application->getMouseX(),
             mouseY = application->getMouseY(),
             textWidth = widthText(TEXT_SCALE, 0, text);

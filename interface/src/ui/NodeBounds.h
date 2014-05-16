@@ -34,7 +34,7 @@ public slots:
     void setShowParticleNodes(bool value) { _showParticleNodes = value; }
 
 protected:
-    void drawNodeBorder(glm::vec3 center, float scale, float red, float green, float blue);
+    void drawNodeBorder(const glm::vec3& center, float scale, float red, float green, float blue);
     void getColorForNodeType(NodeType_t nodeType, float& red, float& green, float& blue);
 
 private:
