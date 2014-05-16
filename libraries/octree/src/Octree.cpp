@@ -1425,8 +1425,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
 
                 int childTreeBytesOut = 0;
 
-                // TODO - UPDATE THIS COMMENT!!!
-                //
                 // XXXBHG - Note, this seems like the correct logic here, if we included the color in this packet, then
                 // the LOD logic determined that the child nodes would not be visible... and if so, we shouldn't recurse
                 // them further. But... for some time now the code has included and recursed into these child nodes, which
@@ -1436,6 +1434,11 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 //
                 // This only applies in the view frustum case, in other cases, like file save and copy/past where
                 // no viewFrustum was requested, we still want to recurse the child tree.
+                //
+                // NOTE: some octree styles (like models and particles) will store content in parent elements, and child
+                // elements. In this case, if we stop recursion when we include any data (the colorbits should really be
+                // called databits), then we wouldn't send the children. So those types of Octree's should tell us to keep
+                // recursing, by returning TRUE in recurseChildrenWithData().
                 if (recurseChildrenWithData() || !params.viewFrustum || !oneAtBit(childrenColoredBits, originalIndex)) {
                     childTreeBytesOut = encodeTreeBitstreamRecursion(childElement, packetData, bag, params, 
                                                                             thisLevel, nodeLocationThisView);
