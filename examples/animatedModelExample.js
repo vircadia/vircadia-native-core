@@ -21,9 +21,9 @@ var roll = 0.0;
 var rotation = Quat.fromPitchYawRollDegrees(pitch, yaw, roll)
 
 var originalProperties = {
-    position: { x: 10,
-                y: 0,
-                z: 0 },
+    position: { x: MyAvatar.position.x,
+                y: MyAvatar.position.y,
+                z: MyAvatar.position.z },
 
     radius : 1,
 
@@ -56,11 +56,11 @@ function moveModel(deltaTime) {
 
     if (count % adjustFPSEveryWhile == 0) {
         if (animationFPS == 30) {
-            animationFPS = 10;
-        } else if (animationFPS == 10) {
-            animationFPS = 60;
-        } else if (animationFPS == 60) {
             animationFPS = 30;
+        } else if (animationFPS == 10) {
+            animationFPS = 10;
+        } else if (animationFPS == 60) {
+            animationFPS = 60;
         }
         print("animationFPS=" + animationFPS);
         isPlaying = true;

@@ -71,12 +71,15 @@ protected:
 
 class RenderArgs {
 public:
-    int _renderedItems;
     OctreeRenderer* _renderer;
     ViewFrustum* _viewFrustum;
     float _sizeScale;
     int _boundaryLevelAdjust;
     OctreeRenderer::RenderMode _renderMode;
+
+    int _elementsTouched;
+    int _itemsRendered;
+    int _itemsOutOfView;
 };
 
 
