@@ -74,7 +74,7 @@ bool ControllerScriptingInterface::isPrimaryButtonPressed() const {
             return true;
         }
     }
-
+    
     return false;
 }
 
