@@ -334,13 +334,11 @@ void SkeletonModel::setHandPosition(int jointIndex, const glm::vec3& position, c
     
     glm::vec3 forwardVector(rightHand ? -1.0f : 1.0f, 0.0f, 0.0f);
     
-    glm::quat shoulderRotation;
-    getJointRotation(shoulderJointIndex, shoulderRotation, true);
-    applyRotationDelta(shoulderJointIndex, rotationBetween(shoulderRotation * forwardVector, elbowPosition - shoulderPosition), false);
+    glm::quat shoulderRotation = rotationBetween(forwardVector, elbowPosition - shoulderPosition);
+    setJointRotation(shoulderJointIndex, shoulderRotation, true);
     
-    glm::quat elbowRotation;
-    getJointRotation(elbowJointIndex, elbowRotation, true);
-    applyRotationDelta(elbowJointIndex, rotationBetween(elbowRotation * forwardVector, wristPosition - elbowPosition), false);
+    setJointRotation(elbowJointIndex, rotationBetween(shoulderRotation * forwardVector,
+        wristPosition - elbowPosition) * shoulderRotation, true);
     
     setJointRotation(jointIndex, rotation, true);
 }
