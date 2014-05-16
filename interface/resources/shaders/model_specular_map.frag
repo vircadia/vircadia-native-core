@@ -27,7 +27,7 @@ void main(void) {
         gl_FrontLightProduct[0].diffuse * max(0.0, dot(normalizedNormal, gl_LightSource[0].position)));
 
     // compute the specular component (sans exponent)
-    float specular = max(0.0, dot(normalize(gl_LightSource[0].position + vec4(0.0, 0.0, 1.0, 0.0)), normalizedNormal));
+    float specular = max(0.0, dot(gl_LightSource[0].position, normalizedNormal));
     
     // modulate texture by base color and add specular contribution
     gl_FragColor = base * texture2D(diffuseMap, gl_TexCoord[0].st) + vec4(pow(specular, gl_FrontMaterial.shininess) *
