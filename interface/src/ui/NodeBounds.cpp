@@ -23,7 +23,7 @@ NodeBounds::NodeBounds(QObject* parent) :
     _showVoxelNodes(false),
     _showModelNodes(false),
     _showParticleNodes(false),
-    _overlayText("") {
+    _overlayText() {
 
 }
 
@@ -143,12 +143,17 @@ void NodeBounds::draw() {
         glPopMatrix();
 
         HifiSockAddr addr = selectedNode->getPublicSocket();
-        _overlayText = QString("%1:%2  %3ms")
+        QString overlay = QString("%1:%2  %3ms")
             .arg(addr.getAddress().toString())
             .arg(addr.getPort())
-            .arg(selectedNode->getPingMs());
+            .arg(selectedNode->getPingMs())
+            .left(MAX_OVERLAY_TEXT_LENGTH);
+
+        // Ideally we'd just use a QString, but I ran into weird blinking issues using
+        // constData() directly, as if the data was being overwritten.
+        strcpy(_overlayText, overlay.toLocal8Bit().constData());
     } else {
-        _overlayText = QString();
+        _overlayText[0] = '\0';
     }
 }
 
@@ -210,7 +215,7 @@ void NodeBounds::getColorForNodeType(NodeType_t nodeType, float& red, float& gre
 }
 
 void NodeBounds::drawOverlay() {
-    if (!_overlayText.isNull() && !_overlayText.isEmpty()) {
+    if (strlen(_overlayText) > 0) {
         Application* application = Application::getInstance();
 
         const float TEXT_COLOR[] = { 0.90f, 0.90f, 0.90f };
@@ -223,17 +228,12 @@ void NodeBounds::drawOverlay() {
         const int BACKGROUND_OFFSET_Y = -20;
         const int BACKGROUND_BEVEL = 3;
 
-        int textLength = _overlayText.length();
-        char textData[textLength + 1];
-        strcpy(textData, _overlayText.toLatin1().constData());
-        textData[textLength] = '\0';
-
         int mouseX = application->getMouseX(),
             mouseY = application->getMouseY(),
-            textWidth = widthText(TEXT_SCALE, 0, textData);
+            textWidth = widthText(TEXT_SCALE, 0, _overlayText);
         glColor4f(0.4, 0.4, 0.4, 0.6);
         renderBevelCornersRect(mouseX + MOUSE_OFFSET, mouseY - TEXT_HEIGHT - PADDING,
                                textWidth + (2 * PADDING), TEXT_HEIGHT + (2 * PADDING), BACKGROUND_BEVEL);
-        drawText(mouseX + MOUSE_OFFSET + PADDING, mouseY, TEXT_SCALE, ROTATION, FONT, textData, TEXT_COLOR);
+        drawText(mouseX + MOUSE_OFFSET + PADDING, mouseY, TEXT_SCALE, ROTATION, FONT, _overlayText, TEXT_COLOR);
     }
 }

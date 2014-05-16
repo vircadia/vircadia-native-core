@@ -16,6 +16,8 @@
 
 #include <NodeList.h>
 
+const int MAX_OVERLAY_TEXT_LENGTH = 64;
+
 class NodeBounds : public QObject {
     Q_OBJECT
 public:
@@ -41,7 +43,7 @@ private:
     bool _showVoxelNodes;
     bool _showModelNodes;
     bool _showParticleNodes;
-    QString _overlayText;
+    char _overlayText[MAX_OVERLAY_TEXT_LENGTH + 1];
 
 };
 
