@@ -108,6 +108,7 @@ bool FindAndUpdateModelOperator::PostRecursion(OctreeElement* element) {
     return !_found; // if we haven't yet found it, keep looking
 }
 
+// TODO: improve this to not use multiple recursions
 void ModelTree::storeModel(const ModelItem& model, const SharedNodePointer& senderNode) {
     // First, look for the existing model in the tree..
     FindAndUpdateModelOperator theOperator(model);
@@ -118,8 +119,13 @@ void ModelTree::storeModel(const ModelItem& model, const SharedNodePointer& send
         AABox modelBox = model.getAABox();
         ModelTreeElement* element = (ModelTreeElement*)getOrCreateChildElementContaining(model.getAABox());
         element->storeModel(model);
+        
+        // In the case where we stored it, we also need to mark the entire "path" down to the model as
+        // having changed. Otherwise viewers won't see this change. So we call this recursion now that
+        // we know it will be found, this find/update will correctly mark the tree as changed.
+        recurseTreeWithOperator(&theOperator);
     }
-    // what else do we need to do here to get reaveraging to work
+
     _isDirty = true;
 }
 
