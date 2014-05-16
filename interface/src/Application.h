@@ -58,6 +58,7 @@
 #include "avatar/MyAvatar.h"
 #include "devices/Faceplus.h"
 #include "devices/Faceshift.h"
+#include "devices/JoystickManager.h"
 #include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
 #include "devices/Visage.h"
@@ -196,6 +197,7 @@ public:
     FaceTracker* getActiveFaceTracker();
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
     PrioVR* getPrioVR() { return &_prioVR; }
+    JoystickManager* getJoystickManager() { return &_joystickManager; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QUndoStack* getUndoStack() { return &_undoStack; }
 
@@ -449,6 +451,7 @@ private:
 
     SixenseManager _sixenseManager;
     PrioVR _prioVR;
+    JoystickManager _joystickManager;
 
     Camera _myCamera;                  // My view onto the world
     Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
