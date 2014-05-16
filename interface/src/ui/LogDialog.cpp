@@ -123,7 +123,6 @@ void LogDialog::appendLogLine(QString logLine) {
         if (logLine.contains(_searchTerm, Qt::CaseInsensitive)) {
             _logTextBox->appendPlainText(logLine.simplified());
         }
-        _logTextBox->ensureCursorVisible();
     }
 }
 
@@ -148,6 +147,7 @@ void LogDialog::handleSearchTextChanged(const QString searchText) {
 void LogDialog::showLogData() {
     _logTextBox->clear();
     _logTextBox->insertPlainText(_logger->getLogData());
+    _logTextBox->ensureCursorVisible();
 }
 
 KeywordHighlighter::KeywordHighlighter(QTextDocument *parent) : QSyntaxHighlighter(parent), keywordFormat() {
