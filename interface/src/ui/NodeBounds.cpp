@@ -28,6 +28,7 @@ NodeBounds::NodeBounds(QObject* parent) :
 
 void NodeBounds::draw() {
     if (!(_showVoxelNodes || _showModelNodes || _showParticleNodes)) {
+        _overlayText[0] = '\0';
         return;
     }
 
