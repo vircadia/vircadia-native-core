@@ -43,7 +43,7 @@ public:
     const QVector<int>& getHumanIKJointIndices() const { return _humanIKJointIndices; }
     const QVector<glm::quat>& getJointRotations() const { return _jointRotations; }
     
-    void update();
+    void update(float deltaTime);
     void reset();
 
 private slots:
