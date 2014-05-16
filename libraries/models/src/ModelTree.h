@@ -41,8 +41,6 @@ public:
     virtual int processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
                     const unsigned char* editData, int maxLength, const SharedNodePointer& senderNode);
 
-    virtual bool recurseChildrenWithData() const { return false; }
-
     virtual void update();
 
     void storeModel(const ModelItem& model, const SharedNodePointer& senderNode = SharedNodePointer());
