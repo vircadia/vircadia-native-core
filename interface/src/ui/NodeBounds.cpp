@@ -223,8 +223,10 @@ void NodeBounds::drawOverlay() {
         const int BACKGROUND_OFFSET_Y = -20;
         const int BACKGROUND_BEVEL = 3;
 
-        char textData[_overlayText.length() + 1];
+        int textLength = _overlayText.length();
+        char textData[textLength + 1];
         strcpy(textData, _overlayText.toLatin1().constData());
+        textData[textLength] = '\0';
 
         int mouseX = application->getMouseX(),
             mouseY = application->getMouseY(),
