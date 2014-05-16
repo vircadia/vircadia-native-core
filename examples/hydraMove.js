@@ -87,7 +87,6 @@ function handleGrabBehavior(deltaTime) {
         if (debug) printVector("start position", grabStartPosition, 3);
     }
     if (grabbingWithRightHand) {
-        //grabDelta = Vec3.sum(grabDelta, Vec3.multiply(Controller.getSpatialControlVelocity(RIGHT_PALM), deltaTime));
         grabDelta = Vec3.subtract(Controller.getSpatialControlPosition(RIGHT_PALM), grabStartPosition);
         grabCurrentRotation = Controller.getSpatialControlRawRotation(RIGHT_PALM);
     }
@@ -105,7 +104,6 @@ function handleGrabBehavior(deltaTime) {
     }
 
     if (grabbingWithLeftHand) {
-        //grabDelta = Vec3.sum(grabDelta, Vec3.multiply(Controller.getSpatialControlVelocity(LEFT_PALM), deltaTime));
         grabDelta = Vec3.subtract(Controller.getSpatialControlPosition(LEFT_PALM), grabStartPosition);
         grabCurrentRotation = Controller.getSpatialControlRawRotation(LEFT_PALM);
     }
@@ -125,9 +123,7 @@ function handleGrabBehavior(deltaTime) {
         var right = Quat.getRight(headOrientation);
         var up = Quat.getUp(headOrientation);
     
-        //grabDelta = Quat.multiply(headOrientation, grabDelta);
-        //grabDelta = Quat.multiply(Camera.getOrientation(), grabDelta);
-        grabDelta = Vec3.multiplyQbyV(MyAvatar.orientation, Vec3.multiply(grabDelta, -1));
+         grabDelta = Vec3.multiplyQbyV(MyAvatar.orientation, Vec3.multiply(grabDelta, -1));
 
         if (debug) {
             printVector("grabDelta: ", grabDelta, 3);
