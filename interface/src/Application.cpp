@@ -170,7 +170,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _packetsPerSecond(0),
         _bytesPerSecond(0),
         _previousScriptLocation(),
-        _logger(new FileLogger(this)),
         _runningScriptsWidget(new RunningScriptsWidget(_window)),
         _runningScriptsWidgetWasVisible(false)
 {
@@ -189,6 +188,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     setApplicationVersion(BUILD_VERSION);
     setOrganizationName(applicationInfo.value("organizationName").toString());
     setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+
+    _logger = new FileLogger(this);  // After setting organization name in order to get correct directory
 
     QSettings::setDefaultFormat(QSettings::IniFormat);
 
@@ -236,6 +237,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     connect(&nodeList->getDomainHandler(), SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
     connect(&nodeList->getDomainHandler(), SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
+    
+    // update our location every 5 seconds in the data-server, assuming that we are authenticated with one
+    const float DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5.0f * 1000.0f;
+    
+    QTimer* locationUpdateTimer = new QTimer(this);
+    connect(locationUpdateTimer, &QTimer::timeout, this, &Application::updateLocationInServer);
+    locationUpdateTimer->start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
 
     connect(nodeList, &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList, &NodeList::nodeKilled, this, &Application::nodeKilled);
@@ -3110,6 +3118,34 @@ void Application::updateWindowTitle(){
         + nodeList->getDomainHandler().getHostname() + buildVersion;
     qDebug("Application title set to: %s", title.toStdString().c_str());
     _window->setWindowTitle(title);
+}
+
+void Application::updateLocationInServer() {
+    
+    AccountManager& accountManager = AccountManager::getInstance();
+    
+    if (accountManager.isLoggedIn()) {
+        
+        static QJsonObject lastLocationObject;
+        
+        // construct a QJsonObject given the user's current address information
+        QJsonObject updatedLocationObject;
+        
+        QJsonObject addressObject;
+        addressObject.insert("position", QString(createByteArray(_myAvatar->getPosition())));
+        addressObject.insert("orientation", QString(createByteArray(glm::degrees(safeEulerAngles(_myAvatar->getOrientation())))));
+        addressObject.insert("domain", NodeList::getInstance()->getDomainHandler().getHostname());
+        
+        updatedLocationObject.insert("address", addressObject);
+        
+        if (updatedLocationObject != lastLocationObject) {
+            
+            accountManager.authenticatedRequest("/api/v1/users/address", QNetworkAccessManager::PutOperation,
+                                                JSONCallbackParameters(), QJsonDocument(updatedLocationObject).toJson());
+            
+            lastLocationObject = updatedLocationObject;
+        }
+    }
 }
 
 void Application::domainChanged(const QString& domainHostname) {

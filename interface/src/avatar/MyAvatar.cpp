@@ -49,8 +49,6 @@ const float COLLISION_RADIUS_SCALE = 0.125f;
 const float MIN_KEYBOARD_CONTROL_SPEED = 2.0f;
 const float MAX_WALKING_SPEED = 3.0f * MIN_KEYBOARD_CONTROL_SPEED;
 
-const float DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5.0f * 1000.0f;
-
 // TODO: normalize avatar speed for standard avatar size, then scale all motion logic 
 // to properly follow avatar size.
 float DEFAULT_MOTOR_TIMESCALE = 0.25f;
@@ -83,11 +81,6 @@ MyAvatar::MyAvatar() :
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
-    
-    // update our location every 5 seconds in the data-server, assuming that we are authenticated with one
-    QTimer* locationUpdateTimer = new QTimer(this);
-    connect(locationUpdateTimer, &QTimer::timeout, this, &MyAvatar::updateLocationInDataServer);
-    locationUpdateTimer->start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
 }
 
 MyAvatar::~MyAvatar() {
@@ -237,7 +230,7 @@ void MyAvatar::simulate(float deltaTime) {
 void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
 
-    if (Application::getInstance()->getPrioVR()->isActive()) {
+    if (Application::getInstance()->getPrioVR()->hasHeadRotation()) {
         estimatedRotation = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getHeadRotation()));
         estimatedRotation.x *= -1.0f;
         estimatedRotation.z *= -1.0f;
@@ -1432,29 +1425,6 @@ void MyAvatar::decreaseSize() {
 void MyAvatar::resetSize() {
     _targetScale = 1.0f;
     qDebug("Reseted scale to %f", _targetScale);
-}
-
-static QByteArray createByteArray(const glm::vec3& vector) {
-    return QByteArray::number(vector.x) + ',' + QByteArray::number(vector.y) + ',' + QByteArray::number(vector.z);
-}
-
-void MyAvatar::updateLocationInDataServer() {
-    // TODO: don't re-send this when it hasn't change or doesn't change by some threshold
-    // This will required storing the last sent values and clearing them when the AccountManager rootURL changes
-    
-    AccountManager& accountManager = AccountManager::getInstance();
-    
-    if (accountManager.isLoggedIn()) {
-        QString positionString(createByteArray(_position));
-        QString orientationString(createByteArray(glm::degrees(safeEulerAngles(getOrientation()))));
-        
-        // construct the json to put the user's location
-        QString locationPutJson = QString() + "{\"address\":{\"position\":\""
-            + positionString + "\", \"orientation\":\"" + orientationString + "\"}}";
-        
-        accountManager.authenticatedRequest("/api/v1/users/address", QNetworkAccessManager::PutOperation,
-                                            JSONCallbackParameters(), locationPutJson.toUtf8());
-    }
 }
 
 void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {

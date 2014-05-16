@@ -8,6 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <Application.h>
 
 #include "Cube3DOverlay.h"
 #include "ImageOverlay.h"
@@ -57,8 +58,19 @@ void Overlays::render2D() {
 }
 
 void Overlays::render3D() {
+    glm::vec3 myAvatarPosition = Application::getInstance()->getAvatar()->getPosition();
+    
     foreach(Overlay* thisOverlay, _overlays3D) {
+        glPushMatrix();
+        switch (thisOverlay->getAnchor()) {
+            case Overlay::MY_AVATAR:
+                glTranslatef(myAvatarPosition.x, myAvatarPosition.y, myAvatarPosition.z);
+                break;
+            default:
+                break;
+        }
         thisOverlay->render();
+        glPopMatrix();
     }
 }
 
