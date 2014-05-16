@@ -92,7 +92,7 @@ void NodeBounds::draw() {
 
                 float scaleFactor = rootDetails.s * TREE_SCALE;
 
-                // Scale by 0.98 - 1.02 depending on the scale of the node.  This allows smaller nodes to scale in
+                // Scale by 0.92 - 1.00 depending on the scale of the node.  This allows smaller nodes to scale in
                 // a bit and not overlap larger nodes.
                 scaleFactor *= 0.92 + (rootDetails.s * 0.08);
 
