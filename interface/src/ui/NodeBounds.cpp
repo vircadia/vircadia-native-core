@@ -12,8 +12,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QGLWidget>
-
 #include "Application.h"
 #include "NodeBounds.h"
 #include "Util.h"
