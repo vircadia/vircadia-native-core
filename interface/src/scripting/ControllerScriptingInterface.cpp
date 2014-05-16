@@ -150,7 +150,8 @@ int ControllerScriptingInterface::getNumberOfJoysticks() const {
 glm::vec2 ControllerScriptingInterface::getJoystickPosition(int joystickIndex) const {
     // we know there's one joystick per palm, so the joystickIndex is the palm Index
     int managedJoystickIndex = joystickIndex - getNumberOfActivePalms();
-    if (managedJoystickIndex >= 0) {
+    if (managedJoystickIndex >= 0 && managedJoystickIndex <
+            Application::getInstance()->getJoystickManager()->getJoystickStates().size()) {
         const JoystickState& state = Application::getInstance()->getJoystickManager()->getJoystickStates().at(
             managedJoystickIndex);
         return glm::vec2(state.axes.size() > 0 ? state.axes.at(0) : 0.0f, state.axes.size() > 1 ? state.axes.at(1) : 0.0f);

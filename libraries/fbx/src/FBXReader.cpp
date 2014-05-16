@@ -585,6 +585,7 @@ const char* HUMANIK_JOINTS[] = {
     "LeftArm",
     "LeftForeArm",
     "LeftHand",
+    "Neck",
     "Spine",
     "Hips",
     "RightUpLeg",
