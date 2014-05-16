@@ -52,7 +52,9 @@ void JoystickManager::update() {
         SDL_Joystick* joystick = _joysticks.at(i);
         JoystickState& state = _joystickStates[i];
         for (int j = 0; j < state.axes.size(); j++) {
-            state.axes[j] = glm::round(SDL_JoystickGetAxis(joystick, j) + 0.5f) / numeric_limits<short>::max();
+            float value = glm::round(SDL_JoystickGetAxis(joystick, j) + 0.5f) / numeric_limits<short>::max();
+            const float DEAD_ZONE = 0.1f;
+            state.axes[j] = glm::abs(value) < DEAD_ZONE ? 0.0f : value;
         }
         for (int j = 0; j < state.buttons.size(); j++) {
             state.buttons[j] = SDL_JoystickGetButton(joystick, j);

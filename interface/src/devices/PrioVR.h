@@ -44,6 +44,9 @@ public:
     const QVector<glm::quat>& getJointRotations() const { return _jointRotations; }
     
     void update();
+
+public slots:
+
     void reset();
 
 private slots:

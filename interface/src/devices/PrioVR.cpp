@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QTimer>
 #include <QtDebug>
 
 #include <FBXReader.h>
@@ -52,6 +53,8 @@ PrioVR::PrioVR() {
     for (int i = 0; i < LIST_LENGTH; i++) {
         _humanIKJointIndices.append(jointsDiscovered[i] ? indexOfHumanIKJoint(JOINT_NAMES[i]) : -1);
     }
+    const int INITIAL_RESET_DELAY = 5000;
+    QTimer::singleShot(INITIAL_RESET_DELAY, this, SLOT(reset()));
 #endif
 }
 
