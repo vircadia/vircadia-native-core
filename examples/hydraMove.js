@@ -55,7 +55,7 @@ function printVector(text, v, decimals) {
     print(text + " " + v.x.toFixed(decimals) + ", " + v.y.toFixed(decimals) + ", " + v.z.toFixed(decimals));
 }
 
-var debug = true;
+var debug = false;
 
 // Used by handleGrabBehavior() for managing the grab position changes
 function getAndResetGrabDelta() {
@@ -151,8 +151,6 @@ function handleGrabBehavior(deltaTime) {
         var ROLL_SCALING = 2.0;     
 
         var euler = Quat.safeEulerAngles(deltaRotation);
-    
-        print("dx: " + euler.x);
  
         //  Adjust body yaw by roll from controller
         var orientation = Quat.multiply(Quat.angleAxis(((euler.y * YAW_SCALING) + 
