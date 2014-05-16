@@ -28,7 +28,6 @@ JoystickManager::JoystickManager() {
         if (joystick) {
             JoystickState state = { SDL_JoystickName(i), QVector<float>(SDL_JoystickNumAxes(joystick)),
                 QVector<bool>(SDL_JoystickNumButtons(joystick)) };
-            qDebug() << state.name << state.axes.size() << state.buttons.size();
             _joystickStates.append(state);
             _joysticks.append(joystick);
         }

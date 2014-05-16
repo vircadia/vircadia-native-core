@@ -17,6 +17,7 @@
 
 #ifdef HAVE_SDL
 #include <SDL.h>
+#undef main
 #endif
 
 class JoystickState;

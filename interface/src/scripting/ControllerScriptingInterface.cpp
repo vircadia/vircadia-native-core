@@ -88,10 +88,24 @@ glm::vec2 ControllerScriptingInterface::getPrimaryJoystickPosition() const {
 }
 
 int ControllerScriptingInterface::getNumberOfButtons() const {
-    return getNumberOfActivePalms() * NUMBER_OF_BUTTONS_PER_PALM;
+    int buttonCount = 0;
+    foreach (const JoystickState& state, Application::getInstance()->getJoystickManager()->getJoystickStates()) {
+        buttonCount += state.buttons.size();
+    }
+    return buttonCount + getNumberOfActivePalms() * NUMBER_OF_BUTTONS_PER_PALM;
 }
 
 bool ControllerScriptingInterface::isButtonPressed(int buttonIndex) const {
+    int managedButtonIndex = buttonIndex - getNumberOfActivePalms() * NUMBER_OF_BUTTONS_PER_PALM;
+    if (managedButtonIndex >= 0) {
+        foreach (const JoystickState& state, Application::getInstance()->getJoystickManager()->getJoystickStates()) {
+            if (managedButtonIndex < state.buttons.size()) {
+                return state.buttons.at(managedButtonIndex);
+            }
+            managedButtonIndex -= state.buttons.size();
+        }
+        return false;
+    }
     int palmIndex = buttonIndex / NUMBER_OF_BUTTONS_PER_PALM;
     int buttonOnPalm = buttonIndex % NUMBER_OF_BUTTONS_PER_PALM;
     const PalmData* palmData = getActivePalm(palmIndex);
@@ -129,11 +143,18 @@ float ControllerScriptingInterface::getTriggerValue(int triggerIndex) const {
 }
 
 int ControllerScriptingInterface::getNumberOfJoysticks() const {
-    return getNumberOfActivePalms() * NUMBER_OF_JOYSTICKS_PER_PALM;
+    return getNumberOfActivePalms() * NUMBER_OF_JOYSTICKS_PER_PALM +
+        Application::getInstance()->getJoystickManager()->getJoystickStates().size();
 }
 
 glm::vec2 ControllerScriptingInterface::getJoystickPosition(int joystickIndex) const {
     // we know there's one joystick per palm, so the joystickIndex is the palm Index
+    int managedJoystickIndex = joystickIndex - getNumberOfActivePalms();
+    if (managedJoystickIndex >= 0) {
+        const JoystickState& state = Application::getInstance()->getJoystickManager()->getJoystickStates().at(
+            managedJoystickIndex);
+        return glm::vec2(state.axes.size() > 0 ? state.axes.at(0) : 0.0f, state.axes.size() > 1 ? state.axes.at(1) : 0.0f);
+    }
     int palmIndex = joystickIndex;
     const PalmData* palmData = getActivePalm(palmIndex);
     if (palmData) {
