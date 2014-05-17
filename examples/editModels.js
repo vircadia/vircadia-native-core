@@ -174,8 +174,14 @@ function controller(wichSide) {
     }
     
     this.moveLaser = function () {
-        var startPosition = Vec3.subtract(this.palmPosition, MyAvatar.position);
-        var endPosition = Vec3.sum(startPosition, Vec3.multiply(this.front, LASER_LENGTH_FACTOR));
+        // the overlays here are anchored to the avatar, which means they are specified in the avatar's local frame
+       
+        var inverseRotation = Quat.inverse(MyAvatar.orientation);
+        var startPosition = Vec3.multiplyQbyV(inverseRotation, Vec3.subtract(this.palmPosition, MyAvatar.position));
+        var direction = Vec3.multiplyQbyV(inverseRotation, Vec3.subtract(this.tipPosition, this.palmPosition));
+        var distance = Vec3.length(direction);
+        direction = Vec3.multiply(direction, LASER_LENGTH_FACTOR / distance);
+        var endPosition = Vec3.sum(startPosition, direction);
         
         Overlays.editOverlay(this.laser, {
                              position: startPosition,

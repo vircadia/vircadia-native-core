@@ -58,13 +58,23 @@ void Overlays::render2D() {
 }
 
 void Overlays::render3D() {
-    glm::vec3 myAvatarPosition = Application::getInstance()->getAvatar()->getPosition();
+    if (_overlays3D.size() == 0) {
+        return;
+    }
+    MyAvatar* avatar = Application::getInstance()->getAvatar();
+    glm::quat myAvatarRotation = avatar->getOrientation();
+    glm::vec3 myAvatarPosition = avatar->getPosition();
+    float angle = glm::degrees(glm::angle(myAvatarRotation));
+    glm::vec3 axis = glm::axis(myAvatarRotation);
+    float myAvatarScale = avatar->getScale();
     
     foreach(Overlay* thisOverlay, _overlays3D) {
         glPushMatrix();
         switch (thisOverlay->getAnchor()) {
             case Overlay::MY_AVATAR:
                 glTranslatef(myAvatarPosition.x, myAvatarPosition.y, myAvatarPosition.z);
+                glRotatef(angle, axis.x, axis.y, axis.z);
+                glScalef(myAvatarScale, myAvatarScale, myAvatarScale);
                 break;
             default:
                 break;
