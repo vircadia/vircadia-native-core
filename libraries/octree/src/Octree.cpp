@@ -1389,6 +1389,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
     keepDiggingDeeper = (inViewNotLeafCount > 0);
 
     if (continueThisLevel && keepDiggingDeeper) {
+
         // at this point, we need to iterate the children who are in view, even if not colored
         // and we need to determine if there's a deeper tree below them that we care about.
         //
@@ -1433,7 +1434,12 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 //
                 // This only applies in the view frustum case, in other cases, like file save and copy/past where
                 // no viewFrustum was requested, we still want to recurse the child tree.
-                if (!params.viewFrustum || !oneAtBit(childrenColoredBits, originalIndex)) {
+                //
+                // NOTE: some octree styles (like models and particles) will store content in parent elements, and child
+                // elements. In this case, if we stop recursion when we include any data (the colorbits should really be
+                // called databits), then we wouldn't send the children. So those types of Octree's should tell us to keep
+                // recursing, by returning TRUE in recurseChildrenWithData().
+                if (recurseChildrenWithData() || !params.viewFrustum || !oneAtBit(childrenColoredBits, originalIndex)) {
                     childTreeBytesOut = encodeTreeBitstreamRecursion(childElement, packetData, bag, params, 
                                                                             thisLevel, nodeLocationThisView);
                 }
@@ -1519,16 +1525,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
     } // end keepDiggingDeeper
 
     // At this point all our BitMasks are complete... so let's output them to see how they compare...
-    /**
-    printf("This Level's BitMasks: childInTree:");
-    outputBits(childrenExistInTreeBits, false, true);
-    printf(" childInPacket:");
-    outputBits(childrenExistInPacketBits, false, true);
-    printf(" childrenColored:");
-    outputBits(childrenColoredBits, false, true);
-    qDebug("");
-    **/
-
     // if we were unable to fit this level in our packet, then rewind and add it to the element bag for
     // sending later...
     if (continueThisLevel) {

@@ -55,6 +55,7 @@ public:
     virtual bool handlesEditPacketType(PacketType packetType) const;
     virtual int processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
                     const unsigned char* editData, int maxLength, const SharedNodePointer& node);
+    virtual bool recurseChildrenWithData() const { return false; }
 
 private:
     // helper functions for nudgeSubTree
