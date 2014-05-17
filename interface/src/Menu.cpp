@@ -34,6 +34,7 @@
 #include <UUID.h>
 
 #include "Application.h"
+#include "AccountManager.h"
 #include "Menu.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "Util.h"
@@ -193,10 +194,10 @@ Menu::Menu() :
                                   QAction::PreferencesRole);
 
     addActionToQMenuAndActionHash(editMenu, MenuOption::Attachments, 0, this, SLOT(editAttachments()));
-                                  
+
     addDisabledActionAndSeparator(editMenu, "Physics");
     QObject* avatar = appInstance->getAvatar();
-    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ObeyEnvironmentalGravity, Qt::SHIFT | Qt::Key_G, false, 
+    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ObeyEnvironmentalGravity, Qt::SHIFT | Qt::Key_G, false,
             avatar, SLOT(updateMotionBehaviorsFromMenu()));
 
 
@@ -1013,24 +1014,24 @@ void Menu::multipleDestinationsDecision(const QJsonObject& userData, const QJson
 void Menu::muteEnvironment() {
     int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeMuteEnvironment);
     int packetSize = headerSize + sizeof(glm::vec3) + sizeof(float);
-    
+
     glm::vec3 position = Application::getInstance()->getAvatar()->getPosition();
-    
+
     char* packet = (char*)malloc(packetSize);
     populatePacketHeader(packet, PacketTypeMuteEnvironment);
     memcpy(packet + headerSize, &position, sizeof(glm::vec3));
     memcpy(packet + headerSize + sizeof(glm::vec3), &MUTE_RADIUS, sizeof(float));
-    
+
     QByteArray mutePacket(packet, packetSize);
-    
+
     // grab our audio mixer from the NodeList, if it exists
     SharedNodePointer audioMixer = NodeList::getInstance()->soloNodeOfType(NodeType::AudioMixer);
-    
+
     if (audioMixer) {
         // send off this mute packet
         NodeList::getInstance()->writeDatagram(mutePacket, audioMixer);
     }
-    
+
     free(packet);
 }
 
@@ -1188,19 +1189,22 @@ void Menu::showScriptEditor() {
 }
 
 void Menu::showChat() {
-    QMainWindow* mainWindow = Application::getInstance()->getWindow();
-    if (!_chatWindow) {
-        _chatWindow = new ChatWindow(mainWindow);
-    }
-    if (_chatWindow->isHidden()) {
-        _chatWindow->show();
+    if (AccountManager::getInstance().isLoggedIn()) {
+        QMainWindow* mainWindow = Application::getInstance()->getWindow();
+        if (!_chatWindow) {
+            _chatWindow = new ChatWindow(mainWindow);
+        }
+
+        if (_chatWindow->isHidden()) {
+            _chatWindow->show();
+        }
     }
 }
 
 void Menu::toggleChat() {
 #ifdef HAVE_QXMPP
     _chatAction->setEnabled(XmppClient::getInstance().getXMPPClient().isConnected());
-    if (!_chatAction->isEnabled() && _chatWindow) {
+    if (!_chatAction->isEnabled() && _chatWindow && AccountManager::getInstance().isLoggedIn()) {
         if (_chatWindow->isHidden()) {
             _chatWindow->show();
         } else {
