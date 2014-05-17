@@ -129,6 +129,18 @@ Controller.mousePressEvent.connect(function(event){
 	}
 })
 
+function update(deltaTime){
+	var newWindowDimensions = Controller.getViewportDimensions();
+	if( newWindowDimensions.x != windowDimensions.x || newWindowDimensions.y != windowDimensions.y ){
+		windowDimensions = newWindowDimensions;
+		var newX = windowDimensions.x - buttonPadding - buttonWidth;
+		var newY = (windowDimensions.y - buttonHeight) / 2 ;
+		Overlays.editOverlay( standUpButton, {x: newX, y: newY} );
+		Overlays.editOverlay( sitDownButton, {x: newX, y: newY} );
+	}		
+}
+
+Script.update.connect(update);
 
 Script.scriptEnding.connect(function() {
 
