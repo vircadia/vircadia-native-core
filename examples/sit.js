@@ -15,7 +15,7 @@ var buttonImageUrl = "https://worklist-prod.s3.amazonaws.com/attachment/0aca88e1
 var windowDimensions = Controller.getViewportDimensions();
 
 var buttonWidth = 37;
-var buttonHeight = 45;
+var buttonHeight = 46;
 var buttonPadding = 10;
 
 var buttonPositionX = windowDimensions.x - buttonPadding - buttonWidth;
