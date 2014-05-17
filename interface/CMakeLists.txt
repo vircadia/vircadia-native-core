@@ -230,6 +230,9 @@ target_link_libraries(
   "${GNUTLS_LIBRARY}"
 )
 
+# assume we are using a Qt build without bearer management
+add_definitions(-DQT_NO_BEARERMANAGEMENT)
+
 if (APPLE)
     # link in required OS X frameworks and include the right GL headers
     find_library(AppKit AppKit)
