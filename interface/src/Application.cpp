@@ -169,8 +169,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _voxelHideShowThread(&_voxels),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
-        _previousScriptLocation(),
         _nodeBoundsDisplay(this),
+        _previousScriptLocation(),
         _runningScriptsWidget(new RunningScriptsWidget(_window)),
         _runningScriptsWidgetWasVisible(false)
 {
