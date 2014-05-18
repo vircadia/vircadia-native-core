@@ -3422,8 +3422,9 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     }
 
     // start the script on a new thread...
-    ScriptEngine* scriptEngine = new ScriptEngine(QUrl(scriptName), &_controllerScriptingInterface);
-    _scriptEnginesHash.insert(scriptName, scriptEngine);
+    QUrl scriptUrl(scriptName);
+    ScriptEngine* scriptEngine = new ScriptEngine(scriptUrl, &_controllerScriptingInterface);
+    _scriptEnginesHash.insert(scriptUrl.toString(), scriptEngine);
 
     if (!scriptEngine->hasScript()) {
         qDebug() << "Application::loadScript(), script failed to load...";
