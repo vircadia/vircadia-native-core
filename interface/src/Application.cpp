@@ -169,8 +169,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _voxelHideShowThread(&_voxels),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
-        _previousScriptLocation(),
         _nodeBoundsDisplay(this),
+        _previousScriptLocation(),
         _runningScriptsWidget(new RunningScriptsWidget(_window)),
         _runningScriptsWidgetWasVisible(false)
 {
@@ -3422,8 +3422,9 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     }
 
     // start the script on a new thread...
-    ScriptEngine* scriptEngine = new ScriptEngine(QUrl(scriptName), &_controllerScriptingInterface);
-    _scriptEnginesHash.insert(scriptName, scriptEngine);
+    QUrl scriptUrl(scriptName);
+    ScriptEngine* scriptEngine = new ScriptEngine(scriptUrl, &_controllerScriptingInterface);
+    _scriptEnginesHash.insert(scriptUrl.toString(), scriptEngine);
 
     if (!scriptEngine->hasScript()) {
         qDebug() << "Application::loadScript(), script failed to load...";
