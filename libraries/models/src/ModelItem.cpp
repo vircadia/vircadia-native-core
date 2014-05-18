@@ -714,6 +714,7 @@ void ModelItem::mapJoints(const QStringList& modelJointNames) {
     
     if (!_jointMappingCompleted) {
         QStringList animationJointNames = myAnimation->getJointNames();
+
         if (modelJointNames.size() > 0 && animationJointNames.size() > 0) {
             _jointMapping.resize(modelJointNames.size());
             for (int i = 0; i < modelJointNames.size(); i++) {
@@ -729,13 +730,17 @@ QVector<glm::quat> ModelItem::getAnimationFrame() {
     if (hasAnimation() && _jointMappingCompleted) {
         Animation* myAnimation = getAnimation(_animationURL);
         QVector<FBXAnimationFrame> frames = myAnimation->getFrames();
-        int animationFrameIndex = (int)std::floor(_animationFrameIndex) % frames.size();
-        QVector<glm::quat> rotations = frames[animationFrameIndex].rotations;
-        frameData.resize(_jointMapping.size());
-        for (int j = 0; j < _jointMapping.size(); j++) {
-            int rotationIndex = _jointMapping[j];
-            if (rotationIndex != -1 && rotationIndex < rotations.size()) {
-                frameData[j] = rotations[rotationIndex];
+        int frameCount = frames.size();
+
+        if (frameCount > 0) {
+            int animationFrameIndex = (int)glm::floor(_animationFrameIndex) % frameCount;
+            QVector<glm::quat> rotations = frames[animationFrameIndex].rotations;
+            frameData.resize(_jointMapping.size());
+            for (int j = 0; j < _jointMapping.size(); j++) {
+                int rotationIndex = _jointMapping[j];
+                if (rotationIndex != -1 && rotationIndex < rotations.size()) {
+                    frameData[j] = rotations[rotationIndex];
+                }
             }
         }
     }
