@@ -161,8 +161,7 @@ function controller(wichSide) {
         
     this.checkModel = function (properties) {
         // special case to lock the ground plane model in hq.
-        if (location.hostname == "hq.highfidelity.io" && 
-            properties.modelURL == "https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/Terrain_Reduce_forAlpha.fbx") {
+        if (this.isLocked(properties)) {
             return { valid: false };
         }
    
