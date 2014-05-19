@@ -461,6 +461,15 @@ void MyAvatar::saveData(QSettings* settings) {
     }
     settings->endArray();
     
+    settings->beginWriteArray("animationData");
+    for (int i = 0; i < _animationData.size(); i++) {
+        settings->setArrayIndex(i);
+        const AnimationData& animation = _animationData.at(i);
+        settings->setValue("url", animation.url);
+        settings->setValue("fps", animation.fps);
+    }
+    settings->endArray();
+    
     settings->setValue("displayName", _displayName);
 
     settings->endGroup();
@@ -510,6 +519,18 @@ void MyAvatar::loadData(QSettings* settings) {
     }
     settings->endArray();
     setAttachmentData(attachmentData);
+    
+    QVector<AnimationData> animationData;
+    int animationCount = settings->beginReadArray("animationData");
+    for (int i = 0; i < animationCount; i++) {
+        settings->setArrayIndex(i);
+        AnimationData animation;
+        animation.url = settings->value("url").toUrl();
+        animation.fps = loadSetting(settings, "fps", 30.0f);
+        animationData.append(animation);
+    }
+    settings->endArray();
+    setAnimationData(animationData);
     
     setDisplayName(settings->value("displayName").toString());
 
@@ -575,6 +596,10 @@ AttachmentData MyAvatar::loadAttachmentData(const QUrl& modelURL, const QString&
     Application::getInstance()->unlockSettings();
     
     return attachment;
+}
+
+void MyAvatar::setAnimationData(const QVector<AnimationData>& animationData) {
+    _animationData = animationData;
 }
 
 int MyAvatar::parseDataAtOffset(const QByteArray& packet, int offset) {
@@ -1540,4 +1565,8 @@ void MyAvatar::applyCollision(const glm::vec3& contactPoint, const glm::vec3& pe
         float forward = glm::dot(effectivePenetration, zAxis) / leverLength;
         getHead()->addLeanDeltas(sideways, forward);
     }
+}
+
+AnimationData::AnimationData() :
+    fps(30.0f) {
 }

@@ -16,6 +16,8 @@
 
 #include "Avatar.h"
 
+class AnimationData;
+
 enum AvatarHandState
 {
     HAND_STATE_NULL = 0,
@@ -68,6 +70,9 @@ public:
 
     void saveAttachmentData(const AttachmentData& attachment) const;
     AttachmentData loadAttachmentData(const QUrl& modelURL, const QString& jointName = QString()) const;
+
+    void setAnimationData(const QVector<AnimationData>& animationData);
+    const QVector<AnimationData>& getAnimationData() const { return _animationData; }
 
     //  Set what driving keys are being pressed to control thrust levels
     void setDriveKeys(int key, float val) { _driveKeys[key] = val; };
@@ -151,6 +156,8 @@ private:
     bool _billboardValid;
     float _oculusYawOffset;
 
+    QVector<AnimationData> _animationData;
+
 	// private methods
     void updateOrientation(float deltaTime);
     void updateMotorFromKeyboard(float deltaTime, bool walking);
@@ -165,6 +172,15 @@ private:
     void updateChatCircle(float deltaTime);
     void maybeUpdateBillboard();
     void setGravity(const glm::vec3& gravity);
+};
+
+/// Describes an animation being run on the avatar.
+class AnimationData {
+public:
+    QUrl url;
+    float fps;
+    
+    AnimationData();
 };
 
 #endif // hifi_MyAvatar_h
