@@ -117,13 +117,18 @@ function controller(wichSide) {
 
     
     this.grab = function (modelID, properties) {
-        print("Grabbing " + modelID.id);
-        this.grabbing = true;
-        this.modelID = modelID;
+        if (this.isLocked(properties)) {
+            print("Model locked " + modelID.id);
+        } else {
+            print("Grabbing " + modelID.id);
         
-        this.oldModelPosition = properties.position;
-        this.oldModelRotation = properties.modelRotation;
-        this.oldModelRadius = properties.radius;
+            this.grabbing = true;
+            this.modelID = modelID;
+        
+            this.oldModelPosition = properties.position;
+            this.oldModelRotation = properties.modelRotation;
+            this.oldModelRadius = properties.radius;
+        }
     }
     
     this.release = function () {
@@ -144,8 +149,24 @@ function controller(wichSide) {
             this.pressed = false;
         }
     }
-    
+
+    this.isLocked = function (properties) {
+        // special case to lock the ground plane model in hq.
+        if (location.hostname == "hq.highfidelity.io" && 
+            properties.modelURL == "https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/Terrain_Reduce_forAlpha.fbx") {
+            return true;
+        }
+        return false;
+    }
+        
     this.checkModel = function (properties) {
+        // special case to lock the ground plane model in hq.
+        if (location.hostname == "hq.highfidelity.io" && 
+            properties.modelURL == "https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/Terrain_Reduce_forAlpha.fbx") {
+            return { valid: false };
+        }
+   
+    
         //                P         P - Model
         //               /|         A - Palm
         //              / | d       B - unit vector toward tip
@@ -285,15 +306,18 @@ function controller(wichSide) {
                 }
                 
                 var properties = Models.getModelProperties(foundModels[i]);
-                print("Checking properties: " + properties.id + " " + properties.isKnownID);
-                
-                var check = this.checkModel(properties);
-                if (check.valid) {
-                    this.grab(foundModels[i], properties);
-                    this.x = check.x;
-                    this.y = check.y;
-                    this.z = check.z;
-                    return;
+                if (this.isLocked(properties)) {
+                    print("Model locked " + properties.id);
+                } else {
+                    print("Checking properties: " + properties.id + " " + properties.isKnownID);
+                    var check = this.checkModel(properties);
+                    if (check.valid) {
+                        this.grab(foundModels[i], properties);
+                        this.x = check.x;
+                        this.y = check.y;
+                        this.z = check.z;
+                        return;
+                    }
                 }
             }
         }
@@ -463,51 +487,54 @@ function mousePressEvent(event) {
             }
             
             var properties = Models.getModelProperties(foundModels[i]);
-            print("Checking properties: " + properties.id + " " + properties.isKnownID);
+            if (this.isLocked(properties)) {
+                print("Model locked " + properties.id);
+            } else {
+                print("Checking properties: " + properties.id + " " + properties.isKnownID);
+                //                P         P - Model
+                //               /|         A - Palm
+                //              / | d       B - unit vector toward tip
+                //             /  |         X - base of the perpendicular line
+                //            A---X----->B  d - distance fom axis
+                //              x           x - distance from A
+                //
+                //            |X-A| = (P-A).B
+                //            X == A + ((P-A).B)B
+                //            d = |P-X|
             
-            //                P         P - Model
-            //               /|         A - Palm
-            //              / | d       B - unit vector toward tip
-            //             /  |         X - base of the perpendicular line
-            //            A---X----->B  d - distance fom axis
-            //              x           x - distance from A
-            //
-            //            |X-A| = (P-A).B
-            //            X == A + ((P-A).B)B
-            //            d = |P-X|
+                var A = pickRay.origin;
+                var B = Vec3.normalize(pickRay.direction);
+                var P = properties.position;
             
-            var A = pickRay.origin;
-            var B = Vec3.normalize(pickRay.direction);
-            var P = properties.position;
+                var x = Vec3.dot(Vec3.subtract(P, A), B);
+                var X = Vec3.sum(A, Vec3.multiply(B, x));
+                var d = Vec3.length(Vec3.subtract(P, X));
             
-            var x = Vec3.dot(Vec3.subtract(P, A), B);
-            var X = Vec3.sum(A, Vec3.multiply(B, x));
-            var d = Vec3.length(Vec3.subtract(P, X));
-            
-            if (d < properties.radius && 0 < x && x < LASER_LENGTH_FACTOR) {
-                modelSelected = true;
-                selectedModelID = foundModels[i];
-                selectedModelProperties = properties;
+                if (d < properties.radius && 0 < x && x < LASER_LENGTH_FACTOR) {
+                    modelSelected = true;
+                    selectedModelID = foundModels[i];
+                    selectedModelProperties = properties;
                 
-                selectedModelProperties.oldRadius = selectedModelProperties.radius;
-                selectedModelProperties.oldPosition = {
-                x: selectedModelProperties.position.x,
-                y: selectedModelProperties.position.y,
-                z: selectedModelProperties.position.z,
-                };
-                selectedModelProperties.oldRotation = {
-                x: selectedModelProperties.modelRotation.x,
-                y: selectedModelProperties.modelRotation.y,
-                z: selectedModelProperties.modelRotation.z,
-                w: selectedModelProperties.modelRotation.w,
-                };
+                    selectedModelProperties.oldRadius = selectedModelProperties.radius;
+                    selectedModelProperties.oldPosition = {
+                    x: selectedModelProperties.position.x,
+                    y: selectedModelProperties.position.y,
+                    z: selectedModelProperties.position.z,
+                    };
+                    selectedModelProperties.oldRotation = {
+                    x: selectedModelProperties.modelRotation.x,
+                    y: selectedModelProperties.modelRotation.y,
+                    z: selectedModelProperties.modelRotation.z,
+                    w: selectedModelProperties.modelRotation.w,
+                    };
                 
                 
-                orientation = MyAvatar.orientation;
-                intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
-                print("Clicked on " + selectedModelID.id + " " +  modelSelected);
+                    orientation = MyAvatar.orientation;
+                    intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
                 
-                return;
+                    print("Clicked on " + selectedModelID.id + " " +  modelSelected);
+                    return;
+                }
             }
         }
     }
