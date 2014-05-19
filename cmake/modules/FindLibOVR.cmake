@@ -49,7 +49,8 @@ else (LIBOVR_LIBRARIES AND LIBOVR_INCLUDE_DIRS)
       set(WINDOWS_LIBOVR_NAME "libovr.lib")
     endif()
     
-    find_library(LIBOVR_LIBRARIES "Lib/Win32/VS2010/${LIBOVR_NAME}" HINTS ${LIBOVR_SEARCH_DIRS})
+    # FIX: We shouldn't hardcode VS2010 the path below - fix this. Leo
+    find_library(LIBOVR_LIBRARIES "Lib/Win32/VS2010/${WINDOWS_LIBOVR_NAME}" HINTS ${LIBOVR_SEARCH_DIRS})
   endif ()
 
   if (LIBOVR_INCLUDE_DIRS AND LIBOVR_LIBRARIES)
