@@ -22,14 +22,3 @@ include_glm(${TARGET_NAME} "${ROOT_DIR}")
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
-
-# link GnuTLS
-find_package(GnuTLS REQUIRED)
-
-# add a definition for ssize_t so that windows doesn't bail on gnutls.h
-if (WIN32)
-  add_definitions(-Dssize_t=long)
-endif ()
-
-include_directories(SYSTEM "${GNUTLS_INCLUDE_DIR}")
-target_link_libraries(${TARGET_NAME} "${GNUTLS_LIBRARY}")
