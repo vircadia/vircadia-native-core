@@ -57,6 +57,13 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         setupNodeListAndAssignments();
         
         _networkAccessManager = new QNetworkAccessManager(this);
+        
+        // setup a timer to send transactions to pay assigned nodes every 30 seconds
+        QTimer* nodePaymentTimer = new QTimer(this);
+        connect(nodePaymentTimer, &QTimer::timeout, this, &DomainServer::payAssignedNodes);
+        
+        const qint64 NODE_PAYMENT_INTERVAL_MSECS = 30 * 1000;
+        nodePaymentTimer->start(NODE_PAYMENT_INTERVAL_MSECS);
     }
 }
 
@@ -343,10 +350,12 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     bool isAssignment = _pendingAssignedNodes.contains(packetUUID);
     SharedAssignmentPointer matchingQueuedAssignment = SharedAssignmentPointer();
     PendingAssignedNodeData* pendingAssigneeData = NULL;
+   
     if (isAssignment) {
         pendingAssigneeData = _pendingAssignedNodes.take(packetUUID);
+        
         if (pendingAssigneeData) {
-            matchingQueuedAssignment = matchingQueuedAssignmentForCheckIn(packetUUID, nodeType);
+            matchingQueuedAssignment = matchingQueuedAssignmentForCheckIn(pendingAssigneeData->getAssignmentUUID(), nodeType);
             
             if (matchingQueuedAssignment) {
                 qDebug() << "Assignment deployed with" << uuidStringWithoutCurlyBraces(packetUUID)
@@ -643,6 +652,18 @@ void DomainServer::readAvailableDatagrams() {
             }
 
             nodeList->writeUnverifiedDatagram(dtlsRequiredPacket, senderSockAddr);
+        }
+    }
+}
+
+void DomainServer::payAssignedNodes() {
+    // enumerate the NodeList to find the assigned nodes
+    foreach (const SharedNodePointer& node, LimitedNodeList::getInstance()->getNodeHash()) {
+        DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+        
+        if (!nodeData->getAssignmentUUID().isNull() && !nodeData->getWalletUUID().isNull()) {
+            // add a pending transaction for this node or increase the amount for the existing transaction
+            
         }
     }
 }

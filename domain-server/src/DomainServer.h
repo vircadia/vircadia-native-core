@@ -45,8 +45,8 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     
 private slots:
-    
     void readAvailableDatagrams();
+    void payAssignedNodes();
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
     bool optionallySetupOAuth();
