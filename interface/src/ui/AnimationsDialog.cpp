@@ -39,8 +39,8 @@ AnimationsDialog::AnimationsDialog() :
     area->setWidget(container);
     _animations->addStretch(1);
     
-    foreach (const AnimationData& data, Application::getInstance()->getAvatar()->getAnimationData()) {
-        addAnimation(data);
+    foreach (const AnimationHandlePointer& handle, Application::getInstance()->getAvatar()->getAnimationHandles()) {
+        _animations->insertWidget(_animations->count() - 1, new AnimationPanel(this, handle));
     }
     
     QPushButton* newAnimation = new QPushButton("New Animation");
@@ -64,20 +64,14 @@ void AnimationsDialog::setVisible(bool visible) {
     }
 }
 
-void AnimationsDialog::updateAnimationData() {
-    QVector<AnimationData> data;
-    for (int i = 0; i < _animations->count() - 1; i++) {
-        data.append(static_cast<AnimationPanel*>(_animations->itemAt(i)->widget())->getAnimationData());
-    }
-    Application::getInstance()->getAvatar()->setAnimationData(data);
+void AnimationsDialog::addAnimation() {
+    _animations->insertWidget(_animations->count() - 1, new AnimationPanel(
+        this, Application::getInstance()->getAvatar()->addAnimationHandle()));
 }
 
-void AnimationsDialog::addAnimation(const AnimationData& data) {
-    _animations->insertWidget(_animations->count() - 1, new AnimationPanel(this, data));
-}
-
-AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationData& data) :
+AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePointer& handle) :
         _dialog(dialog),
+        _handle(handle),
         _applying(false) {
     setFrameStyle(QFrame::StyledPanel);
     
@@ -87,8 +81,8 @@ AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationData& da
     
     QHBoxLayout* urlBox = new QHBoxLayout();
     layout->addRow("URL:", urlBox);
-    urlBox->addWidget(_url = new QLineEdit(data.url.toString()), 1);
-    dialog->connect(_url, SIGNAL(returnPressed()), SLOT(updateAnimationData()));
+    urlBox->addWidget(_url = new QLineEdit(handle->getURL().toString()), 1);
+    connect(_url, SIGNAL(returnPressed()), SLOT(updateHandle()));
     QPushButton* chooseURL = new QPushButton("Choose");
     urlBox->addWidget(chooseURL);
     connect(chooseURL, SIGNAL(clicked(bool)), SLOT(chooseURL()));
@@ -96,20 +90,12 @@ AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationData& da
     layout->addRow("FPS:", _fps = new QDoubleSpinBox());
     _fps->setSingleStep(0.01);
     _fps->setMaximum(FLT_MAX);
-    _fps->setValue(data.fps);
-    dialog->connect(_fps, SIGNAL(valueChanged(double)), SLOT(updateAnimationData()));
+    _fps->setValue(handle->getFPS());
+    connect(_fps, SIGNAL(valueChanged(double)), SLOT(updateHandle()));
     
     QPushButton* remove = new QPushButton("Delete");
     layout->addRow(remove);
-    connect(remove, SIGNAL(clicked(bool)), SLOT(deleteLater()));
-    dialog->connect(remove, SIGNAL(clicked(bool)), SLOT(updateAnimationData()), Qt::QueuedConnection);
-}
-
-AnimationData AnimationPanel::getAnimationData() const {
-    AnimationData data;
-    data.url = _url->text();
-    data.fps = _fps->value();
-    return data;
+    connect(remove, SIGNAL(clicked(bool)), SLOT(removeHandle()));
 }
 
 void AnimationPanel::chooseURL() {
@@ -125,3 +111,12 @@ void AnimationPanel::chooseURL() {
     emit _url->returnPressed();
 }
 
+void AnimationPanel::updateHandle() {
+    _handle->setURL(_url->text());
+    _handle->setFPS(_fps->value());
+}
+
+void AnimationPanel::removeHandle() {
+    Application::getInstance()->getAvatar()->removeAnimationHandle(_handle);
+    deleteLater();
+}

@@ -423,6 +423,19 @@ void MyAvatar::setGravity(const glm::vec3& gravity) {
     }
 }
 
+AnimationHandlePointer MyAvatar::addAnimationHandle() {
+    AnimationHandlePointer handle = _skeletonModel.createAnimationHandle();
+    handle->setLoop(true);
+    handle->start();
+    _animationHandles.append(handle);
+    return handle;
+}
+
+void MyAvatar::removeAnimationHandle(const AnimationHandlePointer& handle) {
+    handle->stop();
+    _animationHandles.removeOne(handle);
+}
+
 void MyAvatar::saveData(QSettings* settings) {
     settings->beginGroup("Avatar");
 
@@ -461,12 +474,12 @@ void MyAvatar::saveData(QSettings* settings) {
     }
     settings->endArray();
     
-    settings->beginWriteArray("animationData");
-    for (int i = 0; i < _animationData.size(); i++) {
+    settings->beginWriteArray("animationHandles");
+    for (int i = 0; i < _animationHandles.size(); i++) {
         settings->setArrayIndex(i);
-        const AnimationData& animation = _animationData.at(i);
-        settings->setValue("url", animation.url);
-        settings->setValue("fps", animation.fps);
+        const AnimationHandlePointer& pointer = _animationHandles.at(i);
+        settings->setValue("url", pointer->getURL());
+        settings->setValue("fps", pointer->getFPS());
     }
     settings->endArray();
     
@@ -520,17 +533,20 @@ void MyAvatar::loadData(QSettings* settings) {
     settings->endArray();
     setAttachmentData(attachmentData);
     
-    QVector<AnimationData> animationData;
-    int animationCount = settings->beginReadArray("animationData");
+    int animationCount = settings->beginReadArray("animationHandles");
+    while (_animationHandles.size() > animationCount) {
+        _animationHandles.takeLast()->stop();
+    }
+    while (_animationHandles.size() < animationCount) {
+        addAnimationHandle();
+    }
     for (int i = 0; i < animationCount; i++) {
         settings->setArrayIndex(i);
-        AnimationData animation;
-        animation.url = settings->value("url").toUrl();
-        animation.fps = loadSetting(settings, "fps", 30.0f);
-        animationData.append(animation);
+        const AnimationHandlePointer& handle = _animationHandles.at(i);
+        handle->setURL(settings->value("url").toUrl());
+        handle->setFPS(loadSetting(settings, "fps", 30.0f));
     }
     settings->endArray();
-    setAnimationData(animationData);
     
     setDisplayName(settings->value("displayName").toString());
 
@@ -596,13 +612,6 @@ AttachmentData MyAvatar::loadAttachmentData(const QUrl& modelURL, const QString&
     Application::getInstance()->unlockSettings();
     
     return attachment;
-}
-
-void MyAvatar::setAnimationData(const QVector<AnimationData>& animationData) {
-    // exit early if no change
-    if (_animationData != animationData) {
-        _animationData = animationData;
-    }
 }
 
 int MyAvatar::parseDataAtOffset(const QByteArray& packet, int offset) {
@@ -1570,10 +1579,3 @@ void MyAvatar::applyCollision(const glm::vec3& contactPoint, const glm::vec3& pe
     }
 }
 
-AnimationData::AnimationData() :
-    fps(30.0f) {
-}
-
-bool AnimationData::operator==(const AnimationData& other) const {
-    return url == other.url && fps == other.fps;
-}

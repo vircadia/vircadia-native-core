@@ -14,11 +14,7 @@
 
 #include <QSettings>
 
-#include <AnimationCache.h>
-
 #include "Avatar.h"
-
-class AnimationData;
 
 enum AvatarHandState
 {
@@ -66,15 +62,16 @@ public:
     glm::vec3 getUprightHeadPosition() const;
     bool getShouldRenderLocally() const { return _shouldRender; }
     
+    const QList<AnimationHandlePointer>& getAnimationHandles() const { return _animationHandles; }
+    AnimationHandlePointer addAnimationHandle();
+    void removeAnimationHandle(const AnimationHandlePointer& handle);
+    
     // get/set avatar data
     void saveData(QSettings* settings);
     void loadData(QSettings* settings);
 
     void saveAttachmentData(const AttachmentData& attachment) const;
     AttachmentData loadAttachmentData(const QUrl& modelURL, const QString& jointName = QString()) const;
-
-    void setAnimationData(const QVector<AnimationData>& animationData);
-    const QVector<AnimationData>& getAnimationData() const { return _animationData; }
 
     //  Set what driving keys are being pressed to control thrust levels
     void setDriveKeys(int key, float val) { _driveKeys[key] = val; };
@@ -158,16 +155,7 @@ private:
     bool _billboardValid;
     float _oculusYawOffset;
 
-    QVector<AnimationData> _animationData;
-
-    class AnimationState {
-    public:
-        AnimationPointer animation;
-        QVector<int> jointMappings;
-        float frameIndex;
-    };
-
-    QVector<AnimationState> _animationStates;
+    QList<AnimationHandlePointer> _animationHandles;
 
 	// private methods
     void updateOrientation(float deltaTime);
@@ -183,17 +171,6 @@ private:
     void updateChatCircle(float deltaTime);
     void maybeUpdateBillboard();
     void setGravity(const glm::vec3& gravity);
-};
-
-/// Describes an animation being run on the avatar.
-class AnimationData {
-public:
-    QUrl url;
-    float fps;
-    
-    AnimationData();
-    
-    bool operator==(const AnimationData& other) const;
 };
 
 #endif // hifi_MyAvatar_h

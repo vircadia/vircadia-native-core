@@ -24,7 +24,11 @@
 #include "ProgramObject.h"
 #include "TextureCache.h"
 
+class AnimationHandle;
 class Shape;
+
+typedef QSharedPointer<AnimationHandle> AnimationHandlePointer;
+typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject {
@@ -187,22 +191,7 @@ public:
 
     QStringList getJointNames() const;
     
-    class AnimationState {
-    public:
-        AnimationPointer animation;
-        float fps;
-        bool loop;    
-        float offset;
-        QVector<int> jointMappings;
-    };
-
-    const QVector<AnimationState>& getAnimationStates() const { return _animationStates; }
-    
-    /// Starts playing the animation at the specified URL.
-    void startAnimation(const QUrl& url, float fps = 30.0f, bool loop = true, float offset = 0.0f);
-    
-    /// Stops playing all animations.
-    void stopAnimation();
+    AnimationHandlePointer createAnimationHandle();
     
     void clearShapes();
     void rebuildShapes();
@@ -279,8 +268,6 @@ protected:
     
     QVector<MeshState> _meshStates;
     
-    QVector<AnimationState> _animationStates;
-    
     // returns 'true' if needs fullUpdate after geometry change
     bool updateGeometry();
     
@@ -320,6 +307,8 @@ protected:
 
 private:
     
+    friend class AnimationHandle;
+    
     void applyNextGeometry();
     void deleteGeometry();
     void renderMeshes(float alpha, RenderMode mode, bool translucent);
@@ -342,6 +331,10 @@ private:
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
     
     QVector<Model*> _attachments;
+
+    QSet<WeakAnimationHandlePointer> _animationHandles;
+
+    QList<AnimationHandlePointer> _runningAnimations;
 
     static ProgramObject _program;
     static ProgramObject _normalMapProgram;
@@ -377,5 +370,41 @@ private:
 Q_DECLARE_METATYPE(QPointer<Model>)
 Q_DECLARE_METATYPE(QWeakPointer<NetworkGeometry>)
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
+
+/// Represents a handle to a model animation.
+class AnimationHandle : public QObject {
+    Q_OBJECT
+
+public:
+
+    void setURL(const QUrl& url);
+    const QUrl& getURL() const { return _url; }
+    
+    void setFPS(float fps) { _fps = fps; }
+    float getFPS() const { return _fps; }
+    
+    void setLoop(bool loop) { _loop = loop; }
+    bool getLoop() const { return _loop; }
+    
+    void start();
+    void stop();
+    
+private:
+
+    friend class Model;
+
+    AnimationHandle(Model* model);
+        
+    void simulate(float deltaTime);
+        
+    Model* _model;
+    WeakAnimationHandlePointer _self;
+    AnimationPointer _animation;
+    QUrl _url;
+    float _fps;
+    bool _loop;
+    QVector<int> _jointMappings;
+    float _frameIndex;
+};
 
 #endif // hifi_Model_h

@@ -32,14 +32,10 @@ public:
 
     virtual void setVisible(bool visible);
 
-public slots:
-    
-    void updateAnimationData();
-    
 private slots:
-    
-    void addAnimation(const AnimationData& animation = AnimationData());
-    
+
+    void addAnimation();
+
 private:
     
     QVBoxLayout* _animations;
@@ -52,17 +48,18 @@ class AnimationPanel : public QFrame {
 
 public:
     
-    AnimationPanel(AnimationsDialog* dialog, const AnimationData& data = AnimationData());
-
-    AnimationData getAnimationData() const;
+    AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePointer& handle);
 
 private slots:
 
     void chooseURL();
+    void updateHandle();
+    void removeHandle();
     
 private:
     
     AnimationsDialog* _dialog;
+    AnimationHandlePointer _handle;
     QLineEdit* _url;
     QDoubleSpinBox* _fps;
     bool _applying;
