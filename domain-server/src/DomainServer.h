@@ -24,6 +24,8 @@
 #include <HTTPSConnection.h>
 #include <LimitedNodeList.h>
 
+#include "PendingAssignedNodeData.h"
+
 typedef QSharedPointer<Assignment> SharedAssignmentPointer;
 
 class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
@@ -85,6 +87,7 @@ private:
     
     QHash<QUuid, SharedAssignmentPointer> _allAssignments;
     QQueue<SharedAssignmentPointer> _unfulfilledAssignments;
+    QHash<QUuid, PendingAssignedNodeData*> _pendingAssignedNodes;
     
     QVariantMap _argumentVariantMap;
     

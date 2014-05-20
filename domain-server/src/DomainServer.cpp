@@ -35,6 +35,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _httpsManager(NULL),
     _allAssignments(),
     _unfulfilledAssignments(),
+    _pendingAssignedNodes(),
     _isUsingDTLS(false),
     _oauthProviderURL(),
     _oauthClientID(),
@@ -339,9 +340,9 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     QUuid packetUUID = uuidFromPacketHeader(packet);
 
     // check if this connect request matches an assignment in the queue
-    bool isFulfilledOrUnfulfilledAssignment = _allAssignments.contains(packetUUID);
+    bool isAssignment = _pendingAssignedNodes.contains(packetUUID);
     SharedAssignmentPointer matchingQueuedAssignment = SharedAssignmentPointer();
-    if (isFulfilledOrUnfulfilledAssignment) {
+    if (isAssignment) {
         matchingQueuedAssignment = matchingQueuedAssignmentForCheckIn(packetUUID, nodeType);
     }
     
@@ -371,8 +372,8 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         }
     }
         
-    if ((!isFulfilledOrUnfulfilledAssignment && !STATICALLY_ASSIGNED_NODES.contains(nodeType))
-        || (isFulfilledOrUnfulfilledAssignment && matchingQueuedAssignment)) {
+    if ((!isAssignment && !STATICALLY_ASSIGNED_NODES.contains(nodeType))
+        || (isAssignment && matchingQueuedAssignment)) {
         // this was either not a static assignment or it was and we had a matching one in the queue
         
         // create a new session UUID for this node
@@ -384,8 +385,8 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         // if this was a static assignment set the UUID, set the sendingSockAddr
         DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
         
-        if (isFulfilledOrUnfulfilledAssignment) {
-            nodeData->setAssignmentUUID(packetUUID);
+        if (isAssignment) {
+            nodeData->setAssignmentUUID(matchingQueuedAssignment->getUUID());
         }
         
         nodeData->setSendingSockAddr(senderSockAddr);
@@ -589,12 +590,21 @@ void DomainServer::readAvailableDatagrams() {
                 // give this assignment out, either the type matches or the requestor said they will take any
                 assignmentPacket.resize(numAssignmentPacketHeaderBytes);
                 
+                // setup a copy of this assignment that will have a unique UUID, for packaging purposes
+                Assignment uniqueAssignment(*assignmentToDeploy.data());
+                uniqueAssignment.setUUID(QUuid::createUuid());
+                
                 QDataStream assignmentStream(&assignmentPacket, QIODevice::Append);
                 
-                assignmentStream << *assignmentToDeploy.data();
+                assignmentStream << uniqueAssignment;
                 
                 nodeList->getNodeSocket().writeDatagram(assignmentPacket,
                                                         senderSockAddr.getAddress(), senderSockAddr.getPort());
+                
+                // add the information for that deployed assignment to the hash of pending assigned nodes
+                PendingAssignedNodeData* pendingNodeData = new PendingAssignedNodeData(assignmentToDeploy->getUUID(),
+                                                                                       requestAssignment.getWalletUUID());
+                _pendingAssignedNodes.insert(uniqueAssignment.getUUID(), pendingNodeData);
             } else {
                 if (requestAssignment.getType() != Assignment::AgentType
                     || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS) {
@@ -1069,11 +1079,25 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
 SharedAssignmentPointer DomainServer::matchingQueuedAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType) {
     QQueue<SharedAssignmentPointer>::iterator i = _unfulfilledAssignments.begin();
     
-    while (i != _unfulfilledAssignments.end()) {
-        if (i->data()->getType() == Assignment::typeForNodeType(nodeType) && i->data()->getUUID() == checkInUUID) {
-            return _unfulfilledAssignments.takeAt(i - _unfulfilledAssignments.begin());
-        } else {
-            ++i;
+    PendingAssignedNodeData* pendingAssigneeData = _pendingAssignedNodes.take(checkInUUID);
+    
+    if (pendingAssigneeData) {
+        while (i != _unfulfilledAssignments.end()) {
+            if (i->data()->getType() == Assignment::typeForNodeType(nodeType)
+                && i->data()->getUUID() == pendingAssigneeData->getAssignmentUUID()) {
+                // we have an unfulfilled assignment to return
+                qDebug() << "Assignment deployed with" << uuidStringWithoutCurlyBraces(checkInUUID)
+                    << "matches unfulfilled assignment"
+                    << uuidStringWithoutCurlyBraces(pendingAssigneeData->getAssignmentUUID());
+                
+                // first clear the pending assignee data
+                delete pendingAssigneeData;
+                
+                // return the matching assignment
+                return _unfulfilledAssignments.takeAt(i - _unfulfilledAssignments.begin());
+            } else {
+                ++i;
+            }
         }
     }
     
