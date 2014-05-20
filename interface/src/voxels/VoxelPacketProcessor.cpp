@@ -76,6 +76,7 @@ void VoxelPacketProcessor::processPacket(const SharedNodePointer& sendingNode, c
             
             versionDebugSuppressMap.insert(senderUUID, voxelPacketType);
         }
+        return; // bail since piggyback version doesn't match
     }
 
     
