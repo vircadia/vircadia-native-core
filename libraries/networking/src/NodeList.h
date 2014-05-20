@@ -83,8 +83,6 @@ public slots:
     void reset();
     void sendDomainServerCheckIn();
     void pingInactiveNodes();
-    void completedDTLSHandshake();
-    void processAvailableDTLSDatagrams();
 signals:
     void limitOfSilentDomainCheckInsReached();
 private:

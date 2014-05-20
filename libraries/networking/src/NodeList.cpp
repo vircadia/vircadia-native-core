@@ -68,9 +68,6 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     
     // clear our NodeList when logout is requested
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
-    
-    // perform a function when DTLS handshake is completed
-    connect(&_domainHandler, &DomainHandler::completedDTLSHandshake, this, &NodeList::completedDTLSHandshake);
 }
 
 qint64 NodeList::sendStatsToDomainServer(const QJsonObject& statsObject) {
@@ -114,30 +111,6 @@ void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& 
         "         othersReplyTime: " << othersReplyTime << "\n" <<
         "    othersExprectedReply: " << othersExprectedReply << "\n" <<
         "               clockSkew: " << clockSkew;
-    }
-}
-
-void NodeList::completedDTLSHandshake() {
-    // at this point, we've got a DTLS socket
-    // make this NodeList the handler of DTLS packets
-    connect(_dtlsSocket, &QUdpSocket::readyRead, this, &NodeList::processAvailableDTLSDatagrams);
-}
-
-void NodeList::processAvailableDTLSDatagrams() {
-    while (_dtlsSocket->hasPendingDatagrams()) {
-        QByteArray dtlsPacket(_dtlsSocket->pendingDatagramSize(), 0);
-        
-        // pull the data from this user off the stack and process it
-        int receivedBytes = gnutls_record_recv(*_domainHandler.getDTLSSession()->getGnuTLSSession(),
-                                             dtlsPacket.data(), dtlsPacket.size());
-        if (receivedBytes > 0) {
-            // successful data receive, hand this off to processNodeData
-            processNodeData(_domainHandler.getSockAddr(), dtlsPacket.left(receivedBytes));
-        } else if (gnutls_error_is_fatal(receivedBytes)) {
-            qDebug() << "Fatal error -" << gnutls_strerror(receivedBytes) << "- receiving DTLS packet from domain-server.";
-        } else {
-            qDebug() << "non fatal receive" << receivedBytes;
-        }
     }
 }
 
@@ -365,18 +338,8 @@ void NodeList::sendDomainServerCheckIn() {
         // send a STUN request to figure it out
         sendSTUNRequest();
     } else if (!_domainHandler.getIP().isNull()) {
-        
-        DTLSClientSession* dtlsSession = _domainHandler.getDTLSSession();
+
         bool isUsingDTLS = false;
-        
-        if (dtlsSession) {
-            if (!dtlsSession->completedHandshake()) {
-                // if the handshake process is not complete then we can't check in, so return
-                return;
-            } else {
-                isUsingDTLS = true;
-            }
-        }
         
         PacketType domainPacketType = !_domainHandler.isConnected()
             ? PacketTypeDomainConnectRequest : PacketTypeDomainListRequest;
@@ -405,8 +368,6 @@ void NodeList::sendDomainServerCheckIn() {
         
         if (!isUsingDTLS) {
             writeDatagram(domainServerPacket, _domainHandler.getSockAddr(), QUuid());
-        } else {
-            dtlsSession->writeDatagram(domainServerPacket);
         }
         
         const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;

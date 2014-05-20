@@ -21,7 +21,6 @@ class AssignmentClient : public QCoreApplication {
 public:
     AssignmentClient(int &argc, char **argv);
     static const SharedAssignmentPointer& getCurrentAssignment() { return _currentAssignment; }
-    ~AssignmentClient();
 private slots:
     void sendAssignmentRequest();
     void readPendingDatagrams();

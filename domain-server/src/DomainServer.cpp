@@ -28,7 +28,6 @@
 #include <UUID.h>
 
 #include "DomainServerNodeData.h"
-#include "DummyDTLSSession.h"
 
 #include "DomainServer.h"
 
@@ -39,18 +38,12 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _allAssignments(),
     _unfulfilledAssignments(),
     _isUsingDTLS(false),
-    _x509Credentials(NULL),
-    _dhParams(NULL),
-    _priorityCache(NULL),
-    _dtlsSessions(),
     _oauthProviderURL(),
     _oauthClientID(),
     _hostname(),
     _networkReplyUUIDMap(),
     _sessionAuthenticationHash()
 {
-    gnutls_global_init();
-    
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
     setApplicationName("domain-server");
@@ -64,29 +57,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         qDebug() << "Setting up LimitedNodeList and assignments.";
         setupNodeListAndAssignments();
         
-        if (_isUsingDTLS) {
-            LimitedNodeList* nodeList = LimitedNodeList::getInstance();
-            
-            // connect our socket to read datagrams received on the DTLS socket
-            connect(&nodeList->getDTLSSocket(), &QUdpSocket::readyRead, this, &DomainServer::readAvailableDTLSDatagrams);
-        }
-        
         _networkAccessManager = new QNetworkAccessManager(this);
     }
-}
-
-DomainServer::~DomainServer() {
-    if (_x509Credentials) {
-        gnutls_certificate_free_credentials(*_x509Credentials);
-        gnutls_priority_deinit(*_priorityCache);
-        gnutls_dh_params_deinit(*_dhParams);
-        
-        delete _x509Credentials;
-        delete _priorityCache;
-        delete _dhParams;
-        delete _cookieKey;
-    }
-    gnutls_global_deinit();
 }
 
 bool DomainServer::optionallyReadX509KeyAndCertificate() {
@@ -100,28 +72,28 @@ bool DomainServer::optionallyReadX509KeyAndCertificate() {
     if (!certPath.isEmpty() && !keyPath.isEmpty()) {
         // the user wants to use DTLS to encrypt communication with nodes
         // let's make sure we can load the key and certificate
-        _x509Credentials = new gnutls_certificate_credentials_t;
-        gnutls_certificate_allocate_credentials(_x509Credentials);
+//        _x509Credentials = new gnutls_certificate_credentials_t;
+//        gnutls_certificate_allocate_credentials(_x509Credentials);
         
         QString keyPassphraseString = QProcessEnvironment::systemEnvironment().value(X509_KEY_PASSPHRASE_ENV);
         
         qDebug() << "Reading certificate file at" << certPath << "for DTLS.";
         qDebug() << "Reading key file at" << keyPath << "for DTLS.";
         
-        int gnutlsReturn = gnutls_certificate_set_x509_key_file2(*_x509Credentials,
-                                                                 certPath.toLocal8Bit().constData(),
-                                                                 keyPath.toLocal8Bit().constData(),
-                                                                 GNUTLS_X509_FMT_PEM,
-                                                                 keyPassphraseString.toLocal8Bit().constData(),
-                                                                 0);
+//        int gnutlsReturn = gnutls_certificate_set_x509_key_file2(*_x509Credentials,
+//                                                                 certPath.toLocal8Bit().constData(),
+//                                                                 keyPath.toLocal8Bit().constData(),
+//                                                                 GNUTLS_X509_FMT_PEM,
+//                                                                 keyPassphraseString.toLocal8Bit().constData(),
+//                                                                 0);
+//        
+//        if (gnutlsReturn < 0) {
+//            qDebug() << "Unable to load certificate or key file." << "Error" << gnutlsReturn << "- domain-server will now quit.";
+//            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+//            return false;
+//        }
         
-        if (gnutlsReturn < 0) {
-            qDebug() << "Unable to load certificate or key file." << "Error" << gnutlsReturn << "- domain-server will now quit.";
-            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
-            return false;
-        }
-        
-        qDebug() << "Successfully read certificate and private key.";
+//        qDebug() << "Successfully read certificate and private key.";
         
         // we need to also pass this certificate and private key to the HTTPS manager
         // this is used for Oauth callbacks when authorizing users against a data server
@@ -171,39 +143,6 @@ bool DomainServer::optionallySetupOAuth() {
             qDebug() << "OAuth will be used to identify clients using provider at" << _oauthProviderURL.toString();
             qDebug() << "OAuth Client ID is" << _oauthClientID;
         }
-    }
-    
-    return true;
-}
-
-bool DomainServer::optionallySetupDTLS() {
-    if (_x509Credentials) {
-        qDebug() << "Generating Diffie-Hellman parameters.";
-        
-        // generate Diffie-Hellman parameters
-        // When short bit length is used, it might be wise to regenerate parameters often.
-        int dhBits = gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, GNUTLS_SEC_PARAM_LEGACY);
-        
-        _dhParams =  new gnutls_dh_params_t;
-        gnutls_dh_params_init(_dhParams);
-        gnutls_dh_params_generate2(*_dhParams, dhBits);
-        
-        qDebug() << "Successfully generated Diffie-Hellman parameters.";
-        
-        // set the D-H paramters on the X509 credentials
-        gnutls_certificate_set_dh_params(*_x509Credentials, *_dhParams);
-        
-        // setup the key used for cookie verification
-        _cookieKey = new gnutls_datum_t;
-        gnutls_key_generate(_cookieKey, GNUTLS_COOKIE_KEY_SIZE);
-        
-        _priorityCache = new gnutls_priority_t;
-        const char DTLS_PRIORITY_STRING[] = "PERFORMANCE:-VERS-TLS-ALL:+VERS-DTLS1.2:%SERVER_PRECEDENCE";
-        gnutls_priority_init(_priorityCache, DTLS_PRIORITY_STRING, NULL);
-        
-        _isUsingDTLS = true;
-        
-        qDebug() << "Initial DTLS setup complete.";
     }
     
     return true;
@@ -552,8 +491,8 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     
     if (nodeInterestList.size() > 0) {
         
-        DTLSServerSession* dtlsSession = _isUsingDTLS ? _dtlsSessions[senderSockAddr] : NULL;
-        int dataMTU = dtlsSession ? (int)gnutls_dtls_get_data_mtu(*dtlsSession->getGnuTLSSession()) : MAX_PACKET_SIZE;
+//        DTLSServerSession* dtlsSession = _isUsingDTLS ? _dtlsSessions[senderSockAddr] : NULL;
+        int dataMTU = MAX_PACKET_SIZE;
         
         if (nodeData->isAuthenticated()) {
             // if this authenticated node has any interest types, send back those nodes as well
@@ -589,11 +528,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
                         // we need to break here and start a new packet
                         // so send the current one
                         
-                        if (!dtlsSession) {
-                            nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
-                        } else {
-                            dtlsSession->writeDatagram(broadcastPacket);
-                        }
+                        nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
                         
                         // reset the broadcastPacket structure
                         broadcastPacket.resize(numBroadcastPacketLeadBytes);
@@ -607,11 +542,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
         }
         
         // always write the last broadcastPacket
-        if (!dtlsSession) {
-            nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
-        } else {
-            dtlsSession->writeDatagram(broadcastPacket);
-        }
+        nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
     }
 }
 
@@ -685,86 +616,6 @@ void DomainServer::readAvailableDatagrams() {
             }
 
             nodeList->writeUnverifiedDatagram(dtlsRequiredPacket, senderSockAddr);
-        }
-    }
-}
-
-void DomainServer::readAvailableDTLSDatagrams() {
-    LimitedNodeList* nodeList = LimitedNodeList::getInstance();
-    
-    QUdpSocket& dtlsSocket = nodeList->getDTLSSocket();
-    
-    static sockaddr senderSockAddr;
-    static socklen_t sockAddrSize = sizeof(senderSockAddr);
-    
-    while (dtlsSocket.hasPendingDatagrams()) {
-        // check if we have an active DTLS session for this sender
-        QByteArray peekDatagram(dtlsSocket.pendingDatagramSize(), 0);
-       
-        recvfrom(dtlsSocket.socketDescriptor(), peekDatagram.data(), dtlsSocket.pendingDatagramSize(),
-                 MSG_PEEK, &senderSockAddr, &sockAddrSize);
-        
-        HifiSockAddr senderHifiSockAddr(&senderSockAddr);
-        DTLSServerSession* existingSession = _dtlsSessions.value(senderHifiSockAddr);
-        
-        if (existingSession) {
-            if (!existingSession->completedHandshake()) {
-                // check if we have completed handshake with this user
-                int handshakeReturn = gnutls_handshake(*existingSession->getGnuTLSSession());
-                
-                if (handshakeReturn == 0) {
-                    existingSession->setCompletedHandshake(true);
-                } else if (gnutls_error_is_fatal(handshakeReturn)) {
-                    // this was a fatal error handshaking, so remove this session
-                    qDebug() << "Fatal error -" << gnutls_strerror(handshakeReturn) << "- during DTLS handshake with"
-                        << senderHifiSockAddr;
-                    _dtlsSessions.remove(senderHifiSockAddr);
-                }
-            } else {
-                // pull the data from this user off the stack and process it
-                int receivedBytes = gnutls_record_recv(*existingSession->getGnuTLSSession(),
-                                                       peekDatagram.data(), peekDatagram.size());
-                if (receivedBytes > 0) {
-                    processDatagram(peekDatagram.left(receivedBytes), senderHifiSockAddr);
-                } else if (gnutls_error_is_fatal(receivedBytes)) {
-                    qDebug() << "Fatal error -" << gnutls_strerror(receivedBytes) << "- during DTLS handshake with"
-                        << senderHifiSockAddr;
-                }
-            }
-        } else {
-            // first we verify the cookie
-            // see http://gnutls.org/manual/html_node/DTLS-sessions.html for why this is required
-            gnutls_dtls_prestate_st prestate;
-            memset(&prestate, 0, sizeof(prestate));
-            int cookieValid = gnutls_dtls_cookie_verify(_cookieKey, &senderSockAddr, sizeof(senderSockAddr),
-                                                        peekDatagram.data(), peekDatagram.size(), &prestate);
-            
-            if (cookieValid < 0) {
-                // the cookie sent by the client was not valid
-                // send a valid one
-                DummyDTLSSession tempServerSession(LimitedNodeList::getInstance()->getDTLSSocket(), senderHifiSockAddr);
-                
-                gnutls_dtls_cookie_send(_cookieKey, &senderSockAddr, sizeof(senderSockAddr), &prestate,
-                                        &tempServerSession, DTLSSession::socketPush);
-                
-                // acutally pull the peeked data off the network stack so that it gets discarded
-                dtlsSocket.readDatagram(peekDatagram.data(), peekDatagram.size());
-            } else {
-                // cookie valid but no existing session - set up a new session now
-                DTLSServerSession* newServerSession = new DTLSServerSession(LimitedNodeList::getInstance()->getDTLSSocket(),
-                                                                            senderHifiSockAddr);
-                gnutls_session_t* gnutlsSession = newServerSession->getGnuTLSSession();
-                
-                gnutls_priority_set(*gnutlsSession, *_priorityCache);
-                gnutls_credentials_set(*gnutlsSession, GNUTLS_CRD_CERTIFICATE, *_x509Credentials);
-                gnutls_dtls_prestate_set(*gnutlsSession, &prestate);
-                
-                // handshake to begin the session
-                gnutls_handshake(*gnutlsSession);
-                
-                qDebug() << "Beginning DTLS session with node at" << senderHifiSockAddr;
-                _dtlsSessions[senderHifiSockAddr] = newServerSession;
-            }
         }
     }
 }
@@ -1208,14 +1059,6 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
             SharedNodePointer otherNode = LimitedNodeList::getInstance()->nodeWithUUID(otherNodeSessionUUID);
             if (otherNode) {
                 reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())->getSessionSecretHash().remove(node->getUUID());
-            }
-        }
-        
-        if (_isUsingDTLS) {
-            // check if we need to remove a DTLS session from our in-memory hash
-            DTLSServerSession* existingSession = _dtlsSessions.take(nodeData->getSendingSockAddr());
-            if (existingSession) {
-                delete existingSession;
             }
         }
     }

@@ -39,8 +39,6 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     QCoreApplication(argc, argv),
     _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME)
 {
-    DTLSClientSession::globalInit();
-    
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
     setApplicationName("assignment-client");
@@ -104,10 +102,6 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     // connections to AccountManager for authentication
     connect(&AccountManager::getInstance(), &AccountManager::authRequired,
             this, &AssignmentClient::handleAuthenticationRequest);
-}
-
-AssignmentClient::~AssignmentClient() {
-    DTLSClientSession::globalDeinit();
 }
 
 void AssignmentClient::sendAssignmentRequest() {
