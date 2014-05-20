@@ -27,8 +27,6 @@
 #include <QtNetwork/QHostAddress>
 #include <QtNetwork/QUdpSocket>
 
-#include <gnutls/gnutls.h>
-
 #include "DomainHandler.h"
 #include "LimitedNodeList.h"
 #include "Node.h"
