@@ -31,3 +31,8 @@ link_hifi_library(voxels ${TARGET_NAME} "${ROOT_DIR}")
 
 # link the hifi networking library
 link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
+
+# add a definition for ssize_t so that windows doesn't bail
+if (WIN32)
+  add_definitions(-Dssize_t=long)
+endif ()

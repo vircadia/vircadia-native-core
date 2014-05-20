@@ -43,3 +43,8 @@ ENDIF(WIN32)
 
 # link QtNetwork
 target_link_libraries(${TARGET_NAME} Qt5::Network)
+
+# add a definition for ssize_t so that windows doesn't bail
+if (WIN32)
+  add_definitions(-Dssize_t=long)
+endif ()

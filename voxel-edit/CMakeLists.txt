@@ -39,3 +39,8 @@ IF (WIN32)
 ENDIF(WIN32)
 
 target_link_libraries(${TARGET_NAME} Qt5::Script)
+
+# add a definition for ssize_t so that windows doesn't bail
+if (WIN32)
+  add_definitions(-Dssize_t=long)
+endif ()
