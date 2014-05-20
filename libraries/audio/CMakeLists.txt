@@ -22,3 +22,8 @@ include_glm(${TARGET_NAME} "${ROOT_DIR}")
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
+
+# add a definition for ssize_t so that windows doesn't bail
+if (WIN32)
+  add_definitions(-Dssize_t=long)
+endif ()

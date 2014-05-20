@@ -28,3 +28,8 @@ include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} "${ROOT_DIR}")
 
 target_link_libraries(${TARGET_NAME} Qt5::Network Qt5::Widgets Qt5::Script)
+
+# add a definition for ssize_t so that windows doesn't bail
+if (WIN32)
+  add_definitions(-Dssize_t=long)
+endif ()

@@ -28,3 +28,8 @@ link_hifi_library(fbx ${TARGET_NAME} "${ROOT_DIR}")
 find_package(ZLIB)
 
 target_link_libraries(${TARGET_NAME} "${ZLIB_LIBRARIES}" Qt5::Widgets)
+
+# add a definition for ssize_t so that windows doesn't bail
+if (WIN32)
+  add_definitions(-Dssize_t=long)
+endif ()
