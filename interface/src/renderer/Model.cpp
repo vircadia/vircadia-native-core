@@ -1689,6 +1689,7 @@ void AnimationHandle::simulate(float deltaTime) {
     }
     int ceilFrameIndex = (int)glm::ceil(_frameIndex);
     if (!_loop && ceilFrameIndex >= animationGeometry.animationFrames.size()) {
+        // passed the end; apply the last frame
         const FBXAnimationFrame& frame = animationGeometry.animationFrames.last();
         for (int i = 0; i < _jointMappings.size(); i++) {
             int mapping = _jointMappings.at(i);
@@ -1699,6 +1700,7 @@ void AnimationHandle::simulate(float deltaTime) {
         stop();
         return;
     }
+    // blend between the closest two frames
     const FBXAnimationFrame& ceilFrame = animationGeometry.animationFrames.at(
         ceilFrameIndex % animationGeometry.animationFrames.size());
     const FBXAnimationFrame& floorFrame = animationGeometry.animationFrames.at(
