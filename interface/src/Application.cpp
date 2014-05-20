@@ -173,10 +173,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _previousScriptLocation(),
         _runningScriptsWidget(new RunningScriptsWidget(_window)),
         _runningScriptsWidgetWasVisible(false)
-{
-    // init GnuTLS for DTLS with domain-servers
-    DTLSClientSession::globalInit();
-    
+{    
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 
@@ -431,8 +428,6 @@ Application::~Application() {
     delete _glWidget;
 
     AccountManager::getInstance().destroy();
-    
-    DTLSClientSession::globalDeinit();
 }
 
 void Application::saveSettings() {
