@@ -15,8 +15,6 @@
 #include <QtCore/QUrl>
 #include <QtNetwork/QHostInfo>
 
-#include <gnutls/dtls.h>
-
 #include "AccountManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"

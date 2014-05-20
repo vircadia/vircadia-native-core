@@ -18,8 +18,6 @@
 #include <QtCore/QTimer>
 #include <QtCore/QUrlQuery>
 
-#include <gnutls/dtls.h>
-
 #include <AccountManager.h>
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
