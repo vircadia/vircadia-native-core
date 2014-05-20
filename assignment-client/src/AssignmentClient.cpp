@@ -13,8 +13,6 @@
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
 
-#include <gnutls/gnutls.h>
-
 #include <AccountManager.h>
 #include <Assignment.h>
 #include <Logging.h>

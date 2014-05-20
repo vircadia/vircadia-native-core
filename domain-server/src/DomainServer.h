@@ -20,8 +20,6 @@
 #include <QtCore/QStringList>
 #include <QtCore/QUrl>
 
-#include <gnutls/gnutls.h>
-
 #include <Assignment.h>
 #include <HTTPSConnection.h>
 #include <LimitedNodeList.h>
