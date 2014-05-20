@@ -24,9 +24,12 @@
 #include <HTTPSConnection.h>
 #include <LimitedNodeList.h>
 
+#include "WalletTransaction.h"
+
 #include "PendingAssignedNodeData.h"
 
 typedef QSharedPointer<Assignment> SharedAssignmentPointer;
+typedef QMultiHash<QUuid, WalletTransaction*> TransactionHash;
 
 class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
     Q_OBJECT
@@ -46,7 +49,7 @@ public slots:
     
 private slots:
     void readAvailableDatagrams();
-    void payAssignedNodes();
+    void setupPendingAssignmentCredits();
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
     bool optionallySetupOAuth();
@@ -88,6 +91,7 @@ private:
     QHash<QUuid, SharedAssignmentPointer> _allAssignments;
     QQueue<SharedAssignmentPointer> _unfulfilledAssignments;
     QHash<QUuid, PendingAssignedNodeData*> _pendingAssignedNodes;
+    TransactionHash _pendingAssignmentCredits;
     
     QVariantMap _argumentVariantMap;
     

@@ -60,10 +60,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         
         // setup a timer to send transactions to pay assigned nodes every 30 seconds
         QTimer* nodePaymentTimer = new QTimer(this);
-        connect(nodePaymentTimer, &QTimer::timeout, this, &DomainServer::payAssignedNodes);
+        connect(nodePaymentTimer, &QTimer::timeout, this, &DomainServer::setupPendingAssignmentCredits);
         
-        const qint64 NODE_PAYMENT_INTERVAL_MSECS = 30 * 1000;
-        nodePaymentTimer->start(NODE_PAYMENT_INTERVAL_MSECS);
+        const qint64 CREDIT_CHECK_INTERVAL = 5 * 1000;
+        nodePaymentTimer->start(CREDIT_CHECK_INTERVAL);
     }
 }
 
@@ -656,14 +656,40 @@ void DomainServer::readAvailableDatagrams() {
     }
 }
 
-void DomainServer::payAssignedNodes() {
+void DomainServer::setupPendingAssignmentCredits() {
     // enumerate the NodeList to find the assigned nodes
     foreach (const SharedNodePointer& node, LimitedNodeList::getInstance()->getNodeHash()) {
         DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
         
         if (!nodeData->getAssignmentUUID().isNull() && !nodeData->getWalletUUID().isNull()) {
-            // add a pending transaction for this node or increase the amount for the existing transaction
+            // check if we have a non-finalized transaction for this node to add this amount to
+            TransactionHash::iterator i = _pendingAssignmentCredits.find(nodeData->getWalletUUID());
+            WalletTransaction* existingTransaction = NULL;
             
+            while (i != _pendingAssignmentCredits.end() && i.key() == nodeData->getWalletUUID()) {
+                if (!i.value()->isFinalized()) {
+                    existingTransaction = i.value();
+                    break;
+                } else {
+                    ++i;
+                }
+            }
+            
+            qint64 elapsedMsecsSinceLastPayment = nodeData->getPaymentIntervalTimer().elapsed();
+            nodeData->getPaymentIntervalTimer().restart();
+            
+            const float CREDITS_PER_HOUR = 3;
+            const float CREDITS_PER_MSEC = CREDITS_PER_HOUR / (60 * 60 * 1000);
+    
+            float pendingCredits = elapsedMsecsSinceLastPayment * CREDITS_PER_MSEC;
+            
+            if (existingTransaction) {
+                existingTransaction->incrementAmount(pendingCredits);
+            } else {
+                // create a fresh transaction to pay this node, there is no transaction to append to
+                WalletTransaction* freshTransaction = new WalletTransaction(nodeData->getWalletUUID(), pendingCredits);
+                _pendingAssignmentCredits.insert(nodeData->getWalletUUID(), freshTransaction);
+            }
         }
     }
 }
@@ -717,6 +743,7 @@ const char JSON_KEY_TYPE[] = "type";
 const char JSON_KEY_PUBLIC_SOCKET[] = "public";
 const char JSON_KEY_LOCAL_SOCKET[] = "local";
 const char JSON_KEY_POOL[] = "pool";
+const char JSON_KEY_PENDING_CREDITS[] = "pending_credits";
 const char JSON_KEY_WAKE_TIMESTAMP[] = "wake_timestamp";
 
 QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
@@ -745,6 +772,18 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
     SharedAssignmentPointer matchingAssignment = _allAssignments.value(nodeData->getAssignmentUUID());
     if (matchingAssignment) {
         nodeJson[JSON_KEY_POOL] = matchingAssignment->getPool();
+        
+        if (!nodeData->getWalletUUID().isNull()) {
+            TransactionHash::iterator i = _pendingAssignmentCredits.find(nodeData->getWalletUUID());
+            double pendingCreditAmount = 0;
+            
+            while (i != _pendingAssignmentCredits.end() && i.key() == nodeData->getWalletUUID()) {
+                pendingCreditAmount += i.value()->getAmount();
+                ++i;
+            }
+            
+            nodeJson[JSON_KEY_PENDING_CREDITS] = pendingCreditAmount;
+        }
     }
     
     return nodeJson;
