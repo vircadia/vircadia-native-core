@@ -18,7 +18,6 @@
 #include <QtCore/QUrl>
 #include <QtNetwork/QHostInfo>
 
-#include "DTLSClientSession.h"
 #include "HifiSockAddr.h"
 
 const QString DEFAULT_DOMAIN_HOSTNAME = "sandbox.highfidelity.io";
@@ -32,7 +31,6 @@ class DomainHandler : public QObject {
     Q_OBJECT
 public:
     DomainHandler(QObject* parent = 0);
-    ~DomainHandler();
     
     void clearConnectionInfo();
     
@@ -56,29 +54,22 @@ public:
     bool isConnected() const { return _isConnected; }
     void setIsConnected(bool isConnected);
     
-    DTLSClientSession* getDTLSSession() { return _dtlsSession; }
-    
     void parseDTLSRequirementPacket(const QByteArray& dtlsRequirementPacket);
     
 private slots:
-    void completeDTLSHandshake();
     void completedHostnameLookup(const QHostInfo& hostInfo);
 signals:
     void hostnameChanged(const QString& hostname);
     void connectedToDomain(const QString& hostname);
-    void completedDTLSHandshake();
-    void DTLSConnectionLost();
     
 private:
     void reset();
-    void initializeDTLSSession();
     
     QUuid _uuid;
     QString _hostname;
     HifiSockAddr _sockAddr;
     QUuid _assignmentUUID;
     bool _isConnected;
-    DTLSClientSession* _dtlsSession;
     QTimer* _handshakeTimer;
 };
 
