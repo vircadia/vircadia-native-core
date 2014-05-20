@@ -20,13 +20,9 @@
 #include <QtCore/QStringList>
 #include <QtCore/QUrl>
 
-#include <gnutls/gnutls.h>
-
 #include <Assignment.h>
 #include <HTTPSConnection.h>
 #include <LimitedNodeList.h>
-
-#include "DTLSServerSession.h"
 
 typedef QSharedPointer<Assignment> SharedAssignmentPointer;
 
@@ -34,7 +30,6 @@ class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
     Q_OBJECT
 public:
     DomainServer(int argc, char* argv[]);
-    ~DomainServer();
     
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
     bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url);
@@ -50,11 +45,9 @@ public slots:
 private slots:
     
     void readAvailableDatagrams();
-    void readAvailableDTLSDatagrams();
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
     bool optionallySetupOAuth();
-    bool optionallySetupDTLS();
     bool optionallyReadX509KeyAndCertificate();
     
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
@@ -96,12 +89,6 @@ private:
     QVariantMap _argumentVariantMap;
     
     bool _isUsingDTLS;
-    gnutls_certificate_credentials_t* _x509Credentials;
-    gnutls_dh_params_t* _dhParams;
-    gnutls_datum_t* _cookieKey;
-    gnutls_priority_t* _priorityCache;
-    
-    QHash<HifiSockAddr, DTLSServerSession*> _dtlsSessions;
     
     QNetworkAccessManager* _networkAccessManager;
     

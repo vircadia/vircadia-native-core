@@ -9,8 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <gnutls/dtls.h>
-
 #include "NodeList.h"
 #include "PacketHeaders.h"
 
@@ -22,14 +20,9 @@ DomainHandler::DomainHandler(QObject* parent) :
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _assignmentUUID(),
     _isConnected(false),
-    _dtlsSession(NULL),
     _handshakeTimer(NULL)
 {
     
-}
-
-DomainHandler::~DomainHandler() {
-    delete _dtlsSession;
 }
 
 void DomainHandler::clearConnectionInfo() {
@@ -41,38 +34,12 @@ void DomainHandler::clearConnectionInfo() {
         delete _handshakeTimer;
         _handshakeTimer = NULL;
     }
-    
-    delete _dtlsSession;
-    _dtlsSession = NULL;
 }
 
 void DomainHandler::reset() {
     clearConnectionInfo();
     _hostname = QString();
     _sockAddr.setAddress(QHostAddress::Null);
-    
-    delete _dtlsSession;
-    _dtlsSession = NULL;
-}
-
-const unsigned int DTLS_HANDSHAKE_INTERVAL_MSECS = 100;
-
-void DomainHandler::initializeDTLSSession() {
-    if (!_dtlsSession) {
-        _dtlsSession = new DTLSClientSession(NodeList::getInstance()->getDTLSSocket(), _sockAddr);
-        
-        gnutls_session_set_ptr(*_dtlsSession->getGnuTLSSession(), this);
-        
-        // start a timer to complete the handshake process
-        _handshakeTimer = new QTimer(this);
-        connect(_handshakeTimer, &QTimer::timeout, this, &DomainHandler::completeDTLSHandshake);
-        
-        // start the handshake right now
-        completeDTLSHandshake();
-        
-        // start the timer to finish off the handshake
-        _handshakeTimer->start(DTLS_HANDSHAKE_INTERVAL_MSECS);
-    }
 }
 
 void DomainHandler::setSockAddr(const HifiSockAddr& sockAddr, const QString& hostname) {
@@ -120,30 +87,6 @@ void DomainHandler::setHostname(const QString& hostname) {
     }
 }
 
-void DomainHandler::completeDTLSHandshake() {
-    int handshakeReturn = gnutls_handshake(*_dtlsSession->getGnuTLSSession());
-    
-    if (handshakeReturn == 0) {
-        // we've shaken hands, so we're good to go now
-        _dtlsSession->setCompletedHandshake(true);
-        
-        _handshakeTimer->stop();
-        delete _handshakeTimer;
-        _handshakeTimer = NULL;
-        
-        // emit a signal so NodeList can handle incoming DTLS packets
-        emit completedDTLSHandshake();
-        
-    } else if (gnutls_error_is_fatal(handshakeReturn)) {
-        // this was a fatal error handshaking, so remove this session
-        qDebug() << "Fatal error -" << gnutls_strerror(handshakeReturn)
-            << "- during DTLS handshake with DS at"
-            << qPrintable((_hostname.isEmpty() ? _sockAddr.getAddress().toString() : _hostname));
-        
-        clearConnectionInfo();
-    }
-}
-
 void DomainHandler::completedHostnameLookup(const QHostInfo& hostInfo) {
     for (int i = 0; i < hostInfo.addresses().size(); i++) {
         if (hostInfo.addresses()[i].protocol() == QAbstractSocket::IPv4Protocol) {
@@ -179,5 +122,5 @@ void DomainHandler::parseDTLSRequirementPacket(const QByteArray& dtlsRequirement
     
     _sockAddr.setPort(dtlsPort);
     
-    initializeDTLSSession();
+//    initializeDTLSSession();
 }
