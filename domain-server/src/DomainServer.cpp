@@ -564,14 +564,21 @@ void DomainServer::readAvailableDatagrams() {
             Assignment requestAssignment(receivedPacket);
             
             // Suppress these for Assignment::AgentType to once per 5 seconds
-            static quint64 lastNoisyMessage = usecTimestampNow();
-            quint64 timeNow = usecTimestampNow();
-            const quint64 NOISY_TIME_ELAPSED = 5 * USECS_PER_SECOND;
-            bool noisyMessage = false;
-            if (requestAssignment.getType() != Assignment::AgentType || (timeNow - lastNoisyMessage) > NOISY_TIME_ELAPSED) {
+            static QElapsedTimer noisyMessageTimer;
+            static bool wasNoisyTimerStarted = false;
+            
+            if (!wasNoisyTimerStarted) {
+                noisyMessageTimer.start();
+                wasNoisyTimerStarted = true;
+            }
+            
+            const quint64 NOISY_MESSAGE_INTERVAL_MSECS = 5 * 1000;
+        
+            if (requestAssignment.getType() != Assignment::AgentType
+                || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS) {
                 qDebug() << "Received a request for assignment type" << requestAssignment.getType()
-                << "from" << senderSockAddr;
-                noisyMessage = true;
+                    << "from" << senderSockAddr;
+                noisyMessageTimer.restart();
             }
             
             SharedAssignmentPointer assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
@@ -589,15 +596,12 @@ void DomainServer::readAvailableDatagrams() {
                 nodeList->getNodeSocket().writeDatagram(assignmentPacket,
                                                         senderSockAddr.getAddress(), senderSockAddr.getPort());
             } else {
-                if (requestAssignment.getType() != Assignment::AgentType || (timeNow - lastNoisyMessage) > NOISY_TIME_ELAPSED) {
+                if (requestAssignment.getType() != Assignment::AgentType
+                    || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS) {
                     qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
-                    << "from" << senderSockAddr;
-                    noisyMessage = true;
+                        << "from" << senderSockAddr;
+                    noisyMessageTimer.restart();
                 }
-            }
-            
-            if (noisyMessage) {
-                lastNoisyMessage = timeNow;
             }
         } else if (!_isUsingDTLS) {
             // not using DTLS, process datagram normally
