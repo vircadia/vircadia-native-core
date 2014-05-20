@@ -27,12 +27,4 @@ link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
 include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} "${ROOT_DIR}")
 
-find_package(GnuTLS REQUIRED)
-
-# add a definition for ssize_t so that windows doesn't bail on gnutls.h
-if (WIN32)
-  add_definitions(-Dssize_t=long)
-endif ()
-
-include_directories(SYSTEM "${GNUTLS_INCLUDE_DIR}")
-target_link_libraries(${TARGET_NAME} Qt5::Network Qt5::Widgets Qt5::Script "${GNUTLS_LIBRARY}")
+target_link_libraries(${TARGET_NAME} Qt5::Network Qt5::Widgets Qt5::Script)
