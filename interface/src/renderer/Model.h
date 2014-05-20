@@ -17,6 +17,8 @@
 
 #include <CapsuleShape.h>
 
+#include <AnimationCache.h>
+
 #include "GeometryCache.h"
 #include "InterfaceConfig.h"
 #include "ProgramObject.h"
@@ -185,6 +187,23 @@ public:
 
     QStringList getJointNames() const;
     
+    class AnimationState {
+    public:
+        AnimationPointer animation;
+        float fps;
+        bool loop;    
+        float offset;
+        QVector<int> jointMappings;
+    };
+
+    const QVector<AnimationState>& getAnimationStates() const { return _animationStates; }
+    
+    /// Starts playing the animation at the specified URL.
+    void startAnimation(const QUrl& url, float fps = 30.0f, bool loop = true, float offset = 0.0f);
+    
+    /// Stops playing all animations.
+    void stopAnimation();
+    
     void clearShapes();
     void rebuildShapes();
     void resetShapePositions();
@@ -259,6 +278,8 @@ protected:
     };
     
     QVector<MeshState> _meshStates;
+    
+    QVector<AnimationState> _animationStates;
     
     // returns 'true' if needs fullUpdate after geometry change
     bool updateGeometry();

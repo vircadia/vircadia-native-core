@@ -14,6 +14,8 @@
 
 #include <QSettings>
 
+#include <AnimationCache.h>
+
 #include "Avatar.h"
 
 class AnimationData;
@@ -158,6 +160,15 @@ private:
 
     QVector<AnimationData> _animationData;
 
+    class AnimationState {
+    public:
+        AnimationPointer animation;
+        QVector<int> jointMappings;
+        float frameIndex;
+    };
+
+    QVector<AnimationState> _animationStates;
+
 	// private methods
     void updateOrientation(float deltaTime);
     void updateMotorFromKeyboard(float deltaTime, bool walking);
@@ -181,6 +192,8 @@ public:
     float fps;
     
     AnimationData();
+    
+    bool operator==(const AnimationData& other) const;
 };
 
 #endif // hifi_MyAvatar_h

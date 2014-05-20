@@ -599,7 +599,10 @@ AttachmentData MyAvatar::loadAttachmentData(const QUrl& modelURL, const QString&
 }
 
 void MyAvatar::setAnimationData(const QVector<AnimationData>& animationData) {
-    _animationData = animationData;
+    // exit early if no change
+    if (_animationData != animationData) {
+        _animationData = animationData;
+    }
 }
 
 int MyAvatar::parseDataAtOffset(const QByteArray& packet, int offset) {
@@ -1569,4 +1572,8 @@ void MyAvatar::applyCollision(const glm::vec3& contactPoint, const glm::vec3& pe
 
 AnimationData::AnimationData() :
     fps(30.0f) {
+}
+
+bool AnimationData::operator==(const AnimationData& other) const {
+    return url == other.url && fps == other.fps;
 }

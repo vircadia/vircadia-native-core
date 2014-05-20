@@ -594,6 +594,14 @@ QStringList Model::getJointNames() const {
     return isActive() ? _geometry->getFBXGeometry().getJointNames() : QStringList();
 }
 
+void Model::startAnimation(const QUrl& url, float fps, bool loop, float offset) {
+    AnimationState state = { Application::getInstance()->getAnimationCache()->getAnimation(url), fps, loop, offset };
+    _animationStates.append(state);
+}
+
+void Model::stopAnimation() {
+    _animationStates.clear();
+}
 
 void Model::clearShapes() {
     for (int i = 0; i < _jointShapes.size(); ++i) {
@@ -1006,6 +1014,22 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
 }
 
 void Model::simulateInternal(float deltaTime) {
+    // update animations
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    for (int i = 0; i < _animationStates.size(); i++) {
+        AnimationState& state = _animationStates[i];
+        if (!(state.animation && state.animation->isLoaded())) {
+            continue;
+        }
+        const FBXGeometry& animationGeometry = state.animation->getGeometry();
+        if (state.jointMappings.isEmpty()) {
+            for (int j = 0; j < geometry.joints.size(); j++) {
+                state.jointMappings.append(animationGeometry.jointIndices.value(geometry.joints.at(j).name) - 1);
+            }
+        }
+        
+    }
+
     // NOTE: this is a recursive call that walks all attachments, and their attachments
     // update the world space transforms for all joints
     for (int i = 0; i < _jointStates.size(); i++) {
@@ -1013,8 +1037,6 @@ void Model::simulateInternal(float deltaTime) {
     }
     _shapesAreDirty = true;
     
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-
     // update the attachment transforms and simulate them
     for (int i = 0; i < _attachments.size(); i++) {
         const FBXAttachment& attachment = geometry.attachments.at(i);
@@ -1425,6 +1447,10 @@ void Model::deleteGeometry() {
     _jointStates.clear();
     _meshStates.clear();
     clearShapes();
+    
+    for (int i = 0; i < _animationStates.size(); i++) {
+        _animationStates[i].jointMappings.clear();
+    }
     
     if (_geometry) {
         _geometry->clearLoadPriority(this);
