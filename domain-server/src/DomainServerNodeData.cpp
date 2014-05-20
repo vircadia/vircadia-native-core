@@ -20,6 +20,7 @@
 DomainServerNodeData::DomainServerNodeData() :
     _sessionSecretHash(),
     _assignmentUUID(),
+    _walletUUID(),
     _statsJSONObject(),
     _sendingSockAddr(),
     _isAuthenticated(true)

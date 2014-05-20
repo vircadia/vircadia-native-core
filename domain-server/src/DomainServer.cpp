@@ -342,8 +342,19 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     // check if this connect request matches an assignment in the queue
     bool isAssignment = _pendingAssignedNodes.contains(packetUUID);
     SharedAssignmentPointer matchingQueuedAssignment = SharedAssignmentPointer();
+    PendingAssignedNodeData* pendingAssigneeData = NULL;
     if (isAssignment) {
-        matchingQueuedAssignment = matchingQueuedAssignmentForCheckIn(packetUUID, nodeType);
+        pendingAssigneeData = _pendingAssignedNodes.take(packetUUID);
+        if (pendingAssigneeData) {
+            matchingQueuedAssignment = matchingQueuedAssignmentForCheckIn(packetUUID, nodeType);
+            
+            if (matchingQueuedAssignment) {
+                qDebug() << "Assignment deployed with" << uuidStringWithoutCurlyBraces(packetUUID)
+                    << "matches unfulfilled assignment"
+                    << uuidStringWithoutCurlyBraces(matchingQueuedAssignment->getUUID());
+            }
+        }
+        
     }
     
     if (!matchingQueuedAssignment && !_oauthProviderURL.isEmpty() && _argumentVariantMap.contains(ALLOWED_ROLES_CONFIG_KEY)) {
@@ -387,6 +398,10 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         
         if (isAssignment) {
             nodeData->setAssignmentUUID(matchingQueuedAssignment->getUUID());
+            nodeData->setWalletUUID(pendingAssigneeData->getWalletUUID());
+            
+            // now that we've pulled the wallet UUID and added the node to our list, delete the pending assignee data
+            delete pendingAssigneeData;
         }
         
         nodeData->setSendingSockAddr(senderSockAddr);
@@ -1076,28 +1091,18 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
     }
 }
 
-SharedAssignmentPointer DomainServer::matchingQueuedAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType) {
+SharedAssignmentPointer DomainServer::matchingQueuedAssignmentForCheckIn(const QUuid& assignmentUUID, NodeType_t nodeType) {
     QQueue<SharedAssignmentPointer>::iterator i = _unfulfilledAssignments.begin();
     
-    PendingAssignedNodeData* pendingAssigneeData = _pendingAssignedNodes.take(checkInUUID);
-    
-    if (pendingAssigneeData) {
-        while (i != _unfulfilledAssignments.end()) {
-            if (i->data()->getType() == Assignment::typeForNodeType(nodeType)
-                && i->data()->getUUID() == pendingAssigneeData->getAssignmentUUID()) {
-                // we have an unfulfilled assignment to return
-                qDebug() << "Assignment deployed with" << uuidStringWithoutCurlyBraces(checkInUUID)
-                    << "matches unfulfilled assignment"
-                    << uuidStringWithoutCurlyBraces(pendingAssigneeData->getAssignmentUUID());
-                
-                // first clear the pending assignee data
-                delete pendingAssigneeData;
-                
-                // return the matching assignment
-                return _unfulfilledAssignments.takeAt(i - _unfulfilledAssignments.begin());
-            } else {
-                ++i;
-            }
+    while (i != _unfulfilledAssignments.end()) {
+        if (i->data()->getType() == Assignment::typeForNodeType(nodeType)
+            && i->data()->getUUID() == assignmentUUID) {
+            // we have an unfulfilled assignment to return
+            
+            // return the matching assignment
+            return _unfulfilledAssignments.takeAt(i - _unfulfilledAssignments.begin());
+        } else {
+            ++i;
         }
     }
     
