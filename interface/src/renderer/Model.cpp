@@ -1694,7 +1694,7 @@ void AnimationHandle::setRunning(bool running) {
         if (!_model->_runningAnimations.contains(_self)) {
             insertSorted(_model->_runningAnimations, _self);
         }
-        _frameIndex = 0.0f;
+        _frameIndex = _firstFrame;
           
     } else {
         _model->_runningAnimations.removeOne(_self);
@@ -1706,7 +1706,10 @@ AnimationHandle::AnimationHandle(Model* model) :
     _model(model),
     _fps(30.0f),
     _priority(1.0f),
+    _firstFrame(0),
+    _lastFrame(INT_MAX),
     _loop(false),
+    _hold(false),
     _running(false) {
 }
 
@@ -1737,10 +1740,11 @@ void AnimationHandle::simulate(float deltaTime) {
         stop();
         return;
     }
-    int ceilFrameIndex = (int)glm::ceil(_frameIndex);
-    if (!_loop && ceilFrameIndex >= animationGeometry.animationFrames.size()) {
+    int lastFrameIndex = qMin(_lastFrame, animationGeometry.animationFrames.size() - 1);
+    int firstFrameIndex = qMin(_firstFrame, lastFrameIndex);
+    if ((!_loop && _frameIndex >= lastFrameIndex) || firstFrameIndex == lastFrameIndex) {
         // passed the end; apply the last frame
-        const FBXAnimationFrame& frame = animationGeometry.animationFrames.last();
+        const FBXAnimationFrame& frame = animationGeometry.animationFrames.at(lastFrameIndex);
         for (int i = 0; i < _jointMappings.size(); i++) {
             int mapping = _jointMappings.at(i);
             if (mapping != -1) {
@@ -1750,14 +1754,20 @@ void AnimationHandle::simulate(float deltaTime) {
                 }
             }
         }
-        stop();
+        if (!_hold) {
+            stop();
+        }
         return;
     }
+    int frameCount = lastFrameIndex - firstFrameIndex + 1;
+    _frameIndex = firstFrameIndex + glm::mod(qMax(_frameIndex - firstFrameIndex, 0.0f), (float)frameCount);
+    qDebug() << _frameIndex;
+    
     // blend between the closest two frames
     const FBXAnimationFrame& ceilFrame = animationGeometry.animationFrames.at(
-        ceilFrameIndex % animationGeometry.animationFrames.size());
+        firstFrameIndex + ((int)glm::ceil(_frameIndex) - firstFrameIndex) % frameCount);
     const FBXAnimationFrame& floorFrame = animationGeometry.animationFrames.at(
-        (int)glm::floor(_frameIndex) % animationGeometry.animationFrames.size());
+        firstFrameIndex + ((int)glm::floor(_frameIndex) - firstFrameIndex) % frameCount);
     float frameFraction = glm::fract(_frameIndex);
     for (int i = 0; i < _jointMappings.size(); i++) {
         int mapping = _jointMappings.at(i);

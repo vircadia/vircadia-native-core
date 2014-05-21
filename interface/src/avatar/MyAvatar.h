@@ -67,8 +67,8 @@ public:
     void removeAnimationHandle(const AnimationHandlePointer& handle);
     
     /// Allows scripts to run animations.
-    Q_INVOKABLE void startAnimation(const QString& url, float fps = 30.0f,
-        float priority = 1.0f, bool loop = false, const QStringList& maskedJoints = QStringList());
+    Q_INVOKABLE void startAnimation(const QString& url, float fps = 30.0f, float priority = 1.0f, bool loop = false,
+        bool hold = false, int firstFrame = 0, int lastFrame = INT_MAX, const QStringList& maskedJoints = QStringList());
     
     /// Stops an animation as identified by a URL.
     Q_INVOKABLE void stopAnimation(const QString& url);

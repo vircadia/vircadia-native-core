@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QCheckBox>
 #include <QDialogButtonBox>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
@@ -107,6 +108,24 @@ AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePo
     maskedJointBox->addWidget(_chooseMaskedJoints = new QPushButton("Choose"));
     connect(_chooseMaskedJoints, SIGNAL(clicked(bool)), SLOT(chooseMaskedJoints()));
     
+    layout->addRow("Loop:", _loop = new QCheckBox());
+    _loop->setChecked(handle->getLoop());
+    connect(_loop, SIGNAL(toggled(bool)), SLOT(updateHandle()));
+    
+    layout->addRow("Hold:", _hold = new QCheckBox());
+    _hold->setChecked(handle->getHold());
+    connect(_hold, SIGNAL(toggled(bool)), SLOT(updateHandle()));
+    
+    layout->addRow("First Frame:", _firstFrame = new QSpinBox());
+    _firstFrame->setMaximum(INT_MAX);
+    _firstFrame->setValue(handle->getFirstFrame());
+    connect(_firstFrame, SIGNAL(valueChanged(int)), SLOT(updateHandle()));
+    
+    layout->addRow("Last Frame:", _lastFrame = new QSpinBox());
+    _lastFrame->setMaximum(INT_MAX);
+    _lastFrame->setValue(handle->getLastFrame());
+    connect(_lastFrame, SIGNAL(valueChanged(int)), SLOT(updateHandle()));
+    
     QPushButton* remove = new QPushButton("Delete");
     layout->addRow(remove);
     connect(remove, SIGNAL(clicked(bool)), SLOT(removeHandle()));
@@ -149,7 +168,15 @@ void AnimationPanel::updateHandle() {
     _handle->setURL(_url->text());
     _handle->setFPS(_fps->value());
     _handle->setPriority(_priority->value());
+    _handle->setLoop(_loop->isChecked());
+    _handle->setHold(_hold->isChecked());
+    _handle->setFirstFrame(_firstFrame->value());
+    _handle->setLastFrame(_lastFrame->value());
     _handle->setMaskedJoints(_maskedJoints->text().split(QRegExp("\\s*,\\s*")));
+    
+    if ((_loop->isChecked() || _hold->isChecked()) && !_handle->isRunning()) {
+        _handle->start();
+    }
 }
 
 void AnimationPanel::removeHandle() {

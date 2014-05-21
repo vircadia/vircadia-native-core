@@ -17,9 +17,11 @@
 
 #include "avatar/MyAvatar.h"
 
+class QCheckBox;
 class QDoubleSpinner;
 class QLineEdit;
 class QPushButton;
+class QSpinBox;
 class QVBoxLayout;
 
 /// Allows users to edit the avatar animations.
@@ -64,6 +66,10 @@ private:
     QLineEdit* _url;
     QDoubleSpinBox* _fps;
     QDoubleSpinBox* _priority;
+    QCheckBox* _loop;
+    QCheckBox* _hold;
+    QSpinBox* _firstFrame;
+    QSpinBox* _lastFrame;
     QLineEdit* _maskedJoints;
     QPushButton* _chooseMaskedJoints;
     bool _applying;

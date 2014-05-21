@@ -393,6 +393,15 @@ public:
     void setLoop(bool loop) { _loop = loop; }
     bool getLoop() const { return _loop; }
     
+    void setHold(bool hold) { _hold = hold; }
+    bool getHold() const { return _hold; }
+    
+    void setFirstFrame(int firstFrame) { _firstFrame = firstFrame; }
+    int getFirstFrame() const { return _firstFrame; }
+    
+    void setLastFrame(int lastFrame) { _lastFrame = lastFrame; }
+    int getLastFrame() const { return _lastFrame; }
+    
     void setMaskedJoints(const QStringList& maskedJoints);
     const QStringList& getMaskedJoints() const { return _maskedJoints; }
     
@@ -416,7 +425,10 @@ private:
     QUrl _url;
     float _fps;
     float _priority;
+    int _firstFrame;
+    int _lastFrame;
     bool _loop;
+    bool _hold;
     QStringList _maskedJoints;
     bool _running;
     QVector<int> _jointMappings;
