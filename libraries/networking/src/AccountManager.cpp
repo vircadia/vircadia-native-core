@@ -136,7 +136,13 @@ void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::
         QNetworkRequest authenticatedRequest;
         
         QUrl requestURL = _authURL;
-        requestURL.setPath(path);
+        
+        if (path.startsWith("/")) {
+            requestURL.setPath(path);
+        } else {
+            requestURL.setPath("/" + path);
+        }
+        
         requestURL.setQuery("access_token=" + _accountInfo.getAccessToken().token);
         
         authenticatedRequest.setUrl(requestURL);

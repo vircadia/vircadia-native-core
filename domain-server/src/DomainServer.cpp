@@ -35,6 +35,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _httpsManager(NULL),
     _allAssignments(),
     _unfulfilledAssignments(),
+    _pendingAssignedNodes(),
     _isUsingDTLS(false),
     _oauthProviderURL(),
     _oauthClientID(),
@@ -49,13 +50,14 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     
     _argumentVariantMap = HifiConfigVariantMap::mergeCLParametersWithJSONConfig(arguments());
     
-    if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth()) {
-        // we either read a certificate and private key or were not passed one, good to load assignments
-        // and set up the node list
+    _networkAccessManager = new QNetworkAccessManager(this);
+    
+    if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth() && optionallySetupAssignmentPayment()) {
+        // we either read a certificate and private key or were not passed one
+        // and completed login or did not need to
+        
         qDebug() << "Setting up LimitedNodeList and assignments.";
         setupNodeListAndAssignments();
-        
-        _networkAccessManager = new QNetworkAccessManager(this);
     }
 }
 
@@ -129,7 +131,7 @@ bool DomainServer::optionallySetupOAuth() {
     _oauthClientSecret = QProcessEnvironment::systemEnvironment().value(OAUTH_CLIENT_SECRET_ENV);
     _hostname = _argumentVariantMap.value(REDIRECT_HOSTNAME_OPTION).toString();
     
-    if (!_oauthProviderURL.isEmpty() || !_hostname.isEmpty() || !_oauthClientID.isEmpty()) {
+    if (!_oauthClientID.isEmpty()) {
         if (_oauthProviderURL.isEmpty()
             || _hostname.isEmpty()
             || _oauthClientID.isEmpty()
@@ -185,6 +187,65 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
+}
+
+bool DomainServer::optionallySetupAssignmentPayment() {
+    // check if we have a username and password set via env
+    const QString PAY_FOR_ASSIGNMENTS_OPTION = "pay-for-assignments";
+    const QString HIFI_USERNAME_ENV_KEY = "DOMAIN_SERVER_USERNAME";
+    const QString HIFI_PASSWORD_ENV_KEY = "DOMAIN_SERVER_PASSWORD";
+    
+    if (_argumentVariantMap.contains(PAY_FOR_ASSIGNMENTS_OPTION)) {
+        if (!_oauthProviderURL.isEmpty()) {
+            
+            AccountManager& accountManager = AccountManager::getInstance();
+            accountManager.setAuthURL(_oauthProviderURL);
+            
+            if (!accountManager.hasValidAccessToken()) {
+                // we don't have a valid access token so we need to get one
+                QString username = QProcessEnvironment::systemEnvironment().value(HIFI_USERNAME_ENV_KEY);
+                QString password = QProcessEnvironment::systemEnvironment().value(HIFI_PASSWORD_ENV_KEY);
+                
+                if (!username.isEmpty() && !password.isEmpty()) {
+                    accountManager.requestAccessToken(username, password);
+                    
+                    // connect to loginFailed signal from AccountManager so we can quit if that is the case
+                    connect(&accountManager, &AccountManager::loginFailed, this, &DomainServer::loginFailed);
+                } else {
+                    qDebug() << "Missing access-token or username and password combination. domain-server will now quit.";
+                    QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+                    return false;
+                }
+            }
+            
+            // assume that the fact we are authing against HF data server means we will pay for assignments
+            // setup a timer to send transactions to pay assigned nodes every 30 seconds
+            QTimer* creditSetupTimer = new QTimer(this);
+            connect(creditSetupTimer, &QTimer::timeout, this, &DomainServer::setupPendingAssignmentCredits);
+            
+            const qint64 CREDIT_CHECK_INTERVAL_MSECS = 5 * 1000;
+            creditSetupTimer->start(CREDIT_CHECK_INTERVAL_MSECS);
+            
+            QTimer* nodePaymentTimer = new QTimer(this);
+            connect(nodePaymentTimer, &QTimer::timeout, this, &DomainServer::sendPendingTransactionsToServer);
+            
+            const qint64 TRANSACTION_SEND_INTERVAL_MSECS = 30 * 1000;
+            nodePaymentTimer->start(TRANSACTION_SEND_INTERVAL_MSECS);
+            
+        } else {
+            qDebug() << "Missing OAuth provider URL, but assigned node payment was enabled. domain-server will now quit.";
+            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+            
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+void DomainServer::loginFailed() {
+    qDebug() << "Login to data server has failed. domain-server will now quit";
+    QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
 }
 
 void DomainServer::parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes) {
@@ -339,10 +400,23 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     QUuid packetUUID = uuidFromPacketHeader(packet);
 
     // check if this connect request matches an assignment in the queue
-    bool isFulfilledOrUnfulfilledAssignment = _allAssignments.contains(packetUUID);
+    bool isAssignment = _pendingAssignedNodes.contains(packetUUID);
     SharedAssignmentPointer matchingQueuedAssignment = SharedAssignmentPointer();
-    if (isFulfilledOrUnfulfilledAssignment) {
-        matchingQueuedAssignment = matchingQueuedAssignmentForCheckIn(packetUUID, nodeType);
+    PendingAssignedNodeData* pendingAssigneeData = NULL;
+   
+    if (isAssignment) {
+        pendingAssigneeData = _pendingAssignedNodes.take(packetUUID);
+        
+        if (pendingAssigneeData) {
+            matchingQueuedAssignment = matchingQueuedAssignmentForCheckIn(pendingAssigneeData->getAssignmentUUID(), nodeType);
+            
+            if (matchingQueuedAssignment) {
+                qDebug() << "Assignment deployed with" << uuidStringWithoutCurlyBraces(packetUUID)
+                    << "matches unfulfilled assignment"
+                    << uuidStringWithoutCurlyBraces(matchingQueuedAssignment->getUUID());
+            }
+        }
+        
     }
     
     if (!matchingQueuedAssignment && !_oauthProviderURL.isEmpty() && _argumentVariantMap.contains(ALLOWED_ROLES_CONFIG_KEY)) {
@@ -371,8 +445,8 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         }
     }
         
-    if ((!isFulfilledOrUnfulfilledAssignment && !STATICALLY_ASSIGNED_NODES.contains(nodeType))
-        || (isFulfilledOrUnfulfilledAssignment && matchingQueuedAssignment)) {
+    if ((!isAssignment && !STATICALLY_ASSIGNED_NODES.contains(nodeType))
+        || (isAssignment && matchingQueuedAssignment)) {
         // this was either not a static assignment or it was and we had a matching one in the queue
         
         // create a new session UUID for this node
@@ -384,8 +458,12 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         // if this was a static assignment set the UUID, set the sendingSockAddr
         DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
         
-        if (isFulfilledOrUnfulfilledAssignment) {
-            nodeData->setAssignmentUUID(packetUUID);
+        if (isAssignment) {
+            nodeData->setAssignmentUUID(matchingQueuedAssignment->getUUID());
+            nodeData->setWalletUUID(pendingAssigneeData->getWalletUUID());
+            
+            // now that we've pulled the wallet UUID and added the node to our list, delete the pending assignee data
+            delete pendingAssigneeData;
         }
         
         nodeData->setSendingSockAddr(senderSockAddr);
@@ -564,14 +642,21 @@ void DomainServer::readAvailableDatagrams() {
             Assignment requestAssignment(receivedPacket);
             
             // Suppress these for Assignment::AgentType to once per 5 seconds
-            static quint64 lastNoisyMessage = usecTimestampNow();
-            quint64 timeNow = usecTimestampNow();
-            const quint64 NOISY_TIME_ELAPSED = 5 * USECS_PER_SECOND;
-            bool noisyMessage = false;
-            if (requestAssignment.getType() != Assignment::AgentType || (timeNow - lastNoisyMessage) > NOISY_TIME_ELAPSED) {
+            static QElapsedTimer noisyMessageTimer;
+            static bool wasNoisyTimerStarted = false;
+            
+            if (!wasNoisyTimerStarted) {
+                noisyMessageTimer.start();
+                wasNoisyTimerStarted = true;
+            }
+            
+            const quint64 NOISY_MESSAGE_INTERVAL_MSECS = 5 * 1000;
+        
+            if (requestAssignment.getType() != Assignment::AgentType
+                || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS) {
                 qDebug() << "Received a request for assignment type" << requestAssignment.getType()
-                << "from" << senderSockAddr;
-                noisyMessage = true;
+                    << "from" << senderSockAddr;
+                noisyMessageTimer.restart();
             }
             
             SharedAssignmentPointer assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
@@ -582,22 +667,28 @@ void DomainServer::readAvailableDatagrams() {
                 // give this assignment out, either the type matches or the requestor said they will take any
                 assignmentPacket.resize(numAssignmentPacketHeaderBytes);
                 
+                // setup a copy of this assignment that will have a unique UUID, for packaging purposes
+                Assignment uniqueAssignment(*assignmentToDeploy.data());
+                uniqueAssignment.setUUID(QUuid::createUuid());
+                
                 QDataStream assignmentStream(&assignmentPacket, QIODevice::Append);
                 
-                assignmentStream << *assignmentToDeploy.data();
+                assignmentStream << uniqueAssignment;
                 
                 nodeList->getNodeSocket().writeDatagram(assignmentPacket,
                                                         senderSockAddr.getAddress(), senderSockAddr.getPort());
+                
+                // add the information for that deployed assignment to the hash of pending assigned nodes
+                PendingAssignedNodeData* pendingNodeData = new PendingAssignedNodeData(assignmentToDeploy->getUUID(),
+                                                                                       requestAssignment.getWalletUUID());
+                _pendingAssignedNodes.insert(uniqueAssignment.getUUID(), pendingNodeData);
             } else {
-                if (requestAssignment.getType() != Assignment::AgentType || (timeNow - lastNoisyMessage) > NOISY_TIME_ELAPSED) {
+                if (requestAssignment.getType() != Assignment::AgentType
+                    || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS) {
                     qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
-                    << "from" << senderSockAddr;
-                    noisyMessage = true;
+                        << "from" << senderSockAddr;
+                    noisyMessageTimer.restart();
                 }
-            }
-            
-            if (noisyMessage) {
-                lastNoisyMessage = timeNow;
             }
         } else if (!_isUsingDTLS) {
             // not using DTLS, process datagram normally
@@ -614,6 +705,97 @@ void DomainServer::readAvailableDatagrams() {
             }
 
             nodeList->writeUnverifiedDatagram(dtlsRequiredPacket, senderSockAddr);
+        }
+    }
+}
+
+void DomainServer::setupPendingAssignmentCredits() {
+    // enumerate the NodeList to find the assigned nodes
+    foreach (const SharedNodePointer& node, LimitedNodeList::getInstance()->getNodeHash()) {
+        DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+        
+        if (!nodeData->getAssignmentUUID().isNull() && !nodeData->getWalletUUID().isNull()) {
+            // check if we have a non-finalized transaction for this node to add this amount to
+            TransactionHash::iterator i = _pendingAssignmentCredits.find(nodeData->getWalletUUID());
+            WalletTransaction* existingTransaction = NULL;
+            
+            while (i != _pendingAssignmentCredits.end() && i.key() == nodeData->getWalletUUID()) {
+                if (!i.value()->isFinalized()) {
+                    existingTransaction = i.value();
+                    break;
+                } else {
+                    ++i;
+                }
+            }
+            
+            qint64 elapsedMsecsSinceLastPayment = nodeData->getPaymentIntervalTimer().elapsed();
+            nodeData->getPaymentIntervalTimer().restart();
+            
+            const float CREDITS_PER_HOUR = 3;
+            const float CREDITS_PER_MSEC = CREDITS_PER_HOUR / (60 * 60 * 1000);
+    
+            float pendingCredits = elapsedMsecsSinceLastPayment * CREDITS_PER_MSEC;
+            
+            if (existingTransaction) {
+                existingTransaction->incrementAmount(pendingCredits);
+            } else {
+                // create a fresh transaction to pay this node, there is no transaction to append to
+                WalletTransaction* freshTransaction = new WalletTransaction(nodeData->getWalletUUID(), pendingCredits);
+                _pendingAssignmentCredits.insert(nodeData->getWalletUUID(), freshTransaction);
+            }
+        }
+    }
+}
+
+void DomainServer::sendPendingTransactionsToServer() {
+    
+    AccountManager& accountManager = AccountManager::getInstance();
+    
+    if (accountManager.hasValidAccessToken()) {
+        
+        // enumerate the pending transactions and send them to the server to complete payment
+        TransactionHash::iterator i = _pendingAssignmentCredits.begin();
+        
+        JSONCallbackParameters transactionCallbackParams;
+        
+        transactionCallbackParams.jsonCallbackReceiver = this;
+        transactionCallbackParams.jsonCallbackMethod = "transactionJSONCallback";
+        
+        while (i != _pendingAssignmentCredits.end()) {
+            accountManager.authenticatedRequest("api/v1/transactions", QNetworkAccessManager::PostOperation,
+                                                transactionCallbackParams, i.value()->postJson().toJson());
+            
+            // set this transaction to finalized so we don't add additional credits to it
+            i.value()->setIsFinalized(true);
+            
+            ++i;
+        }
+    }
+    
+}
+
+void DomainServer::transactionJSONCallback(const QJsonObject& data) {
+    // check if this was successful - if so we can remove it from our list of pending
+    if (data.value("status").toString() == "success") {
+        // create a dummy wallet transaction to unpack the JSON to
+        WalletTransaction dummyTransaction;
+        dummyTransaction.loadFromJson(data);
+        
+        TransactionHash::iterator i = _pendingAssignmentCredits.find(dummyTransaction.getDestinationUUID());
+        
+        while (i != _pendingAssignmentCredits.end() && i.key() == dummyTransaction.getDestinationUUID()) {
+            if (i.value()->getUUID() == dummyTransaction.getUUID()) {
+                // we have a match - we can remove this from the hash of pending credits
+                // and delete it for clean up
+                
+                WalletTransaction* matchingTransaction = i.value();
+                _pendingAssignmentCredits.erase(i);
+                delete matchingTransaction;
+                
+                break;
+            } else {
+                ++i;
+            }
         }
     }
 }
@@ -667,6 +849,7 @@ const char JSON_KEY_TYPE[] = "type";
 const char JSON_KEY_PUBLIC_SOCKET[] = "public";
 const char JSON_KEY_LOCAL_SOCKET[] = "local";
 const char JSON_KEY_POOL[] = "pool";
+const char JSON_KEY_PENDING_CREDITS[] = "pending_credits";
 const char JSON_KEY_WAKE_TIMESTAMP[] = "wake_timestamp";
 
 QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
@@ -695,6 +878,18 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
     SharedAssignmentPointer matchingAssignment = _allAssignments.value(nodeData->getAssignmentUUID());
     if (matchingAssignment) {
         nodeJson[JSON_KEY_POOL] = matchingAssignment->getPool();
+        
+        if (!nodeData->getWalletUUID().isNull()) {
+            TransactionHash::iterator i = _pendingAssignmentCredits.find(nodeData->getWalletUUID());
+            double pendingCreditAmount = 0;
+            
+            while (i != _pendingAssignmentCredits.end() && i.key() == nodeData->getWalletUUID()) {
+                pendingCreditAmount += i.value()->getAmount();
+                ++i;
+            }
+            
+            nodeJson[JSON_KEY_PENDING_CREDITS] = pendingCreditAmount;
+        }
     }
     
     return nodeJson;
@@ -764,6 +959,24 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             connection->respond(HTTPConnection::StatusCode200, assignmentDocument.toJson(), qPrintable(JSON_MIME_TYPE));
             
             // we've processed this request
+            return true;
+        } else if (url.path() == "/transactions.json") {
+            // enumerate our pending transactions and display them in an array
+            QJsonObject rootObject;
+            QJsonArray transactionArray;
+            
+            TransactionHash::iterator i = _pendingAssignmentCredits.begin();
+            while (i != _pendingAssignmentCredits.end()) {
+                transactionArray.push_back(i.value()->toJson());
+                ++i;
+            }
+            
+            rootObject["pending_transactions"] = transactionArray;
+            
+            // print out the created JSON
+            QJsonDocument transactionsDocument(rootObject);
+            connection->respond(HTTPConnection::StatusCode200, transactionsDocument.toJson(), qPrintable(JSON_MIME_TYPE));
+            
             return true;
         } else if (url.path() == QString("%1.json").arg(URI_NODES)) {
             // setup the JSON
@@ -1062,11 +1275,15 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
     }
 }
 
-SharedAssignmentPointer DomainServer::matchingQueuedAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType) {
+SharedAssignmentPointer DomainServer::matchingQueuedAssignmentForCheckIn(const QUuid& assignmentUUID, NodeType_t nodeType) {
     QQueue<SharedAssignmentPointer>::iterator i = _unfulfilledAssignments.begin();
     
     while (i != _unfulfilledAssignments.end()) {
-        if (i->data()->getType() == Assignment::typeForNodeType(nodeType) && i->data()->getUUID() == checkInUUID) {
+        if (i->data()->getType() == Assignment::typeForNodeType(nodeType)
+            && i->data()->getUUID() == assignmentUUID) {
+            // we have an unfulfilled assignment to return
+            
+            // return the matching assignment
             return _unfulfilledAssignments.takeAt(i - _unfulfilledAssignments.begin());
         } else {
             ++i;
