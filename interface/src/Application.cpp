@@ -555,14 +555,7 @@ void Application::paintGL() {
     glEnable(GL_LINE_SMOOTH);
 
     float pushback = 0.0f;
-    float pushbackFocalLength = 0.0f;
-    if (OculusManager::isConnected()) {
-        if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
-            _myCamera.setDistance(0.0f);
-        }
-        _myCamera.setUpShift(0.0f);
-        _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
-    } 
+    float pushbackFocalLength = 0.0f; 
     
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows (untweaked) head exactly without delay
@@ -589,6 +582,19 @@ void Application::paintGL() {
         float pushbackRadius = _myCamera.getNearClip() + _myAvatar->getScale() * BASE_PUSHBACK_RADIUS;
         pushback = relativePosition.z + pushbackRadius - _myCamera.getDistance();
         pushbackFocalLength = _myCamera.getDistance();
+    }
+
+    if (OculusManager::isConnected()) {
+        // OR in third person causes nausea, so only allow it if option is checked in dev menu
+        if (!Menu::getInstance()->isOptionChecked(MenuOption::AllowOculusCameraModeChange) || _myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+            _myCamera.setDistance(0.0f);
+            _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
+            _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
+            pushback = 0.0f;
+            pushbackFocalLength = 0.0f;
+        }
+        _myCamera.setUpShift(0.0f);
+        _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
     }
     
     // handle pushback, if any
