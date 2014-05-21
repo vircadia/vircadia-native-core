@@ -393,6 +393,9 @@ public:
     void setLoop(bool loop) { _loop = loop; }
     bool getLoop() const { return _loop; }
     
+    void setMaskedJoints(const QStringList& maskedJoints);
+    const QStringList& getMaskedJoints() const { return _maskedJoints; }
+    
     void setRunning(bool running);
     bool isRunning() const { return _running; }
     
@@ -414,6 +417,7 @@ private:
     float _fps;
     float _priority;
     bool _loop;
+    QStringList _maskedJoints;
     bool _running;
     QVector<int> _jointMappings;
     float _frameIndex;

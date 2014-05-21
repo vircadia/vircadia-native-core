@@ -513,6 +513,7 @@ void MyAvatar::saveData(QSettings* settings) {
         settings->setValue("url", pointer->getURL());
         settings->setValue("fps", pointer->getFPS());
         settings->setValue("priority", pointer->getPriority());
+        settings->setValue("maskedJoints", pointer->getMaskedJoints());
     }
     settings->endArray();
     
@@ -579,6 +580,7 @@ void MyAvatar::loadData(QSettings* settings) {
         handle->setURL(settings->value("url").toUrl());
         handle->setFPS(loadSetting(settings, "fps", 30.0f));
         handle->setPriority(loadSetting(settings, "priority", 1.0f));
+        handle->setMaskedJoints(settings->value("maskedJoints").toStringList());
     }
     settings->endArray();
     
