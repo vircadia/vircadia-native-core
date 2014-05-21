@@ -49,8 +49,6 @@ const float COLLISION_RADIUS_SCALE = 0.125f;
 const float MIN_KEYBOARD_CONTROL_SPEED = 2.0f;
 const float MAX_WALKING_SPEED = 3.0f * MIN_KEYBOARD_CONTROL_SPEED;
 
-const float DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5.0f * 1000.0f;
-
 // TODO: normalize avatar speed for standard avatar size, then scale all motion logic 
 // to properly follow avatar size.
 float DEFAULT_MOTOR_TIMESCALE = 0.25f;
@@ -83,11 +81,6 @@ MyAvatar::MyAvatar() :
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
-    
-    // update our location every 5 seconds in the data-server, assuming that we are authenticated with one
-    QTimer* locationUpdateTimer = new QTimer(this);
-    connect(locationUpdateTimer, &QTimer::timeout, this, &MyAvatar::updateLocationInDataServer);
-    locationUpdateTimer->start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
 }
 
 MyAvatar::~MyAvatar() {
@@ -111,7 +104,7 @@ void MyAvatar::reset() {
 void MyAvatar::update(float deltaTime) {
     Head* head = getHead();
     head->relaxLean(deltaTime);
-    updateFromFaceTracker(deltaTime);
+    updateFromTrackers(deltaTime);
     if (Menu::getInstance()->isOptionChecked(MenuOption::MoveWithLean)) {
         // Faceshift drive is enabled, set the avatar drive based on the head position
         moveWithLean();
@@ -234,26 +227,33 @@ void MyAvatar::simulate(float deltaTime) {
 }
 
 //  Update avatar head rotation with sensor data
-void MyAvatar::updateFromFaceTracker(float deltaTime) {
+void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
 
-    FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
-    if (tracker) {
-        estimatedPosition = tracker->getHeadTranslation();
-        estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
-        
-        //  Rotate the body if the head is turned beyond the screen
-        if (Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead)) {
-            const float TRACKER_YAW_TURN_SENSITIVITY = 0.5f;
-            const float TRACKER_MIN_YAW_TURN = 15.0f;
-            const float TRACKER_MAX_YAW_TURN = 50.0f;
-            if ( (fabs(estimatedRotation.y) > TRACKER_MIN_YAW_TURN) &&
-                 (fabs(estimatedRotation.y) < TRACKER_MAX_YAW_TURN) ) {
-                if (estimatedRotation.y > 0.0f) {
-                    _bodyYawDelta += (estimatedRotation.y - TRACKER_MIN_YAW_TURN) * TRACKER_YAW_TURN_SENSITIVITY;
-                } else {
-                    _bodyYawDelta += (estimatedRotation.y + TRACKER_MIN_YAW_TURN) * TRACKER_YAW_TURN_SENSITIVITY;
-                }
+    if (Application::getInstance()->getPrioVR()->hasHeadRotation()) {
+        estimatedRotation = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getHeadRotation()));
+        estimatedRotation.x *= -1.0f;
+        estimatedRotation.z *= -1.0f;
+
+    } else {
+        FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
+        if (tracker) {
+            estimatedPosition = tracker->getHeadTranslation();
+            estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
+        }
+    }
+    
+    //  Rotate the body if the head is turned beyond the screen
+    if (Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead)) {
+        const float TRACKER_YAW_TURN_SENSITIVITY = 0.5f;
+        const float TRACKER_MIN_YAW_TURN = 15.0f;
+        const float TRACKER_MAX_YAW_TURN = 50.0f;
+        if ( (fabs(estimatedRotation.y) > TRACKER_MIN_YAW_TURN) &&
+             (fabs(estimatedRotation.y) < TRACKER_MAX_YAW_TURN) ) {
+            if (estimatedRotation.y > 0.0f) {
+                _bodyYawDelta += (estimatedRotation.y - TRACKER_MIN_YAW_TURN) * TRACKER_YAW_TURN_SENSITIVITY;
+            } else {
+                _bodyYawDelta += (estimatedRotation.y + TRACKER_MIN_YAW_TURN) * TRACKER_YAW_TURN_SENSITIVITY;
             }
         }
     }
@@ -264,12 +264,25 @@ void MyAvatar::updateFromFaceTracker(float deltaTime) {
     // their head only 30 degrees or so, this may correspond to a 90 degree field of view.
     // Note that roll is magnified by a constant because it is not related to field of view.
 
-    float magnifyFieldOfView = Menu::getInstance()->getFieldOfView() / Menu::getInstance()->getRealWorldFieldOfView();
-    
+
     Head* head = getHead();
-    head->setDeltaPitch(estimatedRotation.x * magnifyFieldOfView);
-    head->setDeltaYaw(estimatedRotation.y * magnifyFieldOfView);
+    if (OculusManager::isConnected()){
+        head->setDeltaPitch(estimatedRotation.x);
+        head->setDeltaYaw(estimatedRotation.y);
+    } else {
+        float magnifyFieldOfView = Menu::getInstance()->getFieldOfView() / Menu::getInstance()->getRealWorldFieldOfView();
+        head->setDeltaPitch(estimatedRotation.x * magnifyFieldOfView);
+        head->setDeltaYaw(estimatedRotation.y * magnifyFieldOfView);
+    }
     head->setDeltaRoll(estimatedRotation.z);
+
+    // the priovr can give us exact lean
+    if (Application::getInstance()->getPrioVR()->isActive()) {
+        glm::vec3 eulers = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getTorsoRotation()));
+        head->setLeanSideways(eulers.z);
+        head->setLeanForward(eulers.x);
+        return;
+    }
 
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
@@ -415,6 +428,46 @@ void MyAvatar::setGravity(const glm::vec3& gravity) {
     }
 }
 
+AnimationHandlePointer MyAvatar::addAnimationHandle() {
+    AnimationHandlePointer handle = _skeletonModel.createAnimationHandle();
+    handle->setLoop(true);
+    handle->start();
+    _animationHandles.append(handle);
+    return handle;
+}
+
+void MyAvatar::removeAnimationHandle(const AnimationHandlePointer& handle) {
+    handle->stop();
+    _animationHandles.removeOne(handle);
+}
+
+void MyAvatar::startAnimation(const QString& url, float fps, float priority, bool loop) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "startAnimation", Q_ARG(const QString&, url),
+            Q_ARG(float, fps), Q_ARG(float, priority), Q_ARG(bool, loop));
+        return;
+    }
+    AnimationHandlePointer handle = _skeletonModel.createAnimationHandle();
+    handle->setURL(url);
+    handle->setFPS(fps);
+    handle->setPriority(priority);
+    handle->setLoop(loop);
+    handle->start();
+}
+
+void MyAvatar::stopAnimation(const QString& url) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "stopAnimation", Q_ARG(const QString&, url));
+        return;
+    }
+    foreach (const AnimationHandlePointer& handle, _skeletonModel.getRunningAnimations()) {
+        if (handle->getURL() == url) {
+            handle->stop();
+            return;
+        }
+    }
+}
+
 void MyAvatar::saveData(QSettings* settings) {
     settings->beginGroup("Avatar");
 
@@ -450,6 +503,16 @@ void MyAvatar::saveData(QSettings* settings) {
         settings->setValue("rotation_y", eulers.y);
         settings->setValue("rotation_z", eulers.z);
         settings->setValue("scale", attachment.scale);
+    }
+    settings->endArray();
+    
+    settings->beginWriteArray("animationHandles");
+    for (int i = 0; i < _animationHandles.size(); i++) {
+        settings->setArrayIndex(i);
+        const AnimationHandlePointer& pointer = _animationHandles.at(i);
+        settings->setValue("url", pointer->getURL());
+        settings->setValue("fps", pointer->getFPS());
+        settings->setValue("priority", pointer->getPriority());
     }
     settings->endArray();
     
@@ -502,6 +565,22 @@ void MyAvatar::loadData(QSettings* settings) {
     }
     settings->endArray();
     setAttachmentData(attachmentData);
+    
+    int animationCount = settings->beginReadArray("animationHandles");
+    while (_animationHandles.size() > animationCount) {
+        _animationHandles.takeLast()->stop();
+    }
+    while (_animationHandles.size() < animationCount) {
+        addAnimationHandle();
+    }
+    for (int i = 0; i < animationCount; i++) {
+        settings->setArrayIndex(i);
+        const AnimationHandlePointer& handle = _animationHandles.at(i);
+        handle->setURL(settings->value("url").toUrl());
+        handle->setFPS(loadSetting(settings, "fps", 30.0f));
+        handle->setPriority(loadSetting(settings, "priority", 1.0f));
+    }
+    settings->endArray();
     
     setDisplayName(settings->value("displayName").toString());
 
@@ -1419,29 +1498,6 @@ void MyAvatar::resetSize() {
     qDebug("Reseted scale to %f", _targetScale);
 }
 
-static QByteArray createByteArray(const glm::vec3& vector) {
-    return QByteArray::number(vector.x) + ',' + QByteArray::number(vector.y) + ',' + QByteArray::number(vector.z);
-}
-
-void MyAvatar::updateLocationInDataServer() {
-    // TODO: don't re-send this when it hasn't change or doesn't change by some threshold
-    // This will required storing the last sent values and clearing them when the AccountManager rootURL changes
-    
-    AccountManager& accountManager = AccountManager::getInstance();
-    
-    if (accountManager.isLoggedIn()) {
-        QString positionString(createByteArray(_position));
-        QString orientationString(createByteArray(glm::degrees(safeEulerAngles(getOrientation()))));
-        
-        // construct the json to put the user's location
-        QString locationPutJson = QString() + "{\"address\":{\"position\":\""
-            + positionString + "\", \"orientation\":\"" + orientationString + "\"}}";
-        
-        accountManager.authenticatedRequest("/api/v1/users/address", QNetworkAccessManager::PutOperation,
-                                            JSONCallbackParameters(), locationPutJson.toUtf8());
-    }
-}
-
 void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
     
     if (jsonObject["status"].toString() == "success") {
@@ -1556,3 +1612,4 @@ void MyAvatar::applyCollision(const glm::vec3& contactPoint, const glm::vec3& pe
         getHead()->addLeanDeltas(sideways, forward);
     }
 }
+

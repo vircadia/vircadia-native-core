@@ -145,7 +145,9 @@ void PreferencesDialog::loadPreferences() {
                                              ui.faceshiftEyeDeflectionSider->maximum());
     
     ui.audioJitterSpin->setValue(menuInstance->getAudioJitterBufferSamples());
-    
+
+    ui.realWorldFieldOfViewSpin->setValue(menuInstance->getRealWorldFieldOfView());
+
     ui.fieldOfViewSpin->setValue(menuInstance->getFieldOfView());
     
     ui.leanScaleSpin->setValue(myAvatar->getLeanScale());
@@ -203,6 +205,8 @@ void PreferencesDialog::savePreferences() {
     Application::getInstance()->resizeGL(Application::getInstance()->getGLWidget()->width(),
                                          Application::getInstance()->getGLWidget()->height());
 
+    Menu::getInstance()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
+    
     Menu::getInstance()->setFieldOfView(ui.fieldOfViewSpin->value());
 
     Menu::getInstance()->setFaceshiftEyeDeflection(ui.faceshiftEyeDeflectionSider->value() /

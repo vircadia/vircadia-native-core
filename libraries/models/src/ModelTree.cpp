@@ -108,6 +108,7 @@ bool FindAndUpdateModelOperator::PostRecursion(OctreeElement* element) {
     return !_found; // if we haven't yet found it, keep looking
 }
 
+// TODO: improve this to not use multiple recursions
 void ModelTree::storeModel(const ModelItem& model, const SharedNodePointer& senderNode) {
     // First, look for the existing model in the tree..
     FindAndUpdateModelOperator theOperator(model);
@@ -118,8 +119,13 @@ void ModelTree::storeModel(const ModelItem& model, const SharedNodePointer& send
         AABox modelBox = model.getAABox();
         ModelTreeElement* element = (ModelTreeElement*)getOrCreateChildElementContaining(model.getAABox());
         element->storeModel(model);
+        
+        // In the case where we stored it, we also need to mark the entire "path" down to the model as
+        // having changed. Otherwise viewers won't see this change. So we call this recursion now that
+        // we know it will be found, this find/update will correctly mark the tree as changed.
+        recurseTreeWithOperator(&theOperator);
     }
-    // what else do we need to do here to get reaveraging to work
+
     _isDirty = true;
 }
 
@@ -491,11 +497,12 @@ void ModelTree::update() {
     lockForWrite();
     _isDirty = true;
 
-    ModelTreeUpdateArgs args = { };
+    ModelTreeUpdateArgs args;
     recurseTreeWithOperation(updateOperation, &args);
 
     // now add back any of the particles that moved elements....
     int movingModels = args._movingModels.size();
+    
     for (int i = 0; i < movingModels; i++) {
         bool shouldDie = args._movingModels[i].getShouldDie();
 
@@ -553,7 +560,7 @@ bool ModelTree::encodeModelsDeletedSince(quint64& sinceTime, unsigned char* outp
     memcpy(copyAt, &numberOfIds, sizeof(numberOfIds));
     copyAt += sizeof(numberOfIds);
     outputLength += sizeof(numberOfIds);
-
+    
     // we keep a multi map of model IDs to timestamps, we only want to include the model IDs that have been
     // deleted since we last sent to this node
     _recentlyDeletedModelsLock.lockForRead();
@@ -595,7 +602,6 @@ bool ModelTree::encodeModelsDeletedSince(quint64& sinceTime, unsigned char* outp
 
     // replace the correct count for ids included
     memcpy(numberOfIDsAt, &numberOfIds, sizeof(numberOfIds));
-
     return hasMoreToSend;
 }
 

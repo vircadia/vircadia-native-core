@@ -76,7 +76,7 @@ void ParticleTreeRenderer::renderElement(OctreeElement* element, RenderArgs* arg
 
         bool drawAsModel = particle.hasModel();
 
-        args->_renderedItems++;
+        args->_itemsRendered++;
 
         if (drawAsModel) {
             glPushMatrix();

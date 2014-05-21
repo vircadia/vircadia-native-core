@@ -76,50 +76,59 @@ function controller(wichSide) {
     this.oldModelRadius;
     
     this.laser = Overlays.addOverlay("line3d", {
-                                     position: this.palmPosition,
-                                     end: this.tipPosition,
+                                     position: { x: 0, y: 0, z: 0 },
+                                     end: { x: 0, y: 0, z: 0 },
                                      color: LASER_COLOR,
                                      alpha: 1,
                                      visible: false,
-                                     lineWidth: LASER_WIDTH
+                                     lineWidth: LASER_WIDTH,
+                                     anchor: "MyAvatar"
                                      });
     
     this.guideScale = 0.02;
     this.ball = Overlays.addOverlay("sphere", {
-                                    position: this.palmPosition,
+                                    position: { x: 0, y: 0, z: 0 },
                                     size: this.guideScale,
                                     solid: true,
                                     color: { red: 0, green: 255, blue: 0 },
                                     alpha: 1,
                                     visible: false,
+                                    anchor: "MyAvatar"
                                     });
     this.leftRight = Overlays.addOverlay("line3d", {
-                                         position: this.palmPosition,
-                                         end: this.tipPosition,
+                                         position: { x: 0, y: 0, z: 0 },
+                                         end: { x: 0, y: 0, z: 0 },
                                          color: { red: 0, green: 0, blue: 255 },
                                          alpha: 1,
                                          visible: false,
-                                         lineWidth: LASER_WIDTH
+                                         lineWidth: LASER_WIDTH,
+                                         anchor: "MyAvatar"
                                          });
     this.topDown = Overlays.addOverlay("line3d", {
-                                       position: this.palmPosition,
-                                       end: this.tipPosition,
+                                       position: { x: 0, y: 0, z: 0 },
+                                       end: { x: 0, y: 0, z: 0 },
                                        color: { red: 0, green: 0, blue: 255 },
                                        alpha: 1,
                                        visible: false,
-                                       lineWidth: LASER_WIDTH
+                                       lineWidth: LASER_WIDTH,
+                                       anchor: "MyAvatar"
                                        });
     
 
     
     this.grab = function (modelID, properties) {
-        print("Grabbing " + modelID.id);
-        this.grabbing = true;
-        this.modelID = modelID;
+        if (this.isLocked(properties)) {
+            print("Model locked " + modelID.id);
+        } else {
+            print("Grabbing " + modelID.id);
         
-        this.oldModelPosition = properties.position;
-        this.oldModelRotation = properties.modelRotation;
-        this.oldModelRadius = properties.radius;
+            this.grabbing = true;
+            this.modelID = modelID;
+        
+            this.oldModelPosition = properties.position;
+            this.oldModelRotation = properties.modelRotation;
+            this.oldModelRadius = properties.radius;
+        }
     }
     
     this.release = function () {
@@ -140,8 +149,23 @@ function controller(wichSide) {
             this.pressed = false;
         }
     }
-    
+
+    this.isLocked = function (properties) {
+        // special case to lock the ground plane model in hq.
+        if (location.hostname == "hq.highfidelity.io" && 
+            properties.modelURL == "https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/Terrain_Reduce_forAlpha.fbx") {
+            return true;
+        }
+        return false;
+    }
+        
     this.checkModel = function (properties) {
+        // special case to lock the ground plane model in hq.
+        if (this.isLocked(properties)) {
+            return { valid: false };
+        }
+   
+    
         //                P         P - Model
         //               /|         A - Palm
         //              / | d       B - unit vector toward tip
@@ -170,10 +194,17 @@ function controller(wichSide) {
     }
     
     this.moveLaser = function () {
-        var endPosition = Vec3.sum(this.palmPosition, Vec3.multiply(this.front, LASER_LENGTH_FACTOR));
+        // the overlays here are anchored to the avatar, which means they are specified in the avatar's local frame
+       
+        var inverseRotation = Quat.inverse(MyAvatar.orientation);
+        var startPosition = Vec3.multiplyQbyV(inverseRotation, Vec3.subtract(this.palmPosition, MyAvatar.position));
+        var direction = Vec3.multiplyQbyV(inverseRotation, Vec3.subtract(this.tipPosition, this.palmPosition));
+        var distance = Vec3.length(direction);
+        direction = Vec3.multiply(direction, LASER_LENGTH_FACTOR / distance);
+        var endPosition = Vec3.sum(startPosition, direction);
         
         Overlays.editOverlay(this.laser, {
-                             position: this.palmPosition,
+                             position: startPosition,
                              end: endPosition,
                              visible: true
                              });
@@ -219,11 +250,11 @@ function controller(wichSide) {
                              position: newPosition,
                              modelRotation: newRotation
                              });
-            print("Moving " + this.modelID.id);
+//            print("Moving " + this.modelID.id);
 //            Vec3.print("Old Position: ", this.oldModelPosition);
 //            Vec3.print("Sav Position: ", newPosition);
-            Quat.print("Old Rotation: ", this.oldModelRotation);
-            Quat.print("New Rotation: ", newRotation);
+//            Quat.print("Old Rotation: ", this.oldModelRotation);
+//            Quat.print("New Rotation: ", newRotation);
             
             this.oldModelRotation = newRotation;
             this.oldModelPosition = newPosition;
@@ -274,15 +305,18 @@ function controller(wichSide) {
                 }
                 
                 var properties = Models.getModelProperties(foundModels[i]);
-                print("Checking properties: " + properties.id + " " + properties.isKnownID);
-                
-                var check = this.checkModel(properties);
-                if (check.valid) {
-                    this.grab(foundModels[i], properties);
-                    this.x = check.x;
-                    this.y = check.y;
-                    this.z = check.z;
-                    return;
+                if (this.isLocked(properties)) {
+                    print("Model locked " + properties.id);
+                } else {
+                    print("Checking properties: " + properties.id + " " + properties.isKnownID);
+                    var check = this.checkModel(properties);
+                    if (check.valid) {
+                        this.grab(foundModels[i], properties);
+                        this.x = check.x;
+                        this.y = check.y;
+                        this.z = check.z;
+                        return;
+                    }
                 }
             }
         }
@@ -301,7 +335,7 @@ var rightController = new controller(RIGHT);
 
 function moveModels() {
     if (leftController.grabbing && rightController.grabbing && rightController.modelID.id == leftController.modelID.id) {
-        print("Both controllers");
+        //print("Both controllers");
         var oldLeftPoint = Vec3.sum(leftController.oldPalmPosition, Vec3.multiply(leftController.oldFront, leftController.x));
         var oldRightPoint = Vec3.sum(rightController.oldPalmPosition, Vec3.multiply(rightController.oldFront, rightController.x));
         
@@ -319,7 +353,7 @@ function moveModels() {
         
         var newPosition = Vec3.sum(middle,
                                    Vec3.multiply(Vec3.subtract(leftController.oldModelPosition, oldMiddle), ratio));
-        Vec3.print("Ratio : " + ratio + " New position: ", newPosition);
+        //Vec3.print("Ratio : " + ratio + " New position: ", newPosition);
         var rotation = Quat.multiply(leftController.rotation,
                                      Quat.inverse(leftController.oldRotation));
         rotation = Quat.multiply(rotation, leftController.oldModelRotation);
@@ -452,51 +486,54 @@ function mousePressEvent(event) {
             }
             
             var properties = Models.getModelProperties(foundModels[i]);
-            print("Checking properties: " + properties.id + " " + properties.isKnownID);
+            if (this.isLocked(properties)) {
+                print("Model locked " + properties.id);
+            } else {
+                print("Checking properties: " + properties.id + " " + properties.isKnownID);
+                //                P         P - Model
+                //               /|         A - Palm
+                //              / | d       B - unit vector toward tip
+                //             /  |         X - base of the perpendicular line
+                //            A---X----->B  d - distance fom axis
+                //              x           x - distance from A
+                //
+                //            |X-A| = (P-A).B
+                //            X == A + ((P-A).B)B
+                //            d = |P-X|
             
-            //                P         P - Model
-            //               /|         A - Palm
-            //              / | d       B - unit vector toward tip
-            //             /  |         X - base of the perpendicular line
-            //            A---X----->B  d - distance fom axis
-            //              x           x - distance from A
-            //
-            //            |X-A| = (P-A).B
-            //            X == A + ((P-A).B)B
-            //            d = |P-X|
+                var A = pickRay.origin;
+                var B = Vec3.normalize(pickRay.direction);
+                var P = properties.position;
             
-            var A = pickRay.origin;
-            var B = Vec3.normalize(pickRay.direction);
-            var P = properties.position;
+                var x = Vec3.dot(Vec3.subtract(P, A), B);
+                var X = Vec3.sum(A, Vec3.multiply(B, x));
+                var d = Vec3.length(Vec3.subtract(P, X));
             
-            var x = Vec3.dot(Vec3.subtract(P, A), B);
-            var X = Vec3.sum(A, Vec3.multiply(B, x));
-            var d = Vec3.length(Vec3.subtract(P, X));
-            
-            if (d < properties.radius && 0 < x && x < LASER_LENGTH_FACTOR) {
-                modelSelected = true;
-                selectedModelID = foundModels[i];
-                selectedModelProperties = properties;
+                if (d < properties.radius && 0 < x && x < LASER_LENGTH_FACTOR) {
+                    modelSelected = true;
+                    selectedModelID = foundModels[i];
+                    selectedModelProperties = properties;
                 
-                selectedModelProperties.oldRadius = selectedModelProperties.radius;
-                selectedModelProperties.oldPosition = {
-                x: selectedModelProperties.position.x,
-                y: selectedModelProperties.position.y,
-                z: selectedModelProperties.position.z,
-                };
-                selectedModelProperties.oldRotation = {
-                x: selectedModelProperties.modelRotation.x,
-                y: selectedModelProperties.modelRotation.y,
-                z: selectedModelProperties.modelRotation.z,
-                w: selectedModelProperties.modelRotation.w,
-                };
+                    selectedModelProperties.oldRadius = selectedModelProperties.radius;
+                    selectedModelProperties.oldPosition = {
+                    x: selectedModelProperties.position.x,
+                    y: selectedModelProperties.position.y,
+                    z: selectedModelProperties.position.z,
+                    };
+                    selectedModelProperties.oldRotation = {
+                    x: selectedModelProperties.modelRotation.x,
+                    y: selectedModelProperties.modelRotation.y,
+                    z: selectedModelProperties.modelRotation.z,
+                    w: selectedModelProperties.modelRotation.w,
+                    };
                 
                 
-                orientation = MyAvatar.orientation;
-                intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
-                print("Clicked on " + selectedModelID.id + " " +  modelSelected);
+                    orientation = MyAvatar.orientation;
+                    intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
                 
-                return;
+                    print("Clicked on " + selectedModelID.id + " " +  modelSelected);
+                    return;
+                }
             }
         }
     }

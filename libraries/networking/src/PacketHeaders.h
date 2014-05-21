@@ -47,7 +47,7 @@ enum PacketType {
     PacketTypeVoxelSet,
     PacketTypeVoxelSetDestructive,
     PacketTypeVoxelErase,
-    PacketTypeOctreeStats,
+    PacketTypeOctreeStats, // 26
     PacketTypeJurisdiction,
     PacketTypeJurisdictionRequest,
     PacketTypeParticleQuery,
@@ -62,7 +62,7 @@ enum PacketType {
     PacketTypeDomainServerRequireDTLS,
     PacketTypeNodeJsonStats,
     PacketTypeModelQuery,
-    PacketTypeModelData,
+    PacketTypeModelData, // 41
     PacketTypeModelAddOrEdit,
     PacketTypeModelErase,
     PacketTypeModelAddResponse,

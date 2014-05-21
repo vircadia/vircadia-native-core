@@ -36,10 +36,12 @@ public:
     // own definition. Implement these to allow your octree based server to support editing
     virtual bool getWantSVOfileVersions() const { return true; }
     virtual PacketType expectedDataPacketType() const { return PacketTypeModelData; }
+    virtual bool canProcessVersion(PacketVersion thisVersion) const { return true; } // we support all versions
     virtual bool handlesEditPacketType(PacketType packetType) const;
     virtual int processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
                     const unsigned char* editData, int maxLength, const SharedNodePointer& senderNode);
 
+    virtual bool rootElementHasData() const { return true; }
     virtual void update();
 
     void storeModel(const ModelItem& model, const SharedNodePointer& senderNode = SharedNodePointer());

@@ -38,7 +38,7 @@ public:
     void reset();
     void update(float deltaTime);
     void simulate(float deltaTime);
-    void updateFromFaceTracker(float deltaTime);
+    void updateFromTrackers(float deltaTime);
     void moveWithLean();
 
     void render(const glm::vec3& cameraPosition, RenderMode renderMode = NORMAL_RENDER_MODE);
@@ -61,6 +61,17 @@ public:
     glm::vec3 getGravity() const { return _gravity; }
     glm::vec3 getUprightHeadPosition() const;
     bool getShouldRenderLocally() const { return _shouldRender; }
+    
+    const QList<AnimationHandlePointer>& getAnimationHandles() const { return _animationHandles; }
+    AnimationHandlePointer addAnimationHandle();
+    void removeAnimationHandle(const AnimationHandlePointer& handle);
+    
+    /// Allows scripts to run animations.
+    Q_INVOKABLE void startAnimation(const QString& url, float fps = 30.0f,
+        float priority = 1.0f, bool loop = false);
+    
+    /// Stops an animation as identified by a URL.
+    Q_INVOKABLE void stopAnimation(const QString& url);
     
     // get/set avatar data
     void saveData(QSettings* settings);
@@ -108,7 +119,6 @@ public slots:
     void decreaseSize();
     void resetSize();
     
-    void updateLocationInDataServer();
     void goToLocationFromResponse(const QJsonObject& jsonObject);
 
     //  Set/Get update the thrust that will move the avatar around
@@ -151,6 +161,8 @@ private:
     bool _shouldRender;
     bool _billboardValid;
     float _oculusYawOffset;
+
+    QList<AnimationHandlePointer> _animationHandles;
 
 	// private methods
     void updateOrientation(float deltaTime);

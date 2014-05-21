@@ -33,14 +33,28 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         return; // only simulate for own avatar
     }
 
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    PrioVR* prioVR = Application::getInstance()->getPrioVR();
+    if (prioVR->isActive()) {
+        for (int i = 0; i < prioVR->getJointRotations().size(); i++) {
+            int humanIKJointIndex = prioVR->getHumanIKJointIndices().at(i);
+            if (humanIKJointIndex == -1) {
+                continue;
+            }
+            int jointIndex = geometry.humanIKJointIndices.at(humanIKJointIndex);
+            if (jointIndex != -1) {
+                setJointRotation(jointIndex, _rotation * prioVR->getJointRotations().at(i), true);
+            }
+        }
+        return;
+    }
+
     // find the left and rightmost active palms
     int leftPalmIndex, rightPalmIndex;
     Hand* hand = _owningAvatar->getHand();
     hand->getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
 
-    const float HAND_RESTORATION_RATE = 0.25f;
-
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const float HAND_RESTORATION_RATE = 0.25f;    
     if (leftPalmIndex == -1) {
         // palms are not yet set, use mouse
         if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
@@ -150,7 +164,8 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
     
     // rotate palm to align with its normal (normal points out of hand's palm)
     glm::quat palmRotation;
-    if (Menu::getInstance()->isOptionChecked(MenuOption::AlignForearmsWithWrists)) {
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::AlternateIK) &&
+            Menu::getInstance()->isOptionChecked(MenuOption::AlignForearmsWithWrists)) {
         getJointRotation(parentJointIndex, palmRotation, true);
     } else {
         getJointRotation(jointIndex, palmRotation, true);
@@ -162,7 +177,10 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
     palmRotation = rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), direction) * palmRotation;
 
     // set hand position, rotation
-    if (Menu::getInstance()->isOptionChecked(MenuOption::AlignForearmsWithWrists)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AlternateIK)) {
+        setHandPosition(jointIndex, palm.getPosition(), palmRotation);  
+        
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::AlignForearmsWithWrists)) {
         glm::vec3 forearmVector = palmRotation * glm::vec3(sign, 0.0f, 0.0f);
         setJointPosition(parentJointIndex, palm.getPosition() + forearmVector *
             geometry.joints.at(jointIndex).distanceToParent * extractUniformScale(_scale));
@@ -186,7 +204,7 @@ void SkeletonModel::updateJointState(int index) {
 }
 
 void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
-    if (!_owningAvatar->isMyAvatar()) {
+    if (!_owningAvatar->isMyAvatar() || Application::getInstance()->getPrioVR()->isActive()) {
         return;
     }
     // get the rotation axes in joint space and use them to adjust the rotation
@@ -260,5 +278,68 @@ void SkeletonModel::renderJointConstraints(int jointIndex) {
     } while (jointIndex != -1 && geometry.joints.at(jointIndex).isFree);
     
     glLineWidth(1.0f);
+}
+
+void SkeletonModel::setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation) {
+    // this algorithm is from sample code from sixense
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    int elbowJointIndex = geometry.joints.at(jointIndex).parentIndex;
+    if (elbowJointIndex == -1) {
+        return;
+    }
+    int shoulderJointIndex = geometry.joints.at(elbowJointIndex).parentIndex;
+    glm::vec3 shoulderPosition;
+    if (!getJointPosition(shoulderJointIndex, shoulderPosition)) {
+        return;
+    }
+    // precomputed lengths
+    float scale = extractUniformScale(_scale);
+    float upperArmLength = geometry.joints.at(elbowJointIndex).distanceToParent * scale;
+    float lowerArmLength = geometry.joints.at(jointIndex).distanceToParent * scale;
+    
+    // first set wrist position
+    glm::vec3 wristPosition = position;
+    
+    glm::vec3 shoulderToWrist = wristPosition - shoulderPosition;
+    float distanceToWrist = glm::length(shoulderToWrist);
+    
+    // prevent gimbal lock
+    if (distanceToWrist > upperArmLength + lowerArmLength - EPSILON) {
+        distanceToWrist = upperArmLength + lowerArmLength - EPSILON;
+        shoulderToWrist = glm::normalize(shoulderToWrist) * distanceToWrist;
+        wristPosition = shoulderPosition + shoulderToWrist;
+    }
+    
+    // cosine of angle from upper arm to hand vector 
+    float cosA = (upperArmLength * upperArmLength + distanceToWrist * distanceToWrist - lowerArmLength * lowerArmLength) / 
+        (2 * upperArmLength * distanceToWrist);
+    float mid = upperArmLength * cosA;
+    float height = sqrt(upperArmLength * upperArmLength + mid * mid - 2 * upperArmLength * mid * cosA);
+    
+    // direction of the elbow
+    glm::vec3 handNormal = glm::cross(rotation * glm::vec3(0.0f, 1.0f, 0.0f), shoulderToWrist); // elbow rotating with wrist
+    glm::vec3 relaxedNormal = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), shoulderToWrist); // elbow pointing straight down
+    const float NORMAL_WEIGHT = 0.5f;
+    glm::vec3 finalNormal = glm::mix(relaxedNormal, handNormal, NORMAL_WEIGHT);
+    
+    bool rightHand = (jointIndex == geometry.rightHandJointIndex);
+    if (rightHand ? (finalNormal.y > 0.0f) : (finalNormal.y < 0.0f)) {
+        finalNormal.y = 0.0f; // dont allow elbows to point inward (y is vertical axis)
+    }
+    
+    glm::vec3 tangent = glm::normalize(glm::cross(shoulderToWrist, finalNormal));
+    
+    // ik solution
+    glm::vec3 elbowPosition = shoulderPosition + glm::normalize(shoulderToWrist) * mid - tangent * height;
+    
+    glm::vec3 forwardVector(rightHand ? -1.0f : 1.0f, 0.0f, 0.0f);
+    
+    glm::quat shoulderRotation = rotationBetween(forwardVector, elbowPosition - shoulderPosition);
+    setJointRotation(shoulderJointIndex, shoulderRotation, true);
+    
+    setJointRotation(elbowJointIndex, rotationBetween(shoulderRotation * forwardVector,
+        wristPosition - elbowPosition) * shoulderRotation, true);
+    
+    setJointRotation(jointIndex, rotation, true);
 }
 

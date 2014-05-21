@@ -63,7 +63,8 @@ Assignment::Assignment(Assignment::Command command, Assignment::Type type, const
     _pool(pool),
     _location(location),
     _payload(),
-    _isStatic(false)
+    _isStatic(false),
+    _walletUUID()
 {
     if (_command == Assignment::CreateCommand) {
         // this is a newly created assignment, generate a random UUID
@@ -74,7 +75,8 @@ Assignment::Assignment(Assignment::Command command, Assignment::Type type, const
 Assignment::Assignment(const QByteArray& packet) :
     _pool(),
     _location(GlobalLocation),
-    _payload()
+    _payload(),
+    _walletUUID()
 {
     PacketType packetType = packetTypeForPacket(packet);
     
@@ -104,6 +106,7 @@ Assignment::Assignment(const Assignment& otherAssignment) {
     _location = otherAssignment._location;
     _pool = otherAssignment._pool;
     _payload = otherAssignment._payload;
+    _walletUUID = otherAssignment._walletUUID;
 }
 
 Assignment& Assignment::operator=(const Assignment& rhsAssignment) {
@@ -121,6 +124,7 @@ void Assignment::swap(Assignment& otherAssignment) {
     swap(_location, otherAssignment._location);
     swap(_pool, otherAssignment._pool);
     swap(_payload, otherAssignment._payload);
+    swap(_walletUUID, otherAssignment._walletUUID);
 }
 
 const char* Assignment::getTypeName() const {
@@ -156,6 +160,10 @@ QDebug operator<<(QDebug debug, const Assignment &assignment) {
 QDataStream& operator<<(QDataStream &out, const Assignment& assignment) {
     out << (quint8) assignment._type << assignment._uuid << assignment._pool << assignment._payload;
     
+    if (assignment._command == Assignment::RequestCommand) {
+        out << assignment._walletUUID;
+    }
+    
     return out;
 }
 
@@ -165,6 +173,10 @@ QDataStream& operator>>(QDataStream &in, Assignment& assignment) {
     assignment._type = (Assignment::Type) packedType;
     
     in >> assignment._uuid >> assignment._pool >> assignment._payload;
+    
+    if (assignment._command == Assignment::RequestCommand) {
+        in >> assignment._walletUUID;
+    }
     
     return in;
 }

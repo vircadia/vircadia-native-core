@@ -13,6 +13,7 @@
         <th>Public</th>
         <th>Local</th>
         <th>Uptime (s)</th>
+        <th>Pending Credits</th>
         <th>Kill?</th>
       </tr>
     </thead>

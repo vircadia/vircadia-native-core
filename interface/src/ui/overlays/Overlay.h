@@ -28,6 +28,11 @@ class Overlay : public QObject {
     Q_OBJECT
     
 public:
+    enum Anchor {
+        NO_ANCHOR,
+        MY_AVATAR
+    };
+    
     Overlay();
     ~Overlay();
     void init(QGLWidget* parent);
@@ -38,11 +43,13 @@ public:
     bool getVisible() const { return _visible; }
     const xColor& getColor() const { return _color; }
     float getAlpha() const { return _alpha; }
+    Anchor getAnchor() const { return _anchor; }
 
     // setters
     void setVisible(bool visible) { _visible = visible; }
     void setColor(const xColor& color) { _color = color; }
     void setAlpha(float alpha) { _alpha = alpha; }
+    void setAnchor(Anchor anchor) { _anchor = anchor; }
 
     virtual void setProperties(const QScriptValue& properties);
 
@@ -51,6 +58,7 @@ protected:
     float _alpha;
     xColor _color;
     bool _visible; // should the overlay be drawn at all
+    Anchor _anchor;
 };
 
  

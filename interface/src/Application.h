@@ -58,6 +58,8 @@
 #include "avatar/MyAvatar.h"
 #include "devices/Faceplus.h"
 #include "devices/Faceshift.h"
+#include "devices/JoystickManager.h"
+#include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
 #include "devices/Visage.h"
 #include "models/ModelTreeRenderer.h"
@@ -72,6 +74,7 @@
 #include "ui/BandwidthDialog.h"
 #include "ui/BandwidthMeter.h"
 #include "ui/ModelsBrowser.h"
+#include "ui/NodeBounds.h"
 #include "ui/OctreeStatsDialog.h"
 #include "ui/RearMirrorTools.h"
 #include "ui/SnapshotShareDialog.h"
@@ -189,11 +192,15 @@ public:
     bool isMouseHidden() const { return _mouseHidden; }
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
+    int getMouseX() const { return _mouseX; }
+    int getMouseY() const { return _mouseY; }
     Faceplus* getFaceplus() { return &_faceplus; }
     Faceshift* getFaceshift() { return &_faceshift; }
     Visage* getVisage() { return &_visage; }
     FaceTracker* getActiveFaceTracker();
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
+    PrioVR* getPrioVR() { return &_prioVR; }
+    JoystickManager* getJoystickManager() { return &_joystickManager; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QUndoStack* getUndoStack() { return &_undoStack; }
 
@@ -210,6 +217,7 @@ public:
 
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
+    AnimationCache* getAnimationCache() { return &_animationCache; }
     TextureCache* getTextureCache() { return &_textureCache; }
     GlowEffect* getGlowEffect() { return &_glowEffect; }
     ControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
@@ -242,7 +250,7 @@ public:
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
 
-
+    NodeBounds& getNodeBoundsDisplay()  { return _nodeBoundsDisplay; }
 
     VoxelShader& getVoxelShader() { return _voxelShader; }
     PointShader& getPointShader() { return _pointShader; }
@@ -267,12 +275,16 @@ signals:
     /// Fired when we're rendering in-world interface elements; allows external parties to hook in.
     void renderingInWorldInterface();
 
+    /// Fired when we're rendering the overlay.
+    void renderingOverlay();
+
     /// Fired when the import window is closed
     void importDone();
 
 public slots:
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
+    void updateLocationInServer();
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
@@ -442,6 +454,8 @@ private:
     Visage _visage;
 
     SixenseManager _sixenseManager;
+    PrioVR _prioVR;
+    JoystickManager _joystickManager;
 
     Camera _myCamera;                  // My view onto the world
     Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
@@ -515,6 +529,8 @@ private:
     NodeToJurisdictionMap _modelServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
     QReadWriteLock _octreeSceneStatsLock;
+
+    NodeBounds _nodeBoundsDisplay;
 
     std::vector<VoxelFade> _voxelFades;
     ControllerScriptingInterface _controllerScriptingInterface;

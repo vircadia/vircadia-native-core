@@ -49,9 +49,9 @@ public:
     virtual void render(RenderMode renderMode = DEFAULT_RENDER_MODE);
 
 protected:
-    Model* getModel(const QString& url);
-
-    QMap<QString, Model*> _modelsItemModels;
+    Model* getModel(const ModelItem& modelItem);
+    QMap<uint32_t, Model*> _knownModelsItemModels;
+    QMap<uint32_t, Model*> _unknownModelsItemModels;
 };
 
 #endif // hifi_ModelTreeRenderer_h

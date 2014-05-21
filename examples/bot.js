@@ -25,7 +25,7 @@ function printVector(string, vector) {
 }
 
 var CHANCE_OF_MOVING = 0.005; 
-var CHANCE_OF_SOUND = 0.000;
+var CHANCE_OF_SOUND = 0.005;
 var CHANCE_OF_HEAD_TURNING = 0.05;
 var CHANCE_OF_BIG_MOVE = 0.1;
 var CHANCE_OF_WAVING = 0.009;     
@@ -41,11 +41,11 @@ var isWaving = false;
 var waveFrequency = 0.0;
 var waveAmplitude = 0.0; 
 
-var X_MIN = 20.0;
-var X_MAX = 25.0;
-var Z_MIN = 20.0;
-var Z_MAX = 25.0;
-var Y_PELVIS = 2.5;
+var X_MIN = 5.0;
+var X_MAX = 15.0;
+var Z_MIN = 5.0;
+var Z_MAX = 15.0;
+var Y_PELVIS = 1.0;
 var SPINE_JOINT_NUMBER = 13; 
 var SHOULDER_JOINT_NUMBER = 17; 
 var ELBOW_JOINT_NUMBER = 18;

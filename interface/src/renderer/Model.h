@@ -12,17 +12,24 @@
 #ifndef hifi_Model_h
 #define hifi_Model_h
 
+#include <QBitArray>
 #include <QObject>
 #include <QUrl>
 
 #include <CapsuleShape.h>
+
+#include <AnimationCache.h>
 
 #include "GeometryCache.h"
 #include "InterfaceConfig.h"
 #include "ProgramObject.h"
 #include "TextureCache.h"
 
+class AnimationHandle;
 class Shape;
+
+typedef QSharedPointer<AnimationHandle> AnimationHandlePointer;
+typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject {
@@ -182,9 +189,16 @@ public:
     
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
     bool getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind = false) const;
+
+    QStringList getJointNames() const;
+    
+    AnimationHandlePointer createAnimationHandle();
+    
+    const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
     
     void clearShapes();
     void rebuildShapes();
+    void resetShapePositions();
     void updateShapePositions();
     void renderJointCollisionShapes(float alpha);
     void renderBoundingCollisionShapes(float alpha);
@@ -232,6 +246,7 @@ protected:
     
     bool _snapModelToCenter; /// is the model's offset automatically adjusted to center around 0,0,0 in model space
     bool _snappedToCenter; /// are we currently snapped to center
+    int _rootIndex;
     
     class JointState {
     public:
@@ -239,6 +254,7 @@ protected:
         glm::quat rotation;     // rotation relative to parent
         glm::mat4 transform;    // rotation to world frame + translation in model frame
         glm::quat combinedRotation; // rotation from joint local to world frame
+        bool animationDisabled; // if true, animations do not affect this joint
     };
     
     bool _shapesAreDirty;
@@ -291,7 +307,11 @@ protected:
 
     void applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain = true);
     
+    void computeBoundingShape(const FBXGeometry& geometry);
+
 private:
+    
+    friend class AnimationHandle;
     
     void applyNextGeometry();
     void deleteGeometry();
@@ -315,6 +335,10 @@ private:
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
     
     QVector<Model*> _attachments;
+
+    QSet<WeakAnimationHandlePointer> _animationHandles;
+
+    QList<AnimationHandlePointer> _runningAnimations;
 
     static ProgramObject _program;
     static ProgramObject _normalMapProgram;
@@ -350,5 +374,49 @@ private:
 Q_DECLARE_METATYPE(QPointer<Model>)
 Q_DECLARE_METATYPE(QWeakPointer<NetworkGeometry>)
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
+
+/// Represents a handle to a model animation.
+class AnimationHandle : public QObject {
+    Q_OBJECT
+    
+public:
+
+    void setURL(const QUrl& url);
+    const QUrl& getURL() const { return _url; }
+    
+    void setFPS(float fps) { _fps = fps; }
+    float getFPS() const { return _fps; }
+
+    void setPriority(float priority);
+    float getPriority() const { return _priority; }
+    
+    void setLoop(bool loop) { _loop = loop; }
+    bool getLoop() const { return _loop; }
+    
+    void setRunning(bool running);
+    bool isRunning() const { return _running; }
+    
+    void start() { setRunning(true); }
+    void stop() { setRunning(false); }
+    
+private:
+
+    friend class Model;
+
+    AnimationHandle(Model* model);
+        
+    void simulate(float deltaTime);
+        
+    Model* _model;
+    WeakAnimationHandlePointer _self;
+    AnimationPointer _animation;
+    QUrl _url;
+    float _fps;
+    float _priority;
+    bool _loop;
+    bool _running;
+    QVector<int> _jointMappings;
+    float _frameIndex;
+};
 
 #endif // hifi_Model_h

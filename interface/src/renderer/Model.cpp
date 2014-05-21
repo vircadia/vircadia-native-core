@@ -39,6 +39,7 @@ Model::Model(QObject* parent) :
     _scaledToFit(false),
     _snapModelToCenter(false),
     _snappedToCenter(false),
+    _rootIndex(-1),
     _shapesAreDirty(true),
     _boundingRadius(0.f),
     _boundingShape(), 
@@ -117,6 +118,7 @@ QVector<Model::JointState> Model::createJointStates(const FBXGeometry& geometry)
         JointState state;
         state.translation = joint.translation;
         state.rotation = joint.rotation;
+        state.animationDisabled = false;
         jointStates.append(state);
     }
 
@@ -128,7 +130,6 @@ QVector<Model::JointState> Model::createJointStates(const FBXGeometry& geometry)
     jointIsSet.fill(false, numJoints);
     int numJointsSet = 0;
     int lastNumJointsSet = -1;
-    glm::mat4 baseTransform = glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset);
     while (numJointsSet < numJoints && numJointsSet != lastNumJointsSet) {
         lastNumJointsSet = numJointsSet;
         for (int i = 0; i < numJoints; ++i) {
@@ -139,6 +140,8 @@ QVector<Model::JointState> Model::createJointStates(const FBXGeometry& geometry)
             const FBXJoint& joint = geometry.joints[i];
             int parentIndex = joint.parentIndex;
             if (parentIndex == -1) {
+                _rootIndex = i;
+                glm::mat4 baseTransform = glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset);
                 glm::quat combinedRotation = joint.preRotation * state.rotation * joint.postRotation;    
                 state.transform = baseTransform * geometry.offset * glm::translate(state.translation) * joint.preTransform *
                     glm::mat4_cast(combinedRotation) * joint.postTransform;
@@ -433,7 +436,12 @@ Extents Model::getMeshExtents() const {
         return Extents();
     }
     const Extents& extents = _geometry->getFBXGeometry().meshExtents;
-    Extents scaledExtents = { extents.minimum * _scale, extents.maximum * _scale };
+
+    // even though our caller asked for "unscaled" we need to include any fst scaling, translation, and rotation, which
+    // is captured in the offset matrix
+    glm::vec3 minimum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.minimum, 1.0));
+    glm::vec3 maximum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.maximum, 1.0));
+    Extents scaledExtents = { minimum * _scale, maximum * _scale };
     return scaledExtents;
 }
 
@@ -441,8 +449,16 @@ Extents Model::getUnscaledMeshExtents() const {
     if (!isActive()) {
         return Extents();
     }
+    
     const Extents& extents = _geometry->getFBXGeometry().meshExtents;
-    return extents;
+
+    // even though our caller asked for "unscaled" we need to include any fst scaling, translation, and rotation, which
+    // is captured in the offset matrix
+    glm::vec3 minimum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.minimum, 1.0));
+    glm::vec3 maximum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.maximum, 1.0));
+    Extents scaledExtents = { minimum, maximum };
+        
+    return scaledExtents;
 }
 
 bool Model::getJointState(int index, glm::quat& rotation) const {
@@ -576,6 +592,27 @@ bool Model::getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind)
     return true;
 }
 
+QStringList Model::getJointNames() const {
+    if (QThread::currentThread() != thread()) {
+        QStringList result;
+        QMetaObject::invokeMethod(const_cast<Model*>(this), "getJointNames", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(QStringList, result));
+        return result;
+    }
+    return isActive() ? _geometry->getFBXGeometry().getJointNames() : QStringList();
+}
+
+uint qHash(const WeakAnimationHandlePointer& handle, uint seed) {
+    return qHash(handle.data(), seed);
+}
+
+AnimationHandlePointer Model::createAnimationHandle() {
+    AnimationHandlePointer handle(new AnimationHandle(this));
+    handle->_self = handle;
+    _animationHandles.insert(handle);
+    return handle;
+}
+
 void Model::clearShapes() {
     for (int i = 0; i < _jointShapes.size(); ++i) {
         delete _jointShapes[i];
@@ -586,65 +623,19 @@ void Model::clearShapes() {
 void Model::rebuildShapes() {
     clearShapes();
     
-    if (!_geometry) {
+    if (!_geometry || _rootIndex == -1) {
         return;
     }
     
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    
     if (geometry.joints.isEmpty()) {
         return;
     }
 
-    int numJoints = geometry.joints.size();
-    QVector<glm::mat4> transforms;
-    transforms.fill(glm::mat4(), numJoints);
-    QVector<glm::quat> combinedRotations;
-    combinedRotations.fill(glm::quat(), numJoints);
-    QVector<bool> shapeIsSet;
-    shapeIsSet.fill(false, numJoints);
-    int rootIndex = 0;
-
+    // We create the shapes with proper dimensions, but we set their transforms later.
     float uniformScale = extractUniformScale(_scale);
-    int numShapesSet = 0;
-    int lastNumShapesSet = -1;
-    while (numShapesSet < numJoints && numShapesSet != lastNumShapesSet) {
-        lastNumShapesSet = numShapesSet;
-        for (int i = 0; i < numJoints; ++i) {
-            if (shapeIsSet[i]) {
-                continue;
-            }
-            const FBXJoint& joint = geometry.joints[i];
-            int parentIndex = joint.parentIndex;
-            if (parentIndex == -1) {
-                rootIndex = i;
-                glm::mat4 baseTransform = glm::mat4_cast(_rotation) * uniformScale * glm::translate(_offset);
-                glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;    
-                transforms[i] = baseTransform * geometry.offset * glm::translate(joint.translation) * joint.preTransform *
-                    glm::mat4_cast(combinedRotation) * joint.postTransform;
-                combinedRotations[i] = _rotation * combinedRotation;
-                ++numShapesSet;
-                shapeIsSet[i] = true;
-            } else if (shapeIsSet[parentIndex]) {
-                glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;    
-                transforms[i] = transforms[parentIndex] * glm::translate(joint.translation) * joint.preTransform *
-                    glm::mat4_cast(combinedRotation) * joint.postTransform;
-                combinedRotations[i] = combinedRotations[parentIndex] * combinedRotation;
-                ++numShapesSet;
-                shapeIsSet[i] = true;
-            }
-        }
-    }
-
-    // joint shapes
-    Extents totalExtents;
-    totalExtents.reset();
     for (int i = 0; i < _jointStates.size(); i++) {
         const FBXJoint& joint = geometry.joints[i];
-
-        glm::vec3 worldPosition = extractTranslation(transforms[i]);
-        Extents shapeExtents;
-        shapeExtents.reset();
 
         float radius = uniformScale * joint.boneRadius;
         float halfHeight = 0.5f * uniformScale * joint.distanceToParent;
@@ -655,47 +646,150 @@ void Model::rebuildShapes() {
         }
         if (type == Shape::CAPSULE_SHAPE) {
             CapsuleShape* capsule = new CapsuleShape(radius, halfHeight);
-            capsule->setPosition(worldPosition);
-            capsule->setRotation(combinedRotations[i] * joint.shapeRotation);
             _jointShapes.push_back(capsule);
-
-            // add the two furthest surface points of the capsule
-            glm::vec3 axis;
-            capsule->computeNormalizedAxis(axis);
-            axis = halfHeight * axis + glm::vec3(radius);
-            shapeExtents.addPoint(worldPosition + axis);
-            shapeExtents.addPoint(worldPosition - axis);
-
-            totalExtents.addExtents(shapeExtents);
         } else if (type == Shape::SPHERE_SHAPE) {
-            SphereShape* sphere = new SphereShape(radius, worldPosition);
+            SphereShape* sphere = new SphereShape(radius, glm::vec3(0.0f));
             _jointShapes.push_back(sphere);
-
-            glm::vec3 axis = glm::vec3(radius);
-            shapeExtents.addPoint(worldPosition + axis);
-            shapeExtents.addPoint(worldPosition - axis);
-            totalExtents.addExtents(shapeExtents);
         } else {
             // this shape type is not handled and the joint shouldn't collide, 
             // however we must have a shape for each joint, 
             // so we make a bogus sphere with zero radius.
             // TODO: implement collision groups for more control over what collides with what
-            SphereShape* sphere = new SphereShape(0.f, worldPosition); 
+            SphereShape* sphere = new SphereShape(0.f, glm::vec3(0.0f)); 
             _jointShapes.push_back(sphere);
         }
     }
 
-    // bounding shape
-    // NOTE: we assume that the longest side of totalExtents is the yAxis
+    // This method moves the shapes to their default positions in Model frame
+    // which is where we compute the bounding shape's parameters.
+    computeBoundingShape(geometry);
+
+    // finally sync shapes to joint positions
+    _shapesAreDirty = true;
+    updateShapePositions();
+}
+
+void Model::computeBoundingShape(const FBXGeometry& geometry) {
+    // compute default joint transforms and rotations 
+    // (in local frame, ignoring Model translation and rotation)
+    int numJoints = geometry.joints.size();
+    QVector<glm::mat4> transforms;
+    transforms.fill(glm::mat4(), numJoints);
+    QVector<glm::quat> finalRotations;
+    finalRotations.fill(glm::quat(), numJoints);
+
+    QVector<bool> shapeIsSet;
+    shapeIsSet.fill(false, numJoints);
+    int numShapesSet = 0;
+    int lastNumShapesSet = -1;
+    glm::vec3 rootOffset(0.0f);
+    while (numShapesSet < numJoints && numShapesSet != lastNumShapesSet) {
+        lastNumShapesSet = numShapesSet;
+        for (int i = 0; i < numJoints; i++) {
+            const FBXJoint& joint = geometry.joints.at(i);
+            int parentIndex = joint.parentIndex;
+            
+            if (parentIndex == -1) {
+                glm::mat4 baseTransform = glm::scale(_scale) * glm::translate(_offset);
+                glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;    
+                transforms[i] = baseTransform * geometry.offset * glm::translate(joint.translation) 
+                    * joint.preTransform * glm::mat4_cast(combinedRotation) * joint.postTransform;
+                rootOffset = extractTranslation(transforms[i]);
+                finalRotations[i] = combinedRotation;
+                ++numShapesSet;
+                shapeIsSet[i] = true;
+            } else if (shapeIsSet[parentIndex]) {
+                glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;    
+                transforms[i] = transforms[parentIndex] * glm::translate(joint.translation) 
+                    * joint.preTransform * glm::mat4_cast(combinedRotation) * joint.postTransform;
+                finalRotations[i] = finalRotations[parentIndex] * combinedRotation;
+                ++numShapesSet;
+                shapeIsSet[i] = true;
+            }
+        }
+    }
+
+    // sync shapes to joints
+    _boundingRadius = 0.0f;
+    float uniformScale = extractUniformScale(_scale);
+    for (int i = 0; i < _jointShapes.size(); i++) {
+        const FBXJoint& joint = geometry.joints[i];
+        glm::vec3 jointToShapeOffset = uniformScale * (finalRotations[i] * joint.shapePosition);
+        glm::vec3 localPosition = extractTranslation(transforms[i]) + jointToShapeOffset- rootOffset;
+        Shape* shape = _jointShapes[i];
+        shape->setPosition(localPosition);
+        shape->setRotation(finalRotations[i] * joint.shapeRotation);
+        float distance = glm::length(localPosition) + shape->getBoundingRadius();
+        if (distance > _boundingRadius) {
+            _boundingRadius = distance;
+        }
+    }
+
+    // compute bounding box
+    Extents totalExtents;
+    totalExtents.reset();
+    for (int i = 0; i < _jointShapes.size(); i++) {
+        Extents shapeExtents;
+        shapeExtents.reset();
+
+        Shape* shape = _jointShapes[i];
+        glm::vec3 localPosition = shape->getPosition();
+        int type = shape->getType();
+        if (type == Shape::CAPSULE_SHAPE) {
+            // add the two furthest surface points of the capsule
+            CapsuleShape* capsule = static_cast<CapsuleShape*>(shape);
+            glm::vec3 axis;
+            capsule->computeNormalizedAxis(axis);
+            float radius = capsule->getRadius();
+            float halfHeight = capsule->getHalfHeight();
+            axis = halfHeight * axis + glm::vec3(radius);
+
+            shapeExtents.addPoint(localPosition + axis);
+            shapeExtents.addPoint(localPosition - axis);
+            totalExtents.addExtents(shapeExtents);
+        } else if (type == Shape::SPHERE_SHAPE) {
+            float radius = shape->getBoundingRadius();
+            glm::vec3 axis = glm::vec3(radius);
+            shapeExtents.addPoint(localPosition + axis);
+            shapeExtents.addPoint(localPosition - axis);
+            totalExtents.addExtents(shapeExtents);
+        }
+    }
+
+    // compute bounding shape parameters
+    // NOTE: we assume that the longest side of totalExtents is the yAxis...
     glm::vec3 diagonal = totalExtents.maximum - totalExtents.minimum;
-    // the radius is half the RMS of the X and Z sides:
+    // ... and assume the radius is half the RMS of the X and Z sides:
     float capsuleRadius = 0.5f * sqrtf(0.5f * (diagonal.x * diagonal.x + diagonal.z * diagonal.z));
     _boundingShape.setRadius(capsuleRadius);
     _boundingShape.setHalfHeight(0.5f * diagonal.y - capsuleRadius);
+    _boundingShapeLocalOffset = 0.5f * (totalExtents.maximum + totalExtents.minimum);
+}
 
-    glm::quat inverseRotation = glm::inverse(_rotation);
-    glm::vec3 rootPosition = extractTranslation(transforms[rootIndex]);
-    _boundingShapeLocalOffset = inverseRotation * (0.5f * (totalExtents.maximum + totalExtents.minimum) - rootPosition);
+void Model::resetShapePositions() {
+    // DEBUG method.
+    // Moves shapes to the joint default locations for debug visibility into
+    // how the bounding shape is computed.
+
+    if (!_geometry || _rootIndex == -1) {
+        // geometry or joints have not yet been created
+        return;
+    }
+    
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    if (geometry.joints.isEmpty() || _jointShapes.size() != geometry.joints.size()) {
+        return;
+    }
+
+    // The shapes are moved to their default positions in computeBoundingShape().
+    computeBoundingShape(geometry);
+
+    // Then we move them into world frame for rendering at the Model's location.
+    for (int i = 0; i < _jointShapes.size(); i++) {
+        Shape* shape = _jointShapes[i];
+        shape->setPosition(_translation + _rotation * shape->getPosition());
+        shape->setRotation(_rotation * shape->getRotation());
+    }
     _boundingShape.setPosition(_translation + _rotation * _boundingShapeLocalOffset);
     _boundingShape.setRotation(_rotation);
 }
@@ -711,17 +805,17 @@ void Model::updateShapePositions() {
             // shape position and rotation need to be in world-frame
             glm::vec3 jointToShapeOffset = uniformScale * (_jointStates[i].combinedRotation * joint.shapePosition);
             glm::vec3 worldPosition = extractTranslation(_jointStates[i].transform) + jointToShapeOffset + _translation;
-            _jointShapes[i]->setPosition(worldPosition);
-            _jointShapes[i]->setRotation(_jointStates[i].combinedRotation * joint.shapeRotation);
-            float distance2 = glm::distance2(worldPosition, _translation);
-            if (distance2 > _boundingRadius) {
-                _boundingRadius = distance2;
+            Shape* shape = _jointShapes[i];
+            shape->setPosition(worldPosition);
+            shape->setRotation(_jointStates[i].combinedRotation * joint.shapeRotation);
+            float distance = glm::distance(worldPosition, _translation) + shape->getBoundingRadius();
+            if (distance > _boundingRadius) {
+                _boundingRadius = distance;
             }
             if (joint.parentIndex == -1) {
                 rootPosition = worldPosition;
             }
         }
-        _boundingRadius = sqrtf(_boundingRadius);
         _shapesAreDirty = false;
         _boundingShape.setPosition(rootPosition + _rotation * _boundingShapeLocalOffset);
         _boundingShape.setRotation(_rotation);
@@ -930,6 +1024,11 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
 }
 
 void Model::simulateInternal(float deltaTime) {
+    // update animations
+    foreach (const AnimationHandlePointer& handle, _runningAnimations) {
+        handle->simulate(deltaTime);
+    }
+
     // NOTE: this is a recursive call that walks all attachments, and their attachments
     // update the world space transforms for all joints
     for (int i = 0; i < _jointStates.size(); i++) {
@@ -937,9 +1036,8 @@ void Model::simulateInternal(float deltaTime) {
     }
     _shapesAreDirty = true;
     
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-
     // update the attachment transforms and simulate them
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
     for (int i = 0; i < _attachments.size(); i++) {
         const FBXAttachment& attachment = geometry.attachments.at(i);
         Model* model = _attachments.at(i);
@@ -1110,6 +1208,7 @@ bool Model::setJointRotation(int jointIndex, const glm::quat& rotation, bool fro
     state.rotation = state.rotation * glm::inverse(state.combinedRotation) * rotation *
         glm::inverse(fromBind ? _geometry->getFBXGeometry().joints.at(jointIndex).inverseBindRotation :
             _geometry->getFBXGeometry().joints.at(jointIndex).inverseDefaultRotation);
+    state.animationDisabled = true;
     return true;
 }
 
@@ -1142,6 +1241,7 @@ bool Model::restoreJointPosition(int jointIndex, float percent) {
         const FBXJoint& joint = geometry.joints.at(index);
         state.rotation = safeMix(state.rotation, joint.rotation, percent);
         state.translation = glm::mix(state.translation, joint.translation, percent);
+        state.animationDisabled = false;
     }
     return true;
 }
@@ -1175,6 +1275,7 @@ void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool cons
     glm::quat newRotation = glm::quat(glm::clamp(eulers, joint.rotationMin, joint.rotationMax));
     state.combinedRotation = state.combinedRotation * glm::inverse(state.rotation) * newRotation;
     state.rotation = newRotation;
+    state.animationDisabled = true;
 }
 
 const int BALL_SUBDIVISIONS = 10;
@@ -1349,6 +1450,16 @@ void Model::deleteGeometry() {
     _jointStates.clear();
     _meshStates.clear();
     clearShapes();
+    
+    for (QSet<WeakAnimationHandlePointer>::iterator it = _animationHandles.begin(); it != _animationHandles.end(); ) {
+        AnimationHandlePointer handle = it->toStrongRef();
+        if (handle) {
+            handle->_jointMappings.clear();
+            it++;
+        } else {
+            it = _animationHandles.erase(it);
+        }
+    }
     
     if (_geometry) {
         _geometry->clearLoadPriority(this);
@@ -1545,3 +1656,103 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent) {
         activeProgram->release();
     }
 }
+
+void AnimationHandle::setURL(const QUrl& url) {
+    if (_url != url) {
+        _animation = Application::getInstance()->getAnimationCache()->getAnimation(_url = url);
+        _jointMappings.clear();
+    }
+}
+
+static void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandlePointer& handle) {
+    for (QList<AnimationHandlePointer>::iterator it = handles.begin(); it != handles.end(); it++) {
+        if (handle->getPriority() < (*it)->getPriority()) {
+            handles.insert(it, handle);
+            return;
+        } 
+    }
+    handles.append(handle);
+}
+
+void AnimationHandle::setPriority(float priority) {
+    if (_priority != priority) {
+        _priority = priority;
+        if (_running) {
+            _model->_runningAnimations.removeOne(_self);
+            insertSorted(_model->_runningAnimations, _self);
+        }
+    }
+}
+
+void AnimationHandle::setRunning(bool running) {
+    if ((_running = running)) {
+        if (!_model->_runningAnimations.contains(_self)) {
+            insertSorted(_model->_runningAnimations, _self);
+        }
+        _frameIndex = 0.0f;
+          
+    } else {
+        _model->_runningAnimations.removeOne(_self);
+    }
+}
+
+AnimationHandle::AnimationHandle(Model* model) :
+    QObject(model),
+    _model(model),
+    _fps(30.0f),
+    _priority(1.0f),
+    _loop(false),
+    _running(false) {
+}
+
+void AnimationHandle::simulate(float deltaTime) {
+    _frameIndex += deltaTime * _fps;
+    
+    // update the joint mappings if necessary/possible
+    if (_jointMappings.isEmpty()) {
+        if (_model->isActive()) {
+            _jointMappings = _model->getGeometry()->getJointMappings(_animation);
+        }
+        if (_jointMappings.isEmpty()) {
+            return;
+        }
+    }
+    
+    const FBXGeometry& animationGeometry = _animation->getGeometry();
+    if (animationGeometry.animationFrames.isEmpty()) {
+        stop();
+        return;
+    }
+    int ceilFrameIndex = (int)glm::ceil(_frameIndex);
+    if (!_loop && ceilFrameIndex >= animationGeometry.animationFrames.size()) {
+        // passed the end; apply the last frame
+        const FBXAnimationFrame& frame = animationGeometry.animationFrames.last();
+        for (int i = 0; i < _jointMappings.size(); i++) {
+            int mapping = _jointMappings.at(i);
+            if (mapping != -1) {
+                Model::JointState& state = _model->_jointStates[mapping];
+                if (!state.animationDisabled) {
+                    state.rotation = frame.rotations.at(i);
+                }
+            }
+        }
+        stop();
+        return;
+    }
+    // blend between the closest two frames
+    const FBXAnimationFrame& ceilFrame = animationGeometry.animationFrames.at(
+        ceilFrameIndex % animationGeometry.animationFrames.size());
+    const FBXAnimationFrame& floorFrame = animationGeometry.animationFrames.at(
+        (int)glm::floor(_frameIndex) % animationGeometry.animationFrames.size());
+    float frameFraction = glm::fract(_frameIndex);
+    for (int i = 0; i < _jointMappings.size(); i++) {
+        int mapping = _jointMappings.at(i);
+        if (mapping != -1) {
+            Model::JointState& state = _model->_jointStates[mapping];
+            if (!state.animationDisabled) {
+                state.rotation = safeMix(floorFrame.rotations.at(i), ceilFrame.rotations.at(i), frameFraction);
+            }
+        }
+    }
+}
+

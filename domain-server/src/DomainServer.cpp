@@ -18,8 +18,6 @@
 #include <QtCore/QTimer>
 #include <QtCore/QUrlQuery>
 
-#include <gnutls/dtls.h>
-
 #include <AccountManager.h>
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
@@ -28,7 +26,6 @@
 #include <UUID.h>
 
 #include "DomainServerNodeData.h"
-#include "DummyDTLSSession.h"
 
 #include "DomainServer.h"
 
@@ -38,19 +35,14 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _httpsManager(NULL),
     _allAssignments(),
     _unfulfilledAssignments(),
+    _pendingAssignedNodes(),
     _isUsingDTLS(false),
-    _x509Credentials(NULL),
-    _dhParams(NULL),
-    _priorityCache(NULL),
-    _dtlsSessions(),
     _oauthProviderURL(),
     _oauthClientID(),
     _hostname(),
     _networkReplyUUIDMap(),
     _sessionAuthenticationHash()
 {
-    gnutls_global_init();
-    
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
     setApplicationName("domain-server");
@@ -58,35 +50,15 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     
     _argumentVariantMap = HifiConfigVariantMap::mergeCLParametersWithJSONConfig(arguments());
     
-    if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth()) {
-        // we either read a certificate and private key or were not passed one, good to load assignments
-        // and set up the node list
+    _networkAccessManager = new QNetworkAccessManager(this);
+    
+    if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth() && optionallySetupAssignmentPayment()) {
+        // we either read a certificate and private key or were not passed one
+        // and completed login or did not need to
+        
         qDebug() << "Setting up LimitedNodeList and assignments.";
         setupNodeListAndAssignments();
-        
-        if (_isUsingDTLS) {
-            LimitedNodeList* nodeList = LimitedNodeList::getInstance();
-            
-            // connect our socket to read datagrams received on the DTLS socket
-            connect(&nodeList->getDTLSSocket(), &QUdpSocket::readyRead, this, &DomainServer::readAvailableDTLSDatagrams);
-        }
-        
-        _networkAccessManager = new QNetworkAccessManager(this);
     }
-}
-
-DomainServer::~DomainServer() {
-    if (_x509Credentials) {
-        gnutls_certificate_free_credentials(*_x509Credentials);
-        gnutls_priority_deinit(*_priorityCache);
-        gnutls_dh_params_deinit(*_dhParams);
-        
-        delete _x509Credentials;
-        delete _priorityCache;
-        delete _dhParams;
-        delete _cookieKey;
-    }
-    gnutls_global_deinit();
 }
 
 bool DomainServer::optionallyReadX509KeyAndCertificate() {
@@ -100,28 +72,28 @@ bool DomainServer::optionallyReadX509KeyAndCertificate() {
     if (!certPath.isEmpty() && !keyPath.isEmpty()) {
         // the user wants to use DTLS to encrypt communication with nodes
         // let's make sure we can load the key and certificate
-        _x509Credentials = new gnutls_certificate_credentials_t;
-        gnutls_certificate_allocate_credentials(_x509Credentials);
+//        _x509Credentials = new gnutls_certificate_credentials_t;
+//        gnutls_certificate_allocate_credentials(_x509Credentials);
         
         QString keyPassphraseString = QProcessEnvironment::systemEnvironment().value(X509_KEY_PASSPHRASE_ENV);
         
         qDebug() << "Reading certificate file at" << certPath << "for DTLS.";
         qDebug() << "Reading key file at" << keyPath << "for DTLS.";
         
-        int gnutlsReturn = gnutls_certificate_set_x509_key_file2(*_x509Credentials,
-                                                                 certPath.toLocal8Bit().constData(),
-                                                                 keyPath.toLocal8Bit().constData(),
-                                                                 GNUTLS_X509_FMT_PEM,
-                                                                 keyPassphraseString.toLocal8Bit().constData(),
-                                                                 0);
+//        int gnutlsReturn = gnutls_certificate_set_x509_key_file2(*_x509Credentials,
+//                                                                 certPath.toLocal8Bit().constData(),
+//                                                                 keyPath.toLocal8Bit().constData(),
+//                                                                 GNUTLS_X509_FMT_PEM,
+//                                                                 keyPassphraseString.toLocal8Bit().constData(),
+//                                                                 0);
+//        
+//        if (gnutlsReturn < 0) {
+//            qDebug() << "Unable to load certificate or key file." << "Error" << gnutlsReturn << "- domain-server will now quit.";
+//            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+//            return false;
+//        }
         
-        if (gnutlsReturn < 0) {
-            qDebug() << "Unable to load certificate or key file." << "Error" << gnutlsReturn << "- domain-server will now quit.";
-            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
-            return false;
-        }
-        
-        qDebug() << "Successfully read certificate and private key.";
+//        qDebug() << "Successfully read certificate and private key.";
         
         // we need to also pass this certificate and private key to the HTTPS manager
         // this is used for Oauth callbacks when authorizing users against a data server
@@ -159,7 +131,7 @@ bool DomainServer::optionallySetupOAuth() {
     _oauthClientSecret = QProcessEnvironment::systemEnvironment().value(OAUTH_CLIENT_SECRET_ENV);
     _hostname = _argumentVariantMap.value(REDIRECT_HOSTNAME_OPTION).toString();
     
-    if (!_oauthProviderURL.isEmpty() || !_hostname.isEmpty() || !_oauthClientID.isEmpty()) {
+    if (!_oauthClientID.isEmpty()) {
         if (_oauthProviderURL.isEmpty()
             || _hostname.isEmpty()
             || _oauthClientID.isEmpty()
@@ -171,39 +143,6 @@ bool DomainServer::optionallySetupOAuth() {
             qDebug() << "OAuth will be used to identify clients using provider at" << _oauthProviderURL.toString();
             qDebug() << "OAuth Client ID is" << _oauthClientID;
         }
-    }
-    
-    return true;
-}
-
-bool DomainServer::optionallySetupDTLS() {
-    if (_x509Credentials) {
-        qDebug() << "Generating Diffie-Hellman parameters.";
-        
-        // generate Diffie-Hellman parameters
-        // When short bit length is used, it might be wise to regenerate parameters often.
-        int dhBits = gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, GNUTLS_SEC_PARAM_LEGACY);
-        
-        _dhParams =  new gnutls_dh_params_t;
-        gnutls_dh_params_init(_dhParams);
-        gnutls_dh_params_generate2(*_dhParams, dhBits);
-        
-        qDebug() << "Successfully generated Diffie-Hellman parameters.";
-        
-        // set the D-H paramters on the X509 credentials
-        gnutls_certificate_set_dh_params(*_x509Credentials, *_dhParams);
-        
-        // setup the key used for cookie verification
-        _cookieKey = new gnutls_datum_t;
-        gnutls_key_generate(_cookieKey, GNUTLS_COOKIE_KEY_SIZE);
-        
-        _priorityCache = new gnutls_priority_t;
-        const char DTLS_PRIORITY_STRING[] = "PERFORMANCE:-VERS-TLS-ALL:+VERS-DTLS1.2:%SERVER_PRECEDENCE";
-        gnutls_priority_init(_priorityCache, DTLS_PRIORITY_STRING, NULL);
-        
-        _isUsingDTLS = true;
-        
-        qDebug() << "Initial DTLS setup complete.";
     }
     
     return true;
@@ -248,6 +187,65 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
+}
+
+bool DomainServer::optionallySetupAssignmentPayment() {
+    // check if we have a username and password set via env
+    const QString PAY_FOR_ASSIGNMENTS_OPTION = "pay-for-assignments";
+    const QString HIFI_USERNAME_ENV_KEY = "DOMAIN_SERVER_USERNAME";
+    const QString HIFI_PASSWORD_ENV_KEY = "DOMAIN_SERVER_PASSWORD";
+    
+    if (_argumentVariantMap.contains(PAY_FOR_ASSIGNMENTS_OPTION)) {
+        if (!_oauthProviderURL.isEmpty()) {
+            
+            AccountManager& accountManager = AccountManager::getInstance();
+            accountManager.setAuthURL(_oauthProviderURL);
+            
+            if (!accountManager.hasValidAccessToken()) {
+                // we don't have a valid access token so we need to get one
+                QString username = QProcessEnvironment::systemEnvironment().value(HIFI_USERNAME_ENV_KEY);
+                QString password = QProcessEnvironment::systemEnvironment().value(HIFI_PASSWORD_ENV_KEY);
+                
+                if (!username.isEmpty() && !password.isEmpty()) {
+                    accountManager.requestAccessToken(username, password);
+                    
+                    // connect to loginFailed signal from AccountManager so we can quit if that is the case
+                    connect(&accountManager, &AccountManager::loginFailed, this, &DomainServer::loginFailed);
+                } else {
+                    qDebug() << "Missing access-token or username and password combination. domain-server will now quit.";
+                    QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+                    return false;
+                }
+            }
+            
+            // assume that the fact we are authing against HF data server means we will pay for assignments
+            // setup a timer to send transactions to pay assigned nodes every 30 seconds
+            QTimer* creditSetupTimer = new QTimer(this);
+            connect(creditSetupTimer, &QTimer::timeout, this, &DomainServer::setupPendingAssignmentCredits);
+            
+            const qint64 CREDIT_CHECK_INTERVAL_MSECS = 5 * 1000;
+            creditSetupTimer->start(CREDIT_CHECK_INTERVAL_MSECS);
+            
+            QTimer* nodePaymentTimer = new QTimer(this);
+            connect(nodePaymentTimer, &QTimer::timeout, this, &DomainServer::sendPendingTransactionsToServer);
+            
+            const qint64 TRANSACTION_SEND_INTERVAL_MSECS = 30 * 1000;
+            nodePaymentTimer->start(TRANSACTION_SEND_INTERVAL_MSECS);
+            
+        } else {
+            qDebug() << "Missing OAuth provider URL, but assigned node payment was enabled. domain-server will now quit.";
+            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+            
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+void DomainServer::loginFailed() {
+    qDebug() << "Login to data server has failed. domain-server will now quit";
+    QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
 }
 
 void DomainServer::parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes) {
@@ -402,10 +400,23 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     QUuid packetUUID = uuidFromPacketHeader(packet);
 
     // check if this connect request matches an assignment in the queue
-    bool isFulfilledOrUnfulfilledAssignment = _allAssignments.contains(packetUUID);
+    bool isAssignment = _pendingAssignedNodes.contains(packetUUID);
     SharedAssignmentPointer matchingQueuedAssignment = SharedAssignmentPointer();
-    if (isFulfilledOrUnfulfilledAssignment) {
-        matchingQueuedAssignment = matchingQueuedAssignmentForCheckIn(packetUUID, nodeType);
+    PendingAssignedNodeData* pendingAssigneeData = NULL;
+   
+    if (isAssignment) {
+        pendingAssigneeData = _pendingAssignedNodes.take(packetUUID);
+        
+        if (pendingAssigneeData) {
+            matchingQueuedAssignment = matchingQueuedAssignmentForCheckIn(pendingAssigneeData->getAssignmentUUID(), nodeType);
+            
+            if (matchingQueuedAssignment) {
+                qDebug() << "Assignment deployed with" << uuidStringWithoutCurlyBraces(packetUUID)
+                    << "matches unfulfilled assignment"
+                    << uuidStringWithoutCurlyBraces(matchingQueuedAssignment->getUUID());
+            }
+        }
+        
     }
     
     if (!matchingQueuedAssignment && !_oauthProviderURL.isEmpty() && _argumentVariantMap.contains(ALLOWED_ROLES_CONFIG_KEY)) {
@@ -434,8 +445,8 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         }
     }
         
-    if ((!isFulfilledOrUnfulfilledAssignment && !STATICALLY_ASSIGNED_NODES.contains(nodeType))
-        || (isFulfilledOrUnfulfilledAssignment && matchingQueuedAssignment)) {
+    if ((!isAssignment && !STATICALLY_ASSIGNED_NODES.contains(nodeType))
+        || (isAssignment && matchingQueuedAssignment)) {
         // this was either not a static assignment or it was and we had a matching one in the queue
         
         // create a new session UUID for this node
@@ -447,8 +458,12 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         // if this was a static assignment set the UUID, set the sendingSockAddr
         DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
         
-        if (isFulfilledOrUnfulfilledAssignment) {
-            nodeData->setAssignmentUUID(packetUUID);
+        if (isAssignment) {
+            nodeData->setAssignmentUUID(matchingQueuedAssignment->getUUID());
+            nodeData->setWalletUUID(pendingAssigneeData->getWalletUUID());
+            
+            // now that we've pulled the wallet UUID and added the node to our list, delete the pending assignee data
+            delete pendingAssigneeData;
         }
         
         nodeData->setSendingSockAddr(senderSockAddr);
@@ -552,8 +567,8 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     
     if (nodeInterestList.size() > 0) {
         
-        DTLSServerSession* dtlsSession = _isUsingDTLS ? _dtlsSessions[senderSockAddr] : NULL;
-        int dataMTU = dtlsSession ? (int)gnutls_dtls_get_data_mtu(*dtlsSession->getGnuTLSSession()) : MAX_PACKET_SIZE;
+//        DTLSServerSession* dtlsSession = _isUsingDTLS ? _dtlsSessions[senderSockAddr] : NULL;
+        int dataMTU = MAX_PACKET_SIZE;
         
         if (nodeData->isAuthenticated()) {
             // if this authenticated node has any interest types, send back those nodes as well
@@ -589,11 +604,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
                         // we need to break here and start a new packet
                         // so send the current one
                         
-                        if (!dtlsSession) {
-                            nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
-                        } else {
-                            dtlsSession->writeDatagram(broadcastPacket);
-                        }
+                        nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
                         
                         // reset the broadcastPacket structure
                         broadcastPacket.resize(numBroadcastPacketLeadBytes);
@@ -607,11 +618,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
         }
         
         // always write the last broadcastPacket
-        if (!dtlsSession) {
-            nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
-        } else {
-            dtlsSession->writeDatagram(broadcastPacket);
-        }
+        nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
     }
 }
 
@@ -635,14 +642,21 @@ void DomainServer::readAvailableDatagrams() {
             Assignment requestAssignment(receivedPacket);
             
             // Suppress these for Assignment::AgentType to once per 5 seconds
-            static quint64 lastNoisyMessage = usecTimestampNow();
-            quint64 timeNow = usecTimestampNow();
-            const quint64 NOISY_TIME_ELAPSED = 5 * USECS_PER_SECOND;
-            bool noisyMessage = false;
-            if (requestAssignment.getType() != Assignment::AgentType || (timeNow - lastNoisyMessage) > NOISY_TIME_ELAPSED) {
+            static QElapsedTimer noisyMessageTimer;
+            static bool wasNoisyTimerStarted = false;
+            
+            if (!wasNoisyTimerStarted) {
+                noisyMessageTimer.start();
+                wasNoisyTimerStarted = true;
+            }
+            
+            const quint64 NOISY_MESSAGE_INTERVAL_MSECS = 5 * 1000;
+        
+            if (requestAssignment.getType() != Assignment::AgentType
+                || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS) {
                 qDebug() << "Received a request for assignment type" << requestAssignment.getType()
-                << "from" << senderSockAddr;
-                noisyMessage = true;
+                    << "from" << senderSockAddr;
+                noisyMessageTimer.restart();
             }
             
             SharedAssignmentPointer assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
@@ -653,22 +667,28 @@ void DomainServer::readAvailableDatagrams() {
                 // give this assignment out, either the type matches or the requestor said they will take any
                 assignmentPacket.resize(numAssignmentPacketHeaderBytes);
                 
+                // setup a copy of this assignment that will have a unique UUID, for packaging purposes
+                Assignment uniqueAssignment(*assignmentToDeploy.data());
+                uniqueAssignment.setUUID(QUuid::createUuid());
+                
                 QDataStream assignmentStream(&assignmentPacket, QIODevice::Append);
                 
-                assignmentStream << *assignmentToDeploy.data();
+                assignmentStream << uniqueAssignment;
                 
                 nodeList->getNodeSocket().writeDatagram(assignmentPacket,
                                                         senderSockAddr.getAddress(), senderSockAddr.getPort());
+                
+                // add the information for that deployed assignment to the hash of pending assigned nodes
+                PendingAssignedNodeData* pendingNodeData = new PendingAssignedNodeData(assignmentToDeploy->getUUID(),
+                                                                                       requestAssignment.getWalletUUID());
+                _pendingAssignedNodes.insert(uniqueAssignment.getUUID(), pendingNodeData);
             } else {
-                if (requestAssignment.getType() != Assignment::AgentType || (timeNow - lastNoisyMessage) > NOISY_TIME_ELAPSED) {
+                if (requestAssignment.getType() != Assignment::AgentType
+                    || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS) {
                     qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
-                    << "from" << senderSockAddr;
-                    noisyMessage = true;
+                        << "from" << senderSockAddr;
+                    noisyMessageTimer.restart();
                 }
-            }
-            
-            if (noisyMessage) {
-                lastNoisyMessage = timeNow;
             }
         } else if (!_isUsingDTLS) {
             // not using DTLS, process datagram normally
@@ -689,81 +709,92 @@ void DomainServer::readAvailableDatagrams() {
     }
 }
 
-void DomainServer::readAvailableDTLSDatagrams() {
-    LimitedNodeList* nodeList = LimitedNodeList::getInstance();
-    
-    QUdpSocket& dtlsSocket = nodeList->getDTLSSocket();
-    
-    static sockaddr senderSockAddr;
-    static socklen_t sockAddrSize = sizeof(senderSockAddr);
-    
-    while (dtlsSocket.hasPendingDatagrams()) {
-        // check if we have an active DTLS session for this sender
-        QByteArray peekDatagram(dtlsSocket.pendingDatagramSize(), 0);
-       
-        recvfrom(dtlsSocket.socketDescriptor(), peekDatagram.data(), dtlsSocket.pendingDatagramSize(),
-                 MSG_PEEK, &senderSockAddr, &sockAddrSize);
+void DomainServer::setupPendingAssignmentCredits() {
+    // enumerate the NodeList to find the assigned nodes
+    foreach (const SharedNodePointer& node, LimitedNodeList::getInstance()->getNodeHash()) {
+        DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
         
-        HifiSockAddr senderHifiSockAddr(&senderSockAddr);
-        DTLSServerSession* existingSession = _dtlsSessions.value(senderHifiSockAddr);
-        
-        if (existingSession) {
-            if (!existingSession->completedHandshake()) {
-                // check if we have completed handshake with this user
-                int handshakeReturn = gnutls_handshake(*existingSession->getGnuTLSSession());
-                
-                if (handshakeReturn == 0) {
-                    existingSession->setCompletedHandshake(true);
-                } else if (gnutls_error_is_fatal(handshakeReturn)) {
-                    // this was a fatal error handshaking, so remove this session
-                    qDebug() << "Fatal error -" << gnutls_strerror(handshakeReturn) << "- during DTLS handshake with"
-                        << senderHifiSockAddr;
-                    _dtlsSessions.remove(senderHifiSockAddr);
-                }
-            } else {
-                // pull the data from this user off the stack and process it
-                int receivedBytes = gnutls_record_recv(*existingSession->getGnuTLSSession(),
-                                                       peekDatagram.data(), peekDatagram.size());
-                if (receivedBytes > 0) {
-                    processDatagram(peekDatagram.left(receivedBytes), senderHifiSockAddr);
-                } else if (gnutls_error_is_fatal(receivedBytes)) {
-                    qDebug() << "Fatal error -" << gnutls_strerror(receivedBytes) << "- during DTLS handshake with"
-                        << senderHifiSockAddr;
+        if (!nodeData->getAssignmentUUID().isNull() && !nodeData->getWalletUUID().isNull()) {
+            // check if we have a non-finalized transaction for this node to add this amount to
+            TransactionHash::iterator i = _pendingAssignmentCredits.find(nodeData->getWalletUUID());
+            WalletTransaction* existingTransaction = NULL;
+            
+            while (i != _pendingAssignmentCredits.end() && i.key() == nodeData->getWalletUUID()) {
+                if (!i.value()->isFinalized()) {
+                    existingTransaction = i.value();
+                    break;
+                } else {
+                    ++i;
                 }
             }
-        } else {
-            // first we verify the cookie
-            // see http://gnutls.org/manual/html_node/DTLS-sessions.html for why this is required
-            gnutls_dtls_prestate_st prestate;
-            memset(&prestate, 0, sizeof(prestate));
-            int cookieValid = gnutls_dtls_cookie_verify(_cookieKey, &senderSockAddr, sizeof(senderSockAddr),
-                                                        peekDatagram.data(), peekDatagram.size(), &prestate);
             
-            if (cookieValid < 0) {
-                // the cookie sent by the client was not valid
-                // send a valid one
-                DummyDTLSSession tempServerSession(LimitedNodeList::getInstance()->getDTLSSocket(), senderHifiSockAddr);
-                
-                gnutls_dtls_cookie_send(_cookieKey, &senderSockAddr, sizeof(senderSockAddr), &prestate,
-                                        &tempServerSession, DTLSSession::socketPush);
-                
-                // acutally pull the peeked data off the network stack so that it gets discarded
-                dtlsSocket.readDatagram(peekDatagram.data(), peekDatagram.size());
+            qint64 elapsedMsecsSinceLastPayment = nodeData->getPaymentIntervalTimer().elapsed();
+            nodeData->getPaymentIntervalTimer().restart();
+            
+            const float CREDITS_PER_HOUR = 3;
+            const float CREDITS_PER_MSEC = CREDITS_PER_HOUR / (60 * 60 * 1000);
+    
+            float pendingCredits = elapsedMsecsSinceLastPayment * CREDITS_PER_MSEC;
+            
+            if (existingTransaction) {
+                existingTransaction->incrementAmount(pendingCredits);
             } else {
-                // cookie valid but no existing session - set up a new session now
-                DTLSServerSession* newServerSession = new DTLSServerSession(LimitedNodeList::getInstance()->getDTLSSocket(),
-                                                                            senderHifiSockAddr);
-                gnutls_session_t* gnutlsSession = newServerSession->getGnuTLSSession();
+                // create a fresh transaction to pay this node, there is no transaction to append to
+                WalletTransaction* freshTransaction = new WalletTransaction(nodeData->getWalletUUID(), pendingCredits);
+                _pendingAssignmentCredits.insert(nodeData->getWalletUUID(), freshTransaction);
+            }
+        }
+    }
+}
+
+void DomainServer::sendPendingTransactionsToServer() {
+    
+    AccountManager& accountManager = AccountManager::getInstance();
+    
+    if (accountManager.hasValidAccessToken()) {
+        
+        // enumerate the pending transactions and send them to the server to complete payment
+        TransactionHash::iterator i = _pendingAssignmentCredits.begin();
+        
+        JSONCallbackParameters transactionCallbackParams;
+        
+        transactionCallbackParams.jsonCallbackReceiver = this;
+        transactionCallbackParams.jsonCallbackMethod = "transactionJSONCallback";
+        
+        while (i != _pendingAssignmentCredits.end()) {
+            accountManager.authenticatedRequest("api/v1/transactions", QNetworkAccessManager::PostOperation,
+                                                transactionCallbackParams, i.value()->postJson().toJson());
+            
+            // set this transaction to finalized so we don't add additional credits to it
+            i.value()->setIsFinalized(true);
+            
+            ++i;
+        }
+    }
+    
+}
+
+void DomainServer::transactionJSONCallback(const QJsonObject& data) {
+    // check if this was successful - if so we can remove it from our list of pending
+    if (data.value("status").toString() == "success") {
+        // create a dummy wallet transaction to unpack the JSON to
+        WalletTransaction dummyTransaction;
+        dummyTransaction.loadFromJson(data);
+        
+        TransactionHash::iterator i = _pendingAssignmentCredits.find(dummyTransaction.getDestinationUUID());
+        
+        while (i != _pendingAssignmentCredits.end() && i.key() == dummyTransaction.getDestinationUUID()) {
+            if (i.value()->getUUID() == dummyTransaction.getUUID()) {
+                // we have a match - we can remove this from the hash of pending credits
+                // and delete it for clean up
                 
-                gnutls_priority_set(*gnutlsSession, *_priorityCache);
-                gnutls_credentials_set(*gnutlsSession, GNUTLS_CRD_CERTIFICATE, *_x509Credentials);
-                gnutls_dtls_prestate_set(*gnutlsSession, &prestate);
+                WalletTransaction* matchingTransaction = i.value();
+                _pendingAssignmentCredits.erase(i);
+                delete matchingTransaction;
                 
-                // handshake to begin the session
-                gnutls_handshake(*gnutlsSession);
-                
-                qDebug() << "Beginning DTLS session with node at" << senderHifiSockAddr;
-                _dtlsSessions[senderHifiSockAddr] = newServerSession;
+                break;
+            } else {
+                ++i;
             }
         }
     }
@@ -818,6 +849,7 @@ const char JSON_KEY_TYPE[] = "type";
 const char JSON_KEY_PUBLIC_SOCKET[] = "public";
 const char JSON_KEY_LOCAL_SOCKET[] = "local";
 const char JSON_KEY_POOL[] = "pool";
+const char JSON_KEY_PENDING_CREDITS[] = "pending_credits";
 const char JSON_KEY_WAKE_TIMESTAMP[] = "wake_timestamp";
 
 QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
@@ -846,6 +878,18 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
     SharedAssignmentPointer matchingAssignment = _allAssignments.value(nodeData->getAssignmentUUID());
     if (matchingAssignment) {
         nodeJson[JSON_KEY_POOL] = matchingAssignment->getPool();
+        
+        if (!nodeData->getWalletUUID().isNull()) {
+            TransactionHash::iterator i = _pendingAssignmentCredits.find(nodeData->getWalletUUID());
+            double pendingCreditAmount = 0;
+            
+            while (i != _pendingAssignmentCredits.end() && i.key() == nodeData->getWalletUUID()) {
+                pendingCreditAmount += i.value()->getAmount();
+                ++i;
+            }
+            
+            nodeJson[JSON_KEY_PENDING_CREDITS] = pendingCreditAmount;
+        }
     }
     
     return nodeJson;
@@ -915,6 +959,24 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             connection->respond(HTTPConnection::StatusCode200, assignmentDocument.toJson(), qPrintable(JSON_MIME_TYPE));
             
             // we've processed this request
+            return true;
+        } else if (url.path() == "/transactions.json") {
+            // enumerate our pending transactions and display them in an array
+            QJsonObject rootObject;
+            QJsonArray transactionArray;
+            
+            TransactionHash::iterator i = _pendingAssignmentCredits.begin();
+            while (i != _pendingAssignmentCredits.end()) {
+                transactionArray.push_back(i.value()->toJson());
+                ++i;
+            }
+            
+            rootObject["pending_transactions"] = transactionArray;
+            
+            // print out the created JSON
+            QJsonDocument transactionsDocument(rootObject);
+            connection->respond(HTTPConnection::StatusCode200, transactionsDocument.toJson(), qPrintable(JSON_MIME_TYPE));
+            
             return true;
         } else if (url.path() == QString("%1.json").arg(URI_NODES)) {
             // setup the JSON
@@ -1210,22 +1272,18 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
                 reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())->getSessionSecretHash().remove(node->getUUID());
             }
         }
-        
-        if (_isUsingDTLS) {
-            // check if we need to remove a DTLS session from our in-memory hash
-            DTLSServerSession* existingSession = _dtlsSessions.take(nodeData->getSendingSockAddr());
-            if (existingSession) {
-                delete existingSession;
-            }
-        }
     }
 }
 
-SharedAssignmentPointer DomainServer::matchingQueuedAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType) {
+SharedAssignmentPointer DomainServer::matchingQueuedAssignmentForCheckIn(const QUuid& assignmentUUID, NodeType_t nodeType) {
     QQueue<SharedAssignmentPointer>::iterator i = _unfulfilledAssignments.begin();
     
     while (i != _unfulfilledAssignments.end()) {
-        if (i->data()->getType() == Assignment::typeForNodeType(nodeType) && i->data()->getUUID() == checkInUUID) {
+        if (i->data()->getType() == Assignment::typeForNodeType(nodeType)
+            && i->data()->getUUID() == assignmentUUID) {
+            // we have an unfulfilled assignment to return
+            
+            // return the matching assignment
             return _unfulfilledAssignments.takeAt(i - _unfulfilledAssignments.begin());
         } else {
             ++i;
