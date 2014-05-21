@@ -24,7 +24,12 @@
 #include <HTTPSConnection.h>
 #include <LimitedNodeList.h>
 
+#include "WalletTransaction.h"
+
+#include "PendingAssignedNodeData.h"
+
 typedef QSharedPointer<Assignment> SharedAssignmentPointer;
+typedef QMultiHash<QUuid, WalletTransaction*> TransactionHash;
 
 class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
     Q_OBJECT
@@ -42,13 +47,18 @@ public slots:
     /// Called by NodeList to inform us a node has been killed
     void nodeKilled(SharedNodePointer node);
     
-private slots:
+    void transactionJSONCallback(const QJsonObject& data);
     
+private slots:
+    void loginFailed();
     void readAvailableDatagrams();
+    void setupPendingAssignmentCredits();
+    void sendPendingTransactionsToServer();
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
     bool optionallySetupOAuth();
     bool optionallyReadX509KeyAndCertificate();
+    bool optionallySetupAssignmentPayment();
     
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
     
@@ -85,6 +95,8 @@ private:
     
     QHash<QUuid, SharedAssignmentPointer> _allAssignments;
     QQueue<SharedAssignmentPointer> _unfulfilledAssignments;
+    QHash<QUuid, PendingAssignedNodeData*> _pendingAssignedNodes;
+    TransactionHash _pendingAssignmentCredits;
     
     QVariantMap _argumentVariantMap;
     

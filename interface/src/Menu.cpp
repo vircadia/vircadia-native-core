@@ -37,6 +37,7 @@
 #include "Menu.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "Util.h"
+#include "ui/AnimationsDialog.h"
 #include "ui/AttachmentsDialog.h"
 #include "ui/InfoView.h"
 #include "ui/MetavoxelEditor.h"
@@ -193,6 +194,7 @@ Menu::Menu() :
                                   QAction::PreferencesRole);
 
     addActionToQMenuAndActionHash(editMenu, MenuOption::Attachments, 0, this, SLOT(editAttachments()));
+    addActionToQMenuAndActionHash(editMenu, MenuOption::Animations, 0, this, SLOT(editAnimations()));
                                   
     addDisabledActionAndSeparator(editMenu, "Physics");
     QObject* avatar = appInstance->getAvatar();
@@ -860,6 +862,15 @@ void Menu::editAttachments() {
         _attachmentsDialog->show();
     } else {
         _attachmentsDialog->close();
+    }
+}
+
+void Menu::editAnimations() {
+    if (!_animationsDialog) {
+        _animationsDialog = new AnimationsDialog();
+        _animationsDialog->show();
+    } else {
+        _animationsDialog->close();
     }
 }
 

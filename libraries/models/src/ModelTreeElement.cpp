@@ -95,6 +95,11 @@ bool ModelTreeElement::bestFitModelBounds(const ModelItem& model) const {
     if (_box.contains(clampedMin) && _box.contains(clampedMax)) {
         int childForMinimumPoint = getMyChildContainingPoint(clampedMin);
         int childForMaximumPoint = getMyChildContainingPoint(clampedMax);
+        
+        // if this is a really small box, then it's close enough!
+        if (_box.getScale() <= SMALLEST_REASONABLE_OCTREE_ELEMENT_SCALE) {
+            return true;
+        }
         // If I contain both the minimum and maximum point, but two different children of mine
         // contain those points, then I am the best fit for that model
         if (childForMinimumPoint != childForMaximumPoint) {
@@ -323,6 +328,14 @@ bool ModelTreeElement::removeModelWithID(uint32_t id) {
 
 int ModelTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
             ReadBitstreamToTreeParams& args) {
+
+    // If we're the root, but this bitstream doesn't support root elements with data, then
+    // return without reading any bytes
+    if (this == _myTree->getRoot() && args.bitstreamVersion < VERSION_ROOT_ELEMENT_HAS_DATA) {
+        qDebug() << "ROOT ELEMENT: no root data for "
+                    "bitstreamVersion=" << (int)args.bitstreamVersion << " bytesLeftToRead=" << bytesLeftToRead;
+        return 0;
+    }
 
     const unsigned char* dataAt = data;
     int bytesRead = 0;

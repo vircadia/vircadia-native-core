@@ -211,6 +211,7 @@ public:
                     const unsigned char* editData, int maxLength, const SharedNodePointer& sourceNode) { return 0; }
                     
     virtual bool recurseChildrenWithData() const { return true; }
+    virtual bool rootElementHasData() const { return false; }
 
 
     virtual void update() { }; // nothing to do by default

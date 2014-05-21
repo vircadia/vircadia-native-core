@@ -351,6 +351,7 @@ bool ModelHandler::parseHeaders(QNetworkReply* reply) {
     
     QList<QStandardItem*> items = _model.findItems(QFileInfo(reply->url().toString()).baseName());
     if (items.isEmpty() || items.first()->text() == DO_NOT_MODIFY_TAG) {
+        _lock.unlock();
         return false;
     }
     

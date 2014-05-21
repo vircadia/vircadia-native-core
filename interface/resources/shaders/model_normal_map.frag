@@ -32,12 +32,15 @@ void main(void) {
     // compute the base color based on OpenGL lighting model
     vec4 viewNormal = vec4(normalizedTangent * localNormal.x +
         normalizedBitangent * localNormal.y + normalizedNormal * localNormal.z, 0.0);
+    float diffuse = dot(viewNormal, gl_LightSource[0].position);
+    float facingLight = step(0.0, diffuse);
     vec4 base = gl_Color * (gl_FrontLightModelProduct.sceneColor + gl_FrontLightProduct[0].ambient +
-        gl_FrontLightProduct[0].diffuse * max(0.0, dot(viewNormal, gl_LightSource[0].position)));
+        gl_FrontLightProduct[0].diffuse * (diffuse * facingLight));
 
     // compute the specular component (sans exponent)
-    float specular = max(0.0, dot(gl_LightSource[0].position, viewNormal));
-    
+    float specular = facingLight * max(0.0, dot(normalize(gl_LightSource[0].position + vec4(0.0, 0.0, 1.0, 0.0)),
+        viewNormal));
+        
     // modulate texture by base color and add specular contribution
     gl_FragColor = base * texture2D(diffuseMap, gl_TexCoord[0].st) +
         vec4(pow(specular, gl_FrontMaterial.shininess) * gl_FrontLightProduct[0].specular.rgb, 0.0);
