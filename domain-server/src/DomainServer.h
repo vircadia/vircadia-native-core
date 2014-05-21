@@ -58,7 +58,7 @@ private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
     bool optionallySetupOAuth();
     bool optionallyReadX509KeyAndCertificate();
-    bool optionallyLoginAndSetupAssignmentPayment();
+    bool optionallySetupAssignmentPayment();
     
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
     

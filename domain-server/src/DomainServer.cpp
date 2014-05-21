@@ -52,7 +52,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     
     _networkAccessManager = new QNetworkAccessManager(this);
     
-    if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth() && optionallyLoginAndSetupAssignmentPayment()) {
+    if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth() && optionallySetupAssignmentPayment()) {
         // we either read a certificate and private key or were not passed one
         // and completed login or did not need to
         
@@ -189,7 +189,7 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     addStaticAssignmentsToQueue();
 }
 
-bool DomainServer::optionallyLoginAndSetupAssignmentPayment() {
+bool DomainServer::optionallySetupAssignmentPayment() {
     // check if we have a username and password set via env
     const QString PAY_FOR_ASSIGNMENTS_OPTION = "pay-for-assignments";
     const QString HIFI_USERNAME_ENV_KEY = "DOMAIN_SERVER_USERNAME";
