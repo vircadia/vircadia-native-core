@@ -118,6 +118,7 @@ QVector<Model::JointState> Model::createJointStates(const FBXGeometry& geometry)
         JointState state;
         state.translation = joint.translation;
         state.rotation = joint.rotation;
+        state.animationDisabled = false;
         jointStates.append(state);
     }
 
