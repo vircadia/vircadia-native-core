@@ -557,8 +557,10 @@ void Application::paintGL() {
     float pushback = 0.0f;
     float pushbackFocalLength = 0.0f;
     if (OculusManager::isConnected()) {
+        if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+            _myCamera.setDistance(0.0f);
+        }
         _myCamera.setUpShift(0.0f);
-        _myCamera.setDistance(0.0f);
         _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
     } 
     
