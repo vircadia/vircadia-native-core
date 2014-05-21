@@ -37,15 +37,6 @@ link_hifi_library(animation ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(script-engine ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(embedded-webserver ${TARGET_NAME} "${ROOT_DIR}")
 
-find_package(GnuTLS REQUIRED)
-
-# add a definition for ssize_t so that windows doesn't bail on gnutls.h
-if (WIN32)
-  add_definitions(-Dssize_t=long)
-endif ()
-
-include_directories(SYSTEM "${GNUTLS_INCLUDE_DIR}")
-
 if (UNIX)
   target_link_libraries(${TARGET_NAME} ${CMAKE_DL_LIBS})
 endif (UNIX)
@@ -54,4 +45,9 @@ IF (WIN32)
 	target_link_libraries(${TARGET_NAME} Winmm Ws2_32)
 ENDIF(WIN32)
 
-target_link_libraries(${TARGET_NAME} Qt5::Network Qt5::Widgets Qt5::Script "${GNUTLS_LIBRARY}")
+target_link_libraries(${TARGET_NAME} Qt5::Network Qt5::Widgets Qt5::Script)
+
+# add a definition for ssize_t so that windows doesn't bail
+if (WIN32)
+  add_definitions(-Dssize_t=long)
+endif ()

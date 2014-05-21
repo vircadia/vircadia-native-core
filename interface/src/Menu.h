@@ -267,6 +267,7 @@ private:
 namespace MenuOption {
     const QString AboutApp = "About Interface";
     const QString AlignForearmsWithWrists = "Align Forearms with Wrists";
+    const QString AlternateIK = "Alternate IK";
     const QString AmbientOcclusion = "Ambient Occlusion";
     const QString Atmosphere = "Atmosphere";
     const QString Attachments = "Attachments...";
@@ -366,6 +367,9 @@ namespace MenuOption {
     const QString SettingsExport = "Export Settings";
     const QString SettingsImport = "Import Settings";
     const QString Shadows = "Shadows";
+    const QString ShowBordersVoxelNodes = "Show Voxel Nodes";
+    const QString ShowBordersModelNodes = "Show Model Nodes";
+    const QString ShowBordersParticleNodes = "Show Particle Nodes";
     const QString ShowIKConstraints = "Show IK Constraints";
     const QString Stars = "Stars";
     const QString Stats = "Stats";

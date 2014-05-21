@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QTimer>
 #include <QtDebug>
 
 #include <FBXReader.h>
@@ -17,6 +18,7 @@
 #include "PrioVR.h"
 #include "ui/TextRenderer.h"
 
+#ifdef HAVE_PRIOVR
 const unsigned int SERIAL_LIST[] = { 0x00000001, 0x00000000, 0x00000008, 0x00000009, 0x0000000A,
     0x0000000C, 0x0000000D, 0x0000000E, 0x00000004, 0x00000005, 0x00000010, 0x00000011 };
 const unsigned char AXIS_LIST[] = { 9, 43, 37, 37, 37, 13, 13, 13, 52, 52, 28, 28 };
@@ -25,7 +27,6 @@ const int LIST_LENGTH = sizeof(SERIAL_LIST) / sizeof(SERIAL_LIST[0]);
 const char* JOINT_NAMES[] = { "Neck", "Spine", "LeftArm", "LeftForeArm", "LeftHand", "RightArm",
     "RightForeArm", "RightHand", "LeftUpLeg", "LeftLeg", "RightUpLeg", "RightLeg" };  
 
-#ifdef HAVE_PRIOVR
 static int indexOfHumanIKJoint(const char* jointName) {
     for (int i = 0;; i++) {
         QByteArray humanIKJoint = HUMANIK_JOINTS[i];
@@ -36,6 +37,87 @@ static int indexOfHumanIKJoint(const char* jointName) {
             return i;
         }
     }
+}
+
+static void setPalm(float deltaTime, int index) {
+    MyAvatar* avatar = Application::getInstance()->getAvatar();
+    Hand* hand = avatar->getHand();
+    PalmData* palm;
+    bool foundHand = false;
+    for (size_t j = 0; j < hand->getNumPalms(); j++) {
+        if (hand->getPalms()[j].getSixenseID() == index) {
+            palm = &(hand->getPalms()[j]);
+            foundHand = true;
+        }
+    }
+    if (!foundHand) {
+        PalmData newPalm(hand);
+        hand->getPalms().push_back(newPalm);
+        palm = &(hand->getPalms()[hand->getNumPalms() - 1]);
+        palm->setSixenseID(index);
+    }
+    
+    palm->setActive(true);
+    
+    // Read controller buttons and joystick into the hand
+    if (!Application::getInstance()->getJoystickManager()->getJoystickStates().isEmpty()) {
+        const JoystickState& state = Application::getInstance()->getJoystickManager()->getJoystickStates().at(0);
+        if (state.axes.size() >= 4 && state.buttons.size() >= 4) {
+            if (index == SIXENSE_CONTROLLER_ID_LEFT_HAND) {
+                palm->setControllerButtons(state.buttons.at(1) ? BUTTON_FWD : 0);
+                palm->setTrigger(state.buttons.at(0) ? 1.0f : 0.0f);
+                palm->setJoystick(state.axes.at(0), -state.axes.at(1));
+                
+            } else {
+                palm->setControllerButtons(state.buttons.at(3) ? BUTTON_FWD : 0);
+                palm->setTrigger(state.buttons.at(2) ? 1.0f : 0.0f);
+                palm->setJoystick(state.axes.at(2), -state.axes.at(3)); 
+            }
+        }
+    }
+    
+    glm::vec3 position;
+    glm::quat rotation;
+    
+    Model* skeletonModel = &Application::getInstance()->getAvatar()->getSkeletonModel();
+    int jointIndex;
+    glm::quat inverseRotation = glm::inverse(Application::getInstance()->getAvatar()->getOrientation());
+    if (index == SIXENSE_CONTROLLER_ID_LEFT_HAND) {
+        jointIndex = skeletonModel->getLeftHandJointIndex();
+        skeletonModel->getJointRotation(jointIndex, rotation, true);      
+        rotation = inverseRotation * rotation * glm::quat(glm::vec3(0.0f, PI_OVER_TWO, 0.0f));
+        
+    } else {
+        jointIndex = skeletonModel->getRightHandJointIndex();
+        skeletonModel->getJointRotation(jointIndex, rotation, true);
+        rotation = inverseRotation * rotation * glm::quat(glm::vec3(0.0f, -PI_OVER_TWO, 0.0f));
+    }
+    skeletonModel->getJointPosition(jointIndex, position);
+    position = inverseRotation * (position - skeletonModel->getTranslation());
+    
+    palm->setRawRotation(rotation);
+    
+    //  Compute current velocity from position change
+    glm::vec3 rawVelocity;
+    if (deltaTime > 0.f) {
+        rawVelocity = (position - palm->getRawPosition()) / deltaTime; 
+    } else {
+        rawVelocity = glm::vec3(0.0f);
+    }
+    palm->setRawVelocity(rawVelocity);
+    palm->setRawPosition(position);
+    
+    // Store the one fingertip in the palm structure so we can track velocity
+    const float FINGER_LENGTH = 0.3f;   //  meters
+    const glm::vec3 FINGER_VECTOR(0.0f, 0.0f, FINGER_LENGTH);
+    const glm::vec3 newTipPosition = position + rotation * FINGER_VECTOR;
+    glm::vec3 oldTipPosition = palm->getTipRawPosition();
+    if (deltaTime > 0.f) {
+        palm->setTipVelocity((newTipPosition - oldTipPosition) / deltaTime);
+    } else {
+        palm->setTipVelocity(glm::vec3(0.f));
+    }
+    palm->setTipPosition(newTipPosition);
 }
 #endif
 
@@ -78,7 +160,7 @@ glm::quat PrioVR::getTorsoRotation() const {
     return _jointRotations.size() > TORSO_ROTATION_INDEX ? _jointRotations.at(TORSO_ROTATION_INDEX) : glm::quat();
 }
 
-void PrioVR::update() {
+void PrioVR::update(float deltaTime) {
 #ifdef HAVE_PRIOVR
     if (!_skeletalDevice) {
         return;
@@ -96,6 +178,10 @@ void PrioVR::update() {
         _lastJointRotations[i] = _jointRotations.at(i);
         _jointRotations[i] = safeMix(lastRotation, _jointRotations.at(i), 0.5f);
     }
+    
+    // convert the joysticks into palm data
+    setPalm(deltaTime, SIXENSE_CONTROLLER_ID_LEFT_HAND);
+    setPalm(deltaTime, SIXENSE_CONTROLLER_ID_RIGHT_HAND);
 #endif
 }
 

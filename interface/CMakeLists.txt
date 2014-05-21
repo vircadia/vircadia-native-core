@@ -69,7 +69,6 @@ foreach(EXTERNAL_SOURCE_SUBDIR ${EXTERNAL_SOURCE_SUBDIRS})
 endforeach(EXTERNAL_SOURCE_SUBDIR)
 
 find_package(Qt5 COMPONENTS Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets Xml UiTools)
-find_package(GnuTLS REQUIRED)
 
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
@@ -136,6 +135,7 @@ find_package(Faceplus)
 find_package(Faceshift)
 find_package(LibOVR)
 find_package(PrioVR)
+find_package(SDL)
 find_package(Sixense)
 find_package(Visage)
 find_package(ZLIB)
@@ -193,6 +193,13 @@ if (PRIOVR_FOUND AND NOT DISABLE_PRIOVR)
     target_link_libraries(${TARGET_NAME} "${PRIOVR_LIBRARIES}")
 endif (PRIOVR_FOUND AND NOT DISABLE_PRIOVR)
 
+# and with SDL for joysticks
+if (SDL_FOUND AND NOT DISABLE_SDL)
+    add_definitions(-DHAVE_SDL)
+    include_directories(SYSTEM "${SDL_INCLUDE_DIR}")
+    target_link_libraries(${TARGET_NAME} "${SDL_LIBRARY}")
+endif (SDL_FOUND AND NOT DISABLE_SDL)
+
 # and with qxmpp for chat
 if (QXMPP_FOUND AND NOT DISABLE_QXMPP)
     add_definitions(-DHAVE_QXMPP -DQXMPP_STATIC)
@@ -204,14 +211,9 @@ endif (QXMPP_FOUND AND NOT DISABLE_QXMPP)
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")
 
-# add a definition for ssize_t so that windows doesn't bail on gnutls.h
-if (WIN32)
-  add_definitions(-Dssize_t=long)
-endif ()
-
 # include external library headers
 # use system flag so warnings are supressed
-include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}" "${GNUTLS_INCLUDE_DIR}")
+include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}")
 
 target_link_libraries(
   ${TARGET_NAME}
@@ -219,8 +221,10 @@ target_link_libraries(
   "${ZLIB_LIBRARIES}"
   Qt5::Core Qt5::Gui Qt5::Multimedia Qt5::Network Qt5::OpenGL 
   Qt5::Script Qt5::Svg Qt5::WebKit Qt5::WebKitWidgets Qt5::Xml Qt5::UiTools
-  "${GNUTLS_LIBRARY}"
 )
+
+# assume we are using a Qt build without bearer management
+add_definitions(-DQT_NO_BEARERMANAGEMENT)
 
 if (APPLE)
     # link in required OS X frameworks and include the right GL headers
@@ -280,6 +284,9 @@ else (APPLE)
     
     # we're using static GLEW, so define GLEW_STATIC
     add_definitions(-DGLEW_STATIC)
+    
+    # add a definition for ssize_t so that windows doesn't bail
+    add_definitions(-Dssize_t=long)
     
     target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARY}" wsock32.lib opengl32.lib)
   endif()

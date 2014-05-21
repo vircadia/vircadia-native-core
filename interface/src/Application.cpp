@@ -169,13 +169,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _voxelHideShowThread(&_voxels),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
+        _nodeBoundsDisplay(this),
         _previousScriptLocation(),
         _runningScriptsWidget(new RunningScriptsWidget(_window)),
         _runningScriptsWidgetWasVisible(false)
 {
-    // init GnuTLS for DTLS with domain-servers
-    DTLSClientSession::globalInit();
-
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 
@@ -430,8 +428,6 @@ Application::~Application() {
     delete _glWidget;
 
     AccountManager::getInstance().destroy();
-
-    DTLSClientSession::globalDeinit();
 }
 
 void Application::saveSettings() {
@@ -1990,7 +1986,8 @@ void Application::update(float deltaTime) {
     _myAvatar->updateLookAtTargetAvatar();
     updateMyAvatarLookAtPosition();
     _sixenseManager.update(deltaTime);
-    _prioVR.update();
+    _joystickManager.update();
+    _prioVR.update(deltaTime);
     updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     _avatarManager.updateOtherAvatars(deltaTime); //loop through all the other avatars and simulate them...
@@ -2526,6 +2523,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // restore default, white specular
         glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
+
+        _nodeBoundsDisplay.draw();
+
     }
 
     bool mirrorMode = (whichCamera.getInterpolatedMode() == CAMERA_MODE_MIRROR);
@@ -2759,6 +2759,7 @@ void Application::displayOverlay() {
                 ? 80 : 20;
         drawText(_glWidget->width() - 100, _glWidget->height() - timerBottom, 0.30f, 0.0f, 0, frameTimer, WHITE_TEXT);
     }
+    _nodeBoundsDisplay.drawOverlay();
 
     // give external parties a change to hook in
     emit renderingOverlay();
@@ -3416,8 +3417,9 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     }
 
     // start the script on a new thread...
-    ScriptEngine* scriptEngine = new ScriptEngine(QUrl(scriptName), &_controllerScriptingInterface);
-    _scriptEnginesHash.insert(scriptName, scriptEngine);
+    QUrl scriptUrl(scriptName);
+    ScriptEngine* scriptEngine = new ScriptEngine(scriptUrl, &_controllerScriptingInterface);
+    _scriptEnginesHash.insert(scriptUrl.toString(), scriptEngine);
 
     if (!scriptEngine->hasScript()) {
         qDebug() << "Application::loadScript(), script failed to load...";

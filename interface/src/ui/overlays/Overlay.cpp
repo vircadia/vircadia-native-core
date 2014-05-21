@@ -23,7 +23,8 @@ Overlay::Overlay() :
     _parent(NULL),
     _alpha(DEFAULT_ALPHA),
     _color(DEFAULT_BACKGROUND_COLOR),
-    _visible(true)
+    _visible(true),
+    _anchor(NO_ANCHOR)
 {
 }
 
@@ -51,8 +52,15 @@ void Overlay::setProperties(const QScriptValue& properties) {
     if (properties.property("alpha").isValid()) {
         setAlpha(properties.property("alpha").toVariant().toFloat());
     }
-
+    
     if (properties.property("visible").isValid()) {
         setVisible(properties.property("visible").toVariant().toBool());
+    }
+    
+    if (properties.property("anchor").isValid()) {
+        QString property = properties.property("anchor").toVariant().toString();
+        if (property == "MyAvatar") {
+            setAnchor(MY_AVATAR);
+        }
     }
 }

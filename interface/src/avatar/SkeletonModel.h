@@ -51,6 +51,7 @@ protected:
 private:
 
     void renderJointConstraints(int jointIndex);
+    void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation);
     
     Avatar* _owningAvatar;
 };

@@ -26,12 +26,10 @@ link_hifi_library(fbx ${TARGET_NAME} "${ROOT_DIR}")
 
 # link ZLIB
 find_package(ZLIB)
-find_package(GnuTLS REQUIRED)
 
-# add a definition for ssize_t so that windows doesn't bail on gnutls.h
+target_link_libraries(${TARGET_NAME} "${ZLIB_LIBRARIES}" Qt5::Widgets)
+
+# add a definition for ssize_t so that windows doesn't bail
 if (WIN32)
   add_definitions(-Dssize_t=long)
 endif ()
-
-include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}" "${GNUTLS_INCLUDE_DIR}")
-target_link_libraries(${TARGET_NAME} "${ZLIB_LIBRARIES}" "${GNUTLS_LIBRARY}" Qt5::Widgets)

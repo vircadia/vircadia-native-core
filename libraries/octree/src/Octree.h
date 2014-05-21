@@ -209,6 +209,8 @@ public:
     virtual bool handlesEditPacketType(PacketType packetType) const { return false; }
     virtual int processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
                     const unsigned char* editData, int maxLength, const SharedNodePointer& sourceNode) { return 0; }
+                    
+    virtual bool recurseChildrenWithData() const { return true; }
 
 
     virtual void update() { }; // nothing to do by default
