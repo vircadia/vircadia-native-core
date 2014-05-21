@@ -1200,6 +1200,7 @@ bool Model::setJointRotation(int jointIndex, const glm::quat& rotation, bool fro
     state.rotation = state.rotation * glm::inverse(state.combinedRotation) * rotation *
         glm::inverse(fromBind ? _geometry->getFBXGeometry().joints.at(jointIndex).inverseBindRotation :
             _geometry->getFBXGeometry().joints.at(jointIndex).inverseDefaultRotation);
+    state.animationDisabled = true;
     return true;
 }
 
@@ -1232,6 +1233,7 @@ bool Model::restoreJointPosition(int jointIndex, float percent) {
         const FBXJoint& joint = geometry.joints.at(index);
         state.rotation = safeMix(state.rotation, joint.rotation, percent);
         state.translation = glm::mix(state.translation, joint.translation, percent);
+        state.animationDisabled = false;
     }
     return true;
 }
@@ -1265,6 +1267,7 @@ void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool cons
     glm::quat newRotation = glm::quat(glm::clamp(eulers, joint.rotationMin, joint.rotationMax));
     state.combinedRotation = state.combinedRotation * glm::inverse(state.rotation) * newRotation;
     state.rotation = newRotation;
+    state.animationDisabled = true;
 }
 
 const int BALL_SUBDIVISIONS = 10;
@@ -1694,7 +1697,10 @@ void AnimationHandle::simulate(float deltaTime) {
         for (int i = 0; i < _jointMappings.size(); i++) {
             int mapping = _jointMappings.at(i);
             if (mapping != -1) {
-                _model->_jointStates[mapping].rotation = frame.rotations.at(i);
+                Model::JointState& state = _model->_jointStates[mapping];
+                if (!state.animationDisabled) {
+                    state.rotation = frame.rotations.at(i);
+                }
             }
         }
         stop();
@@ -1709,8 +1715,10 @@ void AnimationHandle::simulate(float deltaTime) {
     for (int i = 0; i < _jointMappings.size(); i++) {
         int mapping = _jointMappings.at(i);
         if (mapping != -1) {
-            _model->_jointStates[mapping].rotation = safeMix(floorFrame.rotations.at(i),
-                ceilFrame.rotations.at(i), frameFraction);
+            Model::JointState& state = _model->_jointStates[mapping];
+            if (!state.animationDisabled) {
+                state.rotation = safeMix(floorFrame.rotations.at(i), ceilFrame.rotations.at(i), frameFraction);
+            }
         }
     }
 }

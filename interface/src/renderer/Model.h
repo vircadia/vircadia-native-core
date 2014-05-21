@@ -12,6 +12,7 @@
 #ifndef hifi_Model_h
 #define hifi_Model_h
 
+#include <QBitArray>
 #include <QObject>
 #include <QUrl>
 
@@ -251,6 +252,7 @@ protected:
         glm::quat rotation;     // rotation relative to parent
         glm::mat4 transform;    // rotation to world frame + translation in model frame
         glm::quat combinedRotation; // rotation from joint local to world frame
+        bool animationDisabled; // if true, animations do not affect this joint
     };
     
     bool _shapesAreDirty;
