@@ -12,6 +12,8 @@
 #ifndef hifi_DomainServerNodeData_h
 #define hifi_DomainServerNodeData_h
 
+
+#include <QtCore/QElapsedTimer>
 #include <QtCore/QHash>
 #include <QtCore/QUuid>
 
@@ -30,6 +32,11 @@ public:
     void setAssignmentUUID(const QUuid& assignmentUUID) { _assignmentUUID = assignmentUUID; }
     const QUuid& getAssignmentUUID() const { return _assignmentUUID; }
     
+    void setWalletUUID(const QUuid& walletUUID) { _walletUUID = walletUUID; }
+    const QUuid& getWalletUUID() const { return _walletUUID; }
+    
+    QElapsedTimer& getPaymentIntervalTimer() { return _paymentIntervalTimer; }
+    
     void setSendingSockAddr(const HifiSockAddr& sendingSockAddr) { _sendingSockAddr = sendingSockAddr; }
     const HifiSockAddr& getSendingSockAddr() { return _sendingSockAddr; }
     
@@ -42,6 +49,8 @@ private:
     
     QHash<QUuid, QUuid> _sessionSecretHash;
     QUuid _assignmentUUID;
+    QUuid _walletUUID;
+    QElapsedTimer _paymentIntervalTimer;
     QJsonObject _statsJSONObject;
     HifiSockAddr _sendingSockAddr;
     bool _isAuthenticated;

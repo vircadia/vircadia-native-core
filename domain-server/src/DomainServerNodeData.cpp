@@ -20,11 +20,13 @@
 DomainServerNodeData::DomainServerNodeData() :
     _sessionSecretHash(),
     _assignmentUUID(),
+    _walletUUID(),
+    _paymentIntervalTimer(),
     _statsJSONObject(),
     _sendingSockAddr(),
     _isAuthenticated(true)
 {
-    
+    _paymentIntervalTimer.start();
 }
 
 void DomainServerNodeData::parseJSONStatsPacket(const QByteArray& statsPacket) {
