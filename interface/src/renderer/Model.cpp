@@ -1670,20 +1670,23 @@ static void insertSorted(QList<AnimationHandlePointer>& handles, const Animation
 void AnimationHandle::setPriority(float priority) {
     if (_priority != priority) {
         _priority = priority;
+        if (_running) {
+            _model->_runningAnimations.removeOne(_self);
+            insertSorted(_model->_runningAnimations, _self);
+        }
+    }
+}
+
+void AnimationHandle::setRunning(bool running) {
+    if ((_running = running)) {
+        if (!_model->_runningAnimations.contains(_self)) {
+            insertSorted(_model->_runningAnimations, _self);
+        }
+        _frameIndex = 0.0f;
+          
+    } else {
         _model->_runningAnimations.removeOne(_self);
-        insertSorted(_model->_runningAnimations, _self);
     }
-}
-
-void AnimationHandle::start() {
-    if (!_model->_runningAnimations.contains(_self)) {
-        insertSorted(_model->_runningAnimations, _self);
-    }
-    _frameIndex = 0.0f;
-}
-
-void AnimationHandle::stop() {
-    _model->_runningAnimations.removeOne(_self);
 }
 
 AnimationHandle::AnimationHandle(Model* model) :
@@ -1691,7 +1694,8 @@ AnimationHandle::AnimationHandle(Model* model) :
     _model(model),
     _fps(30.0f),
     _priority(1.0f),
-    _loop(false) {
+    _loop(false),
+    _running(false) {
 }
 
 void AnimationHandle::simulate(float deltaTime) {

@@ -194,6 +194,8 @@ public:
     
     AnimationHandlePointer createAnimationHandle();
     
+    const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
+    
     void clearShapes();
     void rebuildShapes();
     void resetShapePositions();
@@ -376,7 +378,7 @@ Q_DECLARE_METATYPE(QVector<glm::vec3>)
 /// Represents a handle to a model animation.
 class AnimationHandle : public QObject {
     Q_OBJECT
-
+    
 public:
 
     void setURL(const QUrl& url);
@@ -391,8 +393,11 @@ public:
     void setLoop(bool loop) { _loop = loop; }
     bool getLoop() const { return _loop; }
     
-    void start();
-    void stop();
+    void setRunning(bool running);
+    bool isRunning() const { return _running; }
+    
+    void start() { setRunning(true); }
+    void stop() { setRunning(false); }
     
 private:
 
@@ -409,6 +414,7 @@ private:
     float _fps;
     float _priority;
     bool _loop;
+    bool _running;
     QVector<int> _jointMappings;
     float _frameIndex;
 };

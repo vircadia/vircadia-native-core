@@ -436,6 +436,33 @@ void MyAvatar::removeAnimationHandle(const AnimationHandlePointer& handle) {
     _animationHandles.removeOne(handle);
 }
 
+void MyAvatar::startAnimation(const QString& url, float fps, float priority, bool loop) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "startAnimation", Q_ARG(const QString&, url),
+            Q_ARG(float, fps), Q_ARG(float, priority), Q_ARG(bool, loop));
+        return;
+    }
+    AnimationHandlePointer handle = _skeletonModel.createAnimationHandle();
+    handle->setURL(url);
+    handle->setFPS(fps);
+    handle->setPriority(priority);
+    handle->setLoop(loop);
+    handle->start();
+}
+
+void MyAvatar::stopAnimation(const QString& url) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "stopAnimation", Q_ARG(const QString&, url));
+        return;
+    }
+    foreach (const AnimationHandlePointer& handle, _skeletonModel.getRunningAnimations()) {
+        if (handle->getURL() == url) {
+            handle->stop();
+            return;
+        }
+    }
+}
+
 void MyAvatar::saveData(QSettings* settings) {
     settings->beginGroup("Avatar");
 
