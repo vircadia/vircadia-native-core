@@ -264,11 +264,16 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     // their head only 30 degrees or so, this may correspond to a 90 degree field of view.
     // Note that roll is magnified by a constant because it is not related to field of view.
 
-    float magnifyFieldOfView = Menu::getInstance()->getFieldOfView() / Menu::getInstance()->getRealWorldFieldOfView();
-    
+
     Head* head = getHead();
-    head->setDeltaPitch(estimatedRotation.x * magnifyFieldOfView);
-    head->setDeltaYaw(estimatedRotation.y * magnifyFieldOfView);
+    if (OculusManager::isConnected()){
+        head->setDeltaPitch(estimatedRotation.x);
+        head->setDeltaYaw(estimatedRotation.y);
+    } else {
+        float magnifyFieldOfView = Menu::getInstance()->getFieldOfView() / Menu::getInstance()->getRealWorldFieldOfView();
+        head->setDeltaPitch(estimatedRotation.x * magnifyFieldOfView);
+        head->setDeltaYaw(estimatedRotation.y * magnifyFieldOfView);
+    }
     head->setDeltaRoll(estimatedRotation.z);
 
     // the priovr can give us exact lean
