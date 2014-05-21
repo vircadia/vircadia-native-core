@@ -73,7 +73,7 @@ QVariant ScriptsModel::data(const QModelIndex& index, int role) const {
      }
 
     if (role == Qt::DisplayRole) {
-        return QVariant((*files)[row]->getFilename() + (isLocal ? "" : " (remote)"));
+        return QVariant((*files)[row]->getFilename() + (isLocal ? " (local)" : ""));
     } else if (role == ScriptPath) {
         return QVariant((*files)[row]->getFullPath());
     }
