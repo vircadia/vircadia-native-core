@@ -1761,7 +1761,6 @@ void AnimationHandle::simulate(float deltaTime) {
     }
     int frameCount = lastFrameIndex - firstFrameIndex + 1;
     _frameIndex = firstFrameIndex + glm::mod(qMax(_frameIndex - firstFrameIndex, 0.0f), (float)frameCount);
-    qDebug() << _frameIndex;
     
     // blend between the closest two frames
     const FBXAnimationFrame& ceilFrame = animationGeometry.animationFrames.at(
