@@ -1651,13 +1651,33 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent) {
 }
 
 void AnimationHandle::setURL(const QUrl& url) {
-    _animation = Application::getInstance()->getAnimationCache()->getAnimation(_url = url);
-    _jointMappings.clear();
+    if (_url != url) {
+        _animation = Application::getInstance()->getAnimationCache()->getAnimation(_url = url);
+        _jointMappings.clear();
+    }
+}
+
+static void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandlePointer& handle) {
+    for (QList<AnimationHandlePointer>::iterator it = handles.begin(); it != handles.end(); it++) {
+        if (handle->getPriority() < (*it)->getPriority()) {
+            handles.insert(it, handle);
+            return;
+        } 
+    }
+    handles.append(handle);
+}
+
+void AnimationHandle::setPriority(float priority) {
+    if (_priority != priority) {
+        _priority = priority;
+        _model->_runningAnimations.removeOne(_self);
+        insertSorted(_model->_runningAnimations, _self);
+    }
 }
 
 void AnimationHandle::start() {
     if (!_model->_runningAnimations.contains(_self)) {
-        _model->_runningAnimations.append(_self);
+        insertSorted(_model->_runningAnimations, _self);
     }
     _frameIndex = 0.0f;
 }
@@ -1670,6 +1690,7 @@ AnimationHandle::AnimationHandle(Model* model) :
     QObject(model),
     _model(model),
     _fps(30.0f),
+    _priority(1.0f),
     _loop(false) {
 }
 

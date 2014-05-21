@@ -93,6 +93,13 @@ AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePo
     _fps->setValue(handle->getFPS());
     connect(_fps, SIGNAL(valueChanged(double)), SLOT(updateHandle()));
     
+    layout->addRow("Priority:", _priority = new QDoubleSpinBox());
+    _priority->setSingleStep(0.01);
+    _priority->setMinimum(-FLT_MAX);
+    _priority->setMaximum(FLT_MAX);
+    _priority->setValue(handle->getPriority());
+    connect(_priority, SIGNAL(valueChanged(double)), SLOT(updateHandle()));
+    
     QPushButton* remove = new QPushButton("Delete");
     layout->addRow(remove);
     connect(remove, SIGNAL(clicked(bool)), SLOT(removeHandle()));
@@ -114,6 +121,7 @@ void AnimationPanel::chooseURL() {
 void AnimationPanel::updateHandle() {
     _handle->setURL(_url->text());
     _handle->setFPS(_fps->value());
+    _handle->setPriority(_priority->value());
 }
 
 void AnimationPanel::removeHandle() {

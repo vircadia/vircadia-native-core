@@ -384,6 +384,9 @@ public:
     
     void setFPS(float fps) { _fps = fps; }
     float getFPS() const { return _fps; }
+
+    void setPriority(float priority);
+    float getPriority() const { return _priority; }
     
     void setLoop(bool loop) { _loop = loop; }
     bool getLoop() const { return _loop; }
@@ -404,6 +407,7 @@ private:
     AnimationPointer _animation;
     QUrl _url;
     float _fps;
+    float _priority;
     bool _loop;
     QVector<int> _jointMappings;
     float _frameIndex;

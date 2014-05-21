@@ -480,6 +480,7 @@ void MyAvatar::saveData(QSettings* settings) {
         const AnimationHandlePointer& pointer = _animationHandles.at(i);
         settings->setValue("url", pointer->getURL());
         settings->setValue("fps", pointer->getFPS());
+        settings->setValue("priority", pointer->getPriority());
     }
     settings->endArray();
     
@@ -545,6 +546,7 @@ void MyAvatar::loadData(QSettings* settings) {
         const AnimationHandlePointer& handle = _animationHandles.at(i);
         handle->setURL(settings->value("url").toUrl());
         handle->setFPS(loadSetting(settings, "fps", 30.0f));
+        handle->setPriority(loadSetting(settings, "priority", 1.0f));
     }
     settings->endArray();
     

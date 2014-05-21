@@ -62,6 +62,7 @@ private:
     AnimationHandlePointer _handle;
     QLineEdit* _url;
     QDoubleSpinBox* _fps;
+    QDoubleSpinBox* _priority;
     bool _applying;
 };
 
