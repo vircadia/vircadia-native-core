@@ -191,11 +191,11 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
 
 bool DomainServer::optionallyLoginAndSetupAssignmentPayment() {
     // check if we have a username and password set via env
-    const QString ASSIGNED_NODE_PAYMENT_OPTION = "pay-nodes";
+    const QString PAY_FOR_ASSIGNMENTS_OPTION = "pay-for-assignments";
     const QString HIFI_USERNAME_ENV_KEY = "DOMAIN_SERVER_USERNAME";
     const QString HIFI_PASSWORD_ENV_KEY = "DOMAIN_SERVER_PASSWORD";
     
-    if (_argumentVariantMap.contains(ASSIGNED_NODE_PAYMENT_OPTION)) {
+    if (_argumentVariantMap.contains(PAY_FOR_ASSIGNMENTS_OPTION)) {
         if (!_oauthProviderURL.isEmpty()) {
             
             AccountManager& accountManager = AccountManager::getInstance();
