@@ -131,7 +131,7 @@ bool DomainServer::optionallySetupOAuth() {
     _oauthClientSecret = QProcessEnvironment::systemEnvironment().value(OAUTH_CLIENT_SECRET_ENV);
     _hostname = _argumentVariantMap.value(REDIRECT_HOSTNAME_OPTION).toString();
     
-    if (!_oauthProviderURL.isEmpty() || !_hostname.isEmpty() || !_oauthClientID.isEmpty()) {
+    if (!_oauthClientID.isEmpty()) {
         if (_oauthProviderURL.isEmpty()
             || _hostname.isEmpty()
             || _oauthClientID.isEmpty()
@@ -191,13 +191,13 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
 
 bool DomainServer::optionallyLoginAndSetupAssignmentPayment() {
     // check if we have a username and password set via env
-    const QString HIFI_AUTH_ENABLED_OPTION = "hifi-auth";
     const QString HIFI_USERNAME_ENV_KEY = "DOMAIN_SERVER_USERNAME";
     const QString HIFI_PASSWORD_ENV_KEY = "DOMAIN_SERVER_PASSWORD";
     
-    if (_argumentVariantMap.contains(HIFI_AUTH_ENABLED_OPTION)) {
+    if (!_oauthProviderURL.isEmpty()) {
+        
         AccountManager& accountManager = AccountManager::getInstance();
-        accountManager.setAuthURL(DEFAULT_NODE_AUTH_URL);
+        accountManager.setAuthURL(_oauthProviderURL);
      
         if (!accountManager.hasValidAccessToken()) {
             // we don't have a valid access token so we need to get one
