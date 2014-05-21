@@ -200,12 +200,12 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
         CoInitialize(NULL);
         IMMDeviceEnumerator* pMMDeviceEnumerator = NULL;
         CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&pMMDeviceEnumerator);
-        IMMDevice* pEndpoint;hr = pMMDeviceEnumerator->GetDefaultAudioEndpoint(mode == QAudio::AudioOutput ? eRender : eCapture, eMultimedia, &pEndpoint);
+        IMMDevice* pEndpoint;
+        hr = pMMDeviceEnumerator->GetDefaultAudioEndpoint(mode == QAudio::AudioOutput ? eRender : eCapture, eMultimedia, &pEndpoint);
         if (hr == E_NOTFOUND){
             printf("Audio Error: device not found\n");
             deviceName = QString("NONE");
-        }
-        else {
+        } else {
             IPropertyStore* pPropertyStore;
             pEndpoint->OpenPropertyStore(STGM_READ, &pPropertyStore);
             pEndpoint->Release();

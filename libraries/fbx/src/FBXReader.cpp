@@ -1636,9 +1636,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     setTangents(extracted.mesh, part.quadIndices.at(i + 2), part.quadIndices.at(i + 3));
                     setTangents(extracted.mesh, part.quadIndices.at(i + 3), part.quadIndices.at(i));
                 }
-                // <= size-3 in order to prevent overflowing triangleIndices when (i % 3) != 0 
+                // <= size - 3 in order to prevent overflowing triangleIndices when (i % 3) != 0 
                 // This is most likely evidence of a further problem in extractMesh()
-                for (int i = 0; i <= part.triangleIndices.size()-3; i += 3) {
+                for (int i = 0; i <= part.triangleIndices.size() - 3; i += 3) {
                     setTangents(extracted.mesh, part.triangleIndices.at(i), part.triangleIndices.at(i + 1));
                     setTangents(extracted.mesh, part.triangleIndices.at(i + 1), part.triangleIndices.at(i + 2));
                     setTangents(extracted.mesh, part.triangleIndices.at(i + 2), part.triangleIndices.at(i));
