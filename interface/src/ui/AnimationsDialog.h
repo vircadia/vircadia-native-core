@@ -53,6 +53,7 @@ public:
 private slots:
 
     void chooseURL();
+    void chooseMaskedJoints();
     void updateHandle();
     void removeHandle();
     
@@ -63,6 +64,8 @@ private:
     QLineEdit* _url;
     QDoubleSpinBox* _fps;
     QDoubleSpinBox* _priority;
+    QLineEdit* _maskedJoints;
+    QPushButton* _chooseMaskedJoints;
     bool _applying;
 };
 

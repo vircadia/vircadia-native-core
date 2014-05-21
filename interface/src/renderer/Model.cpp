@@ -1684,6 +1684,11 @@ void AnimationHandle::setPriority(float priority) {
     }
 }
 
+void AnimationHandle::setMaskedJoints(const QStringList& maskedJoints) {
+    _maskedJoints = maskedJoints;
+    _jointMappings.clear();
+}
+
 void AnimationHandle::setRunning(bool running) {
     if ((_running = running)) {
         if (!_model->_runningAnimations.contains(_self)) {
@@ -1715,6 +1720,15 @@ void AnimationHandle::simulate(float deltaTime) {
         }
         if (_jointMappings.isEmpty()) {
             return;
+        }
+        if (!_maskedJoints.isEmpty()) {
+            const FBXGeometry& geometry = _model->getGeometry()->getFBXGeometry();
+            for (int i = 0; i < _jointMappings.size(); i++) {
+                int& mapping = _jointMappings[i];
+                if (mapping != -1 && _maskedJoints.contains(geometry.joints.at(mapping).name)) {
+                    mapping = -1;
+                }
+            }
         }
     }
     

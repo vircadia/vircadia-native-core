@@ -441,10 +441,10 @@ void MyAvatar::removeAnimationHandle(const AnimationHandlePointer& handle) {
     _animationHandles.removeOne(handle);
 }
 
-void MyAvatar::startAnimation(const QString& url, float fps, float priority, bool loop) {
+void MyAvatar::startAnimation(const QString& url, float fps, float priority, bool loop, const QStringList& maskedJoints) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "startAnimation", Q_ARG(const QString&, url),
-            Q_ARG(float, fps), Q_ARG(float, priority), Q_ARG(bool, loop));
+            Q_ARG(float, fps), Q_ARG(float, priority), Q_ARG(bool, loop), Q_ARG(const QStringList&, maskedJoints));
         return;
     }
     AnimationHandlePointer handle = _skeletonModel.createAnimationHandle();
@@ -452,6 +452,7 @@ void MyAvatar::startAnimation(const QString& url, float fps, float priority, boo
     handle->setFPS(fps);
     handle->setPriority(priority);
     handle->setLoop(loop);
+    handle->setMaskedJoints(maskedJoints);
     handle->start();
 }
 
@@ -513,6 +514,7 @@ void MyAvatar::saveData(QSettings* settings) {
         settings->setValue("url", pointer->getURL());
         settings->setValue("fps", pointer->getFPS());
         settings->setValue("priority", pointer->getPriority());
+        settings->setValue("maskedJoints", pointer->getMaskedJoints());
     }
     settings->endArray();
     
@@ -579,6 +581,7 @@ void MyAvatar::loadData(QSettings* settings) {
         handle->setURL(settings->value("url").toUrl());
         handle->setFPS(loadSetting(settings, "fps", 30.0f));
         handle->setPriority(loadSetting(settings, "priority", 1.0f));
+        handle->setMaskedJoints(settings->value("maskedJoints").toStringList());
     }
     settings->endArray();
     

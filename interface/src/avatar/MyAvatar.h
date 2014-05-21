@@ -68,7 +68,7 @@ public:
     
     /// Allows scripts to run animations.
     Q_INVOKABLE void startAnimation(const QString& url, float fps = 30.0f,
-        float priority = 1.0f, bool loop = false);
+        float priority = 1.0f, bool loop = false, const QStringList& maskedJoints = QStringList());
     
     /// Stops an animation as identified by a URL.
     Q_INVOKABLE void stopAnimation(const QString& url);

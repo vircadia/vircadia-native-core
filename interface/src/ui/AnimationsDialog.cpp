@@ -100,6 +100,13 @@ AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePo
     _priority->setValue(handle->getPriority());
     connect(_priority, SIGNAL(valueChanged(double)), SLOT(updateHandle()));
     
+    QHBoxLayout* maskedJointBox = new QHBoxLayout();
+    layout->addRow("Masked Joints:", maskedJointBox);
+    maskedJointBox->addWidget(_maskedJoints = new QLineEdit(handle->getMaskedJoints().join(", ")), 1);
+    connect(_maskedJoints, SIGNAL(returnPressed()), SLOT(updateHandle()));
+    maskedJointBox->addWidget(_chooseMaskedJoints = new QPushButton("Choose"));
+    connect(_chooseMaskedJoints, SIGNAL(clicked(bool)), SLOT(chooseMaskedJoints()));
+    
     QPushButton* remove = new QPushButton("Delete");
     layout->addRow(remove);
     connect(remove, SIGNAL(clicked(bool)), SLOT(removeHandle()));
@@ -118,10 +125,31 @@ void AnimationPanel::chooseURL() {
     emit _url->returnPressed();
 }
 
+void AnimationPanel::chooseMaskedJoints() {
+    QMenu menu;
+    QStringList maskedJoints = _handle->getMaskedJoints();
+    foreach (const QString& jointName, Application::getInstance()->getAvatar()->getJointNames()) {
+        QAction* action = menu.addAction(jointName);
+        action->setCheckable(true);
+        action->setChecked(maskedJoints.contains(jointName));
+    }
+    QAction* action = menu.exec(_chooseMaskedJoints->mapToGlobal(QPoint(0, 0)));
+    if (action) {
+        if (action->isChecked()) {
+            maskedJoints.append(action->text());
+        } else {
+            maskedJoints.removeOne(action->text());
+        }
+        _handle->setMaskedJoints(maskedJoints);
+        _maskedJoints->setText(maskedJoints.join(", "));
+    }
+}
+
 void AnimationPanel::updateHandle() {
     _handle->setURL(_url->text());
     _handle->setFPS(_fps->value());
     _handle->setPriority(_priority->value());
+    _handle->setMaskedJoints(_maskedJoints->text().split(QRegExp("\\s*,\\s*")));
 }
 
 void AnimationPanel::removeHandle() {
