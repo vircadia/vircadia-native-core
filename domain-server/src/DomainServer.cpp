@@ -50,26 +50,14 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     
     _argumentVariantMap = HifiConfigVariantMap::mergeCLParametersWithJSONConfig(arguments());
     
-    if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth()) {
-        // we either read a certificate and private key or were not passed one, good to load assignments
-        // and set up the node list
+    _networkAccessManager = new QNetworkAccessManager(this);
+    
+    if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth() && optionallyLoginAndSetupAssignmentPayment()) {
+        // we either read a certificate and private key or were not passed one
+        // and completed login or did not need to
+        
         qDebug() << "Setting up LimitedNodeList and assignments.";
         setupNodeListAndAssignments();
-        
-        _networkAccessManager = new QNetworkAccessManager(this);
-        
-        // setup a timer to send transactions to pay assigned nodes every 30 seconds
-        QTimer* creditSetupTimer = new QTimer(this);
-        connect(creditSetupTimer, &QTimer::timeout, this, &DomainServer::setupPendingAssignmentCredits);
-        
-        const qint64 CREDIT_CHECK_INTERVAL_MSECS = 5 * 1000;
-        creditSetupTimer->start(CREDIT_CHECK_INTERVAL_MSECS);
-        
-        QTimer* nodePaymentTimer = new QTimer(this);
-        connect(nodePaymentTimer, &QTimer::timeout, this, &DomainServer::sendPendingTransactionsToServer);
-        
-        const qint64 TRANSACTION_SEND_INTERVAL_MSECS = 30 * 1000;
-        nodePaymentTimer->start(TRANSACTION_SEND_INTERVAL_MSECS);
     }
 }
 
@@ -199,6 +187,56 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
+}
+
+bool DomainServer::optionallyLoginAndSetupAssignmentPayment() {
+    // check if we have a username and password set via env
+    const QString HIFI_AUTH_ENABLED_OPTION = "hifi-auth";
+    const QString HIFI_USERNAME_ENV_KEY = "DOMAIN_SERVER_USERNAME";
+    const QString HIFI_PASSWORD_ENV_KEY = "DOMAIN_SERVER_PASSWORD";
+    
+    if (_argumentVariantMap.contains(HIFI_AUTH_ENABLED_OPTION)) {
+        AccountManager& accountManager = AccountManager::getInstance();
+        accountManager.setAuthURL(DEFAULT_NODE_AUTH_URL);
+     
+        if (!accountManager.hasValidAccessToken()) {
+            // we don't have a valid access token so we need to get one
+            QString username = QProcessEnvironment::systemEnvironment().value(HIFI_USERNAME_ENV_KEY);
+            QString password = QProcessEnvironment::systemEnvironment().value(HIFI_PASSWORD_ENV_KEY);
+            
+            if (!username.isEmpty() && !password.isEmpty()) {
+                accountManager.requestAccessToken(username, password);
+                
+                // connect to loginFailed signal from AccountManager so we can quit if that is the case
+                connect(&accountManager, &AccountManager::loginFailed, this, &DomainServer::loginFailed);
+            } else {
+                qDebug() << "Missing access-token or username and password combination. domain-server will now quit.";
+                QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+                return false;
+            }
+        }
+        
+        // assume that the fact we are authing against HF data server means we will pay for assignments
+        // setup a timer to send transactions to pay assigned nodes every 30 seconds
+        QTimer* creditSetupTimer = new QTimer(this);
+        connect(creditSetupTimer, &QTimer::timeout, this, &DomainServer::setupPendingAssignmentCredits);
+        
+        const qint64 CREDIT_CHECK_INTERVAL_MSECS = 5 * 1000;
+        creditSetupTimer->start(CREDIT_CHECK_INTERVAL_MSECS);
+        
+        QTimer* nodePaymentTimer = new QTimer(this);
+        connect(nodePaymentTimer, &QTimer::timeout, this, &DomainServer::sendPendingTransactionsToServer);
+        
+        const qint64 TRANSACTION_SEND_INTERVAL_MSECS = 30 * 1000;
+        nodePaymentTimer->start(TRANSACTION_SEND_INTERVAL_MSECS);
+    }
+    
+    return true;
+}
+
+void DomainServer::loginFailed() {
+    qDebug() << "Login to data server has failed. domain-server will now quit";
+    QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
 }
 
 void DomainServer::parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes) {

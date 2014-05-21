@@ -48,6 +48,7 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     
 private slots:
+    void loginFailed();
     void readAvailableDatagrams();
     void setupPendingAssignmentCredits();
     void sendPendingTransactionsToServer();
@@ -55,6 +56,7 @@ private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
     bool optionallySetupOAuth();
     bool optionallyReadX509KeyAndCertificate();
+    bool optionallyLoginAndSetupAssignmentPayment();
     
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
     
