@@ -1412,6 +1412,11 @@ OctreeElement* OctreeElement::getOrCreateChildElementContaining(const AABox& box
     if (!child) {
         child = addChildAtIndex(childIndex);
     }
+    
+    // if we've made a really small child, then go ahead and use that one.
+    if (child->getScale() <= SMALLEST_REASONABLE_OCTREE_ELEMENT_SCALE) {
+        return child;
+    }
 
     // Now that we have the child to recurse down, let it answer the original question...
     return child->getOrCreateChildElementContaining(box);
