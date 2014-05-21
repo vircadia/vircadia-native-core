@@ -3412,7 +3412,7 @@ void Application::saveScripts() {
     _settings->endArray();
 }
 
-ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScriptFromEditor) {
+ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScriptFromEditor, bool activateMainWindow) {
     if(loadScriptFromEditor && _scriptEnginesHash.contains(scriptName) && !_scriptEnginesHash[scriptName]->isFinished()){
         return _scriptEnginesHash[scriptName];
     }
@@ -3486,7 +3486,7 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     workerThread->start();
 
     // restore the main window's active state
-    if (!loadScriptFromEditor) {
+    if (activateMainWindow && !loadScriptFromEditor) {
         _window->activateWindow();
     }
     bumpSettings();
