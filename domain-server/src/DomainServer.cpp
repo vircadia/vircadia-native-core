@@ -191,44 +191,53 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
 
 bool DomainServer::optionallyLoginAndSetupAssignmentPayment() {
     // check if we have a username and password set via env
+    const QString ASSIGNED_NODE_PAYMENT_OPTION = "pay-nodes";
     const QString HIFI_USERNAME_ENV_KEY = "DOMAIN_SERVER_USERNAME";
     const QString HIFI_PASSWORD_ENV_KEY = "DOMAIN_SERVER_PASSWORD";
     
-    if (!_oauthProviderURL.isEmpty()) {
-        
-        AccountManager& accountManager = AccountManager::getInstance();
-        accountManager.setAuthURL(_oauthProviderURL);
-     
-        if (!accountManager.hasValidAccessToken()) {
-            // we don't have a valid access token so we need to get one
-            QString username = QProcessEnvironment::systemEnvironment().value(HIFI_USERNAME_ENV_KEY);
-            QString password = QProcessEnvironment::systemEnvironment().value(HIFI_PASSWORD_ENV_KEY);
+    if (_argumentVariantMap.contains(ASSIGNED_NODE_PAYMENT_OPTION)) {
+        if (!_oauthProviderURL.isEmpty()) {
             
-            if (!username.isEmpty() && !password.isEmpty()) {
-                accountManager.requestAccessToken(username, password);
+            AccountManager& accountManager = AccountManager::getInstance();
+            accountManager.setAuthURL(_oauthProviderURL);
+            
+            if (!accountManager.hasValidAccessToken()) {
+                // we don't have a valid access token so we need to get one
+                QString username = QProcessEnvironment::systemEnvironment().value(HIFI_USERNAME_ENV_KEY);
+                QString password = QProcessEnvironment::systemEnvironment().value(HIFI_PASSWORD_ENV_KEY);
                 
-                // connect to loginFailed signal from AccountManager so we can quit if that is the case
-                connect(&accountManager, &AccountManager::loginFailed, this, &DomainServer::loginFailed);
-            } else {
-                qDebug() << "Missing access-token or username and password combination. domain-server will now quit.";
-                QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
-                return false;
+                if (!username.isEmpty() && !password.isEmpty()) {
+                    accountManager.requestAccessToken(username, password);
+                    
+                    // connect to loginFailed signal from AccountManager so we can quit if that is the case
+                    connect(&accountManager, &AccountManager::loginFailed, this, &DomainServer::loginFailed);
+                } else {
+                    qDebug() << "Missing access-token or username and password combination. domain-server will now quit.";
+                    QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+                    return false;
+                }
             }
+            
+            // assume that the fact we are authing against HF data server means we will pay for assignments
+            // setup a timer to send transactions to pay assigned nodes every 30 seconds
+            QTimer* creditSetupTimer = new QTimer(this);
+            connect(creditSetupTimer, &QTimer::timeout, this, &DomainServer::setupPendingAssignmentCredits);
+            
+            const qint64 CREDIT_CHECK_INTERVAL_MSECS = 5 * 1000;
+            creditSetupTimer->start(CREDIT_CHECK_INTERVAL_MSECS);
+            
+            QTimer* nodePaymentTimer = new QTimer(this);
+            connect(nodePaymentTimer, &QTimer::timeout, this, &DomainServer::sendPendingTransactionsToServer);
+            
+            const qint64 TRANSACTION_SEND_INTERVAL_MSECS = 30 * 1000;
+            nodePaymentTimer->start(TRANSACTION_SEND_INTERVAL_MSECS);
+            
+        } else {
+            qDebug() << "Missing OAuth provider URL, but assigned node payment was enabled. domain-server will now quit.";
+            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+            
+            return false;
         }
-        
-        // assume that the fact we are authing against HF data server means we will pay for assignments
-        // setup a timer to send transactions to pay assigned nodes every 30 seconds
-        QTimer* creditSetupTimer = new QTimer(this);
-        connect(creditSetupTimer, &QTimer::timeout, this, &DomainServer::setupPendingAssignmentCredits);
-        
-        const qint64 CREDIT_CHECK_INTERVAL_MSECS = 5 * 1000;
-        creditSetupTimer->start(CREDIT_CHECK_INTERVAL_MSECS);
-        
-        QTimer* nodePaymentTimer = new QTimer(this);
-        connect(nodePaymentTimer, &QTimer::timeout, this, &DomainServer::sendPendingTransactionsToServer);
-        
-        const qint64 TRANSACTION_SEND_INTERVAL_MSECS = 30 * 1000;
-        nodePaymentTimer->start(TRANSACTION_SEND_INTERVAL_MSECS);
     }
     
     return true;
