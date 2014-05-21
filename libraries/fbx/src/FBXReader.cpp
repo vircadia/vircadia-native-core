@@ -1442,7 +1442,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     }
 
     // figure the number of animation frames from the curves
-    int frameCount = 0;
+    int frameCount = 1;
     foreach (const AnimationCurve& curve, animationCurves) {
         frameCount = qMax(frameCount, curve.values.size());
     }
