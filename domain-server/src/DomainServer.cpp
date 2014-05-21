@@ -59,11 +59,17 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         _networkAccessManager = new QNetworkAccessManager(this);
         
         // setup a timer to send transactions to pay assigned nodes every 30 seconds
-        QTimer* nodePaymentTimer = new QTimer(this);
-        connect(nodePaymentTimer, &QTimer::timeout, this, &DomainServer::setupPendingAssignmentCredits);
+        QTimer* creditSetupTimer = new QTimer(this);
+        connect(creditSetupTimer, &QTimer::timeout, this, &DomainServer::setupPendingAssignmentCredits);
         
-        const qint64 CREDIT_CHECK_INTERVAL = 5 * 1000;
-        nodePaymentTimer->start(CREDIT_CHECK_INTERVAL);
+        const qint64 CREDIT_CHECK_INTERVAL_MSECS = 5 * 1000;
+        creditSetupTimer->start(CREDIT_CHECK_INTERVAL_MSECS);
+        
+        QTimer* nodePaymentTimer = new QTimer(this);
+        connect(nodePaymentTimer, &QTimer::timeout, this, &DomainServer::sendPendingTransactionsToServer);
+        
+        const qint64 TRANSACTION_SEND_INTERVAL_MSECS = 30 * 1000;
+        nodePaymentTimer->start(TRANSACTION_SEND_INTERVAL_MSECS);
     }
 }
 
@@ -691,6 +697,16 @@ void DomainServer::setupPendingAssignmentCredits() {
                 _pendingAssignmentCredits.insert(nodeData->getWalletUUID(), freshTransaction);
             }
         }
+    }
+}
+
+void DomainServer::sendPendingTransactionsToServer() {
+    // enumerate the pending transactions and send them to the server to complete payment
+    TransactionHash::iterator i = _pendingAssignmentCredits.begin();
+    
+    while (i != _pendingAssignmentCredits.end()) {
+        
+        ++i;
     }
 }
 

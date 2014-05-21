@@ -30,6 +30,7 @@ public:
     void incrementAmount(double increment) { _amount += increment; }
     
     bool isFinalized() const { return _isFinalized; }
+    void setIsFinalized(bool isFinalized) { _isFinalized = isFinalized; }
     
     QJsonDocument postJson();
 private:

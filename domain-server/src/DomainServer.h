@@ -50,6 +50,7 @@ public slots:
 private slots:
     void readAvailableDatagrams();
     void setupPendingAssignmentCredits();
+    void sendPendingTransactionsToServer();
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
     bool optionallySetupOAuth();
