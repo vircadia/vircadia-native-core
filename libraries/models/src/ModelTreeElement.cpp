@@ -95,6 +95,11 @@ bool ModelTreeElement::bestFitModelBounds(const ModelItem& model) const {
     if (_box.contains(clampedMin) && _box.contains(clampedMax)) {
         int childForMinimumPoint = getMyChildContainingPoint(clampedMin);
         int childForMaximumPoint = getMyChildContainingPoint(clampedMax);
+        
+        // if this is a really small box, then it's close enough!
+        if (_box.getScale() <= SMALLEST_REASONABLE_OCTREE_ELEMENT_SCALE) {
+            return true;
+        }
         // If I contain both the minimum and maximum point, but two different children of mine
         // contain those points, then I am the best fit for that model
         if (childForMinimumPoint != childForMaximumPoint) {
