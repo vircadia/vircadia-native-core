@@ -436,8 +436,12 @@ Extents Model::getMeshExtents() const {
         return Extents();
     }
     const Extents& extents = _geometry->getFBXGeometry().meshExtents;
-    glm::vec3 scale = _scale * _geometry->getFBXGeometry().fstScaled;
-    Extents scaledExtents = { extents.minimum * scale, extents.maximum * scale };
+
+    // even though our caller asked for "unscaled" we need to include any fst scaling, translation, and rotation, which
+    // is captured in the offset matrix
+    glm::vec3 minimum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.minimum, 1.0));
+    glm::vec3 maximum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.maximum, 1.0));
+    Extents scaledExtents = { minimum * _scale, maximum * _scale };
     return scaledExtents;
 }
 
@@ -448,9 +452,12 @@ Extents Model::getUnscaledMeshExtents() const {
     
     const Extents& extents = _geometry->getFBXGeometry().meshExtents;
 
-    // even though our caller asked for "unscaled" we need to include any fst scaling
-    float scale = _geometry->getFBXGeometry().fstScaled;
-    Extents scaledExtents = { extents.minimum * scale, extents.maximum * scale };
+    // even though our caller asked for "unscaled" we need to include any fst scaling, translation, and rotation, which
+    // is captured in the offset matrix
+    glm::vec3 minimum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.minimum, 1.0));
+    glm::vec3 maximum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.maximum, 1.0));
+    Extents scaledExtents = { minimum, maximum };
+        
     return scaledExtents;
 }
 

@@ -301,6 +301,13 @@ int Octree::readElementData(OctreeElement* destinationElement, const unsigned ch
             }
         }
     }
+    
+    // if this is the root, and there is more data to read, allow it to read it's element data...
+    if (destinationElement == _rootElement  && rootElementHasData() && (bytesLeftToRead - bytesRead) > 0) {
+        // tell the element to read the subsequent data
+        bytesRead += _rootElement->readElementDataFromBuffer(nodeData + bytesRead, bytesLeftToRead - bytesRead, args);
+    }
+    
     return bytesRead;
 }
 
@@ -1524,7 +1531,22 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         }
     } // end keepDiggingDeeper
 
-    // At this point all our BitMasks are complete... so let's output them to see how they compare...
+    // If we made it this far, then we've written all of our child data... if this element is the root
+    // element, then we also allow the root element to write out it's data...
+    if (continueThisLevel && element == _rootElement && rootElementHasData()) {
+        int bytesBeforeChild = packetData->getUncompressedSize();
+        continueThisLevel = element->appendElementData(packetData, params);
+        int bytesAfterChild = packetData->getUncompressedSize();
+
+        if (continueThisLevel) {
+            bytesAtThisLevel += (bytesAfterChild - bytesBeforeChild); // keep track of byte count for this child
+
+            if (params.stats) {
+                params.stats->colorSent(element);
+            }
+        }
+    }
+
     // if we were unable to fit this level in our packet, then rewind and add it to the element bag for
     // sending later...
     if (continueThisLevel) {
