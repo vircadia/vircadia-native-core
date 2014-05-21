@@ -428,6 +428,46 @@ void MyAvatar::setGravity(const glm::vec3& gravity) {
     }
 }
 
+AnimationHandlePointer MyAvatar::addAnimationHandle() {
+    AnimationHandlePointer handle = _skeletonModel.createAnimationHandle();
+    handle->setLoop(true);
+    handle->start();
+    _animationHandles.append(handle);
+    return handle;
+}
+
+void MyAvatar::removeAnimationHandle(const AnimationHandlePointer& handle) {
+    handle->stop();
+    _animationHandles.removeOne(handle);
+}
+
+void MyAvatar::startAnimation(const QString& url, float fps, float priority, bool loop) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "startAnimation", Q_ARG(const QString&, url),
+            Q_ARG(float, fps), Q_ARG(float, priority), Q_ARG(bool, loop));
+        return;
+    }
+    AnimationHandlePointer handle = _skeletonModel.createAnimationHandle();
+    handle->setURL(url);
+    handle->setFPS(fps);
+    handle->setPriority(priority);
+    handle->setLoop(loop);
+    handle->start();
+}
+
+void MyAvatar::stopAnimation(const QString& url) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "stopAnimation", Q_ARG(const QString&, url));
+        return;
+    }
+    foreach (const AnimationHandlePointer& handle, _skeletonModel.getRunningAnimations()) {
+        if (handle->getURL() == url) {
+            handle->stop();
+            return;
+        }
+    }
+}
+
 void MyAvatar::saveData(QSettings* settings) {
     settings->beginGroup("Avatar");
 
@@ -463,6 +503,16 @@ void MyAvatar::saveData(QSettings* settings) {
         settings->setValue("rotation_y", eulers.y);
         settings->setValue("rotation_z", eulers.z);
         settings->setValue("scale", attachment.scale);
+    }
+    settings->endArray();
+    
+    settings->beginWriteArray("animationHandles");
+    for (int i = 0; i < _animationHandles.size(); i++) {
+        settings->setArrayIndex(i);
+        const AnimationHandlePointer& pointer = _animationHandles.at(i);
+        settings->setValue("url", pointer->getURL());
+        settings->setValue("fps", pointer->getFPS());
+        settings->setValue("priority", pointer->getPriority());
     }
     settings->endArray();
     
@@ -515,6 +565,22 @@ void MyAvatar::loadData(QSettings* settings) {
     }
     settings->endArray();
     setAttachmentData(attachmentData);
+    
+    int animationCount = settings->beginReadArray("animationHandles");
+    while (_animationHandles.size() > animationCount) {
+        _animationHandles.takeLast()->stop();
+    }
+    while (_animationHandles.size() < animationCount) {
+        addAnimationHandle();
+    }
+    for (int i = 0; i < animationCount; i++) {
+        settings->setArrayIndex(i);
+        const AnimationHandlePointer& handle = _animationHandles.at(i);
+        handle->setURL(settings->value("url").toUrl());
+        handle->setFPS(loadSetting(settings, "fps", 30.0f));
+        handle->setPriority(loadSetting(settings, "priority", 1.0f));
+    }
+    settings->endArray();
     
     setDisplayName(settings->value("displayName").toString());
 
@@ -1546,3 +1612,4 @@ void MyAvatar::applyCollision(const glm::vec3& contactPoint, const glm::vec3& pe
         getHead()->addLeanDeltas(sideways, forward);
     }
 }
+

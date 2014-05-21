@@ -22,6 +22,8 @@
 
 #include <FBXReader.h>
 
+#include <AnimationCache.h>
+
 class Model;
 class NetworkGeometry;
 class NetworkMesh;
@@ -90,6 +92,8 @@ public:
     const FBXGeometry& getFBXGeometry() const { return _geometry; }
     const QVector<NetworkMesh>& getMeshes() const { return _meshes; }
 
+    QVector<int> getJointMappings(const AnimationPointer& animation);
+
     virtual void setLoadPriority(const QPointer<QObject>& owner, float priority);
     virtual void setLoadPriorities(const QHash<QPointer<QObject>, float>& priorities);
     virtual void clearLoadPriority(const QPointer<QObject>& owner);
@@ -117,6 +121,8 @@ private:
     QVector<NetworkMesh> _meshes;
     
     QWeakPointer<NetworkGeometry> _lodParent;
+    
+    QHash<QWeakPointer<Animation>, QVector<int> > _jointMappings;
 };
 
 /// The state associated with a single mesh part.

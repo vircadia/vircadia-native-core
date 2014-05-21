@@ -118,6 +118,7 @@ QVector<Model::JointState> Model::createJointStates(const FBXGeometry& geometry)
         JointState state;
         state.translation = joint.translation;
         state.rotation = joint.rotation;
+        state.animationDisabled = false;
         jointStates.append(state);
     }
 
@@ -601,6 +602,16 @@ QStringList Model::getJointNames() const {
     return isActive() ? _geometry->getFBXGeometry().getJointNames() : QStringList();
 }
 
+uint qHash(const WeakAnimationHandlePointer& handle, uint seed) {
+    return qHash(handle.data(), seed);
+}
+
+AnimationHandlePointer Model::createAnimationHandle() {
+    AnimationHandlePointer handle(new AnimationHandle(this));
+    handle->_self = handle;
+    _animationHandles.insert(handle);
+    return handle;
+}
 
 void Model::clearShapes() {
     for (int i = 0; i < _jointShapes.size(); ++i) {
@@ -1013,6 +1024,11 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
 }
 
 void Model::simulateInternal(float deltaTime) {
+    // update animations
+    foreach (const AnimationHandlePointer& handle, _runningAnimations) {
+        handle->simulate(deltaTime);
+    }
+
     // NOTE: this is a recursive call that walks all attachments, and their attachments
     // update the world space transforms for all joints
     for (int i = 0; i < _jointStates.size(); i++) {
@@ -1020,9 +1036,8 @@ void Model::simulateInternal(float deltaTime) {
     }
     _shapesAreDirty = true;
     
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-
     // update the attachment transforms and simulate them
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
     for (int i = 0; i < _attachments.size(); i++) {
         const FBXAttachment& attachment = geometry.attachments.at(i);
         Model* model = _attachments.at(i);
@@ -1193,6 +1208,7 @@ bool Model::setJointRotation(int jointIndex, const glm::quat& rotation, bool fro
     state.rotation = state.rotation * glm::inverse(state.combinedRotation) * rotation *
         glm::inverse(fromBind ? _geometry->getFBXGeometry().joints.at(jointIndex).inverseBindRotation :
             _geometry->getFBXGeometry().joints.at(jointIndex).inverseDefaultRotation);
+    state.animationDisabled = true;
     return true;
 }
 
@@ -1225,6 +1241,7 @@ bool Model::restoreJointPosition(int jointIndex, float percent) {
         const FBXJoint& joint = geometry.joints.at(index);
         state.rotation = safeMix(state.rotation, joint.rotation, percent);
         state.translation = glm::mix(state.translation, joint.translation, percent);
+        state.animationDisabled = false;
     }
     return true;
 }
@@ -1258,6 +1275,7 @@ void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool cons
     glm::quat newRotation = glm::quat(glm::clamp(eulers, joint.rotationMin, joint.rotationMax));
     state.combinedRotation = state.combinedRotation * glm::inverse(state.rotation) * newRotation;
     state.rotation = newRotation;
+    state.animationDisabled = true;
 }
 
 const int BALL_SUBDIVISIONS = 10;
@@ -1432,6 +1450,16 @@ void Model::deleteGeometry() {
     _jointStates.clear();
     _meshStates.clear();
     clearShapes();
+    
+    for (QSet<WeakAnimationHandlePointer>::iterator it = _animationHandles.begin(); it != _animationHandles.end(); ) {
+        AnimationHandlePointer handle = it->toStrongRef();
+        if (handle) {
+            handle->_jointMappings.clear();
+            it++;
+        } else {
+            it = _animationHandles.erase(it);
+        }
+    }
     
     if (_geometry) {
         _geometry->clearLoadPriority(this);
@@ -1628,3 +1656,103 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent) {
         activeProgram->release();
     }
 }
+
+void AnimationHandle::setURL(const QUrl& url) {
+    if (_url != url) {
+        _animation = Application::getInstance()->getAnimationCache()->getAnimation(_url = url);
+        _jointMappings.clear();
+    }
+}
+
+static void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandlePointer& handle) {
+    for (QList<AnimationHandlePointer>::iterator it = handles.begin(); it != handles.end(); it++) {
+        if (handle->getPriority() < (*it)->getPriority()) {
+            handles.insert(it, handle);
+            return;
+        } 
+    }
+    handles.append(handle);
+}
+
+void AnimationHandle::setPriority(float priority) {
+    if (_priority != priority) {
+        _priority = priority;
+        if (_running) {
+            _model->_runningAnimations.removeOne(_self);
+            insertSorted(_model->_runningAnimations, _self);
+        }
+    }
+}
+
+void AnimationHandle::setRunning(bool running) {
+    if ((_running = running)) {
+        if (!_model->_runningAnimations.contains(_self)) {
+            insertSorted(_model->_runningAnimations, _self);
+        }
+        _frameIndex = 0.0f;
+          
+    } else {
+        _model->_runningAnimations.removeOne(_self);
+    }
+}
+
+AnimationHandle::AnimationHandle(Model* model) :
+    QObject(model),
+    _model(model),
+    _fps(30.0f),
+    _priority(1.0f),
+    _loop(false),
+    _running(false) {
+}
+
+void AnimationHandle::simulate(float deltaTime) {
+    _frameIndex += deltaTime * _fps;
+    
+    // update the joint mappings if necessary/possible
+    if (_jointMappings.isEmpty()) {
+        if (_model->isActive()) {
+            _jointMappings = _model->getGeometry()->getJointMappings(_animation);
+        }
+        if (_jointMappings.isEmpty()) {
+            return;
+        }
+    }
+    
+    const FBXGeometry& animationGeometry = _animation->getGeometry();
+    if (animationGeometry.animationFrames.isEmpty()) {
+        stop();
+        return;
+    }
+    int ceilFrameIndex = (int)glm::ceil(_frameIndex);
+    if (!_loop && ceilFrameIndex >= animationGeometry.animationFrames.size()) {
+        // passed the end; apply the last frame
+        const FBXAnimationFrame& frame = animationGeometry.animationFrames.last();
+        for (int i = 0; i < _jointMappings.size(); i++) {
+            int mapping = _jointMappings.at(i);
+            if (mapping != -1) {
+                Model::JointState& state = _model->_jointStates[mapping];
+                if (!state.animationDisabled) {
+                    state.rotation = frame.rotations.at(i);
+                }
+            }
+        }
+        stop();
+        return;
+    }
+    // blend between the closest two frames
+    const FBXAnimationFrame& ceilFrame = animationGeometry.animationFrames.at(
+        ceilFrameIndex % animationGeometry.animationFrames.size());
+    const FBXAnimationFrame& floorFrame = animationGeometry.animationFrames.at(
+        (int)glm::floor(_frameIndex) % animationGeometry.animationFrames.size());
+    float frameFraction = glm::fract(_frameIndex);
+    for (int i = 0; i < _jointMappings.size(); i++) {
+        int mapping = _jointMappings.at(i);
+        if (mapping != -1) {
+            Model::JointState& state = _model->_jointStates[mapping];
+            if (!state.animationDisabled) {
+                state.rotation = safeMix(floorFrame.rotations.at(i), ceilFrame.rotations.at(i), frameFraction);
+            }
+        }
+    }
+}
+

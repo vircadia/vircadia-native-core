@@ -404,6 +404,22 @@ QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance
     return lod;
 }
 
+uint qHash(const QWeakPointer<Animation>& animation, uint seed = 0) {
+    return qHash(animation.data(), seed);
+}
+
+QVector<int> NetworkGeometry::getJointMappings(const AnimationPointer& animation) {
+    QVector<int> mappings = _jointMappings.value(animation);
+    if (mappings.isEmpty() && isLoaded() && animation && animation->isLoaded()) {
+        const FBXGeometry& animationGeometry = animation->getGeometry();
+        for (int i = 0; i < animationGeometry.joints.size(); i++) { 
+            mappings.append(_geometry.jointIndices.value(animationGeometry.joints.at(i).name) - 1);
+        }
+        _jointMappings.insert(animation, mappings);
+    }
+    return mappings;
+}
+
 void NetworkGeometry::setLoadPriority(const QPointer<QObject>& owner, float priority) {
     Resource::setLoadPriority(owner, priority);
     
