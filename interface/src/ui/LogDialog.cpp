@@ -57,6 +57,8 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : QDialog
     resize(INITIAL_WIDTH, static_cast<int>(screen.height() * INITIAL_HEIGHT_RATIO));
     move(screen.center() - rect().center());
     setMinimumWidth(MINIMAL_WIDTH);
+
+    connect(_logger, SIGNAL(logReceived(QString)), this, SLOT(appendLogLine(QString)), Qt::QueuedConnection);
 }
 
 LogDialog::~LogDialog() {
@@ -105,7 +107,6 @@ void LogDialog::initControls() {
 }
 
 void LogDialog::showEvent(QShowEvent*)  {
-    connect(_logger, SIGNAL(logReceived(QString)), this, SLOT(appendLogLine(QString)), Qt::QueuedConnection);
     showLogData();
 }
 
@@ -122,7 +123,6 @@ void LogDialog::appendLogLine(QString logLine) {
         if (logLine.contains(_searchTerm, Qt::CaseInsensitive)) {
             _logTextBox->appendPlainText(logLine.simplified());
         }
-        _logTextBox->ensureCursorVisible();
     }
 }
 
@@ -146,10 +146,8 @@ void LogDialog::handleSearchTextChanged(const QString searchText) {
 
 void LogDialog::showLogData() {
     _logTextBox->clear();
-    QStringList _logData = _logger->getLogData();
-    for (int i = 0; i < _logData.size(); ++i) {
-        appendLogLine(_logData[i]);
-    }
+    _logTextBox->insertPlainText(_logger->getLogData());
+    _logTextBox->ensureCursorVisible();
 }
 
 KeywordHighlighter::KeywordHighlighter(QTextDocument *parent) : QSyntaxHighlighter(parent), keywordFormat() {
