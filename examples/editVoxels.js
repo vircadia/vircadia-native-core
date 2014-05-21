@@ -630,7 +630,7 @@ var trackAsDelete = false;
 var trackAsRecolor = false;
 var trackAsEyedropper = false;
 
-var voxelToolSelected = true;
+var voxelToolSelected = false;
 var recolorToolSelected = false;
 var eyedropperToolSelected = false;
 var pasteMode = false;
@@ -848,7 +848,7 @@ function showPreviewLines() {
 }
 
 function showPreviewGuides() {
-    if (editToolsOn && !isImporting) {
+    if (editToolsOn && !isImporting && (voxelToolSelected || recolorToolSelected || eyedropperToolSelected)) {
         if (previewAsVoxel) {
             showPreviewVoxel();
             
@@ -964,7 +964,7 @@ function mousePressEvent(event) {
     
     if (clickedOverlay == voxelTool) {
         modeSwitchSound.play(0);
-        voxelToolSelected = true;
+        voxelToolSelected = !voxelToolSelected;
         recolorToolSelected = false;
         eyedropperToolSelected = false;
         moveTools();
@@ -972,7 +972,7 @@ function mousePressEvent(event) {
     } else if (clickedOverlay == recolorTool) {
         modeSwitchSound.play(1);
         voxelToolSelected = false;
-        recolorToolSelected = true;
+        recolorToolSelected = !recolorToolSelected;
         eyedropperToolSelected = false;
         moveTools();
         clickedOnSomething = true;
@@ -980,7 +980,7 @@ function mousePressEvent(event) {
         modeSwitchSound.play(2);
         voxelToolSelected = false;
         recolorToolSelected = false;
-        eyedropperToolSelected = true;
+        eyedropperToolSelected = !eyedropperToolSelected;
         moveTools();
         clickedOnSomething = true;
     } else if (scaleSelector.clicked(event.x, event.y)) {
@@ -1000,7 +1000,7 @@ function mousePressEvent(event) {
             }
         }
     }
-    if (clickedOnSomething || isImporting) {
+    if (clickedOnSomething || isImporting || (!voxelToolSelected && !recolorToolSelected && !eyedropperToolSelected)) {
         return; // no further processing
     }
     
@@ -1344,7 +1344,7 @@ function moveTools() {
         recolorToolOffset = 2;
     } else if (eyedropperToolSelected) {
         eyedropperToolOffset = 2;
-    } else {
+    } else if (voxelToolSelected) {
         if (pasteMode) {
             voxelToolColor = pasteModeColor;
         }
