@@ -324,6 +324,14 @@ bool ModelTreeElement::removeModelWithID(uint32_t id) {
 int ModelTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
             ReadBitstreamToTreeParams& args) {
 
+    // If we're the root, but this bitstream doesn't support root elements with data, then
+    // return without reading any bytes
+    if (this == _myTree->getRoot() && args.bitstreamVersion < VERSION_ROOT_ELEMENT_HAS_DATA) {
+        qDebug() << "ROOT ELEMENT: no root data for "
+                    "bitstreamVersion=" << (int)args.bitstreamVersion << " bytesLeftToRead=" << bytesLeftToRead;
+        return 0;
+    }
+
     const unsigned char* dataAt = data;
     int bytesRead = 0;
     uint16_t numberOfModels = 0;

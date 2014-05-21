@@ -61,6 +61,24 @@ void VoxelPacketProcessor::processPacket(const SharedNodePointer& sendingNode, c
     } // fall through to piggyback message
     
     voxelPacketType = packetTypeForPacket(mutablePacket);
+    PacketVersion packetVersion = mutablePacket[1];
+    PacketVersion expectedVersion = versionForPacketType(voxelPacketType);
+    
+    // check version of piggyback packet against expected version
+    if (packetVersion != expectedVersion) {
+        static QMultiMap<QUuid, PacketType> versionDebugSuppressMap;
+        
+        QUuid senderUUID = uuidFromPacketHeader(packet);
+        if (!versionDebugSuppressMap.contains(senderUUID, voxelPacketType)) {
+            qDebug() << "Packet version mismatch on" << voxelPacketType << "- Sender"
+            << senderUUID << "sent" << (int)packetVersion << "but"
+            << (int)expectedVersion << "expected.";
+            
+            versionDebugSuppressMap.insert(senderUUID, voxelPacketType);
+        }
+        return; // bail since piggyback version doesn't match
+    }
+
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
         app->trackIncomingVoxelPacket(mutablePacket, sendingNode, wasStatsPacket);
