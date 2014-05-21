@@ -15,6 +15,15 @@
 
 #include "WalletTransaction.h"
 
+WalletTransaction::WalletTransaction() :
+    _uuid(),
+    _destinationUUID(),
+    _amount(),
+    _isFinalized(false)
+{
+    
+}
+
 WalletTransaction::WalletTransaction(const QUuid& destinationUUID, double amount) :
     _uuid(QUuid::createUuid()),
     _destinationUUID(destinationUUID),
@@ -24,20 +33,35 @@ WalletTransaction::WalletTransaction(const QUuid& destinationUUID, double amount
     
 }
 
+const QString TRANSACTION_ID_KEY = "id";
+const QString TRANSACTION_DESTINATION_WALLET_ID_KEY = "destination_wallet_id";
+const QString TRANSACTION_AMOUNT_KEY = "amount";
+
+const QString ROOT_OBJECT_TRANSACTION_KEY = "transaction";
+
 QJsonDocument WalletTransaction::postJson() {
     QJsonObject rootObject;
+   
+    rootObject.insert(ROOT_OBJECT_TRANSACTION_KEY, toJson());
+    
+    return QJsonDocument(rootObject);
+}
+
+QJsonObject WalletTransaction::toJson() {
     QJsonObject transactionObject;
     
-    const QString TRANSCATION_ID_KEY = "id";
-    const QString TRANSACTION_DESTINATION_WALLET_ID_KEY = "destination_wallet_id";
-    const QString TRANSACTION_AMOUNT_KEY = "amount";
-    
-    transactionObject.insert(TRANSCATION_ID_KEY, uuidStringWithoutCurlyBraces(_uuid));
+    transactionObject.insert(TRANSACTION_ID_KEY, uuidStringWithoutCurlyBraces(_uuid));
     transactionObject.insert(TRANSACTION_DESTINATION_WALLET_ID_KEY, uuidStringWithoutCurlyBraces(_destinationUUID));
     transactionObject.insert(TRANSACTION_AMOUNT_KEY, _amount);
     
-    const QString ROOT_OBJECT_TRANSACTION_KEY = "transaction";
-    rootObject.insert(ROOT_OBJECT_TRANSACTION_KEY, transactionObject);
+    return transactionObject;
+}
+
+void WalletTransaction::loadFromJson(const QJsonObject& jsonObject) {
+    // pull the destination wallet and ID of the transaction to match it
+    QJsonObject transactionObject = jsonObject.value("data").toObject().value(ROOT_OBJECT_TRANSACTION_KEY).toObject();
     
-    return QJsonDocument(rootObject);
+    _uuid = QUuid(transactionObject.value(TRANSACTION_ID_KEY).toString());
+    _destinationUUID = QUuid(transactionObject.value(TRANSACTION_DESTINATION_WALLET_ID_KEY).toString());
+    _amount = transactionObject.value(TRANSACTION_AMOUNT_KEY).toDouble();
 }

@@ -739,12 +739,55 @@ void DomainServer::setupPendingAssignmentCredits() {
 }
 
 void DomainServer::sendPendingTransactionsToServer() {
-    // enumerate the pending transactions and send them to the server to complete payment
-    TransactionHash::iterator i = _pendingAssignmentCredits.begin();
     
-    while (i != _pendingAssignmentCredits.end()) {
+    AccountManager& accountManager = AccountManager::getInstance();
+    
+    if (accountManager.hasValidAccessToken()) {
         
-        ++i;
+        // enumerate the pending transactions and send them to the server to complete payment
+        TransactionHash::iterator i = _pendingAssignmentCredits.begin();
+        
+        JSONCallbackParameters transactionCallbackParams;
+        
+        transactionCallbackParams.jsonCallbackReceiver = this;
+        transactionCallbackParams.jsonCallbackMethod = "transactionJSONCallback";
+        
+        while (i != _pendingAssignmentCredits.end()) {
+            accountManager.authenticatedRequest("api/v1/transactions", QNetworkAccessManager::PostOperation,
+                                                transactionCallbackParams, i.value()->postJson().toJson());
+            
+            // set this transaction to finalized so we don't add additional credits to it
+            i.value()->setIsFinalized(true);
+            
+            ++i;
+        }
+    }
+    
+}
+
+void DomainServer::transactionJSONCallback(const QJsonObject& data) {
+    // check if this was successful - if so we can remove it from our list of pending
+    if (data.value("status").toString() == "success") {
+        // create a dummy wallet transaction to unpack the JSON to
+        WalletTransaction dummyTransaction;
+        dummyTransaction.loadFromJson(data);
+        
+        TransactionHash::iterator i = _pendingAssignmentCredits.find(dummyTransaction.getDestinationUUID());
+        
+        while (i != _pendingAssignmentCredits.end() && i.key() == dummyTransaction.getDestinationUUID()) {
+            if (i.value()->getUUID() == dummyTransaction.getUUID()) {
+                // we have a match - we can remove this from the hash of pending credits
+                // and delete it for clean up
+                
+                WalletTransaction* matchingTransaction = i.value();
+                _pendingAssignmentCredits.erase(i);
+                delete matchingTransaction;
+                
+                break;
+            } else {
+                ++i;
+            }
+        }
     }
 }
 
@@ -907,6 +950,24 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             connection->respond(HTTPConnection::StatusCode200, assignmentDocument.toJson(), qPrintable(JSON_MIME_TYPE));
             
             // we've processed this request
+            return true;
+        } else if (url.path() == "/transactions.json") {
+            // enumerate our pending transactions and display them in an array
+            QJsonObject rootObject;
+            QJsonArray transactionArray;
+            
+            TransactionHash::iterator i = _pendingAssignmentCredits.begin();
+            while (i != _pendingAssignmentCredits.end()) {
+                transactionArray.push_back(i.value()->toJson());
+                ++i;
+            }
+            
+            rootObject["pending_transactions"] = transactionArray;
+            
+            // print out the created JSON
+            QJsonDocument transactionsDocument(rootObject);
+            connection->respond(HTTPConnection::StatusCode200, transactionsDocument.toJson(), qPrintable(JSON_MIME_TYPE));
+            
             return true;
         } else if (url.path() == QString("%1.json").arg(URI_NODES)) {
             // setup the JSON

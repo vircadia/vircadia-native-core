@@ -18,6 +18,7 @@
 
 class WalletTransaction : public QObject {
 public:
+    WalletTransaction();
     WalletTransaction(const QUuid& destinationUUID, double amount);
     
     const QUuid& getUUID() const { return _uuid; }
@@ -33,6 +34,8 @@ public:
     void setIsFinalized(bool isFinalized) { _isFinalized = isFinalized; }
     
     QJsonDocument postJson();
+    QJsonObject toJson();
+    void loadFromJson(const QJsonObject& jsonObject);
 private:
     QUuid _uuid;
     QUuid _destinationUUID;

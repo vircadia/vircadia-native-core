@@ -47,6 +47,8 @@ public slots:
     /// Called by NodeList to inform us a node has been killed
     void nodeKilled(SharedNodePointer node);
     
+    void transactionJSONCallback(const QJsonObject& data);
+    
 private slots:
     void loginFailed();
     void readAvailableDatagrams();
