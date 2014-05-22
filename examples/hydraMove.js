@@ -8,6 +8,10 @@
 //  This is an example script that demonstrates use of the Controller and MyAvatar classes to implement
 //  avatar flying through the hydra/controller joysticks
 //
+//  The joysticks (on hydra) will drive the avatar much like a playstation controller. 
+// 
+//  Pressing the '4' or the 'FWD' button and moving/banking the hand will allow you to  move and fly.  
+//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
@@ -46,9 +50,12 @@ var JOYSTICK_PITCH_MAG = PITCH_MAG * 0.5;
 
 
 var LEFT_PALM = 0;
-var LEFT_BUTTON_4 = 4;
+var LEFT_BUTTON_4 = 5;
+var LEFT_BUTTON_FWD = 5;
 var RIGHT_PALM = 2;
 var RIGHT_BUTTON_4 = 10;
+var RIGHT_BUTTON_FWD = 11;
+
 
 
 function printVector(text, v, decimals) {
@@ -84,8 +91,8 @@ function getGrabRotation() {
 // When move button is pressed, process results 
 function handleGrabBehavior(deltaTime) {
     // check for and handle grab behaviors
-    grabbingWithRightHand = Controller.isButtonPressed(RIGHT_BUTTON_4);
-    grabbingWithLeftHand = Controller.isButtonPressed(LEFT_BUTTON_4);
+    grabbingWithRightHand = Controller.isButtonPressed(RIGHT_BUTTON_FWD) || Controller.isButtonPressed(RIGHT_BUTTON_4);
+    grabbingWithLeftHand = Controller.isButtonPressed(LEFT_BUTTON_FWD) || Controller.isButtonPressed(LEFT_BUTTON_4);
     stoppedGrabbingWithLeftHand = false;
     stoppedGrabbingWithRightHand = false;
     
