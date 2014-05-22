@@ -17,7 +17,9 @@ DataServerAccountInfo::DataServerAccountInfo() :
     _accessToken(),
     _username(),
     _xmppPassword(),
-    _discourseApiKey()
+    _discourseApiKey(),
+    _balance(0),
+    _hasBalance(false)
 {
     
 }
@@ -72,6 +74,22 @@ void DataServerAccountInfo::setXMPPPassword(const QString& xmppPassword) {
 void DataServerAccountInfo::setDiscourseApiKey(const QString& discourseApiKey) {
     if (_discourseApiKey != discourseApiKey) {
         _discourseApiKey = discourseApiKey;
+    }
+}
+
+void DataServerAccountInfo::setBalance(quint64 balance) {
+    if (!_hasBalance || _balance != balance) {
+        _balance = balance;
+        _hasBalance = true;
+        
+        emit balanceChanged(_balance);
+    }
+}
+
+void DataServerAccountInfo::setBalanceFromJSON(const QJsonObject& jsonObject) {
+    if (jsonObject["status"].toString() == "success") {
+        qint64 balanceInSatoshis = jsonObject["data"].toObject()["wallet"].toObject()["balance"].toInt();
+        setBalance(balanceInSatoshis);
     }
 }
 

@@ -237,12 +237,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(&nodeList->getDomainHandler(), SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
 
     // update our location every 5 seconds in the data-server, assuming that we are authenticated with one
-    const float DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5.0f * 1000.0f;
+    const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
 
     QTimer* locationUpdateTimer = new QTimer(this);
     connect(locationUpdateTimer, &QTimer::timeout, this, &Application::updateLocationInServer);
     locationUpdateTimer->start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
-
+ 
     connect(nodeList, &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList, &NodeList::nodeKilled, this, &Application::nodeKilled);
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
@@ -251,9 +251,18 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(nodeList, &NodeList::uuidChanged, this, &Application::updateWindowTitle);
     connect(nodeList, SIGNAL(uuidChanged(const QUuid&)), _myAvatar, SLOT(setSessionUUID(const QUuid&)));
     connect(nodeList, &NodeList::limitOfSilentDomainCheckInsReached, nodeList, &NodeList::reset);
-
+    
     // connect to appropriate slots on AccountManager
     AccountManager& accountManager = AccountManager::getInstance();
+    
+    const qint64 BALANCE_UPDATE_INTERVAL_MSECS = 5 * 1000;
+    
+    QTimer* balanceUpdateTimer = new QTimer(this);
+    connect(balanceUpdateTimer, &QTimer::timeout, &accountManager, &AccountManager::updateBalance);
+    balanceUpdateTimer->start(BALANCE_UPDATE_INTERVAL_MSECS);
+    
+    connect(&accountManager, &AccountManager::balanceChanged, this, &Application::updateWindowTitle);
+
     connect(&accountManager, &AccountManager::authRequired, Menu::getInstance(), &Menu::loginForCurrentDomain);
     connect(&accountManager, &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
 
@@ -3095,6 +3104,17 @@ void Application::updateWindowTitle(){
     QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
         + nodeList->getDomainHandler().getHostname() + buildVersion;
     qDebug("Application title set to: %s", title.toStdString().c_str());
+    
+    AccountManager& accountManager = AccountManager::getInstance();
+    if (accountManager.getAccountInfo().hasBalance()) {
+        float creditBalance = accountManager.getAccountInfo().getBalance() * pow(10.0f, -8.0f);
+        
+        QString creditBalanceString;
+        creditBalanceString.sprintf("%.8f", creditBalance);
+        
+        title += " - ₵" + creditBalanceString;
+    }
+    
     _window->setWindowTitle(title);
 }
 
