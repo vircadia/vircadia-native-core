@@ -162,7 +162,7 @@ function controller(wichSide) {
 
     this.checkModel = function (properties) {
         // special case to lock the ground plane model in hq.
-        if (this.isLocked(properties)) {
+        if (isLocked(properties)) {
             return { valid: false };
         }
    
