@@ -28,7 +28,6 @@
 #include <QUuid>
 #include <QHBoxLayout>
 #include <QDesktopServices>
-#include <QSystemTrayIcon>
 
 #include <AccountManager.h>
 #include <XmppClient.h>
