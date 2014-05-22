@@ -430,8 +430,6 @@ void MyAvatar::setGravity(const glm::vec3& gravity) {
 
 AnimationHandlePointer MyAvatar::addAnimationHandle() {
     AnimationHandlePointer handle = _skeletonModel.createAnimationHandle();
-    handle->setLoop(true);
-    handle->start();
     _animationHandles.append(handle);
     return handle;
 }
@@ -516,11 +514,13 @@ void MyAvatar::saveData(QSettings* settings) {
     for (int i = 0; i < _animationHandles.size(); i++) {
         settings->setArrayIndex(i);
         const AnimationHandlePointer& pointer = _animationHandles.at(i);
+        settings->setValue("role", pointer->getRole());
         settings->setValue("url", pointer->getURL());
         settings->setValue("fps", pointer->getFPS());
         settings->setValue("priority", pointer->getPriority());
         settings->setValue("loop", pointer->getLoop());
         settings->setValue("hold", pointer->getHold());
+        settings->setValue("startAutomatically", pointer->getStartAutomatically());
         settings->setValue("firstFrame", pointer->getFirstFrame());
         settings->setValue("lastFrame", pointer->getLastFrame());
         settings->setValue("maskedJoints", pointer->getMaskedJoints());
@@ -587,11 +587,13 @@ void MyAvatar::loadData(QSettings* settings) {
     for (int i = 0; i < animationCount; i++) {
         settings->setArrayIndex(i);
         const AnimationHandlePointer& handle = _animationHandles.at(i);
+        handle->setRole(settings->value("role", "idle").toString());
         handle->setURL(settings->value("url").toUrl());
         handle->setFPS(loadSetting(settings, "fps", 30.0f));
         handle->setPriority(loadSetting(settings, "priority", 1.0f));
         handle->setLoop(settings->value("loop", true).toBool());
         handle->setHold(settings->value("hold", false).toBool());
+        handle->setStartAutomatically(settings->value("startAutomatically", true).toBool());
         handle->setFirstFrame(settings->value("firstFrame", 0).toInt());
         handle->setLastFrame(settings->value("lastFrame", INT_MAX).toInt());
         handle->setMaskedJoints(settings->value("maskedJoints").toStringList());

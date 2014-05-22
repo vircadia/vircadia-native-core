@@ -57,6 +57,7 @@ private slots:
 
     void chooseURL();
     void chooseMaskedJoints();
+    void updateStartStop();
     void updateHandle();
     void removeHandle();
     
@@ -70,10 +71,13 @@ private:
     QDoubleSpinBox* _priority;
     QCheckBox* _loop;
     QCheckBox* _hold;
+    QCheckBox* _startAutomatically;
     QSpinBox* _firstFrame;
     QSpinBox* _lastFrame;
     QLineEdit* _maskedJoints;
     QPushButton* _chooseMaskedJoints;
+    QPushButton* _start;
+    QPushButton* _stop;
     bool _applying;
 };
 

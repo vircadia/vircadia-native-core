@@ -381,6 +381,9 @@ class AnimationHandle : public QObject {
     
 public:
 
+    void setRole(const QString& role) { _role = role; }
+    const QString& getRole() const { return _role; }
+
     void setURL(const QUrl& url);
     const QUrl& getURL() const { return _url; }
     
@@ -396,6 +399,9 @@ public:
     void setHold(bool hold) { _hold = hold; }
     bool getHold() const { return _hold; }
     
+    void setStartAutomatically(bool startAutomatically);
+    bool getStartAutomatically() const { return _startAutomatically; }
+    
     void setFirstFrame(int firstFrame) { _firstFrame = firstFrame; }
     int getFirstFrame() const { return _firstFrame; }
     
@@ -407,7 +413,13 @@ public:
     
     void setRunning(bool running);
     bool isRunning() const { return _running; }
+
+signals:
     
+    void runningChanged(bool running);
+
+public slots:
+
     void start() { setRunning(true); }
     void stop() { setRunning(false); }
     
@@ -422,13 +434,15 @@ private:
     Model* _model;
     WeakAnimationHandlePointer _self;
     AnimationPointer _animation;
+    QString _role;
     QUrl _url;
     float _fps;
     float _priority;
-    int _firstFrame;
-    int _lastFrame;
     bool _loop;
     bool _hold;
+    bool _startAutomatically;
+    int _firstFrame;
+    int _lastFrame;
     QStringList _maskedJoints;
     bool _running;
     QVector<int> _jointMappings;

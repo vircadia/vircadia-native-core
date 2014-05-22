@@ -1699,12 +1699,25 @@ void AnimationHandle::setPriority(float priority) {
     }
 }
 
+void AnimationHandle::setStartAutomatically(bool startAutomatically) {
+    if ((_startAutomatically = startAutomatically) && !_running) {
+        start();
+    }
+}
+
 void AnimationHandle::setMaskedJoints(const QStringList& maskedJoints) {
     _maskedJoints = maskedJoints;
     _jointMappings.clear();
 }
 
 void AnimationHandle::setRunning(bool running) {
+    if (_running == running) {
+        if (running) {
+            // move back to the beginning
+            _frameIndex = _firstFrame;
+        }
+        return;
+    }
     if ((_running = running)) {
         if (!_model->_runningAnimations.contains(_self)) {
             insertSorted(_model->_runningAnimations, _self);
@@ -1723,6 +1736,7 @@ void AnimationHandle::setRunning(bool running) {
             }
         }
     }
+    emit runningChanged(_running);
 }
 
 AnimationHandle::AnimationHandle(Model* model) :
@@ -1730,10 +1744,11 @@ AnimationHandle::AnimationHandle(Model* model) :
     _model(model),
     _fps(30.0f),
     _priority(1.0f),
-    _firstFrame(0),
-    _lastFrame(INT_MAX),
     _loop(false),
     _hold(false),
+    _startAutomatically(false),
+    _firstFrame(0),
+    _lastFrame(INT_MAX),
     _running(false) {
 }
 

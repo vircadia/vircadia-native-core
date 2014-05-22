@@ -82,7 +82,11 @@ AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePo
     setLayout(layout);
     
     layout->addRow("Role:", _role = new QComboBox());
+    _role->addItem("idle");
+    _role->addItem("sit");
     _role->setEditable(true);
+    _role->setCurrentText(handle->getRole());
+    connect(_role, SIGNAL(currentTextChanged(const QString&)), SLOT(updateHandle()));
     
     QHBoxLayout* urlBox = new QHBoxLayout();
     layout->addRow("URL:", urlBox);
@@ -120,6 +124,10 @@ AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePo
     _hold->setChecked(handle->getHold());
     connect(_hold, SIGNAL(toggled(bool)), SLOT(updateHandle()));
     
+    layout->addRow("Start Automatically:", _startAutomatically = new QCheckBox());
+    _startAutomatically->setChecked(handle->getStartAutomatically());
+    connect(_startAutomatically, SIGNAL(toggled(bool)), SLOT(updateHandle()));
+    
     layout->addRow("First Frame:", _firstFrame = new QSpinBox());
     _firstFrame->setMaximum(INT_MAX);
     _firstFrame->setValue(handle->getFirstFrame());
@@ -130,9 +138,18 @@ AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePo
     _lastFrame->setValue(handle->getLastFrame());
     connect(_lastFrame, SIGNAL(valueChanged(int)), SLOT(updateHandle()));
     
+    QHBoxLayout* buttons = new QHBoxLayout();
+    layout->addRow(buttons);
+    buttons->addWidget(_start = new QPushButton("Start"));
+    _handle->connect(_start, SIGNAL(clicked(bool)), SLOT(start())); 
+    buttons->addWidget(_stop = new QPushButton("Stop"));
+    _handle->connect(_stop, SIGNAL(clicked(bool)), SLOT(stop()));
     QPushButton* remove = new QPushButton("Delete");
-    layout->addRow(remove);
+    buttons->addWidget(remove);
     connect(remove, SIGNAL(clicked(bool)), SLOT(removeHandle()));
+    
+    connect(_handle.data(), SIGNAL(runningChanged(bool)), SLOT(updateStartStop()));
+    updateStartStop();
 }
 
 void AnimationPanel::chooseURL() {
@@ -168,19 +185,22 @@ void AnimationPanel::chooseMaskedJoints() {
     }
 }
 
+void AnimationPanel::updateStartStop() {
+    _start->setEnabled(!_handle->isRunning());
+    _stop->setEnabled(_handle->isRunning());
+}
+
 void AnimationPanel::updateHandle() {
+    _handle->setRole(_role->currentText());
     _handle->setURL(_url->text());
     _handle->setFPS(_fps->value());
     _handle->setPriority(_priority->value());
     _handle->setLoop(_loop->isChecked());
     _handle->setHold(_hold->isChecked());
+    _handle->setStartAutomatically(_startAutomatically->isChecked());
     _handle->setFirstFrame(_firstFrame->value());
     _handle->setLastFrame(_lastFrame->value());
     _handle->setMaskedJoints(_maskedJoints->text().split(QRegExp("\\s*,\\s*")));
-    
-    if ((_loop->isChecked() || _hold->isChecked()) && !_handle->isRunning()) {
-        _handle->start();
-    }
 }
 
 void AnimationPanel::removeHandle() {
