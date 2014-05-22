@@ -632,10 +632,23 @@ function mouseMoveEvent(event)  {
     Models.editModel(selectedModelID, selectedModelProperties);
 }
 
+function setupModelMenus() {
+    // add our menuitems
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Models", isSeparator: true, beforeItem: "Physics" });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete Model", shortcutKeyEvent: { text: "backspace" }, afterItem: "Models" });
+}
+
+function cleanupModelMenus() {
+    // delete our menuitems
+    Menu.removeSeparator("Edit", "Models");
+    Menu.removeMenuItem("Edit", "Delete Model");
+}
+
 function scriptEnding() {
     leftController.cleanup();
     rightController.cleanup();
     toolBar.cleanup();
+    cleanupModelMenus();
 }
 Script.scriptEnding.connect(scriptEnding);
 
@@ -644,5 +657,22 @@ Script.update.connect(checkController);
 Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseMoveEvent.connect(mouseMoveEvent);
 
+setupModelMenus();
+Menu.menuItemEvent.connect(function(menuItem){
+    print("menuItemEvent() in JS... menuItem=" + menuItem);
+    if (menuItem == "Delete Model") {
+        if (leftController.grabbing) {
+            print("  Delete Model.... controller.modelID="+ leftController.modelID);
+            Models.deleteModel(leftController.modelID);
+            leftController.grabbing = false;
+        } else if (rightController.grabbing) {
+            print("  Delete Model.... controller.modelID="+ rightController.modelID);
+            Models.deleteModel(rightController.modelID);
+            rightController.grabbing = false;
+        } else {
+            print("  Delete Model.... not holding...");
+        }
+    }
+});
 
 
