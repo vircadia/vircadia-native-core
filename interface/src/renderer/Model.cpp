@@ -682,7 +682,6 @@ void Model::computeBoundingShape(const FBXGeometry& geometry) {
     shapeIsSet.fill(false, numJoints);
     int numShapesSet = 0;
     int lastNumShapesSet = -1;
-    glm::vec3 rootOffset(0.0f);
     while (numShapesSet < numJoints && numShapesSet != lastNumShapesSet) {
         lastNumShapesSet = numShapesSet;
         for (int i = 0; i < numJoints; i++) {
@@ -692,9 +691,11 @@ void Model::computeBoundingShape(const FBXGeometry& geometry) {
             if (parentIndex == -1) {
                 glm::mat4 baseTransform = glm::scale(_scale) * glm::translate(_offset);
                 glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;    
-                transforms[i] = baseTransform * geometry.offset * glm::translate(joint.translation) 
+                glm::mat4 rootTransform = baseTransform * geometry.offset * glm::translate(joint.translation) 
                     * joint.preTransform * glm::mat4_cast(combinedRotation) * joint.postTransform;
-                rootOffset = extractTranslation(transforms[i]);
+                // remove the tranlsation part before we save the root transform
+                transforms[i] = glm::translate(- extractTranslation(rootTransform)) * rootTransform;
+
                 finalRotations[i] = combinedRotation;
                 ++numShapesSet;
                 shapeIsSet[i] = true;
@@ -715,7 +716,7 @@ void Model::computeBoundingShape(const FBXGeometry& geometry) {
     for (int i = 0; i < _jointShapes.size(); i++) {
         const FBXJoint& joint = geometry.joints[i];
         glm::vec3 jointToShapeOffset = uniformScale * (finalRotations[i] * joint.shapePosition);
-        glm::vec3 localPosition = extractTranslation(transforms[i]) + jointToShapeOffset- rootOffset;
+        glm::vec3 localPosition = extractTranslation(transforms[i]) + jointToShapeOffset;
         Shape* shape = _jointShapes[i];
         shape->setPosition(localPosition);
         shape->setRotation(finalRotations[i] * joint.shapeRotation);
@@ -1078,12 +1079,10 @@ void Model::updateJointState(int index) {
     
     if (joint.parentIndex == -1) {
         glm::mat4 baseTransform = glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset);
-    
         glm::quat combinedRotation = joint.preRotation * state.rotation * joint.postRotation;    
         state.transform = baseTransform * geometry.offset * glm::translate(state.translation) * joint.preTransform *
             glm::mat4_cast(combinedRotation) * joint.postTransform;
         state.combinedRotation = _rotation * combinedRotation;
-        
     } else {
         const JointState& parentState = _jointStates.at(joint.parentIndex);
         if (index == geometry.leanJointIndex) {
