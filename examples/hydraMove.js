@@ -15,8 +15,8 @@
 var damping = 0.9;
 var position = { x: MyAvatar.position.x, y: MyAvatar.position.y, z: MyAvatar.position.z };
 var joysticksCaptured = false;
-var THRUST_CONTROLLER = 0;
-var VIEW_CONTROLLER = 1;
+var THRUST_CONTROLLER = 1;
+var VIEW_CONTROLLER = 0;
 var INITIAL_THRUST_MULTPLIER = 1.0;
 var THRUST_INCREASE_RATE = 1.05;
 var MAX_THRUST_MULTIPLIER = 75.0;
@@ -57,6 +57,15 @@ function printVector(text, v, decimals) {
 
 var debug = false;
 
+function getJoystickPosition(palm) {
+    // returns CONTROLLER_ID position in avatar local frame
+    var invRotation = Quat.inverse(MyAvatar.orientation);
+    var palmWorld = Controller.getSpatialControlPosition(palm);
+    var palmRelative = Vec3.subtract(palmWorld, MyAvatar.position);
+    var palmLocal = Vec3.multiplyQbyV(invRotation, palmRelative);
+    return palmLocal;
+}
+
 // Used by handleGrabBehavior() for managing the grab position changes
 function getAndResetGrabDelta() {
     var HAND_GRAB_SCALE_DISTANCE = 2.0;
@@ -83,11 +92,11 @@ function handleGrabBehavior(deltaTime) {
     if (grabbingWithRightHand && !wasGrabbingWithRightHand) {
         // Just starting grab, capture starting rotation
         grabStartRotation = Controller.getSpatialControlRawRotation(RIGHT_PALM);
-        grabStartPosition = Controller.getSpatialControlPosition(RIGHT_PALM);
+        grabStartPosition = getJoystickPosition(RIGHT_PALM);
         if (debug) printVector("start position", grabStartPosition, 3);
     }
     if (grabbingWithRightHand) {
-        grabDelta = Vec3.subtract(Controller.getSpatialControlPosition(RIGHT_PALM), grabStartPosition);
+        grabDelta = Vec3.subtract(getJoystickPosition(RIGHT_PALM), grabStartPosition);
         grabCurrentRotation = Controller.getSpatialControlRawRotation(RIGHT_PALM);
     }
     if (!grabbingWithRightHand && wasGrabbingWithRightHand) {
@@ -99,12 +108,12 @@ function handleGrabBehavior(deltaTime) {
     if (grabbingWithLeftHand && !wasGrabbingWithLeftHand) {
         // Just starting grab, capture starting rotation
         grabStartRotation = Controller.getSpatialControlRawRotation(LEFT_PALM);
-        grabStartPosition = Controller.getSpatialControlPosition(LEFT_PALM);
+        grabStartPosition = getJoystickPosition(LEFT_PALM);
         if (debug) printVector("start position", grabStartPosition, 3);
     }
 
     if (grabbingWithLeftHand) {
-        grabDelta = Vec3.subtract(Controller.getSpatialControlPosition(LEFT_PALM), grabStartPosition);
+        grabDelta = Vec3.subtract(getJoystickPosition(LEFT_PALM), grabStartPosition);
         grabCurrentRotation = Controller.getSpatialControlRawRotation(LEFT_PALM);
     }
     if (!grabbingWithLeftHand && wasGrabbingWithLeftHand) {
@@ -122,23 +131,20 @@ function handleGrabBehavior(deltaTime) {
         var front = Quat.getFront(headOrientation);
         var right = Quat.getRight(headOrientation);
         var up = Quat.getUp(headOrientation);
-    
-         grabDelta = Vec3.multiplyQbyV(MyAvatar.orientation, Vec3.multiply(grabDelta, -1));
 
         if (debug) {
             printVector("grabDelta: ", grabDelta, 3);
         }
 
-        var THRUST_GRAB_SCALING = 0.0;
+        var THRUST_GRAB_SCALING = 300000.0;
         
-        var thrustFront = Vec3.multiply(front, MyAvatar.scale * grabDelta.z * THRUST_GRAB_SCALING * deltaTime);
+        var thrustFront = Vec3.multiply(front, MyAvatar.scale * -grabDelta.z * THRUST_GRAB_SCALING * deltaTime);
         MyAvatar.addThrust(thrustFront);
         var thrustRight = Vec3.multiply(right, MyAvatar.scale * grabDelta.x * THRUST_GRAB_SCALING * deltaTime);
         MyAvatar.addThrust(thrustRight);
         var thrustUp = Vec3.multiply(up, MyAvatar.scale * grabDelta.y * THRUST_GRAB_SCALING * deltaTime);
         MyAvatar.addThrust(thrustUp);
         
-
         // add some rotation...
         var deltaRotation = getGrabRotation();
         var PITCH_SCALING = 2.0;
