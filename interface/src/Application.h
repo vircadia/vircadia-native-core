@@ -28,6 +28,7 @@
 #include <QHash>
 #include <QTouchEvent>
 #include <QUndoStack>
+#include <QSystemTrayIcon>
 
 #include <ModelEditPacketSender.h>
 #include <NetworkPacket.h>
@@ -203,6 +204,7 @@ public:
     JoystickManager* getJoystickManager() { return &_joystickManager; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QUndoStack* getUndoStack() { return &_undoStack; }
+    QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
 
     /// if you need to access the application settings, use lockSettings()/unlockSettings()
     QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }
@@ -466,7 +468,7 @@ private:
     glm::mat4 _untranslatedViewMatrix;
     glm::vec3 _viewMatrixTranslation;
     glm::mat4 _projectionMatrix;
-    
+
     float _scaleMirror;
     float _rotateMirror;
     float _raiseMirror;
@@ -553,6 +555,8 @@ private:
     RunningScriptsWidget* _runningScriptsWidget;
     QHash<QString, ScriptEngine*> _scriptEnginesHash;
     bool _runningScriptsWidgetWasVisible;
+
+    QSystemTrayIcon* _trayIcon;
 };
 
 #endif // hifi_Application_h

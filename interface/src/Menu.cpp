@@ -28,6 +28,7 @@
 #include <QUuid>
 #include <QHBoxLayout>
 #include <QDesktopServices>
+#include <QSystemTrayIcon>
 
 #include <AccountManager.h>
 #include <XmppClient.h>
@@ -1198,6 +1199,8 @@ void Menu::showChat() {
         if (_chatWindow->isHidden()) {
             _chatWindow->show();
         }
+    } else {
+        Application::getInstance()->getTrayIcon()->showMessage("Interface", "You need to login to be able to chat with others on this domain.");
     }
 }
 
