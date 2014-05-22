@@ -57,6 +57,11 @@ void ScriptEditorWidget::onScriptModified() {
     }
 }
 
+void ScriptEditorWidget::onScriptEnding() {
+    // signals will automatically be disonnected when the _scriptEngine is deleted later
+    _scriptEngine = NULL;
+}
+
 bool ScriptEditorWidget::isModified() {
     return _scriptEditorWidgetUI->scriptEdit->document()->isModified();
 }
@@ -69,11 +74,13 @@ bool ScriptEditorWidget::setRunning(bool run) {
     if (run && !save()) {
         return false;
     }
+
     // Clean-up old connections.
     if (_scriptEngine != NULL) {
         disconnect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
         disconnect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
         disconnect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
+        disconnect(_scriptEngine, &ScriptEngine::scriptEnding, this, &ScriptEditorWidget::onScriptEnding);
     }
 
     if (run) {
@@ -83,6 +90,7 @@ bool ScriptEditorWidget::setRunning(bool run) {
         // Make new connections.
         connect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
         connect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
+        connect(_scriptEngine, &ScriptEngine::scriptEnding, this, &ScriptEditorWidget::onScriptEnding);
     } else {
         Application::getInstance()->stopScript(_currentScript);
         _scriptEngine = NULL;
@@ -125,6 +133,7 @@ void ScriptEditorWidget::loadFile(const QString& scriptPath) {
             disconnect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
             disconnect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
             disconnect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
+            disconnect(_scriptEngine, &ScriptEngine::scriptEnding, this, &ScriptEditorWidget::onScriptEnding);
         }
     } else {
         QNetworkAccessManager* networkManager = new QNetworkAccessManager(this);
@@ -144,6 +153,7 @@ void ScriptEditorWidget::loadFile(const QString& scriptPath) {
         connect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
         connect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
         connect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
+        connect(_scriptEngine, &ScriptEngine::scriptEnding, this, &ScriptEditorWidget::onScriptEnding);
     }
 }
 
