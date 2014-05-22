@@ -185,6 +185,7 @@ protected:
     float getHeadHeight() const;
     float getPelvisFloatingHeight() const;
     float getPelvisToHeadLength() const;
+    glm::vec3 getDisplayNamePosition();
 
     void renderDisplayName();
     virtual void renderBody(RenderMode renderMode, float glowLevel = 0.0f);

@@ -237,11 +237,15 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
             // If this is the avatar being looked at, render a little ball above their head
             if (_isLookAtTarget) {
                 const float LOOK_AT_INDICATOR_RADIUS = 0.03f;
-                const float LOOK_AT_INDICATOR_HEIGHT = 0.60f;
-                const float LOOK_AT_INDICATOR_COLOR[] = { 0.8f, 0.0f, 0.0f, 0.5f };
+                const float LOOK_AT_INDICATOR_OFFSET = 0.22f;
+                const float LOOK_AT_INDICATOR_COLOR[] = { 0.8f, 0.0f, 0.0f, 0.75f };
                 glPushMatrix();
                 glColor4fv(LOOK_AT_INDICATOR_COLOR);
-                glTranslatef(_position.x, _position.y + (getSkeletonHeight() * LOOK_AT_INDICATOR_HEIGHT), _position.z);
+                if (_displayName.isEmpty() || _displayNameAlpha == 0.0f) {
+                    glTranslatef(_position.x, getDisplayNamePosition().y, _position.z);
+                } else {
+                    glTranslatef(_position.x, getDisplayNamePosition().y + LOOK_AT_INDICATOR_OFFSET, _position.z);
+                }
                 glutSolidSphere(LOOK_AT_INDICATOR_RADIUS, 15, 15);
                 glPopMatrix();
             }
@@ -460,6 +464,17 @@ float Avatar::getBillboardSize() const {
     return _scale * BILLBOARD_DISTANCE * tanf(glm::radians(BILLBOARD_FIELD_OF_VIEW / 2.0f));
 }
 
+glm::vec3 Avatar::getDisplayNamePosition() {
+    glm::vec3 namePosition;
+    if (getSkeletonModel().getNeckPosition(namePosition)) {
+        namePosition += getBodyUpDirection() * getHeadHeight() * 1.1f;
+    } else {
+        const float HEAD_PROPORTION = 0.75f;
+        namePosition = _position + getBodyUpDirection() * (getBillboardSize() * HEAD_PROPORTION);
+    }
+    return namePosition;
+}
+
 void Avatar::renderDisplayName() {
 
     if (_displayName.isEmpty() || _displayNameAlpha == 0.0f) {
@@ -469,13 +484,7 @@ void Avatar::renderDisplayName() {
     glDisable(GL_LIGHTING);
     
     glPushMatrix();
-    glm::vec3 textPosition;
-    if (getSkeletonModel().getNeckPosition(textPosition)) {
-        textPosition += getBodyUpDirection() * getHeadHeight() * 1.1f;
-    } else {    
-        const float HEAD_PROPORTION = 0.75f;
-        textPosition = _position + getBodyUpDirection() * (getBillboardSize() * HEAD_PROPORTION); 
-    }
+    glm::vec3 textPosition = getDisplayNamePosition();
     
     glTranslatef(textPosition.x, textPosition.y, textPosition.z); 
 

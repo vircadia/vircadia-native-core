@@ -329,6 +329,7 @@ Menu::Menu() :
 
     QMenu* avatarOptionsMenu = developerMenu->addMenu("Avatar Options");
 
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::AllowOculusCameraModeChange, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Avatars, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderSkeletonCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderHeadCollisionShapes);
