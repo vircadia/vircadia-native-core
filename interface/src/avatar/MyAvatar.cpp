@@ -459,6 +459,47 @@ void MyAvatar::startAnimation(const QString& url, float fps, float priority,
     handle->start();
 }
 
+void MyAvatar::startAnimationByRole(const QString& role, const QString& url, float fps, float priority,
+        bool loop, bool hold, int firstFrame, int lastFrame, const QStringList& maskedJoints) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "startAnimationByRole", Q_ARG(const QString&, role), Q_ARG(const QString&, url),
+            Q_ARG(float, fps), Q_ARG(float, priority), Q_ARG(bool, loop), Q_ARG(bool, hold), Q_ARG(int, firstFrame),
+            Q_ARG(int, lastFrame), Q_ARG(const QStringList&, maskedJoints));
+        return;
+    }
+    // check for a configured animation for the role
+    foreach (const AnimationHandlePointer& handle, _animationHandles) {
+        if (handle->getRole() == role) {
+            handle->start();
+            return;
+        }
+    }
+    // no joy; use the parameters provided
+    AnimationHandlePointer handle = _skeletonModel.createAnimationHandle();
+    handle->setRole(role);
+    handle->setURL(url);
+    handle->setFPS(fps);
+    handle->setPriority(priority);
+    handle->setLoop(loop);
+    handle->setHold(hold);
+    handle->setFirstFrame(firstFrame);
+    handle->setLastFrame(lastFrame);
+    handle->setMaskedJoints(maskedJoints);
+    handle->start();
+}
+
+void MyAvatar::stopAnimationByRole(const QString& role) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "stopAnimationByRole", Q_ARG(const QString&, role));
+        return;
+    }
+    foreach (const AnimationHandlePointer& handle, _skeletonModel.getRunningAnimations()) {
+        if (handle->getRole() == role) {
+            handle->stop();
+        }
+    }
+}
+
 void MyAvatar::stopAnimation(const QString& url) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "stopAnimation", Q_ARG(const QString&, url));
@@ -467,7 +508,6 @@ void MyAvatar::stopAnimation(const QString& url) {
     foreach (const AnimationHandlePointer& handle, _skeletonModel.getRunningAnimations()) {
         if (handle->getURL() == url) {
             handle->stop();
-            return;
         }
     }
 }

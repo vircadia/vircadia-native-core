@@ -73,6 +73,15 @@ public:
     /// Stops an animation as identified by a URL.
     Q_INVOKABLE void stopAnimation(const QString& url);
     
+    /// Starts an animation by its role, using the provided URL and parameters if the avatar doesn't have a custom
+    /// animation for the role.
+    Q_INVOKABLE void startAnimationByRole(const QString& role, const QString& url = QString(), float fps = 30.0f,
+        float priority = 1.0f, bool loop = false, bool hold = false, int firstFrame = 0,
+        int lastFrame = INT_MAX, const QStringList& maskedJoints = QStringList());
+    
+    /// Stops an animation identified by its role.
+    Q_INVOKABLE void stopAnimationByRole(const QString& role);
+    
     // get/set avatar data
     void saveData(QSettings* settings);
     void loadData(QSettings* settings);
