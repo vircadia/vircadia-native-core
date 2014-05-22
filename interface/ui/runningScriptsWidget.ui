@@ -434,7 +434,7 @@ font-size: 14pt;</string>
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
        <horstretch>0</horstretch>
-       <verstretch>1</verstretch>
+       <verstretch>2</verstretch>
       </sizepolicy>
      </property>
      <property name="minimumSize">
@@ -544,8 +544,14 @@ border-radius: 2px;
 padding: 4px;
 background-color: white;</string>
         </property>
+        <property name="text">
+         <string/>
+        </property>
         <property name="placeholderText">
          <string>filter</string>
+        </property>
+        <property name="clearButtonEnabled">
+         <bool>true</bool>
         </property>
        </widget>
       </item>
@@ -568,8 +574,14 @@ background-color: white;</string>
       <item>
        <widget class="QListView" name="scriptListView">
         <property name="styleSheet">
-         <string notr="true">border: 1px solid rgb(128, 128, 128);
-border-radius: 2px;</string>
+         <string notr="true">QListView {
+	border: 1px solid rgb(128, 128, 128);
+	border-radius: 2px;
+}
+QListView::item {
+	padding-top: 2px;
+	padding-bottom: 2px;
+}</string>
         </property>
         <property name="frameShape">
          <enum>QFrame::Box</enum>
