@@ -10,6 +10,7 @@
 //
 
 #include <QCheckBox>
+#include <QComboBox>
 #include <QDialogButtonBox>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
@@ -79,6 +80,9 @@ AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePo
     QFormLayout* layout = new QFormLayout();
     layout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
     setLayout(layout);
+    
+    layout->addRow("Role:", _role = new QComboBox());
+    _role->setEditable(true);
     
     QHBoxLayout* urlBox = new QHBoxLayout();
     layout->addRow("URL:", urlBox);

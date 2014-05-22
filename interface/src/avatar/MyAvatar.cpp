@@ -714,14 +714,14 @@ glm::vec3 MyAvatar::getUprightHeadPosition() const {
 void MyAvatar::setJointData(int index, const glm::quat& rotation) {
     Avatar::setJointData(index, rotation);
     if (QThread::currentThread() == thread()) {
-        _skeletonModel.setJointState(index, true, rotation);
+        _skeletonModel.setJointState(index, true, rotation, 2.0f);
     }
 }
 
 void MyAvatar::clearJointData(int index) {
     Avatar::clearJointData(index);
     if (QThread::currentThread() == thread()) {
-        _skeletonModel.setJointState(index, false);
+        _skeletonModel.setJointState(index, false, glm::quat(), 2.0f);
     }
 }
 
