@@ -218,6 +218,8 @@ bool DomainServer::optionallySetupAssignmentPayment() {
                 }
             }
             
+            qDebug() << "Assignments will be paid for via" << qPrintable(_oauthProviderURL.toString());
+            
             // assume that the fact we are authing against HF data server means we will pay for assignments
             // setup a timer to send transactions to pay assigned nodes every 30 seconds
             QTimer* creditSetupTimer = new QTimer(this);
