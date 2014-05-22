@@ -8,6 +8,10 @@
 //  This is an example script that demonstrates use of the Controller and MyAvatar classes to implement
 //  avatar flying through the hydra/controller joysticks
 //
+//  The joysticks (on hydra) will drive the avatar much like a playstation controller. 
+// 
+//  Pressing the '4' or the 'FWD' button and moving/banking the hand will allow you to  move and fly.  
+//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
@@ -15,8 +19,8 @@
 var damping = 0.9;
 var position = { x: MyAvatar.position.x, y: MyAvatar.position.y, z: MyAvatar.position.z };
 var joysticksCaptured = false;
-var THRUST_CONTROLLER = 0;
-var VIEW_CONTROLLER = 1;
+var THRUST_CONTROLLER = 1;
+var VIEW_CONTROLLER = 0;
 var INITIAL_THRUST_MULTPLIER = 1.0;
 var THRUST_INCREASE_RATE = 1.05;
 var MAX_THRUST_MULTIPLIER = 75.0;
@@ -46,9 +50,12 @@ var JOYSTICK_PITCH_MAG = PITCH_MAG * 0.5;
 
 
 var LEFT_PALM = 0;
-var LEFT_BUTTON_4 = 4;
+var LEFT_BUTTON_4 = 5;
+var LEFT_BUTTON_FWD = 5;
 var RIGHT_PALM = 2;
 var RIGHT_BUTTON_4 = 10;
+var RIGHT_BUTTON_FWD = 11;
+
 
 
 function printVector(text, v, decimals) {
@@ -56,6 +63,15 @@ function printVector(text, v, decimals) {
 }
 
 var debug = false;
+
+function getJoystickPosition(palm) {
+    // returns CONTROLLER_ID position in avatar local frame
+    var invRotation = Quat.inverse(MyAvatar.orientation);
+    var palmWorld = Controller.getSpatialControlPosition(palm);
+    var palmRelative = Vec3.subtract(palmWorld, MyAvatar.position);
+    var palmLocal = Vec3.multiplyQbyV(invRotation, palmRelative);
+    return palmLocal;
+}
 
 // Used by handleGrabBehavior() for managing the grab position changes
 function getAndResetGrabDelta() {
@@ -75,19 +91,19 @@ function getGrabRotation() {
 // When move button is pressed, process results 
 function handleGrabBehavior(deltaTime) {
     // check for and handle grab behaviors
-    grabbingWithRightHand = Controller.isButtonPressed(RIGHT_BUTTON_4);
-    grabbingWithLeftHand = Controller.isButtonPressed(LEFT_BUTTON_4);
+    grabbingWithRightHand = Controller.isButtonPressed(RIGHT_BUTTON_FWD) || Controller.isButtonPressed(RIGHT_BUTTON_4);
+    grabbingWithLeftHand = Controller.isButtonPressed(LEFT_BUTTON_FWD) || Controller.isButtonPressed(LEFT_BUTTON_4);
     stoppedGrabbingWithLeftHand = false;
     stoppedGrabbingWithRightHand = false;
     
     if (grabbingWithRightHand && !wasGrabbingWithRightHand) {
         // Just starting grab, capture starting rotation
         grabStartRotation = Controller.getSpatialControlRawRotation(RIGHT_PALM);
-        grabStartPosition = Controller.getSpatialControlPosition(RIGHT_PALM);
+        grabStartPosition = getJoystickPosition(RIGHT_PALM);
         if (debug) printVector("start position", grabStartPosition, 3);
     }
     if (grabbingWithRightHand) {
-        grabDelta = Vec3.subtract(Controller.getSpatialControlPosition(RIGHT_PALM), grabStartPosition);
+        grabDelta = Vec3.subtract(getJoystickPosition(RIGHT_PALM), grabStartPosition);
         grabCurrentRotation = Controller.getSpatialControlRawRotation(RIGHT_PALM);
     }
     if (!grabbingWithRightHand && wasGrabbingWithRightHand) {
@@ -99,12 +115,12 @@ function handleGrabBehavior(deltaTime) {
     if (grabbingWithLeftHand && !wasGrabbingWithLeftHand) {
         // Just starting grab, capture starting rotation
         grabStartRotation = Controller.getSpatialControlRawRotation(LEFT_PALM);
-        grabStartPosition = Controller.getSpatialControlPosition(LEFT_PALM);
+        grabStartPosition = getJoystickPosition(LEFT_PALM);
         if (debug) printVector("start position", grabStartPosition, 3);
     }
 
     if (grabbingWithLeftHand) {
-        grabDelta = Vec3.subtract(Controller.getSpatialControlPosition(LEFT_PALM), grabStartPosition);
+        grabDelta = Vec3.subtract(getJoystickPosition(LEFT_PALM), grabStartPosition);
         grabCurrentRotation = Controller.getSpatialControlRawRotation(LEFT_PALM);
     }
     if (!grabbingWithLeftHand && wasGrabbingWithLeftHand) {
@@ -122,23 +138,20 @@ function handleGrabBehavior(deltaTime) {
         var front = Quat.getFront(headOrientation);
         var right = Quat.getRight(headOrientation);
         var up = Quat.getUp(headOrientation);
-    
-         grabDelta = Vec3.multiplyQbyV(MyAvatar.orientation, Vec3.multiply(grabDelta, -1));
 
         if (debug) {
             printVector("grabDelta: ", grabDelta, 3);
         }
 
-        var THRUST_GRAB_SCALING = 0.0;
+        var THRUST_GRAB_SCALING = 300000.0;
         
-        var thrustFront = Vec3.multiply(front, MyAvatar.scale * grabDelta.z * THRUST_GRAB_SCALING * deltaTime);
+        var thrustFront = Vec3.multiply(front, MyAvatar.scale * -grabDelta.z * THRUST_GRAB_SCALING * deltaTime);
         MyAvatar.addThrust(thrustFront);
         var thrustRight = Vec3.multiply(right, MyAvatar.scale * grabDelta.x * THRUST_GRAB_SCALING * deltaTime);
         MyAvatar.addThrust(thrustRight);
         var thrustUp = Vec3.multiply(up, MyAvatar.scale * grabDelta.y * THRUST_GRAB_SCALING * deltaTime);
         MyAvatar.addThrust(thrustUp);
         
-
         // add some rotation...
         var deltaRotation = getGrabRotation();
         var PITCH_SCALING = 2.0;

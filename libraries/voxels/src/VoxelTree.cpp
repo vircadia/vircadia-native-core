@@ -359,7 +359,7 @@ bool VoxelTree::readFromSchematicFile(const char *fileName) {
 
             for (int x = 0; x < schematics.getWidth(); ++x) {
                 if (_stopImport) {
-                    qDebug("[DEBUG] Canceled import at %d voxels.", count);
+                    qDebug("Canceled import at %d voxels.", count);
                     _stopImport = false;
                     return true;
                 }
