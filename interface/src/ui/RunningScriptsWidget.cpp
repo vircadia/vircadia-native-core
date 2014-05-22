@@ -13,7 +13,6 @@
 #include "ui_runningScriptsWidget.h"
 #include "RunningScriptsWidget.h"
 
-#include <QCompleter>
 #include <QAbstractProxyModel>
 #include <QFileInfo>
 #include <QKeyEvent>
@@ -43,13 +42,18 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
 
     ui->recentlyLoadedScriptsArea->hide();
 
+    ui->filterLineEdit->installEventFilter(this);
+
+    connect(&_proxyModel, &QSortFilterProxyModel::modelReset,
+            this, &RunningScriptsWidget::selectFirstInList);
+
     _proxyModel.setSourceModel(&_scriptsModel);
     _proxyModel.sort(0, Qt::AscendingOrder);
     _proxyModel.setDynamicSortFilter(true);
     ui->scriptListView->setModel(&_proxyModel);
-    ui->scriptListView->setAttribute(Qt::WA_MacShowFocusRect, false);
+
     connect(ui->filterLineEdit, &QLineEdit::textChanged, this, &RunningScriptsWidget::updateFileFilter);
-    connect(ui->scriptListView, &QListView::doubleClicked, this, &RunningScriptsWidget::scriptFileSelected);
+    connect(ui->scriptListView, &QListView::doubleClicked, this, &RunningScriptsWidget::loadScriptFromList);
 
     _runningScriptsTable = new ScriptsTableWidget(ui->runningScriptsTableWidget);
     _runningScriptsTable->setColumnCount(2);
@@ -80,12 +84,19 @@ RunningScriptsWidget::~RunningScriptsWidget() {
 void RunningScriptsWidget::updateFileFilter(const QString& filter) {
     QRegExp regex("^.*" + QRegExp::escape(filter) + ".*$", Qt::CaseInsensitive);
     _proxyModel.setFilterRegExp(regex);
+    selectFirstInList();
 }
 
-void RunningScriptsWidget::scriptFileSelected(const QModelIndex& index) {
+void RunningScriptsWidget::loadScriptFromList(const QModelIndex& index) {
     QVariant scriptFile = _proxyModel.data(index, ScriptsModel::ScriptPath);
-    qDebug() << "Loading: " << scriptFile.toString();
-    Application::getInstance()->loadScript(scriptFile.toString());
+    Application::getInstance()->loadScript(scriptFile.toString(), false, false);
+}
+
+void RunningScriptsWidget::loadSelectedScript() {
+    QModelIndex selectedIndex = ui->scriptListView->currentIndex();
+    if (selectedIndex.isValid()) {
+        loadScriptFromList(selectedIndex);
+    }
 }
 
 void RunningScriptsWidget::setBoundary(const QRect& rect) {
@@ -134,14 +145,43 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
     createRecentlyLoadedScriptsTable();
 }
 
-void RunningScriptsWidget::keyPressEvent(QKeyEvent* event)
-{
+void RunningScriptsWidget::showEvent(QShowEvent* event) {
+    if (!event->spontaneous()) {
+        ui->filterLineEdit->setFocus();
+    }
+
+    FramelessDialog::showEvent(event);
+}
+
+void RunningScriptsWidget::selectFirstInList() {
+    if (_proxyModel.rowCount() > 0) {
+        ui->scriptListView->setCurrentIndex(_proxyModel.index(0, 0));
+    }
+}
+
+bool RunningScriptsWidget::eventFilter(QObject* sender, QEvent* event) {
+    if (sender == ui->filterLineEdit) {
+        if (event->type() != QEvent::KeyPress) {
+            return false;
+        }
+        QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
+        if (keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter) {
+            QModelIndex selectedIndex = ui->scriptListView->currentIndex();
+            if (selectedIndex.isValid()) {
+                loadScriptFromList(selectedIndex);
+            }
+            event->accept();
+            return true;
+        }
+        return false;
+    }
+
+    return FramelessDialog::eventFilter(sender, event);
+}
+
+void RunningScriptsWidget::keyPressEvent(QKeyEvent* event) {
     int loadScriptNumber = -1;
     switch(event->key()) {
-    case Qt::Key_Escape:
-        Application::getInstance()->toggleRunningScriptsWidget();
-        break;
-
     case Qt::Key_1:
     case Qt::Key_2:
     case Qt::Key_3:
@@ -159,7 +199,7 @@ void RunningScriptsWidget::keyPressEvent(QKeyEvent* event)
     }
     if (loadScriptNumber >= 0) {
         if (_recentlyLoadedScripts.size() > loadScriptNumber) {
-            Application::getInstance()->loadScript(_recentlyLoadedScripts.at(loadScriptNumber));
+            Application::getInstance()->loadScript(_recentlyLoadedScripts.at(loadScriptNumber), false, false);
         }
     }
 
@@ -199,7 +239,7 @@ void RunningScriptsWidget::stopScript(int row, int column) {
 }
 
 void RunningScriptsWidget::loadScript(int row, int column) {
-    Application::getInstance()->loadScript(_recentlyLoadedScriptsTable->item(row, column)->toolTip());
+    Application::getInstance()->loadScript(_recentlyLoadedScriptsTable->item(row, column)->toolTip(), false, false);
 }
 
 void RunningScriptsWidget::allScriptsStopped() {

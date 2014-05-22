@@ -37,8 +37,11 @@ signals:
     void stopScriptName(const QString& name);
 
 protected:
+    virtual bool eventFilter(QObject* sender, QEvent* event);
+
     virtual void keyPressEvent(QKeyEvent* event);
     virtual void paintEvent(QPaintEvent* event);
+    virtual void showEvent(QShowEvent* event);
 
 public slots:
     void scriptStopped(const QString& scriptName);
@@ -49,7 +52,9 @@ private slots:
     void loadScript(int row, int column);
     void allScriptsStopped();
     void updateFileFilter(const QString& filter);
-    void scriptFileSelected(const QModelIndex& index);
+    void loadScriptFromList(const QModelIndex& index);
+    void loadSelectedScript();
+    void selectFirstInList();
 
 private:
     Ui::RunningScriptsWidget* ui;
