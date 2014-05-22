@@ -1476,10 +1476,10 @@ void Application::importVoxels() {
     }
 
     if (!_voxelImporter->exec()) {
-        qDebug() << "[DEBUG] Import succeeded." << endl;
+        qDebug() << "Import succeeded." << endl;
         _importSucceded = true;
     } else {
-        qDebug() << "[DEBUG] Import failed." << endl;
+        qDebug() << "Import failed." << endl;
         if (_sharedVoxelSystem.getTree() == _voxelImporter->getVoxelTree()) {
             _sharedVoxelSystem.killLocalVoxels();
             _sharedVoxelSystem.changeTree(&_clipboard);

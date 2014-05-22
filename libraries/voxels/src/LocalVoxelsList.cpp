@@ -40,18 +40,17 @@ void LocalVoxelsList::addPersistantTree(QString treeName, VoxelTree* tree) {
     StrongVoxelTreePointer treePtr(tree, doNothing);
     _persistantTrees.push_back(treePtr);
     _trees.insert(treeName, treePtr);
-    qDebug() << "[DEBUG] LocalVoxelsList : added persistant tree (" << treeName << ")";
 }
 
 void LocalVoxelsList::insert(QString treeName, StrongVoxelTreePointer& tree) {
     // If the key don't already exist or the value is null
     if (!_trees.contains(treeName) || !_trees.value(treeName)) {
         _trees.insert(treeName, tree);
-        qDebug() << "[DEBUG] LocalVoxelsList : added local tree (" << treeName << ")";
+        qDebug() << "LocalVoxelsList : added local tree (" << treeName << ")";
     } else {
         // if not we replace the tree created by the user with the existing one
         tree = _trees.value(treeName);
-        qDebug() << "[DEBUG] LocalVoxelsList : local tree already exist (" << treeName << ")";
+        qDebug() << "[WARNING] LocalVoxelsList : local tree already exist (" << treeName << ")";
     }
 }
 
@@ -59,9 +58,6 @@ void LocalVoxelsList::remove(QString treeName) {
     // if the tree is not used anymore (no strong pointer)
     if (!_trees.value(treeName)) {
         // then remove it from the list
-        qDebug() << "[DEBUG] LocalVoxelsList : removed unused tree (" << treeName << ")";
         _trees.remove(treeName);
-    } else {
-        qDebug() << "[DEBUG] LocalVoxelsList : tree still in use (" << treeName << ")";
     }
 }
