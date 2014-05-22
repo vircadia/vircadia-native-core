@@ -666,13 +666,17 @@ Menu.menuItemEvent.connect(function(menuItem){
     print("menuItemEvent() in JS... menuItem=" + menuItem);
     if (menuItem == "Delete Model") {
         if (leftController.grabbing) {
-            print("  Delete Model.... controller.modelID="+ leftController.modelID);
+            print("  Delete Model.... leftController.modelID="+ leftController.modelID);
             Models.deleteModel(leftController.modelID);
             leftController.grabbing = false;
         } else if (rightController.grabbing) {
-            print("  Delete Model.... controller.modelID="+ rightController.modelID);
+            print("  Delete Model.... rightController.modelID="+ rightController.modelID);
             Models.deleteModel(rightController.modelID);
             rightController.grabbing = false;
+        } else if (modelSelected) {
+            print("  Delete Model.... selectedModelID="+ selectedModelID);
+            Models.deleteModel(selectedModelID);
+            modelSelected = false;
         } else {
             print("  Delete Model.... not holding...");
         }
