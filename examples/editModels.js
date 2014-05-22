@@ -40,6 +40,16 @@ var modelURLs = [
 
 var toolBar;
 
+function isLocked(properties) {
+    // special case to lock the ground plane model in hq.
+    if (location.hostname == "hq.highfidelity.io" && 
+        properties.modelURL == "https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/Terrain_Reduce_forAlpha.fbx") {
+        return true;
+    }
+    return false;
+}
+
+
 function controller(wichSide) {
     this.side = wichSide;
     this.palm = 2 * wichSide;
@@ -117,7 +127,7 @@ function controller(wichSide) {
 
     
     this.grab = function (modelID, properties) {
-        if (this.isLocked(properties)) {
+        if (isLocked(properties)) {
             print("Model locked " + modelID.id);
         } else {
             print("Grabbing " + modelID.id);
@@ -150,15 +160,6 @@ function controller(wichSide) {
         }
     }
 
-    this.isLocked = function (properties) {
-        // special case to lock the ground plane model in hq.
-        if (location.hostname == "hq.highfidelity.io" && 
-            properties.modelURL == "https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/Terrain_Reduce_forAlpha.fbx") {
-            return true;
-        }
-        return false;
-    }
-        
     this.checkModel = function (properties) {
         // special case to lock the ground plane model in hq.
         if (this.isLocked(properties)) {
@@ -293,6 +294,7 @@ function controller(wichSide) {
         if (this.pressing) {
             Vec3.print("Looking at: ", this.palmPosition);
             var foundModels = Models.findModels(this.palmPosition, LASER_LENGTH_FACTOR);
+            
             for (var i = 0; i < foundModels.length; i++) {
                 
                 if (!foundModels[i].isKnownID) {
@@ -305,7 +307,9 @@ function controller(wichSide) {
                 }
                 
                 var properties = Models.getModelProperties(foundModels[i]);
-                if (this.isLocked(properties)) {
+                print("foundModels["+i+"].modelURL=" + properties.modelURL);
+
+                if (isLocked(properties)) {
                     print("Model locked " + properties.id);
                 } else {
                     print("Checking properties: " + properties.id + " " + properties.isKnownID);
@@ -486,7 +490,7 @@ function mousePressEvent(event) {
             }
             
             var properties = Models.getModelProperties(foundModels[i]);
-            if (this.isLocked(properties)) {
+            if (isLocked(properties)) {
                 print("Model locked " + properties.id);
             } else {
                 print("Checking properties: " + properties.id + " " + properties.isKnownID);
