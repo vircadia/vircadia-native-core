@@ -553,14 +553,6 @@ void Application::paintGL() {
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
 
     glEnable(GL_LINE_SMOOTH);
-
-    float pushback = 0.0f;
-    float pushbackFocalLength = 0.0f;
-    if (OculusManager::isConnected()) {
-        _myCamera.setUpShift(0.0f);
-        _myCamera.setDistance(0.0f);
-        _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
-    } 
     
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows (untweaked) head exactly without delay
@@ -576,38 +568,24 @@ void Application::paintGL() {
         _myCamera.setTightness(0.0f);
         glm::vec3 eyePosition = _myAvatar->getHead()->calculateAverageEyePosition();
         float headHeight = eyePosition.y - _myAvatar->getPosition().y;
-        _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _myAvatar->getScale() * _scaleMirror);
+        _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
         _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight + (_raiseMirror * _myAvatar->getScale()), 0));
         _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-
-        // if the head would intersect the near clip plane, we must push the camera out
-        glm::vec3 relativePosition = glm::inverse(_myCamera.getTargetRotation()) *
-            (eyePosition - _myCamera.getTargetPosition());
-        const float BASE_PUSHBACK_RADIUS = 0.2f;
-        float pushbackRadius = _myCamera.getNearClip() + _myAvatar->getScale() * BASE_PUSHBACK_RADIUS;
-        pushback = relativePosition.z + pushbackRadius - _myCamera.getDistance();
-        pushbackFocalLength = _myCamera.getDistance();
     }
 
-    // handle pushback, if any
-    if (pushbackFocalLength > 0.0f) {
-        const float PUSHBACK_DECAY = 0.5f;
-        _cameraPushback = qMax(pushback, _cameraPushback * PUSHBACK_DECAY);
-        if (_cameraPushback > EPSILON) {
-            _myCamera.setTargetPosition(_myCamera.getTargetPosition() +
-                _myCamera.getTargetRotation() * glm::vec3(0.0f, 0.0f, _cameraPushback));
-            float enlargement = pushbackFocalLength / (pushbackFocalLength + _cameraPushback);
-            _myCamera.setFieldOfView(glm::degrees(2.0f * atanf(enlargement * tanf(
-                glm::radians(Menu::getInstance()->getFieldOfView() * 0.5f)))));
-        } else {
-            _myCamera.setFieldOfView(Menu::getInstance()->getFieldOfView());
+    if (OculusManager::isConnected()) {
+        // Oculus in third person causes nausea, so only allow it if option is checked in dev menu
+        if (!Menu::getInstance()->isOptionChecked(MenuOption::AllowOculusCameraModeChange) || _myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+            _myCamera.setDistance(0.0f);
+            _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
+            _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
         }
-        updateProjectionMatrix(_myCamera, true);
+        _myCamera.setUpShift(0.0f);
+        _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
     }
 
     // Update camera position
     _myCamera.update( 1.f/_fps );
-
 
     // Note: whichCamera is used to pick between the normal camera myCamera for our
     // main camera, vs, an alternate camera. The alternate camera we support right now
