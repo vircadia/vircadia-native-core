@@ -13,6 +13,7 @@
 #define hifi_UserActivityLogger_h
 
 #include <QString>
+#include <QJsonObject>
 
 class UserActivityLogger {
 public:
@@ -23,7 +24,7 @@ public:
     
 private:
     UserActivityLogger();
-    void logAction(QString action, QString details = QString());
+    void logAction(QString action, QJsonObject details = QJsonObject());
 };
 
 #endif // hifi_UserActivityLogger_h

@@ -14,6 +14,7 @@
 #include <AccountManager.h>
 
 #include <QHttpMultiPart>
+#include <QJsonDocument>
 
 static const QString USER_ACTIVITY_URL = "/api/v1/user_activities";
 
@@ -26,12 +27,12 @@ UserActivityLogger::UserActivityLogger() {
     
 }
 
-void UserActivityLogger::logAction(QString action, QString details) {
+void UserActivityLogger::logAction(QString action, QJsonObject details) {
     AccountManager& accountManager = AccountManager::getInstance();
     QHttpMultiPart* multipart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
     
     QHttpPart actionPart;
-    actionPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"action\"");
+    actionPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"user_action\"");
     actionPart.setBody(QByteArray().append(action));
     multipart->append(actionPart);
     
@@ -39,11 +40,13 @@ void UserActivityLogger::logAction(QString action, QString details) {
     if (!details.isEmpty()) {
         QHttpPart detailsPart;
         detailsPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data;"
-                              " name=\"details\"");
-        detailsPart.setBody(QByteArray().append(details));
+                              " name=\"action_details\"");
+        detailsPart.setBody(QJsonDocument(details).toJson(QJsonDocument::Compact));
         multipart->append(detailsPart);
     }
     
+    
+    qDebug() << "Loging activity " << action;
     accountManager.authenticatedRequest(USER_ACTIVITY_URL,
                                         QNetworkAccessManager::PostOperation,
                                         JSONCallbackParameters(),
@@ -53,7 +56,11 @@ void UserActivityLogger::logAction(QString action, QString details) {
 
 void UserActivityLogger::login() {
     const QString ACTION_NAME = "login";
-    logAction(ACTION_NAME);
+    QJsonObject details;
+    details.insert("OS", QJsonValue(10.9));
+    
+    
+    logAction(ACTION_NAME, details);
 }
 
 void UserActivityLogger::logout() {
