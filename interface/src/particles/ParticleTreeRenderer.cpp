@@ -130,5 +130,6 @@ void ParticleTreeRenderer::processEraseMessage(const QByteArray& dataByteArray, 
     if (_tree){
         _tree->lockForWrite();
         static_cast<ParticleTree*>(_tree)->processEraseMessage(dataByteArray, sourceNode);
+        _tree->unlock();
     }
 }
