@@ -3103,7 +3103,6 @@ void Application::updateWindowTitle(){
     QString username = AccountManager::getInstance().getAccountInfo().getUsername();
     QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
         + nodeList->getDomainHandler().getHostname() + buildVersion;
-    qDebug("Application title set to: %s", title.toStdString().c_str());
     
     AccountManager& accountManager = AccountManager::getInstance();
     if (accountManager.getAccountInfo().hasBalance()) {
@@ -3115,6 +3114,7 @@ void Application::updateWindowTitle(){
         title += " - ₵" + creditBalanceString;
     }
     
+    qDebug("Application title set to: %s", title.toStdString().c_str());    
     _window->setWindowTitle(title);
 }
 

@@ -38,6 +38,7 @@ public:
     quint64 getBalance() const { return _balance; }
     void setBalance(quint64 balance);
     bool hasBalance() const { return _hasBalance; }
+    void setHasBalance(bool hasBalance) { _hasBalance = hasBalance; }
     Q_INVOKABLE void setBalanceFromJSON(const QJsonObject& jsonObject);
 
     friend QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info);
