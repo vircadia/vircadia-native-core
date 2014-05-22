@@ -711,17 +711,19 @@ glm::vec3 MyAvatar::getUprightHeadPosition() const {
     return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, getPelvisToHeadLength(), 0.0f);
 }
 
+const float JOINT_PRIORITY = 2.0f;
+
 void MyAvatar::setJointData(int index, const glm::quat& rotation) {
     Avatar::setJointData(index, rotation);
     if (QThread::currentThread() == thread()) {
-        _skeletonModel.setJointState(index, true, rotation, 2.0f);
+        _skeletonModel.setJointState(index, true, rotation, JOINT_PRIORITY);
     }
 }
 
 void MyAvatar::clearJointData(int index) {
     Avatar::clearJointData(index);
     if (QThread::currentThread() == thread()) {
-        _skeletonModel.setJointState(index, false, glm::quat(), 2.0f);
+        _skeletonModel.setJointState(index, false, glm::quat(), JOINT_PRIORITY);
     }
 }
 

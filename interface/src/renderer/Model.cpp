@@ -1681,7 +1681,7 @@ void AnimationHandle::setURL(const QUrl& url) {
 
 static void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandlePointer& handle) {
     for (QList<AnimationHandlePointer>::iterator it = handles.begin(); it != handles.end(); it++) {
-        if (handle->getPriority() < (*it)->getPriority()) {
+        if (handle->getPriority() > (*it)->getPriority()) {
             handles.insert(it, handle);
             return;
         } 
@@ -1713,6 +1713,15 @@ void AnimationHandle::setRunning(bool running) {
           
     } else {
         _model->_runningAnimations.removeOne(_self);
+        for (int i = 0; i < _jointMappings.size(); i++) {
+            int mapping = _jointMappings.at(i);
+            if (mapping != -1) {
+                Model::JointState& state = _model->_jointStates[mapping];
+                if (_priority == state.animationPriority) {
+                    state.animationPriority = 0.0f;
+                }
+            }
+        }
     }
 }
 
