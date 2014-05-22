@@ -731,10 +731,11 @@ void DomainServer::setupPendingAssignmentCredits() {
             qint64 elapsedMsecsSinceLastPayment = nodeData->getPaymentIntervalTimer().elapsed();
             nodeData->getPaymentIntervalTimer().restart();
             
-            const float CREDITS_PER_HOUR = 3;
+            const float CREDITS_PER_HOUR = 0.10;
             const float CREDITS_PER_MSEC = CREDITS_PER_HOUR / (60 * 60 * 1000);
+            const int SATOSHIS_PER_MSEC = CREDITS_PER_MSEC * powf(10, 8);
     
-            float pendingCredits = elapsedMsecsSinceLastPayment * CREDITS_PER_MSEC;
+            float pendingCredits = elapsedMsecsSinceLastPayment * SATOSHIS_PER_MSEC;
             
             if (existingTransaction) {
                 existingTransaction->incrementAmount(pendingCredits);
