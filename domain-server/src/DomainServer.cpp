@@ -1048,8 +1048,8 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                         matchingAssignment = _allAssignments.value(pendingData->getAssignmentUUID());
                         
                         if (matchingAssignment && matchingAssignment->getType() == Assignment::AgentType) {
-                            // we have a matching assignment and it is for the right type, send a temp re-direct to the
-                            // URL for the script so the client can download
+                            // we have a matching assignment and it is for the right type, have the HTTP manager handle it
+                            // via correct URL for the script so the client can download
                             
                             QUrl scriptURL = url;
                             scriptURL.setPath(URI_ASSIGNMENT + "/"
