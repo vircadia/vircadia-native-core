@@ -148,8 +148,8 @@ AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePo
     buttons->addWidget(remove);
     connect(remove, SIGNAL(clicked(bool)), SLOT(removeHandle()));
     
-    connect(_handle.data(), SIGNAL(runningChanged(bool)), SLOT(updateStartStop()));
-    updateStartStop();
+    _stop->connect(_handle.data(), SIGNAL(runningChanged(bool)), SLOT(setEnabled(bool)));
+    _stop->setEnabled(_handle->isRunning());
 }
 
 void AnimationPanel::chooseURL() {
@@ -183,11 +183,6 @@ void AnimationPanel::chooseMaskedJoints() {
         _handle->setMaskedJoints(maskedJoints);
         _maskedJoints->setText(maskedJoints.join(", "));
     }
-}
-
-void AnimationPanel::updateStartStop() {
-    _start->setEnabled(!_handle->isRunning());
-    _stop->setEnabled(_handle->isRunning());
 }
 
 void AnimationPanel::updateHandle() {

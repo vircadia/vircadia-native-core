@@ -57,7 +57,6 @@ private slots:
 
     void chooseURL();
     void chooseMaskedJoints();
-    void updateStartStop();
     void updateHandle();
     void removeHandle();
     

@@ -1690,12 +1690,19 @@ static void insertSorted(QList<AnimationHandlePointer>& handles, const Animation
 }
 
 void AnimationHandle::setPriority(float priority) {
-    if (_priority != priority) {
-        _priority = priority;
-        if (_running) {
-            _model->_runningAnimations.removeOne(_self);
-            insertSorted(_model->_runningAnimations, _self);
+    if (_priority == priority) {
+        return;
+    }
+    if (_running) {
+        _model->_runningAnimations.removeOne(_self);
+        if (priority < _priority) {
+            lowerPriority(priority);
         }
+        _priority = priority;
+        insertSorted(_model->_runningAnimations, _self);
+        
+    } else {
+        _priority = priority;
     }
 }
 
@@ -1726,15 +1733,7 @@ void AnimationHandle::setRunning(bool running) {
           
     } else {
         _model->_runningAnimations.removeOne(_self);
-        for (int i = 0; i < _jointMappings.size(); i++) {
-            int mapping = _jointMappings.at(i);
-            if (mapping != -1) {
-                Model::JointState& state = _model->_jointStates[mapping];
-                if (_priority == state.animationPriority) {
-                    state.animationPriority = 0.0f;
-                }
-            }
-        }
+        lowerPriority(0.0f);
     }
     emit runningChanged(_running);
 }
@@ -1820,3 +1819,14 @@ void AnimationHandle::simulate(float deltaTime) {
     }
 }
 
+void AnimationHandle::lowerPriority(float newPriority) {
+    for (int i = 0; i < _jointMappings.size(); i++) {
+        int mapping = _jointMappings.at(i);
+        if (mapping != -1) {
+            Model::JointState& state = _model->_jointStates[mapping];
+            if (_priority == state.animationPriority) {
+                state.animationPriority = newPriority;
+            }
+        }
+    }
+}
