@@ -517,7 +517,7 @@ function mousePressEvent(event) {
                     modelSelected = true;
                     selectedModelID = foundModels[i];
                     selectedModelProperties = properties;
-                
+                    
                     selectedModelProperties.oldRadius = selectedModelProperties.radius;
                     selectedModelProperties.oldPosition = {
                     x: selectedModelProperties.position.x,
@@ -534,7 +534,11 @@ function mousePressEvent(event) {
                 
                     orientation = MyAvatar.orientation;
                     intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
-                
+                    
+                    
+                    selectedModelProperties.glowLevel = 0.1;
+                    Models.editModel(selectedModelID, { glowLevel: selectedModelProperties.glowLevel});
+                    
                     print("Clicked on " + selectedModelID.id + " " +  modelSelected);
                     return;
                 }
@@ -542,6 +546,13 @@ function mousePressEvent(event) {
         }
     }
 }
+
+Controller.mouseReleaseEvent.connect(function() {
+    if (modelSelected) {
+        Models.editModel(selectedModelID, { glowLevel: 0.0 });
+        modelSelected = false;
+    }
+ });
 
 var oldModifier = 0;
 var modifier = 0;
