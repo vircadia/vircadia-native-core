@@ -14,6 +14,9 @@
 // the tangent vector
 attribute vec3 tangent;
 
+// the interpolated position
+varying vec4 interpolatedPosition;
+
 // the interpolated normal
 varying vec4 interpolatedNormal;
 
@@ -22,7 +25,8 @@ varying vec4 interpolatedTangent;
 
 void main(void) {
 
-    // transform and store the normal and tangent for interpolation
+    // transform and store the position, normal and tangent for interpolation
+    interpolatedPosition = gl_ModelViewMatrix * gl_Vertex;
     interpolatedNormal = gl_ModelViewMatrix * vec4(gl_Normal, 0.0);
     interpolatedTangent = gl_ModelViewMatrix * vec4(tangent, 0.0);
     

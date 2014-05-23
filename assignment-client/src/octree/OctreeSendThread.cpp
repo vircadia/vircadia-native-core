@@ -9,8 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QMutexLocker>
-
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <PerfStat.h>
@@ -139,7 +137,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
     // obscure the packet and not send it. This allows the callers and upper level logic to not need to know about
     // this rate control savings.
     if (nodeData->shouldSuppressDuplicatePacket()) {
-        nodeData->resetOctreePacket(true); // we still need to reset it though!
+        nodeData->resetOctreePacket(); // we still need to reset it though!
         return packetsSent; // without sending...
     }
 
@@ -244,6 +242,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         trueBytesSent += nodeData->getPacketLength();
         truePacketsSent++;
         packetsSent++;
+        nodeData->incrementSequenceNumber();
         nodeData->resetOctreePacket();
     }
 

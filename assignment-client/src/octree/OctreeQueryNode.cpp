@@ -158,10 +158,11 @@ bool OctreeQueryNode::shouldSuppressDuplicatePacket() {
 
 void OctreeQueryNode::init() {
     _myPacketType = getMyPacketType();
-    resetOctreePacket(true); // don't bump sequence
+    resetOctreePacket(); // don't bump sequence
 }
 
-void OctreeQueryNode::resetOctreePacket(bool lastWasSurpressed) {
+
+void OctreeQueryNode::resetOctreePacket() {
     // if shutting down, return immediately
     if (_isShuttingDown) {
         return;
@@ -196,15 +197,12 @@ void OctreeQueryNode::resetOctreePacket(bool lastWasSurpressed) {
     *flagsAt = flags;
     _octreePacketAt += sizeof(OCTREE_PACKET_FLAGS);
     _octreePacketAvailableBytes -= sizeof(OCTREE_PACKET_FLAGS);
-
+    
     // pack in sequence number
     OCTREE_PACKET_SEQUENCE* sequenceAt = (OCTREE_PACKET_SEQUENCE*)_octreePacketAt;
     *sequenceAt = _sequenceNumber;
     _octreePacketAt += sizeof(OCTREE_PACKET_SEQUENCE);
     _octreePacketAvailableBytes -= sizeof(OCTREE_PACKET_SEQUENCE);
-    if (!(lastWasSurpressed || _lastOctreePacketLength == (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE))) {
-        _sequenceNumber++;
-    }
 
     // pack in timestamp
     OCTREE_PACKET_SENT_TIME now = usecTimestampNow();
@@ -365,3 +363,6 @@ void OctreeQueryNode::dumpOutOfView() {
     }
 }
 
+void OctreeQueryNode::incrementSequenceNumber() {
+    _sequenceNumber++;
+}

@@ -46,6 +46,7 @@ private slots:
     void onScriptError(const QString& message);
     void onScriptPrint(const QString& message);
     void onScriptModified();
+    void onScriptEnding();
 
 private:
     Ui::ScriptEditorWidget* _scriptEditorWidgetUI;
