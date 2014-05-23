@@ -107,7 +107,6 @@ DeleteVoxelCommand::DeleteVoxelCommand(VoxelTree* tree, VoxelDetail& voxel, Voxe
         _voxel.blue = element->getColor()[2];
     } else {
         _voxel.s = 0.0f;
-        qDebug() << "No element for delete.";
     }
     _tree->unlock();
 }

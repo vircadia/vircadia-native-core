@@ -42,6 +42,8 @@ $(document).ready(function(){
         var uptimeSeconds = (Date.now() - data.wake_timestamp) / 1000;
         nodesTableBody += "<td>" + uptimeSeconds.toLocaleString() + "</td>";
         
+        nodesTableBody += "<td>" + (typeof data.pending_credits == 'number' ? data.pending_credits.toLocaleString() : 'N/A') + "</td>";
+        
         nodesTableBody += "<td><span class='glyphicon glyphicon-remove' data-uuid=" + data.uuid + "></span></td>";
         nodesTableBody += "</tr>";
       });

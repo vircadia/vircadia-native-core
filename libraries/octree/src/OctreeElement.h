@@ -32,6 +32,8 @@ class OctreePacketData;
 class ReadBitstreamToTreeParams;
 class VoxelSystem;
 
+const float SMALLEST_REASONABLE_OCTREE_ELEMENT_SCALE = (1.0f / TREE_SCALE) / 10000.0f; // 1/10,000th of a meter
+
 // Callers who want delete hook callbacks should implement this class
 class OctreeElementDeleteHook {
 public:

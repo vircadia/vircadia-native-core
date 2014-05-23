@@ -1399,7 +1399,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
 
     // get offset transform from mapping
     float offsetScale = mapping.value("scale", 1.0f).toFloat();
-    geometry.fstScaled = offsetScale;
     glm::quat offsetRotation = glm::quat(glm::radians(glm::vec3(mapping.value("rx").toFloat(),
             mapping.value("ry").toFloat(), mapping.value("rz").toFloat())));
     geometry.offset = glm::translate(glm::vec3(mapping.value("tx").toFloat(), mapping.value("ty").toFloat(),
@@ -1443,7 +1442,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     }
 
     // figure the number of animation frames from the curves
-    int frameCount = 0;
+    int frameCount = 1;
     foreach (const AnimationCurve& curve, animationCurves) {
         frameCount = qMax(frameCount, curve.values.size());
     }
@@ -1636,10 +1635,15 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     setTangents(extracted.mesh, part.quadIndices.at(i + 2), part.quadIndices.at(i + 3));
                     setTangents(extracted.mesh, part.quadIndices.at(i + 3), part.quadIndices.at(i));
                 }
-                for (int i = 0; i < part.triangleIndices.size(); i += 3) {
+                // <= size - 3 in order to prevent overflowing triangleIndices when (i % 3) != 0 
+                // This is most likely evidence of a further problem in extractMesh()
+                for (int i = 0; i <= part.triangleIndices.size() - 3; i += 3) {
                     setTangents(extracted.mesh, part.triangleIndices.at(i), part.triangleIndices.at(i + 1));
                     setTangents(extracted.mesh, part.triangleIndices.at(i + 1), part.triangleIndices.at(i + 2));
                     setTangents(extracted.mesh, part.triangleIndices.at(i + 2), part.triangleIndices.at(i));
+                }
+                if ((part.triangleIndices.size() % 3) != 0){
+                    qDebug() << "Error in extractFBXGeometry part.triangleIndices.size() is not divisible by three ";
                 }
             }
         }

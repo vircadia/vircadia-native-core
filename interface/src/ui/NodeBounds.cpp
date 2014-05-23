@@ -133,7 +133,6 @@ void NodeBounds::draw() {
         glTranslatef(selectedCenter.x, selectedCenter.y, selectedCenter.z);
         glScalef(selectedScale, selectedScale, selectedScale);
 
-        NodeType_t selectedNodeType = selectedNode->getType();
         float red, green, blue;
         getColorForNodeType(selectedNode->getType(), red, green, blue);
 
@@ -225,7 +224,6 @@ void NodeBounds::drawOverlay() {
         const int FONT = 2;
         const int PADDING = 10;
         const int MOUSE_OFFSET = 10;
-        const int BACKGROUND_OFFSET_Y = -20;
         const int BACKGROUND_BEVEL = 3;
 
         int mouseX = application->getMouseX(),
