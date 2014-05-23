@@ -96,7 +96,6 @@ void Overlays::render3D() {
     }
 }
 
-// TODO: make multi-threaded safe
 unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& properties) {
     unsigned int thisID = 0;
     bool created = false;
@@ -140,6 +139,7 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
     }
 
     if (created) {
+        QWriteLocker lock(&_lock);
         thisID = _nextOverlayID;
         _nextOverlayID++;
         if (is3D) {
@@ -152,9 +152,9 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
     return thisID; 
 }
 
-// TODO: make multi-threaded safe
 bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
     Overlay* thisOverlay = NULL;
+    QWriteLocker lock(&_lock);
     if (_overlays2D.contains(id)) {
         thisOverlay = _overlays2D[id];
     } else if (_overlays3D.contains(id)) {
@@ -167,9 +167,9 @@ bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
     return false;
 }
 
-// TODO: make multi-threaded safe
 void Overlays::deleteOverlay(unsigned int id) {
     Overlay* overlayToDelete;
+    QWriteLocker lock(&_lock);
     if (_overlays2D.contains(id)) {
         overlayToDelete = _overlays2D.take(id);
     } else if (_overlays3D.contains(id)) {

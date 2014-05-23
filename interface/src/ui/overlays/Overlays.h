@@ -45,6 +45,7 @@ private:
     QList<Overlay*> _overlaysToDelete;
     unsigned int _nextOverlayID;
     QGLWidget* _parent;
+    QReadWriteLock _lock;
 };
 
  
