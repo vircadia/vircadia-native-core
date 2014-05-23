@@ -3108,7 +3108,7 @@ void Application::updateWindowTitle(){
     
     AccountManager& accountManager = AccountManager::getInstance();
     if (accountManager.getAccountInfo().hasBalance()) {
-        float creditBalance = accountManager.getAccountInfo().getBalance() * pow(10.0f, -8.0f);
+        float creditBalance = accountManager.getAccountInfo().getBalance() / SATOSHIS_PER_CREDIT;
         
         QString creditBalanceString;
         creditBalanceString.sprintf("%.8f", creditBalance);
