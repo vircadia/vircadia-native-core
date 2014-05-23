@@ -11,6 +11,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+// the interpolated position
+varying vec4 position;
+
 // the interpolated normal
 varying vec4 normal;
 
@@ -18,6 +21,9 @@ void main(void) {
 
     // transform and store the normal for interpolation
     normal = normalize(gl_ModelViewMatrix * vec4(gl_Normal, 0.0));
+    
+    // likewise with the position
+    position = gl_ModelViewMatrix * gl_Vertex;
     
     // pass along the vertex color
     gl_FrontColor = gl_Color;
