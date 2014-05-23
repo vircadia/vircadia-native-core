@@ -1004,6 +1004,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             
             return true;
         } else {
+            // check if this is for json stats for a node
             const QString NODE_JSON_REGEX_STRING = QString("\\%1\\/(%2).json\\/?$").arg(URI_NODES).arg(UUID_REGEX_STRING);
             QRegExp nodeShowRegex(NODE_JSON_REGEX_STRING);
             
@@ -1028,6 +1029,42 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                     // tell the caller we processed the request
                     return true;
                 }
+                
+                return false;
+            }
+            
+            // check if this is a request for a scripted assignment (with a temp unique UUID)
+            const QString  ASSIGNMENT_REGEX_STRING = QString("\\%1\\/(%2)\\/?$").arg(URI_ASSIGNMENT).arg(UUID_REGEX_STRING);
+            QRegExp assignmentRegex(ASSIGNMENT_REGEX_STRING);
+        
+            if (assignmentRegex.indexIn(url.path()) != -1) {
+                QUuid matchingUUID = QUuid(assignmentRegex.cap(1));
+                
+                SharedAssignmentPointer matchingAssignment = _allAssignments.value(matchingUUID);
+                if (!matchingAssignment) {
+                    // check if we have a pending assignment that matches this temp UUID, and it is a scripted assignment
+                    PendingAssignedNodeData* pendingData = _pendingAssignedNodes.value(matchingUUID);
+                    if (pendingData) {
+                        matchingAssignment = _allAssignments.value(pendingData->getAssignmentUUID());
+                        
+                        if (matchingAssignment && matchingAssignment->getType() == Assignment::AgentType) {
+                            // we have a matching assignment and it is for the right type, send a temp re-direct to the
+                            // URL for the script so the client can download
+                            
+                            QUrl scriptURL = url;
+                            scriptURL.setPath(URI_ASSIGNMENT + "/"
+                                              + uuidStringWithoutCurlyBraces(pendingData->getAssignmentUUID()));
+                            
+                            // have the HTTPManager serve the appropriate script file
+                            return _httpManager.handleHTTPRequest(connection, scriptURL);
+                        }
+                    } else {
+                        return false;
+                    }
+                }
+                
+                // request not handled
+                return false;
             }
         }
     } else if (connection->requestOperation() == QNetworkAccessManager::PostOperation) {
