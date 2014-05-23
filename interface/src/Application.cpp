@@ -2534,6 +2534,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         if (_voxelFades.size() > 0) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... voxel fades...");
+            _voxelFadesLock.lockForWrite();
             for(std::vector<VoxelFade>::iterator fade = _voxelFades.begin(); fade != _voxelFades.end();) {
                 fade->render();
                 if(fade->isDone()) {
@@ -2542,6 +2543,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                     ++fade;
                 }
             }
+            _voxelFadesLock.unlock();
         }
 
         // give external parties a change to hook in
@@ -3106,7 +3108,7 @@ void Application::updateWindowTitle(){
     
     AccountManager& accountManager = AccountManager::getInstance();
     if (accountManager.getAccountInfo().hasBalance()) {
-        float creditBalance = accountManager.getAccountInfo().getBalance() * pow(10.0f, -8.0f);
+        float creditBalance = accountManager.getAccountInfo().getBalance() / (float) SATOSHIS_PER_CREDIT;
         
         QString creditBalanceString;
         creditBalanceString.sprintf("%.8f", creditBalance);
@@ -3208,7 +3210,9 @@ void Application::nodeKilled(SharedNodePointer node) {
                 fade.voxelDetails = rootDetails;
                 const float slightly_smaller = 0.99f;
                 fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
+                _voxelFadesLock.lockForWrite();
                 _voxelFades.push_back(fade);
+                _voxelFadesLock.unlock();
             }
 
             // If the voxel server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
@@ -3239,7 +3243,9 @@ void Application::nodeKilled(SharedNodePointer node) {
                 fade.voxelDetails = rootDetails;
                 const float slightly_smaller = 0.99f;
                 fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
+                _voxelFadesLock.lockForWrite();
                 _voxelFades.push_back(fade);
+                _voxelFadesLock.unlock();
             }
 
             // If the particle server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
@@ -3271,7 +3277,9 @@ void Application::nodeKilled(SharedNodePointer node) {
                 fade.voxelDetails = rootDetails;
                 const float slightly_smaller = 0.99f;
                 fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
+                _voxelFadesLock.lockForWrite();
                 _voxelFades.push_back(fade);
+                _voxelFadesLock.unlock();
             }
 
             // If the model server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
@@ -3356,7 +3364,9 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
                 fade.voxelDetails = rootDetails;
                 const float slightly_smaller = 0.99f;
                 fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
+                _voxelFadesLock.lockForWrite();
                 _voxelFades.push_back(fade);
+                _voxelFadesLock.unlock();
             }
         }
         // store jurisdiction details for later use
