@@ -204,7 +204,7 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
                     Model::RenderMode modelRenderMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE 
                                                             ? Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
                 
-                    if (modelItem.getGlowLevel() > 0) {
+                    if (modelItem.getGlowLevel() > 0.0f) {
                         Glower glower(modelItem.getGlowLevel());
                         model->render(alpha, modelRenderMode);
                     } else {
