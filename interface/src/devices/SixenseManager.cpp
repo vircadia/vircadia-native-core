@@ -135,7 +135,7 @@ void SixenseManager::update(float deltaTime) {
         float velocityFilter = glm::clamp(1.0f - glm::length(rawVelocity), 0.0f, 1.0f);
         palm->setRawPosition(palm->getRawPosition() * velocityFilter + position * (1.0f - velocityFilter));
         palm->setRawRotation(safeMix(palm->getRawRotation(), rotation, 1.0f - velocityFilter));
- 
+        
         // use the velocity to determine whether there's any movement (if the hand isn't new)
         const float MOVEMENT_DISTANCE_THRESHOLD = 0.003f;
         _amountMoved += rawVelocity * deltaTime;

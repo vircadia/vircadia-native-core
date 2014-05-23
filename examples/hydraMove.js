@@ -26,6 +26,7 @@ var THRUST_INCREASE_RATE = 1.05;
 var MAX_THRUST_MULTIPLIER = 75.0;
 var thrustMultiplier = INITIAL_THRUST_MULTPLIER;
 var grabDelta = { x: 0, y: 0, z: 0};
+var grabStartPosition = { x: 0, y: 0, z: 0};
 var grabDeltaVelocity = { x: 0, y: 0, z: 0};
 var grabStartRotation = { x: 0, y: 0, z: 0, w: 1};
 var grabCurrentRotation = { x: 0, y: 0, z: 0, w: 1};
@@ -63,6 +64,63 @@ function printVector(text, v, decimals) {
 }
 
 var debug = false;
+var RED_COLOR = { red: 255, green: 0, blue: 0 };
+var GRAY_COLOR = { red: 25, green: 25, blue: 25 };
+var defaultPosition = { x: 0, y: 0, z: 0};
+var RADIUS = 0.05;
+var greenSphere = -1;
+var redSphere = -1;
+ 
+function createDebugOverlay() {
+
+    if (greenSphere == -1) {
+        greenSphere = Overlays.addOverlay("sphere", {
+                                position: defaultPosition,
+                                size: RADIUS,
+                                color: GRAY_COLOR,
+                                alpha: 1,
+                                visible: true,
+                                solid: true,
+                                anchor: "MyAvatar"
+                                });
+        redSphere = Overlays.addOverlay("sphere", {
+                                position: defaultPosition,
+                                size: RADIUS,
+                                color: RED_COLOR,
+                                alpha: 1,
+                                visible: true,
+                                solid: true,
+                                anchor: "MyAvatar"
+                                });
+    }
+}
+
+function destroyDebugOverlay() {
+    if (greenSphere != -1) {
+        Overlays.deleteOverlay(greenSphere);
+        Overlays.deleteOverlay(redSphere);
+        greenSphere = -1;
+        redSphere = -1;
+    }
+}
+
+function displayDebug() {
+    if (!(grabbingWithRightHand || grabbingWithLeftHand)) {
+        if (greenSphere != -1) {
+            destroyDebugOverlay();
+        }
+    } else {
+        // update debug indicator
+        if (greenSphere == -1) {
+            createDebugOverlay();
+        }
+
+        var displayOffset = { x:0, y:0.5, z:-0.5 };
+
+        Overlays.editOverlay(greenSphere, { position: Vec3.sum(grabStartPosition, displayOffset) } );
+        Overlays.editOverlay(redSphere, { position: Vec3.sum(Vec3.sum(grabStartPosition, grabDelta), displayOffset), size: RADIUS + (0.25 * Vec3.length(grabDelta)) } );
+    }
+}
 
 function getJoystickPosition(palm) {
     // returns CONTROLLER_ID position in avatar local frame
@@ -220,6 +278,8 @@ function flyWithHydra(deltaTime) {
         MyAvatar.headPitch = newPitch;
     }
     handleGrabBehavior(deltaTime);
+    displayDebug();
+
 }
     
 Script.update.connect(flyWithHydra);
