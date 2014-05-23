@@ -64,7 +64,7 @@ public slots:
     void requestError(QNetworkReply::NetworkError error);
     void logout();
     void updateBalance();
-    void accountInfoBalanceChanged(qint64 newBalance);
+    void accountInfoBalanceChanged(quint64 newBalance);
 signals:
     void authRequired();
     void authEndpointChanged();
@@ -73,7 +73,7 @@ signals:
     void loginComplete(const QUrl& authURL);
     void loginFailed();
     void logoutComplete();
-    void balanceChanged(qint64 newBalance);
+    void balanceChanged(quint64 newBalance);
 private slots:
     void processReply();
 private:

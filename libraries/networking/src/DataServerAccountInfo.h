@@ -44,7 +44,7 @@ public:
     friend QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info);
     friend QDataStream& operator>>(QDataStream &in, DataServerAccountInfo& info);
 signals:
-    qint64 balanceChanged(qint64 newBalance);
+    quint64 balanceChanged(quint64 newBalance);
 private:
     void swap(DataServerAccountInfo& otherInfo);
     
