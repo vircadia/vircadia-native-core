@@ -34,9 +34,17 @@ public:
 
     const QString& getDiscourseApiKey() const { return _discourseApiKey; }
     void setDiscourseApiKey(const QString& discourseApiKey);
+    
+    quint64 getBalance() const { return _balance; }
+    void setBalance(quint64 balance);
+    bool hasBalance() const { return _hasBalance; }
+    void setHasBalance(bool hasBalance) { _hasBalance = hasBalance; }
+    Q_INVOKABLE void setBalanceFromJSON(const QJsonObject& jsonObject);
 
     friend QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info);
     friend QDataStream& operator>>(QDataStream &in, DataServerAccountInfo& info);
+signals:
+    qint64 balanceChanged(qint64 newBalance);
 private:
     void swap(DataServerAccountInfo& otherInfo);
     
@@ -44,6 +52,8 @@ private:
     QString _username;
     QString _xmppPassword;
     QString _discourseApiKey;
+    quint64 _balance;
+    bool _hasBalance;
 };
 
 #endif // hifi_DataServerAccountInfo_h
