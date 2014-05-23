@@ -39,15 +39,22 @@ void Overlays::init(QGLWidget* parent) {
 }
 
 void Overlays::update(float deltatime) {
-    QWriteLocker lock(&_lock);
-    foreach (Overlay* thisOverlay, _overlays2D) {
-        thisOverlay->update(deltatime);
+
+    {
+        QWriteLocker lock(&_lock);
+        foreach(Overlay* thisOverlay, _overlays2D) {
+            thisOverlay->update(deltatime);
+        }
+        foreach(Overlay* thisOverlay, _overlays3D) {
+            thisOverlay->update(deltatime);
+        }
     }
-    foreach (Overlay* thisOverlay, _overlays3D) {
-        thisOverlay->update(deltatime);
-    }
-    while (!_overlaysToDelete.isEmpty()) {
-        delete _overlaysToDelete.takeLast();
+
+    if (!_overlaysToDelete.isEmpty()) {
+        QWriteLocker lock(&_deleteLock);
+        do {
+            delete _overlaysToDelete.takeLast();
+        } while (!_overlaysToDelete.isEmpty());
     }
     
 }
@@ -172,15 +179,19 @@ bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
 
 void Overlays::deleteOverlay(unsigned int id) {
     Overlay* overlayToDelete;
-    QWriteLocker lock(&_lock);
-    if (_overlays2D.contains(id)) {
-        overlayToDelete = _overlays2D.take(id);
-    } else if (_overlays3D.contains(id)) {
-        overlayToDelete = _overlays3D.take(id);
-    } else {
-        return;
+
+    {
+        QWriteLocker lock(&_lock);
+        if (_overlays2D.contains(id)) {
+            overlayToDelete = _overlays2D.take(id);
+        } else if (_overlays3D.contains(id)) {
+            overlayToDelete = _overlays3D.take(id);
+        } else {
+            return;
+        }
     }
-    
+
+    QWriteLocker lock(&_deleteLock);
     _overlaysToDelete.push_back(overlayToDelete);
 }
 

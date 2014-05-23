@@ -46,6 +46,7 @@ private:
     unsigned int _nextOverlayID;
     QGLWidget* _parent;
     QReadWriteLock _lock;
+    QReadWriteLock _deleteLock;
 };
 
  
