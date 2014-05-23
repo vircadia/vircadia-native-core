@@ -350,7 +350,7 @@ void Model::init() {
             Application::resourcesPath() + "shaders/model_shadow_normal_specular_map.frag");
         _skinShadowNormalSpecularMapProgram.link();
         
-        initSkinProgram(_skinNormalSpecularMapProgram, _skinShadowNormalSpecularMapLocations, 2, 3);
+        initSkinProgram(_skinShadowNormalSpecularMapProgram, _skinShadowNormalSpecularMapLocations, 2, 3);
         
         
         _skinShadowProgram.addShaderFromSourceFile(QGLShader::Vertex,
@@ -1646,6 +1646,7 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent) {
                 program = &_shadowNormalMapProgram;
                 skinProgram = &_skinShadowNormalMapProgram;
                 skinLocations = &_skinShadowNormalMapLocations;
+                shadowTextureUnit = GL_TEXTURE2;
             } else {
                 program = &_normalMapProgram;
                 skinProgram = &_skinNormalMapProgram;
@@ -1656,14 +1657,14 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent) {
                 program = &_shadowSpecularMapProgram;
                 skinProgram = &_skinShadowSpecularMapProgram;
                 skinLocations = &_skinShadowSpecularMapLocations;
-                specularTextureUnit = GL_TEXTURE1;
                 shadowTextureUnit = GL_TEXTURE2;
             } else {
                 program = &_specularMapProgram;
                 skinProgram = &_skinSpecularMapProgram;
                 skinLocations = &_skinSpecularMapLocations;
-                specularTextureUnit = GL_TEXTURE1;
             }
+            specularTextureUnit = GL_TEXTURE1;
+            
         } else if (receiveShadows) {
             program = &_shadowMapProgram;
             skinProgram = &_skinShadowMapProgram;
