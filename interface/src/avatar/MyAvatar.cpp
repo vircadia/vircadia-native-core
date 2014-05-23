@@ -134,45 +134,7 @@ void MyAvatar::simulate(float deltaTime) {
     _handState = HAND_STATE_NULL;
 
     updateOrientation(deltaTime);
-
-    float keyboardInput = fabsf(_driveKeys[FWD] - _driveKeys[BACK]) + 
-        fabsf(_driveKeys[RIGHT] - _driveKeys[LEFT]) + 
-        fabsf(_driveKeys[UP] - _driveKeys[DOWN]);
-
-    bool walkingOnFloor = false;
-    float gravityLength = glm::length(_gravity);
-    if (gravityLength > EPSILON) {
-        const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
-        glm::vec3 startCap;
-        boundingShape.getStartPoint(startCap);
-        glm::vec3 bottomOfBoundingCapsule = startCap + (boundingShape.getRadius() / gravityLength) * _gravity;
-
-        float fallThreshold = 2.0f * deltaTime * gravityLength;
-        walkingOnFloor = (glm::distance(bottomOfBoundingCapsule, _lastFloorContactPoint) < fallThreshold);
-    }
-
-    if (keyboardInput > 0.0f || glm::length2(_velocity) > 0.0f || glm::length2(_thrust) > 0.0f || 
-            ! walkingOnFloor) {
-        // apply gravity
-        _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
-    
-        // update motor and thrust
-        updateMotorFromKeyboard(deltaTime, walkingOnFloor);
-        applyMotor(deltaTime);
-        applyThrust(deltaTime);
-
-        // update position
-        if (glm::length2(_velocity) < EPSILON) {
-            _velocity = glm::vec3(0.0f);
-        } else { 
-            _position += _velocity * deltaTime;
-        }
-    }
-
-    // update moving flag based on speed
-    const float MOVING_SPEED_THRESHOLD = 0.01f;
-    _moving = glm::length(_velocity) > MOVING_SPEED_THRESHOLD;
-    updateChatCircle(deltaTime);
+    updatePosition(deltaTime);
 
     // update avatar skeleton and simulate hand and head
     getHand()->collideAgainstOurself(); 
@@ -833,8 +795,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
             // We must adjust the body orientation using a delta rotation (rather than
             // doing yaw math) because the body's yaw ranges are not the same
             // as what the Oculus API provides.
-            glm::vec3 UP_AXIS = glm::vec3(0.0f, 1.0f, 0.0f);
-            glm::quat bodyCorrection = glm::angleAxis(glm::radians(delta), UP_AXIS);
+            glm::quat bodyCorrection = glm::angleAxis(glm::radians(delta), _worldUpDirection);
             orientation = orientation * bodyCorrection;
         }
         Head* head = getHead();
@@ -846,6 +807,62 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
     // update the euler angles
     setOrientation(orientation);
+}
+
+void MyAvatar::updatePosition(float deltaTime) {
+    float keyboardInput = fabsf(_driveKeys[FWD] - _driveKeys[BACK]) + 
+        fabsf(_driveKeys[RIGHT] - _driveKeys[LEFT]) + 
+        fabsf(_driveKeys[UP] - _driveKeys[DOWN]);
+
+    bool walkingOnFloor = false;
+    float gravityLength = glm::length(_gravity) * GRAVITY_EARTH;
+    if (gravityLength > EPSILON) {
+        const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
+        glm::vec3 startCap;
+        boundingShape.getStartPoint(startCap);
+        glm::vec3 bottomOfBoundingCapsule = startCap - boundingShape.getRadius() * _worldUpDirection;
+
+        float speedFromGravity = _scale * deltaTime * gravityLength;
+        float distanceToFall = glm::distance(bottomOfBoundingCapsule, _lastFloorContactPoint);
+        walkingOnFloor = (distanceToFall < 2.0f * deltaTime * speedFromGravity);
+
+        if (walkingOnFloor) {
+            // BEGIN HACK: to prevent the avatar from bouncing on a floor surface
+            if (distanceToFall < deltaTime * speedFromGravity) {
+                float verticalSpeed = glm::dot(_velocity, _worldUpDirection);
+                if (fabs(verticalSpeed) < speedFromGravity) {
+                    // we're standing on a floor, and nearly at rest so we zero the vertical velocity component
+                    _velocity -= verticalSpeed * _worldUpDirection;
+                }
+            } else {
+                // fall with gravity against floor
+                _velocity -= speedFromGravity * _worldUpDirection;
+            }
+            // END HACK
+        } else {
+            _velocity -= speedFromGravity * _worldUpDirection;
+        }
+    }
+
+    if (keyboardInput > 0.0f || glm::length2(_velocity) > 0.0f || glm::length2(_thrust) > 0.0f || ! walkingOnFloor) {
+        // update motor and thrust
+        updateMotorFromKeyboard(deltaTime, walkingOnFloor);
+        applyMotor(deltaTime);
+        applyThrust(deltaTime);
+
+        // update position
+        if (glm::length2(_velocity) < EPSILON) {
+            _velocity = glm::vec3(0.0f);
+        } else { 
+            _position += _velocity * deltaTime;
+        }
+    }
+
+    // update moving flag based on speed
+    const float MOVING_SPEED_THRESHOLD = 0.01f;
+    _moving = glm::length(_velocity) > MOVING_SPEED_THRESHOLD;
+
+    updateChatCircle(deltaTime);
 }
 
 void MyAvatar::updateMotorFromKeyboard(float deltaTime, bool walking) {
@@ -1121,6 +1138,8 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
         const float MIN_STEP_HEIGHT = 0.0f;
         glm::vec3 footBase = boundingShape.getPosition() - (capsuleRadius + capsuleHalfHeight) * _worldUpDirection;
         float highestStep = 0.0f;
+        float lowestStep = MAX_STEP_HEIGHT;
+        glm::vec3 floorPoint;
         glm::vec3 stepPenetration(0.0f);
         glm::vec3 totalPenetration(0.0f);
 
@@ -1154,7 +1173,14 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
                     highestStep = stepHeight;
                     stepPenetration = collision->_penetration;
                 }
+                if (stepHeight < lowestStep) {
+                    lowestStep = stepHeight;
+                    floorPoint = collision->_contactPoint - collision->_penetration;
+                }
             }
+        }
+        if (lowestStep < MAX_STEP_HEIGHT) {
+            _lastFloorContactPoint = floorPoint;
         }
 
         float penetrationLength = glm::length(totalPenetration);
@@ -1194,8 +1220,9 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
             applyHardCollision(totalPenetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
         }
 
-        const float VOXEL_COLLISION_FREQUENCY = 0.5f;
-        updateCollisionSound(myCollisions[0]->_penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
+        // Don't make a collision sound against voxlels by default -- too annoying when walking
+        //const float VOXEL_COLLISION_FREQUENCY = 0.5f;
+        //updateCollisionSound(myCollisions[0]->_penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
     } 
     _trapDuration = isTrapped ? _trapDuration + deltaTime : 0.0f;
 }
