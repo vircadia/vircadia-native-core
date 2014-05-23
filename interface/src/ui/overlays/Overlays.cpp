@@ -39,25 +39,35 @@ void Overlays::init(QGLWidget* parent) {
 }
 
 void Overlays::update(float deltatime) {
-    foreach (Overlay* thisOverlay, _overlays2D) {
-        thisOverlay->update(deltatime);
+
+    {
+        QWriteLocker lock(&_lock);
+        foreach(Overlay* thisOverlay, _overlays2D) {
+            thisOverlay->update(deltatime);
+        }
+        foreach(Overlay* thisOverlay, _overlays3D) {
+            thisOverlay->update(deltatime);
+        }
     }
-    foreach (Overlay* thisOverlay, _overlays3D) {
-        thisOverlay->update(deltatime);
-    }
-    while (!_overlaysToDelete.isEmpty()) {
-        delete _overlaysToDelete.takeLast();
+
+    if (!_overlaysToDelete.isEmpty()) {
+        QWriteLocker lock(&_deleteLock);
+        do {
+            delete _overlaysToDelete.takeLast();
+        } while (!_overlaysToDelete.isEmpty());
     }
     
 }
 
 void Overlays::render2D() {
+    QReadLocker lock(&_lock);
     foreach(Overlay* thisOverlay, _overlays2D) {
         thisOverlay->render();
     }
 }
 
 void Overlays::render3D() {
+    QReadLocker lock(&_lock);
     if (_overlays3D.size() == 0) {
         return;
     }
@@ -96,7 +106,6 @@ void Overlays::render3D() {
     }
 }
 
-// TODO: make multi-threaded safe
 unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& properties) {
     unsigned int thisID = 0;
     bool created = false;
@@ -140,6 +149,7 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
     }
 
     if (created) {
+        QWriteLocker lock(&_lock);
         thisID = _nextOverlayID;
         _nextOverlayID++;
         if (is3D) {
@@ -152,9 +162,9 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
     return thisID; 
 }
 
-// TODO: make multi-threaded safe
 bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
     Overlay* thisOverlay = NULL;
+    QWriteLocker lock(&_lock);
     if (_overlays2D.contains(id)) {
         thisOverlay = _overlays2D[id];
     } else if (_overlays3D.contains(id)) {
@@ -167,21 +177,26 @@ bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
     return false;
 }
 
-// TODO: make multi-threaded safe
 void Overlays::deleteOverlay(unsigned int id) {
     Overlay* overlayToDelete;
-    if (_overlays2D.contains(id)) {
-        overlayToDelete = _overlays2D.take(id);
-    } else if (_overlays3D.contains(id)) {
-        overlayToDelete = _overlays3D.take(id);
-    } else {
-        return;
+
+    {
+        QWriteLocker lock(&_lock);
+        if (_overlays2D.contains(id)) {
+            overlayToDelete = _overlays2D.take(id);
+        } else if (_overlays3D.contains(id)) {
+            overlayToDelete = _overlays3D.take(id);
+        } else {
+            return;
+        }
     }
-    
+
+    QWriteLocker lock(&_deleteLock);
     _overlaysToDelete.push_back(overlayToDelete);
 }
 
 unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
+    QReadLocker lock(&_lock);
     QMapIterator<unsigned int, Overlay*> i(_overlays2D);
     i.toBack();
     while (i.hasPrevious()) {
