@@ -20,8 +20,9 @@ ParticleTreeElement::ParticleTreeElement(unsigned char* octalCode) : OctreeEleme
 
 ParticleTreeElement::~ParticleTreeElement() {
     _voxelMemoryUsage -= sizeof(ParticleTreeElement);
-    delete _particles;
+    QList<Particle>* tmpParticles = _particles;
     _particles = NULL;
+    delete tmpParticles;
 }
 
 // This will be called primarily on addChildAt(), which means we're adding a child of our
@@ -277,12 +278,14 @@ const Particle* ParticleTreeElement::getParticleWithID(uint32_t id) const {
 
 bool ParticleTreeElement::removeParticleWithID(uint32_t id) {
     bool foundParticle = false;
-    uint16_t numberOfParticles = _particles->size();
-    for (uint16_t i = 0; i < numberOfParticles; i++) {
-        if ((*_particles)[i].getID() == id) {
-            foundParticle = true;
-            _particles->removeAt(i);
-            break;
+    if (_particles) {
+        uint16_t numberOfParticles = _particles->size();
+        for (uint16_t i = 0; i < numberOfParticles; i++) {
+            if ((*_particles)[i].getID() == id) {
+                foundParticle = true;
+                _particles->removeAt(i);
+                break;
+            }
         }
     }
     return foundParticle;

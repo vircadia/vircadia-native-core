@@ -186,7 +186,7 @@ int retrieveData(std::string filename, std::stringstream &ss) {
         return ret;
     }
 
-    std::cerr << "[DEBUG] Schematic compression type not recognize : " << type << std::endl;
+    std::cerr << "[ERROR] Schematic compression type not recognize : " << type << std::endl;
     return 1;
 }
 

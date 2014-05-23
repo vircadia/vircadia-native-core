@@ -120,7 +120,6 @@ void SixenseManager::update(float deltaTime) {
         //  Rotation of Palm
         glm::quat rotation(data->rot_quat[3], -data->rot_quat[0], data->rot_quat[1], -data->rot_quat[2]);
         rotation = glm::angleAxis(PI, glm::vec3(0.f, 1.f, 0.f)) * _orbRotation * rotation;
-        palm->setRawRotation(rotation);
         
         //  Compute current velocity from position change
         glm::vec3 rawVelocity;
@@ -130,7 +129,12 @@ void SixenseManager::update(float deltaTime) {
             rawVelocity = glm::vec3(0.0f);
         }
         palm->setRawVelocity(rawVelocity);   //  meters/sec
-        palm->setRawPosition(position);
+    
+        //  Use a velocity sensitive filter to damp small motions and preserve large ones with
+        //  no latency.
+        float velocityFilter = glm::clamp(1.0f - glm::length(rawVelocity), 0.0f, 1.0f);
+        palm->setRawPosition(palm->getRawPosition() * velocityFilter + position * (1.0f - velocityFilter));
+        palm->setRawRotation(safeMix(palm->getRawRotation(), rotation, 1.0f - velocityFilter));
         
         // use the velocity to determine whether there's any movement (if the hand isn't new)
         const float MOVEMENT_DISTANCE_THRESHOLD = 0.003f;

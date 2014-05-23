@@ -136,7 +136,7 @@
             <string>&lt;style type=&quot;text/css&quot;&gt;
 	a { text-decoration: none; color: #267077;}
 &lt;/style&gt;
-Invalid username or password. &lt;a href=&quot;https://data-web.highfidelity.io/password/new&quot;&gt;Recover?&lt;/a&gt;</string>
+Invalid username or password. &lt;a href=&quot;https://data.highfidelity.io/password/new&quot;&gt;Recover?&lt;/a&gt;</string>
            </property>
            <property name="alignment">
             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -458,7 +458,7 @@ border-radius: 4px; padding-top: 1px;</string>
             <string>&lt;style type=&quot;text/css&quot;&gt;
 	a { text-decoration: none; color: #267077;}
 &lt;/style&gt;
-&lt;a href=&quot;https://data-web.highfidelity.io/password/new&quot;&gt;Recover password?&lt;/a&gt;</string>
+&lt;a href=&quot;https://data.highfidelity.io/password/new&quot;&gt;Recover password?&lt;/a&gt;</string>
            </property>
            <property name="openExternalLinks">
             <bool>true</bool>

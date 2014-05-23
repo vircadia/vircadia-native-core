@@ -50,7 +50,6 @@ static const QString JOINT_FIELD = "joint";
 static const QString FREE_JOINT_FIELD = "freeJoint";
 
 static const QString S3_URL = "http://public.highfidelity.io";
-static const QString DATA_SERVER_URL = "https://data-web.highfidelity.io";
 static const QString MODEL_URL = "/api/v1/models";
 
 static const QString SETTING_NAME = "LastModelUploadLocation";
