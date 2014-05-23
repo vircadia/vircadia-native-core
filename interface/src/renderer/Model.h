@@ -340,19 +340,36 @@ private:
 
     QList<AnimationHandlePointer> _runningAnimations;
 
+    bool _receivesShadows;
+
     static ProgramObject _program;
     static ProgramObject _normalMapProgram;
     static ProgramObject _specularMapProgram;
     static ProgramObject _normalSpecularMapProgram;
+    
+    static ProgramObject _shadowMapProgram;
+    static ProgramObject _shadowNormalMapProgram;
+    static ProgramObject _shadowSpecularMapProgram;
+    static ProgramObject _shadowNormalSpecularMapProgram;
+    
     static ProgramObject _shadowProgram;
+    
     static ProgramObject _skinProgram;
     static ProgramObject _skinNormalMapProgram;
     static ProgramObject _skinSpecularMapProgram;
     static ProgramObject _skinNormalSpecularMapProgram;
+    
+    static ProgramObject _skinShadowMapProgram;
+    static ProgramObject _skinShadowNormalMapProgram;
+    static ProgramObject _skinShadowSpecularMapProgram;
+    static ProgramObject _skinShadowNormalSpecularMapProgram;
+    
     static ProgramObject _skinShadowProgram;
     
     static int _normalMapTangentLocation;
     static int _normalSpecularMapTangentLocation;
+    static int _shadowNormalMapTangentLocation;
+    static int _shadowNormalSpecularMapTangentLocation;
     
     class SkinLocations {
     public:
@@ -366,9 +383,14 @@ private:
     static SkinLocations _skinNormalMapLocations;
     static SkinLocations _skinSpecularMapLocations;
     static SkinLocations _skinNormalSpecularMapLocations;
+    static SkinLocations _skinShadowMapLocations;
+    static SkinLocations _skinShadowNormalMapLocations;
+    static SkinLocations _skinShadowSpecularMapLocations;
+    static SkinLocations _skinShadowNormalSpecularMapLocations;
     static SkinLocations _skinShadowLocations;
     
-    static void initSkinProgram(ProgramObject& program, SkinLocations& locations, int specularTextureUnit = 1);
+    static void initSkinProgram(ProgramObject& program, SkinLocations& locations,
+        int specularTextureUnit = 1, int shadowTextureUnit = 1);
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)
