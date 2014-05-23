@@ -38,7 +38,7 @@ OctreeQueryNode::OctreeQueryNode() :
     _lastClientOctreeSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _lodChanged(false),
     _lodInitialized(false),
-    //_sequenceNumber(0),
+    _sequenceNumber(0),
     _lastRootTimestamp(0),
     _myPacketType(PacketTypeUnknown),
     _isShuttingDown(false)
@@ -158,11 +158,11 @@ bool OctreeQueryNode::shouldSuppressDuplicatePacket() {
 
 void OctreeQueryNode::init() {
     _myPacketType = getMyPacketType();
-    resetOctreePacket(true); // don't bump sequence
+    resetOctreePacket(); // don't bump sequence
 }
 
 
-void OctreeQueryNode::resetOctreePacket(OCTREE_PACKET_SEQUENCE sequenceNumber) {
+void OctreeQueryNode::resetOctreePacket() {
     // if shutting down, return immediately
     if (_isShuttingDown) {
         return;
@@ -201,12 +201,11 @@ void OctreeQueryNode::resetOctreePacket(OCTREE_PACKET_SEQUENCE sequenceNumber) {
 	
     // pack in sequence number
     OCTREE_PACKET_SEQUENCE* sequenceAt = (OCTREE_PACKET_SEQUENCE*)_octreePacketAt;
-    *sequenceAt = sequenceNumber;
+    *sequenceAt = _sequenceNumber;
     _octreePacketAt += sizeof(OCTREE_PACKET_SEQUENCE);
     _octreePacketAvailableBytes -= sizeof(OCTREE_PACKET_SEQUENCE);
 	/*
     if (!(lastWasSurpressed || _lastOctreePacketLength == (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE))) {
-qDebug() << "_sequenceNumber is now " << _sequenceNumber << " ***********************************************";
         _sequenceNumber++;
     }*/
 
@@ -370,3 +369,6 @@ void OctreeQueryNode::dumpOutOfView() {
     }
 }
 
+void OctreeQueryNode::incrementSequenceNumber() {
+	_sequenceNumber++;
+}
