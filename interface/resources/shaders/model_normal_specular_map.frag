@@ -20,6 +20,9 @@ uniform sampler2D normalMap;
 // the specular map texture
 uniform sampler2D specularMap;
 
+// the interpolated position
+varying vec4 interpolatedPosition;
+
 // the interpolated normal
 varying vec4 interpolatedNormal;
 
@@ -41,8 +44,8 @@ void main(void) {
         gl_FrontLightProduct[0].diffuse * (diffuse * facingLight));
 
     // compute the specular component (sans exponent)
-    float specular = facingLight * max(0.0, dot(normalize(gl_LightSource[0].position + vec4(0.0, 0.0, 1.0, 0.0)),
-        viewNormal));
+    float specular = facingLight * max(0.0, dot(normalize(gl_LightSource[0].position -
+        normalize(vec4(interpolatedPosition.xyz, 0.0))), viewNormal));
         
     // modulate texture by base color and add specular contribution
     gl_FragColor = base * texture2D(diffuseMap, gl_TexCoord[0].st) + vec4(pow(specular, gl_FrontMaterial.shininess) *
