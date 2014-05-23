@@ -11,7 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var alwaysLook = true; // if you want the mouse look to happen only when you click, change this to false
+var alwaysLook = false; // if you want the mouse look to happen only when you click, change this to false
 var isMouseDown = false;
 var lastX = 0;
 var lastY = 0;
