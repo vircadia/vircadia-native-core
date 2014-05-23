@@ -735,7 +735,7 @@ void DomainServer::setupPendingAssignmentCredits() {
             
             const float CREDITS_PER_HOUR = 0.10f;
             const float CREDITS_PER_MSEC = CREDITS_PER_HOUR / (60 * 60 * 1000);
-            const int SATOSHIS_PER_MSEC = CREDITS_PER_MSEC * powf(10.0f, 8.0f);
+            const int SATOSHIS_PER_MSEC = CREDITS_PER_MSEC * SATOSHIS_PER_CREDIT;
     
             float pendingCredits = elapsedMsecsSinceLastPayment * SATOSHIS_PER_MSEC;
             
@@ -884,10 +884,10 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
         
         if (!nodeData->getWalletUUID().isNull()) {
             TransactionHash::iterator i = _pendingAssignmentCredits.find(nodeData->getWalletUUID());
-            double pendingCreditAmount = 0;
+            float pendingCreditAmount = 0;
             
             while (i != _pendingAssignmentCredits.end() && i.key() == nodeData->getWalletUUID()) {
-                pendingCreditAmount += i.value()->getAmount();
+                pendingCreditAmount += i.value()->getAmount() / (float) SATOSHIS_PER_CREDIT;
                 ++i;
             }
             
