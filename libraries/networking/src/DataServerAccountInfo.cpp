@@ -83,7 +83,7 @@ void DataServerAccountInfo::setDiscourseApiKey(const QString& discourseApiKey) {
     }
 }
 
-void DataServerAccountInfo::setBalance(quint64 balance) {
+void DataServerAccountInfo::setBalance(qint64 balance) {
     if (!_hasBalance || _balance != balance) {
         _balance = balance;
         _hasBalance = true;
