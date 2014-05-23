@@ -197,18 +197,12 @@ void OctreeQueryNode::resetOctreePacket() {
     *flagsAt = flags;
     _octreePacketAt += sizeof(OCTREE_PACKET_FLAGS);
     _octreePacketAvailableBytes -= sizeof(OCTREE_PACKET_FLAGS);
-
-	
+    
     // pack in sequence number
     OCTREE_PACKET_SEQUENCE* sequenceAt = (OCTREE_PACKET_SEQUENCE*)_octreePacketAt;
     *sequenceAt = _sequenceNumber;
     _octreePacketAt += sizeof(OCTREE_PACKET_SEQUENCE);
     _octreePacketAvailableBytes -= sizeof(OCTREE_PACKET_SEQUENCE);
-	/*
-    if (!(lastWasSurpressed || _lastOctreePacketLength == (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE))) {
-        _sequenceNumber++;
-    }*/
-
 
     // pack in timestamp
     OCTREE_PACKET_SENT_TIME now = usecTimestampNow();
@@ -370,5 +364,5 @@ void OctreeQueryNode::dumpOutOfView() {
 }
 
 void OctreeQueryNode::incrementSequenceNumber() {
-	_sequenceNumber++;
+    _sequenceNumber++;
 }

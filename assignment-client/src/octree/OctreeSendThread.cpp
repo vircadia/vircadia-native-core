@@ -127,7 +127,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         return 0;
     }
     
-	bool debug = _myServer->wantsDebugSending();
+    bool debug = _myServer->wantsDebugSending();
     quint64 now = usecTimestampNow();
 
     bool packetSent = false; // did we send a packet?
@@ -242,7 +242,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         trueBytesSent += nodeData->getPacketLength();
         truePacketsSent++;
         packetsSent++;
-		nodeData->incrementSequenceNumber();
+        nodeData->incrementSequenceNumber();
         nodeData->resetOctreePacket();
     }
 

@@ -39,7 +39,7 @@ public:
 
     void writeToPacket(const unsigned char* buffer, unsigned int bytes); // writes to end of packet
 
-	const unsigned char* getPacket() const { return _octreePacket; }
+    const unsigned char* getPacket() const { return _octreePacket; }
     unsigned int getPacketLength() const { return (MAX_PACKET_SIZE - _octreePacketAvailableBytes); }
     bool isPacketWaiting() const { return _octreePacketWaiting; }
 
@@ -100,7 +100,7 @@ public:
     void forceNodeShutdown();
     bool isShuttingDown() const { return _isShuttingDown; }
 
-	void incrementSequenceNumber();
+    void incrementSequenceNumber();
     
 private slots:
     void sendThreadFinished();
