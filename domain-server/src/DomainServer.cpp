@@ -735,7 +735,7 @@ void DomainServer::setupPendingAssignmentCredits() {
             
             const float CREDITS_PER_HOUR = 0.10f;
             const float CREDITS_PER_MSEC = CREDITS_PER_HOUR / (60 * 60 * 1000);
-            const int SATOSHIS_PER_MSEC = CREDITS_PER_MSEC * SATOSHIS_PER_UNIT;
+            const int SATOSHIS_PER_MSEC = CREDITS_PER_MSEC * SATOSHIS_PER_CREDIT;
     
             float pendingCredits = elapsedMsecsSinceLastPayment * SATOSHIS_PER_MSEC;
             
