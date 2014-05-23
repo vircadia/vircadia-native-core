@@ -383,9 +383,9 @@ void MyAvatar::setGravity(const glm::vec3& gravity) {
     float gravityLength = glm::length(gravity);
     if (gravityLength > EPSILON) {
         _worldUpDirection = _gravity / -gravityLength;
-    } else {
-        _worldUpDirection = DEFAULT_UP_DIRECTION;
     }
+    // NOTE: the else case here it to leave _worldUpDirection unchanged
+    // so it continues to point opposite to the previous gravity setting.
 }
 
 AnimationHandlePointer MyAvatar::addAnimationHandle() {
@@ -814,12 +814,13 @@ void MyAvatar::updatePosition(float deltaTime) {
 
     bool walkingOnFloor = false;
     float gravityLength = glm::length(_gravity) * GRAVITY_EARTH;
-    if (gravityLength > EPSILON) {
-        const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
-        glm::vec3 startCap;
-        boundingShape.getStartPoint(startCap);
-        glm::vec3 bottomOfBoundingCapsule = startCap - boundingShape.getRadius() * _worldUpDirection;
 
+    const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
+    glm::vec3 startCap;
+    boundingShape.getStartPoint(startCap);
+    glm::vec3 bottomOfBoundingCapsule = startCap - boundingShape.getRadius() * _worldUpDirection;
+
+    if (gravityLength > EPSILON) {
         float speedFromGravity = _scale * deltaTime * gravityLength;
         float distanceToFall = glm::distance(bottomOfBoundingCapsule, _lastFloorContactPoint);
         walkingOnFloor = (distanceToFall < 2.0f * deltaTime * speedFromGravity);
@@ -839,6 +840,32 @@ void MyAvatar::updatePosition(float deltaTime) {
             // END HACK
         } else {
             _velocity -= speedFromGravity * _worldUpDirection;
+        }
+        if (_motionBehaviors & AVATAR_MOTION_STAND_ON_NEARBY_FLOORS) {
+            const float MAX_VERTICAL_FLOOR_DETECTION_SPEED = _scale * MAX_WALKING_SPEED;
+            if (keyboardInput && glm::dot(_motorVelocity, _worldUpDirection) > 0.0f &&
+                    glm::dot(_velocity, _worldUpDirection) > MAX_VERTICAL_FLOOR_DETECTION_SPEED) {
+                // disable gravity because we're pushing with keyboard 
+                setLocalGravity(glm::vec3(0.0f));
+            }
+        }
+    } else {
+        if ((_collisionGroups & COLLISION_GROUP_VOXELS) && 
+            _motionBehaviors & AVATAR_MOTION_STAND_ON_NEARBY_FLOORS) {
+            const float MIN_FLOOR_DETECTION_SPEED = _scale * 1.0f;
+            if (glm::length(_velocity) < MIN_FLOOR_DETECTION_SPEED ) {
+                // scan for floor
+                glm::vec3 direction = -_worldUpDirection;
+                OctreeElement* elementHit; // output from findRayIntersection
+                float distance; // output from findRayIntersection
+                BoxFace face; // output from findRayIntersection
+                Application::getInstance()->getVoxelTree()->findRayIntersection(bottomOfBoundingCapsule, direction, elementHit, distance, face);
+                const float NEARBY_FLOOR_THRESHOLD = _scale * 2.0f;
+                if (elementHit && distance < NEARBY_FLOOR_THRESHOLD) {
+                    // turn on local gravity
+                    setLocalGravity(-_worldUpDirection);
+                }
+            }
         }
     }
 
@@ -888,12 +915,12 @@ void MyAvatar::updateMotorFromKeyboard(float deltaTime, bool walking) {
     if (directionLength > EPSILON) {
         direction /= directionLength;
         // the finalMotorSpeed depends on whether we are walking or not
-        float finalMaxMotorSpeed = walking ? MAX_WALKING_SPEED : _maxMotorSpeed;
+        float finalMaxMotorSpeed = walking ? _scale * MAX_WALKING_SPEED : _scale * _maxMotorSpeed;
 
         float motorLength = glm::length(_motorVelocity);
-        if (motorLength < MIN_KEYBOARD_CONTROL_SPEED) {
+        if (motorLength < _scale * MIN_KEYBOARD_CONTROL_SPEED) {
             // an active keyboard motor should never be slower than this
-            _motorVelocity = MIN_KEYBOARD_CONTROL_SPEED * direction;
+            _motorVelocity = _scale * MIN_KEYBOARD_CONTROL_SPEED * direction;
         } else {
             float MOTOR_LENGTH_TIMESCALE = 1.5f;
             float tau = glm::clamp(deltaTime / MOTOR_LENGTH_TIMESCALE, 0.0f, 1.0f);
@@ -1566,7 +1593,8 @@ void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
 }
 
 void MyAvatar::updateMotionBehaviorsFromMenu() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::ObeyEnvironmentalGravity)) {
+    Menu* menu = Menu::getInstance();
+    if (menu->isOptionChecked(MenuOption::ObeyEnvironmentalGravity)) {
         _motionBehaviors |= AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY;
         // Environmental and Local gravities are incompatible.  Environmental setting trumps local.
         _motionBehaviors &= ~AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
@@ -1575,6 +1603,14 @@ void MyAvatar::updateMotionBehaviorsFromMenu() {
     }
     if (! (_motionBehaviors & (AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY | AVATAR_MOTION_OBEY_LOCAL_GRAVITY))) {
         setGravity(glm::vec3(0.0f));
+    }
+    if (menu->isOptionChecked(MenuOption::StandOnNearbyFloors)) {
+        _motionBehaviors |= AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
+        // standing on floors requires collision with voxels
+        _collisionGroups |= COLLISION_GROUP_VOXELS;
+        menu->setIsOptionChecked(MenuOption::CollideWithVoxels, true);
+    } else {
+        _motionBehaviors &= ~AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
     }
 }
 
@@ -1602,6 +1638,11 @@ void MyAvatar::setCollisionGroups(quint32 collisionGroups) {
     menu->setIsOptionChecked(MenuOption::CollideWithAvatars, (bool)(_collisionGroups & COLLISION_GROUP_AVATARS));
     menu->setIsOptionChecked(MenuOption::CollideWithVoxels, (bool)(_collisionGroups & COLLISION_GROUP_VOXELS));
     menu->setIsOptionChecked(MenuOption::CollideWithParticles, (bool)(_collisionGroups & COLLISION_GROUP_PARTICLES));
+    if (! (_collisionGroups & COLLISION_GROUP_VOXELS)) {
+        // no collision with voxels --> disable standing on floors
+        _motionBehaviors &= ~AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
+        menu->setIsOptionChecked(MenuOption::StandOnNearbyFloors, false);
+    }
 }
 
 void MyAvatar::setMotionBehaviorsByScript(quint32 flags) {
