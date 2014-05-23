@@ -34,7 +34,7 @@ public:
     QString updateSlot;
 };
 
-class AccountManager: public QObject {
+class AccountManager : public QObject {
     Q_OBJECT
 public:
     static AccountManager& getInstance();
