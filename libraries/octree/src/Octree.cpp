@@ -583,7 +583,7 @@ OctreeElement* Octree::getOrCreateChildElementAt(float x, float y, float z, floa
     return getRoot()->getOrCreateChildElementAt(x, y, z, s);
 }
 
-OctreeElement* Octree::getOrCreateChildElementContaining(const AABox& box) {
+OctreeElement* Octree::getOrCreateChildElementContaining(const AACube& box) {
     return getRoot()->getOrCreateChildElementContaining(box);
 }
 
@@ -601,7 +601,7 @@ public:
 
 bool findRayIntersectionOp(OctreeElement* element, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
-    AABox box = element->getAABox();
+    AACube box = element->getAACube();
     float distance;
     BoxFace face;
     if (!box.findRayIntersection(args->origin, args->direction, distance, face)) {
@@ -664,7 +664,7 @@ bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
     SphereArgs* args = static_cast<SphereArgs*>(extraData);
 
     // coarse check against bounds
-    const AABox& box = element->getAABox();
+    const AACube& box = element->getAACube();
     if (!box.expandedContains(args->center, args->radius)) {
         return false;
     }
@@ -743,7 +743,7 @@ bool findCapsulePenetrationOp(OctreeElement* element, void* extraData) {
     CapsuleArgs* args = static_cast<CapsuleArgs*>(extraData);
 
     // coarse check against bounds
-    const AABox& box = element->getAABox();
+    const AACube& box = element->getAACube();
     if (!box.expandedIntersectsSegment(args->start, args->end, args->radius)) {
         return false;
     }
@@ -764,7 +764,7 @@ bool findShapeCollisionsOp(OctreeElement* element, void* extraData) {
     ShapeArgs* args = static_cast<ShapeArgs*>(extraData);
 
     // coarse check against bounds
-    AABox cube = element->getAABox();
+    AACube cube = element->getAACube();
     cube.scale(TREE_SCALE);
     if (!cube.expandedContains(args->shape->getPosition(), args->shape->getBoundingRadius())) {
         return false;
@@ -858,7 +858,7 @@ public:
 // Find the smallest colored voxel enclosing a point (if there is one)
 bool getElementEnclosingOperation(OctreeElement* element, void* extraData) {
     GetElementEnclosingArgs* args = static_cast<GetElementEnclosingArgs*>(extraData);
-    AABox elementBox = element->getAABox();
+    AACube elementBox = element->getAACube();
     if (elementBox.contains(args->point)) {
         if (element->hasContent() && element->isLeaf()) {
             // we've reached a solid leaf containing the point, return the element.
@@ -1117,7 +1117,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         // If the user also asked for occlusion culling, check if this element is occluded, but only if it's not a leaf.
         // leaf occlusion is handled down below when we check child nodes
         if (params.wantOcclusionCulling && !element->isLeaf()) {
-            AABox voxelBox = element->getAABox();
+            AACube voxelBox = element->getAACube();
             voxelBox.scale(TREE_SCALE);
             OctreeProjectedPolygon* voxelPolygon = new OctreeProjectedPolygon(params.viewFrustum->getProjectedPolygon(voxelBox));
 
@@ -1250,7 +1250,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 if (params.wantOcclusionCulling && childElement->isLeaf()) {
                     // Don't check occlusion here, just add them to our distance ordered array...
 
-                    AABox voxelBox = childElement->getAABox();
+                    AACube voxelBox = childElement->getAACube();
                     voxelBox.scale(TREE_SCALE);
                     OctreeProjectedPolygon* voxelPolygon = new OctreeProjectedPolygon(
                                 params.viewFrustum->getProjectedPolygon(voxelBox));

@@ -2076,10 +2076,10 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
-                    AABox serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                    AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
                     serverBounds.scale(TREE_SCALE);
 
-                    ViewFrustum::location serverFrustumLocation = _viewFrustum.boxInFrustum(serverBounds);
+                    ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
 
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
                         inViewServers++;
@@ -2142,10 +2142,10 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
-                    AABox serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                    AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
                     serverBounds.scale(TREE_SCALE);
 
-                    ViewFrustum::location serverFrustumLocation = _viewFrustum.boxInFrustum(serverBounds);
+                    ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
                         inView = true;
                     } else {

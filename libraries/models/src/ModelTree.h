@@ -58,11 +58,11 @@ public:
     /// \remark Side effect: any initial contents in foundModels will be lost
     void findModels(const glm::vec3& center, float radius, QVector<const ModelItem*>& foundModels);
 
-    /// finds all models that touch a box
-    /// \param box the query box
+    /// finds all models that touch a cube
+    /// \param cube the query cube
     /// \param foundModels[out] vector of non-const ModelItem*
     /// \remark Side effect: any initial contents in models will be lost
-    void findModelsForUpdate(const AABox& box, QVector<ModelItem*> foundModels);
+    void findModelsForUpdate(const AACube& cube, QVector<ModelItem*> foundModels);
 
     void addNewlyCreatedHook(NewlyCreatedModelHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedModelHook* hook);
@@ -86,7 +86,7 @@ private:
     static bool findByIDOperation(OctreeElement* element, void* extraData);
     static bool findAndDeleteOperation(OctreeElement* element, void* extraData);
     static bool findAndUpdateModelItemIDOperation(OctreeElement* element, void* extraData);
-    static bool findInBoxForUpdateOperation(OctreeElement* element, void* extraData);
+    static bool findInCubeForUpdateOperation(OctreeElement* element, void* extraData);
 
     void notifyNewlyCreatedModel(const ModelItem& newModel, const SharedNodePointer& senderNode);
 

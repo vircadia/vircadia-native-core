@@ -125,7 +125,7 @@ public:
     /// finds all models that touch a box
     /// \param box the query box
     /// \param models[out] vector of non-const ModelItem*
-    void getModelsForUpdate(const AABox& box, QVector<ModelItem*>& foundModels);
+    void getModelsForUpdate(const AACube& box, QVector<ModelItem*>& foundModels);
 
     const ModelItem* getModelWithID(uint32_t id) const;
 

@@ -20,7 +20,7 @@
 
 #include <SharedUtil.h>
 
-#include "AABox.h"
+#include "AACube.h"
 #include "ViewFrustum.h"
 #include "OctreeConstants.h"
 
@@ -116,9 +116,9 @@ public:
     bool safeDeepDeleteChildAtIndex(int childIndex, int recursionCount = 0); 
 
 
-    const AABox& getAABox() const { return _box; }
-    const glm::vec3& getCorner() const { return _box.getCorner(); }
-    float getScale() const { return _box.getScale(); }
+    const AACube& getAACube() const { return _cube; }
+    const glm::vec3& getCorner() const { return _cube.getCorner(); }
+    float getScale() const { return _cube.getScale(); }
     int getLevel() const { return numberOfThreeBitSectionsInCode(getOctalCode()) + 1; }
     
     float getEnclosingRadius() const;
@@ -223,7 +223,7 @@ public:
 
 
     OctreeElement* getOrCreateChildElementAt(float x, float y, float z, float s);
-    OctreeElement* getOrCreateChildElementContaining(const AABox& box);
+    OctreeElement* getOrCreateChildElementContaining(const AACube& box);
     int getMyChildContainingPoint(const glm::vec3& point) const;
 
 protected:
@@ -240,11 +240,11 @@ protected:
     void encodeThreeOffsets(int64_t offsetOne, int64_t offsetTwo, int64_t offsetThree);
     void checkStoreFourChildren(OctreeElement* childOne, OctreeElement* childTwo, OctreeElement* childThree, OctreeElement* childFour);
 #endif
-    void calculateAABox();
+    void calculateAACube();
     void notifyDeleteHooks();
     void notifyUpdateHooks();
 
-    AABox _box; /// Client and server, axis aligned box for bounds of this voxel, 48 bytes
+    AACube _cube; /// Client and server, axis aligned box for bounds of this voxel, 48 bytes
 
     /// Client and server, buffer containing the octal code or a pointer to octal code for this node, 8 bytes
     union octalCode_t {
