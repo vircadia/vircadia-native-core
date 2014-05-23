@@ -113,7 +113,7 @@ public:
     bool getJointState(int index, glm::quat& rotation) const;
     
     /// Sets the joint state at the specified index.
-    void setJointState(int index, bool valid, const glm::quat& rotation = glm::quat());
+    void setJointState(int index, bool valid, const glm::quat& rotation = glm::quat(), float priority = 1.0f);
     
     /// Returns the index of the left hand joint, or -1 if not found.
     int getLeftHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().leftHandJointIndex : -1; }
@@ -166,7 +166,7 @@ public:
     /// Restores some percentage of the default position of the left hand.
     /// \param percent the percentage of the default position to restore
     /// \return whether or not the left hand joint was found
-    bool restoreLeftHandPosition(float percent = 1.0f);
+    bool restoreLeftHandPosition(float percent = 1.0f, float priority = 1.0f);
     
     /// Gets the position of the left shoulder.
     /// \return whether or not the left shoulder joint was found
@@ -178,7 +178,7 @@ public:
     /// Restores some percentage of the default position of the right hand.
     /// \param percent the percentage of the default position to restore
     /// \return whether or not the right hand joint was found
-    bool restoreRightHandPosition(float percent = 1.0f);
+    bool restoreRightHandPosition(float percent = 1.0f, float priority = 1.0f);
     
     /// Gets the position of the right shoulder.
     /// \return whether or not the right shoulder joint was found
@@ -254,7 +254,7 @@ protected:
         glm::quat rotation;     // rotation relative to parent
         glm::mat4 transform;    // rotation to world frame + translation in model frame
         glm::quat combinedRotation; // rotation from joint local to world frame
-        bool animationDisabled; // if true, animations do not affect this joint
+        float animationPriority; // the priority of the animation affecting this joint
     };
     
     bool _shapesAreDirty;
@@ -290,8 +290,8 @@ protected:
     
     bool setJointPosition(int jointIndex, const glm::vec3& translation, const glm::quat& rotation = glm::quat(),
         bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
-        const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f));
-    bool setJointRotation(int jointIndex, const glm::quat& rotation, bool fromBind = false);
+        const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
+    bool setJointRotation(int jointIndex, const glm::quat& rotation, bool fromBind = false, float priority = 1.0f);
     
     void setJointTranslation(int jointIndex, const glm::vec3& translation);
     
@@ -299,13 +299,13 @@ protected:
     /// \param percent the percentage of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
     /// the original position
     /// \return true if the joint was found
-    bool restoreJointPosition(int jointIndex, float percent = 1.0f);
+    bool restoreJointPosition(int jointIndex, float percent = 1.0f, float priority = 0.0f);
     
     /// Computes and returns the extended length of the limb terminating at the specified joint and starting at the joint's
     /// first free ancestor.
     float getLimbLength(int jointIndex) const;
 
-    void applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain = true);
+    void applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain = true, float priority = 1.0f);
     
     void computeBoundingShape(const FBXGeometry& geometry);
 
@@ -381,6 +381,9 @@ class AnimationHandle : public QObject {
     
 public:
 
+    void setRole(const QString& role) { _role = role; }
+    const QString& getRole() const { return _role; }
+
     void setURL(const QUrl& url);
     const QUrl& getURL() const { return _url; }
     
@@ -393,12 +396,30 @@ public:
     void setLoop(bool loop) { _loop = loop; }
     bool getLoop() const { return _loop; }
     
+    void setHold(bool hold) { _hold = hold; }
+    bool getHold() const { return _hold; }
+    
+    void setStartAutomatically(bool startAutomatically);
+    bool getStartAutomatically() const { return _startAutomatically; }
+    
+    void setFirstFrame(int firstFrame) { _firstFrame = firstFrame; }
+    int getFirstFrame() const { return _firstFrame; }
+    
+    void setLastFrame(int lastFrame) { _lastFrame = lastFrame; }
+    int getLastFrame() const { return _lastFrame; }
+    
     void setMaskedJoints(const QStringList& maskedJoints);
     const QStringList& getMaskedJoints() const { return _maskedJoints; }
     
     void setRunning(bool running);
     bool isRunning() const { return _running; }
+
+signals:
     
+    void runningChanged(bool running);
+
+public slots:
+
     void start() { setRunning(true); }
     void stop() { setRunning(false); }
     
@@ -409,14 +430,20 @@ private:
     AnimationHandle(Model* model);
         
     void simulate(float deltaTime);
-        
+    void replaceMatchingPriorities(float newPriority);
+    
     Model* _model;
     WeakAnimationHandlePointer _self;
     AnimationPointer _animation;
+    QString _role;
     QUrl _url;
     float _fps;
     float _priority;
     bool _loop;
+    bool _hold;
+    bool _startAutomatically;
+    int _firstFrame;
+    int _lastFrame;
     QStringList _maskedJoints;
     bool _running;
     QVector<int> _jointMappings;

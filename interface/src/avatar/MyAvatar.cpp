@@ -430,8 +430,6 @@ void MyAvatar::setGravity(const glm::vec3& gravity) {
 
 AnimationHandlePointer MyAvatar::addAnimationHandle() {
     AnimationHandlePointer handle = _skeletonModel.createAnimationHandle();
-    handle->setLoop(true);
-    handle->start();
     _animationHandles.append(handle);
     return handle;
 }
@@ -441,10 +439,12 @@ void MyAvatar::removeAnimationHandle(const AnimationHandlePointer& handle) {
     _animationHandles.removeOne(handle);
 }
 
-void MyAvatar::startAnimation(const QString& url, float fps, float priority, bool loop, const QStringList& maskedJoints) {
+void MyAvatar::startAnimation(const QString& url, float fps, float priority,
+        bool loop, bool hold, int firstFrame, int lastFrame, const QStringList& maskedJoints) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "startAnimation", Q_ARG(const QString&, url),
-            Q_ARG(float, fps), Q_ARG(float, priority), Q_ARG(bool, loop), Q_ARG(const QStringList&, maskedJoints));
+        QMetaObject::invokeMethod(this, "startAnimation", Q_ARG(const QString&, url), Q_ARG(float, fps),
+            Q_ARG(float, priority), Q_ARG(bool, loop), Q_ARG(bool, hold), Q_ARG(int, firstFrame),
+            Q_ARG(int, lastFrame), Q_ARG(const QStringList&, maskedJoints));
         return;
     }
     AnimationHandlePointer handle = _skeletonModel.createAnimationHandle();
@@ -452,8 +452,52 @@ void MyAvatar::startAnimation(const QString& url, float fps, float priority, boo
     handle->setFPS(fps);
     handle->setPriority(priority);
     handle->setLoop(loop);
+    handle->setHold(hold);
+    handle->setFirstFrame(firstFrame);
+    handle->setLastFrame(lastFrame);
     handle->setMaskedJoints(maskedJoints);
     handle->start();
+}
+
+void MyAvatar::startAnimationByRole(const QString& role, const QString& url, float fps, float priority,
+        bool loop, bool hold, int firstFrame, int lastFrame, const QStringList& maskedJoints) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "startAnimationByRole", Q_ARG(const QString&, role), Q_ARG(const QString&, url),
+            Q_ARG(float, fps), Q_ARG(float, priority), Q_ARG(bool, loop), Q_ARG(bool, hold), Q_ARG(int, firstFrame),
+            Q_ARG(int, lastFrame), Q_ARG(const QStringList&, maskedJoints));
+        return;
+    }
+    // check for a configured animation for the role
+    foreach (const AnimationHandlePointer& handle, _animationHandles) {
+        if (handle->getRole() == role) {
+            handle->start();
+            return;
+        }
+    }
+    // no joy; use the parameters provided
+    AnimationHandlePointer handle = _skeletonModel.createAnimationHandle();
+    handle->setRole(role);
+    handle->setURL(url);
+    handle->setFPS(fps);
+    handle->setPriority(priority);
+    handle->setLoop(loop);
+    handle->setHold(hold);
+    handle->setFirstFrame(firstFrame);
+    handle->setLastFrame(lastFrame);
+    handle->setMaskedJoints(maskedJoints);
+    handle->start();
+}
+
+void MyAvatar::stopAnimationByRole(const QString& role) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "stopAnimationByRole", Q_ARG(const QString&, role));
+        return;
+    }
+    foreach (const AnimationHandlePointer& handle, _skeletonModel.getRunningAnimations()) {
+        if (handle->getRole() == role) {
+            handle->stop();
+        }
+    }
 }
 
 void MyAvatar::stopAnimation(const QString& url) {
@@ -464,7 +508,6 @@ void MyAvatar::stopAnimation(const QString& url) {
     foreach (const AnimationHandlePointer& handle, _skeletonModel.getRunningAnimations()) {
         if (handle->getURL() == url) {
             handle->stop();
-            return;
         }
     }
 }
@@ -511,9 +554,15 @@ void MyAvatar::saveData(QSettings* settings) {
     for (int i = 0; i < _animationHandles.size(); i++) {
         settings->setArrayIndex(i);
         const AnimationHandlePointer& pointer = _animationHandles.at(i);
+        settings->setValue("role", pointer->getRole());
         settings->setValue("url", pointer->getURL());
         settings->setValue("fps", pointer->getFPS());
         settings->setValue("priority", pointer->getPriority());
+        settings->setValue("loop", pointer->getLoop());
+        settings->setValue("hold", pointer->getHold());
+        settings->setValue("startAutomatically", pointer->getStartAutomatically());
+        settings->setValue("firstFrame", pointer->getFirstFrame());
+        settings->setValue("lastFrame", pointer->getLastFrame());
         settings->setValue("maskedJoints", pointer->getMaskedJoints());
     }
     settings->endArray();
@@ -578,9 +627,15 @@ void MyAvatar::loadData(QSettings* settings) {
     for (int i = 0; i < animationCount; i++) {
         settings->setArrayIndex(i);
         const AnimationHandlePointer& handle = _animationHandles.at(i);
+        handle->setRole(settings->value("role", "idle").toString());
         handle->setURL(settings->value("url").toUrl());
         handle->setFPS(loadSetting(settings, "fps", 30.0f));
         handle->setPriority(loadSetting(settings, "priority", 1.0f));
+        handle->setLoop(settings->value("loop", true).toBool());
+        handle->setHold(settings->value("hold", false).toBool());
+        handle->setStartAutomatically(settings->value("startAutomatically", true).toBool());
+        handle->setFirstFrame(settings->value("firstFrame", 0).toInt());
+        handle->setLastFrame(settings->value("lastFrame", INT_MAX).toInt());
         handle->setMaskedJoints(settings->value("maskedJoints").toStringList());
     }
     settings->endArray();
@@ -698,17 +753,19 @@ glm::vec3 MyAvatar::getUprightHeadPosition() const {
     return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, getPelvisToHeadLength(), 0.0f);
 }
 
+const float JOINT_PRIORITY = 2.0f;
+
 void MyAvatar::setJointData(int index, const glm::quat& rotation) {
     Avatar::setJointData(index, rotation);
     if (QThread::currentThread() == thread()) {
-        _skeletonModel.setJointState(index, true, rotation);
+        _skeletonModel.setJointState(index, true, rotation, JOINT_PRIORITY);
     }
 }
 
 void MyAvatar::clearJointData(int index) {
     Avatar::clearJointData(index);
     if (QThread::currentThread() == thread()) {
-        _skeletonModel.setJointState(index, false);
+        _skeletonModel.setJointState(index, false, glm::quat(), JOINT_PRIORITY);
     }
 }
 

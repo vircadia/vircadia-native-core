@@ -118,7 +118,7 @@ QVector<Model::JointState> Model::createJointStates(const FBXGeometry& geometry)
         JointState state;
         state.translation = joint.translation;
         state.rotation = joint.rotation;
-        state.animationDisabled = false;
+        state.animationPriority = 0.0f;
         jointStates.append(state);
     }
 
@@ -473,9 +473,18 @@ bool Model::getJointState(int index, glm::quat& rotation) const {
         glm::abs(rotation.w - defaultRotation.w) >= EPSILON;
 }
 
-void Model::setJointState(int index, bool valid, const glm::quat& rotation) {
+void Model::setJointState(int index, bool valid, const glm::quat& rotation, float priority) {
     if (index != -1 && index < _jointStates.size()) {
-        _jointStates[index].rotation = valid ? rotation : _geometry->getFBXGeometry().joints.at(index).rotation;
+        JointState& state = _jointStates[index];
+        if (priority >= state.animationPriority) {
+            if (valid) {
+                state.rotation = rotation;
+                state.animationPriority = priority;
+            } else if (priority == state.animationPriority) {
+                state.rotation = _geometry->getFBXGeometry().joints.at(index).rotation;
+                state.animationPriority = 0.0f;
+            }
+        }
     }
 }
 
@@ -535,8 +544,8 @@ bool Model::getRightHandRotation(glm::quat& rotation) const {
     return getJointRotation(getRightHandJointIndex(), rotation);
 }
 
-bool Model::restoreLeftHandPosition(float percent) {
-    return restoreJointPosition(getLeftHandJointIndex(), percent);
+bool Model::restoreLeftHandPosition(float percent, float priority) {
+    return restoreJointPosition(getLeftHandJointIndex(), percent, priority);
 }
 
 bool Model::getLeftShoulderPosition(glm::vec3& position) const {
@@ -547,8 +556,8 @@ float Model::getLeftArmLength() const {
     return getLimbLength(getLeftHandJointIndex());
 }
 
-bool Model::restoreRightHandPosition(float percent) {
-    return restoreJointPosition(getRightHandJointIndex(), percent);
+bool Model::restoreRightHandPosition(float percent, float priority) {
+    return restoreJointPosition(getRightHandJointIndex(), percent, priority);
 }
 
 bool Model::getRightShoulderPosition(glm::vec3& position) const {
@@ -1114,7 +1123,7 @@ void Model::maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint
 }
 
 bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const glm::quat& rotation, bool useRotation,
-       int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment) {
+       int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment, float priority) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
     }
@@ -1137,7 +1146,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
         glm::quat endRotation;
         if (useRotation) {
             getJointRotation(jointIndex, endRotation, true);
-            applyRotationDelta(jointIndex, rotation * glm::inverse(endRotation));
+            applyRotationDelta(jointIndex, rotation * glm::inverse(endRotation), priority);
             getJointRotation(jointIndex, endRotation, true);
         }    
         
@@ -1181,7 +1190,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
                         1.0f / (combinedWeight + 1.0f));
                 }
             }
-            applyRotationDelta(index, combinedDelta);
+            applyRotationDelta(index, combinedDelta, priority);
             glm::quat actualDelta = state.combinedRotation * glm::inverse(oldCombinedRotation);
             endPosition = actualDelta * jointVector + jointPosition;
             if (useRotation) {
@@ -1199,15 +1208,17 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
     return true;
 }
 
-bool Model::setJointRotation(int jointIndex, const glm::quat& rotation, bool fromBind) {
+bool Model::setJointRotation(int jointIndex, const glm::quat& rotation, bool fromBind, float priority) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
     }
     JointState& state = _jointStates[jointIndex];
-    state.rotation = state.rotation * glm::inverse(state.combinedRotation) * rotation *
-        glm::inverse(fromBind ? _geometry->getFBXGeometry().joints.at(jointIndex).inverseBindRotation :
-            _geometry->getFBXGeometry().joints.at(jointIndex).inverseDefaultRotation);
-    state.animationDisabled = true;
+    if (priority >= state.animationPriority) {
+        state.rotation = state.rotation * glm::inverse(state.combinedRotation) * rotation *
+            glm::inverse(fromBind ? _geometry->getFBXGeometry().joints.at(jointIndex).inverseBindRotation :
+                _geometry->getFBXGeometry().joints.at(jointIndex).inverseDefaultRotation);
+        state.animationPriority = priority;
+    }
     return true;
 }
 
@@ -1228,7 +1239,7 @@ void Model::setJointTranslation(int jointIndex, const glm::vec3& translation) {
     state.translation = glm::vec3(glm::inverse(parentTransform) * glm::vec4(translation, 1.0f)) - preTranslation;
 }
 
-bool Model::restoreJointPosition(int jointIndex, float percent) {
+bool Model::restoreJointPosition(int jointIndex, float percent, float priority) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
     }
@@ -1237,10 +1248,12 @@ bool Model::restoreJointPosition(int jointIndex, float percent) {
     
     foreach (int index, freeLineage) {
         JointState& state = _jointStates[index];
-        const FBXJoint& joint = geometry.joints.at(index);
-        state.rotation = safeMix(state.rotation, joint.rotation, percent);
-        state.translation = glm::mix(state.translation, joint.translation, percent);
-        state.animationDisabled = false;
+        if (priority == state.animationPriority) {
+            const FBXJoint& joint = geometry.joints.at(index);
+            state.rotation = safeMix(state.rotation, joint.rotation, percent);
+            state.translation = glm::mix(state.translation, joint.translation, percent);
+            state.animationPriority = 0.0f;
+        }
     }
     return true;
 }
@@ -1259,8 +1272,12 @@ float Model::getLimbLength(int jointIndex) const {
     return length;
 }
 
-void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain) {
+void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain, float priority) {
     JointState& state = _jointStates[jointIndex];
+    if (priority < state.animationPriority) {
+        return;
+    }
+    state.animationPriority = priority;
     const FBXJoint& joint = _geometry->getFBXGeometry().joints[jointIndex];
     if (!constrain || (joint.rotationMin == glm::vec3(-PI, -PI, -PI) &&
             joint.rotationMax == glm::vec3(PI, PI, PI))) {
@@ -1274,7 +1291,6 @@ void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool cons
     glm::quat newRotation = glm::quat(glm::clamp(eulers, joint.rotationMin, joint.rotationMax));
     state.combinedRotation = state.combinedRotation * glm::inverse(state.rotation) * newRotation;
     state.rotation = newRotation;
-    state.animationDisabled = true;
 }
 
 const int BALL_SUBDIVISIONS = 10;
@@ -1665,7 +1681,7 @@ void AnimationHandle::setURL(const QUrl& url) {
 
 static void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandlePointer& handle) {
     for (QList<AnimationHandlePointer>::iterator it = handles.begin(); it != handles.end(); it++) {
-        if (handle->getPriority() < (*it)->getPriority()) {
+        if (handle->getPriority() > (*it)->getPriority()) {
             handles.insert(it, handle);
             return;
         } 
@@ -1674,12 +1690,25 @@ static void insertSorted(QList<AnimationHandlePointer>& handles, const Animation
 }
 
 void AnimationHandle::setPriority(float priority) {
-    if (_priority != priority) {
-        _priority = priority;
-        if (_running) {
-            _model->_runningAnimations.removeOne(_self);
-            insertSorted(_model->_runningAnimations, _self);
+    if (_priority == priority) {
+        return;
+    }
+    if (_running) {
+        _model->_runningAnimations.removeOne(_self);
+        if (priority < _priority) {
+            replaceMatchingPriorities(priority);
         }
+        _priority = priority;
+        insertSorted(_model->_runningAnimations, _self);
+        
+    } else {
+        _priority = priority;
+    }
+}
+
+void AnimationHandle::setStartAutomatically(bool startAutomatically) {
+    if ((_startAutomatically = startAutomatically) && !_running) {
+        start();
     }
 }
 
@@ -1689,15 +1718,24 @@ void AnimationHandle::setMaskedJoints(const QStringList& maskedJoints) {
 }
 
 void AnimationHandle::setRunning(bool running) {
+    if (_running == running) {
+        if (running) {
+            // move back to the beginning
+            _frameIndex = _firstFrame;
+        }
+        return;
+    }
     if ((_running = running)) {
         if (!_model->_runningAnimations.contains(_self)) {
             insertSorted(_model->_runningAnimations, _self);
         }
-        _frameIndex = 0.0f;
+        _frameIndex = _firstFrame;
           
     } else {
         _model->_runningAnimations.removeOne(_self);
+        replaceMatchingPriorities(0.0f);
     }
+    emit runningChanged(_running);
 }
 
 AnimationHandle::AnimationHandle(Model* model) :
@@ -1706,6 +1744,10 @@ AnimationHandle::AnimationHandle(Model* model) :
     _fps(30.0f),
     _priority(1.0f),
     _loop(false),
+    _hold(false),
+    _startAutomatically(false),
+    _firstFrame(0),
+    _lastFrame(INT_MAX),
     _running(false) {
 }
 
@@ -1736,36 +1778,55 @@ void AnimationHandle::simulate(float deltaTime) {
         stop();
         return;
     }
-    int ceilFrameIndex = (int)glm::ceil(_frameIndex);
-    if (!_loop && ceilFrameIndex >= animationGeometry.animationFrames.size()) {
+    int lastFrameIndex = qMin(_lastFrame, animationGeometry.animationFrames.size() - 1);
+    int firstFrameIndex = qMin(_firstFrame, lastFrameIndex);
+    if ((!_loop && _frameIndex >= lastFrameIndex) || firstFrameIndex == lastFrameIndex) {
         // passed the end; apply the last frame
-        const FBXAnimationFrame& frame = animationGeometry.animationFrames.last();
+        const FBXAnimationFrame& frame = animationGeometry.animationFrames.at(lastFrameIndex);
         for (int i = 0; i < _jointMappings.size(); i++) {
             int mapping = _jointMappings.at(i);
             if (mapping != -1) {
                 Model::JointState& state = _model->_jointStates[mapping];
-                if (!state.animationDisabled) {
+                if (_priority >= state.animationPriority) {
                     state.rotation = frame.rotations.at(i);
+                    state.animationPriority = _priority;
                 }
             }
         }
-        stop();
+        if (!_hold) {
+            stop();
+        }
         return;
     }
+    int frameCount = lastFrameIndex - firstFrameIndex + 1;
+    _frameIndex = firstFrameIndex + glm::mod(qMax(_frameIndex - firstFrameIndex, 0.0f), (float)frameCount);
+    
     // blend between the closest two frames
     const FBXAnimationFrame& ceilFrame = animationGeometry.animationFrames.at(
-        ceilFrameIndex % animationGeometry.animationFrames.size());
+        firstFrameIndex + ((int)glm::ceil(_frameIndex) - firstFrameIndex) % frameCount);
     const FBXAnimationFrame& floorFrame = animationGeometry.animationFrames.at(
-        (int)glm::floor(_frameIndex) % animationGeometry.animationFrames.size());
+        firstFrameIndex + ((int)glm::floor(_frameIndex) - firstFrameIndex) % frameCount);
     float frameFraction = glm::fract(_frameIndex);
     for (int i = 0; i < _jointMappings.size(); i++) {
         int mapping = _jointMappings.at(i);
         if (mapping != -1) {
             Model::JointState& state = _model->_jointStates[mapping];
-            if (!state.animationDisabled) {
+            if (_priority >= state.animationPriority) {
                 state.rotation = safeMix(floorFrame.rotations.at(i), ceilFrame.rotations.at(i), frameFraction);
+                state.animationPriority = _priority;
             }
         }
     }
 }
 
+void AnimationHandle::replaceMatchingPriorities(float newPriority) {
+    for (int i = 0; i < _jointMappings.size(); i++) {
+        int mapping = _jointMappings.at(i);
+        if (mapping != -1) {
+            Model::JointState& state = _model->_jointStates[mapping];
+            if (_priority == state.animationPriority) {
+                state.animationPriority = newPriority;
+            }
+        }
+    }
+}
