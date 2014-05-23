@@ -41,8 +41,14 @@ Visage::Visage() :
     _headOrigin(DEFAULT_HEAD_ORIGIN) {
     
 #ifdef HAVE_VISAGE
-    _tracker = NULL;
-    _data = NULL;
+#ifdef WIN32
+    QByteArray licensePath = Application::resourcesPath().toLatin1() + "visage";
+#else
+    QByteArray licensePath = Application::resourcesPath().toLatin1() + "visage/license.vlc";
+#endif
+    initializeLicenseManager(licensePath.data());
+    _tracker = new VisageTracker2(Application::resourcesPath().toLatin1() + "visage/tracker.cfg");
+    _data = new FaceData();
 #endif
 }
 
@@ -173,19 +179,6 @@ void Visage::setEnabled(bool enabled) {
         return;
     }
     if ((_enabled = enabled)) {
-        if(_tracker == NULL && _data == NULL){
-
-            #ifdef WIN32
-            QByteArray licensePath = Application::resourcesPath().toLatin1() + "visage";
-            #else
-            QByteArray licensePath = Application::resourcesPath().toLatin1() + "visage/license.vlc";
-            #endif
-
-            initializeLicenseManager(licensePath.data());
-            _tracker = new VisageTracker2(Application::resourcesPath().toLatin1() + "visage/tracker.cfg");
-            _data = new FaceData();
-        }
-
         _tracker->trackFromCam();
     } else {
         _tracker->stop();
