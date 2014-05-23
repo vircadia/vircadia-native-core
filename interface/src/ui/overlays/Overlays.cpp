@@ -39,6 +39,7 @@ void Overlays::init(QGLWidget* parent) {
 }
 
 void Overlays::update(float deltatime) {
+    QWriteLocker lock(&_lock);
     foreach (Overlay* thisOverlay, _overlays2D) {
         thisOverlay->update(deltatime);
     }
@@ -52,12 +53,14 @@ void Overlays::update(float deltatime) {
 }
 
 void Overlays::render2D() {
+    QReadLocker lock(&_lock);
     foreach(Overlay* thisOverlay, _overlays2D) {
         thisOverlay->render();
     }
 }
 
 void Overlays::render3D() {
+    QReadLocker lock(&_lock);
     if (_overlays3D.size() == 0) {
         return;
     }
@@ -182,6 +185,7 @@ void Overlays::deleteOverlay(unsigned int id) {
 }
 
 unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
+    QReadLocker lock(&_lock);
     QMapIterator<unsigned int, Overlay*> i(_overlays2D);
     i.toBack();
     while (i.hasPrevious()) {
