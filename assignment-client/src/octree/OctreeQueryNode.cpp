@@ -38,7 +38,7 @@ OctreeQueryNode::OctreeQueryNode() :
     _lastClientOctreeSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _lodChanged(false),
     _lodInitialized(false),
-    _sequenceNumber(0),
+    //_sequenceNumber(0),
     _lastRootTimestamp(0),
     _myPacketType(PacketTypeUnknown),
     _isShuttingDown(false)
@@ -161,7 +161,8 @@ void OctreeQueryNode::init() {
     resetOctreePacket(true); // don't bump sequence
 }
 
-void OctreeQueryNode::resetOctreePacket(bool lastWasSurpressed) {
+
+void OctreeQueryNode::resetOctreePacket(OCTREE_PACKET_SEQUENCE sequenceNumber) {
     // if shutting down, return immediately
     if (_isShuttingDown) {
         return;
@@ -197,14 +198,18 @@ void OctreeQueryNode::resetOctreePacket(bool lastWasSurpressed) {
     _octreePacketAt += sizeof(OCTREE_PACKET_FLAGS);
     _octreePacketAvailableBytes -= sizeof(OCTREE_PACKET_FLAGS);
 
+	
     // pack in sequence number
     OCTREE_PACKET_SEQUENCE* sequenceAt = (OCTREE_PACKET_SEQUENCE*)_octreePacketAt;
-    *sequenceAt = _sequenceNumber;
+    *sequenceAt = sequenceNumber;
     _octreePacketAt += sizeof(OCTREE_PACKET_SEQUENCE);
     _octreePacketAvailableBytes -= sizeof(OCTREE_PACKET_SEQUENCE);
+	/*
     if (!(lastWasSurpressed || _lastOctreePacketLength == (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE))) {
+qDebug() << "_sequenceNumber is now " << _sequenceNumber << " ***********************************************";
         _sequenceNumber++;
-    }
+    }*/
+
 
     // pack in timestamp
     OCTREE_PACKET_SENT_TIME now = usecTimestampNow();

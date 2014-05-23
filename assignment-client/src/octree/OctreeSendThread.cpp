@@ -9,8 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QMutexLocker>
-
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <PerfStat.h>
@@ -30,7 +28,8 @@ OctreeSendThread::OctreeSendThread(const SharedAssignmentPointer& myAssignment, 
     _nodeUUID(node->getUUID()),
     _packetData(),
     _nodeMissingCount(0),
-    _isShuttingDown(false)
+    _isShuttingDown(false),
+	_sequenceNumber(0)
 {
     QString safeServerName("Octree");
     if (_myServer) {
@@ -129,7 +128,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         return 0;
     }
     
-    bool debug = _myServer->wantsDebugSending();
+	bool debug = _myServer->wantsDebugSending();
     quint64 now = usecTimestampNow();
 
     bool packetSent = false; // did we send a packet?
@@ -139,7 +138,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
     // obscure the packet and not send it. This allows the callers and upper level logic to not need to know about
     // this rate control savings.
     if (nodeData->shouldSuppressDuplicatePacket()) {
-        nodeData->resetOctreePacket(true); // we still need to reset it though!
+        nodeData->resetOctreePacket(_sequenceNumber); // we still need to reset it though!
         return packetsSent; // without sending...
     }
 
@@ -244,7 +243,10 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         trueBytesSent += nodeData->getPacketLength();
         truePacketsSent++;
         packetsSent++;
-        nodeData->resetOctreePacket();
+
+		_sequenceNumber++;
+
+        nodeData->resetOctreePacket(_sequenceNumber);
     }
 
     return packetsSent;
@@ -284,7 +286,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         if (nodeData->isPacketWaiting()) {
             packetsSentThisInterval += handlePacketSend(nodeData, trueBytesSent, truePacketsSent);
         } else {
-            nodeData->resetOctreePacket();
+            nodeData->resetOctreePacket(_sequenceNumber);
         }
         int targetSize = MAX_OCTREE_PACKET_DATA_SIZE;
         if (wantCompression) {
