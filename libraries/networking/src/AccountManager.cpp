@@ -98,7 +98,7 @@ void AccountManager::updateBalance() {
     }
 }
 
-void AccountManager::accountInfoBalanceChanged(qint64 newBalance) {
+void AccountManager::accountInfoBalanceChanged(quint64 newBalance) {
     emit balanceChanged(newBalance);
 }
 

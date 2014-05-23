@@ -479,6 +479,7 @@ function mousePressEvent(event) {
         var pickRay = Camera.computePickRay(event.x, event.y);
         Vec3.print("[Mouse] Looking at: ", pickRay.origin);
         var foundModels = Models.findModels(pickRay.origin, LASER_LENGTH_FACTOR);
+        var closest = -1.0;
         for (var i = 0; i < foundModels.length; i++) {
             if (!foundModels[i].isKnownID) {
                 var identify = Models.identifyModel(foundModels[i]);
@@ -514,34 +515,50 @@ function mousePressEvent(event) {
                 var d = Vec3.length(Vec3.subtract(P, X));
             
                 if (d < properties.radius && 0 < x && x < LASER_LENGTH_FACTOR) {
-                    modelSelected = true;
-                    selectedModelID = foundModels[i];
-                    selectedModelProperties = properties;
-                
-                    selectedModelProperties.oldRadius = selectedModelProperties.radius;
-                    selectedModelProperties.oldPosition = {
-                    x: selectedModelProperties.position.x,
-                    y: selectedModelProperties.position.y,
-                    z: selectedModelProperties.position.z,
-                    };
-                    selectedModelProperties.oldRotation = {
-                    x: selectedModelProperties.modelRotation.x,
-                    y: selectedModelProperties.modelRotation.y,
-                    z: selectedModelProperties.modelRotation.z,
-                    w: selectedModelProperties.modelRotation.w,
-                    };
-                
-                
-                    orientation = MyAvatar.orientation;
-                    intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
-                
-                    print("Clicked on " + selectedModelID.id + " " +  modelSelected);
-                    return;
+                    if (closest < 0.0) {
+                        closest = x;
+                    }
+                    
+                    if (x <= closest) {
+                        modelSelected = true;
+                        selectedModelID = foundModels[i];
+                        selectedModelProperties = properties;
+                        
+                        orientation = MyAvatar.orientation;
+                        intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
+                    }
                 }
             }
         }
+        
+        if (modelSelected) {
+            selectedModelProperties.oldRadius = selectedModelProperties.radius;
+            selectedModelProperties.oldPosition = {
+            x: selectedModelProperties.position.x,
+            y: selectedModelProperties.position.y,
+            z: selectedModelProperties.position.z,
+            };
+            selectedModelProperties.oldRotation = {
+            x: selectedModelProperties.modelRotation.x,
+            y: selectedModelProperties.modelRotation.y,
+            z: selectedModelProperties.modelRotation.z,
+            w: selectedModelProperties.modelRotation.w,
+            };
+            
+            selectedModelProperties.glowLevel = 0.1;
+            Models.editModel(selectedModelID, { glowLevel: selectedModelProperties.glowLevel});
+            
+            print("Clicked on " + selectedModelID.id + " " +  modelSelected);
+        }
     }
 }
+
+Controller.mouseReleaseEvent.connect(function() {
+    if (modelSelected) {
+        Models.editModel(selectedModelID, { glowLevel: 0.0 });
+        modelSelected = false;
+    }
+ });
 
 var oldModifier = 0;
 var modifier = 0;
