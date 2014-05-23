@@ -168,19 +168,17 @@ void MyAvatar::simulate(float deltaTime) {
             radius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.0f));
             radius *= COLLISION_RADIUS_SCALAR;
         }
-        if (_collisionGroups) {
-            updateShapePositions();
-            if (_collisionGroups & COLLISION_GROUP_ENVIRONMENT) {
-                updateCollisionWithEnvironment(deltaTime, radius);
-            }
-            if (_collisionGroups & COLLISION_GROUP_VOXELS) {
-                updateCollisionWithVoxels(deltaTime, radius);
-            } else {
-                _trapDuration = 0.0f;
-            }
-            if (_collisionGroups & COLLISION_GROUP_AVATARS) {
-                updateCollisionWithAvatars(deltaTime);
-            }
+        updateShapePositions();
+        if (_collisionGroups & COLLISION_GROUP_ENVIRONMENT) {
+            updateCollisionWithEnvironment(deltaTime, radius);
+        }
+        if (_collisionGroups & COLLISION_GROUP_VOXELS) {
+            updateCollisionWithVoxels(deltaTime, radius);
+        } else {
+            _trapDuration = 0.0f;
+        }
+        if (_collisionGroups & COLLISION_GROUP_AVATARS) {
+            updateCollisionWithAvatars(deltaTime);
         }
     }
 
