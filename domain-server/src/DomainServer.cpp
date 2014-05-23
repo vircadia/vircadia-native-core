@@ -1058,8 +1058,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                             // have the HTTPManager serve the appropriate script file
                             return _httpManager.handleHTTPRequest(connection, scriptURL);
                         }
-                    } else {
-                        return false;
                     }
                 }
                 
