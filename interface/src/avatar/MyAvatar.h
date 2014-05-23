@@ -150,7 +150,6 @@ private:
     bool _shouldJump;
     float _driveKeys[MAX_DRIVE_KEYS];
     glm::vec3 _gravity;
-    glm::vec3 _environmentGravity;
     float _distanceToNearestAvatar; // How close is the nearest avatar?
 
     bool _wasPushing;
@@ -175,6 +174,7 @@ private:
 
 	// private methods
     void updateOrientation(float deltaTime);
+    void updatePosition(float deltaTime);
     void updateMotorFromKeyboard(float deltaTime, bool walking);
     float computeMotorTimescale();
     void applyMotor(float deltaTime);

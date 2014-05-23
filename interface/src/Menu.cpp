@@ -200,7 +200,8 @@ Menu::Menu() :
     QObject* avatar = appInstance->getAvatar();
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ObeyEnvironmentalGravity, Qt::SHIFT | Qt::Key_G, false, 
             avatar, SLOT(updateMotionBehaviorsFromMenu()));
-
+    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::StandOnNearbyFloors, 0, true, 
+            avatar, SLOT(updateMotionBehaviorsFromMenu()));
 
     addAvatarCollisionSubMenu(editMenu);
 
