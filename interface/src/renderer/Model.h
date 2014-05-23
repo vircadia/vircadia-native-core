@@ -430,7 +430,7 @@ private:
     AnimationHandle(Model* model);
         
     void simulate(float deltaTime);
-    void lowerPriority(float newPriority);
+    void replaceMatchingPriorities(float newPriority);
     
     Model* _model;
     WeakAnimationHandlePointer _self;

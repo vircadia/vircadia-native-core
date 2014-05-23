@@ -1696,7 +1696,7 @@ void AnimationHandle::setPriority(float priority) {
     if (_running) {
         _model->_runningAnimations.removeOne(_self);
         if (priority < _priority) {
-            lowerPriority(priority);
+            replaceMatchingPriorities(priority);
         }
         _priority = priority;
         insertSorted(_model->_runningAnimations, _self);
@@ -1733,7 +1733,7 @@ void AnimationHandle::setRunning(bool running) {
           
     } else {
         _model->_runningAnimations.removeOne(_self);
-        lowerPriority(0.0f);
+        replaceMatchingPriorities(0.0f);
     }
     emit runningChanged(_running);
 }
@@ -1819,7 +1819,7 @@ void AnimationHandle::simulate(float deltaTime) {
     }
 }
 
-void AnimationHandle::lowerPriority(float newPriority) {
+void AnimationHandle::replaceMatchingPriorities(float newPriority) {
     for (int i = 0; i < _jointMappings.size(); i++) {
         int mapping = _jointMappings.at(i);
         if (mapping != -1) {
