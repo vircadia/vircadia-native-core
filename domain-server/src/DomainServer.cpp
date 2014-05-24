@@ -887,7 +887,7 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
             float pendingCreditAmount = 0;
             
             while (i != _pendingAssignmentCredits.end() && i.key() == nodeData->getWalletUUID()) {
-                pendingCreditAmount += i.value()->getAmount() / (float) SATOSHIS_PER_CREDIT;
+                pendingCreditAmount += i.value()->getAmount() / SATOSHIS_PER_CREDIT;
                 ++i;
             }
             
