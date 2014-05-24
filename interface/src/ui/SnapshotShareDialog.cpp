@@ -31,6 +31,10 @@ const QString FORUM_REPLY_TO_TOPIC = "244";
 const QString FORUM_POST_TEMPLATE = "<img src='%1'/><p>%2</p>";
 const QString SHARE_DEFAULT_ERROR = "The server isn't responding. Please try again in a few minutes.";
 const QString SUCCESS_LABEL_TEMPLATE = "Success!!! Go check out your image ...<br/><a style='color:#333;text-decoration:none' href='%1'>%1</a>";
+const QString SHARE_BUTTON_STYLE = "border-width:0;border-radius:9px;border-radius:9px;font-family:Arial;font-size:18px;"
+    "font-weight:100;color:#FFFFFF;width: 120px;height: 50px;";
+const QString SHARE_BUTTON_ENABLED_STYLE = "background-color: #333;";
+const QString SHARE_BUTTON_DISABLED_STYLE = "background-color: #999;";
 
 Q_DECLARE_METATYPE(QNetworkAccessManager::Operation)
 
@@ -73,6 +77,10 @@ SnapshotShareDialog::SnapshotShareDialog(QString fileName, QWidget* parent) :
 }
 
 void SnapshotShareDialog::accept() {
+    // prevent multiple clicks on share button
+    _ui.shareButton->setEnabled(false);
+    // gray out share button
+    _ui.shareButton->setStyleSheet(SHARE_BUTTON_STYLE + SHARE_BUTTON_DISABLED_STYLE);
     uploadSnapshot();
 }
 
@@ -179,6 +187,8 @@ void SnapshotShareDialog::postRequestFinished() {
             }
         }
         QMessageBox::warning(this, "", errorMessage);
+        _ui.shareButton->setEnabled(true);
+        _ui.shareButton->setStyleSheet(SHARE_BUTTON_STYLE + SHARE_BUTTON_ENABLED_STYLE);
     }
 }
 
@@ -192,6 +202,8 @@ void SnapshotShareDialog::uploadRequestFinished() {
         sendForumPost(responseObject["url"].toString());
     } else {
         QMessageBox::warning(this, "", SHARE_DEFAULT_ERROR);
+        _ui.shareButton->setEnabled(true);
+        _ui.shareButton->setStyleSheet(SHARE_BUTTON_STYLE + SHARE_BUTTON_ENABLED_STYLE);
     }
 
     delete requestReply;
