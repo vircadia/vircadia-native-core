@@ -996,10 +996,8 @@ void Model::scaleToFit() {
 
     // size is our "target size in world space"
     // we need to set our model scale so that the extents of the mesh, fit in a cube that size...
-    glm::vec3 dimensions = modelMeshExtents.maximum - modelMeshExtents.minimum;
-    const float SQRT_THREE = 1.733; // sqrt(3)
-    float maxDimensionRotated = SQRT_THREE * glm::max(glm::max(dimensions.x, dimensions.y), dimensions.z);
-    float maxScale = _scaleToFitLargestDimension / maxDimensionRotated;
+    float maxDimension = glm::distance(modelMeshExtents.maximum, modelMeshExtents.minimum);
+    float maxScale = _scaleToFitLargestDimension / maxDimension;
     glm::vec3 scale(maxScale, maxScale, maxScale);
     setScaleInternal(scale);
     _scaledToFit = true;
