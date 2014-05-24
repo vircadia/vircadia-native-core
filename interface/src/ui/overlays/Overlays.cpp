@@ -22,16 +22,26 @@ Overlays::Overlays() : _nextOverlayID(1) {
 }
 
 Overlays::~Overlays() {
-    QMap<unsigned int, Overlay*>::iterator it;
-    for (it = _overlays2D.begin(); it != _overlays2D.end(); ++it) {
-        delete _overlays2D.take(it.key());
+    
+    {
+        QWriteLocker lock(&_lock);
+        foreach(Overlay* thisOverlay, _overlays2D) {
+            delete thisOverlay;
+        }
+        _overlays2D.clear();
+        foreach(Overlay* thisOverlay, _overlays3D) {
+            delete thisOverlay;
+        }
+        _overlays3D.clear();
+	}
+    
+    if (!_overlaysToDelete.isEmpty()) {
+        QWriteLocker lock(&_deleteLock);
+        do {
+            delete _overlaysToDelete.takeLast();
+        } while (!_overlaysToDelete.isEmpty());
     }
-    for (it = _overlays3D.begin(); it != _overlays3D.end(); ++it) {
-        delete _overlays3D.take(it.key());
-    }
-    while (!_overlaysToDelete.isEmpty()) {
-        delete _overlaysToDelete.takeLast();
-    }
+    
 }
 
 void Overlays::init(QGLWidget* parent) {
