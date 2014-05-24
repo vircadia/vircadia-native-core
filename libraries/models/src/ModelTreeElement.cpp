@@ -140,6 +140,37 @@ void ModelTreeElement::update(ModelTreeUpdateArgs& args) {
     }
 }
 
+bool ModelTreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         void** intersectedObject) {
+
+    // only called if we do intersect our bounding cube, but find if we actually intersect with models...
+    
+    QList<ModelItem>::iterator modelItr = _modelItems->begin();
+    QList<ModelItem>::const_iterator modelEnd = _modelItems->end();
+    bool somethingIntersected = false;
+    while(modelItr != modelEnd) {
+        ModelItem& model = (*modelItr);
+        
+        AACube modelCube = model.getAACube();
+        float localDistance;
+        BoxFace localFace;
+
+        // if the ray doesn't intersect with our cube, we can stop searching!
+        if (modelCube.findRayIntersection(origin, direction, localDistance, localFace)) {
+            if (localDistance < distance) {
+                distance = localDistance;
+                face = localFace;
+                *intersectedObject = (void*)(&model);
+                somethingIntersected = true;
+            }
+        }
+        
+        ++modelItr;
+    }
+    return somethingIntersected;
+}
+
 bool ModelTreeElement::findSpherePenetration(const glm::vec3& center, float radius,
                                     glm::vec3& penetration, void** penetratedObject) const {
     QList<ModelItem>::iterator modelItr = _modelItems->begin();

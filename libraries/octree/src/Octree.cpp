@@ -596,34 +596,26 @@ public:
     OctreeElement*& element;
     float& distance;
     BoxFace& face;
+    void** intersectedObject;
     bool found;
 };
 
 bool findRayIntersectionOp(OctreeElement* element, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
-    AACube box = element->getAACube();
-    float distance;
-    BoxFace face;
-    if (!box.findRayIntersection(args->origin, args->direction, distance, face)) {
-        return false;
-    }
-    if (!element->isLeaf()) {
-        return true; // recurse on children
-    }
-    distance *= TREE_SCALE;
-    if (element->hasContent() && (!args->found || distance < args->distance)) {
-        args->element = element;
-        args->distance = distance;
-        args->face = face;
+
+    bool keepSearching = true;
+    if (element->findRayIntersection(args->origin, args->direction, keepSearching, 
+                            args->element, args->distance, args->face, args->intersectedObject)) {
         args->found = true;
     }
-    return false;
+    return keepSearching;
 }
 
 bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                    OctreeElement*& element, float& distance, BoxFace& face, 
+                                    OctreeElement*& element, float& distance, BoxFace& face, void** intersectedObject,
                                     Octree::lockType lockType, bool* accurateResult) {
-    RayArgs args = { origin / (float)(TREE_SCALE), direction, element, distance, face, false};
+    RayArgs args = { origin / (float)(TREE_SCALE), direction, element, distance, face, intersectedObject, false};
+    distance = FLT_MAX;
 
     bool gotLock = false;
     if (lockType == Octree::Lock) {

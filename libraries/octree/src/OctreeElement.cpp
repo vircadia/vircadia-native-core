@@ -1302,6 +1302,55 @@ void OctreeElement::notifyUpdateHooks() {
     }
 }
 
+bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         void** intersectedObject) {
+
+    keepSearching = true; // assume that we will continue searching after this.
+
+    // by default, we only allow intersections with leaves with content
+    if (!canRayIntersect()) {
+        return false; // we don't intersect with non-leaves, and we keep searching
+    }
+
+    AACube cube = getAACube();
+    float localDistance;
+    BoxFace localFace;
+
+    // if the ray doesn't intersect with our cube, we can stop searching!
+    if (!cube.findRayIntersection(origin, direction, localDistance, localFace)) {
+        keepSearching = false; // no point in continuing to search
+        return false; // we did not intersect
+    }
+
+    // we did hit this element, so calculate appropriate distances    
+    localDistance *= TREE_SCALE;
+    if (localDistance < distance) {
+        if (findDetailedRayIntersection(origin, direction, keepSearching,
+                                        element, distance, face, intersectedObject)) {
+            distance = localDistance;
+            face = localFace;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool OctreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         void** intersectedObject) {
+
+    // we did hit this element, so calculate appropriate distances    
+    if (hasContent()) {
+        element = this;
+        if (intersectedObject) {
+            *intersectedObject = this;
+        }
+        return true; // we did intersect
+    }
+    return false; // we did not intersect
+}
+
 bool OctreeElement::findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const {
     return _cube.findSpherePenetration(center, radius, penetration);

@@ -224,6 +224,7 @@ void ScriptEngine::init() {
 
     qScriptRegisterMetaType(&_engine, ModelItemPropertiesToScriptValue, ModelItemPropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ModelItemIDtoScriptValue, ModelItemIDfromScriptValue);
+    qScriptRegisterMetaType(&_engine, RayToModelIntersectionResultToScriptValue, RayToModelIntersectionResultFromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<ModelItemID> >(&_engine);
 
     qScriptRegisterSequenceMetaType<QVector<glm::vec2> >(&_engine);
