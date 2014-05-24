@@ -264,9 +264,6 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
                             glColor4f(1.0f, 1.0f, 0.0f, 1.0f);
                             glutWireCube(size);
 
-                            //glColor4f(1.0f, 1.0f, 0.0f, 0.5f);
-                            //glutWireSphere(radius, 15, 15);
-
                             // draw the rotated bounding cube
                             glColor4f(0.0f, 0.0f, 1.0f, 1.0f);
                             glPushMatrix();
