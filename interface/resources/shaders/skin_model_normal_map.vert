@@ -52,5 +52,9 @@ void main(void) {
     // and the texture coordinates
     gl_TexCoord[0] = gl_MultiTexCoord0;
     
+    // and the shadow texture coordinates
+    gl_TexCoord[1] = vec4(dot(gl_EyePlaneS[0], interpolatedPosition), dot(gl_EyePlaneT[0], interpolatedPosition),
+        dot(gl_EyePlaneR[0], interpolatedPosition), 1.0); 
+        
     gl_Position = gl_ProjectionMatrix * interpolatedPosition;
 }
