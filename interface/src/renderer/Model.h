@@ -340,8 +340,6 @@ private:
 
     QList<AnimationHandlePointer> _runningAnimations;
 
-    bool _receivesShadows;
-
     static ProgramObject _program;
     static ProgramObject _normalMapProgram;
     static ProgramObject _specularMapProgram;
