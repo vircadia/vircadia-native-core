@@ -33,7 +33,7 @@ Overlays::~Overlays() {
             delete thisOverlay;
         }
         _overlays3D.clear();
-	}
+    }
     
     if (!_overlaysToDelete.isEmpty()) {
         QWriteLocker lock(&_deleteLock);
