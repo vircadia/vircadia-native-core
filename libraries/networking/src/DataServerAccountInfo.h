@@ -16,7 +16,7 @@
 
 #include "OAuthAccessToken.h"
 
-const float SATOSHIS_PER_CREDIT = 10000000.0f;
+const float SATOSHIS_PER_CREDIT = 100000000.0f;
 
 class DataServerAccountInfo : public QObject {
     Q_OBJECT

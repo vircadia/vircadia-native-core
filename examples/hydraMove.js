@@ -78,7 +78,7 @@ function createDebugOverlay() {
                                 position: defaultPosition,
                                 size: RADIUS,
                                 color: GRAY_COLOR,
-                                alpha: 1,
+                                alpha: 0.75,
                                 visible: true,
                                 solid: true,
                                 anchor: "MyAvatar"
@@ -87,7 +87,7 @@ function createDebugOverlay() {
                                 position: defaultPosition,
                                 size: RADIUS,
                                 color: RED_COLOR,
-                                alpha: 1,
+                                alpha: 0.5,
                                 visible: true,
                                 solid: true,
                                 anchor: "MyAvatar"
@@ -111,7 +111,7 @@ function displayDebug() {
         }
     } else {
         // update debug indicator
-        if (greenSphere == -1) {
+        if (greenSphere == -1) {    
             createDebugOverlay();
         }
 
@@ -149,8 +149,8 @@ function getGrabRotation() {
 // When move button is pressed, process results 
 function handleGrabBehavior(deltaTime) {
     // check for and handle grab behaviors
-    grabbingWithRightHand = Controller.isButtonPressed(RIGHT_BUTTON_FWD) || Controller.isButtonPressed(RIGHT_BUTTON_4);
-    grabbingWithLeftHand = Controller.isButtonPressed(LEFT_BUTTON_FWD) || Controller.isButtonPressed(LEFT_BUTTON_4);
+    grabbingWithRightHand = Controller.isButtonPressed(RIGHT_BUTTON_4);
+    grabbingWithLeftHand = Controller.isButtonPressed(LEFT_BUTTON_4);
     stoppedGrabbingWithLeftHand = false;
     stoppedGrabbingWithRightHand = false;
     
@@ -201,20 +201,22 @@ function handleGrabBehavior(deltaTime) {
             printVector("grabDelta: ", grabDelta, 3);
         }
 
-        var THRUST_GRAB_SCALING = 300000.0;
+        var thrust = Vec3.multiply(grabDelta, Math.abs(Vec3.length(grabDelta)));
+
+        var THRUST_GRAB_SCALING = 100000.0;
         
-        var thrustFront = Vec3.multiply(front, MyAvatar.scale * -grabDelta.z * THRUST_GRAB_SCALING * deltaTime);
+        var thrustFront = Vec3.multiply(front, MyAvatar.scale * -thrust.z * THRUST_GRAB_SCALING * deltaTime);
         MyAvatar.addThrust(thrustFront);
-        var thrustRight = Vec3.multiply(right, MyAvatar.scale * grabDelta.x * THRUST_GRAB_SCALING * deltaTime);
+        var thrustRight = Vec3.multiply(right, MyAvatar.scale * thrust.x * THRUST_GRAB_SCALING * deltaTime);
         MyAvatar.addThrust(thrustRight);
-        var thrustUp = Vec3.multiply(up, MyAvatar.scale * grabDelta.y * THRUST_GRAB_SCALING * deltaTime);
+        var thrustUp = Vec3.multiply(up, MyAvatar.scale * thrust.y * THRUST_GRAB_SCALING * deltaTime);
         MyAvatar.addThrust(thrustUp);
         
         // add some rotation...
         var deltaRotation = getGrabRotation();
-        var PITCH_SCALING = 2.0;
+        var PITCH_SCALING = 2.5;
         var PITCH_DEAD_ZONE = 2.0;
-        var YAW_SCALING = 2.0;
+        var YAW_SCALING = 2.5;
         var ROLL_SCALING = 2.0;     
 
         var euler = Quat.safeEulerAngles(deltaRotation);
