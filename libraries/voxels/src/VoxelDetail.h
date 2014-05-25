@@ -14,7 +14,7 @@
 
 #include <QtScript/QScriptEngine>
 
-#include <AABox.h>
+#include <AACube.h>
 #include <SharedUtil.h>
 #include "VoxelConstants.h"
 
