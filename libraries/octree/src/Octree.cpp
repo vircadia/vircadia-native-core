@@ -301,6 +301,13 @@ int Octree::readElementData(OctreeElement* destinationElement, const unsigned ch
             }
         }
     }
+    
+    // if this is the root, and there is more data to read, allow it to read it's element data...
+    if (destinationElement == _rootElement  && rootElementHasData() && (bytesLeftToRead - bytesRead) > 0) {
+        // tell the element to read the subsequent data
+        bytesRead += _rootElement->readElementDataFromBuffer(nodeData + bytesRead, bytesLeftToRead - bytesRead, args);
+    }
+    
     return bytesRead;
 }
 
@@ -335,10 +342,8 @@ void Octree::readBitstreamToTree(const unsigned char * bitstream, unsigned long 
         int octalCodeBytes = bytesRequiredForCodeLength(*bitstreamAt);
         int theseBytesRead = 0;
         theseBytesRead += octalCodeBytes;
-
         theseBytesRead += readElementData(bitstreamRootElement, bitstreamAt + octalCodeBytes,
                                        bufferSizeBytes - (bytesRead + octalCodeBytes), args);
-
         // skip bitstream to new startPoint
         bitstreamAt += theseBytesRead;
         bytesRead +=  theseBytesRead;
@@ -578,7 +583,7 @@ OctreeElement* Octree::getOrCreateChildElementAt(float x, float y, float z, floa
     return getRoot()->getOrCreateChildElementAt(x, y, z, s);
 }
 
-OctreeElement* Octree::getOrCreateChildElementContaining(const AABox& box) {
+OctreeElement* Octree::getOrCreateChildElementContaining(const AACube& box) {
     return getRoot()->getOrCreateChildElementContaining(box);
 }
 
@@ -591,34 +596,26 @@ public:
     OctreeElement*& element;
     float& distance;
     BoxFace& face;
+    void** intersectedObject;
     bool found;
 };
 
 bool findRayIntersectionOp(OctreeElement* element, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
-    AABox box = element->getAABox();
-    float distance;
-    BoxFace face;
-    if (!box.findRayIntersection(args->origin, args->direction, distance, face)) {
-        return false;
-    }
-    if (!element->isLeaf()) {
-        return true; // recurse on children
-    }
-    distance *= TREE_SCALE;
-    if (element->hasContent() && (!args->found || distance < args->distance)) {
-        args->element = element;
-        args->distance = distance;
-        args->face = face;
+
+    bool keepSearching = true;
+    if (element->findRayIntersection(args->origin, args->direction, keepSearching, 
+                            args->element, args->distance, args->face, args->intersectedObject)) {
         args->found = true;
     }
-    return false;
+    return keepSearching;
 }
 
 bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                    OctreeElement*& element, float& distance, BoxFace& face, 
+                                    OctreeElement*& element, float& distance, BoxFace& face, void** intersectedObject,
                                     Octree::lockType lockType, bool* accurateResult) {
-    RayArgs args = { origin / (float)(TREE_SCALE), direction, element, distance, face, false};
+    RayArgs args = { origin / (float)(TREE_SCALE), direction, element, distance, face, intersectedObject, false};
+    distance = FLT_MAX;
 
     bool gotLock = false;
     if (lockType == Octree::Lock) {
@@ -659,7 +656,7 @@ bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
     SphereArgs* args = static_cast<SphereArgs*>(extraData);
 
     // coarse check against bounds
-    const AABox& box = element->getAABox();
+    const AACube& box = element->getAACube();
     if (!box.expandedContains(args->center, args->radius)) {
         return false;
     }
@@ -738,7 +735,7 @@ bool findCapsulePenetrationOp(OctreeElement* element, void* extraData) {
     CapsuleArgs* args = static_cast<CapsuleArgs*>(extraData);
 
     // coarse check against bounds
-    const AABox& box = element->getAABox();
+    const AACube& box = element->getAACube();
     if (!box.expandedIntersectsSegment(args->start, args->end, args->radius)) {
         return false;
     }
@@ -759,7 +756,7 @@ bool findShapeCollisionsOp(OctreeElement* element, void* extraData) {
     ShapeArgs* args = static_cast<ShapeArgs*>(extraData);
 
     // coarse check against bounds
-    AABox cube = element->getAABox();
+    AACube cube = element->getAACube();
     cube.scale(TREE_SCALE);
     if (!cube.expandedContains(args->shape->getPosition(), args->shape->getBoundingRadius())) {
         return false;
@@ -853,7 +850,7 @@ public:
 // Find the smallest colored voxel enclosing a point (if there is one)
 bool getElementEnclosingOperation(OctreeElement* element, void* extraData) {
     GetElementEnclosingArgs* args = static_cast<GetElementEnclosingArgs*>(extraData);
-    AABox elementBox = element->getAABox();
+    AACube elementBox = element->getAACube();
     if (elementBox.contains(args->point)) {
         if (element->hasContent() && element->isLeaf()) {
             // we've reached a solid leaf containing the point, return the element.
@@ -1112,7 +1109,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         // If the user also asked for occlusion culling, check if this element is occluded, but only if it's not a leaf.
         // leaf occlusion is handled down below when we check child nodes
         if (params.wantOcclusionCulling && !element->isLeaf()) {
-            AABox voxelBox = element->getAABox();
+            AACube voxelBox = element->getAACube();
             voxelBox.scale(TREE_SCALE);
             OctreeProjectedPolygon* voxelPolygon = new OctreeProjectedPolygon(params.viewFrustum->getProjectedPolygon(voxelBox));
 
@@ -1245,7 +1242,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 if (params.wantOcclusionCulling && childElement->isLeaf()) {
                     // Don't check occlusion here, just add them to our distance ordered array...
 
-                    AABox voxelBox = childElement->getAABox();
+                    AACube voxelBox = childElement->getAACube();
                     voxelBox.scale(TREE_SCALE);
                     OctreeProjectedPolygon* voxelPolygon = new OctreeProjectedPolygon(
                                 params.viewFrustum->getProjectedPolygon(voxelBox));
@@ -1391,6 +1388,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
     keepDiggingDeeper = (inViewNotLeafCount > 0);
 
     if (continueThisLevel && keepDiggingDeeper) {
+
         // at this point, we need to iterate the children who are in view, even if not colored
         // and we need to determine if there's a deeper tree below them that we care about.
         //
@@ -1435,7 +1433,12 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 //
                 // This only applies in the view frustum case, in other cases, like file save and copy/past where
                 // no viewFrustum was requested, we still want to recurse the child tree.
-                if (!params.viewFrustum || !oneAtBit(childrenColoredBits, originalIndex)) {
+                //
+                // NOTE: some octree styles (like models and particles) will store content in parent elements, and child
+                // elements. In this case, if we stop recursion when we include any data (the colorbits should really be
+                // called databits), then we wouldn't send the children. So those types of Octree's should tell us to keep
+                // recursing, by returning TRUE in recurseChildrenWithData().
+                if (recurseChildrenWithData() || !params.viewFrustum || !oneAtBit(childrenColoredBits, originalIndex)) {
                     childTreeBytesOut = encodeTreeBitstreamRecursion(childElement, packetData, bag, params, 
                                                                             thisLevel, nodeLocationThisView);
                 }
@@ -1520,16 +1523,21 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         }
     } // end keepDiggingDeeper
 
-    // At this point all our BitMasks are complete... so let's output them to see how they compare...
-    /**
-    printf("This Level's BitMasks: childInTree:");
-    outputBits(childrenExistInTreeBits, false, true);
-    printf(" childInPacket:");
-    outputBits(childrenExistInPacketBits, false, true);
-    printf(" childrenColored:");
-    outputBits(childrenColoredBits, false, true);
-    qDebug("");
-    **/
+    // If we made it this far, then we've written all of our child data... if this element is the root
+    // element, then we also allow the root element to write out it's data...
+    if (continueThisLevel && element == _rootElement && rootElementHasData()) {
+        int bytesBeforeChild = packetData->getUncompressedSize();
+        continueThisLevel = element->appendElementData(packetData, params);
+        int bytesAfterChild = packetData->getUncompressedSize();
+
+        if (continueThisLevel) {
+            bytesAtThisLevel += (bytesAfterChild - bytesBeforeChild); // keep track of byte count for this child
+
+            if (params.stats) {
+                params.stats->colorSent(element);
+            }
+        }
+    }
 
     // if we were unable to fit this level in our packet, then rewind and add it to the element bag for
     // sending later...
@@ -1556,6 +1564,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
 
 bool Octree::readFromSVOFile(const char* fileName) {
     bool fileOk = false;
+    PacketVersion gotVersion = 0;
     std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
     if(file.is_open()) {
         emit importSize(1.0f, 1.0f, 1.0f);
@@ -1586,14 +1595,16 @@ bool Octree::readFromSVOFile(const char* fileName) {
             if (gotType == expectedType) {
                 dataAt += sizeof(expectedType);
                 dataLength -= sizeof(expectedType);
-                PacketVersion expectedVersion = versionForPacketType(expectedType);
-                PacketVersion gotVersion = *dataAt;
-                if (gotVersion == expectedVersion) {
-                    dataAt += sizeof(expectedVersion);
-                    dataLength -= sizeof(expectedVersion);
+                gotVersion = *dataAt;
+                if (canProcessVersion(gotVersion)) {
+                    dataAt += sizeof(gotVersion);
+                    dataLength -= sizeof(gotVersion);
                     fileOk = true;
+                    qDebug("SVO file version match. Expected: %d Got: %d", 
+                                versionForPacketType(expectedDataPacketType()), gotVersion);
                 } else {
-                    qDebug("SVO file version mismatch. Expected: %d Got: %d", expectedVersion, gotVersion);
+                    qDebug("SVO file version mismatch. Expected: %d Got: %d", 
+                                versionForPacketType(expectedDataPacketType()), gotVersion);
                 }
             } else {
                 qDebug("SVO file type mismatch. Expected: %c Got: %c", expectedType, gotType);
@@ -1602,7 +1613,8 @@ bool Octree::readFromSVOFile(const char* fileName) {
             fileOk = true; // assume the file is ok
         }
         if (fileOk) {
-            ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0, SharedNodePointer(), wantImportProgress);
+            ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0, 
+                                                SharedNodePointer(), wantImportProgress, gotVersion);
             readBitstreamToTree(dataAt, dataLength, args);
         }
         delete[] entireFile;
@@ -1615,7 +1627,6 @@ bool Octree::readFromSVOFile(const char* fileName) {
 }
 
 void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
-
     std::ofstream file(fileName, std::ios::out|std::ios::binary);
 
     if(file.is_open()) {
@@ -1638,13 +1649,12 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
             nodeBag.insert(_rootElement);
         }
 
-        static OctreePacketData packetData;
+        OctreePacketData packetData;
         int bytesWritten = 0;
         bool lastPacketWritten = false;
 
         while (!nodeBag.isEmpty()) {
             OctreeElement* subTree = nodeBag.extract();
-
             lockForRead(); // do tree locking down here so that we have shorter slices and less thread contention
             EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
             bytesWritten = encodeTreeBitstream(subTree, &packetData, nodeBag, params);
@@ -1666,7 +1676,6 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
         if (!lastPacketWritten) {
             file.write((const char*)packetData.getFinalizedData(), packetData.getFinalizedSize());
         }
-
     }
     file.close();
 }

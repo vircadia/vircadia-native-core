@@ -54,6 +54,7 @@ static const float SQUARE_ROOT_OF_3 = (float)sqrt(3.f);
 static const float METERS_PER_DECIMETER  = 0.1f;
 static const float METERS_PER_CENTIMETER = 0.01f;
 static const float METERS_PER_MILLIMETER = 0.001f;
+static const float MILLIMETERS_PER_METER = 1000.0f;
 static const quint64 USECS_PER_MSEC = 1000;
 static const quint64 MSECS_PER_SECOND = 1000;
 static const quint64 USECS_PER_SECOND = USECS_PER_MSEC * MSECS_PER_SECOND;
@@ -185,5 +186,7 @@ bool isSimilarPosition(const glm::vec3& positionA, const glm::vec3& positionB, f
 
 /// \return bool is the float NaN                        
 bool isNaN(float value);
+
+QByteArray createByteArray(const glm::vec3& vector);
 
 #endif // hifi_SharedUtil_h

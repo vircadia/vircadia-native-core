@@ -224,15 +224,15 @@ bool VoxelTreeElement::collapseChildren() {
 
 bool VoxelTreeElement::findSpherePenetration(const glm::vec3& center, float radius,
                                     glm::vec3& penetration, void** penetratedObject) const {
-    if (_box.findSpherePenetration(center, radius, penetration)) {
+    if (_cube.findSpherePenetration(center, radius, penetration)) {
 
         // if the caller wants details about the voxel, then return them here...
         if (penetratedObject) {
             VoxelDetail* voxelDetails = new VoxelDetail;
-            voxelDetails->x = _box.getCorner().x;
-            voxelDetails->y = _box.getCorner().y;
-            voxelDetails->z = _box.getCorner().z;
-            voxelDetails->s = _box.getScale();
+            voxelDetails->x = _cube.getCorner().x;
+            voxelDetails->y = _cube.getCorner().y;
+            voxelDetails->z = _cube.getCorner().z;
+            voxelDetails->s = _cube.getScale();
             voxelDetails->red = getColor()[RED_INDEX];
             voxelDetails->green = getColor()[GREEN_INDEX];
             voxelDetails->blue = getColor()[BLUE_INDEX];

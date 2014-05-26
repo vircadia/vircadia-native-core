@@ -577,6 +577,26 @@ const char* FACESHIFT_BLENDSHAPES[] = {
     ""
 };
 
+const char* HUMANIK_JOINTS[] = {
+    "RightHand",
+    "RightForeArm",
+    "RightArm",
+    "Head",
+    "LeftArm",
+    "LeftForeArm",
+    "LeftHand",
+    "Neck",
+    "Spine",
+    "Hips",
+    "RightUpLeg",
+    "LeftUpLeg",
+    "RightLeg",
+    "LeftLeg",
+    "RightFoot",
+    "LeftFoot",
+    ""
+};
+
 class FBXModel {
 public:
     QString name;
@@ -1012,10 +1032,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QString jointHeadName = processID(getString(joints.value("jointHead", "jointHead")));
     QString jointLeftHandName = processID(getString(joints.value("jointLeftHand", "jointLeftHand")));
     QString jointRightHandName = processID(getString(joints.value("jointRightHand", "jointRightHand")));
-    QVariantList jointLeftFingerNames = joints.values("jointLeftFinger");
-    QVariantList jointRightFingerNames = joints.values("jointRightFinger");
-    QVariantList jointLeftFingertipNames = joints.values("jointLeftFingertip");
-    QVariantList jointRightFingertipNames = joints.values("jointRightFingertip");
     QString jointEyeLeftID;
     QString jointEyeRightID;
     QString jointNeckID;
@@ -1024,10 +1040,16 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QString jointHeadID;
     QString jointLeftHandID;
     QString jointRightHandID;
-    QVector<QString> jointLeftFingerIDs(jointLeftFingerNames.size());
-    QVector<QString> jointRightFingerIDs(jointRightFingerNames.size());
-    QVector<QString> jointLeftFingertipIDs(jointLeftFingertipNames.size());
-    QVector<QString> jointRightFingertipIDs(jointRightFingertipNames.size());
+    
+    QVector<QString> humanIKJointNames;
+    for (int i = 0;; i++) {
+        QByteArray jointName = HUMANIK_JOINTS[i];
+        if (jointName.isEmpty()) {
+            break;
+        }
+        humanIKJointNames.append(processID(getString(joints.value(jointName, jointName))));
+    }
+    QVector<QString> humanIKJointIDs(humanIKJointNames.size());
 
     QVariantHash blendshapeMappings = mapping.value("bs").toHash();
     QMultiHash<QByteArray, WeightedIndex> blendshapeIndices;
@@ -1091,7 +1113,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     } else {
                         name = getID(object.properties);
                     }
-                    int index;
                     if (name == jointEyeLeftName || name == "EyeL" || name == "joint_Leye") {
                         jointEyeLeftID = getID(object.properties);
 
@@ -1115,19 +1136,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
 
                     } else if (name == jointRightHandName) {
                         jointRightHandID = getID(object.properties);
-
-                    } else if ((index = jointLeftFingerNames.indexOf(name)) != -1) {
-                        jointLeftFingerIDs[index] = getID(object.properties);
-
-                    } else if ((index = jointRightFingerNames.indexOf(name)) != -1) {
-                        jointRightFingerIDs[index] = getID(object.properties);
-
-                    } else if ((index = jointLeftFingertipNames.indexOf(name)) != -1) {
-                        jointLeftFingertipIDs[index] = getID(object.properties);
-
-                    } else if ((index = jointRightFingertipNames.indexOf(name)) != -1) {
-                        jointRightFingertipIDs[index] = getID(object.properties);
                     }
+                    int humanIKJointIndex = humanIKJointNames.indexOf(name);
+                    if (humanIKJointIndex != -1) {
+                        humanIKJointIDs[humanIKJointIndex] = getID(object.properties);
+                    }
+                    
                     glm::vec3 translation;
                     // NOTE: the euler angles as supplied by the FBX file are in degrees
                     glm::vec3 rotationOffset;
@@ -1352,7 +1366,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         } else if (type.contains("bump") || type.contains("normal")) {
                             bumpTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         
-                        } else if (type.contains("specular")) {
+                        } else if (type.contains("specular") || type.contains("reflection")) {
                             specularTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));    
                             
                         } else if (type == "lcl rotation") {
@@ -1428,7 +1442,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     }
 
     // figure the number of animation frames from the curves
-    int frameCount = 0;
+    int frameCount = 1;
     foreach (const AnimationCurve& curve, animationCurves) {
         frameCount = qMax(frameCount, curve.values.size());
     }
@@ -1513,11 +1527,11 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     geometry.headJointIndex = modelIDs.indexOf(jointHeadID);
     geometry.leftHandJointIndex = modelIDs.indexOf(jointLeftHandID);
     geometry.rightHandJointIndex = modelIDs.indexOf(jointRightHandID);
-    geometry.leftFingerJointIndices = getIndices(jointLeftFingerIDs, modelIDs);
-    geometry.rightFingerJointIndices = getIndices(jointRightFingerIDs, modelIDs);
-    geometry.leftFingertipJointIndices = getIndices(jointLeftFingertipIDs, modelIDs);
-    geometry.rightFingertipJointIndices = getIndices(jointRightFingertipIDs, modelIDs);
-
+    
+    foreach (const QString& id, humanIKJointIDs) {
+        geometry.humanIKJointIndices.append(modelIDs.indexOf(id));
+    }
+    
     // extract the translation component of the neck transform
     if (geometry.neckJointIndex != -1) {
         const glm::mat4& transform = geometry.joints.at(geometry.neckJointIndex).transform;
@@ -1532,6 +1546,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     
     for (QHash<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
         ExtractedMesh& extracted = it.value();
+        
+        extracted.mesh.meshExtents.reset();
 
         // accumulate local transforms
         QString modelID = models.contains(it.key()) ? it.key() : parentMap.value(it.key());
@@ -1542,6 +1558,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             glm::vec3 transformedVertex = glm::vec3(modelTransform * glm::vec4(vertex, 1.0f));
             geometry.meshExtents.minimum = glm::min(geometry.meshExtents.minimum, transformedVertex);
             geometry.meshExtents.maximum = glm::max(geometry.meshExtents.maximum, transformedVertex);
+
+            extracted.mesh.meshExtents.minimum = glm::min(extracted.mesh.meshExtents.minimum, transformedVertex);
+            extracted.mesh.meshExtents.maximum = glm::max(extracted.mesh.meshExtents.maximum, transformedVertex);
         }
 
         // look for textures, material properties
@@ -1621,10 +1640,15 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     setTangents(extracted.mesh, part.quadIndices.at(i + 2), part.quadIndices.at(i + 3));
                     setTangents(extracted.mesh, part.quadIndices.at(i + 3), part.quadIndices.at(i));
                 }
-                for (int i = 0; i < part.triangleIndices.size(); i += 3) {
+                // <= size - 3 in order to prevent overflowing triangleIndices when (i % 3) != 0 
+                // This is most likely evidence of a further problem in extractMesh()
+                for (int i = 0; i <= part.triangleIndices.size() - 3; i += 3) {
                     setTangents(extracted.mesh, part.triangleIndices.at(i), part.triangleIndices.at(i + 1));
                     setTangents(extracted.mesh, part.triangleIndices.at(i + 1), part.triangleIndices.at(i + 2));
                     setTangents(extracted.mesh, part.triangleIndices.at(i + 2), part.triangleIndices.at(i));
+                }
+                if ((part.triangleIndices.size() % 3) != 0){
+                    qDebug() << "Error in extractFBXGeometry part.triangleIndices.size() is not divisible by three ";
                 }
             }
         }

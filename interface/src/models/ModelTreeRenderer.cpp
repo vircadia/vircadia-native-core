@@ -20,11 +20,16 @@ ModelTreeRenderer::ModelTreeRenderer() :
 }
 
 ModelTreeRenderer::~ModelTreeRenderer() {
-    // delete the models in _modelsItemModels
-    foreach(Model* model, _modelsItemModels) {
+    // delete the models in _knownModelsItemModels
+    foreach(Model* model, _knownModelsItemModels) {
         delete model;
     }
-    _modelsItemModels.clear();
+    _knownModelsItemModels.clear();
+
+    foreach(Model* model, _unknownModelsItemModels) {
+        delete model;
+    }
+    _unknownModelsItemModels.clear();
 }
 
 void ModelTreeRenderer::init() {
@@ -43,27 +48,74 @@ void ModelTreeRenderer::render(RenderMode renderMode) {
     OctreeRenderer::render(renderMode);
 }
 
-Model* ModelTreeRenderer::getModel(const QString& url) {
+Model* ModelTreeRenderer::getModel(const ModelItem& modelItem) {
     Model* model = NULL;
     
-    // if we don't already have this model then create it and initialize it
-    if (_modelsItemModels.find(url) == _modelsItemModels.end()) {
-        model = new Model();
-        model->init();
-        model->setURL(QUrl(url));
-        _modelsItemModels[url] = model;
+    if (modelItem.isKnownID()) {
+        if (_knownModelsItemModels.find(modelItem.getID()) != _knownModelsItemModels.end()) {
+            model = _knownModelsItemModels[modelItem.getID()];
+        } else {
+            model = new Model();
+            model->init();
+            model->setURL(QUrl(modelItem.getModelURL()));
+            _knownModelsItemModels[modelItem.getID()] = model;
+        }
     } else {
-        model = _modelsItemModels[url];
+        if (_unknownModelsItemModels.find(modelItem.getCreatorTokenID()) != _unknownModelsItemModels.end()) {
+            model = _unknownModelsItemModels[modelItem.getCreatorTokenID()];
+        } else {
+            model = new Model();
+            model->init();
+            model->setURL(QUrl(modelItem.getModelURL()));
+            _unknownModelsItemModels[modelItem.getCreatorTokenID()] = model;
+        }
     }
     return model;
 }
 
+void calculateRotatedExtents(Extents& extents, const glm::quat& rotation) {
+    glm::vec3 bottomLeftNear(extents.minimum.x, extents.minimum.y, extents.minimum.z);
+    glm::vec3 bottomRightNear(extents.maximum.x, extents.minimum.y, extents.minimum.z);
+    glm::vec3 bottomLeftFar(extents.minimum.x, extents.minimum.y, extents.maximum.z);
+    glm::vec3 bottomRightFar(extents.maximum.x, extents.minimum.y, extents.maximum.z);
+    glm::vec3 topLeftNear(extents.minimum.x, extents.maximum.y, extents.minimum.z);
+    glm::vec3 topRightNear(extents.maximum.x, extents.maximum.y, extents.minimum.z);
+    glm::vec3 topLeftFar(extents.minimum.x, extents.maximum.y, extents.maximum.z);
+    glm::vec3 topRightFar(extents.maximum.x, extents.maximum.y, extents.maximum.z);
+
+    glm::vec3 bottomLeftNearRotated =  rotation * bottomLeftNear;
+    glm::vec3 bottomRightNearRotated = rotation * bottomRightNear;
+    glm::vec3 bottomLeftFarRotated = rotation * bottomLeftFar;
+    glm::vec3 bottomRightFarRotated = rotation * bottomRightFar;
+    glm::vec3 topLeftNearRotated = rotation * topLeftNear;
+    glm::vec3 topRightNearRotated = rotation * topRightNear;
+    glm::vec3 topLeftFarRotated = rotation * topLeftFar;
+    glm::vec3 topRightFarRotated = rotation * topRightFar;
+    
+    extents.minimum = glm::min(bottomLeftNearRotated,
+                        glm::min(bottomRightNearRotated,
+                        glm::min(bottomLeftFarRotated,
+                        glm::min(bottomRightFarRotated,
+                        glm::min(topLeftNearRotated,
+                        glm::min(topRightNearRotated,
+                        glm::min(topLeftFarRotated,topRightFarRotated)))))));
+
+    extents.maximum = glm::max(bottomLeftNearRotated,
+                        glm::max(bottomRightNearRotated,
+                        glm::max(bottomLeftFarRotated,
+                        glm::max(bottomRightFarRotated,
+                        glm::max(topLeftNearRotated,
+                        glm::max(topRightNearRotated,
+                        glm::max(topLeftFarRotated,topRightFarRotated)))))));
+}
+
 void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) {
+    args->_elementsTouched++;
     // actually render it here...
     // we need to iterate the actual modelItems of the element
     ModelTreeElement* modelTreeElement = (ModelTreeElement*)element;
 
-    const QList<ModelItem>& modelItems = modelTreeElement->getModels();
+    QList<ModelItem>& modelItems = modelTreeElement->getModels();
 
     uint16_t numberOfModels = modelItems.size();
     
@@ -75,7 +127,7 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
 
 
     if (!isShadowMode && displayElementProxy && numberOfModels > 0) {
-        glm::vec3 elementCenter = modelTreeElement->getAABox().calcCenter() * (float)TREE_SCALE;
+        glm::vec3 elementCenter = modelTreeElement->getAACube().calcCenter() * (float)TREE_SCALE;
         float elementSize = modelTreeElement->getScale() * (float)TREE_SCALE;
         glColor3f(1.0f, 0.0f, 0.0f);
         glPushMatrix();
@@ -139,24 +191,24 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
     }
 
     for (uint16_t i = 0; i < numberOfModels; i++) {
-        const ModelItem& modelItem = modelItems[i];
+        ModelItem& modelItem = modelItems[i];
         // render modelItem aspoints
-        AABox modelBox = modelItem.getAABox();
-        modelBox.scale(TREE_SCALE);
-        if (args->_viewFrustum->boxInFrustum(modelBox) != ViewFrustum::OUTSIDE) {
+        AACube modelCube = modelItem.getAACube();
+        modelCube.scale(TREE_SCALE);
+        if (args->_viewFrustum->cubeInFrustum(modelCube) != ViewFrustum::OUTSIDE) {
             glm::vec3 position = modelItem.getPosition() * (float)TREE_SCALE;
             float radius = modelItem.getRadius() * (float)TREE_SCALE;
             float size = modelItem.getSize() * (float)TREE_SCALE;
 
             bool drawAsModel = modelItem.hasModel();
 
-            args->_renderedItems++;
+            args->_itemsRendered++;
 
             if (drawAsModel) {
                 glPushMatrix();
                     const float alpha = 1.0f;
                 
-                    Model* model = getModel(modelItem.getModelURL());
+                    Model* model = getModel(modelItem);
 
                     model->setScaleToFit(true, radius * 2.0f);
                     model->setSnapModelToCenter(true);
@@ -167,18 +219,71 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
                 
                     // set the position
                     model->setTranslation(position);
+                    
+                    // handle animations..
+                    if (modelItem.hasAnimation()) {
+                        if (!modelItem.jointsMapped()) {
+                            QStringList modelJointNames = model->getJointNames();
+                            modelItem.mapJoints(modelJointNames);
+                        }
+
+                        QVector<glm::quat> frameData = modelItem.getAnimationFrame();
+                        for (int i = 0; i < frameData.size(); i++) {
+                            model->setJointState(i, true, frameData[i]);
+                        }
+                    }
+                    
+                    // make sure to simulate so everything gets set up correctly for rendering
                     model->simulate(0.0f);
 
                     // TODO: should we allow modelItems to have alpha on their models?
                     Model::RenderMode modelRenderMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE 
                                                             ? Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
-                    model->render(alpha, modelRenderMode);
+                
+                    if (modelItem.getGlowLevel() > 0.0f) {
+                        Glower glower(modelItem.getGlowLevel());
+                        model->render(alpha, modelRenderMode);
+                    } else {
+                        model->render(alpha, modelRenderMode);
+                    }
 
                     if (!isShadowMode && displayModelBounds) {
-                        glColor3f(0.0f, 1.0f, 0.0f);
+                        glm::vec3 unRotatedMinimum = model->getUnscaledMeshExtents().minimum;
+                        glm::vec3 unRotatedMaximum = model->getUnscaledMeshExtents().maximum;
+                        glm::vec3 unRotatedExtents = unRotatedMaximum - unRotatedMinimum;
+
+                        float width = unRotatedExtents.x;
+                        float height = unRotatedExtents.y;
+                        float depth = unRotatedExtents.z;
+
+                        Extents rotatedExtents = model->getUnscaledMeshExtents();
+                        calculateRotatedExtents(rotatedExtents, rotation);
+
+                        glm::vec3 rotatedSize = rotatedExtents.maximum - rotatedExtents.minimum;
+
+                        const glm::vec3& modelScale = model->getScale();
+
                         glPushMatrix();
                             glTranslatef(position.x, position.y, position.z);
+                            
+                            // draw the orignal bounding cube
+                            glColor4f(1.0f, 1.0f, 0.0f, 1.0f);
                             glutWireCube(size);
+
+                            // draw the rotated bounding cube
+                            glColor4f(0.0f, 0.0f, 1.0f, 1.0f);
+                            glPushMatrix();
+                                glScalef(rotatedSize.x * modelScale.x, rotatedSize.y * modelScale.y, rotatedSize.z * modelScale.z);
+                                glutWireCube(1.0);
+                            glPopMatrix();
+                            
+                            // draw the model relative bounding box
+                            glm::vec3 axis = glm::axis(rotation);
+                            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+                            glScalef(width * modelScale.x, height * modelScale.y, depth * modelScale.z);
+                            glColor3f(0.0f, 1.0f, 0.0f);
+                            glutWireCube(1.0);
+
                         glPopMatrix();
                     }
 
@@ -190,6 +295,8 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
                     glutSolidSphere(radius, 15, 15);
                 glPopMatrix();
             }
+        } else {
+            args->_itemsOutOfView++;
         }
     }
 }

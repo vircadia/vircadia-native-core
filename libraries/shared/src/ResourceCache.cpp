@@ -30,6 +30,13 @@ ResourceCache::~ResourceCache() {
     }
 }
 
+void ResourceCache::refresh(const QUrl& url) {
+    QSharedPointer<Resource> resource = _resources.value(url);
+    if (!resource.isNull()) {
+        resource->refresh();
+    }
+}
+
 QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl& fallback, bool delayLoad, void* extra) {
     if (!url.isValid() && !url.isEmpty() && fallback.isValid()) {
         return getResource(fallback, QUrl(), delayLoad);
@@ -107,25 +114,15 @@ QList<Resource*> ResourceCache::_loadingRequests;
 Resource::Resource(const QUrl& url, bool delayLoad) :
     _url(url),
     _request(url),
-    _startedLoading(false),
-    _failedToLoad(false),
-    _loaded(false),
     _lruKey(0),
-    _reply(NULL),
-    _attempts(0) {
+    _reply(NULL) {
     
-    if (url.isEmpty()) {
-        _startedLoading = _loaded = true;
-        return;
-        
-    } else if (!(url.isValid() && ResourceCache::getNetworkAccessManager())) {
-        _startedLoading = _failedToLoad = true;
-        return;
-    }
+    init();
+    
     _request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
     
     // start loading immediately unless instructed otherwise
-    if (!delayLoad) {    
+    if (!(_startedLoading || delayLoad)) {    
         attemptRequest();
     }
 }
@@ -178,6 +175,22 @@ float Resource::getLoadPriority() {
     return highestPriority;
 }
 
+void Resource::refresh() {
+    if (_reply == NULL && !(_loaded || _failedToLoad)) {
+        return;
+    }
+    if (_reply) {
+        ResourceCache::requestCompleted(this);
+        delete _reply;
+        _reply = NULL;
+    }
+    init();
+    _request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
+    if (!_startedLoading) {
+        attemptRequest();
+    }
+}
+
 void Resource::allReferencesCleared() {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "allReferencesCleared");
@@ -194,6 +207,20 @@ void Resource::allReferencesCleared() {
         
     } else {
         delete this;
+    }
+}
+
+void Resource::init() {
+    _startedLoading = false;
+    _failedToLoad = false;
+    _loaded = false;
+    _attempts = 0;
+    
+    if (_url.isEmpty()) {
+        _startedLoading = _loaded = true;
+        
+    } else if (!(_url.isValid() && ResourceCache::getNetworkAccessManager())) {
+        _startedLoading = _failedToLoad = true;
     }
 }
 

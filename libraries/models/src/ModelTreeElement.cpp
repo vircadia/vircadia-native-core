@@ -57,9 +57,9 @@ bool ModelTreeElement::appendElementData(OctreePacketData* packetData, EncodeBit
     for (uint16_t i = 0; i < _modelItems->size(); i++) {
         if (params.viewFrustum) {
             const ModelItem& model = (*_modelItems)[i];
-            AABox modelBox = model.getAABox();
-            modelBox.scale(TREE_SCALE);
-            if (params.viewFrustum->boxInFrustum(modelBox) != ViewFrustum::OUTSIDE) {
+            AACube modelCube = model.getAACube();
+            modelCube.scale(TREE_SCALE);
+            if (params.viewFrustum->cubeInFrustum(modelCube) != ViewFrustum::OUTSIDE) {
                 indexesOfModelsToInclude << i;
                 numberOfModels++;
             }
@@ -84,14 +84,22 @@ bool ModelTreeElement::appendElementData(OctreePacketData* packetData, EncodeBit
 }
 
 bool ModelTreeElement::containsModelBounds(const ModelItem& model) const {
-    return _box.contains(model.getMinimumPoint()) && _box.contains(model.getMaximumPoint());
+    glm::vec3 clampedMin = glm::clamp(model.getMinimumPoint(), 0.0f, 1.0f);
+    glm::vec3 clampedMax = glm::clamp(model.getMaximumPoint(), 0.0f, 1.0f);
+    return _cube.contains(clampedMin) && _cube.contains(clampedMax);
 }
 
 bool ModelTreeElement::bestFitModelBounds(const ModelItem& model) const {
-    if (_box.contains(model.getMinimumPoint()) && _box.contains(model.getMaximumPoint())) {
-        int childForMinimumPoint = getMyChildContainingPoint(model.getMinimumPoint());
-        int childForMaximumPoint = getMyChildContainingPoint(model.getMaximumPoint());
+    glm::vec3 clampedMin = glm::clamp(model.getMinimumPoint(), 0.0f, 1.0f);
+    glm::vec3 clampedMax = glm::clamp(model.getMaximumPoint(), 0.0f, 1.0f);
+    if (_cube.contains(clampedMin) && _cube.contains(clampedMax)) {
+        int childForMinimumPoint = getMyChildContainingPoint(clampedMin);
+        int childForMaximumPoint = getMyChildContainingPoint(clampedMax);
         
+        // if this is a really small box, then it's close enough!
+        if (_cube.getScale() <= SMALLEST_REASONABLE_OCTREE_ELEMENT_SCALE) {
+            return true;
+        }
         // If I contain both the minimum and maximum point, but two different children of mine
         // contain those points, then I am the best fit for that model
         if (childForMinimumPoint != childForMaximumPoint) {
@@ -102,10 +110,16 @@ bool ModelTreeElement::bestFitModelBounds(const ModelItem& model) const {
 }
 
 void ModelTreeElement::update(ModelTreeUpdateArgs& args) {
+    args._totalElements++;
     // update our contained models
     QList<ModelItem>::iterator modelItr = _modelItems->begin();
     while(modelItr != _modelItems->end()) {
         ModelItem& model = (*modelItr);
+        args._totalItems++;
+        
+        // TODO: this _lastChanged isn't actually changing because we're not marking this element as changed.
+        // how do we want to handle this??? We really only want to consider an element changed when it is
+        // edited... not just animated...
         model.update(_lastChanged);
 
         // If the model wants to die, or if it's left our bounding box, then move it
@@ -115,6 +129,8 @@ void ModelTreeElement::update(ModelTreeUpdateArgs& args) {
 
             // erase this model
             modelItr = _modelItems->erase(modelItr);
+
+            args._movingItems++;
             
             // this element has changed so mark it...
             markWithChangedTime();
@@ -122,6 +138,37 @@ void ModelTreeElement::update(ModelTreeUpdateArgs& args) {
             ++modelItr;
         }
     }
+}
+
+bool ModelTreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         void** intersectedObject) {
+
+    // only called if we do intersect our bounding cube, but find if we actually intersect with models...
+    
+    QList<ModelItem>::iterator modelItr = _modelItems->begin();
+    QList<ModelItem>::const_iterator modelEnd = _modelItems->end();
+    bool somethingIntersected = false;
+    while(modelItr != modelEnd) {
+        ModelItem& model = (*modelItr);
+        
+        AACube modelCube = model.getAACube();
+        float localDistance;
+        BoxFace localFace;
+
+        // if the ray doesn't intersect with our cube, we can stop searching!
+        if (modelCube.findRayIntersection(origin, direction, localDistance, localFace)) {
+            if (localDistance < distance) {
+                distance = localDistance;
+                face = localFace;
+                *intersectedObject = (void*)(&model);
+                somethingIntersected = true;
+            }
+        }
+        
+        ++modelItr;
+    }
+    return somethingIntersected;
 }
 
 bool ModelTreeElement::findSpherePenetration(const glm::vec3& center, float radius,
@@ -266,18 +313,18 @@ void ModelTreeElement::getModels(const glm::vec3& searchPosition, float searchRa
     }
 }
 
-void ModelTreeElement::getModelsForUpdate(const AABox& box, QVector<ModelItem*>& foundModels) {
+void ModelTreeElement::getModelsForUpdate(const AACube& box, QVector<ModelItem*>& foundModels) {
     QList<ModelItem>::iterator modelItr = _modelItems->begin();
     QList<ModelItem>::iterator modelEnd = _modelItems->end();
-    AABox modelBox;
+    AACube modelCube;
     while(modelItr != modelEnd) {
         ModelItem* model = &(*modelItr);
         float radius = model->getRadius();
-        // NOTE: we actually do box-box collision queries here, which is sloppy but good enough for now
-        // TODO: decide whether to replace modelBox-box query with sphere-box (requires a square root
+        // NOTE: we actually do cube-cube collision queries here, which is sloppy but good enough for now
+        // TODO: decide whether to replace modelCube-cube query with sphere-cube (requires a square root
         // but will be slightly more accurate).
-        modelBox.setBox(model->getPosition() - glm::vec3(radius), 2.f * radius);
-        if (modelBox.touches(_box)) {
+        modelCube.setBox(model->getPosition() - glm::vec3(radius), 2.f * radius);
+        if (modelCube.touches(_cube)) {
             foundModels.push_back(model);
         }
         ++modelItr;
@@ -313,6 +360,14 @@ bool ModelTreeElement::removeModelWithID(uint32_t id) {
 int ModelTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
             ReadBitstreamToTreeParams& args) {
 
+    // If we're the root, but this bitstream doesn't support root elements with data, then
+    // return without reading any bytes
+    if (this == _myTree->getRoot() && args.bitstreamVersion < VERSION_ROOT_ELEMENT_HAS_DATA) {
+        qDebug() << "ROOT ELEMENT: no root data for "
+                    "bitstreamVersion=" << (int)args.bitstreamVersion << " bytesLeftToRead=" << bytesLeftToRead;
+        return 0;
+    }
+
     const unsigned char* dataAt = data;
     int bytesRead = 0;
     uint16_t numberOfModels = 0;
@@ -324,7 +379,7 @@ int ModelTreeElement::readElementDataFromBuffer(const unsigned char* data, int b
         dataAt += sizeof(numberOfModels);
         bytesLeftToRead -= (int)sizeof(numberOfModels);
         bytesRead += sizeof(numberOfModels);
-
+        
         if (bytesLeftToRead >= (int)(numberOfModels * expectedBytesPerModel)) {
             for (uint16_t i = 0; i < numberOfModels; i++) {
                 ModelItem tempModel;

@@ -65,6 +65,7 @@ struct ViewFrustumOffset {
 
 class QSettings;
 
+class AnimationsDialog;
 class AttachmentsDialog;
 class BandwidthDialog;
 class LodToolsDialog;
@@ -177,6 +178,7 @@ private slots:
     void aboutApp();
     void editPreferences();
     void editAttachments();
+    void editAnimations();
     void goToDomainDialog();
     void goToLocation();
     void nameLocation();
@@ -263,6 +265,7 @@ private:
     QAction* _loginAction;
     QPointer<PreferencesDialog> _preferencesDialog;
     QPointer<AttachmentsDialog> _attachmentsDialog;
+    QPointer<AnimationsDialog> _animationsDialog;
     QAction* _chatAction;
     QString _snapshotsLocation;
 };
@@ -270,7 +273,10 @@ private:
 namespace MenuOption {
     const QString AboutApp = "About Interface";
     const QString AlignForearmsWithWrists = "Align Forearms with Wrists";
+    const QString AllowOculusCameraModeChange = "Allow Oculus Camera Mode Change (Nausea)";
+    const QString AlternateIK = "Alternate IK";
     const QString AmbientOcclusion = "Ambient Occlusion";
+    const QString Animations = "Animations...";
     const QString Atmosphere = "Atmosphere";
     const QString Attachments = "Attachments...";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
@@ -370,7 +376,11 @@ namespace MenuOption {
     const QString SettingsExport = "Export Settings";
     const QString SettingsImport = "Import Settings";
     const QString Shadows = "Shadows";
+    const QString ShowBordersVoxelNodes = "Show Voxel Nodes";
+    const QString ShowBordersModelNodes = "Show Model Nodes";
+    const QString ShowBordersParticleNodes = "Show Particle Nodes";
     const QString ShowIKConstraints = "Show IK Constraints";
+    const QString StandOnNearbyFloors = "Stand on nearby floors";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString StopAllScripts = "Stop All Scripts";

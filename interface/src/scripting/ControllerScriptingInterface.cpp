@@ -74,7 +74,7 @@ bool ControllerScriptingInterface::isPrimaryButtonPressed() const {
             return true;
         }
     }
-
+    
     return false;
 }
 
@@ -200,7 +200,7 @@ glm::vec3 ControllerScriptingInterface::getSpatialControlNormal(int controlIndex
             case PALM_SPATIALCONTROL:
                 return palmData->getNormal();
             case TIP_SPATIALCONTROL:
-                return palmData->getNormal(); // currently the tip doesn't have a unique normal, use the palm normal
+                return palmData->getFingerDirection();
         }
     }
     return glm::vec3(0); // bad index

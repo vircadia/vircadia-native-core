@@ -76,7 +76,7 @@ void ParticleTreeRenderer::renderElement(OctreeElement* element, RenderArgs* arg
 
         bool drawAsModel = particle.hasModel();
 
-        args->_renderedItems++;
+        args->_itemsRendered++;
 
         if (drawAsModel) {
             glPushMatrix();
@@ -127,5 +127,9 @@ void ParticleTreeRenderer::renderElement(OctreeElement* element, RenderArgs* arg
 }
 
 void ParticleTreeRenderer::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
-    static_cast<ParticleTree*>(_tree)->processEraseMessage(dataByteArray, sourceNode);
+    if (_tree){
+        _tree->lockForWrite();
+        static_cast<ParticleTree*>(_tree)->processEraseMessage(dataByteArray, sourceNode);
+        _tree->unlock();
+    }
 }

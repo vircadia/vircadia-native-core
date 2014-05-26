@@ -35,6 +35,7 @@
 #include "MenuItemProperties.h"
 #include "LocalVoxels.h"
 #include "ScriptEngine.h"
+#include "XMLHttpRequestClass.h"
 
 VoxelsScriptingInterface ScriptEngine::_voxelsScriptingInterface;
 ParticlesScriptingInterface ScriptEngine::_particlesScriptingInterface;
@@ -49,7 +50,12 @@ static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* eng
 
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
     qDebug() << "script:print()<<" << context->argument(0).toString();
-    engine->evaluate("Script.print('" + context->argument(0).toString() + "')");
+    QString message = context->argument(0).toString()
+        .replace("\\", "\\\\")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("'", "\\'");
+    engine->evaluate("Script.print('" + message + "')");
     return QScriptValue();
 }
 
@@ -218,11 +224,15 @@ void ScriptEngine::init() {
 
     qScriptRegisterMetaType(&_engine, ModelItemPropertiesToScriptValue, ModelItemPropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ModelItemIDtoScriptValue, ModelItemIDfromScriptValue);
+    qScriptRegisterMetaType(&_engine, RayToModelIntersectionResultToScriptValue, RayToModelIntersectionResultFromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<ModelItemID> >(&_engine);
 
     qScriptRegisterSequenceMetaType<QVector<glm::vec2> >(&_engine);
     qScriptRegisterSequenceMetaType<QVector<glm::quat> >(&_engine);
     qScriptRegisterSequenceMetaType<QVector<QString> >(&_engine);
+
+    QScriptValue xmlHttpRequestConstructorValue = _engine.newFunction(XMLHttpRequestClass::constructor);
+    _engine.globalObject().setProperty("XMLHttpRequest", xmlHttpRequestConstructorValue);
 
     QScriptValue printConstructorValue = _engine.newFunction(debugPrint);
     _engine.globalObject().setProperty("print", printConstructorValue);
@@ -611,8 +621,20 @@ void ScriptEngine::include(const QString& includeFile) {
     QUrl url = resolveInclude(includeFile);
     QString includeContents;
 
-    if (url.scheme() == "file") {
+    if (url.scheme() == "http" || url.scheme() == "ftp") {
+        QNetworkAccessManager* networkManager = new QNetworkAccessManager(this);
+        QNetworkReply* reply = networkManager->get(QNetworkRequest(url));
+        qDebug() << "Downloading included script at" << includeFile;
+        QEventLoop loop;
+        QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
+        loop.exec();
+        includeContents = reply->readAll();
+    } else {
+#ifdef _WIN32
+        QString fileName = url.toString();
+#else
         QString fileName = url.toLocalFile();
+#endif
         QFile scriptFile(fileName);
         if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {
             qDebug() << "Loading file:" << fileName;
@@ -622,14 +644,6 @@ void ScriptEngine::include(const QString& includeFile) {
             qDebug() << "ERROR Loading file:" << fileName;
             emit errorMessage("ERROR Loading file:" + fileName);
         }
-    } else {
-        QNetworkAccessManager* networkManager = new QNetworkAccessManager(this);
-        QNetworkReply* reply = networkManager->get(QNetworkRequest(url));
-        qDebug() << "Downloading included script at" << includeFile;
-        QEventLoop loop;
-        QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
-        loop.exec();
-        includeContents = reply->readAll();
     }
 
     QScriptValue result = _engine.evaluate(includeContents);

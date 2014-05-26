@@ -41,19 +41,19 @@ QVariantMap HifiConfigVariantMap::mergeCLParametersWithJSONConfig(const QStringL
             
             nextKeyIndex = argumentList.indexOf(dashedKeyRegex, keyIndex + 1);
             
-            if (nextKeyIndex == keyIndex + 1) {
+            if (nextKeyIndex == keyIndex + 1 || keyIndex == argumentList.size() - 1) {
                 // there's no value associated with this option, it's a boolean
                 // so add it to the variant map with NULL as value
                 mergedMap.insertMulti(key, QVariant());
             } else {
-                int maxIndex = (nextKeyIndex == -1) ? argumentList.size() : nextKeyIndex;
+                int maxIndex = (nextKeyIndex == -1) ? argumentList.size() - 1: nextKeyIndex;
                 
                 // there's at least one value associated with the option
                 // pull the first value to start
                 QString value = argumentList[keyIndex + 1];
                 
                 // for any extra values, append them, with a space, to the value string
-                for (int i = keyIndex + 2; i < maxIndex; i++) {
+                for (int i = keyIndex + 2; i <= maxIndex; i++) {
                     value +=  " " + argumentList[i];
                 }
                 

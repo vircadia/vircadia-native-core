@@ -37,11 +37,13 @@
 #include "Menu.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "Util.h"
+#include "ui/AnimationsDialog.h"
 #include "ui/AttachmentsDialog.h"
 #include "ui/InfoView.h"
 #include "ui/MetavoxelEditor.h"
 #include "ui/ModelsBrowser.h"
 #include "ui/LoginDialog.h"
+#include "ui/NodeBounds.h"
 
 
 Menu* Menu::_instance = NULL;
@@ -193,12 +195,14 @@ Menu::Menu() :
                                   QAction::PreferencesRole);
 
     addActionToQMenuAndActionHash(editMenu, MenuOption::Attachments, 0, this, SLOT(editAttachments()));
+    addActionToQMenuAndActionHash(editMenu, MenuOption::Animations, 0, this, SLOT(editAnimations()));
                                   
     addDisabledActionAndSeparator(editMenu, "Physics");
     QObject* avatar = appInstance->getAvatar();
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ObeyEnvironmentalGravity, Qt::SHIFT | Qt::Key_G, false, 
             avatar, SLOT(updateMotionBehaviorsFromMenu()));
-
+    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::StandOnNearbyFloors, 0, true, 
+            avatar, SLOT(updateMotionBehaviorsFromMenu()));
 
     addAvatarCollisionSubMenu(editMenu);
 
@@ -247,6 +251,19 @@ Menu::Menu() :
                                            false,
                                            appInstance,
                                            SLOT(setEnable3DTVMode(bool)));
+
+
+    QMenu* nodeBordersMenu = viewMenu->addMenu("Server Borders");
+    NodeBounds& nodeBounds = appInstance->getNodeBoundsDisplay();
+    addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersVoxelNodes,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_1, false,
+                                           &nodeBounds, SLOT(setShowVoxelNodes(bool)));
+    addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersModelNodes,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_2, false,
+                                           &nodeBounds, SLOT(setShowModelNodes(bool)));
+    addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersParticleNodes,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_3, false,
+                                           &nodeBounds, SLOT(setShowParticleNodes(bool)));
 
 
     QMenu* avatarSizeMenu = viewMenu->addMenu("Avatar Size");
@@ -320,6 +337,7 @@ Menu::Menu() :
 
     QMenu* avatarOptionsMenu = developerMenu->addMenu("Avatar Options");
 
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::AllowOculusCameraModeChange, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Avatars, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderSkeletonCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderHeadCollisionShapes);
@@ -338,7 +356,7 @@ Menu::Menu() :
 #endif
 
 #ifdef HAVE_VISAGE
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Visage, 0, true,
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Visage, 0, false,
         appInstance->getVisage(), SLOT(updateEnabled()));
 #endif
 
@@ -358,6 +376,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::HandsCollideWithSelf, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::ShowIKConstraints, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlignForearmsWithWrists, 0, true);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlternateIK, 0, false);
 
     addDisabledActionAndSeparator(developerMenu, "Testing");
 
@@ -854,6 +873,15 @@ void Menu::editAttachments() {
     }
 }
 
+void Menu::editAnimations() {
+    if (!_animationsDialog) {
+        _animationsDialog = new AnimationsDialog();
+        _animationsDialog->show();
+    } else {
+        _animationsDialog->close();
+    }
+}
+
 void Menu::goToDomain(const QString newDomain) {
     if (NodeList::getInstance()->getDomainHandler().getHostname() != newDomain) {
         // send a node kill request, indicating to other clients that they should play the "disappeared" effect
@@ -896,7 +924,7 @@ void Menu::goToDomainDialog() {
 }
 
 void Menu::goToOrientation(QString orientation) {
-    LocationManager::getInstance().goToDestination(orientation);
+    LocationManager::getInstance().goToOrientation(orientation);
 }
 
 bool Menu::goToDestination(QString destination) {

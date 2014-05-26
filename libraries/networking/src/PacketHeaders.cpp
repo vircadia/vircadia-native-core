@@ -53,8 +53,6 @@ PacketVersion versionForPacketType(PacketType type) {
             return 1;
         case PacketTypeEnvironmentData:
             return 1;
-        case PacketTypeParticleData:
-            return 1;
         case PacketTypeDomainList:
         case PacketTypeDomainListRequest:
             return 3;
@@ -66,6 +64,10 @@ PacketVersion versionForPacketType(PacketType type) {
             return 1;
         case PacketTypeOctreeStats:
             return 1;
+        case PacketTypeParticleData:
+            return 1;
+        case PacketTypeModelData:
+            return 2; 
         default:
             return 0;
     }

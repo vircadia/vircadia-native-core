@@ -41,7 +41,11 @@ Visage::Visage() :
     _headOrigin(DEFAULT_HEAD_ORIGIN) {
     
 #ifdef HAVE_VISAGE
+#ifdef WIN32
+    QByteArray licensePath = Application::resourcesPath().toLatin1() + "visage";
+#else
     QByteArray licensePath = Application::resourcesPath().toLatin1() + "visage/license.vlc";
+#endif
     initializeLicenseManager(licensePath.data());
     _tracker = new VisageTracker2(Application::resourcesPath().toLatin1() + "visage/tracker.cfg");
     _data = new FaceData();
@@ -51,7 +55,8 @@ Visage::Visage() :
 Visage::~Visage() {
 #ifdef HAVE_VISAGE
     _tracker->stop();
-    delete _tracker;
+    // deleting the tracker crashes windows; disable for now
+    //delete _tracker;
     delete _data;
 #endif
 }

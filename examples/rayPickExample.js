@@ -41,6 +41,22 @@ function mouseMoveEvent(event) {
         print("voxelAt.x/y/z/s=" + voxelAt.x + ", " + voxelAt.y + ", " + voxelAt.z + ": " + voxelAt.s);
         print("voxelAt.red/green/blue=" + voxelAt.red + ", " + voxelAt.green + ", " + voxelAt.blue);
     }
+
+    intersection = Models.findRayIntersection(pickRay);
+    if (!intersection.accurate) {
+        print(">>> NOTE: intersection not accurate. will try calling Models.findRayIntersectionBlocking()");
+        intersection = Models.findRayIntersectionBlocking(pickRay);
+        print(">>> AFTER BLOCKING CALL intersection.accurate=" + intersection.accurate);
+    }
+    
+    if (intersection.intersects) {
+        print("intersection modelID.id=" + intersection.modelID.id);
+        print("intersection modelProperties.modelURL=" + intersection.modelProperties.modelURL);
+        print("intersection face=" + intersection.face);
+        print("intersection distance=" + intersection.distance);
+        print("intersection intersection.x/y/z=" + intersection.intersection.x + ", " 
+                    + intersection.intersection.y + ", " + intersection.intersection.z);
+    }
 }
 
 Controller.mouseMoveEvent.connect(mouseMoveEvent);

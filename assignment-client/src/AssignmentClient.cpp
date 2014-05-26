@@ -13,8 +13,6 @@
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
 
-#include <gnutls/gnutls.h>
-
 #include <AccountManager.h>
 #include <Assignment.h>
 #include <Logging.h>
@@ -39,8 +37,6 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     QCoreApplication(argc, argv),
     _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME)
 {
-    DTLSClientSession::globalInit();
-    
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
     setApplicationName("assignment-client");
@@ -71,8 +67,19 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     if (argumentIndex != -1) {
         assignmentPool = argumentList[argumentIndex + 1];
     }
+    
     // setup our _requestAssignment member variable from the passed arguments
     _requestAssignment = Assignment(Assignment::RequestCommand, requestAssignmentType, assignmentPool);
+    
+    // check if we were passed a wallet UUID on the command line
+    // this would represent where the user running AC wants funds sent to
+    
+    const QString ASSIGNMENT_WALLET_DESTINATION_ID_OPTION = "--wallet";
+    if ((argumentIndex = argumentList.indexOf(ASSIGNMENT_WALLET_DESTINATION_ID_OPTION)) != -1) {
+        QUuid walletUUID = QString(argumentList[argumentIndex + 1]);
+        qDebug() << "The destination wallet UUID for credits is" << uuidStringWithoutCurlyBraces(walletUUID);
+        _requestAssignment.setWalletUUID(walletUUID);
+    }
     
     // create a NodeList as an unassigned client
     NodeList* nodeList = NodeList::createInstance(NodeType::Unassigned);
@@ -104,10 +111,6 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     // connections to AccountManager for authentication
     connect(&AccountManager::getInstance(), &AccountManager::authRequired,
             this, &AssignmentClient::handleAuthenticationRequest);
-}
-
-AssignmentClient::~AssignmentClient() {
-    DTLSClientSession::globalDeinit();
 }
 
 void AssignmentClient::sendAssignmentRequest() {
