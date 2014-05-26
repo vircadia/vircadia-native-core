@@ -1,5 +1,5 @@
 //
-//  AABox.cpp
+//  AACube.cpp
 //  libraries/octree/src
 //
 //  Created by Brad Hefta-Gaub on 04/11/13.
@@ -14,93 +14,84 @@
 #include "GeometryUtil.h"
 #include "SharedUtil.h"
 
-AABox::AABox(const glm::vec3& corner, float size) : 
-    _corner(corner), _scale(size, size, size) {
+AACube::AACube(const glm::vec3& corner, float size) : 
+    _corner(corner), _scale(size) {
 };
 
-AABox::AABox(const glm::vec3& corner, const glm::vec3& dimensions) : 
-    _corner(corner), _scale(dimensions) {
+AACube::AACube() : _corner(0,0,0), _scale(0) {
 };
 
-AABox::AABox() : _corner(0.0f, 0.0f, 0.0f), _scale(0.0f, 0.0f, 0.0f) {
-};
-
-glm::vec3 AABox::calcCenter() const {
+glm::vec3 AACube::calcCenter() const {
     glm::vec3 center(_corner);
-    center += (_scale * 0.5f);
+    center += (glm::vec3(_scale, _scale, _scale) * 0.5f);
     return center; 
 }
 
-glm::vec3 AABox::calcTopFarLeft() const { 
+glm::vec3 AACube::calcTopFarLeft() const { 
     glm::vec3 topFarLeft(_corner);
-    topFarLeft += _scale;
+    topFarLeft += glm::vec3(_scale, _scale, _scale);
     return topFarLeft; 
 };
 
-void AABox::scale(float scale) {
+void AACube::scale(float scale) {
     _corner = _corner * scale;
     _scale = _scale * scale;
 }
 
-glm::vec3 AABox::getVertex(BoxVertex vertex) const {
+glm::vec3 AACube::getVertex(BoxVertex vertex) const {
     switch (vertex) {
         case BOTTOM_LEFT_NEAR:
-            return _corner + glm::vec3(_scale.x, 0, 0);
+            return _corner + glm::vec3(_scale, 0, 0);
         case BOTTOM_RIGHT_NEAR:
             return _corner;
         case TOP_RIGHT_NEAR:
-            return _corner + glm::vec3(0, _scale.y, 0);
+            return _corner + glm::vec3(0, _scale, 0);
         case TOP_LEFT_NEAR:
-            return _corner + glm::vec3(_scale.x, _scale.y, 0);
+            return _corner + glm::vec3(_scale, _scale, 0);
         case BOTTOM_LEFT_FAR:
-            return _corner + glm::vec3(_scale.x, 0, _scale.z);
+            return _corner + glm::vec3(_scale, 0, _scale);
         case BOTTOM_RIGHT_FAR:
-            return _corner + glm::vec3(0, 0, _scale.z);
+            return _corner + glm::vec3(0, 0, _scale);
         case TOP_RIGHT_FAR:
-            return _corner + glm::vec3(0, _scale.y, _scale.z);
+            return _corner + glm::vec3(0, _scale, _scale);
 		default: //quiet windows warnings
         case TOP_LEFT_FAR:
-            return _corner + _scale;
+            return _corner + glm::vec3(_scale, _scale, _scale);
     }
 }
 
-void AABox::setBox(const glm::vec3& corner, float scale) {
-    _corner = corner;
-    _scale = glm::vec3(scale, scale, scale);
-}
-
-void AABox::setBox(const glm::vec3& corner, const glm::vec3& scale) {
+void AACube::setBox(const glm::vec3& corner, float scale) {
     _corner = corner;
     _scale = scale;
 }
 
-glm::vec3 AABox::getVertexP(const glm::vec3& normal) const {
+glm::vec3 AACube::getVertexP(const glm::vec3& normal) const {
     glm::vec3 result = _corner;
     if (normal.x > 0) {
-        result.x += _scale.x;
+        result.x += _scale;
     }
     if (normal.y > 0) {
-        result.y += _scale.y;
+        result.y += _scale;
     }
     if (normal.z > 0) {
-        result.z += _scale.z;
+        result.z += _scale;
     }
     return result;
 }
 
-glm::vec3 AABox::getVertexN(const glm::vec3& normal) const {
+glm::vec3 AACube::getVertexN(const glm::vec3& normal) const {
     glm::vec3 result = _corner;
 
     if (normal.x < 0) {
-        result.x += _scale.x;
+        result.x += _scale;
     }
 
     if (normal.y < 0) {
-        result.y += _scale.y;
+        result.y += _scale;
     }
 
     if (normal.z < 0) {
-        result.z += _scale.z;
+        result.z += _scale;
     }
 
     return result;
@@ -111,33 +102,13 @@ static bool isWithin(float value, float corner, float size) {
     return value >= corner && value <= corner + size;
 }
 
-bool AABox::contains(const glm::vec3& point) const {
-    return isWithin(point.x, _corner.x, _scale.x) &&
-        isWithin(point.y, _corner.y, _scale.y) &&
-        isWithin(point.z, _corner.z, _scale.z);
+bool AACube::contains(const glm::vec3& point) const {
+    return isWithin(point.x, _corner.x, _scale) &&
+        isWithin(point.y, _corner.y, _scale) &&
+        isWithin(point.z, _corner.z, _scale);
 }
 
-bool AABox::contains(const AABox& otherBox) const {
-    for (int v = BOTTOM_LEFT_NEAR; v < TOP_LEFT_FAR; v++) {
-        glm::vec3 vertex = otherBox.getVertex((BoxVertex)v);
-        if (!contains(vertex)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-bool AABox::touches(const AABox& otherBox) const {
-    glm::vec3 relativeCenter = _corner - otherBox._corner + ((_scale - otherBox._scale) * 0.5f);
-    
-    glm::vec3 totalHalfScale = (_scale + otherBox._scale) * 0.5f;
-    
-    return fabs(relativeCenter.x) <= totalHalfScale.x && 
-        fabs(relativeCenter.y) <= totalHalfScale.y && 
-        fabs(relativeCenter.z) <= totalHalfScale.z;
-}
-
-bool AABox::contains(const AACube& otherCube) const {
+bool AACube::contains(const AACube& otherCube) const {
     for (int v = BOTTOM_LEFT_NEAR; v < TOP_LEFT_FAR; v++) {
         glm::vec3 vertex = otherCube.getVertex((BoxVertex)v);
         if (!contains(vertex)) {
@@ -147,10 +118,28 @@ bool AABox::contains(const AACube& otherCube) const {
     return true;
 }
 
-bool AABox::touches(const AACube& otherCube) const {
-    glm::vec3 relativeCenter = _corner - otherCube.getCorner() + ((_scale - otherCube.getDimensions()) * 0.5f);
-    
-    glm::vec3 totalHalfScale = (_scale + otherCube.getDimensions()) * 0.5f;
+bool AACube::touches(const AACube& otherCube) const {
+    glm::vec3 relativeCenter = _corner - otherCube._corner + (glm::vec3(_scale - otherCube._scale) * 0.5f);
+    float totalHalfScale = 0.5f * (_scale + otherCube._scale);
+    return fabs(relativeCenter.x) <= totalHalfScale && 
+        fabs(relativeCenter.y) <= totalHalfScale && 
+        fabs(relativeCenter.z) <= totalHalfScale;
+}
+
+bool AACube::contains(const AABox& otherBox) const {
+    for (int v = BOTTOM_LEFT_NEAR; v < TOP_LEFT_FAR; v++) {
+        glm::vec3 vertex = otherBox.getVertex((BoxVertex)v);
+        if (!contains(vertex)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool AACube::touches(const AABox& otherBox) const {
+    glm::vec3 myDimensions = glm::vec3(_scale);
+    glm::vec3 relativeCenter = _corner - otherBox.getCorner() + ((myDimensions - otherBox.getScale()) * 0.5f);
+    glm::vec3 totalHalfScale = (myDimensions + otherBox.getDimensions()) * 0.5f;
     
     return fabs(relativeCenter.x) <= totalHalfScale.x && 
         fabs(relativeCenter.y) <= totalHalfScale.y && 
@@ -162,10 +151,10 @@ static bool isWithinExpanded(float value, float corner, float size, float expans
     return value >= corner - expansion && value <= corner + size + expansion;
 }
 
-bool AABox::expandedContains(const glm::vec3& point, float expansion) const {
-    return isWithinExpanded(point.x, _corner.x, _scale.x, expansion) &&
-        isWithinExpanded(point.y, _corner.y, _scale.y, expansion) &&
-        isWithinExpanded(point.z, _corner.z, _scale.z, expansion);
+bool AACube::expandedContains(const glm::vec3& point, float expansion) const {
+    return isWithinExpanded(point.x, _corner.x, _scale, expansion) &&
+        isWithinExpanded(point.y, _corner.y, _scale, expansion) &&
+        isWithinExpanded(point.z, _corner.z, _scale, expansion);
 }
 
 // finds the intersection between a ray and the facing plane on one axis
@@ -180,14 +169,14 @@ static bool findIntersection(float origin, float direction, float corner, float 
     return false;
 }
 
-bool AABox::expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& end, float expansion) const {
+bool AACube::expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& end, float expansion) const {
     // handle the trivial cases where the expanded box contains the start or end
     if (expandedContains(start, expansion) || expandedContains(end, expansion)) {
         return true;
     }
     // check each axis
     glm::vec3 expandedCorner = _corner - glm::vec3(expansion, expansion, expansion);
-    glm::vec3 expandedSize = _scale + glm::vec3(expansion, expansion, expansion) * 2.0f;
+    glm::vec3 expandedSize = glm::vec3(_scale, _scale, _scale) + glm::vec3(expansion, expansion, expansion) * 2.0f;
     glm::vec3 direction = end - start;
     float axisDistance;
     return (findIntersection(start.x, direction.x, expandedCorner.x, expandedSize.x, axisDistance) &&
@@ -204,7 +193,7 @@ bool AABox::expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& e
                 isWithin(start.x + axisDistance*direction.x, expandedCorner.x, expandedSize.x));
 }
 
-bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const {
+bool AACube::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const {
     // handle the trivial case where the box contains the origin
     if (contains(origin)) {
         distance = 0;
@@ -212,23 +201,23 @@ bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direct
     }
     // check each axis
     float axisDistance;
-    if ((findIntersection(origin.x, direction.x, _corner.x, _scale.x, axisDistance) && axisDistance >= 0 &&
-            isWithin(origin.y + axisDistance*direction.y, _corner.y, _scale.y) &&
-            isWithin(origin.z + axisDistance*direction.z, _corner.z, _scale.z))) {
+    if ((findIntersection(origin.x, direction.x, _corner.x, _scale, axisDistance) && axisDistance >= 0 &&
+            isWithin(origin.y + axisDistance*direction.y, _corner.y, _scale) &&
+            isWithin(origin.z + axisDistance*direction.z, _corner.z, _scale))) {
         distance = axisDistance;
         face = direction.x > 0 ? MIN_X_FACE : MAX_X_FACE;
         return true;
     }
-    if ((findIntersection(origin.y, direction.y, _corner.y, _scale.y, axisDistance) && axisDistance >= 0 &&
-            isWithin(origin.x + axisDistance*direction.x, _corner.x, _scale.x) &&
-            isWithin(origin.z + axisDistance*direction.z, _corner.z, _scale.z))) {
+    if ((findIntersection(origin.y, direction.y, _corner.y, _scale, axisDistance) && axisDistance >= 0 &&
+            isWithin(origin.x + axisDistance*direction.x, _corner.x, _scale) &&
+            isWithin(origin.z + axisDistance*direction.z, _corner.z, _scale))) {
         distance = axisDistance;
         face = direction.y > 0 ? MIN_Y_FACE : MAX_Y_FACE;
         return true;
     }
-    if ((findIntersection(origin.z, direction.z, _corner.z, _scale.z, axisDistance) && axisDistance >= 0 &&
-            isWithin(origin.y + axisDistance*direction.y, _corner.y, _scale.y) &&
-            isWithin(origin.x + axisDistance*direction.x, _corner.x, _scale.x))) {
+    if ((findIntersection(origin.z, direction.z, _corner.z, _scale, axisDistance) && axisDistance >= 0 &&
+            isWithin(origin.y + axisDistance*direction.y, _corner.y, _scale) &&
+            isWithin(origin.x + axisDistance*direction.x, _corner.x, _scale))) {
         distance = axisDistance;
         face = direction.z > 0 ? MIN_Z_FACE : MAX_Z_FACE; 
         return true;
@@ -236,7 +225,7 @@ bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direct
     return false;
 }
 
-bool AABox::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const {
+bool AACube::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const {
     glm::vec4 center4 = glm::vec4(center, 1.0f);
     
     float minPenetrationLength = FLT_MAX;
@@ -259,7 +248,7 @@ bool AABox::findSpherePenetration(const glm::vec3& center, float radius, glm::ve
     return true;
 }
 
-bool AABox::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration) const {
+bool AACube::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration) const {
     glm::vec4 start4 = glm::vec4(start, 1.0f);
     glm::vec4 end4 = glm::vec4(end, 1.0f);
     glm::vec4 startToEnd = glm::vec4(end - start, 0.0f);
@@ -287,36 +276,36 @@ bool AABox::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end,
     return true;
 }
 
-glm::vec3 AABox::getClosestPointOnFace(const glm::vec3& point, BoxFace face) const {
+glm::vec3 AACube::getClosestPointOnFace(const glm::vec3& point, BoxFace face) const {
     switch (face) {
         case MIN_X_FACE:
             return glm::clamp(point, glm::vec3(_corner.x, _corner.y, _corner.z),
-                glm::vec3(_corner.x, _corner.y + _scale.y, _corner.z + _scale.z));
+                glm::vec3(_corner.x, _corner.y + _scale, _corner.z + _scale));
         
         case MAX_X_FACE:
-            return glm::clamp(point, glm::vec3(_corner.x + _scale.x, _corner.y, _corner.z),
-                glm::vec3(_corner.x + _scale.x, _corner.y + _scale.y, _corner.z + _scale.z));
+            return glm::clamp(point, glm::vec3(_corner.x + _scale, _corner.y, _corner.z),
+                glm::vec3(_corner.x + _scale, _corner.y + _scale, _corner.z + _scale));
         
         case MIN_Y_FACE:
             return glm::clamp(point, glm::vec3(_corner.x, _corner.y, _corner.z),
-                glm::vec3(_corner.x + _scale.x, _corner.y, _corner.z + _scale.z));
+                glm::vec3(_corner.x + _scale, _corner.y, _corner.z + _scale));
     
         case MAX_Y_FACE:
-            return glm::clamp(point, glm::vec3(_corner.x, _corner.y + _scale.y, _corner.z),
-                glm::vec3(_corner.x + _scale.x, _corner.y + _scale.y, _corner.z + _scale.z));
+            return glm::clamp(point, glm::vec3(_corner.x, _corner.y + _scale, _corner.z),
+                glm::vec3(_corner.x + _scale, _corner.y + _scale, _corner.z + _scale));
     
         case MIN_Z_FACE:
             return glm::clamp(point, glm::vec3(_corner.x, _corner.y, _corner.z),
-                glm::vec3(_corner.x + _scale.z, _corner.y + _scale.y, _corner.z));
+                glm::vec3(_corner.x + _scale, _corner.y + _scale, _corner.z));
     
 		default: //quiet windows warnings
         case MAX_Z_FACE:
-            return glm::clamp(point, glm::vec3(_corner.x, _corner.y, _corner.z + _scale.z),
-                glm::vec3(_corner.x + _scale.x, _corner.y + _scale.y, _corner.z + _scale.z));
+            return glm::clamp(point, glm::vec3(_corner.x, _corner.y, _corner.z + _scale),
+                glm::vec3(_corner.x + _scale, _corner.y + _scale, _corner.z + _scale));
     }
 }
 
-glm::vec3 AABox::getClosestPointOnFace(const glm::vec4& origin, const glm::vec4& direction, BoxFace face) const {
+glm::vec3 AACube::getClosestPointOnFace(const glm::vec4& origin, const glm::vec4& direction, BoxFace face) const {
     // check against the four planes that border the face
     BoxFace oppositeFace = getOppositeFace(face);
     bool anyOutside = false;
@@ -362,7 +351,7 @@ glm::vec3 AABox::getClosestPointOnFace(const glm::vec4& origin, const glm::vec4&
         glm::vec4 thirdAxisMaxPlane = getPlane((BoxFace)(thirdAxis * 2 + 1));
         
         glm::vec4 offset = glm::vec4(0.0f, 0.0f, 0.0f,
-            glm::dot(glm::vec3(secondAxisMaxPlane + thirdAxisMaxPlane), _scale) * 0.5f);
+            glm::dot(glm::vec3(secondAxisMaxPlane + thirdAxisMaxPlane), glm::vec3(_scale, _scale, _scale)) * 0.5f);
         glm::vec4 diagonals[] = { secondAxisMinPlane + thirdAxisMaxPlane + offset,
             secondAxisMaxPlane + thirdAxisMaxPlane + offset };
         
@@ -383,19 +372,19 @@ glm::vec3 AABox::getClosestPointOnFace(const glm::vec4& origin, const glm::vec4&
     return getClosestPointOnFace(glm::vec3(origin), face);
 }
 
-glm::vec4 AABox::getPlane(BoxFace face) const {
+glm::vec4 AACube::getPlane(BoxFace face) const {
     switch (face) {
         case MIN_X_FACE: return glm::vec4(-1.0f, 0.0f, 0.0f, _corner.x);
-        case MAX_X_FACE: return glm::vec4(1.0f, 0.0f, 0.0f, -_corner.x - _scale.x);
+        case MAX_X_FACE: return glm::vec4(1.0f, 0.0f, 0.0f, -_corner.x - _scale);
         case MIN_Y_FACE: return glm::vec4(0.0f, -1.0f, 0.0f, _corner.y);
-        case MAX_Y_FACE: return glm::vec4(0.0f, 1.0f, 0.0f, -_corner.y - _scale.y);
+        case MAX_Y_FACE: return glm::vec4(0.0f, 1.0f, 0.0f, -_corner.y - _scale);
         case MIN_Z_FACE: return glm::vec4(0.0f, 0.0f, -1.0f, _corner.z);
 		default: //quiet windows warnings
-        case MAX_Z_FACE: return glm::vec4(0.0f, 0.0f, 1.0f, -_corner.z - _scale.z);
+        case MAX_Z_FACE: return glm::vec4(0.0f, 0.0f, 1.0f, -_corner.z - _scale);
     }
 }
 
-BoxFace AABox::getOppositeFace(BoxFace face) {
+BoxFace AACube::getOppositeFace(BoxFace face) {
     switch (face) {
         case MIN_X_FACE: return MAX_X_FACE;
         case MAX_X_FACE: return MIN_X_FACE;

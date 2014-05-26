@@ -135,7 +135,7 @@ RayToVoxelIntersectionResult VoxelsScriptingInterface::findRayIntersectionWorker
     RayToVoxelIntersectionResult result;
     if (_tree) {
         OctreeElement* element;
-        result.intersects = _tree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face,
+        result.intersects = _tree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face, NULL,
                                                                 lockType, &result.accurate);
         if (result.intersects) {
             VoxelTreeElement* voxel = (VoxelTreeElement*)element;

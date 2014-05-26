@@ -73,6 +73,42 @@ Model* ModelTreeRenderer::getModel(const ModelItem& modelItem) {
     return model;
 }
 
+void calculateRotatedExtents(Extents& extents, const glm::quat& rotation) {
+    glm::vec3 bottomLeftNear(extents.minimum.x, extents.minimum.y, extents.minimum.z);
+    glm::vec3 bottomRightNear(extents.maximum.x, extents.minimum.y, extents.minimum.z);
+    glm::vec3 bottomLeftFar(extents.minimum.x, extents.minimum.y, extents.maximum.z);
+    glm::vec3 bottomRightFar(extents.maximum.x, extents.minimum.y, extents.maximum.z);
+    glm::vec3 topLeftNear(extents.minimum.x, extents.maximum.y, extents.minimum.z);
+    glm::vec3 topRightNear(extents.maximum.x, extents.maximum.y, extents.minimum.z);
+    glm::vec3 topLeftFar(extents.minimum.x, extents.maximum.y, extents.maximum.z);
+    glm::vec3 topRightFar(extents.maximum.x, extents.maximum.y, extents.maximum.z);
+
+    glm::vec3 bottomLeftNearRotated =  rotation * bottomLeftNear;
+    glm::vec3 bottomRightNearRotated = rotation * bottomRightNear;
+    glm::vec3 bottomLeftFarRotated = rotation * bottomLeftFar;
+    glm::vec3 bottomRightFarRotated = rotation * bottomRightFar;
+    glm::vec3 topLeftNearRotated = rotation * topLeftNear;
+    glm::vec3 topRightNearRotated = rotation * topRightNear;
+    glm::vec3 topLeftFarRotated = rotation * topLeftFar;
+    glm::vec3 topRightFarRotated = rotation * topRightFar;
+    
+    extents.minimum = glm::min(bottomLeftNearRotated,
+                        glm::min(bottomRightNearRotated,
+                        glm::min(bottomLeftFarRotated,
+                        glm::min(bottomRightFarRotated,
+                        glm::min(topLeftNearRotated,
+                        glm::min(topRightNearRotated,
+                        glm::min(topLeftFarRotated,topRightFarRotated)))))));
+
+    extents.maximum = glm::max(bottomLeftNearRotated,
+                        glm::max(bottomRightNearRotated,
+                        glm::max(bottomLeftFarRotated,
+                        glm::max(bottomRightFarRotated,
+                        glm::max(topLeftNearRotated,
+                        glm::max(topRightNearRotated,
+                        glm::max(topLeftFarRotated,topRightFarRotated)))))));
+}
+
 void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) {
     args->_elementsTouched++;
     // actually render it here...
@@ -91,7 +127,7 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
 
 
     if (!isShadowMode && displayElementProxy && numberOfModels > 0) {
-        glm::vec3 elementCenter = modelTreeElement->getAABox().calcCenter() * (float)TREE_SCALE;
+        glm::vec3 elementCenter = modelTreeElement->getAACube().calcCenter() * (float)TREE_SCALE;
         float elementSize = modelTreeElement->getScale() * (float)TREE_SCALE;
         glColor3f(1.0f, 0.0f, 0.0f);
         glPushMatrix();
@@ -157,9 +193,9 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
     for (uint16_t i = 0; i < numberOfModels; i++) {
         ModelItem& modelItem = modelItems[i];
         // render modelItem aspoints
-        AABox modelBox = modelItem.getAABox();
-        modelBox.scale(TREE_SCALE);
-        if (args->_viewFrustum->boxInFrustum(modelBox) != ViewFrustum::OUTSIDE) {
+        AACube modelCube = modelItem.getAACube();
+        modelCube.scale(TREE_SCALE);
+        if (args->_viewFrustum->cubeInFrustum(modelCube) != ViewFrustum::OUTSIDE) {
             glm::vec3 position = modelItem.getPosition() * (float)TREE_SCALE;
             float radius = modelItem.getRadius() * (float)TREE_SCALE;
             float size = modelItem.getSize() * (float)TREE_SCALE;
@@ -212,10 +248,42 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
                     }
 
                     if (!isShadowMode && displayModelBounds) {
-                        glColor3f(0.0f, 1.0f, 0.0f);
+                        glm::vec3 unRotatedMinimum = model->getUnscaledMeshExtents().minimum;
+                        glm::vec3 unRotatedMaximum = model->getUnscaledMeshExtents().maximum;
+                        glm::vec3 unRotatedExtents = unRotatedMaximum - unRotatedMinimum;
+
+                        float width = unRotatedExtents.x;
+                        float height = unRotatedExtents.y;
+                        float depth = unRotatedExtents.z;
+
+                        Extents rotatedExtents = model->getUnscaledMeshExtents();
+                        calculateRotatedExtents(rotatedExtents, rotation);
+
+                        glm::vec3 rotatedSize = rotatedExtents.maximum - rotatedExtents.minimum;
+
+                        const glm::vec3& modelScale = model->getScale();
+
                         glPushMatrix();
                             glTranslatef(position.x, position.y, position.z);
+                            
+                            // draw the orignal bounding cube
+                            glColor4f(1.0f, 1.0f, 0.0f, 1.0f);
                             glutWireCube(size);
+
+                            // draw the rotated bounding cube
+                            glColor4f(0.0f, 0.0f, 1.0f, 1.0f);
+                            glPushMatrix();
+                                glScalef(rotatedSize.x * modelScale.x, rotatedSize.y * modelScale.y, rotatedSize.z * modelScale.z);
+                                glutWireCube(1.0);
+                            glPopMatrix();
+                            
+                            // draw the model relative bounding box
+                            glm::vec3 axis = glm::axis(rotation);
+                            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+                            glScalef(width * modelScale.x, height * modelScale.y, depth * modelScale.z);
+                            glColor3f(0.0f, 1.0f, 0.0f);
+                            glutWireCube(1.0);
+
                         glPopMatrix();
                     }
 
