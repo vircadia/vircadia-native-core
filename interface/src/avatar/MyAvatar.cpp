@@ -65,6 +65,7 @@ MyAvatar::MyAvatar() :
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
     _wasPushing(false),
     _isPushing(false),
+    _isBraking(false),
     _trapDuration(0.0f),
     _thrust(0.0f),
     _motorVelocity(0.0f),
@@ -790,6 +791,15 @@ bool MyAvatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode rend
         (glm::length(cameraPosition - head->calculateAverageEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE * _scale);
 }
 
+float MyAvatar::computeDistanceToFloor(const glm::vec3& startPoint) {
+    glm::vec3 direction = -_worldUpDirection;
+    OctreeElement* elementHit; // output from findRayIntersection
+    float distance = FLT_MAX; // output from findRayIntersection
+    BoxFace face; // output from findRayIntersection
+    Application::getInstance()->getVoxelTree()->findRayIntersection(startPoint, direction, elementHit, distance, face);
+    return distance;
+}
+
 void MyAvatar::updateOrientation(float deltaTime) {
     //  Gather rotation information from keyboard
     _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_SPEED * deltaTime;
@@ -864,6 +874,8 @@ void MyAvatar::updateOrientation(float deltaTime) {
     setOrientation(orientation);
 }
 
+const float NEARBY_FLOOR_THRESHOLD = 5.0f;
+
 void MyAvatar::updatePosition(float deltaTime) {
     float keyboardInput = fabsf(_driveKeys[FWD] - _driveKeys[BACK]) + 
         fabsf(_driveKeys[RIGHT] - _driveKeys[LEFT]) + 
@@ -875,11 +887,11 @@ void MyAvatar::updatePosition(float deltaTime) {
     const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
     glm::vec3 startCap;
     boundingShape.getStartPoint(startCap);
-    glm::vec3 bottomOfBoundingCapsule = startCap - boundingShape.getRadius() * _worldUpDirection;
+    glm::vec3 bottom = startCap - boundingShape.getRadius() * _worldUpDirection;
 
     if (gravityLength > EPSILON) {
         float speedFromGravity = _scale * deltaTime * gravityLength;
-        float distanceToFall = glm::distance(bottomOfBoundingCapsule, _lastFloorContactPoint);
+        float distanceToFall = glm::distance(bottom, _lastFloorContactPoint);
         walkingOnFloor = (distanceToFall < 2.0f * deltaTime * speedFromGravity);
 
         if (walkingOnFloor) {
@@ -896,14 +908,24 @@ void MyAvatar::updatePosition(float deltaTime) {
             }
             // END HACK
         } else {
-            _velocity -= speedFromGravity * _worldUpDirection;
-        }
-        if (_motionBehaviors & AVATAR_MOTION_STAND_ON_NEARBY_FLOORS) {
-            const float MAX_VERTICAL_FLOOR_DETECTION_SPEED = _scale * MAX_WALKING_SPEED;
-            if (keyboardInput && glm::dot(_motorVelocity, _worldUpDirection) > 0.0f &&
-                    glm::dot(_velocity, _worldUpDirection) > MAX_VERTICAL_FLOOR_DETECTION_SPEED) {
-                // disable gravity because we're pushing with keyboard 
-                setLocalGravity(glm::vec3(0.0f));
+            if (!_isBraking) {
+                // fall with gravity toward floor
+                _velocity -= speedFromGravity * _worldUpDirection;
+            }
+
+            if (_motionBehaviors & AVATAR_MOTION_STAND_ON_NEARBY_FLOORS) {
+                const float MAX_VERTICAL_FLOOR_DETECTION_SPEED = _scale * MAX_WALKING_SPEED;
+                if (keyboardInput && glm::dot(_motorVelocity, _worldUpDirection) > 0.0f &&
+                        glm::dot(_velocity, _worldUpDirection) > MAX_VERTICAL_FLOOR_DETECTION_SPEED) {
+                    // disable local gravity when flying up
+                    setLocalGravity(glm::vec3(0.0f));
+                } else {
+                    const float maxFloorDistance = _scale * NEARBY_FLOOR_THRESHOLD;
+                    if (computeDistanceToFloor(bottom) > maxFloorDistance) {
+                        // disable local gravity when floor is too far
+                        setLocalGravity(glm::vec3(0.0f));
+                    }
+                }
             }
         }
     } else {
@@ -911,15 +933,10 @@ void MyAvatar::updatePosition(float deltaTime) {
             _motionBehaviors & AVATAR_MOTION_STAND_ON_NEARBY_FLOORS) {
             const float MIN_FLOOR_DETECTION_SPEED = _scale * 1.0f;
             if (glm::length(_velocity) < MIN_FLOOR_DETECTION_SPEED ) {
-                // scan for floor
-                glm::vec3 direction = -_worldUpDirection;
-                OctreeElement* elementHit; // output from findRayIntersection
-                float distance; // output from findRayIntersection
-                BoxFace face; // output from findRayIntersection
-                Application::getInstance()->getVoxelTree()->findRayIntersection(bottomOfBoundingCapsule, direction, elementHit, distance, face);
-                const float NEARBY_FLOOR_THRESHOLD = _scale * 2.0f;
-                if (elementHit && distance < NEARBY_FLOOR_THRESHOLD) {
-                    // turn on local gravity
+                // scan for floor under avatar
+                const float maxFloorDistance = _scale * NEARBY_FLOOR_THRESHOLD;
+                if (computeDistanceToFloor(bottom) < maxFloorDistance) {
+                    // enable local gravity
                     setLocalGravity(-_worldUpDirection);
                 }
             }
@@ -1005,32 +1022,30 @@ float MyAvatar::computeMotorTimescale() {
     // (1) braking --> short timescale (aggressive motor assertion)
     // (2) pushing --> medium timescale (mild motor assertion)
     // (3) inactive --> long timescale (gentle friction for low speeds)
-    //
-    // TODO: recover extra braking behavior when flying close to nearest avatar
 
     float MIN_MOTOR_TIMESCALE = 0.125f;
     float MAX_MOTOR_TIMESCALE = 0.5f;
     float MIN_BRAKE_SPEED = 0.4f;
 
     float timescale = MAX_MOTOR_TIMESCALE;
-    float speed = glm::length(_velocity);
-    bool areThrusting = (glm::length2(_thrust) > EPSILON);
-
-    if (_wasPushing && !(_isPushing || areThrusting) && speed > MIN_BRAKE_SPEED) {
-        // we don't change _wasPushing for this case --> 
-        // keeps the brakes on until we go below MIN_BRAKE_SPEED
-        timescale = MIN_MOTOR_TIMESCALE;
+    bool isThrust = (glm::length2(_thrust) > EPSILON);
+    if (_isPushing || isThrust) {
+        timescale = _motorTimescale;
+        _isBraking = false;
     } else {
-        if (_isPushing) {
-            timescale = _motorTimescale;
-        } 
-        _wasPushing = _isPushing || areThrusting;
+        float speed = glm::length(_velocity);
+        _isBraking = _wasPushing || (_isBraking && speed > MIN_BRAKE_SPEED);
+        if (_isBraking) {
+            timescale = MIN_MOTOR_TIMESCALE;
+        }
     }
+    _wasPushing = _isPushing || isThrust;
     _isPushing = false;
     return timescale;
 }
 
 void MyAvatar::applyMotor(float deltaTime) {
+    // TODO: recover extra braking behavior when flying close to nearest avatar
     if (!( _motionBehaviors & AVATAR_MOTION_MOTOR_ENABLED)) {
         // nothing to do --> early exit
         return;
