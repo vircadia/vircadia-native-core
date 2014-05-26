@@ -93,6 +93,7 @@ public:
 public slots:
     void stop();
 
+    QScriptValue evaluate(const QString& program, const QString& fileName = QString(), int lineNumber = 1);
     QObject* setInterval(const QScriptValue& function, int intervalMS);
     QObject* setTimeout(const QScriptValue& function, int timeoutMS);
     void clearInterval(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
@@ -108,6 +109,7 @@ signals:
     void printedMessage(const QString& message);
     void errorMessage(const QString& message);
     void runningStateChanged();
+    void evaluationFinished(QScriptValue result, bool isException);
 
 protected:
     QString _scriptContents;
