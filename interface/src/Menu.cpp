@@ -78,6 +78,7 @@ Menu::Menu() :
     _faceshiftEyeDeflection(DEFAULT_FACESHIFT_EYE_DEFLECTION),
     _frustumDrawMode(FRUSTUM_DRAW_MODE_ALL),
     _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET),
+    _jsConsole(NULL),
     _octreeStatsDialog(NULL),
     _lodToolsDialog(NULL),
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
@@ -221,6 +222,12 @@ Menu::Menu() :
     // init chat window to listen chat
     _chatWindow = new ChatWindow(Application::getInstance()->getWindow());
 #endif
+
+    addActionToQMenuAndActionHash(toolsMenu,
+            MenuOption::Console,
+            Qt::CTRL | Qt::Key_QuoteLeft,
+            this,
+            SLOT(showConsole()));
 
     QMenu* viewMenu = addMenu("View");
 
@@ -1193,6 +1200,14 @@ void Menu::toggleChat() {
         }
     }
 #endif
+}
+
+void Menu::showConsole() {
+    QMainWindow* mainWindow = Application::getInstance()->getWindow();
+    if (!_jsConsole) {
+        _jsConsole = new JSConsole(mainWindow);
+    }
+    _jsConsole->setVisible(!_jsConsole->isVisible());
 }
 
 void Menu::audioMuteToggled() {
