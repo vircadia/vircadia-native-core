@@ -3381,15 +3381,20 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
         return _scriptEnginesHash[scriptName];
     }
 
-    // start the script on a new thread...
-    ScriptEngine* scriptEngine = new ScriptEngine(QUrl(scriptName), &_controllerScriptingInterface);
-    _scriptEnginesHash.insert(scriptName, scriptEngine);
+    ScriptEngine* scriptEngine;
+    if (scriptName.isNull()) {
+        scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
+    } else {
+        // start the script on a new thread...
+        scriptEngine = new ScriptEngine(QUrl(scriptName), &_controllerScriptingInterface);
+        _scriptEnginesHash.insert(scriptName, scriptEngine);
 
-    if (!scriptEngine->hasScript()) {
-        qDebug() << "Application::loadScript(), script failed to load...";
-        return NULL;
+        if (!scriptEngine->hasScript()) {
+            qDebug() << "Application::loadScript(), script failed to load...";
+            return NULL;
+        }
+        _runningScriptsWidget->setRunningScripts(getRunningScripts());
     }
-    _runningScriptsWidget->setRunningScripts(getRunningScripts());
 
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
     // we can use the same ones from the application.

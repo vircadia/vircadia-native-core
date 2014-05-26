@@ -290,7 +290,7 @@ public slots:
     void loadScriptURLDialog();
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
-    ScriptEngine* loadScript(const QString& fileNameString, bool loadScriptFromEditor = false);
+    ScriptEngine* loadScript(const QString& fileNameString = QString(), bool loadScriptFromEditor = false);
     void stopAllScripts(bool restart = false);
     void stopScript(const QString& scriptName);
     void reloadAllScripts();
