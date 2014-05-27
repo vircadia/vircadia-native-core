@@ -154,6 +154,7 @@ private:
 
     bool _wasPushing;
     bool _isPushing;
+    bool _isBraking;
     float _trapDuration; // seconds that avatar has been trapped by collisions
     glm::vec3 _thrust;  // final acceleration from outside sources for the current frame
 
@@ -173,6 +174,7 @@ private:
     QList<AnimationHandlePointer> _animationHandles;
 
 	// private methods
+    float computeDistanceToFloor(const glm::vec3& startPoint);
     void updateOrientation(float deltaTime);
     void updatePosition(float deltaTime);
     void updateMotorFromKeyboard(float deltaTime, bool walking);
