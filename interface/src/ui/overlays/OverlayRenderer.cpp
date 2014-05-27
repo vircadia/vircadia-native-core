@@ -226,7 +226,6 @@ void OverlayRenderer::renderOverlay(bool renderToTexture) {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
-   // glDisable(GL_BLEND);
     
 
     if (renderToTexture) {
@@ -273,6 +272,7 @@ void OverlayRenderer::displayOverlayTextureOculus(Camera& whichCamera)
     MyAvatar* myAvatar = application->getAvatar();
     const glm::vec3& viewMatrixTranslation = application->getViewMatrixTranslation();
 
+    // Calculates the world space width and height of the texture based on a desired FOV
     const float overlayFov = whichCamera.getFieldOfView() * PI / 180.0f;
     const float overlayDistance = 1;
     const float overlayAspectRatio = glWidget->width() / (float)glWidget->height();
@@ -296,12 +296,13 @@ void OverlayRenderer::displayOverlayTextureOculus(Camera& whichCamera)
 
     glPushMatrix();
     glLoadIdentity();
-    //transform to world space
+    // Transform to world space
     glm::quat rotation = whichCamera.getRotation();
     glm::vec3 axis2 = glm::axis(rotation);
     glRotatef(-glm::degrees(glm::angle(rotation)), axis2.x, axis2.y, axis2.z);
     glTranslatef(viewMatrixTranslation.x, viewMatrixTranslation.y, viewMatrixTranslation.z);
 
+    // Translate to the front of the camera
     glm::vec3 pos = whichCamera.getPosition();
     glm::quat rot = myAvatar->getOrientation();
     glm::vec3 axis = glm::axis(rot);
@@ -309,7 +310,6 @@ void OverlayRenderer::displayOverlayTextureOculus(Camera& whichCamera)
 
     glTranslatef(pos.x, pos.y, pos.z);
     glRotatef(glm::degrees(glm::angle(rot)), axis.x, axis.y, axis.z);
-    glDisable(GL_DEPTH_TEST);
 
     glBegin(GL_QUADS);
         glTexCoord2f(1, 0); glVertex3f(-halfOverlayWidth, halfOverlayHeight, 0);
