@@ -378,7 +378,6 @@ void MyAvatar::setLocalGravity(glm::vec3 gravity) {
 
 void MyAvatar::setGravity(const glm::vec3& gravity) {
     _gravity = gravity;
-    getHead()->setGravity(_gravity);
 
     // use the gravity to determine the new world up direction, if possible
     float gravityLength = glm::length(gravity);
