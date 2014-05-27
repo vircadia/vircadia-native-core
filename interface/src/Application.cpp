@@ -2325,9 +2325,14 @@ void Application::updateShadowMap() {
     // store view matrix without translation, which we'll use for precision-sensitive objects
     updateUntranslatedViewMatrix();
 
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(1.1f, 4.0f);
+
     _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
     _particles.render(OctreeRenderer::SHADOW_RENDER_MODE);
     _models.render(OctreeRenderer::SHADOW_RENDER_MODE);
+
+    glDisable(GL_POLYGON_OFFSET_FILL);
 
     glPopMatrix();
 

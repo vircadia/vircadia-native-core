@@ -498,6 +498,9 @@ bool Model::render(float alpha, RenderMode mode) {
         glDisable(GL_CULL_FACE);
     } else {
         glEnable(GL_CULL_FACE);
+        if (mode == SHADOW_RENDER_MODE) {
+            glCullFace(GL_FRONT);
+        }
     }
     
     // render opaque meshes with alpha testing
@@ -514,6 +517,10 @@ bool Model::render(float alpha, RenderMode mode) {
     renderMeshes(alpha, mode, true);
     
     glDisable(GL_CULL_FACE);
+    
+    if (mode == SHADOW_RENDER_MODE) {
+        glCullFace(GL_BACK);
+    }
     
     // deactivate vertex arrays after drawing
     glDisableClientState(GL_NORMAL_ARRAY);
