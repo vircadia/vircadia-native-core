@@ -306,7 +306,7 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     messageArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     messageArea->setReadOnly(true);
 
-    messageArea->setStyleSheet("padding-bottom: 2px;"
+    messageArea->setStyleSheet("QTextBrowser{ padding-bottom: 2px;"
                                "padding-left: 2px;"
                                "padding-top: 2px;"
                                "padding-right: 20px;"
@@ -314,7 +314,8 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
                                "color: #333333;"
                                "font-size: 14pt;"
                                "background-color: rgba(0, 0, 0, 0%);"
-                               "border: 0;");
+                               "border: 0; }"
+                               "QMenu{ border: 2px outset gray; }");
 
     QString userLabel = getParticipantName(message.from());
     if (fromSelf) {
