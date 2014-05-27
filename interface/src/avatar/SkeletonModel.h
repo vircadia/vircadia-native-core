@@ -80,6 +80,22 @@ public:
     
     /// Returns the extended length from the right hand to its first free ancestor.
     float getRightArmLength() const;
+
+    /// Returns the position of the head joint.
+    /// \return whether or not the head was found
+    bool getHeadPosition(glm::vec3& headPosition) const;
+    
+    /// Returns the position of the neck joint.
+    /// \return whether or not the neck was found
+    bool getNeckPosition(glm::vec3& neckPosition) const;
+    
+    /// Returns the rotation of the neck joint's parent.
+    /// \return whether or not the neck was found
+    bool getNeckParentRotation(glm::quat& neckRotation) const;
+    
+    /// Retrieve the positions of up to two eye meshes.
+    /// \return whether or not both eye meshes were found
+    bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
     
 protected:
 
@@ -90,9 +106,9 @@ protected:
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);   
     
-    virtual void maybeUpdateLeanRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
-    virtual void maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
-    virtual void maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
+    void maybeUpdateLeanRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
+    void maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
+    void maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
     
 private:
 

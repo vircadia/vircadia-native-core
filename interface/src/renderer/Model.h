@@ -121,22 +121,6 @@ public:
     /// Returns the index of the last free ancestor of the indexed joint, or -1 if not found.
     int getLastFreeJointIndex(int jointIndex) const;
     
-    /// Returns the position of the head joint.
-    /// \return whether or not the head was found
-    bool getHeadPosition(glm::vec3& headPosition) const;
-    
-    /// Returns the position of the neck joint.
-    /// \return whether or not the neck was found
-    bool getNeckPosition(glm::vec3& neckPosition) const;
-    
-    /// Returns the rotation of the neck joint's parent.
-    /// \return whether or not the neck was found
-    bool getNeckParentRotation(glm::quat& neckRotation) const;
-    
-    /// Retrieve the positions of up to two eye meshes.
-    /// \return whether or not both eye meshes were found
-    bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
-    
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
     bool getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind = false) const;
 
@@ -233,10 +217,6 @@ protected:
 
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);
-    
-    virtual void maybeUpdateLeanRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
-    virtual void maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
-    virtual void maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
     
     bool setJointPosition(int jointIndex, const glm::vec3& translation, const glm::quat& rotation = glm::quat(),
         bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
