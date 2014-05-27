@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>Console</class>
- <widget class="QDialog" name="Console">
+ <widget class="QWidget" name="Console">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1018</width>
-    <height>263</height>
+    <width>1055</width>
+    <height>205</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -75,8 +75,8 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>1003</width>
-           <height>263</height>
+           <width>1040</width>
+           <height>205</height>
           </rect>
          </property>
          <property name="styleSheet">
@@ -203,14 +203,14 @@
                    </font>
                   </property>
                   <property name="styleSheet">
-                   <string notr="true">background-color: white; font-weight: bold; color: blue;</string>
+                   <string notr="true">background-color: white; font-weight: bold; color: rgb(169, 187, 195);</string>
                   </property>
                   <property name="text">
                    <string>&gt;</string>
                   </property>
                  </widget>
                 </item>
-                <item alignment="Qt::AlignTop">
+                <item>
                  <widget class="QTextEdit" name="promptTextEdit">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -220,8 +220,13 @@
                   </property>
                   <property name="font">
                    <font>
-                    <family>Courier New</family>
+                    <family>Inconsolata,Lucida Console,Andale Mono,Monaco</family>
+                    <pointsize>-1</pointsize>
                    </font>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">    font-family: Inconsolata, Lucida Console, Andale Mono, Monaco;
+font-size:14px</string>
                   </property>
                   <property name="frameShape">
                    <enum>QFrame::NoFrame</enum>
@@ -231,9 +236,6 @@
                   </property>
                   <property name="horizontalScrollBarPolicy">
                    <enum>Qt::ScrollBarAlwaysOff</enum>
-                  </property>
-                  <property name="textInteractionFlags">
-                   <set>Qt::TextEditorInteraction</set>
                   </property>
                  </widget>
                 </item>

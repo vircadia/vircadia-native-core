@@ -20,7 +20,7 @@
 #include "ui_console.h"
 #include "ScriptEngine.h"
 
-class JSConsole : public QDialog {
+class JSConsole : public QWidget {
     Q_OBJECT
 public:
     JSConsole(QWidget* parent, ScriptEngine* scriptEngine = NULL);

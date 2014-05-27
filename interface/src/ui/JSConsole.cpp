@@ -32,7 +32,7 @@ const QString GUTTER_ERROR = "<pre style=\"color: red;\">X</pre>";
 const QString GUTTER_PREVIOUS_COMMAND = "<pre style=\"color: lightblue;\">&lt;</pre>";
 
 JSConsole::JSConsole(QWidget* parent, ScriptEngine* scriptEngine) :
-    QDialog(parent, Qt::WindowStaysOnTopHint),
+    QWidget(parent),
     _ui(new Ui::Console),
     _currentCommandInHistory(NO_CURRENT_HISTORY_COMMAND),
     _commandHistory(),

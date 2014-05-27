@@ -245,7 +245,7 @@ private:
     QPointer<MetavoxelEditor> _MetavoxelEditor;
     QPointer<ScriptEditorWindow> _ScriptEditor;
     QPointer<ChatWindow> _chatWindow;
-    JSConsole* _jsConsole;
+    QDialog* _jsConsole;
     OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
     int _maxVoxels;
