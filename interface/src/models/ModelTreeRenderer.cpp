@@ -11,6 +11,8 @@
 
 #include <glm/gtx/quaternion.hpp>
 
+#include <FBXReader.h>
+
 #include "InterfaceConfig.h"
 #include "Menu.h"
 #include "ModelTreeRenderer.h"
@@ -34,8 +36,13 @@ ModelTreeRenderer::~ModelTreeRenderer() {
 
 void ModelTreeRenderer::init() {
     OctreeRenderer::init();
+    static_cast<ModelTree*>(_tree)->setFBXService(this);
 }
 
+void ModelTreeRenderer::setTree(Octree* newTree) {
+    OctreeRenderer::setTree(newTree);
+    static_cast<ModelTree*>(_tree)->setFBXService(this);
+}
 
 void ModelTreeRenderer::update() {
     if (_tree) {
@@ -46,6 +53,16 @@ void ModelTreeRenderer::update() {
 
 void ModelTreeRenderer::render(RenderMode renderMode) {
     OctreeRenderer::render(renderMode);
+}
+
+const FBXGeometry* ModelTreeRenderer::getGeometryForModel(const ModelItem& modelItem) {
+    const FBXGeometry* result = NULL;
+    Model* model = getModel(modelItem);
+    if (model) {
+        result = &model->getGeometry()->getFBXGeometry();
+        
+    }
+    return result;
 }
 
 Model* ModelTreeRenderer::getModel(const ModelItem& modelItem) {
@@ -71,42 +88,6 @@ Model* ModelTreeRenderer::getModel(const ModelItem& modelItem) {
         }
     }
     return model;
-}
-
-void calculateRotatedExtents(Extents& extents, const glm::quat& rotation) {
-    glm::vec3 bottomLeftNear(extents.minimum.x, extents.minimum.y, extents.minimum.z);
-    glm::vec3 bottomRightNear(extents.maximum.x, extents.minimum.y, extents.minimum.z);
-    glm::vec3 bottomLeftFar(extents.minimum.x, extents.minimum.y, extents.maximum.z);
-    glm::vec3 bottomRightFar(extents.maximum.x, extents.minimum.y, extents.maximum.z);
-    glm::vec3 topLeftNear(extents.minimum.x, extents.maximum.y, extents.minimum.z);
-    glm::vec3 topRightNear(extents.maximum.x, extents.maximum.y, extents.minimum.z);
-    glm::vec3 topLeftFar(extents.minimum.x, extents.maximum.y, extents.maximum.z);
-    glm::vec3 topRightFar(extents.maximum.x, extents.maximum.y, extents.maximum.z);
-
-    glm::vec3 bottomLeftNearRotated =  rotation * bottomLeftNear;
-    glm::vec3 bottomRightNearRotated = rotation * bottomRightNear;
-    glm::vec3 bottomLeftFarRotated = rotation * bottomLeftFar;
-    glm::vec3 bottomRightFarRotated = rotation * bottomRightFar;
-    glm::vec3 topLeftNearRotated = rotation * topLeftNear;
-    glm::vec3 topRightNearRotated = rotation * topRightNear;
-    glm::vec3 topLeftFarRotated = rotation * topLeftFar;
-    glm::vec3 topRightFarRotated = rotation * topRightFar;
-    
-    extents.minimum = glm::min(bottomLeftNearRotated,
-                        glm::min(bottomRightNearRotated,
-                        glm::min(bottomLeftFarRotated,
-                        glm::min(bottomRightFarRotated,
-                        glm::min(topLeftNearRotated,
-                        glm::min(topRightNearRotated,
-                        glm::min(topLeftFarRotated,topRightFarRotated)))))));
-
-    extents.maximum = glm::max(bottomLeftNearRotated,
-                        glm::max(bottomRightNearRotated,
-                        glm::max(bottomLeftFarRotated,
-                        glm::max(bottomRightFarRotated,
-                        glm::max(topLeftNearRotated,
-                        glm::max(topRightNearRotated,
-                        glm::max(topLeftFarRotated,topRightFarRotated)))))));
 }
 
 void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) {
@@ -248,6 +229,7 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
                     }
 
                     if (!isShadowMode && displayModelBounds) {
+
                         glm::vec3 unRotatedMinimum = model->getUnscaledMeshExtents().minimum;
                         glm::vec3 unRotatedMaximum = model->getUnscaledMeshExtents().maximum;
                         glm::vec3 unRotatedExtents = unRotatedMaximum - unRotatedMinimum;
@@ -285,6 +267,7 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
                             glutWireCube(1.0);
 
                         glPopMatrix();
+                        
                     }
 
                 glPopMatrix();

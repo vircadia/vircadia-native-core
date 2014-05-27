@@ -20,6 +20,11 @@ public:
     virtual void modelCreated(const ModelItem& newModel, const SharedNodePointer& senderNode) = 0;
 };
 
+class ModelItemFBXService {
+public:
+    virtual const FBXGeometry* getGeometryForModel(const ModelItem& modelItem) = 0;
+};
+
 class ModelTree : public Octree {
     Q_OBJECT
 public:
@@ -74,6 +79,11 @@ public:
 
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
     void handleAddModelResponse(const QByteArray& packet);
+    
+    void setFBXService(ModelItemFBXService* service) { _fbxService = service; }
+    const FBXGeometry* getGeometryForModel(const ModelItem& modelItem) {
+        return _fbxService ? _fbxService->getGeometryForModel(modelItem) : NULL;
+    }
 
 private:
 
@@ -96,6 +106,7 @@ private:
 
     QReadWriteLock _recentlyDeletedModelsLock;
     QMultiMap<quint64, uint32_t> _recentlyDeletedModelItemIDs;
+    ModelItemFBXService* _fbxService;
 };
 
 #endif // hifi_ModelTree_h
