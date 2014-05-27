@@ -640,46 +640,6 @@ bool Model::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePos
     return getJointPosition(geometry.leftEyeJointIndex, firstEyePosition) &&
         getJointPosition(geometry.rightEyeJointIndex, secondEyePosition);
 }
-    
-bool Model::getLeftHandPosition(glm::vec3& position) const {
-    return getJointPosition(getLeftHandJointIndex(), position);
-}
-
-bool Model::getLeftHandRotation(glm::quat& rotation) const {
-    return getJointRotation(getLeftHandJointIndex(), rotation);
-}
-
-bool Model::getRightHandPosition(glm::vec3& position) const {
-    return getJointPosition(getRightHandJointIndex(), position);
-}
-
-bool Model::getRightHandRotation(glm::quat& rotation) const {
-    return getJointRotation(getRightHandJointIndex(), rotation);
-}
-
-bool Model::restoreLeftHandPosition(float percent, float priority) {
-    return restoreJointPosition(getLeftHandJointIndex(), percent, priority);
-}
-
-bool Model::getLeftShoulderPosition(glm::vec3& position) const {
-    return getJointPosition(getLastFreeJointIndex(getLeftHandJointIndex()), position);
-}
-
-float Model::getLeftArmLength() const {
-    return getLimbLength(getLeftHandJointIndex());
-}
-
-bool Model::restoreRightHandPosition(float percent, float priority) {
-    return restoreJointPosition(getRightHandJointIndex(), percent, priority);
-}
-
-bool Model::getRightShoulderPosition(glm::vec3& position) const {
-    return getJointPosition(getLastFreeJointIndex(getRightHandJointIndex()), position);
-}
-
-float Model::getRightArmLength() const {
-    return getLimbLength(getRightHandJointIndex());
-}
 
 void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bool delayLoad) {
     // don't recreate the geometry if it's the same URL

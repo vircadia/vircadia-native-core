@@ -347,4 +347,44 @@ void SkeletonModel::setHandPosition(int jointIndex, const glm::vec3& position, c
     
     setJointRotation(jointIndex, rotation, true, PALM_PRIORITY);
 }
+    
+bool SkeletonModel::getLeftHandPosition(glm::vec3& position) const {
+    return getJointPosition(getLeftHandJointIndex(), position);
+}
+
+bool SkeletonModel::getLeftHandRotation(glm::quat& rotation) const {
+    return getJointRotation(getLeftHandJointIndex(), rotation);
+}
+
+bool SkeletonModel::getRightHandPosition(glm::vec3& position) const {
+    return getJointPosition(getRightHandJointIndex(), position);
+}
+
+bool SkeletonModel::getRightHandRotation(glm::quat& rotation) const {
+    return getJointRotation(getRightHandJointIndex(), rotation);
+}
+
+bool SkeletonModel::restoreLeftHandPosition(float percent, float priority) {
+    return restoreJointPosition(getLeftHandJointIndex(), percent, priority);
+}
+
+bool SkeletonModel::getLeftShoulderPosition(glm::vec3& position) const {
+    return getJointPosition(getLastFreeJointIndex(getLeftHandJointIndex()), position);
+}
+
+float SkeletonModel::getLeftArmLength() const {
+    return getLimbLength(getLeftHandJointIndex());
+}
+
+bool SkeletonModel::restoreRightHandPosition(float percent, float priority) {
+    return restoreJointPosition(getRightHandJointIndex(), percent, priority);
+}
+
+bool SkeletonModel::getRightShoulderPosition(glm::vec3& position) const {
+    return getJointPosition(getLastFreeJointIndex(getRightHandJointIndex()), position);
+}
+
+float SkeletonModel::getRightArmLength() const {
+    return getLimbLength(getRightHandJointIndex());
+}
 
