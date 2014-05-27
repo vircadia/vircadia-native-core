@@ -613,10 +613,6 @@ bool Model::getNeckPosition(glm::vec3& neckPosition) const {
     return isActive() && getJointPosition(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
 }
 
-bool Model::getNeckRotation(glm::quat& neckRotation) const {
-    return isActive() && getJointRotation(_geometry->getFBXGeometry().neckJointIndex, neckRotation);
-}
-
 bool Model::getNeckParentRotation(glm::quat& neckParentRotation) const {
     if (!isActive()) {
         return false;

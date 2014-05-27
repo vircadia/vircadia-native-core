@@ -135,10 +135,6 @@ public:
     /// \return whether or not the neck was found
     bool getNeckPosition(glm::vec3& neckPosition) const;
     
-    /// Returns the rotation of the neck joint.
-    /// \return whether or not the neck was found
-    bool getNeckRotation(glm::quat& neckRotation) const;
-    
     /// Returns the rotation of the neck joint's parent.
     /// \return whether or not the neck was found
     bool getNeckParentRotation(glm::quat& neckRotation) const;
