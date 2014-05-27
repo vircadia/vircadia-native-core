@@ -17,6 +17,9 @@ uniform sampler2D diffuseMap;
 // the specular texture
 uniform sampler2D specularMap;
 
+// the interpolated position in view space
+varying vec4 position;
+
 // the interpolated normal
 varying vec4 normal;
 
@@ -29,7 +32,7 @@ void main(void) {
         gl_FrontLightProduct[0].diffuse * (diffuse * facingLight));
 
     // compute the specular component (sans exponent)
-    float specular = facingLight * max(0.0, dot(normalize(gl_LightSource[0].position + vec4(0.0, 0.0, 1.0, 0.0)),
+    float specular = facingLight * max(0.0, dot(normalize(gl_LightSource[0].position - normalize(vec4(position.xyz, 0.0))),
         normalizedNormal));
         
     // modulate texture by base color and add specular contribution

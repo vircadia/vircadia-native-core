@@ -1,5 +1,5 @@
 //
-//  AABox.h
+//  AACube.h
 //  libraries/octree/src
 //
 //  Created by Brad Hefta-Gaub on 04/11/13.
@@ -12,43 +12,38 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_AABox_h
-#define hifi_AABox_h
+#ifndef hifi_AACube_h
+#define hifi_AACube_h
 
 #include <glm/glm.hpp>
 
 #include "BoxBase.h"
 
-class AACube;
+class AABox;
 
-class AABox {
+class AACube {
 
 public:
-    AABox(const glm::vec3& corner, float size);
-    AABox(const glm::vec3& corner, const glm::vec3& dimensions);
-    AABox();
-    ~AABox() {};
-
-    void setBox(const glm::vec3& corner, const glm::vec3& scale);
+    AACube(const glm::vec3& corner, float size);
+    AACube();
+    ~AACube() {};
 
      void setBox(const glm::vec3& corner, float scale);
      glm::vec3 getVertexP(const glm::vec3& normal) const;
      glm::vec3 getVertexN(const glm::vec3& normal) const;
      void scale(float scale);
      const glm::vec3& getCorner() const { return _corner; }
-     const glm::vec3& getScale() const { return _scale; }
-     const glm::vec3& getDimensions() const { return _scale; }
+     float getScale() const { return _scale; }
+     glm::vec3 getDimensions() const { return glm::vec3(_scale,_scale,_scale); }
 
      glm::vec3 calcCenter() const;
      glm::vec3 calcTopFarLeft() const;
      glm::vec3 getVertex(BoxVertex vertex) const;
      bool contains(const glm::vec3& point) const;
-     bool contains(const AABox& otherBox) const;
-     bool touches(const AABox& otherBox) const;
-
      bool contains(const AACube& otherCube) const;
      bool touches(const AACube& otherCube) const;
-
+     bool contains(const AABox& otherBox) const;
+     bool touches(const AABox& otherBox) const;
      bool expandedContains(const glm::vec3& point, float expansion) const;
      bool expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& end, float expansion) const;
      bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
@@ -63,7 +58,7 @@ private:
     static BoxFace getOppositeFace(BoxFace face);
 
     glm::vec3 _corner;
-    glm::vec3 _scale;
+    float _scale;
 };
 
-#endif // hifi_AABox_h
+#endif // hifi_AACube_h

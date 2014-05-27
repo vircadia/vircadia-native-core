@@ -1,11 +1,11 @@
 #version 120
 
 //
-//  model.frag
+//  model_shadow_map.frag
 //  fragment shader
 //
-//  Created by Andrzej Kapolka on 10/14/13.
-//  Copyright 2013 High Fidelity, Inc.
+//  Created by Andrzej Kapolka on 5/23/14.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -13,6 +13,9 @@
 
 // the diffuse texture
 uniform sampler2D diffuseMap;
+
+// the shadow texture
+uniform sampler2DShadow shadowMap;
 
 // the interpolated position
 varying vec4 position;
@@ -24,7 +27,7 @@ void main(void) {
     // compute the base color based on OpenGL lighting model
     vec4 normalizedNormal = normalize(normal);
     float diffuse = dot(normalizedNormal, gl_LightSource[0].position);
-    float facingLight = step(0.0, diffuse);
+    float facingLight = step(0.0, diffuse) * shadow2D(shadowMap, gl_TexCoord[1].stp).r;
     vec4 base = gl_Color * (gl_FrontLightModelProduct.sceneColor + gl_FrontLightProduct[0].ambient +
         gl_FrontLightProduct[0].diffuse * (diffuse * facingLight));
 

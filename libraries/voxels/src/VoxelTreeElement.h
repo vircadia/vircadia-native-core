@@ -18,7 +18,7 @@
 
 #include <QReadWriteLock>
 
-#include <AABox.h>
+#include <AACube.h>
 #include <OctreeElement.h>
 #include <SharedUtil.h>
 

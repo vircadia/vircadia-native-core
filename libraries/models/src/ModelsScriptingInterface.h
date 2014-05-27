@@ -15,9 +15,29 @@
 #include <QtCore/QObject>
 
 #include <CollisionInfo.h>
-
+#include <Octree.h>
 #include <OctreeScriptingInterface.h>
+#include <RegisteredMetaTypes.h>
+
 #include "ModelEditPacketSender.h"
+
+class RayToModelIntersectionResult {
+public:
+    RayToModelIntersectionResult();
+    bool intersects;
+    bool accurate;
+    ModelItemID modelID;
+    ModelItemProperties modelProperties;
+    float distance;
+    BoxFace face;
+    glm::vec3 intersection;
+};
+
+Q_DECLARE_METATYPE(RayToModelIntersectionResult)
+
+QScriptValue RayToModelIntersectionResultToScriptValue(QScriptEngine* engine, const RayToModelIntersectionResult& results);
+void RayToModelIntersectionResultFromScriptValue(const QScriptValue& object, RayToModelIntersectionResult& results);
+
 
 /// handles scripting of Model commands from JS passed to assigned clients
 class ModelsScriptingInterface : public OctreeScriptingInterface {
@@ -59,12 +79,25 @@ public slots:
     /// this function will not find any models in script engine contexts which don't have access to models
     QVector<ModelItemID> findModels(const glm::vec3& center, float radius) const;
 
+    /// If the scripting context has visible voxels, this will determine a ray intersection, the results
+    /// may be inaccurate if the engine is unable to access the visible voxels, in which case result.accurate
+    /// will be false.
+    Q_INVOKABLE RayToModelIntersectionResult findRayIntersection(const PickRay& ray);
+
+    /// If the scripting context has visible voxels, this will determine a ray intersection, and will block in
+    /// order to return an accurate result
+    Q_INVOKABLE RayToModelIntersectionResult findRayIntersectionBlocking(const PickRay& ray);
+
+
 signals:
     void modelCollisionWithVoxel(const ModelItemID& modelID, const VoxelDetail& voxel, const CollisionInfo& collision);
     void modelCollisionWithModel(const ModelItemID& idA, const ModelItemID& idB, const CollisionInfo& collision);
 
 private:
     void queueModelMessage(PacketType packetType, ModelItemID modelID, const ModelItemProperties& properties);
+
+    /// actually does the work of finding the ray intersection, can be called in locking mode or tryLock mode
+    RayToModelIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType);
 
     uint32_t _nextCreatorTokenID;
     ModelTree* _modelTree;

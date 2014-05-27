@@ -1,10 +1,10 @@
 #version 120
 
 //
-//  model_normal_specular_map.frag
+//  model_shadow_normal_map.frag
 //  fragment shader
 //
-//  Created by Andrzej Kapolka on 5/6/14.
+//  Created by Andrzej Kapolka on 5/23/14.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -17,8 +17,8 @@ uniform sampler2D diffuseMap;
 // the normal map texture
 uniform sampler2D normalMap;
 
-// the specular map texture
-uniform sampler2D specularMap;
+// the shadow texture
+uniform sampler2DShadow shadowMap;
 
 // the interpolated position
 varying vec4 interpolatedPosition;
@@ -39,15 +39,15 @@ void main(void) {
     vec4 viewNormal = vec4(normalizedTangent * localNormal.x +
         normalizedBitangent * localNormal.y + normalizedNormal * localNormal.z, 0.0);
     float diffuse = dot(viewNormal, gl_LightSource[0].position);
-    float facingLight = step(0.0, diffuse);
+    float facingLight = step(0.0, diffuse) * shadow2D(shadowMap, gl_TexCoord[1].stp).r;
     vec4 base = gl_Color * (gl_FrontLightModelProduct.sceneColor + gl_FrontLightProduct[0].ambient +
         gl_FrontLightProduct[0].diffuse * (diffuse * facingLight));
 
     // compute the specular component (sans exponent)
     float specular = facingLight * max(0.0, dot(normalize(gl_LightSource[0].position -
-        normalize(vec4(interpolatedPosition.xyz, 0.0))), viewNormal));
+        normalize(vec4(vec3(interpolatedPosition), 0.0))), viewNormal));
         
     // modulate texture by base color and add specular contribution
-    gl_FragColor = base * texture2D(diffuseMap, gl_TexCoord[0].st) + vec4(pow(specular, gl_FrontMaterial.shininess) *
-        gl_FrontLightProduct[0].specular.rgb * texture2D(specularMap, gl_TexCoord[0].st).rgb, 0.0);
+    gl_FragColor = base * texture2D(diffuseMap, gl_TexCoord[0].st) +
+        vec4(pow(specular, gl_FrontMaterial.shininess) * gl_FrontLightProduct[0].specular.rgb, 0.0);
 }

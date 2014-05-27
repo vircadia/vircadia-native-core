@@ -26,6 +26,7 @@ var THRUST_INCREASE_RATE = 1.05;
 var MAX_THRUST_MULTIPLIER = 75.0;
 var thrustMultiplier = INITIAL_THRUST_MULTPLIER;
 var grabDelta = { x: 0, y: 0, z: 0};
+var grabStartPosition = { x: 0, y: 0, z: 0};
 var grabDeltaVelocity = { x: 0, y: 0, z: 0};
 var grabStartRotation = { x: 0, y: 0, z: 0, w: 1};
 var grabCurrentRotation = { x: 0, y: 0, z: 0, w: 1};
@@ -50,7 +51,7 @@ var JOYSTICK_PITCH_MAG = PITCH_MAG * 0.5;
 
 
 var LEFT_PALM = 0;
-var LEFT_BUTTON_4 = 5;
+var LEFT_BUTTON_4 = 4;
 var LEFT_BUTTON_FWD = 5;
 var RIGHT_PALM = 2;
 var RIGHT_BUTTON_4 = 10;
@@ -63,6 +64,63 @@ function printVector(text, v, decimals) {
 }
 
 var debug = false;
+var RED_COLOR = { red: 255, green: 0, blue: 0 };
+var GRAY_COLOR = { red: 25, green: 25, blue: 25 };
+var defaultPosition = { x: 0, y: 0, z: 0};
+var RADIUS = 0.05;
+var greenSphere = -1;
+var redSphere = -1;
+ 
+function createDebugOverlay() {
+
+    if (greenSphere == -1) {
+        greenSphere = Overlays.addOverlay("sphere", {
+                                position: defaultPosition,
+                                size: RADIUS,
+                                color: GRAY_COLOR,
+                                alpha: 0.75,
+                                visible: true,
+                                solid: true,
+                                anchor: "MyAvatar"
+                                });
+        redSphere = Overlays.addOverlay("sphere", {
+                                position: defaultPosition,
+                                size: RADIUS,
+                                color: RED_COLOR,
+                                alpha: 0.5,
+                                visible: true,
+                                solid: true,
+                                anchor: "MyAvatar"
+                                });
+    }
+}
+
+function destroyDebugOverlay() {
+    if (greenSphere != -1) {
+        Overlays.deleteOverlay(greenSphere);
+        Overlays.deleteOverlay(redSphere);
+        greenSphere = -1;
+        redSphere = -1;
+    }
+}
+
+function displayDebug() {
+    if (!(grabbingWithRightHand || grabbingWithLeftHand)) {
+        if (greenSphere != -1) {
+            destroyDebugOverlay();
+        }
+    } else {
+        // update debug indicator
+        if (greenSphere == -1) {    
+            createDebugOverlay();
+        }
+
+        var displayOffset = { x:0, y:0.5, z:-0.5 };
+
+        Overlays.editOverlay(greenSphere, { position: Vec3.sum(grabStartPosition, displayOffset) } );
+        Overlays.editOverlay(redSphere, { position: Vec3.sum(Vec3.sum(grabStartPosition, grabDelta), displayOffset), size: RADIUS + (0.25 * Vec3.length(grabDelta)) } );
+    }
+}
 
 function getJoystickPosition(palm) {
     // returns CONTROLLER_ID position in avatar local frame
@@ -91,8 +149,8 @@ function getGrabRotation() {
 // When move button is pressed, process results 
 function handleGrabBehavior(deltaTime) {
     // check for and handle grab behaviors
-    grabbingWithRightHand = Controller.isButtonPressed(RIGHT_BUTTON_FWD) || Controller.isButtonPressed(RIGHT_BUTTON_4);
-    grabbingWithLeftHand = Controller.isButtonPressed(LEFT_BUTTON_FWD) || Controller.isButtonPressed(LEFT_BUTTON_4);
+    grabbingWithRightHand = Controller.isButtonPressed(RIGHT_BUTTON_4);
+    grabbingWithLeftHand = Controller.isButtonPressed(LEFT_BUTTON_4);
     stoppedGrabbingWithLeftHand = false;
     stoppedGrabbingWithRightHand = false;
     
@@ -143,20 +201,22 @@ function handleGrabBehavior(deltaTime) {
             printVector("grabDelta: ", grabDelta, 3);
         }
 
-        var THRUST_GRAB_SCALING = 300000.0;
+        var thrust = Vec3.multiply(grabDelta, Math.abs(Vec3.length(grabDelta)));
+
+        var THRUST_GRAB_SCALING = 100000.0;
         
-        var thrustFront = Vec3.multiply(front, MyAvatar.scale * -grabDelta.z * THRUST_GRAB_SCALING * deltaTime);
+        var thrustFront = Vec3.multiply(front, MyAvatar.scale * -thrust.z * THRUST_GRAB_SCALING * deltaTime);
         MyAvatar.addThrust(thrustFront);
-        var thrustRight = Vec3.multiply(right, MyAvatar.scale * grabDelta.x * THRUST_GRAB_SCALING * deltaTime);
+        var thrustRight = Vec3.multiply(right, MyAvatar.scale * thrust.x * THRUST_GRAB_SCALING * deltaTime);
         MyAvatar.addThrust(thrustRight);
-        var thrustUp = Vec3.multiply(up, MyAvatar.scale * grabDelta.y * THRUST_GRAB_SCALING * deltaTime);
+        var thrustUp = Vec3.multiply(up, MyAvatar.scale * thrust.y * THRUST_GRAB_SCALING * deltaTime);
         MyAvatar.addThrust(thrustUp);
         
         // add some rotation...
         var deltaRotation = getGrabRotation();
-        var PITCH_SCALING = 2.0;
+        var PITCH_SCALING = 2.5;
         var PITCH_DEAD_ZONE = 2.0;
-        var YAW_SCALING = 2.0;
+        var YAW_SCALING = 2.5;
         var ROLL_SCALING = 2.0;     
 
         var euler = Quat.safeEulerAngles(deltaRotation);
@@ -220,6 +280,8 @@ function flyWithHydra(deltaTime) {
         MyAvatar.headPitch = newPitch;
     }
     handleGrabBehavior(deltaTime);
+    displayDebug();
+
 }
     
 Script.update.connect(flyWithHydra);

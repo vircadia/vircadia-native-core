@@ -79,7 +79,7 @@ void ParticleTreeElement::update(ParticleTreeUpdateArgs& args) {
 
         // If the particle wants to die, or if it's left our bounding box, then move it
         // into the arguments moving particles. These will be added back or deleted completely
-        if (particle.getShouldDie() || !_box.contains(particle.getPosition())) {
+        if (particle.getShouldDie() || !_cube.contains(particle.getPosition())) {
             args._movingParticles.push_back(particle);
 
             // erase this particle
@@ -245,18 +245,18 @@ void ParticleTreeElement::getParticles(const glm::vec3& searchPosition, float se
     }
 }
 
-void ParticleTreeElement::getParticlesForUpdate(const AABox& box, QVector<Particle*>& foundParticles) {
+void ParticleTreeElement::getParticlesForUpdate(const AACube& box, QVector<Particle*>& foundParticles) {
     QList<Particle>::iterator particleItr = _particles->begin();
     QList<Particle>::iterator particleEnd = _particles->end();
-    AABox particleBox;
+    AACube particleCube;
     while(particleItr != particleEnd) {
         Particle* particle = &(*particleItr);
         float radius = particle->getRadius();
         // NOTE: we actually do box-box collision queries here, which is sloppy but good enough for now
         // TODO: decide whether to replace particleBox-box query with sphere-box (requires a square root
         // but will be slightly more accurate).
-        particleBox.setBox(particle->getPosition() - glm::vec3(radius), 2.f * radius);
-        if (particleBox.touches(_box)) {
+        particleCube.setBox(particle->getPosition() - glm::vec3(radius), 2.f * radius);
+        if (particleCube.touches(_cube)) {
             foundParticles.push_back(particle);
         }
         ++particleItr;

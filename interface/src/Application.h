@@ -547,6 +547,7 @@ private:
     NodeBounds _nodeBoundsDisplay;
 
     std::vector<VoxelFade> _voxelFades;
+    QReadWriteLock _voxelFadesLock;
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;
     QPointer<SnapshotShareDialog> _snapshotShareDialog;

@@ -114,7 +114,7 @@ public:
     /// finds all particles that touch a box
     /// \param box the query box
     /// \param particles[out] vector of non-const Particle*
-    void getParticlesForUpdate(const AABox& box, QVector<Particle*>& foundParticles);
+    void getParticlesForUpdate(const AACube& box, QVector<Particle*>& foundParticles);
 
     const Particle* getParticleWithID(uint32_t id) const;
 

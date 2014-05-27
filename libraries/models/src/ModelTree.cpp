@@ -116,8 +116,8 @@ void ModelTree::storeModel(const ModelItem& model, const SharedNodePointer& send
     
     // if we didn't find it in the tree, then store it...
     if (!theOperator.wasFound()) {
-        AABox modelBox = model.getAABox();
-        ModelTreeElement* element = (ModelTreeElement*)getOrCreateChildElementContaining(model.getAABox());
+        AACube modelCube = model.getAACube();
+        ModelTreeElement* element = (ModelTreeElement*)getOrCreateChildElementContaining(model.getAACube());
         element->storeModel(model);
         
         // In the case where we stored it, we also need to mark the entire "path" down to the model as
@@ -270,7 +270,7 @@ bool ModelTree::findNearPointOperation(OctreeElement* element, void* extraData) 
     ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
 
     glm::vec3 penetration;
-    bool sphereIntersection = modelTreeElement->getAABox().findSpherePenetration(args->position,
+    bool sphereIntersection = modelTreeElement->getAACube().findSpherePenetration(args->position,
                                                                     args->targetRadius, penetration);
 
     // If this modelTreeElement contains the point, then search it...
@@ -320,7 +320,7 @@ public:
 bool ModelTree::findInSphereOperation(OctreeElement* element, void* extraData) {
     FindAllNearPointArgs* args = static_cast<FindAllNearPointArgs*>(extraData);
     glm::vec3 penetration;
-    bool sphereIntersection = element->getAABox().findSpherePenetration(args->position,
+    bool sphereIntersection = element->getAACube().findSpherePenetration(args->position,
                                                                     args->targetRadius, penetration);
 
     // If this element contains the point, then search it...
@@ -343,31 +343,31 @@ void ModelTree::findModels(const glm::vec3& center, float radius, QVector<const 
     foundModels.swap(args.models);
 }
 
-class FindModelsInBoxArgs {
+class FindModelsInCubeArgs {
 public:
-    FindModelsInBoxArgs(const AABox& box) 
-        : _box(box), _foundModels() {
+    FindModelsInCubeArgs(const AACube& cube) 
+        : _cube(cube), _foundModels() {
     }
 
-    AABox _box;
+    AACube _cube;
     QVector<ModelItem*> _foundModels;
 };
 
-bool ModelTree::findInBoxForUpdateOperation(OctreeElement* element, void* extraData) {
-    FindModelsInBoxArgs* args = static_cast< FindModelsInBoxArgs*>(extraData);
-    const AABox& elementBox = element->getAABox();
-    if (elementBox.touches(args->_box)) {
+bool ModelTree::findInCubeForUpdateOperation(OctreeElement* element, void* extraData) {
+    FindModelsInCubeArgs* args = static_cast< FindModelsInCubeArgs*>(extraData);
+    const AACube& elementCube = element->getAACube();
+    if (elementCube.touches(args->_cube)) {
         ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
-        modelTreeElement->getModelsForUpdate(args->_box, args->_foundModels);
+        modelTreeElement->getModelsForUpdate(args->_cube, args->_foundModels);
         return true;
     }
     return false;
 }
 
-void ModelTree::findModelsForUpdate(const AABox& box, QVector<ModelItem*> foundModels) {
-    FindModelsInBoxArgs args(box);
+void ModelTree::findModelsForUpdate(const AACube& cube, QVector<ModelItem*> foundModels) {
+    FindModelsInCubeArgs args(cube);
     lockForRead();
-    recurseTreeWithOperation(findInBoxForUpdateOperation, &args);
+    recurseTreeWithOperation(findInCubeForUpdateOperation, &args);
     unlock();
     // swap the two lists of model pointers instead of copy
     foundModels.swap(args._foundModels);
@@ -507,7 +507,7 @@ void ModelTree::update() {
         bool shouldDie = args._movingModels[i].getShouldDie();
 
         // if the particle is still inside our total bounds, then re-add it
-        AABox treeBounds = getRoot()->getAABox();
+        AACube treeBounds = getRoot()->getAACube();
 
         if (!shouldDie && treeBounds.contains(args._movingModels[i].getPosition())) {
             storeModel(args._movingModels[i]);
