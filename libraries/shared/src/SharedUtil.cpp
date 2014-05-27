@@ -276,7 +276,7 @@ unsigned char* pointToOctalCode(float x, float y, float z, float s) {
 unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r, unsigned char g, unsigned char b ) {
 
     // special case for size 1, the root node
-    if (s >= 1.0) {
+    if (s >= 1.0f) {
         unsigned char* voxelOut = new unsigned char;
         *voxelOut = 0;
         return voxelOut;
@@ -289,7 +289,7 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
     // voxel of size S.
     unsigned int voxelSizeInOctets = 1;
     while (sTest > s) {
-        sTest /= 2.0;
+        sTest /= 2.0f;
         voxelSizeInOctets++;
     }
 
@@ -314,11 +314,11 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
         if (x >= xTest) {
             //<write 1 bit>
             byte = (byte << 1) | true;
-            xTest += sTest/2.0;
+            xTest += sTest/2.0f;
         } else {
             //<write 0 bit;>
             byte = (byte << 1) | false;
-            xTest -= sTest/2.0;
+            xTest -= sTest/2.0f;
         }
         bitInByteNDX++;
         // If we've reached the last bit of the byte, then we want to copy this byte
@@ -333,11 +333,11 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
         if (y >= yTest) {
             //<write 1 bit>
             byte = (byte << 1) | true;
-            yTest += sTest/2.0;
+            yTest += sTest/2.0f;
         } else {
             //<write 0 bit;>
             byte = (byte << 1) | false;
-            yTest -= sTest/2.0;
+            yTest -= sTest/2.0f;
         }
         bitInByteNDX++;
         // If we've reached the last bit of the byte, then we want to copy this byte
@@ -352,11 +352,11 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
         if (z >= zTest) {
             //<write 1 bit>
             byte = (byte << 1) | true;
-            zTest += sTest/2.0;
+            zTest += sTest/2.0f;
         } else {
             //<write 0 bit;>
             byte = (byte << 1) | false;
-            zTest -= sTest/2.0;
+            zTest -= sTest/2.0f;
         }
         bitInByteNDX++;
         // If we've reached the last bit of the byte, then we want to copy this byte
@@ -369,7 +369,7 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
         }
 
         octetsDone++;
-        sTest /= 2.0;
+        sTest /= 2.0f;
     }
 
     // If we've got here, and we didn't fill the last byte, we need to zero pad this

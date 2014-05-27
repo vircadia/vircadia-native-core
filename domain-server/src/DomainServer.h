@@ -20,21 +20,21 @@
 #include <QtCore/QStringList>
 #include <QtCore/QUrl>
 
-#include <gnutls/gnutls.h>
-
 #include <Assignment.h>
 #include <HTTPSConnection.h>
 #include <LimitedNodeList.h>
 
-#include "DTLSServerSession.h"
+#include "WalletTransaction.h"
+
+#include "PendingAssignedNodeData.h"
 
 typedef QSharedPointer<Assignment> SharedAssignmentPointer;
+typedef QMultiHash<QUuid, WalletTransaction*> TransactionHash;
 
 class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
     Q_OBJECT
 public:
     DomainServer(int argc, char* argv[]);
-    ~DomainServer();
     
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
     bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url);
@@ -47,15 +47,18 @@ public slots:
     /// Called by NodeList to inform us a node has been killed
     void nodeKilled(SharedNodePointer node);
     
-private slots:
+    void transactionJSONCallback(const QJsonObject& data);
     
+private slots:
+    void loginFailed();
     void readAvailableDatagrams();
-    void readAvailableDTLSDatagrams();
+    void setupPendingAssignmentCredits();
+    void sendPendingTransactionsToServer();
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
     bool optionallySetupOAuth();
-    bool optionallySetupDTLS();
     bool optionallyReadX509KeyAndCertificate();
+    bool optionallySetupAssignmentPayment();
     
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
     
@@ -92,16 +95,12 @@ private:
     
     QHash<QUuid, SharedAssignmentPointer> _allAssignments;
     QQueue<SharedAssignmentPointer> _unfulfilledAssignments;
+    QHash<QUuid, PendingAssignedNodeData*> _pendingAssignedNodes;
+    TransactionHash _pendingAssignmentCredits;
     
     QVariantMap _argumentVariantMap;
     
     bool _isUsingDTLS;
-    gnutls_certificate_credentials_t* _x509Credentials;
-    gnutls_dh_params_t* _dhParams;
-    gnutls_datum_t* _cookieKey;
-    gnutls_priority_t* _priorityCache;
-    
-    QHash<HifiSockAddr, DTLSServerSession*> _dtlsSessions;
     
     QNetworkAccessManager* _networkAccessManager;
     

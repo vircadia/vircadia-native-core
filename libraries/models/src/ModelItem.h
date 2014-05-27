@@ -56,6 +56,7 @@ const QString MODEL_DEFAULT_ANIMATION_URL("");
 const float MODEL_DEFAULT_ANIMATION_FPS = 30.0f;
 
 const PacketVersion VERSION_MODELS_HAVE_ANIMATION = 1;
+const PacketVersion VERSION_ROOT_ELEMENT_HAS_DATA = 2;
 
 /// A collection of properties of a model item used in the scripting API. Translates between the actual properties of a model
 /// and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete set of
@@ -82,6 +83,7 @@ public:
     float getAnimationFrameIndex() const { return _animationFrameIndex; }
     bool getAnimationIsPlaying() const { return _animationIsPlaying;  }
     float getAnimationFPS() const { return _animationFPS; }
+    float getGlowLevel() const { return _glowLevel; }
 
     quint64 getLastEdited() const { return _lastEdited; }
     uint16_t getChangedBits() const;
@@ -99,6 +101,7 @@ public:
     void setAnimationFrameIndex(float value) { _animationFrameIndex = value; _animationFrameIndexChanged = true; }
     void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; _animationIsPlayingChanged = true;  }
     void setAnimationFPS(float value) { _animationFPS = value; _animationFPSChanged = true; }
+    void setGlowLevel(float value) { _glowLevel = value; _glowLevelChanged = true; }
     
     /// used by ModelScriptingInterface to return ModelItemProperties for unknown models
     void setIsUnknownID() { _id = UNKNOWN_MODEL_ID; _idSet = true; }
@@ -118,6 +121,7 @@ private:
     bool _animationIsPlaying;
     float _animationFrameIndex;
     float _animationFPS;
+    float _glowLevel;
 
     uint32_t _id;
     bool _idSet;
@@ -134,6 +138,7 @@ private:
     bool _animationIsPlayingChanged;
     bool _animationFrameIndexChanged;
     bool _animationFPSChanged;
+    bool _glowLevelChanged;
     bool _defaultSettings;
 };
 Q_DECLARE_METATYPE(ModelItemProperties);
@@ -197,7 +202,7 @@ public:
     float getSize() const { return _radius * 2.0f; }
 
     /// get maximum dimension in domain scale units (0.0 - 1.0)
-    AABox getAABox() const { return AABox(getMinimumPoint(), getSize()); }
+    AACube getAACube() const { return AACube(getMinimumPoint(), getSize()); }
     
     // model related properties
     bool hasModel() const { return !_modelURL.isEmpty(); }
@@ -205,6 +210,7 @@ public:
     const glm::quat& getModelRotation() const { return _modelRotation; }
     bool hasAnimation() const { return !_animationURL.isEmpty(); }
     const QString& getAnimationURL() const { return _animationURL; }
+    float getGlowLevel() const { return _glowLevel; }
 
     ModelItemID getModelItemID() const { return ModelItemID(getID(), getCreatorTokenID(), getID() != UNKNOWN_MODEL_ID); }
     ModelItemProperties getProperties() const;
@@ -247,6 +253,7 @@ public:
     void setAnimationFrameIndex(float value) { _animationFrameIndex = value; }
     void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; }
     void setAnimationFPS(float value) { _animationFPS = value; }
+    void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
     
     void setProperties(const ModelItemProperties& properties);
 
@@ -292,6 +299,8 @@ protected:
     // model related items
     QString _modelURL;
     glm::quat _modelRotation;
+    
+    float _glowLevel;
 
     uint32_t _creatorTokenID;
     bool _newlyCreated;

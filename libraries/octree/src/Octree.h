@@ -211,6 +211,7 @@ public:
                     const unsigned char* editData, int maxLength, const SharedNodePointer& sourceNode) { return 0; }
                     
     virtual bool recurseChildrenWithData() const { return true; }
+    virtual bool rootElementHasData() const { return false; }
 
 
     virtual void update() { }; // nothing to do by default
@@ -235,7 +236,7 @@ public:
     OctreeElement* getOctreeEnclosingElementAt(float x, float y, float z, float s) const;
     
     OctreeElement* getOrCreateChildElementAt(float x, float y, float z, float s);
-    OctreeElement* getOrCreateChildElementContaining(const AABox& box);
+    OctreeElement* getOrCreateChildElementContaining(const AACube& box);
 
     void recurseTreeWithOperation(RecurseOctreeOperation operation, void* extraData = NULL);
     void recurseTreeWithPostOperation(RecurseOctreeOperation operation, void* extraData = NULL);
@@ -267,6 +268,7 @@ public:
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                              OctreeElement*& node, float& distance, BoxFace& face, 
+                             void** intersectedObject = NULL,
                              Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
     bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration, void** penetratedObject = NULL, 

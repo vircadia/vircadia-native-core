@@ -81,7 +81,7 @@ void NodeBounds::draw() {
                 glm::vec3 location(rootDetails.x, rootDetails.y, rootDetails.z);
                 location *= (float)TREE_SCALE;
 
-                AABox serverBounds(location, rootDetails.s * TREE_SCALE);
+                AACube serverBounds(location, rootDetails.s * TREE_SCALE);
 
                 glm::vec3 center = serverBounds.getVertex(BOTTOM_RIGHT_NEAR)
                     + ((serverBounds.getVertex(TOP_LEFT_FAR) - serverBounds.getVertex(BOTTOM_RIGHT_NEAR)) / 2.0f);
@@ -133,7 +133,6 @@ void NodeBounds::draw() {
         glTranslatef(selectedCenter.x, selectedCenter.y, selectedCenter.z);
         glScalef(selectedScale, selectedScale, selectedScale);
 
-        NodeType_t selectedNodeType = selectedNode->getType();
         float red, green, blue;
         getColorForNodeType(selectedNode->getType(), red, green, blue);
 
@@ -225,7 +224,6 @@ void NodeBounds::drawOverlay() {
         const int FONT = 2;
         const int PADDING = 10;
         const int MOUSE_OFFSET = 10;
-        const int BACKGROUND_OFFSET_Y = -20;
         const int BACKGROUND_BEVEL = 3;
 
         int mouseX = application->getMouseX(),

@@ -150,6 +150,8 @@ public:
     QVector<glm::vec4> clusterWeights;
     
     QVector<FBXCluster> clusters;
+
+    Extents meshExtents;
     
     bool isEye;
     
@@ -210,8 +212,6 @@ public:
     
     Extents bindExtents;
     Extents meshExtents;
-    
-    float fstScaled;
     
     QVector<FBXAnimationFrame> animationFrames;
     

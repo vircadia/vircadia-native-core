@@ -61,6 +61,8 @@ AccountManager::AccountManager() :
     
     qRegisterMetaType<QNetworkAccessManager::Operation>("QNetworkAccessManager::Operation");
     qRegisterMetaType<JSONCallbackParameters>("JSONCallbackParameters");
+    
+    connect(&_accountInfo, &DataServerAccountInfo::balanceChanged, this, &AccountManager::accountInfoBalanceChanged);
 }
 
 const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
@@ -68,6 +70,9 @@ const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
 void AccountManager::logout() {
     // a logout means we want to delete the DataServerAccountInfo we currently have for this URL, in-memory and in file
     _accountInfo = DataServerAccountInfo();
+    
+    emit balanceChanged(0);
+    connect(&_accountInfo, &DataServerAccountInfo::balanceChanged, this, &AccountManager::accountInfoBalanceChanged);
     
     QSettings settings;
     settings.beginGroup(ACCOUNTS_GROUP);
@@ -80,6 +85,21 @@ void AccountManager::logout() {
     emit logoutComplete();
     // the username has changed to blank
     emit usernameChanged(QString());
+}
+
+void AccountManager::updateBalance() {
+    if (hasValidAccessToken()) {
+        // ask our auth endpoint for our balance
+        JSONCallbackParameters callbackParameters;
+        callbackParameters.jsonCallbackReceiver = &_accountInfo;
+        callbackParameters.jsonCallbackMethod = "setBalanceFromJSON";
+        
+        authenticatedRequest("/api/v1/wallets/mine", QNetworkAccessManager::GetOperation, callbackParameters);
+    }
+}
+
+void AccountManager::accountInfoBalanceChanged(qint64 newBalance) {
+    emit balanceChanged(newBalance);
 }
 
 void AccountManager::setAuthURL(const QUrl& authURL) {
@@ -136,7 +156,13 @@ void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::
         QNetworkRequest authenticatedRequest;
         
         QUrl requestURL = _authURL;
-        requestURL.setPath(path);
+        
+        if (path.startsWith("/")) {
+            requestURL.setPath(path);
+        } else {
+            requestURL.setPath("/" + path);
+        }
+        
         requestURL.setQuery("access_token=" + _accountInfo.getAccessToken().token);
         
         authenticatedRequest.setUrl(requestURL);

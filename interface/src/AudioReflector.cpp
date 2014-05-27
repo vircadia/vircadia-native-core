@@ -17,7 +17,7 @@ const float MINIMUM_ATTENUATION_TO_REFLECT = 1.0f / 256.0f;
 const float DEFAULT_DISTANCE_SCALING_FACTOR = 2.0f; 
 const float MAXIMUM_DELAY_MS = 1000.0 * 20.0f; // stop reflecting after path is this long
 const int DEFAULT_DIFFUSION_FANOUT = 5;
-const int ABSOLUTE_MAXIMUM_BOUNCE_COUNT = 10;
+const unsigned int ABSOLUTE_MAXIMUM_BOUNCE_COUNT = 10;
 const float DEFAULT_LOCAL_ATTENUATION_FACTOR = 0.125;
 const float DEFAULT_COMB_FILTER_WINDOW = 0.05f; //ms delay differential to avoid
 

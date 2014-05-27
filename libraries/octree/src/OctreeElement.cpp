@@ -19,7 +19,7 @@
 #include <PerfStat.h>
 #include <assert.h>
 
-#include "AABox.h"
+#include "AACube.h"
 #include "OctalCode.h"
 #include "OctreeConstants.h"
 #include "OctreeElement.h"
@@ -93,7 +93,7 @@ void OctreeElement::init(unsigned char * octalCode) {
     _isDirty = true;
     _shouldRender = false;
     _sourceUUIDKey = 0;
-    calculateAABox();
+    calculateAACube();
     markWithChangedTime();
 }
 
@@ -190,15 +190,15 @@ void OctreeElement::setShouldRender(bool shouldRender) {
     }
 }
 
-void OctreeElement::calculateAABox() {
+void OctreeElement::calculateAACube() {
     glm::vec3 corner;
 
-    // copy corner into box
+    // copy corner into cube
     copyFirstVertexForCode(getOctalCode(),(float*)&corner);
 
     // this tells you the "size" of the voxel
     float voxelScale = 1 / powf(2, numberOfThreeBitSectionsInCode(getOctalCode()));
-    _box.setBox(corner,voxelScale);
+    _cube.setBox(corner,voxelScale);
 }
 
 void OctreeElement::deleteChildAtIndex(int childIndex) {
@@ -1178,7 +1178,7 @@ void OctreeElement::printDebugDetails(const char* label) const {
 
     QString resultString;
     resultString.sprintf("%s - Voxel at corner=(%f,%f,%f) size=%f\n isLeaf=%s isDirty=%s shouldRender=%s\n children=", label,
-                         _box.getCorner().x, _box.getCorner().y, _box.getCorner().z, _box.getScale(),
+                         _cube.getCorner().x, _cube.getCorner().y, _cube.getCorner().z, _cube.getScale(),
                          debug::valueOf(isLeaf()), debug::valueOf(isDirty()), debug::valueOf(getShouldRender()));
     elementDebug << resultString;
 
@@ -1192,9 +1192,9 @@ float OctreeElement::getEnclosingRadius() const {
 }
 
 ViewFrustum::location OctreeElement::inFrustum(const ViewFrustum& viewFrustum) const {
-    AABox box = _box; // use temporary box so we can scale it
-    box.scale(TREE_SCALE);
-    return viewFrustum.boxInFrustum(box);
+    AACube cube = _cube; // use temporary cube so we can scale it
+    cube.scale(TREE_SCALE);
+    return viewFrustum.cubeInFrustum(cube);
 }
 
 // There are two types of nodes for which we want to "render"
@@ -1228,27 +1228,27 @@ bool OctreeElement::calculateShouldRender(const ViewFrustum* viewFrustum, float 
 // does as much math as possible in voxel scale and then scales up to TREE_SCALE at end
 float OctreeElement::furthestDistanceToCamera(const ViewFrustum& viewFrustum) const {
     glm::vec3 furthestPoint;
-    viewFrustum.getFurthestPointFromCameraVoxelScale(getAABox(), furthestPoint);
+    viewFrustum.getFurthestPointFromCameraVoxelScale(getAACube(), furthestPoint);
     glm::vec3 temp = viewFrustum.getPositionVoxelScale() - furthestPoint;
     float distanceToFurthestPoint = sqrtf(glm::dot(temp, temp));
     return distanceToFurthestPoint * (float)TREE_SCALE;
 }
 
 float OctreeElement::distanceToCamera(const ViewFrustum& viewFrustum) const {
-    glm::vec3 center = _box.calcCenter() * (float)TREE_SCALE;
+    glm::vec3 center = _cube.calcCenter() * (float)TREE_SCALE;
     glm::vec3 temp = viewFrustum.getPosition() - center;
     float distanceToVoxelCenter = sqrtf(glm::dot(temp, temp));
     return distanceToVoxelCenter;
 }
 
 float OctreeElement::distanceSquareToPoint(const glm::vec3& point) const {
-    glm::vec3 temp = point - _box.calcCenter();
+    glm::vec3 temp = point - _cube.calcCenter();
     float distanceSquare = glm::dot(temp, temp);
     return distanceSquare;
 }
 
 float OctreeElement::distanceToPoint(const glm::vec3& point) const {
-    glm::vec3 temp = point - _box.calcCenter();
+    glm::vec3 temp = point - _cube.calcCenter();
     float distance = sqrtf(glm::dot(temp, temp));
     return distance;
 }
@@ -1302,9 +1302,58 @@ void OctreeElement::notifyUpdateHooks() {
     }
 }
 
+bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         void** intersectedObject) {
+
+    keepSearching = true; // assume that we will continue searching after this.
+
+    // by default, we only allow intersections with leaves with content
+    if (!canRayIntersect()) {
+        return false; // we don't intersect with non-leaves, and we keep searching
+    }
+
+    AACube cube = getAACube();
+    float localDistance;
+    BoxFace localFace;
+
+    // if the ray doesn't intersect with our cube, we can stop searching!
+    if (!cube.findRayIntersection(origin, direction, localDistance, localFace)) {
+        keepSearching = false; // no point in continuing to search
+        return false; // we did not intersect
+    }
+
+    // we did hit this element, so calculate appropriate distances    
+    localDistance *= TREE_SCALE;
+    if (localDistance < distance) {
+        if (findDetailedRayIntersection(origin, direction, keepSearching,
+                                        element, distance, face, intersectedObject)) {
+            distance = localDistance;
+            face = localFace;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool OctreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         void** intersectedObject) {
+
+    // we did hit this element, so calculate appropriate distances    
+    if (hasContent()) {
+        element = this;
+        if (intersectedObject) {
+            *intersectedObject = this;
+        }
+        return true; // we did intersect
+    }
+    return false; // we did not intersect
+}
+
 bool OctreeElement::findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const {
-    return _box.findSpherePenetration(center, radius, penetration);
+    return _cube.findSpherePenetration(center, radius, penetration);
 }
 
 
@@ -1323,7 +1372,7 @@ OctreeElement* OctreeElement::getOrCreateChildElementAt(float x, float y, float 
         return this;
     }
     // otherwise, we need to find which of our children we should recurse
-    glm::vec3 ourCenter = _box.calcCenter();
+    glm::vec3 ourCenter = _cube.calcCenter();
 
     int childIndex = CHILD_UNKNOWN;
     // left half
@@ -1381,44 +1430,49 @@ OctreeElement* OctreeElement::getOrCreateChildElementAt(float x, float y, float 
 }
 
 
-OctreeElement* OctreeElement::getOrCreateChildElementContaining(const AABox& box) {
+OctreeElement* OctreeElement::getOrCreateChildElementContaining(const AACube& cube) {
     OctreeElement* child = NULL;
     
     float ourScale = getScale();
-    float boxScale = box.getScale();
+    float cubeScale = cube.getScale();
 
-    if(boxScale > ourScale) {
+    if(cubeScale > ourScale) {
         qDebug("UNEXPECTED -- OctreeElement::getOrCreateChildElementContaining() "
-                    "boxScale=[%f] > ourScale=[%f] ", boxScale, ourScale);
+                    "cubeScale=[%f] > ourScale=[%f] ", cubeScale, ourScale);
     }
 
-    // Determine which of our children the minimum and maximum corners of the box live in...
-    glm::vec3 boxCornerMinimum = box.getCorner();
-    glm::vec3 boxCornerMaximum = box.calcTopFarLeft();
+    // Determine which of our children the minimum and maximum corners of the cube live in...
+    glm::vec3 cubeCornerMinimum = cube.getCorner();
+    glm::vec3 cubeCornerMaximum = cube.calcTopFarLeft();
 
-    int childIndexBoxMinimum = getMyChildContainingPoint(boxCornerMinimum);
-    int childIndexBoxMaximum = getMyChildContainingPoint(boxCornerMaximum);
+    int childIndexCubeMinimum = getMyChildContainingPoint(cubeCornerMinimum);
+    int childIndexCubeMaximum = getMyChildContainingPoint(cubeCornerMaximum);
 
-    // If the minimum and maximum corners of the box are in two different children's boxes, then we are the containing element
-    if (childIndexBoxMinimum != childIndexBoxMaximum) {
+    // If the minimum and maximum corners of the cube are in two different children's cubes, then we are the containing element
+    if (childIndexCubeMinimum != childIndexCubeMaximum) {
         return this;
     }
 
     // otherwise, they are the same and that child should be considered as the correct element    
-    int childIndex = childIndexBoxMinimum; // both the same...
+    int childIndex = childIndexCubeMinimum; // both the same...
     
     // Now, check if we have a child at that location
     child = getChildAtIndex(childIndex);
     if (!child) {
         child = addChildAtIndex(childIndex);
     }
+    
+    // if we've made a really small child, then go ahead and use that one.
+    if (child->getScale() <= SMALLEST_REASONABLE_OCTREE_ELEMENT_SCALE) {
+        return child;
+    }
 
     // Now that we have the child to recurse down, let it answer the original question...
-    return child->getOrCreateChildElementContaining(box);
+    return child->getOrCreateChildElementContaining(cube);
 }
 
 int OctreeElement::getMyChildContainingPoint(const glm::vec3& point) const {
-    glm::vec3 ourCenter = _box.calcCenter();
+    glm::vec3 ourCenter = _cube.calcCenter();
     int childIndex = CHILD_UNKNOWN;
     // left half
     if (point.x > ourCenter.x) {

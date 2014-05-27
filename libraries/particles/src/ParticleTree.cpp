@@ -237,7 +237,7 @@ bool ParticleTree::findNearPointOperation(OctreeElement* element, void* extraDat
     ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
 
     glm::vec3 penetration;
-    bool sphereIntersection = particleTreeElement->getAABox().findSpherePenetration(args->position,
+    bool sphereIntersection = particleTreeElement->getAACube().findSpherePenetration(args->position,
                                                                     args->targetRadius, penetration);
 
     // If this particleTreeElement contains the point, then search it...
@@ -287,7 +287,7 @@ public:
 bool ParticleTree::findInSphereOperation(OctreeElement* element, void* extraData) {
     FindAllNearPointArgs* args = static_cast<FindAllNearPointArgs*>(extraData);
     glm::vec3 penetration;
-    bool sphereIntersection = element->getAABox().findSpherePenetration(args->position,
+    bool sphereIntersection = element->getAACube().findSpherePenetration(args->position,
                                                                     args->targetRadius, penetration);
 
     // If this element contains the point, then search it...
@@ -310,31 +310,31 @@ void ParticleTree::findParticles(const glm::vec3& center, float radius, QVector<
     foundParticles.swap(args.particles);
 }
 
-class FindParticlesInBoxArgs {
+class FindParticlesInCubeArgs {
 public:
-    FindParticlesInBoxArgs(const AABox& box) 
-        : _box(box), _foundParticles() {
+    FindParticlesInCubeArgs(const AACube& cube) 
+        : _cube(cube), _foundParticles() {
     }
 
-    AABox _box;
+    AACube _cube;
     QVector<Particle*> _foundParticles;
 };
 
-bool ParticleTree::findInBoxForUpdateOperation(OctreeElement* element, void* extraData) {
-    FindParticlesInBoxArgs* args = static_cast< FindParticlesInBoxArgs*>(extraData);
-    const AABox& elementBox = element->getAABox();
-    if (elementBox.touches(args->_box)) {
+bool ParticleTree::findInCubeForUpdateOperation(OctreeElement* element, void* extraData) {
+    FindParticlesInCubeArgs* args = static_cast< FindParticlesInCubeArgs*>(extraData);
+    const AACube& elementBox = element->getAACube();
+    if (elementBox.touches(args->_cube)) {
         ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
-        particleTreeElement->getParticlesForUpdate(args->_box, args->_foundParticles);
+        particleTreeElement->getParticlesForUpdate(args->_cube, args->_foundParticles);
         return true;
     }
     return false;
 }
 
-void ParticleTree::findParticlesForUpdate(const AABox& box, QVector<Particle*> foundParticles) {
-    FindParticlesInBoxArgs args(box);
+void ParticleTree::findParticlesForUpdate(const AACube& cube, QVector<Particle*> foundParticles) {
+    FindParticlesInCubeArgs args(cube);
     lockForRead();
-    recurseTreeWithOperation(findInBoxForUpdateOperation, &args);
+    recurseTreeWithOperation(findInCubeForUpdateOperation, &args);
     unlock();
     // swap the two lists of particle pointers instead of copy
     foundParticles.swap(args._foundParticles);
@@ -473,7 +473,7 @@ void ParticleTree::update() {
         bool shouldDie = args._movingParticles[i].getShouldDie();
 
         // if the particle is still inside our total bounds, then re-add it
-        AABox treeBounds = getRoot()->getAABox();
+        AACube treeBounds = getRoot()->getAACube();
 
         if (!shouldDie && treeBounds.contains(args._movingParticles[i].getPosition())) {
             storeParticle(args._movingParticles[i]);

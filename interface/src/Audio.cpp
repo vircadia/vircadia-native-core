@@ -201,21 +201,26 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
         IMMDeviceEnumerator* pMMDeviceEnumerator = NULL;
         CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&pMMDeviceEnumerator);
         IMMDevice* pEndpoint;
-        pMMDeviceEnumerator->GetDefaultAudioEndpoint(mode == QAudio::AudioOutput ? eRender : eCapture, eMultimedia, &pEndpoint);
-        IPropertyStore* pPropertyStore;
-        pEndpoint->OpenPropertyStore(STGM_READ, &pPropertyStore);
-        pEndpoint->Release();
-        pEndpoint = NULL;
-        PROPVARIANT pv;
-        PropVariantInit(&pv);
-        hr = pPropertyStore->GetValue(PKEY_Device_FriendlyName, &pv);
-        pPropertyStore->Release();
-        pPropertyStore = NULL;
-        //QAudio devices seems to only take the 31 first characters of the Friendly Device Name.
-        const DWORD QT_WIN_MAX_AUDIO_DEVICENAME_LEN = 31;
-        deviceName = QString::fromWCharArray((wchar_t*)pv.pwszVal).left(QT_WIN_MAX_AUDIO_DEVICENAME_LEN);
-        qDebug() << (mode == QAudio::AudioOutput ? "output" : "input") << " device:" << deviceName;
-        PropVariantClear(&pv);
+        hr = pMMDeviceEnumerator->GetDefaultAudioEndpoint(mode == QAudio::AudioOutput ? eRender : eCapture, eMultimedia, &pEndpoint);
+        if (hr == E_NOTFOUND) {
+            printf("Audio Error: device not found\n");
+            deviceName = QString("NONE");
+        } else {
+            IPropertyStore* pPropertyStore;
+            pEndpoint->OpenPropertyStore(STGM_READ, &pPropertyStore);
+            pEndpoint->Release();
+            pEndpoint = NULL;
+            PROPVARIANT pv;
+            PropVariantInit(&pv);
+            hr = pPropertyStore->GetValue(PKEY_Device_FriendlyName, &pv);
+            pPropertyStore->Release();
+            pPropertyStore = NULL;
+            //QAudio devices seems to only take the 31 first characters of the Friendly Device Name.
+            const DWORD QT_WIN_MAX_AUDIO_DEVICENAME_LEN = 31;
+            deviceName = QString::fromWCharArray((wchar_t*)pv.pwszVal).left(QT_WIN_MAX_AUDIO_DEVICENAME_LEN);
+            qDebug() << (mode == QAudio::AudioOutput ? "output" : "input") << " device:" << deviceName;
+            PropVariantClear(&pv);
+        }
         pMMDeviceEnumerator->Release();
         pMMDeviceEnumerator = NULL;
         CoUninitialize();

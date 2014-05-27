@@ -38,6 +38,7 @@
 #include "Menu.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "Util.h"
+#include "ui/AnimationsDialog.h"
 #include "ui/AttachmentsDialog.h"
 #include "ui/InfoView.h"
 #include "ui/MetavoxelEditor.h"
@@ -194,12 +195,14 @@ Menu::Menu() :
                                   QAction::PreferencesRole);
 
     addActionToQMenuAndActionHash(editMenu, MenuOption::Attachments, 0, this, SLOT(editAttachments()));
+    addActionToQMenuAndActionHash(editMenu, MenuOption::Animations, 0, this, SLOT(editAnimations()));
 
     addDisabledActionAndSeparator(editMenu, "Physics");
     QObject* avatar = appInstance->getAvatar();
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ObeyEnvironmentalGravity, Qt::SHIFT | Qt::Key_G, false,
             avatar, SLOT(updateMotionBehaviorsFromMenu()));
-
+    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::StandOnNearbyFloors, 0, true,
+            avatar, SLOT(updateMotionBehaviorsFromMenu()));
 
     addAvatarCollisionSubMenu(editMenu);
 
@@ -328,6 +331,7 @@ Menu::Menu() :
 
     QMenu* avatarOptionsMenu = developerMenu->addMenu("Avatar Options");
 
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::AllowOculusCameraModeChange, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Avatars, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderSkeletonCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderHeadCollisionShapes);
@@ -860,6 +864,15 @@ void Menu::editAttachments() {
         _attachmentsDialog->show();
     } else {
         _attachmentsDialog->close();
+    }
+}
+
+void Menu::editAnimations() {
+    if (!_animationsDialog) {
+        _animationsDialog = new AnimationsDialog();
+        _animationsDialog->show();
+    } else {
+        _animationsDialog->close();
     }
 }
 

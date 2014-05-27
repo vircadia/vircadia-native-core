@@ -33,7 +33,7 @@ const char SOLO_NODE_TYPES[2] = {
     NodeType::AudioMixer
 };
 
-const QUrl DEFAULT_NODE_AUTH_URL = QUrl("https://data-web.highfidelity.io");
+const QUrl DEFAULT_NODE_AUTH_URL = QUrl("https://data.highfidelity.io");
 
 LimitedNodeList* LimitedNodeList::_sharedInstance = NULL;
 
@@ -152,10 +152,11 @@ void LimitedNodeList::changeSendSocketBufferSize(int numSendBytes) {
 
 bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
     PacketType checkType = packetTypeForPacket(packet);
-    if (packet[1] != versionForPacketType(checkType)
+    int numPacketTypeBytes = numBytesArithmeticCodingFromBuffer(packet.data());
+    
+    if (packet[numPacketTypeBytes] != versionForPacketType(checkType)
         && checkType != PacketTypeStunResponse) {
         PacketType mismatchType = packetTypeForPacket(packet);
-        int numPacketTypeBytes = numBytesArithmeticCodingFromBuffer(packet.data());
         
         static QMultiMap<QUuid, PacketType> versionDebugSuppressMap;
         

@@ -12,17 +12,24 @@
 #ifndef hifi_Model_h
 #define hifi_Model_h
 
+#include <QBitArray>
 #include <QObject>
 #include <QUrl>
 
 #include <CapsuleShape.h>
+
+#include <AnimationCache.h>
 
 #include "GeometryCache.h"
 #include "InterfaceConfig.h"
 #include "ProgramObject.h"
 #include "TextureCache.h"
 
+class AnimationHandle;
 class Shape;
+
+typedef QSharedPointer<AnimationHandle> AnimationHandlePointer;
+typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject {
@@ -106,7 +113,7 @@ public:
     bool getJointState(int index, glm::quat& rotation) const;
     
     /// Sets the joint state at the specified index.
-    void setJointState(int index, bool valid, const glm::quat& rotation = glm::quat());
+    void setJointState(int index, bool valid, const glm::quat& rotation = glm::quat(), float priority = 1.0f);
     
     /// Returns the index of the left hand joint, or -1 if not found.
     int getLeftHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().leftHandJointIndex : -1; }
@@ -159,7 +166,7 @@ public:
     /// Restores some percentage of the default position of the left hand.
     /// \param percent the percentage of the default position to restore
     /// \return whether or not the left hand joint was found
-    bool restoreLeftHandPosition(float percent = 1.0f);
+    bool restoreLeftHandPosition(float percent = 1.0f, float priority = 1.0f);
     
     /// Gets the position of the left shoulder.
     /// \return whether or not the left shoulder joint was found
@@ -171,7 +178,7 @@ public:
     /// Restores some percentage of the default position of the right hand.
     /// \param percent the percentage of the default position to restore
     /// \return whether or not the right hand joint was found
-    bool restoreRightHandPosition(float percent = 1.0f);
+    bool restoreRightHandPosition(float percent = 1.0f, float priority = 1.0f);
     
     /// Gets the position of the right shoulder.
     /// \return whether or not the right shoulder joint was found
@@ -184,6 +191,10 @@ public:
     bool getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind = false) const;
 
     QStringList getJointNames() const;
+    
+    AnimationHandlePointer createAnimationHandle();
+    
+    const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
     
     void clearShapes();
     void rebuildShapes();
@@ -243,6 +254,7 @@ protected:
         glm::quat rotation;     // rotation relative to parent
         glm::mat4 transform;    // rotation to world frame + translation in model frame
         glm::quat combinedRotation; // rotation from joint local to world frame
+        float animationPriority; // the priority of the animation affecting this joint
     };
     
     bool _shapesAreDirty;
@@ -278,8 +290,8 @@ protected:
     
     bool setJointPosition(int jointIndex, const glm::vec3& translation, const glm::quat& rotation = glm::quat(),
         bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
-        const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f));
-    bool setJointRotation(int jointIndex, const glm::quat& rotation, bool fromBind = false);
+        const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
+    bool setJointRotation(int jointIndex, const glm::quat& rotation, bool fromBind = false, float priority = 1.0f);
     
     void setJointTranslation(int jointIndex, const glm::vec3& translation);
     
@@ -287,17 +299,19 @@ protected:
     /// \param percent the percentage of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
     /// the original position
     /// \return true if the joint was found
-    bool restoreJointPosition(int jointIndex, float percent = 1.0f);
+    bool restoreJointPosition(int jointIndex, float percent = 1.0f, float priority = 0.0f);
     
     /// Computes and returns the extended length of the limb terminating at the specified joint and starting at the joint's
     /// first free ancestor.
     float getLimbLength(int jointIndex) const;
 
-    void applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain = true);
+    void applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain = true, float priority = 1.0f);
     
     void computeBoundingShape(const FBXGeometry& geometry);
 
 private:
+    
+    friend class AnimationHandle;
     
     void applyNextGeometry();
     void deleteGeometry();
@@ -322,19 +336,38 @@ private:
     
     QVector<Model*> _attachments;
 
+    QSet<WeakAnimationHandlePointer> _animationHandles;
+
+    QList<AnimationHandlePointer> _runningAnimations;
+
     static ProgramObject _program;
     static ProgramObject _normalMapProgram;
     static ProgramObject _specularMapProgram;
     static ProgramObject _normalSpecularMapProgram;
+    
+    static ProgramObject _shadowMapProgram;
+    static ProgramObject _shadowNormalMapProgram;
+    static ProgramObject _shadowSpecularMapProgram;
+    static ProgramObject _shadowNormalSpecularMapProgram;
+    
     static ProgramObject _shadowProgram;
+    
     static ProgramObject _skinProgram;
     static ProgramObject _skinNormalMapProgram;
     static ProgramObject _skinSpecularMapProgram;
     static ProgramObject _skinNormalSpecularMapProgram;
+    
+    static ProgramObject _skinShadowMapProgram;
+    static ProgramObject _skinShadowNormalMapProgram;
+    static ProgramObject _skinShadowSpecularMapProgram;
+    static ProgramObject _skinShadowNormalSpecularMapProgram;
+    
     static ProgramObject _skinShadowProgram;
     
     static int _normalMapTangentLocation;
     static int _normalSpecularMapTangentLocation;
+    static int _shadowNormalMapTangentLocation;
+    static int _shadowNormalSpecularMapTangentLocation;
     
     class SkinLocations {
     public:
@@ -348,13 +381,93 @@ private:
     static SkinLocations _skinNormalMapLocations;
     static SkinLocations _skinSpecularMapLocations;
     static SkinLocations _skinNormalSpecularMapLocations;
+    static SkinLocations _skinShadowMapLocations;
+    static SkinLocations _skinShadowNormalMapLocations;
+    static SkinLocations _skinShadowSpecularMapLocations;
+    static SkinLocations _skinShadowNormalSpecularMapLocations;
     static SkinLocations _skinShadowLocations;
     
-    static void initSkinProgram(ProgramObject& program, SkinLocations& locations, int specularTextureUnit = 1);
+    static void initSkinProgram(ProgramObject& program, SkinLocations& locations,
+        int specularTextureUnit = 1, int shadowTextureUnit = 1);
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)
 Q_DECLARE_METATYPE(QWeakPointer<NetworkGeometry>)
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
+
+/// Represents a handle to a model animation.
+class AnimationHandle : public QObject {
+    Q_OBJECT
+    
+public:
+
+    void setRole(const QString& role) { _role = role; }
+    const QString& getRole() const { return _role; }
+
+    void setURL(const QUrl& url);
+    const QUrl& getURL() const { return _url; }
+    
+    void setFPS(float fps) { _fps = fps; }
+    float getFPS() const { return _fps; }
+
+    void setPriority(float priority);
+    float getPriority() const { return _priority; }
+    
+    void setLoop(bool loop) { _loop = loop; }
+    bool getLoop() const { return _loop; }
+    
+    void setHold(bool hold) { _hold = hold; }
+    bool getHold() const { return _hold; }
+    
+    void setStartAutomatically(bool startAutomatically);
+    bool getStartAutomatically() const { return _startAutomatically; }
+    
+    void setFirstFrame(int firstFrame) { _firstFrame = firstFrame; }
+    int getFirstFrame() const { return _firstFrame; }
+    
+    void setLastFrame(int lastFrame) { _lastFrame = lastFrame; }
+    int getLastFrame() const { return _lastFrame; }
+    
+    void setMaskedJoints(const QStringList& maskedJoints);
+    const QStringList& getMaskedJoints() const { return _maskedJoints; }
+    
+    void setRunning(bool running);
+    bool isRunning() const { return _running; }
+
+signals:
+    
+    void runningChanged(bool running);
+
+public slots:
+
+    void start() { setRunning(true); }
+    void stop() { setRunning(false); }
+    
+private:
+
+    friend class Model;
+
+    AnimationHandle(Model* model);
+        
+    void simulate(float deltaTime);
+    void replaceMatchingPriorities(float newPriority);
+    
+    Model* _model;
+    WeakAnimationHandlePointer _self;
+    AnimationPointer _animation;
+    QString _role;
+    QUrl _url;
+    float _fps;
+    float _priority;
+    bool _loop;
+    bool _hold;
+    bool _startAutomatically;
+    int _firstFrame;
+    int _lastFrame;
+    QStringList _maskedJoints;
+    bool _running;
+    QVector<int> _jointMappings;
+    float _frameIndex;
+};
 
 #endif // hifi_Model_h
