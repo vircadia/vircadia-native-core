@@ -190,7 +190,7 @@ private slots:
     void showMetavoxelEditor();
     void showScriptEditor();
     void showChat();
-    void showConsole();
+    void toggleConsole();
     void toggleChat();
     void audioMuteToggled();
     void namedLocationCreated(LocationManager::NamedLocationCreateResponse response);

@@ -229,9 +229,9 @@ Menu::Menu() :
 
     addActionToQMenuAndActionHash(toolsMenu,
             MenuOption::Console,
-            Qt::CTRL | Qt::Key_QuoteLeft,
+            Qt::CTRL | Qt::ALT | Qt::Key_J,
             this,
-            SLOT(showConsole()));
+            SLOT(toggleConsole()));
 
     QMenu* viewMenu = addMenu("View");
 
@@ -1230,7 +1230,7 @@ void Menu::toggleChat() {
 #endif
 }
 
-void Menu::showConsole() {
+void Menu::toggleConsole() {
     QMainWindow* mainWindow = Application::getInstance()->getWindow();
     if (!_jsConsole) {
         _jsConsole = new JSConsole(mainWindow);
