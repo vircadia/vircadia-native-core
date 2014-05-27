@@ -2326,7 +2326,7 @@ void Application::updateShadowMap() {
     updateUntranslatedViewMatrix();
 
     glEnable(GL_POLYGON_OFFSET_FILL);
-    glPolygonOffset(1.1f, 4.0f);
+    glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
 
     _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
     _particles.render(OctreeRenderer::SHADOW_RENDER_MODE);

@@ -470,7 +470,7 @@ bool Model::updateGeometry() {
     return needFullUpdate;
 }
 
-bool Model::render(float alpha, RenderMode mode) {
+bool Model::render(float alpha, RenderMode mode, bool receiveShadows) {
     // render the attachments
     foreach (Model* attachment, _attachments) {
         attachment->render(alpha, mode);
@@ -508,13 +508,14 @@ bool Model::render(float alpha, RenderMode mode) {
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GREATER, 0.5f * alpha);
     
-    renderMeshes(alpha, mode, false);
+    receiveShadows &= Menu::getInstance()->isOptionChecked(MenuOption::Shadows);
+    renderMeshes(alpha, mode, false, receiveShadows);
     
     glDisable(GL_ALPHA_TEST);
     
     // render translucent meshes afterwards
     
-    renderMeshes(alpha, mode, true);
+    renderMeshes(alpha, mode, true, receiveShadows);
     
     glDisable(GL_CULL_FACE);
     
@@ -1596,11 +1597,10 @@ void Model::deleteGeometry() {
     }
 }
 
-void Model::renderMeshes(float alpha, RenderMode mode, bool translucent) {
+void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool receiveShadows) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
     
-    bool receiveShadows = Menu::getInstance()->isOptionChecked(MenuOption::Shadows);
     if (receiveShadows) {
         glTexGenfv(GL_S, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrix()[0]);
         glTexGenfv(GL_T, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrix()[1]);
