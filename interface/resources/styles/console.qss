@@ -4,17 +4,17 @@
 }
 
 #promptTextEdit {
-    color: rgb(117, 133, 140);
+    color: #425d72;
 }
 
 #promptTextEdit:!enabled {
-    color: rgba(0, 0, 0, 0.5);
+    color: #7f7f7f;
 }
 
 #promptGutterLabel {
-    color: rgba(117, 133, 140);
+    color: #a9bbc3;
 }
 
 #promptGutterLabel:!enabled {
-    color: rgba(0, 0, 0, 0.5);
+    color: #7f7f7f;
 }

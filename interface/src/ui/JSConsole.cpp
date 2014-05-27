@@ -21,13 +21,13 @@
 const int NO_CURRENT_HISTORY_COMMAND = -1;
 const int MAX_HISTORY_SIZE = 64;
 
-const QString COMMAND_STYLE = "color: rgb(38, 106, 155);";
+const QString COMMAND_STYLE = "color: #266a9b;";
 
-const QString RESULT_SUCCESS_STYLE = "color: rgb(103, 115, 115);";
-const QString RESULT_ERROR_STYLE = "color: rgb(209, 59, 34);";
+const QString RESULT_SUCCESS_STYLE = "color: #677373;";
+const QString RESULT_ERROR_STYLE = "color: #d13b22;";
 
-const QString GUTTER_PREVIOUS_COMMAND = "<span style=\"color: rgb(87, 184, 187);\">&lt;</span>";
-const QString GUTTER_ERROR = "<span style=\"color: rgb(209, 59, 34);\">X</span>";
+const QString GUTTER_PREVIOUS_COMMAND = "<span style=\"color: #57b8bb;\">&lt;</span>";
+const QString GUTTER_ERROR = "<span style=\"color: #d13b22;\">X</span>";
 
 JSConsole::JSConsole(QWidget* parent, ScriptEngine* scriptEngine) :
     QWidget(parent),
