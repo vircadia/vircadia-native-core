@@ -188,7 +188,7 @@ function controller(wichSide) {
         var X = Vec3.sum(A, Vec3.multiply(B, x));
         var d = Vec3.length(Vec3.subtract(P, X));
         
-        if (d < properties.radius && 0 < x && x < LASER_LENGTH_FACTOR) {
+        if (0 < x && x < LASER_LENGTH_FACTOR) {
             return { valid: true, x: x, y: y, z: z };
         }
         return { valid: false };
@@ -293,39 +293,43 @@ function controller(wichSide) {
         
         if (this.pressing) {
             Vec3.print("Looking at: ", this.palmPosition);
-            var foundModels = Models.findModels(this.palmPosition, LASER_LENGTH_FACTOR);
+            var pickRay = { origin: this.palmPosition,
+                            direction: Vec3.normalize(Vec3.subtract(this.tipPosition, this.palmPosition)) };
+            var foundIntersection = Models.findRayIntersection(pickRay);
             
-            for (var i = 0; i < foundModels.length; i++) {
-                
-                if (!foundModels[i].isKnownID) {
-                    var identify = Models.identifyModel(foundModels[i]);
-                    if (!identify.isKnownID) {
-                        print("Unknown ID " + identify.id + "(update loop)");
-                        return;
-                    }
-                    foundModels[i] = identify;
+            if(!foundIntersection.accurate) {
+                return;
+            }
+            var foundModel = foundIntersection.modelID;
+            
+            if (!foundModel.isKnownID) {
+                var identify = Models.identifyModel(foundModel);
+                if (!identify.isKnownID) {
+                    print("Unknown ID " + identify.id + " (update loop " + foundModel.id + ")");
+                    continue;
                 }
-                
-                var properties = Models.getModelProperties(foundModels[i]);
-                print("foundModels["+i+"].modelURL=" + properties.modelURL);
-
-                if (isLocked(properties)) {
-                    print("Model locked " + properties.id);
-                } else {
-                    print("Checking properties: " + properties.id + " " + properties.isKnownID);
-                    var check = this.checkModel(properties);
-                    if (check.valid) {
-                        this.grab(foundModels[i], properties);
-                        this.x = check.x;
-                        this.y = check.y;
-                        this.z = check.z;
-                        return;
-                    }
+                foundModel = identify;
+            }
+            
+            var properties = Models.getModelProperties(foundModel);
+            print("foundModel.modelURL=" + properties.modelURL);
+            
+            if (isLocked(properties)) {
+                print("Model locked " + properties.id);
+            } else {
+                print("Checking properties: " + properties.id + " " + properties.isKnownID);
+                var check = this.checkModel(properties);
+                if (check.valid) {
+                    this.grab(foundModel, properties);
+                    this.x = check.x;
+                    this.y = check.y;
+                    this.z = check.z;
+                    return;
                 }
             }
         }
     }
-    
+
     this.cleanup = function () {
         Overlays.deleteOverlay(this.laser);
         Overlays.deleteOverlay(this.ball);
@@ -478,93 +482,97 @@ function mousePressEvent(event) {
     } else {
         var pickRay = Camera.computePickRay(event.x, event.y);
         Vec3.print("[Mouse] Looking at: ", pickRay.origin);
-        var foundModels = Models.findModels(pickRay.origin, LASER_LENGTH_FACTOR);
-        var closest = -1.0;
-        for (var i = 0; i < foundModels.length; i++) {
-            if (!foundModels[i].isKnownID) {
-                var identify = Models.identifyModel(foundModels[i]);
-                if (!identify.isKnownID) {
-                    print("Unknown ID " + identify.id + "(update loop)");
-                    continue;
-                }
-                foundModels[i] = identify;
+        var foundIntersection = Models.findRayIntersection(pickRay);
+        
+        if(!foundIntersection.accurate) {
+            return;
+        }
+        var foundModel = foundIntersection.modelID;
+        
+        if (!foundModel.isKnownID) {
+            var identify = Models.identifyModel(foundModel);
+            if (!identify.isKnownID) {
+                print("Unknown ID " + identify.id + " (update loop " + foundModel.id + ")");
+                continue;
             }
-            
-            var properties = Models.getModelProperties(foundModels[i]);
-            if (isLocked(properties)) {
-                print("Model locked " + properties.id);
-            } else {
-                print("Checking properties: " + properties.id + " " + properties.isKnownID);
-                //                P         P - Model
-                //               /|         A - Palm
-                //              / | d       B - unit vector toward tip
-                //             /  |         X - base of the perpendicular line
-                //            A---X----->B  d - distance fom axis
-                //              x           x - distance from A
-                //
-                //            |X-A| = (P-A).B
-                //            X == A + ((P-A).B)B
-                //            d = |P-X|
-            
-                var A = pickRay.origin;
-                var B = Vec3.normalize(pickRay.direction);
-                var P = properties.position;
-            
-                var x = Vec3.dot(Vec3.subtract(P, A), B);
-                var X = Vec3.sum(A, Vec3.multiply(B, x));
-                var d = Vec3.length(Vec3.subtract(P, X));
-            
-                if (d < properties.radius && 0 < x && x < LASER_LENGTH_FACTOR) {
-                    if (closest < 0.0) {
-                        closest = x;
-                    }
-                    
-                    if (x <= closest) {
-                        modelSelected = true;
-                        selectedModelID = foundModels[i];
-                        selectedModelProperties = properties;
-                        
-                        orientation = MyAvatar.orientation;
-                        intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
-                    }
-                }
-            }
+            foundModel = identify;
         }
         
-        if (modelSelected) {
-            selectedModelProperties.oldRadius = selectedModelProperties.radius;
-            selectedModelProperties.oldPosition = {
-            x: selectedModelProperties.position.x,
-            y: selectedModelProperties.position.y,
-            z: selectedModelProperties.position.z,
-            };
-            selectedModelProperties.oldRotation = {
-            x: selectedModelProperties.modelRotation.x,
-            y: selectedModelProperties.modelRotation.y,
-            z: selectedModelProperties.modelRotation.z,
-            w: selectedModelProperties.modelRotation.w,
-            };
+        var properties = Models.getModelProperties(foundModel);
+        if (isLocked(properties)) {
+            print("Model locked " + properties.id);
+        } else {
+            print("Checking properties: " + properties.id + " " + properties.isKnownID);
+            //                P         P - Model
+            //               /|         A - Palm
+            //              / | d       B - unit vector toward tip
+            //             /  |         X - base of the perpendicular line
+            //            A---X----->B  d - distance fom axis
+            //              x           x - distance from A
+            //
+            //            |X-A| = (P-A).B
+            //            X == A + ((P-A).B)B
+            //            d = |P-X|
             
-            selectedModelProperties.glowLevel = 0.1;
-            Models.editModel(selectedModelID, { glowLevel: selectedModelProperties.glowLevel});
+            var A = pickRay.origin;
+            var B = Vec3.normalize(pickRay.direction);
+            var P = properties.position;
             
-            print("Clicked on " + selectedModelID.id + " " +  modelSelected);
+            var x = Vec3.dot(Vec3.subtract(P, A), B);
+            var X = Vec3.sum(A, Vec3.multiply(B, x));
+            var d = Vec3.length(Vec3.subtract(P, X));
+            
+            if (0 < x && x < LASER_LENGTH_FACTOR) {
+                modelSelected = true;
+                selectedModelID = foundModel;
+                selectedModelProperties = properties;
+                
+                orientation = MyAvatar.orientation;
+                intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
+            }
         }
+    }
+    
+    if (modelSelected) {
+        selectedModelProperties.oldRadius = selectedModelProperties.radius;
+        selectedModelProperties.oldPosition = {
+        x: selectedModelProperties.position.x,
+        y: selectedModelProperties.position.y,
+        z: selectedModelProperties.position.z,
+        };
+        selectedModelProperties.oldRotation = {
+        x: selectedModelProperties.modelRotation.x,
+        y: selectedModelProperties.modelRotation.y,
+        z: selectedModelProperties.modelRotation.z,
+        w: selectedModelProperties.modelRotation.w,
+        };
+        selectedModelProperties.glowLevel = 0.0;
+        
+        print("Clicked on " + selectedModelID.id + " " +  modelSelected);
     }
 }
 
-Controller.mouseReleaseEvent.connect(function() {
-    if (modelSelected) {
-        Models.editModel(selectedModelID, { glowLevel: 0.0 });
-        modelSelected = false;
-    }
- });
-
+var glowedModelID = { id: -1, isKnownID: false };
 var oldModifier = 0;
 var modifier = 0;
 var wasShifted = false;
 function mouseMoveEvent(event)  {
+    var pickRay = Camera.computePickRay(event.x, event.y);
+    
     if (!modelSelected) {
+        var modelIntersection = Models.findRayIntersection(pickRay);
+        if (modelIntersection.accurate) {
+            if(glowedModelID.isKnownID && glowedModelID.id != modelIntersection.modelID.id) {
+                Models.editModel(glowedModelID, { glowLevel: 0.0 });
+                glowedModelID.id = -1;
+                glowedModelID.isKnownID = false;
+            }
+            
+            if (modelIntersection.modelID.isKnownID) {
+                Models.editModel(modelIntersection.modelID, { glowLevel: 0.25 });
+                glowedModelID = modelIntersection.modelID;
+            }
+        }
         return;
     }
     
@@ -579,8 +587,7 @@ function mouseMoveEvent(event)  {
     } else {
         modifier = 0;
     }
-    
-    var pickRay = Camera.computePickRay(event.x, event.y);
+    pickRay = Camera.computePickRay(event.x, event.y);
     if (wasShifted != event.isShifted || modifier != oldModifier) {
         selectedModelProperties.oldRadius = selectedModelProperties.radius;
         
@@ -653,6 +660,15 @@ function mouseMoveEvent(event)  {
     Models.editModel(selectedModelID, selectedModelProperties);
 }
 
+function mouseReleaseEvent(event) {
+    modelSelected = false;
+    
+    glowedModelID.id = -1;
+    glowedModelID.isKnownID = false;
+}
+
+
+
 function setupModelMenus() {
     // add our menuitems
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Models", isSeparator: true, beforeItem: "Physics" });
@@ -677,6 +693,7 @@ Script.scriptEnding.connect(scriptEnding);
 Script.update.connect(checkController);
 Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseMoveEvent.connect(mouseMoveEvent);
+Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 
 setupModelMenus();
 Menu.menuItemEvent.connect(function(menuItem){
