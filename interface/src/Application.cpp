@@ -172,7 +172,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _nodeBoundsDisplay(this),
         _previousScriptLocation(),
         _runningScriptsWidget(new RunningScriptsWidget(_window)),
-        _runningScriptsWidgetWasVisible(false)
+        _runningScriptsWidgetWasVisible(false),
+        _trayIcon(new QSystemTrayIcon(_window))
 {
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
@@ -242,7 +243,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     QTimer* locationUpdateTimer = new QTimer(this);
     connect(locationUpdateTimer, &QTimer::timeout, this, &Application::updateLocationInServer);
     locationUpdateTimer->start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
- 
+
     connect(nodeList, &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList, &NodeList::nodeKilled, this, &Application::nodeKilled);
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
@@ -251,16 +252,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(nodeList, &NodeList::uuidChanged, this, &Application::updateWindowTitle);
     connect(nodeList, SIGNAL(uuidChanged(const QUuid&)), _myAvatar, SLOT(setSessionUUID(const QUuid&)));
     connect(nodeList, &NodeList::limitOfSilentDomainCheckInsReached, nodeList, &NodeList::reset);
-    
+
     // connect to appropriate slots on AccountManager
     AccountManager& accountManager = AccountManager::getInstance();
-    
+
     const qint64 BALANCE_UPDATE_INTERVAL_MSECS = 5 * 1000;
-    
+
     QTimer* balanceUpdateTimer = new QTimer(this);
     connect(balanceUpdateTimer, &QTimer::timeout, &accountManager, &AccountManager::updateBalance);
     balanceUpdateTimer->start(BALANCE_UPDATE_INTERVAL_MSECS);
-    
+
     connect(&accountManager, &AccountManager::balanceChanged, this, &Application::updateWindowTitle);
 
     connect(&accountManager, &AccountManager::authRequired, Menu::getInstance(), &Menu::loginForCurrentDomain);
@@ -391,6 +392,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     OAuthWebViewHandler::getInstance();
     // make sure the High Fidelity root CA is in our list of trusted certs
     OAuthWebViewHandler::addHighFidelityRootCAToSSLConfig();
+
+    _trayIcon->show();
 }
 
 Application::~Application() {
@@ -562,7 +565,7 @@ void Application::paintGL() {
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
 
     glEnable(GL_LINE_SMOOTH);
-    
+
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows (untweaked) head exactly without delay
         _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
@@ -3105,18 +3108,18 @@ void Application::updateWindowTitle(){
     QString username = AccountManager::getInstance().getAccountInfo().getUsername();
     QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
         + nodeList->getDomainHandler().getHostname() + buildVersion;
-    
+
     AccountManager& accountManager = AccountManager::getInstance();
     if (accountManager.getAccountInfo().hasBalance()) {
         float creditBalance = accountManager.getAccountInfo().getBalance() / SATOSHIS_PER_CREDIT;
-        
+
         QString creditBalanceString;
         creditBalanceString.sprintf("%.8f", creditBalance);
-        
+
         title += " - ₵" + creditBalanceString;
     }
-    
-    qDebug("Application title set to: %s", title.toStdString().c_str());    
+
+    qDebug("Application title set to: %s", title.toStdString().c_str());
     _window->setWindowTitle(title);
 }
 
