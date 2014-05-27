@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <FBXReader.h>
 #include <GeometryUtil.h>
 
 #include "ModelTree.h"
@@ -158,7 +159,41 @@ bool ModelTreeElement::findDetailedRayIntersection(const glm::vec3& origin, cons
 
         // if the ray doesn't intersect with our cube, we can stop searching!
         if (modelCube.findRayIntersection(origin, direction, localDistance, localFace)) {
-            if (localDistance < distance) {
+            const FBXGeometry* fbxGeometry = _myTree->getGeometryForModel(model);
+            if (fbxGeometry && fbxGeometry->meshExtents.isValid()) {
+                Extents extents = fbxGeometry->meshExtents;
+
+                // NOTE: these extents are model space, so we need to scale and center them accordingly
+                // size is our "target size in world space"
+                // we need to set our model scale so that the extents of the mesh, fit in a cube that size...
+                float maxDimension = glm::distance(extents.maximum, extents.minimum);
+                float scale = model.getSize() / maxDimension;
+
+                glm::vec3 halfDimensions = (extents.maximum - extents.minimum) * 0.5f;
+                glm::vec3 offset = -extents.minimum - halfDimensions;
+                
+                extents.minimum += offset;
+                extents.maximum += offset;
+
+                extents.minimum *= scale;
+                extents.maximum *= scale;
+
+                calculateRotatedExtents(extents, model.getModelRotation());
+
+                extents.minimum += model.getPosition();
+                extents.maximum += model.getPosition();
+
+                AABox rotatedExtentsBox(extents.minimum, (extents.maximum - extents.minimum));
+                
+                if (rotatedExtentsBox.findRayIntersection(origin, direction, localDistance, localFace)) {
+                    if (localDistance < distance) {
+                        distance = localDistance;
+                        face = localFace;
+                        *intersectedObject = (void*)(&model);
+                        somethingIntersected = true;
+                    }                
+                }
+            } else if (localDistance < distance) {
                 distance = localDistance;
                 face = localFace;
                 *intersectedObject = (void*)(&model);
