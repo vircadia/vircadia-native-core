@@ -234,8 +234,8 @@ void OverlayRenderer::renderOverlay(bool renderToTexture) {
 }
 
 // Draws the FBO texture for the screen
-void OverlayRenderer::displayOverlayTexture(Camera& whichCamera)
-{
+void OverlayRenderer::displayOverlayTexture(Camera& whichCamera) {
+
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
 
@@ -263,8 +263,7 @@ void OverlayRenderer::displayOverlayTexture(Camera& whichCamera)
 }
 
 // Draws the FBO texture for Oculus rift. TODO: Draw a curved texture instead of plane.
-void OverlayRenderer::displayOverlayTextureOculus(Camera& whichCamera)
-{
+void OverlayRenderer::displayOverlayTextureOculus(Camera& whichCamera) {
 
     Application* application = Application::getInstance();
 
