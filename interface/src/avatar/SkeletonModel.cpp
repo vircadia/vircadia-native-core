@@ -201,7 +201,7 @@ void SkeletonModel::updateJointState(int index) {
     JointState& state = _jointStates[index];
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const FBXJoint& joint = geometry.joints.at(index);
-    if (joint.parentIndex == -1) {
+    if (joint.parentIndex != -1) {
         const JointState& parentState = _jointStates.at(joint.parentIndex);
         if (index == geometry.leanJointIndex) {
             maybeUpdateLeanRotation(parentState, joint, state);
