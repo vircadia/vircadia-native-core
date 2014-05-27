@@ -16,6 +16,8 @@
 
 #include "OAuthAccessToken.h"
 
+const float SATOSHIS_PER_CREDIT = 100000000.0f;
+
 class DataServerAccountInfo : public QObject {
     Q_OBJECT
 public:
@@ -35,8 +37,8 @@ public:
     const QString& getDiscourseApiKey() const { return _discourseApiKey; }
     void setDiscourseApiKey(const QString& discourseApiKey);
     
-    quint64 getBalance() const { return _balance; }
-    void setBalance(quint64 balance);
+    qint64 getBalance() const { return _balance; }
+    void setBalance(qint64 balance);
     bool hasBalance() const { return _hasBalance; }
     void setHasBalance(bool hasBalance) { _hasBalance = hasBalance; }
     Q_INVOKABLE void setBalanceFromJSON(const QJsonObject& jsonObject);
@@ -52,7 +54,7 @@ private:
     QString _username;
     QString _xmppPassword;
     QString _discourseApiKey;
-    quint64 _balance;
+    qint64 _balance;
     bool _hasBalance;
 };
 

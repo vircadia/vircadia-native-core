@@ -85,12 +85,13 @@ ModelItem::ModelItem(const ModelItemID& modelItemID, const ModelItemProperties& 
     _shouldDie = false;
     _modelURL = MODEL_DEFAULT_MODEL_URL;
     _modelRotation = MODEL_DEFAULT_MODEL_ROTATION;
-
+    
     // animation related
     _animationURL = MODEL_DEFAULT_ANIMATION_URL;
     _animationIsPlaying = false;
     _animationFrameIndex = 0.0f;
     _animationFPS = MODEL_DEFAULT_ANIMATION_FPS;
+    _glowLevel = 0.0f;
 
     _jointMappingCompleted = false;
     _lastAnimated = now;
@@ -125,6 +126,7 @@ void ModelItem::init(glm::vec3 position, float radius, rgbColor color, uint32_t 
     _animationIsPlaying = false;
     _animationFrameIndex = 0.0f;
     _animationFPS = MODEL_DEFAULT_ANIMATION_FPS;
+    _glowLevel = 0.0f;
     _jointMappingCompleted = false;
     _lastAnimated = now;
 }
@@ -802,6 +804,7 @@ ModelItemProperties::ModelItemProperties() :
     _animationIsPlaying(false),
     _animationFrameIndex(0.0),
     _animationFPS(MODEL_DEFAULT_ANIMATION_FPS),
+    _glowLevel(0.0f),
 
     _id(UNKNOWN_MODEL_ID),
     _idSet(false),
@@ -817,6 +820,7 @@ ModelItemProperties::ModelItemProperties() :
     _animationIsPlayingChanged(false),
     _animationFrameIndexChanged(false),
     _animationFPSChanged(false),
+    _glowLevelChanged(false),
     _defaultSettings(true)
 {
 }
@@ -890,6 +894,7 @@ QScriptValue ModelItemProperties::copyToScriptValue(QScriptEngine* engine) const
     properties.setProperty("animationIsPlaying", _animationIsPlaying);
     properties.setProperty("animationFrameIndex", _animationFrameIndex);
     properties.setProperty("animationFPS", _animationFPS);
+    properties.setProperty("glowLevel", _glowLevel);
 
     if (_idSet) {
         properties.setProperty("id", _id);
@@ -1015,7 +1020,7 @@ void ModelItemProperties::copyFromScriptValue(const QScriptValue &object) {
             _animationFrameIndexChanged = true;
         }
     }
-
+    
     QScriptValue animationFPS = object.property("animationFPS");
     if (animationFPS.isValid()) {
         float newFPS;
@@ -1023,6 +1028,16 @@ void ModelItemProperties::copyFromScriptValue(const QScriptValue &object) {
         if (_defaultSettings || newFPS != _animationFPS) {
             _animationFPS = newFPS;
             _animationFPSChanged = true;
+        }
+    }
+    
+    QScriptValue glowLevel = object.property("glowLevel");
+    if (glowLevel.isValid()) {
+        float newGlowLevel;
+        newGlowLevel = glowLevel.toVariant().toFloat();
+        if (_defaultSettings || newGlowLevel != _glowLevel) {
+            _glowLevel = newGlowLevel;
+            _glowLevelChanged = true;
         }
     }
 
@@ -1075,9 +1090,14 @@ void ModelItemProperties::copyToModelItem(ModelItem& modelItem) const {
         modelItem.setAnimationFrameIndex(_animationFrameIndex);
         somethingChanged = true;
     }
-
+    
     if (_animationFPSChanged) {
         modelItem.setAnimationFPS(_animationFPS);
+        somethingChanged = true;
+    }
+    
+    if (_glowLevelChanged) {
+        modelItem.setGlowLevel(_glowLevel);
         somethingChanged = true;
     }
 
@@ -1104,6 +1124,7 @@ void ModelItemProperties::copyFromModelItem(const ModelItem& modelItem) {
     _animationIsPlaying = modelItem.getAnimationIsPlaying();
     _animationFrameIndex = modelItem.getAnimationFrameIndex();
     _animationFPS = modelItem.getAnimationFPS();
+    _glowLevel = modelItem.getGlowLevel();
 
     _id = modelItem.getID();
     _idSet = true;
@@ -1119,6 +1140,7 @@ void ModelItemProperties::copyFromModelItem(const ModelItem& modelItem) {
     _animationIsPlayingChanged = false;
     _animationFrameIndexChanged = false;
     _animationFPSChanged = false;
+    _glowLevelChanged = false;
     _defaultSettings = false;
 }
 

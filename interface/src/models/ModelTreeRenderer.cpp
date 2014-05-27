@@ -220,7 +220,13 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
                     // TODO: should we allow modelItems to have alpha on their models?
                     Model::RenderMode modelRenderMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE 
                                                             ? Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
-                    model->render(alpha, modelRenderMode);
+                
+                    if (modelItem.getGlowLevel() > 0.0f) {
+                        Glower glower(modelItem.getGlowLevel());
+                        model->render(alpha, modelRenderMode);
+                    } else {
+                        model->render(alpha, modelRenderMode);
+                    }
 
                     if (!isShadowMode && displayModelBounds) {
 

@@ -79,7 +79,7 @@ public:
     
     enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE };
     
-    bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE);
+    bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE, bool receiveShadows = true);
 
     /// Sets the URL of the model to render.
     /// \param fallback the URL of a fallback model to render if the requested model fails to load
@@ -315,7 +315,7 @@ private:
     
     void applyNextGeometry();
     void deleteGeometry();
-    void renderMeshes(float alpha, RenderMode mode, bool translucent);
+    void renderMeshes(float alpha, RenderMode mode, bool translucent, bool receiveShadows);
     QVector<JointState> createJointStates(const FBXGeometry& geometry);
     
     QSharedPointer<NetworkGeometry> _baseGeometry; ///< reference required to prevent collection of base
@@ -344,15 +344,30 @@ private:
     static ProgramObject _normalMapProgram;
     static ProgramObject _specularMapProgram;
     static ProgramObject _normalSpecularMapProgram;
+    
+    static ProgramObject _shadowMapProgram;
+    static ProgramObject _shadowNormalMapProgram;
+    static ProgramObject _shadowSpecularMapProgram;
+    static ProgramObject _shadowNormalSpecularMapProgram;
+    
     static ProgramObject _shadowProgram;
+    
     static ProgramObject _skinProgram;
     static ProgramObject _skinNormalMapProgram;
     static ProgramObject _skinSpecularMapProgram;
     static ProgramObject _skinNormalSpecularMapProgram;
+    
+    static ProgramObject _skinShadowMapProgram;
+    static ProgramObject _skinShadowNormalMapProgram;
+    static ProgramObject _skinShadowSpecularMapProgram;
+    static ProgramObject _skinShadowNormalSpecularMapProgram;
+    
     static ProgramObject _skinShadowProgram;
     
     static int _normalMapTangentLocation;
     static int _normalSpecularMapTangentLocation;
+    static int _shadowNormalMapTangentLocation;
+    static int _shadowNormalSpecularMapTangentLocation;
     
     class SkinLocations {
     public:
@@ -366,9 +381,14 @@ private:
     static SkinLocations _skinNormalMapLocations;
     static SkinLocations _skinSpecularMapLocations;
     static SkinLocations _skinNormalSpecularMapLocations;
+    static SkinLocations _skinShadowMapLocations;
+    static SkinLocations _skinShadowNormalMapLocations;
+    static SkinLocations _skinShadowSpecularMapLocations;
+    static SkinLocations _skinShadowNormalSpecularMapLocations;
     static SkinLocations _skinShadowLocations;
     
-    static void initSkinProgram(ProgramObject& program, SkinLocations& locations, int specularTextureUnit = 1);
+    static void initSkinProgram(ProgramObject& program, SkinLocations& locations,
+        int specularTextureUnit = 1, int shadowTextureUnit = 1);
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)

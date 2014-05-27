@@ -293,6 +293,7 @@ namespace MenuOption {
     const QString AudioSpatialProcessingDontDistanceAttenuate = "Don't calculate distance attenuation";
     const QString AudioSpatialProcessingAlternateDistanceAttenuate = "Alternate distance attenuation";
     const QString Avatars = "Avatars";
+    const QString AvatarsReceiveShadows = "Avatars Receive Shadows";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BuckyBalls = "Bucky Balls";
@@ -376,6 +377,7 @@ namespace MenuOption {
     const QString ShowBordersModelNodes = "Show Model Nodes";
     const QString ShowBordersParticleNodes = "Show Particle Nodes";
     const QString ShowIKConstraints = "Show IK Constraints";
+    const QString StandOnNearbyFloors = "Stand on nearby floors";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString StopAllScripts = "Stop All Scripts";

@@ -150,11 +150,11 @@ private:
     bool _shouldJump;
     float _driveKeys[MAX_DRIVE_KEYS];
     glm::vec3 _gravity;
-    glm::vec3 _environmentGravity;
     float _distanceToNearestAvatar; // How close is the nearest avatar?
 
     bool _wasPushing;
     bool _isPushing;
+    bool _isBraking;
     float _trapDuration; // seconds that avatar has been trapped by collisions
     glm::vec3 _thrust;  // final acceleration from outside sources for the current frame
 
@@ -174,7 +174,9 @@ private:
     QList<AnimationHandlePointer> _animationHandles;
 
 	// private methods
+    float computeDistanceToFloor(const glm::vec3& startPoint);
     void updateOrientation(float deltaTime);
+    void updatePosition(float deltaTime);
     void updateMotorFromKeyboard(float deltaTime, bool walking);
     float computeMotorTimescale();
     void applyMotor(float deltaTime);
