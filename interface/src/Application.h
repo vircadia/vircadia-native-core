@@ -214,10 +214,13 @@ public:
     JoystickManager* getJoystickManager() { return &_joystickManager; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QUndoStack* getUndoStack() { return &_undoStack; }
+    OverlayRenderer& getOverlayRenderer() { return _overlayRenderer; }
+    Overlays& getOverlays() { return _overlays; }
 
     float getFps() const { return _fps; }
     float getPacketsPerSecond() const { return _packetsPerSecond; }
     float getBytesPerSecond() const { return _bytesPerSecond; }
+    const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
 
     /// if you need to access the application settings, use lockSettings()/unlockSettings()
     QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }

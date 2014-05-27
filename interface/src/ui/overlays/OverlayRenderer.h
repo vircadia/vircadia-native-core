@@ -12,16 +12,26 @@
 #ifndef hifi_OverlayRenderer_h
 #define hifi_OverlayRenderer_h
 
+class Overlays;
+class QOpenGLFramebufferObject;
+
 // Handles the drawing of the overlays to the scree
 class OverlayRenderer {
 public:
 
     OverlayRenderer();
     ~OverlayRenderer();
-    void displayOverlay(class Overlays* overlays);
+
+    void renderOverlay(bool renderToTexture = false);
+    void displayOverlayTexture(Camera& whichCamera);
+    void displayOverlayTextureOculus(Camera& whichCamera);
+
+    // Getters
+   QOpenGLFramebufferObject* getFramebufferObject();
 
 private:
 
+    QOpenGLFramebufferObject* _framebufferObject;
     float _trailingAudioLoudness;
 };
 

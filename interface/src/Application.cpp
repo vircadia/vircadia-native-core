@@ -643,7 +643,7 @@ void Application::paintGL() {
             _rearMirrorTools->render(true);
         }
 
-        _overlayRenderer.displayOverlay(&_overlays);
+        _overlayRenderer.renderOverlay();
     }
 
     _frameCount++;

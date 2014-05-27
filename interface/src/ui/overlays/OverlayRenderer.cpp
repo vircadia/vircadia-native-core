@@ -9,56 +9,50 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "InterfaceConfig.h"
+
+#include <QOpenGLFramebufferObject>
 #include <PerfStat.h>
 
+#include "Application.h"
 #include "OverlayRenderer.h"
 
-
-#include "InterfaceVersion.h"
-#include "Menu.h"
-#include "ModelUploader.h"
-#include "Util.h"
-#include "devices/OculusManager.h"
-#include "devices/TV3DManager.h"
-#include "renderer/ProgramObject.h"
-
-#include "scripting/AudioDeviceScriptingInterface.h"
-#include "scripting/ClipboardScriptingInterface.h"
-#include "scripting/MenuScriptingInterface.h"
-#include "scripting/SettingsScriptingInterface.h"
-#include "scripting/WindowScriptingInterface.h"
-#include "scripting/LocationScriptingInterface.h"
-
-#include "ui/InfoView.h"
-#include "ui/OAuthWebViewHandler.h"
-#include "ui/Snapshot.h"
 #include "ui/Stats.h"
-#include "ui/TextRenderer.h"
 
-
-
-OverlayRenderer::OverlayRenderer() {
+OverlayRenderer::OverlayRenderer() : _framebufferObject(NULL) {
 
 }
 
 OverlayRenderer::~OverlayRenderer() {
-
+    if (_framebufferObject != NULL) {
+        delete _framebufferObject;
+    }
 }
 
 const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
 
-void OverlayRenderer::displayOverlay(Overlays* overlays) {
+// Renders the overlays either to a texture or to the screen
+void OverlayRenderer::renderOverlay(bool renderToTexture) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "OverlayRenderer::displayOverlay()");
 
     Application* application = Application::getInstance();
 
+    Overlays& overlays = application->getOverlays();
     QGLWidget* glWidget = application->getGLWidget();
     MyAvatar* myAvatar = application->getAvatar();
     Audio* audio = application->getAudio();
     const VoxelPacketProcessor& voxelPacketProcessor = application->getVoxelPacketProcessor();
     BandwidthMeter* bandwidthMeter = application->getBandwidthMeter();
     NodeBounds& nodeBoundsDisplay = application->getNodeBoundsDisplay();
-    //  Render 2D overlay:  I/O level bar graphs and text
+
+    if (renderToTexture) {
+        getFramebufferObject()->bind();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // Render 2D overlay:  I/O level bar graphs and text
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
 
@@ -147,7 +141,6 @@ void OverlayRenderer::displayOverlay(Overlays* overlays) {
     glVertex2i(AUDIO_METER_X + AUDIO_METER_WIDTH, audioMeterY + AUDIO_METER_HEIGHT);
     glVertex2i(AUDIO_METER_X, audioMeterY + AUDIO_METER_HEIGHT);
 
-
     if (audioLevel > AUDIO_RED_START) {
         if (!isClipping) {
             glColor3fv(AUDIO_METER_RED);
@@ -225,7 +218,127 @@ void OverlayRenderer::displayOverlay(Overlays* overlays) {
     // give external parties a change to hook in
     emit application->renderingOverlay();
 
-    overlays->render2D();
+    overlays.render2D();
 
     glPopMatrix();
+
+    glMatrixMode(GL_MODELVIEW);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
+   // glDisable(GL_BLEND);
+    
+
+    if (renderToTexture) {
+        getFramebufferObject()->release();
+    }
 }
+
+// Draws the FBO texture for the screen
+void OverlayRenderer::displayOverlayTexture(Camera& whichCamera)
+{
+    Application* application = Application::getInstance();
+    QGLWidget* glWidget = application->getGLWidget();
+
+    glEnable(GL_TEXTURE_2D);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, getFramebufferObject()->texture());
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+
+    glLoadIdentity();
+    gluOrtho2D(0, glWidget->width(), glWidget->height(), 0);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+
+    glBegin(GL_QUADS);
+        glTexCoord2f(0, 0); glVertex2i(0, glWidget->height());
+        glTexCoord2f(1, 0); glVertex2i(glWidget->width(), glWidget->height());
+        glTexCoord2f(1, 1); glVertex2i(glWidget->width(), 0);
+        glTexCoord2f(0, 1); glVertex2i(0, 0);
+    glEnd();
+
+    glPopMatrix();
+    glDisable(GL_TEXTURE_2D);
+}
+
+// Draws the FBO texture for Oculus rift. TODO: Draw a curved texture instead of plane.
+void OverlayRenderer::displayOverlayTextureOculus(Camera& whichCamera)
+{
+
+    Application* application = Application::getInstance();
+
+    QGLWidget* glWidget = application->getGLWidget();
+    MyAvatar* myAvatar = application->getAvatar();
+    const glm::vec3& viewMatrixTranslation = application->getViewMatrixTranslation();
+
+    const float overlayFov = whichCamera.getFieldOfView() * PI / 180.0f;
+    const float overlayDistance = 1;
+    const float overlayAspectRatio = glWidget->width() / (float)glWidget->height();
+    const float overlayHeight = overlayDistance * tan(overlayFov);
+    const float overlayWidth = overlayHeight * overlayAspectRatio;
+    const float halfOverlayWidth = overlayWidth / 2;
+    const float halfOverlayHeight = overlayHeight / 2;
+
+    glActiveTexture(GL_TEXTURE0);
+
+    glDepthMask(GL_FALSE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glBindTexture(GL_TEXTURE_2D, getFramebufferObject()->texture());
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+    glEnable(GL_TEXTURE_2D);
+
+    glMatrixMode(GL_MODELVIEW);
+
+    glPushMatrix();
+    glLoadIdentity();
+    //transform to world space
+    glm::quat rotation = whichCamera.getRotation();
+    glm::vec3 axis2 = glm::axis(rotation);
+    glRotatef(-glm::degrees(glm::angle(rotation)), axis2.x, axis2.y, axis2.z);
+    glTranslatef(viewMatrixTranslation.x, viewMatrixTranslation.y, viewMatrixTranslation.z);
+
+    glm::vec3 pos = whichCamera.getPosition();
+    glm::quat rot = myAvatar->getOrientation();
+    glm::vec3 axis = glm::axis(rot);
+    pos += rot * glm::vec3(0.0, 0.0, -overlayDistance);
+
+    glTranslatef(pos.x, pos.y, pos.z);
+    glRotatef(glm::degrees(glm::angle(rot)), axis.x, axis.y, axis.z);
+    glDisable(GL_DEPTH_TEST);
+
+    glBegin(GL_QUADS);
+        glTexCoord2f(1, 0); glVertex3f(-halfOverlayWidth, halfOverlayHeight, 0);
+        glTexCoord2f(0, 0); glVertex3f(halfOverlayWidth, halfOverlayHeight, 0);
+        glTexCoord2f(0, 1); glVertex3f(halfOverlayWidth, -halfOverlayHeight, 0);
+        glTexCoord2f(1, 1); glVertex3f(-halfOverlayWidth, -halfOverlayHeight, 0);
+    glEnd();
+
+    glPopMatrix();
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_TEXTURE_2D);
+
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
+    glEnable(GL_LIGHTING);
+   
+}
+
+QOpenGLFramebufferObject* OverlayRenderer::getFramebufferObject() {
+    if (!_framebufferObject) {
+        _framebufferObject = new QOpenGLFramebufferObject(Application::getInstance()->getGLWidget()->size());
+        
+        glBindTexture(GL_TEXTURE_2D, _framebufferObject->texture());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    return _framebufferObject;
+}
+
