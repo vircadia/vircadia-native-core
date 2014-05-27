@@ -80,7 +80,7 @@ ChatWindow::ChatWindow(QWidget* parent) :
     } else {
         ui->numOnlineLabel->hide();
         ui->closeButton->hide();
-        ui->usersWidget->hide();
+        ui->usersArea->hide();
         ui->messagesScrollArea->hide();
         ui->messagePlainTextEdit->hide();
         connect(&XmppClient::getInstance(), SIGNAL(joinedPublicChatRoom()), this, SLOT(connected()));
@@ -208,7 +208,7 @@ void ChatWindow::connected() {
     ui->connectingToXMPPLabel->hide();
     ui->numOnlineLabel->show();
     ui->closeButton->show();
-    ui->usersWidget->show();
+    ui->usersArea->show();
     ui->messagesScrollArea->show();
     ui->messagePlainTextEdit->show();
     ui->messagePlainTextEdit->setFocus();
@@ -248,6 +248,7 @@ void ChatWindow::notificationClicked() {
             return;
         }
     }
+    Application::processEvents();
 
     scrollToBottom();
 }
@@ -262,6 +263,8 @@ void ChatWindow::error(QXmppClient::Error error) {
 }
 
 void ChatWindow::participantsChanged() {
+    bool atBottom = isNearBottom();
+
     QStringList participants = XmppClient::getInstance().getPublicChatRoom()->participants();
     ui->numOnlineLabel->setText(tr("%1 online now:").arg(participants.count()));
 
@@ -287,6 +290,11 @@ void ChatWindow::participantsChanged() {
         userLabel->setCursor(Qt::PointingHandCursor);
         userLabel->installEventFilter(this);
         ui->usersWidget->layout()->addWidget(userLabel);
+    }
+    Application::processEvents();
+
+    if (atBottom) {
+        scrollToBottom();
     }
 }
 
