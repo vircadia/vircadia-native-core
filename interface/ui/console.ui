@@ -187,26 +187,29 @@
                   <property name="minimumSize">
                    <size>
                     <width>16</width>
-                    <height>0</height>
+                    <height>23</height>
                    </size>
                   </property>
                   <property name="maximumSize">
                    <size>
                     <width>16</width>
-                    <height>16</height>
+                    <height>23</height>
                    </size>
                   </property>
                   <property name="font">
                    <font>
-                    <weight>75</weight>
-                    <bold>true</bold>
+                    <weight>50</weight>
+                    <bold>false</bold>
                    </font>
                   </property>
                   <property name="styleSheet">
-                   <string notr="true">background-color: white; font-weight: bold; color: rgb(169, 187, 195);</string>
+                   <string notr="true">padding: 0px 0 0 0;</string>
                   </property>
                   <property name="text">
                    <string>&gt;</string>
+                  </property>
+                  <property name="textFormat">
+                   <enum>Qt::PlainText</enum>
                   </property>
                  </widget>
                 </item>
@@ -223,10 +226,6 @@
                     <family>Inconsolata,Lucida Console,Andale Mono,Monaco</family>
                     <pointsize>-1</pointsize>
                    </font>
-                  </property>
-                  <property name="styleSheet">
-                   <string notr="true">    font-family: Inconsolata, Lucida Console, Andale Mono, Monaco;
-font-size:14px</string>
                   </property>
                   <property name="frameShape">
                    <enum>QFrame::NoFrame</enum>

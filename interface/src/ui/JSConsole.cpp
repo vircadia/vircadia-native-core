@@ -36,16 +36,16 @@ JSConsole::JSConsole(QWidget* parent, ScriptEngine* scriptEngine) :
     _commandHistory(),
     _scriptEngine(scriptEngine) {
 
+    _ui->setupUi(this);
+    _ui->promptTextEdit->setLineWrapMode(QTextEdit::NoWrap);
+    _ui->promptTextEdit->setWordWrapMode(QTextOption::NoWrap);
+    _ui->promptTextEdit->installEventFilter(this);
+
     QFile styleSheet(Application::resourcesPath() + "styles/console.qss");
     if (styleSheet.open(QIODevice::ReadOnly)) {
         QDir::setCurrent(Application::resourcesPath());
         setStyleSheet(styleSheet.readAll());
     }
-
-    _ui->setupUi(this);
-    _ui->promptTextEdit->setLineWrapMode(QTextEdit::NoWrap);
-    _ui->promptTextEdit->setWordWrapMode(QTextOption::NoWrap);
-    _ui->promptTextEdit->installEventFilter(this);
 
     connect(_ui->scrollArea->verticalScrollBar(), SIGNAL(rangeChanged(int, int)), this, SLOT(scrollToBottom()));
     connect(_ui->promptTextEdit, SIGNAL(textChanged()), this, SLOT(resizeTextInput()));

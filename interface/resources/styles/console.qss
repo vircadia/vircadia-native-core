@@ -3,18 +3,18 @@
     font-size: 14px;
 }
 
-promptTextEdit {
+#promptTextEdit {
     color: rgb(117, 133, 140);
 }
 
-promptTextEdit:!enabled {
+#promptTextEdit:!enabled {
     color: rgba(0, 0, 0, 0.5);
 }
 
-promptGutterLabel {
+#promptGutterLabel {
     color: rgba(117, 133, 140);
 }
 
-promptGutterLabel:!enabled {
+#promptGutterLabel:!enabled {
     color: rgba(0, 0, 0, 0.5);
 }
