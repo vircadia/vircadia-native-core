@@ -1,0 +1,20 @@
+* {
+    font-family: Inconsolata, Lucida Console, Andale Mono, Monaco;
+    font-size: 14px;
+}
+
+promptTextEdit {
+    color: rgb(117, 133, 140);
+}
+
+promptTextEdit:!enabled {
+    color: rgba(0, 0, 0, 0.5);
+}
+
+promptGutterLabel {
+    color: rgba(117, 133, 140);
+}
+
+promptGutterLabel:!enabled {
+    color: rgba(0, 0, 0, 0.5);
+}

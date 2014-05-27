@@ -21,15 +21,13 @@
 const int NO_CURRENT_HISTORY_COMMAND = -1;
 const int MAX_HISTORY_SIZE = 64;
 
-const QString ACTIVE_PROMPT_STYLESHEET = "color: rgb(0, 0, 255);";
-const QString INACTIVE_PROMPT_STYLESHEET = "color: rgba(0, 0, 0, 0.5);";
-const QString COMMAND_STYLE = "color: rgb(30, 141, 255);";
+const QString COMMAND_STYLE = "color: rgb(38, 106, 155);";
 
-const QString RESULT_ERROR_STYLE = "color: rgb(255, 0, 0);";
-const QString RESULT_SUCCESS_STYLE = "color: rgb(160, 160, 160);";
+const QString RESULT_SUCCESS_STYLE = "color: rgb(103, 115, 115);";
+const QString RESULT_ERROR_STYLE = "color: rgb(209, 59, 34);";
 
-const QString GUTTER_ERROR = "<pre style=\"color: red;\">X</pre>";
-const QString GUTTER_PREVIOUS_COMMAND = "<pre style=\"color: lightblue;\">&lt;</pre>";
+const QString GUTTER_PREVIOUS_COMMAND = "<span style=\"color: rgb(87, 184, 187);\">&lt;</span>";
+const QString GUTTER_ERROR = "<span style=\"color: rgb(209, 59, 34);\">X</span>";
 
 JSConsole::JSConsole(QWidget* parent, ScriptEngine* scriptEngine) :
     QWidget(parent),
@@ -38,8 +36,15 @@ JSConsole::JSConsole(QWidget* parent, ScriptEngine* scriptEngine) :
     _commandHistory(),
     _scriptEngine(scriptEngine) {
 
+    QFile styleSheet(Application::resourcesPath() + "styles/console.qss");
+    if (styleSheet.open(QIODevice::ReadOnly)) {
+        QDir::setCurrent(Application::resourcesPath());
+        setStyleSheet(styleSheet.readAll());
+    }
+
     _ui->setupUi(this);
     _ui->promptTextEdit->setLineWrapMode(QTextEdit::NoWrap);
+    _ui->promptTextEdit->setWordWrapMode(QTextOption::NoWrap);
     _ui->promptTextEdit->installEventFilter(this);
 
     connect(_ui->scrollArea->verticalScrollBar(), SIGNAL(rangeChanged(int, int)), this, SLOT(scrollToBottom()));
@@ -54,7 +59,7 @@ JSConsole::JSConsole(QWidget* parent, ScriptEngine* scriptEngine) :
             this, SLOT(handleEvalutationFinished(QScriptValue, bool)));
     connect(_scriptEngine, SIGNAL(printedMessage(const QString&)), this, SLOT(handlePrint(const QString&)));
 
-    setWindowOpacity(0.95);
+    resizeTextInput();
 }
 
 JSConsole::~JSConsole() {
@@ -68,9 +73,8 @@ void JSConsole::executeCommand(const QString& command) {
     }
 
     _ui->promptTextEdit->setDisabled(true);
-    _ui->promptGutterLabel->setStyleSheet(INACTIVE_PROMPT_STYLESHEET);
 
-    appendMessage(">", "<pre style='" + COMMAND_STYLE + "'>" + command.toHtmlEscaped() + "</pre>");
+    appendMessage(">", "<span style='" + COMMAND_STYLE + "'>" + command.toHtmlEscaped() + "</span>");
 
     QMetaObject::invokeMethod(_scriptEngine, "evaluate", Q_ARG(const QString&, command));
 
@@ -79,7 +83,6 @@ void JSConsole::executeCommand(const QString& command) {
 
 void JSConsole::handleEvalutationFinished(QScriptValue result, bool isException) {
     _ui->promptTextEdit->setDisabled(false);
-    _ui->promptGutterLabel->setStyleSheet(ACTIVE_PROMPT_STYLESHEET);
 
     // Make sure focus is still on this window - some commands are blocking and can take awhile to execute.
     if (window()->isActiveWindow()) {
@@ -88,7 +91,7 @@ void JSConsole::handleEvalutationFinished(QScriptValue result, bool isException)
     
     QString gutter = (isException || result.isError()) ? GUTTER_ERROR : GUTTER_PREVIOUS_COMMAND;
     QString resultColor = (isException || result.isError()) ? RESULT_ERROR_STYLE : RESULT_SUCCESS_STYLE;
-    QString resultStr = "<pre style='" + resultColor + "'>" + result.toString().toHtmlEscaped()  + "</pre>";
+    QString resultStr = "<span style='" + resultColor + "'>" + result.toString().toHtmlEscaped()  + "</span>";
     appendMessage(gutter, resultStr);
 }
 
@@ -120,8 +123,7 @@ bool JSConsole::eventFilter(QObject* sender, QEvent* event) {
 
                     if (!command.isEmpty()) {
                         QTextCursor cursor = _ui->promptTextEdit->textCursor();
-                        cursor.select(QTextCursor::Document);
-                        cursor.removeSelectedText();
+                        _ui->promptTextEdit->clear();
 
                         executeCommand(command);
                     }
@@ -175,7 +177,7 @@ void JSConsole::resetCurrentCommandHistory() {
 }
 
 void JSConsole::resizeTextInput() {
-    _ui->promptTextEdit->setMaximumHeight(_ui->promptTextEdit->document()->size().height());
+    _ui->promptTextEdit->setFixedHeight(_ui->promptTextEdit->document()->size().height());
     _ui->promptTextEdit->updateGeometry();
 }
 
@@ -205,10 +207,8 @@ void JSConsole::appendMessage(const QString& gutter, const QString& message) {
     gutterLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
     messageLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
 
-    QFont font("Courier New");
-    font.setStyleHint(QFont::Monospace);
-    gutterLabel->setFont(font);
-    messageLabel->setFont(font);
+    gutterLabel->setStyleSheet("font-size: 14px; font-family: Inconsolata, Lucida Console, Andale Mono, Monaco;");
+    messageLabel->setStyleSheet("font-size: 14px; font-family: Inconsolata, Lucida Console, Andale Mono, Monaco;");
 
     gutterLabel->setText(gutter);
     messageLabel->setText(message);
