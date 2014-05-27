@@ -333,6 +333,7 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::AllowOculusCameraModeChange, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Avatars, 0, true);
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::AvatarsReceiveShadows, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderSkeletonCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderHeadCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderBoundingCollisionShapes);

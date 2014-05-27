@@ -79,7 +79,7 @@ public:
     
     enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE };
     
-    bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE);
+    bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE, bool receiveShadows = true);
 
     /// Sets the URL of the model to render.
     /// \param fallback the URL of a fallback model to render if the requested model fails to load
@@ -315,7 +315,7 @@ private:
     
     void applyNextGeometry();
     void deleteGeometry();
-    void renderMeshes(float alpha, RenderMode mode, bool translucent);
+    void renderMeshes(float alpha, RenderMode mode, bool translucent, bool receiveShadows);
     QVector<JointState> createJointStates(const FBXGeometry& geometry);
     
     QSharedPointer<NetworkGeometry> _baseGeometry; ///< reference required to prevent collection of base

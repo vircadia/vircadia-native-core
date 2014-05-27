@@ -20,6 +20,9 @@ uniform sampler2D specularMap;
 // the shadow texture
 uniform sampler2DShadow shadowMap;
 
+// the inverse of the size of the shadow map
+const float shadowScale = 1.0 / 2048.0;
+
 // the interpolated position in view space
 varying vec4 position;
 
@@ -30,7 +33,11 @@ void main(void) {
     // compute the base color based on OpenGL lighting model
     vec4 normalizedNormal = normalize(normal);
     float diffuse = dot(normalizedNormal, gl_LightSource[0].position);
-    float facingLight = step(0.0, diffuse) * shadow2D(shadowMap, gl_TexCoord[1].stp).r;
+    float facingLight = step(0.0, diffuse) * 0.25 *
+        (shadow2D(shadowMap, gl_TexCoord[1].stp + vec3(-shadowScale, -shadowScale, 0.0)).r +
+        shadow2D(shadowMap, gl_TexCoord[1].stp + vec3(-shadowScale, shadowScale, 0.0)).r +
+        shadow2D(shadowMap, gl_TexCoord[1].stp + vec3(shadowScale, -shadowScale, 0.0)).r +
+        shadow2D(shadowMap, gl_TexCoord[1].stp + vec3(shadowScale, shadowScale, 0.0)).r);
     vec4 base = gl_Color * (gl_FrontLightModelProduct.sceneColor + gl_FrontLightProduct[0].ambient +
         gl_FrontLightProduct[0].diffuse * (diffuse * facingLight));
 
