@@ -142,11 +142,17 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
     }
 
     const unsigned char* messageData = nodeData->getPacket();
+//unsigned char messageData[MAX_PACKET_SIZE];
+//memcpy(messageData, nodeData->getPacket(), MAX_PACKET_SIZE);    // DEBUG: make copy of message to send
+
     int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<const char*>(messageData));
     const unsigned char* dataAt = messageData + numBytesPacketHeader;
     dataAt += sizeof(OCTREE_PACKET_FLAGS);
     OCTREE_PACKET_SEQUENCE sequence = (*(OCTREE_PACKET_SEQUENCE*)dataAt);
     dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
+
+    OCTREE_PACKET_SENT_TIME timestamp = (*(OCTREE_PACKET_SENT_TIME*)dataAt);
+    dataAt += sizeof(OCTREE_PACKET_SENT_TIME);
 
 
     // If we've got a stats message ready to send, then see if we can piggyback them together
@@ -161,6 +167,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
 
             // copy voxel message to back of stats message
             memcpy(statsMessage + statsMessageLength, nodeData->getPacket(), nodeData->getPacketLength());
+//memcpy(statsMessage + statsMessageLength, messageData, nodeData->getPacketLength());
             statsMessageLength += nodeData->getPacketLength();
 
             // since a stats message is only included on end of scene, don't consider any of these bytes "wasted", since
@@ -203,6 +210,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
 
             OctreeServer::didCallWriteDatagram(this);
             NodeList::getInstance()->writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(), _node);
+//NodeList::getInstance()->writeDatagram((char*)messageData, nodeData->getPacketLength(), _node);
 
             packetSent = true;
 
@@ -223,6 +231,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
             // just send the voxel packet
             OctreeServer::didCallWriteDatagram(this);
             NodeList::getInstance()->writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(), _node);
+//NodeList::getInstance()->writeDatagram((char*)messageData, nodeData->getPacketLength(), _node);
             packetSent = true;
 
             int thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
@@ -245,7 +254,6 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         nodeData->incrementSequenceNumber();
         nodeData->resetOctreePacket();
     }
-
     return packetsSent;
 }
 
