@@ -2294,7 +2294,8 @@ void Application::updateShadowMap() {
     
     // to reduce texture "shimmer," move in texel increments
     float texelSize = (2.0f * radius) / fbo->width();
-    center = glm::round(center / texelSize) * texelSize;
+    center = glm::vec3(roundf(center.x / texelSize) * texelSize, roundf(center.y / texelSize) * texelSize,
+        roundf(center.z / texelSize) * texelSize);
     
     glm::vec3 minima(center.x - radius, center.y - radius, center.z - radius);
     glm::vec3 maxima(center.x + radius, center.y + radius, center.z + radius);
