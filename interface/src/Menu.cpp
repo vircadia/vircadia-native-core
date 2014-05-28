@@ -417,7 +417,8 @@ Menu::Menu() :
                                            false,
                                            appInstance->getAudio(),
                                            SLOT(toggleToneInjection()));
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioScope, Qt::CTRL | Qt::Key_P, false,
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioScope, 
+                                           Qt::CTRL | Qt::Key_P, false,
                                            appInstance->getAudio(),
                                            SLOT(toggleScope()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioScopePause,
@@ -425,6 +426,33 @@ Menu::Menu() :
                                            false,
                                            appInstance->getAudio(),
                                            SLOT(toggleScopePause()));
+
+    QMenu* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope Options");
+    addDisabledActionAndSeparator(audioScopeMenu, "Display Frames");
+    {
+        QAction *fiveFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeFiveFrames,
+                                               0,
+                                               true,
+                                               appInstance->getAudio(),
+                                               SLOT(selectAudioScopeFiveFrames()));
+
+        QAction *twentyFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeTwentyFrames,
+                                               0,
+                                               false,
+                                               appInstance->getAudio(),
+                                               SLOT(selectAudioScopeTwentyFrames()));
+
+        QAction *fiftyFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeFiftyFrames,
+                                               0,
+                                               false,
+                                               appInstance->getAudio(),
+                                               SLOT(selectAudioScopeFiftyFrames()));
+
+        QActionGroup* audioScopeFramesGroup = new QActionGroup(audioScopeMenu);
+        audioScopeFramesGroup->addAction(fiveFrames);
+        audioScopeFramesGroup->addAction(twentyFrames);
+        audioScopeFramesGroup->addAction(fiftyFrames);
+    }
 
     QMenu* spatialAudioMenu = audioDebugMenu->addMenu("Spatial Audio");
 
