@@ -1169,7 +1169,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
         glm::quat endRotation;
         if (useRotation) {
             getJointRotation(jointIndex, endRotation, true);
-            applyRotationDelta(jointIndex, rotation * glm::inverse(endRotation), priority);
+            applyRotationDelta(jointIndex, rotation * glm::inverse(endRotation), true, priority);
             getJointRotation(jointIndex, endRotation, true);
         }    
         
@@ -1213,7 +1213,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
                         1.0f / (combinedWeight + 1.0f));
                 }
             }
-            applyRotationDelta(index, combinedDelta, priority);
+            applyRotationDelta(index, combinedDelta, true, priority);
             glm::quat actualDelta = state.combinedRotation * glm::inverse(oldCombinedRotation);
             endPosition = actualDelta * jointVector + jointPosition;
             if (useRotation) {
