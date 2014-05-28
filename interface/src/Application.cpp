@@ -165,7 +165,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _runningScriptsWidget(new RunningScriptsWidget(_window)),
         _runningScriptsWidgetWasVisible(false),
         _trayIcon(new QSystemTrayIcon(_window)),
-        _overlayRenderer()
+        _applicationOverlay()
 {
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
@@ -646,7 +646,7 @@ void Application::paintGL() {
             _rearMirrorTools->render(true);
         }
 
-        _overlayRenderer.renderOverlay();
+        _applicationOverlay.renderOverlay();
     }
 
     _frameCount++;

@@ -1,5 +1,5 @@
 //
-//  OverlayRenderer.cpp
+//  ApplicationOverlay.cpp
 //  interface/src/ui/overlays
 //
 //  Created by Benjamin Arnold on 5/27/14.
@@ -15,15 +15,15 @@
 #include <PerfStat.h>
 
 #include "Application.h"
-#include "OverlayRenderer.h"
+#include "ApplicationOverlay.h"
 
 #include "ui/Stats.h"
 
-OverlayRenderer::OverlayRenderer() : _framebufferObject(NULL) {
+ApplicationOverlay::ApplicationOverlay() : _framebufferObject(NULL) {
 
 }
 
-OverlayRenderer::~OverlayRenderer() {
+ApplicationOverlay::~ApplicationOverlay() {
     if (_framebufferObject != NULL) {
         delete _framebufferObject;
     }
@@ -32,8 +32,8 @@ OverlayRenderer::~OverlayRenderer() {
 const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
 
 // Renders the overlays either to a texture or to the screen
-void OverlayRenderer::renderOverlay(bool renderToTexture) {
-    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "OverlayRenderer::displayOverlay()");
+void ApplicationOverlay::renderOverlay(bool renderToTexture) {
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
 
     Application* application = Application::getInstance();
 
@@ -226,7 +226,7 @@ void OverlayRenderer::renderOverlay(bool renderToTexture) {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
-    
+
 
     if (renderToTexture) {
         getFramebufferObject()->release();
@@ -234,7 +234,7 @@ void OverlayRenderer::renderOverlay(bool renderToTexture) {
 }
 
 // Draws the FBO texture for the screen
-void OverlayRenderer::displayOverlayTexture(Camera& whichCamera) {
+void ApplicationOverlay::displayOverlayTexture(Camera& whichCamera) {
 
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
@@ -252,10 +252,10 @@ void OverlayRenderer::displayOverlayTexture(Camera& whichCamera) {
     glDisable(GL_LIGHTING);
 
     glBegin(GL_QUADS);
-        glTexCoord2f(0, 0); glVertex2i(0, glWidget->height());
-        glTexCoord2f(1, 0); glVertex2i(glWidget->width(), glWidget->height());
-        glTexCoord2f(1, 1); glVertex2i(glWidget->width(), 0);
-        glTexCoord2f(0, 1); glVertex2i(0, 0);
+    glTexCoord2f(0, 0); glVertex2i(0, glWidget->height());
+    glTexCoord2f(1, 0); glVertex2i(glWidget->width(), glWidget->height());
+    glTexCoord2f(1, 1); glVertex2i(glWidget->width(), 0);
+    glTexCoord2f(0, 1); glVertex2i(0, 0);
     glEnd();
 
     glPopMatrix();
@@ -263,7 +263,7 @@ void OverlayRenderer::displayOverlayTexture(Camera& whichCamera) {
 }
 
 // Draws the FBO texture for Oculus rift. TODO: Draw a curved texture instead of plane.
-void OverlayRenderer::displayOverlayTextureOculus(Camera& whichCamera) {
+void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
     Application* application = Application::getInstance();
 
@@ -311,10 +311,10 @@ void OverlayRenderer::displayOverlayTextureOculus(Camera& whichCamera) {
     glRotatef(glm::degrees(glm::angle(rot)), axis.x, axis.y, axis.z);
 
     glBegin(GL_QUADS);
-        glTexCoord2f(1, 0); glVertex3f(-halfOverlayWidth, halfOverlayHeight, 0);
-        glTexCoord2f(0, 0); glVertex3f(halfOverlayWidth, halfOverlayHeight, 0);
-        glTexCoord2f(0, 1); glVertex3f(halfOverlayWidth, -halfOverlayHeight, 0);
-        glTexCoord2f(1, 1); glVertex3f(-halfOverlayWidth, -halfOverlayHeight, 0);
+    glTexCoord2f(1, 0); glVertex3f(-halfOverlayWidth, halfOverlayHeight, 0);
+    glTexCoord2f(0, 0); glVertex3f(halfOverlayWidth, halfOverlayHeight, 0);
+    glTexCoord2f(0, 1); glVertex3f(halfOverlayWidth, -halfOverlayHeight, 0);
+    glTexCoord2f(1, 1); glVertex3f(-halfOverlayWidth, -halfOverlayHeight, 0);
     glEnd();
 
     glPopMatrix();
@@ -326,13 +326,13 @@ void OverlayRenderer::displayOverlayTextureOculus(Camera& whichCamera) {
 
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
     glEnable(GL_LIGHTING);
-   
+
 }
 
-QOpenGLFramebufferObject* OverlayRenderer::getFramebufferObject() {
+QOpenGLFramebufferObject* ApplicationOverlay::getFramebufferObject() {
     if (!_framebufferObject) {
         _framebufferObject = new QOpenGLFramebufferObject(Application::getInstance()->getGLWidget()->size());
-        
+
         glBindTexture(GL_TEXTURE_2D, _framebufferObject->texture());
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

@@ -81,9 +81,9 @@ void OculusManager::configureCamera(Camera& camera, int screenWidth, int screenH
 
 void OculusManager::display(Camera& whichCamera) {
 #ifdef HAVE_LIBOVR
-    OverlayRenderer& overlayRenderer = Application::getInstance()->getOverlayRenderer();
+    ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
     // We only need to render the overlays to a texture once, then we just render the texture as a quad
-    overlayRenderer.renderOverlay(true);
+    applicationOverlay.renderOverlay(true);
     
     Application::getInstance()->getGlowEffect()->prepare(); 
 
@@ -104,7 +104,7 @@ void OculusManager::display(Camera& whichCamera) {
     
     Application::getInstance()->displaySide(whichCamera);
 
-    overlayRenderer.displayOverlayTextureOculus(whichCamera);
+    applicationOverlay.displayOverlayTextureOculus(whichCamera);
     
     // and the right eye to the right side
     const StereoEyeParams& rightEyeParams = _stereoConfig.GetEyeRenderParams(StereoEye_Right);
@@ -121,7 +121,7 @@ void OculusManager::display(Camera& whichCamera) {
     
     Application::getInstance()->displaySide(whichCamera);
 
-    overlayRenderer.displayOverlayTextureOculus(whichCamera);
+    applicationOverlay.displayOverlayTextureOculus(whichCamera);
    
     glPopMatrix();
     

@@ -83,7 +83,7 @@
 #include "ui/LogDialog.h"
 #include "ui/UpdateDialog.h"
 #include "ui/overlays/Overlays.h"
-#include "ui/overlays/OverlayRenderer.h"
+#include "ui/ApplicationOverlay.h"
 #include "ui/RunningScriptsWidget.h"
 #include "voxels/VoxelFade.h"
 #include "voxels/VoxelHideShowThread.h"
@@ -216,7 +216,7 @@ public:
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QUndoStack* getUndoStack() { return &_undoStack; }
     QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
-    OverlayRenderer& getOverlayRenderer() { return _overlayRenderer; }
+    ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
     Overlays& getOverlays() { return _overlays; }
 
     float getFps() const { return _fps; }
@@ -569,7 +569,7 @@ private:
     TouchEvent _lastTouchEvent;
 
     Overlays _overlays;
-    OverlayRenderer _overlayRenderer;
+    ApplicationOverlay _applicationOverlay;
 
     AudioReflector _audioReflector;
     RunningScriptsWidget* _runningScriptsWidget;
