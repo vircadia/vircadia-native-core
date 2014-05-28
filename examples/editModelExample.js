@@ -15,13 +15,13 @@ var count = 0;
 var moveUntil = 2000;
 var stopAfter = moveUntil + 100;
 
-var pitch = 0.0;
+var pitch = 90.0;
 var yaw = 0.0;
-var roll = 0.0;
+var roll = 180.0;
 var rotation = Quat.fromPitchYawRollDegrees(pitch, yaw, roll)
 
 var originalProperties = {
-    position: { x: 0,
+    position: { x: 10,
                 y: 0,
                 z: 0 },
 
@@ -51,8 +51,8 @@ function moveModel(deltaTime) {
 
         // delete it...
         if (count == moveUntil) {
-            //print("calling Models.deleteModel()");
-            //Models.deleteModel(modelID);
+            print("calling Models.deleteModel()");
+            Models.deleteModel(modelID);
         }
 
         // stop it...
