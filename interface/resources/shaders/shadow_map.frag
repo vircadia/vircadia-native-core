@@ -13,8 +13,15 @@
 
 uniform sampler2DShadow shadowMap;
 
+// the inverse of the size of the shadow map
+const float shadowScale = 1.0 / 2048.0;
+
 varying vec4 shadowColor;
 
 void main(void) {
-    gl_FragColor = mix(shadowColor, gl_Color, shadow2D(shadowMap, gl_TexCoord[0].stp));
+    gl_FragColor = mix(shadowColor, gl_Color, 0.25 *
+        (shadow2D(shadowMap, gl_TexCoord[0].stp + vec3(-shadowScale, -shadowScale, 0.0)).r +
+        shadow2D(shadowMap, gl_TexCoord[0].stp + vec3(-shadowScale, shadowScale, 0.0)).r +
+        shadow2D(shadowMap, gl_TexCoord[0].stp + vec3(shadowScale, -shadowScale, 0.0)).r +
+        shadow2D(shadowMap, gl_TexCoord[0].stp + vec3(shadowScale, shadowScale, 0.0)).r));
 }

@@ -237,27 +237,30 @@ void Sound::interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& ou
             return;
         }
 
+        // Skip any extra data in the WAVE chunk
+        waveStream.skipRawData(fileHeader.wave.descriptor.size - (sizeof(WAVEHeader) - sizeof(chunk)));
+
         // Read off remaining header information
         DATAHeader dataHeader;
-        if (waveStream.readRawData(reinterpret_cast<char *>(&dataHeader), sizeof(DATAHeader)) == sizeof(DATAHeader)) {
-            if (strncmp(dataHeader.descriptor.id, "data", 4) != 0) {
-                qDebug() << "Invalid wav audio data header.";
+        while (true) {
+            // Read chunks until the "data" chunk is found
+            if (waveStream.readRawData(reinterpret_cast<char *>(&dataHeader), sizeof(DATAHeader)) == sizeof(DATAHeader)) {
+                if (strncmp(dataHeader.descriptor.id, "data", 4) == 0) {
+                    break;
+                }
+                waveStream.skipRawData(dataHeader.descriptor.size);
+            } else {
+                qDebug() << "Could not read wav audio data header.";
                 return;
             }
-        } else {
-            qDebug() << "Could not read wav audio data header.";
-            return;
-        }
-
-        if (qFromLittleEndian<quint32>(fileHeader.riff.descriptor.size) != qFromLittleEndian<quint32>(dataHeader.descriptor.size) + 36) {
-            qDebug() << "Did not read audio file chank headers correctly.";
-            return;
         }
 
         // Now pull out the data
         quint32 outputAudioByteArraySize = qFromLittleEndian<quint32>(dataHeader.descriptor.size);
         outputAudioByteArray.resize(outputAudioByteArraySize);
-        waveStream.readRawData(outputAudioByteArray.data(), outputAudioByteArraySize);
+        if (waveStream.readRawData(outputAudioByteArray.data(), outputAudioByteArraySize) != outputAudioByteArraySize) {
+            qDebug() << "Error reading WAV file";
+        }
 
     } else {
         qDebug() << "Could not read wav audio file header.";

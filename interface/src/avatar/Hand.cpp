@@ -103,7 +103,7 @@ void Hand::collideAgainstOurself() {
     getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
     float scaledPalmRadius = PALM_COLLISION_RADIUS * _owningAvatar->getScale();
     
-    const Model& skeletonModel = _owningAvatar->getSkeletonModel();
+    const SkeletonModel& skeletonModel = _owningAvatar->getSkeletonModel();
     for (int i = 0; i < int(getNumPalms()); i++) {
         PalmData& palm = getPalms()[i];
         if (!palm.isActive()) {
