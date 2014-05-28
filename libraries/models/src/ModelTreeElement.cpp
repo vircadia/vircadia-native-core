@@ -192,51 +192,27 @@ bool ModelTreeElement::findDetailedRayIntersection(const glm::vec3& origin, cons
                 
                 if (rotatedExtentsBox.findRayIntersection(origin, direction, localDistance, localFace)) {
                     // if it's in our AABOX for our rotated extents, then check to see if it's in our non-AABox
-                    
+
+                    // extents is the model relative, scaled, centered extents of the model
+
                     glm::mat4 rotation = glm::mat4_cast(model.getModelRotation());
                     glm::mat4 translation = glm::translate(model.getPosition());
-                    glm::mat4 modelToWorldMatrix = rotation; // * translation;
-                    glm::mat4 worldToModelMatrix = modelToWorldMatrix; // glm::inverse(modelToWorldMatrix);
+                    glm::mat4 modelToWorldMatrix = translation * rotation;
+                    glm::mat4 worldToModelMatrix = glm::inverse(modelToWorldMatrix);
 
-                    // Note: reference, to get the point after rotation, take the rotation * the original point
-                    //glm::vec3 rotatedPoint = rotation * originalPoint;
-                    
                     AABox nonAABox(extents.minimum, (extents.maximum - extents.minimum));
 
-                    glm::vec3 endPoint = origin + direction;
-                    
+                    glm::vec3 originInModelFrame = glm::vec3(worldToModelMatrix * glm::vec4(origin, 1.0f));
+                    glm::vec3 directionInModelFrame = glm::vec3(worldToModelMatrix * glm::vec4(direction, 1.0f));
 
-                    glm::vec3 originInModelFrame = glm::vec3(worldToModelMatrix * glm::vec4(origin, 0.0f));
-                    glm::vec3 endPointInModelFrame = glm::vec3(worldToModelMatrix * glm::vec4(endPoint, 0.0f));
-                    glm::vec3 directionInModelFrame = endPointInModelFrame - originInModelFrame;
-                    glm::vec3 altDirectionInModelFrame = glm::vec3(worldToModelMatrix * glm::vec4(direction, 0.0f));
-
-                    
-qDebug() << "origin               =" << origin.x << "," << origin.y << "," << origin.z;
-qDebug() << "originInModelFrame   =" << originInModelFrame.x << "," << originInModelFrame.y << "," << originInModelFrame.z;
-
-qDebug() << "endPoint             =" << endPoint.x << "," << endPoint.y << "," << endPoint.z;
-qDebug() << "endPointInModelFrame =" << endPointInModelFrame.x << "," << endPointInModelFrame.y << "," << endPointInModelFrame.z;
-
-qDebug() << "direction               =" << direction.x << "," << direction.y << "," << direction.z;
-qDebug() << "directionInModelFrame   =" << directionInModelFrame.x << "," << directionInModelFrame.y << "," << directionInModelFrame.z;
-qDebug() << "altDirectionInModelFrame=" << altDirectionInModelFrame.x << "," << altDirectionInModelFrame.y << "," << altDirectionInModelFrame.z;
-
-                    float xDistance;
-                    BoxFace xFace;
-
-                    if (nonAABox.findRayIntersection(originInModelFrame, directionInModelFrame, xDistance, xFace)) {
-                        qDebug() << "woot! got it! (originInModelFrame, directionInModelFrame) intersects nonAABox!";
-                    } else {
-                        qDebug() << "NOPE! doesn't (originInModelFrame, directionInModelFrame) intersect nonAABox!";
+                    if (nonAABox.findRayIntersection(originInModelFrame, directionInModelFrame, localDistance, localFace)) {
+                        if (localDistance < distance) {
+                            distance = localDistance;
+                            face = localFace;
+                            *intersectedObject = (void*)(&model);
+                            somethingIntersected = true;
+                        }
                     }
-
-                    if (localDistance < distance) {
-                        distance = localDistance;
-                        face = localFace;
-                        *intersectedObject = (void*)(&model);
-                        somethingIntersected = true;
-                    }                
                 }
             } else if (localDistance < distance) {
                 distance = localDistance;
