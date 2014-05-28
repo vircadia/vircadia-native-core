@@ -101,8 +101,6 @@ public:
     bool isShuttingDown() const { return _isShuttingDown; }
 
     void incrementSequenceNumber();
-
-    void updatePacketTimestamp();
     
 private slots:
     void sendThreadFinished();

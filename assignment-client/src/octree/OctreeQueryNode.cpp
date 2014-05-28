@@ -366,17 +366,3 @@ void OctreeQueryNode::dumpOutOfView() {
 void OctreeQueryNode::incrementSequenceNumber() {
     _sequenceNumber++;
 }
-
-void OctreeQueryNode::updatePacketTimestamp() {
-    
-    int numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(_octreePacket), _myPacketType);
-    _octreePacketAt = _octreePacket + numBytesPacketHeader;
-    _octreePacketAt += sizeof(OCTREE_PACKET_FLAGS);
-    _octreePacketAt += sizeof(OCTREE_PACKET_SEQUENCE);
-
-    // pack in timestamp
-    OCTREE_PACKET_SENT_TIME now = usecTimestampNow();
-    OCTREE_PACKET_SENT_TIME* timeAt = (OCTREE_PACKET_SENT_TIME*)_octreePacketAt;
-    *timeAt = now;
-    
-}
