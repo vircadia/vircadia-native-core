@@ -23,15 +23,11 @@
 class AvatarData;
 class PalmData;
 
+const int LEFT_HAND_INDEX = 0;
+const int RIGHT_HAND_INDEX = 1;
 const int NUM_HANDS = 2;
-const int NUM_FINGERS_PER_HAND = 5;
-const int NUM_FINGERS = NUM_HANDS * NUM_FINGERS_PER_HAND;
 
-const int LEAPID_INVALID = -1;
 const int SIXENSEID_INVALID = -1;
-
-const int SIXENSE_CONTROLLER_ID_LEFT_HAND = 0;
-const int SIXENSE_CONTROLLER_ID_RIGHT_HAND = 1;
 
 class HandData {
 public:
