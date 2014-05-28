@@ -613,78 +613,6 @@ int Model::getLastFreeJointIndex(int jointIndex) const {
     return (isActive() && jointIndex != -1) ? _geometry->getFBXGeometry().joints.at(jointIndex).freeLineage.last() : -1;
 }
 
-bool Model::getHeadPosition(glm::vec3& headPosition) const {
-    return isActive() && getJointPosition(_geometry->getFBXGeometry().headJointIndex, headPosition);
-}
-
-bool Model::getNeckPosition(glm::vec3& neckPosition) const {
-    return isActive() && getJointPosition(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
-}
-
-bool Model::getNeckRotation(glm::quat& neckRotation) const {
-    return isActive() && getJointRotation(_geometry->getFBXGeometry().neckJointIndex, neckRotation);
-}
-
-bool Model::getNeckParentRotation(glm::quat& neckParentRotation) const {
-    if (!isActive()) {
-        return false;
-    }
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    if (geometry.neckJointIndex == -1) {
-        return false;
-    }
-    return getJointRotation(geometry.joints.at(geometry.neckJointIndex).parentIndex, neckParentRotation);
-}
-
-bool Model::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
-    if (!isActive()) {
-        return false;
-    }
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    return getJointPosition(geometry.leftEyeJointIndex, firstEyePosition) &&
-        getJointPosition(geometry.rightEyeJointIndex, secondEyePosition);
-}
-    
-bool Model::getLeftHandPosition(glm::vec3& position) const {
-    return getJointPosition(getLeftHandJointIndex(), position);
-}
-
-bool Model::getLeftHandRotation(glm::quat& rotation) const {
-    return getJointRotation(getLeftHandJointIndex(), rotation);
-}
-
-bool Model::getRightHandPosition(glm::vec3& position) const {
-    return getJointPosition(getRightHandJointIndex(), position);
-}
-
-bool Model::getRightHandRotation(glm::quat& rotation) const {
-    return getJointRotation(getRightHandJointIndex(), rotation);
-}
-
-bool Model::restoreLeftHandPosition(float percent, float priority) {
-    return restoreJointPosition(getLeftHandJointIndex(), percent, priority);
-}
-
-bool Model::getLeftShoulderPosition(glm::vec3& position) const {
-    return getJointPosition(getLastFreeJointIndex(getLeftHandJointIndex()), position);
-}
-
-float Model::getLeftArmLength() const {
-    return getLimbLength(getLeftHandJointIndex());
-}
-
-bool Model::restoreRightHandPosition(float percent, float priority) {
-    return restoreJointPosition(getRightHandJointIndex(), percent, priority);
-}
-
-bool Model::getRightShoulderPosition(glm::vec3& position) const {
-    return getJointPosition(getLastFreeJointIndex(getRightHandJointIndex()), position);
-}
-
-float Model::getRightArmLength() const {
-    return getLimbLength(getRightHandJointIndex());
-}
-
 void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bool delayLoad) {
     // don't recreate the geometry if it's the same URL
     if (_url == url) {
@@ -1210,32 +1138,11 @@ void Model::updateJointState(int index) {
         state.combinedRotation = _rotation * combinedRotation;
     } else {
         const JointState& parentState = _jointStates.at(joint.parentIndex);
-        if (index == geometry.leanJointIndex) {
-            maybeUpdateLeanRotation(parentState, joint, state);
-        
-        } else if (index == geometry.neckJointIndex) {
-            maybeUpdateNeckRotation(parentState, joint, state);    
-                
-        } else if (index == geometry.leftEyeJointIndex || index == geometry.rightEyeJointIndex) {
-            maybeUpdateEyeRotation(parentState, joint, state);
-        }
         glm::quat combinedRotation = joint.preRotation * state.rotation * joint.postRotation;    
         state.transform = parentState.transform * glm::translate(state.translation) * joint.preTransform *
             glm::mat4_cast(combinedRotation) * joint.postTransform;
         state.combinedRotation = parentState.combinedRotation * combinedRotation;
     }
-}
-
-void Model::maybeUpdateLeanRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
-    // nothing by default
-}
-
-void Model::maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
-    // nothing by default
-}
-
-void Model::maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
-    // nothing by default
 }
 
 bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const glm::quat& rotation, bool useRotation,
