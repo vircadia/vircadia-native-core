@@ -30,6 +30,22 @@ class Shape;
 
 typedef QSharedPointer<AnimationHandle> AnimationHandlePointer;
 typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
+    
+class JointState {
+public:
+    JointState();
+    glm::vec3 _translation;  // translation relative to parent
+    glm::quat _rotation;     // rotation relative to parent
+    glm::mat4 _transform;    // rotation to world frame + translation in model frame
+    glm::quat _combinedRotation; // rotation from joint local to world frame
+    float _animationPriority; // the priority of the animation affecting this joint
+
+    void setFBXJoint(const FBXJoint& joint) { _fbxJoint = &joint; }
+    const FBXJoint& getFBXJoint() const { return *_fbxJoint; }
+
+private:
+    const FBXJoint* _fbxJoint;    // JointState does not own its FBXJoint
+};
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject {
@@ -181,15 +197,6 @@ protected:
     bool _snapModelToCenter; /// is the model's offset automatically adjusted to center around 0,0,0 in model space
     bool _snappedToCenter; /// are we currently snapped to center
     int _rootIndex;
-    
-    class JointState {
-    public:
-        glm::vec3 translation;  // translation relative to parent
-        glm::quat rotation;     // rotation relative to parent
-        glm::mat4 transform;    // rotation to world frame + translation in model frame
-        glm::quat combinedRotation; // rotation from joint local to world frame
-        float animationPriority; // the priority of the animation affecting this joint
-    };
     
     bool _shapesAreDirty;
     QVector<JointState> _jointStates;
