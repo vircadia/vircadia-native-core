@@ -2266,14 +2266,14 @@ void Application::updateShadowMap() {
     
     int halfSize = fbo->width() / 2;
     float frustumScale = 1.0f / (_viewFrustum.getFarClip() - _viewFrustum.getNearClip());
+    loadViewFrustum(_myCamera, _viewFrustum);
     
     for (int i = 0; i < SHADOW_MATRIX_COUNT; i++) {
         const glm::vec2& coord = MAP_COORDS[i];
-        glViewport(coord.s * halfSize, coord.t * halfSize, halfSize, halfSize);
+        glViewport(coord.s * fbo->width(), coord.t * fbo->height(), halfSize, halfSize);
 
         float nearScale = MAP_DISTANCES[i] * frustumScale;
         float farScale = MAP_DISTANCES[i + 1] * frustumScale;
-        loadViewFrustum(_myCamera, _viewFrustum);
         glm::vec3 points[] = {
             glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), nearScale),
             glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), nearScale),
