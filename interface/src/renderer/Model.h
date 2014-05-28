@@ -221,7 +221,7 @@ protected:
     bool setJointPosition(int jointIndex, const glm::vec3& translation, const glm::quat& rotation = glm::quat(),
         bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
         const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
-    bool setJointRotation(int jointIndex, const glm::quat& rotation, bool fromBind = false, float priority = 1.0f);
+    bool setJointRotation(int jointIndex, const glm::quat& rotation, float priority = 1.0f);
     
     void setJointTranslation(int jointIndex, const glm::vec3& translation);
     

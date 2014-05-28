@@ -1231,15 +1231,14 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
     return true;
 }
 
-bool Model::setJointRotation(int jointIndex, const glm::quat& rotation, bool fromBind, float priority) {
+bool Model::setJointRotation(int jointIndex, const glm::quat& rotation, float priority) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
     }
     JointState& state = _jointStates[jointIndex];
     if (priority >= state.animationPriority) {
         state.rotation = state.rotation * glm::inverse(state.combinedRotation) * rotation *
-            glm::inverse(fromBind ? _geometry->getFBXGeometry().joints.at(jointIndex).inverseBindRotation :
-                _geometry->getFBXGeometry().joints.at(jointIndex).inverseDefaultRotation);
+            glm::inverse(_geometry->getFBXGeometry().joints.at(jointIndex).inverseBindRotation);
         state.animationPriority = priority;
     }
     return true;
