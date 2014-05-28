@@ -705,6 +705,30 @@ QStringList Avatar::getJointNames() const {
     return _skeletonModel.isActive() ? _skeletonModel.getGeometry()->getFBXGeometry().getJointNames() : QStringList();
 }
 
+glm::vec3 Avatar::getJointPosition(int index) const {
+    glm::vec3 position(0,0,0);
+    _skeletonModel.getJointPosition(index, position);
+    return position;
+}
+
+glm::vec3 Avatar::getJointPosition(const QString& name) const {
+    glm::vec3 position(0,0,0);
+    _skeletonModel.getJointPosition(getJointIndex(name), position);
+    return position;
+}
+
+glm::quat Avatar::getJointCombinedRotation(int index) const {
+    glm::quat rotation;
+    _skeletonModel.getJointCombinedRotation(index, rotation);
+    return rotation;
+}
+
+glm::quat Avatar::getJointCombinedRotation(const QString& name) const {
+    glm::quat rotation;
+    _skeletonModel.getJointCombinedRotation(getJointIndex(name), rotation);
+    return rotation;
+}
+
 void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
     const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile(Application::resourcesPath() + "meshes/defaultAvatar_head.fst");
@@ -725,6 +749,7 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     // make sure we have as many models as attachments
     while (_attachmentModels.size() < attachmentData.size()) {
         Model* model = new Model(this);
+        model->setSnapModelToCenter(true);
         model->init();
         _attachmentModels.append(model);
     }
