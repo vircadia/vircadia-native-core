@@ -2256,94 +2256,104 @@ void Application::updateShadowMap() {
     glEnable(GL_DEPTH_TEST);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glViewport(0, 0, fbo->width(), fbo->height());
-
     glm::vec3 lightDirection = -getSunDirection();
     glm::quat rotation = rotationBetween(IDENTITY_FRONT, lightDirection);
     glm::quat inverseRotation = glm::inverse(rotation);
-    float nearScale = 0.0f;
-    const float MAX_SHADOW_DISTANCE = 2.0f;
-    float farScale = (MAX_SHADOW_DISTANCE - _viewFrustum.getNearClip()) /
-        (_viewFrustum.getFarClip() - _viewFrustum.getNearClip());
-    loadViewFrustum(_myCamera, _viewFrustum);
-    glm::vec3 points[] = {
-        glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), nearScale),
-        glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), nearScale),
-        glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), nearScale),
-        glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), nearScale),
-        glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), farScale),
-        glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), farScale),
-        glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), farScale),
-        glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), farScale) };
-    glm::vec3 center;
-    for (size_t i = 0; i < sizeof(points) / sizeof(points[0]); i++) {
-        center += points[i];
-    }
-    center /= (float)(sizeof(points) / sizeof(points[0]));
-    float radius = 0.0f;
-    for (size_t i = 0; i < sizeof(points) / sizeof(points[0]); i++) {
-        radius = qMax(radius, glm::distance(points[i], center));
-    }
-    center = inverseRotation * center;
     
-    // to reduce texture "shimmer," move in texel increments
-    float texelSize = (2.0f * radius) / fbo->width();
-    center = glm::vec3(roundf(center.x / texelSize) * texelSize, roundf(center.y / texelSize) * texelSize,
-        roundf(center.z / texelSize) * texelSize);
+    const float MAP_DISTANCES[] = { 0.0f, 2.0f, 6.0f, 14.0f, 30.0f };
+    const glm::vec2 MAP_COORDS[] = { glm::vec2(0.0f, 0.0f), glm::vec2(0.5f, 0.0f),
+        glm::vec2(0.0f, 0.5f), glm::vec2(0.5f, 0.5f) };
     
-    glm::vec3 minima(center.x - radius, center.y - radius, center.z - radius);
-    glm::vec3 maxima(center.x + radius, center.y + radius, center.z + radius);
+    int halfSize = fbo->width() / 2;
+    float frustumScale = 1.0f / (_viewFrustum.getFarClip() - _viewFrustum.getNearClip());
+    
+    for (int i = 0; i < SHADOW_MATRIX_COUNT; i++) {
+        const glm::vec2& coord = MAP_COORDS[i];
+        glViewport(coord.s * halfSize, coord.t * halfSize, halfSize, halfSize);
 
-    // stretch out our extents in z so that we get all of the avatars
-    minima.z -= _viewFrustum.getFarClip() * 0.5f;
-    maxima.z += _viewFrustum.getFarClip() * 0.5f;
+        float nearScale = MAP_DISTANCES[i] * frustumScale;
+        float farScale = MAP_DISTANCES[i + 1] * frustumScale;
+        loadViewFrustum(_myCamera, _viewFrustum);
+        glm::vec3 points[] = {
+            glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), nearScale),
+            glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), nearScale),
+            glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), nearScale),
+            glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), nearScale),
+            glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), farScale),
+            glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), farScale),
+            glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), farScale),
+            glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), farScale) };
+        glm::vec3 center;
+        for (size_t j = 0; j < sizeof(points) / sizeof(points[0]); j++) {
+            center += points[j];
+        }
+        center /= (float)(sizeof(points) / sizeof(points[0]));
+        float radius = 0.0f;
+        for (size_t j = 0; j < sizeof(points) / sizeof(points[0]); j++) {
+            radius = qMax(radius, glm::distance(points[j], center));
+        }
+        center = inverseRotation * center;
+        
+        // to reduce texture "shimmer," move in texel increments
+        float texelSize = (2.0f * radius) / halfSize;
+        center = glm::vec3(roundf(center.x / texelSize) * texelSize, roundf(center.y / texelSize) * texelSize,
+            roundf(center.z / texelSize) * texelSize);
+        
+        glm::vec3 minima(center.x - radius, center.y - radius, center.z - radius);
+        glm::vec3 maxima(center.x + radius, center.y + radius, center.z + radius);
 
-    // save the combined matrix for rendering
-    _shadowMatrix = glm::transpose(glm::translate(glm::vec3(0.5f, 0.5f, 0.5f)) * glm::scale(glm::vec3(0.5f, 0.5f, 0.5f)) *
-        glm::ortho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z) * glm::mat4_cast(inverseRotation));
+        // stretch out our extents in z so that we get all of the avatars
+        minima.z -= _viewFrustum.getFarClip() * 0.5f;
+        maxima.z += _viewFrustum.getFarClip() * 0.5f;
 
-    // update the shadow view frustum
-    _shadowViewFrustum.setPosition(rotation * ((minima + maxima) * 0.5f));
-    _shadowViewFrustum.setOrientation(rotation);
-    _shadowViewFrustum.setOrthographic(true);
-    _shadowViewFrustum.setWidth(maxima.x - minima.x);
-    _shadowViewFrustum.setHeight(maxima.y - minima.y);
-    _shadowViewFrustum.setNearClip(minima.z);
-    _shadowViewFrustum.setFarClip(maxima.z);
-    _shadowViewFrustum.setEyeOffsetPosition(glm::vec3());
-    _shadowViewFrustum.setEyeOffsetOrientation(glm::quat());
-    _shadowViewFrustum.calculate();
+        // save the combined matrix for rendering
+        _shadowMatrices[i] = glm::transpose(glm::translate(glm::vec3(coord, 0.0f)) * glm::scale(glm::vec3(0.5f, 0.5f, 1.0f)) *
+            glm::translate(glm::vec3(0.5f, 0.5f, 0.5f)) * glm::scale(glm::vec3(0.5f, 0.5f, 0.5f)) *
+            glm::ortho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z) * glm::mat4_cast(inverseRotation));
 
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glOrtho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z);
+        // update the shadow view frustum
+        _shadowViewFrustum.setPosition(rotation * ((minima + maxima) * 0.5f));
+        _shadowViewFrustum.setOrientation(rotation);
+        _shadowViewFrustum.setOrthographic(true);
+        _shadowViewFrustum.setWidth(maxima.x - minima.x);
+        _shadowViewFrustum.setHeight(maxima.y - minima.y);
+        _shadowViewFrustum.setNearClip(minima.z);
+        _shadowViewFrustum.setFarClip(maxima.z);
+        _shadowViewFrustum.setEyeOffsetPosition(glm::vec3());
+        _shadowViewFrustum.setEyeOffsetOrientation(glm::quat());
+        _shadowViewFrustum.calculate();
 
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-    glm::vec3 axis = glm::axis(inverseRotation);
-    glRotatef(glm::degrees(glm::angle(inverseRotation)), axis.x, axis.y, axis.z);
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+        glLoadIdentity();
+        glOrtho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z);
 
-    // store view matrix without translation, which we'll use for precision-sensitive objects
-    updateUntranslatedViewMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glLoadIdentity();
+        glm::vec3 axis = glm::axis(inverseRotation);
+        glRotatef(glm::degrees(glm::angle(inverseRotation)), axis.x, axis.y, axis.z);
 
-    glEnable(GL_POLYGON_OFFSET_FILL);
-    glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
+        // store view matrix without translation, which we'll use for precision-sensitive objects
+        updateUntranslatedViewMatrix();
 
-    _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
-    _particles.render(OctreeRenderer::SHADOW_RENDER_MODE);
-    _models.render(OctreeRenderer::SHADOW_RENDER_MODE);
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
 
-    glDisable(GL_POLYGON_OFFSET_FILL);
+        _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
+        _particles.render(OctreeRenderer::SHADOW_RENDER_MODE);
+        _models.render(OctreeRenderer::SHADOW_RENDER_MODE);
 
-    glPopMatrix();
+        glDisable(GL_POLYGON_OFFSET_FILL);
 
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
+        glPopMatrix();
 
-    glMatrixMode(GL_MODELVIEW);
+        glMatrixMode(GL_PROJECTION);
+        glPopMatrix();
 
+        glMatrixMode(GL_MODELVIEW);
+    }
+    
     fbo->release();
 
     glViewport(0, 0, _glWidget->width(), _glWidget->height());

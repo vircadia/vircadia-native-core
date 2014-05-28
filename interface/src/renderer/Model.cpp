@@ -1509,9 +1509,12 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
     
     if (receiveShadows) {
-        glTexGenfv(GL_S, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrix()[0]);
-        glTexGenfv(GL_T, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrix()[1]);
-        glTexGenfv(GL_R, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrix()[2]);
+        for (int i = SHADOW_MATRIX_COUNT - 1; i >= 0; i--) {
+            glActiveTexture(GL_TEXTURE0 + i);
+            glTexGenfv(GL_S, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrices()[i][0]);
+            glTexGenfv(GL_T, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrices()[i][1]);
+            glTexGenfv(GL_R, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrices()[i][2]);
+        }
     }
     for (int i = 0; i < networkMeshes.size(); i++) {
         // exit early if the translucency doesn't match what we're drawing

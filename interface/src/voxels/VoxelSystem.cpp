@@ -1490,10 +1490,12 @@ void VoxelSystem::applyScaleAndBindProgram(bool texture) {
         _shadowMapProgram.bind();
         glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getShadowDepthTextureID());
 
-        glTexGenfv(GL_S, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrix()[0]);
-        glTexGenfv(GL_T, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrix()[1]);
-        glTexGenfv(GL_R, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrix()[2]);
-
+        for (int i = SHADOW_MATRIX_COUNT - 1; i >= 0; i--) {
+            glActiveTexture(GL_TEXTURE0 + i);
+            glTexGenfv(GL_S, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrices()[i][0]);
+            glTexGenfv(GL_T, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrices()[i][1]);
+            glTexGenfv(GL_R, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrices()[i][2]);
+        }
     } else if (texture) {
         _perlinModulateProgram.bind();
         glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPermutationNormalTextureID());
