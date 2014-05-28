@@ -279,6 +279,10 @@ namespace MenuOption {
     const QString AudioNoiseReduction = "Audio Noise Reduction";
     const QString AudioScope = "Audio Scope";
     const QString AudioScopePause = "Pause Audio Scope";
+    const QString AudioScopeFrames = "Display Frames";
+    const QString AudioScopeFiveFrames = "Five";
+    const QString AudioScopeTwentyFrames = "Twenty";
+    const QString AudioScopeFiftyFrames = "Fifty";
     const QString AudioToneInjection = "Inject Test Tone";
     const QString AudioSpatialProcessing = "Audio Spatial Processing";
     const QString AudioSpatialProcessingHeadOriented = "Head Oriented";
