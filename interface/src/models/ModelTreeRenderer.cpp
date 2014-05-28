@@ -10,6 +10,7 @@
 //
 
 #include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/transform.hpp>
 
 #include <FBXReader.h>
 
@@ -266,6 +267,92 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
                             glColor3f(0.0f, 1.0f, 0.0f);
                             glutWireCube(1.0);
 
+                        glPopMatrix();
+
+
+                        glPushMatrix();
+                        {
+                            Extents extents = model->getUnscaledMeshExtents();
+
+qDebug() << "original...";
+
+qDebug() << "  extents.minimum=" << extents.minimum.x << "," << extents.minimum.y << "," << extents.minimum.z;
+qDebug() << "  extents.maximum=" << extents.maximum.x << "," << extents.maximum.y << "," << extents.maximum.z;
+
+                            float maxDimension = glm::distance(extents.maximum, extents.minimum);
+                            float scale = modelItem.getSize() / maxDimension;
+
+qDebug() << "  maxDimension=" << maxDimension;
+qDebug() << "  modelItem.getSize()=" << modelItem.getSize();
+qDebug() << "  modelItem.getSize() [meters]=" << modelItem.getSize() * (float)TREE_SCALE;
+qDebug() << "  scale=" << scale;
+
+                            glm::vec3 halfDimensions = (extents.maximum - extents.minimum) * 0.5f;
+                            glm::vec3 offset = -extents.minimum - halfDimensions;
+                
+                            extents.minimum += offset;
+                            extents.maximum += offset;
+
+qDebug() << "after offset...";
+
+qDebug() << "  extents.minimum=" << extents.minimum.x << "," << extents.minimum.y << "," << extents.minimum.z;
+qDebug() << "  extents.maximum=" << extents.maximum.x << "," << extents.maximum.y << "," << extents.maximum.z;
+
+                            extents.minimum *= (scale * (float)TREE_SCALE);
+                            extents.maximum *= (scale * (float)TREE_SCALE);
+
+qDebug() << "after scale...";
+
+qDebug() << "  extents.minimum=" << extents.minimum.x << "," << extents.minimum.y << "," << extents.minimum.z;
+qDebug() << "  extents.maximum=" << extents.maximum.x << "," << extents.maximum.y << "," << extents.maximum.z;
+
+                            // using transform matrix draw spheres at corners
+                            glm::mat4 rotation = glm::mat4_cast(modelItem.getModelRotation());
+                            glm::vec3 modelPosition = modelItem.getPosition() * (float)TREE_SCALE;
+                            glm::mat4 translation = glm::translate(modelPosition);
+                            glm::mat4 modelToWorldMatrix = translation * rotation;
+                            glm::mat4 worldToModelMatrix = glm::inverse(modelToWorldMatrix);
+
+
+                            glm::vec3 modelOrigin(0);
+                            glm::vec3 modelOriginInWorld = glm::vec3(modelToWorldMatrix * glm::vec4(modelOrigin, 1.0f));
+
+                            glm::vec3 bottomLeftNear = extents.minimum;
+                            glm::vec3 topRightFar = extents.maximum;
+
+                            glm::vec3 blnInWorld = glm::vec3(modelToWorldMatrix * glm::vec4(bottomLeftNear, 1.0f));
+                            glm::vec3 trfInWorld = glm::vec3(modelToWorldMatrix * glm::vec4(topRightFar, 1.0f));
+
+//qDebug() << "modelPosition      =" << modelPosition.x << "," << modelPosition.y << "," << modelPosition.z;
+//qDebug() << "modelOrigin        =" << modelOrigin.x << "," << modelOrigin.y << "," << modelOrigin.z;
+//qDebug() << "modelOriginInWorld =" << modelOriginInWorld.x << "," << modelOriginInWorld.y << "," << modelOriginInWorld.z;
+
+qDebug() << "  modelPosition      =" << modelPosition.x << "," << modelPosition.y << "," << modelPosition.z;
+qDebug() << "  bottomLeftNear  =" << bottomLeftNear.x << "," << bottomLeftNear.y << "," << bottomLeftNear.z;
+qDebug() << "  blnInWorld      =" << blnInWorld.x << "," << blnInWorld.y << "," << blnInWorld.z;
+
+                            glPushMatrix();
+                                glTranslatef(modelOriginInWorld.x, modelOriginInWorld.y, modelOriginInWorld.z);
+                                // draw the orignal bounding cube
+                                glColor3f(0.0f, 1.0f, 0.0f);
+                                glutSolidCube(0.02f);
+                            glPopMatrix();
+
+                            glPushMatrix();
+                                glTranslatef(blnInWorld.x, blnInWorld.y, blnInWorld.z);
+                                // draw the orignal bounding cube
+                                glColor3f(0.0f, 0.0f, 1.0f);
+                                glutSolidCube(0.02f);
+                            glPopMatrix();
+                            
+                            glPushMatrix();
+                                glTranslatef(trfInWorld.x, trfInWorld.y, trfInWorld.z);
+                                // draw the orignal bounding cube
+                                glColor3f(1.0f, 0.0f, 1.0f);
+                                glutSolidCube(0.02f);
+                            glPopMatrix();
+
+                        }
                         glPopMatrix();
                         
                     }

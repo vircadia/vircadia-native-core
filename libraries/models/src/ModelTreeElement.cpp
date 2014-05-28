@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <glm/gtx/transform.hpp>
+
 #include <FBXReader.h>
 #include <GeometryUtil.h>
 
@@ -177,15 +179,58 @@ bool ModelTreeElement::findDetailedRayIntersection(const glm::vec3& origin, cons
 
                 extents.minimum *= scale;
                 extents.maximum *= scale;
+                
+                Extents rotatedExtents = extents;
 
-                calculateRotatedExtents(extents, model.getModelRotation());
+                calculateRotatedExtents(rotatedExtents, model.getModelRotation());
 
-                extents.minimum += model.getPosition();
-                extents.maximum += model.getPosition();
+                rotatedExtents.minimum += model.getPosition();
+                rotatedExtents.maximum += model.getPosition();
 
-                AABox rotatedExtentsBox(extents.minimum, (extents.maximum - extents.minimum));
+
+                AABox rotatedExtentsBox(rotatedExtents.minimum, (rotatedExtents.maximum - rotatedExtents.minimum));
                 
                 if (rotatedExtentsBox.findRayIntersection(origin, direction, localDistance, localFace)) {
+                    // if it's in our AABOX for our rotated extents, then check to see if it's in our non-AABox
+                    
+                    glm::mat4 rotation = glm::mat4_cast(model.getModelRotation());
+                    glm::mat4 translation = glm::translate(model.getPosition());
+                    glm::mat4 modelToWorldMatrix = rotation; // * translation;
+                    glm::mat4 worldToModelMatrix = modelToWorldMatrix; // glm::inverse(modelToWorldMatrix);
+
+                    // Note: reference, to get the point after rotation, take the rotation * the original point
+                    //glm::vec3 rotatedPoint = rotation * originalPoint;
+                    
+                    AABox nonAABox(extents.minimum, (extents.maximum - extents.minimum));
+
+                    glm::vec3 endPoint = origin + direction;
+                    
+
+                    glm::vec3 originInModelFrame = glm::vec3(worldToModelMatrix * glm::vec4(origin, 0.0f));
+                    glm::vec3 endPointInModelFrame = glm::vec3(worldToModelMatrix * glm::vec4(endPoint, 0.0f));
+                    glm::vec3 directionInModelFrame = endPointInModelFrame - originInModelFrame;
+                    glm::vec3 altDirectionInModelFrame = glm::vec3(worldToModelMatrix * glm::vec4(direction, 0.0f));
+
+                    
+qDebug() << "origin               =" << origin.x << "," << origin.y << "," << origin.z;
+qDebug() << "originInModelFrame   =" << originInModelFrame.x << "," << originInModelFrame.y << "," << originInModelFrame.z;
+
+qDebug() << "endPoint             =" << endPoint.x << "," << endPoint.y << "," << endPoint.z;
+qDebug() << "endPointInModelFrame =" << endPointInModelFrame.x << "," << endPointInModelFrame.y << "," << endPointInModelFrame.z;
+
+qDebug() << "direction               =" << direction.x << "," << direction.y << "," << direction.z;
+qDebug() << "directionInModelFrame   =" << directionInModelFrame.x << "," << directionInModelFrame.y << "," << directionInModelFrame.z;
+qDebug() << "altDirectionInModelFrame=" << altDirectionInModelFrame.x << "," << altDirectionInModelFrame.y << "," << altDirectionInModelFrame.z;
+
+                    float xDistance;
+                    BoxFace xFace;
+
+                    if (nonAABox.findRayIntersection(originInModelFrame, directionInModelFrame, xDistance, xFace)) {
+                        qDebug() << "woot! got it! (originInModelFrame, directionInModelFrame) intersects nonAABox!";
+                    } else {
+                        qDebug() << "NOPE! doesn't (originInModelFrame, directionInModelFrame) intersect nonAABox!";
+                    }
+
                     if (localDistance < distance) {
                         distance = localDistance;
                         face = localFace;

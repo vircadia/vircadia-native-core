@@ -15,13 +15,13 @@ var count = 0;
 var moveUntil = 2000;
 var stopAfter = moveUntil + 100;
 
-var pitch = 90.0;
+var pitch = 0.0;
 var yaw = 0.0;
-var roll = 180.0;
+var roll = 0.0;
 var rotation = Quat.fromPitchYawRollDegrees(pitch, yaw, roll)
 
 var originalProperties = {
-    position: { x: 10,
+    position: { x: 0,
                 y: 0,
                 z: 0 },
 
@@ -31,12 +31,12 @@ var originalProperties = {
              green: 255,
              blue: 0 },
 
-    //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
+    modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
     //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/birarda/birarda_head.fbx",
     //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/pug.fbx",
     //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/newInvader16x16-large-purple.svo",
     //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/minotaur/mino_full.fbx",
-    modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Combat_tank_V01.FBX",
+    //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Combat_tank_V01.FBX",
     
     modelRotation: rotation
 };
@@ -51,8 +51,8 @@ function moveModel(deltaTime) {
 
         // delete it...
         if (count == moveUntil) {
-            print("calling Models.deleteModel()");
-            Models.deleteModel(modelID);
+            //print("calling Models.deleteModel()");
+            //Models.deleteModel(modelID);
         }
 
         // stop it...
