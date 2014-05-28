@@ -26,7 +26,7 @@
 #include "renderer/Model.h"
 
 // Generic client side Octree renderer class.
-class ModelTreeRenderer : public OctreeRenderer {
+class ModelTreeRenderer : public OctreeRenderer, public ModelItemFBXService {
 public:
     ModelTreeRenderer();
     virtual ~ModelTreeRenderer();
@@ -38,6 +38,7 @@ public:
     virtual void renderElement(OctreeElement* element, RenderArgs* args);
     virtual float getSizeScale() const;
     virtual int getBoundaryLevelAdjust() const;
+    virtual void setTree(Octree* newTree);
 
     void update();
 
@@ -47,6 +48,8 @@ public:
 
     virtual void init();
     virtual void render(RenderMode renderMode = DEFAULT_RENDER_MODE);
+
+    virtual const FBXGeometry* getGeometryForModel(const ModelItem& modelItem);
 
 protected:
     Model* getModel(const ModelItem& modelItem);
