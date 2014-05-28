@@ -70,6 +70,23 @@ void FaceModel::maybeUpdateEyeRotation(const JointState& parentState, const FBXJ
         joint.rotation;
 }
 
+void FaceModel::updateJointState(int index) {
+    JointState& state = _jointStates[index];
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const FBXJoint& joint = geometry.joints.at(index);
+    if (joint.parentIndex != -1) {
+        const JointState& parentState = _jointStates.at(joint.parentIndex);
+        if (index == geometry.neckJointIndex) {
+            maybeUpdateNeckRotation(parentState, joint, state);    
+                
+        } else if (index == geometry.leftEyeJointIndex || index == geometry.rightEyeJointIndex) {
+            maybeUpdateEyeRotation(parentState, joint, state);
+        }
+    }
+
+    Model::updateJointState(index);
+}
+
 bool FaceModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
     if (!isActive()) {
         return false;
