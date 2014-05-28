@@ -97,9 +97,11 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _scopeEnabledPause(false),
     _scopeInputOffset(0),
     _scopeOutputOffset(0),
-    _scopeInput(SAMPLES_PER_SCOPE_WIDTH * sizeof(int16_t), 0),
-    _scopeOutputLeft(SAMPLES_PER_SCOPE_WIDTH * sizeof(int16_t), 0),
-    _scopeOutputRight(SAMPLES_PER_SCOPE_WIDTH * sizeof(int16_t), 0)
+    _framesPerScope(DEFAULT_FRAMES_PER_SCOPE),
+    _samplesPerScope(NETWORK_SAMPLES_PER_FRAME * _framesPerScope),
+    _scopeInput(0),
+    _scopeOutputLeft(0),
+    _scopeOutputRight(0)
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
@@ -592,7 +594,7 @@ void Audio::handleAudioInput() {
             unsigned int monoAudioChannel = 0;
             addBufferToScope(_scopeInput, _scopeInputOffset, monoAudioSamples, monoAudioChannel, numMonoAudioChannels); 
             _scopeInputOffset += NETWORK_SAMPLES_PER_FRAME;
-            _scopeInputOffset %= SAMPLES_PER_SCOPE_WIDTH;
+            _scopeInputOffset %= _samplesPerScope;
         }
 
         NodeList* nodeList = NodeList::getInstance();
@@ -849,7 +851,7 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
                         samples, audioChannel, numAudioChannels); 
                 
                     _scopeOutputOffset += NETWORK_SAMPLES_PER_FRAME;
-                    _scopeOutputOffset %= SAMPLES_PER_SCOPE_WIDTH;
+                    _scopeOutputOffset %= _samplesPerScope;
                     samples += NETWORK_SAMPLES_PER_FRAME * numAudioChannels;
                 }
             }
@@ -1060,25 +1062,73 @@ void Audio::renderToolBox(int x, int y, bool boxed) {
     glDisable(GL_TEXTURE_2D);
 }
 
+void Audio::toggleScope() {
+    _scopeEnabled = !_scopeEnabled;
+    if (_scopeEnabled) {
+        _scopeInputOffset = 0;
+        _scopeOutputOffset = 0;
+        allocateScope();
+    } else {
+        freeScope();
+    }
+}
+
 void Audio::toggleScopePause() {
     _scopeEnabledPause = !_scopeEnabledPause;
 }
 
-void Audio::toggleScope() {
-    _scopeEnabled = !_scopeEnabled;
-    if (_scopeEnabled) {
-        static const int width = SAMPLES_PER_SCOPE_WIDTH;
-        _scopeInputOffset = 0;
-        _scopeOutputOffset = 0;
-        memset(_scopeInput.data(), 0, width * sizeof(int16_t));
-        memset(_scopeOutputLeft.data(), 0, width * sizeof(int16_t));
-        memset(_scopeOutputRight.data(), 0, width * sizeof(int16_t));
-        _scopeEnabledPause = false;
+void Audio::selectAudioScopeFiveFrames() {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioScopeFiveFrames)) {
+        reallocateScope(5);
+    }
+}
+
+void Audio::selectAudioScopeTwentyFrames() {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioScopeTwentyFrames)) {
+        reallocateScope(20);
+    }
+}
+
+void Audio::selectAudioScopeFiftyFrames() {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioScopeFiftyFrames)) {
+        reallocateScope(50);
+    }
+}
+
+void Audio::allocateScope() {
+    int num = _samplesPerScope * sizeof(int16_t);
+    _scopeInput = new QByteArray(num, 0);
+    _scopeOutputLeft = new QByteArray(num, 0);
+    _scopeOutputRight = new QByteArray(num, 0);
+}
+
+void Audio::reallocateScope(int frames) {
+    if (_framesPerScope != frames) {
+        _framesPerScope = frames;
+        _samplesPerScope = NETWORK_SAMPLES_PER_FRAME * _framesPerScope;
+        QMutexLocker lock(&_guard);
+        freeScope();
+        allocateScope();
+    }
+}
+
+void Audio::freeScope() {
+    if (_scopeInput) {
+        delete _scopeInput;
+        _scopeInput = 0;
+    }
+    if (_scopeOutputLeft) {
+        delete _scopeOutputLeft;
+        _scopeOutputLeft = 0;
+    }
+    if (_scopeOutputRight) {
+        delete _scopeOutputRight;
+        _scopeOutputRight = 0;
     }
 }
 
 void Audio::addBufferToScope(
-    QByteArray& byteArray, unsigned int frameOffset, const int16_t* source, unsigned int sourceChannel, unsigned int sourceNumberOfChannels) {
+    QByteArray* byteArray, unsigned int frameOffset, const int16_t* source, unsigned int sourceChannel, unsigned int sourceNumberOfChannels) {
 
     // Constant multiplier to map sample value to vertical size of scope
     float multiplier = (float)MULTIPLIER_SCOPE_HEIGHT / logf(2.0f);
@@ -1089,8 +1139,9 @@ void Audio::addBufferToScope(
     // Temporary variable receives mapping of sample value
     int16_t value;
 
+    QMutexLocker lock(&_guard);
     // Short int pointer to mapped samples in byte array
-    int16_t* destination = (int16_t*) byteArray.data();
+    int16_t* destination = (int16_t*) byteArray->data();
 
     for (unsigned int i = 0; i < NETWORK_SAMPLES_PER_FRAME; i++) {
         sample = (float)source[i * sourceNumberOfChannels + sourceChannel];
@@ -1116,18 +1167,20 @@ void Audio::renderScope(int width, int height) {
     static const float outputLeftColor[4] = { 0.7f, .3f, 0.3f, 0.6f };
     static const float outputRightColor[4] = { 0.3f, .3f, 0.7f, 0.6f };
     static const int gridRows = 2;
-    static const int gridCols = 5;
+    int gridCols = _framesPerScope;
 
-    int x = (width - SAMPLES_PER_SCOPE_WIDTH) / 2;
-    int y = (height - SAMPLES_PER_SCOPE_HEIGHT) / 2;
-    int w = SAMPLES_PER_SCOPE_WIDTH;
-    int h = SAMPLES_PER_SCOPE_HEIGHT;
+    int x = (width - SCOPE_WIDTH) / 2;
+    int y = (height - SCOPE_HEIGHT) / 2;
+    int w = SCOPE_WIDTH;
+    int h = SCOPE_HEIGHT;
 
     renderBackground(backgroundColor, x, y, w, h);
     renderGrid(gridColor, x, y, w, h, gridRows, gridCols);
-    renderLineStrip(inputColor, x, y, w, _scopeInputOffset, _scopeInput);
-    renderLineStrip(outputLeftColor, x, y, w, _scopeOutputOffset, _scopeOutputLeft);
-    renderLineStrip(outputRightColor, x, y, w, _scopeOutputOffset, _scopeOutputRight);
+
+    QMutexLocker lock(&_guard);
+    renderLineStrip(inputColor, x, y, _samplesPerScope, _scopeInputOffset, _scopeInput);
+    renderLineStrip(outputLeftColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputLeft);
+    renderLineStrip(outputRightColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputRight);
 }
 
 void Audio::renderBackground(const float* color, int x, int y, int width, int height) {
@@ -1170,21 +1223,54 @@ void Audio::renderGrid(const float* color, int x, int y, int width, int height, 
     glColor4f(1, 1, 1, 1); 
 }
 
-void Audio::renderLineStrip(const float* color, int x, int y, int n, int offset, const QByteArray& byteArray) {
+void Audio::renderLineStrip(const float* color, int x, int y, int n, int offset, const QByteArray* byteArray) {
 
     glColor4fv(color);
     glBegin(GL_LINE_STRIP);
 
     int16_t sample;
-    int16_t* samples = ((int16_t*) byteArray.data()) + offset;
-    y += SAMPLES_PER_SCOPE_HEIGHT / 2;
-    for (int i = n - offset; --i >= 0; ) {
-        sample = *samples++;
+    int16_t* samples = ((int16_t*) byteArray->data()) + offset;
+    int numSamplesToAverage = _framesPerScope / DEFAULT_FRAMES_PER_SCOPE;
+    int count = (n - offset) / numSamplesToAverage;
+    int remainder = (n - offset) % numSamplesToAverage;
+    y += SCOPE_HEIGHT / 2;
+
+    // Compute and draw the sample averages from the offset position
+    for (int i = count; --i >= 0; ) {
+        sample = 0;
+        for (int j = numSamplesToAverage; --j >= 0; ) {
+            sample += *samples++;
+        }
+        sample /= numSamplesToAverage;
         glVertex2i(x++, y - sample);
     }
-    samples = (int16_t*) byteArray.data();
-    for (int i = offset; --i >= 0; ) {
-        sample = *samples++;
+
+    // Compute and draw the sample average across the wrap boundary
+    if (remainder != 0) {
+        sample = 0;
+        for (int j = remainder; --j >= 0; ) {
+            sample += *samples++;
+        }
+    
+        samples = (int16_t*) byteArray->data();
+
+        for (int j = numSamplesToAverage - remainder; --j >= 0; ) {
+            sample += *samples++;
+        }
+        sample /= numSamplesToAverage;
+        glVertex2i(x++, y - sample);
+    } else {
+        samples = (int16_t*) byteArray->data();
+    }
+
+    // Compute and draw the sample average from the beginning to the offset
+    count = (offset - remainder) / numSamplesToAverage;
+    for (int i = count; --i >= 0; ) {
+        sample = 0;
+        for (int j = numSamplesToAverage; --j >= 0; ) {
+            sample += *samples++;
+        }
+        sample /= numSamplesToAverage;
         glVertex2i(x++, y - sample);
     }
     glEnd();

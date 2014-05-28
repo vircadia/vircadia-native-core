@@ -31,7 +31,6 @@ Head::Head(Avatar* owningAvatar) :
     _rightEyePosition(0.0f, 0.0f, 0.0f),
     _eyePosition(0.0f, 0.0f, 0.0f),
     _scale(1.0f),
-    _gravity(0.0f, -1.0f, 0.0f),
     _lastLoudness(0.0f),
     _audioAttack(0.0f),
     _angularVelocity(0,0,0),
