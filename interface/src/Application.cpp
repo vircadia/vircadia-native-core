@@ -105,6 +105,8 @@ const int STARTUP_JITTER_SAMPLES = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / 2
 const QString CHECK_VERSION_URL = "https://highfidelity.io/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
+const QString DEFAULT_SCRIPTS_JS_URL = "http://public.highfidelity.io/scripts/defaultScripts.js";
+
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     if (message.size() > 0) {
         QString dateString = QDateTime::currentDateTime().toTimeSpec(Qt::LocalTime).toString(Qt::ISODate);
@@ -362,7 +364,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         qDebug() << "This is a first run...";
         // clear the scripts, and set out script to our default scripts
         clearScriptsBeforeRunning();
-        loadScript("http://public.highfidelity.io/scripts/defaultScripts.js");
+        loadScript(DEFAULT_SCRIPTS_JS_URL);
 
         QMutexLocker locker(&_settingsMutex);
         _settings->setValue("firstRun",QVariant(false));
@@ -3360,6 +3362,12 @@ void Application::stopScript(const QString &scriptName) {
 
 void Application::reloadAllScripts() {
     stopAllScripts(true);
+}
+
+void Application::loadDefaultScripts() {
+    if (!_scriptEnginesHash.contains(DEFAULT_SCRIPTS_JS_URL)) {
+        loadScript(DEFAULT_SCRIPTS_JS_URL);
+    }
 }
 
 void Application::manageRunningScriptsWidgetVisibility(bool shown) {
