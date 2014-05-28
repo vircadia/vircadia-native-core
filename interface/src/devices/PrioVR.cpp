@@ -79,7 +79,7 @@ static void setPalm(float deltaTime, int index) {
     glm::vec3 position;
     glm::quat rotation;
     
-    Model* skeletonModel = &Application::getInstance()->getAvatar()->getSkeletonModel();
+    SkeletonModel* skeletonModel = &Application::getInstance()->getAvatar()->getSkeletonModel();
     int jointIndex;
     glm::quat inverseRotation = glm::inverse(Application::getInstance()->getAvatar()->getOrientation());
     if (index == LEFT_HAND_INDEX) {
