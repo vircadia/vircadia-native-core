@@ -40,6 +40,17 @@ var modelURLs = [
 
 var toolBar;
 
+
+var jointList = MyAvatar.getJointNames();
+//print("\n# Joint list start");
+//for (var i = 0; i < jointList.length; i++) {
+//    Vec3.print("jointIndex = " + jointList[i] + " = " + i, MyAvatar.getJointPosition(jointList[i]));
+//}
+//print("# Joint list end");
+
+
+
+
 function isLocked(properties) {
     // special case to lock the ground plane model in hq.
     if (location.hostname == "hq.highfidelity.io" && 
@@ -81,6 +92,7 @@ function controller(wichSide) {
     
     this.grabbing = false;
     this.modelID = { isKnownID: false };
+    this.modelURL = "";
     this.oldModelRotation;
     this.oldModelPosition;
     this.oldModelRadius;
@@ -134,6 +146,7 @@ function controller(wichSide) {
         
             this.grabbing = true;
             this.modelID = modelID;
+            this.modelURL = properties.modelURL;
         
             this.oldModelPosition = properties.position;
             this.oldModelRotation = properties.modelRotation;
@@ -142,6 +155,39 @@ function controller(wichSide) {
     }
     
     this.release = function () {
+        if (this.grabbing) {
+            var closestJointIndex = -1;
+            var closestJointDistance = 10;
+            for (var i = 0; i < jointList.length; i++) {
+                var distance = Vec3.distance(MyAvatar.getJointPosition(jointList[i]), this.oldModelPosition);
+                if (distance < closestJointDistance) {
+                    closestJointDistance = distance;
+                    closestJointIndex = i;
+                }
+            }
+            
+            print("closestJointIndex: " + closestJointIndex);
+            print("closestJointDistance: " + closestJointDistance);
+            
+            if (closestJointDistance < 0.1) {
+                print("Attaching to " + jointList[closestJointIndex]);
+                var jointPosition = MyAvatar.getJointPosition(jointList[closestJointIndex]);
+                var jointRotation = MyAvatar.getJointCombinedRotation(jointList[closestJointIndex]);
+                
+                var attachmentOffset = Vec3.multiply(Vec3.subtract(this.oldModelPosition, jointPosition), 2);
+                attachmentOffset = Vec3.multiplyQbyV(Quat.inverse(jointRotation), attachmentOffset);
+                var attachmentRotation = Quat.multiply(Quat.inverse(jointRotation), this.oldModelRotation);
+                
+                MyAvatar.attach(this.modelURL, jointList[closestJointIndex],
+                                attachmentOffset, attachmentRotation, 0.75,
+                                true, false);
+                Vec3.print("offset: ", attachmentOffset);
+                Vec3.print("joint: ", Quat.safeEulerAngles(jointRotation));
+                Vec3.print("model: ", Quat.safeEulerAngles(this.oldModelRotation));
+                Vec3.print("delta: ", Quat.safeEulerAngles(attachmentRotation));
+            }
+        }
+        
         this.grabbing = false;
         this.modelID.isKnownID = false;
     }
@@ -259,6 +305,20 @@ function controller(wichSide) {
             
             this.oldModelRotation = newRotation;
             this.oldModelPosition = newPosition;
+            
+            
+            var closestJointIndex = -1;
+            var closestJointDistance = 10;
+            for (var i = 0; i < jointList.length; i++) {
+                var distance = Vec3.distance(MyAvatar.getJointPosition(jointList[i]), newPosition);
+                if (distance < closestJointDistance) {
+                    closestJointDistance = distance;
+                    closestJointIndex = i;
+                }
+            }
+//            
+//            print("closestJointIndex: " + closestJointIndex);
+//            print("closestJointDistance: " + closestJointDistance);
         }
     }
     
@@ -408,8 +468,51 @@ function checkController(deltaTime) {
     }
     
     moveOverlays();
+    
+    
+    
+    leftController.hideLaser();
+    rightController.hideLaser();
+    var jointPos = MyAvatar.getJointPosition("RightHand");
+    var jointRot = MyAvatar.getJointCombinedRotation("RightHand");
+    
+    Overlays.editOverlay(r, {
+                         position: jointPos,
+                         end: Vec3.sum(jointPos, Vec3.multiplyQbyV(jointRot, { x:1, y:0, z:0 }))
+                         });
+    Overlays.editOverlay(g, {
+                         position: jointPos,
+                         end: Vec3.sum(jointPos, Vec3.multiplyQbyV(jointRot, { x:0, y:1, z:0 }))
+                         });
+    Overlays.editOverlay(b, {
+                         position: jointPos,
+                         end: Vec3.sum(jointPos, Vec3.multiplyQbyV(jointRot, { x:0, y:0, z:1 }))
+                         });
 }
-
+var r = Overlays.addOverlay("line3d", {
+                            position: { x: 0, y: 0, z: 0 },
+                            end: { x: 0, y: 0, z: 0 },
+                            color: { red: 255, green: 0, blue: 0 },
+                            alpha: 1,
+                            visible: true,
+                            lineWidth: LASER_WIDTH
+                            });
+var g = Overlays.addOverlay("line3d", {
+                            position: { x: 0, y: 0, z: 0 },
+                            end: { x: 0, y: 0, z: 0 },
+                            color: { red: 0, green: 255, blue: 0 },
+                            alpha: 1,
+                            visible: true,
+                            lineWidth: LASER_WIDTH
+                            });
+var b = Overlays.addOverlay("line3d", {
+                            position: { x: 0, y: 0, z: 0 },
+                            end: { x: 0, y: 0, z: 0 },
+                            color: { red: 0, green: 0, blue: 255 },
+                            alpha: 1,
+                            visible: true,
+                            lineWidth: LASER_WIDTH
+                            });
 
 
 function initToolBar() {
@@ -686,6 +789,10 @@ function scriptEnding() {
     rightController.cleanup();
     toolBar.cleanup();
     cleanupModelMenus();
+    
+    Overlays.deleteOverlay(r);
+    Overlays.deleteOverlay(g);
+    Overlays.deleteOverlay(b);
 }
 Script.scriptEnding.connect(scriptEnding);
 
