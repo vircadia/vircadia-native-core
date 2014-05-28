@@ -83,7 +83,9 @@ void OculusManager::display(Camera& whichCamera) {
 #ifdef HAVE_LIBOVR
     ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
     // We only need to render the overlays to a texture once, then we just render the texture as a quad
+    // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
     applicationOverlay.renderOverlay(true);
+    const bool displayOverlays = false;
     
     Application::getInstance()->getGlowEffect()->prepare(); 
 
@@ -104,7 +106,9 @@ void OculusManager::display(Camera& whichCamera) {
     
     Application::getInstance()->displaySide(whichCamera);
 
-    applicationOverlay.displayOverlayTextureOculus(whichCamera);
+    if (displayOverlays) {
+        applicationOverlay.displayOverlayTextureOculus(whichCamera);
+    }
     
     // and the right eye to the right side
     const StereoEyeParams& rightEyeParams = _stereoConfig.GetEyeRenderParams(StereoEye_Right);
@@ -121,7 +125,9 @@ void OculusManager::display(Camera& whichCamera) {
     
     Application::getInstance()->displaySide(whichCamera);
 
-    applicationOverlay.displayOverlayTextureOculus(whichCamera);
+    if (displayOverlays) {
+        applicationOverlay.displayOverlayTextureOculus(whichCamera);
+    }
    
     glPopMatrix();
     
