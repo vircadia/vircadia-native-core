@@ -162,10 +162,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _bytesPerSecond(0),
         _nodeBoundsDisplay(this),
         _previousScriptLocation(),
+        _applicationOverlay(),
         _runningScriptsWidget(new RunningScriptsWidget(_window)),
         _runningScriptsWidgetWasVisible(false),
-        _trayIcon(new QSystemTrayIcon(_window)),
-        _applicationOverlay()
+        _trayIcon(new QSystemTrayIcon(_window))
 {
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
