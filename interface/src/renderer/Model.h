@@ -41,6 +41,10 @@ public:
     void copyState(const JointState& state);
 
     void updateWorldTransform(const glm::mat4& baseTransform, const glm::quat& parentRotation);
+
+    /// \return rotation from the joint's default (or bind) orientation
+    glm::quat getJointRotation(bool fromBind = false) const;
+
     void applyRotationDelta(const glm::quat& delta, bool constrain = true, float priority = 1.0f);
 
     glm::vec3 _translation;  // translation relative to parent

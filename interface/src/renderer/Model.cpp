@@ -630,12 +630,10 @@ bool Model::getJointPosition(int jointIndex, glm::vec3& position) const {
 }
 
 bool Model::getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind) const {
-    if (jointIndex == -1 || _jointStates.isEmpty()) {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
-    rotation = _jointStates[jointIndex]._combinedRotation *
-        (fromBind ? _geometry->getFBXGeometry().joints[jointIndex].inverseBindRotation :
-            _geometry->getFBXGeometry().joints[jointIndex].inverseDefaultRotation);
+    rotation = _jointStates[jointIndex].getJointRotation(fromBind);
     return true;
 }
 
@@ -1156,9 +1154,11 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
         glm::quat endRotation;
         if (useRotation) {
             JointState& state = _jointStates[jointIndex];
-            getJointRotation(jointIndex, endRotation, true);
+
+            // TODO: figure out what this is trying to do and combine it into one JointState method
+            endRotation = state.getJointRotation(true);
             state.applyRotationDelta(rotation * glm::inverse(endRotation), true, priority);
-            getJointRotation(jointIndex, endRotation, true);
+            endRotation = state.getJointRotation(true);
         }    
         
         // then, we go from the joint upwards, rotating the end as close as possible to the target
@@ -1893,6 +1893,10 @@ void JointState::updateWorldTransform(const glm::mat4& baseTransform, const glm:
     glm::quat combinedRotation = _fbxJoint->preRotation * _rotation * _fbxJoint->postRotation;    
     _transform = baseTransform * glm::translate(_translation) * _fbxJoint->preTransform * glm::mat4_cast(combinedRotation) * _fbxJoint->postTransform;
     _combinedRotation = parentRotation * combinedRotation;
+}
+
+glm::quat JointState::getJointRotation(bool fromBind) const {
+    return _combinedRotation * (fromBind ?  _fbxJoint->inverseBindRotation : _fbxJoint->inverseDefaultRotation);
 }
 
 void JointState::applyRotationDelta(const glm::quat& delta, bool constrain, float priority) {

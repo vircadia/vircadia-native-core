@@ -145,12 +145,11 @@ void SkeletonModel::applyHandPosition(int jointIndex, const glm::vec3& position)
     if (forearmLength < EPSILON) {
         return;
     }
-    glm::quat handRotation;
-    getJointRotation(jointIndex, handRotation, true);
+    JointState& state = _jointStates[jointIndex];
+    glm::quat handRotation = state.getJointRotation(true);
 
     // align hand with forearm
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
-    JointState& state = _jointStates[jointIndex];
     state.applyRotationDelta(rotationBetween(handRotation * glm::vec3(-sign, 0.0f, 0.0f), forearmVector), true, PALM_PRIORITY);
 }
 
@@ -169,9 +168,11 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
     glm::quat palmRotation;
     if (!Menu::getInstance()->isOptionChecked(MenuOption::AlternateIK) &&
             Menu::getInstance()->isOptionChecked(MenuOption::AlignForearmsWithWrists)) {
-        getJointRotation(parentJointIndex, palmRotation, true);
+        JointState parentState = _jointStates[parentJointIndex];
+        palmRotation = parentState.getJointRotation(true);
     } else {
-        getJointRotation(jointIndex, palmRotation, true);
+        JointState state = _jointStates[jointIndex];
+        palmRotation = state.getJointRotation(true);
     }
     palmRotation = rotationBetween(palmRotation * geometry.palmDirection, palm.getNormal()) * palmRotation;
     
@@ -367,16 +368,8 @@ bool SkeletonModel::getLeftHandPosition(glm::vec3& position) const {
     return getJointPosition(getLeftHandJointIndex(), position);
 }
 
-bool SkeletonModel::getLeftHandRotation(glm::quat& rotation) const {
-    return getJointRotation(getLeftHandJointIndex(), rotation);
-}
-
 bool SkeletonModel::getRightHandPosition(glm::vec3& position) const {
     return getJointPosition(getRightHandJointIndex(), position);
-}
-
-bool SkeletonModel::getRightHandRotation(glm::quat& rotation) const {
-    return getJointRotation(getRightHandJointIndex(), rotation);
 }
 
 bool SkeletonModel::restoreLeftHandPosition(float percent, float priority) {
