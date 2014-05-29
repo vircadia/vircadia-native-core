@@ -100,9 +100,9 @@ public:
     void forceNodeShutdown();
     bool isShuttingDown() const { return _isShuttingDown; }
 
-    void incrementSequenceNumber();
+    void incrementSequenceNumber() { _sequenceNumber++; }
 
-    OCTREE_PACKET_SEQUENCE getSequenceNumber();
+    OCTREE_PACKET_SEQUENCE getSequenceNumber() const { return _sequenceNumber; }
     
 private slots:
     void sendThreadFinished();

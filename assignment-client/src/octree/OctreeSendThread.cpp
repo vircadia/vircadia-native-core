@@ -28,8 +28,7 @@ OctreeSendThread::OctreeSendThread(const SharedAssignmentPointer& myAssignment, 
     _nodeUUID(node->getUUID()),
     _packetData(),
     _nodeMissingCount(0),
-    _isShuttingDown(false),
-    _sequenceNumber(0)
+    _isShuttingDown(false)
 {
     QString safeServerName("Octree");
     if (_myServer) {
@@ -247,7 +246,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         trueBytesSent += nodeData->getPacketLength();
         truePacketsSent++;
         packetsSent++;
-        _sequenceNumber++;
+        nodeData->incrementSequenceNumber();
         nodeData->resetOctreePacket();
     }
 
