@@ -13,17 +13,16 @@
 
 uniform sampler2DShadow shadowMap;
 
-uniform vec3 shadowDistances;
+// the inverse of the size of the shadow map
+const float shadowScale = 1.0 / 2048.0;
 
 // the color in shadow
 varying vec4 shadowColor;
 
-// the interpolated position
-varying vec4 position;
-
 void main(void) {
-    int shadowIndex = int(dot(step(vec3(position.z), shadowDistances), vec3(1.0, 1.0, 1.0)));
-    vec3 texCoord = vec3(dot(gl_EyePlaneS[shadowIndex], position), dot(gl_EyePlaneT[shadowIndex], position),
-        dot(gl_EyePlaneR[shadowIndex], position));
-    gl_FragColor = mix(shadowColor, gl_Color, shadow2D(shadowMap, texCoord).r);
+    gl_FragColor = mix(shadowColor, gl_Color, 0.25 *
+        (shadow2D(shadowMap, gl_TexCoord[0].stp + vec3(-shadowScale, -shadowScale, 0.0)).r +
+        shadow2D(shadowMap, gl_TexCoord[0].stp + vec3(-shadowScale, shadowScale, 0.0)).r +
+        shadow2D(shadowMap, gl_TexCoord[0].stp + vec3(shadowScale, -shadowScale, 0.0)).r +
+        shadow2D(shadowMap, gl_TexCoord[0].stp + vec3(shadowScale, shadowScale, 0.0)).r));
 }

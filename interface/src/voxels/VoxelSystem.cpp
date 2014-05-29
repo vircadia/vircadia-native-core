@@ -518,9 +518,19 @@ void VoxelSystem::initVoxelMemory() {
 
             _shadowMapProgram.bind();
             _shadowMapProgram.setUniformValue("shadowMap", 0);
-            _shadowMapProgram.setUniformValue("shadowDistances", -SHADOW_MATRIX_DISTANCES[1],
-                -SHADOW_MATRIX_DISTANCES[2], -SHADOW_MATRIX_DISTANCES[3]);
             _shadowMapProgram.release();
+            
+            _cascadedShadowMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
+                Application::resourcesPath() + "shaders/cascaded_shadow_map.vert");
+            _cascadedShadowMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
+                Application::resourcesPath() + "shaders/cascaded_shadow_map.frag");
+            _cascadedShadowMapProgram.link();
+
+            _cascadedShadowMapProgram.bind();
+            _cascadedShadowMapProgram.setUniformValue("shadowMap", 0);
+            _cascadedShadowMapProgram.setUniformValue("shadowDistances", -SHADOW_MATRIX_DISTANCES[1],
+                -SHADOW_MATRIX_DISTANCES[2], -SHADOW_MATRIX_DISTANCES[3]);
+            _cascadedShadowMapProgram.release();
         }
     }
     _renderer = new PrimitiveRenderer(_maxVoxels);
@@ -1168,6 +1178,7 @@ glm::vec3 VoxelSystem::computeVoxelVertex(const glm::vec3& startVertex, float vo
 
 ProgramObject VoxelSystem::_perlinModulateProgram;
 ProgramObject VoxelSystem::_shadowMapProgram;
+ProgramObject VoxelSystem::_cascadedShadowMapProgram;
 
 void VoxelSystem::init() {
     if (_initialized) {
@@ -1488,16 +1499,14 @@ void VoxelSystem::render() {
 
 void VoxelSystem::applyScaleAndBindProgram(bool texture) {
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Shadows)) {
-        _shadowMapProgram.bind();
+    if (Menu::getInstance()->getShadowsEnabled()) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
+            _cascadedShadowMapProgram.bind();
+        } else {
+            _shadowMapProgram.bind();
+        }
         glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getShadowDepthTextureID());
 
-        for (int i = SHADOW_MATRIX_COUNT - 1; i >= 0; i--) {
-            glActiveTexture(GL_TEXTURE0 + i);
-            glTexGenfv(GL_S, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrices()[i][0]);
-            glTexGenfv(GL_T, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrices()[i][1]);
-            glTexGenfv(GL_R, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrices()[i][2]);
-        }
     } else if (texture) {
         _perlinModulateProgram.bind();
         glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPermutationNormalTextureID());
@@ -1511,11 +1520,14 @@ void VoxelSystem::removeScaleAndReleaseProgram(bool texture) {
     // scale back down to 1 so heads aren't massive
     glPopMatrix();
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Shadows)) {
-        _shadowMapProgram.release();
+    if (Menu::getInstance()->getShadowsEnabled()) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
+            _cascadedShadowMapProgram.release();
+        } else {
+            _shadowMapProgram.release();
+        }
         glBindTexture(GL_TEXTURE_2D, 0);
         
-
     } else if (texture) {
         _perlinModulateProgram.release();
         glBindTexture(GL_TEXTURE_2D, 0);

@@ -508,7 +508,7 @@ bool Model::render(float alpha, RenderMode mode, bool receiveShadows) {
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GREATER, 0.5f * alpha);
     
-    receiveShadows &= Menu::getInstance()->isOptionChecked(MenuOption::Shadows);
+    receiveShadows &= Menu::getInstance()->getShadowsEnabled();
     renderMeshes(alpha, mode, false, receiveShadows);
     
     glDisable(GL_ALPHA_TEST);
@@ -1508,14 +1508,6 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
     
-    if (receiveShadows) {
-        for (int i = SHADOW_MATRIX_COUNT - 1; i >= 0; i--) {
-            glActiveTexture(GL_TEXTURE0 + i);
-            glTexGenfv(GL_S, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrices()[i][0]);
-            glTexGenfv(GL_T, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrices()[i][1]);
-            glTexGenfv(GL_R, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrices()[i][2]);
-        }
-    }
     for (int i = 0; i < networkMeshes.size(); i++) {
         // exit early if the translucency doesn't match what we're drawing
         const NetworkMesh& networkMesh = networkMeshes.at(i);

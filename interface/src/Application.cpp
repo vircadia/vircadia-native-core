@@ -616,7 +616,7 @@ void Application::paintGL() {
         whichCamera = _viewFrustumOffsetCamera;
     }
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Shadows)) {
+    if (Menu::getInstance()->getShadowsEnabled()) {
         updateShadowMap();
     }
 
@@ -2263,13 +2263,20 @@ void Application::updateShadowMap() {
     const glm::vec2 MAP_COORDS[] = { glm::vec2(0.0f, 0.0f), glm::vec2(0.5f, 0.0f),
         glm::vec2(0.0f, 0.5f), glm::vec2(0.5f, 0.5f) };
     
-    int halfSize = fbo->width() / 2;
     float frustumScale = 1.0f / (_viewFrustum.getFarClip() - _viewFrustum.getNearClip());
     loadViewFrustum(_myCamera, _viewFrustum);
     
-    for (int i = 0; i < SHADOW_MATRIX_COUNT; i++) {
+    int matrixCount = 1;
+    int targetSize = fbo->width();
+    float targetScale = 1.0f;
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
+        matrixCount = CASCADED_SHADOW_MATRIX_COUNT;
+        targetSize = fbo->width() / 2;
+        targetScale = 0.5f;
+    }
+    for (int i = 0; i < matrixCount; i++) {
         const glm::vec2& coord = MAP_COORDS[i];
-        glViewport(coord.s * fbo->width(), coord.t * fbo->height(), halfSize, halfSize);
+        glViewport(coord.s * fbo->width(), coord.t * fbo->height(), targetSize, targetSize);
 
         float nearScale = SHADOW_MATRIX_DISTANCES[i] * frustumScale;
         float farScale = SHADOW_MATRIX_DISTANCES[i + 1] * frustumScale;
@@ -2294,7 +2301,7 @@ void Application::updateShadowMap() {
         center = inverseRotation * center;
         
         // to reduce texture "shimmer," move in texel increments
-        float texelSize = (2.0f * radius) / halfSize;
+        float texelSize = (2.0f * radius) / targetSize;
         center = glm::vec3(roundf(center.x / texelSize) * texelSize, roundf(center.y / texelSize) * texelSize,
             roundf(center.z / texelSize) * texelSize);
         
@@ -2306,7 +2313,8 @@ void Application::updateShadowMap() {
         maxima.z += _viewFrustum.getFarClip() * 0.5f;
 
         // save the combined matrix for rendering
-        _shadowMatrices[i] = glm::transpose(glm::translate(glm::vec3(coord, 0.0f)) * glm::scale(glm::vec3(0.5f, 0.5f, 1.0f)) *
+        _shadowMatrices[i] = glm::transpose(glm::translate(glm::vec3(coord, 0.0f)) *
+            glm::scale(glm::vec3(targetScale, targetScale, 1.0f)) *
             glm::translate(glm::vec3(0.5f, 0.5f, 0.5f)) * glm::scale(glm::vec3(0.5f, 0.5f, 0.5f)) *
             glm::ortho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z) * glm::mat4_cast(inverseRotation));
 
@@ -2432,6 +2440,20 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
     setupWorldLight();
+
+    // setup shadow matrices (again, after the camera transform)
+    int shadowMatrixCount = 0;
+    if (Menu::getInstance()->isOptionChecked(MenuOption::SimpleShadows)) {
+        shadowMatrixCount = 1;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
+        shadowMatrixCount = CASCADED_SHADOW_MATRIX_COUNT;
+    }
+    for (int i = shadowMatrixCount - 1; i >= 0; i--) {
+        glActiveTexture(GL_TEXTURE0 + i);
+        glTexGenfv(GL_S, GL_EYE_PLANE, (const GLfloat*)&_shadowMatrices[i][0]);
+        glTexGenfv(GL_T, GL_EYE_PLANE, (const GLfloat*)&_shadowMatrices[i][1]);
+        glTexGenfv(GL_R, GL_EYE_PLANE, (const GLfloat*)&_shadowMatrices[i][2]);
+    }
 
     if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),

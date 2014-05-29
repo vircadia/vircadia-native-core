@@ -126,7 +126,6 @@ static const float MIRROR_REARVIEW_DISTANCE = 0.65f;
 static const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
 static const float MIRROR_FIELD_OF_VIEW = 30.0f;
 
-static const int SHADOW_MATRIX_COUNT = 4;
 static const float SHADOW_MATRIX_DISTANCES[] = { 0.0f, 2.0f, 6.0f, 14.0f, 30.0f };
 
 class Application : public QApplication {
@@ -263,8 +262,6 @@ public:
     /// Loads a view matrix that incorporates the specified model translation without the precision issues that can
     /// result from matrix multiplication at high translation magnitudes.
     void loadTranslatedViewMatrix(const glm::vec3& translation);
-
-    const glm::mat4* getShadowMatrices() const { return _shadowMatrices; }
 
     void getModelViewMatrix(glm::dmat4* modelViewMatrix);
     void getProjectionMatrix(glm::dmat4* projectionMatrix);
@@ -494,7 +491,8 @@ private:
     float _rotateMirror;
     float _raiseMirror;
 
-    glm::mat4 _shadowMatrices[SHADOW_MATRIX_COUNT];
+    static const int CASCADED_SHADOW_MATRIX_COUNT = 4;
+    glm::mat4 _shadowMatrices[CASCADED_SHADOW_MATRIX_COUNT];
 
     Environment _environment;
 
