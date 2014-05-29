@@ -42,12 +42,13 @@ public:
 
     void updateWorldTransform(const glm::mat4& baseTransform, const glm::quat& parentRotation);
 
-    /// \return rotation from the joint's default (or bind) orientation
+    /// \return rotation from the joint's default (or bind) frame to world frame
     glm::quat getJointRotation(bool fromBind = false) const;
 
     void applyRotationDelta(const glm::quat& delta, bool constrain = true, float priority = 1.0f);
 
-    glm::vec3 _translation;  // translation relative to parent
+    const glm::vec3& getDefaultTranslationInParentFrame() const;
+
     glm::quat _rotation;     // rotation relative to parent
     glm::mat4 _transform;    // rotation to world frame + translation in model frame
     glm::quat _combinedRotation; // rotation from joint local to world frame
@@ -239,8 +240,6 @@ protected:
         bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
         const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
     bool setJointRotation(int jointIndex, const glm::quat& rotation, float priority = 1.0f);
-    
-    void setJointTranslation(int jointIndex, const glm::vec3& translation);
     
     /// Restores the indexed joint to its default position.
     /// \param percent the percentage of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
