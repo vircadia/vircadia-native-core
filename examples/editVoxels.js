@@ -28,8 +28,10 @@ var NEW_VOXEL_SIZE = 1.0;
 var NEW_VOXEL_DISTANCE_FROM_CAMERA = 3.0;
 var PIXELS_PER_EXTRUDE_VOXEL = 16;
 var WHEEL_PIXELS_PER_SCALE_CHANGE = 100;
-var MAX_VOXEL_SCALE = 16.0;
-var MIN_VOXEL_SCALE = 1.0 / Math.pow(2.0, 8.0);
+var MAX_VOXEL_SCALE_POWER = 4;
+var MIN_VOXEL_SCALE_POWER = -8;
+var MAX_VOXEL_SCALE = Math.pow(2.0, MAX_VOXEL_SCALE_POWER);
+var MIN_VOXEL_SCALE = Math.pow(2.0, MIN_VOXEL_SCALE_POWER);
 var WHITE_COLOR = { red: 255, green: 255, blue: 255 };
 
 var MAX_PASTE_VOXEL_SCALE = 256;
@@ -330,6 +332,13 @@ function ScaleSelector() {
                                             visible: false
                                             });
     this.setScale = function(scale) {
+        if (scale > MAX_VOXEL_SCALE) {
+            scale = MAX_VOXEL_SCALE;
+        }
+        if (scale < MIN_VOXEL_SCALE) {
+            scale = MIN_VOXEL_SCALE;
+        }
+        
         this.scale = scale;
         this.power = Math.floor(Math.log(scale) / Math.log(2));
         rescaleImport();
@@ -391,12 +400,9 @@ function ScaleSelector() {
     
     this.incrementScale = function() {
         copyScale = false;
-        if (this.power < 13) {
+        if (this.power < MAX_VOXEL_SCALE_POWER) {
             ++this.power;
             this.scale *= 2.0;
-            if (this.scale > MAX_VOXEL_SCALE) {
-              this.scale = MAX_VOXEL_SCALE;
-            }
             this.update();
             rescaleImport();
             resizeVoxelSound.play(voxelSizePlus);
@@ -405,7 +411,7 @@ function ScaleSelector() {
     
     this.decrementScale = function() {
         copyScale = false;
-        if (-4 < this.power) {
+        if (MIN_VOXEL_SCALE_POWER < this.power) {
             --this.power;
             this.scale /= 2.0;
             this.update();
