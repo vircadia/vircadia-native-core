@@ -733,10 +733,6 @@ function scriptEnding() {
     rightController.cleanup();
     toolBar.cleanup();
     cleanupModelMenus();
-    
-    Overlays.deleteOverlay(r);
-    Overlays.deleteOverlay(g);
-    Overlays.deleteOverlay(b);
 }
 Script.scriptEnding.connect(scriptEnding);
 
