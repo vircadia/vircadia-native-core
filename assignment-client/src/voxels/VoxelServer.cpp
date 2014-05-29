@@ -40,7 +40,7 @@ bool VoxelServer::hasSpecialPacketToSend(const SharedNodePointer& node) {
     return shouldSendEnvironments;
 }
 
-int VoxelServer::sendSpecialPacket(OCTREE_PACKET_SEQUENCE& sequenceNumber, const SharedNodePointer& node) {
+int VoxelServer::sendSpecialPacket(OctreeQueryNode* queryNode, const SharedNodePointer& node) {
 
     unsigned char* copyAt = _tempOutputBuffer;    
 
@@ -57,7 +57,7 @@ int VoxelServer::sendSpecialPacket(OCTREE_PACKET_SEQUENCE& sequenceNumber, const
 
     // pack in sequence number
     OCTREE_PACKET_SEQUENCE* sequenceAt = (OCTREE_PACKET_SEQUENCE*)copyAt;
-    *sequenceAt = sequenceNumber;
+    *sequenceAt = queryNode->getSequenceNumber();
     copyAt += sizeof(OCTREE_PACKET_SEQUENCE);
     envPacketLength += sizeof(OCTREE_PACKET_SEQUENCE);
 
@@ -75,7 +75,7 @@ int VoxelServer::sendSpecialPacket(OCTREE_PACKET_SEQUENCE& sequenceNumber, const
     }
 
     NodeList::getInstance()->writeDatagram((char*) _tempOutputBuffer, envPacketLength, SharedNodePointer(node));
-    sequenceNumber++;
+    queryNode->incrementSequenceNumber();
 
     return envPacketLength;
 }

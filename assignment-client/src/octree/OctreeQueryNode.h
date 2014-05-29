@@ -35,7 +35,7 @@ public:
     void init(); // called after creation to set up some virtual items
     virtual PacketType getMyPacketType() const = 0;
 
-    void resetOctreePacket(OCTREE_PACKET_SEQUENCE sequenceNumber);  // resets octree packet to after "V" header
+    void resetOctreePacket();  // resets octree packet to after "V" header
 
     void writeToPacket(const unsigned char* buffer, unsigned int bytes); // writes to end of packet
 
@@ -99,6 +99,10 @@ public:
     void nodeKilled();
     void forceNodeShutdown();
     bool isShuttingDown() const { return _isShuttingDown; }
+
+    void incrementSequenceNumber();
+
+    OCTREE_PACKET_SEQUENCE getSequenceNumber();
     
 private slots:
     void sendThreadFinished();
@@ -135,6 +139,8 @@ private:
     float _lastClientOctreeSizeScale;
     bool _lodChanged;
     bool _lodInitialized;
+
+    OCTREE_PACKET_SEQUENCE _sequenceNumber;
 
     quint64 _lastRootTimestamp;
     

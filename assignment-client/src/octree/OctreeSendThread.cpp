@@ -138,7 +138,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
     // obscure the packet and not send it. This allows the callers and upper level logic to not need to know about
     // this rate control savings.
     if (nodeData->shouldSuppressDuplicatePacket()) {
-        nodeData->resetOctreePacket(_sequenceNumber); // we still need to reset it though!
+        nodeData->resetOctreePacket(); // we still need to reset it though!
         return packetsSent; // without sending...
     }
 
@@ -248,7 +248,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         truePacketsSent++;
         packetsSent++;
         _sequenceNumber++;
-        nodeData->resetOctreePacket(_sequenceNumber);
+        nodeData->resetOctreePacket();
     }
 
     return packetsSent;
@@ -288,7 +288,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         if (nodeData->isPacketWaiting()) {
             packetsSentThisInterval += handlePacketSend(nodeData, trueBytesSent, truePacketsSent);
         } else {
-            nodeData->resetOctreePacket(_sequenceNumber);
+            nodeData->resetOctreePacket();
         }
         int targetSize = MAX_OCTREE_PACKET_DATA_SIZE;
         if (wantCompression) {
@@ -534,8 +534,8 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         // send the environment packet
         // TODO: should we turn this into a while loop to better handle sending multiple special packets
         if (_myServer->hasSpecialPacketToSend(_node) && !nodeData->isShuttingDown()) {
-            trueBytesSent += _myServer->sendSpecialPacket(_sequenceNumber, _node);
-            nodeData->resetOctreePacket(_sequenceNumber);   // because _sequenceNumber has changed
+            trueBytesSent += _myServer->sendSpecialPacket(nodeData, _node);
+            nodeData->resetOctreePacket();   // because nodeData's _sequenceNumber has changed
             truePacketsSent++;
             packetsSentThisInterval++;
         }

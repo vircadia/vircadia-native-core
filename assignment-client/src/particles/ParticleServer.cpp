@@ -86,7 +86,7 @@ bool ParticleServer::hasSpecialPacketToSend(const SharedNodePointer& node) {
     return shouldSendDeletedParticles;
 }
 
-int ParticleServer::sendSpecialPacket(OCTREE_PACKET_SEQUENCE& sequenceNumber, const SharedNodePointer& node) {
+int ParticleServer::sendSpecialPacket(OctreeQueryNode* queryNode, const SharedNodePointer& node) {
     unsigned char outputBuffer[MAX_PACKET_SIZE];
     size_t packetLength = 0;
 
@@ -100,13 +100,13 @@ int ParticleServer::sendSpecialPacket(OCTREE_PACKET_SEQUENCE& sequenceNumber, co
 
         // TODO: is it possible to send too many of these packets? what if you deleted 1,000,000 particles?
         while (hasMoreToSend) {
-            hasMoreToSend = tree->encodeParticlesDeletedSince(sequenceNumber, deletedParticlesSentAt,
+            hasMoreToSend = tree->encodeParticlesDeletedSince(queryNode->getSequenceNumber(), deletedParticlesSentAt,
                                                 outputBuffer, MAX_PACKET_SIZE, packetLength);
 
             //qDebug() << "sending PacketType_PARTICLE_ERASE packetLength:" << packetLength;
 
             NodeList::getInstance()->writeDatagram((char*) outputBuffer, packetLength, SharedNodePointer(node));
-            sequenceNumber++;
+            queryNode->incrementSequenceNumber();
         }
 
         nodeData->setLastDeletedParticlesSentAt(deletePacketSentAt);
