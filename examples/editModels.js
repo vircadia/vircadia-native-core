@@ -88,6 +88,8 @@ function controller(wichSide) {
     this.oldModelPosition;
     this.oldModelRadius;
     
+    this.jointsIntersectingFronStart = [];
+    
     this.laser = Overlays.addOverlay("line3d", {
                                      position: { x: 0, y: 0, z: 0 },
                                      end: { x: 0, y: 0, z: 0 },
@@ -142,6 +144,14 @@ function controller(wichSide) {
             this.oldModelPosition = properties.position;
             this.oldModelRotation = properties.modelRotation;
             this.oldModelRadius = properties.radius;
+            
+            this.jointsIntersectingFronStart = [];
+            for (var i = 0; i < jointList.length; i++) {
+                var distance = Vec3.distance(MyAvatar.getJointPosition(jointList[i]), this.oldModelPosition);
+                if (distance < this.oldModelRadius) {
+                    this.jointsIntersectingFronStart.push(i);
+                }
+            }
         }
     }
     
@@ -161,27 +171,33 @@ function controller(wichSide) {
                 }
             }
             
-            print("closestJoint: " + jojntList[closestJointIndex]);
+            print("closestJoint: " + jointList[closestJointIndex]);
             print("closestJointDistance (attach max distance): " + closestJointDistance + " (" + this.oldModelRadius + ")");
             
             if (closestJointDistance < this.oldModelRadius) {
-                print("Attaching to " + jointList[closestJointIndex]);
-                var jointPosition = MyAvatar.getJointPosition(jointList[closestJointIndex]);
-                var jointRotation = MyAvatar.getJointCombinedRotation(jointList[closestJointIndex]);
                 
-                var attachmentOffset = Vec3.subtract(this.oldModelPosition, jointPosition);
-                attachmentOffset = Vec3.multiplyQbyV(Quat.inverse(jointRotation), attachmentOffset);
-                var attachmentRotation = Quat.multiply(Quat.inverse(jointRotation), this.oldModelRotation);
-                
-                MyAvatar.attach(this.modelURL, jointList[closestJointIndex],
-                                attachmentOffset, attachmentRotation, 2.0 * this.oldModelRadius,
-                                true, false);
-                Models.deleteModel(this.modelID);
+                if (this.jointsIntersectingFronStart.indexOf(closestJointIndex) != -1) {
+                    // Do nothing
+                } else {
+                    print("Attaching to " + jointList[closestJointIndex]);
+                    var jointPosition = MyAvatar.getJointPosition(jointList[closestJointIndex]);
+                    var jointRotation = MyAvatar.getJointCombinedRotation(jointList[closestJointIndex]);
+                    
+                    var attachmentOffset = Vec3.subtract(this.oldModelPosition, jointPosition);
+                    attachmentOffset = Vec3.multiplyQbyV(Quat.inverse(jointRotation), attachmentOffset);
+                    var attachmentRotation = Quat.multiply(Quat.inverse(jointRotation), this.oldModelRotation);
+                    
+                    MyAvatar.attach(this.modelURL, jointList[closestJointIndex],
+                                    attachmentOffset, attachmentRotation, 2.0 * this.oldModelRadius,
+                                    true, false);
+                    Models.deleteModel(this.modelID);
+                }
             }
         }
         
         this.grabbing = false;
         this.modelID.isKnownID = false;
+        this.jointsIntersectingFronStart = [];
     }
     
     this.checkTrigger = function () {
