@@ -30,6 +30,25 @@ class Shape;
 
 typedef QSharedPointer<AnimationHandle> AnimationHandlePointer;
 typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
+    
+class JointState {
+public:
+    JointState();
+
+    void setFBXJoint(const FBXJoint& joint); 
+    const FBXJoint& getFBXJoint() const { return *_fbxJoint; }
+
+    void updateWorldTransform(const glm::mat4& baseTransform, const glm::quat& parentRotation);
+
+    glm::vec3 _translation;  // translation relative to parent
+    glm::quat _rotation;     // rotation relative to parent
+    glm::mat4 _transform;    // rotation to world frame + translation in model frame
+    glm::quat _combinedRotation; // rotation from joint local to world frame
+    float _animationPriority; // the priority of the animation affecting this joint
+
+private:
+    const FBXJoint* _fbxJoint;    // JointState does not own its FBXJoint
+};
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject {
@@ -182,15 +201,6 @@ protected:
     bool _snappedToCenter; /// are we currently snapped to center
     int _rootIndex;
     
-    class JointState {
-    public:
-        glm::vec3 translation;  // translation relative to parent
-        glm::quat rotation;     // rotation relative to parent
-        glm::mat4 transform;    // rotation to world frame + translation in model frame
-        glm::quat combinedRotation; // rotation from joint local to world frame
-        float animationPriority; // the priority of the animation affecting this joint
-    };
-    
     bool _shapesAreDirty;
     QVector<JointState> _jointStates;
     QVector<Shape*> _jointShapes;
@@ -221,7 +231,7 @@ protected:
     bool setJointPosition(int jointIndex, const glm::vec3& translation, const glm::quat& rotation = glm::quat(),
         bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
         const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
-    bool setJointRotation(int jointIndex, const glm::quat& rotation, bool fromBind = false, float priority = 1.0f);
+    bool setJointRotation(int jointIndex, const glm::quat& rotation, float priority = 1.0f);
     
     void setJointTranslation(int jointIndex, const glm::vec3& translation);
     

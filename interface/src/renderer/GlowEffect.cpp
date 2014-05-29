@@ -139,8 +139,7 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
     if (_isEmpty && _renderMode != DIFFUSE_ADD_MODE) {
         // copy the primary to the screen
         if (QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {
-            QOpenGLFramebufferObject::blitFramebuffer(destFBO, primaryFBO);
-                
+            QOpenGLFramebufferObject::blitFramebuffer(destFBO, primaryFBO);          
         } else {
             maybeBind(destFBO);
             glEnable(GL_TEXTURE_2D);

@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <glm/gtx/transform.hpp>
+
 #include <FBXReader.h>
 #include <GeometryUtil.h>
 
@@ -177,21 +179,41 @@ bool ModelTreeElement::findDetailedRayIntersection(const glm::vec3& origin, cons
 
                 extents.minimum *= scale;
                 extents.maximum *= scale;
-
-                calculateRotatedExtents(extents, model.getModelRotation());
-
-                extents.minimum += model.getPosition();
-                extents.maximum += model.getPosition();
-
-                AABox rotatedExtentsBox(extents.minimum, (extents.maximum - extents.minimum));
                 
+                Extents rotatedExtents = extents;
+
+                calculateRotatedExtents(rotatedExtents, model.getModelRotation());
+
+                rotatedExtents.minimum += model.getPosition();
+                rotatedExtents.maximum += model.getPosition();
+
+
+                AABox rotatedExtentsBox(rotatedExtents.minimum, (rotatedExtents.maximum - rotatedExtents.minimum));
+                
+                // if it's in our AABOX for our rotated extents, then check to see if it's in our non-AABox
                 if (rotatedExtentsBox.findRayIntersection(origin, direction, localDistance, localFace)) {
-                    if (localDistance < distance) {
-                        distance = localDistance;
-                        face = localFace;
-                        *intersectedObject = (void*)(&model);
-                        somethingIntersected = true;
-                    }                
+
+                    // extents is the model relative, scaled, centered extents of the model
+                    glm::mat4 rotation = glm::mat4_cast(model.getModelRotation());
+                    glm::mat4 translation = glm::translate(model.getPosition());
+                    glm::mat4 modelToWorldMatrix = translation * rotation;
+                    glm::mat4 worldToModelMatrix = glm::inverse(modelToWorldMatrix);
+
+                    AABox modelFrameBox(extents.minimum, (extents.maximum - extents.minimum));
+
+                    glm::vec3 modelFrameOrigin = glm::vec3(worldToModelMatrix * glm::vec4(origin, 1.0f));
+                    glm::vec3 modelFrameDirection = glm::vec3(worldToModelMatrix * glm::vec4(direction, 1.0f));
+
+                    // we can use the AABox's ray intersection by mapping our origin and direction into the model frame
+                    // and testing intersection there.
+                    if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, localDistance, localFace)) {
+                        if (localDistance < distance) {
+                            distance = localDistance;
+                            face = localFace;
+                            *intersectedObject = (void*)(&model);
+                            somethingIntersected = true;
+                        }
+                    }
                 }
             } else if (localDistance < distance) {
                 distance = localDistance;

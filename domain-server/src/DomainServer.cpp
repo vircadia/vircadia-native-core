@@ -312,6 +312,8 @@ void DomainServer::createScriptedAssignmentsFromArray(const QJsonArray &configAr
                 int numInstances = jsonObject[ASSIGNMENT_INSTANCES_KEY].toInt();
                 numInstances = (numInstances == 0 ? 1 : numInstances);
                 
+                qDebug() << "Adding a static scripted assignment from" << assignmentURL;
+                
                 for (int i = 0; i < numInstances; i++) {
                     // add a scripted assignment to the queue for this instance
                     Assignment* scriptAssignment = new Assignment(Assignment::CreateCommand,
@@ -319,13 +321,8 @@ void DomainServer::createScriptedAssignmentsFromArray(const QJsonArray &configAr
                                                                   assignmentPool);
                     scriptAssignment->setPayload(assignmentURL.toUtf8());
                     
-                    qDebug() << "Adding scripted assignment to queue -" << *scriptAssignment;
-                    qDebug() << "URL for script is" << assignmentURL;
-                    
                     // scripts passed on CL or via JSON are static - so they are added back to the queue if the node dies
-                    SharedAssignmentPointer sharedScriptAssignment(scriptAssignment);
-                    _unfulfilledAssignments.enqueue(sharedScriptAssignment);
-                    _allAssignments.insert(sharedScriptAssignment->getUUID(), sharedScriptAssignment);
+                    addStaticAssignmentToAssignmentHash(scriptAssignment);
                 }
             }
         }
@@ -407,7 +404,7 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     PendingAssignedNodeData* pendingAssigneeData = NULL;
    
     if (isAssignment) {
-        pendingAssigneeData = _pendingAssignedNodes.take(packetUUID);
+        pendingAssigneeData = _pendingAssignedNodes.value(packetUUID);
         
         if (pendingAssigneeData) {
             matchingQueuedAssignment = matchingQueuedAssignmentForCheckIn(pendingAssigneeData->getAssignmentUUID(), nodeType);
@@ -416,12 +413,21 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
                 qDebug() << "Assignment deployed with" << uuidStringWithoutCurlyBraces(packetUUID)
                     << "matches unfulfilled assignment"
                     << uuidStringWithoutCurlyBraces(matchingQueuedAssignment->getUUID());
+                
+                // remove this unique assignment deployment from the hash of pending assigned nodes
+                // cleanup of the PendingAssignedNodeData happens below after the node has been added to the LimitedNodeList
+                _pendingAssignedNodes.remove(packetUUID);
+            } else {
+                // this is a node connecting to fulfill an assignment that doesn't exist
+                // don't reply back to them so they cycle back and re-request an assignment
+                qDebug() << "No match for assignment deployed with" << uuidStringWithoutCurlyBraces(packetUUID);
+                return;
             }
         }
         
     }
     
-    if (!matchingQueuedAssignment && !_oauthProviderURL.isEmpty() && _argumentVariantMap.contains(ALLOWED_ROLES_CONFIG_KEY)) {
+    if (!isAssignment && !_oauthProviderURL.isEmpty() && _argumentVariantMap.contains(ALLOWED_ROLES_CONFIG_KEY)) {
         // this is an Agent, and we require authentication so we can compare the user's roles to our list of allowed ones
         if (_sessionAuthenticationHash.contains(packetUUID)) {
             if (!_sessionAuthenticationHash.value(packetUUID)) {

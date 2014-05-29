@@ -27,6 +27,9 @@
 
 #include "Application.h"
 #include "FlowLayout.h"
+#include "JSConsole.h"
+
+const int CONSOLE_HEIGHT = 150;
 
 ScriptEditorWindow::ScriptEditorWindow() :
     _ScriptEditorWindowUI(new Ui::ScriptEditorWindow),
@@ -48,6 +51,10 @@ ScriptEditorWindow::ScriptEditorWindow() :
     connect(new QShortcut(QKeySequence("Ctrl+S"), this), &QShortcut::activated, this,&ScriptEditorWindow::saveScriptClicked);
     connect(new QShortcut(QKeySequence("Ctrl+O"), this), &QShortcut::activated, this, &ScriptEditorWindow::loadScriptClicked);
     connect(new QShortcut(QKeySequence("F5"), this), &QShortcut::activated, this, &ScriptEditorWindow::toggleRunScriptClicked);
+
+    QWidget* console = new JSConsole(this);
+    console->setFixedHeight(CONSOLE_HEIGHT);
+    this->layout()->addWidget(console);
 }
 
 ScriptEditorWindow::~ScriptEditorWindow() {

@@ -102,17 +102,10 @@ const int STARTUP_JITTER_SAMPLES = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / 2
                                                  //  Startup optimistically with small jitter buffer that
                                                  //  will start playback on the second received audio packet.
 
-const int MIRROR_VIEW_TOP_PADDING = 5;
-const int MIRROR_VIEW_LEFT_PADDING = 10;
-const int MIRROR_VIEW_WIDTH = 265;
-const int MIRROR_VIEW_HEIGHT = 215;
-const float MIRROR_FULLSCREEN_DISTANCE = 0.35f;
-const float MIRROR_REARVIEW_DISTANCE = 0.65f;
-const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
-const float MIRROR_FIELD_OF_VIEW = 30.0f;
-
 const QString CHECK_VERSION_URL = "https://highfidelity.io/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
+
+const QString DEFAULT_SCRIPTS_JS_URL = "http://public.highfidelity.io/scripts/defaultScripts.js";
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     if (message.size() > 0) {
@@ -171,6 +164,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _bytesPerSecond(0),
         _nodeBoundsDisplay(this),
         _previousScriptLocation(),
+        _applicationOverlay(),
         _runningScriptsWidget(new RunningScriptsWidget(_window)),
         _runningScriptsWidgetWasVisible(false),
         _trayIcon(new QSystemTrayIcon(_window))
@@ -370,7 +364,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         qDebug() << "This is a first run...";
         // clear the scripts, and set out script to our default scripts
         clearScriptsBeforeRunning();
-        loadScript("http://public.highfidelity.io/scripts/defaultScripts.js");
+        loadScript(DEFAULT_SCRIPTS_JS_URL);
 
         QMutexLocker locker(&_settingsMutex);
         _settings->setValue("firstRun",QVariant(false));
@@ -630,10 +624,12 @@ void Application::paintGL() {
 
     if (OculusManager::isConnected()) {
         OculusManager::display(whichCamera);
+
     } else if (TV3DManager::isConnected()) {
         _glowEffect.prepare();
         TV3DManager::display(whichCamera);
         _glowEffect.render();
+
     } else {
         _glowEffect.prepare();
 
@@ -652,7 +648,7 @@ void Application::paintGL() {
             _rearMirrorTools->render(true);
         }
 
-        displayOverlay();
+        _applicationOverlay.renderOverlay();
     }
 
     _frameCount++;
@@ -2594,183 +2590,6 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
     _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
 }
 
-const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
-
-void Application::displayOverlay() {
-    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displayOverlay()");
-
-    //  Render 2D overlay:  I/O level bar graphs and text
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-
-    glLoadIdentity();
-    gluOrtho2D(0, _glWidget->width(), _glWidget->height(), 0);
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
-
-    //  Display a single screen-size quad to create an alpha blended 'collision' flash
-    if (_audio.getCollisionFlashesScreen()) {
-        float collisionSoundMagnitude = _audio.getCollisionSoundMagnitude();
-        const float VISIBLE_COLLISION_SOUND_MAGNITUDE = 0.5f;
-        if (collisionSoundMagnitude > VISIBLE_COLLISION_SOUND_MAGNITUDE) {
-                renderCollisionOverlay(_glWidget->width(), _glWidget->height(), _audio.getCollisionSoundMagnitude());
-        }
-    }
-
-    //  Audio VU Meter and Mute Icon
-    const int MUTE_ICON_SIZE = 24;
-    const int AUDIO_METER_INSET = 2;
-    const int MUTE_ICON_PADDING = 10;
-    const int AUDIO_METER_WIDTH = MIRROR_VIEW_WIDTH - MUTE_ICON_SIZE - AUDIO_METER_INSET - MUTE_ICON_PADDING;
-    const int AUDIO_METER_SCALE_WIDTH = AUDIO_METER_WIDTH - 2 * AUDIO_METER_INSET;
-    const int AUDIO_METER_HEIGHT = 8;
-    const int AUDIO_METER_GAP = 5;
-    const int AUDIO_METER_X = MIRROR_VIEW_LEFT_PADDING + MUTE_ICON_SIZE + AUDIO_METER_INSET + AUDIO_METER_GAP;
-
-    int audioMeterY;
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        audioMeterY = MIRROR_VIEW_HEIGHT + AUDIO_METER_GAP + MUTE_ICON_PADDING;
-    } else {
-        audioMeterY = AUDIO_METER_GAP + MUTE_ICON_PADDING;
-    }
-
-    const float AUDIO_METER_BLUE[] = {0.0, 0.0, 1.0};
-    const float AUDIO_METER_GREEN[] = {0.0, 1.0, 0.0};
-    const float AUDIO_METER_RED[] = {1.0, 0.0, 0.0};
-    const float AUDIO_GREEN_START = 0.25 * AUDIO_METER_SCALE_WIDTH;
-    const float AUDIO_RED_START = 0.80 * AUDIO_METER_SCALE_WIDTH;
-    const float CLIPPING_INDICATOR_TIME = 1.0f;
-    const float AUDIO_METER_AVERAGING = 0.5;
-    const float LOG2 = log(2.f);
-    const float METER_LOUDNESS_SCALE = 2.8f / 5.f;
-    const float LOG2_LOUDNESS_FLOOR = 11.f;
-    float audioLevel = 0.f;
-    float loudness = _audio.getLastInputLoudness() + 1.f;
-
-    _trailingAudioLoudness = AUDIO_METER_AVERAGING * _trailingAudioLoudness + (1.f - AUDIO_METER_AVERAGING) * loudness;
-    float log2loudness = log(_trailingAudioLoudness) / LOG2;
-
-    if (log2loudness <= LOG2_LOUDNESS_FLOOR) {
-        audioLevel = (log2loudness / LOG2_LOUDNESS_FLOOR) * METER_LOUDNESS_SCALE * AUDIO_METER_SCALE_WIDTH;
-    } else {
-        audioLevel = (log2loudness - (LOG2_LOUDNESS_FLOOR - 1.f)) * METER_LOUDNESS_SCALE * AUDIO_METER_SCALE_WIDTH;
-    }
-    if (audioLevel > AUDIO_METER_SCALE_WIDTH) {
-        audioLevel = AUDIO_METER_SCALE_WIDTH;
-    }
-    bool isClipping = ((_audio.getTimeSinceLastClip() > 0.f) && (_audio.getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME));
-
-    if ((_audio.getTimeSinceLastClip() > 0.f) && (_audio.getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME)) {
-        const float MAX_MAGNITUDE = 0.7f;
-        float magnitude = MAX_MAGNITUDE * (1 - _audio.getTimeSinceLastClip() / CLIPPING_INDICATOR_TIME);
-        renderCollisionOverlay(_glWidget->width(), _glWidget->height(), magnitude, 1.0f);
-    }
-
-    _audio.renderToolBox(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP,
-                         audioMeterY,
-                         Menu::getInstance()->isOptionChecked(MenuOption::Mirror));
-
-    _audio.renderScope(_glWidget->width(), _glWidget->height());
-
-    glBegin(GL_QUADS);
-    if (isClipping) {
-        glColor3f(1, 0, 0);
-    } else {
-        glColor3f(0.475f, 0.475f, 0.475f);
-    }
-
-    audioMeterY += AUDIO_METER_HEIGHT;
-
-    glColor3f(0, 0, 0);
-    //  Draw audio meter background Quad
-    glVertex2i(AUDIO_METER_X, audioMeterY);
-    glVertex2i(AUDIO_METER_X + AUDIO_METER_WIDTH, audioMeterY);
-    glVertex2i(AUDIO_METER_X + AUDIO_METER_WIDTH, audioMeterY + AUDIO_METER_HEIGHT);
-    glVertex2i(AUDIO_METER_X, audioMeterY + AUDIO_METER_HEIGHT);
-
-
-    if (audioLevel > AUDIO_RED_START) {
-        if (!isClipping) {
-            glColor3fv(AUDIO_METER_RED);
-        } else {
-            glColor3f(1, 1, 1);
-        }
-        // Draw Red Quad
-        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_RED_START, audioMeterY + AUDIO_METER_INSET);
-        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + audioLevel, audioMeterY + AUDIO_METER_INSET);
-        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + audioLevel, audioMeterY + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
-        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_RED_START, audioMeterY + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
-        audioLevel = AUDIO_RED_START;
-    }
-    if (audioLevel > AUDIO_GREEN_START) {
-        if (!isClipping) {
-            glColor3fv(AUDIO_METER_GREEN);
-        } else {
-            glColor3f(1, 1, 1);
-        }
-        // Draw Green Quad
-        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_GREEN_START, audioMeterY + AUDIO_METER_INSET);
-        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + audioLevel, audioMeterY + AUDIO_METER_INSET);
-        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + audioLevel, audioMeterY + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
-        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_GREEN_START, audioMeterY + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
-        audioLevel = AUDIO_GREEN_START;
-    }
-    //   Draw Blue Quad
-    if (!isClipping) {
-        glColor3fv(AUDIO_METER_BLUE);
-    } else {
-        glColor3f(1, 1, 1);
-    }
-    // Draw Blue (low level) quad
-    glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET, audioMeterY + AUDIO_METER_INSET);
-    glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + audioLevel, audioMeterY + AUDIO_METER_INSET);
-    glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + audioLevel, audioMeterY + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
-    glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET, audioMeterY + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
-    glEnd();
-
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::HeadMouse)) {
-        _myAvatar->renderHeadMouse(_glWidget->width(), _glWidget->height());
-    }
-
-    //  Display stats and log text onscreen
-    glLineWidth(1.0f);
-    glPointSize(1.0f);
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
-        // let's set horizontal offset to give stats some margin to mirror
-        int horizontalOffset = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
-        int voxelPacketsToProcess = _voxelProcessor.packetsToProcessCount();
-        //  Onscreen text about position, servers, etc
-        Stats::getInstance()->display(WHITE_TEXT, horizontalOffset, _fps, _packetsPerSecond, _bytesPerSecond, voxelPacketsToProcess);
-        //  Bandwidth meter
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth)) {
-            Stats::drawBackground(0x33333399, _glWidget->width() - 296, _glWidget->height() - 68, 296, 68);
-            _bandwidthMeter.render(_glWidget->width(), _glWidget->height());
-        }
-    }
-
-    //  Show on-screen msec timer
-    if (Menu::getInstance()->isOptionChecked(MenuOption::FrameTimer)) {
-        char frameTimer[10];
-        quint64 mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
-        sprintf(frameTimer, "%d\n", (int)(mSecsNow % 1000));
-        int timerBottom =
-            (Menu::getInstance()->isOptionChecked(MenuOption::Stats) &&
-            Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth))
-                ? 80 : 20;
-        drawText(_glWidget->width() - 100, _glWidget->height() - timerBottom, 0.30f, 0.0f, 0, frameTimer, WHITE_TEXT);
-    }
-    _nodeBoundsDisplay.drawOverlay();
-
-    // give external parties a change to hook in
-    emit renderingOverlay();
-
-    _overlays.render2D();
-
-    glPopMatrix();
-}
-
 glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
     float horizontalScale = _glWidget->width() / 2.0f;
     float verticalScale   = _glWidget->height() / 2.0f;
@@ -3437,16 +3256,21 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
         return _scriptEnginesHash[scriptName];
     }
 
-    // start the script on a new thread...
-    QUrl scriptUrl(scriptName);
-    ScriptEngine* scriptEngine = new ScriptEngine(scriptUrl, &_controllerScriptingInterface);
-    _scriptEnginesHash.insert(scriptUrl.toString(), scriptEngine);
+    ScriptEngine* scriptEngine;
+    if (scriptName.isNull()) {
+        scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
+    } else {
+        // start the script on a new thread...
+        QUrl scriptUrl(scriptName);
+        scriptEngine = new ScriptEngine(scriptUrl, &_controllerScriptingInterface);
+        _scriptEnginesHash.insert(scriptName, scriptEngine);
 
-    if (!scriptEngine->hasScript()) {
-        qDebug() << "Application::loadScript(), script failed to load...";
-        return NULL;
+        if (!scriptEngine->hasScript()) {
+            qDebug() << "Application::loadScript(), script failed to load...";
+            return NULL;
+        }
+        _runningScriptsWidget->setRunningScripts(getRunningScripts());
     }
-    _runningScriptsWidget->setRunningScripts(getRunningScripts());
 
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
     // we can use the same ones from the application.
@@ -3543,6 +3367,12 @@ void Application::stopScript(const QString &scriptName) {
 
 void Application::reloadAllScripts() {
     stopAllScripts(true);
+}
+
+void Application::loadDefaultScripts() {
+    if (!_scriptEnginesHash.contains(DEFAULT_SCRIPTS_JS_URL)) {
+        loadScript(DEFAULT_SCRIPTS_JS_URL);
+    }
 }
 
 void Application::manageRunningScriptsWidgetVisibility(bool shown) {
