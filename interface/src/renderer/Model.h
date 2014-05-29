@@ -35,10 +35,12 @@ class JointState {
 public:
     JointState();
 
-    void setFBXJoint(const FBXJoint& joint); 
+    void setFBXJoint(const FBXJoint* joint); 
     const FBXJoint& getFBXJoint() const { return *_fbxJoint; }
 
     void updateWorldTransform(const glm::mat4& baseTransform, const glm::quat& parentRotation);
+
+    void copyState(const JointState& state);
 
     glm::vec3 _translation;  // translation relative to parent
     glm::quat _rotation;     // rotation relative to parent
@@ -47,7 +49,7 @@ public:
     float _animationPriority; // the priority of the animation affecting this joint
 
 private:
-    const FBXJoint* _fbxJoint;    // JointState does not own its FBXJoint
+    const FBXJoint* _fbxJoint; // JointState does NOT own its FBXJoint
 };
 
 /// A generic 3D model displaying geometry loaded from a URL.
