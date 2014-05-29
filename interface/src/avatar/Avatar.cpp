@@ -347,7 +347,6 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 void Avatar::renderBody(RenderMode renderMode, float glowLevel) {
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
                             Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
-
     {
         Glower glower(glowLevel);
         
@@ -356,7 +355,8 @@ void Avatar::renderBody(RenderMode renderMode, float glowLevel) {
             renderBillboard();
             return;
         }
-        _skeletonModel.render(1.0f, modelRenderMode);
+        
+        _skeletonModel.render(1.0f, modelRenderMode, Menu::getInstance()->isOptionChecked(MenuOption::AvatarsReceiveShadows));
         renderAttachments(renderMode);
         getHand()->render(false, modelRenderMode);
     }
@@ -390,8 +390,9 @@ void Avatar::simulateAttachments(float deltaTime) {
 void Avatar::renderAttachments(RenderMode renderMode) {
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
         Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+    bool receiveShadows = Menu::getInstance()->isOptionChecked(MenuOption::AvatarsReceiveShadows);
     foreach (Model* model, _attachmentModels) {
-        model->render(1.0f, modelRenderMode);
+        model->render(1.0f, modelRenderMode, receiveShadows);
     }
 }
 

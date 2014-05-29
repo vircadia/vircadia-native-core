@@ -81,7 +81,7 @@ void NodeBounds::draw() {
                 glm::vec3 location(rootDetails.x, rootDetails.y, rootDetails.z);
                 location *= (float)TREE_SCALE;
 
-                AABox serverBounds(location, rootDetails.s * TREE_SCALE);
+                AACube serverBounds(location, rootDetails.s * TREE_SCALE);
 
                 glm::vec3 center = serverBounds.getVertex(BOTTOM_RIGHT_NEAR)
                     + ((serverBounds.getVertex(TOP_LEFT_FAR) - serverBounds.getVertex(BOTTOM_RIGHT_NEAR)) / 2.0f);

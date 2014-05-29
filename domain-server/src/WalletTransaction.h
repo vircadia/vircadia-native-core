@@ -19,16 +19,16 @@
 class WalletTransaction : public QObject {
 public:
     WalletTransaction();
-    WalletTransaction(const QUuid& destinationUUID, double amount);
+    WalletTransaction(const QUuid& destinationUUID, qint64 amount);
     
     const QUuid& getUUID() const { return _uuid; }
     
     void setDestinationUUID(const QUuid& destinationUUID) { _destinationUUID = destinationUUID; }
     const QUuid& getDestinationUUID() const { return _destinationUUID; }
     
-    double getAmount() const { return _amount; }
-    void setAmount(double amount) { _amount = amount; }
-    void incrementAmount(double increment) { _amount += increment; }
+    qint64 getAmount() const { return _amount; }
+    void setAmount(qint64 amount) { _amount = amount; }
+    void incrementAmount(qint64 increment) { _amount += increment; }
     
     bool isFinalized() const { return _isFinalized; }
     void setIsFinalized(bool isFinalized) { _isFinalized = isFinalized; }
@@ -39,7 +39,7 @@ public:
 private:
     QUuid _uuid;
     QUuid _destinationUUID;
-    double _amount;
+    qint64 _amount;
     bool _isFinalized;
 };
 

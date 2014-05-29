@@ -202,7 +202,7 @@ public:
     float getSize() const { return _radius * 2.0f; }
 
     /// get maximum dimension in domain scale units (0.0 - 1.0)
-    AABox getAABox() const { return AABox(getMinimumPoint(), getSize()); }
+    AACube getAACube() const { return AACube(getMinimumPoint(), getSize()); }
     
     // model related properties
     bool hasModel() const { return !_modelURL.isEmpty(); }

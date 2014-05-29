@@ -128,19 +128,43 @@ QPushButton:pressed {
       </layout>
      </item>
      <item>
-      <widget class="QWidget" name="usersWidget" native="true">
-       <property name="styleSheet">
-        <string notr="true">#usersWidget {
-	margin-right: 20px;
-}</string>
+      <widget class="QWidget" name="usersArea" native="true">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
        </property>
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_3">
+        <property name="sizeConstraint">
+         <enum>QLayout::SetDefaultConstraint</enum>
+        </property>
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>12</number>
+        </property>
+        <item>
+         <widget class="QWidget" name="usersWidget" native="true"/>
+        </item>
+       </layout>
       </widget>
      </item>
      <item>
       <widget class="QScrollArea" name="messagesScrollArea">
-       <property name="styleSheet">
-        <string notr="true">margin-top: 12px;</string>
-       </property>
        <property name="horizontalScrollBarPolicy">
         <enum>Qt::ScrollBarAlwaysOff</enum>
        </property>

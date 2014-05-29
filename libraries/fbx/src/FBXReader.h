@@ -51,7 +51,8 @@ public:
     bool containsPoint(const glm::vec3& point) const;
 
     /// \return whether or not the extents are empty
-    bool isEmpty() { return minimum == maximum; }
+    bool isEmpty() const { return minimum == maximum; }
+    bool isValid() const { return !((minimum == glm::vec3(FLT_MAX)) && (maximum == glm::vec3(-FLT_MAX))); }
 
     glm::vec3 minimum;
     glm::vec3 maximum;
@@ -150,6 +151,8 @@ public:
     QVector<glm::vec4> clusterWeights;
     
     QVector<FBXCluster> clusters;
+
+    Extents meshExtents;
     
     bool isEye;
     
@@ -235,5 +238,7 @@ FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping);
 
 /// Reads SVO geometry from the supplied model data.
 FBXGeometry readSVO(const QByteArray& model);
+
+void calculateRotatedExtents(Extents& extents, const glm::quat& rotation);
 
 #endif // hifi_FBXReader_h

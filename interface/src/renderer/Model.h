@@ -30,6 +30,25 @@ class Shape;
 
 typedef QSharedPointer<AnimationHandle> AnimationHandlePointer;
 typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
+    
+class JointState {
+public:
+    JointState();
+
+    void setFBXJoint(const FBXJoint& joint); 
+    const FBXJoint& getFBXJoint() const { return *_fbxJoint; }
+
+    void updateWorldTransform(const glm::mat4& baseTransform, const glm::quat& parentRotation);
+
+    glm::vec3 _translation;  // translation relative to parent
+    glm::quat _rotation;     // rotation relative to parent
+    glm::mat4 _transform;    // rotation to world frame + translation in model frame
+    glm::quat _combinedRotation; // rotation from joint local to world frame
+    float _animationPriority; // the priority of the animation affecting this joint
+
+private:
+    const FBXJoint* _fbxJoint;    // JointState does not own its FBXJoint
+};
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject {
@@ -79,7 +98,7 @@ public:
     
     enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE };
     
-    bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE);
+    bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE, bool receiveShadows = true);
 
     /// Sets the URL of the model to render.
     /// \param fallback the URL of a fallback model to render if the requested model fails to load
@@ -115,77 +134,11 @@ public:
     /// Sets the joint state at the specified index.
     void setJointState(int index, bool valid, const glm::quat& rotation = glm::quat(), float priority = 1.0f);
     
-    /// Returns the index of the left hand joint, or -1 if not found.
-    int getLeftHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().leftHandJointIndex : -1; }
-    
-    /// Returns the index of the right hand joint, or -1 if not found.
-    int getRightHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().rightHandJointIndex : -1; }
-    
     /// Returns the index of the parent of the indexed joint, or -1 if not found.
     int getParentJointIndex(int jointIndex) const;
     
     /// Returns the index of the last free ancestor of the indexed joint, or -1 if not found.
     int getLastFreeJointIndex(int jointIndex) const;
-    
-    /// Returns the position of the head joint.
-    /// \return whether or not the head was found
-    bool getHeadPosition(glm::vec3& headPosition) const;
-    
-    /// Returns the position of the neck joint.
-    /// \return whether or not the neck was found
-    bool getNeckPosition(glm::vec3& neckPosition) const;
-    
-    /// Returns the rotation of the neck joint.
-    /// \return whether or not the neck was found
-    bool getNeckRotation(glm::quat& neckRotation) const;
-    
-    /// Returns the rotation of the neck joint's parent.
-    /// \return whether or not the neck was found
-    bool getNeckParentRotation(glm::quat& neckRotation) const;
-    
-    /// Retrieve the positions of up to two eye meshes.
-    /// \return whether or not both eye meshes were found
-    bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
-    
-    /// Retrieve the position of the left hand
-    /// \return true whether or not the position was found
-    bool getLeftHandPosition(glm::vec3& position) const;
-    
-    /// Retrieve the rotation of the left hand
-    /// \return true whether or not the rotation was found
-    bool getLeftHandRotation(glm::quat& rotation) const;
-    
-    /// Retrieve the position of the right hand
-    /// \return true whether or not the position was found
-    bool getRightHandPosition(glm::vec3& position) const;
-    
-    /// Retrieve the rotation of the right hand
-    /// \return true whether or not the rotation was found
-    bool getRightHandRotation(glm::quat& rotation) const;
-    
-    /// Restores some percentage of the default position of the left hand.
-    /// \param percent the percentage of the default position to restore
-    /// \return whether or not the left hand joint was found
-    bool restoreLeftHandPosition(float percent = 1.0f, float priority = 1.0f);
-    
-    /// Gets the position of the left shoulder.
-    /// \return whether or not the left shoulder joint was found
-    bool getLeftShoulderPosition(glm::vec3& position) const;
-    
-    /// Returns the extended length from the left hand to its last free ancestor.
-    float getLeftArmLength() const;
-    
-    /// Restores some percentage of the default position of the right hand.
-    /// \param percent the percentage of the default position to restore
-    /// \return whether or not the right hand joint was found
-    bool restoreRightHandPosition(float percent = 1.0f, float priority = 1.0f);
-    
-    /// Gets the position of the right shoulder.
-    /// \return whether or not the right shoulder joint was found
-    bool getRightShoulderPosition(glm::vec3& position) const;
-    
-    /// Returns the extended length from the right hand to its first free ancestor.
-    float getRightArmLength() const;
     
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
     bool getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind = false) const;
@@ -248,15 +201,6 @@ protected:
     bool _snappedToCenter; /// are we currently snapped to center
     int _rootIndex;
     
-    class JointState {
-    public:
-        glm::vec3 translation;  // translation relative to parent
-        glm::quat rotation;     // rotation relative to parent
-        glm::mat4 transform;    // rotation to world frame + translation in model frame
-        glm::quat combinedRotation; // rotation from joint local to world frame
-        float animationPriority; // the priority of the animation affecting this joint
-    };
-    
     bool _shapesAreDirty;
     QVector<JointState> _jointStates;
     QVector<Shape*> _jointShapes;
@@ -284,14 +228,10 @@ protected:
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);
     
-    virtual void maybeUpdateLeanRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
-    virtual void maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
-    virtual void maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
-    
     bool setJointPosition(int jointIndex, const glm::vec3& translation, const glm::quat& rotation = glm::quat(),
         bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
         const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
-    bool setJointRotation(int jointIndex, const glm::quat& rotation, bool fromBind = false, float priority = 1.0f);
+    bool setJointRotation(int jointIndex, const glm::quat& rotation, float priority = 1.0f);
     
     void setJointTranslation(int jointIndex, const glm::vec3& translation);
     
@@ -315,7 +255,7 @@ private:
     
     void applyNextGeometry();
     void deleteGeometry();
-    void renderMeshes(float alpha, RenderMode mode, bool translucent);
+    void renderMeshes(float alpha, RenderMode mode, bool translucent, bool receiveShadows);
     QVector<JointState> createJointStates(const FBXGeometry& geometry);
     
     QSharedPointer<NetworkGeometry> _baseGeometry; ///< reference required to prevent collection of base
@@ -344,15 +284,30 @@ private:
     static ProgramObject _normalMapProgram;
     static ProgramObject _specularMapProgram;
     static ProgramObject _normalSpecularMapProgram;
+    
+    static ProgramObject _shadowMapProgram;
+    static ProgramObject _shadowNormalMapProgram;
+    static ProgramObject _shadowSpecularMapProgram;
+    static ProgramObject _shadowNormalSpecularMapProgram;
+    
     static ProgramObject _shadowProgram;
+    
     static ProgramObject _skinProgram;
     static ProgramObject _skinNormalMapProgram;
     static ProgramObject _skinSpecularMapProgram;
     static ProgramObject _skinNormalSpecularMapProgram;
+    
+    static ProgramObject _skinShadowMapProgram;
+    static ProgramObject _skinShadowNormalMapProgram;
+    static ProgramObject _skinShadowSpecularMapProgram;
+    static ProgramObject _skinShadowNormalSpecularMapProgram;
+    
     static ProgramObject _skinShadowProgram;
     
     static int _normalMapTangentLocation;
     static int _normalSpecularMapTangentLocation;
+    static int _shadowNormalMapTangentLocation;
+    static int _shadowNormalSpecularMapTangentLocation;
     
     class SkinLocations {
     public:
@@ -366,9 +321,14 @@ private:
     static SkinLocations _skinNormalMapLocations;
     static SkinLocations _skinSpecularMapLocations;
     static SkinLocations _skinNormalSpecularMapLocations;
+    static SkinLocations _skinShadowMapLocations;
+    static SkinLocations _skinShadowNormalMapLocations;
+    static SkinLocations _skinShadowSpecularMapLocations;
+    static SkinLocations _skinShadowNormalSpecularMapLocations;
     static SkinLocations _skinShadowLocations;
     
-    static void initSkinProgram(ProgramObject& program, SkinLocations& locations, int specularTextureUnit = 1);
+    static void initSkinProgram(ProgramObject& program, SkinLocations& locations,
+        int specularTextureUnit = 1, int shadowTextureUnit = 1);
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)

@@ -26,6 +26,7 @@
 #include "location/LocationManager.h"
 #include "ui/PreferencesDialog.h"
 #include "ui/ChatWindow.h"
+#include "ui/JSConsole.h"
 #include "ui/ScriptEditorWindow.h"
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
@@ -189,6 +190,7 @@ private slots:
     void showMetavoxelEditor();
     void showScriptEditor();
     void showChat();
+    void toggleConsole();
     void toggleChat();
     void audioMuteToggled();
     void namedLocationCreated(LocationManager::NamedLocationCreateResponse response);
@@ -243,6 +245,7 @@ private:
     QPointer<MetavoxelEditor> _MetavoxelEditor;
     QPointer<ScriptEditorWindow> _ScriptEditor;
     QPointer<ChatWindow> _chatWindow;
+    QDialog* _jsConsole;
     OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
     int _maxVoxels;
@@ -279,6 +282,10 @@ namespace MenuOption {
     const QString AudioNoiseReduction = "Audio Noise Reduction";
     const QString AudioScope = "Audio Scope";
     const QString AudioScopePause = "Pause Audio Scope";
+    const QString AudioScopeFrames = "Display Frames";
+    const QString AudioScopeFiveFrames = "Five";
+    const QString AudioScopeTwentyFrames = "Twenty";
+    const QString AudioScopeFiftyFrames = "Fifty";
     const QString AudioToneInjection = "Inject Test Tone";
     const QString AudioSpatialProcessing = "Audio Spatial Processing";
     const QString AudioSpatialProcessingHeadOriented = "Head Oriented";
@@ -293,6 +300,7 @@ namespace MenuOption {
     const QString AudioSpatialProcessingDontDistanceAttenuate = "Don't calculate distance attenuation";
     const QString AudioSpatialProcessingAlternateDistanceAttenuate = "Alternate distance attenuation";
     const QString Avatars = "Avatars";
+    const QString AvatarsReceiveShadows = "Avatars Receive Shadows";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BuckyBalls = "Bucky Balls";
@@ -303,6 +311,7 @@ namespace MenuOption {
     const QString CollideWithParticles = "Collide With Particles";
     const QString CollideWithVoxels = "Collide With Voxels";
     const QString Collisions = "Collisions";
+    const QString Console = "Console...";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
@@ -376,6 +385,7 @@ namespace MenuOption {
     const QString ShowBordersModelNodes = "Show Model Nodes";
     const QString ShowBordersParticleNodes = "Show Particle Nodes";
     const QString ShowIKConstraints = "Show IK Constraints";
+    const QString StandOnNearbyFloors = "Stand on nearby floors";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString StopAllScripts = "Stop All Scripts";
