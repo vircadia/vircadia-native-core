@@ -50,7 +50,8 @@ void OculusManager::connect() {
         _sensorDevice = *_hmdDevice->GetSensor();
         _sensorFusion = new SensorFusion;
         _sensorFusion->AttachToSensor(_sensorDevice);
-        
+        _sensorFusion->SetPredictionEnabled(true);
+
         HMDInfo info;
         _hmdDevice->GetDeviceInfo(&info);
         _stereoConfig.SetHMDInfo(info);
@@ -201,7 +202,7 @@ void OculusManager::reset() {
 
 void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
 #ifdef HAVE_LIBOVR
-    _sensorFusion->GetOrientation().GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
+    _sensorFusion->GetPredictedOrientation().GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
 #endif
 }
 
