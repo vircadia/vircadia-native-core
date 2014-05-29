@@ -378,10 +378,10 @@ void Avatar::simulateAttachments(float deltaTime) {
             model->setLODDistance(getLODDistance());
         }
         if (_skeletonModel.getJointPosition(jointIndex, jointPosition) &&
-                _skeletonModel.getJointRotation(jointIndex, jointRotation)) {
+                _skeletonModel.getJointCombinedRotation(jointIndex, jointRotation)) {
             model->setTranslation(jointPosition + jointRotation * attachment.translation * _scale);
             model->setRotation(jointRotation * attachment.rotation);
-            model->setScale(_skeletonModel.getScale() * attachment.scale);
+            model->setScaleToFit(true, _scale * attachment.scale);
             model->simulate(deltaTime);
         }
     }
@@ -749,7 +749,6 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     // make sure we have as many models as attachments
     while (_attachmentModels.size() < attachmentData.size()) {
         Model* model = new Model(this);
-        model->setSnapModelToCenter(true);
         model->init();
         _attachmentModels.append(model);
     }
@@ -759,6 +758,8 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     
     // update the urls
     for (int i = 0; i < attachmentData.size(); i++) {
+        _attachmentModels[i]->setSnapModelToCenter(true);
+        _attachmentModels[i]->setScaleToFit(true, _scale * _attachmentData.at(i).scale);
         _attachmentModels[i]->setURL(attachmentData.at(i).modelURL);
     }
 }
