@@ -545,8 +545,8 @@ bool ModelTree::hasModelsDeletedSince(quint64 sinceTime) {
 }
 
 // sinceTime is an in/out parameter - it will be side effected with the last time sent out
-bool ModelTree::encodeModelsDeletedSince(quint64& sinceTime, unsigned char* outputBuffer, size_t maxLength,
-                                                    size_t& outputLength) {
+bool ModelTree::encodeModelsDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime, unsigned char* outputBuffer,
+                                            size_t maxLength, size_t& outputLength) {
 
     bool hasMoreToSend = true;
 
@@ -554,6 +554,26 @@ bool ModelTree::encodeModelsDeletedSince(quint64& sinceTime, unsigned char* outp
     size_t numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(outputBuffer), PacketTypeModelErase);
     copyAt += numBytesPacketHeader;
     outputLength = numBytesPacketHeader;
+
+// pack in flags
+OCTREE_PACKET_FLAGS flags = 0;
+OCTREE_PACKET_FLAGS* flagsAt = (OCTREE_PACKET_FLAGS*)copyAt;
+*flagsAt = flags;
+copyAt += sizeof(OCTREE_PACKET_FLAGS);
+outputLength += sizeof(OCTREE_PACKET_FLAGS);
+
+// pack in sequence number
+OCTREE_PACKET_SEQUENCE* sequenceAt = (OCTREE_PACKET_SEQUENCE*)copyAt;
+*sequenceAt = sequenceNumber;
+copyAt += sizeof(OCTREE_PACKET_SEQUENCE);
+outputLength += sizeof(OCTREE_PACKET_SEQUENCE);
+
+// pack in timestamp
+OCTREE_PACKET_SENT_TIME now = usecTimestampNow();
+OCTREE_PACKET_SENT_TIME* timeAt = (OCTREE_PACKET_SENT_TIME*)copyAt;
+*timeAt = now;
+copyAt += sizeof(OCTREE_PACKET_SENT_TIME);
+outputLength += sizeof(OCTREE_PACKET_SENT_TIME);
 
     uint16_t numberOfIds = 0; // placeholder for now
     unsigned char* numberOfIDsAt = copyAt;
@@ -642,8 +662,13 @@ void ModelTree::processEraseMessage(const QByteArray& dataByteArray, const Share
     size_t processedBytes = numBytesPacketHeader;
     dataAt += numBytesPacketHeader;
 
+dataAt += sizeof(OCTREE_PACKET_FLAGS);
+dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
+dataAt += sizeof(OCTREE_PACKET_SENT_TIME);
+
     uint16_t numberOfIds = 0; // placeholder for now
     memcpy(&numberOfIds, dataAt, sizeof(numberOfIds));
+qDebug() << "\t\t\t numberOfIds: " << numberOfIds;
     dataAt += sizeof(numberOfIds);
     processedBytes += sizeof(numberOfIds);
 

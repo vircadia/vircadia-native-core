@@ -268,21 +268,22 @@ qint64 LimitedNodeList::writeUnverifiedDatagram(const QByteArray& datagram, cons
 
 qint64 LimitedNodeList::writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
                                const HifiSockAddr& overridenSockAddr) {
-    /*
+    
     QByteArray datagram(data, size);
 
     qDebug() << "\t writeDatagram()...";
 
+    int numBytesPacketHeader = numBytesForPacketHeader(datagram);
+    const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(datagram.data()) + numBytesPacketHeader;
+
     PacketType type = packetTypeForPacket(datagram);
-    if (type != PacketType::PacketTypeParticleErase) {
-
-        qDebug() << "\t\t type: " << (unsigned char)type;
-        qDebug() << "\t\t UUID: " << uuidFromPacketHeader(datagram);
-        qDebug() << "\t\t MD5: " << hashFromPacketHeader(datagram);
+    qDebug() << "\t\t type: " << (unsigned char)type;
 
 
-        int numBytesPacketHeader = numBytesForPacketHeader(datagram);
-        const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(datagram.data()) + numBytesPacketHeader;
+    if (type != PacketTypeOctreeStats) {
+    
+        //qDebug() << "\t\t UUID: " << uuidFromPacketHeader(datagram);
+        //qDebug() << "\t\t MD5: " << hashFromPacketHeader(datagram);
 
         unsigned char flags = (*(unsigned char*)(dataAt));
         dataAt += sizeof(unsigned char);
@@ -296,15 +297,12 @@ qint64 LimitedNodeList::writeDatagram(const char* data, qint64 size, const Share
         dataAt += sizeof(quint64);
         qDebug() << "\t\t sent at: " << QString::number(sentAt, 16) << "\n";
     }
-    else {
-        qDebug() << "size: " << size;
-        const char* dataAt = data;
-        for (int i = 0; i < size; i++) {
-            unsigned char byte = *((unsigned char*)dataAt);
-            dataAt += sizeof(unsigned char);
-            qDebug() << "\t\t " << QString::number(byte, 16);
-        }
-    }*/
+
+    if (type == PacketTypeParticleErase || type==PacketTypeModelErase) {
+        uint16_t ids = *((uint16_t*)dataAt);
+        dataAt += sizeof(uint16_t);
+        qDebug() << "\t\t\t ids: " << ids;
+    }
 
     return writeDatagram(QByteArray(data, size), destinationNode, overridenSockAddr);
 }

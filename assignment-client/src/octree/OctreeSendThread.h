@@ -55,6 +55,8 @@ private:
     
     int _nodeMissingCount;
     bool _isShuttingDown;
+
+    OCTREE_PACKET_SEQUENCE _sequenceNumber;
 };
 
 #endif // hifi_OctreeSendThread_h

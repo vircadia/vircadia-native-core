@@ -46,7 +46,7 @@ public:
     // subclass may implement these method
     virtual void beforeRun();
     virtual bool hasSpecialPacketToSend(const SharedNodePointer& node);
-    virtual int sendSpecialPacket(const SharedNodePointer& node);
+    virtual int sendSpecialPacket(OCTREE_PACKET_SEQUENCE& sequence, const SharedNodePointer& node);
 
 private:
     bool _sendEnvironments;

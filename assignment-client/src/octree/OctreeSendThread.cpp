@@ -28,7 +28,8 @@ OctreeSendThread::OctreeSendThread(const SharedAssignmentPointer& myAssignment, 
     _nodeUUID(node->getUUID()),
     _packetData(),
     _nodeMissingCount(0),
-    _isShuttingDown(false)
+    _isShuttingDown(false),
+    _sequenceNumber(0)
 {
     QString safeServerName("Octree");
     if (_myServer) {
@@ -137,7 +138,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
     // obscure the packet and not send it. This allows the callers and upper level logic to not need to know about
     // this rate control savings.
     if (nodeData->shouldSuppressDuplicatePacket()) {
-        nodeData->resetOctreePacket(); // we still need to reset it though!
+        nodeData->resetOctreePacket(_sequenceNumber); // we still need to reset it though!
         return packetsSent; // without sending...
     }
 
@@ -163,11 +164,10 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         int piggyBackSize = nodeData->getPacketLength() + statsMessageLength;
 
         // If the size of the stats message and the voxel message will fit in a packet, then piggyback them
-        if (piggyBackSize < MAX_PACKET_SIZE) {
+if (piggyBackSize < MAX_PACKET_SIZE && false) {
 
             // copy voxel message to back of stats message
             memcpy(statsMessage + statsMessageLength, nodeData->getPacket(), nodeData->getPacketLength());
-//memcpy(statsMessage + statsMessageLength, messageData, nodeData->getPacketLength());
             statsMessageLength += nodeData->getPacketLength();
 
             // since a stats message is only included on end of scene, don't consider any of these bytes "wasted", since
@@ -210,7 +210,6 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
 
             OctreeServer::didCallWriteDatagram(this);
             NodeList::getInstance()->writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(), _node);
-//NodeList::getInstance()->writeDatagram((char*)messageData, nodeData->getPacketLength(), _node);
 
             packetSent = true;
 
@@ -231,7 +230,6 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
             // just send the voxel packet
             OctreeServer::didCallWriteDatagram(this);
             NodeList::getInstance()->writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(), _node);
-//NodeList::getInstance()->writeDatagram((char*)messageData, nodeData->getPacketLength(), _node);
             packetSent = true;
 
             int thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
@@ -251,8 +249,8 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         trueBytesSent += nodeData->getPacketLength();
         truePacketsSent++;
         packetsSent++;
-        nodeData->incrementSequenceNumber();
-        nodeData->resetOctreePacket();
+        _sequenceNumber++;
+        nodeData->resetOctreePacket(_sequenceNumber);
     }
     return packetsSent;
 }
@@ -291,7 +289,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         if (nodeData->isPacketWaiting()) {
             packetsSentThisInterval += handlePacketSend(nodeData, trueBytesSent, truePacketsSent);
         } else {
-            nodeData->resetOctreePacket();
+            nodeData->resetOctreePacket(_sequenceNumber);
         }
         int targetSize = MAX_OCTREE_PACKET_DATA_SIZE;
         if (wantCompression) {
@@ -537,7 +535,9 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         // send the environment packet
         // TODO: should we turn this into a while loop to better handle sending multiple special packets
         if (_myServer->hasSpecialPacketToSend(_node) && !nodeData->isShuttingDown()) {
-            trueBytesSent += _myServer->sendSpecialPacket(_node);
+qDebug() << "sending special packet...";
+            trueBytesSent += _myServer->sendSpecialPacket(_sequenceNumber, _node);
+            nodeData->resetOctreePacket(_sequenceNumber);   // because _sequenceNumber has changed
             truePacketsSent++;
             packetsSentThisInterval++;
         }

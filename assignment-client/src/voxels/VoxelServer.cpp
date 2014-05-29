@@ -40,7 +40,10 @@ bool VoxelServer::hasSpecialPacketToSend(const SharedNodePointer& node) {
     return shouldSendEnvironments;
 }
 
-int VoxelServer::sendSpecialPacket(const SharedNodePointer& node) {
+int VoxelServer::sendSpecialPacket(OCTREE_PACKET_SEQUENCE& sequence, const SharedNodePointer& node) {
+
+    // TODO: add flags, seq, timestamp to packet
+
     int numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(_tempOutputBuffer), PacketTypeEnvironmentData);
     int envPacketLength = numBytesPacketHeader;
     int environmentsToSend = getSendMinimalEnvironment() ? 1 : getEnvironmentDataCount();

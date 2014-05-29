@@ -81,7 +81,7 @@ void VoxelPacketProcessor::processPacket(const SharedNodePointer& sendingNode, c
 
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
-if (voxelPacketType != PacketTypeParticleErase)
+//if (voxelPacketType != PacketTypeParticleErase)
         app->trackIncomingVoxelPacket(mutablePacket, sendingNode, wasStatsPacket);
 
         if (sendingNode) {
