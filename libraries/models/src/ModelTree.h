@@ -74,7 +74,7 @@ public:
 
     bool hasAnyDeletedModels() const { return _recentlyDeletedModelItemIDs.size() > 0; }
     bool hasModelsDeletedSince(quint64 sinceTime);
-    bool encodeModelsDeletedSince(quint64& sinceTime, unsigned char* packetData, size_t maxLength, size_t& outputLength);
+    bool encodeModelsDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime, unsigned char* packetData, size_t maxLength, size_t& outputLength);
     void forgetModelsDeletedBefore(quint64 sinceTime);
 
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);

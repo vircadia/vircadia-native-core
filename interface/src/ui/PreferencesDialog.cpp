@@ -29,6 +29,8 @@ PreferencesDialog::PreferencesDialog(QWidget* parent, Qt::WindowFlags flags) : F
     connect(ui.buttonBrowseHead, &QPushButton::clicked, this, &PreferencesDialog::openHeadModelBrowser);
     connect(ui.buttonBrowseBody, &QPushButton::clicked, this, &PreferencesDialog::openBodyModelBrowser);
     connect(ui.buttonBrowseLocation, &QPushButton::clicked, this, &PreferencesDialog::openSnapshotLocationBrowser);
+    connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked,
+            Application::getInstance(), &Application::loadDefaultScripts);
 }
 
 void PreferencesDialog::accept() {

@@ -314,6 +314,18 @@ void ScriptEngine::evaluate() {
     }
 }
 
+QScriptValue ScriptEngine::evaluate(const QString& program, const QString& fileName, int lineNumber) {
+    QScriptValue result = _engine.evaluate(program, fileName, lineNumber);
+    bool hasUncaughtException = _engine.hasUncaughtException();
+    if (hasUncaughtException) {
+        int line = _engine.uncaughtExceptionLineNumber();
+        qDebug() << "Uncaught exception at line" << line << ": " << result.toString();
+    }
+    emit evaluationFinished(result, hasUncaughtException);
+    _engine.clearExceptions();
+    return result;
+}
+
 void ScriptEngine::sendAvatarIdentityPacket() {
     if (_isAvatar && _avatarData) {
         _avatarData->sendIdentityPacket();

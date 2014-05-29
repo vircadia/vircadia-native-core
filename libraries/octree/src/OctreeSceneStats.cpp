@@ -858,7 +858,7 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
     //bool packetIsCompressed = oneAtBit(flags, PACKET_IS_COMPRESSED_BIT);
     
     OCTREE_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
-    int flightTime = arrivedAt - sentAt + nodeClockSkewUsec;
+    qint64 flightTime = arrivedAt - sentAt + nodeClockSkewUsec;
 
     if (wantExtraDebugging) {
         qDebug() << "sentAt:" << sentAt << " usecs";
@@ -866,7 +866,7 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
         qDebug() << "nodeClockSkewUsec:" << nodeClockSkewUsec << " usecs";
         qDebug() << "flightTime:" << flightTime << " usecs";
     }
-    
+
     // Guard against possible corrupted packets... with bad timestamps
     const int MAX_RESONABLE_FLIGHT_TIME = 200 * USECS_PER_SECOND; // 200 seconds is more than enough time for a packet to arrive
     const int MIN_RESONABLE_FLIGHT_TIME = 0;
@@ -985,6 +985,6 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
             }
         }
     }
-    
+
 }
 
