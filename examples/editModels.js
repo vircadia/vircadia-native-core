@@ -161,8 +161,8 @@ function controller(wichSide) {
                 }
             }
             
-            print("closestJointIndex: " + closestJointIndex);
-            print("closestJointDistance: " + closestJointDistance);
+            print("closestJoint: " + jojntList[closestJointIndex]);
+            print("closestJointDistance (attach max distance): " + closestJointDistance + " (" + this.oldModelRadius + ")");
             
             if (closestJointDistance < this.oldModelRadius) {
                 print("Attaching to " + jointList[closestJointIndex]);
