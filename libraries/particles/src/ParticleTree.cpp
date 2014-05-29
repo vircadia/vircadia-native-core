@@ -521,22 +521,22 @@ bool ParticleTree::encodeParticlesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNu
     copyAt += numBytesPacketHeader;
     outputLength = numBytesPacketHeader;
 
-// pack in flags
-OCTREE_PACKET_FLAGS flags = 0;
-memcpy(copyAt, &flags, sizeof(OCTREE_PACKET_FLAGS));
-copyAt += sizeof(OCTREE_PACKET_FLAGS);
-outputLength += sizeof(OCTREE_PACKET_FLAGS);
+    // pack in flags
+    OCTREE_PACKET_FLAGS flags = 0;
+    memcpy(copyAt, &flags, sizeof(OCTREE_PACKET_FLAGS));
+    copyAt += sizeof(OCTREE_PACKET_FLAGS);
+    outputLength += sizeof(OCTREE_PACKET_FLAGS);
 
-// pack in sequence number
-memcpy(copyAt, &sequenceNumber, sizeof(OCTREE_PACKET_SEQUENCE));
-copyAt += sizeof(OCTREE_PACKET_SEQUENCE);
-outputLength += sizeof(OCTREE_PACKET_SEQUENCE);
+    // pack in sequence number
+    memcpy(copyAt, &sequenceNumber, sizeof(OCTREE_PACKET_SEQUENCE));
+    copyAt += sizeof(OCTREE_PACKET_SEQUENCE);
+    outputLength += sizeof(OCTREE_PACKET_SEQUENCE);
 
-// pack in timestamp
-OCTREE_PACKET_SENT_TIME now = usecTimestampNow();
-memcpy(copyAt, &now, sizeof(OCTREE_PACKET_SENT_TIME));
-copyAt += sizeof(OCTREE_PACKET_SENT_TIME);
-outputLength += sizeof(OCTREE_PACKET_SENT_TIME);
+    // pack in timestamp
+    OCTREE_PACKET_SENT_TIME now = usecTimestampNow();
+    memcpy(copyAt, &now, sizeof(OCTREE_PACKET_SENT_TIME));
+    copyAt += sizeof(OCTREE_PACKET_SENT_TIME);
+    outputLength += sizeof(OCTREE_PACKET_SENT_TIME);
 
 
     uint16_t numberOfIds = 0; // placeholder for now
@@ -627,9 +627,9 @@ void ParticleTree::processEraseMessage(const QByteArray& dataByteArray, const Sh
     size_t processedBytes = numBytesPacketHeader;
     dataAt += numBytesPacketHeader;
 
-dataAt += sizeof(OCTREE_PACKET_FLAGS);
-dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
-dataAt += sizeof(OCTREE_PACKET_SENT_TIME);
+    dataAt += sizeof(OCTREE_PACKET_FLAGS);
+    dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
+    dataAt += sizeof(OCTREE_PACKET_SENT_TIME);
 
     uint16_t numberOfIds = 0; // placeholder for now
     memcpy(&numberOfIds, dataAt, sizeof(numberOfIds));

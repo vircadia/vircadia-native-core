@@ -3142,12 +3142,7 @@ void Application::trackIncomingVoxelPacket(const QByteArray& packet, const Share
         _octreeSceneStatsLock.lockForWrite();
         if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
             OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
-            if (stats.trackIncomingOctreePacket(packet, wasStatsPacket, sendingNode->getClockSkewUsec())) {
-
-                // DEBUG! unreasonable flight time
-                qDebug() << " sending node type: " << NodeType::getNodeTypeName(sendingNode->getType()) << "\n";
-                //qDebug() << "\t\t clock skew: " << sendingNode->getClockSkewUsec();
-            }
+            stats.trackIncomingOctreePacket(packet, wasStatsPacket, sendingNode->getClockSkewUsec());
         }
         _octreeSceneStatsLock.unlock();
     }

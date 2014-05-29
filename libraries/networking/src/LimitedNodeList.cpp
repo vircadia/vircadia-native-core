@@ -268,42 +268,6 @@ qint64 LimitedNodeList::writeUnverifiedDatagram(const QByteArray& datagram, cons
 
 qint64 LimitedNodeList::writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
                                const HifiSockAddr& overridenSockAddr) {
-    /*
-    QByteArray datagram(data, size);
-
-    qDebug() << "\t writeDatagram()...";
-
-    int numBytesPacketHeader = numBytesForPacketHeader(datagram);
-    const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(datagram.data()) + numBytesPacketHeader;
-
-    PacketType type = packetTypeForPacket(datagram);
-    qDebug() << "\t\t type: " << (unsigned char)type;
-
-
-    if (type != PacketTypeOctreeStats) {
-    
-        //qDebug() << "\t\t UUID: " << uuidFromPacketHeader(datagram);
-        //qDebug() << "\t\t MD5: " << hashFromPacketHeader(datagram);
-
-        unsigned char flags = (*(unsigned char*)(dataAt));
-        dataAt += sizeof(unsigned char);
-        qDebug() << "\t\t flags: " << QString::number(flags, 2);
-
-        uint16_t sequence = (*(uint16_t*)dataAt);
-        dataAt += sizeof(uint16_t);
-        qDebug() << "\t\t sequence: " << QString::number(sequence, 16);
-
-        quint64 sentAt = (*(quint64*)dataAt);
-        dataAt += sizeof(quint64);
-        qDebug() << "\t\t sent at: " << QString::number(sentAt, 16) << "\n";
-    }
-
-    if (type == PacketTypeParticleErase || type==PacketTypeModelErase) {
-        uint16_t ids = *((uint16_t*)dataAt);
-        dataAt += sizeof(uint16_t);
-        qDebug() << "\t\t\t ids: " << ids;
-    }
-    */
     return writeDatagram(QByteArray(data, size), destinationNode, overridenSockAddr);
 }
 

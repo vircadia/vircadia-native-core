@@ -839,7 +839,7 @@ const char* OctreeSceneStats::getItemValue(Item item) {
     return _itemValueBuffer;
 }
 
-bool OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
+void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
                                     bool wasStatsPacket, int nodeClockSkewUsec) {
     const bool wantExtraDebugging = false;
 
@@ -866,21 +866,13 @@ bool OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
         qDebug() << "nodeClockSkewUsec:" << nodeClockSkewUsec << " usecs";
         qDebug() << "flightTime:" << flightTime << " usecs";
     }
-   
-
-//qDebug() << "\t" << QString::number(sequence, 16) << "\t sentAt:" << QString::number(sentAt, 16) << " usecs";
 
     // Guard against possible corrupted packets... with bad timestamps
     const int MAX_RESONABLE_FLIGHT_TIME = 200 * USECS_PER_SECOND; // 200 seconds is more than enough time for a packet to arrive
     const int MIN_RESONABLE_FLIGHT_TIME = 0;
     if (flightTime > MAX_RESONABLE_FLIGHT_TIME || flightTime < MIN_RESONABLE_FLIGHT_TIME) {
         qDebug() << "ignoring unreasonable packet... flightTime:" << flightTime;
-qDebug() << "\t sequence:" << QString::number(sequence, 16);
-qDebug() << "\t sentAt:" << QString::number(sentAt, 16) << " usecs";
-qDebug() << "\t arrivedAt:" << QString::number(arrivedAt, 16) << " usecs";
-qDebug() << "\t nodeClockSkewUsec:" << nodeClockSkewUsec << " usecs";
-qDebug() << "\t flightTime:" << flightTime << " usecs";
-        return true; // ignore any packets that are unreasonable
+        return;
     }
 
     // determine our expected sequence number... handle rollover appropriately
@@ -892,7 +884,7 @@ qDebug() << "\t flightTime:" << flightTime << " usecs";
     int sequenceOffset = (sequence - expected);
     if (sequenceOffset > MAX_RESONABLE_SEQUENCE_OFFSET || sequenceOffset < MIN_RESONABLE_SEQUENCE_OFFSET) {
         qDebug() << "ignoring unreasonable packet... sequence:" << sequence << "_incomingLastSequence:" << _incomingLastSequence;
-        return false; // ignore any packets that are unreasonable
+        return; // ignore any packets that are unreasonable
     }
 
     // track packets here...
@@ -993,6 +985,6 @@ qDebug() << "\t flightTime:" << flightTime << " usecs";
             }
         }
     }
-    return false;
+    return;
 }
 

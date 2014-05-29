@@ -42,32 +42,32 @@ bool VoxelServer::hasSpecialPacketToSend(const SharedNodePointer& node) {
 
 int VoxelServer::sendSpecialPacket(OCTREE_PACKET_SEQUENCE& sequenceNumber, const SharedNodePointer& node) {
 
-unsigned char* copyAt = _tempOutputBuffer;    
+    unsigned char* copyAt = _tempOutputBuffer;    
 
     int numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(_tempOutputBuffer), PacketTypeEnvironmentData);
-copyAt += numBytesPacketHeader;
+    copyAt += numBytesPacketHeader;
     int envPacketLength = numBytesPacketHeader;
 
 
-// pack in flags
-OCTREE_PACKET_FLAGS flags = 0;
-OCTREE_PACKET_FLAGS* flagsAt = (OCTREE_PACKET_FLAGS*)copyAt;
-*flagsAt = flags;
-copyAt += sizeof(OCTREE_PACKET_FLAGS);
-envPacketLength += sizeof(OCTREE_PACKET_FLAGS);
+    // pack in flags
+    OCTREE_PACKET_FLAGS flags = 0;
+    OCTREE_PACKET_FLAGS* flagsAt = (OCTREE_PACKET_FLAGS*)copyAt;
+    *flagsAt = flags;
+    copyAt += sizeof(OCTREE_PACKET_FLAGS);
+    envPacketLength += sizeof(OCTREE_PACKET_FLAGS);
 
-// pack in sequence number
-OCTREE_PACKET_SEQUENCE* sequenceAt = (OCTREE_PACKET_SEQUENCE*)copyAt;
-*sequenceAt = sequenceNumber;
-copyAt += sizeof(OCTREE_PACKET_SEQUENCE);
-envPacketLength += sizeof(OCTREE_PACKET_SEQUENCE);
+    // pack in sequence number
+    OCTREE_PACKET_SEQUENCE* sequenceAt = (OCTREE_PACKET_SEQUENCE*)copyAt;
+    *sequenceAt = sequenceNumber;
+    copyAt += sizeof(OCTREE_PACKET_SEQUENCE);
+    envPacketLength += sizeof(OCTREE_PACKET_SEQUENCE);
 
-// pack in timestamp
-OCTREE_PACKET_SENT_TIME now = usecTimestampNow();
-OCTREE_PACKET_SENT_TIME* timeAt = (OCTREE_PACKET_SENT_TIME*)copyAt;
-*timeAt = now;
-copyAt += sizeof(OCTREE_PACKET_SENT_TIME);
-envPacketLength += sizeof(OCTREE_PACKET_SENT_TIME);
+    // pack in timestamp
+    OCTREE_PACKET_SENT_TIME now = usecTimestampNow();
+    OCTREE_PACKET_SENT_TIME* timeAt = (OCTREE_PACKET_SENT_TIME*)copyAt;
+    *timeAt = now;
+    copyAt += sizeof(OCTREE_PACKET_SENT_TIME);
+    envPacketLength += sizeof(OCTREE_PACKET_SENT_TIME);
 
 
     int environmentsToSend = getSendMinimalEnvironment() ? 1 : getEnvironmentDataCount();
