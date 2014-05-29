@@ -142,11 +142,15 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
     }
 
     const unsigned char* messageData = nodeData->getPacket();
+
     int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<const char*>(messageData));
     const unsigned char* dataAt = messageData + numBytesPacketHeader;
     dataAt += sizeof(OCTREE_PACKET_FLAGS);
     OCTREE_PACKET_SEQUENCE sequence = (*(OCTREE_PACKET_SEQUENCE*)dataAt);
     dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
+
+    OCTREE_PACKET_SENT_TIME timestamp = (*(OCTREE_PACKET_SENT_TIME*)dataAt);
+    dataAt += sizeof(OCTREE_PACKET_SENT_TIME);
 
 
     // If we've got a stats message ready to send, then see if we can piggyback them together
@@ -529,7 +533,8 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         // send the environment packet
         // TODO: should we turn this into a while loop to better handle sending multiple special packets
         if (_myServer->hasSpecialPacketToSend(_node) && !nodeData->isShuttingDown()) {
-            trueBytesSent += _myServer->sendSpecialPacket(_node);
+            trueBytesSent += _myServer->sendSpecialPacket(nodeData, _node);
+            nodeData->resetOctreePacket();   // because nodeData's _sequenceNumber has changed
             truePacketsSent++;
             packetsSentThisInterval++;
         }

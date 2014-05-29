@@ -138,8 +138,9 @@ void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locati
 QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
     QVector<JointState> jointStates;
     foreach (const FBXJoint& joint, geometry.joints) {
+        // NOTE: the state keeps a pointer to an FBXJoint
         JointState state;
-        state.setFBXJoint(joint);
+        state.setFBXJoint(&joint);
         jointStates.append(state);
     }
 
@@ -408,7 +409,7 @@ bool Model::updateGeometry() {
                 int oldIndex = it.value() - 1;
                 int newIndex = newGeometry.getJointIndex(it.key());
                 if (newIndex != -1) {
-                    newJointStates[newIndex] = _jointStates.at(oldIndex);
+                    newJointStates[newIndex].copyState(_jointStates[oldIndex]);
                 }
             }
         } 
@@ -1898,15 +1899,26 @@ JointState::JointState() :
     _fbxJoint(NULL) {
 }
 
-void JointState::setFBXJoint(const FBXJoint& joint) { 
-    assert(&joint != NULL);
-    _translation = joint.translation;
-    _rotation = joint.rotation;
-    _fbxJoint = &joint;
+void JointState::setFBXJoint(const FBXJoint* joint) { 
+    assert(joint != NULL);
+    _translation = joint->translation;
+    _rotation = joint->rotation;
+    // NOTE: JointState does not own the FBXJoint to which it points.
+    _fbxJoint = joint;
 }
 
 void JointState::updateWorldTransform(const glm::mat4& baseTransform, const glm::quat& parentRotation) {
+    assert(_fbxJoint != NULL);
     glm::quat combinedRotation = _fbxJoint->preRotation * _rotation * _fbxJoint->postRotation;    
     _transform = baseTransform * glm::translate(_translation) * _fbxJoint->preTransform * glm::mat4_cast(combinedRotation) * _fbxJoint->postTransform;
     _combinedRotation = parentRotation * combinedRotation;
+}
+
+void JointState::copyState(const JointState& state) {
+    _translation = state._translation;
+    _rotation = state._rotation;
+    _transform = state._transform;
+    _combinedRotation = state._combinedRotation;
+    _animationPriority = state._animationPriority;
+    // DO NOT copy _fbxJoint
 }
