@@ -2298,6 +2298,9 @@ void Application::updateShadowMap() {
         for (size_t j = 0; j < sizeof(points) / sizeof(points[0]); j++) {
             radius = qMax(radius, glm::distance(points[j], center));
         }
+        if (i < 3) {
+            _shadowDistances[i] = -glm::distance(_viewFrustum.getPosition(), center) - radius;
+        }
         center = inverseRotation * center;
         
         // to reduce texture "shimmer," move in texel increments

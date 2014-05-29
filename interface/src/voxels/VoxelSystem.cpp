@@ -528,8 +528,7 @@ void VoxelSystem::initVoxelMemory() {
 
             _cascadedShadowMapProgram.bind();
             _cascadedShadowMapProgram.setUniformValue("shadowMap", 0);
-            _cascadedShadowMapProgram.setUniformValue("shadowDistances", -SHADOW_MATRIX_DISTANCES[1],
-                -SHADOW_MATRIX_DISTANCES[2], -SHADOW_MATRIX_DISTANCES[3]);
+            _shadowDistancesLocation = _cascadedShadowMapProgram.uniformLocation("shadowDistances");
             _cascadedShadowMapProgram.release();
         }
     }
@@ -1179,6 +1178,7 @@ glm::vec3 VoxelSystem::computeVoxelVertex(const glm::vec3& startVertex, float vo
 ProgramObject VoxelSystem::_perlinModulateProgram;
 ProgramObject VoxelSystem::_shadowMapProgram;
 ProgramObject VoxelSystem::_cascadedShadowMapProgram;
+int VoxelSystem::_shadowDistancesLocation;
 
 void VoxelSystem::init() {
     if (_initialized) {
@@ -1502,6 +1502,7 @@ void VoxelSystem::applyScaleAndBindProgram(bool texture) {
     if (Menu::getInstance()->getShadowsEnabled()) {
         if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
             _cascadedShadowMapProgram.bind();
+            _cascadedShadowMapProgram.setUniform(_shadowDistancesLocation, Application::getInstance()->getShadowDistances());
         } else {
             _shadowMapProgram.bind();
         }

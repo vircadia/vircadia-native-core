@@ -266,6 +266,8 @@ public:
     void getModelViewMatrix(glm::dmat4* modelViewMatrix);
     void getProjectionMatrix(glm::dmat4* projectionMatrix);
 
+    const glm::vec3& getShadowDistances() const { return _shadowDistances; }
+
     /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
@@ -493,6 +495,7 @@ private:
 
     static const int CASCADED_SHADOW_MATRIX_COUNT = 4;
     glm::mat4 _shadowMatrices[CASCADED_SHADOW_MATRIX_COUNT];
+    glm::vec3 _shadowDistances;
 
     Environment _environment;
 

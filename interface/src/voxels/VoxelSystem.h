@@ -234,6 +234,7 @@ private:
     static ProgramObject _perlinModulateProgram;
     static ProgramObject _shadowMapProgram;
     static ProgramObject _cascadedShadowMapProgram;
+    static int _shadowDistancesLocation;
 
     int _hookID;
     std::vector<glBufferIndex> _freeIndexes;
