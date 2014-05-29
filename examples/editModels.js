@@ -40,16 +40,7 @@ var modelURLs = [
 
 var toolBar;
 
-
 var jointList = MyAvatar.getJointNames();
-//print("\n# Joint list start");
-//for (var i = 0; i < jointList.length; i++) {
-//    Vec3.print("jointIndex = " + jointList[i] + " = " + i, MyAvatar.getJointPosition(jointList[i]));
-//}
-//print("# Joint list end");
-
-
-
 
 function isLocked(properties) {
     // special case to lock the ground plane model in hq.
@@ -156,6 +147,10 @@ function controller(wichSide) {
     
     this.release = function () {
         if (this.grabbing) {
+            if (jointList.length <= 0) {
+                jointList = MyAvatar.getJointNames();
+            }
+            
             var closestJointIndex = -1;
             var closestJointDistance = 10;
             for (var i = 0; i < jointList.length; i++) {
@@ -169,22 +164,19 @@ function controller(wichSide) {
             print("closestJointIndex: " + closestJointIndex);
             print("closestJointDistance: " + closestJointDistance);
             
-            if (closestJointDistance < 0.1) {
+            if (closestJointDistance < this.oldModelRadius) {
                 print("Attaching to " + jointList[closestJointIndex]);
                 var jointPosition = MyAvatar.getJointPosition(jointList[closestJointIndex]);
                 var jointRotation = MyAvatar.getJointCombinedRotation(jointList[closestJointIndex]);
                 
-                var attachmentOffset = Vec3.multiply(Vec3.subtract(this.oldModelPosition, jointPosition), 2);
+                var attachmentOffset = Vec3.subtract(this.oldModelPosition, jointPosition);
                 attachmentOffset = Vec3.multiplyQbyV(Quat.inverse(jointRotation), attachmentOffset);
                 var attachmentRotation = Quat.multiply(Quat.inverse(jointRotation), this.oldModelRotation);
                 
                 MyAvatar.attach(this.modelURL, jointList[closestJointIndex],
-                                attachmentOffset, attachmentRotation, 0.75,
+                                attachmentOffset, attachmentRotation, 2.0 * this.oldModelRadius,
                                 true, false);
-                Vec3.print("offset: ", attachmentOffset);
-                Vec3.print("joint: ", Quat.safeEulerAngles(jointRotation));
-                Vec3.print("model: ", Quat.safeEulerAngles(this.oldModelRotation));
-                Vec3.print("delta: ", Quat.safeEulerAngles(attachmentRotation));
+                Models.deleteModel(this.modelID);
             }
         }
         
@@ -468,52 +460,7 @@ function checkController(deltaTime) {
     }
     
     moveOverlays();
-    
-    
-    
-    leftController.hideLaser();
-    rightController.hideLaser();
-    var jointPos = MyAvatar.getJointPosition("RightHand");
-    var jointRot = MyAvatar.getJointCombinedRotation("RightHand");
-    
-    Overlays.editOverlay(r, {
-                         position: jointPos,
-                         end: Vec3.sum(jointPos, Vec3.multiplyQbyV(jointRot, { x:1, y:0, z:0 }))
-                         });
-    Overlays.editOverlay(g, {
-                         position: jointPos,
-                         end: Vec3.sum(jointPos, Vec3.multiplyQbyV(jointRot, { x:0, y:1, z:0 }))
-                         });
-    Overlays.editOverlay(b, {
-                         position: jointPos,
-                         end: Vec3.sum(jointPos, Vec3.multiplyQbyV(jointRot, { x:0, y:0, z:1 }))
-                         });
 }
-var r = Overlays.addOverlay("line3d", {
-                            position: { x: 0, y: 0, z: 0 },
-                            end: { x: 0, y: 0, z: 0 },
-                            color: { red: 255, green: 0, blue: 0 },
-                            alpha: 1,
-                            visible: true,
-                            lineWidth: LASER_WIDTH
-                            });
-var g = Overlays.addOverlay("line3d", {
-                            position: { x: 0, y: 0, z: 0 },
-                            end: { x: 0, y: 0, z: 0 },
-                            color: { red: 0, green: 255, blue: 0 },
-                            alpha: 1,
-                            visible: true,
-                            lineWidth: LASER_WIDTH
-                            });
-var b = Overlays.addOverlay("line3d", {
-                            position: { x: 0, y: 0, z: 0 },
-                            end: { x: 0, y: 0, z: 0 },
-                            color: { red: 0, green: 0, blue: 255 },
-                            alpha: 1,
-                            visible: true,
-                            lineWidth: LASER_WIDTH
-                            });
-
 
 function initToolBar() {
     toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
