@@ -40,7 +40,7 @@ public:
     glm::quat _combinedRotation; // rotation from joint local to world frame
     float _animationPriority; // the priority of the animation affecting this joint
 
-    void setFBXJoint(const FBXJoint& joint) { _fbxJoint = &joint; }
+    void setFBXJoint(const FBXJoint& joint); 
     const FBXJoint& getFBXJoint() const { return *_fbxJoint; }
 
 private:

@@ -139,9 +139,6 @@ QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
     QVector<JointState> jointStates;
     foreach (const FBXJoint& joint, geometry.joints) {
         JointState state;
-        state._translation = joint.translation;
-        state._rotation = joint.rotation;
-        state._animationPriority = 0.0f;
         state.setFBXJoint(joint);
         jointStates.append(state);
     }
@@ -1896,8 +1893,18 @@ void AnimationHandle::replaceMatchingPriorities(float newPriority) {
     }
 }
 
+// ----------------------------------------------------------------------------
+// JointState  TODO: move this class to its own files
+// ----------------------------------------------------------------------------
 JointState::JointState() :
     _translation(0.0f),
     _animationPriority(0.0f),
     _fbxJoint(NULL) {
+}
+
+void JointState::setFBXJoint(const FBXJoint& joint) { 
+    assert(&joint != NULL);
+    _translation = joint.translation;
+    _rotation = joint.rotation;
+    _fbxJoint = &joint;
 }
