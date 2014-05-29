@@ -41,9 +41,9 @@ Model::Model(QObject* parent) :
     _snappedToCenter(false),
     _rootIndex(-1),
     _shapesAreDirty(true),
-    _boundingRadius(0.f),
+    _boundingRadius(0.0f),
     _boundingShape(), 
-    _boundingShapeLocalOffset(0.f),
+    _boundingShapeLocalOffset(0.0f),
     _lodDistance(0.0f),
     _pupilDilation(0.0f),
     _url("http://invalid.com") {
@@ -549,8 +549,8 @@ Extents Model::getMeshExtents() const {
 
     // even though our caller asked for "unscaled" we need to include any fst scaling, translation, and rotation, which
     // is captured in the offset matrix
-    glm::vec3 minimum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.minimum, 1.0));
-    glm::vec3 maximum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.maximum, 1.0));
+    glm::vec3 minimum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.minimum, 1.0f));
+    glm::vec3 maximum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.maximum, 1.0f));
     Extents scaledExtents = { minimum * _scale, maximum * _scale };
     return scaledExtents;
 }
@@ -564,8 +564,8 @@ Extents Model::getUnscaledMeshExtents() const {
 
     // even though our caller asked for "unscaled" we need to include any fst scaling, translation, and rotation, which
     // is captured in the offset matrix
-    glm::vec3 minimum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.minimum, 1.0));
-    glm::vec3 maximum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.maximum, 1.0));
+    glm::vec3 minimum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.minimum, 1.0f));
+    glm::vec3 maximum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.maximum, 1.0f));
     Extents scaledExtents = { minimum, maximum };
         
     return scaledExtents;
@@ -702,7 +702,7 @@ void Model::rebuildShapes() {
             // however we must have a shape for each joint, 
             // so we make a bogus sphere with zero radius.
             // TODO: implement collision groups for more control over what collides with what
-            SphereShape* sphere = new SphereShape(0.f, glm::vec3(0.0f)); 
+            SphereShape* sphere = new SphereShape(0.0f, glm::vec3(0.0f)); 
             _jointShapes.push_back(sphere);
         }
     }
@@ -844,8 +844,8 @@ void Model::resetShapePositions() {
 
 void Model::updateShapePositions() {
     if (_shapesAreDirty && _jointShapes.size() == _jointStates.size()) {
-        glm::vec3 rootPosition(0.f);
-        _boundingRadius = 0.f;
+        glm::vec3 rootPosition(0.0f);
+        _boundingRadius = 0.0f;
         float uniformScale = extractUniformScale(_scale);
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         for (int i = 0; i < _jointStates.size(); i++) {
@@ -1344,7 +1344,7 @@ void Model::renderJointCollisionShapes(float alpha) {
             glutSolidSphere(capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
             
             // draw a green cylinder between the two points
-            glm::vec3 origin(0.f);
+            glm::vec3 origin(0.0f);
             glColor4f(0.6f, 0.8f, 0.6f, alpha);
             Avatar::renderJointConnectingCone( origin, axis, capsule->getRadius(), capsule->getRadius());
         }
@@ -1376,7 +1376,7 @@ void Model::renderBoundingCollisionShapes(float alpha) {
     glutSolidSphere(_boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
 
     // draw a green cylinder between the two points
-    glm::vec3 origin(0.f);
+    glm::vec3 origin(0.0f);
     glColor4f(0.6f, 0.8f, 0.6f, alpha);
     Avatar::renderJointConnectingCone( origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius());
 
@@ -1404,7 +1404,7 @@ void Model::applyCollision(CollisionInfo& collision) {
         return;
     }
 
-    glm::vec3 jointPosition(0.f);
+    glm::vec3 jointPosition(0.0f);
     int jointIndex = collision._intData;
     if (getJointPosition(jointIndex, jointPosition)) {
         const FBXJoint& joint = _geometry->getFBXGeometry().joints[jointIndex];
