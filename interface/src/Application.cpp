@@ -2260,7 +2260,6 @@ void Application::updateShadowMap() {
     glm::quat rotation = rotationBetween(IDENTITY_FRONT, lightDirection);
     glm::quat inverseRotation = glm::inverse(rotation);
     
-    const float MAP_DISTANCES[] = { 0.0f, 2.0f, 6.0f, 14.0f, 30.0f };
     const glm::vec2 MAP_COORDS[] = { glm::vec2(0.0f, 0.0f), glm::vec2(0.5f, 0.0f),
         glm::vec2(0.0f, 0.5f), glm::vec2(0.5f, 0.5f) };
     
@@ -2272,8 +2271,8 @@ void Application::updateShadowMap() {
         const glm::vec2& coord = MAP_COORDS[i];
         glViewport(coord.s * fbo->width(), coord.t * fbo->height(), halfSize, halfSize);
 
-        float nearScale = MAP_DISTANCES[i] * frustumScale;
-        float farScale = MAP_DISTANCES[i + 1] * frustumScale;
+        float nearScale = SHADOW_MATRIX_DISTANCES[i] * frustumScale;
+        float farScale = SHADOW_MATRIX_DISTANCES[i + 1] * frustumScale;
         glm::vec3 points[] = {
             glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), nearScale),
             glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), nearScale),

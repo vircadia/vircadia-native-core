@@ -518,6 +518,8 @@ void VoxelSystem::initVoxelMemory() {
 
             _shadowMapProgram.bind();
             _shadowMapProgram.setUniformValue("shadowMap", 0);
+            _shadowMapProgram.setUniformValue("shadowDistances", -SHADOW_MATRIX_DISTANCES[1],
+                -SHADOW_MATRIX_DISTANCES[2], -SHADOW_MATRIX_DISTANCES[3]);
             _shadowMapProgram.release();
         }
     }
