@@ -1241,11 +1241,7 @@ bool Model::restoreJointPosition(int jointIndex, float percent, float priority) 
     
     foreach (int index, freeLineage) {
         JointState& state = _jointStates[index];
-        if (priority == state._animationPriority) {
-            const FBXJoint& joint = geometry.joints.at(index);
-            state._rotation = safeMix(state._rotation, joint.rotation, percent);
-            state._animationPriority = 0.0f;
-        }
+        state.restoreRotation(percent, priority);
     }
     return true;
 }
@@ -1876,6 +1872,13 @@ void JointState::updateWorldTransform(const glm::mat4& baseTransform, const glm:
 
 glm::quat JointState::getJointRotation(bool fromBind) const {
     return _combinedRotation * (fromBind ?  _fbxJoint->inverseBindRotation : _fbxJoint->inverseDefaultRotation);
+}
+
+void JointState::restoreRotation(float percent, float priority) {
+    if (priority == _animationPriority) {
+        _rotation = safeMix(_rotation, _fbxJoint->rotation, percent);
+        _animationPriority = 0.0f;
+    }
 }
 
 void JointState::applyRotationDelta(const glm::quat& delta, bool constrain, float priority) {

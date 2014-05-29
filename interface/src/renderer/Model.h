@@ -49,6 +49,8 @@ public:
 
     const glm::vec3& getDefaultTranslationInParentFrame() const;
 
+    void restoreRotation(float percent, float priority);
+
     glm::quat _rotation;     // rotation relative to parent
     glm::mat4 _transform;    // rotation to world frame + translation in model frame
     glm::quat _combinedRotation; // rotation from joint local to world frame
