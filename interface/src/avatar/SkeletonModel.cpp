@@ -131,7 +131,7 @@ bool operator<(const IndexValue& firstIndex, const IndexValue& secondIndex) {
 }
 
 void SkeletonModel::applyHandPosition(int jointIndex, const glm::vec3& position) {
-    if (jointIndex == -1) {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return;
     }
     setJointPosition(jointIndex, position, glm::quat(), false, -1, false, glm::vec3(0.0f, -1.0f, 0.0f), PALM_PRIORITY);
@@ -150,12 +150,12 @@ void SkeletonModel::applyHandPosition(int jointIndex, const glm::vec3& position)
 
     // align hand with forearm
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
-    applyRotationDelta(jointIndex, rotationBetween(handRotation * glm::vec3(-sign, 0.0f, 0.0f),
-        forearmVector), true, PALM_PRIORITY);
+    JointState& state = _jointStates[jointIndex];
+    state.applyRotationDelta(rotationBetween(handRotation * glm::vec3(-sign, 0.0f, 0.0f), forearmVector), true, PALM_PRIORITY);
 }
 
 void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
-    if (jointIndex == -1) {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return;
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -245,7 +245,7 @@ void SkeletonModel::maybeUpdateEyeRotation(const JointState& parentState, const 
 }
 
 void SkeletonModel::renderJointConstraints(int jointIndex) {
-    if (jointIndex == -1) {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return;
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();

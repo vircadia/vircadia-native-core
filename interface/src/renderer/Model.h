@@ -38,9 +38,10 @@ public:
     void setFBXJoint(const FBXJoint* joint); 
     const FBXJoint& getFBXJoint() const { return *_fbxJoint; }
 
-    void updateWorldTransform(const glm::mat4& baseTransform, const glm::quat& parentRotation);
-
     void copyState(const JointState& state);
+
+    void updateWorldTransform(const glm::mat4& baseTransform, const glm::quat& parentRotation);
+    void applyRotationDelta(const glm::quat& delta, bool constrain = true, float priority = 1.0f);
 
     glm::vec3 _translation;  // translation relative to parent
     glm::quat _rotation;     // rotation relative to parent
@@ -247,8 +248,6 @@ protected:
     /// first free ancestor.
     float getLimbLength(int jointIndex) const;
 
-    void applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain = true, float priority = 1.0f);
-    
     void computeBoundingShape(const FBXGeometry& geometry);
 
 private:

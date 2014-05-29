@@ -1155,8 +1155,9 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
         // first, try to rotate the end effector as close as possible to the target rotation, if any
         glm::quat endRotation;
         if (useRotation) {
+            JointState& state = _jointStates[jointIndex];
             getJointRotation(jointIndex, endRotation, true);
-            applyRotationDelta(jointIndex, rotation * glm::inverse(endRotation), true, priority);
+            state.applyRotationDelta(rotation * glm::inverse(endRotation), true, priority);
             getJointRotation(jointIndex, endRotation, true);
         }    
         
@@ -1200,7 +1201,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
                         1.0f / (combinedWeight + 1.0f));
                 }
             }
-            applyRotationDelta(index, combinedDelta, true, priority);
+            state.applyRotationDelta(combinedDelta, true, priority);
             glm::quat actualDelta = state._combinedRotation * glm::inverse(oldCombinedRotation);
             endPosition = actualDelta * jointVector + jointPosition;
             if (useRotation) {
@@ -1279,27 +1280,6 @@ float Model::getLimbLength(int jointIndex) const {
         length += geometry.joints.at(freeLineage.at(i)).distanceToParent * lengthScale;
     }
     return length;
-}
-
-void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain, float priority) {
-    JointState& state = _jointStates[jointIndex];
-    if (priority < state._animationPriority) {
-        return;
-    }
-    state._animationPriority = priority;
-    const FBXJoint& joint = state.getFBXJoint();
-    if (!constrain || (joint.rotationMin == glm::vec3(-PI, -PI, -PI) &&
-            joint.rotationMax == glm::vec3(PI, PI, PI))) {
-        // no constraints
-        state._rotation = state._rotation * glm::inverse(state._combinedRotation) * delta * state._combinedRotation;
-        state._combinedRotation = delta * state._combinedRotation;
-        return;
-    }
-    glm::quat targetRotation = delta * state._combinedRotation;
-    glm::vec3 eulers = safeEulerAngles(state._rotation * glm::inverse(state._combinedRotation) * targetRotation);
-    glm::quat newRotation = glm::quat(glm::clamp(eulers, joint.rotationMin, joint.rotationMax));
-    state._combinedRotation = state._combinedRotation * glm::inverse(state._rotation) * newRotation;
-    state._rotation = newRotation;
 }
 
 const int BALL_SUBDIVISIONS = 10;
@@ -1899,13 +1879,6 @@ void JointState::setFBXJoint(const FBXJoint* joint) {
     _fbxJoint = joint;
 }
 
-void JointState::updateWorldTransform(const glm::mat4& baseTransform, const glm::quat& parentRotation) {
-    assert(_fbxJoint != NULL);
-    glm::quat combinedRotation = _fbxJoint->preRotation * _rotation * _fbxJoint->postRotation;    
-    _transform = baseTransform * glm::translate(_translation) * _fbxJoint->preTransform * glm::mat4_cast(combinedRotation) * _fbxJoint->postTransform;
-    _combinedRotation = parentRotation * combinedRotation;
-}
-
 void JointState::copyState(const JointState& state) {
     _translation = state._translation;
     _rotation = state._rotation;
@@ -1913,4 +1886,30 @@ void JointState::copyState(const JointState& state) {
     _combinedRotation = state._combinedRotation;
     _animationPriority = state._animationPriority;
     // DO NOT copy _fbxJoint
+}
+
+void JointState::updateWorldTransform(const glm::mat4& baseTransform, const glm::quat& parentRotation) {
+    assert(_fbxJoint != NULL);
+    glm::quat combinedRotation = _fbxJoint->preRotation * _rotation * _fbxJoint->postRotation;    
+    _transform = baseTransform * glm::translate(_translation) * _fbxJoint->preTransform * glm::mat4_cast(combinedRotation) * _fbxJoint->postTransform;
+    _combinedRotation = parentRotation * combinedRotation;
+}
+
+void JointState::applyRotationDelta(const glm::quat& delta, bool constrain, float priority) {
+    if (priority < _animationPriority) {
+        return;
+    }
+    _animationPriority = priority;
+    if (!constrain || (_fbxJoint->rotationMin == glm::vec3(-PI, -PI, -PI) &&
+            _fbxJoint->rotationMax == glm::vec3(PI, PI, PI))) {
+        // no constraints
+        _rotation = _rotation * glm::inverse(_combinedRotation) * delta * _combinedRotation;
+        _combinedRotation = delta * _combinedRotation;
+        return;
+    }
+    glm::quat targetRotation = delta * _combinedRotation;
+    glm::vec3 eulers = safeEulerAngles(_rotation * glm::inverse(_combinedRotation) * targetRotation);
+    glm::quat newRotation = glm::quat(glm::clamp(eulers, _fbxJoint->rotationMin, _fbxJoint->rotationMax));
+    _combinedRotation = _combinedRotation * glm::inverse(_rotation) * newRotation;
+    _rotation = newRotation;
 }
