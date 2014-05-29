@@ -49,7 +49,7 @@ public:
 
     const glm::vec3& getDefaultTranslationInParentFrame() const;
 
-    void restoreRotation(float percent, float priority);
+    void restoreRotation(float fraction, float priority);
 
     glm::quat _rotation;     // rotation relative to parent
     glm::mat4 _transform;    // rotation to world frame + translation in model frame
@@ -244,10 +244,10 @@ protected:
     bool setJointRotation(int jointIndex, const glm::quat& rotation, float priority = 1.0f);
     
     /// Restores the indexed joint to its default position.
-    /// \param percent the percentage of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
+    /// \param fraction the fraction of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
     /// the original position
     /// \return true if the joint was found
-    bool restoreJointPosition(int jointIndex, float percent = 1.0f, float priority = 0.0f);
+    bool restoreJointPosition(int jointIndex, float fraction = 1.0f, float priority = 0.0f);
     
     /// Computes and returns the extended length of the limb terminating at the specified joint and starting at the joint's
     /// first free ancestor.

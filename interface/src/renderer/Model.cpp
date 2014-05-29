@@ -590,9 +590,8 @@ void Model::setJointState(int index, bool valid, const glm::quat& rotation, floa
             if (valid) {
                 state._rotation = rotation;
                 state._animationPriority = priority;
-            } else if (priority == state._animationPriority) {
-                state._rotation = _geometry->getFBXGeometry().joints.at(index).rotation;
-                state._animationPriority = 0.0f;
+            } else {
+                state.restoreRotation(1.0f, priority);
             }
         }
     }
@@ -1232,7 +1231,7 @@ bool Model::setJointRotation(int jointIndex, const glm::quat& rotation, float pr
     return true;
 }
 
-bool Model::restoreJointPosition(int jointIndex, float percent, float priority) {
+bool Model::restoreJointPosition(int jointIndex, float fraction, float priority) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
     }
@@ -1241,7 +1240,7 @@ bool Model::restoreJointPosition(int jointIndex, float percent, float priority) 
     
     foreach (int index, freeLineage) {
         JointState& state = _jointStates[index];
-        state.restoreRotation(percent, priority);
+        state.restoreRotation(fraction, priority);
     }
     return true;
 }
@@ -1874,9 +1873,9 @@ glm::quat JointState::getJointRotation(bool fromBind) const {
     return _combinedRotation * (fromBind ?  _fbxJoint->inverseBindRotation : _fbxJoint->inverseDefaultRotation);
 }
 
-void JointState::restoreRotation(float percent, float priority) {
+void JointState::restoreRotation(float fraction, float priority) {
     if (priority == _animationPriority) {
-        _rotation = safeMix(_rotation, _fbxJoint->rotation, percent);
+        _rotation = safeMix(_rotation, _fbxJoint->rotation, fraction);
         _animationPriority = 0.0f;
     }
 }
