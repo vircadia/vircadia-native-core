@@ -99,8 +99,6 @@ public:
     void nodeKilled();
     void forceNodeShutdown();
     bool isShuttingDown() const { return _isShuttingDown; }
-
-    //void incrementSequenceNumber();
     
 private slots:
     void sendThreadFinished();
@@ -137,8 +135,6 @@ private:
     float _lastClientOctreeSizeScale;
     bool _lodChanged;
     bool _lodInitialized;
-
-    //OCTREE_PACKET_SEQUENCE _sequenceNumber;
 
     quint64 _lastRootTimestamp;
     

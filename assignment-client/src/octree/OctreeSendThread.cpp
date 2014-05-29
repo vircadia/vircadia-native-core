@@ -143,8 +143,6 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
     }
 
     const unsigned char* messageData = nodeData->getPacket();
-//unsigned char messageData[MAX_PACKET_SIZE];
-//memcpy(messageData, nodeData->getPacket(), MAX_PACKET_SIZE);    // DEBUG: make copy of message to send
 
     int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<const char*>(messageData));
     const unsigned char* dataAt = messageData + numBytesPacketHeader;
@@ -164,7 +162,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         int piggyBackSize = nodeData->getPacketLength() + statsMessageLength;
 
         // If the size of the stats message and the voxel message will fit in a packet, then piggyback them
-if (piggyBackSize < MAX_PACKET_SIZE && false) {
+        if (piggyBackSize < MAX_PACKET_SIZE) {
 
             // copy voxel message to back of stats message
             memcpy(statsMessage + statsMessageLength, nodeData->getPacket(), nodeData->getPacketLength());
@@ -252,6 +250,7 @@ if (piggyBackSize < MAX_PACKET_SIZE && false) {
         _sequenceNumber++;
         nodeData->resetOctreePacket(_sequenceNumber);
     }
+
     return packetsSent;
 }
 

@@ -857,7 +857,7 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
     //bool packetIsColored = oneAtBit(flags, PACKET_IS_COLOR_BIT);
     //bool packetIsCompressed = oneAtBit(flags, PACKET_IS_COMPRESSED_BIT);
     
-    OCTREE_PACKET_SENT_TIME arrivedAt = usecTimestampNow(); // DEBUG!!!
+    OCTREE_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
     qint64 flightTime = arrivedAt - sentAt + nodeClockSkewUsec;
 
     if (wantExtraDebugging) {
@@ -872,7 +872,7 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
     const int MIN_RESONABLE_FLIGHT_TIME = 0;
     if (flightTime > MAX_RESONABLE_FLIGHT_TIME || flightTime < MIN_RESONABLE_FLIGHT_TIME) {
         qDebug() << "ignoring unreasonable packet... flightTime:" << flightTime;
-        return;
+        return; // ignore any packets that are unreasonable
     }
 
     // determine our expected sequence number... handle rollover appropriately
@@ -985,6 +985,6 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
             }
         }
     }
-    return;
+
 }
 

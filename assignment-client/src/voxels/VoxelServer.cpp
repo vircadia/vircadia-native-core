@@ -48,7 +48,6 @@ int VoxelServer::sendSpecialPacket(OCTREE_PACKET_SEQUENCE& sequenceNumber, const
     copyAt += numBytesPacketHeader;
     int envPacketLength = numBytesPacketHeader;
 
-
     // pack in flags
     OCTREE_PACKET_FLAGS flags = 0;
     OCTREE_PACKET_FLAGS* flagsAt = (OCTREE_PACKET_FLAGS*)copyAt;
@@ -68,7 +67,6 @@ int VoxelServer::sendSpecialPacket(OCTREE_PACKET_SEQUENCE& sequenceNumber, const
     *timeAt = now;
     copyAt += sizeof(OCTREE_PACKET_SENT_TIME);
     envPacketLength += sizeof(OCTREE_PACKET_SENT_TIME);
-
 
     int environmentsToSend = getSendMinimalEnvironment() ? 1 : getEnvironmentDataCount();
 
