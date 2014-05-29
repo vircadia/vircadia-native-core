@@ -88,6 +88,7 @@ void AudioInjector::injectAudio() {
         int currentSendPosition = 0;
         
         int numPreAudioDataBytes = injectAudioPacket.size();
+        bool shouldLoop = _options.getLoop();
         
         // loop to send off our audio in NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL byte chunks
         while (currentSendPosition < soundByteArray.size() && !_shouldStop) {
@@ -119,6 +120,10 @@ void AudioInjector::injectAudio() {
                 if (usecToSleep > 0) {
                     usleep(usecToSleep);
                 }
+            }
+
+            if (shouldLoop && currentSendPosition == soundByteArray.size()) {
+                currentSendPosition = 0;
             }
         }
     }
