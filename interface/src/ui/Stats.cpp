@@ -219,9 +219,6 @@ void Stats::display(
     int totalServers = NodeList::getInstance()->size();
 
     lines = _expanded ? 5 : 3;
-    
-
-
     drawBackground(backgroundColor, horizontalOffset, 0, _generalStatsWidth, lines * STATS_PELS_PER_LINE + 10);
     horizontalOffset += 5;
 
