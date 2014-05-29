@@ -305,28 +305,9 @@ function controller(wichSide) {
                              position: newPosition,
                              modelRotation: newRotation
                              });
-//            print("Moving " + this.modelID.id);
-//            Vec3.print("Old Position: ", this.oldModelPosition);
-//            Vec3.print("Sav Position: ", newPosition);
-//            Quat.print("Old Rotation: ", this.oldModelRotation);
-//            Quat.print("New Rotation: ", newRotation);
             
             this.oldModelRotation = newRotation;
             this.oldModelPosition = newPosition;
-            
-            
-            var closestJointIndex = -1;
-            var closestJointDistance = 10;
-            for (var i = 0; i < jointList.length; i++) {
-                var distance = Vec3.distance(MyAvatar.getJointPosition(jointList[i]), newPosition);
-                if (distance < closestJointDistance) {
-                    closestJointDistance = distance;
-                    closestJointIndex = i;
-                }
-            }
-//            
-//            print("closestJointIndex: " + closestJointIndex);
-//            print("closestJointDistance: " + closestJointDistance);
         }
     }
     
