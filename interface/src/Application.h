@@ -328,6 +328,7 @@ public slots:
     void stopAllScripts(bool restart = false);
     void stopScript(const QString& scriptName);
     void reloadAllScripts();
+    void loadDefaultScripts();
     void toggleRunningScriptsWidget();
 
     void uploadHead();
