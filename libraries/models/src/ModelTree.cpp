@@ -668,7 +668,6 @@ dataAt += sizeof(OCTREE_PACKET_SENT_TIME);
 
     uint16_t numberOfIds = 0; // placeholder for now
     memcpy(&numberOfIds, dataAt, sizeof(numberOfIds));
-qDebug() << "\t\t\t numberOfIds: " << numberOfIds;
     dataAt += sizeof(numberOfIds);
     processedBytes += sizeof(numberOfIds);
 

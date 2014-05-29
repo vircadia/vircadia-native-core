@@ -268,7 +268,7 @@ qint64 LimitedNodeList::writeUnverifiedDatagram(const QByteArray& datagram, cons
 
 qint64 LimitedNodeList::writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
                                const HifiSockAddr& overridenSockAddr) {
-    
+    /*
     QByteArray datagram(data, size);
 
     qDebug() << "\t writeDatagram()...";
@@ -303,7 +303,7 @@ qint64 LimitedNodeList::writeDatagram(const char* data, qint64 size, const Share
         dataAt += sizeof(uint16_t);
         qDebug() << "\t\t\t ids: " << ids;
     }
-
+    */
     return writeDatagram(QByteArray(data, size), destinationNode, overridenSockAddr);
 }
 

@@ -868,13 +868,14 @@ bool OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
     }
    
 
-qDebug() << "\t" << QString::number(sequence, 16) << "\t sentAt:" << QString::number(sentAt, 16) << " usecs";
+//qDebug() << "\t" << QString::number(sequence, 16) << "\t sentAt:" << QString::number(sentAt, 16) << " usecs";
 
     // Guard against possible corrupted packets... with bad timestamps
     const int MAX_RESONABLE_FLIGHT_TIME = 200 * USECS_PER_SECOND; // 200 seconds is more than enough time for a packet to arrive
     const int MIN_RESONABLE_FLIGHT_TIME = 0;
     if (flightTime > MAX_RESONABLE_FLIGHT_TIME || flightTime < MIN_RESONABLE_FLIGHT_TIME) {
         qDebug() << "ignoring unreasonable packet... flightTime:" << flightTime;
+qDebug() << "\t sequence:" << QString::number(sequence, 16);
 qDebug() << "\t sentAt:" << QString::number(sentAt, 16) << " usecs";
 qDebug() << "\t arrivedAt:" << QString::number(arrivedAt, 16) << " usecs";
 qDebug() << "\t nodeClockSkewUsec:" << nodeClockSkewUsec << " usecs";
