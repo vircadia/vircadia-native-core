@@ -34,14 +34,17 @@ typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
 class JointState {
 public:
     JointState();
+
+    void setFBXJoint(const FBXJoint& joint); 
+    const FBXJoint& getFBXJoint() const { return *_fbxJoint; }
+
+    void updateWorldTransform(const glm::mat4& baseTransform, const glm::quat& parentRotation);
+
     glm::vec3 _translation;  // translation relative to parent
     glm::quat _rotation;     // rotation relative to parent
     glm::mat4 _transform;    // rotation to world frame + translation in model frame
     glm::quat _combinedRotation; // rotation from joint local to world frame
     float _animationPriority; // the priority of the animation affecting this joint
-
-    void setFBXJoint(const FBXJoint& joint); 
-    const FBXJoint& getFBXJoint() const { return *_fbxJoint; }
 
 private:
     const FBXJoint* _fbxJoint;    // JointState does not own its FBXJoint

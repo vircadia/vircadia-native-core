@@ -162,19 +162,13 @@ QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
             int parentIndex = joint.parentIndex;
             if (parentIndex == -1) {
                 _rootIndex = i;
-                glm::mat4 baseTransform = glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset);
-                glm::quat combinedRotation = joint.preRotation * state._rotation * joint.postRotation;    
-                state._transform = baseTransform * geometry.offset * glm::translate(state._translation) * joint.preTransform *
-                    glm::mat4_cast(combinedRotation) * joint.postTransform;
-                state._combinedRotation = _rotation * combinedRotation;
+                glm::mat4 baseTransform = glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
+                state.updateWorldTransform(baseTransform, _rotation);
                 ++numJointsSet;
                 jointIsSet[i] = true;
             } else if (jointIsSet[parentIndex]) {
                 const JointState& parentState = jointStates.at(parentIndex);
-                glm::quat combinedRotation = joint.preRotation * state._rotation * joint.postRotation;    
-                state._transform = parentState._transform * glm::translate(state._translation) * joint.preTransform *
-                    glm::mat4_cast(combinedRotation) * joint.postTransform;
-                state._combinedRotation = parentState._combinedRotation * combinedRotation;
+                state.updateWorldTransform(parentState._transform, parentState._combinedRotation);
                 ++numJointsSet;
                 jointIsSet[i] = true;
             }
@@ -1129,17 +1123,11 @@ void Model::updateJointState(int index) {
     
     if (joint.parentIndex == -1) {
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
-        glm::mat4 baseTransform = glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset);
-        glm::quat combinedRotation = joint.preRotation * state._rotation * joint.postRotation;    
-        state._transform = baseTransform * geometry.offset * glm::translate(state._translation) * joint.preTransform *
-            glm::mat4_cast(combinedRotation) * joint.postTransform;
-        state._combinedRotation = _rotation * combinedRotation;
+        glm::mat4 baseTransform = glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
+        state.updateWorldTransform(baseTransform, _rotation);
     } else {
         const JointState& parentState = _jointStates.at(joint.parentIndex);
-        glm::quat combinedRotation = joint.preRotation * state._rotation * joint.postRotation;    
-        state._transform = parentState._transform * glm::translate(state._translation) * joint.preTransform *
-            glm::mat4_cast(combinedRotation) * joint.postTransform;
-        state._combinedRotation = parentState._combinedRotation * combinedRotation;
+        state.updateWorldTransform(parentState._transform, parentState._combinedRotation);
     }
 }
 
@@ -1907,4 +1895,10 @@ void JointState::setFBXJoint(const FBXJoint& joint) {
     _translation = joint.translation;
     _rotation = joint.rotation;
     _fbxJoint = &joint;
+}
+
+void JointState::updateWorldTransform(const glm::mat4& baseTransform, const glm::quat& parentRotation) {
+    glm::quat combinedRotation = _fbxJoint->preRotation * _rotation * _fbxJoint->postRotation;    
+    _transform = baseTransform * glm::translate(_translation) * _fbxJoint->preTransform * glm::mat4_cast(combinedRotation) * _fbxJoint->postTransform;
+    _combinedRotation = parentRotation * combinedRotation;
 }
