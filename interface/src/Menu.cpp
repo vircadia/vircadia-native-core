@@ -73,7 +73,7 @@ const int FIVE_SECONDS_OF_FRAMES = 5 * ONE_SECOND_OF_FRAMES;
 const float MUTE_RADIUS = 50;
 
 const QString CONSOLE_TITLE = "Scripting Console";
-const float CONSOLE_WINDOW_OPACITY = 0.95;
+const float CONSOLE_WINDOW_OPACITY = 0.95f;
 const int CONSOLE_WIDTH = 800;
 const int CONSOLE_HEIGHT = 200;
 
