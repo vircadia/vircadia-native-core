@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 #include "SharedUtil.h"
+#include "SimpleMovingAverage.h"
 
 #include <cstring>
 #include <string>
@@ -47,6 +48,42 @@ public:
     ~PerformanceWarning();
 
     static void setSuppressShortTimings(bool suppressShortTimings) { _suppressShortTimings = suppressShortTimings; }
+};
+
+class PerformanceTimerRecord {
+public:
+    PerformanceTimerRecord() : _runningTotal(0), _totalCalls(0) {}
+    
+    void recordResult(quint64 elapsed) { _runningTotal += elapsed; _totalCalls++; _movingAverage.updateAverage(elapsed); }
+    quint64 getAverage() const { return (_totalCalls == 0) ? 0 : _runningTotal / _totalCalls; }
+    quint64 getMovingAverage() const { return (_totalCalls == 0) ? 0 : _movingAverage.getAverage(); }
+    quint64 getCount() const { return _totalCalls; }
+    
+private:
+	quint64 _runningTotal;
+	quint64 _totalCalls;
+	SimpleMovingAverage _movingAverage;
+};
+
+class PerformanceTimer {
+public:
+
+    PerformanceTimer(const QString& name) :
+        _start(usecTimestampNow()),
+        _name(name) { }
+        
+    quint64 elapsed() const { return (usecTimestampNow() - _start); };
+
+    ~PerformanceTimer();
+    
+    static const PerformanceTimerRecord& getTimerRecord(const QString& name) { return _records[name]; };
+    static const QMap<QString, PerformanceTimerRecord>& getAllTimerRecords() { return _records; };
+    static void dumpAllTimerRecords();
+
+private:
+	quint64 _start;
+	QString _name;
+	static QMap<QString, PerformanceTimerRecord> _records;
 };
 
 

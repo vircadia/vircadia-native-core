@@ -321,10 +321,15 @@ namespace MenuOption {
     const QString DisplayModelBounds = "Display Model Bounds";
     const QString DisplayModelElementProxy = "Display Model Element Bounds";
     const QString DisplayModelElementChildProxies = "Display Model Element Children";
+    const QString DisplayTimingDetails = "Display Timing Details";
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
+    const QString ExpandDisplaySideTiming = "Expand Display Side Timing";
+    const QString ExpandIdleTiming = "Expand Idle Timing";
+    const QString ExpandPaintGLTiming = "Expand PaintGL Timing";
+    const QString ExpandUpdateTiming = "Expand Update Timing";
     const QString Faceplus = "Faceplus";
     const QString Faceshift = "Faceshift";
     const QString FilterSixense = "Smooth Sixense Movement";
