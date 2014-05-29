@@ -26,6 +26,7 @@
 #include "location/LocationManager.h"
 #include "ui/PreferencesDialog.h"
 #include "ui/ChatWindow.h"
+#include "ui/JSConsole.h"
 #include "ui/ScriptEditorWindow.h"
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
@@ -189,6 +190,7 @@ private slots:
     void showMetavoxelEditor();
     void showScriptEditor();
     void showChat();
+    void toggleConsole();
     void toggleChat();
     void audioMuteToggled();
     void namedLocationCreated(LocationManager::NamedLocationCreateResponse response);
@@ -243,6 +245,7 @@ private:
     QPointer<MetavoxelEditor> _MetavoxelEditor;
     QPointer<ScriptEditorWindow> _ScriptEditor;
     QPointer<ChatWindow> _chatWindow;
+    QDialog* _jsConsole;
     OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
     int _maxVoxels;
@@ -308,6 +311,7 @@ namespace MenuOption {
     const QString CollideWithParticles = "Collide With Particles";
     const QString CollideWithVoxels = "Collide With Voxels";
     const QString Collisions = "Collisions";
+    const QString Console = "Console...";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";

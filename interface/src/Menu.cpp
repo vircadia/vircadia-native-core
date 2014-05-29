@@ -73,6 +73,11 @@ const int ONE_SECOND_OF_FRAMES = 60;
 const int FIVE_SECONDS_OF_FRAMES = 5 * ONE_SECOND_OF_FRAMES;
 const float MUTE_RADIUS = 50;
 
+const QString CONSOLE_TITLE = "Scripting Console";
+const float CONSOLE_WINDOW_OPACITY = 0.95f;
+const int CONSOLE_WIDTH = 800;
+const int CONSOLE_HEIGHT = 200;
+
 Menu::Menu() :
     _actionHash(),
     _audioJitterBufferSamples(0),
@@ -81,6 +86,7 @@ Menu::Menu() :
     _faceshiftEyeDeflection(DEFAULT_FACESHIFT_EYE_DEFLECTION),
     _frustumDrawMode(FRUSTUM_DRAW_MODE_ALL),
     _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET),
+    _jsConsole(NULL),
     _octreeStatsDialog(NULL),
     _lodToolsDialog(NULL),
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
@@ -226,6 +232,12 @@ Menu::Menu() :
     // init chat window to listen chat
     _chatWindow = new ChatWindow(Application::getInstance()->getWindow());
 #endif
+
+    addActionToQMenuAndActionHash(toolsMenu,
+            MenuOption::Console,
+            Qt::CTRL | Qt::ALT | Qt::Key_J,
+            this,
+            SLOT(toggleConsole()));
 
     QMenu* viewMenu = addMenu("View");
 
@@ -1256,6 +1268,25 @@ void Menu::toggleChat() {
         }
     }
 #endif
+}
+
+void Menu::toggleConsole() {
+    QMainWindow* mainWindow = Application::getInstance()->getWindow();
+    if (!_jsConsole) {
+        QDialog* dialog = new QDialog(mainWindow, Qt::WindowStaysOnTopHint);
+        QVBoxLayout* layout = new QVBoxLayout(dialog);
+        dialog->setLayout(new QVBoxLayout(dialog));
+
+        dialog->resize(QSize(CONSOLE_WIDTH, CONSOLE_HEIGHT));
+        layout->setMargin(0);
+        layout->setSpacing(0);
+        layout->addWidget(new JSConsole(dialog));
+        dialog->setWindowOpacity(CONSOLE_WINDOW_OPACITY);
+        dialog->setWindowTitle(CONSOLE_TITLE);
+
+        _jsConsole = dialog;
+    }
+    _jsConsole->setVisible(!_jsConsole->isVisible());
 }
 
 void Menu::audioMuteToggled() {
