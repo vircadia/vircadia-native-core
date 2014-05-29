@@ -143,7 +143,7 @@ font: bold 14pt;</string>
 font-size: 14pt;</string>
    </property>
    <property name="text">
-    <string>(click a script or use the 1-9 keys to load and run it)</string>
+    <string>(click a script to load and run it)</string>
    </property>
    <property name="wordWrap">
     <bool>true</bool>
