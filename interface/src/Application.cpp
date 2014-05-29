@@ -554,6 +554,8 @@ void Application::initializeGL() {
 }
 
 void Application::paintGL() {
+    PerformanceTimer perfTimer("paintGL");
+
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
@@ -648,7 +650,10 @@ void Application::paintGL() {
             _rearMirrorTools->render(true);
         }
 
-        _applicationOverlay.renderOverlay();
+        {
+            PerformanceTimer perfTimer("paintGL/renderOverlay");
+            _applicationOverlay.renderOverlay();
+        }
     }
 
     _frameCount++;
@@ -1288,11 +1293,13 @@ void Application::timer() {
 }
 
 void Application::idle() {
+    PerformanceTimer perfTimer("idle");
+
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
     // details if we're in ExtraDebugging mode. However, the ::update() and it's subcomponents will show their timing
     // details normally.
     bool showWarnings = getLogger()->extraDebugging();
-    PerformanceWarning warn(showWarnings, "Application::idle()");
+    PerformanceWarning warn(showWarnings, "idle()");
 
     //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time we ran
 
@@ -1300,15 +1307,18 @@ void Application::idle() {
     if (timeSinceLastUpdate > IDLE_SIMULATE_MSECS) {
         _lastTimeUpdated.start();
         {
+            PerformanceTimer perfTimer("idle/update");
             PerformanceWarning warn(showWarnings, "Application::idle()... update()");
             const float BIGGEST_DELTA_TIME_SECS = 0.25f;
             update(glm::clamp((float)timeSinceLastUpdate / 1000.f, 0.f, BIGGEST_DELTA_TIME_SECS));
         }
         {
+            PerformanceTimer perfTimer("idle/updateGL");
             PerformanceWarning warn(showWarnings, "Application::idle()... updateGL()");
             _glWidget->updateGL();
         }
         {
+            PerformanceTimer perfTimer("idle/rest");
             PerformanceWarning warn(showWarnings, "Application::idle()... rest of it");
             _idleLoopStdev.addValue(timeSinceLastUpdate);
 
@@ -1320,14 +1330,16 @@ void Application::idle() {
             }
 
             if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
+                PerformanceTimer perfTimer("idle/rest/_buckyBalls");
                 _buckyBalls.simulate(timeSinceLastUpdate / 1000.f, Application::getInstance()->getAvatar()->getHandData());
             }
 
             // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
             idleTimer->start(2);
-        }
-        if (_numChangedSettings > 0) {
-            saveSettings();
+            
+            if (_numChangedSettings > 0) {
+                saveSettings();
+            }
         }
     }
 }
@@ -1729,6 +1741,7 @@ bool Application::isLookingAtMyAvatar(Avatar* avatar) {
 }
 
 void Application::updateLOD() {
+    PerformanceTimer perfTimer("idle/update/updateLOD");
     // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode
     if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableAutoAdjustLOD) && !isThrottleRendering()) {
         Menu::getInstance()->autoAdjustLOD(_fps);
@@ -1738,6 +1751,7 @@ void Application::updateLOD() {
 }
 
 void Application::updateMouseRay() {
+    PerformanceTimer perfTimer("idle/update/updateMouseRay");
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMouseRay()");
@@ -1770,6 +1784,7 @@ void Application::updateMouseRay() {
 }
 
 void Application::updateFaceshift() {
+    PerformanceTimer perfTimer("idle/update/updateFaceshift");
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateFaceshift()");
@@ -1784,6 +1799,7 @@ void Application::updateFaceshift() {
 }
 
 void Application::updateVisage() {
+    PerformanceTimer perfTimer("idle/update/updateVisage");
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateVisage()");
@@ -1793,6 +1809,7 @@ void Application::updateVisage() {
 }
 
 void Application::updateMyAvatarLookAtPosition() {
+    PerformanceTimer perfTimer("idle/update/updateMyAvatarLookAtPosition");
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMyAvatarLookAtPosition()");
@@ -1858,6 +1875,7 @@ void Application::updateMyAvatarLookAtPosition() {
 }
 
 void Application::updateThreads(float deltaTime) {
+    PerformanceTimer perfTimer("idle/update/updateThreads");
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateThreads()");
 
@@ -1872,6 +1890,7 @@ void Application::updateThreads(float deltaTime) {
 }
 
 void Application::updateMetavoxels(float deltaTime) {
+    PerformanceTimer perfTimer("idle/update/updateMetavoxels");
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMetavoxels()");
 
@@ -1901,6 +1920,7 @@ void Application::cameraMenuChanged() {
 }
 
 void Application::updateCamera(float deltaTime) {
+    PerformanceTimer perfTimer("idle/update/updateCamera");
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateCamera()");
 
@@ -1918,6 +1938,7 @@ void Application::updateCamera(float deltaTime) {
 }
 
 void Application::updateDialogs(float deltaTime) {
+    PerformanceTimer perfTimer("idle/update/updateDialogs");
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateDialogs()");
 
@@ -1934,6 +1955,7 @@ void Application::updateDialogs(float deltaTime) {
 }
 
 void Application::updateCursor(float deltaTime) {
+    PerformanceTimer perfTimer("idle/update/updateCursor");
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateCursor()");
 
@@ -1958,41 +1980,66 @@ void Application::updateCursor(float deltaTime) {
 }
 
 void Application::update(float deltaTime) {
+    //PerformanceTimer perfTimer("idle/update"); // NOTE: we track this above in Application::idle()
+
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
 
     updateLOD();
-
-    // check what's under the mouse and update the mouse voxel
-    updateMouseRay();
-
+    updateMouseRay(); // check what's under the mouse and update the mouse voxel
     updateFaceshift();
     updateVisage();
-    _myAvatar->updateLookAtTargetAvatar();
+
+    {
+        PerformanceTimer perfTimer("idle/update/updateLookAtTargetAvatar");
+        _myAvatar->updateLookAtTargetAvatar();
+    }
     updateMyAvatarLookAtPosition();
-    _sixenseManager.update(deltaTime);
-    _joystickManager.update();
-    _prioVR.update(deltaTime);
+    {
+        PerformanceTimer perfTimer("idle/update/sixense,joystick,prioVR");
+        _sixenseManager.update(deltaTime);
+        _joystickManager.update();
+        _prioVR.update(deltaTime);
+    }
     updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
-    _avatarManager.updateOtherAvatars(deltaTime); //loop through all the other avatars and simulate them...
+    {
+        PerformanceTimer perfTimer("idle/update/_avatarManager");
+        _avatarManager.updateOtherAvatars(deltaTime); //loop through all the other avatars and simulate them...
+    }
     updateMetavoxels(deltaTime); // update metavoxels
     updateCamera(deltaTime); // handle various camera tweaks like off axis projection
     updateDialogs(deltaTime); // update various stats dialogs if present
     updateCursor(deltaTime); // Handle cursor updates
 
-    _particles.update(); // update the particles...
-    _particleCollisionSystem.update(); // collide the particles...
+    {
+        PerformanceTimer perfTimer("idle/update/_particles");
+        _particles.update(); // update the particles...
+    }
+    {
+        PerformanceTimer perfTimer("idle/update/_particleCollisionSystem");
+        _particleCollisionSystem.update(); // collide the particles...
+    }
 
-    _models.update(); // update the models...
+    {
+        PerformanceTimer perfTimer("idle/update/_models");
+        _models.update(); // update the models...
+    }
 
-    _overlays.update(deltaTime);
+    {
+        PerformanceTimer perfTimer("idle/update/_overlays");
+        _overlays.update(deltaTime);
+    }
 
-    // let external parties know we're updating
-    emit simulating(deltaTime);
+    {
+        PerformanceTimer perfTimer("idle/update/emit simulating");
+        // let external parties know we're updating
+        emit simulating(deltaTime);
+    }
 }
 
 void Application::updateMyAvatar(float deltaTime) {
+    PerformanceTimer perfTimer("idle/update/updateMyAvatar");
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMyAvatar()");
 
@@ -2253,6 +2300,7 @@ glm::vec3 Application::getSunDirection() {
 }
 
 void Application::updateShadowMap() {
+    PerformanceTimer perfTimer("pintGL/updateShadowMap");
     QOpenGLFramebufferObject* fbo = _textureCache.getShadowFramebufferObject();
     fbo->bind();
     glEnable(GL_DEPTH_TEST);
@@ -2392,6 +2440,7 @@ QImage Application::renderAvatarBillboard() {
 }
 
 void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
+    PerformanceTimer perfTimer("paintGL/displaySide");
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
     // transform by eye offset
 
@@ -2424,9 +2473,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     glTranslatef(_viewMatrixTranslation.x, _viewMatrixTranslation.y, _viewMatrixTranslation.z);
 
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
-    setupWorldLight();
+    {
+        PerformanceTimer perfTimer("paintGL/displaySide/setupWorldLight");
+        setupWorldLight();
+    }
 
     if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
+        PerformanceTimer perfTimer("paintGL/displaySide/stars");
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
             "Application::displaySide() ... stars...");
         if (!_stars.isStarsLoaded()) {
@@ -2455,6 +2508,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
     // draw the sky dome
     if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
+        PerformanceTimer perfTimer("paintGL/displaySide/atmosphere");
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
             "Application::displaySide() ... atmosphere...");
         _environment.renderAtmospheres(whichCamera);
@@ -2474,10 +2528,14 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         glMaterialfv(GL_FRONT, GL_SPECULAR, NO_SPECULAR_COLOR);
 
         // draw the audio reflector overlay
-        _audioReflector.render();
-
+        {
+            PerformanceTimer perfTimer("paintGL/displaySide/audioReflector");
+            _audioReflector.render();
+        }
+        
         //  Draw voxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
+            PerformanceTimer perfTimer("paintGL/displaySide/voxels");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... voxels...");
             _voxels.render();
@@ -2485,12 +2543,14 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // also, metavoxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Metavoxels)) {
+            PerformanceTimer perfTimer("paintGL/displaySide/metavoxels");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... metavoxels...");
             _metavoxels.render();
         }
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
+            PerformanceTimer perfTimer("paintGL/displaySide/buckyBalls");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... bucky balls...");
             _buckyBalls.render();
@@ -2498,6 +2558,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // render particles...
         if (Menu::getInstance()->isOptionChecked(MenuOption::Particles)) {
+            PerformanceTimer perfTimer("paintGL/displaySide/particles");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... particles...");
             _particles.render();
@@ -2505,6 +2566,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // render models...
         if (Menu::getInstance()->isOptionChecked(MenuOption::Models)) {
+            PerformanceTimer perfTimer("paintGL/displaySide/models");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... models...");
             _models.render();
@@ -2512,6 +2574,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // render the ambient occlusion effect if enabled
         if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
+            PerformanceTimer perfTimer("paintGL/displaySide/AmbientOcclusion");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... AmbientOcclusion...");
             _ambientOcclusionEffect.render();
@@ -2525,16 +2588,21 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     }
 
     bool mirrorMode = (whichCamera.getInterpolatedMode() == CAMERA_MODE_MIRROR);
-    _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE, selfAvatarOnly);
+    {
+        PerformanceTimer perfTimer("paintGL/displaySide/renderAvatars");
+        _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE, selfAvatarOnly);
+    }
 
     if (!selfAvatarOnly) {
         //  Render the world box
         if (whichCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+            PerformanceTimer perfTimer("paintGL/displaySide/renderWorldBox");
             renderWorldBox();
         }
 
-        // brad's frustum for debugging
+        // view frustum for debugging
         if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum) && whichCamera.getMode() != CAMERA_MODE_MIRROR) {
+            PerformanceTimer perfTimer("paintGL/displaySide/ViewFrustum");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... renderViewFrustum...");
             renderViewFrustum(_viewFrustum);
@@ -2542,6 +2610,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // render voxel fades if they exist
         if (_voxelFades.size() > 0) {
+            PerformanceTimer perfTimer("paintGL/displaySide/voxel fades");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... voxel fades...");
             _voxelFadesLock.lockForWrite();
@@ -2557,10 +2626,16 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
 
         // give external parties a change to hook in
-        emit renderingInWorldInterface();
+        {
+            PerformanceTimer perfTimer("paintGL/displaySide/inWorldInterface");
+            emit renderingInWorldInterface();
+        }
 
         // render JS/scriptable overlays
-        _overlays.render3D();
+        {
+            PerformanceTimer perfTimer("paintGL/displaySide/3dOverlays");
+            _overlays.render3D();
+        }
     }
 }
 
