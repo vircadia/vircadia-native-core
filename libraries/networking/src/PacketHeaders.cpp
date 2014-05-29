@@ -52,7 +52,7 @@ PacketVersion versionForPacketType(PacketType type) {
         case PacketTypeAvatarIdentity:
             return 1;
         case PacketTypeEnvironmentData:
-            return 1;
+            return 2;
         case PacketTypeDomainList:
         case PacketTypeDomainListRequest:
             return 3;
@@ -66,8 +66,12 @@ PacketVersion versionForPacketType(PacketType type) {
             return 1;
         case PacketTypeParticleData:
             return 1;
+        case PacketTypeParticleErase:
+            return 1;
         case PacketTypeModelData:
-            return 2; 
+            return 2;
+        case PacketTypeModelErase:
+            return 1;
         default:
             return 0;
     }
