@@ -76,8 +76,7 @@ MyAvatar::MyAvatar() :
     _lastFloorContactPoint(0.0f),
     _lookAtTargetAvatar(),
     _shouldRender(true),
-    _billboardValid(false),
-    _oculusYawOffset(0.0f)
+    _billboardValid(false)
 {
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
@@ -90,8 +89,7 @@ MyAvatar::~MyAvatar() {
 
 void MyAvatar::reset() {
     _skeletonModel.reset();
-    getHead()->reset(); 
-    _oculusYawOffset = 0.0f;
+    getHead()->reset();
 
     setVelocity(glm::vec3(0.0f));
     setThrust(glm::vec3(0.0f));
@@ -864,43 +862,8 @@ void MyAvatar::updateOrientation(float deltaTime) {
         OculusManager::getEulerAngles(yaw, pitch, roll);
         // ... so they need to be converted to degrees before we do math...
 
-        // The neck is limited in how much it can yaw, so we check its relative
-        // yaw from the body and yaw the body if necessary.
-        yaw *= DEGREES_PER_RADIAN;
-        float bodyToHeadYaw = yaw - _oculusYawOffset;
-        const float MAX_NECK_YAW = 85.0f; // degrees
-        if ((fabs(bodyToHeadYaw) > 2.0f * MAX_NECK_YAW) && (yaw * _oculusYawOffset < 0.0f)) {
-            // We've wrapped around the range for yaw so adjust 
-            // the measured yaw to be relative to _oculusYawOffset.
-            if (yaw > 0.0f) {
-                yaw -= 360.0f;
-            } else {
-                yaw += 360.0f;
-            }
-            bodyToHeadYaw = yaw - _oculusYawOffset;
-        }
-
-        float delta = fabs(bodyToHeadYaw) - MAX_NECK_YAW;
-        if (delta > 0.0f) {
-            yaw = MAX_NECK_YAW;
-            if (bodyToHeadYaw < 0.0f) {
-                delta *= -1.0f;
-                bodyToHeadYaw = -MAX_NECK_YAW;
-            } else {
-                bodyToHeadYaw = MAX_NECK_YAW;
-            }
-            // constrain _oculusYawOffset to be within range [-180,180]
-            _oculusYawOffset = fmod((_oculusYawOffset + delta) + 180.0f, 360.0f) - 180.0f;
-
-            // We must adjust the body orientation using a delta rotation (rather than
-            // doing yaw math) because the body's yaw ranges are not the same
-            // as what the Oculus API provides.
-            glm::quat bodyCorrection = glm::angleAxis(glm::radians(delta), _worldUpDirection);
-            orientation = orientation * bodyCorrection;
-        }
         Head* head = getHead();
-        head->setBaseYaw(bodyToHeadYaw);
-
+        head->setBaseYaw(yaw * DEGREES_PER_RADIAN);
         head->setBasePitch(pitch * DEGREES_PER_RADIAN);
         head->setBaseRoll(roll * DEGREES_PER_RADIAN);
     }

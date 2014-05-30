@@ -20,8 +20,8 @@
 #include <glm/gtc/quaternion.hpp>
 
 // degrees
-const float MIN_HEAD_YAW = -110.f;
-const float MAX_HEAD_YAW = 110.f;
+const float MIN_HEAD_YAW = -180.f;
+const float MAX_HEAD_YAW = 180.f;
 const float MIN_HEAD_PITCH = -60.f;
 const float MAX_HEAD_PITCH = 60.f;
 const float MIN_HEAD_ROLL = -50.f;
