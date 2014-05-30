@@ -355,7 +355,7 @@ function controller(wichSide) {
                 var identify = Models.identifyModel(foundModel);
                 if (!identify.isKnownID) {
                     print("Unknown ID " + identify.id + " (update loop " + foundModel.id + ")");
-                    continue;
+                    return;
                 }
                 foundModel = identify;
             }
@@ -540,7 +540,7 @@ function mousePressEvent(event) {
             var identify = Models.identifyModel(foundModel);
             if (!identify.isKnownID) {
                 print("Unknown ID " + identify.id + " (update loop " + foundModel.id + ")");
-                continue;
+                return;
             }
             foundModel = identify;
         }
