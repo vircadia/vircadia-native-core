@@ -164,12 +164,12 @@ QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
             if (parentIndex == -1) {
                 _rootIndex = i;
                 glm::mat4 baseTransform = glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-                state.updateWorldTransform(baseTransform, _rotation);
+                state.computeTransforms(baseTransform, _rotation);
                 ++numJointsSet;
                 jointIsSet[i] = true;
             } else if (jointIsSet[parentIndex]) {
                 const JointState& parentState = jointStates.at(parentIndex);
-                state.updateWorldTransform(parentState._transform, parentState._combinedRotation);
+                state.computeTransforms(parentState._transform, parentState._combinedRotation);
                 ++numJointsSet;
                 jointIsSet[i] = true;
             }
@@ -1122,10 +1122,10 @@ void Model::updateJointState(int index) {
     if (joint.parentIndex == -1) {
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         glm::mat4 baseTransform = glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-        state.updateWorldTransform(baseTransform, _rotation);
+        state.computeTransforms(baseTransform, _rotation);
     } else {
         const JointState& parentState = _jointStates.at(joint.parentIndex);
-        state.updateWorldTransform(parentState._transform, parentState._combinedRotation);
+        state.computeTransforms(parentState._transform, parentState._combinedRotation);
     }
 }
 
@@ -1862,7 +1862,7 @@ void JointState::copyState(const JointState& state) {
     // DO NOT copy _fbxJoint
 }
 
-void JointState::updateWorldTransform(const glm::mat4& baseTransform, const glm::quat& parentRotation) {
+void JointState::computeTransforms(const glm::mat4& baseTransform, const glm::quat& parentRotation) {
     assert(_fbxJoint != NULL);
     glm::quat combinedRotation = _fbxJoint->preRotation * _rotation * _fbxJoint->postRotation;    
     _transform = baseTransform * glm::translate(_fbxJoint->translation) * _fbxJoint->preTransform * glm::mat4_cast(combinedRotation) * _fbxJoint->postTransform;
