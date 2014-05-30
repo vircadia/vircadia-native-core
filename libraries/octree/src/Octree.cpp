@@ -600,6 +600,7 @@ public:
     bool found;
 };
 
+
 bool findRayIntersectionOp(OctreeElement* element, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
 
