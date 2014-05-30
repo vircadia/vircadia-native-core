@@ -96,6 +96,11 @@ int Model::_shadowNormalSpecularMapTangentLocation;
 int Model::_cascadedShadowNormalMapTangentLocation;
 int Model::_cascadedShadowNormalSpecularMapTangentLocation;
 
+int Model::_cascadedShadowMapDistancesLocation;
+int Model::_cascadedShadowNormalMapDistancesLocation;
+int Model::_cascadedShadowSpecularMapDistancesLocation;
+int Model::_cascadedShadowNormalSpecularMapDistancesLocation;
+    
 Model::SkinLocations Model::_skinLocations;
 Model::SkinLocations Model::_skinNormalMapLocations;
 Model::SkinLocations Model::_skinSpecularMapLocations;
@@ -144,12 +149,11 @@ void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locati
     locations.clusterIndices = program.attributeLocation("clusterIndices");
     locations.clusterWeights = program.attributeLocation("clusterWeights");
     locations.tangent = program.attributeLocation("tangent");
+    locations.shadowDistances = program.uniformLocation("shadowDistances");
     program.setUniformValue("diffuseMap", 0);
     program.setUniformValue("normalMap", 1);
     program.setUniformValue("specularMap", specularTextureUnit);
     program.setUniformValue("shadowMap", shadowTextureUnit);
-    program.setUniformValue("shadowDistances", -SHADOW_MATRIX_DISTANCES[1],
-        -SHADOW_MATRIX_DISTANCES[2], -SHADOW_MATRIX_DISTANCES[3]);
     program.release();
 }
 
@@ -310,8 +314,7 @@ void Model::init() {
         _cascadedShadowMapProgram.bind();
         _cascadedShadowMapProgram.setUniformValue("diffuseMap", 0);
         _cascadedShadowMapProgram.setUniformValue("shadowMap", 1);
-        _cascadedShadowMapProgram.setUniformValue("shadowDistances", -SHADOW_MATRIX_DISTANCES[1],
-            -SHADOW_MATRIX_DISTANCES[2], -SHADOW_MATRIX_DISTANCES[3]);
+        _cascadedShadowMapDistancesLocation = _cascadedShadowMapProgram.uniformLocation("shadowDistances");
         _cascadedShadowMapProgram.release();
         
         _cascadedShadowNormalMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
@@ -324,8 +327,7 @@ void Model::init() {
         _cascadedShadowNormalMapProgram.setUniformValue("diffuseMap", 0);
         _cascadedShadowNormalMapProgram.setUniformValue("normalMap", 1);
         _cascadedShadowNormalMapProgram.setUniformValue("shadowMap", 2);
-        _cascadedShadowNormalMapProgram.setUniformValue("shadowDistances", -SHADOW_MATRIX_DISTANCES[1],
-            -SHADOW_MATRIX_DISTANCES[2], -SHADOW_MATRIX_DISTANCES[3]);
+        _cascadedShadowNormalMapDistancesLocation = _cascadedShadowNormalMapProgram.uniformLocation("shadowDistances");
         _cascadedShadowNormalMapTangentLocation = _cascadedShadowNormalMapProgram.attributeLocation("tangent");
         _cascadedShadowNormalMapProgram.release();
         
@@ -339,8 +341,7 @@ void Model::init() {
         _cascadedShadowSpecularMapProgram.setUniformValue("diffuseMap", 0);
         _cascadedShadowSpecularMapProgram.setUniformValue("specularMap", 1);
         _cascadedShadowSpecularMapProgram.setUniformValue("shadowMap", 2);
-        _cascadedShadowSpecularMapProgram.setUniformValue("shadowDistances", -SHADOW_MATRIX_DISTANCES[1],
-            -SHADOW_MATRIX_DISTANCES[2], -SHADOW_MATRIX_DISTANCES[3]);
+        _cascadedShadowSpecularMapDistancesLocation = _cascadedShadowSpecularMapProgram.uniformLocation("shadowDistances");
         _cascadedShadowSpecularMapProgram.release();
         
         _cascadedShadowNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
@@ -354,8 +355,8 @@ void Model::init() {
         _cascadedShadowNormalSpecularMapProgram.setUniformValue("normalMap", 1);
         _cascadedShadowNormalSpecularMapProgram.setUniformValue("specularMap", 2);
         _cascadedShadowNormalSpecularMapProgram.setUniformValue("shadowMap", 3);
-        _cascadedShadowNormalSpecularMapProgram.setUniformValue("shadowDistances", -SHADOW_MATRIX_DISTANCES[1],
-            -SHADOW_MATRIX_DISTANCES[2], -SHADOW_MATRIX_DISTANCES[3]);
+        _cascadedShadowNormalSpecularMapDistancesLocation =
+            _cascadedShadowNormalSpecularMapProgram.uniformLocation("shadowDistances");
         _cascadedShadowNormalSpecularMapTangentLocation = _cascadedShadowNormalSpecularMapProgram.attributeLocation("tangent");
         _cascadedShadowNormalSpecularMapProgram.release();
         
@@ -1641,6 +1642,7 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
         ProgramObject* skinProgram = &_skinProgram;
         SkinLocations* skinLocations = &_skinLocations;
         int tangentLocation = _normalMapTangentLocation;
+        int shadowDistancesLocation = _cascadedShadowMapDistancesLocation;
         GLenum specularTextureUnit = 0;
         GLenum shadowTextureUnit = 0;
         if (mode == SHADOW_RENDER_MODE) {
@@ -1656,6 +1658,7 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
                         skinProgram = &_skinCascadedShadowNormalSpecularMapProgram;
                         skinLocations = &_skinCascadedShadowNormalSpecularMapLocations;
                         tangentLocation = _cascadedShadowNormalSpecularMapTangentLocation;
+                        shadowDistancesLocation = _cascadedShadowNormalSpecularMapDistancesLocation;
                     } else {
                         program = &_shadowNormalSpecularMapProgram;
                         skinProgram = &_skinShadowNormalSpecularMapProgram;
@@ -1677,6 +1680,7 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
                     skinProgram = &_skinCascadedShadowNormalMapProgram;
                     skinLocations = &_skinCascadedShadowNormalMapLocations;
                     tangentLocation = _cascadedShadowNormalMapTangentLocation;
+                    shadowDistancesLocation = _cascadedShadowNormalMapDistancesLocation;
                 } else {
                     program = &_shadowNormalMapProgram;
                     skinProgram = &_skinShadowNormalMapProgram;
@@ -1695,6 +1699,7 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
                     program = &_cascadedShadowSpecularMapProgram;
                     skinProgram = &_skinCascadedShadowSpecularMapProgram;
                     skinLocations = &_skinCascadedShadowSpecularMapLocations;
+                    shadowDistancesLocation = _cascadedShadowSpecularMapDistancesLocation;
                 } else {
                     program = &_shadowSpecularMapProgram;
                     skinProgram = &_skinShadowSpecularMapProgram;
@@ -1740,10 +1745,15 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
             skinProgram->enableAttributeArray(skinLocations->clusterWeights);
             activeProgram = skinProgram;
             tangentLocation = skinLocations->tangent;
-     
+            if (cascadedShadows) {
+                program->setUniform(skinLocations->shadowDistances, Application::getInstance()->getShadowDistances());
+            }
         } else {    
             glMultMatrixf((const GLfloat*)&state.clusterMatrices[0]);
             program->bind();
+            if (cascadedShadows) {
+                program->setUniform(shadowDistancesLocation, Application::getInstance()->getShadowDistances());
+            }
         }
 
         if (mesh.blendshapes.isEmpty()) {

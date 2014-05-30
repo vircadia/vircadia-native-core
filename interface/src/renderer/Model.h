@@ -311,12 +311,18 @@ private:
     static int _cascadedShadowNormalMapTangentLocation;
     static int _cascadedShadowNormalSpecularMapTangentLocation;
     
+    static int _cascadedShadowMapDistancesLocation;
+    static int _cascadedShadowNormalMapDistancesLocation;
+    static int _cascadedShadowSpecularMapDistancesLocation;
+    static int _cascadedShadowNormalSpecularMapDistancesLocation;
+    
     class SkinLocations {
     public:
         int clusterMatrices;
         int clusterIndices;
         int clusterWeights;
         int tangent;
+        int shadowDistances;
     };
     
     static SkinLocations _skinLocations;
