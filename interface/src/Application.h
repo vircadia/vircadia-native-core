@@ -126,8 +126,6 @@ static const float MIRROR_REARVIEW_DISTANCE = 0.65f;
 static const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
 static const float MIRROR_FIELD_OF_VIEW = 30.0f;
 
-static const float SHADOW_MATRIX_DISTANCES[] = { 0.0f, 2.0f, 6.0f, 14.0f, 30.0f };
-
 class Application : public QApplication {
     Q_OBJECT
 
