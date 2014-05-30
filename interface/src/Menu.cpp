@@ -315,7 +315,12 @@ Menu::Menu() :
                                   appInstance->getGlowEffect(),
                                   SLOT(cycleRenderMode()));
 
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Shadows, 0, false);
+    QMenu* shadowMenu = renderOptionsMenu->addMenu("Shadows");
+    QActionGroup* shadowGroup = new QActionGroup(shadowMenu);
+    shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, "None", 0, true));
+    shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::SimpleShadows, 0, false));
+    shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::CascadedShadows, 0, false));
+    
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::BuckyBalls, 0, false);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Particles, 0, true);
@@ -386,8 +391,18 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlternateIK, 0, false);
 
     addDisabledActionAndSeparator(developerMenu, "Testing");
-
+    
     QMenu* timingMenu = developerMenu->addMenu("Timing and Statistics Tools");
+    QMenu* perfTimerMenu = timingMenu->addMenu("Performance Timer");
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::DisplayTimingDetails, 0, true);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandDisplaySideTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandAvatarSimulateTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandAvatarUpdateTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandMiscAvatarTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandIdleTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandPaintGLTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandUpdateTiming, 0, false);
+
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::TestPing, 0, true);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::FrameTimer);
     addActionToQMenuAndActionHash(timingMenu, MenuOption::RunTimingTests, 0, this, SLOT(runTests()));
@@ -678,6 +693,10 @@ void Menu::scanMenu(QMenu* menu, settingsAction modifySetting, QSettings* set) {
     set->endGroup();
 }
 
+bool Menu::getShadowsEnabled() const {
+    return isOptionChecked(MenuOption::SimpleShadows) || isOptionChecked(MenuOption::CascadedShadows);
+}
+
 void Menu::handleViewFrustumOffsetKeyModifier(int key) {
     const float VIEW_FRUSTUM_OFFSET_DELTA = 0.5f;
     const float VIEW_FRUSTUM_OFFSET_UP_DELTA = 0.05f;
@@ -848,8 +867,8 @@ void Menu::setIsOptionChecked(const QString& menuOption, bool isChecked) {
     }
 }
 
-bool Menu::isOptionChecked(const QString& menuOption) {
-    QAction* menu = _actionHash.value(menuOption);
+bool Menu::isOptionChecked(const QString& menuOption) const {
+    const QAction* menu = _actionHash.value(menuOption);
     if (menu) {
         return menu->isChecked();
     }
