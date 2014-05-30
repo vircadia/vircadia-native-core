@@ -427,7 +427,25 @@ bool SkeletonModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& seco
         return false;
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    return getJointPosition(geometry.leftEyeJointIndex, firstEyePosition) &&
-        getJointPosition(geometry.rightEyeJointIndex, secondEyePosition);
+    if (getJointPosition(geometry.leftEyeJointIndex, firstEyePosition) &&
+            getJointPosition(geometry.rightEyeJointIndex, secondEyePosition)) {
+        return true;
+    }
+    // no eye joints; try to estimate based on head/neck joints
+    glm::vec3 neckPosition, headPosition;
+    if (getJointPosition(geometry.neckJointIndex, neckPosition) &&
+            getJointPosition(geometry.headJointIndex, headPosition)) {
+        const float EYE_PROPORTION = 0.6f;
+        glm::vec3 baseEyePosition = glm::mix(neckPosition, headPosition, EYE_PROPORTION);
+        glm::quat headRotation;
+        getJointRotation(geometry.headJointIndex, headRotation);
+        const float EYES_FORWARD = 0.25f;
+        const float EYE_SEPARATION = 0.1f;
+        float headHeight = glm::distance(neckPosition, headPosition);
+        firstEyePosition = baseEyePosition + headRotation * glm::vec3(EYE_SEPARATION, 0.0f, EYES_FORWARD) * headHeight;
+        secondEyePosition = baseEyePosition + headRotation * glm::vec3(-EYE_SEPARATION, 0.0f, EYES_FORWARD) * headHeight;
+        return true;
+    }
+    return false;
 }
 
