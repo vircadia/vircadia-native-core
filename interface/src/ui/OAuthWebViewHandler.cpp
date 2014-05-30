@@ -82,7 +82,7 @@ void OAuthWebViewHandler::displayWebviewForAuthorizationURL(const QUrl& authoriz
         _activeWebView = new QWebView;
         
         // keep the window on top and delete it when it closes
-        _activeWebView->setWindowFlags(Qt::Sheet | Qt::WindowStaysOnTopHint);
+        _activeWebView->setWindowFlags(Qt::Sheet);
         _activeWebView->setAttribute(Qt::WA_DeleteOnClose);
         
         qDebug() << "Displaying QWebView for OAuth authorization at" << authorizationURL.toString();
