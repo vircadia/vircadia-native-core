@@ -157,9 +157,7 @@ function controller(wichSide) {
     
     this.release = function () {
         if (this.grabbing) {
-            if (jointList.length <= 0) {
-                jointList = MyAvatar.getJointNames();
-            }
+            jointList = MyAvatar.getJointNames();
             
             var closestJointIndex = -1;
             var closestJointDistance = 10;
