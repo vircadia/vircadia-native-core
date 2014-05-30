@@ -144,6 +144,7 @@ public:
     
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
     bool getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind = false) const;
+    bool getJointCombinedRotation(int jointIndex, glm::quat& rotation) const;
 
     QStringList getJointNames() const;
     

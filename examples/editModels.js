@@ -40,6 +40,8 @@ var modelURLs = [
 
 var toolBar;
 
+var jointList = MyAvatar.getJointNames();
+
 function isLocked(properties) {
     // special case to lock the ground plane model in hq.
     if (location.hostname == "hq.highfidelity.io" && 
@@ -81,9 +83,12 @@ function controller(wichSide) {
     
     this.grabbing = false;
     this.modelID = { isKnownID: false };
+    this.modelURL = "";
     this.oldModelRotation;
     this.oldModelPosition;
     this.oldModelRadius;
+    
+    this.jointsIntersectingFromStart = [];
     
     this.laser = Overlays.addOverlay("line3d", {
                                      position: { x: 0, y: 0, z: 0 },
@@ -134,16 +139,65 @@ function controller(wichSide) {
         
             this.grabbing = true;
             this.modelID = modelID;
+            this.modelURL = properties.modelURL;
         
             this.oldModelPosition = properties.position;
             this.oldModelRotation = properties.modelRotation;
             this.oldModelRadius = properties.radius;
+            
+            this.jointsIntersectingFromStart = [];
+            for (var i = 0; i < jointList.length; i++) {
+                var distance = Vec3.distance(MyAvatar.getJointPosition(jointList[i]), this.oldModelPosition);
+                if (distance < this.oldModelRadius) {
+                    this.jointsIntersectingFromStart.push(i);
+                }
+            }
         }
     }
     
     this.release = function () {
+        if (this.grabbing) {
+            if (jointList.length <= 0) {
+                jointList = MyAvatar.getJointNames();
+            }
+            
+            var closestJointIndex = -1;
+            var closestJointDistance = 10;
+            for (var i = 0; i < jointList.length; i++) {
+                var distance = Vec3.distance(MyAvatar.getJointPosition(jointList[i]), this.oldModelPosition);
+                if (distance < closestJointDistance) {
+                    closestJointDistance = distance;
+                    closestJointIndex = i;
+                }
+            }
+            
+            print("closestJoint: " + jointList[closestJointIndex]);
+            print("closestJointDistance (attach max distance): " + closestJointDistance + " (" + this.oldModelRadius + ")");
+            
+            if (closestJointDistance < this.oldModelRadius) {
+                
+                if (this.jointsIntersectingFromStart.indexOf(closestJointIndex) != -1) {
+                    // Do nothing
+                } else {
+                    print("Attaching to " + jointList[closestJointIndex]);
+                    var jointPosition = MyAvatar.getJointPosition(jointList[closestJointIndex]);
+                    var jointRotation = MyAvatar.getJointCombinedRotation(jointList[closestJointIndex]);
+                    
+                    var attachmentOffset = Vec3.subtract(this.oldModelPosition, jointPosition);
+                    attachmentOffset = Vec3.multiplyQbyV(Quat.inverse(jointRotation), attachmentOffset);
+                    var attachmentRotation = Quat.multiply(Quat.inverse(jointRotation), this.oldModelRotation);
+                    
+                    MyAvatar.attach(this.modelURL, jointList[closestJointIndex],
+                                    attachmentOffset, attachmentRotation, 2.0 * this.oldModelRadius,
+                                    true, false);
+                    Models.deleteModel(this.modelID);
+                }
+            }
+        }
+        
         this.grabbing = false;
         this.modelID.isKnownID = false;
+        this.jointsIntersectingFromStart = [];
     }
     
     this.checkTrigger = function () {
@@ -251,11 +305,6 @@ function controller(wichSide) {
                              position: newPosition,
                              modelRotation: newRotation
                              });
-//            print("Moving " + this.modelID.id);
-//            Vec3.print("Old Position: ", this.oldModelPosition);
-//            Vec3.print("Sav Position: ", newPosition);
-//            Quat.print("Old Rotation: ", this.oldModelRotation);
-//            Quat.print("New Rotation: ", newRotation);
             
             this.oldModelRotation = newRotation;
             this.oldModelPosition = newPosition;
@@ -409,8 +458,6 @@ function checkController(deltaTime) {
     
     moveOverlays();
 }
-
-
 
 function initToolBar() {
     toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);

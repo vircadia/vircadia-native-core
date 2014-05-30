@@ -634,8 +634,16 @@ bool Model::getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind)
         return false;
     }
     rotation = _jointStates[jointIndex]._combinedRotation *
-        (fromBind ? _geometry->getFBXGeometry().joints[jointIndex].inverseBindRotation :
-            _geometry->getFBXGeometry().joints[jointIndex].inverseDefaultRotation);
+               (fromBind ? _geometry->getFBXGeometry().joints[jointIndex].inverseBindRotation :
+                           _geometry->getFBXGeometry().joints[jointIndex].inverseDefaultRotation);
+    return true;
+}
+
+bool Model::getJointCombinedRotation(int jointIndex, glm::quat& rotation) const {
+    if (jointIndex == -1 || _jointStates.isEmpty()) {
+        return false;
+    }
+    rotation = _jointStates[jointIndex]._combinedRotation;
     return true;
 }
 
