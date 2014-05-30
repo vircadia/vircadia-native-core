@@ -42,7 +42,7 @@ Model::Model(QObject* parent) :
     _rootIndex(-1),
     _shapesAreDirty(true),
     _boundingRadius(0.0f),
-    _boundingShape(), 
+    _boundingShape(),
     _boundingShapeLocalOffset(0.0f),
     _lodDistance(0.0f),
     _pupilDilation(0.0f),
@@ -104,7 +104,7 @@ void Model::setScale(const glm::vec3& scale) {
 void Model::setScaleInternal(const glm::vec3& scale) {
     float scaleLength = glm::length(_scale);
     float relativeDeltaScale = glm::length(_scale - scale) / scaleLength;
-    
+
     const float ONE_PERCENT = 0.01f;
     if (relativeDeltaScale > ONE_PERCENT || scaleLength < EPSILON) {
         _scale = scale;
@@ -1068,13 +1068,14 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
 }
 
 void Model::simulateInternal(float deltaTime) {
+    // NOTE: this is a recursive call that walks all attachments, and their attachments
+    // update the world space transforms for all joints
+
     // update animations
     foreach (const AnimationHandlePointer& handle, _runningAnimations) {
         handle->simulate(deltaTime);
     }
 
-    // NOTE: this is a recursive call that walks all attachments, and their attachments
-    // update the world space transforms for all joints
     for (int i = 0; i < _jointStates.size(); i++) {
         updateJointState(i);
     }
@@ -1847,7 +1848,7 @@ JointState::JointState() :
     _fbxJoint(NULL) {
 }
 
-void JointState::setFBXJoint(const FBXJoint* joint) { 
+void JointState::setFBXJoint(const FBXJoint* joint) {
     assert(joint != NULL);
     _rotation = joint->rotation;
     // NOTE: JointState does not own the FBXJoint to which it points.
@@ -1862,18 +1863,21 @@ void JointState::copyState(const JointState& state) {
     // DO NOT copy _fbxJoint
 }
 
-void JointState::computeTransforms(const glm::mat4& baseTransform, const glm::quat& parentRotation) {
+void JointState::computeTransforms(const glm::mat4& baseTransform, const glm::quat& baseRotation) {
     assert(_fbxJoint != NULL);
-    glm::quat combinedRotation = _fbxJoint->preRotation * _rotation * _fbxJoint->postRotation;    
-    _transform = baseTransform * glm::translate(_fbxJoint->translation) * _fbxJoint->preTransform * glm::mat4_cast(combinedRotation) * _fbxJoint->postTransform;
-    _combinedRotation = parentRotation * combinedRotation;
+    glm::quat combinedRotation = _fbxJoint->preRotation * _rotation * _fbxJoint->postRotation;
+    _transform = baseTransform * glm::translate(_fbxJoint->translation) * _fbxJoint->preTransform
+        * glm::mat4_cast(combinedRotation) * _fbxJoint->postTransform;
+    _combinedRotation = baseRotation * combinedRotation;
 }
 
 glm::quat JointState::getJointRotation(bool fromBind) const {
+    assert(_fbxJoint != NULL);
     return _combinedRotation * (fromBind ?  _fbxJoint->inverseBindRotation : _fbxJoint->inverseDefaultRotation);
 }
 
 void JointState::restoreRotation(float fraction, float priority) {
+    assert(_fbxJoint != NULL);
     if (priority == _animationPriority) {
         _rotation = safeMix(_rotation, _fbxJoint->rotation, fraction);
         _animationPriority = 0.0f;
@@ -1881,6 +1885,7 @@ void JointState::restoreRotation(float fraction, float priority) {
 }
 
 void JointState::applyRotationDelta(const glm::quat& delta, bool constrain, float priority) {
+    assert(_fbxJoint != NULL);
     if (priority < _animationPriority) {
         return;
     }
@@ -1900,5 +1905,6 @@ void JointState::applyRotationDelta(const glm::quat& delta, bool constrain, floa
 }
 
 const glm::vec3& JointState::getDefaultTranslationInParentFrame() const {
+    assert(_fbxJoint != NULL);
     return _fbxJoint->translation;
 }

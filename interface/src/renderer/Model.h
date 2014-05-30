@@ -40,7 +40,8 @@ public:
 
     void copyState(const JointState& state);
 
-    void computeTransforms(const glm::mat4& baseTransform, const glm::quat& parentRotation);
+    /// computes new _transform and _combinedRotation
+    void computeTransforms(const glm::mat4& baseTransform, const glm::quat& baseRotation);
 
     /// \return rotation from the joint's default (or bind) frame to world frame
     glm::quat getJointRotation(bool fromBind = false) const;
