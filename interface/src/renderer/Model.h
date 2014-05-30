@@ -52,6 +52,10 @@ public:
 
     void restoreRotation(float fraction, float priority);
 
+    /// \param rotation is from bind- to world-frame
+    /// computes parent relative _rotation and sets that
+    void setRotation(const glm::quat& rotation, float priority);
+
     glm::quat _rotation;     // rotation relative to parent
     glm::mat4 _transform;    // rotation to world frame + translation in model frame
     glm::quat _combinedRotation; // rotation from joint local to world frame
@@ -242,7 +246,6 @@ protected:
     bool setJointPosition(int jointIndex, const glm::vec3& translation, const glm::quat& rotation = glm::quat(),
         bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
         const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
-    bool setJointRotation(int jointIndex, const glm::quat& rotation, float priority = 1.0f);
     
     /// Restores the indexed joint to its default position.
     /// \param fraction the fraction of the default position to apply (i.e., 0.25f to slerp one fourth of the way to

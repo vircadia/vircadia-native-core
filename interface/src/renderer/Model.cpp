@@ -1219,19 +1219,6 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
     return true;
 }
 
-bool Model::setJointRotation(int jointIndex, const glm::quat& rotation, float priority) {
-    if (jointIndex == -1 || _jointStates.isEmpty()) {
-        return false;
-    }
-    JointState& state = _jointStates[jointIndex];
-    if (priority >= state._animationPriority) {
-        state._rotation = state._rotation * glm::inverse(state._combinedRotation) * rotation *
-            glm::inverse(_geometry->getFBXGeometry().joints.at(jointIndex).inverseBindRotation);
-        state._animationPriority = priority;
-    }
-    return true;
-}
-
 bool Model::restoreJointPosition(int jointIndex, float fraction, float priority) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
@@ -1881,6 +1868,14 @@ void JointState::restoreRotation(float fraction, float priority) {
     if (priority == _animationPriority) {
         _rotation = safeMix(_rotation, _fbxJoint->rotation, fraction);
         _animationPriority = 0.0f;
+    }
+}
+
+void JointState::setRotation(const glm::quat& rotation, float priority) {
+    assert(_fbxJoint != NULL);
+    if (priority >= _animationPriority) {
+        _rotation = _rotation * glm::inverse(_combinedRotation) * rotation * glm::inverse(_fbxJoint->inverseBindRotation);
+        _animationPriority = priority;
     }
 }
 
