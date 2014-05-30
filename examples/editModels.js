@@ -88,7 +88,7 @@ function controller(wichSide) {
     this.oldModelPosition;
     this.oldModelRadius;
     
-    this.jointsIntersectingFronStart = [];
+    this.jointsIntersectingFromStart = [];
     
     this.laser = Overlays.addOverlay("line3d", {
                                      position: { x: 0, y: 0, z: 0 },
@@ -145,11 +145,11 @@ function controller(wichSide) {
             this.oldModelRotation = properties.modelRotation;
             this.oldModelRadius = properties.radius;
             
-            this.jointsIntersectingFronStart = [];
+            this.jointsIntersectingFromStart = [];
             for (var i = 0; i < jointList.length; i++) {
                 var distance = Vec3.distance(MyAvatar.getJointPosition(jointList[i]), this.oldModelPosition);
                 if (distance < this.oldModelRadius) {
-                    this.jointsIntersectingFronStart.push(i);
+                    this.jointsIntersectingFromStart.push(i);
                 }
             }
         }
@@ -176,7 +176,7 @@ function controller(wichSide) {
             
             if (closestJointDistance < this.oldModelRadius) {
                 
-                if (this.jointsIntersectingFronStart.indexOf(closestJointIndex) != -1) {
+                if (this.jointsIntersectingFromStart.indexOf(closestJointIndex) != -1) {
                     // Do nothing
                 } else {
                     print("Attaching to " + jointList[closestJointIndex]);
@@ -197,7 +197,7 @@ function controller(wichSide) {
         
         this.grabbing = false;
         this.modelID.isKnownID = false;
-        this.jointsIntersectingFronStart = [];
+        this.jointsIntersectingFromStart = [];
     }
     
     this.checkTrigger = function () {

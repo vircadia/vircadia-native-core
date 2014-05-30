@@ -706,24 +706,48 @@ QStringList Avatar::getJointNames() const {
 }
 
 glm::vec3 Avatar::getJointPosition(int index) const {
-    glm::vec3 position(0,0,0);
+    if (QThread::currentThread() != thread()) {
+        glm::vec3 position;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointPosition", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(glm::vec3, position), Q_ARG(const int, index));
+        return position;
+    }
+    glm::vec3 position;
     _skeletonModel.getJointPosition(index, position);
     return position;
 }
 
 glm::vec3 Avatar::getJointPosition(const QString& name) const {
-    glm::vec3 position(0,0,0);
+    if (QThread::currentThread() != thread()) {
+        glm::vec3 position;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointPosition", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(glm::vec3, position), Q_ARG(const QString&, name));
+        return position;
+    }
+    glm::vec3 position;
     _skeletonModel.getJointPosition(getJointIndex(name), position);
     return position;
 }
 
 glm::quat Avatar::getJointCombinedRotation(int index) const {
+    if (QThread::currentThread() != thread()) {
+        glm::quat rotation;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointCombinedRotation", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(glm::quat, rotation), Q_ARG(const int, index));
+        return rotation;
+    }
     glm::quat rotation;
     _skeletonModel.getJointCombinedRotation(index, rotation);
     return rotation;
 }
 
 glm::quat Avatar::getJointCombinedRotation(const QString& name) const {
+    if (QThread::currentThread() != thread()) {
+        glm::quat rotation;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointCombinedRotation", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(glm::quat, rotation), Q_ARG(const QString&, name));
+        return rotation;
+    }
     glm::quat rotation;
     _skeletonModel.getJointCombinedRotation(getJointIndex(name), rotation);
     return rotation;
