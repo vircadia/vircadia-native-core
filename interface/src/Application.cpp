@@ -2001,8 +2001,14 @@ void Application::update(float deltaTime) {
         _joystickManager.update();
         _prioVR.update(deltaTime);
     }
-    updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
+    
+    {
+        PerformanceTimer perfTimer("idle/update/updateMyAvatar");
+        updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
+    }
+    
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
+    
     {
         PerformanceTimer perfTimer("idle/update/_avatarManager");
         _avatarManager.updateOtherAvatars(deltaTime); //loop through all the other avatars and simulate them...
@@ -2039,17 +2045,22 @@ void Application::update(float deltaTime) {
 }
 
 void Application::updateMyAvatar(float deltaTime) {
-    PerformanceTimer perfTimer("idle/update/updateMyAvatar");
+    PerformanceTimer perfTimer("updateMyAvatar");
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMyAvatar()");
 
-    _myAvatar->update(deltaTime);
+    {
+        PerformanceTimer perfTimer("updateMyAvatar/_myAvatar->update()");
+        _myAvatar->update(deltaTime);
+    }
 
-    // send head/hand data to the avatar mixer and voxel server
-    QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
-    packet.append(_myAvatar->toByteArray());
-
-    controlledBroadcastToNodes(packet, NodeSet() << NodeType::AvatarMixer);
+    {
+        // send head/hand data to the avatar mixer and voxel server
+        PerformanceTimer perfTimer("updateMyAvatar/sendToAvatarMixer");
+        QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
+        packet.append(_myAvatar->toByteArray());
+        controlledBroadcastToNodes(packet, NodeSet() << NodeType::AvatarMixer);
+    }
 
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
@@ -2057,22 +2068,28 @@ void Application::updateMyAvatar(float deltaTime) {
     // We could optimize this to not actually load the viewFrustum, since we don't
     // actually need to calculate the view frustum planes to send these details
     // to the server.
-    loadViewFrustum(_myCamera, _viewFrustum);
+    {
+        PerformanceTimer perfTimer("updateMyAvatar/loadViewFrustum");
+        loadViewFrustum(_myCamera, _viewFrustum);
+    }
 
     // Update my voxel servers with my current voxel query...
-    quint64 now = usecTimestampNow();
-    quint64 sinceLastQuery = now - _lastQueriedTime;
-    const quint64 TOO_LONG_SINCE_LAST_QUERY = 3 * USECS_PER_SECOND;
-    bool queryIsDue = sinceLastQuery > TOO_LONG_SINCE_LAST_QUERY;
-    bool viewIsDifferentEnough = !_lastQueriedViewFrustum.isVerySimilar(_viewFrustum);
+    {
+        PerformanceTimer perfTimer("updateMyAvatar/queryOctree");
+        quint64 now = usecTimestampNow();
+        quint64 sinceLastQuery = now - _lastQueriedTime;
+        const quint64 TOO_LONG_SINCE_LAST_QUERY = 3 * USECS_PER_SECOND;
+        bool queryIsDue = sinceLastQuery > TOO_LONG_SINCE_LAST_QUERY;
+        bool viewIsDifferentEnough = !_lastQueriedViewFrustum.isVerySimilar(_viewFrustum);
 
-    // if it's been a while since our last query or the view has significantly changed then send a query, otherwise suppress it
-    if (queryIsDue || viewIsDifferentEnough) {
-        _lastQueriedTime = now;
-        queryOctree(NodeType::VoxelServer, PacketTypeVoxelQuery, _voxelServerJurisdictions);
-        queryOctree(NodeType::ParticleServer, PacketTypeParticleQuery, _particleServerJurisdictions);
-        queryOctree(NodeType::ModelServer, PacketTypeModelQuery, _modelServerJurisdictions);
-        _lastQueriedViewFrustum = _viewFrustum;
+        // if it's been a while since our last query or the view has significantly changed then send a query, otherwise suppress it
+        if (queryIsDue || viewIsDifferentEnough) {
+            _lastQueriedTime = now;
+            queryOctree(NodeType::VoxelServer, PacketTypeVoxelQuery, _voxelServerJurisdictions);
+            queryOctree(NodeType::ParticleServer, PacketTypeParticleQuery, _particleServerJurisdictions);
+            queryOctree(NodeType::ModelServer, PacketTypeModelQuery, _modelServerJurisdictions);
+            _lastQueriedViewFrustum = _viewFrustum;
+        }
     }
 }
 
@@ -2300,7 +2317,7 @@ glm::vec3 Application::getSunDirection() {
 }
 
 void Application::updateShadowMap() {
-    PerformanceTimer perfTimer("pintGL/updateShadowMap");
+    PerformanceTimer perfTimer("paintGL/updateShadowMap");
     QOpenGLFramebufferObject* fbo = _textureCache.getShadowFramebufferObject();
     fbo->bind();
     glEnable(GL_DEPTH_TEST);

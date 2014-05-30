@@ -173,6 +173,12 @@ bool Stats::includeTimingRecord(const QString& name) {
             included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandUpdateTiming);
         } else if (name.startsWith("idle/")) {
             included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandIdleTiming);
+        } else if (name.startsWith("MyAvatar::simulate")) {
+            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandAvatarSimulateTiming);
+        } else if (name.startsWith("MyAvatar::update/") || name.startsWith("updateMyAvatar")) {
+            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandAvatarUpdateTiming);
+        } else if (name.startsWith("MyAvatar::")) {
+            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandMiscAvatarTiming);
         } else if (name == "paintGL/displaySide") {
             included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandDisplaySideTiming) ||
                        Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
@@ -556,14 +562,14 @@ void Stats::display(
         char perfLine[TIMER_OUTPUT_LINE_LENGTH];
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, 
-                "---------------- Function --------------- --msecs- -calls--", color);
+                "--------------------- Function -------------------- --msecs- -calls--", color);
 
         const QMap<QString, PerformanceTimerRecord>& allRecords = PerformanceTimer::getAllTimerRecords();
         QMapIterator<QString, PerformanceTimerRecord> i(allRecords);
         while (i.hasNext()) {
             i.next();
             if (includeTimingRecord(i.key())) {
-                sprintf(perfLine, "%40s: %8.4f [%6llu]", qPrintable(i.key()),
+                sprintf(perfLine, "%50s: %8.4f [%6llu]", qPrintable(i.key()),
                             (float)i.value().getMovingAverage() / (float)USECS_PER_MSEC,
                             i.value().getCount());
             

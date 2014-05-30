@@ -391,6 +391,9 @@ Menu::Menu() :
     QMenu* perfTimerMenu = timingMenu->addMenu("Performance Timer");
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::DisplayTimingDetails, 0, true);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandDisplaySideTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandAvatarSimulateTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandAvatarUpdateTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandMiscAvatarTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandIdleTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandPaintGLTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandUpdateTiming, 0, false);
