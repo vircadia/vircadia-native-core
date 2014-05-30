@@ -2349,7 +2349,8 @@ void Application::updateShadowMap() {
             radius = qMax(radius, glm::distance(points[j], center));
         }
         if (i < 3) {
-            _shadowDistances[i] = -glm::distance(_viewFrustum.getPosition(), center) - radius;
+            const float RADIUS_SCALE = 0.5f;
+            _shadowDistances[i] = -glm::distance(_viewFrustum.getPosition(), center) - radius * RADIUS_SCALE;
         }
         center = inverseRotation * center;
         
