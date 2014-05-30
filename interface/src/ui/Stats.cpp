@@ -18,6 +18,8 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
+#include <PerfStat.h>
+
 #include "Stats.h"
 #include "InterfaceConfig.h"
 #include "Menu.h"
@@ -156,6 +158,33 @@ void Stats::drawBackground(unsigned int rgba, int x, int y, int width, int heigh
     glVertex3f(x , y + height, 0);
     glEnd();
     glColor4f(1, 1, 1, 1); 
+}
+
+bool Stats::includeTimingRecord(const QString& name) {
+    bool included = false;
+    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
+
+        if (name == "idle/update") {
+            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandUpdateTiming) ||
+                       Menu::getInstance()->isOptionChecked(MenuOption::ExpandIdleTiming);
+        } else if (name == "idle/updateGL") {
+            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandIdleTiming);
+        } else if (name.startsWith("idle/update")) {
+            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandUpdateTiming);
+        } else if (name.startsWith("idle/")) {
+            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandIdleTiming);
+        } else if (name == "paintGL/displaySide") {
+            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandDisplaySideTiming) ||
+                       Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
+        } else if (name.startsWith("paintGL/displaySide/")) {
+            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandDisplaySideTiming);
+        } else if (name.startsWith("paintGL/")) {
+            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
+        } else {
+            included = true; // include everything else
+        }
+    }
+    return included;
 }
 
 // display expanded or contracted stats
@@ -345,11 +374,25 @@ void Stats::display(
 
     VoxelSystem* voxels = Application::getInstance()->getVoxels();
 
-    lines = _expanded ? 12 : 3;
+    lines = _expanded ? 11 : 3;
     if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessing)) {
         lines += 9; // spatial audio processing adds 1 spacing line and 8 extra lines of info
     }
 
+    if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
+        // we will also include room for 1 line per timing record and a header
+        lines += 1;
+
+        const QMap<QString, PerformanceTimerRecord>& allRecords = PerformanceTimer::getAllTimerRecords();
+        QMapIterator<QString, PerformanceTimerRecord> i(allRecords);
+        while (i.hasNext()) {
+            i.next();
+            if (includeTimingRecord(i.key())) {
+                lines++;
+            }
+        }
+    }
+    
     drawBackground(backgroundColor, horizontalOffset, 0, glWidget->width() - horizontalOffset, lines * STATS_PELS_PER_LINE + 10);
     horizontalOffset += 5;
 
@@ -454,8 +497,6 @@ void Stats::display(
         }
     }
 
-    verticalOffset += (_expanded ? STATS_PELS_PER_LINE : 0);
-
     QString serversTotalString = locale.toString((uint)totalNodes); // consider adding: .rightJustified(10, ' ');
 
     // Server Voxels
@@ -508,6 +549,29 @@ void Stats::display(
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
     }
 
+    // TODO: the display of these timing details should all be moved to JavaScript
+    if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
+        // Timing details...
+        const int TIMER_OUTPUT_LINE_LENGTH = 300;
+        char perfLine[TIMER_OUTPUT_LINE_LENGTH];
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, 
+                "---------------- Function --------------- --msecs- -calls--", color);
+
+        const QMap<QString, PerformanceTimerRecord>& allRecords = PerformanceTimer::getAllTimerRecords();
+        QMapIterator<QString, PerformanceTimerRecord> i(allRecords);
+        while (i.hasNext()) {
+            i.next();
+            if (includeTimingRecord(i.key())) {
+                sprintf(perfLine, "%40s: %8.4f [%6llu]", qPrintable(i.key()),
+                            (float)i.value().getMovingAverage() / (float)USECS_PER_MSEC,
+                            i.value().getCount());
+            
+                verticalOffset += STATS_PELS_PER_LINE;
+                drawText(horizontalOffset, verticalOffset, scale, rotation, font, perfLine, color);
+            }
+        }
+    }
 
     if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessing)) {
         verticalOffset += STATS_PELS_PER_LINE; // space one line...

@@ -30,6 +30,7 @@ public:
     void checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseDragStartedY, int horizontalOffset);
     void resetWidth(int width, int horizontalOffset);
     void display(const float* color, int horizontalOffset, float fps, int packetsPerSecond, int bytesPerSecond, int voxelPacketsToProcess);
+    bool includeTimingRecord(const QString& name);
 private:
     static Stats* _sharedInstance;
 

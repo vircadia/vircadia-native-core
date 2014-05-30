@@ -362,7 +362,3 @@ void OctreeQueryNode::dumpOutOfView() {
         }
     }
 }
-
-void OctreeQueryNode::incrementSequenceNumber() {
-    _sequenceNumber++;
-}
