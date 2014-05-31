@@ -10,7 +10,7 @@
 //
 
 var array = [];
-var buffer = "";
+var buffer = "\n\n\n\n\n======= JS API list =======";
 function listKeys(string, object) {
     if (string == "listKeys" || string == "array" || string == "buffer" || string == "i") {
         return;
@@ -37,5 +37,6 @@ array.sort();
 for (var i = 0; i < array.length; ++i) {
     buffer = buffer + "\n" + array[i];
 }
+buffer = buffer + "\n========= API END =========\n\n\n\n\n";
 
 print(buffer);
