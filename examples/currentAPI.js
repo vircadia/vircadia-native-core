@@ -11,6 +11,10 @@
 
 
 function listKeys(string, object) {
+    if (string == "listKeys") {
+        return;
+    }
+    
     if (typeof(object) != "object") {
         print(typeof(object) + " " + string);
         return;
@@ -18,9 +22,7 @@ function listKeys(string, object) {
     
     var keys = Object.keys(object);
     for (var i = 0; i < keys.length; ++i) {
-        if (string == "listKeys") {
-            return;
-        } else if (string == "") {
+        if (string == "") {
             listKeys(keys[i], object[keys[i]]);
         } else {
             listKeys(string + "." + keys[i], object[keys[i]]);
