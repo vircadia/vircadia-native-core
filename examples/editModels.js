@@ -771,13 +771,13 @@ function mouseReleaseEvent(event) {
 function setupModelMenus() {
     // add our menuitems
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Models", isSeparator: true, beforeItem: "Physics" });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete Model", shortcutKeyEvent: { text: "backspace" }, afterItem: "Models" });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete", shortcutKeyEvent: { text: "backspace" }, afterItem: "Models" });
 }
 
 function cleanupModelMenus() {
     // delete our menuitems
     Menu.removeSeparator("Edit", "Models");
-    Menu.removeMenuItem("Edit", "Delete Model");
+    Menu.removeMenuItem("Edit", "Delete");
 }
 
 function scriptEnding() {
@@ -797,7 +797,7 @@ Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 setupModelMenus();
 Menu.menuItemEvent.connect(function(menuItem){
     print("menuItemEvent() in JS... menuItem=" + menuItem);
-    if (menuItem == "Delete Model") {
+    if (menuItem == "Delete") {
         if (leftController.grabbing) {
             print("  Delete Model.... leftController.modelID="+ leftController.modelID);
             Models.deleteModel(leftController.modelID);
