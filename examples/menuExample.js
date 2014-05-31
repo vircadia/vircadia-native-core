@@ -13,68 +13,88 @@
 
 
 function setupMenus() {
-    Menu.addMenu("Foo");
-    Menu.addMenuItem("Foo","Foo item 1", "SHIFT+CTRL+F" );
-    Menu.addMenuItem("Foo","Foo item 2", "SHIFT+F" );
-    Menu.addMenuItem("Foo","Foo item 3", "META+F" );
-    Menu.addMenuItem({ 
-        menuName: "Foo", 
-        menuItemName: "Foo item 4", 
-        isCheckable: true, 
-        isChecked: true 
-    });
+    if (!Menu.menuExists("Foo")) {
+        Window.alert("Adding Menu Foo!");
+        Menu.addMenu("Foo");
+        Menu.addMenuItem("Foo","Foo item 1", "SHIFT+CTRL+F" );
+        Menu.addMenuItem("Foo","Foo item 2", "SHIFT+F" );
+        Menu.addMenuItem("Foo","Foo item 3", "META+F" );
 
-    Menu.addMenuItem({
-        menuName: "Foo",
-        menuItemName: "Foo item 5", 
-        shortcutKey: "ALT+F", 
-        isCheckable: true
-    });
+        Menu.addMenuItem({ 
+            menuName: "Foo", 
+            menuItemName: "Foo item 4", 
+            isCheckable: true, 
+            isChecked: true 
+        });
+
+        Menu.addMenuItem({
+            menuName: "Foo",
+            menuItemName: "Foo item 5", 
+            shortcutKey: "ALT+F", 
+            isCheckable: true
+        });
 
 
-    Menu.addSeparator("Foo","Removable Tools");
-    Menu.addMenuItem("Foo","Remove Foo item 4");
-    Menu.addMenuItem("Foo","Remove Foo");
-    Menu.addMenuItem("Foo","Remove Bar-Spam");
-    Menu.addMenu("Bar");
+        Menu.addSeparator("Foo","Removable Tools");
+        Menu.addMenuItem("Foo","Remove Foo item 4");
+        Menu.addMenuItem("Foo","Remove Foo");
+        Menu.addMenuItem("Foo","Remove Bar-Spam");
 
-    Menu.addMenuItem("Bar","Bar item 1", "b");
-    Menu.addMenuItem({
-                        menuName: "Bar",
-                        menuItemName: "Bar item 2", 
-                        shortcutKeyEvent: { text: "B", isControl: true } 
-                    });
+        Menu.addMenuItem("Foo","Remove Spam item 2");
 
-    Menu.addMenu("Bar > Spam");
-    Menu.addMenuItem("Bar > Spam","Spam item 1");
-    Menu.addMenuItem({ 
-                        menuName: "Bar > Spam", 
-                        menuItemName: "Spam item 2", 
-                        isCheckable: true, 
-                        isChecked: false 
-                    });
+        Menu.addMenuItem({ 
+                            menuName: "Foo",
+                            menuItemName: "Remove Spam item 2" 
+                         });
+    } else {
+        Window.alert("Menu Foo already exists!");
+    }
+
+    if (!Menu.menuExists("Bar")) {
+        Window.alert("Adding Menu Bar!");
+        Menu.addMenu("Bar");
+        Menu.addMenuItem("Bar","Bar item 1", "b");
+        Menu.addMenuItem({
+                            menuName: "Bar",
+                            menuItemName: "Bar item 2", 
+                            shortcutKeyEvent: { text: "B", isControl: true } 
+                        });
+
+        Menu.addMenu("Bar > Spam");
+        Menu.addMenuItem("Bar > Spam","Spam item 1");
+        Menu.addMenuItem({ 
+                            menuName: "Bar > Spam", 
+                            menuItemName: "Spam item 2", 
+                            isCheckable: true, 
+                            isChecked: false 
+                        });
                     
-    Menu.addSeparator("Bar > Spam","Other Items");
-    Menu.addMenuItem("Bar > Spam","Remove Spam item 2");
-    Menu.addMenuItem("Foo","Remove Spam item 2");
+        Menu.addSeparator("Bar > Spam","Other Items");
+        Menu.addMenuItem("Bar > Spam","Remove Spam item 2");
+    }
 
-    Menu.addMenuItem({ 
-                        menuName: "Foo",
-                        menuItemName: "Remove Spam item 2" 
-                     });
 
-    Menu.addMenuItem({ 
-                        menuName: "Edit",
-                        menuItemName: "before Cut",
-                        beforeItem: "Cut"
-                     });
+    if (Menu.menuItemExists("Edit","Cut")) {
+        Window.alert("Menu Item Cut exist adding 'before Cut'.");
+        Menu.addMenuItem({ 
+                            menuName: "Edit",
+                            menuItemName: "before Cut",
+                            beforeItem: "Cut"
+                         });
+    } else {
+        Window.alert("Menu Item Cut doesn't exist!");
+    }
 
-    Menu.addMenuItem({ 
-                        menuName: "Edit",
-                        menuItemName: "after Nudge",
-                        afterItem: "Nudge"
-                     });
-
+    if (Menu.menuItemExists("Edit","Nudge")) {
+        Window.alert("Menu Item Nudge exist adding 'after Nudge'.");
+        Menu.addMenuItem({ 
+                            menuName: "Edit",
+                            menuItemName: "after Nudge",
+                            afterItem: "Nudge"
+                         });
+    } else {
+        Window.alert("Menu Item Nudge doesn't exist!");
+    }
 }
 
 function scriptEnding() {
@@ -82,6 +102,10 @@ function scriptEnding() {
 
     Menu.removeMenu("Foo");
     Menu.removeMenu("Bar");
+
+    Menu.removeMenuItem("Edit", "before Cut");
+    Menu.removeMenuItem("Edit", "after Nudge");
+
 }
 
 function menuItemEvent(menuItem) {

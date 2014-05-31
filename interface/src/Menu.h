@@ -169,10 +169,12 @@ public slots:
 
     QMenu* addMenu(const QString& menuName);
     void removeMenu(const QString& menuName);
+    bool menuExists(const QString& menuName);
     void addSeparator(const QString& menuName, const QString& separatorName);
     void removeSeparator(const QString& menuName, const QString& separatorName);
     void addMenuItem(const MenuItemProperties& properties);
     void removeMenuItem(const QString& menuName, const QString& menuitem);
+    bool menuItemExists(const QString& menuName, const QString& menuitem);
     bool isOptionChecked(const QString& menuOption) const;
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
 
