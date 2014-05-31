@@ -9,14 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-
+var array = [];
+var buffer = "";
 function listKeys(string, object) {
-    if (string == "listKeys") {
+    if (string == "listKeys" || string == "array" || string == "buffer" || string == "i") {
         return;
     }
     
     if (typeof(object) != "object") {
-        print(typeof(object) + " " + string);
+        array.push(string + " " + typeof(object));
         return;
     }
     
@@ -31,3 +32,10 @@ function listKeys(string, object) {
 }
 
 listKeys("", this);
+array.sort();
+
+for (var i = 0; i < array.length; ++i) {
+    buffer = buffer + "\n" + array[i];
+}
+
+print(buffer);
