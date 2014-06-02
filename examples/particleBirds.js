@@ -152,7 +152,6 @@ function updateBirds(deltaTime) {
         
         // Update all the birds
         for (var i = 0; i < numBirds; i++) {
-            print("Updating");
             particleID = birdParticleIDs[i];
             var properties = Particles.getParticleProperties(particleID);
 
@@ -216,7 +215,6 @@ function updateBirds(deltaTime) {
             
             // Update the particle
             Particles.editParticle(particleID, properties);
-            print("Updated yay");
         }
     }
 }
