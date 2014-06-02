@@ -169,7 +169,7 @@ Controller.keyPressEvent.connect(keyPressEvent);
 Script.scriptEnding.connect(function() {
 
 	for (var i = 0; i < pose.length; i++){
-		    MyAvatar.clearJointData(pose[i][0]);
+		    MyAvatar.clearJointData(pose[i].joint);
 	}		
 
 	Overlays.deleteOverlay(sitDownButton);
