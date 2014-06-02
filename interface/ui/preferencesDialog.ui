@@ -134,8 +134,8 @@ color: #0e7077</string>
     <rect>
      <x>0</x>
      <y>30</y>
-     <width>615</width>
-     <height>491</height>
+     <width>494</width>
+     <height>384</height>
     </rect>
    </property>
    <property name="frameShape">
@@ -154,9 +154,9 @@ color: #0e7077</string>
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>-271</y>
-      <width>598</width>
-      <height>1018</height>
+      <y>-204</y>
+      <width>494</width>
+      <height>1091</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -611,6 +611,78 @@ color: #0e7077</string>
         </widget>
        </item>
       </layout>
+     </item>
+     <item>
+      <widget class="QLabel" name="avatarTitleLabel_3">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>40</height>
+        </size>
+       </property>
+       <property name="font">
+        <font>
+         <family>Arial</family>
+         <pointsize>20</pointsize>
+         <weight>50</weight>
+         <bold>false</bold>
+        </font>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">color: #0e7077</string>
+       </property>
+       <property name="text">
+        <string>Scripts</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QWidget" name="widget" native="true">
+       <layout class="QHBoxLayout" name="horizontalLayout_12">
+        <item>
+         <widget class="QPushButton" name="buttonReloadDefaultScripts">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">background: #0e7077;
+color: #fff;
+border-radius: 4px;
+font: bold 14pt;
+padding: 10px;margin-top:10px</string>
+          </property>
+          <property name="text">
+           <string>Load Default Scripts</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_13">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
      </item>
      <item>
       <spacer name="verticalSpacer">

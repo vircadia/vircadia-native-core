@@ -24,9 +24,9 @@
 #include <GeometryUtil.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
-#include <SharedUtil.h>
-
+#include <PerfStat.h>
 #include <ShapeCollider.h>
+#include <SharedUtil.h>
 
 #include "Application.h"
 #include "Audio.h"
@@ -76,8 +76,7 @@ MyAvatar::MyAvatar() :
     _lastFloorContactPoint(0.0f),
     _lookAtTargetAvatar(),
     _shouldRender(true),
-    _billboardValid(false),
-    _oculusYawOffset(0.0f)
+    _billboardValid(false)
 {
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
@@ -90,8 +89,7 @@ MyAvatar::~MyAvatar() {
 
 void MyAvatar::reset() {
     _skeletonModel.reset();
-    getHead()->reset(); 
-    _oculusYawOffset = 0.0f;
+    getHead()->reset();
 
     setVelocity(glm::vec3(0.0f));
     setThrust(glm::vec3(0.0f));
@@ -103,10 +101,15 @@ void MyAvatar::reset() {
 }
 
 void MyAvatar::update(float deltaTime) {
+    PerformanceTimer perfTimer("MyAvatar::update/");
     Head* head = getHead();
     head->relaxLean(deltaTime);
-    updateFromTrackers(deltaTime);
+    {
+        PerformanceTimer perfTimer("MyAvatar::update/updateFromTrackers");
+        updateFromTrackers(deltaTime);
+    }
     if (Menu::getInstance()->isOptionChecked(MenuOption::MoveWithLean)) {
+        PerformanceTimer perfTimer("MyAvatar::update/moveWithLean");
         // Faceshift drive is enabled, set the avatar drive based on the head position
         moveWithLean();
     }
@@ -117,13 +120,18 @@ void MyAvatar::update(float deltaTime) {
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
     if (_motionBehaviors & AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY) {
+        PerformanceTimer perfTimer("MyAvatar::update/gravityWork");
         setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()));
     }
 
-    simulate(deltaTime);
+    {
+        PerformanceTimer perfTimer("MyAvatar::update/simulate");
+        simulate(deltaTime);
+    }
 }
 
 void MyAvatar::simulate(float deltaTime) {
+    PerformanceTimer perfTimer("MyAvatar::simulate");
 
     if (_scale != _targetScale) {
         float scale = (1.0f - SMOOTHING_RATIO) * _scale + SMOOTHING_RATIO * _targetScale;
@@ -134,34 +142,56 @@ void MyAvatar::simulate(float deltaTime) {
     // no extra movement of the hand here any more ...
     _handState = HAND_STATE_NULL;
 
-    updateOrientation(deltaTime);
-    updatePosition(deltaTime);
-
-    // update avatar skeleton and simulate hand and head
-    getHand()->collideAgainstOurself(); 
-    getHand()->simulate(deltaTime, true);
-
-    _skeletonModel.simulate(deltaTime);
-    simulateAttachments(deltaTime);
-
-    // copy out the skeleton joints from the model
-    _jointData.resize(_skeletonModel.getJointStateCount());
-    for (int i = 0; i < _jointData.size(); i++) {
-        JointData& data = _jointData[i];
-        data.valid = _skeletonModel.getJointState(i, data.rotation);
+    {
+        PerformanceTimer perfTimer("MyAvatar::simulate/updateOrientation");
+        updateOrientation(deltaTime);
+    }
+    {
+        PerformanceTimer perfTimer("MyAvatar::simulate/updatePosition");
+        updatePosition(deltaTime);
     }
 
-    Head* head = getHead();
-    glm::vec3 headPosition;
-    if (!_skeletonModel.getHeadPosition(headPosition)) {
-        headPosition = _position;
+    {
+        PerformanceTimer perfTimer("MyAvatar::simulate/hand Collision,simulate");
+        // update avatar skeleton and simulate hand and head
+        getHand()->collideAgainstOurself(); 
+        getHand()->simulate(deltaTime, true);
     }
-    head->setPosition(headPosition);
-    head->setScale(_scale);
-    head->simulate(deltaTime, true);
+
+    {
+        PerformanceTimer perfTimer("MyAvatar::simulate/_skeletonModel.simulate()");
+        _skeletonModel.simulate(deltaTime);
+    }
+    {
+        PerformanceTimer perfTimer("MyAvatar::simulate/simulateAttachments");
+        simulateAttachments(deltaTime);
+    }
+
+    {
+        PerformanceTimer perfTimer("MyAvatar::simulate/copy joints");
+        // copy out the skeleton joints from the model
+        _jointData.resize(_skeletonModel.getJointStateCount());
+        for (int i = 0; i < _jointData.size(); i++) {
+            JointData& data = _jointData[i];
+            data.valid = _skeletonModel.getJointState(i, data.rotation);
+        }
+    }
+
+    {
+        PerformanceTimer perfTimer("MyAvatar::simulate/head Simulate");
+        Head* head = getHead();
+        glm::vec3 headPosition;
+        if (!_skeletonModel.getHeadPosition(headPosition)) {
+            headPosition = _position;
+        }
+        head->setPosition(headPosition);
+        head->setScale(_scale);
+        head->simulate(deltaTime, true);
+    }
 
     // now that we're done stepping the avatar forward in time, compute new collisions
     if (_collisionGroups != 0) {
+        PerformanceTimer perfTimer("MyAvatar::simulate/_collisionGroups");
         Camera* myCamera = Application::getInstance()->getCamera();
 
         float radius = getSkeletonHeight() * COLLISION_RADIUS_SCALE;
@@ -171,14 +201,17 @@ void MyAvatar::simulate(float deltaTime) {
         }
         updateShapePositions();
         if (_collisionGroups & COLLISION_GROUP_ENVIRONMENT) {
+            PerformanceTimer perfTimer("MyAvatar::simulate/updateCollisionWithEnvironment");
             updateCollisionWithEnvironment(deltaTime, radius);
         }
         if (_collisionGroups & COLLISION_GROUP_VOXELS) {
+            PerformanceTimer perfTimer("MyAvatar::simulate/updateCollisionWithVoxels");
             updateCollisionWithVoxels(deltaTime, radius);
         } else {
             _trapDuration = 0.0f;
         }
         if (_collisionGroups & COLLISION_GROUP_AVATARS) {
+            PerformanceTimer perfTimer("MyAvatar::simulate/updateCollisionWithAvatars");
             updateCollisionWithAvatars(deltaTime);
         }
     }
@@ -791,6 +824,7 @@ bool MyAvatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode rend
 }
 
 float MyAvatar::computeDistanceToFloor(const glm::vec3& startPoint) {
+    PerformanceTimer perfTimer("MyAvatar::computeDistanceToFloor()");
     glm::vec3 direction = -_worldUpDirection;
     OctreeElement* elementHit; // output from findRayIntersection
     float distance = FLT_MAX; // output from findRayIntersection
@@ -828,43 +862,8 @@ void MyAvatar::updateOrientation(float deltaTime) {
         OculusManager::getEulerAngles(yaw, pitch, roll);
         // ... so they need to be converted to degrees before we do math...
 
-        // The neck is limited in how much it can yaw, so we check its relative
-        // yaw from the body and yaw the body if necessary.
-        yaw *= DEGREES_PER_RADIAN;
-        float bodyToHeadYaw = yaw - _oculusYawOffset;
-        const float MAX_NECK_YAW = 85.0f; // degrees
-        if ((fabs(bodyToHeadYaw) > 2.0f * MAX_NECK_YAW) && (yaw * _oculusYawOffset < 0.0f)) {
-            // We've wrapped around the range for yaw so adjust 
-            // the measured yaw to be relative to _oculusYawOffset.
-            if (yaw > 0.0f) {
-                yaw -= 360.0f;
-            } else {
-                yaw += 360.0f;
-            }
-            bodyToHeadYaw = yaw - _oculusYawOffset;
-        }
-
-        float delta = fabs(bodyToHeadYaw) - MAX_NECK_YAW;
-        if (delta > 0.0f) {
-            yaw = MAX_NECK_YAW;
-            if (bodyToHeadYaw < 0.0f) {
-                delta *= -1.0f;
-                bodyToHeadYaw = -MAX_NECK_YAW;
-            } else {
-                bodyToHeadYaw = MAX_NECK_YAW;
-            }
-            // constrain _oculusYawOffset to be within range [-180,180]
-            _oculusYawOffset = fmod((_oculusYawOffset + delta) + 180.0f, 360.0f) - 180.0f;
-
-            // We must adjust the body orientation using a delta rotation (rather than
-            // doing yaw math) because the body's yaw ranges are not the same
-            // as what the Oculus API provides.
-            glm::quat bodyCorrection = glm::angleAxis(glm::radians(delta), _worldUpDirection);
-            orientation = orientation * bodyCorrection;
-        }
         Head* head = getHead();
-        head->setBaseYaw(bodyToHeadYaw);
-
+        head->setBaseYaw(yaw * DEGREES_PER_RADIAN);
         head->setBasePitch(pitch * DEGREES_PER_RADIAN);
         head->setBaseRoll(roll * DEGREES_PER_RADIAN);
     }
@@ -876,6 +875,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
 const float NEARBY_FLOOR_THRESHOLD = 5.0f;
 
 void MyAvatar::updatePosition(float deltaTime) {
+    PerformanceTimer perfTimer("MyAvatar::updatePosition");
     float keyboardInput = fabsf(_driveKeys[FWD] - _driveKeys[BACK]) + 
         fabsf(_driveKeys[RIGHT] - _driveKeys[LEFT]) + 
         fabsf(_driveKeys[UP] - _driveKeys[DOWN]);
