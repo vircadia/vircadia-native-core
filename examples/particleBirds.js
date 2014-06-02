@@ -11,21 +11,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// Normalizes a vector to unit length
-function vNormalize(v) {
-    var length = vLength(v);
-    var rval = { x: v.x / length, y: v.y / length, z: v.z / length };
-    return rval;
-}
-
 // Multiply vector by scalar
 function vScalarMult(v, s) {
     var rval = { x: v.x * s, y: v.y * s, z: v.z * s };
     return rval;
-}
-
-function vLength(v) {
-    return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
 function printVector(v) {
@@ -35,23 +24,6 @@ function printVector(v) {
 function randVector(a, b) {
     var rval = { x: a + Math.random() * (b - a), y: a + Math.random() * (b - a), z: a + Math.random() * (b - a) };
     return rval;
-}
-
-function vMinus(a, b) { 
-    var rval = { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
-    return rval;
-}
-
-function vPlus(a, b) { 
-    var rval = { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
-    return rval;
-}
-
-function vCopy(a, b) {
-    a.x = b.x;
-    a.y = b.y;
-    a.z = b.z;
-    return;
 }
 
 //  Returns a vector which is fraction of the way between a and b
@@ -65,8 +37,6 @@ var startTimeInSeconds = new Date().getTime() / 1000;
 var birdLifetime = 20; // lifetime of the birds in seconds!
 var range = 1.0;       // Over what distance in meters do you want the flock to fly around
 var frame = 0;
-var moving = false;
-var tweeting = 0;
 
 var CHANCE_OF_MOVING = 0.1;
 var CHANCE_OF_TWEETING = 0.05;
@@ -74,14 +44,21 @@ var BIRD_GRAVITY = -0.1;
 var BIRD_FLAP_SPEED = 10.0;
 var BIRD_VELOCITY = 0.5;
 var myPosition = MyAvatar.position;
-var targetPosition = myPosition;
 
 var range = 1.0;   //  Distance around avatar where I can move 
 
-var particleID;
-var birdParticleIDs = [];
-var birdTweetSounds = [];
-var previousFlapOffsets = [];
+// This is our Bird object
+function Bird (particleID, tweetSound, targetPosition) {
+    this.particleID = particleID;
+    this.tweetSound = tweetSound;
+    this.previousFlapOffset = 0;
+    this.targetPosition = targetPosition;
+    this.moving = false;
+    this.tweeting = -1;
+}
+
+// Array of birds
+var birds = [];
 
 function addBird()
 {
@@ -111,22 +88,19 @@ function addBird()
         color = { red: 50, green: 67, blue: 144 };
         size = 0.15;
     } 
-size = 10000;
     var properties = {
         lifetime: birdLifetime,
-        position: randVector(-range, range),  
+        position: Vec3.sum(randVector(-range, range), myPosition),  
         velocity: { x: 0, y: 0, z: 0 },
         gravity: { x: 0, y: BIRD_GRAVITY, z: 0 },
         radius : size,
         color: color
     };
     
-    previousFlapOffsets.push(0.0);
-    birdTweetSounds.push(tweet);
-    birdParticleIDs.push(Particles.addParticle(properties));
+    birds.push(new Bird(Particles.addParticle(properties), tweet, properties.position));
 }
 
-var numBirds = 1;
+var numBirds = 30;
 
 // Generate the birds
 for (var i = 0; i < numBirds; i++) {
@@ -152,26 +126,26 @@ function updateBirds(deltaTime) {
         
         // Update all the birds
         for (var i = 0; i < numBirds; i++) {
-            particleID = birdParticleIDs[i];
+            particleID = birds[i].particleID;
             var properties = Particles.getParticleProperties(particleID);
 
             // Tweeting behavior
-            if (tweeting == 0) {
+            if (birds[i].tweeting == 0) {
                 if (Math.random() < CHANCE_OF_TWEETING) {
                     var options = new AudioInjectionOptions();
                     options.position = properties.position;
                     options.volume = 0.75;
-                    Audio.playSound(birdTweetSounds[i], options);
-                    tweeting = 10;
+                    Audio.playSound(birds[i].tweetSound, options);
+                    birds[i].tweeting = 10;
                 }
             } else {
-                tweeting -= 1;
+                birds[i].tweeting -= 1;
             }
          
             // Begin movement by getting a target
-            if (moving == false) {
+            if (birds[i].moving == false) {
                 if (Math.random() < CHANCE_OF_MOVING) {
-                    targetPosition = vPlus(randVector(-range, range), myPosition);
+                    var targetPosition = Vec3.sum(randVector(-range, range), myPosition);
 
                     if (targetPosition.x < 0) {
                         targetPosition.x = 0;
@@ -192,26 +166,28 @@ function updateBirds(deltaTime) {
                         targetPosition.z = TREE_SCALE;
                     }
                     
-                    moving = true;
+                    birds[i].targetPosition = targetPosition;
+                    
+                    birds[i].moving = true;
                 }
             }
             // If we are moving, move towards the target
-            if (moving) {
-                var desiredVelocity = vMinus(targetPosition, properties.position);
-                desiredVelocity = vScalarMult(vNormalize(desiredVelocity), BIRD_VELOCITY);
+            if (birds[i].moving) {
+                var desiredVelocity = Vec3.subtract(birds[i].targetPosition, properties.position);
+                desiredVelocity = vScalarMult(Vec3.normalize(desiredVelocity), BIRD_VELOCITY);
                     
                 properties.velocity = vInterpolate(properties.velocity, desiredVelocity, 0.2);
                 // If we are near the target, we should get a new target
-                if (vLength(vMinus(properties.position, targetPosition)) < (properties.radius / 5.0)) {
-                    moving = false;
+                if (Vec3.length(Vec3.subtract(properties.position, birds[i].targetPosition)) < (properties.radius / 5.0)) {
+                    birds[i].moving = false;
                 }
             }
             
             // Use a cosine wave offset to make it look like its flapping. 
             var offset = Math.cos(nowTimeInSeconds * BIRD_FLAP_SPEED) * properties.radius;
-            properties.position.y = properties.position.y + (offset - previousFlapOffsets[i]);
+            properties.position.y = properties.position.y + (offset - birds[i].previousFlapOffset);
             // Change position relative to previous offset.
-            previousFlapOffsets[i] = offset;
+            birds[i].previousFlapOffset = offset;
             
             // Update the particle
             Particles.editParticle(particleID, properties);
