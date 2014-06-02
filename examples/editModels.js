@@ -766,18 +766,30 @@ function mouseReleaseEvent(event) {
     glowedModelID.isKnownID = false;
 }
 
-
-
+// In order for editVoxels and editModels to play nice together, they each check to see if a "delete" menu item already
+// exists. If it doesn't they add it. If it does they don't. They also only delete the menu item if they were the one that
+// added it.
+var modelMenuAddedDelete = false;
 function setupModelMenus() {
+    print("setupModelMenus()");
     // add our menuitems
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Models", isSeparator: true, beforeItem: "Physics" });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete Model", shortcutKeyEvent: { text: "backspace" }, afterItem: "Models" });
+    if (!Menu.menuItemExists("Edit","Delete")) {
+        print("no delete... adding ours");
+        Menu.addMenuItem({ menuName: "Edit", menuItemName: "Models", isSeparator: true, beforeItem: "Physics" });
+        Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete", 
+            shortcutKeyEvent: { text: "backspace" }, afterItem: "Models" });
+        modelMenuAddedDelete = true;
+    } else {
+        print("delete exists... don't add ours");
+    }
 }
 
 function cleanupModelMenus() {
-    // delete our menuitems
-    Menu.removeSeparator("Edit", "Models");
-    Menu.removeMenuItem("Edit", "Delete Model");
+    if (modelMenuAddedDelete) {
+        // delete our menuitems
+        Menu.removeSeparator("Edit", "Models");
+        Menu.removeMenuItem("Edit", "Delete");
+    }
 }
 
 function scriptEnding() {
@@ -797,7 +809,7 @@ Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 setupModelMenus();
 Menu.menuItemEvent.connect(function(menuItem){
     print("menuItemEvent() in JS... menuItem=" + menuItem);
-    if (menuItem == "Delete Model") {
+    if (menuItem == "Delete") {
         if (leftController.grabbing) {
             print("  Delete Model.... leftController.modelID="+ leftController.modelID);
             Models.deleteModel(leftController.modelID);

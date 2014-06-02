@@ -1117,7 +1117,12 @@ function keyReleaseEvent(event) {
     trackKeyReleaseEvent(event); // used by preview support
 }
 
-function setupMenus() {
+
+// In order for editVoxels and editModels to play nice together, they each check to see if a "delete" menu item already
+// exists. If it doesn't they add it. If it does they don't. They also only delete the menu item if they were the one that
+// added it.
+var voxelMenuAddedDelete = false;
+function setupVoxelMenus() {
     // hook up menus
     Menu.menuItemEvent.connect(menuItemEvent);
     
@@ -1127,7 +1132,13 @@ function setupMenus() {
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Copy", shortcutKey: "CTRL+C", afterItem: "Cut" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste", shortcutKey: "CTRL+V", afterItem: "Copy" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Nudge", shortcutKey: "CTRL+N", afterItem: "Paste" });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete", shortcutKeyEvent: { text: "backspace" }, afterItem: "Nudge" });
+
+
+    if (!Menu.menuItemExists("Edit","Delete")) {
+        Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete", 
+            shortcutKeyEvent: { text: "backspace" }, afterItem: "Nudge" });
+        voxelMenuAddedDelete = true;
+    }
     
     Menu.addMenuItem({ menuName: "File", menuItemName: "Voxels", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Voxels", shortcutKey: "CTRL+E", afterItem: "Voxels" });
@@ -1141,7 +1152,9 @@ function cleanupMenus() {
     Menu.removeMenuItem("Edit", "Copy");
     Menu.removeMenuItem("Edit", "Paste");
     Menu.removeMenuItem("Edit", "Nudge");
-    Menu.removeMenuItem("Edit", "Delete");
+    if (voxelMenuAddedDelete) {
+        Menu.removeMenuItem("Edit", "Delete");
+    }
     Menu.removeSeparator("File", "Voxels");
     Menu.removeMenuItem("File", "Export Voxels");
     Menu.removeMenuItem("File", "Import Voxels");
@@ -1482,4 +1495,4 @@ Script.scriptEnding.connect(scriptEnding);
 
 Script.update.connect(update);
 
-setupMenus();
+setupVoxelMenus();
