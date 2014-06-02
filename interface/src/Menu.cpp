@@ -1650,6 +1650,16 @@ void Menu::removeMenu(const QString& menuName) {
     }
 }
 
+bool Menu::menuExists(const QString& menuName) {
+    QAction* action = getMenuAction(menuName);
+
+    // only proceed if the menu actually exists
+    if (action) {
+        return true;
+    }
+    return false;
+}
+
 void Menu::addSeparator(const QString& menuName, const QString& separatorName) {
     QMenu* menuObj = getMenu(menuName);
     if (menuObj) {
@@ -1725,8 +1735,17 @@ void Menu::removeMenuItem(const QString& menu, const QString& menuitem) {
     QMenu* menuObj = getMenu(menu);
     if (menuObj) {
         removeAction(menuObj, menuitem);
+        QMenuBar::repaint();
     }
-    QMenuBar::repaint();
+};
+
+bool Menu::menuItemExists(const QString& menu, const QString& menuitem) {
+    QMenu* menuObj = getMenu(menu);
+    QAction* menuItemAction = _actionHash.value(menuitem);
+    if (menuObj && menuItemAction) {
+        return true;
+    }
+    return false;
 };
 
 QString Menu::getSnapshotsLocation() const {
