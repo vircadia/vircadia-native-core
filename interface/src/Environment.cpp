@@ -160,6 +160,11 @@ bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3
 int Environment::parseData(const HifiSockAddr& senderAddress, const QByteArray& packet) {
     // push past the packet header
     int bytesRead = numBytesForPacketHeader(packet);
+
+    // push past flags, sequence, timestamp
+    bytesRead += sizeof(OCTREE_PACKET_FLAGS);
+    bytesRead += sizeof(OCTREE_PACKET_SEQUENCE);
+    bytesRead += sizeof(OCTREE_PACKET_SENT_TIME);
     
     // get the lock for the duration of the call
     QMutexLocker locker(&_mutex);

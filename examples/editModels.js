@@ -40,6 +40,8 @@ var modelURLs = [
 
 var toolBar;
 
+var jointList = MyAvatar.getJointNames();
+
 function isLocked(properties) {
     // special case to lock the ground plane model in hq.
     if (location.hostname == "hq.highfidelity.io" && 
@@ -81,9 +83,12 @@ function controller(wichSide) {
     
     this.grabbing = false;
     this.modelID = { isKnownID: false };
+    this.modelURL = "";
     this.oldModelRotation;
     this.oldModelPosition;
     this.oldModelRadius;
+    
+    this.jointsIntersectingFromStart = [];
     
     this.laser = Overlays.addOverlay("line3d", {
                                      position: { x: 0, y: 0, z: 0 },
@@ -134,16 +139,63 @@ function controller(wichSide) {
         
             this.grabbing = true;
             this.modelID = modelID;
+            this.modelURL = properties.modelURL;
         
             this.oldModelPosition = properties.position;
             this.oldModelRotation = properties.modelRotation;
             this.oldModelRadius = properties.radius;
+            
+            this.jointsIntersectingFromStart = [];
+            for (var i = 0; i < jointList.length; i++) {
+                var distance = Vec3.distance(MyAvatar.getJointPosition(jointList[i]), this.oldModelPosition);
+                if (distance < this.oldModelRadius) {
+                    this.jointsIntersectingFromStart.push(i);
+                }
+            }
         }
     }
     
     this.release = function () {
+        if (this.grabbing) {
+            jointList = MyAvatar.getJointNames();
+            
+            var closestJointIndex = -1;
+            var closestJointDistance = 10;
+            for (var i = 0; i < jointList.length; i++) {
+                var distance = Vec3.distance(MyAvatar.getJointPosition(jointList[i]), this.oldModelPosition);
+                if (distance < closestJointDistance) {
+                    closestJointDistance = distance;
+                    closestJointIndex = i;
+                }
+            }
+            
+            print("closestJoint: " + jointList[closestJointIndex]);
+            print("closestJointDistance (attach max distance): " + closestJointDistance + " (" + this.oldModelRadius + ")");
+            
+            if (closestJointDistance < this.oldModelRadius) {
+                
+                if (this.jointsIntersectingFromStart.indexOf(closestJointIndex) != -1) {
+                    // Do nothing
+                } else {
+                    print("Attaching to " + jointList[closestJointIndex]);
+                    var jointPosition = MyAvatar.getJointPosition(jointList[closestJointIndex]);
+                    var jointRotation = MyAvatar.getJointCombinedRotation(jointList[closestJointIndex]);
+                    
+                    var attachmentOffset = Vec3.subtract(this.oldModelPosition, jointPosition);
+                    attachmentOffset = Vec3.multiplyQbyV(Quat.inverse(jointRotation), attachmentOffset);
+                    var attachmentRotation = Quat.multiply(Quat.inverse(jointRotation), this.oldModelRotation);
+                    
+                    MyAvatar.attach(this.modelURL, jointList[closestJointIndex],
+                                    attachmentOffset, attachmentRotation, 2.0 * this.oldModelRadius,
+                                    true, false);
+                    Models.deleteModel(this.modelID);
+                }
+            }
+        }
+        
         this.grabbing = false;
         this.modelID.isKnownID = false;
+        this.jointsIntersectingFromStart = [];
     }
     
     this.checkTrigger = function () {
@@ -251,14 +303,21 @@ function controller(wichSide) {
                              position: newPosition,
                              modelRotation: newRotation
                              });
-//            print("Moving " + this.modelID.id);
-//            Vec3.print("Old Position: ", this.oldModelPosition);
-//            Vec3.print("Sav Position: ", newPosition);
-//            Quat.print("Old Rotation: ", this.oldModelRotation);
-//            Quat.print("New Rotation: ", newRotation);
             
             this.oldModelRotation = newRotation;
             this.oldModelPosition = newPosition;
+            
+            var indicesToRemove = [];
+            for (var i = 0; i < this.jointsIntersectingFromStart.length; ++i) {
+                var distance = Vec3.distance(MyAvatar.getJointPosition(this.jointsIntersectingFromStart[i]), this.oldModelPosition);
+                if (distance >= this.oldModelRadius) {
+                    indicesToRemove.push(this.jointsIntersectingFromStart[i]);
+                }
+
+            }
+            for (var i = 0; i < indicesToRemove.length; ++i) {
+                this.jointsIntersectingFromStart.splice(this.jointsIntersectingFromStart.indexOf(indicesToRemove[i], 1));
+            }
         }
     }
     
@@ -292,6 +351,43 @@ function controller(wichSide) {
         }
         
         if (this.pressing) {
+            // Checking for attachments intersecting
+            var attachments = MyAvatar.getAttachmentData();
+            var attachmentIndex = -1;
+            var attachmentX = LASER_LENGTH_FACTOR;
+            
+            for (var i = 0; i < attachments.length; ++i) {
+                var position = Vec3.sum(MyAvatar.getJointPosition(attachments[i].jointName), attachments[i].translation);
+                var scale = attachments[i].scale;
+                
+                var A = this.palmPosition;
+                var B = this.front;
+                var P = position;
+                
+                var x = Vec3.dot(Vec3.subtract(P, A), B);
+                var X = Vec3.sum(A, Vec3.multiply(B, x));
+                var d = Vec3.length(Vec3.subtract(P, X));
+                
+                if (d < scale / 2.0 && 0 < x && x < attachmentX) {
+                    attachmentIndex = i;
+                    attachmentX = d;
+                }
+            }
+            
+            if (attachmentIndex != -1) {
+                MyAvatar.detachOne(attachments[attachmentIndex].modelURL, attachments[attachmentIndex].jointName);
+                Models.addModel({
+                                position: Vec3.sum(MyAvatar.getJointPosition(attachments[attachmentIndex].jointName),
+                                                   attachments[attachmentIndex].translation),
+                                modelRotation: Quat.multiply(MyAvatar.getJointCombinedRotation(attachments[attachmentIndex].jointName),
+                                                             attachments[attachmentIndex].rotation),
+                                radius: attachments[attachmentIndex].scale / 2.0,
+                                modelURL: attachments[attachmentIndex].modelURL
+                                });
+            }
+            
+            // There is none so ...
+            // Checking model tree
             Vec3.print("Looking at: ", this.palmPosition);
             var pickRay = { origin: this.palmPosition,
                             direction: Vec3.normalize(Vec3.subtract(this.tipPosition, this.palmPosition)) };
@@ -306,7 +402,7 @@ function controller(wichSide) {
                 var identify = Models.identifyModel(foundModel);
                 if (!identify.isKnownID) {
                     print("Unknown ID " + identify.id + " (update loop " + foundModel.id + ")");
-                    continue;
+                    return;
                 }
                 foundModel = identify;
             }
@@ -410,8 +506,6 @@ function checkController(deltaTime) {
     moveOverlays();
 }
 
-
-
 function initToolBar() {
     toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
     // New Model
@@ -474,10 +568,15 @@ function mousePressEvent(event) {
         }
         
         var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
-        Models.addModel({ position: position,
-                        radius: radiusDefault,
-                        modelURL: url
-                        });
+        
+        if (position.x > 0 && position.y > 0 && position.z > 0) {
+            Models.addModel({ position: position,
+                            radius: radiusDefault,
+                            modelURL: url
+                            });
+        } else {
+            print("Can't create model: Model would be out of bounds.");
+        }
         
     } else {
         var pickRay = Camera.computePickRay(event.x, event.y);
@@ -493,7 +592,7 @@ function mousePressEvent(event) {
             var identify = Models.identifyModel(foundModel);
             if (!identify.isKnownID) {
                 print("Unknown ID " + identify.id + " (update loop " + foundModel.id + ")");
-                continue;
+                return;
             }
             foundModel = identify;
         }
@@ -667,18 +766,30 @@ function mouseReleaseEvent(event) {
     glowedModelID.isKnownID = false;
 }
 
-
-
+// In order for editVoxels and editModels to play nice together, they each check to see if a "delete" menu item already
+// exists. If it doesn't they add it. If it does they don't. They also only delete the menu item if they were the one that
+// added it.
+var modelMenuAddedDelete = false;
 function setupModelMenus() {
+    print("setupModelMenus()");
     // add our menuitems
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Models", isSeparator: true, beforeItem: "Physics" });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete Model", shortcutKeyEvent: { text: "backspace" }, afterItem: "Models" });
+    if (!Menu.menuItemExists("Edit","Delete")) {
+        print("no delete... adding ours");
+        Menu.addMenuItem({ menuName: "Edit", menuItemName: "Models", isSeparator: true, beforeItem: "Physics" });
+        Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete", 
+            shortcutKeyEvent: { text: "backspace" }, afterItem: "Models" });
+        modelMenuAddedDelete = true;
+    } else {
+        print("delete exists... don't add ours");
+    }
 }
 
 function cleanupModelMenus() {
-    // delete our menuitems
-    Menu.removeSeparator("Edit", "Models");
-    Menu.removeMenuItem("Edit", "Delete Model");
+    if (modelMenuAddedDelete) {
+        // delete our menuitems
+        Menu.removeSeparator("Edit", "Models");
+        Menu.removeMenuItem("Edit", "Delete");
+    }
 }
 
 function scriptEnding() {
@@ -698,7 +809,7 @@ Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 setupModelMenus();
 Menu.menuItemEvent.connect(function(menuItem){
     print("menuItemEvent() in JS... menuItem=" + menuItem);
-    if (menuItem == "Delete Model") {
+    if (menuItem == "Delete") {
         if (leftController.grabbing) {
             print("  Delete Model.... leftController.modelID="+ leftController.modelID);
             Models.deleteModel(leftController.modelID);

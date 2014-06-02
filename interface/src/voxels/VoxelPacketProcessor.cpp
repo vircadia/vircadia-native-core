@@ -39,7 +39,7 @@ void VoxelPacketProcessor::processPacket(const SharedNodePointer& sendingNode, c
     }
     
     PacketType voxelPacketType = packetTypeForPacket(mutablePacket);
-
+    
     // note: PacketType_OCTREE_STATS can have PacketType_VOXEL_DATA
     // immediately following them inside the same packet. So, we process the PacketType_OCTREE_STATS first
     // then process any remaining bytes as if it was another packet
@@ -81,6 +81,7 @@ void VoxelPacketProcessor::processPacket(const SharedNodePointer& sendingNode, c
 
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
+
         app->trackIncomingVoxelPacket(mutablePacket, sendingNode, wasStatsPacket);
 
         if (sendingNode) {

@@ -192,7 +192,7 @@ bool ModelTreeElement::findDetailedRayIntersection(const glm::vec3& origin, cons
                 
                 // if it's in our AABOX for our rotated extents, then check to see if it's in our non-AABox
                 if (rotatedExtentsBox.findRayIntersection(origin, direction, localDistance, localFace)) {
-
+                
                     // extents is the model relative, scaled, centered extents of the model
                     glm::mat4 rotation = glm::mat4_cast(model.getModelRotation());
                     glm::mat4 translation = glm::translate(model.getPosition());
@@ -202,7 +202,7 @@ bool ModelTreeElement::findDetailedRayIntersection(const glm::vec3& origin, cons
                     AABox modelFrameBox(extents.minimum, (extents.maximum - extents.minimum));
 
                     glm::vec3 modelFrameOrigin = glm::vec3(worldToModelMatrix * glm::vec4(origin, 1.0f));
-                    glm::vec3 modelFrameDirection = glm::vec3(worldToModelMatrix * glm::vec4(direction, 1.0f));
+                    glm::vec3 modelFrameDirection = glm::vec3(worldToModelMatrix * glm::vec4(direction, 0.0f));
 
                     // we can use the AABox's ray intersection by mapping our origin and direction into the model frame
                     // and testing intersection there.

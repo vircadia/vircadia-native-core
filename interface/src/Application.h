@@ -261,10 +261,10 @@ public:
     /// result from matrix multiplication at high translation magnitudes.
     void loadTranslatedViewMatrix(const glm::vec3& translation);
 
-    const glm::mat4& getShadowMatrix() const { return _shadowMatrix; }
-
     void getModelViewMatrix(glm::dmat4* modelViewMatrix);
     void getProjectionMatrix(glm::dmat4* projectionMatrix);
+
+    const glm::vec3& getShadowDistances() const { return _shadowDistances; }
 
     /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
@@ -323,11 +323,12 @@ public slots:
     void loadScriptURLDialog();
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
-    ScriptEngine* loadScript(const QString& fileNameString, bool loadScriptFromEditor = false);
+    ScriptEngine* loadScript(const QString& fileNameString = QString(), bool loadScriptFromEditor = false);
     void scriptFinished(const QString& scriptName);
     void stopAllScripts(bool restart = false);
     void stopScript(const QString& scriptName);
     void reloadAllScripts();
+    void loadDefaultScripts();
     void toggleRunningScriptsWidget();
 
     void uploadHead();
@@ -491,7 +492,9 @@ private:
     float _rotateMirror;
     float _raiseMirror;
 
-    glm::mat4 _shadowMatrix;
+    static const int CASCADED_SHADOW_MATRIX_COUNT = 4;
+    glm::mat4 _shadowMatrices[CASCADED_SHADOW_MATRIX_COUNT];
+    glm::vec3 _shadowDistances;
 
     Environment _environment;
 

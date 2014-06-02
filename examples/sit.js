@@ -40,6 +40,8 @@ var passedTime = 0.0;
 var startPosition = null;
 var animationLenght = 2.0;
 
+var sitting = false; 
+
 // This is the pose we would like to end up
 var pose = [
 	{joint:"RightUpLeg", rotation: {x:100.0, y:15.0, z:0.0}},
@@ -101,31 +103,41 @@ var standingUpAnimation = function(deltaTime){
 	}
 }
 
+function sitDown() {
+	sitting = true;
+	passedTime = 0.0;
+	startPosition = MyAvatar.position;
+	storeStartPoseAndTransition();
+	try{
+		Script.update.disconnect(standingUpAnimation);
+	} catch(e){
+			// no need to handle. if it wasn't connected no harm done
+	}
+	Script.update.connect(sittingDownAnimation);
+	Overlays.editOverlay(sitDownButton, { visible: false });
+	Overlays.editOverlay(standUpButton, { visible: true });
+}
+
+function standUp() {
+	sitting = false;
+	passedTime = 0.0;
+	startPosition = MyAvatar.position;
+	try{
+		Script.update.disconnect(sittingDownAnimation);
+	} catch (e){}
+	Script.update.connect(standingUpAnimation);
+	Overlays.editOverlay(standUpButton, { visible: false });
+	Overlays.editOverlay(sitDownButton, { visible: true });
+}
+
 Controller.mousePressEvent.connect(function(event){
 
 	var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
 
 	if (clickedOverlay == sitDownButton) {
-		passedTime = 0.0;
-		startPosition = MyAvatar.position;
-		storeStartPoseAndTransition();
-		try{
-			Script.update.disconnect(standingUpAnimation);
-		} catch(e){
-			// no need to handle. if it wasn't connected no harm done
-		}
-		Script.update.connect(sittingDownAnimation);
-		Overlays.editOverlay(sitDownButton, { visible: false });
-		Overlays.editOverlay(standUpButton, { visible: true });
+		sitDown();
 	} else if (clickedOverlay == standUpButton) {
-		passedTime = 0.0;
-		startPosition = MyAvatar.position;
-		try{
-			Script.update.disconnect(sittingDownAnimation);
-		} catch (e){}
-		Script.update.connect(standingUpAnimation);
-		Overlays.editOverlay(standUpButton, { visible: false });
-		Overlays.editOverlay(sitDownButton, { visible: true });
+		standUp();
 	}
 })
 
@@ -140,7 +152,19 @@ function update(deltaTime){
 	}		
 }
 
+function keyPressEvent(event) {
+    if (event.text === ".") {
+        if (sitting) {
+        	standUp();
+        } else {
+        	sitDown();
+        }
+    }
+}
+
+
 Script.update.connect(update);
+Controller.keyPressEvent.connect(keyPressEvent);
 
 Script.scriptEnding.connect(function() {
 

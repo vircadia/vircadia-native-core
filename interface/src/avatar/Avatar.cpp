@@ -378,10 +378,10 @@ void Avatar::simulateAttachments(float deltaTime) {
             model->setLODDistance(getLODDistance());
         }
         if (_skeletonModel.getJointPosition(jointIndex, jointPosition) &&
-                _skeletonModel.getJointRotation(jointIndex, jointRotation)) {
+                _skeletonModel.getJointCombinedRotation(jointIndex, jointRotation)) {
             model->setTranslation(jointPosition + jointRotation * attachment.translation * _scale);
             model->setRotation(jointRotation * attachment.rotation);
-            model->setScale(_skeletonModel.getScale() * attachment.scale);
+            model->setScaleToFit(true, _scale * attachment.scale);
             model->simulate(deltaTime);
         }
     }
@@ -705,6 +705,54 @@ QStringList Avatar::getJointNames() const {
     return _skeletonModel.isActive() ? _skeletonModel.getGeometry()->getFBXGeometry().getJointNames() : QStringList();
 }
 
+glm::vec3 Avatar::getJointPosition(int index) const {
+    if (QThread::currentThread() != thread()) {
+        glm::vec3 position;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointPosition", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(glm::vec3, position), Q_ARG(const int, index));
+        return position;
+    }
+    glm::vec3 position;
+    _skeletonModel.getJointPosition(index, position);
+    return position;
+}
+
+glm::vec3 Avatar::getJointPosition(const QString& name) const {
+    if (QThread::currentThread() != thread()) {
+        glm::vec3 position;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointPosition", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(glm::vec3, position), Q_ARG(const QString&, name));
+        return position;
+    }
+    glm::vec3 position;
+    _skeletonModel.getJointPosition(getJointIndex(name), position);
+    return position;
+}
+
+glm::quat Avatar::getJointCombinedRotation(int index) const {
+    if (QThread::currentThread() != thread()) {
+        glm::quat rotation;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointCombinedRotation", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(glm::quat, rotation), Q_ARG(const int, index));
+        return rotation;
+    }
+    glm::quat rotation;
+    _skeletonModel.getJointCombinedRotation(index, rotation);
+    return rotation;
+}
+
+glm::quat Avatar::getJointCombinedRotation(const QString& name) const {
+    if (QThread::currentThread() != thread()) {
+        glm::quat rotation;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointCombinedRotation", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(glm::quat, rotation), Q_ARG(const QString&, name));
+        return rotation;
+    }
+    glm::quat rotation;
+    _skeletonModel.getJointCombinedRotation(getJointIndex(name), rotation);
+    return rotation;
+}
+
 void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
     const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile(Application::resourcesPath() + "meshes/defaultAvatar_head.fst");
@@ -734,6 +782,8 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     
     // update the urls
     for (int i = 0; i < attachmentData.size(); i++) {
+        _attachmentModels[i]->setSnapModelToCenter(true);
+        _attachmentModels[i]->setScaleToFit(true, _scale * _attachmentData.at(i).scale);
         _attachmentModels[i]->setURL(attachmentData.at(i).modelURL);
     }
 }

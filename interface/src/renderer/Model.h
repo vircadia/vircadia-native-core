@@ -157,6 +157,7 @@ public:
     
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
     bool getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind = false) const;
+    bool getJointCombinedRotation(int jointIndex, glm::quat& rotation) const;
 
     QStringList getJointNames() const;
     
@@ -300,6 +301,11 @@ private:
     static ProgramObject _shadowSpecularMapProgram;
     static ProgramObject _shadowNormalSpecularMapProgram;
     
+    static ProgramObject _cascadedShadowMapProgram;
+    static ProgramObject _cascadedShadowNormalMapProgram;
+    static ProgramObject _cascadedShadowSpecularMapProgram;
+    static ProgramObject _cascadedShadowNormalSpecularMapProgram;
+    
     static ProgramObject _shadowProgram;
     
     static ProgramObject _skinProgram;
@@ -312,12 +318,24 @@ private:
     static ProgramObject _skinShadowSpecularMapProgram;
     static ProgramObject _skinShadowNormalSpecularMapProgram;
     
+    static ProgramObject _skinCascadedShadowMapProgram;
+    static ProgramObject _skinCascadedShadowNormalMapProgram;
+    static ProgramObject _skinCascadedShadowSpecularMapProgram;
+    static ProgramObject _skinCascadedShadowNormalSpecularMapProgram;
+    
     static ProgramObject _skinShadowProgram;
     
     static int _normalMapTangentLocation;
     static int _normalSpecularMapTangentLocation;
     static int _shadowNormalMapTangentLocation;
     static int _shadowNormalSpecularMapTangentLocation;
+    static int _cascadedShadowNormalMapTangentLocation;
+    static int _cascadedShadowNormalSpecularMapTangentLocation;
+    
+    static int _cascadedShadowMapDistancesLocation;
+    static int _cascadedShadowNormalMapDistancesLocation;
+    static int _cascadedShadowSpecularMapDistancesLocation;
+    static int _cascadedShadowNormalSpecularMapDistancesLocation;
     
     class SkinLocations {
     public:
@@ -325,6 +343,7 @@ private:
         int clusterIndices;
         int clusterWeights;
         int tangent;
+        int shadowDistances;
     };
     
     static SkinLocations _skinLocations;
@@ -335,6 +354,10 @@ private:
     static SkinLocations _skinShadowNormalMapLocations;
     static SkinLocations _skinShadowSpecularMapLocations;
     static SkinLocations _skinShadowNormalSpecularMapLocations;
+    static SkinLocations _skinCascadedShadowMapLocations;
+    static SkinLocations _skinCascadedShadowNormalMapLocations;
+    static SkinLocations _skinCascadedShadowSpecularMapLocations;
+    static SkinLocations _skinCascadedShadowNormalSpecularMapLocations;
     static SkinLocations _skinShadowLocations;
     
     static void initSkinProgram(ProgramObject& program, SkinLocations& locations,
