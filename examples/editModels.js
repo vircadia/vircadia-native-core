@@ -157,9 +157,7 @@ function controller(wichSide) {
     
     this.release = function () {
         if (this.grabbing) {
-            if (jointList.length <= 0) {
-                jointList = MyAvatar.getJointNames();
-            }
+            jointList = MyAvatar.getJointNames();
             
             var closestJointIndex = -1;
             var closestJointDistance = 10;
@@ -308,6 +306,18 @@ function controller(wichSide) {
             
             this.oldModelRotation = newRotation;
             this.oldModelPosition = newPosition;
+            
+            var indicesToRemove = [];
+            for (var i = 0; i < this.jointsIntersectingFromStart.length; ++i) {
+                var distance = Vec3.distance(MyAvatar.getJointPosition(this.jointsIntersectingFromStart[i]), this.oldModelPosition);
+                if (distance >= this.oldModelRadius) {
+                    indicesToRemove.push(this.jointsIntersectingFromStart[i]);
+                }
+
+            }
+            for (var i = 0; i < indicesToRemove.length; ++i) {
+                this.jointsIntersectingFromStart.splice(this.jointsIntersectingFromStart.indexOf(indicesToRemove[i], 1));
+            }
         }
     }
     
@@ -341,6 +351,43 @@ function controller(wichSide) {
         }
         
         if (this.pressing) {
+            // Checking for attachments intersecting
+            var attachments = MyAvatar.getAttachmentData();
+            var attachmentIndex = -1;
+            var attachmentX = LASER_LENGTH_FACTOR;
+            
+            for (var i = 0; i < attachments.length; ++i) {
+                var position = Vec3.sum(MyAvatar.getJointPosition(attachments[i].jointName), attachments[i].translation);
+                var scale = attachments[i].scale;
+                
+                var A = this.palmPosition;
+                var B = this.front;
+                var P = position;
+                
+                var x = Vec3.dot(Vec3.subtract(P, A), B);
+                var X = Vec3.sum(A, Vec3.multiply(B, x));
+                var d = Vec3.length(Vec3.subtract(P, X));
+                
+                if (d < scale / 2.0 && 0 < x && x < attachmentX) {
+                    attachmentIndex = i;
+                    attachmentX = d;
+                }
+            }
+            
+            if (attachmentIndex != -1) {
+                MyAvatar.detachOne(attachments[attachmentIndex].modelURL, attachments[attachmentIndex].jointName);
+                Models.addModel({
+                                position: Vec3.sum(MyAvatar.getJointPosition(attachments[attachmentIndex].jointName),
+                                                   attachments[attachmentIndex].translation),
+                                modelRotation: Quat.multiply(MyAvatar.getJointCombinedRotation(attachments[attachmentIndex].jointName),
+                                                             attachments[attachmentIndex].rotation),
+                                radius: attachments[attachmentIndex].scale / 2.0,
+                                modelURL: attachments[attachmentIndex].modelURL
+                                });
+            }
+            
+            // There is none so ...
+            // Checking model tree
             Vec3.print("Looking at: ", this.palmPosition);
             var pickRay = { origin: this.palmPosition,
                             direction: Vec3.normalize(Vec3.subtract(this.tipPosition, this.palmPosition)) };
@@ -521,10 +568,15 @@ function mousePressEvent(event) {
         }
         
         var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
-        Models.addModel({ position: position,
-                        radius: radiusDefault,
-                        modelURL: url
-                        });
+        
+        if (position.x > 0 && position.y > 0 && position.z > 0) {
+            Models.addModel({ position: position,
+                            radius: radiusDefault,
+                            modelURL: url
+                            });
+        } else {
+            print("Can't create model: Model would be out of bounds.");
+        }
         
     } else {
         var pickRay = Camera.computePickRay(event.x, event.y);
