@@ -2789,16 +2789,19 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
         glm::vec3 absoluteSkeletonTranslation = _myAvatar->getSkeletonModel().getTranslation();
         glm::vec3 absoluteFaceTranslation = _myAvatar->getHead()->getFaceModel().getTranslation();
 
-        // get the eye positions relative to the neck and use them to set the face translation
-        glm::vec3 leftEyePosition, rightEyePosition;
-        _myAvatar->getHead()->getFaceModel().setTranslation(glm::vec3());
-        _myAvatar->getHead()->getFaceModel().getEyePositions(leftEyePosition, rightEyePosition);
-        _myAvatar->getHead()->getFaceModel().setTranslation((leftEyePosition + rightEyePosition) * -0.5f);
-
-        // get the neck position relative to the body and use it to set the skeleton translation
+        // get the neck position so we can translate the face relative to it
         glm::vec3 neckPosition;
         _myAvatar->getSkeletonModel().setTranslation(glm::vec3());
         _myAvatar->getSkeletonModel().getNeckPosition(neckPosition);
+
+        // get the eye position relative to the body
+        glm::vec3 eyePosition = _myAvatar->getHead()->calculateAverageEyePosition();     
+        float eyeHeight = eyePosition.y - _myAvatar->getPosition().y;
+
+        // set the translation of the face relative to the neck position
+        _myAvatar->getHead()->getFaceModel().setTranslation(neckPosition - glm::vec3(0, eyeHeight, 0));
+
+        // translate the neck relative to the face
         _myAvatar->getSkeletonModel().setTranslation(_myAvatar->getHead()->getFaceModel().getTranslation() -
             neckPosition);
 
