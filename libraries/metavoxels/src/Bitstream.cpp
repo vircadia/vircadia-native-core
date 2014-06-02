@@ -193,7 +193,7 @@ void Bitstream::persistWriteMappings(const WriteMappings& mappings) {
             continue;
         }
         connect(it.key().data(), SIGNAL(destroyed(QObject*)), SLOT(clearSharedObject(QObject*)));
-        QPointer<SharedObject>& reference = _sharedObjectReferences[it.key()->getID()];
+        QPointer<SharedObject>& reference = _sharedObjectReferences[it.key()->getOriginID()];
         if (reference) {
             _sharedObjectStreamer.removePersistentID(reference);
             reference->disconnect(this);
@@ -227,7 +227,7 @@ void Bitstream::persistReadMappings(const ReadMappings& mappings) {
         if (!it.value()) {
             continue;
         }
-        QPointer<SharedObject>& reference = _sharedObjectReferences[it.value()->getRemoteID()];
+        QPointer<SharedObject>& reference = _sharedObjectReferences[it.value()->getRemoteOriginID()];
         if (reference) {
             _sharedObjectStreamer.removePersistentValue(reference.data());
         }
@@ -411,6 +411,10 @@ Bitstream& Bitstream::operator>>(QUrl& url) {
 }
 
 Bitstream& Bitstream::operator<<(const QVariant& value) {
+    if (!value.isValid()) {
+        _typeStreamerStreamer << NULL;
+        return *this;
+    }
     const TypeStreamer* streamer = getTypeStreamers().value(value.userType());
     if (streamer) {
         _typeStreamerStreamer << streamer;
@@ -424,7 +428,11 @@ Bitstream& Bitstream::operator<<(const QVariant& value) {
 Bitstream& Bitstream::operator>>(QVariant& value) {
     TypeReader reader;
     _typeStreamerStreamer >> reader;
-    value = reader.read(*this);
+    if (reader.getTypeName().isEmpty()) {
+        value = QVariant();
+    } else {
+        value = reader.read(*this);
+    }
     return *this;
 }
 
@@ -656,6 +664,10 @@ Bitstream& Bitstream::operator>(ObjectReader& objectReader) {
 }
 
 Bitstream& Bitstream::operator<(const TypeStreamer* streamer) {
+    if (!streamer) {
+        *this << QByteArray();
+        return *this;
+    }
     const char* typeName = QMetaType::typeName(streamer->getType());
     *this << QByteArray::fromRawData(typeName, strlen(typeName));
     if (_metadataType == NO_METADATA) {
@@ -702,6 +714,10 @@ Bitstream& Bitstream::operator<(const TypeStreamer* streamer) {
 Bitstream& Bitstream::operator>(TypeReader& reader) {
     QByteArray typeName;
     *this >> typeName;
+    if (typeName.isEmpty()) {
+        reader = TypeReader();
+        return *this;
+    }
     const TypeStreamer* streamer = _typeStreamerSubstitutions.value(typeName);
     if (!streamer) {
         streamer = getTypeStreamers().value(QMetaType::type(typeName.constData()));
@@ -847,9 +863,10 @@ Bitstream& Bitstream::operator<(const SharedObjectPointer& object) {
         return *this << (int)0;
     }
     *this << object->getID();
-    QPointer<SharedObject> reference = _sharedObjectReferences.value(object->getID());
+    *this << object->getOriginID();
+    QPointer<SharedObject> reference = _sharedObjectReferences.value(object->getOriginID());
     if (reference) {
-        writeRawDelta((QObject*)object.data(), (QObject*)reference.data());
+        writeRawDelta((const QObject*)object.data(), (const QObject*)reference.data());
     } else {
         *this << (QObject*)object.data();
     }
@@ -863,7 +880,9 @@ Bitstream& Bitstream::operator>(SharedObjectPointer& object) {
         object = SharedObjectPointer();
         return *this;
     }
-    QPointer<SharedObject> reference = _sharedObjectReferences.value(id);
+    int originID;
+    *this >> originID;
+    QPointer<SharedObject> reference = _sharedObjectReferences.value(originID);
     QPointer<SharedObject>& pointer = _weakSharedObjectHash[id];
     if (pointer) {
         ObjectReader objectReader;
@@ -876,15 +895,19 @@ Bitstream& Bitstream::operator>(SharedObjectPointer& object) {
     } else {
         QObject* rawObject; 
         if (reference) {
-            readRawDelta(rawObject, (QObject*)reference.data());
+            readRawDelta(rawObject, (const QObject*)reference.data());
         } else {
             *this >> rawObject;
         }
         pointer = static_cast<SharedObject*>(rawObject);
         if (pointer) {
+            if (reference) {
+                pointer->setOriginID(reference->getOriginID());
+            }
             pointer->setRemoteID(id);
+            pointer->setRemoteOriginID(originID);
         } else {
-            qDebug() << "Null object" << pointer << reference;
+            qDebug() << "Null object" << pointer << reference << id;
         }
     }
     object = static_cast<SharedObject*>(pointer.data());
@@ -893,7 +916,7 @@ Bitstream& Bitstream::operator>(SharedObjectPointer& object) {
 
 void Bitstream::clearSharedObject(QObject* object) {
     SharedObject* sharedObject = static_cast<SharedObject*>(object);
-    _sharedObjectReferences.remove(sharedObject->getID());
+    _sharedObjectReferences.remove(sharedObject->getOriginID());
     int id = _sharedObjectStreamer.takePersistentID(sharedObject);
     if (id != 0) {
         emit sharedObjectCleared(id);
@@ -1099,6 +1122,10 @@ uint qHash(const TypeReader& typeReader, uint seed) {
     return qHash(typeReader.getTypeName(), seed);
 }
 
+QDebug& operator<<(QDebug& debug, const TypeReader& typeReader) {
+    return debug << typeReader.getTypeName();
+}
+
 FieldReader::FieldReader(const TypeReader& reader, int index) :
     _reader(reader),
     _index(index) {
@@ -1150,6 +1177,10 @@ QObject* ObjectReader::readDelta(Bitstream& in, const QObject* reference, QObjec
 
 uint qHash(const ObjectReader& objectReader, uint seed) {
     return qHash(objectReader.getClassName(), seed);
+}
+
+QDebug& operator<<(QDebug& debug, const ObjectReader& objectReader) {
+    return debug << objectReader.getClassName();
 }
 
 PropertyReader::PropertyReader(const TypeReader& reader, const QMetaProperty& property) :
@@ -1236,3 +1267,12 @@ QVariant TypeStreamer::getValue(const QVariant& object, int index) const {
 void TypeStreamer::setValue(QVariant& object, int index, const QVariant& value) const {
     // nothing by default
 }
+
+QDebug& operator<<(QDebug& debug, const TypeStreamer* typeStreamer) {
+    return debug << (typeStreamer ? QMetaType::typeName(typeStreamer->getType()) : "null");
+}
+
+QDebug& operator<<(QDebug& debug, const QMetaObject* metaObject) {
+    return debug << (metaObject ? metaObject->className() : "null");
+}
+

@@ -19,7 +19,7 @@
 #include <QSet>
 #include <QVector>
 
-#include "Bitstream.h"
+#include "AttributeRegistry.h"
 
 class ReliableChannel;
 
