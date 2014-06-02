@@ -228,7 +228,6 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     glEnable(GL_LIGHTING);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
 
-
     if (renderToTexture) {
         getFramebufferObject()->release();
     }
@@ -319,6 +318,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     
     float leftX, rightX, leftZ, rightZ;
 
+    glColor3f(1.0f, 1.0f, 1.0f);
     glBegin(GL_QUADS);
 
     // Place the vertices in a semicircle curve around the camera
