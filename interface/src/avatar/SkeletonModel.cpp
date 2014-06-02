@@ -147,7 +147,7 @@ void SkeletonModel::applyHandPosition(int jointIndex, const glm::vec3& position)
         return;
     }
     JointState& state = _jointStates[jointIndex];
-    glm::quat handRotation = state.getJointRotation();
+    glm::quat handRotation = state.getRotationFromBindToModelFrame();
 
     // align hand with forearm
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
@@ -170,10 +170,10 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
     if (!Menu::getInstance()->isOptionChecked(MenuOption::AlternateIK) &&
             Menu::getInstance()->isOptionChecked(MenuOption::AlignForearmsWithWrists)) {
         JointState parentState = _jointStates[parentJointIndex];
-        palmRotation = parentState.getJointRotation();
+        palmRotation = parentState.getRotationFromBindToModelFrame();
     } else {
         JointState state = _jointStates[jointIndex];
-        palmRotation = state.getJointRotation();
+        palmRotation = state.getRotationFromBindToModelFrame();
     }
     palmRotation = rotationBetween(palmRotation * geometry.palmDirection, palm.getNormal()) * palmRotation;
     
@@ -414,7 +414,7 @@ bool SkeletonModel::getNeckParentRotation(glm::quat& neckParentRotation) const {
     if (geometry.neckJointIndex == -1) {
         return false;
     }
-    return getJointRotationInWorldFrame(geometry.joints.at(geometry.neckJointIndex).parentIndex, neckParentRotation);
+    return getJointRotationFromBindToWorldFrame(geometry.joints.at(geometry.neckJointIndex).parentIndex, neckParentRotation);
 }
 
 bool SkeletonModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
@@ -433,7 +433,7 @@ bool SkeletonModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& seco
         const float EYE_PROPORTION = 0.6f;
         glm::vec3 baseEyePosition = glm::mix(neckPosition, headPosition, EYE_PROPORTION);
         glm::quat headRotation;
-        getJointRotationInWorldFrame(geometry.headJointIndex, headRotation);
+        getJointRotationFromBindToWorldFrame(geometry.headJointIndex, headRotation);
         const float EYES_FORWARD = 0.25f;
         const float EYE_SEPARATION = 0.1f;
         float headHeight = glm::distance(neckPosition, headPosition);
