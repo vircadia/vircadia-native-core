@@ -147,7 +147,7 @@ void SkeletonModel::applyHandPosition(int jointIndex, const glm::vec3& position)
         return;
     }
     JointState& state = _jointStates[jointIndex];
-    glm::quat handRotation = state.getJointRotation(true);
+    glm::quat handRotation = state.getJointRotation();
 
     // align hand with forearm
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
@@ -170,10 +170,10 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
     if (!Menu::getInstance()->isOptionChecked(MenuOption::AlternateIK) &&
             Menu::getInstance()->isOptionChecked(MenuOption::AlignForearmsWithWrists)) {
         JointState parentState = _jointStates[parentJointIndex];
-        palmRotation = parentState.getJointRotation(true);
+        palmRotation = parentState.getJointRotation();
     } else {
         JointState state = _jointStates[jointIndex];
-        palmRotation = state.getJointRotation(true);
+        palmRotation = state.getJointRotation();
     }
     palmRotation = rotationBetween(palmRotation * geometry.palmDirection, palm.getNormal()) * palmRotation;
     

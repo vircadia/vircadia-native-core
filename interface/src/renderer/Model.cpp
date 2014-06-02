@@ -756,11 +756,11 @@ bool Model::getJointPosition(int jointIndex, glm::vec3& position) const {
     return true;
 }
 
-bool Model::getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation, bool fromBind) const {
+bool Model::getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
-    rotation = _jointStates[jointIndex].getJointRotation(fromBind);
+    rotation = _jointStates[jointIndex].getJointRotation();
     return true;
 }
 
@@ -768,7 +768,7 @@ bool Model::getJointCombinedRotation(int jointIndex, glm::quat& rotation) const 
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
-    rotation = _jointStates[jointIndex].getRotationInWorldFrame();
+    rotation = _jointStates[jointIndex].getRotationInWorldFrame(_rotation);
     return true;
 }
 
@@ -1306,9 +1306,9 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
             JointState& state = _jointStates[jointIndex];
 
             // TODO: figure out what this is trying to do and combine it into one JointState method
-            endRotation = state.getJointRotation(true);
+            endRotation = state.getJointRotation();
             state.applyRotationDelta(rotation * glm::inverse(endRotation), true, priority);
-            endRotation = state.getJointRotation(true);
+            endRotation = state.getJointRotation();
         }    
         
         // then, we go from the joint upwards, rotating the end as close as possible to the target
@@ -2067,10 +2067,10 @@ void JointState::computeTransforms(const glm::mat4& parentTransform, const glm::
     _combinedRotation = baseRotation * modifiedRotation;
 }
 
-glm::quat JointState::getJointRotation(bool fromBind) const {
+glm::quat JointState::getJointRotation() const {
     assert(_fbxJoint != NULL);
-    return _combinedRotation * (fromBind ?  _fbxJoint->inverseBindRotation : _fbxJoint->inverseDefaultRotation);
-    //return _rotationInModelFrame * (fromBind ?  _fbxJoint->inverseBindRotation : _fbxJoint->inverseDefaultRotation);
+    return _combinedRotation * _fbxJoint->inverseBindRotation;
+    //return _rotationInModelFrame * _fbxJoint->inverseBindRotation;
 }
 
 void JointState::restoreRotation(float fraction, float priority) {
