@@ -144,11 +144,26 @@ QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
         jointStates.append(state);
     }
 
+    // compute model transforms
+    int numJoints = jointStates.size();
+    for (int i = 0; i < numJoints; ++i) {
+        JointState& state = jointStates[i];
+        const FBXJoint& joint = state.getFBXJoint();
+        int parentIndex = joint.parentIndex;
+        if (parentIndex == -1) {
+            _rootIndex = i;
+            glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
+            state.computeTransformInModelFrame(parentTransform);
+        } else {
+            const JointState& parentState = jointStates.at(parentIndex);
+            state.computeTransformInModelFrame(parentState.getTransformInModelFrame());
+        }
+    }
+
     // compute transforms
     // Unfortunately, the joints are not neccessarily in order from parents to children, 
     // so we must iterate over the list multiple times until all are set correctly.
     QVector<bool> jointIsSet;
-    int numJoints = jointStates.size();
     jointIsSet.fill(false, numJoints);
     int numJointsSet = 0;
     int lastNumJointsSet = -1;
@@ -169,7 +184,8 @@ QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
                 jointIsSet[i] = true;
             } else if (jointIsSet[parentIndex]) {
                 const JointState& parentState = jointStates.at(parentIndex);
-                state.computeTransforms(parentState._transform, parentState._combinedRotation);
+                glm::quat parentRotation = _rotation * parentState.getRotationInModelFrame();
+                state.computeTransforms(parentState.getHybridTransform(), parentRotation);
                 ++numJointsSet;
                 jointIsSet[i] = true;
             }
@@ -624,11 +640,12 @@ bool Model::getJointPosition(int jointIndex, glm::vec3& position) const {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
     }
-    position = _translation + extractTranslation(_jointStates[jointIndex]._transform);
+    position = _translation + extractTranslation(_jointStates[jointIndex].getHybridTransform());
+    //position = _translation + _rotation * _jointState[jointIndex].getPositionInModelFrame();
     return true;
 }
 
-bool Model::getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind) const {
+bool Model::getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation, bool fromBind) const {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
@@ -848,11 +865,12 @@ void Model::updateShapePositions() {
         for (int i = 0; i < _jointStates.size(); i++) {
             const FBXJoint& joint = geometry.joints[i];
             // shape position and rotation need to be in world-frame
-            glm::vec3 jointToShapeOffset = uniformScale * (_jointStates[i]._combinedRotation * joint.shapePosition);
-            glm::vec3 worldPosition = extractTranslation(_jointStates[i]._transform) + jointToShapeOffset + _translation;
+            glm::quat rotationInWorldFrame = _rotation * _jointStates[i].getRotationInModelFrame();
+            glm::vec3 jointToShapeOffset = uniformScale * (rotationInWorldFrame * joint.shapePosition);
+            glm::vec3 worldPosition = extractTranslation(_jointStates[i].getHybridTransform()) + jointToShapeOffset + _translation;
             Shape* shape = _jointShapes[i];
             shape->setPosition(worldPosition);
-            shape->setRotation(_jointStates[i]._combinedRotation * joint.shapeRotation);
+            shape->setRotation(rotationInWorldFrame * joint.shapeRotation);
             float distance = glm::distance(worldPosition, _translation) + shape->getBoundingRadius();
             if (distance > _boundingRadius) {
                 _boundingRadius = distance;
@@ -874,12 +892,12 @@ bool Model::findRayIntersection(const glm::vec3& origin, const glm::vec3& direct
     float radiusScale = extractUniformScale(_scale);
     for (int i = 0; i < _jointStates.size(); i++) {
         const FBXJoint& joint = geometry.joints[i];
-        glm::vec3 end = extractTranslation(_jointStates[i]._transform);
+        glm::vec3 end = extractTranslation(_jointStates[i].getHybridTransform());
         float endRadius = joint.boneRadius * radiusScale;
         glm::vec3 start = end;
         float startRadius = joint.boneRadius * radiusScale;
         if (joint.parentIndex != -1) {
-            start = extractTranslation(_jointStates[joint.parentIndex]._transform);
+            start = extractTranslation(_jointStates[joint.parentIndex].getHybridTransform());
             startRadius = geometry.joints[joint.parentIndex].boneRadius * radiusScale;
         }
         // for now, use average of start and end radii
@@ -1090,7 +1108,7 @@ void Model::simulateInternal(float deltaTime) {
         glm::vec3 jointTranslation = _translation;
         glm::quat jointRotation = _rotation;
         getJointPosition(attachment.jointIndex, jointTranslation);
-        getJointRotation(attachment.jointIndex, jointRotation);
+        getJointRotationInWorldFrame(attachment.jointIndex, jointRotation);
         
         model->setTranslation(jointTranslation + jointRotation * attachment.translation * _scale);
         model->setRotation(jointRotation * attachment.rotation);
@@ -1106,7 +1124,7 @@ void Model::simulateInternal(float deltaTime) {
         const FBXMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
-            state.clusterMatrices[j] = _jointStates[cluster.jointIndex]._transform * cluster.inverseBindMatrix;
+            state.clusterMatrices[j] = _jointStates[cluster.jointIndex].getHybridTransform() * cluster.inverseBindMatrix;
         }
     }
     
@@ -1120,13 +1138,26 @@ void Model::updateJointState(int index) {
     JointState& state = _jointStates[index];
     const FBXJoint& joint = state.getFBXJoint();
     
-    if (joint.parentIndex == -1) {
+    // compute model transforms
+    int parentIndex = joint.parentIndex;
+    if (parentIndex == -1) {
+        const FBXGeometry& geometry = _geometry->getFBXGeometry();
+        glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
+        state.computeTransformInModelFrame(parentTransform);
+    } else {
+        const JointState& parentState = _jointStates.at(parentIndex);
+        state.computeTransformInModelFrame(parentState.getTransformInModelFrame());
+    }
+
+    // compute hybrid transforms
+    if (parentIndex == -1) {
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         glm::mat4 baseTransform = glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
         state.computeTransforms(baseTransform, _rotation);
     } else {
-        const JointState& parentState = _jointStates.at(joint.parentIndex);
-        state.computeTransforms(parentState._transform, parentState._combinedRotation);
+        const JointState& parentState = _jointStates.at(parentIndex);
+        glm::quat parentRotation = _rotation * parentState.getRotationInModelFrame();
+        state.computeTransforms(parentState.getHybridTransform(), parentRotation);
     }
 }
 
@@ -1162,7 +1193,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
         }    
         
         // then, we go from the joint upwards, rotating the end as close as possible to the target
-        glm::vec3 endPosition = extractTranslation(_jointStates[jointIndex]._transform);
+        glm::vec3 endPosition = extractTranslation(_jointStates[jointIndex].getHybridTransform());
         for (int j = 1; freeLineage.at(j - 1) != lastFreeIndex; j++) {
             int index = freeLineage.at(j);
             JointState& state = _jointStates[index];
@@ -1170,9 +1201,9 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
             if (!(joint.isFree || allIntermediatesFree)) {
                 continue;
             }
-            glm::vec3 jointPosition = extractTranslation(state._transform);
+            glm::vec3 jointPosition = extractTranslation(state.getHybridTransform());
             glm::vec3 jointVector = endPosition - jointPosition;
-            glm::quat oldCombinedRotation = state._combinedRotation;
+            glm::quat oldCombinedRotation = _rotation * state.getRotationInModelFrame();
             glm::quat combinedDelta;
             float combinedWeight;
             if (useRotation) {
@@ -1190,7 +1221,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
                 for (int k = j - 1; k > 0; k--) {
                     int index = freeLineage.at(k);
                     updateJointState(index);
-                    positionSum += extractTranslation(_jointStates.at(index)._transform);
+                    positionSum += extractTranslation(_jointStates.at(index).getHybridTransform());
                 }
                 glm::vec3 projectedCenterOfMass = glm::cross(jointVector,
                     glm::cross(positionSum / (j - 1.0f) - jointPosition, jointVector));
@@ -1202,7 +1233,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
                 }
             }
             state.applyRotationDelta(combinedDelta, true, priority);
-            glm::quat actualDelta = state._combinedRotation * glm::inverse(oldCombinedRotation);
+            glm::quat actualDelta = _rotation * state.getRotationInModelFrame() * glm::inverse(oldCombinedRotation);
             endPosition = actualDelta * jointVector + jointPosition;
             if (useRotation) {
                 endRotation = actualDelta * endRotation;
@@ -1827,6 +1858,11 @@ void AnimationHandle::replaceMatchingPriorities(float newPriority) {
     }
 }
 
+glm::mat4 Model::getBaseTransform(const glm::mat4& geometryOffset) const {
+    //return glm::translate(_translation) * glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset) * geometryOffset;
+    return glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset) * geometryOffset;
+}
+
 // ----------------------------------------------------------------------------
 // JointState  TODO: move this class to its own files
 // ----------------------------------------------------------------------------
@@ -1844,23 +1880,44 @@ void JointState::setFBXJoint(const FBXJoint* joint) {
 
 void JointState::copyState(const JointState& state) {
     _rotation = state._rotation;
-    _transform = state._transform;
+
+    _transformInModelFrame = state._transformInModelFrame;
+    _rotationInModelFrame = extractRotation(_transformInModelFrame);
     _combinedRotation = state._combinedRotation;
+    _transform = state._transform;
+
     _animationPriority = state._animationPriority;
     // DO NOT copy _fbxJoint
 }
 
-void JointState::computeTransforms(const glm::mat4& baseTransform, const glm::quat& baseRotation) {
+void JointState::computeTransformInModelFrame(const glm::mat4& parentTransform) {
+    glm::quat modifiedRotation = _fbxJoint->preRotation * _rotation * _fbxJoint->postRotation;
+    glm::mat4 modifiedTransform = _fbxJoint->preTransform * glm::mat4_cast(modifiedRotation) * _fbxJoint->postTransform;
+    _transformInModelFrame = parentTransform * glm::translate(_fbxJoint->translation) * modifiedTransform;
+    _rotationInModelFrame = extractRotation(_transformInModelFrame);
+}
+
+glm::quat JointState::getRotationInWorldFrame(const glm::quat& baseRotation) const {
+    return baseRotation * _rotationInModelFrame;
+}
+
+glm::vec3 JointState::getPositionInWorldFrame(const glm::quat& baseRotation, const glm::vec3& basePosition) const {
+    return basePosition + baseRotation * extractTranslation(_transformInModelFrame);
+}
+
+void JointState::computeTransforms(const glm::mat4& parentTransform, const glm::quat& baseRotation) {
     assert(_fbxJoint != NULL);
-    glm::quat combinedRotation = _fbxJoint->preRotation * _rotation * _fbxJoint->postRotation;
-    _transform = baseTransform * glm::translate(_fbxJoint->translation) * _fbxJoint->preTransform
-        * glm::mat4_cast(combinedRotation) * _fbxJoint->postTransform;
-    _combinedRotation = baseRotation * combinedRotation;
+
+    glm::quat modifiedRotation = _fbxJoint->preRotation * _rotation * _fbxJoint->postRotation;
+    glm::mat4 modifiedTransform = _fbxJoint->preTransform * glm::mat4_cast(modifiedRotation) * _fbxJoint->postTransform;
+    _transform = parentTransform * glm::translate(_fbxJoint->translation) * modifiedTransform;
+    _combinedRotation = baseRotation * modifiedRotation;
 }
 
 glm::quat JointState::getJointRotation(bool fromBind) const {
     assert(_fbxJoint != NULL);
     return _combinedRotation * (fromBind ?  _fbxJoint->inverseBindRotation : _fbxJoint->inverseDefaultRotation);
+    //return _rotationInModelFrame * (fromBind ?  _fbxJoint->inverseBindRotation : _fbxJoint->inverseDefaultRotation);
 }
 
 void JointState::restoreRotation(float fraction, float priority) {
@@ -1877,6 +1934,15 @@ void JointState::setRotation(const glm::quat& rotation, float priority) {
         _rotation = _rotation * glm::inverse(_combinedRotation) * rotation * glm::inverse(_fbxJoint->inverseBindRotation);
         _animationPriority = priority;
     }
+}
+
+void JointState::clearTransformTranslation() {
+    _transform[3][0] = 0.0f;
+    _transform[3][1] = 0.0f;
+    _transform[3][2] = 0.0f;
+    _transformInModelFrame[3][0] = 0.0f;
+    _transformInModelFrame[3][1] = 0.0f;
+    _transformInModelFrame[3][2] = 0.0f;
 }
 
 void JointState::applyRotationDelta(const glm::quat& delta, bool constrain, float priority) {
@@ -1898,6 +1964,28 @@ void JointState::applyRotationDelta(const glm::quat& delta, bool constrain, floa
     _combinedRotation = _combinedRotation * glm::inverse(_rotation) * newRotation;
     _rotation = newRotation;
 }
+
+/*
+void JointState::applyRotationDelta(const glm::quat& delta, bool constrain, float priority) {
+    assert(_fbxJoint != NULL);
+    if (priority < _animationPriority) {
+        return;
+    }
+    _animationPriority = priority;
+    if (!constrain || (_fbxJoint->rotationMin == glm::vec3(-PI, -PI, -PI) &&
+            _fbxJoint->rotationMax == glm::vec3(PI, PI, PI))) {
+        // no constraints
+        _rotation = _rotation * glm::inverse(_rotationInModelFrame) * delta * _rotationInModelFrame;
+        _rotationInModelFrame = delta * _rotationInModelFrame;
+        return;
+    }
+    glm::quat targetRotation = delta * _rotationInModelFrame;
+    glm::vec3 eulers = safeEulerAngles(_rotation * glm::inverse(_rotationInModelFrame) * targetRotation);
+    glm::quat newRotation = glm::quat(glm::clamp(eulers, _fbxJoint->rotationMin, _fbxJoint->rotationMax));
+    _rotationInModelFrame = _rotationInModelFrame * glm::inverse(_rotation) * newRotation;
+    _rotation = newRotation;
+}
+*/
 
 const glm::vec3& JointState::getDefaultTranslationInParentFrame() const {
     assert(_fbxJoint != NULL);

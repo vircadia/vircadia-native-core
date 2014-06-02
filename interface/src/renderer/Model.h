@@ -40,6 +40,15 @@ public:
 
     void copyState(const JointState& state);
 
+    void computeTransformInModelFrame(const glm::mat4& parentTransform);
+    const glm::mat4& getTransformInModelFrame() const { return _transformInModelFrame; }
+
+    glm::quat getRotationInModelFrame() const { return _rotationInModelFrame; }
+    glm::vec3 getPositionInModelFrame() const { return extractTranslation(_transformInModelFrame); }
+
+    glm::quat getRotationInWorldFrame(const glm::quat& baseRotation) const;
+    glm::vec3 getPositionInWorldFrame(const glm::quat& baseRotation, const glm::vec3& basePosition) const;
+
     /// computes new _transform and _combinedRotation
     void computeTransforms(const glm::mat4& baseTransform, const glm::quat& baseRotation);
 
@@ -54,14 +63,22 @@ public:
 
     /// \param rotation is from bind- to world-frame
     /// computes parent relative _rotation and sets that
+    /// \warning no combined transforms are updated!
     void setRotation(const glm::quat& rotation, float priority);
 
+    const glm::mat4& getHybridTransform() const { return _transform; }
+    const glm::quat& getRotationInWorldFrame() const { return _combinedRotation; }
+    void clearTransformTranslation();
+
     glm::quat _rotation;     // rotation relative to parent
-    glm::mat4 _transform;    // rotation to world frame + translation in model frame
-    glm::quat _combinedRotation; // rotation from joint local to world frame
     float _animationPriority; // the priority of the animation affecting this joint
 
 private:
+    glm::mat4 _transformInModelFrame;
+    glm::quat _rotationInModelFrame;
+    glm::quat _combinedRotation; // rotation from joint local to world frame
+    glm::mat4 _transform;    // rotation to world frame + translation in model frame
+
     const FBXJoint* _fbxJoint; // JointState does NOT own its FBXJoint
 };
 
@@ -156,7 +173,7 @@ public:
     int getLastFreeJointIndex(int jointIndex) const;
     
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
-    bool getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind = false) const;
+    bool getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation, bool fromBind = false) const;
 
     QStringList getJointNames() const;
     
@@ -198,6 +215,8 @@ public:
     void setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
 
     const CapsuleShape& getBoundingShape() const { return _boundingShape; }
+
+    glm::mat4 getBaseTransform(const glm::mat4& geometryOffset) const;
 
 protected:
 

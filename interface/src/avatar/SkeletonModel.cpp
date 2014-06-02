@@ -221,9 +221,7 @@ void SkeletonModel::updateJointState(int index) {
     Model::updateJointState(index);
 
     if (index == _geometry->getFBXGeometry().rootJointIndex) {
-        state._transform[3][0] = 0.0f;
-        state._transform[3][1] = 0.0f;
-        state._transform[3][2] = 0.0f;
+        state.clearTransformTranslation();
     }
 }
 
@@ -233,7 +231,7 @@ void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, const
     }
     // get the rotation axes in joint space and use them to adjust the rotation
     glm::mat3 axes = glm::mat3_cast(_rotation);
-    glm::mat3 inverse = glm::mat3(glm::inverse(parentState._transform * glm::translate(state.getDefaultTranslationInParentFrame()) *
+    glm::mat3 inverse = glm::mat3(glm::inverse(parentState.getHybridTransform() * glm::translate(state.getDefaultTranslationInParentFrame()) *
         joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation)));
     state._rotation = glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanSideways(), 
         glm::normalize(inverse * axes[2])) * glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanForward(), 
@@ -259,11 +257,11 @@ void SkeletonModel::renderJointConstraints(int jointIndex) {
     do {
         const FBXJoint& joint = geometry.joints.at(jointIndex);
         const JointState& jointState = _jointStates.at(jointIndex);
-        glm::vec3 position = extractTranslation(jointState._transform) + _translation;
+        glm::vec3 position = extractTranslation(jointState.getHybridTransform()) + _translation;
         
         glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
-        glm::quat parentRotation = (joint.parentIndex == -1) ? _rotation : _jointStates.at(joint.parentIndex)._combinedRotation;
+        glm::quat parentRotation = (joint.parentIndex == -1) ? _rotation : _rotation * _jointStates.at(joint.parentIndex).getRotationInModelFrame();
         glm::vec3 rotationAxis = glm::axis(parentRotation);
         glRotatef(glm::degrees(glm::angle(parentRotation)), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         float fanScale = directionSize * 0.75f;
@@ -296,7 +294,7 @@ void SkeletonModel::renderJointConstraints(int jointIndex) {
         }
         glPopMatrix();
         
-        renderOrientationDirections(position, jointState._combinedRotation, directionSize);
+        renderOrientationDirections(position, _rotation * jointState.getRotationInModelFrame(), directionSize);
         jointIndex = joint.parentIndex;
         
     } while (jointIndex != -1 && geometry.joints.at(jointIndex).isFree);
@@ -416,7 +414,7 @@ bool SkeletonModel::getNeckParentRotation(glm::quat& neckParentRotation) const {
     if (geometry.neckJointIndex == -1) {
         return false;
     }
-    return getJointRotation(geometry.joints.at(geometry.neckJointIndex).parentIndex, neckParentRotation);
+    return getJointRotationInWorldFrame(geometry.joints.at(geometry.neckJointIndex).parentIndex, neckParentRotation);
 }
 
 bool SkeletonModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
