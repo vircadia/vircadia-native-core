@@ -19,7 +19,8 @@
 
 #include "ui/Stats.h"
 
-ApplicationOverlay::ApplicationOverlay() : _framebufferObject(NULL) {
+ApplicationOverlay::ApplicationOverlay() : _framebufferObject(NULL),
+                                           _oculusAngle(65.0f * RADIANS_PER_DEGREE) {
 
 }
 
@@ -271,14 +272,21 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     MyAvatar* myAvatar = application->getAvatar();
     const glm::vec3& viewMatrixTranslation = application->getViewMatrixTranslation();
 
-    // Calculates the world space width and height of the texture based on a desired FOV
-    const float overlayFov = whichCamera.getFieldOfView() * PI / 180.0f;
-    const float overlayDistance = 1;
+    // Get vertical FoV of the displayed overlay texture
+    const float halfVerticalAngle = _oculusAngle / 2.0f;
+    const float overlayDistance = 1.0;
     const float overlayAspectRatio = glWidget->width() / (float)glWidget->height();
-    const float overlayHeight = overlayDistance * tan(overlayFov);
-    const float overlayWidth = overlayHeight * overlayAspectRatio;
-    const float halfOverlayWidth = overlayWidth / 2;
-    const float halfOverlayHeight = overlayHeight / 2;
+    const float halfOverlayHeight = overlayDistance * tan(halfVerticalAngle);
+
+    // The more vertices, the better the curve
+    const int numHorizontalVertices = 20;
+    // U texture coordinate width at each quad
+    const float quadTexWidth = 1.0f / (numHorizontalVertices - 1);
+
+    // Get horizontal angle and angle increment from vertical angle and aspect ratio
+    const float horizontalAngle = halfVerticalAngle * 2.0f * overlayAspectRatio;
+    const float angleIncrement = horizontalAngle / (numHorizontalVertices - 1);
+    const float halfHorizontalAngle = horizontalAngle / 2;
 
     glActiveTexture(GL_TEXTURE0);
 
@@ -305,16 +313,29 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     glm::vec3 pos = whichCamera.getPosition();
     glm::quat rot = myAvatar->getOrientation();
     glm::vec3 axis = glm::axis(rot);
-    pos += rot * glm::vec3(0.0, 0.0, -overlayDistance);
-
+   
     glTranslatef(pos.x, pos.y, pos.z);
     glRotatef(glm::degrees(glm::angle(rot)), axis.x, axis.y, axis.z);
+    
+    float leftX, rightX, leftZ, rightZ;
 
     glBegin(GL_QUADS);
-    glTexCoord2f(1, 0); glVertex3f(-halfOverlayWidth, halfOverlayHeight, 0);
-    glTexCoord2f(0, 0); glVertex3f(halfOverlayWidth, halfOverlayHeight, 0);
-    glTexCoord2f(0, 1); glVertex3f(halfOverlayWidth, -halfOverlayHeight, 0);
-    glTexCoord2f(1, 1); glVertex3f(-halfOverlayWidth, -halfOverlayHeight, 0);
+
+    // Place the vertices in a semicircle curve around the camera
+    for (int i = 0; i < numHorizontalVertices-1; i++) {
+
+        // Calculate the X and Z coordinates from the angles and radius from camera
+        leftX = sin(angleIncrement * i - halfHorizontalAngle) * overlayDistance;
+        rightX = sin(angleIncrement * (i + 1) - halfHorizontalAngle) * overlayDistance;
+        leftZ = -cos(angleIncrement * i - halfHorizontalAngle) * overlayDistance;
+        rightZ = -cos(angleIncrement * (i + 1) - halfHorizontalAngle) * overlayDistance;
+
+        glTexCoord2f(quadTexWidth * i, 1); glVertex3f(leftX, halfOverlayHeight, leftZ);
+        glTexCoord2f(quadTexWidth * (i + 1), 1); glVertex3f(rightX,  halfOverlayHeight, rightZ);
+        glTexCoord2f(quadTexWidth * (i + 1), 0); glVertex3f(rightX, -halfOverlayHeight, rightZ);
+        glTexCoord2f(quadTexWidth * i, 0); glVertex3f(leftX, -halfOverlayHeight, leftZ);
+    }
+
     glEnd();
 
     glPopMatrix();

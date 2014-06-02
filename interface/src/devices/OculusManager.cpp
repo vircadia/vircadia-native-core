@@ -86,7 +86,7 @@ void OculusManager::display(Camera& whichCamera) {
     // We only need to render the overlays to a texture once, then we just render the texture as a quad
     // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
     applicationOverlay.renderOverlay(true);
-    const bool displayOverlays = false;
+    const bool displayOverlays = true;
     
     Application::getInstance()->getGlowEffect()->prepare(); 
 

@@ -1007,6 +1007,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_At:
                 Menu::getInstance()->goTo();
                 break;
+            case Qt::Key_B:
+                _applicationOverlay.setOculusAngle(_applicationOverlay.getOculusAngle() - 1.0f*RADIANS_PER_DEGREE);
+                break;
+            case Qt::Key_N:
+                _applicationOverlay.setOculusAngle(_applicationOverlay.getOculusAngle() + 1.0f*RADIANS_PER_DEGREE);
+                break;
             default:
                 event->ignore();
                 break;
