@@ -2,6 +2,7 @@
 //  particleBirds.js 
 //  examples
 //
+//  Created by Benjamin Arnold on May 29, 2014
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  This sample script creates a swarm of tweeting bird particles that fly around the avatar.
@@ -110,7 +111,7 @@ function addBird()
         color = { red: 50, green: 67, blue: 144 };
         size = 0.15;
     } 
-    
+size = 10000;
     var properties = {
         lifetime: birdLifetime,
         position: randVector(-range, range),  
@@ -125,7 +126,7 @@ function addBird()
     birdParticleIDs.push(Particles.addParticle(properties));
 }
 
-var numBirds = 5;
+var numBirds = 1;
 
 // Generate the birds
 for (var i = 0; i < numBirds; i++) {
@@ -151,6 +152,7 @@ function updateBirds(deltaTime) {
         
         // Update all the birds
         for (var i = 0; i < numBirds; i++) {
+            print("Updating");
             particleID = birdParticleIDs[i];
             var properties = Particles.getParticleProperties(particleID);
 
@@ -214,6 +216,7 @@ function updateBirds(deltaTime) {
             
             // Update the particle
             Particles.editParticle(particleID, properties);
+            print("Updated yay");
         }
     }
 }
