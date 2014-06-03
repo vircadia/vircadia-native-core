@@ -20,7 +20,8 @@
 #include "ui/Stats.h"
 
 ApplicationOverlay::ApplicationOverlay() : _framebufferObject(NULL),
-                                           _oculusAngle(65.0f * RADIANS_PER_DEGREE) {
+                                           _oculusAngle(65.0f * RADIANS_PER_DEGREE),
+                                           _distance(0.5f){
 
 }
 
@@ -273,9 +274,8 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
     // Get vertical FoV of the displayed overlay texture
     const float halfVerticalAngle = _oculusAngle / 2.0f;
-    const float overlayDistance = 1.0;
     const float overlayAspectRatio = glWidget->width() / (float)glWidget->height();
-    const float halfOverlayHeight = overlayDistance * tan(halfVerticalAngle);
+    const float halfOverlayHeight = _distance * tan(halfVerticalAngle);
 
     // The more vertices, the better the curve
     const int numHorizontalVertices = 20;
@@ -325,10 +325,10 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     for (int i = 0; i < numHorizontalVertices-1; i++) {
 
         // Calculate the X and Z coordinates from the angles and radius from camera
-        leftX = sin(angleIncrement * i - halfHorizontalAngle) * overlayDistance;
-        rightX = sin(angleIncrement * (i + 1) - halfHorizontalAngle) * overlayDistance;
-        leftZ = -cos(angleIncrement * i - halfHorizontalAngle) * overlayDistance;
-        rightZ = -cos(angleIncrement * (i + 1) - halfHorizontalAngle) * overlayDistance;
+        leftX = sin(angleIncrement * i - halfHorizontalAngle) * _distance;
+        rightX = sin(angleIncrement * (i + 1) - halfHorizontalAngle) * _distance;
+        leftZ = -cos(angleIncrement * i - halfHorizontalAngle) * _distance;
+        rightZ = -cos(angleIncrement * (i + 1) - halfHorizontalAngle) * _distance;
 
         glTexCoord2f(quadTexWidth * i, 1); glVertex3f(leftX, halfOverlayHeight, leftZ);
         glTexCoord2f(quadTexWidth * (i + 1), 1); glVertex3f(rightX,  halfOverlayHeight, rightZ);

@@ -38,6 +38,7 @@ private:
     QOpenGLFramebufferObject* _framebufferObject;
     float _trailingAudioLoudness;
     float _oculusAngle;
+    float _distance;
 };
 
 #endif // hifi_ApplicationOverlay_h
