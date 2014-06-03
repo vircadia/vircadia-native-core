@@ -2112,26 +2112,6 @@ void JointState::clearTransformTranslation() {
     _transformInModelFrame[3][2] = 0.0f;
 }
 
-void JointState::applyRotationDelta(const glm::quat& delta, bool constrain, float priority) {
-    assert(_fbxJoint != NULL);
-    if (priority < _animationPriority) {
-        return;
-    }
-    _animationPriority = priority;
-    if (!constrain || (_fbxJoint->rotationMin == glm::vec3(-PI, -PI, -PI) &&
-            _fbxJoint->rotationMax == glm::vec3(PI, PI, PI))) {
-        // no constraints
-        _rotation = _rotation * glm::inverse(_combinedRotation) * delta * _combinedRotation;
-        _combinedRotation = delta * _combinedRotation;
-        return;
-    }
-    glm::quat targetRotation = delta * _combinedRotation;
-    glm::vec3 eulers = safeEulerAngles(_rotation * glm::inverse(_combinedRotation) * targetRotation);
-    glm::quat newRotation = glm::quat(glm::clamp(eulers, _fbxJoint->rotationMin, _fbxJoint->rotationMax));
-    _combinedRotation = _combinedRotation * glm::inverse(_rotation) * newRotation;
-    _rotation = newRotation;
-}
-
 void JointState::applyRotationDeltaInModelFrame(const glm::quat& delta, bool constrain, float priority) {
     assert(_fbxJoint != NULL);
     if (priority < _animationPriority) {
