@@ -48,6 +48,10 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     BandwidthMeter* bandwidthMeter = application->getBandwidthMeter();
     NodeBounds& nodeBoundsDisplay = application->getNodeBoundsDisplay();
 
+    int mouseX = application->getMouseX();
+    int mouseY = application->getMouseY();
+    bool renderPointer = renderToTexture;
+
     if (renderToTexture) {
         getFramebufferObject()->bind();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -223,6 +227,34 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
 
     overlays.render2D();
 
+    // Render a crosshair over the pointer when in Oculus
+    if (renderPointer) {
+        const float pointerWidth = 10;
+        const float pointerHeight = 10;
+        const float crossPad = 4;
+
+        mouseX -= pointerWidth / 2.0f;
+        mouseY += pointerHeight / 2.0f;
+
+        glBegin(GL_QUADS);
+       
+        glColor3f(1, 0, 0);
+        
+        //Horizontal crosshair
+        glVertex2i(mouseX, mouseY - crossPad);
+        glVertex2i(mouseX + pointerWidth, mouseY - crossPad);
+        glVertex2i(mouseX + pointerWidth, mouseY - pointerHeight + crossPad);
+        glVertex2i(mouseX, mouseY - pointerHeight + crossPad);
+
+        //Vertical crosshair
+        glVertex2i(mouseX + crossPad, mouseY);
+        glVertex2i(mouseX + pointerWidth - crossPad, mouseY);
+        glVertex2i(mouseX + pointerWidth - crossPad, mouseY - pointerHeight);
+        glVertex2i(mouseX + crossPad, mouseY - pointerHeight);
+      
+        glEnd();
+    }
+
     glPopMatrix();
 
     glMatrixMode(GL_MODELVIEW);
@@ -264,6 +296,15 @@ void ApplicationOverlay::displayOverlayTexture(Camera& whichCamera) {
     glDisable(GL_TEXTURE_2D);
 }
 
+// Fast helper functions
+inline float max(float a, float b) {
+    return (a > b) ? a : b;
+}
+
+inline float min(float a, float b) {
+    return (a < b) ? a : b;
+}
+
 // Draws the FBO texture for Oculus rift. TODO: Draw a curved texture instead of plane.
 void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
@@ -273,8 +314,17 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     MyAvatar* myAvatar = application->getAvatar();
     const glm::vec3& viewMatrixTranslation = application->getViewMatrixTranslation();
 
+    int mouseX = application->getMouseX();
+    int mouseY = application->getMouseY();
+    int widgetWidth = glWidget->width();
+    int widgetHeight = glWidget->height();
+    float magnifyWidth = 80.0f;
+    float magnifyHeight = 60.0f;
+    const float magnification = 4.0f;
+
     // Get vertical FoV of the displayed overlay texture
     const float halfVerticalAngle = _oculusAngle / 2.0f;
+    const float verticalAngle = halfVerticalAngle * 2.0f;
     const float overlayAspectRatio = glWidget->width() / (float)glWidget->height();
     const float halfOverlayHeight = _distance * tan(halfVerticalAngle);
 
@@ -290,12 +340,11 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
     glActiveTexture(GL_TEXTURE0);
 
-    glDepthMask(GL_FALSE);
+   
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
     glBindTexture(GL_TEXTURE_2D, getFramebufferObject()->texture());
-    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
     glEnable(GL_TEXTURE_2D);
 
@@ -316,12 +365,79 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
    
     glTranslatef(pos.x, pos.y, pos.z);
     glRotatef(glm::degrees(glm::angle(rot)), axis.x, axis.y, axis.z);
-    
-    float leftX, rightX, leftZ, rightZ;
 
     glColor3f(1.0f, 1.0f, 1.0f);
+
+    glDepthMask(GL_TRUE);
+    
+    glEnable(GL_ALPHA_TEST);
+    glAlphaFunc(GL_GREATER, 0.01f);
+
+    //Draw the magnifying glass
+
+    mouseX -= magnifyWidth / 2;
+    mouseY -= magnifyHeight / 2;
+
+    //clamp the magnification
+    if (mouseX < 0) {
+        magnifyWidth += mouseX;
+        mouseX = 0;
+    } else if (mouseX + magnifyWidth > widgetWidth) {
+        magnifyWidth = widgetWidth - mouseX;
+    }
+    if (mouseY < 0) {
+        magnifyHeight += mouseY;
+        mouseY = 0;
+    } else if (mouseY + magnifyHeight > widgetHeight) {
+        magnifyHeight = widgetHeight - mouseY;
+    }
+
+    float newWidth = magnifyWidth * magnification;
+    float newHeight = magnifyHeight * magnification;
+    float tmp;
+
+    // Magnification Texture Coordinates
+    float magnifyULeft = mouseX / (float)widgetWidth;
+    float magnifyURight = (mouseX + magnifyWidth) / (float)widgetWidth;
+    float magnifyVBottom = 1.0f - mouseY / (float)widgetHeight;
+    float magnifyVTop = 1.0f - (mouseY + magnifyHeight) / (float)widgetHeight;
+
+    // Coordinates of magnification overlay
+    float newMouseX = (mouseX + magnifyWidth / 2) - newWidth / 2.0f;
+    float newMouseY = (mouseY + magnifyHeight / 2) + newHeight / 2.0f;
+
+    // Get angle on the UI
+    float leftAngle = (newMouseX / (float)widgetWidth) * horizontalAngle - halfHorizontalAngle;
+    float rightAngle = ((newMouseX + newWidth) / (float)widgetWidth) * horizontalAngle - halfHorizontalAngle;
+   
+    float halfMagnifyHeight = magnifyHeight / 2.0f;
+
+    float leftX, rightX, leftZ, rightZ;
+    
+    // Get position on hemisphere using angle
+    leftX = sin(leftAngle) * _distance;
+    rightX = sin(rightAngle) * _distance;
+    leftZ = -cos(leftAngle) * _distance;
+    rightZ = -cos(rightAngle) * _distance;
+    
+    float bottomY = (1.0 - newMouseY / (float)widgetHeight) * halfOverlayHeight * 2.0f - halfOverlayHeight;
+    float topY = bottomY + (newHeight / widgetHeight) * halfOverlayHeight * 2;
+
+    //TODO: Remove immediate mode in favor of VBO
     glBegin(GL_QUADS);
 
+    glTexCoord2f(magnifyULeft, magnifyVBottom); glVertex3f(leftX, topY, leftZ);
+    glTexCoord2f(magnifyURight, magnifyVBottom); glVertex3f(rightX, topY, rightZ);
+    glTexCoord2f(magnifyURight, magnifyVTop); glVertex3f(rightX, bottomY, rightZ);
+    glTexCoord2f(magnifyULeft, magnifyVTop); glVertex3f(leftX, bottomY, leftZ);
+
+    glEnd();
+
+    glDepthMask(GL_FALSE);   
+    glDisable(GL_ALPHA_TEST);
+
+    //TODO: Remove immediate mode in favor of VBO
+    glBegin(GL_QUADS);
     // Place the vertices in a semicircle curve around the camera
     for (int i = 0; i < numHorizontalVertices-1; i++) {
 
@@ -336,12 +452,12 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
         glTexCoord2f(quadTexWidth * (i + 1), 0); glVertex3f(rightX, -halfOverlayHeight, rightZ);
         glTexCoord2f(quadTexWidth * i, 0); glVertex3f(leftX, -halfOverlayHeight, leftZ);
     }
-
+    
     glEnd();
 
     glPopMatrix();
 
-    glEnable(GL_DEPTH_TEST);
+    
     glDepthMask(GL_TRUE);
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_TEXTURE_2D);
