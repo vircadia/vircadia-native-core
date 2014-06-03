@@ -45,22 +45,14 @@ public:
     /// \return true whether or not the position was found
     bool getLeftHandPosition(glm::vec3& position) const;
     
-    /// Retrieve the rotation of the left hand
-    /// \return true whether or not the rotation was found
-    bool getLeftHandRotation(glm::quat& rotation) const;
-    
     /// Retrieve the position of the right hand
     /// \return true whether or not the position was found
     bool getRightHandPosition(glm::vec3& position) const;
     
-    /// Retrieve the rotation of the right hand
-    /// \return true whether or not the rotation was found
-    bool getRightHandRotation(glm::quat& rotation) const;
-    
-    /// Restores some percentage of the default position of the left hand.
-    /// \param percent the percentage of the default position to restore
+    /// Restores some fraction of the default position of the left hand.
+    /// \param fraction the fraction of the default position to restore
     /// \return whether or not the left hand joint was found
-    bool restoreLeftHandPosition(float percent = 1.0f, float priority = 1.0f);
+    bool restoreLeftHandPosition(float fraction = 1.0f, float priority = 1.0f);
     
     /// Gets the position of the left shoulder.
     /// \return whether or not the left shoulder joint was found
@@ -69,10 +61,10 @@ public:
     /// Returns the extended length from the left hand to its last free ancestor.
     float getLeftArmLength() const;
     
-    /// Restores some percentage of the default position of the right hand.
-    /// \param percent the percentage of the default position to restore
+    /// Restores some fraction of the default position of the right hand.
+    /// \param fraction the fraction of the default position to restore
     /// \return whether or not the right hand joint was found
-    bool restoreRightHandPosition(float percent = 1.0f, float priority = 1.0f);
+    bool restoreRightHandPosition(float fraction = 1.0f, float priority = 1.0f);
     
     /// Gets the position of the right shoulder.
     /// \return whether or not the right shoulder joint was found

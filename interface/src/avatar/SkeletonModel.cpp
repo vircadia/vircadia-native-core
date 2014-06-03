@@ -45,7 +45,8 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
             }
             int jointIndex = geometry.humanIKJointIndices.at(humanIKJointIndex);
             if (jointIndex != -1) {
-                setJointRotation(jointIndex, _rotation * prioVR->getJointRotations().at(i), PALM_PRIORITY);
+                JointState& state = _jointStates[jointIndex];
+                state.setRotation(_rotation * prioVR->getJointRotations().at(i), PALM_PRIORITY);
             }
         }
         return;
@@ -131,7 +132,7 @@ bool operator<(const IndexValue& firstIndex, const IndexValue& secondIndex) {
 }
 
 void SkeletonModel::applyHandPosition(int jointIndex, const glm::vec3& position) {
-    if (jointIndex == -1) {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return;
     }
     setJointPosition(jointIndex, position, glm::quat(), false, -1, false, glm::vec3(0.0f, -1.0f, 0.0f), PALM_PRIORITY);
@@ -145,17 +146,16 @@ void SkeletonModel::applyHandPosition(int jointIndex, const glm::vec3& position)
     if (forearmLength < EPSILON) {
         return;
     }
-    glm::quat handRotation;
-    getJointRotation(jointIndex, handRotation, true);
+    JointState& state = _jointStates[jointIndex];
+    glm::quat handRotation = state.getJointRotation(true);
 
     // align hand with forearm
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
-    applyRotationDelta(jointIndex, rotationBetween(handRotation * glm::vec3(-sign, 0.0f, 0.0f),
-        forearmVector), true, PALM_PRIORITY);
+    state.applyRotationDelta(rotationBetween(handRotation * glm::vec3(-sign, 0.0f, 0.0f), forearmVector), true, PALM_PRIORITY);
 }
 
 void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
-    if (jointIndex == -1) {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return;
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -169,9 +169,11 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
     glm::quat palmRotation;
     if (!Menu::getInstance()->isOptionChecked(MenuOption::AlternateIK) &&
             Menu::getInstance()->isOptionChecked(MenuOption::AlignForearmsWithWrists)) {
-        getJointRotation(parentJointIndex, palmRotation, true);
+        JointState parentState = _jointStates[parentJointIndex];
+        palmRotation = parentState.getJointRotation(true);
     } else {
-        getJointRotation(jointIndex, palmRotation, true);
+        JointState state = _jointStates[jointIndex];
+        palmRotation = state.getJointRotation(true);
     }
     palmRotation = rotationBetween(palmRotation * geometry.palmDirection, palm.getNormal()) * palmRotation;
     
@@ -188,7 +190,9 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
         setJointPosition(parentJointIndex, palm.getPosition() + forearmVector *
             geometry.joints.at(jointIndex).distanceToParent * extractUniformScale(_scale),
             glm::quat(), false, -1, false, glm::vec3(0.0f, -1.0f, 0.0f), PALM_PRIORITY);
-        setJointRotation(parentJointIndex, palmRotation, PALM_PRIORITY);
+        JointState& parentState = _jointStates[parentJointIndex];
+        parentState.setRotation(palmRotation, PALM_PRIORITY);
+        // slam parent-relative rotation to identity
         _jointStates[jointIndex]._rotation = glm::quat();
         
     } else {
@@ -229,7 +233,7 @@ void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, const
     }
     // get the rotation axes in joint space and use them to adjust the rotation
     glm::mat3 axes = glm::mat3_cast(_rotation);
-    glm::mat3 inverse = glm::mat3(glm::inverse(parentState._transform * glm::translate(state._translation) * 
+    glm::mat3 inverse = glm::mat3(glm::inverse(parentState._transform * glm::translate(state.getDefaultTranslationInParentFrame()) *
         joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation)));
     state._rotation = glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanSideways(), 
         glm::normalize(inverse * axes[2])) * glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanForward(), 
@@ -245,7 +249,7 @@ void SkeletonModel::maybeUpdateEyeRotation(const JointState& parentState, const 
 }
 
 void SkeletonModel::renderJointConstraints(int jointIndex) {
-    if (jointIndex == -1) {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return;
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -351,36 +355,29 @@ void SkeletonModel::setHandPosition(int jointIndex, const glm::vec3& position, c
     
     // ik solution
     glm::vec3 elbowPosition = shoulderPosition + glm::normalize(shoulderToWrist) * mid - tangent * height;
-    
     glm::vec3 forwardVector(rightHand ? -1.0f : 1.0f, 0.0f, 0.0f);
-    
     glm::quat shoulderRotation = rotationBetween(forwardVector, elbowPosition - shoulderPosition);
-    setJointRotation(shoulderJointIndex, shoulderRotation, PALM_PRIORITY);
+
+    JointState& shoulderState = _jointStates[shoulderJointIndex];
+    shoulderState.setRotation(shoulderRotation, PALM_PRIORITY);
     
-    setJointRotation(elbowJointIndex, rotationBetween(shoulderRotation * forwardVector,
-        wristPosition - elbowPosition) * shoulderRotation, PALM_PRIORITY);
+    JointState& elbowState = _jointStates[elbowJointIndex];
+    elbowState.setRotation(rotationBetween(shoulderRotation * forwardVector, wristPosition - elbowPosition) * shoulderRotation, PALM_PRIORITY);
     
-    setJointRotation(jointIndex, rotation, PALM_PRIORITY);
+    JointState& handState = _jointStates[jointIndex];
+    handState.setRotation(rotation, PALM_PRIORITY);
 }
     
 bool SkeletonModel::getLeftHandPosition(glm::vec3& position) const {
     return getJointPosition(getLeftHandJointIndex(), position);
 }
 
-bool SkeletonModel::getLeftHandRotation(glm::quat& rotation) const {
-    return getJointRotation(getLeftHandJointIndex(), rotation);
-}
-
 bool SkeletonModel::getRightHandPosition(glm::vec3& position) const {
     return getJointPosition(getRightHandJointIndex(), position);
 }
 
-bool SkeletonModel::getRightHandRotation(glm::quat& rotation) const {
-    return getJointRotation(getRightHandJointIndex(), rotation);
-}
-
-bool SkeletonModel::restoreLeftHandPosition(float percent, float priority) {
-    return restoreJointPosition(getLeftHandJointIndex(), percent, priority);
+bool SkeletonModel::restoreLeftHandPosition(float fraction, float priority) {
+    return restoreJointPosition(getLeftHandJointIndex(), fraction, priority);
 }
 
 bool SkeletonModel::getLeftShoulderPosition(glm::vec3& position) const {
@@ -391,8 +388,8 @@ float SkeletonModel::getLeftArmLength() const {
     return getLimbLength(getLeftHandJointIndex());
 }
 
-bool SkeletonModel::restoreRightHandPosition(float percent, float priority) {
-    return restoreJointPosition(getRightHandJointIndex(), percent, priority);
+bool SkeletonModel::restoreRightHandPosition(float fraction, float priority) {
+    return restoreJointPosition(getRightHandJointIndex(), fraction, priority);
 }
 
 bool SkeletonModel::getRightShoulderPosition(glm::vec3& position) const {

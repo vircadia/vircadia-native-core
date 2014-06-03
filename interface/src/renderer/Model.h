@@ -38,11 +38,24 @@ public:
     void setFBXJoint(const FBXJoint* joint); 
     const FBXJoint& getFBXJoint() const { return *_fbxJoint; }
 
-    void updateWorldTransform(const glm::mat4& baseTransform, const glm::quat& parentRotation);
-
     void copyState(const JointState& state);
 
-    glm::vec3 _translation;  // translation relative to parent
+    /// computes new _transform and _combinedRotation
+    void computeTransforms(const glm::mat4& baseTransform, const glm::quat& baseRotation);
+
+    /// \return rotation from the joint's default (or bind) frame to world frame
+    glm::quat getJointRotation(bool fromBind = false) const;
+
+    void applyRotationDelta(const glm::quat& delta, bool constrain = true, float priority = 1.0f);
+
+    const glm::vec3& getDefaultTranslationInParentFrame() const;
+
+    void restoreRotation(float fraction, float priority);
+
+    /// \param rotation is from bind- to world-frame
+    /// computes parent relative _rotation and sets that
+    void setRotation(const glm::quat& rotation, float priority);
+
     glm::quat _rotation;     // rotation relative to parent
     glm::mat4 _transform;    // rotation to world frame + translation in model frame
     glm::quat _combinedRotation; // rotation from joint local to world frame
@@ -234,22 +247,17 @@ protected:
     bool setJointPosition(int jointIndex, const glm::vec3& translation, const glm::quat& rotation = glm::quat(),
         bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
         const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
-    bool setJointRotation(int jointIndex, const glm::quat& rotation, float priority = 1.0f);
-    
-    void setJointTranslation(int jointIndex, const glm::vec3& translation);
     
     /// Restores the indexed joint to its default position.
-    /// \param percent the percentage of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
+    /// \param fraction the fraction of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
     /// the original position
     /// \return true if the joint was found
-    bool restoreJointPosition(int jointIndex, float percent = 1.0f, float priority = 0.0f);
+    bool restoreJointPosition(int jointIndex, float fraction = 1.0f, float priority = 0.0f);
     
     /// Computes and returns the extended length of the limb terminating at the specified joint and starting at the joint's
     /// first free ancestor.
     float getLimbLength(int jointIndex) const;
 
-    void applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain = true, float priority = 1.0f);
-    
     void computeBoundingShape(const FBXGeometry& geometry);
 
 private:
