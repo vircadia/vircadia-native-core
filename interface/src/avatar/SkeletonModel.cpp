@@ -63,7 +63,8 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
             restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
         } else {
-            applyHandPosition(geometry.rightHandJointIndex, _owningAvatar->getHandPosition());
+            glm::vec3 handPosition = glm::inverse(_rotation) * (_owningAvatar->getHandPosition() - _translation);
+            applyHandPositionInModelFrame(geometry.rightHandJointIndex, handPosition);
         }
         restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
 
@@ -152,6 +153,29 @@ void SkeletonModel::applyHandPosition(int jointIndex, const glm::vec3& position)
     // align hand with forearm
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
     state.applyRotationDelta(rotationBetween(handRotation * glm::vec3(-sign, 0.0f, 0.0f), forearmVector), true, PALM_PRIORITY);
+}
+
+void SkeletonModel::applyHandPositionInModelFrame(int jointIndex, const glm::vec3& position) {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+        return;
+    }
+    setJointPositionInModelFrame(jointIndex, position, glm::quat(), false, -1, false, glm::vec3(0.0f, -1.0f, 0.0f), PALM_PRIORITY);
+
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    glm::vec3 handPosition, elbowPosition;
+    getJointPositionInModelFrame(jointIndex, handPosition);
+    getJointPositionInModelFrame(geometry.joints.at(jointIndex).parentIndex, elbowPosition);
+    glm::vec3 forearmVector = handPosition - elbowPosition;
+    float forearmLength = glm::length(forearmVector);
+    if (forearmLength < EPSILON) {
+        return;
+    }
+    JointState& state = _jointStates[jointIndex];
+    glm::quat handRotation = state.getRotationInModelFrame();
+
+    // align hand with forearm
+    float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
+    state.applyRotationDeltaInModelFrame(rotationBetween(handRotation * glm::vec3(-sign, 0.0f, 0.0f), forearmVector), true, PALM_PRIORITY);
 }
 
 void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {

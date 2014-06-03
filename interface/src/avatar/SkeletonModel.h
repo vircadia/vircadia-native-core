@@ -92,6 +92,7 @@ public:
 protected:
 
     void applyHandPosition(int jointIndex, const glm::vec3& position);
+    void applyHandPositionInModelFrame(int jointIndex, const glm::vec3& position);
     
     void applyPalmData(int jointIndex, PalmData& palm);
     void applyPalmDataInModelFrame(int jointIndex, PalmData& palm);
