@@ -149,7 +149,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         int piggyBackSize = nodeData->getPacketLength() + statsMessageLength;
 
         // If the size of the stats message and the voxel message will fit in a packet, then piggyback them
-        if (piggyBackSize < MAX_PACKET_SIZE) {
+if (false && piggyBackSize < MAX_PACKET_SIZE) {
 
             // copy voxel message to back of stats message
             memcpy(statsMessage + statsMessageLength, nodeData->getPacket(), nodeData->getPacketLength());

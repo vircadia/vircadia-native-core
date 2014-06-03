@@ -15,6 +15,9 @@
 #include <QTranslator>
 #include <SharedUtil.h>
 
+// DEBUG!!!!!!
+#include "DatagramProcessor.h"
+
 int main(int argc, const char * argv[]) {
     QElapsedTimer startupTime;
     startupTime.start();
@@ -43,5 +46,25 @@ int main(int argc, const char * argv[]) {
         exitCode = app.exec();
     }
     qDebug("Normal exit.");
+
+int s = 0;
+for (int i = 0; i < DatagramProcessor::I; i++) {
+
+    switch (DatagramProcessor::diffsI[i]) {
+    case -2:
+        printf("\nskew: %d\n", DatagramProcessor::skewsI[s++]);
+        printf("prev:::::::::::::::::::::::::::::::\n");
+        break;
+    case -1:
+        printf("curr:::::::::::::::::::::::::::::::\n");
+        break;
+    default:
+        printf("\t type: %d  diff: %d\n", DatagramProcessor::typesI[i], DatagramProcessor::diffsI[i]);
+        break;
+    }
+}
+
+
+
     return exitCode;
 }   

@@ -25,7 +25,39 @@ DatagramProcessor::DatagramProcessor(QObject* parent) :
     
 }
 
+
+// DEBUG
+
+int DatagramProcessor::skewsI[10000];
+int DatagramProcessor::S = 0;
+
+unsigned char DatagramProcessor::typesI[10000];
+int DatagramProcessor::diffsI[10000];
+int DatagramProcessor::I = 0;
+
+
+
+quint64 DatagramProcessor::prevTime = 0;
+
+unsigned char DatagramProcessor::typesA[100];
+quint64 DatagramProcessor::timesA[100];
+int DatagramProcessor::A = 1;
+
+unsigned char DatagramProcessor::typesB[100];
+quint64 DatagramProcessor::timesB[100];
+int DatagramProcessor::B = 1;
+
+unsigned char* DatagramProcessor::currTypes = typesA;
+unsigned char* DatagramProcessor::prevTypes = typesB;
+quint64* DatagramProcessor::currTimes = timesA;
+quint64* DatagramProcessor::prevTimes = timesB;
+int* DatagramProcessor::currN = &A;
+int* DatagramProcessor::prevN = &B;
+
+
+
 void DatagramProcessor::processDatagrams() {
+
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "DatagramProcessor::processDatagrams()");
     
@@ -35,6 +67,30 @@ void DatagramProcessor::processDatagrams() {
     
     Application* application = Application::getInstance();
     NodeList* nodeList = NodeList::getInstance();
+
+
+
+prevTime = prevTimes[*prevN-1];
+
+// swap
+unsigned char* temp = currTypes;
+currTypes = prevTypes;
+prevTypes = temp;
+// swap
+quint64* temp2 = currTimes;
+currTimes = prevTimes;
+prevTimes = temp2;
+// swap
+int* temp3 = currN;
+currN = prevN;
+prevN = temp3;
+
+// reset
+*currN = 0;
+
+int skew = 0;
+
+
     
     while (NodeList::getInstance()->getNodeSocket().hasPendingDatagrams()) {
         incomingPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());
@@ -45,8 +101,15 @@ void DatagramProcessor::processDatagrams() {
         _byteCount += incomingPacket.size();
         
         if (nodeList->packetVersionAndHashMatch(incomingPacket)) {
+
+PacketType type = packetTypeForPacket(incomingPacket);
+currTimes[*currN] = usecTimestampNow();
+currTypes[*currN] = (unsigned char)type;
+(*currN)++;
+
+
             // only process this packet if we have a match on the packet version
-            switch (packetTypeForPacket(incomingPacket)) {
+            switch (type) { //packetTypeForPacket(incomingPacket)) {
                 case PacketTypeMixedAudio:
                     QMetaObject::invokeMethod(&application->_audio, "addReceivedAudioToBuffer", Qt::QueuedConnection,
                                               Q_ARG(QByteArray, incomingPacket));
@@ -146,9 +209,54 @@ void DatagramProcessor::processDatagrams() {
                     break;
                 }
                 default:
-                    nodeList->processNodeData(senderSockAddr, incomingPacket);
+                    int s = nodeList->processNodeData(senderSockAddr, incomingPacket);
+                    if (s!=1234567890)
+                        skew = s;
                     break;
             }
         }
     }
+
+    if (abs(skew) > 1000) {
+
+        printf("large skew! %d ----------------------------\n", skew);
+
+        skewsI[S++] = skew;
+
+        /*
+        printf("prev:::::::::::::::::::::::::::::::::::::\n");
+
+        printf("\t type: %d  time: %llu  diff: %llu\n", prevTypes[0], prevTimes[0] % 100000000, prevTimes[0] - prevTime);
+        for (int i = 1; i < *prevN; i++) {
+            printf("\t type: %d  time: %llu  diff: %llu\n", prevTypes[i], prevTimes[i] % 100000000, prevTimes[i] - prevTimes[i - 1]);
+        }
+
+        printf("curr:::::::::::::::::::::::::::::::::::::\n");
+
+        printf("\t type: %d  time: %llu  diff: %llu\n", currTypes[0], currTimes[0] % 100000000, currTimes[0] - prevTimes[*prevN - 1]);
+        for (int i = 1; i < *currN; i++) {
+            printf("\t type: %d  time: %llu  diff: %llu\n", currTypes[i], currTimes[i] % 100000000, currTimes[i] - currTimes[i - 1]);
+        }*/
+
+        diffsI[I++] = -2;   // prev marker
+
+        typesI[I] = prevTypes[0];
+        diffsI[I++] = prevTimes[0] - prevTime;
+        for (int i = 1; i < *prevN; i++) {
+            typesI[I] = prevTypes[i];
+            diffsI[I++] = prevTimes[i] - prevTimes[i - 1];
+        }
+
+
+        diffsI[I++] = -1;   // curr marker
+
+        typesI[I] = currTypes[0];
+        diffsI[I++] = currTimes[0] - prevTimes[*prevN - 1];
+        for (int i = 1; i < *currN; i++) {
+            typesI[I] = currTypes[i];
+            diffsI[I++] = currTimes[i] - currTimes[i - 1];
+        }
+    }
+
+    skew = 0;
 }

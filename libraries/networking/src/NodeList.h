@@ -63,7 +63,7 @@ public:
     void addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes);
     void resetNodeInterestSet() { _nodeTypesOfInterest.clear(); }
 
-    void processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
+int processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
     
     int processDomainServerList(const QByteArray& packet);
 
@@ -95,7 +95,7 @@ private:
     void processDomainServerAuthRequest(const QByteArray& packet);
     void requestAuthForDomainServer();
     void activateSocketFromNodeCommunication(const QByteArray& packet, const SharedNodePointer& sendingNode);
-    void timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode);
+int timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode);
     
     NodeType_t _ownerType;
     NodeSet _nodeTypesOfInterest;
