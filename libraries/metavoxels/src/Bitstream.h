@@ -804,6 +804,21 @@ private:
     QMetaProperty _property;
 };
 
+/// Contains the information necessary to obtain an object property and write it to the stream.
+class PropertyWriter {
+public:
+
+    PropertyWriter(const QMetaProperty& property = QMetaProperty(), const TypeStreamer* streamer = NULL);
+
+    void write(Bitstream& out, const QObject* object) const;
+    void writeDelta(Bitstream& out, const QObject* object, const QObject* reference) const;
+
+private:
+    
+    QMetaProperty _property;
+    const TypeStreamer* _streamer;
+};
+
 /// Describes a metatype field.
 class MetaField {
 public:

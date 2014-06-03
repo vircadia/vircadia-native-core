@@ -51,6 +51,29 @@ static QByteArray createRandomBytes() {
     return createRandomBytes(MIN_BYTES, MAX_BYTES);
 }
 
+static TestSharedObjectA::TestEnum getRandomTestEnum() {
+    switch (randIntInRange(0, 2)) {
+        case 0: return TestSharedObjectA::FIRST_TEST_ENUM;
+        case 1: return TestSharedObjectA::SECOND_TEST_ENUM;
+        case 2:
+        default: return TestSharedObjectA::THIRD_TEST_ENUM;
+    }
+}
+
+static TestSharedObjectA::TestFlags getRandomTestFlags() {
+    TestSharedObjectA::TestFlags flags = 0;
+    if (randomBoolean()) {
+        flags |= TestSharedObjectA::FIRST_TEST_FLAG;
+    }
+    if (randomBoolean()) {
+        flags |= TestSharedObjectA::SECOND_TEST_FLAG;
+    }
+    if (randomBoolean()) {
+        flags |= TestSharedObjectA::THIRD_TEST_FLAG;
+    }
+    return flags;
+}
+
 static TestMessageC createRandomMessageC() {
     TestMessageC message;
     message.foo = randomBoolean();
@@ -64,7 +87,7 @@ static bool testSerialization(Bitstream::MetadataType metadataType) {
     QByteArray array;
     QDataStream outStream(&array, QIODevice::WriteOnly);
     Bitstream out(outStream, metadataType);
-    SharedObjectPointer testObjectWrittenA = new TestSharedObjectA(randFloat());
+    SharedObjectPointer testObjectWrittenA = new TestSharedObjectA(randFloat(), getRandomTestEnum(), getRandomTestFlags());
     out << testObjectWrittenA;
     SharedObjectPointer testObjectWrittenB = new TestSharedObjectB(randFloat(), createRandomBytes());
     out << testObjectWrittenB;
@@ -175,7 +198,7 @@ bool MetavoxelTests::run() {
 
 static SharedObjectPointer createRandomSharedObject() {
     switch (randIntInRange(0, 2)) {
-        case 0: return new TestSharedObjectA(randFloat());
+        case 0: return new TestSharedObjectA(randFloat(), getRandomTestEnum(), getRandomTestFlags());
         case 1: return new TestSharedObjectB();
         case 2:
         default: return SharedObjectPointer();
@@ -393,8 +416,10 @@ void Endpoint::readReliableChannel() {
     streamedBytesReceived += bytes.size();
 }
 
-TestSharedObjectA::TestSharedObjectA(float foo) :
-        _foo(foo) {
+TestSharedObjectA::TestSharedObjectA(float foo, TestEnum baz, TestFlags bong) :
+        _foo(foo),
+        _baz(baz),
+        _bong(bong) {
     sharedObjectsCreated++;    
 }
 

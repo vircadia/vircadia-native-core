@@ -1203,6 +1203,20 @@ void PropertyReader::readDelta(Bitstream& in, QObject* object, const QObject* re
     }
 }
 
+PropertyWriter::PropertyWriter(const QMetaProperty& property, const TypeStreamer* streamer) :
+    _property(property),
+    _streamer(streamer) {
+}
+
+void PropertyWriter::write(Bitstream& out, const QObject* object) const {
+    _streamer->write(out, _property.read(object));
+}
+
+void PropertyWriter::writeDelta(Bitstream& out, const QObject* object, const QObject* reference) const {
+    _streamer->writeDelta(out, _property.read(object), reference && object->metaObject() == reference->metaObject() ?
+        _property.read(reference) : QVariant());
+}
+
 MetaField::MetaField(const QByteArray& name, const TypeStreamer* streamer) :
     _name(name),
     _streamer(streamer) {

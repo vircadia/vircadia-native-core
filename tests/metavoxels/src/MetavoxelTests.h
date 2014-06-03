@@ -70,16 +70,31 @@ private:
 /// A simple shared object.
 class TestSharedObjectA : public SharedObject {
     Q_OBJECT
+    Q_ENUMS(TestEnum)
+    Q_FLAGS(TestFlag TestFlags)
     Q_PROPERTY(float foo READ getFoo WRITE setFoo NOTIFY fooChanged)
+    Q_PROPERTY(TestEnum baz READ getBaz WRITE setBaz)
+    Q_PROPERTY(TestFlags bong READ getBong WRITE setBong)
 
 public:
     
-    Q_INVOKABLE TestSharedObjectA(float foo = 0.0f);
+    enum TestEnum { FIRST_TEST_ENUM, SECOND_TEST_ENUM, THIRD_TEST_ENUM };
+    
+    enum TestFlag { NO_TEST_FLAGS = 0x0, FIRST_TEST_FLAG = 0x01, SECOND_TEST_FLAG = 0x02, THIRD_TEST_FLAG = 0x03 };
+    Q_DECLARE_FLAGS(TestFlags, TestFlag)
+    
+    Q_INVOKABLE TestSharedObjectA(float foo = 0.0f, TestEnum baz = FIRST_TEST_ENUM, TestFlags bong = 0);
     virtual ~TestSharedObjectA();
 
     void setFoo(float foo);
     float getFoo() const { return _foo; }
 
+    void setBaz(TestEnum baz) { _baz = baz; }
+    TestEnum getBaz() const { return _baz; }
+
+    void setBong(TestFlags bong) { _bong = bong; }
+    TestFlags getBong() const { return _bong; }
+    
 signals:
     
     void fooChanged(float foo);    
@@ -87,6 +102,8 @@ signals:
 private:
     
     float _foo;
+    TestEnum _baz;
+    TestFlags _bong;
 };
 
 /// Another simple shared object.
