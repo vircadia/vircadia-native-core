@@ -57,7 +57,9 @@ Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
     _linkedData(NULL),
     _isAlive(true),
     _clockSkewUsec(0),
-    _mutex()
+    _mutex(),
+
+    _clockSkewMovingMedian(31)
 {
     
 }
@@ -131,6 +133,13 @@ float Node::getAverageKilobitsPerSecond() {
     } else {
         return 0;
     }
+}
+
+void Node::setClockSkewUsec(int clockSkew) {
+    //_clockSkewMovingMedian.updateMedian((float)clockSkew);
+    //_clockSkewUsec = (int)_clockSkewMovingMedian.getMedian();
+
+_clockSkewUsec = clockSkew;
 }
 
 QDataStream& operator<<(QDataStream& out, const Node& node) {

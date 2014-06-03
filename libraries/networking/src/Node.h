@@ -24,6 +24,8 @@
 #include "NodeData.h"
 #include "SimpleMovingAverage.h"
 
+#include "MovingMedian.h"
+
 typedef quint8 NodeType_t;
 
 namespace NodeType {
@@ -94,7 +96,7 @@ public:
     void setPingMs(int pingMs) { _pingMs = pingMs; }
 
     int getClockSkewUsec() const { return _clockSkewUsec; }
-    void setClockSkewUsec(int clockSkew) { _clockSkewUsec = clockSkew; }
+    void setClockSkewUsec(int clockSkew);
     QMutex& getMutex() { return _mutex; }
     
     friend QDataStream& operator<<(QDataStream& out, const Node& node);
@@ -120,6 +122,8 @@ private:
     int _pingMs;
     int _clockSkewUsec;
     QMutex _mutex;
+
+    MovingMedian _clockSkewMovingMedian;
 };
 
 QDebug operator<<(QDebug debug, const Node &message);

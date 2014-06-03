@@ -77,7 +77,7 @@ qint64 NodeList::sendStatsToDomainServer(const QJsonObject& statsObject) {
     return writeUnverifiedDatagram(statsPacket, _domainHandler.getSockAddr());
 }
 
-void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode) {
+int NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode) {
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));
     
@@ -97,7 +97,10 @@ void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& 
     
     sendingNode->setPingMs(pingTime / 1000);
     sendingNode->setClockSkewUsec(clockSkew);
-    
+ 
+//printf("\t\t clock skew sample: %d  median: %d\n", clockSkew, sendingNode->getClockSkewUsec());
+
+
     const bool wantDebug = false;
     
     if (wantDebug) {
@@ -110,9 +113,14 @@ void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& 
         "    othersExprectedReply: " << othersExprectedReply << "\n" <<
         "               clockSkew: " << clockSkew;
     }
+
+    if (abs(clockSkew) > 1000)
+    printf("clockskew = %d \n", clockSkew);
+
+return clockSkew;
 }
 
-void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
+int NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
     switch (packetTypeForPacket(packet)) {
         case PacketTypeDomainList: {
             processDomainServerList(packet);
@@ -152,7 +160,8 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
                 activateSocketFromNodeCommunication(packet, sendingNode);
                 
                 // set the ping time for this node for stat collection
-                timePingReply(packet, sendingNode);
+    return timePingReply(packet, sendingNode);
+
             }
             
             break;
@@ -167,6 +176,7 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             LimitedNodeList::processNodeData(senderSockAddr, packet);
             break;
     }
+return 1234567890;
 }
 
 void NodeList::reset() {
