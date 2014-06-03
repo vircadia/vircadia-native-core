@@ -19,9 +19,10 @@
 
 #include "ui/Stats.h"
 
-ApplicationOverlay::ApplicationOverlay() : _framebufferObject(NULL),
-                                           _oculusAngle(65.0f * RADIANS_PER_DEGREE),
-                                           _distance(0.5f){
+ApplicationOverlay::ApplicationOverlay() : 
+    _framebufferObject(NULL),
+    _oculusAngle(65.0f * RADIANS_PER_DEGREE),
+    _distance(0.5f) {
 
 }
 
