@@ -199,7 +199,7 @@ void SkeletonModel::applyPalmDataInModelFrame(int jointIndex, PalmData& palm) {
             glm::quat(), false, -1, false, glm::vec3(0.0f, -1.0f, 0.0f), PALM_PRIORITY);
         JointState& parentState = _jointStates[parentJointIndex];
         parentState.setRotationInModelFrame(palmRotation, PALM_PRIORITY);
-        // slam parent-relative rotation to identity
+        // lock hand to forearm by slamming its rotation (in parent-frame) to identity
         _jointStates[jointIndex]._rotation = glm::quat();
     } else {
         setJointPositionInModelFrame(jointIndex, palmPosition, palmRotation,

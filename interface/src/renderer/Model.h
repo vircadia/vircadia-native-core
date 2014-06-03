@@ -52,8 +52,7 @@ public:
     /// computes new _transform and _combinedRotation
     void computeTransforms(const glm::mat4& baseTransform, const glm::quat& baseRotation);
 
-    /// \return rotation from the joint's default (or bind) frame to world frame
-    glm::quat getJointRotation() const;
+    /// \return rotation from bind to model frame
     glm::quat getRotationFromBindToModelFrame() const;
 
     void applyRotationDelta(const glm::quat& delta, bool constrain = true, float priority = 1.0f);

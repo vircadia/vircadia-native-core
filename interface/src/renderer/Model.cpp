@@ -768,7 +768,7 @@ bool Model::getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) co
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
-    rotation = _jointStates[jointIndex].getJointRotation();
+    rotation = _rotation * _jointStates[jointIndex].getRotationInModelFrame();
     return true;
 }
 
@@ -1313,9 +1313,9 @@ bool Model::setJointPositionInModelFrame(int jointIndex, const glm::vec3& positi
             JointState& state = _jointStates[jointIndex];
 
             // TODO: figure out what this is trying to do and combine it into one JointState method
-            endRotation = state.getJointRotation();
-            state.applyRotationDelta(rotation * glm::inverse(endRotation), true, priority);
-            endRotation = state.getJointRotation();
+            endRotation = state.getRotationInModelFrame();
+            state.applyRotationDeltaInModelFrame(rotation * glm::inverse(endRotation), true, priority);
+            endRotation = state.getRotationInModelFrame();
         }    
         
         // then, we go from the joint upwards, rotating the end as close as possible to the target
@@ -2073,11 +2073,6 @@ void JointState::computeTransforms(const glm::mat4& parentTransform, const glm::
     glm::mat4 modifiedTransform = _fbxJoint->preTransform * glm::mat4_cast(modifiedRotation) * _fbxJoint->postTransform;
     _transform = parentTransform * glm::translate(_fbxJoint->translation) * modifiedTransform;
     _combinedRotation = baseRotation * modifiedRotation;
-}
-
-glm::quat JointState::getJointRotation() const {
-    assert(_fbxJoint != NULL);
-    return _combinedRotation * _fbxJoint->inverseBindRotation;
 }
 
 glm::quat JointState::getRotationFromBindToModelFrame() const {
