@@ -35,6 +35,7 @@ public:
 
 private:
 
+    ProgramObject _textureProgram;
     QOpenGLFramebufferObject* _framebufferObject;
     float _trailingAudioLoudness;
     float _oculusAngle;
