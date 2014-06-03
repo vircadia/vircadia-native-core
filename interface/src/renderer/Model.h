@@ -52,8 +52,8 @@ public:
     /// computes new _transform and _combinedRotation
     void computeTransforms(const glm::mat4& baseTransform, const glm::quat& baseRotation);
 
-    /// \return rotation that moves a vector given in this joint's bind-frame to the model-frame
-    glm::quat getRotationFromBindToModelFrame() const;
+    /// \return rotation from the joint's default (or bind) frame to world frame
+    glm::quat getJointRotation() const;
 
     void applyRotationDelta(const glm::quat& delta, bool constrain = true, float priority = 1.0f);
 
@@ -173,7 +173,7 @@ public:
     int getLastFreeJointIndex(int jointIndex) const;
     
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
-    bool getJointRotationFromBindToWorldFrame(int jointIndex, glm::quat& rotation) const;
+    bool getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
     bool getJointCombinedRotation(int jointIndex, glm::quat& rotation) const;
 
     QStringList getJointNames() const;

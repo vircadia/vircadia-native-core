@@ -756,11 +756,11 @@ bool Model::getJointPosition(int jointIndex, glm::vec3& position) const {
     return true;
 }
 
-bool Model::getJointRotationFromBindToWorldFrame(int jointIndex, glm::quat& rotation) const {
+bool Model::getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
-    rotation = _rotation * _jointStates[jointIndex].getRotationFromBindToModelFrame();
+    rotation = _jointStates[jointIndex].getJointRotation();
     return true;
 }
 
@@ -1227,7 +1227,7 @@ void Model::simulateInternal(float deltaTime) {
         glm::vec3 jointTranslation = _translation;
         glm::quat jointRotation = _rotation;
         getJointPosition(attachment.jointIndex, jointTranslation);
-        getJointRotationFromBindToWorldFrame(attachment.jointIndex, jointRotation);
+        getJointRotationInWorldFrame(attachment.jointIndex, jointRotation);
         
         model->setTranslation(jointTranslation + jointRotation * attachment.translation * _scale);
         model->setRotation(jointRotation * attachment.rotation);
@@ -1306,9 +1306,9 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const
             JointState& state = _jointStates[jointIndex];
 
             // TODO: figure out what this is trying to do and combine it into one JointState method
-            endRotation = _rotation * state.getRotationFromBindToModelFrame();
+            endRotation = state.getJointRotation();
             state.applyRotationDelta(rotation * glm::inverse(endRotation), true, priority);
-            endRotation = _rotation * state.getRotationFromBindToModelFrame();
+            endRotation = state.getJointRotation();
         }    
         
         // then, we go from the joint upwards, rotating the end as close as possible to the target
@@ -2067,8 +2067,9 @@ void JointState::computeTransforms(const glm::mat4& parentTransform, const glm::
     _combinedRotation = baseRotation * modifiedRotation;
 }
 
-glm::quat JointState::getRotationFromBindToModelFrame() const {
-    return _rotationInModelFrame * _fbxJoint->inverseBindRotation;
+glm::quat JointState::getJointRotation() const {
+    assert(_fbxJoint != NULL);
+    return _combinedRotation * _fbxJoint->inverseBindRotation;
 }
 
 void JointState::restoreRotation(float fraction, float priority) {
