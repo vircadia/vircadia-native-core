@@ -54,8 +54,10 @@ public:
 
     /// \return rotation from the joint's default (or bind) frame to world frame
     glm::quat getJointRotation() const;
+    glm::quat getRotationFromBindToModelFrame() const;
 
     void applyRotationDelta(const glm::quat& delta, bool constrain = true, float priority = 1.0f);
+    void applyRotationDeltaInModelFrame(const glm::quat& delta, bool constrain = true, float priority = 1.0f);
 
     const glm::vec3& getDefaultTranslationInParentFrame() const;
 
@@ -65,6 +67,7 @@ public:
     /// computes parent relative _rotation and sets that
     /// \warning no combined transforms are updated!
     void setRotation(const glm::quat& rotation, float priority);
+    void setRotationInModelFrame(const glm::quat& rotation, float priority);
 
     const glm::mat4& getHybridTransform() const { return _transform; }
     //const glm::quat& getRotationInWorldFrame() const { return _combinedRotation; }
@@ -176,6 +179,8 @@ public:
     bool getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
     bool getJointCombinedRotation(int jointIndex, glm::quat& rotation) const;
 
+    bool getJointPositionInModelFrame(int jointIndex, glm::vec3& position) const;
+
     QStringList getJointNames() const;
     
     AnimationHandlePointer createAnimationHandle();
@@ -264,6 +269,10 @@ protected:
     virtual void updateJointState(int index);
     
     bool setJointPosition(int jointIndex, const glm::vec3& translation, const glm::quat& rotation = glm::quat(),
+        bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
+        const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
+
+    bool setJointPositionInModelFrame(int jointIndex, const glm::vec3& translation, const glm::quat& rotation = glm::quat(),
         bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
         const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
     
