@@ -1007,6 +1007,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_At:
                 Menu::getInstance()->goTo();
                 break;
+            case Qt::Key_B:
+                _applicationOverlay.setOculusAngle(_applicationOverlay.getOculusAngle() - RADIANS_PER_DEGREE);
+                break;
+            case Qt::Key_N:
+                _applicationOverlay.setOculusAngle(_applicationOverlay.getOculusAngle() + RADIANS_PER_DEGREE);
+                break;
             default:
                 event->ignore();
                 break;
@@ -1097,7 +1103,8 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 
 
     _lastMouseMove = usecTimestampNow();
-    if (_mouseHidden) {
+
+    if (_mouseHidden && !OculusManager::isConnected) {
         getGLWidget()->setCursor(Qt::ArrowCursor);
         _mouseHidden = false;
         _seenMouseMove = true;
