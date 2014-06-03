@@ -1288,95 +1288,6 @@ void Model::updateJointState(int index) {
     }
 }
 
-bool Model::setJointPosition(int jointIndex, const glm::vec3& translation, const glm::quat& rotation, bool useRotation,
-       int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment, float priority) {
-    if (jointIndex == -1 || _jointStates.isEmpty()) {
-        return false;
-    }
-    glm::vec3 relativePosition = translation - _translation;
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
-    if (freeLineage.isEmpty()) {
-        return false;
-    }
-    if (lastFreeIndex == -1) {
-        lastFreeIndex = freeLineage.last();
-    }
-    
-    // this is a cyclic coordinate descent algorithm: see
-    // http://www.ryanjuckett.com/programming/animation/21-cyclic-coordinate-descent-in-2d
-    const int ITERATION_COUNT = 1;
-    glm::vec3 worldAlignment = _rotation * alignment;
-    for (int i = 0; i < ITERATION_COUNT; i++) {
-        // first, try to rotate the end effector as close as possible to the target rotation, if any
-        glm::quat endRotation;
-        if (useRotation) {
-            JointState& state = _jointStates[jointIndex];
-
-            // TODO: figure out what this is trying to do and combine it into one JointState method
-            endRotation = state.getJointRotation();
-            state.applyRotationDelta(rotation * glm::inverse(endRotation), true, priority);
-            endRotation = state.getJointRotation();
-        }    
-        
-        // then, we go from the joint upwards, rotating the end as close as possible to the target
-        glm::vec3 endPosition = extractTranslation(_jointStates[jointIndex].getHybridTransform());
-        for (int j = 1; freeLineage.at(j - 1) != lastFreeIndex; j++) {
-            int index = freeLineage.at(j);
-            JointState& state = _jointStates[index];
-            const FBXJoint& joint = state.getFBXJoint();
-            if (!(joint.isFree || allIntermediatesFree)) {
-                continue;
-            }
-            glm::vec3 jointPosition = extractTranslation(state.getHybridTransform());
-            glm::vec3 jointVector = endPosition - jointPosition;
-            glm::quat oldCombinedRotation = _rotation * state.getRotationInModelFrame();
-            glm::quat combinedDelta;
-            float combinedWeight;
-            if (useRotation) {
-                combinedDelta = safeMix(rotation * glm::inverse(endRotation),
-                    rotationBetween(jointVector, relativePosition - jointPosition), 0.5f);
-                combinedWeight = 2.0f;
-                
-            } else {
-                combinedDelta = rotationBetween(jointVector, relativePosition - jointPosition);
-                combinedWeight = 1.0f;
-            }
-            if (alignment != glm::vec3() && j > 1) {
-                jointVector = endPosition - jointPosition;
-                glm::vec3 positionSum;
-                for (int k = j - 1; k > 0; k--) {
-                    int index = freeLineage.at(k);
-                    updateJointState(index);
-                    positionSum += extractTranslation(_jointStates.at(index).getHybridTransform());
-                }
-                glm::vec3 projectedCenterOfMass = glm::cross(jointVector,
-                    glm::cross(positionSum / (j - 1.0f) - jointPosition, jointVector));
-                glm::vec3 projectedAlignment = glm::cross(jointVector, glm::cross(worldAlignment, jointVector));
-                const float LENGTH_EPSILON = 0.001f;
-                if (glm::length(projectedCenterOfMass) > LENGTH_EPSILON && glm::length(projectedAlignment) > LENGTH_EPSILON) {
-                    combinedDelta = safeMix(combinedDelta, rotationBetween(projectedCenterOfMass, projectedAlignment),
-                        1.0f / (combinedWeight + 1.0f));
-                }
-            }
-            state.applyRotationDelta(combinedDelta, true, priority);
-            glm::quat actualDelta = _rotation * state.getRotationInModelFrame() * glm::inverse(oldCombinedRotation);
-            endPosition = actualDelta * jointVector + jointPosition;
-            if (useRotation) {
-                endRotation = actualDelta * endRotation;
-            }
-        }       
-    }
-     
-    // now update the joint states from the top
-    for (int j = freeLineage.size() - 1; j >= 0; j--) {
-        updateJointState(freeLineage.at(j));
-    }
-    _shapesAreDirty = true;
-        
-    return true;
-}
-
 bool Model::setJointPositionInModelFrame(int jointIndex, const glm::vec3& position, const glm::quat& rotation, bool useRotation,
        int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment, float priority) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
@@ -1614,9 +1525,10 @@ void Model::applyCollision(CollisionInfo& collision) {
                 axis = glm::normalize(axis);
                 glm::vec3 end;
                 getJointPosition(jointIndex, end);
-                glm::vec3 newEnd = start + glm::angleAxis(angle, axis) * (end - start);
+                // transform into model-frame
+                glm::vec3 newEnd = glm::inverse(_rotation) * (start + glm::angleAxis(angle, axis) * (end - start) - _translation);
                 // try to move it
-                setJointPosition(jointIndex, newEnd, glm::quat(), false, -1, true);
+                setJointPositionInModelFrame(jointIndex, newEnd, glm::quat(), false, -1, true);
             }
         }
     }

@@ -91,10 +91,8 @@ public:
     
 protected:
 
-    void applyHandPosition(int jointIndex, const glm::vec3& position);
     void applyHandPositionInModelFrame(int jointIndex, const glm::vec3& position);
     
-    void applyPalmData(int jointIndex, PalmData& palm);
     void applyPalmDataInModelFrame(int jointIndex, PalmData& palm);
     
     /// Updates the state of the joint at the specified index.
@@ -107,7 +105,6 @@ protected:
 private:
 
     void renderJointConstraints(int jointIndex);
-    void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation);
     void setHandPositionInModelFrame(int jointIndex, const glm::vec3& position, const glm::quat& rotation);
     
     Avatar* _owningAvatar;

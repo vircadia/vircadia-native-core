@@ -176,6 +176,7 @@ public:
     int getLastFreeJointIndex(int jointIndex) const;
     
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
+
     bool getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
     bool getJointCombinedRotation(int jointIndex, glm::quat& rotation) const;
 
@@ -268,10 +269,6 @@ protected:
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);
     
-    bool setJointPosition(int jointIndex, const glm::vec3& translation, const glm::quat& rotation = glm::quat(),
-        bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
-        const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
-
     bool setJointPositionInModelFrame(int jointIndex, const glm::vec3& translation, const glm::quat& rotation = glm::quat(),
         bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
         const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
