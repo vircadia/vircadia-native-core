@@ -987,16 +987,16 @@ void Model::updateShapePositions() {
         glm::vec3 rootPosition(0.0f);
         _boundingRadius = 0.0f;
         float uniformScale = extractUniformScale(_scale);
-        const FBXGeometry& geometry = _geometry->getFBXGeometry();
         for (int i = 0; i < _jointStates.size(); i++) {
-            const FBXJoint& joint = geometry.joints[i];
+            const JointState& state = _jointStates[i];
+            const FBXJoint& joint = state.getFBXJoint();
             // shape position and rotation need to be in world-frame
-            glm::quat rotationInWorldFrame = _rotation * _jointStates[i].getRotationInModelFrame();
-            glm::vec3 jointToShapeOffset = uniformScale * (rotationInWorldFrame * joint.shapePosition);
-            glm::vec3 worldPosition = extractTranslation(_jointStates[i].getHybridTransform()) + jointToShapeOffset + _translation;
+            glm::quat stateRotation = state.getRotationInModelFrame();
+            glm::vec3 shapeOffset = uniformScale * (stateRotation * joint.shapePosition);
+            glm::vec3 worldPosition = _translation + _rotation * (state.getPositionInModelFrame() + shapeOffset);
             Shape* shape = _jointShapes[i];
             shape->setPosition(worldPosition);
-            shape->setRotation(rotationInWorldFrame * joint.shapeRotation);
+            shape->setRotation(_rotation * stateRotation * joint.shapeRotation);
             float distance = glm::distance(worldPosition, _translation) + shape->getBoundingRadius();
             if (distance > _boundingRadius) {
                 _boundingRadius = distance;
@@ -1018,12 +1018,12 @@ bool Model::findRayIntersection(const glm::vec3& origin, const glm::vec3& direct
     float radiusScale = extractUniformScale(_scale);
     for (int i = 0; i < _jointStates.size(); i++) {
         const FBXJoint& joint = geometry.joints[i];
-        glm::vec3 end = extractTranslation(_jointStates[i].getHybridTransform());
+        glm::vec3 end = _jointStates[i].getPositionInWorldFrame(_rotation, _translation);
         float endRadius = joint.boneRadius * radiusScale;
         glm::vec3 start = end;
         float startRadius = joint.boneRadius * radiusScale;
         if (joint.parentIndex != -1) {
-            start = extractTranslation(_jointStates[joint.parentIndex].getHybridTransform());
+            start = _jointStates[joint.parentIndex].getPositionInWorldFrame(_rotation, _translation);
             startRadius = geometry.joints[joint.parentIndex].boneRadius * radiusScale;
         }
         // for now, use average of start and end radii
@@ -1245,12 +1245,13 @@ void Model::simulateInternal(float deltaTime) {
         }
     }
     
+    glm::mat4 modelToWorld = glm::mat4_cast(_rotation);
     for (int i = 0; i < _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
         const FBXMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
-            state.clusterMatrices[j] = _jointStates[cluster.jointIndex].getHybridTransform() * cluster.inverseBindMatrix;
+            state.clusterMatrices[j] = modelToWorld * _jointStates[cluster.jointIndex].getTransformInModelFrame() * cluster.inverseBindMatrix;
         }
     }
     
@@ -2016,11 +2017,6 @@ void AnimationHandle::replaceMatchingPriorities(float newPriority) {
             }
         }
     }
-}
-
-glm::mat4 Model::getBaseTransform(const glm::mat4& geometryOffset) const {
-    //return glm::translate(_translation) * glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset) * geometryOffset;
-    return glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset) * geometryOffset;
 }
 
 // ----------------------------------------------------------------------------

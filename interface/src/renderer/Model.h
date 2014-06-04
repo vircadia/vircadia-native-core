@@ -221,8 +221,6 @@ public:
 
     const CapsuleShape& getBoundingShape() const { return _boundingShape; }
 
-    glm::mat4 getBaseTransform(const glm::mat4& geometryOffset) const;
-
 protected:
 
     QSharedPointer<NetworkGeometry> _geometry;
