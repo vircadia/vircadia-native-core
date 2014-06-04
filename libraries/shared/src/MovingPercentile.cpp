@@ -34,8 +34,7 @@ void MovingPercentile::updatePercentile(float sample) {
         // update _indexOfPercentile
         float index = _percentile * (float)(_samplesSorted.size() - 1);
         _indexOfPercentile = (int)(index + 0.5f);   // round to int
-    }
-    else {
+    } else {
         // find index of sample with id = _newSampleId and replace it with new sample
         newSampleIndex = _sampleIds.indexOf(_newSampleId);
         _samplesSorted[newSampleIndex] = sample;
