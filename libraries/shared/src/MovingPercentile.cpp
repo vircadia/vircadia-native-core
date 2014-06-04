@@ -1,3 +1,13 @@
+//
+//  MovingPercentile.cpp
+//  libraries/shared/src
+//
+//  Created by Yixin Wang on 6/4/2014
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 #include "MovingPercentile.h"
 
 MovingPercentile::MovingPercentile(int numSamples, float percentile)
@@ -23,7 +33,7 @@ void MovingPercentile::updatePercentile(float sample) {
         _sampleAges[i]++;
     }
 
-    // find index in _samplesSorted to insert new sample.
+    // find index at which to insert new sample in _samplesSorted
     int newSampleIndex;
     if (_numExistingSamples < _numSamples) {
         // if samples have not been filled yet, this will be the next empty spot
@@ -40,7 +50,7 @@ void MovingPercentile::updatePercentile(float sample) {
         while (_sampleAges[newSampleIndex] != _numExistingSamples) { newSampleIndex++; }
     }
 
-    // insert new sample at that index
+    // insert new sample
     _samplesSorted[newSampleIndex] = sample;
     _sampleAges[newSampleIndex] = 0;
 

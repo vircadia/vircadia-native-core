@@ -151,10 +151,6 @@ void LimitedNodeList::changeSendSocketBufferSize(int numSendBytes) {
 }
 
 bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
-
-quint64 start = usecTimestampNow();
-quint64 end;
-
     PacketType checkType = packetTypeForPacket(packet);
     int numPacketTypeBytes = numBytesArithmeticCodingFromBuffer(packet.data());
     
@@ -192,14 +188,9 @@ quint64 end;
                 << uuidFromPacketHeader(packet);
         }
     } else {
-
-        if ((end = usecTimestampNow()) - start > 100) {
-            printf("\t\t\t\t version and hash match long diff: %d\n", end - start);
-        }
-
         return true;
     }
-
+    
     return false;
 }
 

@@ -35,7 +35,7 @@ void DatagramProcessor::processDatagrams() {
     
     Application* application = Application::getInstance();
     NodeList* nodeList = NodeList::getInstance();
-
+    
     while (NodeList::getInstance()->getNodeSocket().hasPendingDatagrams()) {
         incomingPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());
         nodeList->getNodeSocket().readDatagram(incomingPacket.data(), incomingPacket.size(),
@@ -45,7 +45,6 @@ void DatagramProcessor::processDatagrams() {
         _byteCount += incomingPacket.size();
         
         if (nodeList->packetVersionAndHashMatch(incomingPacket)) {
-
             // only process this packet if we have a match on the packet version
             switch (packetTypeForPacket(incomingPacket)) {
                 case PacketTypeMixedAudio:

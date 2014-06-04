@@ -15,9 +15,6 @@
 #include <QTranslator>
 #include <SharedUtil.h>
 
-// DEBUG!!!!!!
-#include "DatagramProcessor.h"
-
 int main(int argc, const char * argv[]) {
     QElapsedTimer startupTime;
     startupTime.start();
