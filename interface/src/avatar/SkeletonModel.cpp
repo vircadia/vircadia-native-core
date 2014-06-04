@@ -236,8 +236,8 @@ void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, const
         return;
     }
     // get the rotation axes in joint space and use them to adjust the rotation
-    glm::mat3 axes = glm::mat3_cast(_rotation);
-    glm::mat3 inverse = glm::mat3(glm::inverse(parentState.getHybridTransform() * glm::translate(state.getDefaultTranslationInParentFrame()) *
+    glm::mat3 axes = glm::mat3_cast(glm::quat());
+    glm::mat3 inverse = glm::mat3(glm::inverse(parentState.getTransformInModelFrame() * glm::translate(state.getDefaultTranslationInParentFrame()) *
         joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation)));
     state._rotation = glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanSideways(), 
         glm::normalize(inverse * axes[2])) * glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanForward(), 
@@ -263,7 +263,7 @@ void SkeletonModel::renderJointConstraints(int jointIndex) {
     do {
         const FBXJoint& joint = geometry.joints.at(jointIndex);
         const JointState& jointState = _jointStates.at(jointIndex);
-        glm::vec3 position = extractTranslation(jointState.getHybridTransform()) + _translation;
+        glm::vec3 position = _rotation * jointState.getPositionInModelFrame() + _translation;
         
         glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
