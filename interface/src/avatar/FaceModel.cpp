@@ -94,6 +94,6 @@ bool FaceModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEy
         return false;
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    return getJointPosition(geometry.leftEyeJointIndex, firstEyePosition) &&
-        getJointPosition(geometry.rightEyeJointIndex, secondEyePosition);
+    return getJointPositionInWorldFrame(geometry.leftEyeJointIndex, firstEyePosition) &&
+        getJointPositionInWorldFrame(geometry.rightEyeJointIndex, secondEyePosition);
 }

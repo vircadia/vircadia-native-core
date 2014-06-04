@@ -747,12 +747,11 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     }
 }
 
-bool Model::getJointPosition(int jointIndex, glm::vec3& position) const {
+bool Model::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
-    position = _translation + extractTranslation(_jointStates[jointIndex].getHybridTransform());
-    //position = _translation + _rotation * _jointState[jointIndex].getPositionInModelFrame();
+    position = _translation + _rotation * _jointStates[jointIndex].getPositionInModelFrame();
     return true;
 }
 
@@ -1234,7 +1233,7 @@ void Model::simulateInternal(float deltaTime) {
         
         glm::vec3 jointTranslation = _translation;
         glm::quat jointRotation = _rotation;
-        getJointPosition(attachment.jointIndex, jointTranslation);
+        getJointPositionInWorldFrame(attachment.jointIndex, jointTranslation);
         getJointRotationInWorldFrame(attachment.jointIndex, jointRotation);
         
         model->setTranslation(jointTranslation + jointRotation * attachment.translation * _scale);
@@ -1508,12 +1507,12 @@ void Model::applyCollision(CollisionInfo& collision) {
 
     glm::vec3 jointPosition(0.0f);
     int jointIndex = collision._intData;
-    if (getJointPosition(jointIndex, jointPosition)) {
+    if (getJointPositionInWorldFrame(jointIndex, jointPosition)) {
         const FBXJoint& joint = _geometry->getFBXGeometry().joints[jointIndex];
         if (joint.parentIndex != -1) {
             // compute the approximate distance (travel) that the joint needs to move
             glm::vec3 start;
-            getJointPosition(joint.parentIndex, start);
+            getJointPositionInWorldFrame(joint.parentIndex, start);
             glm::vec3 contactPoint = collision._contactPoint - start;
             glm::vec3 penetrationEnd = contactPoint + collision._penetration;
             glm::vec3 axis = glm::cross(contactPoint, penetrationEnd);
@@ -1524,7 +1523,7 @@ void Model::applyCollision(CollisionInfo& collision) {
                 float angle = asinf(travel / (glm::length(contactPoint) * glm::length(penetrationEnd)));
                 axis = glm::normalize(axis);
                 glm::vec3 end;
-                getJointPosition(jointIndex, end);
+                getJointPositionInWorldFrame(jointIndex, end);
                 // transform into model-frame
                 glm::vec3 newEnd = glm::inverse(_rotation) * (start + glm::angleAxis(angle, axis) * (end - start) - _translation);
                 // try to move it

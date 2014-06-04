@@ -173,7 +173,7 @@ public:
     /// Returns the index of the last free ancestor of the indexed joint, or -1 if not found.
     int getLastFreeJointIndex(int jointIndex) const;
     
-    bool getJointPosition(int jointIndex, glm::vec3& position) const;
+    bool getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const;
 
     bool getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
     bool getJointCombinedRotation(int jointIndex, glm::quat& rotation) const;

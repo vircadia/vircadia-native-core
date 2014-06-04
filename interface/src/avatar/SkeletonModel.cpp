@@ -373,11 +373,11 @@ void SkeletonModel::setHandPositionInModelFrame(int jointIndex, const glm::vec3&
 }
     
 bool SkeletonModel::getLeftHandPosition(glm::vec3& position) const {
-    return getJointPosition(getLeftHandJointIndex(), position);
+    return getJointPositionInWorldFrame(getLeftHandJointIndex(), position);
 }
 
 bool SkeletonModel::getRightHandPosition(glm::vec3& position) const {
-    return getJointPosition(getRightHandJointIndex(), position);
+    return getJointPositionInWorldFrame(getRightHandJointIndex(), position);
 }
 
 bool SkeletonModel::restoreLeftHandPosition(float fraction, float priority) {
@@ -385,7 +385,7 @@ bool SkeletonModel::restoreLeftHandPosition(float fraction, float priority) {
 }
 
 bool SkeletonModel::getLeftShoulderPosition(glm::vec3& position) const {
-    return getJointPosition(getLastFreeJointIndex(getLeftHandJointIndex()), position);
+    return getJointPositionInWorldFrame(getLastFreeJointIndex(getLeftHandJointIndex()), position);
 }
 
 float SkeletonModel::getLeftArmLength() const {
@@ -397,7 +397,7 @@ bool SkeletonModel::restoreRightHandPosition(float fraction, float priority) {
 }
 
 bool SkeletonModel::getRightShoulderPosition(glm::vec3& position) const {
-    return getJointPosition(getLastFreeJointIndex(getRightHandJointIndex()), position);
+    return getJointPositionInWorldFrame(getLastFreeJointIndex(getRightHandJointIndex()), position);
 }
 
 float SkeletonModel::getRightArmLength() const {
@@ -405,11 +405,11 @@ float SkeletonModel::getRightArmLength() const {
 }
 
 bool SkeletonModel::getHeadPosition(glm::vec3& headPosition) const {
-    return isActive() && getJointPosition(_geometry->getFBXGeometry().headJointIndex, headPosition);
+    return isActive() && getJointPositionInWorldFrame(_geometry->getFBXGeometry().headJointIndex, headPosition);
 }
 
 bool SkeletonModel::getNeckPosition(glm::vec3& neckPosition) const {
-    return isActive() && getJointPosition(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
+    return isActive() && getJointPositionInWorldFrame(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
 }
 
 bool SkeletonModel::getNeckParentRotation(glm::quat& neckParentRotation) const {
@@ -428,14 +428,14 @@ bool SkeletonModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& seco
         return false;
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    if (getJointPosition(geometry.leftEyeJointIndex, firstEyePosition) &&
-            getJointPosition(geometry.rightEyeJointIndex, secondEyePosition)) {
+    if (getJointPositionInWorldFrame(geometry.leftEyeJointIndex, firstEyePosition) &&
+            getJointPositionInWorldFrame(geometry.rightEyeJointIndex, secondEyePosition)) {
         return true;
     }
     // no eye joints; try to estimate based on head/neck joints
     glm::vec3 neckPosition, headPosition;
-    if (getJointPosition(geometry.neckJointIndex, neckPosition) &&
-            getJointPosition(geometry.headJointIndex, headPosition)) {
+    if (getJointPositionInWorldFrame(geometry.neckJointIndex, neckPosition) &&
+            getJointPositionInWorldFrame(geometry.headJointIndex, headPosition)) {
         const float EYE_PROPORTION = 0.6f;
         glm::vec3 baseEyePosition = glm::mix(neckPosition, headPosition, EYE_PROPORTION);
         glm::quat headRotation;
