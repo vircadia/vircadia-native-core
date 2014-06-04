@@ -11,9 +11,7 @@
 //
 // TODO:
 //   * implement decode
-//   * more operators, operator==, operator!=, operator!, operator~
 //   * iterator to enumerate the set values?
-//   * operator<<(enum) to work similar to set
 
 #ifndef hifi_PropertyFlags_h
 #define hifi_PropertyFlags_h
@@ -29,14 +27,18 @@
 template<typename Enum>class PropertyFlags {
 public:
     typedef Enum enum_type;
-    inline PropertyFlags() : _maxFlag(INT_MIN), _minFlag(INT_MAX)  { };
-    inline PropertyFlags(const PropertyFlags& other) : _flags(other._flags), _maxFlag(other._maxFlag) {}
-    inline PropertyFlags(Enum flag) : _maxFlag(INT_MIN), _minFlag(INT_MAX) { setHasProperty(flag); }
+    inline PropertyFlags() : 
+            _maxFlag(INT_MIN), _minFlag(INT_MAX), _trailingFlipped(false) { };
+    inline PropertyFlags(const PropertyFlags& other) : 
+            _flags(other._flags), _maxFlag(other._maxFlag), _minFlag(other._minFlag), 
+            _trailingFlipped(other._trailingFlipped) {}
+    inline PropertyFlags(Enum flag) : 
+            _maxFlag(INT_MIN), _minFlag(INT_MAX), _trailingFlipped(false)  { setHasProperty(flag); }
 
-    void clear() { _flags.clear(); _maxFlag = INT_MIN; _minFlag = INT_MAX; }
+    void clear() { _flags.clear(); _maxFlag = INT_MIN; _minFlag = INT_MAX; _trailingFlipped = false; }
 
-    Enum firstFlag() const { return _minFlag; }
-    Enum lastFlag() const { return _maxFlag; }
+    Enum firstFlag() const { return (Enum)_minFlag; }
+    Enum lastFlag() const { return (Enum)_maxFlag; }
     
     void setHasProperty(Enum flag, bool value = true);
     bool getHasProperty(Enum flag);
@@ -44,7 +46,12 @@ public:
     void decode(const QByteArray& fromEncoded);
 
 
-    PropertyFlags& operator=(const PropertyFlags &other);
+    bool operator==(const PropertyFlags& other) const { return _flags == other._flags; }
+    bool operator!=(const PropertyFlags& other) const { return _flags != other._flags; }
+    bool operator!() const { return _flags.size() == 0; }
+
+    
+    PropertyFlags& operator=(const PropertyFlags& other);
 
     PropertyFlags& operator|=(PropertyFlags other);
     PropertyFlags& operator|=(Enum flag);
@@ -55,8 +62,14 @@ public:
     PropertyFlags& operator^=(PropertyFlags other);
     PropertyFlags& operator^=(Enum flag);
 
+    PropertyFlags& operator+=(PropertyFlags other);
+    PropertyFlags& operator+=(Enum flag);
+
     PropertyFlags& operator-=(PropertyFlags other);
     PropertyFlags& operator-=(Enum flag);
+
+    PropertyFlags& operator<<=(PropertyFlags other);
+    PropertyFlags& operator<<=(Enum flag);
 
     PropertyFlags operator|(PropertyFlags other) const;
     PropertyFlags operator|(Enum flag) const;
@@ -67,24 +80,37 @@ public:
     PropertyFlags operator^(PropertyFlags other) const;
     PropertyFlags operator^(Enum flag) const;
 
+    PropertyFlags operator+(PropertyFlags other) const;
+    PropertyFlags operator+(Enum flag) const;
+
     PropertyFlags operator-(PropertyFlags other) const;
     PropertyFlags operator-(Enum flag) const;
 
+    PropertyFlags operator<<(PropertyFlags other) const;
+    PropertyFlags operator<<(Enum flag) const;
 
-    /*
-    inline PropertyFlags operator~() const { return PropertyFlags(Enum(~i)); }
-    inline bool operator!() const { return !i; }
-    */
+
+    PropertyFlags operator~() const;
+
+    void debugDumpBits();
 
 
 private:
     void shinkIfNeeded();
-    void debugDumpBits();
 
     QBitArray _flags;
     int _maxFlag;
     int _minFlag;
+    bool _trailingFlipped; /// are the trailing properties flipping in their state (e.g. assumed true, instead of false)
 };
+
+template<typename Enum> PropertyFlags<Enum>& operator<<(PropertyFlags<Enum>& out, const PropertyFlags<Enum>& other) {
+    return out <<= other;
+}
+
+template<typename Enum> PropertyFlags<Enum>& operator<<(PropertyFlags<Enum>& out, Enum flag) {
+    return out <<= flag;
+}
 
 
 template<typename Enum> inline void PropertyFlags<Enum>::setHasProperty(Enum flag, bool value) {
@@ -111,7 +137,7 @@ template<typename Enum> inline void PropertyFlags<Enum>::setHasProperty(Enum fla
 
 template<typename Enum> inline bool PropertyFlags<Enum>::getHasProperty(Enum flag) {
     if (flag > _maxFlag) {
-        return false;
+        return _trailingFlipped; // usually false
     }
     return _flags.testBit(flag);
 }
@@ -121,6 +147,11 @@ const int BITS_PER_BYTE = 8;
 template<typename Enum> inline QByteArray PropertyFlags<Enum>::encode() {
     const bool debug = false;
     QByteArray output;
+    
+    if (_maxFlag < _minFlag) {
+        output.fill(0, 1);
+        return output; // no flags... nothing to encode
+    }
 
     outputBufferBits((const unsigned char*)output.constData(), output.size());
     
@@ -200,21 +231,26 @@ template<typename Enum> inline void PropertyFlags<Enum>::decode(const QByteArray
 }
 
 template<typename Enum> inline void PropertyFlags<Enum>::debugDumpBits() {
+    qDebug() << "_minFlag=" << _minFlag;
+    qDebug() << "_maxFlag=" << _maxFlag;
+    qDebug() << "_trailingFlipped=" << _trailingFlipped;
     for(int i = 0; i < _flags.size(); i++) {
         qDebug() << "bit[" << i << "]=" << _flags.at(i);
     }
 }
 
 
-template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator=(const PropertyFlags &other) {
+template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator=(const PropertyFlags& other) {
     _flags = other._flags; 
     _maxFlag = other._maxFlag; 
+    _minFlag = other._minFlag; 
     return *this; 
 }
 
 template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator|=(PropertyFlags other) {
     _flags |= other._flags; 
     _maxFlag = std::max(_maxFlag, other._maxFlag); 
+    _minFlag = std::min(_minFlag, other._minFlag); 
     return *this; 
 }
 
@@ -222,6 +258,7 @@ template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operato
     PropertyFlags other(flag); 
     _flags |= other._flags; 
     _maxFlag = std::max(_maxFlag, other._maxFlag); 
+    _minFlag = std::min(_minFlag, other._minFlag); 
     return *this; 
 }
 
@@ -251,31 +288,45 @@ template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operato
     return *this; 
 }
 
-template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator-=(PropertyFlags other) {
-    for(int flag = other.firstFlag(); flag <= other.lastFlag(); flag++) {
-        //qDebug() << "checking other.getHasProperty(flag) flag=" << flag;
-        if (other.getHasProperty(flag)) {
-            //qDebug() << "setting setHasProperty(flag) flag=" << flag;
-            setHasProperty(flag, false);
+template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator+=(PropertyFlags other) {
+    for(int flag = (int)other.firstFlag(); flag <= (int)other.lastFlag(); flag++) {
+        if (other.getHasProperty((Enum)flag)) {
+            setHasProperty((Enum)flag, true);
         }
     }
-
     return *this; 
 }
 
+template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator+=(Enum flag) {
+    setHasProperty(flag, true);
+    return *this; 
+}
+
+template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator-=(PropertyFlags other) {
+    for(int flag = (int)other.firstFlag(); flag <= (int)other.lastFlag(); flag++) {
+        if (other.getHasProperty((Enum)flag)) {
+            setHasProperty((Enum)flag, false);
+        }
+    }
+    return *this;
+}
+
 template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator-=(Enum flag) {
-    bool debug = false;
-    if (debug) {
-        qDebug() << "operator-=(Enum flag) flag=" << flag << "before...";
-        debugDumpBits();
-    }
     setHasProperty(flag, false);
+    return *this; 
+}
 
-    if (debug) {
-        qDebug() << "after...";
-        debugDumpBits();
+template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator<<=(PropertyFlags other) {
+    for(int flag = (int)other.firstFlag(); flag <= (int)other.lastFlag(); flag++) {
+        if (other.getHasProperty((Enum)flag)) {
+            setHasProperty((Enum)flag, true);
+        }
     }
+    return *this; 
+}
 
+template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator<<=(Enum flag) {
+    setHasProperty(flag, true);
     return *this; 
 }
 
@@ -318,6 +369,18 @@ template<typename Enum> inline PropertyFlags<Enum> PropertyFlags<Enum>::operator
     return result; 
 }
 
+template<typename Enum> inline PropertyFlags<Enum> PropertyFlags<Enum>::operator+(PropertyFlags other) const {
+    PropertyFlags result(*this); 
+    result += other; 
+    return result; 
+}
+
+template<typename Enum> inline PropertyFlags<Enum> PropertyFlags<Enum>::operator+(Enum flag) const { 
+    PropertyFlags result(*this); 
+    result.setHasProperty(flag, true);
+    return result; 
+}
+
 template<typename Enum> inline PropertyFlags<Enum> PropertyFlags<Enum>::operator-(PropertyFlags other) const {
     PropertyFlags result(*this); 
     result -= other; 
@@ -327,6 +390,25 @@ template<typename Enum> inline PropertyFlags<Enum> PropertyFlags<Enum>::operator
 template<typename Enum> inline PropertyFlags<Enum> PropertyFlags<Enum>::operator-(Enum flag) const { 
     PropertyFlags result(*this); 
     result.setHasProperty(flag, false);
+    return result; 
+}
+
+template<typename Enum> inline PropertyFlags<Enum> PropertyFlags<Enum>::operator<<(PropertyFlags other) const {
+    PropertyFlags result(*this); 
+    result <<= other; 
+    return result; 
+}
+
+template<typename Enum> inline PropertyFlags<Enum> PropertyFlags<Enum>::operator<<(Enum flag) const { 
+    PropertyFlags result(*this); 
+    result.setHasProperty(flag, true);
+    return result; 
+}
+
+template<typename Enum> inline PropertyFlags<Enum> PropertyFlags<Enum>::operator~() const { 
+    PropertyFlags result(*this); 
+    result._flags = ~_flags;
+    result._trailingFlipped = !_trailingFlipped;
     return result; 
 }
 
@@ -342,8 +424,6 @@ template<typename Enum> inline void PropertyFlags<Enum>::shinkIfNeeded() {
         _flags.resize(_maxFlag + 1);
     }
 }
-
-
 
 /***
 

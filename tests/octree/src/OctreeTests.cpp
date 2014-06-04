@@ -66,7 +66,7 @@ void OctreeTests::propertyFlagsTests() {
     qDebug() << "OctreeTests::propertyFlagsTests()";
 
     {    
-        qDebug() << "Test 1: ModelProperties: PROP_VISIBLE, PROP_POSITION, PROP_RADIUS, PROP_MODEL_URL, PROP_ROTATION";
+        qDebug() << "Test 1: ModelProperties: using setHasProperty()";
         ModelPropertyFlags props;
         props.setHasProperty(PROP_VISIBLE);
         props.setHasProperty(PROP_POSITION);
@@ -81,8 +81,7 @@ void OctreeTests::propertyFlagsTests() {
     }
 
     {    
-        qDebug() << "Test 2: ParticlePropertyFlags: PROP_VISIBLE, PARTICLE_PROP_ANIMATION_URL, PARTICLE_PROP_ANIMATION_FPS, "
-                    "PARTICLE_PROP_ANIMATION_FRAME_INDEX, PARTICLE_PROP_ANIMATION_PLAYING, PARTICLE_PROP_PAUSE_SIMULATION";
+        qDebug() << "Test 2: ParticlePropertyFlags: using setHasProperty()";
         ParticlePropertyFlags props2;
         props2.setHasProperty(PARTICLE_PROP_VISIBLE);
         props2.setHasProperty(PARTICLE_PROP_ANIMATION_URL);
@@ -130,11 +129,245 @@ void OctreeTests::propertyFlagsTests() {
     
         qDebug() << "encoded=";
         outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    }
+
+    {    
+        qDebug() << "Test 3c: ParticlePropertyFlags: using |= operator";
+        ParticlePropertyFlags props;
+
+        props |= PARTICLE_PROP_VISIBLE;
+        props |= PARTICLE_PROP_ANIMATION_URL;
+        props |= PARTICLE_PROP_ANIMATION_FPS;
+        props |= PARTICLE_PROP_ANIMATION_FRAME_INDEX;
+        props |= PARTICLE_PROP_ANIMATION_PLAYING;
+        props |= PARTICLE_PROP_PAUSE_SIMULATION;
+
+        QByteArray encoded = props.encode();
+
+        qDebug() << "encoded=";
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    }
+
+    {    
+        qDebug() << "Test 4: ParticlePropertyFlags: using + operator";
+        ParticlePropertyFlags props;
+
+        props = ParticlePropertyFlags(PARTICLE_PROP_VISIBLE) 
+                    + ParticlePropertyFlags(PARTICLE_PROP_ANIMATION_URL)
+                    + ParticlePropertyFlags(PARTICLE_PROP_ANIMATION_FPS)
+                    + ParticlePropertyFlags(PARTICLE_PROP_ANIMATION_FRAME_INDEX)
+                    + ParticlePropertyFlags(PARTICLE_PROP_ANIMATION_PLAYING) 
+                    + ParticlePropertyFlags(PARTICLE_PROP_PAUSE_SIMULATION);
+    
+        QByteArray encoded = props.encode();
+
+        qDebug() << "encoded=";
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    }
+
+    {    
+        qDebug() << "Test 4b: ParticlePropertyFlags: using += operator";
+        ParticlePropertyFlags props;
+
+        props += PARTICLE_PROP_VISIBLE;
+        props += PARTICLE_PROP_ANIMATION_URL;
+        props += PARTICLE_PROP_ANIMATION_FPS;
+        props += PARTICLE_PROP_ANIMATION_FRAME_INDEX;
+        props += PARTICLE_PROP_ANIMATION_PLAYING;
+        props += PARTICLE_PROP_PAUSE_SIMULATION;
+    
+        QByteArray encoded = props.encode();
+
+        qDebug() << "encoded=";
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    }
+
+    {    
+        qDebug() << "Test 5: ParticlePropertyFlags: using = ... << operator";
+        ParticlePropertyFlags props;
+
+        props = ParticlePropertyFlags(PARTICLE_PROP_VISIBLE) 
+                    << ParticlePropertyFlags(PARTICLE_PROP_ANIMATION_URL)
+                    << ParticlePropertyFlags(PARTICLE_PROP_ANIMATION_FPS)
+                    << ParticlePropertyFlags(PARTICLE_PROP_ANIMATION_FRAME_INDEX)
+                    << ParticlePropertyFlags(PARTICLE_PROP_ANIMATION_PLAYING) 
+                    << ParticlePropertyFlags(PARTICLE_PROP_PAUSE_SIMULATION);
+    
+        QByteArray encoded = props.encode();
+
+        qDebug() << "encoded=";
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    }
+
+    {
+        qDebug() << "Test 5b: ParticlePropertyFlags: using <<= operator";
+        ParticlePropertyFlags props;
+
+        props <<= PARTICLE_PROP_VISIBLE;
+        props <<= PARTICLE_PROP_ANIMATION_URL;
+        props <<= PARTICLE_PROP_ANIMATION_FPS;
+        props <<= PARTICLE_PROP_ANIMATION_FRAME_INDEX;
+        props <<= PARTICLE_PROP_ANIMATION_PLAYING;
+        props <<= PARTICLE_PROP_PAUSE_SIMULATION;
+    
+        QByteArray encoded = props.encode();
+
+        qDebug() << "encoded=";
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    }
+
+    {
+        qDebug() << "Test 5c: ParticlePropertyFlags: using << enum operator";
+        ParticlePropertyFlags props;
+
+        props << PARTICLE_PROP_VISIBLE;
+        props << PARTICLE_PROP_ANIMATION_URL;
+        props << PARTICLE_PROP_ANIMATION_FPS;
+        props << PARTICLE_PROP_ANIMATION_FRAME_INDEX;
+        props << PARTICLE_PROP_ANIMATION_PLAYING;
+        props << PARTICLE_PROP_PAUSE_SIMULATION;
+
+        QByteArray encoded = props.encode();
+
+        qDebug() << "encoded=";
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    }
+
+    {
+        qDebug() << "Test 5d: ParticlePropertyFlags: using << flags operator ";
+        ParticlePropertyFlags props;
+        ParticlePropertyFlags props2;
+
+        props << PARTICLE_PROP_VISIBLE;
+        props << PARTICLE_PROP_ANIMATION_URL;
+        props << PARTICLE_PROP_ANIMATION_FPS;
+
+        props2 << PARTICLE_PROP_ANIMATION_FRAME_INDEX;
+        props2 << PARTICLE_PROP_ANIMATION_PLAYING;
+        props2 << PARTICLE_PROP_PAUSE_SIMULATION;
+
+        props << props2;
+
+        QByteArray encoded = props.encode();
+
+        qDebug() << "encoded=";
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    }
+  
+    {
+        qDebug() << "Test 6: ParticlePropertyFlags comparison";
+        ParticlePropertyFlags propsA;
+
+        qDebug() << "!propsA:" << (!propsA) << "{ expect true }";
+
+        propsA << PARTICLE_PROP_VISIBLE;
+        propsA << PARTICLE_PROP_ANIMATION_URL;
+        propsA << PARTICLE_PROP_ANIMATION_FPS;
+        propsA << PARTICLE_PROP_ANIMATION_FRAME_INDEX;
+        propsA << PARTICLE_PROP_ANIMATION_PLAYING;
+        propsA << PARTICLE_PROP_PAUSE_SIMULATION;
+
+        qDebug() << "!propsA:" << (!propsA) << "{ expect false }";
+
+        ParticlePropertyFlags propsB;
+        qDebug() << "!propsB:" << (!propsB) << "{ expect true }";
+
+
+        propsB << PARTICLE_PROP_VISIBLE;
+        propsB << PARTICLE_PROP_ANIMATION_URL;
+        propsB << PARTICLE_PROP_ANIMATION_FPS;
+        propsB << PARTICLE_PROP_ANIMATION_FRAME_INDEX;
+        propsB << PARTICLE_PROP_ANIMATION_PLAYING;
+        propsB << PARTICLE_PROP_PAUSE_SIMULATION;
+
+        qDebug() << "!propsB:" << (!propsB) << "{ expect false }";
+
+        qDebug() << "propsA == propsB:" << (propsA == propsB) << "{ expect true }";
+        qDebug() << "propsA != propsB:" << (propsA != propsB) << "{ expect false }";
+
+
+        qDebug() << "AFTER propsB -= PARTICLE_PROP_PAUSE_SIMULATION...";
+        propsB -= PARTICLE_PROP_PAUSE_SIMULATION;
+
+        qDebug() << "propsA == propsB:" << (propsA == propsB) << "{ expect false }";
+        qDebug() << "propsA != propsB:" << (propsA != propsB) << "{ expect true }";
+
+        qDebug() << "AFTER propsB = propsA...";
+        propsB = propsA;
+
+        qDebug() << "propsA == propsB:" << (propsA == propsB) << "{ expect true }";
+        qDebug() << "propsA != propsB:" << (propsA != propsB) << "{ expect false }";
 
     }
 
+    {
+        qDebug() << "Test 7: ParticlePropertyFlags testing individual properties";
+        ParticlePropertyFlags props;
 
-    
+        qDebug() << "ParticlePropertyFlags props;";
+        QByteArray encoded = props.encode();
+        qDebug() << "props... encoded=";
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+
+        qDebug() << "props.getHasProperty(PARTICLE_PROP_VISIBLE)" << (props.getHasProperty(PARTICLE_PROP_VISIBLE)) 
+                        << "{ expect false }";
+
+        qDebug() << "props << PARTICLE_PROP_VISIBLE;";
+        props << PARTICLE_PROP_VISIBLE;
+
+        encoded = props.encode();
+        qDebug() << "props... encoded=";
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        qDebug() << "props.getHasProperty(PARTICLE_PROP_VISIBLE)" << (props.getHasProperty(PARTICLE_PROP_VISIBLE)) 
+                        << "{ expect true }";
+
+        qDebug() << "props << PARTICLE_PROP_ANIMATION_URL;";
+        props << PARTICLE_PROP_ANIMATION_URL;
+
+        encoded = props.encode();
+        qDebug() << "props... encoded=";
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        qDebug() << "props.getHasProperty(PARTICLE_PROP_VISIBLE)" << (props.getHasProperty(PARTICLE_PROP_VISIBLE)) 
+                        << "{ expect true }";
+
+        qDebug() << "props << ... more ...";
+        props << PARTICLE_PROP_ANIMATION_FPS;
+        props << PARTICLE_PROP_ANIMATION_FRAME_INDEX;
+        props << PARTICLE_PROP_ANIMATION_PLAYING;
+        props << PARTICLE_PROP_PAUSE_SIMULATION;
+
+        encoded = props.encode();
+        qDebug() << "props... encoded=";
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        qDebug() << "props.getHasProperty(PARTICLE_PROP_VISIBLE)" << (props.getHasProperty(PARTICLE_PROP_VISIBLE)) 
+                        << "{ expect true }";
+
+        qDebug() << "ParticlePropertyFlags propsB = props & PARTICLE_PROP_VISIBLE;";
+        ParticlePropertyFlags propsB = props & PARTICLE_PROP_VISIBLE;
+
+        qDebug() << "propsB.getHasProperty(PARTICLE_PROP_VISIBLE)" << (propsB.getHasProperty(PARTICLE_PROP_VISIBLE)) 
+                        << "{ expect true }";
+
+        encoded = propsB.encode();
+        qDebug() << "propsB... encoded=";
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+
+        qDebug() << "propsB...";
+        propsB.debugDumpBits();
+
+        qDebug() << "ParticlePropertyFlags propsC = ~propsB;";
+        ParticlePropertyFlags propsC = ~propsB;
+        qDebug() << "propsC...";
+        propsC.debugDumpBits();
+        
+        qDebug() << "propsC.getHasProperty(PARTICLE_PROP_VISIBLE)" << (propsC.getHasProperty(PARTICLE_PROP_VISIBLE))
+                        << "{ expect false }";
+
+        encoded = propsC.encode();
+        qDebug() << "propsC... encoded=";
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    }
+
     qDebug() << "******************************************************************************************";
 }
 
