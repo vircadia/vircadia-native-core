@@ -55,6 +55,7 @@ bool ModelTreeElement::appendElementData(OctreePacketData* packetData, EncodeBit
 
     // write our models out... first determine which of the models are in view based on our params
     uint16_t numberOfModels = 0;
+    uint16_t actualNumberOfModels = 0;
     QVector<uint16_t> indexesOfModelsToInclude;
 
     for (uint16_t i = 0; i < _modelItems->size(); i++) {
@@ -72,17 +73,35 @@ bool ModelTreeElement::appendElementData(OctreePacketData* packetData, EncodeBit
         }
     }
 
+    int numberOfModelsOffset = packetData->getUncompressedByteOffset();
     success = packetData->appendValue(numberOfModels);
 
     if (success) {
         foreach (uint16_t i, indexesOfModelsToInclude) {
             const ModelItem& model = (*_modelItems)[i];
+            
+            LevelDetails modelLevel = packetData->startLevel();
+    
             success = model.appendModelData(packetData);
+
+            if (success) {
+                packetData->endLevel(modelLevel);
+                actualNumberOfModels++;
+            }
             if (!success) {
+                qDebug() << "ModelTreeElement::appendElementData()... model i=" << i << "didn't fit...";
+                packetData->discardLevel(modelLevel);
                 break;
             }
         }
     }
+    
+    if (!success) {
+        qDebug() << "ModelTreeElement::appendElementData()... updatePriorBytes()... actualNumberOfModels=" << actualNumberOfModels;
+        success = packetData->updatePriorBytes(numberOfModelsOffset, 
+                                            (const unsigned char*)&actualNumberOfModels, sizeof(actualNumberOfModels));
+    }
+    
     return success;
 }
 
@@ -433,6 +452,7 @@ int ModelTreeElement::readElementDataFromBuffer(const unsigned char* data, int b
     if (bytesLeftToRead >= (int)sizeof(numberOfModels)) {
         // read our models in....
         numberOfModels = *(uint16_t*)dataAt;
+
         dataAt += sizeof(numberOfModels);
         bytesLeftToRead -= (int)sizeof(numberOfModels);
         bytesRead += sizeof(numberOfModels);
