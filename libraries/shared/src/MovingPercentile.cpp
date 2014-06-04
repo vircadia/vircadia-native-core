@@ -13,65 +13,47 @@
 MovingPercentile::MovingPercentile(int numSamples, float percentile)
     : _numSamples(numSamples),
     _percentile(percentile),
-    _numExistingSamples(0),
-    _valueAtPercentile(0.0f),
-    _indexOfPercentile(0)
+    _samplesSorted(),
+    _sampleIds(),
+    _newSampleId(0),
+    _indexOfPercentile(0),
+    _valueAtPercentile(0.0f)
 {
-    _samplesSorted = new float[numSamples];
-    _sampleAges = new int[numSamples];
-}
-
-MovingPercentile::~MovingPercentile() {
-    delete[] _samplesSorted;
-    delete[] _sampleAges;
 }
 
 void MovingPercentile::updatePercentile(float sample) {
 
-    // age all current samples by 1
-    for (int i = 0; i < _numExistingSamples; i++) {
-        _sampleAges[i]++;
-    }
-
-    // find index at which to insert new sample in _samplesSorted
+    // insert the new sample into _samplesSorted
     int newSampleIndex;
-    if (_numExistingSamples < _numSamples) {
-        // if samples have not been filled yet, this will be the next empty spot
-        newSampleIndex = _numExistingSamples;
-        _numExistingSamples++;
+    if (_sampleIds.size() < _numSamples) {
+        // if not all samples have been filled yet, simply append it
+        newSampleIndex = _samplesSorted.size();
+        _samplesSorted.append(sample);
+        _sampleIds.append(_newSampleId);
 
         // update _indexOfPercentile
-        float index = _percentile * (float)(_numExistingSamples - 1);
+        float index = _percentile * (float)(_sampleIds.size() - 1);
         _indexOfPercentile = (int)(index + 0.5f);   // round to int
     }
     else {
-        // if samples have been filled, it will be the spot of the oldest sample
-        newSampleIndex = 0;
-        while (_sampleAges[newSampleIndex] != _numExistingSamples) { newSampleIndex++; }
+        // find index of sample with id = _newSampleId and replace it with new sample
+        newSampleIndex = _sampleIds.indexOf(_newSampleId);
+        _samplesSorted[newSampleIndex] = sample;
     }
 
-    // insert new sample
-    _samplesSorted[newSampleIndex] = sample;
-    _sampleAges[newSampleIndex] = 0;
+    // increment _newSampleId.  cycles from 0 thru N-1
+    _newSampleId = (_newSampleId == _numSamples - 1) ? 0 : _newSampleId + 1;
 
-    // swap new sample with neighboring elements in _samplesSorted until it's in sorted order
+    // swap new sample with neighbors in _samplesSorted until it's in sorted order
     // try swapping up first, then down.  element will only be swapped one direction.
-    while (newSampleIndex < _numExistingSamples-1 && sample > _samplesSorted[newSampleIndex+1]) {
-        _samplesSorted[newSampleIndex] = _samplesSorted[newSampleIndex + 1];
-        _samplesSorted[newSampleIndex+1] = sample;
-
-        _sampleAges[newSampleIndex] = _sampleAges[newSampleIndex+1];
-        _sampleAges[newSampleIndex+1] = 0;
-
+    while (newSampleIndex < _sampleIds.size() - 1 && sample > _samplesSorted[newSampleIndex + 1]) {
+        _samplesSorted.swap(newSampleIndex, newSampleIndex + 1);
+        _sampleIds.swap(newSampleIndex, newSampleIndex + 1);
         newSampleIndex++;
     }
     while (newSampleIndex > 0 && sample < _samplesSorted[newSampleIndex - 1]) {
-        _samplesSorted[newSampleIndex] = _samplesSorted[newSampleIndex - 1];
-        _samplesSorted[newSampleIndex - 1] = sample;
-
-        _sampleAges[newSampleIndex] = _sampleAges[newSampleIndex - 1];
-        _sampleAges[newSampleIndex - 1] = 0;
-
+        _samplesSorted.swap(newSampleIndex, newSampleIndex - 1);
+        _sampleIds.swap(newSampleIndex, newSampleIndex - 1);
         newSampleIndex--;
     }
 

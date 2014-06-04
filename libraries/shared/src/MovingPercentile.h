@@ -11,27 +11,26 @@
 #ifndef hifi_MovingPercentile_h
 #define hifi_MovingPercentile_h
 
+#include <qlist.h>
+
 class MovingPercentile {
 
 public:
     MovingPercentile(int numSamples, float percentile = 0.5f);
-    ~MovingPercentile();
 
     void updatePercentile(float sample);
     float getValueAtPercentile() const { return _valueAtPercentile; }
-
 
 private:
     const int _numSamples;
     const float _percentile;
 
-    float* _samplesSorted;
-    int* _sampleAges;   // _sampleAges[i] is the "age" of the sample at _sampleSorted[i] (higher means older)
-    int _numExistingSamples;
-    
-    float _valueAtPercentile;
+    QList<float> _samplesSorted;
+    QList<int> _sampleIds;      // incrementally assigned, is cyclic
+    int _newSampleId;
 
     int _indexOfPercentile;
+    float _valueAtPercentile;
 };
 
 #endif
