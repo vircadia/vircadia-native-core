@@ -172,11 +172,6 @@ quint64 end;
             
             versionDebugSuppressMap.insert(senderUUID, checkType);
         }
-        
-
-        if ((end=usecTimestampNow()) - start > 100) {
-            printf("\t\t\t\t version and hash match long diff: %d\n", end-start);
-        }
 
         return false;
     }
@@ -187,11 +182,6 @@ quint64 end;
         if (sendingNode) {
             // check if the md5 hash in the header matches the hash we would expect
             if (hashFromPacketHeader(packet) == hashForPacketAndConnectionUUID(packet, sendingNode->getConnectionSecret())) {
-
-                if ((end = usecTimestampNow()) - start > 100) {
-                    printf("\t\t\t\t version and hash match long diff: %d\n", end - start);
-                }
-
                 return true;
             } else {
                 qDebug() << "Packet hash mismatch on" << checkType << "- Sender"
@@ -210,10 +200,6 @@ quint64 end;
         return true;
     }
 
-
-    if ((end = usecTimestampNow()) - start > 100) {
-        printf("\t\t\t\t version and hash match long diff: %d\n", end - start);
-    }
     return false;
 }
 

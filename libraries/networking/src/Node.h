@@ -96,7 +96,7 @@ public:
     void setPingMs(int pingMs) { _pingMs = pingMs; }
 
     int getClockSkewUsec() const { return _clockSkewUsec; }
-    void setClockSkewUsec(int clockSkew);
+    void updateClockSkewUsec(int clockSkewSample);
     QMutex& getMutex() { return _mutex; }
     
     friend QDataStream& operator<<(QDataStream& out, const Node& node);
@@ -122,7 +122,6 @@ private:
     int _pingMs;
     int _clockSkewUsec;
     QMutex _mutex;
-
     MovingPercentile _clockSkewMovingPercentile;
 };
 

@@ -1,5 +1,4 @@
 #include "MovingPercentile.h"
-//#include "stdio.h"// DEBUG
 
 MovingPercentile::MovingPercentile(int numSamples, float percentile)
     : _numSamples(numSamples),
@@ -19,14 +18,15 @@ MovingPercentile::~MovingPercentile() {
 
 void MovingPercentile::updatePercentile(float sample) {
 
-//printf("\nnew sample: %2.2f  ", sample);
+    // age all current samples by 1
+    for (int i = 0; i < _numExistingSamples; i++) {
+        _sampleAges[i]++;
+    }
 
     // find index in _samplesSorted to insert new sample.
-    // if samples have not been filled yet, this will be the next empty spot
-    // otherwise, it will be the spot of the oldest sample
     int newSampleIndex;
     if (_numExistingSamples < _numSamples) {
-
+        // if samples have not been filled yet, this will be the next empty spot
         newSampleIndex = _numExistingSamples;
         _numExistingSamples++;
 
@@ -35,19 +35,9 @@ void MovingPercentile::updatePercentile(float sample) {
         _indexOfPercentile = (int)(index + 0.5f);   // round to int
     }
     else {
-        for (int i = 0; i < _numExistingSamples; i++) {
-            if (_sampleAges[i] == _numExistingSamples - 1) {
-                newSampleIndex = i;
-                break;
-            }
-        }
-    }
-
-//printf("will be inserted at index %d\n", newSampleIndex);
-
-    // update _sampleAges to reflect new sample (age all samples by 1)
-    for (int i = 0; i < _numExistingSamples; i++) {
-        _sampleAges[i]++;
+        // if samples have been filled, it will be the spot of the oldest sample
+        newSampleIndex = 0;
+        while (_sampleAges[newSampleIndex] != _numExistingSamples) { newSampleIndex++; }
     }
 
     // insert new sample at that index
@@ -56,11 +46,8 @@ void MovingPercentile::updatePercentile(float sample) {
 
     // swap new sample with neighboring elements in _samplesSorted until it's in sorted order
     // try swapping up first, then down.  element will only be swapped one direction.
-
-    float neighborSample;
-    while (newSampleIndex < _numExistingSamples-1 && sample > (neighborSample = _samplesSorted[newSampleIndex+1])) {
-//printf("\t swapping up...\n");
-        _samplesSorted[newSampleIndex] = neighborSample;
+    while (newSampleIndex < _numExistingSamples-1 && sample > _samplesSorted[newSampleIndex+1]) {
+        _samplesSorted[newSampleIndex] = _samplesSorted[newSampleIndex + 1];
         _samplesSorted[newSampleIndex+1] = sample;
 
         _sampleAges[newSampleIndex] = _sampleAges[newSampleIndex+1];
@@ -68,9 +55,8 @@ void MovingPercentile::updatePercentile(float sample) {
 
         newSampleIndex++;
     }
-    while (newSampleIndex > 0 && sample < (neighborSample = _samplesSorted[newSampleIndex - 1])) {
-//printf("\t swapping down...\n");
-        _samplesSorted[newSampleIndex] = neighborSample;
+    while (newSampleIndex > 0 && sample < _samplesSorted[newSampleIndex - 1]) {
+        _samplesSorted[newSampleIndex] = _samplesSorted[newSampleIndex - 1];
         _samplesSorted[newSampleIndex - 1] = sample;
 
         _sampleAges[newSampleIndex] = _sampleAges[newSampleIndex - 1];
@@ -81,13 +67,4 @@ void MovingPercentile::updatePercentile(float sample) {
 
     // find new value at percentile
     _valueAtPercentile = _samplesSorted[_indexOfPercentile];
-/*
-printf(" new median: %f\n", _median);
-
-// debug:
-for (int i = 0; i < _numExistingSamples; i++) {
-    printf("%2.2f (%d), ", _samplesSorted[i], _sampleAges[i]);
-}
-printf("\n\n");
-*/
 }

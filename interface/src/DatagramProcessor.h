@@ -29,32 +29,6 @@ public slots:
 private:
     int _packetCount;
     int _byteCount;
-
-public:
-    // DEBUG
-
-    static int skewsI[];
-    static int S;
-
-    static unsigned char typesI[];
-    static int diffsI[];
-    static int I;
-
-
-    static quint64 prevTime;
-
-    static unsigned char typesA[];
-    static quint64 timesA[];
-    static int A;
-
-    static unsigned char typesB[];
-    static quint64 timesB[];
-    static int B;
-
-
-    static unsigned char* currTypes, *prevTypes;
-    static quint64* currTimes, *prevTimes;
-    static int* currN, *prevN;
 };
 
 #endif // hifi_DatagramProcessor_h

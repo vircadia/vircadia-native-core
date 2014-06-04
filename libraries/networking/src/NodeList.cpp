@@ -77,7 +77,7 @@ qint64 NodeList::sendStatsToDomainServer(const QJsonObject& statsObject) {
     return writeUnverifiedDatagram(statsPacket, _domainHandler.getSockAddr());
 }
 
-int NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode) {
+void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode) {
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));
     
@@ -96,10 +96,7 @@ int NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& s
     int clockSkew = othersReplyTime - othersExprectedReply;
     
     sendingNode->setPingMs(pingTime / 1000);
-    sendingNode->setClockSkewUsec(clockSkew);
- 
-printf("\t\t clock skew sample: %d  val at percentile: %d\n", clockSkew, sendingNode->getClockSkewUsec());
-
+    sendingNode->updateClockSkewUsec(clockSkew);
 
     const bool wantDebug = false;
     
@@ -113,14 +110,9 @@ printf("\t\t clock skew sample: %d  val at percentile: %d\n", clockSkew, sending
         "    othersExprectedReply: " << othersExprectedReply << "\n" <<
         "               clockSkew: " << clockSkew;
     }
-
-///if (abs(clockSkew) > 1000)
-//printf("clockskew = %d \n", clockSkew);
-
-return clockSkew;
 }
 
-int NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
+void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
     switch (packetTypeForPacket(packet)) {
         case PacketTypeDomainList: {
             processDomainServerList(packet);
@@ -160,8 +152,7 @@ int NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteArr
                 activateSocketFromNodeCommunication(packet, sendingNode);
                 
                 // set the ping time for this node for stat collection
-    return timePingReply(packet, sendingNode);
-
+                timePingReply(packet, sendingNode);
             }
             
             break;
@@ -176,7 +167,6 @@ int NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteArr
             LimitedNodeList::processNodeData(senderSockAddr, packet);
             break;
     }
-return 1234567890;
 }
 
 void NodeList::reset() {
@@ -489,11 +479,8 @@ QByteArray NodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
     QByteArray replyPacket = byteArrayWithPopulatedHeader(PacketTypePingReply);
     QDataStream packetStream(&replyPacket, QIODevice::Append);
     
-quint64 now;
-    packetStream << typeFromOriginalPing << timeFromOriginalPing << (now = usecTimestampNow());
+    packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();
     
-
-printf("\n>>>>>>>> recv ping: %llu  reply: %llu  diff: %lld\n", timeFromOriginalPing, now, (qint64)now-(qint64)timeFromOriginalPing);
     return replyPacket;
 }
 
