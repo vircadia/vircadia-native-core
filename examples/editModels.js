@@ -528,7 +528,7 @@ function initToolBar() {
     toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
     // New Model
     newModel = toolBar.addTool({
-                               imageURL: toolIconUrl + "voxel-tool.svg",
+                               imageURL: toolIconUrl + "add-model-tool.svg",
                                subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
                                width: toolWidth, height: toolHeight,
                                visible: true,
