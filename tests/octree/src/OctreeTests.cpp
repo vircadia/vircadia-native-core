@@ -378,8 +378,9 @@ void OctreeTests::propertyFlagsTests() {
         qDebug() << "encoded=";
         outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
 
+        qDebug() << "encoded.size()=" << encoded.size();
+
         ParticlePropertyFlags propsDecoded;
-        
         propsDecoded.decode(encoded);
         
         qDebug() << "propsDecoded == props:" << (propsDecoded == props) << "{ expect true }";
@@ -387,7 +388,23 @@ void OctreeTests::propertyFlagsTests() {
         QByteArray encodedAfterDecoded = propsDecoded.encode();
 
         qDebug() << "encodedAfterDecoded=";
-        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        outputBufferBits((const unsigned char*)encodedAfterDecoded.constData(), encodedAfterDecoded.size());
+
+        qDebug() << "fill encoded byte array with extra garbage (as if it was bitstream with more content)";
+        QByteArray extraContent;
+        extraContent.fill(0xba, 10);
+        encoded.append(extraContent);
+        qDebug() << "encoded.size()=" << encoded.size() << "includes extra garbage";
+
+        ParticlePropertyFlags propsDecodedExtra;
+        propsDecodedExtra.decode(encoded);
+        
+        qDebug() << "propsDecodedExtra == props:" << (propsDecodedExtra == props) << "{ expect true }";
+
+        QByteArray encodedAfterDecodedExtra = propsDecodedExtra.encode();
+
+        qDebug() << "encodedAfterDecodedExtra=";
+        outputBufferBits((const unsigned char*)encodedAfterDecodedExtra.constData(), encodedAfterDecodedExtra.size());
 
     }
 
