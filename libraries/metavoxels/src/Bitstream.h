@@ -38,6 +38,7 @@ class FieldReader;
 class ObjectReader;
 class OwnedAttributeValue;
 class PropertyReader;
+class PropertyWriter;
 class TypeReader;
 class TypeStreamer;
 
@@ -396,6 +397,8 @@ private slots:
 
 private:
     
+    const QVector<PropertyWriter>& getPropertyWriters(const QMetaObject* metaObject);
+    
     QDataStream& _underlying;
     quint8 _byte;
     int _position;
@@ -415,9 +418,12 @@ private:
     QHash<QByteArray, const QMetaObject*> _metaObjectSubstitutions;
     QHash<QByteArray, const TypeStreamer*> _typeStreamerSubstitutions;
 
+    QHash<const QMetaObject*, QVector<PropertyWriter> > _propertyWriters;
+
     static QHash<QByteArray, const QMetaObject*>& getMetaObjects();
     static QMultiHash<const QMetaObject*, const QMetaObject*>& getMetaObjectSubClasses();
     static QHash<int, const TypeStreamer*>& getTypeStreamers();
+    static QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*>& getEnumStreamers();
     static QVector<PropertyReader> getPropertyReaders(const QMetaObject* metaObject);
 };
 
@@ -708,7 +714,7 @@ typedef QSharedPointer<TypeReader> TypeReaderPointer;
 class TypeReader {
 public:
 
-    enum Type { SIMPLE_TYPE, STREAMABLE_TYPE, LIST_TYPE, SET_TYPE, MAP_TYPE };
+    enum Type { SIMPLE_TYPE, ENUM_TYPE, STREAMABLE_TYPE, LIST_TYPE, SET_TYPE, MAP_TYPE };
     
     TypeReader(const QByteArray& typeName = QByteArray(), const TypeStreamer* streamer = NULL, bool exactMatch = true, 
         Type type = SIMPLE_TYPE, const TypeReaderPointer& keyReader = TypeReaderPointer(),
@@ -804,11 +810,14 @@ private:
     QMetaProperty _property;
 };
 
-/// Contains the information necessary to obtain an object property and write it to the stream.
+/// Contains the information required to obtain an object property and write it to the stream.
 class PropertyWriter {
 public:
 
     PropertyWriter(const QMetaProperty& property = QMetaProperty(), const TypeStreamer* streamer = NULL);
+
+    const QMetaProperty& getProperty() const { return _property; }
+    const TypeStreamer* getStreamer() const { return _streamer; }
 
     void write(Bitstream& out, const QObject* object) const;
     void writeDelta(Bitstream& out, const QObject* object, const QObject* reference) const;
@@ -848,6 +857,8 @@ public:
     void setType(int type) { _type = type; }
     int getType() const { return _type; }
     
+    virtual const char* getName() const;
+    
     virtual bool equal(const QVariant& first, const QVariant& second) const = 0;
     
     virtual void write(Bitstream& out, const QVariant& value) const = 0;
@@ -865,6 +876,8 @@ public:
     virtual QVariant getField(const QVariant& object, int index) const;
     
     virtual TypeReader::Type getReaderType() const;
+
+    virtual int getBits() const;
 
     virtual const TypeStreamer* getKeyStreamer() const;
     virtual const TypeStreamer* getValueStreamer() const;
@@ -903,6 +916,29 @@ public:
         out.writeRawDelta(value.value<T>(), reference.value<T>()); }
     virtual void readRawDelta(Bitstream& in, QVariant& value, const QVariant& reference) const {
         T rawValue; in.readRawDelta(rawValue, reference.value<T>()); value = QVariant::fromValue(rawValue); }
+};
+
+/// A streamer class for enumerated types.
+class EnumTypeStreamer : public TypeStreamer {
+public:
+    
+    EnumTypeStreamer(const QByteArray& name, int bits);
+    
+    virtual const char* getName() const;
+    virtual TypeReader::Type getReaderType() const;
+    virtual int getBits() const;
+    virtual bool equal(const QVariant& first, const QVariant& second) const;
+    virtual void write(Bitstream& out, const QVariant& value) const;
+    virtual QVariant read(Bitstream& in) const;
+    virtual void writeDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const;
+    virtual void readDelta(Bitstream& in, QVariant& value, const QVariant& reference) const;
+    virtual void writeRawDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const;
+    virtual void readRawDelta(Bitstream& in, QVariant& value, const QVariant& reference) const;
+
+private:
+    
+    QByteArray _name;
+    int _bits;
 };
 
 /// A streamer for types compiled by mtc.

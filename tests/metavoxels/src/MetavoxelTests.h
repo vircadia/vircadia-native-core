@@ -80,7 +80,7 @@ public:
     
     enum TestEnum { FIRST_TEST_ENUM, SECOND_TEST_ENUM, THIRD_TEST_ENUM };
     
-    enum TestFlag { NO_TEST_FLAGS = 0x0, FIRST_TEST_FLAG = 0x01, SECOND_TEST_FLAG = 0x02, THIRD_TEST_FLAG = 0x03 };
+    enum TestFlag { NO_TEST_FLAGS = 0x0, FIRST_TEST_FLAG = 0x01, SECOND_TEST_FLAG = 0x02, THIRD_TEST_FLAG = 0x04 };
     Q_DECLARE_FLAGS(TestFlags, TestFlag)
     
     Q_INVOKABLE TestSharedObjectA(float foo = 0.0f, TestEnum baz = FIRST_TEST_ENUM, TestFlags bong = 0);
