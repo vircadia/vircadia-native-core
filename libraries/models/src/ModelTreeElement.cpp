@@ -50,6 +50,10 @@ ModelTreeElement* ModelTreeElement::addChildAtIndex(int index) {
 }
 
 
+// TODO: This will attempt to store as many models as will fit in the packetData, if an individual model won't
+// fit, but some models did fit, then the element outputs what can fit. Once the general Octree::encodeXXX()
+// process supports partial encoding of an octree element, this will need to be updated to handle spanning its
+// contents across multiple packets.
 bool ModelTreeElement::appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const {
     bool success = true; // assume the best...
 
@@ -89,7 +93,6 @@ bool ModelTreeElement::appendElementData(OctreePacketData* packetData, EncodeBit
                 actualNumberOfModels++;
             }
             if (!success) {
-                qDebug() << "ModelTreeElement::appendElementData()... model i=" << i << "didn't fit...";
                 packetData->discardLevel(modelLevel);
                 break;
             }
@@ -97,7 +100,6 @@ bool ModelTreeElement::appendElementData(OctreePacketData* packetData, EncodeBit
     }
     
     if (!success) {
-        qDebug() << "ModelTreeElement::appendElementData()... updatePriorBytes()... actualNumberOfModels=" << actualNumberOfModels;
         success = packetData->updatePriorBytes(numberOfModelsOffset, 
                                             (const unsigned char*)&actualNumberOfModels, sizeof(actualNumberOfModels));
     }
