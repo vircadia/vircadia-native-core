@@ -263,7 +263,7 @@ void SkeletonModel::renderJointConstraints(int jointIndex) {
     do {
         const FBXJoint& joint = geometry.joints.at(jointIndex);
         const JointState& jointState = _jointStates.at(jointIndex);
-        glm::vec3 position = _rotation * jointState.getPositionInModelFrame() + _translation;
+        glm::vec3 position = _rotation * jointState.getPosition() + _translation;
         
         glPushMatrix();
         glTranslatef(position.x, position.y, position.z);

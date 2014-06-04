@@ -718,7 +718,7 @@ bool Model::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) co
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
-    position = _translation + _rotation * _jointStates[jointIndex].getPositionInModelFrame();
+    position = _translation + _rotation * _jointStates[jointIndex].getPosition();
     return true;
 }
 
@@ -960,7 +960,7 @@ void Model::updateShapePositions() {
             // shape position and rotation need to be in world-frame
             glm::quat stateRotation = state.getRotation();
             glm::vec3 shapeOffset = uniformScale * (stateRotation * joint.shapePosition);
-            glm::vec3 worldPosition = _translation + _rotation * (state.getPositionInModelFrame() + shapeOffset);
+            glm::vec3 worldPosition = _translation + _rotation * (state.getPosition() + shapeOffset);
             Shape* shape = _jointShapes[i];
             shape->setPosition(worldPosition);
             shape->setRotation(_rotation * stateRotation * joint.shapeRotation);
@@ -985,12 +985,12 @@ bool Model::findRayIntersection(const glm::vec3& origin, const glm::vec3& direct
     float radiusScale = extractUniformScale(_scale);
     for (int i = 0; i < _jointStates.size(); i++) {
         const FBXJoint& joint = geometry.joints[i];
-        glm::vec3 end = _translation + _rotation * _jointStates[i].getPositionInModelFrame();
+        glm::vec3 end = _translation + _rotation * _jointStates[i].getPosition();
         float endRadius = joint.boneRadius * radiusScale;
         glm::vec3 start = end;
         float startRadius = joint.boneRadius * radiusScale;
         if (joint.parentIndex != -1) {
-            start = _translation + _rotation * _jointStates[joint.parentIndex].getPositionInModelFrame();
+            start = _translation + _rotation * _jointStates[joint.parentIndex].getPosition();
             startRadius = geometry.joints[joint.parentIndex].boneRadius * radiusScale;
         }
         // for now, use average of start and end radii
