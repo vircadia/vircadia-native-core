@@ -10,7 +10,7 @@
 //
 
 var rightHandAnimation = "https://s3-us-west-1.amazonaws.com/highfidelity-public/animations/HandAnim.fbx";
-var leftHandAnimation = "https://s3-us-west-1.amazonaws.com/highfidelity-public/animations/HandAnim.fbx";
+var leftHandAnimation = "";
 
 var LEFT = 0;
 var RIGHT = 1;
@@ -30,11 +30,11 @@ Script.update.connect(function(deltaTime) {
     leftFrame = (leftTriggerValue * LAST_FRAME) * 0.5 + lastLeftFrame * 0.5;
     rightFrame = (rightTriggerValue * LAST_FRAME) * 0.5 + lastRightFrame * 0.5;
     
-    if (leftFrame != lastLeftFrame) {
+    if ((leftFrame != lastLeftFrame) && leftHandAnimation.length){
    		MyAvatar.stopAnimation(leftHandAnimation);
     	MyAvatar.startAnimation(leftHandAnimation, 30.0, 1.0, false, true, leftFrame, leftFrame);
     }
-    if (rightFrame != lastRightFrame) {
+    if ((rightFrame != lastRightFrame) && rightHandAnimation.length) {
    		MyAvatar.stopAnimation(rightHandAnimation);
     	MyAvatar.startAnimation(rightHandAnimation, 30.0, 1.0, false, true, rightFrame, rightFrame);
     }
