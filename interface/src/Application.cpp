@@ -292,8 +292,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // move the silentNodeTimer to the _nodeThread
     QTimer* silentNodeTimer = new QTimer();
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
-    silentNodeTimer->moveToThread(_nodeThread);
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
+    silentNodeTimer->moveToThread(_nodeThread);
 
     // send the identity packet for our avatar each second to our avatar mixer
     QTimer* identityPacketTimer = new QTimer();
@@ -1007,6 +1007,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_At:
                 Menu::getInstance()->goTo();
                 break;
+            case Qt::Key_B:
+                _applicationOverlay.setOculusAngle(_applicationOverlay.getOculusAngle() - RADIANS_PER_DEGREE);
+                break;
+            case Qt::Key_N:
+                _applicationOverlay.setOculusAngle(_applicationOverlay.getOculusAngle() + RADIANS_PER_DEGREE);
+                break;
             default:
                 event->ignore();
                 break;
@@ -1097,7 +1103,8 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 
 
     _lastMouseMove = usecTimestampNow();
-    if (_mouseHidden) {
+
+    if (_mouseHidden && !OculusManager::isConnected()) {
         getGLWidget()->setCursor(Qt::ArrowCursor);
         _mouseHidden = false;
         _seenMouseMove = true;

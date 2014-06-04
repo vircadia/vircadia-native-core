@@ -433,11 +433,11 @@ void MyAvatar::removeAnimationHandle(const AnimationHandlePointer& handle) {
 }
 
 void MyAvatar::startAnimation(const QString& url, float fps, float priority,
-        bool loop, bool hold, int firstFrame, int lastFrame, const QStringList& maskedJoints) {
+        bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "startAnimation", Q_ARG(const QString&, url), Q_ARG(float, fps),
-            Q_ARG(float, priority), Q_ARG(bool, loop), Q_ARG(bool, hold), Q_ARG(int, firstFrame),
-            Q_ARG(int, lastFrame), Q_ARG(const QStringList&, maskedJoints));
+            Q_ARG(float, priority), Q_ARG(bool, loop), Q_ARG(bool, hold), Q_ARG(float, firstFrame),
+            Q_ARG(float, lastFrame), Q_ARG(const QStringList&, maskedJoints));
         return;
     }
     AnimationHandlePointer handle = _skeletonModel.createAnimationHandle();
@@ -453,11 +453,11 @@ void MyAvatar::startAnimation(const QString& url, float fps, float priority,
 }
 
 void MyAvatar::startAnimationByRole(const QString& role, const QString& url, float fps, float priority,
-        bool loop, bool hold, int firstFrame, int lastFrame, const QStringList& maskedJoints) {
+        bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "startAnimationByRole", Q_ARG(const QString&, role), Q_ARG(const QString&, url),
-            Q_ARG(float, fps), Q_ARG(float, priority), Q_ARG(bool, loop), Q_ARG(bool, hold), Q_ARG(int, firstFrame),
-            Q_ARG(int, lastFrame), Q_ARG(const QStringList&, maskedJoints));
+            Q_ARG(float, fps), Q_ARG(float, priority), Q_ARG(bool, loop), Q_ARG(bool, hold), Q_ARG(float, firstFrame),
+            Q_ARG(float, lastFrame), Q_ARG(const QStringList&, maskedJoints));
         return;
     }
     // check for a configured animation for the role
@@ -627,8 +627,8 @@ void MyAvatar::loadData(QSettings* settings) {
         handle->setLoop(settings->value("loop", true).toBool());
         handle->setHold(settings->value("hold", false).toBool());
         handle->setStartAutomatically(settings->value("startAutomatically", true).toBool());
-        handle->setFirstFrame(settings->value("firstFrame", 0).toInt());
-        handle->setLastFrame(settings->value("lastFrame", INT_MAX).toInt());
+        handle->setFirstFrame(settings->value("firstFrame", 0.0f).toFloat());
+        handle->setLastFrame(settings->value("lastFrame", INT_MAX).toFloat());
         handle->setMaskedJoints(settings->value("maskedJoints").toStringList());
     }
     settings->endArray();
