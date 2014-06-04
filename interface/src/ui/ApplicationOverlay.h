@@ -28,11 +28,18 @@ public:
 
     // Getters
     QOpenGLFramebufferObject* getFramebufferObject();
+    float getOculusAngle() const { return _oculusAngle; }
+
+    // Setters
+    void setOculusAngle(float oculusAngle) { _oculusAngle = oculusAngle; }
 
 private:
 
+    ProgramObject _textureProgram;
     QOpenGLFramebufferObject* _framebufferObject;
     float _trailingAudioLoudness;
+    float _oculusAngle;
+    float _distance;
 };
 
 #endif // hifi_ApplicationOverlay_h

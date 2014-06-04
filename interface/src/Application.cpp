@@ -292,8 +292,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // move the silentNodeTimer to the _nodeThread
     QTimer* silentNodeTimer = new QTimer();
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
-    silentNodeTimer->moveToThread(_nodeThread);
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
+    silentNodeTimer->moveToThread(_nodeThread);
 
     // send the identity packet for our avatar each second to our avatar mixer
     QTimer* identityPacketTimer = new QTimer();
@@ -1007,6 +1007,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_At:
                 Menu::getInstance()->goTo();
                 break;
+            case Qt::Key_B:
+                _applicationOverlay.setOculusAngle(_applicationOverlay.getOculusAngle() - RADIANS_PER_DEGREE);
+                break;
+            case Qt::Key_N:
+                _applicationOverlay.setOculusAngle(_applicationOverlay.getOculusAngle() + RADIANS_PER_DEGREE);
+                break;
             default:
                 event->ignore();
                 break;
@@ -1097,7 +1103,8 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 
 
     _lastMouseMove = usecTimestampNow();
-    if (_mouseHidden) {
+
+    if (_mouseHidden && !OculusManager::isConnected) {
         getGLWidget()->setCursor(Qt::ArrowCursor);
         _mouseHidden = false;
         _seenMouseMove = true;
@@ -3119,9 +3126,15 @@ void Application::domainChanged(const QString& domainHostname) {
     _environment.resetToDefault();
 
     // reset our node to stats and node to jurisdiction maps... since these must be changing...
+    _voxelServerJurisdictions.lockForWrite();
     _voxelServerJurisdictions.clear();
+    _voxelServerJurisdictions.unlock();
+
     _octreeServerSceneStats.clear();
+
+    _particleServerJurisdictions.lockForWrite();
     _particleServerJurisdictions.clear();
+    _particleServerJurisdictions.unlock();
 
     // reset the particle renderer
     _particles.clear();
@@ -3160,10 +3173,12 @@ void Application::nodeKilled(SharedNodePointer node) {
     if (node->getType() == NodeType::VoxelServer) {
         QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...
+        _voxelServerJurisdictions.lockForRead();
         if (_voxelServerJurisdictions.find(nodeUUID) != _voxelServerJurisdictions.end()) {
             unsigned char* rootCode = _voxelServerJurisdictions[nodeUUID].getRootOctalCode();
             VoxelPositionSize rootDetails;
             voxelDetailsForCode(rootCode, rootDetails);
+            _voxelServerJurisdictions.unlock();
 
             qDebug("voxel server going away...... v[%f, %f, %f, %f]",
                 rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
@@ -3180,8 +3195,10 @@ void Application::nodeKilled(SharedNodePointer node) {
             }
 
             // If the voxel server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
+            _voxelServerJurisdictions.lockForWrite();
             _voxelServerJurisdictions.erase(_voxelServerJurisdictions.find(nodeUUID));
         }
+        _voxelServerJurisdictions.unlock();
 
         // also clean up scene stats for that server
         _octreeSceneStatsLock.lockForWrite();
@@ -3193,10 +3210,12 @@ void Application::nodeKilled(SharedNodePointer node) {
     } else if (node->getType() == NodeType::ParticleServer) {
         QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...
+        _particleServerJurisdictions.lockForRead();
         if (_particleServerJurisdictions.find(nodeUUID) != _particleServerJurisdictions.end()) {
             unsigned char* rootCode = _particleServerJurisdictions[nodeUUID].getRootOctalCode();
             VoxelPositionSize rootDetails;
             voxelDetailsForCode(rootCode, rootDetails);
+            _particleServerJurisdictions.unlock();
 
             qDebug("particle server going away...... v[%f, %f, %f, %f]",
                 rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
@@ -3213,8 +3232,10 @@ void Application::nodeKilled(SharedNodePointer node) {
             }
 
             // If the particle server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
+            _particleServerJurisdictions.lockForWrite();
             _particleServerJurisdictions.erase(_particleServerJurisdictions.find(nodeUUID));
         }
+        _particleServerJurisdictions.unlock();
 
         // also clean up scene stats for that server
         _octreeSceneStatsLock.lockForWrite();
@@ -3227,10 +3248,12 @@ void Application::nodeKilled(SharedNodePointer node) {
 
         QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...
+        _modelServerJurisdictions.lockForRead();
         if (_modelServerJurisdictions.find(nodeUUID) != _modelServerJurisdictions.end()) {
             unsigned char* rootCode = _modelServerJurisdictions[nodeUUID].getRootOctalCode();
             VoxelPositionSize rootDetails;
             voxelDetailsForCode(rootCode, rootDetails);
+            _modelServerJurisdictions.unlock();
 
             qDebug("model server going away...... v[%f, %f, %f, %f]",
                 rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
@@ -3247,8 +3270,10 @@ void Application::nodeKilled(SharedNodePointer node) {
             }
 
             // If the model server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
+            _modelServerJurisdictions.lockForWrite();
             _modelServerJurisdictions.erase(_modelServerJurisdictions.find(nodeUUID));
         }
+        _modelServerJurisdictions.unlock();
 
         // also clean up scene stats for that server
         _octreeSceneStatsLock.lockForWrite();
@@ -3318,7 +3343,10 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
             serverType = "Model";
         }
 
+        jurisdiction->lockForRead();
         if (jurisdiction->find(nodeUUID) == jurisdiction->end()) {
+            jurisdiction->unlock();
+
             qDebug("stats from new %s server... [%f, %f, %f, %f]",
                 qPrintable(serverType), rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
 
@@ -3332,6 +3360,8 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
                 _voxelFades.push_back(fade);
                 _voxelFadesLock.unlock();
             }
+        } else {
+            jurisdiction->unlock();
         }
         // store jurisdiction details for later use
         // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it
@@ -3339,7 +3369,9 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
         // details from the OctreeSceneStats to construct the JurisdictionMap
         JurisdictionMap jurisdictionMap;
         jurisdictionMap.copyContents(temp.getJurisdictionRoot(), temp.getJurisdictionEndNodes());
+        jurisdiction->lockForWrite();
         (*jurisdiction)[nodeUUID] = jurisdictionMap;
+        jurisdiction->unlock();
     }
     return statsMessageLength;
 }
