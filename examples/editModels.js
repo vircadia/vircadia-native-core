@@ -152,6 +152,7 @@ function controller(wichSide) {
                     this.jointsIntersectingFromStart.push(i);
                 }
             }
+            this.showLaser(false);
         }
     }
     
@@ -196,6 +197,7 @@ function controller(wichSide) {
         this.grabbing = false;
         this.modelID.isKnownID = false;
         this.jointsIntersectingFromStart = [];
+        this.showLaser(true);
     }
     
     this.checkTrigger = function () {
@@ -258,41 +260,43 @@ function controller(wichSide) {
         
         Overlays.editOverlay(this.laser, {
                              position: startPosition,
-                             end: endPosition,
-                             visible: true
+                             end: endPosition
                              });
         
         
         Overlays.editOverlay(this.ball, {
-                             position: endPosition,
-                             visible: true
+                             position: endPosition
                              });
         Overlays.editOverlay(this.leftRight, {
                              position: Vec3.sum(endPosition, Vec3.multiply(this.right, 2 * this.guideScale)),
-                             end: Vec3.sum(endPosition, Vec3.multiply(this.right, -2 * this.guideScale)),
-                             visible: true
+                             end: Vec3.sum(endPosition, Vec3.multiply(this.right, -2 * this.guideScale))
                              });
         Overlays.editOverlay(this.topDown, {position: Vec3.sum(endPosition, Vec3.multiply(this.up, 2 * this.guideScale)),
-                             end: Vec3.sum(endPosition, Vec3.multiply(this.up, -2 * this.guideScale)),
-                             visible: true
+                             end: Vec3.sum(endPosition, Vec3.multiply(this.up, -2 * this.guideScale))
                              });
+        this.showLaser(!this.grabbing);
     }
     
-    this.hideLaser = function() {
-        Overlays.editOverlay(this.laser, { visible: false });
-        Overlays.editOverlay(this.ball, { visible: false });
-        Overlays.editOverlay(this.leftRight, { visible: false });
-        Overlays.editOverlay(this.topDown, { visible: false });
+    this.showLaser = function(show) {
+        Overlays.editOverlay(this.laser, { visible: show });
+        Overlays.editOverlay(this.ball, { visible: show });
+        Overlays.editOverlay(this.leftRight, { visible: show });
+        Overlays.editOverlay(this.topDown, { visible: show });
     }
     
     this.moveModel = function () {
         if (this.grabbing) {
-            var newPosition = Vec3.sum(this.palmPosition,
-                                       Vec3.multiply(this.front, this.x));
-            newPosition = Vec3.sum(newPosition,
-                                   Vec3.multiply(this.up, this.y));
-            newPosition = Vec3.sum(newPosition,
-                                   Vec3.multiply(this.right, this.z));
+            var forward = Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -1 });
+            var d = Vec3.dot(forward, MyAvatar.position);
+            
+            var factor1 = Vec3.dot(forward, this.palmPosition) - d;
+            var factor2 = Vec3.dot(forward, this.oldModelPosition) - d;
+            var vector = Vec3.subtract(this.palmPosition, this.oldPalmPosition);
+            
+            var newPosition = Vec3.sum(this.oldModelPosition,
+                                       Vec3.multiply(vector,
+                                                     factor2 / factor1));
+            
             
             var newRotation = Quat.multiply(this.rotation,
                                             Quat.inverse(this.oldRotation));
@@ -457,20 +461,34 @@ function moveModels() {
         
         var newPosition = Vec3.sum(middle,
                                    Vec3.multiply(Vec3.subtract(leftController.oldModelPosition, oldMiddle), ratio));
-        //Vec3.print("Ratio : " + ratio + " New position: ", newPosition);
-        var rotation = Quat.multiply(leftController.rotation,
-                                     Quat.inverse(leftController.oldRotation));
+
+        
+        var u = Vec3.normalize(Vec3.subtract(rightController.oldPalmPosition, leftController.oldPalmPosition));
+        var v = Vec3.normalize(Vec3.subtract(rightController.palmPosition, leftController.palmPosition));
+        
+        var cos_theta = Vec3.dot(Vec3.normalize(u), Vec3.normalize(v));
+        var angle = Math.acos(cos_theta);
+        var w = Vec3.normalize(Vec3.cross(u, v));
+        
+        
+        var rotation = Quat.angleAxis(angle, w);
+        
+        
         rotation = Quat.multiply(rotation, leftController.oldModelRotation);
         
         Models.editModel(leftController.modelID, {
-                         position: newPosition,
-                         //modelRotation: rotation,
-                         radius: leftController.oldModelRadius * ratio
+                         //position: newPosition,
+                         modelRotation: rotation,
+                         //radius: leftController.oldModelRadius * ratio
                          });
         
-        leftController.oldModelPosition = newPosition;
+        //leftController.oldModelPosition = newPosition;
         leftController.oldModelRotation = rotation;
-        leftController.oldModelRadius *= ratio;
+        //leftController.oldModelRadius *= ratio;
+        
+        //rightController.oldModelPosition = newPosition;
+        rightController.oldModelRotation = rotation;
+        //rightController.oldModelRadius *= ratio;
         return;
     }
     
@@ -498,8 +516,8 @@ function checkController(deltaTime) {
         if (hydraConnected) {
             hydraConnected = false;
             
-            leftController.hideLaser();
-            rightController.hideLaser();
+            leftController.showLaser(false);
+            rightController.showLaser(false);
         }
     }
     
