@@ -168,7 +168,7 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
             
             versionDebugSuppressMap.insert(senderUUID, checkType);
         }
-
+        
         return false;
     }
     
