@@ -1246,7 +1246,7 @@ void Model::updateJointState(int index) {
     }
 }
 
-bool Model::setJointPositionInModelFrame(int jointIndex, const glm::vec3& position, const glm::quat& rotation, bool useRotation,
+bool Model::setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation, bool useRotation,
        int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment, float priority) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
@@ -1486,7 +1486,7 @@ void Model::applyCollision(CollisionInfo& collision) {
                 // transform into model-frame
                 glm::vec3 newEnd = glm::inverse(_rotation) * (start + glm::angleAxis(angle, axis) * (end - start) - _translation);
                 // try to move it
-                setJointPositionInModelFrame(jointIndex, newEnd, glm::quat(), false, -1, true);
+                setJointPosition(jointIndex, newEnd, glm::quat(), false, -1, true);
             }
         }
     }

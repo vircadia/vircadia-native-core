@@ -136,7 +136,7 @@ void SkeletonModel::applyHandPositionInModelFrame(int jointIndex, const glm::vec
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return;
     }
-    setJointPositionInModelFrame(jointIndex, position, glm::quat(), false, -1, false, glm::vec3(0.0f, -1.0f, 0.0f), PALM_PRIORITY);
+    setJointPosition(jointIndex, position, glm::quat(), false, -1, false, glm::vec3(0.0f, -1.0f, 0.0f), PALM_PRIORITY);
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::vec3 handPosition, elbowPosition;
@@ -194,7 +194,7 @@ void SkeletonModel::applyPalmDataInModelFrame(int jointIndex, PalmData& palm) {
         
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::AlignForearmsWithWrists)) {
         glm::vec3 forearmVector = palmRotation * glm::vec3(sign, 0.0f, 0.0f);
-        setJointPositionInModelFrame(parentJointIndex, palmPosition + forearmVector *
+        setJointPosition(parentJointIndex, palmPosition + forearmVector *
             geometry.joints.at(jointIndex).distanceToParent * extractUniformScale(_scale),
             glm::quat(), false, -1, false, glm::vec3(0.0f, -1.0f, 0.0f), PALM_PRIORITY);
         JointState& parentState = _jointStates[parentJointIndex];
@@ -202,7 +202,7 @@ void SkeletonModel::applyPalmDataInModelFrame(int jointIndex, PalmData& palm) {
         // lock hand to forearm by slamming its rotation (in parent-frame) to identity
         _jointStates[jointIndex]._rotationInParentFrame = glm::quat();
     } else {
-        setJointPositionInModelFrame(jointIndex, palmPosition, palmRotation,
+        setJointPosition(jointIndex, palmPosition, palmRotation,
             true, -1, false, glm::vec3(0.0f, -1.0f, 0.0f), PALM_PRIORITY);
     }
 }

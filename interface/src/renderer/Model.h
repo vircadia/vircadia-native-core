@@ -257,7 +257,15 @@ protected:
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);
     
-    bool setJointPositionInModelFrame(int jointIndex, const glm::vec3& translation, const glm::quat& rotation = glm::quat(),
+    /// \param jointIndex index of joint in model structure
+    /// \param position position of joint in model-frame
+    /// \param rotation rotation of joint in model-frame
+    /// \param useRotation false if rotation should be ignored
+    /// \param lastFreeIndex
+    /// \param allIntermediatesFree
+    /// \param alignment
+    /// \return true if joint exists
+    bool setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation = glm::quat(),
         bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
         const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
     
