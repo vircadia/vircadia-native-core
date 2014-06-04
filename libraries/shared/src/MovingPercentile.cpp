@@ -25,14 +25,14 @@ void MovingPercentile::updatePercentile(float sample) {
 
     // insert the new sample into _samplesSorted
     int newSampleIndex;
-    if (_sampleIds.size() < _numSamples) {
+    if (_samplesSorted.size() < _numSamples) {
         // if not all samples have been filled yet, simply append it
         newSampleIndex = _samplesSorted.size();
         _samplesSorted.append(sample);
         _sampleIds.append(_newSampleId);
 
         // update _indexOfPercentile
-        float index = _percentile * (float)(_sampleIds.size() - 1);
+        float index = _percentile * (float)(_samplesSorted.size() - 1);
         _indexOfPercentile = (int)(index + 0.5f);   // round to int
     }
     else {
@@ -46,7 +46,7 @@ void MovingPercentile::updatePercentile(float sample) {
 
     // swap new sample with neighbors in _samplesSorted until it's in sorted order
     // try swapping up first, then down.  element will only be swapped one direction.
-    while (newSampleIndex < _sampleIds.size() - 1 && sample > _samplesSorted[newSampleIndex + 1]) {
+    while (newSampleIndex < _samplesSorted.size() - 1 && sample > _samplesSorted[newSampleIndex + 1]) {
         _samplesSorted.swap(newSampleIndex, newSampleIndex + 1);
         _sampleIds.swap(newSampleIndex, newSampleIndex + 1);
         newSampleIndex++;
