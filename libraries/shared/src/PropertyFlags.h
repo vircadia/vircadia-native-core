@@ -11,49 +11,65 @@
 //
 // TODO:
 //   * implement decode
-//   * add operators
+//   * more operators, operator==, operator!=, operator!, operator~
+//   * iterator to enumerate the set values?
+//   * operator<<(enum) to work similar to set
 
 #ifndef hifi_PropertyFlags_h
 #define hifi_PropertyFlags_h
 
+#include <algorithm>
+#include <climits>
+
 #include <QBitArray>
 #include <QByteArray>
+
+#include <SharedUtil.h>
 
 template<typename Enum>class PropertyFlags {
 public:
     typedef Enum enum_type;
-    inline PropertyFlags() : _maxFlag(-1) { };
+    inline PropertyFlags() : _maxFlag(INT_MIN), _minFlag(INT_MAX)  { };
     inline PropertyFlags(const PropertyFlags& other) : _flags(other._flags), _maxFlag(other._maxFlag) {}
-    inline PropertyFlags(Enum flag) : _maxFlag(-1) { setHasProperty(flag); }
+    inline PropertyFlags(Enum flag) : _maxFlag(INT_MIN), _minFlag(INT_MAX) { setHasProperty(flag); }
 
-    void clear() { _flags.clear(); _maxFlag = -1; }
+    void clear() { _flags.clear(); _maxFlag = INT_MIN; _minFlag = INT_MAX; }
 
+    Enum firstFlag() const { return _minFlag; }
+    Enum lastFlag() const { return _maxFlag; }
+    
     void setHasProperty(Enum flag, bool value = true);
     bool getHasProperty(Enum flag);
     QByteArray encode();
     void decode(const QByteArray& fromEncoded);
 
 
-    inline PropertyFlags& operator=(const PropertyFlags &other) { _flags = other._flags; _maxFlag = other._maxFlag; return *this; }
+    PropertyFlags& operator=(const PropertyFlags &other);
 
-    inline PropertyFlags& operator|=(PropertyFlags other) { _flags |= other._flags; _maxFlag = max(_maxFlag, other._maxFlag); return *this; }
-    inline PropertyFlags& operator|=(Enum flag) { PropertyFlags other(flag); _flags |= other._flags; _maxFlag = max(_maxFlag, other._maxFlag); return *this; }
+    PropertyFlags& operator|=(PropertyFlags other);
+    PropertyFlags& operator|=(Enum flag);
 
-    inline PropertyFlags& operator&=(PropertyFlags other) { _flags &= other._flags; shinkIfNeeded(); return *this; }
-    inline PropertyFlags& operator&=(Enum flag) { PropertyFlags other(flag); _flags &= other._flags; shinkIfNeeded(); return *this; }
+    PropertyFlags& operator&=(PropertyFlags other);
+    PropertyFlags& operator&=(Enum flag);
 
-    inline PropertyFlags& operator^=(PropertyFlags other) { _flags ^= other._flags; shinkIfNeeded(); return *this; }
-    inline PropertyFlags& operator^=(Enum flag) { PropertyFlags other(flag); _flags ^= other._flags; shinkIfNeeded(); return *this; }
+    PropertyFlags& operator^=(PropertyFlags other);
+    PropertyFlags& operator^=(Enum flag);
 
+    PropertyFlags& operator-=(PropertyFlags other);
+    PropertyFlags& operator-=(Enum flag);
 
-    inline PropertyFlags operator|(PropertyFlags other) const { PropertyFlags result(*this); result |= other; return result; }
-    inline PropertyFlags operator|(Enum flag) const { PropertyFlags result(*this); PropertyFlags other(flag); result |= other; return result; }
+    PropertyFlags operator|(PropertyFlags other) const;
+    PropertyFlags operator|(Enum flag) const;
 
-    inline PropertyFlags operator^(PropertyFlags other) const { PropertyFlags result(*this); result ^= other; return result; }
-    inline PropertyFlags operator^(Enum flag) const { PropertyFlags result(*this); PropertyFlags other(flag); result ^= other; return result; }
+    PropertyFlags operator&(PropertyFlags other) const;
+    PropertyFlags operator&(Enum flag) const;
 
-    inline PropertyFlags operator&(PropertyFlags other) const { PropertyFlags result(*this); result &= other; return result; }
-    inline PropertyFlags operator&(Enum flag) const { PropertyFlags result(*this); PropertyFlags other(flag); result &= other; return result; }
+    PropertyFlags operator^(PropertyFlags other) const;
+    PropertyFlags operator^(Enum flag) const;
+
+    PropertyFlags operator-(PropertyFlags other) const;
+    PropertyFlags operator-(Enum flag) const;
+
 
     /*
     inline PropertyFlags operator~() const { return PropertyFlags(Enum(~i)); }
@@ -63,13 +79,21 @@ public:
 
 private:
     void shinkIfNeeded();
+    void debugDumpBits();
 
     QBitArray _flags;
     int _maxFlag;
+    int _minFlag;
 };
 
 
 template<typename Enum> inline void PropertyFlags<Enum>::setHasProperty(Enum flag, bool value) {
+    // keep track of our min flag
+    if (flag < _minFlag) {
+        if (value) {
+            _minFlag = flag;
+        }
+    }
     if (flag > _maxFlag) {
         if (value) {
             _maxFlag = flag;
@@ -78,7 +102,6 @@ template<typename Enum> inline void PropertyFlags<Enum>::setHasProperty(Enum fla
             return; // bail early, we're setting a flag outside of our current _maxFlag to false, which is already the default
         }
     }
-    qDebug() << "_flags.setBit("<<flag<<")=" << value;
     _flags.setBit(flag, value);
     
     if (flag == _maxFlag && !value) {
@@ -174,6 +197,137 @@ template<typename Enum> inline QByteArray PropertyFlags<Enum>::encode() {
 }
 
 template<typename Enum> inline void PropertyFlags<Enum>::decode(const QByteArray& fromEncoded) {
+}
+
+template<typename Enum> inline void PropertyFlags<Enum>::debugDumpBits() {
+    for(int i = 0; i < _flags.size(); i++) {
+        qDebug() << "bit[" << i << "]=" << _flags.at(i);
+    }
+}
+
+
+template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator=(const PropertyFlags &other) {
+    _flags = other._flags; 
+    _maxFlag = other._maxFlag; 
+    return *this; 
+}
+
+template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator|=(PropertyFlags other) {
+    _flags |= other._flags; 
+    _maxFlag = std::max(_maxFlag, other._maxFlag); 
+    return *this; 
+}
+
+template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator|=(Enum flag) {
+    PropertyFlags other(flag); 
+    _flags |= other._flags; 
+    _maxFlag = std::max(_maxFlag, other._maxFlag); 
+    return *this; 
+}
+
+template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator&=(PropertyFlags other) {
+    _flags &= other._flags; 
+    shinkIfNeeded(); 
+    return *this; 
+}
+
+template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator&=(Enum flag) {
+    PropertyFlags other(flag); 
+    _flags &= other._flags; 
+    shinkIfNeeded(); 
+    return *this; 
+}
+
+template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator^=(PropertyFlags other) {
+    _flags ^= other._flags; 
+    shinkIfNeeded(); 
+    return *this; 
+}
+
+template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator^=(Enum flag) {
+    PropertyFlags other(flag); 
+    _flags ^= other._flags; 
+    shinkIfNeeded(); 
+    return *this; 
+}
+
+template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator-=(PropertyFlags other) {
+    for(int flag = other.firstFlag(); flag <= other.lastFlag(); flag++) {
+        //qDebug() << "checking other.getHasProperty(flag) flag=" << flag;
+        if (other.getHasProperty(flag)) {
+            //qDebug() << "setting setHasProperty(flag) flag=" << flag;
+            setHasProperty(flag, false);
+        }
+    }
+
+    return *this; 
+}
+
+template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator-=(Enum flag) {
+    bool debug = false;
+    if (debug) {
+        qDebug() << "operator-=(Enum flag) flag=" << flag << "before...";
+        debugDumpBits();
+    }
+    setHasProperty(flag, false);
+
+    if (debug) {
+        qDebug() << "after...";
+        debugDumpBits();
+    }
+
+    return *this; 
+}
+
+template<typename Enum> inline PropertyFlags<Enum> PropertyFlags<Enum>::operator|(PropertyFlags other) const {
+    PropertyFlags result(*this); 
+    result |= other; 
+    return result; 
+}
+
+template<typename Enum> inline PropertyFlags<Enum> PropertyFlags<Enum>::operator|(Enum flag) const {
+    PropertyFlags result(*this); 
+    PropertyFlags other(flag); 
+    result |= other; 
+    return result; 
+}
+
+template<typename Enum> inline PropertyFlags<Enum> PropertyFlags<Enum>::operator&(PropertyFlags other) const {
+    PropertyFlags result(*this); 
+    result &= other; 
+    return result; 
+}
+
+template<typename Enum> inline PropertyFlags<Enum> PropertyFlags<Enum>::operator&(Enum flag) const { 
+    PropertyFlags result(*this); 
+    PropertyFlags other(flag); 
+    result &= other; 
+    return result; 
+}
+
+template<typename Enum> inline PropertyFlags<Enum> PropertyFlags<Enum>::operator^(PropertyFlags other) const {
+    PropertyFlags result(*this); 
+    result ^= other; 
+    return result; 
+}
+
+template<typename Enum> inline PropertyFlags<Enum> PropertyFlags<Enum>::operator^(Enum flag) const {
+    PropertyFlags result(*this); 
+    PropertyFlags other(flag); 
+    result ^= other; 
+    return result; 
+}
+
+template<typename Enum> inline PropertyFlags<Enum> PropertyFlags<Enum>::operator-(PropertyFlags other) const {
+    PropertyFlags result(*this); 
+    result -= other; 
+    return result; 
+}
+
+template<typename Enum> inline PropertyFlags<Enum> PropertyFlags<Enum>::operator-(Enum flag) const { 
+    PropertyFlags result(*this); 
+    result.setHasProperty(flag, false);
+    return result; 
 }
 
 template<typename Enum> inline void PropertyFlags<Enum>::shinkIfNeeded() {
