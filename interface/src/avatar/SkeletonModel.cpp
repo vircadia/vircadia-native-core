@@ -63,19 +63,20 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
             restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
         } else {
+            // transform into model-frame
             glm::vec3 handPosition = glm::inverse(_rotation) * (_owningAvatar->getHandPosition() - _translation);
-            applyHandPositionInModelFrame(geometry.rightHandJointIndex, handPosition);
+            applyHandPosition(geometry.rightHandJointIndex, handPosition);
         }
         restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
 
     } else if (leftPalmIndex == rightPalmIndex) {
         // right hand only
-        applyPalmDataInModelFrame(geometry.rightHandJointIndex, hand->getPalms()[leftPalmIndex]);
+        applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[leftPalmIndex]);
         restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
 
     } else {
-        applyPalmDataInModelFrame(geometry.leftHandJointIndex, hand->getPalms()[leftPalmIndex]);
-        applyPalmDataInModelFrame(geometry.rightHandJointIndex, hand->getPalms()[rightPalmIndex]);
+        applyPalmData(geometry.leftHandJointIndex, hand->getPalms()[leftPalmIndex]);
+        applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[rightPalmIndex]);
     }
 }
 
@@ -132,10 +133,11 @@ bool operator<(const IndexValue& firstIndex, const IndexValue& secondIndex) {
     return firstIndex.value < secondIndex.value;
 }
 
-void SkeletonModel::applyHandPositionInModelFrame(int jointIndex, const glm::vec3& position) {
+void SkeletonModel::applyHandPosition(int jointIndex, const glm::vec3& position) {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return;
     }
+    // NOTE: 'position' is in model-frame
     setJointPosition(jointIndex, position, glm::quat(), false, -1, false, glm::vec3(0.0f, -1.0f, 0.0f), PALM_PRIORITY);
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -155,7 +157,7 @@ void SkeletonModel::applyHandPositionInModelFrame(int jointIndex, const glm::vec
     state.applyRotationDelta(rotationBetween(handRotation * glm::vec3(-sign, 0.0f, 0.0f), forearmVector), true, PALM_PRIORITY);
 }
 
-void SkeletonModel::applyPalmDataInModelFrame(int jointIndex, PalmData& palm) {
+void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return;
     }
@@ -190,7 +192,7 @@ void SkeletonModel::applyPalmDataInModelFrame(int jointIndex, PalmData& palm) {
     // set hand position, rotation
     glm::vec3 palmPosition = inverseRotation * (palm.getPosition() - _translation);
     if (Menu::getInstance()->isOptionChecked(MenuOption::AlternateIK)) {
-        setHandPositionInModelFrame(jointIndex, palmPosition, palmRotation);  
+        setHandPosition(jointIndex, palmPosition, palmRotation);  
         
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::AlignForearmsWithWrists)) {
         glm::vec3 forearmVector = palmRotation * glm::vec3(sign, 0.0f, 0.0f);
@@ -308,7 +310,7 @@ void SkeletonModel::renderJointConstraints(int jointIndex) {
     glLineWidth(1.0f);
 }
 
-void SkeletonModel::setHandPositionInModelFrame(int jointIndex, const glm::vec3& position, const glm::quat& rotation) {
+void SkeletonModel::setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation) {
     // this algorithm is from sample code from sixense
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     int elbowJointIndex = geometry.joints.at(jointIndex).parentIndex;
