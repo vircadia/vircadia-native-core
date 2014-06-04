@@ -175,10 +175,10 @@ QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
         if (parentIndex == -1) {
             _rootIndex = i;
             glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-            state.computeTransformInModelFrame(parentTransform);
+            state.computeTransform(parentTransform);
         } else {
             const JointState& parentState = jointStates.at(parentIndex);
-            state.computeTransformInModelFrame(parentState.getTransformInModelFrame());
+            state.computeTransform(parentState.getTransform());
         }
     }
     return jointStates;
@@ -726,7 +726,7 @@ bool Model::getJointPositionInModelFrame(int jointIndex, glm::vec3& position) co
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
-    position = extractTranslation(_jointStates[jointIndex].getTransformInModelFrame());
+    position = extractTranslation(_jointStates[jointIndex].getTransform());
     return true;
 }
 
@@ -1218,7 +1218,7 @@ void Model::simulateInternal(float deltaTime) {
         const FBXMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
-            state.clusterMatrices[j] = modelToWorld * _jointStates[cluster.jointIndex].getTransformInModelFrame() * cluster.inverseBindMatrix;
+            state.clusterMatrices[j] = modelToWorld * _jointStates[cluster.jointIndex].getTransform() * cluster.inverseBindMatrix;
         }
     }
     
@@ -1237,10 +1237,10 @@ void Model::updateJointState(int index) {
     if (parentIndex == -1) {
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-        state.computeTransformInModelFrame(parentTransform);
+        state.computeTransform(parentTransform);
     } else {
         const JointState& parentState = _jointStates.at(parentIndex);
-        state.computeTransformInModelFrame(parentState.getTransformInModelFrame());
+        state.computeTransform(parentState.getTransform());
     }
 }
 
@@ -1275,7 +1275,7 @@ bool Model::setJointPositionInModelFrame(int jointIndex, const glm::vec3& positi
         }    
         
         // then, we go from the joint upwards, rotating the end as close as possible to the target
-        glm::vec3 endPosition = extractTranslation(_jointStates[jointIndex].getTransformInModelFrame());
+        glm::vec3 endPosition = extractTranslation(_jointStates[jointIndex].getTransform());
         for (int j = 1; freeLineage.at(j - 1) != lastFreeIndex; j++) {
             int index = freeLineage.at(j);
             JointState& state = _jointStates[index];
@@ -1283,7 +1283,7 @@ bool Model::setJointPositionInModelFrame(int jointIndex, const glm::vec3& positi
             if (!(joint.isFree || allIntermediatesFree)) {
                 continue;
             }
-            glm::vec3 jointPosition = extractTranslation(state.getTransformInModelFrame());
+            glm::vec3 jointPosition = extractTranslation(state.getTransform());
             glm::vec3 jointVector = endPosition - jointPosition;
             glm::quat oldCombinedRotation = state.getRotationInModelFrame();
             glm::quat combinedDelta;
@@ -1303,7 +1303,7 @@ bool Model::setJointPositionInModelFrame(int jointIndex, const glm::vec3& positi
                 for (int k = j - 1; k > 0; k--) {
                     int index = freeLineage.at(k);
                     updateJointState(index);
-                    positionSum += extractTranslation(_jointStates.at(index).getTransformInModelFrame());
+                    positionSum += extractTranslation(_jointStates.at(index).getTransform());
                 }
                 glm::vec3 projectedCenterOfMass = glm::cross(jointVector,
                     glm::cross(positionSum / (j - 1.0f) - jointPosition, jointVector));
@@ -1998,7 +1998,7 @@ void JointState::copyState(const JointState& state) {
     // DO NOT copy _fbxJoint
 }
 
-void JointState::computeTransformInModelFrame(const glm::mat4& parentTransform) {
+void JointState::computeTransform(const glm::mat4& parentTransform) {
     glm::quat modifiedRotation = _fbxJoint->preRotation * _rotationInParentFrame * _fbxJoint->postRotation;
     glm::mat4 modifiedTransform = _fbxJoint->preTransform * glm::mat4_cast(modifiedRotation) * _fbxJoint->postTransform;
     _transform = parentTransform * glm::translate(_fbxJoint->translation) * modifiedTransform;

@@ -49,7 +49,7 @@ void FaceModel::simulate(float deltaTime, bool fullUpdate) {
 void FaceModel::maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
     // get the rotation axes in joint space and use them to adjust the rotation
     glm::mat3 axes = glm::mat3_cast(glm::quat());
-    glm::mat3 inverse = glm::mat3(glm::inverse(parentState.getTransformInModelFrame() * glm::translate(state.getDefaultTranslationInParentFrame()) *
+    glm::mat3 inverse = glm::mat3(glm::inverse(parentState.getTransform() * glm::translate(state.getDefaultTranslationInParentFrame()) *
         joint.preTransform * glm::mat4_cast(joint.preRotation)));
     state._rotationInParentFrame = glm::angleAxis(- RADIANS_PER_DEGREE * _owningHead->getFinalRoll(), glm::normalize(inverse * axes[2])) 
         * glm::angleAxis(RADIANS_PER_DEGREE * _owningHead->getFinalYaw(), glm::normalize(inverse * axes[1])) 
@@ -60,7 +60,7 @@ void FaceModel::maybeUpdateNeckRotation(const JointState& parentState, const FBX
 void FaceModel::maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
     // likewise with the eye joints
     // NOTE: at the moment we do the math in the world-frame, hence the inverse transform is more complex than usual.
-    glm::mat4 inverse = glm::inverse(glm::mat4_cast(_rotation) * parentState.getTransformInModelFrame() * 
+    glm::mat4 inverse = glm::inverse(glm::mat4_cast(_rotation) * parentState.getTransform() * 
             glm::translate(state.getDefaultTranslationInParentFrame()) *
             joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation));
     glm::vec3 front = glm::vec3(inverse * glm::vec4(_owningHead->getFinalOrientationInWorldFrame() * IDENTITY_FRONT, 0.0f));

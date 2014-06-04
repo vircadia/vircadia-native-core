@@ -40,8 +40,8 @@ public:
 
     void copyState(const JointState& state);
 
-    void computeTransformInModelFrame(const glm::mat4& parentTransform);
-    const glm::mat4& getTransformInModelFrame() const { return _transform; }
+    void computeTransform(const glm::mat4& parentTransform);
+    const glm::mat4& getTransform() const { return _transform; }
 
     glm::quat getRotationInModelFrame() const { return _rotation; }
     glm::vec3 getPositionInModelFrame() const { return extractTranslation(_transform); }
