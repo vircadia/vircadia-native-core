@@ -46,7 +46,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
             int jointIndex = geometry.humanIKJointIndices.at(humanIKJointIndex);
             if (jointIndex != -1) {
                 JointState& state = _jointStates[jointIndex];
-                state.setRotation(prioVR->getJointRotations().at(i), PALM_PRIORITY);
+                state.setRotationFromBindFrame(prioVR->getJointRotations().at(i), PALM_PRIORITY);
             }
         }
         return;
@@ -200,7 +200,7 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
             geometry.joints.at(jointIndex).distanceToParent * extractUniformScale(_scale),
             glm::quat(), false, -1, false, glm::vec3(0.0f, -1.0f, 0.0f), PALM_PRIORITY);
         JointState& parentState = _jointStates[parentJointIndex];
-        parentState.setRotation(palmRotation, PALM_PRIORITY);
+        parentState.setRotationFromBindFrame(palmRotation, PALM_PRIORITY);
         // lock hand to forearm by slamming its rotation (in parent-frame) to identity
         _jointStates[jointIndex]._rotationInParentFrame = glm::quat();
     } else {
@@ -365,13 +365,13 @@ void SkeletonModel::setHandPosition(int jointIndex, const glm::vec3& position, c
     glm::quat shoulderRotation = rotationBetween(forwardVector, elbowPosition - shoulderPosition);
 
     JointState& shoulderState = _jointStates[shoulderJointIndex];
-    shoulderState.setRotation(shoulderRotation, PALM_PRIORITY);
+    shoulderState.setRotationFromBindFrame(shoulderRotation, PALM_PRIORITY);
     
     JointState& elbowState = _jointStates[elbowJointIndex];
-    elbowState.setRotation(rotationBetween(shoulderRotation * forwardVector, wristPosition - elbowPosition) * shoulderRotation, PALM_PRIORITY);
+    elbowState.setRotationFromBindFrame(rotationBetween(shoulderRotation * forwardVector, wristPosition - elbowPosition) * shoulderRotation, PALM_PRIORITY);
     
     JointState& handState = _jointStates[jointIndex];
-    handState.setRotation(rotation, PALM_PRIORITY);
+    handState.setRotationFromBindFrame(rotation, PALM_PRIORITY);
 }
     
 bool SkeletonModel::getLeftHandPosition(glm::vec3& position) const {
