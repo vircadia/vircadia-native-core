@@ -734,7 +734,7 @@ bool Model::getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) co
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
-    rotation = _rotation * _jointStates[jointIndex].getRotationInModelFrame();
+    rotation = _rotation * _jointStates[jointIndex].getRotation();
     return true;
 }
 
@@ -742,7 +742,7 @@ bool Model::getJointCombinedRotation(int jointIndex, glm::quat& rotation) const 
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
-    rotation = _rotation * _jointStates[jointIndex].getRotationInModelFrame();
+    rotation = _rotation * _jointStates[jointIndex].getRotation();
     return true;
 }
 
@@ -958,7 +958,7 @@ void Model::updateShapePositions() {
             const JointState& state = _jointStates[i];
             const FBXJoint& joint = state.getFBXJoint();
             // shape position and rotation need to be in world-frame
-            glm::quat stateRotation = state.getRotationInModelFrame();
+            glm::quat stateRotation = state.getRotation();
             glm::vec3 shapeOffset = uniformScale * (stateRotation * joint.shapePosition);
             glm::vec3 worldPosition = _translation + _rotation * (state.getPositionInModelFrame() + shapeOffset);
             Shape* shape = _jointShapes[i];
@@ -1269,9 +1269,9 @@ bool Model::setJointPositionInModelFrame(int jointIndex, const glm::vec3& positi
             JointState& state = _jointStates[jointIndex];
 
             // TODO: figure out what this is trying to do and combine it into one JointState method
-            endRotation = state.getRotationInModelFrame();
+            endRotation = state.getRotation();
             state.applyRotationDeltaInModelFrame(rotation * glm::inverse(endRotation), true, priority);
-            endRotation = state.getRotationInModelFrame();
+            endRotation = state.getRotation();
         }    
         
         // then, we go from the joint upwards, rotating the end as close as possible to the target
@@ -1285,7 +1285,7 @@ bool Model::setJointPositionInModelFrame(int jointIndex, const glm::vec3& positi
             }
             glm::vec3 jointPosition = extractTranslation(state.getTransform());
             glm::vec3 jointVector = endPosition - jointPosition;
-            glm::quat oldCombinedRotation = state.getRotationInModelFrame();
+            glm::quat oldCombinedRotation = state.getRotation();
             glm::quat combinedDelta;
             float combinedWeight;
             if (useRotation) {
@@ -1315,7 +1315,7 @@ bool Model::setJointPositionInModelFrame(int jointIndex, const glm::vec3& positi
                 }
             }
             state.applyRotationDeltaInModelFrame(combinedDelta, true, priority);
-            glm::quat actualDelta = state.getRotationInModelFrame() * glm::inverse(oldCombinedRotation);
+            glm::quat actualDelta = state.getRotation() * glm::inverse(oldCombinedRotation);
             endPosition = actualDelta * jointVector + jointPosition;
             if (useRotation) {
                 endRotation = actualDelta * endRotation;

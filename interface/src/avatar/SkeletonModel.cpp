@@ -148,7 +148,7 @@ void SkeletonModel::applyHandPositionInModelFrame(int jointIndex, const glm::vec
         return;
     }
     JointState& state = _jointStates[jointIndex];
-    glm::quat handRotation = state.getRotationInModelFrame();
+    glm::quat handRotation = state.getRotation();
 
     // align hand with forearm
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
@@ -267,7 +267,7 @@ void SkeletonModel::renderJointConstraints(int jointIndex) {
         
         glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
-        glm::quat parentRotation = (joint.parentIndex == -1) ? _rotation : _rotation * _jointStates.at(joint.parentIndex).getRotationInModelFrame();
+        glm::quat parentRotation = (joint.parentIndex == -1) ? _rotation : _rotation * _jointStates.at(joint.parentIndex).getRotation();
         glm::vec3 rotationAxis = glm::axis(parentRotation);
         glRotatef(glm::degrees(glm::angle(parentRotation)), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         float fanScale = directionSize * 0.75f;
@@ -300,7 +300,7 @@ void SkeletonModel::renderJointConstraints(int jointIndex) {
         }
         glPopMatrix();
         
-        renderOrientationDirections(position, _rotation * jointState.getRotationInModelFrame(), directionSize);
+        renderOrientationDirections(position, _rotation * jointState.getRotation(), directionSize);
         jointIndex = joint.parentIndex;
         
     } while (jointIndex != -1 && geometry.joints.at(jointIndex).isFree);

@@ -43,7 +43,7 @@ public:
     void computeTransform(const glm::mat4& parentTransform);
     const glm::mat4& getTransform() const { return _transform; }
 
-    glm::quat getRotationInModelFrame() const { return _rotation; }
+    glm::quat getRotation() const { return _rotation; }
     glm::vec3 getPositionInModelFrame() const { return extractTranslation(_transform); }
 
     /// \return rotation from bind to model frame
