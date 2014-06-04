@@ -718,14 +718,16 @@ bool Model::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) co
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
+    // position is in world-frame
     position = _translation + _rotation * _jointStates[jointIndex].getPosition();
     return true;
 }
 
-bool Model::getJointPositionInModelFrame(int jointIndex, glm::vec3& position) const {
+bool Model::getJointPosition(int jointIndex, glm::vec3& position) const {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
+    // position is in model-frame
     position = extractTranslation(_jointStates[jointIndex].getTransform());
     return true;
 }

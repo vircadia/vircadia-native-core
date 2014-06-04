@@ -140,8 +140,8 @@ void SkeletonModel::applyHandPositionInModelFrame(int jointIndex, const glm::vec
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::vec3 handPosition, elbowPosition;
-    getJointPositionInModelFrame(jointIndex, handPosition);
-    getJointPositionInModelFrame(geometry.joints.at(jointIndex).parentIndex, elbowPosition);
+    getJointPosition(jointIndex, handPosition);
+    getJointPosition(geometry.joints.at(jointIndex).parentIndex, elbowPosition);
     glm::vec3 forearmVector = handPosition - elbowPosition;
     float forearmLength = glm::length(forearmVector);
     if (forearmLength < EPSILON) {
@@ -317,7 +317,7 @@ void SkeletonModel::setHandPositionInModelFrame(int jointIndex, const glm::vec3&
     }
     int shoulderJointIndex = geometry.joints.at(elbowJointIndex).parentIndex;
     glm::vec3 shoulderPosition;
-    if (!getJointPositionInModelFrame(shoulderJointIndex, shoulderPosition)) {
+    if (!getJointPosition(shoulderJointIndex, shoulderPosition)) {
         return;
     }
     // precomputed lengths

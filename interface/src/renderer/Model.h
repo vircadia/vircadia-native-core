@@ -164,11 +164,13 @@ public:
     int getLastFreeJointIndex(int jointIndex) const;
     
     bool getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const;
-
     bool getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
     bool getJointCombinedRotation(int jointIndex, glm::quat& rotation) const;
 
-    bool getJointPositionInModelFrame(int jointIndex, glm::vec3& position) const;
+    /// \param jointIndex index of joint in model structure
+    /// \param position[out] position of joint in model-frame
+    /// \return true if joint exists
+    bool getJointPosition(int jointIndex, glm::vec3& position) const;
 
     QStringList getJointNames() const;
     
