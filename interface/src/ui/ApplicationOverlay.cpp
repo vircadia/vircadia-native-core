@@ -324,7 +324,6 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
     // Get vertical FoV of the displayed overlay texture
     const float halfVerticalAngle = _oculusAngle / 2.0f;
-    const float verticalAngle = halfVerticalAngle * 2.0f;
     const float overlayAspectRatio = glWidget->width() / (float)glWidget->height();
     const float halfOverlayHeight = _distance * tan(halfVerticalAngle);
 
@@ -393,7 +392,6 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
     float newWidth = magnifyWidth * magnification;
     float newHeight = magnifyHeight * magnification;
-    float tmp;
 
     // Magnification Texture Coordinates
     float magnifyULeft = mouseX / (float)widgetWidth;
@@ -409,8 +407,6 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     float leftAngle = (newMouseX / (float)widgetWidth) * horizontalAngle - halfHorizontalAngle;
     float rightAngle = ((newMouseX + newWidth) / (float)widgetWidth) * horizontalAngle - halfHorizontalAngle;
    
-    float halfMagnifyHeight = magnifyHeight / 2.0f;
-
     float leftX, rightX, leftZ, rightZ;
     
     // Get position on hemisphere using angle
