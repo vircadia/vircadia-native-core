@@ -1270,7 +1270,7 @@ bool Model::setJointPositionInModelFrame(int jointIndex, const glm::vec3& positi
 
             // TODO: figure out what this is trying to do and combine it into one JointState method
             endRotation = state.getRotation();
-            state.applyRotationDeltaInModelFrame(rotation * glm::inverse(endRotation), true, priority);
+            state.applyRotationDelta(rotation * glm::inverse(endRotation), true, priority);
             endRotation = state.getRotation();
         }    
         
@@ -1314,7 +1314,7 @@ bool Model::setJointPositionInModelFrame(int jointIndex, const glm::vec3& positi
                         1.0f / (combinedWeight + 1.0f));
                 }
             }
-            state.applyRotationDeltaInModelFrame(combinedDelta, true, priority);
+            state.applyRotationDelta(combinedDelta, true, priority);
             glm::quat actualDelta = state.getRotation() * glm::inverse(oldCombinedRotation);
             endPosition = actualDelta * jointVector + jointPosition;
             if (useRotation) {
@@ -2031,7 +2031,8 @@ void JointState::clearTransformTranslation() {
     _transform[3][2] = 0.0f;
 }
 
-void JointState::applyRotationDeltaInModelFrame(const glm::quat& delta, bool constrain, float priority) {
+void JointState::applyRotationDelta(const glm::quat& delta, bool constrain, float priority) {
+    // NOTE: delta is in jointParent-frame
     assert(_fbxJoint != NULL);
     if (priority < _animationPriority) {
         return;

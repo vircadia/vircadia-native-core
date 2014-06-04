@@ -152,7 +152,7 @@ void SkeletonModel::applyHandPositionInModelFrame(int jointIndex, const glm::vec
 
     // align hand with forearm
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
-    state.applyRotationDeltaInModelFrame(rotationBetween(handRotation * glm::vec3(-sign, 0.0f, 0.0f), forearmVector), true, PALM_PRIORITY);
+    state.applyRotationDelta(rotationBetween(handRotation * glm::vec3(-sign, 0.0f, 0.0f), forearmVector), true, PALM_PRIORITY);
 }
 
 void SkeletonModel::applyPalmDataInModelFrame(int jointIndex, PalmData& palm) {

@@ -49,7 +49,8 @@ public:
     /// \return rotation from bind to model frame
     glm::quat getRotationFromBindToModelFrame() const;
 
-    void applyRotationDeltaInModelFrame(const glm::quat& delta, bool constrain = true, float priority = 1.0f);
+    /// \param delta is in the jointParent-frame
+    void applyRotationDelta(const glm::quat& delta, bool constrain = true, float priority = 1.0f);
 
     const glm::vec3& getDefaultTranslationInParentFrame() const;
 
