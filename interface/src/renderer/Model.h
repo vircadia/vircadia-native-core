@@ -419,11 +419,11 @@ public:
     void setStartAutomatically(bool startAutomatically);
     bool getStartAutomatically() const { return _startAutomatically; }
     
-    void setFirstFrame(int firstFrame) { _firstFrame = firstFrame; }
-    int getFirstFrame() const { return _firstFrame; }
+    void setFirstFrame(float firstFrame) { _firstFrame = firstFrame; }
+    float getFirstFrame() const { return _firstFrame; }
     
-    void setLastFrame(int lastFrame) { _lastFrame = lastFrame; }
-    int getLastFrame() const { return _lastFrame; }
+    void setLastFrame(float lastFrame) { _lastFrame = lastFrame; }
+    float getLastFrame() const { return _lastFrame; }
     
     void setMaskedJoints(const QStringList& maskedJoints);
     const QStringList& getMaskedJoints() const { return _maskedJoints; }
@@ -447,6 +447,7 @@ private:
     AnimationHandle(Model* model);
         
     void simulate(float deltaTime);
+    void applyFrame(float frameIndex);
     void replaceMatchingPriorities(float newPriority);
     
     Model* _model;
@@ -459,8 +460,8 @@ private:
     bool _loop;
     bool _hold;
     bool _startAutomatically;
-    int _firstFrame;
-    int _lastFrame;
+    float _firstFrame;
+    float _lastFrame;
     QStringList _maskedJoints;
     bool _running;
     QVector<int> _jointMappings;

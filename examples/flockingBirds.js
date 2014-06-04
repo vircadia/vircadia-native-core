@@ -51,7 +51,7 @@ var flockGravity = { x: 0, y: -1, z: 0};
 var enableRandomXZThrust = false; // leading birds randomly decide to thrust in some random direction.
 var enableSomeBirdsLead = false; // birds randomly decide not fly toward flock, causing other birds to follow
 var leaders = 0; // number of birds leading
-var PROBABILITY_TO_LEAD = 0.1; // probabolity a bird will choose to lead
+var PROBABILITY_TO_LEAD = 0.1; // probability a bird will choose to lead
 
 var birds = new Array(); // array of bird state data
 
