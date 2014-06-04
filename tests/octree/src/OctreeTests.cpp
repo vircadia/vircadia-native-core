@@ -367,6 +367,34 @@ void OctreeTests::propertyFlagsTests() {
         qDebug() << "propsC... encoded=";
         outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
     }
+    
+    {
+        qDebug() << "Test 8: ParticlePropertyFlags: decode tests";
+        ParticlePropertyFlags props;
+
+        props << PARTICLE_PROP_VISIBLE;
+        props << PARTICLE_PROP_ANIMATION_URL;
+        props << PARTICLE_PROP_ANIMATION_FPS;
+        props << PARTICLE_PROP_ANIMATION_FRAME_INDEX;
+        props << PARTICLE_PROP_ANIMATION_PLAYING;
+        props << PARTICLE_PROP_PAUSE_SIMULATION;
+
+        QByteArray encoded = props.encode();
+        qDebug() << "encoded=";
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+
+        ParticlePropertyFlags propsDecoded;
+        
+        propsDecoded.decode(encoded);
+        
+        qDebug() << "propsDecoded == props:" << (propsDecoded == props) << "{ expect true }";
+
+        QByteArray encodedAfterDecoded = propsDecoded.encode();
+
+        qDebug() << "encodedAfterDecoded=";
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+
+    }
 
     qDebug() << "******************************************************************************************";
 }

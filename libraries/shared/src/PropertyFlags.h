@@ -10,7 +10,6 @@
 //
 //
 // TODO:
-//   * implement decode
 //   * iterator to enumerate the set values?
 
 #ifndef hifi_PropertyFlags_h
@@ -50,7 +49,6 @@ public:
     bool operator!=(const PropertyFlags& other) const { return _flags != other._flags; }
     bool operator!() const { return _flags.size() == 0; }
 
-    
     PropertyFlags& operator=(const PropertyFlags& other);
 
     PropertyFlags& operator|=(PropertyFlags other);
@@ -58,9 +56,6 @@ public:
 
     PropertyFlags& operator&=(PropertyFlags other);
     PropertyFlags& operator&=(Enum flag);
-
-    PropertyFlags& operator^=(PropertyFlags other);
-    PropertyFlags& operator^=(Enum flag);
 
     PropertyFlags& operator+=(PropertyFlags other);
     PropertyFlags& operator+=(Enum flag);
@@ -77,9 +72,6 @@ public:
     PropertyFlags operator&(PropertyFlags other) const;
     PropertyFlags operator&(Enum flag) const;
 
-    PropertyFlags operator^(PropertyFlags other) const;
-    PropertyFlags operator^(Enum flag) const;
-
     PropertyFlags operator+(PropertyFlags other) const;
     PropertyFlags operator+(Enum flag) const;
 
@@ -89,7 +81,13 @@ public:
     PropertyFlags operator<<(PropertyFlags other) const;
     PropertyFlags operator<<(Enum flag) const;
 
-
+    // NOTE: due to the nature of the compact storage of these property flags, and the fact that the upper bound of the
+    // enum is not know, these operators will only perform their bitwise operations on the set of properties that have
+    // been previously set
+    PropertyFlags& operator^=(PropertyFlags other);
+    PropertyFlags& operator^=(Enum flag);
+    PropertyFlags operator^(PropertyFlags other) const;
+    PropertyFlags operator^(Enum flag) const;
     PropertyFlags operator~() const;
 
     void debugDumpBits();
@@ -227,7 +225,45 @@ template<typename Enum> inline QByteArray PropertyFlags<Enum>::encode() {
     return output;
 }
 
-template<typename Enum> inline void PropertyFlags<Enum>::decode(const QByteArray& fromEncoded) {
+template<typename Enum> inline void PropertyFlags<Enum>::decode(const QByteArray& fromEncodedBytes) {
+
+    clear(); // we are cleared out!
+
+    // first convert the ByteArray into a BitArray...
+    QBitArray encodedBits;
+    int bitCount = BITS_PER_BYTE * fromEncodedBytes.count();
+    encodedBits.resize(bitCount);
+    
+    for(int byte = 0; byte < fromEncodedBytes.count(); byte++) {
+        char originalByte = fromEncodedBytes.at(byte);
+        for(int bit = 0; bit < BITS_PER_BYTE; bit++) {
+            int shiftBy = BITS_PER_BYTE - (bit + 1);
+            char maskBit = ( 1 << shiftBy);
+            bool bitValue = originalByte & maskBit;
+            encodedBits.setBit(byte * BITS_PER_BYTE + bit, bitValue);
+        }
+    }
+    
+    // next, read the leading bits to determine the correct number of bytes to decode (may not match the QByteArray)
+    int encodedByteCount = 0;
+    int bitAt;
+    for (bitAt = 0; bitAt < bitCount; bitAt++) {
+        if (encodedBits.at(bitAt)) {
+            encodedByteCount++;
+        } else {
+            break;
+        }
+    }
+    encodedByteCount++; // always at least one byte
+    int expectedBitCount = encodedByteCount * BITS_PER_BYTE;
+    
+    // Now, keep reading...
+    int flagsStartAt = bitAt + 1; 
+    for (bitAt = flagsStartAt; bitAt < expectedBitCount; bitAt++) {
+        if (encodedBits.at(bitAt)) {
+            setHasProperty((Enum)(bitAt - flagsStartAt));
+        }
+    }
 }
 
 template<typename Enum> inline void PropertyFlags<Enum>::debugDumpBits() {
@@ -431,10 +467,6 @@ BitArr.resize(8*byteArr.count());
 for(int i=0; i<byteArr.count(); ++i)
     for(int b=0; b<8; ++b)
         bitArr.setBit(i*8+b, byteArr.at(i)&(1<<b));
-Convertion from bits to bytes:
-
-for(int i=0; i<bitArr.count(); ++i)
-    byteArr[i/8] = (byteArr.at(i/8) | ((bitArr[i]?1:0)<<(i%8)));
 
 
 template<typename Enum>
