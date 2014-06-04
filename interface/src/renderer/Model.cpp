@@ -2020,6 +2020,7 @@ void JointState::restoreRotation(float fraction, float priority) {
 void JointState::setRotationFromBindFrame(const glm::quat& rotation, float priority) {
     assert(_fbxJoint != NULL);
     if (priority >= _animationPriority) {
+        // rotation is from bind- to model-frame
         _rotationInParentFrame = _rotationInParentFrame * glm::inverse(_rotation) * rotation * glm::inverse(_fbxJoint->inverseBindRotation);
         _animationPriority = priority;
     }
