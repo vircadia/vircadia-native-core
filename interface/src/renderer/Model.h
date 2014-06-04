@@ -49,6 +49,9 @@ public:
     /// \return rotation from bind to model frame
     glm::quat getRotationFromBindToModelFrame() const;
 
+    /// \param rotation rotation of joint in model-frame
+    void setRotation(const glm::quat& rotation, bool constrain, float priority);
+
     /// \param delta is in the jointParent-frame
     void applyRotationDelta(const glm::quat& delta, bool constrain = true, float priority = 1.0f);
 

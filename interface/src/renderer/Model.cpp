@@ -1270,9 +1270,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position, const gl
         if (useRotation) {
             JointState& state = _jointStates[jointIndex];
 
-            // TODO: figure out what this is trying to do and combine it into one JointState method
-            endRotation = state.getRotation();
-            state.applyRotationDelta(rotation * glm::inverse(endRotation), true, priority);
+            state.setRotation(rotation, true, priority);
             endRotation = state.getRotation();
         }    
         
@@ -2031,6 +2029,10 @@ void JointState::clearTransformTranslation() {
     _transform[3][0] = 0.0f;
     _transform[3][1] = 0.0f;
     _transform[3][2] = 0.0f;
+}
+
+void JointState::setRotation(const glm::quat& rotation, bool constrain, float priority) {
+    applyRotationDelta(rotation * glm::inverse(_rotation), true, priority);
 }
 
 void JointState::applyRotationDelta(const glm::quat& delta, bool constrain, float priority) {
