@@ -46,9 +46,6 @@ public:
     glm::quat getRotationInModelFrame() const { return _rotationInModelFrame; }
     glm::vec3 getPositionInModelFrame() const { return extractTranslation(_transformInModelFrame); }
 
-    /// computes new _transform
-    void computeTransforms(const glm::mat4& baseTransform);
-
     /// \return rotation from bind to model frame
     glm::quat getRotationFromBindToModelFrame() const;
 
@@ -63,7 +60,6 @@ public:
     /// \warning no combined transforms are updated!
     void setRotationInModelFrame(const glm::quat& rotation, float priority);
 
-    const glm::mat4& getHybridTransform() const { return _transform; }
     void clearTransformTranslation();
 
     glm::quat _rotation;     // rotation relative to parent
@@ -72,7 +68,6 @@ public:
 private:
     glm::mat4 _transformInModelFrame;
     glm::quat _rotationInModelFrame;
-    glm::mat4 _transform;    // rotation to world frame + translation in model frame
 
     const FBXJoint* _fbxJoint; // JointState does NOT own its FBXJoint
 };

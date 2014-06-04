@@ -181,38 +181,6 @@ QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
             state.computeTransformInModelFrame(parentState.getTransformInModelFrame());
         }
     }
-
-    // compute transforms
-    // Unfortunately, the joints are not neccessarily in order from parents to children, 
-    // so we must iterate over the list multiple times until all are set correctly.
-    QVector<bool> jointIsSet;
-    jointIsSet.fill(false, numJoints);
-    int numJointsSet = 0;
-    int lastNumJointsSet = -1;
-    while (numJointsSet < numJoints && numJointsSet != lastNumJointsSet) {
-        lastNumJointsSet = numJointsSet;
-        for (int i = 0; i < numJoints; ++i) {
-            if (jointIsSet[i]) {
-                continue;
-            }
-            JointState& state = jointStates[i];
-            const FBXJoint& joint = state.getFBXJoint();
-            int parentIndex = joint.parentIndex;
-            if (parentIndex == -1) {
-                _rootIndex = i;
-                glm::mat4 baseTransform = glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-                state.computeTransforms(baseTransform);
-                ++numJointsSet;
-                jointIsSet[i] = true;
-            } else if (jointIsSet[parentIndex]) {
-                const JointState& parentState = jointStates.at(parentIndex);
-                state.computeTransforms(parentState.getHybridTransform());
-                ++numJointsSet;
-                jointIsSet[i] = true;
-            }
-        }
-    }
-
     return jointStates;
 }
 
@@ -1274,16 +1242,6 @@ void Model::updateJointState(int index) {
         const JointState& parentState = _jointStates.at(parentIndex);
         state.computeTransformInModelFrame(parentState.getTransformInModelFrame());
     }
-
-    // compute hybrid transforms
-    if (parentIndex == -1) {
-        const FBXGeometry& geometry = _geometry->getFBXGeometry();
-        glm::mat4 baseTransform = glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-        state.computeTransforms(baseTransform);
-    } else {
-        const JointState& parentState = _jointStates.at(parentIndex);
-        state.computeTransforms(parentState.getHybridTransform());
-    }
 }
 
 bool Model::setJointPositionInModelFrame(int jointIndex, const glm::vec3& position, const glm::quat& rotation, bool useRotation,
@@ -2034,11 +1992,8 @@ void JointState::setFBXJoint(const FBXJoint* joint) {
 
 void JointState::copyState(const JointState& state) {
     _rotation = state._rotation;
-
     _transformInModelFrame = state._transformInModelFrame;
     _rotationInModelFrame = extractRotation(_transformInModelFrame);
-    _transform = state._transform;
-
     _animationPriority = state._animationPriority;
     // DO NOT copy _fbxJoint
 }
@@ -2048,14 +2003,6 @@ void JointState::computeTransformInModelFrame(const glm::mat4& parentTransform) 
     glm::mat4 modifiedTransform = _fbxJoint->preTransform * glm::mat4_cast(modifiedRotation) * _fbxJoint->postTransform;
     _transformInModelFrame = parentTransform * glm::translate(_fbxJoint->translation) * modifiedTransform;
     _rotationInModelFrame = extractRotation(_transformInModelFrame);
-}
-
-void JointState::computeTransforms(const glm::mat4& parentTransform) {
-    assert(_fbxJoint != NULL);
-
-    glm::quat modifiedRotation = _fbxJoint->preRotation * _rotation * _fbxJoint->postRotation;
-    glm::mat4 modifiedTransform = _fbxJoint->preTransform * glm::mat4_cast(modifiedRotation) * _fbxJoint->postTransform;
-    _transform = parentTransform * glm::translate(_fbxJoint->translation) * modifiedTransform;
 }
 
 glm::quat JointState::getRotationFromBindToModelFrame() const {
@@ -2079,9 +2026,6 @@ void JointState::setRotationInModelFrame(const glm::quat& rotation, float priori
 }
 
 void JointState::clearTransformTranslation() {
-    _transform[3][0] = 0.0f;
-    _transform[3][1] = 0.0f;
-    _transform[3][2] = 0.0f;
     _transformInModelFrame[3][0] = 0.0f;
     _transformInModelFrame[3][1] = 0.0f;
     _transformInModelFrame[3][2] = 0.0f;
