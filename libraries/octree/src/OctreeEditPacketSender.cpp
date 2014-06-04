@@ -71,9 +71,11 @@ bool OctreeEditPacketSender::serversExist() const {
             if (_serverJurisdictions) {
                 // lookup our nodeUUID in the jurisdiction map, if it's missing then we're
                 // missing at least one jurisdiction
+                _serverJurisdictions->lockForRead();
                 if ((*_serverJurisdictions).find(nodeUUID) == (*_serverJurisdictions).end()) {
                     atLeastOneJurisdictionMissing = true;
                 }
+                _serverJurisdictions->unlock();
             }
             hasServers = true;
         }
@@ -185,8 +187,10 @@ void OctreeEditPacketSender::queuePacketToNodes(unsigned char* buffer, ssize_t l
             bool isMyJurisdiction = true;
             // we need to get the jurisdiction for this
             // here we need to get the "pending packet" for this server
+            _serverJurisdictions->lockForRead();
             const JurisdictionMap& map = (*_serverJurisdictions)[nodeUUID];
             isMyJurisdiction = (map.isMyJurisdiction(octCode, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
+            _serverJurisdictions->unlock();
             if (isMyJurisdiction) {
                 queuePacketToNode(nodeUUID, buffer, length);
             }
@@ -236,12 +240,14 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
             if (_serverJurisdictions) {
                 // we need to get the jurisdiction for this
                 // here we need to get the "pending packet" for this server
+                _serverJurisdictions->lockForRead();
                 if ((*_serverJurisdictions).find(nodeUUID) != (*_serverJurisdictions).end()) {
                     const JurisdictionMap& map = (*_serverJurisdictions)[nodeUUID];
                     isMyJurisdiction = (map.isMyJurisdiction(codeColorBuffer, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
                 } else {
                     isMyJurisdiction = false;
                 }
+                _serverJurisdictions->unlock();
             }
             if (isMyJurisdiction) {
                 EditPacketBuffer& packetBuffer = _pendingEditPackets[nodeUUID];
