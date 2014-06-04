@@ -41,10 +41,10 @@ public:
     void copyState(const JointState& state);
 
     void computeTransformInModelFrame(const glm::mat4& parentTransform);
-    const glm::mat4& getTransformInModelFrame() const { return _transformInModelFrame; }
+    const glm::mat4& getTransformInModelFrame() const { return _transform; }
 
-    glm::quat getRotationInModelFrame() const { return _rotationInModelFrame; }
-    glm::vec3 getPositionInModelFrame() const { return extractTranslation(_transformInModelFrame); }
+    glm::quat getRotationInModelFrame() const { return _rotation; }
+    glm::vec3 getPositionInModelFrame() const { return extractTranslation(_transform); }
 
     /// \return rotation from bind to model frame
     glm::quat getRotationFromBindToModelFrame() const;
@@ -55,19 +55,19 @@ public:
 
     void restoreRotation(float fraction, float priority);
 
-    /// \param rotation is from bind-frame to model-frame
-    /// computes parent relative _rotation and sets that
-    /// \warning no combined transforms are updated!
+    /// \param rotation is from bind- to model-frame
+    /// computes and sets new _rotationInParentFrame
+    /// NOTE: the JointState's model-frame transform/rotation are NOT updated!
     void setRotationInModelFrame(const glm::quat& rotation, float priority);
 
     void clearTransformTranslation();
 
-    glm::quat _rotation;     // rotation relative to parent
+    glm::quat _rotationInParentFrame; // joint- to parentJoint-frame
     float _animationPriority; // the priority of the animation affecting this joint
 
 private:
-    glm::mat4 _transformInModelFrame;
-    glm::quat _rotationInModelFrame;
+    glm::mat4 _transform; // joint- to model-frame
+    glm::quat _rotation;  // joint- to model-frame
 
     const FBXJoint* _fbxJoint; // JointState does NOT own its FBXJoint
 };

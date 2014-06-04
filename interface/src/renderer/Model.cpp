@@ -459,7 +459,7 @@ void Model::reset() {
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     for (int i = 0; i < _jointStates.size(); i++) {
-        _jointStates[i]._rotation = geometry.joints.at(i).rotation;
+        _jointStates[i]._rotationInParentFrame = geometry.joints.at(i).rotation;
     }
 }
 
@@ -669,7 +669,7 @@ bool Model::getJointState(int index, glm::quat& rotation) const {
     if (index == -1 || index >= _jointStates.size()) {
         return false;
     }
-    rotation = _jointStates.at(index)._rotation;
+    rotation = _jointStates.at(index)._rotationInParentFrame;
     const glm::quat& defaultRotation = _geometry->getFBXGeometry().joints.at(index).rotation;
     return glm::abs(rotation.x - defaultRotation.x) >= EPSILON ||
         glm::abs(rotation.y - defaultRotation.y) >= EPSILON ||
@@ -682,7 +682,7 @@ void Model::setJointState(int index, bool valid, const glm::quat& rotation, floa
         JointState& state = _jointStates[index];
         if (priority >= state._animationPriority) {
             if (valid) {
-                state._rotation = rotation;
+                state._rotationInParentFrame = rotation;
                 state._animationPriority = priority;
             } else {
                 state.restoreRotation(1.0f, priority);
@@ -1932,7 +1932,7 @@ void AnimationHandle::simulate(float deltaTime) {
             if (mapping != -1) {
                 JointState& state = _model->_jointStates[mapping];
                 if (_priority >= state._animationPriority) {
-                    state._rotation = frame.rotations.at(i);
+                    state._rotationInParentFrame = frame.rotations.at(i);
                     state._animationPriority = _priority;
                 }
             }
@@ -1956,7 +1956,7 @@ void AnimationHandle::simulate(float deltaTime) {
         if (mapping != -1) {
             JointState& state = _model->_jointStates[mapping];
             if (_priority >= state._animationPriority) {
-                state._rotation = safeMix(floorFrame.rotations.at(i), ceilFrame.rotations.at(i), frameFraction);
+                state._rotationInParentFrame = safeMix(floorFrame.rotations.at(i), ceilFrame.rotations.at(i), frameFraction);
                 state._animationPriority = _priority;
             }
         }
@@ -1985,34 +1985,34 @@ JointState::JointState() :
 
 void JointState::setFBXJoint(const FBXJoint* joint) {
     assert(joint != NULL);
-    _rotation = joint->rotation;
+    _rotationInParentFrame = joint->rotation;
     // NOTE: JointState does not own the FBXJoint to which it points.
     _fbxJoint = joint;
 }
 
 void JointState::copyState(const JointState& state) {
-    _rotation = state._rotation;
-    _transformInModelFrame = state._transformInModelFrame;
-    _rotationInModelFrame = extractRotation(_transformInModelFrame);
+    _rotationInParentFrame = state._rotationInParentFrame;
+    _transform = state._transform;
+    _rotation = extractRotation(_transform);
     _animationPriority = state._animationPriority;
     // DO NOT copy _fbxJoint
 }
 
 void JointState::computeTransformInModelFrame(const glm::mat4& parentTransform) {
-    glm::quat modifiedRotation = _fbxJoint->preRotation * _rotation * _fbxJoint->postRotation;
+    glm::quat modifiedRotation = _fbxJoint->preRotation * _rotationInParentFrame * _fbxJoint->postRotation;
     glm::mat4 modifiedTransform = _fbxJoint->preTransform * glm::mat4_cast(modifiedRotation) * _fbxJoint->postTransform;
-    _transformInModelFrame = parentTransform * glm::translate(_fbxJoint->translation) * modifiedTransform;
-    _rotationInModelFrame = extractRotation(_transformInModelFrame);
+    _transform = parentTransform * glm::translate(_fbxJoint->translation) * modifiedTransform;
+    _rotation = extractRotation(_transform);
 }
 
 glm::quat JointState::getRotationFromBindToModelFrame() const {
-    return _rotationInModelFrame * _fbxJoint->inverseBindRotation;
+    return _rotation * _fbxJoint->inverseBindRotation;
 }
 
 void JointState::restoreRotation(float fraction, float priority) {
     assert(_fbxJoint != NULL);
     if (priority == _animationPriority) {
-        _rotation = safeMix(_rotation, _fbxJoint->rotation, fraction);
+        _rotationInParentFrame = safeMix(_rotationInParentFrame, _fbxJoint->rotation, fraction);
         _animationPriority = 0.0f;
     }
 }
@@ -2020,15 +2020,15 @@ void JointState::restoreRotation(float fraction, float priority) {
 void JointState::setRotationInModelFrame(const glm::quat& rotation, float priority) {
     assert(_fbxJoint != NULL);
     if (priority >= _animationPriority) {
-        _rotation = _rotation * glm::inverse(_rotationInModelFrame) * rotation * glm::inverse(_fbxJoint->inverseBindRotation);
+        _rotationInParentFrame = _rotationInParentFrame * glm::inverse(_rotation) * rotation * glm::inverse(_fbxJoint->inverseBindRotation);
         _animationPriority = priority;
     }
 }
 
 void JointState::clearTransformTranslation() {
-    _transformInModelFrame[3][0] = 0.0f;
-    _transformInModelFrame[3][1] = 0.0f;
-    _transformInModelFrame[3][2] = 0.0f;
+    _transform[3][0] = 0.0f;
+    _transform[3][1] = 0.0f;
+    _transform[3][2] = 0.0f;
 }
 
 void JointState::applyRotationDeltaInModelFrame(const glm::quat& delta, bool constrain, float priority) {
@@ -2040,15 +2040,15 @@ void JointState::applyRotationDeltaInModelFrame(const glm::quat& delta, bool con
     if (!constrain || (_fbxJoint->rotationMin == glm::vec3(-PI, -PI, -PI) &&
             _fbxJoint->rotationMax == glm::vec3(PI, PI, PI))) {
         // no constraints
-        _rotation = _rotation * glm::inverse(_rotationInModelFrame) * delta * _rotationInModelFrame;
-        _rotationInModelFrame = delta * _rotationInModelFrame;
+        _rotationInParentFrame = _rotationInParentFrame * glm::inverse(_rotation) * delta * _rotation;
+        _rotation = delta * _rotation;
         return;
     }
-    glm::quat targetRotation = delta * _rotationInModelFrame;
-    glm::vec3 eulers = safeEulerAngles(_rotation * glm::inverse(_rotationInModelFrame) * targetRotation);
+    glm::quat targetRotation = delta * _rotation;
+    glm::vec3 eulers = safeEulerAngles(_rotationInParentFrame * glm::inverse(_rotation) * targetRotation);
     glm::quat newRotation = glm::quat(glm::clamp(eulers, _fbxJoint->rotationMin, _fbxJoint->rotationMax));
-    _rotationInModelFrame = _rotationInModelFrame * glm::inverse(_rotation) * newRotation;
-    _rotation = newRotation;
+    _rotation = _rotation * glm::inverse(_rotationInParentFrame) * newRotation;
+    _rotationInParentFrame = newRotation;
 }
 
 const glm::vec3& JointState::getDefaultTranslationInParentFrame() const {

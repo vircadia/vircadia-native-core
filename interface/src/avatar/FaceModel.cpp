@@ -51,7 +51,7 @@ void FaceModel::maybeUpdateNeckRotation(const JointState& parentState, const FBX
     glm::mat3 axes = glm::mat3_cast(glm::quat());
     glm::mat3 inverse = glm::mat3(glm::inverse(parentState.getTransformInModelFrame() * glm::translate(state.getDefaultTranslationInParentFrame()) *
         joint.preTransform * glm::mat4_cast(joint.preRotation)));
-    state._rotation = glm::angleAxis(- RADIANS_PER_DEGREE * _owningHead->getFinalRoll(), glm::normalize(inverse * axes[2])) 
+    state._rotationInParentFrame = glm::angleAxis(- RADIANS_PER_DEGREE * _owningHead->getFinalRoll(), glm::normalize(inverse * axes[2])) 
         * glm::angleAxis(RADIANS_PER_DEGREE * _owningHead->getFinalYaw(), glm::normalize(inverse * axes[1])) 
         * glm::angleAxis(- RADIANS_PER_DEGREE * _owningHead->getFinalPitch(), glm::normalize(inverse * axes[0])) 
         * joint.rotation;
@@ -68,7 +68,7 @@ void FaceModel::maybeUpdateEyeRotation(const JointState& parentState, const FBXJ
         _owningHead->getSaccade() - _translation, 1.0f));
     glm::quat between = rotationBetween(front, lookAt);
     const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;
-    state._rotation = glm::angleAxis(glm::clamp(glm::angle(between), -MAX_ANGLE, MAX_ANGLE), glm::axis(between)) *
+    state._rotationInParentFrame = glm::angleAxis(glm::clamp(glm::angle(between), -MAX_ANGLE, MAX_ANGLE), glm::axis(between)) *
         joint.rotation;
 }
 
