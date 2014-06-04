@@ -352,13 +352,8 @@ void OctreeTests::propertyFlagsTests() {
         qDebug() << "propsB... encoded=";
         outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
 
-        qDebug() << "propsB...";
-        propsB.debugDumpBits();
-
         qDebug() << "ParticlePropertyFlags propsC = ~propsB;";
         ParticlePropertyFlags propsC = ~propsB;
-        qDebug() << "propsC...";
-        propsC.debugDumpBits();
         
         qDebug() << "propsC.getHasProperty(PARTICLE_PROP_VISIBLE)" << (propsC.getHasProperty(PARTICLE_PROP_VISIBLE))
                         << "{ expect false }";
