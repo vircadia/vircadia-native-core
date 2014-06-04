@@ -730,7 +730,11 @@ Bitstream& Bitstream::operator>(TypeReader& reader) {
         case TypeReader::ENUM_TYPE: {
             int bits;
             *this >> bits;
-            reader = TypeReader(typeName, streamer);
+            if (streamer && streamer->getReaderType() == type) {
+                reader = TypeReader(typeName, streamer);
+            } else {
+                reader = TypeReader(typeName, streamer, false, TypeReader::ENUM_TYPE, bits);
+            }
             return *this;
         }
         case TypeReader::LIST_TYPE:
@@ -741,7 +745,7 @@ Bitstream& Bitstream::operator>(TypeReader& reader) {
                     valueReader.matchesExactly(streamer->getValueStreamer())) {
                 reader = TypeReader(typeName, streamer);
             } else {
-                reader = TypeReader(typeName, streamer, false, (TypeReader::Type)type, TypeReaderPointer(),
+                reader = TypeReader(typeName, streamer, false, (TypeReader::Type)type, 0, TypeReaderPointer(),
                     TypeReaderPointer(new TypeReader(valueReader)));
             }
             return *this;
@@ -754,7 +758,7 @@ Bitstream& Bitstream::operator>(TypeReader& reader) {
                     valueReader.matchesExactly(streamer->getValueStreamer())) {
                 reader = TypeReader(typeName, streamer);
             } else {
-                reader = TypeReader(typeName, streamer, false, TypeReader::MAP_TYPE,
+                reader = TypeReader(typeName, streamer, false, TypeReader::MAP_TYPE, 0,
                     TypeReaderPointer(new TypeReader(keyReader)), TypeReaderPointer(new TypeReader(valueReader)));
             }
             return *this;
@@ -814,14 +818,14 @@ Bitstream& Bitstream::operator>(TypeReader& reader) {
         const QVector<MetaField>& localFields = streamer->getMetaFields();
         if (fieldCount != localFields.size()) {
             reader = TypeReader(typeName, streamer, false, TypeReader::STREAMABLE_TYPE,
-                TypeReaderPointer(), TypeReaderPointer(), fields);
+                0, TypeReaderPointer(), TypeReaderPointer(), fields);
             return *this;
         }
         for (int i = 0; i < fieldCount; i++) {
             const FieldReader& fieldReader = fields.at(i);
             if (!fieldReader.getReader().matchesExactly(localFields.at(i).getStreamer()) || fieldReader.getIndex() != i) {
                 reader = TypeReader(typeName, streamer, false, TypeReader::STREAMABLE_TYPE,
-                    TypeReaderPointer(), TypeReaderPointer(), fields);
+                    0, TypeReaderPointer(), TypeReaderPointer(), fields);
                 return *this;
             }
         }
@@ -829,7 +833,7 @@ Bitstream& Bitstream::operator>(TypeReader& reader) {
         return *this;
     }
     reader = TypeReader(typeName, streamer, false, TypeReader::STREAMABLE_TYPE,
-        TypeReaderPointer(), TypeReaderPointer(), fields);
+        0, TypeReaderPointer(), TypeReaderPointer(), fields);
     return *this;
 }
 
@@ -991,12 +995,13 @@ QVector<PropertyReader> Bitstream::getPropertyReaders(const QMetaObject* metaObj
     return propertyReaders;
 }
 
-TypeReader::TypeReader(const QByteArray& typeName, const TypeStreamer* streamer, bool exactMatch, Type type,
+TypeReader::TypeReader(const QByteArray& typeName, const TypeStreamer* streamer, bool exactMatch, Type type, int bits,
         const TypeReaderPointer& keyReader, const TypeReaderPointer& valueReader, const QVector<FieldReader>& fields) :
     _typeName(typeName),
     _streamer(streamer),
     _exactMatch(exactMatch),
     _type(type),
+    _bits(bits),
     _keyReader(keyReader),
     _valueReader(valueReader),
     _fields(fields) {

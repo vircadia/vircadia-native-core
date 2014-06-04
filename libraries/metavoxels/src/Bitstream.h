@@ -717,7 +717,7 @@ public:
     enum Type { SIMPLE_TYPE, ENUM_TYPE, STREAMABLE_TYPE, LIST_TYPE, SET_TYPE, MAP_TYPE };
     
     TypeReader(const QByteArray& typeName = QByteArray(), const TypeStreamer* streamer = NULL, bool exactMatch = true, 
-        Type type = SIMPLE_TYPE, const TypeReaderPointer& keyReader = TypeReaderPointer(),
+        Type type = SIMPLE_TYPE, int bits = 0, const TypeReaderPointer& keyReader = TypeReaderPointer(),
         const TypeReaderPointer& valueReader = TypeReaderPointer(),
         const QVector<FieldReader>& fields = QVector<FieldReader>());
 
@@ -739,6 +739,7 @@ private:
     const TypeStreamer* _streamer;
     bool _exactMatch;
     Type _type;
+    int _bits;
     TypeReaderPointer _keyReader;
     TypeReaderPointer _valueReader;
     QVector<FieldReader> _fields;
