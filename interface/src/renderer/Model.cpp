@@ -2074,14 +2074,6 @@ void JointState::restoreRotation(float fraction, float priority) {
     }
 }
 
-void JointState::setRotation(const glm::quat& rotation, float priority) {
-    assert(_fbxJoint != NULL);
-    if (priority >= _animationPriority) {
-        _rotation = _rotation * glm::inverse(_combinedRotation) * rotation * glm::inverse(_fbxJoint->inverseBindRotation);
-        _animationPriority = priority;
-    }
-}
-
 void JointState::setRotationInModelFrame(const glm::quat& rotation, float priority) {
     assert(_fbxJoint != NULL);
     if (priority >= _animationPriority) {

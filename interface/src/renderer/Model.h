@@ -58,14 +58,12 @@ public:
 
     void restoreRotation(float fraction, float priority);
 
-    /// \param rotation is from bind- to world-frame
+    /// \param rotation is from bind-frame to model-frame
     /// computes parent relative _rotation and sets that
     /// \warning no combined transforms are updated!
-    void setRotation(const glm::quat& rotation, float priority);
     void setRotationInModelFrame(const glm::quat& rotation, float priority);
 
     const glm::mat4& getHybridTransform() const { return _transform; }
-    //const glm::quat& getRotationInWorldFrame() const { return _combinedRotation; }
     void clearTransformTranslation();
 
     glm::quat _rotation;     // rotation relative to parent

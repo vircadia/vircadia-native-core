@@ -46,7 +46,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
             int jointIndex = geometry.humanIKJointIndices.at(humanIKJointIndex);
             if (jointIndex != -1) {
                 JointState& state = _jointStates[jointIndex];
-                state.setRotation(_rotation * prioVR->getJointRotations().at(i), PALM_PRIORITY);
+                state.setRotationInModelFrame(prioVR->getJointRotations().at(i), PALM_PRIORITY);
             }
         }
         return;
