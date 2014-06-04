@@ -23,7 +23,6 @@
 #include "HifiSockAddr.h"
 #include "NodeData.h"
 #include "SimpleMovingAverage.h"
-
 #include "MovingPercentile.h"
 
 typedef quint8 NodeType_t;
