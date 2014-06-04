@@ -46,9 +46,6 @@ public:
     glm::quat getRotationInModelFrame() const { return _rotationInModelFrame; }
     glm::vec3 getPositionInModelFrame() const { return extractTranslation(_transformInModelFrame); }
 
-    glm::quat getRotationInWorldFrame(const glm::quat& baseRotation) const;
-    glm::vec3 getPositionInWorldFrame(const glm::quat& baseRotation, const glm::vec3& basePosition) const;
-
     /// computes new _transform and _combinedRotation
     void computeTransforms(const glm::mat4& baseTransform, const glm::quat& baseRotation);
 

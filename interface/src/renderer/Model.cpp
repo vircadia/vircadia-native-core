@@ -775,7 +775,7 @@ bool Model::getJointCombinedRotation(int jointIndex, glm::quat& rotation) const 
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
-    rotation = _jointStates[jointIndex].getRotationInWorldFrame(_rotation);
+    rotation = _rotation * _jointStates[jointIndex].getRotationInModelFrame();
     return true;
 }
 
@@ -1018,12 +1018,12 @@ bool Model::findRayIntersection(const glm::vec3& origin, const glm::vec3& direct
     float radiusScale = extractUniformScale(_scale);
     for (int i = 0; i < _jointStates.size(); i++) {
         const FBXJoint& joint = geometry.joints[i];
-        glm::vec3 end = _jointStates[i].getPositionInWorldFrame(_rotation, _translation);
+        glm::vec3 end = _translation + _rotation * _jointStates[i].getPositionInModelFrame();
         float endRadius = joint.boneRadius * radiusScale;
         glm::vec3 start = end;
         float startRadius = joint.boneRadius * radiusScale;
         if (joint.parentIndex != -1) {
-            start = _jointStates[joint.parentIndex].getPositionInWorldFrame(_rotation, _translation);
+            start = _translation + _rotation * _jointStates[joint.parentIndex].getPositionInModelFrame();
             startRadius = geometry.joints[joint.parentIndex].boneRadius * radiusScale;
         }
         // for now, use average of start and end radii
@@ -2051,14 +2051,6 @@ void JointState::computeTransformInModelFrame(const glm::mat4& parentTransform) 
     glm::mat4 modifiedTransform = _fbxJoint->preTransform * glm::mat4_cast(modifiedRotation) * _fbxJoint->postTransform;
     _transformInModelFrame = parentTransform * glm::translate(_fbxJoint->translation) * modifiedTransform;
     _rotationInModelFrame = extractRotation(_transformInModelFrame);
-}
-
-glm::quat JointState::getRotationInWorldFrame(const glm::quat& baseRotation) const {
-    return baseRotation * _rotationInModelFrame;
-}
-
-glm::vec3 JointState::getPositionInWorldFrame(const glm::quat& baseRotation, const glm::vec3& basePosition) const {
-    return basePosition + baseRotation * extractTranslation(_transformInModelFrame);
 }
 
 void JointState::computeTransforms(const glm::mat4& parentTransform, const glm::quat& baseRotation) {
