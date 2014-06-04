@@ -201,13 +201,12 @@ QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
             if (parentIndex == -1) {
                 _rootIndex = i;
                 glm::mat4 baseTransform = glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-                state.computeTransforms(baseTransform, _rotation);
+                state.computeTransforms(baseTransform);
                 ++numJointsSet;
                 jointIsSet[i] = true;
             } else if (jointIsSet[parentIndex]) {
                 const JointState& parentState = jointStates.at(parentIndex);
-                glm::quat parentRotation = _rotation * parentState.getRotationInModelFrame();
-                state.computeTransforms(parentState.getHybridTransform(), parentRotation);
+                state.computeTransforms(parentState.getHybridTransform());
                 ++numJointsSet;
                 jointIsSet[i] = true;
             }
@@ -1280,11 +1279,10 @@ void Model::updateJointState(int index) {
     if (parentIndex == -1) {
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         glm::mat4 baseTransform = glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-        state.computeTransforms(baseTransform, _rotation);
+        state.computeTransforms(baseTransform);
     } else {
         const JointState& parentState = _jointStates.at(parentIndex);
-        glm::quat parentRotation = _rotation * parentState.getRotationInModelFrame();
-        state.computeTransforms(parentState.getHybridTransform(), parentRotation);
+        state.computeTransforms(parentState.getHybridTransform());
     }
 }
 
@@ -2039,7 +2037,6 @@ void JointState::copyState(const JointState& state) {
 
     _transformInModelFrame = state._transformInModelFrame;
     _rotationInModelFrame = extractRotation(_transformInModelFrame);
-    _combinedRotation = state._combinedRotation;
     _transform = state._transform;
 
     _animationPriority = state._animationPriority;
@@ -2053,13 +2050,12 @@ void JointState::computeTransformInModelFrame(const glm::mat4& parentTransform) 
     _rotationInModelFrame = extractRotation(_transformInModelFrame);
 }
 
-void JointState::computeTransforms(const glm::mat4& parentTransform, const glm::quat& baseRotation) {
+void JointState::computeTransforms(const glm::mat4& parentTransform) {
     assert(_fbxJoint != NULL);
 
     glm::quat modifiedRotation = _fbxJoint->preRotation * _rotation * _fbxJoint->postRotation;
     glm::mat4 modifiedTransform = _fbxJoint->preTransform * glm::mat4_cast(modifiedRotation) * _fbxJoint->postTransform;
     _transform = parentTransform * glm::translate(_fbxJoint->translation) * modifiedTransform;
-    _combinedRotation = baseRotation * modifiedRotation;
 }
 
 glm::quat JointState::getRotationFromBindToModelFrame() const {
