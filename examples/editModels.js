@@ -42,6 +42,8 @@ var toolBar;
 
 var jointList = MyAvatar.getJointNames();
 
+var mode = 0;
+
 function isLocked(properties) {
     // special case to lock the ground plane model in hq.
     if (location.hostname == "hq.highfidelity.io" && 
@@ -57,6 +59,7 @@ function controller(wichSide) {
     this.palm = 2 * wichSide;
     this.tip = 2 * wichSide + 1;
     this.trigger = wichSide;
+    this.bumper = 6 * wichSide + 5;
     
     this.oldPalmPosition = Controller.getSpatialControlPosition(this.palm);
     this.palmPosition = Controller.getSpatialControlPosition(this.palm);
@@ -77,6 +80,7 @@ function controller(wichSide) {
     this.rotation = this.oldRotation;
     
     this.triggerValue = Controller.getTriggerValue(this.trigger);
+    this.bumperValue = Controller.isButtonPressed(this.bumper);
     
     this.pressed = false; // is trigger pressed
     this.pressing = false; // is trigger being pressed (is pressed now but wasn't previously)
@@ -274,7 +278,7 @@ function controller(wichSide) {
         Overlays.editOverlay(this.topDown, {position: Vec3.sum(endPosition, Vec3.multiply(this.up, 2 * this.guideScale)),
                              end: Vec3.sum(endPosition, Vec3.multiply(this.up, -2 * this.guideScale))
                              });
-        this.showLaser(!this.grabbing);
+        this.showLaser(!this.grabbing || mode == 0);
     }
     
     this.showLaser = function(show) {
@@ -286,20 +290,44 @@ function controller(wichSide) {
     
     this.moveModel = function () {
         if (this.grabbing) {
-            var forward = Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -1 });
-            var d = Vec3.dot(forward, MyAvatar.position);
+            var newPosition;
+            var newRotation;
             
-            var factor1 = Vec3.dot(forward, this.palmPosition) - d;
-            var factor2 = Vec3.dot(forward, this.oldModelPosition) - d;
-            var vector = Vec3.subtract(this.palmPosition, this.oldPalmPosition);
+            switch (mode) {
+                case 0:
+                    newPosition = Vec3.sum(this.palmPosition,
+                                           Vec3.multiply(this.front, this.x));
+                    newPosition = Vec3.sum(newPosition,
+                                           Vec3.multiply(this.up, this.y));
+                    newPosition = Vec3.sum(newPosition,
+                                           Vec3.multiply(this.right, this.z));
+                    break;
+                case 1:
+                    var forward = Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -1 });
+                    var d = Vec3.dot(forward, MyAvatar.position);
+                    
+                    var factor1 = Vec3.dot(forward, this.palmPosition) - d;
+                    var factor2 = Vec3.dot(forward, this.oldModelPosition) - d;
+                    var vector = Vec3.subtract(this.palmPosition, this.oldPalmPosition);
+                    
+                    if (factor2 < 0) {
+                        factor2 = 0;
+                    }
+                    if (factor1 <= 0) {
+                        factor1 = 1;
+                        factor2 = 1;
+                    }
+                    
+                    newPosition = Vec3.sum(this.oldModelPosition,
+                                           Vec3.multiply(vector,
+                                                         factor2 / factor1));
+                    break;
+            }
             
-            var newPosition = Vec3.sum(this.oldModelPosition,
-                                       Vec3.multiply(vector,
-                                                     factor2 / factor1));
             
             
-            var newRotation = Quat.multiply(this.rotation,
-                                            Quat.inverse(this.oldRotation));
+            newRotation = Quat.multiply(this.rotation,
+                                        Quat.inverse(this.oldRotation));
             newRotation = Quat.multiply(newRotation,
                                         this.oldModelRotation);
             
@@ -344,6 +372,21 @@ function controller(wichSide) {
         this.rotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(this.palm));
         
         this.triggerValue = Controller.getTriggerValue(this.trigger);
+        
+        var bumperValue = Controller.isButtonPressed(this.bumper);
+        if (bumperValue && !this.bumperValue) {
+            if (mode == 0) {
+                mode = 1;
+                Overlays.editOverlay(leftController.laser, { color: { red: 0, green: 0, blue: 255 } });
+                Overlays.editOverlay(rightController.laser, { color: { red: 0, green: 0, blue: 255 } });
+            } else {
+                mode = 0;
+                Overlays.editOverlay(leftController.laser, { color: { red: 255, green: 0, blue: 0 } });
+                Overlays.editOverlay(rightController.laser, { color: { red: 255, green: 0, blue: 0 } });
+            }
+        }
+        this.bumperValue = bumperValue;
+        
         
         this.checkTrigger();
         
@@ -443,52 +486,63 @@ var rightController = new controller(RIGHT);
 
 function moveModels() {
     if (leftController.grabbing && rightController.grabbing && rightController.modelID.id == leftController.modelID.id) {
-        //print("Both controllers");
-        var oldLeftPoint = Vec3.sum(leftController.oldPalmPosition, Vec3.multiply(leftController.oldFront, leftController.x));
-        var oldRightPoint = Vec3.sum(rightController.oldPalmPosition, Vec3.multiply(rightController.oldFront, rightController.x));
-        
-        var oldMiddle = Vec3.multiply(Vec3.sum(oldLeftPoint, oldRightPoint), 0.5);
-        var oldLength = Vec3.length(Vec3.subtract(oldLeftPoint, oldRightPoint));
+        var newPosition = this.oldModelPosition;
+        var rotation = this.oldModelRotation;
+        var ratio = 1;
         
         
-        var leftPoint = Vec3.sum(leftController.palmPosition, Vec3.multiply(leftController.front, leftController.x));
-        var rightPoint = Vec3.sum(rightController.palmPosition, Vec3.multiply(rightController.front, rightController.x));
-        
-        var middle = Vec3.multiply(Vec3.sum(leftPoint, rightPoint), 0.5);
-        var length = Vec3.length(Vec3.subtract(leftPoint, rightPoint));
-        
-        var ratio = length / oldLength;
-        
-        var newPosition = Vec3.sum(middle,
-                                   Vec3.multiply(Vec3.subtract(leftController.oldModelPosition, oldMiddle), ratio));
-
-        
-        var u = Vec3.normalize(Vec3.subtract(rightController.oldPalmPosition, leftController.oldPalmPosition));
-        var v = Vec3.normalize(Vec3.subtract(rightController.palmPosition, leftController.palmPosition));
-        
-        var cos_theta = Vec3.dot(Vec3.normalize(u), Vec3.normalize(v));
-        var angle = Math.acos(cos_theta);
-        var w = Vec3.normalize(Vec3.cross(u, v));
-        
-        
-        var rotation = Quat.angleAxis(angle, w);
-        
-        
-        rotation = Quat.multiply(rotation, leftController.oldModelRotation);
+        switch (mode) {
+            case 0:
+                var oldLeftPoint = Vec3.sum(leftController.oldPalmPosition, Vec3.multiply(leftController.oldFront, leftController.x));
+                var oldRightPoint = Vec3.sum(rightController.oldPalmPosition, Vec3.multiply(rightController.oldFront, rightController.x));
+                
+                var oldMiddle = Vec3.multiply(Vec3.sum(oldLeftPoint, oldRightPoint), 0.5);
+                var oldLength = Vec3.length(Vec3.subtract(oldLeftPoint, oldRightPoint));
+                
+                
+                var leftPoint = Vec3.sum(leftController.palmPosition, Vec3.multiply(leftController.front, leftController.x));
+                var rightPoint = Vec3.sum(rightController.palmPosition, Vec3.multiply(rightController.front, rightController.x));
+                
+                var middle = Vec3.multiply(Vec3.sum(leftPoint, rightPoint), 0.5);
+                var length = Vec3.length(Vec3.subtract(leftPoint, rightPoint));
+                
+                
+                ratio = length / oldLength;
+                newPosition = Vec3.sum(middle,
+                                       Vec3.multiply(Vec3.subtract(leftController.oldModelPosition, oldMiddle), ratio));
+                 break;
+            case 1:
+                var u = Vec3.normalize(Vec3.subtract(rightController.oldPalmPosition, leftController.oldPalmPosition));
+                var v = Vec3.normalize(Vec3.subtract(rightController.palmPosition, leftController.palmPosition));
+                
+                var cos_theta = Vec3.dot(u, v);
+                if (cos_theta > 1) {
+                    cos_theta = 1;
+                }
+                var angle = Math.acos(cos_theta) / Math.PI * 180;
+                if (angle < 0.1) {
+                    return;
+                    
+                }
+                var w = Vec3.normalize(Vec3.cross(u, v));
+                
+                rotation = Quat.multiply(Quat.angleAxis(angle, w), leftController.oldModelRotation);
+                break;
+        }
         
         Models.editModel(leftController.modelID, {
-                         //position: newPosition,
+                         position: newPosition,
                          modelRotation: rotation,
-                         //radius: leftController.oldModelRadius * ratio
+                         radius: leftController.oldModelRadius * ratio
                          });
         
-        //leftController.oldModelPosition = newPosition;
+        leftController.oldModelPosition = newPosition;
         leftController.oldModelRotation = rotation;
-        //leftController.oldModelRadius *= ratio;
+        leftController.oldModelRadius *= ratio;
         
-        //rightController.oldModelPosition = newPosition;
+        rightController.oldModelPosition = newPosition;
         rightController.oldModelRotation = rotation;
-        //rightController.oldModelRadius *= ratio;
+        rightController.oldModelRadius *= ratio;
         return;
     }
     
