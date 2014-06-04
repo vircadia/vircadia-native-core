@@ -24,7 +24,7 @@
 #include "NodeData.h"
 #include "SimpleMovingAverage.h"
 
-#include "MovingMedian.h"
+#include "MovingPercentile.h"
 
 typedef quint8 NodeType_t;
 
@@ -123,7 +123,7 @@ private:
     int _clockSkewUsec;
     QMutex _mutex;
 
-    MovingMedian _clockSkewMovingMedian;
+    MovingPercentile _clockSkewMovingPercentile;
 };
 
 QDebug operator<<(QDebug debug, const Node &message);

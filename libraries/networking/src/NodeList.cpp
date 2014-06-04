@@ -98,7 +98,7 @@ int NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& s
     sendingNode->setPingMs(pingTime / 1000);
     sendingNode->setClockSkewUsec(clockSkew);
  
-//printf("\t\t clock skew sample: %d  median: %d\n", clockSkew, sendingNode->getClockSkewUsec());
+printf("\t\t clock skew sample: %d  val at percentile: %d\n", clockSkew, sendingNode->getClockSkewUsec());
 
 
     const bool wantDebug = false;
@@ -114,8 +114,8 @@ int NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& s
         "               clockSkew: " << clockSkew;
     }
 
-    if (abs(clockSkew) > 1000)
-    printf("clockskew = %d \n", clockSkew);
+///if (abs(clockSkew) > 1000)
+//printf("clockskew = %d \n", clockSkew);
 
 return clockSkew;
 }
@@ -489,8 +489,11 @@ QByteArray NodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
     QByteArray replyPacket = byteArrayWithPopulatedHeader(PacketTypePingReply);
     QDataStream packetStream(&replyPacket, QIODevice::Append);
     
-    packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();
+quint64 now;
+    packetStream << typeFromOriginalPing << timeFromOriginalPing << (now = usecTimestampNow());
     
+
+printf("\n>>>>>>>> recv ping: %llu  reply: %llu  diff: %lld\n", timeFromOriginalPing, now, (qint64)now-(qint64)timeFromOriginalPing);
     return replyPacket;
 }
 

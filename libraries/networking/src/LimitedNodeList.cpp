@@ -151,6 +151,10 @@ void LimitedNodeList::changeSendSocketBufferSize(int numSendBytes) {
 }
 
 bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
+
+quint64 start = usecTimestampNow();
+quint64 end;
+
     PacketType checkType = packetTypeForPacket(packet);
     int numPacketTypeBytes = numBytesArithmeticCodingFromBuffer(packet.data());
     
@@ -169,6 +173,11 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
             versionDebugSuppressMap.insert(senderUUID, checkType);
         }
         
+
+        if ((end=usecTimestampNow()) - start > 100) {
+            printf("\t\t\t\t version and hash match long diff: %d\n", end-start);
+        }
+
         return false;
     }
     
@@ -178,6 +187,11 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
         if (sendingNode) {
             // check if the md5 hash in the header matches the hash we would expect
             if (hashFromPacketHeader(packet) == hashForPacketAndConnectionUUID(packet, sendingNode->getConnectionSecret())) {
+
+                if ((end = usecTimestampNow()) - start > 100) {
+                    printf("\t\t\t\t version and hash match long diff: %d\n", end - start);
+                }
+
                 return true;
             } else {
                 qDebug() << "Packet hash mismatch on" << checkType << "- Sender"
@@ -188,9 +202,18 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
                 << uuidFromPacketHeader(packet);
         }
     } else {
+
+        if ((end = usecTimestampNow()) - start > 100) {
+            printf("\t\t\t\t version and hash match long diff: %d\n", end - start);
+        }
+
         return true;
     }
-    
+
+
+    if ((end = usecTimestampNow()) - start > 100) {
+        printf("\t\t\t\t version and hash match long diff: %d\n", end - start);
+    }
     return false;
 }
 

@@ -1,21 +1,23 @@
-#include "MovingMedian.h"
+#include "MovingPercentile.h"
 //#include "stdio.h"// DEBUG
 
-MovingMedian::MovingMedian(int numSamples)
+MovingPercentile::MovingPercentile(int numSamples, float percentile)
     : _numSamples(numSamples),
+    _percentile(percentile),
     _numExistingSamples(0),
-    _median(0.0f)
+    _valueAtPercentile(0.0f),
+    _indexOfPercentile(0)
 {
     _samplesSorted = new float[numSamples];
     _sampleAges = new int[numSamples];
 }
 
-MovingMedian::~MovingMedian() {
+MovingPercentile::~MovingPercentile() {
     delete[] _samplesSorted;
     delete[] _sampleAges;
 }
 
-void MovingMedian::updateMedian(float sample) {
+void MovingPercentile::updatePercentile(float sample) {
 
 //printf("\nnew sample: %2.2f  ", sample);
 
@@ -24,8 +26,13 @@ void MovingMedian::updateMedian(float sample) {
     // otherwise, it will be the spot of the oldest sample
     int newSampleIndex;
     if (_numExistingSamples < _numSamples) {
+
         newSampleIndex = _numExistingSamples;
         _numExistingSamples++;
+
+        // update _indexOfPercentile
+        float index = _percentile * (float)(_numExistingSamples - 1);
+        _indexOfPercentile = (int)(index + 0.5f);   // round to int
     }
     else {
         for (int i = 0; i < _numExistingSamples; i++) {
@@ -72,9 +79,8 @@ void MovingMedian::updateMedian(float sample) {
         newSampleIndex--;
     }
 
-
-    // find new median
-    _median = _samplesSorted[_numExistingSamples/2];
+    // find new value at percentile
+    _valueAtPercentile = _samplesSorted[_indexOfPercentile];
 /*
 printf(" new median: %f\n", _median);
 

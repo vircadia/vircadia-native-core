@@ -90,7 +90,6 @@ prevN = temp3;
 
 int skew = 0;
 
-
     
     while (NodeList::getInstance()->getNodeSocket().hasPendingDatagrams()) {
         incomingPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());
@@ -210,14 +209,15 @@ currTypes[*currN] = (unsigned char)type;
                 }
                 default:
                     int s = nodeList->processNodeData(senderSockAddr, incomingPacket);
-                    if (s!=1234567890)
+                    if (s!=1234567890 && abs(s) > abs(skew))
                         skew = s;
                     break;
             }
         }
     }
 
-    if (abs(skew) > 1000) {
+
+    if (abs(skew) > 3000) {
 
         printf("large skew! %d ----------------------------\n", skew);
 
