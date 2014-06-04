@@ -1344,7 +1344,7 @@ bool Model::restoreJointPosition(int jointIndex, float fraction, float priority)
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
-    
+   
     foreach (int index, freeLineage) {
         JointState& state = _jointStates[index];
         state.restoreRotation(fraction, priority);
@@ -2017,7 +2017,7 @@ glm::quat JointState::getJointRotation(bool fromBind) const {
 
 void JointState::restoreRotation(float fraction, float priority) {
     assert(_fbxJoint != NULL);
-    if (priority == _animationPriority) {
+    if (priority == _animationPriority || _animationPriority == 0.0f) {
         _rotation = safeMix(_rotation, _fbxJoint->rotation, fraction);
         _animationPriority = 0.0f;
     }
