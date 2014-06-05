@@ -19,7 +19,7 @@ class QOpenGLFramebufferObject;
 class ApplicationOverlay {
 public:
 
-    static enum UITYPES { HEMISPHERE, SEMICIRCLE, CURVED_SEMICIRCLE };
+    enum UIType { HEMISPHERE, SEMICIRCLE, CURVED_SEMICIRCLE };
 
     ApplicationOverlay();
     ~ApplicationOverlay();
@@ -34,7 +34,7 @@ public:
 
     // Setters
     void setOculusAngle(float oculusAngle) { _oculusAngle = oculusAngle; }
-    void setUiType(UITYPES uiType) { _uiType = uiType; }
+    void setUIType(UIType uiType) { _uiType = uiType; }
 
 private:
     // Interleaved vertex data
@@ -51,7 +51,7 @@ private:
     float _trailingAudioLoudness;
     float _oculusAngle;
     float _distance;
-    int _uiType;
+    UIType _uiType;
 };
 
 #endif // hifi_ApplicationOverlay_h
