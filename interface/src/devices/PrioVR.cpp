@@ -92,7 +92,7 @@ static void setPalm(float deltaTime, int index) {
         skeletonModel->getJointRotation(jointIndex, rotation, true);
         rotation = inverseRotation * rotation * glm::quat(glm::vec3(0.0f, -PI_OVER_TWO, 0.0f));
     }
-    skeletonModel->getJointPosition(jointIndex, position);
+    skeletonModel->getJointPositionInWorldFrame(jointIndex, position);
     position = inverseRotation * (position - skeletonModel->getTranslation());
     
     palm->setRawRotation(rotation);
