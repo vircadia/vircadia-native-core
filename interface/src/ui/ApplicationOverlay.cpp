@@ -327,7 +327,6 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
     // Get vertical FoV of the displayed overlay texture
     const float halfVerticalAngle = _oculusAngle / 2.0f;
-    const float verticalAngle = halfVerticalAngle * 2.0f;
     const float overlayAspectRatio = glWidget->width() / (float)glWidget->height();
     const float halfOverlayHeight = _distance * tan(halfVerticalAngle);
     const float overlayHeight = halfOverlayHeight * 2.0f;
@@ -417,9 +416,9 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     // Get angle on the UI
     float leftAngle = (newMouseX / (float)widgetWidth) * horizontalAngle - halfHorizontalAngle;
     float rightAngle = ((newMouseX + newWidth) / (float)widgetWidth) * horizontalAngle - halfHorizontalAngle;
+
     float bottomAngle = (newMouseY / (float)widgetHeight) * verticalAngle - halfVerticalAngle;
     float topAngle = ((newMouseY - newHeight) / (float)widgetHeight) * verticalAngle - halfVerticalAngle;
-
 
     float leftX, rightX, leftZ, rightZ, topZ, bottomZ;
     
