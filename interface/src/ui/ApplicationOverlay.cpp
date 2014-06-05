@@ -343,7 +343,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     const float angleIncrement = horizontalAngle / (numHorizontalVertices - 1);
     const float halfHorizontalAngle = horizontalAngle / 2;
 
-    const float verticalAngleIncrement = verticalAngle / (numVerticalVertices - 1);
+    const float verticalAngleIncrement = _oculusAngle / (numVerticalVertices - 1);
 
     glActiveTexture(GL_TEXTURE0);
    
@@ -417,8 +417,8 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     float leftAngle = (newMouseX / (float)widgetWidth) * horizontalAngle - halfHorizontalAngle;
     float rightAngle = ((newMouseX + newWidth) / (float)widgetWidth) * horizontalAngle - halfHorizontalAngle;
 
-    float bottomAngle = (newMouseY / (float)widgetHeight) * verticalAngle - halfVerticalAngle;
-    float topAngle = ((newMouseY - newHeight) / (float)widgetHeight) * verticalAngle - halfVerticalAngle;
+    float bottomAngle = (newMouseY / (float)widgetHeight) * _oculusAngle - halfVerticalAngle;
+    float topAngle = ((newMouseY - newHeight) / (float)widgetHeight) * _oculusAngle - halfVerticalAngle;
 
     float leftX, rightX, leftZ, rightZ, topZ, bottomZ;
     
