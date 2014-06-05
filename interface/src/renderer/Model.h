@@ -22,6 +22,7 @@
 
 #include "GeometryCache.h"
 #include "InterfaceConfig.h"
+#include "JointState.h"
 #include "ProgramObject.h"
 #include "TextureCache.h"
 
@@ -30,51 +31,6 @@ class Shape;
 
 typedef QSharedPointer<AnimationHandle> AnimationHandlePointer;
 typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
-    
-class JointState {
-public:
-    JointState();
-
-    void setFBXJoint(const FBXJoint* joint); 
-    const FBXJoint& getFBXJoint() const { return *_fbxJoint; }
-
-    void copyState(const JointState& state);
-
-    void computeTransform(const glm::mat4& parentTransform);
-    const glm::mat4& getTransform() const { return _transform; }
-
-    glm::quat getRotation() const { return _rotation; }
-    glm::vec3 getPosition() const { return extractTranslation(_transform); }
-
-    /// \return rotation from bind to model frame
-    glm::quat getRotationFromBindToModelFrame() const;
-
-    /// \param rotation rotation of joint in model-frame
-    void setRotation(const glm::quat& rotation, bool constrain, float priority);
-
-    /// \param delta is in the jointParent-frame
-    void applyRotationDelta(const glm::quat& delta, bool constrain = true, float priority = 1.0f);
-
-    const glm::vec3& getDefaultTranslationInParentFrame() const;
-
-    void restoreRotation(float fraction, float priority);
-
-    /// \param rotation is from bind- to model-frame
-    /// computes and sets new _rotationInParentFrame
-    /// NOTE: the JointState's model-frame transform/rotation are NOT updated!
-    void setRotationFromBindFrame(const glm::quat& rotation, float priority);
-
-    void clearTransformTranslation();
-
-    glm::quat _rotationInParentFrame; // joint- to parentJoint-frame
-    float _animationPriority; // the priority of the animation affecting this joint
-
-private:
-    glm::mat4 _transform; // joint- to model-frame
-    glm::quat _rotation;  // joint- to model-frame
-
-    const FBXJoint* _fbxJoint; // JointState does NOT own its FBXJoint
-};
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject {
@@ -250,6 +206,8 @@ protected:
     
     // returns 'true' if needs fullUpdate after geometry change
     bool updateGeometry();
+
+    virtual void setJointStates(QVector<JointState> states);
     
     void setScaleInternal(const glm::vec3& scale);
     void scaleToFit();
