@@ -30,7 +30,8 @@ template<typename T> class ByteCountCoded {
 public:
     T data;
     ByteCountCoded(T input = 0) : data(input) { 
-        assert(!std::numeric_limits<T>::is_signed); // we don't yet support signed types
+        // only use this template for non-signed integer types
+        assert(!std::numeric_limits<T>::is_signed && std::numeric_limits<T>::is_integer);
     };
 
     ByteCountCoded(const QByteArray& fromEncoded) : data(0) { decode(fromEncoded); }
