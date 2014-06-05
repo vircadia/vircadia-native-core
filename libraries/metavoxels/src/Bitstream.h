@@ -1084,19 +1084,18 @@ public:
     template<> inline void Bitstream::readRawDelta(S::N& value, const S::N& reference) { *this >> value; }
 
 #define IMPLEMENT_ENUM_METATYPE(S, N) \
-    static int S##N##MetaTypeId = registerEnumMetaType<S::N>(S::staticMetaObject.enumerator( \
+    static int S##N##Bits = registerEnumMetaType<S::N>(S::staticMetaObject.enumerator( \
         S::staticMetaObject.indexOfEnumerator(#N))); \
     Bitstream& operator<<(Bitstream& out, const S::N& obj) { \
-        static int bits = static_cast<const EnumTypeStreamer*>(Bitstream::getTypeStreamer(qMetaTypeId<S::N>()))->getBits(); \
-        return out.write(&obj, bits); \
+        return out.write(&obj, S##N##Bits); \
     } \
     Bitstream& operator>>(Bitstream& in, S::N& obj) { \
-        static int bits = static_cast<const EnumTypeStreamer*>(Bitstream::getTypeStreamer(qMetaTypeId<S::N>()))->getBits(); \
         obj = (S::N)0; \
-        return in.read(&obj, bits); \
+        return in.read(&obj, S##N##Bits); \
     }
     
 /// Registers a simple type and its streamer.
+/// \return the metatype id
 template<class T> int registerSimpleMetaType() {
     int type = qRegisterMetaType<T>();
     Bitstream::registerTypeStreamer(type, new SimpleTypeStreamer<T>());
@@ -1104,13 +1103,16 @@ template<class T> int registerSimpleMetaType() {
 }
 
 /// Registers an enum type and its streamer.
+/// \return the number of bits required to stream the enum
 template<class T> int registerEnumMetaType(const QMetaEnum& metaEnum) {
     int type = qRegisterMetaType<T>();
-    Bitstream::registerTypeStreamer(type, new EnumTypeStreamer(metaEnum));
-    return type;
+    EnumTypeStreamer* streamer = new EnumTypeStreamer(metaEnum);
+    Bitstream::registerTypeStreamer(type, streamer);
+    return streamer->getBits();
 }
 
 /// Registers a streamable type and its streamer.
+/// \return the metatype id
 template<class T> int registerStreamableMetaType() {
     int type = qRegisterMetaType<T>();
     Bitstream::registerTypeStreamer(type, new StreamableTypeStreamer<T>());
@@ -1118,6 +1120,7 @@ template<class T> int registerStreamableMetaType() {
 }
 
 /// Registers a collection type and its streamer.
+/// \return the metatype id
 template<class T> int registerCollectionMetaType() {
     int type = qRegisterMetaType<T>();
     Bitstream::registerTypeStreamer(type, new CollectionTypeStreamer<T>());
