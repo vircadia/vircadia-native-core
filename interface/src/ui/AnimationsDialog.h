@@ -22,7 +22,6 @@ class QComboBox;
 class QDoubleSpinner;
 class QLineEdit;
 class QPushButton;
-class QSpinBox;
 class QVBoxLayout;
 
 /// Allows users to edit the avatar animations.
@@ -71,8 +70,8 @@ private:
     QCheckBox* _loop;
     QCheckBox* _hold;
     QCheckBox* _startAutomatically;
-    QSpinBox* _firstFrame;
-    QSpinBox* _lastFrame;
+    QDoubleSpinBox* _firstFrame;
+    QDoubleSpinBox* _lastFrame;
     QLineEdit* _maskedJoints;
     QPushButton* _chooseMaskedJoints;
     QPushButton* _start;
