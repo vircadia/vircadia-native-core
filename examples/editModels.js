@@ -252,6 +252,7 @@ function controller(wichSide) {
         return { valid: false };
     }
     
+    this.glowedIntersectingModel = { isKnownID: false };
     this.moveLaser = function () {
         // the overlays here are anchored to the avatar, which means they are specified in the avatar's local frame
        
@@ -279,6 +280,22 @@ function controller(wichSide) {
                              end: Vec3.sum(endPosition, Vec3.multiply(this.up, -2 * this.guideScale))
                              });
         this.showLaser(!this.grabbing || mode == 0);
+        
+        
+        if (!this.grabbing) {
+            if (this.glowedIntersectingModel.isKnownID) {
+                Models.editModel(this.glowedIntersectingModel, { glowLevel: 0.0 });
+            }
+            
+            var intersection = Models.findRayIntersection({
+                                                          origin: this.palmPosition,
+                                                          direction: this.front
+                                                          });
+            if (intersection.accurate && intersection.modelID.isKnownID) {
+                this.glowedIntersectingModel = intersection.modelID;
+                Models.editModel(this.glowedIntersectingModel, { glowLevel: 0.25 });
+            }
+        }
     }
     
     this.showLaser = function(show) {
