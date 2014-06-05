@@ -71,6 +71,10 @@ IDStreamer& IDStreamer::operator>>(int& value) {
     return *this;
 }
 
+static QByteArray getEnumName(const QMetaEnum& metaEnum) {
+    return QByteArray(metaEnum.scope()) + "::" + metaEnum.name();
+}
+
 int Bitstream::registerMetaObject(const char* className, const QMetaObject* metaObject) {
     getMetaObjects().insert(className, metaObject);
     
@@ -84,12 +88,7 @@ int Bitstream::registerMetaObject(const char* className, const QMetaObject* meta
         QMetaEnum metaEnum = metaObject->enumerator(i);
         const TypeStreamer*& streamer = getEnumStreamers()[QPair<QByteArray, QByteArray>(metaEnum.scope(), metaEnum.name())];
         if (!streamer) {
-            int highestValue = 0;
-            for (int j = 0; j < metaEnum.keyCount(); j++) {
-                highestValue = qMax(highestValue, metaEnum.value(j));
-            }            
-            streamer = new EnumTypeStreamer(QByteArray(metaEnum.scope()) + "::" + metaEnum.name(),
-                highestValue == 0 ? 0 : 1 + (int)(log(highestValue) / log(2.0)));
+            getEnumStreamersByName().insert(getEnumName(metaEnum), streamer = new EnumTypeStreamer(metaEnum));
         }
     }
     
@@ -133,6 +132,14 @@ void Bitstream::addMetaObjectSubstitution(const QByteArray& className, const QMe
 
 void Bitstream::addTypeSubstitution(const QByteArray& typeName, int type) {
     _typeStreamerSubstitutions.insert(typeName, getTypeStreamers().value(type));
+}
+
+void Bitstream::addTypeSubstitution(const QByteArray& typeName, const char* replacementTypeName) {
+    const TypeStreamer* streamer = getTypeStreamers().value(QMetaType::type(replacementTypeName));
+    if (!streamer) {
+        streamer = getEnumStreamersByName().value(replacementTypeName);
+    }
+    _typeStreamerSubstitutions.insert(typeName, streamer);
 }
 
 const int LAST_BIT_POSITION = BITS_IN_BYTE - 1;
@@ -659,9 +666,27 @@ Bitstream& Bitstream::operator<(const TypeStreamer* streamer) {
         case TypeReader::SIMPLE_TYPE:
             return *this;
         
-        case TypeReader::ENUM_TYPE:
-            return *this << streamer->getBits();
-            
+        case TypeReader::ENUM_TYPE: {
+            QMetaEnum metaEnum = streamer->getMetaEnum();
+            if (_metadataType == FULL_METADATA) {
+                *this << metaEnum.keyCount();
+                for (int i = 0; i < metaEnum.keyCount(); i++) {
+                    *this << QByteArray::fromRawData(metaEnum.key(i), strlen(metaEnum.key(i)));
+                    *this << metaEnum.value(i);
+                }
+            } else {
+                *this << streamer->getBits();
+                QCryptographicHash hash(QCryptographicHash::Md5);    
+                for (int i = 0; i < metaEnum.keyCount(); i++) {
+                    hash.addData(metaEnum.key(i), strlen(metaEnum.key(i)) + 1);
+                    qint32 value = metaEnum.value(i);
+                    hash.addData((const char*)&value, sizeof(qint32));
+                }
+                QByteArray hashResult = hash.result();
+                write(hashResult.constData(), hashResult.size() * BITS_IN_BYTE);
+            }
+            return *this;
+        }
         case TypeReader::LIST_TYPE:
         case TypeReader::SET_TYPE:
             return *this << streamer->getValueStreamer();
@@ -694,6 +719,10 @@ Bitstream& Bitstream::operator<(const TypeStreamer* streamer) {
     return *this;
 }
 
+static int getBitsForHighestValue(int highestValue) {
+    return (highestValue == 0) ? 0 : 1 + (int)(log(highestValue) / log(2.0));
+}
+
 Bitstream& Bitstream::operator>(TypeReader& reader) {
     QByteArray typeName;
     *this >> typeName;
@@ -703,14 +732,9 @@ Bitstream& Bitstream::operator>(TypeReader& reader) {
     }
     const TypeStreamer* streamer = _typeStreamerSubstitutions.value(typeName);
     if (!streamer) {
-        int index = typeName.indexOf("::");
-        if (index == -1) {
-            streamer = getTypeStreamers().value(QMetaType::type(typeName.constData()));
-        } else {
-            int postIndex = index + 2;
-            streamer = getEnumStreamers().value(QPair<QByteArray, QByteArray>(
-                QByteArray::fromRawData(typeName.constData(), index),
-                QByteArray::fromRawData(typeName.constData() + postIndex, typeName.size() - postIndex)));
+        streamer = getTypeStreamers().value(QMetaType::type(typeName.constData()));
+        if (!streamer) {
+            streamer = getEnumStreamersByName().value(typeName);
         }
     }
     if (!streamer) {
@@ -728,12 +752,50 @@ Bitstream& Bitstream::operator>(TypeReader& reader) {
             return *this;
         
         case TypeReader::ENUM_TYPE: {
-            int bits;
-            *this >> bits;
-            if (streamer && streamer->getReaderType() == type) {
-                reader = TypeReader(typeName, streamer);
+            if (_metadataType == FULL_METADATA) {
+                int keyCount;
+                *this >> keyCount;
+                QMetaEnum metaEnum = (streamer && streamer->getReaderType() == TypeReader::ENUM_TYPE) ?
+                    streamer->getMetaEnum() : QMetaEnum();
+                QHash<int, int> mappings;
+                bool matches = (keyCount == metaEnum.keyCount());
+                int highestValue = 0;
+                for (int i = 0; i < keyCount; i++) {
+                    QByteArray key;
+                    int value;
+                    *this >> key >> value;
+                    highestValue = qMax(value, highestValue);
+                    int localValue = metaEnum.keyToValue(key);
+                    if (localValue != -1) {
+                        mappings.insert(value, localValue);
+                    }
+                    matches &= (value == localValue);
+                }
+                if (matches) {
+                    reader = TypeReader(typeName, streamer);
+                } else {
+                    reader = TypeReader(typeName, streamer, getBitsForHighestValue(highestValue), mappings);
+                }
             } else {
-                reader = TypeReader(typeName, streamer, false, TypeReader::ENUM_TYPE, bits);
+                int bits;
+                *this >> bits;
+                QCryptographicHash hash(QCryptographicHash::Md5);
+                if (streamer && streamer->getReaderType() == TypeReader::ENUM_TYPE) {
+                    QMetaEnum metaEnum = streamer->getMetaEnum();
+                    for (int i = 0; i < metaEnum.keyCount(); i++) {
+                        hash.addData(metaEnum.key(i), strlen(metaEnum.key(i)) + 1);
+                        qint32 value = metaEnum.value(i);
+                        hash.addData((const char*)&value, sizeof(qint32));
+                    }
+                }
+                QByteArray localHashResult = hash.result();
+                QByteArray remoteHashResult(localHashResult.size(), 0);
+                read(remoteHashResult.data(), remoteHashResult.size() * BITS_IN_BYTE);
+                if (localHashResult == remoteHashResult) {
+                    reader = TypeReader(typeName, streamer);
+                } else {
+                    reader = TypeReader(typeName, streamer, bits, QHash<int, int>());
+                }
             }
             return *this;
         }
@@ -745,7 +807,7 @@ Bitstream& Bitstream::operator>(TypeReader& reader) {
                     valueReader.matchesExactly(streamer->getValueStreamer())) {
                 reader = TypeReader(typeName, streamer);
             } else {
-                reader = TypeReader(typeName, streamer, false, (TypeReader::Type)type, 0, TypeReaderPointer(),
+                reader = TypeReader(typeName, streamer, (TypeReader::Type)type,
                     TypeReaderPointer(new TypeReader(valueReader)));
             }
             return *this;
@@ -758,8 +820,8 @@ Bitstream& Bitstream::operator>(TypeReader& reader) {
                     valueReader.matchesExactly(streamer->getValueStreamer())) {
                 reader = TypeReader(typeName, streamer);
             } else {
-                reader = TypeReader(typeName, streamer, false, TypeReader::MAP_TYPE, 0,
-                    TypeReaderPointer(new TypeReader(keyReader)), TypeReaderPointer(new TypeReader(valueReader)));
+                reader = TypeReader(typeName, streamer, TypeReaderPointer(new TypeReader(keyReader)),
+                    TypeReaderPointer(new TypeReader(valueReader)));
             }
             return *this;
         }
@@ -817,23 +879,20 @@ Bitstream& Bitstream::operator>(TypeReader& reader) {
         // if all fields are the same type and in the right order, we can use the (more efficient) default streamer
         const QVector<MetaField>& localFields = streamer->getMetaFields();
         if (fieldCount != localFields.size()) {
-            reader = TypeReader(typeName, streamer, false, TypeReader::STREAMABLE_TYPE,
-                0, TypeReaderPointer(), TypeReaderPointer(), fields);
+            reader = TypeReader(typeName, streamer, fields);
             return *this;
         }
         for (int i = 0; i < fieldCount; i++) {
             const FieldReader& fieldReader = fields.at(i);
             if (!fieldReader.getReader().matchesExactly(localFields.at(i).getStreamer()) || fieldReader.getIndex() != i) {
-                reader = TypeReader(typeName, streamer, false, TypeReader::STREAMABLE_TYPE,
-                    0, TypeReaderPointer(), TypeReaderPointer(), fields);
+                reader = TypeReader(typeName, streamer, fields);
                 return *this;
             }
         }
         reader = TypeReader(typeName, streamer);
         return *this;
     }
-    reader = TypeReader(typeName, streamer, false, TypeReader::STREAMABLE_TYPE,
-        0, TypeReaderPointer(), TypeReaderPointer(), fields);
+    reader = TypeReader(typeName, streamer, fields);
     return *this;
 }
 
@@ -969,6 +1028,11 @@ QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*>& Bitstream::getEnumStr
     return enumStreamers;
 }
 
+QHash<QByteArray, const TypeStreamer*>& Bitstream::getEnumStreamersByName() {
+    static QHash<QByteArray, const TypeStreamer*> enumStreamersByName;
+    return enumStreamersByName;
+}
+
 QVector<PropertyReader> Bitstream::getPropertyReaders(const QMetaObject* metaObject) {
     QVector<PropertyReader> propertyReaders;
     if (!metaObject) {
@@ -995,16 +1059,46 @@ QVector<PropertyReader> Bitstream::getPropertyReaders(const QMetaObject* metaObj
     return propertyReaders;
 }
 
-TypeReader::TypeReader(const QByteArray& typeName, const TypeStreamer* streamer, bool exactMatch, Type type, int bits,
-        const TypeReaderPointer& keyReader, const TypeReaderPointer& valueReader, const QVector<FieldReader>& fields) :
+TypeReader::TypeReader(const QByteArray& typeName, const TypeStreamer* streamer) :
     _typeName(typeName),
     _streamer(streamer),
-    _exactMatch(exactMatch),
-    _type(type),
+    _exactMatch(true) {
+}
+
+TypeReader::TypeReader(const QByteArray& typeName, const TypeStreamer* streamer, int bits, const QHash<int, int>& mappings) :
+    _typeName(typeName),
+    _streamer(streamer),
+    _exactMatch(false),
+    _type(ENUM_TYPE),
     _bits(bits),
-    _keyReader(keyReader),
-    _valueReader(valueReader),
+    _mappings(mappings) {
+}
+
+TypeReader::TypeReader(const QByteArray& typeName, const TypeStreamer* streamer, const QVector<FieldReader>& fields) :
+    _typeName(typeName),
+    _streamer(streamer),
+    _exactMatch(false),
+    _type(STREAMABLE_TYPE),
     _fields(fields) {
+}
+
+TypeReader::TypeReader(const QByteArray& typeName, const TypeStreamer* streamer,
+        Type type, const TypeReaderPointer& valueReader) :
+    _typeName(typeName),
+    _streamer(streamer),
+    _exactMatch(false),
+    _type(type),
+    _valueReader(valueReader) {
+}
+
+TypeReader::TypeReader(const QByteArray& typeName, const TypeStreamer* streamer,
+        const TypeReaderPointer& keyReader, const TypeReaderPointer& valueReader) :
+    _typeName(typeName),
+    _streamer(streamer),
+    _exactMatch(false),
+    _type(MAP_TYPE),
+    _keyReader(keyReader),
+    _valueReader(valueReader) {
 }
 
 QVariant TypeReader::read(Bitstream& in) const {
@@ -1013,6 +1107,14 @@ QVariant TypeReader::read(Bitstream& in) const {
     }
     QVariant object = _streamer ? QVariant(_streamer->getType(), 0) : QVariant();
     switch (_type) {
+        case ENUM_TYPE: {
+            int value = 0;
+            in.read(&value, _bits);
+            if (_streamer) {
+                _streamer->setEnumValue(object, value, _mappings);
+            }
+            break;
+        }
         case STREAMABLE_TYPE: {
             foreach (const FieldReader& field, _fields) {
                 field.read(in, _streamer, object);
@@ -1069,6 +1171,14 @@ void TypeReader::readRawDelta(Bitstream& in, QVariant& object, const QVariant& r
         return;
     }
     switch (_type) {
+        case ENUM_TYPE: {
+            int value = 0;
+            in.read(&value, _bits);
+            if (_streamer) {
+                _streamer->setEnumValue(object, value, _mappings);
+            }
+            break;
+        }
         case STREAMABLE_TYPE: {
             foreach (const FieldReader& field, _fields) {
                 field.readDelta(in, _streamer, object, reference);
@@ -1269,6 +1379,10 @@ const char* TypeStreamer::getName() const {
     return QMetaType::typeName(_type);
 }
 
+void TypeStreamer::setEnumValue(QVariant& object, int value, const QHash<int, int>& mappings) const {
+    // nothing by default
+}
+
 const QVector<MetaField>& TypeStreamer::getMetaFields() const {
     static QVector<MetaField> emptyMetaFields;
     return emptyMetaFields;
@@ -1292,6 +1406,10 @@ TypeReader::Type TypeStreamer::getReaderType() const {
 
 int TypeStreamer::getBits() const {
     return 0;
+}
+
+QMetaEnum TypeStreamer::getMetaEnum() const {
+    return QMetaEnum();
 }
 
 const TypeStreamer* TypeStreamer::getKeyStreamer() const {
@@ -1338,9 +1456,17 @@ QDebug& operator<<(QDebug& debug, const QMetaObject* metaObject) {
     return debug << (metaObject ? metaObject->className() : "null");
 }
 
-EnumTypeStreamer::EnumTypeStreamer(const QByteArray& name, int bits) :
-    _name(name),
-    _bits(bits) {
+EnumTypeStreamer::EnumTypeStreamer(const QMetaEnum& metaEnum) :
+    _metaEnum(metaEnum),
+    _name(getEnumName(metaEnum)) {
+    
+    setType(QMetaType::Int);
+    
+    int highestValue = 0;
+    for (int j = 0; j < metaEnum.keyCount(); j++) {
+        highestValue = qMax(highestValue, metaEnum.value(j));
+    }
+    _bits = getBitsForHighestValue(highestValue); 
 }
 
 const char* EnumTypeStreamer::getName() const {
@@ -1353,6 +1479,10 @@ TypeReader::Type EnumTypeStreamer::getReaderType() const {
 
 int EnumTypeStreamer::getBits() const {
     return _bits;
+}
+
+QMetaEnum EnumTypeStreamer::getMetaEnum() const {
+    return _metaEnum;
 }
 
 bool EnumTypeStreamer::equal(const QVariant& first, const QVariant& second) const {
@@ -1401,5 +1531,20 @@ void EnumTypeStreamer::readRawDelta(Bitstream& in, QVariant& value, const QVaria
     int intValue = 0;
     in.read(&intValue, _bits);
     value = intValue;
+}
+
+void EnumTypeStreamer::setEnumValue(QVariant& object, int value, const QHash<int, int>& mappings) const {
+    if (_metaEnum.isFlag()) {
+        int combined = 0;
+        for (QHash<int, int>::const_iterator it = mappings.constBegin(); it != mappings.constEnd(); it++) {
+            if (value & it.key()) {
+                combined |= it.value();
+            }
+        }
+        object = combined;
+        
+    } else {
+        object = mappings.value(value);
+    }
 }
 

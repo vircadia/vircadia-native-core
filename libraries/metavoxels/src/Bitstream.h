@@ -236,6 +236,9 @@ public:
     /// Substitutes the supplied type for the given type name's default mapping.
     void addTypeSubstitution(const QByteArray& typeName, int type);
 
+    /// Substitutes the named type for the given type name's default mapping.
+    void addTypeSubstitution(const QByteArray& typeName, const char* replacementTypeName);
+    
     /// Writes a set of bits to the underlying stream.
     /// \param bits the number of bits to write
     /// \param offset the offset of the first bit
@@ -424,6 +427,7 @@ private:
     static QMultiHash<const QMetaObject*, const QMetaObject*>& getMetaObjectSubClasses();
     static QHash<int, const TypeStreamer*>& getTypeStreamers();
     static QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*>& getEnumStreamers();
+    static QHash<QByteArray, const TypeStreamer*>& getEnumStreamersByName();
     static QVector<PropertyReader> getPropertyReaders(const QMetaObject* metaObject);
 };
 
@@ -716,11 +720,18 @@ public:
 
     enum Type { SIMPLE_TYPE, ENUM_TYPE, STREAMABLE_TYPE, LIST_TYPE, SET_TYPE, MAP_TYPE };
     
-    TypeReader(const QByteArray& typeName = QByteArray(), const TypeStreamer* streamer = NULL, bool exactMatch = true, 
-        Type type = SIMPLE_TYPE, int bits = 0, const TypeReaderPointer& keyReader = TypeReaderPointer(),
-        const TypeReaderPointer& valueReader = TypeReaderPointer(),
-        const QVector<FieldReader>& fields = QVector<FieldReader>());
+    TypeReader(const QByteArray& typeName = QByteArray(), const TypeStreamer* streamer = NULL);
+    
+    TypeReader(const QByteArray& typeName, const TypeStreamer* streamer, int bits, const QHash<int, int>& mappings);
+    
+    TypeReader(const QByteArray& typeName, const TypeStreamer* streamer, const QVector<FieldReader>& fields);
 
+    TypeReader(const QByteArray& typeName, const TypeStreamer* streamer, Type type,
+        const TypeReaderPointer& valueReader);
+    
+    TypeReader(const QByteArray& typeName, const TypeStreamer* streamer,
+        const TypeReaderPointer& keyReader, const TypeReaderPointer& valueReader);
+        
     const QByteArray& getTypeName() const { return _typeName; }
     const TypeStreamer* getStreamer() const { return _streamer; }
 
@@ -740,6 +751,7 @@ private:
     bool _exactMatch;
     Type _type;
     int _bits;
+    QHash<int, int> _mappings;
     TypeReaderPointer _keyReader;
     TypeReaderPointer _valueReader;
     QVector<FieldReader> _fields;
@@ -871,6 +883,8 @@ public:
     virtual void writeRawDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const = 0;
     virtual void readRawDelta(Bitstream& in, QVariant& value, const QVariant& reference) const = 0;
     
+    virtual void setEnumValue(QVariant& object, int value, const QHash<int, int>& mappings) const;
+    
     virtual const QVector<MetaField>& getMetaFields() const;
     virtual int getFieldIndex(const QByteArray& name) const;
     virtual void setField(QVariant& object, int index, const QVariant& value) const;
@@ -879,6 +893,7 @@ public:
     virtual TypeReader::Type getReaderType() const;
 
     virtual int getBits() const;
+    virtual QMetaEnum getMetaEnum() const;
 
     virtual const TypeStreamer* getKeyStreamer() const;
     virtual const TypeStreamer* getValueStreamer() const;
@@ -923,11 +938,12 @@ public:
 class EnumTypeStreamer : public TypeStreamer {
 public:
     
-    EnumTypeStreamer(const QByteArray& name, int bits);
+    EnumTypeStreamer(const QMetaEnum& metaEnum);
     
     virtual const char* getName() const;
     virtual TypeReader::Type getReaderType() const;
     virtual int getBits() const;
+    virtual QMetaEnum getMetaEnum() const;
     virtual bool equal(const QVariant& first, const QVariant& second) const;
     virtual void write(Bitstream& out, const QVariant& value) const;
     virtual QVariant read(Bitstream& in) const;
@@ -935,9 +951,11 @@ public:
     virtual void readDelta(Bitstream& in, QVariant& value, const QVariant& reference) const;
     virtual void writeRawDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const;
     virtual void readRawDelta(Bitstream& in, QVariant& value, const QVariant& reference) const;
+    virtual void setEnumValue(QVariant& object, int value, const QHash<int, int>& mappings) const;
 
 private:
     
+    QMetaEnum _metaEnum;
     QByteArray _name;
     int _bits;
 };
