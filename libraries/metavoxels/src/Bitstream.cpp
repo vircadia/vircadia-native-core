@@ -47,11 +47,19 @@ IDStreamer::IDStreamer(Bitstream& stream) :
     _bits(1) {
 }
 
-void IDStreamer::setBitsFromValue(int value) {
-    _bits = 1;
-    while (value >= (1 << _bits) - 1) {
-        _bits++;
+static int getBitsForHighestValue(int highestValue) {
+    // if this turns out to be a bottleneck, there are fancier ways to do it (get the position of the highest set bit):
+    // http://graphics.stanford.edu/~seander/bithacks.html#IntegerLogObvious
+    int bits = 0;
+    while (highestValue != 0) {
+        bits++;
+        highestValue >>= 1;
     }
+    return bits;
+}
+
+void IDStreamer::setBitsFromValue(int value) {
+    _bits = getBitsForHighestValue(value + 1);
 }
 
 IDStreamer& IDStreamer::operator<<(int value) {
@@ -717,10 +725,6 @@ Bitstream& Bitstream::operator<(const TypeStreamer* streamer) {
         write(hashResult.constData(), hashResult.size() * BITS_IN_BYTE);
     }
     return *this;
-}
-
-static int getBitsForHighestValue(int highestValue) {
-    return (highestValue == 0) ? 0 : 1 + (int)(log((double)highestValue) / log(2.0));
 }
 
 Bitstream& Bitstream::operator>(TypeReader& reader) {
