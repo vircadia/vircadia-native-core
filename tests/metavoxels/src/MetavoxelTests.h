@@ -54,9 +54,29 @@ private slots:
     void handleReliableMessage(const QVariant& message);
     void readReliableChannel();
 
+    void clearSendRecordsBefore(int index);    
+    void clearReceiveRecordsBefore(int index);
+
 private:
     
+    class SendRecord {
+    public:
+        int packetNumber;
+        SharedObjectPointer localState;
+    };
+    
+    class ReceiveRecord {
+    public:
+        int packetNumber;
+        SharedObjectPointer remoteState;
+    };
+    
     DatagramSequencer* _sequencer;
+    QList<SendRecord> _sendRecords;
+    QList<ReceiveRecord> _receiveRecords;
+    
+    SharedObjectPointer _localState;
+    
     Endpoint* _other;
     QList<QPair<QByteArray, int> > _delayedDatagrams;
     float _highPriorityMessagesToSend;
@@ -195,6 +215,7 @@ public:
     
     STREAM int sequenceNumber;
     STREAM QVariant submessage;
+    STREAM SharedObjectPointer state;
 };
 
 DECLARE_STREAMABLE_METATYPE(SequencedTestMessage)

@@ -229,6 +229,20 @@ Endpoint::Endpoint(const QByteArray& datagramHeader) :
     connect(_sequencer, SIGNAL(receivedHighPriorityMessage(const QVariant&)),
         SLOT(handleHighPriorityMessage(const QVariant&)));
     
+    connect(_sequencer, SIGNAL(sendAcknowledged(int)), SLOT(clearSendRecordsBefore(int)));
+    connect(_sequencer, SIGNAL(receiveAcknowledged(int)), SLOT(clearReceiveRecordsBefore(int)));
+    
+    // insert the baseline send record
+    SendRecord sendRecord = { 0 };
+    _sendRecords.append(sendRecord);
+    
+    // insert the baseline receive record
+    ReceiveRecord receiveRecord = { 0 };
+    _receiveRecords.append(receiveRecord);
+    
+    // create the object that represents out delta-encoded state
+    //_localState = new TestSharedObjectA();
+    
     connect(_sequencer->getReliableInputChannel(), SIGNAL(receivedMessage(const QVariant&)),
         SLOT(handleReliableMessage(const QVariant&)));
     
@@ -326,7 +340,7 @@ bool Endpoint::simulate(int iterationNumber) {
     // send a packet
     try {
         Bitstream& out = _sequencer->startPacket();
-        SequencedTestMessage message = { iterationNumber, createRandomMessage() };
+        SequencedTestMessage message = { iterationNumber, createRandomMessage(), _localState };
         _unreliableMessagesSent.append(message);
         unreliableMessagesSent++;
         out << message;
@@ -336,6 +350,10 @@ bool Endpoint::simulate(int iterationNumber) {
         qDebug() << message;
         return true;
     }
+    
+    // record the send
+    SendRecord record = { _sequencer->getOutgoingPacketNumber(), _localState };
+    _sendRecords.append(record);
     
     return false;
 }
@@ -387,6 +405,10 @@ void Endpoint::readMessage(Bitstream& in) {
     SequencedTestMessage message;
     in >> message;
     
+    // record the receipt
+    ReceiveRecord record = { _sequencer->getIncomingPacketNumber(), message.state };
+    _receiveRecords.append(record);
+    
     for (QList<SequencedTestMessage>::iterator it = _other->_unreliableMessagesSent.begin();
             it != _other->_unreliableMessagesSent.end(); it++) {
         if (it->sequenceNumber == message.sequenceNumber) {
@@ -428,6 +450,14 @@ void Endpoint::readReliableChannel() {
         throw QString("Sent/received streamed data mismatch.");
     }
     streamedBytesReceived += bytes.size();
+}
+
+void Endpoint::clearSendRecordsBefore(int index) {
+    _sendRecords.erase(_sendRecords.begin(), _sendRecords.begin() + index + 1);
+}
+
+void Endpoint::clearReceiveRecordsBefore(int index) {
+    _receiveRecords.erase(_receiveRecords.begin(), _receiveRecords.begin() + index + 1);
 }
 
 TestSharedObjectA::TestSharedObjectA(float foo, TestEnum baz, TestFlags bong) :
