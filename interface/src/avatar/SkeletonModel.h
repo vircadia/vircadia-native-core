@@ -91,6 +91,8 @@ public:
     
 protected:
 
+    /// \param jointIndex index of joint in model
+    /// \param position position of joint in model-frame
     void applyHandPosition(int jointIndex, const glm::vec3& position);
     
     void applyPalmData(int jointIndex, PalmData& palm);
@@ -105,6 +107,10 @@ protected:
 private:
 
     void renderJointConstraints(int jointIndex);
+
+    /// \param jointIndex index of joint in model
+    /// \param position position of joint in model-frame
+    /// \param rotation rotation of joint in model-frame
     void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation);
     
     Avatar* _owningAvatar;

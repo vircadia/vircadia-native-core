@@ -188,9 +188,12 @@ void Head::setScale (float scale) {
     _scale = scale;
 }
 
-glm::quat Head::getFinalOrientation() const {
-    return _owningAvatar->getOrientation() * glm::quat(glm::radians(
-                glm::vec3(getFinalPitch(), getFinalYaw(), getFinalRoll() )));
+glm::quat Head::getFinalOrientationInWorldFrame() const {
+    return _owningAvatar->getOrientation() * getFinalOrientationInLocalFrame();
+}
+
+glm::quat Head::getFinalOrientationInLocalFrame() const {
+    return glm::quat(glm::radians(glm::vec3(getFinalPitch(), getFinalYaw(), getFinalRoll() )));
 }
 
 glm::quat Head::getCameraOrientation () const {

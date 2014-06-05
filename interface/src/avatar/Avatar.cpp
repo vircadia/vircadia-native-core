@@ -377,7 +377,7 @@ void Avatar::simulateAttachments(float deltaTime) {
         if (!isMyAvatar()) {
             model->setLODDistance(getLODDistance());
         }
-        if (_skeletonModel.getJointPosition(jointIndex, jointPosition) &&
+        if (_skeletonModel.getJointPositionInWorldFrame(jointIndex, jointPosition) &&
                 _skeletonModel.getJointCombinedRotation(jointIndex, jointRotation)) {
             model->setTranslation(jointPosition + jointRotation * attachment.translation * _scale);
             model->setRotation(jointRotation * attachment.rotation);
@@ -713,7 +713,7 @@ glm::vec3 Avatar::getJointPosition(int index) const {
         return position;
     }
     glm::vec3 position;
-    _skeletonModel.getJointPosition(index, position);
+    _skeletonModel.getJointPositionInWorldFrame(index, position);
     return position;
 }
 
@@ -725,7 +725,7 @@ glm::vec3 Avatar::getJointPosition(const QString& name) const {
         return position;
     }
     glm::vec3 position;
-    _skeletonModel.getJointPosition(getJointIndex(name), position);
+    _skeletonModel.getJointPositionInWorldFrame(getJointIndex(name), position);
     return position;
 }
 

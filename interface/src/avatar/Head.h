@@ -50,9 +50,13 @@ public:
     void setRenderLookatVectors(bool onOff) { _renderLookatVectors = onOff; }
     void setLeanSideways(float leanSideways) { _leanSideways = leanSideways; }
     void setLeanForward(float leanForward) { _leanForward = leanForward; }
+
+    /// \return orientationBase+Delta
+    glm::quat getFinalOrientationInLocalFrame() const;
     
-    /// \return orientationBody * orientationBase+Delta
-    glm::quat getFinalOrientation() const;
+    /// \return orientationBody * (orientationBase+Delta)
+    glm::quat getFinalOrientationInWorldFrame() const;
+
 
     /// \return orientationBody * orientationBasePitch
     glm::quat getCameraOrientation () const;
