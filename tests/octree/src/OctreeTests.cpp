@@ -12,6 +12,7 @@
 #include <QDebug>
 
 #include <ByteCountCoding.h>
+#include <OctreeConstants.h>
 #include <PropertyFlags.h>
 #include <SharedUtil.h>
 
