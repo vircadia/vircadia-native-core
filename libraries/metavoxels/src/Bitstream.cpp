@@ -720,7 +720,7 @@ Bitstream& Bitstream::operator<(const TypeStreamer* streamer) {
 }
 
 static int getBitsForHighestValue(int highestValue) {
-    return (highestValue == 0) ? 0 : 1 + (int)(log(highestValue) / log(2.0));
+    return (highestValue == 0) ? 0 : 1 + (int)(glm::log(highestValue) / glm::log(2.0));
 }
 
 Bitstream& Bitstream::operator>(TypeReader& reader) {
