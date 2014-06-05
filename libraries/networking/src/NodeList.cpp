@@ -96,8 +96,8 @@ void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& 
     int clockSkew = othersReplyTime - othersExprectedReply;
     
     sendingNode->setPingMs(pingTime / 1000);
-    sendingNode->setClockSkewUsec(clockSkew);
-    
+    sendingNode->updateClockSkewUsec(clockSkew);
+
     const bool wantDebug = false;
     
     if (wantDebug) {
