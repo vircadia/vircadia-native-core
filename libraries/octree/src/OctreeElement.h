@@ -18,6 +18,7 @@
 
 #include <QReadWriteLock>
 
+#include <OctalCode.h>
 #include <SharedUtil.h>
 
 #include "AACube.h"

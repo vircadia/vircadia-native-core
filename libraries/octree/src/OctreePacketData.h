@@ -22,7 +22,10 @@
 #ifndef hifi_OctreePacketData_h
 #define hifi_OctreePacketData_h
 
+#include <LimitedNodeList.h> // for MAX_PACKET_SIZE
+#include <PacketHeaders.h> // for MAX_PACKET_HEADER_BYTES
 #include <SharedUtil.h>
+
 #include "OctreeConstants.h"
 #include "OctreeElement.h"
 
