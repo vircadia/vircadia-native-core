@@ -47,6 +47,12 @@ uint32_t ModelItem::getNextCreatorTokenID() {
     return creatorTokenID;
 }
 
+uint32_t ModelItem::getNextModelItemID() {
+    uint32_t modelID = _nextID;
+    _nextID++;
+    return modelID;
+}
+
 void ModelItem::handleAddModelResponse(const QByteArray& packet) {
     const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data());
     int numBytesPacketHeader = numBytesForPacketHeader(packet);
@@ -70,31 +76,10 @@ ModelItem::ModelItem() {
 }
 
 ModelItem::ModelItem(const ModelItemID& modelItemID, const ModelItemProperties& properties) {
-    _id = modelItemID.id;
     _creatorTokenID = modelItemID.creatorTokenID;
-
-    // init values with defaults before calling setProperties
-    uint64_t now = usecTimestampNow();
-    _lastEdited = now;
-    _lastUpdated = now;
-
-    _position = glm::vec3(0,0,0);
-    _radius = 0;
-    rgbColor noColor = { 0, 0, 0 };
-    memcpy(_color, noColor, sizeof(_color));
-    _shouldDie = false;
-    _modelURL = MODEL_DEFAULT_MODEL_URL;
-    _modelRotation = MODEL_DEFAULT_MODEL_ROTATION;
     
-    // animation related
-    _animationURL = MODEL_DEFAULT_ANIMATION_URL;
-    _animationIsPlaying = false;
-    _animationFrameIndex = 0.0f;
-    _animationFPS = MODEL_DEFAULT_ANIMATION_FPS;
-    _glowLevel = 0.0f;
-
-    _jointMappingCompleted = false;
-    _lastAnimated = now;
+    rgbColor defaultColor = { 0, 0, 0 };
+    init(glm::vec3(), 0.0f, defaultColor, modelItemID.id);
     
     setProperties(properties);
 }
