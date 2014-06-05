@@ -20,6 +20,8 @@
 REGISTER_META_OBJECT(TestSharedObjectA)
 REGISTER_META_OBJECT(TestSharedObjectB)
 
+IMPLEMENT_ENUM_METATYPE(TestSharedObjectA, TestEnum)
+
 MetavoxelTests::MetavoxelTests(int& argc, char** argv) :
     QCoreApplication(argc, argv) {
 }
@@ -80,6 +82,7 @@ static TestMessageC createRandomMessageC() {
     message.bar = rand();
     message.baz = randFloat();
     message.bong.foo = createRandomBytes();
+    message.bong.baz = getRandomTestEnum();
     return message;
 }
 
@@ -252,7 +255,7 @@ static QVariant createRandomMessage() {
             return QVariant::fromValue(message);
         }
         case 1: {
-            TestMessageB message = { createRandomBytes(), createRandomSharedObject() };
+            TestMessageB message = { createRandomBytes(), createRandomSharedObject(), getRandomTestEnum() };
             return QVariant::fromValue(message); 
         }
         case 2:
@@ -273,7 +276,7 @@ static bool messagesEqual(const QVariant& firstMessage, const QVariant& secondMe
     } else if (type == TestMessageB::Type) {
         TestMessageB first = firstMessage.value<TestMessageB>();
         TestMessageB second = secondMessage.value<TestMessageB>();
-        return first.foo == second.foo && equals(first.bar, second.bar);
+        return first.foo == second.foo && equals(first.bar, second.bar) && first.baz == second.baz;
         
     } else if (type == TestMessageC::Type) {
         return firstMessage.value<TestMessageC>() == secondMessage.value<TestMessageC>();

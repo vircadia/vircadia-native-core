@@ -106,6 +106,8 @@ private:
     TestFlags _bong;
 };
 
+DECLARE_ENUM_METATYPE(TestSharedObjectA, TestEnum)
+
 /// Another simple shared object.
 class TestSharedObjectB : public SharedObject {
     Q_OBJECT
@@ -169,6 +171,7 @@ public:
     
     STREAM QByteArray foo;
     STREAM SharedObjectPointer bar;
+    STREAM TestSharedObjectA::TestEnum baz;
 };
 
 DECLARE_STREAMABLE_METATYPE(TestMessageB)
