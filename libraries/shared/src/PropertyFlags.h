@@ -11,6 +11,7 @@
 //
 // TODO:
 //   * consider adding iterator to enumerate the properties that have been set?
+//   * operator QSet<Enum> - this would be easiest way to handle enumeration
 
 #ifndef hifi_PropertyFlags_h
 #define hifi_PropertyFlags_h
@@ -33,6 +34,8 @@ public:
             _trailingFlipped(other._trailingFlipped) {}
     inline PropertyFlags(Enum flag) : 
             _maxFlag(INT_MIN), _minFlag(INT_MAX), _trailingFlipped(false)  { setHasProperty(flag); }
+    inline PropertyFlags(const QByteArray& fromEncoded) : 
+            _maxFlag(INT_MIN), _minFlag(INT_MAX), _trailingFlipped(false) { decode(fromEncoded); }
 
     void clear() { _flags.clear(); _maxFlag = INT_MIN; _minFlag = INT_MAX; _trailingFlipped = false; }
 
@@ -41,8 +44,10 @@ public:
     
     void setHasProperty(Enum flag, bool value = true);
     bool getHasProperty(Enum flag);
-    QByteArray encode();
+    QByteArray encode() const;
     void decode(const QByteArray& fromEncoded);
+
+     operator QByteArray() const { return encode(); };
 
 
     bool operator==(const PropertyFlags& other) const { return _flags == other._flags; }
@@ -142,7 +147,7 @@ template<typename Enum> inline bool PropertyFlags<Enum>::getHasProperty(Enum fla
 
 const int BITS_PER_BYTE = 8;
 
-template<typename Enum> inline QByteArray PropertyFlags<Enum>::encode() {
+template<typename Enum> inline QByteArray PropertyFlags<Enum>::encode() const {
     QByteArray output;
     
     if (_maxFlag < _minFlag) {
@@ -412,6 +417,15 @@ template<typename Enum> inline void PropertyFlags<Enum>::shinkIfNeeded() {
     if (maxFlagWas != _maxFlag) {
         _flags.resize(_maxFlag + 1);
     }
+}
+
+template<typename Enum> inline QByteArray& operator<<(QByteArray& out, const PropertyFlags<Enum>& value) {
+    return out = value;
+}
+
+template<typename Enum> inline QByteArray& operator>>(QByteArray& in, PropertyFlags<Enum>& value) {
+    value.decode(in);
+    return in;
 }
 
 #endif // hifi_PropertyFlags_h
