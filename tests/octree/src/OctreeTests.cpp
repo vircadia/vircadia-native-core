@@ -11,6 +11,7 @@
 
 #include <QDebug>
 
+#include <ByteCountCoding.h>
 #include <PropertyFlags.h>
 #include <SharedUtil.h>
 
@@ -407,10 +408,151 @@ void OctreeTests::propertyFlagsTests() {
         outputBufferBits((const unsigned char*)encodedAfterDecodedExtra.constData(), encodedAfterDecodedExtra.size());
 
     }
+    
+    {
+        qDebug() << "Test 8: ParticlePropertyFlags: QByteArray << / >> tests";
+        ParticlePropertyFlags props;
 
+        props << PARTICLE_PROP_VISIBLE;
+        props << PARTICLE_PROP_ANIMATION_URL;
+        props << PARTICLE_PROP_ANIMATION_FPS;
+        props << PARTICLE_PROP_ANIMATION_FRAME_INDEX;
+        props << PARTICLE_PROP_ANIMATION_PLAYING;
+        props << PARTICLE_PROP_PAUSE_SIMULATION;
+
+        qDebug() << "testing encoded << props";
+        QByteArray encoded;
+        encoded << props;
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+
+        ParticlePropertyFlags propsDecoded;
+        qDebug() << "testing encoded >> propsDecoded";
+        encoded >> propsDecoded;
+        qDebug() << "propsDecoded==props" << (propsDecoded==props);
+    }
+
+    qDebug() << "******************************************************************************************";
+}
+
+
+typedef ByteCountCoded<unsigned int> ByteCountCodedUINT;
+typedef ByteCountCoded<quint64> ByteCountCodedQUINT64;
+
+typedef ByteCountCoded<int> ByteCountCodedINT;
+
+void OctreeTests::byteCountCodingTests() {
+    qDebug() << "******************************************************************************************";
+    qDebug() << "OctreeTests::byteCountCodingTests()";
+    
+    QByteArray encoded;
+    
+    qDebug() << "ByteCountCodedUINT zero(0)";
+    ByteCountCodedUINT zero(0);
+    encoded = zero.encode();
+    outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+
+    ByteCountCodedUINT decodedZero;
+    decodedZero.decode(encoded);
+    qDebug() << "decodedZero=" << decodedZero.data;
+    qDebug() << "decodedZero==zero" << (decodedZero == zero) << " { expected true } ";
+
+    ByteCountCodedUINT decodedZeroB(encoded);
+    qDebug() << "decodedZeroB=" << decodedZeroB.data;
+
+    qDebug() << "ByteCountCodedUINT foo(259)";
+    ByteCountCodedUINT foo(259);
+    encoded = foo.encode();
+    outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+
+    ByteCountCodedUINT decodedFoo;
+    decodedFoo.decode(encoded);
+    qDebug() << "decodedFoo=" << decodedFoo.data;
+    qDebug() << "decodedFoo==foo" << (decodedFoo == foo) << " { expected true } ";
+
+    ByteCountCodedUINT decodedFooB(encoded);
+    qDebug() << "decodedFooB=" << decodedFooB.data;
+
+    qDebug() << "ByteCountCodedUINT bar(1000000)";
+    ByteCountCodedUINT bar(1000000);
+    encoded = bar.encode();
+    outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+
+    ByteCountCodedUINT decodedBar;
+    decodedBar.decode(encoded);
+    qDebug() << "decodedBar=" << decodedBar.data;
+    qDebug() << "decodedBar==bar" << (decodedBar == bar) << " { expected true } ";
+
+    qDebug() << "ByteCountCodedUINT spam(4294967295/2)";
+    ByteCountCodedUINT spam(4294967295/2);
+    encoded = spam.encode();
+    outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+
+    ByteCountCodedUINT decodedSpam;
+    decodedSpam.decode(encoded);
+    qDebug() << "decodedSpam=" << decodedSpam.data;
+    qDebug() << "decodedSpam==spam" << (decodedSpam==spam) << " { expected true } ";
+
+    qDebug() << "ByteCountCodedQUINT64 foo64(259)";
+    ByteCountCodedQUINT64 foo64(259);
+    encoded = foo64.encode();
+    outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    
+    qDebug() << "testing... quint64 foo64POD = foo64;";
+    quint64 foo64POD = foo64;
+    qDebug() << "foo64POD=" << foo64POD;
+
+    qDebug() << "testing... encoded = foo64;";
+    encoded = foo64;
+    outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+
+    ByteCountCodedQUINT64 decodedFoo64;
+    decodedFoo64 = encoded;
+    qDebug() << "decodedFoo64=" << decodedFoo64.data;
+    qDebug() << "decodedFoo64==foo64" << (decodedFoo64==foo64) << " { expected true } ";
+
+    qDebug() << "ByteCountCodedQUINT64 bar64(1000000)";
+    ByteCountCodedQUINT64 bar64(1000000);
+    encoded = bar64.encode();
+    outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+
+    ByteCountCodedQUINT64 decodedBar64;
+    decodedBar64.decode(encoded);
+    qDebug() << "decodedBar64=" << decodedBar64.data;
+    qDebug() << "decodedBar64==bar64" << (decodedBar64==bar64) << " { expected true } ";
+
+    qDebug() << "ByteCountCodedQUINT64 spam64(4294967295/2)";
+    ByteCountCodedQUINT64 spam64(4294967295/2);
+    encoded = spam64.encode();
+    outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+
+    ByteCountCodedQUINT64 decodedSpam64;
+    decodedSpam64.decode(encoded);
+    qDebug() << "decodedSpam64=" << decodedSpam64.data;
+    qDebug() << "decodedSpam64==spam64" << (decodedSpam64==spam64) << " { expected true } ";
+
+    qDebug() << "testing encoded << spam64";
+    encoded.clear();
+    encoded << spam64;
+    outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+
+    qDebug() << "testing encoded >> decodedSpam64";
+    encoded >> decodedSpam64;
+    qDebug() << "decodedSpam64=" << decodedSpam64.data;
+
+    //ByteCountCodedINT shouldFail(-100);
+    
+    qDebug() << "NOW...";
+    quint64 now = usecTimestampNow();
+    ByteCountCodedQUINT64 nowCoded = now;
+    QByteArray nowEncoded = nowCoded;
+    outputBufferBits((const unsigned char*)nowEncoded.constData(), nowEncoded.size());
+    
+    
     qDebug() << "******************************************************************************************";
 }
 
 void OctreeTests::runAllTests() {
     propertyFlagsTests();
+    byteCountCodingTests();
 }
+

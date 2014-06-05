@@ -15,6 +15,7 @@
 namespace OctreeTests {
 
     void propertyFlagsTests();
+    void byteCountCodingTests();
 
     void runAllTests(); 
 }
