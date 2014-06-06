@@ -172,6 +172,9 @@ public:
     quint32 getIncomingPossibleDuplicate() const { return _incomingPossibleDuplicate; }
     float getIncomingFlightTimeAverage() { return _incomingFlightTimeAverage.getAverage(); }
 
+bool getNumSequenceNumberToNack() const;
+uint16_t getNextSequenceNumberToNack();
+
 private:
 
     void copyFromOther(const OctreeSceneStats& other);
@@ -273,6 +276,7 @@ private:
     quint32 _incomingReallyLate; /// out of order and later than MAX_MISSING_SEQUENCE_OLD_AGE late
     quint32 _incomingPossibleDuplicate; /// out of order possibly a duplicate
     QSet<uint16_t> _missingSequenceNumbers;
+QSet<uint16_t> _sequenceNumbersToNack;
     SimpleMovingAverage _incomingFlightTimeAverage;
     
     // features related items

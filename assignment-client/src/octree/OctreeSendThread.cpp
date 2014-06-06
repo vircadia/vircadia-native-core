@@ -288,12 +288,12 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
 
 int OctreeSendThread::resendNackedPackets(OctreeQueryNode* nodeData) {
 
-    const int maxPacketsSent = 10;
+    const int MAX_PACKETS_RESEND = 10;
 
     int packetsSent = 0;
 
     const QByteArray* packet;
-    while (nodeData->hasNextNackedPacket() && packetsSent < maxPacketsSent) {
+    while (nodeData->hasNextNackedPacket() && packetsSent < MAX_PACKETS_RESEND) {
         packet = nodeData->getNextNackedPacket();
         // packet will be NULL if it's not in nodeData's packet history
         if (packet) {

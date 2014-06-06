@@ -167,7 +167,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _applicationOverlay(),
         _runningScriptsWidget(new RunningScriptsWidget(_window)),
         _runningScriptsWidgetWasVisible(false),
-        _trayIcon(new QSystemTrayIcon(_window))
+        _trayIcon(new QSystemTrayIcon(_window)),
+        _lastNackTime(usecTimestampNow())
 {
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
@@ -2091,7 +2092,63 @@ void Application::updateMyAvatar(float deltaTime) {
             _lastQueriedViewFrustum = _viewFrustum;
         }
     }
+
+// sent a nack packet containing missing sequence numbers of received packets
+{
+    quint64 now = usecTimestampNow();
+    quint64 sinceLastNack = now - _lastNackTime;
+    const quint64 TOO_LONG_SINCE_LAST_NACK = 100 * MSECS_PER_SECOND;
+    if (sinceLastNack > TOO_LONG_SINCE_LAST_NACK) {
+        _lastNackTime = now;
+
+        //_octreeServerSceneStats-
+    }
 }
+}
+
+
+void Application::sendNack() {
+    /*
+    // now that we know the node ID, let's add these stats to the stats for that node...
+    _octreeSceneStatsLock.lockForWrite();
+    if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
+        OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
+        stats.trackIncomingOctreePacket(packet, wasStatsPacket, sendingNode->getClockSkewUsec());
+    }
+    _octreeSceneStatsLock.unlock();
+    */
+
+    char packet[MAX_PACKET_SIZE];
+    NodeList* nodeList = NodeList::getInstance();
+
+    // iterates thru all nodes in NodeList
+    foreach(const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+        
+        char* dataAt = packet;
+        int bytesRemaining = MAX_PACKET_SIZE;
+
+        int numBytesPacketHeader = populatePacketHeader(packet, PacketTypeOctreeDataNack, node->getUUID());
+        dataAt += numBytesPacketHeader;
+        bytesRemaining -= numBytesPacketHeader;
+        
+        
+
+        uint16_t numSequenceNumbers;
+
+
+
+
+        OctreeSceneStats& stats = _octreeServerSceneStats[node->getUUID()];
+        int numSequenceNumbersAvailable = stats.getNumSequenceNumberToNack();
+        
+
+        // make sure we still have an active socket
+        nodeList->writeUnverifiedDatagram(reinterpret_cast<const char*>(queryPacket), packetLength, node);
+    }
+}
+
+
+
 
 void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
 
