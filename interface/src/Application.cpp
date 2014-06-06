@@ -2120,6 +2120,8 @@ void Application::sendNack() {
             || node->getType() == NodeType::ModelServer)
             ) {
 
+            _octreeSceneStatsLock.lockForWrite();
+
             OctreeSceneStats& stats = _octreeServerSceneStats[node->getUUID()];
 
             char* dataAt = packet;
@@ -2145,6 +2147,8 @@ void Application::sendNack() {
                 *sequenceNumberAt = stats.getNextSequenceNumberToNack();
                 dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
             }
+
+            _octreeSceneStatsLock.unlock();
 
             // make sure we still have an active socket????
             nodeList->writeUnverifiedDatagram(packet, dataAt - packet, node);
