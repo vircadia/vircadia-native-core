@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var rightHandAnimation = "https://s3-us-west-1.amazonaws.com/highfidelity-public/animations/HandAnim.fbx";
-var leftHandAnimation = "";
+var rightHandAnimation = "https://s3-us-west-1.amazonaws.com/highfidelity-public/animations/RightHandAnim.fbx";
+var leftHandAnimation = "https://s3-us-west-1.amazonaws.com/highfidelity-public/animations/LeftHandAnim.fbx";
 
 var LEFT = 0;
 var RIGHT = 1;
@@ -18,17 +18,20 @@ var RIGHT = 1;
 var lastLeftFrame = 0; 
 var lastRightFrame = 0;
 
-var LAST_FRAME = 15.0;    //  What is the number of the last frame we want to use in the animation?
+var LAST_FRAME = 11.0;    //  What is the number of the last frame we want to use in the animation?
+var SMOOTH_FACTOR = 0.80;
+
 
 Script.update.connect(function(deltaTime) {
-    var leftTriggerValue = Controller.getTriggerValue(LEFT);
-    var rightTriggerValue = Controller.getTriggerValue(RIGHT);
+    var leftTriggerValue = Math.sqrt(Controller.getTriggerValue(LEFT));
+    var rightTriggerValue = Math.sqrt(Controller.getTriggerValue(RIGHT));
 
     var leftFrame, rightFrame;
 
-    //  Average last two trigger frames together for a bit of smoothing
-    leftFrame = (leftTriggerValue * LAST_FRAME) * 0.5 + lastLeftFrame * 0.5;
-    rightFrame = (rightTriggerValue * LAST_FRAME) * 0.5 + lastRightFrame * 0.5;
+    //  Average last few trigger frames together for a bit of smoothing
+    leftFrame = (leftTriggerValue * LAST_FRAME) * (1.0 - SMOOTH_FACTOR) + lastLeftFrame * SMOOTH_FACTOR;
+    rightFrame = (rightTriggerValue * LAST_FRAME) * (1.0 - SMOOTH_FACTOR) + lastRightFrame * SMOOTH_FACTOR;
+
     
     if ((leftFrame != lastLeftFrame) && leftHandAnimation.length){
    		MyAvatar.stopAnimation(leftHandAnimation);
