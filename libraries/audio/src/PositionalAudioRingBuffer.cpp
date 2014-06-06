@@ -55,7 +55,9 @@ int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
         
         readBytes += sizeof(int16_t);
         
-        addSilentFrame(numSilentSamples);
+        if (numSilentSamples > 0) {
+            addSilentFrame(numSilentSamples);
+        }        
     } else {
         // there is audio data to read
         readBytes += writeData(packet.data() + readBytes, packet.size() - readBytes);
