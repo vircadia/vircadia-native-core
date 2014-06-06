@@ -24,7 +24,7 @@ public:
         Injector
     };
     
-    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type);
+    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, bool isStereo = false);
     ~PositionalAudioRingBuffer();
     
     int parseData(const QByteArray& packet);
@@ -56,6 +56,7 @@ protected:
     bool _willBeAddedToMix;
     bool _shouldLoopbackForNode;
     bool _shouldOutputStarveDebug;
+    bool _isStereo;
     
     float _nextOutputTrailingLoudness;
 };

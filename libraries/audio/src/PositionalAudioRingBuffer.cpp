@@ -20,14 +20,15 @@
 
 #include "PositionalAudioRingBuffer.h"
 
-PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type) :
-    AudioRingBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL),
+PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, bool isStereo) :
+    AudioRingBuffer(isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL),
     _type(type),
     _position(0.0f, 0.0f, 0.0f),
     _orientation(0.0f, 0.0f, 0.0f, 0.0f),
     _willBeAddedToMix(false),
     _shouldLoopbackForNode(false),
-    _shouldOutputStarveDebug(true)
+    _shouldOutputStarveDebug(true),
+    _isStereo(isStereo)
 {
 
 }
