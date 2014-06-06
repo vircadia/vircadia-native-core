@@ -50,11 +50,16 @@ ModelTreeElement* ModelTreeElement::addChildAtIndex(int index) {
 }
 
 
+// TODO: This will attempt to store as many models as will fit in the packetData, if an individual model won't
+// fit, but some models did fit, then the element outputs what can fit. Once the general Octree::encodeXXX()
+// process supports partial encoding of an octree element, this will need to be updated to handle spanning its
+// contents across multiple packets.
 bool ModelTreeElement::appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const {
     bool success = true; // assume the best...
 
     // write our models out... first determine which of the models are in view based on our params
     uint16_t numberOfModels = 0;
+    uint16_t actualNumberOfModels = 0;
     QVector<uint16_t> indexesOfModelsToInclude;
 
     for (uint16_t i = 0; i < _modelItems->size(); i++) {
@@ -72,17 +77,33 @@ bool ModelTreeElement::appendElementData(OctreePacketData* packetData, EncodeBit
         }
     }
 
+    int numberOfModelsOffset = packetData->getUncompressedByteOffset();
     success = packetData->appendValue(numberOfModels);
 
     if (success) {
         foreach (uint16_t i, indexesOfModelsToInclude) {
             const ModelItem& model = (*_modelItems)[i];
+            
+            LevelDetails modelLevel = packetData->startLevel();
+    
             success = model.appendModelData(packetData);
+
+            if (success) {
+                packetData->endLevel(modelLevel);
+                actualNumberOfModels++;
+            }
             if (!success) {
+                packetData->discardLevel(modelLevel);
                 break;
             }
         }
     }
+    
+    if (!success) {
+        success = packetData->updatePriorBytes(numberOfModelsOffset, 
+                                            (const unsigned char*)&actualNumberOfModels, sizeof(actualNumberOfModels));
+    }
+    
     return success;
 }
 
@@ -433,6 +454,7 @@ int ModelTreeElement::readElementDataFromBuffer(const unsigned char* data, int b
     if (bytesLeftToRead >= (int)sizeof(numberOfModels)) {
         // read our models in....
         numberOfModels = *(uint16_t*)dataAt;
+
         dataAt += sizeof(numberOfModels);
         bytesLeftToRead -= (int)sizeof(numberOfModels);
         bytesRead += sizeof(numberOfModels);

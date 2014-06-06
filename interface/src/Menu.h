@@ -326,6 +326,7 @@ namespace MenuOption {
     const QString DisplayModelBounds = "Display Model Bounds";
     const QString DisplayModelElementProxy = "Display Model Element Bounds";
     const QString DisplayModelElementChildProxies = "Display Model Element Children";
+    const QString DisplayOculusOverlays = "Display Oculus Overlays";
     const QString DisplayTimingDetails = "Display Timing Details";
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString EchoLocalAudio = "Echo Local Audio";
@@ -401,6 +402,7 @@ namespace MenuOption {
     const QString StandOnNearbyFloors = "Stand on nearby floors";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
+    const QString StereoAudio = "Stereo Audio";
     const QString StopAllScripts = "Stop All Scripts";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString TestPing = "Test Ping";

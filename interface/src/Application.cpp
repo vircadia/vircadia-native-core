@@ -292,8 +292,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // move the silentNodeTimer to the _nodeThread
     QTimer* silentNodeTimer = new QTimer();
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
-    silentNodeTimer->moveToThread(_nodeThread);
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
+    silentNodeTimer->moveToThread(_nodeThread);
 
     // send the identity packet for our avatar each second to our avatar mixer
     QTimer* identityPacketTimer = new QTimer();
@@ -1097,7 +1097,8 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 
 
     _lastMouseMove = usecTimestampNow();
-    if (_mouseHidden) {
+
+    if (_mouseHidden && !OculusManager::isConnected()) {
         getGLWidget()->setCursor(Qt::ArrowCursor);
         _mouseHidden = false;
         _seenMouseMove = true;
@@ -1841,7 +1842,8 @@ void Application::updateMyAvatarLookAtPosition() {
             }
         } else {
             //  I am not looking at anyone else, so just look forward
-            lookAtSpot = _myAvatar->getHead()->calculateAverageEyePosition() + (_myAvatar->getHead()->getFinalOrientation() * glm::vec3(0.f, 0.f, -TREE_SCALE));
+            lookAtSpot = _myAvatar->getHead()->calculateAverageEyePosition() + 
+                (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.f, 0.f, -TREE_SCALE));
         }
         // TODO:  Add saccade to mouse pointer when stable, IF not looking at someone (since we know we are looking at it)
         /*

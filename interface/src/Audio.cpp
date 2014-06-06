@@ -68,6 +68,7 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _proceduralOutputDevice(NULL),
     _inputRingBuffer(0),
     _ringBuffer(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL),
+    _isStereoInput(false),
     _averagedLatency(0.0),
     _measuredJitter(0),
     _jitterBufferSamples(initialJitterBufferSamples),
@@ -289,20 +290,27 @@ void linearResampling(int16_t* sourceSamples, int16_t* destinationSamples,
         if (sourceToDestinationFactor >= 2) {
             // we need to downsample from 48 to 24
             // for now this only supports a mono output - this would be the case for audio input
-
-            for (unsigned int i = sourceAudioFormat.channelCount(); i < numSourceSamples; i += 2 * sourceAudioFormat.channelCount()) {
-                if (i + (sourceAudioFormat.channelCount()) >= numSourceSamples) {
-                    destinationSamples[(i - sourceAudioFormat.channelCount()) / (int) sourceToDestinationFactor] =
+            if (destinationAudioFormat.channelCount() == 1) {
+                for (unsigned int i = sourceAudioFormat.channelCount(); i < numSourceSamples; i += 2 * sourceAudioFormat.channelCount()) {
+                    if (i + (sourceAudioFormat.channelCount()) >= numSourceSamples) {
+                        destinationSamples[(i - sourceAudioFormat.channelCount()) / (int) sourceToDestinationFactor] =
                         (sourceSamples[i - sourceAudioFormat.channelCount()] / 2)
                         + (sourceSamples[i] / 2);
-                } else {
-                    destinationSamples[(i - sourceAudioFormat.channelCount()) / (int) sourceToDestinationFactor] =
+                    } else {
+                        destinationSamples[(i - sourceAudioFormat.channelCount()) / (int) sourceToDestinationFactor] =
                         (sourceSamples[i - sourceAudioFormat.channelCount()] / 4)
                         + (sourceSamples[i] / 2)
                         + (sourceSamples[i + sourceAudioFormat.channelCount()] / 4);
+                    }
+                }
+            } else {
+                // this is a 48 to 24 resampling but both source and destination are two channels
+                // squish two samples into one in each channel
+                for (int i = 0; i < numSourceSamples; i += 4) {
+                    destinationSamples[i / 2] = (sourceSamples[i] / 2) + (sourceSamples[i + 2] / 2);
+                    destinationSamples[(i / 2) + 1] = (sourceSamples[i + 1] / 2) + (sourceSamples[i + 3] / 2);
                 }
             }
-
         } else {
             if (sourceAudioFormat.sampleRate() == destinationAudioFormat.sampleRate()) {
                 // mono to stereo, same sample rate
@@ -405,12 +413,12 @@ bool Audio::switchOutputToAudioDevice(const QString& outputDeviceName) {
 }
 
 void Audio::handleAudioInput() {
-    static char monoAudioDataPacket[MAX_PACKET_SIZE];
+    static char audioDataPacket[MAX_PACKET_SIZE];
 
     static int numBytesPacketHeader = numBytesForPacketHeaderGivenPacketType(PacketTypeMicrophoneAudioNoEcho);
-    static int leadingBytes = numBytesPacketHeader + sizeof(glm::vec3) + sizeof(glm::quat);
+    static int leadingBytes = numBytesPacketHeader + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
 
-    static int16_t* monoAudioSamples = (int16_t*) (monoAudioDataPacket + leadingBytes);
+    static int16_t* networkAudioSamples = (int16_t*) (audioDataPacket + leadingBytes);
 
     float inputToNetworkInputRatio = calculateDeviceToNetworkInputRatio(_numInputCallbackBytes);
 
@@ -452,126 +460,139 @@ void Audio::handleAudioInput() {
 
         int16_t* inputAudioSamples = new int16_t[inputSamplesRequired];
         _inputRingBuffer.readSamples(inputAudioSamples, inputSamplesRequired);
+        
+        int numNetworkBytes = _isStereoInput ? NETWORK_BUFFER_LENGTH_BYTES_STEREO : NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL;
+        int numNetworkSamples = _isStereoInput ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
 
         // zero out the monoAudioSamples array and the locally injected audio
-        memset(monoAudioSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
+        memset(networkAudioSamples, 0, numNetworkBytes);
 
         if (!_muted) {
             // we aren't muted, downsample the input audio
-            linearResampling((int16_t*) inputAudioSamples,
-                             monoAudioSamples,
-                             inputSamplesRequired,
-                             NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
+            linearResampling((int16_t*) inputAudioSamples, networkAudioSamples,
+                             inputSamplesRequired,  numNetworkSamples,
                              _inputFormat, _desiredInputFormat);
             
-            //
-            //  Impose Noise Gate
-            //
-            //  The Noise Gate is used to reject constant background noise by measuring the noise
-            //  floor observed at the microphone and then opening the 'gate' to allow microphone
-            //  signals to be transmitted when the microphone samples average level exceeds a multiple
-            //  of the noise floor.
-            //
-            //  NOISE_GATE_HEIGHT:  How loud you have to speak relative to noise background to open the gate.
-            //                      Make this value lower for more sensitivity and less rejection of noise.
-            //  NOISE_GATE_WIDTH:   The number of samples in an audio frame for which the height must be exceeded
-            //                      to open the gate.
-            //  NOISE_GATE_CLOSE_FRAME_DELAY:  Once the noise is below the gate height for the frame, how many frames
-            //                      will we wait before closing the gate.
-            //  NOISE_GATE_FRAMES_TO_AVERAGE:  How many audio frames should we average together to compute noise floor.
-            //                      More means better rejection but also can reject continuous things like singing.
-            // NUMBER_OF_NOISE_SAMPLE_FRAMES:  How often should we re-evaluate the noise floor?
-            
-
-            float loudness = 0;
-            float thisSample = 0;
-            int samplesOverNoiseGate = 0;
-            
-            const float NOISE_GATE_HEIGHT = 7.0f;
-            const int NOISE_GATE_WIDTH = 5;
-            const int NOISE_GATE_CLOSE_FRAME_DELAY = 5;
-            const int NOISE_GATE_FRAMES_TO_AVERAGE = 5;
-            const float DC_OFFSET_AVERAGING = 0.99f;
-            const float CLIPPING_THRESHOLD = 0.90f;
-            
-            //
-            //  Check clipping, adjust DC offset, and check if should open noise gate
-            //
-            float measuredDcOffset = 0.0f;
-            //  Increment the time since the last clip
-            if (_timeSinceLastClip >= 0.0f) {
-                _timeSinceLastClip += (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float) SAMPLE_RATE;
-            }
-           
-            for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
-                measuredDcOffset += monoAudioSamples[i];
-                monoAudioSamples[i] -= (int16_t) _dcOffset;
-                thisSample = fabsf(monoAudioSamples[i]);
-                if (thisSample >= (32767.0f * CLIPPING_THRESHOLD)) {
-                    _timeSinceLastClip = 0.0f;
+            // only impose the noise gate and perform tone injection if we sending mono audio
+            if (!_isStereoInput) {
+                
+                //
+                //  Impose Noise Gate
+                //
+                //  The Noise Gate is used to reject constant background noise by measuring the noise
+                //  floor observed at the microphone and then opening the 'gate' to allow microphone
+                //  signals to be transmitted when the microphone samples average level exceeds a multiple
+                //  of the noise floor.
+                //
+                //  NOISE_GATE_HEIGHT:  How loud you have to speak relative to noise background to open the gate.
+                //                      Make this value lower for more sensitivity and less rejection of noise.
+                //  NOISE_GATE_WIDTH:   The number of samples in an audio frame for which the height must be exceeded
+                //                      to open the gate.
+                //  NOISE_GATE_CLOSE_FRAME_DELAY:  Once the noise is below the gate height for the frame, how many frames
+                //                      will we wait before closing the gate.
+                //  NOISE_GATE_FRAMES_TO_AVERAGE:  How many audio frames should we average together to compute noise floor.
+                //                      More means better rejection but also can reject continuous things like singing.
+                // NUMBER_OF_NOISE_SAMPLE_FRAMES:  How often should we re-evaluate the noise floor?
+                
+                
+                float loudness = 0;
+                float thisSample = 0;
+                int samplesOverNoiseGate = 0;
+                
+                const float NOISE_GATE_HEIGHT = 7.0f;
+                const int NOISE_GATE_WIDTH = 5;
+                const int NOISE_GATE_CLOSE_FRAME_DELAY = 5;
+                const int NOISE_GATE_FRAMES_TO_AVERAGE = 5;
+                const float DC_OFFSET_AVERAGING = 0.99f;
+                const float CLIPPING_THRESHOLD = 0.90f;
+                
+                //
+                //  Check clipping, adjust DC offset, and check if should open noise gate
+                //
+                float measuredDcOffset = 0.0f;
+                //  Increment the time since the last clip
+                if (_timeSinceLastClip >= 0.0f) {
+                    _timeSinceLastClip += (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float) SAMPLE_RATE;
                 }
-                loudness += thisSample;
-                //  Noise Reduction:  Count peaks above the average loudness
-                if (_noiseGateEnabled && (thisSample > (_noiseGateMeasuredFloor * NOISE_GATE_HEIGHT))) {
-                    samplesOverNoiseGate++;
-                }
-            }
-            
-            measuredDcOffset /= NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
-            if (_dcOffset == 0.0f) {
-                // On first frame, copy over measured offset
-                _dcOffset = measuredDcOffset;
-            } else {
-                _dcOffset = DC_OFFSET_AVERAGING * _dcOffset + (1.0f - DC_OFFSET_AVERAGING) * measuredDcOffset;
-            }
-            
-            //  Add tone injection if enabled
-            const float TONE_FREQ = 220.0f / SAMPLE_RATE * TWO_PI;
-            const float QUARTER_VOLUME = 8192.0f;
-            if (_toneInjectionEnabled) {
-                loudness = 0.0f;
+                
                 for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
-                    monoAudioSamples[i] = QUARTER_VOLUME * sinf(TONE_FREQ * (float)(i + _proceduralEffectSample));
-                    loudness += fabsf(monoAudioSamples[i]);
-                }
-            }
-            _lastInputLoudness = fabs(loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-
-            //  If Noise Gate is enabled, check and turn the gate on and off
-            if (!_toneInjectionEnabled && _noiseGateEnabled) {
-                float averageOfAllSampleFrames = 0.0f;
-                _noiseSampleFrames[_noiseGateSampleCounter++] = _lastInputLoudness;
-                if (_noiseGateSampleCounter == NUMBER_OF_NOISE_SAMPLE_FRAMES) {
-                    float smallestSample = FLT_MAX;
-                    for (int i = 0; i <= NUMBER_OF_NOISE_SAMPLE_FRAMES - NOISE_GATE_FRAMES_TO_AVERAGE; i += NOISE_GATE_FRAMES_TO_AVERAGE) {
-                        float thisAverage = 0.0f;
-                        for (int j = i; j < i + NOISE_GATE_FRAMES_TO_AVERAGE; j++) {
-                            thisAverage += _noiseSampleFrames[j];
-                            averageOfAllSampleFrames += _noiseSampleFrames[j];
-                        }
-                        thisAverage /= NOISE_GATE_FRAMES_TO_AVERAGE;
-                        
-                        if (thisAverage < smallestSample) {
-                            smallestSample = thisAverage;
-                        }
+                    measuredDcOffset += networkAudioSamples[i];
+                    networkAudioSamples[i] -= (int16_t) _dcOffset;
+                    thisSample = fabsf(networkAudioSamples[i]);
+                    if (thisSample >= (32767.0f * CLIPPING_THRESHOLD)) {
+                        _timeSinceLastClip = 0.0f;
                     }
-                    averageOfAllSampleFrames /= NUMBER_OF_NOISE_SAMPLE_FRAMES;
-                    _noiseGateMeasuredFloor = smallestSample;
-                    _noiseGateSampleCounter = 0;
-
+                    loudness += thisSample;
+                    //  Noise Reduction:  Count peaks above the average loudness
+                    if (_noiseGateEnabled && (thisSample > (_noiseGateMeasuredFloor * NOISE_GATE_HEIGHT))) {
+                        samplesOverNoiseGate++;
+                    }
                 }
-                if (samplesOverNoiseGate > NOISE_GATE_WIDTH) {
-                    _noiseGateOpen = true;
-                    _noiseGateFramesToClose = NOISE_GATE_CLOSE_FRAME_DELAY;
+                
+                measuredDcOffset /= NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                if (_dcOffset == 0.0f) {
+                    // On first frame, copy over measured offset
+                    _dcOffset = measuredDcOffset;
                 } else {
-                    if (--_noiseGateFramesToClose == 0) {
-                        _noiseGateOpen = false;
+                    _dcOffset = DC_OFFSET_AVERAGING * _dcOffset + (1.0f - DC_OFFSET_AVERAGING) * measuredDcOffset;
+                }
+                
+                //  Add tone injection if enabled
+                const float TONE_FREQ = 220.0f / SAMPLE_RATE * TWO_PI;
+                const float QUARTER_VOLUME = 8192.0f;
+                if (_toneInjectionEnabled) {
+                    loudness = 0.0f;
+                    for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
+                        networkAudioSamples[i] = QUARTER_VOLUME * sinf(TONE_FREQ * (float)(i + _proceduralEffectSample));
+                        loudness += fabsf(networkAudioSamples[i]);
                     }
                 }
-                if (!_noiseGateOpen) {
-                    memset(monoAudioSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
-                    _lastInputLoudness = 0;
+                _lastInputLoudness = fabs(loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+                
+                //  If Noise Gate is enabled, check and turn the gate on and off
+                if (!_toneInjectionEnabled && _noiseGateEnabled) {
+                    float averageOfAllSampleFrames = 0.0f;
+                    _noiseSampleFrames[_noiseGateSampleCounter++] = _lastInputLoudness;
+                    if (_noiseGateSampleCounter == NUMBER_OF_NOISE_SAMPLE_FRAMES) {
+                        float smallestSample = FLT_MAX;
+                        for (int i = 0; i <= NUMBER_OF_NOISE_SAMPLE_FRAMES - NOISE_GATE_FRAMES_TO_AVERAGE; i += NOISE_GATE_FRAMES_TO_AVERAGE) {
+                            float thisAverage = 0.0f;
+                            for (int j = i; j < i + NOISE_GATE_FRAMES_TO_AVERAGE; j++) {
+                                thisAverage += _noiseSampleFrames[j];
+                                averageOfAllSampleFrames += _noiseSampleFrames[j];
+                            }
+                            thisAverage /= NOISE_GATE_FRAMES_TO_AVERAGE;
+                            
+                            if (thisAverage < smallestSample) {
+                                smallestSample = thisAverage;
+                            }
+                        }
+                        averageOfAllSampleFrames /= NUMBER_OF_NOISE_SAMPLE_FRAMES;
+                        _noiseGateMeasuredFloor = smallestSample;
+                        _noiseGateSampleCounter = 0;
+                        
+                    }
+                    if (samplesOverNoiseGate > NOISE_GATE_WIDTH) {
+                        _noiseGateOpen = true;
+                        _noiseGateFramesToClose = NOISE_GATE_CLOSE_FRAME_DELAY;
+                    } else {
+                        if (--_noiseGateFramesToClose == 0) {
+                            _noiseGateOpen = false;
+                        }
+                    }
+                    if (!_noiseGateOpen) {
+                        memset(networkAudioSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
+                        _lastInputLoudness = 0;
+                    }
                 }
+            } else {
+                float loudness = 0.0f;
+                
+                for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; i++) {
+                    loudness += fabsf(networkAudioSamples[i]);
+                }
+                
+                _lastInputLoudness = fabs(loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
             }
         } else {
             // our input loudness is 0, since we're muted
@@ -580,19 +601,19 @@ void Audio::handleAudioInput() {
         
         // at this point we have clean monoAudioSamples, which match our target output... 
         // this is what we should send to our interested listeners
-        if (_processSpatialAudio && !_muted && _audioOutput) {
-            QByteArray monoInputData((char*)monoAudioSamples, NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int16_t));
+        if (_processSpatialAudio && !_muted && !_isStereoInput && _audioOutput) {
+            QByteArray monoInputData((char*)networkAudioSamples, NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int16_t));
             emit processLocalAudio(_spatialAudioStart, monoInputData, _desiredInputFormat);
         }
         
-        if (_proceduralAudioOutput) {
-            processProceduralAudio(monoAudioSamples, NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+        if (!_isStereoInput && _proceduralAudioOutput) {
+            processProceduralAudio(networkAudioSamples, NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
         }
 
-        if (_scopeEnabled && !_scopeEnabledPause) {
+        if (!_isStereoInput && _scopeEnabled && !_scopeEnabledPause) {
             unsigned int numMonoAudioChannels = 1;
             unsigned int monoAudioChannel = 0;
-            addBufferToScope(_scopeInput, _scopeInputOffset, monoAudioSamples, monoAudioChannel, numMonoAudioChannels); 
+            addBufferToScope(_scopeInput, _scopeInputOffset, networkAudioSamples, monoAudioChannel, numMonoAudioChannels);
             _scopeInputOffset += NETWORK_SAMPLES_PER_FRAME;
             _scopeInputOffset %= _samplesPerScope;
         }
@@ -603,10 +624,8 @@ void Audio::handleAudioInput() {
         if (audioMixer && audioMixer->getActiveSocket()) {
             MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
             glm::vec3 headPosition = interfaceAvatar->getHead()->getPosition();
-            glm::quat headOrientation = interfaceAvatar->getHead()->getFinalOrientation();
-
-            // we need the amount of bytes in the buffer + 1 for type
-            // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
+            glm::quat headOrientation = interfaceAvatar->getHead()->getFinalOrientationInWorldFrame();
+            quint8 isStereo = _isStereoInput ? 1 : 0;
             
             int numAudioBytes = 0;
             
@@ -615,11 +634,12 @@ void Audio::handleAudioInput() {
                 packetType = PacketTypeSilentAudioFrame;
                 
                 // we need to indicate how many silent samples this is to the audio mixer
-                monoAudioSamples[0] = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                audioDataPacket[0] = _isStereoInput
+                    ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO
+                    : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
                 numAudioBytes = sizeof(int16_t);
-                
             } else {
-                numAudioBytes = NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL;
+                numAudioBytes = _isStereoInput ? NETWORK_BUFFER_LENGTH_BYTES_STEREO : NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL;
                 
                 if (Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio)) {
                     packetType = PacketTypeMicrophoneAudioWithEcho;
@@ -628,7 +648,10 @@ void Audio::handleAudioInput() {
                 }
             }
 
-            char* currentPacketPtr = monoAudioDataPacket + populatePacketHeader(monoAudioDataPacket, packetType);
+            char* currentPacketPtr = audioDataPacket + populatePacketHeader(audioDataPacket, packetType);
+            
+            // set the mono/stereo byte
+            *currentPacketPtr++ = isStereo;
 
             // memcpy the three float positions
             memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
@@ -638,7 +661,7 @@ void Audio::handleAudioInput() {
             memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
             currentPacketPtr += sizeof(headOrientation);
             
-            nodeList->writeDatagram(monoAudioDataPacket, numAudioBytes + leadingBytes, audioMixer);
+            nodeList->writeDatagram(audioDataPacket, numAudioBytes + leadingBytes, audioMixer);
 
             Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
                 .updateValue(numAudioBytes + leadingBytes);
@@ -759,6 +782,24 @@ void Audio::toggleMute() {
 
 void Audio::toggleAudioNoiseReduction() {
     _noiseGateEnabled = !_noiseGateEnabled;
+}
+
+void Audio::toggleStereoInput() {
+    int oldChannelCount = _desiredInputFormat.channelCount();
+    QAction* stereoAudioOption = Menu::getInstance()->getActionForOption(MenuOption::StereoAudio);
+
+    if (stereoAudioOption->isChecked()) {
+        _desiredInputFormat.setChannelCount(2);
+        _isStereoInput = true;
+    } else {
+        _desiredInputFormat.setChannelCount(1);
+        _isStereoInput = false;
+    }
+    
+    if (oldChannelCount != _desiredInputFormat.channelCount()) {
+        // change in channel count for desired input format, restart the input device
+        switchInputToAudioDevice(_inputAudioDeviceName);
+    }
 }
 
 void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
@@ -1300,18 +1341,21 @@ bool Audio::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {
     
         if (adjustedFormatForAudioDevice(inputDeviceInfo, _desiredInputFormat, _inputFormat)) {
             qDebug() << "The format to be used for audio input is" << _inputFormat;
-        
-            _audioInput = new QAudioInput(inputDeviceInfo, _inputFormat, this);
-            _numInputCallbackBytes = calculateNumberOfInputCallbackBytes(_inputFormat);
-            _audioInput->setBufferSize(_numInputCallbackBytes);
-
-            // how do we want to handle input working, but output not working?
-            int numFrameSamples = calculateNumberOfFrameSamples(_numInputCallbackBytes);
-            _inputRingBuffer.resizeForFrameSize(numFrameSamples);
-            _inputDevice = _audioInput->start();
-            connect(_inputDevice, SIGNAL(readyRead()), this, SLOT(handleAudioInput()));
-
-            supportedFormat = true;
+            
+            // if the user wants stereo but this device can't provide then bail
+            if (!_isStereoInput || _inputFormat.channelCount() == 2) {
+                _audioInput = new QAudioInput(inputDeviceInfo, _inputFormat, this);
+                _numInputCallbackBytes = calculateNumberOfInputCallbackBytes(_inputFormat);
+                _audioInput->setBufferSize(_numInputCallbackBytes);
+                
+                // how do we want to handle input working, but output not working?
+                int numFrameSamples = calculateNumberOfFrameSamples(_numInputCallbackBytes);
+                _inputRingBuffer.resizeForFrameSize(numFrameSamples);
+                _inputDevice = _audioInput->start();
+                connect(_inputDevice, SIGNAL(readyRead()), this, SLOT(handleAudioInput()));
+                
+                supportedFormat = true;
+            }
         }
     }
     return supportedFormat;
