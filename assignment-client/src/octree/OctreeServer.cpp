@@ -861,8 +861,11 @@ dataAt += sizeof(uint16_t);
 // read sequence numbers
 QList<OCTREE_PACKET_SEQUENCE> sequenceNumbers;
 for (int i = 0; i < numSequenceNumbers; i++) {
-    sequenceNumbers.append(*(OCTREE_PACKET_SEQUENCE*)dataAt);
+    OCTREE_PACKET_SEQUENCE sequenceNumber = (*(OCTREE_PACKET_SEQUENCE*)dataAt);
+    sequenceNumbers.append(sequenceNumber);
     dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
+
+printf("\t\t\t nacked packet: seq = %d\n", sequenceNumber);
 }
 
 OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();    // move this or something

@@ -85,6 +85,7 @@ bool OctreeSendThread::process() {
             if (nodeData && !nodeData->isShuttingDown()) {
                 bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
                 packetDistributor(nodeData, viewFrustumChanged);
+resendNackedPackets(nodeData);
             }
         }
     }
@@ -274,7 +275,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         trueBytesSent += nodeData->getPacketLength();
         truePacketsSent++;
         packetsSent++;
-        nodeData->packetSent();
+        nodeData->octreePacketSent();
         nodeData->resetOctreePacket();
     }
 
@@ -287,11 +288,14 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
 
 int OctreeSendThread::resendNackedPackets(OctreeQueryNode* nodeData) {
 
+    const int maxPacketsSent = 10;
+
     int packetsSent = 0;
 
     const QByteArray* packet;
-    while (nodeData->hasNextPacketToResend()) {
-        packet = nodeData->getNextPacketToResend();
+    while (nodeData->hasNextNackedPacket() && packetsSent < maxPacketsSent) {
+        packet = nodeData->getNextNackedPacket();
+        // packet will be NULL if it's not in nodeData's packet history
         if (packet) {
             NodeList::getInstance()->writeDatagram(*packet, _node);
             packetsSent++;
@@ -302,13 +306,10 @@ int OctreeSendThread::resendNackedPackets(OctreeQueryNode* nodeData) {
             _totalWastedBytes += MAX_PACKET_SIZE - packet->size();  // ???
         }
     }
-    
+ 
+printf("\t\t re-sent %d packets!\n", packetsSent);
+    return packetsSent;
 }
-
-
-
-
-
 
 
 

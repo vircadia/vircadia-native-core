@@ -364,7 +364,7 @@ void OctreeQueryNode::dumpOutOfView() {
     }
 }
 
-void OctreeQueryNode::packetSent() {
+void OctreeQueryNode::octreePacketSent() {
     packetSent(_octreePacket, getPacketLength());
 }
 
@@ -379,18 +379,18 @@ void OctreeQueryNode::packetSent(const QByteArray& packet) {
 
 
 void OctreeQueryNode::addSequenceNumbersToResend(const QList<OCTREE_PACKET_SEQUENCE>& sequenceNumbers) {
-    _sequenceNumbersToResend.append(sequenceNumbers);
+    _nackedSequenceNumbers.append(sequenceNumbers);
 }
 
-bool OctreeQueryNode::hasNextPacketToResend() const {
-    return !_sequenceNumbersToResend.isEmpty();
+bool OctreeQueryNode::hasNextNackedPacket() const {
+    return !_nackedSequenceNumbers.isEmpty();
 }
 
-const QByteArray* OctreeQueryNode::getNextPacketToResend() {
+const QByteArray* OctreeQueryNode::getNextNackedPacket() {
 
-    if (!_sequenceNumbersToResend.isEmpty()) {
-        const QByteArray* nextPacket = _sentPacketHistory.getPacket(_sequenceNumbersToResend.first());
-        _sequenceNumbersToResend.pop_front();
+    if (!_nackedSequenceNumbers.isEmpty()) {
+        const QByteArray* nextPacket = _sentPacketHistory.getPacket(_nackedSequenceNumbers.first());
+        _nackedSequenceNumbers.pop_front();
         return nextPacket;  // could be null
     }
     return NULL;

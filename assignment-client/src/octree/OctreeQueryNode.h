@@ -103,15 +103,15 @@ public:
     void forceNodeShutdown();
     bool isShuttingDown() const { return _isShuttingDown; }
 
-    void packetSent();
+    void octreePacketSent();
     void packetSent(unsigned char* packet, int packetLength);
     void packetSent(const QByteArray& packet);
 
     OCTREE_PACKET_SEQUENCE getSequenceNumber() const { return _sequenceNumber; }
 
     void addSequenceNumbersToResend(const QList<OCTREE_PACKET_SEQUENCE>& sequenceNumbers);
-    bool hasNextPacketToResend() const;
-    const QByteArray* getNextPacketToResend();
+    bool hasNextNackedPacket() const;
+    const QByteArray* getNextNackedPacket();
 
 private slots:
     void sendThreadFinished();
@@ -157,7 +157,7 @@ private:
     bool _isShuttingDown;
 
 SentPacketHistory _sentPacketHistory;
-QQueue<OCTREE_PACKET_SEQUENCE> _sequenceNumbersToResend;
+QQueue<OCTREE_PACKET_SEQUENCE> _nackedSequenceNumbers;
 };
 
 #endif // hifi_OctreeQueryNode_h
