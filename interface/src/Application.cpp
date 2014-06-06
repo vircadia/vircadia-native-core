@@ -2100,23 +2100,13 @@ void Application::updateMyAvatar(float deltaTime) {
     const quint64 TOO_LONG_SINCE_LAST_NACK = 100 * MSECS_PER_SECOND;
     if (sinceLastNack > TOO_LONG_SINCE_LAST_NACK) {
         _lastNackTime = now;
-
-        //_octreeServerSceneStats-
+        sendNack();
     }
 }
 }
 
 
 void Application::sendNack() {
-    /*
-    // now that we know the node ID, let's add these stats to the stats for that node...
-    _octreeSceneStatsLock.lockForWrite();
-    if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
-        OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
-        stats.trackIncomingOctreePacket(packet, wasStatsPacket, sendingNode->getClockSkewUsec());
-    }
-    _octreeSceneStatsLock.unlock();
-    */
 
     char packet[MAX_PACKET_SIZE];
     NodeList* nodeList = NodeList::getInstance();
@@ -2124,26 +2114,41 @@ void Application::sendNack() {
     // iterates thru all nodes in NodeList
     foreach(const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         
-        char* dataAt = packet;
-        int bytesRemaining = MAX_PACKET_SIZE;
+        if (node->getActiveSocket() &&
+            ( node->getType() == NodeType::VoxelServer
+            || node->getType() == NodeType::ParticleServer
+            || node->getType() == NodeType::ModelServer)
+            ) {
 
-        int numBytesPacketHeader = populatePacketHeader(packet, PacketTypeOctreeDataNack, node->getUUID());
-        dataAt += numBytesPacketHeader;
-        bytesRemaining -= numBytesPacketHeader;
-        
-        
+            OctreeSceneStats& stats = _octreeServerSceneStats[node->getUUID()];
 
-        uint16_t numSequenceNumbers;
+            char* dataAt = packet;
+            int bytesRemaining = MAX_PACKET_SIZE;
+
+            // pack header
+            int numBytesPacketHeader = populatePacketHeader(packet, PacketTypeOctreeDataNack, node->getUUID());
+            dataAt += numBytesPacketHeader;
+            bytesRemaining -= numBytesPacketHeader;
+
+            int numPacketsRoomFor = (bytesRemaining - sizeof(uint16_t)) / sizeof(OCTREE_PACKET_SEQUENCE);
 
 
+            // calculate and pack number of sequence numbers
+            uint16_t numSequenceNumbers = min(stats.getNumSequenceNumbersToNack(), numPacketsRoomFor);
+            uint16_t* numSequenceNumbersAt = (uint16_t*)dataAt;
+            *numSequenceNumbersAt = numSequenceNumbers;
+            dataAt += sizeof(uint16_t);
 
+            // pack sequence numbers
+            for (int i = 0; i < numSequenceNumbers; i++) {
+                OCTREE_PACKET_SEQUENCE* sequenceNumberAt = (OCTREE_PACKET_SEQUENCE*)dataAt;
+                *sequenceNumberAt = stats.getNextSequenceNumberToNack();
+                dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
+            }
 
-        OctreeSceneStats& stats = _octreeServerSceneStats[node->getUUID()];
-        int numSequenceNumbersAvailable = stats.getNumSequenceNumberToNack();
-        
-
-        // make sure we still have an active socket
-        nodeList->writeUnverifiedDatagram(reinterpret_cast<const char*>(queryPacket), packetLength, node);
+            // make sure we still have an active socket????
+            nodeList->writeUnverifiedDatagram(packet, dataAt - packet, node);
+        }
     }
 }
 

@@ -172,7 +172,7 @@ public:
     quint32 getIncomingPossibleDuplicate() const { return _incomingPossibleDuplicate; }
     float getIncomingFlightTimeAverage() { return _incomingFlightTimeAverage.getAverage(); }
 
-bool getNumSequenceNumberToNack() const;
+int getNumSequenceNumbersToNack() const;
 uint16_t getNextSequenceNumberToNack();
 
 private:

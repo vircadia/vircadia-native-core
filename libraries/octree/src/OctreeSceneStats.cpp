@@ -993,7 +993,7 @@ _sequenceNumbersToNack.remove(missingItem);
 
 }
 
-bool OctreeSceneStats::getNumSequenceNumberToNack() const {
+int OctreeSceneStats::getNumSequenceNumbersToNack() const {
     return _sequenceNumbersToNack.size();
 }
 
