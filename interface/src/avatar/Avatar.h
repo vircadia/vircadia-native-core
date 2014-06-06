@@ -101,27 +101,18 @@ public:
     /// \return true if at least one shape collided with avatar
     bool findCollisions(const QVector<const Shape*>& shapes, CollisionList& collisions);
 
-    /// Checks for penetration between the described sphere and the avatar.
+    /// Checks for penetration between the a sphere and the avatar's models.
     /// \param penetratorCenter the center of the penetration test sphere
     /// \param penetratorRadius the radius of the penetration test sphere
     /// \param collisions[out] a list to which collisions get appended
-    /// \param skeletonSkipIndex if not -1, the index of a joint to skip (along with its descendents) in the skeleton model
     /// \return whether or not the sphere penetrated
-    bool findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
-        CollisionList& collisions, int skeletonSkipIndex = -1);
+    bool findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius, CollisionList& collisions);
 
     /// Checks for penetration between the described plane and the avatar.
     /// \param plane the penetration plane
     /// \param collisions[out] a list to which collisions get appended
     /// \return whether or not the plane penetrated
     bool findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions);
-
-    /// Checks for collision between the a spherical particle and the avatar (including paddle hands)
-    /// \param collisionCenter the center of particle's bounding sphere
-    /// \param collisionRadius the radius of particle's bounding sphere
-    /// \param collisions[out] a list to which collisions get appended
-    /// \return whether or not the particle collided
-    bool findParticleCollisions(const glm::vec3& particleCenter, float particleRadius, CollisionList& collisions);
 
     virtual bool isMyAvatar() { return false; }
     

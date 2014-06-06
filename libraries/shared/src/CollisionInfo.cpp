@@ -38,8 +38,7 @@ CollisionInfo* CollisionList::getLastCollision() {
 }
 
 void CollisionList::clear() {
-    // we rely on the external context to properly set or clear the data members of a collision
-    // whenever it is used.
+    // we rely on the external context to properly set or clear the data members of CollisionInfos
     /*
     for (int i = 0; i < _size; ++i) {
         // we only clear the important stuff

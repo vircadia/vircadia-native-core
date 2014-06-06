@@ -579,8 +579,8 @@ bool Avatar::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
     return false;
 }
 
-bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
-        CollisionList& collisions, int skeletonSkipIndex) {
+bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius, CollisionList& collisions) {
+    int skeletonSkipIndex = -1;
     return _skeletonModel.findSphereCollisions(penetratorCenter, penetratorRadius, collisions, skeletonSkipIndex);
     // Temporarily disabling collisions against the head because most of its collision proxies are bad.
     //return getHead()->getFaceModel().findSphereCollisions(penetratorCenter, penetratorRadius, collisions);
@@ -610,69 +610,6 @@ bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& 
     Model& headModel = getHead()->getFaceModel();
     //collided = headModel.findCollisions(shapes, collisions) || collided;
     bool collided = headModel.findCollisions(shapes, collisions);
-    return collided;
-}
-
-bool Avatar::findParticleCollisions(const glm::vec3& particleCenter, float particleRadius, CollisionList& collisions) {
-    if (_collisionGroups & COLLISION_GROUP_PARTICLES) {
-        return false;
-    }
-    bool collided = false;
-    // first do the hand collisions
-    const HandData* handData = getHandData();
-    if (handData) {
-        for (int i = 0; i < NUM_HANDS; i++) {
-            const PalmData* palm = handData->getPalm(i);
-            if (palm && palm->hasPaddle()) {
-                // create a disk collision proxy where the hand is
-                int jointIndex = -1;
-                glm::vec3 handPosition;
-                if (i == 0) {
-                    _skeletonModel.getLeftHandPosition(handPosition);
-                    jointIndex = _skeletonModel.getLeftHandJointIndex();
-                }
-                else {
-                    _skeletonModel.getRightHandPosition(handPosition);
-                    jointIndex = _skeletonModel.getRightHandJointIndex();
-                }
-
-                glm::vec3 fingerAxis = palm->getFingerDirection();
-                glm::vec3 diskCenter = handPosition + HAND_PADDLE_OFFSET * fingerAxis;
-                glm::vec3 diskNormal = palm->getNormal();
-                const float DISK_THICKNESS = 0.08f;
-
-                // collide against the disk
-                glm::vec3 penetration;
-                if (findSphereDiskPenetration(particleCenter, particleRadius, 
-                            diskCenter, HAND_PADDLE_RADIUS, DISK_THICKNESS, diskNormal,
-                            penetration)) {
-                    CollisionInfo* collision = collisions.getNewCollision();
-                    if (collision) {
-                        collision->_type = COLLISION_TYPE_PADDLE_HAND;
-                        collision->_intData = jointIndex;
-                        collision->_penetration = penetration;
-                        collision->_addedVelocity = palm->getVelocity();
-                        collided = true;
-                    } else {
-                        // collisions are full, so we might as well bail now
-                        return collided;
-                    }
-                }
-            }
-        }
-    }
-    // then collide against the models
-    int preNumCollisions = collisions.size();
-    if (_skeletonModel.findSphereCollisions(particleCenter, particleRadius, collisions)) {
-        // the Model doesn't have velocity info, so we have to set it for each new collision
-        int postNumCollisions = collisions.size();
-        for (int i = preNumCollisions; i < postNumCollisions; ++i) {
-            CollisionInfo* collision = collisions.getCollision(i);
-            collision->_penetration /= (float)(TREE_SCALE);
-            collision->_addedVelocity = getVelocity();
-        }
-        collided = true;
-    }
     return collided;
 }
 

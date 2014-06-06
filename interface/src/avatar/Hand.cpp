@@ -95,6 +95,7 @@ void Hand::collideAgainstAvatar(Avatar* avatar, bool isMyHand) {
 }
 
 void Hand::collideAgainstOurself() {
+    /* TODO: Andrew to re-implement this
     if (!Menu::getInstance()->isOptionChecked(MenuOption::HandsCollideWithSelf)) {
         return;
     }
@@ -125,6 +126,7 @@ void Hand::collideAgainstOurself() {
             palm.addToPenetration(totalPenetration);
         }
     }
+    */
 }
 
 void Hand::resolvePenetrations() {

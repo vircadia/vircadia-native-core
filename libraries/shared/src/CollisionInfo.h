@@ -19,7 +19,6 @@
 
 enum CollisionType {
     COLLISION_TYPE_UNKNOWN = 0,
-    COLLISION_TYPE_PADDLE_HAND,
     COLLISION_TYPE_MODEL,
         // _data = pointer to Model that owns joint
         // _intData = joint index
