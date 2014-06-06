@@ -29,6 +29,7 @@ public:
 
     void simulate(float deltaTime, bool fullUpdate = true);
     void simulateRagDoll(float deltaTime);
+    void updateShapePositions();
 
     /// \param jointIndex index of hand joint
     /// \param shapes[out] list in which is stored pointers to hand shapes
