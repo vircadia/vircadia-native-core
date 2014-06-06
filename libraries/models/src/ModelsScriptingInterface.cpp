@@ -28,9 +28,8 @@ ModelItemID ModelsScriptingInterface::addModel(const ModelItemProperties& proper
 
     // The application will keep track of creatorTokenID
     uint32_t creatorTokenID = ModelItem::getNextCreatorTokenID();
-    uint32_t modelID = ModelItem::getNextModelItemID();
 
-    ModelItemID id(modelID, creatorTokenID, false );
+    ModelItemID id(NEW_MODEL, creatorTokenID, false );
 
     // queue the packet
     queueModelMessage(PacketTypeModelAddOrEdit, id, properties);

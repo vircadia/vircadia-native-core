@@ -276,7 +276,6 @@ public:
     // these methods allow you to create models, and later edit them.
     static uint32_t getIDfromCreatorTokenID(uint32_t creatorTokenID);
     static uint32_t getNextCreatorTokenID();
-    static uint32_t getNextModelItemID();
     static void handleAddModelResponse(const QByteArray& packet);
 
     void mapJoints(const QStringList& modelJointNames);
