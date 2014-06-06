@@ -50,10 +50,22 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
 
         // grab the AvatarAudioRingBuffer from the vector (or create it if it doesn't exist)
         AvatarAudioRingBuffer* avatarRingBuffer = getAvatarAudioRingBuffer();
+        
+        // read the first byte after the header to see if this is a stereo or mono buffer
+        quint8 channelFlag = packet.at(numBytesForPacketHeader(packet));
+        bool isStereo = channelFlag == 1;
+        
+        if (avatarRingBuffer && avatarRingBuffer->isStereo() != isStereo) {
+            // there's a mismatch in the buffer channels for the incoming and current buffer
+            // so delete our current buffer and create a new one
+            _ringBuffers.removeOne(avatarRingBuffer);
+            avatarRingBuffer->deleteLater();
+            avatarRingBuffer = NULL;
+        }
 
         if (!avatarRingBuffer) {
             // we don't have an AvatarAudioRingBuffer yet, so add it
-            avatarRingBuffer = new AvatarAudioRingBuffer();
+            avatarRingBuffer = new AvatarAudioRingBuffer(isStereo);
             _ringBuffers.push_back(avatarRingBuffer);
         }
 

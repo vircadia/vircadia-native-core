@@ -41,6 +41,9 @@ int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
     // skip the packet header (includes the source UUID)
     int readBytes = numBytesForPacketHeader(packet);
     
+    // hop over the channel flag that has already been read in AudioMixerClientData
+    readBytes += sizeof(quint8);
+    // read the positional data
     readBytes += parsePositionalData(packet.mid(readBytes));
    
     if (packetTypeForPacket(packet) == PacketTypeSilentAudioFrame) {

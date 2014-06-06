@@ -640,6 +640,9 @@ void Audio::handleAudioInput() {
             }
 
             char* currentPacketPtr = audioDataPacket + populatePacketHeader(audioDataPacket, packetType);
+            
+            // set the mono/stereo byte
+            *currentPacketPtr++ = isStereo;
 
             // memcpy the three float positions
             memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
@@ -648,9 +651,6 @@ void Audio::handleAudioInput() {
             // memcpy our orientation
             memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
             currentPacketPtr += sizeof(headOrientation);
-            
-            // set the mono/stereo byte
-            *currentPacketPtr++ = isStereo;
             
             nodeList->writeDatagram(audioDataPacket, numAudioBytes + leadingBytes, audioMixer);
 

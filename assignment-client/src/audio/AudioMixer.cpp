@@ -173,134 +173,160 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
             weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
         }
     }
-
-    // if the bearing relative angle to source is > 0 then the delayed channel is the right one
-    int delayedChannelOffset = (bearingRelativeAngleToSource > 0.0f) ? 1 : 0;
-    int goodChannelOffset = delayedChannelOffset == 0 ? 1 : 0;
     
     const int16_t* nextOutputStart = bufferToAdd->getNextOutput();
-   
-    const int16_t* bufferStart = bufferToAdd->getBuffer();
-    int ringBufferSampleCapacity = bufferToAdd->getSampleCapacity();
-
-    int16_t correctBufferSample[2], delayBufferSample[2];
-    int delayedChannelIndex = 0;
     
-    const int SINGLE_STEREO_OFFSET = 2;
-    
-    for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 4) {
+    if (!bufferToAdd->isStereo()) {
+        // this is a mono buffer, which means it gets full attenuation and spatialization
         
-        // setup the int16_t variables for the two sample sets
-        correctBufferSample[0] = nextOutputStart[s / 2] * attenuationCoefficient;
-        correctBufferSample[1] = nextOutputStart[(s / 2) + 1] * attenuationCoefficient;
+        // if the bearing relative angle to source is > 0 then the delayed channel is the right one
+        int delayedChannelOffset = (bearingRelativeAngleToSource > 0.0f) ? 1 : 0;
+        int goodChannelOffset = delayedChannelOffset == 0 ? 1 : 0;
         
-        delayedChannelIndex = s + (numSamplesDelay * 2) + delayedChannelOffset;
+        const int16_t* bufferStart = bufferToAdd->getBuffer();
+        int ringBufferSampleCapacity = bufferToAdd->getSampleCapacity();
         
-        delayBufferSample[0] = correctBufferSample[0] * weakChannelAmplitudeRatio;
-        delayBufferSample[1] = correctBufferSample[1] * weakChannelAmplitudeRatio;
+        int16_t correctBufferSample[2], delayBufferSample[2];
+        int delayedChannelIndex = 0;
         
-        __m64 bufferSamples = _mm_set_pi16(_clientSamples[s + goodChannelOffset],
-                                           _clientSamples[s + goodChannelOffset + SINGLE_STEREO_OFFSET],
-                                           _clientSamples[delayedChannelIndex],
-                                           _clientSamples[delayedChannelIndex + SINGLE_STEREO_OFFSET]);
-        __m64 addedSamples = _mm_set_pi16(correctBufferSample[0], correctBufferSample[1],
-                                         delayBufferSample[0], delayBufferSample[1]);
+        const int SINGLE_STEREO_OFFSET = 2;
         
-        // perform the MMX add (with saturation) of two correct and delayed samples
-        __m64 mmxResult = _mm_adds_pi16(bufferSamples, addedSamples);
-        int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
-        
-        // assign the results from the result of the mmx arithmetic
-        _clientSamples[s + goodChannelOffset] = shortResults[3];
-        _clientSamples[s + goodChannelOffset + SINGLE_STEREO_OFFSET] = shortResults[2];
-        _clientSamples[delayedChannelIndex] = shortResults[1];
-        _clientSamples[delayedChannelIndex + SINGLE_STEREO_OFFSET] = shortResults[0];
-    }
-    
-    // The following code is pretty gross and redundant, but AFAIK it's the best way to avoid
-    // too many conditionals in handling the delay samples at the beginning of _clientSamples.
-    // Basically we try to take the samples in batches of four, and then handle the remainder
-    // conditionally to get rid of the rest.
-    
-    const int DOUBLE_STEREO_OFFSET = 4;
-    const int TRIPLE_STEREO_OFFSET = 6;
-    
-    if (numSamplesDelay > 0) {
-        // if there was a sample delay for this buffer, we need to pull samples prior to the nextOutput
-        // to stick at the beginning
-        float attenuationAndWeakChannelRatio = attenuationCoefficient * weakChannelAmplitudeRatio;
-        const int16_t* delayNextOutputStart = nextOutputStart - numSamplesDelay;
-        if (delayNextOutputStart < bufferStart) {
-            delayNextOutputStart = bufferStart + ringBufferSampleCapacity - numSamplesDelay;
+        for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 4) {
+            
+            // setup the int16_t variables for the two sample sets
+            correctBufferSample[0] = nextOutputStart[s / 2] * attenuationCoefficient;
+            correctBufferSample[1] = nextOutputStart[(s / 2) + 1] * attenuationCoefficient;
+            
+            delayedChannelIndex = s + (numSamplesDelay * 2) + delayedChannelOffset;
+            
+            delayBufferSample[0] = correctBufferSample[0] * weakChannelAmplitudeRatio;
+            delayBufferSample[1] = correctBufferSample[1] * weakChannelAmplitudeRatio;
+            
+            __m64 bufferSamples = _mm_set_pi16(_clientSamples[s + goodChannelOffset],
+                                               _clientSamples[s + goodChannelOffset + SINGLE_STEREO_OFFSET],
+                                               _clientSamples[delayedChannelIndex],
+                                               _clientSamples[delayedChannelIndex + SINGLE_STEREO_OFFSET]);
+            __m64 addedSamples = _mm_set_pi16(correctBufferSample[0], correctBufferSample[1],
+                                              delayBufferSample[0], delayBufferSample[1]);
+            
+            // perform the MMX add (with saturation) of two correct and delayed samples
+            __m64 mmxResult = _mm_adds_pi16(bufferSamples, addedSamples);
+            int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
+            
+            // assign the results from the result of the mmx arithmetic
+            _clientSamples[s + goodChannelOffset] = shortResults[3];
+            _clientSamples[s + goodChannelOffset + SINGLE_STEREO_OFFSET] = shortResults[2];
+            _clientSamples[delayedChannelIndex] = shortResults[1];
+            _clientSamples[delayedChannelIndex + SINGLE_STEREO_OFFSET] = shortResults[0];
         }
         
-        int i = 0;
+        // The following code is pretty gross and redundant, but AFAIK it's the best way to avoid
+        // too many conditionals in handling the delay samples at the beginning of _clientSamples.
+        // Basically we try to take the samples in batches of four, and then handle the remainder
+        // conditionally to get rid of the rest.
         
-        while (i + 3 < numSamplesDelay) {
-            // handle the first cases where we can MMX add four samples at once
+        const int DOUBLE_STEREO_OFFSET = 4;
+        const int TRIPLE_STEREO_OFFSET = 6;
+        
+        if (numSamplesDelay > 0) {
+            // if there was a sample delay for this buffer, we need to pull samples prior to the nextOutput
+            // to stick at the beginning
+            float attenuationAndWeakChannelRatio = attenuationCoefficient * weakChannelAmplitudeRatio;
+            const int16_t* delayNextOutputStart = nextOutputStart - numSamplesDelay;
+            if (delayNextOutputStart < bufferStart) {
+                delayNextOutputStart = bufferStart + ringBufferSampleCapacity - numSamplesDelay;
+            }
+            
+            int i = 0;
+            
+            while (i + 3 < numSamplesDelay) {
+                // handle the first cases where we can MMX add four samples at once
+                int parentIndex = i * 2;
+                __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset],
+                                                   _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset],
+                                                   _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset],
+                                                   _clientSamples[parentIndex + TRIPLE_STEREO_OFFSET + delayedChannelOffset]);
+                __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio,
+                                                delayNextOutputStart[i + 1] * attenuationAndWeakChannelRatio,
+                                                delayNextOutputStart[i + 2] * attenuationAndWeakChannelRatio,
+                                                delayNextOutputStart[i + 3] * attenuationAndWeakChannelRatio);
+                __m64 mmxResult = _mm_adds_pi16(bufferSamples, addSamples);
+                int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
+                
+                _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
+                _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[2];
+                _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[1];
+                _clientSamples[parentIndex + TRIPLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[0];
+                
+                // push the index
+                i += 4;
+            }
+            
             int parentIndex = i * 2;
-            __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset],
-                                               _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset],
-                                               _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset],
-                                               _clientSamples[parentIndex + TRIPLE_STEREO_OFFSET + delayedChannelOffset]);
-            __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio,
-                                            delayNextOutputStart[i + 1] * attenuationAndWeakChannelRatio,
-                                            delayNextOutputStart[i + 2] * attenuationAndWeakChannelRatio,
-                                            delayNextOutputStart[i + 3] * attenuationAndWeakChannelRatio);
-            __m64 mmxResult = _mm_adds_pi16(bufferSamples, addSamples);
-            int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
             
-            _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
-            _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[2];
-            _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[1];
-            _clientSamples[parentIndex + TRIPLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[0];
-            
-            // push the index
-            i += 4;
+            if (i + 2 < numSamplesDelay) {
+                // MMX add only three delayed samples
+                
+                __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset],
+                                                   _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset],
+                                                   _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset],
+                                                   0);
+                __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio,
+                                                delayNextOutputStart[i + 1] * attenuationAndWeakChannelRatio,
+                                                delayNextOutputStart[i + 2] * attenuationAndWeakChannelRatio,
+                                                0);
+                __m64 mmxResult = _mm_adds_pi16(bufferSamples, addSamples);
+                int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
+                
+                _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
+                _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[2];
+                _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[1];
+                
+            } else if (i + 1 < numSamplesDelay) {
+                // MMX add two delayed samples
+                __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset],
+                                                   _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset], 0, 0);
+                __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio,
+                                                delayNextOutputStart[i + 1] * attenuationAndWeakChannelRatio, 0, 0);
+                
+                __m64 mmxResult = _mm_adds_pi16(bufferSamples, addSamples);
+                int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
+                
+                _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
+                _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[2];
+                
+            } else if (i < numSamplesDelay) {
+                // MMX add a single delayed sample
+                __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset], 0, 0, 0);
+                __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio, 0, 0, 0);
+                
+                __m64 mmxResult = _mm_adds_pi16(bufferSamples, addSamples);
+                int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
+                
+                _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
+            }
         }
+    } else {
+        // stereo buffer - do attenuation but no sample delay for spatialization
+        qDebug() << "Adding a stereo buffer";
         
-        int parentIndex = i * 2;
-        
-        if (i + 2 < numSamplesDelay) {
-            // MMX add only three delayed samples
+        for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 4) {
+            // use MMX to clamp four additions at a time
             
-            __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset],
-                                               _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset],
-                                               _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset],
-                                               0);
-            __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio,
-                                            delayNextOutputStart[i + 1] * attenuationAndWeakChannelRatio,
-                                            delayNextOutputStart[i + 2] * attenuationAndWeakChannelRatio,
-                                            0);
-            __m64 mmxResult = _mm_adds_pi16(bufferSamples, addSamples);
-            int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
-            
-            _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
-            _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[2];
-            _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[1];
-            
-        } else if (i + 1 < numSamplesDelay) {
-            // MMX add two delayed samples
-            __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset],
-                                               _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset], 0, 0);
-            __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio,
-                                            delayNextOutputStart[i + 1] * attenuationAndWeakChannelRatio, 0, 0);
+            __m64 bufferSamples = _mm_set_pi16(_clientSamples[s], _clientSamples[s + 1],
+                                               _clientSamples[s + 2], _clientSamples[s + 3]);
+            __m64 addSamples = _mm_set_pi16(nextOutputStart[s] * attenuationCoefficient,
+                                            nextOutputStart[s + 1] * attenuationCoefficient,
+                                            nextOutputStart[s + 2] * attenuationCoefficient,
+                                            nextOutputStart[s + 3] * attenuationCoefficient);
             
             __m64 mmxResult = _mm_adds_pi16(bufferSamples, addSamples);
             int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
             
-            _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
-            _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[2];
-            
-        } else if (i < numSamplesDelay) {
-            // MMX add a single delayed sample
-            __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset], 0, 0, 0);
-            __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio, 0, 0, 0);
-            
-            __m64 mmxResult = _mm_adds_pi16(bufferSamples, addSamples);
-            int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
-            
-            _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
+            _clientSamples[s] = shortResults[3];
+            _clientSamples[s + 1] = shortResults[2];
+            _clientSamples[s + 2] = shortResults[1];
+            _clientSamples[s + 3] = shortResults[0];
         }
     }
 }
