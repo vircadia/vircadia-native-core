@@ -306,7 +306,7 @@ void linearResampling(int16_t* sourceSamples, int16_t* destinationSamples,
             } else {
                 // this is a 48 to 24 resampling but both source and destination are two channels
                 // squish two samples into one in each channel
-                for (int i = 0; i < numSourceSamples; i += 2) {
+                for (int i = 0; i < numSourceSamples; i += 4) {
                     destinationSamples[i / 2] = (sourceSamples[i] / 2) + (sourceSamples[i + 2] / 2);
                     destinationSamples[(i / 2) + 1] = (sourceSamples[i + 1] / 2) + (sourceSamples[i + 3] / 2);
                 }
@@ -585,6 +585,14 @@ void Audio::handleAudioInput() {
                         _lastInputLoudness = 0;
                     }
                 }
+            } else {
+                float loudness = 0.0f;
+                
+                for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; i++) {
+                    loudness += fabsf(networkAudioSamples[i]);
+                }
+                
+                _lastInputLoudness = fabs(loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
             }
         } else {
             // our input loudness is 0, since we're muted
@@ -626,11 +634,12 @@ void Audio::handleAudioInput() {
                 packetType = PacketTypeSilentAudioFrame;
                 
                 // we need to indicate how many silent samples this is to the audio mixer
-                audioDataPacket[0] = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                audioDataPacket[0] = _isStereoInput
+                    ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO
+                    : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
                 numAudioBytes = sizeof(int16_t);
-                
             } else {
-                numAudioBytes = NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL;
+                numAudioBytes = _isStereoInput ? NETWORK_BUFFER_LENGTH_BYTES_STEREO : NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL;
                 
                 if (Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio)) {
                     packetType = PacketTypeMicrophoneAudioWithEcho;

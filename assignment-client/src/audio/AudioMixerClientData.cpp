@@ -118,7 +118,8 @@ void AudioMixerClientData::pushBuffersAfterFrameSend() {
         PositionalAudioRingBuffer* audioBuffer = _ringBuffers[i];
 
         if (audioBuffer->willBeAddedToMix()) {
-            audioBuffer->shiftReadPosition(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+            audioBuffer->shiftReadPosition(audioBuffer->isStereo()
+                                           ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
 
             audioBuffer->setWillBeAddedToMix(false);
         } else if (audioBuffer->getType() == PositionalAudioRingBuffer::Injector

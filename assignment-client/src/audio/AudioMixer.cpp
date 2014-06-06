@@ -307,9 +307,7 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
             }
         }
     } else {
-        // stereo buffer - do attenuation but no sample delay for spatialization
-        qDebug() << "Adding a stereo buffer";
-        
+        // stereo buffer - do attenuation but no sample delay for spatialization        
         for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 4) {
             // use MMX to clamp four additions at a time
             
