@@ -84,12 +84,12 @@ static void setPalm(float deltaTime, int index) {
     glm::quat inverseRotation = glm::inverse(Application::getInstance()->getAvatar()->getOrientation());
     if (index == LEFT_HAND_INDEX) {
         jointIndex = skeletonModel->getLeftHandJointIndex();
-        skeletonModel->getJointRotation(jointIndex, rotation, true);      
+        skeletonModel->getJointRotationInWorldFrame(jointIndex, rotation);      
         rotation = inverseRotation * rotation * glm::quat(glm::vec3(0.0f, PI_OVER_TWO, 0.0f));
         
     } else {
         jointIndex = skeletonModel->getRightHandJointIndex();
-        skeletonModel->getJointRotation(jointIndex, rotation, true);
+        skeletonModel->getJointRotationInWorldFrame(jointIndex, rotation);
         rotation = inverseRotation * rotation * glm::quat(glm::vec3(0.0f, -PI_OVER_TWO, 0.0f));
     }
     skeletonModel->getJointPositionInWorldFrame(jointIndex, position);
