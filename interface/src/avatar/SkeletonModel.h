@@ -13,7 +13,8 @@
 #define hifi_SkeletonModel_h
 
 #include "renderer/Model.h"
-#include "renderer/RagDoll.h"
+
+#include <RagDoll.h>
 
 class Avatar;
 

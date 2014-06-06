@@ -12,7 +12,10 @@
 #ifndef hifi_RagDoll_h
 #define hifi_RagDoll_h
 
-#include "renderer/Model.h"
+#include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
+
+#include <QVector>
 
 class Shape;
 
@@ -66,21 +69,18 @@ public:
     
     /// Create points and constraints based on topology of collection of joints
     /// \param joints list of connected joint states
-    void init(const QVector<JointState>& states);
+    void init(const QVector<int>& parentIndices, const QVector<glm::vec3>& points);
 
     /// Delete all data.
     void clear();
-
-    /// \param states list of joint states
-    /// \param fraction range from 0.0 (no movement) to 1.0 (use joint locations)
-    /// \return max distance of point movement
-    float slaveToSkeleton(const QVector<JointState>& states, float fraction);
 
     /// Enforce contraints.
     /// \return max distance of point movement
     float enforceConstraints();
 
+    // both const and non-const getPoints()
     const QVector<glm::vec3>& getPoints() const { return _points; }
+    QVector<glm::vec3>& getPoints() { return _points; }
 
     /// \param shapes list of shapes to be updated with new positions
     /// \param rotation rotation into shapes' collision frame

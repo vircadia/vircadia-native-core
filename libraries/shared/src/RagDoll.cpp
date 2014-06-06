@@ -9,16 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <glm/glm.hpp>
-#include <glm/gtx/quaternion.hpp>
-#include <glm/gtx/transform.hpp>
-
-#include <CollisionInfo.h>
-#include <SharedUtil.h>
-#include <CapsuleShape.h>
-#include <SphereShape.h>
-
 #include "RagDoll.h"
+
+#include "CapsuleShape.h"
+#include "CollisionInfo.h"
+#include "SharedUtil.h"
+#include "SphereShape.h"
 
 // ----------------------------------------------------------------------------
 // FixedConstraint
@@ -105,15 +101,17 @@ RagDoll::~RagDoll() {
     clear();
 }
     
-void RagDoll::init(const QVector<JointState>& states) {
+void RagDoll::init(const QVector<int>& parentIndices, const QVector<glm::vec3>& points) {
     clear();
-    const int numStates = states.size();
-    _points.reserve(numStates);
-    for (int i = 0; i < numStates; ++i) {
-        const JointState& state = states[i];
-        _points.push_back(state.getPosition());
-        int parentIndex = state.getFBXJoint().parentIndex;
-        assert(parentIndex < i);
+    const int numPoints = points.size();
+    assert(numPoints == parentIndices.size());
+    _points.reserve(numPoints);
+    for (int i = 0; i < numPoints; ++i) {
+        glm::vec3 position = points[i];
+        _points.push_back(position);
+
+        int parentIndex = parentIndices[i];
+        assert(parentIndex < i && parentIndex >= -1);
         if (parentIndex == -1) {
             FixedConstraint* anchor = new FixedConstraint(&(_points[i]), glm::vec3(0.0f));
             _constraints.push_back(anchor);
@@ -132,19 +130,6 @@ void RagDoll::clear() {
     }
     _constraints.clear();
     _points.clear();
-}
-
-float RagDoll::slaveToSkeleton(const QVector<JointState>& states, float fraction) {
-    const int numStates = states.size();
-    assert(numStates == _points.size());
-    fraction = glm::clamp(fraction, 0.0f, 1.0f);
-    float maxDistance = 0.0f;
-    for (int i = 0; i < numStates; ++i) {
-        glm::vec3 oldPoint = _points[i];
-        _points[i] = (1.0f - fraction) * _points[i] + fraction * states[i].getPosition();
-        maxDistance = glm::max(maxDistance, glm::distance(oldPoint, _points[i]));
-    }
-    return maxDistance;
 }
 
 float RagDoll::enforceConstraints() {

@@ -25,7 +25,19 @@ void SkeletonModel::setJointStates(QVector<JointState> states) {
     Model::setJointStates(states);
 
     if (isActive() && _owningAvatar->isMyAvatar()) {
-        _ragDoll.init(_jointStates);
+        // extract lists of parentIndex and position from _jointStates...
+        QVector<int> parentIndices;
+        QVector<glm::vec3> points;
+        int numJoints = _jointStates.size();
+        parentIndices.reserve(numJoints);
+        points.reserve(numJoints);
+        for (int i = 0; i < numJoints; ++i) {
+            JointState& state = _jointStates[i];
+            parentIndices.push_back(state.getFBXJoint().parentIndex);
+            points.push_back(state.getPosition());
+        }
+        // ... and feed the results to _ragDoll
+        _ragDoll.init(parentIndices, points);
     }
 }
 
@@ -91,8 +103,17 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
 }
 
 void SkeletonModel::simulateRagDoll(float deltaTime) {
-    _ragDoll.slaveToSkeleton(_jointStates, 0.1f);   // fraction = 0.1f left intentionally low for demo purposes
+    // move ragdoll points toward joints
+    QVector<glm::vec3>& points = _ragDoll.getPoints();
+    const int numStates = _jointStates.size();
+    assert(numStates == points.size());
+    float fraction = 0.1f; // fraction = 0.1f left intentionally low for demo purposes
+    float oneMinusFraction = 1.0f - fraction;
+    for (int i = 0; i < numStates; ++i) {
+        points[i] = oneMinusFraction * points[i] + fraction * _jointStates[i].getPosition();
+    }
 
+    // enforce the constraints
     float MIN_CONSTRAINT_ERROR = 0.005f; // 5mm
     int MAX_ITERATIONS = 4;
     int iterations = 0;
