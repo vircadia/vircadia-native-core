@@ -18,7 +18,8 @@ var toolWidth = 50;
 
 var LASER_WIDTH = 4;
 var LASER_COLOR = { red: 255, green: 0, blue: 0 };
-var LASER_LENGTH_FACTOR = 5;
+var LASER_LENGTH_FACTOR = 500
+;
 
 var LEFT = 0;
 var RIGHT = 1;
@@ -92,6 +93,11 @@ function controller(wichSide) {
     this.oldModelPosition;
     this.oldModelRadius;
     
+    this.positionAtGrab;
+    this.rotationAtGrab;
+    this.modelPositionAtGrab;
+    this.modelRotationAtGrab;
+    
     this.jointsIntersectingFromStart = [];
     
     this.laser = Overlays.addOverlay("line3d", {
@@ -149,6 +155,11 @@ function controller(wichSide) {
             this.oldModelRotation = properties.modelRotation;
             this.oldModelRadius = properties.radius;
             
+            this.positionAtGrab = this.palmPosition;
+            this.rotationAtGrab = this.rotation;
+            this.modelPositionAtGrab = properties.position;
+            this.modelRotationAtGrab = properties.modelRotation;
+            
             this.jointsIntersectingFromStart = [];
             for (var i = 0; i < jointList.length; i++) {
                 var distance = Vec3.distance(MyAvatar.getJointPosition(jointList[i]), this.oldModelPosition);
@@ -174,12 +185,16 @@ function controller(wichSide) {
                 }
             }
             
-            print("closestJoint: " + jointList[closestJointIndex]);
-            print("closestJointDistance (attach max distance): " + closestJointDistance + " (" + this.oldModelRadius + ")");
+            if (closestJointIndex != -1) {
+                print("closestJoint: " + jointList[closestJointIndex]);
+                print("closestJointDistance (attach max distance): " + closestJointDistance + " (" + this.oldModelRadius + ")");
+            }
             
             if (closestJointDistance < this.oldModelRadius) {
                 
-                if (this.jointsIntersectingFromStart.indexOf(closestJointIndex) != -1) {
+                if (this.jointsIntersectingFromStart.indexOf(closestJointIndex) != -1 ||
+                    (leftController.grabbing && rightController.grabbing &&
+                    leftController.modelID.id == rightController.modelID.id)) {
                     // Do nothing
                 } else {
                     print("Attaching to " + jointList[closestJointIndex]);
@@ -193,6 +208,7 @@ function controller(wichSide) {
                     MyAvatar.attach(this.modelURL, jointList[closestJointIndex],
                                     attachmentOffset, attachmentRotation, 2.0 * this.oldModelRadius,
                                     true, false);
+                    
                     Models.deleteModel(this.modelID);
                 }
             }
@@ -281,12 +297,11 @@ function controller(wichSide) {
                              });
         this.showLaser(!this.grabbing || mode == 0);
         
-        
+        if (this.glowedIntersectingModel.isKnownID) {
+            Models.editModel(this.glowedIntersectingModel, { glowLevel: 0.0 });
+            this.glowedIntersectingModel.isKnownID = false;
+        }
         if (!this.grabbing) {
-            if (this.glowedIntersectingModel.isKnownID) {
-                Models.editModel(this.glowedIntersectingModel, { glowLevel: 0.0 });
-            }
-            
             var intersection = Models.findRayIntersection({
                                                           origin: this.palmPosition,
                                                           direction: this.front
@@ -307,6 +322,14 @@ function controller(wichSide) {
     
     this.moveModel = function () {
         if (this.grabbing) {
+            if (!this.modelID.isKnownID) {
+                print("Unknown grabbed ID " + this.modelID.id + ", isKnown: " + this.modelID.isKnownID);
+                this.modelID =  Models.findRayIntersection({
+                                                        origin: this.palmPosition,
+                                                        direction: this.front
+                                                           }).modelID;
+                print("Identified ID " + this.modelID.id + ", isKnown: " + this.modelID.isKnownID);
+            }
             var newPosition;
             var newRotation;
             
@@ -318,15 +341,22 @@ function controller(wichSide) {
                                            Vec3.multiply(this.up, this.y));
                     newPosition = Vec3.sum(newPosition,
                                            Vec3.multiply(this.right, this.z));
+                    
+                    
+                    newRotation = Quat.multiply(this.rotation,
+                                                Quat.inverse(this.oldRotation));
+                    newRotation = Quat.multiply(newRotation,
+                                                this.oldModelRotation);
                     break;
                 case 1:
                     var forward = Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -1 });
                     var d = Vec3.dot(forward, MyAvatar.position);
                     
-                    var factor1 = Vec3.dot(forward, this.palmPosition) - d;
-                    var factor2 = Vec3.dot(forward, this.oldModelPosition) - d;
-                    var vector = Vec3.subtract(this.palmPosition, this.oldPalmPosition);
+                    var factor1 = Vec3.dot(forward, this.positionAtGrab) - d;
+                    var factor2 = Vec3.dot(forward, this.modelPositionAtGrab) - d;
+                    var vector = Vec3.subtract(this.palmPosition, this.positionAtGrab);
                     
+                    print("factor1: " + factor1 + ", factor2: " + factor2);
                     if (factor2 < 0) {
                         factor2 = 0;
                     }
@@ -335,18 +365,16 @@ function controller(wichSide) {
                         factor2 = 1;
                     }
                     
-                    newPosition = Vec3.sum(this.oldModelPosition,
+                    newPosition = Vec3.sum(this.modelPositionAtGrab,
                                            Vec3.multiply(vector,
                                                          factor2 / factor1));
+                    
+                    newRotation = Quat.multiply(this.rotation,
+                                                Quat.inverse(this.rotationAtGrab));
+                    newRotation = Quat.multiply(newRotation,
+                                                this.modelRotationAtGrab);
                     break;
             }
-            
-            
-            
-            newRotation = Quat.multiply(this.rotation,
-                                        Quat.inverse(this.oldRotation));
-            newRotation = Quat.multiply(newRotation,
-                                        this.oldModelRotation);
             
             Models.editModel(this.modelID, {
                              position: newPosition,
@@ -367,8 +395,46 @@ function controller(wichSide) {
             for (var i = 0; i < indicesToRemove.length; ++i) {
                 this.jointsIntersectingFromStart.splice(this.jointsIntersectingFromStart.indexOf(indicesToRemove[i], 1));
             }
+            
+            
+            jointList = MyAvatar.getJointNames();
+            
+            var closestJointIndex = -1;
+            var closestJointDistance = 999999;
+            for (var i = 0; i < jointList.length; i++) {
+                var distance = Vec3.distance(MyAvatar.getJointPosition(jointList[i]), this.oldModelPosition);
+                if (distance < closestJointDistance) {
+                    closestJointDistance = distance;
+                    closestJointIndex = i;
+                }
+            }
+            
+            if (closestJointDistance < this.oldModelRadius) {
+                if (this.jointsIntersectingFromStart.indexOf(closestJointIndex) != -1 ||
+                    (leftController.grabbing && rightController.grabbing &&
+                     leftController.modelID.id == rightController.modelID.id)) {
+                        // Do nothing
+                    } else {
+                        Vec3.print("Ball at: ", MyAvatar.getJointPosition(closestJointIndex));
+                        Overlays.editOverlay(this.ballGlowingJoint, {
+                                             position: MyAvatar.getJointPosition(closestJointIndex),
+                                             glowLevel: 0.25,
+                                             visible: true
+                                             });
+                    }
+            } else {
+                Overlays.editOverlay(this.ballGlowingJoint, { glowLevel: 0.0, visible: false });
+            }
         }
     }
+    this.ballGlowingJoint = Overlays.addOverlay("sphere", {
+                                                position: { x: 0, y: 0, z: 0 },
+                                                size: 1,
+                                                solid: true,
+                                                color: { red: 0, green: 255, blue: 0 },
+                                                alpha: 1,
+                                                visible: false,
+                                                anchor: "MyAvatar"});
     
     this.update = function () {
         this.oldPalmPosition = this.palmPosition;
@@ -420,8 +486,12 @@ function controller(wichSide) {
             var attachmentIndex = -1;
             var attachmentX = LASER_LENGTH_FACTOR;
             
+            var newModel;
+            var newProperties;
+            
             for (var i = 0; i < attachments.length; ++i) {
-                var position = Vec3.sum(MyAvatar.getJointPosition(attachments[i].jointName), attachments[i].translation);
+                var position = Vec3.sum(MyAvatar.getJointPosition(attachments[i].jointName),
+                                        Vec3.multiplyQbyV(MyAvatar.getJointCombinedRotation(attachments[i].jointName), attachments[i].translation));
                 var scale = attachments[i].scale;
                 
                 var A = this.palmPosition;
@@ -439,53 +509,56 @@ function controller(wichSide) {
             }
             
             if (attachmentIndex != -1) {
+                print("Detaching: " + attachments[attachmentIndex].modelURL);
                 MyAvatar.detachOne(attachments[attachmentIndex].modelURL, attachments[attachmentIndex].jointName);
-                Models.addModel({
-                                position: Vec3.sum(MyAvatar.getJointPosition(attachments[attachmentIndex].jointName),
-                                                   attachments[attachmentIndex].translation),
-                                modelRotation: Quat.multiply(MyAvatar.getJointCombinedRotation(attachments[attachmentIndex].jointName),
-                                                             attachments[attachmentIndex].rotation),
-                                radius: attachments[attachmentIndex].scale / 2.0,
-                                modelURL: attachments[attachmentIndex].modelURL
-                                });
-            }
-            
-            // There is none so ...
-            // Checking model tree
-            Vec3.print("Looking at: ", this.palmPosition);
-            var pickRay = { origin: this.palmPosition,
-                            direction: Vec3.normalize(Vec3.subtract(this.tipPosition, this.palmPosition)) };
-            var foundIntersection = Models.findRayIntersection(pickRay);
-            
-            if(!foundIntersection.accurate) {
-                return;
-            }
-            var foundModel = foundIntersection.modelID;
-            
-            if (!foundModel.isKnownID) {
-                var identify = Models.identifyModel(foundModel);
-                if (!identify.isKnownID) {
-                    print("Unknown ID " + identify.id + " (update loop " + foundModel.id + ")");
-                    return;
-                }
-                foundModel = identify;
-            }
-            
-            var properties = Models.getModelProperties(foundModel);
-            print("foundModel.modelURL=" + properties.modelURL);
-            
-            if (isLocked(properties)) {
-                print("Model locked " + properties.id);
+                
+                newProperties = {
+                position: Vec3.sum(MyAvatar.getJointPosition(attachments[attachmentIndex].jointName),
+                                   Vec3.multiplyQbyV(MyAvatar.getJointCombinedRotation(attachments[attachmentIndex].jointName), attachments[attachmentIndex].translation)),
+                modelRotation: Quat.multiply(MyAvatar.getJointCombinedRotation(attachments[attachmentIndex].jointName),
+                                             attachments[attachmentIndex].rotation),
+                radius: attachments[attachmentIndex].scale / 2.0,
+                modelURL: attachments[attachmentIndex].modelURL
+                };
+                newModel = Models.addModel(newProperties);
             } else {
-                print("Checking properties: " + properties.id + " " + properties.isKnownID);
-                var check = this.checkModel(properties);
-                if (check.valid) {
-                    this.grab(foundModel, properties);
-                    this.x = check.x;
-                    this.y = check.y;
-                    this.z = check.z;
+                // There is none so ...
+                // Checking model tree
+                Vec3.print("Looking at: ", this.palmPosition);
+                var pickRay = { origin: this.palmPosition,
+                    direction: Vec3.normalize(Vec3.subtract(this.tipPosition, this.palmPosition)) };
+                var foundIntersection = Models.findRayIntersection(pickRay);
+                
+                if(!foundIntersection.accurate) {
+                    print("No accurate intersection");
                     return;
                 }
+                newModel = foundIntersection.modelID;
+                
+                if (!newModel.isKnownID) {
+                    var identify = Models.identifyModel(newModel);
+                    if (!identify.isKnownID) {
+                        print("Unknown ID " + identify.id + " (update loop " + newModel.id + ")");
+                        return;
+                    }
+                    newModel = identify;
+                }
+                newProperties = Models.getModelProperties(newModel);
+            }
+            
+            
+            print("foundModel.modelURL=" + newProperties.modelURL);
+            
+            if (isLocked(newProperties)) {
+                print("Model locked " + newProperties.id);
+            } else {
+                this.grab(newModel, newProperties);
+                
+                var check = this.checkModel(newProperties);
+                this.x = check.x;
+                this.y = check.y;
+                this.z = check.z;
+                return;
             }
         }
     }
@@ -503,8 +576,8 @@ var rightController = new controller(RIGHT);
 
 function moveModels() {
     if (leftController.grabbing && rightController.grabbing && rightController.modelID.id == leftController.modelID.id) {
-        var newPosition = this.oldModelPosition;
-        var rotation = this.oldModelRotation;
+        var newPosition = leftController.oldModelPosition;
+        var rotation = leftController.oldModelRotation;
         var ratio = 1;
         
         
