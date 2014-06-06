@@ -79,10 +79,6 @@ IDStreamer& IDStreamer::operator>>(int& value) {
     return *this;
 }
 
-static QByteArray getEnumName(const QMetaEnum& metaEnum) {
-    return QByteArray(metaEnum.scope()) + "::" + metaEnum.name();
-}
-
 int Bitstream::registerMetaObject(const char* className, const QMetaObject* metaObject) {
     getMetaObjects().insert(className, metaObject);
     
@@ -90,16 +86,6 @@ int Bitstream::registerMetaObject(const char* className, const QMetaObject* meta
     for (const QMetaObject* superClass = metaObject; superClass; superClass = superClass->superClass()) {
         getMetaObjectSubClasses().insert(superClass, metaObject);
     }
-    
-    // register the streamers for all enumerators
-    for (int i = 0; i < metaObject->enumeratorCount(); i++) {
-        QMetaEnum metaEnum = metaObject->enumerator(i);
-        const TypeStreamer*& streamer = getEnumStreamers()[QPair<QByteArray, QByteArray>(metaEnum.scope(), metaEnum.name())];
-        if (!streamer) {
-            getEnumStreamersByName().insert(getEnumName(metaEnum), streamer = new EnumTypeStreamer(metaEnum));
-        }
-    }
-    
     return 0;
 }
 
@@ -1030,12 +1016,34 @@ QHash<int, const TypeStreamer*>& Bitstream::getTypeStreamers() {
 }
 
 QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*>& Bitstream::getEnumStreamers() {
-    static QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*> enumStreamers;
+    static QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*> enumStreamers = createEnumStreamers();
+    return enumStreamers;
+}
+
+QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*> Bitstream::createEnumStreamers() {
+    QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*> enumStreamers;
+    foreach (const QMetaObject* metaObject, getMetaObjects()) {
+        for (int i = 0; i < metaObject->enumeratorCount(); i++) {
+            QMetaEnum metaEnum = metaObject->enumerator(i);
+            const TypeStreamer*& streamer = enumStreamers[QPair<QByteArray, QByteArray>(metaEnum.scope(), metaEnum.name())];
+            if (!streamer) {
+                streamer = new EnumTypeStreamer(metaEnum);
+            }
+        }
+    }
     return enumStreamers;
 }
 
 QHash<QByteArray, const TypeStreamer*>& Bitstream::getEnumStreamersByName() {
-    static QHash<QByteArray, const TypeStreamer*> enumStreamersByName;
+    static QHash<QByteArray, const TypeStreamer*> enumStreamersByName = createEnumStreamersByName();
+    return enumStreamersByName;
+}
+
+QHash<QByteArray, const TypeStreamer*> Bitstream::createEnumStreamersByName() {
+    QHash<QByteArray, const TypeStreamer*> enumStreamersByName;
+    foreach (const TypeStreamer* streamer, getEnumStreamers()) {
+        enumStreamersByName.insert(streamer->getName(), streamer);
+    }
     return enumStreamersByName;
 }
 
@@ -1462,17 +1470,21 @@ QDebug& operator<<(QDebug& debug, const QMetaObject* metaObject) {
     return debug << (metaObject ? metaObject->className() : "null");
 }
 
+EnumTypeStreamer::EnumTypeStreamer(const QMetaObject* metaObject, const char* name) :
+    _metaObject(metaObject),
+    _enumName(name),
+    _name(QByteArray(metaObject->className()) + "::" + name),
+    _bits(-1) {
+    
+    setType(QMetaType::Int); 
+}
+
 EnumTypeStreamer::EnumTypeStreamer(const QMetaEnum& metaEnum) :
+    _name(QByteArray(metaEnum.scope()) + "::" + metaEnum.name()),
     _metaEnum(metaEnum),
-    _name(getEnumName(metaEnum)) {
-    
-    setType(QMetaType::Int);
-    
-    int highestValue = 0;
-    for (int j = 0; j < metaEnum.keyCount(); j++) {
-        highestValue = qMax(highestValue, metaEnum.value(j));
-    }
-    _bits = getBitsForHighestValue(highestValue); 
+    _bits(-1) {
+
+    setType(QMetaType::Int); 
 }
 
 const char* EnumTypeStreamer::getName() const {
@@ -1484,10 +1496,21 @@ TypeReader::Type EnumTypeStreamer::getReaderType() const {
 }
 
 int EnumTypeStreamer::getBits() const {
+    if (_bits == -1) {
+        int highestValue = 0;
+        QMetaEnum metaEnum = getMetaEnum();
+        for (int j = 0; j < metaEnum.keyCount(); j++) {
+            highestValue = qMax(highestValue, metaEnum.value(j));
+        }
+        const_cast<EnumTypeStreamer*>(this)->_bits = getBitsForHighestValue(highestValue);
+    }
     return _bits;
 }
 
 QMetaEnum EnumTypeStreamer::getMetaEnum() const {
+    if (!_metaEnum.isValid()) {
+        const_cast<EnumTypeStreamer*>(this)->_metaEnum = _metaObject->enumerator(_metaObject->indexOfEnumerator(_enumName));
+    }
     return _metaEnum;
 }
 
@@ -1497,12 +1520,12 @@ bool EnumTypeStreamer::equal(const QVariant& first, const QVariant& second) cons
 
 void EnumTypeStreamer::write(Bitstream& out, const QVariant& value) const {
     int intValue = value.toInt();
-    out.write(&intValue, _bits);
+    out.write(&intValue, getBits());
 }
 
 QVariant EnumTypeStreamer::read(Bitstream& in) const {
     int intValue = 0;
-    in.read(&intValue, _bits);
+    in.read(&intValue, getBits());
     return intValue;
 }
 
@@ -1512,7 +1535,7 @@ void EnumTypeStreamer::writeDelta(Bitstream& out, const QVariant& value, const Q
         out << false;
     } else {
         out << true;
-        out.write(&intValue, _bits);
+        out.write(&intValue, getBits());
     }
 }
 
@@ -1521,7 +1544,7 @@ void EnumTypeStreamer::readDelta(Bitstream& in, QVariant& value, const QVariant&
     in >> changed;
     if (changed) {
         int intValue = 0;
-        in.read(&intValue, _bits);
+        in.read(&intValue, getBits());
         value = intValue;
     } else {
         value = reference;
@@ -1530,17 +1553,17 @@ void EnumTypeStreamer::readDelta(Bitstream& in, QVariant& value, const QVariant&
 
 void EnumTypeStreamer::writeRawDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const {
     int intValue = value.toInt();
-    out.write(&intValue, _bits);
+    out.write(&intValue, getBits());
 }
 
 void EnumTypeStreamer::readRawDelta(Bitstream& in, QVariant& value, const QVariant& reference) const {
     int intValue = 0;
-    in.read(&intValue, _bits);
+    in.read(&intValue, getBits());
     value = intValue;
 }
 
 void EnumTypeStreamer::setEnumValue(QVariant& object, int value, const QHash<int, int>& mappings) const {
-    if (_metaEnum.isFlag()) {
+    if (getMetaEnum().isFlag()) {
         int combined = 0;
         for (QHash<int, int>::const_iterator it = mappings.constBegin(); it != mappings.constEnd(); it++) {
             if (value & it.key()) {

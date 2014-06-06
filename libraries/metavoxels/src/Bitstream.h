@@ -427,7 +427,9 @@ private:
     static QMultiHash<const QMetaObject*, const QMetaObject*>& getMetaObjectSubClasses();
     static QHash<int, const TypeStreamer*>& getTypeStreamers();
     static QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*>& getEnumStreamers();
+    static QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*> createEnumStreamers();
     static QHash<QByteArray, const TypeStreamer*>& getEnumStreamersByName();
+    static QHash<QByteArray, const TypeStreamer*> createEnumStreamersByName();
     static QVector<PropertyReader> getPropertyReaders(const QMetaObject* metaObject);
 };
 
@@ -938,8 +940,9 @@ public:
 class EnumTypeStreamer : public TypeStreamer {
 public:
     
+    EnumTypeStreamer(const QMetaObject* metaObject, const char* name);
     EnumTypeStreamer(const QMetaEnum& metaEnum);
-    
+
     virtual const char* getName() const;
     virtual TypeReader::Type getReaderType() const;
     virtual int getBits() const;
@@ -955,8 +958,10 @@ public:
 
 private:
     
-    QMetaEnum _metaEnum;
+    const QMetaObject* _metaObject;
+    const char* _enumName;
     QByteArray _name;
+    QMetaEnum _metaEnum;
     int _bits;
 };
 
@@ -1084,14 +1089,15 @@ public:
     template<> inline void Bitstream::readRawDelta(S::N& value, const S::N& reference) { *this >> value; }
 
 #define IMPLEMENT_ENUM_METATYPE(S, N) \
-    static int S##N##Bits = registerEnumMetaType<S::N>(S::staticMetaObject.enumerator( \
-        S::staticMetaObject.indexOfEnumerator(#N))); \
+    static int S##N##MetaTypeId = registerEnumMetaType<S::N>(&S::staticMetaObject, #N); \
     Bitstream& operator<<(Bitstream& out, const S::N& obj) { \
-        return out.write(&obj, S##N##Bits); \
+        static int bits = Bitstream::getTypeStreamer(qMetaTypeId<S::N>())->getBits(); \
+        return out.write(&obj, bits); \
     } \
     Bitstream& operator>>(Bitstream& in, S::N& obj) { \
+        static int bits = Bitstream::getTypeStreamer(qMetaTypeId<S::N>())->getBits(); \
         obj = (S::N)0; \
-        return in.read(&obj, S##N##Bits); \
+        return in.read(&obj, bits); \
     }
     
 /// Registers a simple type and its streamer.
@@ -1103,12 +1109,11 @@ template<class T> int registerSimpleMetaType() {
 }
 
 /// Registers an enum type and its streamer.
-/// \return the number of bits required to stream the enum
-template<class T> int registerEnumMetaType(const QMetaEnum& metaEnum) {
+/// \return the metatype id
+template<class T> int registerEnumMetaType(const QMetaObject* metaObject, const char* name) {
     int type = qRegisterMetaType<T>();
-    EnumTypeStreamer* streamer = new EnumTypeStreamer(metaEnum);
-    Bitstream::registerTypeStreamer(type, streamer);
-    return streamer->getBits();
+    Bitstream::registerTypeStreamer(type, new EnumTypeStreamer(metaObject, name));
+    return type;
 }
 
 /// Registers a streamable type and its streamer.
