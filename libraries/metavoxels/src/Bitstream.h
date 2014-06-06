@@ -400,8 +400,6 @@ private slots:
 
 private:
     
-    const QVector<PropertyWriter>& getPropertyWriters(const QMetaObject* metaObject);
-    
     QDataStream& _underlying;
     quint8 _byte;
     int _position;
@@ -421,16 +419,17 @@ private:
     QHash<QByteArray, const QMetaObject*> _metaObjectSubstitutions;
     QHash<QByteArray, const TypeStreamer*> _typeStreamerSubstitutions;
 
-    QHash<const QMetaObject*, QVector<PropertyWriter> > _propertyWriters;
-
     static QHash<QByteArray, const QMetaObject*>& getMetaObjects();
     static QMultiHash<const QMetaObject*, const QMetaObject*>& getMetaObjectSubClasses();
     static QHash<int, const TypeStreamer*>& getTypeStreamers();
-    static QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*>& getEnumStreamers();
+    static const QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*>& getEnumStreamers();
     static QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*> createEnumStreamers();
-    static QHash<QByteArray, const TypeStreamer*>& getEnumStreamersByName();
+    static const QHash<QByteArray, const TypeStreamer*>& getEnumStreamersByName();
     static QHash<QByteArray, const TypeStreamer*> createEnumStreamersByName();
-    static QVector<PropertyReader> getPropertyReaders(const QMetaObject* metaObject);
+    static const QHash<const QMetaObject*, QVector<PropertyReader> >& getPropertyReaders();
+    static QHash<const QMetaObject*, QVector<PropertyReader> > createPropertyReaders();
+    static const QHash<const QMetaObject*, QVector<PropertyWriter> >& getPropertyWriters();
+    static QHash<const QMetaObject*, QVector<PropertyWriter> > createPropertyWriters();
 };
 
 template<class T> inline void Bitstream::writeDelta(const T& value, const T& reference) {
