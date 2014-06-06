@@ -92,13 +92,14 @@ int Bitstream::registerMetaObject(const char* className, const QMetaObject* meta
     }
     
     // register the streamers for all enumerators
-    for (int i = 0; i < metaObject->enumeratorCount(); i++) {
-        QMetaEnum metaEnum = metaObject->enumerator(i);
-        const TypeStreamer*& streamer = getEnumStreamers()[QPair<QByteArray, QByteArray>(metaEnum.scope(), metaEnum.name())];
-        if (!streamer) {
-            getEnumStreamersByName().insert(getEnumName(metaEnum), streamer = new EnumTypeStreamer(metaEnum));
-        }
-    }
+    // temporarily disabled: crashes on Windows
+    //for (int i = 0; i < metaObject->enumeratorCount(); i++) {
+    //    QMetaEnum metaEnum = metaObject->enumerator(i);
+    //    const TypeStreamer*& streamer = getEnumStreamers()[QPair<QByteArray, QByteArray>(metaEnum.scope(), metaEnum.name())];
+    //    if (!streamer) {
+    //        getEnumStreamersByName().insert(getEnumName(metaEnum), streamer = new EnumTypeStreamer(metaEnum));
+    //    }
+    //}
     
     return 0;
 }
