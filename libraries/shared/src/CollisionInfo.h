@@ -17,16 +17,6 @@
 
 #include <QVector>
 
-enum CollisionType {
-    COLLISION_TYPE_UNKNOWN = 0,
-    COLLISION_TYPE_MODEL,
-        // _data = pointer to Model that owns joint
-        // _intData = joint index
-    COLLISION_TYPE_AACUBE,
-        // _floatData = cube side
-        // _vecData = cube center
-};
-
 const quint32 COLLISION_GROUP_ENVIRONMENT = 1U << 0;
 const quint32 COLLISION_GROUP_AVATARS     = 1U << 1;
 const quint32 COLLISION_GROUP_VOXELS      = 1U << 2;
@@ -41,8 +31,7 @@ const quint32 VALID_COLLISION_GROUPS = 0x0f;
 class CollisionInfo {
 public:
     CollisionInfo() 
-        : _type(0),
-        _data(NULL),
+        : _data(NULL),
         _intData(0),
         _damping(0.f),
         _elasticity(1.f),
@@ -52,8 +41,7 @@ public:
     }
 
     CollisionInfo(qint32 type)
-        : _type(type),
-        _data(NULL),
+        : _data(NULL),
         _intData(0),
         _damping(0.f),
         _elasticity(1.f),
@@ -63,8 +51,6 @@ public:
     }
 
     ~CollisionInfo() {}
-
-    int _type;          // type of Collision
 
     // the value of the *Data fields depend on the type 
     void* _data;

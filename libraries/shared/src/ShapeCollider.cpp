@@ -132,7 +132,6 @@ bool sphereSphere(const SphereShape* sphereA, const SphereShape* sphereB, Collis
         // penetration points from A into B
         CollisionInfo* collision = collisions.getNewCollision();
         if (collision) {
-            collision->_type = COLLISION_TYPE_UNKNOWN;
             collision->_penetration = BA * (totalRadius - distance);
             // contactPoint is on surface of A
             collision->_contactPoint = sphereA->getPosition() + sphereA->getRadius() * BA;
@@ -180,7 +179,6 @@ bool sphereCapsule(const SphereShape* sphereA, const CapsuleShape* capsuleB, Col
             collision->_penetration = (totalRadius - radialDistance) * radialAxis; // points from A into B
             // contactPoint is on surface of sphereA
             collision->_contactPoint = sphereA->getPosition() + sphereA->getRadius() * radialAxis;
-            collision->_type = COLLISION_TYPE_UNKNOWN;
         } else {
             // A is on B's axis, so the penetration is undefined... 
             if (absAxialDistance > capsuleB->getHalfHeight()) {
@@ -202,7 +200,6 @@ bool sphereCapsule(const SphereShape* sphereA, const CapsuleShape* capsuleB, Col
             collision->_penetration = (sign * (totalRadius + capsuleB->getHalfHeight() - absAxialDistance)) * capsuleAxis;
             // contactPoint is on surface of sphereA
             collision->_contactPoint = sphereA->getPosition() + (sign * sphereA->getRadius()) * capsuleAxis;
-            collision->_type = COLLISION_TYPE_UNKNOWN;
         }
         return true;
     }
@@ -218,7 +215,6 @@ bool spherePlane(const SphereShape* sphereA, const PlaneShape* planeB, Collision
         }
         collision->_penetration = penetration;
         collision->_contactPoint = sphereA->getPosition() + sphereA->getRadius() * glm::normalize(penetration);
-        collision->_type = COLLISION_TYPE_UNKNOWN;
         return true;
     }
     return false;
@@ -268,7 +264,6 @@ bool capsuleSphere(const CapsuleShape* capsuleA, const SphereShape* sphereB, Col
             collision->_penetration = (radialDistance - totalRadius) * radialAxis; // points from A into B
             // contactPoint is on surface of capsuleA
             collision->_contactPoint = closestApproach - capsuleA->getRadius() * radialAxis;
-            collision->_type = COLLISION_TYPE_UNKNOWN;
         } else {
             // A is on B's axis, so the penetration is undefined... 
             if (absAxialDistance > capsuleA->getHalfHeight()) {
@@ -289,7 +284,6 @@ bool capsuleSphere(const CapsuleShape* capsuleA, const SphereShape* sphereB, Col
                 collision->_penetration = (sign * (totalRadius + capsuleA->getHalfHeight() - absAxialDistance)) * capsuleAxis;
                 // contactPoint is on surface of sphereA
                 collision->_contactPoint = closestApproach + (sign * capsuleA->getRadius()) * capsuleAxis;
-                collision->_type = COLLISION_TYPE_UNKNOWN;
             }
         }
         return true;
@@ -361,7 +355,6 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
             collision->_penetration = BA * (totalRadius - distance);
             // contactPoint is on surface of A
             collision->_contactPoint = centerA + distanceA * axisA + capsuleA->getRadius() * BA;
-            collision->_type = COLLISION_TYPE_UNKNOWN;
             return true;
         }
     } else {
@@ -427,7 +420,6 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
             // average the internal pair, and then do the math from centerB
             collision->_contactPoint = centerB + (0.5f * (points[1] + points[2])) * axisB 
                 + (capsuleA->getRadius() - distance) * BA;
-            collision->_type = COLLISION_TYPE_UNKNOWN;
             return true;
         }
     }
@@ -447,7 +439,6 @@ bool capsulePlane(const CapsuleShape* capsuleA, const PlaneShape* planeB, Collis
         collision->_penetration = penetration;
         glm::vec3 deepestEnd = (glm::dot(start, glm::vec3(plane)) < glm::dot(end, glm::vec3(plane))) ? start : end;
         collision->_contactPoint = deepestEnd + capsuleA->getRadius() * glm::normalize(penetration);
-        collision->_type = COLLISION_TYPE_UNKNOWN;
         return true;
     }
     return false;
@@ -463,7 +454,6 @@ bool planeSphere(const PlaneShape* planeA, const SphereShape* sphereB, Collision
         collision->_penetration = -penetration;
         collision->_contactPoint = sphereB->getPosition() +
             (sphereB->getRadius() / glm::length(penetration) - 1.0f) * penetration;
-        collision->_type = COLLISION_TYPE_UNKNOWN;
         return true;
     }
     return false;
@@ -482,7 +472,6 @@ bool planeCapsule(const PlaneShape* planeA, const CapsuleShape* capsuleB, Collis
         collision->_penetration = -penetration;
         glm::vec3 deepestEnd = (glm::dot(start, glm::vec3(plane)) < glm::dot(end, glm::vec3(plane))) ? start : end;
         collision->_contactPoint = deepestEnd + (capsuleB->getRadius() / glm::length(penetration) - 1.0f) * penetration;
-        collision->_type = COLLISION_TYPE_UNKNOWN;
         return true;
     }
     return false;
@@ -668,13 +657,11 @@ bool sphereAACube(const glm::vec3& sphereCenter, float sphereRadius, const glm::
             direction /= lengthDirection;
 
             // compute collision details
-            collision->_type = COLLISION_TYPE_AACUBE;
             collision->_floatData = cubeSide;
             collision->_vecData = cubeCenter;
             collision->_penetration = (halfCubeSide * lengthDirection + sphereRadius - maxBA * glm::dot(BA, direction)) * direction;
             collision->_contactPoint = sphereCenter + sphereRadius * direction;
         }
-        collision->_type = COLLISION_TYPE_AACUBE;
         collision->_floatData = cubeSide;
         collision->_vecData = cubeCenter;
         return true;
@@ -688,7 +675,6 @@ bool sphereAACube(const glm::vec3& sphereCenter, float sphereRadius, const glm::
             // contactPoint is on surface of A
             collision->_contactPoint = sphereCenter + collision->_penetration;
 
-            collision->_type = COLLISION_TYPE_AACUBE;
             collision->_floatData = cubeSide;
             collision->_vecData = cubeCenter;
             return true;

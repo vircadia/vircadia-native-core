@@ -1461,17 +1461,10 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
                 }
             }
 
-            // collide our hands against them
-            // TODO: make this work when we can figure out when the other avatar won't yeild
-            // (for example, we're colliding against their chest or leg)
-            //getHand()->collideAgainstAvatar(avatar, true);
-
             // collide their hands against us
             avatar->getHand()->collideAgainstAvatar(this, false);
         }
     }
-    // TODO: uncomment this when we handle collisions that won't affect other avatar
-    //getHand()->resolvePenetrations();
 }
 
 class SortedAvatar {

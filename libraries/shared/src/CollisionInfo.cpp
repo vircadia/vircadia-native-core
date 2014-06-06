@@ -43,7 +43,6 @@ void CollisionList::clear() {
     for (int i = 0; i < _size; ++i) {
         // we only clear the important stuff
         CollisionInfo& collision = _collisions[i];
-        collision._type = COLLISION_TYPE_UNKNOWN;
         //collision._data = NULL;
         //collision._intData = 0;
         //collision._floatDAta = 0.0f;

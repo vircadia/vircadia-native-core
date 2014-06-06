@@ -846,25 +846,6 @@ float Avatar::getHeadHeight() const {
     return DEFAULT_HEAD_HEIGHT;
 }
 
-bool Avatar::collisionWouldMoveAvatar(CollisionInfo& collision) const {
-    if (!collision._data || collision._type != COLLISION_TYPE_MODEL) {
-        return false;
-    }
-    Model* model = static_cast<Model*>(collision._data);
-    int jointIndex = collision._intData;
-
-    if (model == &(_skeletonModel) && jointIndex != -1) {
-        // collision response of skeleton is temporarily disabled
-        return false;
-        //return _skeletonModel.collisionHitsMoveableJoint(collision);
-    }
-    if (model == &(getHead()->getFaceModel())) {
-        // ATM we always handle COLLISION_TYPE_MODEL against the face.
-        return true;
-    }
-    return false;
-}
-
 float Avatar::getBoundingRadius() const {
     // TODO: also use head model when computing the avatar's bounding radius
     return _skeletonModel.getBoundingRadius();

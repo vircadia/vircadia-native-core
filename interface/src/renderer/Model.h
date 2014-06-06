@@ -156,14 +156,6 @@ public:
 
     bool findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions);
     
-    /// \param collision details about the collisions
-    /// \return true if the collision is against a moveable joint
-    bool collisionHitsMoveableJoint(CollisionInfo& collision) const;
-
-    /// \param collision details about the collision
-    /// Use the collision to affect the model
-    void applyCollision(CollisionInfo& collision);
-
     float getBoundingRadius() const { return _boundingRadius; }
     float getBoundingShapeRadius() const { return _boundingShape.getRadius(); }
 

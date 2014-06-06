@@ -1049,7 +1049,6 @@ bool Model::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadi
         }
         if (ShapeCollider::collideShapes(&sphere, _jointShapes[i], collisions)) {
             CollisionInfo* collision = collisions.getLastCollision();
-            collision->_type = COLLISION_TYPE_MODEL;
             collision->_data = (void*)(this);
             collision->_intData = i;
             collided = true;
@@ -1065,7 +1064,6 @@ bool Model::findPlaneCollisions(const glm::vec4& plane, CollisionList& collision
     for (int i = 0; i < _jointShapes.size(); i++) {
         if (ShapeCollider::collideShapes(&planeShape, _jointShapes[i], collisions)) {
             CollisionInfo* collision = collisions.getLastCollision();
-            collision->_type = COLLISION_TYPE_MODEL;
             collision->_data = (void*)(this);
             collision->_intData = i;
             collided = true;
@@ -1444,55 +1442,6 @@ void Model::renderBoundingCollisionShapes(float alpha) {
     Avatar::renderJointConnectingCone( origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius());
 
     glPopMatrix();
-}
-
-bool Model::collisionHitsMoveableJoint(CollisionInfo& collision) const {
-    if (collision._type == COLLISION_TYPE_MODEL) {
-        // the joint is pokable by a collision if it exists and is free to move
-        const FBXJoint& joint = _geometry->getFBXGeometry().joints[collision._intData];
-        if (joint.parentIndex == -1 || _jointStates.isEmpty()) {
-            return false;
-        }
-        // an empty freeLineage means the joint can't move
-        const FBXGeometry& geometry = _geometry->getFBXGeometry();
-        int jointIndex = collision._intData;
-        const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
-        return !freeLineage.isEmpty();
-    }
-    return false;
-}
-
-void Model::applyCollision(CollisionInfo& collision) {
-    if (collision._type != COLLISION_TYPE_MODEL) {
-        return;
-    }
-
-    glm::vec3 jointPosition(0.0f);
-    int jointIndex = collision._intData;
-    if (getJointPositionInWorldFrame(jointIndex, jointPosition)) {
-        const FBXJoint& joint = _geometry->getFBXGeometry().joints[jointIndex];
-        if (joint.parentIndex != -1) {
-            // compute the approximate distance (travel) that the joint needs to move
-            glm::vec3 start;
-            getJointPositionInWorldFrame(joint.parentIndex, start);
-            glm::vec3 contactPoint = collision._contactPoint - start;
-            glm::vec3 penetrationEnd = contactPoint + collision._penetration;
-            glm::vec3 axis = glm::cross(contactPoint, penetrationEnd);
-            float travel = glm::length(axis);
-            const float MIN_TRAVEL = 1.0e-8f;
-            if (travel > MIN_TRAVEL) {
-                // compute the new position of the joint
-                float angle = asinf(travel / (glm::length(contactPoint) * glm::length(penetrationEnd)));
-                axis = glm::normalize(axis);
-                glm::vec3 end;
-                getJointPositionInWorldFrame(jointIndex, end);
-                // transform into model-frame
-                glm::vec3 newEnd = glm::inverse(_rotation) * (start + glm::angleAxis(angle, axis) * (end - start) - _translation);
-                // try to move it
-                setJointPosition(jointIndex, newEnd, glm::quat(), false, -1, true);
-            }
-        }
-    }
 }
 
 void Model::setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
