@@ -183,7 +183,7 @@ bool MetavoxelTests::run() {
     bob.setOther(&alice);
     
     // perform a large number of simulation iterations
-    const int SIMULATION_ITERATIONS = 100000;
+    const int SIMULATION_ITERATIONS = 10000;
     for (int i = 0; i < SIMULATION_ITERATIONS; i++) {
         if (alice.simulate(i) || bob.simulate(i)) {
             return true;
@@ -241,7 +241,7 @@ Endpoint::Endpoint(const QByteArray& datagramHeader) :
     _receiveRecords.append(receiveRecord);
     
     // create the object that represents out delta-encoded state
-    //_localState = new TestSharedObjectA();
+    _localState = new TestSharedObjectA();
     
     connect(_sequencer->getReliableInputChannel(), SIGNAL(receivedMessage(const QVariant&)),
         SLOT(handleReliableMessage(const QVariant&)));

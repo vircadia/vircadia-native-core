@@ -224,7 +224,8 @@ void Bitstream::persistWriteMappings(const WriteMappings& mappings) {
         }
         connect(it.key().data(), SIGNAL(destroyed(QObject*)), SLOT(clearSharedObject(QObject*)));
         QPointer<SharedObject>& reference = _sharedObjectReferences[it.key()->getOriginID()];
-        if (reference) {
+        if (reference && reference != it.key()) {
+            // the object has been replaced by a successor, so we can forget about the original
             _sharedObjectStreamer.removePersistentID(reference);
             reference->disconnect(this);
         }
@@ -258,7 +259,8 @@ void Bitstream::persistReadMappings(const ReadMappings& mappings) {
             continue;
         }
         QPointer<SharedObject>& reference = _sharedObjectReferences[it.value()->getRemoteOriginID()];
-        if (reference) {
+        if (reference && reference != it.value()) {
+            // the object has been replaced by a successor, so we can forget about the original
             _sharedObjectStreamer.removePersistentValue(reference.data());
         }
         reference = it.value();
