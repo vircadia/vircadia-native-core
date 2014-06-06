@@ -310,21 +310,14 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
         // stereo buffer - do attenuation but no sample delay for spatialization        
         for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 4) {
             // use MMX to clamp four additions at a time
-            
-            __m64 bufferSamples = _mm_set_pi16(_clientSamples[s], _clientSamples[s + 1],
-                                               _clientSamples[s + 2], _clientSamples[s + 3]);
-            __m64 addSamples = _mm_set_pi16(nextOutputStart[s] * attenuationCoefficient,
-                                            nextOutputStart[s + 1] * attenuationCoefficient,
-                                            nextOutputStart[s + 2] * attenuationCoefficient,
-                                            nextOutputStart[s + 3] * attenuationCoefficient);
-            
-            __m64 mmxResult = _mm_adds_pi16(bufferSamples, addSamples);
-            int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
-            
-            _clientSamples[s] = shortResults[3];
-            _clientSamples[s + 1] = shortResults[2];
-            _clientSamples[s + 2] = shortResults[1];
-            _clientSamples[s + 3] = shortResults[0];
+            _clientSamples[s] = glm::clamp(_clientSamples[s] + (int) (nextOutputStart[s] * attenuationCoefficient),
+                                            MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+            _clientSamples[s + 1] = glm::clamp(_clientSamples[s + 1] + (int) (nextOutputStart[s + 1] * attenuationCoefficient),
+                                               MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+            _clientSamples[s + 2] = glm::clamp(_clientSamples[s + 2] + (int) (nextOutputStart[s + 2] * attenuationCoefficient),
+                                               MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+            _clientSamples[s + 3] = glm::clamp(_clientSamples[s + 3] + (int) (nextOutputStart[s + 3] * attenuationCoefficient),
+                                               MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
         }
     }
 }
