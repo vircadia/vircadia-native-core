@@ -38,6 +38,7 @@ static int streamedBytesSent = 0;
 static int streamedBytesReceived = 0;
 static int sharedObjectsCreated = 0;
 static int sharedObjectsDestroyed = 0;
+static int objectMutationsPerformed = 0;
 
 static QByteArray createRandomBytes(int minimumSize, int maximumSize) {
     QByteArray bytes(randIntInRange(minimumSize, maximumSize), 0);
@@ -196,6 +197,7 @@ bool MetavoxelTests::run() {
     qDebug() << "Sent" << streamedBytesSent << "streamed bytes, received" << streamedBytesReceived;
     qDebug() << "Sent" << datagramsSent << "datagrams, received" << datagramsReceived;
     qDebug() << "Created" << sharedObjectsCreated << "shared objects, destroyed" << sharedObjectsDestroyed;
+    qDebug() << "Performed" << objectMutationsPerformed << "object mutations";
     qDebug();
     
     qDebug() << "Running serialization tests...";
@@ -272,10 +274,34 @@ static QVariant createRandomMessage() {
             TestMessageB message = { createRandomBytes(), createRandomSharedObject(), getRandomTestEnum() };
             return QVariant::fromValue(message); 
         }
-        case 2:
         default: {
             return QVariant::fromValue(createRandomMessageC());
         }
+    }
+}
+
+static SharedObjectPointer mutate(const SharedObjectPointer& state) {
+    switch(randIntInRange(0, 3)) {
+        case 0: {
+            SharedObjectPointer newState = state->clone(true);
+            static_cast<TestSharedObjectA*>(newState.data())->setFoo(randFloat());
+            objectMutationsPerformed++;
+            return newState;
+        }
+        case 1: {
+            SharedObjectPointer newState = state->clone(true);
+            static_cast<TestSharedObjectA*>(newState.data())->setBaz(getRandomTestEnum());
+            objectMutationsPerformed++;
+            return newState;
+        }   
+        case 2: {
+            SharedObjectPointer newState = state->clone(true);
+            static_cast<TestSharedObjectA*>(newState.data())->setBong(getRandomTestFlags());
+            objectMutationsPerformed++;
+            return newState;
+        }
+        default:
+            return state;
     }
 }
 
@@ -336,6 +362,9 @@ bool Endpoint::simulate(int iterationNumber) {
         reliableMessagesSent++;
         _reliableMessagesToSend -= 1.0f;
     }
+    
+    // tweak the local state
+    _localState = mutate(_localState);
     
     // send a packet
     try {
@@ -404,6 +433,8 @@ void Endpoint::handleHighPriorityMessage(const QVariant& message) {
 void Endpoint::readMessage(Bitstream& in) {
     SequencedTestMessage message;
     in >> message;
+    
+    _remoteState = message.state;
     
     // record the receipt
     ReceiveRecord record = { _sequencer->getIncomingPacketNumber(), message.state };

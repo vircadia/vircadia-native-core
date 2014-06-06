@@ -76,6 +76,7 @@ private:
     QList<ReceiveRecord> _receiveRecords;
     
     SharedObjectPointer _localState;
+    SharedObjectPointer _remoteState;
     
     Endpoint* _other;
     QList<QPair<QByteArray, int> > _delayedDatagrams;
