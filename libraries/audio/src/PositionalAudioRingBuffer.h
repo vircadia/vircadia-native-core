@@ -24,7 +24,7 @@ public:
         Injector
     };
     
-    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type);
+    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, bool isStereo = false);
     ~PositionalAudioRingBuffer();
     
     int parseData(const QByteArray& packet);
@@ -41,6 +41,8 @@ public:
     
     bool shouldLoopbackForNode() const { return _shouldLoopbackForNode; }
     
+    bool isStereo() const { return _isStereo; }
+    
     PositionalAudioRingBuffer::Type getType() const { return _type; }
     const glm::vec3& getPosition() const { return _position; }
     const glm::quat& getOrientation() const { return _orientation; }
@@ -56,6 +58,7 @@ protected:
     bool _willBeAddedToMix;
     bool _shouldLoopbackForNode;
     bool _shouldOutputStarveDebug;
+    bool _isStereo;
     
     float _nextOutputTrailingLoudness;
 };
