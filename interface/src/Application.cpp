@@ -1007,12 +1007,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_At:
                 Menu::getInstance()->goTo();
                 break;
-            case Qt::Key_B:
-                _applicationOverlay.setOculusAngle(_applicationOverlay.getOculusAngle() - RADIANS_PER_DEGREE);
-                break;
-            case Qt::Key_N:
-                _applicationOverlay.setOculusAngle(_applicationOverlay.getOculusAngle() + RADIANS_PER_DEGREE);
-                break;
             default:
                 event->ignore();
                 break;
@@ -1848,7 +1842,8 @@ void Application::updateMyAvatarLookAtPosition() {
             }
         } else {
             //  I am not looking at anyone else, so just look forward
-            lookAtSpot = _myAvatar->getHead()->calculateAverageEyePosition() + (_myAvatar->getHead()->getFinalOrientation() * glm::vec3(0.f, 0.f, -TREE_SCALE));
+            lookAtSpot = _myAvatar->getHead()->calculateAverageEyePosition() + 
+                (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.f, 0.f, -TREE_SCALE));
         }
         // TODO:  Add saccade to mouse pointer when stable, IF not looking at someone (since we know we are looking at it)
         /*

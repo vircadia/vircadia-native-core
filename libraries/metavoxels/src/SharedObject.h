@@ -41,31 +41,44 @@ public:
     /// Returns the unique local ID for this object.
     int getID() const { return _id; }
 
+    /// Returns the local origin ID for this object.
+    int getOriginID() const { return _originID; }
+
+    void setOriginID(int originID) { _originID = originID; }
+
     /// Returns the unique remote ID for this object, or zero if this is a local object.
     int getRemoteID() const { return _remoteID; }
     
     void setRemoteID(int remoteID) { _remoteID = remoteID; }
+
+    /// Returns the remote origin ID for this object, or zero if this is a local object.
+    int getRemoteOriginID() const { return _remoteOriginID; }    
+
+    void setRemoteOriginID(int remoteOriginID) { _remoteOriginID = remoteOriginID; }
 
     int getReferenceCount() const { return _referenceCount.load(); }
     void incrementReferenceCount();
     void decrementReferenceCount();
 
     /// Creates a new clone of this object.
-    /// \param withID if true, give the clone the same ID as this object
-    virtual SharedObject* clone(bool withID = false) const;
+    /// \param withID if true, give the clone the same origin ID as this object
+    /// \target if non-NULL, a target object to populate (as opposed to creating a new instance of this object's class)
+    virtual SharedObject* clone(bool withID = false, SharedObject* target = NULL) const;
 
     /// Tests this object for equality with another.    
-    virtual bool equals(const SharedObject* other) const;
+    /// \param sharedAncestry if true and the classes of the objects differ, compare their shared ancestry (assuming that
+    /// this is an instance of a superclass of the other object's class) rather than simply returning false.
+    virtual bool equals(const SharedObject* other, bool sharedAncestry = false) const;
 
     // Dumps the contents of this object to the debug output.
     virtual void dump(QDebug debug = QDebug(QtDebugMsg)) const;
 
 private:
     
-    void setID(int id);
-    
     int _id;
+    int _originID;
     int _remoteID;
+    int _remoteOriginID;
     QAtomicInt _referenceCount;
     
     static int _lastID;
