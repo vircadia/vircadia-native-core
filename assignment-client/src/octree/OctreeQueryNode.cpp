@@ -41,7 +41,8 @@ OctreeQueryNode::OctreeQueryNode() :
     _sequenceNumber(0),
     _lastRootTimestamp(0),
     _myPacketType(PacketTypeUnknown),
-    _isShuttingDown(false)
+    _isShuttingDown(false),
+    _sentPacketHistory(1000)
 {
 }
 
@@ -361,4 +362,36 @@ void OctreeQueryNode::dumpOutOfView() {
             }
         }
     }
+}
+
+void OctreeQueryNode::packetSent() {
+    packetSent(_octreePacket, getPacketLength());
+}
+
+void OctreeQueryNode::packetSent(unsigned char* packet, int packetLength) {
+    packetSent(QByteArray((char*)packet, packetLength));
+}
+
+void OctreeQueryNode::packetSent(const QByteArray& packet) {
+    _sentPacketHistory.packetSent(_sequenceNumber, packet);
+    _sequenceNumber++;
+}
+
+
+void OctreeQueryNode::addSequenceNumbersToResend(const QList<OCTREE_PACKET_SEQUENCE>& sequenceNumbers) {
+    _sequenceNumbersToResend.append(sequenceNumbers);
+}
+
+bool OctreeQueryNode::hasNextPacketToResend() const {
+    return !_sequenceNumbersToResend.isEmpty();
+}
+
+const QByteArray* OctreeQueryNode::getNextPacketToResend() {
+
+    if (!_sequenceNumbersToResend.isEmpty()) {
+        const QByteArray* nextPacket = _sentPacketHistory.getPacket(_sequenceNumbersToResend.first());
+        _sequenceNumbersToResend.pop_front();
+        return nextPacket;  // could be null
+    }
+    return NULL;
 }

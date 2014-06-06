@@ -274,12 +274,46 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         trueBytesSent += nodeData->getPacketLength();
         truePacketsSent++;
         packetsSent++;
-        nodeData->incrementSequenceNumber();
+        nodeData->packetSent();
         nodeData->resetOctreePacket();
     }
 
     return packetsSent;
 }
+
+
+
+
+
+int OctreeSendThread::resendNackedPackets(OctreeQueryNode* nodeData) {
+
+    int packetsSent = 0;
+
+    const QByteArray* packet;
+    while (nodeData->hasNextPacketToResend()) {
+        packet = nodeData->getNextPacketToResend();
+        if (packet) {
+            NodeList::getInstance()->writeDatagram(*packet, _node);
+            packetsSent++;
+
+            // ??????
+            _totalBytes += packet->size();
+            _totalPackets++;
+            _totalWastedBytes += MAX_PACKET_SIZE - packet->size();  // ???
+        }
+    }
+    
+}
+
+
+
+
+
+
+
+
+
+
 
 /// Version of voxel distributor that sends the deepest LOD level at once
 int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrustumChanged) {

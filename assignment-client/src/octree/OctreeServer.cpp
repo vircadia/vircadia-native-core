@@ -832,14 +832,14 @@ void OctreeServer::readPendingDatagrams() {
             PacketType packetType = packetTypeForPacket(receivedPacket);
             SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
             if (packetType == getMyQueryMessageType()) {
-            
+
                 // If we got a query packet, then we're talking to an agent, and we
                 // need to make sure we have it in our nodeList.
                 if (matchingNode) {
                     nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
-                    OctreeQueryNode* nodeData = (OctreeQueryNode*) matchingNode->getLinkedData();
+                    OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
                     if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
-                    
+
                         // NOTE: this is an important aspect of the proper ref counting. The send threads/node data need to 
                         // know that the OctreeServer/Assignment will not get deleted on it while it's still active. The 
                         // solution is to get the shared pointer for the current assignment. We need to make sure this is the 
@@ -848,6 +848,28 @@ void OctreeServer::readPendingDatagrams() {
                         nodeData->initializeOctreeSendThread(sharedAssignment, matchingNode);
                     }
                 }
+
+            } else if (packetType == PacketTypeOctreeDataNack) {
+
+// parse packet for sequence numbers that need to be resent
+int numBytesPacketHeader = numBytesForPacketHeader(receivedPacket);
+const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(receivedPacket.data()) + numBytesPacketHeader;
+
+uint16_t numSequenceNumbers = (*(uint16_t*)dataAt);
+dataAt += sizeof(uint16_t);
+
+// read sequence numbers
+QList<OCTREE_PACKET_SEQUENCE> sequenceNumbers;
+for (int i = 0; i < numSequenceNumbers; i++) {
+    sequenceNumbers.append(*(OCTREE_PACKET_SEQUENCE*)dataAt);
+    dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
+}
+
+OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();    // move this or something
+nodeData->addSequenceNumbersToResend(sequenceNumbers);
+
+
+
             } else if (packetType == PacketTypeJurisdictionRequest) {
                 _jurisdictionSender->queueReceivedPacket(matchingNode, receivedPacket);
             } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
