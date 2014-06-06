@@ -28,6 +28,8 @@ MetavoxelTests::MetavoxelTests(int& argc, char** argv) :
 
 static int datagramsSent = 0;
 static int datagramsReceived = 0;
+static int bytesSent = 0;
+static int bytesReceived = 0;
 static int highPriorityMessagesSent = 0;
 static int highPriorityMessagesReceived = 0;
 static int unreliableMessagesSent = 0;
@@ -195,7 +197,8 @@ bool MetavoxelTests::run() {
     qDebug() << "Sent" << unreliableMessagesSent << "unreliable messages, received" << unreliableMessagesReceived;
     qDebug() << "Sent" << reliableMessagesSent << "reliable messages, received" << reliableMessagesReceived;
     qDebug() << "Sent" << streamedBytesSent << "streamed bytes, received" << streamedBytesReceived;
-    qDebug() << "Sent" << datagramsSent << "datagrams, received" << datagramsReceived;
+    qDebug() << "Sent" << datagramsSent << "datagrams with" << bytesSent << "bytes, received" <<
+        datagramsReceived << "with" << bytesReceived << "bytes";
     qDebug() << "Created" << sharedObjectsCreated << "shared objects, destroyed" << sharedObjectsDestroyed;
     qDebug() << "Performed" << objectMutationsPerformed << "object mutations";
     qDebug();
@@ -389,6 +392,7 @@ bool Endpoint::simulate(int iterationNumber) {
 
 void Endpoint::sendDatagram(const QByteArray& datagram) {
     datagramsSent++;
+    bytesSent += datagram.size();
     
     // some datagrams are dropped
     const float DROP_PROBABILITY = 0.1f;
@@ -414,6 +418,7 @@ void Endpoint::sendDatagram(const QByteArray& datagram) {
     
     _other->_sequencer->receivedDatagram(datagram);
     datagramsReceived++;
+    bytesReceived += datagram.size();
 }
 
 void Endpoint::handleHighPriorityMessage(const QVariant& message) {
@@ -445,6 +450,9 @@ void Endpoint::readMessage(Bitstream& in) {
         if (it->sequenceNumber == message.sequenceNumber) {
             if (!messagesEqual(it->submessage, message.submessage)) {
                 throw QString("Sent/received unreliable message mismatch.");
+            }
+            if (!it->state->equals(message.state)) {
+                throw QString("Delta-encoded object mismatch.");
             }
             _other->_unreliableMessagesSent.erase(_other->_unreliableMessagesSent.begin(), it + 1);
             unreliableMessagesReceived++;
