@@ -2097,7 +2097,7 @@ void Application::updateMyAvatar(float deltaTime) {
 {
     quint64 now = usecTimestampNow();
     quint64 sinceLastNack = now - _lastNackTime;
-    const quint64 TOO_LONG_SINCE_LAST_NACK = 100 * MSECS_PER_SECOND;
+    const quint64 TOO_LONG_SINCE_LAST_NACK = 250 * MSECS_PER_SECOND;
     if (sinceLastNack > TOO_LONG_SINCE_LAST_NACK) {
         _lastNackTime = now;
         sendNack();
@@ -2107,6 +2107,8 @@ void Application::updateMyAvatar(float deltaTime) {
 
 
 void Application::sendNack() {
+
+printf("\n\t sendNack()...\n");
 
     char packet[MAX_PACKET_SIZE];
     NodeList* nodeList = NodeList::getInstance();
@@ -2142,11 +2144,14 @@ void Application::sendNack() {
             dataAt += sizeof(uint16_t);
 
             // pack sequence numbers
+printf("\t\t packed %d seq #s:", numSequenceNumbers);
             for (int i = 0; i < numSequenceNumbers; i++) {
                 OCTREE_PACKET_SEQUENCE* sequenceNumberAt = (OCTREE_PACKET_SEQUENCE*)dataAt;
                 *sequenceNumberAt = stats.getNextSequenceNumberToNack();
                 dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
+printf(" %d,", *sequenceNumberAt);
             }
+printf("\n");
 
             _octreeSceneStatsLock.unlock();
 

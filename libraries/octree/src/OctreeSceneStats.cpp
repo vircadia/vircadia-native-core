@@ -159,7 +159,7 @@ void OctreeSceneStats::copyFromOther(const OctreeSceneStats& other) {
     _incomingPossibleDuplicate = other._incomingPossibleDuplicate;
     
     _missingSequenceNumbers = other._missingSequenceNumbers;
-_missingSequenceNumbersToNack = other._missingSequenceNumbersToNack;
+_sequenceNumbersToNack = other._sequenceNumbersToNack;
 }
 
 
