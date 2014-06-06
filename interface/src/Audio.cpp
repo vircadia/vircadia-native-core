@@ -290,20 +290,27 @@ void linearResampling(int16_t* sourceSamples, int16_t* destinationSamples,
         if (sourceToDestinationFactor >= 2) {
             // we need to downsample from 48 to 24
             // for now this only supports a mono output - this would be the case for audio input
-
-            for (unsigned int i = sourceAudioFormat.channelCount(); i < numSourceSamples; i += 2 * sourceAudioFormat.channelCount()) {
-                if (i + (sourceAudioFormat.channelCount()) >= numSourceSamples) {
-                    destinationSamples[(i - sourceAudioFormat.channelCount()) / (int) sourceToDestinationFactor] =
+            if (destinationAudioFormat.channelCount() == 1) {
+                for (unsigned int i = sourceAudioFormat.channelCount(); i < numSourceSamples; i += 2 * sourceAudioFormat.channelCount()) {
+                    if (i + (sourceAudioFormat.channelCount()) >= numSourceSamples) {
+                        destinationSamples[(i - sourceAudioFormat.channelCount()) / (int) sourceToDestinationFactor] =
                         (sourceSamples[i - sourceAudioFormat.channelCount()] / 2)
                         + (sourceSamples[i] / 2);
-                } else {
-                    destinationSamples[(i - sourceAudioFormat.channelCount()) / (int) sourceToDestinationFactor] =
+                    } else {
+                        destinationSamples[(i - sourceAudioFormat.channelCount()) / (int) sourceToDestinationFactor] =
                         (sourceSamples[i - sourceAudioFormat.channelCount()] / 4)
                         + (sourceSamples[i] / 2)
                         + (sourceSamples[i + sourceAudioFormat.channelCount()] / 4);
+                    }
+                }
+            } else {
+                // this is a 48 to 24 resampling but both source and destination are two channels
+                // squish two samples into one in each channel
+                for (int i = 0; i < numSourceSamples; i += 2) {
+                    destinationSamples[i / 2] = (sourceSamples[i] / 2) + (sourceSamples[i + 2] / 2);
+                    destinationSamples[(i / 2) + 1] = (sourceSamples[i + 1] / 2) + (sourceSamples[i + 3] / 2);
                 }
             }
-
         } else {
             if (sourceAudioFormat.sampleRate() == destinationAudioFormat.sampleRate()) {
                 // mono to stereo, same sample rate
@@ -409,7 +416,7 @@ void Audio::handleAudioInput() {
     static char audioDataPacket[MAX_PACKET_SIZE];
 
     static int numBytesPacketHeader = numBytesForPacketHeaderGivenPacketType(PacketTypeMicrophoneAudioNoEcho);
-    static int leadingBytes = numBytesPacketHeader + sizeof(glm::vec3) + sizeof(glm::quat);
+    static int leadingBytes = numBytesPacketHeader + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
 
     static int16_t* networkAudioSamples = (int16_t*) (audioDataPacket + leadingBytes);
 
@@ -610,9 +617,7 @@ void Audio::handleAudioInput() {
             MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
             glm::vec3 headPosition = interfaceAvatar->getHead()->getPosition();
             glm::quat headOrientation = interfaceAvatar->getHead()->getFinalOrientation();
-
-            // we need the amount of bytes in the buffer + 1 for type
-            // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
+            quint8 isStereo = _isStereoInput ? 1 : 0;
             
             int numAudioBytes = 0;
             
@@ -621,7 +626,7 @@ void Audio::handleAudioInput() {
                 packetType = PacketTypeSilentAudioFrame;
                 
                 // we need to indicate how many silent samples this is to the audio mixer
-                networkAudioSamples[0] = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                audioDataPacket[0] = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
                 numAudioBytes = sizeof(int16_t);
                 
             } else {
@@ -643,6 +648,9 @@ void Audio::handleAudioInput() {
             // memcpy our orientation
             memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
             currentPacketPtr += sizeof(headOrientation);
+            
+            // set the mono/stereo byte
+            *currentPacketPtr++ = isStereo;
             
             nodeList->writeDatagram(audioDataPacket, numAudioBytes + leadingBytes, audioMixer);
 
