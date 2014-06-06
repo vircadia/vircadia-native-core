@@ -356,7 +356,6 @@ function controller(wichSide) {
                     var factor2 = Vec3.dot(forward, this.modelPositionAtGrab) - d;
                     var vector = Vec3.subtract(this.palmPosition, this.positionAtGrab);
                     
-                    print("factor1: " + factor1 + ", factor2: " + factor2);
                     if (factor2 < 0) {
                         factor2 = 0;
                     }
@@ -395,46 +394,8 @@ function controller(wichSide) {
             for (var i = 0; i < indicesToRemove.length; ++i) {
                 this.jointsIntersectingFromStart.splice(this.jointsIntersectingFromStart.indexOf(indicesToRemove[i], 1));
             }
-            
-            
-            jointList = MyAvatar.getJointNames();
-            
-            var closestJointIndex = -1;
-            var closestJointDistance = 999999;
-            for (var i = 0; i < jointList.length; i++) {
-                var distance = Vec3.distance(MyAvatar.getJointPosition(jointList[i]), this.oldModelPosition);
-                if (distance < closestJointDistance) {
-                    closestJointDistance = distance;
-                    closestJointIndex = i;
-                }
-            }
-            
-            if (closestJointDistance < this.oldModelRadius) {
-                if (this.jointsIntersectingFromStart.indexOf(closestJointIndex) != -1 ||
-                    (leftController.grabbing && rightController.grabbing &&
-                     leftController.modelID.id == rightController.modelID.id)) {
-                        // Do nothing
-                    } else {
-                        Vec3.print("Ball at: ", MyAvatar.getJointPosition(closestJointIndex));
-                        Overlays.editOverlay(this.ballGlowingJoint, {
-                                             position: MyAvatar.getJointPosition(closestJointIndex),
-                                             glowLevel: 0.25,
-                                             visible: true
-                                             });
-                    }
-            } else {
-                Overlays.editOverlay(this.ballGlowingJoint, { glowLevel: 0.0, visible: false });
-            }
         }
     }
-    this.ballGlowingJoint = Overlays.addOverlay("sphere", {
-                                                position: { x: 0, y: 0, z: 0 },
-                                                size: 1,
-                                                solid: true,
-                                                color: { red: 0, green: 255, blue: 0 },
-                                                alpha: 1,
-                                                visible: false,
-                                                anchor: "MyAvatar"});
     
     this.update = function () {
         this.oldPalmPosition = this.palmPosition;
@@ -617,6 +578,17 @@ function moveModels() {
                 var w = Vec3.normalize(Vec3.cross(u, v));
                 
                 rotation = Quat.multiply(Quat.angleAxis(angle, w), leftController.oldModelRotation);
+                
+                
+                leftController.positionAtGrab = leftController.palmPosition;
+                leftController.rotationAtGrab = leftController.rotation;
+                leftController.modelPositionAtGrab = leftController.oldModelPosition;
+                leftController.modelRotationAtGrab = rotation;
+                
+                rightController.positionAtGrab = rightController.palmPosition;
+                rightController.rotationAtGrab = rightController.rotation;
+                rightController.modelPositionAtGrab = rightController.oldModelPosition;
+                rightController.modelRotationAtGrab = rotation;
                 break;
         }
         
