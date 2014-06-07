@@ -29,6 +29,7 @@
 class QByteArray;
 class QColor;
 class QDataStream;
+class QScriptValue;
 class QUrl;
 
 class Attribute;
@@ -371,6 +372,9 @@ public:
     
     Bitstream& operator<<(const QScriptString& string);
     Bitstream& operator>>(QScriptString& string);
+    
+    Bitstream& operator<<(const QScriptValue& value);
+    Bitstream& operator>>(QScriptValue& value);
     
     Bitstream& operator<<(const SharedObjectPointer& object);
     Bitstream& operator>>(SharedObjectPointer& object);

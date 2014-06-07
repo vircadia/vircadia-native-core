@@ -543,6 +543,98 @@ Bitstream& Bitstream::operator>>(QScriptString& string) {
     return *this;
 }
 
+enum ScriptValueType {
+    INVALID_SCRIPT_VALUE,
+    UNDEFINED_SCRIPT_VALUE,
+    NULL_SCRIPT_VALUE,
+    BOOL_SCRIPT_VALUE,
+    NUMBER_SCRIPT_VALUE,
+    STRING_SCRIPT_VALUE,
+    QVARIANT_SCRIPT_VALUE,
+    QOBJECT_SCRIPT_VALUE,
+    DATE_SCRIPT_VALUE,
+    REGEXP_SCRIPT_VALUE,
+    ARRAY_SCRIPT_VALUE,
+    OBJECT_SCRIPT_VALUE
+};
+
+const int SCRIPT_VALUE_BITS = 4;
+
+void writeScriptValueType(Bitstream& out, ScriptValueType type) {
+    out.write(&type, SCRIPT_VALUE_BITS);
+}
+
+ScriptValueType readScriptValueType(Bitstream& in) {
+    ScriptValueType type = (ScriptValueType)0;
+    in.read(&type, SCRIPT_VALUE_BITS);
+    return type;
+}
+
+Bitstream& Bitstream::operator<<(const QScriptValue& value) {
+    if (value.isUndefined()) {
+        writeScriptValueType(*this, UNDEFINED_SCRIPT_VALUE);
+        
+    } else if (value.isNull()) {
+        writeScriptValueType(*this, NULL_SCRIPT_VALUE);
+    
+    } else if (value.isBool()) {
+        writeScriptValueType(*this, BOOL_SCRIPT_VALUE);
+    
+    } else if (value.isNumber()) {
+        writeScriptValueType(*this, NUMBER_SCRIPT_VALUE);
+    
+    } else if (value.isString()) {
+        writeScriptValueType(*this, STRING_SCRIPT_VALUE);
+    
+    } else if (value.isArray()) {
+        writeScriptValueType(*this, ARRAY_SCRIPT_VALUE);
+    
+    } else if (value.isObject()) {
+        writeScriptValueType(*this, OBJECT_SCRIPT_VALUE);
+    
+    } else {
+        writeScriptValueType(*this, INVALID_SCRIPT_VALUE);
+    }
+    return *this;
+}
+
+Bitstream& Bitstream::operator>>(QScriptValue& value) {
+    switch (readScriptValueType(*this)) {
+        case UNDEFINED_SCRIPT_VALUE:
+            value = QScriptValue(QScriptValue::UndefinedValue);
+            break;
+        
+        case NULL_SCRIPT_VALUE:
+            value = QScriptValue(QScriptValue::NullValue);
+            break;
+        
+        case BOOL_SCRIPT_VALUE:
+            value = QScriptValue();
+            break;
+         
+        case NUMBER_SCRIPT_VALUE:
+            value = QScriptValue();
+            break;
+        
+        case STRING_SCRIPT_VALUE:
+            value = QScriptValue();
+            break;
+        
+        case ARRAY_SCRIPT_VALUE:
+            value = QScriptValue();
+            break;
+        
+        case OBJECT_SCRIPT_VALUE:
+            value = QScriptValue();
+            break;
+            
+        default:
+            value = QScriptValue();
+            break;
+    }
+    return *this;
+}
+
 Bitstream& Bitstream::operator<<(const SharedObjectPointer& object) {
     _sharedObjectStreamer << object;
     return *this;
