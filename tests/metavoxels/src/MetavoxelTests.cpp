@@ -51,6 +51,29 @@ static QByteArray createRandomBytes() {
     return createRandomBytes(MIN_BYTES, MAX_BYTES);
 }
 
+static TestSharedObjectA::TestEnum getRandomTestEnum() {
+    switch (randIntInRange(0, 2)) {
+        case 0: return TestSharedObjectA::FIRST_TEST_ENUM;
+        case 1: return TestSharedObjectA::SECOND_TEST_ENUM;
+        case 2:
+        default: return TestSharedObjectA::THIRD_TEST_ENUM;
+    }
+}
+
+static TestSharedObjectA::TestFlags getRandomTestFlags() {
+    TestSharedObjectA::TestFlags flags = 0;
+    if (randomBoolean()) {
+        flags |= TestSharedObjectA::FIRST_TEST_FLAG;
+    }
+    if (randomBoolean()) {
+        flags |= TestSharedObjectA::SECOND_TEST_FLAG;
+    }
+    if (randomBoolean()) {
+        flags |= TestSharedObjectA::THIRD_TEST_FLAG;
+    }
+    return flags;
+}
+
 static TestMessageC createRandomMessageC() {
     TestMessageC message;
     message.foo = randomBoolean();
@@ -64,9 +87,11 @@ static bool testSerialization(Bitstream::MetadataType metadataType) {
     QByteArray array;
     QDataStream outStream(&array, QIODevice::WriteOnly);
     Bitstream out(outStream, metadataType);
-    SharedObjectPointer testObjectWrittenA = new TestSharedObjectA(randFloat());
+    SharedObjectPointer testObjectWrittenA = new TestSharedObjectA(randFloat(), TestSharedObjectA::SECOND_TEST_ENUM,
+        TestSharedObjectA::TestFlags(TestSharedObjectA::FIRST_TEST_FLAG | TestSharedObjectA::THIRD_TEST_FLAG));
     out << testObjectWrittenA;
-    SharedObjectPointer testObjectWrittenB = new TestSharedObjectB(randFloat(), createRandomBytes());
+    SharedObjectPointer testObjectWrittenB = new TestSharedObjectB(randFloat(), createRandomBytes(),
+        TestSharedObjectB::THIRD_TEST_ENUM, TestSharedObjectB::SECOND_TEST_FLAG);
     out << testObjectWrittenB;
     TestMessageC messageWritten = createRandomMessageC();
     out << QVariant::fromValue(messageWritten);
@@ -79,6 +104,10 @@ static bool testSerialization(Bitstream::MetadataType metadataType) {
     in.addMetaObjectSubstitution("TestSharedObjectA", &TestSharedObjectB::staticMetaObject);
     in.addMetaObjectSubstitution("TestSharedObjectB", &TestSharedObjectA::staticMetaObject);
     in.addTypeSubstitution("TestMessageC", TestMessageA::Type);
+    in.addTypeSubstitution("TestSharedObjectA::TestEnum", "TestSharedObjectB::TestEnum");
+    in.addTypeSubstitution("TestSharedObjectB::TestEnum", "TestSharedObjectA::TestEnum");
+    in.addTypeSubstitution("TestSharedObjectA::TestFlags", "TestSharedObjectB::TestFlags");
+    in.addTypeSubstitution("TestSharedObjectB::TestFlags", "TestSharedObjectA::TestFlags");
     SharedObjectPointer testObjectReadA;
     in >> testObjectReadA;
     
@@ -86,8 +115,11 @@ static bool testSerialization(Bitstream::MetadataType metadataType) {
         qDebug() << "Wrong class for A" << testObjectReadA << metadataType;
         return true;
     }
-    if (metadataType == Bitstream::FULL_METADATA && static_cast<TestSharedObjectA*>(testObjectWrittenA.data())->getFoo() !=
-            static_cast<TestSharedObjectB*>(testObjectReadA.data())->getFoo()) {
+    if (metadataType == Bitstream::FULL_METADATA && (static_cast<TestSharedObjectA*>(testObjectWrittenA.data())->getFoo() !=
+            static_cast<TestSharedObjectB*>(testObjectReadA.data())->getFoo() ||
+            static_cast<TestSharedObjectB*>(testObjectReadA.data())->getBaz() != TestSharedObjectB::SECOND_TEST_ENUM ||
+            static_cast<TestSharedObjectB*>(testObjectReadA.data())->getBong() !=
+                TestSharedObjectB::TestFlags(TestSharedObjectB::FIRST_TEST_FLAG | TestSharedObjectB::THIRD_TEST_FLAG))) {
         QDebug debug = qDebug() << "Failed to transfer shared field from A to B";
         testObjectWrittenA->dump(debug);
         testObjectReadA->dump(debug); 
@@ -100,8 +132,10 @@ static bool testSerialization(Bitstream::MetadataType metadataType) {
         qDebug() << "Wrong class for B" << testObjectReadB << metadataType;
         return true;
     }
-    if (metadataType == Bitstream::FULL_METADATA && static_cast<TestSharedObjectB*>(testObjectWrittenB.data())->getFoo() !=
-            static_cast<TestSharedObjectA*>(testObjectReadB.data())->getFoo()) {
+    if (metadataType == Bitstream::FULL_METADATA && (static_cast<TestSharedObjectB*>(testObjectWrittenB.data())->getFoo() !=
+            static_cast<TestSharedObjectA*>(testObjectReadB.data())->getFoo() ||
+            static_cast<TestSharedObjectA*>(testObjectReadB.data())->getBaz() != TestSharedObjectA::THIRD_TEST_ENUM ||
+            static_cast<TestSharedObjectA*>(testObjectReadB.data())->getBong() != TestSharedObjectA::SECOND_TEST_FLAG)) {
         QDebug debug = qDebug() << "Failed to transfer shared field from B to A";
         testObjectWrittenB->dump(debug);
         testObjectReadB->dump(debug); 
@@ -175,7 +209,7 @@ bool MetavoxelTests::run() {
 
 static SharedObjectPointer createRandomSharedObject() {
     switch (randIntInRange(0, 2)) {
-        case 0: return new TestSharedObjectA(randFloat());
+        case 0: return new TestSharedObjectA(randFloat(), getRandomTestEnum(), getRandomTestFlags());
         case 1: return new TestSharedObjectB();
         case 2:
         default: return SharedObjectPointer();
@@ -393,8 +427,10 @@ void Endpoint::readReliableChannel() {
     streamedBytesReceived += bytes.size();
 }
 
-TestSharedObjectA::TestSharedObjectA(float foo) :
-        _foo(foo) {
+TestSharedObjectA::TestSharedObjectA(float foo, TestEnum baz, TestFlags bong) :
+        _foo(foo),
+        _baz(baz),
+        _bong(bong) {
     sharedObjectsCreated++;    
 }
 
@@ -408,9 +444,11 @@ void TestSharedObjectA::setFoo(float foo) {
     }
 }
 
-TestSharedObjectB::TestSharedObjectB(float foo, const QByteArray& bar) :
+TestSharedObjectB::TestSharedObjectB(float foo, const QByteArray& bar, TestEnum baz, TestFlags bong) :
         _foo(foo),
-        _bar(bar) {
+        _bar(bar),
+        _baz(baz),
+        _bong(bong) {
     sharedObjectsCreated++;
 }
 

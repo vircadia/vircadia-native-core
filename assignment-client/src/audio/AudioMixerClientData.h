@@ -24,14 +24,14 @@ public:
     AudioMixerClientData();
     ~AudioMixerClientData();
     
-    const std::vector<PositionalAudioRingBuffer*> getRingBuffers() const { return _ringBuffers; }
+    const QList<PositionalAudioRingBuffer*> getRingBuffers() const { return _ringBuffers; }
     AvatarAudioRingBuffer* getAvatarAudioRingBuffer() const;
     
     int parseData(const QByteArray& packet);
     void checkBuffersBeforeFrameSend(int jitterBufferLengthSamples);
     void pushBuffersAfterFrameSend();
 private:
-    std::vector<PositionalAudioRingBuffer*> _ringBuffers;
+    QList<PositionalAudioRingBuffer*> _ringBuffers;
 };
 
 #endif // hifi_AudioMixerClientData_h

@@ -236,7 +236,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
             estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
         }
     }
-    
+   
     //  Rotate the body if the head is turned beyond the screen
     if (Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead)) {
         const float TRACKER_YAW_TURN_SENSITIVITY = 0.5f;
@@ -724,7 +724,8 @@ void MyAvatar::updateLookAtTargetAvatar() {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
         avatar->setIsLookAtTarget(false);
         if (!avatar->isMyAvatar()) {
-            float angleTo = glm::angle(getHead()->getFinalOrientation() * glm::vec3(0.0f, 0.0f, -1.0f),
+            glm::vec3 DEFAULT_GAZE_IN_HEAD_FRAME = glm::vec3(0.0f, 0.0f, -1.0f);
+            float angleTo = glm::angle(getHead()->getFinalOrientationInWorldFrame() * DEFAULT_GAZE_IN_HEAD_FRAME,
                                        glm::normalize(avatar->getHead()->getEyePosition() - getHead()->getEyePosition()));
             if (angleTo < smallestAngleTo) {
                 _lookAtTargetAvatar = avatarPointer;
