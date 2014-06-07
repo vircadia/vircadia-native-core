@@ -12,11 +12,7 @@
 #ifndef hifi_AccountScriptingInterface_h
 #define hifi_AccountScriptingInterface_h
 
-#include <QDebug>
 #include <QObject>
-#include <QString>
-
-#include "Application.h"
 
 class AccountScriptingInterface : public QObject {
     Q_OBJECT
