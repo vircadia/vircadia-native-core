@@ -14,7 +14,7 @@
 var Controller = Controller || {};
 var Overlays = Overlays || {};
 var Script = Script || {};
-var AccountManager = AccountManager || {};
+var Account = Account || {};
 
 (function () {
     "use strict";
@@ -24,6 +24,7 @@ var AccountManager = AccountManager || {};
         overlayTopOffset = 15,
         overlayRightOffset = 100,
         textRightOffset = 75,
+        maxDecimals = 5,
         downColor = {
             red: 0,
             green: 0,
@@ -39,7 +40,7 @@ var AccountManager = AccountManager || {};
             green: 204,
             blue: 204
         },
-        balance = 0,
+        balance = -1,
         voxelTool = Overlays.addOverlay("image", {
             x: 0,
             y: overlayTopOffset,
@@ -52,7 +53,6 @@ var AccountManager = AccountManager || {};
             x: 0,
             y: overlayTopOffset,
             topMargin: 9,
-            text: balance.toFixed(4),
             font: {
                 size: 15
             },
@@ -68,11 +68,13 @@ var AccountManager = AccountManager || {};
     function update(deltaTime) {
         var xPos = Controller.getViewportDimensions().x;
         Overlays.editOverlay(voxelTool, {
-            x: xPos - overlayRightOffset
+            x: xPos - overlayRightOffset,
+            visible: Account.isLoggedIn()
         });
 
         Overlays.editOverlay(textOverlay, {
-            x: xPos - textRightOffset
+            x: xPos - textRightOffset,
+            visible: Account.isLoggedIn()
         });
     }
 
@@ -83,8 +85,8 @@ var AccountManager = AccountManager || {};
 
         var change = newBalance - balance,
             textColor = change < 0 ? downColor : upColor,
-            integers = balance.toFixed(0).length,
-            decimals = integers > 4 ? 0 : integers - 4;
+            integers = newBalance.toFixed(0).length,
+            decimals = integers > maxDecimals ? 0 : maxDecimals - integers;
 
         balance = newBalance;
         Overlays.editOverlay(textOverlay, {
@@ -99,7 +101,8 @@ var AccountManager = AccountManager || {};
         }, 1000);
     }
 
-    AccountManager.balanceChanged.connect(updateBalance);
+    updateBalance(Account.getBalance());
+    Account.balanceChanged.connect(updateBalance);
     Script.scriptEnding.connect(scriptEnding);
     Script.update.connect(update);
 }());
