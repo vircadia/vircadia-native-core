@@ -21,6 +21,11 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar) :
     _owningAvatar(owningAvatar) {
 }
 
+void SkeletonModel::setJointStates(QVector<JointState> states) {
+    Model::setJointStates(states);
+    _ragDoll.init(_jointStates);
+}
+
 const float PALM_PRIORITY = 3.0f;
 
 void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
@@ -78,6 +83,21 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         applyPalmData(geometry.leftHandJointIndex, hand->getPalms()[leftPalmIndex]);
         applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[rightPalmIndex]);
     }
+    
+    simulateRagDoll(deltaTime);
+}
+
+void SkeletonModel::simulateRagDoll(float deltaTime) {
+    _ragDoll.slaveToSkeleton(_jointStates, 0.5f);
+
+    float MIN_CONSTRAINT_ERROR = 0.005f; // 5mm
+    int MAX_ITERATIONS = 4;
+    int iterations = 0;
+    float delta = 0.0f;
+    do {
+        delta = _ragDoll.enforceConstraints();
+        ++iterations;
+    } while (delta > MIN_CONSTRAINT_ERROR && iterations < MAX_ITERATIONS);
 }
 
 void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes) const {
@@ -121,6 +141,7 @@ void SkeletonModel::getBodyShapes(QVector<const Shape*>& shapes) const {
 void SkeletonModel::renderIKConstraints() {
     renderJointConstraints(getRightHandJointIndex());
     renderJointConstraints(getLeftHandJointIndex());
+    renderRagDoll();
 }
 
 class IndexValue {
@@ -452,3 +473,30 @@ bool SkeletonModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& seco
     return false;
 }
 
+void SkeletonModel::renderRagDoll() {
+    const int BALL_SUBDIVISIONS = 6;
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+    glPushMatrix();
+
+    Application::getInstance()->loadTranslatedViewMatrix(_translation);
+    QVector<glm::vec3> points = _ragDoll.getPoints();
+    int numPoints = points.size();
+    float alpha = 0.3f;
+    float radius1 = 0.008f;
+    float radius2 = 0.01f;
+    for (int i = 0; i < numPoints; ++i) {
+        glPushMatrix();
+        // draw each point as a yellow hexagon with black border
+        glm::vec3 position = _rotation * points[i];
+        glTranslatef(position.x, position.y, position.z);
+        glColor4f(0.0f, 0.0f, 0.0f, alpha);
+        glutSolidSphere(radius2, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
+        glColor4f(1.0f, 1.0f, 0.0f, alpha);
+        glutSolidSphere(radius1, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
+        glPopMatrix();
+    }
+    glPopMatrix();
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+}
