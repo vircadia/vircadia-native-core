@@ -377,11 +377,6 @@ void OctreeQueryNode::packetSent(const QByteArray& packet) {
     _sequenceNumber++;
 }
 
-
-void OctreeQueryNode::addSequenceNumbersToResend(const QList<OCTREE_PACKET_SEQUENCE>& sequenceNumbers) {
-    _nackedSequenceNumbers.append(sequenceNumbers);
-}
-
 bool OctreeQueryNode::hasNextNackedPacket() const {
     return !_nackedSequenceNumbers.isEmpty();
 }

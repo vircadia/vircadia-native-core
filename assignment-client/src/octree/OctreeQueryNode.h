@@ -109,7 +109,9 @@ public:
 
     OCTREE_PACKET_SEQUENCE getSequenceNumber() const { return _sequenceNumber; }
 
-    void addSequenceNumbersToResend(const QList<OCTREE_PACKET_SEQUENCE>& sequenceNumbers);
+    void addNackedSequenceNumber(OCTREE_PACKET_SEQUENCE sequenceNumber) { 
+        _nackedSequenceNumbers.append(sequenceNumber);
+    }
     bool hasNextNackedPacket() const;
     const QByteArray* getNextNackedPacket();
 

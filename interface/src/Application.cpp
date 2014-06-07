@@ -2110,8 +2110,6 @@ void Application::updateMyAvatar(float deltaTime) {
 
 void Application::sendNack() {
 
-printf("\n\t sendNack()...\n");
-
     char packet[MAX_PACKET_SIZE];
     NodeList* nodeList = NodeList::getInstance();
 
@@ -2124,15 +2122,18 @@ printf("\n\t sendNack()...\n");
             || node->getType() == NodeType::ModelServer)
             ) {
 
-            _octreeSceneStatsLock.lockForWrite();
+            //_octreeSceneStatsLock.lockForWrite();
 
             OctreeSceneStats& stats = _octreeServerSceneStats[node->getUUID()];
+            int numSequenceNumbersAvailable = stats.getNumSequenceNumbersToNack();
+            if (numSequenceNumbersAvailable == 0)
+                continue;
 
             char* dataAt = packet;
             int bytesRemaining = MAX_PACKET_SIZE;
 
             // pack header
-            int numBytesPacketHeader = populatePacketHeader(packet, PacketTypeOctreeDataNack, node->getUUID());
+            int numBytesPacketHeader = populatePacketHeader(packet, PacketTypeOctreeDataNack);
             dataAt += numBytesPacketHeader;
             bytesRemaining -= numBytesPacketHeader;
 
@@ -2140,12 +2141,13 @@ printf("\n\t sendNack()...\n");
 
 
             // calculate and pack number of sequence numbers
-            uint16_t numSequenceNumbers = min(stats.getNumSequenceNumbersToNack(), numPacketsRoomFor);
+            uint16_t numSequenceNumbers = min(numSequenceNumbersAvailable, numPacketsRoomFor);
             uint16_t* numSequenceNumbersAt = (uint16_t*)dataAt;
             *numSequenceNumbersAt = numSequenceNumbers;
             dataAt += sizeof(uint16_t);
 
             // pack sequence numbers
+printf("\n\t sending nack...\n");
 printf("\t\t packed %d seq #s:", numSequenceNumbers);
             for (int i = 0; i < numSequenceNumbers; i++) {
                 OCTREE_PACKET_SEQUENCE* sequenceNumberAt = (OCTREE_PACKET_SEQUENCE*)dataAt;
@@ -2155,10 +2157,10 @@ printf(" %d,", *sequenceNumberAt);
             }
 printf("\n");
 
-            _octreeSceneStatsLock.unlock();
+            //_octreeSceneStatsLock.unlock();
 
             // make sure we still have an active socket????
-            nodeList->writeUnverifiedDatagram(packet, dataAt - packet, node);
+            nodeList->writeUnverifiedDatagram(packet, dataAt-packet, node);
         }
     }
 }

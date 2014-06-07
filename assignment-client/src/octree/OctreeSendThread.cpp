@@ -305,7 +305,8 @@ int OctreeSendThread::resendNackedPackets(OctreeQueryNode* nodeData) {
             _totalWastedBytes += MAX_PACKET_SIZE - packet->size();  // ???
         }
     }
- 
+
+if (packetsSent > 0)
 printf("\t\t re-sent %d packets!\n", packetsSent);
     return packetsSent;
 }
