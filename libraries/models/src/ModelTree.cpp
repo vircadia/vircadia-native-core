@@ -185,7 +185,7 @@ void ModelTree::addModel(const ModelItemID& modelID, const ModelItemProperties& 
     glm::vec3 position = model.getPosition();
     float size = std::max(MINIMUM_MODEL_ELEMENT_SIZE, model.getRadius());
     
-    ModelTreeElement* element = (ModelTreeElement*)getOrCreateChildElementAt(position.x, position.y, position.z, size);
+    ModelTreeElement* element = static_cast<ModelTreeElement*>(getOrCreateChildElementAt(position.x, position.y, position.z, size));
     element->storeModel(model);
     
     _isDirty = true;
