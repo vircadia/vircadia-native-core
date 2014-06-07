@@ -20,44 +20,43 @@ var AccountManager = AccountManager || {};
     "use strict";
     var iconUrl = 'http://localhost/~stojce/',
         overlayWidth = 150,
-        overlayHeight = 150,
-        redColor = {
-            red: 255,
+        overlayHeight = 50,
+        overlayTopOffset = 15,
+        overlayRightOffset = 100,
+        textRightOffset = 75,
+        downColor = {
+            red: 0,
             green: 0,
-            blue: 0
+            blue: 255
         },
-        greenColor = {
+        upColor = {
             red: 0,
             green: 255,
             blue: 0
         },
-        whiteColor = {
-            red: 255,
-            green: 255,
-            blue: 255
+        normalColor = {
+            red: 204,
+            green: 204,
+            blue: 204
         },
         balance = 0,
         voxelTool = Overlays.addOverlay("image", {
             x: 0,
-            y: 0,
-            width: 50,
-            height: 50,
-            subImage: {
-                x: 0,
-                y: 50,
-                width: 50,
-                height: 50
-            },
+            y: overlayTopOffset,
+            width: 92,
+            height: 32,
             imageURL: iconUrl + "wallet.svg",
             alpha: 1
         }),
         textOverlay = Overlays.addOverlay("text", {
             x: 0,
-            y: 0,
-            width: 55,
-            height: 13,
-            topMargin: 5,
-            text: balance,
+            y: overlayTopOffset,
+            topMargin: 9,
+            text: balance.toFixed(4),
+            font: {
+                size: 15
+            },
+            color: normalColor,
             alpha: 0
         });
 
@@ -69,11 +68,11 @@ var AccountManager = AccountManager || {};
     function update(deltaTime) {
         var xPos = Controller.getViewportDimensions().x;
         Overlays.editOverlay(voxelTool, {
-            x: xPos - 150
+            x: xPos - overlayRightOffset
         });
 
         Overlays.editOverlay(textOverlay, {
-            x: xPos - 100
+            x: xPos - textRightOffset
         });
     }
 
@@ -82,18 +81,20 @@ var AccountManager = AccountManager || {};
             return;
         }
 
-        var change = balance - newBalance,
-            textColor = change > 0 ? redColor : greenColor;
+        var change = newBalance - balance,
+            textColor = change < 0 ? downColor : upColor,
+            integers = balance.toFixed(0).length,
+            decimals = integers > 4 ? 0 : integers - 4;
 
         balance = newBalance;
         Overlays.editOverlay(textOverlay, {
-            text: balance,
+            text: balance.toFixed(decimals),
             color: textColor
         });
 
         Script.setTimeout(function () {
             Overlays.editOverlay(textOverlay, {
-                color: whiteColor
+                color: normalColor
             });
         }, 1000);
     }
