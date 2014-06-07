@@ -2147,15 +2147,15 @@ void Application::sendNack() {
             dataAt += sizeof(uint16_t);
 
             // pack sequence numbers
-printf("\n\t sending nack...\n");
-printf("\t\t packed %d seq #s:", numSequenceNumbers);
+//printf("\n\t sending nack...\n");
+//printf("\t\t packed %d seq #s:", numSequenceNumbers);
             for (int i = 0; i < numSequenceNumbers; i++) {
                 OCTREE_PACKET_SEQUENCE* sequenceNumberAt = (OCTREE_PACKET_SEQUENCE*)dataAt;
                 *sequenceNumberAt = stats.getNextSequenceNumberToNack();
                 dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
-printf(" %d,", *sequenceNumberAt);
+//printf(" %d,", *sequenceNumberAt);
             }
-printf("\n");
+//printf("\n");
 
             //_octreeSceneStatsLock.unlock();
 
