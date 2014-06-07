@@ -18,7 +18,8 @@ var toolWidth = 50;
 
 var LASER_WIDTH = 4;
 var LASER_COLOR = { red: 255, green: 0, blue: 0 };
-var LASER_LENGTH_FACTOR = 5;
+var LASER_LENGTH_FACTOR = 500
+;
 
 var LEFT = 0;
 var RIGHT = 1;
@@ -42,6 +43,8 @@ var toolBar;
 
 var jointList = MyAvatar.getJointNames();
 
+var mode = 0;
+
 function isLocked(properties) {
     // special case to lock the ground plane model in hq.
     if (location.hostname == "hq.highfidelity.io" && 
@@ -57,6 +60,7 @@ function controller(wichSide) {
     this.palm = 2 * wichSide;
     this.tip = 2 * wichSide + 1;
     this.trigger = wichSide;
+    this.bumper = 6 * wichSide + 5;
     
     this.oldPalmPosition = Controller.getSpatialControlPosition(this.palm);
     this.palmPosition = Controller.getSpatialControlPosition(this.palm);
@@ -77,6 +81,7 @@ function controller(wichSide) {
     this.rotation = this.oldRotation;
     
     this.triggerValue = Controller.getTriggerValue(this.trigger);
+    this.bumperValue = Controller.isButtonPressed(this.bumper);
     
     this.pressed = false; // is trigger pressed
     this.pressing = false; // is trigger being pressed (is pressed now but wasn't previously)
@@ -87,6 +92,11 @@ function controller(wichSide) {
     this.oldModelRotation;
     this.oldModelPosition;
     this.oldModelRadius;
+    
+    this.positionAtGrab;
+    this.rotationAtGrab;
+    this.modelPositionAtGrab;
+    this.modelRotationAtGrab;
     
     this.jointsIntersectingFromStart = [];
     
@@ -145,6 +155,11 @@ function controller(wichSide) {
             this.oldModelRotation = properties.modelRotation;
             this.oldModelRadius = properties.radius;
             
+            this.positionAtGrab = this.palmPosition;
+            this.rotationAtGrab = this.rotation;
+            this.modelPositionAtGrab = properties.position;
+            this.modelRotationAtGrab = properties.modelRotation;
+            
             this.jointsIntersectingFromStart = [];
             for (var i = 0; i < jointList.length; i++) {
                 var distance = Vec3.distance(MyAvatar.getJointPosition(jointList[i]), this.oldModelPosition);
@@ -152,6 +167,7 @@ function controller(wichSide) {
                     this.jointsIntersectingFromStart.push(i);
                 }
             }
+            this.showLaser(false);
         }
     }
     
@@ -169,12 +185,16 @@ function controller(wichSide) {
                 }
             }
             
-            print("closestJoint: " + jointList[closestJointIndex]);
-            print("closestJointDistance (attach max distance): " + closestJointDistance + " (" + this.oldModelRadius + ")");
+            if (closestJointIndex != -1) {
+                print("closestJoint: " + jointList[closestJointIndex]);
+                print("closestJointDistance (attach max distance): " + closestJointDistance + " (" + this.oldModelRadius + ")");
+            }
             
             if (closestJointDistance < this.oldModelRadius) {
                 
-                if (this.jointsIntersectingFromStart.indexOf(closestJointIndex) != -1) {
+                if (this.jointsIntersectingFromStart.indexOf(closestJointIndex) != -1 ||
+                    (leftController.grabbing && rightController.grabbing &&
+                    leftController.modelID.id == rightController.modelID.id)) {
                     // Do nothing
                 } else {
                     print("Attaching to " + jointList[closestJointIndex]);
@@ -188,6 +208,7 @@ function controller(wichSide) {
                     MyAvatar.attach(this.modelURL, jointList[closestJointIndex],
                                     attachmentOffset, attachmentRotation, 2.0 * this.oldModelRadius,
                                     true, false);
+                    
                     Models.deleteModel(this.modelID);
                 }
             }
@@ -196,6 +217,7 @@ function controller(wichSide) {
         this.grabbing = false;
         this.modelID.isKnownID = false;
         this.jointsIntersectingFromStart = [];
+        this.showLaser(true);
     }
     
     this.checkTrigger = function () {
@@ -246,6 +268,7 @@ function controller(wichSide) {
         return { valid: false };
     }
     
+    this.glowedIntersectingModel = { isKnownID: false };
     this.moveLaser = function () {
         // the overlays here are anchored to the avatar, which means they are specified in the avatar's local frame
        
@@ -258,46 +281,99 @@ function controller(wichSide) {
         
         Overlays.editOverlay(this.laser, {
                              position: startPosition,
-                             end: endPosition,
-                             visible: true
+                             end: endPosition
                              });
         
         
         Overlays.editOverlay(this.ball, {
-                             position: endPosition,
-                             visible: true
+                             position: endPosition
                              });
         Overlays.editOverlay(this.leftRight, {
                              position: Vec3.sum(endPosition, Vec3.multiply(this.right, 2 * this.guideScale)),
-                             end: Vec3.sum(endPosition, Vec3.multiply(this.right, -2 * this.guideScale)),
-                             visible: true
+                             end: Vec3.sum(endPosition, Vec3.multiply(this.right, -2 * this.guideScale))
                              });
         Overlays.editOverlay(this.topDown, {position: Vec3.sum(endPosition, Vec3.multiply(this.up, 2 * this.guideScale)),
-                             end: Vec3.sum(endPosition, Vec3.multiply(this.up, -2 * this.guideScale)),
-                             visible: true
+                             end: Vec3.sum(endPosition, Vec3.multiply(this.up, -2 * this.guideScale))
                              });
+        this.showLaser(!this.grabbing || mode == 0);
+        
+        if (this.glowedIntersectingModel.isKnownID) {
+            Models.editModel(this.glowedIntersectingModel, { glowLevel: 0.0 });
+            this.glowedIntersectingModel.isKnownID = false;
+        }
+        if (!this.grabbing) {
+            var intersection = Models.findRayIntersection({
+                                                          origin: this.palmPosition,
+                                                          direction: this.front
+                                                          });
+            if (intersection.accurate && intersection.modelID.isKnownID) {
+                this.glowedIntersectingModel = intersection.modelID;
+                Models.editModel(this.glowedIntersectingModel, { glowLevel: 0.25 });
+            }
+        }
     }
     
-    this.hideLaser = function() {
-        Overlays.editOverlay(this.laser, { visible: false });
-        Overlays.editOverlay(this.ball, { visible: false });
-        Overlays.editOverlay(this.leftRight, { visible: false });
-        Overlays.editOverlay(this.topDown, { visible: false });
+    this.showLaser = function(show) {
+        Overlays.editOverlay(this.laser, { visible: show });
+        Overlays.editOverlay(this.ball, { visible: show });
+        Overlays.editOverlay(this.leftRight, { visible: show });
+        Overlays.editOverlay(this.topDown, { visible: show });
     }
     
     this.moveModel = function () {
         if (this.grabbing) {
-            var newPosition = Vec3.sum(this.palmPosition,
-                                       Vec3.multiply(this.front, this.x));
-            newPosition = Vec3.sum(newPosition,
-                                   Vec3.multiply(this.up, this.y));
-            newPosition = Vec3.sum(newPosition,
-                                   Vec3.multiply(this.right, this.z));
+            if (!this.modelID.isKnownID) {
+                print("Unknown grabbed ID " + this.modelID.id + ", isKnown: " + this.modelID.isKnownID);
+                this.modelID =  Models.findRayIntersection({
+                                                        origin: this.palmPosition,
+                                                        direction: this.front
+                                                           }).modelID;
+                print("Identified ID " + this.modelID.id + ", isKnown: " + this.modelID.isKnownID);
+            }
+            var newPosition;
+            var newRotation;
             
-            var newRotation = Quat.multiply(this.rotation,
-                                            Quat.inverse(this.oldRotation));
-            newRotation = Quat.multiply(newRotation,
-                                        this.oldModelRotation);
+            switch (mode) {
+                case 0:
+                    newPosition = Vec3.sum(this.palmPosition,
+                                           Vec3.multiply(this.front, this.x));
+                    newPosition = Vec3.sum(newPosition,
+                                           Vec3.multiply(this.up, this.y));
+                    newPosition = Vec3.sum(newPosition,
+                                           Vec3.multiply(this.right, this.z));
+                    
+                    
+                    newRotation = Quat.multiply(this.rotation,
+                                                Quat.inverse(this.oldRotation));
+                    newRotation = Quat.multiply(newRotation,
+                                                this.oldModelRotation);
+                    break;
+                case 1:
+                    var forward = Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -1 });
+                    var d = Vec3.dot(forward, MyAvatar.position);
+                    
+                    var factor1 = Vec3.dot(forward, this.positionAtGrab) - d;
+                    var factor2 = Vec3.dot(forward, this.modelPositionAtGrab) - d;
+                    var vector = Vec3.subtract(this.palmPosition, this.positionAtGrab);
+                    
+                    if (factor2 < 0) {
+                        factor2 = 0;
+                    }
+                    if (factor1 <= 0) {
+                        factor1 = 1;
+                        factor2 = 1;
+                    }
+                    
+                    newPosition = Vec3.sum(this.modelPositionAtGrab,
+                                           Vec3.multiply(vector,
+                                                         factor2 / factor1));
+                    
+                    newRotation = Quat.multiply(this.rotation,
+                                                Quat.inverse(this.rotationAtGrab));
+                    newRotation = Quat.multiply(newRotation,
+                                                this.modelRotationAtGrab);
+                    break;
+            }
             
             Models.editModel(this.modelID, {
                              position: newPosition,
@@ -341,6 +417,21 @@ function controller(wichSide) {
         
         this.triggerValue = Controller.getTriggerValue(this.trigger);
         
+        var bumperValue = Controller.isButtonPressed(this.bumper);
+        if (bumperValue && !this.bumperValue) {
+            if (mode == 0) {
+                mode = 1;
+                Overlays.editOverlay(leftController.laser, { color: { red: 0, green: 0, blue: 255 } });
+                Overlays.editOverlay(rightController.laser, { color: { red: 0, green: 0, blue: 255 } });
+            } else {
+                mode = 0;
+                Overlays.editOverlay(leftController.laser, { color: { red: 255, green: 0, blue: 0 } });
+                Overlays.editOverlay(rightController.laser, { color: { red: 255, green: 0, blue: 0 } });
+            }
+        }
+        this.bumperValue = bumperValue;
+        
+        
         this.checkTrigger();
         
         this.moveLaser();
@@ -356,8 +447,12 @@ function controller(wichSide) {
             var attachmentIndex = -1;
             var attachmentX = LASER_LENGTH_FACTOR;
             
+            var newModel;
+            var newProperties;
+            
             for (var i = 0; i < attachments.length; ++i) {
-                var position = Vec3.sum(MyAvatar.getJointPosition(attachments[i].jointName), attachments[i].translation);
+                var position = Vec3.sum(MyAvatar.getJointPosition(attachments[i].jointName),
+                                        Vec3.multiplyQbyV(MyAvatar.getJointCombinedRotation(attachments[i].jointName), attachments[i].translation));
                 var scale = attachments[i].scale;
                 
                 var A = this.palmPosition;
@@ -375,53 +470,56 @@ function controller(wichSide) {
             }
             
             if (attachmentIndex != -1) {
+                print("Detaching: " + attachments[attachmentIndex].modelURL);
                 MyAvatar.detachOne(attachments[attachmentIndex].modelURL, attachments[attachmentIndex].jointName);
-                Models.addModel({
-                                position: Vec3.sum(MyAvatar.getJointPosition(attachments[attachmentIndex].jointName),
-                                                   attachments[attachmentIndex].translation),
-                                modelRotation: Quat.multiply(MyAvatar.getJointCombinedRotation(attachments[attachmentIndex].jointName),
-                                                             attachments[attachmentIndex].rotation),
-                                radius: attachments[attachmentIndex].scale / 2.0,
-                                modelURL: attachments[attachmentIndex].modelURL
-                                });
-            }
-            
-            // There is none so ...
-            // Checking model tree
-            Vec3.print("Looking at: ", this.palmPosition);
-            var pickRay = { origin: this.palmPosition,
-                            direction: Vec3.normalize(Vec3.subtract(this.tipPosition, this.palmPosition)) };
-            var foundIntersection = Models.findRayIntersection(pickRay);
-            
-            if(!foundIntersection.accurate) {
-                return;
-            }
-            var foundModel = foundIntersection.modelID;
-            
-            if (!foundModel.isKnownID) {
-                var identify = Models.identifyModel(foundModel);
-                if (!identify.isKnownID) {
-                    print("Unknown ID " + identify.id + " (update loop " + foundModel.id + ")");
-                    return;
-                }
-                foundModel = identify;
-            }
-            
-            var properties = Models.getModelProperties(foundModel);
-            print("foundModel.modelURL=" + properties.modelURL);
-            
-            if (isLocked(properties)) {
-                print("Model locked " + properties.id);
+                
+                newProperties = {
+                position: Vec3.sum(MyAvatar.getJointPosition(attachments[attachmentIndex].jointName),
+                                   Vec3.multiplyQbyV(MyAvatar.getJointCombinedRotation(attachments[attachmentIndex].jointName), attachments[attachmentIndex].translation)),
+                modelRotation: Quat.multiply(MyAvatar.getJointCombinedRotation(attachments[attachmentIndex].jointName),
+                                             attachments[attachmentIndex].rotation),
+                radius: attachments[attachmentIndex].scale / 2.0,
+                modelURL: attachments[attachmentIndex].modelURL
+                };
+                newModel = Models.addModel(newProperties);
             } else {
-                print("Checking properties: " + properties.id + " " + properties.isKnownID);
-                var check = this.checkModel(properties);
-                if (check.valid) {
-                    this.grab(foundModel, properties);
-                    this.x = check.x;
-                    this.y = check.y;
-                    this.z = check.z;
+                // There is none so ...
+                // Checking model tree
+                Vec3.print("Looking at: ", this.palmPosition);
+                var pickRay = { origin: this.palmPosition,
+                    direction: Vec3.normalize(Vec3.subtract(this.tipPosition, this.palmPosition)) };
+                var foundIntersection = Models.findRayIntersection(pickRay);
+                
+                if(!foundIntersection.accurate) {
+                    print("No accurate intersection");
                     return;
                 }
+                newModel = foundIntersection.modelID;
+                
+                if (!newModel.isKnownID) {
+                    var identify = Models.identifyModel(newModel);
+                    if (!identify.isKnownID) {
+                        print("Unknown ID " + identify.id + " (update loop " + newModel.id + ")");
+                        return;
+                    }
+                    newModel = identify;
+                }
+                newProperties = Models.getModelProperties(newModel);
+            }
+            
+            
+            print("foundModel.modelURL=" + newProperties.modelURL);
+            
+            if (isLocked(newProperties)) {
+                print("Model locked " + newProperties.id);
+            } else {
+                this.grab(newModel, newProperties);
+                
+                var check = this.checkModel(newProperties);
+                this.x = check.x;
+                this.y = check.y;
+                this.z = check.z;
+                return;
             }
         }
     }
@@ -439,38 +537,74 @@ var rightController = new controller(RIGHT);
 
 function moveModels() {
     if (leftController.grabbing && rightController.grabbing && rightController.modelID.id == leftController.modelID.id) {
-        //print("Both controllers");
-        var oldLeftPoint = Vec3.sum(leftController.oldPalmPosition, Vec3.multiply(leftController.oldFront, leftController.x));
-        var oldRightPoint = Vec3.sum(rightController.oldPalmPosition, Vec3.multiply(rightController.oldFront, rightController.x));
-        
-        var oldMiddle = Vec3.multiply(Vec3.sum(oldLeftPoint, oldRightPoint), 0.5);
-        var oldLength = Vec3.length(Vec3.subtract(oldLeftPoint, oldRightPoint));
+        var newPosition = leftController.oldModelPosition;
+        var rotation = leftController.oldModelRotation;
+        var ratio = 1;
         
         
-        var leftPoint = Vec3.sum(leftController.palmPosition, Vec3.multiply(leftController.front, leftController.x));
-        var rightPoint = Vec3.sum(rightController.palmPosition, Vec3.multiply(rightController.front, rightController.x));
-        
-        var middle = Vec3.multiply(Vec3.sum(leftPoint, rightPoint), 0.5);
-        var length = Vec3.length(Vec3.subtract(leftPoint, rightPoint));
-        
-        var ratio = length / oldLength;
-        
-        var newPosition = Vec3.sum(middle,
-                                   Vec3.multiply(Vec3.subtract(leftController.oldModelPosition, oldMiddle), ratio));
-        //Vec3.print("Ratio : " + ratio + " New position: ", newPosition);
-        var rotation = Quat.multiply(leftController.rotation,
-                                     Quat.inverse(leftController.oldRotation));
-        rotation = Quat.multiply(rotation, leftController.oldModelRotation);
+        switch (mode) {
+            case 0:
+                var oldLeftPoint = Vec3.sum(leftController.oldPalmPosition, Vec3.multiply(leftController.oldFront, leftController.x));
+                var oldRightPoint = Vec3.sum(rightController.oldPalmPosition, Vec3.multiply(rightController.oldFront, rightController.x));
+                
+                var oldMiddle = Vec3.multiply(Vec3.sum(oldLeftPoint, oldRightPoint), 0.5);
+                var oldLength = Vec3.length(Vec3.subtract(oldLeftPoint, oldRightPoint));
+                
+                
+                var leftPoint = Vec3.sum(leftController.palmPosition, Vec3.multiply(leftController.front, leftController.x));
+                var rightPoint = Vec3.sum(rightController.palmPosition, Vec3.multiply(rightController.front, rightController.x));
+                
+                var middle = Vec3.multiply(Vec3.sum(leftPoint, rightPoint), 0.5);
+                var length = Vec3.length(Vec3.subtract(leftPoint, rightPoint));
+                
+                
+                ratio = length / oldLength;
+                newPosition = Vec3.sum(middle,
+                                       Vec3.multiply(Vec3.subtract(leftController.oldModelPosition, oldMiddle), ratio));
+                 break;
+            case 1:
+                var u = Vec3.normalize(Vec3.subtract(rightController.oldPalmPosition, leftController.oldPalmPosition));
+                var v = Vec3.normalize(Vec3.subtract(rightController.palmPosition, leftController.palmPosition));
+                
+                var cos_theta = Vec3.dot(u, v);
+                if (cos_theta > 1) {
+                    cos_theta = 1;
+                }
+                var angle = Math.acos(cos_theta) / Math.PI * 180;
+                if (angle < 0.1) {
+                    return;
+                    
+                }
+                var w = Vec3.normalize(Vec3.cross(u, v));
+                
+                rotation = Quat.multiply(Quat.angleAxis(angle, w), leftController.oldModelRotation);
+                
+                
+                leftController.positionAtGrab = leftController.palmPosition;
+                leftController.rotationAtGrab = leftController.rotation;
+                leftController.modelPositionAtGrab = leftController.oldModelPosition;
+                leftController.modelRotationAtGrab = rotation;
+                
+                rightController.positionAtGrab = rightController.palmPosition;
+                rightController.rotationAtGrab = rightController.rotation;
+                rightController.modelPositionAtGrab = rightController.oldModelPosition;
+                rightController.modelRotationAtGrab = rotation;
+                break;
+        }
         
         Models.editModel(leftController.modelID, {
                          position: newPosition,
-                         //modelRotation: rotation,
+                         modelRotation: rotation,
                          radius: leftController.oldModelRadius * ratio
                          });
         
         leftController.oldModelPosition = newPosition;
         leftController.oldModelRotation = rotation;
         leftController.oldModelRadius *= ratio;
+        
+        rightController.oldModelPosition = newPosition;
+        rightController.oldModelRotation = rotation;
+        rightController.oldModelRadius *= ratio;
         return;
     }
     
@@ -498,8 +632,8 @@ function checkController(deltaTime) {
         if (hydraConnected) {
             hydraConnected = false;
             
-            leftController.hideLaser();
-            rightController.hideLaser();
+            leftController.showLaser(false);
+            rightController.showLaser(false);
         }
     }
     
@@ -510,7 +644,7 @@ function initToolBar() {
     toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
     // New Model
     newModel = toolBar.addTool({
-                               imageURL: toolIconUrl + "voxel-tool.svg",
+                               imageURL: toolIconUrl + "add-model-tool.svg",
                                subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
                                width: toolWidth, height: toolHeight,
                                visible: true,
