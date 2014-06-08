@@ -19,13 +19,13 @@ class AccountScriptingInterface : public QObject {
     AccountScriptingInterface();
 
 signals:
-    void balanceChanged(qint64 newBalance);
+    void balanceChanged(float newBalance);
     
 public slots:
     static AccountScriptingInterface* getInstance();
-    qint64 getBalance();
+    float getBalance();
     bool isLoggedIn();
-    void updateBalance(qint16 newBalance);
+    void updateBalance(qint64 newBalance);
 };
 
 #endif // hifi_AccountScriptingInterface_h

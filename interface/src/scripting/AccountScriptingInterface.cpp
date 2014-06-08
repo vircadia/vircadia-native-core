@@ -24,9 +24,9 @@ AccountScriptingInterface* AccountScriptingInterface::getInstance() {
     return &sharedInstance;
 }
 
-qint64 AccountScriptingInterface::getBalance() {
+float AccountScriptingInterface::getBalance() {
     AccountManager& accountManager = AccountManager::getInstance();
-    return accountManager.getAccountInfo().getBalance();
+    return accountManager.getAccountInfo().getBalanceInSatoshis();
 }
 
 bool AccountScriptingInterface::isLoggedIn() {
@@ -34,6 +34,7 @@ bool AccountScriptingInterface::isLoggedIn() {
     return accountManager.isLoggedIn();
 }
 
-void AccountScriptingInterface::updateBalance(qint16 newBalance) {
-    emit balanceChanged(newBalance);
+void AccountScriptingInterface::updateBalance(qint64 newBalance) {
+    AccountManager& accountManager = AccountManager::getInstance();
+    emit balanceChanged(accountManager.getAccountInfo().getBalanceInSatoshis());
 }
