@@ -5,7 +5,7 @@
 //  Created by Stojce Slavkovski on June 5, 2014
 //  Copyright 2014 High Fidelity, Inc.
 //
-//  Show wallet balance
+//  Show wallet ₵ balance
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -22,9 +22,9 @@ var Account = Account || {};
         overlayWidth = 150,
         overlayHeight = 50,
         overlayTopOffset = 15,
-        overlayRightOffset = 100,
-        textRightOffset = 75,
-        maxDecimals = 5,
+        overlayRightOffset = 140,
+        textRightOffset = 105,
+        maxIntegers = 5,
         downColor = {
             red: 0,
             green: 0,
@@ -41,12 +41,12 @@ var Account = Account || {};
             blue: 204
         },
         balance = -1,
-        voxelTool = Overlays.addOverlay("image", {
+        walletBox = Overlays.addOverlay("image", {
             x: 0,
             y: overlayTopOffset,
-            width: 92,
+            width: 122,
             height: 32,
-            imageURL: iconUrl + "wallet.svg",
+            imageURL: iconUrl + "walletsymbol.svg",
             alpha: 1
         }),
         textOverlay = Overlays.addOverlay("text", {
@@ -54,20 +54,19 @@ var Account = Account || {};
             y: overlayTopOffset,
             topMargin: 9,
             font: {
-                size: 15
+                size: 16
             },
-            color: normalColor,
-            alpha: 0
+            color: normalColor
         });
 
     function scriptEnding() {
-        Overlays.deleteOverlay(voxelTool);
+        Overlays.deleteOverlay(walletBox);
         Overlays.deleteOverlay(textOverlay);
     }
 
     function update(deltaTime) {
         var xPos = Controller.getViewportDimensions().x;
-        Overlays.editOverlay(voxelTool, {
+        Overlays.editOverlay(walletBox, {
             x: xPos - overlayRightOffset,
             visible: Account.isLoggedIn()
         });
@@ -78,19 +77,31 @@ var Account = Account || {};
         });
     }
 
+    function formatedBalance() {
+        var integers = balance.toFixed(0).length,
+            decimals = Math.abs(maxIntegers - integers) + 2;
+
+        var x = balance.toFixed(decimals).split('.'),
+            x1 = x[0],
+            x2 = x.length > 1 ? '.' + x[1] : '';
+        var rgx = /(\d+)(\d{3})/;
+        while (rgx.test(x1)) {
+            x1 = x1.replace(rgx, '$1' + ',' + '$2');
+        }
+        return x1 + x2;
+    }
+
     function updateBalance(newBalance) {
         if (balance === newBalance) {
             return;
         }
 
         var change = newBalance - balance,
-            textColor = change < 0 ? downColor : upColor,
-            integers = newBalance.toFixed(0).length,
-            decimals = integers > maxDecimals ? 0 : maxDecimals - integers;
+            textColor = change < 0 ? downColor : upColor;
 
         balance = newBalance;
         Overlays.editOverlay(textOverlay, {
-            text: balance.toFixed(decimals),
+            text: formatedBalance(),
             color: textColor
         });
 
