@@ -18,7 +18,7 @@ var Account = Account || {};
 
 (function () {
     "use strict";
-    var iconUrl = 'http://localhost/~stojce/',
+    var iconUrl = 'http://dev.worklist.net/~stojce/',
         overlayWidth = 150,
         overlayHeight = 50,
         overlayTopOffset = 15,
@@ -52,7 +52,7 @@ var Account = Account || {};
         textOverlay = Overlays.addOverlay("text", {
             x: 0,
             y: overlayTopOffset,
-            topMargin: 9,
+            topMargin: 10,
             font: {
                 size: 16
             },
