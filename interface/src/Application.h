@@ -411,6 +411,8 @@ private:
     static void attachNewHeadToNode(Node *newNode);
     static void* networkReceive(void* args); // network receive thread
 
+    void sendNack();
+
     MainWindow* _window;
     GLCanvas* _glWidget; // our GLCanvas has a couple extra features
 
@@ -580,6 +582,8 @@ private:
     bool _runningScriptsWidgetWasVisible;
 
     QSystemTrayIcon* _trayIcon;
+
+    quint64 _lastNackTime;
 };
 
 #endif // hifi_Application_h

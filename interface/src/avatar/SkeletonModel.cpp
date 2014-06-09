@@ -23,7 +23,10 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar) :
 
 void SkeletonModel::setJointStates(QVector<JointState> states) {
     Model::setJointStates(states);
-    _ragDoll.init(_jointStates);
+
+    if (isActive() && _owningAvatar->isMyAvatar()) {
+        _ragDoll.init(_jointStates);
+    }
 }
 
 const float PALM_PRIORITY = 3.0f;
@@ -88,7 +91,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
 }
 
 void SkeletonModel::simulateRagDoll(float deltaTime) {
-    _ragDoll.slaveToSkeleton(_jointStates, 0.5f);
+    _ragDoll.slaveToSkeleton(_jointStates, 0.1f);   // fraction = 0.1f left intentionally low for demo purposes
 
     float MIN_CONSTRAINT_ERROR = 0.005f; // 5mm
     int MAX_ITERATIONS = 4;
@@ -141,7 +144,9 @@ void SkeletonModel::getBodyShapes(QVector<const Shape*>& shapes) const {
 void SkeletonModel::renderIKConstraints() {
     renderJointConstraints(getRightHandJointIndex());
     renderJointConstraints(getLeftHandJointIndex());
-    renderRagDoll();
+    if (isActive() && _owningAvatar->isMyAvatar()) {
+        renderRagDoll();
+    }
 }
 
 class IndexValue {
@@ -251,6 +256,15 @@ void SkeletonModel::updateJointState(int index) {
 
     if (index == _geometry->getFBXGeometry().rootJointIndex) {
         state.clearTransformTranslation();
+    }
+}
+
+void SkeletonModel::updateShapePositions() {
+    if (isActive() && _owningAvatar->isMyAvatar() && 
+            Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagDoll)) {
+        _ragDoll.updateShapes(_jointShapes, _rotation, _translation);
+    } else {
+        Model::updateShapePositions();
     }
 }
 

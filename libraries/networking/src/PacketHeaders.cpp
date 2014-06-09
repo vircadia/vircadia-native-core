@@ -108,7 +108,7 @@ int populatePacketHeader(char* packet, PacketType type, const QUuid& connectionU
     position += NUM_BYTES_RFC4122_UUID;
     
     if (!NON_VERIFIED_PACKETS.contains(type)) {
-        // pack 16 bytes of zeros where the md5 hash will be placed one data is packed
+        // pack 16 bytes of zeros where the md5 hash will be placed once data is packed
         memset(position, 0, NUM_BYTES_MD5_HASH);
         position += NUM_BYTES_MD5_HASH;
     }
