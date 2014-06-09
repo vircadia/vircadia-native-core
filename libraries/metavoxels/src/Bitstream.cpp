@@ -14,6 +14,7 @@
 #include <QCryptographicHash>
 #include <QDataStream>
 #include <QMetaType>
+#include <QScriptValueIterator>
 #include <QUrl>
 #include <QtDebug>
 
@@ -449,8 +450,11 @@ Bitstream& Bitstream::operator>>(QDateTime& dateTime) {
 
 Bitstream& Bitstream::operator<<(const QRegExp& regExp) {
     *this << regExp.pattern();
-    
-    return *this;
+    Qt::CaseSensitivity caseSensitivity = regExp.caseSensitivity();
+    write(&caseSensitivity, 1);
+    QRegExp::PatternSyntax syntax = regExp.patternSyntax();
+    write(&syntax, 3);
+    return *this << regExp.isMinimal();
 }
 
 Bitstream& Bitstream::operator>>(QRegExp& regExp) {
@@ -460,9 +464,10 @@ Bitstream& Bitstream::operator>>(QRegExp& regExp) {
     read(&caseSensitivity, 1);
     QRegExp::PatternSyntax syntax = (QRegExp::PatternSyntax)0;
     read(&syntax, 3);
-    
     regExp = QRegExp(pattern, caseSensitivity, syntax);
-    
+    bool minimal;
+    *this >> minimal;
+    regExp.setMinimal(minimal);
     return *this;
 }
 
@@ -658,10 +663,20 @@ Bitstream& Bitstream::operator<<(const QScriptValue& value) {
     
     } else if (value.isArray()) {
         writeScriptValueType(*this, ARRAY_SCRIPT_VALUE);
-    
+        int length = value.property(ScriptCache::getInstance()->getLengthString()).toInt32();
+        *this << length;
+        for (int i = 0; i < length; i++) {
+            *this << value.property(i);
+        }
     } else if (value.isObject()) {
         writeScriptValueType(*this, OBJECT_SCRIPT_VALUE);
-    
+        for (QScriptValueIterator it(value); it.hasNext(); ) {
+            it.next();
+            *this << it.scriptName();
+            *this << it.value();
+        }
+        *this << QScriptString();
+        
     } else {
         writeScriptValueType(*this, INVALID_SCRIPT_VALUE);
     }
@@ -678,26 +693,79 @@ Bitstream& Bitstream::operator>>(QScriptValue& value) {
             value = QScriptValue(QScriptValue::NullValue);
             break;
         
-        case BOOL_SCRIPT_VALUE:
-            value = QScriptValue();
+        case BOOL_SCRIPT_VALUE: {
+            bool boolValue;
+            *this >> boolValue;
+            value = QScriptValue(boolValue);
             break;
-         
-        case NUMBER_SCRIPT_VALUE:
-            value = QScriptValue();
+        }
+        case NUMBER_SCRIPT_VALUE: {
+            qsreal numberValue;
+            *this >> numberValue;
+            value = QScriptValue(numberValue);
             break;
-        
-        case STRING_SCRIPT_VALUE:
-            value = QScriptValue();
+        }
+        case STRING_SCRIPT_VALUE: {
+            QString stringValue;
+            *this >> stringValue;   
+            value = QScriptValue(stringValue);
             break;
-        
-        case ARRAY_SCRIPT_VALUE:
-            value = QScriptValue();
+        }
+        case VARIANT_SCRIPT_VALUE: {
+            QVariant variantValue;
+            *this >> variantValue;
+            value = ScriptCache::getInstance()->getEngine()->newVariant(variantValue);
             break;
-        
-        case OBJECT_SCRIPT_VALUE:
-            value = QScriptValue();
+        }
+        case QOBJECT_SCRIPT_VALUE: {
+            QObject* object;
+            *this >> object;
+            ScriptCache::getInstance()->getEngine()->newQObject(object, QScriptEngine::ScriptOwnership);
             break;
-            
+        }
+        case QMETAOBJECT_SCRIPT_VALUE: {
+            const QMetaObject* metaObject;
+            *this >> metaObject;
+            ScriptCache::getInstance()->getEngine()->newQMetaObject(metaObject);
+            break;
+        }
+        case DATE_SCRIPT_VALUE: {
+            QDateTime dateTime;
+            *this >> dateTime;
+            value = ScriptCache::getInstance()->getEngine()->newDate(dateTime);
+            break;
+        }
+        case REGEXP_SCRIPT_VALUE: {
+            QRegExp regExp;
+            *this >> regExp;
+            value = ScriptCache::getInstance()->getEngine()->newRegExp(regExp);
+            break;
+        }
+        case ARRAY_SCRIPT_VALUE: {
+            int length;
+            *this >> length;
+            value = ScriptCache::getInstance()->getEngine()->newArray(length);
+            for (int i = 0; i < length; i++) {
+                QScriptValue element;
+                *this >> element;
+                value.setProperty(i, element);
+            }
+            break;
+        }
+        case OBJECT_SCRIPT_VALUE: {
+            value = ScriptCache::getInstance()->getEngine()->newObject();
+            forever {
+                QScriptString name;
+                *this >> name;
+                if (!name.isValid()) {
+                    break;
+                }
+                QScriptValue scriptValue;
+                *this >> scriptValue;
+                value.setProperty(name, scriptValue);
+            }
+            break;
+        }
         default:
             value = QScriptValue();
             break;
