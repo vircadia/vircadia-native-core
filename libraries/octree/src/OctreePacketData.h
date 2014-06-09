@@ -166,10 +166,14 @@ public:
     /// get size of the finalized data (it may be compressed or rewritten into optimal form)
     int getFinalizedSize();
 
-    /// get pointer to the start of uncompressed stream buffer
-    const unsigned char* getUncompressedData() { return &_uncompressed[0]; }
+    /// get pointer to the uncompressed stream buffer at the byteOffset
+    const unsigned char* getUncompressedData(int byteOffset = 0) { return &_uncompressed[byteOffset]; }
+
     /// the size of the packet in uncompressed form
     int getUncompressedSize() { return _bytesInUse; }
+
+    /// update the size of the packet in uncompressed form
+    void setUncompressedSize(int newSize) { _bytesInUse = newSize; }
 
     /// has some content been written to the packet
     bool hasContent() const { return (_bytesInUse > 0); }

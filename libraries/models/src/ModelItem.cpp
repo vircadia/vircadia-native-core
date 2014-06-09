@@ -11,6 +11,7 @@
 
 #include <QtCore/QObject>
 
+#include <ByteCountCoding.h>
 #include <Octree.h>
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h> // usecTimestampNow()
@@ -209,7 +210,9 @@ bool ModelItem::new___appendModelData(OctreePacketData* packetData, EncodeBitstr
     
     bool success = false;
 
-    quint16 updateDelta = getLastUpdated() <= getLastEdited() ? 0 : getLastUpdated() - getLastEdited();
+    quint64 updateDelta = getLastUpdated() <= getLastEdited() ? 0 : getLastUpdated() - getLastEdited();
+    ByteCountCoded<quint64> updateDeltaCoder = updateDelta;
+    QByteArray encodedUpdateDelta = updateDeltaCoder;
     ModelPropertyFlags propertyFlags(PROP_LAST_ITEM);
     
     LevelDetails modelLevel = packetData->startLevel();
@@ -217,14 +220,19 @@ bool ModelItem::new___appendModelData(OctreePacketData* packetData, EncodeBitstr
     bool successIDFits = packetData->appendValue(getID());
     bool successTypeFits = packetData->appendValue(getType());
     bool successLastEditedFits = packetData->appendValue(getLastEdited());
-    bool successLastUpdatedFits = packetData->appendValue(updateDelta);
+    bool successLastUpdatedFits = packetData->appendValue(encodedUpdateDelta);
     
     int propertyFlagsOffset = packetData->getUncompressedByteOffset();
-    bool successPropertyFlagsFits = packetData->appendValue(propertyFlags);
+    QByteArray encodedPropertyFlags = propertyFlags;
+    int oldPropertyFlagsLength = encodedPropertyFlags.length();
+    bool successPropertyFlagsFits = packetData->appendValue(encodedPropertyFlags);
     int propertyCount = 0;
 
     bool headerFits = successIDFits && successTypeFits && successLastEditedFits 
                               && successLastUpdatedFits && successPropertyFlagsFits;
+
+    int startOfModelItemData = packetData->getUncompressedByteOffset();
+
     if (headerFits) {
         bool successPropertyFits;
 
@@ -279,7 +287,7 @@ bool ModelItem::new___appendModelData(OctreePacketData* packetData, EncodeBitstr
             packetData->discardLevel(propertyLevel);
         }
 
-        // PROP_ROTATION
+        // PROP_COLOR
         propertyLevel = packetData->startLevel();
         successPropertyFits = packetData->appendColor(getColor());
         if (successPropertyFits) {
@@ -349,12 +357,28 @@ bool ModelItem::new___appendModelData(OctreePacketData* packetData, EncodeBitstr
         }
     }
     if (propertyCount > 0) {
-    
-        // we need to...
-        //  * update the PropertyFlags data.
-        //  * shift the property stream "to left" if the property flags shrunk.
-    
-    
+        int endOfModelItemData = packetData->getUncompressedByteOffset();
+        
+        encodedPropertyFlags = propertyFlags;
+        int newPropertyFlagsLength = encodedPropertyFlags.length();
+        packetData->updatePriorBytes(propertyFlagsOffset, (const unsigned char*)encodedPropertyFlags.constData(), encodedPropertyFlags.length());
+        
+        // if the size of the PropertyFlags shrunk, we need to shift everything down to front of packet.
+        if (newPropertyFlagsLength < oldPropertyFlagsLength) {
+            int oldSize = packetData->getUncompressedSize();
+
+            const unsigned char* modelItemData = packetData->getUncompressedData(propertyFlagsOffset + oldPropertyFlagsLength);
+            int modelItemDataLength = endOfModelItemData - startOfModelItemData;
+            int newModelItemDataStart = propertyFlagsOffset + newPropertyFlagsLength;
+            packetData->updatePriorBytes(newModelItemDataStart, modelItemData, modelItemDataLength);
+
+            int newSize = oldSize - (oldPropertyFlagsLength - newPropertyFlagsLength);
+            packetData->setUncompressedSize(newSize);
+
+        } else {
+            assert(newPropertyFlagsLength == oldPropertyFlagsLength); // should not have grown
+        }
+       
         packetData->endLevel(modelLevel);
         success = true;
     } else {
@@ -461,6 +485,153 @@ int ModelItem::readModelDataFromBuffer(const unsigned char* data, int bytesLeftT
             memcpy(&_animationFPS, dataAt, sizeof(_animationFPS));
             dataAt += sizeof(_animationFPS);
             bytesRead += sizeof(_animationFPS);
+        }
+    }
+    return bytesRead;
+}
+
+int ModelItem::new___readModelDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
+    
+    // TODO: handle old format??
+    //if (args.bitstreamVersion >= VERSION_MODELS_HAVE_ANIMATION) {
+
+    // Header bytes
+    //    object ID [16 bytes]
+    //    ByteCountCoded(type code) [~1 byte]
+    //    last edited [8 bytes]
+    //    ByteCountCoded(last_edited to last_updated delta) [~1-8 bytes]
+    //    PropertyFlags<>( everything ) [1-2 bytes]
+    // ~27-35 bytes...
+    const int MINIMUM_HEADER_BYTES = 27;
+
+    int bytesRead = 0;
+    if (bytesLeftToRead >= MINIMUM_HEADER_BYTES) {
+
+        int originalLength = bytesLeftToRead;
+        QByteArray originalDataBuffer((const char*)data, originalLength);
+
+        int clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
+
+        const unsigned char* dataAt = data;
+
+        // id
+        memcpy(&_id, dataAt, sizeof(_id));
+        dataAt += sizeof(_id);
+        bytesRead += sizeof(_id);
+
+        // type - TODO: updated to using ByteCountCoding
+        quint8 type;
+        memcpy(&type, dataAt, sizeof(type));
+        dataAt += sizeof(type);
+        bytesRead += sizeof(type);
+
+        // _lastEdited
+        memcpy(&_lastEdited, dataAt, sizeof(_lastEdited));
+        dataAt += sizeof(_lastEdited);
+        bytesRead += sizeof(_lastEdited);
+        _lastEdited -= clockSkew;
+
+        // last updated is stored as ByteCountCoded delta from lastEdited
+        QByteArray encodedUpdateDelta = originalDataBuffer.mid(bytesRead); // maximum possible size
+        ByteCountCoded<quint64> updateDeltaCoder = encodedUpdateDelta;
+        quint64 updateDelta = updateDeltaCoder;
+        _lastUpdated = _lastEdited + updateDelta; // don't adjust for clock skew since we already did that for _lastEdited
+       
+        encodedUpdateDelta = updateDeltaCoder; // determine true length
+        dataAt += encodedUpdateDelta.size();
+        bytesRead += encodedUpdateDelta.size();
+
+        // Property Flags
+        QByteArray encodedPropertyFlags = originalDataBuffer.mid(bytesRead); // maximum possible size
+        ModelPropertyFlags propertyFlags = encodedPropertyFlags;
+        encodedUpdateDelta = updateDeltaCoder; // determine true length
+        dataAt += propertyFlags.getEncodedLength();
+        bytesRead += propertyFlags.getEncodedLength();
+
+        // PROP_POSITION
+        if (propertyFlags.getHasProperty(PROP_POSITION)) {
+            memcpy(&_position, dataAt, sizeof(_position));
+            dataAt += sizeof(_position);
+            bytesRead += sizeof(_position);
+        }
+        
+        // PROP_RADIUS
+        if (propertyFlags.getHasProperty(PROP_RADIUS)) {
+            memcpy(&_radius, dataAt, sizeof(_radius));
+            dataAt += sizeof(_radius);
+            bytesRead += sizeof(_radius);
+        }
+
+        // PROP_MODEL_URL
+        if (propertyFlags.getHasProperty(PROP_MODEL_URL)) {
+        
+            // TODO: fix to new format...
+            uint16_t modelURLLength;
+            memcpy(&modelURLLength, dataAt, sizeof(modelURLLength));
+            dataAt += sizeof(modelURLLength);
+            bytesRead += sizeof(modelURLLength);
+            QString modelURLString((const char*)dataAt);
+            setModelURL(modelURLString);
+            dataAt += modelURLLength;
+            bytesRead += modelURLLength;
+        }
+
+        // PROP_ROTATION
+        if (propertyFlags.getHasProperty(PROP_ROTATION)) {
+            int bytes = unpackOrientationQuatFromBytes(dataAt, _modelRotation);
+            dataAt += bytes;
+            bytesRead += bytes;
+        }
+        
+        // PROP_COLOR
+        if (propertyFlags.getHasProperty(PROP_COLOR)) {
+            memcpy(_color, dataAt, sizeof(_color));
+            dataAt += sizeof(_color);
+            bytesRead += sizeof(_color);
+        }
+        
+        // PROP_SCRIPT
+        //     script would go here...
+        
+        // PROP_ANIMATION_URL
+        if (propertyFlags.getHasProperty(PROP_ANIMATION_URL)) {
+            // animationURL
+            uint16_t animationURLLength;
+            memcpy(&animationURLLength, dataAt, sizeof(animationURLLength));
+            dataAt += sizeof(animationURLLength);
+            bytesRead += sizeof(animationURLLength);
+            QString animationURLString((const char*)dataAt);
+            setAnimationURL(animationURLString);
+            dataAt += animationURLLength;
+            bytesRead += animationURLLength;
+        }        
+
+        // PROP_ANIMATION_FPS
+        if (propertyFlags.getHasProperty(PROP_ANIMATION_FPS)) {
+            memcpy(&_animationFPS, dataAt, sizeof(_animationFPS));
+            dataAt += sizeof(_animationFPS);
+            bytesRead += sizeof(_animationFPS);
+        }
+
+        // PROP_ANIMATION_FRAME_INDEX
+        if (propertyFlags.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
+            memcpy(&_animationFrameIndex, dataAt, sizeof(_animationFrameIndex));
+            dataAt += sizeof(_animationFrameIndex);
+            bytesRead += sizeof(_animationFrameIndex);
+        }
+
+        // PROP_ANIMATION_PLAYING
+        if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
+            memcpy(&_animationIsPlaying, dataAt, sizeof(_animationIsPlaying));
+            dataAt += sizeof(_animationIsPlaying);
+            bytesRead += sizeof(_animationIsPlaying);
+        }
+
+        // PROP_SHOULD_BE_DELETED
+        if (propertyFlags.getHasProperty(PROP_SHOULD_BE_DELETED)) {
+            memcpy(&_shouldDie, dataAt, sizeof(_shouldDie));
+            dataAt += sizeof(_shouldDie);
+            bytesRead += sizeof(_shouldDie);
         }
     }
     return bytesRead;
