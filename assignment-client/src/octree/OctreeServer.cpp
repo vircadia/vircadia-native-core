@@ -832,10 +832,9 @@ void OctreeServer::readPendingDatagrams() {
             PacketType packetType = packetTypeForPacket(receivedPacket);
             SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
             if (packetType == getMyQueryMessageType()) {
-
                 // If we got a query packet, then we're talking to an agent, and we
                 // need to make sure we have it in our nodeList.
-                if (matchingNode) {
+                if (matchingNode)  {
                     nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
                     OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
                     if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
@@ -852,24 +851,28 @@ void OctreeServer::readPendingDatagrams() {
             } else if (packetType == PacketTypeOctreeDataNack) {
 
 // parse packet for sequence numbers that need to be resent
-int numBytesPacketHeader = numBytesForPacketHeader(receivedPacket);
-const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(receivedPacket.data()) + numBytesPacketHeader;
 
-uint16_t numSequenceNumbers = (*(uint16_t*)dataAt);
-dataAt += sizeof(uint16_t);
+if (matchingNode) {
 
-// read sequence numbers
-QList<OCTREE_PACKET_SEQUENCE> sequenceNumbers;
-for (int i = 0; i < numSequenceNumbers; i++) {
-    OCTREE_PACKET_SEQUENCE sequenceNumber = (*(OCTREE_PACKET_SEQUENCE*)dataAt);
-    sequenceNumbers.append(sequenceNumber);
-    dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
+    OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
 
-printf("\t\t\t nacked packet: seq = %d\n", sequenceNumber);
+    int numBytesPacketHeader = numBytesForPacketHeader(receivedPacket);
+    const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(receivedPacket.data()) + numBytesPacketHeader;
+
+    uint16_t numSequenceNumbers = (*(uint16_t*)dataAt);
+    dataAt += sizeof(uint16_t);
+
+printf("\t received nack packet containing %d seq nums\n", numSequenceNumbers);
+
+    // read sequence numbers
+    for (int i = 0; i < numSequenceNumbers; i++) {
+        OCTREE_PACKET_SEQUENCE sequenceNumber = (*(OCTREE_PACKET_SEQUENCE*)dataAt);
+        nodeData->addNackedSequenceNumber(sequenceNumber);
+        dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
+
+printf("\t seq = %d\n", sequenceNumber);
+    }
 }
-
-OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();    // move this or something
-nodeData->addSequenceNumbersToResend(sequenceNumbers);
 
 
 

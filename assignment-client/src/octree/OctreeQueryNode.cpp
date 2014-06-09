@@ -377,21 +377,14 @@ void OctreeQueryNode::packetSent(const QByteArray& packet) {
     _sequenceNumber++;
 }
 
-
-void OctreeQueryNode::addSequenceNumbersToResend(const QList<OCTREE_PACKET_SEQUENCE>& sequenceNumbers) {
-    _nackedSequenceNumbers.append(sequenceNumbers);
-}
-
 bool OctreeQueryNode::hasNextNackedPacket() const {
     return !_nackedSequenceNumbers.isEmpty();
 }
 
 const QByteArray* OctreeQueryNode::getNextNackedPacket() {
-
     if (!_nackedSequenceNumbers.isEmpty()) {
-        const QByteArray* nextPacket = _sentPacketHistory.getPacket(_nackedSequenceNumbers.first());
-        _nackedSequenceNumbers.pop_front();
-        return nextPacket;  // could be null
+        // could return null if packet is not in the history
+        return _sentPacketHistory.getPacket(_nackedSequenceNumbers.takeFirst());
     }
     return NULL;
 }
