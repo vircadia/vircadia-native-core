@@ -69,7 +69,9 @@ public:
     
     /// Create points and constraints based on topology of collection of joints
     /// \param joints list of connected joint states
-    void init(const QVector<int>& parentIndices, const QVector<glm::vec3>& points);
+    void init(QVector<Shape*>* shapes, const QVector<int>& parentIndices, const QVector<glm::vec3>& points);
+
+    void setShapes(QVector<Shape*>* shapes) { _shapes = shapes; }
 
     /// Delete all data.
     void clear();
@@ -82,14 +84,17 @@ public:
     const QVector<glm::vec3>& getPoints() const { return _points; }
     QVector<glm::vec3>& getPoints() { return _points; }
 
-    /// \param shapes list of shapes to be updated with new positions
     /// \param rotation rotation into shapes' collision frame
     /// \param translation translation into shapes' collision frame
-    void updateShapes(const QVector<Shape*>& shapes, const glm::quat& rotation, const glm::vec3& translation) const;
+    /// Moves and modifies elements of _shapes to agree with state of _points
+    void updateShapes(const glm::quat& rotation, const glm::vec3& translation) const;
 
 private:
-    QVector<Constraint*> _constraints;
     QVector<glm::vec3> _points;
+    QVector<Constraint*> _constraints;
+
+    // the RagDoll does NOT own the data in _shapes.
+    QVector<Shape*>* _shapes;
 };
 
 #endif // hifi_RagDoll_h

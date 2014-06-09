@@ -37,7 +37,7 @@ void SkeletonModel::setJointStates(QVector<JointState> states) {
             points.push_back(state.getPosition());
         }
         // ... and feed the results to _ragDoll
-        _ragDoll.init(parentIndices, points);
+        _ragDoll.init(&_jointShapes, parentIndices, points);
     }
 }
 
@@ -286,7 +286,7 @@ void SkeletonModel::updateJointState(int index) {
 void SkeletonModel::updateShapePositions() {
     if (isActive() && _owningAvatar->isMyAvatar() && 
             Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagDoll)) {
-        _ragDoll.updateShapes(_jointShapes, _rotation, _translation);
+        _ragDoll.updateShapes(_rotation, _translation);
     } else {
         Model::updateShapePositions();
     }
