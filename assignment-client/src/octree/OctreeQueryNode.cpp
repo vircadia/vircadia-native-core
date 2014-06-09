@@ -394,17 +394,14 @@ void OctreeQueryNode::parseNackPacket(QByteArray& packet) {
     int numBytesPacketHeader = numBytesForPacketHeader(packet);
     const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;
 
+    // read number of sequence numbers
     uint16_t numSequenceNumbers = (*(uint16_t*)dataAt);
     dataAt += sizeof(uint16_t);
-
-    printf("\t received nack packet containing %d seq nums\n", numSequenceNumbers);
 
     // read sequence numbers
     for (int i = 0; i < numSequenceNumbers; i++) {
         OCTREE_PACKET_SEQUENCE sequenceNumber = (*(OCTREE_PACKET_SEQUENCE*)dataAt);
         _nackedSequenceNumbers.enqueue(sequenceNumber);
         dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
-
-        printf("\t seq = %d\n", sequenceNumber);
     }
 }
