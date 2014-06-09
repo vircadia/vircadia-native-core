@@ -330,6 +330,22 @@ bool OctreePacketData::appendValue(bool value) {
     return success;
 }
 
+bool OctreePacketData::appendValue(const QString& string) {
+    // TODO: make this a ByteCountCoded leading byte
+    uint16_t length = string.size() + 1; // include NULL
+    bool success = appendValue(length);
+    if (success) {
+        success = appendRawData((const unsigned char*)qPrintable(string), length);
+    }
+    return success;
+}
+
+bool OctreePacketData::appendValue(const QByteArray& bytes) {
+    bool success = appendRawData((const unsigned char*)bytes.constData(), bytes.size());
+    return success;
+}
+
+
 bool OctreePacketData::appendPosition(const glm::vec3& value) {
     const unsigned char* data = (const unsigned char*)&value;
     int length = sizeof(value);
