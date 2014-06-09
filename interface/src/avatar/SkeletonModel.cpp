@@ -144,9 +144,9 @@ void SkeletonModel::getBodyShapes(QVector<const Shape*>& shapes) const {
 void SkeletonModel::renderIKConstraints() {
     renderJointConstraints(getRightHandJointIndex());
     renderJointConstraints(getLeftHandJointIndex());
-    if (isActive() && _owningAvatar->isMyAvatar()) {
-        renderRagDoll();
-    }
+    //if (isActive() && _owningAvatar->isMyAvatar()) {
+    //    renderRagDoll();
+    //}
 }
 
 class IndexValue {
@@ -193,45 +193,30 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
     if (parentJointIndex == -1) {
         return;
     }
-    
+  
     // rotate palm to align with its normal (normal points out of hand's palm)
-    glm::quat palmRotation;
-    glm::quat r0, r1;
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::AlternateIK) &&
-            Menu::getInstance()->isOptionChecked(MenuOption::AlignForearmsWithWrists)) {
-        JointState parentState = _jointStates[parentJointIndex];
-        palmRotation = parentState.getRotationFromBindToModelFrame();
-        r0 = palmRotation;
-    } else {
-        JointState state = _jointStates[jointIndex];
-        palmRotation = state.getRotationFromBindToModelFrame();
-    }
     glm::quat inverseRotation = glm::inverse(_rotation);
-    glm::vec3 palmNormal = inverseRotation * palm.getNormal();
-    palmRotation = rotationBetween(palmRotation * geometry.palmDirection, palmNormal) * palmRotation;
-    r1 = palmRotation;
-    
-    // rotate palm to align with finger direction
-    glm::vec3 direction = inverseRotation * palm.getFingerDirection();
-    palmRotation = rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), direction) * palmRotation;
-
-    // set hand position, rotation
     glm::vec3 palmPosition = inverseRotation * (palm.getPosition() - _translation);
+    glm::vec3 palmNormal = inverseRotation * palm.getNormal();
+    glm::vec3 fingerDirection = inverseRotation * palm.getFingerDirection();
+
+    glm::quat palmRotation = rotationBetween(geometry.palmDirection, palmNormal);
+    palmRotation = rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), fingerDirection) * palmRotation;
+
     if (Menu::getInstance()->isOptionChecked(MenuOption::AlternateIK)) {
         setHandPosition(jointIndex, palmPosition, palmRotation);  
-        
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::AlignForearmsWithWrists)) {
-        glm::vec3 forearmVector = palmRotation * glm::vec3(sign, 0.0f, 0.0f);
-        setJointPosition(parentJointIndex, palmPosition + forearmVector *
-            geometry.joints.at(jointIndex).distanceToParent * extractUniformScale(_scale),
+        float forearmLength = geometry.joints.at(jointIndex).distanceToParent * extractUniformScale(_scale);
+        glm::vec3 forearm = palmRotation * glm::vec3(sign * forearmLength, 0.0f, 0.0f);
+        setJointPosition(parentJointIndex, palmPosition + forearm,
             glm::quat(), false, -1, false, glm::vec3(0.0f, -1.0f, 0.0f), PALM_PRIORITY);
         JointState& parentState = _jointStates[parentJointIndex];
         parentState.setRotationFromBindFrame(palmRotation, PALM_PRIORITY);
         // lock hand to forearm by slamming its rotation (in parent-frame) to identity
         _jointStates[jointIndex]._rotationInParentFrame = glm::quat();
     } else {
-        setJointPosition(jointIndex, palmPosition, palmRotation,
-            true, -1, false, glm::vec3(0.0f, -1.0f, 0.0f), PALM_PRIORITY);
+        setJointPosition(jointIndex, palmPosition, palmRotation, 
+                true, -1, false, glm::vec3(0.0f, -1.0f, 0.0f), PALM_PRIORITY);
     }
 }
 
