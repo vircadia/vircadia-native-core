@@ -137,8 +137,8 @@ public:
     
     const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
     
-    virtual void clearShapes();
-    virtual void rebuildShapes();
+    void clearShapes();
+    void rebuildShapes();
     void resetShapePositions(); // DEBUG method
     virtual void updateShapePositions();
 
