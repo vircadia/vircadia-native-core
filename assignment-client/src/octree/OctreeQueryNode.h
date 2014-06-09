@@ -54,7 +54,7 @@ public:
     int getMaxLevelReached() const { return _maxLevelReachedInLastSearch; }
     void setMaxLevelReached(int maxLevelReached) { _maxLevelReachedInLastSearch = maxLevelReached; }
 
-    OctreeElementBag nodeBag;
+    OctreeElementBag elementBag;
     CoverageMap map;
 
     ViewFrustum& getCurrentViewFrustum() { return _currentViewFrustum; }

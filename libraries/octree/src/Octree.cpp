@@ -1649,23 +1649,23 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
             file.write(&expectedVersion, sizeof(expectedVersion));
         }
 
-        OctreeElementBag nodeBag;
+        OctreeElementBag elementBag;
         // If we were given a specific element, start from there, otherwise start from root
         if (element) {
-            nodeBag.insert(element);
+            elementBag.insert(element);
         } else {
-            nodeBag.insert(_rootElement);
+            elementBag.insert(_rootElement);
         }
 
         OctreePacketData packetData;
         int bytesWritten = 0;
         bool lastPacketWritten = false;
 
-        while (!nodeBag.isEmpty()) {
-            OctreeElement* subTree = nodeBag.extract();
+        while (!elementBag.isEmpty()) {
+            OctreeElement* subTree = elementBag.extract();
             lockForRead(); // do tree locking down here so that we have shorter slices and less thread contention
             EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
-            bytesWritten = encodeTreeBitstream(subTree, &packetData, nodeBag, params);
+            bytesWritten = encodeTreeBitstream(subTree, &packetData, elementBag, params);
             unlock();
 
             // if the subTree couldn't fit, and so we should reset the packet and reinsert the element in our bag and try again
@@ -1675,7 +1675,7 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
                     lastPacketWritten = true;
                 }
                 packetData.reset(); // is there a better way to do this? could we fit more?
-                nodeBag.insert(subTree);
+                elementBag.insert(subTree);
             } else {
                 lastPacketWritten = false;
             }
@@ -1700,8 +1700,8 @@ bool Octree::countOctreeElementsOperation(OctreeElement* element, void* extraDat
 }
 
 void Octree::copySubTreeIntoNewTree(OctreeElement* startElement, Octree* destinationTree, bool rebaseToRoot) {
-    OctreeElementBag nodeBag;
-    nodeBag.insert(startElement);
+    OctreeElementBag elementBag;
+    elementBag.insert(startElement);
     int chopLevels = 0;
     if (rebaseToRoot) {
         chopLevels = numberOfThreeBitSectionsInCode(startElement->getOctalCode());
@@ -1709,12 +1709,12 @@ void Octree::copySubTreeIntoNewTree(OctreeElement* startElement, Octree* destina
 
     static OctreePacketData packetData;
 
-    while (!nodeBag.isEmpty()) {
-        OctreeElement* subTree = nodeBag.extract();
+    while (!elementBag.isEmpty()) {
+        OctreeElement* subTree = elementBag.extract();
         packetData.reset(); // reset the packet between usage
         // ask our tree to write a bitsteam
         EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS, chopLevels);
-        encodeTreeBitstream(subTree, &packetData, nodeBag, params);
+        encodeTreeBitstream(subTree, &packetData, elementBag, params);
         // ask destination tree to read the bitstream
         ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS);
         destinationTree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
@@ -1722,20 +1722,20 @@ void Octree::copySubTreeIntoNewTree(OctreeElement* startElement, Octree* destina
 }
 
 void Octree::copyFromTreeIntoSubTree(Octree* sourceTree, OctreeElement* destinationElement) {
-    OctreeElementBag nodeBag;
+    OctreeElementBag elementBag;
     // If we were given a specific element, start from there, otherwise start from root
-    nodeBag.insert(sourceTree->_rootElement);
+    elementBag.insert(sourceTree->_rootElement);
 
     static OctreePacketData packetData;
 
-    while (!nodeBag.isEmpty()) {
-        OctreeElement* subTree = nodeBag.extract();
+    while (!elementBag.isEmpty()) {
+        OctreeElement* subTree = elementBag.extract();
 
         packetData.reset(); // reset between usage
 
         // ask our tree to write a bitsteam
         EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
-        sourceTree->encodeTreeBitstream(subTree, &packetData, nodeBag, params);
+        sourceTree->encodeTreeBitstream(subTree, &packetData, elementBag, params);
 
         // ask destination tree to read the bitstream
         bool wantImportProgress = true;

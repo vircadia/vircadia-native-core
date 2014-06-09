@@ -361,7 +361,8 @@ bool ModelItem::new___appendModelData(OctreePacketData* packetData, EncodeBitstr
         
         encodedPropertyFlags = propertyFlags;
         int newPropertyFlagsLength = encodedPropertyFlags.length();
-        packetData->updatePriorBytes(propertyFlagsOffset, (const unsigned char*)encodedPropertyFlags.constData(), encodedPropertyFlags.length());
+        packetData->updatePriorBytes(propertyFlagsOffset, 
+                (const unsigned char*)encodedPropertyFlags.constData(), encodedPropertyFlags.length());
         
         // if the size of the PropertyFlags shrunk, we need to shift everything down to front of packet.
         if (newPropertyFlagsLength < oldPropertyFlagsLength) {

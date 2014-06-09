@@ -328,7 +328,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
 
     // If the current view frustum has changed OR we have nothing to send, then search against
     // the current view frustum for things to send.
-    if (viewFrustumChanged || nodeData->nodeBag.isEmpty()) {
+    if (viewFrustumChanged || nodeData->elementBag.isEmpty()) {
 
         // if our view has changed, we need to reset these things...
         if (viewFrustumChanged) {
@@ -357,9 +357,9 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         int packetsJustSent = handlePacketSend(nodeData, trueBytesSent, truePacketsSent);
         packetsSentThisInterval += packetsJustSent;
 
-        // If we're starting a full scene, then definitely we want to empty the nodeBag
+        // If we're starting a full scene, then definitely we want to empty the elementBag
         if (isFullScene) {
-            nodeData->nodeBag.deleteAll();
+            nodeData->elementBag.deleteAll();
         }
 
         // TODO: add these to stats page
@@ -371,16 +371,16 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         // This is the start of "resending" the scene.
         bool dontRestartSceneOnMove = false; // this is experimental
         if (dontRestartSceneOnMove) {
-            if (nodeData->nodeBag.isEmpty()) {
-                nodeData->nodeBag.insert(_myServer->getOctree()->getRoot()); // only in case of empty
+            if (nodeData->elementBag.isEmpty()) {
+                nodeData->elementBag.insert(_myServer->getOctree()->getRoot()); // only in case of empty
             }
         } else {
-            nodeData->nodeBag.insert(_myServer->getOctree()->getRoot()); // original behavior, reset on move or empty
+            nodeData->elementBag.insert(_myServer->getOctree()->getRoot()); // original behavior, reset on move or empty
         }
     }
 
-    // If we have something in our nodeBag, then turn them into packets and send them out...
-    if (!nodeData->nodeBag.isEmpty()) {
+    // If we have something in our elementBag, then turn them into packets and send them out...
+    if (!nodeData->elementBag.isEmpty()) {
         int bytesWritten = 0;
         quint64 start = usecTimestampNow();
 
@@ -402,8 +402,8 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
             quint64 startInside = usecTimestampNow();            
 
             bool lastNodeDidntFit = false; // assume each node fits
-            if (!nodeData->nodeBag.isEmpty()) {
-                OctreeElement* subTree = nodeData->nodeBag.extract();
+            if (!nodeData->elementBag.isEmpty()) {
+                OctreeElement* subTree = nodeData->elementBag.extract();
                 
                 /* TODO: Looking for a way to prevent locking and encoding a tree that is not
                 // going to result in any packets being sent...
@@ -452,14 +452,14 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                 lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
 
                 quint64 encodeStart = usecTimestampNow();
-                bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->nodeBag, params);
+                bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->elementBag, params);
                 quint64 encodeEnd = usecTimestampNow();
                 encodeElapsedUsec = (float)(encodeEnd - encodeStart);
                 
                 // If after calling encodeTreeBitstream() there are no nodes left to send, then we know we've
                 // sent the entire scene. We want to know this below so we'll actually write this content into
                 // the packet and send it
-                completedScene = nodeData->nodeBag.isEmpty();
+                completedScene = nodeData->elementBag.isEmpty();
 
                 // if we're trying to fill a full size packet, then we use this logic to determine if we have a DIDNT_FIT case.
                 if (_packetData.getTargetSize() == MAX_OCTREE_PACKET_DATA_SIZE) {
@@ -580,7 +580,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
 
         // if after sending packets we've emptied our bag, then we want to remember that we've sent all
         // the voxels from the current view frustum
-        if (nodeData->nodeBag.isEmpty()) {
+        if (nodeData->elementBag.isEmpty()) {
             nodeData->updateLastKnownViewFrustum();
             nodeData->setViewSent(true);
             nodeData->map.erase(); // It would be nice if we could save this, and only reset it when the view frustum changes
