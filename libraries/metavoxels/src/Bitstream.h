@@ -321,8 +321,14 @@ public:
     Bitstream& operator<<(uint value);
     Bitstream& operator>>(uint& value);
     
+    Bitstream& operator<<(qint64 value);
+    Bitstream& operator>>(qint64& value);
+    
     Bitstream& operator<<(float value);
     Bitstream& operator>>(float& value);
+    
+    Bitstream& operator<<(double value);
+    Bitstream& operator>>(double& value);
     
     Bitstream& operator<<(const glm::vec3& value);
     Bitstream& operator>>(glm::vec3& value);
@@ -341,6 +347,12 @@ public:
     
     Bitstream& operator<<(const QUrl& url);
     Bitstream& operator>>(QUrl& url);
+    
+    Bitstream& operator<<(const QDateTime& dateTime);
+    Bitstream& operator>>(QDateTime& dateTime);
+    
+    Bitstream& operator<<(const QRegExp& regExp);
+    Bitstream& operator>>(QRegExp& regExp);
     
     Bitstream& operator<<(const QVariant& value);
     Bitstream& operator>>(QVariant& value);

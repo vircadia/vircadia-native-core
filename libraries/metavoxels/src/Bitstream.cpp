@@ -350,12 +350,28 @@ Bitstream& Bitstream::operator>>(uint& value) {
     return *this;
 }
 
+Bitstream& Bitstream::operator<<(qint64 value) {
+    return write(&value, 64);
+}
+
+Bitstream& Bitstream::operator>>(qint64& value) {
+    return read(&value, 64);
+}
+
 Bitstream& Bitstream::operator<<(float value) {
     return write(&value, 32);
 }
 
 Bitstream& Bitstream::operator>>(float& value) {
     return read(&value, 32);
+}
+
+Bitstream& Bitstream::operator<<(double value) {
+    return write(&value, 64);
+}
+
+Bitstream& Bitstream::operator>>(double& value) {
+    return read(&value, 64);
 }
 
 Bitstream& Bitstream::operator<<(const glm::vec3& value) {
@@ -417,6 +433,36 @@ Bitstream& Bitstream::operator>>(QUrl& url) {
     QString string;
     *this >> string;
     url = string;
+    return *this;
+}
+
+Bitstream& Bitstream::operator<<(const QDateTime& dateTime) {
+    return *this << dateTime.toMSecsSinceEpoch();
+}
+
+Bitstream& Bitstream::operator>>(QDateTime& dateTime) {
+    qint64 msecsSinceEpoch;
+    *this >> msecsSinceEpoch;
+    dateTime = QDateTime::fromMSecsSinceEpoch(msecsSinceEpoch);
+    return *this;
+}
+
+Bitstream& Bitstream::operator<<(const QRegExp& regExp) {
+    *this << regExp.pattern();
+    
+    return *this;
+}
+
+Bitstream& Bitstream::operator>>(QRegExp& regExp) {
+    QString pattern;
+    *this >> pattern;
+    Qt::CaseSensitivity caseSensitivity = (Qt::CaseSensitivity)0;
+    read(&caseSensitivity, 1);
+    QRegExp::PatternSyntax syntax = (QRegExp::PatternSyntax)0;
+    read(&syntax, 3);
+    
+    regExp = QRegExp(pattern, caseSensitivity, syntax);
+    
     return *this;
 }
 
@@ -550,8 +596,9 @@ enum ScriptValueType {
     BOOL_SCRIPT_VALUE,
     NUMBER_SCRIPT_VALUE,
     STRING_SCRIPT_VALUE,
-    QVARIANT_SCRIPT_VALUE,
+    VARIANT_SCRIPT_VALUE,
     QOBJECT_SCRIPT_VALUE,
+    QMETAOBJECT_SCRIPT_VALUE,
     DATE_SCRIPT_VALUE,
     REGEXP_SCRIPT_VALUE,
     ARRAY_SCRIPT_VALUE,
@@ -579,12 +626,35 @@ Bitstream& Bitstream::operator<<(const QScriptValue& value) {
     
     } else if (value.isBool()) {
         writeScriptValueType(*this, BOOL_SCRIPT_VALUE);
+        *this << value.toBool();
     
     } else if (value.isNumber()) {
         writeScriptValueType(*this, NUMBER_SCRIPT_VALUE);
+        *this << value.toNumber();
     
     } else if (value.isString()) {
         writeScriptValueType(*this, STRING_SCRIPT_VALUE);
+        *this << value.toString();
+    
+    } else if (value.isVariant()) {
+        writeScriptValueType(*this, VARIANT_SCRIPT_VALUE);
+        *this << value.toVariant();
+        
+    } else if (value.isQObject()) {
+        writeScriptValueType(*this, QOBJECT_SCRIPT_VALUE);
+        *this << value.toQObject();
+    
+    } else if (value.isQMetaObject()) {
+        writeScriptValueType(*this, QMETAOBJECT_SCRIPT_VALUE);
+        *this << value.toQMetaObject();
+        
+    } else if (value.isDate()) {
+        writeScriptValueType(*this, DATE_SCRIPT_VALUE);
+        *this << value.toDateTime();
+    
+    } else if (value.isRegExp()) {
+        writeScriptValueType(*this, REGEXP_SCRIPT_VALUE);
+        *this << value.toRegExp();
     
     } else if (value.isArray()) {
         writeScriptValueType(*this, ARRAY_SCRIPT_VALUE);
