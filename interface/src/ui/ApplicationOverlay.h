@@ -15,7 +15,7 @@
 class Overlays;
 class QOpenGLFramebufferObject;
 
-// Handles the drawing of the overlays to the scree
+// Handles the drawing of the overlays to the screen
 class ApplicationOverlay {
 public:
 
@@ -27,6 +27,7 @@ public:
     void renderOverlay(bool renderToTexture = false);
     void displayOverlayTexture(Camera& whichCamera);
     void displayOverlayTextureOculus(Camera& whichCamera);
+    void computeOculusPickRay(float x, float y, glm::vec3& direction) const;
 
     // Getters
     QOpenGLFramebufferObject* getFramebufferObject();
