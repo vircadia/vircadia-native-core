@@ -271,23 +271,6 @@ qint64 LimitedNodeList::writeDatagram(const char* data, qint64 size, const Share
     return writeDatagram(QByteArray(data, size), destinationNode, overridenSockAddr);
 }
 
-qint64 LimitedNodeList::writeDatagram2(int seq, const char* data, qint64 size, const SharedNodePointer& destinationNode,
-                                const HifiSockAddr& overridenSockAddr) {
-
-    qint64 ret = -1;
-    
-    if (randFloat() < 0.8f) {
-        ret = writeDatagram(QByteArray(data, size), destinationNode, overridenSockAddr);
-    }
-    else {
-        printf("dropped packet seq = %d --------------------------\n", seq);
-    }
-
-
-    return ret;
-}
-
-
 qint64 LimitedNodeList::writeUnverifiedDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
                                const HifiSockAddr& overridenSockAddr) {
     return writeUnverifiedDatagram(QByteArray(data, size), destinationNode, overridenSockAddr);

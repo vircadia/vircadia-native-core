@@ -413,8 +413,6 @@ private:
 
     void sendNack();
 
-
-
     MainWindow* _window;
     GLCanvas* _glWidget; // our GLCanvas has a couple extra features
 
@@ -585,7 +583,7 @@ private:
 
     QSystemTrayIcon* _trayIcon;
 
-quint64 _lastNackTime;
+    quint64 _lastNackTime;
 };
 
 #endif // hifi_Application_h

@@ -24,8 +24,7 @@
 #include <OctreeSceneStats.h>
 #include <ThreadedAssignment.h> // for SharedAssignmentPointer
 #include "SentPacketHistory.h"
-
-#include <qqueue.h> // i added dis
+#include <qqueue.h>
 
 class OctreeSendThread;
 
@@ -109,9 +108,7 @@ public:
 
     OCTREE_PACKET_SEQUENCE getSequenceNumber() const { return _sequenceNumber; }
 
-    void addNackedSequenceNumber(OCTREE_PACKET_SEQUENCE sequenceNumber) { 
-        _nackedSequenceNumbers.append(sequenceNumber);
-    }
+    void parseNackPacket(QByteArray& packet);
     bool hasNextNackedPacket() const;
     const QByteArray* getNextNackedPacket();
 
@@ -158,8 +155,8 @@ private:
     PacketType _myPacketType;
     bool _isShuttingDown;
 
-SentPacketHistory _sentPacketHistory;
-QQueue<OCTREE_PACKET_SEQUENCE> _nackedSequenceNumbers;
+    SentPacketHistory _sentPacketHistory;
+    QQueue<OCTREE_PACKET_SEQUENCE> _nackedSequenceNumbers;
 };
 
 #endif // hifi_OctreeQueryNode_h

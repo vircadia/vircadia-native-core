@@ -849,33 +849,15 @@ void OctreeServer::readPendingDatagrams() {
                 }
 
             } else if (packetType == PacketTypeOctreeDataNack) {
-
-// parse packet for sequence numbers that need to be resent
-
-if (matchingNode) {
-
-    OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
-
-    int numBytesPacketHeader = numBytesForPacketHeader(receivedPacket);
-    const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(receivedPacket.data()) + numBytesPacketHeader;
-
-    uint16_t numSequenceNumbers = (*(uint16_t*)dataAt);
-    dataAt += sizeof(uint16_t);
-
-printf("\t received nack packet containing %d seq nums\n", numSequenceNumbers);
-
-    // read sequence numbers
-    for (int i = 0; i < numSequenceNumbers; i++) {
-        OCTREE_PACKET_SEQUENCE sequenceNumber = (*(OCTREE_PACKET_SEQUENCE*)dataAt);
-        nodeData->addNackedSequenceNumber(sequenceNumber);
-        dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
-
-printf("\t seq = %d\n", sequenceNumber);
-    }
-}
-
-
-
+                // If we got a nack packet, then we're talking to an agent, and we
+                // need to make sure we have it in our nodeList.
+                if (matchingNode) {
+                    nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
+                    OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
+                    if (nodeData) {
+                        nodeData->parseNackPacket(receivedPacket);
+                    }
+                }
             } else if (packetType == PacketTypeJurisdictionRequest) {
                 _jurisdictionSender->queueReceivedPacket(matchingNode, receivedPacket);
             } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {

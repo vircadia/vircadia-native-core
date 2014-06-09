@@ -25,7 +25,6 @@ public:
     const QByteArray* getPacket(OCTREE_PACKET_SEQUENCE sequenceNumber) const;
 
 private:
-
     QVector<QByteArray> _sentPackets;    // circular buffer
     int _newestPacketAt;
     int _numExistingPackets;

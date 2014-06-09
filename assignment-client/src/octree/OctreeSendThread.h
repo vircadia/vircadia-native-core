@@ -56,7 +56,7 @@ private:
     int _nodeMissingCount;
     bool _isShuttingDown;
 
-int resendNackedPackets(OctreeQueryNode* nodeData);
+    int resendNackedPackets(OctreeQueryNode* nodeData);
 
 };
 

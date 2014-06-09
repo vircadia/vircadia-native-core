@@ -2095,33 +2095,17 @@ void Application::updateMyAvatar(float deltaTime) {
         }
     }
 
-// sent a nack packet containing missing sequence numbers of received packets
-{
-    quint64 now = usecTimestampNow();
-    quint64 sinceLastNack = now - _lastNackTime;
-    const quint64 TOO_LONG_SINCE_LAST_NACK = 250 * MSECS_PER_SECOND;
-    if (sinceLastNack > TOO_LONG_SINCE_LAST_NACK) {
-        _lastNackTime = now;
-        sendNack();
-    }
-}
-}
-
-/*/ Attempt to identify the sender from it's address.
-    if (sendingNode) {
-        QUuid nodeUUID = sendingNode->getUUID();
-
-        // now that we know the node ID, let's add these stats to the stats for that node...
-        _octreeSceneStatsLock.lockForWrite();
-        if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
-            OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
-            stats.trackIncomingOctreePacket(packet, wasStatsPacket, sendingNode->getClockSkewUsec());
+    // sent a nack packet containing missing sequence numbers of received packets
+    {
+        quint64 now = usecTimestampNow();
+        quint64 sinceLastNack = now - _lastNackTime;
+        const quint64 TOO_LONG_SINCE_LAST_NACK = 250 * MSECS_PER_SECOND;
+        if (sinceLastNack > TOO_LONG_SINCE_LAST_NACK) {
+            _lastNackTime = now;
+            sendNack();
         }
-        _octreeSceneStatsLock.unlock();
     }
-    */
-
-
+}
 
 void Application::sendNack() {
 
@@ -2138,7 +2122,6 @@ void Application::sendNack() {
             ) {
 
             QUuid nodeUUID = node->getUUID();
-
 
             _octreeSceneStatsLock.lockForWrite();
 
@@ -2172,15 +2155,11 @@ void Application::sendNack() {
             dataAt += sizeof(uint16_t);
 
             // pack sequence numbers
-//printf("\n\t sending nack...\n");
-//printf("\t\t packed %d seq #s:", numSequenceNumbers);
             for (int i = 0; i < numSequenceNumbers; i++) {
                 OCTREE_PACKET_SEQUENCE* sequenceNumberAt = (OCTREE_PACKET_SEQUENCE*)dataAt;
                 *sequenceNumberAt = stats.getNextSequenceNumberToNack();
                 dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
-//printf(" %d,", *sequenceNumberAt);
             }
-//printf("\n");
             
             _octreeSceneStatsLock.unlock();
 
@@ -2188,9 +2167,6 @@ void Application::sendNack() {
         }
     }
 }
-
-
-
 
 void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
 

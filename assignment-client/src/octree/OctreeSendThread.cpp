@@ -85,7 +85,7 @@ bool OctreeSendThread::process() {
             if (nodeData && !nodeData->isShuttingDown()) {
                 bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
                 packetDistributor(nodeData, viewFrustumChanged);
-resendNackedPackets(nodeData);
+                resendNackedPackets(nodeData);
             }
         }
     }
@@ -181,7 +181,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
 
             // actually send it
             OctreeServer::didCallWriteDatagram(this);
-NodeList::getInstance()->writeDatagram2(nodeData->getSequenceNumber(), (char*) statsMessage, statsMessageLength, _node);
+            NodeList::getInstance()->writeDatagram((char*) statsMessage, statsMessageLength, _node);
             packetSent = true;
         } else {
             // not enough room in the packet, send two packets
@@ -215,7 +215,7 @@ NodeList::getInstance()->writeDatagram2(nodeData->getSequenceNumber(), (char*) s
             packetsSent++;
 
             OctreeServer::didCallWriteDatagram(this);
-NodeList::getInstance()->writeDatagram2(nodeData->getSequenceNumber(), (char*)nodeData->getPacket(), nodeData->getPacketLength(), _node);
+            NodeList::getInstance()->writeDatagram((char*)nodeData->getPacket(), nodeData->getPacketLength(), _node);
             packetSent = true;
 
             thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
@@ -244,7 +244,7 @@ NodeList::getInstance()->writeDatagram2(nodeData->getSequenceNumber(), (char*)no
         if (nodeData->isPacketWaiting() && !nodeData->isShuttingDown()) {
             // just send the voxel packet
             OctreeServer::didCallWriteDatagram(this);
-NodeList::getInstance()->writeDatagram2(nodeData->getSequenceNumber(), (char*)nodeData->getPacket(), nodeData->getPacketLength(), _node);
+            NodeList::getInstance()->writeDatagram((char*)nodeData->getPacket(), nodeData->getPacketLength(), _node);
             packetSent = true;
 
             int thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
@@ -281,10 +281,6 @@ NodeList::getInstance()->writeDatagram2(nodeData->getSequenceNumber(), (char*)no
     return packetsSent;
 }
 
-
-
-
-
 int OctreeSendThread::resendNackedPackets(OctreeQueryNode* nodeData) {
 
     const int MAX_PACKETS_RESEND = 10;
@@ -299,19 +295,11 @@ int OctreeSendThread::resendNackedPackets(OctreeQueryNode* nodeData) {
 
             _totalBytes += packet->size();
             _totalPackets++;
-            _totalWastedBytes += MAX_PACKET_SIZE - packet->size();  // ???
+            _totalWastedBytes += MAX_PACKET_SIZE - packet->size();
         }
     }
-
-if (packetsSent > 0)
-printf("\t\t re-sent %d packets!\n", packetsSent);
     return packetsSent;
 }
-
-
-
-
-
 
 /// Version of voxel distributor that sends the deepest LOD level at once
 int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrustumChanged) {

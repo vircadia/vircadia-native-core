@@ -72,9 +72,6 @@ public:
     qint64 writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
                          const HifiSockAddr& overridenSockAddr = HifiSockAddr());
 
-qint64 writeDatagram2(int seq, const char* data, qint64 size, const SharedNodePointer& destinationNode,
-    const HifiSockAddr& overridenSockAddr = HifiSockAddr());
-
     qint64 writeUnverifiedDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
                          const HifiSockAddr& overridenSockAddr = HifiSockAddr());
 

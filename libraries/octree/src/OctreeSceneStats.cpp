@@ -46,7 +46,7 @@ OctreeSceneStats::OctreeSceneStats() :
     _incomingReallyLate(0),
     _incomingPossibleDuplicate(0),
     _missingSequenceNumbers(),
-_sequenceNumbersToNack(),
+    _sequenceNumbersToNack(),
     _incomingFlightTimeAverage(samples),
     _jurisdictionRoot(NULL)
 {
@@ -159,7 +159,7 @@ void OctreeSceneStats::copyFromOther(const OctreeSceneStats& other) {
     _incomingPossibleDuplicate = other._incomingPossibleDuplicate;
     
     _missingSequenceNumbers = other._missingSequenceNumbers;
-_sequenceNumbersToNack = other._sequenceNumbersToNack;
+    _sequenceNumbersToNack = other._sequenceNumbersToNack;
 }
 
 
@@ -928,7 +928,7 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
                         qDebug() << "found it in _missingSequenceNumbers";
                     }
                     _missingSequenceNumbers.remove(sequence);
-_sequenceNumbersToNack.remove(sequence);
+                    _sequenceNumbersToNack.remove(sequence);
                     _incomingLikelyLost--;
                     _incomingRecovered++;
                 } else {
@@ -958,7 +958,7 @@ _sequenceNumbersToNack.remove(sequence);
                 _incomingLikelyLost += missing;
                 for(unsigned int missingSequence = expected; missingSequence < sequence; missingSequence++) {
                     _missingSequenceNumbers << missingSequence;
-_sequenceNumbersToNack << missingSequence;
+                    _sequenceNumbersToNack << missingSequence;
                 }
             }
         }
@@ -986,7 +986,7 @@ _sequenceNumbersToNack << missingSequence;
                     qDebug() << "pruning really old missing sequence:" << missingItem;
                 }
                 _missingSequenceNumbers.remove(missingItem);
-_sequenceNumbersToNack.remove(missingItem);
+                _sequenceNumbersToNack.remove(missingItem);
             }
         }
     }
