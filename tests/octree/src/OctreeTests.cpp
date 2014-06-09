@@ -53,7 +53,10 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
     int testsPassed = 0;
     int testsFailed = 0;
 
-    qDebug() << "******************************************************************************************";
+    if (verbose) {
+        qDebug() << "******************************************************************************************";
+    }
+    
     qDebug() << "OctreeTests::propertyFlagsTests()";
 
     {
@@ -834,7 +837,6 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
         if (verbose) {
             qDebug() << "Test 13: ParticlePropertyFlags: QByteArray << / >> tests";
         }
-        testsTaken++;
         ParticlePropertyFlags props;
 
         props << PARTICLE_PROP_VISIBLE;
@@ -863,13 +865,22 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
         if (verbose) {
             qDebug() << "propsDecoded==props" << (propsDecoded==props);
         }
+
+        testsTaken++;
+        bool resultA = (propsDecoded == props);
+        bool expectedA = true;
+        if (resultA == expectedA) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 13: ParticlePropertyFlags: QByteArray << / >> tests";
+        }
     }
 
-    qDebug() << "******************************************************************************************";
-    qDebug() << "   tests taken: " << testsTaken;
-    qDebug() << "   tests passed:" << testsPassed;
-    qDebug() << "   tests failed:" << testsFailed;
-    qDebug() << "******************************************************************************************";
+    qDebug() << "   tests passed:" << testsPassed << "out of" << testsTaken;
+    if (verbose) {
+        qDebug() << "******************************************************************************************";
+    }
 }
 
 
@@ -879,7 +890,14 @@ typedef ByteCountCoded<quint64> ByteCountCodedQUINT64;
 typedef ByteCountCoded<int> ByteCountCodedINT;
 
 void OctreeTests::byteCountCodingTests(bool verbose) {
-    qDebug() << "******************************************************************************************";
+    int testsTaken = 0;
+    int testsPassed = 0;
+    int testsFailed = 0;
+
+    if (verbose) {
+        qDebug() << "******************************************************************************************";
+    }
+    
     qDebug() << "OctreeTests::byteCountCodingTests()";
     
     QByteArray encoded;
@@ -899,11 +917,38 @@ void OctreeTests::byteCountCodingTests(bool verbose) {
         qDebug() << "decodedZero=" << decodedZero.data;
         qDebug() << "decodedZero==zero" << (decodedZero == zero) << " { expected true } ";
     }
+    testsTaken++;
+    bool result1 = (decodedZero.data == 0);
+    bool expected1 = true;
+    if (result1 == expected1) {
+        testsPassed++;
+    } else {
+        testsFailed++;
+        qDebug() << "FAILED - Test 1: ByteCountCodedUINT zero(0) decodedZero.data == 0";
+    }
+
+    testsTaken++;
+    bool result2 = (decodedZero == zero);
+    bool expected2 = true;
+    if (result2 == expected2) {
+        testsPassed++;
+    } else {
+        testsFailed++;
+        qDebug() << "FAILED - Test 2: ByteCountCodedUINT zero(0) (decodedZero == zero)";
+    }
 
     ByteCountCodedUINT decodedZeroB(encoded);
-
     if (verbose) {
         qDebug() << "decodedZeroB=" << decodedZeroB.data;
+    }
+    testsTaken++;
+    bool result3 = (decodedZeroB.data == 0);
+    bool expected3 = true;
+    if (result3 == expected3) {
+        testsPassed++;
+    } else {
+        testsFailed++;
+        qDebug() << "FAILED - Test 3: (decodedZeroB.data == 0)";
     }
 
     if (verbose) {
@@ -923,19 +968,46 @@ void OctreeTests::byteCountCodingTests(bool verbose) {
         qDebug() << "decodedFoo=" << decodedFoo.data;
         qDebug() << "decodedFoo==foo" << (decodedFoo == foo) << " { expected true } ";
     }
+    testsTaken++;
+    bool result4 = (decodedFoo.data == 259);
+    bool expected4 = true;
+    if (result4 == expected4) {
+        testsPassed++;
+    } else {
+        testsFailed++;
+        qDebug() << "FAILED - Test 4: ByteCountCodedUINT zero(0) (decodedFoo.data == 259)";
+    }
+
+    testsTaken++;
+    bool result5 = (decodedFoo == foo);
+    bool expected5 = true;
+    if (result5 == expected5) {
+        testsPassed++;
+    } else {
+        testsFailed++;
+        qDebug() << "FAILED - Test 5: (decodedFoo == foo)";
+    }
 
     ByteCountCodedUINT decodedFooB(encoded);
-
     if (verbose) {
         qDebug() << "decodedFooB=" << decodedFooB.data;
     }
+    testsTaken++;
+    bool result6 = (decodedFooB.data == 259);
+    bool expected6 = true;
+    if (result6 == expected6) {
+        testsPassed++;
+    } else {
+        testsFailed++;
+        qDebug() << "FAILED - Test 6: (decodedFooB.data == 259)";
+    }
+
 
     if (verbose) {
         qDebug() << "ByteCountCodedUINT bar(1000000)";
     }
     ByteCountCodedUINT bar(1000000);
     encoded = bar.encode();
-
     if (verbose) {
         outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
     }
@@ -945,6 +1017,25 @@ void OctreeTests::byteCountCodingTests(bool verbose) {
     if (verbose) {
         qDebug() << "decodedBar=" << decodedBar.data;
         qDebug() << "decodedBar==bar" << (decodedBar == bar) << " { expected true } ";
+    }
+    testsTaken++;
+    bool result7 = (decodedBar.data == 1000000);
+    bool expected7 = true;
+    if (result7 == expected7) {
+        testsPassed++;
+    } else {
+        testsFailed++;
+        qDebug() << "FAILED - Test 7: ByteCountCodedUINT zero(0) (decodedBar.data == 1000000)";
+    }
+
+    testsTaken++;
+    bool result8 = (decodedBar == bar);
+    bool expected8 = true;
+    if (result8 == expected8) {
+        testsPassed++;
+    } else {
+        testsFailed++;
+        qDebug() << "FAILED - Test 8: (decodedBar == bar)";
     }
 
     if (verbose) {
@@ -962,6 +1053,25 @@ void OctreeTests::byteCountCodingTests(bool verbose) {
         qDebug() << "decodedSpam=" << decodedSpam.data;
         qDebug() << "decodedSpam==spam" << (decodedSpam==spam) << " { expected true } ";
     }
+    testsTaken++;
+    bool result9 = (decodedSpam.data == 4294967295/2);
+    bool expected9 = true;
+    if (result9 == expected9) {
+        testsPassed++;
+    } else {
+        testsFailed++;
+        qDebug() << "FAILED - Test 9: (decodedSpam.data == 4294967295/2)";
+    }
+
+    testsTaken++;
+    bool result10 = (decodedSpam == spam);
+    bool expected10 = true;
+    if (result10 == expected10) {
+        testsPassed++;
+    } else {
+        testsFailed++;
+        qDebug() << "FAILED - Test 10: (decodedSpam == spam)";
+    }
 
     if (verbose) {
         qDebug() << "ByteCountCodedQUINT64 foo64(259)";
@@ -976,9 +1086,18 @@ void OctreeTests::byteCountCodingTests(bool verbose) {
         qDebug() << "testing... quint64 foo64POD = foo64;";
     }
     quint64 foo64POD = foo64;
-
     if (verbose) {
         qDebug() << "foo64POD=" << foo64POD;
+    }
+
+    testsTaken++;
+    bool result11 = (foo64POD == 259);
+    bool expected11 = true;
+    if (result11 == expected11) {
+        testsPassed++;
+    } else {
+        testsFailed++;
+        qDebug() << "FAILED - Test 11: quint64 foo64POD = foo64";
     }
 
     if (verbose) {
@@ -997,6 +1116,25 @@ void OctreeTests::byteCountCodingTests(bool verbose) {
         qDebug() << "decodedFoo64=" << decodedFoo64.data;
         qDebug() << "decodedFoo64==foo64" << (decodedFoo64==foo64) << " { expected true } ";
     }
+    testsTaken++;
+    bool result12 = (decodedFoo64.data == 259);
+    bool expected12 = true;
+    if (result12 == expected12) {
+        testsPassed++;
+    } else {
+        testsFailed++;
+        qDebug() << "FAILED - Test 12: decodedFoo64.data == 259";
+    }
+
+    testsTaken++;
+    bool result13 = (decodedFoo64==foo64);
+    bool expected13 = true;
+    if (result13 == expected13) {
+        testsPassed++;
+    } else {
+        testsFailed++;
+        qDebug() << "FAILED - Test 13: decodedFoo64==foo64";
+    }
 
     if (verbose) {
         qDebug() << "ByteCountCodedQUINT64 bar64(1000000)";
@@ -1013,6 +1151,25 @@ void OctreeTests::byteCountCodingTests(bool verbose) {
         qDebug() << "decodedBar64=" << decodedBar64.data;
         qDebug() << "decodedBar64==bar64" << (decodedBar64==bar64) << " { expected true } ";
     }
+    testsTaken++;
+    bool result14 = (decodedBar64.data == 1000000);
+    bool expected14 = true;
+    if (result14 == expected14) {
+        testsPassed++;
+    } else {
+        testsFailed++;
+        qDebug() << "FAILED - Test 14: decodedBar64.data == 1000000";
+    }
+
+    testsTaken++;
+    bool result15 = (decodedBar64==bar64);
+    bool expected15 = true;
+    if (result15 == expected15) {
+        testsPassed++;
+    } else {
+        testsFailed++;
+        qDebug() << "FAILED - Test 15: decodedBar64==bar64";
+    }
 
     if (verbose) {
         qDebug() << "ByteCountCodedQUINT64 spam64(4294967295/2)";
@@ -1028,6 +1185,25 @@ void OctreeTests::byteCountCodingTests(bool verbose) {
     if (verbose) {
         qDebug() << "decodedSpam64=" << decodedSpam64.data;
         qDebug() << "decodedSpam64==spam64" << (decodedSpam64==spam64) << " { expected true } ";
+    }
+    testsTaken++;
+    bool result16 = (decodedSpam64.data == 4294967295/2);
+    bool expected16 = true;
+    if (result16 == expected16) {
+        testsPassed++;
+    } else {
+        testsFailed++;
+        qDebug() << "FAILED - Test 16: decodedSpam64.data == 4294967295/2";
+    }
+
+    testsTaken++;
+    bool result17 = (decodedSpam64==spam64);
+    bool expected17 = true;
+    if (result17 == expected17) {
+        testsPassed++;
+    } else {
+        testsFailed++;
+        qDebug() << "FAILED - Test 17: decodedSpam64==spam64";
     }
 
     if (verbose) {
@@ -1047,6 +1223,15 @@ void OctreeTests::byteCountCodingTests(bool verbose) {
     if (verbose) {
         qDebug() << "decodedSpam64=" << decodedSpam64.data;
     }
+    testsTaken++;
+    bool result18 = (decodedSpam64==spam64);
+    bool expected18 = true;
+    if (result18 == expected18) {
+        testsPassed++;
+    } else {
+        testsFailed++;
+        qDebug() << "FAILED - Test 18: decodedSpam64==spam64";
+    }
 
     //ByteCountCodedINT shouldFail(-100);
     
@@ -1060,9 +1245,25 @@ void OctreeTests::byteCountCodingTests(bool verbose) {
     if (verbose) {
         outputBufferBits((const unsigned char*)nowEncoded.constData(), nowEncoded.size());
     }
+    ByteCountCodedQUINT64 decodedNow = nowEncoded;
+
+    testsTaken++;
+    bool result19 = (decodedNow.data==now);
+    bool expected19 = true;
+    if (result19 == expected19) {
+        testsPassed++;
+    } else {
+        testsFailed++;
+        qDebug() << "FAILED - Test 19: now test...";
+    }
     
-    
-    qDebug() << "******************************************************************************************";
+    if (verbose) {
+        qDebug() << "******************************************************************************************";
+    }
+    qDebug() << "   tests passed:" << testsPassed << "out of" << testsTaken;
+    if (verbose) {
+        qDebug() << "******************************************************************************************";
+    }
 }
 
 void OctreeTests::runAllTests(bool verbose) {
