@@ -18,7 +18,7 @@ var Account = Account || {};
 
 (function () {
     "use strict";
-    var iconUrl = 'http://dev.worklist.net/~stojce/',
+    var iconUrl = 'http://highfidelity-public.s3-us-west-1.amazonaws.com/images/tools/',
         overlayWidth = 150,
         overlayHeight = 50,
         overlayTopOffset = 15,
@@ -46,7 +46,7 @@ var Account = Account || {};
             y: overlayTopOffset,
             width: 122,
             height: 32,
-            imageURL: iconUrl + "walletsymbol.svg",
+            imageURL: iconUrl + "wallet.svg",
             alpha: 1
         }),
         textOverlay = Overlays.addOverlay("text", {
