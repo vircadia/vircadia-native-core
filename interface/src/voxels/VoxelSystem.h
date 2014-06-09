@@ -134,7 +134,6 @@ private:
 
     bool _initialized;
     int  _callsToTreesToArrays;
-    OctreeElementBag _removedVoxels;
 
     // Operation functions for tree recursion methods
     static int _nodeCount;
@@ -177,7 +176,6 @@ private:
     unsigned long _voxelsUpdated;
     unsigned long _voxelsInReadArrays;
     unsigned long _voxelsInWriteArrays;
-    unsigned long _abandonedVBOSlots;
 
     bool _writeRenderFullVBO;
     bool _readRenderFullVBO;
@@ -222,7 +220,6 @@ private:
     void setupFaceIndices(GLuint& faceVBOID, GLubyte faceIdentityIndices[]);
 
     int newTreeToArrays(VoxelTreeElement* currentNode);
-    void cleanupRemovedVoxels();
 
     void copyWrittenDataToReadArrays(bool fullVBOs);
 
