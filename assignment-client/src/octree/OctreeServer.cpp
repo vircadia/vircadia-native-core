@@ -847,7 +847,6 @@ void OctreeServer::readPendingDatagrams() {
                         nodeData->initializeOctreeSendThread(sharedAssignment, matchingNode);
                     }
                 }
-
             } else if (packetType == PacketTypeOctreeDataNack) {
                 // If we got a nack packet, then we're talking to an agent, and we
                 // need to make sure we have it in our nodeList.
