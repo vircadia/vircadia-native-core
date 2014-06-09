@@ -653,7 +653,7 @@ Bitstream& Bitstream::operator<(const QMetaObject* metaObject) {
     if (_metadataType == NO_METADATA) {
         return *this;
     }
-    const QVector<PropertyWriter>& propertyWriters = getPropertyWriters().value(metaObject);
+    const PropertyWriterVector& propertyWriters = getPropertyWriters().value(metaObject);
     *this << propertyWriters.size();
     QCryptographicHash hash(QCryptographicHash::Md5);
     foreach (const PropertyWriter& propertyWriter, propertyWriters) {
@@ -692,7 +692,7 @@ Bitstream& Bitstream::operator>(ObjectReader& objectReader) {
     }
     int storedPropertyCount;
     *this >> storedPropertyCount;
-    QVector<PropertyReader> properties(storedPropertyCount);
+    PropertyReaderVector properties(storedPropertyCount);
     for (int i = 0; i < storedPropertyCount; i++) {
         TypeReader typeReader;
         *this >> typeReader;
@@ -711,7 +711,7 @@ Bitstream& Bitstream::operator>(ObjectReader& objectReader) {
         QCryptographicHash hash(QCryptographicHash::Md5);
         bool matches = true;
         if (metaObject) {
-            const QVector<PropertyWriter>& propertyWriters = getPropertyWriters().value(metaObject);
+            const PropertyWriterVector& propertyWriters = getPropertyWriters().value(metaObject);
             if (propertyWriters.size() == properties.size()) {
                 for (int i = 0; i < propertyWriters.size(); i++) {
                     const PropertyWriter& propertyWriter = propertyWriters.at(i);
@@ -1082,17 +1082,17 @@ QHash<int, const TypeStreamer*>& Bitstream::getTypeStreamers() {
     return typeStreamers;
 }
 
-const QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*>& Bitstream::getEnumStreamers() {
-    static QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*> enumStreamers = createEnumStreamers();
+const QHash<ScopeNamePair, const TypeStreamer*>& Bitstream::getEnumStreamers() {
+    static QHash<ScopeNamePair, const TypeStreamer*> enumStreamers = createEnumStreamers();
     return enumStreamers;
 }
 
-QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*> Bitstream::createEnumStreamers() {
-    QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*> enumStreamers;
+QHash<ScopeNamePair, const TypeStreamer*> Bitstream::createEnumStreamers() {
+    QHash<ScopeNamePair, const TypeStreamer*> enumStreamers;
     foreach (const QMetaObject* metaObject, getMetaObjects()) {
         for (int i = 0; i < metaObject->enumeratorCount(); i++) {
             QMetaEnum metaEnum = metaObject->enumerator(i);
-            const TypeStreamer*& streamer = enumStreamers[QPair<QByteArray, QByteArray>(metaEnum.scope(), metaEnum.name())];
+            const TypeStreamer*& streamer = enumStreamers[ScopeNamePair(metaEnum.scope(), metaEnum.name())];
             if (!streamer) {
                 streamer = new EnumTypeStreamer(metaEnum);
             }
@@ -1114,15 +1114,15 @@ QHash<QByteArray, const TypeStreamer*> Bitstream::createEnumStreamersByName() {
     return enumStreamersByName;
 }
 
-const QHash<const QMetaObject*, QVector<PropertyReader> >& Bitstream::getPropertyReaders() {
-    static QHash<const QMetaObject*, QVector<PropertyReader> > propertyReaders = createPropertyReaders();
+const QHash<const QMetaObject*, PropertyReaderVector>& Bitstream::getPropertyReaders() {
+    static QHash<const QMetaObject*, PropertyReaderVector> propertyReaders = createPropertyReaders();
     return propertyReaders;
 }
 
-QHash<const QMetaObject*, QVector<PropertyReader> > Bitstream::createPropertyReaders() {
-    QHash<const QMetaObject*, QVector<PropertyReader> > propertyReaders;
+QHash<const QMetaObject*, PropertyReaderVector> Bitstream::createPropertyReaders() {
+    QHash<const QMetaObject*, PropertyReaderVector> propertyReaders;
     foreach (const QMetaObject* metaObject, getMetaObjects()) {
-        QVector<PropertyReader>& readers = propertyReaders[metaObject];
+        PropertyReaderVector& readers = propertyReaders[metaObject];
         for (int i = 0; i < metaObject->propertyCount(); i++) {
             QMetaProperty property = metaObject->property(i);
             if (!property.isStored()) {
@@ -1131,7 +1131,7 @@ QHash<const QMetaObject*, QVector<PropertyReader> > Bitstream::createPropertyRea
             const TypeStreamer* streamer;
             if (property.isEnumType()) {
                 QMetaEnum metaEnum = property.enumerator();
-                streamer = getEnumStreamers().value(QPair<QByteArray, QByteArray>(
+                streamer = getEnumStreamers().value(ScopeNamePair(
                     QByteArray::fromRawData(metaEnum.scope(), strlen(metaEnum.scope())),
                     QByteArray::fromRawData(metaEnum.name(), strlen(metaEnum.name()))));
             } else {
@@ -1145,15 +1145,15 @@ QHash<const QMetaObject*, QVector<PropertyReader> > Bitstream::createPropertyRea
     return propertyReaders;
 }
 
-const QHash<const QMetaObject*, QVector<PropertyWriter> >& Bitstream::getPropertyWriters() {
-    static QHash<const QMetaObject*, QVector<PropertyWriter> > propertyWriters = createPropertyWriters();
+const QHash<const QMetaObject*, PropertyWriterVector>& Bitstream::getPropertyWriters() {
+    static QHash<const QMetaObject*, PropertyWriterVector> propertyWriters = createPropertyWriters();
     return propertyWriters;
 }
 
-QHash<const QMetaObject*, QVector<PropertyWriter> > Bitstream::createPropertyWriters() {
-    QHash<const QMetaObject*, QVector<PropertyWriter> > propertyWriters;
+QHash<const QMetaObject*, PropertyWriterVector> Bitstream::createPropertyWriters() {
+    QHash<const QMetaObject*, PropertyWriterVector> propertyWriters;
     foreach (const QMetaObject* metaObject, getMetaObjects()) {
-        QVector<PropertyWriter>& writers = propertyWriters[metaObject];
+        PropertyWriterVector& writers = propertyWriters[metaObject];
         for (int i = 0; i < metaObject->propertyCount(); i++) {
             QMetaProperty property = metaObject->property(i);
             if (!property.isStored()) {
@@ -1162,7 +1162,7 @@ QHash<const QMetaObject*, QVector<PropertyWriter> > Bitstream::createPropertyWri
             const TypeStreamer* streamer;
             if (property.isEnumType()) {
                 QMetaEnum metaEnum = property.enumerator();
-                streamer = getEnumStreamers().value(QPair<QByteArray, QByteArray>(
+                streamer = getEnumStreamers().value(ScopeNamePair(
                     QByteArray::fromRawData(metaEnum.scope(), strlen(metaEnum.scope())),
                     QByteArray::fromRawData(metaEnum.name(), strlen(metaEnum.name()))));
             } else {
@@ -1416,7 +1416,7 @@ void FieldReader::readDelta(Bitstream& in, const TypeStreamer* streamer, QVarian
 }
 
 ObjectReader::ObjectReader(const QByteArray& className, const QMetaObject* metaObject,
-        const QVector<PropertyReader>& properties) :
+        const PropertyReaderVector& properties) :
     _className(className),
     _metaObject(metaObject),
     _properties(properties) {

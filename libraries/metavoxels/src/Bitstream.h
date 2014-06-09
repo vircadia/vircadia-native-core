@@ -45,6 +45,10 @@ class TypeStreamer;
 
 typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
 
+typedef QPair<QByteArray, QByteArray> ScopeNamePair;
+typedef QVector<PropertyReader> PropertyReaderVector;
+typedef QVector<PropertyWriter> PropertyWriterVector;
+
 /// Streams integer identifiers that conform to the following pattern: each ID encountered in the stream is either one that
 /// has been sent (received) before, or is one more than the highest previously encountered ID (starting at zero).  This allows
 /// us to use the minimum number of bits to encode the IDs.
@@ -426,14 +430,18 @@ private:
     static QHash<QByteArray, const QMetaObject*>& getMetaObjects();
     static QMultiHash<const QMetaObject*, const QMetaObject*>& getMetaObjectSubClasses();
     static QHash<int, const TypeStreamer*>& getTypeStreamers();
-    static const QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*>& getEnumStreamers();
-    static QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*> createEnumStreamers();
+    
+    static const QHash<ScopeNamePair, const TypeStreamer*>& getEnumStreamers();
+    static QHash<ScopeNamePair, const TypeStreamer*> createEnumStreamers();
+    
     static const QHash<QByteArray, const TypeStreamer*>& getEnumStreamersByName();
     static QHash<QByteArray, const TypeStreamer*> createEnumStreamersByName();
-    static const QHash<const QMetaObject*, QVector<PropertyReader> >& getPropertyReaders();
-    static QHash<const QMetaObject*, QVector<PropertyReader> > createPropertyReaders();
-    static const QHash<const QMetaObject*, QVector<PropertyWriter> >& getPropertyWriters();
-    static QHash<const QMetaObject*, QVector<PropertyWriter> > createPropertyWriters();
+    
+    static const QHash<const QMetaObject*, PropertyReaderVector>& getPropertyReaders();
+    static QHash<const QMetaObject*, PropertyReaderVector> createPropertyReaders();
+    
+    static const QHash<const QMetaObject*, PropertyWriterVector>& getPropertyWriters();
+    static QHash<const QMetaObject*, PropertyWriterVector> createPropertyWriters();
 };
 
 template<class T> inline void Bitstream::writeDelta(const T& value, const T& reference) {
