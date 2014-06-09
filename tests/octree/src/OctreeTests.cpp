@@ -8,35 +8,19 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+//  TODO:
+//    * need to add expected results and accumulation of test success/failure
+//
 
 #include <QDebug>
 
 #include <ByteCountCoding.h>
+#include <ModelItem.h>
 #include <OctreeConstants.h>
 #include <PropertyFlags.h>
 #include <SharedUtil.h>
 
 #include "OctreeTests.h"
-
-enum ModelPropertyList {
-    PROP_PAGED_PROPERTY,
-    PROP_CUSTOM_PROPERTIES_INCLUDED,
-    PROP_VISIBLE,
-    PROP_POSITION,
-    PROP_RADIUS,
-    PROP_MODEL_URL,
-    PROP_ROTATION,
-    PROP_COLOR,
-    PROP_SCRIPT,
-    PROP_ANIMATION_URL,
-    PROP_ANIMATION_FPS,
-    PROP_ANIMATION_FRAME_INDEX,
-    PROP_ANIMATION_PLAYING,
-    PROP_SHOULD_BE_DELETED,
-    PROP_LAST_ITEM = PROP_SHOULD_BE_DELETED
-};
-
-typedef PropertyFlags<ModelPropertyList> ModelPropertyFlags;
 
 enum ParticlePropertyList {
     PARTICLE_PROP_PAGED_PROPERTY,
@@ -64,12 +48,20 @@ enum ParticlePropertyList {
 typedef PropertyFlags<ParticlePropertyList> ParticlePropertyFlags;
 
 
-void OctreeTests::propertyFlagsTests() {
+void OctreeTests::propertyFlagsTests(bool verbose) {
+    int testsTaken = 0;
+    int testsPassed = 0;
+    int testsFailed = 0;
+
     qDebug() << "******************************************************************************************";
     qDebug() << "OctreeTests::propertyFlagsTests()";
 
-    {    
-        qDebug() << "Test 1: ModelProperties: using setHasProperty()";
+    {
+        if (verbose) {
+            qDebug() << "Test 1: ModelProperties: using setHasProperty()";
+        }
+        testsTaken++;
+
         ModelPropertyFlags props;
         props.setHasProperty(PROP_VISIBLE);
         props.setHasProperty(PROP_POSITION);
@@ -79,12 +71,29 @@ void OctreeTests::propertyFlagsTests() {
     
         QByteArray encoded = props.encode();
 
-        qDebug() << "encoded=";
-        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        if (verbose) {
+            qDebug() << "encoded=";
+            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        }
+        
+        char expectedBytes[] = { 31 };
+        QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
+        
+        if (encoded == expectedResult) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 1: ModelProperties: using setHasProperty()";
+        }
+
     }
 
     {    
-        qDebug() << "Test 2: ParticlePropertyFlags: using setHasProperty()";
+        if (verbose) {
+            qDebug() << "Test 2: ParticlePropertyFlags: using setHasProperty()";
+        }
+        testsTaken++;
+
         ParticlePropertyFlags props2;
         props2.setHasProperty(PARTICLE_PROP_VISIBLE);
         props2.setHasProperty(PARTICLE_PROP_ANIMATION_URL);
@@ -95,22 +104,53 @@ void OctreeTests::propertyFlagsTests() {
     
         QByteArray encoded = props2.encode();
 
-        qDebug() << "encoded=";
-        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        if (verbose) {
+            qDebug() << "encoded=";
+            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        }
 
-        qDebug() << "Test 2b: remove flag with setHasProperty() PARTICLE_PROP_PAUSE_SIMULATION";
+        char expectedBytes[] = { 196, 15, 2 };
+        QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
+        
+        if (encoded == expectedResult) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 2: ParticlePropertyFlags: using setHasProperty()";
+        }
+
+        
+        if (verbose) {
+            qDebug() << "Test 2b: remove flag with setHasProperty() PARTICLE_PROP_PAUSE_SIMULATION";
+        }
+        testsTaken++;
 
         props2.setHasProperty(PARTICLE_PROP_PAUSE_SIMULATION, false);
     
         encoded = props2.encode();
 
-        qDebug() << "encoded=";
-        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        if (verbose) {
+            qDebug() << "encoded=";
+            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        }
 
+        char expectedBytesB[] = { 136, 30 };
+        QByteArray expectedResultB(expectedBytesB, sizeof(expectedBytesB)/sizeof(expectedBytesB[0]));
+        
+        if (encoded == expectedResultB) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 2b: remove flag with setHasProperty() PARTICLE_PROP_PAUSE_SIMULATION";
+        }
     }
 
     {    
-        qDebug() << "Test 3: ParticlePropertyFlags: using | operator";
+        if (verbose) {
+            qDebug() << "Test 3: ParticlePropertyFlags: using | operator";
+        }
+        testsTaken++;
+        
         ParticlePropertyFlags props;
 
         props = ParticlePropertyFlags(PARTICLE_PROP_VISIBLE) 
@@ -122,20 +162,53 @@ void OctreeTests::propertyFlagsTests() {
     
         QByteArray encoded = props.encode();
 
-        qDebug() << "encoded=";
-        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        if (verbose) {
+            qDebug() << "encoded=";
+            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        }
+        char expectedBytes[] = { 196, 15, 2 };
+        QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
+        
+        if (encoded == expectedResult) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 3: ParticlePropertyFlags: using | operator";
+        }
 
-        qDebug() << "Test 3b: remove flag with -= PARTICLE_PROP_PAUSE_SIMULATION";
+
+        if (verbose) {
+            qDebug() << "Test 3b: remove flag with -= PARTICLE_PROP_PAUSE_SIMULATION";
+        }
+        testsTaken++;
+        
         props -= PARTICLE_PROP_PAUSE_SIMULATION;
     
         encoded = props.encode();
     
-        qDebug() << "encoded=";
-        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        if (verbose) {
+            qDebug() << "encoded=";
+            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        }
+        
+        char expectedBytesB[] = { 136, 30 };
+        QByteArray expectedResultB(expectedBytesB, sizeof(expectedBytesB)/sizeof(expectedBytesB[0]));
+        
+        if (encoded == expectedResultB) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 3b: remove flag with -= PARTICLE_PROP_PAUSE_SIMULATION";
+        }
+        
     }
 
     {    
-        qDebug() << "Test 3c: ParticlePropertyFlags: using |= operator";
+        if (verbose) {
+            qDebug() << "Test 3c: ParticlePropertyFlags: using |= operator";
+        }
+        testsTaken++;
+
         ParticlePropertyFlags props;
 
         props |= PARTICLE_PROP_VISIBLE;
@@ -147,12 +220,28 @@ void OctreeTests::propertyFlagsTests() {
 
         QByteArray encoded = props.encode();
 
-        qDebug() << "encoded=";
-        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        if (verbose) {
+            qDebug() << "encoded=";
+            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        }
+
+        char expectedBytes[] = { 196, 15, 2 };
+        QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
+        
+        if (encoded == expectedResult) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - 3c: ParticlePropertyFlags: using |= operator";
+        }
     }
 
     {    
-        qDebug() << "Test 4: ParticlePropertyFlags: using + operator";
+        if (verbose) {
+            qDebug() << "Test 4: ParticlePropertyFlags: using + operator";
+        }
+        testsTaken++;
+
         ParticlePropertyFlags props;
 
         props = ParticlePropertyFlags(PARTICLE_PROP_VISIBLE) 
@@ -164,12 +253,27 @@ void OctreeTests::propertyFlagsTests() {
     
         QByteArray encoded = props.encode();
 
-        qDebug() << "encoded=";
-        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        if (verbose) {
+            qDebug() << "encoded=";
+            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        }
+
+        char expectedBytes[] = { 196, 15, 2 };
+        QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
+        
+        if (encoded == expectedResult) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 4: ParticlePropertyFlags: using + operator";
+        }
     }
 
     {    
-        qDebug() << "Test 4b: ParticlePropertyFlags: using += operator";
+        if (verbose) {
+            qDebug() << "Test 5: ParticlePropertyFlags: using += operator";
+        }
+        testsTaken++;
         ParticlePropertyFlags props;
 
         props += PARTICLE_PROP_VISIBLE;
@@ -181,12 +285,28 @@ void OctreeTests::propertyFlagsTests() {
     
         QByteArray encoded = props.encode();
 
-        qDebug() << "encoded=";
-        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        if (verbose) {
+            qDebug() << "encoded=";
+            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        }
+
+        char expectedBytes[] = { 196, 15, 2 };
+        QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
+        
+        if (encoded == expectedResult) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 5: ParticlePropertyFlags: using += operator";
+        }
     }
 
     {    
-        qDebug() << "Test 5: ParticlePropertyFlags: using = ... << operator";
+        if (verbose) {
+            qDebug() << "Test 6: ParticlePropertyFlags: using = ... << operator";
+        }
+        testsTaken++;
+        
         ParticlePropertyFlags props;
 
         props = ParticlePropertyFlags(PARTICLE_PROP_VISIBLE) 
@@ -198,12 +318,28 @@ void OctreeTests::propertyFlagsTests() {
     
         QByteArray encoded = props.encode();
 
-        qDebug() << "encoded=";
-        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        if (verbose) {
+            qDebug() << "encoded=";
+            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        }
+
+        char expectedBytes[] = { 196, 15, 2 };
+        QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
+        
+        if (encoded == expectedResult) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 6: ParticlePropertyFlags: using = ... << operator";
+        }
     }
 
     {
-        qDebug() << "Test 5b: ParticlePropertyFlags: using <<= operator";
+        if (verbose) {
+            qDebug() << "Test 7: ParticlePropertyFlags: using <<= operator";
+        }
+        testsTaken++;
+        
         ParticlePropertyFlags props;
 
         props <<= PARTICLE_PROP_VISIBLE;
@@ -215,12 +351,28 @@ void OctreeTests::propertyFlagsTests() {
     
         QByteArray encoded = props.encode();
 
-        qDebug() << "encoded=";
-        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        if (verbose) {
+            qDebug() << "encoded=";
+            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        }
+
+        char expectedBytes[] = { 196, 15, 2 };
+        QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
+        
+        if (encoded == expectedResult) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 7: ParticlePropertyFlags: using <<= operator";
+        }
     }
 
     {
-        qDebug() << "Test 5c: ParticlePropertyFlags: using << enum operator";
+        if (verbose) {
+            qDebug() << "Test 8: ParticlePropertyFlags: using << enum operator";
+        }
+        testsTaken++;
+        
         ParticlePropertyFlags props;
 
         props << PARTICLE_PROP_VISIBLE;
@@ -232,12 +384,28 @@ void OctreeTests::propertyFlagsTests() {
 
         QByteArray encoded = props.encode();
 
-        qDebug() << "encoded=";
-        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        if (verbose) {
+            qDebug() << "encoded=";
+            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        }
+
+        char expectedBytes[] = { 196, 15, 2 };
+        QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
+        
+        if (encoded == expectedResult) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 8: ParticlePropertyFlags: using << enum operator";
+        }
     }
 
     {
-        qDebug() << "Test 5d: ParticlePropertyFlags: using << flags operator ";
+        if (verbose) {
+            qDebug() << "Test 9: ParticlePropertyFlags: using << flags operator ";
+        }
+        testsTaken++;
+
         ParticlePropertyFlags props;
         ParticlePropertyFlags props2;
 
@@ -253,15 +421,40 @@ void OctreeTests::propertyFlagsTests() {
 
         QByteArray encoded = props.encode();
 
-        qDebug() << "encoded=";
-        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        if (verbose) {
+            qDebug() << "encoded=";
+            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        }
+
+        char expectedBytes[] = { 196, 15, 2 };
+        QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
+        
+        if (encoded == expectedResult) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 9: ParticlePropertyFlags: using << flags operator";
+        }
     }
   
     {
-        qDebug() << "Test 6: ParticlePropertyFlags comparison";
+        if (verbose) {
+            qDebug() << "Test 10: ParticlePropertyFlags comparison";
+        }
         ParticlePropertyFlags propsA;
 
-        qDebug() << "!propsA:" << (!propsA) << "{ expect true }";
+        if (verbose) {
+            qDebug() << "!propsA:" << (!propsA) << "{ expect true }";
+        }
+        testsTaken++;
+        bool resultA = (!propsA);
+        bool expectedA = true;
+        if (resultA == expectedA) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 10a: ParticlePropertyFlags comparison, uninitialized !propsA";
+        }
 
         propsA << PARTICLE_PROP_VISIBLE;
         propsA << PARTICLE_PROP_ANIMATION_URL;
@@ -270,12 +463,20 @@ void OctreeTests::propertyFlagsTests() {
         propsA << PARTICLE_PROP_ANIMATION_PLAYING;
         propsA << PARTICLE_PROP_PAUSE_SIMULATION;
 
-        qDebug() << "!propsA:" << (!propsA) << "{ expect false }";
+        if (verbose) {
+            qDebug() << "!propsA:" << (!propsA) << "{ expect false }";
+        }
+        testsTaken++;
+        bool resultB = (!propsA);
+        bool expectedB = false;
+        if (resultB == expectedB) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 10b: ParticlePropertyFlags comparison, initialized !propsA";
+        }
 
         ParticlePropertyFlags propsB;
-        qDebug() << "!propsB:" << (!propsB) << "{ expect true }";
-
-
         propsB << PARTICLE_PROP_VISIBLE;
         propsB << PARTICLE_PROP_ANIMATION_URL;
         propsB << PARTICLE_PROP_ANIMATION_FPS;
@@ -283,91 +484,269 @@ void OctreeTests::propertyFlagsTests() {
         propsB << PARTICLE_PROP_ANIMATION_PLAYING;
         propsB << PARTICLE_PROP_PAUSE_SIMULATION;
 
-        qDebug() << "!propsB:" << (!propsB) << "{ expect false }";
+        if (verbose) {
+            qDebug() << "propsA == propsB:" << (propsA == propsB) << "{ expect true }";
+            qDebug() << "propsA != propsB:" << (propsA != propsB) << "{ expect false }";
+        }
+        testsTaken++;
+        bool resultC = (propsA == propsB);
+        bool expectedC = true;
+        if (resultC == expectedC) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 10c: ParticlePropertyFlags comparison, propsA == propsB";
+        }
 
-        qDebug() << "propsA == propsB:" << (propsA == propsB) << "{ expect true }";
-        qDebug() << "propsA != propsB:" << (propsA != propsB) << "{ expect false }";
-
-
-        qDebug() << "AFTER propsB -= PARTICLE_PROP_PAUSE_SIMULATION...";
+        testsTaken++;
+        bool resultD = (propsA != propsB);
+        bool expectedD = false;
+        if (resultD == expectedD) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 10d: ParticlePropertyFlags comparison, propsA != propsB";
+        }
+        
+        if (verbose) {
+            qDebug() << "AFTER propsB -= PARTICLE_PROP_PAUSE_SIMULATION...";
+        }
+        
         propsB -= PARTICLE_PROP_PAUSE_SIMULATION;
 
-        qDebug() << "propsA == propsB:" << (propsA == propsB) << "{ expect false }";
-        qDebug() << "propsA != propsB:" << (propsA != propsB) << "{ expect true }";
-
-        qDebug() << "AFTER propsB = propsA...";
+        if (verbose) {
+            qDebug() << "propsA == propsB:" << (propsA == propsB) << "{ expect false }";
+            qDebug() << "propsA != propsB:" << (propsA != propsB) << "{ expect true }";
+        }
+        testsTaken++;
+        bool resultE = (propsA == propsB);
+        bool expectedE = false;
+        if (resultE == expectedE) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 10e: ParticlePropertyFlags comparison, AFTER propsB -= PARTICLE_PROP_PAUSE_SIMULATION";
+        }
+        
+        if (verbose) {
+            qDebug() << "AFTER propsB = propsA...";
+        }
         propsB = propsA;
-
-        qDebug() << "propsA == propsB:" << (propsA == propsB) << "{ expect true }";
-        qDebug() << "propsA != propsB:" << (propsA != propsB) << "{ expect false }";
-
+        if (verbose) {
+            qDebug() << "propsA == propsB:" << (propsA == propsB) << "{ expect true }";
+            qDebug() << "propsA != propsB:" << (propsA != propsB) << "{ expect false }";
+        }
+        testsTaken++;
+        bool resultF = (propsA == propsB);
+        bool expectedF = true;
+        if (resultF == expectedF) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 10f: ParticlePropertyFlags comparison, AFTER propsB = propsA";
+        }
     }
 
     {
-        qDebug() << "Test 7: ParticlePropertyFlags testing individual properties";
+        if (verbose) {
+            qDebug() << "Test 11: ParticlePropertyFlags testing individual properties";
+        }
         ParticlePropertyFlags props;
 
-        qDebug() << "ParticlePropertyFlags props;";
+        if (verbose) {
+            qDebug() << "ParticlePropertyFlags props;";
+        }
+        
         QByteArray encoded = props.encode();
-        qDebug() << "props... encoded=";
-        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
 
-        qDebug() << "props.getHasProperty(PARTICLE_PROP_VISIBLE)" << (props.getHasProperty(PARTICLE_PROP_VISIBLE)) 
+        if (verbose) {
+            qDebug() << "props... encoded=";
+            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        }
+
+        char expectedBytes[] = { 0 };
+        QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
+        
+        testsTaken++;
+        if (encoded == expectedResult) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 11a: ParticlePropertyFlags testing individual properties";
+        }
+
+
+        if (verbose) {
+            qDebug() << "Test 11b: props.getHasProperty(PARTICLE_PROP_VISIBLE)" << (props.getHasProperty(PARTICLE_PROP_VISIBLE)) 
                         << "{ expect false }";
+        }
+        testsTaken++;
+        bool resultB = props.getHasProperty(PARTICLE_PROP_VISIBLE);
+        bool expectedB = false;
+        if (resultB == expectedB) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test Test 11b: props.getHasProperty(PARTICLE_PROP_VISIBLE)";
+        }
 
-        qDebug() << "props << PARTICLE_PROP_VISIBLE;";
+        if (verbose) {
+            qDebug() << "props << PARTICLE_PROP_VISIBLE;";
+        }
         props << PARTICLE_PROP_VISIBLE;
+        testsTaken++;
+        bool resultC = props.getHasProperty(PARTICLE_PROP_VISIBLE);
+        bool expectedC = true;
+        if (resultC == expectedC) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test Test 11c: props.getHasProperty(PARTICLE_PROP_VISIBLE) after props << PARTICLE_PROP_VISIBLE";
+        }
 
         encoded = props.encode();
-        qDebug() << "props... encoded=";
-        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-        qDebug() << "props.getHasProperty(PARTICLE_PROP_VISIBLE)" << (props.getHasProperty(PARTICLE_PROP_VISIBLE)) 
-                        << "{ expect true }";
 
-        qDebug() << "props << PARTICLE_PROP_ANIMATION_URL;";
+        if (verbose) {
+            qDebug() << "props... encoded=";
+            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+            qDebug() << "props.getHasProperty(PARTICLE_PROP_VISIBLE)" << (props.getHasProperty(PARTICLE_PROP_VISIBLE)) 
+                            << "{ expect true }";
+        }
+
+        char expectedBytesC[] = { 16 };
+        QByteArray expectedResultC(expectedBytesC, sizeof(expectedBytesC)/sizeof(expectedBytesC[0]));
+        
+        testsTaken++;
+        if (encoded == expectedResultC) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 11c: ParticlePropertyFlags testing individual properties";
+        }
+
+        if (verbose) {
+            qDebug() << "props << PARTICLE_PROP_ANIMATION_URL;";
+        }
         props << PARTICLE_PROP_ANIMATION_URL;
 
         encoded = props.encode();
-        qDebug() << "props... encoded=";
-        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-        qDebug() << "props.getHasProperty(PARTICLE_PROP_VISIBLE)" << (props.getHasProperty(PARTICLE_PROP_VISIBLE)) 
-                        << "{ expect true }";
+        if (verbose) {
+            qDebug() << "props... encoded=";
+            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+            qDebug() << "props.getHasProperty(PARTICLE_PROP_VISIBLE)" << (props.getHasProperty(PARTICLE_PROP_VISIBLE)) 
+                            << "{ expect true }";
+        }
+        char expectedBytesD[] = { 136, 16 };
+        QByteArray expectedResultD(expectedBytesD, sizeof(expectedBytesD)/sizeof(expectedBytesD[0]));
+        
+        testsTaken++;
+        if (encoded == expectedResultD) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 11d: ParticlePropertyFlags testing individual properties";
+        }
+        testsTaken++;
+        bool resultE = props.getHasProperty(PARTICLE_PROP_VISIBLE);
+        bool expectedE = true;
+        if (resultE == expectedE) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 11e: props.getHasProperty(PARTICLE_PROP_VISIBLE) after props << PARTICLE_PROP_ANIMATION_URL";
+        }
 
-        qDebug() << "props << ... more ...";
+
+        if (verbose) {
+            qDebug() << "props << ... more ...";
+        }
         props << PARTICLE_PROP_ANIMATION_FPS;
         props << PARTICLE_PROP_ANIMATION_FRAME_INDEX;
         props << PARTICLE_PROP_ANIMATION_PLAYING;
         props << PARTICLE_PROP_PAUSE_SIMULATION;
 
         encoded = props.encode();
-        qDebug() << "props... encoded=";
-        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-        qDebug() << "props.getHasProperty(PARTICLE_PROP_VISIBLE)" << (props.getHasProperty(PARTICLE_PROP_VISIBLE)) 
-                        << "{ expect true }";
+        if (verbose) {
+            qDebug() << "props... encoded=";
+            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+            qDebug() << "props.getHasProperty(PARTICLE_PROP_VISIBLE)" << (props.getHasProperty(PARTICLE_PROP_VISIBLE)) 
+                            << "{ expect true }";
+        }
+        testsTaken++;
+        bool resultF = props.getHasProperty(PARTICLE_PROP_VISIBLE);
+        bool expectedF = true;
+        if (resultF == expectedF) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 11f: props.getHasProperty(PARTICLE_PROP_VISIBLE) after props << more";
+        }
 
-        qDebug() << "ParticlePropertyFlags propsB = props & PARTICLE_PROP_VISIBLE;";
+        if (verbose) {
+            qDebug() << "ParticlePropertyFlags propsB = props & PARTICLE_PROP_VISIBLE;";
+        }
         ParticlePropertyFlags propsB = props & PARTICLE_PROP_VISIBLE;
 
-        qDebug() << "propsB.getHasProperty(PARTICLE_PROP_VISIBLE)" << (propsB.getHasProperty(PARTICLE_PROP_VISIBLE)) 
+        if (verbose) {
+            qDebug() << "propsB.getHasProperty(PARTICLE_PROP_VISIBLE)" << (propsB.getHasProperty(PARTICLE_PROP_VISIBLE)) 
                         << "{ expect true }";
+        }
+        testsTaken++;
+        bool resultG = propsB.getHasProperty(PARTICLE_PROP_VISIBLE);
+        bool expectedG = true;
+        if (resultG == expectedG) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 11g: propsB = props & PARTICLE_PROP_VISIBLE";
+        }
 
         encoded = propsB.encode();
-        qDebug() << "propsB... encoded=";
-        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        if (verbose) {
+            qDebug() << "propsB... encoded=";
+            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        }
+        char expectedBytesH[] = { 16 };
+        QByteArray expectedResultH(expectedBytesC, sizeof(expectedBytesH)/sizeof(expectedBytesH[0]));
+        
+        testsTaken++;
+        if (encoded == expectedResultH) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 11h: ParticlePropertyFlags testing individual properties";
+        }
 
-        qDebug() << "ParticlePropertyFlags propsC = ~propsB;";
+        if (verbose) {
+            qDebug() << "ParticlePropertyFlags propsC = ~propsB;";
+        }
         ParticlePropertyFlags propsC = ~propsB;
         
-        qDebug() << "propsC.getHasProperty(PARTICLE_PROP_VISIBLE)" << (propsC.getHasProperty(PARTICLE_PROP_VISIBLE))
+        if (verbose) {
+            qDebug() << "propsC.getHasProperty(PARTICLE_PROP_VISIBLE)" << (propsC.getHasProperty(PARTICLE_PROP_VISIBLE))
                         << "{ expect false }";
+        }
+        testsTaken++;
+        bool resultI = propsC.getHasProperty(PARTICLE_PROP_VISIBLE);
+        bool expectedI = false;
+        if (resultI == expectedI) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 11i: propsC = ~propsB";
+        }
 
         encoded = propsC.encode();
-        qDebug() << "propsC... encoded=";
-        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        if (verbose) {
+            qDebug() << "propsC... encoded=";
+            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        }
     }
     
     {
-        qDebug() << "Test 8: ParticlePropertyFlags: decode tests";
+        if (verbose) {
+            qDebug() << "Test 12: ParticlePropertyFlags: decode tests";
+        }
         ParticlePropertyFlags props;
 
         props << PARTICLE_PROP_VISIBLE;
@@ -378,41 +757,84 @@ void OctreeTests::propertyFlagsTests() {
         props << PARTICLE_PROP_PAUSE_SIMULATION;
 
         QByteArray encoded = props.encode();
-        qDebug() << "encoded=";
-        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-
-        qDebug() << "encoded.size()=" << encoded.size();
+        if (verbose) {
+            qDebug() << "encoded=";
+            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+            qDebug() << "encoded.size()=" << encoded.size();
+        }
 
         ParticlePropertyFlags propsDecoded;
         propsDecoded.decode(encoded);
         
-        qDebug() << "propsDecoded == props:" << (propsDecoded == props) << "{ expect true }";
+        if (verbose) {
+            qDebug() << "propsDecoded == props:" << (propsDecoded == props) << "{ expect true }";
+        }
+        testsTaken++;
+        bool resultA = (propsDecoded == props);
+        bool expectedA = true;
+        if (resultA == expectedA) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 12a: propsDecoded == props";
+        }
 
         QByteArray encodedAfterDecoded = propsDecoded.encode();
 
-        qDebug() << "encodedAfterDecoded=";
-        outputBufferBits((const unsigned char*)encodedAfterDecoded.constData(), encodedAfterDecoded.size());
+        if (verbose) {
+            qDebug() << "encodedAfterDecoded=";
+            outputBufferBits((const unsigned char*)encodedAfterDecoded.constData(), encodedAfterDecoded.size());
+        }
+        testsTaken++;
+        bool resultB = (encoded == encodedAfterDecoded);
+        bool expectedB = true;
+        if (resultB == expectedB) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 12b: (encoded == encodedAfterDecoded)";
+        }
 
-        qDebug() << "fill encoded byte array with extra garbage (as if it was bitstream with more content)";
+        if (verbose) {
+            qDebug() << "fill encoded byte array with extra garbage (as if it was bitstream with more content)";
+        }
         QByteArray extraContent;
         extraContent.fill(0xba, 10);
         encoded.append(extraContent);
-        qDebug() << "encoded.size()=" << encoded.size() << "includes extra garbage";
+
+        if (verbose) {
+            qDebug() << "encoded.size()=" << encoded.size() << "includes extra garbage";
+        }
 
         ParticlePropertyFlags propsDecodedExtra;
         propsDecodedExtra.decode(encoded);
         
-        qDebug() << "propsDecodedExtra == props:" << (propsDecodedExtra == props) << "{ expect true }";
+        if (verbose) {
+            qDebug() << "propsDecodedExtra == props:" << (propsDecodedExtra == props) << "{ expect true }";
+        }
+        testsTaken++;
+        bool resultC = (propsDecodedExtra == props);
+        bool expectedC = true;
+        if (resultC == expectedC) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 12c: (propsDecodedExtra == props)";
+        }
 
         QByteArray encodedAfterDecodedExtra = propsDecodedExtra.encode();
 
-        qDebug() << "encodedAfterDecodedExtra=";
-        outputBufferBits((const unsigned char*)encodedAfterDecodedExtra.constData(), encodedAfterDecodedExtra.size());
-
+        if (verbose) {
+            qDebug() << "encodedAfterDecodedExtra=";
+            outputBufferBits((const unsigned char*)encodedAfterDecodedExtra.constData(), encodedAfterDecodedExtra.size());
+        }
     }
     
     {
-        qDebug() << "Test 8: ParticlePropertyFlags: QByteArray << / >> tests";
+        if (verbose) {
+            qDebug() << "Test 13: ParticlePropertyFlags: QByteArray << / >> tests";
+        }
+        testsTaken++;
         ParticlePropertyFlags props;
 
         props << PARTICLE_PROP_VISIBLE;
@@ -422,17 +844,31 @@ void OctreeTests::propertyFlagsTests() {
         props << PARTICLE_PROP_ANIMATION_PLAYING;
         props << PARTICLE_PROP_PAUSE_SIMULATION;
 
-        qDebug() << "testing encoded << props";
+        if (verbose) {
+            qDebug() << "testing encoded << props";
+        }
         QByteArray encoded;
         encoded << props;
-        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+
+        if (verbose) {
+            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+        }
 
         ParticlePropertyFlags propsDecoded;
-        qDebug() << "testing encoded >> propsDecoded";
+        if (verbose) {
+            qDebug() << "testing encoded >> propsDecoded";
+        }
         encoded >> propsDecoded;
-        qDebug() << "propsDecoded==props" << (propsDecoded==props);
+
+        if (verbose) {
+            qDebug() << "propsDecoded==props" << (propsDecoded==props);
+        }
     }
 
+    qDebug() << "******************************************************************************************";
+    qDebug() << "   tests taken: " << testsTaken;
+    qDebug() << "   tests passed:" << testsPassed;
+    qDebug() << "   tests failed:" << testsFailed;
     qDebug() << "******************************************************************************************";
 }
 
@@ -442,119 +878,195 @@ typedef ByteCountCoded<quint64> ByteCountCodedQUINT64;
 
 typedef ByteCountCoded<int> ByteCountCodedINT;
 
-void OctreeTests::byteCountCodingTests() {
+void OctreeTests::byteCountCodingTests(bool verbose) {
     qDebug() << "******************************************************************************************";
     qDebug() << "OctreeTests::byteCountCodingTests()";
     
     QByteArray encoded;
     
-    qDebug() << "ByteCountCodedUINT zero(0)";
+    if (verbose) {
+        qDebug() << "ByteCountCodedUINT zero(0)";
+    }
     ByteCountCodedUINT zero(0);
     encoded = zero.encode();
-    outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    if (verbose) {
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    }
 
     ByteCountCodedUINT decodedZero;
     decodedZero.decode(encoded);
-    qDebug() << "decodedZero=" << decodedZero.data;
-    qDebug() << "decodedZero==zero" << (decodedZero == zero) << " { expected true } ";
+    if (verbose) {
+        qDebug() << "decodedZero=" << decodedZero.data;
+        qDebug() << "decodedZero==zero" << (decodedZero == zero) << " { expected true } ";
+    }
 
     ByteCountCodedUINT decodedZeroB(encoded);
-    qDebug() << "decodedZeroB=" << decodedZeroB.data;
 
-    qDebug() << "ByteCountCodedUINT foo(259)";
+    if (verbose) {
+        qDebug() << "decodedZeroB=" << decodedZeroB.data;
+    }
+
+    if (verbose) {
+        qDebug() << "ByteCountCodedUINT foo(259)";
+    }
     ByteCountCodedUINT foo(259);
     encoded = foo.encode();
-    outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+
+    if (verbose) {
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    }
 
     ByteCountCodedUINT decodedFoo;
     decodedFoo.decode(encoded);
-    qDebug() << "decodedFoo=" << decodedFoo.data;
-    qDebug() << "decodedFoo==foo" << (decodedFoo == foo) << " { expected true } ";
+
+    if (verbose) {
+        qDebug() << "decodedFoo=" << decodedFoo.data;
+        qDebug() << "decodedFoo==foo" << (decodedFoo == foo) << " { expected true } ";
+    }
 
     ByteCountCodedUINT decodedFooB(encoded);
-    qDebug() << "decodedFooB=" << decodedFooB.data;
 
-    qDebug() << "ByteCountCodedUINT bar(1000000)";
+    if (verbose) {
+        qDebug() << "decodedFooB=" << decodedFooB.data;
+    }
+
+    if (verbose) {
+        qDebug() << "ByteCountCodedUINT bar(1000000)";
+    }
     ByteCountCodedUINT bar(1000000);
     encoded = bar.encode();
-    outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+
+    if (verbose) {
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    }
 
     ByteCountCodedUINT decodedBar;
     decodedBar.decode(encoded);
-    qDebug() << "decodedBar=" << decodedBar.data;
-    qDebug() << "decodedBar==bar" << (decodedBar == bar) << " { expected true } ";
+    if (verbose) {
+        qDebug() << "decodedBar=" << decodedBar.data;
+        qDebug() << "decodedBar==bar" << (decodedBar == bar) << " { expected true } ";
+    }
 
-    qDebug() << "ByteCountCodedUINT spam(4294967295/2)";
+    if (verbose) {
+        qDebug() << "ByteCountCodedUINT spam(4294967295/2)";
+    }
     ByteCountCodedUINT spam(4294967295/2);
     encoded = spam.encode();
-    outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    if (verbose) {
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    }
 
     ByteCountCodedUINT decodedSpam;
     decodedSpam.decode(encoded);
-    qDebug() << "decodedSpam=" << decodedSpam.data;
-    qDebug() << "decodedSpam==spam" << (decodedSpam==spam) << " { expected true } ";
+    if (verbose) {
+        qDebug() << "decodedSpam=" << decodedSpam.data;
+        qDebug() << "decodedSpam==spam" << (decodedSpam==spam) << " { expected true } ";
+    }
 
-    qDebug() << "ByteCountCodedQUINT64 foo64(259)";
+    if (verbose) {
+        qDebug() << "ByteCountCodedQUINT64 foo64(259)";
+    }
     ByteCountCodedQUINT64 foo64(259);
     encoded = foo64.encode();
-    outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    if (verbose) {
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    }
     
-    qDebug() << "testing... quint64 foo64POD = foo64;";
+    if (verbose) {
+        qDebug() << "testing... quint64 foo64POD = foo64;";
+    }
     quint64 foo64POD = foo64;
-    qDebug() << "foo64POD=" << foo64POD;
 
-    qDebug() << "testing... encoded = foo64;";
+    if (verbose) {
+        qDebug() << "foo64POD=" << foo64POD;
+    }
+
+    if (verbose) {
+        qDebug() << "testing... encoded = foo64;";
+    }
     encoded = foo64;
-    outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+
+    if (verbose) {
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    }
 
     ByteCountCodedQUINT64 decodedFoo64;
     decodedFoo64 = encoded;
-    qDebug() << "decodedFoo64=" << decodedFoo64.data;
-    qDebug() << "decodedFoo64==foo64" << (decodedFoo64==foo64) << " { expected true } ";
 
-    qDebug() << "ByteCountCodedQUINT64 bar64(1000000)";
+    if (verbose) {
+        qDebug() << "decodedFoo64=" << decodedFoo64.data;
+        qDebug() << "decodedFoo64==foo64" << (decodedFoo64==foo64) << " { expected true } ";
+    }
+
+    if (verbose) {
+        qDebug() << "ByteCountCodedQUINT64 bar64(1000000)";
+    }
     ByteCountCodedQUINT64 bar64(1000000);
     encoded = bar64.encode();
-    outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    if (verbose) {
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    }
 
     ByteCountCodedQUINT64 decodedBar64;
     decodedBar64.decode(encoded);
-    qDebug() << "decodedBar64=" << decodedBar64.data;
-    qDebug() << "decodedBar64==bar64" << (decodedBar64==bar64) << " { expected true } ";
+    if (verbose) {
+        qDebug() << "decodedBar64=" << decodedBar64.data;
+        qDebug() << "decodedBar64==bar64" << (decodedBar64==bar64) << " { expected true } ";
+    }
 
-    qDebug() << "ByteCountCodedQUINT64 spam64(4294967295/2)";
+    if (verbose) {
+        qDebug() << "ByteCountCodedQUINT64 spam64(4294967295/2)";
+    }
     ByteCountCodedQUINT64 spam64(4294967295/2);
     encoded = spam64.encode();
-    outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    if (verbose) {
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    }
 
     ByteCountCodedQUINT64 decodedSpam64;
     decodedSpam64.decode(encoded);
-    qDebug() << "decodedSpam64=" << decodedSpam64.data;
-    qDebug() << "decodedSpam64==spam64" << (decodedSpam64==spam64) << " { expected true } ";
+    if (verbose) {
+        qDebug() << "decodedSpam64=" << decodedSpam64.data;
+        qDebug() << "decodedSpam64==spam64" << (decodedSpam64==spam64) << " { expected true } ";
+    }
 
-    qDebug() << "testing encoded << spam64";
+    if (verbose) {
+        qDebug() << "testing encoded << spam64";
+    }
     encoded.clear();
     encoded << spam64;
-    outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    if (verbose) {
+        outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
+    }
 
-    qDebug() << "testing encoded >> decodedSpam64";
+    if (verbose) {
+        qDebug() << "testing encoded >> decodedSpam64";
+    }
     encoded >> decodedSpam64;
-    qDebug() << "decodedSpam64=" << decodedSpam64.data;
+
+    if (verbose) {
+        qDebug() << "decodedSpam64=" << decodedSpam64.data;
+    }
 
     //ByteCountCodedINT shouldFail(-100);
     
-    qDebug() << "NOW...";
+    if (verbose) {
+        qDebug() << "NOW...";
+    }
     quint64 now = usecTimestampNow();
     ByteCountCodedQUINT64 nowCoded = now;
     QByteArray nowEncoded = nowCoded;
-    outputBufferBits((const unsigned char*)nowEncoded.constData(), nowEncoded.size());
+
+    if (verbose) {
+        outputBufferBits((const unsigned char*)nowEncoded.constData(), nowEncoded.size());
+    }
     
     
     qDebug() << "******************************************************************************************";
 }
 
-void OctreeTests::runAllTests() {
-    propertyFlagsTests();
-    byteCountCodingTests();
+void OctreeTests::runAllTests(bool verbose) {
+    propertyFlagsTests(verbose);
+    byteCountCodingTests(verbose);
 }
 

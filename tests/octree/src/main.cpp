@@ -9,8 +9,16 @@
 //
 
 #include "OctreeTests.h"
+#include "SharedUtil.h"
 
-int main(int argc, char** argv) {
-    OctreeTests::runAllTests();
+int main(int argc, const char* argv[]) {
+    const char* VERBOSE = "--verbose";
+    bool verbose = cmdOptionExists(argc, argv, VERBOSE);
+    
+    qDebug() << "OctreeTests::runAllTests() ************************************";
+    qDebug("Verbose=%s", debug::valueOf(verbose));
+    qDebug() << "***************************************************************";
+
+    OctreeTests::runAllTests(verbose);
     return 0;
 }
