@@ -20,6 +20,7 @@
 #include "ScriptCache.h"
 
 static int scriptValueMetaTypeId = qRegisterMetaType<QScriptValue>();
+static bool scriptValueComparators = QMetaType::registerComparators<QScriptValue>();
 
 bool operator==(const QScriptValue& first, const QScriptValue& second) {
     if (first.isUndefined()) {
@@ -95,6 +96,10 @@ bool operator==(const QScriptValue& first, const QScriptValue& second) {
 
 bool operator!=(const QScriptValue& first, const QScriptValue& second) {
     return !(first == second);
+}
+
+bool operator<(const QScriptValue& first, const QScriptValue& second) {
+    return first.lessThan(second);
 }
 
 ScriptCache* ScriptCache::getInstance() {

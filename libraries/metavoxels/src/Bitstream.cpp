@@ -411,7 +411,7 @@ void Bitstream::writeRawDelta(const QScriptValue& value, const QScriptValue& ref
             *this << value;
         }
     } else if (reference.isObject()) {
-        if (value.isObject()) {
+        if (value.isObject()) {    
             *this << false;
             for (QScriptValueIterator it(value); it.hasNext(); ) {
                 it.next();
@@ -1401,14 +1401,17 @@ Bitstream& Bitstream::operator>(AttributePointer& attribute) {
     return *this;
 }
 
+const QString INVALID_STRING("%INVALID%");
+
 Bitstream& Bitstream::operator<(const QScriptString& string) {
-    return *this << string.toString();
+    return *this << (string.isValid() ? string.toString() : INVALID_STRING);
 }
 
 Bitstream& Bitstream::operator>(QScriptString& string) {
     QString rawString;
     *this >> rawString;
-    string = ScriptCache::getInstance()->getEngine()->toStringHandle(rawString);
+    string = (rawString == INVALID_STRING) ? QScriptString() :
+        ScriptCache::getInstance()->getEngine()->toStringHandle(rawString);
     return *this;
 }
 

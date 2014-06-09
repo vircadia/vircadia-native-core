@@ -16,6 +16,7 @@
 #include <QVariantList>
 
 #include <DatagramSequencer.h>
+#include <ScriptCache.h>
 
 class SequencedTestMessage;
 
@@ -96,7 +97,8 @@ class TestSharedObjectA : public SharedObject {
     Q_PROPERTY(float foo READ getFoo WRITE setFoo NOTIFY fooChanged)
     Q_PROPERTY(TestEnum baz READ getBaz WRITE setBaz)
     Q_PROPERTY(TestFlags bong READ getBong WRITE setBong)
-
+    Q_PROPERTY(QScriptValue bizzle READ getBizzle WRITE setBizzle)
+    
 public:
     
     enum TestEnum { FIRST_TEST_ENUM, SECOND_TEST_ENUM, THIRD_TEST_ENUM };
@@ -116,6 +118,9 @@ public:
     void setBong(TestFlags bong) { _bong = bong; }
     TestFlags getBong() const { return _bong; }
     
+    void setBizzle(const QScriptValue& bizzle) { _bizzle = bizzle; }
+    const QScriptValue& getBizzle() const { return _bizzle; }
+    
 signals:
     
     void fooChanged(float foo);    
@@ -125,6 +130,7 @@ private:
     float _foo;
     TestEnum _baz;
     TestFlags _bong;
+    QScriptValue _bizzle;
 };
 
 DECLARE_ENUM_METATYPE(TestSharedObjectA, TestEnum)
@@ -204,6 +210,7 @@ class TestMessageC : STREAM public TestMessageA {
 public:
     
     STREAM TestMessageB bong;
+    STREAM QScriptValue bizzle;
 };
 
 DECLARE_STREAMABLE_METATYPE(TestMessageC)
