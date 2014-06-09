@@ -37,6 +37,8 @@ const QByteArray* SentPacketHistory::getPacket(OCTREE_PACKET_SEQUENCE sequenceNu
         return NULL;
     }
     int packetAt = _newestPacketAt - seqDiff;
-    if (packetAt < 0) { packetAt += _sentPackets.size(); }
+    if (packetAt < 0) {
+        packetAt += _sentPackets.size();
+    }
     return &_sentPackets.at(packetAt);
 }

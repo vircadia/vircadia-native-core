@@ -2123,7 +2123,7 @@ void Application::sendNack() {
 
             QUuid nodeUUID = node->getUUID();
 
-            _octreeSceneStatsLock.lockForWrite();
+            _octreeSceneStatsLock.lockForRead();
 
             // retreive octree scene stats of this node
             if (_octreeServerSceneStats.find(nodeUUID) == _octreeServerSceneStats.end()) {
