@@ -168,7 +168,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _applicationOverlay(),
         _runningScriptsWidget(new RunningScriptsWidget(_window)),
         _runningScriptsWidgetWasVisible(false),
-        _trayIcon(new QSystemTrayIcon(_window))
+        _trayIcon(new QSystemTrayIcon(_window)),
+        _lastNackTime(usecTimestampNow())
 {
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
@@ -2092,6 +2093,78 @@ void Application::updateMyAvatar(float deltaTime) {
             queryOctree(NodeType::ParticleServer, PacketTypeParticleQuery, _particleServerJurisdictions);
             queryOctree(NodeType::ModelServer, PacketTypeModelQuery, _modelServerJurisdictions);
             _lastQueriedViewFrustum = _viewFrustum;
+        }
+    }
+
+    // sent a nack packet containing missing sequence numbers of received packets
+    {
+        quint64 now = usecTimestampNow();
+        quint64 sinceLastNack = now - _lastNackTime;
+        const quint64 TOO_LONG_SINCE_LAST_NACK = 250 * MSECS_PER_SECOND;
+        if (sinceLastNack > TOO_LONG_SINCE_LAST_NACK) {
+            _lastNackTime = now;
+            sendNack();
+        }
+    }
+}
+
+void Application::sendNack() {
+
+    char packet[MAX_PACKET_SIZE];
+    NodeList* nodeList = NodeList::getInstance();
+
+    // iterates thru all nodes in NodeList
+    foreach(const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+        
+        if (node->getActiveSocket() &&
+            ( node->getType() == NodeType::VoxelServer
+            || node->getType() == NodeType::ParticleServer
+            || node->getType() == NodeType::ModelServer)
+            ) {
+
+            QUuid nodeUUID = node->getUUID();
+
+            _octreeSceneStatsLock.lockForRead();
+
+            // retreive octree scene stats of this node
+            if (_octreeServerSceneStats.find(nodeUUID) == _octreeServerSceneStats.end()) {
+                _octreeSceneStatsLock.unlock();
+                continue;
+            }
+            OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
+
+            // check if there are any sequence numbers that need to be nacked
+            int numSequenceNumbersAvailable = stats.getNumSequenceNumbersToNack();
+            if (numSequenceNumbersAvailable == 0) {
+                _octreeSceneStatsLock.unlock();
+                continue;
+            }
+
+            char* dataAt = packet;
+            int bytesRemaining = MAX_PACKET_SIZE;
+
+            // pack header
+            int numBytesPacketHeader = populatePacketHeader(packet, PacketTypeOctreeDataNack);
+            dataAt += numBytesPacketHeader;
+            bytesRemaining -= numBytesPacketHeader;
+            int numSequenceNumbersRoomFor = (bytesRemaining - sizeof(uint16_t)) / sizeof(OCTREE_PACKET_SEQUENCE);
+
+            // calculate and pack the number of sequence numbers
+            uint16_t numSequenceNumbers = min(numSequenceNumbersAvailable, numSequenceNumbersRoomFor);
+            uint16_t* numSequenceNumbersAt = (uint16_t*)dataAt;
+            *numSequenceNumbersAt = numSequenceNumbers;
+            dataAt += sizeof(uint16_t);
+
+            // pack sequence numbers
+            for (int i = 0; i < numSequenceNumbers; i++) {
+                OCTREE_PACKET_SEQUENCE* sequenceNumberAt = (OCTREE_PACKET_SEQUENCE*)dataAt;
+                *sequenceNumberAt = stats.getNextSequenceNumberToNack();
+                dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
+            }
+            
+            _octreeSceneStatsLock.unlock();
+
+            nodeList->writeUnverifiedDatagram(packet, dataAt - packet, node);
         }
     }
 }

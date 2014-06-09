@@ -18,6 +18,7 @@
 #include "Camera.h"
 #include "Menu.h"
 #include "Util.h"
+#include "devices/OculusManager.h"
 
 const float CAMERA_FIRST_PERSON_MODE_UP_SHIFT  = 0.0f;
 const float CAMERA_FIRST_PERSON_MODE_DISTANCE  = 0.0f;
@@ -264,7 +265,12 @@ PickRay CameraScriptableObject::computePickRay(float x, float y) {
     float screenWidth = Application::getInstance()->getGLWidget()->width();
     float screenHeight = Application::getInstance()->getGLWidget()->height();
     PickRay result;
-    _viewFrustum->computePickRay(x / screenWidth, y / screenHeight, result.origin, result.direction);
+    if (OculusManager::isConnected()) {
+        result.origin = _camera->getPosition();
+        Application::getInstance()->getApplicationOverlay().computeOculusPickRay(x / screenWidth, y / screenHeight, result.direction);
+    } else {
+        _viewFrustum->computePickRay(x / screenWidth, y / screenHeight, result.origin, result.direction);
+    }
     return result;
 }
 
