@@ -200,7 +200,7 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
     glm::vec3 palmNormal = inverseRotation * palm.getNormal();
     glm::vec3 fingerDirection = inverseRotation * palm.getFingerDirection();
 
-    glm::quat palmRotation = rotationBetween(glm::vec3(0.0f, -1.0f, 0.0f), palmNormal);
+    glm::quat palmRotation = rotationBetween(geometry.palmDirection, palmNormal);
     palmRotation = rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), fingerDirection) * palmRotation;
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::AlternateIK)) {
