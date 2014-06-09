@@ -392,10 +392,10 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         bool dontRestartSceneOnMove = false; // this is experimental
         if (dontRestartSceneOnMove) {
             if (nodeData->elementBag.isEmpty()) {
-                nodeData->elementBag.insert(_myServer->getOctree()->getRoot()); // only in case of empty
+                nodeData->elementBag.insert(_myServer->getOctree()->getRoot(), NULL); // only in case of empty
             }
         } else {
-            nodeData->elementBag.insert(_myServer->getOctree()->getRoot()); // original behavior, reset on move or empty
+            nodeData->elementBag.insert(_myServer->getOctree()->getRoot(), NULL); // original behavior, reset on move or empty
         }
     }
 
@@ -423,7 +423,8 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
 
             bool lastNodeDidntFit = false; // assume each node fits
             if (!nodeData->elementBag.isEmpty()) {
-                OctreeElement* subTree = nodeData->elementBag.extract();
+                void* subTreeExtraData;
+                OctreeElement* subTree = nodeData->elementBag.extract(subTreeExtraData);
                 
                 /* TODO: Looking for a way to prevent locking and encoding a tree that is not
                 // going to result in any packets being sent...
@@ -472,7 +473,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                 lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
 
                 quint64 encodeStart = usecTimestampNow();
-                bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->elementBag, params);
+                bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, subTreeExtraData, &_packetData, nodeData->elementBag, params);
                 quint64 encodeEnd = usecTimestampNow();
                 encodeElapsedUsec = (float)(encodeEnd - encodeStart);
                 

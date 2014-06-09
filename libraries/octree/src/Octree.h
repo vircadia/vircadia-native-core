@@ -246,7 +246,8 @@ public:
 
     void recurseTreeWithOperator(RecurseOctreeOperator* operatorObject);
 
-    int encodeTreeBitstream(OctreeElement* element, OctreePacketData* packetData, OctreeElementBag& bag,
+    int encodeTreeBitstream(OctreeElement* element, void* elementExtraData, 
+                            OctreePacketData* packetData, OctreeElementBag& bag,
                             EncodeBitstreamParams& params) ;
 
     bool isDirty() const { return _isDirty; }
@@ -326,7 +327,7 @@ public slots:
 protected:
     void deleteOctalCodeFromTreeRecursion(OctreeElement* element, void* extraData);
 
-    int encodeTreeBitstreamRecursion(OctreeElement* element,
+    int encodeTreeBitstreamRecursion(OctreeElement* element, void* elementExtraData,
                                      OctreePacketData* packetData, OctreeElementBag& bag,
                                      EncodeBitstreamParams& params, int& currentEncodeLevel,
                                      const ViewFrustum::location& parentLocationThisView) const;

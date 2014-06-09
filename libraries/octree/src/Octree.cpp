@@ -896,7 +896,7 @@ OctreeElement* Octree::getElementEnclosingPoint(const glm::vec3& point, Octree::
 
 
 
-int Octree::encodeTreeBitstream(OctreeElement* element,
+int Octree::encodeTreeBitstream(OctreeElement* element, void* elementExtraData,
                         OctreePacketData* packetData, OctreeElementBag& bag,
                         EncodeBitstreamParams& params) {
 
@@ -936,7 +936,9 @@ int Octree::encodeTreeBitstream(OctreeElement* element,
 
     // If the octalcode couldn't fit, then we can return, because no nodes below us will fit...
     if (!roomForOctalCode) {
-        bag.insert(element); // add the element back to the bag so it will eventually get included
+        // add the element back to the bag so it will eventually get included, passing NULL for extraData means entire element
+        // needs to be encoded
+        bag.insert(element, NULL);
         params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
         return bytesWritten;
     }
@@ -953,7 +955,7 @@ int Octree::encodeTreeBitstream(OctreeElement* element,
 
     ViewFrustum::location parentLocationThisView = ViewFrustum::INTERSECT; // assume parent is in view, but not fully
 
-    int childBytesWritten = encodeTreeBitstreamRecursion(element, packetData, bag, params,
+    int childBytesWritten = encodeTreeBitstreamRecursion(element, elementExtraData, packetData, bag, params,
                                                             currentEncodeLevel, parentLocationThisView);
 
     // if childBytesWritten == 1 then something went wrong... that's not possible
@@ -984,7 +986,7 @@ int Octree::encodeTreeBitstream(OctreeElement* element,
     return bytesWritten;
 }
 
-int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
+int Octree::encodeTreeBitstreamRecursion(OctreeElement* element, void* elementExtraData,
                                             OctreePacketData* packetData, OctreeElementBag& bag,
                                             EncodeBitstreamParams& params, int& currentEncodeLevel,
                                             const ViewFrustum::location& parentLocationThisView) const {
@@ -1447,7 +1449,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 // called databits), then we wouldn't send the children. So those types of Octree's should tell us to keep
                 // recursing, by returning TRUE in recurseChildrenWithData().
                 if (recurseChildrenWithData() || !params.viewFrustum || !oneAtBit(childrenColoredBits, originalIndex)) {
-                    childTreeBytesOut = encodeTreeBitstreamRecursion(childElement, packetData, bag, params, 
+                    childTreeBytesOut = encodeTreeBitstreamRecursion(childElement, NULL, packetData, bag, params,
                                                                             thisLevel, nodeLocationThisView);
                 }
 
@@ -1555,8 +1557,11 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         packetData->discardLevel(thisLevelKey);
     }
 
+    // This happens if the element could not be written at all. In the case of Octree's that support partial
+    // element data, continueThisLevel will be true. So this only happens if the full element needs to be
+    // added back to the element bag.
     if (!continueThisLevel) {
-        bag.insert(element);
+        bag.insert(element, NULL); // We only got here if none of the element could fit.
 
         // don't need to check element here, because we can't get here with no element
         if (params.stats) {
@@ -1652,9 +1657,9 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
         OctreeElementBag elementBag;
         // If we were given a specific element, start from there, otherwise start from root
         if (element) {
-            elementBag.insert(element);
+            elementBag.insert(element, NULL); // NOTE: NULL for extraData means encode the entire element
         } else {
-            elementBag.insert(_rootElement);
+            elementBag.insert(_rootElement, NULL); // NOTE: NULL for extraData means encode the entire element
         }
 
         OctreePacketData packetData;
@@ -1662,10 +1667,11 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
         bool lastPacketWritten = false;
 
         while (!elementBag.isEmpty()) {
-            OctreeElement* subTree = elementBag.extract();
+            void* elementExtraData;
+            OctreeElement* subTree = elementBag.extract(elementExtraData);
             lockForRead(); // do tree locking down here so that we have shorter slices and less thread contention
             EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
-            bytesWritten = encodeTreeBitstream(subTree, &packetData, elementBag, params);
+            bytesWritten = encodeTreeBitstream(subTree, elementExtraData, &packetData, elementBag, params);
             unlock();
 
             // if the subTree couldn't fit, and so we should reset the packet and reinsert the element in our bag and try again
@@ -1675,7 +1681,7 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
                     lastPacketWritten = true;
                 }
                 packetData.reset(); // is there a better way to do this? could we fit more?
-                elementBag.insert(subTree);
+                elementBag.insert(subTree, NULL);  // NOTE: NULL for extraData means encode the entire element
             } else {
                 lastPacketWritten = false;
             }
@@ -1701,7 +1707,7 @@ bool Octree::countOctreeElementsOperation(OctreeElement* element, void* extraDat
 
 void Octree::copySubTreeIntoNewTree(OctreeElement* startElement, Octree* destinationTree, bool rebaseToRoot) {
     OctreeElementBag elementBag;
-    elementBag.insert(startElement);
+    elementBag.insert(startElement, NULL); // NOTE: NULL for extraData means encode the entire element
     int chopLevels = 0;
     if (rebaseToRoot) {
         chopLevels = numberOfThreeBitSectionsInCode(startElement->getOctalCode());
@@ -1710,11 +1716,12 @@ void Octree::copySubTreeIntoNewTree(OctreeElement* startElement, Octree* destina
     static OctreePacketData packetData;
 
     while (!elementBag.isEmpty()) {
-        OctreeElement* subTree = elementBag.extract();
+        void* elementExtraData;
+        OctreeElement* subTree = elementBag.extract(elementExtraData);
         packetData.reset(); // reset the packet between usage
         // ask our tree to write a bitsteam
         EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS, chopLevels);
-        encodeTreeBitstream(subTree, &packetData, elementBag, params);
+        encodeTreeBitstream(subTree, elementExtraData, &packetData, elementBag, params);
         // ask destination tree to read the bitstream
         ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS);
         destinationTree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
@@ -1724,18 +1731,19 @@ void Octree::copySubTreeIntoNewTree(OctreeElement* startElement, Octree* destina
 void Octree::copyFromTreeIntoSubTree(Octree* sourceTree, OctreeElement* destinationElement) {
     OctreeElementBag elementBag;
     // If we were given a specific element, start from there, otherwise start from root
-    elementBag.insert(sourceTree->_rootElement);
+    elementBag.insert(sourceTree->_rootElement, NULL);  // NOTE: NULL for extraData means encode the entire element
 
     static OctreePacketData packetData;
 
     while (!elementBag.isEmpty()) {
-        OctreeElement* subTree = elementBag.extract();
+        void* elementExtraData;
+        OctreeElement* subTree = elementBag.extract(elementExtraData);
 
         packetData.reset(); // reset between usage
 
         // ask our tree to write a bitsteam
         EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
-        sourceTree->encodeTreeBitstream(subTree, &packetData, elementBag, params);
+        sourceTree->encodeTreeBitstream(subTree, elementExtraData, &packetData, elementBag, params);
 
         // ask destination tree to read the bitstream
         bool wantImportProgress = true;
