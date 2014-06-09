@@ -135,18 +135,21 @@ void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes)
         for (int i = 0; i < _jointStates.size(); i++) {
             const FBXJoint& joint = geometry.joints[i];
             int parentIndex = joint.parentIndex;
+            Shape* shape = _jointShapes[i];
             if (i == jointIndex) {
                 // this shape is the hand
-                shapes.push_back(_jointShapes[i]);
-                if (parentIndex != -1) {
+                if (shape) {
+                    shapes.push_back(shape);
+                }
+                if (parentIndex != -1 && _jointShapes[parentIndex]) {
                     // also add the forearm
                     shapes.push_back(_jointShapes[parentIndex]);
                 }
-            } else {
+            } else if (shape) {
                 while (parentIndex != -1) {
                     if (parentIndex == jointIndex) {
                         // this shape is a child of the hand
-                        shapes.push_back(_jointShapes[i]);
+                        shapes.push_back(shape);
                         break;
                     }
                     parentIndex = geometry.joints[parentIndex].parentIndex;

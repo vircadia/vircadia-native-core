@@ -813,11 +813,8 @@ void Model::rebuildShapes() {
             _jointShapes.push_back(sphere);
         } else {
             // this shape type is not handled and the joint shouldn't collide, 
-            // however we must have a shape for each joint, 
-            // so we make a bogus sphere with zero radius.
-            // TODO: implement collision groups for more control over what collides with what
-            SphereShape* sphere = new SphereShape(0.0f, glm::vec3(0.0f)); 
-            _jointShapes.push_back(sphere);
+            // however we must have a Shape* for each joint, so we push NULL
+            _jointShapes.push_back(NULL);
         }
     }
 
@@ -875,10 +872,13 @@ void Model::computeBoundingShape(const FBXGeometry& geometry) {
     _boundingRadius = 0.0f;
     float uniformScale = extractUniformScale(_scale);
     for (int i = 0; i < _jointShapes.size(); i++) {
+        Shape* shape = _jointShapes[i];
+        if (!shape) {
+            continue;
+        }
         const FBXJoint& joint = geometry.joints[i];
         glm::vec3 jointToShapeOffset = uniformScale * (finalRotations[i] * joint.shapePosition);
         glm::vec3 localPosition = extractTranslation(transforms[i]) + jointToShapeOffset;
-        Shape* shape = _jointShapes[i];
         shape->setPosition(localPosition);
         shape->setRotation(finalRotations[i] * joint.shapeRotation);
         float distance = glm::length(localPosition) + shape->getBoundingRadius();
@@ -890,11 +890,14 @@ void Model::computeBoundingShape(const FBXGeometry& geometry) {
     // compute bounding box
     Extents totalExtents;
     totalExtents.reset();
+    totalExtents.addPoint(glm::vec3(0.0f));
     for (int i = 0; i < _jointShapes.size(); i++) {
+        Shape* shape = _jointShapes[i];
+        if (!shape) {
+            continue;
+        }
         Extents shapeExtents;
         shapeExtents.reset();
-
-        Shape* shape = _jointShapes[i];
         glm::vec3 localPosition = shape->getPosition();
         int type = shape->getType();
         if (type == Shape::CAPSULE_SHAPE) {
@@ -949,8 +952,10 @@ void Model::resetShapePositions() {
     // Then we move them into world frame for rendering at the Model's location.
     for (int i = 0; i < _jointShapes.size(); i++) {
         Shape* shape = _jointShapes[i];
-        shape->setPosition(_translation + _rotation * shape->getPosition());
-        shape->setRotation(_rotation * shape->getRotation());
+        if (shape) {
+            shape->setPosition(_translation + _rotation * shape->getPosition());
+            shape->setRotation(_rotation * shape->getRotation());
+        }
     }
     _boundingShape.setPosition(_translation + _rotation * _boundingShapeLocalOffset);
     _boundingShape.setRotation(_rotation);
@@ -969,11 +974,13 @@ void Model::updateShapePositions() {
             glm::vec3 shapeOffset = uniformScale * (stateRotation * joint.shapePosition);
             glm::vec3 worldPosition = _translation + _rotation * (state.getPosition() + shapeOffset);
             Shape* shape = _jointShapes[i];
-            shape->setPosition(worldPosition);
-            shape->setRotation(_rotation * stateRotation * joint.shapeRotation);
-            float distance = glm::distance(worldPosition, _translation) + shape->getBoundingRadius();
-            if (distance > _boundingRadius) {
-                _boundingRadius = distance;
+            if (shape) {
+                shape->setPosition(worldPosition);
+                shape->setRotation(_rotation * stateRotation * joint.shapeRotation);
+                float distance = glm::distance(worldPosition, _translation) + shape->getBoundingRadius();
+                if (distance > _boundingRadius) {
+                    _boundingRadius = distance;
+                }
             }
             if (joint.parentIndex == -1) {
                 rootPosition = worldPosition;
@@ -1018,9 +1025,12 @@ bool Model::findCollisions(const QVector<const Shape*> shapes, CollisionList& co
     bool collided = false;
     for (int i = 0; i < shapes.size(); ++i) {
         const Shape* theirShape = shapes[i];
+        if (!theirShape) {
+            continue;
+        }
         for (int j = 0; j < _jointShapes.size(); ++j) {
             const Shape* ourShape = _jointShapes[j];
-            if (ShapeCollider::collideShapes(theirShape, ourShape, collisions)) {
+            if (ourShape && ShapeCollider::collideShapes(theirShape, ourShape, collisions)) {
                 collided = true;
             }
         }
@@ -1034,6 +1044,10 @@ bool Model::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadi
     SphereShape sphere(sphereRadius, sphereCenter);
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     for (int i = 0; i < _jointShapes.size(); i++) {
+        Shape* shape = _jointShapes[i];
+        if (!shape) {
+            continue;
+        }
         const FBXJoint& joint = geometry.joints[i];
         if (joint.parentIndex != -1) {
             if (skipIndex != -1) {
@@ -1047,7 +1061,7 @@ bool Model::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadi
                 } while (ancestorIndex != -1);
             }
         }
-        if (ShapeCollider::collideShapes(&sphere, _jointShapes[i], collisions)) {
+        if (ShapeCollider::collideShapes(&sphere, shape, collisions)) {
             CollisionInfo* collision = collisions.getLastCollision();
             collision->_data = (void*)(this);
             collision->_intData = i;
@@ -1062,7 +1076,7 @@ bool Model::findPlaneCollisions(const glm::vec4& plane, CollisionList& collision
     bool collided = false;
     PlaneShape planeShape(plane);
     for (int i = 0; i < _jointShapes.size(); i++) {
-        if (ShapeCollider::collideShapes(&planeShape, _jointShapes[i], collisions)) {
+        if (_jointShapes[i] && ShapeCollider::collideShapes(&planeShape, _jointShapes[i], collisions)) {
             CollisionInfo* collision = collisions.getLastCollision();
             collision->_data = (void*)(this);
             collision->_intData = i;
@@ -1369,10 +1383,12 @@ void Model::renderJointCollisionShapes(float alpha) {
     glPushMatrix();
     Application::getInstance()->loadTranslatedViewMatrix(_translation);
     for (int i = 0; i < _jointShapes.size(); i++) {
-        glPushMatrix();
-
         Shape* shape = _jointShapes[i];
-        
+        if (!shape) {
+            continue;
+        }
+
+        glPushMatrix();
         if (shape->getType() == Shape::SPHERE_SHAPE) {
             // shapes are stored in world-frame, so we have to transform into model frame
             glm::vec3 position = shape->getPosition() - _translation;
