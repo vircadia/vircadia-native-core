@@ -895,16 +895,12 @@ FBXBlendshape extractBlendshape(const FBXNode& object) {
 
 void setTangents(FBXMesh& mesh, int firstIndex, int secondIndex) {
     const glm::vec3& normal = mesh.normals.at(firstIndex);
-    float normalLength = glm::length(normal);
-    if (normalLength < EPSILON) {
-        return;
-    }
-    glm::vec3 normalizedNormal = normal / normalLength;
-    glm::vec3 bitangent = glm::cross(normalizedNormal, mesh.vertices.at(secondIndex) - mesh.vertices.at(firstIndex));
+    glm::vec3 bitangent = glm::cross(normal, mesh.vertices.at(secondIndex) - mesh.vertices.at(firstIndex));
     if (glm::length(bitangent) < EPSILON) {
         return;
     }
     glm::vec2 texCoordDelta = mesh.texCoords.at(secondIndex) - mesh.texCoords.at(firstIndex);
+    glm::vec3 normalizedNormal = glm::normalize(normal);
     mesh.tangents[firstIndex] += glm::cross(glm::angleAxis(-atan2f(-texCoordDelta.t, texCoordDelta.s), normalizedNormal) *
         glm::normalize(bitangent), normalizedNormal);
 }
