@@ -85,7 +85,7 @@ template<typename T> inline QByteArray ByteCountCoded<T>::encode() const {
         }
         temp = temp << 1;
     }
-    qDebug() << "valueBits=" << valueBits;
+    //qDebug() << "valueBits=" << valueBits;
     
     // calculate the number of total bytes, including our header
     // BITS_IN_BYTE-1 because we need to code the number of bytes in the header
