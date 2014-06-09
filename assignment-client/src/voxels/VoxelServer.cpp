@@ -75,7 +75,7 @@ int VoxelServer::sendSpecialPacket(OctreeQueryNode* queryNode, const SharedNodeP
     }
 
     NodeList::getInstance()->writeDatagram((char*) _tempOutputBuffer, envPacketLength, SharedNodePointer(node));
-    queryNode->incrementSequenceNumber();
+    queryNode->packetSent(_tempOutputBuffer, envPacketLength);
 
     return envPacketLength;
 }
