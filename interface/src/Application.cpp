@@ -2137,6 +2137,25 @@ void Application::sendNack() {
             || node->getType() == NodeType::ModelServer)
             ) {
 
+            QUuid nodeUUID = node->getUUID();
+
+
+            _octreeSceneStatsLock.lockForWrite();
+
+            // retreive octree scene stats of this node
+            if (_octreeServerSceneStats.find(nodeUUID) == _octreeServerSceneStats.end()) {
+                _octreeSceneStatsLock.unlock();
+                continue;
+            }
+            OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
+
+            // check if there are any sequence numbers that need to be nacked
+            int numSequenceNumbersAvailable = stats.getNumSequenceNumbersToNack();
+            if (numSequenceNumbersAvailable == 0) {
+                _octreeSceneStatsLock.unlock();
+                continue;
+            }
+
             char* dataAt = packet;
             int bytesRemaining = MAX_PACKET_SIZE;
 
@@ -2146,40 +2165,26 @@ void Application::sendNack() {
             bytesRemaining -= numBytesPacketHeader;
             int numSequenceNumbersRoomFor = (bytesRemaining - sizeof(uint16_t)) / sizeof(OCTREE_PACKET_SEQUENCE);
 
+            // calculate and pack the number of sequence numbers
+            uint16_t numSequenceNumbers = min(numSequenceNumbersAvailable, numSequenceNumbersRoomFor);
+            uint16_t* numSequenceNumbersAt = (uint16_t*)dataAt;
+            *numSequenceNumbersAt = numSequenceNumbers;
+            dataAt += sizeof(uint16_t);
 
-            QUuid nodeUUID = node->getUUID();
-
-            _octreeSceneStatsLock.lockForWrite();
-            if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
-                OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
-                
-                int numSequenceNumbersAvailable = stats.getNumSequenceNumbersToNack();
-                if (numSequenceNumbersAvailable == 0) {
-                    _octreeSceneStatsLock.unlock();
-                    continue;
-                }
-
-                // calculate and pack number of sequence numbers
-                uint16_t numSequenceNumbers = min(numSequenceNumbersAvailable, numSequenceNumbersRoomFor);
-                uint16_t* numSequenceNumbersAt = (uint16_t*)dataAt;
-                *numSequenceNumbersAt = numSequenceNumbers;
-                dataAt += sizeof(uint16_t);
-
-                // pack sequence numbers
-                //printf("\n\t sending nack...\n");
-                //printf("\t\t packed %d seq #s:", numSequenceNumbers);
-                for (int i = 0; i < numSequenceNumbers; i++) {
-                    OCTREE_PACKET_SEQUENCE* sequenceNumberAt = (OCTREE_PACKET_SEQUENCE*)dataAt;
-                    *sequenceNumberAt = stats.getNextSequenceNumberToNack();
-                    dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
-                    //printf(" %d,", *sequenceNumberAt);
-                }
-                //printf("\n");
+            // pack sequence numbers
+//printf("\n\t sending nack...\n");
+//printf("\t\t packed %d seq #s:", numSequenceNumbers);
+            for (int i = 0; i < numSequenceNumbers; i++) {
+                OCTREE_PACKET_SEQUENCE* sequenceNumberAt = (OCTREE_PACKET_SEQUENCE*)dataAt;
+                *sequenceNumberAt = stats.getNextSequenceNumberToNack();
+                dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
+//printf(" %d,", *sequenceNumberAt);
             }
+//printf("\n");
+            
             _octreeSceneStatsLock.unlock();
 
-            // make sure we still have an active socket????
-            nodeList->writeUnverifiedDatagram(packet, dataAt-packet, node);
+            nodeList->writeUnverifiedDatagram(packet, dataAt - packet, node);
         }
     }
 }
