@@ -106,7 +106,7 @@ int ParticleServer::sendSpecialPacket(OctreeQueryNode* queryNode, const SharedNo
             //qDebug() << "sending PacketType_PARTICLE_ERASE packetLength:" << packetLength;
 
             NodeList::getInstance()->writeDatagram((char*) outputBuffer, packetLength, SharedNodePointer(node));
-            queryNode->incrementSequenceNumber();
+            queryNode->packetSent(outputBuffer, packetLength);
         }
 
         nodeData->setLastDeletedParticlesSentAt(deletePacketSentAt);

@@ -106,7 +106,7 @@ int ModelServer::sendSpecialPacket(OctreeQueryNode* queryNode, const SharedNodeP
             //qDebug() << "sending PacketType_MODEL_ERASE packetLength:" << packetLength;
 
             NodeList::getInstance()->writeDatagram((char*) outputBuffer, packetLength, SharedNodePointer(node));
-            queryNode->incrementSequenceNumber();
+            queryNode->packetSent(outputBuffer, packetLength);
         }
 
         nodeData->setLastDeletedModelsSentAt(deletePacketSentAt);

@@ -55,6 +55,9 @@ private:
     
     int _nodeMissingCount;
     bool _isShuttingDown;
+
+    int resendNackedPackets(OctreeQueryNode* nodeData);
+
 };
 
 #endif // hifi_OctreeSendThread_h
