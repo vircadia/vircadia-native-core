@@ -894,14 +894,19 @@ FBXBlendshape extractBlendshape(const FBXNode& object) {
 }
 
 void setTangents(FBXMesh& mesh, int firstIndex, int secondIndex) {
-    glm::vec3 normal = glm::normalize(mesh.normals.at(firstIndex));
-    glm::vec3 bitangent = glm::cross(normal, mesh.vertices.at(secondIndex) - mesh.vertices.at(firstIndex));
+    const glm::vec3& normal = mesh.normals.at(firstIndex);
+    float normalLength = glm::length(normal);
+    if (normalLength < EPSILON) {
+        return;
+    }
+    glm::vec3 normalizedNormal = normal / normalLength;
+    glm::vec3 bitangent = glm::cross(normalizedNormal, mesh.vertices.at(secondIndex) - mesh.vertices.at(firstIndex));
     if (glm::length(bitangent) < EPSILON) {
         return;
     }
     glm::vec2 texCoordDelta = mesh.texCoords.at(secondIndex) - mesh.texCoords.at(firstIndex);
-    mesh.tangents[firstIndex] += glm::cross(glm::angleAxis(
-                - atan2f(-texCoordDelta.t, texCoordDelta.s), normal) * glm::normalize(bitangent), normal);
+    mesh.tangents[firstIndex] += glm::cross(glm::angleAxis(-atan2f(-texCoordDelta.t, texCoordDelta.s), normalizedNormal) *
+        glm::normalize(bitangent), normalizedNormal);
 }
 
 QVector<int> getIndices(const QVector<QString> ids, QVector<QString> modelIDs) {
