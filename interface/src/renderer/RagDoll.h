@@ -14,6 +14,8 @@
 
 #include "renderer/Model.h"
 
+class Shape;
+
 class Constraint {
 public:
     Constraint() {}
@@ -22,11 +24,20 @@ public:
     /// Enforce contraint by moving relevant points.
     /// \return max distance of point movement
     virtual float enforce() = 0;
+
+    /// \param shape pointer to shape that will be this Constraint's collision proxy
+    /// \param rotation rotation into shape's collision frame
+    /// \param translation translation into shape's collision frame
+    /// Moves the shape such that it will collide at this constraint's position
+    virtual void updateProxyShape(Shape* shape, const glm::quat& rotation, const glm::vec3& translation) const {}
+
+protected:
+    int _type;
 };
 
 class FixedConstraint : public Constraint {
 public:
-    FixedConstraint();
+    FixedConstraint(glm::vec3* point, const glm::vec3& anchor);
     float enforce();
     void setPoint(glm::vec3* point);
     void setAnchor(const glm::vec3& anchor);
@@ -37,10 +48,11 @@ private:
 
 class DistanceConstraint : public Constraint {
 public:
-    DistanceConstraint(glm::vec3* pointA, glm::vec3* pointB);
+    DistanceConstraint(glm::vec3* startPoint, glm::vec3* endPoint);
     DistanceConstraint(const DistanceConstraint& other);
     float enforce();
     void setDistance(float distance);
+    void updateProxyShape(Shape* shape, const glm::quat& rotation, const glm::vec3& translation) const;
 private:
     float _distance;
     glm::vec3* _points[2];
@@ -69,7 +81,12 @@ public:
     float enforceConstraints();
 
     const QVector<glm::vec3>& getPoints() const { return _points; }
-    
+
+    /// \param shapes list of shapes to be updated with new positions
+    /// \param rotation rotation into shapes' collision frame
+    /// \param translation translation into shapes' collision frame
+    void updateShapes(const QVector<Shape*>& shapes, const glm::quat& rotation, const glm::vec3& translation) const;
+
 private:
     QVector<Constraint*> _constraints;
     QVector<glm::vec3> _points;
