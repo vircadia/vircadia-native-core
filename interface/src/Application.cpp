@@ -2107,6 +2107,21 @@ void Application::updateMyAvatar(float deltaTime) {
 }
 }
 
+/*/ Attempt to identify the sender from it's address.
+    if (sendingNode) {
+        QUuid nodeUUID = sendingNode->getUUID();
+
+        // now that we know the node ID, let's add these stats to the stats for that node...
+        _octreeSceneStatsLock.lockForWrite();
+        if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
+            OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
+            stats.trackIncomingOctreePacket(packet, wasStatsPacket, sendingNode->getClockSkewUsec());
+        }
+        _octreeSceneStatsLock.unlock();
+    }
+    */
+
+
 
 void Application::sendNack() {
 
@@ -2122,13 +2137,6 @@ void Application::sendNack() {
             || node->getType() == NodeType::ModelServer)
             ) {
 
-            //_octreeSceneStatsLock.lockForWrite();
-
-            OctreeSceneStats& stats = _octreeServerSceneStats[node->getUUID()];
-            int numSequenceNumbersAvailable = stats.getNumSequenceNumbersToNack();
-            if (numSequenceNumbersAvailable == 0)
-                continue;
-
             char* dataAt = packet;
             int bytesRemaining = MAX_PACKET_SIZE;
 
@@ -2136,28 +2144,39 @@ void Application::sendNack() {
             int numBytesPacketHeader = populatePacketHeader(packet, PacketTypeOctreeDataNack);
             dataAt += numBytesPacketHeader;
             bytesRemaining -= numBytesPacketHeader;
+            int numSequenceNumbersRoomFor = (bytesRemaining - sizeof(uint16_t)) / sizeof(OCTREE_PACKET_SEQUENCE);
 
-            int numPacketsRoomFor = (bytesRemaining - sizeof(uint16_t)) / sizeof(OCTREE_PACKET_SEQUENCE);
 
+            QUuid nodeUUID = node->getUUID();
 
-            // calculate and pack number of sequence numbers
-            uint16_t numSequenceNumbers = min(numSequenceNumbersAvailable, numPacketsRoomFor);
-            uint16_t* numSequenceNumbersAt = (uint16_t*)dataAt;
-            *numSequenceNumbersAt = numSequenceNumbers;
-            dataAt += sizeof(uint16_t);
+            _octreeSceneStatsLock.lockForWrite();
+            if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
+                OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
+                
+                int numSequenceNumbersAvailable = stats.getNumSequenceNumbersToNack();
+                if (numSequenceNumbersAvailable == 0) {
+                    _octreeSceneStatsLock.unlock();
+                    continue;
+                }
 
-            // pack sequence numbers
-//printf("\n\t sending nack...\n");
-//printf("\t\t packed %d seq #s:", numSequenceNumbers);
-            for (int i = 0; i < numSequenceNumbers; i++) {
-                OCTREE_PACKET_SEQUENCE* sequenceNumberAt = (OCTREE_PACKET_SEQUENCE*)dataAt;
-                *sequenceNumberAt = stats.getNextSequenceNumberToNack();
-                dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
-//printf(" %d,", *sequenceNumberAt);
+                // calculate and pack number of sequence numbers
+                uint16_t numSequenceNumbers = min(numSequenceNumbersAvailable, numSequenceNumbersRoomFor);
+                uint16_t* numSequenceNumbersAt = (uint16_t*)dataAt;
+                *numSequenceNumbersAt = numSequenceNumbers;
+                dataAt += sizeof(uint16_t);
+
+                // pack sequence numbers
+                //printf("\n\t sending nack...\n");
+                //printf("\t\t packed %d seq #s:", numSequenceNumbers);
+                for (int i = 0; i < numSequenceNumbers; i++) {
+                    OCTREE_PACKET_SEQUENCE* sequenceNumberAt = (OCTREE_PACKET_SEQUENCE*)dataAt;
+                    *sequenceNumberAt = stats.getNextSequenceNumberToNack();
+                    dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
+                    //printf(" %d,", *sequenceNumberAt);
+                }
+                //printf("\n");
             }
-//printf("\n");
-
-            //_octreeSceneStatsLock.unlock();
+            _octreeSceneStatsLock.unlock();
 
             // make sure we still have an active socket????
             nodeList->writeUnverifiedDatagram(packet, dataAt-packet, node);

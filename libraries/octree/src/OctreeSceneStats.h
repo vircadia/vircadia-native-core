@@ -275,8 +275,8 @@ private:
     quint32 _incomingLate; /// out of order later than expected
     quint32 _incomingReallyLate; /// out of order and later than MAX_MISSING_SEQUENCE_OLD_AGE late
     quint32 _incomingPossibleDuplicate; /// out of order possibly a duplicate
-    QSet<uint16_t> _missingSequenceNumbers;
-QSet<uint16_t> _sequenceNumbersToNack;
+    QSet<OCTREE_PACKET_SEQUENCE> _missingSequenceNumbers;
+QSet<OCTREE_PACKET_SEQUENCE> _sequenceNumbersToNack;
     SimpleMovingAverage _incomingFlightTimeAverage;
     
     // features related items

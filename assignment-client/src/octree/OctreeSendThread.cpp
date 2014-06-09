@@ -288,18 +288,15 @@ NodeList::getInstance()->writeDatagram2(nodeData->getSequenceNumber(), (char*)no
 int OctreeSendThread::resendNackedPackets(OctreeQueryNode* nodeData) {
 
     const int MAX_PACKETS_RESEND = 10;
-
     int packetsSent = 0;
 
     const QByteArray* packet;
     while (nodeData->hasNextNackedPacket() && packetsSent < MAX_PACKETS_RESEND) {
         packet = nodeData->getNextNackedPacket();
-        // packet will be NULL if it's not in nodeData's packet history
         if (packet) {
             NodeList::getInstance()->writeDatagram(*packet, _node);
             packetsSent++;
 
-            // ??????
             _totalBytes += packet->size();
             _totalPackets++;
             _totalWastedBytes += MAX_PACKET_SIZE - packet->size();  // ???

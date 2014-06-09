@@ -382,11 +382,9 @@ bool OctreeQueryNode::hasNextNackedPacket() const {
 }
 
 const QByteArray* OctreeQueryNode::getNextNackedPacket() {
-
     if (!_nackedSequenceNumbers.isEmpty()) {
-        const QByteArray* nextPacket = _sentPacketHistory.getPacket(_nackedSequenceNumbers.first());
-        _nackedSequenceNumbers.pop_front();
-        return nextPacket;  // could be null
+        // could return null if packet is not in the history
+        return _sentPacketHistory.getPacket(_nackedSequenceNumbers.takeFirst());
     }
     return NULL;
 }
