@@ -32,7 +32,8 @@ enum ModelPropertyList {
     PROP_ANIMATION_FPS,
     PROP_ANIMATION_FRAME_INDEX,
     PROP_ANIMATION_PLAYING,
-    PROP_SHOULD_BE_DELETED
+    PROP_SHOULD_BE_DELETED,
+    PROP_LAST_ITEM = PROP_SHOULD_BE_DELETED
 };
 
 typedef PropertyFlags<ModelPropertyList> ModelPropertyFlags;
