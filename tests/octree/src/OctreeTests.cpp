@@ -16,6 +16,7 @@
 
 #include <ByteCountCoding.h>
 #include <ModelItem.h>
+#include <Octree.h>
 #include <OctreeConstants.h>
 #include <PropertyFlags.h>
 #include <SharedUtil.h>
@@ -590,7 +591,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test Test 11b: props.getHasProperty(PARTICLE_PROP_VISIBLE)";
+            qDebug() << "FAILED - Test 11b: props.getHasProperty(PARTICLE_PROP_VISIBLE)";
         }
 
         if (verbose) {
@@ -604,7 +605,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test Test 11c: props.getHasProperty(PARTICLE_PROP_VISIBLE) after props << PARTICLE_PROP_VISIBLE";
+            qDebug() << "FAILED - Test 11c: props.getHasProperty(PARTICLE_PROP_VISIBLE) after props << PARTICLE_PROP_VISIBLE";
         }
 
         encoded = props.encode();
@@ -1266,8 +1267,177 @@ void OctreeTests::byteCountCodingTests(bool verbose) {
     }
 }
 
+void OctreeTests::modelItemTests(bool verbose) {
+
+    //verbose = true;
+    
+    int testsTaken = 0;
+    int testsPassed = 0;
+    int testsFailed = 0;
+
+    if (verbose) {
+        qDebug() << "******************************************************************************************";
+    }
+    
+    qDebug() << "OctreeTests::modelItemTests()";
+
+    EncodeBitstreamParams params;
+    OctreePacketData packetData;
+    ModelItem modelItem;
+    
+    modelItem.setID(1042);
+    modelItem.setModelURL("http://foo.com/foo.fbx");
+
+    bool appendResult = modelItem.new___appendModelData(&packetData, params);
+    int bytesWritten = packetData.getUncompressedSize();
+    if (verbose) {
+        qDebug() << "Test 1: bytesRead == bytesWritten ...";
+        qDebug() << "appendResult=" << appendResult;
+        qDebug() << "bytesWritten=" << bytesWritten;
+    }
+
+    {
+        ReadBitstreamToTreeParams args;
+        ModelItem modelItemFromBuffer;
+        const unsigned char* data = packetData.getUncompressedData();
+        int bytesLeftToRead = packetData.getUncompressedSize();
+    
+        int bytesRead =  modelItemFromBuffer.new___readModelDataFromBuffer(data, bytesLeftToRead, args);
+        if (verbose) {
+            qDebug() << "bytesRead=" << bytesRead;
+            qDebug() << "modelItemFromBuffer.getID()=" << modelItemFromBuffer.getID();
+            qDebug() << "modelItemFromBuffer.getModelURL()=" << modelItemFromBuffer.getModelURL();
+        }
+
+        testsTaken++;
+        bool result1 = (bytesRead == bytesWritten);
+        bool expected1 = true;
+        if (result1 == expected1) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 1: bytesRead == bytesWritten...";
+        }
+
+        if (verbose) {
+            qDebug() << "Test 2: modelItemFromBuffer.getModelURL() == 'http://foo.com/foo.fbx'";
+        }
+    
+        testsTaken++;
+        bool result2 = (modelItemFromBuffer.getModelURL() == "http://foo.com/foo.fbx");
+        bool expected2 = true;
+        if (result2 == expected2) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 2: modelItemFromBuffer.getModelURL() == 'http://foo.com/foo.fbx' ...";
+        }
+    }
+    
+    // TEST 3:
+    // Reset the packet, fill it with data so that ModelItem header won't fit, and verify that we don't let it fit
+    {
+        packetData.reset();
+        int remainingSpace = 10;
+        int almostFullOfData = MAX_OCTREE_UNCOMRESSED_PACKET_SIZE - remainingSpace;
+        QByteArray garbageData(almostFullOfData, 0);
+        packetData.appendValue(garbageData);
+
+        appendResult = modelItem.new___appendModelData(&packetData, params);
+        bytesWritten = packetData.getUncompressedSize() - almostFullOfData;
+        if (verbose) {
+            qDebug() << "Test 3: attempt to appendModelData in nearly full packetData ...";
+            qDebug() << "appendResult=" << appendResult;
+            qDebug() << "bytesWritten=" << bytesWritten;
+        }
+        testsTaken++;
+        bool result3 = (appendResult == false && bytesWritten == 0);
+        bool expected3 = true;
+        if (result3 == expected3) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 3: attempt to appendModelData in nearly full packetData ...";
+        }
+    }
+    
+    // TEST 4:
+    // Reset the packet, fill it with data so that some of ModelItem won't fit, and verify that we write what can fit
+    {
+        packetData.reset();
+        int remainingSpace = 50;
+        int almostFullOfData = MAX_OCTREE_UNCOMRESSED_PACKET_SIZE - remainingSpace;
+        QByteArray garbageData(almostFullOfData, 0);
+        packetData.appendValue(garbageData);
+
+        appendResult = modelItem.new___appendModelData(&packetData, params);
+        bytesWritten = packetData.getUncompressedSize() - almostFullOfData;
+        if (verbose) {
+            qDebug() << "Test 4: attempt to appendModelData in nearly full packetData which some should fit ...";
+            qDebug() << "appendResult=" << appendResult;
+            qDebug() << "bytesWritten=" << bytesWritten;
+        }
+        testsTaken++;
+        bool result4 = (appendResult == true); // && bytesWritten == 0);
+        bool expected4 = true;
+        if (result4 == expected4) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 4: attempt to appendModelData in nearly full packetData which some should fit ...";
+        }
+
+        ReadBitstreamToTreeParams args;
+        ModelItem modelItemFromBuffer;
+        const unsigned char* data = packetData.getUncompressedData() + almostFullOfData;
+        int bytesLeftToRead = packetData.getUncompressedSize() - almostFullOfData;
+    
+        int bytesRead =  modelItemFromBuffer.new___readModelDataFromBuffer(data, bytesLeftToRead, args);
+        if (verbose) {
+            qDebug() << "Test 5: partial ModelItem written ... bytesRead == bytesWritten...";
+            qDebug() << "bytesRead=" << bytesRead;
+            qDebug() << "modelItemFromBuffer.getID()=" << modelItemFromBuffer.getID();
+            qDebug() << "modelItemFromBuffer.getModelURL()=" << modelItemFromBuffer.getModelURL();
+        }
+
+        testsTaken++;
+        bool result5 = (bytesRead == bytesWritten);
+        bool expected5 = true;
+        if (result5 == expected5) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 5: partial ModelItem written ... bytesRead == bytesWritten...";
+        }
+
+        if (verbose) {
+            qDebug() << "Test 6: partial ModelItem written ... getModelURL() NOT SET ...";
+        }
+    
+        testsTaken++;
+        bool result6 = (modelItemFromBuffer.getModelURL() == "");
+        bool expected6 = true;
+        if (result6 == expected6) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test 6: partial ModelItem written ... getModelURL() NOT SET ...";
+        }
+    }
+    
+    if (verbose) {
+        qDebug() << "******************************************************************************************";
+    }
+    qDebug() << "   tests passed:" << testsPassed << "out of" << testsTaken;
+    if (verbose) {
+        qDebug() << "******************************************************************************************";
+    }
+}
+
+
 void OctreeTests::runAllTests(bool verbose) {
     propertyFlagsTests(verbose);
     byteCountCodingTests(verbose);
+    modelItemTests(verbose);
 }
 
