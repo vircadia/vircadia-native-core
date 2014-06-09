@@ -292,10 +292,14 @@ public:
     template<class T> void writeDelta(const T& value, const T& reference);
     template<class T> void readDelta(T& value, const T& reference); 
 
+    void writeRawDelta(const QVariant& value, const QVariant& reference);
     void readRawDelta(QVariant& value, const QVariant& reference);
 
     void writeRawDelta(const QObject* value, const QObject* reference);
     void readRawDelta(QObject*& value, const QObject* reference);
+
+    void writeRawDelta(const QScriptValue& value, const QScriptValue& reference);
+    void readRawDelta(QScriptValue& value, const QScriptValue& reference);
 
     template<class T> void writeRawDelta(const T& value, const T& reference);
     template<class T> void readRawDelta(T& value, const T& reference); 

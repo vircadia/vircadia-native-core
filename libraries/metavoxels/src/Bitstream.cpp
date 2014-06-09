@@ -31,6 +31,7 @@ REGISTER_SIMPLE_TYPE_STREAMER(uint)
 REGISTER_SIMPLE_TYPE_STREAMER(float)
 REGISTER_SIMPLE_TYPE_STREAMER(QByteArray)
 REGISTER_SIMPLE_TYPE_STREAMER(QColor)
+REGISTER_SIMPLE_TYPE_STREAMER(QScriptValue)
 REGISTER_SIMPLE_TYPE_STREAMER(QString)
 REGISTER_SIMPLE_TYPE_STREAMER(QUrl)
 REGISTER_SIMPLE_TYPE_STREAMER(QVariantList)
@@ -286,6 +287,12 @@ void Bitstream::writeDelta(const QVariant& value, const QVariant& reference) {
     streamer->writeRawDelta(*this, value, reference);
 }
 
+void Bitstream::writeRawDelta(const QVariant& value, const QVariant& reference) {
+    const TypeStreamer* streamer = getTypeStreamers().value(value.userType());
+    _typeStreamerStreamer << streamer;
+    streamer->writeRawDelta(*this, value, reference);
+}
+
 void Bitstream::readRawDelta(QVariant& value, const QVariant& reference) {
     TypeReader typeReader;
     _typeStreamerStreamer >> typeReader;
@@ -308,6 +315,271 @@ void Bitstream::readRawDelta(QObject*& value, const QObject* reference) {
     ObjectReader objectReader;
     _metaObjectStreamer >> objectReader;
     value = objectReader.readDelta(*this, reference);
+}
+
+void Bitstream::writeRawDelta(const QScriptValue& value, const QScriptValue& reference) {
+    if (reference.isUndefined() || reference.isNull()) {
+        *this << value;
+    
+    } else if (reference.isBool()) {
+        if (value.isBool()) {
+            *this << false;
+            *this << value.toBool();
+            
+        } else {
+            *this << true;
+            *this << value;
+        }
+    } else if (reference.isNumber()) {
+        if (value.isNumber()) {
+            *this << false;
+            *this << value.toNumber();
+            
+        } else {
+            *this << true;
+            *this << value;
+        }
+    } else if (reference.isString()) {
+        if (value.isString()) {
+            *this << false;
+            *this << value.toString();
+            
+        } else {
+            *this << true;
+            *this << value;
+        }
+    } else if (reference.isVariant()) {
+        if (value.isVariant()) {
+            *this << false;
+            writeRawDelta(value.toVariant(), reference.toVariant());
+            
+        } else {
+            *this << true;
+            *this << value;
+        }
+    } else if (reference.isQObject()) {
+        if (value.isQObject()) {
+            *this << false;
+            writeRawDelta(value.toQObject(), reference.toQObject());
+            
+        } else {
+            *this << true;
+            *this << value;
+        }
+    } else if (reference.isQMetaObject()) {
+        if (value.isQMetaObject()) {
+            *this << false;
+            *this << value.toQMetaObject();
+            
+        } else {
+            *this << true;
+            *this << value;
+        }
+    } else if (reference.isDate()) {
+        if (value.isDate()) {
+            *this << false;
+            *this << value.toDateTime();
+            
+        } else {
+            *this << true;
+            *this << value;
+        }
+    } else if (reference.isRegExp()) {
+        if (value.isRegExp()) {
+            *this << false;
+            *this << value.toRegExp();
+            
+        } else {
+            *this << true;
+            *this << value;
+        }
+    } else if (reference.isArray()) {
+        if (value.isArray()) {
+            *this << false;
+            int length = value.property(ScriptCache::getInstance()->getLengthString()).toInt32();
+            *this << length;
+            int referenceLength = reference.property(ScriptCache::getInstance()->getLengthString()).toInt32();
+            for (int i = 0; i < length; i++) {
+                if (i < referenceLength) {
+                    writeDelta(value.property(i), reference.property(i));
+                } else {
+                    *this << value.property(i);
+                }
+            }
+        } else {
+            *this << true;
+            *this << value;
+        }
+    } else if (reference.isObject()) {
+        if (value.isObject()) {
+            *this << false;
+            for (QScriptValueIterator it(value); it.hasNext(); ) {
+                it.next();
+                QScriptValue referenceValue = reference.property(it.scriptName());
+                if (it.value() != referenceValue) {
+                    *this << it.scriptName();
+                    writeRawDelta(it.value(), referenceValue);
+                }
+            }
+            for (QScriptValueIterator it(reference); it.hasNext(); ) {
+                it.next();
+                if (!value.property(it.scriptName()).isValid()) {
+                    *this << it.scriptName();
+                    writeRawDelta(QScriptValue(), it.value());
+                }
+            }
+            *this << QScriptString();
+            
+        } else {
+            *this << true;
+            *this << value;
+        }
+    } else {
+        *this << value;
+    }
+}
+
+void Bitstream::readRawDelta(QScriptValue& value, const QScriptValue& reference) {
+    if (reference.isUndefined() || reference.isNull()) {
+        *this >> value;
+    
+    } else if (reference.isBool()) {
+        bool typeChanged;
+        *this >> typeChanged;
+        if (typeChanged) {
+            *this >> value;
+            
+        } else {
+            bool boolValue;
+            *this >> boolValue;
+            value = QScriptValue(boolValue);
+        }
+    } else if (reference.isNumber()) {
+        bool typeChanged;
+        *this >> typeChanged;
+        if (typeChanged) {
+            *this >> value;
+            
+        } else {
+            qsreal numberValue;
+            *this >> numberValue;
+            value = QScriptValue(numberValue);
+        }
+    } else if (reference.isString()) {
+        bool typeChanged;
+        *this >> typeChanged;
+        if (typeChanged) {
+            *this >> value;
+            
+        } else {
+            QString stringValue;
+            *this >> stringValue;
+            value = QScriptValue(stringValue);
+        }
+    } else if (reference.isVariant()) {
+        bool typeChanged;
+        *this >> typeChanged;
+        if (typeChanged) {
+            *this >> value;
+            
+        } else {
+            QVariant variant;
+            readRawDelta(variant, reference.toVariant());
+            value = ScriptCache::getInstance()->getEngine()->newVariant(variant);
+        }
+    } else if (reference.isQObject()) {
+        bool typeChanged;
+        *this >> typeChanged;
+        if (typeChanged) {
+            *this >> value;
+            
+        } else {
+            QObject* object;
+            readRawDelta(object, reference.toQObject());
+            value = ScriptCache::getInstance()->getEngine()->newQObject(object, QScriptEngine::ScriptOwnership);
+        }
+    } else if (reference.isQMetaObject()) {
+        bool typeChanged;
+        *this >> typeChanged;
+        if (typeChanged) {
+            *this >> value;
+            
+        } else {
+            const QMetaObject* metaObject;
+            *this >> metaObject;
+            value = ScriptCache::getInstance()->getEngine()->newQMetaObject(metaObject);
+        }
+    } else if (reference.isDate()) {
+        bool typeChanged;
+        *this >> typeChanged;
+        if (typeChanged) {
+            *this >> value;
+            
+        } else {
+            QDateTime dateTime;
+            *this >> dateTime;
+            value = ScriptCache::getInstance()->getEngine()->newDate(dateTime);
+        }
+    } else if (reference.isRegExp()) {
+        bool typeChanged;
+        *this >> typeChanged;
+        if (typeChanged) {
+            *this >> value;
+            
+        } else {
+            QRegExp regExp;
+            *this >> regExp;
+            value = ScriptCache::getInstance()->getEngine()->newRegExp(regExp);
+        }
+    } else if (reference.isArray()) {
+        bool typeChanged;
+        *this >> typeChanged;
+        if (typeChanged) {
+            *this >> value;
+            
+        } else {
+            int length;
+            *this >> length;
+            value = ScriptCache::getInstance()->getEngine()->newArray(length);
+            int referenceLength = reference.property(ScriptCache::getInstance()->getLengthString()).toInt32();
+            for (int i = 0; i < length; i++) {
+                QScriptValue element;
+                if (i < referenceLength) {
+                    readDelta(element, reference.property(i));
+                } else {
+                    *this >> element;
+                }
+                value.setProperty(i, element);
+            }
+        }
+    } else if (reference.isObject()) {
+        bool typeChanged;
+        *this >> typeChanged;
+        if (typeChanged) {
+            *this >> value;
+            
+        } else {
+            // start by shallow-copying the reference
+            value = ScriptCache::getInstance()->getEngine()->newObject();
+            for (QScriptValueIterator it(reference); it.hasNext(); ) {
+                it.next();
+                value.setProperty(it.scriptName(), it.value());
+            }
+            // then apply the requested changes
+            forever {
+                QScriptString name;
+                *this >> name;
+                if (!name.isValid()) {
+                    break;
+                }
+                QScriptValue scriptValue;
+                readRawDelta(scriptValue, reference.property(name));
+                value.setProperty(name, scriptValue);
+            }
+        }
+    } else {
+        *this >> value;
+    }
 }
 
 Bitstream& Bitstream::operator<<(bool value) {
@@ -612,11 +884,11 @@ enum ScriptValueType {
 
 const int SCRIPT_VALUE_BITS = 4;
 
-void writeScriptValueType(Bitstream& out, ScriptValueType type) {
+static void writeScriptValueType(Bitstream& out, ScriptValueType type) {
     out.write(&type, SCRIPT_VALUE_BITS);
 }
 
-ScriptValueType readScriptValueType(Bitstream& in) {
+static ScriptValueType readScriptValueType(Bitstream& in) {
     ScriptValueType type = (ScriptValueType)0;
     in.read(&type, SCRIPT_VALUE_BITS);
     return type;
