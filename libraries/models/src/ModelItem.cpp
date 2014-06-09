@@ -135,8 +135,6 @@ bool ModelItem::appendModelData(OctreePacketData* packetData) const {
 
     bool success = packetData->appendValue(getID());
 
-    //qDebug("ModelItem::appendModelData()... getID()=%d", getID());
-
     if (success) {
         success = packetData->appendValue(getLastUpdated());
     }
@@ -192,6 +190,175 @@ bool ModelItem::appendModelData(OctreePacketData* packetData) const {
     // animationFPS
     if (success) {
         success = packetData->appendValue(getAnimationFPS());
+    }
+
+    return success;
+}
+
+bool ModelItem::new___appendModelData(OctreePacketData* packetData, EncodeBitstreamParams& params) const {
+
+    // bool headerFits = ...
+
+    // ALL this fits...
+    //    object ID [16 bytes]
+    //    ByteCountCoded(type code) [~1 byte]
+    //    last edited [8 bytes]
+    //    ByteCountCoded(last_edited to last_updated delta) [~1-8 bytes]
+    //    PropertyFlags<>( everything ) [1-2 bytes]
+    // ~27-35 bytes...
+    
+    bool success = false;
+
+    quint16 updateDelta = getLastUpdated() <= getLastEdited() ? 0 : getLastUpdated() - getLastEdited();
+    ModelPropertyFlags propertyFlags(PROP_LAST_ITEM);
+    
+    LevelDetails modelLevel = packetData->startLevel();
+
+    bool successIDFits = packetData->appendValue(getID());
+    bool successTypeFits = packetData->appendValue(getType());
+    bool successLastEditedFits = packetData->appendValue(getLastEdited());
+    bool successLastUpdatedFits = packetData->appendValue(updateDelta);
+    
+    int propertyFlagsOffset = packetData->getUncompressedByteOffset();
+    bool successPropertyFlagsFits = packetData->appendValue(propertyFlags);
+    int propertyCount = 0;
+
+    bool headerFits = successIDFits && successTypeFits && successLastEditedFits 
+                              && successLastUpdatedFits && successPropertyFlagsFits;
+    if (headerFits) {
+        bool successPropertyFits;
+
+        propertyFlags -= PROP_LAST_ITEM; // clear the last item for now, we may or may not set it as the actual item
+
+        // These items would go here once supported....
+        //      PROP_PAGED_PROPERTY,
+        //      PROP_CUSTOM_PROPERTIES_INCLUDED,
+        //      PROP_VISIBLE,
+
+        // PROP_POSITION
+        LevelDetails propertyLevel = packetData->startLevel();
+        successPropertyFits = packetData->appendPosition(getPosition());
+        if (successPropertyFits) {
+            propertyFlags |= PROP_POSITION;
+            propertyCount++;
+            packetData->endLevel(propertyLevel);
+        } else {
+            packetData->discardLevel(propertyLevel);
+        }
+
+        // PROP_RADIUS
+        propertyLevel = packetData->startLevel();
+        successPropertyFits = packetData->appendValue(getRadius());
+        if (successPropertyFits) {
+            propertyFlags |= PROP_RADIUS;
+            propertyCount++;
+            packetData->endLevel(propertyLevel);
+        } else {
+            packetData->discardLevel(propertyLevel);
+        }
+
+        // PROP_MODEL_URL
+        propertyLevel = packetData->startLevel();
+        successPropertyFits = packetData->appendValue(getModelURL());
+        if (successPropertyFits) {
+            propertyFlags |= PROP_MODEL_URL;
+            propertyCount++;
+            packetData->endLevel(propertyLevel);
+        } else {
+            packetData->discardLevel(propertyLevel);
+        }
+
+        // PROP_ROTATION
+        propertyLevel = packetData->startLevel();
+        successPropertyFits = packetData->appendValue(getModelRotation());
+        if (successPropertyFits) {
+            propertyFlags |= PROP_ROTATION;
+            propertyCount++;
+            packetData->endLevel(propertyLevel);
+        } else {
+            packetData->discardLevel(propertyLevel);
+        }
+
+        // PROP_ROTATION
+        propertyLevel = packetData->startLevel();
+        successPropertyFits = packetData->appendColor(getColor());
+        if (successPropertyFits) {
+            propertyFlags |= PROP_COLOR;
+            propertyCount++;
+            packetData->endLevel(propertyLevel);
+        } else {
+            packetData->discardLevel(propertyLevel);
+        }
+
+        // PROP_SCRIPT
+        //     script would go here...
+        
+        // PROP_ANIMATION_URL
+        propertyLevel = packetData->startLevel();
+        successPropertyFits = packetData->appendValue(getAnimationURL());
+        if (successPropertyFits) {
+            propertyFlags |= PROP_ANIMATION_URL;
+            propertyCount++;
+            packetData->endLevel(propertyLevel);
+        } else {
+            packetData->discardLevel(propertyLevel);
+        }
+
+        // PROP_ANIMATION_FPS
+        propertyLevel = packetData->startLevel();
+        successPropertyFits = packetData->appendValue(getAnimationFPS());
+        if (successPropertyFits) {
+            propertyFlags |= PROP_ANIMATION_FPS;
+            propertyCount++;
+            packetData->endLevel(propertyLevel);
+        } else {
+            packetData->discardLevel(propertyLevel);
+        }
+
+        // PROP_ANIMATION_FRAME_INDEX
+        propertyLevel = packetData->startLevel();
+        successPropertyFits = packetData->appendValue(getAnimationFrameIndex());
+        if (successPropertyFits) {
+            propertyFlags |= PROP_ANIMATION_FRAME_INDEX;
+            propertyCount++;
+            packetData->endLevel(propertyLevel);
+        } else {
+            packetData->discardLevel(propertyLevel);
+        }
+
+        // PROP_ANIMATION_PLAYING
+        propertyLevel = packetData->startLevel();
+        successPropertyFits = packetData->appendValue(getAnimationIsPlaying());
+        if (successPropertyFits) {
+            propertyFlags |= PROP_ANIMATION_PLAYING;
+            propertyCount++;
+            packetData->endLevel(propertyLevel);
+        } else {
+            packetData->discardLevel(propertyLevel);
+        }
+
+        // PROP_SHOULD_BE_DELETED
+        propertyLevel = packetData->startLevel();
+        successPropertyFits = packetData->appendValue(getShouldDie());
+        if (successPropertyFits) {
+            propertyFlags |= PROP_SHOULD_BE_DELETED;
+            propertyCount++;
+            packetData->endLevel(propertyLevel);
+        } else {
+            packetData->discardLevel(propertyLevel);
+        }
+    }
+    if (propertyCount > 0) {
+    
+        // we need to...
+        //  * update the PropertyFlags data.
+        //  * shift the property stream "to left" if the property flags shrunk.
+    
+    
+        packetData->endLevel(modelLevel);
+        success = true;
+    } else {
+        packetData->discardLevel(modelLevel);
     }
 
     return success;

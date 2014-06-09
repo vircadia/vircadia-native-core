@@ -20,8 +20,9 @@
 
 #include <AnimationCache.h>
 #include <CollisionInfo.h>
-#include <SharedUtil.h>
 #include <OctreePacketData.h>
+#include <PropertyFlags.h>
+#include <SharedUtil.h>
 
 class ModelItem;
 class ModelEditPacketSender;
@@ -57,6 +58,28 @@ const float MODEL_DEFAULT_ANIMATION_FPS = 30.0f;
 
 const PacketVersion VERSION_MODELS_HAVE_ANIMATION = 1;
 const PacketVersion VERSION_ROOT_ELEMENT_HAS_DATA = 2;
+
+// PropertyFlags support
+enum ModelPropertyList {
+    PROP_PAGED_PROPERTY,
+    PROP_CUSTOM_PROPERTIES_INCLUDED,
+    PROP_VISIBLE,
+    PROP_POSITION,
+    PROP_RADIUS,
+    PROP_MODEL_URL,
+    PROP_ROTATION,
+    PROP_COLOR,
+    PROP_SCRIPT,
+    PROP_ANIMATION_URL,
+    PROP_ANIMATION_FPS,
+    PROP_ANIMATION_FRAME_INDEX,
+    PROP_ANIMATION_PLAYING,
+    PROP_SHOULD_BE_DELETED,
+    PROP_LAST_ITEM = PROP_SHOULD_BE_DELETED
+};
+
+typedef PropertyFlags<ModelPropertyList> ModelPropertyFlags;
+
 
 /// A collection of properties of a model item used in the scripting API. Translates between the actual properties of a model
 /// and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete set of
@@ -186,6 +209,8 @@ public:
     virtual ~ModelItem();
     virtual void init(glm::vec3 position, float radius, rgbColor color, uint32_t id = NEW_MODEL);
 
+    quint8 getType() const { return 0; } /// place holder for now
+
     /// get position in domain scale units (0.0 - 1.0)
     const glm::vec3& getPosition() const { return _position; }
 
@@ -256,6 +281,8 @@ public:
     void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
     
     void setProperties(const ModelItemProperties& properties);
+
+    bool new___appendModelData(OctreePacketData* packetData, EncodeBitstreamParams& params) const;
 
     bool appendModelData(OctreePacketData* packetData) const;
     int readModelDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
