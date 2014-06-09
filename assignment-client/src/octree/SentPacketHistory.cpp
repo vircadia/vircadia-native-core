@@ -20,12 +20,11 @@ SentPacketHistory::SentPacketHistory(int size)
 
 void SentPacketHistory::packetSent(OCTREE_PACKET_SEQUENCE sequenceNumber, const QByteArray& packet) {
     _newestSequenceNumber = sequenceNumber;
-    
+
     // increment _newestPacketAt cyclically, insert new packet there.
     // this will overwrite the oldest packet in the buffer
     _newestPacketAt = (_newestPacketAt == _sentPackets.size() - 1) ? 0 : _newestPacketAt + 1;
     _sentPackets[_newestPacketAt] = packet;
-
     if (_numExistingPackets < _sentPackets.size()) {
         _numExistingPackets++;
     }
@@ -33,14 +32,11 @@ void SentPacketHistory::packetSent(OCTREE_PACKET_SEQUENCE sequenceNumber, const 
 
 
 const QByteArray* SentPacketHistory::getPacket(OCTREE_PACKET_SEQUENCE sequenceNumber) const {
-
     OCTREE_PACKET_SEQUENCE seqDiff = _newestSequenceNumber - sequenceNumber;
     if (!(seqDiff >= 0 && seqDiff < _numExistingPackets)) {
         return NULL;
     }
-
     int packetAt = _newestPacketAt - seqDiff;
     if (packetAt < 0) { packetAt += _sentPackets.size(); }
-
     return &_sentPackets.at(packetAt);
 }
