@@ -12,6 +12,9 @@
 // TODO:
 //   * consider adding iterator to enumerate the properties that have been set?
 //   * operator QSet<Enum> - this would be easiest way to handle enumeration
+//   * make encode(), QByteArray<< operator, and QByteArray operator const by moving calculation of encoded length to
+//     setFlag() and other calls
+//   * should the QByteArray<< operator and QByteArray>> operator return the shifted versions of the byte arrays?
 
 #ifndef hifi_PropertyFlags_h
 #define hifi_PropertyFlags_h
@@ -28,27 +31,29 @@ template<typename Enum>class PropertyFlags {
 public:
     typedef Enum enum_type;
     inline PropertyFlags() : 
-            _maxFlag(INT_MIN), _minFlag(INT_MAX), _trailingFlipped(false) { };
+            _maxFlag(INT_MIN), _minFlag(INT_MAX), _trailingFlipped(false), _encodedLength(0) { };
+
     inline PropertyFlags(const PropertyFlags& other) : 
             _flags(other._flags), _maxFlag(other._maxFlag), _minFlag(other._minFlag), 
-            _trailingFlipped(other._trailingFlipped) {}
-    inline PropertyFlags(Enum flag) : 
-            _maxFlag(INT_MIN), _minFlag(INT_MAX), _trailingFlipped(false)  { setHasProperty(flag); }
-    inline PropertyFlags(const QByteArray& fromEncoded) : 
-            _maxFlag(INT_MIN), _minFlag(INT_MAX), _trailingFlipped(false) { decode(fromEncoded); }
+            _trailingFlipped(other._trailingFlipped), _encodedLength(0) {}
 
-    void clear() { _flags.clear(); _maxFlag = INT_MIN; _minFlag = INT_MAX; _trailingFlipped = false; }
+    inline PropertyFlags(Enum flag) : 
+            _maxFlag(INT_MIN), _minFlag(INT_MAX), _trailingFlipped(false), _encodedLength(0) { setHasProperty(flag); }
+
+    inline PropertyFlags(const QByteArray& fromEncoded) : 
+            _maxFlag(INT_MIN), _minFlag(INT_MAX), _trailingFlipped(false), _encodedLength(0) { decode(fromEncoded); }
+
+    void clear() { _flags.clear(); _maxFlag = INT_MIN; _minFlag = INT_MAX; _trailingFlipped = false; _encodedLength = 0; }
 
     Enum firstFlag() const { return (Enum)_minFlag; }
     Enum lastFlag() const { return (Enum)_maxFlag; }
     
     void setHasProperty(Enum flag, bool value = true);
     bool getHasProperty(Enum flag);
-    QByteArray encode() const;
+    QByteArray encode();
     void decode(const QByteArray& fromEncoded);
 
-     operator QByteArray() const { return encode(); };
-
+    operator QByteArray() { return encode(); };
 
     bool operator==(const PropertyFlags& other) const { return _flags == other._flags; }
     bool operator!=(const PropertyFlags& other) const { return _flags != other._flags; }
@@ -97,6 +102,8 @@ public:
 
     void debugDumpBits();
 
+    int getEncodedLength() const { return _encodedLength; }
+
 
 private:
     void shinkIfNeeded();
@@ -105,6 +112,7 @@ private:
     int _maxFlag;
     int _minFlag;
     bool _trailingFlipped; /// are the trailing properties flipping in their state (e.g. assumed true, instead of false)
+    int _encodedLength;
 };
 
 template<typename Enum> PropertyFlags<Enum>& operator<<(PropertyFlags<Enum>& out, const PropertyFlags<Enum>& other) {
@@ -147,7 +155,7 @@ template<typename Enum> inline bool PropertyFlags<Enum>::getHasProperty(Enum fla
 
 const int BITS_PER_BYTE = 8;
 
-template<typename Enum> inline QByteArray PropertyFlags<Enum>::encode() const {
+template<typename Enum> inline QByteArray PropertyFlags<Enum>::encode() {
     QByteArray output;
     
     if (_maxFlag < _minFlag) {
@@ -180,6 +188,8 @@ template<typename Enum> inline QByteArray PropertyFlags<Enum>::encode() const {
         char thisBit = ( bitValue << shiftBy);
         output[i / BITS_PER_BYTE] = (original | thisBit);
     }
+    
+    _encodedLength = lengthInBytes;
     return output;
 }
 
@@ -213,6 +223,8 @@ template<typename Enum> inline void PropertyFlags<Enum>::decode(const QByteArray
         }
     }
     encodedByteCount++; // always at least one byte
+    _encodedLength = encodedByteCount;
+
     int expectedBitCount = encodedByteCount * BITS_PER_BYTE;
     
     // Now, keep reading...
@@ -419,7 +431,7 @@ template<typename Enum> inline void PropertyFlags<Enum>::shinkIfNeeded() {
     }
 }
 
-template<typename Enum> inline QByteArray& operator<<(QByteArray& out, const PropertyFlags<Enum>& value) {
+template<typename Enum> inline QByteArray& operator<<(QByteArray& out, PropertyFlags<Enum>& value) {
     return out = value;
 }
 
