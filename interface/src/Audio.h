@@ -85,6 +85,7 @@ public slots:
     void toggleScope();
     void toggleScopePause();
     void toggleAudioSpatialProcessing();
+    void toggleStereoInput();
     void selectAudioScopeFiveFrames();
     void selectAudioScopeTwentyFrames();
     void selectAudioScopeFiftyFrames();
@@ -127,6 +128,7 @@ private:
     QIODevice* _proceduralOutputDevice;
     AudioRingBuffer _inputRingBuffer;
     AudioRingBuffer _ringBuffer;
+    bool _isStereoInput;
 
     QString _inputAudioDeviceName;
     QString _outputAudioDeviceName;

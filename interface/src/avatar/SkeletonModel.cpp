@@ -21,6 +21,14 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar) :
     _owningAvatar(owningAvatar) {
 }
 
+void SkeletonModel::setJointStates(QVector<JointState> states) {
+    Model::setJointStates(states);
+
+    if (isActive() && _owningAvatar->isMyAvatar()) {
+        _ragDoll.init(_jointStates);
+    }
+}
+
 const float PALM_PRIORITY = 3.0f;
 
 void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
@@ -46,7 +54,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
             int jointIndex = geometry.humanIKJointIndices.at(humanIKJointIndex);
             if (jointIndex != -1) {
                 JointState& state = _jointStates[jointIndex];
-                state.setRotation(_rotation * prioVR->getJointRotations().at(i), PALM_PRIORITY);
+                state.setRotationFromBindFrame(prioVR->getJointRotations().at(i), PALM_PRIORITY);
             }
         }
         return;
@@ -63,7 +71,9 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
             restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
         } else {
-            applyHandPosition(geometry.rightHandJointIndex, _owningAvatar->getHandPosition());
+            // transform into model-frame
+            glm::vec3 handPosition = glm::inverse(_rotation) * (_owningAvatar->getHandPosition() - _translation);
+            applyHandPosition(geometry.rightHandJointIndex, handPosition);
         }
         restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
 
@@ -76,6 +86,21 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         applyPalmData(geometry.leftHandJointIndex, hand->getPalms()[leftPalmIndex]);
         applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[rightPalmIndex]);
     }
+    
+    simulateRagDoll(deltaTime);
+}
+
+void SkeletonModel::simulateRagDoll(float deltaTime) {
+    _ragDoll.slaveToSkeleton(_jointStates, 0.1f);   // fraction = 0.1f left intentionally low for demo purposes
+
+    float MIN_CONSTRAINT_ERROR = 0.005f; // 5mm
+    int MAX_ITERATIONS = 4;
+    int iterations = 0;
+    float delta = 0.0f;
+    do {
+        delta = _ragDoll.enforceConstraints();
+        ++iterations;
+    } while (delta > MIN_CONSTRAINT_ERROR && iterations < MAX_ITERATIONS);
 }
 
 void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes) const {
@@ -119,6 +144,9 @@ void SkeletonModel::getBodyShapes(QVector<const Shape*>& shapes) const {
 void SkeletonModel::renderIKConstraints() {
     renderJointConstraints(getRightHandJointIndex());
     renderJointConstraints(getLeftHandJointIndex());
+    if (isActive() && _owningAvatar->isMyAvatar()) {
+        renderRagDoll();
+    }
 }
 
 class IndexValue {
@@ -135,6 +163,7 @@ void SkeletonModel::applyHandPosition(int jointIndex, const glm::vec3& position)
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return;
     }
+    // NOTE: 'position' is in model-frame
     setJointPosition(jointIndex, position, glm::quat(), false, -1, false, glm::vec3(0.0f, -1.0f, 0.0f), PALM_PRIORITY);
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -147,7 +176,7 @@ void SkeletonModel::applyHandPosition(int jointIndex, const glm::vec3& position)
         return;
     }
     JointState& state = _jointStates[jointIndex];
-    glm::quat handRotation = state.getJointRotation(true);
+    glm::quat handRotation = state.getRotation();
 
     // align hand with forearm
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
@@ -167,36 +196,41 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
     
     // rotate palm to align with its normal (normal points out of hand's palm)
     glm::quat palmRotation;
+    glm::quat r0, r1;
     if (!Menu::getInstance()->isOptionChecked(MenuOption::AlternateIK) &&
             Menu::getInstance()->isOptionChecked(MenuOption::AlignForearmsWithWrists)) {
         JointState parentState = _jointStates[parentJointIndex];
-        palmRotation = parentState.getJointRotation(true);
+        palmRotation = parentState.getRotationFromBindToModelFrame();
+        r0 = palmRotation;
     } else {
         JointState state = _jointStates[jointIndex];
-        palmRotation = state.getJointRotation(true);
+        palmRotation = state.getRotationFromBindToModelFrame();
     }
-    palmRotation = rotationBetween(palmRotation * geometry.palmDirection, palm.getNormal()) * palmRotation;
+    glm::quat inverseRotation = glm::inverse(_rotation);
+    glm::vec3 palmNormal = inverseRotation * palm.getNormal();
+    palmRotation = rotationBetween(palmRotation * geometry.palmDirection, palmNormal) * palmRotation;
+    r1 = palmRotation;
     
     // rotate palm to align with finger direction
-    glm::vec3 direction = palm.getFingerDirection();
+    glm::vec3 direction = inverseRotation * palm.getFingerDirection();
     palmRotation = rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), direction) * palmRotation;
 
     // set hand position, rotation
+    glm::vec3 palmPosition = inverseRotation * (palm.getPosition() - _translation);
     if (Menu::getInstance()->isOptionChecked(MenuOption::AlternateIK)) {
-        setHandPosition(jointIndex, palm.getPosition(), palmRotation);  
+        setHandPosition(jointIndex, palmPosition, palmRotation);  
         
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::AlignForearmsWithWrists)) {
         glm::vec3 forearmVector = palmRotation * glm::vec3(sign, 0.0f, 0.0f);
-        setJointPosition(parentJointIndex, palm.getPosition() + forearmVector *
+        setJointPosition(parentJointIndex, palmPosition + forearmVector *
             geometry.joints.at(jointIndex).distanceToParent * extractUniformScale(_scale),
             glm::quat(), false, -1, false, glm::vec3(0.0f, -1.0f, 0.0f), PALM_PRIORITY);
         JointState& parentState = _jointStates[parentJointIndex];
-        parentState.setRotation(palmRotation, PALM_PRIORITY);
-        // slam parent-relative rotation to identity
-        _jointStates[jointIndex]._rotation = glm::quat();
-        
+        parentState.setRotationFromBindFrame(palmRotation, PALM_PRIORITY);
+        // lock hand to forearm by slamming its rotation (in parent-frame) to identity
+        _jointStates[jointIndex]._rotationInParentFrame = glm::quat();
     } else {
-        setJointPosition(jointIndex, palm.getPosition(), palmRotation,
+        setJointPosition(jointIndex, palmPosition, palmRotation,
             true, -1, false, glm::vec3(0.0f, -1.0f, 0.0f), PALM_PRIORITY);
     }
 }
@@ -221,9 +255,16 @@ void SkeletonModel::updateJointState(int index) {
     Model::updateJointState(index);
 
     if (index == _geometry->getFBXGeometry().rootJointIndex) {
-        state._transform[3][0] = 0.0f;
-        state._transform[3][1] = 0.0f;
-        state._transform[3][2] = 0.0f;
+        state.clearTransformTranslation();
+    }
+}
+
+void SkeletonModel::updateShapePositions() {
+    if (isActive() && _owningAvatar->isMyAvatar() && 
+            Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagDoll)) {
+        _ragDoll.updateShapes(_jointShapes, _rotation, _translation);
+    } else {
+        Model::updateShapePositions();
     }
 }
 
@@ -232,10 +273,10 @@ void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, const
         return;
     }
     // get the rotation axes in joint space and use them to adjust the rotation
-    glm::mat3 axes = glm::mat3_cast(_rotation);
-    glm::mat3 inverse = glm::mat3(glm::inverse(parentState._transform * glm::translate(state.getDefaultTranslationInParentFrame()) *
+    glm::mat3 axes = glm::mat3_cast(glm::quat());
+    glm::mat3 inverse = glm::mat3(glm::inverse(parentState.getTransform() * glm::translate(state.getDefaultTranslationInParentFrame()) *
         joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation)));
-    state._rotation = glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanSideways(), 
+    state._rotationInParentFrame = glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanSideways(), 
         glm::normalize(inverse * axes[2])) * glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanForward(), 
         glm::normalize(inverse * axes[0])) * joint.rotation;
 }
@@ -259,11 +300,11 @@ void SkeletonModel::renderJointConstraints(int jointIndex) {
     do {
         const FBXJoint& joint = geometry.joints.at(jointIndex);
         const JointState& jointState = _jointStates.at(jointIndex);
-        glm::vec3 position = extractTranslation(jointState._transform) + _translation;
+        glm::vec3 position = _rotation * jointState.getPosition() + _translation;
         
         glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
-        glm::quat parentRotation = (joint.parentIndex == -1) ? _rotation : _jointStates.at(joint.parentIndex)._combinedRotation;
+        glm::quat parentRotation = (joint.parentIndex == -1) ? _rotation : _rotation * _jointStates.at(joint.parentIndex).getRotation();
         glm::vec3 rotationAxis = glm::axis(parentRotation);
         glRotatef(glm::degrees(glm::angle(parentRotation)), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         float fanScale = directionSize * 0.75f;
@@ -296,7 +337,7 @@ void SkeletonModel::renderJointConstraints(int jointIndex) {
         }
         glPopMatrix();
         
-        renderOrientationDirections(position, jointState._combinedRotation, directionSize);
+        renderOrientationDirections(position, _rotation * jointState.getRotation(), directionSize);
         jointIndex = joint.parentIndex;
         
     } while (jointIndex != -1 && geometry.joints.at(jointIndex).isFree);
@@ -359,21 +400,21 @@ void SkeletonModel::setHandPosition(int jointIndex, const glm::vec3& position, c
     glm::quat shoulderRotation = rotationBetween(forwardVector, elbowPosition - shoulderPosition);
 
     JointState& shoulderState = _jointStates[shoulderJointIndex];
-    shoulderState.setRotation(shoulderRotation, PALM_PRIORITY);
+    shoulderState.setRotationFromBindFrame(shoulderRotation, PALM_PRIORITY);
     
     JointState& elbowState = _jointStates[elbowJointIndex];
-    elbowState.setRotation(rotationBetween(shoulderRotation * forwardVector, wristPosition - elbowPosition) * shoulderRotation, PALM_PRIORITY);
+    elbowState.setRotationFromBindFrame(rotationBetween(shoulderRotation * forwardVector, wristPosition - elbowPosition) * shoulderRotation, PALM_PRIORITY);
     
     JointState& handState = _jointStates[jointIndex];
-    handState.setRotation(rotation, PALM_PRIORITY);
+    handState.setRotationFromBindFrame(rotation, PALM_PRIORITY);
 }
     
 bool SkeletonModel::getLeftHandPosition(glm::vec3& position) const {
-    return getJointPosition(getLeftHandJointIndex(), position);
+    return getJointPositionInWorldFrame(getLeftHandJointIndex(), position);
 }
 
 bool SkeletonModel::getRightHandPosition(glm::vec3& position) const {
-    return getJointPosition(getRightHandJointIndex(), position);
+    return getJointPositionInWorldFrame(getRightHandJointIndex(), position);
 }
 
 bool SkeletonModel::restoreLeftHandPosition(float fraction, float priority) {
@@ -381,7 +422,7 @@ bool SkeletonModel::restoreLeftHandPosition(float fraction, float priority) {
 }
 
 bool SkeletonModel::getLeftShoulderPosition(glm::vec3& position) const {
-    return getJointPosition(getLastFreeJointIndex(getLeftHandJointIndex()), position);
+    return getJointPositionInWorldFrame(getLastFreeJointIndex(getLeftHandJointIndex()), position);
 }
 
 float SkeletonModel::getLeftArmLength() const {
@@ -393,7 +434,7 @@ bool SkeletonModel::restoreRightHandPosition(float fraction, float priority) {
 }
 
 bool SkeletonModel::getRightShoulderPosition(glm::vec3& position) const {
-    return getJointPosition(getLastFreeJointIndex(getRightHandJointIndex()), position);
+    return getJointPositionInWorldFrame(getLastFreeJointIndex(getRightHandJointIndex()), position);
 }
 
 float SkeletonModel::getRightArmLength() const {
@@ -401,11 +442,11 @@ float SkeletonModel::getRightArmLength() const {
 }
 
 bool SkeletonModel::getHeadPosition(glm::vec3& headPosition) const {
-    return isActive() && getJointPosition(_geometry->getFBXGeometry().headJointIndex, headPosition);
+    return isActive() && getJointPositionInWorldFrame(_geometry->getFBXGeometry().headJointIndex, headPosition);
 }
 
 bool SkeletonModel::getNeckPosition(glm::vec3& neckPosition) const {
-    return isActive() && getJointPosition(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
+    return isActive() && getJointPositionInWorldFrame(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
 }
 
 bool SkeletonModel::getNeckParentRotation(glm::quat& neckParentRotation) const {
@@ -416,7 +457,7 @@ bool SkeletonModel::getNeckParentRotation(glm::quat& neckParentRotation) const {
     if (geometry.neckJointIndex == -1) {
         return false;
     }
-    return getJointRotation(geometry.joints.at(geometry.neckJointIndex).parentIndex, neckParentRotation);
+    return getJointRotationInWorldFrame(geometry.joints.at(geometry.neckJointIndex).parentIndex, neckParentRotation);
 }
 
 bool SkeletonModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
@@ -424,18 +465,18 @@ bool SkeletonModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& seco
         return false;
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    if (getJointPosition(geometry.leftEyeJointIndex, firstEyePosition) &&
-            getJointPosition(geometry.rightEyeJointIndex, secondEyePosition)) {
+    if (getJointPositionInWorldFrame(geometry.leftEyeJointIndex, firstEyePosition) &&
+            getJointPositionInWorldFrame(geometry.rightEyeJointIndex, secondEyePosition)) {
         return true;
     }
     // no eye joints; try to estimate based on head/neck joints
     glm::vec3 neckPosition, headPosition;
-    if (getJointPosition(geometry.neckJointIndex, neckPosition) &&
-            getJointPosition(geometry.headJointIndex, headPosition)) {
+    if (getJointPositionInWorldFrame(geometry.neckJointIndex, neckPosition) &&
+            getJointPositionInWorldFrame(geometry.headJointIndex, headPosition)) {
         const float EYE_PROPORTION = 0.6f;
         glm::vec3 baseEyePosition = glm::mix(neckPosition, headPosition, EYE_PROPORTION);
         glm::quat headRotation;
-        getJointRotation(geometry.headJointIndex, headRotation);
+        getJointRotationInWorldFrame(geometry.headJointIndex, headRotation);
         const float EYES_FORWARD = 0.25f;
         const float EYE_SEPARATION = 0.1f;
         float headHeight = glm::distance(neckPosition, headPosition);
@@ -446,3 +487,30 @@ bool SkeletonModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& seco
     return false;
 }
 
+void SkeletonModel::renderRagDoll() {
+    const int BALL_SUBDIVISIONS = 6;
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+    glPushMatrix();
+
+    Application::getInstance()->loadTranslatedViewMatrix(_translation);
+    QVector<glm::vec3> points = _ragDoll.getPoints();
+    int numPoints = points.size();
+    float alpha = 0.3f;
+    float radius1 = 0.008f;
+    float radius2 = 0.01f;
+    for (int i = 0; i < numPoints; ++i) {
+        glPushMatrix();
+        // draw each point as a yellow hexagon with black border
+        glm::vec3 position = _rotation * points[i];
+        glTranslatef(position.x, position.y, position.z);
+        glColor4f(0.0f, 0.0f, 0.0f, alpha);
+        glutSolidSphere(radius2, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
+        glColor4f(1.0f, 1.0f, 0.0f, alpha);
+        glutSolidSphere(radius1, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
+        glPopMatrix();
+    }
+    glPopMatrix();
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+}

@@ -85,6 +85,7 @@ bool OctreeSendThread::process() {
             if (nodeData && !nodeData->isShuttingDown()) {
                 bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
                 packetDistributor(nodeData, viewFrustumChanged);
+                resendNackedPackets(nodeData);
             }
         }
     }
@@ -214,8 +215,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
             packetsSent++;
 
             OctreeServer::didCallWriteDatagram(this);
-            NodeList::getInstance()->writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(), _node);
-
+            NodeList::getInstance()->writeDatagram((char*)nodeData->getPacket(), nodeData->getPacketLength(), _node);
             packetSent = true;
 
             thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
@@ -244,7 +244,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         if (nodeData->isPacketWaiting() && !nodeData->isShuttingDown()) {
             // just send the voxel packet
             OctreeServer::didCallWriteDatagram(this);
-            NodeList::getInstance()->writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(), _node);
+            NodeList::getInstance()->writeDatagram((char*)nodeData->getPacket(), nodeData->getPacketLength(), _node);
             packetSent = true;
 
             int thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
@@ -274,10 +274,30 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         trueBytesSent += nodeData->getPacketLength();
         truePacketsSent++;
         packetsSent++;
-        nodeData->incrementSequenceNumber();
+        nodeData->octreePacketSent();
         nodeData->resetOctreePacket();
     }
 
+    return packetsSent;
+}
+
+int OctreeSendThread::resendNackedPackets(OctreeQueryNode* nodeData) {
+
+    const int MAX_PACKETS_RESEND = 10;
+    int packetsSent = 0;
+
+    const QByteArray* packet;
+    while (nodeData->hasNextNackedPacket() && packetsSent < MAX_PACKETS_RESEND) {
+        packet = nodeData->getNextNackedPacket();
+        if (packet) {
+            NodeList::getInstance()->writeDatagram(*packet, _node);
+            packetsSent++;
+
+            _totalBytes += packet->size();
+            _totalPackets++;
+            _totalWastedBytes += MAX_PACKET_SIZE - packet->size();
+        }
+    }
     return packetsSent;
 }
 

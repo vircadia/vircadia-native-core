@@ -76,23 +76,24 @@ static void setPalm(float deltaTime, int index) {
         }
     }
     
+    // NOTE: this math is done in the worl-frame with unecessary complexity.
+    // TODO: transfom this to stay in the model-frame.
     glm::vec3 position;
     glm::quat rotation;
-    
     SkeletonModel* skeletonModel = &Application::getInstance()->getAvatar()->getSkeletonModel();
     int jointIndex;
     glm::quat inverseRotation = glm::inverse(Application::getInstance()->getAvatar()->getOrientation());
     if (index == LEFT_HAND_INDEX) {
         jointIndex = skeletonModel->getLeftHandJointIndex();
-        skeletonModel->getJointRotation(jointIndex, rotation, true);      
+        skeletonModel->getJointRotationInWorldFrame(jointIndex, rotation);      
         rotation = inverseRotation * rotation * glm::quat(glm::vec3(0.0f, PI_OVER_TWO, 0.0f));
         
     } else {
         jointIndex = skeletonModel->getRightHandJointIndex();
-        skeletonModel->getJointRotation(jointIndex, rotation, true);
+        skeletonModel->getJointRotationInWorldFrame(jointIndex, rotation);
         rotation = inverseRotation * rotation * glm::quat(glm::vec3(0.0f, -PI_OVER_TWO, 0.0f));
     }
-    skeletonModel->getJointPosition(jointIndex, position);
+    skeletonModel->getJointPositionInWorldFrame(jointIndex, position);
     position = inverseRotation * (position - skeletonModel->getTranslation());
     
     palm->setRawRotation(rotation);

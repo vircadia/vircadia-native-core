@@ -22,6 +22,7 @@
 
 #include "GeometryCache.h"
 #include "InterfaceConfig.h"
+#include "JointState.h"
 #include "ProgramObject.h"
 #include "TextureCache.h"
 
@@ -30,40 +31,6 @@ class Shape;
 
 typedef QSharedPointer<AnimationHandle> AnimationHandlePointer;
 typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
-    
-class JointState {
-public:
-    JointState();
-
-    void setFBXJoint(const FBXJoint* joint); 
-    const FBXJoint& getFBXJoint() const { return *_fbxJoint; }
-
-    void copyState(const JointState& state);
-
-    /// computes new _transform and _combinedRotation
-    void computeTransforms(const glm::mat4& baseTransform, const glm::quat& baseRotation);
-
-    /// \return rotation from the joint's default (or bind) frame to world frame
-    glm::quat getJointRotation(bool fromBind = false) const;
-
-    void applyRotationDelta(const glm::quat& delta, bool constrain = true, float priority = 1.0f);
-
-    const glm::vec3& getDefaultTranslationInParentFrame() const;
-
-    void restoreRotation(float fraction, float priority);
-
-    /// \param rotation is from bind- to world-frame
-    /// computes parent relative _rotation and sets that
-    void setRotation(const glm::quat& rotation, float priority);
-
-    glm::quat _rotation;     // rotation relative to parent
-    glm::mat4 _transform;    // rotation to world frame + translation in model frame
-    glm::quat _combinedRotation; // rotation from joint local to world frame
-    float _animationPriority; // the priority of the animation affecting this joint
-
-private:
-    const FBXJoint* _fbxJoint; // JointState does NOT own its FBXJoint
-};
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject {
@@ -155,9 +122,14 @@ public:
     /// Returns the index of the last free ancestor of the indexed joint, or -1 if not found.
     int getLastFreeJointIndex(int jointIndex) const;
     
-    bool getJointPosition(int jointIndex, glm::vec3& position) const;
-    bool getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind = false) const;
+    bool getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const;
+    bool getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
     bool getJointCombinedRotation(int jointIndex, glm::quat& rotation) const;
+
+    /// \param jointIndex index of joint in model structure
+    /// \param position[out] position of joint in model-frame
+    /// \return true if joint exists
+    bool getJointPosition(int jointIndex, glm::vec3& position) const;
 
     QStringList getJointNames() const;
     
@@ -168,7 +140,7 @@ public:
     void clearShapes();
     void rebuildShapes();
     void resetShapePositions();
-    void updateShapePositions();
+    virtual void updateShapePositions();
     void renderJointCollisionShapes(float alpha);
     void renderBoundingCollisionShapes(float alpha);
     
@@ -234,6 +206,8 @@ protected:
     
     // returns 'true' if needs fullUpdate after geometry change
     bool updateGeometry();
+
+    virtual void setJointStates(QVector<JointState> states);
     
     void setScaleInternal(const glm::vec3& scale);
     void scaleToFit();
@@ -244,7 +218,15 @@ protected:
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);
     
-    bool setJointPosition(int jointIndex, const glm::vec3& translation, const glm::quat& rotation = glm::quat(),
+    /// \param jointIndex index of joint in model structure
+    /// \param position position of joint in model-frame
+    /// \param rotation rotation of joint in model-frame
+    /// \param useRotation false if rotation should be ignored
+    /// \param lastFreeIndex
+    /// \param allIntermediatesFree
+    /// \param alignment
+    /// \return true if joint exists
+    bool setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation = glm::quat(),
         bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
         const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
     
@@ -395,11 +377,11 @@ public:
     void setStartAutomatically(bool startAutomatically);
     bool getStartAutomatically() const { return _startAutomatically; }
     
-    void setFirstFrame(int firstFrame) { _firstFrame = firstFrame; }
-    int getFirstFrame() const { return _firstFrame; }
+    void setFirstFrame(float firstFrame) { _firstFrame = firstFrame; }
+    float getFirstFrame() const { return _firstFrame; }
     
-    void setLastFrame(int lastFrame) { _lastFrame = lastFrame; }
-    int getLastFrame() const { return _lastFrame; }
+    void setLastFrame(float lastFrame) { _lastFrame = lastFrame; }
+    float getLastFrame() const { return _lastFrame; }
     
     void setMaskedJoints(const QStringList& maskedJoints);
     const QStringList& getMaskedJoints() const { return _maskedJoints; }
@@ -423,6 +405,7 @@ private:
     AnimationHandle(Model* model);
         
     void simulate(float deltaTime);
+    void applyFrame(float frameIndex);
     void replaceMatchingPriorities(float newPriority);
     
     Model* _model;
@@ -435,8 +418,8 @@ private:
     bool _loop;
     bool _hold;
     bool _startAutomatically;
-    int _firstFrame;
-    int _lastFrame;
+    float _firstFrame;
+    float _lastFrame;
     QStringList _maskedJoints;
     bool _running;
     QVector<int> _jointMappings;
