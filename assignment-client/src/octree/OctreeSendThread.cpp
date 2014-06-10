@@ -392,10 +392,10 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         bool dontRestartSceneOnMove = false; // this is experimental
         if (dontRestartSceneOnMove) {
             if (nodeData->elementBag.isEmpty()) {
-                nodeData->elementBag.insert(_myServer->getOctree()->getRoot(), NULL); // only in case of empty
+                nodeData->elementBag.insert(_myServer->getOctree()->getRoot());
             }
         } else {
-            nodeData->elementBag.insert(_myServer->getOctree()->getRoot(), NULL); // original behavior, reset on move or empty
+            nodeData->elementBag.insert(_myServer->getOctree()->getRoot());
         }
     }
 
@@ -423,8 +423,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
 
             bool lastNodeDidntFit = false; // assume each node fits
             if (!nodeData->elementBag.isEmpty()) {
-                void* subTreeExtraData;
-                OctreeElement* subTree = nodeData->elementBag.extract(subTreeExtraData);
+                OctreeElement* subTree = nodeData->elementBag.extract();
                 
                 /* TODO: Looking for a way to prevent locking and encoding a tree that is not
                 // going to result in any packets being sent...
@@ -460,7 +459,8 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                                              WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
                                              wantOcclusionCulling, coverageMap, boundaryLevelAdjust, voxelSizeScale,
                                              nodeData->getLastTimeBagEmpty(),
-                                             isFullScene, &nodeData->stats, _myServer->getJurisdiction());
+                                             isFullScene, &nodeData->stats, _myServer->getJurisdiction(),
+                                             &nodeData->extraEncodeData);
 
                 // TODO: should this include the lock time or not? This stat is sent down to the client,
                 // it seems like it may be a good idea to include the lock time as part of the encode time
@@ -473,7 +473,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                 lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
 
                 quint64 encodeStart = usecTimestampNow();
-                bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, subTreeExtraData, &_packetData, nodeData->elementBag, params);
+                bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->elementBag, params);
                 quint64 encodeEnd = usecTimestampNow();
                 encodeElapsedUsec = (float)(encodeEnd - encodeStart);
                 

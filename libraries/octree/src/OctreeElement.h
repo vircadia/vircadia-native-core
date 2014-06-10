@@ -87,8 +87,12 @@ public:
     /// Override to indicate that this element requires a split before editing lower elements in the octree
     virtual bool requiresSplit() const { return false; }
 
+    /// The state of the call to appendElementData
+    typedef enum { COMPLETED, PARTIAL, NONE } AppendState;
+
     /// Override to serialize the state of this element. This is used for persistance and for transmission across the network.
-    virtual bool appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const { return true; }
+    virtual AppendState appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const 
+                                { return COMPLETED; }
     
     /// Override to deserialize the state of this element. This is used for loading from a persisted file or from reading
     /// from the network.

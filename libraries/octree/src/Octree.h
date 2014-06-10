@@ -84,6 +84,7 @@ public:
     OctreeSceneStats* stats;
     CoverageMap* map;
     JurisdictionMap* jurisdictionMap;
+    OctreeElementExtraEncodeData* extraEncodeData;
 
     // output hints from the encode process
     typedef enum {
@@ -115,7 +116,8 @@ public:
         quint64 lastViewFrustumSent = IGNORE_LAST_SENT,
         bool forceSendScene = true,
         OctreeSceneStats* stats = IGNORE_SCENE_STATS,
-        JurisdictionMap* jurisdictionMap = IGNORE_JURISDICTION_MAP) :
+        JurisdictionMap* jurisdictionMap = IGNORE_JURISDICTION_MAP,
+        OctreeElementExtraEncodeData* extraEncodeData = NULL) :
             maxEncodeLevel(maxEncodeLevel),
             maxLevelReached(0),
             viewFrustum(viewFrustum),
@@ -132,6 +134,7 @@ public:
             stats(stats),
             map(map),
             jurisdictionMap(jurisdictionMap),
+            extraEncodeData(extraEncodeData),
             stopReason(UNKNOWN)
     {}
 
@@ -246,8 +249,7 @@ public:
 
     void recurseTreeWithOperator(RecurseOctreeOperator* operatorObject);
 
-    int encodeTreeBitstream(OctreeElement* element, void* elementExtraData, 
-                            OctreePacketData* packetData, OctreeElementBag& bag,
+    int encodeTreeBitstream(OctreeElement* element, OctreePacketData* packetData, OctreeElementBag& bag,
                             EncodeBitstreamParams& params) ;
 
     bool isDirty() const { return _isDirty; }
@@ -327,7 +329,7 @@ public slots:
 protected:
     void deleteOctalCodeFromTreeRecursion(OctreeElement* element, void* extraData);
 
-    int encodeTreeBitstreamRecursion(OctreeElement* element, void* elementExtraData,
+    int encodeTreeBitstreamRecursion(OctreeElement* element,
                                      OctreePacketData* packetData, OctreeElementBag& bag,
                                      EncodeBitstreamParams& params, int& currentEncodeLevel,
                                      const ViewFrustum::location& parentLocationThisView) const;

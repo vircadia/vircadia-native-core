@@ -58,6 +58,7 @@ public:
 
     OctreeElementBag elementBag;
     CoverageMap map;
+    OctreeElementExtraEncodeData extraEncodeData;
 
     ViewFrustum& getCurrentViewFrustum() { return _currentViewFrustum; }
     ViewFrustum& getLastKnownViewFrustum() { return _lastKnownViewFrustum; }

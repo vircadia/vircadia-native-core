@@ -346,10 +346,9 @@ void OctreeQueryNode::dumpOutOfView() {
     int outOfView = 0;
     OctreeElementBag tempBag;
     while (!elementBag.isEmpty()) {
-        void* extraData;
-        OctreeElement* node = elementBag.extract(extraData);
+        OctreeElement* node = elementBag.extract();
         if (node->isInView(_currentViewFrustum)) {
-            tempBag.insert(node, extraData);
+            tempBag.insert(node);
             stillInView++;
         } else {
             outOfView++;
@@ -357,10 +356,9 @@ void OctreeQueryNode::dumpOutOfView() {
     }
     if (stillInView > 0) {
         while (!tempBag.isEmpty()) {
-            void* extraData;
-            OctreeElement* node = tempBag.extract(extraData);
+            OctreeElement* node = tempBag.extract();
             if (node->isInView(_currentViewFrustum)) {
-                elementBag.insert(node, extraData);
+                elementBag.insert(node);
             }
         }
     }

@@ -54,7 +54,8 @@ ModelTreeElement* ModelTreeElement::addChildAtIndex(int index) {
 // fit, but some models did fit, then the element outputs what can fit. Once the general Octree::encodeXXX()
 // process supports partial encoding of an octree element, this will need to be updated to handle spanning its
 // contents across multiple packets.
-bool ModelTreeElement::appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const {
+OctreeElement::AppendState ModelTreeElement::appendElementData(OctreePacketData* packetData, 
+                                                                    EncodeBitstreamParams& params) const {
     bool success = true; // assume the best...
 
     // write our models out... first determine which of the models are in view based on our params
@@ -104,7 +105,7 @@ bool ModelTreeElement::appendElementData(OctreePacketData* packetData, EncodeBit
                                             (const unsigned char*)&actualNumberOfModels, sizeof(actualNumberOfModels));
     }
     
-    return success;
+    return success ? OctreeElement::COMPLETED : OctreeElement::NONE;
 }
 
 bool ModelTreeElement::containsModelBounds(const ModelItem& model) const {

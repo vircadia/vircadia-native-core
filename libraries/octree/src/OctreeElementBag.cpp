@@ -41,26 +41,17 @@ void OctreeElementBag::deleteAll() {
 }
 
 
-void OctreeElementBag::insert(OctreeElement* element, void* extraData) {
+void OctreeElementBag::insert(OctreeElement* element) {
     _bagElements.insert(element);
-    
-    // TODO store the extra data too...
-    //_elementsExtraData[element] = extraData;
 }
 
-OctreeElement* OctreeElementBag::extract(void*& extraData) {
+OctreeElement* OctreeElementBag::extract() {
     OctreeElement* result = NULL;
 
     if (_bagElements.size() > 0) {
         QSet<OctreeElement*>::iterator front = _bagElements.begin();
         result = *front;
         _bagElements.erase(front);
-    }
-    
-    if (result) {
-        // TODO retrieve the extra data too...
-        //extraData = _elementsExtraData[result];
-        //_elementsExtraData.clear(result);
     }
     return result;
 }

@@ -24,11 +24,10 @@ public:
     OctreeElementBag();
     ~OctreeElementBag();
     
-    void insert(OctreeElement* element, void* extraData); // put a element into the bag
-    OctreeElement* extract(void*& extraData); // pull a element out of the bag (could come in any order)
+    void insert(OctreeElement* element); // put a element into the bag
+    OctreeElement* extract(); // pull a element out of the bag (could come in any order)
     bool contains(OctreeElement* element); // is this element in the bag?
     void remove(OctreeElement* element); // remove a specific element from the bag
-    
     bool isEmpty() const { return _bagElements.isEmpty(); }
     int count() const { return _bagElements.size(); }
 
@@ -41,5 +40,7 @@ private:
     QSet<OctreeElement*> _bagElements;
     bool _hooked;
 };
+
+typedef QMap<OctreeElement*,void*> OctreeElementExtraEncodeData;
 
 #endif // hifi_OctreeElementBag_h

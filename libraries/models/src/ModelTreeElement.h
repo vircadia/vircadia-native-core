@@ -87,7 +87,7 @@ public:
     virtual bool requiresSplit() const { return false; }
 
     /// Override to serialize the state of this element. This is used for persistance and for transmission across the network.
-    virtual bool appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const;
+    virtual OctreeElement::AppendState appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const;
 
     /// Override to deserialize the state of this element. This is used for loading from a persisted file or from reading
     /// from the network.

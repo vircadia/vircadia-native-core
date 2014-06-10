@@ -43,7 +43,7 @@ public:
     virtual bool hasContent() const { return isColored(); }
     virtual void splitChildren();
     virtual bool requiresSplit() const;
-    virtual bool appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const;
+    virtual OctreeElement::AppendState appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const;
     virtual int readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
     virtual void calculateAverageFromChildren();
     virtual bool collapseChildren();
