@@ -297,6 +297,25 @@ void ApplicationOverlay::displayOverlayTexture(Camera& whichCamera) {
     glDisable(GL_TEXTURE_2D);
 }
 
+const float textureFov = PI / 2.5f;
+
+void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& direction) const {
+    glm::quat rot = Application::getInstance()->getAvatar()->getOrientation();
+
+    //invert y direction
+    y = 1.0 - y;
+
+    //Get position on hemisphere UI
+    x = sin((x - 0.5f) * textureFov);
+    y = sin((y - 0.5f) * textureFov);
+
+    float dist = sqrt(x * x + y * y);
+    float z = -sqrt(1.0f - dist * dist);
+
+    //Rotate the UI pick ray by the avatar orientation
+    direction = glm::normalize(rot * glm::vec3(x, y, z));
+}
+
 // Fast helper functions
 inline float max(float a, float b) {
     return (a > b) ? a : b;
@@ -305,8 +324,6 @@ inline float max(float a, float b) {
 inline float min(float a, float b) {
     return (a < b) ? a : b;
 }
-
-const float textureFov = PI / 2.5f;
 
 // Draws the FBO texture for Oculus rift. TODO: Draw a curved texture instead of plane.
 void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {

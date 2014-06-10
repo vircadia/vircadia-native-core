@@ -1316,8 +1316,8 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position, const gl
         if (useRotation) {
             JointState& state = _jointStates[jointIndex];
 
-            state.setRotation(rotation, true, priority);
-            endRotation = state.getRotation();
+            state.setRotationFromBindFrame(rotation, priority);
+            endRotation = state.getRotationFromBindToModelFrame();
         }    
         
         // then, we go from the joint upwards, rotating the end as close as possible to the target

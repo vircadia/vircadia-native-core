@@ -20,12 +20,16 @@
 REGISTER_META_OBJECT(TestSharedObjectA)
 REGISTER_META_OBJECT(TestSharedObjectB)
 
+IMPLEMENT_ENUM_METATYPE(TestSharedObjectA, TestEnum)
+
 MetavoxelTests::MetavoxelTests(int& argc, char** argv) :
     QCoreApplication(argc, argv) {
 }
 
 static int datagramsSent = 0;
 static int datagramsReceived = 0;
+static int bytesSent = 0;
+static int bytesReceived = 0;
 static int highPriorityMessagesSent = 0;
 static int highPriorityMessagesReceived = 0;
 static int unreliableMessagesSent = 0;
@@ -36,6 +40,7 @@ static int streamedBytesSent = 0;
 static int streamedBytesReceived = 0;
 static int sharedObjectsCreated = 0;
 static int sharedObjectsDestroyed = 0;
+static int objectMutationsPerformed = 0;
 
 static QByteArray createRandomBytes(int minimumSize, int maximumSize) {
     QByteArray bytes(randIntInRange(minimumSize, maximumSize), 0);
@@ -80,6 +85,7 @@ static TestMessageC createRandomMessageC() {
     message.bar = rand();
     message.baz = randFloat();
     message.bong.foo = createRandomBytes();
+    message.bong.baz = getRandomTestEnum();
     return message;
 }
 
@@ -180,7 +186,7 @@ bool MetavoxelTests::run() {
     bob.setOther(&alice);
     
     // perform a large number of simulation iterations
-    const int SIMULATION_ITERATIONS = 100000;
+    const int SIMULATION_ITERATIONS = 10000;
     for (int i = 0; i < SIMULATION_ITERATIONS; i++) {
         if (alice.simulate(i) || bob.simulate(i)) {
             return true;
@@ -191,8 +197,10 @@ bool MetavoxelTests::run() {
     qDebug() << "Sent" << unreliableMessagesSent << "unreliable messages, received" << unreliableMessagesReceived;
     qDebug() << "Sent" << reliableMessagesSent << "reliable messages, received" << reliableMessagesReceived;
     qDebug() << "Sent" << streamedBytesSent << "streamed bytes, received" << streamedBytesReceived;
-    qDebug() << "Sent" << datagramsSent << "datagrams, received" << datagramsReceived;
+    qDebug() << "Sent" << datagramsSent << "datagrams with" << bytesSent << "bytes, received" <<
+        datagramsReceived << "with" << bytesReceived << "bytes";
     qDebug() << "Created" << sharedObjectsCreated << "shared objects, destroyed" << sharedObjectsDestroyed;
+    qDebug() << "Performed" << objectMutationsPerformed << "object mutations";
     qDebug();
     
     qDebug() << "Running serialization tests...";
@@ -226,6 +234,20 @@ Endpoint::Endpoint(const QByteArray& datagramHeader) :
     connect(_sequencer, SIGNAL(receivedHighPriorityMessage(const QVariant&)),
         SLOT(handleHighPriorityMessage(const QVariant&)));
     
+    connect(_sequencer, SIGNAL(sendAcknowledged(int)), SLOT(clearSendRecordsBefore(int)));
+    connect(_sequencer, SIGNAL(receiveAcknowledged(int)), SLOT(clearReceiveRecordsBefore(int)));
+    
+    // insert the baseline send record
+    SendRecord sendRecord = { 0 };
+    _sendRecords.append(sendRecord);
+    
+    // insert the baseline receive record
+    ReceiveRecord receiveRecord = { 0 };
+    _receiveRecords.append(receiveRecord);
+    
+    // create the object that represents out delta-encoded state
+    _localState = new TestSharedObjectA();
+    
     connect(_sequencer->getReliableInputChannel(), SIGNAL(receivedMessage(const QVariant&)),
         SLOT(handleReliableMessage(const QVariant&)));
     
@@ -252,13 +274,37 @@ static QVariant createRandomMessage() {
             return QVariant::fromValue(message);
         }
         case 1: {
-            TestMessageB message = { createRandomBytes(), createRandomSharedObject() };
+            TestMessageB message = { createRandomBytes(), createRandomSharedObject(), getRandomTestEnum() };
             return QVariant::fromValue(message); 
         }
-        case 2:
         default: {
             return QVariant::fromValue(createRandomMessageC());
         }
+    }
+}
+
+static SharedObjectPointer mutate(const SharedObjectPointer& state) {
+    switch(randIntInRange(0, 3)) {
+        case 0: {
+            SharedObjectPointer newState = state->clone(true);
+            static_cast<TestSharedObjectA*>(newState.data())->setFoo(randFloat());
+            objectMutationsPerformed++;
+            return newState;
+        }
+        case 1: {
+            SharedObjectPointer newState = state->clone(true);
+            static_cast<TestSharedObjectA*>(newState.data())->setBaz(getRandomTestEnum());
+            objectMutationsPerformed++;
+            return newState;
+        }   
+        case 2: {
+            SharedObjectPointer newState = state->clone(true);
+            static_cast<TestSharedObjectA*>(newState.data())->setBong(getRandomTestFlags());
+            objectMutationsPerformed++;
+            return newState;
+        }
+        default:
+            return state;
     }
 }
 
@@ -273,7 +319,7 @@ static bool messagesEqual(const QVariant& firstMessage, const QVariant& secondMe
     } else if (type == TestMessageB::Type) {
         TestMessageB first = firstMessage.value<TestMessageB>();
         TestMessageB second = secondMessage.value<TestMessageB>();
-        return first.foo == second.foo && equals(first.bar, second.bar);
+        return first.foo == second.foo && equals(first.bar, second.bar) && first.baz == second.baz;
         
     } else if (type == TestMessageC::Type) {
         return firstMessage.value<TestMessageC>() == secondMessage.value<TestMessageC>();
@@ -320,10 +366,13 @@ bool Endpoint::simulate(int iterationNumber) {
         _reliableMessagesToSend -= 1.0f;
     }
     
+    // tweak the local state
+    _localState = mutate(_localState);
+    
     // send a packet
     try {
         Bitstream& out = _sequencer->startPacket();
-        SequencedTestMessage message = { iterationNumber, createRandomMessage() };
+        SequencedTestMessage message = { iterationNumber, createRandomMessage(), _localState };
         _unreliableMessagesSent.append(message);
         unreliableMessagesSent++;
         out << message;
@@ -334,11 +383,16 @@ bool Endpoint::simulate(int iterationNumber) {
         return true;
     }
     
+    // record the send
+    SendRecord record = { _sequencer->getOutgoingPacketNumber(), _localState };
+    _sendRecords.append(record);
+    
     return false;
 }
 
 void Endpoint::sendDatagram(const QByteArray& datagram) {
     datagramsSent++;
+    bytesSent += datagram.size();
     
     // some datagrams are dropped
     const float DROP_PROBABILITY = 0.1f;
@@ -364,6 +418,7 @@ void Endpoint::sendDatagram(const QByteArray& datagram) {
     
     _other->_sequencer->receivedDatagram(datagram);
     datagramsReceived++;
+    bytesReceived += datagram.size();
 }
 
 void Endpoint::handleHighPriorityMessage(const QVariant& message) {
@@ -384,11 +439,20 @@ void Endpoint::readMessage(Bitstream& in) {
     SequencedTestMessage message;
     in >> message;
     
+    _remoteState = message.state;
+    
+    // record the receipt
+    ReceiveRecord record = { _sequencer->getIncomingPacketNumber(), message.state };
+    _receiveRecords.append(record);
+    
     for (QList<SequencedTestMessage>::iterator it = _other->_unreliableMessagesSent.begin();
             it != _other->_unreliableMessagesSent.end(); it++) {
         if (it->sequenceNumber == message.sequenceNumber) {
             if (!messagesEqual(it->submessage, message.submessage)) {
                 throw QString("Sent/received unreliable message mismatch.");
+            }
+            if (!it->state->equals(message.state)) {
+                throw QString("Delta-encoded object mismatch.");
             }
             _other->_unreliableMessagesSent.erase(_other->_unreliableMessagesSent.begin(), it + 1);
             unreliableMessagesReceived++;
@@ -425,6 +489,14 @@ void Endpoint::readReliableChannel() {
         throw QString("Sent/received streamed data mismatch.");
     }
     streamedBytesReceived += bytes.size();
+}
+
+void Endpoint::clearSendRecordsBefore(int index) {
+    _sendRecords.erase(_sendRecords.begin(), _sendRecords.begin() + index + 1);
+}
+
+void Endpoint::clearReceiveRecordsBefore(int index) {
+    _receiveRecords.erase(_receiveRecords.begin(), _receiveRecords.begin() + index + 1);
 }
 
 TestSharedObjectA::TestSharedObjectA(float foo, TestEnum baz, TestFlags bong) :

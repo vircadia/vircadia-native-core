@@ -54,9 +54,30 @@ private slots:
     void handleReliableMessage(const QVariant& message);
     void readReliableChannel();
 
+    void clearSendRecordsBefore(int index);    
+    void clearReceiveRecordsBefore(int index);
+
 private:
     
+    class SendRecord {
+    public:
+        int packetNumber;
+        SharedObjectPointer localState;
+    };
+    
+    class ReceiveRecord {
+    public:
+        int packetNumber;
+        SharedObjectPointer remoteState;
+    };
+    
     DatagramSequencer* _sequencer;
+    QList<SendRecord> _sendRecords;
+    QList<ReceiveRecord> _receiveRecords;
+    
+    SharedObjectPointer _localState;
+    SharedObjectPointer _remoteState;
+    
     Endpoint* _other;
     QList<QPair<QByteArray, int> > _delayedDatagrams;
     float _highPriorityMessagesToSend;
@@ -105,6 +126,8 @@ private:
     TestEnum _baz;
     TestFlags _bong;
 };
+
+DECLARE_ENUM_METATYPE(TestSharedObjectA, TestEnum)
 
 /// Another simple shared object.
 class TestSharedObjectB : public SharedObject {
@@ -169,6 +192,7 @@ public:
     
     STREAM QByteArray foo;
     STREAM SharedObjectPointer bar;
+    STREAM TestSharedObjectA::TestEnum baz;
 };
 
 DECLARE_STREAMABLE_METATYPE(TestMessageB)
@@ -192,6 +216,7 @@ public:
     
     STREAM int sequenceNumber;
     STREAM QVariant submessage;
+    STREAM SharedObjectPointer state;
 };
 
 DECLARE_STREAMABLE_METATYPE(SequencedTestMessage)

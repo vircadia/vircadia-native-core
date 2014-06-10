@@ -20,14 +20,15 @@
 
 #include "PositionalAudioRingBuffer.h"
 
-PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type) :
-    AudioRingBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL),
+PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, bool isStereo) :
+    AudioRingBuffer(isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL),
     _type(type),
     _position(0.0f, 0.0f, 0.0f),
     _orientation(0.0f, 0.0f, 0.0f, 0.0f),
     _willBeAddedToMix(false),
     _shouldLoopbackForNode(false),
-    _shouldOutputStarveDebug(true)
+    _shouldOutputStarveDebug(true),
+    _isStereo(isStereo)
 {
 
 }
@@ -40,6 +41,9 @@ int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
     // skip the packet header (includes the source UUID)
     int readBytes = numBytesForPacketHeader(packet);
     
+    // hop over the channel flag that has already been read in AudioMixerClientData
+    readBytes += sizeof(quint8);
+    // read the positional data
     readBytes += parsePositionalData(packet.mid(readBytes));
    
     if (packetTypeForPacket(packet) == PacketTypeSilentAudioFrame) {
@@ -51,7 +55,9 @@ int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
         
         readBytes += sizeof(int16_t);
         
-        addSilentFrame(numSilentSamples);
+        if (numSilentSamples > 0) {
+            addSilentFrame(numSilentSamples);
+        }
     } else {
         // there is audio data to read
         readBytes += writeData(packet.data() + readBytes, packet.size() - readBytes);
