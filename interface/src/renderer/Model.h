@@ -134,9 +134,10 @@ public:
     QStringList getJointNames() const;
     
     AnimationHandlePointer createAnimationHandle();
-    
+
     const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
-    
+   
+    void setSimulationIndex(int index);
     void clearShapes();
     void rebuildShapes();
     void resetShapePositions(); // DEBUG method
@@ -177,6 +178,8 @@ protected:
     bool _scaleToFit; /// If you set scaleToFit, we will calculate scale based on MeshExtents
     float _scaleToFitLargestDimension; /// this is the dimension that scale to fit will use
     bool _scaledToFit; /// have we scaled to fit
+
+    int _simulationIndex;   // set by SimulationEngine (if any)
     
     bool _snapModelToCenter; /// is the model's offset automatically adjusted to center around 0,0,0 in model space
     bool _snappedToCenter; /// are we currently snapped to center

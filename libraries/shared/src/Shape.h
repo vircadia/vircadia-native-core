@@ -23,11 +23,10 @@ public:
         SPHERE_SHAPE,
         CAPSULE_SHAPE,
         PLANE_SHAPE,
-        BOX_SHAPE,
         LIST_SHAPE
     };
 
-    Shape() : _type(UNKNOWN_SHAPE), _boundingRadius(0.f), _position(0.f), _rotation() { }
+    Shape() : _type(UNKNOWN_SHAPE), _simulationID(-1), _boundingRadius(0.f), _position(0.f), _rotation() { }
     virtual ~Shape() {}
 
     int getType() const { return _type; }
@@ -37,6 +36,9 @@ public:
 
     virtual void setPosition(const glm::vec3& position) { _position = position; }
     virtual void setRotation(const glm::quat& rotation) { _rotation = rotation; }
+
+    void setSimulationID(int id) { _simulationID = id; }
+    int getSimulationID() const { return _simulationID; }
 
 protected:
     // these ctors are protected (used by derived classes only)
@@ -51,6 +53,7 @@ protected:
     void setBoundingRadius(float radius) { _boundingRadius = radius; }
 
     int _type;
+    int _simulationID;    // shape's simulation ID in SimulationEngine
     float _boundingRadius;
     glm::vec3 _position;
     glm::quat _rotation;

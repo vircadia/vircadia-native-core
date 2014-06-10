@@ -33,6 +33,8 @@ public:
     CollisionInfo() 
         : _data(NULL),
         _intData(0),
+        _shapeA(-1),
+        _shapeB(-1),
         _damping(0.f),
         _elasticity(1.f),
         _contactPoint(0.f), 
@@ -43,6 +45,8 @@ public:
     CollisionInfo(qint32 type)
         : _data(NULL),
         _intData(0),
+        _shapeA(-1),
+        _shapeB(-1),
         _damping(0.f),
         _elasticity(1.f),
         _contactPoint(0.f), 
@@ -57,6 +61,9 @@ public:
     int _intData;       
     float _floatData;
     glm::vec3 _vecData;
+
+    int _shapeA;  // ID of shapeA in its SimulationEngine
+    int _shapeB;  // ID of shapeB in its SimulationEngine
 
     float _damping;           // range [0,1] of friction coeficient
     float _elasticity;        // range [0,1] of energy conservation

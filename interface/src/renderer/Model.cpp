@@ -37,6 +37,7 @@ Model::Model(QObject* parent) :
     _scaleToFit(false),
     _scaleToFitLargestDimension(0.0f),
     _scaledToFit(false),
+    _simulationIndex(-1),
     _snapModelToCenter(false),
     _snappedToCenter(false),
     _rootIndex(-1),
@@ -772,6 +773,34 @@ AnimationHandlePointer Model::createAnimationHandle() {
     handle->_self = handle;
     _animationHandles.insert(handle);
     return handle;
+}
+
+quint8 BITS_FOR_SHAPE_INDEX = 15;
+int MAX_SIMULATION_ID = 1 << (31 - BITS_FOR_SHAPE_INDEX);
+
+void Model::setSimulationIndex(int index) {
+    _simulationIndex = index;
+
+    if (_simulationIndex < 0 || _simulationIndex > MAX_SIMULATION_ID) {
+        // clear simulation ID's of all the shapes
+        for (int i = 0; i < _jointShapes.size(); i++) {
+            Shape* shape = _jointShapes[i];
+            if (shape) {
+                shape->setSimulationID(-1);
+            }
+        }
+    } else {
+        // update the simulation ID's of the shapes
+        // upper bits store this Model's index...
+        int shiftedIndex = _simulationIndex << BITS_FOR_SHAPE_INDEX;
+        for (int i = 0; i < _jointShapes.size(); i++) {
+            Shape* shape = _jointShapes[i];
+            if (shape) {
+                // ... lower bits are for the shape's index
+                shape->setSimulationID(shiftedIndex + i);
+            }
+        }
+    }
 }
 
 void Model::clearShapes() {
