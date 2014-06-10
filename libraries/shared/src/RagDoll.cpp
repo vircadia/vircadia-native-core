@@ -19,7 +19,7 @@
 // ----------------------------------------------------------------------------
 // FixedConstraint
 // ----------------------------------------------------------------------------
-FixedConstraint::FixedConstraint(glm::vec3* point, const glm::vec3& anchor ) : _point(point), _anchor(anchor) {
+FixedConstraint::FixedConstraint(glm::vec3* point, const glm::vec3& anchor) : _point(point), _anchor(anchor) {
 }
 
 float FixedConstraint::enforce() {
@@ -80,7 +80,7 @@ void DistanceConstraint::updateProxyShape(Shape* shape, const glm::quat& rotatio
         }
         break;
         case Shape::CAPSULE_SHAPE: {
-           // capsule collides from startPoint to endPoint
+            // capsule collides from startPoint to endPoint
             CapsuleShape* capsule = static_cast<CapsuleShape*>(shape);
             capsule->setEndPoints(translation + rotation * (*_points[0]), translation + rotation * (*_points[1]));
         }
