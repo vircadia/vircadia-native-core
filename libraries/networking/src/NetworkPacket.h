@@ -26,6 +26,7 @@
 /// Storage of not-yet processed inbound, or not yet sent outbound generic UDP network packet
 class NetworkPacket {
 public:
+    NetworkPacket() { }
     NetworkPacket(const NetworkPacket& packet); // copy constructor
     NetworkPacket& operator= (const NetworkPacket& other);    // copy assignment
 

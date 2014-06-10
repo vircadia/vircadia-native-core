@@ -43,10 +43,8 @@ public:
 
 protected:
     /// Callback for processing of recieved packets. Implement this to process the incoming packets.
-    /// \param sockaddr& senderAddress the address of the sender
-    /// \param packetData pointer to received data
-    /// \param ssize_t packetLength size of received data
-    /// \thread "this" individual processing thread
+    /// \param SharedNodePointer& sendingNode the node that sent this packet
+    /// \param QByteArray& the packet to be processed
     virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) = 0;
 
     /// Implements generic processing behavior for this thread.

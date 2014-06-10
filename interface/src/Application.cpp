@@ -2095,7 +2095,7 @@ void Application::updateMyAvatar(float deltaTime) {
         }
     }
 
-    // sent a nack packet containing missing sequence numbers of received packets
+    // sent nack packets containing missing sequence numbers of received packets from nodes
     {
         quint64 now = usecTimestampNow();
         quint64 sinceLastNack = now - _lastNackTime;
