@@ -85,7 +85,7 @@ static TestSharedObjectA::TestFlags getRandomTestFlags() {
 
 static QScriptValue createRandomScriptValue(bool complex = false) {
     scriptObjectsCreated++;
-    switch (randIntInRange(0, complex ? 5 : 2)) {
+    switch (randIntInRange(0, complex ? 5 : 3)) {
         case 0:
             return QScriptValue(QScriptValue::NullValue);
         
