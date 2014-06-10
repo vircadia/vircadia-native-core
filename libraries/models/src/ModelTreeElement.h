@@ -45,6 +45,11 @@ public:
 };
 
 
+class ModelTreeElementExtraEncodeData {
+public:
+    QMap<ModelItemID, bool> includedItems; // for now, bool, soon ModelPropertyFlags
+};
+
 
 class ModelTreeElement : public OctreeElement {
     friend class ModelTree; // to allow createElement to new us...

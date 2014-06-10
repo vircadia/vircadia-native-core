@@ -41,6 +41,6 @@ private:
     bool _hooked;
 };
 
-typedef QMap<OctreeElement*,void*> OctreeElementExtraEncodeData;
+typedef QMap<const OctreeElement*,void*> OctreeElementExtraEncodeData;
 
 #endif // hifi_OctreeElementBag_h

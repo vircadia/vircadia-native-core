@@ -988,6 +988,10 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                                             OctreePacketData* packetData, OctreeElementBag& bag,
                                             EncodeBitstreamParams& params, int& currentEncodeLevel,
                                             const ViewFrustum::location& parentLocationThisView) const {
+
+    // The append state of this level/element.
+    OctreeElement::AppendState elementAppendState = OctreeElement::COMPLETED; // assume the best
+
     // How many bytes have we written so far at this level;
     int bytesAtThisLevel = 0;
 
@@ -1350,8 +1354,23 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                     //       to allow the appendElementData() to respond that it produced partial data, which should be
                     //       written, but that the childElement needs to be reprocessed in an additional pass or passes
                     //       to be completed. In the case that an element was partially written, we need to 
-                    OctreeElement::AppendState appendState = childElement->appendElementData(packetData, params);
-                    continueThisLevel = (appendState == OctreeElement::COMPLETED);
+
+
+                    OctreeElement::AppendState childAppendState = childElement->appendElementData(packetData, params);
+                    
+                    // Continue this level so long as some part of this child element was appended.
+                    // TODO: consider if we want to also keep going in the child append state was NONE... to do this
+                    // we'd need to make sure the appendElementData didn't accidentally add bad partial data, we'd
+                    // also want to remove the child exists bit flag from the packet. I tried this quickly with voxels
+                    // and got some bad data including bad colors and some errors in recursing the tree, so clearly there's
+                    // more to it than that. This current implementation is slightly less efficient, because it could
+                    // be that one child element didn't fit but theoretically others could.
+                    continueThisLevel = (childAppendState != OctreeElement::NONE);
+                    
+                    // If this child was partially appended, then consider this element to be partially appended
+                    if (childAppendState == OctreeElement::PARTIAL) {
+                        elementAppendState = OctreeElement::PARTIAL;
+                    }
                     
                     int bytesAfterChild = packetData->getUncompressedSize();
 
@@ -1362,7 +1381,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                     bytesAtThisLevel += (bytesAfterChild - bytesBeforeChild); // keep track of byte count for this child
 
                     // don't need to check childElement here, because we can't get here with no childElement
-                    if (params.stats) {
+                    if (params.stats && (childAppendState != OctreeElement::NONE)) {
                         params.stats->colorSent(childElement);
                     }
                 }
@@ -1571,6 +1590,17 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
 
         params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
         bytesAtThisLevel = 0; // didn't fit
+    } else {
+    
+        // assuming we made it here with continueThisLevel == true, we STILL might want
+        // to add our element back to the bag for additional encoding, specifically if
+        // the appendState is PARTIAL, in this case, we re-add our element to the bag
+        // and assume that the appendElementData() has stored any required state data
+        // in the params extraEncodeData
+        if (elementAppendState == OctreeElement::PARTIAL) {
+            qDebug() << "elementAppendState == OctreeElement::PARTIAL... bag.insert(element).....";
+            bag.insert(element);
+        }
     }
 
     return bytesAtThisLevel;

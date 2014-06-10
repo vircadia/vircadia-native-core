@@ -58,6 +58,13 @@ OctreeElement::AppendState ModelTreeElement::appendElementData(OctreePacketData*
                                                                     EncodeBitstreamParams& params) const {
     
     OctreeElement::AppendState appendElementState = OctreeElement::COMPLETED; // assume the best...
+    
+    // first, check the params.extraEncodeData to see if there's any partial re-encode data for this element
+    OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
+    ModelTreeElementExtraEncodeData* elementExtraEncodeData = NULL;
+    if (extraEncodeData && extraEncodeData->contains(this)) {
+        elementExtraEncodeData = static_cast<ModelTreeElementExtraEncodeData*>(extraEncodeData->value(this));
+    }
 
     LevelDetails elementLevel = packetData->startLevel();
 
@@ -67,15 +74,25 @@ OctreeElement::AppendState ModelTreeElement::appendElementData(OctreePacketData*
     QVector<uint16_t> indexesOfModelsToInclude;
 
     for (uint16_t i = 0; i < _modelItems->size(); i++) {
-        if (params.viewFrustum) {
-            const ModelItem& model = (*_modelItems)[i];
+        const ModelItem& model = (*_modelItems)[i];
+        bool includeThisModel = true;
+        
+        if (elementExtraEncodeData) {
+            includeThisModel = elementExtraEncodeData->includedItems.contains(model.getModelItemID());
+            if (includeThisModel) { 
+                elementExtraEncodeData->includedItems.remove(model.getModelItemID()); // remove it
+            }
+        }
+        
+        if (includeThisModel && params.viewFrustum) {
             AACube modelCube = model.getAACube();
             modelCube.scale(TREE_SCALE);
-            if (params.viewFrustum->cubeInFrustum(modelCube) != ViewFrustum::OUTSIDE) {
-                indexesOfModelsToInclude << i;
-                numberOfModels++;
+            if (params.viewFrustum->cubeInFrustum(modelCube) == ViewFrustum::OUTSIDE) {
+                includeThisModel = false; // out of view, don't include it
             }
-        } else {
+        }
+        
+        if (includeThisModel) {
             indexesOfModelsToInclude << i;
             numberOfModels++;
         }
@@ -106,7 +123,29 @@ OctreeElement::AppendState ModelTreeElement::appendElementData(OctreePacketData*
             // If any part of the model items didn't fit, then the element is considered partial
             if (appendModelState != OctreeElement::COMPLETED) {
                 appendElementState = OctreeElement::PARTIAL;
+                
+                // add this item into our list for the next appendElementData() pass
+                if (extraEncodeData) {
+                    if (!elementExtraEncodeData) {
+                        elementExtraEncodeData = new ModelTreeElementExtraEncodeData();
+                    }
+                    elementExtraEncodeData->includedItems.insert(model.getModelItemID(), true);
+                }
             }
+        }
+    }
+    
+    // If we were provided with extraEncodeData, and we allocated and/or got elementExtraEncodeData
+    // then we need to do some additional processing
+    if (extraEncodeData && elementExtraEncodeData) {
+
+        // If after processing we have some includedItems left in it, then make sure we re-add it back to our map
+        if (elementExtraEncodeData->includedItems.size()) {
+            extraEncodeData->insert(this, elementExtraEncodeData);
+        } else {
+            // otherwise, clean things up...
+            extraEncodeData->remove(this);
+            delete elementExtraEncodeData;
         }
     }
     

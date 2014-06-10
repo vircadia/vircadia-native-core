@@ -188,6 +188,10 @@ public:
     bool isKnownID;
 };
 
+inline bool operator<(const ModelItemID& a, const ModelItemID& b) {
+    return (a.id == b.id) ? (a.creatorTokenID < b.creatorTokenID) : (a.id < b.id);
+}
+
 Q_DECLARE_METATYPE(ModelItemID);
 Q_DECLARE_METATYPE(QVector<ModelItemID>);
 QScriptValue ModelItemIDtoScriptValue(QScriptEngine* engine, const ModelItemID& properties);
