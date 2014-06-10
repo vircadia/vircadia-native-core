@@ -186,6 +186,11 @@ bool ModelTreeElement::findDetailedRayIntersection(const glm::vec3& origin, cons
             if (fbxGeometry && fbxGeometry->meshExtents.isValid()) {
                 Extents extents = fbxGeometry->meshExtents;
 
+                // NOTE: If the model has a bad mesh, then extents will be 0,0,0 & 0,0,0
+                if (extents.minimum == extents.maximum && extents.minimum == glm::vec3(0,0,0)) {
+                    extents.maximum = glm::vec3(1.0f,1.0f,1.0f); // in this case we will simulate the unit cube
+                }
+
                 // NOTE: these extents are model space, so we need to scale and center them accordingly
                 // size is our "target size in world space"
                 // we need to set our model scale so that the extents of the mesh, fit in a cube that size...
