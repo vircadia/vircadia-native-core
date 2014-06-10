@@ -158,7 +158,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _mousePressed(false),
         _audio(STARTUP_JITTER_SAMPLES),
         _enableProcessVoxelsThread(true),
-        _voxelProcessor(),
+        _octreeProcessor(),
         _voxelHideShowThread(&_voxels),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
@@ -418,7 +418,7 @@ Application::~Application() {
     _audio.thread()->quit();
     _audio.thread()->wait();
 
-    _voxelProcessor.terminate();
+    _octreeProcessor.terminate();
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
     _particleEditSender.terminate();
@@ -517,7 +517,7 @@ void Application::initializeGL() {
     qDebug( "init() complete.");
 
     // create thread for parsing of voxel data independent of the main network and rendering threads
-    _voxelProcessor.initialize(_enableProcessVoxelsThread);
+    _octreeProcessor.initialize(_enableProcessVoxelsThread);
     _voxelEditSender.initialize(_enableProcessVoxelsThread);
     _voxelHideShowThread.initialize(_enableProcessVoxelsThread);
     _particleEditSender.initialize(_enableProcessVoxelsThread);
@@ -1884,7 +1884,7 @@ void Application::updateThreads(float deltaTime) {
 
     // parse voxel packets
     if (!_enableProcessVoxelsThread) {
-        _voxelProcessor.threadRoutine();
+        _octreeProcessor.threadRoutine();
         _voxelHideShowThread.threadRoutine();
         _voxelEditSender.threadRoutine();
         _particleEditSender.threadRoutine();
@@ -2124,6 +2124,12 @@ void Application::sendNack() {
             || node->getType() == NodeType::ParticleServer
             || node->getType() == NodeType::ModelServer)
             ) {
+
+            // if there are octree packets from this node that are waiting to be processed,
+            // don't send a NACK since the missing packets may be among those waiting packets.
+            if (_octreeProcessor.hasPacketsToProcessFrom(node)) {
+                continue;
+            }
 
             QUuid nodeUUID = node->getUUID();
 

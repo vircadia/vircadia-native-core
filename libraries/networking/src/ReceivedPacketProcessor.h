@@ -28,10 +28,15 @@ public:
     /// \param packetData pointer to received data
     /// \param ssize_t packetLength size of received data
     /// \thread network receive thread
-    void queueReceivedPacket(const SharedNodePointer& destinationNode, const QByteArray& packet);
+    void queueReceivedPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
 
     /// Are there received packets waiting to be processed
     bool hasPacketsToProcess() const { return _packets.size() > 0; }
+
+    /// Are there received packets waiting to be processed from a certain node
+    bool hasPacketsToProcessFrom(const SharedNodePointer& sendingNode) const {
+        return _nodePacketCounts[sendingNode->getUUID()] > 0;
+    }
 
     /// How many received packets waiting are to be processed
     int packetsToProcessCount() const { return _packets.size(); }
@@ -51,7 +56,9 @@ protected:
 
 private:
 
-    std::vector<NetworkPacket> _packets;
+    QVector<NetworkPacket> _packets;
+    QHash<QUuid, int> _nodePacketCounts;
+
     QWaitCondition _hasPackets;
     QMutex _waitingOnPacketsMutex;
 };

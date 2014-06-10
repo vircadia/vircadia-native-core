@@ -45,7 +45,7 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     QGLWidget* glWidget = application->getGLWidget();
     MyAvatar* myAvatar = application->getAvatar();
     Audio* audio = application->getAudio();
-    const VoxelPacketProcessor& voxelPacketProcessor = application->getVoxelPacketProcessor();
+    const OctreePacketProcessor& octreePacketProcessor = application->getOctreePacketProcessor();
     BandwidthMeter* bandwidthMeter = application->getBandwidthMeter();
     NodeBounds& nodeBoundsDisplay = application->getNodeBoundsDisplay();
 
@@ -200,7 +200,7 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
         // let's set horizontal offset to give stats some margin to mirror
         int horizontalOffset = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
-        int voxelPacketsToProcess = voxelPacketProcessor.packetsToProcessCount();
+        int voxelPacketsToProcess = octreePacketProcessor.packetsToProcessCount();
         //  Onscreen text about position, servers, etc
         Stats::getInstance()->display(WHITE_TEXT, horizontalOffset, application->getFps(), application->getPacketsPerSecond(), application->getBytesPerSecond(), voxelPacketsToProcess);
         //  Bandwidth meter

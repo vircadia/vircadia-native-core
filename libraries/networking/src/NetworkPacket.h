@@ -34,15 +34,15 @@ public:
     NetworkPacket& operator= (NetworkPacket&& other);         // move assignment
 #endif
 
-    NetworkPacket(const SharedNodePointer& destinationNode, const QByteArray& byteArray);
+    NetworkPacket(const SharedNodePointer& sendingNode, const QByteArray& byteArray);
 
-    const SharedNodePointer& getDestinationNode() const { return _destinationNode; }
+    const SharedNodePointer& getSendingNode() const { return _sendingNode; }
     const QByteArray& getByteArray() const { return _byteArray; }
 
 private:
-    void copyContents(const SharedNodePointer& destinationNode, const QByteArray& byteArray);
+    void copyContents(const SharedNodePointer& sendingNode, const QByteArray& byteArray);
 
-    SharedNodePointer _destinationNode;
+    SharedNodePointer _sendingNode;
     QByteArray _byteArray;
 };
 
