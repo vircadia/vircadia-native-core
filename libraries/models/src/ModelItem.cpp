@@ -132,7 +132,7 @@ void ModelItem::init(glm::vec3 position, float radius, rgbColor color, uint32_t 
     _lastAnimated = now;
 }
 
-bool ModelItem::appendModelData(OctreePacketData* packetData) const {
+OctreeElement::AppendState ModelItem::appendModelData(OctreePacketData* packetData, EncodeBitstreamParams& params) const {
 
     bool success = packetData->appendValue(getID());
 
@@ -193,12 +193,10 @@ bool ModelItem::appendModelData(OctreePacketData* packetData) const {
         success = packetData->appendValue(getAnimationFPS());
     }
 
-    return success;
+    return success ? OctreeElement::COMPLETED : OctreeElement::NONE;
 }
 
-bool ModelItem::new___appendModelData(OctreePacketData* packetData, EncodeBitstreamParams& params) const {
-
-    // bool headerFits = ...
+OctreeElement::AppendState ModelItem::new___appendModelData(OctreePacketData* packetData, EncodeBitstreamParams& params) const {
 
     // ALL this fits...
     //    object ID [16 bytes]
@@ -208,7 +206,7 @@ bool ModelItem::new___appendModelData(OctreePacketData* packetData, EncodeBitstr
     //    PropertyFlags<>( everything ) [1-2 bytes]
     // ~27-35 bytes...
     
-    bool success = false;
+    OctreeElement::AppendState appendState = OctreeElement::COMPLETED; // assume the best
 
     quint64 updateDelta = getLastUpdated() <= getLastEdited() ? 0 : getLastUpdated() - getLastEdited();
     ByteCountCoded<quint64> updateDeltaCoder = updateDelta;
@@ -252,6 +250,7 @@ bool ModelItem::new___appendModelData(OctreePacketData* packetData, EncodeBitstr
             packetData->endLevel(propertyLevel);
         } else {
             packetData->discardLevel(propertyLevel);
+            appendState = OctreeElement::PARTIAL;
         }
 
         // PROP_RADIUS
@@ -263,6 +262,7 @@ bool ModelItem::new___appendModelData(OctreePacketData* packetData, EncodeBitstr
             packetData->endLevel(propertyLevel);
         } else {
             packetData->discardLevel(propertyLevel);
+            appendState = OctreeElement::PARTIAL;
         }
 
         // PROP_MODEL_URL
@@ -274,6 +274,7 @@ bool ModelItem::new___appendModelData(OctreePacketData* packetData, EncodeBitstr
             packetData->endLevel(propertyLevel);
         } else {
             packetData->discardLevel(propertyLevel);
+            appendState = OctreeElement::PARTIAL;
         }
 
         // PROP_ROTATION
@@ -285,6 +286,7 @@ bool ModelItem::new___appendModelData(OctreePacketData* packetData, EncodeBitstr
             packetData->endLevel(propertyLevel);
         } else {
             packetData->discardLevel(propertyLevel);
+            appendState = OctreeElement::PARTIAL;
         }
 
         // PROP_COLOR
@@ -296,6 +298,7 @@ bool ModelItem::new___appendModelData(OctreePacketData* packetData, EncodeBitstr
             packetData->endLevel(propertyLevel);
         } else {
             packetData->discardLevel(propertyLevel);
+            appendState = OctreeElement::PARTIAL;
         }
 
         // PROP_SCRIPT
@@ -310,6 +313,7 @@ bool ModelItem::new___appendModelData(OctreePacketData* packetData, EncodeBitstr
             packetData->endLevel(propertyLevel);
         } else {
             packetData->discardLevel(propertyLevel);
+            appendState = OctreeElement::PARTIAL;
         }
 
         // PROP_ANIMATION_FPS
@@ -321,6 +325,7 @@ bool ModelItem::new___appendModelData(OctreePacketData* packetData, EncodeBitstr
             packetData->endLevel(propertyLevel);
         } else {
             packetData->discardLevel(propertyLevel);
+            appendState = OctreeElement::PARTIAL;
         }
 
         // PROP_ANIMATION_FRAME_INDEX
@@ -332,6 +337,7 @@ bool ModelItem::new___appendModelData(OctreePacketData* packetData, EncodeBitstr
             packetData->endLevel(propertyLevel);
         } else {
             packetData->discardLevel(propertyLevel);
+            appendState = OctreeElement::PARTIAL;
         }
 
         // PROP_ANIMATION_PLAYING
@@ -343,6 +349,7 @@ bool ModelItem::new___appendModelData(OctreePacketData* packetData, EncodeBitstr
             packetData->endLevel(propertyLevel);
         } else {
             packetData->discardLevel(propertyLevel);
+            appendState = OctreeElement::PARTIAL;
         }
 
         // PROP_SHOULD_BE_DELETED
@@ -354,6 +361,7 @@ bool ModelItem::new___appendModelData(OctreePacketData* packetData, EncodeBitstr
             packetData->endLevel(propertyLevel);
         } else {
             packetData->discardLevel(propertyLevel);
+            appendState = OctreeElement::PARTIAL;
         }
     }
     if (propertyCount > 0) {
@@ -381,12 +389,12 @@ bool ModelItem::new___appendModelData(OctreePacketData* packetData, EncodeBitstr
         }
        
         packetData->endLevel(modelLevel);
-        success = true;
     } else {
         packetData->discardLevel(modelLevel);
+        appendState = OctreeElement::NONE; // if we got here, then we didn't include the item
     }
 
-    return success;
+    return appendState;
 }
 
 int ModelItem::expectedBytes() {

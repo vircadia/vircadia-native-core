@@ -282,10 +282,10 @@ public:
     
     void setProperties(const ModelItemProperties& properties);
 
-    bool new___appendModelData(OctreePacketData* packetData, EncodeBitstreamParams& params) const;
+    OctreeElement::AppendState new___appendModelData(OctreePacketData* packetData, EncodeBitstreamParams& params) const;
     int new___readModelDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
 
-    bool appendModelData(OctreePacketData* packetData) const;
+    OctreeElement::AppendState appendModelData(OctreePacketData* packetData, EncodeBitstreamParams& params) const;
     int readModelDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
     static int expectedBytes();
 

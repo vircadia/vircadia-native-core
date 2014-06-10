@@ -56,7 +56,10 @@ ModelTreeElement* ModelTreeElement::addChildAtIndex(int index) {
 // contents across multiple packets.
 OctreeElement::AppendState ModelTreeElement::appendElementData(OctreePacketData* packetData, 
                                                                     EncodeBitstreamParams& params) const {
-    bool success = true; // assume the best...
+    
+    OctreeElement::AppendState appendElementState = OctreeElement::COMPLETED; // assume the best...
+
+    LevelDetails elementLevel = packetData->startLevel();
 
     // write our models out... first determine which of the models are in view based on our params
     uint16_t numberOfModels = 0;
@@ -79,33 +82,49 @@ OctreeElement::AppendState ModelTreeElement::appendElementData(OctreePacketData*
     }
 
     int numberOfModelsOffset = packetData->getUncompressedByteOffset();
-    success = packetData->appendValue(numberOfModels);
+    bool successAppendModelCount = packetData->appendValue(numberOfModels);
 
-    if (success) {
+    if (successAppendModelCount) {
         foreach (uint16_t i, indexesOfModelsToInclude) {
             const ModelItem& model = (*_modelItems)[i];
             
             LevelDetails modelLevel = packetData->startLevel();
     
-            success = model.appendModelData(packetData);
+            OctreeElement::AppendState appendModelState = model.appendModelData(packetData, params);
 
-            if (success) {
+            // If none of this model data was able to be appended, then discard it
+            // and don't include it in our model count
+            if (appendModelState == OctreeElement::NONE) {
+                packetData->discardLevel(modelLevel);
+            } else {
+                // If either ALL or some of it got appended, then end the level (commit it)
+                // and include the model in our final count of models
                 packetData->endLevel(modelLevel);
                 actualNumberOfModels++;
             }
-            if (!success) {
-                packetData->discardLevel(modelLevel);
-                break;
+
+            // If any part of the model items didn't fit, then the element is considered partial
+            if (appendModelState != OctreeElement::COMPLETED) {
+                appendElementState = OctreeElement::PARTIAL;
             }
         }
     }
     
-    if (!success) {
-        success = packetData->updatePriorBytes(numberOfModelsOffset, 
+    // If we wrote fewer models than we expected, update the number of models in our packet
+    bool successUpdateModelCount = true;
+    if (numberOfModels != actualNumberOfModels) {
+        successUpdateModelCount = packetData->updatePriorBytes(numberOfModelsOffset,
                                             (const unsigned char*)&actualNumberOfModels, sizeof(actualNumberOfModels));
     }
+
+    if (!successUpdateModelCount) {
+        packetData->discardLevel(elementLevel);
+        appendElementState = OctreeElement::NONE;
+    } else {
+        packetData->endLevel(elementLevel);
+    }
     
-    return success ? OctreeElement::COMPLETED : OctreeElement::NONE;
+    return appendElementState;
 }
 
 bool ModelTreeElement::containsModelBounds(const ModelItem& model) const {
