@@ -873,7 +873,7 @@ void Particle::endParticleScriptContext(ScriptEngine& engine, ParticleScriptObje
 void Particle::executeUpdateScripts() {
     // Only run this particle script if there's a script attached directly to the particle.
     if (!_script.isEmpty()) {
-        ScriptEngine engine(_script);
+        ScriptEngine engine(_script, QString(""));
         ParticleScriptObject particleScriptable(this);
         startParticleScriptContext(engine, particleScriptable);
         particleScriptable.emitUpdate();
@@ -884,7 +884,7 @@ void Particle::executeUpdateScripts() {
 void Particle::collisionWithParticle(Particle* other, const glm::vec3& penetration) {
     // Only run this particle script if there's a script attached directly to the particle.
     if (!_script.isEmpty()) {
-        ScriptEngine engine(_script);
+        ScriptEngine engine(_script, QString(""));
         ParticleScriptObject particleScriptable(this);
         startParticleScriptContext(engine, particleScriptable);
         ParticleScriptObject otherParticleScriptable(other);
@@ -896,7 +896,7 @@ void Particle::collisionWithParticle(Particle* other, const glm::vec3& penetrati
 void Particle::collisionWithVoxel(VoxelDetail* voxelDetails, const glm::vec3& penetration) {
     // Only run this particle script if there's a script attached directly to the particle.
     if (!_script.isEmpty()) {
-        ScriptEngine engine(_script);
+        ScriptEngine engine(_script, QString(""));
         ParticleScriptObject particleScriptable(this);
         startParticleScriptContext(engine, particleScriptable);
         particleScriptable.emitCollisionWithVoxel(*voxelDetails, penetration);

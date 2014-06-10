@@ -93,7 +93,7 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
 {
 }
 
-ScriptEngine::ScriptEngine(const QUrl& scriptURL,
+ScriptEngine::ScriptEngine(const QString& fileNameString,
                            AbstractControllerScriptingInterface* controllerScriptingInterface)  :
     _scriptContents(),
     _isFinished(false),
@@ -110,21 +110,19 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
     _controllerScriptingInterface(controllerScriptingInterface),
     _avatarData(NULL),
     _scriptName(),
-    _fileNameString(),
+    _fileNameString(fileNameString),
     _quatLibrary(),
     _vec3Library(),
     _uuidLibrary(),
     _animationCache(this)
 {
-    QString scriptURLString = scriptURL.toString();
-    _fileNameString = scriptURLString;
-
-    QUrl url(scriptURL);
+    QUrl url(fileNameString);
+    QString scriptUrlString = url.toString();
 
     // if the scheme length is one or lower, maybe they typed in a file, let's try
     const int WINDOWS_DRIVE_LETTER_SIZE = 1;
     if (url.scheme().size() <= WINDOWS_DRIVE_LETTER_SIZE) {
-        url = QUrl::fromLocalFile(scriptURLString);
+        url = QUrl::fromLocalFile(scriptUrlString);
     }
 
     // ok, let's see if it's valid... and if so, load it
