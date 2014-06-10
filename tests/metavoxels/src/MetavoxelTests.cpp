@@ -83,9 +83,9 @@ static TestSharedObjectA::TestFlags getRandomTestFlags() {
     return flags;
 }
 
-static QScriptValue createRandomScriptValue() {
+static QScriptValue createRandomScriptValue(bool complex = false) {
     scriptObjectsCreated++;
-    switch (randIntInRange(0, 3)) {
+    switch (randIntInRange(0, complex ? 5 : 2)) {
         case 0:
             return QScriptValue(QScriptValue::NullValue);
         
@@ -96,7 +96,6 @@ static QScriptValue createRandomScriptValue() {
             return QScriptValue(randFloat());
         
         case 3:
-        default:
             return QScriptValue(QString(createRandomBytes()));
         
         case 4: {
@@ -107,7 +106,7 @@ static QScriptValue createRandomScriptValue() {
             }
             return value;
         }
-        case 5: {
+        default: {
             QScriptValue value = ScriptCache::getInstance()->getEngine()->newObject();
             if (randomBoolean()) {
                 value.setProperty("foo", createRandomScriptValue());
@@ -133,7 +132,7 @@ static TestMessageC createRandomMessageC() {
     message.baz = randFloat();
     message.bong.foo = createRandomBytes();
     message.bong.baz = getRandomTestEnum();
-    message.bizzle = createRandomScriptValue();
+    message.bizzle = createRandomScriptValue(true);
     return message;
 }
 
@@ -360,7 +359,7 @@ static SharedObjectPointer mutate(const SharedObjectPointer& state) {
                 it.next();
                 newValue.setProperty(it.scriptName(), it.value());
             }
-            switch (randIntInRange(0, 3)) {
+            switch (randIntInRange(0, 2)) {
                 case 0: {
                     QScriptValue oldArray = oldValue.property("foo");
                     int oldLength = oldArray.property(ScriptCache::getInstance()->getLengthString()).toInt32();
@@ -368,7 +367,7 @@ static SharedObjectPointer mutate(const SharedObjectPointer& state) {
                     for (int i = 0; i < oldLength; i++) {
                         newArray.setProperty(i, oldArray.property(i));
                     }
-                    newArray.setProperty(randIntInRange(0, oldLength - 1), createRandomScriptValue());
+                    newArray.setProperty(randIntInRange(0, oldLength - 1), createRandomScriptValue(true));
                     break;
                 }
                 case 1:
@@ -376,7 +375,7 @@ static SharedObjectPointer mutate(const SharedObjectPointer& state) {
                     break;
                     
                 default:
-                    newValue.setProperty("baz", createRandomScriptValue());
+                    newValue.setProperty("baz", createRandomScriptValue(true));
                     break;
             }
             static_cast<TestSharedObjectA*>(newState.data())->setBizzle(newValue);

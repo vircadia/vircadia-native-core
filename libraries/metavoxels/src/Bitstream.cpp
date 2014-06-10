@@ -411,7 +411,8 @@ void Bitstream::writeRawDelta(const QScriptValue& value, const QScriptValue& ref
             *this << value;
         }
     } else if (reference.isObject()) {
-        if (value.isObject()) {    
+        if (value.isObject() && !(value.isArray() || value.isRegExp() || value.isDate() ||
+                value.isQMetaObject() || value.isQObject() || value.isVariant())) {    
             *this << false;
             for (QScriptValueIterator it(value); it.hasNext(); ) {
                 it.next();
