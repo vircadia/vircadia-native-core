@@ -2109,7 +2109,7 @@ void Application::updateMyAvatar(float deltaTime) {
 
 void Application::sendNack() {
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::DisableNack)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
         return;
     }
 

@@ -393,7 +393,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlignForearmsWithWrists, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlternateIK, 0, false);
 
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DisableNack, 0, false);
+    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DisableNackPackets, 0, false);
 
     addDisabledActionAndSeparator(developerMenu, "Testing");
     
