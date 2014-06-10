@@ -271,7 +271,7 @@ bool PacketSender::nonThreadedProcess() {
         unlock();
 
         // send the packet through the NodeList...
-        NodeList::getInstance()->writeDatagram(temporary.getByteArray(), temporary.getSendingNode());
+        NodeList::getInstance()->writeDatagram(temporary.getByteArray(), temporary.getNode());
         packetsSentThisCall++;
         _packetsOverCheckInterval++;
         _totalPacketsSent++;

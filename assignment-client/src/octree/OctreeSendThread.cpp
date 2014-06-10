@@ -294,7 +294,6 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
     int clientMaxPacketsPerInterval = std::max(1, (nodeData->getMaxOctreePacketsPerSecond() / INTERVALS_PER_SECOND));
     int maxPacketsPerInterval = std::min(clientMaxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval());
 
-
     int truePacketsSent = 0;
     int trueBytesSent = 0;
     int packetsSentThisInterval = 0;
