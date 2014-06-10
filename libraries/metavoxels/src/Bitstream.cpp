@@ -44,6 +44,9 @@ static int quatStreamer = Bitstream::registerTypeStreamer(qMetaTypeId<glm::quat>
 static int metaObjectStreamer = Bitstream::registerTypeStreamer(qMetaTypeId<const QMetaObject*>(),
     new SimpleTypeStreamer<const QMetaObject*>());
 
+static int genericValueStreamer = Bitstream::registerTypeStreamer(
+    qRegisterMetaType<GenericValue>(), new GenericTypeStreamer());
+
 IDStreamer::IDStreamer(Bitstream& stream) :
     _stream(stream),
     _bits(1) {
@@ -92,7 +95,10 @@ int Bitstream::registerMetaObject(const char* className, const QMetaObject* meta
 }
 
 int Bitstream::registerTypeStreamer(int type, TypeStreamer* streamer) {
-    streamer->setType(type);
+    streamer->_type = type;
+    if (!streamer->_self) {
+        streamer->_self = TypeStreamerPointer(streamer);
+    }
     getTypeStreamers().insert(type, streamer);
     return 0;
 }
@@ -109,12 +115,13 @@ QList<const QMetaObject*> Bitstream::getMetaObjectSubClasses(const QMetaObject* 
     return getMetaObjectSubClasses().values(metaObject);
 }
 
-Bitstream::Bitstream(QDataStream& underlying, MetadataType metadataType, QObject* parent) :
+Bitstream::Bitstream(QDataStream& underlying, MetadataType metadataType, GenericsMode genericsMode, QObject* parent) :
     QObject(parent),
     _underlying(underlying),
     _byte(0),
     _position(0),
     _metadataType(metadataType),
+    _genericsMode(genericsMode),
     _metaObjectStreamer(*this),
     _typeStreamerStreamer(*this),
     _attributeStreamer(*this),
@@ -751,7 +758,7 @@ Bitstream& Bitstream::operator<<(const QVariant& value) {
     }
     const TypeStreamer* streamer = getTypeStreamers().value(value.userType());
     if (streamer) {
-        _typeStreamerStreamer << streamer;
+        _typeStreamerStreamer << streamer->getStreamerToWrite(value);
         streamer->write(*this, value);
     } else {
         qWarning() << "Non-streamable type: " << value.typeName() << "\n";
@@ -790,6 +797,16 @@ Bitstream& Bitstream::operator>>(OwnedAttributeValue& attributeValue) {
     } else {
         attributeValue = AttributeValue();
     }
+    return *this;
+}
+
+Bitstream& Bitstream::operator<<(const GenericValue& value) {
+    value.getStreamer()->write(*this, value.getValue());
+    return *this;
+}
+
+Bitstream& Bitstream::operator>>(GenericValue& value) {
+    value = GenericValue();
     return *this;
 }
 
@@ -1232,20 +1249,26 @@ Bitstream& Bitstream::operator>(TypeReader& reader) {
             streamer = getEnumStreamersByName().value(typeName);
         }
     }
-    if (!streamer) {
-        qWarning() << "Unknown type name: " << typeName << "\n";
-    }
     if (_metadataType == NO_METADATA) {
+        if (!streamer) {
+            qWarning() << "Unknown type name:" << typeName;
+        }
         reader = TypeReader(typeName, streamer);
         return *this;
     }
     int type;
     *this >> type;
+    if (type == TypeReader::SIMPLE_TYPE) {
+        if (!streamer) {
+            qWarning() << "Unknown type name:" << typeName;
+        }
+        reader = TypeReader(typeName, streamer);
+        return *this;
+    }
+    if (_genericsMode == ALL_GENERICS) {
+        streamer = NULL;
+    }
     switch (type) {
-        case TypeReader::SIMPLE_TYPE:
-            reader = TypeReader(typeName, streamer);
-            return *this;
-        
         case TypeReader::ENUM_TYPE: {
             if (_metadataType == FULL_METADATA) {
                 int keyCount;
@@ -1910,6 +1933,38 @@ const char* TypeStreamer::getName() const {
     return QMetaType::typeName(_type);
 }
 
+const TypeStreamer* TypeStreamer::getStreamerToWrite(const QVariant& value) const {
+    return this;
+}
+
+bool TypeStreamer::equal(const QVariant& first, const QVariant& second) const {
+    return first == second;
+}
+
+void TypeStreamer::write(Bitstream& out, const QVariant& value) const {
+    // nothing by default
+}
+
+QVariant TypeStreamer::read(Bitstream& in) const {
+    return QVariant();
+}
+
+void TypeStreamer::writeDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const {
+    // nothing by default
+}
+
+void TypeStreamer::readDelta(Bitstream& in, QVariant& value, const QVariant& reference) const {
+    value = reference;
+}
+
+void TypeStreamer::writeRawDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const {
+    // nothing by default
+}
+
+void TypeStreamer::readRawDelta(Bitstream& in, QVariant& value, const QVariant& reference) const {
+    value = reference;
+}
+
 void TypeStreamer::setEnumValue(QVariant& object, int value, const QHash<int, int>& mappings) const {
     // nothing by default
 }
@@ -1993,15 +2048,17 @@ EnumTypeStreamer::EnumTypeStreamer(const QMetaObject* metaObject, const char* na
     _name(QByteArray(metaObject->className()) + "::" + name),
     _bits(-1) {
     
-    setType(QMetaType::Int); 
+    _type = QMetaType::Int;
+    _self = TypeStreamerPointer(this);
 }
 
 EnumTypeStreamer::EnumTypeStreamer(const QMetaEnum& metaEnum) :
     _name(QByteArray(metaEnum.scope()) + "::" + metaEnum.name()),
     _metaEnum(metaEnum),
     _bits(-1) {
-
-    setType(QMetaType::Int); 
+    
+    _type = QMetaType::Int;
+    _self = TypeStreamerPointer(this);
 }
 
 const char* EnumTypeStreamer::getName() const {
@@ -2094,3 +2151,15 @@ void EnumTypeStreamer::setEnumValue(QVariant& object, int value, const QHash<int
     }
 }
 
+GenericValue::GenericValue(const TypeStreamerPointer& streamer, const QVariant& value) :
+    _streamer(streamer),
+    _value(value) {
+}
+
+bool GenericValue::operator==(const GenericValue& other) const {
+    return _streamer == other._streamer && _value == other._value;
+}
+
+const TypeStreamer* GenericTypeStreamer::getStreamerToWrite(const QVariant& value) const {
+    return value.value<GenericValue>().getStreamer().data();
+}
