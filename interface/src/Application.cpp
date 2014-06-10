@@ -2099,7 +2099,7 @@ void Application::updateMyAvatar(float deltaTime) {
     {
         quint64 now = usecTimestampNow();
         quint64 sinceLastNack = now - _lastNackTime;
-        const quint64 TOO_LONG_SINCE_LAST_NACK = 250 * MSECS_PER_SECOND;
+        const quint64 TOO_LONG_SINCE_LAST_NACK = 1 * USECS_PER_SECOND;
         if (sinceLastNack > TOO_LONG_SINCE_LAST_NACK) {
             _lastNackTime = now;
             sendNack();
@@ -2108,6 +2108,10 @@ void Application::updateMyAvatar(float deltaTime) {
 }
 
 void Application::sendNack() {
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::NackDisable)) {
+        return;
+    }
 
     char packet[MAX_PACKET_SIZE];
     NodeList* nodeList = NodeList::getInstance();

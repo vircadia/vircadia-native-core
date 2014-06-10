@@ -393,6 +393,8 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlignForearmsWithWrists, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlternateIK, 0, false);
 
+    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::NackDisable, 0, false);
+
     addDisabledActionAndSeparator(developerMenu, "Testing");
     
     QMenu* timingMenu = developerMenu->addMenu("Timing and Statistics Tools");
