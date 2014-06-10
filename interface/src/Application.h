@@ -345,6 +345,7 @@ private slots:
 
     void setFullscreen(bool fullscreen);
     void setEnable3DTVMode(bool enable3DTVMode);
+    void setEnableVRMode(bool enableVRMode);
     void cameraMenuChanged();
 
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);

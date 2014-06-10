@@ -253,6 +253,11 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, Qt::Key_H, false,
                                             appInstance, SLOT(cameraMenuChanged()));
 
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::EnableVRMode, 0,
+                                           false,
+                                           appInstance,
+                                           SLOT(setEnableVRMode(bool)));
+
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Enable3DTVMode, 0,
                                            false,
                                            appInstance,
