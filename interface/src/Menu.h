@@ -320,6 +320,7 @@ namespace MenuOption {
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
+    const QString DisableNack = "Disable NACK Packets";
     const QString DisplayFrustum = "Display Frustum";
     const QString DisplayHands = "Display Hands";
     const QString DisplayHandTargets = "Display Hand Targets";
@@ -373,7 +374,6 @@ namespace MenuOption {
     const QString MoveWithLean = "Move with Lean";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
-    const QString NackDisable = "Disable NACK Packets";
     const QString NameLocation = "Name this location";
     const QString NewVoxelCullingMode = "New Voxel Culling Mode";
     const QString OctreeStats = "Voxel and Particle Statistics";
