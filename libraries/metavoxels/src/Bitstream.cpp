@@ -1950,11 +1950,22 @@ QVariant TypeStreamer::read(Bitstream& in) const {
 }
 
 void TypeStreamer::writeDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const {
-    // nothing by default
+    if (value == reference) {
+        out << false;
+    } else {
+        out << true;
+        writeRawDelta(out, value, reference);
+    }
 }
 
 void TypeStreamer::readDelta(Bitstream& in, QVariant& value, const QVariant& reference) const {
-    value = reference;
+    bool changed;
+    in >> changed;
+    if (changed) {
+        readRawDelta(in, value, reference);
+    } else {
+        value = reference;
+    }
 }
 
 void TypeStreamer::writeRawDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const {
@@ -2151,6 +2162,30 @@ void EnumTypeStreamer::setEnumValue(QVariant& object, int value, const QHash<int
     }
 }
 
+MappedEnumTypeStreamer::MappedEnumTypeStreamer(const TypeStreamer* baseStreamer, int bits, const QHash<int, int>& mappings) :
+    _baseStreamer(baseStreamer),
+    _bits(bits),
+    _mappings(mappings) {
+}
+
+QVariant MappedEnumTypeStreamer::read(Bitstream& in) const {
+    QVariant object = _baseStreamer ? QVariant(_baseStreamer->getType(), 0) : QVariant();
+    int value = 0;
+    in.read(&value, _bits);
+    if (_baseStreamer) {
+        _baseStreamer->setEnumValue(object, value, _mappings);
+    }
+    return object;
+}
+
+void MappedEnumTypeStreamer::readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const {
+    int value = 0;
+    in.read(&value, _bits);
+    if (_baseStreamer) {
+        _baseStreamer->setEnumValue(object, value, _mappings);
+    }
+}
+
 GenericValue::GenericValue(const TypeStreamerPointer& streamer, const QVariant& value) :
     _streamer(streamer),
     _value(value) {
@@ -2163,3 +2198,121 @@ bool GenericValue::operator==(const GenericValue& other) const {
 const TypeStreamer* GenericTypeStreamer::getStreamerToWrite(const QVariant& value) const {
     return value.value<GenericValue>().getStreamer().data();
 }
+
+MappedListTypeStreamer::MappedListTypeStreamer(const TypeStreamer* baseStreamer, const TypeStreamerPointer& valueStreamer) :
+    _baseStreamer(baseStreamer),
+    _valueStreamer(valueStreamer) {
+}
+
+QVariant MappedListTypeStreamer::read(Bitstream& in) const {
+    QVariant object = _baseStreamer ? QVariant(_baseStreamer->getType(), 0) : QVariant();
+    int size;
+    in >> size;
+    for (int i = 0; i < size; i++) {
+        QVariant value = _valueStreamer->read(in);
+        if (_baseStreamer) {
+            _baseStreamer->insert(object, value);
+        }
+    }
+    return object;
+}
+
+void MappedListTypeStreamer::readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const {
+    object = reference;
+    int size, referenceSize;
+    in >> size >> referenceSize;
+    if (_baseStreamer) {
+        if (size < referenceSize) {
+            _baseStreamer->prune(object, size);
+        }
+        for (int i = 0; i < size; i++) {
+            if (i < referenceSize) {
+                QVariant value;
+                _valueStreamer->readDelta(in, value, _baseStreamer->getValue(reference, i));
+                _baseStreamer->setValue(object, i, value);
+            } else {
+                _baseStreamer->insert(object, _valueStreamer->read(in));
+            }
+        }
+    } else {
+        for (int i = 0; i < size; i++) {
+            if (i < referenceSize) {
+                QVariant value;
+                _valueStreamer->readDelta(in, value, QVariant());
+            } else {
+                _valueStreamer->read(in);
+            }
+        }
+    }
+}
+
+MappedSetTypeStreamer::MappedSetTypeStreamer(const TypeStreamer* baseStreamer, const TypeStreamerPointer& valueStreamer) :
+    MappedListTypeStreamer(baseStreamer, valueStreamer) {
+}
+
+void MappedSetTypeStreamer::readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const {
+    object = reference;
+    int addedOrRemoved;
+    in >> addedOrRemoved;
+    for (int i = 0; i < addedOrRemoved; i++) {
+        QVariant value = _valueStreamer->read(in);
+        if (_baseStreamer && !_baseStreamer->remove(object, value)) {
+            _baseStreamer->insert(object, value);
+        }
+    }
+}
+
+MappedMapTypeStreamer::MappedMapTypeStreamer(const TypeStreamer* baseStreamer, const TypeStreamerPointer& keyStreamer,
+        const TypeStreamerPointer& valueStreamer) :
+    _baseStreamer(baseStreamer),
+    _keyStreamer(keyStreamer),
+    _valueStreamer(valueStreamer) {
+}
+
+QVariant MappedMapTypeStreamer::read(Bitstream& in) const {
+    QVariant object = _baseStreamer ? QVariant(_baseStreamer->getType(), 0) : QVariant();
+    int size;
+    in >> size;
+    for (int i = 0; i < size; i++) {
+        QVariant key = _keyStreamer->read(in);
+        QVariant value = _valueStreamer->read(in);
+        if (_baseStreamer) {
+            _baseStreamer->insert(object, key, value);
+        }
+    }
+    return object;
+}
+
+void MappedMapTypeStreamer::readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const {
+    object = reference;
+    int added;
+    in >> added;
+    for (int i = 0; i < added; i++) {
+        QVariant key = _keyStreamer->read(in);
+        QVariant value = _valueStreamer->read(in);
+        if (_baseStreamer) {
+            _baseStreamer->insert(object, key, value);
+        }
+    }
+    int modified;
+    in >> modified;
+    for (int i = 0; i < modified; i++) {
+        QVariant key = _keyStreamer->read(in);
+        QVariant value;
+        if (_baseStreamer) {
+            _valueStreamer->readDelta(in, value, _baseStreamer->getValue(reference, key));
+            _baseStreamer->insert(object, key, value);
+        } else {
+            _valueStreamer->readDelta(in, value, QVariant());
+        }
+    }
+    int removed;
+    in >> removed;
+    for (int i = 0; i < removed; i++) {
+        QVariant key = _keyStreamer->read(in);
+        if (_baseStreamer) {
+            _baseStreamer->remove(object, key);
+        }
+    }
+}
+

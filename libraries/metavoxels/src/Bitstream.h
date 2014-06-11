@@ -47,6 +47,7 @@ class TypeStreamer;
 typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
 
 typedef QPair<QByteArray, QByteArray> ScopeNamePair;
+typedef QSharedPointer<TypeStreamer> TypeStreamerPointer;
 typedef QVector<PropertyReader> PropertyReaderVector;
 typedef QVector<PropertyWriter> PropertyWriterVector;
 
@@ -904,8 +905,6 @@ Q_DECLARE_METATYPE(const QMetaObject*)
 /// Macro for registering streamable meta-objects.
 #define REGISTER_META_OBJECT(x) static int x##Registration = Bitstream::registerMetaObject(#x, &x::staticMetaObject);
 
-typedef QSharedPointer<TypeStreamer> TypeStreamerPointer;
-
 /// Interface for objects that can write values to and read values from bitstreams.
 class TypeStreamer {
 public:
@@ -1014,6 +1013,22 @@ private:
     int _bits;
 };
 
+/// A streamer class for enums that maps to a local type.
+class MappedEnumTypeStreamer : public TypeStreamer {
+public:
+
+    MappedEnumTypeStreamer(const TypeStreamer* baseStreamer, int bits, const QHash<int, int>& mappings);
+    
+    virtual QVariant read(Bitstream& in) const;
+    virtual void readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
+    
+private:
+    
+    const TypeStreamer* _baseStreamer;
+    int _bits;
+    QHash<int, int> _mappings;
+};
+
 /// Contains a value along with a pointer to its streamer.
 class GenericValue {
 public:
@@ -1089,6 +1104,21 @@ public:
         static_cast<QVector<T>*>(object.data())->replace(index, value.value<T>()); }
 };
 
+/// A streamer for lists that maps to a local type.
+class MappedListTypeStreamer : public TypeStreamer {
+public:
+    
+    MappedListTypeStreamer(const TypeStreamer* baseStreamer, const TypeStreamerPointer& valueStreamer);
+    
+    virtual QVariant read(Bitstream& in) const;
+    virtual void readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
+    
+protected:
+    
+    const TypeStreamer* _baseStreamer;
+    TypeStreamerPointer _valueStreamer;
+};
+
 /// A streamer for set types.
 template<class T> class CollectionTypeStreamer<QSet<T> > : public SimpleTypeStreamer<QSet<T> > {
 public:
@@ -1099,6 +1129,15 @@ public:
         static_cast<QSet<T>*>(object.data())->insert(value.value<T>()); }
     virtual bool remove(QVariant& object, const QVariant& key) const {
         return static_cast<QSet<T>*>(object.data())->remove(key.value<T>()); }
+};
+
+/// A streamer for sets that maps to a local type.
+class MappedSetTypeStreamer : public MappedListTypeStreamer {
+public:
+    
+    MappedSetTypeStreamer(const TypeStreamer* baseStreamer, const TypeStreamerPointer& valueStreamer);
+    
+    virtual void readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
 };
 
 /// A streamer for hash types.
@@ -1114,6 +1153,23 @@ public:
         return static_cast<QHash<K, V>*>(object.data())->remove(key.value<K>()); }
     virtual QVariant getValue(const QVariant& object, const QVariant& key) const {
         return QVariant::fromValue(static_cast<const QHash<K, V>*>(object.constData())->value(key.value<K>())); }
+};
+
+/// A streamer for maps that maps to a local type.
+class MappedMapTypeStreamer : public TypeStreamer {
+public:
+    
+    MappedMapTypeStreamer(const TypeStreamer* baseStreamer, const TypeStreamerPointer& keyStreamer,
+        const TypeStreamerPointer& valueStreamer);
+    
+    virtual QVariant read(Bitstream& in) const;
+    virtual void readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
+    
+private:
+    
+    const TypeStreamer* _baseStreamer;
+    TypeStreamerPointer _keyStreamer;
+    TypeStreamerPointer _valueStreamer;
 };
 
 /// Macro for registering simple type streamers.
