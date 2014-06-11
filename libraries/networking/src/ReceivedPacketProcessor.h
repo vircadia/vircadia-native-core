@@ -42,7 +42,7 @@ public:
     int packetsToProcessCount() const { return _packets.size(); }
 
 public slots:
-    void nodeKilled(const SharedNodePointer& node);
+    void nodeKilled(SharedNodePointer node);
 
 protected:
     /// Callback for processing of recieved packets. Implement this to process the incoming packets.
