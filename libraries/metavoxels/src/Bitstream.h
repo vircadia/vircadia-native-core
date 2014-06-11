@@ -466,6 +466,9 @@ private:
     static const QHash<QByteArray, const TypeStreamer*>& getEnumStreamersByName();
     static QHash<QByteArray, const TypeStreamer*> createEnumStreamersByName();
     
+    static const TypeStreamer* getInvalidTypeStreamer();
+    static const TypeStreamer* createInvalidTypeStreamer();
+    
     static const QHash<const QMetaObject*, PropertyReaderVector>& getPropertyReaders();
     static QHash<const QMetaObject*, PropertyReaderVector> createPropertyReaders();
     
