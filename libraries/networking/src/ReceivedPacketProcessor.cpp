@@ -17,13 +17,14 @@ void ReceivedPacketProcessor::terminating() {
     _hasPackets.wakeAll();
 }
 
-void ReceivedPacketProcessor::queueReceivedPacket(const SharedNodePointer& destinationNode, const QByteArray& packet) {
+void ReceivedPacketProcessor::queueReceivedPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
     // Make sure our Node and NodeList knows we've heard from this node.
-    destinationNode->setLastHeardMicrostamp(usecTimestampNow());
+    sendingNode->setLastHeardMicrostamp(usecTimestampNow());
 
-    NetworkPacket networkPacket(destinationNode, packet);
+    NetworkPacket networkPacket(sendingNode, packet);
     lock();
     _packets.push_back(networkPacket);
+    _nodePacketCounts[sendingNode->getUUID()]++;
     unlock();
     
     // Make sure to  wake our actual processing thread because we  now have packets for it to process.
@@ -42,8 +43,13 @@ bool ReceivedPacketProcessor::process() {
         NetworkPacket& packet = _packets.front(); // get the oldest packet
         NetworkPacket temporary = packet; // make a copy of the packet in case the vector is resized on us
         _packets.erase(_packets.begin()); // remove the oldest packet
+        _nodePacketCounts[temporary.getNode()->getUUID()]--;
         unlock(); // let others add to the packets
-        processPacket(temporary.getDestinationNode(), temporary.getByteArray()); // process our temporary copy
+        processPacket(temporary.getNode(), temporary.getByteArray()); // process our temporary copy
     }
     return isStillRunning();  // keep running till they terminate us
+}
+
+void ReceivedPacketProcessor::killNode(const SharedNodePointer& node) {
+    _nodePacketCounts.remove(node->getUUID());
 }
