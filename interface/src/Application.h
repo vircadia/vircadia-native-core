@@ -88,7 +88,7 @@
 #include "voxels/VoxelFade.h"
 #include "voxels/VoxelHideShowThread.h"
 #include "voxels/VoxelImporter.h"
-#include "voxels/VoxelPacketProcessor.h"
+#include "voxels/OctreePacketProcessor.h"
 #include "voxels/VoxelSystem.h"
 
 
@@ -129,7 +129,7 @@ static const float MIRROR_FIELD_OF_VIEW = 30.0f;
 class Application : public QApplication {
     Q_OBJECT
 
-    friend class VoxelPacketProcessor;
+    friend class OctreePacketProcessor;
     friend class VoxelEditPacketSender;
     friend class DatagramProcessor;
 
@@ -192,7 +192,7 @@ public:
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
     VoxelTree* getVoxelTree() { return _voxels.getTree(); }
-    const VoxelPacketProcessor& getVoxelPacketProcessor() const { return _voxelProcessor; }
+    const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     ParticleTreeRenderer* getParticles() { return &_particles; }
     MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
     ModelTreeRenderer* getModels() { return &_models; }
@@ -533,7 +533,7 @@ private:
     Audio _audio;
 
     bool _enableProcessVoxelsThread;
-    VoxelPacketProcessor _voxelProcessor;
+    OctreePacketProcessor _octreeProcessor;
     VoxelHideShowThread _voxelHideShowThread;
     VoxelEditPacketSender _voxelEditSender;
     ParticleEditPacketSender _particleEditSender;
