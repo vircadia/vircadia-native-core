@@ -33,64 +33,6 @@ SharedAssignmentPointer AssignmentClient::_currentAssignment;
 
 int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
 
-template <class T>
-class Parse : public Parser {
-public:
-    Parse(const QString& option, bool required, T* value) : Parser(option, required), _value(value) {}
-    bool parse(const QStringList& argumentList);
-private:
-    T* _value;
-};
-
-template<>
-bool Parse<Assignment::Type>::parse(const QStringList& argumentList) {
-    int argumentIndex = findToken(argumentList);
-    if (argumentIndex != -1) {
-        argumentIndex++;
-        if (argumentList.size() > argumentIndex) {
-            bool ok;
-            int value = argumentList[argumentIndex].toInt(&ok);
-            if (ok) {
-                *_value = static_cast<Assignment::Type>(value);
-            }
-            validateValue(ok);
-        } else {
-            valueNotSpecified();
-        }
-    }
-    return isValid();
-}
-
-template<>
-bool Parse<QUuid>::parse(const QStringList& argumentList) {
-    int argumentIndex = findToken(argumentList);
-    if (argumentIndex != -1) {
-        argumentIndex++;
-        if (argumentList.size() > argumentIndex) {
-            *_value = QString(argumentList[argumentIndex]);
-            validateValue(!_value->isNull());
-        } else {
-            valueNotSpecified();
-        }
-    }
-    return isValid();
-}
-
-template<>
-bool Parse<QString>::parse(const QStringList& argumentList) {
-    int argumentIndex = findToken(argumentList);
-    if (argumentIndex != -1) {
-        argumentIndex++;
-        if (argumentList.size() > argumentIndex) {
-            *_value = argumentList[argumentIndex];
-            validateValue(true);
-        } else {
-            valueNotSpecified();
-        }
-    }
-    return isValid();
-}
-
 AssignmentClient::AssignmentClient(int &argc, char **argv) :
     QCoreApplication(argc, argv),
     _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME)
@@ -101,42 +43,40 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     QSettings::setDefaultFormat(QSettings::IniFormat);
     
     QStringList argumentList = arguments();
-
-    // Define parser tokens
-    const QString ASSIGNMENT_TYPE_OVERRIDE_OPTION = "-t";
-    const QString ASSIGNMENT_POOL_OPTION = "--pool";
-    const QString ASSIGNMENT_WALLET_DESTINATION_ID_OPTION = "--wallet";
-    const QString CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION = "-a";
-
-    // Define parser results
-    Assignment::Type requestAssignmentType = Assignment::AllTypes;
-    QString assignmentPool;
-    QUuid walletUUID;
-
-    // Define parsers
-    _parsers.insert(ASSIGNMENT_TYPE_OVERRIDE_OPTION, new Parse<Assignment::Type>(ASSIGNMENT_TYPE_OVERRIDE_OPTION, false, &requestAssignmentType));
-    _parsers.insert(ASSIGNMENT_POOL_OPTION, new Parse<QString>(ASSIGNMENT_POOL_OPTION, false, &assignmentPool));
-    _parsers.insert(ASSIGNMENT_WALLET_DESTINATION_ID_OPTION, new Parse<QUuid>(ASSIGNMENT_WALLET_DESTINATION_ID_OPTION, false, &walletUUID));
-    _parsers.insert(CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION, new Parse<QString>(CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION, false, &_assignmentServerHostname));
-
+    
     // register meta type is required for queued invoke method on Assignment subclasses
     
     // set the logging target to the the CHILD_TARGET_NAME
     Logging::setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
     
-    foreach (Parser* option, _parsers) {
-        if (option) {
-            option->parse(argumentList);
-        }
+    const QString ASSIGNMENT_TYPE_OVVERIDE_OPTION = "-t";
+    int argumentIndex = argumentList.indexOf(ASSIGNMENT_TYPE_OVVERIDE_OPTION);
+    
+    Assignment::Type requestAssignmentType = Assignment::AllTypes;
+    
+    if (argumentIndex != -1) {
+        requestAssignmentType = (Assignment::Type) argumentList[argumentIndex + 1].toInt();
     }
-
+    
+    const QString ASSIGNMENT_POOL_OPTION = "--pool";
+    
+    argumentIndex = argumentList.indexOf(ASSIGNMENT_POOL_OPTION);
+    
+    QString assignmentPool;
+    
+    if (argumentIndex != -1) {
+        assignmentPool = argumentList[argumentIndex + 1];
+    }
+    
     // setup our _requestAssignment member variable from the passed arguments
     _requestAssignment = Assignment(Assignment::RequestCommand, requestAssignmentType, assignmentPool);
     
     // check if we were passed a wallet UUID on the command line
     // this would represent where the user running AC wants funds sent to
-    if (_parsers[ASSIGNMENT_WALLET_DESTINATION_ID_OPTION]->exists() &&
-        _parsers[ASSIGNMENT_WALLET_DESTINATION_ID_OPTION]->isValid()) {
+    
+    const QString ASSIGNMENT_WALLET_DESTINATION_ID_OPTION = "--wallet";
+    if ((argumentIndex = argumentList.indexOf(ASSIGNMENT_WALLET_DESTINATION_ID_OPTION)) != -1) {
+        QUuid walletUUID = QString(argumentList[argumentIndex + 1]);
         qDebug() << "The destination wallet UUID for credits is" << uuidStringWithoutCurlyBraces(walletUUID);
         _requestAssignment.setWalletUUID(walletUUID);
     }
@@ -144,9 +84,14 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     // create a NodeList as an unassigned client
     NodeList* nodeList = NodeList::createInstance(NodeType::Unassigned);
     
-    // check for an overriden assignment server hostname    
-    if (_parsers[CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION]->exists() &&
-        _parsers[CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION]->isValid()) {
+    // check for an overriden assignment server hostname
+    const QString CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION = "-a";
+    
+    argumentIndex = argumentList.indexOf(CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION);
+    
+    if (argumentIndex != -1) {
+        _assignmentServerHostname = argumentList[argumentIndex + 1];
+        
         // set the custom assignment socket on our NodeList
         HifiSockAddr customAssignmentSocket = HifiSockAddr(_assignmentServerHostname, DEFAULT_DOMAIN_SERVER_PORT);
         
@@ -166,12 +111,6 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     // connections to AccountManager for authentication
     connect(&AccountManager::getInstance(), &AccountManager::authRequired,
             this, &AssignmentClient::handleAuthenticationRequest);
-}
-
-AssignmentClient::~AssignmentClient()  {
-    foreach (Parser* option, _parsers) {
-        delete option;
-    }
 }
 
 void AssignmentClient::sendAssignmentRequest() {

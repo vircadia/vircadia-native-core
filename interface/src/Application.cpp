@@ -3483,10 +3483,8 @@ void Application::saveScripts() {
 }
 
 ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScriptFromEditor) {
-    QUrl scriptUrl(scriptName);
-    const QString& scriptURLString = scriptUrl.toString();
-    if(loadScriptFromEditor && _scriptEnginesHash.contains(scriptURLString) && !_scriptEnginesHash[scriptURLString]->isFinished()){
-        return _scriptEnginesHash[scriptURLString];
+    if(loadScriptFromEditor && _scriptEnginesHash.contains(scriptName) && !_scriptEnginesHash[scriptName]->isFinished()){
+        return _scriptEnginesHash[scriptName];
     }
 
     ScriptEngine* scriptEngine;
@@ -3494,8 +3492,9 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
         scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
     } else {
         // start the script on a new thread...
+        QUrl scriptUrl(scriptName);
         scriptEngine = new ScriptEngine(scriptUrl, &_controllerScriptingInterface);
-        _scriptEnginesHash.insert(scriptURLString, scriptEngine);
+        _scriptEnginesHash.insert(scriptUrl.toString(), scriptEngine);
 
         if (!scriptEngine->hasScript()) {
             qDebug() << "Application::loadScript(), script failed to load...";

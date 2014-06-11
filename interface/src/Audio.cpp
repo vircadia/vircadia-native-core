@@ -219,9 +219,8 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
             pPropertyStore->Release();
             pPropertyStore = NULL;
             //QAudio devices seems to only take the 31 first characters of the Friendly Device Name.
-            //const DWORD QT_WIN_MAX_AUDIO_DEVICENAME_LEN = 31;
-            // deviceName = QString::fromWCharArray((wchar_t*)pv.pwszVal).left(QT_WIN_MAX_AUDIO_DEVICENAME_LEN);
-            deviceName = QString::fromWCharArray((wchar_t*)pv.pwszVal);
+            const DWORD QT_WIN_MAX_AUDIO_DEVICENAME_LEN = 31;
+            deviceName = QString::fromWCharArray((wchar_t*)pv.pwszVal).left(QT_WIN_MAX_AUDIO_DEVICENAME_LEN);
             qDebug() << (mode == QAudio::AudioOutput ? "output" : "input") << " device:" << deviceName;
             PropVariantClear(&pv);
         }
@@ -1078,35 +1077,13 @@ void Audio::renderToolBox(int x, int y, bool boxed) {
     }
 
     _iconBounds = QRect(x, y, MUTE_ICON_SIZE, MUTE_ICON_SIZE);
-
-    static quint64 last = 0; // Hold the last time sample
-
     if (!_muted) {
-        last = 0;
-        glColor3f(1,1,1);
         glBindTexture(GL_TEXTURE_2D, _micTextureId);
     } else {
-        quint64 usecTimestampNow();
-        static const float CYCLE_DURATION = 3.0f; // Seconds
-        quint64 now = usecTimestampNow();
-        float delta = (float)(now - last) / 1000000.0f;
-        float from = 1.0f;          // Linear fade down (upper bound)
-        float to = 0.3f;            // Linear fade down (lower bound)
-
-        if (delta > CYCLE_DURATION) {
-            last = now;
-            delta -= (int)delta;
-        } else if (delta > (CYCLE_DURATION * 0.5f)) {
-            // Linear fade up
-            from = 0.3f;            // lower bound
-            to = 1.0f;              // upper bound
-        }
-        // Compute a linear ramp to fade the color from full to partial saturation
-        float linearRamp = (from - to) * delta / CYCLE_DURATION + to;
-        glColor3f(linearRamp, linearRamp, linearRamp);
         glBindTexture(GL_TEXTURE_2D, _muteTextureId);
     }
 
+    glColor3f(1,1,1);
     glBegin(GL_QUADS);
 
     glTexCoord2f(1, 1);
