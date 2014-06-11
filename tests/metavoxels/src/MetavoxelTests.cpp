@@ -11,6 +11,8 @@
 
 #include <stdlib.h>
 
+#include <QScriptValueIterator>
+
 #include <SharedUtil.h>
 
 #include <MetavoxelMessages.h>
@@ -41,6 +43,8 @@ static int streamedBytesReceived = 0;
 static int sharedObjectsCreated = 0;
 static int sharedObjectsDestroyed = 0;
 static int objectMutationsPerformed = 0;
+static int scriptObjectsCreated = 0;
+static int scriptMutationsPerformed = 0;
 
 static QByteArray createRandomBytes(int minimumSize, int maximumSize) {
     QByteArray bytes(randIntInRange(minimumSize, maximumSize), 0);
@@ -79,6 +83,48 @@ static TestSharedObjectA::TestFlags getRandomTestFlags() {
     return flags;
 }
 
+static QScriptValue createRandomScriptValue(bool complex = false) {
+    scriptObjectsCreated++;
+    switch (randIntInRange(0, complex ? 5 : 3)) {
+        case 0:
+            return QScriptValue(QScriptValue::NullValue);
+        
+        case 1:
+            return QScriptValue(randomBoolean());
+        
+        case 2:
+            return QScriptValue(randFloat());
+        
+        case 3:
+            return QScriptValue(QString(createRandomBytes()));
+        
+        case 4: {
+            int length = randIntInRange(2, 6);
+            QScriptValue value = ScriptCache::getInstance()->getEngine()->newArray(length);
+            for (int i = 0; i < length; i++) {
+                value.setProperty(i, createRandomScriptValue());
+            }
+            return value;
+        }
+        default: {
+            QScriptValue value = ScriptCache::getInstance()->getEngine()->newObject();
+            if (randomBoolean()) {
+                value.setProperty("foo", createRandomScriptValue());
+            }
+            if (randomBoolean()) {
+                value.setProperty("bar", createRandomScriptValue());
+            }
+            if (randomBoolean()) {
+                value.setProperty("baz", createRandomScriptValue());
+            }
+            if (randomBoolean()) {
+                value.setProperty("bong", createRandomScriptValue());
+            }
+            return value;
+        }
+    }
+}
+
 static TestMessageC createRandomMessageC() {
     TestMessageC message;
     message.foo = randomBoolean();
@@ -86,6 +132,7 @@ static TestMessageC createRandomMessageC() {
     message.baz = randFloat();
     message.bong.foo = createRandomBytes();
     message.bong.baz = getRandomTestEnum();
+    message.bizzle = createRandomScriptValue(true);
     return message;
 }
 
@@ -201,6 +248,7 @@ bool MetavoxelTests::run() {
         datagramsReceived << "with" << bytesReceived << "bytes";
     qDebug() << "Created" << sharedObjectsCreated << "shared objects, destroyed" << sharedObjectsDestroyed;
     qDebug() << "Performed" << objectMutationsPerformed << "object mutations";
+    qDebug() << "Created" << scriptObjectsCreated << "script objects, mutated" << scriptMutationsPerformed;
     qDebug();
     
     qDebug() << "Running serialization tests...";
@@ -284,7 +332,7 @@ static QVariant createRandomMessage() {
 }
 
 static SharedObjectPointer mutate(const SharedObjectPointer& state) {
-    switch(randIntInRange(0, 3)) {
+    switch (randIntInRange(0, 4)) {
         case 0: {
             SharedObjectPointer newState = state->clone(true);
             static_cast<TestSharedObjectA*>(newState.data())->setFoo(randFloat());
@@ -300,6 +348,38 @@ static SharedObjectPointer mutate(const SharedObjectPointer& state) {
         case 2: {
             SharedObjectPointer newState = state->clone(true);
             static_cast<TestSharedObjectA*>(newState.data())->setBong(getRandomTestFlags());
+            objectMutationsPerformed++;
+            return newState;
+        }
+        case 3: {
+            SharedObjectPointer newState = state->clone(true);
+            QScriptValue oldValue = static_cast<TestSharedObjectA*>(newState.data())->getBizzle();
+            QScriptValue newValue = ScriptCache::getInstance()->getEngine()->newObject();
+            for (QScriptValueIterator it(oldValue); it.hasNext(); ) {
+                it.next();
+                newValue.setProperty(it.scriptName(), it.value());
+            }
+            switch (randIntInRange(0, 2)) {
+                case 0: {
+                    QScriptValue oldArray = oldValue.property("foo");
+                    int oldLength = oldArray.property(ScriptCache::getInstance()->getLengthString()).toInt32();
+                    QScriptValue newArray = ScriptCache::getInstance()->getEngine()->newArray(oldLength);
+                    for (int i = 0; i < oldLength; i++) {
+                        newArray.setProperty(i, oldArray.property(i));
+                    }
+                    newArray.setProperty(randIntInRange(0, oldLength - 1), createRandomScriptValue(true));
+                    break;
+                }
+                case 1:
+                    newValue.setProperty("bar", QScriptValue(randFloat()));
+                    break;
+                    
+                default:
+                    newValue.setProperty("baz", createRandomScriptValue(true));
+                    break;
+            }
+            static_cast<TestSharedObjectA*>(newState.data())->setBizzle(newValue);
+            scriptMutationsPerformed++;
             objectMutationsPerformed++;
             return newState;
         }
@@ -503,7 +583,10 @@ TestSharedObjectA::TestSharedObjectA(float foo, TestEnum baz, TestFlags bong) :
         _foo(foo),
         _baz(baz),
         _bong(bong) {
-    sharedObjectsCreated++;    
+    sharedObjectsCreated++; 
+    
+    _bizzle = ScriptCache::getInstance()->getEngine()->newObject();
+    _bizzle.setProperty("foo", ScriptCache::getInstance()->getEngine()->newArray(4));
 }
 
 TestSharedObjectA::~TestSharedObjectA() {
