@@ -103,6 +103,7 @@ Menu::Menu() :
     _fastFPSAverage(ONE_SECOND_OF_FRAMES),
     _loginAction(NULL),
     _preferencesDialog(NULL),
+    _loginDialog(NULL),
     _snapshotsLocation()
 {
     Application *appInstance = Application::getInstance();
@@ -913,9 +914,11 @@ void sendFakeEnterEvent() {
 const float DIALOG_RATIO_OF_WINDOW = 0.30f;
 
 void Menu::loginForCurrentDomain() {
-    LoginDialog* loginDialog = new LoginDialog(Application::getInstance()->getWindow());
-    loginDialog->show();
-    loginDialog->resizeAndPosition(false);
+    if (!_loginDialog) {
+        _loginDialog = new LoginDialog(Application::getInstance()->getWindow());
+        _loginDialog->show();
+        _loginDialog->resizeAndPosition(false);
+    }
 }
 
 void Menu::editPreferences() {
