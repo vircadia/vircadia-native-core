@@ -367,7 +367,6 @@ void LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID) {
 NodeHash::iterator LimitedNodeList::killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill) {
     qDebug() << "Killed" << *nodeItemToKill.value();
     emit nodeKilled(nodeItemToKill.value());
-printf("\t\t\t emitting nodeKilled: %s\n", nodeItemToKill.value()->getUUID().toString().toLatin1().data());
     return _nodeHash.erase(nodeItemToKill);
 }
 
