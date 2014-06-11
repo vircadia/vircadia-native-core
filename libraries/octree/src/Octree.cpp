@@ -1598,7 +1598,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         // and assume that the appendElementData() has stored any required state data
         // in the params extraEncodeData
         if (elementAppendState == OctreeElement::PARTIAL) {
-            qDebug() << "elementAppendState == OctreeElement::PARTIAL... bag.insert(element).....";
             bag.insert(element);
         }
     }

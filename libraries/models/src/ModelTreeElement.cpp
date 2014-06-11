@@ -148,15 +148,20 @@ OctreeElement::AppendState ModelTreeElement::appendElementData(OctreePacketData*
             delete elementExtraEncodeData;
         }
     }
+
+    // Determine if no models at all were able to fit    
+    bool noModelsFit = (numberOfModels > 0 && actualNumberOfModels == 0);
     
     // If we wrote fewer models than we expected, update the number of models in our packet
     bool successUpdateModelCount = true;
-    if (numberOfModels != actualNumberOfModels) {
+    if (!noModelsFit && numberOfModels != actualNumberOfModels) {
         successUpdateModelCount = packetData->updatePriorBytes(numberOfModelsOffset,
                                             (const unsigned char*)&actualNumberOfModels, sizeof(actualNumberOfModels));
     }
 
-    if (!successUpdateModelCount) {
+    // If we weren't able to update our model count, or we couldn't fit any models, then
+    // we should discard our element and return a result of NONE
+    if (!successUpdateModelCount || noModelsFit) {
         packetData->discardLevel(elementLevel);
         appendElementState = OctreeElement::NONE;
     } else {
