@@ -123,11 +123,14 @@ Audio::Audio(QObject* parent) :
     memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
     // Create the noise sample array
     _noiseSampleFrames = new float[NUMBER_OF_NOISE_SAMPLE_FRAMES];
-
+    
     connect(&_receivedAudioStream, &MixedProcessedAudioStream::addedSilence, this, &Audio::addStereoSilenceToScope, Qt::DirectConnection);
     connect(&_receivedAudioStream, &MixedProcessedAudioStream::addedLastFrameRepeatedWithFade, this, &Audio::addLastFrameRepeatedWithFadeToScope, Qt::DirectConnection);
     connect(&_receivedAudioStream, &MixedProcessedAudioStream::addedStereoSamples, this, &Audio::addStereoSamplesToScope, Qt::DirectConnection);
     connect(&_receivedAudioStream, &MixedProcessedAudioStream::processSamples, this, &Audio::processReceivedSamples, Qt::DirectConnection);
+    
+    // Initialize GVerb
+    initGverb();
 }
 
 void Audio::init(QGLWidget *parent) {
@@ -487,6 +490,70 @@ bool Audio::switchInputToAudioDevice(const QString& inputDeviceName) {
 bool Audio::switchOutputToAudioDevice(const QString& outputDeviceName) {
     qDebug() << "DEBUG [" << outputDeviceName << "] [" << getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName).deviceName() << "]";
     return switchOutputToAudioDevice(getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName));
+}
+
+void Audio::initGverb() {
+    // Initialize a new gverb instance
+    _gverb = gverb_new(_outputFormat.sampleRate(), _reverbOptions.getMaxRoomSize(), _reverbOptions.getRoomSize(), _reverbOptions.getReverbTime(),
+                       _reverbOptions.getDamping(), _reverbOptions.getSpread(), _reverbOptions.getInputBandwidth(), _reverbOptions.getEarlyLevel(),
+                       _reverbOptions.getTailLevel());
+
+    // Configure the instance (these functions are not super well named - they actually set several internal variables)
+    gverb_set_roomsize(_gverb, _reverbOptions.getRoomSize());
+    gverb_set_revtime(_gverb, _reverbOptions.getReverbTime());
+    gverb_set_damping(_gverb, _reverbOptions.getDamping());
+    gverb_set_inputbandwidth(_gverb, _reverbOptions.getInputBandwidth());
+    gverb_set_earlylevel(_gverb, DB_CO(_reverbOptions.getEarlyLevel()));
+    gverb_set_taillevel(_gverb, DB_CO(_reverbOptions.getTailLevel()));
+}
+
+void Audio::setReverbOptions(const AudioEffectOptions* options) {
+    // Save the new options
+    _reverbOptions.setMaxRoomSize(options->getMaxRoomSize());
+    _reverbOptions.setRoomSize(options->getRoomSize());
+    _reverbOptions.setReverbTime(options->getReverbTime());
+    _reverbOptions.setDamping(options->getDamping());
+    _reverbOptions.setSpread(options->getSpread());
+    _reverbOptions.setInputBandwidth(options->getInputBandwidth());
+    _reverbOptions.setEarlyLevel(options->getEarlyLevel());
+    _reverbOptions.setTailLevel(options->getTailLevel());
+
+    _reverbOptions.setDryLevel(options->getDryLevel());
+    _reverbOptions.setWetLevel(options->getWetLevel());
+
+    // Apply them to the reverb instance(s)
+    initGverb();
+}
+
+void Audio::addReverb(int16_t* samplesData, int numSamples, QAudioFormat& audioFormat) {
+    float dryFraction = DB_CO(_reverbOptions.getDryLevel());
+    float wetFraction = DB_CO(_reverbOptions.getWetLevel());
+
+    float lValue,rValue;
+    for (int sample = 0; sample < numSamples; sample += audioFormat.channelCount()) {
+        // Run GVerb
+        float value = (float)samplesData[sample];
+        gverb_do(_gverb, value, &lValue, &rValue);
+
+        // Mix, accounting for clipping, the left and right channels. Ignore the rest.
+        for (unsigned int j = sample; j < sample + audioFormat.channelCount(); j++) {
+            if (j == sample) {
+                // left channel
+                int lResult = (int)(samplesData[j] * dryFraction + lValue * wetFraction);
+                if (lResult > 32767) lResult = 32767;
+                if (lResult < -32768) lResult = -32768;
+                samplesData[j] = (int16_t)lResult;
+            } else if (j == (sample + 1)) {
+                // right channel
+                int rResult = (int)(samplesData[j] * dryFraction + rValue * wetFraction);
+                if (rResult > 32767) rResult = 32767;
+                if (rResult < -32768) rResult = -32768;
+                samplesData[j] = (int16_t)rResult;
+            } else {
+                // ignore channels above 2
+            }
+        }
+    }
 }
 
 void Audio::handleAudioInput() {
@@ -1057,6 +1124,110 @@ void Audio::toggleStereoInput() {
     if (oldChannelCount != _desiredInputFormat.channelCount()) {
         // change in channel count for desired input format, restart the input device
         switchInputToAudioDevice(_inputAudioDeviceName);
+    }
+}
+
+void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
+    _ringBuffer.parseData(audioByteArray);
+    
+    float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())
+        * (_desiredOutputFormat.channelCount() / (float) _outputFormat.channelCount());
+    
+    if (!_ringBuffer.isStarved() && _audioOutput && _audioOutput->bytesFree() == _audioOutput->bufferSize()) {
+        // we don't have any audio data left in the output buffer
+        // we just starved
+        //qDebug() << "Audio output just starved.";
+        _ringBuffer.setIsStarved(true);
+        _numFramesDisplayStarve = 10;
+    }
+    
+    // if there is anything in the ring buffer, decide what to do
+    if (_ringBuffer.samplesAvailable() > 0) {
+        
+        int numNetworkOutputSamples = _ringBuffer.samplesAvailable();
+        int numDeviceOutputSamples = numNetworkOutputSamples / networkOutputToOutputRatio;
+        
+        QByteArray outputBuffer;
+        outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
+        
+        int numSamplesNeededToStartPlayback = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (_jitterBufferSamples * 2);
+        
+        if (!_ringBuffer.isNotStarvedOrHasMinimumSamples(numSamplesNeededToStartPlayback)) {
+            //  We are still waiting for enough samples to begin playback
+            // qDebug() << numNetworkOutputSamples << " samples so far, waiting for " << numSamplesNeededToStartPlayback;
+        } else {
+            //  We are either already playing back, or we have enough audio to start playing back.
+            //qDebug() << "pushing " << numNetworkOutputSamples;
+            _ringBuffer.setIsStarved(false);
+
+            int16_t* ringBufferSamples = new int16_t[numNetworkOutputSamples];
+            if (_processSpatialAudio) {
+                unsigned int sampleTime = _spatialAudioStart;
+                QByteArray buffer;
+                buffer.resize(numNetworkOutputSamples * sizeof(int16_t));
+
+                _ringBuffer.readSamples((int16_t*)buffer.data(), numNetworkOutputSamples);
+                // Accumulate direct transmission of audio from sender to receiver
+                if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncludeOriginal)) {
+                    emit preProcessOriginalInboundAudio(sampleTime, buffer, _desiredOutputFormat);
+                    addSpatialAudioToBuffer(sampleTime, buffer, numNetworkOutputSamples);
+                }
+
+                // Send audio off for spatial processing
+                emit processInboundAudio(sampleTime, buffer, _desiredOutputFormat);
+
+                // copy the samples we'll resample from the spatial audio ring buffer - this also
+                // pushes the read pointer of the spatial audio ring buffer forwards
+                _spatialAudioRingBuffer.readSamples(ringBufferSamples, numNetworkOutputSamples);
+
+                // Advance the start point for the next packet of audio to arrive
+                _spatialAudioStart += numNetworkOutputSamples / _desiredOutputFormat.channelCount();
+            } else {
+                // copy the samples we'll resample from the ring buffer - this also
+                // pushes the read pointer of the ring buffer forwards
+                _ringBuffer.readSamples(ringBufferSamples, numNetworkOutputSamples);
+            }
+
+            // copy the packet from the RB to the output
+            linearResampling(ringBufferSamples,
+                             (int16_t*) outputBuffer.data(),
+                             numNetworkOutputSamples,
+                             numDeviceOutputSamples,
+                             _desiredOutputFormat, _outputFormat);
+
+            if(_reverb) {
+                addReverb((int16_t*)outputBuffer.data(), numDeviceOutputSamples, _outputFormat);
+            }
+
+            if (_outputDevice) {
+                _outputDevice->write(outputBuffer);
+            }
+
+            if (_scopeEnabled && !_scopeEnabledPause) {
+                unsigned int numAudioChannels = _desiredOutputFormat.channelCount();
+                int16_t* samples = ringBufferSamples;
+                for (int numSamples = numNetworkOutputSamples / numAudioChannels; numSamples > 0; numSamples -= NETWORK_SAMPLES_PER_FRAME) {
+
+                    unsigned int audioChannel = 0;
+                    addBufferToScope(
+                        _scopeOutputLeft, 
+                        _scopeOutputOffset, 
+                        samples, audioChannel, numAudioChannels); 
+
+                    audioChannel = 1;
+                    addBufferToScope(
+                        _scopeOutputRight, 
+                        _scopeOutputOffset, 
+                        samples, audioChannel, numAudioChannels); 
+                
+                    _scopeOutputOffset += NETWORK_SAMPLES_PER_FRAME;
+                    _scopeOutputOffset %= _samplesPerScope;
+                    samples += NETWORK_SAMPLES_PER_FRAME * numAudioChannels;
+                }
+            }
+
+            delete[] ringBufferSamples;
+        }
     }
 }
 
