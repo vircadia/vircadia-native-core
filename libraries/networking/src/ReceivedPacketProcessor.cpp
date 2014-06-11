@@ -49,3 +49,7 @@ bool ReceivedPacketProcessor::process() {
     }
     return isStillRunning();  // keep running till they terminate us
 }
+
+void ReceivedPacketProcessor::killNode(const SharedNodePointer& node) {
+    _nodePacketCounts.remove(node->getUUID());
+}
