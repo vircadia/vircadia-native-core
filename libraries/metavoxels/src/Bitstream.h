@@ -29,6 +29,7 @@
 class QByteArray;
 class QColor;
 class QDataStream;
+class QScriptValue;
 class QUrl;
 
 class Attribute;
@@ -43,6 +44,10 @@ class TypeReader;
 class TypeStreamer;
 
 typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
+
+typedef QPair<QByteArray, QByteArray> ScopeNamePair;
+typedef QVector<PropertyReader> PropertyReaderVector;
+typedef QVector<PropertyWriter> PropertyWriterVector;
 
 /// Streams integer identifiers that conform to the following pattern: each ID encountered in the stream is either one that
 /// has been sent (received) before, or is one more than the highest previously encountered ID (starting at zero).  This allows
@@ -287,10 +292,14 @@ public:
     template<class T> void writeDelta(const T& value, const T& reference);
     template<class T> void readDelta(T& value, const T& reference); 
 
+    void writeRawDelta(const QVariant& value, const QVariant& reference);
     void readRawDelta(QVariant& value, const QVariant& reference);
 
     void writeRawDelta(const QObject* value, const QObject* reference);
     void readRawDelta(QObject*& value, const QObject* reference);
+
+    void writeRawDelta(const QScriptValue& value, const QScriptValue& reference);
+    void readRawDelta(QScriptValue& value, const QScriptValue& reference);
 
     template<class T> void writeRawDelta(const T& value, const T& reference);
     template<class T> void readRawDelta(T& value, const T& reference); 
@@ -316,8 +325,14 @@ public:
     Bitstream& operator<<(uint value);
     Bitstream& operator>>(uint& value);
     
+    Bitstream& operator<<(qint64 value);
+    Bitstream& operator>>(qint64& value);
+    
     Bitstream& operator<<(float value);
     Bitstream& operator>>(float& value);
+    
+    Bitstream& operator<<(double value);
+    Bitstream& operator>>(double& value);
     
     Bitstream& operator<<(const glm::vec3& value);
     Bitstream& operator>>(glm::vec3& value);
@@ -336,6 +351,12 @@ public:
     
     Bitstream& operator<<(const QUrl& url);
     Bitstream& operator>>(QUrl& url);
+    
+    Bitstream& operator<<(const QDateTime& dateTime);
+    Bitstream& operator>>(QDateTime& dateTime);
+    
+    Bitstream& operator<<(const QRegExp& regExp);
+    Bitstream& operator>>(QRegExp& regExp);
     
     Bitstream& operator<<(const QVariant& value);
     Bitstream& operator>>(QVariant& value);
@@ -371,6 +392,9 @@ public:
     
     Bitstream& operator<<(const QScriptString& string);
     Bitstream& operator>>(QScriptString& string);
+    
+    Bitstream& operator<<(const QScriptValue& value);
+    Bitstream& operator>>(QScriptValue& value);
     
     Bitstream& operator<<(const SharedObjectPointer& object);
     Bitstream& operator>>(SharedObjectPointer& object);
@@ -422,14 +446,18 @@ private:
     static QHash<QByteArray, const QMetaObject*>& getMetaObjects();
     static QMultiHash<const QMetaObject*, const QMetaObject*>& getMetaObjectSubClasses();
     static QHash<int, const TypeStreamer*>& getTypeStreamers();
-    static const QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*>& getEnumStreamers();
-    static QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*> createEnumStreamers();
+    
+    static const QHash<ScopeNamePair, const TypeStreamer*>& getEnumStreamers();
+    static QHash<ScopeNamePair, const TypeStreamer*> createEnumStreamers();
+    
     static const QHash<QByteArray, const TypeStreamer*>& getEnumStreamersByName();
     static QHash<QByteArray, const TypeStreamer*> createEnumStreamersByName();
-    static const QHash<const QMetaObject*, QVector<PropertyReader> >& getPropertyReaders();
-    static QHash<const QMetaObject*, QVector<PropertyReader> > createPropertyReaders();
-    static const QHash<const QMetaObject*, QVector<PropertyWriter> >& getPropertyWriters();
-    static QHash<const QMetaObject*, QVector<PropertyWriter> > createPropertyWriters();
+    
+    static const QHash<const QMetaObject*, PropertyReaderVector>& getPropertyReaders();
+    static QHash<const QMetaObject*, PropertyReaderVector> createPropertyReaders();
+    
+    static const QHash<const QMetaObject*, PropertyWriterVector>& getPropertyWriters();
+    static QHash<const QMetaObject*, PropertyWriterVector> createPropertyWriters();
 };
 
 template<class T> inline void Bitstream::writeDelta(const T& value, const T& reference) {
