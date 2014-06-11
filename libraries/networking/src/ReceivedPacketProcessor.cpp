@@ -51,5 +51,9 @@ bool ReceivedPacketProcessor::process() {
 }
 
 void ReceivedPacketProcessor::nodeKilled(SharedNodePointer node) {
-    _nodePacketCounts.remove(node->getUUID());
+    lock();
+    int numRemoved = _nodePacketCounts.remove(node->getUUID());
+    unlock();
+    qDebug() << "RPP::killNode *************************************";
+    printf("\t\t RPP::killNode: %s    killed %d nodes\n", node->getUUID().toString().toLatin1().data(), numRemoved);
 }

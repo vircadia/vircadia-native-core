@@ -244,7 +244,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), &_voxels, SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
-    connect(NodeList::getInstance(), &NodeList::nodeKilled, &_octreeProcessor, &ReceivedPacketProcessor::nodeKilled);
     connect(nodeList, &NodeList::uuidChanged, this, &Application::updateWindowTitle);
     connect(nodeList, SIGNAL(uuidChanged(const QUuid&)), _myAvatar, SLOT(setSessionUUID(const QUuid&)));
     connect(nodeList, &NodeList::limitOfSilentDomainCheckInsReached, nodeList, &NodeList::reset);
@@ -3249,6 +3248,11 @@ void Application::nodeAdded(SharedNodePointer node) {
 }
 
 void Application::nodeKilled(SharedNodePointer node) {
+
+    // this is here because connecting NodeList::nodeKilled to OctreePacketProcessor::nodeKilled doesn't work:
+    // OctreePacketProcessor::nodeKilled is not called when NodeList::nodeKilled is emitted for some reason.
+    _octreeProcessor.nodeKilled(node);
+
     if (node->getType() == NodeType::VoxelServer) {
         QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...
