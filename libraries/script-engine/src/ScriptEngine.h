@@ -40,7 +40,7 @@ const unsigned int SCRIPT_DATA_CALLBACK_USECS = floor(((1.0 / 60.0f) * 1000 * 10
 class ScriptEngine : public QObject {
     Q_OBJECT
 public:
-    ScriptEngine(const QString& fileNameString,
+    ScriptEngine(const QUrl& scriptURL,
                  AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
 
     ScriptEngine(const QString& scriptContents = NO_SCRIPT,
