@@ -45,9 +45,15 @@ class TypeStreamer;
 typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
 
 typedef QPair<QByteArray, QByteArray> ScopeNamePair;
+typedef QPair<QByteArray, int> NameIntPair;
 typedef QSharedPointer<TypeStreamer> TypeStreamerPointer;
 typedef QVector<PropertyReader> PropertyReaderVector;
 typedef QVector<PropertyWriter> PropertyWriterVector;
+
+typedef QPair<QVariant, QVariant> QVariantPair;
+typedef QList<QVariantPair> QVariantPairList;
+
+Q_DECLARE_METATYPE(QVariantPairList)
 
 /// Streams integer identifiers that conform to the following pattern: each ID encountered in the stream is either one that
 /// has been sent (received) before, or is one more than the highest previously encountered ID (starting at zero).  This allows
@@ -856,6 +862,8 @@ public:
     
     virtual const TypeStreamer* getStreamerToWrite(const QVariant& value) const;
     
+    virtual void writeMetadata(Bitstream& out, bool full) const;
+    
     virtual bool equal(const QVariant& first, const QVariant& second) const;
     
     virtual void write(Bitstream& out, const QVariant& value) const;
@@ -929,6 +937,7 @@ public:
     EnumTypeStreamer(const QMetaEnum& metaEnum);
 
     virtual const char* getName() const;
+    virtual void writeMetadata(Bitstream& out, bool full) const;
     virtual Category getCategory() const;
     virtual int getBits() const;
     virtual QMetaEnum getMetaEnum() const;
@@ -966,6 +975,36 @@ private:
     QHash<int, int> _mappings;
 };
 
+/// Base class for generic type streamers, which contain all the metadata required to write out a type.
+class GenericTypeStreamer : public TypeStreamer {
+public:
+
+    GenericTypeStreamer(const QByteArray& name);
+
+    virtual const char* getName() const;
+    
+private:
+    
+    QByteArray _name;
+};
+
+/// A streamer for generic enums.
+class GenericEnumTypeStreamer : public GenericTypeStreamer {
+public:
+
+    GenericEnumTypeStreamer(const QByteArray& name, const QVector<NameIntPair>& values, int bits, const QByteArray& hash);
+
+    virtual void writeMetadata(Bitstream& out, bool full) const;
+    virtual void write(Bitstream& out, const QVariant& value) const;
+    virtual Category getCategory() const;
+    
+private:
+    
+    QVector<NameIntPair> _values;
+    int _bits;
+    QByteArray _hash;
+};
+
 /// Contains a value along with a pointer to its streamer.
 class GenericValue {
 public:
@@ -986,7 +1025,7 @@ private:
 Q_DECLARE_METATYPE(GenericValue)
 
 /// A streamer class for generic values.
-class GenericTypeStreamer : public SimpleTypeStreamer<GenericValue> {
+class GenericValueStreamer : public SimpleTypeStreamer<GenericValue> {
 public:
     
     virtual const TypeStreamer* getStreamerToWrite(const QVariant& value) const;
@@ -1022,6 +1061,24 @@ private:
     QVector<StreamerIndexPair> _fields;
 };
 
+typedef QPair<TypeStreamerPointer, QByteArray> StreamerNamePair;
+
+/// A streamer for generic enums.
+class GenericStreamableTypeStreamer : public GenericTypeStreamer {
+public:
+
+    GenericStreamableTypeStreamer(const QByteArray& name, const QVector<StreamerNamePair>& fields, const QByteArray& hash);
+
+    virtual void writeMetadata(Bitstream& out, bool full) const;
+    virtual void write(Bitstream& out, const QVariant& value) const;
+    virtual Category getCategory() const;
+    
+private:
+    
+    QVector<StreamerNamePair> _fields;
+    QByteArray _hash;
+};
+
 /// Base template for collection streamers.
 template<class T> class CollectionTypeStreamer : public SimpleTypeStreamer<T> {
 };
@@ -1030,6 +1087,7 @@ template<class T> class CollectionTypeStreamer : public SimpleTypeStreamer<T> {
 template<class T> class CollectionTypeStreamer<QList<T> > : public SimpleTypeStreamer<QList<T> > {
 public:
     
+    virtual void writeMetadata(Bitstream& out, bool full) const { out << getValueStreamer(); }
     virtual TypeStreamer::Category getCategory() const { return TypeStreamer::LIST_CATEGORY; }
     virtual const TypeStreamer* getValueStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<T>()); }
     virtual void insert(QVariant& object, const QVariant& value) const {
@@ -1046,6 +1104,7 @@ public:
 template<class T> class CollectionTypeStreamer<QVector<T> > : public SimpleTypeStreamer<QVector<T> > {
 public:
     
+    virtual void writeMetadata(Bitstream& out, bool full) const { out << getValueStreamer(); }
     virtual TypeStreamer::Category getCategory() const { return TypeStreamer::LIST_CATEGORY; }
     virtual const TypeStreamer* getValueStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<T>()); }
     virtual void insert(QVariant& object, const QVariant& value) const {
@@ -1073,10 +1132,26 @@ protected:
     TypeStreamerPointer _valueStreamer;
 };
 
+/// A streamer for generic lists.
+class GenericListTypeStreamer : public GenericTypeStreamer {
+public:
+
+    GenericListTypeStreamer(const QByteArray& name, const TypeStreamerPointer& valueStreamer);
+    
+    virtual void writeMetadata(Bitstream& out, bool full) const;
+    virtual void write(Bitstream& out, const QVariant& value) const;
+    virtual Category getCategory() const;
+    
+private:
+    
+    TypeStreamerPointer _valueStreamer;
+};
+
 /// A streamer for set types.
 template<class T> class CollectionTypeStreamer<QSet<T> > : public SimpleTypeStreamer<QSet<T> > {
 public:
     
+    virtual void writeMetadata(Bitstream& out, bool full) const { out << getValueStreamer(); }
     virtual TypeStreamer::Category getCategory() const { return TypeStreamer::SET_CATEGORY; }
     virtual const TypeStreamer* getValueStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<T>()); }
     virtual void insert(QVariant& object, const QVariant& value) const {
@@ -1094,10 +1169,20 @@ public:
     virtual void readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
 };
 
+/// A streamer for generic sets.
+class GenericSetTypeStreamer : public GenericListTypeStreamer {
+public:
+
+    GenericSetTypeStreamer(const QByteArray& name, const TypeStreamerPointer& valueStreamer);
+    
+    virtual Category getCategory() const;
+};
+
 /// A streamer for hash types.
 template<class K, class V> class CollectionTypeStreamer<QHash<K, V> > : public SimpleTypeStreamer<QHash<K, V> > {
 public:
     
+    virtual void writeMetadata(Bitstream& out, bool full) const { out << getKeyStreamer() << getValueStreamer(); }
     virtual TypeStreamer::Category getCategory() const { return TypeStreamer::MAP_CATEGORY; }
     virtual const TypeStreamer* getKeyStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<K>()); }
     virtual const TypeStreamer* getValueStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<V>()); }
@@ -1122,6 +1207,23 @@ public:
 private:
     
     const TypeStreamer* _baseStreamer;
+    TypeStreamerPointer _keyStreamer;
+    TypeStreamerPointer _valueStreamer;
+};
+
+/// A streamer for generic maps.
+class GenericMapTypeStreamer : public GenericTypeStreamer {
+public:
+
+    GenericMapTypeStreamer(const QByteArray& name, const TypeStreamerPointer& keyStreamer,
+        const TypeStreamerPointer& valueStreamer);
+    
+    virtual void writeMetadata(Bitstream& out, bool full) const;
+    virtual void write(Bitstream& out, const QVariant& value) const;
+    virtual Category getCategory() const;
+    
+private:
+
     TypeStreamerPointer _keyStreamer;
     TypeStreamerPointer _valueStreamer;
 };

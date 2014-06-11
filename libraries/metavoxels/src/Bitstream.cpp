@@ -45,7 +45,9 @@ static int metaObjectStreamer = Bitstream::registerTypeStreamer(qMetaTypeId<cons
     new SimpleTypeStreamer<const QMetaObject*>());
 
 static int genericValueStreamer = Bitstream::registerTypeStreamer(
-    qRegisterMetaType<GenericValue>(), new GenericTypeStreamer());
+    qRegisterMetaType<GenericValue>(), new GenericValueStreamer());
+
+static int qVariantPairListMetaTypeId = qRegisterMetaType<QVariantPairList>();
 
 IDStreamer::IDStreamer(Bitstream& stream) :
     _stream(stream),
@@ -1173,65 +1175,10 @@ Bitstream& Bitstream::operator<(const TypeStreamer* streamer) {
     }
     const char* typeName = streamer->getName();
     *this << QByteArray::fromRawData(typeName, strlen(typeName));
-    if (_metadataType == NO_METADATA) {
-        return *this;
-    }
-    TypeStreamer::Category category = streamer->getCategory();
-    *this << (int)category;
-    switch (category) {
-        case TypeStreamer::SIMPLE_CATEGORY:
-            return *this;
-        
-        case TypeStreamer::ENUM_CATEGORY: {
-            QMetaEnum metaEnum = streamer->getMetaEnum();
-            if (_metadataType == FULL_METADATA) {
-                *this << metaEnum.keyCount();
-                for (int i = 0; i < metaEnum.keyCount(); i++) {
-                    *this << QByteArray::fromRawData(metaEnum.key(i), strlen(metaEnum.key(i)));
-                    *this << metaEnum.value(i);
-                }
-            } else {
-                *this << streamer->getBits();
-                QCryptographicHash hash(QCryptographicHash::Md5);    
-                for (int i = 0; i < metaEnum.keyCount(); i++) {
-                    hash.addData(metaEnum.key(i), strlen(metaEnum.key(i)) + 1);
-                    qint32 value = metaEnum.value(i);
-                    hash.addData((const char*)&value, sizeof(qint32));
-                }
-                QByteArray hashResult = hash.result();
-                write(hashResult.constData(), hashResult.size() * BITS_IN_BYTE);
-            }
-            return *this;
-        }
-        case TypeStreamer::LIST_CATEGORY:
-        case TypeStreamer::SET_CATEGORY:
-            return *this << streamer->getValueStreamer();
-    
-        case TypeStreamer::MAP_CATEGORY:
-            return *this << streamer->getKeyStreamer() << streamer->getValueStreamer();
-        
-        default:
-            break; // fall through
-    }
-    // streamable type
-    const QVector<MetaField>& metaFields = streamer->getMetaFields();
-    *this << metaFields.size();
-    if (metaFields.isEmpty()) {
-        return *this;
-    }
-    QCryptographicHash hash(QCryptographicHash::Md5);
-    foreach (const MetaField& metaField, metaFields) {
-        _typeStreamerStreamer << metaField.getStreamer();
-        if (_metadataType == FULL_METADATA) {
-            *this << metaField.getName();
-        } else {
-            hash.addData(metaField.getName().constData(), metaField.getName().size() + 1);
-        }
-    }
-    if (_metadataType == HASH_METADATA) {
-        QByteArray hashResult = hash.result();
-        write(hashResult.constData(), hashResult.size() * BITS_IN_BYTE);
-    }
+    if (_metadataType != NO_METADATA) {
+        *this << (int)streamer->getCategory();
+        streamer->writeMetadata(*this, _metadataType == FULL_METADATA);
+    } 
     return *this;
 }
 
@@ -1703,6 +1650,31 @@ const TypeStreamer* TypeStreamer::getStreamerToWrite(const QVariant& value) cons
     return this;
 }
 
+void TypeStreamer::writeMetadata(Bitstream& out, bool full) const {
+    if (getCategory() != STREAMABLE_CATEGORY) {
+        return;
+    }
+    // streamable type
+    const QVector<MetaField>& metaFields = getMetaFields();
+    out << metaFields.size();
+    if (metaFields.isEmpty()) {
+        return;
+    }
+    QCryptographicHash hash(QCryptographicHash::Md5);
+    foreach (const MetaField& metaField, metaFields) {
+        out << metaField.getStreamer();
+        if (full) {
+            out << metaField.getName();
+        } else {
+            hash.addData(metaField.getName().constData(), metaField.getName().size() + 1);
+        }
+    }
+    if (!full) {
+        QByteArray hashResult = hash.result();
+        out.write(hashResult.constData(), hashResult.size() * BITS_IN_BYTE);
+    }
+}
+
 bool TypeStreamer::equal(const QVariant& first, const QVariant& second) const {
     return first == second;
 }
@@ -1842,6 +1814,27 @@ const char* EnumTypeStreamer::getName() const {
     return _name.constData();
 }
 
+void EnumTypeStreamer::writeMetadata(Bitstream& out, bool full) const {
+    QMetaEnum metaEnum = getMetaEnum();
+    if (full) {
+        out << metaEnum.keyCount();
+        for (int i = 0; i < metaEnum.keyCount(); i++) {
+            out << QByteArray::fromRawData(metaEnum.key(i), strlen(metaEnum.key(i)));
+            out << metaEnum.value(i);
+        }
+    } else {
+        out << getBits();
+        QCryptographicHash hash(QCryptographicHash::Md5);    
+        for (int i = 0; i < metaEnum.keyCount(); i++) {
+            hash.addData(metaEnum.key(i), strlen(metaEnum.key(i)) + 1);
+            qint32 value = metaEnum.value(i);
+            hash.addData((const char*)&value, sizeof(qint32));
+        }
+        QByteArray hashResult = hash.result();
+        out.write(hashResult.constData(), hashResult.size() * BITS_IN_BYTE);
+    }
+}
+
 TypeStreamer::Category EnumTypeStreamer::getCategory() const {
     return ENUM_CATEGORY;
 }
@@ -1948,6 +1941,54 @@ void MappedEnumTypeStreamer::readRawDelta(Bitstream& in, QVariant& object, const
     _baseStreamer->setEnumValue(object, value, _mappings);
 }
 
+GenericTypeStreamer::GenericTypeStreamer(const QByteArray& name) :
+    _name(name) {
+}
+
+const char* GenericTypeStreamer::getName() const {
+    return _name.constData();
+}
+
+GenericEnumTypeStreamer::GenericEnumTypeStreamer(const QByteArray& name, const QVector<NameIntPair>& values,
+        int bits, const QByteArray& hash) :
+    GenericTypeStreamer(name),
+    _values(values),
+    _bits(bits),
+    _hash(hash) {
+    
+    _type = qMetaTypeId<int>();
+}
+
+void GenericEnumTypeStreamer::writeMetadata(Bitstream& out, bool full) const {
+    if (full) {
+        out << _values.size();
+        foreach (const NameIntPair& value, _values) {
+            out << value.first << value.second;
+        }
+    } else {
+        out << _bits;
+        if (_hash.isEmpty()) {
+            QCryptographicHash hash(QCryptographicHash::Md5);
+            foreach (const NameIntPair& value, _values) {
+                hash.addData(value.first.constData(), value.first.size() + 1);
+                qint32 intValue = value.second;
+                hash.addData((const char*)&intValue, sizeof(qint32));
+            }
+            const_cast<GenericEnumTypeStreamer*>(this)->_hash = hash.result();
+        }
+        out.write(_hash.constData(), _hash.size() * BITS_IN_BYTE);
+    }
+}
+
+void GenericEnumTypeStreamer::write(Bitstream& out, const QVariant& value) const {
+    int intValue = value.toInt();
+    out.write(&intValue, _bits);
+}
+
+TypeStreamer::Category GenericEnumTypeStreamer::getCategory() const {
+    return ENUM_CATEGORY;
+}
+
 GenericValue::GenericValue(const TypeStreamerPointer& streamer, const QVariant& value) :
     _streamer(streamer),
     _value(value) {
@@ -1957,7 +1998,7 @@ bool GenericValue::operator==(const GenericValue& other) const {
     return _streamer == other._streamer && _value == other._value;
 }
 
-const TypeStreamer* GenericTypeStreamer::getStreamerToWrite(const QVariant& value) const {
+const TypeStreamer* GenericValueStreamer::getStreamerToWrite(const QVariant& value) const {
     return value.value<GenericValue>().getStreamer().data();
 }
 
@@ -1988,6 +2029,46 @@ void MappedStreamableTypeStreamer::readRawDelta(Bitstream& in, QVariant& object,
             pair.first->readDelta(in, value, QVariant());
         }
     }
+}
+
+GenericStreamableTypeStreamer::GenericStreamableTypeStreamer(const QByteArray& name,
+        const QVector<StreamerNamePair>& fields, const QByteArray& hash) :
+    GenericTypeStreamer(name),
+    _fields(fields),
+    _hash(hash) {
+    
+    _type = qMetaTypeId<QVariantList>();
+}
+
+void GenericStreamableTypeStreamer::writeMetadata(Bitstream& out, bool full) const {
+    out << _fields.size();
+    foreach (const StreamerNamePair& field, _fields) {
+        out << field.first.data();
+        if (full) {
+            out << field.second;
+        }
+    }
+    if (!full) {
+        if (_hash.isEmpty()) {
+            QCryptographicHash hash(QCryptographicHash::Md5);
+            foreach (const StreamerNamePair& field, _fields) {
+                hash.addData(field.second.constData(), field.second.size() + 1);
+            }
+            const_cast<GenericStreamableTypeStreamer*>(this)->_hash = hash.result();
+        }
+        out.write(_hash.constData(), _hash.size() * BITS_IN_BYTE);
+    }
+}
+
+void GenericStreamableTypeStreamer::write(Bitstream& out, const QVariant& value) const {
+    QVariantList values = value.toList();
+    for (int i = 0; i < _fields.size(); i++) {
+        _fields.at(i).first->write(out, values.at(i));
+    }
+}
+
+TypeStreamer::Category GenericStreamableTypeStreamer::getCategory() const {
+    return STREAMABLE_CATEGORY;
 }
 
 MappedListTypeStreamer::MappedListTypeStreamer(const TypeStreamer* baseStreamer, const TypeStreamerPointer& valueStreamer) :
@@ -2024,6 +2105,29 @@ void MappedListTypeStreamer::readRawDelta(Bitstream& in, QVariant& object, const
     }
 }
 
+GenericListTypeStreamer::GenericListTypeStreamer(const QByteArray& name, const TypeStreamerPointer& valueStreamer) :
+    GenericTypeStreamer(name),
+    _valueStreamer(valueStreamer) {
+    
+    _type = qMetaTypeId<QVariantList>();
+}
+
+void GenericListTypeStreamer::writeMetadata(Bitstream& out, bool full) const {
+    out << _valueStreamer.data();
+}
+
+void GenericListTypeStreamer::write(Bitstream& out, const QVariant& value) const {
+    QVariantList values = value.toList();
+    out << values.size();
+    foreach (const QVariant& element, values) {
+        _valueStreamer->write(out, element);
+    }
+}
+
+TypeStreamer::Category GenericListTypeStreamer::getCategory() const {
+    return LIST_CATEGORY;
+}
+
 MappedSetTypeStreamer::MappedSetTypeStreamer(const TypeStreamer* baseStreamer, const TypeStreamerPointer& valueStreamer) :
     MappedListTypeStreamer(baseStreamer, valueStreamer) {
 }
@@ -2038,6 +2142,14 @@ void MappedSetTypeStreamer::readRawDelta(Bitstream& in, QVariant& object, const 
             _baseStreamer->insert(object, value);
         }
     }
+}
+
+GenericSetTypeStreamer::GenericSetTypeStreamer(const QByteArray& name, const TypeStreamerPointer& valueStreamer) :
+    GenericListTypeStreamer(name, valueStreamer) {
+}
+
+TypeStreamer::Category GenericSetTypeStreamer::getCategory() const {
+    return SET_CATEGORY;
 }
 
 MappedMapTypeStreamer::MappedMapTypeStreamer(const TypeStreamer* baseStreamer, const TypeStreamerPointer& keyStreamer,
@@ -2084,3 +2196,28 @@ void MappedMapTypeStreamer::readRawDelta(Bitstream& in, QVariant& object, const 
     }
 }
 
+GenericMapTypeStreamer::GenericMapTypeStreamer(const QByteArray& name, const TypeStreamerPointer& keyStreamer,
+        const TypeStreamerPointer& valueStreamer) :
+    GenericTypeStreamer(name),
+    _keyStreamer(keyStreamer),
+    _valueStreamer(valueStreamer) {
+    
+    _type = qMetaTypeId<QVariantPairList>();
+}
+
+void GenericMapTypeStreamer::writeMetadata(Bitstream& out, bool full) const {
+    out << _keyStreamer.data() << _valueStreamer.data();
+}
+
+void GenericMapTypeStreamer::write(Bitstream& out, const QVariant& value) const {
+    QVariantPairList values = value.value<QVariantPairList>();
+    out << values.size();
+    foreach (const QVariantPair& pair, values) {
+        _keyStreamer->write(out, pair.first);
+        _valueStreamer->write(out, pair.second);
+    }
+}
+
+TypeStreamer::Category GenericMapTypeStreamer::getCategory() const {
+    return MAP_CATEGORY;
+}
