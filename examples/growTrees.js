@@ -814,9 +814,6 @@ function mousePressEvent(event) {
 
 }
 
-function update() {
-
-}
 
 function scriptEnding() {
     Overlays.deleteOverlay(linePreviewTop);
@@ -831,7 +828,5 @@ Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseMoveEvent.connect(mouseMoveEvent);
 
 Script.scriptEnding.connect(scriptEnding);
-
-Script.update.connect(update);
 
 Voxels.setPacketsPerSecond(10000);
