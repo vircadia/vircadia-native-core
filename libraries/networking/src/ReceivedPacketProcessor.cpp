@@ -52,6 +52,6 @@ bool ReceivedPacketProcessor::process() {
 
 void ReceivedPacketProcessor::nodeKilled(SharedNodePointer node) {
     lock();
-    int numRemoved = _nodePacketCounts.remove(node->getUUID());
+    _nodePacketCounts.remove(node->getUUID());
     unlock();
 }
