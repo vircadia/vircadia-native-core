@@ -311,6 +311,7 @@ namespace MenuOption {
     const QString CascadedShadows = "Cascaded";
     const QString Chat = "Chat...";
     const QString ChatCircling = "Chat Circling";
+    const QString CollideAsRagDoll = "Collide As RagDoll";
     const QString CollideWithAvatars = "Collide With Avatars";
     const QString CollideWithEnvironment = "Collide With World Boundaries";
     const QString CollideWithParticles = "Collide With Particles";

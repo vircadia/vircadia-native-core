@@ -140,7 +140,7 @@ public:
     void clearShapes();
     void rebuildShapes();
     void resetShapePositions();
-    void updateShapePositions();
+    virtual void updateShapePositions();
     void renderJointCollisionShapes(float alpha);
     void renderBoundingCollisionShapes(float alpha);
     

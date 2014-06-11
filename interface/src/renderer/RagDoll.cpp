@@ -15,13 +15,15 @@
 
 #include <CollisionInfo.h>
 #include <SharedUtil.h>
+#include <CapsuleShape.h>
+#include <SphereShape.h>
 
 #include "RagDoll.h"
 
 // ----------------------------------------------------------------------------
 // FixedConstraint
 // ----------------------------------------------------------------------------
-FixedConstraint::FixedConstraint() : _point(NULL), _anchor(0.0f, 0.0f, 0.0f) {
+FixedConstraint::FixedConstraint(glm::vec3* point, const glm::vec3& anchor) : _point(point), _anchor(anchor) {
 }
 
 float FixedConstraint::enforce() {
@@ -42,9 +44,9 @@ void FixedConstraint::setAnchor(const glm::vec3& anchor) {
 // ----------------------------------------------------------------------------
 // DistanceConstraint
 // ----------------------------------------------------------------------------
-DistanceConstraint::DistanceConstraint(glm::vec3* pointA, glm::vec3* pointB) : _distance(-1.0f) {
-    _points[0] = pointA;
-    _points[1] = pointB;
+DistanceConstraint::DistanceConstraint(glm::vec3* startPoint, glm::vec3* endPoint) : _distance(-1.0f) {
+    _points[0] = startPoint;
+    _points[1] = endPoint;
     _distance = glm::distance(*(_points[0]), *(_points[1]));
 }
 
@@ -70,6 +72,28 @@ float DistanceConstraint::enforce() {
     return glm::abs(newDistance - _distance);
 }
 
+void DistanceConstraint::updateProxyShape(Shape* shape, const glm::quat& rotation, const glm::vec3& translation) const {
+    if (!shape) {
+        return;
+    }
+    switch (shape->getType()) {
+        case Shape::SPHERE_SHAPE: {
+            // sphere collides at endPoint
+            SphereShape* sphere = static_cast<SphereShape*>(shape);
+            sphere->setPosition(translation + rotation * (*_points[1]));
+        }
+        break;
+        case Shape::CAPSULE_SHAPE: {
+            // capsule collides from startPoint to endPoint
+            CapsuleShape* capsule = static_cast<CapsuleShape*>(shape);
+            capsule->setEndPoints(translation + rotation * (*_points[0]), translation + rotation * (*_points[1]));
+        }
+        break;
+        default:
+        break;
+    }
+}
+
 // ----------------------------------------------------------------------------
 // RagDoll
 // ----------------------------------------------------------------------------
@@ -90,12 +114,16 @@ void RagDoll::init(const QVector<JointState>& states) {
         _points.push_back(state.getPosition());
         int parentIndex = state.getFBXJoint().parentIndex;
         assert(parentIndex < i);
-        if (parentIndex != -1) {
+        if (parentIndex == -1) {
+            FixedConstraint* anchor = new FixedConstraint(&(_points[i]), glm::vec3(0.0f));
+            _constraints.push_back(anchor);
+        } else {
             DistanceConstraint* stick = new DistanceConstraint(&(_points[i]), &(_points[parentIndex]));
             _constraints.push_back(stick);
         }
     }
 }
+
 /// Delete all data.
 void RagDoll::clear() {
     int numConstraints = _constraints.size();
@@ -128,4 +156,12 @@ float RagDoll::enforceConstraints() {
         maxDistance = glm::max(maxDistance, c->enforce());
     }
     return maxDistance;
+}
+
+void RagDoll::updateShapes(const QVector<Shape*>& shapes, const glm::quat& rotation, const glm::vec3& translation) const {
+    int numShapes = shapes.size();
+    int numConstraints = _constraints.size();
+    for (int i = 0; i < numShapes && i < numConstraints; ++i) {
+        _constraints[i]->updateProxyShape(shapes[i], rotation, translation);
+    }
 }

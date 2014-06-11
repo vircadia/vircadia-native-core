@@ -16,6 +16,7 @@
 #include <QVariantList>
 
 #include <DatagramSequencer.h>
+#include <ScriptCache.h>
 
 class SequencedTestMessage;
 
@@ -54,9 +55,30 @@ private slots:
     void handleReliableMessage(const QVariant& message);
     void readReliableChannel();
 
+    void clearSendRecordsBefore(int index);    
+    void clearReceiveRecordsBefore(int index);
+
 private:
     
+    class SendRecord {
+    public:
+        int packetNumber;
+        SharedObjectPointer localState;
+    };
+    
+    class ReceiveRecord {
+    public:
+        int packetNumber;
+        SharedObjectPointer remoteState;
+    };
+    
     DatagramSequencer* _sequencer;
+    QList<SendRecord> _sendRecords;
+    QList<ReceiveRecord> _receiveRecords;
+    
+    SharedObjectPointer _localState;
+    SharedObjectPointer _remoteState;
+    
     Endpoint* _other;
     QList<QPair<QByteArray, int> > _delayedDatagrams;
     float _highPriorityMessagesToSend;
@@ -75,7 +97,8 @@ class TestSharedObjectA : public SharedObject {
     Q_PROPERTY(float foo READ getFoo WRITE setFoo NOTIFY fooChanged)
     Q_PROPERTY(TestEnum baz READ getBaz WRITE setBaz)
     Q_PROPERTY(TestFlags bong READ getBong WRITE setBong)
-
+    Q_PROPERTY(QScriptValue bizzle READ getBizzle WRITE setBizzle)
+    
 public:
     
     enum TestEnum { FIRST_TEST_ENUM, SECOND_TEST_ENUM, THIRD_TEST_ENUM };
@@ -95,6 +118,9 @@ public:
     void setBong(TestFlags bong) { _bong = bong; }
     TestFlags getBong() const { return _bong; }
     
+    void setBizzle(const QScriptValue& bizzle) { _bizzle = bizzle; }
+    const QScriptValue& getBizzle() const { return _bizzle; }
+    
 signals:
     
     void fooChanged(float foo);    
@@ -104,7 +130,10 @@ private:
     float _foo;
     TestEnum _baz;
     TestFlags _bong;
+    QScriptValue _bizzle;
 };
+
+DECLARE_ENUM_METATYPE(TestSharedObjectA, TestEnum)
 
 /// Another simple shared object.
 class TestSharedObjectB : public SharedObject {
@@ -169,6 +198,7 @@ public:
     
     STREAM QByteArray foo;
     STREAM SharedObjectPointer bar;
+    STREAM TestSharedObjectA::TestEnum baz;
 };
 
 DECLARE_STREAMABLE_METATYPE(TestMessageB)
@@ -180,6 +210,7 @@ class TestMessageC : STREAM public TestMessageA {
 public:
     
     STREAM TestMessageB bong;
+    STREAM QScriptValue bizzle;
 };
 
 DECLARE_STREAMABLE_METATYPE(TestMessageC)
@@ -192,6 +223,7 @@ public:
     
     STREAM int sequenceNumber;
     STREAM QVariant submessage;
+    STREAM SharedObjectPointer state;
 };
 
 DECLARE_STREAMABLE_METATYPE(SequencedTestMessage)

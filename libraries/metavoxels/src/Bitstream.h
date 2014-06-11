@@ -29,6 +29,7 @@
 class QByteArray;
 class QColor;
 class QDataStream;
+class QScriptValue;
 class QUrl;
 
 class Attribute;
@@ -43,6 +44,10 @@ class TypeReader;
 class TypeStreamer;
 
 typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
+
+typedef QPair<QByteArray, QByteArray> ScopeNamePair;
+typedef QVector<PropertyReader> PropertyReaderVector;
+typedef QVector<PropertyWriter> PropertyWriterVector;
 
 /// Streams integer identifiers that conform to the following pattern: each ID encountered in the stream is either one that
 /// has been sent (received) before, or is one more than the highest previously encountered ID (starting at zero).  This allows
@@ -287,10 +292,14 @@ public:
     template<class T> void writeDelta(const T& value, const T& reference);
     template<class T> void readDelta(T& value, const T& reference); 
 
+    void writeRawDelta(const QVariant& value, const QVariant& reference);
     void readRawDelta(QVariant& value, const QVariant& reference);
 
     void writeRawDelta(const QObject* value, const QObject* reference);
     void readRawDelta(QObject*& value, const QObject* reference);
+
+    void writeRawDelta(const QScriptValue& value, const QScriptValue& reference);
+    void readRawDelta(QScriptValue& value, const QScriptValue& reference);
 
     template<class T> void writeRawDelta(const T& value, const T& reference);
     template<class T> void readRawDelta(T& value, const T& reference); 
@@ -316,8 +325,14 @@ public:
     Bitstream& operator<<(uint value);
     Bitstream& operator>>(uint& value);
     
+    Bitstream& operator<<(qint64 value);
+    Bitstream& operator>>(qint64& value);
+    
     Bitstream& operator<<(float value);
     Bitstream& operator>>(float& value);
+    
+    Bitstream& operator<<(double value);
+    Bitstream& operator>>(double& value);
     
     Bitstream& operator<<(const glm::vec3& value);
     Bitstream& operator>>(glm::vec3& value);
@@ -336,6 +351,12 @@ public:
     
     Bitstream& operator<<(const QUrl& url);
     Bitstream& operator>>(QUrl& url);
+    
+    Bitstream& operator<<(const QDateTime& dateTime);
+    Bitstream& operator>>(QDateTime& dateTime);
+    
+    Bitstream& operator<<(const QRegExp& regExp);
+    Bitstream& operator>>(QRegExp& regExp);
     
     Bitstream& operator<<(const QVariant& value);
     Bitstream& operator>>(QVariant& value);
@@ -372,6 +393,9 @@ public:
     Bitstream& operator<<(const QScriptString& string);
     Bitstream& operator>>(QScriptString& string);
     
+    Bitstream& operator<<(const QScriptValue& value);
+    Bitstream& operator>>(QScriptValue& value);
+    
     Bitstream& operator<<(const SharedObjectPointer& object);
     Bitstream& operator>>(SharedObjectPointer& object);
     
@@ -400,8 +424,6 @@ private slots:
 
 private:
     
-    const QVector<PropertyWriter>& getPropertyWriters(const QMetaObject* metaObject);
-    
     QDataStream& _underlying;
     quint8 _byte;
     int _position;
@@ -421,14 +443,21 @@ private:
     QHash<QByteArray, const QMetaObject*> _metaObjectSubstitutions;
     QHash<QByteArray, const TypeStreamer*> _typeStreamerSubstitutions;
 
-    QHash<const QMetaObject*, QVector<PropertyWriter> > _propertyWriters;
-
     static QHash<QByteArray, const QMetaObject*>& getMetaObjects();
     static QMultiHash<const QMetaObject*, const QMetaObject*>& getMetaObjectSubClasses();
     static QHash<int, const TypeStreamer*>& getTypeStreamers();
-    static QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*>& getEnumStreamers();
-    static QHash<QByteArray, const TypeStreamer*>& getEnumStreamersByName();
-    static QVector<PropertyReader> getPropertyReaders(const QMetaObject* metaObject);
+    
+    static const QHash<ScopeNamePair, const TypeStreamer*>& getEnumStreamers();
+    static QHash<ScopeNamePair, const TypeStreamer*> createEnumStreamers();
+    
+    static const QHash<QByteArray, const TypeStreamer*>& getEnumStreamersByName();
+    static QHash<QByteArray, const TypeStreamer*> createEnumStreamersByName();
+    
+    static const QHash<const QMetaObject*, PropertyReaderVector>& getPropertyReaders();
+    static QHash<const QMetaObject*, PropertyReaderVector> createPropertyReaders();
+    
+    static const QHash<const QMetaObject*, PropertyWriterVector>& getPropertyWriters();
+    static QHash<const QMetaObject*, PropertyWriterVector> createPropertyWriters();
 };
 
 template<class T> inline void Bitstream::writeDelta(const T& value, const T& reference) {
@@ -938,8 +967,9 @@ public:
 class EnumTypeStreamer : public TypeStreamer {
 public:
     
+    EnumTypeStreamer(const QMetaObject* metaObject, const char* name);
     EnumTypeStreamer(const QMetaEnum& metaEnum);
-    
+
     virtual const char* getName() const;
     virtual TypeReader::Type getReaderType() const;
     virtual int getBits() const;
@@ -955,8 +985,10 @@ public:
 
 private:
     
-    QMetaEnum _metaEnum;
+    const QMetaObject* _metaObject;
+    const char* _enumName;
     QByteArray _name;
+    QMetaEnum _metaEnum;
     int _bits;
 };
 
@@ -1037,12 +1069,12 @@ public:
 };
 
 /// Macro for registering simple type streamers.
-#define REGISTER_SIMPLE_TYPE_STREAMER(x) static int x##Streamer = \
-    Bitstream::registerTypeStreamer(qMetaTypeId<x>(), new SimpleTypeStreamer<x>());
+#define REGISTER_SIMPLE_TYPE_STREAMER(X) static int X##Streamer = \
+    Bitstream::registerTypeStreamer(qMetaTypeId<X>(), new SimpleTypeStreamer<X>());
 
 /// Macro for registering collection type streamers.
-#define REGISTER_COLLECTION_TYPE_STREAMER(x) static int x##Streamer = \
-    Bitstream::registerTypeStreamer(qMetaTypeId<x>(), new CollectionTypeStreamer<x>());
+#define REGISTER_COLLECTION_TYPE_STREAMER(X) static int x##Streamer = \
+    Bitstream::registerTypeStreamer(qMetaTypeId<X>(), new CollectionTypeStreamer<X>());
 
 /// Declares the metatype and the streaming operators.  The last lines
 /// ensure that the generated file will be included in the link phase. 
@@ -1077,14 +1109,42 @@ public:
     _Pragma(STRINGIFY(unused(_TypePtr##X)))
 #endif
 
+#define DECLARE_ENUM_METATYPE(S, N) Q_DECLARE_METATYPE(S::N) \
+    Bitstream& operator<<(Bitstream& out, const S::N& obj); \
+    Bitstream& operator>>(Bitstream& in, S::N& obj); \
+    template<> inline void Bitstream::writeRawDelta(const S::N& value, const S::N& reference) { *this << value; } \
+    template<> inline void Bitstream::readRawDelta(S::N& value, const S::N& reference) { *this >> value; }
+
+#define IMPLEMENT_ENUM_METATYPE(S, N) \
+    static int S##N##MetaTypeId = registerEnumMetaType<S::N>(&S::staticMetaObject, #N); \
+    Bitstream& operator<<(Bitstream& out, const S::N& obj) { \
+        static int bits = Bitstream::getTypeStreamer(qMetaTypeId<S::N>())->getBits(); \
+        return out.write(&obj, bits); \
+    } \
+    Bitstream& operator>>(Bitstream& in, S::N& obj) { \
+        static int bits = Bitstream::getTypeStreamer(qMetaTypeId<S::N>())->getBits(); \
+        obj = (S::N)0; \
+        return in.read(&obj, bits); \
+    }
+    
 /// Registers a simple type and its streamer.
+/// \return the metatype id
 template<class T> int registerSimpleMetaType() {
     int type = qRegisterMetaType<T>();
     Bitstream::registerTypeStreamer(type, new SimpleTypeStreamer<T>());
     return type;
 }
 
+/// Registers an enum type and its streamer.
+/// \return the metatype id
+template<class T> int registerEnumMetaType(const QMetaObject* metaObject, const char* name) {
+    int type = qRegisterMetaType<T>();
+    Bitstream::registerTypeStreamer(type, new EnumTypeStreamer(metaObject, name));
+    return type;
+}
+
 /// Registers a streamable type and its streamer.
+/// \return the metatype id
 template<class T> int registerStreamableMetaType() {
     int type = qRegisterMetaType<T>();
     Bitstream::registerTypeStreamer(type, new StreamableTypeStreamer<T>());
@@ -1092,6 +1152,7 @@ template<class T> int registerStreamableMetaType() {
 }
 
 /// Registers a collection type and its streamer.
+/// \return the metatype id
 template<class T> int registerCollectionMetaType() {
     int type = qRegisterMetaType<T>();
     Bitstream::registerTypeStreamer(type, new CollectionTypeStreamer<T>());

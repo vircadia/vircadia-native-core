@@ -37,6 +37,7 @@ public:
     void setRadius(float radius);
     void setHalfHeight(float height);
     void setRadiusAndHalfHeight(float radius, float height);
+    void setEndPoints(const glm::vec3& startPoint, const glm::vec3& endPoint);
 
 protected:
     void updateBoundingRadius() { _boundingRadius = _radius + _halfHeight; }
