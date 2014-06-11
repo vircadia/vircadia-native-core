@@ -35,13 +35,11 @@ class QUrl;
 class Attribute;
 class AttributeValue;
 class Bitstream;
-class FieldReader;
 class GenericValue;
 class ObjectReader;
 class OwnedAttributeValue;
 class PropertyReader;
 class PropertyWriter;
-class TypeReader;
 class TypeStreamer;
 
 typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
@@ -209,7 +207,7 @@ public:
     class ReadMappings {
     public:
         QHash<int, ObjectReader> metaObjectValues;
-        QHash<int, TypeReader> typeStreamerValues;
+        QHash<int, TypeStreamerPointer> typeStreamerValues;
         QHash<int, AttributePointer> attributeValues;
         QHash<int, QScriptString> scriptStringValues;
         QHash<int, SharedObjectPointer> sharedObjectValues;
@@ -399,7 +397,7 @@ public:
     
     Bitstream& operator<<(const TypeStreamer* streamer);
     Bitstream& operator>>(const TypeStreamer*& streamer);
-    Bitstream& operator>>(TypeReader& reader);
+    Bitstream& operator>>(TypeStreamerPointer& streamer);
     
     Bitstream& operator<<(const AttributePointer& attribute);
     Bitstream& operator>>(AttributePointer& attribute);
@@ -417,7 +415,7 @@ public:
     Bitstream& operator>(ObjectReader& objectReader);
     
     Bitstream& operator<(const TypeStreamer* streamer);
-    Bitstream& operator>(TypeReader& reader);
+    Bitstream& operator>(TypeStreamerPointer& reader);
     
     Bitstream& operator<(const AttributePointer& attribute);
     Bitstream& operator>(AttributePointer& attribute);
@@ -446,7 +444,7 @@ private:
     GenericsMode _genericsMode;
 
     RepeatedValueStreamer<const QMetaObject*, const QMetaObject*, ObjectReader> _metaObjectStreamer;
-    RepeatedValueStreamer<const TypeStreamer*, const TypeStreamer*, TypeReader> _typeStreamerStreamer;
+    RepeatedValueStreamer<const TypeStreamer*, const TypeStreamer*, TypeStreamerPointer> _typeStreamerStreamer;
     RepeatedValueStreamer<AttributePointer> _attributeStreamer;
     RepeatedValueStreamer<QScriptString> _scriptStringStreamer;
     RepeatedValueStreamer<SharedObjectPointer, SharedObject*> _sharedObjectStreamer;
@@ -756,73 +754,6 @@ template<class K, class V> inline Bitstream& Bitstream::operator>>(QHash<K, V>& 
     return *this;
 }
 
-typedef QSharedPointer<TypeReader> TypeReaderPointer;
-
-/// Contains the information required to read a type from the stream.
-class TypeReader {
-public:
-
-    enum Type { SIMPLE_TYPE, ENUM_TYPE, STREAMABLE_TYPE, LIST_TYPE, SET_TYPE, MAP_TYPE };
-    
-    TypeReader(const QByteArray& typeName = QByteArray(), const TypeStreamer* streamer = NULL);
-    
-    TypeReader(const QByteArray& typeName, const TypeStreamer* streamer, int bits, const QHash<int, int>& mappings);
-    
-    TypeReader(const QByteArray& typeName, const TypeStreamer* streamer, const QVector<FieldReader>& fields);
-
-    TypeReader(const QByteArray& typeName, const TypeStreamer* streamer, Type type,
-        const TypeReaderPointer& valueReader);
-    
-    TypeReader(const QByteArray& typeName, const TypeStreamer* streamer,
-        const TypeReaderPointer& keyReader, const TypeReaderPointer& valueReader);
-        
-    const QByteArray& getTypeName() const { return _typeName; }
-    const TypeStreamer* getStreamer() const { return _streamer; }
-
-    QVariant read(Bitstream& in) const;
-    void readDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
-    void readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
-
-    bool matchesExactly(const TypeStreamer* streamer) const;
-
-    bool operator==(const TypeReader& other) const { return _typeName == other._typeName; }
-    bool operator!=(const TypeReader& other) const { return _typeName != other._typeName; }
-    
-private:
-    
-    QByteArray _typeName;
-    const TypeStreamer* _streamer;
-    bool _exactMatch;
-    Type _type;
-    int _bits;
-    QHash<int, int> _mappings;
-    TypeReaderPointer _keyReader;
-    TypeReaderPointer _valueReader;
-    QVector<FieldReader> _fields;
-};
-
-uint qHash(const TypeReader& typeReader, uint seed = 0);
-
-QDebug& operator<<(QDebug& debug, const TypeReader& typeReader);
-
-/// Contains the information required to read a metatype field from the stream and apply it.
-class FieldReader {
-public:
-    
-    FieldReader(const TypeReader& reader = TypeReader(), int index = -1);
-
-    const TypeReader& getReader() const { return _reader; }
-    int getIndex() const { return _index; }
-
-    void read(Bitstream& in, const TypeStreamer* streamer, QVariant& object) const;
-    void readDelta(Bitstream& in, const TypeStreamer* streamer, QVariant& object, const QVariant& reference) const;
-    
-private:
-    
-    TypeReader _reader;
-    int _index;
-};
-
 /// Contains the information required to read an object from the stream.
 class ObjectReader {
 public:
@@ -854,16 +785,17 @@ QDebug& operator<<(QDebug& debug, const ObjectReader& objectReader);
 class PropertyReader {
 public:
 
-    PropertyReader(const TypeReader& reader = TypeReader(), const QMetaProperty& property = QMetaProperty());
+    PropertyReader(const TypeStreamerPointer& streamer = TypeStreamerPointer(),
+        const QMetaProperty& property = QMetaProperty());
 
-    const TypeReader& getReader() const { return _reader; }
+    const TypeStreamerPointer& getStreamer() const { return _streamer; }
 
     void read(Bitstream& in, QObject* object) const;
     void readDelta(Bitstream& in, QObject* object, const QObject* reference) const;
 
 private:
 
-    TypeReader _reader;
+    TypeStreamerPointer _streamer;
     QMetaProperty _property;
 };
 
@@ -909,6 +841,8 @@ Q_DECLARE_METATYPE(const QMetaObject*)
 class TypeStreamer {
 public:
     
+    enum Category { SIMPLE_CATEGORY, ENUM_CATEGORY, STREAMABLE_CATEGORY, LIST_CATEGORY, SET_CATEGORY, MAP_CATEGORY };
+    
     virtual ~TypeStreamer();
     
     int getType() const { return _type; }
@@ -937,7 +871,7 @@ public:
     virtual void setField(QVariant& object, int index, const QVariant& value) const;
     virtual QVariant getField(const QVariant& object, int index) const;
     
-    virtual TypeReader::Type getReaderType() const;
+    virtual Category getCategory() const;
 
     virtual int getBits() const;
     virtual QMetaEnum getMetaEnum() const;
@@ -992,7 +926,7 @@ public:
     EnumTypeStreamer(const QMetaEnum& metaEnum);
 
     virtual const char* getName() const;
-    virtual TypeReader::Type getReaderType() const;
+    virtual Category getCategory() const;
     virtual int getBits() const;
     virtual QMetaEnum getMetaEnum() const;
     virtual bool equal(const QVariant& first, const QVariant& second) const;
@@ -1059,13 +993,30 @@ public:
 template<class T> class StreamableTypeStreamer : public SimpleTypeStreamer<T> {
 public:
     
-    virtual TypeReader::Type getReaderType() const { return TypeReader::STREAMABLE_TYPE; }
+    virtual TypeStreamer::Category getCategory() const { return TypeStreamer::STREAMABLE_CATEGORY; }
     virtual const QVector<MetaField>& getMetaFields() const { return T::getMetaFields(); }
     virtual int getFieldIndex(const QByteArray& name) const { return T::getFieldIndex(name); }
     virtual void setField(QVariant& object, int index, const QVariant& value) const {
         static_cast<T*>(object.data())->setField(index, value); }
     virtual QVariant getField(const QVariant& object, int index) const {
         return static_cast<const T*>(object.constData())->getField(index); }
+};
+
+typedef QPair<TypeStreamerPointer, int> StreamerIndexPair;
+
+/// A streamer class for streamables that maps to a local type.
+class MappedStreamableTypeStreamer : public TypeStreamer {
+public:
+
+    MappedStreamableTypeStreamer(const TypeStreamer* baseStreamer, const QVector<StreamerIndexPair>& fields);
+    
+    virtual QVariant read(Bitstream& in) const;
+    virtual void readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
+    
+private:
+    
+    const TypeStreamer* _baseStreamer;
+    QVector<StreamerIndexPair> _fields;
 };
 
 /// Base template for collection streamers.
@@ -1076,7 +1027,7 @@ template<class T> class CollectionTypeStreamer : public SimpleTypeStreamer<T> {
 template<class T> class CollectionTypeStreamer<QList<T> > : public SimpleTypeStreamer<QList<T> > {
 public:
     
-    virtual TypeReader::Type getReaderType() const { return TypeReader::LIST_TYPE; }
+    virtual TypeStreamer::Category getCategory() const { return TypeStreamer::LIST_CATEGORY; }
     virtual const TypeStreamer* getValueStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<T>()); }
     virtual void insert(QVariant& object, const QVariant& value) const {
         static_cast<QList<T>*>(object.data())->append(value.value<T>()); }
@@ -1092,7 +1043,7 @@ public:
 template<class T> class CollectionTypeStreamer<QVector<T> > : public SimpleTypeStreamer<QVector<T> > {
 public:
     
-    virtual TypeReader::Type getReaderType() const { return TypeReader::LIST_TYPE; }
+    virtual TypeStreamer::Category getCategory() const { return TypeStreamer::LIST_CATEGORY; }
     virtual const TypeStreamer* getValueStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<T>()); }
     virtual void insert(QVariant& object, const QVariant& value) const {
         static_cast<QVector<T>*>(object.data())->append(value.value<T>()); }
@@ -1123,7 +1074,7 @@ protected:
 template<class T> class CollectionTypeStreamer<QSet<T> > : public SimpleTypeStreamer<QSet<T> > {
 public:
     
-    virtual TypeReader::Type getReaderType() const { return TypeReader::SET_TYPE; }
+    virtual TypeStreamer::Category getCategory() const { return TypeStreamer::SET_CATEGORY; }
     virtual const TypeStreamer* getValueStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<T>()); }
     virtual void insert(QVariant& object, const QVariant& value) const {
         static_cast<QSet<T>*>(object.data())->insert(value.value<T>()); }
@@ -1144,7 +1095,7 @@ public:
 template<class K, class V> class CollectionTypeStreamer<QHash<K, V> > : public SimpleTypeStreamer<QHash<K, V> > {
 public:
     
-    virtual TypeReader::Type getReaderType() const { return TypeReader::MAP_TYPE; }
+    virtual TypeStreamer::Category getCategory() const { return TypeStreamer::MAP_CATEGORY; }
     virtual const TypeStreamer* getKeyStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<K>()); }
     virtual const TypeStreamer* getValueStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<V>()); }
     virtual void insert(QVariant& object, const QVariant& key, const QVariant& value) const {
