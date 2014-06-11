@@ -26,6 +26,7 @@
 /// Storage of not-yet processed inbound, or not yet sent outbound generic UDP network packet
 class NetworkPacket {
 public:
+    NetworkPacket() { }
     NetworkPacket(const NetworkPacket& packet); // copy constructor
     NetworkPacket& operator= (const NetworkPacket& other);    // copy assignment
 
@@ -34,15 +35,15 @@ public:
     NetworkPacket& operator= (NetworkPacket&& other);         // move assignment
 #endif
 
-    NetworkPacket(const SharedNodePointer& destinationNode, const QByteArray& byteArray);
+    NetworkPacket(const SharedNodePointer& node, const QByteArray& byteArray);
 
-    const SharedNodePointer& getDestinationNode() const { return _destinationNode; }
+    const SharedNodePointer& getNode() const { return _node; }
     const QByteArray& getByteArray() const { return _byteArray; }
 
 private:
-    void copyContents(const SharedNodePointer& destinationNode, const QByteArray& byteArray);
+    void copyContents(const SharedNodePointer& node, const QByteArray& byteArray);
 
-    SharedNodePointer _destinationNode;
+    SharedNodePointer _node;
     QByteArray _byteArray;
 };
 

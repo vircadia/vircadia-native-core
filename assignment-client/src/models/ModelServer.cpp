@@ -86,7 +86,7 @@ bool ModelServer::hasSpecialPacketToSend(const SharedNodePointer& node) {
     return shouldSendDeletedModels;
 }
 
-int ModelServer::sendSpecialPacket(OctreeQueryNode* queryNode, const SharedNodePointer& node) {
+int ModelServer::sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent) {
     unsigned char outputBuffer[MAX_PACKET_SIZE];
     size_t packetLength = 0;
 
@@ -99,6 +99,7 @@ int ModelServer::sendSpecialPacket(OctreeQueryNode* queryNode, const SharedNodeP
         bool hasMoreToSend = true;
 
         // TODO: is it possible to send too many of these packets? what if you deleted 1,000,000 models?
+        packetsSent = 0;
         while (hasMoreToSend) {
             hasMoreToSend = tree->encodeModelsDeletedSince(queryNode->getSequenceNumber(), deletedModelsSentAt,
                                                 outputBuffer, MAX_PACKET_SIZE, packetLength);
@@ -107,6 +108,7 @@ int ModelServer::sendSpecialPacket(OctreeQueryNode* queryNode, const SharedNodeP
 
             NodeList::getInstance()->writeDatagram((char*) outputBuffer, packetLength, SharedNodePointer(node));
             queryNode->packetSent(outputBuffer, packetLength);
+            packetsSent++;
         }
 
         nodeData->setLastDeletedModelsSentAt(deletePacketSentAt);

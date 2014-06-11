@@ -158,7 +158,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _mousePressed(false),
         _audio(STARTUP_JITTER_SAMPLES),
         _enableProcessVoxelsThread(true),
-        _voxelProcessor(),
+        _octreeProcessor(),
         _voxelHideShowThread(&_voxels),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
@@ -244,6 +244,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), &_voxels, SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
+    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_octreeProcessor, SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, &NodeList::uuidChanged, this, &Application::updateWindowTitle);
     connect(nodeList, SIGNAL(uuidChanged(const QUuid&)), _myAvatar, SLOT(setSessionUUID(const QUuid&)));
     connect(nodeList, &NodeList::limitOfSilentDomainCheckInsReached, nodeList, &NodeList::reset);
@@ -418,7 +419,7 @@ Application::~Application() {
     _audio.thread()->quit();
     _audio.thread()->wait();
 
-    _voxelProcessor.terminate();
+    _octreeProcessor.terminate();
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
     _particleEditSender.terminate();
@@ -517,7 +518,7 @@ void Application::initializeGL() {
     qDebug( "init() complete.");
 
     // create thread for parsing of voxel data independent of the main network and rendering threads
-    _voxelProcessor.initialize(_enableProcessVoxelsThread);
+    _octreeProcessor.initialize(_enableProcessVoxelsThread);
     _voxelEditSender.initialize(_enableProcessVoxelsThread);
     _voxelHideShowThread.initialize(_enableProcessVoxelsThread);
     _particleEditSender.initialize(_enableProcessVoxelsThread);
@@ -1884,7 +1885,7 @@ void Application::updateThreads(float deltaTime) {
 
     // parse voxel packets
     if (!_enableProcessVoxelsThread) {
-        _voxelProcessor.threadRoutine();
+        _octreeProcessor.threadRoutine();
         _voxelHideShowThread.threadRoutine();
         _voxelEditSender.threadRoutine();
         _particleEditSender.threadRoutine();
@@ -2095,7 +2096,7 @@ void Application::updateMyAvatar(float deltaTime) {
         }
     }
 
-    // sent a nack packet containing missing sequence numbers of received packets
+    // sent nack packets containing missing sequence numbers of received packets from nodes
     {
         quint64 now = usecTimestampNow();
         quint64 sinceLastNack = now - _lastNackTime;
@@ -2124,6 +2125,12 @@ void Application::sendNack() {
             || node->getType() == NodeType::ParticleServer
             || node->getType() == NodeType::ModelServer)
             ) {
+
+            // if there are octree packets from this node that are waiting to be processed,
+            // don't send a NACK since the missing packets may be among those waiting packets.
+            if (_octreeProcessor.hasPacketsToProcessFrom(node)) {
+                continue;
+            }
 
             QUuid nodeUUID = node->getUUID();
 
@@ -3487,8 +3494,10 @@ void Application::saveScripts() {
 }
 
 ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScriptFromEditor) {
-    if(loadScriptFromEditor && _scriptEnginesHash.contains(scriptName) && !_scriptEnginesHash[scriptName]->isFinished()){
-        return _scriptEnginesHash[scriptName];
+    QUrl scriptUrl(scriptName);
+    const QString& scriptURLString = scriptUrl.toString();
+    if(loadScriptFromEditor && _scriptEnginesHash.contains(scriptURLString) && !_scriptEnginesHash[scriptURLString]->isFinished()){
+        return _scriptEnginesHash[scriptURLString];
     }
 
     ScriptEngine* scriptEngine;
@@ -3496,9 +3505,8 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
         scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
     } else {
         // start the script on a new thread...
-        QUrl scriptUrl(scriptName);
         scriptEngine = new ScriptEngine(scriptUrl, &_controllerScriptingInterface);
-        _scriptEnginesHash.insert(scriptName, scriptEngine);
+        _scriptEnginesHash.insert(scriptURLString, scriptEngine);
 
         if (!scriptEngine->hasScript()) {
             qDebug() << "Application::loadScript(), script failed to load...";
