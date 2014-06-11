@@ -70,18 +70,20 @@ void NodeBounds::draw() {
         }
 
         QUuid nodeUUID = node->getUUID();
+        serverJurisdictions->lockForRead();
         if (serverJurisdictions->find(nodeUUID) != serverJurisdictions->end()) {
-            const JurisdictionMap& map = serverJurisdictions->value(nodeUUID);
+            const JurisdictionMap& map = (*serverJurisdictions)[nodeUUID];
 
             unsigned char* rootCode = map.getRootOctalCode();
 
             if (rootCode) {
                 VoxelPositionSize rootDetails;
                 voxelDetailsForCode(rootCode, rootDetails);
+                serverJurisdictions->unlock();
                 glm::vec3 location(rootDetails.x, rootDetails.y, rootDetails.z);
                 location *= (float)TREE_SCALE;
 
-                AABox serverBounds(location, rootDetails.s * TREE_SCALE);
+                AACube serverBounds(location, rootDetails.s * TREE_SCALE);
 
                 glm::vec3 center = serverBounds.getVertex(BOTTOM_RIGHT_NEAR)
                     + ((serverBounds.getVertex(TOP_LEFT_FAR) - serverBounds.getVertex(BOTTOM_RIGHT_NEAR)) / 2.0f);
@@ -123,7 +125,11 @@ void NodeBounds::draw() {
                     selectedCenter = center;
                     selectedScale = scaleFactor;
                 }
+            } else {
+                serverJurisdictions->unlock();
             }
+        } else {
+            serverJurisdictions->unlock();
         }
     }
 
@@ -133,11 +139,10 @@ void NodeBounds::draw() {
         glTranslatef(selectedCenter.x, selectedCenter.y, selectedCenter.z);
         glScalef(selectedScale, selectedScale, selectedScale);
 
-        NodeType_t selectedNodeType = selectedNode->getType();
         float red, green, blue;
         getColorForNodeType(selectedNode->getType(), red, green, blue);
 
-        glColor4f(red, green, blue, 0.2);
+        glColor4f(red, green, blue, 0.2f);
         glutSolidCube(1.0);
 
         glPopMatrix();
@@ -225,13 +230,12 @@ void NodeBounds::drawOverlay() {
         const int FONT = 2;
         const int PADDING = 10;
         const int MOUSE_OFFSET = 10;
-        const int BACKGROUND_OFFSET_Y = -20;
         const int BACKGROUND_BEVEL = 3;
 
         int mouseX = application->getMouseX(),
             mouseY = application->getMouseY(),
             textWidth = widthText(TEXT_SCALE, 0, _overlayText);
-        glColor4f(0.4, 0.4, 0.4, 0.6);
+        glColor4f(0.4f, 0.4f, 0.4f, 0.6f);
         renderBevelCornersRect(mouseX + MOUSE_OFFSET, mouseY - TEXT_HEIGHT - PADDING,
                                textWidth + (2 * PADDING), TEXT_HEIGHT + (2 * PADDING), BACKGROUND_BEVEL);
         drawText(mouseX + MOUSE_OFFSET + PADDING, mouseY, TEXT_SCALE, ROTATION, FONT, _overlayText, TEXT_COLOR);

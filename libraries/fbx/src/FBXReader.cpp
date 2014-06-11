@@ -894,14 +894,15 @@ FBXBlendshape extractBlendshape(const FBXNode& object) {
 }
 
 void setTangents(FBXMesh& mesh, int firstIndex, int secondIndex) {
-    glm::vec3 normal = glm::normalize(mesh.normals.at(firstIndex));
+    const glm::vec3& normal = mesh.normals.at(firstIndex);
     glm::vec3 bitangent = glm::cross(normal, mesh.vertices.at(secondIndex) - mesh.vertices.at(firstIndex));
     if (glm::length(bitangent) < EPSILON) {
         return;
     }
     glm::vec2 texCoordDelta = mesh.texCoords.at(secondIndex) - mesh.texCoords.at(firstIndex);
-    mesh.tangents[firstIndex] += glm::cross(glm::angleAxis(
-                - atan2f(-texCoordDelta.t, texCoordDelta.s), normal) * glm::normalize(bitangent), normal);
+    glm::vec3 normalizedNormal = glm::normalize(normal);
+    mesh.tangents[firstIndex] += glm::cross(glm::angleAxis(-atan2f(-texCoordDelta.t, texCoordDelta.s), normalizedNormal) *
+        glm::normalize(bitangent), normalizedNormal);
 }
 
 QVector<int> getIndices(const QVector<QString> ids, QVector<QString> modelIDs) {
@@ -1442,7 +1443,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     }
 
     // figure the number of animation frames from the curves
-    int frameCount = 0;
+    int frameCount = 1;
     foreach (const AnimationCurve& curve, animationCurves) {
         frameCount = qMax(frameCount, curve.values.size());
     }
@@ -1546,6 +1547,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     
     for (QHash<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
         ExtractedMesh& extracted = it.value();
+        
+        extracted.mesh.meshExtents.reset();
 
         // accumulate local transforms
         QString modelID = models.contains(it.key()) ? it.key() : parentMap.value(it.key());
@@ -1556,6 +1559,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             glm::vec3 transformedVertex = glm::vec3(modelTransform * glm::vec4(vertex, 1.0f));
             geometry.meshExtents.minimum = glm::min(geometry.meshExtents.minimum, transformedVertex);
             geometry.meshExtents.maximum = glm::max(geometry.meshExtents.maximum, transformedVertex);
+
+            extracted.mesh.meshExtents.minimum = glm::min(extracted.mesh.meshExtents.minimum, transformedVertex);
+            extracted.mesh.meshExtents.maximum = glm::max(extracted.mesh.meshExtents.maximum, transformedVertex);
         }
 
         // look for textures, material properties
@@ -2047,3 +2053,40 @@ FBXGeometry readSVO(const QByteArray& model) {
 
     return geometry;
 }
+
+void calculateRotatedExtents(Extents& extents, const glm::quat& rotation) {
+    glm::vec3 bottomLeftNear(extents.minimum.x, extents.minimum.y, extents.minimum.z);
+    glm::vec3 bottomRightNear(extents.maximum.x, extents.minimum.y, extents.minimum.z);
+    glm::vec3 bottomLeftFar(extents.minimum.x, extents.minimum.y, extents.maximum.z);
+    glm::vec3 bottomRightFar(extents.maximum.x, extents.minimum.y, extents.maximum.z);
+    glm::vec3 topLeftNear(extents.minimum.x, extents.maximum.y, extents.minimum.z);
+    glm::vec3 topRightNear(extents.maximum.x, extents.maximum.y, extents.minimum.z);
+    glm::vec3 topLeftFar(extents.minimum.x, extents.maximum.y, extents.maximum.z);
+    glm::vec3 topRightFar(extents.maximum.x, extents.maximum.y, extents.maximum.z);
+
+    glm::vec3 bottomLeftNearRotated =  rotation * bottomLeftNear;
+    glm::vec3 bottomRightNearRotated = rotation * bottomRightNear;
+    glm::vec3 bottomLeftFarRotated = rotation * bottomLeftFar;
+    glm::vec3 bottomRightFarRotated = rotation * bottomRightFar;
+    glm::vec3 topLeftNearRotated = rotation * topLeftNear;
+    glm::vec3 topRightNearRotated = rotation * topRightNear;
+    glm::vec3 topLeftFarRotated = rotation * topLeftFar;
+    glm::vec3 topRightFarRotated = rotation * topRightFar;
+    
+    extents.minimum = glm::min(bottomLeftNearRotated,
+                        glm::min(bottomRightNearRotated,
+                        glm::min(bottomLeftFarRotated,
+                        glm::min(bottomRightFarRotated,
+                        glm::min(topLeftNearRotated,
+                        glm::min(topRightNearRotated,
+                        glm::min(topLeftFarRotated,topRightFarRotated)))))));
+
+    extents.maximum = glm::max(bottomLeftNearRotated,
+                        glm::max(bottomRightNearRotated,
+                        glm::max(bottomLeftFarRotated,
+                        glm::max(bottomRightFarRotated,
+                        glm::max(topLeftNearRotated,
+                        glm::max(topRightNearRotated,
+                        glm::max(topLeftFarRotated,topRightFarRotated)))))));
+}
+

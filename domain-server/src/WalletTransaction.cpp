@@ -18,13 +18,13 @@
 WalletTransaction::WalletTransaction() :
     _uuid(),
     _destinationUUID(),
-    _amount(),
+    _amount(0),
     _isFinalized(false)
 {
     
 }
 
-WalletTransaction::WalletTransaction(const QUuid& destinationUUID, double amount) :
+WalletTransaction::WalletTransaction(const QUuid& destinationUUID, qint64 amount) :
     _uuid(QUuid::createUuid()),
     _destinationUUID(destinationUUID),
     _amount(amount),
@@ -63,5 +63,5 @@ void WalletTransaction::loadFromJson(const QJsonObject& jsonObject) {
     
     _uuid = QUuid(transactionObject.value(TRANSACTION_ID_KEY).toString());
     _destinationUUID = QUuid(transactionObject.value(TRANSACTION_DESTINATION_WALLET_ID_KEY).toString());
-    _amount = transactionObject.value(TRANSACTION_AMOUNT_KEY).toDouble();
+    _amount = transactionObject.value(TRANSACTION_AMOUNT_KEY).toInt();
 }

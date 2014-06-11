@@ -35,6 +35,14 @@ void MenuScriptingInterface::removeMenu(const QString& menu) {
     QMetaObject::invokeMethod(Menu::getInstance(), "removeMenu", Q_ARG(const QString&, menu));
 }
 
+bool MenuScriptingInterface::menuExists(const QString& menu) {
+    bool result;
+    QMetaObject::invokeMethod(Menu::getInstance(), "menuExists", Qt::BlockingQueuedConnection,
+                Q_RETURN_ARG(bool, result), 
+                Q_ARG(const QString&, menu));
+    return result;
+}
+
 void MenuScriptingInterface::addSeparator(const QString& menuName, const QString& separatorName) {
     QMetaObject::invokeMethod(Menu::getInstance(), "addSeparator",
                 Q_ARG(const QString&, menuName),
@@ -66,6 +74,15 @@ void MenuScriptingInterface::removeMenuItem(const QString& menu, const QString& 
                 Q_ARG(const QString&, menu),
                 Q_ARG(const QString&, menuitem));
 };
+
+bool MenuScriptingInterface::menuItemExists(const QString& menu, const QString& menuitem) {
+    bool result;
+    QMetaObject::invokeMethod(Menu::getInstance(), "menuItemExists", Qt::BlockingQueuedConnection,
+                Q_RETURN_ARG(bool, result), 
+                Q_ARG(const QString&, menu),
+                Q_ARG(const QString&, menuitem));
+    return result;
+}
 
 bool MenuScriptingInterface::isOptionChecked(const QString& menuOption) {
     bool result;

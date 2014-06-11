@@ -46,6 +46,7 @@ OctreeSceneStats::OctreeSceneStats() :
     _incomingReallyLate(0),
     _incomingPossibleDuplicate(0),
     _missingSequenceNumbers(),
+    _sequenceNumbersToNack(),
     _incomingFlightTimeAverage(samples),
     _jurisdictionRoot(NULL)
 {
@@ -158,6 +159,7 @@ void OctreeSceneStats::copyFromOther(const OctreeSceneStats& other) {
     _incomingPossibleDuplicate = other._incomingPossibleDuplicate;
     
     _missingSequenceNumbers = other._missingSequenceNumbers;
+    _sequenceNumbersToNack = other._sequenceNumbersToNack;
 }
 
 
@@ -858,7 +860,7 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
     //bool packetIsCompressed = oneAtBit(flags, PACKET_IS_COMPRESSED_BIT);
     
     OCTREE_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
-    int flightTime = arrivedAt - sentAt + nodeClockSkewUsec;
+    qint64 flightTime = arrivedAt - sentAt + nodeClockSkewUsec;
 
     if (wantExtraDebugging) {
         qDebug() << "sentAt:" << sentAt << " usecs";
@@ -866,7 +868,7 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
         qDebug() << "nodeClockSkewUsec:" << nodeClockSkewUsec << " usecs";
         qDebug() << "flightTime:" << flightTime << " usecs";
     }
-    
+
     // Guard against possible corrupted packets... with bad timestamps
     const int MAX_RESONABLE_FLIGHT_TIME = 200 * USECS_PER_SECOND; // 200 seconds is more than enough time for a packet to arrive
     const int MIN_RESONABLE_FLIGHT_TIME = 0;
@@ -926,6 +928,7 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
                         qDebug() << "found it in _missingSequenceNumbers";
                     }
                     _missingSequenceNumbers.remove(sequence);
+                    _sequenceNumbersToNack.remove(sequence);
                     _incomingLikelyLost--;
                     _incomingRecovered++;
                 } else {
@@ -955,6 +958,7 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
                 _incomingLikelyLost += missing;
                 for(unsigned int missingSequence = expected; missingSequence < sequence; missingSequence++) {
                     _missingSequenceNumbers << missingSequence;
+                    _sequenceNumbersToNack << missingSequence;
                 }
             }
         }
@@ -982,9 +986,20 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
                     qDebug() << "pruning really old missing sequence:" << missingItem;
                 }
                 _missingSequenceNumbers.remove(missingItem);
+                _sequenceNumbersToNack.remove(missingItem);
             }
         }
     }
-    
+
 }
 
+int OctreeSceneStats::getNumSequenceNumbersToNack() const {
+    return _sequenceNumbersToNack.size();
+}
+
+uint16_t OctreeSceneStats::getNextSequenceNumberToNack() {
+    QSet<uint16_t>::Iterator it = _sequenceNumbersToNack.begin();
+    uint16_t sequenceNumber = *it;
+    _sequenceNumbersToNack.remove(sequenceNumber);
+    return sequenceNumber;
+}

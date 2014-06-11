@@ -236,7 +236,7 @@ function checkControllerSide(whichSide) {
 
         debugPrint("modelRadius=" +modelRadius);
 
-        newModel = Models.addModel(properties);
+        //newModel = Models.addModel(properties);
         
         print("just added model... newModel=" + newModel.creatorTokenID);
         print("properties.animationURL=" + properties.animationURL);

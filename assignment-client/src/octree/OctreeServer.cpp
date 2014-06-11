@@ -832,20 +832,29 @@ void OctreeServer::readPendingDatagrams() {
             PacketType packetType = packetTypeForPacket(receivedPacket);
             SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
             if (packetType == getMyQueryMessageType()) {
-            
                 // If we got a query packet, then we're talking to an agent, and we
                 // need to make sure we have it in our nodeList.
                 if (matchingNode) {
                     nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
-                    OctreeQueryNode* nodeData = (OctreeQueryNode*) matchingNode->getLinkedData();
+                    OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
                     if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
-                    
+                        
                         // NOTE: this is an important aspect of the proper ref counting. The send threads/node data need to 
                         // know that the OctreeServer/Assignment will not get deleted on it while it's still active. The 
                         // solution is to get the shared pointer for the current assignment. We need to make sure this is the 
                         // same SharedAssignmentPointer that was ref counted by the assignment client.                    
                         SharedAssignmentPointer sharedAssignment = AssignmentClient::getCurrentAssignment();
                         nodeData->initializeOctreeSendThread(sharedAssignment, matchingNode);
+                    }
+                }
+            } else if (packetType == PacketTypeOctreeDataNack) {
+                // If we got a nack packet, then we're talking to an agent, and we
+                // need to make sure we have it in our nodeList.
+                if (matchingNode) {
+                    nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
+                    OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
+                    if (nodeData) {
+                        nodeData->parseNackPacket(receivedPacket);
                     }
                 }
             } else if (packetType == PacketTypeJurisdictionRequest) {

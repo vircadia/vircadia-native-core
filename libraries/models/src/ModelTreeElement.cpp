@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <glm/gtx/transform.hpp>
+
+#include <FBXReader.h>
 #include <GeometryUtil.h>
 
 #include "ModelTree.h"
@@ -47,19 +50,24 @@ ModelTreeElement* ModelTreeElement::addChildAtIndex(int index) {
 }
 
 
+// TODO: This will attempt to store as many models as will fit in the packetData, if an individual model won't
+// fit, but some models did fit, then the element outputs what can fit. Once the general Octree::encodeXXX()
+// process supports partial encoding of an octree element, this will need to be updated to handle spanning its
+// contents across multiple packets.
 bool ModelTreeElement::appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const {
     bool success = true; // assume the best...
 
     // write our models out... first determine which of the models are in view based on our params
     uint16_t numberOfModels = 0;
+    uint16_t actualNumberOfModels = 0;
     QVector<uint16_t> indexesOfModelsToInclude;
 
     for (uint16_t i = 0; i < _modelItems->size(); i++) {
         if (params.viewFrustum) {
             const ModelItem& model = (*_modelItems)[i];
-            AABox modelBox = model.getAABox();
-            modelBox.scale(TREE_SCALE);
-            if (params.viewFrustum->boxInFrustum(modelBox) != ViewFrustum::OUTSIDE) {
+            AACube modelCube = model.getAACube();
+            modelCube.scale(TREE_SCALE);
+            if (params.viewFrustum->cubeInFrustum(modelCube) != ViewFrustum::OUTSIDE) {
                 indexesOfModelsToInclude << i;
                 numberOfModels++;
             }
@@ -69,32 +77,53 @@ bool ModelTreeElement::appendElementData(OctreePacketData* packetData, EncodeBit
         }
     }
 
+    int numberOfModelsOffset = packetData->getUncompressedByteOffset();
     success = packetData->appendValue(numberOfModels);
 
     if (success) {
         foreach (uint16_t i, indexesOfModelsToInclude) {
             const ModelItem& model = (*_modelItems)[i];
+            
+            LevelDetails modelLevel = packetData->startLevel();
+    
             success = model.appendModelData(packetData);
+
+            if (success) {
+                packetData->endLevel(modelLevel);
+                actualNumberOfModels++;
+            }
             if (!success) {
+                packetData->discardLevel(modelLevel);
                 break;
             }
         }
     }
+    
+    if (!success) {
+        success = packetData->updatePriorBytes(numberOfModelsOffset, 
+                                            (const unsigned char*)&actualNumberOfModels, sizeof(actualNumberOfModels));
+    }
+    
     return success;
 }
 
 bool ModelTreeElement::containsModelBounds(const ModelItem& model) const {
     glm::vec3 clampedMin = glm::clamp(model.getMinimumPoint(), 0.0f, 1.0f);
     glm::vec3 clampedMax = glm::clamp(model.getMaximumPoint(), 0.0f, 1.0f);
-    return _box.contains(clampedMin) && _box.contains(clampedMax);
+    return _cube.contains(clampedMin) && _cube.contains(clampedMax);
 }
 
 bool ModelTreeElement::bestFitModelBounds(const ModelItem& model) const {
     glm::vec3 clampedMin = glm::clamp(model.getMinimumPoint(), 0.0f, 1.0f);
     glm::vec3 clampedMax = glm::clamp(model.getMaximumPoint(), 0.0f, 1.0f);
-    if (_box.contains(clampedMin) && _box.contains(clampedMax)) {
+    if (_cube.contains(clampedMin) && _cube.contains(clampedMax)) {
         int childForMinimumPoint = getMyChildContainingPoint(clampedMin);
         int childForMaximumPoint = getMyChildContainingPoint(clampedMax);
+        
+        // if this is a really small box, then it's close enough!
+        if (_cube.getScale() <= SMALLEST_REASONABLE_OCTREE_ELEMENT_SCALE) {
+            return true;
+        }
         // If I contain both the minimum and maximum point, but two different children of mine
         // contain those points, then I am the best fit for that model
         if (childForMinimumPoint != childForMaximumPoint) {
@@ -133,6 +162,96 @@ void ModelTreeElement::update(ModelTreeUpdateArgs& args) {
             ++modelItr;
         }
     }
+}
+
+bool ModelTreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         void** intersectedObject) {
+
+    // only called if we do intersect our bounding cube, but find if we actually intersect with models...
+    
+    QList<ModelItem>::iterator modelItr = _modelItems->begin();
+    QList<ModelItem>::const_iterator modelEnd = _modelItems->end();
+    bool somethingIntersected = false;
+    while(modelItr != modelEnd) {
+        ModelItem& model = (*modelItr);
+        
+        AACube modelCube = model.getAACube();
+        float localDistance;
+        BoxFace localFace;
+
+        // if the ray doesn't intersect with our cube, we can stop searching!
+        if (modelCube.findRayIntersection(origin, direction, localDistance, localFace)) {
+            const FBXGeometry* fbxGeometry = _myTree->getGeometryForModel(model);
+            if (fbxGeometry && fbxGeometry->meshExtents.isValid()) {
+                Extents extents = fbxGeometry->meshExtents;
+
+                // NOTE: If the model has a bad mesh, then extents will be 0,0,0 & 0,0,0
+                if (extents.minimum == extents.maximum && extents.minimum == glm::vec3(0,0,0)) {
+                    extents.maximum = glm::vec3(1.0f,1.0f,1.0f); // in this case we will simulate the unit cube
+                }
+
+                // NOTE: these extents are model space, so we need to scale and center them accordingly
+                // size is our "target size in world space"
+                // we need to set our model scale so that the extents of the mesh, fit in a cube that size...
+                float maxDimension = glm::distance(extents.maximum, extents.minimum);
+                float scale = model.getSize() / maxDimension;
+
+                glm::vec3 halfDimensions = (extents.maximum - extents.minimum) * 0.5f;
+                glm::vec3 offset = -extents.minimum - halfDimensions;
+                
+                extents.minimum += offset;
+                extents.maximum += offset;
+
+                extents.minimum *= scale;
+                extents.maximum *= scale;
+                
+                Extents rotatedExtents = extents;
+
+                calculateRotatedExtents(rotatedExtents, model.getModelRotation());
+
+                rotatedExtents.minimum += model.getPosition();
+                rotatedExtents.maximum += model.getPosition();
+
+
+                AABox rotatedExtentsBox(rotatedExtents.minimum, (rotatedExtents.maximum - rotatedExtents.minimum));
+                
+                // if it's in our AABOX for our rotated extents, then check to see if it's in our non-AABox
+                if (rotatedExtentsBox.findRayIntersection(origin, direction, localDistance, localFace)) {
+                
+                    // extents is the model relative, scaled, centered extents of the model
+                    glm::mat4 rotation = glm::mat4_cast(model.getModelRotation());
+                    glm::mat4 translation = glm::translate(model.getPosition());
+                    glm::mat4 modelToWorldMatrix = translation * rotation;
+                    glm::mat4 worldToModelMatrix = glm::inverse(modelToWorldMatrix);
+
+                    AABox modelFrameBox(extents.minimum, (extents.maximum - extents.minimum));
+
+                    glm::vec3 modelFrameOrigin = glm::vec3(worldToModelMatrix * glm::vec4(origin, 1.0f));
+                    glm::vec3 modelFrameDirection = glm::vec3(worldToModelMatrix * glm::vec4(direction, 0.0f));
+
+                    // we can use the AABox's ray intersection by mapping our origin and direction into the model frame
+                    // and testing intersection there.
+                    if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, localDistance, localFace)) {
+                        if (localDistance < distance) {
+                            distance = localDistance;
+                            face = localFace;
+                            *intersectedObject = (void*)(&model);
+                            somethingIntersected = true;
+                        }
+                    }
+                }
+            } else if (localDistance < distance) {
+                distance = localDistance;
+                face = localFace;
+                *intersectedObject = (void*)(&model);
+                somethingIntersected = true;
+            }
+        }
+        
+        ++modelItr;
+    }
+    return somethingIntersected;
 }
 
 bool ModelTreeElement::findSpherePenetration(const glm::vec3& center, float radius,
@@ -277,18 +396,18 @@ void ModelTreeElement::getModels(const glm::vec3& searchPosition, float searchRa
     }
 }
 
-void ModelTreeElement::getModelsForUpdate(const AABox& box, QVector<ModelItem*>& foundModels) {
+void ModelTreeElement::getModelsForUpdate(const AACube& box, QVector<ModelItem*>& foundModels) {
     QList<ModelItem>::iterator modelItr = _modelItems->begin();
     QList<ModelItem>::iterator modelEnd = _modelItems->end();
-    AABox modelBox;
+    AACube modelCube;
     while(modelItr != modelEnd) {
         ModelItem* model = &(*modelItr);
         float radius = model->getRadius();
-        // NOTE: we actually do box-box collision queries here, which is sloppy but good enough for now
-        // TODO: decide whether to replace modelBox-box query with sphere-box (requires a square root
+        // NOTE: we actually do cube-cube collision queries here, which is sloppy but good enough for now
+        // TODO: decide whether to replace modelCube-cube query with sphere-cube (requires a square root
         // but will be slightly more accurate).
-        modelBox.setBox(model->getPosition() - glm::vec3(radius), 2.f * radius);
-        if (modelBox.touches(_box)) {
+        modelCube.setBox(model->getPosition() - glm::vec3(radius), 2.f * radius);
+        if (modelCube.touches(_cube)) {
             foundModels.push_back(model);
         }
         ++modelItr;
@@ -340,6 +459,7 @@ int ModelTreeElement::readElementDataFromBuffer(const unsigned char* data, int b
     if (bytesLeftToRead >= (int)sizeof(numberOfModels)) {
         // read our models in....
         numberOfModels = *(uint16_t*)dataAt;
+
         dataAt += sizeof(numberOfModels);
         bytesLeftToRead -= (int)sizeof(numberOfModels);
         bytesRead += sizeof(numberOfModels);

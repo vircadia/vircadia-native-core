@@ -28,8 +28,10 @@ var NEW_VOXEL_SIZE = 1.0;
 var NEW_VOXEL_DISTANCE_FROM_CAMERA = 3.0;
 var PIXELS_PER_EXTRUDE_VOXEL = 16;
 var WHEEL_PIXELS_PER_SCALE_CHANGE = 100;
-var MAX_VOXEL_SCALE = 1.0;
-var MIN_VOXEL_SCALE = 1.0 / Math.pow(2.0, 8.0);
+var MAX_VOXEL_SCALE_POWER = 4;
+var MIN_VOXEL_SCALE_POWER = -8;
+var MAX_VOXEL_SCALE = Math.pow(2.0, MAX_VOXEL_SCALE_POWER);
+var MIN_VOXEL_SCALE = Math.pow(2.0, MIN_VOXEL_SCALE_POWER);
 var WHITE_COLOR = { red: 255, green: 255, blue: 255 };
 
 var MAX_PASTE_VOXEL_SCALE = 256;
@@ -330,6 +332,13 @@ function ScaleSelector() {
                                             visible: false
                                             });
     this.setScale = function(scale) {
+        if (scale > MAX_VOXEL_SCALE) {
+            scale = MAX_VOXEL_SCALE;
+        }
+        if (scale < MIN_VOXEL_SCALE) {
+            scale = MIN_VOXEL_SCALE;
+        }
+        
         this.scale = scale;
         this.power = Math.floor(Math.log(scale) / Math.log(2));
         rescaleImport();
@@ -391,7 +400,7 @@ function ScaleSelector() {
     
     this.incrementScale = function() {
         copyScale = false;
-        if (this.power < 13) {
+        if (this.power < MAX_VOXEL_SCALE_POWER) {
             ++this.power;
             this.scale *= 2.0;
             this.update();
@@ -402,7 +411,7 @@ function ScaleSelector() {
     
     this.decrementScale = function() {
         copyScale = false;
-        if (-4 < this.power) {
+        if (MIN_VOXEL_SCALE_POWER < this.power) {
             --this.power;
             this.scale /= 2.0;
             this.update();
@@ -1056,6 +1065,9 @@ function mousePressEvent(event) {
             lastVoxelPosition = { x: voxelDetails.x, y: voxelDetails.y, z: voxelDetails.z };
             lastVoxelColor = { red: newColor.red, green: newColor.green, blue: newColor.blue };
             lastVoxelScale = voxelDetails.s;
+            if (lastVoxelScale > MAX_VOXEL_SCALE) {
+              lastVoxelScale = MAX_VOXEL_SCALE; 
+            }
             
             addVoxelSound.playRandom();
             
@@ -1105,7 +1117,12 @@ function keyReleaseEvent(event) {
     trackKeyReleaseEvent(event); // used by preview support
 }
 
-function setupMenus() {
+
+// In order for editVoxels and editModels to play nice together, they each check to see if a "delete" menu item already
+// exists. If it doesn't they add it. If it does they don't. They also only delete the menu item if they were the one that
+// added it.
+var voxelMenuAddedDelete = false;
+function setupVoxelMenus() {
     // hook up menus
     Menu.menuItemEvent.connect(menuItemEvent);
     
@@ -1115,7 +1132,13 @@ function setupMenus() {
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Copy", shortcutKey: "CTRL+C", afterItem: "Cut" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste", shortcutKey: "CTRL+V", afterItem: "Copy" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Nudge", shortcutKey: "CTRL+N", afterItem: "Paste" });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete", shortcutKeyEvent: { text: "backspace" }, afterItem: "Nudge" });
+
+
+    if (!Menu.menuItemExists("Edit","Delete")) {
+        Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete", 
+            shortcutKeyEvent: { text: "backspace" }, afterItem: "Nudge" });
+        voxelMenuAddedDelete = true;
+    }
     
     Menu.addMenuItem({ menuName: "File", menuItemName: "Voxels", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Voxels", shortcutKey: "CTRL+E", afterItem: "Voxels" });
@@ -1129,7 +1152,9 @@ function cleanupMenus() {
     Menu.removeMenuItem("Edit", "Copy");
     Menu.removeMenuItem("Edit", "Paste");
     Menu.removeMenuItem("Edit", "Nudge");
-    Menu.removeMenuItem("Edit", "Delete");
+    if (voxelMenuAddedDelete) {
+        Menu.removeMenuItem("Edit", "Delete");
+    }
     Menu.removeSeparator("File", "Voxels");
     Menu.removeMenuItem("File", "Export Voxels");
     Menu.removeMenuItem("File", "Import Voxels");
@@ -1470,4 +1495,4 @@ Script.scriptEnding.connect(scriptEnding);
 
 Script.update.connect(update);
 
-setupMenus();
+setupVoxelMenus();

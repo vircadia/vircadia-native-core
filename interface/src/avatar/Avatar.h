@@ -152,7 +152,12 @@ public:
 
     quint32 getCollisionGroups() const { return _collisionGroups; }
     virtual void setCollisionGroups(quint32 collisionGroups) { _collisionGroups = (collisionGroups & VALID_COLLISION_GROUPS); }
-
+    
+    Q_INVOKABLE glm::vec3 getJointPosition(int index) const;
+    Q_INVOKABLE glm::vec3 getJointPosition(const QString& name) const;
+    Q_INVOKABLE glm::quat getJointCombinedRotation(int index) const;
+    Q_INVOKABLE glm::quat getJointCombinedRotation(const QString& name) const;
+    
 public slots:
     void updateCollisionGroups();
 
@@ -185,6 +190,7 @@ protected:
     float getHeadHeight() const;
     float getPelvisFloatingHeight() const;
     float getPelvisToHeadLength() const;
+    glm::vec3 getDisplayNamePosition();
 
     void renderDisplayName();
     virtual void renderBody(RenderMode renderMode, float glowLevel = 0.0f);

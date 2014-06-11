@@ -26,6 +26,7 @@
 #include "location/LocationManager.h"
 #include "ui/PreferencesDialog.h"
 #include "ui/ChatWindow.h"
+#include "ui/JSConsole.h"
 #include "ui/ScriptEditorWindow.h"
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
@@ -105,6 +106,8 @@ public:
     int getMaxVoxels() const { return _maxVoxels; }
     QAction* getUseVoxelShader() const { return _useVoxelShader; }
 
+    bool getShadowsEnabled() const;
+
     void handleViewFrustumOffsetKeyModifier(int key);
 
     // User Tweakable LOD Items
@@ -172,11 +175,13 @@ public slots:
 
     QMenu* addMenu(const QString& menuName);
     void removeMenu(const QString& menuName);
+    bool menuExists(const QString& menuName);
     void addSeparator(const QString& menuName, const QString& separatorName);
     void removeSeparator(const QString& menuName, const QString& separatorName);
     void addMenuItem(const MenuItemProperties& properties);
     void removeMenuItem(const QString& menuName, const QString& menuitem);
-    bool isOptionChecked(const QString& menuOption);
+    bool menuItemExists(const QString& menuName, const QString& menuitem);
+    bool isOptionChecked(const QString& menuOption) const;
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
 
 private slots:
@@ -195,6 +200,7 @@ private slots:
     void showMetavoxelEditor();
     void showScriptEditor();
     void showChat();
+    void toggleConsole();
     void toggleChat();
     void audioMuteToggled();
     void namedLocationCreated(LocationManager::NamedLocationCreateResponse response);
@@ -249,6 +255,7 @@ private:
     QPointer<MetavoxelEditor> _MetavoxelEditor;
     QPointer<ScriptEditorWindow> _ScriptEditor;
     QPointer<ChatWindow> _chatWindow;
+    QDialog* _jsConsole;
     OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
     int _maxVoxels;
@@ -277,6 +284,7 @@ private:
 namespace MenuOption {
     const QString AboutApp = "About Interface";
     const QString AlignForearmsWithWrists = "Align Forearms with Wrists";
+    const QString AllowOculusCameraModeChange = "Allow Oculus Camera Mode Change (Nausea)";
     const QString AlternateIK = "Alternate IK";
     const QString AmbientOcclusion = "Ambient Occlusion";
     const QString Animations = "Animations...";
@@ -285,6 +293,10 @@ namespace MenuOption {
     const QString AudioNoiseReduction = "Audio Noise Reduction";
     const QString AudioScope = "Audio Scope";
     const QString AudioScopePause = "Pause Audio Scope";
+    const QString AudioScopeFrames = "Display Frames";
+    const QString AudioScopeFiveFrames = "Five";
+    const QString AudioScopeTwentyFrames = "Twenty";
+    const QString AudioScopeFiftyFrames = "Fifty";
     const QString AudioToneInjection = "Inject Test Tone";
     const QString AudioSpatialProcessing = "Audio Spatial Processing";
     const QString AudioSpatialProcessingHeadOriented = "Head Oriented";
@@ -299,29 +311,43 @@ namespace MenuOption {
     const QString AudioSpatialProcessingDontDistanceAttenuate = "Don't calculate distance attenuation";
     const QString AudioSpatialProcessingAlternateDistanceAttenuate = "Alternate distance attenuation";
     const QString Avatars = "Avatars";
+    const QString AvatarsReceiveShadows = "Avatars Receive Shadows";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BuckyBalls = "Bucky Balls";
+    const QString CascadedShadows = "Cascaded";
     const QString Chat = "Chat...";
     const QString ChatCircling = "Chat Circling";
+    const QString CollideAsRagDoll = "Collide As RagDoll";
     const QString CollideWithAvatars = "Collide With Avatars";
     const QString CollideWithEnvironment = "Collide With World Boundaries";
     const QString CollideWithParticles = "Collide With Particles";
     const QString CollideWithVoxels = "Collide With Voxels";
     const QString Collisions = "Collisions";
+    const QString Console = "Console...";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
+    const QString DisableNackPackets = "Disable NACK Packets";
     const QString DisplayFrustum = "Display Frustum";
     const QString DisplayHands = "Display Hands";
     const QString DisplayHandTargets = "Display Hand Targets";
     const QString DisplayModelBounds = "Display Model Bounds";
     const QString DisplayModelElementProxy = "Display Model Element Bounds";
     const QString DisplayModelElementChildProxies = "Display Model Element Children";
+    const QString DisplayOculusOverlays = "Display Oculus Overlays";
+    const QString DisplayTimingDetails = "Display Timing Details";
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
+    const QString ExpandMiscAvatarTiming = "Expand Misc MyAvatar Timing";
+    const QString ExpandAvatarUpdateTiming = "Expand MyAvatar update Timing";
+    const QString ExpandAvatarSimulateTiming = "Expand MyAvatar simulate Timing";
+    const QString ExpandDisplaySideTiming = "Expand Display Side Timing";
+    const QString ExpandIdleTiming = "Expand Idle Timing";
+    const QString ExpandPaintGLTiming = "Expand PaintGL Timing";
+    const QString ExpandUpdateTiming = "Expand Update Timing";
     const QString Faceplus = "Faceplus";
     const QString Faceshift = "Faceshift";
     const QString FilterSixense = "Smooth Sixense Movement";
@@ -377,13 +403,15 @@ namespace MenuOption {
     const QString ScriptEditor = "Script Editor...";
     const QString SettingsExport = "Export Settings";
     const QString SettingsImport = "Import Settings";
-    const QString Shadows = "Shadows";
+    const QString SimpleShadows = "Simple";
     const QString ShowBordersVoxelNodes = "Show Voxel Nodes";
     const QString ShowBordersModelNodes = "Show Model Nodes";
     const QString ShowBordersParticleNodes = "Show Particle Nodes";
     const QString ShowIKConstraints = "Show IK Constraints";
+    const QString StandOnNearbyFloors = "Stand on nearby floors";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
+    const QString StereoAudio = "Stereo Audio";
     const QString StopAllScripts = "Stop All Scripts";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString TestPing = "Test Ping";

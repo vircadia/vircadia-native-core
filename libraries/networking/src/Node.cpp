@@ -57,7 +57,8 @@ Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
     _linkedData(NULL),
     _isAlive(true),
     _clockSkewUsec(0),
-    _mutex()
+    _mutex(),
+    _clockSkewMovingPercentile(30, 0.8f)   // moving 80th percentile of 30 samples
 {
     
 }
@@ -131,6 +132,11 @@ float Node::getAverageKilobitsPerSecond() {
     } else {
         return 0;
     }
+}
+
+void Node::updateClockSkewUsec(int clockSkewSample) {
+    _clockSkewMovingPercentile.updatePercentile((float)clockSkewSample);
+    _clockSkewUsec = (int)_clockSkewMovingPercentile.getValueAtPercentile();
 }
 
 QDataStream& operator<<(QDataStream& out, const Node& node) {

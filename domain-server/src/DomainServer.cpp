@@ -218,6 +218,8 @@ bool DomainServer::optionallySetupAssignmentPayment() {
                 }
             }
             
+            qDebug() << "Assignments will be paid for via" << qPrintable(_oauthProviderURL.toString());
+            
             // assume that the fact we are authing against HF data server means we will pay for assignments
             // setup a timer to send transactions to pay assigned nodes every 30 seconds
             QTimer* creditSetupTimer = new QTimer(this);
@@ -310,6 +312,8 @@ void DomainServer::createScriptedAssignmentsFromArray(const QJsonArray &configAr
                 int numInstances = jsonObject[ASSIGNMENT_INSTANCES_KEY].toInt();
                 numInstances = (numInstances == 0 ? 1 : numInstances);
                 
+                qDebug() << "Adding a static scripted assignment from" << assignmentURL;
+                
                 for (int i = 0; i < numInstances; i++) {
                     // add a scripted assignment to the queue for this instance
                     Assignment* scriptAssignment = new Assignment(Assignment::CreateCommand,
@@ -317,13 +321,8 @@ void DomainServer::createScriptedAssignmentsFromArray(const QJsonArray &configAr
                                                                   assignmentPool);
                     scriptAssignment->setPayload(assignmentURL.toUtf8());
                     
-                    qDebug() << "Adding scripted assignment to queue -" << *scriptAssignment;
-                    qDebug() << "URL for script is" << assignmentURL;
-                    
                     // scripts passed on CL or via JSON are static - so they are added back to the queue if the node dies
-                    SharedAssignmentPointer sharedScriptAssignment(scriptAssignment);
-                    _unfulfilledAssignments.enqueue(sharedScriptAssignment);
-                    _allAssignments.insert(sharedScriptAssignment->getUUID(), sharedScriptAssignment);
+                    addStaticAssignmentToAssignmentHash(scriptAssignment);
                 }
             }
         }
@@ -405,7 +404,7 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     PendingAssignedNodeData* pendingAssigneeData = NULL;
    
     if (isAssignment) {
-        pendingAssigneeData = _pendingAssignedNodes.take(packetUUID);
+        pendingAssigneeData = _pendingAssignedNodes.value(packetUUID);
         
         if (pendingAssigneeData) {
             matchingQueuedAssignment = matchingQueuedAssignmentForCheckIn(pendingAssigneeData->getAssignmentUUID(), nodeType);
@@ -414,12 +413,21 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
                 qDebug() << "Assignment deployed with" << uuidStringWithoutCurlyBraces(packetUUID)
                     << "matches unfulfilled assignment"
                     << uuidStringWithoutCurlyBraces(matchingQueuedAssignment->getUUID());
+                
+                // remove this unique assignment deployment from the hash of pending assigned nodes
+                // cleanup of the PendingAssignedNodeData happens below after the node has been added to the LimitedNodeList
+                _pendingAssignedNodes.remove(packetUUID);
+            } else {
+                // this is a node connecting to fulfill an assignment that doesn't exist
+                // don't reply back to them so they cycle back and re-request an assignment
+                qDebug() << "No match for assignment deployed with" << uuidStringWithoutCurlyBraces(packetUUID);
+                return;
             }
         }
         
     }
     
-    if (!matchingQueuedAssignment && !_oauthProviderURL.isEmpty() && _argumentVariantMap.contains(ALLOWED_ROLES_CONFIG_KEY)) {
+    if (!isAssignment && !_oauthProviderURL.isEmpty() && _argumentVariantMap.contains(ALLOWED_ROLES_CONFIG_KEY)) {
         // this is an Agent, and we require authentication so we can compare the user's roles to our list of allowed ones
         if (_sessionAuthenticationHash.contains(packetUUID)) {
             if (!_sessionAuthenticationHash.value(packetUUID)) {
@@ -731,10 +739,11 @@ void DomainServer::setupPendingAssignmentCredits() {
             qint64 elapsedMsecsSinceLastPayment = nodeData->getPaymentIntervalTimer().elapsed();
             nodeData->getPaymentIntervalTimer().restart();
             
-            const float CREDITS_PER_HOUR = 3;
+            const float CREDITS_PER_HOUR = 0.10f;
             const float CREDITS_PER_MSEC = CREDITS_PER_HOUR / (60 * 60 * 1000);
+            const int SATOSHIS_PER_MSEC = CREDITS_PER_MSEC * SATOSHIS_PER_CREDIT;
     
-            float pendingCredits = elapsedMsecsSinceLastPayment * CREDITS_PER_MSEC;
+            float pendingCredits = elapsedMsecsSinceLastPayment * SATOSHIS_PER_MSEC;
             
             if (existingTransaction) {
                 existingTransaction->incrementAmount(pendingCredits);
@@ -881,10 +890,10 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
         
         if (!nodeData->getWalletUUID().isNull()) {
             TransactionHash::iterator i = _pendingAssignmentCredits.find(nodeData->getWalletUUID());
-            double pendingCreditAmount = 0;
+            float pendingCreditAmount = 0;
             
             while (i != _pendingAssignmentCredits.end() && i.key() == nodeData->getWalletUUID()) {
-                pendingCreditAmount += i.value()->getAmount();
+                pendingCreditAmount += i.value()->getAmount() / SATOSHIS_PER_CREDIT;
                 ++i;
             }
             
@@ -1001,6 +1010,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             
             return true;
         } else {
+            // check if this is for json stats for a node
             const QString NODE_JSON_REGEX_STRING = QString("\\%1\\/(%2).json\\/?$").arg(URI_NODES).arg(UUID_REGEX_STRING);
             QRegExp nodeShowRegex(NODE_JSON_REGEX_STRING);
             
@@ -1025,6 +1035,40 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                     // tell the caller we processed the request
                     return true;
                 }
+                
+                return false;
+            }
+            
+            // check if this is a request for a scripted assignment (with a temp unique UUID)
+            const QString  ASSIGNMENT_REGEX_STRING = QString("\\%1\\/(%2)\\/?$").arg(URI_ASSIGNMENT).arg(UUID_REGEX_STRING);
+            QRegExp assignmentRegex(ASSIGNMENT_REGEX_STRING);
+        
+            if (assignmentRegex.indexIn(url.path()) != -1) {
+                QUuid matchingUUID = QUuid(assignmentRegex.cap(1));
+                
+                SharedAssignmentPointer matchingAssignment = _allAssignments.value(matchingUUID);
+                if (!matchingAssignment) {
+                    // check if we have a pending assignment that matches this temp UUID, and it is a scripted assignment
+                    PendingAssignedNodeData* pendingData = _pendingAssignedNodes.value(matchingUUID);
+                    if (pendingData) {
+                        matchingAssignment = _allAssignments.value(pendingData->getAssignmentUUID());
+                        
+                        if (matchingAssignment && matchingAssignment->getType() == Assignment::AgentType) {
+                            // we have a matching assignment and it is for the right type, have the HTTP manager handle it
+                            // via correct URL for the script so the client can download
+                            
+                            QUrl scriptURL = url;
+                            scriptURL.setPath(URI_ASSIGNMENT + "/"
+                                              + uuidStringWithoutCurlyBraces(pendingData->getAssignmentUUID()));
+                            
+                            // have the HTTPManager serve the appropriate script file
+                            return _httpManager.handleHTTPRequest(connection, scriptURL);
+                        }
+                    }
+                }
+                
+                // request not handled
+                return false;
             }
         }
     } else if (connection->requestOperation() == QNetworkAccessManager::PostOperation) {

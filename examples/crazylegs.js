@@ -20,21 +20,21 @@ var jointMappings = "\n# Joint list start";
 for (var i = 0; i < jointList.length; i++) {
     jointMappings = jointMappings + "\njointIndex = " + jointList[i] + " = " + i;
 }
-print(jointMappings + "\n# Joint list end"); 
+print(jointMappings + "\n# Joint list end");  
 
 Script.update.connect(function(deltaTime) {
     cumulativeTime += deltaTime;
-    MyAvatar.setJointData("joint_R_hip", Quat.fromPitchYawRollDegrees(0.0, 0.0, AMPLITUDE * Math.sin(cumulativeTime * FREQUENCY)));
-    MyAvatar.setJointData("joint_L_hip", Quat.fromPitchYawRollDegrees(0.0, 0.0, -AMPLITUDE * Math.sin(cumulativeTime * FREQUENCY)));
-    MyAvatar.setJointData("joint_R_knee", Quat.fromPitchYawRollDegrees(0.0, 0.0,
-        AMPLITUDE * (1.0 + Math.sin(cumulativeTime * FREQUENCY))));
-    MyAvatar.setJointData("joint_L_knee", Quat.fromPitchYawRollDegrees(0.0, 0.0,
-        AMPLITUDE * (1.0 - Math.sin(cumulativeTime * FREQUENCY))));
+    MyAvatar.setJointData("RightUpLeg", Quat.fromPitchYawRollDegrees(AMPLITUDE * Math.sin(cumulativeTime * FREQUENCY), 0.0, 0.0));
+    MyAvatar.setJointData("LeftUpLeg", Quat.fromPitchYawRollDegrees(-AMPLITUDE * Math.sin(cumulativeTime * FREQUENCY), 0.0, 0.0));
+    MyAvatar.setJointData("RightLeg", Quat.fromPitchYawRollDegrees(
+        AMPLITUDE * (1.0 + Math.sin(cumulativeTime * FREQUENCY)),0.0, 0.0));
+    MyAvatar.setJointData("LeftLeg", Quat.fromPitchYawRollDegrees(
+        AMPLITUDE * (1.0 - Math.sin(cumulativeTime * FREQUENCY)),0.0, 0.0));
 });
 
 Script.scriptEnding.connect(function() {
-    MyAvatar.clearJointData("joint_R_hip");
-    MyAvatar.clearJointData("joint_L_hip");
-    MyAvatar.clearJointData("joint_R_knee");
-    MyAvatar.clearJointData("joint_L_knee");
+    MyAvatar.clearJointData("RightUpLeg");
+    MyAvatar.clearJointData("LeftUpLeg");
+    MyAvatar.clearJointData("RightLeg");
+    MyAvatar.clearJointData("LeftLeg");
 });

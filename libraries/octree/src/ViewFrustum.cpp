@@ -141,7 +141,7 @@ void ViewFrustum::calculate() {
 
     // Set up our keyhole bounding box...
     glm::vec3 corner = _position - _keyholeRadius;
-    _keyholeBoundingBox = AABox(corner,(_keyholeRadius * 2.0f));
+    _keyholeBoundingCube = AACube(corner,(_keyholeRadius * 2.0f));
 }
 
 void ViewFrustum::calculateOrthographic() {
@@ -184,7 +184,7 @@ void ViewFrustum::calculateOrthographic() {
 
     // Set up our keyhole bounding box...
     glm::vec3 corner = _position - _keyholeRadius;
-    _keyholeBoundingBox = AABox(corner, (_keyholeRadius * 2.0f));
+    _keyholeBoundingCube = AACube(corner, (_keyholeRadius * 2.0f));
 }
 
 //enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
@@ -234,11 +234,49 @@ ViewFrustum::location ViewFrustum::sphereInKeyhole(const glm::vec3& center, floa
 // A box is inside a sphere if all of its corners are inside the sphere
 // A box intersects a sphere if any of its edges (as rays) interesect the sphere
 // A box is outside a sphere if none of its edges (as rays) interesect the sphere
+ViewFrustum::location ViewFrustum::cubeInKeyhole(const AACube& cube) const {
+
+    // First check to see if the cube is in the bounding cube for the sphere, if it's not, then we can short circuit
+    // this and not check with sphere penetration which is more expensive
+    if (!_keyholeBoundingCube.contains(cube)) {
+        return OUTSIDE;
+    }
+
+    glm::vec3 penetration;
+    bool intersects = cube.findSpherePenetration(_position, _keyholeRadius, penetration);
+
+    ViewFrustum::location result = OUTSIDE;
+
+    // if the cube intersects the sphere, then it may also be inside... calculate further
+    if (intersects) {
+        result = INTERSECT;
+
+        // test all the corners, if they are all inside the sphere, the entire cube is in the sphere
+        bool allPointsInside = true; // assume the best
+        for (int v = BOTTOM_LEFT_NEAR; v < TOP_LEFT_FAR; v++) {
+            glm::vec3 vertex = cube.getVertex((BoxVertex)v);
+            if (!pointInKeyhole(vertex)) {
+                allPointsInside = false;
+                break;
+            }
+        }
+
+        if (allPointsInside) {
+            result = INSIDE;
+        }
+    }
+
+    return result;
+}
+
+// A box is inside a sphere if all of its corners are inside the sphere
+// A box intersects a sphere if any of its edges (as rays) interesect the sphere
+// A box is outside a sphere if none of its edges (as rays) interesect the sphere
 ViewFrustum::location ViewFrustum::boxInKeyhole(const AABox& box) const {
 
     // First check to see if the box is in the bounding box for the sphere, if it's not, then we can short circuit
     // this and not check with sphere penetration which is more expensive
-    if (!_keyholeBoundingBox.contains(box)) {
+    if (!_keyholeBoundingCube.contains(box)) {
         return OUTSIDE;
     }
 
@@ -319,14 +357,14 @@ ViewFrustum::location ViewFrustum::sphereInFrustum(const glm::vec3& center, floa
 }
 
 
-ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
+ViewFrustum::location ViewFrustum::cubeInFrustum(const AACube& cube) const {
 
     ViewFrustum::location regularResult = INSIDE;
     ViewFrustum::location keyholeResult = OUTSIDE;
 
     // If we have a keyholeRadius, check that first, since it's cheaper
     if (_keyholeRadius >= 0.0f) {
-        keyholeResult = boxInKeyhole(box);
+        keyholeResult = cubeInKeyhole(cube);
     }
     if (keyholeResult == INSIDE) {
         return keyholeResult;
@@ -338,10 +376,10 @@ ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
     // also be able to test against the cone to the bounding sphere of the box.
     for(int i=0; i < 6; i++) {
         const glm::vec3& normal = _planes[i].getNormal();
-        const glm::vec3& boxVertexP = box.getVertexP(normal);
+        const glm::vec3& boxVertexP = cube.getVertexP(normal);
         float planeToBoxVertexPDistance = _planes[i].distance(boxVertexP);
 
-        const glm::vec3& boxVertexN = box.getVertexN(normal);
+        const glm::vec3& boxVertexN = cube.getVertexN(normal);
         float planeToBoxVertexNDistance = _planes[i].distance(boxVertexN);
 
         if (planeToBoxVertexPDistance < 0) {
@@ -610,7 +648,7 @@ glm::vec2 ViewFrustum::projectPoint(glm::vec3 point, bool& pointInView) const {
 const int MAX_POSSIBLE_COMBINATIONS = 43;
 
 const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_PROJECTED_POLYGON_VERTEX_COUNT+1] = {
-    // Number of vertices in shadow polygon for the visible faces, then a list of the index of each vertice from the AABox
+    // Number of vertices in shadow polygon for the visible faces, then a list of the index of each vertice from the AACube
 
 //0
     {0}, // inside
@@ -682,7 +720,7 @@ const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_PROJECTED_POLYGON_VERT
     {6, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR}, // back, top, left
 };
 
-OctreeProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
+OctreeProjectedPolygon ViewFrustum::getProjectedPolygon(const AACube& box) const {
     const glm::vec3& bottomNearRight = box.getCorner();
     glm::vec3 topFarLeft = box.calcTopFarLeft();
 
@@ -749,7 +787,7 @@ OctreeProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const 
 // Similar strategy to getProjectedPolygon() we use the knowledge of camera position relative to the
 // axis-aligned voxels to determine which of the voxels vertices must be the furthest. No need for
 // squares and square-roots. Just compares.
-void ViewFrustum::getFurthestPointFromCamera(const AABox& box, glm::vec3& furthestPoint) const {
+void ViewFrustum::getFurthestPointFromCamera(const AACube& box, glm::vec3& furthestPoint) const {
     const glm::vec3& bottomNearRight = box.getCorner();
     float scale = box.getScale();
     float halfScale = scale * 0.5f;
@@ -776,7 +814,7 @@ void ViewFrustum::getFurthestPointFromCamera(const AABox& box, glm::vec3& furthe
     }
 }
 
-void ViewFrustum::getFurthestPointFromCameraVoxelScale(const AABox& box, glm::vec3& furthestPoint) const {
+void ViewFrustum::getFurthestPointFromCameraVoxelScale(const AACube& box, glm::vec3& furthestPoint) const {
     const glm::vec3& bottomNearRight = box.getCorner();
     float scale = box.getScale();
     float halfScale = scale * 0.5f;

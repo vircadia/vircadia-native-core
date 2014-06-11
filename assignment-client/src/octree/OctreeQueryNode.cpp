@@ -41,7 +41,8 @@ OctreeQueryNode::OctreeQueryNode() :
     _sequenceNumber(0),
     _lastRootTimestamp(0),
     _myPacketType(PacketTypeUnknown),
-    _isShuttingDown(false)
+    _isShuttingDown(false),
+    _sentPacketHistory(1000)
 {
 }
 
@@ -158,10 +159,11 @@ bool OctreeQueryNode::shouldSuppressDuplicatePacket() {
 
 void OctreeQueryNode::init() {
     _myPacketType = getMyPacketType();
-    resetOctreePacket(true); // don't bump sequence
+    resetOctreePacket(); // don't bump sequence
 }
 
-void OctreeQueryNode::resetOctreePacket(bool lastWasSurpressed) {
+
+void OctreeQueryNode::resetOctreePacket() {
     // if shutting down, return immediately
     if (_isShuttingDown) {
         return;
@@ -196,15 +198,12 @@ void OctreeQueryNode::resetOctreePacket(bool lastWasSurpressed) {
     *flagsAt = flags;
     _octreePacketAt += sizeof(OCTREE_PACKET_FLAGS);
     _octreePacketAvailableBytes -= sizeof(OCTREE_PACKET_FLAGS);
-
+    
     // pack in sequence number
     OCTREE_PACKET_SEQUENCE* sequenceAt = (OCTREE_PACKET_SEQUENCE*)_octreePacketAt;
     *sequenceAt = _sequenceNumber;
     _octreePacketAt += sizeof(OCTREE_PACKET_SEQUENCE);
     _octreePacketAvailableBytes -= sizeof(OCTREE_PACKET_SEQUENCE);
-    if (!(lastWasSurpressed || _lastOctreePacketLength == (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE))) {
-        _sequenceNumber++;
-    }
 
     // pack in timestamp
     OCTREE_PACKET_SENT_TIME now = usecTimestampNow();
@@ -365,3 +364,44 @@ void OctreeQueryNode::dumpOutOfView() {
     }
 }
 
+void OctreeQueryNode::octreePacketSent() {
+    packetSent(_octreePacket, getPacketLength());
+}
+
+void OctreeQueryNode::packetSent(unsigned char* packet, int packetLength) {
+    packetSent(QByteArray((char*)packet, packetLength));
+}
+
+void OctreeQueryNode::packetSent(const QByteArray& packet) {
+    _sentPacketHistory.packetSent(_sequenceNumber, packet);
+    _sequenceNumber++;
+}
+
+bool OctreeQueryNode::hasNextNackedPacket() const {
+    return !_nackedSequenceNumbers.isEmpty();
+}
+
+const QByteArray* OctreeQueryNode::getNextNackedPacket() {
+    if (!_nackedSequenceNumbers.isEmpty()) {
+        // could return null if packet is not in the history
+        return _sentPacketHistory.getPacket(_nackedSequenceNumbers.dequeue());
+    }
+    return NULL;
+}
+
+void OctreeQueryNode::parseNackPacket(QByteArray& packet) {
+
+    int numBytesPacketHeader = numBytesForPacketHeader(packet);
+    const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;
+
+    // read number of sequence numbers
+    uint16_t numSequenceNumbers = (*(uint16_t*)dataAt);
+    dataAt += sizeof(uint16_t);
+
+    // read sequence numbers
+    for (int i = 0; i < numSequenceNumbers; i++) {
+        OCTREE_PACKET_SEQUENCE sequenceNumber = (*(OCTREE_PACKET_SEQUENCE*)dataAt);
+        _nackedSequenceNumbers.enqueue(sequenceNumber);
+        dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
+    }
+}

@@ -224,6 +224,7 @@ void ScriptEngine::init() {
 
     qScriptRegisterMetaType(&_engine, ModelItemPropertiesToScriptValue, ModelItemPropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ModelItemIDtoScriptValue, ModelItemIDfromScriptValue);
+    qScriptRegisterMetaType(&_engine, RayToModelIntersectionResultToScriptValue, RayToModelIntersectionResultFromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<ModelItemID> >(&_engine);
 
     qScriptRegisterSequenceMetaType<QVector<glm::vec2> >(&_engine);
@@ -311,6 +312,18 @@ void ScriptEngine::evaluate() {
         qDebug() << "Uncaught exception at line" << line << ":" << result.toString();
         emit errorMessage("Uncaught exception at line" + QString::number(line) + ":" + result.toString());
     }
+}
+
+QScriptValue ScriptEngine::evaluate(const QString& program, const QString& fileName, int lineNumber) {
+    QScriptValue result = _engine.evaluate(program, fileName, lineNumber);
+    bool hasUncaughtException = _engine.hasUncaughtException();
+    if (hasUncaughtException) {
+        int line = _engine.uncaughtExceptionLineNumber();
+        qDebug() << "Uncaught exception at line" << line << ": " << result.toString();
+    }
+    emit evaluationFinished(result, hasUncaughtException);
+    _engine.clearExceptions();
+    return result;
 }
 
 void ScriptEngine::sendAvatarIdentityPacket() {

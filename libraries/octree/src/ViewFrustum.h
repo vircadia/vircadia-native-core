@@ -18,6 +18,7 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include "AABox.h"
+#include "AACube.h"
 #include "Plane.h"
 #include "OctreeConstants.h"
 #include "OctreeProjectedPolygon.h"
@@ -94,6 +95,7 @@ public:
 
     ViewFrustum::location pointInFrustum(const glm::vec3& point) const;
     ViewFrustum::location sphereInFrustum(const glm::vec3& center, float radius) const;
+    ViewFrustum::location cubeInFrustum(const AACube& cube) const;
     ViewFrustum::location boxInFrustum(const AABox& box) const;
 
     // some frustum comparisons
@@ -111,29 +113,30 @@ public:
     void printDebugDetails() const;
 
     glm::vec2 projectPoint(glm::vec3 point, bool& pointInView) const;
-    OctreeProjectedPolygon getProjectedPolygon(const AABox& box) const;
-    void getFurthestPointFromCamera(const AABox& box, glm::vec3& furthestPoint) const;
+    OctreeProjectedPolygon getProjectedPolygon(const AACube& box) const;
+    void getFurthestPointFromCamera(const AACube& box, glm::vec3& furthestPoint) const;
     
     // assumes box is in voxel scale, not TREE_SCALE, will scale view frustum's position accordingly
-    void getFurthestPointFromCameraVoxelScale(const AABox& box, glm::vec3& furthestPoint) const;
+    void getFurthestPointFromCameraVoxelScale(const AACube& box, glm::vec3& furthestPoint) const;
     
 private:
     // Used for keyhole calculations
     ViewFrustum::location pointInKeyhole(const glm::vec3& point) const;
     ViewFrustum::location sphereInKeyhole(const glm::vec3& center, float radius) const;
+    ViewFrustum::location cubeInKeyhole(const AACube& cube) const;
     ViewFrustum::location boxInKeyhole(const AABox& box) const;
 
     void calculateOrthographic();
 
     // camera location/orientation attributes
-    glm::vec3   _position; // the position in TREE_SCALE
-    glm::vec3   _positionVoxelScale; // the position in voxel scale
-    glm::quat   _orientation;
+    glm::vec3 _position; // the position in TREE_SCALE
+    glm::vec3 _positionVoxelScale; // the position in voxel scale
+    glm::quat _orientation;
 
     // calculated for orientation
-    glm::vec3   _direction;
-    glm::vec3   _up;
-    glm::vec3   _right;
+    glm::vec3 _direction;
+    glm::vec3 _up;
+    glm::vec3 _right;
 
     // Lens attributes
     bool _orthographic;
@@ -148,23 +151,23 @@ private:
     glm::quat _eyeOffsetOrientation;
 
     // keyhole attributes
-    float       _keyholeRadius;
-    AABox       _keyholeBoundingBox;
+    float _keyholeRadius;
+    AACube _keyholeBoundingCube;
 
 
     // Calculated values
-    glm::vec3   _offsetPosition;
-    glm::vec3   _offsetDirection;
-    glm::vec3   _offsetUp;
-    glm::vec3   _offsetRight;
-    glm::vec3   _farTopLeft;
-    glm::vec3   _farTopRight;
-    glm::vec3   _farBottomLeft;
-    glm::vec3   _farBottomRight;
-    glm::vec3   _nearTopLeft;
-    glm::vec3   _nearTopRight;
-    glm::vec3   _nearBottomLeft;
-    glm::vec3   _nearBottomRight;
+    glm::vec3 _offsetPosition;
+    glm::vec3 _offsetDirection;
+    glm::vec3 _offsetUp;
+    glm::vec3 _offsetRight;
+    glm::vec3 _farTopLeft;
+    glm::vec3 _farTopRight;
+    glm::vec3 _farBottomLeft;
+    glm::vec3 _farBottomRight;
+    glm::vec3 _nearTopLeft;
+    glm::vec3 _nearTopRight;
+    glm::vec3 _nearBottomLeft;
+    glm::vec3 _nearBottomRight;
     enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
     ::Plane _planes[6]; // How will this be used?
 

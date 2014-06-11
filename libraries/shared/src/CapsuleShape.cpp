@@ -33,20 +33,7 @@ CapsuleShape::CapsuleShape(float radius, float halfHeight, const glm::vec3& posi
 
 CapsuleShape::CapsuleShape(float radius, const glm::vec3& startPoint, const glm::vec3& endPoint) :
     Shape(Shape::CAPSULE_SHAPE), _radius(radius), _halfHeight(0.0f) {
-    glm::vec3 axis = endPoint - startPoint;
-    _position = 0.5f * (endPoint + startPoint);
-    float height = glm::length(axis);
-    if (height > EPSILON) {
-        _halfHeight = 0.5f * height;
-        axis /= height;
-        glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
-        float angle = glm::angle(axis, yAxis);
-        if (angle > EPSILON) {
-            axis = glm::normalize(glm::cross(yAxis, axis));
-            _rotation = glm::angleAxis(angle, axis);
-        }
-    }
-    updateBoundingRadius();
+    setEndPoints(startPoint, endPoint);
 }
 
 /// \param[out] startPoint is the center of start cap
@@ -77,6 +64,23 @@ void CapsuleShape::setHalfHeight(float halfHeight) {
 void CapsuleShape::setRadiusAndHalfHeight(float radius, float halfHeight) {
     _radius = radius;
     _halfHeight = halfHeight;
+    updateBoundingRadius();
+}
+
+void CapsuleShape::setEndPoints(const glm::vec3& startPoint, const glm::vec3& endPoint) {
+    glm::vec3 axis = endPoint - startPoint;
+    _position = 0.5f * (endPoint + startPoint);
+    float height = glm::length(axis);
+    if (height > EPSILON) {
+        _halfHeight = 0.5f * height;
+        axis /= height;
+        glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
+        float angle = glm::angle(axis, yAxis);
+        if (angle > EPSILON) {
+            axis = glm::normalize(glm::cross(yAxis, axis));
+            _rotation = glm::angleAxis(angle, axis);
+        }
+    }
     updateBoundingRadius();
 }
 

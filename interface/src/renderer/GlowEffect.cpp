@@ -14,6 +14,8 @@
 
 #include <QOpenGLFramebufferObject>
 
+#include <PerfStat.h>
+
 #include "Application.h"
 #include "GlowEffect.h"
 #include "ProgramObject.h"
@@ -119,6 +121,8 @@ static void maybeRelease(QOpenGLFramebufferObject* fbo) {
 }
 
 QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
+    PerformanceTimer perfTimer("paintGL/glowEffect");
+
     QOpenGLFramebufferObject* primaryFBO = Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject();
     primaryFBO->release();
     glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
@@ -139,8 +143,7 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
     if (_isEmpty && _renderMode != DIFFUSE_ADD_MODE) {
         // copy the primary to the screen
         if (QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {
-            QOpenGLFramebufferObject::blitFramebuffer(destFBO, primaryFBO);
-                
+            QOpenGLFramebufferObject::blitFramebuffer(destFBO, primaryFBO);          
         } else {
             maybeBind(destFBO);
             glEnable(GL_TEXTURE_2D);

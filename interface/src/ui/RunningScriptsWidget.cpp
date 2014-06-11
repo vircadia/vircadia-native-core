@@ -179,31 +179,12 @@ bool RunningScriptsWidget::eventFilter(QObject* sender, QEvent* event) {
     return FramelessDialog::eventFilter(sender, event);
 }
 
-void RunningScriptsWidget::keyPressEvent(QKeyEvent* event) {
-    int loadScriptNumber = -1;
-    switch(event->key()) {
-    case Qt::Key_1:
-    case Qt::Key_2:
-    case Qt::Key_3:
-    case Qt::Key_4:
-    case Qt::Key_5:
-    case Qt::Key_6:
-    case Qt::Key_7:
-    case Qt::Key_8:
-    case Qt::Key_9:
-        loadScriptNumber = event->key() - Qt::Key_1;
-        break;
-
-    default:
-        break;
+void RunningScriptsWidget::keyPressEvent(QKeyEvent *keyEvent) {
+    if (keyEvent->key() == Qt::Key_Escape) {
+        return;
+    } else {
+        FramelessDialog::keyPressEvent(keyEvent);
     }
-    if (loadScriptNumber >= 0) {
-        if (_recentlyLoadedScripts.size() > loadScriptNumber) {
-            Application::getInstance()->loadScript(_recentlyLoadedScripts.at(loadScriptNumber), false, false);
-        }
-    }
-
-    FramelessDialog::keyPressEvent(event);
 }
 
 void RunningScriptsWidget::paintEvent(QPaintEvent* event) {

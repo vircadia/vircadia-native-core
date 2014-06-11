@@ -17,7 +17,9 @@ DataServerAccountInfo::DataServerAccountInfo() :
     _accessToken(),
     _username(),
     _xmppPassword(),
-    _discourseApiKey()
+    _discourseApiKey(),
+    _balance(0),
+    _hasBalance(false)
 {
     
 }
@@ -25,7 +27,9 @@ DataServerAccountInfo::DataServerAccountInfo() :
 DataServerAccountInfo::DataServerAccountInfo(const QJsonObject& jsonObject) :
     _accessToken(jsonObject),
     _username(),
-    _xmppPassword()
+    _xmppPassword(),
+    _balance(0),
+    _hasBalance(false)
 {
     QJsonObject userJSONObject = jsonObject["user"].toObject();
     setUsername(userJSONObject["username"].toString());
@@ -38,6 +42,8 @@ DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherI
     _username = otherInfo._username;
     _xmppPassword = otherInfo._xmppPassword;
     _discourseApiKey = otherInfo._discourseApiKey;
+    _balance = otherInfo._balance;
+    _hasBalance = otherInfo._hasBalance;
 }
 
 DataServerAccountInfo& DataServerAccountInfo::operator=(const DataServerAccountInfo& otherInfo) {
@@ -53,6 +59,8 @@ void DataServerAccountInfo::swap(DataServerAccountInfo& otherInfo) {
     swap(_username, otherInfo._username);
     swap(_xmppPassword, otherInfo._xmppPassword);
     swap(_discourseApiKey, otherInfo._discourseApiKey);
+    swap(_balance, otherInfo._balance);
+    swap(_hasBalance, otherInfo._hasBalance);
 }
 
 void DataServerAccountInfo::setUsername(const QString& username) {
@@ -72,6 +80,22 @@ void DataServerAccountInfo::setXMPPPassword(const QString& xmppPassword) {
 void DataServerAccountInfo::setDiscourseApiKey(const QString& discourseApiKey) {
     if (_discourseApiKey != discourseApiKey) {
         _discourseApiKey = discourseApiKey;
+    }
+}
+
+void DataServerAccountInfo::setBalance(qint64 balance) {
+    if (!_hasBalance || _balance != balance) {
+        _balance = balance;
+        _hasBalance = true;
+        
+        emit balanceChanged(_balance);
+    }
+}
+
+void DataServerAccountInfo::setBalanceFromJSON(const QJsonObject& jsonObject) {
+    if (jsonObject["status"].toString() == "success") {
+        qint64 balanceInSatoshis = jsonObject["data"].toObject()["wallet"].toObject()["balance"].toInt();
+        setBalance(balanceInSatoshis);
     }
 }
 

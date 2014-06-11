@@ -237,11 +237,15 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
             // If this is the avatar being looked at, render a little ball above their head
             if (_isLookAtTarget) {
                 const float LOOK_AT_INDICATOR_RADIUS = 0.03f;
-                const float LOOK_AT_INDICATOR_HEIGHT = 0.60f;
-                const float LOOK_AT_INDICATOR_COLOR[] = { 0.8f, 0.0f, 0.0f, 0.5f };
+                const float LOOK_AT_INDICATOR_OFFSET = 0.22f;
+                const float LOOK_AT_INDICATOR_COLOR[] = { 0.8f, 0.0f, 0.0f, 0.75f };
                 glPushMatrix();
                 glColor4fv(LOOK_AT_INDICATOR_COLOR);
-                glTranslatef(_position.x, _position.y + (getSkeletonHeight() * LOOK_AT_INDICATOR_HEIGHT), _position.z);
+                if (_displayName.isEmpty() || _displayNameAlpha == 0.0f) {
+                    glTranslatef(_position.x, getDisplayNamePosition().y, _position.z);
+                } else {
+                    glTranslatef(_position.x, getDisplayNamePosition().y + LOOK_AT_INDICATOR_OFFSET, _position.z);
+                }
                 glutSolidSphere(LOOK_AT_INDICATOR_RADIUS, 15, 15);
                 glPopMatrix();
             }
@@ -343,7 +347,6 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 void Avatar::renderBody(RenderMode renderMode, float glowLevel) {
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
                             Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
-
     {
         Glower glower(glowLevel);
         
@@ -352,7 +355,8 @@ void Avatar::renderBody(RenderMode renderMode, float glowLevel) {
             renderBillboard();
             return;
         }
-        _skeletonModel.render(1.0f, modelRenderMode);
+        
+        _skeletonModel.render(1.0f, modelRenderMode, Menu::getInstance()->isOptionChecked(MenuOption::AvatarsReceiveShadows));
         renderAttachments(renderMode);
         getHand()->render(false, modelRenderMode);
     }
@@ -373,11 +377,11 @@ void Avatar::simulateAttachments(float deltaTime) {
         if (!isMyAvatar()) {
             model->setLODDistance(getLODDistance());
         }
-        if (_skeletonModel.getJointPosition(jointIndex, jointPosition) &&
-                _skeletonModel.getJointRotation(jointIndex, jointRotation)) {
+        if (_skeletonModel.getJointPositionInWorldFrame(jointIndex, jointPosition) &&
+                _skeletonModel.getJointCombinedRotation(jointIndex, jointRotation)) {
             model->setTranslation(jointPosition + jointRotation * attachment.translation * _scale);
             model->setRotation(jointRotation * attachment.rotation);
-            model->setScale(_skeletonModel.getScale() * attachment.scale);
+            model->setScaleToFit(true, _scale * attachment.scale);
             model->simulate(deltaTime);
         }
     }
@@ -386,8 +390,9 @@ void Avatar::simulateAttachments(float deltaTime) {
 void Avatar::renderAttachments(RenderMode renderMode) {
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
         Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+    bool receiveShadows = Menu::getInstance()->isOptionChecked(MenuOption::AvatarsReceiveShadows);
     foreach (Model* model, _attachmentModels) {
-        model->render(1.0f, modelRenderMode);
+        model->render(1.0f, modelRenderMode, receiveShadows);
     }
 }
 
@@ -460,6 +465,17 @@ float Avatar::getBillboardSize() const {
     return _scale * BILLBOARD_DISTANCE * tanf(glm::radians(BILLBOARD_FIELD_OF_VIEW / 2.0f));
 }
 
+glm::vec3 Avatar::getDisplayNamePosition() {
+    glm::vec3 namePosition;
+    if (getSkeletonModel().getNeckPosition(namePosition)) {
+        namePosition += getBodyUpDirection() * getHeadHeight() * 1.1f;
+    } else {
+        const float HEAD_PROPORTION = 0.75f;
+        namePosition = _position + getBodyUpDirection() * (getBillboardSize() * HEAD_PROPORTION);
+    }
+    return namePosition;
+}
+
 void Avatar::renderDisplayName() {
 
     if (_displayName.isEmpty() || _displayNameAlpha == 0.0f) {
@@ -469,13 +485,7 @@ void Avatar::renderDisplayName() {
     glDisable(GL_LIGHTING);
     
     glPushMatrix();
-    glm::vec3 textPosition;
-    if (getSkeletonModel().getNeckPosition(textPosition)) {
-        textPosition += getBodyUpDirection() * getHeadHeight() * 1.1f;
-    } else {    
-        const float HEAD_PROPORTION = 0.75f;
-        textPosition = _position + getBodyUpDirection() * (getBillboardSize() * HEAD_PROPORTION); 
-    }
+    glm::vec3 textPosition = getDisplayNamePosition();
     
     glTranslatef(textPosition.x, textPosition.y, textPosition.z); 
 
@@ -695,6 +705,54 @@ QStringList Avatar::getJointNames() const {
     return _skeletonModel.isActive() ? _skeletonModel.getGeometry()->getFBXGeometry().getJointNames() : QStringList();
 }
 
+glm::vec3 Avatar::getJointPosition(int index) const {
+    if (QThread::currentThread() != thread()) {
+        glm::vec3 position;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointPosition", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(glm::vec3, position), Q_ARG(const int, index));
+        return position;
+    }
+    glm::vec3 position;
+    _skeletonModel.getJointPositionInWorldFrame(index, position);
+    return position;
+}
+
+glm::vec3 Avatar::getJointPosition(const QString& name) const {
+    if (QThread::currentThread() != thread()) {
+        glm::vec3 position;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointPosition", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(glm::vec3, position), Q_ARG(const QString&, name));
+        return position;
+    }
+    glm::vec3 position;
+    _skeletonModel.getJointPositionInWorldFrame(getJointIndex(name), position);
+    return position;
+}
+
+glm::quat Avatar::getJointCombinedRotation(int index) const {
+    if (QThread::currentThread() != thread()) {
+        glm::quat rotation;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointCombinedRotation", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(glm::quat, rotation), Q_ARG(const int, index));
+        return rotation;
+    }
+    glm::quat rotation;
+    _skeletonModel.getJointCombinedRotation(index, rotation);
+    return rotation;
+}
+
+glm::quat Avatar::getJointCombinedRotation(const QString& name) const {
+    if (QThread::currentThread() != thread()) {
+        glm::quat rotation;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointCombinedRotation", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(glm::quat, rotation), Q_ARG(const QString&, name));
+        return rotation;
+    }
+    glm::quat rotation;
+    _skeletonModel.getJointCombinedRotation(getJointIndex(name), rotation);
+    return rotation;
+}
+
 void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
     const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile(Application::resourcesPath() + "meshes/defaultAvatar_head.fst");
@@ -724,6 +782,8 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     
     // update the urls
     for (int i = 0; i < attachmentData.size(); i++) {
+        _attachmentModels[i]->setSnapModelToCenter(true);
+        _attachmentModels[i]->setScaleToFit(true, _scale * _attachmentData.at(i).scale);
         _attachmentModels[i]->setURL(attachmentData.at(i).modelURL);
     }
 }
