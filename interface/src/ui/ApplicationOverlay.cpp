@@ -35,8 +35,7 @@ ApplicationOverlay::~ApplicationOverlay() {
 
 const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
 
-void renderControllerPointer()
-{
+void renderControllerPointer() {
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
     MyAvatar* myAvatar = application->getAvatar();
