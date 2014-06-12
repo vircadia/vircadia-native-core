@@ -50,6 +50,8 @@ private:
 
     int handlePacketSend(OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent);
     int packetDistributor(OctreeQueryNode* nodeData, bool viewFrustumChanged);
+    
+    int sendNack(OctreeQueryNode* nodeData);
 
     OctreePacketData _packetData;
     

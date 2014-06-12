@@ -35,6 +35,7 @@ public:
 
     void trackInboundPacket(unsigned short int incomingSequence, quint64 transitTime,
         int editsInPacket, quint64 processTime, quint64 lockWaitTime);
+    const QSet<unsigned short int>& getMissingSequenceNumbers() const { return _missingSequenceNumbers; }
 
         
     quint64 _totalTransitTime; 
@@ -71,6 +72,7 @@ public:
     void resetStats();
 
     NodeToSenderStatsMap& getSingleSenderStats() { return _singleSenderStats; }
+    const NodeToSenderStatsMap& getSingleSenderStats() const { return _singleSenderStats; }
 
 protected:
     virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);

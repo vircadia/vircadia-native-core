@@ -51,6 +51,8 @@ public:
     int getPacketsPerClientPerSecond() const { return getPacketsPerClientPerInterval() * INTERVALS_PER_SECOND; }
     int getPacketsTotalPerInterval() const { return _packetsTotalPerInterval; }
     int getPacketsTotalPerSecond() const { return getPacketsTotalPerInterval() * INTERVALS_PER_SECOND; }
+
+    const OctreeInboundPacketProcessor* getInboundPacketProcessor() const { return _octreeInboundPacketProcessor; }
     
     static int getCurrentClientCount() { return _clientCount; }
     static void clientConnected() { _clientCount++; }
