@@ -73,7 +73,8 @@ private:
     // for mouse emulation
     bool _triggerPressed;
     bool _bumperPressed;
-    QPoint _oldPos;
+    int _oldX;
+    int _oldY;
 };
 
 #endif // hifi_SixenseManager_h

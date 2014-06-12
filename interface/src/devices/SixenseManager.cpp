@@ -41,8 +41,8 @@ SixenseManager::SixenseManager() {
 #endif
     _triggerPressed = false;
     _bumperPressed = false;
-    _oldPos.setX(-1);
-    _oldPos.setY(-1);
+    _oldX = -1;
+    _oldY = -1;
 }
 
 SixenseManager::~SixenseManager() {
@@ -344,12 +344,13 @@ void SixenseManager::emulateMouse(PalmData *palm) {
     pos.setY(cursorRange * yAngle);
 
     //If position has changed, emit a mouse move to the application
-    if (pos.x() != _oldPos.x() || pos.y() != _oldPos.y()) {
+    if (pos.x() != _oldX || pos.y() != _oldY) {
         QMouseEvent mouseEvent(static_cast<QEvent::Type>(CONTROLLER_MOVE_EVENT), pos, Qt::NoButton, Qt::NoButton, 0);
 
         Application::getInstance()->mouseMoveEvent(&mouseEvent);
     }
-    _oldPos = pos;
+    _oldX = pos.x();
+    _oldY = pos.y();
 
     Qt::MouseButton bumperButton;
     Qt::MouseButton triggerButton;
