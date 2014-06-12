@@ -382,7 +382,6 @@ Menu::Menu() :
 
     QMenu* sixenseOptionsMenu = developerMenu->addMenu("Sixense Options");
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseMouseInput, 0, true);
-    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseLeftHanded, 0, false);
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseInvertInputButtons, 0, false);
 
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");

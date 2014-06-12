@@ -118,10 +118,7 @@ void SixenseManager::update(float deltaTime) {
 
         // Emulate the mouse so we can use scripts
         if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
-            // Check if we are on the correct palm
-            //if ((Menu::getInstance()->isOptionChecked(MenuOption::SixenseLeftHanded) && numActiveControllers == 1) || numActiveControllers == 2) {
             emulateMouse(palm, numActiveControllers - 1);
-            //}
         }
 
         // NOTE: Sixense API returns pos data in millimeters but we IMMEDIATELY convert to meters.

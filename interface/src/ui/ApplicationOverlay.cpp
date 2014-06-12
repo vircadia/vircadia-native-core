@@ -44,14 +44,7 @@ void ApplicationOverlay::renderControllerPointer() {
     const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
     int numberOfPalms = handData->getNumPalms();
 
- 
-    int palmIndex;
-    /*if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLeftHanded)) {
-        palmIndex = 2;
-    } else {
-        palmIndex = 3;
-    }*/
-    for (palmIndex = 2; palmIndex < 4; palmIndex++) {
+    for (int palmIndex = 2; palmIndex < 4; palmIndex++) {
         const PalmData* palmData = NULL;
 
         if (palmIndex >= handData->getPalms().size()) {
@@ -76,6 +69,7 @@ void ApplicationOverlay::renderControllerPointer() {
         int mouseX = cursorRange * xAngle;
         int mouseY = cursorRange * yAngle;
 
+        //If the cursor is out of the screen then don't render it
         if (mouseX < 0 || mouseX >= glWidget->width() || mouseY < 0 || mouseY >= glWidget->height()) {
             continue;
         }
