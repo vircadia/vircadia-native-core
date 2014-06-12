@@ -114,14 +114,9 @@ void SixenseManager::update(float deltaTime) {
 
         // Emulate the mouse so we can use scripts
         if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
-            if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLeftHanded)) {
-                if (numActiveControllers == 1){
-                    emulateMouse(palm);
-                }
-            } else {
-                if (numActiveControllers == 2) {
-                    emulateMouse(palm);
-                }
+            // Check if we are on the correct palm
+            if ((Menu::getInstance()->isOptionChecked(MenuOption::SixenseLeftHanded) && numActiveControllers == 1) || numActiveControllers == 2) {
+                emulateMouse(palm);
             }
         }
 
