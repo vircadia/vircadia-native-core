@@ -1089,6 +1089,13 @@ void Application::focusOutEvent(QFocusEvent* event) {
 }
 
 void Application::mouseMoveEvent(QMouseEvent* event) {
+
+    bool showMouse = true;
+    // If this mouse move event is emitted by a controller, dont show the mouse cursor
+    if (event->type() == CONTROLLER_MOVE_EVENT) {
+        showMouse = false;
+    }
+
     _controllerScriptingInterface.emitMouseMoveEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -1096,10 +1103,9 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
         return;
     }
 
-
     _lastMouseMove = usecTimestampNow();
 
-    if (_mouseHidden && !OculusManager::isConnected()) {
+    if (_mouseHidden && showMouse && !OculusManager::isConnected()) {
         getGLWidget()->setCursor(Qt::ArrowCursor);
         _mouseHidden = false;
         _seenMouseMove = true;

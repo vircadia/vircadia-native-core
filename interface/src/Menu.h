@@ -399,6 +399,9 @@ namespace MenuOption {
     const QString SettingsExport = "Export Settings";
     const QString SettingsImport = "Import Settings";
     const QString SimpleShadows = "Simple";
+    const QString SixenseInvertInputButtons = "Invert Sixense Mouse Input Buttons";
+    const QString SixenseLeftHanded = "Left Handed Sixense Mouse Input";
+    const QString SixenseMouseInput = "Enable Sixense Mouse Input";
     const QString ShowBordersVoxelNodes = "Show Voxel Nodes";
     const QString ShowBordersModelNodes = "Show Model Nodes";
     const QString ShowBordersParticleNodes = "Show Particle Nodes";
