@@ -35,6 +35,82 @@ ApplicationOverlay::~ApplicationOverlay() {
 
 const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
 
+void renderControllerPointer() {
+    Application* application = Application::getInstance();
+    QGLWidget* glWidget = application->getGLWidget();
+    MyAvatar* myAvatar = application->getAvatar();
+
+    const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
+    int numberOfPalms = handData->getNumPalms();
+
+ 
+    int palmIndex;
+    if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLeftHanded)) {
+        palmIndex = 2;
+    } else {
+        palmIndex = 3;
+    }
+    const PalmData* palmData = NULL;
+
+    if (palmIndex >= handData->getPalms().size()) {
+        return;
+    }
+
+    if (handData->getPalms()[palmIndex].isActive()) {
+        palmData = &handData->getPalms()[palmIndex];
+    } else {
+        return;
+    }
+  
+    // Get directon relative to avatar orientation
+    glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * palmData->getFingerDirection();
+
+    // Get the angles, scaled between 0-1
+    float xAngle = (atan2(direction.z, direction.x) + M_PI_2) + 0.5f;
+    float yAngle = 1.0f - ((atan2(direction.z, direction.y) + M_PI_2) + 0.5f);
+
+    float cursorRange = glWidget->width();
+
+    int mouseX = cursorRange * xAngle;
+    int mouseY = cursorRange * yAngle;
+
+    if (mouseX < 0) {
+        mouseX = 0;
+    } else if (mouseX > glWidget->width()) {
+        mouseX = glWidget->width();
+    }
+    if (mouseY < 0) {
+        mouseY = 0;
+    } else if (mouseY > glWidget->width()) {
+        mouseY = glWidget->width();
+    }
+
+    const float pointerWidth = 40;
+    const float pointerHeight = 40;
+    const float crossPad = 16;
+
+    mouseX -= pointerWidth / 2.0f;
+    mouseY += pointerHeight / 2.0f;
+
+    glBegin(GL_QUADS);
+
+    glColor3f(0, 0, 1);
+
+    //Horizontal crosshair
+    glVertex2i(mouseX, mouseY - crossPad);
+    glVertex2i(mouseX + pointerWidth, mouseY - crossPad);
+    glVertex2i(mouseX + pointerWidth, mouseY - pointerHeight + crossPad);
+    glVertex2i(mouseX, mouseY - pointerHeight + crossPad);
+
+    //Vertical crosshair
+    glVertex2i(mouseX + crossPad, mouseY);
+    glVertex2i(mouseX + pointerWidth - crossPad, mouseY);
+    glVertex2i(mouseX + pointerWidth - crossPad, mouseY - pointerHeight);
+    glVertex2i(mouseX + crossPad, mouseY - pointerHeight);
+
+    glEnd();
+}
+
 // Renders the overlays either to a texture or to the screen
 void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
@@ -254,8 +330,10 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
         glVertex2i(mouseX + crossPad, mouseY - pointerHeight);
       
         glEnd();
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
+        //only render controller pointer if we aren't already rendering a mouse pointer
+        renderControllerPointer();
     }
-
     glPopMatrix();
 
     glMatrixMode(GL_MODELVIEW);

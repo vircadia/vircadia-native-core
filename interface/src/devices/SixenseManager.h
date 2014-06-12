@@ -27,6 +27,9 @@ const unsigned int BUTTON_3 = 1U << 3;
 const unsigned int BUTTON_4 = 1U << 4;
 const unsigned int BUTTON_FWD = 1U << 7;
 
+// Event type that represents moving the controller
+const unsigned int CONTROLLER_MOVE_EVENT = 1500U;
+
 /// Handles interaction with the Sixense SDK (e.g., Razer Hydra).
 class SixenseManager : public QObject {
     Q_OBJECT
@@ -44,6 +47,7 @@ public slots:
 private:
 #ifdef HAVE_SIXENSE
     void updateCalibration(const sixenseControllerData* controllers);
+    void emulateMouse(PalmData *palm);
 
     int _calibrationState;
 
@@ -65,6 +69,12 @@ private:
 #endif
     quint64 _lastMovement;
     glm::vec3 _amountMoved;
+
+    // for mouse emulation
+    bool _triggerPressed;
+    bool _bumperPressed;
+    int _oldX;
+    int _oldY;
 };
 
 #endif // hifi_SixenseManager_h

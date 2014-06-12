@@ -380,6 +380,11 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(oculusOptionsMenu, MenuOption::AllowOculusCameraModeChange, 0, false);
     addCheckableActionToQMenuAndActionHash(oculusOptionsMenu, MenuOption::DisplayOculusOverlays, 0, true);
 
+    QMenu* sixenseOptionsMenu = developerMenu->addMenu("Sixense Options");
+    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseMouseInput, 0, true);
+    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseLeftHanded, 0, false);
+    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseInvertInputButtons, 0, false);
+
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
 
     addCheckableActionToQMenuAndActionHash(handOptionsMenu,
