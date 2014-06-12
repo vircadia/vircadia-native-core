@@ -46,6 +46,7 @@ private:
 
     typedef QPair<GLuint, GLuint> VerticesIndices;
 
+    void renderControllerPointer();
     void renderTexturedHemisphere();
 
     QOpenGLFramebufferObject* _framebufferObject;
@@ -53,6 +54,9 @@ private:
     float _oculusAngle;
     float _distance;
     UIType _uiType;
+    int _mouseX[2];
+    int _mouseY[2];
+    int _numMagnifiers;
 };
 
 #endif // hifi_ApplicationOverlay_h
