@@ -71,6 +71,8 @@ public:
 
     void resetStats();
 
+    void lockSingleSenderStatsForRead() { _singleSenderStatsLock.lockForRead(); }
+    void unlockSingleSenderStats() { _singleSenderStatsLock.unlock(); }
     NodeToSenderStatsMap& getSingleSenderStats() { return _singleSenderStats; }
     const NodeToSenderStatsMap& getSingleSenderStats() const { return _singleSenderStats; }
 
@@ -91,5 +93,6 @@ private:
     quint64 _totalPackets;
     
     NodeToSenderStatsMap _singleSenderStats;
+    QReadWriteLock _singleSenderStatsLock;
 };
 #endif // hifi_OctreeInboundPacketProcessor_h

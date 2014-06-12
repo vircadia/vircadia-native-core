@@ -25,7 +25,9 @@ OctreeInboundPacketProcessor::OctreeInboundPacketProcessor(OctreeServer* myServe
     _totalProcessTime(0),
     _totalLockWaitTime(0),
     _totalElementsInPacket(0),
-    _totalPackets(0)
+    _totalPackets(0),
+    _singleSenderStats(),
+    _singleSenderStatsLock()
 {
 }
 
@@ -36,7 +38,9 @@ void OctreeInboundPacketProcessor::resetStats() {
     _totalElementsInPacket = 0;
     _totalPackets = 0;
 
+    _singleSenderStatsLock.lockForWrite();
     _singleSenderStats.clear();
+    _singleSenderStatsLock.unlock();
 }
 
 
@@ -143,7 +147,9 @@ void OctreeInboundPacketProcessor::trackInboundPacket(const QUuid& nodeUUID, uns
     if (_singleSenderStats.find(nodeUUID) == _singleSenderStats.end()) {
         SingleSenderStats stats;
         stats.trackInboundPacket(sequence, transitTime, editsInPacket, processTime, lockWaitTime);
+        _singleSenderStatsLock.lockForWrite();
         _singleSenderStats[nodeUUID] = stats;
+        _singleSenderStatsLock.unlock();
     } else {
         SingleSenderStats& stats = _singleSenderStats[nodeUUID];
         stats.trackInboundPacket(sequence, transitTime, editsInPacket, processTime, lockWaitTime);
