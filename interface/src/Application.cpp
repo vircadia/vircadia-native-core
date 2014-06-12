@@ -150,6 +150,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _mouseX(0),
         _mouseY(0),
         _lastMouseMove(usecTimestampNow()),
+        _lastMouseMoveType(QEvent::MouseMove),
         _mouseHidden(false),
         _seenMouseMove(false),
         _touchAvgX(0.0f),
@@ -1095,6 +1096,9 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     if (event->type() == CONTROLLER_MOVE_EVENT) {
         showMouse = false;
     }
+
+    // Used by application overlay to determine how to draw cursor(s)
+    _lastMouseMoveType = event->type();
 
     _controllerScriptingInterface.emitMouseMoveEvent(event); // send events to any registered scripts
 
