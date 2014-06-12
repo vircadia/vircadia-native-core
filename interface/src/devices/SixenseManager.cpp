@@ -39,6 +39,10 @@ SixenseManager::SixenseManager() {
 
     sixenseInit();
 #endif
+    _triggerPressed = false;
+    _bumperPressed = false;
+    _oldPos.setX(-1);
+    _oldPos.setY(-1);
 }
 
 SixenseManager::~SixenseManager() {
@@ -106,6 +110,12 @@ void SixenseManager::update(float deltaTime) {
         palm->setControllerButtons(data->buttons);
         palm->setTrigger(data->trigger);
         palm->setJoystick(data->joystick_x, data->joystick_y);
+
+
+        // Emulate the mouse so we can use scripts
+        if (numActiveControllers == 2) {
+            emulateMouse(palm);
+        }
 
         // NOTE: Sixense API returns pos data in millimeters but we IMMEDIATELY convert to meters.
         glm::vec3 position(data->pos[0], data->pos[1], data->pos[2]);
@@ -313,5 +323,63 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
         }
     }
 }
+
+//Injecting mouse movements and clicks
+void SixenseManager::emulateMouse(PalmData *palm) {
+    MyAvatar* avatar = Application::getInstance()->getAvatar();
+    QPoint pos;
+    // Get directon relative to avatar orientation
+    glm::vec3 direction = glm::inverse(avatar->getOrientation()) * palm->getFingerDirection();
+
+    // Get the angles, scaled between 0-1
+    float xAngle = (atan2(direction.z, direction.x) + M_PI_2) + 0.5f;
+    float yAngle = 1.0f - ((atan2(direction.z, direction.y) + M_PI_2) + 0.5f);
+
+    float cursorRange = Application::getInstance()->getGLWidget()->width();
+
+    pos.setX(cursorRange * xAngle);
+    pos.setY(cursorRange * yAngle);
+
+    //If position has changed, emit a mouse move to the application
+    if (pos.x() != _oldPos.x() || pos.y() != _oldPos.y()) {
+        QMouseEvent mouseEvent(static_cast<QEvent::Type>(CONTROLLER_MOVE_EVENT), pos, Qt::NoButton, Qt::NoButton, 0);
+
+        Application::getInstance()->mouseMoveEvent(&mouseEvent);
+    }
+    _oldPos = pos;
+
+    //Check for bumper press ( Right Click )
+    if (palm->getControllerButtons() & BUTTON_FWD) {
+        if (!_bumperPressed) {
+            _bumperPressed = true;
+            QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, Qt::RightButton, Qt::RightButton, 0);
+
+            Application::getInstance()->mousePressEvent(&mouseEvent);
+        }
+    } else if (_bumperPressed) {
+        QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::RightButton, Qt::RightButton, 0);
+
+        Application::getInstance()->mouseReleaseEvent(&mouseEvent);
+
+        _bumperPressed = false;
+    }
+
+    //Check for trigger press ( Left Click )
+    if (palm->getTrigger() == 1.0f) {
+        if (!_triggerPressed) {
+            _triggerPressed = true;
+            QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, Qt::LeftButton, Qt::LeftButton, 0);
+
+            Application::getInstance()->mousePressEvent(&mouseEvent);
+        }
+    } else if (_triggerPressed) {
+        QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::LeftButton, Qt::LeftButton, 0);
+
+        Application::getInstance()->mouseReleaseEvent(&mouseEvent);
+
+        _triggerPressed = false;
+    }
+}
+
 #endif  // HAVE_SIXENSE
 
